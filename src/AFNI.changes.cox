@@ -3163,4 +3163,15 @@
 24 Sep 2001
  * New program 3dcopy.c does what it sounds like: copies datasets.
  * Modified plug_drawdset.c to allow the user to make a copy of a
-     dataset on input.
+     dataset on input, and to have a SaveAs button.
+
+25 Sep 2001
+ * Modified plug_drawdset.c to have a new drawing mode, 'Filled Curve'.
+ * Modified mri_read.c to allow .HDR and .IMA suffixes for Analyze
+     and Siemens files, respectively (in addition to .hdr and .ima).
+ * Modified mri_read_siemens() in mri_read.c so that if the environment
+     variable AFNI_SIEMENS_INTERLEAVE is set to "Y" or "y", then the
+     multi-images in a Siemens file are assumed to be interleaved rather
+     than presented in order.
+ * Modified to3d.c to have new option -sinter: sets AFNI_SIEMENS_INTERLEAVE
+     to "Yes".

@@ -2080,6 +2080,12 @@ void T3D_initialize_user_data(void)
          nopt++ ; continue ;
       }
 
+      /*--- 25 Sep 2001: -sinter option ---*/
+
+      if( strcmp(Argv[nopt],"-sinter") == 0 ){
+         putenv("AFNI_SIEMENS_INTERLEAVE=Yes") ; nopt++ ; continue ;
+      }
+
       /*--- 15 Aug 2001: -skip_outliers ---*/
 
       if( strcmp(Argv[nopt],"-skip_outliers") == 0 ){
@@ -3049,8 +3055,17 @@ void Syntax()
     "Siemens .ima image files can now be read.  The program will detect if\n"
     "byte-swapping is needed on these images, and can also set voxel grid\n"
     "sizes and orientations (correctly, I hope).\n"
+    " * Some Siemens .ima files seems to have their EPI slices stored in\n"
+    "   spatial order, and some in acquisition (interleaved) order.  This\n"
+    "   program doesn't try to figure this out.  You can use the command\n"
+    "   line option '-sinter' to tell the program to assume that the images\n"
+    "   in a single .ima file are interleaved; for example, if there are\n"
+    "   7 images in a file, then without -sinter, the program will assume\n"
+    "   their order is '0 1 2 3 4 5 6'; with -sinter, the program will\n"
+    "   assume their order is '0 2 4 6 1 3 5' (here, the number refers\n"
+    "   to the slice location in space).\n"
     "\n"
-    "  Notes:\n"
+    "  NOTES:\n"
     "   * Not all GPL AFNI programs support all datum types.  Shorts and\n"
     "       floats are safest. (See the '-datum' option below.)\n"
     "   * If '-datum short' is used or implied, then int, float, and complex\n"

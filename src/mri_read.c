@@ -490,11 +490,13 @@ MRI_IMARR * mri_read_file( char * fname )
 
       newar = mri_read_3A( new_fname ) ;
 
-   } else if( strstr(new_fname,".hdr") != NULL ){  /* 05 Feb 2001 */
+   } else if( strstr(new_fname,".hdr") != NULL ||
+              strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
 
       newar = mri_read_analyze75( new_fname ) ;
 
-   } else if( strstr(new_fname,".ima") != NULL ){  /* 12 Mar 2001 */
+   } else if( strstr(new_fname,".ima") != NULL ||
+              strstr(new_fname,".IMA") != NULL   ){  /* 12 Mar 2001 */
 
       newar = mri_read_siemens( new_fname ) ;
 
@@ -616,11 +618,15 @@ int mri_imcount( char * tname )
 
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
 
-   if( strstr(new_fname,".hdr") != NULL ){
+   if( strstr(new_fname,".hdr") != NULL ||
+       strstr(new_fname,".HDR") != NULL   ){
+
       return mri_imcount_analyze75( new_fname ) ;
    }
 
-   if( strstr(new_fname,".ima") != NULL ){        /* 12 Mar 2001 */
+   if( strstr(new_fname,".ima") != NULL ||
+       strstr(new_fname,".IMA") != NULL   ){        /* 12 Mar 2001 */
+
       return mri_imcount_siemens( new_fname ) ;
    }
 
@@ -1712,6 +1718,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
    short     * nar ;
    char buf[256] ;
    float dx,dy,dz ;
+   char *eee ; int ileave=0 ;  /* 25 Sep 2001 */
 
    /*--- check file size ---*/
 
@@ -1744,7 +1751,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
    /*-- determine number of sub-images in file --*/
 
 #undef  MATRIX_MAX
-#define MATRIX_MAX 9
+#define MATRIX_MAX 16
 
    i = 2*imagesize*imagesize ;
    for( matrix=1 ; matrix < MATRIX_MAX ; matrix++ )
@@ -1780,9 +1787,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
       }
    }
 
-   if( slices == 0 ){
-      free(imar) ; return NULL ;
-   }
+   if( slices == 0 ){ free(imar) ; return NULL ; }  /* bad news */
 
    /*-- get image dimensions, etc --*/
 
@@ -1794,6 +1799,8 @@ MRI_IMARR * mri_read_siemens( char * hname )
    dx = head.FOVRow    / imagesize ;
    dy = head.FOVColumn / imagesize ;
    dz = head.SliceThickness ;
+
+   /*-- save orientation and offset in global variables --*/
 
    MRILIB_orients[0] = head.OrientationSet1Left[0] ;
    MRILIB_orients[1] = head.OrientationSet2Right[0];
@@ -1832,8 +1839,24 @@ MRI_IMARR * mri_read_siemens( char * hname )
    }
 
 Done:
-   free(imar) ;
-   return newar ;
+
+   /*-- 25 Sep 2001: possibly interleave the images --*/
+
+   eee = getenv("AFNI_SIEMENS_INTERLEAVE") ;
+   ileave = ( (eee != NULL) && (*eee=='Y' || *eee=='y') ) ;
+   if( ileave && slices > 2 ){
+      int mid = (slices-1)/2 ;  /* midpoint */
+      MRI_IMARR *qar ;          /* new image array */
+      INIT_IMARR(qar) ;
+      for( i=0 ; i < slices ; i++ ){
+         if( i%2 == 0 ) j = i/2 ;           /* slice #i is in newar #j */
+         else           j = mid + (i+1)/2 ;
+         ADDTO_IMARR(qar,IMARR_SUBIM(newar,j)) ; /* move image to new array */
+      }
+      FREE_IMARR(newar) ; newar = qar ;
+   }
+
+   free(imar) ; return newar ;
 }
 
 /*---------------------------------------------------------------------------
@@ -1945,11 +1968,13 @@ MRI_IMARR * mri_read_file_delay( char * fname )
 
       newar = mri_read_3A( new_fname ) ;
 
-   } else if( strstr(new_fname,".hdr") != NULL ){ /* 05 Feb 2001 - ANALYZE header */
+   } else if( strstr(new_fname,".hdr") != NULL ||
+              strstr(new_fname,".HDR") != NULL   ){ /* 05 Feb 2001 - ANALYZE header */
 
       newar = mri_read_analyze75( new_fname ) ;
 
-   } else if( strstr(new_fname,".ima") != NULL ){ /* 12 Mar 2001 - Siemens */
+   } else if( strstr(new_fname,".ima") != NULL ||
+              strstr(new_fname,".IMA") != NULL   ){ /* 12 Mar 2001 - Siemens */
 
       newar = mri_read_siemens( new_fname ) ;
 

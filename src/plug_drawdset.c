@@ -26,6 +26,7 @@ void DRAW_undo_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_help_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_quit_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_save_CB  ( Widget , XtPointer , XtPointer ) ;
+void DRAW_saveas_CB( Widget , XtPointer , XtPointer ) ;  /* 24 Sep 2001 */
 void DRAW_choose_CB( Widget , XtPointer , XtPointer ) ;
 void DRAW_color_CB ( MCW_arrowval * , XtPointer ) ;
 void DRAW_mode_CB  ( MCW_arrowval * , XtPointer ) ;
@@ -38,6 +39,8 @@ void DRAW_receiver( int , int , void * , void * ) ;
 int  DRAW_into_dataset( int , int * , int * , int * , void * ) ;
 void DRAW_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar ) ;
+
+void DRAW_saveas_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 static PLUGIN_interface * plint = NULL ;
 
@@ -72,7 +75,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 /* Interface widgets */
 
 static Widget shell=NULL , rowcol , info_lab , choose_pb ;
-static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb ;
+static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb , saveas_pb ;
 static MCW_arrowval * value_av , * color_av , * mode_av ;
 
 static MCW_arrowval * fillin_dir_av , * fillin_gap_av ; /* 19 Mar 2001 */
@@ -127,14 +130,19 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_FLOOD_NZ    4
 #define MODE_FLOOD_ZERO  5   /* 30 Jan 1999 */
 #define MODE_ZERO_VAL    6   /* 31 Jan 1999 */
+#define MODE_FILLED      7   /* 25 Sep 2001 */
 
 static char * mode_strings[] = {
   "Open Curve"   , "Closed Curve"   , "Points"      ,
-  "Flood->Value" , "Flood->Nonzero" , "Flood->Zero" , "Zero->Value" } ;
+  "Flood->Value" , "Flood->Nonzero" , "Flood->Zero" , "Zero->Value" ,
+  "Filled Curve"
+} ;
 
 static int    mode_ints[] = {
   DRAWING_LINES  , DRAWING_FILL   , DRAWING_POINTS ,
-  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS } ;
+  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
+  DRAWING_FILL
+} ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
 
@@ -225,7 +233,7 @@ char * DRAW_main( PLUGIN_interface * plint )
    recv_key     = -1;      /* and has no identifier key */
 
    SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
-   SENSITIZE(save_pb,0) ;
+   SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    SENSITIZE(choose_pb,1) ;
 
    return NULL ;
@@ -237,7 +245,7 @@ char * DRAW_main( PLUGIN_interface * plint )
 
 /*-- structures defining action buttons (at bottom of popup) --*/
 
-#define NACT 5  /* number of action buttons */
+#define NACT 6  /* number of action buttons */
 
 static MCW_action_item DRAW_actor[NACT] = {
  {"Undo",DRAW_undo_CB,NULL,
@@ -252,6 +260,10 @@ static MCW_action_item DRAW_actor[NACT] = {
 
  {"Save",DRAW_save_CB,NULL,
   "Save edits to disk\nand continue" , "Save to disk and continue",0} ,
+
+ {"SaveAs",DRAW_saveas_CB,NULL,                        /* 24 Sep 2001 */
+  "Save edits to disk\nin a new dataset\nand continue" ,
+  "Save to disk in new dataset, continue",0} ,
 
  {"Done",DRAW_done_CB,NULL,
   "Save edits to disk\nand close Editor" , "Save and close",1}
@@ -381,7 +393,7 @@ void DRAW_make_widgets(void)
                            "How to copy values from dataset" ) ;
 
      copy_type_av = new_MCW_optmenu( rc , NULL ,
-                                     0 , 2 , 0 , 0 , NULL,NULL ,
+                                     0 , 2 , 1 , 0 , NULL,NULL ,
                                      MCW_av_substring_CB , ctype_label ) ;
 
      MCW_reghint_children( copy_type_av->wrowcol ,
@@ -464,6 +476,8 @@ void DRAW_make_widgets(void)
                          "                 to any zero point\n"
                          "Zero->Value    = fill with zeros until the Drawing\n"
                          "                 Value is hit"
+                         "Filled Curve   = fill inside of closed curve with\n"
+                         "                 Drawing Value\n"
                        ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
@@ -618,11 +632,12 @@ void DRAW_make_widgets(void)
 
    (void) MCW_action_area( rowcol , DRAW_actor , NACT ) ;
 
-   undo_pb = (Widget) DRAW_actor[0].data ;
-   help_pb = (Widget) DRAW_actor[1].data ;
-   quit_pb = (Widget) DRAW_actor[2].data ;
-   save_pb = (Widget) DRAW_actor[3].data ;
-   done_pb = (Widget) DRAW_actor[4].data ;
+   undo_pb   = (Widget) DRAW_actor[0].data ;
+   help_pb   = (Widget) DRAW_actor[1].data ;
+   quit_pb   = (Widget) DRAW_actor[2].data ;
+   save_pb   = (Widget) DRAW_actor[3].data ;
+   saveas_pb = (Widget) DRAW_actor[4].data ;  /* 24 Sep 2001 */
+   done_pb   = (Widget) DRAW_actor[5].data ;
 
    /*** that's all ***/
 
@@ -681,7 +696,7 @@ void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    void * ub ; int * ux, * uy, * uz ;
    int ubs = undo_bufsiz , uis = sizeof(int)*undo_bufuse ;
 
-   if( undo_bufuse <= 0 ){ XBell( dc->display , 100 ) ; return ; }
+   if( undo_bufuse <= 0 ){ XBell(dc->display,100) ; return ; }
 
    /* since the undo_stuff will be modified by the
       drawing function, we must make temporary copies */
@@ -729,23 +744,113 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 }
 
 /*-------------------------------------------------------------------
-  Callback for save button
+  Callback for Save button
 ---------------------------------------------------------------------*/
 
 void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   if( dset == NULL ){ XBell( dc->display , 100 ) ; return ; }
+   if( dset == NULL ){ XBell(dc->display,100) ; return ; }
 
    MCW_invert_widget(save_pb) ;
 
    DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
 
-   MCW_invert_widget(save_pb) ; SENSITIZE(save_pb,0) ;
+   MCW_invert_widget(save_pb) ;
+   SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    return ;
 }
 
 /*-------------------------------------------------------------------
-  Callback for help button
+  24 Sep 2001: Callback for Save As button
+---------------------------------------------------------------------*/
+
+void DRAW_saveas_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   if( dset == NULL ){ XBell(dc->display,100) ; return ; }
+
+   MCW_choose_string( saveas_pb , "Enter new prefix" ,
+                      NULL , DRAW_saveas_finalize_CB , NULL ) ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
+{
+   THD_3dim_dataset *cset ;
+   char str[256] ;
+   XmString xstr ;
+
+   /*-- check for craziness --*/
+
+   if( !editor_open || dset == NULL ){
+      POPDOWN_strlist_chooser; XBell(dc->display,100); return;
+   }
+
+   if( !PLUTO_prefix_ok(cbs->cval) ){ XBell(dc->display,100); return; }
+
+   /*-- make a copy of this dataset --*/
+
+   MCW_invert_widget(saveas_pb) ;
+
+   cset = DRAW_copy_dset( dset , 0,0,-1 ) ;
+   if( cset == NULL ){                      /* should not happen */
+     (void) MCW_popup_message( saveas_pb ,
+                                 " \n"
+                                 "*** Cannot make copy of edited  ***\n"
+                                 "*** dataset for unknown reasons ***\n " ,
+                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+
+     MCW_invert_widget(saveas_pb); XBell(dc->display,100); return;
+   }
+   EDIT_dset_items( cset , ADN_prefix,cbs->cval , ADN_none ) ;
+
+   if( THD_is_file(DSET_HEADNAME(cset)) ){  /* stupid user */
+     (void) MCW_popup_message( saveas_pb ,
+                                 " \n"
+                                 "*** Cannot SaveAs this edited   ***\n"
+                                 "*** dataset since a dataset     ***\n"
+                                 "*** with that prefix is on disk ***\n " ,
+                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     DSET_delete(cset) ;
+     MCW_invert_widget(saveas_pb); XBell(dc->display,100); return;
+   }
+
+   /*-- tell AFNI about the new dataset --*/
+
+   PLUTO_add_dset( plint , cset , DSET_ACTION_MAKE_CURRENT ) ;
+
+   /*-- remove current dataset from further consideration --*/
+
+   DSET_unlock(dset) ; DSET_unload(dset) ; DSET_anyize(dset) ;
+
+   /*-- switch current dataset to be the copy just made --*/
+
+   dset = cset ; dset_idc = dset->idcode ;
+   DSET_write(dset) ; DSET_mallocize(dset) ; DSET_load(dset) ; DSET_lock(dset) ;
+
+   /*-- re-write the informational label --*/
+
+   if( DSET_BRICK_FACTOR(dset,0) == 0.0 ){
+      strcpy(str,DSET_FILECODE(dset)) ;
+   } else {
+      char abuf[16] ;
+      AV_fval_to_char( DSET_BRICK_FACTOR(dset,0) , abuf ) ;
+      sprintf(str,"%s\nbrick factor: %s", DSET_FILECODE(dset) , abuf ) ;
+   }
+   xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
+   XmStringFree(xstr) ;
+
+   /*-- finish up --*/
+
+   dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
+   MCW_invert_widget(saveas_pb) ;
+   SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------
+  Callback for Help button
 ---------------------------------------------------------------------*/
 
 void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
@@ -794,7 +899,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            dataset, with the string 'COPY_' prepended.  You can\n"
   "            alter this name later using the 'Dataset Rename' plugin,\n"
   "            AFTER the dataset has been Save-d, or with the '3drename'\n"
-  "            program after you exit AFNI.\n"
+  "            program after you exit AFNI, or with the 'SaveAs' button\n"
+  "            in this plugin.\n"
   "\n"
   "Step 2) Choose a drawing value.\n"
   "        * This is the number that will be placed into the dataset\n"
@@ -827,6 +933,10 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            zero voxel value is reached.\n"
   "        * 'Zero->Value' means to flood fill the slice with zeros,\n"
   "            stopping when a voxel with the drawing value is reached.\n"
+  "        * 'Filled Curve' means to draw a closed curve and then fill\n"
+  "            its interior with the drawing value.  It is similar to\n"
+  "            doing 'Closed Curve' followed by 'Flood->Value', but\n"
+  "            more convenient.\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -889,6 +999,10 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            re-read from disk when it is redisplayed.\n"
   "        * Closing the AFNI Editor window using the window manager\n"
   "            is equivalent to pressing 'Quit'.\n"
+  "   [24 Sep 2001]:\n"
+  "        * The 'SaveAs' button lets you save the changes to a new\n"
+  "            dataset.  The new dataset will become the current dataset\n"
+  "            for further editing and for AFNI display.\n"
   "\n"
   "WARNINGS++:\n"
   "  * It is important to understand the distinction between 'pixels'\n"
@@ -910,8 +1024,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "      the 3D grid in the image and graph windows.  Such actions\n"
   "      include switching from 'View Brick' to 'Warp on Demand',\n"
   "      switching datasets or sessions, and switching views.\n"
-  "  * You can only draw into the windows of the controller from which\n"
-  "      the Editor was started.\n"
+  "  * You can only draw into the windows of the AFNI controller from\n"
+  "      which the Editor was started.\n"
   "  * Only one copy of the Editor can be active at a time.  If you\n"
   "      use the plugin menu to call up the Editor when it is already\n"
   "      open, that will simply pop the window up to the top of the\n"
@@ -920,7 +1034,7 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "      (via 'Done' or 'Quit') and then start it from the other\n"
   "      controller's window.\n"
   "  * Peculiar and confusing things can happen using 'Warp-on-Demand'\n"
-  "      with the Editor.  My advice is not to try this.\n"
+  "      with the Editor.  My advice is NOT to try this.\n"
   "  * Note that using a Session rescan button (from the 'Define Datamode'\n"
   "      control panel) will close all datasets while rescanning the\n"
   "      session.  This can result in the loss of un-Saved edits.\n"
@@ -930,7 +1044,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "      on 'DynaDraw' in the rendering plugin; then, if the dataset you\n"
   "      are drawing on is the same as the renderer's overlay, each drawing\n"
   "      action will cause a re-rendering.  This works well if you have\n"
-  "      set the renderer's 'Color Opacity' to 'ShowThru'.\n"
+  "      set the renderer's 'Color Opacity' to 'ShowThru'.  This is also\n"
+  "      a lot of fun.\n"
   "  * If you are drawing anatomically-based ROIs, you can only draw every\n"
   "      5th slice (say) and then use program 3dRowFillin to fill in the\n"
   "      inter-slice gaps.\n"
@@ -940,7 +1055,7 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "SUGGESTIONS?\n"
   "  * Please send them to " COXEMAIL "\n"
   "  * Even better than suggestions are implementations.\n"
-  "  * Even better than implementations are chocolate chip bagels.\n"
+  "  * Even better than implementations are pumpernickel bagels.\n"
   "Author -- RW Cox"
 
     , TEXT_READONLY ) ;
@@ -978,8 +1093,7 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
                                    "already made.  Or you could\n"
                                    "'Quit' and re-start the Editor" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      XBell( dc->display , 100 ) ;
-      return ;
+      XBell(dc->display,100) ; return ;
    }
 
    /* initialize */
@@ -1029,8 +1143,7 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
                                    " - you are in 'Warp-on-Demand' mode\n"
                                    " - you are in the correct session" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      XBell( dc->display , 100 ) ;
-      return ;
+      XBell(dc->display,100) ; return ;
    }
 
    /*--- 23 Nov 1996: loop over dataset links and patch their titles
@@ -1109,7 +1222,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    /*-- check for errors --*/
 
-   if( ! editor_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; return ; }
+   if( ! editor_open ){ POPDOWN_strlist_chooser; XBell(dc->display,100); return; }
 
    if( dset != NULL && dset_changed ){ XBell(dc->display,100) ; return ; }
 
@@ -1162,9 +1275,11 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    /*-- accept this dataset --*/
 
-   dset = qset ; dset_changed = 0 ; SENSITIZE(save_pb,0) ;
+   dset = qset ; dset_changed = 0 ;
    dax_save = *(dset->daxes) ;
-   dset_idc = qset->idcode ;   /* 31 Mar 1999 */
+   dset_idc = dset->idcode ;   /* 31 Mar 1999 */
+
+   SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
 
    /*-- write the informational label --*/
 
@@ -1283,7 +1398,8 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
              ((mode_ival != MODE_FLOOD_VAL )  &&
               (mode_ival != MODE_FLOOD_NZ  )  &&
               (mode_ival != MODE_FLOOD_ZERO)  &&
-              (mode_ival != MODE_ZERO_VAL  ))   ){
+              (mode_ival != MODE_ZERO_VAL  )  &&
+              (mode_ival != MODE_FILLED    ))   ){
 
             DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
 
@@ -1315,123 +1431,185 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
             pl  = (byte *) malloc( sizeof(byte) * nij ) ;
             memset( pl , 0 , sizeof(byte) * nij ) ;
 
-            if( bfac == 0.0 ) bfac = 1.0 ;
-            switch(ityp){
+            if( mode_ival != MODE_FILLED ){  /* old code: flood to a dataset value */
 
-               case MRI_short:{
-                  short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
-                  short   val = (short)   (value_float/bfac) ;
+              if( bfac == 0.0 ) bfac = 1.0 ;
+              switch(ityp){
 
-                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+                 case MRI_short:{
+                    short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
+                    short   val = (short)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL  ||
-                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+                    if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
 
-               case MRI_byte:{
-                  byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
-                  byte   val = (byte)   (value_float/bfac) ;
+                    if( mode_ival == MODE_FLOOD_VAL  ||
+                        mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+                          }
+                    } else {
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
+                          }
+                    }
+                 }
+                 break ;
 
-                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+                 case MRI_byte:{
+                    byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
+                    byte   val = (byte)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL  ||
-                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+                    if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
 
-               case MRI_float:{
-                  float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
-                  float   val = (value_float/bfac) ;
+                    if( mode_ival == MODE_FLOOD_VAL  ||
+                        mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+                          }
+                    } else {
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
+                          }
+                    }
+                 }
+                 break ;
 
-                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+                 case MRI_float:{
+                    float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
+                    float   val = (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL  ||
-                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0.0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+                    if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
 
-               default:
-                  free(pl) ;
-                  fprintf(stderr,
-                         "Flood not implemented for datasets of type %s\a\n",
-                         MRI_TYPE_name[ityp] ) ;
-               return ;
+                    if( mode_ival == MODE_FLOOD_VAL  ||
+                        mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+                          }
+                    } else {
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] != 0.0 ) pl[ii+jj*itop] = 1 ;
+                          }
+                    }
+                 }
+                 break ;
 
-            } /* end of switch on type */
+                 default:
+                    free(pl) ;
+                    fprintf(stderr,
+                           "Flood not implemented for datasets of type %s\a\n",
+                           MRI_TYPE_name[ityp] ) ;
+                 return ;
 
-            /* start point must be a 0 (can't fill from an edge) */
+              } /* end of switch on type */
 
-            if( pl[ix+jy*itop] == 1 ){
-               free(pl) ; XBell(dc->display,100) ; return ;
-            }
+              /* start point must be a 0 (can't fill from an edge) */
 
-            /* call a routine to fill the array */
+              if( pl[ix+jy*itop] == 1 ){
+                 free(pl) ; XBell(dc->display,100) ; return ;
+              }
 
-            DRAW_2dfiller( itop,jtop , ix,jy , pl ) ;
+              /* call a routine to fill the array */
 
-            /* all filled points are 2 --> these are the locations to draw */
+              DRAW_2dfiller( itop,jtop , ix,jy , pl ) ;
 
-            nfill = 0 ;
-            for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
-            if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+              /* all filled points are 2 --> these are the locations to draw */
 
-            xyzf = (int *) malloc( sizeof(int) * nfill ) ;
+              nfill = 0 ;
+              for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
+              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
 
-            for( nf=0,jj=0 ; jj < jtop ; jj++ ){
-               for( ii=0 ; ii < itop ; ii++ ){
-                  if( pl[ii+jj*itop] == 2 )
-                     xyzf[nf++] = base + ii*di + jj*dj ;
-               }
-            }
+              xyzf = (int *) malloc( sizeof(int) * nfill ) ;
 
-            free(pl) ;
+              for( nf=0,jj=0 ; jj < jtop ; jj++ ){
+                 for( ii=0 ; ii < itop ; ii++ ){
+                    if( pl[ii+jj*itop] == 2 )
+                       xyzf[nf++] = base + ii*di + jj*dj ;
+                 }
+              }
 
-            if( mode_ival == MODE_ZERO_VAL ){ bfac = value_float; value_float = 0.0; }
+              free(pl) ;
 
-            DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+              if( mode_ival == MODE_ZERO_VAL ){ bfac = value_float; value_float = 0.0; }
 
-            if( mode_ival == MODE_ZERO_VAL ) value_float = bfac ;
+              DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
 
-            free(xyzf) ;
+              if( mode_ival == MODE_ZERO_VAL ) value_float = bfac ;
 
-         } /* end of flooding */
+              free(xyzf) ;
+
+            } /*-- end of flood code --*/
+
+            else {  /*-- 25 Sep 2001: fill the interior of the drawn curve --*/
+
+              int *iip , *jjp ;
+
+              switch(plane){                           /* select which   */
+                case 1: iip = yd ; jjp = zd ; break ;  /* arrays to draw */
+                case 2: iip = xd ; jjp = zd ; break ;  /* curve from     */
+                case 3: iip = xd ; jjp = yd ; break ;
+              }
+
+              for( ii=0 ; ii < np ; ii++ ){  /* draw curve into fill array */
+                 pl[ iip[ii] + jjp[ii]*itop ] = 1 ;
+              }
+
+              /* now find an edge point that is not on the curve */
+
+              ix = -1 ;
+              for( ii=0 ; ii < itop ; ii++ ){
+                 if( pl[ii]               == 0 ){ ix = ii; jy = 0     ; break; }
+                 if( pl[ii+(jtop-1)*itop] == 0 ){ ix = ii; jy = jtop-1; break; }
+              }
+              if( ix < 0 ){
+                for( jj=0 ; jj < jtop ; jj++ ){
+                  if( pl[jj*itop]          == 0 ){ ix = 0     ; jy = jj; break; }
+                  if( pl[(itop-1)+jj*itop] == 0 ){ ix = itop-1; jy = jj; break; }
+                }
+              }
+              if( ix < 0 ){ /* should never happen */
+                 free(pl) ; XBell(dc->display,100) ; return ;
+              }
+
+              /* fill the array from the edge */
+
+              DRAW_2dfiller( itop,jtop , ix,jy , pl ) ;
+
+              /* all filled points are 2 --> these are NOT the locations to draw */
+
+              nfill = 0 ;
+              for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] != 2) ;
+              if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+
+              xyzf = (int *) malloc( sizeof(int) * nfill ) ;
+
+              for( nf=0,jj=0 ; jj < jtop ; jj++ ){
+                 for( ii=0 ; ii < itop ; ii++ ){
+                    if( pl[ii+jj*itop] != 2 )
+                       xyzf[nf++] = base + ii*di + jj*dj ;
+                 }
+              }
+
+              free(pl) ;
+
+              DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+
+              free(xyzf) ;
+
+            } /* end of interior fill code */
+
+         } /* end of flooding or filling */
 
       } /* end of dealing with drawn points */
       break ;
@@ -1453,7 +1631,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
          if( dset != NULL ){
             if( ! EQUIV_DATAXES( im3d->wod_daxes , &dax_save ) ){
-               XBell( dc->display , 100 ) ;    /* feeble protest */
+               XBell(dc->display,100) ;        /* feeble protest */
                DRAW_quit_CB(NULL,NULL,NULL) ;  /* die */
 
                /* less feeble protest */
@@ -1477,7 +1655,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                THD_load_statistics( dset ) ;
                PLUTO_dset_redisplay( dset ) ;
 
-               XBell( dc->display , 100 ) ;
+               XBell(dc->display,100) ;
                (void) MCW_popup_message( im3d->vwid->top_shell ,
                                             "********* WARNING *********\n"
                                             "* Session rescan may have *\n"
@@ -1641,7 +1819,7 @@ int DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * var )
 
    undo_bufuse  = np ;
    dset_changed = 1 ;
-   SENSITIZE(save_pb,1) ;
+   SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
    SENSITIZE(choose_pb,0) ;
    SENSITIZE(undo_pb,1) ;
 
@@ -1725,7 +1903,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
      fprintf(stderr,"++ Fillin filled %d voxels\n",nftot) ;
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
-     SENSITIZE(save_pb,1) ;
+     SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
    } else if( nftot < 0 ) {
       fprintf(stderr,"** Fillin failed for some reason!\n") ;
@@ -1895,7 +2073,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      fprintf(stderr,"++ %d TT Atlas voxels drawn into dataset\n",ff) ;
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
-     SENSITIZE(save_pb,1) ;
+     SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
    } else {
       fprintf(stderr,"++ No TT Atlas voxels found for some reason!?\a\n") ;
