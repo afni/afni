@@ -920,35 +920,77 @@ int NI_multival_to_binary( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Write instances of a NI_rowtype struct to a NI_stream.
-      - ns    = stream to write to
-      - rt    = rowtype of the data
-      - ndat  = number of structs in dat
-      - dpt   = pointer to structs with data corresponding to rt
-      - tmode = output mode flag
+/*! Return 1 if the type contains a String part, 0 if not.
+--------------------------------------------------------------------------*/
+
+int NI_has_String( NI_rowtype *rt )
+{
+   int ii , jj ;
+
+   /* test #1: if a NIML builtin type, test if it is String */
+
+   if( ROWTYPE_is_builtin_code(rt->code) ) return (rt->code == NI_STRING) ;
+
+   /* test the parts */
+
+   for( ii=0 ; ii < rt->part_num ; ii++ ){
+     if( ROWTYPE_is_builtin_code(rt->part_rtp[ii]->code) ){ /* builtin part */
+       if( rt->part_rtp[ii]->code == NI_STRING ) return 1;
+     } else {                                              /* derived part */
+       if( NI_has_String( rt->part_rtp[ii] )   ) return 1; /* recursion */
+     }
+   }
+   return 0 ;
+}
+
+/*------------------------------------------------------------------------*/
+
+int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
+                      int ndat , void *dat , int tmode )
+{
+   void *dpt = dat ;
+   return NI_write_columns( ns , 1 , &(rt->code) , ndat , &dpt , tmode ) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Write "columns" of data to a NI_stream.  Each column is an array of
+    structs of some NI_rowtype (including the builtin types):
+      - ns         = stream to write to
+      - col_num    = number of columns to write (1,2,...)
+      - col_typ[i] = type code for column #i (i=0..col_num-1)
+      - col_len    = number of elements in each column
+      - col_dpt[i] = pointer to data in column #i
       - return value is number of bytes written to stream
         (-1 if something bad happened, 0 if can't write to stream yet)
 
-   This function is adapted from NI_write_element().
+   Only the data is written to the stream - no header or footer.
+   This function is adapted from the 1st edition of NI_write_element().
 --------------------------------------------------------------------------*/
 
-int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
-                                          int ndat, void *dpt, int tmode )
+int NI_write_columns( NI_stream_type *ns,
+                      int col_num , int   *col_typ ,
+                      int col_len , void **col_dpt , int tmode )
 {
-   int ii,jj , row , vsiz,fsiz,dim , ntot,nout ;
-   char *ptr , *dat=(char *)dpt ;
+   int ii,jj , row , dim , ntot,nout , col ;
+   char *ptr , **col_dat=(char **)col_dpt ;
    int  nwbuf,bb=0,cc=0;
    char *wbuf=NULL ; /* write buffer */
    char *bbuf=NULL ; /* copy of write buffer */
    char *cbuf=NULL ; /* Base64 buffer */
 
+   NI_rowtype **rt=NULL ;  /* array of NI_rowtype, 1 per column */
+   int *vsiz=NULL , vsiz_tot=0 ;
+   int *fsiz=NULL , fsiz_tot=0 ;
+
+# undef  FREEUP
+# define FREEUP do{ NI_FREE(wbuf); NI_FREE(bbuf); NI_FREE(cbuf); \
+                    NI_FREE(rt)  ; NI_FREE(vsiz); NI_FREE(fsiz); \
+                } while(0)
+
    /*-- check inputs --*/
 
-   if( ndat == 0 )                                           return  0 ;
-   if( ns == NULL || rt == NULL || dat == NULL || ndat < 0 ) return -1 ;
-
-   vsiz = (rt->psiz == 0) ;  /* is this a variable size type */
-   fsiz = rt->size ;         /* fixed size of struct (w/padding) */
+   if( col_num <= 0 || col_len <= 0                       ) return  0 ;
+   if( ns == NULL   || col_typ == NULL || col_dat == NULL ) return -1 ;
 
    /*-- check stream --*/
 
@@ -962,26 +1004,29 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
    if( ns->type == NI_STRING_TYPE )  /* output to string buffer ==> text mode */
      tmode = NI_TEXT_MODE ;
 
-   if( !tmode ){                     /* any String parts ==> text mode */
-     for( ii=0 ; ii < rt->part_num ; ii++ )
-       if( rt->part_typ[ii] == NI_STRING ){ tmode = NI_TEXT_MODE; break; }
+   /* create array of NI_rowtype for columns, etc. */
+
+   rt   = NI_malloc( sizeof(NI_rowtype *) * col_num ) ;
+   vsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   fsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   for( col=0 ; col < col_num ; col++ ){
+     rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
+     if( rt[col] == NULL ){ FREEUP; return -1; }
+     vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
+     fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
+     vsiz_tot += vsiz[col] ;
+     fsiz_tot += fsiz[col] ;
+     if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ) tmode = NI_TEXT_MODE;
    }
 
-   /*-- special case: vector of unpadded fixed-size data
-                      (which includes all basic types)
-                      can be written directly to the output in binary --*/
-
-   if( fsiz == rt->psiz && tmode == NI_BINARY_MODE )
-     return NI_stream_write( ns , dat , ndat*fsiz ) ;
-
-   /*-- allocate space for the write buffer (1 struct at a time) --*/
+   /*-- allocate space for the write buffer (1 row at a time) --*/
 
    switch( tmode ){
      default:             tmode = NI_TEXT_MODE ; /* fall through */
-     case NI_TEXT_MODE:   nwbuf = 6*fsiz ; break ;
+     case NI_TEXT_MODE:   nwbuf = 6*fsiz_tot ; break ;
 
      case NI_BASE64_MODE:
-     case NI_BINARY_MODE: nwbuf =   fsiz ; break ;
+     case NI_BINARY_MODE: nwbuf =   fsiz_tot ; break ;
    }
    wbuf = NI_malloc(nwbuf+128) ;  /* 128 for the hell of it */
 
@@ -997,25 +1042,27 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
      and adds into the running total ntot if all was well;
      if all was not well with the write, then it aborts the output */
 
-# define ADDOUT                                              \
-  if( nout < 0 ){                                            \
-    fprintf(stderr,"NIML: write abort!\n");                  \
-    NI_free(wbuf); NI_free(bbuf); NI_free(cbuf); return -1;  \
+# undef  ADDOUT
+# define ADDOUT                             \
+  if( nout < 0 ){                           \
+    fprintf(stderr,"NIML: write abort!\n"); \
+    FREEUP ; return -1 ;                    \
   } else ntot+=nout
 
-   /*-- loop over output structs,
+   /*-- loop over output rows,
         format for output into wbuf, and then send to output stream --*/
 
    ntot = 0 ;  /* total number of bytes output to stream */
 
-   for( row=0 ; row < ndat ; row++ ){
+   for( row=0 ; row < col_len ; row++ ){
 
-     ptr = dat + fsiz*row ;   /* pointer to start of this struct */
+     /* expand write buffer if any type contains variable sized array(s) */
 
-     /* expand write buffer if this type contains variable sized array(s) */
-
-     if( vsiz ){
-       jj = NI_rowtype_vsize( rt , ptr ) ;   /* size of struct, w/ var arrays */
+     if( vsiz_tot ){
+       for( jj=col=0 ; col < col_num ; col++ ){
+        ptr = col_dat[col] + fsiz[col]*row ;     /* ptr to row-th element */
+        jj += NI_rowtype_vsize( rt[col] , ptr ); /* size of data, w/var arrays */
+       }
        if( tmode == NI_TEXT_MODE ) jj *= 6 ;
        if( jj > nwbuf ){                     /* did it get bigger? */
          nwbuf = jj ;
@@ -1027,7 +1074,7 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
        }
      }
 
-     /* initialize write buffer for this struct */
+     /* initialize write buffer for this row */
 
      switch( tmode ){
        case NI_TEXT_MODE:    wbuf[0] = '\0'; break; /* clear buffer */
@@ -1035,55 +1082,61 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
        case NI_BINARY_MODE:  jj = 0 ;        break; /* clear byte count */
      }
 
-     /* write each part into the buffer */
-     /* in text mode, strlen(wbuf) keeps track of number of bytes;
-        in binary mode, jj keeps track of number of bytes written */
+     /* loop over columns, write each into the buffer */
 
-     for( ii=0 ; ii < rt->part_num ; ii++ ){  /*-- loop over parts --*/
+     for( col=0 ; col < col_num ; col++ ){
+      ptr = col_dat[col] + fsiz[col]*row ; /* ptr to row-th element */
 
-       if( rt->part_dim[ii] < 0 ){             /*-- a single value --*/
-         switch( tmode ){      /*-- output method (text or binary) --*/
+      /* write each part into the buffer */
+      /* in text mode, strlen(wbuf) keeps track of number of bytes;
+         in binary mode, jj keeps track of number of bytes written */
 
-           case NI_TEXT_MODE:         /*-- sprintf value to output --*/
-             NI_val_to_text( rt->part_rtp[ii],
-                             ptr+rt->part_off[ii], wbuf ) ;
+      for( ii=0 ; ii < rt[col]->part_num ; ii++ ){ /*-- loop over parts --*/
+
+       if( rt[col]->part_dim[ii] < 0 ){             /*-- a single value --*/
+         switch( tmode ){           /*-- output method (text or binary) --*/
+
+           case NI_TEXT_MODE:              /*-- sprintf value to output --*/
+             NI_val_to_text( rt[col]->part_rtp[ii],
+                             ptr+rt[col]->part_off[ii], wbuf ) ;
            break ;
 
-           case NI_BASE64_MODE:       /*-- memcpy values to output --*/
+           case NI_BASE64_MODE:            /*-- memcpy values to output --*/
            case NI_BINARY_MODE:
-             jj += NI_val_to_binary( rt->part_rtp[ii],
-                                     ptr+rt->part_off[ii], wbuf+jj ) ;
+             jj += NI_val_to_binary( rt[col]->part_rtp[ii],
+                                     ptr+rt[col]->part_off[ii], wbuf+jj ) ;
            break ;
          }
 
-       } else {                      /*-- variable dimension array --*/
+       } else {                           /*-- variable dimension array --*/
 
-         char **apt = (char **)(ptr+rt->part_off[ii]); /* data in struct */
-                                                      /* is ptr to array */
+         char **apt = (char **)(ptr+rt[col]->part_off[ii]); /* data in struct */
+                                                           /* is ptr to array */
 
-         dim = ROWTYPE_part_dimen(rt,ptr,ii) ;  /* dimension of part */
+         dim = ROWTYPE_part_dimen(rt[col],ptr,ii) ;      /* dimension of part */
          if( dim > 0 && *apt != NULL ){
            switch( tmode ){
              case NI_TEXT_MODE:
-               NI_multival_to_text( rt->part_rtp[ii] , dim ,
+               NI_multival_to_text( rt[col]->part_rtp[ii] , dim ,
                                     *apt , wbuf ) ;
              break ;
              case NI_BASE64_MODE:
              case NI_BINARY_MODE:
-               jj += NI_multival_to_binary( rt->part_rtp[ii] , dim ,
+               jj += NI_multival_to_binary( rt[col]->part_rtp[ii] , dim ,
                                             *apt , wbuf+jj ) ;
              break ;
            }
          }
        }
 
-     } /* end of loop over parts in this struct */
+      } /* end of loop over parts in this column struct */
+     } /* end of loop over columns */
 
      /*- actually write the data in wbuf out -*/
 
      switch( tmode ){
 
-       case NI_TEXT_MODE:     /* each struct is on a separate line */
+       case NI_TEXT_MODE:     /* each row is on a separate line */
          strcat(wbuf,"\n") ;
          nout = NI_stream_writestring( ns , wbuf ) ;
          ADDOUT ;
@@ -1151,7 +1204,6 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
 
    /*-- cleanup and return --*/
 
-   NI_free(cbuf) ; NI_free(bbuf) ; NI_free(wbuf) ;
-
+   FREEUP ;
    return ntot ;
 }
