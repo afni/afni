@@ -238,7 +238,6 @@ int r_dxyz_mod_dataxes( double dx, double dy, double dz,
                         THD_dataxes * daxin, THD_dataxes * daxout
                       )
 {
-    THD_ivec3 ovec;
     double    rex, rey, rez;
     double    lxx, lyy, lzz;
     int       ret_val;
@@ -500,13 +499,8 @@ static int apply_orientation( THD_3dim_dataset * dset, FD_brick * fdb,
 */
 static int apply_dataxes( THD_3dim_dataset * dset, THD_dataxes * dax )
 {
-    THD_dataxes * daxp = dset->daxes;
     THD_ivec3     ivnxyz;
     THD_fvec3     fvdel, fvorg;
-    float         org4[4], del4[4];
-    int		  aa1, aa2, aa3;
-    int		  a1, a2, a3;
-    int           ret_val;
 
     LOAD_IVEC3( ivnxyz, dax->nxx, dax->nyy, dax->nzz );
     LOAD_FVEC3( fvorg, dax->xxorg, dax->yyorg, dax->zzorg );

@@ -326,6 +326,8 @@ int r_idisp_thd_diskptr( char * info, THD_diskptr * dp )
             dp->prefix, dp->viewcode, dp->filecode,
 	    dp->directory_name, dp->header_name, dp->brick_name
 	  );
+
+    return 0;
 }
 
 
