@@ -104,18 +104,18 @@ ENTRY("THD_open_dataset") ;
    /* parse the sub-brick selector string (if any) */
 
    if( cpt != NULL ){
-      char *qpt ;
-      strcpy(subv,cpt) ;
-      qpt = strstr(subv,"<") ; if( qpt != NULL ) *qpt = '\0' ;
-      ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
+     char *qpt ;
+     strcpy(subv,cpt) ;
+     qpt = strstr(subv,"<") ; if( qpt != NULL ) *qpt = '\0' ;
+     ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
    }
    if( ivlist == NULL ){
-      if( cpt != NULL )
-        fprintf(stderr,"** WARNING: bad sub-brick selector => using [0..%d]\n",
-                DSET_NVALS(dset)-1) ;
-      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
-      ivlist[0] = DSET_NVALS(dset) ;
-      for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
+     if( cpt != NULL )
+       fprintf(stderr,"** WARNING: bad sub-brick selector => using [0..%d]\n",
+               DSET_NVALS(dset)-1) ;
+     ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
+     ivlist[0] = DSET_NVALS(dset) ;
+     for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
    }
 
    /* 21 Feb 2001: if present, load the sub-range data */
