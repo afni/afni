@@ -287,3 +287,6 @@
 02 September 2003:
   * modified Imon.c (->v3.1) - added '-gert_outdir OUTPUT_DIR' option
 
+08 September 2003:
+  * modified L_CREATE_SPEC write error to name correct directory
+
