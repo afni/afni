@@ -125,12 +125,17 @@ XYZAXES xcode ycode zcode
  *This command is required, so that AFNI knows the orientation of the
   slices in space.
 
+DRIVE_AFNI command
+  You can also pass commands to control AFNI (e.g., open windows) in the
+  image prolog.  See README.driver for the list of command strings.
+
+
 ==============================================
 How AFNI reads realtime command and image data
 ==============================================
 This stuff is all carried out in the image source program (e.g., Rx_xpi).
 Most of the current source code is in file ep_afni.c, for operation at
-the MCW Bruker 3 Tesla scanner.
+the MCW Bruker 3 Tesla scanner.  Also see the sample program rtfeedme.c.
 
 Step 1: The image source program opens a TCP/IP socket to the system
         running AFNI, on port 7954 - the realtime AFNI plugin is listening
