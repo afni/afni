@@ -1562,7 +1562,18 @@ There are some differences between these methods:
 You can choose to use the "Replace" method (the old style) by setting
 this environment variable to the string "REPLACE".
 
-=======================================
-| Robert W Cox, PhD                   |
-| National Institute of Mental Health |
-=======================================
+---------------------------
+Variable: AFNI_OLD_PPMTOBMP
+---------------------------
+The old (before 21 Feb 2003) usage of netpbm program "ppmtobmp" was to
+write a color image quantized to 255 colors.  The new usage is to write
+a 24-bit image, which is thus not color-quantized.  If you want the old
+behavior, set this environment variable to YES.
+
+=========================================
+| Robert W Cox, PhD                     |
+| National Institute of Mental Health   |
+| National Institutes of Health         |
+| Department of Health & Human Services |
+| United States of America              |
+=========================================
