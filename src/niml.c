@@ -4151,9 +4151,9 @@ static int tcp_connect( char * host , int port )
 
    { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
      if( eee == NULL || toupper(*eee) != 'Y' ){
-     /** disable the Nagle algorithm **/
-     l = 1;
-     setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+       /** disable the Nagle algorithm **/
+       l = 1;
+       setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
      }
    }
 
@@ -4219,9 +4219,9 @@ static int tcp_listen( int port )
 
    { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
      if( eee == NULL || toupper(*eee) != 'Y' ){
-     /** disable the Nagle algorithm **/
-     l = 1;
-     setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+       /** disable the Nagle algorithm **/
+       l = 1;
+       setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
      }
    }
 
@@ -7104,16 +7104,19 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
 
       /* 06 Mar 2002: hack hack hack */
 
-      { char *eee = getenv( "NIML_MINOUT" ) ; int minout=0 ;
-        if( eee != NULL ) minout = strtol(eee,NULL,10) ;
-        if( minout > 0 && ntot < minout ){
-           char *str = calloc(1,minout+16) ;
-fprintf(stderr,"NI_write_element: adding %d blanks\n",minout-ntot) ;
-           sprintf(str,"%*.*s\n",minout-ntot,minout-ntot," ") ;
-           NI_stream_write( ns , str , strlen(str) ) ;
-           free(str) ;
-        }
+#define MINOUT 1024
+#ifdef  MINOUT
+      if( ns->type == NI_TCP_TYPE && ntot < MINOUT ){
+        int nn = MINOUT-ntot ;
+        char *str = calloc(1,nn+16) ;
+#if 0
+fprintf(stderr,"NI_write_element: adding %d blanks\n",nn) ;
+#endif
+        sprintf(str,"%*.*s\n",nn,nn," ") ;
+        NI_stream_write( ns , str , strlen(str) ) ;
+        free(str) ;
       }
+#endif
 
       return ntot ;
    } /* end of write data element */
