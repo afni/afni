@@ -132,10 +132,13 @@ char * THD_trailname( char * fname , int lev )
    return (fname+fpos) ;
 }
 
-/*-------------------------------------------------------------------
-   Check if a filename is OK -- that is, has no crummy characters.
-   28 Feb 2001: removed '/' from the illegal list
----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------*/
+/*!\brief Check if a filename is OK - that is, has no crummy characters.
+
+  The filename can have a '/' in it.  To insist that there be not '/',
+  use THD_filename_pure().
+  The list of crummy characters can be inferred from the source code.
+*/
 
 int THD_filename_ok( char * name )  /* 24 Apr 1997 */
 {
@@ -158,6 +161,9 @@ int THD_filename_ok( char * name )  /* 24 Apr 1997 */
 
    return 1 ;
 }
+
+/*--------------------------------------------------------------------*/
+/*!\brief Check if a filename is pure - no crummy characters, no '/'. */
 
 int THD_filename_pure( char * name )  /* 28 Feb 2001 */
 {
