@@ -305,7 +305,7 @@ if (file_format == 1),
 	
 	if ((NF == 3 & dsgn == 3)),	
       acc = 0;
-    	if (unbalanced.type == 1),
+%    	if (unbalanced.type == 1),
    		for (i = 1:1:FL(1).N_level),
    	   for (j = 1:1:FL(2).N_level),
    	   for (k = 1:1:FL(3).UL(i).N_level), 	   
@@ -337,7 +337,7 @@ if (file_format == 1),
    		acc = FI;
    		end  % i
  	 		  		
-      end % if (unbalanced.type == 1),
+%      end % if (unbalanced.type == 1),
    end % if ((NF == 3 & dsgn == 3))	
 	
    if ((NF == 4 & dsgn == 3)),	
