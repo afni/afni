@@ -9,6 +9,8 @@
 
 /*--- This program will read in a dataset and write it out in axial order ---*/
 
+/*** 06 Mar 2000: allow sagittal and coronal as well ***/
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;
@@ -25,6 +27,8 @@ int main( int argc , char * argv[] )
    int verbose = 0 , nim , pim ;
    int native_order , save_order ;  /* 23 Nov 1999 */
 
+   int axord=0 ;  /* 06 Mar 2000 */
+
    /*- sanity check -*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -39,6 +43,10 @@ int main( int argc , char * argv[] )
              " -prefix ppp = Use 'ppp' as the prefix for the new dataset.\n"
              "               [default = 'axialize']\n"
              " -verbose    = Print out a progress pacifier.\n"
+             "\n"
+             " -axial      = Do axial slice order [default]\n"
+             " -sagittal   = Do sagittal slice order\n"
+             " -coronal    = Do coronal slice order\n"
             ) ;
       exit(0) ;
    }
@@ -47,6 +55,18 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-axial") == 0 ){     /* 06 Mar 2000 */
+         axord = 0 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-sagittal") == 0 ){  /* 06 Mar 2000 */
+         axord = 1 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-coronal") == 0 ){   /* 06 Mar 2000 */
+         axord = 2 ; iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          strcpy( new_prefix , argv[++iarg] ) ;
@@ -65,7 +85,7 @@ int main( int argc , char * argv[] )
 
    /*- get input dataset -*/
 
-   old_dset = THD_open_one_dataset( argv[iarg] ) ;
+   old_dset = THD_open_dataset( argv[iarg] ) ;
    if( old_dset == NULL ){
       fprintf(stderr,"** can't open input dataset: %s\n",argv[iarg]) ; exit(1) ;
    }
@@ -74,22 +94,47 @@ int main( int argc , char * argv[] )
 
    DSET_load(old_dset) ;
    if( !DSET_LOADED(old_dset) ){
-      fprintf(stderr,"** can't load input dataset .BRIK: %s\n",argv[iarg]) ; exit(1) ;
+      fprintf(stderr,"** can't load input .BRIK: %s\n",argv[iarg]); exit(1);
    }
 
    /*- setup output dataset -*/
 
-   fbr = THD_setup_bricks( old_dset ) ; brax = fbr[0] ;
+   /* use FD bricks for axial, sagittal, coronal displays as basis */
+
+   fbr = THD_setup_bricks( old_dset ) ; brax = fbr[axord] ;
 
    new_dset = EDIT_empty_copy( old_dset ) ;
 
    tross_Copy_History( old_dset , new_dset ) ;
    tross_Make_History( "3daxialize" , argc,argv , new_dset ) ;
 
-   LOAD_IVEC3( iv_nxyz      , brax->n1    , brax->n2    , brax->n3     ) ;
-   LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE ) ;
+   /* number of points along each axis */
 
-   LOAD_FVEC3( fv_xyzdel    , brax->del1  , brax->del2  , brax->del3   ) ;
+   LOAD_IVEC3( iv_nxyz , brax->n1 , brax->n2 , brax->n3 ) ;
+
+   /* orientation codes for each axis */
+
+   switch( axord ){  /* 06 Mar 2000 */
+      default:
+      case 0:
+       LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE ) ;
+      break ;
+
+      case 1:
+       LOAD_IVEC3( iv_xyzorient , ORI_A2P_TYPE, ORI_S2I_TYPE, ORI_L2R_TYPE ) ;
+      break ;
+
+      case 2:
+       LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_S2I_TYPE, ORI_A2P_TYPE ) ;
+      break ;
+   }
+
+   /* grid spacing for each axis */
+
+   LOAD_FVEC3( fv_xyzdel ,
+               ORIENT_sign[iv_xyzorient.ijk[0]]=='+' ? brax->del1 : -brax->del1,
+               ORIENT_sign[iv_xyzorient.ijk[1]]=='+' ? brax->del2 : -brax->del2,
+               ORIENT_sign[iv_xyzorient.ijk[2]]=='+' ? brax->del3 : -brax->del3);
 
    UNLOAD_IVEC3( brax->a123 , a1,a2,a3 ) ;
    aa1 = abs(a1) ; aa2 = abs(a2) ; aa3 = abs(a3) ;
@@ -99,7 +144,7 @@ int main( int argc , char * argv[] )
    LOAD_FVEC3( fv_xyzorg ,
                (a1 > 0) ? xyz_org[aa1] : xyz_org[aa1]+(brax->n1-1)*xyz_del[aa1],
                (a2 > 0) ? xyz_org[aa2] : xyz_org[aa2]+(brax->n2-1)*xyz_del[aa2],
-               (a3 > 0) ? xyz_org[aa3] : xyz_org[aa3]+(brax->n3-1)*xyz_del[aa3] ) ;
+               (a3 > 0) ? xyz_org[aa3] : xyz_org[aa3]+(brax->n3-1)*xyz_del[aa3] );
 
    EDIT_dset_items( new_dset ,
                        ADN_nxyz      , iv_nxyz ,
@@ -125,7 +170,7 @@ int main( int argc , char * argv[] )
 
    if( verbose ){
       printf("++ Writing new dataset .BRIK"); fflush(stdout);
-      pim = brax->n3 / 5 ; if( pim < 1 ) pim = 1 ;
+      pim = brax->n3 / 5 ; if( pim < 1 ) pim = 2 ;
    }
 
    native_order = mri_short_order() ;                           /* 23 Nov 1999 */

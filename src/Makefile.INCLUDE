@@ -333,6 +333,10 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3dttest 3dttest.o $(LFLAGS) $(LLIBS)
 
+3dUniformize:3dUniformize.o
+	$(RM) $@
+	$(CC) -o 3dUniformize 3dUniformize.o $(LFLAGS) $(LLIBS)
+
 3dpc:3dpc.o
 	$(RM) $@
 	$(CC) -o 3dpc 3dpc.o $(LFLAGS) -lmri -lf2c $(LLIBS)

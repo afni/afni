@@ -6,6 +6,10 @@
   File:    3dFWHM.c
   Author:  B. D. Ward
   Date:    20 February 1997
+
+  Mod:     Added -mask option to restrict calculations to masked voxels only.
+           Also, allow the '[]' sub-brick selector for input datasets.
+  Date:    02 March 2000  
 */
 
 
@@ -15,28 +19,14 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
 
 /*---------------------------------------------------------------------------*/
-
 
 #define PROGRAM_NAME "3dFWHM"                        /* name of this program */
-#define LAST_MOD_DATE "20 February 1997"         /* date of last program mod */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "02 March 2000"             /* date of last program mod */
+
+/*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80            /* max. strength length for file names */
 
@@ -49,7 +39,7 @@
 /** macro to open a dataset and make it ready for processing **/
 
 #define DOPEN(ds,name)                                                               \
-   do{ int pv ; (ds) = THD_open_one_dataset((name)) ;                                \
+   do{ int pv ; (ds) = THD_open_dataset((name)) ;                                    \
        if( !ISVALID_3DIM_DATASET((ds)) ){                                            \
           fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; }        \
        if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
@@ -91,6 +81,7 @@
 typedef struct input_options
 {
   char * infilename;            /* name of input file */
+  char * maskfilename;          /* name of mask file */
   int nx;                       /* number of voxels along x-axis */
   int ny;                       /* number of voxels along y-axis */
   int nz;                       /* number of voxels along z-axis */
@@ -116,6 +107,7 @@ void display_help_menu()
      "Usage: \n"
      "3dFWHM \n"
      "-dset file         file = name of input AFNI 3d dataset  \n"
+     "[-mask mname]      mname = filename of 3d mask dataset   \n"
      "[-quiet]           suppress screen output                \n" 
      "[-out file]        file = name of output file            \n"
     );
@@ -147,7 +139,7 @@ void get_dimensions (input_options * option_data)
 
    /*----- read first dataset to get dimensions, etc. -----*/
 
-   dset = THD_open_one_dataset( option_data->infilename) ;
+   dset = THD_open_dataset( option_data->infilename) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open dataset file %s\n", 
               option_data->infilename);
@@ -174,7 +166,8 @@ void get_dimensions (input_options * option_data)
   The data is converted to floating point (in ffim).
 */
 
-void read_afni_data (input_options * option_data,  float * ffim)
+void read_afni_data (input_options * option_data,  char * filename, 
+		     float * ffim)
 {
   int iv;                          /* index number of intensity sub-brick */
   THD_3dim_dataset * dset=NULL;    /* data set pointer */
@@ -188,7 +181,7 @@ void read_afni_data (input_options * option_data,  float * ffim)
   
   
   /*----- read in the data -----*/
-  DOPEN(dset,option_data->infilename) ;
+  DOPEN(dset,filename) ;
   iv = DSET_PRINCIPAL_VALUE(dset) ;
   
   /*----- convert it to floats (in ffim) -----*/
@@ -209,6 +202,7 @@ void read_afni_data (input_options * option_data,  float * ffim)
 void initialize_options (input_options * option_data)
 {
   option_data->infilename = NULL;    /* name of input file */
+  option_data->maskfilename = NULL;  /* name of mask file */
   option_data->quiet = 0;            /* generate screen output (default)  */
   option_data->outfilename = NULL;   /* name of output file */
 }
@@ -246,6 +240,18 @@ void get_options (int argc, char ** argv, input_options * option_data)
 	  if (nopt >= argc)  FWHM_error ("need argument after -dset ");
 	  option_data->infilename = malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->infilename, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+
+      
+      /*-----   -mask filename   -----*/
+      if (strncmp(argv[nopt], "-mask", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  FWHM_error ("need argument after -mask ");
+	  option_data->maskfilename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy (option_data->maskfilename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
@@ -296,7 +302,7 @@ void check_for_valid_inputs (option_data)
 
 
 void initialize (int argc, char ** argv,  
-		 input_options ** option_data, float ** fim)
+		 input_options ** option_data, float ** fim, float ** fmask)
 {
 
 
@@ -320,7 +326,21 @@ void initialize (int argc, char ** argv,
     FWHM_error ("memory allocation error");
   
   /*----- read input data set -----*/
-  read_afni_data (*option_data, *fim);
+  read_afni_data (*option_data, (*option_data)->infilename, *fim);
+
+
+  /*----- check for mask file -----*/
+  if ((*option_data)->maskfilename != NULL)
+    {
+      /*----- allocate memory space for mask data -----*/   
+      *fmask = (float *) malloc( (*option_data)->nxyz * sizeof(float) );
+      if (*fmask == NULL)  FWHM_error ("memory allocation error");
+      
+      /*----- read mask data set -----*/
+      read_afni_data (*option_data, (*option_data)->maskfilename, *fmask);
+      
+    }
+
 }
 
 
@@ -329,7 +349,7 @@ void initialize (int argc, char ** argv,
   Routine to estimate the Gaussian filter width required to generate the data.
 */
    
-void estimate_gfw (input_options * option_data, float * fim,
+void estimate_gfw (input_options * option_data, float * fim, float * fmask,
 		   float * sx, float * sy, float * sz)
 {
   int nx;                       /* number of voxels along x-axis */
@@ -345,7 +365,7 @@ void estimate_gfw (input_options * option_data, float * fim,
   float dfdx, dfdxsum, dfdxsq, varxx;
   float dfdy, dfdysum, dfdysq, varyy;
   float dfdz, dfdzsum, dfdzsq, varzz;
-  int countx, county, countz;
+  int count, countx, county, countz;
   float arg;
 
 
@@ -363,12 +383,17 @@ void estimate_gfw (input_options * option_data, float * fim,
   /*----- estimate the variance of the data -----*/
   fsum = 0.0;
   fsq = 0.0;
+  count = 0;
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
+      if (fmask != NULL)
+	if (fmask[ixyz] == 0.0)  continue;
+
+      count++;
       fsum += fim[ixyz];
       fsq  += fim[ixyz] * fim[ixyz];
     }
-  var = (fsq - (fsum * fsum)/nxyz) / (nxyz-1);
+  var = (fsq - (fsum * fsum)/count) / (count-1);
 
 
   /*----- estimate the partial derivatives -----*/
@@ -377,6 +402,9 @@ void estimate_gfw (input_options * option_data, float * fim,
   countx = 0;      county = 0;      countz = 0;
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
+      if (fmask != NULL)
+	if (fmask[ixyz] == 0.0)  continue;
+
       IJK_TO_THREE (ixyz, ix, jy, kz, nx, nxy);
 
       if (ix+1 < nx)
@@ -447,6 +475,7 @@ void estimate_gfw (input_options * option_data, float * fim,
 
   if (!(option_data->quiet))  
     {
+      printf ("count=%d \n", count);
       printf ("var  =%f \n", var);
       printf ("varxx=%f varyy=%f varzz=%f \n", varxx, varyy, varzz);
       printf ("   sx=%f    sy=%f    sz=%f \n", *sx, *sy, *sz);
@@ -489,8 +518,7 @@ void output_results (input_options * option_data, float sx, float sy, float sz)
     }
   
   /*----- print out the results -----*/
-  fprintf (fout, "\n\nProgram %s \n\n", PROGRAM_NAME);
-  fprintf (fout, "Last revision: %s \n\n", LAST_MOD_DATE);
+  fprintf (fout, "\n\n");
   fprintf (fout, "Gaussian filter widths: \n");
   fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
 	   sx, sx * 2.0*sqrt(2.0*log(2.0)));
@@ -498,7 +526,7 @@ void output_results (input_options * option_data, float sx, float sy, float sz)
 	   sy, sy * 2.0*sqrt(2.0*log(2.0)));
   fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n", 
 	   sz, sz * 2.0*sqrt(2.0*log(2.0)));
-
+  
   fclose(fout);
 
 }
@@ -509,11 +537,12 @@ void output_results (input_options * option_data, float sx, float sy, float sz)
   Routine to terminate program.
 */
   
-void terminate (input_options ** option_data, float ** fim)
+void terminate (input_options ** option_data, float ** fim, float ** fmask)
 {
   free (*option_data);   *option_data = NULL;
   free (*fim);           *fim = NULL;
-
+  if (*fmask != NULL)
+    {  free (*fmask);       *fmask = NULL; }
 }
 
 
@@ -522,29 +551,35 @@ void terminate (input_options ** option_data, float ** fim)
   Calculation of FWHM.
 */
  
-void main (int argc, char ** argv)
+int main (int argc, char ** argv)
 {
   input_options * option_data = NULL;
   float * fim = NULL;
+  float * fmask = NULL;
   float sx, sy, sz;
 
   
-  /*----- program initialization -----*/
-  initialize (argc, argv, &option_data, &fim);
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
 
-  if (!(option_data->quiet))  printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-  if (!(option_data->quiet))  printf ("Last revision: %s\n", LAST_MOD_DATE);
+
+  /*----- program initialization -----*/
+  initialize (argc, argv, &option_data, &fim, &fmask);
 
 
   /*----- estimate equivalent gaussian filter width -----*/
-  estimate_gfw (option_data, fim, &sx, &sy, &sz );
+  estimate_gfw (option_data, fim, fmask, &sx, &sy, &sz );
   
   
   /*----- generate requested output -----*/
   output_results (option_data, sx, sy, sz);
   
   /*----- terminate program -----*/
-  terminate (&option_data, &fim);
+  terminate (&option_data, &fim, &fmask);
   
 }
 
