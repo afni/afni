@@ -75,6 +75,7 @@ int main( int argc , char * argv[] )
             "  -linear     }\n"
             "  -cubic      } = Chooses spatial interpolation method.\n"
             "  -NN         }     [default = linear]\n"
+            "  -quintic    }\n"
             "\n"
             "  -newgrid ddd  = Tells program to compute new dataset on a\n"
             "                    new 3D grid, with spacing of 'ddd' mmm.\n"
@@ -176,6 +177,9 @@ int main( int argc , char * argv[] )
      }
      if( strcmp(argv[nopt],"-cubic")  == 0 ){
        mri_warp3D_method( MRI_CUBIC )  ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-quintic") == 0 ){
+       mri_warp3D_method( MRI_QUINTIC ); nopt++ ; continue ;  /* 06 Aug 2003 */
      }
 
      /*-----*/
