@@ -1786,7 +1786,7 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
-	3dSurf2Vol ConvertSurface SurfaceMetrics packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	3dSurf2Vol ConvertSurface MapIcosahedron CreateIcosahedron SurfaceMetrics packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1848,6 +1848,10 @@ suma_clean:
 	if [ -f SUMA/SUMA_pixmap2eps ]; then $(RM) SUMA/SUMA_pixmap2eps; fi;
 	if [ -f SurfaceMetrics ]; then $(RM) SurfaceMetrics; fi;
 	if [ -f SUMA/SurfaceMetrics ]; then $(RM) SUMA/SurfaceMetrics; fi;
+	if [ -f MapIcosahedron ]; then $(RM) MapIcosahedron; fi;
+	if [ -f SUMA/MapIcosahedron ]; then $(RM) SUMA/MapIcosahedron; fi;
+	if [ -f CreateIcosahedron ]; then $(RM) CreateIcosahedron; fi;
+	if [ -f SUMA/CreateIcosahedron ]; then $(RM) SUMA/CreateIcosahedron; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -1856,9 +1860,9 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
-	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap CompareSurfaces ConvertSurface SurfaceMetrics;\
+	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics;\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap \
-	CompareSurfaces ConvertSurface SurfaceMetrics\
+	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface SurfaceMetrics\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1874,8 +1878,8 @@ suma_link:
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol \
-	SUMA/ScaleToMap SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/SUMA_glxdino \
-	SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics ${INSTALLDIR} ; \
+	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
+	SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install

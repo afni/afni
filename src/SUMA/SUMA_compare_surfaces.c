@@ -473,7 +473,7 @@ int main (int argc,char *argv[])
 
 void cmp_surf_usage ()
 {
-  printf ("\n\tUsage: \tSUMA_compare_surfaces \n\t-spec <Spec file>\n\t-hemi <L or R>\n\t-sv1 <volparentaligned1.BRIK>\n\t-sv2 <volparentaligned2.BRIK> \n\t[-prefix <fileprefix>]\n\n");
+  printf ("\n\tUsage: \tCompareSurfaces \n\t-spec <Spec file>\n\t-hemi <L or R>\n\t-sv1 <volparentaligned1.BRIK>\n\t-sv2 <volparentaligned2.BRIK> \n\t[-prefix <fileprefix>]\n\n");
   printf ("\tThis program calculates the distance, at each node in Surface 1 (S1) to Surface 2 (S2)\n"
           "\tThe distances are computed along the local surface normal at each node in S1.\n"
           "\tS1 and S2 are the first and second surfaces encountered in the spec file, respectively.\n"); 

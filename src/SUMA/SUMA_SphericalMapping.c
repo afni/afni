@@ -1807,13 +1807,29 @@ void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[
 void SUMA_CreateIcosahedron_usage ()
    
 {/*Usage*/
-   printf ("\n\33[1mUsage: \33[0m SUMA_CreateIcosahedron [-rad r] [-rd recDepth] [-ld linDepth] [-ctr ctr] [-prefix fout]\n");
-   printf ("\n\tr: size of icosahedron. (optional, default 100)\n");
-   printf ("\n\trecDepth: recursive (binary) tesselation depth for icosahedron \n\t  (optional, default:3) \n\t  (recommended to approximate number of nodes in brain: 6\n");
-   printf("\n\tlinDepth: number of edge divides for linear icosahedron tesselation (optional, default uses binary tesselation).\n");
-   printf("\n\tctr: coordinates of center of icosahedron. (optional, default 0,0,0)\n");
-   printf ("\n\tfout: prefix for output file. (optional, default CreateIco)\n");
-   printf ("\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n\t\t\t Fri Sept 20 14:23:42 EST 2002\n\n");
+   printf ( "\n\33[1mUsage: \33[0mCreateIcosahedron [-rad r] [-rd recDepth] [-ld linDepth] \n"
+            "                         [-ctr ctr] [-prefix fout] [-help]\n");
+   printf ( "\n\t-rad r: size of icosahedron. (optional, default 100)\n");
+   printf ( "\n\t-rd recDepth: recursive (binary) tesselation depth for icosahedron \n"
+            "\t    (optional, default:3) \n"
+            "\t    (recommended to approximate number of nodes in brain: 6\n"
+            "\t    let rd2 = 2 * recDepth\n"
+            "\t    Nvert = 2 + 10 * 2^rd2\n"
+            "\t    Ntri  = 20 * 2^rd2\n"
+            "\t    Nedge = 30 * 2^rd2\n");
+   printf ( "\n\t-ld linDepth: number of edge divides for linear icosahedron tesselation\n"
+            "\t    (optional, default uses binary tesselation).\n"
+            "\t    Nvert = 2 + 10 * linDepth^2\n"
+            "\t    Ntri  = 20 * linDepth^2\n"
+            "\t    Nedge = 30 * linDepth^2\n");
+   printf ( "\n\t-ctr ctr: coordinates of center of icosahedron. \n"
+            "\t    (optional, default 0,0,0)\n");
+   printf ( "\n\t-prefix fout: prefix for output files. \n"
+            "\t    (optional, default CreateIco)\n");
+   printf ( "\n\t-help: help message\n");
+   printf ( "\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n"
+            "\t    Ziad S. Saad     SSC/NIMH/NIH ziad@nih.gov\n"
+            "\t\t    Fri Sept 20 2002, Last Modified Thu Oct  2 2003\n\n");
    exit (0);
 }/*Usage*/
 /*!
@@ -2245,13 +2261,26 @@ int main (int argc, char *argv[])
 void SUMA_MapIcosahedron_usage ()
    
 {/*Usage*/
-   printf ("\n\33[1mUsage: \33[0m SUMA_MapIcosahedron <-spec specFile> [-c col] [-rd recDepth] [-ld linDepth] [-bin 'y'/'n'] [-it numIt] [-prefix fout] [-verb]\n");
-   printf ("\n\tspecFile: spec file containing spherical brain.\n");
-   printf ("\n\trecDepth: recursive (binary) tesselation depth for icosahedron \n\t  (optional, default:3) \n\t  (recommended to generally approximate number of nodes in brain: 6\n");
-   printf("\n\tlinDepth: number of edge divides for linear icosahedron tesselation \n\t  (optional, default uses binary tesselation)\n\t  (recommended to generally approximate number of nodes in brain: 125)\n");
-   printf ("\n\tcol: a colorfile of the second surface (optional). \n");
-   printf ("\n\tnumIt: number of smoothing interations (optional, default none).\n");
-   printf ("\n\tfout: prefix for output files.\n\t  (optional, default MapIco)\n");
+   printf ( "\n\33[1mUsage: \33[0mMapIcosahedron <-spec specFile> \n"
+            "                      [-rd recDepth] [-ld linDepth] \n"
+            "                      [-it numIt] [-prefix fout] \n"
+            "                      [-verb] [-help]\n");
+   printf ( "\nCreates new versions of the original-mesh surfaces using the mesh\n"
+            "of an icosahedron. FOR MORE HELP, WRITE ziad@nih.gov\n");
+   printf ( "\n\t-spec specFile: spec file containing original-mesh surfaces\n"
+            "\t     including the spherical and warped spherical surfaces.\n");
+   printf ( "\n\t-rd recDepth: recursive (binary) tesselation depth for icosahedron.\n"
+            "\t     (optional, default:3) See CreateIcosahedron for more info.\n");
+   printf ( "\n\t-ld linDepth: number of edge divides for linear icosahedron tesselation \n"
+            "\t     (optional, default uses binary tesselation).\n"
+            "\t     See CreateIcosahedron -help for more info.\n");
+   printf ( "\n\t*Note: Enter -1 for recDepth or linDepth to let program \n"
+            "\t       choose a depth that best approximates the number of nodes in\n"
+            "\t       original-mesh surfaces.\n");
+   printf ( "\n\t-it numIt: number of smoothing interations \n"
+            "\t     (optional, default none).\n");
+   printf ( "\n\t-prefix fout: prefix for output files.\n"
+            "\t     (optional, default MapIco)\n");
    printf ( "\n\t[-sph_check]: Run tests for checking the spherical surface (sphere.asc)\n"
             "\t             The program exits after the checks.\n"
             "\t             This option is for debugging FreeSurfer surfaces only.\n");
@@ -2259,9 +2288,12 @@ void SUMA_MapIcosahedron_usage ()
             "\t             The program exits after the checks.\n"
             "\t             This option is for debugging FreeSurfer surfaces only.\n");
    printf ( "\n\t-sph_check and -sphreg_check are mutually exclusive.\n");
-   printf ("\n\t-verb: indicate whether to include original surfaces and icosahedron in out spec file.\n\t  (optional, default does not)\n");
-   printf ("\n\t*Note: Enter -1 for recDepth or linDepth to let program choose to best approximate number of nodes in specFile.\n");
-   printf ("\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n\t\t\t Fri Sept 20 14:23:42 EST 2002\n\n");
+   printf ( "\n\t-verb: When specified, includes original-mesh surfaces \n"
+            "\t    and icosahedron in output spec file.\n"
+            "\t    (optional, default does not include original-mesh surfaces)\n");
+   printf ( "\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n"
+            "\t    Ziad S. Saad     SSC/NIMH/NIH ziad@nih.gov\n"
+            "\t\t    Fri Sept 20 2002, Last Modified Thu Oct  2 2003\n\n");
    exit (0);
 }/*Usage*/
 /*!

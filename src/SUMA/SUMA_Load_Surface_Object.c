@@ -2162,10 +2162,49 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 
 void usage_SUMA_SurfaceMetrics ()
    {
-      printf ("\n\33[1mUsage: \33[0m SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
-              "\t<-i_TYPE inSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
-              "\t[-tlrc] [<-prefix prefix>]\n\n");
-      printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Mon May 19 15:41:12 EDT 2003\n\n");   
+      printf ( "\n\33[1mUsage: \33[0m SurfaceMetrics <-Metric1> [[-Metric2] ...] <-i_TYPE inSurf> \n"
+               "\t               [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
+               "\t               [-tlrc] [<-prefix prefix>]\n\n");
+      printf ( "Outputs information about a surface's mesh\n\n");
+      printf ( "\t-Metric1: Replace -Metric1 with the following:\n"
+               "\t   -conv: output surface convexity at each node.\n"
+               "\t      Output file is prefix.conv. Results in two columns:\n"
+               "\t      Col.0: Node Index\n"
+               "\t      Col.1: Convexity\n"
+               "\t      This is the measure used to shade sulci and gyri in SUMA.\n"
+               "\t      C[i] = Sum(dj/dij) over all neighbors j of i\n"
+               "\t      dj is the distance of neighboring node j to the tangent plane at i\n"
+               "\t      dij is the length of the segment ij\n"
+               "\t   -area: output area of each triangle. \n"
+               "\t      Output file is prefix.area. Results in two columns:\n"
+               "\t      Col.0: Triangle Index\n"
+               "\t      Col.1: Triangle Area\n"
+               "\t   -curv: output curvature at each node.\n"
+               "\t      Output file is prefix.curv. Results in nine columns:\n"
+               "\t      Col.0: Node Index\n"
+               "\t      Col.1-3: vector of 1st principal direction of surface\n"
+               "\t      Col.4-6: vector of 2nd principal direction of surface\n"
+               "\t      Col.7: Curvature along T1\n"
+               "\t      Col.8: Curvature along T2\n"
+               "\t      Curvature algorithm by G. Taubin from: \n"
+               "\t      'Estimating the tensor of curvature of surface \n"
+               "\t      from a polyhedral approximation.'\n"
+               "\t   -edges: outputs info on each edge. \n"
+               "\t      Output file is prefix.edges. Results in five columns:\n"
+               "\t      Col.0: Edge Index (into a SUMA structure).\n"
+               "\t      Col.1: Index of the first node forming the edge\n"
+               "\t      Col.2: Index of the second node forming the edge\n"
+               "\t      Col.3: Number of triangles containing edge\n"
+               "\t      Col.4: Length of edge.\n\n");
+      printf ( "\t   You can use any or all of these metrics simultaneously.\n\n");
+      printf ( "\t-i_TYPE inSurf: Specify the type and name of the input surface.\n"
+               "\t                See ConvertSurface -help for more info.\n\n");
+      printf ( "\t-sv SurfaceVolume [VolParam for sf surfaces]: Specify a surface volume\n"
+               "\t                for surface alignment. See ConvertSurface -help for more info.\n\n");
+      printf ( "\t-tlrc: Apply Talairach transform to surface.\n"
+               "\t                See ConvertSurface -help for more info.\n\n");
+      printf ( "\t-prefix prefix: Use prefix for output files. (default is prefix of inSurf)\n\n");
+      printf ( "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\t\t Mon May 19 15:41:12 EDT 2003\n\n");   
    }
 
 int main (int argc,char *argv[])
