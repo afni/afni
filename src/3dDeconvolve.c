@@ -183,6 +183,10 @@
 
   Mod:     Corrected error in the baseline t-stat output.
   Date:    26 September 2001
+
+  Mod:     Extended -bucket output option to work with -input1D input option.
+  Date:    16 Oct 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -190,7 +194,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "26 Sept 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "16 Oct  2001"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -3451,6 +3455,7 @@ void output_results
 
 {
   int q;                    /* number of parameters in baseline model */
+  int p;                    /* number of parameters in the full model */
   int polort;               /* degree of polynomial for baseline model */
   int num_stimts;           /* number of stimulus time series */
   int * min_lag;            /* minimum time delay for impulse response */ 
@@ -3466,6 +3471,7 @@ void output_results
   /*----- Initialize local variables -----*/
   polort = option_data->polort;
   q = option_data->q;
+  p = option_data->p;
   num_stimts = option_data->num_stimts;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
@@ -3475,10 +3481,13 @@ void output_results
 
 
   /*----- Write the bucket dataset -----*/
-  if ((option_data->bucket_filename != NULL)  && (nxyz > 1))
-    write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol, 
-		       fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
-		       glt_coef_vol, glt_fstat_vol, glt_rstat_vol);
+  if (option_data->bucket_filename != NULL) 
+    if (nxyz > 1)
+      write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol, 
+			 fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
+			 glt_coef_vol, glt_fstat_vol, glt_rstat_vol);
+    else
+      write_one_ts (option_data->bucket_filename, p, coef_vol);
 
 
   /*----- Write the impulse response function 3d+time dataset -----*/
