@@ -3689,3 +3689,6 @@
 26 Apr 2002
  * At last seem to have figured out how to make the orientations change
      w.r.t. spatial axes - added these changes to plug_crender.c.
+
+28 Apr 2002
+ * Added the orientation changes to plug_render.c as well.
