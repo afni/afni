@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.50a"
+#define VERSION "2.50b"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "22 Jul 2002      "
+#define RELEASE "05 Aug 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -965,6 +965,9 @@ typedef struct {
 #define NO_frivolities  GLOBAL_argopt.no_frivolities
 #define SESSTRAIL       GLOBAL_library.sesstrail
 #define AFNI_VERBOSE    (!GLOBAL_argopt.quiet)  /* 25 Oct 2001 */
+
+#define THE_DISPLAY     (GLOBAL_library.dc->display)  /* 02 Aug 2002 */
+#define THE_TOPSHELL    (GLOBAL_library.controllers[0]->vwid->top_shell)
 
 # define SUMA_ENABLED   GLOBAL_argopt.enable_suma
 
