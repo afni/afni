@@ -3725,6 +3725,8 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    markers = dset->markers = NULL ;                       /* later, dude */
    dkptr   = dblk->diskptr = myXtNew( THD_diskptr ) ;
 
+   dset->tagset = NULL ;  /* Oct 1998 */
+
    INIT_KILL(dset->kl) ; INIT_KILL(dblk->kl) ;
 
    dkptr->type         = DISKPTR_TYPE ;

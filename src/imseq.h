@@ -162,6 +162,23 @@ typedef struct {
       ((opta).improc_code == (optb).improc_code) && \
       ((opta).cx_code     == (optb).cx_code    )     )
 
+/* 09 Oct 1998 */
+
+#define ISQ_DEFAULT_OPT(opt) do{ (opt).mirror      = FALSE ;            \
+                                 (opt).rot         = ISQ_ROT_0 ;        \
+                                 (opt).no_overlay  = False ;            \
+                                 (opt).scale_group = ISQ_SCL_AUTO ;     \
+                                 (opt).scale_range = ISQ_RNG_02TO98 ;   \
+                                 (opt).free_aspect = False ;            \
+                                 (opt).save_nsize  = False ;            \
+                                 (opt).save_pnm    = False ;            \
+                                 (opt).save_one    = True ;             \
+                                 (opt).improc_code = ISQ_IMPROC_NONE ;  \
+                                 (opt).cx_code     = ISQ_CX_MAG ;       \
+                                 (opt).parent      = NULL ;             \
+                                 (opt).aux         = NULL ;             \
+                               } while(0)
+
 /*------------- statistics for image display scaling -------------*/
 
 #define NHISTOG 500

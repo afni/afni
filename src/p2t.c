@@ -66,6 +66,8 @@ void main( int argc , char * argv[] )
    int quiet = 0 ;
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
+      printf("\n*** NOTE: This program has been superseded by program 'cdf' ***\n\n") ;
+
       printf("Usage #1: p2t p dof\n"
              "  where p   = double sided tail probability for t-distribution\n"
              "        dof = number of degrees of freedom to use\n"

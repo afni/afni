@@ -194,7 +194,8 @@ typedef struct {
    MCW_idcode idcode ;
 } PLUGIN_dataset_link ;
 
-void make_PLUGIN_dataset_link( THD_3dim_dataset *, PLUGIN_dataset_link * ) ;
+extern void make_PLUGIN_dataset_link( THD_3dim_dataset *, PLUGIN_dataset_link * ) ;
+extern void patch_PLUGIN_dataset_links( int , PLUGIN_dataset_link * ) ;
 
 typedef struct {
    Widget rowcol , label , pb ;
@@ -286,9 +287,9 @@ typedef struct {
 #define BRICK_ALLREAL_MASK    ( BRICK_BYTE_MASK  | BRICK_SHORT_MASK |   \
                                 BRICK_FLOAT_MASK )
 
-extern int PLUGIN_dset_check( int,int , THD_3dim_dataset * ) ;
+extern int PLUGIN_dset_check( int,int    , THD_3dim_dataset * ) ;
+extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 
-#define PLUTO_dset_check         PLUGIN_dset_check
 #define PLUTO_new_interface      new_PLUGIN_interface
 #define PLUTO_add_option         add_option_to_PLUGIN_interface
 #define PLUTO_add_number         add_number_to_PLUGIN_interface
@@ -456,6 +457,11 @@ extern void PLUG_choose_timeseries_CB( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_finalize_dataset_CB   (Widget, XtPointer, MCW_choose_cbs *);
 extern void PLUG_finalize_timeseries_CB(Widget, XtPointer, MCW_choose_cbs *);
 
+extern void PLUTO_popup_dset_chooser( Widget, int, int,
+                                      int_func *, void_func *, void * ) ;
+
+extern void PLUG_finalize_user_dset_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+
 extern void AFNI_plugin_button( Three_D_View * ) ;
 
 #define DSET_ACTION_NONE           0
@@ -467,6 +473,7 @@ extern THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset *, char * ) ;
 
 extern void PLUTO_force_redisplay( void ) ;
 extern void PLUTO_force_rebar( void ) ;
+extern void PLUTO_dset_redisplay_mode( THD_3dim_dataset * , int ) ;
 extern void PLUTO_dset_redisplay( THD_3dim_dataset * ) ;
 
 extern int PLUTO_prefix_ok( char * ) ;
@@ -558,5 +565,11 @@ extern void PLUTO_report( PLUGIN_interface * , char * ) ;
 
 #define PLUTO_X11_display   (GLOBAL_library.dc->display)
 #define PLUTO_Xt_appcontext (GLOBAL_library.dc->appcontext)
+
+extern PLUGIN_strval * new_PLUGIN_strval( Widget , char * ) ;
+extern void destroy_PLUGIN_strval( PLUGIN_strval * ) ;
+extern void alter_PLUGIN_strval_width( PLUGIN_strval * , int ) ;
+extern void set_PLUGIN_strval( PLUGIN_strval * , char * ) ;
+extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
 
 #endif /* _AFNI_PLUGIN_HEADER_ */

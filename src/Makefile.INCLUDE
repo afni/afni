@@ -34,7 +34,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat
+           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
+           3drotate 3dvolreg
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -42,13 +43,16 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-                  imstack byteorder 3dDeconvolve
+                  imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg
 
 all:libmri.a libcoxplot.a programs
 
 itall:all plugins install install_plugins
 
 totality:all plugins install install_plugins install_lib clean
+	$(CP) README* $(INSTALLDIR)
+
+vastness:all plugins install install_plugins install_lib
 	$(CP) README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
@@ -63,6 +67,9 @@ quotize:quotize.o
 newstuff.hhh:quotize README.changes
 	$(RM) newstuff.hhh
 	./quotize newstuff < README.changes > newstuff.hhh
+
+newstuff.h:newstuff.hhh
+	$(CP) newstuff.hhh newstuff.h
 
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
@@ -200,6 +207,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
 
+3dvolreg:3dvolreg.o
+	$(RM) $@
+	$(CC) -o 3dvolreg 3dvolreg.o $(LFLAGS) $(LLIBS)
+
 from3d:from3d.o
 	$(RM) $@
 	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
@@ -247,7 +258,7 @@ nsize:nsize.o
 3dcalc:3dcalc.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dcalc 3dcalc.o parser.o parser_int.o \
-              $(LFLAGS) -lf2c $(LLIBS)
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 d3dmerge:3dmerge.c
 	$(RM) $@
@@ -264,6 +275,14 @@ d3dmerge:3dmerge.c
 3ddot:3ddot.o
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
+
+3drotate:3drotate.o
+	$(RM) $@
+	$(CC) -o 3drotate 3drotate.o $(LFLAGS) $(LLIBS)
+
+rtfeedme:rtfeedme.o
+	$(RM) $@
+	$(CC) -o rtfeedme rtfeedme.o $(LFLAGS) $(LLIBS)
 
 3dANOVA:3dANOVA.o
 	$(RM) $@
@@ -346,7 +365,7 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
                 dafni_pcor_float.o parser.c parser_int.c \
                 pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
                 afni_plugin.c afni_plugout.c afni_setup.c afni_receive.c \
-                $(PLFLAGS) -lcoxplot -lf2c $(LLIBS)
+                $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 dto3d:to3d.c display.c imseq.c bbox.c xim.c xutil.c
 	$(CCD) -o dto3d $(IFLAGS) \
@@ -444,11 +463,15 @@ dafni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 afni:$(AFOBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lf2c $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+
+pafni:$(AFOBJS) libcoxplot.a
+	$(RM) $@
+	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lcoxplot -lf2c $(LLIBS)
+	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 abut:abut.o
 	$(RM) $@
@@ -588,7 +611,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_add_name.o mri_histog.o mri_nsize.o mri_lsqfit.o mri_sobel.o  \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
-           mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o
+           mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
+           mri_3dalign.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -616,18 +640,36 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
-           thd_trusthost.o
+           thd_trusthost.o thd_rot3d.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
-           edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o
+           edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
+           edt_fullcopy.o
 
-CS_OBJS  = cs_sort_fi.o
+CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o
 
-libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS)
+EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
+           eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
+           eis_cdiv.o eis_cg.o eis_ch.o eis_cinvit.o eis_combak.o          \
+           eis_comhes.o eis_comlr.o eis_comlr2.o eis_comqr.o eis_comqr2.o  \
+           eis_cortb.o eis_corth.o eis_csroot.o eis_elmbak.o eis_elmhes.o  \
+           eis_eltran.o eis_epslon.o eis_figi.o eis_figi2.o eis_hqr.o      \
+           eis_hqr2.o eis_htrib3.o eis_htribk.o eis_htrid3.o eis_htridi.o  \
+           eis_imtql1.o eis_imtql2.o eis_imtqlv.o eis_invit.o eis_minfit.o \
+           eis_ortbak.o eis_orthes.o eis_ortran.o eis_pythag.o eis_qzhes.o \
+           eis_qzit.o eis_qzval.o eis_qzvec.o eis_ratqr.o eis_rebak.o      \
+           eis_rebakb.o eis_reduc.o eis_reduc2.o eis_rg.o eis_rgg.o        \
+           eis_rs.o eis_rsb.o eis_rsg.o eis_rsgab.o eis_rsgba.o            \
+           eis_rsm.o eis_rsp.o eis_rst.o eis_rt.o eis_svd.o                \
+           eis_tinvit.o eis_tql1.o eis_tql2.o eis_tqlrat.o eis_trbak1.o    \
+           eis_trbak3.o eis_tred1.o eis_tred2.o eis_tred3.o                \
+           eis_tridib.o eis_tsturm.o
+
+libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS)
 	$(RANLIB) libmri.a
 
 ### Dependencies for above
@@ -644,10 +686,10 @@ thd_iochan.o:thd_iochan.h
 SO = $(PLUGIN_SUFFIX)
 
 plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
-        plug_3ddot.$(SO)    plug_power.$(SO)    plug_stats.$(SO)       \
+        plug_tag.$(SO)      plug_power.$(SO)    plug_stats.$(SO)       \
         plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)        \
-        plug_nlfit.$(SO)    plug_realtime.$(SO)                        \
-        plug_coorder.$(SO)  plug_compress.$(SO)                        \
+        plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
+        plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
         models contrib_plugins
 
@@ -773,7 +815,7 @@ parser.o:parser.c f2c.h libf2c.a
 
 ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@
-	$(CC) -o ccalc ccalc.o parser.o parser_int.o $(LFLAGS) -lf2c $(LLIBS)
+	$(CC) -o ccalc ccalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 colfit.c:
 	$(F2C) colfit.f
@@ -782,16 +824,22 @@ colcalc.c:
 	$(F2C) colcalc.f
 
 colfit:parser.o colfit.o
-	$(CC) -o colfit colfit.o parser.o $(LFLAGS) -lclam -lf2c $(LLIBS)
+	$(CC) -o colfit colfit.o parser.o $(LFLAGS) -lclam -lmri -lf2c $(LLIBS)
 
 colcalc:parser.o colcalc.o
-	$(CC) -o colcalc colcalc.o parser.o $(LFLAGS) -lclam -lf2c $(LLIBS)
+	$(CC) -o colcalc colcalc.o parser.o $(LFLAGS) -lclam -lmri -lf2c $(LLIBS)
 
 imcalc:imcalc.o parser.o parser_int.o
-	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lf2c $(LLIBS)
+	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 ###########################################################################
 # Miscellaneous programs
+
+fftest:fftest.o
+	$(CC) -o fftest fftest.o $(LFLAGS) $(LLIBS)
+
+fftprint:fftprint.o
+	$(CC) -o fftprint fftprint.o $(LFLAGS) $(LLIBS)
 
 myget:myget.o
 	$(CC) -o myget myget.o $(LFLAGS) $(LLIBS)

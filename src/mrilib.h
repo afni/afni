@@ -1,22 +1,8 @@
 
-
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- This software is Copyright 1994-8 by
-      Medical College of Wisconsin
-      8701 Watertown Plank Road
-      Milwaukee, WI 53226
-
- License is granted to use this program for nonprofit research purposes only.
- The Medical College of Wisconsin makes no warranty of usefulness
- of this program for any particular purpose.  The redistribution of this
- software for a fee, or the derivation of for-profit works from this program
- is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #ifndef _MCW_MRILIB_HEADER_
 #define _MCW_MRILIB_HEADER_
@@ -64,8 +50,12 @@ static char * MRI_TYPE_name[7] =
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
+#define MRI_maxbyte         255
+#define MRI_maxshort      32767
+#define MRI_maxint   2147483647
+
 static float MRI_TYPE_maxval[7] =
-  { 255.0 , 32767.0 , 2147483647 , 0.0,0.0,0.0 , 255.0 } ;
+  { 255.0 , 32767.0 , 2147483647.0 , 0.0,0.0,0.0 , 255.0 } ;
 
 #define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                \
                       : ((xx) >  32767.0) ? (short) 32767 : (short)(xx) )
@@ -278,7 +268,13 @@ static int MRI_mm ;
 #endif
 
 #define MRI_BILINEAR  (1)   /* for the warping function */
+#define MRI_LINEAR    (1)
 #define MRI_BICUBIC   (2)
+#define MRI_CUBIC     (2)
+#define MRI_FOURIER   (3)
+#define MRI_NN        (0)
+#define MRI_QUINTIC   (4)   /* Nov 1998 */
+#define MRI_HEPTIC    (5)
 
 #define SQR(x)   ((x)*(x))
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))
@@ -431,6 +427,10 @@ extern MRI_IMAGE *mri_rotate_bilinear( MRI_IMAGE * , float,float,float,float ) ;
 
 extern MRI_IMAGE *mri_rota         ( MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE * , float,float,float ) ;
+extern MRI_IMAGE *mri_rota_shear   ( MRI_IMAGE * , float,float,float ) ;
+extern MRI_IMAGE *mri_rota_variable( int, MRI_IMAGE * , float,float,float ) ;
+
+extern void ft_shift2( int, int, float, float *, float, float * ) ;
 
 extern MRI_IMAGE *mri_float_func( int,int,
                                   float , float , float , float ,
@@ -485,6 +485,7 @@ extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 #define ALIGN_DEBUG_CODE     32   /* print out debugging info */
 #define ALIGN_FREEUP_CODE    64   /* free input images when no longer needed */
 #define ALIGN_BILINEAR_CODE 128   /* use bilinear interpolation in mri_align */
+#define ALIGN_FOURIER_CODE  256   /* use Fourier interpolation in mri_align */
 
 extern MRI_IMARR * mri_align_dfspace( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
                                       int, float *, float *, float * ) ;
@@ -493,6 +494,7 @@ extern MRI_IMARR * mri_align_dftime( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
                                      int, float *, float *, float * ) ;
 
 extern void mri_align_params( int,float,float,float,float,float,float ) ;
+extern void mri_align_method( int,int,int ) ;  /* 1 Oct 1998 */
 
 /*---------------------------------------------------------------------*/
 /* 07 April 1998: routines for one-at-a-time alignment (mri_2dalign.c) */
@@ -503,6 +505,7 @@ typedef struct {
 } MRI_2dalign_basis ;
 
 extern void mri_2dalign_params( int,float,float,float,float,float,float ) ;
+extern void mri_2dalign_method( int,int,int ) ;
 extern MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * , MRI_IMAGE * ,
                                     float * , float * , float * ) ;

@@ -246,13 +246,15 @@ char * DUMP_main( PLUGIN_interface * plint )
    THD_3dim_dataset * xset , * yset ;
    char * tag ;
    int demean ,ndmp,nprf;
-   char *str, *nprfxstr;
+   char *str, *nprfxstr, *mssg;
    float minx , maxx , minthr , maxthr ;
 	
 	str = (char *) calloc (PLUGIN_MAX_STRING_RANGE+10,sizeof(char));
 	nprfxstr	 = (char *) calloc (PLUGIN_MAX_STRING_RANGE+20,sizeof(char));
+	/* Do not allocate more space for mssg, because AFNI would choke on it*/
+	mssg = (char *) calloc (PLUGIN_MAX_STRING_RANGE,sizeof(char));
 	
-	if (str == NULL || nprfxstr == NULL) 
+	if (str == NULL || nprfxstr == NULL || mssg == NULL ) 
 									  return "********************\n"
 												"Could not Allocate\n"
 												"a teeni weeni bit of\n"
@@ -392,11 +394,12 @@ char * DUMP_main( PLUGIN_interface * plint )
 	
    if (nprf == 0)
    	{
-   		sprintf (nprfxstr,"%s.3Ddump",DSET_PREFIX(xset));
-   		ud->strout = nprfxstr;
+			sprintf (nprfxstr,"%s.3Ddump",DSET_PREFIX(xset));
+			ud->strout = nprfxstr;
    	}
 
-   sprintf (str,"%s.log",ud->strout);	
+   
+	sprintf (str,"%s.log",ud->strout);	
 		
    if ((filexists(ud->strout) == 1) || (filexists(str) == 1))
    	{
@@ -420,7 +423,6 @@ char * DUMP_main( PLUGIN_interface * plint )
    /*---------- At this point, the inputs are OK ----------*/
 
    /*-- do the actual work --*/
-
    ndmp = Dumpit( ud ,  xset ) ;
 
    if( ndmp < -1.0 )
@@ -445,16 +447,26 @@ char * DUMP_main( PLUGIN_interface * plint )
 
    /*-- put the output to the screen --*/
 
-   sprintf(str , "            Dataset %s was dumped.\n"
+   /* That output message was too long. AFNI was crashing, must ask Bob to allow more verbose messages */ 
+	 
+   /*sprintf(mssg , "            Dataset %s was dumped.\n"
                  "%d voxels (%5f %% of total) met the boundary conditions.\n"
-                  , DSET_FILECODE(xset) , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;
+                  , DSET_FILECODE(xset) , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;*/
+						
+   /* That's shorter */
+	sprintf(mssg , "%d voxels (%5f %% of total) were dumped.\n" 
+	                 , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;
 
-   PLUTO_popup_message( plint , str ) ;
-
+	PLUTO_popup_message( plint , mssg ) ;
+	
+	
+	
 	fclose (ud->outfile);
 	fclose (ud->outlogfile);
-	free (nprfxstr);
+	free (nprfxstr);	
 	free (str);
+	free (mssg); 
+	 
    return NULL ;  /* null string returned means all was OK */
 }
 
@@ -545,15 +557,24 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 		/* increment by one because I want it to start at 0 */
      	++ndmp;
    }
-
+	
+	
 	fprintf (ud->outlogfile,"\n%d voxel points met the threshold conditions\n",ndmp);
 	
    /*-- free up arrays --*/
 
-   if( fxar_new ) free(fxar) ; else DSET_unload(xset) ;
+	
+   if( fxar_new ) 
+		{
+		free(fxar) ;
+		}
+	 else 
+	 	{
+			DSET_unload(xset) ;
+		}
+	
 	
 	free2D ((char **)Storear,nxyz);	
-	
 
 	
    return ndmp ;

@@ -700,6 +700,7 @@ STATUS("destroying arrowvals") ;
    myXtFree( grapher->cen_line )            ;
    myXtFree( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
    myXtFree( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
+   myXtFree( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )   /* 16 Jun 1997 */
       myXtFree( grapher->opt_color_av[ii] ) ;

@@ -22,22 +22,15 @@
    Mod:     Divided file 3dANOVA.h into:  3dANOVA.h and 3dANOVA.lib.
    Date:    5 January 1998
 
+   Mod:     Added software for statistical tests of individual cell means,
+            cell differences, and cell contrasts.
+   Date:    27 October 1998
 */
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 
 /*---------------------------------------------------------------------------*/
@@ -96,45 +89,57 @@ void initialize_options (anova_options * option_data)
   option_data->num_ameans = 0;
   option_data->num_bmeans = 0;
   option_data->num_cmeans = 0;
-  for (i = 0;  i < MAX_LEVELS;  i++)
+  option_data->num_xmeans = 0;
+  for (i = 0;  i < MAX_MEANS;  i++)
     {
-      option_data->ameans[i] = 0;
       option_data->amname[i] = NULL;
-      option_data->bmeans[i] = 0;
       option_data->bmname[i] = NULL;
-      option_data->cmeans[i] = 0;
       option_data->cmname[i] = NULL;
+      option_data->xmname[i] = NULL;
+      option_data->ameans[i] = 0;
+      option_data->bmeans[i] = 0;
+      option_data->cmeans[i] = 0;
+      for (j = 0;  j < 3;  j++)
+	option_data->xmeans[i][j] = 0;
     }
   
   option_data->num_adiffs = 0;
   option_data->num_bdiffs = 0;
   option_data->num_cdiffs = 0;
+  option_data->num_xdiffs = 0;
   for (i = 0;  i < MAX_DIFFS;  i++)
     {
-      option_data->adiffs[i][0] = 0;
-      option_data->adiffs[i][1] = 0;
       option_data->adname[i] = NULL;
-      option_data->bdiffs[i][0] = 0;
-      option_data->bdiffs[i][1] = 0;
       option_data->bdname[i] = NULL;
-      option_data->cdiffs[i][0] = 0;
-      option_data->cdiffs[i][1] = 0;
       option_data->cdname[i] = NULL;
+      option_data->xdname[i] = NULL;
+      for (j = 0;  j < 2;  j++)
+        {
+          option_data->adiffs[i][j] = 0;
+          option_data->bdiffs[i][j] = 0;
+          option_data->cdiffs[i][j] = 0;
+	  for (k = 0;  k < 3;  k++)
+	    option_data->xdiffs[i][j][k] = 0;	
+        }
     }
   
   option_data->num_acontr = 0;
   option_data->num_bcontr = 0;
   option_data->num_ccontr = 0;
+  option_data->num_xcontr = 0;	
   for (i = 0;  i < MAX_CONTR;  i++)
     {
       option_data->acname[i] = NULL;
       option_data->bcname[i] = NULL;
       option_data->ccname[i] = NULL;
+      option_data->xcname[i] = NULL;
       for (j = 0;  j < MAX_LEVELS;  j++)
 	{
 	  option_data->acontr[i][j] = 0.0;
 	  option_data->bcontr[i][j] = 0.0;
 	  option_data->ccontr[i][j] = 0.0;
+	  for (k = 0;  k < MAX_LEVELS;  k++)
+	    option_data->xcontr[i][j][k] = 0.0;
 	}
     }
 
@@ -785,6 +790,13 @@ void destroy_anova_options (anova_options * option_data)
 	option_data->cmname[i] = NULL;
       }
   
+  if (option_data->num_xmeans)
+    for (i=0; i < option_data->num_xmeans; i++)  
+      {
+	free (option_data->xmname[i]);
+	option_data->xmname[i] = NULL;
+      }
+  
   if (option_data->num_adiffs)
     for (i=0; i < option_data->num_adiffs; i++)  
       {
@@ -806,6 +818,13 @@ void destroy_anova_options (anova_options * option_data)
 	option_data->cdname[i] = NULL;
       }
   
+  if (option_data->num_xdiffs)
+    for (i=0; i < option_data->num_xdiffs; i++)  
+      {
+	free (option_data->xdname[i]);
+	option_data->xdname[i] = NULL;
+      }
+  
   if (option_data->num_acontr)
     for (i=0; i < option_data->num_acontr; i++)  
       {
@@ -825,6 +844,13 @@ void destroy_anova_options (anova_options * option_data)
       {
 	free (option_data->ccname[i]);
 	option_data->ccname[i] = NULL;
+      }
+
+  if (option_data->num_xcontr)
+    for (i=0; i < option_data->num_xcontr; i++)  
+      {
+	free (option_data->xcname[i]);
+	option_data->xcname[i] = NULL;
       }
 }
   

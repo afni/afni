@@ -109,6 +109,11 @@ of datasets that can be used at once.  AFNI will try to purge unused
 datasets from memory if a problem arises, but it may not succeed.
 If necessary, the "-purge" option can be used when starting AFNI.
 
+Very large datasets (larger than the amount of RAM on your system)
+should not be compressed, since it will be impossible to read such
+an object into memory in its entirety.  It is better to rely on
+the memory mapping facility in such cases.
+
 Effect on Plugins and Other Programs
 ====================================
 If you use the AFNI supplied routines to read in a dataset, then

@@ -42,7 +42,15 @@ static FLOAT_TYPE tempRWC ;
    printf("%s: %d %d %d\n",(str),(iv).ijk[0],(iv).ijk[1],(iv).ijk[2])
 
 #define DUMP_FVEC3(str,fv) \
-   printf("%s: %f %f %f\n",(str),(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
+   printf("%s: %13.6g %13.6g %13.6g\n",(str),(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
+
+#define DUMP_MAT33(str,A)                                  \
+   printf("%10.10s: [ %13.6g %13.6g %13.6g ]\n"            \
+       "            [ %13.6g %13.6g %13.6g ]\n"            \
+       "            [ %13.6g %13.6g %13.6g ]\n" ,          \
+     str , (A).mat[0][0] , (A).mat[0][1] , (A).mat[0][2] , \
+           (A).mat[1][0] , (A).mat[1][1] , (A).mat[1][2] , \
+           (A).mat[2][0] , (A).mat[2][1] , (A).mat[2][2]  )
 
 /*--- macros for operations on floating 3 vectors,
       with heavy use of the comma operator and structure assignment! ---*/
@@ -178,6 +186,10 @@ static FLOAT_TYPE tempRWC ;
   + (A).mat[2][0]*(A).mat[0][1]*(A).mat[1][2] \
   - (A).mat[2][0]*(A).mat[0][2]*(A).mat[1][1]   )
 
+   /* matrix trace [5 Oct 1998] */
+
+#define MAT_TRACE(A) ( (A).mat[0][0] + (A).mat[1][1] + (A).mat[2][2] )
+
    /* matrix inverse */
 
 #define MAT_INV(A) \
@@ -202,12 +214,28 @@ static FLOAT_TYPE tempRWC ;
      ( (A).mat[0][1]*(A).mat[1][2] - (A).mat[0][2]*(A).mat[1][1]) * tempRWC,\
     tempA_mat33 )
 
+  /* load a matrix from scalars [3 Oct 1998] */
+
+#define LOAD_MAT(A,a11,a12,a13,a21,a22,a23,a31,a32,a33) \
+ ( (A).mat[0][0] = (a11) , (A).mat[0][1] = (a12) ,      \
+   (A).mat[0][2] = (a13) , (A).mat[1][0] = (a21) ,      \
+   (A).mat[1][1] = (a22) , (A).mat[1][2] = (a23) ,      \
+   (A).mat[2][0] = (a31) , (A).mat[2][1] = (a32) , (A).mat[2][2] = (a33) )
+
+  /* unload a matrix into scalars [3 Oct 1998] */
+
+#define UNLOAD_MAT(A,a11,a12,a13,a21,a22,a23,a31,a32,a33) \
+ ( (a11) = (A).mat[0][0] , (a12) = (A).mat[0][1] ,        \
+   (a13) = (A).mat[0][2] , (a21) = (A).mat[1][0] ,        \
+   (a22) = (A).mat[1][1] , (a23) = (A).mat[1][2] ,        \
+   (a31) = (A).mat[2][0] , (a32) = (A).mat[2][1] , (a33) = (A).mat[2][2] )
+
    /* diagonal matrix */
 
 #define LOAD_DIAG_MAT(A,x,y,z) \
- ( (A).mat[0][0] = x , \
-   (A).mat[1][1] = y , \
-   (A).mat[2][2] = z , \
+ ( (A).mat[0][0] = (x) , \
+   (A).mat[1][1] = (y) , \
+   (A).mat[2][2] = (z) , \
    (A).mat[0][1] = (A).mat[0][2] = (A).mat[1][0] = \
    (A).mat[1][2] = (A).mat[2][0] = (A).mat[2][1] = 0.0 )
 
@@ -229,6 +257,25 @@ static FLOAT_TYPE tempRWC ;
 #define LOAD_ROTX_MAT(A,th) LOAD_ROTGEN_MAT(A,th,0,1,2)
 #define LOAD_ROTY_MAT(A,th) LOAD_ROTGEN_MAT(A,th,1,2,0)
 #define LOAD_ROTZ_MAT(A,th) LOAD_ROTGEN_MAT(A,th,2,0,1)
+
+#define LOAD_ROT_MAT(A,th,i)                  \
+  do{ switch( (i) ){                          \
+        case 0: LOAD_ROTX_MAT(A,th) ; break ; \
+        case 1: LOAD_ROTY_MAT(A,th) ; break ; \
+        case 2: LOAD_ROTZ_MAT(A,th) ; break ; \
+       default: LOAD_ZERO_MAT(A)    ; break ; \
+      } } while(0)
+
+   /* shear matrices [3 Oct 1998] */
+
+#define LOAD_SHEARX_MAT(A,f,b,c) ( LOAD_DIAG_MAT(A,(f),1,1) , \
+                                   (A).mat[0][1] = (b) , (A).mat[0][2] = (c) )
+
+#define LOAD_SHEARY_MAT(A,f,a,c) ( LOAD_DIAG_MAT(A,1,(f),1) , \
+                                   (A).mat[1][0] = (a) , (A).mat[1][2] = (c) )
+
+#define LOAD_SHEARZ_MAT(A,f,a,b) ( LOAD_DIAG_MAT(A,1,1,(f)) , \
+                                   (A).mat[2][0] = (a) , (A).mat[2][1] = (b) )
 
    /* matrix transpose */
 

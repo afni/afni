@@ -24,6 +24,9 @@
    Mod:     Continuation of 'bucket' dataset changes.
    Date:    9 January 1998
 
+   Mod:     Added software for statistical tests of individual cell means.
+   Date:    27 October 1998
+
 */
 
 
@@ -35,8 +38,10 @@
 
 
 #define PROGRAM_NAME "3dANOVA"                       /* name of this program */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "27 October 1998"           /* date of last program mod */
+
 #define SUFFIX ".3danova"                 /* suffix for temporary data files */
-#define LAST_MOD_DATE "9 January 1998"           /* date of last program mod */
 
 
 #include "3dANOVA.h"
@@ -70,23 +75,21 @@ void display_help_menu()
      "                                                                      \n"
      "                                                                      \n"
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
+     "  (In each case, output is written to the file with the specified     \n"
+     "   prefix file name.)                                                 \n"
      "                                                                      \n"
-     "[-ftr filename]                F-statistic for treatment effect       \n"
-     "                                  output is written to 'filename'     \n"
-     "[-mean i filename]             estimate of factor level i mean        \n"
-     "                                  output is written to 'filename'     \n"
-     "[-diff i j filename]           difference between factor levels       \n"
-     "                                  i and j, output to 'filename'       \n"
-     "[-contr c1...cr filename]      contrast in factor levels              \n"
-     "                                  output is written to 'filename'     \n"
+     "[-ftr prefix]                  F-statistic for treatment effect       \n"
+     "[-mean i prefix]               estimate of factor level i mean        \n"
+     "[-diff i j prefix]             difference between factor levels       \n"
+     "[-contr c1...cr prefix]        contrast in factor levels              \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following command generates one AFNI 'bucket' type dataset:       \n"
      "                                                                      \n"
-     "[-bucket prefixname]     create one AFNI 'bucket' dataset whose       \n"
+     "[-bucket prefix]         create one AFNI 'bucket' dataset whose       \n"
      "                           sub-bricks are obtained by concatenating   \n"
      "                           the above output files; the output 'bucket'\n"
-     "                           is written to file prefixname              \n"
+     "                           is written to file with prefix file name   \n"
      );
   
   exit(0);
@@ -260,7 +263,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -mean ");
 	  
 	  option_data->num_ameans++;
-	  if (option_data->num_ameans > MAX_LEVELS)
+	  if (option_data->num_ameans > MAX_MEANS)
 	    ANOVA_error ("too many factor level mean estimates");
 	  
 	  sscanf (argv[nopt], "%d", &ival);
@@ -1480,9 +1483,15 @@ void terminate (anova_options * option_data)
 void main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
- 
-   printf ("\n\nProgram 3dANOVA \n\n");
-   printf ("Last revision: %s \n", LAST_MOD_DATE);
+
+
+   /*----- Identify software -----*/
+   printf ("\n\n");
+   printf ("Program: %s \n", PROGRAM_NAME);
+   printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+   printf ("Date:    %s \n", PROGRAM_DATE);
+   printf ("\n");
+
 
    /*----- program initialization -----*/
    initialize (argc, argv, &option_data);

@@ -51,7 +51,11 @@ struct NLFIT_MODEL_array ; /* incomplete definition */
 *******************************************************************/
 
 typedef void (*vfp)();       /* pointer to generic function */
-typedef void void_func();    /* generic function returning void */
+
+#ifndef VOID_FUNC
+#define VOID_FUNC
+typedef void void_func() ;
+#endif
 
 #ifndef _AFNI_PLUGIN_HEADER_
 

@@ -4,6 +4,11 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /***********************************************************************
   Plugin to do what imreg.c does
 ************************************************************************/
@@ -134,7 +139,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       FREEUP(bout) ; FREEUP(sout) ; FREEUP(fout) ; \
       FREEUP(dxar) ; FREEUP(dyar) ; FREEUP(phiar); \
     } while(0) ;
-
 
 char * IMREG_main( PLUGIN_interface * plint )
 {

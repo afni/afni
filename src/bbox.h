@@ -64,6 +64,11 @@ extern void MCW_bbox_hints( MCW_bbox * , int , char ** ) ;
 /*---------------------------------------------------------------------------------*/
 /***--- for arrowval ---***/
 
+#ifndef VOID_FUNC
+#define VOID_FUNC
+typedef void void_func() ;
+#endif
+
 typedef void gen_func() ;   /* generic functions */
 typedef char * str_func() ;
 

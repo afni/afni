@@ -90,6 +90,7 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
    new_dset->merger_list = NULL ;
    new_dset->death_mark  = 0 ;
    new_dset->pts         = NULL ;
+   new_dset->tagset      = NULL ;  /* Oct 1998 */
 
    new_dkptr->type         = DISKPTR_TYPE ;
    new_dkptr->rank         = 3 ;

@@ -114,6 +114,10 @@ ENTRY("PLUG_read_plugin") ;
 
    /*----- open the library (we hope) -----*/
 
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"opening library %s" , fname ) ; STATUS(str) ; }
+
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
    if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){
 
@@ -2338,7 +2342,7 @@ ENTRY("make_PLUGIN_dataset_link") ;
 
    strcpy( nam , dset->dblk->diskptr->directory_name ) ;
    strcat( nam , dset->dblk->diskptr->filecode ) ;
-   tnam = THD_trailname(nam,1) ;
+   tnam = THD_trailname(nam,SESSTRAIL) ;
    MCW_strncpy( dsl->title , tnam , PLUGIN_STRING_SIZE ) ;
 
    /*-- copy idcode --*/
@@ -2352,6 +2356,19 @@ ENTRY("make_PLUGIN_dataset_link") ;
   Determine if a dataset passes the type_mask and ctrl_mask
   criteria for acceptability.
 -------------------------------------------------------------------------*/
+
+int PLUTO_dset_check( int anat_mask, int func_mask,
+                      int ctrl_mask, THD_3dim_dataset * dset )
+{
+   int iv=0 ;
+
+   if( ISANAT(dset) )
+      iv = PLUGIN_dset_check( anat_mask , ctrl_mask , dset ) ;
+   else if( ISFUNC(dset) )
+      iv = PLUGIN_dset_check( func_mask , ctrl_mask , dset ) ;
+
+   return iv ;
+}
 
 int PLUGIN_dset_check( int type_mask , int ctrl_mask , THD_3dim_dataset * dset )
 {
@@ -2377,6 +2394,250 @@ ENTRY("PLUGIN_dset_check") ;
    if( itmp == MRI_complex && (ctrl_mask & BRICK_COMPLEX_MASK) == 0 ) RETURN(0) ;
 
    RETURN(1) ;
+}
+
+/*-------------------------------------------------------------------------
+   Loop over a bunch of dataset links and patch their
+   titles to include an indicator of the dataset type, etc.
+   23 October 1998 -- RWCox
+---------------------------------------------------------------------------*/
+
+void patch_PLUGIN_dataset_links( int ndsl , PLUGIN_dataset_link * dsl )
+{
+   int id , ltop , llen ;
+   char qnam[THD_MAX_NAME] ;
+   THD_3dim_dataset * dset ;
+
+ENTRY("patch_PLUGIN_dataset_links") ;
+
+   if( ndsl < 1 || dsl == NULL ) EXRETURN ;
+
+   ltop = 4 ;
+   for( id=0 ; id < ndsl ; id++ ){    /* find longest string */
+      llen = strlen(dsl[id].title) ;
+      ltop = MAX(ltop,llen) ;
+   }
+
+   /* patch each title string */
+
+   for( id=0 ; id < ndsl ; id++ ){
+      dset = PLUTO_find_dset( &(dsl[id].idcode) ) ;  /* get the dataset */
+      if( ! ISVALID_3DIM_DATASET(dset) ) continue ;  /* bad news for Bozo */
+
+      if( ISANAT(dset) ){
+         if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
+            sprintf(qnam,"%-*s [%s:%d]" ,
+                    ltop,dsl[id].title ,
+                    ANAT_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+
+         else if( DSET_NUM_TIMES(dset) == 1 )
+            sprintf(qnam,"%-*s [%s]" ,
+                    ltop,dsl[id].title ,
+                    ANAT_prefixstr[dset->func_type] ) ;
+
+         else
+            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
+                    ltop,dsl[id].title ,
+                    ANAT_prefixstr[dset->func_type] , DSET_NUM_TIMES(dset) ) ;
+
+      } else {
+         if( ISFUNCBUCKET(dset) )         /* 30 Nov 1997 */
+            sprintf(qnam,"%-*s [%s:%d]" ,
+                    ltop,dsl[id].title ,
+                    FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+
+         else if( DSET_NUM_TIMES(dset) == 1 )
+            sprintf(qnam,"%-*s [%s]" ,
+                    ltop,dsl[id].title ,
+                    FUNC_prefixstr[dset->func_type] ) ;
+
+         else
+            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
+                    ltop,dsl[id].title ,
+                    FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+      }
+
+      if( DSET_COMPRESSED(dset) ) strcat(qnam,"z") ;
+
+      strcpy( dsl[id].title , qnam ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------
+   Popup a chooser list of datasets that meet some criteria.
+   Note that only one such chooser will be popped up at any given time.
+   This routine is for use in user-written plugins with custom interfaces.
+   23 October 1998 -- RWCox
+
+   w = widget to popup near
+
+   vv = view type of datasets (cf. VIEW_*_TYPE from 3ddata.h)
+           [one way to select this is plint->im3d->vinfo->view_type]
+
+   multi = 1 to allow selection of multiple datasets
+         = 0 to allow selection of only 1 dataset at a time
+
+   chk_func = int function( THD_3dim_dataset * dset, void * cd ) ;
+                If this function pointer is not NULL, it will be called to
+                check if each dataset should be allowed in.  A zero return
+                value means don't allow; any other return value means dset
+                will be in the displayed list.  If chk_func is NULL, then
+                all datasets known to AFNI will be allowed.  [The function
+                PLUTO_dset_check() may be useful inside chk_func.]
+
+   cb_func  = void function( int num, THD_3dim_dataset ** dslist, void * cd ) ;
+                This function pointer must not be NULL.  It will be called
+                when the user makes a choice on the popup chooser.
+                The value num will be the number of datasets chosen.
+                dslist[i] will be a pointer to the i-th dataset, for
+                i=0..num-1.  If multi was 0, then num will be 1 and the
+                single selected dataset will be pointed to by dlist[0].
+
+   cd = A pointer to anything the user likes.  It will be passed to
+          chk_func and cb_func, as described above.  (Can be NULL.)
+--------------------------------------------------------------------------*/
+
+static int                   num_user_dset     = 0 ;
+static PLUGIN_dataset_link * user_dset_link    = NULL ;
+static char **               user_dset_strlist = NULL ;
+static int                   user_dset_numds   = 0 ;
+static THD_3dim_dataset **   user_dset_dslist  = NULL ;
+static void_func *           user_dset_cb_func = NULL ;
+static void *                user_dset_cb_data = NULL ;
+
+void PLUTO_popup_dset_chooser( Widget w , int vv , int multi ,
+                               int_func * chk_func ,
+                               void_func * cb_func , void * cd )
+{
+   THD_session * ss ;
+   THD_3dim_dataset * dset ;
+   int iss_bot , iss_top , iss ;
+   int id ;
+   char label[64] ;
+
+ENTRY("PLUTO_popup_dset_chooser") ;
+
+   if( w == NULL            || cb_func == NULL     ||
+       vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE   ) EXRETURN ;
+
+   /** Scan sessions **/
+
+   iss_bot  = 0 ;
+   iss_top  = GLOBAL_library.sslist->num_sess - 1 ;
+   num_user_dset = 0 ;
+
+   for( iss=iss_bot ; iss <= iss_top ; iss++ ){
+      ss = GLOBAL_library.sslist->ssar[iss] ;
+
+      /* check anat datasets */
+
+      for( id=0 ; id < ss->num_anat ; id++ ){
+         dset = ss->anat[id][vv] ;
+         if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
+
+         num_user_dset++ ;
+         user_dset_link = (PLUGIN_dataset_link *)
+                          XtRealloc( (char *) user_dset_link ,
+                                     sizeof(PLUGIN_dataset_link)*num_user_dset ) ;
+
+         make_PLUGIN_dataset_link( dset , user_dset_link + (num_user_dset-1) ) ;
+
+      } /* end of loop over anat datasets */
+
+      /* do the same for func datasets */
+
+      for( id=0 ; id < ss->num_func ; id++ ){
+         dset = ss->func[id][vv] ;
+         if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
+
+         num_user_dset++ ;
+         user_dset_link = (PLUGIN_dataset_link *)
+                         XtRealloc( (char *) user_dset_link ,
+                                    sizeof(PLUGIN_dataset_link)*num_user_dset ) ;
+
+        make_PLUGIN_dataset_link( dset , user_dset_link + (num_user_dset-1) ) ;
+
+      } /* end of loop over func datasets */
+
+   } /* end of loop over sessions */
+
+   /*--- if nothing was found that fits, then nothing further can happen ---*/
+
+   if( num_user_dset == 0 ){
+      myXtFree(user_dset_link) ; BEEPIT ;
+      MCW_popup_message( w ,
+                        "No datasets that meet this\ncriterion are available!" ,
+                        MCW_USER_KILL|MCW_TIMER_KILL ) ;
+      EXRETURN ;
+   }
+
+   /*--- make a popup chooser for the user to browse ---*/
+
+   POPDOWN_strlist_chooser ;  /* death to the old regime */
+
+   /* fix the dataset titles to be more fun */
+
+   patch_PLUGIN_dataset_links( num_user_dset , user_dset_link ) ;
+
+   /* make an array of pointers to all the titles */
+
+   user_dset_strlist = (char **) XtRealloc( (char *) user_dset_strlist ,
+                                            sizeof(char *) * num_user_dset ) ;
+   for( id=0 ; id < num_user_dset ; id++ )
+      user_dset_strlist[id] = user_dset_link[id].title ;
+
+   /* label for the top of the chooser */
+
+   sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
+
+   /* and take it away, Goldie */
+
+   user_dset_cb_func = cb_func ;
+   user_dset_cb_data = cd ;
+
+   if( multi ){
+      MCW_choose_multi_strlist( w , label , mcwCT_multi_mode ,
+                                num_user_dset , NULL , user_dset_strlist ,
+                                PLUG_finalize_user_dset_CB , NULL ) ;
+   } else {
+      MCW_choose_strlist( w , label ,
+                          num_user_dset , -1 , user_dset_strlist ,
+                          PLUG_finalize_user_dset_CB , NULL ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+   Called when the user actually selects a dataset from the chooser.
+   Will call the user's pitiful and loathsome routine.
+   23 October 1998 -- RWCox
+-------------------------------------------------------------------------*/
+
+void PLUG_finalize_user_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
+{
+   int id , jd , num ;
+
+ENTRY("PLUG_finalize_user_dset_CB") ;
+
+   if( cbs == NULL || cbs->nilist < 1 ) EXRETURN ;
+
+   user_dset_numds = num = cbs->nilist ;
+
+   user_dset_dslist = (THD_3dim_dataset **)
+                         XtRealloc( (char *) user_dset_dslist ,
+                                    sizeof(THD_3dim_dataset *) * num ) ;
+
+   for( id=0 ; id < num ; id++ ){
+      jd = cbs->ilist[id] ;
+      user_dset_dslist[id] = PLUTO_find_dset( &(user_dset_link[jd].idcode) ) ;
+   }
+
+   user_dset_cb_func( num , user_dset_dslist , user_dset_cb_data ) ;
+
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -2761,6 +3022,7 @@ ENTRY("PLUTO_add_dset") ;
 
 /*---------------------------------------------------------------------
    Routine to make a copy of a dataset, with data attached.
+   [Moved into edt_fullcopy.c -- RWCox, 07 Oct 1998]
 -----------------------------------------------------------------------*/
 
 THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset * dset , char * new_prefix )
@@ -2771,52 +3033,7 @@ THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset * dset , char * new_prefix 
 
 ENTRY("PLUTO_copy_dset") ;
 
-   /*-- sanity check --*/
-
-   if( ! ISVALID_3DIM_DATASET(dset) ) RETURN(NULL) ;
-
-   /*-- make the empty copy --*/
-
-   new_dset = EDIT_empty_copy( dset ) ;
-
-   /*-- change its name? --*/
-
-   if( new_prefix != NULL )
-      EDIT_dset_items( new_dset ,
-                          ADN_prefix , new_prefix ,
-                          ADN_label1 , new_prefix ,
-                       ADN_none ) ;
-
-   /*-- make brick(s) for this dataset --*/
-
-   THD_load_datablock( dset->dblk , NULL ) ;  /* make sure old one is in memory */
-
-   nvals = DSET_NVALS(dset) ;
-
-   for( ival=0 ; ival < nvals ; ival++ ){
-      ityp      = DSET_BRICK_TYPE(new_dset,ival) ;   /* type of data */
-      nbytes    = DSET_BRICK_BYTES(new_dset,ival) ;  /* how much data */
-      new_brick = malloc( nbytes ) ;                 /* make room */
-
-      if( new_brick == NULL ){
-        THD_delete_3dim_dataset( new_dset , False ) ;
-        RETURN(NULL) ;
-      }
-
-      EDIT_substitute_brick( new_dset , ival , ityp , new_brick ) ;
-
-      /*-- copy data from old brick to new brick --*/
-
-      old_brick = DSET_BRICK_ARRAY(dset,ival) ;
-
-      if( old_brick == NULL ){
-         THD_delete_3dim_dataset( new_dset , False ) ;
-         RETURN(NULL) ;
-      }
-
-      memcpy( new_brick , old_brick , nbytes ) ;
-   }
-
+   new_dset = EDIT_full_copy( dset , new_prefix ) ;
    RETURN(new_dset) ;
 }
 
@@ -2873,12 +3090,26 @@ ENTRY("PLUTO_force_rebar") ;
 
 void PLUTO_dset_redisplay( THD_3dim_dataset * dset )
 {
-   Three_D_View * im3d ;
-   int ii ;
+   PLUTO_dset_redisplay_mode( dset , REDISPLAY_OPTIONAL ) ;
+}
 
-ENTRY("PLUTO_dset_redisplay") ;
+/*---- 23 Oct 1998: superseded above routine with this one; RWCox -----*/
+
+void PLUTO_dset_redisplay_mode( THD_3dim_dataset * dset , int mode )
+{
+   Three_D_View * im3d ;
+   int ii , amode , fmode ;
+
+ENTRY("PLUTO_dset_redisplay_mode") ;
 
    if( ! ISVALID_DSET(dset) ) EXRETURN ;
+
+   if( mode == REDISPLAY_OPTIONAL ){
+      amode = REDISPLAY_ALL ;
+      fmode = REDISPLAY_OVERLAY ;
+   } else {
+      amode = fmode = mode ;
+   }
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
       im3d = GLOBAL_library.controllers[ii] ;
@@ -2887,11 +3118,11 @@ ENTRY("PLUTO_dset_redisplay") ;
       if( im3d->anat_now == dset ){
          im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
-         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , amode ) ;
       } else if( im3d->fim_now == dset ){
          im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
-         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , fmode ) ;
       }
    }
    EXRETURN ;
@@ -3350,7 +3581,9 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) EDIT_one_dataset ,
    (vptr_func *) EDIT_add_brick ,
    (vptr_func *) mri_2dalign_setup ,
+   (vptr_func *) mri_3dalign_setup ,
    (vptr_func *) qsort_floatint ,
+   (vptr_func *) symeig_double ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){
@@ -3399,4 +3632,87 @@ ENTRY("PLUTO_find_dset") ;
                                    GLOBAL_library.sslist , -1 ) ;
 
    RETURN(find.dset) ;
+}
+
+/*----------------------------------------------------------------------------
+  Routines to add a text entry box.
+------------------------------------------------------------------------------*/
+
+PLUGIN_strval * new_PLUGIN_strval( Widget wpar , char * str )
+{
+   PLUGIN_strval * av ;
+   XmString xstr ;
+
+ENTRY("new_PLUGIN_strval") ;
+
+   if( wpar == (Widget) NULL ) RETURN(NULL) ;
+
+   av = myXtNew(PLUGIN_strval) ;
+
+   av->rowcol = XtVaCreateWidget(
+                  "AFNI" , xmRowColumnWidgetClass , wpar ,
+                     XmNpacking     , XmPACK_TIGHT ,
+                     XmNorientation , XmHORIZONTAL ,
+                     XmNmarginHeight, 0 ,
+                     XmNmarginWidth , 0 ,
+                     XmNspacing     , 0 ,
+                     XmNtraversalOn , False ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+
+   xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
+   av->label = XtVaCreateManagedWidget(
+                  "AFNI" , xmLabelWidgetClass , av->rowcol ,
+                     XmNlabelString , xstr ,
+                     XmNmarginWidth   , 0  ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+   XmStringFree( xstr ) ;
+
+   av->textf = XtVaCreateManagedWidget(
+                  "AFNI" , xmTextFieldWidgetClass , av->rowcol ,
+                      XmNcolumns      , 9 ,
+                      XmNeditable     , True ,
+                      XmNmaxLength    , PLUGIN_STRING_SIZE ,
+                      XmNresizeWidth  , False ,
+                      XmNmarginHeight , 1 ,
+                      XmNmarginWidth  , 1 ,
+                      XmNcursorPositionVisible , True ,
+                      XmNblinkRate , 0 ,
+                      XmNautoShowCursorPosition , True ,
+                      XmNtraversalOn , False ,
+                      XmNinitialResourcesPersistent , False ,
+                   NULL ) ;
+
+   XtManageChild( av->rowcol ) ;
+   RETURN(av) ;
+}
+
+void destroy_PLUGIN_strval( PLUGIN_strval * av )
+{
+   if( av != NULL ){
+      XtDestroyWidget( av->rowcol ) ;
+      myXtFree(av) ;
+   }
+   return ;
+}
+
+void alter_PLUGIN_strval_width( PLUGIN_strval * av , int nchar )
+{
+   if( av != NULL && nchar > 0 )
+      XtVaSetValues( av->textf , XmNcolumns , nchar , NULL ) ;
+   return ;
+}
+
+void set_PLUGIN_strval( PLUGIN_strval * av , char * str )
+{
+   if( av != NULL && str != NULL )
+      XmTextFieldSetString( av->textf , str ) ;
+   return ;
+}
+
+char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
+{
+   if( av == NULL ) return NULL ;
+                    return XmTextFieldGetString( av->textf ) ;
 }

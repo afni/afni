@@ -7,10 +7,10 @@ double mri_max( MRI_IMAGE *im )
 {
    register int ii , npix ;
    byte   byte_max   = 0 ;
-   short  short_max  = 0 ;
-   int    int_max    = 0 ;
-   float  float_max  = -999999.0 ;
-   double double_max = -999999.0 ;
+   short  short_max  = -32767 ;       /* 23 Oct 1998: changed from 0 */
+   int    int_max    = -2147483647 ;  /* ditto */
+   float  float_max  = -1.e+38 ;      /* changed from -9999999.0 */
+   double double_max = -1.e+38 ;      /* ditto */
 
 WHOAMI ; IMHEADER(im) ;
 
@@ -60,7 +60,7 @@ double mri_maxabs( MRI_IMAGE * im )
    register int ii , npix ;
    byte   byte_max   = 0 ;
    int    int_max    = 0 ;
-   double double_max = -999999.0 ;
+   double double_max = 0.0 ;
 
 WHOAMI ; IMHEADER(im) ;
 
@@ -110,9 +110,9 @@ double mri_min( MRI_IMAGE *im )
    register int ii , npix ;
    byte   byte_min   = 255 ;
    short  short_min  = 32767 ;
-   int    int_min    = 2000000000 ;
-   float  float_min  = 99999999.0 ;
-   double double_min = 99999999.0 ;
+   int    int_min    = 2147483647 ;
+   float  float_min  = 1.e+38 ;
+   double double_min = 1.e+38 ;
 
 WHOAMI ; IMHEADER(im) ;
 

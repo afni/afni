@@ -391,7 +391,7 @@ void BUCK_Syntax(void)
     "You can also add a sub-brick selection list after the end of the\n"
     "dataset name.  This allows only a subset of the sub-bricks to be\n"
     "included into the output (by default, all of the input dataset\n"
-    "is copied into the output).  A sub-brick selection list looks lik\n"
+    "is copied into the output).  A sub-brick selection list looks like\n"
     "one of the following forms:\n"
     "  fred+orig[5]                     ==> use only sub-brick #5\n"
     "  fred+orig[5,9,17]                ==> use #5, #9, and #12\n"

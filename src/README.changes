@@ -4,8 +4,21 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+16 Nov 1998:
+   3D (volumetric) registration is now available in the '3dvolreg' program
+     and the corresponding '3D Registration' plugin.
+   The dataset 'Lock' feature now allows you to lock the time indexes
+     of datasets together, as well as the 3D spatial coordinates.
+   Program 'cdf' allows you to do various statistical conversions from
+     the probability distributions known to AFNI.
+   Program '3dTcat' allows you to catenate 3D+time datasets together to
+     form really BIG data files, if you are so inclined.
+   You can set the Unix environment variable 'AFNI_LEFT_IS_LEFT' so that
+     axial and coronal images display with the subject's left on the
+     left of the screen, instead of the default radiological convention.
+--------------------------------------------------------------------------
 14 Sep 1998:
-   The new 3dDeconvolve program is available to perform multiple linear
+   The new '3dDeconvolve' program is available to perform multiple linear
      regression and linear deconvolution on 3D+time datasets.  See the
      file 3dDeconvolve.ps for documentation and examples.
 --------------------------------------------------------------------------

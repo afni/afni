@@ -22,13 +22,14 @@ static char helpstring[] =
 
 /*--------------------- strings for output format --------------------*/
 
-static char * method_strings[] = { "Mean" , "Slope" , "Sigma" } ;
+static char * method_strings[] = { "Mean" , "Slope" , "Sigma" , "CVar" } ;
 
 #define NUM_METHOD_STRINGS (sizeof(method_strings)/sizeof(char *))
 
 #define METH_MEAN  0
 #define METH_SLOPE 1
 #define METH_SIGMA 2
+#define METH_CVAR  3
 
 /*----------------- prototypes for internal routines -----------------*/
 
@@ -240,6 +241,7 @@ void STATS_tsfunc( double tzero , double tdelta ,
 
       case METH_SLOPE: *val = ts_slope ; break ;
 
+      case METH_CVAR:
       case METH_SIGMA:{
          register int ii ;
          register double sum ;
@@ -247,7 +249,11 @@ void STATS_tsfunc( double tzero , double tdelta ,
          sum = 0.0 ;
          for( ii=0 ; ii < npts ; ii++ ) sum += ts[ii] * ts[ii] ;
 
-         *val = sqrt( sum/(npts-1) ) ;
+         sum = sqrt( sum/(npts-1) ) ;
+
+         if( meth == METH_SIGMA )  *val = sum ;
+         else if( ts_mean != 0.0 ) *val = sum / fabs(ts_mean) ;
+         else                      *val = 0.0 ;
       }
    }
 

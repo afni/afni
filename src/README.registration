@@ -1,0 +1,49 @@
+Image and Volume Registration in AFNI 2.21
+------------------------------------------
+Two basic methods are supplied.  The first does 2D (in-plane) alignment
+on each slice separately.  There is no attempt to correct for out-of-slice
+movements.  The second does 3D (volumetric) alignment on each 3D sub-brick
+in a dataset.  Both methods compute the alignment parameters by an iterative
+weighted least squares fit to a base image or volume (which can be selected
+from another dataset).  The AFNI package registration programs are designed
+to find movements that are small -- 1-2 voxels and 1-2 degrees, at most.
+They will not work well at realigning datasets with larger motion (as would
+occur between imaging sessions).
+
+2D registration is implemented in programs
+ * imreg:      operates on slice data files, outside of the AFNI framework
+ * 2dImReg:    same as imreg, but takes data from an AFNI dataset
+ * plug_imreg: same as 2dImReg, but interactively within AFNI
+
+3D registration is implemented in programs
+ * 3dvolreg:    operates on 3D+time datasets
+ * plug_volreg: same as 3dvolreg, but interactively within AFNI
+
+2D image rotation/translation can be done with program imrotate.  3D and
+3D+time AFNI dataset rotation/translation can be done with program 3drotate.
+
+Each realignment method has its good and bad points.  The bad point about
+2D registration is the obvious lack of correction for out-of-slice movement.
+The bad point about 3D registration is that there is no ability to compensate
+for movements that occur during the time that the volume is acquired --
+usually several seconds.  A better approach would be to merge the two
+methods.  This may be done in the future, but is not available now.
+
+Several data resampling schemes are implemented in the registration
+programs.  Generally, the most accurate resampling is obtained with
+the Fourier method, but this is also the slowest.  A polynomial
+interpolation method can be used instead if speed is vital.  The
+registration and rotation routines in 3dvolreg (and plug_volreg)
+have been carefully written for efficiency.  As a result, 3dvolreg
+is several times faster than AIR 3.08 (available from Roger Woods
+at http://bishopw.loni.ucla.edu/AIR3/index.html).  Using Fourier
+interpolation in 3dvolreg and trilinear interpolation in AIR, 3dvolreg
+was 2-3 times faster on some typical FMRI datasets (128x128x30x80).
+Dropping to 7th order (heptic) polynomial interpolation speeds up
+3dvolreg by another factor of 2.  The two programs produce nearly
+identical estimates of the movement parameters.
+
+-----------------------------------
+Robert W. Cox, PhD -- November 1998
+Medical College of Wisconsin
+-----------------------------------

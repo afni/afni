@@ -239,12 +239,18 @@ double * startup_lsqfit( int veclen ,
    double *cc = NULL ;
    double sum ;
 
-   if( nref < 1 || veclen < nref || ref == NULL ) return NULL ;
+   if( nref < 1 || veclen < nref || ref == NULL ){
+      fprintf(stderr,"*** Illegal inputs to startup_lsqfit\n") ;
+      return NULL ;
+   }
 
    /*** form coefficient matrix into cc */
 
    cc = DBLEVEC(nref*nref) ;
-   if( cc == NULL ) return NULL ;
+   if( cc == NULL ){
+      fprintf(stderr,"Can't malloc workspace in startup_lsqfit\n") ;
+      return NULL ;
+   }
 
    if( wt != NULL ){
       for( jj=0 ; jj < nref ; jj++ ){
@@ -274,7 +280,11 @@ double * startup_lsqfit( int veclen ,
       }
       sum = CC(ii,ii) ;
       for( kk=0 ; kk < ii ; kk++ ) sum -= CC(ii,kk) * CC(ii,kk) ;
-      if( sum <= 0.0 ){ free(cc) ; return NULL ; }
+      if( sum <= 0.0 ){
+         free(cc) ;
+         fprintf(stderr,"Choleski factorization failure in startup_lsqfit\n") ;
+         return NULL ;
+      }
       CC(ii,ii) = sqrt(sum) ;
    }
 

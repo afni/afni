@@ -1,7 +1,7 @@
 ## for SGI (IRIX 6.2, R10000 chip)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -woff all -O2 -n32 -r10000 -DSGI -DUSE_TRACING
+CC     = cc -woff all -O2 -Olimit 4000 -n32 -r10000 -DSGI -DUSE_TRACING
 CCMIN  = cc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.

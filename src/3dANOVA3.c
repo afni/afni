@@ -15,7 +15,10 @@
    Mod:     Continuation of 'bucket' dataset changes.
    Date:    9 January 1998
 
+   Mod:     Added software for statistical tests of individual cell means.
+   Date:    27 October 1998
 */
+
 
 
 /*****************************************************************************
@@ -24,24 +27,11 @@
 ******************************************************************************/
 
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-   program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
 #define PROGRAM_NAME "3dANOVA3"                      /* name of this program */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "27 October 1998"           /* date of last program mod */
+
 #define SUFFIX ".3danova3"                /* suffix for temporary data files */
-#define LAST_MOD_DATE "9 January 1998"           /* date of last program mod */
 
 #include "3dANOVA.h"
 #include "3dANOVA.lib"
@@ -56,80 +46,73 @@ void display_help_menu()
 {
   printf 
     (
-     "This program performs three-factor ANOVA on 3D data sets.  \n\n"
+     "This program performs three-factor ANOVA on 3D data sets.           \n\n"
      "Usage: \n"
      "3dANOVA3 \n"
-     "-type  k          type of ANOVA model to be used:                   \n"
-     "                         k = 1   A,B,C fixed;          AxBxC        \n"
-     "                         k = 2   A,B,C random;         AxBxC        \n"
-     "                         k = 3   A fixed; B,C random;  AxBxC        \n"
-     "                         k = 4   A,B fixed; C random;  AxBxC        \n"
-     "                         k = 5   A,B fixed; C random;  AxB,BxC,C(A) \n"
-     "                                                                    \n"
-     "-alevels a                     a = number of levels of factor A     \n"
-     "-blevels b                     b = number of levels of factor B     \n"
-     "-clevels c                     c = number of levels of factor C     \n"
-     "-dset 1 1 1 filename           data set for level 1 of factor A     \n"
-     "                                        and level 1 of factor B     \n"
-     "                                        and level 1 of factor C     \n"
-     " . . .                           . . .                              \n"
-     "                                                                    \n"
-     "-dset i j k filename           data set for level i of factor A     \n"
-     "                                        and level j of factor B     \n"
-     "                                        and level k of factor C     \n"
-     " . . .                           . . .                              \n"
-     "                                                                    \n"
-     "-dset a b c filename           data set for level a of factor A     \n"
-     "                                        and level b of factor B     \n"
-     "                                        and level c of factor C     \n"
-     "                                                                    \n"
-     "[-voxel num]                   screen output for voxel # num        \n" 
-     "[-diskspace]                   print out disk space required for    \n"
-     "                                  program execution                 \n"  
+     "-type  k          type of ANOVA model to be used:                     \n"
+     "                         k = 1   A,B,C fixed;          AxBxC          \n"
+     "                         k = 2   A,B,C random;         AxBxC          \n"
+     "                         k = 3   A fixed; B,C random;  AxBxC          \n"
+     "                         k = 4   A,B fixed; C random;  AxBxC          \n"
+     "                         k = 5   A,B fixed; C random;  AxB,BxC,C(A)   \n"
+     "                                                                      \n"
+     "-alevels a                     a = number of levels of factor A       \n"
+     "-blevels b                     b = number of levels of factor B       \n"
+     "-clevels c                     c = number of levels of factor C       \n"
+     "-dset 1 1 1 filename           data set for level 1 of factor A       \n"
+     "                                        and level 1 of factor B       \n"
+     "                                        and level 1 of factor C       \n"
+     " . . .                           . . .                                \n"
+     "                                                                      \n"
+     "-dset i j k filename           data set for level i of factor A       \n"
+     "                                        and level j of factor B       \n"
+     "                                        and level k of factor C       \n"
+     " . . .                           . . .                                \n"
+     "                                                                      \n"
+     "-dset a b c filename           data set for level a of factor A       \n"
+     "                                        and level b of factor B       \n"
+     "                                        and level c of factor C       \n"
+     "                                                                      \n"
+     "[-voxel num]                   screen output for voxel # num          \n"
+     "[-diskspace]                   print out disk space required for      \n"
+     "                                  program execution                   \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
+     "  (In each case, output is written to the file with the specified     \n"
+     "   prefix file name.)                                                 \n"
      "                                                                      \n"
-     "[-fa filename]                 F-statistic for factor A effect      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fb filename]                 F-statistic for factor B effect      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fc filename]                 F-statistic for factor C effect      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fab filename]                F-statistic for A*B interaction      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fac filename]                F-statistic for A*C interaction      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fbc filename]                F-statistic for B*C interaction      \n"
-     "                                  output is written to 'filename'   \n"
-     "[-fabc filename]               F-statistic for A*B*C interaction    \n"
-     "                                  output is written to 'filename'   \n"
-     "[-amean i filename]            estimate of factor A level i mean    \n"
-     "                                  output is written to 'filename'   \n" 
-     "[-bmean i filename]            estimate of factor B level i mean    \n"
-     "                                  output is written to 'filename'   \n" 
-     "[-cmean i filename]            estimate of factor C level i mean    \n"
-     "                                  output is written to 'filename'   \n" 
-     "[-adiff i j filename]          difference between factor A levels   \n"
-     "                                  i and j, output to 'filename'     \n"
-     "[-bdiff i j filename]          difference between factor B levels   \n"
-     "                                  i and j, output to 'filename'     \n"
-     "[-cdiff i j filename]          difference between factor C levels   \n"
-     "                                  i and j, output to 'filename'     \n"
-     "[-acontr c1...cr filename]     contrast in factor A levels          \n"
-     "                                  output is written to 'filename'   \n"
-     "[-bcontr c1...cr filename]     contrast in factor B levels          \n"
-     "                                  output is written to 'filename'   \n"
-     "[-ccontr c1...cr filename]     contrast in factor C levels          \n"
-     "                                  output is written to 'filename'   \n"
+     "[-fa prefix]                F-statistic for factor A effect           \n"
+     "[-fb prefix]                F-statistic for factor B effect           \n"
+     "[-fc prefix]                F-statistic for factor C effect           \n"
+     "[-fab prefix]               F-statistic for A*B interaction           \n"
+     "[-fac prefix]               F-statistic for A*C interaction           \n"
+     "[-fbc prefix]               F-statistic for B*C interaction           \n"
+     "[-fabc prefix]              F-statistic for A*B*C interaction         \n"
+     "                                                                      \n"
+     "[-amean i prefix]           estimate of factor A level i mean         \n"
+     "[-bmean i prefix]           estimate of factor B level i mean         \n"
+     "[-cmean i prefix]           estimate of factor C level i mean         \n"
+     "[-xmean i j k prefix]       estimate mean of cell at factor A level i,\n"
+     "                               factor B level j, factor C level k     \n"
+     "                                                                      \n"
+     "[-adiff i j prefix]         difference between factor A levels i and j\n"
+     "[-bdiff i j prefix]         difference between factor B levels i and j\n"
+     "[-cdiff i j prefix]         difference between factor C levels i and j\n"
+     "[-xdiff i j k l m n prefix] difference between cell mean at A=i,B=j,  \n"
+     "                               C=k, and cell mean at A=l,B=m,C=n      \n"
+     "                                                                      \n"
+     "[-acontr c1...ca prefix]    contrast in factor A levels               \n"
+     "[-bcontr c1...cb prefix]    contrast in factor B levels               \n"
+     "[-ccontr c1...cc prefix]    contrast in factor C levels               \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following command generates one AFNI 'bucket' type dataset:       \n"
      "                                                                      \n"
-     "[-bucket prefixname]     create one AFNI 'bucket' dataset whose       \n"
+     "[-bucket prefix]         create one AFNI 'bucket' dataset whose       \n"
      "                           sub-bricks are obtained by concatenating   \n"
      "                           the above output files; the output 'bucket'\n"
-     "                           is written to file prefixname              \n"
+     "                           is written to file with prefix file name   \n"
     );
   
   exit(0);
@@ -441,7 +424,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -amean ");
 	  
 	  option_data->num_ameans++;
-	  if (option_data->num_ameans > MAX_LEVELS)
+	  if (option_data->num_ameans > MAX_MEANS)
 	    ANOVA_error ("too many factor A level mean estimates");
 	  
 	  sscanf (argv[nopt], "%d", &ival);
@@ -465,7 +448,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -bmean ");
 	  
 	  option_data->num_bmeans++;
-	  if (option_data->num_bmeans > MAX_LEVELS)
+	  if (option_data->num_bmeans > MAX_MEANS)
 	    ANOVA_error ("too many factor B level mean estimates");
 	  
 	  sscanf (argv[nopt], "%d", &ival);
@@ -489,7 +472,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -cmean ");
 	  
 	  option_data->num_cmeans++;
-	  if (option_data->num_cmeans > MAX_LEVELS)
+	  if (option_data->num_cmeans > MAX_MEANS)
 	    ANOVA_error ("too many factor C level mean estimates");
 	  
 	  sscanf (argv[nopt], "%d", &ival);
@@ -501,6 +484,42 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  option_data->cmname[option_data->num_cmeans-1] 
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->cmname[option_data->num_cmeans-1], argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+
+
+      /*-----   -xmean i j k filename   -----*/
+      if (strncmp(argv[nopt], "-xmean", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt+3 >= argc)  ANOVA_error ("need 4 arguments after -xmean ");
+	  
+	  option_data->num_xmeans++;
+	  if (option_data->num_xmeans > MAX_MEANS)
+	    ANOVA_error ("too many cell mean estimates");
+	  
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->a))
+	    ANOVA_error ("illegal argument after -xmean ");
+	  option_data->xmeans[option_data->num_xmeans-1][0] = ival - 1;
+	  nopt++;
+	  
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->b))
+	    ANOVA_error ("illegal argument after -xmean ");
+	  option_data->xmeans[option_data->num_xmeans-1][1] = ival - 1;
+	  nopt++;
+	  
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->c))
+	    ANOVA_error ("illegal argument after -xmean ");
+	  option_data->xmeans[option_data->num_xmeans-1][2] = ival - 1;
+	  nopt++;
+	  
+	  option_data->xmname[option_data->num_xmeans-1] 
+	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy (option_data->xmname[option_data->num_xmeans-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
@@ -591,6 +610,60 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  option_data->cdname[option_data->num_cdiffs-1] 
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->cdname[option_data->num_cdiffs-1], argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+      
+      /*-----   -xdiff i j k l m n filename   -----*/
+      if (strncmp(argv[nopt], "-xdiff", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt+6 >= argc)  ANOVA_error ("need 7 arguments after -xdiff ");
+	  
+	  option_data->num_xdiffs++;
+	  if (option_data->num_xdiffs > MAX_DIFFS)
+	    ANOVA_error ("too many cell means differences");
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->a))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][0][0] = ival - 1;
+	  nopt++;
+   
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->b))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][0][1] = ival - 1;
+	  nopt++;
+   
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->c))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][0][2] = ival - 1;
+	  nopt++;
+   
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->a))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][1][0] = ival - 1;
+	  nopt++;
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->b))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][1][1] = ival - 1;
+	  nopt++;
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > option_data->c))
+	    ANOVA_error ("illegal argument after -xdiff ");
+	  option_data->xdiffs[option_data->num_xdiffs-1][1][2] = ival - 1;
+	  nopt++;
+
+	  option_data->xdname[option_data->num_xdiffs-1] 
+	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  strcpy (option_data->xdname[option_data->num_xdiffs-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
@@ -778,6 +851,10 @@ void check_output_files (anova_options * option_data)
     for (i = 0;  i < option_data->num_cmeans;  i++)
       check_one_output_file (option_data, option_data->cmname[i]);
   
+  if (option_data->num_xmeans > 0)
+    for (i = 0;  i < option_data->num_xmeans;  i++)
+      check_one_output_file (option_data, option_data->xmname[i]);
+  
   if (option_data->num_adiffs > 0)
     for (i = 0;  i < option_data->num_adiffs;  i++)
       check_one_output_file (option_data, option_data->adname[i]);
@@ -789,6 +866,10 @@ void check_output_files (anova_options * option_data)
   if (option_data->num_cdiffs > 0)
     for (i = 0;  i < option_data->num_cdiffs;  i++)
       check_one_output_file (option_data, option_data->cdname[i]);
+  
+  if (option_data->num_xdiffs > 0)
+    for (i = 0;  i < option_data->num_xdiffs;  i++)
+      check_one_output_file (option_data, option_data->xdname[i]);
   
   if (option_data->num_acontr > 0)
     for (i = 0;  i < option_data->num_acontr;  i++)
@@ -848,12 +929,16 @@ void check_for_valid_inputs (anova_options * option_data)
 	ANOVA_error ("-bmean not allowed for Model 2");
       if (option_data->num_cmeans > 0)  
 	ANOVA_error ("-cmean not allowed for Model 2");
+      if (option_data->num_xmeans > 0)  
+	ANOVA_error ("-xmean not allowed for Model 2");
       if (option_data->num_adiffs > 0)
 	ANOVA_error ("-adiff not allowed for Model 2");
       if (option_data->num_bdiffs > 0)
 	ANOVA_error ("-bdiff not allowed for Model 2");
       if (option_data->num_cdiffs > 0)   
 	ANOVA_error ("-cdiff not allowed for Model 2");
+      if (option_data->num_xdiffs > 0)   
+	ANOVA_error ("-xdiff not allowed for Model 2");
       if (option_data->num_acontr > 0) 
 	ANOVA_error ("-acontr not allowed for Model 2");
       if (option_data->num_bcontr > 0) 
@@ -874,12 +959,16 @@ void check_for_valid_inputs (anova_options * option_data)
 	ANOVA_error ("-bmean not allowed for Model 3");
       if (option_data->num_cmeans > 0)  
 	ANOVA_error ("-cmean not allowed for Model 3");
+      if (option_data->num_xmeans > 0)  
+	ANOVA_error ("-xmean not allowed for Model 3");
       if (option_data->num_adiffs > 0)
 	ANOVA_error ("-adiff not allowed for Model 3");
       if (option_data->num_bdiffs > 0)
 	ANOVA_error ("-bdiff not allowed for Model 3");
       if (option_data->num_cdiffs > 0)   
 	ANOVA_error ("-cdiff not allowed for Model 3");
+      if (option_data->num_xdiffs > 0)   
+	ANOVA_error ("-xdiff not allowed for Model 3");
       if (option_data->num_acontr > 0) 
 	ANOVA_error ("-acontr not allowed for Model 3");
       if (option_data->num_bcontr > 0) 
@@ -898,8 +987,12 @@ void check_for_valid_inputs (anova_options * option_data)
 	ANOVA_error ("sample size is too small for calculating F(ABC)");
       if (option_data->num_cmeans > 0)  
 	ANOVA_error ("-cmean not allowed for Model 4");
+      if (option_data->num_xmeans > 0)  
+	ANOVA_error ("-xmean not allowed for Model 4");
       if (option_data->num_cdiffs > 0)   
 	ANOVA_error ("-cdiff not allowed for Model 4");
+      if (option_data->num_xdiffs > 0)   
+	ANOVA_error ("-xdiff not allowed for Model 4");
       if (option_data->num_ccontr > 0)  
 	ANOVA_error ("-ccontr not allowed for Model 4");
       break;
@@ -914,8 +1007,12 @@ void check_for_valid_inputs (anova_options * option_data)
 	ANOVA_error ("F(ABC) is meaningless for Model 5");
       if (option_data->num_cmeans > 0)  
 	ANOVA_error ("-cmean not allowed for Model 5");
+      if (option_data->num_xmeans > 0)  
+	ANOVA_error ("-xmean not allowed for Model 5");
       if (option_data->num_cdiffs > 0)   
 	ANOVA_error ("-cdiff not allowed for Model 5");
+      if (option_data->num_xdiffs > 0)   
+	ANOVA_error ("-xdiff not allowed for Model 5");
       if (option_data->num_ccontr > 0)  
 	ANOVA_error ("-ccontr not allowed for Model 5");
       break;
@@ -960,8 +1057,9 @@ int required_data_files (anova_options * option_data)
     + option_data->nfab + option_data->nfac + option_data->nfbc 
     + option_data->nfabc 
     + option_data->num_ameans + option_data->num_bmeans 
-    + option_data->num_cmeans + option_data->num_adiffs 
-    + option_data->num_bdiffs + option_data->num_cdiffs
+    + option_data->num_cmeans + option_data->num_xmeans 
+    + option_data->num_adiffs + option_data->num_bdiffs 
+    + option_data->num_cdiffs + option_data->num_xdiffs
     + option_data->num_acontr + option_data->num_bcontr
     + option_data->num_ccontr;
 
@@ -3333,6 +3431,7 @@ void calculate_cmeans (anova_options * option_data)
   b = option_data->b;
   c = option_data->c;
   n = option_data->n;
+  df = a * b * c * (n-1);
   nt = option_data->nt;
   num_means = option_data->num_cmeans;
   nxyz = option_data->nxyz;
@@ -3356,11 +3455,8 @@ void calculate_cmeans (anova_options * option_data)
       if (nvoxel > 0)
 	printf ("Mean of factor C level %d = %f \n", level+1, mean[nvoxel-1]);
       
-      /*----- standard deviation -----*/
-      volume_read ("sse", tmean, nxyz); 
-      df = a * b * c * (n-1);
-
       /*----- divide by estimated standard deviation of factor mean -----*/
+      volume_read ("sse", tmean, nxyz); 
       fval = (1.0 / df) * (1.0 / (a*b*n));
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	{
@@ -3376,6 +3472,94 @@ void calculate_cmeans (anova_options * option_data)
       
       /*----- write out afni data file -----*/
       write_afni_data (option_data, option_data->cmname[imean], 
+                       mean, tmean, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to calculate the mean for an individual cell (treatment).
+  The output is stored as a 2 sub-brick AFNI data set. The first sub-brick 
+  contains the estimated mean for this cell, and the second sub-brick contains
+  the corresponding t-statistic.
+*/
+
+void calculate_xmeans (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-10;    /* protect against divide by zero */
+  float * mean = NULL;               /* pointer to treatment mean data */
+  float * tmean = NULL;              /* pointer to t-statistic data */
+  int a;                             /* number of levels for factor A */
+  int b;                             /* number of levels for factor B */
+  int c;                             /* number of levels for factor C */
+  int n;                             /* number of observations per cell */
+  int ixyz, nxyz;                    /* voxel counters */
+  int nvoxel;                        /* output voxel # */
+  int nt;                            /* total number of observations */
+  int num_means;                     /* number of user requested means */
+  int imean;                         /* output mean option index */
+  int alevel, blevel, clevel;        /* factor level indices */
+  int df;                            /* degrees of freedom for t-test */
+  float fval;                        /* for calculating std. dev. */
+  float stddev;                      /* est. std. dev. of cell mean */
+  char filename[MAX_NAME_LENGTH];    /* input data file name */
+ 
+
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  df = a * b * c * (n-1);
+  nt = option_data->nt;
+  num_means = option_data->num_xmeans;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+
+  /*----- allocate memory space for calculations -----*/
+  mean = (float *) malloc(sizeof(float)*nxyz);
+  tmean = (float *) malloc(sizeof(float)*nxyz);
+  if ((mean == NULL) || (tmean == NULL))  
+    ANOVA_error ("unable to allocate sufficient memory");
+   
+  /*----- loop over user specified treatment means -----*/ 
+  for (imean = 0;  imean < num_means;  imean++)
+    {
+      alevel = option_data->xmeans[imean][0];
+      blevel = option_data->xmeans[imean][1];
+      clevel = option_data->xmeans[imean][2];
+      
+      /*----- estimate factor mean for this treatment level -----*/
+      calculate_sum (option_data, alevel, blevel, clevel, mean);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	mean[ixyz] = mean[ixyz] / n;
+      if (nvoxel > 0)
+	printf ("Mean of Cell[%d][%d][%d] = %f \n", 
+		alevel+1, blevel+1, clevel+1, mean[nvoxel-1]);
+      
+      /*----- divide by estimated standard deviation of factor mean -----*/
+      volume_read ("sse", tmean, nxyz); 
+      fval = (1.0 / df) * (1.0 / n);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev =  sqrt(tmean[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tmean[ixyz] = 0.0;
+	  else
+	    tmean[ixyz] = mean[ixyz] / stddev;
+	}
+      if (nvoxel > 0)
+	printf ("t-stat for Mean of Cell[%d][%d][%d] = %f \n", 
+		alevel+1, blevel+1, clevel+1, tmean[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->xmname[imean], 
                        mean, tmean, df, 0);
       
     }
@@ -3683,6 +3867,102 @@ void calculate_cdifferences (anova_options * option_data)
       
       /*----- write out afni data file -----*/
       write_afni_data (option_data, option_data->cdname[idiff], 
+                       diff, tdiff, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
+  
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Routine to estimate the difference in the cell means between two user 
+   specified cells (treatments).  The output is a 2 sub-brick AFNI data set.
+   The first sub-brick contains the estimated difference in the cell means.  
+   The second sub-brick contains the corresponding t-statistic.
+*/
+
+void calculate_xdifferences (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-10;     /* protect against divide by zero */
+  float * diff = NULL;                /* pointer to est. diff. in means */
+  float * tdiff = NULL;               /* pointer to t-statistic data */
+  int a;                              /* number of levels for factor A */
+  int b;                              /* number of levels for factor B */
+  int c;                              /* number of levels for factor C */
+  int n;                              /* number of observations per cell */
+  int ixyz, nxyz;                     /* voxel counters */
+  int nvoxel;                         /* output voxel # */
+  int num_diffs;                      /* number of user requested diffs. */
+  int idiff;                          /* index for requested differences */
+  int ia, ib, ic, ja, jb, jc;         /* cell indices */
+  int df;                             /* degrees of freedom for t-test */
+  float fval;                         /* for calculating std. dev. */
+  float stddev;                       /* est. std. dev. of difference */
+  char filename[MAX_NAME_LENGTH];     /* input file name */
+  
+  
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  df = a * b * c * (n-1);
+  num_diffs = option_data->num_xdiffs;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+  
+  /*----- allocate memory space for calculations -----*/
+  diff = (float *) malloc(sizeof(float)*nxyz);
+  tdiff = (float *) malloc(sizeof(float)*nxyz);
+  if ((diff == NULL) || (tdiff == NULL))
+    ANOVA_error ("unable to allocate sufficient memory");
+  
+  /*----- loop over user specified treatment differences -----*/
+  for (idiff = 0;  idiff < num_diffs;  idiff++)
+    {
+
+      /*----- read first treatment level mean -----*/
+      ia = option_data->xdiffs[idiff][0][0];
+      ib = option_data->xdiffs[idiff][0][1];
+      ic = option_data->xdiffs[idiff][0][2];
+      calculate_sum (option_data, ia, ib, ic, diff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] = diff[ixyz] / n;
+      
+      /*----- subtract second treatment level mean -----*/
+      ja = option_data->xdiffs[idiff][1][0];
+      jb = option_data->xdiffs[idiff][1][1];
+      jc = option_data->xdiffs[idiff][1][2];
+      calculate_sum (option_data, ja, jb, jc, tdiff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] -= tdiff[ixyz] / n;
+      if (nvoxel > 0)
+	printf ("Difference Cell[%d][%d][%d] - Cell[%d][%d][%d] = %f \n", 
+		ia+1, ib+1, ic+1, ja+1, jb+1, jc+1, diff[nvoxel-1]);
+
+      /*----- divide by estimated standard deviation of difference -----*/
+      volume_read ("sse", tdiff, nxyz); 
+      fval = (1.0 / df) * (2.0 / n);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev = sqrt (tdiff[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tdiff[ixyz] = 0.0;
+	  else
+	    tdiff[ixyz] = diff[ixyz] / stddev;
+	} 
+      
+      if (nvoxel > 0)
+	printf ("t-stat for Cell[%d][%d][%d] - Cell[%d][%d][%d] = %f \n", 
+		ia+1, ib+1, ic+1, ja+1, jb+1, jc+1, tdiff[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->xdname[idiff], 
                        diff, tdiff, df, 0);
       
     }
@@ -4123,6 +4403,9 @@ void analyze_results (anova_options * option_data)
    /*-----  estimate level means for factor C  -----*/
    if (option_data->num_cmeans)  calculate_cmeans (option_data);
 
+   /*-----  estimate cell means  -----*/
+   if (option_data->num_xmeans)  calculate_xmeans (option_data);
+
    /*-----  estimate level differences for factor A  -----*/
    if (option_data->num_adiffs)  calculate_adifferences (option_data);
 
@@ -4131,6 +4414,9 @@ void analyze_results (anova_options * option_data)
 
    /*-----  estimate level differences for factor C  -----*/
    if (option_data->num_cdiffs)  calculate_cdifferences (option_data);
+
+   /*-----  estimate differences in cell means  -----*/
+   if (option_data->num_xdiffs)  calculate_xdifferences (option_data);
 
    /*-----  estimate level contrasts for factor A  -----*/
    if (option_data->num_acontr)  calculate_acontrasts (option_data);
@@ -4362,6 +4648,24 @@ void create_bucket (anova_options * option_data)
       }
   
 
+  /*----- make individual cell mean sub-bricks -----*/
+  if (option_data->num_xmeans > 0)
+    for (i = 0; i < option_data->num_xmeans; i++)
+      {
+	add_file_name (new_dset, option_data->xmname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Mean ", 
+		 ibrick, option_data->xmname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->xmname[i]);
+	strcat (refit_str, str);
+      }
+  
+
   /*----- make difference in factor A level means sub-bricks -----*/
   if (option_data->num_adiffs > 0)
     for (i = 0; i < option_data->num_adiffs; i++)
@@ -4412,6 +4716,24 @@ void create_bucket (anova_options * option_data)
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:t-stat ", 
 		 ibrick, option_data->cdname[i]);
+	strcat (refit_str, str);
+      }
+  
+
+  /*----- make difference in cell means sub-bricks -----*/
+  if (option_data->num_xdiffs > 0)
+    for (i = 0; i < option_data->num_xdiffs; i++)
+      {
+	add_file_name (new_dset, option_data->xdname[i], bucket_str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:Diff ", 
+		 ibrick, option_data->xdname[i]);
+	strcat (refit_str, str);
+
+	ibrick++;
+	sprintf (str, " -sublabel %d %s:t-stat ", 
+		 ibrick, option_data->xdname[i]);
 	strcat (refit_str, str);
       }
   
@@ -4589,6 +4911,11 @@ void terminate (anova_options * option_data)
 	for (i = 0; i < option_data->num_cmeans; i++)
 	  remove_dataset (new_dset, option_data->cmname[i]);
       
+      /*----- remove individual cell mean data files -----*/
+      if (option_data->num_xmeans > 0)
+	for (i = 0; i < option_data->num_xmeans; i++)
+	  remove_dataset (new_dset, option_data->xmname[i]);
+      
       /*----- remove difference in factor A levels data files -----*/
       if (option_data->num_adiffs > 0)
 	for (i = 0; i < option_data->num_adiffs; i++)
@@ -4603,6 +4930,11 @@ void terminate (anova_options * option_data)
       if (option_data->num_cdiffs > 0)
 	for (i = 0; i < option_data->num_cdiffs; i++)
 	  remove_dataset (new_dset, option_data->cdname[i]);
+      
+      /*----- remove difference in cell means data files -----*/
+      if (option_data->num_xdiffs > 0)
+	for (i = 0; i < option_data->num_xdiffs; i++)
+	  remove_dataset (new_dset, option_data->xdname[i]);
       
       /*----- remove contrast in factor A levels data files -----*/
       if (option_data->num_acontr > 0)
@@ -4638,8 +4970,14 @@ void main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
  
-   printf ("\n\nProgram 3dANOVA3 \n\n");
-   printf ("Last revision: %s \n", LAST_MOD_DATE);
+
+   /*----- Identify software -----*/
+   printf ("\n\n");
+   printf ("Program: %s \n", PROGRAM_NAME);
+   printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+   printf ("Date:    %s \n", PROGRAM_DATE);
+   printf ("\n");
+
 
    /*----- program initialization -----*/
    initialize (argc, argv, &option_data);

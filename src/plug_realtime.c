@@ -140,6 +140,16 @@ typedef struct {
    int reg_nest ;                     /* number of estimated parameters */
    float * reg_tim , * reg_dx  ,
          * reg_dy  , * reg_phi  ;     /* estimated motion parameters */
+
+   /*--  Oct 1998: more stuff for 3D registration --*/
+
+   float * reg_dz , * reg_theta , * reg_psi ;
+   MRI_3dalign_basis * reg_3dbasis ;
+   int iha , ax1,hax1 , ax2,hax2 , ax3,hax3 ;
+   MEM_topshell_data * mp ;
+
+   int reg_resam , reg_final_resam ;
+   float reg_graph_xr , reg_graph_yr ;
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -155,30 +165,58 @@ typedef struct {
 /**************************************************************************/
 
 static char helpstring[] =
-   " Purpose: Assigning a root prefix to real-time datasets.\n"
+   " Purpose: Controlling realtime dataset acquisitions.\n"
    " Input:\n"
    " Root     = Root prefix to be used for new datasets.\n"
-   "              The actual prefix will be of the form Root#001\n\n"
+   "              The actual prefix will be of the form Root#001\n"
+   "\n"
    " Update   = How often AFNI's display will be updated\n"
    "             = How many 3D bricks are gathered before\n"
    "               the images and graphs are redrawn:\n"
    "                0 --> don't update until all data is acquired\n"
    "                1 --> redraw images and graphs every time\n"
-   "                2 --> redraw every other brick, etc.\n\n"
+   "                2 --> redraw every other brick, etc.\n"
+   "\n"
    " Function = Controls what kind of function analysis is done\n"
-   "              during realtime input of time dependent datasets.\n\n"
+   "              during realtime input of time dependent datasets.\n"
+   "\n"
    " Verbose  = If set to 'Yes', the plugin will print out progress\n"
    "              reports as information flows into it.\n"
+   "              If set to 'Very', prints out LOTS of information.\n"
 #ifdef ALLOW_REGISTRATION
    "\n"
    " Registration = If activated, image registration will take place\n"
    "                  either in realtime or at the end of image acquisition.\n"
-   "                  The un-registered dataset will be named something like\n"
-   "                  Root#001 and the aligned dataset Root#001%reg.\n"
-   " Base Image   = The value sets the time index to which the alignment\n"
-   "                  will take place.\n"
-   " Graph        = If set to Yes, will display a graph of the estimated\n"
+   "                * The un-registered dataset will be named something like\n"
+   "                  Root#001 and the aligned dataset Root#001%reg2D.\n"
+   "                * You can choose either 2D (slice-wise) registration,\n"
+   "                  or 3D (volume-wise) registration.\n"
+   "                * The 3D case also allows a quicker mode where the volumes\n"
+   "                  aren't actually registered, but estimates of the motion\n"
+   "                  parameters are computed for graphing purposes.  This is\n"
+   "                  done in realtime.\n"
+   "                * If 3D realtime or estimate modes are chosen, the motion\n"
+   "                  parameters can be graphed in realtime - see 'Graph' below.\n"
+   " Base Image   = The value sets the time index in the new dataset to which\n"
+   "                  the alignment will take place.\n"
+   " Resampling   = Determines the interpolation method used:\n"
+   "                  Cubic     = fastest, least accurate interpolation\n"
+   "                  Quintic   = intermediate in speed and accuracy\n"
+   "                  Heptic    = another intermediate interpolation method\n"
+   "                  Fourier   = slowest, most accurate\n"
+   "                  Hept+Four = use Heptic for estimation, Fourier for\n"
+   "                              the final alignment\n"
+   "              N.B.: Linear interpolation is always used for '3D: estimate'.\n"
+   "                    Quintic/Heptic interpolation is only available for 3D.\n"
+   "\n"
+   " Graph        = If set to 'Yes', will display a graph of the estimated\n"
    "                  motion parameters at the end of the run.\n"
+   "                * If set to 'Realtime', will also show a cruder graph that\n"
+   "                  alters in realtime (if realtime registration is active).\n"
+   " NR [x-axis]  = If a realtime graph is generated, this entry specifies\n"
+   "                  how many repetitions (TR's) to expect.\n"
+   " YR [y-axis]  = If a realtime graph is generated, this entry specifies\n"
+   "                  the vertical range for each motion parameter.\n"
 #endif
 ;
 
@@ -209,14 +247,41 @@ static int verbose = 1 ;
 #ifdef ALLOW_REGISTRATION
   static int regtime  = 3 ;  /* index of base time for registration */
   static int regmode  = 0 ;  /* index into REG_strings */
-  static int reggraph = 0 ;  /* graphing? */
+  static int reggraph = 0 ;  /* graphing mode */
 
-# define NREG 3
-  static char * REG_strings[NREG] = { "None" , "2D: realtime" , "2D: at end" } ;
+  static int reg_resam = 1 ;    /* index into REG_resam_strings */
+  static int   reg_nr  = 100 ;  /* units of TR */
+  static float reg_yr  = 1.0 ;  /* mm and degrees */
+
+#define NGRAPH 3
+static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
+
+#define NRESAM 5
+  static char * REG_resam_strings[NRESAM] = {
+     "Cubic" , "Quintic" , "Heptic" , "Fourier" , "Hept+Four" } ;
+  static int REG_resam_ints[NRESAM] = {
+     MRI_CUBIC , MRI_QUINTIC , MRI_HEPTIC , MRI_FOURIER , -666 } ;
+
+# define NREG 6
+  static char * REG_strings[NREG] = {
+    "None" , "2D: realtime" , "2D: at end"
+           , "3D: realtime" , "3D: at end" , "3D: estimate" } ;
 
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
 # define REGMODE_2D_ATEND  2
+# define REGMODE_3D_RTIME  3
+# define REGMODE_3D_ATEND  4
+# define REGMODE_3D_ESTIM  5
+
+# define REG_IS_2D(mm) ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND )
+
+# define REG_IS_3D(mm) \
+  ( (mm)==REGMODE_3D_RTIME || (mm)==REGMODE_3D_ATEND || (mm)==REGMODE_3D_ESTIM )
+
+# define REG_MAKE_DSET(mm)                                   \
+  ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
+    (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
 #endif
 
 /************ global data for reading data *****************/
@@ -248,6 +313,12 @@ void RT_start_child( RT_input * ) ;
   void RT_registration_2D_close( RT_input * rtin ) ;
   void RT_registration_2D_onevol( RT_input * rtin , int tt ) ;
   void RT_registration_2D_realtime( RT_input * rtin ) ;
+
+  void RT_registration_3D_atend( RT_input * rtin ) ;
+  void RT_registration_3D_setup( RT_input * rtin ) ;
+  void RT_registration_3D_close( RT_input * rtin ) ;
+  void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
+  void RT_registration_3D_realtime( RT_input * rtin ) ;
 #endif
 
 #define TELL_NORMAL  0
@@ -305,7 +376,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
    PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
    PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
-   PLUTO_add_string( plint , "Graph" , 2 , VERB_strings , reggraph ) ;  /* 17 Aug 1998 */
+   PLUTO_add_string( plint , "Resampling" , NRESAM , REG_resam_strings , reg_resam ) ;
+
+   /*-- sixth line of input: registration graphing --*/
+
+   PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
+   PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
+   PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
+   PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0) , TRUE ) ;
 #endif
 
    /***** Register a work process *****/
@@ -335,7 +413,7 @@ char * RT_main( PLUGIN_interface * plint )
    /** loop over input from AFNI **/
 
 #ifdef ALLOW_REGISTRATION
-   regmode = 0 ;
+   regmode = REGMODE_NONE ;   /* no registration if not ordered explicitly */
 #endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
@@ -369,12 +447,22 @@ char * RT_main( PLUGIN_interface * plint )
 
 #ifdef ALLOW_REGISTRATION
       if( strcmp(tag,"Registration") == 0 ){
-         str      = PLUTO_get_string(plint) ;
-         regmode  = PLUTO_string_index( str , NREG , REG_strings ) ;
-         regtime  = PLUTO_get_number(plint) ;
+         str       = PLUTO_get_string(plint) ;
+         regmode   = PLUTO_string_index( str , NREG , REG_strings ) ;
 
-         str      = PLUTO_get_string(plint) ;                     /* 17 Aug 1998 */
-         reggraph = PLUTO_string_index( str , 2 , VERB_strings ) ;
+         regtime   = PLUTO_get_number(plint) ;
+
+         str       = PLUTO_get_string(plint) ;
+         reg_resam = PLUTO_string_index( str , NRESAM , REG_resam_strings ) ;
+         continue ;
+      }
+
+      if( strcmp(tag,"Graphing") == 0 ){
+         str      = PLUTO_get_string(plint) ;
+         reggraph = PLUTO_string_index( str , NGRAPH , GRAPH_strings ) ;
+
+         reg_nr   = PLUTO_get_number(plint) ;
+         reg_yr   = PLUTO_get_number(plint) ;
          continue ;
       }
 #endif
@@ -472,6 +560,9 @@ int RT_check_listen(void)
 
 /**------------ 01 Aug 1998: replace the macro with a function -----------**/
 
+#undef  FREEUP
+#define FREEUP(x) do{ if( (x) != NULL ){free((x)); (x)=NULL;} } while(0)
+
 void cleanup_rtinp(void)
 {
    IOCHAN_CLOSE(rtinp->ioc_data) ;         /* close any open I/O channels */
@@ -490,12 +581,16 @@ void cleanup_rtinp(void)
       for( kk=0 ; kk < rtinp->nzz ; kk++ )
          mri_2dalign_cleanup( rtinp->reg_2dbasis[kk] ) ;
       free( rtinp->reg_2dbasis ) ;
-
-      if( rtinp->reg_tim!= NULL ) free( rtinp->reg_tim ) ;
-      if( rtinp->reg_dx != NULL ) free( rtinp->reg_dx  ) ;
-      if( rtinp->reg_dy != NULL ) free( rtinp->reg_dy  ) ;
-      if( rtinp->reg_phi!= NULL ) free( rtinp->reg_phi ) ;
    }
+
+   if( rtinp->reg_3dbasis != NULL ){
+      mri_3dalign_cleanup( rtinp->reg_3dbasis ) ;
+   }
+
+   FREEUP( rtinp->reg_tim   ) ; FREEUP( rtinp->reg_dx    ) ;
+   FREEUP( rtinp->reg_dy    ) ; FREEUP( rtinp->reg_dz    ) ;
+   FREEUP( rtinp->reg_phi   ) ; FREEUP( rtinp->reg_psi   ) ;
+   FREEUP( rtinp->reg_theta ) ;
 #endif
 
    free(rtinp) ; rtinp = NULL ;                 /* destroy data structure */
@@ -1009,12 +1104,31 @@ RT_input * new_RT_input(void)
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
 
-   rtin->reg_graph = reggraph ;
    rtin->reg_nest  = 0 ;
    rtin->reg_tim   = (float *) malloc( sizeof(float) ) ;
    rtin->reg_dx    = (float *) malloc( sizeof(float) ) ;
    rtin->reg_dy    = (float *) malloc( sizeof(float) ) ;
    rtin->reg_phi   = (float *) malloc( sizeof(float) ) ;
+
+   rtin->reg_dz       = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_theta    = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_psi      = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_3dbasis  = NULL ;
+   rtin->mp           = NULL ;    /* no plot yet */
+
+   rtin->reg_graph_xr = reg_nr ;  /* will scale by TR when we know it */
+   rtin->reg_graph_yr = reg_yr ;
+
+   rtin->reg_resam = REG_resam_ints[reg_resam] ;
+   if( rtin->reg_resam < 0 ){                    /* 20 Nov 1998: */
+      rtin->reg_resam       = MRI_HEPTIC ;       /* special case */
+      rtin->reg_final_resam = MRI_FOURIER ;
+   } else {
+      rtin->reg_final_resam = -1 ;
+   }
+
+   rtin->reg_graph = reggraph ;
+   if( regmode==REGMODE_3D_ESTIM && reggraph==0 ) rtin->reg_graph = 1;
 #endif
 
    /** record the times for later reportage **/
@@ -1203,7 +1317,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          else
               BADNEWS ;
 
-      } else if( STARTER("TR") ){
+      } else if( STARTER("TR") ){          /* units are seconds */
          float val = 0.0 ;
          sscanf( buf , "TR %f" , &val ) ;
          if( val > 0.0 ) rtin->tr = val ;
@@ -1315,13 +1429,16 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
          for( ii=0 ; ii < 6 ; ii++ ){
             if( strcmp(xstr,ORIENT_shortstr[ii]) == 0 ||
-                strcmp(xstr,ORIENT_typestr[ii])  == 0   ) orx = ii ;
+                strcmp(xstr,ORIENT_typestr[ii])  == 0 ||
+                strcmp(xstr,ORIENT_tinystr[ii])  == 0   ) orx = ii ;
 
             if( strcmp(ystr,ORIENT_shortstr[ii]) == 0 ||
-                strcmp(ystr,ORIENT_typestr[ii])  == 0   ) ory = ii ;
+                strcmp(ystr,ORIENT_typestr[ii])  == 0 ||
+                strcmp(ystr,ORIENT_tinystr[ii])  == 0   ) ory = ii ;
 
             if( strcmp(zstr,ORIENT_shortstr[ii]) == 0 ||
-                strcmp(zstr,ORIENT_typestr[ii])  == 0   ) orz = ii ;
+                strcmp(zstr,ORIENT_typestr[ii])  == 0 ||
+                strcmp(zstr,ORIENT_tinystr[ii])  == 0   ) orz = ii ;
          }
 
          if( orx >= 0 && ory >= 0 && orz >= 0 && OR3OK(orx,ory,orz) ){
@@ -1533,18 +1650,22 @@ void RT_start_dataset( RT_input * rtin )
 #ifdef ALLOW_REGISTRATION
    /*---- Make a dataset for registration, if need be ----*/
 
-   if( rtin->reg_mode > 0 &&
+   if( REG_MAKE_DSET(rtin->reg_mode) &&
        ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
 
       rtin->reg_dset = EDIT_empty_copy( rtin->dset ) ;
 
-      strcat(npr,"%reg") ;
-      EDIT_dset_items( rtin->reg_dset , ADN_prefix , npr , ADN_none ) ;
+           if( REG_IS_2D(rtin->reg_mode) ) strcat(npr,"%reg2D") ;
+      else if( REG_IS_3D(rtin->reg_mode) ) strcat(npr,"%reg3D") ;
+      else                                 strcat(npr,"%reg"  ) ;
 
-      rtin->reg_status = 0 ;
-      rtin->reg_nvol   = 0 ;
+      EDIT_dset_items( rtin->reg_dset , ADN_prefix , npr , ADN_none ) ;
       DSET_lock(rtin->reg_dset) ;
    }
+
+   rtin->reg_status    = 0 ;
+   rtin->reg_nvol      = 0 ;
+   rtin->reg_graph_xr *= rtin->tr ;  /* scale to time units */
 #endif
 
    /***********************************************/
@@ -1683,10 +1804,6 @@ int RT_process_data( RT_input * rtin )
 
       if( rtin->im != NULL ){  /** process data into dataset directly **/
 
-         if( verbose == 2 )
-            fprintf(stderr,"RT: reading image into dataset sub-brick.\n") ;
-         VMCHECK ;
-
          RT_read_image( rtin , rtin->im ) ;  /* read into dataset buffer */
          RT_process_image( rtin ) ;          /* process it for the dataset */
 
@@ -1741,10 +1858,19 @@ void RT_process_image( RT_input * rtin )
 
    if( rtin->dtype == DTYPE_2DZT || rtin->dtype == DTYPE_2DZ ){
 
+      if( verbose == 2 )
+         fprintf(stderr,"RT: read image into dataset brick %d slice %d.\n",
+                 rtin->nvol,rtin->nsl) ;
+
       rtin->nsl ++ ;                     /* 1 more slice */
       vdone = (rtin->nsl == rtin->nzz) ; /* have all slices? */
 
    } else if( rtin->dtype == DTYPE_3DT || rtin->dtype == DTYPE_3D ){
+
+#if 0
+      if( verbose == 2 )
+         fprintf(stderr,"RT: read image into dataset brick %d\n",rtin->nvol) ;
+#endif
 
       vdone = 1 ;                        /* 3D gets all data at once */
    }
@@ -1806,8 +1932,14 @@ void RT_process_image( RT_input * rtin )
       }
 
 #ifdef ALLOW_REGISTRATION
-      if( rtin->reg_mode == REGMODE_2D_RTIME )
-         RT_registration_2D_realtime( rtin ) ;
+      switch( rtin->reg_mode ){
+           case REGMODE_2D_RTIME: RT_registration_2D_realtime( rtin ) ;
+           break ;
+
+           case REGMODE_3D_RTIME:
+           case REGMODE_3D_ESTIM: RT_registration_3D_realtime( rtin ) ;
+           break ;
+      }
 #endif /* ALLOW_REGISTRATION */
 
       /** make space for next sub-brick to arrive **/
@@ -2150,13 +2282,13 @@ void RT_tell_afni( RT_input * rtin , int mode )
 #endif
 
       THD_set_write_compression(cmode) ;  /* restore compression mode */
-      SHOW_AFNI_READY ;
 
       AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
       THD_force_malloc_type( rtin->dset->dblk , DATABLOCK_MEM_ANY ) ;
 
       AFNI_purge_unused_dsets() ;
+      SHOW_AFNI_READY ;
    }
 
    if( verbose == 2 ) SHOW_TIMES ;
@@ -2201,18 +2333,20 @@ void RT_finish_dataset( RT_input * rtin )
 #ifdef ALLOW_REGISTRATION
    /*--- Do the "at end" registration, if ordered and if possible ---*/
 
-   if( rtin->reg_mode == REGMODE_2D_ATEND )
-      RT_registration_2D_atend( rtin ) ;
+   switch( rtin->reg_mode ){
+      case REGMODE_2D_ATEND: RT_registration_2D_atend( rtin ) ; break ;
+      case REGMODE_3D_ATEND: RT_registration_3D_atend( rtin ) ; break ;
+   }
 
    /*--- 17 Aug 1998: Graph the motion parameters, if desired ---*/
 
-   if( rtin->reg_graph && rtin->reg_nest > 1 ){
+   if( rtin->reg_graph && rtin->reg_nest > 1 && REG_IS_2D(rtin->reg_mode) ){
       float * yar[4] ;  /* not Tasha */
       int * iar , ii , nn = rtin->reg_nest ;
       static char * nar[3] = { "\\Delta x [mm]" , "\\Delta y [mm]" , "\\phi   [\\degree]" } ;
 
       if( verbose == 2 )
-         fprintf(stderr,"RT: graphing estimated motion parameters\n") ;
+         fprintf(stderr,"RT: graphing estimated 2D motion parameters\n") ;
 
       /* sort the arrays by time */
 
@@ -2235,10 +2369,37 @@ void RT_finish_dataset( RT_input * rtin )
       }
 
       plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
-                   nn , yar[0] , 3 , yar+1 ,
-                   "time" , "movement" , NULL , nar ) ;
+                   nn , yar[0] , -3 , yar+1 ,
+                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar ) ;
 
       free(iar) ; free(yar[0]) ; free(yar[1]) ; free(yar[2]) ; free(yar[3]) ;
+   }
+
+   /*--- Oct 1998: do 3D graphing ---*/
+
+   if( rtin->reg_graph && rtin->reg_nest > 1 && REG_IS_3D(rtin->reg_mode) ){
+      float * yar[7] ;
+      int nn = rtin->reg_nest ;
+      static char * nar[6] = {
+         "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
+         "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
+
+      if( verbose == 2 )
+         fprintf(stderr,"RT: graphing estimated 3D motion parameters\n") ;
+
+      /* arrays are already sorted by time */
+
+      yar[0] = rtin->reg_tim   ;  /* time  */
+      yar[1] = rtin->reg_dx    ;  /* dx    */
+      yar[2] = rtin->reg_dy    ;  /* dy    */
+      yar[3] = rtin->reg_dz    ;  /* dz    */
+      yar[4] = rtin->reg_phi   ;  /* roll  */
+      yar[5] = rtin->reg_psi   ;  /* pitch */
+      yar[6] = rtin->reg_theta ;  /* yaw   */
+
+      plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
+                   nn , yar[0] , -6 , yar+1 ,
+                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar ) ;
    }
 #endif
 
@@ -2251,7 +2412,7 @@ void RT_finish_dataset( RT_input * rtin )
 
 #ifdef ALLOW_REGISTRATION
 /*****************************************************************************
-  The collection of functions for handling image registration in this plugin.
+  The collection of functions for handling slice registration in this plugin.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------
@@ -2274,17 +2435,18 @@ void RT_registration_2D_realtime( RT_input * rtin )
 
       /* setup the registration process */
 
-      if( verbose == 2 )
+      if( verbose )
          fprintf(stderr,"RT: setting up 2D registration 'realtime'\n") ;
 
-      RT_registration_2D_setup( rtin ) ;
+      SHOW_AFNI_PAUSE ;
+      RT_registration_2D_setup( rtin ) ;  /* may take a little while */
 
       if( rtin->reg_2dbasis == NULL ){
          fprintf(stderr,"RT: can't setup %s registration!\a\n",
                  REG_strings[REGMODE_2D_RTIME] ) ;
          DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
          rtin->reg_mode = REGMODE_NONE ;
-         return ;
+         SHOW_AFNI_READY ; return ;
       }
    }
 
@@ -2296,7 +2458,8 @@ void RT_registration_2D_realtime( RT_input * rtin )
 
    /*-- my work here is done --*/
 
-   return ;
+   XmUpdateDisplay( rtin->im3d->vwid->top_shell ) ;
+   SHOW_AFNI_READY ; return ;
 }
 
 /*---------------------------------------------------------------------------
@@ -2320,9 +2483,10 @@ void RT_registration_2D_atend( RT_input * rtin )
 
    /* set up the registration process */
 
-   if( verbose == 2 )
-      fprintf(stderr,"RT: setting up 2D registration 'at end'\n") ;
+   if( verbose )
+      fprintf(stderr,"RT: starting 2D registration 'at end'\n") ;
 
+   SHOW_AFNI_PAUSE ;
    RT_registration_2D_setup( rtin ) ;
 
    if( rtin->reg_2dbasis == NULL ){
@@ -2330,20 +2494,24 @@ void RT_registration_2D_atend( RT_input * rtin )
               REG_strings[REGMODE_2D_ATEND] ) ;
       DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
       rtin->reg_mode = REGMODE_NONE ;
-      return ;
+      SHOW_AFNI_READY ; return ;
    }
 
    /* register each volume into the new dataset */
 
    ntt = DSET_NUM_TIMES( rtin->dset ) ;
-   for( tt=0 ; tt < ntt ; tt++ )
+   for( tt=0 ; tt < ntt ; tt++ ){
+      XmUpdateDisplay( rtin->im3d->vwid->top_shell ) ;
       RT_registration_2D_onevol( rtin , tt ) ;
+      if( verbose == 1 ) fprintf(stderr,"%d",tt%10) ;
+   }
+   if( verbose == 1 ) fprintf(stderr,"\n") ;
 
    /* un-setup the registration process */
 
    RT_registration_2D_close( rtin ) ;
-   if( verbose == 2 ) SHOW_TIMES ;
-   return ;
+   if( verbose ) SHOW_TIMES ;
+   SHOW_AFNI_READY ; return ;
 }
 
 /*-----------------------------------------------------------------------
@@ -2376,6 +2544,12 @@ void RT_registration_2D_setup( RT_input * rtin )
       rtin->reg_2dbasis[kk] = mri_2dalign_setup( im , NULL ) ;
    }
 
+   kk = rtin->reg_resam ;
+   if( kk == MRI_QUINTIC || kk == MRI_HEPTIC )
+      kk = MRI_BICUBIC ; /* quintic & heptic not available in 2D */
+
+   mri_2dalign_method( MRI_BILINEAR, MRI_BICUBIC, kk ) ;
+
    mri_fix_data_pointer( NULL , im ) ; mri_free( im ) ;   /* get rid of this */
    return ;
 }
@@ -2400,8 +2574,10 @@ void RT_registration_2D_close( RT_input * rtin )
    Carry out the 2D registration for each slice in the tt-th sub-brick
 -------------------------------------------------------------------------*/
 
-#define D2RFAC (PI/180.0)
-#define R2DFAC (180.0/PI)
+#ifndef D2RFAC
+#  define D2RFAC (PI/180.0)
+#  define R2DFAC (180.0/PI)
+#endif
 
 void RT_registration_2D_onevol( RT_input * rtin , int tt )
 {
@@ -2427,7 +2603,7 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    /* make space for new sub-brick in reg_dset */
 
    if( verbose == 2 )
-      fprintf(stderr,"RT: registering sub-brick %d",tt) ;
+      fprintf(stderr,"RT: 2D registering sub-brick %d",tt) ;
 
    rar = (char *) malloc( sizeof(char) * nx*ny*nz * im->pixel_size ) ;
 
@@ -2516,6 +2692,434 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    EDIT_dset_items( rtin->reg_dset , ADN_ntt , rtin->reg_nvol ,  ADN_none ) ;
 
    if( verbose == 2 ) fprintf(stderr,"\n") ;
+   return ;
+}
+/*---------------------------------------------------------------------------*/
+#endif /* ALLOW_REGISTRATION */
+
+
+#ifdef ALLOW_REGISTRATION
+/*****************************************************************************
+  The collection of functions for handling volume registration in this plugin.
+******************************************************************************/
+
+/*---------------------------------------------------------------------------
+   Called when the user kills the realtime graph of motion parameters
+-----------------------------------------------------------------------------*/
+
+void MTD_killfunc( MEM_topshell_data * mp )
+{
+   /* if mp is for active input, then set the active one to nada */
+
+   if( mp == NULL ) return ;
+   if( rtinp != NULL && mp == rtinp->mp ){
+      if( verbose ) fprintf(stderr,"RT: user killed active realtime graph\n") ;
+      rtinp->mp = NULL ;
+   } else {
+      if( verbose ) fprintf(stderr,"RT: user killed inactive realtime graph\n") ;
+   }
+
+   if( mp->userdata != NULL ){ free(mp->userdata) ; mp->userdata = NULL ; }
+   return ;
+}
+
+/*---------------------------------------------------------------------------
+  Do pieces of 3D registration during realtime.
+-----------------------------------------------------------------------------*/
+
+void RT_registration_3D_realtime( RT_input * rtin )
+{
+   int tt , ntt , ttbot ;
+
+   /*-- check to see if we need to setup first --*/
+
+   if( rtin->reg_3dbasis == NULL ){  /* need to setup */
+
+      /* check if enough data to setup */
+
+      if( rtin->reg_base_index >= rtin->nvol ) return ;  /* can't setup */
+
+      /* setup the registration process */
+
+      if( verbose ){
+         if( rtin->reg_mode == REGMODE_3D_ESTIM )
+            fprintf(stderr,"RT: setting up 3D registration 'estimate'\n") ;
+         else
+            fprintf(stderr,"RT: setting up 3D registration 'realtime'\n") ;
+      }
+
+      SHOW_AFNI_PAUSE ;
+      RT_registration_3D_setup( rtin ) ;  /* may take a while */
+
+      if( rtin->reg_3dbasis == NULL ){
+         fprintf(stderr,"RT: can't setup %s registration!\a\n",
+                 REG_strings[rtin->reg_mode] ) ;
+         if( rtin->reg_dset != NULL ){
+            DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+         }
+         rtin->reg_mode = REGMODE_NONE ;
+         SHOW_AFNI_READY ; return ;
+      }
+
+      /* realtime graphing? */
+
+      if( rtin->reg_graph == 2 ){
+         static char * nar[6] = {
+            "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
+            "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
+
+         rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
+                                  0.0,rtin->reg_graph_xr ,
+                                  -6 , -rtin->reg_graph_yr,rtin->reg_graph_yr ,
+                                  "time", NULL, DSET_FILECODE(rtin->dset), nar ) ;
+
+         if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
+      }
+   }
+
+   /*-- register all sub-bricks that aren't done yet --*/
+
+   ntt   = DSET_NUM_TIMES( rtin->dset ) ;
+   ttbot = rtin->reg_nvol ;
+   for( tt=ttbot ; tt < ntt ; tt++ )
+      RT_registration_3D_onevol( rtin , tt ) ;
+
+   if( rtin->mp != NULL && ntt > ttbot ){
+      float * yar[7] ;
+
+      if( ttbot > 0 ) ttbot-- ;
+
+      yar[0] = rtin->reg_tim   + ttbot ;
+      yar[1] = rtin->reg_dx    + ttbot ;
+      yar[2] = rtin->reg_dy    + ttbot ;
+      yar[3] = rtin->reg_dz    + ttbot ;
+      yar[4] = rtin->reg_phi   + ttbot ;
+      yar[5] = rtin->reg_psi   + ttbot ;
+      yar[6] = rtin->reg_theta + ttbot ;
+
+      plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , -6 , yar+1 ) ;
+   }
+
+   /*-- my work here is done --*/
+
+   XmUpdateDisplay( rtin->im3d->vwid->top_shell ) ;
+   SHOW_AFNI_READY ; return ;
+}
+
+/*---------------------------------------------------------------------------
+  Do 3D registration of all slices at once, when the realtime dataset
+  is all present and accounted for.
+-----------------------------------------------------------------------------*/
+
+void RT_registration_3D_atend( RT_input * rtin )
+{
+   int tt , ntt ;
+
+   /* check if have enough data to register as ordered */
+
+   if( rtin->reg_base_index >= rtin->nvol ){
+      fprintf(stderr,"RT: can't do %s registration: not enough 3D volumes!\a\n",
+              REG_strings[rtin->reg_mode] ) ;
+      DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+      rtin->reg_mode = REGMODE_NONE ;
+      return ;
+   }
+
+   /* set up the registration process */
+
+   if( verbose )
+      fprintf(stderr,"RT: starting 3D registration 'at end'\n") ;
+
+   SHOW_AFNI_PAUSE ;
+   RT_registration_3D_setup( rtin ) ;
+
+   if( rtin->reg_3dbasis == NULL ){
+      fprintf(stderr,"RT: can't setup %s registration!\a\n",
+              REG_strings[rtin->reg_mode] ) ;
+      DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+      rtin->reg_mode = REGMODE_NONE ;
+      SHOW_AFNI_READY ; return ;
+   }
+
+   /* register each volume into the new dataset */
+
+   ntt = DSET_NUM_TIMES( rtin->dset ) ;
+   if( verbose == 1 ) fprintf(stderr,"RT: ") ;
+   for( tt=0 ; tt < ntt ; tt++ ){
+      XmUpdateDisplay( rtin->im3d->vwid->top_shell ) ;
+      RT_registration_3D_onevol( rtin , tt ) ;
+      if( verbose == 1 ) fprintf(stderr,"%d",tt%10) ;
+   }
+   if( verbose == 1 ) fprintf(stderr,"\n") ;
+
+   /* un-setup the registration process */
+
+   RT_registration_3D_close( rtin ) ;
+   if( verbose ) SHOW_TIMES ;
+   SHOW_AFNI_READY ; return ;
+}
+
+/*------ These 2 routines criminally lifted from 3drotate.c,
+         but I wrote those programs too, so what's your point? ------*/
+
+#include <ctype.h>
+
+int axcode( THD_3dim_dataset * dset , char ori )
+{
+   ori = toupper(ori) ;
+   if( ori == ORIENT_tinystr[dset->daxes->xxorient][0] ) return  1 ;
+   if( ori == ORIENT_tinystr[dset->daxes->xxorient][1] ) return -1 ;
+   if( ori == ORIENT_tinystr[dset->daxes->yyorient][0] ) return  2 ;
+   if( ori == ORIENT_tinystr[dset->daxes->yyorient][1] ) return -2 ;
+   if( ori == ORIENT_tinystr[dset->daxes->zzorient][0] ) return  3 ;
+   if( ori == ORIENT_tinystr[dset->daxes->zzorient][1] ) return -3 ;
+   return -99 ;
+}
+
+/*-------------------------------------------------------------------------
+   Returns 1 if the dataset axes are right-handed, -1 if left-handed
+---------------------------------------------------------------------------*/
+
+int handedness( THD_3dim_dataset * dset )
+{
+   THD_dataxes * dax = dset->daxes ;
+   THD_mat33 q ;
+   int col ;
+   float val ;
+
+   LOAD_ZERO_MAT(q) ;
+
+   col = 0 ;
+   switch( dax->xxorient ){
+      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
+      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
+      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
+   }
+
+   col = 1 ;
+   switch( dax->yyorient ){
+      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
+      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
+      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
+   }
+
+   col = 2 ;
+   switch( dax->zzorient ){
+      case 0: q.mat[0][col]= 1.0; break ; case 1: q.mat[0][col]=-1.0; break ;
+      case 2: q.mat[1][col]=-1.0; break ; case 3: q.mat[1][col]= 1.0; break ;
+      case 4: q.mat[2][col]= 1.0; break ; case 5: q.mat[2][col]=-1.0; break ;
+   }
+
+   val = MAT_DET(q) ; return ( (val > 0.0) ? 1 : -1 ) ;
+}
+
+/*-----------------------------------------------------------------------
+   Setup the 3D registration data
+-------------------------------------------------------------------------*/
+
+#define VL_MIT  9     /* iterations */
+#define VL_DXY  0.05  /* voxels */
+#define VL_DPH  0.07  /* degrees */
+#define VL_DEL  0.70  /* voxels */
+
+void RT_registration_3D_setup( RT_input * rtin )
+{
+   int ibase = rtin->reg_base_index ;
+   int kk , nx,ny,nz , kind , nbar ;
+   MRI_IMAGE * im ;
+   char * bar ;
+
+   /*-- extract info about coordinate axes of dataset --*/
+
+   rtin->iha  = handedness( rtin->dset )   ;  /* LH or RH? */
+
+   rtin->ax1  = axcode( rtin->dset , 'I' ) ;
+   rtin->hax1 = rtin->ax1 * rtin->iha      ;  /* roll */
+
+   rtin->ax2  = axcode( rtin->dset , 'R' ) ;
+   rtin->hax2 = rtin->ax2 * rtin->iha      ;  /* pitch */
+
+   rtin->ax3  = axcode( rtin->dset , 'A' ) ;
+   rtin->hax3 = rtin->ax3 * rtin->iha      ;  /* yaw */
+
+   kk = rtin->reg_resam ;
+
+   im     = DSET_BRICK(rtin->dset,ibase) ;
+   im->dx = fabs( DSET_DX(rtin->dset) ) ;  /* must set voxel dimensions */
+   im->dy = fabs( DSET_DY(rtin->dset) ) ;
+   im->dz = fabs( DSET_DZ(rtin->dset) ) ;
+
+   switch( rtin->reg_mode ){
+      default: rtin->reg_3dbasis = NULL ;   /* should not occur */
+      return ;
+
+      case REGMODE_3D_RTIME:                /* actual registration */
+      case REGMODE_3D_ATEND:
+         mri_3dalign_params( VL_MIT , VL_DXY , VL_DPH , VL_DEL ,
+                             abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
+
+                                              /* noreg , clipit */
+         mri_3dalign_method( kk , verbose==2 ,   0     , 1        ) ;
+
+         mri_3dalign_final_regmode( rtin->reg_final_resam ) ;
+
+         rtin->reg_3dbasis = mri_3dalign_setup( im ,  NULL ) ;
+      break ;
+
+      case REGMODE_3D_ESTIM:                /* just estimate motion */
+         mri_3dalign_params( 1 , VL_DXY , VL_DPH , 2.0*VL_DEL ,
+                             abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
+
+         kk = MRI_CUBIC ;
+                                              /* noreg , clipit */
+         mri_3dalign_method( kk , verbose==2 ,   1     , 0        ) ;
+
+         rtin->reg_3dbasis = mri_3dalign_setup( im ,  NULL ) ;
+
+         kk = MRI_LINEAR ;
+
+         mri_3dalign_method( kk , verbose==2 ,   1     , 0        ) ;
+      break ;
+   }
+
+   rtin->reg_nvol  = 0 ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------
+    Undo the routine just above!
+-----------------------------------------------------------------------------*/
+
+void RT_registration_3D_close( RT_input * rtin )
+{
+   mri_3dalign_cleanup( rtin->reg_3dbasis ) ;
+   rtin->reg_3dbasis = NULL ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Carry out the 3D registration for the tt-th sub-brick
+-------------------------------------------------------------------------*/
+
+#ifndef D2RFAC
+#  define D2RFAC (PI/180.0)
+#  define R2DFAC (180.0/PI)
+#endif
+
+void RT_registration_3D_onevol( RT_input * rtin , int tt )
+{
+   MRI_IMAGE * rim , * qim ;
+   char * qar ;
+   float dx,dy,dz , roll,pitch,yaw , ddx,ddy,ddz ;
+   int   nest ;
+
+   /*-- sanity check --*/
+
+   if( rtin->dset == NULL ) return ;
+
+   /*-- actual registration --*/
+
+   if( verbose == 2 )
+      fprintf(stderr,"RT: 3D registering sub-brick %d\n",tt) ;
+
+   qim     = DSET_BRICK(rtin->dset,tt) ;
+   qim->dx = fabs( DSET_DX(rtin->dset) ) ;  /* must set voxel dimensions */
+   qim->dy = fabs( DSET_DY(rtin->dset) ) ;
+   qim->dz = fabs( DSET_DZ(rtin->dset) ) ;
+
+   rim = mri_3dalign_one( rtin->reg_3dbasis , qim ,
+                          &roll , &pitch , &yaw , &dx , &dy , &dz ) ;
+
+   /*-- massage and store movement parameters --*/
+
+   roll  *= R2DFAC ; if( rtin->hax1 < 0 ) roll  = -roll  ;
+   pitch *= R2DFAC ; if( rtin->hax2 < 0 ) pitch = -pitch ;
+   yaw   *= R2DFAC ; if( rtin->hax3 < 0 ) yaw   = -yaw   ;
+
+   switch( rtin->dset->daxes->xxorient ){
+      case ORI_R2L_TYPE: ddy =  dx; break ; case ORI_L2R_TYPE: ddy = -dx; break ;
+      case ORI_P2A_TYPE: ddz = -dx; break ; case ORI_A2P_TYPE: ddz =  dx; break ;
+      case ORI_I2S_TYPE: ddx =  dx; break ; case ORI_S2I_TYPE: ddx = -dx; break ;
+   }
+
+   switch( rtin->dset->daxes->yyorient ){
+      case ORI_R2L_TYPE: ddy =  dy; break ; case ORI_L2R_TYPE: ddy = -dy; break ;
+      case ORI_P2A_TYPE: ddz = -dy; break ; case ORI_A2P_TYPE: ddz =  dy; break ;
+      case ORI_I2S_TYPE: ddx =  dy; break ; case ORI_S2I_TYPE: ddx = -dy; break ;
+   }
+
+   switch( rtin->dset->daxes->zzorient ){
+      case ORI_R2L_TYPE: ddy =  dz; break ; case ORI_L2R_TYPE: ddy = -dz; break ;
+      case ORI_P2A_TYPE: ddz = -dz; break ; case ORI_A2P_TYPE: ddz =  dz; break ;
+      case ORI_I2S_TYPE: ddx =  dz; break ; case ORI_S2I_TYPE: ddx = -dz; break ;
+   }
+
+   nest = rtin->reg_nest ;
+   rtin->reg_tim = (float *) realloc( (void *) rtin->reg_tim ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_dx  = (float *) realloc( (void *) rtin->reg_dx  ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_dy  = (float *) realloc( (void *) rtin->reg_dy  ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_dz  = (float *) realloc( (void *) rtin->reg_dz  ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_phi = (float *) realloc( (void *) rtin->reg_phi ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_psi = (float *) realloc( (void *) rtin->reg_psi ,
+                                      sizeof(float) * (nest+1) ) ;
+   rtin->reg_theta = (float *) realloc( (void *) rtin->reg_theta ,
+                                      sizeof(float) * (nest+1) ) ;
+
+   rtin->reg_tim[nest]   = THD_timeof_vox( tt , 0 , rtin->dset ) ;
+   rtin->reg_dx [nest]   = ddx   ;
+   rtin->reg_dy [nest]   = ddy   ;
+   rtin->reg_dz [nest]   = ddz   ;
+   rtin->reg_phi[nest]   = roll  ;
+   rtin->reg_psi[nest]   = pitch ;
+   rtin->reg_theta[nest] = yaw   ; rtin->reg_nest ++ ; rtin->reg_nvol = tt+1 ;
+
+   /*-- convert output image to desired type;
+        set qar to point to data in the converted registered image --*/
+
+   if( rim != NULL && rtin->reg_dset != NULL ){
+      switch( rtin->datum ){
+         case MRI_float:                        /* rim is already floats */
+            qar = (char *) MRI_FLOAT_PTR(rim) ;
+         break ;
+
+         case MRI_short:
+            qim = mri_to_short(1.0,rim) ; mri_free(rim) ; rim = qim ;
+            qar = (char *) MRI_SHORT_PTR(rim) ;
+         break ;
+
+         case MRI_byte:
+            qim = mri_to_byte(rim) ; mri_free(rim) ; rim = qim ;
+            qar = (char *) MRI_BYTE_PTR(rim) ;
+         break ;
+
+         /* this case should not occur: */
+
+         default:
+            fprintf(stderr,"RT: can't do registration on %s images!\a\n",
+                    MRI_TYPE_name[rtin->datum] ) ;
+            DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+            rtin->reg_mode = REGMODE_NONE ;
+            mri_free(rim) ;
+         return ;
+      }
+
+      /* attach to reg_dset */
+
+      if( tt == 0 )
+         EDIT_substitute_brick( rtin->reg_dset , 0 , rtin->datum , qar ) ;
+      else
+         EDIT_add_brick( rtin->reg_dset , rtin->datum , 0.0 , qar ) ;
+
+      EDIT_dset_items( rtin->reg_dset , ADN_ntt , rtin->reg_nvol ,  ADN_none ) ;
+
+      mri_fix_data_pointer(NULL,rim) ; mri_free(rim) ;   /* get rid of this */
+   }
+
    return ;
 }
 /*---------------------------------------------------------------------------*/

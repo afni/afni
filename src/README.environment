@@ -225,6 +225,15 @@ output into GhostView
 In the (far distant) future, other windows (e.g., image and graph
 displays) may get the ability to print to a PostScript file or printer.
 
+---------------------------
+Variable: AFNI_LEFT_IS_LEFT
+---------------------------
+Setting this variable (to anything) tells afni to display images with
+the left side of the subject on the left side of the window.  The default
+mode is to display the right side of the subject on the left side of
+the window - the radiology convention.  This "handedness" can also be
+controlled with the "-flipim" and "-noflipim" command line options to afni.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

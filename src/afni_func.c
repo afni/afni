@@ -419,6 +419,8 @@ ENTRY("AFNI_follower_dataset") ;
 
    new_dset->anat_parent = anat_parent ;            /* what else makes sense? */
 
+   new_dset->tagset = NULL ;  /* Oct 1998 */
+
    MCW_strncpy( new_dset->anat_parent_name ,
                 anat_parent->self_name , THD_MAX_NAME ) ;
 
@@ -1425,7 +1427,7 @@ ENTRY("AFNI_set_window_titles") ;
 
    strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
    strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
-   tnam = THD_trailname(nam,1) ;
+   tnam = THD_trailname(nam,SESSTRAIL) ;
    strcat( ttl , tnam ) ;
 
    if( ISVALID_3DIM_DATASET(im3d->fim_now) ){
@@ -2718,7 +2720,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
          if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,1) ;
+            tnam = THD_trailname(nam,SESSTRAIL) ;
             llen = strlen(tnam) ; ltop = MAX(ltop,llen) ;
          }
       }
@@ -2728,7 +2730,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
          if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,1) ;
+            tnam = THD_trailname(nam,SESSTRAIL) ;
             llen = strlen(tnam) ; ltop = MAX(ltop,llen) ;
          }
       }
@@ -2751,7 +2753,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,1) ;
+            tnam = THD_trailname(nam,SESSTRAIL) ;
 
             if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
                sprintf(qnam,"%-*s [%s:%d]" ,
@@ -2783,7 +2785,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,1) ;
+            tnam = THD_trailname(nam,SESSTRAIL) ;
 
             if( ISFUNCBUCKET(dset) )             /* 30 Nov 1997 */
                sprintf(qnam,"%-*s [%s:%d]" ,

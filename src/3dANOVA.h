@@ -21,6 +21,9 @@
    Mod:     Library routines moved to 3dANOVA.lib.
    Date:    5 January 1998
 
+   Mod:     Added software for statistical tests of individual cell means,
+            cell differences, and cell contrasts.
+   Date:    27 October 1998
 */
 
 
@@ -29,23 +32,7 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997, 1998 by
 
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
-#include <stdio.h>
-#include <math.h>
 #include "mrilib.h"
 
 /*** HP-UX ***/
@@ -80,8 +67,9 @@
 
 #define MAX_LEVELS 100           /* max. number of factor levels */  
 #define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
-#define MAX_DIFFS 100            /* max. number of user requested diffs. */
-#define MAX_CONTR 100            /* max. number of user requested contrasts */
+#define MAX_MEANS 10             /* max. number of user requested means */
+#define MAX_DIFFS 10             /* max. number of user requested diffs. */
+#define MAX_CONTR 10             /* max. number of user requested contrasts */
 #define MAX_NAME_LENGTH 80       /* max. strength length for file names */ 
 
 
@@ -138,17 +126,21 @@ typedef struct anova_options
 
 
   int   num_ameans;             /* number of factor A level means */ 
-  int   ameans[MAX_LEVELS];     /* calc means for these factor A levels */
-  char  * amname[MAX_LEVELS];   /* names of output files for factor A means */
+  int   ameans[MAX_MEANS];      /* calc means for these factor A levels */
+  char  * amname[MAX_MEANS];    /* names of output files for factor A means */
   
   int   num_bmeans;             /* number of factor B level means */ 
-  int   bmeans[MAX_LEVELS];     /* calc means for these factor B levels */
-  char  * bmname[MAX_LEVELS];   /* names of output files for factor B means */
+  int   bmeans[MAX_MEANS];      /* calc means for these factor B levels */
+  char  * bmname[MAX_MEANS];    /* names of output files for factor B means */
   
   int   num_cmeans;             /* number of factor C level means */ 
-  int   cmeans[MAX_LEVELS];     /* calc means for these factor C levels */
-  char  * cmname[MAX_LEVELS];   /* names of output files for factor C means */
-  
+  int   cmeans[MAX_MEANS];      /* calc means for these factor C levels */
+  char  * cmname[MAX_MEANS];    /* names of output files for factor C means */
+
+  int   num_xmeans;             /* number of cell means */
+  int   xmeans[MAX_MEANS][3];   /* calc means for these cells */
+  char  * xmname[MAX_MEANS];    /* name of output files for cell means */
+
   int   num_adiffs;             /* num of diffs in factor A level means */
   int   adiffs[MAX_DIFFS][2];   /* calc diffs in these factor A level means */
   char  * adname[MAX_DIFFS];    /* names of output files for A differences */
@@ -161,6 +153,10 @@ typedef struct anova_options
   int   cdiffs[MAX_DIFFS][2];   /* calc diffs in these factor C level means */
   char  * cdname[MAX_DIFFS];    /* names of output files for C differences */
   
+  int   num_xdiffs;               /* num of diffs in cell means */
+  int   xdiffs[MAX_DIFFS][2][3];  /* calc diffs in these cell means */
+  char  * xdname[MAX_DIFFS];      /* names of output files for cell diffs */
+  
   int   num_acontr;             /* number of factor A contrasts */
   float acontr[MAX_CONTR][MAX_LEVELS];     /* factor A contrast vectors */
   char  * acname[MAX_CONTR];    /* names of output files for A contrasts */
@@ -172,6 +168,11 @@ typedef struct anova_options
   int   num_ccontr;             /* number of factor C contrasts */
   float ccontr[MAX_CONTR][MAX_LEVELS];     /* factor C contrast vectors */
   char  * ccname[MAX_CONTR];    /* names of output files for C contrasts */
+
+  int   num_xcontr;             /* number of contrasts of cell means */
+  float xcontr[MAX_CONTR][MAX_LEVELS][MAX_LEVELS];     
+                                /* cell means contrast vectors */
+  char  * xcname[MAX_CONTR];    /* names of output files for cell contrasts */
 
   char * bucket_filename;       /* file name for bucket dataset */
 

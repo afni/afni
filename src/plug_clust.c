@@ -39,7 +39,7 @@ static char helpstring[] =
   " Output        = If this option is used, then a new dataset will be made\n"
   "                  from the clusters.  In that case, a prefix for the\n"
   "                  new dataset filename must be provided.  If this option\n"
-  "                  is not used, then the clustering results will overwrite\n"
+  "                  is not used, then the clustering results will overwrite \n"
   "                  the existing dataset in memory and on disk.\n"
   "Author -- RW Cox"
 ;

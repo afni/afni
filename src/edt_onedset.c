@@ -5,14 +5,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*--------------------------------------------------------------------
   routine to edit an input dataset in place according to inputs
@@ -355,11 +353,14 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                ftop = edit_clip_top ;
                fbot = edit_clip_bot ;
             }
-            top = (ftop > MRI_TYPE_maxval[fim_type]) ?  MRI_TYPE_maxval[fim_type]
-                 :(ftop <-MRI_TYPE_maxval[fim_type]) ? -MRI_TYPE_maxval[fim_type] : ftop ;
 
-            bot = (fbot > MRI_TYPE_maxval[fim_type]) ?  MRI_TYPE_maxval[fim_type]
-                 :(fbot <-MRI_TYPE_maxval[fim_type]) ? -MRI_TYPE_maxval[fim_type] : fbot ;
+            top = rint(ftop) ;  /* this code was modifed 28 Sep 1998 */
+            if( top >=  MRI_maxshort ) top =   MRI_maxshort + 1  ;
+            if( top <= -MRI_maxshort ) top = -(MRI_maxshort + 1) ;
+
+            bot = rint(fbot) ;
+            if( bot >=  MRI_maxshort ) bot =   MRI_maxshort + 1  ;
+            if( bot <= -MRI_maxshort ) bot = -(MRI_maxshort + 1) ;
 
 #ifdef AFNI_DEBUG
 { char str[256] ;
@@ -381,11 +382,14 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                ftop = edit_clip_top ;
                fbot = edit_clip_bot ;
             }
-            top = (ftop > MRI_TYPE_maxval[fim_type]) ?  MRI_TYPE_maxval[fim_type]
-                 :(ftop <-MRI_TYPE_maxval[fim_type]) ? -MRI_TYPE_maxval[fim_type] : ftop ;
 
-            bot = (fbot > MRI_TYPE_maxval[fim_type]) ?  MRI_TYPE_maxval[fim_type]
-                 :(fbot <-MRI_TYPE_maxval[fim_type]) ? -MRI_TYPE_maxval[fim_type] : fbot ;
+            top = rint(ftop) ;
+            if( top >=  MRI_maxbyte ) top =   MRI_maxbyte + 1  ;
+            if( top <= -MRI_maxbyte ) top = -(MRI_maxbyte + 1) ;
+
+            bot = rint(fbot) ;
+            if( bot >=  MRI_maxbyte ) bot =   MRI_maxbyte + 1  ;
+            if( bot <= -MRI_maxbyte ) bot = -(MRI_maxbyte + 1) ;
 
             if( bot < 0 )   bot = 0 ;
             if( top < bot ) top = bot ;

@@ -22,6 +22,11 @@
 #  define MIN(a,b) (((a)>(b)) ? (b) : (a))
 #endif
 
+#ifndef VOID_FUNC
+#define VOID_FUNC
+typedef void void_func() ;
+#endif
+
 /*----- data structure to hold a plot -----*/
 
 typedef struct {
@@ -146,9 +151,24 @@ extern void set_X11_background( Display * , Window ,
 #define memplot_to_X11_free(d,w) \
    memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,1 )
 
-extern Widget memplot_to_topshell( Display * , MEM_plotdata * , int ) ;
+typedef struct {
+   Widget top , dial , wtf , drawing ;
+   int valid ;
+   MEM_plotdata * mp ;
+   void * userdata ;
+   void_func * killfunc ;
+} MEM_topshell_data ;
 
-#define memplot_to_shell(d) memplot_to_topshell( (d) , get_active_memplot() , 1 )
+#define MTD_PLOTDATA(mpcb)        ((mpcb)->mp)
+#define MTD_KILLFUNC(mpcb)        ((mpcb)->killfunc)
+#define MTD_VALID(mpcb)           ((mpcb)->valid)
+#define MTD_USERDATA(mpcb)        ((mpcb)->userdata)
+#define MTD_remove_killfunc(mpcb) ((mpcb)->killfunc = NULL)
+
+extern MEM_topshell_data * memplot_to_topshell(Display *,MEM_plotdata *,void_func *) ;
+extern void plotkill_topshell( MEM_topshell_data * ) ;
+
+#define memplot_to_shell(d) memplot_to_topshell( (d),get_active_memplot(),1 )
 
 /*-- plot time series --*/
 
@@ -157,6 +177,12 @@ extern void plot_ts_lab( Display *,
                          char *,char *,char *,char ** ) ;
 
 #define plot_ts(a,b,c,d,e) plot_ts_lab((a),(b),(c),(d),(e),NULL,NULL,NULL,NULL)
+
+extern MEM_topshell_data * plot_ts_init( Display *, float, float,
+                                         int, float, float,
+                                         char *, char *, char *, char ** ) ;
+
+extern void plot_ts_addto( MEM_topshell_data *, int,float *, int,float ** ) ;
 
 /*-- routines in this library that will be called from PLOTPAK --*/
 
@@ -194,6 +220,7 @@ extern int line_(real *x1, real *y1, real *x2, real *y2);
 extern int memplt_(real *aspect);
 extern int perim_(integer *mbx, integer *mlx, integer *mby, integer *mly);
 extern int periml_(integer *mbx, integer *mlx, integer *mby, integer *mly);
+extern int perimm_(integer *mbx, integer *mlx, integer *mby, integer *mly, integer *ilab);
 extern int phdot_(real *x1, real *y1);
 extern int phline_(real *x1, real *y1, real *x2, real *y2);
 extern int point_(real *x, real *y);
@@ -242,6 +269,7 @@ extern void plotpak_labmod( int jsizx , int jsizy ) ;
 extern void plotpak_line( float x1 , float y1 , float x2 , float y2 ) ;
 extern void plotpak_perim( int mbx , int mlx , int mby , int mly ) ;
 extern void plotpak_periml( int mbx , int mlx , int mby , int mly ) ;
+extern void plotpak_perimm( int mbx , int mlx , int mby , int mly , int ilab ) ;
 extern void plotpak_phdot( float x1 , float y1 ) ;
 extern void plotpak_phline( float x1 , float y1 , float x2 , float y2 ) ;
 extern void plotpak_point( float x1 , float y1 ) ;

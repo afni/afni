@@ -5,7 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 /*** NOT 7D SAFE ***/
 
 /*************************************************************************
@@ -53,7 +52,24 @@ void mri_2dalign_params( int maxite,
 
    return ;
 }
-/*********************************************************************/
+
+/*-------------------------------------------------------------------------------*/
+static int almode_coarse = MRI_BICUBIC ;  /* 1 Oct 1998 */
+static int almode_fine   = MRI_BICUBIC ;
+static int almode_reg    = MRI_BICUBIC ;
+
+#define MRI_ROTA_COARSE(a,b,c,d) mri_rota_variable(almode_coarse,(a),(b),(c),(d))
+#define MRI_ROTA_FINE(a,b,c,d)   mri_rota_variable(almode_fine  ,(a),(b),(c),(d))
+#define MRI_ROTA_REG(a,b,c,d)    mri_rota_variable(almode_reg   ,(a),(b),(c),(d))
+
+void mri_2dalign_method( int coarse , int fine , int reg )  /* 1 Oct 1998 */
+{
+   if( coarse > 0 ) almode_coarse = coarse ;
+   if( fine   > 0 ) almode_fine   = fine   ;
+   if( reg    > 0 ) almode_reg    = reg    ;
+   return ;
+}
+/*-------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------
    Inputs: imbase = base image for alignment
@@ -112,6 +128,9 @@ MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
    if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 28 Oct 1996 */
    else               imww = mri_to_float( imwt ) ;
 
+   tar = MRI_FLOAT_PTR(imww) ;       
+   for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;  /* 16 Nov 1998 */
+
    chol_fitim = mri_startup_lsqfit( fitim , imww ) ;
    mri_free(imww) ;
 
@@ -139,6 +158,9 @@ MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
 
      if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
      else               imww = mri_to_float( imwt ) ;
+
+     tar = MRI_FLOAT_PTR(imww) ;       
+     for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;
 
      chol_fine_fitim = mri_startup_lsqfit( fine_fitim , imww ) ;
      mri_free(imww) ;
@@ -197,7 +219,7 @@ MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * basis , MRI_IMAGE * im ,
       /*-- iterate coarse fit --*/
 
       while( good ){
-         tim  = mri_rota( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
+         tim  = MRI_ROTA_COARSE( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
          bim2 = mri_filt_fft( tim, dfilt_sigma, 0,0, FILT_FFT_WRAPAROUND ) ;
          dfit = mri_delayed_lsqfit( bim2 , fitim , chol_fitim ) ;
          mri_free( bim2 ) ; mri_free( tim ) ;
@@ -218,7 +240,7 @@ MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * basis , MRI_IMAGE * im ,
       if( use_fine_fit ){
          good = 1 ;
          while( good ){
-            tim  = mri_rota( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
+            tim  = MRI_ROTA_FINE( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
             bim2 = mri_filt_fft( tim, fine_sigma, 0,0, FILT_FFT_WRAPAROUND ) ;
             dfit = mri_delayed_lsqfit( bim2 , fine_fitim , chol_fine_fitim ) ;
             mri_free( bim2 ) ; mri_free( tim ) ;
@@ -243,7 +265,7 @@ MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * basis , MRI_IMAGE * im ,
 
    /*-- do the actual realignment --*/
 
-   tim = mri_rota( im2 , fit[1],fit[2],fit[3]*DFAC ) ;
+   tim = MRI_ROTA_REG( im2 , fit[1],fit[2],fit[3]*DFAC ) ;
    mri_free( im2 ) ;
    return tim ;
 }
@@ -280,5 +302,5 @@ void mri_2dalign_cleanup( MRI_2dalign_basis * basis )
    if( basis->fine_fitim      != NULL ){ DESTROY_IMARR( basis->fine_fitim ) ; }
    if( basis->chol_fine_fitim != NULL ){ free(basis->chol_fine_fitim) ; }
 
-   return ;
+   free(basis) ; return ;
 }

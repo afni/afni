@@ -1,5 +1,10 @@
 #include "cs.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /********************************************************************************/
 /* insertion_sort : sort an array of float + int                                */
 
@@ -126,8 +131,7 @@ static void qsrec_floatint( int n , float * ar , int * iar , int cutoff )
 
 void qsort_floatint( int n , float * a , int * ia )
 {
-
-   qsrec_float( n , a , ia , QS_CUTOFF ) ;
-   isort_float( n , a , ia ) ;
+   qsrec_floatint( n , a , ia , QS_CUTOFF ) ;
+   isort_floatint( n , a , ia ) ;
    return ;
 }

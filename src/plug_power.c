@@ -27,7 +27,9 @@ static char helpstring[] =
   " The output dataset will be stored in the 3D+time format, with\n"
   " the 'time' index actually being frequency.  The frequency grid\n"
   " spacing will be 1/(N*dt), where N=FFT length and dt = input\n"
-  " dataset time spacing."
+  " dataset time spacing.\n"
+  "\n"
+  " The method used is the simplest known: squared periodogram."
 ;
 
 /*------------- strings for output format -------------*/
@@ -48,8 +50,11 @@ static char * fft_strings[]
 
 char * POWER_main( PLUGIN_interface * ) ;  /* the entry point */
 
+#undef ALLOW_TESTING
+#ifdef ALLOW_TESTING
 PLUGIN_interface * TEST_init(void) ;
 char * TEST_main( PLUGIN_interface * ) ;  /* the entry point */
+#endif
 
 /***********************************************************************
    Set up the interface to the user:
@@ -70,7 +75,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 1 ) return NULL ;  /* two interfaces */
 
+#ifdef ALLOW_TESTING
    if( ncall == 1 ) return TEST_init() ;
+#else
+   if( ncall == 1 ) return NULL ;
+#endif
 
    /*---------------- set titles and call point ----------------*/
 
@@ -164,7 +173,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 /*------------------ macros to return workspace at exit -------------------*/
 
-#define FREEUP(x) if((x) != NULL){free((x)); (x)=NULL;}
+#undef  FREEUP
+#define FREEUP(x) do{ if((x) != NULL){free((x)); (x)=NULL;} } while(0)
 
 #define FREE_WORKSPACE                              \
   do{ FREEUP(bptr) ; FREEUP(sptr) ; FREEUP(fptr) ;  \
@@ -284,7 +294,7 @@ char * POWER_main( PLUGIN_interface * plint )
                      "******************************" ,
                nfft , nuse ) ;
 
-      PLUTO_popup_message( plint , str ) ;
+      PLUTO_popup_transient( plint , str ) ;
 
       nuse = nfft ;  /* can't use more data than the FFT length */
    }
@@ -299,7 +309,7 @@ char * POWER_main( PLUGIN_interface * plint )
       case UNITS_SEC_TYPE:                    new_units = UNITS_HZ_TYPE ; break;
       case UNITS_HZ_TYPE:                     new_units = UNITS_SEC_TYPE; break;
 
-      default: new_units = DSET_TIMEUNITS(old_dset) ; break ;
+      default: new_units = DSET_TIMEUNITS(old_dset) ; break ; /* shouldn't happen */
    }
 
    /*------------------------------------------------------*/
@@ -329,7 +339,7 @@ char * POWER_main( PLUGIN_interface * plint )
 
       case MRI_byte:
          bptr = (byte **) malloc( sizeof(byte *) * nuse ) ;
-         if( bptr == NULL ) return "Malloc\nFailure!" ;
+         if( bptr == NULL ) return "Malloc\nFailure!\n [bptr]" ;
          for( kk=0 ; kk < nuse ; kk++ )
             bptr[kk] = (byte *) DSET_ARRAY(old_dset,kk+ignore) ;
       break ;
@@ -340,7 +350,7 @@ char * POWER_main( PLUGIN_interface * plint )
 
       case MRI_short:
          sptr = (short **) malloc( sizeof(short *) * nuse ) ;
-         if( sptr == NULL ) return "Malloc\nFailure!" ;
+         if( sptr == NULL ) return "Malloc\nFailure!\n [sptr]" ;
          for( kk=0 ; kk < nuse ; kk++ )
             sptr[kk] = (short *) DSET_ARRAY(old_dset,kk+ignore) ;
       break ;
@@ -351,7 +361,7 @@ char * POWER_main( PLUGIN_interface * plint )
 
       case MRI_float:
          fptr = (float **) malloc( sizeof(float *) * nuse ) ;
-         if( fptr == NULL ) return "Malloc\nFailure!" ;
+         if( fptr == NULL ) return "Malloc\nFailure!\n [fptr]" ;
          for( kk=0 ; kk < nuse ; kk++ )
             fptr[kk] = (float *) DSET_ARRAY(old_dset,kk+ignore) ;
       break ;
@@ -365,7 +375,7 @@ char * POWER_main( PLUGIN_interface * plint )
    fyar = (float *)   malloc( sizeof(float) * nuse ) ;   /* input */
    if( cxar == NULL || fxar == NULL || fyar == NULL ){
       FREE_WORKSPACE ;
-      return "Malloc\nFailure!" ;
+      return "Malloc\nFailure!\n [cxar]" ;
    }
 
    /*--------- make space for taper coefficient array ---------*/
@@ -375,7 +385,7 @@ char * POWER_main( PLUGIN_interface * plint )
 
    if( tar == NULL || dtr == NULL ){
       FREE_WORKSPACE ;
-      return "Malloc\nFailure!" ;
+      return "Malloc\nFailure!\n [tar]" ;
    }
 
    ntaper = (int)(0.5 * taper * nuse + 0.49) ; /* will taper data over */
@@ -451,7 +461,7 @@ char * POWER_main( PLUGIN_interface * plint )
    if( fout == NULL ){
       THD_delete_3dim_dataset( new_dset , False ) ;
       FREE_WORKSPACE ;
-      return "Malloc\nFailure!" ;
+      return "Malloc\nFailure!\n [fout]" ;
    }
 
    for( kk=0 ; kk < nfreq ; kk++ ){
@@ -460,10 +470,18 @@ char * POWER_main( PLUGIN_interface * plint )
    }
 
    if( kk < nfreq ){
-      for( ; kk >= 0 ; kk-- ) free(fout[kk]) ;       /* free all we did get */
+      for( ; kk >= 0 ; kk-- ) FREEUP(fout[kk]) ;   /* free all we did get */
       THD_delete_3dim_dataset( new_dset , False ) ;
       FREE_WORKSPACE ;
-      return "Malloc\nFailure!" ;
+      return "Malloc\nFailure!\n [arrays]" ;
+   }
+
+   { char buf[128] ;
+     ii = (nfreq * nvox * sizeof(float)) / (1024*1024) ;
+     sprintf( buf , "  \n"
+                    "*** 3D+time Power Spectrum:\n"
+                    "*** Using %d MBytes of workspace\n " , ii ) ;
+     PLUTO_popup_transient( plint , buf ) ;
    }
 
    /*----------------------------------------------------*/
@@ -561,10 +579,10 @@ char * POWER_main( PLUGIN_interface * plint )
             This is the basis for doing 2 time series at once. ---*/
 
       for( kk=1 ; kk <= nfreq ; kk++ ){
-         xr = 0.5 * ( cxar[kk].r + cxar[nfft-kk].i ) ; /* Re xhat[kk] */
+         xr = 0.5 * ( cxar[kk].r + cxar[nfft-kk].r ) ; /* Re xhat[kk] */
          xi = 0.5 * ( cxar[kk].i - cxar[nfft-kk].i ) ; /* Im xhat[kk] */
          yr = 0.5 * ( cxar[kk].i + cxar[nfft-kk].i ) ; /* Re yhat[kk] */
-         yi = 0.5 * ( cxar[kk].r - cxar[nfft-kk].r ) ; /* Im yhat[kk] */
+         yi = 0.5 * ( cxar[kk].r - cxar[nfft-kk].r ) ; /*-Im yhat[kk] */
 
          fout[kk-1][ii]  = pfact * (xr*xr + xi*xi) ;
          fout[kk-1][iip] = pfact * (yr*yr + yi*yi) ;
@@ -625,6 +643,9 @@ char * POWER_main( PLUGIN_interface * plint )
 
             EDIT_substitute_brick( new_dset , kk , MRI_short , bout ) ;
             tar[kk] = fac ;
+
+            perc = (100 * kk) / nfreq ;
+            PLUTO_set_meter( plint , perc ) ; /* on the progress meter */
          }
 
          /*-- save scale factor array into dataset --*/
@@ -667,6 +688,9 @@ char * POWER_main( PLUGIN_interface * plint )
 
             EDIT_substitute_brick( new_dset , kk , MRI_byte , bout ) ;
             tar[kk] = fac ;
+
+            perc = (100 * kk) / nfreq ;
+            PLUTO_set_meter( plint , perc ) ; /* on the progress meter */
          }
 
          /*-- save scale factor array into dataset --*/
@@ -687,6 +711,7 @@ char * POWER_main( PLUGIN_interface * plint )
    return NULL ;  /* null string returned means all was OK */
 }
 
+#ifdef ALLOW_TESTING
 /*****************************************************************************
  -----------------------------------------------------------------------------
            Create the second interface within this plugin.
@@ -751,3 +776,4 @@ char * TEST_main( PLUGIN_interface * plint )
    } while(1) ;
    return NULL ;
 }
+#endif  /* ALLOW_TESTING */

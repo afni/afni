@@ -5,7 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 /*** NOT 7D SAFE ***/
 
 #define REF_FLOAT_SINGLE
@@ -32,11 +31,6 @@
 #endif
 
 #define USE_DELAYED_FIT
-
-/** option to use bilinear interpolation during the coarse phase **/
-
-#define MRI_ROTA(a,b,c,d) \
-   ( (bilinear) ? mri_rota_bilinear((a),(b),(c),(d)) : mri_rota((a),(b),(c),(d)) )
 
 /*********************************************************************
   05 Nov 1997: make the parameters that control the iterations
@@ -67,7 +61,24 @@ void mri_align_params( int maxite,
 
    return ;
 }
-/*********************************************************************/
+
+/*-------------------------------------------------------------------------------*/
+static int almode_coarse = MRI_BICUBIC ;  /* 1 Oct 1998 */
+static int almode_fine   = MRI_BICUBIC ;
+static int almode_reg    = MRI_BICUBIC ;
+
+#define MRI_ROTA_COARSE(a,b,c,d) mri_rota_variable(almode_coarse,(a),(b),(c),(d))
+#define MRI_ROTA_FINE(a,b,c,d)   mri_rota_variable(almode_fine  ,(a),(b),(c),(d))
+#define MRI_ROTA_REG(a,b,c,d)    mri_rota_variable(almode_reg   ,(a),(b),(c),(d))
+
+void mri_align_method( int coarse , int fine , int reg )  /* 1 Oct 1998 */
+{
+   if( coarse > 0 ) almode_coarse = coarse ;
+   if( fine   > 0 ) almode_fine   = fine   ;
+   if( reg    > 0 ) almode_reg    = reg    ;
+   return ;
+}
+/*-------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------
    Inputs:  imbase = base image that others will align to
@@ -99,7 +110,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    MRI_IMAGE * im1 , *bim,*xim,*yim,*tim , *bim2 , * im2 , *imww ;
    MRI_IMARR * fitim ;
    float * fit , *tar,*xar,*yar , *dfit ;
-   int nx,ny , ii,jj , joff , iter , good , kim , debug , verbose , bilinear ;
+   int nx,ny, ii,jj, joff, iter, good, kim, debug, verbose ;
    float hnx,hny ;
    double * chol_fitim=NULL ;
 
@@ -117,7 +128,6 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
 
    debug    = (code & ALIGN_DEBUG_CODE)    != 0 ;
    verbose  = (code & ALIGN_VERBOSE_CODE)  != 0 && !debug ;
-   bilinear = (code & ALIGN_BILINEAR_CODE) != 0 ;
 
    if( verbose ){printf("-- mri_align_dfspace");fflush(stdout);}
 
@@ -157,6 +167,9 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 28 Oct 1996 */
    else               imww = mri_to_float( imwt ) ;
 
+   tar = MRI_FLOAT_PTR(imww) ;       
+   for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;  /* 16 Nov 1998 */
+
 #ifdef USE_DELAYED_FIT
    chol_fitim = mri_startup_lsqfit( fitim , imww ) ;
 #endif
@@ -187,6 +200,9 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
 
      if( imwt == NULL ) fine_imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
      else               fine_imww = mri_to_float( imwt ) ;
+
+     tar = MRI_FLOAT_PTR(fine_imww) ;       
+     for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;
 
 #ifdef USE_DELAYED_FIT
      chol_fine_fitim = mri_startup_lsqfit( fine_fitim , fine_imww ) ;
@@ -223,7 +239,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
              ( (code & ALIGN_NOITER_CODE) == 0 ) ;
 
       while( good ){
-         tim  = MRI_ROTA( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
+         tim  = MRI_ROTA_COARSE( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
          bim2 = mri_filt_fft( tim , dfilt_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
 #ifdef USE_DELAYED_FIT
          dfit = mri_delayed_lsqfit( bim2 , fitim , chol_fitim ) ;
@@ -252,7 +268,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
       if( use_fine_fit && iter < max_iter && (code & ALIGN_NOITER_CODE) == 0 ){
          good = 1 ;
          while( good ){
-            tim  = mri_rota( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
+            tim  = MRI_ROTA_FINE( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
             bim2 = mri_filt_fft( tim , fine_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
 #ifdef USE_DELAYED_FIT
             dfit = mri_delayed_lsqfit( bim2 , fine_fitim , chol_fine_fitim ) ;
@@ -317,7 +333,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    if( verbose ){printf("-- registering");fflush(stdout);}
 
    for( kim=0 ; kim < ims->num ; kim++ ){
-      tim = mri_rota( ims->imarr[kim] , dx[kim],dy[kim],phi[kim] ) ;
+      tim = MRI_ROTA_REG( ims->imarr[kim] , dx[kim],dy[kim],phi[kim] ) ;
       ADDTO_IMARR( fitim , tim ) ;
       if( verbose && kim%5 == 0 ){printf(".");fflush(stdout);}
    }

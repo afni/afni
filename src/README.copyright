@@ -25,6 +25,9 @@
   The CDF library routines were developed at the University of Texas
   M.D. Anderson Cancer Center.  See the file "cdflib.txt" for more details.
 
+  The eis_*.c functions are C translations of the EISPACK library,
+  distributed by netlib (http://www.netlib.org).
+
   Some of the routines in "mri_stats.c" are from the StatLib repository at
   Carnegie Mellon: http://lib.stat.cmu.edu/.
 

@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*** NOT 7D SAFE ***/
 
 #define FINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
@@ -302,4 +307,266 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
    MRI_COPY_AUX(new,im) ;
    return new ;
+}
+
+/*--------------------------------------------------------------------------
+   Routines to rotate using FFTs and the shearing transformation
+----------------------------------------------------------------------------*/
+
+/*** Shift 2 rows at a time with the FFT ***/
+
+void ft_shift2( int n, int nup, float af, float * f, float ag, float * g )
+{
+   static int nupold=0 ;
+   static complex * row=NULL , * cf=NULL , * cg=NULL ;
+
+   int ii , nby2=nup/2 , n21=nby2+1 ;
+   complex fac , gac ;
+   float sf , sg , dk ;
+
+   /* make new memory for row storage? */
+
+   if( nup > nupold ){
+      if( row != NULL ){ free(row) ; free(cf) ; free(cg) ; }
+      row = (complex *) malloc( sizeof(complex) * nup ) ;
+      cf  = (complex *) malloc( sizeof(complex) * n21 ) ;
+      cg  = (complex *) malloc( sizeof(complex) * n21 ) ;
+      nupold = nup ;
+   }
+
+   /* FFT the pair of rows */
+
+   for( ii=0 ; ii < n   ; ii++ ){ row[ii].r = f[ii] ; row[ii].i = g[ii] ; }
+   for(      ; ii < nup ; ii++ ){ row[ii].r = row[ii].i = 0.0 ; }
+
+   csfft_cox( -1 , nup , row ) ;
+
+   /* untangle FFT coefficients from row into cf,cg */
+
+   cf[0].r = 2.0 * row[0].r ; cf[0].i = 0.0 ;  /* twice too big */
+   cg[0].r = 2.0 * row[0].i ; cg[0].i = 0.0 ;
+   for( ii=1 ; ii < nby2 ; ii++ ){
+      cf[ii].r =  row[ii].r + row[nup-ii].r ;
+      cf[ii].i =  row[ii].i - row[nup-ii].i ;
+      cg[ii].r =  row[ii].i + row[nup-ii].i ;
+      cg[ii].i = -row[ii].r + row[nup-ii].r ;
+   }
+   cf[nby2].r = 2.0 * row[nby2].r ; cf[nby2].i = 0.0 ;
+   cg[nby2].r = 2.0 * row[nby2].i ; cg[nby2].i = 0.0 ;
+
+   /* phase shift both rows (cf,cg) */
+
+   dk = (2.0*PI) / nup ;
+   sf = -af * dk ; sg = -ag * dk ;
+   for( ii=1 ; ii <= nby2 ; ii++ ){
+      fac = CEXPIT(ii*sf) ; cf[ii] = CMULT( fac , cf[ii] ) ;
+      gac = CEXPIT(ii*sg) ; cg[ii] = CMULT( gac , cg[ii] ) ;
+   }
+   cf[nby2].i = 0.0 ; cg[nby2].i = 0.0 ;
+
+   /* retangle the coefficients from 2 rows */
+
+   row[0].r = cf[0].r ; row[0].i = cg[0].r ;
+   for( ii=1 ; ii < nby2 ; ii++ ){
+      row[ii].r     =  cf[ii].r - cg[ii].i ;
+      row[ii].i     =  cf[ii].i + cg[ii].r ;
+      row[nup-ii].r =  cf[ii].r + cg[ii].i ;
+      row[nup-ii].i = -cf[ii].i + cg[ii].r ;
+   }
+   row[nby2].r = cf[nby2].r ;
+   row[nby2].i = cg[nby2].r ;
+
+   /* inverse FFT and store back in output arrays */
+
+   csfft_cox( 1 , nup , row ) ;
+
+   sf = 0.5 / nup ;              /* 0.5 to allow for twice too big above */
+   for( ii=0 ; ii < n ; ii++ ){
+      f[ii] = sf * row[ii].r ; g[ii] = sf * row[ii].i ;
+   }
+
+   return ;
+}
+
+/*** Shear in the x-direction ***/
+
+void ft_xshear( float a , float b , int nx , int ny , float * f )
+{
+   int jj , nxup ;
+   float * fj0 , * fj1 , * zz=NULL ;
+   float a0 , a1 ;
+
+   if( a == 0.0 && b == 0.0 ) return ;          /* nothing to do */
+   if( nx < 2 || ny < 1 || f == NULL ) return ; /* nothing to operate on */
+
+   if( ny%2 == 1 ){                               /* we work in pairs, so */
+      zz = (float *) malloc( sizeof(float)*nx ) ; /* if not an even number */
+      for( jj=0 ; jj < nx ; jj++ ) zz[jj] = 0.0 ; /* of rows, make an extra */
+   }
+
+   nxup = nx ;                                 /* min FFT length */
+   jj   = 2 ; while( jj < nxup ){ jj *= 2 ; }  /* next power of 2 larger */
+   nxup = jj ;
+
+   for( jj=0 ; jj < ny ; jj+=2 ){              /* shear rows in pairs */
+      fj0 = f + (jj*nx) ;                      /* row 0 */
+      fj1 = (jj < ny-1) ? (fj0 + nx) : zz ;    /* row 1 */
+      a0  = a*(jj-0.5*ny) + b ;                /* phase ramp for row 0 */
+      a1  = a0 + a ;                           /* phase ramp for row 1 */
+      ft_shift2( nx , nxup , a0 , fj0 , a1 , fj1 ) ;
+   }
+
+   if( zz != NULL ) free(zz) ; /* toss the trash */
+   return ;
+}
+
+/*** Shear in the y direction ***/
+
+void ft_yshear( float a , float b , int nx , int ny , float * f )
+{
+   int jj , nyup , ii ;
+   float * fj0 , * fj1 ;
+   float a0 , a1 ;
+
+   if( a == 0.0 && b == 0.0 ) return ;          /* nothing to do */
+   if( ny < 2 || nx < 1 || f == NULL ) return ; /* nothing to operate on */
+
+   /* make memory for a pair of columns */
+
+   fj0 = (float *) malloc( sizeof(float) * 2*ny ) ; fj1 = fj0 + ny ;
+
+   nyup = ny ;                                 /* min FFT length */
+   jj   = 2 ; while( jj < nyup ){ jj *= 2 ; }  /* next power of 2 larger */
+   nyup = jj ;
+
+   for( jj=0 ; jj < nx ; jj+=2 ){              /* shear rows in pairs */
+
+      if( jj < nx-1 ){
+         for( ii=0; ii < ny; ii++ ){ fj0[ii] = f[jj+ii*nx]; fj1[ii] = f[jj+1+ii*nx]; }
+      } else {
+         for( ii=0; ii < ny; ii++ ){ fj0[ii] = f[jj+ii*nx]; fj1[ii] = 0.0; }
+      }
+
+      a0  = a*(jj-0.5*nx) + b ;                /* phase ramp for row 0 */
+      a1  = a0 + a ;                           /* phase ramp for row 1 */
+      ft_shift2( ny , nyup , a0 , fj0 , a1 , fj1 ) ;
+
+      if( jj < nx-1 ){
+         for( ii=0; ii < ny; ii++ ){ f[jj+ii*nx] = fj0[ii]; f[jj+1+ii*nx] = fj1[ii]; }
+      } else {
+         for( ii=0; ii < ny; ii++ ){ f[jj+ii*nx] = fj0[ii]; }
+      }
+   }
+
+   free(fj0) ; return ;
+}
+
+/*** Image rotation using 3 shears ***/
+
+MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
+{
+   double cph , sph ;
+   float a , b , bot,top ;
+   MRI_IMAGE *flim ;
+   float *flar ;
+   int ii , nxy ;
+
+   if( im == NULL || ! MRI_IS_2D(im) ){
+      fprintf(stderr,"*** mri_rota_shear only works on 2D images!\n") ; exit(1) ;
+   }
+
+   /** if complex image, break into pairs, do each separately, put back together **/
+
+   if( im->kind == MRI_complex ){
+      MRI_IMARR *impair ;
+      MRI_IMAGE * rim , * iim , * tim ;
+      impair = mri_complex_to_pair( im ) ;
+      if( impair == NULL ){
+         fprintf(stderr,"*** mri_complex_to_pair fails in mri_rota!\n") ; exit(1) ;
+      }
+      rim  = IMAGE_IN_IMARR(impair,0) ;
+      iim  = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
+      tim  = mri_rota_shear( rim , aa,bb,phi ) ; mri_free( rim ) ; rim = tim ;
+      tim  = mri_rota_shear( iim , aa,bb,phi ) ; mri_free( iim ) ; iim = tim ;
+      flim = mri_pair_to_complex( rim , iim ) ;
+      mri_free( rim ) ; mri_free( iim ) ;
+      MRI_COPY_AUX(flim,im) ;
+      return flim ;
+   }
+
+   /** copy input to output **/
+
+   flim = mri_to_float( im ) ;
+   flar = MRI_FLOAT_PTR( flim ) ;
+
+   /* find range of image data */
+
+   bot = top = flar[0] ; nxy = im->nx * im->ny ;
+   for( ii=1 ; ii < nxy ; ii++ )
+           if( flar[ii] < bot ) bot = flar[ii] ;
+      else if( flar[ii] > top ) top = flar[ii] ;
+
+   /** rotation params **/
+
+   cph = cos(phi) ; sph = sin(phi) ;
+
+   /* More than 90 degrees?
+      Must be reduced to less than 90 degrees by a 180 degree flip. */
+
+   if( cph < 0.0 ){
+      int ii , jj , top , nx=flim->nx , ny=flim->ny ;
+      float val ;
+
+      top = (nx+1)/2 ;
+      for( jj=0 ; jj < ny ; jj++ ){
+         for( ii=1 ; ii < top ; ii++ ){
+            val               = flar[jj*nx+ii] ;
+            flar[jj*nx+ii]    = flar[jj*nx+nx-ii] ;
+            flar[jj*nx+nx-ii] = val ;
+         }
+      }
+
+      top = (ny+1)/2 ;
+      for( ii=0 ; ii < nx ; ii++ ){
+         for( jj=1 ; jj < top ; jj++ ){
+            val                 = flar[ii+jj*nx] ;
+            flar[ii+jj*nx]      = flar[ii+(ny-jj)*nx] ;
+            flar[ii+(ny-jj)*nx] = val ;
+         }
+      }
+
+      cph = -cph ; sph = -sph ;
+   }
+
+   /* compute shear factors for each direction */
+
+   b = sph ;
+   a = (b != 0.0 ) ? ((cph - 1.0) / b) : (0.0) ;
+
+   /* shear thrice */
+
+   ft_xshear( a , 0.0       , im->nx , im->ny , flar ) ;
+   ft_yshear( b , bb        , im->nx , im->ny , flar ) ;
+   ft_xshear( a , aa - a*bb , im->nx , im->ny , flar ) ;
+
+   /* make sure data does not go out of original range */
+
+   for( ii=0 ; ii < nxy ; ii++ )
+           if( flar[ii] < bot ) flar[ii] = bot ;
+      else if( flar[ii] > top ) flar[ii] = top ;
+
+   return flim ;
+}
+
+MRI_IMAGE * mri_rota_variable( int mode, MRI_IMAGE *im, float aa, float bb, float phi )
+{
+   switch(mode){
+
+      default:
+      case MRI_BICUBIC:  return mri_rota( im,aa,bb,phi ) ;
+
+      case MRI_BILINEAR: return mri_rota_bilinear( im,aa,bb,phi ) ;
+
+      case MRI_FOURIER:  return mri_rota_shear( im,aa,bb,phi ) ;
+   }
 }

@@ -433,24 +433,11 @@ fflush(stdout) ;
 
    strcpy( newseq->im_label , "hi bob" ) ;
 
-   newseq->opt.mirror      = FALSE ;       /* initialize display options */
-   newseq->opt.rot         = ISQ_ROT_0 ;
-   newseq->opt.no_overlay  = False ;
-   newseq->opt.scale_group = ISQ_SCL_AUTO ;
-   newseq->opt.scale_range = ISQ_RNG_02TO98 ;
-   newseq->opt.free_aspect = False ;
-   newseq->opt.save_nsize  = False ;
-   newseq->opt.save_pnm    = False ;
-   newseq->opt.save_one    = True ;
-   newseq->opt.improc_code = ISQ_IMPROC_NONE ;
-   newseq->opt.cx_code     = ISQ_CX_MAG ;
+   ISQ_DEFAULT_OPT(newseq->opt) ;  /* 09 Oct 1998: macro replaces explicit code */
+   newseq->opt.parent = (XtPointer) newseq ;
+   newseq->old_opt    = newseq->opt ;         /* backup copy */
 
    newseq->last_image_type = -1 ;     /* not a legal datum type */
-
-   newseq->opt.parent      = (XtPointer) newseq ;
-   newseq->opt.aux         = NULL ;
-
-   newseq->old_opt = newseq->opt ;         /* backup copy */
 
    newseq->dialog         = NULL ;               /* no dialog at present */
    newseq->num_bbox       = 0 ;
@@ -3761,6 +3748,7 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          if( helptext != NULL && strlen(helptext) > 0 ){
             char * str = XtNewString( helptext ) ;
             MCW_reghelp_children( seq->arrowpad->wform , str ) ;
+            XtFree(str) ;  /* 28 Sep 1998: via Purify */
          }
          return True ;
       }

@@ -77,7 +77,10 @@ static char * AFNI_funcmode_bbox_label[2] =
    "pressed OUT: markers for this view won't display\n"\
    "\n"                                                \
    "Markers are used to specify anatomical locations\n"\
-   "required for transformation of coordinates."
+   "required for transformation of coordinates.\n"     \
+   "\n"                                                \
+   "Oct 1998: Also controls the display of dataset\n"  \
+   "          'tags' -- see the 'Edit Tagset' plugin."
 
 #define AFNI_see_func_bbox_help \
    "pressed IN:  functional overlay will display\n" \
@@ -148,7 +151,10 @@ static char * AFNI_funcmode_bbox_label[2] =
 #define AFNI_disp_pcolor_help  \
    "Controls the color used\n" \
    "to display the selected\n" \
-   "marker (the 'primary')"
+   "marker (the 'primary').\n" \
+   "\n"                        \
+   "Oct 1998: Also controls\n" \
+   "   the color for 'tags'."
 
 #define AFNI_disp_scolor_help   \
    "Controls the color used\n"  \
@@ -1084,7 +1090,7 @@ ENTRY("AFNI_make_wid1") ;
    /************ Controls for which view we see *************/
    /*-------------------------------------------------------*/
 
-   marks->ov_visible = False ;
+   marks->ov_visible = marks->tag_visible = False ;
 
    /*--- vertical rowcol to hold all viewing controls stuff ---*/
 
@@ -1189,7 +1195,7 @@ ENTRY("AFNI_make_wid1") ;
    MCW_reghelp_children( view->see_marks_bbox->wrowcol ,
                          AFNI_see_marks_bbox_help ) ;
    MCW_reghint_children( view->see_marks_bbox->wrowcol ,
-                         "Visibility of Talairach markers" ) ;
+                         "Visibility of Talairach markers and Tags" ) ;
 
    ADDTO_KILL(im3d->kl,view->see_marks_bbox) ;
 
@@ -4165,6 +4171,8 @@ void AFNI_lock_button( Three_D_View * im3d )
       "Lock [P]", "Lock [Q]", "Lock [R]", "Lock [S]", "Lock [T]",
       "Lock [U]", "Lock [V]", "Lock [W]", "Lock [X]", "Lock [Y]", "Lock [Z]" } ;
 
+   static char * tlabel[] = { "Time Lock" } ;
+
 ENTRY("AFNI_lock_button") ;
 
    wpar = im3d->vwid->dmode->mbar_rowcol ;
@@ -4210,7 +4218,8 @@ ENTRY("AFNI_lock_button") ;
    MCW_register_help( cbut , "Pressing this drops down\n"
                              "the menu of controllers\n"
                              "which should be 'locked'\n"
-                             "together in their viewpoints.\n"
+                             "together in their viewpoint\n"
+                             "coordinates.\n"
                              "N.B.: The lock will only take\n"
                              "  effect when you next move\n"
                              "  the crosshairs, or click\n"
@@ -4243,6 +4252,26 @@ ENTRY("AFNI_lock_button") ;
 
    MCW_set_bbox( dmode->lock_bbox , GLOBAL_library.controller_lock ) ;
 
+   MCW_reghint_children( dmode->lock_bbox->wrowcol ,
+                         "Which ones are locked together?" ) ;
+
+   /*** button box to control the time lock ***/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+   dmode->time_lock_bbox = new_MCW_bbox( menu ,
+                                         1 , tlabel ,
+                                         MCW_BB_check , MCW_BB_noframe ,
+                                         AFNI_time_lock_change_CB , (XtPointer)im3d ) ;
+
+   MCW_set_bbox( dmode->time_lock_bbox , GLOBAL_library.time_lock ) ;
+
+   MCW_reghint_children( dmode->time_lock_bbox->wrowcol ,
+                         "Lock time index as well?" ) ;
+
    /*** pushbuttons ***/
 
    (void) XtVaCreateManagedWidget(
@@ -4264,7 +4293,7 @@ ENTRY("AFNI_lock_button") ;
    XtAddCallback( dmode->lock_clear_pb , XmNactivateCallback ,
                   AFNI_lock_clear_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_clear_pb , "Clear all locks" ) ;
+   MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
 
    /*** to enforce locks right now ***/
 
@@ -4280,7 +4309,7 @@ ENTRY("AFNI_lock_button") ;
    XtAddCallback( dmode->lock_enforce_pb , XmNactivateCallback ,
                   AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_enforce_pb , "Make locks work NOW" ) ;
+   MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
 
    XtManageChild( rc ) ;
    EXRETURN ;

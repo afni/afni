@@ -283,6 +283,58 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
       THD_erase_one_atr( blk , ATRNAME_TAXIS_OFFSETS ) ;
    }
 
+   /*----- 23 Oct 1998: write out tagset, if present -----*/
+
+#undef  NFPER
+#define NFPER 5
+#define TF(i,j) vtag[(i)*NFPER+(j)]
+   if( dset->tagset != NULL && dset->tagset->num > 0 ){
+      int ii , ntag=dset->tagset->num , tlen,ilen,jj ;
+      float * vtag = (float *) malloc( sizeof(float) * (NFPER*ntag) ) ;
+      char * ctag ;
+
+      /* set the counts */
+
+      itemp[0] = ntag ;
+      itemp[1] = NFPER ;
+      THD_set_int_atr( blk , ATRNAME_TAGSET_NUM , 2 , itemp ) ;
+
+      /* set the values */
+
+      for( ii=0 ; ii < ntag ; ii++ ){
+         TF(ii,0) = dset->tagset->tag[ii].x ;
+         TF(ii,1) = dset->tagset->tag[ii].y ;
+         TF(ii,2) = dset->tagset->tag[ii].z ;
+         TF(ii,3) = dset->tagset->tag[ii].val ;
+         if( dset->tagset->tag[ii].set ) TF(ii,4) = dset->tagset->tag[ii].ti ;
+         else                            TF(ii,4) = -1.0 ;
+      }
+      THD_set_float_atr( blk , ATRNAME_TAGSET_FLOATS , NFPER*ntag , vtag ) ;
+      free(vtag) ;
+
+      /* set the labels */
+
+      tlen = 4 ;                                          /* a little slop space */
+      for( ii=0 ; ii < ntag ; ii++ )
+         tlen += strlen( dset->tagset->tag[ii].label ) + 1 ;  /* +1 for the '\0' */
+
+      ctag = (char *) malloc( sizeof(char) * tlen ) ;         /* to hold all labels */
+      jj   = 0 ;
+      for( ii=0 ; ii < ntag ; ii++ ){
+         ilen = strlen( dset->tagset->tag[ii].label ) + 1 ;
+         memcpy( ctag+jj , dset->tagset->tag[ii].label , ilen ) ;
+         jj += ilen ;
+      }
+      THD_set_char_atr( blk , ATRNAME_TAGSET_LABELS , tlen , ctag ) ;
+      free(ctag) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_TAGSET_NUM    ) ;
+      THD_erase_one_atr( blk , ATRNAME_TAGSET_LABELS ) ;
+      THD_erase_one_atr( blk , ATRNAME_TAGSET_FLOATS ) ;
+   }
+#undef NFPER
+#undef TF
+
 #if 0
    /*******************************************************/
    /*----- all attributes now set; change filenames? -----*/

@@ -71,7 +71,7 @@ ENTRY("EDIT_coerce_type") ;
       case MRI_short:
          switch( itype ){
             case MRI_short:   /* inputs are shorts */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = sin[ii] ;
+               memcpy( sout , sin , sizeof(short)*nxyz ) ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fin[ii]) ;
@@ -93,7 +93,7 @@ ENTRY("EDIT_coerce_type") ;
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = sin[ii] ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
-               for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = fin[ii] ;
+               memcpy( fout , fin , sizeof(float)*nxyz ) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = bin[ii] ;
@@ -115,7 +115,7 @@ ENTRY("EDIT_coerce_type") ;
                for( ii=0 ; ii < nxyz ; ii++ ) bout[ii] = FLOAT_TO_BYTE(fin[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
-               for( ii=0 ; ii < nxyz ; ii++ ) bout[ii] = bin[ii] ;
+               memcpy( bout , bin , sizeof(byte)*nxyz ) ;
                EXRETURN ;
             case MRI_complex:{    /* inputs are complex */
                float val ;
@@ -143,7 +143,7 @@ ENTRY("EDIT_coerce_type") ;
                   cout[ii].r = bin[ii] , cout[ii].i = 0.0 ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
-               for( ii=0 ; ii < nxyz ; ii++ ) cout[ii] = cin[ii] ;
+               memcpy( cout , cin , sizeof(complex)*nxyz ) ;
                EXRETURN ;
          }
          EXRETURN ;

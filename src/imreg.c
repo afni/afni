@@ -18,7 +18,10 @@ static int  RG_methcode        = 0 ;
 static int  RG_verbose         = 1 ;
 static int  RG_skip_output     = 0 ;
 static int  RG_debug           = 0 ;
-static int  RG_bilinear        = 0 ;
+
+static int  RG_almode_coarse   = MRI_BICUBIC ;
+static int  RG_almode_fine     = MRI_BICUBIC ;
+static int  RG_almode_reg      = MRI_BICUBIC ;
 
 static MRI_IMAGE * RG_imwt     = NULL ;
 
@@ -80,7 +83,6 @@ int main( int argc , char *argv[] )
          regar = mri_2dalign_many( RG_baseimage,RG_imwt, RG_imseq, dx,dy,phi ) ;
 #else
          if( ! RG_skip_output ) RG_methcode |= ALIGN_REGISTER_CODE ;
-         if(   RG_bilinear    ) RG_methcode |= ALIGN_BILINEAR_CODE ;
          regar = mri_align_dfspace( RG_baseimage,RG_imwt, RG_imseq, RG_methcode, dx,dy,phi ) ;
 #endif
       break ;
@@ -88,7 +90,6 @@ int main( int argc , char *argv[] )
 #ifdef ALLOW_DFTIME
       case ALIGN_DFTIME_TYPE:
          if( ! RG_skip_output ) RG_methcode |= ALIGN_REGISTER_CODE ;
-         if(   RG_bilinear    ) RG_methcode |= ALIGN_BILINEAR_CODE ;
          regar = mri_align_dftime( RG_baseimage,RG_imwt, RG_imseq, RG_methcode, dx,dy,phi ) ;
       break ;
 #endif
@@ -115,10 +116,9 @@ int main( int argc , char *argv[] )
                   RG_out_start + kim*RG_out_step , RG_out_suffix ) ;
 
          if( regar == NULL ){
-            if( RG_bilinear )tim = mri_rota_bilinear( RG_imseq->imarr[kim] ,
-                                                      dx[kim],dy[kim],phi[kim] ) ;
-            else tim = mri_rota( RG_imseq->imarr[kim] ,
-                                dx[kim],dy[kim],phi[kim] ) ;
+            tim = mri_rota_variable( RG_almode_reg ,
+                                     RG_imseq->imarr[kim] ,
+                                     dx[kim],dy[kim],phi[kim] ) ;
          } else {
             tim = regar->imarr[kim] ;
          }
@@ -201,6 +201,12 @@ void REG_syntax(void)
     "  -bilinear       Uses bilinear interpolation during the iterative\n"
     "                    adjustment procedure, rather than the default\n"
     "                    bicubic interpolation. NOT RECOMMENDED!\n"
+    "  -modes c f r    Uses interpolation modes 'c', 'f', and 'r' during\n"
+    "                    the coarse, fine, and registration phases of the\n"
+    "                    algorithm, respectively.  The modes can be selected\n"
+    "                    from 'bilinear', 'bicubic', and 'Fourier'.  The\n"
+    "                    default is '-modes bicubic bicubic bicubic'.\n"
+    "  -mlcF           Equivalent to '-modes bilinear bicubic Fourier'.\n"
     "\n"
     "  -wtim filename  Uses the image in 'filename' as a weighting factor\n"
     "                    for each voxel (the larger the value the more\n"
@@ -358,7 +364,62 @@ void REG_command_line(void)
       /** -bilinear **/
 
       if( strncmp(Argv[Iarg],"-bilinear",5) == 0 ){
-         RG_bilinear = 1 ;
+         RG_almode_coarse = RG_almode_fine = RG_almode_reg = MRI_BILINEAR ;
+         mri_align_method( RG_almode_coarse,RG_almode_fine,RG_almode_reg ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-Fourier",5) == 0 ){
+         RG_almode_coarse = RG_almode_fine = RG_almode_reg = MRI_FOURIER ;
+         mri_align_method( RG_almode_coarse,RG_almode_fine,RG_almode_reg ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-bicubic",5) == 0 ){
+         RG_almode_coarse = RG_almode_fine = RG_almode_reg = MRI_BICUBIC ;
+         mri_align_method( RG_almode_coarse,RG_almode_fine,RG_almode_reg ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-modes",5) == 0 ){  /* 1 Oct 1998 */
+         char * cpt ;
+
+         cpt = Argv[++Iarg] ;
+         if( strlen(cpt) > 2 ){
+            switch( cpt[2] ){
+               case 'l': RG_almode_coarse = MRI_BILINEAR ; break ;
+               case 'c': RG_almode_coarse = MRI_BICUBIC  ; break ;
+               case 'u': RG_almode_coarse = MRI_FOURIER  ; break ;
+            }
+         }
+
+         cpt = Argv[++Iarg] ;
+         if( strlen(cpt) > 2 ){
+            switch( cpt[2] ){
+               case 'l': RG_almode_fine = MRI_BILINEAR ; break ;
+               case 'c': RG_almode_fine = MRI_BICUBIC  ; break ;
+               case 'u': RG_almode_fine = MRI_FOURIER  ; break ;
+            }
+         }
+
+         cpt = Argv[++Iarg] ;
+         if( strlen(cpt) > 2 ){
+            switch( cpt[2] ){
+               case 'l': RG_almode_reg = MRI_BILINEAR ; break ;
+               case 'c': RG_almode_reg = MRI_BICUBIC  ; break ;
+               case 'u': RG_almode_reg = MRI_FOURIER  ; break ;
+            }
+         }
+
+         mri_align_method( RG_almode_coarse,RG_almode_fine,RG_almode_reg ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-mlcF",5) == 0 ){  /* 1 Oct 1998 */
+         RG_almode_coarse = MRI_BILINEAR ;
+         RG_almode_fine   = MRI_BICUBIC  ;
+         RG_almode_reg    = MRI_FOURIER  ;
+         mri_align_method( RG_almode_coarse,RG_almode_fine,RG_almode_reg ) ;
          Iarg++ ; continue ;
       }
 

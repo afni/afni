@@ -6,15 +6,16 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *imin , *imwarp ;
    float aa , bb , phi ;
    char * cp ;
-   int kk , nopt , use_linear = 0 ;
+   int kk , nopt , almode = MRI_BICUBIC ;
 
    if( argc < 6 || strncmp(argv[1],"-help",5) == 0 ){
-      printf( "Usage: imrotate [-linear] dx dy phi input_image output_image\n"
+      printf( "Usage: imrotate [-linear | -Fourier] dx dy phi input_image output_image\n"
               "Shifts and rotates an image:\n"
               "  dx pixels rightwards (not necessarily an integer)\n"
               "  dy pixels downwards\n"
               "  phi degrees clockwise\n"
               "  -linear means to use bilinear interpolation (default is bicubic)\n"
+              "  -Fourier means to use Fourier interpolaion\n"
               "Values outside the input_image are taken to be zero.\n" ) ;
       exit(0) ;
    }
@@ -25,7 +26,10 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    if( strncmp(argv[nopt],"-linear",4) == 0 ){
-      use_linear = 1 ;
+      almode = MRI_BILINEAR ;
+      nopt++ ;
+   } else if( strncmp(argv[nopt],"-Fourier",4) == 0 ){
+      almode = MRI_FOURIER ;
       nopt++ ;
    }
 
@@ -41,10 +45,7 @@ int main( int argc , char *argv[] )
 
    kk = imin->kind ;
 
-   if( use_linear )
-      imwarp = mri_rota_bilinear( imin , aa,bb,phi ) ;
-   else
-      imwarp = mri_rota( imin , aa,bb,phi ) ;
+   imwarp = mri_rota_variable( almode , imin,aa,bb,phi ) ;
 
    mri_free( imin ) ;
 

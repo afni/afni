@@ -4,21 +4,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994-6 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
- License is granted to use this program for nonprofit research purposes only.
- It is specifically against the license to use this program for any clinical
- application.  The Medical College of Wisconsin makes no warranty of utility
- of this program for any particular purpose.  The redistribution of this
- program for a fee, or the derivation of for-profit works from this program
- is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
 /**********************************************************************/
 /* MCW AFNI:                                                          */
 /*    Medical College of Wisconsin Analysis of Functional NeuroImages */
@@ -38,6 +23,7 @@
 /*   + Thanks are also due to Mike Beauchamp, who is perhaps the most */
 /*     sophisticated user of AFNI that I've met, and who has found    */
 /*     many bugs or gotchas in this code.                             */
+/*   + Doug Ward of MCW has contributed much to the overall package.  */
 /**********************************************************************/
 
 #define MAIN
@@ -238,6 +224,13 @@ void AFNI_syntax(void)
      "   -xtwarns     Tells afni to show any Xt warning messages that may\n"
      "                  occur; the default is to suppress these messages.\n"
      "   -tbar name   Uses 'name' instead of 'AFNI' in window titlebars.\n"
+     "   -flipim and  The '-flipim' option tells afni to display images in the\n"
+     "   -noflipim      'flipped' radiology convention (left on the right).\n"
+     "                  The '-noflipim' option tells afni to display left on\n"
+     "                  the left, as neuroscientists generally prefer.  This\n"
+     "                  latter mode can also be set by the Unix environment\n"
+     "                  variable 'AFNI_LEFT_IS_LEFT'.  The '-flipim' mode is\n"
+     "                  the default.\n"
 #ifdef USE_TRACING
      "   -trace       Turns routine call tracing on, for debugging purposes.\n"
      "   -TRACE       Turns even more verbose tracing on, for more debugging.\n"
@@ -260,7 +253,7 @@ void AFNI_syntax(void)
 void AFNI_parse_args( int argc , char * argv[] )
 {
    int narg = 1 ;
-   char * env_orient ;
+   char * env_orient , * env ;
 
 ENTRY("AFNI_parse_args") ;
 
@@ -272,6 +265,10 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
+
+   SESSTRAIL = 1 ;
+   env = getenv( "AFNI_SESSTRAIL" ) ;
+   if( env != NULL ) SESSTRAIL = strtol(env,NULL,10) ;
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -323,6 +320,8 @@ ENTRY("AFNI_parse_args") ;
      if( GLOBAL_argopt.title_name[ll-1] == ' ' )
         GLOBAL_argopt.title_name[ll-1] = '\0' ;
    }
+
+   GLOBAL_argopt.left_is_left = ( getenv("AFNI_LEFT_IS_LEFT") != NULL ) ; /* 09 Oct 1998 */
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
@@ -495,6 +494,20 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 #endif
+
+      /*----- -flipim option -----*/
+
+      if( strncmp(argv[narg],"-flipim",5) == 0 ){
+         GLOBAL_argopt.left_is_left = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -noflipim option -----*/
+
+      if( strncmp(argv[narg],"-noflipim",5) == 0 ){
+         GLOBAL_argopt.left_is_left = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -orient code option -----*/
 
@@ -791,6 +804,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
       GLOBAL_library.controllers[ii] = NULL ;
 
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
+   GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
 
 #ifdef ALLOW_PLUGINS
    GLOBAL_library.plugins  = NULL ;
@@ -961,6 +975,13 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
       sprintf(str,"\n compression   = %s", COMPRESS_enviro[ii]) ;
       REPORT_PROGRESS(str) ;
    }
+
+   /* 09 Oct 1998: show the image display handedness */
+
+   if( GLOBAL_argopt.left_is_left )
+      REPORT_PROGRESS("\n image display = Left is on the Left") ;
+   else
+      REPORT_PROGRESS("\n image display = Left is on the Right") ;
 
    if( ALLOW_real_time > 0 )
       REPORT_PROGRESS("\nRT: realtime plugin is active") ;
@@ -1469,6 +1490,7 @@ ENTRY("AFNI_read_images") ;
    dset->merger_list   = NULL ;
    dset->death_mark    = 0 ;
    dset->taxis         = NULL ;
+   dset->tagset        = NULL ;  /* Oct 1998 */
    ZERO_STAT_AUX( dset ) ;
 
    INIT_KILL(dset->kl) ;
@@ -1500,7 +1522,7 @@ ENTRY("AFNI_read_images") ;
    dset->dblk->brick_bytes  = NULL ;
    dset->dblk->brick        = NULL ;
 
-   DSET_lock(dset) ;  /* Feb 1998 */
+   DSET_lock(dset) ;  /* Feb 1998: lock into memory */
 
    dset->dblk->brick_lab      = NULL ; /* 30 Nov 1997 */
    dset->dblk->brick_keywords = NULL ;
@@ -1607,6 +1629,7 @@ if(PRINT_TRACING)
          else
                  EXRETURN ;  /* something goofy happened? */
 
+         myXtFree( seq->status ) ; /* 28 Sep 1998: via Purify */
          myXtFree( seq ) ;
          MCW_invert_widget(w) ;  /* back to normal */
          INIT_BKGD_LAB(im3d) ;
@@ -2687,6 +2710,103 @@ ENTRY("AFNI_crosshair_gap_CB") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------
+    03 Nov 1998: allow locking of time index
+-------------------------------------------------------------------------*/
+
+void AFNI_time_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View * qq3d ;
+   int            bval , ii , bold ;
+
+ENTRY("AFNI_time_lock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /* get current global setting and compare to changed lock box */
+
+   bold = GLOBAL_library.time_lock ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->time_lock_bbox ) ;
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   /* new value --> save in global setting */
+
+   GLOBAL_library.time_lock = bval ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+
+      MCW_set_bbox( qq3d->vwid->dmode->time_lock_bbox , bval ) ;
+   }
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_time_lock_carryout( Three_D_View * im3d )
+{
+   Three_D_View * qq3d ;
+   MCW_arrowval * tav ;
+   int new_index , qq_index , qq_top , cc , glock , ii ;
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+
+ENTRY("AFNI_time_lock_carryout") ;
+
+   /* first, determine if there is anything to do */
+
+   glock = GLOBAL_library.controller_lock ;
+
+   if( busy )                       EXRETURN ;  /* routine already busy */
+   if( glock == 0 )                 EXRETURN ;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )           EXRETURN ;  /* bad input */
+   if( GLOBAL_library.ignore_lock ) EXRETURN ;  /* ordered not to do anything */
+
+   ii = AFNI_controller_index(im3d) ;           /* which one am I? */
+
+   if( ii < 0 ) EXRETURN ;                      /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 ) EXRETURN ;      /* input not locked */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   /* load time index of this controller => all others get this value, too*/
+
+   new_index = im3d->vinfo->time_index ;
+
+   /* loop through other controllers:
+        for those that ARE open, ARE NOT the current
+        one, and ARE locked, jump to the new time index */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+
+         qq_index = qq3d->vinfo->time_index ;                /* old index */
+         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;         /* range allowed */
+
+         if( qq_top > 1 && qq_index != new_index ){
+            tav = qq3d->vwid->imag->time_index_av ;
+            AV_assign_ival( tav , new_index ) ;              /* will check range */
+            if( tav->ival != qq_index )
+               AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
+         }
+
+      }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
 /*------------------------------------------------------------------------*/
 
 void AFNI_time_index_CB( MCW_arrowval * av ,  XtPointer client_data )
@@ -2708,6 +2828,7 @@ ENTRY("AFNI_time_index_CB") ;
 
    AFNI_modify_viewing( im3d , False ) ;
 
+   AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
@@ -2851,6 +2972,17 @@ ENTRY("AFNI_view_xyz_CB") ;
 
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
+      /* 09 Oct 1998: force L-R mirroring on axial and coronal images, if desired */
+
+      if( GLOBAL_argopt.left_is_left &&
+          ( (*snew == im3d->s123) || (*snew == im3d->s312) ) ){
+
+         ISQ_options opt ;
+         ISQ_DEFAULT_OPT(opt) ;
+         opt.mirror = TRUE ;
+         drive_MCW_imseq( *snew, isqDR_options , (XtPointer) &opt ) ;
+      }
+
       AFNI_toggle_drawing( im3d , im3d->vinfo->drawing_enabled ) ;
 
 #ifndef DONT_INSTALL_ICONS
@@ -2914,6 +3046,7 @@ void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
 
 ENTRY("AFNI_lock_enforce_CB") ;
    AFNI_lock_carryout( im3d ) ;
+   AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
@@ -3270,6 +3403,10 @@ ENTRY("AFNI_overlay") ;
               (dset->markers->numset > 0)  &&
               (im3d->vwid->marks->ov_visible == True) ) ||
 
+            (  dset->tagset != NULL  &&
+               dset->tagset->num > 0 &&
+               (im3d->vwid->marks->tag_visible == True) ) ||
+
             ( dset->pts != NULL && im3d->vinfo->pts_visible == True ) ||
 
             ( im3d->vinfo->func_visible == True ) ;
@@ -3544,6 +3681,52 @@ if(PRINT_TRACING)
 
    } /* end if markers to be shown */
 
+   /*----- put tags on, if desired -----*/
+
+   if( im3d->anat_now->tagset != NULL  &&
+       im3d->anat_now->tagset->num > 0 &&
+       (im3d->vwid->marks->tag_visible == True) ){
+
+      static AFNI_ovtemplate * tem = NULL ;
+      static int             npold = -1 ;
+
+      THD_usertaglist * tl = im3d->anat_now->tagset ;
+      int xbase , ybase , zbase , color , np ;
+      THD_ivec3 ib ;
+      THD_fvec3 fb ;
+
+      if( tem == NULL ) tem = myXtNew(AFNI_ovtemplate) ; /* once only */
+      np = MAX(nx,ny)/64 ; np = MAX(np,2) ;
+      if( np != npold ){ npold = np ; AFNI_make_tagmask(np,0,tem) ; }
+
+      color = im3d->vwid->marks->ov_pcolor ;  /* doesn't have its own color */
+
+      for( jj=0 ; jj < tl->num ; jj++ ){
+         if( tl->tag[jj].set && color > 0 ){
+
+            fb = THD_dicomm_to_3dmm( br->dset, TEMP_FVEC3( tl->tag[jj].x ,
+                                                           tl->tag[jj].y ,
+                                                           tl->tag[jj].z  ) );
+            ib = THD_3dmm_to_3dind( br->dset , fb ) ;
+            ib = THD_3dind_to_fdind( br , ib ) ;
+
+            xbase = ib.ijk[0] ;  /* coordinates */
+            ybase = ib.ijk[1] ;  /* in and out */
+            zbase = ib.ijk[2] ;  /* of plane  */
+
+            if( zbase == n ){  /* in this display plane */
+               ovgood = True ;
+               for( ii=0 ; ii < tem->numpix ; ii++ ){
+                  xx = xbase + tem->dx[ii] ;
+                  yy = ybase + tem->dy[ii] ;
+                  if( xx >= 0 && xx < nx && yy >=0 && yy < ny )
+                                              oar[xx+nx*yy] = color ;
+               }
+            }
+         }
+      }
+   } /* end if tags to be shown */
+
    /*----- May 1995: additional points (single pixels) -----*/
 
    if( im3d->vinfo->pts_visible   &&
@@ -3673,7 +3856,7 @@ void AFNI_marktog_CB( Widget w ,
 
 ENTRY("AFNI_marktog_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_VALID(im3d) || im3d->anat_now->markers == NULL ) EXRETURN ;
 
    switch( cbs->reason ){
 
@@ -3813,7 +3996,7 @@ ENTRY("AFNI_marks_action_CB") ;
 
       /* save markers as they exist now, if any changes made */
 
-      if( marks->changed ){
+      if( im3d->anat_now->markers != NULL && marks->changed ){
 #if 0
          (void) MCW_popup_message(
                    im3d->vwid->view->define_marks_pb ,
@@ -3836,6 +4019,9 @@ ENTRY("AFNI_marks_action_CB") ;
 
    /*----- if here, either a Set or a Clear -----*/
 
+   markers = im3d->anat_now->markers ;
+   if( markers == NULL ) EXRETURN ;  /* should not happen */
+
    /* find which point is active (i.e., which toggle is set, if any) */
 
    itog = AFNI_first_tog( MARKS_MAXNUM , marks->tog ) ;
@@ -3846,8 +4032,6 @@ ENTRY("AFNI_marks_action_CB") ;
    }
 
    ipt = itog ;  /* index of point to deal with */
-
-   markers = im3d->anat_now->markers ;
 
    /*----- set button pressed -----*/
 
@@ -3995,8 +4179,11 @@ ENTRY("AFNI_marks_disp_av_CB") ;
 
    /* force a redraw if any points are set */
 
-   if( im3d->anat_now->markers->numset > 0 )
+   if( im3d->anat_now->tagset != NULL ||
+      (im3d->anat_now->markers != NULL && im3d->anat_now->markers->numset > 0) ){
+
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -4024,6 +4211,28 @@ ENTRY("AFNI_make_ptmask") ;
    tem->numpix = npix ;
    EXRETURN ;
 }
+
+/*-------------  October 1998 --------------------------------------------*/
+
+void AFNI_make_tagmask( int size , int gap , AFNI_ovtemplate * tem )
+{
+   register int ix , npix=0 , ax ;
+
+ENTRY("AFNI_make_tagmask") ;
+
+   PUTPIX(-size,0) ; PUTPIX(size,0) ;
+   for( ix=-size+1 ; ix < size ; ix++ ){
+      ax = abs(ix) ;
+      PUTPIX(ix,ax-size) ; CHKPIX ;
+      PUTPIX(ix,size-ax) ; CHKPIX ;
+
+      if( ax > gap ){ PUTPIX(ix,0); CHKPIX; PUTPIX(0,ix); CHKPIX; }
+   }
+
+   tem->numpix = npix ;
+   EXRETURN ;
+}
+
 
 /*========================================================================
    routines to switch "views" on a dataset
@@ -4169,7 +4378,7 @@ if(PRINT_TRACING)
    /*--- if the old dataset has markers and the
          marker panel is open, shut it down now ---*/
 
-   if( old_anat != NULL     && old_anat->markers != NULL &&
+   if( old_anat != NULL     && /** old_anat->markers != NULL && **/
        old_anat != new_anat && XtIsManaged(im3d->vwid->marks->frame) ){
 
       AFNI_marks_action_CB( NULL, (XtPointer) im3d, NULL) ; /* "done" */
@@ -4215,11 +4424,15 @@ STATUS("turning markers off") ;
 
       /* turn controls off */
 
+#if 0
       SENSITIZE(  view->define_marks_pb , False ) ;
       SENSITIZE(  view->see_marks_bbox->wrowcol , False ) ;
+#endif
 
-      marks->ov_visible = False ;
-      marks->editable   = False ;
+      marks->editable = False ;
+
+      vvv = MCW_val_bbox( view->see_marks_bbox ) ;
+      marks->tag_visible = marks->ov_visible = (vvv) ? True : False ;
 
       XtUnmanageChildren( marks->always_popup    , marks->num_always_popup    ) ;
       XtUnmanageChildren( marks->sometimes_popup , marks->num_sometimes_popup ) ;
@@ -4234,7 +4447,7 @@ STATUS("turning markers on") ;
       SENSITIZE( view->see_marks_bbox->wrowcol , True ) ;
 
       vvv = MCW_val_bbox( view->see_marks_bbox ) ;
-      marks->ov_visible = (vvv) ? True : False ;
+      marks->tag_visible = marks->ov_visible = (vvv) ? True : False ;
 
       marks->editable = False ;
       MCW_set_bbox( marks->edits_bbox , 0 ) ;
@@ -4996,11 +5209,27 @@ STATUS("opening marks") ;
          if( marks->old_visible != marks->ov_visible )
             AFNI_see_marks_CB( NULL , (XtPointer) im3d , NULL ) ;
 
-         vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
-         SENSITIZE( marks->edits_bbox->wrowcol ,
-                         (Boolean) ISVALID_VIEW(vwarp) ) ;
-         SENSITIZE( marks->tlrc_big_bbox->wrowcol ,
-                    (Boolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
+         /* Oct 1998: turn off some controls if no markers present */
+
+         if( im3d->anat_now->markers == NULL ){
+            SENSITIZE( marks->edits_bbox->wrowcol , False ) ;
+            SENSITIZE( marks->tlrc_big_bbox->wrowcol , False ) ;
+            AV_SENSITIZE( marks->disp_scolor_av , False ) ;
+            AV_SENSITIZE( marks->disp_size_av   , False ) ;
+            AV_SENSITIZE( marks->disp_gap_av    , False ) ;
+            SENSITIZE( marks->action_rowcol , False ) ;
+            SENSITIZE( marks->transform_pb , False ) ;
+         } else {
+            vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
+            SENSITIZE( marks->edits_bbox->wrowcol ,
+                            (Boolean) ISVALID_VIEW(vwarp) ) ;
+            SENSITIZE( marks->tlrc_big_bbox->wrowcol ,
+                       (Boolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
+            AV_SENSITIZE( marks->disp_scolor_av , True ) ;
+            AV_SENSITIZE( marks->disp_size_av   , True ) ;
+            AV_SENSITIZE( marks->disp_gap_av    , True ) ;
+            SENSITIZE( marks->action_rowcol , True ) ;
+         }
 
    /*** I don't know why this is needed, but it prevents the
         marks panels geometry from getting screwed up, so it's here ***/
@@ -5017,17 +5246,19 @@ STATUS("opening marks") ;
          OPEN_PANEL(im3d,marks) ;
 
 #ifdef REMANAGE_MARKS
-         XtManageChild( marks->tog_rowcol ) ;
-         XtManageChild( marks->tog_frame ) ;
+         if( im3d->anat_now->markers != NULL ){  /* Oct 1998 */
+            XtManageChild( marks->tog_rowcol ) ;
+            XtManageChild( marks->tog_frame ) ;
+         }
          XtManageChild( marks->control_rowcol ) ;
          XtManageChild( marks->control_frame ) ;
          XtManageChild( marks->rowcol ) ;
 #endif
 
-      /* redraw markers if not visible already
-                 (if there are any to redraw!) */
+      /* redraw markers if not visible already (if there are any to redraw) */
 
          if( marks->old_visible != True &&
+             im3d->anat_now->markers != NULL &&
              im3d->anat_now->markers->numset > 0 )
 
             AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
@@ -5123,6 +5354,8 @@ ENTRY("AFNI_marks_edits_CB") ;
 
    marks->editable = (bval == 0) ? (False) : (True) ;
 
+   if( im3d->anat_now->markers == NULL ) EXRETURN ;
+
    /*----- allow transformation if
              edits are allowed, AND
              the markers are flagged for it, AND
@@ -5173,7 +5406,7 @@ ENTRY("AFNI_see_marks_CB") ;
    marks = im3d->vwid->marks ;
    bval  = MCW_val_bbox( view->see_marks_bbox ) ;
 
-   marks->ov_visible = (bval == 0) ? (False) : (True) ;
+   marks->tag_visible = marks->ov_visible = (bval == 0) ? (False) : (True) ;
 
    if( w != NULL ){
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
@@ -5841,6 +6074,8 @@ ENTRY("AFNI_marks_quality_check") ;
 
    /*--- for compiling a list of errors and/or reports ---*/
 
+   if( markers == NULL ){ BEEPIT ; RETURN(False) ; }  /* should not happen */
+
    error_list = XtNewString(
                 "             *** MARKERS QUALITY REPORT ***           \n\n") ;
    num_error  = 0 ;
@@ -6357,6 +6592,7 @@ printf("  ==> new nx=%d ny=%d nz=%d\n",new_nx,new_ny,new_nz) ;
    new_dset->wod_flag  = True ;
 
    new_dset->taxis = NULL ;
+   new_dset->tagset = NULL ;  /* Oct 1998 */
 
    INIT_STAT_AUX( new_dset , MAX_STAT_AUX , parent_dset->stat_aux ) ;
 

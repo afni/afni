@@ -90,6 +90,15 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
       outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
 #endif
 
+   if( dset->tagset != NULL && dset->tagset->num > 0 ){
+      int ii , ns=0 ;
+      for( ii=0 ; ii < dset->tagset->num ; ii++ )
+         if( dset->tagset->tag[ii].set ) ns++ ;
+
+      outbuf = THD_zzprintf(outbuf,"Tagset:          %d set [out of %d total]\n",
+                            ns , dset->tagset->num ) ;
+   }
+
    outbuf = THD_zzprintf(outbuf,
       "Data Axes Orientation:\n"
       "  first  (x) = %s\n"

@@ -14,6 +14,11 @@
 
 /***** Quicksort routines in various flavonoids *****/
 
-extern void qsort_floatint( int , float * , int * ) ;
+extern void qsort_floatint ( int , float *  , int * ) ;
+extern void qsort_doubleint( int , double * , int * ) ;
+
+/***** Eigensolutions *****/
+
+extern void symeig_double( int , double * , double * ) ;
 
 #endif

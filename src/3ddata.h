@@ -20,6 +20,7 @@
 #include "vecmat.h"
 #include "machdep.h"
 #include "mrilib.h"
+#include "tagset.h"
 
 #include "thd_compress.h"
 
@@ -381,7 +382,7 @@ typedef struct {
 
 #define MARKACTION_NONE     0  /* action codes for marker sets */
 #define MARKACTION_WARP     1
-#define MARKACTION_REGISTER 2
+#define MARKACTION_REGISTER 2  /* not used at present */
 
 /*........................................................................*/
 
@@ -786,6 +787,9 @@ typedef struct {
 #define DBLK_mmapize(db)   THD_force_malloc_type((db),DATABLOCK_MEM_MMAP)
 #define DBLK_anyize(db)    THD_force_malloc_type((db),DATABLOCK_MEM_ANY)
 
+#define DBLK_IS_MALLOC(db)  ((db)->malloc_type == DATABLOCK_MEM_MALLOC)
+#define DBLK_IS_MMAP(db)    ((db)->malloc_type == DATABLOCK_MEM_MMAP)
+
 #define DBLK_lock(db)   ((db)->locked = 1)
 #define DBLK_unlock(db) ((db)->locked = 0)
 #define DBLK_LOCKED(db) ((db)->locked)
@@ -889,10 +893,9 @@ static char * ORIENT_tinystr[] = {
    "RL" , "LR" , "PA" , "AP" , "IS" , "SI" , "??"
 } ;
 
-static char ORIENT_xyz[] = "xxyyzzg" ;  /* Dicom directions are
-                                           x = R->L , y = A->P , z = I->S */
-
-static char ORIENT_sign[] = "+--++-" ;
+static char ORIENT_xyz[]   = "xxyyzzg" ;  /* Dicom directions are
+                                             x = R->L , y = A->P , z = I->S */
+static char ORIENT_sign[]  = "+--++-" ;
 
 static char ORIENT_first[] = "RLPAIS" ;
 
@@ -1548,6 +1551,8 @@ typedef struct THD_3dim_dataset {
 
       char * keywords ;   /* 30 Nov 1997 */
 
+      THD_usertaglist * tagset ;  /* 23 Oct 1998 */
+
    /* pointers to other stuff */
 
       KILL_list kl ;
@@ -1674,6 +1679,7 @@ typedef struct THD_3dim_dataset {
 #define DSET_TIMEDURATION(ds)    ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdur )
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE \
                                                          : (ds)->taxis->units_type )
+#define DSET_NUM_TTOFF(ds)       ( ((ds)->taxis == NULL) ? 0 : (ds)->taxis->nsl )
 
 /** 30 Nov 1997 **/
 
@@ -1773,6 +1779,8 @@ static char tmp_dblab[8] ;
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
+#define DSET_write_header(ds)  THD_write_3dim_dataset( NULL,NULL , (ds),False )
+
 #define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
 
 #define DSET_lock(ds)      DBLK_lock((ds)->dblk)       /* Feb 1998 */
@@ -1781,6 +1789,9 @@ static char tmp_dblab[8] ;
 #define DSET_mallocize(ds) DBLK_mallocize((ds)->dblk)
 #define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
 #define DSET_anyize(ds)    DBLK_anyize((ds)->dblk)
+
+#define DSET_IS_MALLOC(ds)  DBLK_IS_MALLOC((ds)->dblk)
+#define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
 
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
@@ -2163,7 +2174,48 @@ extern THD_ivec3 THD_3dind_to_fdind( FD_brick * , THD_ivec3 ) ;
 
 extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
-/*-----------------------------------------------------------*/
+/*------------------------------------------------------------------*/
+/*-- October 1998: routines for 3D volume rotation and alignment. --*/
+
+#define DELTA_AFTER  1
+#define DELTA_BEFORE 2
+#define DELTA_FIXED  3
+
+  /*-- see thd_rot3d.c for these routines --*/
+
+extern void THD_rota_method( int ) ;
+
+extern void THD_rota_vol( int, int, int, float, float, float, float *,
+                          int,float, int,float, int,float,
+                          int,float,float,float ) ;
+
+extern MRI_IMAGE * THD_rota3D( MRI_IMAGE * ,
+                               int,float, int,float, int,float,
+                               int,float,float,float ) ;
+
+  /*-- see mri_3dalign.c for these routines --*/
+
+typedef struct {
+   MRI_IMARR * fitim ;
+   double * chol_fitim ;
+} MRI_3dalign_basis ;
+
+extern void mri_3dalign_params( int , float , float , float ,
+                                int , int , int , int ) ;
+
+extern void mri_3dalign_method( int , int , int , int ) ;
+
+extern void mri_3dalign_final_regmode( int ) ;
+
+extern MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * , MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * , MRI_IMAGE * ,
+                                    float *, float *, float *,
+                                    float *, float *, float * ) ;
+extern MRI_IMARR * mri_3dalign_many( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
+                                    float *, float *, float *,
+                                    float *, float *, float * ) ;
+extern void mri_3dalign_cleanup( MRI_3dalign_basis * ) ;
+/*---------------------------------------------------------------------*/
 
 #if 0
 extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;

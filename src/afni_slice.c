@@ -78,8 +78,22 @@
 
 /** macros for assigning final result from INTYPE a to DTYPE b **/
 
-#define FINAL_short(a,b)           (b)=((short)((a)+0.5))
-#define FINAL_byte(a,b)            (b)=((byte)((a)+0.5))
+   /* 18 Nov 1998: modify FINAL_short and FINAL_byte to prevent overflow */
+
+#define CLIP_OVERFLOW
+#ifdef  CLIP_OVERFLOW
+
+#  define FINAL_short(a,b) (b) = ( ((a)<-32767.0) ? (-32767) : \
+                                   ((a)> 32767.0) ? ( 32767) : ((short)((a)+0.5)) )
+
+#  define FINAL_byte(a,b)  (b) = ( ((a)<   0.0) ? (0)   : \
+                                   ((a)> 255.0) ? (255) : ((byte)((a)+0.5)) )
+
+#else
+# define FINAL_short(a,b)           (b)=((short)((a)+0.5))
+# define FINAL_byte(a,b)            (b)=((byte)((a)+0.5))
+#endif
+
 #define FINAL_int(a,b)             (b)=((int)((a)+0.5))
 #define FINAL_float(a,b)           (b)=(a)
 #define FINAL_double               FINAL_float

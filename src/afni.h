@@ -54,6 +54,7 @@ typedef struct {
       int elide_quality ;
       int no_frivolities ;
       int install_cmap ;
+      int left_is_left ;  /* 09 Oct 1998 */
 } AF_options ;
 
 #ifdef MAIN
@@ -118,12 +119,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.20c"
+#define VERSION "2.21 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "21 September 1998"
+#define RELEASE "17 November 1998 "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -239,10 +240,10 @@ typedef struct {
 /*-----------------------------------------------------------*/
 
 #define MAXOVSIZE 19
-#define MAXOVPIX  (12*(MAXOVSIZE+2)+1)
+#define MAXOVPIX  (MAXOVSIZE*(MAXOVSIZE-1))
 typedef struct {
       int numpix ;
-      int dx[MAXOVPIX] , dy[MAXOVPIX] ;
+      short dx[MAXOVPIX] , dy[MAXOVPIX] ;
 } AFNI_ovtemplate ;
 
 /*-------------------------------------------------------------------*/
@@ -372,6 +373,8 @@ typedef struct {
 
       Boolean isprimary[MARKS_MAXNUM] ;
       Boolean changed ;
+
+      Boolean tag_visible ;   /* 23 Oct 1998 */
 } AFNI_marks_widgets ;
 
 /*---*/
@@ -479,6 +482,8 @@ typedef struct {
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
       Widget         misc_newstuff_pb , misc_purge_pb , misc_tracing_pb ;
+
+      MCW_bbox     * time_lock_bbox ;  /* 03 Nov 1998 */
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -777,6 +782,7 @@ typedef struct {
 
    int controller_lock , ignore_lock ;
    int have_dummy_dataset ;
+   int sesstrail ;                                /* 23 Oct 1998 */
 
    THD_coorder cord ;
 
@@ -785,6 +791,8 @@ typedef struct {
 #endif
 
    PBAR_palette_table * gpt ;
+
+   int time_lock ;                                /* 03 Nov 1998 */
 
 } AFNI_library_type ;
 
@@ -801,6 +809,7 @@ typedef struct {
 #define ELIDE_quality   GLOBAL_argopt.elide_quality
 #define GPT             GLOBAL_library.gpt
 #define NO_frivolities  GLOBAL_argopt.no_frivolities
+#define SESSTRAIL       GLOBAL_library.sesstrail
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
 
@@ -827,6 +836,9 @@ extern void AFNI_lock_enforce_CB    ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_change_CB     ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_clear_CB      ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_carryout      ( Three_D_View * ) ;
+
+extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
+extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
 extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 
@@ -975,6 +987,7 @@ extern int AFNI_all_tog  ( int , Widget * ) ;
 extern void AFNI_set_tog ( int , int , Widget * ) ;
 
 extern void AFNI_make_ptmask( int , int , AFNI_ovtemplate * ) ;
+extern void AFNI_make_tagmask( int , int , AFNI_ovtemplate * ) ; /* Oct 1998 */
 
 extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 

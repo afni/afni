@@ -79,14 +79,15 @@ ENTRY("THD_setup_bricks") ;
 
    br = (FD_brick **) XtMalloc( sizeof(FD_brick *) * 3 ) ;
 
-#ifdef LEFT_IS_LEFT_AND_RIGHT_IS_RIGHT
-   br[0] = THD_3dim_dataset_to_brick(dset,-r2l, a2p,-i2s); /* axi */
-   br[1] = THD_3dim_dataset_to_brick(dset, a2p,-i2s,-r2l); /* sag */
-   br[2] = THD_3dim_dataset_to_brick(dset,-r2l,-i2s,-a2p); /* cor */
+#undef LEFT_IS_LEFT
+#ifdef LEFT_IS_LEFT
+      br[0] = THD_3dim_dataset_to_brick(dset,-r2l, a2p,-i2s); /* axi */
+      br[1] = THD_3dim_dataset_to_brick(dset, a2p,-i2s,-r2l); /* sag */
+      br[2] = THD_3dim_dataset_to_brick(dset,-r2l,-i2s,-a2p); /* cor */
 #else
-   br[0] = THD_3dim_dataset_to_brick(dset, r2l, a2p, i2s); /* axi */
-   br[1] = THD_3dim_dataset_to_brick(dset, a2p,-i2s,-r2l); /* sag */
-   br[2] = THD_3dim_dataset_to_brick(dset, r2l,-i2s, a2p); /* cor */
+      br[0] = THD_3dim_dataset_to_brick(dset, r2l, a2p, i2s); /* axi */
+      br[1] = THD_3dim_dataset_to_brick(dset, a2p,-i2s,-r2l); /* sag */
+      br[2] = THD_3dim_dataset_to_brick(dset, r2l,-i2s, a2p); /* cor */
 #endif
 
    strcpy( br[0]->namecode , "Axial" ) ;

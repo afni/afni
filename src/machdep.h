@@ -63,6 +63,13 @@
     NEED_XSETLOCALE = if this is set, then the routine _Xsetlocale
                       must be provided (needed for some Linux systems).
 
+    DONT_UNROLL_FFTS = if this is set, then the unrolled FFT routines
+                       (for lengths 32, 64, 128, 256) will NOT be used --
+                       they are generally faster, but may have trouble
+                       compiling on some systems [see file csfft.c].
+                       The program fftest.c can be used to test the
+                       speed of FFTs.
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -96,6 +103,7 @@
 -------------------------------------------------------------------------*/
 
 #define DONT_USE_SCANDIR
+#define DONT_UNROLL_FFTS  /* off by default */
 
 /*** HP-UX ***/
 
@@ -121,6 +129,7 @@
 # ifndef DONT_USE_SCANDIR
     extern int alphasort(struct dirent **, struct dirent **) ;
 # endif
+# undef  DONT_UNROLL_FFTS         /* helps some */
 #endif
 
 /*** SunOS or Solaris ***/
@@ -194,6 +203,7 @@ extern long   strtol() ;
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 # define BOXUP_SCALE              /* looks nicer */
 # define DYNAMIC_LOADING_VIA_DL
+# undef  DONT_UNROLL_FFTS         /* helps a lot */
 #endif
 
 /************************************************************************

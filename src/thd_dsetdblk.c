@@ -1,6 +1,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*-------------------------------------------------------------------
    given a datablock, make it into a 3D dataset if possible
@@ -56,9 +60,10 @@ printf("THD_3dim_from_block: entry\n") ;
 
    ADDTO_KILL(dset->kl,daxes) ;
 
-   dset->stats = NULL ;
-   dset->pts   = NULL ;
-   dset->taxis = NULL ;
+   dset->stats  = NULL ;
+   dset->pts    = NULL ;
+   dset->taxis  = NULL ;
+   dset->tagset = NULL ;   /* 23 Oct 1998 */
 
    /*------------------*/
    /*-- check for 3D --*/
@@ -656,6 +661,60 @@ if(llen > 0){
          DSET_ERR("Illegal time-dependent dataset and func_type combination!") ;
    }
 
+   /*--- 23 Oct 1998: read the tagset information ---*/
+
+   atr_int = THD_find_int_atr   ( blk , ATRNAME_TAGSET_NUM    ) ;
+   atr_flo = THD_find_float_atr ( blk , ATRNAME_TAGSET_FLOATS ) ;
+   atr_str = THD_find_string_atr( blk , ATRNAME_TAGSET_LABELS ) ;
+
+   if( atr_int != NULL && atr_flo != NULL && atr_str != NULL ){
+      int nin=atr_int->nin , nfl=atr_flo->nfl , nch=atr_str->nch ;
+      int ii , ntag , nfper , jj , kk ;
+
+      ntag  = atr_int->in[0] ;  /* number of tags */
+      nfper = atr_int->in[1] ;  /* number of floats per tag */
+
+      if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
+
+      dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
+      ADDTO_KILL( dset->kl , dset->tagset ) ;
+
+      dset->tagset->num = ntag ;
+      strcpy( dset->tagset->label , "Bebe Rebozo" ) ;  /* not used */
+
+      /* read out tag values; allow for chance there isn't enough data */
+
+#undef  TF
+#define TF(i,j) ( ((j)<nfper && (i)*nfper+(j)<nfl) ? atr_flo->fl[(i)*nfper+(j)] : -666.0 )
+      for( ii=0 ; ii < ntag ; ii++ ){
+         dset->tagset->tag[ii].x   = TF(ii,0) ;  /* coords */
+         dset->tagset->tag[ii].y   = TF(ii,1) ;
+         dset->tagset->tag[ii].z   = TF(ii,2) ;
+         dset->tagset->tag[ii].val = TF(ii,3) ;  /* value */
+         dset->tagset->tag[ii].ti  = TF(ii,4) ;  /* time index; if < 0 ==> not set */
+         if( dset->tagset->tag[ii].ti >= 0 ){
+             dset->tagset->tag[ii].set = 1 ;
+         } else {
+             dset->tagset->tag[ii].set = 0 ; dset->tagset->tag[ii].ti = 0 ;
+         }
+      }
+#undef TF
+
+      /* read out tag labels; allow for empty labels */
+
+      jj = 0 ;
+      for( ii=0 ; ii < ntag ; ii++ ){
+         if( jj < nch ){
+            kk = strlen( atr_str->ch + jj ) ;
+            if( kk > 0 ) TAG_SETLABEL( dset->tagset->tag[ii] , atr_str->ch + jj ) ;
+            else         sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
+            jj += kk+1 ;
+         } else {
+            sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
+         }
+      }
+   }
+
    /*--- that's all the work for now;
          if any error was flagged, kill this dataset and return nothing ---*/
 
@@ -674,7 +733,6 @@ if(llen > 0){
       THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
 #endif
-
 
    return dset ;
 }
