@@ -3383,6 +3383,16 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_SurfContHelp_DsetView ) ;
       MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
+      
+      SO->SurfCont->ColPlaneShowOne_tb = XtVaCreateManagedWidget("1 Only", 
+            xmToggleButtonWidgetClass, rc, NULL);
+      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, SO->SurfCont->ShowCurOnly, NOPE);
+      XtAddCallback (SO->SurfCont->ColPlaneShowOne_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_ColPlaneShowOne_toggled, SO);
+                  
+      MCW_register_help(SO->SurfCont->ColPlaneShowOne_tb , SUMA_SurfContHelp_DsetViewOne ) ;
+      MCW_register_hint(SO->SurfCont->ColPlaneShowOne_tb , "Shows ONLY selected Dset from foreground stack." ) ;
+      SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShowOne_tb);
            
       /* manage  rc */
       XtManageChild (rc);
@@ -5280,6 +5290,34 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
 }
 
 /*!
+   \brief callback to deal with show only one colorplane toggle
+   
+   -expects SO in data
+*/
+void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ColPlaneShowOne_toggled"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+
+   SO->SurfCont->ShowCurOnly = XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOne_tb);
+   
+   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+
+   SUMA_RemixRedisplay(SO);
+   SUMA_UpdateNodeLblField(SO);
+   
+   SUMA_RETURNe;
+}
+/*!
  \brief Function based on arrow_time.c program from Motif Programing Manual
  
  change_value is called each time the timer expires.  This function
@@ -5687,6 +5725,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", FuncName, ColPlane->Name);
          SUMA_InitializeColPlaneShell(SO, ColPlane);
          SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+         /* If you're viewing one plane at a time, do a remix */
+         if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
 
       }
    } else {

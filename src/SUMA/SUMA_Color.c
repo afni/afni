@@ -4732,9 +4732,18 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
             OverlayOrder_Back[NshowOverlays_Back] = Overlays[j]->PlaneOrder;
             ++ NshowOverlays_Back;
          }else {
-            ShowOverLays[NshowOverlays] = j; 
-            OverlayOrder[NshowOverlays] = Overlays[j]->PlaneOrder;
-            ++ NshowOverlays;
+            if (SO->SurfCont->ShowCurOnly) {
+               if (SO->SurfCont->curColPlane == Overlays[j]) {
+                  SUMA_LH("Le ShowCurOnly in action");
+                  ShowOverLays[NshowOverlays] = j; 
+                  OverlayOrder[NshowOverlays] = Overlays[j]->PlaneOrder;
+                  ++ NshowOverlays;
+               }
+            } else {
+               ShowOverLays[NshowOverlays] = j; 
+               OverlayOrder[NshowOverlays] = Overlays[j]->PlaneOrder;
+               ++ NshowOverlays;
+            }
          }
       }
    }
@@ -6643,9 +6652,19 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    SUMA_ColorizePlane(NewColPlane);
 
    /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
-         
+   
+   /* set the new curColPlane to the newly loaded plane,
+   you need to do this before you remix the colors in case
+   you are only showing the curColPlane.
+   curColPlane is normally set in  SUMA_InitializeColPlaneShell
+   but when SO->SurfCont->ShowCurOnly = YUP, curColPlane
+   is used in the RemixRedisplay function.
+   NOTE: You can't call SUMA_InitializeColPlaneShell
+   before remixing because colors are reported in Lbl block
+    June 28 04*/
+   SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
+        
    /* remix-redisplay  for surface */
-
    if (!SUMA_RemixRedisplay (SO)) {
       SUMA_RETURNe;
    }
@@ -6729,6 +6748,9 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
 
    /* values were copied, dump structure */
    irgb = SUMA_Free_IRGB(irgb);  
+
+   /* See note before similar line in SUMA_LoadDsetFile */
+   SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
 
    if (!SUMA_RemixRedisplay (SO)) {
       SUMA_RETURNe;
