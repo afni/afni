@@ -200,7 +200,7 @@ ENTRY("AFNI_splashup") ;
                                    : (lrand48() >> 8) % num_splash ;
           dp = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
         } else
-          np = (np+dp)%(num_splash) ;
+          np = (np+dp+num_splash)%(num_splash) ;
         imov = mri_read( fname_splash[np] ) ;
         if( imov != NULL ){
           reload_DC_colordef( GLOBAL_library.dc ) ;
