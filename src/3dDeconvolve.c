@@ -3640,8 +3640,8 @@ void calculate_results
     } else {
       double cond = sqrt(emax/emin) ;
       if( !use_psinv ) cond = cond*cond ;  /* Gaussian elim is twice as bad */
-      fprintf(stderr,"++ Matrix condition [%s]:  %g",
-              (use_psinv) ? "X" : "XtX" , cond  ) ;
+      fprintf(stderr,"++ (%dx%d) Matrix condition [%s]:  %g",
+              xdata.rows,xdata.cols , (use_psinv) ? "X" : "XtX" , cond  ) ;
 #ifdef FLOATIZE
       if( cond > 100.0 ) fprintf(stderr,"  ** BEWARE **") ;
 #else
