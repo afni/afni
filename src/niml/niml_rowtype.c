@@ -55,6 +55,15 @@ static NI_rowtype *pointer_rowtype = NULL ;
 
 #define ROWTYPE_BASE_CODE (ROWTYPE_OFFSET-NI_NUM_BASIC_TYPES-1)
 
+/*! Get the dimension of the ii-th part of
+    the struct stored at pointer pt, of type rt;
+    pt is used only if the part has a variable dimension. */
+
+#define ROWTYPE_part_dimen(rt,pt,ii)                           \
+ ( ( (rt)->part_dim[ii] < 0 )                                  \
+   ? 1                        /* fixed dimen is always 1 */    \
+   : *((int *)( (pt) + (rt)->part_off[ (rt)->part_dim[ii] ] )) ) /* var dim */
+
 /*! Register a rowtype into the table and array. */
 
 #define ROWTYPE_register(rr)                               \
@@ -67,9 +76,12 @@ static NI_rowtype *pointer_rowtype = NULL ;
      rowtype_array[nn-1] = rr ;  rowtype_num = nn ;        \
  } while(0)
 
+/*--------------------------------*/
 /*! Debug flag for rowtype stuff. */
 
 static int ROWTYPE_debug = 0 ;
+
+/*! Set debug flag for rowtype stuff. */
 
 void NI_rowtype_debug( int n ){ ROWTYPE_debug = n ; }
 
@@ -112,6 +124,7 @@ static void setup_basic_types(void)
      rt              = NI_new( NI_rowtype ) ;
      rt->code        = ii ;
      rt->size        = type_size[ii] ;
+     rt->psiz        = rt->size ;
      rt->algn        = type_alignment[ii] ;
      rt->name        = NI_strdup(type_name[ii]) ;
      rt->userdef     = NI_strdup(type_name[ii]) ;
@@ -144,6 +157,7 @@ static void setup_basic_types(void)
    rt              = NI_new( NI_rowtype ) ;
    rt->code        = ROWTYPE_POINTER ;
    rt->size        = pointer_size ;
+   rt->psiz        = rt->size ;
    rt->algn        = pointer_alignment ;
    rt->name        = NI_strdup("NI_pointer") ;
    rt->userdef     = NI_strdup("NI_pointer") ;
@@ -286,7 +300,8 @@ int NI_rowtype_define( char *tname , char *tdef )
          if( jd <= 0 || jd > ii ){              /* before this component */
            delete_rowtype(rt); delete_str_array(sar); ERREX("bad #index");
          }
-         if( rt->comp_typ[jd-1] != NI_INT ){    /* ref must be to an int */
+         if( rt->comp_typ[jd-1] != NI_INT ||    /* ref must be to an int */
+             rt->comp_dim[jd-1] >= 0        ){  /* of fixed size (1 int) */
            delete_rowtype(rt); delete_str_array(sar); ERREX("non-int #index");
          }
        }
@@ -481,6 +496,17 @@ int NI_rowtype_define( char *tname , char *tdef )
    }
    rt->size = cbase ;
 
+   /* 26 Dec 2002: Compute the sum of the part sizes
+                   (zero if this has variable size arrays).
+                   If rt->psiz == rt->size, then
+                   struct is stored without padding bytes. */
+
+   rt->psiz = 0 ;
+   if( (rt->flag & ROWTYPE_VARSIZE_MASK) == 0 ){
+     for( ii=0 ; ii < rt->part_num ; ii++ )
+       rt->psiz += NI_rowtype_code_to_size( rt->part_typ[ii] ) ;
+   }
+
    /** debugging printouts **/
 
    if( ROWTYPE_debug ){
@@ -640,4 +666,381 @@ void NI_define_rowmap_from_rowtype_code( NI_element *nel, int code )
    if( qt == NULL || ROWTYPE_is_varsize(qt) ) return ;
 
    NI_define_rowmap_AR( nel, qt->part_num, qt->part_typ, qt->part_off ) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Compute the size of all the data in a struct defined in a NI_rowtype
+    (not including padding), for this instance of the struct,
+    allowing for variable array parts.  Zero is returned if something
+    bad happens.
+-------------------------------------------------------------------------*/
+
+int NI_rowtype_vsize( NI_rowtype *rt , char *dat )
+{
+   int ii,jj , ss , *dd ;
+
+   if( rt == NULL   ) return 0 ;        /* nonsense input */
+   if( rt->psiz > 0 ) return rt->psiz ; /* fixed size struct */
+   if( dat == NULL  ) return 0 ;        /* var size struct with no data? */
+
+   /* loop over parts, adding up sizes */
+
+   for( ii=ss=0 ; ii < rt->part_num ; ii++ ){
+     jj = ROWTYPE_part_dimen(rt,dat,ii) ;
+     ss += jj * NI_rowtype_code_to_size( rt->part_typ[ii] ) ;
+   }
+
+   return ss ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Encode 1 basic type value at the end of the text string wbuf
+    (which is assumed to be plenty long).
+---------------------------------------------------------------------------*/
+
+void NI_val_to_text( int typ , char *dpt , char *wbuf )
+{
+   int jj ;
+
+   if( dpt == NULL || wbuf == NULL ) return ;
+   jj = strlen(wbuf) ;
+
+   switch( typ ){
+
+     /*-- integer types --*/
+
+     case NI_BYTE:{
+       byte *vpt = (byte *)dpt ;
+       sprintf(wbuf+jj," %u",(unsigned int)vpt[0]) ;
+     }
+     break ;
+
+     case NI_SHORT:{
+       short *vpt = (short *)dpt ;
+       sprintf(wbuf+jj," %d",(int)vpt[0]) ;
+     }
+     break ;
+
+     case NI_INT:{
+       int *vpt = (int *)dpt ;
+       sprintf(wbuf+jj," %d",vpt[0]) ;
+     }
+     break ;
+
+     /* multiple byte structs */
+
+     case NI_RGB:{
+       rgb *vpt = (rgb *)dpt ;
+       sprintf(wbuf+jj,"  %u %u %u",vpt[0].r,vpt[0].g,vpt[0].b) ;
+     }
+     break ;
+
+     case NI_RGBA:{
+       rgba *vpt = (rgba *)dpt ;
+       sprintf(wbuf+jj,"  %u %u %u %u",
+               vpt[0].r,vpt[0].g,vpt[0].b,vpt[0].a) ;
+     }
+     break ;
+
+     /* for floating point outputs,
+        first print to a temp string, then clip trailing and leading blanks */
+
+     case NI_FLOAT:{
+       float *vpt = (float *)dpt ;
+       char fbuf[32] ; int ff ;
+       sprintf(fbuf,"%12.6g",vpt[0]) ;
+       for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
+       for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
+       sprintf(wbuf+jj," %s",fbuf+ff) ;
+     }
+     break ;
+
+     case NI_DOUBLE:{
+       double *vpt = (double *)dpt ;
+       char fbuf[32] ; int ff ;
+       sprintf(fbuf,"%18.12g",vpt[0]) ;
+       for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
+       for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
+       sprintf(wbuf+jj," %s",fbuf+ff) ;
+     }
+     break ;
+
+     case NI_COMPLEX:{
+       complex *vpt = (complex *)dpt ;
+       char fbuf[32],gbuf[32] ; int ff,gg ;
+       sprintf(fbuf,"%12.6g",vpt[0].r) ;
+       for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
+       for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
+       sprintf(gbuf,"%12.6g",vpt[0].i) ;
+       for( gg=strlen(gbuf) ; gbuf[gg]==' ' ; gg-- ) gbuf[gg] = '\0' ;
+       for( gg=0 ; gbuf[gg] == ' ' ; gg++ ) ;
+       sprintf(wbuf+jj,"  %s %s",fbuf+ff,gbuf+gg) ;
+     }
+     break ;
+   } /* end of switch on part type */
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Encode nv basic type values at the end of the text string wbuf.
+---------------------------------------------------------------------------*/
+
+void NI_multival_to_text( int typ , int nv , char *dpt , char *wbuf )
+{
+   int ii , jj = type_size[typ] ;
+   for( ii=0 ; ii < nv ; ii++ )
+     NI_val_to_text( typ , dpt+ii*jj , wbuf ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Copy 1 basic type value in binary format to the wbuf.
+---------------------------------------------------------------------------*/
+
+int NI_val_to_binary( int typ , char *dpt , char *wbuf )
+{
+   int jj = type_size[typ] ;
+   memcpy(wbuf,dpt,jj);
+   return jj ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Copy nv basic type values in binary format to the wbuf.
+---------------------------------------------------------------------------*/
+
+int NI_multival_to_binary( int typ , int nv , char *dpt , char *wbuf )
+{
+   int jj = nv * type_size[typ] ;
+   memcpy(wbuf,dpt,jj);
+   return jj ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Write instances of a NI_rowtype struct to a NI_stream.
+      - ns    = stream to write to
+      - rt    = rowtype of the data
+      - ndat  = number of structs in dat
+      - dat   = pointer to structs with data corresponding to rt
+      - tmode = output mode flag
+      - return value is number of bytes written to stream
+        (-1 if something bad happened, 0 if can't write to stream yet)
+
+   This function is adapted from NI_write_element().
+--------------------------------------------------------------------------*/
+
+int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
+                                          int ndat, char *dat, int tmode )
+{
+   int ii,jj , row , vsiz,fsiz,dim , ntot,nout ;
+   char *ptr ;
+   int  nwbuf,bb,cc;
+   char *wbuf=NULL ; /* write buffer */
+   char *bbuf=NULL ; /* copy of write buffer */
+   char *cbuf=NULL ; /* Base64 buffer */
+
+   /*-- check inputs --*/
+
+   if( ndat == 0 )                                           return  0 ;
+   if( ns == NULL || rt == NULL || dat == NULL || ndat < 0 ) return -1 ;
+
+   vsiz = (rt->psiz == 0) ;  /* is this a variable size type */
+   fsiz = rt->size ;         /* fixed size of struct (w/padding) */
+
+   /*-- check stream --*/
+
+   if( ns->bad ){                       /* not connected yet? */
+     jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+     if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   }
+   jj = NI_stream_writecheck(ns,1) ;
+   if( jj < 1 ) return jj ;
+
+   if( ns->type == NI_STRING_TYPE )     /* string output only in text mode */
+     tmode = NI_TEXT_MODE ;
+
+   /*-- special case: vector of unpadded fixed-size data
+                      (which includes all basic types)
+                      can be written directly to the output in binary --*/
+
+   if( fsiz == rt->psiz && tmode == NI_BINARY_MODE )
+     return NI_stream_write( ns , dat , ndat*fsiz ) ;
+
+   /*-- allocate space for the write buffer (1 struct at a time) --*/
+
+   switch( tmode ){
+     default:             tmode = NI_TEXT_MODE ; /* fall through */
+     case NI_TEXT_MODE:   nwbuf = 5*fsiz ; break ;
+
+     case NI_BASE64_MODE:
+     case NI_BINARY_MODE: nwbuf =   fsiz ; break ;
+   }
+   wbuf = NI_malloc(nwbuf+128) ;  /* 128 for the hell of it */
+
+   /* create buffers for Base64 output, if needed */
+
+   if( tmode == NI_BASE64_MODE ){
+     bbuf = NI_malloc(  nwbuf+128) ; bb = 0 ;  /* binary buffer */
+     cbuf = NI_malloc(2*nwbuf+128) ; cc = 0 ;  /* base64 buffer */
+     load_encode_table() ;
+   }
+
+  /* this macro take the 'nout' number of output bytes
+     and adds into the running total ntot if all was well;
+     if all was not well with the write, then it aborts the output */
+
+# define ADDOUT                                              \
+  if( nout < 0 ){                                            \
+    fprintf(stderr,"NIML: write abort!\n");                  \
+    NI_free(wbuf); NI_free(bbuf); NI_free(cbuf); return -1;  \
+  } else ntot+=nout
+
+   /*-- loop over output structs,
+        format for output into wbuf, and then send to output stream --*/
+
+   ntot = 0 ;  /* total number of bytes output to stream */
+
+   for( row=0 ; row < ndat ; row++ ){
+
+     ptr = dat + fsiz*row ;   /* pointer to start of this struct */
+
+     /* expand write buffer if this is contains variable sized array(s) */
+
+     if( vsiz ){
+       jj = NI_rowtype_vsize( rt , ptr ) ;   /* size of struct, w/ var arrays */
+       if( tmode == NI_TEXT_MODE ) jj *= 5 ;
+       if( jj > nwbuf ){                     /* did it get bigger? */
+         nwbuf = jj ;
+         wbuf  = NI_realloc(wbuf,nwbuf+128) ;
+         if( tmode == NI_BASE64_MODE ){          /* expand Base64 stuff, too */
+           bbuf = NI_realloc(bbuf,  nwbuf+128) ;
+           cbuf = NI_realloc(cbuf,2*nwbuf+128) ;
+         }
+       }
+     }
+
+     /* initialize write buffer for this struct */
+
+     switch( tmode ){
+       case NI_TEXT_MODE:    wbuf[0] = '\0'; break; /* clear buffer */
+       case NI_BASE64_MODE:
+       case NI_BINARY_MODE:  jj = 0 ;        break; /* clear byte count */
+     }
+
+     /* write each part into the buffer */
+     /* in text mode, strlen(wbuf) keeps track of number of bytes;
+        in binary mode, jj keeps track of number of bytes written */
+
+     for( ii=0 ; ii < rt->part_num ; ii++ ){  /*-- loop over parts --*/
+
+       if( rt->part_dim[ii] < 0 ){             /*-- a single value --*/
+         switch( tmode ){      /*-- output method (text or binary) --*/
+
+           case NI_TEXT_MODE:         /*-- sprintf value to output --*/
+             NI_val_to_text( rt->part_typ[ii],
+                             ptr+rt->part_off[ii], wbuf ) ;
+           break ;
+
+           case NI_BASE64_MODE:       /*-- memcpy values to output --*/
+           case NI_BINARY_MODE:
+             jj += NI_val_to_binary( rt->part_typ[ii],
+                                     ptr+rt->part_off[ii], wbuf+jj ) ;
+           break ;
+         }
+
+       } else {                      /*-- variable dimension array --*/
+
+         char **apt = (char **)(ptr+rt->part_off[ii]); /* data in struct */
+                                                      /* is ptr to array */
+
+         dim = ROWTYPE_part_dimen(rt,ptr,ii) ;  /* dimension of part */
+         if( dim > 0 && *apt != NULL ){
+           switch( tmode ){
+             case NI_TEXT_MODE:
+               NI_multival_to_text( rt->part_typ[ii] , dim ,
+                                    *apt , wbuf ) ;
+             break ;
+             case NI_BASE64_MODE:
+             case NI_BINARY_MODE:
+               jj += NI_multival_to_binary( rt->part_typ[ii] , dim ,
+                                            *apt , wbuf+jj ) ;
+             break ;
+           }
+         }
+       }
+
+     } /* end of loop over parts in this struct */
+
+     /*- actually write the data in wbuf out -*/
+
+     switch( tmode ){
+
+       case NI_TEXT_MODE:     /* each struct is on a separate line */
+         strcat(wbuf,"\n") ;
+         nout = NI_stream_writestring( ns , wbuf ) ;
+         ADDOUT ;
+       break ;
+
+       case NI_BINARY_MODE:   /* jj bytes of binary in wbuf */
+         nout = NI_stream_write( ns , wbuf , jj ) ;
+         ADDOUT ;
+       break ;
+
+       case NI_BASE64_MODE:{  /* convert binary triples into base64 quads */
+         int nb , nb3 , nb64 , pp,qq ;
+         byte a,b,c,w,x,y,z ;
+
+         /* bbuf = bb bytes of unprocessed data from last struct
+                   plus jj bytes of data from new struct
+                   (bb will be 0 or 1 or 2)                     */
+
+         memcpy(bbuf+bb,wbuf,jj) ;       /* add wbuf to tail of bbuf */
+         nb = jj+bb ;                    /* number of bytes in bb */
+         if( nb < 3 ){ bb = nb; break; } /* need at least 3 bytes */
+         nb3 = 3*(nb/3) ;                /* will encode nb3 bytes */
+
+         /* cbuf = base64 output buffer */
+         /* cc   = # bytes written since last EOL */
+
+         for( qq=pp=0 ; pp < nb3 ; ){
+           a = bbuf[pp++] ; b = bbuf[pp++] ; c = bbuf[pp++] ;
+           B64_encode3(a,b,c,w,x,y,z) ;
+           cbuf[qq++] = w ; cbuf[qq++] = x ;
+           cbuf[qq++] = y ; cbuf[qq++] = z ;
+           cc += 4; if( cc > 64 ){ cbuf[qq++]=B64_EOL2; cc=0; }
+         }
+
+         /* write base64 bytes to output */
+
+         nout = NI_stream_write( ns , cbuf , qq ) ;
+         ADDOUT ;
+
+         /* deal with leftover bytes in bbuf */
+
+         bb = nb - nb3 ;  /* num leftover bytes = 0, 1, or 2 */
+         if( bb > 0 ){
+           bbuf[0] = bbuf[nb3] ;                /* copy leftovers   */
+           if( bb > 1 ) bbuf[1] = bbuf[nb3+1] ; /* to front of bbuf */
+         }
+       }
+       break ;
+     }
+
+   } /* end of loop over output structs (row) */
+
+   /* in Base64 mode, we might have to clean
+      up if there are any leftover bytes in bbuf */
+
+   if( tmode == NI_BASE64_MODE && bb > 0 ){
+     byte w,x,y,z ;
+     if( bb == 2 ) B64_encode2(bbuf[0],bbuf[1],w,x,y,z) ;
+     else          B64_encode1(bbuf[0],w,x,y,z) ;
+     cbuf[0] = w ; cbuf[1] = x ;
+     cbuf[2] = y ; cbuf[3] = z ; cbuf[4] = B64_EOL2 ;
+     nout = NI_stream_write( ns , cbuf , 5 ) ;
+     ADDOUT ;
+   }
+
+   /*-- cleanup and return --*/
+
+   NI_free(cbuf) ; NI_free(bbuf) ; NI_free(wbuf) ;
+
+   return ntot ;
 }

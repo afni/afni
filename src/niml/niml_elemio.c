@@ -1134,7 +1134,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 #endif
    } else {                              /* check if good ns has gone bad */
       jj = NI_stream_writecheck(ns,1) ;
-      if( jj < 0 ) return -1 ;
+      if( jj < 1 ) return jj ;
    }
 
    if( ns->type == NI_STRING_TYPE )      /* string output only in text mode */
@@ -1584,7 +1584,7 @@ NI_dpr("[int=%d]",vpt[row]) ;
 #ifdef NIML_DEBUG
 NI_dpr("[float=%g]",vpt[row]) ;
 #endif
-              sprintf(fbuf," %12.6g",vpt[row]) ;
+              sprintf(fbuf,"%12.6g",vpt[row]) ;
               for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
               for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
               sprintf(wbuf+jj," %s",fbuf+ff) ;
@@ -1594,7 +1594,7 @@ NI_dpr("[float=%g]",vpt[row]) ;
             case NI_DOUBLE:{
               double *vpt = (double *) nel->vec[col] ;
               char fbuf[32] ; int ff ;
-              sprintf(fbuf," %18.12g",vpt[row]) ;
+              sprintf(fbuf,"%18.12g",vpt[row]) ;
               for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
               for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
               sprintf(wbuf+jj," %s",fbuf+ff) ;
@@ -1604,10 +1604,10 @@ NI_dpr("[float=%g]",vpt[row]) ;
             case NI_COMPLEX:{
               complex *vpt = (complex *) nel->vec[col] ;
               char fbuf[32],gbuf[32] ; int ff,gg ;
-              sprintf(fbuf," %12.6g",vpt[row].r) ;
+              sprintf(fbuf,"%12.6g",vpt[row].r) ;
               for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
               for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
-              sprintf(gbuf," %12.6g",vpt[row].i) ;
+              sprintf(gbuf,"%12.6g",vpt[row].i) ;
               for( gg=strlen(gbuf) ; gbuf[gg]==' ' ; gg-- ) gbuf[gg] = '\0' ;
               for( gg=0 ; gbuf[gg] == ' ' ; gg++ ) ;
               sprintf(wbuf+jj,"  %s %s",fbuf+ff,gbuf+gg) ;
