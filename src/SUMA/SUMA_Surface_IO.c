@@ -3067,7 +3067,7 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-xmat_1D") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-xmat_1d") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D");
