@@ -615,6 +615,7 @@ extern void ISQ_but_cswap_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_but_cnorm_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void ISQ_place_dialog( MCW_imseq * ) ;  /* 05 Jan 1999 */
+extern void ISQ_place_widget( Widget, Widget ) ;  /* 27 Oct 2003 */
 
 #undef REQUIRE_TWO_DONES
 #ifdef REQUIRE_TWO_DONES

@@ -316,6 +316,10 @@ PLUGIN_interface * ENV_init(void)
                     "Coarseness of grayscale stroking" ,
                     8 , 99 , 0 , 32 , NULL ) ;
 
+   ENV_add_string( "AFNI_STROKE_AUTOPLOT" ,
+                   "To automatically draw grayscale-data value plot?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
