@@ -1828,7 +1828,7 @@ nifti1_test.o:nifti/nifti1_test.c
 
 nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
-	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o -lm
+	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
 nifti_stats.o:nifti/nifti_stats.c
 	$(RM) $@

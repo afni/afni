@@ -1,6 +1,9 @@
 # This Makefile is for CYGWIN (www.cygwin.com) - to run AFNI under Windows!
 
-CEXTRA = -DHAVE_XDBE
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
+CEXTRA = -DHAVE_XDBE $(USE_ZLIB)
 CC     = gcc -O2 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCVOL  = gcc -O2 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCFAST = gcc -O3 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC
@@ -38,12 +41,12 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -lc
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -lc
 
 # for static linking to Motif, dynamic to all else
 # Motif here is actually LessTif - www.lesstif.org
 
-LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lm  -lc
+LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -lc
 
 
 ###############################################################
