@@ -5009,7 +5009,7 @@ ENTRY("AFNI_misc_button") ;
    /*--- 07 Nov 2001: start plugouts [see afni_plugout.c] ---*/
 
 #ifdef ALLOW_PLUGINS
-   if( !ALLOW_real_time && !AFNI_have_plugouts() ){
+   if( !AFNI_have_plugouts() ){
       dmode->misc_plugout_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , menu ,
