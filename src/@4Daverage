@@ -1,0 +1,76 @@
+#!/bin/csh -f
+
+
+if (("$1" =~ "-h") || ("$1" =~ "-help") || ("$1" =~ "")) then
+	echo "\012Usage : `basename $0` <average 3D+t brick prefix> <3D+t brik names...>"
+	echo "\012This script file uses 3Dcalc to compute average 3D+time bricks"
+	echo "example : @4Daverage NPt1av NPt1r1+orig NPt1r2+orig NPt1r3+orig"
+	echo "The output NPt1av+orig is the average of the three bricks"
+	echo " NPt1r1+orig, NPt1r2+orig and NPt1r3+orig"
+	echo ""
+	echo "You can use wildcards such as"
+	echo " @4Daverage test ADzst2*.HEAD AFzst2r*.HEAD "
+	echo " Make sure you do not pass both .HEAD and .BRIK names."
+	echo " If you do so they will be counted twice.\012"
+	echo "The bricks to be averaged must be listed individually."
+	echo "The total number of bricks that can be averaged at once (26)"
+	echo "is determined by 3dcalc."
+	echo ""
+	echo "\012Ziad Saad Nov 21 97, Marquette University"
+	echo "Modified to accept wild cards Jan 24 01, FIM/LBC/NIH"
+	echo "Ziad S. Saad (ziad@nih.gov)"
+	goto END
+endif
+
+
+#count the total number of command line parameters
+set al = $#argv	
+
+if ($al > 27) then
+	goto TOOMANY
+endif
+
+set avgout = $1
+
+set nbrks = `expr $al - 1`
+
+#set up the command line for 3dcalc
+set n=1
+set cmnd = ''
+while ( $n <= $nbrks )
+	set fct = `expr $n / 8 \* 10`
+	set rm = `expr $n % 8`
+	set asnum = `expr $rm + 140 + $fct`
+	set cmval = `expr $n + 1`
+	
+	set cmndadd = "-\0{$asnum} `@NoExt $argv[$cmval] BRIK HEAD`"
+	
+	set cmnd = "$cmnd $cmndadd"
+	
+	if ($n == 1) then
+		set expr = "\0{$asnum}"
+	else
+		set expr = "$expr+\0{$asnum}"
+	endif
+	
+	@ n ++
+end
+
+set expr = '(('$expr')/'$nbrks')'
+
+#change back to ascii stuff
+set cmndall = `echo $cmnd`
+set exprall = `echo $expr`
+	
+#run 3dcalc to compute the average
+echo "Running : 3dcalc $cmndall -expr $exprall -prefix $avgout ..."
+
+3dcalc $cmndall -expr $exprall -prefix $avgout
+
+goto END
+
+TOOMANY:
+	echo "Only 26 Bricks can be averaged together"
+	echo "You have $al on command line"
+	
+END:

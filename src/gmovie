@@ -1,0 +1,20 @@
+#!/bin/csh
+
+if( $#argv < 2 )then
+  echo "Usage: gmovie pnmfile pnmfile ..."
+  echo "Makes a GIF movie from a bunch of PNM files"
+  echo "Output file is called gmovie.gif"
+  echo "N.B.: colors are picked from file gmovie.ppmap"
+  exit 0
+endif
+
+set glist = ( )
+foreach fff ( $argv )
+   ppmtogif -map gmovie.ppmap $fff > ${fff}.gif
+   set glist = ( $glist ${fff}.gif )
+end
+
+# Units of time are centi-seconds (why? I don't know)
+
+whirlgif -loop 1 -time 20 $glist > gmovie.gif
+/bin/rm -f $glist

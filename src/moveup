@@ -1,0 +1,32 @@
+#!/bin/csh
+
+set doit = 0
+
+if( $#argv == 1 ) then
+  if( $argv[1] == "doit" ) set doit = 1
+endif
+
+if ( `basename $cwd` != SRC ) then
+   echo "Only run this script in the SRC directory"
+   exit
+endif
+
+foreach fname ( * )
+
+   if ( -f ../$fname ) then
+      diff ../$fname $fname > /dev/null
+      set mmm = $status
+      set www = "different"
+   else
+      set mmm = 1
+      set www = "new"
+   endif
+
+   if( $mmm && $doit ) then
+       echo "mv -f $fname .."
+       touch $fname
+       mv -f $fname ..
+   else if ( $mmm ) then
+       echo "WOULD mv -f $fname .. because is $www"
+   endif
+end

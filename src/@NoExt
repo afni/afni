@@ -1,0 +1,35 @@
+#!/bin/tcsh -f
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
+	goto USAGE
+endif
+
+set Name = $1
+
+	set ComCnt = 0
+	foreach junk ($*)
+		@ ComCnt ++
+	end
+
+set cnt = 2
+while ($cnt <= $ComCnt)
+	if ("$Name$argv[$cnt]") then
+		set Name = $Name:r
+	endif
+	@ cnt ++
+end
+
+echo $Name
+
+goto ENDALL
+
+USAGE:
+	echo "Usage: `basename $0` <Name> <ext1> <ext2> ....."
+	echo "example: `basename $0` Hello.HEAD HEAD BRIK"
+	echo "returns Hello" 
+	echo "`basename $0` Hello.BRIK HEAD BRIK"
+	echo "returns Hello"
+	echo "`basename $0` Hello.Jon HEAD BRIK"
+	echo "returns Hello.Jon"
+	echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+	goto ENDALL
+ENDALL:

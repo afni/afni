@@ -1,0 +1,142 @@
+#!/bin/csh -f
+
+if ("$1" == "-h" || $1 =~ "-help") then
+	goto USAGE
+endif
+
+set RemoteServer = 'ftp://afni.nimh.nih.gov/'
+set RemoteSRC = $RemoteServer'AFNI/src'
+set RemoteDOC = $RemoteServer'AFNI/doc'
+set MacName = `hostname -s`
+
+#set up the desitnation, based on the machine you're using
+	goto SETDESTIN
+	
+goto END
+
+
+GetIt:	
+	echo "About to Update AFNI on $MacName.\012Hit enter to continue (ctrl+c to escape)..."
+	set buf = $<
+	
+	#make sure target directories exist
+	test -d $localSRC || goto NoSRCDir
+	test -d $localBIN || goto NoNINDir
+	test -d $localDOC || goto NoDOCDir
+	
+	
+	#Get the source
+	if ("$localSRC" != "") then
+		echo "Downloading Source Code ..."
+		wget -r -l10 -nv -m -np -nH -P $localSRC --cut-dirs=3 $RemoteSRC
+	endif
+	
+	#Backup Old version -binaries only-
+	if ("$localBIN" != "") then
+		echo "Downloading Binaries ..."
+		test -d $localBIN.Bak || mkdir $localBIN.Bak
+		cp -r $localBIN/* $localBIN.Bak
+		#Get the binaries
+		wget -r -l10 -nv -m -np -nH -P $localBIN --cut-dirs=3 $RemoteBIN
+	endif
+	
+	#Get the documentation
+	if ("$localDOC" != "") then
+		echo "Downloading Documentation ..."
+		wget -r -l10 -nv -m -np -nH -P $localDOC --cut-dirs=3 $RemoteDOC
+	endif
+	
+	goto END
+	
+SETDESTIN:
+	#This is a template to modfy for your own computer
+	if ("$MacName" == 'MY_MACHINE') then #Change MY_MACHINE to your machine name
+		#for MY_MACHINE
+		set localSRC = '' #The full path indicating where AFNI source code are to be stored
+		set localBIN = '' #The full path indicating where AFNI executables are to be stored
+		set localDOC = '' #The full path indicating where AFNI Documentation is to be stored
+			
+		#The location of the AFNI executables distribution for your computer
+		set RemoteBIN = $RemoteServer'AFNI/bin/linux_mdk72'	
+		goto GetIt
+	endif
+
+	if ("$MacName" == 'potassium') then 
+		#for potassium
+		set localSRC = '' #The full path indicating where AFNI source code are to be stored
+		set localBIN = '/usr/local/abin' #The full path indicating where AFNI executables are to be stored
+		set localDOC = '' #The full path indicating where AFNI Documentation is to be stored
+			
+		#The location of the AFNI executables distribution for your computer
+		set RemoteBIN = $RemoteServer'AFNI/bin/linux_mdk72'	
+		goto GetIt
+	endif
+
+	if ("$MacName" == 'iodine') then
+		#for iodine 
+		set localSRC = '/home/ziad/Software/AFNI98'
+		set localBIN = '/home/ziad/Software/AFNI98/abin'
+		set localDOC = '/home/ziad/Software/AFNI98/DOC'
+
+		set RemoteBIN = $RemoteServer'AFNI/bin/linux_mdk72'
+		#back up my on code
+		@BackUpPlugs
+		
+		goto GetIt
+	endif
+
+	if ("$MacName" == 'neon') then
+		#for neon
+		set localSRC = '/usr/people/ziad/Software/AFNI98'
+		set localBIN = '/usr/people/ziad/Software/AFNI98/abin'
+		set localDOC = '/usr/people/ziad/Software/AFNI98/DOC'
+
+		set RemoteBIN = $RemoteServer'AFNI/bin/sgi10k_6.5'
+		goto GetIt
+	endif
+	
+
+	if ("$MacName" == 'fim2') then
+		#for fim2
+		set localSRC = '/home/jfrost/Software/AFNI98'
+		set localBIN = '/home/jfrost/Software/AFNI98/abin'
+		set localDOC = '/home/jfrost/Software/AFNI98/DOC'
+
+		set RemoteBIN = $RemoteServer'AFNI/bin/linux_mdk72'
+		goto GetIt
+	endif
+ 
+ 	goto BadMachine
+	
+BadMachine:
+	echo "Error: Machine $MacName not supported"
+	goto END	
+
+NoSRCDir:
+	echo "You must create the directory : $NoSRCDir" 
+	goto END
+	
+NoNINDir:
+	echo "You must create the directory : $NoNINDir" 
+	goto END
+
+NoDOCDir:
+	echo "You must create the directory : $NoDOCDir" 
+	goto END
+
+USAGE:
+        echo "\012Usage: `basename $0`"
+        echo 'Updates AFNI on your computer using wget'
+		  echo '\012If you are using the program for the first time,'
+		  echo 'you must add some info about your computer into the script'
+		  echo 'You can easily do so by modifying the template in the block SETDESTIN.'
+		  echo "\012IMPORTANT: Rename this script once you modify it. Otherwise,  "
+		  echo "it will get overwritten whenever you update your AFNI distribution."
+		  echo "\012Before the update begins, executables from the current version"
+		  echo 'are copied into $localBIN.bak directory'
+		  echo "\012For more info, see:"
+		  echo "http://afni.nimh.nih.gov/~cox/afni_wget.html"
+		  echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+    	  goto END
+
+END:

@@ -1,0 +1,39 @@
+#!/bin/tcsh
+
+set BDIR = /net/afni/home2/AFNI/BACKUP
+
+set doit = 1
+if ( $#argv == 1 ) set doit = 0
+
+@ ttt = 0
+foreach fname ( `find . -print` )
+
+   if( -f $fname ) then
+      if( -f $BDIR/$fname ) then
+         cmp -s $BDIR/$fname $fname
+         set mmm = $status
+         if( $mmm == 2 ) set mmm = 0
+      else
+         set mmm = 1
+      endif
+      if( $mmm && $doit ) then
+           echo "/bin/cp -p $fname $BDIR/$fname"
+                 /bin/cp -p $fname $BDIR/$fname
+           @ ttt = $ttt + 1
+      else if( $mmm )then
+           echo "WOULD /bin/cp -p $fname $BDIR/$fname"
+      endif
+   else if( -d $fname ) then
+      if( ! -d $BDIR/$fname && $doit ) then
+            echo "/bin/mkdir -p $BDIR/$fname"
+                  /bin/mkdir -p $BDIR/$fname
+      else if( ! -d $BDIR/$fname ) then
+            echo "WOULD /bin/mkdir -p $BDIR/$fname"
+      endif
+   endif
+
+end
+
+if( $doit ) then
+   echo "Put ${ttt} files to ${BDIR}"
+endif
