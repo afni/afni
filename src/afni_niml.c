@@ -636,7 +636,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    if( serrit )
      NIML_to_stderr(nel) ;
 
-   if( GLOBAL_argopt.yes_niml > 1 )
+   if( serrit || GLOBAL_argopt.yes_niml > 1 )
       fprintf(stderr,
               "++ NIML write colored surface: voxels=%d nodes=%d time=%d ms\n",
               nvused , nmap , ct = NI_clock_time() - ct ) ;
