@@ -10,12 +10,20 @@
 
 static void rotate_stdin_points( THD_dfvec3, THD_dmat33, int,THD_dfvec3 ) ;
 
-/*-----------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 
 #define MATVEC_DICOM 1
 #define MATVEC_ORDER 2
 
 static int verb=0 ;
+
+/*-- 19 Jun 2001 stuff --*/
+
+#define MODE_DFILE   1
+#define MODE_1DFILE  2
+MRI_IMAGE * get_dfile_params( char * fname , int mode ) ;
+
+/*------------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -50,149 +58,186 @@ int main( int argc , char * argv[] )
 
    int zpad=0 ;      /* 05 Feb 2001 */
 
+   char *dname=NULL ;  /* 19 Jun 2001 */
+   int   dmode=0 ;
+   MRI_IMAGE *dim=NULL ;
+   float     *dar=NULL ;
+   int       ndar=0    ;
+   int       skipit=0  ;
+
+   /*-------------------------------*/
+
    LOAD_DIAG_DMAT(rmat,1.0,1.0,1.0) ;
 
    /*-- read command line arguments --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
       printf(
-         "Usage: 3drotate [options] dataset\n"
-         "Rotates and/or translates all bricks from an AFNI dataset.\n"
-         "'dataset' may contain a sub-brick selector list.\n"
-         "\n"
-         "GENERIC OPTIONS:\n"
-         "  -prefix fname    = Sets the output dataset prefix name to be 'fname'\n"
-         "  -verbose         = Prints out progress reports (to stderr)\n"
-         "\n"
-         "OPTIONS TO SPECIFY THE ROTATION/TRANSLATION:\n"
-         "-------------------------------------------\n"
-         "*** METHOD 1 = direct specification:\n"
-         "At most one of these shift options can be used:\n"
-         "  -ashift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
-         "                       AFTER rotation.\n"
-         "  -bshift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
-         "                       BEFORE rotation.\n"
-         "    The shift distances by default are along the (x,y,z) axes of the dataset\n"
-         "    storage directions (see the output of '3dinfo dataset').  To specify them\n"
-         "    anatomically, you can suffix a distance with one of the symbols\n"
-         "    'R', 'L', 'A', 'P', 'I', and 'S', meaning 'Right', 'Left', 'Anterior',\n"
-         "    'Posterior', 'Inferior', and 'Superior', respectively.\n"
-         "\n"
-         "  -rotate th1 th2 th3\n"
-         "    Specifies the 3D rotation to be composed of 3 planar rotations:\n"
-         "       1) 'th1' degrees about the 1st axis,           followed by\n"
-         "       2) 'th2' degrees about the (rotated) 2nd axis, followed by\n"
-         "       3) 'th3' degrees about the (doubly rotated) 3rd axis.\n"
-         "    Which axes are used for these rotations is specified by placing\n"
-         "    one of the symbols 'R', 'L', 'A', 'P', 'I', and 'S' at the end\n"
-         "    of each angle (e.g., '10.7A').  These symbols denote rotation\n"
-         "    about the 'Right-to-Left', 'Left-to-Right', 'Anterior-to-Posterior',\n"
-         "    'Posterior-to-Anterior', 'Inferior-to-Superior', and\n"
-         "    'Superior-to-Inferior' axes, respectively.  A positive rotation is\n"
-         "    defined by the right-hand rule.\n"
-         "\n"
-         "*** METHOD 2 = copy from output of 3dvolreg:\n"
-         "  -rotparent rset\n"
-         "    Specifies that the rotation and translation should be taken from the\n"
-         "    first 3dvolreg transformation found in the header of dataset 'rset'.\n"
-         "  -gridparent gset\n"
-         "    Specifies that the output dataset of 3drotate should be shifted to\n"
-         "    match the grid of dataset 'gset'.  Can only be used with -rotparent.\n"
-         "    This dataset should be one this is properly aligned with 'rset' when\n"
-         "    overlaid in AFNI.\n"
-         "  * If -rotparent is used, then don't use -matvec, -rotate, or -[ab]shift.\n"
-         "  * If 'gset' has a different number of slices than the input dataset,\n"
-         "    then the output dataset will be zero-padded in the slice direction\n"
-         "    to match 'gset'.\n"
-         "  * These options are intended to be used to align datasets between sessions:\n"
-         "     S1 = SPGR from session 1    E1 = EPI from session 1\n"
-         "     S2 = SPGR from session 2    E2 = EPI from session 2\n"
-         " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
-         " 3drotate -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2+orig\n"
-         "     The result will have E2reg rotated from E2 in the same way that S2reg\n"
-         "     was from S2, and also shifted/padded (as needed) to overlap with E1.\n"
-         "\n"
-         "*** METHOD 3 = give the transformation matrix/vector directly:\n"
-         "  -matvec_dicom mfile\n"
-         "  -matvec_order mfile\n"
-         "    Specifies that the rotation and translation should be read from file\n"
-         "    'mfile', which should be in the format\n"
-         "           u11 u12 u13 v1\n"
-         "           u21 u22 u23 v2\n"
-         "           u31 u32 u33 u3\n"
-         "    where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij] is the\n"
-         "    orthogonal matrix of the rotation, and the 3-vector [vi] is the -ashift\n"
-         "    vector of the translation.\n"
-         "\n"
-         "*** METHOD 4 = copy the transformation from 3dTagalign:\n"
-         "  -matvec_dset mset\n"
-         "    Specifies that the rotation and translation should be read from\n"
-         "    the .HEAD file of dataset 'mset', which was created by program\n"
-         "    3dTagalign.\n"
-         "  * If -matvec_dicom is used, the matrix and vector are given in Dicom\n"
-         "     coordinate order (+x=L, +y=P, +z=S).  This is the option to use\n"
-         "     if mfile is generated using 3dTagalign -matvec mfile.\n"
-         "  * If -matvec_order is used, the the matrix and vector are given in the\n"
-         "     coordinate order of the dataset axes, whatever they may be.\n"
-         "  * You can't mix -matvec_* options with -rotate and -*shift.\n"
-         "\n"
-         "POINTS OPTIONS (instead of datasets):\n"
-         "------------------------------------\n"
-         " -points\n"
-         " -origin xo yo zo\n"
-         "   These options specify that instead of rotating a dataset, you will\n"
-         "   be rotating a set of (x,y,z) points.  The points are read from stdin.\n"
-         "   * If -origin is given, the point (xo,yo,zo) is used as the center for\n"
-         "     the rotation.\n"
-         "   * If -origin is NOT given, and a dataset is given at the end of the\n"
-         "     command line, then the center of the dataset brick is used as\n"
-         "     (xo,yo,zo).  The dataset will NOT be rotated if -points is given.\n"
-         "   * If -origin is NOT given, and NO dataset is given at the end of the\n"
-         "     command line, then xo=yo=zo=0 is assumed.  You probably don't\n"
-         "     want this.\n"
-         "   * (x,y,z) points are read from stdin as 3 ASCII-formatted numbers per\n"
-         "     line, as in 3dUndump.  Any succeeding numbers on input lines will\n"
-         "     be copied to the output, which will be written to stdout.\n"
-         "   * The input (x,y,z) coordinates are taken in the same order as the\n"
-         "     axes of the input dataset.  If there is no input dataset, then\n"
-         "       negative x = R  positive x = L  }\n"
-         "       negative y = A  positive y = P  } e.g., the DICOM order\n"
-         "       negative z = I  positive z = S  }\n"
-         "     One way to dump some (x,y,z) coordinates from a dataset is:\n"
-         "\n"
-         "      3dmaskdump -mask something+tlrc -o xyzfilename -noijk\n"
-         "                 '3dcalc( -a dset+tlrc -expr x -datum float )'\n"
-         "                 '3dcalc( -a dset+tlrc -expr y -datum float )'\n"
-         "                 '3dcalc( -a dset+tlrc -expr z -datum float )'\n"
-         "\n"
-         "     (All of this should be on one command line.)\n"
-		 "============================================================================\n"
-         "Example: 3drotate -prefix Elvis -bshift 10S 0 0 -rotate 30R 0 0 Sinatra+orig\n"
-         "\n"
-         "This will shift the input 10 mm in the superior direction, followed by a 30\n"
-         "degree rotation about the Right-to-Left axis (i.e., nod the head forward).\n"
-         "\n"
-         "Algorithm: The rotation+shift is decomposed into 4 1D shearing operations\n"
-         "           (a 3D generalization of Paeth's algorithm).  The interpolation\n"
-         "           (i.e., resampling) method used for these shears can be controlled\n"
-         "           by the following options:\n"
-         " -Fourier = Use a Fourier method (the default: most accurate; slowest).\n"
-         " -linear  = Use linear (1st order polynomial) interpolation (least accurate).\n"
-         " -cubic   = Use the cubic (3rd order) Lagrange polynomial method.\n"
-         " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
-         " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
-         "\n"
-         " -clipit  = Clip results to input brick range\n"
-         " -zpad n  = Zeropad around the edges by 'n' voxels during rotations\n"
-         "              (these edge values will be stripped off in the output)\n"
-         "        N.B.: Unlike to3d, in this program '-zpad' adds zeros in\n"
-         "               all directions.\n"
-         "        N.B.: The environment variable AFNI_ROTA_ZPAD can be used\n"
-         "               to set a nonzero default value for this parameter.\n"
+       "Usage: 3drotate [options] dataset\n"
+       "Rotates and/or translates all bricks from an AFNI dataset.\n"
+       "'dataset' may contain a sub-brick selector list.\n"
+       "\n"
+       "GENERIC OPTIONS:\n"
+       "  -prefix fname    = Sets the output dataset prefix name to be 'fname'\n"
+       "  -verbose         = Prints out progress reports (to stderr)\n"
+       "\n"
+       "OPTIONS TO SPECIFY THE ROTATION/TRANSLATION:\n"
+       "-------------------------------------------\n"
+       "*** METHOD 1 = direct specification:\n"
+       "At most one of these shift options can be used:\n"
+       "  -ashift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
+       "                       AFTER rotation.\n"
+       "  -bshift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
+       "                       BEFORE rotation.\n"
+       "    The shift distances by default are along the (x,y,z) axes of the dataset\n"
+       "    storage directions (see the output of '3dinfo dataset').  To specify them\n"
+       "    anatomically, you can suffix a distance with one of the symbols\n"
+       "    'R', 'L', 'A', 'P', 'I', and 'S', meaning 'Right', 'Left', 'Anterior',\n"
+       "    'Posterior', 'Inferior', and 'Superior', respectively.\n"
+       "\n"
+       "  -rotate th1 th2 th3\n"
+       "    Specifies the 3D rotation to be composed of 3 planar rotations:\n"
+       "       1) 'th1' degrees about the 1st axis,           followed by\n"
+       "       2) 'th2' degrees about the (rotated) 2nd axis, followed by\n"
+       "       3) 'th3' degrees about the (doubly rotated) 3rd axis.\n"
+       "    Which axes are used for these rotations is specified by placing\n"
+       "    one of the symbols 'R', 'L', 'A', 'P', 'I', and 'S' at the end\n"
+       "    of each angle (e.g., '10.7A').  These symbols denote rotation\n"
+       "    about the 'Right-to-Left', 'Left-to-Right', 'Anterior-to-Posterior',\n"
+       "    'Posterior-to-Anterior', 'Inferior-to-Superior', and\n"
+       "    'Superior-to-Inferior' axes, respectively.  A positive rotation is\n"
+       "    defined by the right-hand rule.\n"
+       "\n"
+       "*** METHOD 2 = copy from output of 3dvolreg:\n"
+       "  -rotparent rset\n"
+       "    Specifies that the rotation and translation should be taken from the\n"
+       "    first 3dvolreg transformation found in the header of dataset 'rset'.\n"
+       "  -gridparent gset\n"
+       "    Specifies that the output dataset of 3drotate should be shifted to\n"
+       "    match the grid of dataset 'gset'.  Can only be used with -rotparent.\n"
+       "    This dataset should be one this is properly aligned with 'rset' when\n"
+       "    overlaid in AFNI.\n"
+       "  * If -rotparent is used, then don't use -matvec, -rotate, or -[ab]shift.\n"
+       "  * If 'gset' has a different number of slices than the input dataset,\n"
+       "    then the output dataset will be zero-padded in the slice direction\n"
+       "    to match 'gset'.\n"
+       "  * These options are intended to be used to align datasets between sessions:\n"
+       "     S1 = SPGR from session 1    E1 = EPI from session 1\n"
+       "     S2 = SPGR from session 2    E2 = EPI from session 2\n"
+       " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
+       " 3drotate -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2+orig\n"
+       "     The result will have E2reg rotated from E2 in the same way that S2reg\n"
+       "     was from S2, and also shifted/padded (as needed) to overlap with E1.\n"
+       "\n"
+       "*** METHOD 3 = give the transformation matrix/vector directly:\n"
+       "  -matvec_dicom mfile\n"
+       "  -matvec_order mfile\n"
+       "    Specifies that the rotation and translation should be read from file\n"
+       "    'mfile', which should be in the format\n"
+       "           u11 u12 u13 v1\n"
+       "           u21 u22 u23 v2\n"
+       "           u31 u32 u33 u3\n"
+       "    where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij] is the\n"
+       "    orthogonal matrix of the rotation, and the 3-vector [vi] is the -ashift\n"
+       "    vector of the translation.\n"
+       "\n"
+       "*** METHOD 4 = copy the transformation from 3dTagalign:\n"
+       "  -matvec_dset mset\n"
+       "    Specifies that the rotation and translation should be read from\n"
+       "    the .HEAD file of dataset 'mset', which was created by program\n"
+       "    3dTagalign.\n"
+       "  * If -matvec_dicom is used, the matrix and vector are given in Dicom\n"
+       "     coordinate order (+x=L, +y=P, +z=S).  This is the option to use\n"
+       "     if mfile is generated using 3dTagalign -matvec mfile.\n"
+       "  * If -matvec_order is used, the the matrix and vector are given in the\n"
+       "     coordinate order of the dataset axes, whatever they may be.\n"
+       "  * You can't mix -matvec_* options with -rotate and -*shift.\n"
+       "\n"
+       "*** METHOD 5 = input rotation+shift parameters from an ASCII file:\n"
+       "  -dfile dname  *OR*  -1Dfile dname\n"
+       "    With these methods, the movement parameters for each sub-brick\n"
+       "    of the input dataset are read from the file 'dname'.  This file\n"
+       "    should consist of columns of numbers in ASCII format.  Six (6)\n"
+       "    numbers are read from each line of the input file.  If the\n"
+       "    '-dfile' option is used, each line of the input should be at\n"
+       "    least 7 numbers, and be of the form\n"
+       "      ignored roll pitch yaw dS dL dP\n"
+       "    If the '-1Dfile' option is used, then each line of the input\n"
+       "    should be at least 6 numbers, and be of the form\n"
+       "      roll pitch yaw dS dL dP\n"
+       "          (These are the forms output by the '-dfile' and\n"
+       "           '-1Dfile' options of program 3dvolreg; see that\n"
+       "           program's -help output for the hideous details.)\n"
+       "    The n-th sub-brick of the input dataset will be transformed\n"
+       "    using the parameters from the n-th line of the dname file.\n"
+       "    If the dname file doesn't contain as many lines as the\n"
+       "    input dataset has sub-bricks, then the last dname line will\n"
+       "    be used for all subsequent sub-bricks.  Excess columns or\n"
+       "    rows will be ignored.\n"
+       "  N.B.: Rotation is always about the center of the volume.\n"
+       "          If the parameters are derived from a 3dvolreg run\n"
+       "          on a dataset with a different center in xyz-space,\n"
+       "          the results may not be what you want!\n"
+       "  N.B.: You can't use -dfile/-1Dfile with -points (infra).\n"
+       "\n"
+       "POINTS OPTIONS (instead of datasets):\n"
+       "------------------------------------\n"
+       " -points\n"
+       " -origin xo yo zo\n"
+       "   These options specify that instead of rotating a dataset, you will\n"
+       "   be rotating a set of (x,y,z) points.  The points are read from stdin.\n"
+       "   * If -origin is given, the point (xo,yo,zo) is used as the center for\n"
+       "     the rotation.\n"
+       "   * If -origin is NOT given, and a dataset is given at the end of the\n"
+       "     command line, then the center of the dataset brick is used as\n"
+       "     (xo,yo,zo).  The dataset will NOT be rotated if -points is given.\n"
+       "   * If -origin is NOT given, and NO dataset is given at the end of the\n"
+       "     command line, then xo=yo=zo=0 is assumed.  You probably don't\n"
+       "     want this.\n"
+       "   * (x,y,z) points are read from stdin as 3 ASCII-formatted numbers per\n"
+       "     line, as in 3dUndump.  Any succeeding numbers on input lines will\n"
+       "     be copied to the output, which will be written to stdout.\n"
+       "   * The input (x,y,z) coordinates are taken in the same order as the\n"
+       "     axes of the input dataset.  If there is no input dataset, then\n"
+       "       negative x = R  positive x = L  }\n"
+       "       negative y = A  positive y = P  } e.g., the DICOM order\n"
+       "       negative z = I  positive z = S  }\n"
+       "     One way to dump some (x,y,z) coordinates from a dataset is:\n"
+       "\n"
+       "      3dmaskdump -mask something+tlrc -o xyzfilename -noijk\n"
+       "                 '3dcalc( -a dset+tlrc -expr x -datum float )'\n"
+       "                 '3dcalc( -a dset+tlrc -expr y -datum float )'\n"
+       "                 '3dcalc( -a dset+tlrc -expr z -datum float )'\n"
+       "\n"
+       "     (All of this should be on one command line.)\n"
+       "============================================================================\n"
+       "\n"
+       "Example: 3drotate -prefix Elvis -bshift 10S 0 0 -rotate 30R 0 0 Sinatra+orig\n"
+       "\n"
+       "This will shift the input 10 mm in the superior direction, followed by a 30\n"
+       "degree rotation about the Right-to-Left axis (i.e., nod the head forward).\n"
+       "\n"
+       "============================================================================\n"
+       "Algorithm: The rotation+shift is decomposed into 4 1D shearing operations\n"
+       "           (a 3D generalization of Paeth's algorithm).  The interpolation\n"
+       "           (i.e., resampling) method used for these shears can be controlled\n"
+       "           by the following options:\n"
+       " -Fourier = Use a Fourier method (the default: most accurate; slowest).\n"
+       " -linear  = Use linear (1st order polynomial) interpolation (least accurate).\n"
+       " -cubic   = Use the cubic (3rd order) Lagrange polynomial method.\n"
+       " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
+       " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
+       "\n"
+       " -clipit  = Clip results to input brick range\n"
+       " -zpad n  = Zeropad around the edges by 'n' voxels during rotations\n"
+       "              (these edge values will be stripped off in the output)\n"
+       "        N.B.: Unlike to3d, in this program '-zpad' adds zeros in\n"
+       "               all directions.\n"
+       "        N.B.: The environment variable AFNI_ROTA_ZPAD can be used\n"
+       "               to set a nonzero default value for this parameter.\n"
       ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-
       exit(0) ;
    }
 
@@ -238,11 +283,13 @@ int main( int argc , char * argv[] )
          ATR_float * atr ;
 
          if( rotpar_dset != NULL )
-            ERREX("*** Can't use -2 -rotparent options!") ;
+            ERREX("*** Can't use 2 -rotparent options!") ;
          if( matvec )
             ERREX("*** Can't combine -rotparent with -matvec!") ;
          if( dcode > 0 || rotarg > 0 )
             ERREX("*** Can't use -rotparent with -shift or -rotate options!") ;
+         if( dname != NULL )
+            ERREX("*** Can't use -rotparent with -dfile or -1Dfile options!") ;
 
          rotpar_dset = THD_open_one_dataset( argv[++iopt] ) ;
          if( rotpar_dset == NULL )
@@ -277,6 +324,8 @@ int main( int argc , char * argv[] )
             ERREX("*** Can't use -matvec with -shift or -rotate options!") ;
          if( rotpar_dset != NULL )
             ERREX("*** Can't use -matvec with -rotparent option!") ;
+         if( dname != NULL )
+            ERREX("*** Can't use -matvec with -dfile or -1Dfile options!") ;
 
          if( strcmp(argv[iopt],"-matvec_order") == 0 ) matvec = MATVEC_ORDER ;
          else                                          matvec = MATVEC_DICOM ;
@@ -386,6 +435,8 @@ int main( int argc , char * argv[] )
          if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          if( rotpar_dset != NULL )
             ERREX("*** Can't use -ashift with -rotparent!") ;
+         if( dname != NULL )
+            ERREX("*** Can't use -ashift with -dfile or -1Dfile options!") ;
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -398,6 +449,8 @@ int main( int argc , char * argv[] )
          if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          if( rotpar_dset != NULL )
             ERREX("*** Can't use -bshift with -rotparent!") ;
+         if( dname != NULL )
+            ERREX("*** Can't use -bshift with -dfile or -1Dfile options!") ;
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -421,8 +474,37 @@ int main( int argc , char * argv[] )
          if( rotarg > 0 ) ERREX("*** Can't have 2 -rotate options!\n") ;
          if( rotpar_dset != NULL )
             ERREX("*** Can't use -rotate with -rotparent!") ;
+         if( dname != NULL )
+            ERREX("*** Can't use -rotate with -dfile or -1Dfile options!") ;
          rotarg = iopt ;  /* save and process later */
          iopt += 4 ; continue ;
+      }
+
+      /*-- 19 Jun 2001 --*/
+
+      if( strcmp(argv[iopt],"-dfile")==0 || strcmp(argv[iopt],"-1Dfile")==0 ){
+
+         if( dname != NULL )
+            ERREX("*** Can't use 2 -dfile/-1Dfile options!") ;
+         if( matvec )
+            ERREX("*** Can't combine -dfile/-1Dfile with -matvec!") ;
+         if( dcode > 0 || rotarg > 0 )
+            ERREX("*** Can't use -dfile/-1Dfile with -shift or -rotate options!") ;
+         if( rotpar_dset != NULL )
+            ERREX("*** Can't use -dfile/-1Dfile with -rotparent!") ;
+
+              if( strcmp(argv[iopt],"-dfile") ==0 ) dmode = MODE_DFILE  ;
+         else if( strcmp(argv[iopt],"-1Dfile")==0 ) dmode = MODE_1DFILE ;
+
+         dname = argv[++iopt] ;
+
+         dim = get_dfile_params( dname , dmode ) ;
+         if( dim == NULL )
+            ERREX("*** Error with -dfile or -1Dfile!") ;
+
+         dar  = MRI_FLOAT_PTR(dim) ; /* 6 x ndar array */
+         ndar = dim->ny ;
+         iopt++ ; continue ;
       }
 
       fprintf(stderr,"*** Unknown option: %s\n",argv[iopt]) ; exit(1) ;
@@ -446,8 +528,11 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"+++ WARNING: -origin means nothing without -points!\n") ;
    }
 
-   if( matvec == 0 && dcode < 0 && rotarg < 0 && rotpar_dset == NULL )
-      ERREX("Don't you want to do anything [no -rotate, -shift, -matvec, -rotparent]?");
+   if( dar != NULL && dopoints )
+      ERREX("*** Can't combine -dfile/-1Dfile with -points!") ;
+
+   if( matvec==0 && dcode<0 && rotarg<0 && rotpar_dset==NULL && dar==NULL )
+      ERREX("Don't you want to do anything [no -rotate,-shift,-matvec,-rotparent,-dfile]?");
 
    /** read input dataset */
 
@@ -897,18 +982,53 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                             ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz , NULL ) ;
 #endif
       } else {
-        if( matvec )
+
+        /* 19 Jun 2001: get matrix/vector from rot params in file */
+
+        skipit = 0 ;
+        if( dar != NULL ){
+           THD_dvecmat dvm ; char rotcom[256] ; int jj=ival ;
+           static int ndar_over=0 ;
+
+           if( jj >= ndar ){
+              jj = ndar-1 ;
+              if( ndar_over == 0 )
+                fprintf(stderr,
+                        "++ WARNING: from brick %d on, using last line (%d) from %s\n",
+                        jj , ndar-1 , dname ) ;
+              ndar_over++ ;
+           }
+
+           sprintf(rotcom,"-rotate %.2fI %.2fR %.2fA -ashift %.2fS %.2fL %.2fP",
+                   dar[0+6*jj] , dar[1+6*jj] , dar[2+6*jj] ,
+                   dar[3+6*jj] , dar[4+6*jj] , dar[5+6*jj]  ) ;
+
+#if 0
+           if( verb ) fprintf(stderr,"rotcom: %s\n",rotcom) ;
+#endif
+
+           dvm = THD_rotcom_to_matvec( dset , rotcom ) ; /* thd_rotangles.c */
+
+           rmat = dvm.mm ; tvec = dvm.vv ; matvec = MATVEC_ORDER ;
+
+           skipit = (dar[0+6*jj]==0.0 && dar[1+6*jj]==0.0 && dar[2+6*jj]==0.0 &&
+                     dar[3+6*jj]==0.0 && dar[4+6*jj]==0.0 && dar[5+6*jj]==0.0  );
+        }
+
+        if( !skipit ){
+         if( matvec )
           THD_rota_vol_matvec( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
                                fabs(DSET_DX(dset)) ,
                                 fabs(DSET_DY(dset)) ,
                                  fabs(DSET_DZ(dset)) ,
                                fvol , rmat , tvec ) ;
-        else
+         else
           THD_rota_vol( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
                         fabs(DSET_DX(dset)),
                          fabs(DSET_DY(dset)),
                           fabs(DSET_DZ(dset)), fvol ,
                         ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz ) ;
+        }
       }
 
       if( verb ) fprintf(stderr,".") ;
@@ -1008,4 +1128,70 @@ static void rotate_stdin_points( THD_dfvec3 xyzorg, THD_dmat33 rmat,
 
    if( verb )
       fprintf(stderr,"-points: read %d lines, wrote %d lines\n",ll-1,ld) ;
+}
+
+/*-----------------------------------------------------------------------
+   19 Jun 2001:
+     Get a 6 x N image of the rotation parameters
+-------------------------------------------------------------------------*/
+
+MRI_IMAGE * get_dfile_params( char * fname , int mode )
+{
+   MRI_IMAGE *outim , *flim ;
+   float     *oar   , *far ;
+   int nx,ny , ii,jj ;
+
+   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+
+   flim = mri_read_ascii( fname ) ;
+   if( flim == NULL ) return NULL ;
+
+   nx = flim->nx ; ny = flim->ny ; far = MRI_FLOAT_PTR(flim) ;
+
+   if( mode == MODE_DFILE ){  /* skip 1st element of each row */
+      if( nx < 7 ){
+         fprintf(stderr,"** -dfile %s has too few columns!\n",fname) ;
+         mri_free(flim) ; return NULL ;
+      }
+      outim = mri_new( 6 , ny , MRI_float ) ;
+      oar   = MRI_FLOAT_PTR(outim) ;
+
+      for( jj=0 ; jj < ny ; jj++ ){
+         oar[0+6*jj] = far[1+nx*jj] ;
+         oar[1+6*jj] = far[2+nx*jj] ;
+         oar[2+6*jj] = far[3+nx*jj] ;
+         oar[3+6*jj] = far[4+nx*jj] ;
+         oar[4+6*jj] = far[5+nx*jj] ;
+         oar[5+6*jj] = far[6+nx*jj] ;
+      }
+
+      mri_free(flim) ;
+
+   } else if( mode == MODE_1DFILE ){  /* first 6 elements of each row */
+
+      if( nx < 6 ){
+         fprintf(stderr,"** -1Dfile %s has too few columns!\n",fname) ;
+         mri_free(flim) ; return NULL ;
+      } else if( nx == 6 ){
+         outim = flim ;
+      } else {
+         outim = mri_new( 6 , ny , MRI_float ) ;
+         oar   = MRI_FLOAT_PTR(outim) ;
+         for( jj=0 ; jj < ny ; jj++ ){
+            oar[0+6*jj] = far[0+nx*jj] ;
+            oar[1+6*jj] = far[1+nx*jj] ;
+            oar[2+6*jj] = far[2+nx*jj] ;
+            oar[3+6*jj] = far[3+nx*jj] ;
+            oar[4+6*jj] = far[4+nx*jj] ;
+            oar[5+6*jj] = far[5+nx*jj] ;
+         }
+         mri_free(flim) ;
+      }
+
+   } else {
+      fprintf(stderr,"** get_dfile_params: illegal mode=%d\n",mode) ;
+      mri_free(flim) ; return NULL ;
+   }
+
+   return outim ;
 }

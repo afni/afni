@@ -1,6 +1,3 @@
-The following is the README file for the permutation test plugins written
-by Matthew Belmonte.  This code has been released under the GPL.
-------------------------------------------------------------------------------
 This directory contains plug_permtest.c and plug_threshold.c, source modules
 for the AFNI Permutation Test and Threshold plugins, respectively.  The
 threshold plugin separates brain from non-brain (with touch-up work being

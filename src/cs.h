@@ -12,6 +12,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <math.h>
 
 #include "mcw_malloc.h"
 
@@ -42,5 +44,10 @@ extern void prepend_string_to_args( char *, int, char **, int *, char *** ) ;
 /***** Misc stuff *****/
 
 extern void get_laguerre_table( int , double ** , double ** ) ;  /* 12 Mar 2000 */
+
+extern int qhull_wrap( int , float * , int ** ) ; /* 07 Jun 2001 */
+extern int sphere_voronoi_angles( int , float *, float *, float ** ) ;
+extern int sphere_voronoi_vectors( int , float *, float ** ) ;
+
 
 #endif

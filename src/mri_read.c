@@ -998,8 +998,10 @@ MRI_IMAGE * mri_read_ascii( char * fname )
 
    /** step 1: read in the first line and see how many numbers are in it **/
 
-   ptr = fgets( buf , LBUF , fts ) ;
-   if( ptr == NULL ){ fclose( fts ) ; return NULL ; }  /* bad read? */
+   do{
+     ptr = fgets( buf , LBUF , fts ) ;
+     if( ptr == NULL ){ fclose( fts ) ; return NULL ; }  /* bad read? */
+   } while( *ptr == '\0' || *ptr == '\n' || *ptr == '#' ) ;
 
    blen = strlen(buf) ;
    bpos = 0 ;
@@ -1030,8 +1032,9 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    while( 1 ){
       ptr = fgets( buf , LBUF , fts ) ;  /* read */
       if( ptr == NULL ) break ;          /* failure --> end of data */
+
+      if( *ptr == '\0' || *ptr == '\n' || *ptr == '#' ) continue ; /* skip line */
       blen = strlen(buf) ;
-      if( blen <= 0 ) break ;            /* nothing --> end of data */
 
       /* convert commas to blanks */
 

@@ -20,8 +20,18 @@
   <belmonte@mit.edu>.
 */
 
-#define THRESH_MAX_BRAIN 2700
-#define THRESH_FILTER_LEN (THRESH_MAX_BRAIN/300)
+/*Most scanners, including GE Signa and Siemens Vision systems, do not use the
+  full 16-bit dynamic range.  THRESH_MAX_BRAIN can therefore be decreased to
+  about 3000 to save memory, if desired.  It's set to 32766 here rather than to
+  32767 since we want to be able to add one to it without causing a signed
+  overflow.*/
+#define THRESH_MAX_BRAIN 0x7ffe
+
+/*A median-filter length of 9 seems to work for every data set that I've tested.
+  If your scanner gives a banded distribution of voxel intensities instead of a
+  uniform distribution, you may need to increase this value or apply some
+  smoothing to the histogram.*/
+#define THRESH_FILTER_LEN 9
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -44,15 +54,16 @@ static char help[] =
   "echo-planar dataset.  (The first two acquisitions are excluded from the\n"
   "computation of these means, in order to allow the tissue to reach a\n"
   "magnetic steady state.)  The program constructs a histogram of these\n"
-  "means.  Moving right-to-left (i.e., from greater to lesser intensities)\n"
-  "through the histogram, the program waits till the median-filtered value of\n"
-  "the histogram at the current point significantly exceeds zero.  The\n"
-  "program then scans leftwards, keeping track of the minimum value of the\n"
-  "median-filtered histogram.  The program stops scanning when the histogram\n"
-  "becomes very large, indicating that the scan has arrived at the air peak.\n"
-  "The minimum value of the histogram within this scanned interval is the\n"
-  "threshold between air, muscle, and bone to the left and brain to the\n"
-  "right.\n\n"
+  "means, and then computes the centroid of the log-transformed histogram.\n"
+  "This centroid value is assumed to lie somewhere in the interval between\n"
+  "the non-brain peak to the left and the brain peak to the right.  (This\n"
+  "assumption holds as long as the field of view is appropriate for the size\n"
+  "of the subject's head -- i.e., as long as the air peak doesn't dominate\n"
+  "the log-transformed histogram.)  The maximum of the median-filtered\n"
+  "histogram in the interval to the right of the centroid value is the brain\n"
+  "peak.  The maximum to the left of the centroid value is the air peak.\n"
+  "The minimum between these two peaks is the threshold between air, muscle,\n"
+  "and bone to the left and brain to the right.\n\n"
 
   "The second phase of the algorithm region-grows from a corner of the image,\n"
   "stopping at voxels whose intensities exceed the threshold that was\n"
@@ -69,6 +80,10 @@ static char help[] =
   "This plugin was written by Matthew Belmonte <belmonte@mit.edu> of the\n"
   "MIT Student Information Processing Board, supported by a grant from the\n"
   "National Alliance for Autism Research.\n\n"
+
+"VERSION\n\n"
+
+  "1.1   (14 June 2001)\n\n"
 
 "SEE ALSO\n\n"
 
@@ -444,10 +459,11 @@ THD_3dim_dataset *dset;
 int verbose;
   {
   register int t, x, y, z;
-  int xdim, ydim, zdim, nvox, tdim, histo_min /*, max_brain*/;
+  int xdim, ydim, zdim, nvox, tdim, histo_min, histo_max, centroid;
+  double centroid_num, centroid_denom, ln;
   long sum;
   short *img;
-  short cutoff;
+  short air_peak, brain_peak, cutoff;
   btree filter;
   int histogram[1+THRESH_MAX_BRAIN];
   xdim = dset->daxes->nxx;
@@ -466,7 +482,7 @@ int verbose;
     for(y = 0; y != ydim; y++)
       for(x = 0; x != xdim; x++)
 	{
-	sum = 0;
+	sum = 0L;
 	for (t = 2; t < tdim; t++) /*t=2 to stabilise transverse magnetisation*/
 	  sum += ((short *)DSET_ARRAY(dset, t))[x + xdim*(y + ydim*z)];
 	sum = (sum+(tdim-2)/2)/(tdim-2);
@@ -474,44 +490,67 @@ int verbose;
 	if((sum >= 0) && (sum <= THRESH_MAX_BRAIN))
 	  histogram[sum]++;
 	}
-/*for(max_brain = 0, sum = 0; (max_brain <= THRESH_MAX_BRAIN) && (sum < 99*nvox/100); max_brain++)
-    sum += histogram[max_brain];*/
+  centroid_num = centroid_denom = 0.0;
+  for(x = THRESH_MAX_BRAIN; x != 0; x--)
+    {
+    ln = log((double)(1+histogram[x]));
+    centroid_num += x*ln;
+    centroid_denom += ln;
+    }
+  centroid = (int)(centroid_num/centroid_denom);
+
   filter.tree = NULLTREE;
   filter.head = 0;
   filter.tail = -1;
   x = THRESH_MAX_BRAIN;
   while(x > THRESH_MAX_BRAIN-THRESH_FILTER_LEN)
     insert_newest(histogram[--x], &filter);
-  /*inv: filter contains histogram[x..x+THRESH_FILTER_LEN-1]*/
-  while(x && (extract_median(&filter) < nvox/(/* max_brain*2 */ 3000)))
-    {
-    delete_oldest(&filter);
-    insert_newest(histogram[--x], &filter);
-    }
-  if(verbose)
-    printf("SNR trigger at %d\n", x+1);
+  histo_max = -1;
   histo_min = MAXINT;
-/*inv: filter contains histogram[x..x+THRESH_FILTER_LEN-1], histo_min is the
-  minimum median-filtered value in histogram[x+1..k] where k is the index at
-  which the loop above terminated, and cutoff is the index of histo_min.*/
-  while((x >= 20) && ((t = extract_median(&filter)) < nvox/500))
+  cutoff = brain_peak = THRESH_MAX_BRAIN;
+  /*inv: filter contains histogram[x..x+THRESH_FILTER_LEN-1], histo_max is the
+    maximum median-filtered value of histogram[x+1+THRESH_FILTER_LEN/2..
+    THRESH_MAX_BRAIN-(THRESH_FILTER_LEN+1)/2, brain_peak is the index at which
+    histo_max occurs, histo_min is the minimum median-filtered value of
+    histogram[x+1+THRESH_FILTER_LEN/2..brain_peak], and cutoff is the index at
+    which histo_min occurs.*/
+  while(x > centroid-THRESH_FILTER_LEN/2)
     {
-    if(t < histo_min)
+    y = extract_median(&filter);
+    if(y > histo_max)
       {
-      histo_min = t;
-      cutoff = x;
+      cutoff = brain_peak = x+THRESH_FILTER_LEN/2;
+      histo_min = histo_max = y;
+      }
+    else if(y < histo_min)
+      {
+      cutoff = x+THRESH_FILTER_LEN/2;
+      histo_min = y;
       }
     delete_oldest(&filter);
     insert_newest(histogram[--x], &filter);
     }
-  for(x = cutoff, y = cutoff+THRESH_FILTER_LEN; x < y; x++)
-    if(histogram[x] < histo_min)
+  /*inv: filter contains histogram[x..x+THRESH_FILTER_LEN-1], histo_min is the
+    minimum median-filtered value of histogram[x+1+THRESH_FILTER_LEN/2..
+    brain_peak], and cutoff is the index at which histo_min occurs.*/
+  while((x >= 0) && ((y = extract_median(&filter)) <= brain_peak))
+    {
+    if(y < histo_min)
       {
-      histo_min = histogram[x];
-      cutoff = x;
+      histo_min = y;
+      cutoff = x+THRESH_FILTER_LEN/2;
+      }
+    delete_oldest(&filter);
+    insert_newest(histogram[--x], &filter);
+    }
+  for(z = cutoff-THRESH_FILTER_LEN/2, y = z+THRESH_FILTER_LEN; z < y; z++)
+    if(histogram[z] < histo_min)
+      {
+      histo_min = histogram[z];
+      cutoff = z;
       }
   if(verbose)
-    printf("cutoff at %d\n", cutoff);
+    printf("centroid %d, brain peak %d, air peak edge %d, threshold %d\n", centroid, brain_peak, x+THRESH_FILTER_LEN/2, cutoff);
   destroy_tree(filter.tree);
   free(histogram);
   /*region-grow from the edge of the image inward, filling with zeroes*/

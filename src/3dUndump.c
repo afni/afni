@@ -316,6 +316,8 @@ int main( int argc , char * argv[] )
                           ADN_ntt       , 0 ,
                           ADN_func_type , ISANAT(mset) ? mset->func_type
                                                        : FUNC_FIM_TYPE ,
+
+                          ADN_directory_name , "./" ,
                        ADN_none ) ;
 
    } else {                            /* from nothing */
@@ -477,18 +479,18 @@ int main( int argc , char * argv[] )
             /* 24 Nov 2000: check (xx,yy,zz) for being inside the box */
 
             if( mv.xyz[0] < xxdown || mv.xyz[0] > xxup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: x coord=%g is invalid\n" ,
-                       argv[iarg],ll,xx ) ;
+               fprintf(stderr,"+++ Warning: file %s line %d: x coord=%g is outside %g .. %g\n" ,
+                       argv[iarg],ll,mv.xyz[0] , xxdown,xxup ) ;
                continue ;
             }
             if( mv.xyz[1] < yydown || mv.xyz[1] > yyup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: y coord=%g is invalid\n" ,
-                       argv[iarg],ll,yy ) ;
+               fprintf(stderr,"+++ Warning: file %s line %d: y coord=%g is outside %g .. %g\n" ,
+                       argv[iarg],ll,mv.xyz[1] , yydown , yyup ) ;
                continue ;
             }
-            if( mv.xyz[0] < zzdown || mv.xyz[0] > zzup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: z coord=%g is invalid\n" ,
-                       argv[iarg],ll,zz ) ;
+            if( mv.xyz[2] < zzdown || mv.xyz[2] > zzup ){
+               fprintf(stderr,"+++ Warning: file %s line %d: z coord=%g is outside %g .. %g\n" ,
+                       argv[iarg],ll,mv.xyz[2] , zzdown , zzup ) ;
                continue ;
             }
 

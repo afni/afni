@@ -89,6 +89,10 @@ static char help[] =
   "MIT Student Information Processing Board, supported by a grant from the\n"
   "National Alliance for Autism Research.\n\n"
 
+"VERSION\n\n"
+
+  "1.1   (14 June 2001)   (cosmetic changes only)\n\n"
+
 "SEE ALSO\n\n"
 
   "Threshold Plugin\n"
@@ -99,7 +103,7 @@ static char help[] =
 
   "Matthew Belmonte and Deborah Yurgelun-Todd, `Permutation Testing Made\n"
   "Practical for Functional Magnetic Resonance Image Analysis',\n"
-  "IEEE Transactions on Medical Imaging 20(3):???-??? (2001).",
+  "IEEE Transactions on Medical Imaging 20(3):243-248 (March 2001).",
 
 	    hint[] = "compute FIM with permutation test",
 	    input_label[] = "Input",
@@ -545,7 +549,7 @@ CLIST *clist;
   dtree_insert_at_node(t, t->next++);
   }
 
-static int num_coords_exhausted = 0;
+static int num_coords_exhausted;
 
 /*node points to a coord_lchild, coord_rchild, or coord_root field that is to be
   unlinked from its children.*/
@@ -686,7 +690,7 @@ short *deleted;
     p = ((node->data->coords > (*p)->data->coords)? &((*p)->coord_rchild):
 						    &((*p)->coord_lchild));
   This line makes sets of equal coordinates into *left*-recursive rather than
-  right-recursive trees, and accordinagly, dtree_unlink_node() looks in the
+  right-recursive trees, and accordingly, dtree_unlink_node() looks in the
   *left* subtree for a node to promote into the place of the deleted node as
   (*p).*/
       }
@@ -892,6 +896,7 @@ int verbose;		 /*1 for verbose info on coordinates, 0 otherwise*/
     case 1: magnitude = id;
     }
   num_coords = NUM_COORDS;
+  num_coords_exhausted = 0;
   if(ort_ts != (MRI_IMAGE *)0) /*need to save extra points if orthogonalising*/
     num_coords *= 2;
 /*allocate storage for functional intensities*/

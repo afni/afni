@@ -2833,3 +2833,24 @@
      compiled" section; and afni_plugin.h to reflect this change.
      Small changes also to afni.h, afni_func.c, and afni_pplug_*.c.
      (All of this is to get afni to compile again without plugins.)
+
+06 Jun 2001
+ * Added directory qhulldir/ to contain the qhull program from UMN.
+ * Fixed afni_vcheck.c to reflect the new webserver.
+
+07 Jun 2001
+ * Add cs_qhull.c to drive qhull program and compute Voronoi areas
+     on sphere surface.
+
+18 Jun 2001
+ * Modified mri_read_ascii() in mri_read.c to skip lines that start
+     with '#' character.
+
+19 Jun 2001
+ * Modified 3drotate.c to take the new -dfile/1Dfile options, per
+     the request of David Glahn of UCLA.
+
+22 Jun 2001
+ * Fixed a bug in 3dUndump.c where it checked the wrong value against
+     the z coordinate bounds - it would report illegal inputs when
+     the (x,y,z) values were in fact legal.
