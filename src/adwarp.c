@@ -604,7 +604,9 @@ ENTRY("adwarp_follower_dataset") ;
   new_dset->merger_list = NULL ;  /* not a merger */
   new_dset->markers     = NULL ;  /* no markers */
   new_dset->death_mark  = 0 ;     /* don't kill me! */
+#ifdef ALLOW_DATASET_VLIST
   new_dset->pts         = NULL ;
+#endif
   
   PARENTIZE(new_dset,data_parent->parent) ;
   

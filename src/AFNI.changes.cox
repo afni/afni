@@ -4723,3 +4723,7 @@
      NIFTI-1 formatted files as datasets.
  * Modified afni.c to read datasets individually from command line argv's
      if they can't be read as sessions.
+
+15 Oct 2003
+ * Added poetry.
+ * Removed 'points'.

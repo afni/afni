@@ -125,8 +125,10 @@ STATUS("killing files") ;
       COMPRESS_unlink(dkptr->brick_name) ;
    }
 
+#ifdef ALLOW_DATASET_VLIST
 STATUS("destroy vlist") ;
    DESTROY_VLIST(dset->pts) ;
+#endif
 
    if( ISVALID_TIMEAXIS(dset->taxis) ){
 STATUS("destroy taxis") ;

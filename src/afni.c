@@ -2721,12 +2721,14 @@ ENTRY("AFNI_read_images") ;
    dset->warp_parent   = NULL ;
    dset->anat_parent   = NULL ;
    dset->stats         = NULL ;
-   dset->pts           = NULL ;
    dset->merger_list   = NULL ;
    dset->death_mark    = 0 ;
    dset->taxis         = NULL ;
    dset->tagset        = NULL ;  /* Oct 1998 */
    ZERO_STAT_AUX( dset ) ;
+#ifdef ALLOW_DATASET_VLIST
+   dset->pts           = NULL ;
+#endif
 
    INIT_KILL(dset->kl) ;
    INIT_KILL(dset->dblk->kl) ;
@@ -5524,7 +5526,9 @@ ENTRY("AFNI_overlay") ;
                dset->tagset->num > 0 &&
                (im3d->vwid->marks->tag_visible == True) )             ||
 
+#ifdef ALLOW_DATASET_VLIST
             ( dset->pts != NULL && im3d->vinfo->pts_visible == True ) ||
+#endif
 
             ( im3d->vinfo->func_visible == True )                     ||
 
@@ -5878,6 +5882,7 @@ if(PRINT_TRACING)
       }
    } /* end if tags to be shown */
 
+#ifdef ALLOW_DATASET_VLIST
    /*----- May 1995: additional points (single pixels) -----*/
 
    if( im3d->vinfo->pts_visible   &&
@@ -5897,6 +5902,7 @@ if(PRINT_TRACING)
          }
       }
    }
+#endif
 
    /*----- return overlay (kill it if nothing happened) -----*/
 
@@ -7070,6 +7076,7 @@ STATUS(" -- function underlay widgets") ;
 
    AFNI_reset_func_range( im3d ) ;
 
+#ifdef ALLOW_DATASET_VLIST
    /*---------------------------------------------------------*/
    /*--- May 1995: if points exist in some other dataset   ---*/
    /*---           associated with this one, but not here, ---*/
@@ -7121,6 +7128,7 @@ STATUS(" -- processing points in this dataset") ;
          im3d->anat_now->pts->ijk[ii] =
             THD_3dmm_to_3dind( im3d->anat_now , im3d->anat_now->pts->xyz[ii] ) ;
    }
+#endif /* ALLOW_DATASET_VLIST */
 
    /*------ 06 Mar 2002: turn "SUMA to" on image popup on or off ------*/
 
@@ -9359,7 +9367,9 @@ STATUS("init new_markers") ;
    new_dset->stats = NULL ;
    AFNI_copy_statistics( adam_dset , new_dset ) ;
 
+#ifdef ALLOW_DATASET_VLIST
    new_dset->pts = NULL ;
+#endif
 
    /*----- dataset ready for warping -----*/
 
