@@ -4,8 +4,9 @@ if ("$1" == "-help" || "$1" == "-h" || $#argv != 2) then
    echo ""
    echo "Usage: `basename $0` <Vol1> <Vol2> "
    echo ""
-   echo "Creates a copy of Vol2 (Vol2_Shft) with a modified origin"
-   echo "   to make the centers Vol2_Shft and Vol1 coincide."
+   echo "Creates a copy of Vol1 (Vol1_Shft) with a modified origin"
+   echo "   to make the centers Vol1_Shft and Vol2 coincide."
+   echo "   Vol1_Shft is written out to the directory containing Vol2."
    echo ""
    echo "Requires 3drefit newer than Oct. 02/02."
    echo ""
@@ -16,13 +17,27 @@ if ("$1" == "-help" || "$1" == "-h" || $#argv != 2) then
 endif
 
 SET_PARAMS:
-set view = `@GetAfniView $1`
-set tmp = `@GetAfniPrefix $1`
-set ExpTal = $tmp$view
-set tmp = `@GetAfniPrefix $2`
-set SurfTal = $tmp$view
-set SurfTal_Shft = $tmp'_Shft'$view
+set view = `@GetAfniView $2`
 
+set pthTal = $1:h
+if ("$pthTal" == "$1") then 
+   set pthTal = .
+endif
+
+set tmpTal = `@GetAfniPrefix $1`
+set SurfTal = $pthTal/$tmpTal$view
+
+set pth2 = $2:h
+if ("$pth2" == "$2") then 
+   set pth2 = .
+endif
+
+set tmp2 = `@GetAfniPrefix $2`
+set ExpTal = $pth2/$tmp2$view
+
+set SurfTal_Shft = $pth2/$tmpTal'_Shft'$view
+
+ 
 CHECKS:
 #make sure output doe not exist
 if (-f $SurfTal_Shft.HEAD || -f $SurfTal_Shft.BRIK) then
@@ -34,40 +49,40 @@ GETVOL1_INFO:
 #get the Center of the experiment's talairach brain. (in RAI)
    set resp = `3dAttribute -name ORIGIN $ExpTal`
    set ExpTalOr_RAI = ( $resp[3] $resp[4] $resp[5] )
-   echo "Origin Experiment Talairach: $ExpTalOr_RAI : RAI"
+   #echo "Origin Experiment Talairach: $ExpTalOr_RAI : RAI"
    
    set resp = `3dAttribute -name DELTA $ExpTal`
    set ExpTalDe_RAI = ( $resp[3] $resp[4] $resp[5] )
-   echo "Dela Experiment Talairach: $ExpTalDe_RAI : RAI"
+   #echo "Dela Experiment Talairach: $ExpTalDe_RAI : RAI"
    
    set resp = `3dAttribute -name DATASET_DIMENSIONS $ExpTal`
    set ExpTalNd_RAI = ( $resp[3] $resp[4] $resp[5] )
-   echo "N Experiment Talairach: $ExpTalNd_RAI : RAI"
+   #echo "N Experiment Talairach: $ExpTalNd_RAI : RAI"
    
    #calclulate the center of the brain
    set ExpTalCe_RAI = ( `ccalc -eval "$ExpTalOr_RAI[1] + ($ExpTalDe_RAI[1] * ($ExpTalNd_RAI[1] -1))/2"`\
                         `ccalc -eval "$ExpTalOr_RAI[2] + ($ExpTalDe_RAI[2] * ($ExpTalNd_RAI[2] -1))/2"`\
                         `ccalc -eval "$ExpTalOr_RAI[3] + ($ExpTalDe_RAI[3] * ($ExpTalNd_RAI[3] -1))/2"` )
-   echo Experiment Data Set Center: $ExpTalCe_RAI : RAI
+   #echo Experiment Data Set Center: $ExpTalCe_RAI : RAI
 
    #Turn the center of the experiment brick to RSP
    
    set ExpTalCe_RSP = ( `ccalc -eval "1 * $ExpTalCe_RAI[1]"`\
                         `ccalc -eval "1 * $ExpTalCe_RAI[3]"`\
                         `ccalc -eval "1 * $ExpTalCe_RAI[2]"` )
-   echo Experiment Data Set Center: $ExpTalCe_RSP : RSP
+   #echo Experiment Data Set Center: $ExpTalCe_RSP : RSP
 
 GETVOL2_INFO:
 #Get the surface header info
    set resp = `3dAttribute -name ORIGIN $SurfTal`
    set SurfTalOr_RSP = ( $resp[3] $resp[4] $resp[5] )
-   echo "Origin Surface Volume $SurfTalOr_RSP : RSP "
+   #echo "Origin Surface Volume $SurfTalOr_RSP : RSP "
    set resp = `3dAttribute -name DELTA $SurfTal`
    set SurfTalDe_RSP = ( $resp[3] $resp[4] $resp[5] )
-   echo "Dela Surface Volume $SurfTalDe_RSP : RSP"
+   #echo "Dela Surface Volume $SurfTalDe_RSP : RSP"
    set resp = `3dAttribute -name DATASET_DIMENSIONS $SurfTal`
    set SurfTalNd_RSP = ( $resp[3] $resp[4] $resp[5] )
-   echo "N Surface Volume $SurfTalNd_RSP : RSP"
+   #echo "N Surface Volume $SurfTalNd_RSP : RSP"
 
 PERFORM_SHIFT:   
 #Calculate the origin of the Surface Volume to make its new center be that of the experiment    
@@ -77,7 +92,7 @@ PERFORM_SHIFT:
    set SurfTalOr_RSP = ( `ccalc -eval "( $ExpTalCe_RSP[1] - ( $SurfTalDe_RSP[1] * ($SurfTalNd_RSP[1] -1) )/2 )"`\
                         `ccalc -eval " ( $ExpTalCe_RSP[2] - ( $SurfTalDe_RSP[2] * ($SurfTalNd_RSP[2] -1) )/2 )"`\
                         `ccalc -eval " ( $ExpTalCe_RSP[3] - ( $SurfTalDe_RSP[3] * ($SurfTalNd_RSP[3] -1) )/2 )"` )
-   echo "New origin of Surface Volume $SurfTalOr_RSP : RSP "                  
+   #echo "New origin of Surface Volume $SurfTalOr_RSP : RSP "                  
    rm -f $SurfTal_Shft.HEAD $SurfTal_Shft.BRIK
    3dcopy $SurfTal $SurfTal_Shft 
    echo "running: 3drefit -xorigin_raw $SurfTalOr_RSP[1] -yorigin_raw $SurfTalOr_RSP[2] -zorigin_raw $SurfTalOr_RSP[3] \"
