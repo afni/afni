@@ -77,6 +77,14 @@ ENTRY("MRI_automask") ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
      if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
 
+   if( AFNI_yesenv("TOPCLIP") ){
+     float tclip = 3.1*clip_val ;
+     if( verb ) fprintf(stderr," + Top clip = %f\n",tclip) ;
+     for( ii=0 ; ii < nvox ; ii++ )
+       if( mar[ii] > tclip ) mmm[ii] = 0 ;
+     for( nmm=ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) nmm++ ;
+   }
+
    if( verb ) fprintf(stderr," + Number voxels above clip level = %d\n",nmm) ;
    if( im != medim && (!exterior_clip || nmm==0) ){ mri_free(medim); medim=NULL; }
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
@@ -112,6 +120,15 @@ ENTRY("MRI_automask") ;
     fprintf(stderr," + Filled   %d voxels in small holes; now have %d voxels\n",
             jj , mask_count(nvox,mmm) ) ;
 
+   if( AFNI_yesenv("PEEL") ){
+     jj = THD_peel_mask( nx,ny,nz , mmm , 7 ) ;
+     if( jj > 0 ){
+       fprintf(stderr," + Peeled %d voxels from surface\n",jj) ;
+       THD_mask_erode( nx,ny,nz, mmm ) ;
+       THD_mask_clust( nx,ny,nz, mmm ) ;
+     }
+   }
+
    nmm = 1 ;
    jj  = rint(0.016*nx) ; nmm = MAX(nmm,jj) ;
    jj  = rint(0.016*ny) ; nmm = MAX(nmm,jj) ;
@@ -125,6 +142,9 @@ ENTRY("MRI_automask") ;
       fprintf(stderr," + Filled   %d voxels in large holes; now have %d voxels\n",
               jj , mask_count(nvox,mmm) ) ;
    }
+
+   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_clust( nx,ny,nz, mmm ) ;
 #endif
 
    /* 28 May 2002:
@@ -143,7 +163,9 @@ ENTRY("MRI_automask") ;
       mask AND whose values are below clip_val, do so now     */
 
    if( exterior_clip ){
-     jj = THD_mask_clip_neighbors( nx,ny,nz , mmm , clip_val,mar ) ;
+     float tclip ;
+     tclip = AFNI_yesenv("TOPCLIP") ? 3.1*clip_val : 9999.9*clip_val ;;
+     jj = THD_mask_clip_neighbors( nx,ny,nz , mmm , clip_val,tclip,mar ) ;
      if( im != medim ) mri_free(medim) ;
      if( jj > 0 && verb )
        fprintf(stderr," + Removed  %d exterior voxels below clip level\n",jj);
@@ -171,7 +193,7 @@ ENTRY("MRI_automask") ;
 -----------------------------------------------------------------------*/
 
 int THD_mask_clip_neighbors( int nx, int ny, int nz ,
-                             byte *mmm, float clip_val, float *mar )
+                            byte *mmm, float clip_val, float tclip, float *mar )
 {
    int ii,jj,kk , ntot=0,nnew , jm,jp,j3 , km,kp,k3 , im,ip,i3 , nxy=nx*ny ;
 
@@ -185,7 +207,8 @@ int THD_mask_clip_neighbors( int nx, int ny, int nz ,
       j3 = k3 + jj*nx ;
       for( ii=1 ; ii < nx-1 ; ii++ ){
        i3 = ii+j3 ;
-       if( mmm[i3] || mar[i3] >= clip_val ) continue ; /* in mask, or too big */
+       if( mmm[i3] ||                                             /* in mask */
+           (mar[i3] >= clip_val && mar[i3] <= tclip) ) continue ; /* or is OK */
 
        /* If here, voxel IS NOT in mask, and IS below threshold.
           If any neighbors are also in mask, then add it to mask. */
@@ -747,4 +770,68 @@ ENTRY("MRI_autobbox") ;
    }
 
    free(mmm) ; EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
+{
+   int nxy=nx*ny , ii,jj,kk , ijk , bot,top , pd=pdepth ;
+   int nxp=nx-pd , nyp=ny-pd , nzp=nz-pd ;
+   int num=0 , dnum , nite ;
+
+   for( nite=0 ; nite < pd ; nite++ ){
+    dnum = 0 ;
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       ijk = jj*nx + kk*nxy ;
+       for( bot=0 ; bot < nx && !mmm[bot+ijk]; bot++ ) ;
+       top = bot+pd ; if( top >= nx ) continue ;
+       for( ii=bot+1 ; ii <= top && mmm[ii+ijk] ; ii++ ) ;
+       if( ii <= top ){ mmm[bot+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       ijk = jj*nx + kk*nxy ;
+       for( top=nx-1 ; top >= 0 && !mmm[top+ijk]; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( ii=top-1 ; ii >= bot && mmm[ii+ijk] ; ii-- ) ;
+       if( ii >= bot ){ mmm[top+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + kk*nxy ;
+       for( bot=0 ; bot < ny && !mmm[bot*nx+ijk] ; bot++ ) ;
+       top = bot+pd ;
+       if( top >= ny ) continue ;
+       for( jj=bot+1 ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ;
+       if( jj <= top ){ mmm[bot*nx+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + kk*nxy ;
+       for( top=ny-1 ; top >= 0 && !mmm[top*nx+ijk] ; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( jj=top-1 ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ;
+       if( jj >= bot ){ mmm[top*nx+ijk] = 0; dnum++; }
+    }}
+
+    for( jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + jj*nx ;
+       for( top=nz-1 ; top >= 0 && !mmm[top*nxy+ijk] ; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( kk=top-1 ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ;
+       if( kk >= bot ){ mmm[top*nxy+ijk] = 0; dnum++; }
+    }}
+
+    num += dnum ;
+    if( dnum == 0 ) break ;
+   }
+
+   return num ;
 }

@@ -299,18 +299,10 @@ ENTRY("get_octant_clips") ;
    cv.dzi = (cv.z1 > cv.z0) ? 1.0/(cv.z1-cv.z0) : 0.0 ;
 
    if( verb )
-    fprintf(stderr,"++ get_octant_clips:\n"
-                   "    min clip=%.1f\n"
-                   "    clip_000=%.1f\n"
-                   "    clip_100=%.1f\n"
-                   "    clip_010=%.1f\n"
-                   "    clip_110=%.1f\n"
-                   "    clip_001=%.1f\n"
-                   "    clip_101=%.1f\n"
-                   "    clip_011=%.1f\n"
-                   "    clip_111=%.1f\n"
-                   "    (x0,y0,z0) = (%.1f,%.1f,%.1f)\n"
-                   "    (x1,y1,z1) = (%.1f,%.1f,%.1f)\n" ,
+    fprintf(stderr,"++ get_octant_clips:  min clip=%.1f\n"
+                   "   clip_000=%.1f  clip_100=%.1f  clip_010=%.1f  clip_110=%.1f\n"
+                   "   clip_001=%.1f  clip_101=%.1f  clip_011=%.1f  clip_111=%.1f\n"
+                   "   (x0,y0,z0)=(%.1f,%.1f,%.1f) (x1,y1,z1)=(%.1f,%.1f,%.1f)\n" ,
             val ,
             cv.clip_000 , cv.clip_100 , cv.clip_010 , cv.clip_110 ,
             cv.clip_001 , cv.clip_101 , cv.clip_011 , cv.clip_111 ,
@@ -349,10 +341,10 @@ static INLINE float pointclip( int ii, int jj, int kk , clipvec *cv )
 static byte * mri_short2mask( MRI_IMAGE *im )
 {
    int ii,jj,kk,ijk , nx,ny,nz,nxy,nxyz ;
-   clipvec cvec ;
+   clipvec bvec , tvec ;
    short *sar ;
    byte *mask ;
-   float cval ;
+   float bval , tval ;
 
 ENTRY("mri_short2mask") ;
    if( im == NULL || im->kind != MRI_short ) RETURN(NULL) ;
@@ -360,8 +352,18 @@ ENTRY("mri_short2mask") ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   cvec = get_octant_clips( im , 0.40 ) ;
-   if( cvec.clip_000 < 0.0 ) RETURN(NULL) ;
+   bvec = get_octant_clips( im , 0.40 ) ;
+   if( bvec.clip_000 < 0.0 ) RETURN(NULL) ;
+
+   tvec = bvec ;
+   tvec.clip_000 *= 3.91 ;
+   tvec.clip_100 *= 3.91 ;
+   tvec.clip_010 *= 3.91 ;
+   tvec.clip_110 *= 3.91 ;
+   tvec.clip_001 *= 3.91 ;
+   tvec.clip_101 *= 3.91 ;
+   tvec.clip_011 *= 3.91 ;
+   tvec.clip_111 *= 3.91 ;
 
    /* create mask, clipping at a level that varies spatially */
 
@@ -371,11 +373,12 @@ ENTRY("mri_short2mask") ;
    for( ijk=kk=0 ; kk < nz ; kk++ ){
     for( jj=0 ; jj < ny ; jj++ ){
      for( ii=0 ; ii < nx ; ii++,ijk++ ){
-       cval = pointclip( ii,jj,kk , &cvec ) ; /* cliplevel here */
-       mask[ijk] = (sar[ijk] >= cval) ;       /* binarize */
+       bval = pointclip( ii,jj,kk , &bvec ) ; /* cliplevel here */
+       tval = pointclip( ii,jj,kk , &tvec ) ; /* cliplevel here */
+       mask[ijk] = (sar[ijk] >= bval && sar[ijk] <= tval) ; /* binarize */
    }}}
 
-   if( verb ) fprintf(stderr,"++ mri_short2mask: %d voxels above clip\n",
+   if( verb ) fprintf(stderr,"++ mri_short2mask: %d voxels survive clip\n",
                              mask_count(nxyz,mask) ) ;
 
    /* remove small clusters */
@@ -387,14 +390,14 @@ ENTRY("mri_short2mask") ;
 
 /*--------------------------------------------------------------------------*/
 
-typedef struct { short i,j,k,val,basin; } shortvox ;
+typedef struct { short i,j,k,val; int basin; } shortvox ;
 
 /*--------------------------------------------------------------------------*/
 /*! Sort array of shortvox into increasing order (decreasing if dec != 0). */
 
-static sort_shortvox( int n , shortvox *ar , int dec )
+static sort_shortvox( int n , shortvox *ar , int dec , float botperc, float topperc )
 {
-   int ii , sbot,stop,nsv , sval ;
+   int ii,jj , sbot,stop,nsv , sval , pbot,ptop ;
    int *hsv , *csv ;
    shortvox *tar ;
 
@@ -402,8 +405,11 @@ static sort_shortvox( int n , shortvox *ar , int dec )
 
    /* decreasing order desired?  flip values */
 
-   if( dec )
+   if( dec ){
+     float tmp ;
      for( ii=0 ; ii < n ; ii++ ) ar[ii].val = -ar[ii].val ;
+     tmp = botperc ; botperc = topperc ; topperc = tmp ;
+   }
 
    /* find range of values */
 
@@ -420,10 +426,28 @@ static sort_shortvox( int n , shortvox *ar , int dec )
             csv[i] = how many have value < sbot+i, i=0..nsv-1 */
 
    hsv = (int *)calloc(sizeof(int),nsv) ;
-   csv = (int *)calloc(sizeof(int),nsv) ;
-   for( ii=0 ; ii < n   ; ii++ ) hsv[ar[ii].val-sbot]++ ;
-   for( ii=1 ; ii < nsv ; ii++ ) csv[ii] = csv[ii-1]+hsv[ii-1] ;
+   csv = (int *)calloc(sizeof(int),nsv+1) ;
+   for( ii=0 ; ii <  n   ; ii++ ) hsv[ar[ii].val-sbot]++ ;
+   for( ii=1 ; ii <= nsv ; ii++ ) csv[ii] = csv[ii-1]+hsv[ii-1] ;
    free((void *)hsv) ;
+
+   if( botperc > 0.0 && botperc < 50.0 ){
+     jj = (int)rint(0.01*botperc*n) ;
+     for( ii=0 ; ii < nsv && csv[ii] <= jj ; ii++ ) ;
+     pbot = ii+sbot ;
+     if( verb ) fprintf(stderr,"++ sort_shortvox: sbot=%d pbot=%d\n",sbot,pbot) ;
+   } else {
+     pbot = sbot ;
+   }
+
+   if( topperc > 0.0 && topperc < 50.0 ){
+     jj = (int)rint(0.01*(100.0-topperc)*n) ;
+     for( ii=0 ; ii < nsv && csv[ii] <= jj ; ii++ ) ;
+     ptop = ii+sbot ;
+     if( verb ) fprintf(stderr,"++ sort_shortvox: stop=%d ptop=%d\n",stop,ptop) ;
+   } else {
+     ptop = stop ;
+   }
 
    /* copy from ar into temp array tar,
       putting each one into its place as given by csv */
@@ -433,6 +457,15 @@ static sort_shortvox( int n , shortvox *ar , int dec )
      sval = ar[ii].val - sbot ;   /* sval is in 0..nsv-1 now */
      tar[ csv[sval] ] = ar[ii] ;
      csv[sval]++ ;
+   }
+
+   if( pbot > sbot ){
+     for( ii=0 ; ii < n ; ii++ )
+       if( tar[ii].val < pbot ) tar[ii].val = pbot ;
+   }
+   if( ptop < stop ){
+     for( ii=0 ; ii < n ; ii++ )
+       if( tar[ii].val > ptop ) tar[ii].val = ptop ;
    }
 
    /* copy back into ar */
@@ -452,43 +485,61 @@ static sort_shortvox( int n , shortvox *ar , int dec )
 
 typedef struct { int num, nall, depth, *ivox; } basin ;
 
+#define DBALL 32768
+
 #define BDEP(i) (baslist[i]->depth)
 
-#define INIT_BASIN(bb,iv)                                    \
- { (bb) = (basin *) malloc(sizeof(basin)) ;                  \
-   (bb)->num     = 1 ;                                       \
-   (bb)->nall    = 1 ;                                       \
-   (bb)->depth   = svox[iv].val ;                            \
-   (bb)->ivox    = (int *)malloc(sizeof(int)) ;              \
-   (bb)->ivox[0] = (iv) ; }
-
-#define KILL_BASIN(bb)                                       \
- { free((void *)(bb)->ivox);free((void *)(bb));(bb) = NULL; }
-
-#define ADDTO_BASIN(bb,iv)                                   \
- { if( (bb)->num == (bb)->nall ){                            \
-     (bb)->nall = (int)(1.5*(bb)->nall)+32 ;                 \
-fprintf(stderr," [realloc in ADDTO_BASIN(%d): %d->%d",iv,(bb)->num,(bb)->nall); \
-     (bb)->ivox = (int *)realloc( (void *)(bb)->ivox ,       \
-                                  sizeof(int)*(bb)->nall ) ; \
-fprintf(stderr,"]") ; \
+#define INIT_BASIN(iv)                                       \
+ { register int qb=nbtop;                                    \
+   if( qb >= nball ){                                        \
+     register int qqb=nball+DBALL,zb ;                       \
+     baslist = (basin **)realloc((void *)baslist,            \
+                                 sizeof(basin *)*qqb) ;      \
+     for( zb=nball ; zb < qqb ; zb++ ) baslist[zb] = NULL ;  \
+     nball = qqb ;                                           \
    }                                                         \
-   (bb)->ivox[(bb)->num++] = (iv) ; }
+   baslist[qb] = (basin *) malloc(sizeof(basin)) ;           \
+   baslist[qb]->num     = 1 ;                                \
+   baslist[qb]->nall    = 1 ;                                \
+   baslist[qb]->depth   = svox[iv].val ;                     \
+   baslist[qb]->ivox    = (int *)malloc(sizeof(int)) ;       \
+   baslist[qb]->ivox[0] = (iv) ;                             \
+   svox[iv].basin       = qb ; nbtop++ ;                     \
+ }
 
-#define MERGE_BASIN(bb,cc)                                   \
- { int zz = (bb)->num + (cc)->num ;                          \
-   if( (bb)->nall < zz ){                                    \
-     (bb)->nall = zz ;                                       \
-fprintf(stderr,"++realloc in MERGE_BASIN"); \
-     (bb)->ivox = (int *)realloc( (void *)(bb)->ivox ,       \
-                                  sizeof(int)*(bb)->nall ) ; \
+#define KILL_BASIN(ib)                                       \
+ { if( baslist[ib] != NULL ){                                \
+     free((void *)baslist[ib]->ivox) ;                       \
+     free((void *)baslist[ib]) ;                             \
+     baslist[ib] = NULL ; }                                  \
+ }
+
+#define ADDTO_BASIN(ib,iv)                                   \
+ { register basin *bb = baslist[ib] ;                        \
+   if( bb->num == bb->nall ){                                \
+     bb->nall = (int)(1.2*bb->nall)+32 ;                     \
+     bb->ivox = (int *)realloc( (void *)bb->ivox ,           \
+                                 sizeof(int)*bb->nall ) ;    \
    }                                                         \
-   memcpy( (bb)->ivox + (bb)->num ,                          \
-           (cc)->ivox , sizeof(int) * (cc)->num ) ;          \
-   (bb)->num = zz ; }
+   bb->ivox[bb->num] = (iv) ; bb->num++ ;                    \
+   svox[iv].basin = (ib) ; }
 
-#undef  DBALL
-#define DBALL 55000
+#define MERGE_BASIN(ib,ic)                                   \
+ { register basin *bb = baslist[ib], *cc = baslist[ic] ;     \
+   int zz = bb->num + cc->num ;                              \
+   if( bb->nall < zz ){                                      \
+     bb->nall = zz+1 ;                                       \
+     bb->ivox = (int *)realloc( (void *)bb->ivox ,           \
+                                  sizeof(int)*bb->nall ) ;   \
+   }                                                         \
+   memcpy( bb->ivox + bb->num ,                              \
+           cc->ivox , sizeof(int) * cc->num ) ;              \
+   bb->num = zz ;                                            \
+   for( zz=0 ; zz < cc->num ; zz++ )                         \
+     svox[cc->ivox[zz]].basin = (ib) ;                       \
+   KILL_BASIN(ic) ; }
+
+/*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
 {
@@ -542,31 +593,33 @@ ENTRY("watershedize") ;
 
    if( verb ) fprintf(stderr,"++mri_watershedize: sorting voxels\n") ;
 
-   sort_shortvox( nvox , svox , 1 ) ;
+   sort_shortvox( nvox , svox , 1 , 0.00 , 0.02 ) ;
 
    /* create basin for first (deepest) voxel */
 
    nball    = DBALL ;
-   nbtop    = 1 ;
+   nbtop    = 0 ;
    baslist  = (basin **) calloc(sizeof(basin *),nball) ;
 
-   INIT_BASIN( baslist[0] , 0 ) ;
-   svox[0].basin = 0 ;
+   INIT_BASIN(0) ;
 
    hpf      = (int)rint(prefac*svox[0].val) ;      /* preflood */
 
    /* scan voxels as they get shallower, and basinate them */
 
-   if( verb ) fprintf(stderr,"++mri_watershedize: basinating voxels") ;
+   if( verb ){
+     fprintf(stderr,"++mri_watershedize: basinating voxels\n") ;
+     fprintf(stderr,"  data range: %d..%d preflood_height=%d\n",
+             svox[nvox-1].val , svox[0].val , hpf ) ;
+   }
 
    for( pp=1 ; pp < nvox ; pp++ ){
 
-fprintf(stderr,"++ pp=%d",pp) ;
      ii = svox[pp].i; jj = svox[pp].j; kk = svox[pp].k;  /* where */
      ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;                 /* nbhrs */
      im = ii-1 ; jm = jj-1 ; km = kk-1 ;
 
-     if( verb && pp%10000 == 0 ) fprintf(stderr,".") ;
+     if( verb && pp%100000 == 0 ) fprintf(stderr, (pp%1000000)?".":"!") ;
 
      /* macro checks if (a,b,c) voxel is in the list;
         if so and it is already in a basin, then
@@ -579,10 +632,8 @@ fprintf(stderr,"++ pp=%d",pp) ;
 #undef  BASECHECK
 #define BASECHECK(a,b,c)                                   \
     { qq = isvox[IJK(a,b,c)] ;                             \
-fprintf(stderr," BASECHECK(%d,%d,%d)",a,b,c) ; \
       if( qq >= 0 && svox[qq].basin >= 0 ){                \
         qq = svox[qq].basin ;                              \
-fprintf(stderr,":baslist[%d]=%p",qq,(void *)baslist[qq]) ; \
         for( m=0 ; m < nb && bp[m] != qq ; m++ ) ;         \
         if( m == nb ){                                     \
           bp[nb] = qq ;                                    \
@@ -590,7 +641,6 @@ fprintf(stderr,":baslist[%d]=%p",qq,(void *)baslist[qq]) ; \
           nb++ ;                                           \
         }                                                  \
       }                                                    \
-fprintf(stderr,".") ; \
     }
 
      nb = 0 ; vb = -1 ; mb = -1 ;         /* initialize counters */
@@ -603,28 +653,12 @@ fprintf(stderr,".") ; \
 
      if( nb == 0 ){  /*** this voxel is isolated ==> create new basin ****/
 
-       m = nbtop ;
-
-fprintf(stderr," new basin at m=%d",m) ;
-
-       if( m == nball ){
-fprintf(stderr," [realloc baslist]") ;
-         mz = nball+DBALL ;
-         baslist = (basin **)realloc((void *)baslist,sizeof(basin *)*mz) ;
-         for( mq=nball ; mq < mz ; mq++ ) baslist[mq] = NULL ;
-         nball = mz ;
-       }
-fprintf(stderr," INIT_BASIN") ;
-       INIT_BASIN(baslist[m],pp) ;
-       svox[pp].basin = m ;       /* assign voxel to new basin */
-       nbtop++ ;
-fprintf(stderr,"\n") ;
+       INIT_BASIN(pp) ;
 
      } else {        /*** this voxel has deeper neighbors ***/
 
-       svox[pp].basin = mq = bp[mb] ;   /* assign voxel to best basin */
-fprintf(stderr," ADDTO_BASIN(%d)",mq) ;
-       ADDTO_BASIN( baslist[mq] , pp ) ;
+       mq = bp[mb] ;                      /* assign voxel to best basin */
+       ADDTO_BASIN( mq , pp ) ;
 
                        /* if have more than one neighbor, other */
        if( nb > 1 ){   /* basins could be merged with the best  */
@@ -633,17 +667,10 @@ fprintf(stderr," ADDTO_BASIN(%d)",mq) ;
            if( m == mb ) continue ;        /* can't merge with itself */
            mu = bp[m] ;
            if( BDEP(mu)-mz <= hpf ){       /* basin not TOO much deeper */
-fprintf(stderr," [merge %d with %d]",mu,mq);
-             MERGE_BASIN(baslist[mq],baslist[mu]) ;
-             for( qq=0 ; qq < baslist[mu]->num ; qq++ )
-               svox[ baslist[mu]->ivox[qq] ].basin = mq ;
-             KILL_BASIN(baslist[mu]) ;
+             MERGE_BASIN(mq,mu) ;
            }
-else fprintf(stderr," [don't merge %d with %d]",mu,mq) ;
          }
        }
-else fprintf(stderr,".") ;
-fprintf(stderr,"\n") ;
      }
    } /* end of loop over voxels */
 
@@ -653,22 +680,18 @@ fprintf(stderr,"\n") ;
 
    /* count number of basines left */
 
-   for( mu=m=0 ; m < nbtop ; m++ ){
-     if( baslist[m] != NULL ){
-       mu++ ;
-       KILL_BASIN(baslist[m]) ;
-     }
-   }
-   free((void *)baslist) ;
+   for( mu=m=0 ; m < nbtop ; m++ )
+     if( baslist[m] != NULL ) mu++ ;
 
-   if( verb ) fprintf(stderr,"\n++ %d active basins left\n",mu) ;
+   if( verb ) fprintf(stderr,"\n++ %d active basins left, out of %d\n",mu,nbtop) ;
 
    bcount = (int *) calloc(sizeof(int),mu) ;     /* number in each basin */
    bname  = (int *) calloc(sizeof(int),mu) ;
    isvox  = (int *) calloc(sizeof(int),nbtop) ;  /* new index */
 
    for( m=ii=0 ; m < nbtop ; m++ )
-     if( baslist[m] != NULL ){ isvox[m] = ii; bname[ii] = ii; ii++; }
+     if( baslist[m] != NULL ){ isvox[m] = ii; bname[ii] = ii; ii++; KILL_BASIN(m); }
+   free((void *)baslist) ;
 
    for( pp=0 ; pp < nvox ; pp++ ){
      m  = svox[pp].basin ;           /* old basin name for this voxel */
@@ -749,12 +772,12 @@ static void ijkwarp( float  i, float  j, float  k ,
 
 MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
 {
-   MRI_IMAGE *sim , *tim ;
+   MRI_IMAGE *sim , *tim , *bim ;
    short *sar , sval ;
    int ii,jj,kk,ijk,ktop,kbot , nx,ny,nz,nxy,nxyz ;
    float val , icm,jcm,kcm,sum , dx,dy,dz ;
-   byte *mask ;
-   int *zcount , z1,z2,z3 ;
+   byte *mask , *bar ;
+   int *zcount , *hist , z1,z2,z3 ;
 
 ENTRY("mri_brainormalize") ;
 
@@ -933,5 +956,64 @@ ENTRY("mri_brainormalize") ;
    tim->xo = XORG ;
    tim->yo = YORG ;
    tim->zo = ZORG ;
-   RETURN(tim) ;
+
+   /*-- build another mask now --*/
+
+   if( verb ) fprintf(stderr,"++mri_brainormalize: masking standard image\n") ;
+
+   nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   mask = mri_short2mask( tim ) ;
+   THD_mask_clust( nx,ny,nz, mask ) ;
+   THD_mask_erode( nx,ny,nz, mask ) ;
+   THD_mask_clust( nx,ny,nz, mask ) ;
+   ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
+   if( ii > 0 ){
+     ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
+     if( ii > 0 ){
+       ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
+     }
+   }
+   (void) THD_peel_mask( nx,ny,nz , mask , 9 ) ;
+   THD_mask_erode( nx,ny,nz, mask ) ;
+   THD_mask_clust( nx,ny,nz, mask ) ;
+   (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+   THD_mask_clust( nx,ny,nz, mask ) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+
+   sar = MRI_SHORT_PTR(tim) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
+
+   free((void *)mask) ;
+
+   /*-- clip top 1% of values that have survived --*/
+
+   hist = (int *) calloc(sizeof(int),32768) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
+   for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
+   kk = (int)(0.01*kk) ;
+   for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ) jj += hist[ii] ;
+   jj = ii ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
+
+   free((void *)hist) ;
+
+   /*-- convert output to bytes --*/
+
+   bim = mri_new_conforming( tim , MRI_byte ) ;
+   MRI_COPY_AUX(bim,tim) ;
+   bar = MRI_BYTE_PTR(bim) ;
+
+   if( jj > 255 ){
+     float fac = 255.0 / jj ;
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;
+   } else {
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)sar[ii] ;
+   }
+   mri_free(tim) ;
+
+   /*-- done!!! --*/
+
+   RETURN(bim) ;
 }
