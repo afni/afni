@@ -480,6 +480,8 @@ void SUMA_SetScaleThr(void *data);
    "\n"   \
    "Left click locks ranges\n"   \
    "from automatic resetting.\n"   \
+   "Locked range is applied to\n"   \
+   "current Dset only.\n"   \
    "\n"   \
    "Right click resets values\n"   \
    "to full range in data."  
@@ -493,6 +495,8 @@ void SUMA_SetScaleThr(void *data);
    "\n"   \
    "Left click locks ranges\n"   \
    "from automatic resetting.\n"   \
+   "Locked range is applied to\n"   \
+   "current Dset only.\n"  \
    "\n"   \
    "Right click resets values\n"   \
    "to full range in data."   
