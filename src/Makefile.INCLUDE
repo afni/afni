@@ -45,7 +45,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
-           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze
+           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
+           3dAutoTcorrelate
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -62,7 +63,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
-                  mayo_analyze
+                  mayo_analyze 3dAutoTcorrelate
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -84,7 +85,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum   \
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
-               3dAFNItoANALYZE siemens_vision ge_header mayo_analyze
+               3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
+               3dAutoTcorrelate
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -347,6 +349,10 @@ dsetdup:dsetdup.o
 3dTcorrelate:3dTcorrelate.o
 	$(RM) $@
 	$(CC) -o 3dTcorrelate 3dTcorrelate.o $(LFLAGS) $(LLIBS)
+
+3dAutoTcorrelate:3dAutoTcorrelate.o
+	$(RM) $@
+	$(CC) -o 3dAutoTcorrelate 3dAutoTcorrelate.o $(LFLAGS) $(LLIBS)
 
 3dTagalign:3dTagalign.o
 	$(RM) $@
