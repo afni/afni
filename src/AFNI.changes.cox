@@ -3800,3 +3800,7 @@
 
 19 Jun 2002
  * Fixed clipping error in plot_cox.c (dangling else problem, d'oh).
+
+20 Jun 2002
+ * Modified mri_read_ascii() to catenate lines that end in '\', and do
+     some other minor stuff ('//' as a comment line, etc.).

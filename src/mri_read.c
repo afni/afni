@@ -1470,16 +1470,85 @@ WHOAMI ;
 
    return rgbim ;
 }
+/*---------------------------------------------------------------*/
+
+/*! Length of line buffer for mri_read_ascii() */
+#define LBUF 65536
+
+/*---------------------------------------------------------------*/
+/*! [20 Jun 2002] Like fgets, but also
+     - skips blank or comment lines
+     - skips leading and trailing whitespace
+     - catenates lines that end in '\' (replacing '\' with ' ')
+-----------------------------------------------------------------*/
+
+static char * my_fgets( char *buf , int size , FILE *fts )
+{
+   char *ptr ;
+   int nbuf , ll,ii , cflag ;
+   static char *qbuf=NULL ;
+
+   if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
+
+   if( qbuf == NULL ) qbuf = malloc(LBUF) ;  /* 1st time in */
+
+   nbuf  = 0 ;  /* num bytes stored in buf so far */
+   cflag = 0 ;  /* flag if we're catenating lines */
+
+   while(1){   /* loop and read lines, creating a logical line */
+
+     ptr = fgets( qbuf , LBUF , fts ) ; /* read next whole line */
+
+     if( ptr == NULL ) break ;          /* must be end-of-file */
+
+     /* skip leading whitespace */
+
+     for( ; *ptr != '\0' && isspace(*ptr) ; ptr++ ) ; /* nada */
+
+     /* skip entirely blank lines, unless we are catenating */
+
+     if( *ptr == '\0' ){ if(cflag) break; else continue; }
+
+     /* skip comment lines (even if we are catenating) */
+
+     if( *ptr == '#' || (*ptr == '/' && *(ptr+1) == '/') ) continue ;
+
+     /* strip trailing whitespace */
+
+     ll = strlen(ptr) ;                                  /* will be > 0 */
+     for( ii=ll-1 ; isspace(ptr[ii]) && ii > 0 ; ii-- )  /* blank => NUL */
+       ptr[ii] = '\0' ;
+
+     ll = strlen(ptr) ;                 /* number of chars left */
+     if( ll == 0 ) continue ;           /* should not happen */
+
+     cflag = (ptr[ll-1] == '\\') ;      /* catenate next line? */
+     if( cflag ) ptr[ll-1] = ' ' ;      /* replace '\' with ' ' */
+
+     /* now copy what's left (ll+1 bytes) at tail of output buffer */
+
+     if( nbuf+ll+1 > size ){   /* too much for output buffer? */
+       ll = size - (nbuf+1) ;
+       if( ll <= 0 ) break ;   /* should not happen */
+     }
+
+     memcpy(buf+nbuf,ptr,ll+1) ; nbuf += ll ;
+     if( !cflag ) break ;
+
+   } /* loop to get next line if catenation is turned on */
+
+   /* and we is done */
+
+   if( nbuf > 0 ) return buf ;      /* return what we read already */
+   return NULL ;                    /* signal of failure get data  */
+}
 
 /*---------------------------------------------------------------*/
 
 /*! Increment for time series array size for mri_read_ascii() */
 #define INC_TSARSIZE 128
 
-/*! Length of line buffer for mri_read_ascii() */
-#define LBUF         32768
-
-/*!\brief Read an array of ASCII numbers into a 1D or 2D image.
+/*! Read an array of ASCII numbers into a 1D or 2D image.
 
   \param fname = input filename
   \return Pointer to MRI_IMAGE (in MRI_float) format if things
@@ -1496,6 +1565,8 @@ WHOAMI ;
   values.  A line whose very first character is a '#' will
   be skipped as a comment.  A line with no characters (just
   the '\n') will also be skipped.
+
+  20 Jun 2002: modified to use my_fgets() instead of fgets().
 */
 
 MRI_IMAGE * mri_read_ascii( char * fname )
@@ -1505,32 +1576,33 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    float * tsar ;
    float ftemp ;
    FILE * fts ;
-   char buf[LBUF] ;
    char * ptr ;
    int  ncol , bpos , blen , nrow ;
+   static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
-   fts = fopen( fname , "r" ) ; if( fts == NULL ) return NULL ;
+   fts = fopen( fname , "r" ); if( fts == NULL ) return NULL;
 
-   /** step 1: read in the first line and see how many numbers are in it **/
+   if( buf == NULL ) buf = malloc(LBUF) ;  /* 20 Jun 2002: 1st time in */
 
-   do{
-     ptr = fgets( buf , LBUF , fts ) ;
-     if( ptr == NULL ){ fclose( fts ) ; return NULL ; }  /* bad read? */
-   } while( *ptr == '\0' || *ptr == '\n' || *ptr == '#' ) ;
+   /** step 1: read in the first line and see how many numbers are in it
+               (skipping lines that are comments or entirely blank)     */
+
+   ptr = my_fgets( buf , LBUF , fts ) ;
+   if( ptr==NULL || *ptr=='\0' ){ fclose(fts); return NULL; }  /* bad read? */
 
    blen = strlen(buf) ;
    bpos = 0 ;
    ncol = 0 ;
    do{
-       for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==',') ; bpos++ ) ; /* nada */
-       if( bpos == blen ) break ;
-       ii = sscanf( buf+bpos , "%f%n" , &ftemp , &jj ) ;
-       if( ii < 1 ){ ncol = 0 ; break ; }           /* bad scan? */
-       ncol++ ; bpos += jj ;
+     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==',') ; bpos++ ) ; /* nada */
+     if( bpos == blen ) break ;
+     ii = sscanf( buf+bpos , "%f%n" , &ftemp , &jj ) ;
+     if( ii < 1 ){ ncol = 0; break; }           /* bad scan? */
+     ncol++; bpos += jj;
    } while( bpos < blen ) ;
-   if( ncol == 0 ){ fclose( fts ) ; return NULL ; } /* couldn't read? */
+   if( ncol == 0 ){ fclose(fts); return NULL; } /* couldn't read? */
 
    /** At this point, ncol is the number of floats to be read from each line **/
 
@@ -1540,50 +1612,49 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    alloc_tsar = INC_TSARSIZE ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** malloc error in mri_read_ascii ***\n") ; EXIT(1) ;
+      fprintf(stderr,"\n*** malloc error in mri_read_ascii ***\n"); EXIT(1);
    }
 
    /** read lines, convert to floats, store **/
 
    nrow = 0 ;
    while( 1 ){
-      ptr = fgets( buf , LBUF , fts ) ;  /* read */
-      if( ptr == NULL ) break ;          /* failure --> end of data */
+     ptr = my_fgets( buf , LBUF , fts ) ;  /* read */
+     if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
 
-      if( *ptr == '\0' || *ptr == '\n' || *ptr == '#' ) continue ; /* skip line */
-      blen = strlen(buf) ;
+     blen = strlen(buf) ;
 
-      /* convert commas to blanks */
+     /* convert commas to blanks */
 
-      for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' ) buf[ii] = ' ' ;
+     for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' ) buf[ii] = ' ' ;
 
-      for( ii=0,bpos=0 ; ii < ncol && bpos < blen ; ii++ ){
-         val = sscanf( buf+bpos , "%f%n" , &ftemp , &jj ) ;  /* read from string */
-         if( val < 1 ) break ;                               /* bad read? */
-         bpos += jj ;                                        /* start of next read */
+     for( ii=0,bpos=0 ; ii < ncol && bpos < blen ; ii++ ){
+       val = sscanf( buf+bpos , "%f%n" , &ftemp , &jj ) ;  /* read from string */
+       if( val < 1 ) break ;                               /* bad read? */
+       bpos += jj ;                                        /* start of next read */
 
-         if( used_tsar == alloc_tsar ){
-            alloc_tsar += INC_TSARSIZE ;
-            tsar        = (float *)realloc( tsar,sizeof(float)*alloc_tsar );
-            if( tsar == NULL ){
-               fprintf(stderr,"\n*** realloc error in mri_read_ascii ***\n") ; EXIT(1) ;
-            }
+       if( used_tsar == alloc_tsar ){
+         alloc_tsar += INC_TSARSIZE ;
+         tsar        = (float *)realloc( tsar,sizeof(float)*alloc_tsar );
+         if( tsar == NULL ){
+           fprintf(stderr,"\n*** realloc error in mri_read_ascii ***\n"); EXIT(1);
          }
+       }
 
-         tsar[used_tsar++] = ftemp ;  /* store input */
-      }
+       tsar[used_tsar++] = ftemp ;  /* store input */
+     }
 
-      if( ii != ncol ) break ;  /* didn't get all of them? */
+     if( ii != ncol ) break ;  /* didn't get all of them? */
 
-      nrow++ ;                  /* got one more complete row! */
+     nrow++ ;                  /* got one more complete row! */
    }
    fclose( fts ) ; /* finished with this file! */
 
-   if( used_tsar <= 1 ){ free(tsar) ; return NULL ; }
+   if( used_tsar <= 1 ){ free(tsar); return NULL; }
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n") ; EXIT(1) ;
+      fprintf(stderr,"\n*** final realloc error in mri_read_ascii ***\n"); EXIT(1);
    }
 
    outim = mri_new_vol_empty( ncol , nrow , 1 , MRI_float ) ;
