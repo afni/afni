@@ -5183,3 +5183,8 @@
  * eis_svd.c sometimes works wrong with "gcc -O", so modified Makefile.INCLUDE
      and eispack/Makefile to turn optimization off for this file.
 
+23 Aug 2004
+ * Fixed bug with polort=-1; program creates a baseline model matrix with
+     0 columns, and matrix_psinv() didn't like that.
+ * Add basis_write_response() to 3dDeconvolve.c to actually write out the
+     computed IRF for symbolic models.

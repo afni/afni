@@ -401,6 +401,10 @@ typedef struct {
 
 basis_expansion * basis_parser( char *sym ) ;
 float basis_evaluation( basis_expansion *be , float *wt , float x ) ;
+void basis_write_response( int argc , char *argv[] ,
+                           struct DC_options *option_data ,
+                           basis_expansion *be , float dt ,
+                           float **wtar , char *output_filename ) ;
 
 /** global variables for stimulus basis expansions **/
 
@@ -3739,7 +3743,7 @@ void calculate_results
         esum += fabs(sum) ;
       }
     }
-    esum /= (mm*mm) ; 
+    esum /= (mm*mm) ;
     if( esum > 1.e-3 ) www = " ** WARNING!!! **" ;
     fprintf(stderr,"++ Matrix inverse average error = %g %s\n",esum,www) ;
   }
@@ -4657,9 +4661,9 @@ void write_bucket_data
 	  for (icoef = 0;  icoef < qp;  icoef++)
 	    {
 	      if (qp == polort+1)
-		strcpy (label, "Base");
+		strcpy (label, "Base");                            /* only 1 run */
 	      else
-		sprintf (label, "Run#%d", icoef/(polort+1) + 1);
+		sprintf (label, "Run#%d", icoef/(polort+1) + 1);   /* multiple runs */
 	
 	      /*----- Baseline coefficient -----*/
 	      brick_type = FUNC_FIM_TYPE;
@@ -5014,9 +5018,16 @@ void output_results
     {
       if( basis_stim[is] != NULL ){                    /* until later */
         if( option_data->iresp_filename[is] != NULL )
+#if 0
           fprintf(stderr,
                   "** WARNING: Ignoring -iresp %d '%s'\n",
                   is+1,option_data->iresp_filename[is]) ;
+#else
+          basis_write_response( argc , argv , option_data ,
+                                basis_stim[is] , basis_dtout ,
+                                coef_vol+ib    ,
+                                option_data->iresp_filename[is] ) ;
+#endif
         continue ;
       }
 
@@ -7044,4 +7055,98 @@ basis_expansion * basis_parser( char *sym )
    }
 
    free(scp); return be;
+}
+
+/*----------------------------------------------------------------------*/
+
+void basis_write_response( int argc , char *argv[] ,
+                           DC_options *option_data ,
+                           basis_expansion *be , float dt ,
+                           float **wtar , char *output_filename )
+{
+   int nvox , ii, ib , pp , nf , allz , ts_length ;
+   float *wt , *tt , **hout , factor ;
+   short *bar ;
+   THD_3dim_dataset *in_dset = NULL;
+   THD_3dim_dataset *out_dset = NULL;
+   char *commandline , label[512] ;
+   const float EPSILON = 1.0e-10 ;
+
+   in_dset = THD_open_dataset(option_data->input_filename);
+   nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
+
+   out_dset = EDIT_empty_copy( in_dset ) ;
+   tross_Copy_History( in_dset , out_dset ) ;
+   DSET_delete( in_dset ) ;
+
+   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+   sprintf( label , "Impulse response: %s" , output_filename ) ;
+   if( commandline != NULL )
+     tross_multi_Append_History( out_dset , commandline,label,NULL ) ;
+   else
+     tross_Append_History ( out_dset, label);
+   free((void *)commandline) ;
+
+   ts_length = (int)ceil( (be->ttop - be->tbot)/basis_dtout ) ;
+
+   (void ) EDIT_dset_items( out_dset,
+                             ADN_prefix,      output_filename,
+                             ADN_label1,      output_filename,
+                             ADN_self_name,   output_filename,
+                             ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+                             ADN_datum_all,   MRI_short,
+                             ADN_nvals,       ts_length,
+                             ADN_ntt,         ts_length,
+                             ADN_ttdel,       basis_dtout ,
+                             ADN_ttorg,       be->tbot,
+                            ADN_none ) ;
+
+   if( THD_is_file(out_dset->dblk->diskptr->header_name) ){
+     fprintf(stderr,
+             "** ERROR: Output dataset file %s already exists - won't overwrite\n",
+             out_dset->dblk->diskptr->header_name ) ;
+     DSET_delete(out_dset) ; return ;
+   }
+
+   hout = (float **) malloc( sizeof(float) * ts_length ) ;  /* output bricks */
+   for( ib=0 ; ib < ts_length ; ib++ )
+     hout[ib] = (float *)calloc(sizeof(float),nvox) ;
+
+   nf = be->nfunc ;
+   wt = (float *) malloc( sizeof(float) * nf ) ;
+   tt = (float *) malloc( sizeof(float) * ts_length ) ;
+
+   for( ib=0 ; ib < ts_length ; ib++ )     /* output time grid */
+     tt[ib] = be->tbot + ib*basis_dtout ;
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     allz = 1 ;
+     for( pp=0 ; pp < nf ; pp++ ){
+       wt[pp] = wtar[pp][ii] ; allz = ( allz && (wt[pp] == 0.0f) );
+     }
+
+     if( allz ){
+       for( ib=0 ; ib < ts_length ; ib++ ) hout[ib][ii] = 0.0f ;
+     } else {
+       for( ib=0 ; ib < ts_length ; ib++ )
+         hout[ib][ii] = basis_evaluation( be , wt , tt[ib] ) ;
+     }
+   }
+
+   free((void *)tt) ; free((void *)wt) ;
+
+   for( ib=0 ; ib < ts_length ; ib++ ){
+     bar = (short *) malloc( sizeof(short) * nvox ) ;
+     factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
+     if( factor < EPSILON ) factor = 0.0f ;
+     else                   factor = 1.0f / factor ;
+     EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
+     EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+     free((void *)hout[ib]) ;
+   }
+
+   free((void *)hout) ;
+   DSET_write( out_dset ) ;
+   DSET_delete( out_dset ) ;
+   return ;
 }

@@ -187,16 +187,16 @@ int init_indep_var_matrix
           the baseline (null hypothesis) signal model -----*/
   for (ib = 0;  ib < num_blocks;  ib++)
     {
-      nfirst = block_list[ib];
+      nfirst = block_list[ib];       /* start time index for this run */
       if (ib+1 < num_blocks)
-	nlast = block_list[ib+1];
+	nlast = block_list[ib+1];    /* last+1 time index for this run */
       else
 	nlast = nt;
 
       for (n = nfirst;  n < nlast;  n++)
 	{
-	  mfirst = ib * (polort+1);
-	  mlast  = (ib+1) * (polort+1);
+	  mfirst =  ib    * (polort+1);   /* first column index */
+	  mlast  = (ib+1) * (polort+1);   /* last+1 column index */
 
           if( !legendre_polort ){                /* the old way: powers */
 	    for (m = mfirst;  m < mlast;  m++)
@@ -766,7 +766,7 @@ void report_results
 	  sprintf (sbuf, "\nBaseline for Run #%d: \n", ib+1);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;
 	
-	  mfirst = ib * (polort+1);
+	  mfirst =  ib    * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
 	  for (m = mfirst;  m < mlast;  m++)
 	    {
