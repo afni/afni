@@ -76,11 +76,11 @@ typedef struct { float r,i ; } complex ;
 
 #define NI_NUM_TYPES       10
 
-/*! Number of types of fixed size.
+/*! Number of types of fixed size ("basic" types).
     Note that if this changes,
     the NI_rowtype stuff in niml.c must be altered accordingly. */
 
-#define NI_NUM_FIXED_TYPES  8
+#define NI_NUM_BASIC_TYPES  8
 
 /*! Valid data type character codes. */
 
@@ -95,10 +95,13 @@ typedef struct { float r,i ; } complex ;
 typedef struct {
   int   code ;             /*!< unique integer code for this type */
   int   size ;             /*!< number of bytes for this type */
+  int   algn ;             /*!< byte alignment for this type */
   char *name ;             /*!< unique string name for this type */
   char *userdef ;          /*!< definition user gave for this type */
-  int   part_num ;         /*!< number of parts */
-  int  *part_typ ;         /*!< integer codes of the parts (fixed types) */
+  int   comp_num ;         /*!< number of components (components may be rowtypes) */
+  int  *comp_typ ;         /*!< integer codes of the components */
+  int   part_num ;         /*!< number of parts (parts are basic types) */
+  int  *part_typ ;         /*!< integer codes of the parts */
   int  *part_off ;         /*!< byte offsets of the parts */
 } NI_rowtype ;
 
@@ -108,6 +111,7 @@ typedef struct {
 #define delete_rowtype(rr)                 \
  do{ NI_free((rr)->name)     ;             \
      NI_free((rr)->userdef)  ;             \
+     NI_free((rr)->comp_typ) ;             \
      NI_free((rr)->part_typ) ;             \
      NI_free((rr)->part_off) ;             \
      NI_free(rr)             ; } while(0)
@@ -116,6 +120,15 @@ extern int          NI_rowtype_define      ( char *, char * ) ;
 extern NI_rowtype * NI_rowtype_find_name   ( char * ) ;
 extern NI_rowtype * NI_rowtype_find_code   ( int ) ;
 extern int          NI_rowtype_name_to_code( char * ) ;
+extern char *       NI_rowtype_code_to_name( int ) ;
+
+/*! Used to set the code for each new user-defined type. */
+
+#define ROWTYPE_BASE_CODE (1001-NI_NUM_BASIC_TYPES)
+
+/*! Used to test if a rowtype code is a basic type. */
+
+#define ROWTYPE_is_basic_code(nn) ( (nn) < NI_NUM_BASIC_TYPES )
 
 /*****------------------------------------------------------------------*****/
 
@@ -411,6 +424,8 @@ extern void   NI_swap2( int, void * ) ;
 extern void   NI_swap4( int, void * ) ;
 extern void   NI_swap8( int, void * ) ;
 
+#define NI_is_file(pn) (NI_filesize(pn) >= 0)   /* 10 Dec 2002 */
+
 extern char * NI_mktemp( char * ) ;  /* 21 Aug 2002 */
 
 extern char * NI_type_name( int ) ;
@@ -436,6 +451,9 @@ extern void NI_swap_vector( int, int, void * ) ;
 #include <stdarg.h>
 extern void NI_define_rowmap_AR( NI_element *, int,int *,int *) ;
 extern void NI_define_rowmap_VA( NI_element *, ... ) ;
+
+extern void NI_define_rowmap_from_rowtype_code( NI_element *, int    ) ;
+extern void NI_define_rowmap_from_rowtype_name( NI_element *, char * ) ;
 
 extern void NI_add_row( NI_element *, void * ) ;
 extern void NI_get_row( NI_element *, int, void * ) ;

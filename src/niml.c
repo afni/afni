@@ -2442,24 +2442,28 @@ static str_array * decode_string_list( char *ss , char *sep )
 
    lss = NI_strlen(ss) ;
    num = id = 0 ;
-   while( id <= lss ){
+   while( id < lss ){
 
       /* skip current position ahead over whitespace */
 
       while( id < lss && isspace(ss[id]) ) id++ ;
+      if( id == lss ) break ;                           /* ran out of string */
 
       jd = id ;               /* save current position (start of new string) */
 
-      /* skip ahead until ss[id] is a separator */
+      /* skip ahead until ss[id] is a separator [or a space - 10 Dec 2002] */
 
-      while( id < lss && strchr(sep,ss[id]) == NULL ) id++ ;
+      while( id < lss && strchr(sep,ss[id]) == NULL && !isspace(ss[id]) ) id++;
+      if( id == jd ){ id++; continue; }    /* is only a separator? */
 
       /* sub-string runs from ss[jd] to ss[id-1] */
 
       sar->str = NI_realloc( sar->str , sizeof(char)*(num+1) ) ;
 
       nn = id-jd ;                                   /* length of sub-string */
+#if 0
       while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
+#endif
       sar->str[num] = NI_malloc(nn+1) ;              /* make output string  */
       if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
       sar->str[num++][nn] = '\0' ;                   /* terminate output  */
@@ -3310,6 +3314,34 @@ void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
       }
    }
    return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Define a rowmap from a NI_rowtype expression of a struct.
+    - code = integer code for the NI_rowtype
+    - RWCox - 10 Dec 2002
+-------------------------------------------------------------------------*/
+
+void NI_define_rowmap_from_rowtype_code( NI_element *nel, int code )
+{
+   int nrow=0 , typ,off ;
+   NI_rowtype *qt ;
+
+   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
+   if( code < 0 ) return ;
+
+   qt = NI_rowtype_find_code( code ) ;
+   if( qt == NULL ) return ;
+
+   NI_define_rowmap_AR( nel, qt->part_num, qt->part_typ, qt->part_off ) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void NI_define_rowmap_from_rowtype_name( NI_element *nel, char *nam )
+{
+   NI_define_rowmap_from_rowtype_code( nel ,
+                                       NI_rowtype_name_to_code(nam) ) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -9115,7 +9147,7 @@ void NI_malloc_dump(void)
 
    for( ii=1 ; ii < 1000 ; ii++ ){
      sprintf(fname,"NI_malldump.%03d",ii) ;
-     if( THD_is_file(fname) ) continue ;
+     if( NI_is_file(fname) ) continue ;
      fp = fopen( fname , "w" ) ;
      if( fp == NULL ){
        fprintf(stderr,"** Unable to open file %s for malloc table dump!\n",
@@ -9441,14 +9473,14 @@ void qsort_intint( int n , int * a , int * ia )
 
 #endif  /* NIML_OLD_MALLOC or DONT_USE_MCW_MALLOC */
 
-/**************************************************************************/
-/**** Stuff for defining row types from strings.  RWCox - 09 Dec 2002. ****/
-/**************************************************************************/
+/***************************************************************************/
+/***** Stuff for defining rowtypes from strings.  RWCox - 09 Dec 2002. *****/
+/***************************************************************************/
 
-/*--------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 
 /* These typedefs are used to find the byte alignment
-   the compiler imposes on the 'fixed' types supported by NIML. */
+   the compiler imposes on the 'basic' types supported by NIML. */
 
 typedef struct { char a; byte    b; } qvzw_byte    ;
 typedef struct { char a; short   b; } qvzw_short   ;
@@ -9459,9 +9491,9 @@ typedef struct { char a; complex b; } qvzw_complex ;
 typedef struct { char a; rgb     b; } qvzw_rgb     ;
 typedef struct { char a; rgba    b; } qvzw_rgba    ;
 
-static int   type_alignment[NI_NUM_FIXED_TYPES] ;
-static int   type_size     [NI_NUM_FIXED_TYPES] ;
-static char *type_name     [NI_NUM_FIXED_TYPES] = {
+static int   type_alignment[NI_NUM_BASIC_TYPES] ;
+static int   type_size     [NI_NUM_BASIC_TYPES] ;
+static char *type_name     [NI_NUM_BASIC_TYPES] = {
   "byte" , "short" , "int" , "float" , "double" , "complex" , "rgb" , "rgba"
 } ;
 
@@ -9469,24 +9501,21 @@ static char *type_name     [NI_NUM_FIXED_TYPES] = {
 
 static Htable *rowtype_table = NULL ;
 
-/*! Used to set the code for each new user-defined type. */
-
-#define ROWTYPE_BASE_CODE (1001-NI_NUM_FIXED_TYPES)
-
-/*! Register a rowtype into the table, both by name and by integer code. */
+/*! Register a rowtype into the table, both by name and by integer
+    code (turned into a string, since that's how an Htable works). */
 
 #define ROWTYPE_register(rr)                               \
  do{ char ts[16] ;                                         \
-     if( rowtype_table == NULL ) setup_fixed_types() ;     \
+     if( rowtype_table == NULL ) setup_basic_types() ;     \
      addto_Htable( (rr)->name , (rr) , rowtype_table ) ;   \
-     sprintf(ts,"%06d",(rr)->code) ;                       \
+     sprintf(ts,"#%06d",(rr)->code) ;                      \
      addto_Htable( ts , (rr) , rowtype_table ) ;           \
  } while(0)
 
 /*--------------------------------------------------------------------------*/
-/*! Setup the alignment of fixed NI types inside a struct (depends on CPU). */
+/*! Setup the alignment of basic NI types inside a struct (depends on CPU). */
 
-static void setup_fixed_types(void)
+static void setup_basic_types(void)
 {
    NI_rowtype *rt ;
    int ii ;
@@ -9511,14 +9540,15 @@ static void setup_fixed_types(void)
    type_size[NI_RGB    ] = sizeof(rgb    ) ;
    type_size[NI_RGBA   ] = sizeof(rgba   ) ;
 
-   /* initialize the rowtype table with the fixed types */
+   /* initialize the rowtype table with the basic types */
 
    rowtype_table = new_Htable(13) ;
 
-   for( ii=0 ; ii < NI_NUM_FIXED_TYPES ; ii++ ){
+   for( ii=0 ; ii < NI_NUM_BASIC_TYPES ; ii++ ){
      rt               = NI_new( NI_rowtype ) ;
      rt->code         = ii ;
      rt->size         = type_size[ii] ;
+     rt->algn         = type_alignment[ii] ;
      rt->name         = strdup(type_name[ii]) ;
      rt->userdef      = strdup(type_name[ii]) ;
      rt->part_num     = 1 ;
@@ -9526,16 +9556,46 @@ static void setup_fixed_types(void)
      rt->part_typ[0]  = ii ;
      rt->part_off     = NI_malloc(sizeof(int)) ;
      rt->part_off[0]  = 0 ;
+     rt->comp_num     = 1 ;
+     rt->comp_typ     = NI_malloc(sizeof(int)) ;
+     rt->comp_typ[0]  = ii ;
      ROWTYPE_register( rt ) ;
    }
 }
 
 /*--------------------------------------------------------------------------*/
+/* Define a NI_rowtype, which is an expression of a C struct.
+    - tname = name to call this thing
+    - tdef = definition of the type
+       - a list of type names separated by commas
+       - a type name is one of the NIML basic types
+         ("byte", "short", "int", "float", "double", "complex", "rgb", "rgba"),
+         or is a previously defined tname from a another NI_rowtype
+       - note that only fixed length types are definable here
+       - a type name may be preceded by an integer count, as in "int,4*float"
+
+   The intention is that a C struct type is mapped to a NI_rowtype.  Some
+   examples:
+       - typedef struct { int i; float x,y,z; } ifvec ;
+       - NI_rowtype_define( "ifvec" , "int,3*float" ) ;
+       - typedef struct { byte a,b; ifvec c; } abvec ;
+       - NI_rowtype_define( "abvec" , "2*byte,ifvec" ) ;
+
+   The return value is a positive integer code which can be used to
+   identify this NI_rowtype (the tname string can also be used for
+   this purpose).  If -1 is returned, something bad transpired.
+
+   The NI_rowtype keeps track of the offsets of each field in these
+   putative structs.  For example, you can define a rowmap for
+   packing/unpacking structs to/from NI_elements using a function like
+     - NI_define_rowmap_from_rowtype_code( nel , code ) ;
+     - NI_define_rowmap_from_rowtype_name( nel , tname) ;
+----------------------------------------------------------------------------*/
 
 int NI_rowtype_define( char *tname , char *tdef )
 {
    NI_rowtype *rt , *qt ;
-   int ii,jj , id,jd,nn ;
+   int ii,jj , id,jd,nn , almax,cbase,np ;
    str_array *sar ;
    char *tp ;
 
@@ -9544,9 +9604,9 @@ int NI_rowtype_define( char *tname , char *tdef )
    if( tname == NULL || *tname == '\0' ||
        tdef  == NULL || *tdef  == '\0' || !isalpha(*tname) ) return -1 ;
 
-   /* create Htable of fixed types, if not already defined */
+   /* create Htable of basic types, if not already defined */
 
-   if( rowtype_table == NULL ) setup_fixed_types() ;
+   if( rowtype_table == NULL ) setup_basic_types() ;
 
    /* see if type name already defined */
 
@@ -9566,13 +9626,15 @@ int NI_rowtype_define( char *tname , char *tdef )
    rt->name = strdup( tname ) ;
    rt->userdef = strdup( tdef ) ;
 
-   /* loop over components, loading the new rt with their parts */
+   /* loop over components, loading the new rt with their info */
+
+   rt->part_num = rt->comp_num = 0 ;
 
    for( ii=0 ; ii < sar->num ; ii++ ){
 
      tp = sar->str[ii] ;
 
-     /* get count in front, if present, into jd */
+     /* get count in front of component name, if present, into jd */
 
      if( isdigit(tp[0]) ){ /* a count */
        jd = nn = 0 ;
@@ -9586,78 +9648,127 @@ int NI_rowtype_define( char *tname , char *tdef )
        jd = 1 ; id = 0 ;           /* default count of 1 */
      }
 
-     /* get the type */
+     /* get the type of this component from its name */
 
      qt = NI_rowtype_find_name( tp+id ) ;
      if( qt == NULL ){
        delete_rowtype(rt); delete_str_array(sar); return -1 ;
      }
 
-     /* add jd copies of the parts from this component type */
+     /* add jd copies of this component type */
 
-     nn = jd * qt->part_num ;
+     rt->comp_typ = NI_realloc( rt->comp_typ , sizeof(int)*(rt->comp_num+jd) ) ;
 
-     rt->part_typ = NI_realloc( rt->part_typ , sizeof(int)*(rt->part_num+nn) ) ;
+     for( jj=0 ; jj < jd ; jj++ )
+       rt->comp_typ[rt->comp_num + jj] = qt->code ;
 
-     for( jj=0 ; jj < nn ; jj++ )
-       rt->part_typ[rt->part_num + jj] = qt->part_typ[jj % qt->part_num] ;
-
-     rt->part_num += nn ;  /* have more parts now */
+     rt->comp_num += jd ;                 /* have more components now */
+     rt->part_num += jd * qt->part_num ;  /* have more parts now */
 
    } /* end of loop over components */
 
-   delete_str_array(sar) ;
+   delete_str_array(sar) ;                  /* done with this string array */
 
-   /* now loop over parts (fixed types), and calculate the offsets */
+   if( rt->part_num == 0 ){ delete_rowtype(rt); return -1; }  /* no parts? */
+
+   /* now loop over components, breaking them down into their parts,
+      storing the part types and their offsets into the C struct    */
 
    rt->part_off = NI_malloc( sizeof(int) * rt->part_num ) ;
+   rt->part_typ = NI_malloc( sizeof(int) * rt->part_num ) ;
 
-   id              = type_alignment[ rt->part_typ[0] ] ; /* largest alignment */
-   rt->part_off[0] = 0 ;
-   for( ii=1 ; ii < rt->part_num ; ii++ ){
-     nn = type_size     [ rt->part_typ[ii-1] ] ;  /* # bytes in previous part */
-     jd = rt->part_off  [ ii-1               ] ;  /* offset of previous part */
-     jj = type_alignment[ rt->part_typ[ii]   ] ;  /* how to align this part */
+   almax = 1 ;  /* will be largest type_alignment of any part */
+   cbase = 0 ;  /* base offset for next component */
+   id    = 0 ;  /* part number we are at */
 
-     if( jj > id ) id = jj ;
+   for( ii=0 ; ii < rt->comp_num ; ii++ ){
 
-     nn += jd ;                                   /* next free byte;       */
-     if( jj > 1 ){                                /* must move it up if    */
-       jd = nn % jj ;                             /* not on exact multiple */
-       if( jd > 0 ) nn += (jj-jd) ;               /* of jj bytes alignment */
+     qt = NI_rowtype_find_code( rt->comp_typ[ii] ) ;  /* component type */
+
+     /* adjust cbase upward if this component isn't properly aligned */
+
+     if( qt->algn > 1 ){
+       jd = cbase % qt->algn ;
+       if( jd > 0 ) cbase += (qt->algn-jd) ;
      }
-     rt->part_off[ii] = nn ;
-   }
 
-   ii = rt->part_num - 1 ;
-   nn = type_size   [ rt->part_typ[ii] ] ;  /* # bytes in last part */
-   jd = rt->part_off[ ii               ] ;  /* offset of last part */
-   jj = id ;
+     np = qt->part_num ;                 /* number of parts to add here */
 
-   nn += jd ;                               /* next byte after last part */
-   if( jj > 1 ){
-     jd = nn % jj ;
-     if( jd > 0 ) nn += (jj-jd) ;
+     rt->part_typ[id] = qt->part_typ[0] ;  /* first part from component */
+     rt->part_off[id] = cbase ;             /* goes at the current base */
+
+     jj = type_alignment[ rt->part_typ[id] ] ;     /* alignment of part */
+     if( jj > almax ) almax = jj ;   /* keep track of largest alignment */
+
+     id++ ;  /* prepare to add next part */
+
+     /* loop over rest of parts from this component */
+
+     for( jj=1 ; jj < np ; jj++,id++ ){
+       rt->part_typ[id] = qt->part_typ[jj] ;       /* type of new part      */
+       nn = type_size     [ rt->part_typ[id-1] ] ; /* # bytes in last part  */
+       jd = rt->part_off  [ id-1               ] ; /* offset of last part   */
+       jj = type_alignment[ rt->part_typ[id]   ] ; /* how to align new part */
+       if( jj > almax ) almax = jj ;     /* keep track of largest alignment */
+
+       nn += jd ;      /* next available byte = sum of last offset and size */
+       if( jj > 1 ){                               /* must move nn up if    */
+         jd = nn % jj ;                            /* not on exact multiple */
+         if( jd > 0 ) nn += (jj-jd) ;              /* of jj bytes alignment */
+       }
+       rt->part_off[id] = nn ;
+     }
+
+     /* now move the base offset up by the size of the current
+        component (which may be bigger than the sum of its parts) */
+
+     cbase += qt->size ;
+
+   } /* end of loop over components */
+
+   /* now compute the overall size of this new rowtype;
+      at this point,
+      cbase = next byte offset available after last part;
+      this would be the size, but may have to be pushed
+      up to allow for byte alignment of this rowtype     */
+
+   rt->algn = almax ;
+   if( rt->algn > 1 ){
+     jd = cbase % rt->algn ;
+     if( jd > 0 ) cbase += (rt->algn-jd) ;
    }
-   rt->size = nn ;                          /* size of entire struct */
+   rt->size = cbase ;
+
+   /** debugging printouts **/
+
+#if 0
+   printf("\n") ;
+   printf("NI_rowtype_define: %s %s\n",tname,tdef) ;
+   printf("  code     = %d\n",rt->code) ;
+   printf("  size     = %d\n",rt->size) ;
+
+   printf("  comp_num = %d\n",rt->part_num) ;
+
+   printf("  comp_typ = " ) ;
+   for( ii=0 ; ii < rt->comp_num ; ii++ ) printf("%d ",rt->comp_typ[ii]) ;
+   printf("\n") ;
+
+   printf("  part_num = %d\n",rt->part_num) ;
+
+   printf("  part_typ = " ) ;
+   for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_typ[ii]) ;
+   printf("\n") ;
+
+   printf("  part_off = " ) ;
+   for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_off[ii]) ;
+   printf("\n") ;
+#endif
 
    /* save this in the table of rowtypes,
       and return the numerical code for this new type */
 
-printf("NI_rowtype_define: %s %s\n",tname,tdef) ;
-printf("  code     = %d\n",rt->code) ;
-printf("  size     = %d\n",rt->size) ;
-printf("  part_num = %d\n",rt->part_num) ;
-
-printf("  part_typ = " ) ;
-for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_typ[ii]) ;
-printf("\n") ;
-
-printf("  part_off = " ) ;
-for( ii=0 ; ii < rt->part_num ; ii++ ) printf("%d ",rt->part_off[ii]) ;
-printf("\n") ;
-
-   ROWTYPE_register(rt) ; return rt->code ;
+   ROWTYPE_register(rt) ;
+   return rt->code ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -9665,7 +9776,8 @@ printf("\n") ;
 
 NI_rowtype * NI_rowtype_find_name( char *nn )
 {
-   if( rowtype_table == NULL ) setup_fixed_types() ;
+   if( nn == NULL || *nn == '\0' ) return NULL ;
+   if( rowtype_table == NULL ) setup_basic_types() ;
    return (NI_rowtype *) findin_Htable(nn,rowtype_table) ;
 }
 
@@ -9675,8 +9787,9 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
 NI_rowtype * NI_rowtype_find_code( int nn )
 {
    char ts[16] ;
-   if( rowtype_table == NULL ) setup_fixed_types() ;
-   sprintf(ts,"%06d",nn) ;
+   if( nn < 0 ) return NULL ;
+   if( rowtype_table == NULL ) setup_basic_types() ;
+   sprintf(ts,"#%06d",nn) ;
    return (NI_rowtype *) findin_Htable(ts,rowtype_table) ;
 }
 
@@ -9690,4 +9803,18 @@ int NI_rowtype_name_to_code( char *nn )
    NI_rowtype *rt = NI_rowtype_find_name( nn ) ;
    if( rt != NULL ) return rt->code ;
    return -1 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Given a rowtype code, find its string name.
+    Returns NULL if the code isn't found in the rowtype table,
+    otherwise returns the pointer to the name inside the table
+    (i.e., don't free this string!).
+----------------------------------------------------------------------*/
+
+char * NI_rowtype_code_to_name( int nn )
+{
+   NI_rowtype *rt = NI_rowtype_find_code( nn ) ;
+   if( rt != NULL ) return rt->name ;
+   return NULL ;
 }

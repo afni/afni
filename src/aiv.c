@@ -149,6 +149,8 @@ int main( int argc , char *argv[] )
                          DEFAULT_NCOLOVR, INIT_colovr, INIT_labovr, 1.0, 0 ) ;
 
 
+   srand48((long)time(NULL)) ;
+
    (void) XtAppAddTimeOut( MAIN_app, 234, timeout_CB, NULL ) ;
    XtAppMainLoop(MAIN_app) ;
 }
