@@ -4357,8 +4357,9 @@ int main (int argc,char *argv[])
    \param fn (SUMA_NODE_FIRST_NEIGHB) structure containing the first order neighbors of the nodes. 
             It is assumed that fn contains the neighbors info for all nodes whose attributes are in attr.
             That is from 0 to N_attr.  
-   \ret attr_sm (float *) pointer to smoothed version of attr
-       
+   \return attr_sm (float *) pointer to smoothed version of attr
+   
+   \sa   SUMA_SmoothAttr_Neighb_Rec  
 */
 float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn)
 {
@@ -4411,7 +4412,62 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
    }
    
    SUMA_RETURN (attr_sm);   
-} 
+}
+
+/*!
+   \brief float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, 
+                                             float *attr_sm_orig, 
+                                             SUMA_NODE_FIRST_NEIGHB *fn, 
+                                             int N_rep)
+   A wrapper function to call SUMA_SmoothAttr_Neighb repeatedly
+   See SUMA_SmoothAttr_Neighb for input and output options. The only additional
+   option is N_Rec the number of repeated smoothing calls.
+   
+*/
+float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig, 
+                                    SUMA_NODE_FIRST_NEIGHB *fn, int N_rep)
+{
+   static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
+   int i;
+   float *curr_attr=NULL, *attr_sm=NULL;
+   SUMA_Boolean LocalHead = YUP;
+    
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (N_rep < 1) {
+      SUMA_SL_Err("N_rep < 1");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (N_rep == 1 && attr == attr_sm_orig) {
+      SUMA_SL_Err("attr = attr_sm_orig && N_rep == 1. BAD.\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   i = 1;
+   curr_attr = attr; /* initialize with user's data */
+   while (i < N_rep) {
+      /* intermediary calls */
+      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn);
+      if (i > 1)  { /* second or more time in */
+         /* free input to previous calculation */
+         if (curr_attr) SUMA_free(curr_attr);
+      }
+      curr_attr = attr_sm; /* setup for next calculation */
+      ++i;
+   }      
+   
+   /* last call, honor the user's return pointer */
+   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn);
+   
+   /* free curr_attr if i > 1, i.e. it is not the user's original copy */
+   if (i > 1) {
+      if (curr_attr) SUMA_free(curr_attr);
+   }
+      
+   SUMA_RETURN (attr_sm); 
+}
+ 
 /*-------------------------Node Attributes, smoothing functions END ------------------- */
 
 /*! 
@@ -5321,7 +5377,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
    static char FuncName[]={"SUMA_Convexity_Engine"};
    float *C, d, D, dij;
    int i, j, jj, in, id, ind, ND;
-   FILE *fid;
+   FILE *fid = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

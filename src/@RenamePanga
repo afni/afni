@@ -1,24 +1,11 @@
 #!/bin/csh -f
 
-set VerNum = 3.1
+set VerNum = '3.2 (09/02/03)'
 
 if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$5" == '') then
         goto USAGE
 endif
 
-
-#check if you're in an afni directory and suggest going back one
-	if ("$cwd:t" == "afni") then
-		echo ""
-		echo "WARNING:"
-		echo "It looks like you're in the afni directory."
-		echo "If your images are not here you'll get an error message from to3d"
-		echo "Usually your data should reside one directory back."
-		echo "If you want to abort this script, hit ctrl+c"
-		echo "Otherwise, hit Enter to Proceed ..."
-		echo ""
-		set junk = $<
-	endif
 
 #count arguments
 set Nargs = $#argv
@@ -29,6 +16,7 @@ set Autoto3d = 1
 set KeepPrefix = 0
 set OutCheck = 0
 set PatOpt = 'alt+z'
+set OutDir = 'afni'
 if ($Nargs > 5) then
 	#for the moment this is for interactive mode
 	set cnt = 6
@@ -53,8 +41,22 @@ if ($Nargs > 5) then
 				endif
             set PatOpt = $argv[$cnt]
             breaksw
+         case -od:
+            @ cnt ++
+            if ($Nargs < $cnt) then
+					echo ""
+					echo "ERROR: You must specify a pattern option after -od."
+					echo ""
+               goto ENDALL
+				endif
+            set OutDir = $argv[$cnt]
+            breaksw
          case -gp_OBSOLETE:
-				set UseGp = 1
+				#IF YOU DECIDE TO REUSE THIS OPTION:
+            #You'll need to make sure -od option does
+            #not occur after this one and replace "afni/" with 
+            #$OutDir/ below.
+            set UseGp = 1
 				@ cnt ++
 				if ($Nargs < $cnt) then
 					echo ""
@@ -87,6 +89,19 @@ if ($Nargs > 5) then
 	end
 endif
 
+#check if you're in the output directory and suggest going back one
+	if ("$cwd:t" == "$OutDir") then
+		echo ""
+		echo "WARNING:"
+		echo "It looks like you're in the output directory $OutDir."
+		echo "If your images are not here you'll get an error message from to3d"
+		echo "Usually your data should reside one directory back."
+		echo "If you want to abort this script, hit ctrl+c"
+		echo "Otherwise, hit Enter to Proceed ..."
+		echo ""
+		set junk = $<
+	endif
+
 	
 set DirN = $1
 set sDir = `count -digits 3 $DirN $DirN`
@@ -96,7 +111,7 @@ set Nreps = $4
 set TR = 0
 set BrickRoot = "$5"
 set LogFile = "$cwd/MAPLOG_Panga"
-set aDir = "$cwd/afni"
+set aDir = "$cwd/$OutDir"
 set Ntot = `expr $Nslc \* $Nreps`
 set listfile = "$cwd/PangaList"
 
@@ -306,7 +321,8 @@ NOBRIK:
 USAGE:
 	set DS = `date +%Y`.`date +%m`.`date +%d`
 	echo ""
-	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-kp] [-i] [-oc] [-sp Pattern]" 	
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>"
+   echo "                   [-kp] [-i] [-oc] [-sp Pattern] [-od Output Directory]" 	
 	echo ""
 	echo "Creates AFNI bricks from RealTime GE EPI series."
 	echo ""
@@ -320,7 +336,7 @@ USAGE:
 	echo "<# reps> : (eg: 160) The number of samples in your time series."
 	#echo "<TR im msec> : (eg: 2000) Obvious isn't it ?"
 	echo "<Output Root> : (eg: PolcCw) The prefix for the output brick."
-	echo "                 Bricks are automatically saved into the ./afni directory"
+	echo "                 Bricks are automatically saved into the output directory"
 	echo "                 Unless you use -kp option, bricks are automatically named"
 	echo "                 <Output Root>_r# where # is generated each time you "
 	echo "                 run the script and successfully create a new brick."
@@ -330,13 +346,15 @@ USAGE:
 	#echo "     Otherwise a default setting is used. The default would only be a problem if you try to overlay function on anatomy."
 	#echo "-gp <GeomParent>: You can specify a geomparent brick which may have been created with the -i option"
 	#echo "                  If the GeomParent is not found in the current directory, the script looks for it under"
-	#echo "                  ./afni directory before complaining."
+	#echo "                  the output directory before complaining."
 	echo " -kp: Forces @RenamePanga to use the prefix you designate without modification."
 	echo " -oc: Performs outliers check. This is useful to do but it slows to3d down and"
 	echo "  maybe annoying when checking your data while scanning. If you choose -oc, the"
-	echo "  outliers are written to a .1D file and placed in the afni directory."
-	echo "  -sp Pattern: Sets the slice acquisition pattern. The default option is alt+z."
+	echo "  outliers are written to a .1D file and placed in the output directory."
+	echo " -sp Pattern: Sets the slice acquisition pattern. The default option is alt+z."
    echo "  see to3d -help for various acceptable options."
+   echo " -od <Output Directory>: Directory where the output (bricks and 1D files) will"
+   echo "  be stored. The default directory is ./afni" 
    echo ""
 	echo ""
 	echo "A log file (MAPLOG_Panga) is created in the current directory."
@@ -355,9 +373,10 @@ USAGE:
 	echo "Thanks to Jill W., Mike B. and Shruti J. for reporting bugs and testing the scripts."
 	echo "***********"
 	echo ""
-	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>  [-i] [-kp] [-oc] [-sp Pattern]" 	
+	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>" 	
+   echo "                   [-kp] [-i] [-oc] [-sp Pattern] [-od Output Directory]" 	
 	echo ""
-	echo " Version $VerNum   Ziad Saad (ziad@nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
+	echo " Version $VerNum  Ziad Saad (ziad@nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
  	goto ENDALL
 
 ENDALL:

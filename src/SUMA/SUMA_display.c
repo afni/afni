@@ -1021,7 +1021,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       if (SUMAg_SVv[ic].X->TOPLEVEL == NULL) {
          /* Unopen window found, needs a shell */
          SUMAg_SVv[ic].X->DPY = SUMAg_CF->X->DPY_controller1;
-         SUMAg_SVv[ic].X->TOPLEVEL = XtVaAppCreateShell("Not Yet" , "Suma" ,
+         SUMAg_SVv[ic].X->TOPLEVEL = XtVaAppCreateShell("SUMA" , "Suma" ,
                    topLevelShellWidgetClass , SUMAg_SVv[ic].X->DPY ,
                    XmNinitialResourcesPersistent , False ,
                    NULL ) ;
