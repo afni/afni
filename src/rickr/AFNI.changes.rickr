@@ -69,3 +69,8 @@
 
 23 October 2002:
   * modified plug_crender.c so that Incremental rotation is the default
+
+29 October 2002:
+  * modified plug_second_dataset.c and plug_nth_dataset.c to update dataset
+      pointers from idcodes on a RECEIVE_DSETCHANGE notification
+
