@@ -1904,8 +1904,10 @@ char * NI_stream_name( NI_stream_type *ns )
 
 /*-----------------------------------------------------------------------*/
 /*! Alter the input buffer size for a NI_stream.
-   Only works for tcp: & shm: streams, and for "r" file: & fd: streams.
-   Return value is 1 if it worked OK, -1 if it didn't.
+    - Only works for tcp: & shm: streams, and for "r" file: & fd: streams.
+    - Return value is 1 if it worked OK, -1 if it didn't.
+    - NI_realloc() is used, so buffer contents aren't affected (if the
+      size is increased!).
 -------------------------------------------------------------------------*/
 
 int NI_stream_setbufsize( NI_stream_type *ns , int bs )   /* 03 Jan 2003 */
