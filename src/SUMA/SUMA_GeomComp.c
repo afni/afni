@@ -530,8 +530,8 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                         However, attempts at accessing pre-calculated segment lengths
                         proved to be slower. See Comments in function help*/
                      SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
-                     if (Seg < minSeg) {
-                        minSeg = Seg;
+                     if (OffS->OffVect[n_prec] + Seg < minSeg) {
+                        minSeg = Seg + OffS->OffVect[n_prec];
                         n_prec = n_k;
                      }
                   }
@@ -542,7 +542,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                   OffS = SUMA_Free_getoffsets (OffS);
                   SUMA_RETURN(NOPE);
                } else {
-                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(Seg);
+                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(minSeg - Seg);
                   if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
                      AllDone = NOPE;
                   }
@@ -1597,7 +1597,8 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
       }
 
       /* work the options a bit */
-      OptScl->ApplyClip = YUP;
+      OptScl->ApplyClip = NOPE;
+      OptScl->MaskZero = NOPE;
       IntRange[0] = 0; IntRange[1] = 100; /* percentile clipping range*/ 
       Vsort = SUMA_PercRange (val, NULL, SO->N_Node, IntRange, IntRange); 
       if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
@@ -5415,7 +5416,7 @@ void usage_SUMA_SurfQual ()
                "              - Absolute deviation between the distance (d) of each\n"
                "                node from the surface's center and the estimated\n"
                "                radius(r). The distances, abs (d - r), are sorted\n"
-               "                and written to the file OUTPREF_SortedDist.1D .\n"
+               "                and written to the file OUTPREF_SortedDist.1D.dset .\n"
                "                The first column represents node index and the \n"
                "                second is the absolute distance. A colorized \n"
                "                version of the distances is written to the file \n"
@@ -5428,8 +5429,8 @@ void usage_SUMA_SurfQual ()
                "                are normalized, the cosine of the angle is the dot product.\n"
                "                On a sphere, the abs(dot product) should be 1 or pretty \n"
                "                close. Nodes where abs(dot product) < 0.9 are flagged as\n"
-               "                bad and written out to the file OUTPREF_BadNodes.1D .\n"
-               "                The file OUTPREF_dotprod.1D contains the dot product \n"
+               "                bad and written out to the file OUTPREF_BadNodes.1D.dset .\n"
+               "                The file OUTPREF_dotprod.1D.dset contains the dot product \n"
                "                values for all the nodes. The files with colorized results\n"
                "                are OUTPREF_BadNodes.1D.col and OUTPREF_dotprod.1D.col .\n"
                "                A list of the bad nodes is also output to the screen for\n"
@@ -5670,9 +5671,9 @@ int main (int argc,char *argv[])
          float *Cx = NULL;
          if (Opt->N_surf > 1) {
             sprintf(ext,"_%c", 65+i);
-            OutName = SUMA_append_replace_string (prefix, "_Conv_detail.1D", ext, 0);
+            OutName = SUMA_append_replace_string (prefix, "_Conv_detail.1D.dset", ext, 0);
          } else { 
-            OutName = SUMA_append_string (prefix, "_Conv_detail.1D");
+            OutName = SUMA_append_string (prefix, "_Conv_detail.1D.dset");
          }
          Cx = SUMA_Convexity_Engine ( SO->NodeList, SO->N_Node, 
                                       SO->NodeNormList, SO->FN, OutName);
