@@ -3949,8 +3949,8 @@ ENTRY("PLUTO_popup_image") ;
 
    /*-- input = non-null image ==> replace image --*/
 
-   mri_free( imp->im ) ;                   /* toss old copy */
-   imp->im = mri_to_mri( im->kind , im ) ; /* make new copy */
+   mri_free( imp->im ) ;      /* toss old copy */
+   imp->im = mri_copy( im ) ; /* make new copy */
 
    /*-- input = inactive popper handle ==> activate it --*/
 
@@ -4015,7 +4015,7 @@ ENTRY("PLUGIN_imseq_getim") ;
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
       MRI_IMAGE * im = NULL ;
-      if( imp->im != NULL ) im = mri_to_mri( imp->im->kind , imp->im ) ;
+      if( imp->im != NULL ) im = mri_copy( imp->im ) ;
       RETURN((XtPointer) im) ;
    }
 

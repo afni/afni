@@ -1089,7 +1089,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
         plug_zeropad.$(SO)  plug_nth_dataset.$(SO)                     \
-        plug_roiplot.$(SO)                                             \
+        plug_roiplot.$(SO)  plug_ttget.$(SO)                           \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
