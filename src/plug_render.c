@@ -518,6 +518,8 @@ void REND_set_thr_pval(void) ;
   static int script_load_last = -1 ;
   static int script_brindex   =  0 ;
 
+  static int script_dontdraw  =  0 ;  /* 24 Nov 2000 */
+
 #define SCRIPT_GRAFS  /* Bastille Day 1999 */
 #ifdef SCRIPT_GRAFS
   typedef struct {
@@ -2086,6 +2088,10 @@ void REND_reload_renderer(void)
 void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MRI_IMAGE * rim ;
+
+#ifdef USE_SCRIPTING
+   if( script_dontdraw ) return ;  /* 24 Nov 2000 */
+#endif
 
    if( dset == NULL ){ XBell(dc->display,100) ; return ; }
 
@@ -7081,6 +7087,8 @@ void REND_state_to_widgets( RENDER_state * rs )
 
    if( rs == NULL ) return ;
 
+   script_dontdraw = 1 ;  /* 24 Nov 2000 */
+
 #ifdef SCRIPT_DSETS
    /* 12 Apr 2000: allow change of dataset! */
 
@@ -7356,6 +7364,8 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
    }
 
    REND_load_cutout_state() ; /* save current widget state into cutout state */
+
+   script_dontdraw = 0 ;  /* 24 Nov 2000 */
 
    return ;
 }

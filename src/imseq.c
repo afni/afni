@@ -5911,7 +5911,11 @@ void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
          aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
          aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
          aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
+#if 0
          isort_float( 9 , aa ) ; ar[ii+joff] = aa[4] ;
+#else
+         ar[ii+joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
+#endif
       }
 
       /* do leading edge point (ii=0) */
@@ -5919,14 +5923,22 @@ void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
       aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
       aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
       aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
+#if 0
       isort_float( 9 , aa ) ; ar[joff] = aa[4] ;
+#else
+      ar[joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
+#endif
 
       /* do trailing edge point (ii=nx-1) */
 
       aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
       aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
       aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
+#if 0
       isort_float( 9 , aa ) ; ar[nx-1+joff] = aa[4] ;
+#else
+      ar[nx-1+joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
+#endif
    }
    return ;
 }
@@ -6091,8 +6103,11 @@ void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
 
          aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
 
-         isort_float( 21 , aa ) ;
-         ar[ii+joff] = aa[10] ;
+#if 0
+         isort_float( 21 , aa ) ; ar[ii+joff] = aa[10] ;
+#else
+         ar[ii+joff] = qmed_float(21,aa) ; /* 25 Oct 2000 */
+#endif
       }
 
    }

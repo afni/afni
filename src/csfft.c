@@ -7,9 +7,18 @@
 #  include <stdio.h>
 #  include <math.h>
    typedef struct complex { float r,i ; } complex ;  /* need this! */
+#  undef USE_FFTW
 #else
 #  include "mrilib.h"   /* AFNI package library header */
-#endif
+
+#  ifdef USE_FFTW         /* 20 Oct 2000 */
+#    include "fftw.h"
+#  endif
+
+#endif  /* STANDALONE */
+
+static int use_fftw=1 ;
+void csfft_use_fftw( int uf ){ use_fftw = uf; return; }
 
 /***=====================================================================**
  *** Prototypes for externally callable functions:                       **
@@ -60,7 +69,7 @@ static void fft_5dec( int , int , complex * ) ;
 
 static int sclinv = 0 ;  /* set by csfft_scale_inverse */
 
-void csfft_scale_inverse( int scl ){ sclinv = scl ; return ; }
+void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
 /*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
@@ -204,6 +213,52 @@ void csfft_cox( int mode , int idim , complex * xc )
    register float         co, si, f0, f1, f2, f3, f4;
 
    static int rec=0 ;  /* recursion level */
+
+   /*-- 20 Oct 2000: maybe use FFTW instead --*/
+
+#ifdef USE_FFTW
+   if( use_fftw ){
+     static int first=1 , oldmode=0, oldidim=0 ;
+     static fftw_plan fpl ;
+     if( first ){
+        char * env = getenv("AFNI_FFTW_WISDOM") ;
+        int gotit=0 ;
+        first = 0 ;
+        if( env != NULL ){
+           int nw = THD_filesize(env) ;
+           if( nw > 0 ){
+              int fd = open( env , O_RDONLY ) ;
+              if( fd >= 0 ){
+                 char * w = malloc(nw+4) ;
+                 int ii = read( fd , w , nw ) ;
+                 close(fd) ;
+                 if( ii > 0 ){
+                    w[nw] = '\0' ;
+                    nw = (int) fftw_import_wisdom_from_string(w) ;
+                    gotit=(nw == FFTW_SUCCESS);
+                 } /* else fprintf(stderr,"csfft_cox: read fails\n"); */
+                 free(w) ;
+              } /* else fprintf(stderr,"csfft_cox: open fails\n"); */
+           } /* else fprintf(stderr,"csfft_cox: THD_filesize(%s) fails\n",env); */
+        } /* else fprintf(stderr,"csfft_cox: getenv fails\n"); */
+     /* if( gotit )
+          fprintf(stderr,"csfft_cox imported FFTW wisdom from file %s\n",env);
+        else
+          fprintf(stderr,"csfft_cox failed to import FFTW wisdom\n"); */
+     }
+
+     if( idim != oldidim || mode != oldmode ){
+        if( oldidim ) fftw_destroy_plan(fpl) ;
+        fpl = fftw_create_plan( idim ,
+                                (mode < 0) ? FFTW_FORWARD : FFTW_BACKWARD ,
+                                FFTW_ESTIMATE|FFTW_USE_WISDOM|FFTW_IN_PLACE );
+        oldidim = idim ; oldmode = mode ;
+     }
+
+     fftw_one( fpl , (fftw_complex *)xc , NULL ) ;
+     SCLINV ; return ;
+   }
+#endif /* USE_FFTW */
 
    /*-- November 1998: maybe use the unrolled FFT routines --*/
 

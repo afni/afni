@@ -2333,6 +2333,12 @@ extern int    THD_countmask( int , byte * ) ;
 #define DELTA_BEFORE 2
 #define DELTA_FIXED  3
 
+  /*-- see thd_rotangles.c --*/
+
+extern void THD_rotangle_user_to_dset( THD_3dim_dataset * ,
+                                       float,char, float,char, float,char,
+                                       float*,int* , float*,int* , float*,int* );
+
   /*-- see thd_rot3d.c for these routines --*/
 
 extern void THD_rota_method( int ) ;
@@ -2351,6 +2357,35 @@ extern void THD_rota_vol_matvec( int, int, int, float, float, float, float *,
                                  THD_mat33 , THD_fvec3 ) ;
 
 extern THD_vecmat LSQ_rot_trans( int, THD_fvec3 *, THD_fvec3 *, double * ww ) ;
+
+  /* cf. thd_tmask.c */
+
+#define TM_IXY 2  /* fixdir-1 for each plane */
+#define TM_IYZ 0
+#define TM_IZX 1
+
+typedef struct {
+   int   nmask[3] ;
+   byte * mask[3] ;
+} Tmask ;
+
+extern void free_Tmask( Tmask * ) ;
+extern Tmask * create_Tmask_byte( int, int, int, byte * ) ;
+
+#define TM_ZLINE(tm,i) (tm==NULL || tm->mask[TM_IXY][i])
+#define TM_YLINE(tm,i) (tm==NULL || tm->mask[TM_IZX][i])
+#define TM_XLINE(tm,i) (tm==NULL || tm->mask[TM_IYZ][i])
+
+  /* routines below created in thd_rot3d_byte.c on 23 Oct 2000 */
+
+extern void THD_rota_vol_byte( int, int, int, float, float, float, byte *,
+                               int,float, int,float, int,float,
+                               int,float,float,float , Tmask * ) ;
+
+extern void THD_rota_byte_mode( int ) ; /* 07 Nov 2000 */
+
+extern void THD_rota_vol_matvec_byte( int, int, int, float, float, float, byte *,
+                                      THD_mat33 , THD_fvec3 , Tmask * ) ;
 
   /*-- see thd_shift2.c for these routines --*/
 
@@ -2461,9 +2496,22 @@ void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
 /*-----------------------------------------------------------------------*/
 
-extern void B64_to_binary( int , byte * , int * , byte ** ) ;
-extern void B64_to_base64( int , byte * , int * , byte ** ) ;
+extern void B64_to_binary( int, byte *, int *, byte ** ) ; /* thd_base64.c */
+extern void B64_to_base64( int, byte *, int *, byte ** ) ;
 extern void B64_set_linelen( int ) ;
 extern void B64_set_crlf( int ) ;
+
+extern char * MD5_static_array ( int , char * ) ;          /* thd_md5.c */
+extern char * MD5_malloc_array ( int , char * ) ;
+extern char * MD5_static_string(char *) ;
+extern char * MD5_malloc_string(char *) ;
+extern char * MD5_static_file  (char *) ;
+extern char * MD5_malloc_file  (char *) ;
+
+#if 0
+extern char * MD5_B64_array ( int , char * ) ;
+extern char * MD5_B64_string( char * ) ;
+extern char * MD5_B64_file  (char * ) ;
+#endif
 
 #endif /* _MCW_3DDATASET_ */

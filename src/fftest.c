@@ -11,6 +11,7 @@ int main( int argc , char * argv[] )
    double tcpu , tclock ;
    int narg=1 , quiet=0 ;
    float kbytes ;
+
    if( argc < 4 ){printf("Usage: fftest [-q] len num nvec\n");exit(0);}
 
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
@@ -18,18 +19,27 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
 
+   (void) my_getenv("TMPDIR") ;
+
    len = strtol( argv[narg++] , NULL , 10 ) ;
    num = strtol( argv[narg++] , NULL , 10 ) ;
    nvec_in = strtol( argv[narg++] , NULL , 10 ) ;
 
    if( len > 0 && len != csfft_nextup(len) ){
-      fprintf(stderr,"Can't do FFT of length %d; try %d\n",len,csfft_nextup(len)) ;
+      fprintf(stderr,"Can't do FFT of length %d; try %d\n",len,csfft_nextup(len));
       exit(1) ;
    } else if ( len < 0 ){
       len = -len ;
    }
 
+#ifdef USE_FFTW
+   { int use_fftw = (nvec_in < 1) ;
+     if( use_fftw ) nvec_in = 1 ;
+     else           csfft_use_fftw(0) ;
+   }
+#else
    if( nvec_in < 1 ){fprintf(stderr,"Illegal nvec value!\n"); exit(1) ;}
+#endif
 
    cx = (complex *) malloc( sizeof(complex) * len * nvec_in) ;
 

@@ -57,9 +57,9 @@ Tmask * create_Tmask( int nx, int ny, int nz, byte * vol )
 
    Goal is im[a,b] = vol[ P(a-da,b-db,c=fixijk) ] for a=0..ma-1, b=0..mb-1,
    where P(a,b,c) is the permutation of (a,b,c) that goes with fixdir:
-     P(x,y,z) = (y,z) for fixdir == 1
-     P(x,y,z) = (z,x) for fixdir == 2
-     P(x,y,z) = (x,y) for fixdir == 3
+     P(x,y,z) = (y,z,x) for fixdir == 1
+     P(x,y,z) = (z,x,y) for fixdir == 2
+     P(x,y,z) = (x,y,z) for fixdir == 3
    For values outside the range of vol[], im[] is set to 0.
 
    The five interpolation routines that follow are:

@@ -1005,6 +1005,10 @@ static void NUD_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      "    parameters to use.  You can then apply these to as many datasets\n"
      "    you want (e.g., in a shell script, to nudge a whole bunch of\n"
      "    datasets exactly the same way).\n"
+     "* I suggest you do NOT nudge functional activation maps.  It is better\n"
+     "    to nudge the anatomical underlay, or nudge the original EPI time\n"
+     "    series.  Nudging a dataset implies interpolating to a new grid,\n"
+     "    and this is problematical for the non-smooth activation maps.\n"
      "=======================================================================\n"
      "WARNINGS:\n"
      "* Values past the edge of the dataset are 0, and if they are shifted\n"
@@ -1429,7 +1433,9 @@ fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;
    if( fabs(th1) < EPS && fabs(th2) < EPS && fabs(th3) < EPS &&
        fabs(dx)  < EPS && fabs(dy)  < EPS && fabs(dz)  < EPS   ) return ;
 
+#if 0
    if( clipit && mode == MRI_LINEAR ) clipit = 0 ;
+#endif
 
    /* need a copy? */
 
@@ -1456,7 +1462,7 @@ fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;
 
    /* actually rotate! */
 
-   THD_rota_method( REG_resam_ints[mode] ) ;
+   THD_rota_method( mode ) ;  /* this line fixed 28 Nov 2000 */
 
    THD_rota_vol( im->nx , im->ny , im->nz ,
                  fabs(DSET_DX(dset)), fabs(DSET_DY(dset)), fabs(DSET_DZ(dset)),
@@ -1500,6 +1506,9 @@ static void NUD_update_base(Widget w)
    NUD_rotate( im ) ;                                       /* rotate copy */
    EDIT_substitute_brick( dset , dset_ival ,                /* put into dset */
                           im->kind , mri_data_pointer(im) );
+
+   if( ISVALID_STATISTIC(dset->stats) )                     /* 27 Nov 2000 */
+      THD_update_statistics( dset ) ;
 
    mri_clear_data_pointer( im ) ; mri_free(im) ;            /* toss the trash */
 
