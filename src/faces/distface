@@ -66,6 +66,8 @@ foreach face ( face_*.jpg )
     echo '<tr>'                                           >>   afni_faces.html
   endif
 
+  if( "$face" == "face_rwcox2.jpg" ) continue ;
+
   echo '<td align="center"> <img src="'${face}'" /></td>' >>   afni_faces.html
 
   @ nn = ($nn + 1) % 6

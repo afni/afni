@@ -38,7 +38,7 @@ void warp_dicom_out2in( float  xin , float  yin , float  zin ,
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset *inset , *outset ;
+   THD_3dim_dataset *inset , *outset , *newgset=NULL ;
    int nxin,nyin,nzin,nxyzin,nvals , ival ;
    int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
@@ -48,6 +48,7 @@ int main( int argc , char * argv[] )
    int use_newgrid=0 ;
    float ddd_newgrid=0.0 , fac ;
    MRI_IMAGE *inim , *outim , *wim ;
+   void *newggg=NULL ; int gflag=0 ;
 
    /*-- help? --*/
 
@@ -86,6 +87,9 @@ int main( int argc , char * argv[] )
             "                    new dataset is computed on the old\n"
             "                    dataset's grid.\n"
             "\n"
+            "  -gridset ggg  = Tells program to compute new dataset on the\n"
+            "                    same grid as dataset 'ggg'.\n"
+            "\n"
             "  -zpad N       = Tells program to pad input dataset with 'N'\n"
             "                    planes of zeros on all sides before doing\n"
             "                    transformation.\n"
@@ -111,6 +115,25 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[nopt],"-gridset") == 0 ){
+       if( use_newgrid ){
+         fprintf(stderr,"** Can't use -gridset with -newgrid!\n"); exit(1);
+       }
+       if( newgset != NULL ){
+         fprintf(stderr,"** Can't use -gridset twice!\n"); exit(1);
+       }
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** Need argument after -gridset!\n"); exit(1);
+       }
+       newgset = THD_open_dataset( argv[nopt] ) ;
+       if( newgset == NULL ){
+         fprintf(stderr,"** Can't open -gridset %s\n",argv[nopt]); exit(1);
+       }
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[nopt],"-zpad") == 0 ){
        if( ++nopt >= argc ){
          fprintf(stderr,"** Need argument after -zpad!\n"); exit(1);
@@ -127,6 +150,12 @@ int main( int argc , char * argv[] )
      /*-----*/
 
      if( strcmp(argv[nopt],"-newgrid") == 0 ){
+       if( newgset != NULL ){
+         fprintf(stderr,"** Can't use -newgrid with -gridset!\n"); exit(1);
+       }
+       if( use_newgrid ){
+         fprintf(stderr,"** Can't use -newgrid twice!\n"); exit(1);
+       }
        if( ++nopt >= argc ){
          fprintf(stderr,"** Need argument after -newgrid!\n"); exit(1);
        }
@@ -255,18 +284,24 @@ int main( int argc , char * argv[] )
 
    /*-- do the heavy lifting --*/
 
+   if( use_newgrid ){
+     newggg = &ddd_newgrid ; gflag = WARP3D_NEWGRID ;
+   } else if( newgset != NULL ){
+     newggg = newgset      ; gflag = WARP3D_NEWDSET ;
+   }
+
    if( !use_matvec ){
      outset = THD_warp3D( inset ,
                           warp_dicom_in2out ,
                           warp_dicom_out2in ,
-                          ddd_newgrid , prefix , zpad , 0 ) ;
+                          newggg , prefix , zpad , gflag ) ;
    } else {
      outset = THD_warp3D_affine( inset , dicom_out2in ,
-                                 ddd_newgrid , prefix , zpad , 0 ) ;
+                                 newggg , prefix , zpad , gflag ) ;
    }
 
    if( outset == NULL ){
-     fprintf(stderr,"** ERROR: can't perform warp for some reason!\n") ;
+     fprintf(stderr,"** ERROR: THD_warp3D() fails for some reason!\n") ;
      exit(1) ;
    }
 

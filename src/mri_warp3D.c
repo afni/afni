@@ -653,8 +653,8 @@ static void (*warp_out_to_in)(float  ,float  ,float ,
     then does the dicom_in to ijk_in transform here.
 ------------------------------------------------------------------------------*/
 
-static INLINE void warp_func( float xout, float yout, float zout,
-                              float *xin, float *yin, float *zin )
+static INLINE void w3d_warp_func( float xout, float yout, float zout,
+                                  float *xin, float *yin, float *zin )
 {
    THD_fvec3 xxx,yyy ; float xi,yi,zi ;
 
@@ -746,12 +746,19 @@ static void warp_corners( THD_3dim_dataset *inset,
 /*--------------------------------------------------------------------------*/
 /*! Geometrically transform a 3D dataset, producing a new dataset.
      - w_in2out transforms DICOM coords from input grid to output grid
-       (only needed if newdel > 0.0; otherwise, can be NULL)
+       (only needed if newggg != NULL and flag == WARP3D_NEWGRID;
+        otherwise, w_in2out can be NULL)
      - w_out2in is the inverse of w_in2out (cannot be NULL)
-     - newdel = new grid size (if 0.0, will use old grid size)
+     - newggg is a pointer to something that determines the new
+       grid on which the output dataset will be computed
+        - NULL means compute on the inset grid
+        - otherwise, flag determines how newggg is interpreted:
+        - WARP3D_NEWGRID => newggg is a "float *" to a new grid size
+        - WARP3D_NEWDSET => newggg is a "THD_3dim_dataset *" to a dataset
+                            whose grid will be used for the output grid
      - prefix = new dataset prefix (if NULL, then "warped")
      - zpad   = number of planes to zeropad on each face of inset (>= 0)
-     - flag   = reserved for future expansion
+     - flag   = see above
      - Interpolation method can be set using mri_warp3D_method().
      - At end, input dataset is unloaded from memory.
      - If input is 3D+time, the output dataset won't have slice-wise time
@@ -762,17 +769,32 @@ INLINE THD_3dim_dataset * THD_warp3D(
                      THD_3dim_dataset *inset ,
                      void w_in2out(float,float,float,float *,float *,float *),
                      void w_out2in(float,float,float,float *,float *,float *),
-                     float newdel , char *prefix , int zpad , int flag        )
+                     void *newggg , char *prefix , int zpad , int flag        )
 {
-   THD_3dim_dataset *outset , *qset ;
-   int nxin,nyin,nzin,nxyzin,nvals , ival ;
-   int nxout,nyout,nzout,nxyzout ;
+   THD_3dim_dataset *outset , *qset , *newgset=NULL ;
+   int nxin,nyin,nzin,nvals , ival ;
+   int nxout,nyout,nzout ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
-   int use_newgrid=(newdel > 0.0) ;
-   float ddd_newgrid=newdel , fac ;
+   int use_newgrid , use_oldgrid ;
+   float ddd_newgrid , fac ;
    MRI_IMAGE *inim , *outim , *wim ;
 
 ENTRY("THD_warp3D") ;
+
+   /*-- decide which grid the output will be computed on --*/
+
+   use_newgrid = ((flag & WARP3D_GRIDMASK) == WARP3D_NEWGRID) && (newggg != NULL) ;
+   if( use_newgrid ){
+     float *gg = (float *)newggg ;
+     if( thd_floatscan(1,gg) == 0 && *gg > 0.0 ) ddd_newgrid = *gg ;
+     else                                        use_newgrid = 0 ;
+   } else if( newggg != NULL && (flag & WARP3D_GRIDMASK) == WARP3D_NEWDSET ){
+     newgset = (THD_3dim_dataset *) newggg ;
+     if( !ISVALID_DSET(newgset) ) newgset = NULL ;
+   }
+   use_oldgrid = !use_newgrid && (newgset == NULL) ;
+
+   /*-- see if inputs are valid --*/
 
    if( !ISVALID_DSET(inset)             ||
        w_out2in == NULL                 ||
@@ -824,20 +846,40 @@ ENTRY("THD_warp3D") ;
 
    nxin  = DSET_NX(qset) ;
    nyin  = DSET_NY(qset) ;
-   nzin  = DSET_NZ(qset) ; nxyzin = nxin*nyin*nzin;
+   nzin  = DSET_NZ(qset) ;
    nvals = DSET_NVALS(qset) ;
 
-   if( nxyzin <= 1 ){
+   if( nxin*nyin*nzin <= 1 ){
      fprintf(stderr,"** ERROR: THD_warp3D has nxin=%d nyin=%d nzin=%d!\n",
              nxin,nyin,nzin ) ;
      if( qset != inset ) DSET_delete(qset) ; else DSET_unload(qset) ;
      RETURN(NULL) ;
    }
 
-   if( !use_newgrid ){               /*-- output is on same grid as input --*/
+   if( use_oldgrid ){                /*-- output is on same grid as input --*/
 
      outset = EDIT_empty_copy( qset ) ;
-     nxout = nxin ; nyout = nyin ; nzout = nzin ; nxyzout = nxyzin ;
+
+   } else if( newgset != NULL ){     /*-- output on same grid as newgset --*/
+
+     outset = EDIT_empty_copy( newgset ) ;
+
+     EDIT_dset_items( outset ,
+                        ADN_nvals       , nvals ,
+                        ADN_type        , qset->type ,
+                        ADN_view_type   , qset->view_type ,
+                        ADN_func_type   , qset->func_type ,
+                        ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                      ADN_none ) ;
+
+     if( DSET_NUM_TIMES(qset) > 1 )     /* and some time structure? */
+       EDIT_dset_items( outset ,
+                          ADN_ntt       , nvals ,
+                          ADN_tunits    , DSET_TIMEUNITS(qset) ,
+                          ADN_ttorg     , DSET_TIMEORIGIN(qset) ,
+                          ADN_ttdel     , DSET_TR(qset) ,
+                          ADN_ttdur     , DSET_TIMEDURATION(qset) ,
+                        ADN_none ) ;
 
    } else {                          /*-- output is on new grid --*/
 
@@ -852,7 +894,6 @@ ENTRY("THD_warp3D") ;
      nxout = (int)( (xtop-xbot)/ddd_newgrid+0.999 ); if( nxout < 1 ) nxout = 1;
      nyout = (int)( (ytop-ybot)/ddd_newgrid+0.999 ); if( nyout < 1 ) nyout = 1;
      nzout = (int)( (ztop-zbot)/ddd_newgrid+0.999 ); if( nzout < 1 ) nzout = 1;
-     nxyzout = nxout*nyout*nzout ;
 
      xmid = 0.5*(xbot+xtop); ymid = 0.5*(ybot+ytop); zmid = 0.5*(zbot+ztop);
      xbot = xmid-0.5*(nxout-1)*ddd_newgrid; xtop = xbot+(nxout-1)*ddd_newgrid;
@@ -868,7 +909,7 @@ ENTRY("THD_warp3D") ;
                xbot,xtop,nxout , ybot,ytop,nyout , zbot,ztop,nzout    ) ;
 #endif
 
-     if( nxyzout <= 1 ){
+     if( nxout*nyout*nzout <= 1 ){
        fprintf(stderr,"** ERROR: THD_warp3D has nxout=%d nyout=%d nzout=%d!\n",
                nxout,nyout,nzout ) ;
        if( qset != inset ) DSET_delete(qset) ; else DSET_unload(qset) ;
@@ -910,6 +951,10 @@ ENTRY("THD_warp3D") ;
 
    } /*-- end of warping to new grid --*/
 
+   nxout = DSET_NX(outset) ;
+   nyout = DSET_NY(outset) ;
+   nzout = DSET_NZ(outset) ;
+
    /*-- compute mapping from output dataset (i,j,k) to DICOM coords --*/
 
    { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
@@ -932,14 +977,14 @@ ENTRY("THD_warp3D") ;
 
    /*-- loop over bricks and warp them --*/
 
-   warp_out_to_in = w_out2in ;  /* for use in warp_func(), supra */
+   warp_out_to_in = w_out2in ;  /* for use in w3d_warp_func(), supra */
 
    for( ival=0 ; ival < nvals ; ival++ ){
      inim  = DSET_BRICK(qset,ival) ;
      fac   = DSET_BRICK_FACTOR(qset,ival) ;
      if( fac > 0.0 && fac != 0.0 ) wim = mri_scale_to_float( fac , inim ) ;
      else                          wim = inim ;
-     outim = mri_warp3D( wim , nxout,nyout,nzout , warp_func ) ;
+     outim = mri_warp3D( wim , nxout,nyout,nzout , w3d_warp_func ) ;
      if( outim == NULL ){
        fprintf(stderr,"** ERROR: THD_warp3D fails at ival=%d\n",ival);
        DSET_delete(outset);
@@ -995,10 +1040,10 @@ static INLINE void afi2o( float  a,float  b,float  c,
 THD_3dim_dataset * THD_warp3D_affine(
                      THD_3dim_dataset *inset ,
                      THD_vecmat out2in ,
-                     float newdel , char *prefix , int zpad , int flag )
+                     void *newggg , char *prefix , int zpad , int flag )
 {
    aff_out2in = out2in ;
    aff_in2out = INV_VECMAT(aff_out2in) ;
 
-   return THD_warp3D( inset , afi2o,afo2i , newdel,prefix,zpad,flag ) ;
+   return THD_warp3D( inset , afi2o,afo2i , newggg,prefix,zpad,flag ) ;
 }

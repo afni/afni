@@ -792,6 +792,7 @@ THD_dmat33 DMAT_svdrot_old( THD_dmat33 inmat )
 
 /*---------------------------------------------------------------------*/
 /*  Alternative calculation to above, computing U and V directly.
+    This avoids a problem that arises when inmat is singular.
 -----------------------------------------------------------------------*/
 
 THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat )
@@ -811,7 +812,7 @@ THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat )
 }
 
 /*---------------------------------------------------------------------
-  Compute matrix R and vector V to make
+  Compute proper orthgonal matrix R and vector V to make
 
      yy = [R] xx + V   (k=0..n-1)
        k        k
@@ -857,7 +858,7 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
 
    /*- compute covariance matrix -*/
 
-   LOAD_ZERO_DMAT(cov) ;
+   LOAD_DIAG_DMAT(cov,1.e-10,1.e-10,1.e-10) ;
    for( kk=0 ; kk < n ; kk++ ){
       tx = SUB_DFVEC3( xx[kk] , cx ) ;  /* remove centroids */
       ty = SUB_DFVEC3( yy[kk] , cy ) ;
@@ -873,5 +874,59 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
 
    if( wt != ww ) free(wt) ;               /* toss the trash, if any */
 
+   return out ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute an affine transformation to take one set of vectors into another.
+    That is, find general matrix R and vector B so that
+
+     yy = [R] xx + V   (k=0..n-1)
+       k        k
+
+  true in the unweighted least squares sense.
+----------------------------------------------------------------------------*/
+
+THD_dvecmat DLSQ_affine( int n, THD_dfvec3 *xx, THD_dfvec3 *yy )
+{
+   THD_dvecmat out ;
+   THD_dfvec3  cx,cy , tx,ty ;
+   THD_dmat33  yxt , xtx , xtxinv ;
+   int ii,jj,kk ;
+   double wsum ;
+
+   /*- check for bad inputs -*/
+
+   if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
+
+   /*- compute centroids of each set of vectors -*/
+
+   LOAD_DFVEC3(cx,0,0,0) ; LOAD_DFVEC3(cy,0,0,0) ; wsum = 0.0 ;
+   for( kk=0 ; kk < n ; kk++ ){
+     cx = ADD_DFVEC3(cx,xx[kk]) ;  /* sums of vectors */
+     cy = ADD_DFVEC3(cy,yy[kk]) ;
+   }
+   wsum = 1.0 / n ;
+   cx.xyz[0] *= wsum ; cx.xyz[1] *= wsum ; cx.xyz[2] *= wsum ;  /* centroids */
+   cy.xyz[0] *= wsum ; cy.xyz[1] *= wsum ; cy.xyz[2] *= wsum ;
+
+   /*- compute products of data matrices -*/
+
+   LOAD_DIAG_DMAT(yxt,1.e-9,1.e-9,1.e-9) ;
+   LOAD_DIAG_DMAT(xtx,1.e-9,1.e-9,1.e-9) ;
+   for( kk=0 ; kk < n ; kk++ ){
+     tx = SUB_DFVEC3( xx[kk] , cx ) ;  /* remove centroids */
+     ty = SUB_DFVEC3( yy[kk] , cy ) ;
+     for( jj=0 ; jj < 3 ; jj++ ){
+       for( ii=0 ; ii < 3 ; ii++ ){
+         yxt.mat[ii][jj] += ty.xyz[ii]*tx.xyz[jj] ;
+         xtx.mat[ii][jj] += tx.xyz[ii]*tx.xyz[jj] ;
+       }
+     }
+   }
+   xtxinv = DMAT_INV( xtx ) ;
+   out.mm = DMAT_MUL( yxt , xtxinv ) ;
+   tx = DMATVEC( out.mm , cx ) ;
+   out.vv = SUB_DFVEC3( cy , tx ) ;
    return out ;
 }
