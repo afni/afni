@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /*** 7D SAFE ***/
 
 void *mri_data_pointer( MRI_IMAGE *im )

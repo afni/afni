@@ -1,6 +1,12 @@
 #include "mrilib.h"
 #include <string.h>
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /*** 7D SAFE ***/
 
 /*** Copy a string into the image structure;

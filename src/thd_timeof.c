@@ -23,3 +23,26 @@ float THD_timeof( int it, float z, THD_timeaxis * tax )
 
    return tof + tax->toff_sl[isl] ;
 }
+
+/*--------------------------------------------------------------
+   Get the time at voxel # nvox, at the it-th time step.
+   22 July 1998 -- RWCox
+----------------------------------------------------------------*/
+
+float THD_timeof_vox( int it , int nvox , THD_3dim_dataset * dset )
+{
+   float sl , tof ;
+   int isl ;
+
+   if( !ISVALID_DSET(dset) || !ISVALID_TIMEAXIS(dset->taxis) ) return 0.0 ;
+
+   tof = dset->taxis->ttorg + it * dset->taxis->ttdel ;
+
+   if( dset->taxis->nsl <= 0 || dset->taxis->toff_sl == NULL ) return tof ;
+
+   isl = nvox / ( DSET_NX(dset) * DSET_NY(dset) ) ;
+
+   if( isl < 0 || isl >= dset->taxis->nsl ) return tof ;
+
+   return tof + dset->taxis->toff_sl[isl] ;
+}

@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
 #define STATUS(x) /* nada */

@@ -703,6 +703,12 @@ globfree(pglob)
     }
 }
 
+
+/*****************************************************************************
+  The software below this notice is copyrighted and owned by the Medical
+  College of Wisconsin.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*------------------------------------------------------------------------
    Routines that allows filename wildcarding to be handled inside
    to3d.  The advantage: limitations of shell command line lengths.

@@ -22,6 +22,12 @@
 */
 
 
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This software is Copyright 1997, 1998 by
@@ -365,6 +371,139 @@ int calc_constraints
   return (0);
 }
 
+#define SAVE_RAN  /* 27 July 1998 -- RWCox */
+#ifdef  SAVE_RAN
+/*===========================================================================*/
+/* Data to save and reuse the random search parameters for the signal model. */
+/* The purpose is to avoid recomputation of the signal model over and over.  */
+
+/* Parameters of the noise model (not used at this time) */
+
+static vfp     OLD_nmodel      = NULL ;
+static int     OLD_r           = -1 ;
+static float * OLD_min_nconstr = NULL ;  /* [r] */
+static float * OLD_max_nconstr = NULL ;  /* [r] */
+static float * RAN_npar = NULL ;         /* [nrand*r]        */
+static float * RAN_nts  = NULL ;         /* [nrand*ts_length */
+
+/* Parameters of the signal model */
+
+static vfp     OLD_smodel      = NULL ;
+static int     OLD_p           = -1 ;
+static float * OLD_min_sconstr = NULL ;  /* [p] */
+static float * OLD_max_sconstr = NULL ;  /* [p] */
+static float * RAN_spar = NULL ;         /* [nrand*p]        */
+static float * RAN_sts  = NULL ;         /* [nrand*ts_length */
+
+static int     OLD_ts_length   = -1 ;
+static int     OLD_nrand       = -1 ;
+static float   OLD_x0          = -666.0 ;
+static float   OLD_x1          = -777.0 ;
+
+static int     RAN_sind = -1 ;  /* if >= 0, index of random signal to use */
+
+/*---------------------------------------------------------------------------*/
+/* Function to compare two floating point vectors of the same length         */
+
+int RAN_compare_vect( int n , float * a , float * b )
+{
+   int ii ;
+   if( n < 1 || a == NULL || b == NULL ) return 1 ;
+   for( ii=0 ; ii < n ; ii++ ) if( a[ii] != b[ii] ) return 1 ;
+   return 0 ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Function to initialize the random parameters and their time series.       */
+/* At present, the noise model is not used, due to its 'relative' nature.    */
+
+void RAN_setup
+(
+  vfp nmodel,             /* pointer to noise model */
+  vfp smodel,             /* pointer to signal model */
+  int r,                  /* number of parameters in the noise model */
+  int p,                  /* number of parameters in the signal model */
+  int nabs,               /* use absolute constraints for noise parameters */
+  float * min_nconstr,    /* minimum parameter constraints for noise model */
+  float * max_nconstr,    /* maximum parameter constraints for noise model */
+  float * min_sconstr,    /* minimum parameter constraints for signal model */
+  float * max_sconstr,    /* maximum parameter constraints for signal model */
+  int ts_length,          /* length of time series array */
+  float ** x_array,       /* independent variable matrix */
+  int nrand               /* number of random vectors to generate */
+)
+{
+   int ip , ipt ;
+   float * par ;
+   float * ts ;
+
+   /*** check if the signal model is dead on arrival ***/
+
+   if( smodel == NULL ){
+      OLD_smodel = NULL ;
+      OLD_p      = -1 ;
+      if( OLD_min_sconstr != NULL ){ free(OLD_min_sconstr); OLD_min_sconstr = NULL; }
+      if( OLD_max_sconstr != NULL ){ free(OLD_max_sconstr); OLD_max_sconstr = NULL; }
+      if( RAN_spar        != NULL ){ free(RAN_spar)       ; RAN_spar        = NULL; }
+      if( RAN_sts         != NULL ){ free(RAN_sts )       ; RAN_sts         = NULL; }
+      return ;
+   }
+
+   /*** check if the signal model has changed ***/
+
+   if( smodel        != OLD_smodel                     ||
+       p             != OLD_p                          ||
+       ts_length     != OLD_ts_length                  ||
+       nrand         != OLD_nrand                      ||
+       x_array[0][1] != OLD_x0                         ||
+       x_array[1][1] != OLD_x1                         ||
+       RAN_compare_vect(p,min_sconstr,OLD_min_sconstr) ||
+       RAN_compare_vect(p,max_sconstr,OLD_max_sconstr)   ){
+
+      /* save parameters of new signal model */
+
+      fprintf(stderr,"NLfit: initializing random signal models") ;
+
+      OLD_smodel    = smodel ;
+      OLD_p         = p ;
+      OLD_ts_length = ts_length ;
+      OLD_nrand     = nrand ;
+      OLD_x0        = x_array[0][1] ;
+      OLD_x1        = x_array[1][1] ;
+      if( OLD_min_sconstr != NULL ) free(OLD_min_sconstr) ;
+      if( OLD_max_sconstr != NULL ) free(OLD_max_sconstr) ;
+      OLD_min_sconstr = (float *) malloc(sizeof(float)*p) ;
+      OLD_max_sconstr = (float *) malloc(sizeof(float)*p) ;
+      memcpy( OLD_min_sconstr , min_sconstr , sizeof(float)*p ) ;
+      memcpy( OLD_max_sconstr , max_sconstr , sizeof(float)*p ) ;
+
+      /* create space for new random signal model vectors */
+
+      if( RAN_spar != NULL ) free(RAN_spar) ;
+      if( RAN_sts  != NULL ) free(RAN_sts ) ;
+      RAN_spar = (float *) malloc(sizeof(float)*nrand*p) ;
+      RAN_sts  = (float *) malloc(sizeof(float)*nrand*ts_length) ;
+
+      /* compute new random signal vectors */
+
+      for( ipt=0 ; ipt < nrand ; ipt++ ){
+
+         par = RAN_spar + (ipt*p) ;         /* ipt-th parameter vector */
+         ts  = RAN_sts  + (ipt*ts_length) ; /* ipt-th signal model time series */
+
+         for( ip=0 ; ip < p ; ip++ )                 /* parameter vector */
+            par[ip] = get_random_value(min_sconstr[ip], max_sconstr[ip]) ;
+
+         smodel( par , ts_length , x_array , ts ) ;  /* time series vector */
+      }
+
+      fprintf(stderr,"\n") ;
+   } /* end of signal model stowage */
+
+   return ;
+}
+/*===========================================================================*/
+#endif /* SAVE_RAN */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -385,16 +524,24 @@ void full_model
 {
   int it;                     /* time index */
   float * y_array = NULL;     /* estimated signal time series */
-
-
-  /*----- allocate memory for signal time series -----*/
-  y_array = (float *) malloc (sizeof(float) * (ts_length));
-  if (y_array == NULL)
-    NLfit_error ("Unable to allocate memory for y_array");
-
+#ifdef SAVE_RAN
+  int use_model = ( RAN_sind < 0 || ts_length != OLD_ts_length ) ;
+#endif
 
   /*----- generate time series corresponding to signal model -----*/
-  smodel (gs, ts_length, x_array, y_array);
+
+#ifdef SAVE_RAN
+  if( use_model ){  /* don't use saved time series */
+#endif
+     y_array = (float *) malloc (sizeof(float) * (ts_length));
+     if (y_array == NULL)
+       NLfit_error ("Unable to allocate memory for y_array");
+     smodel (gs, ts_length, x_array, y_array);
+
+#ifdef SAVE_RAN
+  } else            /* recall a saved time series */
+     y_array = RAN_sts + (ts_length*RAN_sind) ;
+#endif
 
   /*----- generate time series corresponding to the noise model -----*/
   nmodel (gn, ts_length, x_array, yhat_array);
@@ -405,7 +552,12 @@ void full_model
   
 
   /*----- deallocate memory -----*/
-  free (y_array);   y_array = NULL;
+#ifdef SAVE_RAN
+  if( use_model )
+#endif
+    free (y_array) ;
+
+  y_array = NULL;  /* not really needed since this array is 'auto' */
 }
 
 
@@ -506,6 +658,25 @@ void random_search
   float * par = NULL;     /* test parameter vector */
 
 
+#ifdef SAVE_RAN
+  /*** 28 July 1998: set up to choose the best noise model for each case,
+                     rather than a completely random one -- RWCox.       ***/
+#undef  BEST_NOISE
+#ifdef  BEST_NOISE
+   float * qts = (float *) malloc(sizeof(float)*ts_length) ;
+   float junk ;
+#endif
+#endif /* SAVE_RAN */
+
+  /*** 27 July 1998: generate some random signal parameters,
+                     but only if the signal model is new this time. ***/
+#ifdef SAVE_RAN
+   RAN_setup( nmodel , smodel , r , p , nabs ,
+              min_nconstr, max_nconstr,
+              min_sconstr, max_sconstr, 
+              ts_length, x_array, nrand ) ;
+#endif
+
   /*----- allocate memory for test parameter vector -----*/
   par = (float *) malloc (sizeof(float) * (r+p));
 
@@ -518,6 +689,12 @@ void random_search
   for (ipt = 0;  ipt < nrand;  ipt++)
     {
 
+      /*** 28 July 1998: get the best noise parameter model ***/
+#ifdef BEST_NOISE
+      for( ip=0 ; ip < ts_length ; ip++ )  /* subtract signal model from data */
+         qts[ip] = ts_array[ip] - RAN_sts[ts_length*ipt+ip] ;
+      calc_reduced_model( ts_length , r , x_array , qts , par , &junk ) ;
+#else
       /*----- select random parameters -----*/
       if (nabs)   /*--- absolute noise parameter constraints ---*/
 	for (ip = 0;  ip < r;  ip++)
@@ -526,18 +703,56 @@ void random_search
 	for (ip = 0;  ip < r;  ip++)
 	  par[ip] = get_random_value (min_nconstr[ip] + par_rdcd[ip], 
 				      max_nconstr[ip] + par_rdcd[ip]);
+#endif /* BEST_NOISE */
+
+      /*** 27 July 1998: get the signal parameters from the saved set ***/
+#ifdef SAVE_RAN
+      for( ip=0 ; ip < p ; ip++ )
+         par[ip+r] = RAN_spar[ipt*p+ip] ;
+#else
       for (ip = 0;  ip < p;  ip++)
 	  par[ip+r] = get_random_value (min_sconstr[ip], max_sconstr[ip]);
+#endif
 
 
       /*----- evaluate this random vector -----*/
+#ifdef SAVE_RAN
+      RAN_sind = ipt ;
+#endif
+
       sse = calc_sse (nmodel, smodel, r, p, nabs, min_nconstr, max_nconstr, 
 		      min_sconstr, max_sconstr, par_rdcd, par, 
 		      ts_length, x_array, ts_array);
 
-
       /*----- save best random vectors -----*/
+
+      /*** The previous code for this is erroneous, since it does not
+           allow for the case where an in-between best and worst vector
+           is found.  For example, suppose the response array is now
+           [ 1 3 5 ] (with nbest==3).  Then we get sse=2.  This would
+           replace the 3 value, leaving us with [1 2 5], instead of
+           [ 1 2 3 ], which is a better set.  The solution is to push
+           the displaced vectors up in the array.  In this way, the
+           response array is always sorted, and keeps the truly best. ***/
+
+#define PUSH_BEST  /* 27 July 1998 -- RWCox */
+#ifdef  PUSH_BEST
       for (iv = 0;  iv < nbest;  iv++)
+	if (sse < response[iv]){
+           int jv ;
+           for( jv=nbest-1 ; jv > iv ; jv-- ){  /* the push-up code */
+              response[jv] = response[jv-1] ;
+              for( ip=0 ; ip < r+p ; ip++ )
+                 parameters[jv][ip] = parameters[jv-1][ip] ;
+           }
+
+           response[iv] = sse ;                 /* now can copy new */
+           for( ip=0 ; ip < r+p ;  ip++ )       /* values into place */
+              parameters[iv][ip] = par[ip] ;
+           break ;
+        }
+#else
+      for (iv = 0;  iv < nbest;  iv++)          /* this is the old code */
 	if (sse < response[iv])
 	  {
 	    for (ip = 0;  ip < r+p;  ip++)
@@ -545,10 +760,27 @@ void random_search
 	    response[iv] = sse;
 	    break;
 	  }
-    }
+#endif
+  } /* end of loop over random vectors */
 
   /*----- release memory space -----*/
   free (par);       par = NULL;
+
+#ifdef SAVE_RAN
+      RAN_sind = -1 ;
+#endif
+
+#if 0
+   /*** Some debugging stuff -- 28 July 1998 ***/
+   { static count=-1 ;
+     count++ ;
+     if( count%10 == 0 ){
+        printf("Random search sse:\n") ;
+        for( iv=0 ; iv < nbest ; iv++ ) printf(" %g",response[iv]) ;
+        printf("\n") ;
+     }
+   }
+#endif
  
 }
 

@@ -4118,11 +4118,11 @@ ENTRY("AFNI_hidden_EV") ;
             XtManageChild ( im3d->vwid->prog->hidden_menu ) ;         /* popup */
          }
 #ifdef WANT_RWCOX_IMAGE
-         else if( event->button == Button1 ) RWCOX_popper() ;
+         else if( !NO_frivolities && event->button == Button1 ) RWCOX_popper() ;
 #endif
 
 #ifdef USE_SKIT
-         else if( event->button == Button2 ) SKIT_popper(im3d) ;
+         else if( !NO_frivolities && event->button == Button2 ) SKIT_popper(im3d) ;
 #endif
       }
       break ;

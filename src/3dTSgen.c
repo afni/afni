@@ -12,8 +12,18 @@
    Mod:      Extensive changes required to implement the 'bucket' dataset.
    Date:     09 January 1998
 
+   Mod:      Added the -inTR option.
+             Removed duplicate readin of dset_time, and removed the
+               input of dset_time's bricks (never used).
+             22 July 1998 -- RWCox
 */
 
+
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -63,6 +73,12 @@ typedef struct NL_options
 
 } NL_options;
 
+/***** 22 July 1998 -- RWCox:
+       Modified to allow DELT to be set from the TR of the input file *****/
+
+static float DELT = 1.0;   /* default */
+static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
+static float dsTR = 0.0 ;  /* TR of the input file */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -79,6 +95,11 @@ void display_help_menu()
      "Usage:                                                                \n"
      "3dTSgen                                                               \n"
      "-input fname       fname = filename of prototype 3d + time data file  \n"
+     "[-inTR]            set the TR of the created timeseries to be the TR  \n"
+     "                     of the prototype dataset                         \n"
+     "                     [The default is to compute with TR = 1.]         \n"
+     "                     [The model functions are called for a  ]         \n"
+     "                     [time grid of 0, TR, 2*TR, 3*TR, ....  ]         \n"
      "-signal slabel     slabel = name of (non-linear) signal model         \n"
      "-noise  nlabel     nlabel = name of (linear) noise model              \n"
      "-sconstr k c d     constraints for kth signal parameter:              \n"
@@ -300,13 +321,6 @@ void get_options
 	  if (*input_filename == NULL)
 	    NLfit_error ("Unable to allocate memory for input_filename");
 	  strcpy (*input_filename, argv[nopt]);
-	  dset_time = THD_open_one_dataset (*input_filename);
-	  if (dset_time == NULL)  
-	    { 
-	      sprintf (message, 
-		       "Unable to open data file: %s", *input_filename);
-	      NLfit_error (message);
-	    }
 
 	  /*----- initialize data set parameters -----*/
 	  dset_time = THD_open_one_dataset (*input_filename);
@@ -316,18 +330,27 @@ void get_options
 		       "Unable to open data file: %s", *input_filename);
 	      NLfit_error (message);
 	    }
-	  THD_load_datablock (dset_time->dblk, NULL);
 	  *nxyz =  dset_time->dblk->diskptr->dimsizes[0]
 	    * dset_time->dblk->diskptr->dimsizes[1]
 	    * dset_time->dblk->diskptr->dimsizes[2] ;
 	  *ts_length = DSET_NUM_TIMES(dset_time);
+
+          dsTR = DSET_TIMESTEP(dset_time) ;
+          if( DSET_TIMEUNITS(dset_time) == UNITS_MSEC_TYPE ) dsTR *= 0.001 ;
+
 	  THD_delete_3dim_dataset(dset_time, False);  dset_time = NULL ;
 
 	  nopt++;
 	  continue;
 	}
-      
 
+      /*----- 22 July 1998: the -inTR option -----*/
+
+      if( strncmp(argv[nopt],"-inTR",5) == 0 ){
+         inTR = 1 ;
+         nopt++ ; continue ;
+      }
+      
       /*-----   -signal slabel  -----*/
       if (strncmp(argv[nopt], "-signal", 7) == 0)
 	{
@@ -363,7 +386,7 @@ void get_options
       
       
       /*-----   -sconstr k min max  -----*/
-      if (strncmp(argv[nopt], "-sconstr", 8) == 0)
+      if (strncmp(argv[nopt], "-sconstr", 8) == 0 || strncmp(argv[nopt],"-scnstr",8) == 0 )
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -sconstr ");
@@ -386,7 +409,7 @@ void get_options
       
       
       /*-----   -nconstr k min max  -----*/
-      if (strncmp(argv[nopt], "-nconstr", 8) == 0)
+      if (strncmp(argv[nopt], "-nconstr", 8) == 0 || strncmp(argv[nopt],"-ncnstr",8) == 0 )
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -nconstr ");
@@ -608,7 +631,11 @@ void get_options
      
       
       /*----- unknown command -----*/
-      NLfit_error ("unrecognized command line option ");
+
+      { char buf[256] ;
+        sprintf(buf,"unrecognized command line option: %s",argv[nopt]) ;
+        NLfit_error (buf);
+      }
     }
 
   
@@ -796,7 +823,6 @@ void initialize_program
 )
      
 {
-  const float DELT = 1.0;
   int dimension;           /* dimension of full model */
   int ip;                  /* parameter index */
   int it;                  /* time index */
@@ -834,6 +860,12 @@ void initialize_program
     }
     
   /*----- initialize independent variable matrix -----*/
+
+  if( inTR && dsTR > 0.0 ){   /* 22 July 1998 */
+     DELT = dsTR ;
+     fprintf(stderr,"--- computing with TR = %g\n",DELT) ;
+  }
+
   for (it = 0;  it < (*ts_length);  it++)  
     {
       (*x_array)[it][0] = 1.0;

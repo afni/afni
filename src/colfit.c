@@ -1,4 +1,4 @@
-/* colfit.f -- translated by f2c (version 19950808).
+/* colfit.f -- translated by f2c (version 19961017).
    You must link the resulting object file with the libraries:
 	-lf2c -lm   (in that order)
 */
@@ -531,22 +531,27 @@ L9900:
     static char fmt_999[] = "(\002   *** FF has illegal IFLAG=\002,i5)";
 
     /* System generated locals */
-    integer x_dim1, i__1;
+    integer x_dim1, i__1, i__2;
 
     /* Builtin functions */
     integer s_wsfe(cilist *), do_fio(integer *, char *, ftnlen), e_wsfe(void);
     /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Local variables */
-    static integer i__;
-    static doublereal fixvar[26];
+    static integer i__, j, k;
+    static doublereal vaz[851968]	/* was [32768][26] */;
     extern /* Subroutine */ int parevec_(integer *, char *, doublereal *, 
-	    integer *, integer *, integer *, integer *, doublereal *, 
-	    doublereal *, ftnlen);
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, integer *, doublereal *, ftnlen);
 
     /* Fortran I/O blocks */
     static cilist io___54 = { 0, 6, 0, fmt_101, 0 };
-    static cilist io___57 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___59 = { 0, 6, 0, fmt_999, 0 };
 
 
 
@@ -583,11 +588,26 @@ L9900:
     } else if (*iflag == 1) {
 	i__1 = *n;
 	for (i__ = 1; i__ <= i__1; ++i__) {
-	    fixvar[exdata_1.ifxvar[i__ - 1] - 1] = x[i__];
+	    k = exdata_1.ifxvar[i__ - 1];
+	    i__2 = *m;
+	    for (j = 1; j <= i__2; ++j) {
+		vaz[j + (k << 15) - 32769] = x[i__];
+/* L105: */
+	    }
 /* L110: */
 	}
-	parevec_(&exdata_1.numcod, exdata_1.ccode, fixvar, &c__1, &
-		exdata_1.ivevar, m, m, xydata_1.xx, &fvec[1], 8L);
+	i__1 = *m;
+	for (j = 1; j <= i__1; ++j) {
+	    vaz[j + (exdata_1.ivevar << 15) - 32769] = xydata_1.xx[j - 1];
+/* L115: */
+	}
+	parevec_(&exdata_1.numcod, exdata_1.ccode, vaz, &vaz[32768], &vaz[
+		65536], &vaz[98304], &vaz[131072], &vaz[163840], &vaz[196608],
+		 &vaz[229376], &vaz[262144], &vaz[294912], &vaz[327680], &vaz[
+		360448], &vaz[393216], &vaz[425984], &vaz[458752], &vaz[
+		491520], &vaz[524288], &vaz[557056], &vaz[589824], &vaz[
+		622592], &vaz[655360], &vaz[688128], &vaz[720896], &vaz[
+		753664], &vaz[786432], &vaz[819200], m, &fvec[1], 8L);
 	i__1 = *m;
 	for (i__ = 1; i__ <= i__1; ++i__) {
 	    fvec[i__] -= xydata_1.yy[i__ - 1];
@@ -596,7 +616,7 @@ L9900:
 /* ...................................................................
 .... */
     } else {
-	s_wsfe(&io___57);
+	s_wsfe(&io___59);
 	do_fio(&c__1, (char *)&(*iflag), (ftnlen)sizeof(integer));
 	e_wsfe();
 	s_stop("", 0L);

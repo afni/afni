@@ -1,5 +1,10 @@
 #include "bbox.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*-------------------------------------------------------------------------
    create a new MCW_bbox:
        parent    = parent Widget

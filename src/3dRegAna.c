@@ -18,6 +18,12 @@
            08 January 1998
 */
 
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This software is Copyright 1997, 1998 by

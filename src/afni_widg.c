@@ -3672,17 +3672,19 @@ ENTRY("AFNI_make_wid3") ;
       /*-----------------------------------*/
 
 #ifdef USE_SONNETS
-      prog->hidden_sonnet_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-               LABEL_ARG("Sonnet") ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
+      if( ! NO_frivolities ){
+         prog->hidden_sonnet_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Sonnet") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
 
-      XtAddCallback( prog->hidden_sonnet_pb , XmNactivateCallback ,
-                     AFNI_sonnet_CB , im3d ) ;
+         XtAddCallback( prog->hidden_sonnet_pb , XmNactivateCallback ,
+                        AFNI_sonnet_CB , im3d ) ;
+      }
 #endif
 
 #undef TESTER

@@ -5,6 +5,12 @@
         EPI part based on Eric C. Wong program fd_multi.c .
         Andre Jesmanowicz, 9-24-1992, Medical College of Wisconsin. */
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #ifdef SPARKY
 #undef _POSIX_SOURCE
 #endif

@@ -11,6 +11,7 @@ int main( int argc , char * argv[] )
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte * mmm = NULL ;
    int dumpit = 0 , sigmait = 0 ;
+   int miv = 0 ;                   /* 06 Aug 1998 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -25,6 +26,8 @@ int main( int argc , char * argv[] )
              "                 will be averaged from 'dataset'.  Note\n"
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
+             "  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
+             "                 dataset.  If not given, miv=0.\n"
              "  -mrange a b  Means to further restrict the voxels from\n"
              "                 'dset' so that only those mask values\n"
              "                 between 'a' and 'b' (inclusive) will\n"
@@ -69,6 +72,19 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
+      /* 06 Aug 1998 */
+
+      if( strncmp(argv[narg],"-mindex",5) == 0 ){
+         if( narg+1 >= argc ){
+            fprintf(stderr,"*** -mindex option needs 1 following argument!\n") ; exit(1) ;
+         }
+         miv = (int) strtod( argv[++narg] , NULL ) ;
+         if( miv < 0 ){
+            fprintf(stderr,"*** -mindex value is negative!\n") ; exit(1) ;
+         }
+         narg++ ; continue ;
+      }
+
       if( strncmp(argv[narg],"-mrange",5) == 0 ){
          if( narg+2 >= argc ){
             fprintf(stderr,"*** -mrange option requires 2 following arguments!\n") ; exit(1) ;
@@ -109,6 +125,15 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Can't use dump option without -mask!\n") ; exit(1) ;
    }
 
+   if( miv > 0 ){                /* 06 Aug 1998 */
+      if( mask_dset == NULL ){
+         fprintf(stderr,"*** -mindex option used without -mask!\n") ; exit(1) ;
+      }
+      if( miv >= DSET_NVALS(mask_dset) ){
+         fprintf(stderr,"*** -mindex value is too large!\n") ; exit(1) ;
+      }
+   }
+
    /* read input dataset */
 
    input_dset = THD_open_one_dataset( argv[narg] ) ;
@@ -128,7 +153,7 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n") ; exit(1) ;
       }
       DSET_load(mask_dset) ;
-      if( DSET_ARRAY(mask_dset,0) == NULL ){
+      if( DSET_ARRAY(mask_dset,miv) == NULL ){
          fprintf(stderr,"*** Cannot read in mask dataset BRIK!\n") ; exit(1) ;
       }
       mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
@@ -136,18 +161,18 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"*** Cannot malloc workspace!\n") ; exit(1) ;
       }
 
-      switch( DSET_BRICK_TYPE(mask_dset,0) ){
+      switch( DSET_BRICK_TYPE(mask_dset,miv) ){
          default:
             fprintf(stderr,"*** Cannot deal with mask dataset datum!\n") ; exit(1) ;
 
          case MRI_short:{
             short mbot , mtop ;
-            short * mar = (short *) DSET_ARRAY(mask_dset,0) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+            short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
             if( mfac == 0.0 ) mfac = 1.0 ;
             if( mask_bot <= mask_top ){
-               mbot = (short) (mask_bot/mfac) ;
-               mtop = (short) (mask_top/mfac) ;
+               mbot = SHORTIZE(mask_bot/mfac) ;
+               mtop = SHORTIZE(mask_top/mfac) ;
             } else {
                mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
                mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
@@ -160,12 +185,12 @@ int main( int argc , char * argv[] )
 
          case MRI_byte:{
             byte mbot , mtop ;
-            byte * mar = (byte *) DSET_ARRAY(mask_dset,0) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+            byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
             if( mfac == 0.0 ) mfac = 1.0 ;
             if( mask_bot <= mask_top ){
-               mbot = (byte) ((mask_bot > 0.0) ? (mask_bot/mfac) : 0.0) ;
-               mtop = (byte) ((mask_top > 0.0) ? (mask_top/mfac) : 0.0) ;
+               mbot = BYTEIZE(mask_bot/mfac) ;
+               mtop = BYTEIZE(mask_top/mfac) ;
                if( mtop == 0 ){
                   fprintf(stderr,"*** Illegal mask range for mask dataset of bytes.\n") ; exit(1) ;
                }
@@ -181,8 +206,8 @@ int main( int argc , char * argv[] )
 
          case MRI_float:{
             float mbot , mtop ;
-            float * mar = (float *) DSET_ARRAY(mask_dset,0) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+            float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
             if( mfac == 0.0 ) mfac = 1.0 ;
             if( mask_bot <= mask_top ){
                mbot = (float) (mask_bot/mfac) ;

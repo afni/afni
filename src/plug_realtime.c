@@ -1,5 +1,10 @@
 #include "afni.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
 #  define PRINT_TRACING
@@ -26,7 +31,7 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#undef ALLOW_2DALIGN  /* not fully implemented yet */
+#define ALLOW_REGISTRATION  /* not fully implemented yet */
 
 /***********************************************************************
   Plugin to accept data from an external process and assemble
@@ -36,9 +41,6 @@
 
 /**************************************************************************/
 /*********************** struct for reading data **************************/
-#ifdef SPARKY
-#undef _POSIX_SOURCE
-#endif
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -122,12 +124,15 @@ typedef struct {
    int func_condit ;              /* condition that function computation is in now */
    int_func * func_func ;         /* function to compute the function */
 
-#ifdef ALLOW_2DALIGN
-   /*-- 07 Apr 1998: real-time image registration stuff --*/
+#ifdef ALLOW_REGISTRATION
+   /*-- 07 Apr and 01 Aug 1998: real-time image registration stuff --*/
 
-   THD_3dim_dataset * reg_dset ;    /* registered dataset, if any */
-   MRI_2dalign_basis ** reg_basis ; /* stuff for each slice */
-   int reg_base_index ;             /* where to start? */
+   THD_3dim_dataset * reg_dset ;      /* registered dataset, if any */
+   MRI_2dalign_basis ** reg_2dbasis ; /* stuff for each slice */
+   int reg_base_index ;               /* where to start? */
+   int reg_mode ;                     /* how to register? */
+   int reg_status ;                   /* does AFNI know about this dataset yet? */
+   int reg_nvol ;                     /* number of volumes registered so far */
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -157,13 +162,14 @@ static char helpstring[] =
    "              during realtime input of time dependent datasets.\n\n"
    " Verbose  = If set to 'Yes', the plugin will print out progress\n"
    "              reports as information flows into it.\n"
-#ifdef ALLOW_2DALIGN
-   " Align-2D = If activated, 2D image registration will take place\n"
-   "              in real-time.  In that case, the un-registered dataset\n"
-   "              will be named something like Root#001 and the aligned\n"
-   "              dataset Root#001%reg.\n"
-   "              The value sets the time index to which the alignment\n"
-   "              will take place.\n"
+#ifdef ALLOW_REGISTRATION
+   "\n"
+   " Registration = If activated, image registration will take place\n"
+   "                  either in realtime or at the end of image acquisition.\n"
+   "                  The un-registered dataset will be named something like\n"
+   "                  Root#001 and the aligned dataset Root#001%reg.\n"
+   " Base Image   = The value sets the time index to which the alignment\n"
+   "                  will take place.\n"
 #endif
 ;
 
@@ -179,7 +185,7 @@ static int func_code = 0 ;
 #define FUNC_NONE  0  /* symbolic values for the func_code */
 #define FUNC_RTFIM 1
 
-#define INIT_MODE     -1
+#define INIT_MODE     -1  /* modes for RT_fim_recurse (AKA func_func) */
 #define UPDATE_MODE   -2
 #define FINAL_MODE    -3
 
@@ -191,9 +197,16 @@ int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
 static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
 
-#ifdef ALLOW_2DALIGN
-static int regtime = 3 ;
-static int regdoit = 0 ;
+#ifdef ALLOW_REGISTRATION
+  static int regtime = 3 ;  /* index of base time for registration */
+  static int regmode = 0 ;  /* index into REG_strings */
+
+# define NREG 3
+  static char * REG_strings[NREG] = { "None" , "2D: realtime" , "2D: at end" } ;
+
+# define REGMODE_NONE      0
+# define REGMODE_2D_RTIME  1
+# define REGMODE_2D_ATEND  2
 #endif
 
 /************ global data for reading data *****************/
@@ -218,6 +231,14 @@ void RT_process_image( RT_input * ) ;
 void RT_finish_dataset( RT_input * ) ;
 void RT_tell_afni( RT_input * , int ) ;
 void RT_start_child( RT_input * ) ;
+
+#ifdef ALLOW_REGISTRATION
+  void RT_registration_2D_atend( RT_input * rtin ) ;
+  void RT_registration_2D_setup( RT_input * rtin ) ;
+  void RT_registration_2D_close( RT_input * rtin ) ;
+  void RT_registration_2D_onevol( RT_input * rtin , int tt ) ;
+  void RT_registration_2D_realtime( RT_input * rtin ) ;
+#endif
 
 #define TELL_NORMAL  0
 #define TELL_WRITE   1
@@ -268,11 +289,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "" , "Verbose" , FALSE ) ;
    PLUTO_add_string( plint , "Verbose" , NVERB , VERB_strings , verbose ) ;
 
-#ifdef ALLOW_2DALIGN
-   /*-- fifth line of input: 2D alignment mode --*/
+#ifdef ALLOW_REGISTRATION
+   /*-- fifth line of input: registration mode --*/
 
-   PLUTO_add_option( plint , "" , "Align-2D" , FALSE ) ;
-   PLUTO_add_number( plint , "Align-2D" , 0,59,0 , regtime , FALSE ) ;
+   PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
+   PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
+   PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
 #endif
 
    /***** Register a work process *****/
@@ -301,8 +323,8 @@ char * RT_main( PLUGIN_interface * plint )
 
    /** loop over input from AFNI **/
 
-#ifdef ALLOW_2DALIGN
-   regdoit = 0 ;
+#ifdef ALLOW_REGISTRATION
+   regmode = 0 ;
 #endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
@@ -334,10 +356,12 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 
-#ifdef ALLOW_2DALIGN
-      if( strcmp(tag,"Align-2D") == 0 ){
+#ifdef ALLOW_REGISTRATION
+      if( strcmp(tag,"Registration") == 0 ){
+         str     = PLUTO_get_string(plint) ;
+         regmode = PLUTO_string_index( str , NREG , REG_strings ) ;
          regtime = PLUTO_get_number(plint) ;
-         regdoit = 1 ;
+         continue ;
       }
 #endif
 
@@ -416,6 +440,50 @@ int RT_check_listen(void)
    return 0 ;  /* no external connection yet */
 }
 
+/***************************************************************************/
+/**             macro to close down the realtime input stream             **/
+
+#if 0
+# define CLEANUP                                                         \
+  do { IOCHAN_CLOSE(rtinp->ioc_data) ;                                   \
+       IOCHAN_CLOSE(rtinp->ioc_info) ;                                   \
+       DESTROY_IMARR(rtinp->bufar) ;                                     \
+       if( rtinp->sbr != NULL ) free( rtinp->sbr ) ;                     \
+       if( rtinp->child_info > 0 ) kill( rtinp->child_info , SIGTERM ) ; \
+       free(rtinp) ; rtinp = NULL ;  ioc_control = NULL ; GRIM_REAPER ;  \
+  } while(0)
+#else
+# define CLEANUP cleanup_rtinp()
+#endif
+
+/**------------ 01 Aug 1998: replace the macro with a function -----------**/
+
+void cleanup_rtinp(void)
+{
+   IOCHAN_CLOSE(rtinp->ioc_data) ;         /* close any open I/O channels */
+   IOCHAN_CLOSE(rtinp->ioc_info) ;
+
+   if( rtinp->child_info > 0 )                   /* destroy child process */
+      kill( rtinp->child_info , SIGTERM ) ;
+
+   DESTROY_IMARR(rtinp->bufar) ;           /* destroy any buffered images */
+
+   if( rtinp->sbr != NULL ) free( rtinp->sbr ) ; /* destroy buffered data */
+
+#ifdef ALLOW_REGISTRATION
+   if( rtinp->reg_2dbasis != NULL ){        /* destroy registration setup */
+      int kk ;
+      for( kk=0 ; kk < rtinp->nzz ; kk++ )
+         mri_2dalign_cleanup( rtinp->reg_2dbasis[kk] ) ;
+      free( rtinp->reg_2dbasis ) ;
+   }
+#endif
+
+   free(rtinp) ; rtinp = NULL ;                 /* destroy data structure */
+   ioc_control = NULL ;                          /* ready to listen again */
+   GRIM_REAPER ;                               /* reap dead child, if any */
+}
+
 /*********************************************************************
   Real time routine called every so often by Xt.
   This handles connections from other processes that want to
@@ -425,17 +493,6 @@ int RT_check_listen(void)
   called again, and return True if it is done.  For real-time
   AFNIfying, this should always return False.
 **********************************************************************/
-
-/** macro to close down the realtime input stream **/
-
-#define CLEANUP                                                         \
- do { IOCHAN_CLOSE(rtinp->ioc_data) ;                                   \
-      IOCHAN_CLOSE(rtinp->ioc_info) ;                                   \
-      DESTROY_IMARR(rtinp->bufar) ;                                     \
-      if( rtinp->sbr != NULL ) free( rtinp->sbr ) ;                     \
-      if( rtinp->child_info > 0 ) kill( rtinp->child_info , SIGTERM ) ; \
-      free(rtinp) ; rtinp = NULL ;  ioc_control = NULL ; GRIM_REAPER ;  \
- } while(0)
 
 Boolean RT_worker( XtPointer elvis )
 {
@@ -602,7 +659,7 @@ Boolean RT_worker( XtPointer elvis )
       return False ;
    }
 
-   if( jj < 0 ){                 /* something bad */
+   if( jj < 0 ){                 /* something bad happened to data channel */
       if( verbose == 2 )
          fprintf(stderr,"RT: data channel closed down.\n") ;
       VMCHECK ;
@@ -925,10 +982,13 @@ RT_input * new_RT_input(void)
 
    rtin->func_func   = FUNC_funcs[rtin->func_code] ; /* where to evaluate */
 
-#ifdef ALLOW_2DALIGN
-   rtin->reg_base_index = (regdoit) ? regtime : -1 ;
+#ifdef ALLOW_REGISTRATION
+   rtin->reg_base_index = regtime ;  /* save these now, in case the evil */
+   rtin->reg_mode       = regmode ;  /* user changes them on the fly!    */
    rtin->reg_dset       = NULL ;
-   rtin->reg_basis      = NULL :
+   rtin->reg_2dbasis    = NULL ;
+   rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
+   rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
 #endif
 
    /** record the times for later reportage **/
@@ -1442,13 +1502,12 @@ void RT_start_dataset( RT_input * rtin )
    }
 
    rtin->afni_status = 0 ;  /* uninformed at this time */
-
    DSET_lock(rtin->dset) ;  /* 20 Mar 1998 */
 
+#ifdef ALLOW_REGISTRATION
    /*---- Make a dataset for registration, if need be ----*/
 
-#ifdef ALLOW_2DALIGN
-   if( rtin->reg_base_index >= 0 &&
+   if( rtin->reg_mode > 0 &&
        ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
 
       rtin->reg_dset = EDIT_empty_copy( rtin->dset ) ;
@@ -1456,6 +1515,8 @@ void RT_start_dataset( RT_input * rtin )
       strcat(npr,"%reg") ;
       EDIT_dset_items( rtin->reg_dset , ADN_prefix , npr , ADN_none ) ;
 
+      rtin->reg_status = 0 ;
+      rtin->reg_nvol   = 0 ;
       DSET_lock(rtin->reg_dset) ;
    }
 #endif
@@ -1718,6 +1779,11 @@ void RT_process_image( RT_input * rtin )
             rtin->func_func( rtin , rtin->nvol - 1 ) ;
       }
 
+#ifdef ALLOW_REGISTRATION
+      if( rtin->reg_mode == REGMODE_2D_RTIME )
+         RT_registration_2D_realtime( rtin ) ;
+#endif /* ALLOW_REGISTRATION */
+
       /** make space for next sub-brick to arrive **/
 
       if( verbose == 2 )
@@ -1790,7 +1856,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
 {
    Three_D_View * im3d ;
    THD_session * sess ;
-   THD_3dim_dataset * old_anat , * dds = NULL ;
+   THD_3dim_dataset * old_anat ;
    int ii , id , afni_init=0 ;
    static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
    char clll ;
@@ -1822,6 +1888,8 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       EDIT_dset_items( rtin->dset, ADN_directory_name,sess->sessname, ADN_none ) ;
 
+      THD_load_statistics( rtin->dset ) ;
+
       /** put it into the current session in the current controller **/
 
       if( ISANAT(rtin->dset) ){
@@ -1835,6 +1903,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
             exit(1) ;
          }
          sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->dset ; sess->num_anat = id+1 ;
+         POPDOWN_strlist_chooser ;
 
       } else if( ISFUNC(rtin->dset) ){
 
@@ -1848,6 +1917,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
          }
          sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->dset ; (sess->num_func)++ ;
          AFNI_force_adoption( sess , False ) ;
+         POPDOWN_strlist_chooser ;
 
       } else {
          fprintf(stderr,"RT: bizarre dataset type error!\a\n") ;
@@ -1869,14 +1939,14 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
    } else {  /** 2nd or later call for this dataset **/
 
+      THD_update_statistics( rtin->dset ) ;
+
       if( verbose )
          fprintf(stderr,"RT: update with %d bricks to AFNI [%c]\n",rtin->nvol,clll) ;
       VMCHECK ;
 
       tav->fmax = tav->imax = im3d->vinfo->time_index = rtin->nvol - 1  ;
       AV_assign_ival( tav , tav->imax ) ;
-
-      afni_init = 0 ;  /* below: will tell AFNI just to redisplay */
    }
 
    /**--- Deal with the computed function, if any ---**/
@@ -1906,42 +1976,69 @@ void RT_tell_afni( RT_input * rtin , int mode )
             }
             sess->func[id][VIEW_ORIGINAL_TYPE] = rtin->func_dset ; (sess->num_func)++ ;
             AFNI_force_adoption( sess , False ) ;
+            POPDOWN_strlist_chooser ;
 
             im3d->vinfo->func_num = sess->num_func - 1 ;
 
             AFNI_SETUP_FUNC_ON(im3d) ;
-            afni_init = 1 ;           /* below: will tell AFNI to look at this function */
             rtin->func_status = 1 ;   /* AFNI knows now */
+            afni_init = 1 ;           /* below: tell AFNI to look at this function */
 
          } else {  /** 2nd or later call for this dataset **/
 
-            /** actually, there's nothing to do here **/
+            /**--- actually, there's nothing to do here ---**/
+
          }
       }  /* end of if functional dataset actually has data */
    }  /* end of if functional dataset exists */
 
+#ifdef ALLOW_REGISTRATION
+   /**--- Deal with the registered dataset, if any ---**/
+
+   if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
+
+      if( rtin->reg_status == 0 ){  /** first time for this dataset **/
+
+         THD_load_statistics( rtin->reg_dset ) ;
+
+         if( verbose )
+               fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
+                                "    to AFNI controller [%c] session %s\n" ,
+                       DSET_FILECODE(rtin->reg_dset) , DSET_NVALS(rtin->reg_dset) ,
+                       clll , sess->sessname ) ;
+         VMCHECK ;
+
+         EDIT_dset_items( rtin->reg_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
+
+         id = sess->num_anat ;
+         if( id >= THD_MAX_SESSION_ANAT ){
+            fprintf(stderr,"RT: max number of anat datasets exceeded!\a\n") ;
+            exit(1) ;
+         }
+         sess->anat[id][VIEW_ORIGINAL_TYPE] = rtin->reg_dset ; sess->num_anat = id+1 ;
+         POPDOWN_strlist_chooser ;
+
+         rtin->reg_status = 1 ;   /* AFNI knows about this dataset now */
+
+      } else {  /** 2nd or later call for this dataset **/
+
+         THD_update_statistics( rtin->reg_dset ) ;
+      }
+   }
+#endif
+
    /**--- actually talk to AFNI now ---**/
 
-   if( afni_init ){
+   if( afni_init ){  /* tell AFNI to view new dataset(s) */
       AFNI_SETUP_VIEW(im3d,VIEW_ORIGINAL_TYPE) ;
-      POPDOWN_strlist_chooser ;
       if( EQUIV_DSETS(rtin->dset,old_anat) ) THD_update_statistics( rtin->dset ) ;
       else                                   THD_load_statistics  ( rtin->dset ) ;
 
       AFNI_initialize_view( old_anat , im3d ) ;  /* Geronimo! */
 
-#if 0
-      if( dds != NULL ){       /* purge dummy dataset from memory */
-         if( verbose == 2 )
-            fprintf(stderr,"RT: purging dummy dataset now.\n") ;
-         VMCHECK ;
-         DSET_unload( dds ) ;
-      }
-#endif
-   } else {
+   } else {          /* just tell AFNI to refresh the images/graphs */
       Three_D_View * qq3d ;
-
-      THD_update_statistics( rtin->dset ) ;
+      int review ;
 
       /* check all controllers to see if they are looking at the same datasets */
 
@@ -1949,18 +2046,24 @@ void RT_tell_afni( RT_input * rtin , int mode )
          qq3d = GLOBAL_library.controllers[ii] ;
          if( !IM3D_OPEN(qq3d) ) break ;  /* skip this one */
 
-         if( qq3d == im3d                           ||   /* same viewer */
-             EQUIV_DSETS(rtin->dset,qq3d->anat_now) ||   /* same anat? */
-             ( rtin->func_dset != NULL   &&              /* same func? */
-               qq3d->vinfo->func_visible &&
-               EQUIV_DSETS(rtin->func_dset,qq3d->fim_now) ) ){
+         review = (qq3d == im3d)                         ||   /* same viewer?  */
+                  EQUIV_DSETS(rtin->dset,qq3d->anat_now) ||   /* or same anat? */
+                  ( rtin->func_dset != NULL   &&              /* or same func? */
+                    qq3d->vinfo->func_visible &&
+                    EQUIV_DSETS(rtin->func_dset,qq3d->fim_now) ) ;
 
+#ifdef ALLOW_REGISTRATION
+         review = review || ( rtin->reg_dset != NULL &&       /* or same reg?  */
+                              rtin->reg_nvol > 0     &&
+                              EQUIV_DSETS(rtin->reg_dset,qq3d->anat_now) ) ;
+#endif
+
+         if( review ){
             if( verbose == 2 )
                fprintf(stderr,"RT: send redraw message to controller [%c]\n",
                        clabel[ii] ) ;
             VMCHECK ;
             AFNI_modify_viewing( qq3d , False ) ;  /* Crazy Horse! */
-
          }
       }
    }
@@ -1976,10 +2079,10 @@ void RT_tell_afni( RT_input * rtin , int mode )
          fprintf(stderr,"RT: finalizing dataset to AFNI (including disk output).\n") ;
       VMCHECK ;
 
-         fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
-                          "    to AFNI controller [%c] session %s\n" ,
-                 DSET_FILECODE(rtin->dset) , rtin->nvol ,
-                 clll , sess->sessname ) ;
+      fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
+                       "    to AFNI controller [%c] session %s\n" ,
+              DSET_FILECODE(rtin->dset) , rtin->nvol ,
+              clll , sess->sessname ) ;
 
       { char qbuf[256] ;
         sprintf( qbuf , " \n"
@@ -1996,7 +2099,9 @@ void RT_tell_afni( RT_input * rtin , int mode )
       THD_load_statistics( rtin->dset ) ;
 **/
 
-      cmode = THD_get_write_compression() ;      /* 20 Mar 1998 */
+      /* 20 Mar 1998: write in uncompressed mode */
+
+      cmode = THD_get_write_compression() ;
       THD_set_write_compression(COMPRESS_NONE) ;
       SHOW_AFNI_PAUSE ;
 
@@ -2010,7 +2115,15 @@ void RT_tell_afni( RT_input * rtin , int mode )
          THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
 
-      THD_set_write_compression(cmode) ;
+#ifdef ALLOW_REGISTRATION
+      if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
+         THD_write_3dim_dataset( NULL,NULL , rtin->reg_dset , True ) ;
+         DSET_unlock( rtin->reg_dset ) ;
+         THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
+      }
+#endif
+
+      THD_set_write_compression(cmode) ;  /* restore compression mode */
       SHOW_AFNI_READY ;
 
       AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
@@ -2026,7 +2139,10 @@ void RT_tell_afni( RT_input * rtin , int mode )
    return ;
 }
 
-/*--------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------
+  This routine is called when no more data will be added to the
+  incoming dataset.
+----------------------------------------------------------------------------*/
 
 void RT_finish_dataset( RT_input * rtin )
 {
@@ -2036,7 +2152,15 @@ void RT_finish_dataset( RT_input * rtin )
 
    if( rtin->nvol < 1 ){
      fprintf(stderr,"RT: attempt to finish dataset with 0 completed bricks!\a\n") ;
-     THD_delete_3dim_dataset( rtin->dset , False ) ;
+     DSET_delete( rtin->dset ) ; rtin->dset = NULL ;
+     if( rtin->func_dset != NULL ){
+        DSET_delete( rtin->func_dset ) ; rtin->func_dset = NULL ;
+     }
+#ifdef ALLOW_REGISTRATION
+     if( rtin->reg_dset != NULL ){
+        DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+     }
+#endif
      return ;
    }
 
@@ -2048,12 +2172,265 @@ void RT_finish_dataset( RT_input * rtin )
    if( verbose ) SHOW_TIMES ;
    VMCHECK ;
 
+#ifdef ALLOW_REGISTRATION
+   /*--- Do the "at end" registration, if ordered and if possible ---*/
+
+   if( rtin->reg_mode == REGMODE_2D_ATEND )
+      RT_registration_2D_atend( rtin ) ;
+#endif
+
    /** tell afni about it one last time **/
 
    RT_tell_afni(rtin,TELL_FINAL) ;
 
    return ;
 }
+
+#ifdef ALLOW_REGISTRATION
+/*---------------------------------------------------------------------------
+  Do pieces of 2D registration during realtime.
+-----------------------------------------------------------------------------*/
+
+void RT_registration_2D_realtime( RT_input * rtin )
+{
+   int tt , ntt ;
+
+   if( rtin->reg_dset == NULL ) return ;
+
+   /*-- check to see if we need to setup first --*/
+
+   if( rtin->reg_2dbasis == NULL ){  /* need to setup */
+
+      /* check if enough data to setup */
+
+      if( rtin->reg_base_index >= rtin->nvol ) return ;  /* can't setup */
+
+      /* setup the registration process */
+
+      if( verbose == 2 )
+         fprintf(stderr,"RT: setting up 2D registration 'realtime'\n") ;
+
+      RT_registration_2D_setup( rtin ) ;
+
+      if( rtin->reg_2dbasis == NULL ){
+         fprintf(stderr,"RT: can't setup %s registration!\a\n",
+                 REG_strings[REGMODE_2D_RTIME] ) ;
+         DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+         rtin->reg_mode = REGMODE_NONE ;
+         return ;
+      }
+   }
+
+   /*-- register all sub-bricks that aren't done yet --*/
+
+   ntt = DSET_NUM_TIMES( rtin->dset ) ;
+   for( tt=rtin->reg_nvol ; tt < ntt ; tt++ )
+      RT_registration_2D_onevol( rtin , tt ) ;
+
+   /*-- my work here is done --*/
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------
+  Do 2D registration of all slices at once, when the realtime dataset
+  is all present and accounted for.
+-----------------------------------------------------------------------------*/
+
+void RT_registration_2D_atend( RT_input * rtin )
+{
+   int tt , ntt ;
+
+   /* check if have enough data to register as ordered */
+
+   if( rtin->reg_base_index >= rtin->nvol ){
+      fprintf(stderr,"RT: can't do %s registration: not enough 3D volumes!\a\n",
+              REG_strings[REGMODE_2D_ATEND] ) ;
+      DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+      rtin->reg_mode = REGMODE_NONE ;
+      return ;
+   }
+
+   /* set up the registration process */
+
+   if( verbose == 2 )
+      fprintf(stderr,"RT: setting up 2D registration 'at end'\n") ;
+
+   RT_registration_2D_setup( rtin ) ;
+
+   if( rtin->reg_2dbasis == NULL ){
+      fprintf(stderr,"RT: can't setup %s registration!\a\n",
+              REG_strings[REGMODE_2D_ATEND] ) ;
+      DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+      rtin->reg_mode = REGMODE_NONE ;
+      return ;
+   }
+
+   /* register each volume into the new dataset */
+
+   ntt = DSET_NUM_TIMES( rtin->dset ) ;
+   for( tt=0 ; tt < ntt ; tt++ )
+      RT_registration_2D_onevol( rtin , tt ) ;
+
+   /* un-setup the registration process */
+
+   RT_registration_2D_close( rtin ) ;
+   if( verbose == 2 ) SHOW_TIMES ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Setup the 2D registration data for each slice
+-------------------------------------------------------------------------*/
+
+void RT_registration_2D_setup( RT_input * rtin )
+{
+   int ibase = rtin->reg_base_index ;
+   int kk , nx,ny,nz , kind , nbar ;
+   MRI_IMAGE * im ;
+   char * bar ;
+
+   nx   = DSET_NX( rtin->dset ) ;
+   ny   = DSET_NY( rtin->dset ) ;
+   nz   = DSET_NZ( rtin->dset ) ;
+   kind = DSET_BRICK_TYPE( rtin->dset , ibase ) ;
+
+   rtin->reg_nvol  = 0 ;
+
+   rtin->reg_2dbasis = (MRI_2dalign_basis **)
+                         malloc( sizeof(MRI_2dalign_basis *) * nz ) ;
+
+   im   = mri_new_vol_empty( nx,ny,1 , kind ) ;     /* fake image for slices */
+   bar  = DSET_BRICK_ARRAY( rtin->dset , ibase ) ;  /* ptr to base volume    */
+   nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
+
+   for( kk=0 ; kk < nz ; kk++ ){                         /* loop over slices */
+      mri_fix_data_pointer( bar + kk*nbar , im ) ;             /* base image */
+      rtin->reg_2dbasis[kk] = mri_2dalign_setup( im , NULL ) ;
+   }
+
+   mri_fix_data_pointer( NULL , im ) ; mri_free( im ) ;   /* get rid of this */
+   return ;
+}
+
+/*---------------------------------------------------------------------------
+    Undo the routine just above!
+-----------------------------------------------------------------------------*/
+
+void RT_registration_2D_close( RT_input * rtin )
+{
+   int kk , nz ;
+
+   nz = DSET_NZ( rtin->dset ) ;
+   for( kk=0 ; kk < nz ; kk++ )
+      mri_2dalign_cleanup( rtin->reg_2dbasis[kk] ) ;
+
+   free( rtin->reg_2dbasis ) ; rtin->reg_2dbasis = NULL ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Carry out the 2D registration for each slice in the tt-th sub-brick
+-------------------------------------------------------------------------*/
+
+void RT_registration_2D_onevol( RT_input * rtin , int tt )
+{
+   int kk , nx,ny,nz , kind , nbar ;
+   MRI_IMAGE * im , * rim , * qim ;
+   char * bar , * rar , * qar ;
+
+   /*-- sanity check --*/
+
+   if( rtin->dset == NULL || rtin->reg_dset == NULL ) return ;
+
+   nx   = DSET_NX( rtin->dset ) ;
+   ny   = DSET_NY( rtin->dset ) ;
+   nz   = DSET_NZ( rtin->dset ) ;
+   kind = DSET_BRICK_TYPE( rtin->dset , 0 ) ;
+
+   im   = mri_new_vol_empty( nx,ny,1 , kind ) ;     /* fake image for slices */
+   bar  = DSET_BRICK_ARRAY( rtin->dset , tt ) ;     /* ptr to input volume   */
+   nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
+
+   /* make space for new sub-brick in reg_dset */
+
+   if( verbose == 2 )
+      fprintf(stderr,"RT: registering sub-brick %d",tt) ;
+
+   rar = (char *) malloc( sizeof(char) * nx*ny*nz * im->pixel_size ) ;
+
+   if( rar == NULL ){
+      fprintf(stderr,"RT: can't malloc space for registered dataset!\a\n") ;
+      DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+      rtin->reg_mode = REGMODE_NONE ;
+      return ;
+   }
+
+   /*-- loop over slices --*/
+
+   for( kk=0 ; kk < nz ; kk++ ){
+
+      if( verbose == 2 ) fprintf(stderr,".") ;
+
+      mri_fix_data_pointer( bar + kk*nbar , im ) ;  /* image to register */
+
+      /* registration! */
+
+      rim = mri_2dalign_one( rtin->reg_2dbasis[kk] , im , NULL,NULL,NULL ) ;
+
+      /* convert output image to desired type;
+         set qar to point to data in the converted registered image */
+
+      switch( kind ){
+         case MRI_float:                        /* rim is already floats */
+            qar = (char *) MRI_FLOAT_PTR(rim) ;
+         break ;
+
+         case MRI_short:
+            qim = mri_to_short(1.0,rim) ; mri_free(rim) ; rim = qim ;
+            qar = (char *) MRI_SHORT_PTR(rim) ;
+         break ;
+
+         case MRI_byte:
+            qim = mri_to_byte(rim) ; mri_free(rim) ; rim = qim ;
+            qar = (char *) MRI_BYTE_PTR(rim) ;
+         break ;
+
+         default:
+            fprintf(stderr,"RT: can't do registration on %s images!\a\n",
+                    MRI_TYPE_name[kind] ) ;
+            DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
+            rtin->reg_mode = REGMODE_NONE ;
+            free(rar) ;
+            mri_free(rim) ; mri_fix_data_pointer(NULL,im) ; mri_free(im) ;
+         return ;
+      }
+
+      /* copy data from registered image into output sub-brick */
+
+      memcpy( rar + kk*nbar , qar , nbar ) ;
+
+      mri_free(rim) ; /* don't need this no more no how */
+   }
+
+   mri_fix_data_pointer(NULL,im) ; mri_free(im) ;   /* get rid of this */
+
+   /*-- attach rar to reg_dset --*/
+
+   if( tt == 0 )
+      EDIT_substitute_brick( rtin->reg_dset , 0 , rtin->datum , rar ) ;
+   else
+      EDIT_add_brick( rtin->reg_dset , rtin->datum , 0.0 , rar ) ;
+
+   rtin->reg_nvol = tt+1 ;
+
+   EDIT_dset_items( rtin->reg_dset , ADN_ntt , rtin->reg_nvol ,  ADN_none ) ;
+
+   if( verbose == 2 ) fprintf(stderr,"\n") ;
+   return ;
+}
+/*---------------------------------------------------------------------------*/
+#endif /* ALLOW_REGISTRATION */
 
 #define FIM_THR  0.0999
 #define MIN_UPDT 5

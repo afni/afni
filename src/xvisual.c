@@ -1,3 +1,5 @@
+#define MAIN
+
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <X11/Shell.h>
@@ -12,6 +14,14 @@ static char * vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
 static XImage * xim    = NULL ;
 static int      xim_ww = 0 ;
 static int      xim_hh = 0 ;
+
+#undef USE_TRUECOLOR
+
+#define USE_PIXMAP
+#ifdef  USE_PIXMAP
+# define WANT_MCW_BITMAP
+# include "mcw.h"
+#endif
 
 XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im ) ;
 
@@ -37,6 +47,7 @@ void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtVaGetValues( w , XmNwidth  , &nx , XmNheight , &ny , NULL ) ;
 
+#ifdef USE_TRUECOLOR
    ii = 0 ;
    do{
       jj = 0 ;
@@ -46,6 +57,19 @@ void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
       } while( jj < ny ) ;
       ii += xim_ww ;
    } while( ii < nx ) ;
+#else
+# ifdef USE_PIXMAP
+   ii = 0 ;
+   do{ jj = 0 ;
+       do{
+          XCopyArea( XtDisplay(w),mcw_pixmap , XtWindow(w),myGC ,
+                     0,0,mcw_width,mcw_height , ii,jj ) ;
+         jj += mcw_height + 4 ;
+      } while( jj < ny ) ;
+      ii += mcw_width ;
+   } while( ii < nx ) ;
+# endif /* USE_PIXMAP */
+#endif /* USE_TRUECOLOR */
 
    return ;
 }
@@ -57,34 +81,38 @@ int main( int argc , char * argv[] )
         Display         *dpy;           /* display */
         Colormap        colormap;       /* created colormap */
         XVisualInfo     vinfo;          /* template for find visual */
+        Visual          *vis ;          /* the Visual itself */
         XVisualInfo     *vinfo_list;    /* returned list of visuals */
         int             count;          /* number of matchs (only 1?) */
-        int             vid ;
+        int             vid , stat ;
         Widget          fred , fff ;
-
-        /*
-         * The following creates a _dummy_ toplevel widget so we can
-         * retrieve the appropriate visual resource.
-         */
 
         top = XtVaAppInitialize( &app , "test" , NULL , 0 , &argc , argv , NULL , NULL ) ;
         dpy = XtDisplay (top);
 
+#ifndef USE_TRUECOLOR
+        stat = XMatchVisualInfo( dpy,XScreenNumberOfScreen(XtScreen(top)),
+                                 8,PseudoColor,&vinfo ) ;
+        if( stat == 0 ){ printf("no 8 bit visual\n") ; exit(1) ; }
+#else
         vid = strtol( argv[1] , NULL , 0 ) ;
         vinfo.visualid = (VisualID) vid ;
         vinfo_list = XGetVisualInfo (dpy, VisualIDMask, &vinfo, &count);
         if( count == 0 || vinfo_list == NULL ){fprintf(stderr,"no match\n");exit(1);}
-        vid = vinfo_list[0].visualid ;
+        vinfo = vinfo_list[0] ;
+#endif
+        vid = vinfo.visualid ;
+        vis = vinfo.visual ;
 
         colormap = XCreateColormap( dpy, RootWindowOfScreen(XtScreen(top)) ,
-                                    vinfo_list[0].visual , AllocNone ) ;
+                                    vis , AllocNone ) ;
 
         XtVaSetValues( top ,
                           XtNborderColor , 0 ,
                           XtNbackground  , 0 ,
-                          XtNdepth       , vinfo_list[0].depth ,
+                          XtNdepth       , vinfo.depth ,
                           XtNcolormap    , colormap ,
-                          XtNvisual      , vinfo_list[0].visual ,
+                          XtNvisual      , vis ,
                        NULL ) ;
 
         fff = XtVaCreateWidget( "dialog" , xmFormWidgetClass , top ,
@@ -114,17 +142,43 @@ int main( int argc , char * argv[] )
 
         XtAddCallback( fred , XmNexposeCallback , elvis_CB , NULL ) ;
 
+#ifdef USE_TRUECOLOR
         { MRI_IMAGE * im ;
           im = mri_read_ppm( "bob.ppm" ) ;
-          xim = rgb_to_XImage( XtDisplay(top) , vinfo_list , im ) ;
+          xim = rgb_to_XImage( XtDisplay(top) , &vinfo , im ) ;
           xim_ww = im->nx ; xim_hh = im->ny ;
           mri_free(im) ;
         }
+#else
+        xim_ww = xim_hh = 77 ;
+#endif
 
         XtVaSetValues( top ,
                          XmNwidth , xim_ww ,
                          XmNheight , xim_hh+40 ,
                        NULL ) ;
+
+#ifdef USE_PIXMAP
+   {  Pixel bg_pix  , fg_pix  ;
+# define ICON_bg bg_pix
+# define ICON_fg fg_pix
+
+      XtVaGetValues( fred ,
+                       XmNforeground , &bg_pix ,  /* note reversal of roles here! */
+                       XmNbackground , &fg_pix ,
+                     NULL ) ;
+
+      mcw_pixmap = XCreatePixmapFromBitmapData(
+                        XtDisplay(top) ,
+                        RootWindowOfScreen(XtScreen(top)) ,
+                        mcw_bits , mcw_width , mcw_height ,
+                        fg_pix , bg_pix ,
+                        DefaultDepthOfScreen(XtScreen(top)) ) ;
+
+      XtVaSetValues( top , XmNiconPixmap , mcw_pixmap , NULL ) ;
+   }
+#endif
+
 
         XtManageChild(fff) ;
         XtRealizeWidget(top);
@@ -133,6 +187,7 @@ int main( int argc , char * argv[] )
         exit(0); /* never reached */
 }
 
+#ifdef USE_TRUECOLOR
 /*---------------------------------------------------------------------------
    Create an XImage from an RGB image.  Adapted from program "xv".
    The output of this can be XPutImage-d to a window.
@@ -281,3 +336,13 @@ static int highbit(unsigned long ul)
   for (i=31; ((ul & hb) == 0) && i>=0;  i--, ul<<=1);
   return i;
 }
+#endif
+
+/*----------  Fix a Linux stupidity  ------------------------------------*/
+
+#include "machdep.h"
+#ifdef NEED_XSETLOCALE
+#include <locale.h>
+char * _Xsetlocale( int category, const char * locale)
+{ return setlocale(category,locale) ; }
+#endif

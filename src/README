@@ -1,22 +1,23 @@
 
     ***** Welcome to the world of MCW AFNI, version 2.20 *****
     *****  Robert W. Cox, Medical College of Wisconsin   *****
-    *****                   May 1998                     *****
+    *****                   July 1998                    *****
 
 The documentation for MCW AFNI is in the following files:
 
-  afni200.ps      = User documentation for the AFNI program itself.
-  afni_plugins.ps = Programmer documentation for writing "plugins"
-                      to extend the capabilities of AFNI.
-  afni_aux.ps     = User documentation for MCW AFNI auxiliary programs.
-  3dANOVA3.ps     = User documentation for new 3dANOVA3 program
-                      (also included in afni_aux.ps).
-  FD2.ps          = User documentation for the older program FD2.
-  paper.ps        = AFNI paper from "Computers and Biomedical Research".
-  regnotes.ps     = Some notes on subject motion and image registration.
-  README          = This file.
-  README.changes  = Additions to the package since manuals were written.
-  README.*        = Other documentation files about specific issues.
+  afni200.ps       = User documentation for the AFNI program itself.
+  afni_aux.ps      = User documentation for MCW AFNI auxiliary programs.
+  afni_plugins.ps  = Programmer documentation for writing "plugins"
+                       to extend the capabilities of AFNI.
+  3dANOVA3.ps      = User documentation for new 3dANOVA3 program
+                       (also included in afni_aux.ps).
+  FD2.ps           = User documentation for the older program FD2.
+  paper.ps         = AFNI paper from "Computers and Biomedical Research".
+  regnotes.ps      = Some notes on subject motion and image registration.
+  README           = This file.
+  README.changes   = Additions to the package since manuals were written.
+  README.copyright = The Copyright of MCW AFNI.
+  README.*         = Other documentation files about specific issues.
 
 Most of these files are no longer included in the base distribution,
 afni98.tgz, but are in the file doc.tgz.  This change is due to their
@@ -71,7 +72,7 @@ in the distribution file are
   Makefile.sgi*       SGI IRIX systems       SGI compiler, SGI Motif
   Makefile.linux      Linux                  GCC compiler, Red Hat Motif
   Makefile.sparky     SunOS 4.1.3            GCC compiler, 3rd party Motif
-  Makefile.sunultra   Solaris 2.5            Sun compiler, /usr/dt Motif
+  Makefile.sparc5_2.5 Solaris 2.5            Sun compiler, /usr/dt Motif
   Makefile.rs6000     IBM RS/6000            IBM compiler, IBM Motif
   Makefile.osf1       DEC Alpha OSF/1        GCC compiler
 
@@ -100,10 +101,10 @@ should be used instead.  Note that the SunOS 4.1.3 and IBM RS/6000
 Makefiles do not include plugin support, since I don't have regular
 access to such systems.  I believe that these systems are similar to
 SGI systems in this regards.  (The only system that I know of which
-is different is HP-UX.)  Note also that the new "models" routines
-and "nlfit" programs require that plugins be compiled.  To get the
-plugin code to run correctly on a new type of system, you must
-edit the file "machdep.h" appropriately.
+is different is HP-UX.)  Note also that the "models" routines and
+"nlfit" programs require that plugins be compiled.  To get the plugin
+code to run correctly on a new type of system, you must edit the file
+"machdep.h" appropriately.
 
 GENERAL WOES
 ------------
@@ -191,7 +192,7 @@ Solaris 2.5 and above now ship with Motif.  The libraries are stored
 in the directory /usr/dt/lib.  By changing IFLAGS and LFLAGS
 appropriately in the Makefile, you should be able to compile and
 run the afni and to3d programs.  (Assuming you have the ANSI C
-compiler, of course.)  Makefile.sunultra will probably work for you.
+compiler, of course.)  Makefile.sparc5_2.5 will probably work for you.
 
 /usr/dt/lib is not included in the default search path when a program
 starts.  To force this directory to be searched for libraries at program
@@ -207,6 +208,11 @@ Using the Bourne or Korn shells:
 
 Again, these should go in your startup files (e.g., .cshrc) so that
 they are executed whenever you login.
+
+Alternatively, Makefile.sparc5_2.5 is set up to record the use of the
+/usr/dt/lib directory at runtime, using the -R option to the compiler.
+If you use this feature of the Makefile, then it shouldn't be necessary
+to set the LD_LIBRARY_PATH variable (although it wouldn't hurt).
 
 There seem to be some bugs in Sun's Motif as distributed with Solaris 2.5.
 AFNI sometimes crashes under Solaris if the graph windows are used.  You
@@ -281,7 +287,7 @@ not be the case with a high end SGI workstation.  In that case,
 the superuser must manually configure /var/X11/xdm/Xservers to
 start Xsgi with the correct visual as the default.  See "man Xsgi"
 and "xdpyinfo" to get the needed information.  (We use the 12 bit
-PseudoColor visual for our default, but some freeware utilities
+PseudoColor visual for our default, but a few freeware utilities
 don't work well with anything but 8 bit PseudoColor visuals.)
 
 The SGI compiler on the R5000 processor sometimes core dumps
@@ -375,9 +381,32 @@ be converted to TIFF, GIF, etc., using utilities in netpbm (or using the
 wonderful shareware program "xv").
 
 There is a link to the Web pages made for AFNI on my home page, given below.
+
+REFERENCES
+----------
+If you wish to refer to AFNI in a publication, please use this article:
+
+   RW Cox.
+   AFNI: Software for analysis and visualization of functional magnetic
+   resonance neuroimages.
+   Computers and Biomedical Research, 29:162-173, 1996.
+
+A later article that has some information about AFNI is
+
+   RW Cox and JS Hyde.
+   Software tools for analysis and visualization of FMRI Data.
+   NMR in Biomedicine, 10:171-178, 1997.
+
+PostScript preprints of these two papers are on the Web site for AFNI.
+A number of software tools for FMRI (including AFNI) are reviewed in
+
+   S Gold, B Christian, S Arndt, G Zeien, T Cizadlo, DL Johnson,
+   M Flaum, and NC Andreasen.
+   Functional MRI statistical software packages: a comparative analysis. 
+   Human Brain Mapping, 6:73-84, 1998
 =============================================================================
 Robert W. Cox, PhD
+Associate Professor and Graduate Program Director
 Biophysics Research Institute / Medical College of Wisconsin
 Voice: 414-456-4038 / Fax: 414-456-6512 / mailto:rwcox@mcw.edu
-http://www.biophysics.mcw.edu/BRI-people/cox.html
 http://varda.biophysics.mcw.edu/~cox/index.html

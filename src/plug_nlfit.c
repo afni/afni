@@ -22,6 +22,12 @@
 */
 
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /*---------------------------------------------------------------------------*/
 /*
   This software is Copyright 1997, 1998 by
@@ -63,6 +69,12 @@
 #include "simplex.c"
 #include "NLfit.c"
 
+/***** 22 July 1998 -- RWCox:
+       Modified to allow DELT to be set from the TR of the input file *****/
+
+static float DELT = 1.0;   /* default */
+static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
+static float dsTR = 0.0 ;  /* TR of the input file */
 
 /***********************************************************************
   Plugin to provide nonlinear least squares fitting 1D function for graphs
@@ -113,7 +125,7 @@ static int initialize=1 ;
 
 /*------- Global data for models ------*/
 char * constr_types[2] = {"Relative", "Absolute"};   /* option labels */
-char * time_refs[2] = {"Internal", "External"};
+char * time_refs[3] = {"Internal", "External" , "-inTR" };
 int plug_ignore = 3;
 int plug_nrand = 100;
 int plug_nbest = 5;
@@ -272,7 +284,6 @@ void initialize_program
 )
 
 {
-  const float DELT = 1.0;
   int dimension;           /* dimension of full model */
   int ip;                  /* parameter index */
   int it;                  /* time index */
@@ -305,6 +316,13 @@ void initialize_program
   /*----- initialize independent variable matrix -----*/
   if (!plug_timeref)
     {
+      static old_DELT = -1.0 ;
+      DELT = (inTR && dsTR > 0.0) ? dsTR : 1.0 ;  /* 22 July 1998 */
+      if( DELT != old_DELT ){
+         old_DELT = DELT ;
+         printf("NLfit: switch to TR = %g\n",DELT) ;
+      }
+
       for (it = 0;  it < ts_length;  it++)  
 	{
 	  (*x_array)[it][0] = 1.0;
@@ -705,7 +723,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*----- External Time Reference -----*/
    PLUTO_add_option (plint, "Time Scale", "Time Scale", FALSE);
-   PLUTO_add_string (plint, "Reference", 2, time_refs, 0);
+   PLUTO_add_string (plint, "Reference", 3, time_refs, 0);
    PLUTO_add_string (plint, "File", 0, NULL, 19);
 
 
@@ -802,8 +820,7 @@ char * NL_main( PLUGIN_interface * plint )
        else if( strcmp(str,"Time Scale") == 0 )
 	 {
 	   str = PLUTO_get_string(plint);
-	   if (strcmp (str, "External") == 0)
-	     {
+	   if (strcmp (str, "External") == 0){
 	       plug_timeref = 1;
 	       str = PLUTO_get_string(plint);
 	       im = mri_read_ascii (str); 
@@ -813,9 +830,16 @@ char * NL_main( PLUGIN_interface * plint )
 	                "************************************"  ;
 	       mri_free(im);
 	       strcpy (plug_tfilename, str);
-	     }
-	   else
+
+	   } else if( strcmp(str,"-inTR") == 0 ){  /* 22 July 1998 */
+              inTR = 1 ;
+	      plug_timeref = 0;
+
+           } else {
 	     plug_timeref = 0;
+             inTR = 0 ;                       /* 22 July 1998 */
+           }
+
 	 } 
 
        else 
@@ -854,6 +878,8 @@ char * NL_main( PLUGIN_interface * plint )
 
    if (plug_timeref)
      printf ("\nExternal Time Reference = %s \n", plug_tfilename);
+   else if( inTR )
+     printf ("\n-inTR Time Reference\n") ;
    else
      printf ("\nInternal Time Reference \n");
    
@@ -895,6 +921,8 @@ void NL_worker( int nt , double dt , float * vec , int dofit, char ** label )
 
 
    nlen = nt - plug_ignore;
+
+   dsTR = dt ;
 
    /** find least squares fit coefficients **/
 

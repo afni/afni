@@ -1,5 +1,10 @@
 #include "afni.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
@@ -13,16 +18,21 @@ char * MASKAVE_main( PLUGIN_interface * ) ;
 static char helpstring[] =
    " Purpose: Compute statistics over a mask-selected ROI.\n"
    "\n"
-   " Source: Dataset   = data to be averaged\n"
-   "         Sub-brick = which one to use\n"
-   "                     [if -1 is input, will do all sub-bricks]\n"
-   " Mask:   Dataset   = masking dataset\n"
-   " Range:  Bottom    = min value from mask dataset to use\n"
-   "         Top       = max value from mask dataset to use\n"
-   "         [if Bottom >  Top, then all nonzero mask voxels will be used;]\n"
-   "         [if Bottom <= Top, then only nonzero mask voxel in this range]\n"
-   "         [                  will be used in computing the statistics. ]\n"
-   "\n"
+   " Source:  Dataset   = data to be averaged\n"
+   "          Sub-brick = which one to use\n"
+   "                      [if -1 is input, will do all sub-bricks]\n\n"
+   " Mask:    Dataset   = masking dataset\n"
+   "          Sub-brick = which one to use\n\n"
+   " Range:   Bottom    = min value from mask dataset to use\n"
+   "          Top       = max value from mask dataset to use\n"
+   "          [if Bottom >  Top, then all nonzero mask voxels will be used;]\n"
+   "          [if Bottom <= Top, then only nonzero mask voxel in this range]\n"
+   "          [                  will be used in computing the statistics. ]\n\n"
+   " 1D Save: If the input dataset is 3D+time, and all sub-bricks are used,\n"
+   "          then this option lets you save the resulting average time series\n"
+   "          into the AFNI 'library'.  Note that this will NOT be written to\n"
+   "          disk--to do that, you must use the 'Write Ideal' button from the\n"
+   "          'Edit Ideal' submenu of the 'FIM' menu in a graphing window.\n\n"
    " Author -- RW Cox"
 ;
 
@@ -58,12 +68,18 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_dataset( plint , "Dataset" ,
                                     ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                     DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ;  /* 06 Aug 1998 */
 
    /*-- third line of input --*/
 
    PLUTO_add_option( plint , "Range"  , "Range" , FALSE ) ;
    PLUTO_add_number( plint , "Bottom" , -99999,99999, 1, 0,1 ) ;
    PLUTO_add_number( plint , "Top"    , -99999,99999,-1, 0,1 ) ;
+
+   /*-- 4th line of input (06 Aug 1998) --*/
+
+   PLUTO_add_option( plint , "1D Save" , "1D Save" , FALSE ) ;
+   PLUTO_add_string( plint , "Name" , 0,NULL , 12 ) ;
 
    return plint ;
 }
@@ -82,6 +98,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
    float * sumar=NULL , * sigmar=NULL ;
    char * tag , * str , buf[64] , abuf[32],sbuf[32] ;
    byte * mmm ;
+
+   char * cname=NULL ;  /* 06 Aug 1998 */
+   int miv=0 ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -125,14 +144,23 @@ char * MASKAVE_main( PLUGIN_interface * plint )
    PLUTO_next_option(plint) ;
    idc       = PLUTO_get_idcode(plint) ;
    mask_dset = PLUTO_find_dset(idc) ;
+
    if( mask_dset == NULL )
       return "*******************************\n"
              "MASKAVE_main:  bad mask dataset\n"
              "*******************************"  ;
+
    if( DSET_NVOX(mask_dset) != nvox )
       return "*************************************************************\n"
              "MASKAVE_main: mask input dataset doesn't match source dataset\n"
              "*************************************************************"  ;
+
+   miv = (int) PLUTO_get_number(plint) ;  /* 06 Aug 1998 */
+   if( miv >= DSET_NVALS(mask_dset) )
+      return "*****************************************************\n"
+             "MASKAVE_main: mask dataset sub-brick index is too big\n"
+             "*****************************************************"  ;
+
    DSET_load(mask_dset) ;
    if( DSET_ARRAY(mask_dset,0) == NULL )
       return "**************************************\n"
@@ -141,15 +169,19 @@ char * MASKAVE_main( PLUGIN_interface * plint )
 
    /*-- read optional lines --*/
 
-   tag = PLUTO_get_optiontag(plint) ;
-   while( tag != NULL ){
+   while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
 
       if( strcmp(tag,"Range") == 0 ){
          mask_bot = PLUTO_get_number(plint) ;
          mask_top = PLUTO_get_number(plint) ;
+         continue ;
       }
 
-      tag = PLUTO_get_optiontag(plint) ;
+      if( strcmp(tag,"1D Save") == 0 ){
+         cname = PLUTO_get_string(plint) ;
+         continue ;
+      }
+
    }
 
    /*------------------------------------------------------*/
@@ -163,19 +195,19 @@ char * MASKAVE_main( PLUGIN_interface * plint )
 
    /* separate code for each input data type */
 
-   switch( DSET_BRICK_TYPE(mask_dset,0) ){
+   switch( DSET_BRICK_TYPE(mask_dset,miv) ){
       default:
          free(mmm) ;
          return "*** Can't use mask dataset -- illegal data type! ***" ;
 
       case MRI_short:{
          short mbot , mtop ;
-         short * mar = (short *) DSET_ARRAY(mask_dset,0) ;
-         float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+         short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
-            mbot = (short) (mask_bot/mfac) ;
-            mtop = (short) (mask_top/mfac) ;
+            mbot = SHORTIZE(mask_bot/mfac) ;
+            mtop = SHORTIZE(mask_top/mfac) ;
          } else {
             mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
             mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
@@ -188,14 +220,15 @@ char * MASKAVE_main( PLUGIN_interface * plint )
 
       case MRI_byte:{
          byte mbot , mtop ;
-         byte * mar = (byte *) DSET_ARRAY(mask_dset,0) ;
-         float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+         byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
-            mbot = (byte) ((mask_bot > 0.0) ? (mask_bot/mfac) : 0.0) ;
-            mtop = (byte) ((mask_top > 0.0) ? (mask_top/mfac) : 0.0) ;
+            mbot = BYTEIZE(mask_bot/mfac) ;
+            mtop = BYTEIZE(mask_top/mfac) ;
             if( mtop == 0 ){
-               fprintf(stderr,"*** Illegal mask range for mask dataset of bytes.\n") ; exit(1) ;
+               free(mmm) ;
+               return "*** Illegal mask range for mask dataset of bytes. ***" ;
             }
          } else {
             mbot = 0 ;
@@ -209,8 +242,8 @@ char * MASKAVE_main( PLUGIN_interface * plint )
 
       case MRI_float:{
          float mbot , mtop ;
-         float * mar = (float *) DSET_ARRAY(mask_dset,0) ;
-         float mfac = DSET_BRICK_FACTOR(mask_dset,0) ;
+         float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
             mbot = (float) (mask_bot/mfac) ;
@@ -312,8 +345,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
       str = (char *) malloc( 1024 + 64*nvals ) ;
       sprintf(str," ****** ROI statistics ****** \n"
                   " Source  = %s [all sub-bricks] \n"
-                  " Mask    = %s" ,
-              DSET_FILECODE(input_dset) , DSET_FILECODE(mask_dset) ) ;
+                  " Mask    = %s [%s]" ,
+              DSET_FILECODE(input_dset) ,
+              DSET_FILECODE(mask_dset)  , DSET_BRICK_LABEL(mask_dset,miv) ) ;
       if( mask_bot <= mask_top ){
          sprintf(buf," [range %g .. %g]" , mask_bot , mask_top ) ;
          strcat(str,buf) ;
@@ -328,19 +362,29 @@ char * MASKAVE_main( PLUGIN_interface * plint )
          strcat(str,buf) ;
       }
       PLUTO_popup_textwin( plint , str ) ;
+
+      /* 06 Aug 1998 */
+
+      if( cname != NULL && cname[0] != '\0' ){
+         MRI_IMAGE * qim = mri_new_vol_empty( nvals,1,1 , MRI_float ) ;
+         mri_fix_data_pointer( sumar , qim ) ;
+         PLUTO_register_timeseries( cname , qim ) ;
+         mri_fix_data_pointer( NULL , qim ) ; mri_free(qim) ;
+      }
+
       free(str) ; free(sumar) ; free(sigmar) ;
 
    } else if( mask_bot <= mask_top ){
       str = (char *) malloc( 1024 ) ;
       sprintf( str , " *** ROI Statistics *** \n"
                      " Source  = %s [%s] \n"
-                     " Mask    = %s [range %g .. %g] \n"
+                     " Mask    = %s [%s] [range %g .. %g] \n"
                      " Count   = %d voxels \n"
                      " Average = %g \n"
                      " Sigma   = %g " ,
                DSET_FILECODE(input_dset) , DSET_BRICK_LABEL(input_dset,ivbot) ,
-               DSET_FILECODE(mask_dset)  , mask_bot , mask_top ,
-               mcount , sum , sigma ) ;
+               DSET_FILECODE(mask_dset)  , DSET_BRICK_LABEL(mask_dset,miv)    ,
+               mask_bot , mask_top , mcount , sum , sigma ) ;
       PLUTO_popup_message(plint,str) ;
       free(str) ;
 
@@ -348,12 +392,13 @@ char * MASKAVE_main( PLUGIN_interface * plint )
       str = (char *) malloc( 1024 ) ;
       sprintf( str , " *** ROI Statistics *** \n"
                      " Source  = %s [%s] \n"
-                     " Mask    = %s \n"
+                     " Mask    = %s [%s] \n"
                      " Count   = %d voxels \n"
                      " Average = %g \n"
                      " Sigma   = %g " ,
                DSET_FILECODE(input_dset) , DSET_BRICK_LABEL(input_dset,ivbot) ,
-               DSET_FILECODE(mask_dset)  , mcount , sum , sigma ) ;
+               DSET_FILECODE(mask_dset)  , DSET_BRICK_LABEL(mask_dset,miv)    ,
+               mcount , sum , sigma ) ;
       PLUTO_popup_message(plint,str) ;
       free(str) ;
    }

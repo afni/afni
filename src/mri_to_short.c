@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*** 7D SAFE ***/
 
 MRI_IMAGE *mri_to_short( double scl , MRI_IMAGE *oldim )
@@ -37,8 +42,12 @@ WHOAMI ; IMHEADER(oldim) ;
    switch( oldim->kind ){
 
       case MRI_byte:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.short_data[ii] = scale * oldim->im.byte_data[ii] ;
+         if( scale != 1.0 )
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = scale * oldim->im.byte_data[ii] ;
+         else
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = (short) oldim->im.byte_data[ii] ;
          break ;
 
       case MRI_short:
@@ -55,13 +64,21 @@ WHOAMI ; IMHEADER(oldim) ;
          break ;
 
       case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.short_data[ii] = scale * oldim->im.int_data[ii] ;
+         if( scale != 1.0 )
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = scale * oldim->im.int_data[ii] ;
+         else
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = (int) oldim->im.int_data[ii] ;
          break ;
 
       case MRI_float:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.short_data[ii] = scale * oldim->im.float_data[ii] ;
+         if( scale != 1.0 )
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = scale * oldim->im.float_data[ii] ;
+         else
+            for( ii=0 ; ii < npix ; ii++ )
+               newim->im.short_data[ii] = (short) oldim->im.float_data[ii] ;
          break ;
 
       case MRI_double:

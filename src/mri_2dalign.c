@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /*** NOT 7D SAFE ***/
 
 /*************************************************************************
@@ -154,6 +160,7 @@ MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
 
    Output:  return value is aligned image;
             *dx , *dy, and *phi are set to rotation parameters.
+            Note that the returned image is floats.
 -------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * basis , MRI_IMAGE * im ,
@@ -206,7 +213,7 @@ MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * basis , MRI_IMAGE * im ,
          free(dfit) ; dfit = NULL ;
       } /* end while */
 
-      /*** perform fine adjustments (use bicubic interpolation) ***/
+      /*-- perform fine adjustments  --*/
 
       if( use_fine_fit ){
          good = 1 ;

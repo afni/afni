@@ -1,6 +1,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*----------------------------------------------------------------------
    load the statistics of a dataset (modified Nov 15 1995)

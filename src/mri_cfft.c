@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #ifndef PI
 #  define PI 3.1415926536
 #endif

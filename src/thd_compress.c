@@ -229,7 +229,10 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
-   if( mm < 0 ){
+   /* Don't compress if the compression program isn't marked as OK   */
+   /* [For modes that can only be compressed offline, like BRIKCOMP] */
+
+   if( mm < 0 || ! COMPRESS_program_ok[mm] ){
       fp = fopen(fname,"w") ;   /* open it normally */
       putin_fop_table(fp,0) ;   /* save its open method */
       return fp ;

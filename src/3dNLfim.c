@@ -25,8 +25,17 @@
    Mod:      Extensive changes required to implement the 'bucket' dataset.
    Date:     14 January 1998
 
+   Mod:      Added the -inTR option.
+             22 July 1998 -- RWCox
+
 */
 
+
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -47,8 +56,8 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dNLfim"                       /* name of this program */
-#define LAST_MOD_DATE "14 January 1998"          /* date of last program mod */
+#define PROGRAM_NAME "3dNLfim"                /* name of this program */
+#define LAST_MOD_DATE "22 July 1998"          /* date of last program mod */
 
 #include <stdio.h>
 #include <math.h>
@@ -75,6 +84,12 @@ typedef struct NL_options
 
 } NL_options;
 
+/***** 22 July 1998 -- RWCox:
+       Modified to allow DELT to be set from the TR of the input file *****/
+
+static float DELT = 1.0;   /* default */
+static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
+static float dsTR = 0.0 ;  /* TR of the input file */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -93,10 +108,16 @@ void display_help_menu()
      "Usage:                                                                \n"
      "3dNLfim                                                               \n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
+     "[-inTR]            set the TR of the created timeseries to be the TR  \n"
+     "                     of the prototype dataset                         \n"
+     "                     [The default is to compute with TR = 1.]         \n"
+     "                     [The model functions are called for a  ]         \n"
+     "                     [time grid of 0, TR, 2*TR, 3*TR, ....  ]         \n"
      "-ignore num        num   = skip this number of initial images in the  \n"
      "                     time series for regresion analysis; default = 3  \n"
      "[-time fname]      fname = ASCII file containing each time point      \n"
-     "                     in the time series. Defaults to even spacing.    \n"
+     "                     in the time series. Defaults to even spacing     \n"
+     "                     given by TR (this option overrides -inTR).       \n"
      "-signal slabel     slabel = name of (non-linear) signal model         \n"
      "-noise  nlabel     nlabel = name of (linear) noise model              \n"
      "-sconstr k c d     constraints for kth signal parameter:              \n"
@@ -412,10 +433,19 @@ void get_options
 	    * (*dset_time)->dblk->diskptr->dimsizes[2] ;
 	  *ts_length = DSET_NUM_TIMES(*dset_time);
 
+          dsTR = DSET_TIMESTEP(*dset_time) ;
+          if( DSET_TIMEUNITS(*dset_time) == UNITS_MSEC_TYPE ) dsTR *= 0.001 ;
+
 	  nopt++;
 	  continue;
 	}
-      
+
+      /*----- 22 July 1998: the -inTR option -----*/
+
+      if( strncmp(argv[nopt],"-inTR",5) == 0 ){
+         inTR = 1 ;
+         nopt++ ; continue ;
+      }
 
       /*-----   -ignore num  -----*/
       if (strncmp(argv[nopt], "-ignore", 7) == 0)
@@ -1244,7 +1274,6 @@ void initialize_program
 )
      
 {
-  const float DELT = 1.0;
   int dimension;           /* dimension of full model */
   int ip;                  /* parameter index */
   int it;                  /* time index */
@@ -1298,6 +1327,10 @@ void initialize_program
   /*----- initialize independent variable matrix -----*/
   if (*tfilename == NULL)
     {
+     if( inTR && dsTR > 0.0 ){   /* 22 July 1998 */
+        DELT = dsTR ;
+        fprintf(stderr,"--- computing with TR = %g\n",DELT) ;
+     }
      for (it = 0;  it < (*ts_length);  it++)  
       {
         (*x_array)[it][0] = 1.0;

@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #include "mrilib.h"
 
 #include "imseq.h"

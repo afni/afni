@@ -1007,8 +1007,6 @@ typedef struct {
    float   zorg_sl , dz_sl ;
 } THD_timeaxis ;
 
-extern float THD_timeof( int , float , THD_timeaxis * ) ;
-
 #define ISVALID_TIMEAXIS(tax) ((tax) != NULL && (tax)->type == TIMEAXIS_TYPE)
 
 /*---------------------------------------------------------------------*/
@@ -1667,6 +1665,7 @@ typedef struct THD_3dim_dataset {
                              DSET_ONDISK(ds) )
 
 #define DSET_TIMESTEP(ds)        ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdel )
+#define DSET_TR                  DSET_TIMESTEP
 #define DSET_TIMEORIGIN(ds)      ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttorg )
 #define DSET_TIMEDURATION(ds)    ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdur )
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE \
@@ -1764,6 +1763,8 @@ static char tmp_dblab[8] ;
 #define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
 
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
+
+#define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
@@ -2111,6 +2112,9 @@ extern THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * , THD_fvec3 ) ;
 
 extern THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
+
+extern float THD_timeof    ( int , float , THD_timeaxis * ) ;
+extern float THD_timeof_vox( int , int , THD_3dim_dataset * ) ;
 
 /*----------------------------------------------------------------*/
 /*--------  FD_brick type: for rapid extraction of slices --------*/

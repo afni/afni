@@ -43,9 +43,9 @@ char * suck_file( char * fname )
    buf = (char *) malloc( sizeof(char) * (len+4) ) ;
    ii  = read( fd , buf , len ) ;
    close( fd ) ;
-
    if( ii <= 0 ){ free(buf) ; return NULL; }
-   buf[ii+1] = '\0' ;
+
+   buf[len] = '\0' ;  /* 27 July 1998: 'len' used to be 'ii+1', which is bad */
    return buf ;
 }
 

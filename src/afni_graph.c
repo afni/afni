@@ -2,6 +2,11 @@
 #include "afni_graph.h"
 #include "afni.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
 #  define PRINT_TRACING
@@ -372,7 +377,7 @@ ENTRY("new_MCW_grapher") ;
    /***** 16 June 1997: Colors submenu *****/
 
    { static char * bbox_label[1] = { "Use Thick Lines" } ;
-     static char * pts_label[1]  = { "Graph Points" } ;
+     static char * pts_label[2]  = { "Graph Points" , "Points+Lines" } ;
      char     toplabel[64] ;
      XmString xstr ;
 
@@ -446,15 +451,17 @@ ENTRY("new_MCW_grapher") ;
         }
 
         /* 09 Jan 1998: add option to draw only points in graphs */
+        /* 01 Aug 1998: allow points+lines to be drawn as well   */
 
         if( grapher->points_index[ii] >= 0 ){
            grapher->opt_points_bbox[ii] =
               new_MCW_bbox( grapher->opt_colors_menu ,
-                            1 , pts_label , MCW_BB_check , MCW_BB_noframe ,
+                            2 , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
                             GRA_thick_CB , (XtPointer) grapher ) ;
 
            if( grapher->points_index[ii] )
-              MCW_set_bbox( grapher->opt_points_bbox[ii] , 1 ) ;
+              MCW_set_bbox( grapher->opt_points_bbox[ii] ,
+                            1 << (grapher->points_index[ii]-1) ) ;
         } else {
            grapher->opt_points_bbox[ii] = NULL ;
         }
@@ -1451,8 +1458,8 @@ STATUS("starting time series graph loop") ;
          if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
             for( i=0 ; i < itop ; i++ )
                GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) ) ;
-
-         } else {                            /* old method */
+         }
+         if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
             XDrawLines( grapher->dc->display ,
                         grapher->fd_pxWind , grapher->dc->myGC ,
                         a_line , npoints ,  CoordModeOrigin ) ;
@@ -1507,8 +1514,8 @@ STATUS("starting time series graph loop") ;
             if( DPLOT_POINTS(grapher) ){        /* 09 Jan 1998 */
                for( i=0 ; i < itop ; i++ )
                   GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher) ) ;
-
-            } else {                            /* old method */
+            }
+            if( DPLOT_LINES(grapher) ) {        /* 01 Aug 1998 */
                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
                XDrawLines( grapher->dc->display ,
                            grapher->fd_pxWind , grapher->dc->myGC ,
@@ -4128,7 +4135,8 @@ ENTRY("GRA_thick_CB") ;
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
       if( grapher->opt_points_bbox[ii] != NULL &&
-          w == grapher->opt_points_bbox[ii]->wbut[0] ) break ;
+          ( w == grapher->opt_points_bbox[ii]->wbut[0] ||
+            w == grapher->opt_points_bbox[ii]->wbut[1]   ) ) break ;
 
    if( ii < NUM_COLOR_ITEMS ){
       jj = grapher->points_index[ii] ;

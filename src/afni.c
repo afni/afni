@@ -1,3 +1,9 @@
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   This software is Copyright 1994-6 by
 
@@ -252,12 +258,13 @@ void AFNI_parse_args( int argc , char * argv[] )
 
 ENTRY("AFNI_parse_args") ;
 
-   GLOBAL_argopt.dz       = 1.0 ;         /* set up defaults */
+   GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
-   GLOBAL_argopt.allow_rt = 0 ;           /* April 1997 */
-   GLOBAL_argopt.elide_quality = 0 ;      /* Dec 1997 */
-   GLOBAL_argopt.skip_afnirc   = 0 ;      /* 14 Jul 1998 */
+   GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
+   GLOBAL_argopt.elide_quality  = 0 ;      /* Dec 1997 */
+   GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
+   GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -333,7 +340,8 @@ ENTRY("AFNI_parse_args") ;
       /*----- -rt option -----*/
 
       if( strncmp(argv[narg],"-rt",3) == 0 ){
-         GLOBAL_argopt.allow_rt = -1 ;
+         GLOBAL_argopt.allow_rt       = -1 ;
+         GLOBAL_argopt.no_frivolities = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -934,7 +942,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    }
 
    if( ALLOW_real_time > 0 )
-      REPORT_PROGRESS("RT: realtime plugin is active\n") ;
+      REPORT_PROGRESS("\nRT: realtime plugin is active") ;
 
    (void) XtAppAddTimeOut( app , 1234 , AFNI_startup_timeout_CB , im3d ) ;
 
@@ -6915,7 +6923,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
    MCW_choose_cbs * cbs ;
    char buf[2048] ;
 
-   if( ! IM3D_VALID(im3d) ) return ;
+   if( NO_frivolities || !IM3D_VALID(im3d) ) return ;
 
    if( w == im3d->vwid->prog->hidden_sonnet_pb ){  /* start the process */
 

@@ -1,6 +1,11 @@
 #ifndef _MCW_DISPLAY_HEADER_
 #define _MCW_DISPLAY_HEADER_
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,11 +33,11 @@
 #endif
 
 #ifndef myXtFree
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
+# define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
 #ifndef myXtNew
-#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
+# define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
 #endif
 
 /* these macros are to produce RGB intensities (unsigned shorts) */
@@ -50,6 +55,24 @@
 /* given x in [0..wx-1], map propotionally to [0..wn-1] */
 
 #define MAP_XY(x,wx,wn) (((wn)*(x))/(wx))
+
+/* 07 Aug 1998:
+   Macro to produce TrueColor pixel values from
+   an RGB triple, by appropriately shifting and masking.
+   This can only be used if dc->visual_class == TrueColor! */
+
+#define RGB_TO_TCINT(dc,r,g,b)                                       \
+ ( ((((dc)->visual_redshift  <0)                                     \
+      ? ((r)<<(-(dc)->visual_redshift)  )                            \
+      : ((r)>>  (dc)->visual_redshift)  ) & (dc)->visual_redmask  )  \
+  |                                                                  \
+   ((((dc)->visual_greenshift<0)                                     \
+      ? ((g)<<(-(dc)->visual_greenshift))                            \
+      : ((g)>>  (dc)->visual_greenshift)) & (dc)->visual_greenmask)  \
+  |                                                                  \
+   ((((dc)->visual_blueshift <0)                                     \
+      ? ((b)<<(-(dc)->visual_blueshift) )                            \
+      : ((b)>>  (dc)->visual_blueshift) ) & (dc)->visual_bluemask ) )
 
 /*** typedefs ***/
 
@@ -78,6 +101,12 @@ typedef struct {
       GC           myGC , origGC ;
       int          planes ;
       int          depth ;
+
+      VisualID      visual_id ;     /* 07 Aug 1998: added visual_* stuff */
+      XVisualInfo * visual_info ;
+      unsigned long visual_redmask  , visual_greenmask  , visual_bluemask ;
+      int           visual_redshift , visual_greenshift , visual_blueshift ;
+      int           visual_class ;
 
       int          width , height ;       /* of the screen */
 

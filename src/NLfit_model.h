@@ -8,6 +8,12 @@
 
 */
 
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This software is Copyright 1997 by
@@ -217,7 +223,29 @@ extern NLFIT_MODEL_array * NLFIT_get_all_MODELs (char * dname);
 extern NLFIT_MODEL *       NLFIT_read_MODEL (char * fname);
 extern NLFIT_MODEL_array * NLFIT_get_many_MODELs (void);
 
+/*---------------------------------------------------------------------------*/
+/*----- Array of pointers to functions that are needed by the model_conv*.c  */
+/*----- routines.  This array is just to force loading of these functions    */
+/*----- from libraries. ----- RW Cox (21 July 1998) -------------------------*/
 
+#ifndef RWC_FORCED_LOADS
+#define RWC_FORCED_LOADS
+
+static vptr_func * NL_forced_loads[] = {
+   (vptr_func *) mri_read_ascii ,
+   (vptr_func *) mri_to_float ,
+   (vptr_func *) mri_transpose ,
+   (vptr_func *) mri_free ,
+NULL } ;
+
+vptr_func * RWC_forced_loads(int n){  /* this function is to try to ensure   */
+  return NL_forced_loads[n] ;         /* that the array isn't optimized away */
+}
+
+#endif
+
+
+/*---------------------------------------------------------------------------*/
 
 #endif /* _NLFIT_MODEL_HEADER_ */
 

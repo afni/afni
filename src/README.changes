@@ -4,6 +4,19 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+08 Aug 1998:
+   Added ability to plot Points+Lines together in the graphing windows.
+   Modified 3dmaskave and plug_maskave to allow user to choose a sub-brick
+     of the mask dataset.  The plugin also now allows you to save an
+     average time series to the internal AFNI 'library', where it can be
+     used as the ideal waveform for FIM.
+   Added nonlinear fit model 'model_convgamma', that models the data
+     time series as a gamma variate impulse response convolved with a
+     reference time series.
+   Nonlinear fit programs 3dNLfim and plug_nlfit have a new option to allow
+     the time step of the model function to be set to the time step of the
+     input dataset (default is to set delta-t=1.0, regardless of true TR).
+--------------------------------------------------------------------------
 14 July 1998:
    3dmerge now has options (-1erode and -1dilate) to apply erosion and
      dilation to a dataset when clustering it, so as to cut off small

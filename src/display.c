@@ -1,6 +1,28 @@
 #include "display.h"
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+/*------------------------------------------------------------------------
+  Returns position of highest set bit in 'ul' as an integer (0-31),
+  or returns -1 if no bit is set.
+--------------------------------------------------------------------------*/
+
+static int highbit(unsigned long ul)
+{
+  int i;  unsigned long hb;
+
+  hb = 0x80;  hb = hb << 24;   /* hb = 0x80000000UL */
+  for (i=31; ((ul & hb) == 0) && i>=0;  i--, ul<<=1);
+  return i;
+}
+
+static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
+                             "PseudoColor" , "TrueColor" , "DirectColor"  } ;
+
 /*------------------------------------------------------------------------
   Create and initialize a new MCW_DC structure.
 
@@ -40,6 +62,40 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    dc->depth      = DefaultDepthOfScreen(    dc->screen ) ;
 
    dc->parent_widget = wid ;  /* 06 Oct 1996 */
+
+   /** 07 Aug 1998: get more information about the visual **/
+
+   { XVisualInfo vinfo , * vinfo_list ;
+     int count ;
+
+     dc->visual_id  = XVisualIDFromVisual( dc->visual ) ;
+     vinfo.visualid = dc->visual_id ;
+     vinfo_list     = XGetVisualInfo(dc->display,VisualIDMask,&vinfo,&count) ;
+     if( count > 0 && vinfo_list != NULL ){
+        dc->visual_info       = vinfo_list ;
+        dc->visual_redmask    = dc->visual_info->red_mask ;
+        dc->visual_greenmask  = dc->visual_info->green_mask ;
+        dc->visual_bluemask   = dc->visual_info->blue_mask ;
+        dc->visual_redshift   = 7 - highbit(dc->visual_redmask) ;
+        dc->visual_greenshift = 7 - highbit(dc->visual_greenmask) ;
+        dc->visual_blueshift  = 7 - highbit(dc->visual_bluemask) ;
+        dc->visual_class      = dc->visual_info->class ;
+
+#if 0
+        fprintf(stderr,"\n"
+                       "DC: redmask=%lx greenmask=%lx bluemask=%lx\n"
+                       "    redshift=%d greenshift=%d blueshift=%d\n"
+                       "    class=%d=%s depth=%d\n",
+                dc->visual_redmask , dc->visual_greenmask , dc->visual_bluemask ,
+                dc->visual_redshift , dc->visual_greenshift , dc->visual_blueshift ,
+                dc->visual_class , x11_vcl[dc->visual_class] , dc->depth ) ;
+#endif
+
+     } else {
+        dc->visual_info = NULL ;
+     }
+   }
+
 
 /** this stuff is experimentation with X **/
 

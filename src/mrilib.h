@@ -1,3 +1,10 @@
+
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  This software is Copyright 1994-8 by
       Medical College of Wisconsin
@@ -59,6 +66,12 @@ static char * MRI_TYPE_name[7] =
 
 static float MRI_TYPE_maxval[7] =
   { 255.0 , 32767.0 , 2147483647 , 0.0,0.0,0.0 , 255.0 } ;
+
+#define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                \
+                      : ((xx) >  32767.0) ? (short) 32767 : (short)(xx) )
+
+#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                 \
+                      : ((xx) > 255.0) ? (byte)255 : (byte)(xx) )
 
 #define MRI_IS_INT_TYPE(typ) ((typ) < 3)
 
@@ -571,7 +584,7 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 
 /*-----------------  02 Feb 1998:
                      incoroporation of 3ddata, 3dmaker, iochan -----------*/
-                               
+
 #include "3ddata.h"
 #include "thd_maker.h"
 #include "thd_iochan.h"

@@ -1,6 +1,12 @@
 #ifndef _AFNI_HEADER_
 #define _AFNI_HEADER_
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #include "imseq.h"
 #include "xutil.h"
 #include "pbar.h"
@@ -45,8 +51,8 @@ typedef struct {
 #endif
 
       int first_file_arg , recurse ;
-
       int elide_quality ;
+      int no_frivolities ;
 } AF_options ;
 
 #ifdef MAIN
@@ -793,6 +799,7 @@ typedef struct {
 #define ALLOW_real_time GLOBAL_argopt.allow_rt
 #define ELIDE_quality   GLOBAL_argopt.elide_quality
 #define GPT             GLOBAL_library.gpt
+#define NO_frivolities  GLOBAL_argopt.no_frivolities
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
 

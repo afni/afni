@@ -7,7 +7,6 @@ static unsigned char buf[NBUF] ;
 int main( int argc , char * argv[] )
 {
    int iarg , ii , ll , jj , nw , verb=1 ;
-   int * karg ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -20,9 +19,6 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[iarg],"-q") == 0 ){ verb = 0 ; iarg++ ; }
 
    for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = (7*ii) % 255  ;
-
-   karg = (int *) malloc( sizeof(int) * argc ) ;
-   for( ii=0 ; ii < argc ; ii++ ) karg[ii] = 0 ;
 
    for( ; iarg < argc ; iarg++ ){
       ii = THD_is_directory( argv[iarg] ) ;
@@ -38,8 +34,8 @@ int main( int argc , char * argv[] )
             for( jj=0 ; jj < ll ; jj += NBUF ){
                nw = MIN(ll-jj,NBUF) ; fwrite( buf, 1, nw, fp ) ;
             }
-            fsync(fileno(fp)) ; fclose(fp) ; karg[iarg] = 1 ;
-            if( verb ) fprintf(stderr," -- Erased file %s\n",argv[iarg]) ;
+            fsync(fileno(fp)) ; fclose(fp) ; unlink(argv[iarg]) ;
+            if( verb ) fprintf(stderr," -- Removed file %s\n",argv[iarg]) ;
          } else {
             fprintf(stderr," ** Can't write to file %s\n",argv[iarg]) ;
          }
@@ -48,14 +44,5 @@ int main( int argc , char * argv[] )
       }
    }
 
-   iochan_sleep(5) ;
-
-   for( iarg=1 ; iarg < argc ; iarg++ ){
-      if( karg[iarg] ){
-         unlink(argv[iarg]) ;
-         if( verb ) fprintf(stderr," -- Unlinked file %s\n",argv[iarg]) ;
-      }
-   }
-
-   exit(0) ;
+   sync() ; exit(0) ;
 }

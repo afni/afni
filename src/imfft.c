@@ -1,6 +1,12 @@
 #include <string.h>
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 #define IMMAX 1024
 #define NFMAX 512   /* half of IMMAX */
 

@@ -1,6 +1,12 @@
 #include "mrilib.h"
 #include <string.h>
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /******
         This program has not been modified to work with
         the AFNI-96 new system of dataset storage!

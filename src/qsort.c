@@ -89,7 +89,7 @@ void qsrec_sh( int n , short * ar , int cutoff )
         for( ; a[++i] < pivot ; ) ;  /* scan i up,   until a[i] >= pivot */
         for( ; a[--j] > pivot ; ) ;  /* scan j down, until a[j] <= pivot */
 
-         if( j <= i ) break ;         /* if j meets i, quit */
+        if( j <= i ) break ;         /* if j meets i, quit */
 
         QS_SWAP( a[i] , a[j] ) ;
       } while( 1 ) ;

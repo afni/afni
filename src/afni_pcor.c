@@ -276,6 +276,8 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
 
    for( vox=0 ; vox < nv ; vox++ ){
 
+   /* change below made 15 July 1998 */
+#if 0
       den = VCH(vc,vox,nr) ;
       if( den > DENEPS ){
          pcor[vox] = VCH(vc,vox,nr-1)
@@ -283,6 +285,13 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
       } else {
          pcor[vox] = 0.0 ;
       }
+#else
+      den = VCH(vc,vox,nr) + SQR(VCH(vc,vox,nr-1)) ;
+      if( den > 0.0 )
+         pcor[vox] = VCH(vc,vox,nr-1) / sqrt(den) ;
+      else
+         pcor[vox] = 0.0 ;
+#endif
 
    }
 

@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+
 /*** NOT 7D SAFE ***/
 
 /*** Makes a 2D image that is a given function of (x,y) ***/

@@ -288,8 +288,8 @@ C
 C.......................................................................
 C  Local variables
 C
-      INTEGER I
-      REAL*8  FIXVAR(26)
+      INTEGER I , J , K
+      REAL*8  VAZ(NPMAX,26)
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
       IF( IFLAG .EQ. 0 )THEN
@@ -298,10 +298,24 @@ C
 C.......................................................................
       ELSEIF( IFLAG .EQ. 1 )THEN
          DO 110 I=1,N
-            FIXVAR( IFXVAR(I) ) = X(I)
+            K = IFXVAR(I)
+            DO 105 J=1,M
+               VAZ(J,K) = X(I)
+105         CONTINUE
 110      CONTINUE
-         CALL PAREVEC( NUMCOD , CCODE , FIXVAR ,
-     X                 1,IVEVAR , M,M , XX , FVEC )
+         DO 115 J=1,M
+            VAZ(J,IVEVAR) = XX(J)
+115      CONTINUE
+         CALL PAREVEC( NUMCOD , CCODE ,
+     X                 VAZ(1, 1) , VAZ(1, 2) , VAZ(1, 3) , VAZ(1, 4) ,
+     X                 VAZ(1, 5) , VAZ(1, 6) , VAZ(1, 7) , VAZ(1, 8) ,
+     X                 VAZ(1, 9) , VAZ(1,10) ,
+     X                 VAZ(1,11) , VAZ(1,12) , VAZ(1,13) , VAZ(1,14) ,
+     X                 VAZ(1,15) , VAZ(1,16) , VAZ(1,17) , VAZ(1,18) ,
+     X                 VAZ(1,19) , VAZ(1,20) ,
+     X                 VAZ(1,21) , VAZ(1,22) , VAZ(1,23) , VAZ(1,24) ,
+     X                 VAZ(1,25) , VAZ(1,26) ,
+     X                 M , FVEC )
          DO 120 I=1,M
             FVEC(I) = FVEC(I) - YY(I)
 120      CONTINUE
