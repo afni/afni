@@ -90,6 +90,12 @@ ENTRY("AFNI_functype_CB") ;
          (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                       : (im3d->vwid->func->range_av->fval) ;
 
+      /* 01 Jul 2003: change hints to match */
+
+      AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
+                         (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
+                                                         : im3d->vinfo->fim_autorange );
+
       AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
 
       /** 3/24/95: turn range controls on or off **/
@@ -382,8 +388,12 @@ void AFNI_range_rotate_av_CB( MCW_arrowval * av , XtPointer cd )
 
 ENTRY("AFNI_range_rotate_av_CB") ;
 
+   /* which way to rotate? */
+
    if( av->fval > av->old_fval ) ddd = +1 ;
    else                          ddd = -1 ;
+
+   /* Shift+click ==> rotate by 4 (useful for bigmode) */
 
    if( av->xev.type == ButtonPress ){
      XButtonEvent *event = (XButtonEvent *) (&av->xev) ;

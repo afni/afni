@@ -9871,7 +9871,10 @@ ENTRY("ISQ_snapshot") ;
 
    if( IMARR_COUNT(snap_imar) > 0 ){
      MRI_IMAGE *qim = IMARR_LASTIM( snap_imar ) ;
-     if( mri_equal(qim,tim) ){ mri_free(tim); EXRETURN; }
+     if( mri_equal(qim,tim) ){
+       fprintf(stderr,"++ ISQ_snapshot: rejecting duplicate image.\n") ;
+       mri_free(tim); EXRETURN;
+     }
    }
 
    ADDTO_IMARR(snap_imar,tim) ;
@@ -9919,6 +9922,9 @@ ENTRY("ISQ_snapshot") ;
      int ii ;
      drive_MCW_imseq( snap_isq, isqDR_newseq      , NULL ) ;
      drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_onwid  );
+
+     /* turn off some controls that don't make sense here */
+
      XtUnmanageChild( snap_isq->wbar ) ;
      XtUnmanageChild( snap_isq->arrowpad->wform ) ;
      for( ii=0 ; ii < NBUTTON_RIG ; ii++)
@@ -9928,6 +9934,7 @@ ENTRY("ISQ_snapshot") ;
      XtUnmanageChild( snap_isq->ov_opacity_sep ) ;
      XtUnmanageChild( snap_isq->ov_opacity_av->wrowcol ) ;
      XtUnmanageChild( snap_isq->winfo ) ;
+
    } else {
      drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_offwid );
    }

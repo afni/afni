@@ -2294,7 +2294,7 @@ STATUS("making func->rowcol") ;
          "* p's that display as 1.2-7 should\n"
          "   be interpreted as 1.2 x 10^(-7).\n"
          "* This is the significance PER VOXEL." ) ;
-   MCW_register_hint( func->thr_pval_label , "Estimated p-value per voxel" ) ;
+   MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel" ) ;
 
    /** Jul 1997: optmenu to choose top value for scale **/
 

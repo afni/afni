@@ -4610,3 +4610,12 @@
  * Moved some snapshot stuff to xim.c rather than imseq.c.
  * Modified afni.c to have it continue after fatal X11 errors.
  * New program 1ddot.c.
+
+01 Jul 2003
+ * Modified afni_func.c to change pbar hints when "Func=Threshold" is pressed.
+ * Added RWC_XtPopdown() to xutil.[ch], and modified most code to use this
+     rather than XtPopdown().
+ * Added empty XtErrorHandler to afni.c to try to avoid crashes when an Xt
+     error occurs.
+ * Added mri_equal.c, which checks if 2 images are equal.  Used in ISQ_snapshot()
+     to avoid saving duplicate images in succession.
