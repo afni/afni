@@ -237,6 +237,9 @@
   Mod:     Changes to allow -jobs option to run multiple processes.
   Date:    04 May 2003 -- RWCox
 
+  Mod:     Suppress final timing output without -jobs option.
+  Date:    15 August 2003 -- rickr
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -294,6 +297,8 @@
 # define proc_ind    0   /* index of THIS job */
 
 #endif
+
+  static int proc_use_jobs      = 0   ; /* jobs opt given - 2003.08.15[rickr] */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1298,6 +1303,7 @@ void get_options
 #else
         fprintf(stderr,"** -jobs not supported in this version\n") ;
 #endif
+        proc_use_jobs = 1 ;     /* -jobs opt given    2003.08.15 [rickr] */
         nopt++; continue;
       }
       
@@ -4449,6 +4455,8 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
-  fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
+  if (proc_use_jobs == 1)       /* output requested - 2003.08.15 [rickr] */
+    fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time());
+
   exit(0);
 }
