@@ -3625,3 +3625,4 @@
 29 Mar 2002
  * Modified afni_graph.c to accept multi-plot timeseries.
  * Added plug_nth_dataset.c to generate multi-plot timeseries.
+ * Fixed bug in to3d.c that disabled -4swap option (from 07 Mar 2002).

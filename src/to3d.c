@@ -3982,7 +3982,7 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
               }
               swap_twobytes( im->nvox , mri_data_pointer(im) ) ;
             }
-         } else if( im->pixel_size == 4 && argopt.swap_two ){
+         } else if( im->pixel_size == 4 && argopt.swap_four ){
             if( im->was_swapped ){  /* don't swap me again */
               static int first=1 ;
               if( first ){          /* but print a missive */
