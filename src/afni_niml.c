@@ -91,6 +91,14 @@ static int dont_hear_suma = 0 ;
 
 static int g_show_as_popup = 0 ;     /* 04 Jan 2005 [rickr] */
 
+#undef  SHOW_MESSAGE
+
+/*! Show a string as popup or just to stderr. [10 May 2005] */
+
+#define SHOW_MESSAGE(mmm)                            \
+ do{ if( g_show_as_popup ) AFNI_popup_message(mmm) ; \
+     else                  fputs(mmm,stderr) ;      } while(0)
+
 /*-------------------------*/
 
 #ifndef SUMA_TCP_PORT
@@ -171,6 +179,15 @@ static int     slist_check_user_surfs(ldp_surf_list * lsurf, int * surfs,
 static int     slist_surfs_for_ldp(ldp_surf_list * lsurf, int * surfs, int max,
                                    THD_session * sess, int debug);
 
+/*----------------------------------------------------------------------*/
+/* Functions for receiving an AFNI dataset from NIML elements.
+ * 10 Mar 2005 - RWCox
+------------------------------------------------------------------------*/
+
+static void    process_NIML_AFNI_dataset   ( NI_group * , int ) ;
+static void    process_NIML_AFNI_volumedata( void *     , int ) ;
+
+/************************************************************************/
 
 /*-----------------------------------------------------------------------*/
 /*! Routine executed at AFNI exit: shutdown all open NI_stream.
@@ -407,13 +424,28 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( tt < 0 ) EXRETURN ;  /* should never happen */
 
-   /* process elements within a group separately */
+   /* we got a group element, so process it */
 
    if( tt == NI_GROUP_TYPE ){
      NI_group *ngr = (NI_group *) nini ;
-     int ii ;
-     for( ii=0 ; ii < ngr->part_num ; ii++ )
-        AFNI_process_NIML_data( chan , ngr->part[ii] , -1 ) ; /* recursion */
+
+     /* 10 Mar 2005: add support for 2 types of groups [RWC] */
+
+     if( strcmp(ngr->name,"AFNI_dataset") == 0 ){
+
+       process_NIML_AFNI_dataset( ngr , ct_start ) ;   /* AFNI dataset header */
+
+     } else if( strcmp(ngr->name,"VOLUME_DATA") == 0 ){
+
+       process_NIML_AFNI_volumedata( ngr , ct_start ) ;    /* AFNI sub-bricks */
+
+     } else {                 /* the old way: we don't know about this group,
+                                 so process the elements within it separately */
+       int ii ;
+       for( ii=0 ; ii < ngr->part_num ; ii++ )
+          AFNI_process_NIML_data( chan , ngr->part[ii] , -1 ) ; /* recursion */
+     }
+
      EXRETURN ;
    }
 
@@ -429,6 +461,7 @@ ENTRY("AFNI_process_NIML_data") ;
 #endif
 
    /* broke out as functions, added node_normals         06 Oct 2004 [rickr] */
+
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
 
      process_NIML_SUMA_ixyz(nel, ct_start) ;  /* surface nodes for a dataset */
@@ -449,11 +482,15 @@ ENTRY("AFNI_process_NIML_data") ;
 
      process_NIML_Node_ROI(nel, ct_start) ;         /* ROI drawing from SUMA */
 
+   } else if( strcmp(nel->name,"VOLUME_DATA") == 0 ){         /* 10 Mar 2005 */
+
+     process_NIML_AFNI_volumedata( nel , ct_start ) ;     /* AFNI sub-bricks */
+
    } else {
      /*** If here, then name of element didn't match anything ***/
      sprintf(msg,"*** ERROR:\n\n"
                  " Unknown NIML input: \n"
-                 "  %.222s \n"
+                 "  <%.222s ...> \n"
                  " Ignoring it, and hoping it goes away.\n" ,
                  nel->name) ;
      AFNI_popup_message(msg) ;
@@ -1363,8 +1400,7 @@ ENTRY("process_NIML_SUMA_ixyz");
    }
 #endif
 
-   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
-   else                  fputs(msg, stderr) ;
+   SHOW_MESSAGE(msg) ;
 
    /* need to make the "Control Surface"
       widgets know about this extra surface */
@@ -1683,8 +1719,7 @@ ENTRY("process_NIML_SUMA_node_normals");
                             "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
 
-   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
-   else                  fputs(msg, stderr) ;
+   SHOW_MESSAGE(msg) ;
 
    dont_tell_suma = 1 ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
@@ -1708,9 +1743,9 @@ ENTRY("process_NIML_SUMA_crosshair_xyz");
        nel->vec_num    <  1        ||
        nel->vec_typ[0] != NI_FLOAT   ){
 
-     AFNI_popup_message( "+++ WARNING:\n\n"
-                         " SUMA_crosshair_xyz input \n"
-                         " is badly formatted!\n" );
+     SHOW_MESSAGE( "+++ WARNING:\n\n"
+                   " SUMA_crosshair_xyz input \n"
+                   " is badly formatted!\n" );
      RETURN(1) ;
    }
 
@@ -1752,9 +1787,9 @@ STATUS("received Node_ROI element") ;
        nel->vec_typ[0] != NI_INT   ||
        nel->vec_typ[1] != NI_INT     ){
 
-     AFNI_popup_message( "+++ WARNING:\n\n"
-                         " Node_ROI input \n"
-                         " is badly formatted!\n" );
+     SHOW_MESSAGE( "+++ WARNING:\n\n"
+                   " Node_ROI input \n"
+                   " is badly formatted!\n" );
      RETURN(1) ;
    }
 
@@ -1911,7 +1946,7 @@ STATUS("searching for Node_ROI functional dataset") ;
        sprintf(msg,"+++ NOTICE:\n\n"
                    " Node_ROI command is using existing dataset\n"
                    "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
-       AFNI_popup_message( msg ) ;
+       SHOW_MESSAGE( msg ) ;
      }
      if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->func_num ){
        cbs.ival = find.dset_index ;
@@ -1958,7 +1993,7 @@ STATUS("popping up Node_ROI dataset creation notice") ;
                  " Node_ROI command is creating dataset\n"
                  "  %.222s\n" ,
             DSET_FILECODE(dset_func) ) ;
-     AFNI_popup_message( msg ) ;
+     SHOW_MESSAGE( msg ) ;
 
 STATUS("destroying any pre-existing Node_ROI vvlist") ;
      DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
@@ -2025,4 +2060,127 @@ STATUS("redisplay Node_ROI function") ;
    AFNI_process_drawnotice( im3d ) ;
 
    RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Construct an AFNI dataset from the group element, and insert it
+    into the current session in lowest open controller if it is a
+    new dataset.  If it has the same idcode as an old dataset, replace
+    that dataset with this one.
+----------------------------------------------------------------------*/
+
+void process_NIML_AFNI_dataset( NI_group *ngr , int ct_start )
+{
+   Three_D_View *im3d = AFNI_find_open_controller() ;
+   THD_3dim_dataset *dset , *old_dset ;
+   THD_slist_find find ;
+   THD_session *ss ;
+   int ii , vv , ww ;
+
+   int ct_read = 0, ct_tot = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_AFNI_dataset") ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+   /* convert the group element contents into a dataset */
+
+   dset = THD_niml_to_dataset( ngr , 1 ) ;  /* 1 ==> don't load sub-bricks */
+   if( dset == NULL ){
+     AFNI_popup_message("\n*** ERROR:\n"
+                        " Received bad '<AFNI_dataset ...>'\n"
+                        " Discarding data and continuing.\n"  ) ;
+     EXRETURN ;
+   }
+
+   /* now see if this dataset idcode is already stored in AFNI somewhere */
+
+   find = PLUTO_dset_finder( dset->idcode.str ) ; old_dset = find.dset ;
+
+   if( old_dset == NULL ){     /********* this is a new dataset *************/
+
+     ss = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;  /* session  */
+     ii = ss->num_dsset ;                                       /* row      */
+     vv = dset->view_type ;                                     /* and view */
+
+     if( ii >= THD_MAX_SESSION_SIZE ){                 /* session overflow! */
+       DSET_delete(dset) ;
+       AFNI_popup_message("\n*** ERROR:\n"
+                          " Received new dataset but am out of space!\n\n" ) ;
+       EXRETURN ;
+     }
+
+     ss->dsset[ii][vv] = dset ;     /*** insert dataset into session here ***/
+     POPDOWN_strlist_chooser ;
+
+   } else {                  /************* have an old dataset *************/
+
+     DSET_delete(dset) ;                             /* delete the new copy */
+     dset = old_dset ;     /* instead, will replace contents of old dataset */
+   }
+
+   DSET_superlock(dset) ;  /*-- make sure will not be purged from memory! --*/
+
+   /* load any data bricks present in the group element */
+
+   (void)THD_add_bricks( dset , ngr ) ;
+
+   /** wrapup **/
+
+   if( ct_start >= 0 )                      /* keep track    */
+     ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
+
+   if( old_dset == NULL )
+     sprintf(msg,"\n+++ NOTICE: New AFNI dataset received.\n\n") ;
+   else
+     sprintf(msg,"\n+++ NOTICE: Replacement AFNI dataset received.\n\n") ;
+
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),
+                            "  I/O time = %4d ms, Processing = %4d ms\n" ,
+                            ct_read , ct_tot-ct_read ) ;
+   SHOW_MESSAGE( msg ) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Process a '<VOLUME_DATA ...>' element to add/replace sub-bricks
+    in an AFNI dataset already stored somewhere (identified by
+    the idcode).
+----------------------------------------------------------------------*/
+
+void process_NIML_AFNI_volumedata( void *nini , int ct_start )
+{
+   char *idc ;
+   THD_slist_find find ;
+
+   int ct_read = 0, ct_tot = 0 ;
+   char msg[1024] ;
+
+ENTRY("process_NIML_AFNI_volumedata") ;
+
+   if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
+
+                     idc = NI_get_attribute( nini , "AFNI_idcode" ) ;
+   if( idc == NULL ) idc = NI_get_attribute( nini , "self_idcode" ) ;
+   if( idc == NULL ) idc = NI_get_attribute( nini , "idcode"      ) ;
+   if( idc == NULL ) EXRETURN ;
+
+   find = PLUTO_dset_finder(idc) ;
+   if( find.dset == NULL ) EXRETURN ;
+
+   (void)THD_add_bricks( find.dset , nini ) ;
+
+   /** wrapup **/
+
+   if( ct_start >= 0 )                      /* keep track    */
+     ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
+
+   sprintf(msg,"\n+++ NOTICE: Replacement AFNI sub-bricks received.\n\n") ;
+
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),
+                            "  I/O time = %4d ms, Processing = %4d ms\n" ,
+                            ct_read , ct_tot-ct_read ) ;
+   SHOW_MESSAGE( msg ) ;
+   EXRETURN ;
 }

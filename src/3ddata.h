@@ -3872,5 +3872,14 @@ extern NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
 extern void       THD_dsetatr_from_niml( NI_group *, THD_3dim_dataset * ) ;
 extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
 
+extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
+extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
+
+#define SBFLAG_INDEX    (1<<0)
+#define SBFLAG_FACTOR   (1<<1)
+#define SBFLAG_STATCODE (1<<2)
+
+extern NI_element * THD_subbrick_to_niml( THD_3dim_dataset *, int , int ) ;
+extern NI_group * THD_dataset_to_niml( THD_3dim_dataset * ) ;
 
 #endif /* _MCW_3DDATASET_ */
