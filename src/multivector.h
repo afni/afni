@@ -36,6 +36,8 @@ extern int           multivector_write( char * , multivector * ) ;
 extern void          multivector_free( multivector * mv ) ;
 extern void          multivector_set_name( multivector * , char * ) ;
 
+extern char * MV_format_fval( float ) ;  /* 12 July 01999 */
+
 #define MV_FREE(m) do{ multivector_free((m)); (m)=NULL; }while(0)
 
 #endif /* _MULTIVECTOR_HEADER_ */

@@ -130,6 +130,45 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
 }
 
 /*--------------------------------------------------------------------
+  Set the graph parameters and redraw it [14 Jul 1999].
+----------------------------------------------------------------------*/
+
+void GRAF_put_setup( MCW_graf * gp , int nh , int * xh , int * yh , int spl )
+{
+   int ii ;
+
+   if( gp == NULL ||
+       nh < 2     || nh > MAX_GHANDS ||
+       xh == NULL || yh == NULL        ) return ;
+
+   gp->nhands = nh ;
+   gp->spline = (spl != 0 ) ;
+
+   for( ii=0 ; ii < nh ; ii++ ){
+      gp->hands[ii].x = xh[ii] ;
+      gp->hands[ii].y = yh[ii] ;
+   }
+
+   GenerateGrafFunc(gp,1) ; (void) GRAF_changed(gp) ;
+   return ;
+}
+
+void GRAF_get_setup( MCW_graf * gp , int * nh , int * xh , int * yh , int * spl )
+{
+   int ii ;
+
+   if( gp == NULL || nh == NULL || xh == NULL || yh == NULL || spl == NULL ) return ;
+
+   *nh  = gp->nhands ; *spl = gp->spline ;
+
+   for( ii=0 ; ii < gp->nhands ; ii++ ){
+      xh[ii] = gp->hands[ii].x ;
+      yh[ii] = gp->hands[ii].y ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------
    Check to see if graph function has changed.  As a byproduct,
    saves the current function in the backup place, so that if
    called twice in a row, the answer the second time is always no.

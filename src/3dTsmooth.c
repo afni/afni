@@ -9,6 +9,8 @@ void osfilt3_func( int num , float * vec ) ;
 void median3_func( int num , float * vec ) ;
 void linear3_func( int num , float * vec ) ;
 
+static float af=0.15 , bf=0.70 , cf=0.15 ;
+
 int main( int argc , char * argv[] )
 {
    void (*smth)(int,float *) = linear3_func ;
@@ -49,12 +51,16 @@ int main( int argc , char * argv[] )
              "output point: a = input value before the current point\n"
              "              b = input value at the current point\n"
              "              c = input value after the current point\n"
+             "                  [at the left end, a=b; at the right end, c=b]\n"
              "\n"
              "  -lin = 3 point linear filter: 0.15*a + 0.70*b + 0.15*c\n"
              "           [This is the default smoother]\n"
              "  -med = 3 point median filter: median(a,b,c)\n"
              "  -osf = 3 point order statistics filter:\n"
              "           0.15*min(a,b,c) + 0.70*median(a,b,c) + 0.15*max(a,b,c)\n"
+             "\n"
+             "  -3lin m = 3 point linear filter: 0.5*(1-m)*a + m*b + 0.5*(1-m)*c\n"
+             "              Here, 'm' is a number strictly between 0 and 1.\n"
            ) ;
       exit(0) ;
    }
@@ -87,6 +93,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-lin") == 0 ){
+         bf = 0.70 ; af = cf = 0.15 ;
          smth = linear3_func ;
          nopt++ ; continue ;
       }
@@ -98,6 +105,15 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-osf") == 0 ){
          smth = osfilt3_func ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-3lin") == 0 ){
+         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -3lin!\n");exit(1);}
+         bf = strtod( argv[nopt] , NULL ) ;
+         if( bf <= 0.0 || bf >= 1.0 ){fprintf(stderr,"*** Illegal -3lin!\n");exit(1);}
+         af = cf = 0.5*(1.0-bf) ;
+         smth = linear3_func ;
          nopt++ ; continue ;
       }
 
@@ -330,17 +346,19 @@ void median3_func( int num , float * vec )
 
 /*--------------- Linear Filter ----------------*/
 
+#define LSUM(a,b,c) af*(a)+bf*(b)+cf*(c)
+
 void linear3_func( int num , float * vec )
 {
    int ii ;
    float aa,bb,cc ;
 
-   bb = vec[0] ; cc = vec[1] ; vec[0] = OSFSUM(bb,bb,cc) ;
+   bb = vec[0] ; cc = vec[1] ; vec[0] = LSUM(bb,bb,cc) ;
    for( ii=1 ; ii < num-1 ; ii++ ){
       aa = bb ; bb = cc ; cc = vec[ii+1] ;
-      vec[ii] = OSFSUM(aa,bb,cc) ;
+      vec[ii] = LSUM(aa,bb,cc) ;
    }
-   vec[num-1] = OSFSUM(bb,cc,cc) ;
+   vec[num-1] = LSUM(bb,cc,cc) ;
 
    return ;
 }

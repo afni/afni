@@ -1,0 +1,156 @@
+Format of AFNI Rendering Scripts
+================================
+This document assumes you are familiar with operation of the AFNI Volume
+Rendering plugin (plug_render.c).
+
+By examining the output of one of the "Scripts->Save" buttons, you can
+probably guess most of the format of a .rset file.  Each rendering frame
+starts with the string "***RENDER", and then is followed by a list of
+variable assignments.  Each variable assignment should be on a separate
+line, and the blanks around the "=" signs are mandatory.
+
+Please note well that you cannot use the Automate expression feature in a
+.rset file: the right hand side of each assignment must be a number, or
+a symbolic name (as for the cutout types, infra).  You also cannot use the
+"Expr > 0" cutout type in a .rset file, since that requires a symbolic
+expression on the RHS of the assignment, and the .rset I/O routines aren't
+programmed to handle this special case.
+
+When a .rset file is written out, the first ***RENDER frame contains
+definitions of all the rendering state variables.  Succeeding frames
+only define variables that change from the previous frame.  Comments
+may be included using the C++ notation "//".
+
+At the present time, the dataset names are not used by the renderer.
+The sub-brick index variables (*_ival) are used only if the "Brick Index?"
+toggle on the "Scripts" menu is activated.
+
+The section below is a .rset file to which I have added comments in order
+to indicate the function of each variable.
+
+Bob Cox -- July 01999
+==============================================================================
+
+***RENDER                                           // starts a frame
+  dset_name = /usr3/cox/verbal/strip+tlrc.HEAD      // not used now
+  func_dset_name = /usr3/cox/verbal/func+tlrc.HEAD  // not used now
+  dset_ival = 0                                     // sub-brick of underlay
+  func_color_ival = 0                               // sub-brick of overlay
+  func_thresh_ival = 1                              // sub-brick of overlay
+  clipbot = 0                                       // underlay clipping
+  cliptop = 128                                     //   ranges
+  angle_roll =  55                                  // viewing angles in
+  angle_pitch =  120                                //   degrees
+  angle_yaw =  0
+  xhair_flag = 0                                    // 1 = show crosshairs
+  func_use_autorange = 1                            // Autorange button
+  func_threshold =  0.5                             // between 0 and 1
+  func_thresh_top =  1                              // 1, 10, 1000, or 10000
+  func_color_opacity =  0.5                         // between 0 and 1
+  func_see_overlay = 0                              // 1 = show color
+  func_cut_overlay = 0                              // 1 = cut overlay
+  func_kill_clusters = 0                            // 1 = kill clusters
+  func_clusters_rmm =  1                            // rmm parameter in mm
+  func_clusters_vmul =  200                         // vmul parameter in mm**3
+  func_range =  10000                               // used if autorange = 0
+ // new pbar values
+  pbar_mode  = 0                                    // 1 = positive only
+  pbar_npane = 9                                    // number of color panes
+  pbar_pval[0] =  1                                 // inter-pane thresholds
+  pbar_pval[1] =  0.75
+  pbar_pval[2] =  0.5
+  pbar_pval[3] =  0.25
+  pbar_pval[4] =  0.05
+  pbar_pval[5] = -0.05
+  pbar_pval[6] = -0.25
+  pbar_pval[7] = -0.5
+  pbar_pval[8] = -0.75
+  pbar_pval[9] = -1
+  opacity_scale =  1
+ // new cutout values
+  cutout_num   = 3                                  // from 0 to 9
+  cutout_logic = AND                                // could be OR
+  cutout_type[0]   = CUT_ANTERIOR_TO
+  cutout_mustdo[0] = NO
+  cutout_param[0] =  0
+  cutout_type[1]   = CUT_RIGHT_OF
+  cutout_mustdo[1] = NO
+  cutout_param[1] =  0
+  cutout_type[2]   = CUT_SUPERIOR_TO
+  cutout_mustdo[2] = YES
+  cutout_param[2] =  30
+ // new bright graf values
+  bright_nhands = 4                                 // number of graph handles
+  bright_spline = 0                                 // 1 = spline interpolation
+  bright_handx[0] = 0                               // (x,y) coordinates of
+  bright_handy[0] = 0                               //   handle positions
+  bright_handx[1] = 38
+  bright_handy[1] = 0
+  bright_handx[2] = 204
+  bright_handy[2] = 247
+  bright_handx[3] = 255
+  bright_handy[3] = 255
+ // new opacity graf values
+  opacity_nhands = 4
+  opacity_spline = 0
+  opacity_handx[0] = 0
+  opacity_handy[0] = 0
+  opacity_handx[1] = 42
+  opacity_handy[1] = 0
+  opacity_handx[2] = 192
+  opacity_handy[2] = 192
+  opacity_handx[3] = 255
+  opacity_handy[3] = 255
+
+
+***RENDER                                           // starts next frame
+  angle_roll =  70                                  // changed roll angle
+ // new cutout values
+  cutout_num   = 0                                  // changed cutouts
+  cutout_logic = OR
+
+
+***RENDER                                           // starts next frame
+  cliptop = 90                                      // changed underlay clip
+  angle_roll =  55                                  // changed roll angle
+ // new cutout values
+  cutout_num   = 3                                  // changed cutouts
+  cutout_logic = AND
+  cutout_type[0]   = CUT_ANTERIOR_TO
+  cutout_mustdo[0] = NO
+  cutout_param[0]  =  0
+  cutout_type[1]   = CUT_RIGHT_OF
+  cutout_mustdo[1] = NO
+  cutout_param[1]  =  0
+  cutout_type[2]   = CUT_SUPERIOR_TO
+  cutout_mustdo[2] = YES
+  cutout_param[2] =  30
+
+// end-of-file means no more frames
+==========================================================================
+The name codes to use for the "cutout_type" variables are
+
+   name code in .rset    menu label in AFNI
+   ------------------    ------------------
+   CUT_NONE           =  No Cut        // doesn't do much
+   CUT_RIGHT_OF       =  Right of      // the rectangular cuts
+   CUT_LEFT_OF        =  Left of
+   CUT_ANTERIOR_TO    =  Anterior to
+   CUT_POSTERIOR_TO   =  Posterior to
+   CUT_INFERIOR_TO    =  Inferior to
+   CUT_SUPERIOR_TO    =  Superior to
+   CUT_SLANT_XPY_GT   =  Behind AL-PR  // the diagonal cuts
+   CUT_SLANT_XPY_LT   =  Front AL-PR
+   CUT_SLANT_XMY_GT   =  Front AR-PL
+   CUT_SLANT_XMY_LT   =  Behind AR-PL
+   CUT_SLANT_YPZ_GT   =  Above AS-PI
+   CUT_SLANT_YPZ_LT   =  Below AS-PI
+   CUT_SLANT_YMZ_GT   =  Below AI-PS
+   CUT_SLANT_YMZ_LT   =  Above AI-PS
+   CUT_SLANT_XPZ_GT   =  Above RS-LI
+   CUT_SLANT_XPZ_LT   =  Below RS-LI
+   CUT_SLANT_XMZ_GT   =  Below RI-LS
+   CUT_SLANT_XMZ_LT   =  Above RI-LS
+   CUT_EXPRESSION     =  Expr > 0      // don't use this in a .rset file!
+   CUT_TT_ELLIPSOID   =  TT Ellipsoid  // pretty useless
+   CUT_NONOVERLAY     =  NonOverlay++  // mildly useless

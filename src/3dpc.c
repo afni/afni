@@ -14,6 +14,7 @@
 
 static int PC_dmean      = 0 ; /* default is not to remove means */
 static int PC_vmean      = 0 ;
+static int PC_vnorm      = 0 ; /* 07 July 1999 */
 static int PC_normalize  = 0 ; /* and not to normalize */
 static int PC_lprin_save = 0 ; /* # of principal components to save */
 static int PC_be_quiet   = 1 ; /* quiet is the default */
@@ -115,6 +116,13 @@ void PC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-vmean",6) == 0 ){
          PC_vmean = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -vnorm ****/
+
+      if( strncmp(argv[nopt],"-vnorm",6) == 0 ){
+         PC_vnorm = 1 ;
          nopt++ ; continue ;
       }
 
@@ -264,6 +272,9 @@ void PC_syntax(char * msg)
     "  -vmean        = remove the mean from each input voxel (across bricks)\n"
     "                    [N.B.: -dmean and -vmean are mutually exclusive]\n"
     "                    [default: don't remove either mean]\n"
+    "  -vnorm        = L2 normalize each input voxel time series\n"
+    "                    [occurs after the de-mean operations above,]\n"
+    "                    [and before the brick normalization below. ]\n"
     "  -normalize    = L2 normalize each input brick (after mean subtraction)\n"
     "                    [default: don't normalize]\n"
     "  -pcsave sss   = 'sss' is the number of components to save in the output;\n"
@@ -388,6 +399,32 @@ int main( int argc , char * argv[] )
          for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) -= sum ;
          if( ! PC_be_quiet ){ printf("-"); fflush(stdout); }
       }
+      if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+   }
+
+   /*-- 07 July 1999: vnorm --*/
+
+   if( PC_vnorm ){
+      float * vxnorm = (float *) malloc( sizeof(float) * nn ) ;  /* voxel norms */
+
+      if( ! PC_be_quiet ){ printf("--- normalize timeseries"); fflush(stdout); }
+
+      for( kk=0 ; kk < nn ; kk++ ) vxnorm[kk] = 0.0 ;
+
+      for( jj=0 ; jj < mm ; jj++ ){
+         for( kk=0 ; kk < nn ; kk++ ) vxnorm[kk] += XX(kk,jj) * XX(kk,jj) ;
+         if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
+      }
+
+      for( kk=0 ; kk < nn ; kk++ )
+         if( vxnorm[kk] > 0.0 ) vxnorm[kk] = 1.0 / sqrt(vxnorm[kk]) ;
+
+      for( jj=0 ; jj < mm ; jj++ ){
+         for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) *= vxnorm[kk] ;
+         if( ! PC_be_quiet ){ printf("*"); fflush(stdout); }
+      }
+
+      free(vxnorm) ;
       if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
    }
 

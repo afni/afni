@@ -109,15 +109,7 @@ static char * xhair_bbox_label[1]   = { "See Xhairs" } ;
 static char * dynamic_bbox_label[1] = { "DynaDraw"   } ;
 static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
-#undef USE_SCRIPTING
-#ifdef USE_SCRIPTING
-  Widget script_menu , script_cbut ,
-         script_save_one_pb  , script_save_many_pb ,
-         script_read_exec_pb , script_read_one_pb   ;
-
-  void REND_script_CB(Widget , XtPointer , XtPointer) ;
-  void REND_script_menu( Widget ) ;
-#endif
+/*----------------------------------------------------------------*/
 
 /* Other data */
 
@@ -223,6 +215,8 @@ static REND_cutout * cutouts[MAX_CUTOUTS] ;
 #define CUTOUT_OR  0
 #define CUTOUT_AND 1
 static char * cutout_logic_labels[] = { "OR" , "AND" } ;
+
+static char * cutout_mustdo_names[] = { "NO" , "YES" } ;
 
 static int num_cutouts  = 0 ;
 static int logic_cutout = CUTOUT_OR ;
@@ -362,7 +356,7 @@ extern void REND_set_pbar_top_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 static int   func_use_autorange = 1   ;
 static float func_threshold     = 0.5 ;
 static float func_thresh_top    = 1.0 ;
-static int   func_use_thresh    = 1   ;
+static int   func_use_thresh    = 1   ;   /* not currently alterable */
 static float func_color_opacity = 0.5 ;
 static int   func_see_overlay   = 0   ;
 static int   func_cut_overlay   = 0   ;
@@ -432,6 +426,144 @@ void REND_set_thr_pval(void) ;
 #  define FIX_SCALE_SIZE /* nada */
 #  define HIDE_SCALE     /* nada */
 #endif
+
+/*-------------------------------------------------------------------*/
+#define USE_SCRIPTING
+#ifdef USE_SCRIPTING
+
+  static Widget script_menu , script_cbut ,                     /* the menu */
+                script_save_this_pb , script_save_many_pb ,
+                script_read_exec_pb , script_read_this_pb  ;
+  static MCW_bbox * script_load_bbox , * script_brindex_bbox ;
+
+  void REND_script_CB(Widget , XtPointer , XtPointer) ;
+  void REND_script_menu( Widget ) ;
+  void REND_script_load_CB( Widget , XtPointer , XtPointer ) ;
+  void REND_script_brindex_CB( Widget , XtPointer , XtPointer ) ;
+  void REND_save_this_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+  void REND_save_many_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+  void REND_read_this_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+  void REND_read_this_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+  void REND_read_exec_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+
+  static int script_load      =  0 ;
+  static int script_load_last = -1 ;
+  static int script_brindex   =  0 ;
+
+#define SCRIPT_GRAFS  /* Bastille Day 1999 */
+#ifdef SCRIPT_GRAFS
+  typedef struct {
+     int nh , spl , xh[MAX_GHANDS] , yh[MAX_GHANDS] ;
+  } graf_state ;
+
+  static int graf_states_equal( graf_state * g1 , graf_state * g2 )
+  {  int ii ;
+     if( g1->nh  != g2->nh  ) return 0 ;
+     if( g1->spl != g2->spl ) return 0 ;
+     for( ii=0 ; ii < g1->nh ; ii++ ){
+        if( g1->xh[ii] != g2->xh[ii] ) return 0 ;
+        if( g1->yh[ii] != g2->yh[ii] ) return 0 ;
+     }
+     return 1 ;
+  }
+
+  static void graf_state_get( MCW_graf * gp , graf_state * gs )
+  {
+     GRAF_get_setup( gp , &(gs->nh) , gs->xh , gs->yh , &(gs->spl) ) ;
+     return ;
+  }
+
+  static void graf_state_put( MCW_graf * gp , graf_state * gs )
+  {
+     GRAF_put_setup( gp , gs->nh , gs->xh , gs->yh , gs->spl ) ;
+     return ;
+  }
+
+  static MCW_bbox * script_graf_bbox ;
+  void REND_script_graf_CB( Widget , XtPointer , XtPointer ) ;
+  static int script_graf = 0 ;
+#endif /* SCRIPT_GRAFS */
+
+  typedef struct {   /* data to store the state of rendering operations */
+
+     char dset_name[THD_MAX_NAME] , func_dset_name[THD_MAX_NAME] ;
+     MCW_idcode dset_idc          , func_dset_idc ;
+     int dset_ival , func_color_ival , func_thresh_ival ;
+
+     int clipbot , cliptop ;
+
+     float angle_roll , angle_pitch , angle_yaw ;
+     int xhair_flag ;
+
+     float func_threshold     ;
+     float func_thresh_top    ;
+     float func_color_opacity ;
+     int   func_see_overlay   ;
+     int   func_cut_overlay   ;
+     int   func_kill_clusters ;
+     float func_clusters_rmm  ;
+     float func_clusters_vmul ;
+     int   func_use_autorange ;
+     float func_range         ;
+
+     int pbar_mode , pbar_npane ;
+     float pbar_pval[NPANE_MAX+1] ;
+
+     CUTOUT_state current_cutout_state ;
+
+#ifdef SCRIPT_GRAFS
+     graf_state bright_graf_state , opacity_graf_state ;
+#endif
+
+  } RENDER_state ;
+
+  typedef struct {
+      int num , nall ;
+      RENDER_state ** rsarr ;
+  } RENDER_state_array ;
+
+#  define RSA_SUBSTATE(name,nn) ((name)->rsarr[(nn)])
+#  define RSA_COUNT(name)       ((name)->num)
+#  define INC_RSA 32
+
+#  define INIT_RSA(name)                                                               \
+     do{ int iq ; (name) = (RENDER_state_array *) malloc(sizeof(RENDER_state_array)) ; \
+         (name)->num = 0 ; (name)->nall = INC_RSA ;                                   \
+         (name)->rsarr = (RENDER_state **)malloc(sizeof(RENDER_state *)*INC_RSA) ;   \
+         for( iq=0 ; iq < INC_RSA ; iq++ ) (name)->rsarr[iq] = NULL ;               \
+         break ; } while(0)
+
+#  define ADDTO_RSA(name,imm)                                                        \
+     do{ int nn , iq ;                                                                \
+         if( (name)->num == (name)->nall ){                                            \
+            nn = (name)->nall = 1.1*(name)->nall + INC_RSA ;                            \
+            (name)->rsarr = realloc( (name)->rsarr,sizeof(RENDER_state *)*nn );          \
+            for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->rsarr[iq] = NULL ; } \
+         nn = (name)->num ; ((name)->num)++ ;                                             \
+         (name)->rsarr[nn] = (imm) ; break ; } while(0)
+
+#  define FREE_RSA(name)       \
+     do{ if( (name) != NULL ){ \
+            free((name)->rsarr); free((name)); (name) = NULL; } break; } while(0)
+
+#  define DESTROY_RSA(name)                                              \
+     do{ int nn ;                                                         \
+         if( (name) != NULL ){                                             \
+            for( nn=0 ; nn < (name)->num ; nn++ ) free((name)->rsarr[nn]) ; \
+            free((name)->rsarr); free((name)); (name) = NULL; } break; } while(0)
+
+  void   REND_state_to_widgets( RENDER_state * ) ;
+  void   REND_widgets_to_state( RENDER_state * ) ;
+
+  char * REND_save_state      ( RENDER_state * , RENDER_state * ) ;
+
+  RENDER_state_array * REND_read_states( char * , RENDER_state * ) ;
+
+  static RENDER_state_array * renderings_state = NULL ;
+  static RENDER_state * last_rendered_state = NULL ;
+
+#endif /* USE_SCRIPTING */
+/*-------------------------------------------------------------------*/
 
 /***************************************************************************
   Will be called from AFNI when user selects from Plugins menu.
@@ -1046,7 +1178,7 @@ void REND_make_widgets(void)
    XtAddCallback( opacity_scale_av->wtext, XmNactivateCallback,
                   REND_textact_CB, opacity_scale_av ) ;
 
-   /*** 07 July 1999: menu to control scripting actions ***/
+   /*** 07 July 1999: insert menu to control scripting actions ***/
 
 #ifdef USE_SCRIPTING
    SEP_VER(hrc) ;
@@ -1305,7 +1437,7 @@ void REND_make_widgets(void)
 
    /***=============================================================*/
 
-   /*** that's all [overlay widgets are only made upon demand] ***/
+   /*** that's all ***/
 
    XtManageChild(anat_rowcol) ;
    XtManageChild(anat_frame) ;
@@ -1313,8 +1445,12 @@ void REND_make_widgets(void)
    XtManageChild(top_rowcol) ;
    XtRealizeWidget(shell) ;      /* will not be mapped */
 
+   /*** 12 July 1999: make the overlay widgets now, instead of later ***/
+
+   REND_func_widgets() ;
+
 #if 0
-   XtVaSetValues( anat_rowcol       , XmNresizeWidth , False , NULL ) ;
+   XtVaSetValues( anat_rowcol , XmNresizeWidth , False , NULL ) ;
 #endif
    return ;
 }
@@ -1357,6 +1493,17 @@ static char * cutout_param_labels[NUM_CUTOUT_TYPES] = {
   "Value [mm]:  " , "Value [mm]:  " ,
 
   "Radius++[mm]:"
+} ;
+
+static char * cutout_type_names[NUM_CUTOUT_TYPES] = {
+  "CUT_NONE"         , "CUT_RIGHT_OF"     , "CUT_LEFT_OF"      ,
+  "CUT_ANTERIOR_TO"  , "CUT_POSTERIOR_TO" , "CUT_INFERIOR_TO"  ,
+  "CUT_SUPERIOR_TO"  , "CUT_EXPRESSION"   , "CUT_TT_ELLIPSOID" ,
+  "CUT_SLANT_XPY_GT" , "CUT_SLANT_XPY_LT" , "CUT_SLANT_XMY_GT" ,
+  "CUT_SLANT_XMY_LT" , "CUT_SLANT_YPZ_GT" , "CUT_SLANT_YPZ_LT" ,
+  "CUT_SLANT_YMZ_GT" , "CUT_SLANT_YMZ_LT" , "CUT_SLANT_XPZ_GT" ,
+  "CUT_SLANT_XPZ_LT" , "CUT_SLANT_XMZ_GT" , "CUT_SLANT_XMZ_LT" ,
+  "CUT_NONOVERLAY"
 } ;
 
 #define CUT_NONE           0
@@ -1511,7 +1658,7 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    /** like AFNI itself, require two quick presses to exit **/
 
-   if( w == done_pb && quit_first ){
+   if( w == done_pb && quit_first && renderings != NULL ){
       MCW_set_widget_label( done_pb , "DONE " ) ;
       quit_first = 0 ;
       (void) XtAppAddTimeOut(
@@ -1525,6 +1672,10 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    REND_destroy_imseq() ;      /* destroy the image window */
    DESTROY_IMARR(renderings) ; /* destroy the images */
+#ifdef USE_SCRIPTING
+   DESTROY_RSA(renderings_state) ;
+   script_load_last = -1 ;
+#endif
 
    if( wfunc_frame != NULL && XtIsManaged(wfunc_frame) )  /* close overlay */
       REND_open_func_CB(NULL,NULL,NULL) ;
@@ -1887,13 +2038,39 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
       MCW_invert_widget(draw_pb) ; return ;
    }
 
+#ifdef USE_SCRIPTING
+   if( last_rendered_state == NULL )
+      last_rendered_state = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+
+   REND_widgets_to_state( last_rendered_state ) ;
+#endif
+
    if( accum_flag || automate_flag ){
-      if( renderings == NULL ){ INIT_IMARR( renderings ) ; }
+      if( renderings == NULL ){
+         INIT_IMARR( renderings ) ;
+#ifdef USE_SCRIPTING
+         INIT_RSA( renderings_state ) ; script_load_last = -1 ;
+#endif
+      }
       ADDTO_IMARR( renderings , rim ) ;
+#ifdef USE_SCRIPTING
+      { RENDER_state * rs = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+        *rs = *last_rendered_state ;
+        ADDTO_RSA( renderings_state , rs ) ;
+      }
+#endif
    } else {
       DESTROY_IMARR( renderings ) ;
       INIT_IMARR( renderings ) ;
       ADDTO_IMARR( renderings , rim ) ;
+#ifdef USE_SCRIPTING
+      { RENDER_state * rs = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+        DESTROY_RSA( renderings_state ) ;
+        INIT_RSA( renderings_state ) ; script_load_last = -1 ;
+        *rs = *last_rendered_state ;
+        ADDTO_RSA( renderings_state , rs ) ;
+      }
+#endif
    }
    REND_update_imseq() ;
 
@@ -2024,7 +2201,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         back through past renderings, not through the spatial\n"
        "         extent of the dataset in any way.  Each additional\n"
        "         accumulated image appears as the last image in the\n"
-       "         sequence.\n"
+       "         sequence, no matter where you are when 'Draw' activates.\n"
        "\n"
        "Brightness and Opacity:\n"
        "-----------------------\n"
@@ -2255,6 +2432,55 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         options available from the 'Disp' control panel do not\n"
        "         function.  'Sharpen' still works, and is very useful.\n"
        "\n"
+#ifdef USE_SCRIPTING
+       "Scripts: [July 1999]\n"
+       "--------\n"
+       " * This facility, controlled from the 'Scripts' menu button, lets you\n"
+       "     save rendering settings and recall them later.  This is useful\n"
+       "     when you want to render multiple datasets in the same fashion.\n"
+       "\n"
+       " * 'Save This' will store the current state of the rendering settings\n"
+       "     to a file.  Rendering settings are stored in files with suffix\n"
+       "     '.rset', and are ASCII files that can be edited -- with care!\n"
+       "\n"
+       " * 'Save Many' will store all the rendering settings used to create\n"
+       "     the currently accumulated images.\n"
+       "\n"
+       " * 'Read This' will read one rendering state from a .rset file and\n"
+       "     make the interface widgets reflect that state.  Nothing will\n"
+       "     be rendered until you press the 'Draw' button.  If the .rset\n"
+       "     file has more than one rendering state (e.g., from ''Save Many')\n"
+       "     you will be asked to choose which state you want to load.\n"
+       "\n"
+       " * 'Read & Exec' will read a set of rendering states from a .rset file\n"
+       "     and execute them, producing a new set of images.  If more than\n"
+       "     one rendering is being computed, you can use the CANCEL button\n"
+       "     (as in Automate) to stop the rendering.\n"
+       "\n"
+       " * The toggle button 'Load Widgets', when activated, will cause the\n"
+       "     interface widgets to be loaded with the rendering state used to\n"
+       "     create the currently visible image.  When you move the slider\n"
+       "     to see a different image from the accumulation, the widgets will\n"
+       "     change accordingly.  This lets you recall how you created a\n"
+       "     particular image.  If this button is deactivated, then the\n"
+       "     widgets will reflect the last image rendered, no matter which\n"
+       "     image is actually visible.\n"
+       "\n"
+       " * The toggle button 'Brick Index?' controls whether the sub-brick\n"
+       "     indexes are to be changed when new rendering values are loaded\n"
+       "     via one of the 'Read' buttons, or via the 'Load Widgets' toggle.\n"
+       "\n"
+       " * The toggle button 'Alter Grafs?' controls whether the Brightness\n"
+       "     and Opacity interactive graphs are to be restored when new\n"
+       "     rendering values are loaded (via 'Read' or 'Load Widgets').\n"
+       "\n"
+       " N.B.: When you render a new image, it always goes at the END of\n"
+       "         the accumulation, no matter which image you happen to be\n"
+       "         viewing when you press 'Draw', or otherwise cause rendering.\n"
+       " N.B.: The format of a .rset file is described in the documentation\n"
+       "         file README.render_scripts.\n"
+       "\n"
+#endif
        "Final Notes:\n"
        "------------\n"
        " * The rendering is done using the VolPack library from Stanford,\n"
@@ -2724,7 +2950,8 @@ void REND_angle_CB( MCW_arrowval * av , XtPointer cd )
       return ;  /* should never happen */
    }
 
-   if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
+   if( cd == NULL && dynamic_flag && render_handle != NULL )
+      REND_draw_CB(NULL,NULL,NULL) ;
 
    return ;
 }
@@ -2745,7 +2972,7 @@ void REND_angle_CB( MCW_arrowval * av , XtPointer cd )
         XBell(dc->display,100) ; return ;                               \
      } } while(0)
 
-void REND_xhair_CB( Widget w , XtPointer client_data , XtPointer call_data )
+void REND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
 {
    int old_xh = xhair_flag ;
 
@@ -2757,7 +2984,8 @@ void REND_xhair_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ; /* forget */
 
-   if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
+   if( cd == NULL && dynamic_flag && render_handle != NULL )
+      REND_draw_CB(NULL,NULL,NULL) ;
 
    return ;
 }
@@ -3544,7 +3772,8 @@ void REND_cutout_blobs(void)
 
 void REND_param_CB( MCW_arrowval * av , XtPointer cd )
 {
-   if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
+   if( cd == NULL && dynamic_flag && render_handle != NULL )
+      REND_draw_CB(NULL,NULL,NULL) ;
 }
 
 /*-----------------------------------------------------------------------
@@ -3773,6 +4002,17 @@ XtPointer REND_imseq_getim( int n , int type , XtPointer handle )
             im = mri_to_rgb( rim ) ;
          else
             im = mri_to_mri( rim->kind , rim ) ;
+
+#ifdef USE_SCRIPTING
+         if( renderings_state != NULL        &&
+             n < RSA_COUNT(renderings_state) &&
+             ! automate_flag                 &&
+             script_load && script_load_last != n ){
+
+            REND_state_to_widgets( RSA_SUBSTATE(renderings_state,n) ) ;
+            script_load_last = n ;
+         }
+#endif
       }
       return (XtPointer) im ;
    }
@@ -3821,7 +4061,12 @@ void REND_autocompute_CB( Widget w, XtPointer client_data, XtPointer call_data )
    Widget autometer ;
 
    automate_flag = 1 ;
-   if( ! accum_flag ){ DESTROY_IMARR(renderings) ; }
+   if( ! accum_flag ){
+      DESTROY_IMARR(renderings) ;
+#ifdef USE_SCRIPTING
+      DESTROY_RSA(renderings_state) ;
+#endif
+   }
 
    atoz[N_IND] = ntime ;
 
@@ -5341,9 +5586,15 @@ void REND_reload_func_dset(void)
 void REND_opacity_scale_CB( MCW_arrowval * av , XtPointer cd )
 {
    if( av->fval < MIN_OPACITY_SCALE ) AV_assign_fval(av,MIN_OPACITY_SCALE) ;
-   if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
+   if( cd == NULL && dynamic_flag && render_handle != NULL )
+      REND_draw_CB(NULL,NULL,NULL) ;
    return ;
 }
+
+/*****************************************************************************
+  Functions for saving the internal rendering state to a script,
+  reading it back in, et cetera.
+******************************************************************************/
 
 #ifdef USE_SCRIPTING
 /*--------------------------------------------------------------------
@@ -5353,6 +5604,11 @@ void REND_opacity_scale_CB( MCW_arrowval * av , XtPointer cd )
 void REND_script_menu( Widget parent )
 {
    Widget rc , mbar ;
+   static char * load_bbox_label[1]    = { "Load Widgets" } ;
+   static char * brindex_bbox_label[1] = { "Brick Index?" } ;
+#ifdef SCRIPT_GRAFS
+   static char * graf_bbox_label[1]    = { "Alter Grafs?" } ;
+#endif
 
    rc =  XtVaCreateWidget(
            "dialog" , xmRowColumnWidgetClass , parent ,
@@ -5380,7 +5636,7 @@ void REND_script_menu( Widget parent )
    script_cbut =
          XtVaCreateManagedWidget(
             "dialog" , xmCascadeButtonWidgetClass , mbar ,
-               LABEL_ARG("Script") ,
+               LABEL_ARG("Scripts") ,
                XmNsubMenuId    , script_menu ,
                XmNmarginWidth  , 0 ,
                XmNmarginHeight , 0 ,
@@ -5423,15 +5679,87 @@ void REND_script_menu( Widget parent )
 
    MENU_SLINE ;
 
-   SCRIPT_MENU_BUT( script_save_one_pb  , "Save One"  ) ;
+   SCRIPT_MENU_BUT( script_save_this_pb , "Save This" ) ;
    SCRIPT_MENU_BUT( script_save_many_pb , "Save Many" ) ;
 
    MENU_SLINE ;
 
-   SCRIPT_MENU_BUT( script_read_one_pb  , "Read One"    ) ;
+   SCRIPT_MENU_BUT( script_read_this_pb , "Read This"   ) ;
    SCRIPT_MENU_BUT( script_read_exec_pb , "Read & Exec" ) ;
 
+   MENU_SLINE ;
+
+   script_load_bbox = new_MCW_bbox( script_menu , 1 , load_bbox_label ,
+                                    MCW_BB_check , MCW_BB_noframe ,
+                                    REND_script_load_CB , NULL ) ;
+   MCW_reghint_children( script_load_bbox->wrowcol ,
+                         "Recall settings from images" ) ;
+
+   script_brindex_bbox = new_MCW_bbox( script_menu , 1 , brindex_bbox_label ,
+                                       MCW_BB_check , MCW_BB_noframe ,
+                                       REND_script_brindex_CB , NULL ) ;
+   MCW_reghint_children( script_brindex_bbox->wrowcol ,
+                         "Set brick index when loading widgets?" ) ;
+
+#ifdef SCRIPT_GRAFS
+   script_graf_bbox = new_MCW_bbox( script_menu , 1 , graf_bbox_label ,
+                                    MCW_BB_check , MCW_BB_noframe ,
+                                    REND_script_graf_CB , NULL ) ;
+   MCW_reghint_children( script_graf_bbox->wrowcol ,
+                         "Set grafs when loading widgets?" ) ;
+#endif
+
+
    XtManageChild( rc ) ;
+   return ;
+}
+
+#ifdef SCRIPT_GRAFS
+/*-----------------------------------------------------------------------
+   Callback when the "Alter Grafs?" button is toggled
+-------------------------------------------------------------------------*/
+
+void REND_script_graf_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   script_graf = MCW_val_bbox( script_graf_bbox ) ;
+   return ;
+}
+#endif
+
+/*-----------------------------------------------------------------------
+   Callback when the "Brick Index?" button is toggled
+-------------------------------------------------------------------------*/
+
+void REND_script_brindex_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   script_brindex = MCW_val_bbox( script_brindex_bbox ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Callback when the "Load Widgets" button is toggled
+-------------------------------------------------------------------------*/
+
+void REND_script_load_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   int sl = MCW_val_bbox( script_load_bbox ) ;
+
+   if( sl == script_load ) return ;  /* no change? */
+
+   script_load      = sl ;
+   script_load_last = -1 ;
+
+   if( script_load && imseq != NULL && renderings_state != NULL ){
+      int nn ;
+      drive_MCW_imseq( imseq , isqDR_getimnr , (XtPointer) &nn ) ;
+      if( nn >= 0 && nn < RSA_COUNT(renderings_state) ){
+         REND_state_to_widgets( RSA_SUBSTATE(renderings_state,nn) ) ;
+         script_load_last = nn ;
+      }
+   } else if( !script_load && last_rendered_state != NULL ){
+      REND_state_to_widgets( last_rendered_state ) ;
+   }
+
    return ;
 }
 
@@ -5439,8 +5767,1142 @@ void REND_script_menu( Widget parent )
    Callback when a script menu button is pressed
 ------------------------------------------------------------------------*/
 
+static char script_read_fname[THD_MAX_NAME] = "\0" ;
+
 void REND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-  PLUTO_beep() ; return ;
+   if( w == script_save_this_pb ){
+      MCW_choose_string( w , "[Save This] Filename prefix:" , NULL ,
+                         REND_save_this_CB , NULL ) ;
+      return ;
+   }
+
+   if( w == script_read_this_pb ){
+      MCW_choose_string( w , "[Read This] Filename prefix:" ,
+                         script_read_fname ,
+                         REND_read_this_CB , NULL ) ;
+      return ;
+   }
+
+   if( w == script_save_many_pb ){
+      if( renderings_state == NULL || RSA_COUNT(renderings_state) < 1 ){
+         (void) MCW_popup_message( script_cbut ,
+                                      " \n"
+                                      "** No rendering states\n"
+                                      "** available to save!\n" ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+         PLUTO_beep() ; return ;
+      }
+      MCW_choose_string( w , "[Save Many] Filename prefix:" , NULL ,
+                         REND_save_many_CB , NULL ) ;
+      return ;
+   }
+
+   if( w == script_read_exec_pb ){
+      if( dset == NULL ){
+         (void) MCW_popup_message( script_cbut ,
+                                      " \n"
+                                      "** No dataset loaded\n"
+                                      "** for rendering!\n" ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+         PLUTO_beep() ; return ;
+      }
+      MCW_choose_string( w , "[Read & Exec] Filename prefix:" ,
+                         script_read_fname ,
+                         REND_read_exec_CB , NULL ) ;
+      return ;
+   }
+
+   /*-- should never be reached --*/
+
+   PLUTO_beep() ; return ;
 }
+
+/*----------------------------------------------------------------------
+   Called when the "Save This" filename chooser is activated
+------------------------------------------------------------------------*/
+
+void REND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   int ll ;
+   char * fname , buf[256] , * sbuf ;
+   RENDER_state rs ;
+   FILE * fp ;
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   fname = malloc( sizeof(char) * (ll+8) ) ;
+   strcpy(fname,cbs->cval) ;
+
+   if( strstr(fname,".rset") == NULL ){
+      if( fname[ll-1] != '.' ){ fname[ll++] = '.'; fname[ll] = '\0'; }
+      strcat(fname,"rset") ;
+   }
+
+   if( !THD_filename_ok(fname) ){
+      sprintf(buf," \n"
+                  "** Filename %s is illegal!\n"
+                  "** Try something different.\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   if( THD_is_file(fname) ){
+      sprintf(buf," \n"
+                  "** File %s already exists!\n"
+                  "** AFNI won't overwrite it.\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   REND_widgets_to_state( &rs ) ;
+   sbuf = REND_save_state( &rs , NULL ) ;
+
+   if( sbuf == NULL ){
+      (void) MCW_popup_message( script_cbut ,
+                                   "\n"
+                                   "** Some error occured when\n"
+                                   "** trying to save the state!\n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){
+      (void) MCW_popup_message( script_cbut ,
+                                   "\n"
+                                   "** Some error occured when\n"
+                                   "** trying to open the file!\n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(sbuf) ; free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   POPDOWN_string_chooser ;
+   fwrite( sbuf , 1 , strlen(sbuf) , fp ) ;
+   fclose( fp ) ;
+   free( sbuf ) ; free(fname) ; return ;
+}
+
+/*----------------------------------------------------------------------
+   Called when the "Read This" filename chooser is activated
+------------------------------------------------------------------------*/
+
+void REND_read_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   int ll ;
+   char * fname , buf[256] , * sbuf ;
+   RENDER_state rs ;
+   RENDER_state_array * rsa ;
+   FILE * fp ;
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   fname = malloc( sizeof(char) * (ll+8) ) ;
+   strcpy(fname,cbs->cval) ; strcpy(script_read_fname,fname) ;
+
+   if( strstr(fname,".rset") == NULL ){
+      if( fname[ll-1] != '.' ){ fname[ll++] = '.'; fname[ll] = '\0'; }
+      strcat(fname,"rset") ;
+   }
+
+   REND_widgets_to_state( &rs ) ;
+   rsa = REND_read_states( fname , &rs ) ;
+
+   if( rsa == NULL || RSA_COUNT(rsa) < 1 ){
+      sprintf(buf, "\n"
+                   "** Some error occured when\n"
+                   "** trying to read file %s\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   free(fname) ; POPDOWN_string_chooser ;
+
+   if( RSA_COUNT(rsa) == 1 ){
+      MCW_choose_cbs cbs ;
+      cbs.ival = 0 ; cbs.reason = mcwCR_integer ;
+      REND_read_this_finalize_CB( NULL , (XtPointer) rsa , &cbs ) ;
+   } else {
+      MCW_choose_integer( w , "[Read This] State Index" ,
+                          0 , RSA_COUNT(rsa)-1 , 0 ,
+                          REND_read_this_finalize_CB , (XtPointer) rsa ) ;
+   }
+
+   return ;
+}
+
+void REND_read_this_finalize_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   RENDER_state_array * rsa = (RENDER_state_array *) cd ;
+
+   POPDOWN_integer_chooser ;
+
+   if( cbs->reason != mcwCR_integer ||
+       cbs->ival < 0                || cbs->ival >= RSA_COUNT(rsa) ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   REND_state_to_widgets( RSA_SUBSTATE(rsa,cbs->ival) ) ;
+
+   DESTROY_RSA(rsa) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------
+   Called when the "Save Many" filename chooser is activated
+------------------------------------------------------------------------*/
+
+void REND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   int ll , ii ;
+   char * fname , buf[256] , * sbuf ;
+   RENDER_state * rs ;
+   FILE * fp ;
+
+   if( !renderer_open           ||
+       renderings_state == NULL || RSA_COUNT(renderings_state) < 1 ){
+
+      POPDOWN_string_chooser ; return ;
+   }
+
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   fname = malloc( sizeof(char) * (ll+8) ) ;
+   strcpy(fname,cbs->cval) ;
+
+   if( strstr(fname,".rset") == NULL ){
+      if( fname[ll-1] != '.' ){ fname[ll++] = '.'; fname[ll] = '\0'; }
+      strcat(fname,"rset") ;
+   }
+
+   if( !THD_filename_ok(fname) ){
+      sprintf(buf," \n"
+                  "** Filename %s is illegal!\n"
+                  "** Try something different.\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   if( THD_is_file(fname) ){
+      sprintf(buf," \n"
+                  "** File %s already exists!\n"
+                  "** AFNI won't overwrite it.\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){
+      sprintf(buf, " \n"
+                   "** Some error occured when\n"
+                   "** trying to open file %s\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+   free(fname) ; POPDOWN_string_chooser ;
+
+   rs = NULL ;
+   for( ii=0 ; ii < RSA_COUNT(renderings_state) ; ii++ ){
+      sbuf = REND_save_state( RSA_SUBSTATE(renderings_state,ii) , rs ) ;
+      fwrite( sbuf , 1 , strlen(sbuf) , fp ) ; free(sbuf) ;
+      rs = RSA_SUBSTATE(renderings_state,ii) ;
+   }
+
+   fclose( fp ) ;
+}
+
+/*----------------------------------------------------------------------
+   Called when the "Read & Exec" filename chooser is activated
+------------------------------------------------------------------------*/
+
+void REND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   int ll , it , ntime ;
+   char * fname , buf[256] , * sbuf ;
+   RENDER_state rs ;
+   RENDER_state_array * rsa ;
+   FILE * fp ;
+   float scl ;
+   Widget autometer ;
+
+   if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
+
+   if( cbs->reason != mcwCR_string ||
+       cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
+
+      PLUTO_beep() ; return ;
+   }
+
+   fname = malloc( sizeof(char) * (ll+8) ) ;
+   strcpy(fname,cbs->cval) ; strcpy(script_read_fname,fname) ;
+
+   if( strstr(fname,".rset") == NULL ){
+      if( fname[ll-1] != '.' ){ fname[ll++] = '.'; fname[ll] = '\0'; }
+      strcat(fname,"rset") ;
+   }
+
+   REND_widgets_to_state( &rs ) ;
+   rsa = REND_read_states( fname , &rs ) ;
+
+   if( rsa == NULL || RSA_COUNT(rsa) < 1 ){
+      sprintf(buf, "\n"
+                   "** Some error occured when\n"
+                   "** trying to read file %s\n" , fname ) ;
+      (void) MCW_popup_message( script_cbut , buf ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      free(fname) ; PLUTO_beep() ; return ;
+   }
+
+   free(fname) ; POPDOWN_string_chooser ;
+
+   /*-- now execute the renderings (a la 'Automate' )--*/
+
+   automate_flag = 1 ;
+   if( ! accum_flag ){
+      DESTROY_IMARR(renderings) ;
+      DESTROY_RSA(renderings_state) ;
+   }
+   ntime = RSA_COUNT(rsa) ;
+
+   if( ntime > 1 ){
+      autometer = MCW_popup_meter( shell , METER_TOP_WIDE ) ;
+      XtManageChild( autocancel_pb ) ; AFNI_add_interruptable( autocancel_pb ) ;
+      autokill = 0 ; scl = 100.0/ntime ;
+   }
+
+   for( it=0 ; it < ntime ; it++ ){
+
+      REND_state_to_widgets( RSA_SUBSTATE(rsa,it) ) ;
+
+      REND_draw_CB(NULL,NULL,NULL) ;
+
+      if( it < ntime-1 ){
+         AFNI_process_interrupts(autocancel_pb) ;
+         if( autokill ) break ;
+      }
+
+      if( ntime > 1 ) MCW_set_meter( autometer , (int)(scl*(it+1)) ) ;
+   }
+
+   /*-- done: cleanup time --*/
+
+   DESTROY_RSA(rsa) ;
+
+   if( ntime > 1 ){
+      MCW_popdown_meter( autometer ) ;
+      XtUnmanageChild( autocancel_pb ) ; AFNI_add_interruptable(NULL) ;
+   }
+
+   automate_flag = 0 ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------
+   Read a file and return an array of rendering states.
+   Code is adapted from afni_setup.c
+----------------------------------------------------------------------------*/
+
+#define ISTARRED(s) ( (s)[0]=='*' && (s)[1]=='*' && (s)[2]=='*' )
+
+#define EOLSKIP                                                          \
+  do{ for( ; fptr[0] != '\n' && fptr[0] != '\0' ; fptr++ ) ; /* nada */  \
+      if( fptr[0] == '\0' ) goto Finished ;                              \
+      fptr++ ; } while(0)
+
+#define GETSSS                                                            \
+  do{ int nu=0,qq;                                                        \
+      if( fptr-fbuf >= nbuf || fptr[0] == '\0' ) goto Finished ;          \
+      str[0]='\0'; qq=sscanf(fptr,"%127s%n",str,&nu); nused+=nu;fptr+=nu; \
+      if( str[0]=='\0' || qq==0 || nu==0 ) goto Finished ;                \
+    } while(0)
+
+#define GETSTR                                                             \
+  do{ GETSSS ;                                                             \
+      while(str[0]=='!' || (str[0]=='/' && str[1]=='/')){EOLSKIP; GETSSS;} \
+    } while(0)
+
+#define GETEQN                                         \
+  do{ GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(left,str) ;                               \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(middle,str) ;                             \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+      strcpy(right,str) ; } while(0)
+
+#define NSBUF 256
+
+/*--------------------------------------------------------------------------*/
+
+RENDER_state_array * REND_read_states( char * fname , RENDER_state * rsbase )
+{
+   int    nbuf , nused , ii ;
+   char * fbuf , * fptr ;
+   char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
+   int ival ; float fval ;
+   RENDER_state * rs ;
+   RENDER_state_array * rsa = NULL ;
+
+   /* setup & sanity checks */
+
+   fbuf = AFNI_suck_file( fname ) ; if( fbuf == NULL ) return NULL ;
+
+   nbuf = strlen(fbuf) ; fptr = fbuf ; nused = 0 ;
+
+   /** scan for section strings, which start with "***" **/
+
+   str[0] = '\0' ;  /* initialize string */
+
+   /**----------------------------------------**/
+   /**-- skip ahead to next section keyword --**/
+
+   SkipSection:
+      while( ! ISTARRED(str) ){ GETSTR; }
+      if( strcmp(str,"***END") == 0 ) goto Finished ;
+
+   /*-- the only thing we like are ***RENDER sections --*/
+
+   if( strcmp(str,"***RENDER") != 0 ) goto SkipSection ;
+
+   if( rsa == NULL ){ INIT_RSA(rsa) ; }                    /* create the output array */
+
+   rs = (RENDER_state *) malloc( sizeof(RENDER_state) ) ;  /* create the new state */
+
+   if( RSA_COUNT(rsa) == 0 && rsbase != NULL ){
+      *rs = *rsbase ;                                /* copy base state */
+   } else if( RSA_COUNT(rsa) > 0 ){
+      *rs = *(RSA_SUBSTATE(rsa,RSA_COUNT(rsa)-1)) ;  /* copy previous state */
+   }
+
+   ADDTO_RSA(rsa,rs) ;                               /* put new state in output array */
+
+   /*--- Scan for rendering variable assignments ---*/
+
+#undef  ASS_IVAL
+#define ASS_IVAL(a,b,c) { if( ival >= b && ival <= c ) a = ival ; }
+
+#undef  ASS_FVAL
+#define ASS_FVAL(a,b,c) { if( fval >= b && fval <= c ) a = fval ; }
+
+   while(1){    /* loop, looking for 'name = value' */
+
+      GETEQN ;  /* loop exits when this fails */
+
+      /*-- dataset stuff --*/
+
+      if( strcmp(left,"dset_name") == 0 ){
+         MCW_strncpy(rs->dset_name,right,THD_MAX_NAME) ;
+         ZERO_IDCODE(dset_idc) ;
+         continue ;                                      /* the while(1) loop */
+      }
+
+      if( strcmp(left,"func_dset_name") == 0 ){
+         MCW_strncpy(rs->func_dset_name,right,THD_MAX_NAME) ;
+         ZERO_IDCODE(func_dset_idc) ;
+         continue ;
+      }
+
+      if( strcmp(left,"dset_idc") == 0 ){
+         MCW_strncpy(rs->dset_idc.str,right,MCW_IDSIZE) ;
+         rs->dset_name[0] = '\0' ;
+         continue ;
+      }
+
+      if( strcmp(left,"func_dset_idc") == 0 ){
+         MCW_strncpy(rs->func_dset_idc.str,right,MCW_IDSIZE) ;
+         rs->func_dset_name[0] = '\0' ;
+         continue ;
+      }
+
+      /*-- cutout stuff --*/
+
+      if( strcmp(left,"cutout_num") == 0 ){
+         ival = strtol(right,NULL,10) ;
+         ASS_IVAL( rs->current_cutout_state.num , 0 , MAX_CUTOUTS ) ;
+         continue ;
+      }
+
+      if( strcmp(left,"cutout_logic") == 0 ){
+         if( strcmp(right,"AND")==0 || strcmp(right,"and")==0 || strcmp(right,"And")==0 )
+            rs->current_cutout_state.logic = CUTOUT_AND ;
+         else if( strcmp(right,"OR")==0 || strcmp(right,"or")==0 || strcmp(right,"Or")==0 )
+            rs->current_cutout_state.logic = CUTOUT_OR ;
+         continue ;
+      }
+
+      if( strcmp(left,"opacity_scale") == 0 ){
+         fval = strtod(right,NULL) ;
+         ASS_FVAL( rs->current_cutout_state.opacity_scale , MIN_OPACITY_SCALE , 1.0 ) ;
+         continue ;
+      }
+
+#define ASS_CUT_TYPE(nnn) \
+  if( strcmp(right,#nnn) == 0 ){ rs->current_cutout_state.type[iii] = nnn; continue;}
+
+      if( strncmp(left,"cutout_type",strlen("cutout_type")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_CUTOUTS ){
+               if( isdigit(right[0]) ){
+                  ival = strtol(right,NULL,10) ;
+                  if( ival >= 0 && ival < NUM_CUTOUT_TYPES && ival != CUT_EXPRESSION )
+                     rs->current_cutout_state.type[iii] = ival ;
+               } else {
+                  ASS_CUT_TYPE(CUT_NONE)         ;
+                  ASS_CUT_TYPE(CUT_RIGHT_OF)     ;
+                  ASS_CUT_TYPE(CUT_LEFT_OF)      ;
+                  ASS_CUT_TYPE(CUT_ANTERIOR_TO)  ;
+                  ASS_CUT_TYPE(CUT_POSTERIOR_TO) ;
+                  ASS_CUT_TYPE(CUT_INFERIOR_TO)  ;
+                  ASS_CUT_TYPE(CUT_SUPERIOR_TO)  ;
+                  ASS_CUT_TYPE(CUT_TT_ELLIPSOID) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XPY_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XPY_LT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XMY_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XMY_LT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_YPZ_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_YPZ_LT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_YMZ_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_YMZ_LT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XPZ_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XPZ_LT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XMZ_GT) ;
+                  ASS_CUT_TYPE(CUT_SLANT_XMZ_LT) ;
+                  ASS_CUT_TYPE(CUT_NONOVERLAY)   ;
+               }
+            }
+         }
+         continue ;
+      }
+
+      if( strncmp(left,"cutout_mustdo",strlen("cutout_mustdo")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_CUTOUTS ){
+               if( strcmp(right,"TRUE") == 0 || strcmp(right,"true") == 0 ||
+                   strcmp(right,"True") == 0 || strcmp(right,"YES")  == 0 ||
+                   strcmp(right,"yes")  == 0 || strcmp(right,"Yes")  == 0 ||
+                   strcmp(right,"1")    == 0   )
+                  rs->current_cutout_state.mustdo[iii] = 1 ;
+
+               else if( strcmp(right,"FALSE") == 0 || strcmp(right,"false") == 0 ||
+                        strcmp(right,"False") == 0 || strcmp(right,"NO")    == 0 ||
+                        strcmp(right,"no")    == 0 || strcmp(right,"No")    == 0 ||
+                        strcmp(right,"0")     == 0   )
+                  rs->current_cutout_state.mustdo[iii] = 0 ;
+            }
+         }
+         continue ;
+      }
+
+      if( strncmp(left,"cutout_param",strlen("cutout_param")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_CUTOUTS ){
+               rs->current_cutout_state.param[iii] = strtod(right,NULL) ;
+            }
+         }
+         continue ;
+      }
+
+      /*-- all other desiderata --*/
+
+#define ASS_INT(nnn) if( strcmp(left,#nnn) == 0 ){           \
+                        rs -> nnn = strtol(right,NULL,10) ;  \
+                        continue ;                           \
+                     }
+
+#define ASS_FLOAT(nnn) if( strcmp(left,#nnn) == 0 ){         \
+                           rs -> nnn = strtod(right,NULL) ;  \
+                           continue ;                        \
+                       }
+
+#define ASS_FLOAT_SUB(nnn,mmm)                                           \
+   if( strncmp(left,#nnn,strlen(#nnn)) == 0 ){                           \
+      char * srb = strstr(left,"[") ;                                    \
+      if( srb != NULL ){                                                 \
+         int iii = strtol(srb+1,NULL,10) ;                               \
+         if( iii >= 0 && iii < mmm ) rs->nnn[iii] = strtod(right,NULL) ; \
+      }                                                                  \
+      continue ;                                                         \
+   }
+
+      ASS_INT(dset_ival) ; ASS_INT(func_color_ival) ; ASS_INT(func_thresh_ival) ;
+
+      ASS_INT(clipbot) ; ASS_INT(cliptop) ;
+
+      ASS_FLOAT(angle_roll) ; ASS_FLOAT(angle_pitch) ; ASS_FLOAT(angle_yaw) ;
+
+      ASS_INT(xhair_flag) ;
+
+      ASS_INT(   func_use_autorange ) ;
+      ASS_FLOAT( func_threshold     ) ;
+      ASS_FLOAT( func_thresh_top    ) ;
+      ASS_FLOAT( func_color_opacity ) ;
+      ASS_INT(   func_see_overlay   ) ;
+      ASS_INT(   func_cut_overlay   ) ;
+      ASS_INT(   func_kill_clusters ) ;
+      ASS_FLOAT( func_clusters_rmm  ) ;
+      ASS_FLOAT( func_clusters_vmul ) ;
+      ASS_FLOAT( func_range         ) ;
+
+      ASS_INT( pbar_mode ) ; ASS_INT( pbar_npane ) ;
+
+      ASS_FLOAT_SUB(pbar_pval,NPANE_MAX+1) ;
+
+#ifdef SCRIPT_GRAFS
+      /*-- read graf stuff  --*/
+
+      if( strcmp(left,"bright_nhands") == 0 ){
+         ival = strtol(right,NULL,10) ;
+         if( ival > 1 && ival <= MAX_GHANDS ) rs->bright_graf_state.nh = ival ;
+         continue ;
+      }
+
+      if( strcmp(left,"bright_spline") == 0 ){
+         rs->bright_graf_state.spl = strtol(right,NULL,10) ;
+         continue ;
+      }
+
+      if( strncmp(left,"bright_handx",strlen("bright_handx")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_GHANDS ){
+               rs->bright_graf_state.xh[iii] = strtol(right,NULL,10) ;
+            }
+         }
+         continue ;
+      }
+
+      if( strncmp(left,"bright_handy",strlen("bright_handy")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_GHANDS ){
+               rs->bright_graf_state.yh[iii] = strtol(right,NULL,10) ;
+            }
+         }
+         continue ;
+      }
+
+      if( strcmp(left,"opacity_nhands") == 0 ){
+         ival = strtol(right,NULL,10) ;
+         if( ival > 1 && ival <= MAX_GHANDS ) rs->opacity_graf_state.nh = ival ;
+         continue ;
+      }
+
+      if( strcmp(left,"opacity_spline") == 0 ){
+         rs->opacity_graf_state.spl = strtol(right,NULL,10) ;
+         continue ;
+      }
+
+      if( strncmp(left,"opacity_handx",strlen("opacity_handx")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_GHANDS ){
+               rs->opacity_graf_state.xh[iii] = strtol(right,NULL,10) ;
+            }
+         }
+         continue ;
+      }
+
+      if( strncmp(left,"opacity_handy",strlen("opacity_handy")) == 0 ){
+         char * srb = strstr(left,"[") ;
+         if( srb != NULL ){
+            int iii = strtol(srb+1,NULL,10) ;
+            if( iii >= 0 && iii < MAX_GHANDS ){
+               rs->opacity_graf_state.yh[iii] = strtol(right,NULL,10) ;
+            }
+         }
+         continue ;
+      }
+#endif /* SCRIPT_GRAFS */
+
+   }  /* end of loop over "equations" in the ***RENDER section */
+
+   /* loop exits when GETEQN fails miserably (i.e., at EOF) */
+
+   Finished:
+      free(fbuf) ;
+      if( rsa != NULL && RSA_COUNT(rsa) == 0 ){ FREE_RSA(rsa) ; }
+      return rsa ;
+}
+
+/*-------------------------------------------------------------------------------
+  Write a rendering state into a character buffer.
+  (Free the return value when done with it.)
+---------------------------------------------------------------------------------*/
+
+#define RSDIFF_STR(nnn) (rsbase == NULL || strcmp(rsbase->nnn,rs->nnn) != 0 )
+
+#define RSDIFF_NUM(nnn) (rsbase == NULL || rsbase->nnn != rs->nnn)
+
+#define RSDIFF_CUTNUM(nnn) \
+  (rsbase == NULL || rsbase->current_cutout_state.nnn != rs->current_cutout_state.nnn)
+
+#define RSP_STR(nnn)                           \
+   if( rs->nnn[0] != '\0' && RSDIFF_STR(nnn) ) \
+      sss = THD_zzprintf( sss , "  " #nnn " = %s\n" , rs->nnn )
+
+#define RSP_INT(nnn) \
+   if( RSDIFF_NUM(nnn) ) sss = THD_zzprintf( sss , "  " #nnn " = %d\n" , rs->nnn )
+
+#define RSP_F2C  AV_format_fval  /* could also be MV_format_fval */
+
+#define RSP_FLOAT(nnn) \
+   if( RSDIFF_NUM(nnn) ) sss = THD_zzprintf( sss , "  " #nnn " = %s\n" , RSP_F2C(rs->nnn) )
+
+char * REND_save_state( RENDER_state * rs , RENDER_state * rsbase )
+{
+   char * sss ;
+   int ii ;
+
+   if( rs == NULL ) return NULL ;
+
+   sss = (char *) malloc( sizeof(char) * 32 ) ;
+   strcpy(sss,"\n***RENDER\n") ;
+
+   /* write dataset names */
+
+   RSP_STR(dset_name) ;
+   RSP_STR(func_dset_name) ;
+
+   /* scalar values */
+
+   RSP_INT(dset_ival) ;
+   RSP_INT(func_color_ival) ; RSP_INT(func_thresh_ival) ;
+
+   RSP_INT(clipbot) ; RSP_INT(cliptop) ;
+
+   RSP_FLOAT(angle_roll) ; RSP_FLOAT(angle_pitch) ; RSP_FLOAT(angle_yaw) ;
+
+   RSP_INT(xhair_flag) ;
+
+   RSP_INT(   func_use_autorange ) ; RSP_FLOAT( func_threshold     ) ;
+   RSP_FLOAT( func_thresh_top    ) ;
+   RSP_FLOAT( func_color_opacity ) ; RSP_INT(   func_see_overlay   ) ;
+   RSP_INT(   func_cut_overlay   ) ; RSP_INT(   func_kill_clusters ) ;
+   RSP_FLOAT( func_clusters_rmm  ) ; RSP_FLOAT( func_clusters_vmul ) ;
+   RSP_FLOAT( func_range         ) ;
+
+   /* pbar values [all of them if number or mode changed] */
+
+   if( rsbase == NULL ||
+       rsbase->pbar_mode != rs->pbar_mode || rsbase->pbar_npane != rs->pbar_npane ){
+
+      sss = THD_zzprintf( sss , " // new pbar values\n" ) ;
+      sss = THD_zzprintf( sss , "  pbar_mode  = %d\n",rs->pbar_mode  ) ;
+      sss = THD_zzprintf( sss , "  pbar_npane = %d\n",rs->pbar_npane ) ;
+      for( ii=0 ; ii <= rs->pbar_npane ; ii++ )
+         sss = THD_zzprintf( sss , "  pbar_pval[%d] = %s\n" ,
+                             ii , RSP_F2C(rs->pbar_pval[ii]) ) ;
+   } else {
+      for( ii=0 ; ii <= rs->pbar_npane ; ii++ )
+         if( rsbase->pbar_pval[ii] != rs->pbar_pval[ii] )
+            sss = THD_zzprintf( sss , "  pbar_pval[%d] = %s\n" ,
+                                ii , RSP_F2C(rs->pbar_pval[ii]) ) ;
+   }
+
+   /* cutout stuff */
+
+   if( RSDIFF_NUM(current_cutout_state.opacity_scale) )
+      sss = THD_zzprintf(sss,"  opacity_scale = %s\n",
+                         RSP_F2C(rs->current_cutout_state.opacity_scale) ) ;
+
+   /* all cutout parameters if number or global logic changed */
+
+   if( RSDIFF_NUM(current_cutout_state.num) || RSDIFF_NUM(current_cutout_state.logic) ){
+
+      sss = THD_zzprintf( sss , " // new cutout values\n" ) ;
+      sss = THD_zzprintf( sss , "  cutout_num   = %d\n" , rs->current_cutout_state.num  ) ;
+      sss = THD_zzprintf( sss , "  cutout_logic = %s\n" ,
+                          cutout_logic_labels[rs->current_cutout_state.logic]) ;
+
+      for( ii=0 ; ii < rs->current_cutout_state.num ; ii++ ){
+         sss = THD_zzprintf( sss , "  cutout_type[%d]   = %s\n" ,
+                             ii ,
+                             cutout_type_names[rs->current_cutout_state.type[ii]] ) ;
+
+         sss = THD_zzprintf( sss , "  cutout_mustdo[%d] = %s\n" ,
+                             ii ,
+                             cutout_mustdo_names[rs->current_cutout_state.mustdo[ii]] ) ;
+
+         sss = THD_zzprintf( sss , "  cutout_param[%d]  = %s\n" ,
+                             ii , RSP_F2C(rs->current_cutout_state.param[ii]) ) ;
+      }
+
+   } else {
+      for( ii=0 ; ii < rs->current_cutout_state.num ; ii++ ){
+         if( RSDIFF_NUM(current_cutout_state.type[ii]) )
+            sss = THD_zzprintf( sss , "  cutout_type[%d]   = %s\n" ,
+                                ii ,
+                                cutout_type_names[rs->current_cutout_state.type[ii]] ) ;
+
+         if( RSDIFF_NUM(current_cutout_state.mustdo[ii]) )
+            sss = THD_zzprintf( sss , "  cutout_mustdo[%d] = %s\n" ,
+                                ii ,
+                                cutout_mustdo_names[rs->current_cutout_state.mustdo[ii]] ) ;
+
+         if( RSDIFF_NUM(current_cutout_state.param[ii]) )
+            sss = THD_zzprintf( sss , "  cutout_param[%d]  = %s\n" ,
+                                ii , RSP_F2C(rs->current_cutout_state.param[ii]) ) ;
+      }
+   }
+
+#ifdef SCRIPT_GRAFS
+   /*-- write graf stuff --*/
+
+   if( rsbase == NULL || !graf_states_equal(&(rsbase->bright_graf_state),&(rs->bright_graf_state)) ){
+      sss = THD_zzprintf( sss , " // new bright graf values\n" ) ;
+      sss = THD_zzprintf( sss , "  bright_nhands = %d\n" , rs->bright_graf_state.nh ) ;
+      sss = THD_zzprintf( sss , "  bright_spline = %d\n" , rs->bright_graf_state.spl) ;
+      for( ii=0 ; ii < rs->bright_graf_state.nh ; ii++ ){
+         sss = THD_zzprintf( sss , "  bright_handx[%d] = %d\n" ,
+                             ii , rs->bright_graf_state.xh[ii]  ) ;
+         sss = THD_zzprintf( sss , "  bright_handy[%d] = %d\n" ,
+                             ii , rs->bright_graf_state.yh[ii]  ) ;
+      }
+   }
+
+   if( rsbase == NULL || !graf_states_equal(&(rsbase->opacity_graf_state),&(rs->opacity_graf_state)) ){
+      sss = THD_zzprintf( sss , " // new opacity graf values\n" ) ;
+      sss = THD_zzprintf( sss , "  opacity_nhands = %d\n" , rs->opacity_graf_state.nh ) ;
+      sss = THD_zzprintf( sss , "  opacity_spline = %d\n" , rs->opacity_graf_state.spl) ;
+      for( ii=0 ; ii < rs->opacity_graf_state.nh ; ii++ ){
+         sss = THD_zzprintf( sss , "  opacity_handx[%d] = %d\n" ,
+                             ii , rs->opacity_graf_state.xh[ii]  ) ;
+         sss = THD_zzprintf( sss , "  opacity_handy[%d] = %d\n" ,
+                             ii , rs->opacity_graf_state.yh[ii]  ) ;
+      }
+   }
+#endif /* SCRIPT_GRAFS */
+
+   sss = THD_zzprintf( sss , "\n" ) ;
+   return sss ;
+}
+
+/*------------------------------------------------------------------------------
+  Copy the internal rendering state to a structure
+--------------------------------------------------------------------------------*/
+
+#define TO_RS(nnn) (rs->nnn = nnn)
+
+void REND_widgets_to_state( RENDER_state * rs )
+{
+   int ii ;
+
+   if( rs == NULL ) return ;
+
+   /* dataset stuff */
+
+   if( dset != NULL ){
+      strcpy( rs->dset_name , DSET_HEADNAME(dset) ) ;
+      rs->dset_idc = dset->idcode ;
+   } else {
+      rs->dset_name[0] = '\0' ;
+      ZERO_IDCODE(rs->dset_idc) ;
+   }
+
+   if( func_dset != NULL ){
+      strcpy( rs->func_dset_name , DSET_HEADNAME(func_dset) ) ;
+      rs->func_dset_idc = func_dset->idcode ;
+   } else {
+      rs->func_dset_name[0] = '\0' ;
+      ZERO_IDCODE(rs->func_dset_idc) ;
+   }
+
+   /* other scalars */
+
+   TO_RS(dset_ival) ; TO_RS(func_color_ival) ; TO_RS(func_thresh_ival) ;
+
+   rs->clipbot = clipbot_av->ival ;
+   rs->cliptop = cliptop_av->ival ;
+
+   TO_RS(angle_roll) ; TO_RS(angle_pitch) ; TO_RS(angle_yaw) ;
+   TO_RS(xhair_flag) ;
+
+   if( wfunc_frame != NULL ){
+
+      TO_RS(func_use_autorange) ; TO_RS(func_threshold)     ;
+      TO_RS(func_thresh_top)    ;
+      TO_RS(func_color_opacity) ; TO_RS(func_see_overlay)   ;
+      TO_RS(func_cut_overlay)   ; TO_RS(func_kill_clusters) ;
+      TO_RS(func_clusters_rmm)  ; TO_RS(func_clusters_vmul) ;
+      TO_RS(func_range)         ;
+
+      /* pbar stuff */
+
+      rs->pbar_mode  = wfunc_color_pbar->mode ;
+      rs->pbar_npane = wfunc_color_pbar->num_panes ;
+      for( ii=0 ; ii <= rs->pbar_npane ; ii++ )
+         rs->pbar_pval[ii] = wfunc_color_pbar->pval[ii] ;
+   }
+
+   /* cutout stuff */
+
+   REND_load_cutout_state() ; /* save current widget state into cutout state */
+
+   TO_RS(current_cutout_state.opacity_scale) ;
+
+   TO_RS(current_cutout_state.num)   ;
+   TO_RS(current_cutout_state.logic) ;
+
+   for( ii=0 ; ii < current_cutout_state.num ; ii++ ){
+      TO_RS( current_cutout_state.type[ii]   ) ;
+      TO_RS( current_cutout_state.mustdo[ii] ) ;
+      TO_RS( current_cutout_state.param[ii]  ) ;
+   }
+
+#ifdef SCRIPT_GRAFS
+   graf_state_get( gry_graf , &(rs->bright_graf_state)  ) ;
+   graf_state_get( opa_graf , &(rs->opacity_graf_state) ) ;
 #endif
+
+   return ;
+}
+
+/*------------------------------------------------------------------------------
+  Copy the structure values to the internal rendering state.
+  Also must change the visible state of the interface widgets.
+  In most cases, the widget internal values are set, then their callback
+  routines are invoked to set the internal rendering state.
+--------------------------------------------------------------------------------*/
+
+#define RSOK(nnn,bb,tt) (rs->nnn != nnn && rs->nnn >= bb && rs->nnn <= tt)
+
+#define DBI(nnn) fprintf(stderr,#nnn ": rs=%d  wid=%d\n",rs->nnn,nnn)
+
+void REND_state_to_widgets( RENDER_state * rs )
+{
+   int ii , flag ;
+   static XtPointer xpt = (XtPointer) "Mr Tambourine Man" ;
+
+   if( rs == NULL ) return ;
+
+   /* don't change which datasets are in use */
+
+   /* change the sub-values in the dataset (maybe?) */
+
+   if( script_brindex ){
+      if( dset != NULL && RSOK(dset_ival,0,DSET_NVALS(dset)-1) ){
+         AV_assign_ival( choose_av , rs->dset_ival ) ;
+         REND_choose_av_CB( choose_av , xpt ) ;
+      }
+
+      if( func_dset != NULL && RSOK(func_color_ival,0,DSET_NVALS(func_dset)-1) ){
+         AV_assign_ival( wfunc_color_av , rs->func_color_ival ) ;
+         REND_choose_av_CB( wfunc_color_av , xpt ) ;
+      }
+
+      if( func_dset != NULL && RSOK(func_thresh_ival,0,DSET_NVALS(func_dset)-1) ){
+         AV_assign_ival( wfunc_thresh_av , rs->func_thresh_ival ) ;
+         REND_choose_av_CB( wfunc_thresh_av , xpt ) ;
+      }
+   }
+
+#ifdef SCRIPT_GRAFS
+   /* change grafs (maybe?) */
+
+   if( script_graf ){
+      graf_state gs ;
+
+      graf_state_get( gry_graf , &gs ) ;
+      if( ! graf_states_equal( &(rs->bright_graf_state) , &gs ) ){
+         FREE_VOLUMES ;
+         graf_state_put( gry_graf , &(rs->bright_graf_state) ) ;
+      }
+
+      graf_state_get( opa_graf , &gs ) ;
+      if( ! graf_states_equal( &(rs->opacity_graf_state) , &gs ) ){
+         FREE_VOLUMES ;
+         graf_state_put( opa_graf , &(rs->opacity_graf_state) ) ;
+      }
+   }
+#endif /* SCRIPT_GRAFS */
+
+   /* change clipping values */
+
+   if( rs->clipbot != clipbot_av->ival ){
+      AV_assign_ival( clipbot_av , rs->clipbot ) ;
+      REND_clip_CB( clipbot_av , NULL ) ;
+   }
+
+   if( rs->cliptop != cliptop_av->ival ){
+      AV_assign_ival( cliptop_av , rs->cliptop ) ;
+      REND_clip_CB( cliptop_av , NULL ) ;
+   }
+
+   /* change angles */
+
+   if( RSOK(angle_roll,-359.9,719.9) ){
+      AV_assign_fval( roll_av , rs->angle_roll ) ;
+      REND_angle_CB ( roll_av , xpt ) ;            /* will set angle_roll */
+   }
+   if( RSOK(angle_pitch,-359.9,719.9) ){
+      AV_assign_fval( pitch_av , rs->angle_pitch ) ;
+      REND_angle_CB ( pitch_av , xpt ) ;           /* will set angle_pitch */
+   }
+   if( RSOK(angle_yaw,-359.9,719.9) ){
+      AV_assign_fval( yaw_av , rs->angle_yaw ) ;
+      REND_angle_CB ( yaw_av , xpt ) ;             /* will set angle_yaw */
+   }
+
+   /* change xhair mode */
+
+   if( RSOK(xhair_flag,0,1) ){
+      xhair_flag = rs->xhair_flag ;
+      MCW_set_bbox( xhair_bbox , xhair_flag ) ;
+   }
+
+   /* change function stuff, if the functional widgets exist */
+
+   if( wfunc_frame != NULL ){
+
+      { static float dval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
+                                 100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
+
+        if( RSOK(func_thresh_top,1.0,dval[THR_TOP_EXPON]) ){
+           for( ii=THR_TOP_EXPON ; ii > 0 ; ii-- )
+              if( rs->func_thresh_top >= dval[ii] ) break ;
+
+           AV_assign_ival( wfunc_thr_top_av , ii ) ;
+           REND_thresh_top_CB( wfunc_thr_top_av , NULL ) ;
+        }
+      }
+
+      if( RSOK(func_threshold,0.0,0.9999) ){
+         XmScaleCallbackStruct cbs ;
+         cbs.value = (int)( rs->func_threshold / THR_FACTOR + 0.01 ) ;
+         REND_thr_scale_CB( NULL,NULL , &cbs ) ;
+      }
+
+      if( RSOK(func_color_opacity,0.0,1.0) ){
+         ii = (int)(rs->func_color_opacity * 10.0 + 0.01) ;
+         AV_assign_ival( wfunc_opacity_av , ii ) ;
+         REND_color_opacity_CB( wfunc_opacity_av , NULL ) ;
+      }
+
+      if( RSOK(func_see_overlay,0,1) ){
+         MCW_set_bbox( wfunc_see_overlay_bbox , rs->func_see_overlay ) ;
+         REND_see_overlay_CB(NULL,NULL,NULL) ;
+      }
+
+      if( RSOK(func_cut_overlay,0,1) ){
+         MCW_set_bbox( wfunc_cut_overlay_bbox , rs->func_cut_overlay ) ;
+         REND_cut_overlay_CB(NULL,NULL,NULL) ;
+      }
+
+      if( RSOK(func_kill_clusters,0,1) ){
+         MCW_set_bbox( wfunc_kill_clusters_bbox , rs->func_kill_clusters ) ;
+         REND_kill_clusters_CB(NULL,NULL,NULL) ;
+      }
+
+      if( RSOK(func_clusters_rmm,0,99) ){
+         AV_assign_fval( wfunc_clusters_rmm_av , rs->func_clusters_rmm ) ;
+         REND_clusters_av_CB(wfunc_clusters_rmm_av,xpt) ;
+      }
+
+      if( RSOK(func_clusters_vmul,0,9999) ){
+         AV_assign_fval( wfunc_clusters_vmul_av , rs->func_clusters_vmul ) ;
+         REND_clusters_av_CB(wfunc_clusters_vmul_av,xpt) ;
+      }
+
+      if( RSOK(func_use_autorange,0,1) ){
+         MCW_set_bbox( wfunc_range_bbox , rs->func_use_autorange ) ;
+         REND_range_bbox_CB(NULL,NULL,NULL) ;
+      }
+
+      if( RSOK(func_range,0,9999999) ){
+         AV_assign_fval( wfunc_range_av , rs->func_range ) ;
+         REND_range_av_CB(wfunc_range_av,xpt) ;
+      }
+
+      /* pbar stuff */
+
+      if( rs->pbar_mode != wfunc_color_pbar->mode ){
+         MCW_set_bbox( wfunc_color_bbox , rs->pbar_mode ) ;
+         REND_color_bbox_CB(NULL,NULL,NULL) ;
+      }
+
+      if( rs->pbar_npane != wfunc_color_pbar->num_panes ){
+         AV_assign_ival( wfunc_colornum_av , rs->pbar_npane ) ;
+         REND_colornum_av_CB( wfunc_colornum_av , NULL ) ;
+      }
+
+      for( flag=ii=0 ; ii <= rs->pbar_npane ; ii++ ){
+         if( rs->pbar_pval[ii] != wfunc_color_pbar->pval[ii] ) flag++ ;
+      }
+      if( flag ){
+         alter_MCW_pbar( wfunc_color_pbar , 0 , rs->pbar_pval ) ;
+         INVALIDATE_OVERLAY ;
+      }
+   }
+
+   /* load cutout stuff into widgets */
+
+   REND_load_cutout_state() ; /* save current widget state into cutout state */
+
+   if( RSOK(current_cutout_state.opacity_scale,0.0,1.0) ){
+      AV_assign_fval( opacity_scale_av , rs->current_cutout_state.opacity_scale ) ;
+      REND_opacity_scale_CB( opacity_scale_av , xpt ) ;
+   }
+
+   if( RSOK(current_cutout_state.num,0,MAX_CUTOUTS) ){
+      AV_assign_ival( numcutout_av , rs->current_cutout_state.num ) ;
+      REND_numcutout_CB( numcutout_av , xpt ) ;
+   }
+
+   if( RSOK(current_cutout_state.logic,0,1) ){
+      AV_assign_ival( logiccutout_av , rs->current_cutout_state.logic ) ;
+      FREE_VOLUMES ;
+   }
+
+   for( ii=0 ; ii < num_cutouts ; ii++ ){
+
+      if( RSOK(current_cutout_state.type[ii],0,NUM_CUTOUT_TYPES-1) ){
+         AV_assign_ival( cutouts[ii]->type_av , rs->current_cutout_state.type[ii] ) ;
+         REND_cutout_type_CB( cutouts[ii]->type_av , xpt ) ;
+      }
+
+      if( RSOK(current_cutout_state.mustdo[ii],0,1) ){
+         MCW_set_bbox( cutouts[ii]->mustdo_bbox , rs->current_cutout_state.mustdo[ii] ) ;
+      }
+
+      if( RSOK(current_cutout_state.param[ii],-999999,999999) ){
+         AV_assign_fval( cutouts[ii]->param_av , rs->current_cutout_state.param[ii] ) ;
+      }
+   }
+
+   REND_load_cutout_state() ; /* save current widget state into cutout state */
+
+   return ;
+}
+
+#endif /* USE_SCRIPTING */

@@ -164,6 +164,7 @@ extern void AV_leave_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 char * AV_default_text_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void AV_fval_to_char( float , char * ) ;
+extern char * AV_format_fval( float ) ;   /* 12 July 01999 */
 
 extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 

@@ -67,6 +67,9 @@ extern void GRAF_reset_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
 extern void GRAF_handle_CB( MCW_arrowval * av , XtPointer client_data ) ;
 
+extern void GRAF_put_setup( MCW_graf * , int   , int * , int * , int   ) ;
+extern void GRAF_get_setup( MCW_graf * , int * , int * , int * , int * ) ;
+
 extern void GenerateGrafFunc( MCW_graf * gp , int redraw ) ;
 extern void InitSpline(int *x,int *y,int n,double *y2) ;
 extern double EvalSpline(int xa[],int ya[],double y2a[],int n,double x) ;

@@ -451,3 +451,10 @@ static void MV_fval_to_char( float qval , char * buf )
 
    strcpy(buf,lbuf) ; return ;
 }
+
+char * MV_format_fval( float fval )
+{
+   static char buf[32] ;
+   MV_fval_to_char( fval , buf ) ;
+   return buf ;
+}

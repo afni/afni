@@ -1050,6 +1050,13 @@ void AV_fval_to_char( float qval , char * buf )
    return ;
 }
 
+char * AV_format_fval( float fval )
+{
+   static char buf[32] ;
+   AV_fval_to_char( fval , buf ) ;
+   return buf ;
+}
+
 /*------------------------------------------------------------------------*/
 
 void AV_assign_fval( MCW_arrowval * av , float qval )
@@ -1754,7 +1761,7 @@ void MCW_choose_string( Widget wpar , char * label ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
 
-   if( default_string != NULL ){
+   if( default_string != NULL && default_string[0] != '\0' ){
       int qq = strlen(default_string) ;
       if( qq > ncol ) ncol = qq ;
    }
@@ -1779,7 +1786,7 @@ void MCW_choose_string( Widget wpar , char * label ,
                  XmNtraversalOn , False ,
               NULL ) ;
 
-   if( default_string != NULL ){
+   if( default_string != NULL && default_string[0] != '\0' ){
       int qq  = strlen(default_string) , ii ;
       for( ii=0 ; ii < qq ; ii++ ) if( default_string[ii] != ' ' ) break ;
       if( ii < qq ) TEXT_SET( wtf , default_string ) ;
@@ -1811,7 +1818,7 @@ void MCW_choose_string( Widget wpar , char * label ,
 
 static int list_max = -1 , list_maxmax ;
 
-static MCW_set_listmax( Widget wpar )
+static void MCW_set_listmax( Widget wpar )
 {
    if( list_max < 0 ){
 #if 0
