@@ -28,8 +28,8 @@ int main( int argc , char * argv[] )
              "The output is a bucket dataset.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
 	     " Fractional Anisotropy (FA) calculated according to Pierpaoli C, Basser PJ.\n"
-             " Microstructural and physiological features of tissues elucidated by quantitative-diffusion tensor MRI,\n"
-             " J Magn Reson B 1996; 111:209-19\n"
+             " Microstructural and physiological features of tissues elucidated by\n"
+             " quantitative-diffusion tensor MRI, J Magn Reson B 1996; 111:209-19\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
@@ -160,6 +160,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
    double a[9], e[3];
    int astart, vstart;
    double ssq, dsq;
+   double dv0, dv1, dv2;
 
   ENTRY("EIG_tsfunc"); 
   /* ts is input vector data of 6 floating point numbers.
@@ -243,10 +244,20 @@ static void EIG_tsfunc( double tzero, double tdelta ,
     val[12]=0.0;                                      /* set FA to 0 */  
     EXRETURN;
   }
-  ssq = pow(val[0],2.0)+pow(val[1],2.0)+pow(val[2],2.0);        /* sum of squares of eigenvalues */
-  dsq = pow((val[0]-val[1]),2.0) + pow((val[1]-val[2]),2.0) + pow((val[2]-val[0]),2.0); /* sum of differences squared */
+
+  ssq = (val[0]*val[0])+(val[1]*val[1])+(val[2]*val[2]);        /* sum of squares of eigenvalues */
+  /* dsq = pow((val[0]-val[1]),2.0) + pow((val[1]-val[2]),2.0) + pow((val[2]-val[0]),2.0);*/ /* sum of differences squared */
+
+  dv0 = val[0]-val[1];
+  dv0 *= dv0;
+  dv1 = val[1]-val[2];
+  dv1 *= dv1;
+  dv2 = val[2]-val[0];
+  dv2 *= dv2;
+  dsq = dv0+dv1+dv2;                 /* sum of differences squared */
+
   if(ssq!=0.0)
-    val[12] = sqrt(dsq) / (sqrt(2)*sqrt(ssq));   /* FA calculated here */
+    val[12] = sqrt(dsq/(2.0*ssq));   /* FA calculated here */
   else
     val[12] = 0.0;
 
