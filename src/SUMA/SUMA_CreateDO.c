@@ -1204,6 +1204,8 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
    SUMA_LH("Returning");
    SUMA_RETURN(list);
 }
+
+
 /*!
    \sa Labbook NIH-4 page 21 for annotation of Box Axis ....
 */
@@ -1385,10 +1387,9 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       
    SUMA_ENTRY;
          
-         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
-         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-         
-
+   glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
+   glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+            
    if (ASIp->AxisDim == 0) {
       glMaterialfv(GL_FRONT, GL_EMISSION, Ax->XaxisColor); /*turn on emissivity for X axis*/
       if (LocalHead) fprintf(SUMA_STDERR,"%s: X axis\n", FuncName); 
@@ -1398,9 +1399,9 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
    } else if (ASIp->AxisDim == 2) {
       glMaterialfv(GL_FRONT, GL_EMISSION, Ax->ZaxisColor); /*turn on emissivity for Z axis*/
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Z axis\n", FuncName); 
-   } else { SUMA_S_Err("Major bobo."); SUMA_RETURN(NOPE); }
+   }
             
-         glBegin(GL_LINES);
+   glBegin(GL_LINES);
    /* draw the line */
    glVertex3f(ASIp->P1[0], ASIp->P1[1], ASIp->P1[2]);
    glVertex3f(ASIp->P2[0], ASIp->P2[1], ASIp->P2[2]);
@@ -1475,9 +1476,10 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       
    }
    
-         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+   glEnd();
+
+   glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
    
-         glEnd();
          
 
    if (AddText) { /* do the text for major ticks only */
@@ -1514,7 +1516,7 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
                ++i;
             }
    }
-   
+
    SUMA_RETURN(YUP);
 }
   
