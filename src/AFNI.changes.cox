@@ -5230,3 +5230,6 @@
 
 20 Oct 2004
  * Modified parser.f to add NOTZERO, ISZERO, and EQUALS functions.
+
+21 Oct 2004
+ * Also added ISPOSITIVE and ISNEGATIVE functions to parser.f
