@@ -5059,3 +5059,7 @@
     - crosshair lines are on instead of off
     - controllers are locked instead of unlocked
     - save square is on instead of off
+
+23 Jun 2004
+ * Modified AFNI_leave_EV in bbox.c to avoid memory leak (must free up the
+     retrieved textfield string if an early exit is taken).

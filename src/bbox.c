@@ -1383,17 +1383,21 @@ void AV_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
    int   ii ;
    char * str ;
 
+ENTRY("AV_textact_CB") ;
+
    if( (cbs->reason != XmCR_ACTIVATE && cbs->reason != XmCR_LOSING_FOCUS )
        || wtex != av->wtext ){
       fprintf(stderr,"\n*** Illegal call to AV_textact_CB ***\n") ;
-      return ;
+      EXRETURN ;
    }
 
    str = TEXT_GET( wtex ) ;  /* get the new text */
 
    /* check if new text is any different from last value */
 
-   if( av->sval != NULL && strcmp( av->sval , str ) == 0 ) return ;
+   if( av->sval != NULL && strcmp( av->sval , str ) == 0 ){
+     myXtFree(str) ; EXRETURN ;
+   }
 
    MCW_invert_widget( wtex ) ;  /* start flash */
 
@@ -1415,7 +1419,7 @@ void AV_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
    myXtFree(str) ;  /* give it back */
 
    MCW_invert_widget( wtex ) ;  /* end flash */
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------
@@ -3044,13 +3048,15 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
 void MCW_stradd_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MCW_choose_data * cd = (MCW_choose_data *) client_data ;
-   char * nstr = TEXT_GET( cd->wtf ) ;
+   char *nstr = TEXT_GET( cd->wtf ) ;
    int id , nvisible , num_str ;
    XmString xms ;
 
 ENTRY("MCW_stradd_CB") ;
 
-   if( nstr == NULL || strlen(nstr) == 0 ){ XBell(XtDisplay(w),100); EXRETURN; }
+   if( nstr == NULL || strlen(nstr) == 0 ){
+     myXtFree(nstr); XBell(XtDisplay(w),100); EXRETURN;
+   }
 
    /* see if new string is already in the list */
 
