@@ -9,8 +9,8 @@
 
 /***** Header for TCP/IP and shared memory "I/O channels" *****/
 
-#ifdef SPARKY
-#undef _POSIX_SOURCE
+#ifdef CYGWIN
+#define DONT_USE_SHM
 #endif
 
 #include <sys/types.h>
@@ -28,11 +28,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <sys/times.h>
 #include <limits.h>
 #include <ctype.h>
+
+#ifndef DONT_USE_SHM
+# include <sys/ipc.h>
+# include <sys/shm.h>
+#endif
 
 #ifndef MIN
 #  define MIN(a,b) (((a)<(b)) ? (a) : (b))

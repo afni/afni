@@ -45,7 +45,7 @@ static char * comp_strings[] = {
 
 /*----------------- prototypes for internal routines -----------------*/
 
-char * COMP_main( PLUGIN_interface * ) ;  /* the entry point */
+static char * COMP_main( PLUGIN_interface * ) ;  /* the entry point */
 
 /***********************************************************************
    Set up the interface to the user:
@@ -107,7 +107,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   AFNI will popup the return string in a message box.
 ****************************************************************************/
 
-char * COMP_main( PLUGIN_interface * plint )
+static char * COMP_main( PLUGIN_interface * plint )
 {
    char * str ;
    int meth ;

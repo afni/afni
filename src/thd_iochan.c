@@ -384,7 +384,7 @@ key_t string_to_key( char * key_string )
    return (key_t) sum ;
 }
 
-
+#ifndef DONT_USE_SHM
 /*---------------------------------------------------------------
    Get a pre-existing shmem segment.
    Returns the shmid >= 0 if successful; returns -1 if failure.
@@ -461,6 +461,13 @@ int shm_nattach( int shmid )
    if( ii < 0 ){ PERROR("shm_nattach") ;  return -1 ; }
    return buf.shm_nattch ;
 }
+#else
+int shm_nattach( int shmid ){ return -1; }
+int shm_size( int shmid ){ return -1 ; }
+char * shm_attach( int shmid ){ return NULL ; }
+int shm_create( char * key_string , int size ){ return -1; }
+int shm_accept( char * key_string ){ return -1; }
+#endif /* DONT_USE_SHM */
 
 /****************************************************************
   The IOCHAN routines, which call the tcp_ or shm_ routines,
@@ -886,10 +893,12 @@ void iochan_close( IOCHAN * ioc )
    }
 
    else if( ioc->type == SHM_IOCHAN ){
+#ifndef DONT_USE_SHM
       if( ioc->id >= 0 ){
          shmctl( ioc->id , IPC_RMID , NULL ) ;
          shmdt( (char *) ioc->bstart ) ;
       }
+#endif
    }
 
    free( ioc ) ; return ;

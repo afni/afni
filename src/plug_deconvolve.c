@@ -130,7 +130,7 @@
    Print error message and return.
 */
 
-void DC_error (char * message)
+static void DC_error (char * message)
 {
   fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
 
@@ -190,12 +190,12 @@ static char * baseline_strings[NBASE] = {"Constant", "Linear", "Quadratic",
 
 /*--------------- prototypes for internal routines ---------------*/
 
-char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
+static char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void DC_Fit ();
-void DC_Err ();
-void DC_IRF ();
-int calculate_results();
+static void DC_Fit ();
+static void DC_Err ();
+static void DC_IRF ();
+static int calculate_results();
 
 
 
@@ -268,7 +268,7 @@ static vector glt_coef[MAX_GLT];    /* linear combinations from GLT matrices */
   Initialize control options and global data.
 */
 
-void initialize_options ()
+static void initialize_options ()
 {
   int is;                     /* input stimulus index */
   int iglt;                   /* index for general linear test */
@@ -371,7 +371,7 @@ void initialize_options ()
   Reset control options and global data.
 */
 
-void reset_options ()
+static void reset_options ()
 {
   int is;                     /* input stimulus index */
   int iglt;                   /* index for general linear test */
@@ -563,7 +563,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 /*---------------------------------------------------------------------------*/
 
-void show_options ()
+static void show_options ()
 {
   int ib;                         /* block (run) index */
   int it;                         /* time index */
@@ -650,7 +650,7 @@ void show_options ()
   AFNI will popup the return string in a message box.
 */
 
-char * DC_main( PLUGIN_interface * plint )
+static char * DC_main( PLUGIN_interface * plint )
 {
   char * str;                           /* input string */
   int is;                               /* stimulus index */
@@ -894,7 +894,7 @@ char * DC_main( PLUGIN_interface * plint )
   Calculate the impulse response function and associated statistics.
 */
 
-int calculate_results 
+static int calculate_results 
 (
   int nt,               /* number of time points */
   double dt,            /* delta time */
@@ -1099,7 +1099,7 @@ int calculate_results
   Calculate the multiple linear regression least squares fit.
 */
 
-void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
+static void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
 
 {
   int N;              /* first image from input 3d+time dataset to use */
@@ -1143,7 +1143,7 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
   Calculate the multiple linear regression residuals.
 */
 
-void DC_Err (int nt, double to, double dt, float * vec, char ** label)
+static void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 
 {
   int N;              /* first image from input 3d+time dataset to use */
@@ -1187,7 +1187,7 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
   Estimate the system impulse response function.
 */
  
-void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
+static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 
 {
   int N;              /* first image from input 3d+time dataset to use */

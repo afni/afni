@@ -146,31 +146,31 @@ static char * format_strings[] = { "i x y z ts[1] ..." , "ts[1] ts[2] ..." };
 
 /*----------------- prototypes for internal routines -----------------*/
 
-char * EXTRACT_main( PLUGIN_interface * ) ;  /* the entry point */
+static char * EXTRACT_main( PLUGIN_interface * ) ;  /* the entry point */
 
-void EXTRACT_tsfunc() ;                      /* the timeseries routine */
+static void EXTRACT_tsfunc() ;                      /* the timeseries routine */
 
-void show_ud (struct extract_data* ud);
+static void show_ud (struct extract_data* ud);
 
-void write_ud (struct extract_data* ud);
+static void write_ud (struct extract_data* ud);
 
-void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos);
+static void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos);
 
-void error_report (struct extract_data* ud, int ncall );
+static void error_report (struct extract_data* ud, int ncall );
 
-void writets (struct extract_data* ud,float * ts, int ncall);
+static void writets (struct extract_data* ud,float * ts, int ncall);
 
-float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err);
+static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err);
 
-fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err);
+static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err);
 
-void disp_vect (float *v,int l);
+static void disp_vect (float *v,int l);
 
-int filexists (char *f_name);
+static int filexists (char *f_name);
 
-int f_file_size (char *f_name);
+static int f_file_size (char *f_name);
 
-int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
                          generic_func * user_func , void * user_data );
 
 /*---------------------------- global data ---------------------------*/
@@ -334,7 +334,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   AFNI will popup the return string in a message box.
 ****************************************************************************/
 
-char * EXTRACT_main( PLUGIN_interface * plint )
+static char * EXTRACT_main( PLUGIN_interface * plint )
 {
    struct extract_data uda,*ud;
    MRI_IMAGE * tsim;
@@ -567,7 +567,7 @@ char * EXTRACT_main( PLUGIN_interface * plint )
    Function that does the real work
 ***********************************************************************/
 
-void EXTRACT_tsfunc( double T0 , double TR ,
+static void EXTRACT_tsfunc( double T0 , double TR ,
                    int npts , float ts[] , double ts_mean , double ts_slope ,
                    void * udp)
 {
@@ -654,7 +654,7 @@ void EXTRACT_tsfunc( double T0 , double TR ,
 /* function to display user data input (debugging stuff)        */
 /* ************************************************************ */
 
-void show_ud (struct extract_data* ud)
+static void show_ud (struct extract_data* ud)
 	{
 		printf ("\n\nUser Data Values at location :\n");
 		printf ("ud->dsetname= %s\n",ud->dsetname);
@@ -681,7 +681,7 @@ void show_ud (struct extract_data* ud)
 /* function to write user data input to log file        */
 /* ************************************************************ */
 
-void write_ud (struct extract_data* ud)
+static void write_ud (struct extract_data* ud)
 	{
 		fprintf (ud->outlogfile,"\n\nUser Data Values \n");
 		fprintf (ud->outlogfile,"ud->dsetname= %s\n",ud->dsetname);
@@ -718,7 +718,7 @@ void write_ud (struct extract_data* ud)
 /* function to compute x, y, z coordinates from the index       */
 /* ************************************************************ */ 
 
-void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
+static void indexTOxyz (struct extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
 	{
 		*zpos = (int)ncall / (int)(ud->nxx*ud->nyy);
 		*ypos = (int)(ncall - *zpos * ud->nxx * ud->nyy) / (int)ud->nxx;
@@ -781,7 +781,7 @@ void writets (struct extract_data * ud,float * ts, int ncall)
 /* *************************************************************** */
 /* function to extract x y z colums form a matrix format  file */
 /* *************************************************************** */
-fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err)
+static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_xyz*/
 	
 	float tmp, *tmpX;
@@ -890,7 +890,7 @@ fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, in
 /* *************************************************************** */
 
 
-float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err)
+static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_index*/
 	
 	float tmp, *indxvect=NULL;
@@ -979,7 +979,7 @@ float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int 
 /* function to return the size of a float numbers   file */
 /* *************************************************************** */
 
-int f_file_size (char *f_name)
+static int f_file_size (char *f_name)
    
     { 
       
@@ -1009,7 +1009,7 @@ int f_file_size (char *f_name)
 /* function to test if a file exists 									    */
 /* *************************************************************** */
 
-int filexists (char *f_name)
+static int filexists (char *f_name)
 {/*filexists*/
         FILE *outfile;
         
@@ -1027,7 +1027,7 @@ int filexists (char *f_name)
 /* function to display a vector (debugging) 								 */
 /* *************************************************************** */
 
-void disp_vect (float *v,int l)
+static void disp_vect (float *v,int l)
         {
                 int i;
 
@@ -1053,7 +1053,7 @@ void disp_vect (float *v,int l)
 /*    (adapted from BDW's function PLUTO_4D_to_typed_fith 			 */
 /* *************************************************************** */
 
-int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
                          generic_func * user_func, void * user_data )
 {
 

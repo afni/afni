@@ -15,7 +15,9 @@ static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
 
+#ifdef ALLOW_PLUGINS
 static int AFNI_drive_open_plugin( char *cmd ) ;    /* 13 Nov 2001 */
+#endif
 
 static int AFNI_drive_open_graph_xy ( char *cmd ) ; /* 14 Nov 2001 */
 static int AFNI_drive_close_graph_xy( char *cmd ) ;
@@ -335,10 +337,12 @@ ENTRY("AFNI_drive_open_window") ;
 
    /* 13 Nov 2001: plugins are done in a separate function */
 
+#ifdef ALLOW_PLUGINS
    if( strstr(cmd,"plugin.") != NULL ){
       ic = AFNI_drive_open_plugin( cmd ) ;
       RETURN(ic) ;
    }
+#endif
 
    /* open a graph or image window */
 
@@ -515,6 +519,7 @@ ENTRY("AFNI_drive_close_window") ;
    Open a plugin window -- 13 Nov 2001
 -----------------------------------------------------------------*/
 
+#ifdef ALLOW_PLUGINS
 static int AFNI_drive_open_plugin( char *cmd )
 {
    int ic , ipl , ll , pl , qq ;
@@ -581,6 +586,7 @@ ENTRY("AFNI_drive_open_plugin") ;
 
    RETURN(0) ;
 }
+#endif
 
 /*---------------------------------------------------------------*/
 

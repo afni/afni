@@ -41,7 +41,7 @@
 #include <math.h>
 #include "afni.h"
 
-#ifndef DARWIN
+#if !defined(DARWIN) && !defined(CYGWIN)
 #include <values.h>
 #endif
 

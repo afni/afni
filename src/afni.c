@@ -6688,18 +6688,31 @@ STATUS("opening marks") ;
    /*** I don't know why this is needed, but it prevents the
         marks panels geometry from getting screwed up, so it's here ***/
 
-#define REMANAGE_MARKS
-#ifdef REMANAGE_MARKS
-         XtUnmanageChild( marks->rowcol ) ;
-         XtUnmanageChild( marks->tog_rowcol ) ;
-         XtUnmanageChild( marks->control_rowcol ) ;
-         XtUnmanageChild( marks->control_frame ) ;
-         XtUnmanageChild( marks->tog_frame ) ;
+#ifndef USING_LESSTIF
+#define REMANAGE_MARKS 1
+#else
+#define REMANAGE_MARKS 0
+#endif
+
+#if 1
+       { static int first=1 ;
+         if( REMANAGE_MARKS || first ){               /* CYGWIN: must do 1st time in */
+           XtUnmanageChild( marks->rowcol ) ;         /* but not on later times --   */
+           XtUnmanageChild( marks->tog_rowcol ) ;     /* probably a LessTif bug      */
+           XtUnmanageChild( marks->control_rowcol ) ;
+           XtUnmanageChild( marks->control_frame ) ;
+           XtUnmanageChild( marks->tog_frame ) ;
+           first = 0 ;
+         }
+       }
 #endif
 
          OPEN_PANEL(im3d,marks) ;
 
-#ifdef REMANAGE_MARKS
+#if 1
+#if 0
+         XFlush( XtDisplay(marks->rowcol) ) ; XSync( XtDisplay(marks->rowcol),False ) ;
+#endif
          if( im3d->anat_now->markers != NULL ){  /* Oct 1998 */
             XtManageChild( marks->tog_rowcol ) ;
             XtManageChild( marks->tog_frame ) ;
@@ -6738,7 +6751,10 @@ STATUS("closing function") ;
 
 STATUS("opening function" ) ;
 
+#ifndef USING_LESSTIF
 #define REMANAGE_FUNC
+#endif
+
 #ifdef REMANAGE_FUNC
          XtUnmanageChild( im3d->vwid->func->rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;

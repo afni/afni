@@ -16,9 +16,9 @@
   01 Mar 2001 -- Modified to include Max Count -- RWCox
 ************************************************************************/
 
-char * HISTO_main( PLUGIN_interface * ) ;
+static char * HISTO_main( PLUGIN_interface * ) ;
 
-PLUGIN_interface * CORREL_init(void) ;
+static PLUGIN_interface * CORREL_init(void) ;
 
 static char helpstring[] =
    " Purpose: Plot a histogram of data from a dataset brick.\n"
@@ -115,7 +115,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * HISTO_main( PLUGIN_interface * plint )
+static char * HISTO_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;
    THD_3dim_dataset * input_dset , * mask_dset=NULL ;
@@ -482,9 +482,9 @@ static char c_helpstring[] =
  "-- Bob Cox - October 1999\n"
 ;
 
-char * CORREL_main( PLUGIN_interface * ) ;
+static char * CORREL_main( PLUGIN_interface * ) ;
 
-PLUGIN_interface * CORREL_init(void)
+static PLUGIN_interface * CORREL_init(void)
 {
    PLUGIN_interface * plint ;
 
@@ -550,7 +550,7 @@ PLUGIN_interface * CORREL_init(void)
 
 #include "uuu.c"
 
-char *  CORREL_main( PLUGIN_interface * plint )
+static char *  CORREL_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;
    THD_3dim_dataset * input_dset , * mask_dset = NULL ;

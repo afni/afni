@@ -7,6 +7,10 @@
 #undef MAIN
 #include "afni.h"
 
+#include "mri_render.h"
+#include "mcw_graf.h"
+#include "parser.h"
+
 /*========================================================================*/
 /*==== Compile this only if plugins are properly enabled in machdep.h ====*/
 
@@ -22,6 +26,9 @@
    will call each plugin's internal initializer function, which
    may make requests to get AFNI data structures.
 ****************************************************************************/
+
+/*================ dynamic loading of plugins is allowed ==================*/
+#ifndef NO_DYNAMIC_LOADING
 
 /*-------------------------------------------------------------------------
    Routine to read in all plugins found in a given directory
@@ -139,6 +146,8 @@ if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"opening plugin %s" , fname ) ; STATUS(str) ; }
 
+fprintf(stderr,"opening plugin %s\n",fname) ;
+
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
 
    if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){  /* open failed */
@@ -163,6 +172,8 @@ if(PRINT_TRACING)
 
    /*----- find the required symbol -----*/
    /*..... 13 Sep 2001: add _ for stupid Darwin .....*/
+
+fprintf(stderr,"  scanning for PLUGIN_init\n") ;
 
 #ifndef DARWIN
    DYNAMIC_SYMBOL(plin->libhandle, "PLUGIN_init" , plin->libinit_func );
@@ -331,6 +342,93 @@ if(PRINT_TRACING)
    RETURN(outar) ;
 }
 
+/*===================  Plugins are statically linked into AFNI ===================*/
+
+#else  /* NO_DYNAMIC_LOADING is defined (e.g., CYGWIN) */
+
+/* get the list of fixed (compiled-in) plugins */
+
+#include "fixed_plugins.h"
+
+/*-------------------------------------------------------------------------------*/
+/*! Function to load one fixed plugin (for CYGWIN) */
+
+AFNI_plugin * PLUG_load_fixed_plugin( FIXED_plugin pin )
+{
+   AFNI_plugin * plin ;
+   PLUGIN_interface * plint ;
+   int nin ;
+
+   /*----- sanity checks -----*/
+
+ENTRY("PLUG_load_plugin") ;
+
+   if( pin.pfunc == NULL ) RETURN(NULL) ;
+
+   /*----- make space for new plugin -----*/
+
+   plin = (AFNI_plugin *) XtMalloc( sizeof(AFNI_plugin) ) ;
+   plin->type = AFNI_PLUGIN_TYPE ;
+
+   /*----- copy name into plin structure -----*/
+
+   MCW_strncpy( plin->libname , pin.pname , MAX_PLUGIN_NAME ) ;
+   plin->libinit_func = pin.pfunc ;
+
+   /*----- create interface(s) by calling initialization function -----*/
+
+   plin->interface_count = nin = 0 ;
+   plin->interface       = NULL ;
+
+   do {
+      plint = (PLUGIN_interface *) plin->libinit_func( nin ) ;
+      if( plint == NULL ) break ;
+
+      plin->interface = (PLUGIN_interface **)
+                          XtRealloc( (char *) plin->interface ,
+                                     sizeof(PLUGIN_interface *) * (nin+1) ) ;
+
+      plin->interface[nin] = plint ;
+      if( nin == 0 ) strcpy( plin->seqcode , plint->seqcode ) ;  /* 06 Aug 1999 */
+      nin++ ;
+   } while( plint != NULL ) ;
+
+   plin->interface_count = nin ;
+
+   /*----- done -----*/
+
+   RETURN(plin) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Function to load all fixed plugins (for CYGWIN).  pname is ignored. */
+
+AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
+{
+   int ir ;
+   AFNI_plugin_array * outar ;
+   AFNI_plugin       * plin ;
+
+   /*----- sanity check and initialize -----*/
+
+ENTRY("PLUG_get_many_plugins") ;
+
+   INIT_PLUGIN_ARRAY( outar ) ;
+
+   /*----- scan thru and create plugins from the fixed list -----*/
+
+   for( ir=0 ; ir < NUM_FIXED_plugin_funcs ; ir++ ){
+      plin = PLUG_load_fixed_plugin( FIXED_plugin_funcs[ir] ) ;
+      if( plin != NULL ) ADDTO_PLUGIN_ARRAY( outar , plin ) ;
+   }
+
+   RETURN(outar) ;
+}
+
+#endif /* NO_DYNAMIC_LOADING */
+
+/*==============================================================================*/
+
 /****************************************************************************
   Routines to create interface descriptions for new plugins. Usage:
     1) Use "new_PLUGIN_interface" to create the initial data structure.
@@ -340,7 +438,7 @@ if(PRINT_TRACING)
     2(abcdef)
        Use "add_number_to_PLUGIN_interface"  , and
            "add_string_to_PLUGIN_interface"  , and
-           "add_dataset_to_PLUGIN_interface"
+           "add_dataset_to_PLUGIN_interface" , et cetera,
          to add control parameter choosers to the most recently created
          option line.  Up to 6 choosers may be added to an option line.
     3) When done, return the new "PLUGIN_interface *" to AFNI.
@@ -4361,10 +4459,8 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
 
 /** put library routines here that must be loaded **/
 
-#include "mri_render.h"
-#include "mcw_graf.h"
-
 static vptr_func * forced_loads[] = {
+#ifndef NO_DYNAMIC_LOADING
    (vptr_func *) startup_lsqfit ,
    (vptr_func *) delayed_lsqfit ,
    (vptr_func *) mri_align_dfspace ,
@@ -4387,6 +4483,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) THD_dataset_rowfillin ,
    (vptr_func *) mri_histobyte ,          /* 25 Jul 2001 */
    (vptr_func *) sphere_voronoi_vectors , /* 18 Oct 2001 */
+#endif
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

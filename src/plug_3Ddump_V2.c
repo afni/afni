@@ -115,19 +115,19 @@ static char * yn_strings[] = { "n" , "y" };
 #define ERROR_OPTIONS		3
 
 /*---------- prototypes for internal routines ----------*/
-int filexists (char *);
+static int filexists (char *);
 
-char * DUMP_main( PLUGIN_interface * ) ;
+static char * DUMP_main( PLUGIN_interface * ) ;
 
-int Dumpit( struct extract_data* , THD_3dim_dataset * ) ;
+static int Dumpit( struct extract_data* , THD_3dim_dataset * ) ;
 
-void write_ud (struct extract_data*);
+static void write_ud (struct extract_data*);
 
-char **allocate2D (int rows,int cols,int element_size);
+static char **allocate2D (int rows,int cols,int element_size);
 
-void free2D(char **a,int rows);
+static void free2D(char **a,int rows);
 
-int equal_strings (char *s1,char *s2);
+static int equal_strings (char *s1,char *s2);
 
 
 /***********************************************************************
@@ -251,7 +251,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * DUMP_main( PLUGIN_interface * plint )
+static char * DUMP_main( PLUGIN_interface * plint )
 {
    struct extract_data uda,*ud;
    MCW_idcode * idc ;
@@ -483,7 +483,7 @@ char * DUMP_main( PLUGIN_interface * plint )
 }
 
 
-int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
+static int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 {
    void  *  xar  ;
    void  * thar ;
@@ -597,7 +597,7 @@ int Dumpit( struct extract_data* ud, THD_3dim_dataset * xset)
 /* function to check for file existence       */
 /* ************************************************************ */ 
 	
-int filexists (char *f_name)
+static int filexists (char *f_name)
 {/*filexists*/
         FILE *outfile;
         
@@ -644,7 +644,7 @@ void write_ud (struct extract_data* ud)
 /* function to allocate 2D arrays       */
 /* ************************************************************ */ 
 
-char **allocate2D (int rows,int cols,int element_size)
+static char **allocate2D (int rows,int cols,int element_size)
 
 {
     int i;
@@ -719,7 +719,7 @@ char **allocate2D (int rows,int cols,int element_size)
 /* ************************************************************ */ 
 /* function to free 2D arrays       */
 /* ************************************************************ */ 
-void free2D(char **a,int rows)
+static void free2D(char **a,int rows)
     
 {
     int i;

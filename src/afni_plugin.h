@@ -92,6 +92,11 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #  define DYNAMIC_suffix ".sl"
 #endif
 
+#ifdef NO_DYNAMIC_LOADING             /* this stuff is not actually used,  */
+#  define DYNAMIC_suffix ".fixed"     /* but is needed to make things cool */
+   typedef int DYNAMIC_handle ;       /* with the C compiler               */
+#endif
+
 #ifndef DYNAMIC_suffix
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
@@ -404,8 +409,6 @@ extern char * peek_optiontag_from_PLUGIN_interface     ( PLUGIN_interface * ) ;
 #define BAD_NUMBER        (-31416.666)
 #define PLUTO_BAD_NUMBER  BAD_NUMBER
 
-#define PLUTO_cursorize(w)  NORMAL_cursorize(w)
-
 /**************************************************************************/
 /***** Define data structures to hold control information for plugins *****/
 
@@ -637,6 +640,8 @@ extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
 #define PLUTO_register_2D_function  AFNI_register_2D_function
 
 #define PLUTO_register_1D_funcstr   AFNI_register_1D_funcstr
+
+#define PLUTO_cursorize(w)  NORMAL_cursorize(w)
 
 extern void PLUTO_register_timeseries( char * , MRI_IMAGE * ) ;
 
