@@ -135,8 +135,15 @@ int NI_clock_time(void)
       *  &quot; ->  "
       *  &apos; ->  '
       *  &amp;  ->  &
+    Also replace CR LF pair (Microsoft), or CR alone (Macintosh) with
+    LF (Unix), per the XML standard.
     Return value is number of replacements made.
 --------------------------------------------------------------------------*/
+
+#undef  CR
+#undef  LF
+#define CR 0x0D
+#define LF 0x0A
 
 static int unescape_inplace( char *str )
 {
@@ -144,8 +151,6 @@ static int unescape_inplace( char *str )
 
    if( str == NULL ) return 0 ;                /* no string? */
    ll = strlen(str) ;  if( ll < 4 ) return 0 ; /* too short */
-   if( memchr(str,'&',ll) == NULL ) return 0 ; /* no '&' in string */
-   if( memchr(str,';',ll) == NULL ) return 0 ; /* no ';' in string */
 
    /* scan for escapes: &something; */
 
@@ -206,11 +211,17 @@ static int unescape_inplace( char *str )
 
          /* didn't start a recognized escape, so just copy as normal */
 
-         else if( jj < ii )           { str[jj] = str[ii] ; }
+         else if( jj < ii ){ str[jj] = str[ii] ; }
 
-      }  /* was a normal character */
+      } else if( str[ii] == CR ) {  /* is a carriage return */
 
-         else if( jj < ii )           { str[jj] = str[ii] ; }
+         if( str[ii+1] == LF ){ str[jj] = LF ; ii++ ; nn++ ; }  /* CR LF */
+         else                 { str[jj] = LF ;      ; nn++ ; }  /* CR only */
+
+      } else { /* is a normal character, just copy to output */
+
+              if( jj < ii ){ str[jj] = str[ii] ; }
+      }
 
       /* at this point, ii=index of last character used up in scan
                         jj=index of last character written to (jj <= ii) */
@@ -1303,7 +1314,7 @@ static int nosigpipe = 0 ;
 
 /*! Next delay in milliseconds, given current delay. */
 
-#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,999.0)
+#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,66.0)
 
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
@@ -1637,14 +1648,16 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
                   overwritten if already exists)
            * str: data will be written to a buffer in the NI_stream
                   struct; you can later access this buffer with the
-                  function NI_stream_buffer().
+                  function NI_stream_getbuf().
 
   mode = "r" to open a stream for reading
            * tcp: host is ignored (but must be present);
                   ("r" is for a tcp server)
            * fil: filename is opened in read mode
            * str: characters after the colon are the source of
-                  the input data (will be copied to internal buffer)
+                  the input data (will be copied to internal buffer);
+                  OR, you can later set the internal buffer string
+                  later with function NI_stream_setbuf().
 
   For a fil: or str: stream, you can either read from or write to the
   stream, but not both.  For a tcp: stream, once it is connected, you
@@ -1718,6 +1731,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       ns->buf     = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize = NI_BUFSIZE ;
+      ns->name[0] = '\0' ;
 
       ns->bin_thresh = -1 ;     /* write in text mode */
 
@@ -1802,9 +1816,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( strncmp(name,"str:",4) == 0 ){
 
-      int nn = strlen(name+4) ;
-
-      if( do_accept && nn < 4 ) return NULL ; /* bad "r" string */
+      int nn = strlen(name+4) ;  /* may be 0 */
 
       ns = NI_malloc( sizeof(NI_stream_type) ) ;
 
@@ -1838,13 +1850,23 @@ NI_stream NI_stream_open( char *name , char *mode )
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Return the name set in the NI_stream header. */
+
+char * NI_stream_name( NI_stream_type * )
+{
+   if( ns == NULL ) return NULL ;
+   return ns->name ;
+}
+
+
+/*-----------------------------------------------------------------------*/
 /*! Return the output string buffer for a NI_stream of str: type.
     If the input is not a "w" str: stream, then NULL is returned.
     Otherwise a pointer to the internal buffer is returned.
     This will be a NUL terminated string.
 -------------------------------------------------------------------------*/
 
-char * NI_stream_buffer( NI_stream_type *ns )
+char * NI_stream_getbuf( NI_stream_type *ns )
 {
    if( ns          == NULL           ||
        ns->type    != NI_STRING_TYPE ||
@@ -1854,15 +1876,46 @@ char * NI_stream_buffer( NI_stream_type *ns )
 }
 
 /*-----------------------------------------------------------------------*/
-/*!  Check if the given NI_stream is properly opened for I/O.
+/*! Reset the input string buffer for a NI_stream of str: type.
+    If the input is not a "r" str: stream, then nothing happens.
+    Otherwise, the current contents of the buffer are discarded,
+    and the buffer is replaced with a copy of the input string.
+-------------------------------------------------------------------------*/
+
+void NI_stream_setbuf( NI_stream_type *ns , char *str )
+{
+   int nn ;
+
+   if( ns          == NULL           ||
+       ns->type    != NI_STRING_TYPE ||
+       ns->io_mode != NI_INPUT_MODE  ||
+       str         == NULL             ) return ;  /* bad inputs */
+
+   NI_free(ns->buf) ;               /* take out the trash */
+   nn = strlen(str) ;               /* size of new buffer string */
+   ns->nbuf    = nn ;               /* set num char in new buffer */
+   ns->npos    = 0  ;               /* reset scan position */
+   ns->bufsize = nn+1 ;             /* allow space for NUL byte */
+   ns->buf     = NI_malloc(nn+1) ;  /* and make the buffer */
+   strcpy(ns->buf,str) ;            /* and set its contents */
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Check if the given NI_stream is properly opened for I/O.
 
    If not, wait up to msec milliseconds to establish the connection to
    the other end; if msec < 0, will wait nearly forever.
-   Returns 1 if ready; 0 if not; -1 if an error occurs.
+   Returns 1 if ready; 0 if not (but may become good later);
+   -1 if an error occurs.
    Possible -1 errors are:
      * ns was connected to a socket, and now has become disconnected
      * ns is passed in as NULL (bad user, bad bad bad)
-     * ns is reading a file, and we are already at its end
+     * ns is reading a file or a string, and we are already at its end
+   The only case in which 0 is returned is if the NI_stream is a
+   socket (tcp:) and the socket is waiting for a connection from
+   the other end.  This is also the only case in which input parameter
+   msec is actually used.
 -------------------------------------------------------------------------*/
 
 int NI_stream_goodcheck( NI_stream_type *ns , int msec )
@@ -2339,6 +2392,14 @@ void * NI_read_element( NI_stream_type *ns , int msec )
    if( ns == NULL ) return NULL ;  /* bad input */
 
    if( msec < 0 ) msec = 999999999 ;  /* a long time (11+ days) */
+
+   /* if we have a socket that hasn't connected,
+      then see if it can connect now            */
+
+   if( ns->bad ){
+      nn = NI_stream_goodcheck( ns , msec ) ;
+      if( nn < 1 ) return NULL ;              /* didn't connect */
+   }
 
    /*-- Try to find the element header --*/
 
@@ -3027,7 +3088,16 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
    if( ns == NULL || tt < 0 ) return -1 ;
 
-   if( NI_stream_writecheck(ns,0) < 0 ) return -1 ;  /* stream is bad */
+   if( ns->bad ){                        /* socket that hasn't connected yet */
+      jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+      if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   } else {                              /* check if good ns has gone bad */
+      jj = NI_stream_writecheck(ns,1) ;
+      if( jj < 0 ) return -1 ;
+   }
+
+   if( ns->type == NI_STRING_TYPE )      /* string output must be in text mode */
+      tmode = NI_TEXT_MODE ;
 
    /*------- write a group element -------*/
 
@@ -3366,7 +3436,7 @@ GetElement:
    NI_write_element( nsout , nini , NI_TEXT_MODE ) ;
 
    fprintf(stderr,"\n------ NI_write_element ------\n%s\n==========================\n" ,
-           NI_stream_buffer(nsout) ) ;
+           NI_stream_getbuf(nsout) ) ;
 
    goto GetElement ;
 }
