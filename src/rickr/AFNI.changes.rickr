@@ -864,6 +864,7 @@
       - nifti_set_iname_offset(): case 1 must have sizeof() cast to int
       - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data
       - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()
+      - prepared for compression use
   * modified Makefile.INCLUDE to use nifti directory (and for afni_src.tgz)
   * renamed znzlib directory to nifti
   * moved nifti1.h, nifti1_io.c, nifti1_io.h and nifti1_test.c under nifti
