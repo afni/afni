@@ -3444,3 +3444,7 @@
       AFNI_DISP_SCROLLBARS is yessish.
  * Modified imseq.[ch] and afni.[ch] to provide slice_proj projection
       functionality.
+
+01 Feb 2002
+ * Put most transform functions from afni.c and imseq.c into new file
+       afni_transform.c.
