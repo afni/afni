@@ -4179,3 +4179,7 @@
  * Modified AFNI_rescan_session() in afni_func.c to NOT clobber existing
      dataset pointers when adding datasets to a session.
  * Removed all instances of OMIT_DATASET_IDCODES.
+
+29 Dec 2002
+ * Minor change to afni_version.c to print out "Latest News" web page
+     when version comparison fails.
