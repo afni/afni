@@ -22,6 +22,11 @@
  *   - prepare for sending data to suma (but must still define new NIML type)
  *     can get data and global threshold from vol2surf
  *   - for users, try to track actual LDP label in full_label_ldp
+ *
+ * 04 Jan 2005 [rickr]
+ *   - process_NIML_SUMA_ixyz: a new surface will replace the existing one
+ *   - added g_show_as_popup, receive messages default to terminal
+ *   - re-wrote receive messages, only to be shorter
  *----------------------------------------------------------------------*/
 
 /**************************************/
@@ -77,6 +82,11 @@ static int dont_overlay_suma = 1 ;
 /*! If 1, won't listen to info from SUMA */
 
 static int dont_hear_suma = 0 ;
+
+/*----------------------------------------------------------*/
+/*! if 1, display some messages as popups, else to terminal */
+
+static int g_show_as_popup = 0 ;     /* 04 Jan 2005 [rickr] */
 
 /*-------------------------*/
 
@@ -224,6 +234,9 @@ ENTRY("AFNI_init_niml") ;
    /* 12 Feb 2003: setup ni_do "DRIVE_AFNI" verb */
 
    NI_register_doer( "DRIVE_AFNI" , AFNI_niml_driver ) ;
+
+   /* 04 Jan 2005 [rickr]: check for AFNI_SHOW_SURF_POPUPS */
+   if( AFNI_yesenv("AFNI_SHOW_SURF_POPUPS") ) g_show_as_popup = 1 ;
 
    /* and we're off to see the wizard */
 
@@ -1120,9 +1133,9 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    THD_slist_find find ;
    THD_3dim_dataset *dset ;
    THD_session *sess ;      /* 20 Jan 2004 */
-   SUMA_surface *ag ;
+   SUMA_surface *ag, *sold;
    int *ic ; float *xc,*yc,*zc ; char *idc , idstr[32] ;
-   int num , ii ;
+   int num , surf_num , replace ;
    Three_D_View *im3d = AFNI_find_open_controller() ;
    MCW_choose_cbs cbs ;
    int nss = GLOBAL_library.sslist->num_sess ;
@@ -1201,30 +1214,26 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    /* 19 Aug 2002: check for surface idcode in existing set of surfaces */
 
-   for( ii=0 ; ii < num ; ii++ )
-     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+   for( surf_num=0 ; surf_num < num ; surf_num++ )
+     if( strstr(sess->su_surf[surf_num]->idcode,idc) != NULL ) break ;
 
-   if( ii < num ){       /* found it, which is bad */
-      sprintf(msg, "+++ WARNING:\n\n"
-                   " SUMA_ixyz volume surface idcode is\n"
-                   "  %s\n"
-                   " which is already loaded in this session \n"
-                   "  %.222s\n" ,
-              idc , sess->sessname ) ;
-      AFNI_popup_message( msg ) ;
-      RETURN(1) ;
+   /*-- 04 Jan 2005 [rickr]: allow surface replacement, check num_ixyz
+                             for decision on whether to keep triangles --*/
+   if( surf_num < num ){
+      replace = 1 ;       /* this surface exists, replace it       */
+   } else {
+      replace = 0 ;
+      num++ ;             /* note that there is one more surface now */
+
+      /*-- make space for 1 more set of surface pointers --*/
+      sess->su_surf = (SUMA_surface **) realloc(sess->su_surf,
+                                             num*sizeof(SUMA_surface *)) ;
    }
-
- /*-- make space for 1 more set of surface pointers --*/
-
-   /* the surface itself [created below] */
-
-   sess->su_surf = (SUMA_surface **) realloc(sess->su_surf,
-                                             (num+1)*sizeof(SUMA_surface *)) ;
+   /* note: surf_num is the appropriate index for the received surface */
 
    /*-- initialize surface that we will fill up here --*/
 
-   sess->su_surf[num] = ag = SUMA_create_empty_surface() ;
+   ag = SUMA_create_empty_surface() ;
 
    MCW_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
 
@@ -1245,13 +1254,13 @@ ENTRY("process_NIML_SUMA_ixyz");
    if( idc != NULL )
      MCW_strncpy(ag->label,idc,64) ;
    else
-     sprintf(ag->label,"Surf#%d",num+1) ;
+     sprintf(ag->label,"Surf#%d",num) ;
 
    /*-- 06 Oct 2004: get label of local domain parent (or make it up) --*/
 
    idc = NI_get_attribute( nel , "local_domain_parent" ) ;
    if( idc == NULL )
-     sprintf(ag->label_ldp,"Surf#%d_local_domain_parent",num+1) ;
+     sprintf(ag->label_ldp,"Surf#%d_local_domain_parent",num) ;
    else
      MCW_strncpy(ag->label_ldp,idc,64) ;
 
@@ -1275,25 +1284,48 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    SUMA_ixyzsort_surface( ag ) ;
 
-   sess->su_num = num+1 ;     /* 14 Aug 2002 */
+   sess->su_num = num ;     /* 14 Aug 2002 (may be same value) */
+
+   /* 04 Jan 2005 [rickr]: if we are replacing the old surface, do it now */
+
+   sold = sess->su_surf[surf_num] ;  /* store the old pointer, in case  */
+   sess->su_surf[surf_num] = ag ;    /* set the new pointer, either way */
+
+   if( replace ){
+      if( sold->num_ixyz == ag->num_ixyz ){
+         /* same number of nodes, move the triangle information */
+         ag->num_ijk  = sold->num_ijk  ;     sold->num_ijk  = 0    ;
+         ag->nall_ijk = sold->nall_ijk ;     sold->nall_ijk = 0    ;
+         ag->ijk      = sold->ijk      ;     sold->ijk      = NULL ;
+      } else { /* the number of nodes has changed */
+         sprintf(msg,"+++ NOTICE:\n"
+               "  Surface '%-14.14s' (#%d) for\n"
+               "  session '%.222s'\n"
+               "  went from %d nodes to %d nodes\n" ,
+               ag->label, surf_num, sess->sessname,
+               sold->num_ixyz , ag->num_ixyz) ;
+         AFNI_popup_message( msg ) ;  /* include this in clock time */
+      }
+      /* and finally, delete the old surface */
+      SUMA_destroy_surface( sold ) ;
+   }
 
    /*-- we're done! --*/
 
    if( ct_start >= 0 )                     /* keep track of how */
      ct_tot = NI_clock_time() - ct_start ; /* long this took   */
 
-   sprintf(msg,"+++ NOTICE:\n\n"                    /* and tell  */
-               " SUMA_ixyz surface received:\n"     /* the user  */
-               "  %-14.14s\n"                       /* some info */
-               " %d nodes attached to session\n"
-               "  %.222s\n"
-               " This is surface #%d for this session \n" ,
-               ag->label, nel->vec_filled , sess->sessname , num+1 ) ;
+   /* notify the user */
+   sprintf(msg,"\n+++ NOTICE: SUMA_ixyz: %s %d nodes\n"
+               "  for surface %-14.14s (#%d),\n"
+               "  session %.222s\n" ,
+               replace ? "replaced" : "received",
+               nel->vec_filled, ag->label, surf_num, sess->sessname ) ;
 
-   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                            "I/O time  =%4d ms\n"
-                                            "Processing=%4d ms\n" ,
-                            ct_read , ct_tot-ct_read ) ;
+   if( ct_tot > 0 )
+         sprintf(msg+strlen(msg),
+                 "  I/O time = %4d ms, Processing = %4d ms\n" ,
+                 ct_read , ct_tot-ct_read ) ;
 
    /* 16 Jun 2003: if need be, switch sessions and anatomy */
 
@@ -1310,7 +1342,8 @@ ENTRY("process_NIML_SUMA_ixyz");
    }
 #endif
 
-   AFNI_popup_message( msg ) ;
+   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
+   else                  fputs(msg, stderr) ;
 
    /* need to make the "Control Surface"
       widgets know about this extra surface */
@@ -1334,7 +1367,7 @@ static int process_NIML_SUMA_ijk( NI_element * nel, int ct_start )
    THD_3dim_dataset *dset ;
    SUMA_surface *ag ;
    int *it, *jt , *kt ; char *idc ;
-   int num , ii , nold ;
+   int num , surf_num , nold ;
    THD_session *sess ;             /* 20 Jan 2004 */
    THD_slist_find find ;
    int ct_read = 0, ct_tot = 0 ;
@@ -1411,10 +1444,10 @@ ENTRY("process_NIML_SUMA_ijk");
 
    /* 14 Aug 2002: find surface idcode in dataset's list of surfaces */
 
-   for( ii=0 ; ii < num ; ii++ )
-     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+   for( surf_num=0 ; surf_num < num ; surf_num++ )
+     if( strstr(sess->su_surf[surf_num]->idcode,idc) != NULL ) break ;
 
-   if( ii == num ){
+   if( surf_num == num ){
       sprintf(msg, "*** ERROR:\n\n"
                    " SUMA_ijk surface input surface idcode\n"
                    "  %s\n"
@@ -1425,7 +1458,7 @@ ENTRY("process_NIML_SUMA_ijk");
       RETURN(1) ;
    }
 
-   ag = sess->su_surf[ii] ; /* set surface to run with */
+   ag = sess->su_surf[surf_num] ; /* set surface to run with */
 
    if( ag->num_ijk > 0 ){
       sprintf(msg, "*** WARNING:\n\n"
@@ -1455,29 +1488,24 @@ ENTRY("process_NIML_SUMA_ijk");
    if( ct_start >= 0 )                      /* keep track    */
      ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
 
+   /* let the pitiful user see what just happened */
    if( nold == 0 )
-     sprintf(msg,"+++ NOTICE:\n\n"                       /* let the   */
-                 " SUMA_ijk triangles received:\n"       /* pitiful   */
-                 " %d triangles attached to surface \n"  /* user see  */
-                 "  %-14.14s\n"                          /* what just */
-                 " in session\n"                         /* happened  */
-                 "  %.222s\n" ,
-                 nel->vec_filled , ag->label , sess->sessname ) ;
+     sprintf(msg,"\n+++ NOTICE: SUMA_ijk: %d triangles attached\n"
+                 "  to surface %-14.14s (#%d),\n"
+                 "  session %.222s\n" ,
+                 nel->vec_filled, ag->label, surf_num, sess->sessname ) ;
    else
-     sprintf(msg,"+++ NOTICE:\n\n"
-                 " SUMA_ijk triangles received:\n"
-                 " %d NEW triangles attached to surface\n"
-                 "  %-14.14s\n"
-                 " (previously had %d triangles) in session \n"
-                 "  %.222s\n" ,
-                 nel->vec_filled , ag->label , nold , sess->sessname ) ;
+     sprintf(msg,"\n+++ NOTICE: SUMA_ijk: %d triangles ADDED\n"
+                 "  (was %d) to surface %-14.14s (#%d),\n"
+                 "  session %.222s\n" ,
+                 nel->vec_filled, nold, ag->label, surf_num, sess->sessname ) ;
 
-   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                            "I/O time  =%4d ms\n"
-                                            "Processing=%4d ms\n" ,
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),
+                            "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
 
-   AFNI_popup_message( msg ) ;
+   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
+   else                  fputs(msg, stderr) ;
 
    dont_tell_suma = 1 ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
@@ -1494,7 +1522,7 @@ static int process_NIML_SUMA_node_normals( NI_element * nel, int ct_start )
    SUMA_surface *ag ;
    float *xc, *yc, *zc ;
    char  *idc ;
-   int num , ii ;
+   int num , surf_num ;
    THD_session *sess ;
    THD_slist_find find ;
    int ct_read = 0, ct_tot = 0 ;
@@ -1571,10 +1599,10 @@ ENTRY("process_NIML_SUMA_node_normals");
 
    /* find surface idcode in dataset's list of surfaces */
 
-   for( ii=0 ; ii < num ; ii++ )
-     if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+   for( surf_num=0 ; surf_num < num ; surf_num++ )
+     if( strstr(sess->su_surf[surf_num]->idcode,idc) != NULL ) break ;
 
-   if( ii == num ){
+   if( surf_num == num ){
       sprintf(msg, "*** ERROR:\n\n"
                    " SUMA_node_normals surface input surface idcode\n"
                    "  %s\n"
@@ -1585,7 +1613,7 @@ ENTRY("process_NIML_SUMA_node_normals");
       RETURN(1) ;
    }
 
-   ag = sess->su_surf[ii] ; /* set surface to run with */
+   ag = sess->su_surf[surf_num] ; /* set surface to run with */
 
    if( nel->vec_filled != ag->num_ixyz ){
       sprintf(msg, "*** ERROR:\n\n"
@@ -1625,20 +1653,17 @@ ENTRY("process_NIML_SUMA_node_normals");
    if( ct_start >= 0 )                      /* keep track    */
      ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
 
-   sprintf(msg,"+++ NOTICE:\n\n"
-               " SUMA_node_normals normals received:\n"
-               " %d normals attached to surface\n"
-               "  %-14.14s\n"
-               " in session \n"
-               "  %.222s\n" ,
-               nel->vec_filled , ag->label , sess->sessname ) ;
+   sprintf(msg,"\n+++ NOTICE: %d normals attached\n"
+               "  to surface %-14.14s (#%d),\n"
+               "  session %.222s\n" ,
+               nel->vec_filled , ag->label , surf_num , sess->sessname ) ;
 
-   if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
-                                            "I/O time  =%4d ms\n"
-                                            "Processing=%4d ms\n" ,
+   if( ct_tot > 0 ) sprintf(msg+strlen(msg),
+                            "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
 
-   AFNI_popup_message( msg ) ;
+   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
+   else                  fputs(msg, stderr) ;
 
    dont_tell_suma = 1 ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */

@@ -929,3 +929,7 @@
 03 Jan 2005:
   * modified mri_read.c:mri_imcount() to check for ':' after "3D"
 
+04 Jan 2005:
+  * afni_niml.c to allow changing the nodes for a surface, made receive
+    message default to the terminal window
+
