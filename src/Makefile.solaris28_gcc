@@ -37,6 +37,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./solaris28_gcc
 LIBDIR = $(INSTALLDIR)
+SHOWOFF = -DSHOWOFF=solaris28_gcc
 
 LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
 # LLIBS  = -lmri -lXm $(EXTRA_LIBS) -lm -lc
