@@ -25,7 +25,7 @@ static int mask_count( int nvox , byte *mmm )
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
      - compare to thd_makemask.c
-     - 05 Mar 2003: modified to put most code into MRI_automask().
+     - 05 Mar 2003: modified to put most code into mri_automask_image().
 -----------------------------------------------------------------------*/
 
 byte * THD_automask( THD_3dim_dataset *dset )
@@ -39,9 +39,49 @@ ENTRY("THD_automask") ;
 
    medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
 
-   mmm = MRI_automask( medim ) ;
+   mmm = mri_automask_image( medim ) ;
 
    mri_free(medim) ; RETURN(mmm) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Make a byte mask from the average of an array of 3D images.
+    We assume that they all have the same (nx,ny,nz) dimensions.
+-----------------------------------------------------------------------*/
+
+byte * mri_automask_imarr( MRI_IMARR *imar )  /* 18 Nov 2004 */
+{
+   MRI_IMAGE *avim , *tim , *qim ;
+   byte *mmm ;
+   int ii , jj , nvox,nim ;
+   float fac , *avar , *qar ;
+
+ENTRY("mri_automask_imarr") ;
+
+   if( imar == NULL || IMARR_COUNT(imar) < 1 ) RETURN(NULL) ;
+
+   nim = IMARR_COUNT(imar) ;
+   if( nim == 1 ){
+     mmm = mri_automask_image( IMARR_SUBIMAGE(imar,0) ) ;
+     RETURN(mmm) ;
+   }
+
+   avim = mri_new_conforming( IMARR_SUBIMAGE(imar,0) , MRI_float ) ;
+   avar = MRI_FLOAT_PTR(avim) ;
+   nvox = avim->nvox ;
+   for( jj=0 ; jj < nim ; jj++ ){
+     tim = IMARR_SUBIMAGE(imar,jj) ;
+     if( tim->kind != MRI_float ) qim = mri_to_float(tim) ;
+     else                         qim = tim ;
+     qar = MRI_FLOAT_PTR(qim) ;
+     for( ii=0 ; ii < nvox ; ii++ ) avar[ii] += qar[ii] ;
+     if( qim != tim ) mri_free(qim) ;
+   }
+   fac = 1.0f / (float)nim ;
+   for( ii=0 ; ii < nvox ; ii++ ) avar[ii] *= fac ;
+   mmm = mri_automask_image( avim ) ;
+   mri_free(avim) ;
+   RETURN(mmm) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -49,14 +89,14 @@ ENTRY("THD_automask") ;
     to make it possible to do this on an image directly.
 -----------------------------------------------------------------------*/
 
-byte * MRI_automask( MRI_IMAGE *im )
+byte * mri_automask_image( MRI_IMAGE *im )
 {
    float clip_val , *mar ;
    byte *mmm = NULL ;
    int nvox , ii,jj , nmm , nx,ny,nz ;
    MRI_IMAGE *medim ;
 
-ENTRY("MRI_automask") ;
+ENTRY("mri_automask_image") ;
 
    if( im == NULL ) return NULL ;
 
