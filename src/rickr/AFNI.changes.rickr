@@ -371,3 +371,16 @@
   * modified SUMA/SUMA_SurfMeasures.[ch]  (v1.2)
       - added '-cmask' and '-nodes_1D' options
 
+16 December 2003
+  * modified SUMA_Load_Surface_Object.[ch]
+      - added functions: SUMA_spec_select_surfs(), SUMA_swap_spec_entries(),
+        SUMA_unique_name_ind(), SUMA_coord_file(), swap_strings()
+      - made change to restrict spec struct (and therefore surface loading)
+        to surfaces named in a list
+  * modified SUMA_SurfMeasures.[ch] (-> SurfMeasures v1.3)
+      - added '-surf_A' and '-surf_B' to specify surfaces from the spec file
+        (goes through new function SUMA_spec_select_surfs())
+      - fixed loss of default node indices (from -nodes_1D change)
+      - added '-hist' option
+      - display angle averages only if at least 1 total is computed
+  
