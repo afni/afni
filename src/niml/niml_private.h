@@ -150,6 +150,11 @@ extern char ** typedef_dim ;
 
 #define IS_QUOTE_CHAR(c)  ( (c) == '"' || (c) == '\'' )
 
+/*! Defines characters allowed inside a "name". */
+
+#define IS_NAME_CHAR(c) \
+  (isalnum(c) || (c)=='_' || (c)=='.' || (c)=='-' || (c)==':')
+
 extern void destroy_header_stuff( header_stuff *hs ) ;
 extern intpair find_string( int nst, int nch, char *ch ) ;
 extern header_stuff * parse_header_stuff( int ndat, char *dat, int *nused ) ;
