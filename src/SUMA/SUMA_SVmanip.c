@@ -1542,6 +1542,20 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    
    {
+      char *eee = getenv("SUMA_ThresholdScalePower");
+      if (eee) {
+         cf->SUMA_ThrScalePowerBias = (int)strtod(eee, NULL);
+         if (cf->SUMA_ThrScalePowerBias < 2) {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable\n"
+                                    "SUMA_ThresholdScalePower.\n"
+                                    "Assuming default of 2", FuncName);
+            cf->SUMA_ThrScalePowerBias = 2;
+         }
+      } else cf->SUMA_ThrScalePowerBias = 2; 
+   }
+   
+   {
       char *eee = getenv("SUMA_WarnBeforeClose");
       if (eee) {
          if (strcmp(eee,"NO") == 0) cf->X->WarnClose = NOPE;
@@ -1802,6 +1816,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->ColPlaneDimFact = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->XhairTable = SUMA_AllocTableField();
    SurfCont->SetRangeTable = SUMA_AllocTableField();
+   SurfCont->SetThrScaleTable = SUMA_AllocTableField();
    SurfCont->RangeTable = SUMA_AllocTableField();
    SurfCont->NodeTable = SUMA_AllocTableField();
    SurfCont->FaceTable = SUMA_AllocTableField();

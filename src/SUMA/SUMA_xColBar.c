@@ -432,9 +432,9 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    /* get the callData pointer */
    cd = (GLwDrawingAreaCallbackStruct *) callData;
 
-   Kev = (XKeyEvent) cd->event->xkey;
-   Bev = (XButtonEvent) cd->event->xbutton;
-   Mev = (XMotionEvent) cd->event->xmotion;
+   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with ANSI C, no type casting of structures July 04*/
+   Bev = *(XButtonEvent *) &cd->event->xbutton;
+   Mev = *(XMotionEvent *) &cd->event->xmotion;
    
    switch (Kev.type) { /* switch event type */
    case KeyPress:
@@ -640,9 +640,15 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    XtVaGetValues(w, XmNuserData, &dec, NULL);
    if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
       sprintf(slabel, "%5s", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
-   else 
-      sprintf(slabel, "|%5s|", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
-   SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
+   else {
+      /* used to use this:
+      sprintf(slabel, "|%5s|", .... 
+      but that does not work in the editable field ... */
+      sprintf(slabel, "%5s", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
+   }
+   /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);*/
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
+
    
    /* You must use the line below if you are calling this function on the fly */
    /* SUMA_FORCE_SCALE_HEIGHT(SO);  */
@@ -976,13 +982,16 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
 
    if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
       SO->SurfCont->curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
-      sprintf(slabel, "|%5s|", MV_format_fval(fabs(SO->SurfCont->curColPlane->OptScl->ThreshRange[0])));
+      /* used to use this:
+      sprintf(slabel, "|%5s|", .... 
+      but that does not work in the editable field ... */
+      sprintf(slabel, "%5s", MV_format_fval(fabs(SO->SurfCont->curColPlane->OptScl->ThreshRange[0])));
    } else {
       SO->SurfCont->curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
       sprintf(slabel, "%5s", MV_format_fval(SO->SurfCont->curColPlane->OptScl->ThreshRange[0]));
    }
-   SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
-   
+   /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel); */
+   SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
    if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
       SUMA_SetScaleRange(SO, range );
    }else {
@@ -2055,6 +2064,109 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
    SUMA_RETURNe;
 }
 
+/*!
+   threshold value to scale value (position)
+   NOTE val's value might change if it is outside the slider range
+   or if it is negative when the slider is in |T| mode
+*/
+int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val)
+{
+   static char FuncName[]={"SUMA_ThreshVal2ScalePos"};
+   int min_v, max_v, cv, scl, dec;
+   float ftmp;
+   Widget w = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!SO) { SUMA_SL_Err("Null SO"); SUMA_RETURN(0); }
+   w = SO->SurfCont->thr_sc;
+   if (!w) { SUMA_SL_Err("Null widget"); SUMA_RETURN(0); }
+   
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   XtVaGetValues( w,
+                  XmNmaximum, &max_v,
+                  XmNminimum, &min_v,
+                  XmNvalue, &cv,
+                  XmNscaleMultiple, &scl,  
+                  NULL);
+   if (*val < 0 && SO->SurfCont->curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
+      *val = -*val;
+   } 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
+               FuncName, min_v, max_v, scl, dec, cv);  
+
+   /* what is the new slider value to be ?*/
+   ftmp = *val * pow(10.0, dec);
+   if (ftmp > 0) cv = (int) (ftmp+0.5);
+   else cv = (int) (ftmp-0.5);              
+
+   /* Now check on the new cv */
+   if (cv < min_v) {
+      cv = min_v;
+      /* must update threshold value in options structure*/
+      *val = (float)cv / pow(10.0, dec); 
+   } else if (cv > max_v) {
+      cv = max_v;
+      *val = (float)cv / pow(10.0, dec); 
+   }
+
+   SUMA_RETURN(cv);
+}
+
+/*!
+   set the threshold bar when a new value is entered
+*/
+void SUMA_SetScaleThr(void *data) 
+{
+   static char FuncName[]={"SUMA_SetScaleThr"};
+   SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)data, *curSO = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   int cv, max_v, min_v;
+   float val;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+    
+   SUMA_LH("Called");
+   curSO = *(SO->SurfCont->curSOp);
+   TF = SO->SurfCont->SetThrScaleTable;
+   if (TF->cell_modified<0) SUMA_RETURNe;
+   val = TF->num_value[TF->cell_modified];
+   
+   cv = SUMA_ThreshVal2ScalePos (SO, &val );
+
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\nChecksums, new value is %f, cv to be set to %d\n", 
+      FuncName, TF->num_value[TF->cell_modified], cv);   
+
+   /* check on value */
+   if (TF->num_value[TF->cell_modified] != val) { /* a change in value (plateau effect) */
+      TF->num_value[TF->cell_modified] = val;
+      SUMA_INSERT_CELL_VALUE(TF, 0, 0, TF->num_value[TF->cell_modified]);
+   }
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\nSet thresholdiation, new value is %f\n", FuncName, TF->num_value[TF->cell_modified]);
+   /* if value OK, set threshold bar*/
+   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = TF->num_value[TF->cell_modified];
+   XtVaSetValues(SO->SurfCont->thr_sc,  
+            XmNvalue, cv, 
+            NULL);   
+
+   SUMA_LH("Colorize if necessary");
+   /* colorize if necessary */
+   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { SUMA_RETURNe; } /* nothing else to do */
+
+   if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+   
+   SUMA_RemixRedisplay(SO);
+
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;  
+}
 
 /*!
    \brief Sends the Focus triangle  when new value is entered
@@ -3641,13 +3753,32 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       /* put a string on top of the scale
       Can use XmNtitleString but it is placed on the side. 
       Too much waisted space */
+      #if 0
       sprintf(slabel,"Thr.");
       SO->SurfCont->thr_lb = XtVaCreateManagedWidget (slabel, 
                                           xmLabelWidgetClass, rct,
                                           XmNwidth, SUMA_SCALE_WIDTH,
                                           XmNrecomputeSize, False,   /* don't let it change size, it messes up the slider */ 
                                           NULL);
-                                           
+      #else
+      {
+         int colw[]={6};
+         char *lhint[]={ "Threshold Value", NULL};
+         char *lhelp[]={ SUMA_SurfContHelp_SetThreshTblr0, NULL};
+         if (!SO->SurfCont->SetThrScaleTable->cells) {
+            SUMA_CreateTable( rct,
+                              1, 1, 
+                              NULL, NULL,  
+                              lhint, NULL,  
+                              lhelp, NULL,  
+                              colw, YUP, SUMA_float, 
+                              SUMA_SetScaleThr, (void *)SO,
+                              NULL, NULL,
+                              NULL, NULL,  
+                              SO->SurfCont->SetThrScaleTable);                                     
+         }
+      }
+      #endif
       /* add a vertical scale for the intensity */
       SO->SurfCont->thr_sc = XtVaCreateManagedWidget("Thr.",
                                           xmScaleWidgetClass, rct,
@@ -3897,19 +4028,19 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
       }
    }
     
-   if (range[1] - range[0] > pow(10.0,SUMA_SCL_POW_BIAS)) { /* no need for power */
+   if (range[1] - range[0] > pow(10.0,SUMAg_CF->SUMA_ThrScalePowerBias)) { /* no need for power */
       dec = 0;
       min_v = (int)(range[0] ); 
       max_v = (int)(range[1] ); 
-      scl = max_v / 1000; 
+      scl = (max_v -min_v) / 10; 
    } else {
       /* what power of 10 is needed (based on Bob's settings in afni_wid.c)? */
       dec = (int)ceil( log((double)(range[1] - range[0] + 0.001)) / log (10) );
       /* Add the scale bias, so that dec is at least = bias*/
-      if (dec < SUMA_SCL_POW_BIAS) dec = SUMA_SCL_POW_BIAS;
+      if (dec < SUMAg_CF->SUMA_ThrScalePowerBias) dec = SUMAg_CF->SUMA_ThrScalePowerBias;
       min_v = (int)(range[0] * pow(10.0, dec)); 
       max_v = (int)(range[1] * pow(10.0, dec) + 0.001); 
-      scl = max_v / 1000; 
+      scl = (max_v -min_v) / 10; 
       
    }  
    if (max_v <= min_v || scl < 0) { /* happens when max_v is so large that you get trash when typecast to int.
@@ -3918,7 +4049,7 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
       SUMA_SLP_Note("Bad auto scaling \nparameters for threshold bar.\nUsing defaults"); 
       min_v = (int)(range[0]); 
       max_v = (int)(range[1])+1; 
-      scl = max_v / 1000;
+      scl = (max_v - min_v) / 10;
       dec = 1;     
    }
    
@@ -3951,15 +4082,19 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
             XmNdecimalPoints , dec,
             XmNuserData, (XtPointer)dec,   
             NULL);   
-   
+            
    /* set the label on top */
    if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
       sprintf(slabel, "%5s", MV_format_fval((float)cv / pow(10.0, dec))); 
-   else
-      sprintf(slabel, "|%5s|", MV_format_fval((float)cv / pow(10.0, dec))); 
-   
-   SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
-   
+   else {
+      /* used to use this:
+      sprintf(slabel, "|%5s|", .... 
+      but that does not work in the editable field ... */
+      sprintf(slabel, "%5s", MV_format_fval((float)cv / pow(10.0, dec))); 
+   }
+   /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);*/
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
+
             
    SUMA_RETURNe;
 }

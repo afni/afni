@@ -1131,6 +1131,7 @@ void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt)
                fprintf (SUMA_STDOUT,"%d%s",v[i][j],spc);
          fprintf (SUMA_STDOUT,"\n");
       }
+   SUMA_RETURNe;
 }/*SUMA_disp_dmat*/
 
 /*!**
@@ -1178,6 +1179,7 @@ void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt)
                fprintf (SUMA_STDOUT, "%4.2f%s",v[i][j],spc);
          fprintf (SUMA_STDOUT,"\n");
       }
+   SUMA_RETURNe;
 }/*SUMA_disp_mat*/
 
 /*!**
@@ -1251,6 +1253,8 @@ void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt,
          SUMA_RETURNe;
          break;
    }
+
+   SUMA_RETURNe;
 }/*SUMA_disp_vecmat*/
 
 
@@ -1326,6 +1330,7 @@ void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt,
          SUMA_RETURNe;
          break;
    }
+   SUMA_RETURNe;
 }/*SUMA_disp_vecdmat*/
 
 /*!
@@ -1372,6 +1377,7 @@ void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt,
          SUMA_RETURNe;
          break;
    }
+   SUMA_RETURNe;
 }/*SUMA_disp_vecucmat*/
 
 /*!
@@ -1997,6 +2003,159 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 SUMA_RETURN (P2);
    
 }/*SUMA_Point_At_Distance*/
+double **SUMA_dPoint_At_Distance(double *U, double *P1, double d)
+{/*SUMA_dPoint_At_Distance*/
+   static char FuncName[]={"SUMA_dPoint_At_Distance"}; 
+   double bf, **P2, P1orig[3], Uorig[3];
+   double m, n, p, q, D, A, B, C, epsi = 0.000001;
+   int flip, i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (d == 0) {
+      fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDOUT,"%s: U %f, %f, %f, P1 %f %f %f, d %f\n", FuncName,\
+         U[0], U[1], U[2], P1[0], P1[1], P1[2], d);
+   }
+         
+   /* store initial values */
+   P1orig[0] = P1[0];    
+   P1orig[1] = P1[1]; 
+   P1orig[2] = P1[2]; 
+
+   Uorig[0] = U[0];
+   Uorig[1] = U[1];
+   Uorig[2] = U[2];
+   
+   /* normalize U such that U(0) = 1 */
+   flip = 0;
+   if (fabs(U[0]) < epsi) { /* must flip X with some other coordinate */
+      if (fabs(U[1]) > epsi) {/*U[1] != 0; */
+         U[0] = U[1]; U[1] = 0;
+         bf = P1[0]; P1[0] = P1[1]; P1[1] = bf;
+         flip = 1;
+      } else {   /*U[1] = 0; */
+         if (fabs(U[2]) > epsi) { /* U[2] != 0 */
+            U[0] = U[2]; U[2] = 0;
+            bf = P1[0]; P1[0] = P1[2]; P1[2] = bf;
+            flip = 2;
+         } else { /* U[2] = 0 */
+            fprintf(SUMA_STDERR, "Error %s: 0 direction vector.\n", FuncName);
+            SUMA_RETURN (NULL);
+         }
+      }/*U[1] = 0; */
+   }/*U[0] = 0; */
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: flip = %d\n", FuncName, flip);
+      
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: U original: %f, %f, %f\n", FuncName, U[0], U[1], U[2]);
+   U[1] /= U[0];
+   U[2] /= U[0];
+   U[0] = 1.0; 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: U normalized: %f, %f, %f\n", FuncName, U[0], U[1], U[2]);
+   
+   /* Now U is clean, calculate P2 */   
+   m = U[1];
+   n = U[2];
+
+   q = P1[1] - m*P1[0];
+   p = P1[2] - n*P1[0];
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: m=%f n=%f, p=%f, q=%f\n", FuncName, m, n, p, q);
+
+   /* Now find P2 */
+   A = (1 + n*n + m*m);
+   B = -2 * P1[0] + 2 * m * (q - P1[1]) + 2 * n * (p - P1[2]);
+   C = P1[0]*P1[0] + (q - P1[1])*(q - P1[1]) + (p - P1[2])*(p - P1[2]) - d*d;
+
+   D = B*B - 4*A*C;
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: A=%f B=%f, C=%f, D=%f\n", FuncName, A, B, C, D);
+   
+   if (D < 0) {
+      fprintf(SUMA_STDERR, "Error %s: Negative Delta: %f.\n"
+                           "Input values were: \n"
+                           "U :[%f %f %f]\n"
+                           "P1:[%f %f %f]\n"
+                           "d :[%f]\n"
+                           , FuncName, D, Uorig[0], Uorig[1], Uorig[2], 
+                           P1orig[0], P1orig[1], P1orig[2], d);
+      SUMA_RETURN(NULL);
+   }
+
+   P2 = (double **)SUMA_allocate2D(2,3, sizeof(double));
+   if (P2 == NULL) {
+      fprintf(SUMA_STDERR, "Error %s: Could not allocate for 6 floats! What is this? What is the matter with you?!\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+
+   P2[0][0] = (-B + sqrt(D)) / (2 *A);
+   P2[1][0] = (-B - sqrt(D)) / (2 *A);
+
+   P2[0][1] = m * P2[0][0] + q;
+   P2[1][1] = m * P2[1][0] + q;
+
+   P2[0][2] = n * P2[0][0] + p;
+   P2[1][2] = n * P2[1][0] + p;
+
+
+   /* if flipping was performed, undo it */
+   if (flip == 1) {
+    for (i=0; i < 2; ++i) {
+       bf = P2[i][1];
+       P2[i][1] = P2[i][0];
+       P2[i][0] = bf;
+      }
+   } else if (flip == 2){
+    for (i=0; i < 2; ++i) {
+       bf = P2[i][2]; 
+       P2[i][2] = P2[i][0];
+       P2[i][0] = bf;
+      }
+   }   
+
+   for (i=0; i < 3; ++i) {
+      P1[i] = P1orig[i];
+      U[i] = Uorig[i];
+   }
+
+   if (LocalHead) {
+      fprintf(SUMA_STDOUT,"%s: P1 = %f, %f, %f\n  ", \
+       FuncName, P1[0], P1[1], P1[2]);
+      fprintf(SUMA_STDOUT,"%s: P2 = %f, %f, %f\n    %f, %f, %f\n", \
+       FuncName, P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      fprintf(SUMA_STDOUT,"%s: U = %f, %f, %f\n  ", \
+       FuncName, U[0], U[1], U[2]);
+   }
+
+   
+   /* make sure 1st point is along the same direction */
+   Uorig[0] = P2[0][0] - P1[0]; /* use Uorig, not needed anymore */
+   Uorig[1] = P2[0][1] - P1[1];
+   Uorig[2] = P2[0][2] - P1[2];
+
+   SUMA_DOTP_VEC(Uorig, U, bf, 3, double, double)
+   if (LocalHead) fprintf(SUMA_STDOUT,"%s: Dot product = %f\n", FuncName, bf);
+   if (bf < 0) {
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Flipping at end...\n", FuncName);
+      for (i=0; i< 3; ++i) {
+         bf = P2[0][i];
+         P2[0][i] = P2[1][i]; P2[1][i] = bf;
+      }
+   }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDOUT,"%s: P2 = %f, %f, %f\n    %f, %f, %f\n", \
+       FuncName, P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+   }
+SUMA_RETURN (P2);
+   
+}/*SUMA_dPoint_At_Distance*/
 
 /*!
 
@@ -2037,24 +2196,18 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *
       fprintf(SUMA_STDERR,"Error %s: N_points is 0.\n",FuncName);
       SUMA_RETURN (NOPE);
    }
-   /* Calculate normalized unit vector of line formed by P1, P2 */
-   U[0] = P2[0] - P1[0];
-   U[1] = P2[1] - P1[1];
-   U[2] = P2[2] - P1[2];
-   Un = sqrt(U[0]*U[0] + U[1]*U[1] + U[2]*U[2]);
    
+   SUMA_UNIT_VEC(P1, P2, U, Un);
    if (Un == 0) {
       fprintf(SUMA_STDERR,"Error %s: P1 and P2 are identical.\n",FuncName);
       SUMA_RETURN (NOPE);
    }
    
-   U[0] /= Un;
-   U[1] /= Un;
-   U[2] /= Un;
+   
    
    /* calculate the distances and keep track of the minimum distance while you're at it */
    
-   /*bad practise, only returned pointers are allocated for in functions */
+   /*bad practice, only returned pointers are allocated for in functions */
    /*
    d2 = (float *)SUMA_calloc(N_points, sizeof(float)); */
    
@@ -4306,7 +4459,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 /*!
    Makes sure the triangles in FaceSetList are of a consistent orientation.
    
-   ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL, detail) 
+   ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL, detail, trouble) 
    
    \param FaceSetList (int *) N_FaceSet x 3 vector (was matrix prior to SUMA 1.2) containing triangle definition
    \param N_FaceSet int
@@ -4314,12 +4467,15 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
    \param detail (int)  0: quiet, except for errors and warnings
                         1: report at end
                         2: LocalHead gets turned on
+   \param trouble (int *): a flag that is set to 1 if the surface had inconsistent mesh 
+                           or if the surface could not be fully traversed.
+                           0 if all went well and the mesh looks good (for the purposes of this function)
    \ret ans (SUMA_Boolean) YUP, NOPE 
    
    \sa SUMA_Make_Edge_List
      
 */
-SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int detail) 
+SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int detail, int *trouble) 
 {
    /* see for more documentation labbook NIH-2 test mesh  p61 */
    int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
@@ -4447,14 +4603,21 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
       ++N_iter;
    }
 
+   *trouble = 0;
    if (LocalHead) fprintf(SUMA_STDERR,"%s: %d iterations required to check the surface.\n", FuncName, N_iter);
    if (detail) fprintf(SUMA_STDERR,"%s: %d/%d (%f%%) triangles checked.\n", FuncName, N_checked, SEL->N_EL/3, (float)N_checked/(SEL->N_EL/3)*100.0);
-   if (N_flip) {
-      if (detail) fprintf(SUMA_STDERR,"%s: %d triangles were flipped to make them consistent with the triangle containing the first edge in the list.\n", FuncName, N_flip);
-   } else fprintf(SUMA_STDERR,"%s: All checked triangles were consistent with the triangle containing the first edge in the list.\n", FuncName);
-   if (miss) {
-      fprintf(SUMA_STDERR,"%s: %d segments with two neighbors were skipped. Not good in general.\n", FuncName, miss);
+   if (N_checked != SEL->N_EL/3) {
+      *trouble = 1;
    }
+   if (N_flip) {
+      *trouble = 1;
+      if (detail) fprintf(SUMA_STDERR,"%s: %d triangles were flipped to make them consistent with the triangle containing the first edge in the list.\n", FuncName, N_flip);
+   } else if (detail) fprintf(SUMA_STDERR,"%s: All checked triangles were consistent with the triangle containing the first edge in the list.\n", FuncName);
+   if (miss) {
+      if (detail) fprintf(SUMA_STDERR,"%s: %d segments with two neighbors were skipped. Not good in general.\n", FuncName, miss);
+      *trouble = 1;
+   }
+   
    #if 0
       /* now show the fixed mesh list */
       fprintf (SUMA_STDERR,"%s: %d triangles were flipped \n", FuncName, N_flip);
@@ -4490,7 +4653,7 @@ int main (int argc,char *argv[])
 {/* Main */
    char FuncName[100]; 
    float *NodeList;
-   int *FL, N_FL, i, ip, N_Node;
+   int *FL, N_FL, i, ip, N_Node, trouble;
    SUMA_EDGE_LIST *SEL;
    
    /* initialize Main function name for verbose output */
@@ -4522,7 +4685,7 @@ int main (int argc,char *argv[])
       return (NOPE);
    }
 
-   if (!SUMA_MakeConsistent (FL, N_FL, SEL, 1)) {
+   if (!SUMA_MakeConsistent (FL, N_FL, SEL, 1, &trouble)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
       return (1);
    }else {
