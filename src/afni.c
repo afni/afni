@@ -5269,24 +5269,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    /*--- redraw coordinate display now ---*/
 
    if( redisplay_option || new_xyz ){
-      XmString xstr ;
-      Boolean same ;
-
-      xstr = AFNI_crosshair_label( im3d ) ;
-      same = XmStringCompare( xstr , im3d->vinfo->old_crosshair_label ) ;
-
-      if( same == False ){
-         XtVaSetValues( im3d->vwid->imag->crosshair_label ,       /* redisplay */
-                           XmNlabelString , xstr ,                /* if changed */
-                        NULL ) ;
-         MCW_expose_widget( im3d->vwid->imag->crosshair_label ) ; /* redraw now! */
-         XmStringFree(im3d->vinfo->old_crosshair_label) ;         /* toss old */
-         im3d->vinfo->old_crosshair_label = xstr ;                /* new old */
-      } else {
-         XmStringFree( xstr ) ;  /* was same --> don't need this copy */
-      }
-
-      AFNI_do_bkgd_lab( im3d ) ;  /* 08 Mar 2002: moved labelizing to function */
+      AFNI_crosshair_relabel( im3d ) ;  /* 12 Mar 2004: moved this to a function, too */
+      AFNI_do_bkgd_lab( im3d ) ;        /* 08 Mar 2002: moved labelizing to function */
    }
 
    /* 24 Jan 2001: set grapher index based on type of dataset */
@@ -7591,11 +7575,25 @@ ENTRY("AFNI_crosshair_EV") ;
          XmMenuPosition( im3d->vwid->imag->crosshair_menu , event ); /* where */
          XtManageChild ( im3d->vwid->imag->crosshair_menu ) ;        /* popup */
        }
+
+       else {
+         (void) MCW_popup_message( im3d->vwid->imag->crosshair_label ,
+                                   " The road goes ever on and on\n"
+                                   " Out from the door from where it began.\n"
+                                   " Now, far ahead the road has gone\n"
+                                   " And I must follow if I can.\n"
+                                   " Pursuing it with eager feet\n"
+                                   " Until it meets some other way\n"
+                                   " Where many paths and errands meet\n"
+                                   " And whither then I cannot say." ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       }
      }
      break ;
 
      /*----- take key press -----*/
 
+#if 0
      case KeyPress:{
        XKeyEvent * event = (XKeyEvent *) ev ;
        char           buf[32] ;
@@ -7610,10 +7608,40 @@ ENTRY("AFNI_crosshair_EV") ;
        }
      }
      break ;
+#endif
    }
 
    EXRETURN ;
 }
+
+/*------------------------------------------------------------------*/
+/* Redraw the crosshair label in this controller [12 Mar 2004]
+--------------------------------------------------------------------*/
+
+void AFNI_crosshair_relabel( Three_D_View *im3d )
+{
+   XmString xstr ;
+   Boolean same ;
+
+ENTRY("AFNI_crosshair_relabel") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   xstr = AFNI_crosshair_label( im3d ) ;
+   same = XmStringCompare( xstr , im3d->vinfo->old_crosshair_label ) ;
+
+   if( same == False ){
+      XtVaSetValues( im3d->vwid->imag->crosshair_label ,       /* redisplay */
+                        XmNlabelString , xstr ,                /* if changed */
+                     NULL ) ;
+      MCW_expose_widget( im3d->vwid->imag->crosshair_label ) ; /* redraw now! */
+      XmStringFree(im3d->vinfo->old_crosshair_label) ;         /* toss old */
+      im3d->vinfo->old_crosshair_label = xstr ;                /* new old */
+   } else {
+      XmStringFree( xstr ) ;  /* was same --> don't need this copy */
+   }
+   EXRETURN ;
+}
+
 
 /*------------------------------------------------------------------
   callback for crosshair label popup menu [12 Mar 2004]
@@ -7625,16 +7653,19 @@ void AFNI_crosshair_pop_CB( Widget w ,
    Three_D_View *im3d = (Three_D_View *)client_data ;
    static char *cord_dicom="RAI" , *cord_spm="LPI" ;
    char *val=NULL ;
+   int ii ;
 
 ENTRY("AFNI_crosshair_pop_CB") ;
 
         if( w == im3d->vwid->imag->crosshair_dicom_pb ) val = cord_dicom ;
    else if ( w == im3d->vwid->imag->crosshair_spm_pb  ) val = cord_spm   ;
 
-   if( val != NULL ){
+   if( val != NULL && strcmp(GLOBAL_argopt.orient_code,val) != 0 ){
+     POPDOWN_string_chooser ;   /* in case "Jumpto xyz" is open */
      MCW_strncpy(GLOBAL_argopt.orient_code,val,4) ;
      THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
-     PLUTO_force_redisplay() ;
+     for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+       AFNI_crosshair_relabel( GLOBAL_library.controllers[ii] ) ;
    }
    EXRETURN ;
 }
@@ -7684,9 +7715,9 @@ ENTRY("AFNI_imag_pop_CB") ;
       char tbuf[128] ;
 
       if( ISQ_REALZ(seq) ){
-         sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
-         MCW_choose_string( seq->wbar , tbuf , NULL ,
-                            AFNI_jumpto_CB , (XtPointer) im3d ) ;
+        sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
+        MCW_choose_string( seq->wbar , tbuf , NULL ,
+                           AFNI_jumpto_CB , (XtPointer) im3d ) ;
       }
    }
 

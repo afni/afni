@@ -1139,6 +1139,7 @@ extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
 extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AFNI_crosshair_relabel   ( Three_D_View * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;

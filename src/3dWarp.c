@@ -52,6 +52,8 @@ int main( int argc , char * argv[] )
 
    int tta2mni=0 , mni2tta=0 ;   /* 11 Mar 2004 */
 
+   static THD_coorder cord ;
+
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -132,6 +134,8 @@ int main( int argc , char * argv[] )
    /*-- startup mechanics --*/
 
    mainENTRY("3dWarp main"); machdep(); AFNI_logger("3dWarp",argc,argv);
+
+   THD_coorder_fill( my_getenv("AFNI_ORIENT") , &cord ) ;  /* 12 Mar 2004 */
 
    /*-- command line options --*/
 

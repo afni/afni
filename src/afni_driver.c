@@ -69,6 +69,9 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_SESSION"   , AFNI_drive_switch_session    } ,
  { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
+ { "SWITCH_DIRECTORY" , AFNI_drive_switch_session    } ,
+ { "SWITCH_UNDERLAY"  , AFNI_drive_switch_anatomy    } ,
+ { "SWITCH_OVERLAY"   , AFNI_drive_switch_function   } ,
 
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
  { "ALTER_WINDOW"     , AFNI_drive_open_window       } ,
