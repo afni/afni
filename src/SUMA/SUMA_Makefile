@@ -1,14 +1,15 @@
 #
 
+#leave this one up to afni
 #CC = gcc
 
 CCOPT = 
 WARNOPT = -Wall -Wno-unused-variable
 SUMALIB = libSUMA.a
-AFNILIB = ../libmri.a
+AFNILIB = -lmri -lrickr
 MAINCODE = SUMA
 INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
-LINK_PATH = -L/usr/lib -L/usr/X11R6/lib 
+LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
 
 #that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 

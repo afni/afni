@@ -1547,3 +1547,20 @@ nicat:nicat.o
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
+
+#############
+#SUMA
+
+libSUMA.a:
+	( cd SUMA ;	\
+	make -f SUMA_Makefile clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	'CC=$(CC)'	;	\
+	$(CP) libSUMA.a ../ ; )
+	
+suma:libSUMA.a librickr.a
+	( cd SUMA ;	\
+	make -f SUMA_Makefile all 'INSTALLDIR=$(INSTALLDIR)' \
+	'CC=$(CC)'	;	\
+	$(CP) libSUMA.a ../ ; )
+	 
+	
