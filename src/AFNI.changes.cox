@@ -4792,3 +4792,7 @@
 
 14 Nov 2003
  * More minor changes to 3dcalc.c and parser.f for slight speedups.
+
+18 Nov 2003
+ * Modified imseq.c to prevent beep when user tries to zoom when Mont
+     is on, or vice-versa.
