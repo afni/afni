@@ -522,3 +522,9 @@
       - adding a little more help
       - checking for bad options
       
+02 April 2004:
+  * modified rickr/serial_helper.c [request of tross] (-> v1.3)
+      - change default min to -12.7, and use -128 for serial start signal
+  * modified plug_realtime.so [request of tross]
+      - move RT_mp_comm_close() out of check for resize plot
+

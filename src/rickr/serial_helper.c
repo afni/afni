@@ -1,4 +1,4 @@
-#define VERSION "1.2 (April 1, 2004)"
+#define VERSION "1.3 (April 2, 2004)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -36,6 +36,10 @@ static char g_history[] =
  "\n"
  " 1.2  April 1, 2004  [rickr]\n"
  "    - complain about bad options\n"
+ "\n"
+ " 1.3  April 2, 2004  [tross/rickr]\n"
+ "    - set SH_DEF_MIN_FVAL to -12.7\n"
+ "    - use -128 as the special value denoting start of serial data\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -54,7 +58,7 @@ static char g_history[] =
 #include <arpa/inet.h>
 
 #define SH_MAX_VALS            6
-#define SH_DEF_MIN_FVAL    -12.8
+#define SH_DEF_MIN_FVAL    -12.7
 #define SH_DEF_MAX_FVAL     12.7
 #define SH_DEF_SOCKET      53214
 
@@ -489,7 +493,7 @@ int usage( char * prog, int level )
 	    "        %s                       \\\n"
 	    "            -serial_port /dev/ttyS0            \\\n"
 	    "            -sock_num 53214                    \\\n"
-	    "            -mp_min -12.8                      \\\n"
+	    "            -mp_min -12.7                      \\\n"
 	    "            -mp_max  12.7\n"
 	    "\n"
 	    "    7. run the program in socket test mode, without serial\n"
@@ -575,11 +579,11 @@ int usage( char * prog, int level )
 	    "        scale incoming floats to signed bytes.\n"
 	    "\n"
 	    "    -mp_min MIN_VAL  : limit the minimum value of the MP data\n"
-	    "                     : e.g. -mp_min -12.8\n"
-	    "                     : default is -12.8\n"
+	    "                     : e.g. -mp_min -12.7\n"
+	    "                     : default is -12.7\n"
 	    "\n"
 	    "        If any incoming data is less than this value, it will\n"
-	    "        be set to this value.  The default of -12.8 is used to\n"
+	    "        be set to this value.  The default of -12.7 is used to\n"
 	    "        scale incoming floats to signed bytes.\n"
 	    "\n"
 	    "    -sock_num SOCK   : specify socket number to serve\n"
@@ -686,7 +690,7 @@ void send_serial(optiondata * opt, port_list * plist, motparm *mot)
     static char outdata[7];
     int i;
     
-    outdata[0] = 255;
+    outdata[0] = -128;
     for (i=0; i<6; i++) {
 	if (mot->data[i] > opt->mp_max) 
 	    mot->data[i] = opt->mp_max;
