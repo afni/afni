@@ -187,6 +187,16 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
 
 	image = (char *)ac->param->im_store.x_im;
 
+	if ( image == NULL )
+	{
+	    fprintf( stderr, "** failure: x_im is NULL\n"
+		             "   - closing afni connection\n" );
+
+	    ac->state = ART_STATE_NO_USE;
+	    ART_exit();
+	    return -1;
+	}
+
 	strcpy( image, ART_COMMAND_MARKER );
 	image[ART_COMMAND_MARKER_LEN] = '\0';
 
@@ -391,25 +401,38 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 			   v->geh.orients[4], v->geh.orients[5] );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
-    /* DRIVE_AFNI interface */
+    /* DRIVE_AFNI interface - open afni windows */
     {
 	char * graph_win;			/* graph window to open */
+	char * image_win;			/* image window to open */
 	char   o4 = v->geh.orients[4];		/* note last axis       */
 	int    nt = ac->param->opts.nt;		/* note user defined nt */
 
 	if ( (o4 == 'R') || (o4 == 'r') || (o4 == 'L') || (o4 == 'l') )
+	{
 	    graph_win = "sagittalgraph";
+	    image_win = "sagittalimage";
+	}
 	else if ( (o4 == 'I') || (o4 == 'i') || (o4 == 'S') || (o4 == 's') )
+	{
 	    graph_win = "axialgraph";
+	    image_win = "axialimage";
+	}
 	else
+	{
 	    graph_win = "coronalgraph";
+	    image_win = "coronalimage";
+	}
+	
+	/* open image and graph window - possibly adding pinnum */
+	sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s\n"
+		      "DRIVE_AFNI OPEN_WINDOW %s", image_win, graph_win );
 
 	if ( nt > 0 )
-	    sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s pinnum=%d", graph_win, nt);
-	else
-	    sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s", graph_win );
+	    sprintf( tbuf+strlen(tbuf), " pinnum=%d", nt );
 
 	ART_ADD_TO_BUF( ac->buf, tbuf );
+
     }
 
     /* pass along any user specified drive command(s) */
@@ -435,7 +458,11 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     {
 	int count, len, tot_len;
 
-	sprintf( tbuf, "NOTE created by the command :" );
+	/* form-feeds will be replaced with newlines in plug_realtime */
+	sprintf( tbuf, "NOTE created remotely via real-time afni\f"
+		 "    starting with file : '%s'\f"
+		 "    creation command   :",
+		 v->first_file );
 	tot_len = strlen( tbuf );
 
 	for ( count = 0; count < ac->param->opts.argc; count++ )
@@ -453,6 +480,14 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 	    strcat( tbuf, ac->param->opts.argv[count] );
 	}
 	
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
+    /* BYTEORDER interface - send if swap flag is not set */
+    if ( 0 && ! ac->swap )  /* rcr - turn this off until plug_realtime update */
+    {
+	sprintf( tbuf, "BYTEORDER %s", (ac->byte_order == LSB_FIRST) ?
+		 "LSB_FIRST" : "MSB_FIRST" );
 	ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
@@ -516,10 +551,11 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
     printf( "ART_comm struct at %p :\n"
 	    "   (state, mode)   = (%d, %d)\n"
 	    "   (use_tcp, swap) = (%d, %d)\n"
+	    "   byte_order      = %d\n"
 	    "   host            = %s\n"
 	    "   ioc_name        = %s\n"
 	    "   (ioc, param)    = (0x%p, 0x%p)\n",
-	    ac, ac->state, ac->mode, ac->use_tcp, ac->swap,
+	    ac, ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
 	    ac->host, ac->ioc_name, ac->ioc, ac->param );
 
     return 0;

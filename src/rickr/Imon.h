@@ -14,6 +14,7 @@
 #define IFM_MAX_RUN_NAPS     3       /* maximum number of mid-run naps   */
 #define IFM_MAX_GE_FAILURES  3       /* file read failures before exit   */
 #define IFM_MAX_NT       32767       /* maximum valid num time points    */
+#define IFM_SUFFIX_LEN      10       /* allocated space for I-file sufix */
 
 #define IFM_MIN_NICE_INC   -19       /* minimum nice value increment     */
 #define IFM_MAX_NICE_INC    20       /* maximum nice value increment     */
@@ -25,7 +26,14 @@
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
 #define IFM_MAX_DEBUG        3       /* maximum debug level		 */
 
-/*----------------------------------------------------------------------*/
+#define IFM_GERT_SCRIPT "GERT_Reco2" /* output script, like GERT_Reco    */
+
+/* -- define copies -- */
+
+#define LSB_FIRST	     1
+#define MSB_FIRST	     2
+
+/*-----------------------------------------------------------------------*/
                                     /* from Ifile.c ... */
 typedef struct                      /* stuff extracted from GE I.* image */
 {
@@ -76,10 +84,12 @@ typedef struct  /* user options */
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
     int              debug;         /* debug level                      */
+    int              gert_reco;     /* output GERT_Reco2 script         */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
     int              swap;          /* swap bytes when sending data     */
+    int              rev_bo;        /* reverse BYTEORDER command        */
     char           * host;          /* pointer to hostname              */
 } opts_t;
 

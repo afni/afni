@@ -155,3 +155,11 @@
 28 February 2003:
   * modified rickr/file_tool.[ch]: added '-quiet' option
 
+25 March 2003:
+  * modified Imon to version 2.6: Imon.[ch] realtime.[ch]
+      o added -GERT_Reco2 option to output script
+      o RT: only send good volumes to afni
+      o RT: added -rev_byte_order option
+      o RT: also open relevant image window
+      o RT: mention starting file in NOTE command
+
