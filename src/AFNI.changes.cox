@@ -5349,3 +5349,6 @@
 
 01 Mar 2005
  * Modified matrix.c and matrix_f.c to use BLAS-1 on the SGI Altix.
+
+02 Mar 2005
+ * Further matrix.c changes for BLAS-1 on Solaris.

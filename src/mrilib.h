@@ -151,6 +151,10 @@ static float MRI_TYPE_maxval[7] =
 
 /*! I suppose that the next C makes this pleonastic. */
 
+#ifdef _SUNPERF_COMPLEX
+# define TYPEDEF_complex
+#endif
+
 #ifndef TYPEDEF_complex
 #define TYPEDEF_complex
 typedef struct complex { float r , i ; } complex ;
