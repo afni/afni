@@ -8,8 +8,7 @@
 #define F2C_INCLUDE
 
 #define NON_UNIX_STDIO     /* RWCox */
-
-#define complex complexxx  /* RWCox */
+#include "rwcox.h"
 
 typedef long int integer;
 typedef unsigned long uinteger;
