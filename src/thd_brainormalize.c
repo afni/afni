@@ -113,8 +113,8 @@ MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
 {
    MRI_IMAGE *sim , *tim ;
    short *sar , sval ;
-   int ii,jj,kk , nx,ny,nz,nxy,nxyz ;
-   float val ;
+   int ii,jj,kk , nx,ny,nz,nxy,nxyz , joff,koff ;
+   float val , xcm,ycm,zcm,sum ;
    byte *mask , *mmm ;
 
 ENTRY("mri_brainormalize") ;
@@ -130,7 +130,7 @@ ENTRY("mri_brainormalize") ;
    /* make a short copy */
 
    if( im->kind == MRI_short || im->kind == MRI_byte )
-     tim = mri_to_short(im) ;
+     tim = mri_to_short( 1.0 , im ) ;
    else
      tim = mri_to_short( 32767.0/val , im ) ;
 
@@ -209,3 +209,24 @@ ENTRY("mri_brainormalize") ;
 
    for( ii=0 ; ii < nxyz ; ii++ )
      if( mask[ii] == 0 ) sar[ii] = 0 ;
+   free(mask) ;
+
+   /* compute CM of masked image */
+
+   xcm = ycm = zcm = sum = 0.0 ;
+   for( kk=0 ; kk < nz ; kk++ ){
+     koff = kk*nxy ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       joff = koff + jj*nx ;
+       for( ii=0 ; ii < nx ; ii++ ){
+         val = (float)abs(sar[ii+joff]) ;
+         sum += val ;
+         xcm += val * ii ;
+         ycm += val * jj ;
+         zcm += val * kk ;
+       }
+     }
+   }
+   if( sum == 0.0 ){ mri_free(sim); RETURN(NULL); }
+   xcm = (xcm/sum) ;
+}
