@@ -99,19 +99,19 @@ int main (int argc,char *argv[])
           exit (1);
        }
 		
-	/* initialize Volume Parent and AfniHostName to nothing */
-	VolParName = NULL;
-	AfniHostName = NULL; 
-	
-	/* Allocate space for DO structure */
-	SUMAg_DOv = Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-	
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
+	
+	/* initialize Volume Parent and AfniHostName to nothing */
+	VolParName = NULL;
+	AfniHostName = NULL; 
+	
+	/* Allocate space for DO structure */
+	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 	
 	/* read in the surfaces */
 	kar = 1;
@@ -125,6 +125,7 @@ int main (int argc,char *argv[])
 		}
 		
 		if (!brk && (strcmp(argv[kar], "-dev") == 0)) {
+			fprintf(SUMA_STDOUT,"Warning %s: SUMA running in developer mode, some options may malfunction.\n", FuncName);
 			SUMAg_CF->Dev = YUP;
 			brk = YUP;
 		}

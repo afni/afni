@@ -1,5 +1,7 @@
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF; 
+
 /*! functions dealing with Drawable Object Manipulation */
 
 /*!
@@ -25,23 +27,25 @@ SUMA_INODE *SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_INODE *ToIN)
 {
 	static char FuncName[] = {"SUMA_CreateInodeLink"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (FromIN) {
 		fprintf (SUMA_STDERR,"Error %s: FromIN Inode is not NULL. \n\tFromIN pointer is left undisturbed.\n", FuncName);
-		return (FromIN);
+		SUMA_RETURN(FromIN);
 	}
 	if (!ToIN) {
 		fprintf (SUMA_STDERR,"Error %s: ToIN is NULL.\n\t Can't link to NULL, returning NULL.\n", FuncName);
-		return (NULL); 
+		SUMA_RETURN(NULL); 
 	}
 	
 	/* add a link to ToIN */
 	if (!SUMA_AddLink (ToIN)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AddLink.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN(NULL);
 	}
 	
 	/* now return the pointer to be linked to */
-	return (ToIN);
+	SUMA_RETURN(ToIN);
 
 }
 
@@ -58,13 +62,15 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 {
 	static char FuncName[] = {"SUMA_isInodeLink"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!IN) {
 		fprintf (SUMA_STDERR, "Warning %s: IN is null.\n", FuncName); 
-		return (NOPE);
+		SUMA_RETURN(NOPE);
 	} 
-	if (!strcmp(IN->ParentIDcode, HolderIDcode)) return (YUP);
+	if (!strcmp(IN->ParentIDcode, HolderIDcode)) SUMA_RETURN(YUP);
 		
-	return (NOPE);
+	SUMA_RETURN(NOPE);
 }
 
 /*! 
@@ -80,23 +86,26 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode) 
 {
 	static char FuncName[] = {"SUMA_BreakInodeLink"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!IN) {
 		fprintf (SUMA_STDERR, "Warning %s: IN is null, nothing to do.\n", FuncName); 
-		return (NULL);
+		SUMA_RETURN(NULL);
 	}
 	if (!SUMA_isInodeLink (IN, HolderIDcode)) {
 		fprintf (SUMA_STDERR, "Error %s: Inode IN is not a link. Nothing done.\n", FuncName);
-		return (IN);
+		SUMA_RETURN(IN);
 	} 
 	
 	/* release the link */
 	if (SUMA_ReleaseLink (IN) < 0) {
 		fprintf (SUMA_STDERR, "Error %s: IN has no links. Nothing done.\n", FuncName);
-		return (IN);
+		SUMA_RETURN(IN);
 	}
 	
 	/* OK, link released, not return NULL */
-	return (NULL);
+	SUMA_RETURN(NULL);
 }
 
 /*! 
@@ -113,14 +122,19 @@ SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
 int SUMA_ReleaseLink (SUMA_INODE * IN) 
 {
 	static char FuncName[]={"SUMA_ReleaseLink"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!IN) {
 		fprintf (SUMA_STDERR,"Error %s: Inode is null. Returning -1.\n", FuncName);
-		return (-1);
+		SUMA_RETURN(-1);
 	}
-	if (!IN->N_link) return (-1);
+	if (!IN->N_link) {
+		SUMA_RETURN(-1);
+	}
 	else {
 		IN->N_link--;
-		return (IN->N_link);
+		SUMA_RETURN(IN->N_link);
 	}
 }
 	
@@ -138,13 +152,16 @@ int SUMA_ReleaseLink (SUMA_INODE * IN)
 int SUMA_AddLink (SUMA_INODE * IN) 
 {
 	static char FuncName[]={"SUMA_AddLink"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!IN) {
 		fprintf (SUMA_STDERR,"Error %s: Inode is null.\n", FuncName);
 		
-		return (0);
+		SUMA_RETURN(0);
 	} else {
 		IN->N_link++;
-		return (IN->N_link);
+		SUMA_RETURN(IN->N_link);
 	}
 }
 
@@ -163,31 +180,36 @@ SUMA_INODE *SUMA_CreateInode (void *data, char *ID)
 	static char FuncName[]={"SUMA_CreateInode"};
 	SUMA_INODE *IN;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	IN = (SUMA_INODE *)malloc (sizeof(SUMA_INODE));
 	if (IN == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: failed to allocate for Inode.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN(NULL);
 	}
 	
 	IN->data = data;
 	strcpy (IN->ParentIDcode, ID);
 	IN->N_link = 0;
 	
-	return (IN);
+	SUMA_RETURN(IN);
 }
 
 /*!
 Create a Surface Object data structure 
 */
 
-SUMA_SurfaceObject *Alloc_SurfObject_Struct(int N)
+SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 {
+	static char FuncName[]={"SUMA_Alloc_SurfObject_Struct"};
 	SUMA_SurfaceObject *SO;
 	int i, j;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SO = (SUMA_SurfaceObject *)malloc(sizeof(SUMA_SurfaceObject)*N);
 	if (SO == NULL) {
-		SUMA_alloc_problem("Alloc_SurfObject_Struct: could not allocate memory for SO");
+		SUMA_alloc_problem("SUMA_Alloc_SurfObject_Struct: could not allocate memory for SO");
 	}
 	
 	for (i=0; i< N; ++i) {
@@ -213,77 +235,88 @@ SUMA_SurfaceObject *Alloc_SurfObject_Struct(int N)
 		}
 		SO[i].N_Overlays = 0;
 	}
-	return (SO);
-}/* Alloc_SurfObject_Struct */
+	SUMA_RETURN(SO);
+}/* SUMA_Alloc_SurfObject_Struct */
 
 /*!
 Create a Displayable Object data structure 
 */
-SUMA_DO *Alloc_DisplayObject_Struct (int N)
+SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N)
 {
+	static char FuncName[]={"SUMA_Alloc_DisplayObject_Struct"};
 	SUMA_DO *dov;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	dov = (SUMA_DO *)malloc(sizeof(SUMA_DO)*N);
 	if (dov == NULL) {
-		SUMA_alloc_problem("Alloc_DisplayObject_Struct: could not allocate memory for SO");
+		SUMA_alloc_problem("SUMA_Alloc_DisplayObject_Struct: could not allocate memory for SO");
 	}
-	return (dov);
-}/*Alloc_DisplayObject_Struct*/
+	SUMA_RETURN(dov);
+}/*SUMA_Alloc_DisplayObject_Struct*/
 
 /*!
 Free a Displayable Object data structure 
 */
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
 {
+	static char FuncName[]={"SUMA_Free_Displayable_Object"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	switch (dov->ObjectType) {
 		case SO_type:
 			if (!SUMA_Free_Surface_Object ((SUMA_SurfaceObject *)dov->OP)) {
-				fprintf(stderr,"Error SUMA_Free_Displayable_Object, could not free surface\n");
+				fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, could not free surface\n");
 			}
 			break;
 		case AO_type:
-			fprintf(stderr,"Error SUMA_Free_Displayable_Object, Not trained to free AO objects\n");
+			fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free AO objects\n");
 			break;
 		case GO_type:
-			fprintf(stderr,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
+			fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
 			break;
 	}	
 	if (dov) free (dov);
-	return (YUP);
+	SUMA_RETURN(YUP);
 }
 
 SUMA_Boolean SUMA_Free_Displayable_Object_Vect (SUMA_DO *dov, int N)
 {
+	static char FuncName[] = {"SUMA_Free_Displayable_Object_Vect"};
 	int i;
 	SUMA_Boolean Ret = YUP;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	for (i=0; i < N; ++i) {
 		if (&dov[i] != NULL) {
 			Ret = Ret * SUMA_Free_Displayable_Object (&dov[i]);
 		}
 	}
-	return(Ret);
+	SUMA_RETURN(Ret);
 
 }	
 /*!
 Add a displayable object to dov
 */
 SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType)
-	{
-		char FuncName[100];
-		sprintf(FuncName, "SUMA_AddDO");
-		
-		/* make sure you did not exceed allocated space */
-		if (*N_dov >= SUMA_MAX_DISPLAYABLE_OBJECTS) {
-			SUMA_error_message (FuncName, "Reached limit of DOv storage",0);
-			return(NOPE);
-		}
-		dov[*N_dov].OP = op;
-		dov[*N_dov].ObjectType = DO_Type;
-		dov[*N_dov].CoordType = DO_CoordType;
-		*N_dov = *N_dov+1;
-		return (YUP);
+{
+	static char FuncName[] = {"SUMA_AddDO"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	/* make sure you did not exceed allocated space */
+	if (*N_dov >= SUMA_MAX_DISPLAYABLE_OBJECTS) {
+		SUMA_error_message (FuncName, "Reached limit of DOv storage",0);
+		SUMA_RETURN(NOPE);
 	}
+	dov[*N_dov].OP = op;
+	dov[*N_dov].ObjectType = DO_Type;
+	dov[*N_dov].CoordType = DO_CoordType;
+	*N_dov = *N_dov+1;
+	SUMA_RETURN(YUP);
+}
 
 /*!
 Register a DO with surface viewer ShowDO vector 
@@ -296,12 +329,14 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 	int i;
 	static char FuncName[]={"SUMA_RegisterDO"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* check to see if dov_id exists */
 	i = 0;
 	while (i < cSV->N_DO) {
 		if (cSV->ShowDO[i] == dov_id) {
 			/* found do nothing, return */
-		return (YUP);
+		SUMA_RETURN(YUP);
 		}
 		++i;
 	}
@@ -316,7 +351,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 		fprintf(SUMA_STDERR,"\n");
 	#endif
 
-	return (YUP); 
+	SUMA_RETURN(YUP); 
 }
 /*!
 remove DO with I.D. dov_id from ShowDO list of that current viewer
@@ -328,6 +363,8 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 	int i;
 	static char FuncName[]={"SUMA_UnRegisterDO"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* check to see if dov_id exists */
 	i = 0;
 	while (i < cSV->N_DO) {
@@ -347,7 +384,7 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 				#endif
 
 			
-			return (YUP);
+			SUMA_RETURN(YUP);
 		}
 		++i;
 	}
@@ -361,7 +398,7 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 		fprintf(SUMA_STDERR,"\n");
 	#endif
 	
-	return (YUP); 
+	SUMA_RETURN(YUP); 
 }
 
 /*!
@@ -371,7 +408,10 @@ void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out)
 {
 	int i;
 	SUMA_SurfaceObject *so_op;
+	static char FuncName[]={"SUMA_Show_DOv"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Out == NULL) Out = stdout;
 	fprintf(Out,"\nDOv contents (%d elements):\n", N_dov);
 	for (i=0; i < N_dov; ++i) {
@@ -405,7 +445,7 @@ void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out)
 				break;
 		}
 	}
-	return;
+	SUMA_RETURNe;
 }
 
 /*!
@@ -416,13 +456,17 @@ N contains the number of elements found
 int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 {
 	int *do_id, i;
+	static char FuncName[]={"SUMA_GetDO_Type"};
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	*N = 0;
 
 	do_id = (int *)calloc (sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 
 	if (do_id == NULL) {
 		fprintf(stderr,"Error SUMA_GetDO_Type: Could not allocate for do_id\n");
-		return (NULL);
+		SUMA_RETURN(NULL);
 	}
 		i = 0;
 		while (i < N_dov) {
@@ -432,6 +476,6 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 			}
 		++i;
 		}
-		return(do_id);
+		SUMA_RETURN(do_id);
 }
 

@@ -57,6 +57,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	float jnkf, **NodeList;
 	char c;
 	static char FuncName[]={"SUMA_FreeSurfer_Read"};
+	SUMA_Boolean LocalHead = NOPE;
 	   
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {

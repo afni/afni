@@ -1,6 +1,9 @@
 /*! Dealings with volume data */
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF; 
+
+
 THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO, THD_fvec3 iv );
 THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO, THD_ivec3 iv );
 THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO , THD_fvec3 fv );
@@ -16,16 +19,24 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO , THD_fvec3 dicv );
 */
 SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
 {
+	static char FuncName[]={"SUMA_Alloc_VolPar"};
 	SUMA_VOLPAR *VP;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	VP = (SUMA_VOLPAR *)malloc(sizeof(SUMA_VOLPAR));
 	if (VP == NULL) {
 		fprintf(SUMA_STDERR,"Error SUMA_Alloc_VolPar: Failed to allocate for VolPar\n");
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
-	return(VP);
+	SUMA_RETURN(VP);
 }
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
 {
+	static char FuncName[]={"SUMA_Free_VolPar"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (VP->prefix != NULL) free (VP->prefix);
 	if (VP->filecode != NULL) free (VP->filecode);
 	if (VP->dirname != NULL) free (VP->dirname);
@@ -35,32 +46,32 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
 	if (VP->VOLREG_CENTER_BASE != NULL) free (VP->VOLREG_CENTER_BASE);
 	if (VP->VOLREG_MATVEC != NULL) free (VP->VOLREG_MATVEC);
 	if (VP != NULL) free (VP);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 {
 	ATR_float *atr;
-	char FuncName[100];
+	static char FuncName[]={"SUMA_VolPar_Attr"};
 	SUMA_VOLPAR *VP;
 	THD_3dim_dataset *dset;
 	int ii;
 	MCW_idcode idcode;
-	
-	sprintf(FuncName,"SUMA_VolPar_Attr");
-	
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* read the header of the parent volume */
 	dset = THD_open_dataset(volparent_name);
 	if (dset == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Could not read %s\n", FuncName, volparent_name);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* allocate for VP */
 	VP = SUMA_Alloc_VolPar();
 	if (VP == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Alloc_VolPar\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* retain pertinent info */
@@ -87,7 +98,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	if (VP->prefix == NULL || VP->filecode == NULL || VP->idcode_date == NULL || VP->dirname == NULL || VP->idcode_str == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for strings. Kill me, please.\n", FuncName);
 		SUMA_Free_VolPar(VP);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	VP->prefix = strcpy(VP->prefix, DSET_PREFIX(dset));
 	VP->filecode = strcpy(VP->filecode, DSET_FILECODE(dset));
@@ -148,7 +159,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 		}
 	}
 
-	return (VP);
+	SUMA_RETURN (VP);
 }
 
 /*!
@@ -156,10 +167,14 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 */
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 {
+	static char FuncName[]={"SUMA_Show_VolPar"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Out == NULL) Out = SUMA_STDOUT;
 	if (VP == NULL) { 
 		fprintf(Out,"\nVP is NULL\n");
-		return;
+		SUMA_RETURNe;
 	} 
 	
 	fprintf(Out,"\nVP contents:\n");
@@ -195,7 +210,7 @@ void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 		VP->VOLREG_CENTER_BASE[0], VP->VOLREG_CENTER_BASE[1], VP->VOLREG_CENTER_BASE[2]); 
 	else fprintf(Out,"VP->VOLREG_CENTER_BASE = NULL\n");
 	
-	return;
+	SUMA_RETURNe;
 		
 }
 
@@ -204,7 +219,8 @@ void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 */
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 {
-	char FuncName[100], orcode[3];
+	static char FuncName[]={"SUMA_Align_to_VolPar"};
+	char  orcode[3];
 	float xx, yy, zz;
 	THD_coorder * cord_surf, *cord_RAI;
 	int i;
@@ -212,14 +228,14 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	SUMA_FreeSurfer_struct *FS;
 	SUMA_Boolean Bad=YUP;
 	
-	sprintf(FuncName,"SUMA_Align_to_VolPar");
-	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* allocate for cord structure */
 	cord_surf = (THD_coorder *)malloc(sizeof(THD_coorder));
 	cord_RAI = (THD_coorder *)malloc(sizeof(THD_coorder));
 	if (cord_surf == NULL || cord_RAI == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: failed to allocate for cord\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* do the dance to get cord for RAI */
@@ -264,7 +280,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 			break;
 		default:
 			fprintf(SUMA_STDERR,"Error %s: Unknown SO->FileType\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 	}
 	
@@ -335,7 +351,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	} else
 		SO->VOLREG_APPLIED = NOPE;
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! The following functions are adaptations from thd_coords.c 
@@ -368,12 +384,15 @@ Stolen Comment:
 THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO, 
                               THD_fvec3 iv )
 {
+	static char FuncName[]={"SUMA_THD_3dfind_to_3dmm"};
    THD_fvec3     fv ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    fv.xyz[0] = SO->VolPar->xorg + iv.xyz[0] * SO->VolPar->dx ;
    fv.xyz[1] = SO->VolPar->yorg + iv.xyz[1] * SO->VolPar->dy ;
    fv.xyz[2] = SO->VolPar->zorg + iv.xyz[2] * SO->VolPar->dz ;
-   return fv ;
+   SUMA_RETURN(fv) ;
 }
 
 /*!------------------------------------------------------------------*/
@@ -381,12 +400,15 @@ THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO,
 THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO,
                             		 THD_ivec3 iv )
 {
-   THD_fvec3     fv ;
+	static char FuncName[]={"SUMA_THD_3dind_to_3dmm"};
+	THD_fvec3     fv ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    fv.xyz[0] = SO->VolPar->xorg + iv.ijk[0] * SO->VolPar->dx ;
    fv.xyz[1] = SO->VolPar->yorg + iv.ijk[1] * SO->VolPar->dy ;
    fv.xyz[2] = SO->VolPar->zorg + iv.ijk[2] * SO->VolPar->dz ;
-   return fv ;
+   SUMA_RETURN(fv) ;
 }
 
 /*!--------------------------------------------------------------------*/
@@ -394,7 +416,10 @@ THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO,
 THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO ,
                               THD_fvec3 fv )
 {
+	static char FuncName[]={"SUMA_THD_3dmm_to_3dfind"};
    THD_fvec3     iv ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 
    iv.xyz[0] = (fv.xyz[0] - SO->VolPar->xorg) / SO->VolPar->dx ;
@@ -410,7 +435,7 @@ THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO ,
         if( iv.xyz[2] < 0            ) iv.xyz[2] = 0 ;
    else if( iv.xyz[2] > SO->VolPar->nz-1 ) iv.xyz[2] = SO->VolPar->nz-1 ;
 
-   return iv ;
+   SUMA_RETURN(iv) ;
 }
 
 /*!--------------------------------------------------------------------*/
@@ -418,7 +443,10 @@ THD_fvec3 SUMA_THD_3dmm_to_3dfind( SUMA_SurfaceObject *SO ,
 THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
                              THD_fvec3 fv )
 {
+	static char FuncName[]={"SUMA_THD_3dmm_to_3dind"};
    THD_ivec3     iv ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    iv.ijk[0] = (fv.xyz[0] - SO->VolPar->xorg) / SO->VolPar->dx + 0.499 ;
    iv.ijk[1] = (fv.xyz[1] - SO->VolPar->yorg) / SO->VolPar->dy + 0.499 ;
@@ -433,7 +461,7 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
         if( iv.ijk[2] < 0            ) iv.ijk[2] = 0 ;
    else if( iv.ijk[2] > SO->VolPar->nz-1 ) iv.ijk[2] = SO->VolPar->nz-1 ;
 
-   return iv ;
+   SUMA_RETURN(iv) ;
 }
 
 /*!---------------------------------------------------------------------
@@ -447,8 +475,11 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
 THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
                               THD_fvec3 imv )
 {
-   THD_fvec3 dicv ;
+	static char FuncName[]={"SUMA_THD_3dmm_to_dicomm"};   
+	THD_fvec3 dicv ;
    float xim,yim,zim , xdic = 0.0, ydic = 0.0, zdic = 0.0 ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    xim = imv.xyz[0] ; yim = imv.xyz[1] ; zim = imv.xyz[2] ;
 
@@ -492,7 +523,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
    }
 
    dicv.xyz[0] = xdic ; dicv.xyz[1] = ydic ; dicv.xyz[2] = zdic ;
-   return dicv ;
+   SUMA_RETURN(dicv) ;
 }
 
 /*!---------------------------------------------------------------------
@@ -502,8 +533,11 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
 THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
                               THD_fvec3 dicv )
 {
-   THD_fvec3 imv ;
+   static char FuncName[]={"SUMA_THD_dicomm_to_3dmm"};
+	THD_fvec3 imv ;
    float xim,yim,zim , xdic,ydic,zdic ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    xdic = dicv.xyz[0] ; ydic = dicv.xyz[1] ; zdic = dicv.xyz[2] ;
 
@@ -547,6 +581,6 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
    }
 
    imv.xyz[0] = xim ; imv.xyz[1] = yim ; imv.xyz[2] = zim ;
-   return imv ;
+   SUMA_RETURN(imv) ;
 }
 
