@@ -84,6 +84,10 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
    
    SUMA_ENTRY;
    
+   if (!F_name) {
+      SUMA_S_Err("Null filename!");
+      SUMA_RETURN(NOPE);
+   }
    
    switch (SO_FT) {
       case SUMA_PLY:
