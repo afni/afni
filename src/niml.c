@@ -360,13 +360,17 @@ static char * quotize_string( char *str )
    lout = 4 ;                      /* length of output */
    for( ii=0 ; ii < lstr ; ii++ ){ /* count characters for output */
       switch( str[ii] ){
-         case '&': lout += 5 ; break ;  /* replace '&' with "&amp;" */
+         case '&':  lout += 5 ; break ;  /* replace '&' with "&amp;" */
 
          case '<':
-         case '>': lout += 4 ; break ;  /* replace '<' with "&lt;" */
+         case '>':  lout += 4 ; break ;  /* replace '<' with "&lt;" */
 
          case '"' :
-         case '\'': lout +=6 ; break ;  /* replace '"' with "&quot;" */
+         case '\'': lout += 6 ; break ;  /* replace '"' with "&quot;" */
+
+         case CR:
+         case LF:   lout += 6 ; break ;  /* replace CR with "&#x0d;"
+                                                    LF with "&#x0a;" */
 
          default: lout++ ; break ;      /* copy all other chars */
       }
@@ -385,6 +389,9 @@ static char * quotize_string( char *str )
          case '"' : memcpy(out+jj,"&quot;",6) ; jj+=6 ; break ;
 
          case '\'': memcpy(out+jj,"&apos;",6) ; jj+=6 ; break ;
+
+         case CR:   memcpy(out+jj,"&#x0d;",5) ; jj+=6 ; break ;  /* 15 Oct 2002 */
+         case LF:   memcpy(out+jj,"&#x0a;",5) ; jj+=6 ; break ;
       }
    }
    out[jj++] = '"'  ;  /* closing quote mark */
@@ -2318,8 +2325,8 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
       if( id >= ndat ) break ;                      /* end of input ? */
 
       if( dat[id] != '=' ){                   /* no '=' means no RHS */
-         (hs->nattr)++ ;
-         continue ;                           /* so get next attribute */
+         (hs->nattr)++ ;                      /* count the LHS and */
+         continue ;                           /* go get next attribute */
       }
 
       id++ ;                                        /* skip the '=' */
@@ -4317,6 +4324,7 @@ static int tcp_connect( char * host , int port )
 
    /** set socket options (no delays, large buffers) **/
 
+#if 0
    { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
      if( eee == NULL || toupper(*eee) != 'Y' ){
        /** disable the Nagle algorithm **/
@@ -4324,6 +4332,7 @@ static int tcp_connect( char * host , int port )
        setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
      }
    }
+#endif
 
    /* but large buffers are good */
 
@@ -4385,6 +4394,7 @@ static int tcp_listen( int port )
 
    /** set socket options (no delays, large buffers) **/
 
+#if 0
    { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
      if( eee == NULL || toupper(*eee) != 'Y' ){
        /** disable the Nagle algorithm **/
@@ -4392,6 +4402,7 @@ static int tcp_listen( int port )
        setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
      }
    }
+#endif
 
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
@@ -5766,7 +5777,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 int NI_stream_reopen( NI_stream_type *ns , char *nname )
 {
    NI_stream_type *nsnew ;
-   int typ_new=0 , port_new , jj,kk ;
+   int typ_new=0 , port_new=0 , jj,kk ;
    char msg[1024] ;
 
    /* check inputs for sanity */
@@ -6261,6 +6272,16 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
    }
 
    return -1 ;  /* should never be reached */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Send a string (without the NUL byte) down the NI_stream. [15 Oct 2002]
+------------------------------------------------------------------------------*/
+
+INLINE int NI_stream_writestring( NI_stream_type *ns , char *str )
+{
+   if( str == NULL ) return -1 ;
+   return NI_stream_write( ns , str , strlen(str) ) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -7607,6 +7628,23 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 #endif
 
 /*------------------------------------------------------------------------*/
+/*! Mode for writing attributes. */
+
+static int att_mode = NI_ATTMODE_NORMAL ;
+
+/*------------------------------------------------------------------------*/
+/*! Set the mode for writing attributes:
+     - NI_ATTMODE_NORMAL =>  lhs="rhs"
+     - NI_ATTMODE_NORMAL =>  lhs = "rhs"  [one per line]
+--------------------------------------------------------------------------*/
+
+void NI_set_attribute_mode( int amode )
+{
+   if( amode > 0 && amode <= NI_ATTMODE_LAST ) att_mode = amode ;
+   else                                        att_mode = NI_ATTMODE_NORMAL ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Write an element (data or group) to a stream.
     Return value is number of bytes written to the stream.
     If return is -1, something bad happened.  You should check
@@ -7625,6 +7663,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
    char *bbuf , *cbuf ;  /* base64 stuff */
    int   bb=0 ,  cc=0 ;
+
+   char *att_prefix , *att_equals , *att_trail ;
 
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
@@ -7658,6 +7698,15 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
    /*------------------ write a group element ------------------*/
 
+   att_prefix = (att_mode == NI_ATTMODE_SPACED) ? "\n   "
+                                                : " "    ;
+
+   att_equals = (att_mode == NI_ATTMODE_SPACED) ? " = "
+                                                : "="    ;
+
+   att_trail  = (att_mode == NI_ATTMODE_SPACED) ? "\n"
+                                                : " "    ;
+
    if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
 
@@ -7671,27 +7720,29 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
 
          jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_write( ns , " " , 1 ) ;
+         nout = NI_stream_writestring( ns , att_prefix ) ;
          ADDOUT ;
          if( NI_is_name(ngr->attr_lhs[ii]) ){
            nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
          } else {
            att = quotize_string( ngr->attr_lhs[ii] ) ;
-           nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+           nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
          }
          ADDOUT ;
 
          jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_write( ns , "=" , 1 ) ;
+         nout = NI_stream_writestring( ns , att_equals ) ;
          ADDOUT ;
          att = quotize_string( ngr->attr_rhs[ii] ) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+         nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
          ADDOUT ;
       }
 
       /*- close header -*/
 
-      nout = NI_stream_write( ns , ">\n" , 2 ) ;
+      nout = NI_stream_writestring( ns , att_trail ) ;
+      ADDOUT ;
+      nout = NI_stream_writestring( ns , ">\n" ) ;
       ADDOUT ;
 
       /*- write the group parts -*/
@@ -7703,7 +7754,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /*- group trailer -*/
 
-      nout = NI_stream_write( ns , "</ni_group>\n" , 12 ) ;
+      nout = NI_stream_writestring( ns , "</ni_group>\n" ) ;
       ADDOUT ;
 
       return ntot ;
@@ -7746,7 +7797,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       /* write start of header "<name" */
 
       strcpy(att,"<") ; strcat(att,nel->name) ;
-      nout = NI_stream_write( ns , att , strlen(att) ) ;
+      nout = NI_stream_writestring( ns , att ) ;
       ADDOUT ;
 
       /*- write "special" attributes, if not an empty element -*/
@@ -7768,13 +7819,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
            case NI_BINARY_MODE:
            case NI_BASE64_MODE:
-             sprintf(att," ni_form=\"%s.%s\"" ,
+             sprintf(att,"%sni_form%s\"%s.%s\"" ,
+                    att_prefix , att_equals ,
                     (tmode == NI_BINARY_MODE)      ? "binary"   : "base64"  ,
                     (NI_byteorder()==NI_LSB_FIRST) ? "lsbfirst" : "msbfirst" );
             break ;
          }
          if( *att != '\0' ){
-            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            nout = NI_stream_writestring( ns , att ) ;
             ADDOUT ;
          }
 
@@ -7785,7 +7837,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
            /* ni_type */
 
-           strcpy(att," ni_type=\"") ;
+           sprintf(att,"%sni_type%s\"" , att_prefix , att_equals ) ;
            for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
             if( nel->vec_typ[ii] != ll ){  /* not the last type */
                if( ll >= 0 ){              /* write the last type out now */
@@ -7805,7 +7857,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
            if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
            else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
 
-           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           nout = NI_stream_writestring( ns , att ) ;
            ADDOUT ;
          }
 
@@ -7818,27 +7870,27 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
            /* ni_dimen */
 
-           strcpy(att," ni_dimen=") ;
+           sprintf(att,"%sni_dimen%s" , att_prefix , att_equals ) ;
            qtt = quotize_int_vector( nel->vec_rank ,
                                      nel->vec_axis_len , ',' ) ;
            strcat(att,qtt) ; NI_free(qtt) ;
-           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           nout = NI_stream_writestring( ns , att ) ;
            ADDOUT ;
 
 #if 0
            /* extras: ni_veclen and ni_vecnum attributes */
 
-           sprintf(att," ni_veclen=\"%d\"",nel->vec_len) ;
-           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           sprintf(att,"%sni_veclen%s\"%d\"", att_prefix,att_equals,nel->vec_len) ;
+           nout = NI_stream_writestring( ns , att ) ;
            ADDOUT ;
 
-           sprintf(att," ni_vecnum=\"%d\"",nel->vec_num) ;
-           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           sprintf(att,"%sni_vecnum%s\"%d\"", att_prefix,att_equals,nel->vec_num) ;
+           nout = NI_stream_writestring( ns , att ) ;
            ADDOUT ;
 #endif
          }
 
-         /* ni_delta */
+         /* ni_delta ??? */
 
          if( nel->vec_axis_delta != NULL ){
             strcpy(att," ni_delta=") ;

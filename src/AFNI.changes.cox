@@ -4003,3 +4003,6 @@
 10 Oct 2002
  * Modified thd_analyzeread.c to correct signs of origin when orientation has
      some negative axes.
+
+16 Oct 2002
+ * Modified plug_drawdset.c to add '2D Circle' and '3D Sphere' drawing modes.

@@ -269,6 +269,14 @@ typedef NI_stream_type *NI_stream ;
 #define NI_LSB_FIRST    1
 #define NI_MSB_FIRST    2
 
+/* Attribute writing modes [15 Oct 2002] */
+
+#define NI_ATTMODE_NORMAL 0
+#define NI_ATTMODE_SPACED 1
+#define NI_ATTMODE_LAST   1
+
+extern void NI_set_attribute_mode( int ) ;
+
 /*****---------- Hash table stuff [26 Aug 2002] ----------*****/
 
 typedef struct {
@@ -338,6 +346,7 @@ extern void NI_stream_close( NI_stream_type * ) ;
 extern int NI_stream_readcheck( NI_stream_type *, int  ) ;
 extern int NI_stream_writecheck( NI_stream_type *, int  ) ;
 extern int NI_stream_write( NI_stream_type *, char *, int ) ;
+extern int NI_stream_writestring( NI_stream_type *, char * ) ;
 extern int NI_stream_read( NI_stream_type *, char *, int ) ;
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 extern void NI_sleep( int ) ;
