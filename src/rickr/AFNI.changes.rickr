@@ -316,3 +316,6 @@
 	  '-surf_xyz_1D', '-sdata_1D', '-data_expr', '-datum', '-dnode',
 	  '-dvoxel', '-f_index', '-f_p1_fr', '-f_pn_fr', '-f_p1_mm', '-f_pn_mm'
 
+06 October 2003:
+  * modified 2dImReg.c: is nsl == 0, use nzz for num_slices
+
