@@ -10668,7 +10668,7 @@ static pqpair chi_s2pq( double xx , double dof )
    pqpair pq={0.0,1.0} ;
 
    if( xx <= 0.0 || dof <= 0.0 ) return pq ;
-   return chisq_s2pq( sqrt(xx) , dof ) ;
+   return chisq_s2pq( xx*xx , dof ) ;
 }
 
 /*------------------------------*/
