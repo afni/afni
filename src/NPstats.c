@@ -23,6 +23,9 @@
            separate file ranks.c.
   Date:    31 March 2000
 
+  Mod:     Modified routines write_afni_fizt and write_afni_fict so that 
+           all output subbricks will now have the scaled short integer format.
+  Date:    14 March 2002
 */
 
 
@@ -257,7 +260,6 @@ void write_afni_fizt (int argc, char ** argv, NP_options * option_data,
   int ii;                             /* voxel index */
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
-  int iv;                             /* sub-brick index */ 
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
@@ -284,16 +286,9 @@ void write_afni_fizt (int argc, char ** argv, NP_options * option_data,
   new_dset = EDIT_empty_copy( dset ) ;
   
   
-  iv = DSET_PRINCIPAL_VALUE(dset) ;
-  if( option_data->datum >= 0 ){
-    output_datum = option_data->datum ;
-  } else {
-    output_datum = DSET_BRICK_TYPE(dset,iv) ;
-    if( output_datum == MRI_byte ) output_datum = MRI_short ;
-  }
-  
-  
+  output_datum = MRI_short ;
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
+
   
   func_type = FUNC_ZT_TYPE;
   
@@ -403,7 +398,6 @@ void write_afni_fict (int argc, char ** argv, NP_options * option_data,
   int ii;                             /* voxel index */
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
-  int iv;                             /* sub-brick index */ 
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
@@ -430,16 +424,9 @@ void write_afni_fict (int argc, char ** argv, NP_options * option_data,
   new_dset = EDIT_empty_copy( dset ) ;
   
   
-  iv = DSET_PRINCIPAL_VALUE(dset) ;
-  if( option_data->datum >= 0 ){
-    output_datum = option_data->datum ;
-  } else {
-    output_datum = DSET_BRICK_TYPE(dset,iv) ;
-    if( output_datum == MRI_byte ) output_datum = MRI_short ;
-  }
-  
-  
+  output_datum = MRI_short ;
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
+
   
   func_type = FUNC_CT_TYPE;
   

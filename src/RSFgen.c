@@ -40,6 +40,8 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Made -nblock option compatible with the Markov Chain options.
+  Date:    06 March 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -47,7 +49,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "15 August 2001"   /* date of latest program revision */
+#define PROGRAM_LATEST "06 March 2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -118,6 +120,8 @@ void display_help_menu()
     "RSFgen                                                                 \n"
     "-nt n            n = length of time series                             \n"
     "-num_stimts p    p = number of input stimuli (experimental conditions) \n"
+    "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
+    "                     (default: k = 1)                                  \n"
     "[-seed s]        s = random number seed                                \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
@@ -128,8 +132,6 @@ void display_help_menu()
     "                                                                       \n"
     "Random Permutation options:                                            \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
-    "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
-    "                     (default: k = 1)                                  \n"
     "[-pseed s]       s = stim label permutation random number seed         \n"
     "                                     p                                 \n"
     "                 Note: Require n >= Sum (r[i] * k[i])                  \n"
@@ -358,6 +360,8 @@ void get_options
     {
       printf ("TPM file      = %s \n", tpm_file);
       printf ("pzero         = %f \n", pzero);
+      for (i = 0;  i < num_stimts;  i++)
+	printf ("nblock[%d] = %d \n", i+1, nblock[i]);
     }
   else
     for (i = 0;  i < num_stimts;  i++)
@@ -422,7 +426,7 @@ void initialize
 void markov_array (int * design)
 
 {
-  int it, is, isprev;
+  int it, is, id, isprev;
   float prob, cumprob;
   matrix tpm;
   char message[THD_MAX_NAME];  /* error message */
@@ -464,7 +468,7 @@ void markov_array (int * design)
   
 
   /*----- Initialize the experimental design array -----*/
-  for (it = 0;  it < nt;  it++)
+  for (it = 0;  it < NT;  it++)
     design[it] = 0;
 
 
@@ -474,26 +478,33 @@ void markov_array (int * design)
 
   /*----- Generate Markov process -----*/
   isprev = (int) (rand_uniform(0.0,1.0)*num_stimts);
-  for (it = 0;  it < nt;  it++)
+  it = 0;  id = 0;
+  while (it < NT)
     {
       if ((pzero > 0.0) && (rand_uniform(0.0,1.0) < pzero))
-	design[it] = 0;
+	{
+	  design[id] = 0;
+	  id++;  it++;
+	} 
       else
 	{
 	  prob = rand_uniform(0.0,1.0);
 	  cumprob = 0.0;
 	  for (is = 0;  is < num_stimts;  is++)
-	  {
-	    cumprob += tpm.elts[isprev][is];
-	    if (prob <= cumprob)
-	      {
-		design[it] = is+1;
-		isprev = is;
-		break;
-	      }
-	  }
+	    {
+	      cumprob += tpm.elts[isprev][is];
+	      if (prob <= cumprob)
+		{
+		  design[id] = is+1;
+		  isprev = is;
+		  id++;  it += nblock[is];
+		  break;
+		}
+	    }
 	}
     }
+
+  nt = id;
 
 
   matrix_destroy (&tpm);
@@ -614,7 +625,7 @@ void expand_array (int * darray, int * earray)
   int i, j, k, m;
 
   j = 0;
-  for (i = 0;  i < nt;  i++)
+  for (i = 0;  i < nt, j < NT;  i++)
     {
       m = darray[i];
 
@@ -629,6 +640,7 @@ void expand_array (int * darray, int * earray)
 	    {
 	      earray[j] = m;
 	      j++;
+	      if (j >= NT)  break;
 	    }  
 	}
     }
@@ -826,21 +838,21 @@ int main
       shuffle_array (darray);
       sprint_array ("\nShuffled array: ", darray, nt);
 
-  
-      if (expand)
-	{
-	  /*----- Expand the array for block type designs -----*/
-	  expand_array (darray, earray);
-	  sprint_array ("\nExpanded array: ", earray, NT);
-	}
-
     }
 
+  
+  /*----- Expand the array for block type designs -----*/
+  if (expand)
+    {
+      expand_array (darray, earray);
+      sprint_array ("\nExpanded array: ", earray, NT);
+    }
+  
 
   /*----- Output results -----*/
   if (prefix != NULL)  
     {
-      if (markov || (! expand))
+      if (! expand)
 	write_results (darray);
       else
 	write_results (earray);
@@ -850,7 +862,7 @@ int main
   /*----- Deallocate memory -----*/
   if (darray != NULL)  { free (darray); darray = NULL; }
   if (earray != NULL)  { free (earray); earray = NULL; }
-
+  
   exit(0);
 }
 

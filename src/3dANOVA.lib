@@ -44,6 +44,9 @@
             deallocation for option_data->first_dataset.
    Date:    01 August 2001
 
+   Mod:     Modified routine write_afni_data so that all output subbricks 
+            will now have the scaled short integer format.
+   Date:    14 March 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -538,7 +541,6 @@ void write_afni_data (anova_options * option_data,  char * filename,
   int ii;                             /* voxel index */
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
-  int iv;                             /* sub-brick index */ 
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
@@ -575,15 +577,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
      tross_Append_History ( new_dset, label);
 
   
-  iv = DSET_PRINCIPAL_VALUE(dset) ;
-  if( option_data->datum >= 0 ){
-    output_datum = option_data->datum ;
-  } else {
-    output_datum = DSET_BRICK_TYPE(dset,iv) ;
-    if( output_datum == MRI_byte ) output_datum = MRI_short ;
-  }
-  
-  
+  output_datum = MRI_short ;
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
   
   if (dendof == 0) func_type = FUNC_TT_TYPE;
