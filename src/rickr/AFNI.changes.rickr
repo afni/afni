@@ -734,6 +734,7 @@
     - prepare for sending data to suma (but must still define new NIML type)
       can get data and global threshold from vol2surf
     - for users, try to track actual LDP label in full_label_ldp
+    - allow absolute thresholding in thd_mask_from_brick()
   * modified plug_vol2surf.c
     - make sure the surface pairs are actually different
     - make sure surfaces have the same number of nodes
@@ -741,6 +742,7 @@
     - always pass along debug/dnode
   * modified afni_vol2surf.c:AFNI_vol2surf_func_overlay():
     - pass Rdata and Rthr pointers, to optionally return data and thresh
+    - require absolute thresholding for vol2surf mask
   * modified afni.h
     - updated AFNI_vol2surf_func_overlay() prototype
   * modified vol2surf.c
