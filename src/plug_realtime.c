@@ -35,6 +35,8 @@
   system at the Medical College of Wisconsin.
 ************************************************************************/
 
+/*** 27 Jun 2003: added BYTEORDER command for automatic byte swapping [rickr] */
+
 /*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls ***/
 
 /**************************************************************************/
@@ -115,6 +117,7 @@ typedef struct {
    int   zorder_lock ;            /* 22 Feb 1999: lock zorder value */
    int   nzseq , zseq[NZMAX] ;    /* slice input order */
    int   datum ;                  /* a MRI_type code from mrilib.h */
+   int   swap_on_read ;           /* flag: swap bytes?   26 Jun 2003 [rickr] */
 
    int   nbuf ;                   /* current buffer size */
    char  buf[RT_NBUF] ;           /* buffer for reading command strings */
@@ -1425,6 +1428,8 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->zorder_lock = 0 ;              /* 22 Feb 1999 */
 #endif
 
+   rtin->swap_on_read = 0 ;  /* wait for BYTEORDER     26 Jun 2003 [rickr] */
+
    rtin->nbuf   = 0    ;     /* no input buffer data yet */
    rtin->imsize = 0 ;        /* don't know how many bytes/image yet */
    rtin->bufar  = NULL ;     /* no input image buffer yet */
@@ -1910,6 +1915,30 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: datum code = %d\n",rtin->datum) ;
          VMCHECK ;
 
+      } else if( STARTER("BYTEORDER") ){    /* 27 Jun 2003:           [rickr] */
+         int bo = 0 ;
+	 char tstr[10] = "\0" ;
+	 sscanf( buf, "BYTEORDER %9s", tstr ) ;
+
+	 /* first, note the incoming endian */
+	 if      ( strncmp(tstr,"LSB_FIRST",9) == 0 ) bo = LSB_FIRST ;
+	 else if ( strncmp(tstr,"MSB_FIRST",9) == 0 ) bo = MSB_FIRST ;
+	 else
+	     BADNEWS ;
+
+	 /* if different from the local endian, we will swap bytes */
+	 if ( bo != 0 ) {
+	    int local_bo, one = 1;
+	    local_bo = (*(char *)&one == 1) ? LSB_FIRST : MSB_FIRST ;
+
+	    /* if we are informed, and the orders differ, we will swap */
+	    if ( bo != local_bo )
+		rtin->swap_on_read = 1 ;
+	 }
+
+	 if( verbose > 1 )
+	    fprintf(stderr,"RT: BYTEORDER string = '%s', swap_on_read = %d\n",
+		    BYTE_ORDER_STRING(bo), rtin->swap_on_read) ;
       } else if( STARTER("LOCK_ZORDER") ){  /* 22 Feb 1999:                    */
          rtin->zorder_lock = 1 ;            /* allow program to 'lock' zorder, */
                                             /* so that later changes are       */
@@ -2030,6 +2059,20 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          rtin->imsize = rtin->nxx * rtin->nyy * n1 ;
       else if( rtin->nzz > 0 )
          rtin->imsize = rtin->nxx * rtin->nyy * rtin->nzz * n1 ;
+   }
+
+   /* validate data type when swapping */
+   if ( rtin->swap_on_read == 1 ) {
+
+      if( (rtin->datum != MRI_short) &&		/* if the type is not okay, */
+	  (rtin->datum != MRI_int)   &&         /* then turn off swapping   */
+	  (rtin->datum != MRI_float) )
+      {
+	 if( rtin->datum != MRI_byte )		/* don't complain about bytes */
+	     fprintf(stderr,"RT: BYTEORDER applies only to byte, short, "
+			    "int or float\n");
+         rtin->swap_on_read = 0;
+      }
    }
 
    /** return the number of characters processed **/
@@ -2563,6 +2606,16 @@ void RT_read_image( RT_input * rtin , char * im )
 
    if( memcmp(im,COMMAND_MARKER,COMMAND_MARKER_LENGTH) == 0 )
      rtin->marked_for_death = 1 ;
+   else {
+      /* we have a complete image, check for byte swapping */
+      if ( rtin->swap_on_read != 0 ) {
+         if( rtin->datum == MRI_short )
+            mri_swap2( rtin->imsize / 2, (short *)im );
+	 else
+            mri_swap4( rtin->imsize / 4, (int *)im );
+      }
+   }
+
 
    return ;
 }

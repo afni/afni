@@ -1,8 +1,12 @@
 
-#define IFM_VERSION "version 2.7 (June 25, 2003)"
+#define IFM_VERSION "version 2.8 (June 27, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.8  June 27. 2003
+ *   - BYTEORDER is now operational in plug_realtime
+ *   - implemented -rev_byte_order option
  *
  * 2.7  June 25. 2003
  *   - added axes offsets (see xorg and realtime.c: XYZFIRST)
@@ -69,7 +73,6 @@
  * todo:
  *
  * - add -full_prefix option
- * - update plug_realtime for BYTEORDER command
  *----------------------------------------------------------------------
 */
 
@@ -2486,7 +2489,7 @@ static int alloc_x_im( im_store_t * is, int bytes )
  * Determine the byte order of the image.
  *
  * Note our byte order (LSB_FIRST or MSB_FIRST).
- * If gex.swap is set, reverse it.
+ * If gex.swap is set, reverse it.  If user wants opposite, reverse it.
  *
  * return   0 : success
  *         -1 : on error
@@ -2510,9 +2513,9 @@ static int check_im_byte_order( int * order, vol_t * v, param_t * p )
 	fprintf( stderr, "-- system order is %s, ",
 		 (*order == MSB_FIRST) ? "MSB_FIRST" : "LSB_FIRST" );
 
-    /* are the images the opposite of this? */
-    if ( p->flist[v->fl_1].gex.swap )
-	*order = LSB_FIRST + MSB_FIRST - *order;     /* for entertainment */
+    /* are the images the opposite of this?  does the user want the opposite? */
+    if ( p->flist[v->fl_1].gex.swap ^ p->opts.rev_bo )
+	*order = LSB_FIRST + MSB_FIRST - *order;      /* for entertainment */
 
     if ( gD.level > 1 )
 	fprintf( stderr, "image order is %s\n",
@@ -2615,7 +2618,6 @@ static int find_fl_file_index( param_t * p, char * file )
     if ( (p == NULL) || (file == NULL) )
 	return 0;
 
-    /* rcr - let's be really inefficient for now... */
     for ( index = 0, nlp = p->fnames; index < p->nfiles; index++, nlp++ )
 	if ( ! strcmp( *nlp, file ) )
 	    return index;

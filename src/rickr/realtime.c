@@ -425,6 +425,14 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 	ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
+    /* BYTEORDER interface - send if swap flag is not set */
+    if ( ! ac->swap )
+    {
+	sprintf( tbuf, "BYTEORDER %s", (ac->byte_order == LSB_FIRST) ?
+		 "LSB_FIRST" : "MSB_FIRST" );
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
     /* DRIVE_AFNI interface - open afni windows */
     {
 	char * graph_win;			/* graph window to open */
@@ -504,14 +512,6 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 	    strcat( tbuf, ac->param->opts.argv[count] );
 	}
 	
-	ART_ADD_TO_BUF( ac->buf, tbuf );
-    }
-
-    /* BYTEORDER interface - send if swap flag is not set */
-    if ( 0 && ! ac->swap )  /* rcr - turn this off until plug_realtime update */
-    {
-	sprintf( tbuf, "BYTEORDER %s", (ac->byte_order == LSB_FIRST) ?
-		 "LSB_FIRST" : "MSB_FIRST" );
 	ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
