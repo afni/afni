@@ -722,14 +722,6 @@ void CALC_Syntax(void)
     "                    [default='calc']\n"
     "  -session dir  = Use 'dir' for the output dataset session directory.\n"
     "                    [default='./'=current working directory]\n"
-    "  -histpar a    = Use input dataset 'a' as the source of the previous\n"
-    "                    History Note for the output, where 'a' is any letter\n"
-    "                    that was used to input a dataset.  By default, the\n"
-    "                    prevous History Note is only created if a single input\n"
-    "                    dataset is given.  This option is needed if and only\n"
-    "                    if multiple input datasets are used, and you wish\n"
-    "                    to have the previous history of one of them prepended\n"
-    "                    to the History Note of the newly created dataset.\n"
     "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
     "                    If not given, defaults to 1 second.\n"
     "  -rgbfac A B C = For RGB input datasets, the 3 channels (r,g,b) are collapsed\n"
@@ -1018,7 +1010,17 @@ int main( int argc , char * argv[] )
       jjj = 1 ;
    }
 
-   if( jjj == 1 ) tross_Copy_History( CALC_dset[ids] , new_dset ) ;
+   if( jjj == 1 ){
+      tross_Copy_History( CALC_dset[ids] , new_dset ) ;
+   } else {                                               /* 27 Feb 2003 */
+      tross_Append_History( new_dset ,
+                            "--- History of inputs to 3dcalc ---" ) ;
+      for( iii=0 ; iii < 26 ; iii++ )
+        if( CALC_dset[iii] != NULL )
+          tross_Addto_History( CALC_dset[ids] , new_dset ) ;
+      tross_Append_History( new_dset ,
+                            "-----------------------------------" ) ;
+   }
    tross_Make_History( "3dcalc" , argc,argv , new_dset ) ;
 
    if( CALC_datum < 0 ) CALC_datum = MRI_float ;  /* 10 Feb 2003 */

@@ -168,13 +168,17 @@ float  calc_sse
 )
 
 {
+#if 0
   vector yhat;               /* product Xb */
+#endif
   vector e;                  /* vector of residuals */
   float sse;                 /* error sum of squares */
 
 
   /*----- initialize vectors -----*/
+#if 0
   vector_initialize (&yhat);
+#endif
   vector_initialize (&e);
 
 
@@ -184,14 +188,15 @@ float  calc_sse
   vector_subtract (y, yhat, &e);
   sse = vector_dot (e, e);
 #else
-  vector_multiply_subtract( x , b , y , &e ) ;
-  sse = vector_dotself( e ) ;
+  sse = vector_multiply_subtract( x , b , y , &e ) ;
 #endif
 
 
   /*----- dispose of vectors -----*/
   vector_destroy (&e);
+#if 0
   vector_destroy (&yhat);
+#endif
 
 
   /*----- return SSE -----*/
@@ -214,12 +219,16 @@ float  calc_resids
 )
 
 {
+#if 0
   vector yhat;               /* product Xb */
+#endif
   float sse;                 /* error sum of squares */
 
 
   /*----- initialize vectors -----*/
+#if 0
   vector_initialize (&yhat);
+#endif
 
 
   /*----- calculate the error sum of squares -----*/
@@ -228,13 +237,14 @@ float  calc_resids
   vector_subtract (y, yhat, e);
   sse = vector_dot (*e, *e);
 #else
-  vector_multiply_subtract( x , b , y , e ) ;
-  sse = vector_dotself( *e ) ;
+  sse = vector_multiply_subtract( x , b , y , e ) ;
 #endif
 
 
   /*----- dispose of vectors -----*/
+#if 0
   vector_destroy (&yhat);
+#endif
 
 
   /*----- return SSE -----*/
@@ -308,10 +318,11 @@ float  calc_sspe
 )
 
 {
-  int i, j;                  /* indices */
-  float * sum = NULL;        /* sum of observations at each level */
-  float diff;                /* difference between observation and average */
-  float sspe;                /* pure error sum of squares */
+  register int i, j;                  /* indices */
+  register float * sum = NULL;        /* sum of observations at each level */
+  register float diff;                /* difference between observation and average */
+  register float sspe;                /* pure error sum of squares */
+  register double *yy ;
 
 
   /*----- initialize sum -----*/
@@ -323,10 +334,15 @@ float  calc_sspe
 
 
   /*----- accumulate sum for each level -----*/
+  yy = y.elts ;
   for (i = 0;  i < y.dim;  i++)
     {
       j = levels[i];
+#if 0
       sum[j] += y.elts[i];
+#else
+      sum[j] += yy[i] ;
+#endif
     }
 
 
@@ -335,7 +351,11 @@ float  calc_sspe
   for (i = 0;  i < y.dim;  i++)
     {
       j = levels[i];
+#if 0
       diff = y.elts[i] - (sum[j]/counts[j]);
+#else
+      diff = yy[i] - (sum[j]/counts[j]);
+#endif
       sspe += diff * diff;
     }
 
@@ -475,7 +495,7 @@ void calc_tcoef
   const float EPSILON = 1.0e-5;      /* protection against divide by zero */
   int df;                     /* error degrees of freedom */
   float mse;                  /* mean square error */
-  int i;                      /* parameter index */
+  register int i;             /* parameter index */
   float stddev;               /* standard deviation for parameter estimate */
   float tstat;                /* t-statistic for parameter estimate */
   float num;                  /* numerator of t-statistic */
@@ -565,8 +585,8 @@ float calc_freg
 
 
   /*----- Limit range of values for F-statistic -----*/
-  if (freg < 0.0)   freg = 0.0;
-  if (freg > MAXF)  freg = MAXF;
+       if (freg < 0.0)   freg = 0.0;
+  else if (freg > MAXF)  freg = MAXF;
 
 
   /*----- Return F-statistic for significance of the regression -----*/
@@ -599,8 +619,8 @@ float calc_rsqr
 
 
   /*----- Limit range of values for R^2 -----*/
-  if (rsqr < 0.0)   rsqr = 0.0;
-  if (rsqr > 1.0)   rsqr = 1.0;
+       if (rsqr < 0.0)   rsqr = 0.0;
+  else if (rsqr > 1.0)   rsqr = 1.0;
 
 
   /*----- Return coefficient of multiple determination R^2 -----*/

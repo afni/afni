@@ -3543,6 +3543,8 @@ extern char * tross_Get_Note     ( THD_3dim_dataset * , int ) ;
 extern char * tross_Get_Notedate ( THD_3dim_dataset * , int ) ;
 extern int    tross_Get_Notecount( THD_3dim_dataset * ) ;
 
+extern void tross_Addto_History( THD_3dim_dataset *, THD_3dim_dataset *) ;
+
 extern char * tross_datetime(void) ;
 extern char * tross_commandline( char * , int , char ** ) ;
 

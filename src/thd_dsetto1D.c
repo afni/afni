@@ -190,15 +190,16 @@ ENTRY("THD_extract_array") ;
 
 /*----------------------------------------------------------------------------
    04 Feb 2000: do a bunch of timeseries at once (for efficiency)
+   27 Feb 2003: rearranged slightly for more efficiency
 ------------------------------------------------------------------------------*/
 
-MRI_IMARR * THD_extract_many_series( int ns, int * ind, THD_3dim_dataset * dset )
+MRI_IMARR * THD_extract_many_series( int ns, int *ind, THD_3dim_dataset *dset )
 {
-   MRI_IMARR * imar ; /* output */
-   MRI_IMAGE * im ;
-   MRI_TYPE typ ;
+   MRI_IMARR *imar ; /* output */
+   MRI_IMAGE *im ;
    int nv , ival , kk ;
-   char * iar ;      /* brick in the input */
+   char *iar ;      /* brick in the input */
+   float **far ;    /* 27 Feb 2003: ptrs to output */
 
 ENTRY("THD_extract_many_series") ;
 
@@ -213,33 +214,32 @@ ENTRY("THD_extract_many_series") ;
       iar = DSET_ARRAY(dset,0) ;
       if( iar == NULL ) RETURN( NULL );
    }
-   typ = DSET_BRICK_TYPE(dset,0) ;
 
    /* create output */
 
+   far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
    INIT_IMARR(imar) ;
    for( kk=0 ; kk < ns ; kk++ ){
-      im = mri_new( nv , 1 , typ ) ;
-      mri_zero_image(im) ;              /* 19 Oct 2001 */
+      im = mri_new( nv , 1 , MRI_float ) ;  /* N.B.: now does 0 fill */
+      far[kk] = MRI_FLOAT_PTR(im) ;         /* ptr to kk-th output series */
       ADDTO_IMARR(imar,im) ;
    }
 
    /* fill the output */
 
-   switch( typ ){
+   switch( DSET_BRICK_TYPE(dset,0) ){
 
       default:             /* don't know what to do --> return nada */
-         DESTROY_IMARR(imar) ;
+         DESTROY_IMARR(imar) ; free(far) ;
          RETURN( NULL );
 
       case MRI_byte:{
-         byte * ar , * bar ;
+         byte * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (byte *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_BYTE_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]] ;
               }
             }
          }
@@ -247,13 +247,12 @@ ENTRY("THD_extract_many_series") ;
       break ;
 
       case MRI_short:{
-         short * ar , * bar ;
+         short * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (short *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_SHORT_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]] ;
               }
             }
          }
@@ -261,13 +260,12 @@ ENTRY("THD_extract_many_series") ;
       break ;
 
       case MRI_float:{
-         float * ar , * bar ;
+         float * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (float *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_FLOAT_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]] ;
               }
             }
          }
@@ -275,13 +273,12 @@ ENTRY("THD_extract_many_series") ;
       break ;
 
       case MRI_int:{
-         int * ar , * bar ;
+         int * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (int *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_INT_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]] ;
               }
             }
          }
@@ -289,13 +286,12 @@ ENTRY("THD_extract_many_series") ;
       break ;
 
       case MRI_double:{
-         double * ar , * bar ;
+         double * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (double *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_DOUBLE_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]] ;
               }
             }
          }
@@ -303,13 +299,12 @@ ENTRY("THD_extract_many_series") ;
       break ;
 
       case MRI_complex:{
-         complex * ar , * bar ;
+         complex * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (complex *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 ar = MRI_COMPLEX_PTR( IMARR_SUBIMAGE(imar,kk) ) ;
-                 ar[ival] = bar[ind[kk]] ;
+                 far[kk][ival] = bar[ind[kk]].r ;
               }
             }
          }
@@ -330,6 +325,7 @@ ENTRY("THD_extract_many_series") ;
       }
    }
 
+#if 0  /* 27 Feb 2003 */
    /* convert to floats, if needed */
 
    if( IMARR_SUBIMAGE(imar,0)->kind != MRI_float ){
@@ -341,6 +337,7 @@ ENTRY("THD_extract_many_series") ;
          IMARR_SUBIMAGE(imar,kk) = qim ;
       }
    }
+#endif
 
    /* add time axis stuff to output images, if present */
 
@@ -365,5 +362,5 @@ ENTRY("THD_extract_many_series") ;
       }
    }
 
-   RETURN( imar );
+   free(far) ; RETURN(imar);
 }

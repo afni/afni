@@ -32,6 +32,9 @@
   Mod:      Added functions vector_dotself() and vector_multiply_subtract() -- RWCox.
   Date:     28 Dec 2001
 
+  Mod:      Used "register double *" pointers in some places for speed -- RWCox.
+  Date:     27 Feb 2003
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -327,9 +330,10 @@ void vector_multiply (matrix a, vector b, vector * c);
 /*---------------------------------------------------------------------------*/
 /*
   Right multiply matrix a by vector b, then subtract c.  Result is vector d.
+  Also returns sum of squares of elements of d.
 */
 
-void vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
+double vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 /*---------------------------------------------------------------------------*/
 /*

@@ -4361,3 +4361,9 @@
      intersections at edges of slice plane, as well as at center.
  * Modified "view_setter" code to work more intuitively when only one
      image viewer is open, etc.
+
+27 Feb 2003
+ * Modified 3dDeconvolve.c to get multiple timeseries at once, to reduce
+     cache thrashing.
+ * Modified thd_notes.c to add function to append one dataset's history
+     to another's.  Used this in 3dcalc.c as a starter.

@@ -1044,7 +1044,7 @@ thd_rot3d.o:thd_rot3d.c
 
 thd_shift2.o:thd_shift2.c
 	$(RM) $@
-	$(CCFAST) -c thd_shift2.c $(IFLAGS)
+	$(CC) -c thd_shift2.c $(IFLAGS)
 
 thd_rot3d_byte.o:thd_rot3d_byte.c
 	$(RM) $@
