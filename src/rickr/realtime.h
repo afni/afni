@@ -34,11 +34,12 @@ typedef struct
     int       mode;			/* if > 0, then means AFNI is active */
     int       use_tcp;			/* if > 0, use TCP/IP to send data  */
     int       swap;			/* byte swap data before sending   */
-    char      host[ART_NAME_LEN];	/* hostname of CPU afni is on     */
-    char      ioc_name[ART_NAME_LEN];	/* I/O channel name to afni      */
-    char      buf[1024];		/* main buffer for afni comm    */
-    IOCHAN  * ioc;			/* ptr to I/O channel struct   */
-    param_t * param;			/* local pointer to images    */
+    int       byte_order;		/* note the byte order of images  */
+    char      host[ART_NAME_LEN];	/* hostname of CPU afni is on    */
+    char      ioc_name[ART_NAME_LEN];	/* I/O channel name to afni     */
+    char      buf[1024];		/* main buffer for afni comm   */
+    IOCHAN  * ioc;			/* ptr to I/O channel struct  */
+    param_t * param;			/* local pointer to images   */
 } ART_comm;
 
 /* ---------------------------------------------------------------------- */

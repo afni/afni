@@ -1,8 +1,15 @@
 
-#define IFM_VERSION "version 2.5 (February, 2003)"
+#define IFM_VERSION "version 2.6 (March, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.6  March 25. 2003
+ *   - added -GERT_Reco2 option
+ *   - RT: only send good volumes to afni
+ *   - RT: added -rev_byte_order option
+ *   - RT: also open relevant image window
+ *   - RT: mention starting file in NOTE command
  *
  * 2.5  February 20, 2003
  *   - deal better with missing first slice of first volume
@@ -59,6 +66,8 @@
  * todo:
  *
  * - add axes offsets
+ * - add -full_prefix option
+ * - update plug_realtime for BYTEORDER command
  *----------------------------------------------------------------------
 */
 
@@ -83,9 +92,11 @@
  *   examples:    Imon -start_dir 003
  *                Imon -help
  *                Imon -version
- *                Imon -debug 2 -start_dir 003
+ *                Imon -start_dir 003 -GERT_Reco2
+ *                Imon -start_dir 003 -debug 2
  *                Imon -start_dir 003 -nt 120
  *                Imon -start_dir 003 -rt -host pickle -swap
+ *                Imon -start_dir 003 -rt -host pickle -rev_byte_order
  *----------------------------------------------------------------------
 */
 
@@ -110,9 +121,11 @@
 /* static function declarations */
 
 static int alloc_x_im          ( im_store_t * is, int bytes );
+static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
+static int create_gert_script  ( stats_t * s );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p, char * file );
@@ -122,6 +135,7 @@ static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
 				 char * argv[] );
 static int nap_time_from_tr    ( float tr );
+static int path_to_dir_n_suffix( char * dir, char * suff, char * path );
 static int read_ge_files       ( param_t * p, int start, int max );
 static int read_ge_image       ( char * pathname, finfo_t * fp,
 	                         int get_image, int need_memory );
@@ -271,6 +285,10 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 	    if ( complete_orients_str( v, p ) < 0 )
 		return -1;
 
+	    /* use this volume to note the byte order of image data */
+	    if ( check_im_byte_order( &ac->byte_order, v, p ) < 0 )
+		return -1;
+
 	    /* if wanted, verify afni link, send image info and first volume */
 	    if ( ac->state == ART_STATE_TO_OPEN )
 		ART_open_afni_link( ac, 5, 0, gD.level );
@@ -395,7 +413,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 		if ( ac->state == ART_STATE_TO_SEND_CTRL )
 		    ART_send_control_info( ac, &vn, gD.level );
 
-		if ( ac->state == ART_STATE_IN_USE )
+		/* only send good volumes to afni   - 2003.03.10 */
+		if ( (ac->state == ART_STATE_IN_USE) && (ret_val == 1) )
 		    ART_send_volume( ac, &vn, gD.level );
 
 		naps = 0;			/* reset on existing volume */
@@ -1049,6 +1068,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
 	    p->opts.drive_cmd = argv[ac];
 	}
+	else if ( ! strncmp( argv[ac], "-GERT_Reco2", 5 ) )
+	{
+	    p->opts.gert_reco = 1;	/* output script at the end */
+	}
 	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
 	{
 	    if ( ++ac >= argc )
@@ -1133,6 +1156,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    strncpy( A->host, argv[ac], ART_NAME_LEN-1 );
 	    A->host[ART_NAME_LEN-1] = '\0';	/* just to be sure */
 	}
+	else if ( ! strncmp( argv[ac], "-rev_byte_order", 4 ) )
+	{
+	    p->opts.rev_bo = 1;		  /* note to send reverse byte order */
+	}
 	else if ( ! strncmp( argv[ac], "-rt", 3 ) )
 	{
 	    A->state = ART_STATE_TO_OPEN; /* real-time is open for business */
@@ -1160,6 +1187,14 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     if ( p->opts.start_dir == NULL )
     {
 	fputs( "error: missing '-start_dir DIR' option\n", stderr );
+	usage( IFM_PROG_NAME, IFM_USE_SHORT );
+	return 1;
+    }
+
+    if ( p->opts.rev_bo && p->opts.swap )
+    {
+	fprintf( stderr, "error: options '-rev_byte_order' and '-swap' "
+		 "cannot both be used\n");
 	usage( IFM_PROG_NAME, IFM_USE_SHORT );
 	return 1;
     }
@@ -1656,17 +1691,18 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
     }
 
     printf( "opts_t struct at %p :\n"
-	    "   start_file        = %s\n"
-	    "   start_dir         = %s\n"
-	    "   drive_cmd         = %s\n"
-	    "   (argv, argc)      = (%p, %d)\n"
-	    "   (nt, nice, debug) = (%d, %d, %d)\n"
-	    "   (rt, swap)        = (%d, %d)\n"
-	    "   host              = %s\n",
+	    "   start_file         = %s\n"
+	    "   start_dir          = %s\n"
+	    "   drive_cmd          = %s\n"
+	    "   (argv, argc)       = (%p, %d)\n"
+	    "   (nt, nice)         = (%d, %d)\n"
+	    "   (debug, gert_reco) = (%d, %d)\n"
+	    "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
+	    "   host               = %s\n",
 	    opt, opt->start_file, opt->start_dir,
 	    opt->drive_cmd, opt->argv, opt->argc,
-	    opt->nt, opt->nice, opt->debug,
-	    opt->rt, opt->swap, opt->host );
+	    opt->nt, opt->nice, opt->debug, opt->gert_reco,
+	    opt->rt, opt->swap, opt->rev_bo, opt->host );
 
     return 0;
 }
@@ -1801,24 +1837,32 @@ static int usage ( char * prog, int level )
 	  "    during the scanning session.  The user should terminate the\n"
 	  "    program whey they are done with all runs.\n"
 	  "\n"
+	  "    Note that '%s' can also be run separate from scanning, either\n"
+	  "    to verify the integrity of I-files, or to create a GERT_Reco2\n"
+	  "    script, which is used to create AFNI datasets.\n"
+	  "\n"
 	  "    At the present time, the user must use <ctrl-c> to terminate\n"
 	  "    the program.\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  usage: %s [options] -start_dir DIR\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  examples (no real-time options):\n"
 	  "\n"
 	  "    %s -start_dir 003\n"
 	  "    %s -help\n"
+	  "    %s -start_dir 003 -GERT_reco2\n"
 	  "    %s -start_dir 003 -nt 120 -start_file 043/I.901\n"
 	  "    %s -debug 2 -nice 10 -start_dir 003\n"
 	  "\n"
 	  "  examples (with real-time options):\n"
 	  "\n"
 	  "    %s -start_dir 003 -rt\n"
-	  "    %s -start_dir 003 -rt -host pickle -swap \n"
-	  "    %s -start_dir 003 -nt 120 -rt -host pickle -swap \n"
+	  "    %s -start_dir 003 -rt -host pickle\n"
+	  "    %s -start_dir 003 -nt 120 -rt -host pickle\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  notes:\n"
 	  "\n"
 	  "    - Once started, this program exits only when a fatal error\n"
@@ -1827,6 +1871,7 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    - To terminate this program, use <ctrl-c>.\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  main option:\n"
 	  "\n"
 	  "    -start_dir DIR     : (REQUIRED) specify starting directory\n"
@@ -1840,6 +1885,7 @@ static int usage ( char * prog, int level )
 	  "        For instance, with the option '-start_dir 003', this\n"
 	  "        program watches for new directories 003, 023, 043, etc.\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  real-time options:\n"
 	  "\n"
 	  "    -rt                : specify to use the real-time facility\n"
@@ -1885,12 +1931,29 @@ static int usage ( char * prog, int level )
 	  "        name of the machine running Imon (so that afni knows to\n"
 	  "        accept the data from the sending machine).\n"
 	  "\n"
-	  "    -swap             : swap data bytes before sending to afni\n"
+	  "    -rev_byte_order   : pass the reverse of the BYTEORDER to afni\n"
+	  "\n"
+	  "        Reverse the byte order that is given to afni.  In case the\n"
+	  "        detected byte order is not what is desired, this option\n"
+	  "        can be used to reverse it.\n"
+	  "\n"
+	  "        See the (obsolete) '-swap' option for more details.\n"
+	  "\n"
+	  "    -swap  (obsolete) : swap data bytes before sending to afni\n"
 	  "\n"
 	  "        Since afni may be running on a different machine, the byte\n"
 	  "        order may differ there.  This option will force the bytes\n"
 	  "        to be reversed, before sending the data to afni.\n"
 	  "\n"
+	  "        ** As of version 3.0, this option should not be necessary.\n"
+	  "           '%s' detects the byte order of the image data, and then\n"
+	  "           passes that information to afni.  The realtime plugin\n"
+	  "           will (now) decide whether to swap bytes in the viewer.\n"
+	  "\n"
+	  "           If for some reason the user wishes to reverse the order\n"
+	  "           from what is detected, '-rev_byte_order' can be used.\n"
+	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "  other options:\n"
 	  "\n"
 	  "    -debug LEVEL       : show debug information during execution\n"
@@ -1899,15 +1962,21 @@ static int usage ( char * prog, int level )
 	  "        the default level is 1, the domain is [0,3]\n"
 	  "        the '-quiet' option is equivalent to '-debug 0'\n"
 	  "\n"
+	  "    -GERT_Reco2        : output a GERT_Reco2 script\n"
+	  "\n"
+	  "        Create a script called 'GERT_Reco2', similar to the one\n"
+	  "        that Ifile creates.  This script may be run to create the\n"
+	  "        AFNI datasets corresponding to the I-files.\n"
+	  "\n"
 	  "    -help              : show this help information\n"
 	  "\n"
-	  "    -nice              : adjust the nice value for the process\n"
+	  "    -nice INCREMENT    : adjust the nice value for the process\n"
 	  "\n"
 	  "        e.g.  -nice 10\n"
 	  "        the default is 0, and the maximum is 20\n"
-	  "        a superuser may use through the minimum of -19\n"
+	  "        a superuser may use down to the minimum of -19\n"
 	  "\n"
-	  "        A positive increment to the nice value of a process will\n"
+	  "        A positive INCREMENT to the nice value of a process will\n"
 	  "        lower its priority, allowing other processes more CPU\n"
 	  "        time.\n"
 	  "\n"
@@ -1945,9 +2014,9 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "                        (many thanks to R. Birn)\n"
 	  "\n",
-	  prog, prog, prog,
+	  prog, prog, prog, prog,
+	  prog, prog, prog, prog, prog, prog, prog, prog,
 	  prog, prog, prog, prog, prog, prog, prog,
-	  prog, prog, prog, prog, prog, prog,
 	  IFM_VERSION
 	);
 
@@ -2073,6 +2142,80 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
     return 0;
 }
 
+
+/* ----------------------------------------------------------------------
+ * Create a gert_reco script.
+ *
+ * Note - stats struct parameters have been checked.
+ * ----------------------------------------------------------------------
+*/
+static int create_gert_script( stats_t * s )
+{
+    FILE * fp;
+    char   cdir[4], csuff[IFM_SUFFIX_LEN];
+    int    num_valid, c;
+
+    for ( c = 0, num_valid = 0; c < s->nused; c++ )
+	if ( s->runs[c].volumes > 0 )
+	    num_valid++;
+
+    if ( num_valid == 0 )
+    {
+	fprintf( stderr, "-- no runs to use for '%s'\n", IFM_GERT_SCRIPT );
+	return 0;
+    }
+
+    if ( (fp = fopen( IFM_GERT_SCRIPT, "w" )) == NULL )
+    {
+	fprintf( stderr, "failure: cannot open '%s' for writing, "
+		 "check permissions\n", IFM_GERT_SCRIPT );
+	return -1;
+    }
+
+    /* output text casually, uh, borrowed from Ifile.c */
+    fprintf( fp,
+	     "#!/bin/tcsh\n"
+	     "\n"
+	     "# This script was automatically generated by '%s'.\n"
+	     "# The script format was, uh, borrowed from Ziad's Ifile.c.\n"
+	     "#\n"
+	     "# Please modify the following options for your own purposes.\n"
+	     "\n"
+	     "set OutlierCheck = '-oc'         # use '' to skip outlier check\n"
+	     "set OutPrefix    = 'OutBrick'    # prefix for datasets\n"
+	     "\n"
+	     "\n",
+	     IFM_PROG_NAME
+	   );
+
+    for ( c = 0; c < s->nused; c++ )
+	if ( s->runs[c].volumes > 0 )
+	{
+	    if ( path_to_dir_n_suffix(cdir, csuff, s->runs[c].f1name) < 0 )
+	    {
+		fclose( fp );
+		return -1;
+	    }
+
+	    fprintf( fp, "@RenamePanga %s %s %d %d $OutPrefix $OutlierCheck\n",
+		     cdir, csuff, s->slices, s->runs[c].volumes );
+	}
+
+    fputc( '\n', fp );
+    fclose( fp );
+
+    /* now make it an executable */
+    system( "chmod u+x " IFM_GERT_SCRIPT );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * - show statistics from the runs
+ * - output any requested GERT_Reco2 file
+ * ----------------------------------------------------------------------
+*/
 static int show_run_stats( stats_t * s )
 {
     int c;
@@ -2104,6 +2247,9 @@ static int show_run_stats( stats_t * s )
     }
 
     putchar( '\n' );
+
+    if ( gP.opts.gert_reco )
+	(void)create_gert_script( s );
 
     fflush( stdout );
 
@@ -2321,6 +2467,46 @@ static int alloc_x_im( im_store_t * is, int bytes )
 
 
 /* ----------------------------------------------------------------------
+ * Determine the byte order of the image.
+ *
+ * Note our byte order (LSB_FIRST or MSB_FIRST).
+ * If gex.swap is set, reverse it.
+ *
+ * return   0 : success
+ *         -1 : on error
+ * ----------------------------------------------------------------------
+*/
+static int check_im_byte_order( int * order, vol_t * v, param_t * p )
+{
+    int one = 1;
+
+    if ( (order == NULL) || (v == NULL) || (p == NULL) )
+    {
+	fprintf( stderr, "** invalid paramters to CIBO (%p,%p,%p)\n",
+		 order, v, p );
+	return -1;
+    }
+
+    /* note the order for the current system */
+    *order = (*(char *)&one == 1) ? LSB_FIRST : MSB_FIRST;
+
+    if ( gD.level > 1 )
+	fprintf( stderr, "-- system order is %s, ",
+		 (*order == MSB_FIRST) ? "MSB_FIRST" : "LSB_FIRST" );
+
+    /* are the images the opposite of this? */
+    if ( p->flist[v->fl_1].gex.swap )
+	*order = LSB_FIRST + MSB_FIRST - *order;     /* for entertainment */
+
+    if ( gD.level > 1 )
+	fprintf( stderr, "image order is %s\n",
+		 (*order == MSB_FIRST) ? "MSB_FIRST" : "LSB_FIRST" );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
  * Use gex.kk to figure out the z orientation, and complete
  * the v->geh.orients string.
  *
@@ -2439,5 +2625,75 @@ static int str_char_count( char * str, int len, char target )
 	    num++;
 
     return num;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Given path, find dir and suff.
+ *
+ * dir    - 3 character starting directory           (e.g. 003)
+ * suff   - 10 char (max) trailing I-file suffix     (e.g. 017, for I.017)
+ * path   - first file in run                        (e.g. 003/I.017)
+ *
+ * return  0 : success
+ *        -1 : failure
+ * ----------------------------------------------------------------------
+*/
+static int path_to_dir_n_suffix( char * dir, char * suff, char * path )
+{
+    char * cp, *cp2;
+
+    if ( (dir == NULL) || (suff == NULL) || (path == NULL) )
+    {
+	fprintf( stderr, "failure: PTDNS - invalid params (%p,%p,%p)\n",
+		 dir, suff, path );
+	return -1;
+    }
+
+    /* find last '.' */
+    for ( cp = path + strlen(path) - 1; (*cp != '.') && (cp > path); cp-- )
+	;
+
+    if ( *cp != '.' )
+    {
+	fprintf( stderr, "failure: cannot find suffix in '%s'\n", path );
+	return -1;
+    }
+    else if ( strlen( cp ) > IFM_SUFFIX_LEN )          /* '.' not included */
+    {
+	fprintf( stderr, "failure: suffix too long in '%s'\n", path );
+	return -1;
+    }
+
+    strcpy( suff, cp+1 );		/* copy null-terminated suffix */
+
+    /* make sure all characters are digits (treat as string, not int) */
+    for ( cp2 = suff; (*cp2 != '\0') && isdigit(*cp2); cp2++ )
+       ;
+
+    if ( *cp2 != '\0' )
+    {
+	fprintf( stderr, "failure: suffix not integer in '%s'\n", path );
+	return -1;
+    }
+
+    /* now get dir prefix - should be nnn/I.mmm */
+    cp -= 5;
+    if ( ( cp < path )          ||    /* we should have a directory here */
+	 ( ! isdigit( cp[0] ) ) ||    /* then 3 digits */
+	 ( ! isdigit( cp[1] ) ) ||
+	 ( ! isdigit( cp[2] ) ) ||
+	 (   cp[3] != '/'     ) ||
+	 (   cp[4] != 'I'     ) )
+    {
+	fprintf( stderr, "failure: PTDNS - ill-formed path '%s'\n", path );
+	return -1;
+    }
+
+    /* we are set, just copy the data */
+    strncpy( dir, cp, 3 );
+    dir[3] = '\0';
+
+    return 0;
 }
 
