@@ -1072,7 +1072,7 @@ void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
    you want nothing to do with it.
 ------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor, MRI_IMAGE **imout_origp )
+MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor, MRI_IMAGE **imout_origp , MRI_IMAGE **imout_edge)
 {
    MRI_IMAGE *sim , *tim , *bim ;
    short *sar , sval ;
@@ -1510,6 +1510,10 @@ ENTRY("mri_brainormalize") ;
       *imout_origp = imout_orig;
    }
    
+   if (imout_edge) { /* create an edge version NOT EXISTING YET */
+      *imout_edge = NULL;
+   }
+      
    /*-- convert output to bytes --*/
 
    bim = mri_new_conforming( tim , MRI_byte ) ;

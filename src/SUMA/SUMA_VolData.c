@@ -20,6 +20,8 @@ char *SUMA_AfniPrefix(char *name, char *view)
    
    tmp1 = SUMA_Extension(name, ".HEAD", YUP);
    tmp2 = SUMA_Extension(tmp1, ".BRIK", YUP); SUMA_free(tmp1); tmp1 = NULL;
+   /* is there a dot ?*/
+   if (tmp2[strlen(tmp2)-1] == '.') tmp2[strlen(tmp2)-1] = '\0';
    if (view) {
       if (SUMA_isExtension(tmp2, "+orig")) sprintf(view, "+orig");
       else if (SUMA_isExtension(tmp2, "+acpc")) sprintf(view, "+acpc");

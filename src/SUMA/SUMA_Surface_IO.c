@@ -6255,7 +6255,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    /*-- fill new dataset brick with the -fval value --*/
    switch( Opt->datum ){
       case MRI_short:
-         fprintf(SUMA_STDERR,"%s: Filling with %d\n", FuncName, fval_short);
+         if (0) fprintf(SUMA_STDERR,"%s: Filling with %d\n", FuncName, fval_short);
          sbr = (short *) DSET_BRICK_ARRAY(dset,0) ;
          for( ii=0 ; ii < nxyz ; ii++ ) sbr[ii] = fval_short ;
       break ;

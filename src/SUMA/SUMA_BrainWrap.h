@@ -4,13 +4,15 @@
 float SUMA_LoadPrepInVol (SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_SurfaceObject **SOhull);
 int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
-                        float *Means, float *undershish, float *overshish, int ShishMax);
+                        float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, int ShishMax);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs);
 byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) ;
 short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, THD_3dim_dataset *fillholeset);
 short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
 int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
+float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
 
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
@@ -94,7 +96,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
       m_touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   \
       if (!m_touchup) { SUMA_SL_Crit("Failed to allocate"); exit(1); }  \
       for (m_in=0; m_in<SO->N_Node; ++m_in) {   \
-         SUMA_Find_IminImax(SO, Opt, m_in,  m_MinMax, m_MinMax_dist, m_MinMax_over, m_MinMax_over_dist, m_Means, NULL, NULL, 0); \
+         SUMA_Find_IminImax(SO, Opt, m_in,  m_MinMax, m_MinMax_dist, m_MinMax_over, m_MinMax_over_dist, m_Means, NULL, NULL, NULL, NULL, 0); \
          /* Shift the node outwards:   \
             0- the minimum location of the minimum over the node is not 0
             AND

@@ -269,24 +269,25 @@ float SUMA_LoadPrepInVol (SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_SurfaceObject **SOh
    \param MinMax_over_dist (float) 2x1: MinMax_over_dist[0] distance of minimum over node
                                         MinMax_over_dist[1] distance of maximum over node
    \param Means (float *) 3x1 :  Means[0] value at node, 
-                                 Means[1] mean value below node,
-                                 Means[2] mean value above node  
+                                 Means[1] mean value below node (only for vals > Opt->t),
+                                 Means[2] mean value above node  (only for vals > Opt->t)
 */
 int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
-                        float *Means, float *undershish, float *overshish, int ShishMax)
+                        float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, int ShishMax)
 {
    static char FuncName[]={"SUMA_Find_IminImax"};
    float d1, d2, travdir[3], d1t, d2t, lmin, lmax, lmin_dist, lmax_dist;
    float t2 = Opt->t2, tm = Opt->tm, t = Opt->t; 
    THD_fvec3 ncoord, ndicom;
    THD_ivec3 nind3;
-   int nind, istep, istepmax, istep2max, nxx, nxy;
+   int nind, istep, istepmax, istep2max, nxx, nxy, nMeans[3], stopint;
    SUMA_ENTRY;
    
    d1 = Opt->d1; d2 = d1/2.0; 
    
    Means[0] = Means[1] = Means[2] = 0.0;
+   nMeans[0] = nMeans[1] = nMeans[2] = 0;
    lmin = Opt->tm;
    lmin_dist = 0.0;
    lmax_dist = 0.0;
@@ -294,7 +295,7 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
    nxx = DSET_NX(Opt->in_vol);
    nxy = DSET_NX(Opt->in_vol) * DSET_NY(Opt->in_vol);
    istep = 0; istepmax = (int)(ceil((double)d1/Opt->travstp)); istep2max = (int)(ceil((double)d2/Opt->travstp));
-   
+   stopint = 0;
    while (istep <= istepmax) {
       /* calculate offset */
       travdir[0] = - istep * Opt->travstp * SO->NodeNormList[3*ni]; travdir[1] = -istep * Opt->travstp * SO->NodeNormList[3*ni+1]; travdir[2] = -istep * Opt->travstp * SO->NodeNormList[3*ni+2]; 
@@ -314,9 +315,12 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
       #endif
       if (undershish && istep < ShishMax) undershish[istep] = Opt->dvec[nind];   /* store values under node */
       
-      /* track the mean */
-      Means[1] += Opt->dvec[nind];
-       
+      /* track the brain mean, only if the value is above brain non-brain threshold
+      stop inegrating as soon as you hit nonbrain */
+      if (Opt->dvec[nind] > Opt->t && !stopint) { Means[1] += Opt->dvec[nind]; ++ nMeans[1]; }
+      else stopint = 1;
+      if (dvecind_under) dvecind_under[istep] = nind;
+        
       /* find local min */ 
       /* lmin = SUMA_MIN_PAIR(lmin, Opt->dvec[nind]); */
       if (lmin > Opt->dvec[nind]) { lmin = Opt->dvec[nind]; SUMA_NORM_VEC(travdir, 3, lmin_dist); }
@@ -328,9 +332,9 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
       ++istep;
    }
    
-   if (istep < ShishMax) undershish[istep] = -1; /* crown the shish */
+   if (istep < ShishMax) { undershish[istep] = -1; if (dvecind_under) dvecind_under[istep] = -1; }/* crown the shish */
    
-   Means[1] /= istep;
+   Means[1] /= (float)nMeans[1];
    MinMax[0] = SUMA_MAX_PAIR(t2, lmin);
    MinMax_dist[0] = lmin_dist;  
    MinMax[1] = SUMA_MIN_PAIR(tm, lmax); 
@@ -343,6 +347,7 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
       lmax_dist = 0.0;
       lmax = Opt->t;
       istep = 0; istepmax = (int)(ceil((double)Opt->d4/Opt->travstp));
+      stopint = 0;
       while (istep <= istepmax) {
          /* calculate offset */
          travdir[0] =  istep * Opt->travstp * SO->NodeNormList[3*ni]; travdir[1] = istep * Opt->travstp * SO->NodeNormList[3*ni+1]; travdir[2] = istep * Opt->travstp * SO->NodeNormList[3*ni+2]; 
@@ -366,7 +371,9 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
          
          if (overshish && istep < ShishMax) overshish[istep] = Opt->dvec[nind];   /* store values under node */
          
-         Means[2] += Opt->dvec[nind]; 
+         if (Opt->dvec[nind] > Opt->t && !stopint) { Means[2] += Opt->dvec[nind]; ++ nMeans[2]; } 
+         else stopint = 1;
+         if (dvecind_over) dvecind_over[istep] = nind;
          
          /* find local min and max*/ 
          if (lmin > Opt->dvec[nind]) { lmin = Opt->dvec[nind]; SUMA_NORM_VEC(travdir, 3, lmin_dist); }
@@ -375,9 +382,9 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
          ++istep;
       }
       
-      if (istep < ShishMax) overshish[istep] = -1; /* crown the shish */
+      if (istep < ShishMax) { overshish[istep] = -1; if (dvecind_over) dvecind_over[istep] = -1; }/* crown the shish */
 
-      Means[2] /= istep;
+      Means[2] /= (float)nMeans[2];
       MinMax_over[0] = lmin; 
       MinMax_over_dist[0] = lmin_dist;  
       MinMax_over[1] = lmax;
@@ -441,8 +448,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
          for (in=0; in<SO->N_Node; ++in) {
             n = &(SO->NodeList[3*in]);
 
-            /* using normals for direction, NORMALS SHOULD POINT OUTWARDS... 
-            You should check for that someday ...*/
+            /* using normals for direction, NORMALS SHOULD POINT OUTWARDS...*/
             if (n[2] > -45) { /* Do not touch nodes on bottom */
                U[0] = -SO->NodeNormList[3*in]; U[1] = -SO->NodeNormList[3*in+1]; U[2] = -SO->NodeNormList[3*in+2]; 
                SUMA_ONE_SHISH_PLEASE(n, U, Opt->in_vol, Opt->dvec, Opt->travstp, n_stp, nx, nxy, undershish, ShishMax);
@@ -499,18 +505,18 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_StretchToFitLeCerveau"};
-   int it=0,it0 = 0, in=0, ii, Npass, Done, ShishMax, i_diffmax, kth_buf, nit;
+   int it=0,it0 = 0, in=0, ii, Npass, Done, ShishMax, i_diffmax, kth_buf, nit, Stage;
    float mnc[3], s[3], sn[3], st[3], dp, threshclip, lztfac,
          nsn, rmin, rmax, E, F, su1, su2, su3, su4,  
          r, u1[3], u2[3], u3[3], u[3],
          tm=0.0, t2 = 0.0, t98 = 0.0, Imin, Imax, l=0.0, MinMax[2], 
          MinMax_dist[2],MinMax_over[2], MinMax_over_dist[2], Means[3],
          *n=NULL, tb = 0.0, tbe = 0.0, t = 0.0, Imin_over=0.0, Imin_dist_over=0.0,
-         *overshish = NULL, *undershish = NULL, diffmax;
+         *overshish = NULL, *undershish = NULL, diffmax, *touchup=NULL, *a, P2[2][3], *norm;
    float *tmpptr, *NewCoord = NULL, f3, f4, lZt, *dsmooth = NULL;
    float *refNodeList = NULL, *OrigNodeList=NULL;
    double MaxExp;
-   int keepgoing=0;
+   int keepgoing=0, N_troub, past_N_troub;
    double pastarea, curarea, darea;
    FILE *OutNodeFile = NULL;
    SUMA_Boolean DoDbg=NOPE;
@@ -579,9 +585,10 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
    }
    memcpy((void*)OrigNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
    
-   pastarea = 0.0; curarea = 0.0; darea = 0.0;
+   pastarea = 0.0; curarea = 0.0; darea = 0.0, past_N_troub = 0;
    Npass = 0;   Done = 0; nit = Opt->N_it; it0 = 0;
    do {
+      Stage = 0; /* reset stage */
       if (Opt->debug > 1) fprintf(SUMA_STDERR,"%s: Pass #%d\n", FuncName, Npass);
       MaxExp = 0.0; /* maximum expansion of any node */
       for (it=it0; it < nit; ++it) {
@@ -593,123 +600,129 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
          } else lztfac = 1.0;
          MaxExp = 0.0; /* maximum expansion of any node */
          for (in=0; in<SO->N_Node; ++in) {
-            SUMA_MEAN_NEIGHB_COORD(SO, in, mnc);
             n = &(SO->NodeList[3*in]);
-            s[0] = mnc[0] - n[0]; s[1] = mnc[1] - n[1]; s[2] = mnc[2] - n[2];
-            SUMA_DOTP_VEC(s, &(SO->NodeNormList[3*in]), dp, 3, float, float);  /* dp is the dot product of s with the normal at in */ 
-            SUMA_SCALE_VEC(&(SO->NodeNormList[3*in]), sn, dp, 3, float, float); /* sn is the component of s along normal */
-            SUMA_NORM_VEC(sn, 3, nsn); /* norm of sn */
-            SUMA_SUB_VEC(s, sn, st, 3, float, float, float);  /* st is the tangential component of s along normal */
-            SUMA_SCALE_VEC(st, u1, su1, 3, float, float); /* u1 = st * su1 */
+               SUMA_MEAN_NEIGHB_COORD(SO, in, mnc);
+               s[0] = mnc[0] - n[0]; s[1] = mnc[1] - n[1]; s[2] = mnc[2] - n[2];
+               SUMA_DOTP_VEC(s, &(SO->NodeNormList[3*in]), dp, 3, float, float);  /* dp is the dot product of s with the normal at in */ 
+               SUMA_SCALE_VEC(&(SO->NodeNormList[3*in]), sn, dp, 3, float, float); /* sn is the component of s along normal */
+               SUMA_NORM_VEC(sn, 3, nsn); /* norm of sn */
+               SUMA_SUB_VEC(s, sn, st, 3, float, float, float);  /* st is the tangential component of s along normal */
+               SUMA_SCALE_VEC(st, u1, su1, 3, float, float); /* u1 = st * su1 */
 
-            r = ( l * l ) / (2.0 * nsn);
-            su2 = ( 1 + tanh(F*(1/r - E)))/2.0;
-            SUMA_SCALE_VEC(sn, u2, su2, 3, float, float); /* u2 = sn * su2 */
+               r = ( l * l ) / (2.0 * nsn);
+               su2 = ( 1 + tanh(F*(1/r - E)))/2.0;
+               SUMA_SCALE_VEC(sn, u2, su2, 3, float, float); /* u2 = sn * su2 */
 
-            SUMA_Find_IminImax(SO, Opt, in, MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means, undershish, overshish, ShishMax);  
-            Imin = MinMax[0]; Imax = MinMax[1];
-            
-            if (n[2] - SO->Center[2] < -25) { lZt = SUMA_MAX_PAIR (Opt->bot_lztclip, (Opt->ztv[in] * lztfac)); } /* clip lZt at no less than 0.5 for lowest sections, 
-                                                                                                         otherwise you might go down to the dumps */
-            else { lZt = Opt->ztv[in] * lztfac;  }
+               SUMA_Find_IminImax(SO, Opt, in, MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means, undershish, overshish, NULL, NULL, ShishMax);  
+               Imin = MinMax[0]; Imax = MinMax[1];
 
-            if (lZt > 1) lZt = 0.999;
-            
-            tb = (Imax - t2) * lZt + t2; 
-            f3 = 2.0 * (Imin - tb) / (Imax - t2 );
+               if (n[2] - SO->Center[2] < -25) { lZt = SUMA_MAX_PAIR (Opt->bot_lztclip, (Opt->ztv[in] * lztfac)); } /* clip lZt at no less than 0.5 for lowest sections, 
+                                                                                                            otherwise you might go down to the dumps */
+               else { lZt = Opt->ztv[in] * lztfac;  }
 
-            su3 = Opt->ExpFrac * l * f3 ;
-            
-            if (Opt->UseExpansion) {
-               tbe = (MinMax_over[1] - t2) * lZt + t2; 
-               f4 = 2.0 * (MinMax_over[0] - tbe) / (MinMax_over[1] - t2 );
-               su4 = Opt->ExpFrac * l * f4 ; if (su4 < 0) su4 = 0; /* too tight expanding otherwise */
-            } else su4 = 0;
+               if (lZt > 1) lZt = 0.999;
 
-            /* work the eyes */
-            if (Opt->NoEyes) {
-               if (it > 0.1 * Opt->N_it) { 
-                  if (SUMA_IS_EYE_ZONE(n,SO->Center)) { /* (n[1] - SO->Center[1]) < -10 && (n[2] - SO->Center[2]) < 0 area with the eyes */
-                     /* if the mean over is larger than the mean below, go easy, likely to hit the eyes */
-                     if (!Opt->Stop[in]) {
-                        if (Opt->dbg_eyenodes) { 
-                           int kk;
-                           fprintf (Opt->dbg_eyenodes,"%d\t %f %.3f ", in, Means[2], Means[2]/Means[1]); 
-                           for (kk=0; kk<ShishMax; ++kk) if (overshish[kk] >= 0) fprintf (Opt->dbg_eyenodes,"%.3f ", overshish[kk]);
-                           fprintf (Opt->dbg_eyenodes,"\n");
-                        }
-                        if (Means[2] > 1.2*Means[1]) {
-                           SUMA_MAX_SHISH_JUMP(overshish, diffmax, i_diffmax, threshclip);
-                           Opt->Stop[in] = overshish[i_diffmax];
-                           if (0 && LocalHead) fprintf (SUMA_STDERR, "%s: Stopping node %d, at values > %f\n", FuncName, in, Opt->Stop[in]);
-                        } else if (Means[0] >= Opt->t98) {
-                           Opt->Stop[in] = Opt->t98;
-                           if (0 && LocalHead) fprintf (SUMA_STDERR, "%s: Stopping node %d, at values > %f\n", FuncName, in, Opt->Stop[in]);
+               tb = (Imax - t2) * lZt + t2; 
+               f3 = 2.0 * (Imin - tb) / (Imax - t2 );
+
+               su3 = Opt->ExpFrac * l * f3 ;
+
+               if (Opt->UseExpansion) {
+                  tbe = (MinMax_over[1] - t2) * lZt + t2; 
+                  f4 = 2.0 * (MinMax_over[0] - tbe) / (MinMax_over[1] - t2 );
+                  su4 = Opt->ExpFrac * l * f4 ; if (su4 < 0) su4 = 0; /* too tight expanding otherwise */
+               } else su4 = 0;
+
+               /* work the eyes */
+               if (Opt->NoEyes) {
+                  if (it > 0.1 * Opt->N_it) { 
+                     if (SUMA_IS_EYE_ZONE(n,SO->Center)) { /* (n[1] - SO->Center[1]) < -10 && (n[2] - SO->Center[2]) < 0 area with the eyes */
+                        /* if the mean over is larger than the mean below, go easy, likely to hit the eyes */
+                        if (!Opt->Stop[in]) {
+                           if (Opt->dbg_eyenodes) { 
+                              int kk;
+                              fprintf (Opt->dbg_eyenodes,"%d\t %f %.3f ", in, Means[2], Means[2]/Means[1]); 
+                              for (kk=0; kk<ShishMax; ++kk) if (overshish[kk] >= 0) fprintf (Opt->dbg_eyenodes,"%.3f ", overshish[kk]);
+                              fprintf (Opt->dbg_eyenodes,"\n");
+                           }
+                           if (Means[2] > 1.2*Means[1]) {
+                              SUMA_MAX_SHISH_JUMP(overshish, diffmax, i_diffmax, threshclip);
+                              Opt->Stop[in] = overshish[i_diffmax];
+                              if (0 && LocalHead) fprintf (SUMA_STDERR, "%s: Stopping node %d, at values > %f\n", FuncName, in, Opt->Stop[in]);
+                           } else if (Means[0] >= Opt->t98) {
+                              Opt->Stop[in] = Opt->t98;
+                              if (0 && LocalHead) fprintf (SUMA_STDERR, "%s: Stopping node %d, at values > %f\n", FuncName, in, Opt->Stop[in]);
+                           }
                         }
                      }
                   }
+                  if (Opt->Stop[in]) {
+                     if (Means[0] >= Opt->Stop[in]) { su3 = 0; su4 = 0; }
+                  }
                }
-               if (Opt->Stop[in]) {
-                  if (Means[0] >= Opt->Stop[in]) { su3 = 0; su4 = 0; }
+               /* freezing: a node that has been frozen, freezing may be used during final touchup*/
+               if (Opt->Stop[in] < 0) { 
+                  su3 = 0; su4 = 0;   
+                  if (in == Opt->NodeDbg) fprintf(SUMA_STDERR,"%s:\nNode %d has been frozen\n", FuncName, in);
                }
-            }
-            
-            u[0] = su1 * st[0] + su2 * sn[0] + ( su3 + su4 ) * SO->NodeNormList[3*in]   ;
-            u[1] = su1 * st[1] + su2 * sn[1] + ( su3 + su4 ) * SO->NodeNormList[3*in+1] ;
-            u[2] = su1 * st[2] + su2 * sn[2] + ( su3 + su4 ) * SO->NodeNormList[3*in+2] ; 
-            if ((in == Opt->NodeDbg)) { 
-               fprintf(SUMA_STDERR, "%s: Node %d, iter %d, l %.6f\n", FuncName, in, it, l);
-               fprintf(SUMA_STDERR, " MinMaxTb = [%.6f %.6f %.6f]\n", Imin, Imax, tb);
-               fprintf(SUMA_STDERR, " MinMaxdist=[%.6f %.6f ]\n", MinMax_dist[0], MinMax_dist[1]);
-               fprintf(SUMA_STDERR, " MinMaxover     =[%.6f %.6f ]\n", MinMax_over[0], MinMax_over[1]);
-               fprintf(SUMA_STDERR, " MinMaxover_dist=[%.6f %.6f ]\n", MinMax_over_dist[0], MinMax_over_dist[1]); 
-               fprintf(SUMA_STDERR, " Means (at, under, over) = [%.6f %.6f %.6f]\n", Means[0], Means[1], Means[2]); 
-               fprintf(SUMA_STDERR, " Coord(n )= [%.6f %.6f %.6f], dp = %f\n",   n[0],  n[1],  n[2], dp); 
-               fprintf(SUMA_STDERR, " Neigh(mnc)=[%.6f %.6f %.6f]\n",   mnc[0],  mnc[1],  mnc[2]); 
-               fprintf(SUMA_STDERR, " Norm (  )= [%.6f %.6f %.6f]\n",   SO->NodeNormList[3*in], SO->NodeNormList[3*in+1],SO->NodeNormList[3*in+2]); 
-               fprintf(SUMA_STDERR, " Disp (s )= [%.6f %.6f %.6f]\n",   s[0],  s[1],  s[2]); 
-               fprintf(SUMA_STDERR, "      (st)= [%.6f %.6f %.6f]\n",  st[0], st[1], st[2]); 
-               fprintf(SUMA_STDERR, "      (sn)= [%.6f %.6f %.6f]\n",  sn[0], sn[1], sn[2]); 
-               fprintf(SUMA_STDERR, "       su = [%.6f %.6f %.6f]\n",  su1, su2, su3); 
-               fprintf(SUMA_STDERR, "        u = [%.6f %.6f %.6f]\n",  u[0], u[1], u[2]); 
-               if (OutNodeFile) {
-                  fprintf(OutNodeFile, " %d %d  %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f"
-                                       " %.6f %.6f"
-                                       " %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f"
-                                       " %.6f %.6f %.6f %.6f"
-                                       "\n"
-                                       , in, it, l
-                                       , Imin, Imax, tb
-                                       , MinMax_dist[0], MinMax_dist[1]
-                                       , MinMax_over[0], MinMax_over[1]
-                                       , MinMax_over_dist[0], MinMax_over_dist[1]
-                                       , Means[0], Means[1], Means[2]
-                                       ,   n[0],  n[1],  n[2], dp
-                                       ,   mnc[0],  mnc[1],  mnc[2]
-                                       ,SO->NodeNormList[3*in], SO->NodeNormList[3*in+1],SO->NodeNormList[3*in+2]
-                                       ,s[0],  s[1],  s[2]
-                                       ,  st[0], st[1], st[2]
-                                       ,  sn[0], sn[1], sn[2]
-                                       ,  su1, su2, su3
-                                       ,  u[0], u[1], u[2]
-                                       , t2, t, tm, t98);
-               }
+               
+               u[0] = su1 * st[0] + su2 * sn[0] + ( su3 + su4 ) * SO->NodeNormList[3*in]   ;
+               u[1] = su1 * st[1] + su2 * sn[1] + ( su3 + su4 ) * SO->NodeNormList[3*in+1] ;
+               u[2] = su1 * st[2] + su2 * sn[2] + ( su3 + su4 ) * SO->NodeNormList[3*in+2] ; 
+               if (0 && (in == Opt->NodeDbg)) { 
+                  fprintf(SUMA_STDERR, "%s: Node %d, iter %d, l %.6f\n", FuncName, in, it, l);
+                  fprintf(SUMA_STDERR, " MinMaxTb = [%.6f %.6f %.6f]\n", Imin, Imax, tb);
+                  fprintf(SUMA_STDERR, " MinMaxdist=[%.6f %.6f ]\n", MinMax_dist[0], MinMax_dist[1]);
+                  fprintf(SUMA_STDERR, " MinMaxover     =[%.6f %.6f ]\n", MinMax_over[0], MinMax_over[1]);
+                  fprintf(SUMA_STDERR, " MinMaxover_dist=[%.6f %.6f ]\n", MinMax_over_dist[0], MinMax_over_dist[1]); 
+                  fprintf(SUMA_STDERR, " Means (at, under, over) = [%.6f %.6f %.6f]\n", Means[0], Means[1], Means[2]); 
+                  fprintf(SUMA_STDERR, " Coord(n )= [%.6f %.6f %.6f], dp = %f\n",   n[0],  n[1],  n[2], dp); 
+                  fprintf(SUMA_STDERR, " Neigh(mnc)=[%.6f %.6f %.6f]\n",   mnc[0],  mnc[1],  mnc[2]); 
+                  fprintf(SUMA_STDERR, " Norm (  )= [%.6f %.6f %.6f]\n",   SO->NodeNormList[3*in], SO->NodeNormList[3*in+1],SO->NodeNormList[3*in+2]); 
+                  fprintf(SUMA_STDERR, " Disp (s )= [%.6f %.6f %.6f]\n",   s[0],  s[1],  s[2]); 
+                  fprintf(SUMA_STDERR, "      (st)= [%.6f %.6f %.6f]\n",  st[0], st[1], st[2]); 
+                  fprintf(SUMA_STDERR, "      (sn)= [%.6f %.6f %.6f]\n",  sn[0], sn[1], sn[2]); 
+                  fprintf(SUMA_STDERR, "       su = [%.6f %.6f %.6f]\n",  su1, su2, su3); 
+                  fprintf(SUMA_STDERR, "        u = [%.6f %.6f %.6f]\n",  u[0], u[1], u[2]); 
+                  if (OutNodeFile) {
+                     fprintf(OutNodeFile, " %d %d  %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f"
+                                          " %.6f %.6f"
+                                          " %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f"
+                                          " %.6f %.6f %.6f %.6f"
+                                          "\n"
+                                          , in, it, l
+                                          , Imin, Imax, tb
+                                          , MinMax_dist[0], MinMax_dist[1]
+                                          , MinMax_over[0], MinMax_over[1]
+                                          , MinMax_over_dist[0], MinMax_over_dist[1]
+                                          , Means[0], Means[1], Means[2]
+                                          ,   n[0],  n[1],  n[2], dp
+                                          ,   mnc[0],  mnc[1],  mnc[2]
+                                          ,SO->NodeNormList[3*in], SO->NodeNormList[3*in+1],SO->NodeNormList[3*in+2]
+                                          ,s[0],  s[1],  s[2]
+                                          ,  st[0], st[1], st[2]
+                                          ,  sn[0], sn[1], sn[2]
+                                          ,  su1, su2, su3
+                                          ,  u[0], u[1], u[2]
+                                          , t2, t, tm, t98);
+                  }
 
-            }
-            NewCoord[3*in] = n[0] + u[0]; NewCoord[3*in+1] = n[1] + u[1]; NewCoord[3*in+2] = n[2] + u[2];       
-            MaxExp = SUMA_MAX_PAIR (MaxExp, ( sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]) ) );
-            DoDbg = NOPE;
+               }
+               NewCoord[3*in] = n[0] + u[0]; NewCoord[3*in+1] = n[1] + u[1]; NewCoord[3*in+2] = n[2] + u[2];       
+               MaxExp = SUMA_MAX_PAIR (MaxExp, ( sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]) ) );
+               DoDbg = NOPE;
+            
          } /* loop over number of nodes */
          /* swap vectors */
             tmpptr = SO->NodeList;
@@ -732,26 +745,111 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
          }
 
       } /* loop over number of iterations */
-      if (MaxExp > 0.5) {
-         /* Now, if you still have expansion, continue */
-         if (!pastarea) { /* first time around, calculate area */
-            pastarea = SUMA_Mesh_Area(SO, NULL, -1);
-            keepgoing = 1;
-         }else {
-            curarea = SUMA_Mesh_Area(SO, NULL, -1);
-            darea = ( curarea - pastarea ) / pastarea; 
-            if (SUMA_ABS(darea) > 0.1) {
+      ++Stage;
+      if (Stage == 1) { /* if the surface is still growing, keep going */
+         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 1"); }
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: \n In stage 1\n", FuncName);
+         if (MaxExp > 0.5) {
+            /* Now, if you still have expansion, continue */
+            if (!pastarea) { /* first time around, calculate area */
+               pastarea = SUMA_Mesh_Area(SO, NULL, -1);
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: pastarea = %f\n", FuncName, pastarea);
                keepgoing = 1;
-            } else { 
-               keepgoing = 0;
+            }else {
+               curarea = SUMA_Mesh_Area(SO, NULL, -1);
+               darea = ( curarea - pastarea ) / pastarea; 
+               if (SUMA_ABS(darea) > 0.1) {
+                  keepgoing = 1;
+               } else { 
+                  keepgoing = 0;
+               }
+               pastarea = curarea;
+            }
+            if (keepgoing) {
+               it0 = nit; nit = nit + (int)(Opt->N_it/2.5);
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: MaxExp = %f, darea = %f, going for more...\n", FuncName, MaxExp, darea);
+               Done = 0;
+            } else {
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, small area differential.\n", FuncName);
+               ++Stage;
+            }
+         } else {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, low MaxExp\n", FuncName);
+            ++Stage;
+         }
+      }
+      if (Stage == 2) {
+         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 2"); }
+         if (0) {
+            touchup = SUMA_Suggest_Touchup_Grad(SO, Opt, 4.0, cs, &N_troub);
+            if (!touchup) SUMA_SL_Warn("Failed in SUMA_Suggest_Touchup");
+         } else {
+            SUMA_LH( "Bypasing, SUMA_Suggest_Touchup_Grad is bad,"
+                     " need serious 3D edge detection. "
+                     " And cone shaped search zone for the gradient crossing  ... ");
+            N_troub = 0;
+         }
+         
+         if (!N_troub) { 
+            /* No touchup, done */
+            ++Stage;
+         } else {
+            if (touchup) SUMA_free(touchup); touchup = NULL;
+            ++Stage;  
+         }
+      }
+      if (Stage == 3) {
+         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 3"); }
+         /* see if there is room for extension */
+         touchup = SUMA_Suggest_Touchup(SO, Opt, 4.0, cs, &N_troub);
+         if (!touchup) SUMA_SL_Warn("Failed in SUMA_Suggest_Touchup");
+         if (!N_troub) { 
+            /* No touchup, done */
+            Done = 1;
+         } else {
+            /* reduce tightness where expansion is needed */
+            if (LocalHead) {
+               fprintf(SUMA_STDERR,"%s:\n reducing tightness, applying touchup\n", FuncName);
+            }
+            for (in=0; in<SO->N_Node; ++in) {
+               if (touchup[in]) {
+                  if (Opt->NodeDbg == in) fprintf(SUMA_STDERR,"%s: Acting on node %d, touchup[in] %f, past shrink_fac = %f\n", 
+                                                         FuncName, in, touchup[in], Opt->ztv[in]);                  
+                  if (touchup[in] < 1) Opt->ztv[in] *= 0.8;
+                  else if (touchup[in] < 2) Opt->ztv[in] *= 0.7;
+                  else if (touchup[in] < 3) Opt->ztv[in] *= 0.6;
+                  else if (touchup[in] < 4) Opt->ztv[in] *= 0.5;
+                  else Opt->ztv[in] *= 0.4;
+               }
+            }
+            it0 = nit; nit = nit + (int)(Opt->N_it/2.5);
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage3: %d troubled nodes, going for more...\n", FuncName, N_troub);
+            Done = 0;
+            
+            if (!past_N_troub) { past_N_troub = 0; }
+            else {
+               float dtroub;
+               dtroub = (float)(past_N_troub - N_troub)/(float)past_N_troub;
+               if (SUMA_ABS(dtroub) > 0.2) {
+                  Done = 0; /* continue */
+               } else {
+                  Done = 1; /* done deal */
+               }
+               past_N_troub = N_troub;
             }
          }
-         if (keepgoing) {
-            it0 = nit; nit = nit + 100;
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n MaxExp = %f, darea = %f, going for more...\n", FuncName, MaxExp, darea);
-            Done = 0;
-         } else Done = 1;
-      } else Done = 1;
+         
+         if (touchup) SUMA_free(touchup); touchup = NULL;
+      }
+      if (Stage > 3) {
+         SUMA_SL_Err("Stage number invalid");
+         Done = 1;
+      }
+      /* put a limit */
+      if ( (nit > 3 * Opt->N_it) && !Done) {
+         SUMA_LH("Funding limit reached. Abandoning improvements");
+         Done = 1;
+      }
    } while (!Done);
       
    
@@ -930,7 +1028,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
    float MaxDims[3], MinDims[3], SOCenter[3];
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, *voxelsijk=NULL, N_alloc, en;
-   int N_inbox, nt, nt3, ijkseed, N_in;
+   int N_inbox, nt, nt3, ijkseed, N_in, N_realloc;
    byte *fillmaskvec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -960,7 +1058,8 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    
    
    /* cycle through all triangles and find voxels that intersect them */
-   N_alloc = 600; /* expected maximum number of voxels in triangle's bounding box */
+   N_alloc = 2000; /* expected maximum number of voxels in triangle's bounding box */
+   N_realloc = 0;
    voxelsijk = (int *)SUMA_malloc(sizeof(int)*N_alloc*3);
    if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL);  }   
    for (nf=0; nf<SO->N_FaceSet; ++nf) {
@@ -972,7 +1071,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       /* quick check of preallocate size of voxelsijk */
       en =((int)(max_v[0] - min_v[0] + 2) * (int)(max_v[1] - min_v[1] + 2) * (int)(max_v[2] - min_v[2] + 2)); 
       if ( en > N_alloc) {
-         SUMA_SL_Warn("Reallocating, increase limit to improve speed.");
+         ++N_realloc; if (N_realloc > 5) { SUMA_SL_Warn("Reallocating, increase limit to improve speed.\nEither triangles too large or grid too small"); }
          N_alloc = 2*en;
          voxelsijk = (int *)SUMA_realloc(voxelsijk, 3*N_alloc*sizeof(int));
          if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL); }
@@ -1167,36 +1266,49 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
 }
 
 /*!
-   \brief A function to move node surfaces towards a better future.
-   
-   This function used to be a macro gone too large. 
+   \brief A function to recommend node movement towards a better future.
+   FAILS, mesh density too low. Need 3d edge mask....
+   \sa SUMA_Reposition_Touchup
 */
-int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
 {
-   static char FuncName[]={"SUMA_Reposition_Touchup"};
-   byte *fmask=NULL;
-   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0;   
+   static char FuncName[]={"SUMA_Suggest_Touchup_Grad"};
+   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, ShishMax, *dvecind_under, *dvecind_over, ni, nj, nk, nx, ny, nxy;   
    float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
-   float U[3], Un, *a, P2[2][3], *norm, shft, *b; 
-   float *touchup=NULL, **wgt=NULL, *dsmooth=NULL; 
-   int nstp, stillmoving, kth_buf;
-   float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL;
-   SUMA_Boolean Send_buf;
-   SUMA_Boolean LocalHead = NOPE;
+   float U[3], Un, *a, P2[2][3], *norm, shft, *b, gradient_promise; 
+   float *touchup=NULL, targ[3]; 
+   float *overshish=NULL, *undershish=NULL, *gradovershish=NULL;
+   static FILE *GradOut = NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
-   
-      if (Opt->debug > 2) LocalHead = YUP;
+      
+   SUMA_SL_Warn("Don't call me, good for nothing, mesh density too low to work well ...\n");
+   SUMA_RETURN(NULL);
+      
+      if (!GradOut) GradOut = fopen("GradOut.1D", "wa");
 
+      if (Opt->debug > 2) LocalHead = YUP;
+      *N_touch = 0;
+      nx = SO->VolPar->nx; ny = SO->VolPar->ny; nxy = nx * ny;
+      
+      ShishMax = (int)(SUMA_MAX_PAIR(Opt->d1, Opt->d4) / Opt->travstp * 1.2);
+      overshish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      undershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      gradovershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      dvecind_under = (int *)SUMA_malloc(sizeof(int)*ShishMax);
+      dvecind_over = (int *)SUMA_malloc(sizeof(int)*ShishMax);
       touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   
-      if (!touchup) { SUMA_SL_Crit("Failed to allocate"); exit(1); }  
+      if (!touchup) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }  
       for (in=0; in<SO->N_Node; ++in) {   
-         SUMA_Find_IminImax(SO, Opt, in,  MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means, NULL, NULL, 0); 
+         SUMA_Find_IminImax(SO, Opt, in,  MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, 
+                           Means, undershish, overshish, dvecind_under, dvecind_over, ShishMax); 
          /* Shift the node outwards:   
             0- the minimum location of the minimum over the node is not 0
             AND
-            1- if the minimum over the node is closer than the minimum below the node  or the internal minimum is more than 1mm away 
-               and the internal min is masked to 0 or the minimum below the node just sucks, > tb and the minimum over the node is < tb
+            1- if the minimum over the node is closer than the minimum below the node  
+               or the internal minimum is more than 1mm away  and the internal min is masked to 0 
+               or the minimum below the node just sucks, > tb and the minimum over the node is < tb
                The second part of the condition is meant to better model a finger of cortex that has enough csf on the inner surface 
                to have it be set to 0 by SpatNorm this dark csf would keep the brain surface from reaching the outer surface 
             AND   
@@ -1204,9 +1316,12 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
                it must be beyond the location of the minimum over the node   
             AND   
             3- The new position of the node is not much larger than the current value
+            AND
+            4- There are no large negative gradients being crossed on the way out.  
          */ 
          tb = (MinMax[1] - Opt->t2) * 0.5 + Opt->t2; 
-         cond1 = (    (MinMax_over_dist[0] < MinMax_dist[0]) || (MinMax_dist[0] > 1 && MinMax[0] >= MinMax_over[0] ) 
+         cond1 = (    (MinMax_over_dist[0] < MinMax_dist[0]) 
+                     || (MinMax_dist[0] > 1 && MinMax[0] >= MinMax_over[0] ) 
                      || (MinMax[0] > tb && MinMax_over[0] < MinMax[0]) ); 
          if (MinMax_over[1] > MinMax[1] && MinMax_over[1] > 0.9 * Opt->t98 && (MinMax_over_dist[1] < MinMax_over_dist[0]) ) cond2 = 0;  
          else cond2 = 1; 
@@ -1227,6 +1342,41 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
                        a[2] - SO->Center[2], Opt->r/2, 
                        MinMax_over_dist[0] , cond1 , cond2, cond3); 
          }  
+         /* Now search for the first location that has a negative gradient of 1/3 tm*/
+         nn = 1;
+         while(nn<ShishMax) {
+            if (overshish[nn] >= 0) {
+               gradovershish[nn-1] = overshish[nn] - overshish[nn-1];
+               if (gradovershish[nn-1] < - Opt->tm/3.0) {
+                  targ[0] = (nn - 1) * Opt->travstp * SO->NodeNormList[3*in]; 
+                  targ[1] = (nn - 1) * Opt->travstp * SO->NodeNormList[3*in+1];
+                  targ[2] = (nn - 1) * Opt->travstp * SO->NodeNormList[3*in+2];
+                  if (dvecind_over[nn] < 0 || dvecind_over[nn] > Opt->nvox) {
+                     fprintf(SUMA_STDERR,"Error %s: Bad value for  dvecind_over[%d]=%d\n", FuncName, nn, dvecind_over[in]);
+                  } else {
+                     if (MinMax_over_dist[0] && cond1 && cond2 && cond3 && Opt->dvec[dvecind_over[nn]]) { 
+                        while (nn < ShishMax && dvecind_over[nn] >=0) {
+                           Opt->dvec[dvecind_over[nn]] = 0;
+                           if (LocalHead) { 
+                              SUMA_1D_2_3D_index(dvecind_over[nn], ni, nj, nk, nx, nxy);
+                              fprintf(SUMA_STDERR,"%s: Zeroing voxel %d %d %d, grad %f, from node %d\n", FuncName, ni, nj, nk, gradovershish[nn-1], in);
+                              fprintf(GradOut,"%d %d %d\n",ni, nj, nk); 
+                           }
+                           ++nn;
+                        }
+                     }
+                  }
+               }
+               ++nn;
+            }else {
+               gradovershish[nn-1] = 0;
+               nn = ShishMax;
+            }
+         }
+         /* STUFF BELOW IS USELESS */
+         
+         SUMA_NORM_VEC(targ, 3, gradient_promise);
+         
          if (MinMax_over_dist[0] && cond1 && cond2 && cond3) {   
                a = &(SO->NodeList[3*in]);   
                /* reposition nodes */  
@@ -1244,15 +1394,180 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
                                              /* to avoid going into eye balls */
                                              /* Then added !SUMA_IS_EYE_ZONE(a,SO->Center) to avoid eyes */  
                                              /* but that is no longer necessary with fancier expansion conditions. */
-                  touchup[in] = MinMax_over_dist[0]; 
+                  if (gradient_promise < MinMax_over_dist[0]) {
+                     touchup[in] = gradient_promise;
+                  } else touchup[in] = MinMax_over_dist[0]; 
                }  
             ++N_troub;   
          }  
          /* nodes in the front of the brain that are sitting in the midst of a very bright area 
          should be moved further down until they hit the brain vs non brain area*/ 
       }  
+      
+      if (dvecind_under) SUMA_free(dvecind_under); dvecind_under= NULL;
+      if (dvecind_over) SUMA_free(dvecind_over); dvecind_over= NULL;
+      if (overshish) SUMA_free(overshish); overshish = NULL; 
+      if (gradovershish) SUMA_free(gradovershish); gradovershish = NULL; 
+      if (undershish) SUMA_free(undershish); undershish = NULL; 
+   
+   *N_touch = N_troub;
+   if (GradOut) fclose(GradOut); GradOut = NULL;
+   
+   SUMA_RETURN(touchup);
+}
+   
+/*!
+   \brief A function to recommend node movement towards a better future.
+   \sa SUMA_Reposition_Touchup
+*/
+float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
+{
+   static char FuncName[]={"SUMA_Suggest_Touchup"};
+   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, ShishMax;   
+   float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
+   float U[3], Un, *a, P2[2][3], *norm, shft, *b; 
+   float *touchup=NULL; 
+   float *overshish=NULL, *undershish=NULL, *gradovershish=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+      if (Opt->debug > 2) LocalHead = YUP;
+      *N_touch = 0;
+      
+      ShishMax = (int)(SUMA_MAX_PAIR(Opt->d1, Opt->d4) / Opt->travstp * 1.2);
+      overshish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      undershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      gradovershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   
+      if (!touchup) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }  
+      for (in=0; in<SO->N_Node; ++in) {   
+         SUMA_Find_IminImax(SO, Opt, in,  MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means, undershish, overshish, NULL, NULL, ShishMax); 
+         /* Shift the node outwards:   
+            0- the minimum location of the minimum over the node is not 0
+            AND
+            1- if the minimum over the node is closer than the minimum below the node  or the internal minimum is more than 1mm away 
+               and the internal min is masked to 0 or the minimum below the node just sucks, > tb and the minimum over the node is < tb
+               The second part of the condition is meant to better model a finger of cortex that has enough csf on the inner surface 
+               to have it be set to 0 by SpatNorm this dark csf would keep the brain surface from reaching the outer surface 
+            AND   
+            2- if the maximum over the node is much higher than the maximum below the node (fat on skull), 
+               it must be beyond the location of the minimum over the node   
+            AND   
+            3- The new position of the node is not much larger than the current value
+            AND
+            4- The mean above the node is not more than 1.2 * the mean below the node.  
+         */ 
+         tb = (MinMax[1] - Opt->t2) * 0.5 + Opt->t2; 
+         cond1 = (    (MinMax_over_dist[0] < MinMax_dist[0]) || (MinMax_dist[0] > 1 && MinMax[0] >= MinMax_over[0] ) 
+                     || (MinMax[0] > tb && MinMax_over[0] < MinMax[0]) ); 
+         /* statement below used to be: if (MinMax_over[1] > MinMax[1] && MinMax_over[1] > 0.9 * Opt->t98 && (MinMax_over_dist[1] < MinMax_over_dist[0]) ) cond2 = 0;  */
+         if (MinMax_over[1] > 1.2 * MinMax[1] && (MinMax_over_dist[1] < MinMax_over_dist[0]) ) cond2 = 0;  
+         else cond2 = 1; 
+         if (MinMax_over[0] > 1.2 * Means[0]) cond3 = 0;
+         else cond3 = 1;
+         if (Means[2] > Means[1]) cond4 = 0;  /* March 21 */
+         else cond4 = 1; 
+         if (Opt->NodeDbg == in) {   
+               a = &(SO->NodeList[3*in]);   
+               fprintf(SUMA_STDERR, "%s: Debug during touchup for node %d:\n"   
+                                    " MinMax     =[%.1f,%.1f] MinMax_dist     = [%.2f,%.2f] \n"   
+                                    " MinMax_over=[%.1f,%.1f] MinMax_over_dist= [%.2f,%.2f] \n"   
+                                    " Val at node %.1f, mean below %.1f, mean above %.1f\n"  
+                                    " zalt= %f, r/2 = %f\n"    
+                                    " Conditions: %f %d %d %d %d\n",    
+                       FuncName, in, 
+                       MinMax[0], MinMax[1], MinMax_dist[0], MinMax_dist[1], 
+                       MinMax_over[0], MinMax_over[1], MinMax_over_dist[0], MinMax_over_dist[1], 
+                       Means[0], Means[1], Means[2],   
+                       a[2] - SO->Center[2], Opt->r/2, 
+                       MinMax_over_dist[0] , cond1 , cond2, cond3, cond4); 
+         }  
+         /* what is happening with the gradients NOT USED YET*/
+         for (nn=1; nn<ShishMax; ++nn) {
+            if (overshish[nn] >= 0) {
+               gradovershish[nn-1] = overshish[nn] - overshish[nn-1];
+                  
+            }else {
+               gradovershish[nn-1] = 0;
+            }
+         }
+         
+         if (MinMax_over_dist[0] && cond1 && cond2 && cond3) {   
+               a = &(SO->NodeList[3*in]);   
+               if (cond4) {
+                  /* reposition nodes */  
+                  if (Opt->NodeDbg == in) { fprintf(SUMA_STDERR, "%s: Suggest repair for node %d (better min above):\n"   
+                                       " MinMax     =[%.1f,%.1f] MinMax_dist     = [%.2f,%.2f] \n"   
+                                       " MinMax_over=[%.1f,%.1f] MinMax_over_dist= [%.2f,%.2f] \n"   
+                                       " Val at node %.1f, mean below %.1f, mean above %.1f\n"  
+                                       " zalt= %f, r/2 = %f\n",    
+                          FuncName, in, 
+                          MinMax[0], MinMax[1], MinMax_dist[0], MinMax_dist[1], 
+                          MinMax_over[0], MinMax_over[1], MinMax_over_dist[0], MinMax_over_dist[1], 
+                          Means[0], Means[1], Means[2],   
+                          a[2] - SO->Center[2], Opt->r/2); } 
+                  {  /* Used to insist on value and top half if (MinMax_over_dist[0] && (a[2] - SO->Center[2] > 0))  */
+                                                /* to avoid going into eye balls */
+                                                /* Then added !SUMA_IS_EYE_ZONE(a,SO->Center) to avoid eyes */  
+                                                /* but that is no longer necessary with fancier expansion conditions. */
+                     touchup[in] = MinMax_over_dist[0]; 
+                  }  
+               ++N_troub; 
+            } else { /* freeze that node, an attempt to control leak into lardo */
+               Opt->Stop[in] = -1.0;
+               if (Opt->NodeDbg == in) { fprintf(SUMA_STDERR, "%s: Freezing node %d\n", FuncName, in); }
+            }  
+         }  
+         /* nodes in the front of the brain that are sitting in the midst of a very bright area 
+         should be moved further down until they hit the brain vs non brain area*/ 
+      }  
+      
+      
+      if (overshish) SUMA_free(overshish); overshish = NULL; 
+      if (gradovershish) SUMA_free(gradovershish); gradovershish = NULL; 
+      if (undershish) SUMA_free(undershish); undershish = NULL; 
+   
+   *N_touch = N_troub;
+   
+   SUMA_RETURN(touchup);
+}
+/*!
+   \brief A function to move node surfaces towards a better future.
+   
+   This function used to be a macro gone too large. 
+*/
+int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+{
+   static char FuncName[]={"SUMA_Reposition_Touchup"};
+   byte *fmask=NULL;
+   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn;   
+   float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
+   float U[3], Un, *a, P2[2][3], *norm, shft, *b; 
+   float *touchup=NULL, **wgt=NULL, *dsmooth=NULL; 
+   int nstp, stillmoving, kth_buf, N_Touch;
+   float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL;
+   SUMA_Boolean Send_buf;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+      if (Opt->debug > 2) LocalHead = YUP;
+      
+      touchup = SUMA_Suggest_Touchup(SO, Opt, limtouch, cs, &N_troub);
+      if (!touchup) {
+         SUMA_SL_Err("Failed in SUMA_Suggest_Touchup");
+         SUMA_RETURN(NOPE);
+      }
+      if (!N_troub) {
+         SUMA_LH("Nothing to do, no trouble nodes.");
+         SUMA_RETURN(YUP);
+      }
+      
       if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* %d troubled nodes found\n", FuncName, N_troub); 
-      if (1){ 
+      if (0){ /* March 22: Smoothing is not such a hot idea because it might cause certain nodes to depart into void and 
+         then beyond, if you do a 2 pass touchup. Do not do it anymore */
+          
          /* fix the big bumps: Bad for brain surface that has lots of bump on top, like 201, 
          that kind of smoothing is better performed on an inner model of the skull .... Someday ....*/
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* Now filtering...\n", FuncName); 
@@ -1264,23 +1579,27 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
          dsmooth = SUMA_Chung_Smooth (SO, wgt, 200, 20, touchup, 1, SUMA_COLUMN_MAJOR, NULL, cs);   
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* filtering done.\n", FuncName);   
       } else { 
-         dsmooth = touchup; touchup = NULL;  
+         dsmooth = touchup; /* carefull at the free business */
       }  
       /* add the changes */   
       #if 1 /* sudden jump, Fast and furious but that causes intersections */ 
       for (in=0; in<SO->N_Node; ++in) {   
          a = &(SO->NodeList[3*in]);   
-         if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
-            if (a[2] - SO->Center[2] > 10 )  shft = touchup[in]; /* no smooth baby for top where bumpy sulci can occur */ 
-            else shft = dsmooth[in];   
-            if (shft) { 
-               a = &(SO->NodeList[3*in]);   
-               norm = &(SO->NodeNormList[3*in]);  
-               SUMA_POINT_AT_DISTANCE(norm, a, SUMA_MIN_PAIR(shft, limtouch), P2);   
-               SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
-               if (0 && LocalHead) fprintf(SUMA_STDERR,"%s: Acting on node %d because it is in top half, boosting by %f\n", 
-                        FuncName, in, SUMA_MIN_PAIR(shft, limtouch));   
+         if (Opt->Stop[in] >= 0) {  
+            if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
+               if (a[2] - SO->Center[2] > 10 )  shft = touchup[in]; /* no smooth baby for top where bumpy sulci can occur */ 
+               else shft = dsmooth[in];   
+               if (shft) { 
+                  a = &(SO->NodeList[3*in]);   
+                  norm = &(SO->NodeNormList[3*in]);  
+                  SUMA_POINT_AT_DISTANCE(norm, a, SUMA_MIN_PAIR(shft, limtouch), P2);   
+                  SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
+                  if (0 && LocalHead) fprintf(SUMA_STDERR,"%s: Acting on node %d because it is in top half, boosting by %f\n", 
+                           FuncName, in, SUMA_MIN_PAIR(shft, limtouch));   
+               }
             }
+         } else {
+            if (in == Opt->NodeDbg) fprintf(SUMA_STDERR,"%s:\nNode %d has been frozen before, no cigar.\n", FuncName, in);
          }
       }  
       #else /* smooth operator, slow as hell, does not reach far enough */
@@ -1357,6 +1676,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
       if (fmask) SUMA_free(fmask); fmask = NULL; 
       if (shftvec) SUMA_free(shftvec); shftvec = NULL;
       if (targetloc) SUMA_free(targetloc); targetloc = NULL;
+      if (touchup == dsmooth) dsmooth = NULL;
       if (touchup) SUMA_free(touchup); touchup = NULL;   
       if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;   
       if (csmooth) SUMA_free(csmooth); csmooth = NULL;   

@@ -120,11 +120,11 @@ int main( int argc , char *argv[] )
    if (OrigSpace) {
       imout = mri_brainormalize( imin , iset->daxes->xxorient,
                                      iset->daxes->yyorient,
-                                     iset->daxes->zzorient , &imout_orig) ;
+                                     iset->daxes->zzorient , &imout_orig, NULL) ;
    } else {
       imout = mri_brainormalize( imin , iset->daxes->xxorient,
                                      iset->daxes->yyorient,
-                                     iset->daxes->zzorient , NULL) ;
+                                     iset->daxes->zzorient , NULL, NULL) ;
    }
    mri_free( imin ) ;
 
