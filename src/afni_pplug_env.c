@@ -590,7 +590,12 @@ static char * ENV_main( PLUGIN_interface * plint )
 
       /* call callback, if there is one */
 
+#if 0
       if( env_var[ii].vfunc != NULL ) env_var[ii].vfunc( env_var[ii].vname ) ;
+#else
+      if( env_var[ii].vfunc != NULL )
+        AFNI_CALL_VOID_1ARG( env_var[ii].vfunc , char *, env_var[ii].vname ) ;
+#endif
 
       /* turn this option off (for the user's convenience) */
 

@@ -111,7 +111,7 @@ ENTRY("AFNI_receive_init") ;
 fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
         ir,im3d->vinfo->num_receiver ) ;
 #endif
-      im3d->vinfo->receiver = AFREALL( im3d->vinfo->receiver, AFNI_receiver *, ir+1 ); 
+      im3d->vinfo->receiver = AFREALL( im3d->vinfo->receiver, AFNI_receiver *, ir+1 );
       im3d->vinfo->num_receiver ++ ;
    }
    im3d->vinfo->receiver[ir] = AFMALL( AFNI_receiver, sizeof(AFNI_receiver)) ;
@@ -145,9 +145,16 @@ ENTRY("AFNI_receive_destroy") ;
       for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
 
          if( im3d->vinfo->receiver[ir] != NULL ){
+#if 0
             im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_CLOSURE , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+            AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                                 int,RECEIVE_CLOSURE , int,0 ,
+                                 void *,NULL ,
+                                 void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
 
             if( im3d->vinfo->receiver[ir]->receiver_funcname != NULL )
               free( im3d->vinfo->receiver[ir]->receiver_funcname ) ;
@@ -429,9 +436,16 @@ ENTRY("AFNI_process_alteration") ;
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
       if( im3d->vinfo->receiver[ir] != NULL ){
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_ALTERATION , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_ALTERATION , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -457,9 +471,16 @@ ENTRY("AFNI_process_drawnotice") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWNOTICE_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_DRAWNOTICE , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_DRAWNOTICE , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -485,9 +506,16 @@ ENTRY("AFNI_process_dsetchange") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DSETCHANGE_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_DSETCHANGE , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_DSETCHANGE , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -516,9 +544,16 @@ ENTRY("AFNI_process_viewpoint") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_VIEWPOINT_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_VIEWPOINT , 3 , ijk ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_VIEWPOINT , int,3 ,
+                              void *,ijk ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -543,9 +578,16 @@ ENTRY("AFNI_process_timeindex") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_TIMEINDEX_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_TIMEINDEX , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_TIMEINDEX , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -570,9 +612,16 @@ ENTRY("AFNI_process_redisplay") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_REDISPLAY_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_REDISPLAY , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_REDISPLAY , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -597,9 +646,16 @@ ENTRY("AFNI_process_funcdisplay") ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_FUNCDISPLAY_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_FUNCDISPLAY , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_FUNCDISPLAY , int,0 ,
+                              void *,NULL ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
       }
    }
 
@@ -683,9 +739,16 @@ fprintf(stderr,"Sending %d points to receiver\n",nn) ;
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWING_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
+#if 0
          im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_POINTS , nn ,
                    (void *) vp , im3d->vinfo->receiver[ir]->receiver_data ) ;
+#else
+         AFNI_CALL_VOID_4ARG( im3d->vinfo->receiver[ir]->receiver_func ,
+                              int,RECEIVE_POINTS , int,nn ,
+                              void *,vp ,
+                              void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
+#endif
          nsent++ ;
       }
    }

@@ -1,5 +1,7 @@
 #include "coxplot.h"
 #include <Xm/XmAll.h>
+#include <ctype.h>
+#include "Amalloc.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -247,7 +249,12 @@ static void donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 
    mpcb->valid = 0 ;
 
-   if( mpcb->killfunc != NULL ) mpcb->killfunc( mpcb ) ;
+   if( mpcb->killfunc != NULL )
+#if 0
+     mpcb->killfunc( mpcb ) ;
+#else
+     AFNI_CALL_VOID_1ARG( mpcb->killfunc , MEM_topshell_data * , mpcb ) ;
+#endif
 
    if( mpcb->dial != NULL ) XtDestroyWidget( mpcb->dial ) ;
 #ifdef HAVE_XDBE

@@ -482,7 +482,8 @@ typedef struct AFNI_plugin_array {
    do{ int nn , iq ;                                                                  \
        if( (name)->num == (name)->nall ){                                             \
           nn = (name)->nall = 1.1*(name)->nall + INC_PLUGIN_ARRAY ;                   \
-          (name)->plar      = realloc( (name)->plar,sizeof(AFNI_plugin *)*nn ) ;      \
+          (name)->plar      = (AFNI_plugin **)                                        \
+                               realloc( (name)->plar,sizeof(AFNI_plugin *)*nn ) ;     \
           for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->plar[iq] = NULL ;} \
        nn = (name)->num ; ((name)->num)++ ;                                           \
        (name)->plar[nn] = (plug) ;                                                    \

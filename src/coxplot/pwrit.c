@@ -44,7 +44,7 @@ extern struct {
     static integer i__, nchar;
     static real width;
     static integer isize;
-    static real ct, dx, dy, or, st, xx, yy;
+    static real ct, dx, dy, oor, st, xx, yy;
     extern /* Subroutine */ int zzchar_(char *, real *, real *, real *, real *
 	    , ftnlen), zzphys_(real *, real *);
 
@@ -89,9 +89,9 @@ extern struct {
 /*  Rotation/scaling factors for digitization.  Include factor of 1/6 */
 /*  to allow for digitization scale in ZZCHAR. */
 
-    or = *ior * .017453292f;
-    dx = width * cos(or);
-    dy = width * sin(or);
+    oor = *ior * .017453292f;
+    dx = width * cos(oor);
+    dy = width * sin(oor);
     ct = dx * .1666667f;
     st = dy * .1666667f;
 

@@ -49,7 +49,7 @@ extern struct {
     static integer i__;
     static char chloc[6666];
     static integer nchar, isize;
-    static real ct, or;
+    static real ct, oor;
     static integer nchloc;
     static real st, xr, yr, xx, yy;
     extern integer lastnb_(char *, ftnlen);
@@ -86,9 +86,9 @@ extern struct {
 
 /*  Rotation/scaling factors for digitization */
 
-    or = *ior * .017453292f;
-    ct = size * cos(or);
-    st = size * sin(or);
+    oor = *ior * .017453292f;
+    ct = size * cos(oor);
+    st = size * sin(oor);
 
 /*  Base location, in internal coordinates */
 

@@ -779,7 +779,13 @@ ENTRY("optmenu_finalize") ;
    /* call user callback, if present */
 
    if( av->dval_CB != NULL && av->fval != av->old_fval )
+#if 0
       av->dval_CB( av , av->dval_data ) ;
+#else
+      AFNI_CALL_VOID_2ARG( av->dval_CB ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->dval_data ) ;
+#endif
 
    EXRETURN ;
 }
@@ -917,7 +923,13 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
    /* call user callback, if present */
 
    if( av->dval_CB != NULL && av->fval != av->old_fval )
+#if 0
       av->dval_CB( av , av->dval_data ) ;
+#else
+      AFNI_CALL_VOID_2ARG( av->dval_CB ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->dval_data ) ;
+#endif
 
    return ;
 }
@@ -1005,7 +1017,13 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId * id )
    /* call user callback, if present */
 
    if( av->dval_CB != NULL && av->fval != av->old_fval )
+#if 0
       av->dval_CB( av , av->dval_data ) ;
+#else
+      AFNI_CALL_VOID_2ARG( av->dval_CB ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->dval_data ) ;
+#endif
 
    /* delay and then call again, if desired */
 
@@ -1050,7 +1068,13 @@ ENTRY("AV_assign_ival") ;
    /* change text display, if present */
 
    if( av->text_CB != NULL ){
+#if 0
       cval = av->text_CB( av , av->text_data ) ;            /* save   */
+#else
+      AFNI_CALL_VALU_2ARG( av->text_CB , char * , cval ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->text_data ) ;
+#endif
       myXtFree( av->old_sval ) ; av->old_sval = av->sval ;  /* string */
       av->sval = XtNewString( cval ) ;                      /* values */
 
@@ -1207,7 +1231,13 @@ void AV_assign_fval( MCW_arrowval * av , float qval )
    /* change text display, if present */
 
    if( av->text_CB != NULL ){
+#if 0
       cval = av->text_CB( av , av->text_data ) ;            /* save   */
+#else
+      AFNI_CALL_VALU_2ARG( av->text_CB , char * , cval ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->text_data ) ;
+#endif
       myXtFree( av->old_sval ) ; av->old_sval = av->sval ;  /* string */
       av->sval = XtNewString( cval ) ;                      /* values */
 
@@ -1265,7 +1295,13 @@ void AV_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
    AV_assign_fval( av , sval ) ;  /* will alter ival,fval,sval in av */
 
    if( av->dval_CB != NULL && av->fval != av->old_fval )  /* value changed */
+#if 0
       av->dval_CB( av , av->dval_data ) ;
+#else
+      AFNI_CALL_VOID_2ARG( av->dval_CB ,
+                           MCW_arrowval * , av ,
+                           XtPointer      , av->dval_data ) ;
+#endif
 
    myXtFree(str) ;  /* give it back */
 
@@ -1779,7 +1815,13 @@ void AP_timer_CB( XtPointer client_data , XtIntervalId * id )
    /* call user callback */
 
    if( apad->action_CB != NULL )
+#if 0
       apad->action_CB( apad , apad->action_data ) ;
+#else
+      AFNI_CALL_VOID_2ARG( apad->action_CB ,
+                           MCW_arrowpad * , apad ,
+                           XtPointer      , apad->action_data ) ;
+#endif
 
    /* delay and then call again, if desired */
 
@@ -2848,7 +2890,14 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
             cbs.ival   = cd->av->ival ;
 
             if( !done ) MCW_invert_widget(w) ;              /* flash */
+#if 0
             cd->sel_CB( cd->wcaller , cd->sel_cd , &cbs ) ; /* call user */
+#else
+            AFNI_CALL_VOID_3ARG( cd->sel_CB ,
+                                 Widget           , cd->wcaller ,
+                                 XtPointer        , cd->sel_cd  ,
+                                 MCW_choose_cbs * , &cbs         ) ;
+#endif
             if( !done ) MCW_invert_widget(w) ;              /* flash */
          }
          return ;
@@ -2897,7 +2946,14 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
             }
 
             if( flash ) MCW_invert_widget(w) ;              /* flash */
+#if 0
             cd->sel_CB( cd->wcaller , cd->sel_cd , &cbs ) ; /* call user */
+#else
+            AFNI_CALL_VOID_3ARG( cd->sel_CB ,
+                                 Widget           , cd->wcaller ,
+                                 XtPointer        , cd->sel_cd  ,
+                                 MCW_choose_cbs * , &cbs         ) ;
+#endif
             if( flash ) MCW_invert_widget(w) ;              /* flash */
 
             myXtFree(pos_list) ;
@@ -2932,7 +2988,14 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
             cbs.cval   = TEXT_GET( cd->wchoice ) ;
 
             if( !done ) MCW_invert_widget(w) ;              /* flash */
+#if 0
             cd->sel_CB( cd->wcaller , cd->sel_cd , &cbs ) ; /* call user */
+#else
+            AFNI_CALL_VOID_3ARG( cd->sel_CB ,
+                                 Widget           , cd->wcaller ,
+                                 XtPointer        , cd->sel_cd  ,
+                                 MCW_choose_cbs * , &cbs         ) ;
+#endif
             if( !done ) MCW_invert_widget(w) ;              /* flash */
 
             myXtFree( cbs.cval ) ; cbs.cval = NULL ;
@@ -3011,7 +3074,14 @@ printf("MCW_choose_CB: calling user supplied routine\n") ;
 #endif
 
                if( flash ) MCW_invert_widget(w) ;              /* flash */
+#if 0
                cd->sel_CB( cd->wcaller , cd->sel_cd , &cbs ) ; /* call user */
+#else
+               AFNI_CALL_VOID_3ARG( cd->sel_CB ,
+                                    Widget           , cd->wcaller ,
+                                    XtPointer        , cd->sel_cd  ,
+                                    MCW_choose_cbs * , &cbs         ) ;
+#endif
                if( flash ) MCW_invert_widget(w) ;              /* flash */
                return ;
             }

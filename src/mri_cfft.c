@@ -20,9 +20,7 @@
 */
 
 /* --------------------------------- */
-   void cfft(mode,idim,xr,xi)
-   int   mode,idim;
-   float *xr,*xi;
+  void cfft( int mode , int idim , float *xr , float *xi )
 /* --------------------------------- */
 {
 #define IDMAX  1024
@@ -43,7 +41,7 @@
      }
      if( id != i4 ){
        fprintf(stderr,"\n In cfft : illegal idim=%d\n",idim);
-       EXIT(1) ;
+       exit(1) ;
      }
      f2     = id;
      n      = log(f2)/log(2.) + .5;
@@ -115,9 +113,7 @@ i1_plus2:   i1 += m[i5];
 /*********************************************************************/
 
 /*----------------------------------*/
-void cfft2d( mode , nx,ny , xr,xi )
-  int mode , nx,ny ;
-  float *xr , *xi ;
+void cfft2d( int mode , int nx,int ny , float *xr, float *xi )
 /*----------------------------------*/
 {
    float *rbuf , *ibuf ;
@@ -127,7 +123,7 @@ void cfft2d( mode , nx,ny , xr,xi )
    ibuf = (float *)malloc( ny * sizeof(float) ) ;
    if( rbuf == NULL || ibuf == NULL ){
       fprintf(stderr,"malloc error in cfft2d\n") ;
-      EXIT(1) ;
+      exit(1) ;
    }
 
    for( jj=0 ; jj < ny ; jj++ ){

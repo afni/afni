@@ -105,7 +105,7 @@ static mallitem * ptr_tracker( void * fred )
 
    if( fred == NULL ) return NULL ;
 
-   jj = mallkey(fred) % SLOTS ;      /* hash table location */
+   jj = mallkey((char *)fred) % SLOTS ;      /* hash table location */
 
    if( htab[jj] == NULL ) return NULL ;  /* nothing there */
 
@@ -160,7 +160,7 @@ static void add_tracker( void * fred , size_t n , char * fn , int ln )
 
    if( fred == NULL ) return ;   /* bad news */
 
-   jj = mallkey(fred) % SLOTS ;  /* which hash list to use */
+   jj = mallkey((char *)fred) % SLOTS ;  /* which hash list to use */
    ip = find_empty_slot(jj) ;    /* get an empty slot in this list */
 
    /* now put the data into the hash table */
@@ -359,6 +359,9 @@ char * mcw_malloc_status(const char *fn , int ln)
 /*-----------------------------------------------------------------
   Write a file with lots of info about the current status
 -------------------------------------------------------------------*/
+
+extern int THD_is_file( char * ) ;
+extern void qsort_intint( int , int * , int * ) ;
 
 void mcw_malloc_dump(void)
 {

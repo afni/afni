@@ -200,7 +200,7 @@ void tcp_set_cutoff( int sd )
    Returns 1 if things are OK, 0 if not.
 --------------------------------------------------------------------------*/
 
-int tcp_alivecheck( sd )
+int tcp_alivecheck( int sd )
 {
    int ii ;
    char bbb[4] ;

@@ -268,7 +268,7 @@ typedef struct {
       MCW_arrowval * av ;      /* arrowval making the choices */
       Widget         wchoice ; /* widget making the choice */
       gen_func     * sel_CB ;  /* user callback */
-      XtPointer    * sel_cd ;  /* user callback data */
+      XtPointer      sel_cd ;  /* user callback data */
       MRI_IMARR    * tsarr ;   /* array of timeseries to choose from */
 
       XtPointer parent , aux ;

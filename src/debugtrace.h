@@ -63,6 +63,7 @@
 ------------------------------------------------------------------*/
 
 #include <signal.h>
+#include <unistd.h>
 
 #ifdef _DEBUGTRACE_MAIN_
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;

@@ -201,7 +201,12 @@ if(PRINT_TRACING)
 #endif
 
    do {
+#if 0
       plint = (PLUGIN_interface *) plin->libinit_func( nin ) ;
+#else
+      AFNI_CALL_VALU_1ARG(plin->libinit_func ,
+                          PLUGIN_interface *,plint , int,nin ) ;
+#endif
       if( plint == NULL ) break ;
 
       plin->interface = (PLUGIN_interface **)
@@ -247,6 +252,10 @@ if(PRINT_TRACING)
    Routine to read in all plugins in the desired list of directories
    29 Mar 2001: pname = argv[0] = potential program name
 ----------------------------------------------------------------------*/
+
+#ifdef DARWIN
+extern unsigned long _dyld_present(void);
+#endif
 
 AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 {
@@ -2055,7 +2064,12 @@ ENTRY("PLUG_action_CB") ;
       MPROBE ;
 
       SHOW_AFNI_PAUSE ;
+#if 0
       mesg = plint->call_func( plint ) ;
+#else
+      AFNI_CALL_VALU_1ARG( plint->call_func ,
+                           char *,mesg , PLUGIN_interface *,plint ) ;
+#endif
       SHOW_AFNI_READY ;
 
       PLUTO_popdown_meter( plint ) ;  /* if the user forgets */
@@ -3147,7 +3161,15 @@ ENTRY("PLUTO_popup_dset_chooser") ;
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
          dset = ss->dsset[id][vv] ;    if( dset == NULL ) continue ;
+#if 0
          if( chk_func != NULL && chk_func(dset,cd) == 0 ) continue ; /* skip */
+#else
+         { int cval=1 ;
+           AFNI_CALL_VALU_2ARG( chk_func ,
+                                int,cval , THD_3dim_dataset *,dset, void *,cd ) ;
+           if( cval == 0 ) continue ;
+         }
+#endif
 
          num_user_dset++ ;
          user_dset_link = (PLUGIN_dataset_link *)
@@ -3232,7 +3254,13 @@ ENTRY("PLUG_finalize_user_dset_CB") ;
       user_dset_dslist[id] = PLUTO_find_dset( &(user_dset_link[jd].idcode) ) ;
    }
 
+#if 0
    user_dset_cb_func( num , user_dset_dslist , user_dset_cb_data ) ;
+#else
+   AFNI_CALL_VOID_3ARG( user_dset_cb_func ,
+                        int,num , THD_3dim_dataset **,user_dset_dslist ,
+                        void *,user_dset_cb_data ) ;
+#endif
 
    EXRETURN ;
 }
@@ -3539,7 +3567,12 @@ STATUS("calling plugin") ;
       MPROBE ;
 
       SHOW_AFNI_PAUSE ;
+#if 0
       mesg = plint->call_func( plint ) ;
+#else
+      AFNI_CALL_VALU_1ARG( plint->call_func ,
+                           char *,mesg , PLUGIN_interface *,plint ) ;
+#endif
       SHOW_AFNI_READY ;
 
       MPROBE ;
@@ -4454,7 +4487,11 @@ void PLUTO_imseq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
          DESTROY_IMARR( psq->imar ) ;
 
          if( psq->kill_func != NULL )
+#if 0
             psq->kill_func( psq->kill_data ) ;
+#else
+            AFNI_CALL_VOID_1ARG( psq->kill_func , void *,psq->kill_data ) ;
+#endif
 
          free(psq) ;
       }
@@ -4636,7 +4673,9 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) qsort_floatint ,
    (vptr_func *) qsort_floatfloat ,
    (vptr_func *) symeig_double ,
+#ifndef DONT_USE_VOLPACK
    (vptr_func *) MREN_render ,
+#endif
    (vptr_func *) new_MCW_graf ,
    (vptr_func *) THD_makemask ,
    (vptr_func *) mri_copy ,
@@ -5123,7 +5162,11 @@ ENTRY("PLUTO_dotimeout_CB") ;
 
 STATUS("calling user timeout function") ;
 
+#if 0
    myt->func( myt->cd ) ;
+#else
+   AFNI_CALL_VOID_1ARG( myt->func , XtPointer,myt->cd ) ;
+#endif
 
    myXtFree(myt) ; EXRETURN ;
 }

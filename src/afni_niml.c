@@ -220,6 +220,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        }
        ns_flags[cc]  = FLAG_WAITING ;
      }
+     if( ns_listen[cc] == NULL ) continue ; /* Ziad's fault */
 
      ngood++ ;
 

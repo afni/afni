@@ -277,7 +277,10 @@ typedef struct {
          if( (sq)->status->send_CB != NULL ){                        \
             ISQ_cbs cbs ;                                            \
             cbs.reason = isqCR_force_redisplay ;                     \
-            (sq)->status->send_CB( (sq) , (sq)->getaux , &cbs ) ;    \
+            AFNI_CALL_VOID_3ARG( (sq)->status->send_CB      ,        \
+                                 MCW_imseq * , (sq)         ,        \
+                                 XtPointer   , (sq)->getaux ,        \
+                                 ISQ_cbs *   , &cbs          ) ;     \
          } else {                                                    \
             KILL_2XIM( (sq)->given_xbar , (sq)->sized_xbar ) ;       \
             ISQ_redisplay( (sq) , -1 , isqDR_display ) ;             \
@@ -502,6 +505,7 @@ extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
+extern int ISQ_show_zoom( MCW_imseq *seq )  ;
 
 #define CURSOR_NORMAL    0                            /* 10 Mar 2003 */
 #define CURSOR_PENCIL    1

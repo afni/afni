@@ -115,6 +115,9 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
    register int kk ;
    int nbad=0 ;        /* 08 Aug 2000 */
 
+   void (*ufunc)(double,double,int,float *,double,double,void *,int,float *)
+     = (void (*)(double,double,int,float *,double,double,void *,int,float *)) user_func;
+
    /*----------------------------------------------------------*/
    /*----- Check inputs to see if they are reasonable-ish -----*/
 
@@ -302,7 +305,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
    /* start notification */
 
+#if 0
    user_func(  0.0 , 0.0 , nvox , NULL,0.0,0.0 , user_data , nbrik , NULL ) ;
+#else
+   ufunc(  0.0 , 0.0 , nvox , NULL,0.0,0.0 , user_data , nbrik , NULL ) ;
+#endif
 
    /***** loop over voxels *****/
 
@@ -377,7 +384,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
       for( iv=0 ; iv < nbrik ; iv++ ) val[iv] = 0.0 ;
 
+#if 0
       user_func( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
+#else
+      ufunc( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
+#endif
 
       for( iv=0 ; iv < nbrik ; iv++ ) fout[iv][ii] = val[iv] ;
 
@@ -387,7 +398,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
    /* end notification */
 
+#if 0
    user_func( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , nbrik , NULL ) ;
+#else
+   ufunc( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , nbrik , NULL ) ;
+#endif
 
    /*---- Count and correct float errors ----*/
 

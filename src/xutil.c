@@ -8,6 +8,9 @@
 #include "afni_environ.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
 
+#include "Amalloc.h"
+extern char * THD_find_executable( char * ) ;
+
 /*--------------------------------------------------------------------
   force an immediate expose for the widget
 ----------------------------------------------------------------------*/
@@ -1342,7 +1345,12 @@ void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
    if( client_data == NULL ) return ;
 
    if( strcmp(wname,"Quit") == 0 ){
-      if( tw->kill_func != NULL ) tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
+      if( tw->kill_func != NULL )
+#if 0
+        tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
+#else
+        AFNI_CALL_VOID_1ARG( tw->kill_func , XtPointer , tw->kill_data ) ;
+#endif
       XtDestroyWidget( tw->wshell ) ;
       myXtFree( tw ) ;
       return ;
@@ -1358,7 +1366,12 @@ void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data 
 {
    MCW_textwin * tw = (MCW_textwin *) client_data ;
 
-   if( tw->kill_func != NULL ) tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
+   if( tw->kill_func != NULL )
+#if 0
+     tw->kill_func(tw->kill_data); /* 10 Jul 2001 */
+#else
+     AFNI_CALL_VOID_1ARG( tw->kill_func , XtPointer , tw->kill_data ) ;
+#endif
    XtDestroyWidget( tw->wshell ) ;
    myXtFree( tw ) ;
    return ;

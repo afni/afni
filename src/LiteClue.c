@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.16  2003/12/19 22:39:00  rwcox
+Cput
+
 Revision 1.15  2003/12/16 16:13:12  rhammett
 Cput
 
@@ -110,6 +113,7 @@ $log
 /* #include <Xm/XmP.h> */
 #include <X11/IntrinsicP.h> 
 #include <X11/StringDefs.h>
+extern void RWC_xineramize( Display *,int,int,int,int,int *,int *) ;
 
 #include "LiteClueP.h"
 

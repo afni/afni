@@ -43,6 +43,11 @@
 #endif
 #include <assert.h>
 
+#undef  SIZEOF_FLOAT
+#define SIZEOF_FLOAT  4
+#undef  SIZEOF_DOUBLE
+#define SIZEOF_DOUBLE 8
+
 /*
  * If the machine's float domain is "smaller" than the external one
  * use the machine domain
@@ -1702,9 +1707,11 @@ ncx_put_double_double(void *xp, const double *ip)
 
 /* x_size_t */
 
+#if 0
 #if SIZEOF_SIZE_T < X_SIZEOF_SIZE_T
 #error "x_size_t implementation"
 /* netcdf requires size_t which can hold a values from 0 to 2^31 -1 */
+#endif
 #endif
 
 int
@@ -1742,9 +1749,11 @@ ncx_get_size_t(const void **xpp,  size_t *ulp)
 
 /* x_off_t */
 
+#if 0
 #if SIZEOF_OFF_T < X_SIZEOF_OFF_T
 #error "x_off_t implementation"
 /* netcdf requires size_t which can hold a values from 0 to 2^31 -1 */
+#endif
 #endif
 
 int
