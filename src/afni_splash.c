@@ -137,12 +137,21 @@ ENTRY("AFNI_splashup") ;
 
       imov = NULL ; ff = 0 ;
       if( num_face > 0 ){                       /* external face_*.jpg files */
-        static int dold_1=-1, dold_2=-1, dold_3=-1 ;
-        dd = (lrand48() >> 8) % num_face ;               /* pick random file */
-        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
-        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
-        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
-        dold_3 = dold_2; dold_2 = dold_1; dold_1 = dd;
+        static int *dold=NULL, ndold=0 ; int qq ;
+        if( ndold == 0 && num_face > 1 ){
+          ndold = (num_face+2)/3 ;
+          dold  = (int *) malloc(sizeof(int)*ndold) ;
+          for( qq=0 ; qq < ndold ; qq++ ) dold[qq] = -1 ;
+        }
+     Retry_dd:
+        dd = (lrand48() >> 8) % num_face ;              /* pick random file */
+        if( num_face > 1 ){                       /* check if used recently */
+          for( qq=0 ; qq < ndold && dold[qq] != dd ; qq++ ) ;       /* nada */
+          if( qq < ndold ) goto Retry_dd ;                    /* was recent */
+          for( qq=1 ; qq < ndold ; qq++ )        /* wasn't, so save in list */
+            dold[qq-1] = dold[qq] ;
+          dold[ndold-1] = dd ;
+        }
         imov = mri_read_stuff( fname_face[dd] ) ;               /* read file */
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
           float xfac=MAX_XOVER/(float)(imov->nx),
