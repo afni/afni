@@ -4989,3 +4989,12 @@
 15 Mar 2004
  * More "Anatomy" -> "Underlay" and "Function" -> "Overlay" stuff.
  * Added optmenu_EV_fixup() to bbox.c - change cursor arrow on optmenu popups.
+
+17 Mar 2004
+ * AFNI_GRAPH_AUTOGRID variable in afni_graph.c.
+ * Fixed memory estimate in 3dAutoTcorrelate.c.
+
+18 Mar 2004
+ * Fixed plug_nth_dataset.c to right fill short time series with WAY_BIG,
+     and then afni_graph.c to not plot these tails in the dplot overlay.
+ * Modified afni_graph.[ch] to allow pin_bot as well as pin_top (ugh).

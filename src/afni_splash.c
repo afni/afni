@@ -1406,7 +1406,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
 
          MCW_widget_geom( gra->fdw_graph , &gww,&ghh , &gxx,&gyy ) ;
 
-         pinnum = (gra->pin_num < MIN_PIN) ? 0 : gra->pin_num ;
+         pinnum = (gra->pin_top < MIN_PIN) ? 0 : gra->pin_top ;
          matrix = gra->mat ;
 
          if( fp != NULL ){

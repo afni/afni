@@ -2702,7 +2702,7 @@ ENTRY( "RCREND_help_CB" );
        "     shorts (but may have a floating point scaling factor attached).\n"
        "     The dataset must be stored as axial slices in the 'RAI' \n"
        "     orientation (x axis is Right-to-Left, y axis is\n"
-       "     Anterior-to-Posterior, and z axis is Inferior-to-Posterior).\n"
+       "     Anterior-to-Posterior, and z axis is Inferior-to-Superior).\n"
        "     This orientation is how datasets are written out in the +acpc\n"
        "     and +tlrc coordinates -- with axial slices.\n"
 /* #ifdef ONLY_AXIAL   25 June, 2002 */

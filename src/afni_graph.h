@@ -70,17 +70,8 @@
 #undef DONT_MANGLE_XYZ
 #endif
 
-#define GRAPHER_ALLOW_ONE  /* 22 Sep 2000: allow "graphing" of n=1 data */
-
-#ifdef GRAPHER_ALLOW_ONE
-#  define EXRONE(g) if( (g)->status->num_series < 2 ) EXRETURN
-#  define RONE(g,v) if( (g)->status->num_series < 2 ) RETURN(v)
-#  define ISONE(g)  ( (g)->status->num_series < 2 )
-#else
-#  define EXRONE(g) /* nada */
-#  define RONE(g,v) /* nada */
-#  define ISONE(g)  0
-#endif
+#define EXRONE(g) if( (g)->status->num_series < 2 ) EXRETURN
+#define RONE(g,v) if( (g)->status->num_series < 2 ) RETURN(v)
 
 /***-----------------------------------------------------------------------***/
 
@@ -91,15 +82,11 @@
 #define GL_DLX    54                   /* Horizontal delta to left edge */
 #define GB_DLY    52                   /* Vertical delta to bottom edge */
 #define MAT_MAX   21                   /* Maximum array size of graphs */
-#define GRID_MAX  12                   /* Maximum grid index */
 #define COL_NUM   5                    /* Number of colors */
 #define STR_L     256                  /* Max length of string */
 
 #define MIN_XSIZE 120
 #define MIN_YSIZE 120
-
-static int grid_ar[GRID_MAX] =
-   { 2 , 5 , 10 , 20 , 50 , 100 , 200 , 500 , 1000 , 2000 , 5000 , 10000 } ;
 
 #define XSPACE  8
 #define YSPACE  20
@@ -173,13 +160,33 @@ typedef struct {
 #define GRA_VALID(gr) ((gr)!=NULL && (gr)->type==MCW_GRAPHER_TYPE && (gr)->valid>0)
 #define GRA_REALZ(gr) ((gr)!=NULL && (gr)->type==MCW_GRAPHER_TYPE && (gr)->valid>1)
 
+/*--- stuff for changing the graph length: pinning ---*/
+
 #define MIN_PIN 5
 #define MAX_PIN 9999
-#define NPTS(gr) ( ((gr)->pin_num < MIN_PIN) ? (gr)->status->num_series \
-                                             : (gr)->pin_num )
 
-/** 22 Apr 1997:
-    user supplied strings (tuser) for each graph subwindow **/
+/* plotting range is from time index NBOT to NTOP-1 */
+
+#define NBOT(gr) ( ((gr)->pin_bot < (gr)->status->num_series) ? (gr)->pin_bot : 0 )
+
+#define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN                ) ? (gr)->pin_top            \
+                                                              : (gr)->status->num_series )
+
+#define NPTS(gr) (NTOP(gr)-NBOT(gr))   /* number of points visible in graph */
+
+/* data plotting range is from time index TBOT to TTOP-1 */
+
+#define TBOT(gr) NBOT(gr)
+
+#define TTOP(gr) ( ((gr)->pin_top >= MIN_PIN && (gr)->pin_top < (gr)->status->num_series) \
+                  ? (gr)->pin_top : (gr)->status->num_series                              )
+
+#define TPTS(gr) (TTOP(gr)-TBOT(gr))   /* number of data points visible in graph */
+
+#define ISONE(g) ( TPTS(g) < 2 )       /* if only 1 data point is visible */
+
+/*-- 22 Apr 1997:
+     user supplied strings (tuser) for each graph subwindow --*/
 
 #define GRA_NULL_tuser(gr)                     \
    do{ int iq,jq ;                             \
@@ -382,7 +389,8 @@ typedef struct {
    int xFD , yFD , gx,gy , xc,yc ;
    int grid_color , common_base , init_ignore , polort ;
    float fscale ;
-   int pin_num ;      /* 27 Apr 1997 */
+   int pin_top ;      /* 27 Apr 1997 */
+   int pin_bot ;      /* 17 Mar 2004 */
    int HorZ ;         /* 05 Jan 1999 */
 
    int key_Nlock , key_lock_sum ;
@@ -420,7 +428,7 @@ typedef struct {
           opt_mat_down_pb   , opt_mat_up_pb   ;
    Widget opt_grid_menu     , opt_grid_cbut   ,
           opt_grid_down_pb  , opt_grid_up_pb  ,
-          opt_grid_choose_pb , opt_pin_choose_pb ;
+          opt_grid_choose_pb , opt_pintop_choose_pb , opt_pinbot_choose_pb ;
    Widget opt_grid_HorZ_pb ;                      /* 05 Jan 1999 */
    Widget opt_slice_menu    , opt_slice_cbut  ,
           opt_slice_down_pb , opt_slice_up_pb ;
@@ -576,6 +584,8 @@ typedef struct {
 #define graDR_setmatrix   130  /* 22 Sep 2000 */
 #define graDR_setgrid     131
 #define graDR_setpinnum   graDR_newlength
+#define graDR_setpintop   graDR_newlength
+#define graDR_setpinbot   132  /* 17 Mar 2004 */
 
 #define graDR_destroy     666
 
@@ -627,7 +637,8 @@ extern Boolean drive_MCW_grapher( MCW_grapher * , int , XtPointer ) ;
 
 extern void GRA_scale_choose_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_grid_choose_CB    ( Widget , XtPointer , MCW_choose_cbs * ) ;
-extern void GRA_pin_choose_CB     ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void GRA_pintop_choose_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void GRA_pinbot_choose_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_wcsuffix_choose_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_refread_choose_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_refwrite_choose_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
