@@ -64,7 +64,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
-           3dMedianFilter                                                       \
+           3dMedianFilter 3dretroicor                                           \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
@@ -85,8 +85,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI    \
-                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
-                  3dWarp nicat 3dSpatNorm 3dWarpDrive \
+                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize     \
+                  3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor                   \
                   $(EXTRAS) Imon nifti_tool nifti_stats nifti1_test
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -103,7 +103,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam         \
                3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose      \
                3dFourier 3dNotes 3dROIstats 1deval 3dStatClust                    \
-	       3dDWItoDT 3dTstat 3dDTeig 3dmaskdump                               \
+	       3dDWItoDT 3dTstat 3dDTeig 3dmaskdump 3dretroicor                        \
                3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
                3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump   \
                3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
@@ -986,6 +986,12 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(LFLAGS) $(LLIBS)
 
+### These programs are from Fred Tam
+
+3dretroicor:3dretroicor.o retroicor.o
+	$(RM) $@
+	$(CC) -o 3dretroicor 3dretroicor.o retroicor.o $(LFLAGS) $(LLIBS)
+
 ### Sort of clean
 
 clean:
@@ -1317,10 +1323,12 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
 # Contributed plugins go last, since they might not compile well
 
 contrib_plugins: ziad_plugins birn_plugins kummer_plugins \
-                 rickr_plugins tross_plugins belmonte_plugins
+                 rickr_plugins tross_plugins belmonte_plugins fredtam_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
+
+fredtam_plugins: plug_retroicor.$(SO)
 
 birn_plugins: plug_stavg.$(SO)
 
@@ -1359,6 +1367,14 @@ plug_crender.$(SO):plug_crender.c librickr.a
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_crender.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. -lrickr
+
+### From Fred Tam
+
+plug_retroicor.$(SO):plug_retroicor.c retroicor.o
+	$(RM) $@
+	$(PLUGIN_CC) -c plug_retroicor.c $(IFLAGS)
+	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
+      retroicor.o
 
 plug_render.$(SO):mri_render.h
 
