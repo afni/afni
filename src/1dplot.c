@@ -288,12 +288,14 @@ int main( int argc , char * argv[] )
      do{                  /* read lines until 1st char is non-blank and non-# */
        cpt = fgets(lbuf,2560,stdin) ;
        if( cpt==NULL ){ fprintf(stderr,"** Can't read from stdin!\n"); exit(1); }
-       for( ii=0 ; cpt[ii] != '\0' && !isspace(cpt[ii]) ; ii++ ) ; /* nada */
+       for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
      nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
                    val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
      if( nval < 1 ){
-       fprintf(stderr,"** Can't read numbers from stdin!\n"); exit(1);
+       fprintf(stderr,"** Can't read numbers from stdin!\n");
+       fprintf(stderr,"** First line: '%-.20s'\n",lbuf) ;
+       exit(1) ;
      }
 
      nx = nval ; ny = 1 ;
@@ -302,7 +304,7 @@ int main( int argc , char * argv[] )
      while(1){  /* read from stdin */
         cpt = fgets(lbuf,2560,stdin) ;
         if( cpt == NULL ) break ;            /* done */
-        for( ii=0 ; cpt[ii] != '\0' && !isspace(cpt[ii]) ; ii++ ) ; /* nada */
+        for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
         if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;          /* skip */
         memset(val,0,sizeof(float)*nx) ;
         nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
