@@ -1,14 +1,16 @@
 /***********************************************************************
  *
- * plug_roiedit.c		- a region of interest editor (afni plugin)
+ * plug_roiedit.c               - a region of interest editor (afni plugin)
  *
  * Rick Reynolds
  * Medical College of WI
  *
  ***********************************************************************
-*/
- 
+ */
+
+#ifndef SCO
 #include <alloca.h>
+#endif
 #include <Xm/FileSB.h>
 
 #include "afni.h"
@@ -17,7 +19,7 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#include "plug_roiedit.h"		/* RCR stuff */
+#include "plug_roiedit.h"               /* RCR stuff */
 
 /***********************************************************************
   Plugin to draw values into a dataset.
@@ -59,7 +61,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    plint = PLUTO_new_interface( "Gyrus Finder" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , DRAW_main ) ;
+				PLUGIN_CALL_IMMEDIATELY , DRAW_main ) ;
 
    PLUTO_add_hint( plint , "Interactive Region of Interest Editor" ) ;
 
@@ -169,15 +171,15 @@ char * DRAW_main( PLUGIN_interface * plint )
      ic = AFNI_controller_index(im3d) ;  /* find out which controller */
 
      if( ic >=0 && ic < 26 ){
-        sprintf( ttl , "'AFNI' GyrusFinder [%c]" , clabel[ic] ) ;
-        XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
+	sprintf( ttl , "'AFNI' GyrusFinder [%c]" , clabel[ic] ) ;
+	XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
      }
    }
 
    /*-- set the info label --*/
 
    xstr = XmStringCreateLtoR( "[No dataset]" ,
-                              XmFONTLIST_DEFAULT_TAG ) ;
+			      XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
 
@@ -245,50 +247,50 @@ static void DRAW_make_widgets(void)
 
    shell =
       XtVaAppCreateShell(
-           "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
-           XmNtitle             , "GFinder Editor", /* top of window */
-           XmNiconName          , "GFinder"       , /* label on icon */
-           XmNdeleteResponse    , XmDO_NOTHING    , /* deletion handled below */
-           XmNallowShellResize  , True ,            /* let code resize shell? */
-           XmNmappedWhenManaged , False ,           /* must map it manually */
-           XmNinitialResourcesPersistent , False ,
+	   "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
+	   XmNtitle             , "GFinder Editor", /* top of window */
+	   XmNiconName          , "GFinder"       , /* label on icon */
+	   XmNdeleteResponse    , XmDO_NOTHING    , /* deletion handled below */
+	   XmNallowShellResize  , True ,            /* let code resize shell? */
+	   XmNmappedWhenManaged , False ,           /* must map it manually */
+	   XmNinitialResourcesPersistent , False ,
       NULL ) ;
 
    if( afni48_good )             /* set icon pixmap */
       XtVaSetValues( shell ,
-                        XmNiconPixmap , afni48_pixmap ,
-                     NULL ) ;
+			XmNiconPixmap , afni48_pixmap ,
+		     NULL ) ;
 
    if( MCW_isitmwm(shell) )      /* remove some MWM functions */
       XtVaSetValues( shell ,
-                       XmNmwmFunctions ,
-                       MWM_FUNC_MOVE | MWM_FUNC_CLOSE | MWM_FUNC_MINIMIZE ,
-                     NULL ) ;
+		       XmNmwmFunctions ,
+		       MWM_FUNC_MOVE | MWM_FUNC_CLOSE | MWM_FUNC_MINIMIZE ,
+		     NULL ) ;
 
    XmAddWMProtocolCallback(      /* make "Close" window menu work */
-           shell ,
-           XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
-           DRAW_quit_CB , (XtPointer) plint ) ;
+	   shell ,
+	   XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
+	   DRAW_quit_CB , (XtPointer) plint ) ;
 
    /*** rowcolumn widget to hold all user interface stuff ***/
 
    rowcol = XtVaCreateWidget(
-             "AFNI" , xmRowColumnWidgetClass , shell ,
-                XmNpacking     , XmPACK_TIGHT ,
-                XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
-                XmNinitialResourcesPersistent , False ,
-             NULL ) ;
+	     "AFNI" , xmRowColumnWidgetClass , shell ,
+		XmNpacking     , XmPACK_TIGHT ,
+		XmNorientation , XmVERTICAL ,
+		XmNtraversalOn , False ,
+		XmNinitialResourcesPersistent , False ,
+	     NULL ) ;
 
    /*** label at top to let user know who we are ***/
 
    xstr = XmStringCreateLtoR( "[No dataset]" ,
-                              XmFONTLIST_DEFAULT_TAG ) ;
+			      XmFONTLIST_DEFAULT_TAG ) ;
    info_lab = XtVaCreateManagedWidget(
-                 "AFNI" , xmLabelWidgetClass , rowcol ,
-                    XmNlabelString , xstr ,
-                    XmNinitialResourcesPersistent , False ,
-                 NULL ) ;
+		 "AFNI" , xmLabelWidgetClass , rowcol ,
+		    XmNlabelString , xstr ,
+		    XmNinitialResourcesPersistent , False ,
+		 NULL ) ;
    XmStringFree(xstr) ;
    MCW_register_help( info_lab , "Shows dataset being edited" ) ;
    MCW_register_hint( info_lab , "Shows dataset being edited" ) ;
@@ -296,90 +298,90 @@ static void DRAW_make_widgets(void)
    /*** separator for visual neatness ***/
 
    (void) XtVaCreateManagedWidget(
-             "AFNI" , xmSeparatorWidgetClass , rowcol ,
-                XmNseparatorType , XmSINGLE_LINE ,
-                XmNinitialResourcesPersistent , False ,
-             NULL ) ;
+	     "AFNI" , xmSeparatorWidgetClass , rowcol ,
+		XmNseparatorType , XmSINGLE_LINE ,
+		XmNinitialResourcesPersistent , False ,
+	     NULL ) ;
 
    /*** button to let user choose dataset to edit ***/
 
    xstr = XmStringCreateLtoR( "Choose Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
    choose_pb = XtVaCreateManagedWidget(
-                  "AFNI" , xmPushButtonWidgetClass , rowcol ,
-                     XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
-                     XmNinitialResourcesPersistent , False ,
-                  NULL ) ;
+		  "AFNI" , xmPushButtonWidgetClass , rowcol ,
+		     XmNlabelString , xstr ,
+		     XmNtraversalOn , False ,
+		     XmNinitialResourcesPersistent , False ,
+		  NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( choose_pb, XmNactivateCallback, DRAW_choose_CB, NULL ) ;
    MCW_register_help( choose_pb ,
-                      "Use this to popup a\n"
-                      "'chooser' that lets\n"
-                      "you select which\n"
-                      "dataset to edit."
-                    ) ;
+		      "Use this to popup a\n"
+		      "'chooser' that lets\n"
+		      "you select which\n"
+		      "dataset to edit."
+		    ) ;
    MCW_register_hint( choose_pb , "Popup a dataset chooser" ) ;
 
    /***  arrowval to choose value that is drawn into dataset voxels  ***/
 
    value_av = new_MCW_arrowval( rowcol , "Drawing Value " ,
-                                MCW_AV_downup , -32767,32767,value_int ,
-                                MCW_AV_editext , 0 ,
-                                DRAW_value_CB , NULL , NULL,NULL ) ;
+				MCW_AV_downup , -32767,32767,value_int ,
+				MCW_AV_editext , 0 ,
+				DRAW_value_CB , NULL , NULL,NULL ) ;
 
    MCW_reghelp_children( value_av->wrowcol ,
-                         "Use this to set the value that\n"
-                         "will be drawn into the dataset\n"
-                         "using mouse button 2."
-                       ) ;
+			 "Use this to set the value that\n"
+			 "will be drawn into the dataset\n"
+			 "using mouse button 2."
+		       ) ;
    MCW_reghint_children( value_av->wrowcol , "Goes into dataset voxels" ) ;
 
    /*** option menu to choose drawing color ***/
 
    color_av = new_MCW_colormenu( rowcol , "Drawing Color " , dc ,
-                                 1 , dc->ovc->ncol_ov - 1 , color_index ,
-                                 DRAW_color_CB , NULL ) ;
+				 1 , dc->ovc->ncol_ov - 1 , color_index ,
+				 DRAW_color_CB , NULL ) ;
 
    MCW_reghelp_children( color_av->wrowcol ,
-                         "Use this to set the color that is\n"
-                         "shown during mouse button 2 drawing.\n"
-                         "N.B.: After drawing is completed,\n"
-                         "  the dataset will be displayed\n"
-                         "  with the chosen value replacing\n"
-                         "  the drawing color.  This color\n"
-                         "  is used ONLY while button 2 is\n"
-                         "  actually pressed down."
-                       ) ;
+			 "Use this to set the color that is\n"
+			 "shown during mouse button 2 drawing.\n"
+			 "N.B.: After drawing is completed,\n"
+			 "  the dataset will be displayed\n"
+			 "  with the chosen value replacing\n"
+			 "  the drawing color.  This color\n"
+			 "  is used ONLY while button 2 is\n"
+			 "  actually pressed down."
+		       ) ;
    MCW_reghint_children( color_av->wrowcol , "Used when button 2 is drawing" ) ;
 
    /*** arrowval to choose drawing mode ***/
 
    mode_av = new_MCW_optmenu( rowcol , "Drawing Mode  " ,
-                              0 , NUM_modes-1 , 0,0 ,
-                              DRAW_mode_CB , NULL ,
-                              MCW_av_substring_CB , mode_strings ) ;
+			      0 , NUM_modes-1 , 0,0 ,
+			      DRAW_mode_CB , NULL ,
+			      MCW_av_substring_CB , mode_strings ) ;
 
    MCW_reghelp_children( mode_av->wrowcol ,
-                         "Use this to set the way in which\n"
-                         "drawing pixels on the screen is\n"
-                         "used to select dataset voxels:\n"
-                         "Open Curve     = voxels picked along lines drawn;\n"
-                         "Closed Curve   = voxels forming a closed curve\n"
-                         "Points         = only voxels at X11 notify pixels;\n"
-                         "Flood->Value   = flood fill from the chosen point\n"
-                         "                 out to points = Drawing Value\n"
-                         "Flood->Nonzero = flood fill from chosen point out\n"
-                         "                 to any nonzero point"
-                       ) ;
+			 "Use this to set the way in which\n"
+			 "drawing pixels on the screen is\n"
+			 "used to select dataset voxels:\n"
+			 "Open Curve     = voxels picked along lines drawn;\n"
+			 "Closed Curve   = voxels forming a closed curve\n"
+			 "Points         = only voxels at X11 notify pixels;\n"
+			 "Flood->Value   = flood fill from the chosen point\n"
+			 "                 out to points = Drawing Value\n"
+			 "Flood->Nonzero = flood fill from chosen point out\n"
+			 "                 to any nonzero point"
+		       ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
    /*** separator for visual neatness ***/
 
    (void) XtVaCreateManagedWidget(
-             "AFNI" , xmSeparatorWidgetClass , rowcol ,
-                XmNseparatorType , XmSINGLE_LINE ,
-                XmNinitialResourcesPersistent , False ,
-             NULL ) ;
+	     "AFNI" , xmSeparatorWidgetClass , rowcol ,
+		XmNseparatorType , XmSINGLE_LINE ,
+		XmNinitialResourcesPersistent , False ,
+	     NULL ) ;
 
    /*** a set of action buttons below the line ***/
 
@@ -394,7 +396,7 @@ static void DRAW_make_widgets(void)
    /*** that's all  (for Bob) ***/
 
    XtManageChild(rowcol) ;
-   XtRealizeWidget(shell) ; 		/* will not be mapped */
+   XtRealizeWidget(shell) ;             /* will not be mapped */
 
    r_main_mk_main_shell( );
 
@@ -408,7 +410,7 @@ static void DRAW_make_widgets(void)
 **  mcw.edu domain, then the machine is not authorized to use this plugin.
 **
 **----------------------------------------------------------------------
-*/
+ */
 #if 0
 static int
 r_check_host( void )
@@ -435,7 +437,7 @@ r_check_host( void )
 **  Create main GyrusFinder shell.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_mk_main_shell( void )
 {
@@ -445,8 +447,8 @@ r_main_mk_main_shell( void )
 #endif
 
     r_wtgr_mk_main_shell  ( &gRX );
-    r_INT_mk_main_shell   ( &gRI );		/* interpolation shell */
-    r_HL_mk_main_shell    ( &gRH );		/* hole filler shell */
+    r_INT_mk_main_shell   ( &gRI );             /* interpolation shell */
+    r_HL_mk_main_shell    ( &gRH );             /* hole filler shell */
     r_main_mk_show_buttons( );
 }
 
@@ -457,7 +459,7 @@ r_main_mk_main_shell( void )
 **  Open R_LOG_FILE to log messages to.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_open_log_file( void )
 {
@@ -479,7 +481,7 @@ r_open_log_file( void )
 **  Main window for buttons to show other windows.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_mk_show_buttons( void )
 {
@@ -494,7 +496,7 @@ r_main_mk_show_buttons( void )
     XtSetArg( al[ac], XmNinitialResourcesPersistent, False );  ac++;
     XtSetArg( al[ac], XmNdeleteResponse, XmDO_NOTHING );  ac++;
     gRX.main = XtAppCreateShell( "GyrusFinder", "rshell",
-                        topLevelShellWidgetClass, gRX.display, al, ac );
+			topLevelShellWidgetClass, gRX.display, al, ac );
 
     XmAddWMProtocolCallback( gRX.main,
 	XmInternAtom( gRX.display, "WM_DELETE_WINDOW", False ),
@@ -513,7 +515,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "INT", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_raise, "INT" );
+		   ( XtCallbackProc )r_any_cb_raise, "INT" );
     XtSetSensitive( button, True );
     XmStringFree(xstr) ;
     tmpb = button;
@@ -529,7 +531,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "WhiteGray", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_raise, "wtgr" );
+		   ( XtCallbackProc )r_any_cb_raise, "wtgr" );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     tmpb = button;
@@ -546,7 +548,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "fillholes", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_raise, "HL" );
+		   ( XtCallbackProc )r_any_cb_raise, "HL" );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     tmpb = button;
@@ -564,7 +566,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "saveas", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_undo, NULL );
+		   ( XtCallbackProc )r_any_cb_undo, NULL );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     tmpb2 = button;
@@ -584,7 +586,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "saveas", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_raise, "saveas" );
+		   ( XtCallbackProc )r_any_cb_raise, "saveas" );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     tmpb = button;
@@ -609,7 +611,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "help", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_main_cb_help, NULL );
+		   ( XtCallbackProc )r_main_cb_help, NULL );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
 
@@ -627,7 +629,7 @@ r_main_mk_show_buttons( void )
     button = XmCreatePushButton( gRX.mainForm, "structs", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_main_cb_show_structs, NULL );
+		   ( XtCallbackProc )r_main_cb_show_structs, NULL );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
 
@@ -642,7 +644,7 @@ r_main_mk_show_buttons( void )
 **  Create the save as widget under the main RC.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_mk_save_as_fr( Widget parent )
 {
@@ -652,9 +654,9 @@ r_main_mk_save_as_fr( Widget parent )
     char     string[ 25 ];
 
       XtVaSetValues( shell ,
-                       XmNmwmFunctions ,
-                       MWM_FUNC_MOVE | MWM_FUNC_CLOSE | MWM_FUNC_MINIMIZE ,
-                     NULL ) ;
+		       XmNmwmFunctions ,
+		       MWM_FUNC_MOVE | MWM_FUNC_CLOSE | MWM_FUNC_MINIMIZE ,
+		     NULL ) ;
     ac = 0;
     XtSetArg( al[ ac ], XmNdialogTitle,
 	    XmStringCreateLtoR( "Save As", gRX.charset ) );  ac++;
@@ -670,7 +672,7 @@ r_main_mk_save_as_fr( Widget parent )
 	    XmStringCreateLtoR( "hide", gRX.charset ) );            ac++;
     XtSetArg( al[ ac ], XmNminimizeButtons, True );                 ac++;
     XtSetArg( al[ac], XmNinitialResourcesPersistent, False );       ac++;
-    XtSetArg( al[ac], XmNmappedWhenManaged, False );  		    ac++;
+    XtSetArg( al[ac], XmNmappedWhenManaged, False );                ac++;
     XtSetArg( al[ac], XmNdeleteResponse, XmDO_NOTHING );            ac++;
     gRX.save_as_file_d = XmCreatePromptDialog( parent, "dialog", al, ac );
 
@@ -707,7 +709,7 @@ r_main_mk_save_as_fr( Widget parent )
 **  Create main shell and gray and white matter function frames.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wtgr_mk_main_shell( r_X_s * X )
 {
@@ -761,7 +763,7 @@ r_wtgr_mk_main_shell( r_X_s * X )
 **  Create the Hole Filler shell.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_HL_mk_main_shell( holes_s * H )
 {
@@ -806,7 +808,7 @@ r_HL_mk_main_shell( holes_s * H )
 **  Create buttons for the "hole filling" app.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_HL_mk_buttons( holes_s * H, Widget parent )
 {
@@ -832,7 +834,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     button1 = XmCreatePushButton( form, "fill", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_HL_cb_fill, H );
+		   ( XtCallbackProc )r_HL_cb_fill, H );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
 
@@ -845,7 +847,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     button2 = XmCreatePushButton( form, "unfill", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_unfill, &H->fill_val );
+		   ( XtCallbackProc )r_any_cb_unfill, &H->fill_val );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
 
@@ -859,7 +861,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     button1 = XmCreatePushButton( form, "stats", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_fill_stats, &gRH.fill_val );
+		   ( XtCallbackProc )r_any_cb_fill_stats, &gRH.fill_val );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
 
@@ -872,7 +874,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     button2 = XmCreatePushButton( form, "hide", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_hide, "HL" );
+		   ( XtCallbackProc )r_any_cb_hide, "HL" );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
 
@@ -889,7 +891,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
 **  Create the "max hole size" widget for hole filler window.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_HL_mk_maxsize_fr( holes_s * H, Widget parent )
 {
@@ -993,7 +995,7 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
 **  Initialize the holes_s structure.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_init_holes_vals( holes_s * H )
 {
@@ -1013,7 +1015,7 @@ r_init_holes_vals( holes_s * H )
 **  Fill all interior holes, subject to a size restriction.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_HL_cb_fill(
 	Widget w,
@@ -1029,7 +1031,7 @@ r_HL_cb_fill(
     int        count, fill_size, coord, status, pcount;
 
 
-    /* first store fdata to undo_data */
+    /* first store fdata to undo_data  */
     fptr = gRA.fdata; uptr = gRA.undo_data;
     for ( count = 0; count < gRA.nvox; count++ )
 	*uptr++ = *fptr++;
@@ -1058,9 +1060,9 @@ r_HL_cb_fill(
 	  count++, wgpts++ )
     {
 
-	fill_size = 0;			/* init for current fill region */
+	fill_size = 0;                  /* init for current fill region */
 
-	fptr = fdata + *wgpts;		/* addr + coordinate (offset) */
+	fptr = fdata + *wgpts;          /* addr + coordinate (offset) */
 	if ( *fptr )
 	   continue;
 
@@ -1072,7 +1074,7 @@ r_HL_cb_fill(
 	    coord = Search.points[Search.used - 1];
 	    Search.used--;
 
-	    *(fdata + coord) = H->fill_val;	/* mark as found */
+	    *(fdata + coord) = H->fill_val;     /* mark as found */
 	    if ( ! r_add_to_boundary( &Marked, coord ) )
 		return;
 
@@ -1080,18 +1082,18 @@ r_HL_cb_fill(
 
 	    /* 1 = OK, 0 = BAD point found, -1 = memory error */
 	    if ( ( status = r_HL_check_neighbors( &Search, coord ) ) == -1 )
-	    	return;
+		return;
 	    
 	    if ( ( fill_size > H->max_size ) || ( status == 0 ) )
 	    {
-		status = 0; 	/* if we enter through fill_size */
+		status = 0;     /* if we enter through fill_size */
 
 		for ( pcount = 0, tmpp = Search.points;
 		      pcount < Search.used;
 		      pcount++, tmpp++ )
 		    *(fdata + *tmpp) = R_HL_BAD_VAL;
 
-		Search.used = 0;	/* will terminate search loop */
+		Search.used = 0;        /* will terminate search loop */
 
 		for ( pcount = 0, tmpp = Marked.points;
 		      pcount < Marked.used;
@@ -1127,11 +1129,11 @@ r_HL_cb_fill(
 **  Make sure we don't "leave" the 3-D image.
 **
 **  return 1 - normal
-** 	   0 - BAD point found
-**	  -1 - memory error ( r_add_to_boundary() )
+**         0 - BAD point found
+**        -1 - memory error ( r_add_to_boundary() )
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_HL_check_neighbors( points_t * P, int coord )
 {
@@ -1142,7 +1144,7 @@ r_HL_check_neighbors( points_t * P, int coord )
     nx  = gRA.nx;
     nxy = gRA.nxy;
 
-    if ( nptr[ coord ] == -1 )	/* do not accept edge points */
+    if ( nptr[ coord ] == -1 )  /* do not accept edge points */
 	return 1;  /* normal return */
 
     fvalp = gRA.fdata + coord;
@@ -1198,7 +1200,7 @@ r_HL_check_neighbors( points_t * P, int coord )
 **  Create interpolation shell.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_INT_mk_main_shell( interp_s * I )
 {
@@ -1243,7 +1245,7 @@ r_INT_mk_main_shell( interp_s * I )
 **  Create boundary (gray matter) buttons.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_INT_mk_app_buttons( interp_s * I, Widget parent )
 {
@@ -1269,7 +1271,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     button1 = XmCreatePushButton( form, "fill", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_INT_cb_fill, I );
+		   ( XtCallbackProc )r_INT_cb_fill, I );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
     MCW_register_hint( button1 , "interpolate between the last two lines" );
@@ -1283,7 +1285,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     button2 = XmCreatePushButton( form, "unfill", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_unfill, &gRI.fill_val );
+		   ( XtCallbackProc )r_any_cb_unfill, &gRI.fill_val );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
     MCW_register_hint( button2 , "unfill at interpolation \"fill value\"" );
@@ -1297,7 +1299,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     button1 = XmCreatePushButton( form, "apply", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_apply, &gRI.fill_val );
+		   ( XtCallbackProc )r_any_cb_apply, &gRI.fill_val );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
     MCW_register_hint( button1 , "sets fill values to main draw values" );
@@ -1312,7 +1314,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     button2 = XmCreatePushButton( form, "stats", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_fill_stats, &gRI.fill_val );
+		   ( XtCallbackProc )r_any_cb_fill_stats, &gRI.fill_val );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
 
@@ -1325,7 +1327,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     button1 = XmCreatePushButton( form, "hide", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_hide, "INT" );
+		   ( XtCallbackProc )r_any_cb_hide, "INT" );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
 
@@ -1342,7 +1344,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
 **  Create the "fill value" widget for interpolation window.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_INT_mk_fillval_fr( interp_s * I, Widget parent )
 {
@@ -1395,7 +1397,7 @@ r_INT_mk_fillval_fr( interp_s * I, Widget parent )
 **  drawn values).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_apply(
 	Widget w,
@@ -1407,10 +1409,10 @@ r_any_cb_apply(
     int      clear_val = *( (int *)client_data );
     int      count;
 
-    if ( ! gRA.fdata )	/* error beep */
+    if ( ! gRA.fdata )  /* error beep */
     {
-        fprintf( stderr, "%c", 7 );
-        return;
+	fprintf( stderr, "%c", 7 );
+	return;
     }
 
     /* first store to undo_data */
@@ -1432,7 +1434,7 @@ r_any_cb_apply(
 **  Callback to hide windows.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_hide( 
 	Widget w,
@@ -1468,7 +1470,7 @@ r_any_cb_hide(
 **  Callback to raise windows.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_raise( 
 	Widget w,
@@ -1478,15 +1480,15 @@ r_any_cb_raise(
 {
     if      ( ! strcmp( client_data, "INT" ) )
     {
-        XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
+	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
     }
     else if ( ! strcmp( client_data, "HL" ) )
     {
-        XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
+	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
     }
     else if ( ! strcmp( client_data, "wtgr" ) )
     {
-        XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
+	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
     }
     else if ( ! strcmp( client_data, "saveas" ) )
     {
@@ -1495,9 +1497,9 @@ r_any_cb_raise(
     }
     else if ( ! strcmp( client_data, "all" ) )
     {
-        XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
-        XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
-        XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
+	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
+	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
+	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
 	XtManageChild( gRX.save_as_file_d );
 	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone );
     }
@@ -1514,7 +1516,7 @@ r_any_cb_raise(
 **  Callback to undo previous action (restore fdata from undo_data).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_undo( 
 	Widget    w,
@@ -1539,7 +1541,7 @@ r_any_cb_undo(
 **  Callback to interpolate between user drawn lines.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_INT_cb_fill(
 	Widget w,
@@ -1561,22 +1563,22 @@ r_INT_cb_fill(
 
     if ( ! gRA.fdata )
     {
-        fprintf( stderr, "%c", 7 );
-        return;
+	fprintf( stderr, "%c", 7 );
+	return;
     }
 
     if ( ! I )
     {
 	rERROR( "Error : entered r_INT_cb_fill() without client_data." );
-        return;
+	return;
     }
 
     /* check that neither border is empty */
     if ( I->A.used <= 0 || I->B.used <= 0 )
     {
-        fprintf( stderr, "%c", 7 );
+	fprintf( stderr, "%c", 7 );
 	rWARNING( "Missing bounding curve for interpolation." );
-        return;
+	return;
     }
 
     /* first store to undo_data */
@@ -1604,12 +1606,12 @@ r_INT_cb_fill(
 	destp      = r_index2pt( sb->points[dest_index], nx, ny, nz );
 
 	tot_dist   = r_p_distance( sourcep, destp );
-	dx	   = R_DIST_STEP * ( destp.x - sourcep.x ) / tot_dist;
-	dy	   = R_DIST_STEP * ( destp.y - sourcep.y ) / tot_dist;
-	dz	   = R_DIST_STEP * ( destp.z - sourcep.z ) / tot_dist;
-	fx	   = sourcep.x + dx;
-	fy	   = sourcep.y + dy;
-	fz	   = sourcep.z + dz;
+	dx         = R_DIST_STEP * ( destp.x - sourcep.x ) / tot_dist;
+	dy         = R_DIST_STEP * ( destp.y - sourcep.y ) / tot_dist;
+	dz         = R_DIST_STEP * ( destp.z - sourcep.z ) / tot_dist;
+	fx         = sourcep.x + dx;
+	fy         = sourcep.y + dy;
+	fz         = sourcep.z + dz;
 
 	for ( dcurr = R_DIST_STEP; dcurr < tot_dist; dcurr += R_DIST_STEP )
 	{
@@ -1637,13 +1639,13 @@ r_INT_cb_fill(
 **  Compute the distance between two points.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static double
 r_p_distance( r_ipt_t p1, r_ipt_t p2 )
 {
     return( sqrt( ( p1.x - p2.x ) * ( p1.x - p2.x ) +
-                  ( p1.y - p2.y ) * ( p1.y - p2.y ) +
-                  ( p1.z - p2.z ) * ( p1.z - p2.z ) )
+		  ( p1.y - p2.y ) * ( p1.y - p2.y ) +
+		  ( p1.z - p2.z ) * ( p1.z - p2.z ) )
 	  );
 }
 
@@ -1656,7 +1658,7 @@ r_p_distance( r_ipt_t p1, r_ipt_t p2 )
 **  The resulting point is P = { X, Y, Z }.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static r_ipt_t
 r_index2pt( int coord, int nx, int ny, int nz )
 {
@@ -1698,21 +1700,21 @@ r_index2pt( int coord, int nx, int ny, int nz )
 **     r_ipt_t   source;
 **     r_ipt_t   dest;
 ** 
-**     int       cur_pt;	* flag denoting first or second point *
+**     int       cur_pt;        * flag denoting first or second point *
 ** } r_pt_conn_s;
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_init_pt_conn_s( r_pt_conn_s * P )
 {
     r_ipt_t p = { 0, 0, 0 };
 
-    P->cur_pt = 1;		/* may be either 1 or 2            */
-    P->source = p;		/* just to initialize to SOMEthing */
+    P->cur_pt = 1;              /* may be either 1 or 2            */
+    P->source = p;              /* just to initialize to SOMEthing */
     P->dest   = p;
 
-    P->plist.points = NULL;	/* init border structure */
+    P->plist.points = NULL;     /* init border structure */
     P->plist.used   = 0;
     P->plist.M      = 0;
 
@@ -1728,17 +1730,17 @@ r_init_pt_conn_s( r_pt_conn_s * P )
 **
 **  typedef struct
 **  {
-**	Widget    main;	        * main application widget *
-**	Widget    mainRC;	* main rowcolumn widget   *
+**      Widget    main;         * main application widget *
+**      Widget    mainRC;       * main rowcolumn widget   *
 **
-**	int       fill_val;
-**	int       afni_undo;
+**      int       fill_val;
+**      int       afni_undo;
 **
-**	points_t  A, B;		* two point structures for interpolation *
+**      points_t  A, B;         * two point structures for interpolation *
 **  } interp_s;
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_init_interp_vals( interp_s * I )
 {
@@ -1778,7 +1780,7 @@ r_init_interp_vals( interp_s * I )
 **  Create main filling widgets.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_main_frame( r_X_s * X, Widget parent )
 {
@@ -1824,7 +1826,7 @@ r_wt_mk_main_frame( r_X_s * X, Widget parent )
 **  Create the main gray matter function frame.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_gr_mk_main_frame( r_X_s * X, Widget parent )
 {
@@ -1869,31 +1871,35 @@ r_gr_mk_main_frame( r_X_s * X, Widget parent )
 **  Initialize the Algorithm values.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_init_Alg_values( r_alg_s * A )
 {
     A->point_value       = 75;
-    A->point_coord       = -1;	/* means user has not yet selected a point */
-    A->adjust_point	 = 0;
+    A->point_coord       = -1;  /* means user has not yet selected a point */
+    A->adjust_point      = 0;
 
     strcpy( A->save_as_name, "default" );
 
     A->wt_fill_val       = 5;
     A->wt_range_min      = r_wtgr_calc_min_frm_val( A->point_value );
     A->wt_range_max      = r_wtgr_calc_max_frm_val( A->point_value );
-    A->wt_diag_connect   = 0;	/* any connection */
+    A->wt_diag_connect   = 0;   /* any connection */
 
     A->gr_fill_val       = 10;
     A->gr_range_min      = r_wtgr_calc_min_frm_val( 42 );
     A->gr_range_max      = r_wtgr_calc_max_frm_val( 42 );
     A->gr_max_dist       = 4;
 
-    A->anat		 = plint->im3d->anat_now;
+    A->anat              = plint->im3d->anat_now;
 
+    fprintf(stderr,"r_init_Alg_values(): A->anat = %p\n",A->anat);
     if ( A->anat )
+    {
 	A->adata   = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
-
+	/*fprintf(stderr,"Set A->adata to %p\n",A->adata);*/
+    }
+    
     /*
     ** Create boundary memory and check for malloc success.
     */
@@ -1932,8 +1938,8 @@ r_init_Alg_values( r_alg_s * A )
     }
 
     /* we will initialize this after we know we have data */
-    A->neighbors = NULL;		/* - will be nvox */
-    A->undo_data = NULL;		/* - will be nvox */
+    A->neighbors = NULL;                /* - will be nvox */
+    A->undo_data = NULL;                /* - will be nvox */
 
     A->min_nbrs  = 0;
     A->strong_borders = 1;
@@ -1948,11 +1954,11 @@ r_init_Alg_values( r_alg_s * A )
 **  Initialize the afni values.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 {
-    A->anat		 = plint->im3d->anat_now;
+    A->anat              = plint->im3d->anat_now;
 
     if ( func )
     {
@@ -1968,7 +1974,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 	    return;
 	}
 
-	A->func	  = func;
+	A->func   = func;
 
 	A->factor = DSET_BRICK_FACTOR( A->func, 0 );
 	A->factor = ( A->factor == 0.0 ) ? 1.0 : A->factor;
@@ -2005,6 +2011,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 		    "Please choose another dataset.\n",
 		    MCW_USER_KILL | MCW_TIMER_KILL );
 
+    fprintf(stderr,"r_init_afni_vars(): A->anat = %p\n",A->anat);
     if ( A->anat )
     {
 	if ( DSET_BRICK_TYPE( A->anat, 0 ) != MRI_short )
@@ -2020,6 +2027,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 	}
 
 	A->adata   = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
+	/*fprintf(stderr,"Set A->adata to %p\n",A->adata);*/
     }
     else
 	( void )MCW_popup_message( gRX.main,
@@ -2037,7 +2045,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 **  Callback to output statistics on selected matter.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_fill_stats(
 	Widget w,
@@ -2052,8 +2060,8 @@ r_any_cb_fill_stats(
 
     if ( ! gRA.fdata )
     {
-        fputc( 7, stderr );      /* hard-code a beep */
-        return;
+	fputc( 7, stderr );      /* hard-code a beep */
+	return;
     }
 
     for ( count = 0; count < gRA.nvox; count++ )
@@ -2096,7 +2104,7 @@ r_any_cb_fill_stats(
 **  Make a histogram from the selected data.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_histogram( r_alg_s * A, int min, int max, int check_val )
 {
@@ -2174,7 +2182,7 @@ r_wt_cb_SB_toggle(
 **  Given an integer value, return the suggested minimum search value.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_wtgr_calc_min_frm_val( int value )
 {
@@ -2187,7 +2195,7 @@ r_wtgr_calc_min_frm_val( int value )
 **  Given an integer value, return the suggested minimum search value.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_wtgr_calc_max_frm_val( int value )
 {
@@ -2200,7 +2208,7 @@ r_wtgr_calc_max_frm_val( int value )
 **  Hide the main white/gray matter finder.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wtgr_cb_hide( void )
 {
@@ -2215,7 +2223,7 @@ r_wtgr_cb_hide( void )
 **  Values will be set in the wt_range_min_w and wt_range_max_w widgets.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wtgr_cb_suggest_limits(
 	Widget w,
@@ -2241,15 +2249,15 @@ r_wtgr_cb_suggest_limits(
 
     if ( ! strcmp( cdptr, "white" ) )
     {
-	gRA.wt_range_min = min;		/* apply the new values */
+	gRA.wt_range_min = min;         /* apply the new values */
 	gRA.wt_range_max = max;
 
-	minw = gRX.wt_range_min_w;	/* set the widgets to be updated */
+	minw = gRX.wt_range_min_w;      /* set the widgets to be updated */
 	maxw = gRX.wt_range_max_w;
     }
-    else	/* then gray */
+    else        /* then gray */
     {
-	max = min - 1;			/* assume the gray starts below white */
+	max = min - 1;                  /* assume the gray starts below white */
 	min = 0.60 * min;
 
 	gRA.gr_range_max = max;
@@ -2283,7 +2291,7 @@ r_wtgr_cb_suggest_limits(
 **  Create boundary (gray matter) buttons.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
 {
@@ -2309,7 +2317,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     button = XmCreatePushButton( form, "fill", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_gr_cb_fill, NULL );
+		   ( XtCallbackProc )r_gr_cb_fill, NULL );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     MCW_register_hint( button , "fill the gray matter region" );
@@ -2323,7 +2331,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     button = XmCreatePushButton( form, "unfill", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_unfill, &gRA.gr_fill_val );
+		   ( XtCallbackProc )r_any_cb_unfill, &gRA.gr_fill_val );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     MCW_register_hint( button , "unfill the \"fill value\" region" );
@@ -2338,7 +2346,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     button = XmCreatePushButton( form, "suggest_range", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_wtgr_cb_suggest_limits, "gray" );
+		   ( XtCallbackProc )r_wtgr_cb_suggest_limits, "gray" );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     MCW_register_hint( button , "suggest a range for gray matter values" );
@@ -2353,7 +2361,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     button = XmCreatePushButton( form, "stats", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_fill_stats, &gRA.gr_fill_val );
+		   ( XtCallbackProc )r_any_cb_fill_stats, &gRA.gr_fill_val );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     MCW_register_hint( button , "get stats for this \"fill value\"" );
@@ -2368,7 +2376,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     button = XmCreatePushButton( form, "hide", al, ac );
     XtManageChild( button );
     XtAddCallback( button, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_hide, "wtgr" );
+		   ( XtCallbackProc )r_any_cb_hide, "wtgr" );
     XtSetSensitive( button, True );
     XmStringFree( xstr );
     MCW_register_hint( button , "temporarily close this window" );
@@ -2386,7 +2394,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
 **  Create FILL type buttons for the white matter search.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
 {
@@ -2412,7 +2420,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     button1 = XmCreatePushButton( form, "fill", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_wt_cb_fill, NULL );
+		   ( XtCallbackProc )r_wt_cb_fill, NULL );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
     MCW_register_hint( button1 , "fill the white matter region" );
@@ -2427,7 +2435,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     button3 = XmCreatePushButton( form, "more", al, ac );
     XtManageChild( button3 );
     XtAddCallback( button3, XmNactivateCallback,
-                   ( XtCallbackProc )r_wt_cb_fill, "0" );
+		   ( XtCallbackProc )r_wt_cb_fill, "0" );
     XtSetSensitive( button3, True );
     XmStringFree( xstr );
     MCW_register_hint( button3 , "fill more white matter (no unfill)" );
@@ -2442,7 +2450,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     button2 = XmCreatePushButton( form, "unfill", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_unfill, &gRA.wt_fill_val );
+		   ( XtCallbackProc )r_any_cb_unfill, &gRA.wt_fill_val );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
     MCW_register_hint( button2 , "unfill all matter for the \"fill value\"" );
@@ -2457,7 +2465,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     button1 = XmCreatePushButton( form, "suggest_range", al, ac );
     XtManageChild( button1 );
     XtAddCallback( button1, XmNactivateCallback,
-                   ( XtCallbackProc )r_wtgr_cb_suggest_limits, "white" );
+		   ( XtCallbackProc )r_wtgr_cb_suggest_limits, "white" );
     XtSetSensitive( button1, True );
     XmStringFree( xstr );
     MCW_register_hint( button1 , "suggest a white matter range" );
@@ -2472,7 +2480,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     button2 = XmCreatePushButton( form, "stats", al, ac );
     XtManageChild( button2 );
     XtAddCallback( button2, XmNactivateCallback,
-                   ( XtCallbackProc )r_any_cb_fill_stats, &gRA.wt_fill_val );
+		   ( XtCallbackProc )r_any_cb_fill_stats, &gRA.wt_fill_val );
     XtSetSensitive( button2, True );
     XmStringFree( xstr );
     MCW_register_hint( button2 , "get stats for this \"fill value\"" );
@@ -2490,7 +2498,7 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
 **  This will be a radio button widget for the user flag.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_diag_conn_fr( r_X_s * X, Widget parent )
 {
@@ -2525,9 +2533,9 @@ r_wt_mk_diag_conn_fr( r_X_s * X, Widget parent )
     X->wt_diag_conn_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->wt_diag_conn_w );
     XtAddCallback( X->wt_diag_conn_w, XmNactivateCallback,
-            ( XtCallbackProc )r_wt_cb_set_diag_conn, NULL );
+	    ( XtCallbackProc )r_wt_cb_set_diag_conn, NULL );
     XtAddCallback( X->wt_diag_conn_w, XmNlosingFocusCallback,
-            ( XtCallbackProc )r_wt_cb_set_diag_conn, NULL );
+	    ( XtCallbackProc )r_wt_cb_set_diag_conn, NULL );
 
 
     XtManageChild( rc );
@@ -2543,7 +2551,7 @@ r_wt_mk_diag_conn_fr( r_X_s * X, Widget parent )
 **  This will be a radio button widget.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_strong_bord_fr( r_X_s * X, Widget parent )
 {
@@ -2580,7 +2588,7 @@ r_wt_mk_strong_bord_fr( r_X_s * X, Widget parent )
 **  Create the min_nbrs (minimum neighbors) frame.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
 {
@@ -2632,7 +2640,7 @@ r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
 **  Create the frame to handle max distance in the gray search.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
 {
@@ -2684,7 +2692,7 @@ r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
 **  Create the "fill value" widgets.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_fillval_fr( r_X_s * X, Widget parent )
 {
@@ -2736,7 +2744,7 @@ r_wt_mk_fillval_fr( r_X_s * X, Widget parent )
 **  Create the "fill value" widget for the gray matter search.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_gr_mk_fillval_fr( r_X_s * X, Widget parent )
 {
@@ -2788,7 +2796,7 @@ r_gr_mk_fillval_fr( r_X_s * X, Widget parent )
 **  Create the gray matter range frame.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_gr_mk_range_fr( r_X_s * X, Widget parent )
 {
@@ -2802,7 +2810,7 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
     
-    ac = 0;			/* to hold labels and text */
+    ac = 0;                     /* to hold labels and text */
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
     rc = XmCreateRowColumn( frame, "rowcolumn", al, ac );
@@ -2815,7 +2823,7 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
     XmStringFree( xstr );
 
 
-    sprintf( string, "%d", gRA.gr_range_min );	/* init value */
+    sprintf( string, "%d", gRA.gr_range_min );  /* init value */
 
     ac = 0;
     XtSetArg( al[ ac ], XmNvalue, string );  ac++;
@@ -2859,7 +2867,7 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
 **  Create the range widgets.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static Widget
 r_wt_mk_range_fr( r_X_s * X, Widget parent )
 {
@@ -2873,7 +2881,7 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
     
-    ac = 0;			/* to hold labels and text */
+    ac = 0;                     /* to hold labels and text */
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
     rc = XmCreateRowColumn( frame, "rowcolumn", al, ac );
@@ -2886,7 +2894,7 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
     XmStringFree( xstr );
 
 
-    sprintf( string, "%d", gRA.wt_range_min );	/* init value */
+    sprintf( string, "%d", gRA.wt_range_min );  /* init value */
 
     ac = 0;
     XtSetArg( al[ ac ], XmNvalue, string );  ac++;
@@ -2930,7 +2938,7 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
 **  Clear the filled region for the white matter search.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_any_cb_unfill(
 	Widget w,
@@ -2968,7 +2976,7 @@ r_any_cb_unfill(
 **  Okay neighbors values are zero and testval.
 ** 
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_wt_bad_ngbr_exists( r_alg_s * A, int current, int testval )
 {
@@ -3019,14 +3027,14 @@ r_wt_bad_ngbr_exists( r_alg_s * A, int current, int testval )
 **  Make the check for adding a point to the border.
 ** 
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_wt_check_insert( r_alg_s * A, int current )
 {
     short * aptr = A->adata;
     short * fptr = A->fdata;
     short * nptr = A->neighbors;
-    short * fvp  = fptr + current;	/* pointer to function value */
+    short * fvp  = fptr + current;      /* pointer to function value */
 
     int value, added = 0;
 
@@ -3055,9 +3063,9 @@ r_wt_check_insert( r_alg_s * A, int current )
 	    /* either way, set point as wt_fill_val */
 	    *fvp = A->wt_fill_val;
 	}
-	else	/* add to the 3d boundary */
+	else    /* add to the 3d boundary */
 	{
-	    *fvp = R_BOUND_VAL;	/* mark as in boundary, clear later */
+	    *fvp = R_BOUND_VAL; /* mark as in boundary, clear later */
 
 	    if ( ! r_add_to_boundary( &A->border, current ) )
 		return -1;
@@ -3073,7 +3081,7 @@ r_wt_check_insert( r_alg_s * A, int current )
 **  Callback to fill the local region for a mask.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_cb_fill(
 	Widget w,
@@ -3091,7 +3099,7 @@ r_wt_cb_fill(
     /* check that we are ready to fill anything */
     if ( ( gRA.point_coord == -1 ) || ( ! gRA.fdata ) )
     {
-        fputc( 7, stderr );      /* hard-code a beep */
+	fputc( 7, stderr );      /* hard-code a beep */
 	return;
     }
 
@@ -3128,11 +3136,11 @@ r_wt_cb_fill(
     if ( r_wt_check_insert( &gRA, gRA.point_coord ) != 1 )
 	return;
 
-    while ( gRA.new.used > 0 )	/* while boundary exists */
+    while ( gRA.new.used > 0 )  /* while boundary exists */
     {
 	B            = gRA.old;    /* swap memory and reset new.used to zero */
-        gRA.old      = gRA.new;    /*    - this simply preserves the memory  */
-        gRA.new      = B;
+	gRA.old      = gRA.new;    /*    - this simply preserves the memory  */
+	gRA.new      = B;
 	gRA.new.used = 0;
 	fputs( ".", stderr );
 
@@ -3177,7 +3185,7 @@ r_wt_cb_fill(
 		    r_wt_check_insert( &gRA, current + nxy + nx + 1 );
 		}
 	    }
- 	}
+	}
     }
 
     /* clear bound markings */
@@ -3203,7 +3211,7 @@ r_wt_cb_fill(
 **  Callback to fill the gray matter (or so we somewhat suppose).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_gr_cb_fill(
 	Widget w,
@@ -3224,17 +3232,17 @@ r_gr_cb_fill(
 
     if ( ( gRA.point_coord == -1 ) || ( ! gRA.fdata ) )
     {
-        fputc( 7, stderr );      /* hard-code a beep */
-        return;
+	fputc( 7, stderr );      /* hard-code a beep */
+	return;
     }
 
     if ( gRA.gr_max_dist <= 0 )
 	return;
 
     if ( !gRA.old.points || !gRA.new.points || !gRA.neighbors || !gRA.undo_data)    {
-        fprintf( stderr, "Error: rcfg10\n"
-                 "Memory failure, addresses are %x, %x, %x and %x.\n",
-                 (int)gRA.old.points, (int)gRA.new.points,
+	fprintf( stderr, "Error: rcfg10\n"
+		 "Memory failure, addresses are %x, %x, %x and %x.\n",
+		 (int)gRA.old.points, (int)gRA.new.points,
 		 (int)gRA.neighbors, (int)gRA.undo_data );
 	return;
     }
@@ -3257,7 +3265,7 @@ r_gr_cb_fill(
     gRA.old.used     = 0;
     gRA.new.used     = 0;
 
-    gRH.gr_edge.used = 0;		/* trash the old gray edge */
+    gRH.gr_edge.used = 0;               /* trash the old gray edge */
 
     iptr = gRA.border.points;
     for ( count = 0; count < gRA.border.used; count++ )
@@ -3277,12 +3285,12 @@ r_gr_cb_fill(
 	{
 	    current = *iptr;
 
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current - 1 );
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current + 1 );
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current - nx );
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current + nx );
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current - nxy );
-            ( void )r_gr_check_insert( &gRA, &gRA.new, current + nxy );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current - 1 );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current + 1 );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current - nx );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current + nx );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current - nxy );
+	    ( void )r_gr_check_insert( &gRA, &gRA.new, current + nxy );
 
 	    iptr++;
 	}
@@ -3298,8 +3306,8 @@ r_gr_cb_fill(
 
     /* clear bound markings */
     for( count = 0, fnptr = gRA.fdata; count < gRA.nvox; count++, fnptr++ )
-        if ( *fnptr == R_BOUND_VAL )
-            *fnptr = 0;
+	if ( *fnptr == R_BOUND_VAL )
+	    *fnptr = 0;
 
     fputs( "done\n\n", stdout );
 
@@ -3319,7 +3327,7 @@ r_gr_cb_fill(
 **  Make the check for adding a point to the border.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 {
@@ -3330,7 +3338,7 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
     int        value, added = 0;
 
 
-    if ( nptr[ current ] == -1 )	/* do not accept edge points */
+    if ( nptr[ current ] == -1 )        /* do not accept edge points */
 	return 0;
 
     fvalp = fptr + current;
@@ -3340,7 +3348,7 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
     if ( *fvalp == 0 )
     {
 	if ( ( value >= A->gr_range_min ) &&
-             ( value <= A->gr_range_max ) )
+	     ( value <= A->gr_range_max ) )
 	{
 	    if ( ! r_add_to_boundary( B, current ) )
 		return -1;
@@ -3349,7 +3357,7 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 
 	    added = 1;
 	}
-	else	/* mark as in boundary, add to HOLE's search set */
+	else    /* mark as in boundary, add to HOLE's search set */
 	{
 	    *fvalp = R_BOUND_VAL;
 	    if ( ! r_add_to_boundary( &gRH.gr_edge, current ) )
@@ -3366,7 +3374,7 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 **  Add a point to the boundary.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_add_to_boundary( points_t * B, int index )
 {
@@ -3376,7 +3384,7 @@ r_add_to_boundary( points_t * B, int index )
 		 "Unexpected error - missing memory for bound structure!\n" );
 	return 0;
     }
-    else if ( ! B->points )		/* we need initial memory */
+    else if ( ! B->points )             /* we need initial memory */
     {
 	B->used = 0;
 	B->M    = 50;
@@ -3389,7 +3397,7 @@ r_add_to_boundary( points_t * B, int index )
 	    return 0;
 	}
     }
-    else if ( B->used == B->M )		/* then we need more memory */
+    else if ( B->used == B->M )         /* then we need more memory */
     {
 	B->M     *= 2;
 	B->points = (int *)realloc( B->points, B->M * sizeof( int ) );
@@ -3416,10 +3424,10 @@ r_add_to_boundary( points_t * B, int index )
 **  init values to zero
 **  for each inner value
 **      count the number of neighbors (max of 6 - no diagonals) in range
-**	( skip all edges )
+**      ( skip all edges )
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_set_neighbors( r_alg_s * A )
 {
@@ -3442,13 +3450,13 @@ r_wt_set_neighbors( r_alg_s * A )
 		{
 		    aptr++;
 		    *nptr++ = -1;    /* no future consideration */
-	 	    continue;
+		    continue;
 		}
 		else if ( *aptr > A->wt_range_max || *aptr < A->wt_range_min )
 		{
 		    aptr++;
 		    nptr++;
-	 	    continue;
+		    continue;
 		}
 
 		if ( ( *(aptr-1) <= A->wt_range_max ) &&
@@ -3456,7 +3464,7 @@ r_wt_set_neighbors( r_alg_s * A )
 		    (*nptr)++;
 
 		if ( ( *(aptr+1) <= A->wt_range_max ) && 
-	   	     ( *(aptr+1) >= A->wt_range_min ) )
+		     ( *(aptr+1) >= A->wt_range_min ) )
 		    (*nptr)++;
 
 		if ( ( *(aptr-nx) <= A->wt_range_max ) && 
@@ -3486,7 +3494,7 @@ r_wt_set_neighbors( r_alg_s * A )
 **  Callback to set the minimum neighbors in search (1 to 6).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_cb_set_diag_conn(
 	Widget w,
@@ -3531,7 +3539,7 @@ r_wt_cb_set_diag_conn(
 **  Callback to set the minimum neighbors in search (1 to 6).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_cb_set_min_nbrs(
 	Widget w,
@@ -3577,7 +3585,7 @@ r_wt_cb_set_min_nbrs(
 **  Callback to set the maximum distance in gray search.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_gr_cb_set_max_dist(
 	Widget w,
@@ -3623,7 +3631,7 @@ r_gr_cb_set_max_dist(
 **  Callback to set the maximum fill size for the holes app.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_HL_cb_set_maxsize(
 	Widget w,
@@ -3668,7 +3676,7 @@ r_HL_cb_set_maxsize(
 **  Callback to set the fill value for the holes app.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_HL_cb_set_fill_val(
 	Widget w,
@@ -3719,7 +3727,7 @@ r_HL_cb_set_fill_val(
 **  Callback to set the fill value.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_INT_cb_set_fill_val(
 	Widget w,
@@ -3769,7 +3777,7 @@ r_INT_cb_set_fill_val(
 **  Callback to set the fill value.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_cb_set_fill_val(
 	Widget w,
@@ -3819,7 +3827,7 @@ r_wt_cb_set_fill_val(
 **  Callback to set the fill value.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_gr_set_fill_val(
 	Widget w,
@@ -3865,7 +3873,7 @@ r_gr_set_fill_val(
 **  Callback to set the white search range.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_wt_cb_set_range(
 	Widget w,
@@ -3899,7 +3907,7 @@ r_wt_cb_set_range(
     else if ( ! strcmp( string, "to" ) && ! strcmp( string, "from" ) )
     {
 	fprintf( stderr, "r_wt_cb_set_range error -\n"
-		 	 "'%s' should be 'to' or 'from'.\n", string );
+			 "'%s' should be 'to' or 'from'.\n", string );
 	return;
     }
 
@@ -3941,7 +3949,7 @@ r_wt_cb_set_range(
 	    if ( gRA.wt_range_min > gRA.wt_range_max )
 	    {
 		sprintf( gRmessage, "\nWarning!"
-		         "  Min value should be less than max value.\n"
+			 "  Min value should be less than max value.\n"
 			 "Value are %d and %d, respectively.\n",
 			 gRA.wt_range_min, gRA.wt_range_max );
 		rERROR( gRmessage );
@@ -3958,7 +3966,7 @@ r_wt_cb_set_range(
 **  Callback to set the search range.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_gr_cb_set_range(
 	Widget w,
@@ -3992,7 +4000,7 @@ r_gr_cb_set_range(
     else if ( ! strcmp( string, "to" ) && ! strcmp( string, "from" ) )
     {
 	fprintf( stderr, "r_gr_cb_set_range error -\n"
-		 	 "'%s' should be 'to' or 'from'.\n", string );
+			 "'%s' should be 'to' or 'from'.\n", string );
 	return;
     }
 
@@ -4035,7 +4043,7 @@ r_gr_cb_set_range(
 	    if ( gRA.gr_range_min > gRA.gr_range_max )
 	    {
 		sprintf( gRmessage, "\nWarning!"
-		         "  Min value should be less than max value.\n"
+			 "  Min value should be less than max value.\n"
 			 "Value are %d and %d, respectively.\n",
 			 gRA.gr_range_min, gRA.gr_range_max );
 		rERROR( gRmessage );
@@ -4055,16 +4063,31 @@ r_gr_cb_set_range(
 **  aligned (moved to local extrema), do it.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_afni_set_fill_point(
-	int       * coord,	/* offset of initial point (modifiable) */
-	r_alg_s * A		/* algorithm structure                  */
+	int       * coord,      /* offset of initial point (modifiable) */
+	r_alg_s * A             /* algorithm structure                  */
 	)
 {
     A->point_coord = *coord;
 
-    A->point_value = A->adata[A->point_coord]; 	 /* no anat factor? */
+    /*printf("A = %p,  A->adata = %p,  A->point_coord = %d\n",
+	    A,A->adata,A->point_coord);
+    fflush(stdout);*/
+    
+    if ( A->adata == NULL )
+    {
+	/*fprintf(stderr,"Loading data...\n");
+	DSET_load(A->anat);*/
+	fputs("r_afni_set_fill_point(): Error: No anatomical data. ( A->adata = NULL )\n",stderr);
+	fputs("This may have been caused by selecting Talairach\n",stderr);
+	fputs("view before Switch Anatomy or Switch Function.\n",stderr);
+	fputs("Try setting the environment variable AFNI_VIEW_ANAT_BRICK\n",stderr);
+	fputs("(The value is irrelevant) and run afni again.\n",stderr);
+	exit(1);
+    }
+    A->point_value = A->adata[A->point_coord];   /* no anat factor? */
 
 
     printf( "coord = %d, adata = %d, fdata = %d, ndata = %d\n",
@@ -4079,17 +4102,18 @@ r_afni_set_fill_point(
 **  Create a scale bar.
 **
 **----------------------------------------------------------------------
-*/
+ */
+
 static Widget
 r_mk_scale_bar(
-        Widget          parent,
-        char          * title,
-        int             min,
-        int             max,
-        int             value,
-        int             decimal_places,
-        XtCallbackProc  callback
-        )
+	Widget          parent,
+	char          * title,
+	int             min,
+	int             max,
+	int             value,
+	int             decimal_places,
+	XtCallbackProc  callback
+	)
 {
     int         ac;
     Arg         al[ 20 ];
@@ -4108,8 +4132,8 @@ r_mk_scale_bar(
 
     if ( decimal_places > 0 )
     {
-        XtSetArg( al[ac], XmNdecimalPoints, decimal_places );
-        ac++;
+	XtSetArg( al[ac], XmNdecimalPoints, decimal_places );
+	ac++;
     }
 
 
@@ -4129,69 +4153,70 @@ r_mk_scale_bar(
 **
 **  Display the contents of the algorithm structure.
 **
-**----------------------------------------------------------------------
-*/
+**--------------------------------------------------------------------- 
+ */
+
 static void
 r_main_show_alg_vals( r_alg_s * A )
 {
     printf( "-----------------------------------\n" );
 
     printf(
-        "gRA :\n"
-        "\n"
-        "point value             : %d\n"
-        "point coord             : %d\n"
-        "adjust point            : %d\n"
-        "'save as' name          : %s\n"
-        "\n"
-        "white fill value        : %d\n"
-        "white range min         : %d\n"
-        "white range max         : %d\n"
-        "white diag connect      : %d\n"
-        "\n"
-        "gray fill value         : %d\n"
-        "gray range min          : %d\n"
-        "gray range max          : %d\n"
-        "gray max distance       : %d\n"
-        "\n"
-        "anat dset        (addr) : %x\n"
-        "func dset        (addr) : %x\n"
-        "adata data       (addr) : %x\n"
-        "fdata data       (addr) : %x\n"
-        "factor                  : %f\n"
-        "nx                      : %d\n"
-        "ny                      : %d\n"
-        "nz                      : %d\n"
-        "nvox                    : %d\n"
-        "\n"
-        "old bound.M             : %d\n"
-        "old bound.used          : %d\n"
-        "old bound.points (addr) : %x\n"
-        "new bound.M             : %d\n"
-        "new bound.used          : %d\n"
-        "new bound.points (addr) : %x\n"
-        "border.M                : %d\n"
-        "border.used             : %d\n"
-        "border.points    (addr) : %x\n"
-        "\n"
-        "neighbors        (addr) : %x\n"
-        "undo data        (addr) : %x\n"
-        "\n"
-        "min neighbors           : %d\n"
-        "strong borders          : %d\n",
-        A->point_value, A->point_coord, A->adjust_point, A->save_as_name,
-        A->wt_fill_val, A->wt_range_min, A->wt_range_max,
-            A->wt_diag_connect,
-        A->gr_fill_val, A->gr_range_min, A->gr_range_max, A->gr_max_dist,
-        (int)A->anat, (int)A->func,
-        (int)A->adata, (int)A->fdata,
+	"gRA :\n"
+	"\n"
+	"point value             : %d\n"
+	"point coord             : %d\n"
+	"adjust point            : %d\n"
+	"'save as' name          : %s\n"
+	"\n"
+	"white fill value        : %d\n"
+	"white range min         : %d\n"
+	"white range max         : %d\n"
+	"white diag connect      : %d\n"
+	"\n"
+	"gray fill value         : %d\n"
+	"gray range min          : %d\n"
+	"gray range max          : %d\n"
+	"gray max distance       : %d\n"
+	"\n"
+	"anat dset        (addr) : %x\n"
+	"func dset        (addr) : %x\n"
+	"adata data       (addr) : %x\n"
+	"fdata data       (addr) : %x\n"
+	"factor                  : %f\n"
+	"nx                      : %d\n"
+	"ny                      : %d\n"
+	"nz                      : %d\n"
+	"nvox                    : %d\n"
+	"\n"
+	"old bound.M             : %d\n"
+	"old bound.used          : %d\n"
+	"old bound.points (addr) : %x\n"
+	"new bound.M             : %d\n"
+	"new bound.used          : %d\n"
+	"new bound.points (addr) : %x\n"
+	"border.M                : %d\n"
+	"border.used             : %d\n"
+	"border.points    (addr) : %x\n"
+	"\n"
+	"neighbors        (addr) : %x\n"
+	"undo data        (addr) : %x\n"
+	"\n"
+	"min neighbors           : %d\n"
+	"strong borders          : %d\n",
+	A->point_value, A->point_coord, A->adjust_point, A->save_as_name,
+	A->wt_fill_val, A->wt_range_min, A->wt_range_max,
+	    A->wt_diag_connect,
+	A->gr_fill_val, A->gr_range_min, A->gr_range_max, A->gr_max_dist,
+	(int)A->anat, (int)A->func,
+	(int)A->adata, (int)A->fdata,
 	A->factor, A->nx, A->ny, A->nz, A->nvox,
-        A->old.M, A->old.used, (int)A->old.points,
-        A->new.M, A->new.used, (int)A->new.points,
-        A->border.M, A->border.used, (int)A->border.points,
-        (int)A->neighbors, (int)A->undo_data,
-        A->min_nbrs, A->strong_borders
-        );
+	A->old.M, A->old.used, (int)A->old.points,
+	A->new.M, A->new.used, (int)A->new.points,
+	A->border.M, A->border.used, (int)A->border.points,
+	(int)A->neighbors, (int)A->undo_data,
+	A->min_nbrs, A->strong_borders
+	);
 
     printf( "-----------------------------------\n" );
 }
@@ -4202,7 +4227,7 @@ r_main_show_alg_vals( r_alg_s * A )
 **  Display the contents of the interpolation structure.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_show_INT_vals( interp_s * I )
 {
@@ -4234,7 +4259,7 @@ r_main_show_INT_vals( interp_s * I )
 **  Display the contents of the holes structure.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_show_HL_vals( holes_s * H )
 {
@@ -4263,7 +4288,7 @@ r_main_show_HL_vals( holes_s * H )
 **  Display the contents of the point connection structure.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_show_pt_conn_vals( r_pt_conn_s * PC )
 {
@@ -4291,7 +4316,7 @@ r_main_show_pt_conn_vals( r_pt_conn_s * PC )
 **  Callback to get help.  This displays a general process overview.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_cb_help(
 	Widget    w,
@@ -4320,7 +4345,7 @@ r_main_cb_help(
 **  Callback to quit ( this merely unmanages all the widgets ).
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_cb_quit( void )
 {
@@ -4335,7 +4360,7 @@ r_main_cb_quit( void )
 **  Callback to save the current dataset under a new name.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_cb_saveas(
 	Widget w,
@@ -4383,7 +4408,7 @@ r_main_cb_saveas(
 **  change the prefix and save the file.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static int
 r_save_dataset_as( char * filename, int overwrite )
 {
@@ -4398,7 +4423,7 @@ r_save_dataset_as( char * filename, int overwrite )
 
     if( ! overwrite && THD_is_file( dset->dblk->diskptr->header_name ) )
     {
- 	sprintf( gRmessage, "File '%s' already exists!", filename );
+	sprintf( gRmessage, "File '%s' already exists!", filename );
 	rERROR( gRmessage );
     }
     else
@@ -4421,7 +4446,7 @@ r_save_dataset_as( char * filename, int overwrite )
 **  Display the contents of internal structures.
 **
 **----------------------------------------------------------------------
-*/
+ */
 static void
 r_main_cb_show_structs( void )
 {
@@ -4444,24 +4469,24 @@ r_main_cb_show_structs( void )
 **
 **  The technique here is to keep two curves of data stored.
 **
-**  Operations that we need to consider are :	
+**  Operations that we need to consider are :   
 **
-** 	o  inserting a new line ( on any line draw )
-**		if none     { insert first  }
-**		else if one { insert second }
-**		else        { move second to first, insert second }
-**	o  UNDO move
-**		if two      { remove second }
-**		else        { remove first  }
-**	o  interpolate	( use special interpolation value )
-**		- only with the two lines
-**		- store previous interpolation first
-**		    ( change interpolation values to draw values )
-**	o  undo interpolation
-**		remove all interpolation values
+**      o  inserting a new line ( on any line draw )
+**              if none     { insert first  }
+**              else if one { insert second }
+**              else        { move second to first, insert second }
+**      o  UNDO move
+**              if two      { remove second }
+**              else        { remove first  }
+**      o  interpolate  ( use special interpolation value )
+**              - only with the two lines
+**              - store previous interpolation first
+**                  ( change interpolation values to draw values )
+**      o  undo interpolation
+**              remove all interpolation values
 **
 **----------------------------------------------------------------------
-*/
+ */
 
 
 /*-------------------------------------------------------------------
@@ -4473,9 +4498,9 @@ static void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( dset != NULL ){
       if( recv_open ) AFNI_receive_control( im3d, recv_key, DRAWING_SHUTDOWN, NULL ) ;
       if( dset_changed ){
-         MCW_invert_widget( done_pb ) ;
-         DSET_write(dset) ;
-         MCW_invert_widget( done_pb ) ;
+	 MCW_invert_widget( done_pb ) ;
+	 DSET_write(dset) ;
+	 MCW_invert_widget( done_pb ) ;
       }
       DSET_unlock(dset) ; DSET_anyize(dset) ;
       dset = NULL ; dset_changed = 0 ;
@@ -4515,7 +4540,7 @@ static void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if ( ( mode_ival == MODE_CURVE ) || ( mode_ival == MODE_CLOSED ) ||
 	( mode_ival == MODE_CONN_PTS ) )
    {
-	gRI.B.used = 0;		/* RCR - clear any new I-data */
+	gRI.B.used = 0;         /* RCR - clear any new I-data */
 
 	if ( mode_ival == MODE_CONN_PTS )
 	    gRCP.cur_pt = 1;
@@ -4536,10 +4561,10 @@ static void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
       DSET_unlock(dset) ;
       DSET_unload(dset) ; DSET_anyize(dset) ;
       if( dset_changed ){
-         MCW_invert_widget(quit_pb) ;
-         THD_load_statistics( dset ) ;
-         PLUTO_dset_redisplay( dset ) ;
-         MCW_invert_widget(quit_pb) ;
+	 MCW_invert_widget(quit_pb) ;
+	 THD_load_statistics( dset ) ;
+	 PLUTO_dset_redisplay( dset ) ;
+	 MCW_invert_widget(quit_pb) ;
       }
       dset = NULL ; dset_changed = 0 ;
    }
@@ -4737,11 +4762,11 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 
    if( dset != NULL && dset_changed ){
       (void) MCW_popup_message( choose_pb ,
-                                   "Can't change datasets until\n"
-                                   "you save the changes you've\n"
-                                   "already made.  Or you could\n"
-                                   "'Quit' and re-start the Editor" ,
-                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+				   "Can't change datasets until\n"
+				   "you save the changes you've\n"
+				   "already made.  Or you could\n"
+				   "'Quit' and re-start the Editor" ,
+				MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell( dc->display , 100 ) ;
       return ;
    }
@@ -4780,7 +4805,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 
       ndsl++ ;
       dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
+	      XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
 
       make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
    }
@@ -4797,7 +4822,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 
       ndsl++ ;
       dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
+	      XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
 
       make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
    }
@@ -4806,17 +4831,17 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 
    if( ndsl < 1 ){
       (void) MCW_popup_message( choose_pb ,
-                                   "Didn't find any datasets to edit!\n"
-                                   "Check if:\n"
-                                   " - you are in 'Warp-on-Demand' mode\n"
-                                   " - you are in the correct session" ,
-                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+				   "Didn't find any datasets to edit!\n"
+				   "Check if:\n"
+				   " - you are in 'Warp-on-Demand' mode\n"
+				   " - you are in the correct session" ,
+				MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell( dc->display , 100 ) ;
       return ;
    }
 
    /*--- 23 Nov 1996: loop over dataset links and patch their titles
-                      to include an indicator of the dataset type    ---*/
+		      to include an indicator of the dataset type    ---*/
 
    ltop = 4 ;
    for( id=0 ; id < ndsl ; id++ ){
@@ -4828,36 +4853,36 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
       qset = PLUTO_find_dset( &(dsl[id].idcode) ) ;
       if( ! ISVALID_DSET(qset) ) continue ;
       if( ISANAT(qset) ){
-         if( ISANATBUCKET(qset) )         /* 30 Nov 1997 */
-            sprintf(qnam,"%-*s [%s:%d]" ,
-                    ltop,dsl[id].title ,
-                    ANAT_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
+	 if( ISANATBUCKET(qset) )         /* 30 Nov 1997 */
+	    sprintf(qnam,"%-*s [%s:%d]" ,
+		    ltop,dsl[id].title ,
+		    ANAT_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
 
-         else if( DSET_NUM_TIMES(qset) == 1 )
-            sprintf(qnam,"%-*s [%s]" ,
-                    ltop,dsl[id].title ,
-                    ANAT_prefixstr[qset->func_type] ) ;
+	 else if( DSET_NUM_TIMES(qset) == 1 )
+	    sprintf(qnam,"%-*s [%s]" ,
+		    ltop,dsl[id].title ,
+		    ANAT_prefixstr[qset->func_type] ) ;
 
-         else
-            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
-                    ltop,dsl[id].title ,
-                    ANAT_prefixstr[qset->func_type] , DSET_NUM_TIMES(qset) ) ;
+	 else
+	    sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
+		    ltop,dsl[id].title ,
+		    ANAT_prefixstr[qset->func_type] , DSET_NUM_TIMES(qset) ) ;
 
       } else {
-         if( ISFUNCBUCKET(qset) )         /* 30 Nov 1997 */
-            sprintf(qnam,"%-*s [%s:%d]" ,
-                    ltop,dsl[id].title ,
-                    FUNC_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
+	 if( ISFUNCBUCKET(qset) )         /* 30 Nov 1997 */
+	    sprintf(qnam,"%-*s [%s:%d]" ,
+		    ltop,dsl[id].title ,
+		    FUNC_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
 
-         else if( DSET_NUM_TIMES(qset) == 1 )
-            sprintf(qnam,"%-*s [%s]" ,
-                    ltop,dsl[id].title ,
-                    FUNC_prefixstr[qset->func_type] ) ;
+	 else if( DSET_NUM_TIMES(qset) == 1 )
+	    sprintf(qnam,"%-*s [%s]" ,
+		    ltop,dsl[id].title ,
+		    FUNC_prefixstr[qset->func_type] ) ;
 
-         else
-            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
-                    ltop,dsl[id].title ,
-                    FUNC_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
+	 else
+	    sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
+		    ltop,dsl[id].title ,
+		    FUNC_prefixstr[qset->func_type] , DSET_NVALS(qset) ) ;
       }
 
       if( DSET_COMPRESSED(qset) ) strcat(qnam,"z") ;
@@ -4875,7 +4900,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-                       DRAW_finalize_dset_CB , NULL     ) ;
+		       DRAW_finalize_dset_CB , NULL     ) ;
 
    return ;
 }
@@ -4927,13 +4952,13 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
       recv_key = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK, DRAW_receiver,NULL ) ;
 
       if( recv_key < 0 ){
-         (void) MCW_popup_message( im3d->vwid->top_shell ,
-                                     "Unable to establish\n"
-                                     "connection to AFNI\n"
-                                     "drawing routines!" ,
-                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+	 (void) MCW_popup_message( im3d->vwid->top_shell ,
+				     "Unable to establish\n"
+				     "connection to AFNI\n"
+				     "drawing routines!" ,
+				   MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-         dset = NULL ; XBell(dc->display,100) ; return ;
+	 dset = NULL ; XBell(dc->display,100) ; return ;
       }
    }
 
@@ -4999,25 +5024,25 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
    switch( why ){
 
       default:
-         fprintf(stderr,"DRAW_receiver: illegal why=%d\n",why) ;
+	 fprintf(stderr,"DRAW_receiver: illegal why=%d\n",why) ;
       return ;
 
       /*-- we like this one --*/
 
       case RECEIVE_POINTS:{
-         int **ip = (int **)vp ;
-         int *xd=ip[0] , *yd=ip[1] , *zd=ip[2] ; /* pts coords */
-         int mode=ip[3][0] ;                     /* how pts are organized */
-         int plane ;
+	 int **ip = (int **)vp ;
+	 int *xd=ip[0] , *yd=ip[1] , *zd=ip[2] ; /* pts coords */
+	 int mode=ip[3][0] ;                     /* how pts are organized */
+	 int plane ;
 
-         if( np <= 0 ) return ;  /* some error? */
+	 if( np <= 0 ) return ;  /* some error? */
 
-         plane = mode - SINGLE_MODE ;
-         if( plane < 1 || plane > 3 ) plane = mode - PLANAR_MODE ;
-         if( plane < 1 || plane > 3 ) plane = 0 ;
+	 plane = mode - SINGLE_MODE ;
+	 if( plane < 1 || plane > 3 ) plane = mode - PLANAR_MODE ;
+	 if( plane < 1 || plane > 3 ) plane = 0 ;
 
 	 /* handle selection of initial point for vol_fill, otherwise, */
-         /* anything but flood mode --> just draw given points         */
+	 /* anything but flood mode --> just draw given points         */
 
 	 if ( mode_ival == MODE_VOL_FILL )
 	 {
@@ -5094,7 +5119,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 		 }
 
 		 coord = gRCP.dest.x + gRA.nx*(gRCP.dest.y+gRA.ny*gRCP.dest.z);
-		 r_add_to_boundary( Bp, coord );	/* add last point */
+		 r_add_to_boundary( Bp, coord );        /* add last point */
 
 		 DRAW_into_dataset( Bp->used, Bp->points, NULL, NULL, NULL );
 
@@ -5107,145 +5132,145 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 		 */
 	     }
 	 }
-         else if( plane == 0 ||
-             ((mode_ival != MODE_FLOOD_VAL) && (mode_ival != MODE_FLOOD_NZ)) ){
+	 else if( plane == 0 ||
+	     ((mode_ival != MODE_FLOOD_VAL) && (mode_ival != MODE_FLOOD_NZ)) ){
 
-            DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
+	    DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
 
-         } else {
+	 } else {
 
-            /* flood mode! */
+	    /* flood mode! */
 
-            int   ityp = DSET_BRICK_TYPE(dset,0) ;
-            float bfac = DSET_BRICK_FACTOR(dset,0) ;
-            int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
-                nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
-            int base , di,dj , itop,jtop,nij , xx=xd[0],yy=yd[0],zz=zd[0] ,
+	    int   ityp = DSET_BRICK_TYPE(dset,0) ;
+	    float bfac = DSET_BRICK_FACTOR(dset,0) ;
+	    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
+		nxy = nx*ny , nxyz = nxy*nz , ii,jj , ixyz ;
+	    int base , di,dj , itop,jtop,nij , xx=xd[0],yy=yd[0],zz=zd[0] ,
 		ix,jy ;
-            byte * pl ;
-            int nfill , * xyzf , nf ;
+	    byte * pl ;
+	    int nfill , * xyzf , nf ;
 
-            /* compute stuff for which plane we are in:
-                1 -> yz , 2 -> xz , 3 -> xy            */
+	    /* compute stuff for which plane we are in:
+		1 -> yz , 2 -> xz , 3 -> xy            */
 
-            switch(plane){
-               case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz;
+	    switch(plane){
+	       case 1: base=xx    ; di=nx; dj=nxy; itop=ny; jtop=nz;
 			ix=yy; jy=zz; break;
-               case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz;
+	       case 2: base=yy*nx ; di=1 ; dj=nxy; itop=nx; jtop=nz;
 			ix=xx; jy=zz; break;
-               case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny;
+	       case 3: base=zz*nxy; di=1 ; dj=nx ; itop=nx; jtop=ny;
 			ix=xx; jy=yy; break;
-            }
+	    }
 
-            /* create a 2D array with 0 where dataset != blocking value
-                             and with 1 where dataset == blocking value */
+	    /* create a 2D array with 0 where dataset != blocking value
+			     and with 1 where dataset == blocking value */
 
-            nij = itop*jtop ;
-            pl  = (byte *) malloc( sizeof(byte) * nij ) ;
-            memset( pl , 0 , sizeof(byte) * nij ) ;
+	    nij = itop*jtop ;
+	    pl  = (byte *) malloc( sizeof(byte) * nij ) ;
+	    memset( pl , 0 , sizeof(byte) * nij ) ;
 
-            if( bfac == 0.0 ) bfac = 1.0 ;
-            switch(ityp){
+	    if( bfac == 0.0 ) bfac = 1.0 ;
+	    switch(ityp){
 
-               case MRI_short:{
-                  short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
-                  short   val = (short)   (value_float/bfac) ;
+	       case MRI_short:{
+		  short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
+		  short   val = (short)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+		  if( mode_ival == MODE_FLOOD_VAL ){
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+			}
+		  } else {
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
+			}
+		  }
+	       }
+	       break ;
 
-               case MRI_byte:{
-                  byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
-                  byte   val = (byte)   (value_float/bfac) ;
+	       case MRI_byte:{
+		  byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
+		  byte   val = (byte)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+		  if( mode_ival == MODE_FLOOD_VAL ){
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+			}
+		  } else {
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] != 0 ) pl[ii+jj*itop] = 1 ;
+			}
+		  }
+	       }
+	       break ;
 
-               case MRI_float:{
-                  float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
-                  float   val = (value_float/bfac) ;
+	       case MRI_float:{
+		  float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
+		  float   val = (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
-                        }
-                  } else {
-                     for( jj=0 ; jj < jtop ; jj++ )
-                        for( ii=0 ; ii < itop ; ii++ ){
-                           ixyz = base + ii*di + jj*dj ;
-                           if( bp[ixyz] != 0.0 ) pl[ii+jj*itop] = 1 ;
-                        }
-                  }
-               }
-               break ;
+		  if( mode_ival == MODE_FLOOD_VAL ){
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+			}
+		  } else {
+		     for( jj=0 ; jj < jtop ; jj++ )
+			for( ii=0 ; ii < itop ; ii++ ){
+			   ixyz = base + ii*di + jj*dj ;
+			   if( bp[ixyz] != 0.0 ) pl[ii+jj*itop] = 1 ;
+			}
+		  }
+	       }
+	       break ;
 
-               default:
-                  free(pl) ;
-                  fprintf(stderr,
-                         "Flood not implemented for datasets of type %s\a\n",
-                         MRI_TYPE_name[ityp] ) ;
-               return ;
+	       default:
+		  free(pl) ;
+		  fprintf(stderr,
+			 "Flood not implemented for datasets of type %s\a\n",
+			 MRI_TYPE_name[ityp] ) ;
+	       return ;
 
-            } /* end of switch on type */
+	    } /* end of switch on type */
 
-            /* start point must be a 0 (can't fill from an edge) */
+	    /* start point must be a 0 (can't fill from an edge) */
 
-            if( pl[ix+jy*itop] == 1 ){
-               free(pl) ; XBell(dc->display,100) ; return ;
-            }
+	    if( pl[ix+jy*itop] == 1 ){
+	       free(pl) ; XBell(dc->display,100) ; return ;
+	    }
 
-            /* call a routine to fill the array */
+	    /* call a routine to fill the array */
 
-            DRAW_2dfiller( itop,jtop , ix,jy , pl ) ;
+	    DRAW_2dfiller( itop,jtop , ix,jy , pl ) ;
 
-            /* all filled points are 2 --> these are the locations to draw */
+	    /* all filled points are 2 --> these are the locations to draw */
 
-            nfill = 0 ;
-            for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
-            if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+	    nfill = 0 ;
+	    for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
+	    if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
 
-            xyzf = (int *) malloc( sizeof(int) * nfill ) ;
+	    xyzf = (int *) malloc( sizeof(int) * nfill ) ;
 
-            for( nf=0,jj=0 ; jj < jtop ; jj++ ){
-               for( ii=0 ; ii < itop ; ii++ ){
-                  if( pl[ii+jj*itop] == 2 )
-                     xyzf[nf++] = base + ii*di + jj*dj ;
-               }
-            }
+	    for( nf=0,jj=0 ; jj < jtop ; jj++ ){
+	       for( ii=0 ; ii < itop ; ii++ ){
+		  if( pl[ii+jj*itop] == 2 )
+		     xyzf[nf++] = base + ii*di + jj*dj ;
+	       }
+	    }
 
-            free(pl) ;
-            DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
-            free(xyzf) ;
+	    free(pl) ;
+	    DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+	    free(xyzf) ;
 
-         } /* end of flooding */
+	 } /* end of flooding */
 
       } /* end of dealing with drawn points */
       break ;
@@ -5253,8 +5278,8 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
       /*-- user closed the controller window!? (the fiend) */
 
       case RECEIVE_CLOSURE:{
-         if( dset != NULL && dset_changed ) XBell(dc->display,100) ; /* protest */
-         DRAW_quit_CB(NULL,NULL,NULL) ;                              /* and die */
+	 if( dset != NULL && dset_changed ) XBell(dc->display,100) ; /* protest */
+	 DRAW_quit_CB(NULL,NULL,NULL) ;                              /* and die */
       }
       break ;
 
@@ -5262,17 +5287,18 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
       case RECEIVE_ALTERATION:{
 
-         /* if we are already editing a dataset, then
-            check if the grid has changed -- if it has, must quit */
+	 /* if we are already editing a dataset, then
+	    check if the grid has changed -- if it has, must quit */
 
-         if( dset != NULL ){
-            if( ! EQUIV_DATAXES( im3d->wod_daxes , &dax_save ) ){
-               XBell( dc->display , 100 ) ;    /* feeble protest */
-               DRAW_quit_CB(NULL,NULL,NULL) ;  /* die */
+	 if( dset != NULL ){
+	    if( ! EQUIV_DATAXES( im3d->wod_daxes , &dax_save ) ){
+	       XBell( dc->display , 100 ) ;    /* feeble protest */
+	       DRAW_quit_CB(NULL,NULL,NULL) ;  /* die */
 
 
-		{	/* RCR stuff */
+		{       /* RCR stuff */
 
+		    printf("Initializing gRA...\n");
 		    gRA.anat  = NULL;
 		    gRA.func  = NULL;
 		    gRA.adata = NULL;
@@ -5281,14 +5307,14 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 		    r_main_cb_quit();
 		}
 
-               /* less feeble protest */
-               (void) MCW_popup_message( im3d->vwid->top_shell ,
-                                           "Controller grid was altered!\n"
-                                           "Editor was forced to quit.\n"
-                                           "Any un-Saved changes were lost." ,
-                                         MCW_USER_KILL | MCW_TIMER_KILL ) ;
-            }
-         }
+	       /* less feeble protest */
+	       (void) MCW_popup_message( im3d->vwid->top_shell ,
+					   "Controller grid was altered!\n"
+					   "Editor was forced to quit.\n"
+					   "Any un-Saved changes were lost." ,
+					 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+	    }
+	 }
       }
       break ;
 
@@ -5338,7 +5364,7 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
       memcpy(undo_xyz,xd,sizeof(int)*np) ;
    } else {                                /* collapse 3-index into 1 */
       for( ii=0 ; ii < np ; ii++ )
-         undo_xyz[ii] = xd[ii] + yd[ii] * nx + zd[ii] * nxy ;
+	 undo_xyz[ii] = xd[ii] + yd[ii] * nx + zd[ii] * nxy ;
    }
 
    /* actually copy data, based on type */
@@ -5358,13 +5384,13 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
 	int      * ipA, * ipB, * ipc;
 	points_t * Bp, tmpB;
 	
-	if ( gRI.A.used == 0 )	/* if first IP set is empty, use it */
+	if ( gRI.A.used == 0 )  /* if first IP set is empty, use it */
 	    Bp = &gRI.A;
-	else if ( gRI.B.used == 0 )	/* else, similarly for second       */
+	else if ( gRI.B.used == 0 )     /* else, similarly for second       */
 	    Bp = &gRI.B;
-	else				/* else, move 2->1 and use second   */
+	else                            /* else, move 2->1 and use second   */
 	{
-	    tmpB       = gRI.A;		/* swap and empty new one */
+	    tmpB       = gRI.A;         /* swap and empty new one */
 	    gRI.A      = gRI.B;
 	    gRI.B      = tmpB;
 	    gRI.B.used = 0;
@@ -5384,82 +5410,82 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
    switch( ityp ){
 
       default: fprintf(stderr,"Illegal brick type=%s in AFNI Editor!\n",
-                       MRI_TYPE_name[ityp] ) ;
+		       MRI_TYPE_name[ityp] ) ;
       break ;
 
       case MRI_short:{
-         short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
-         short * up  = (short *) undo_buf ;
-         short * vvv = (short *) var ;
-         short   val = (short)   (value_float/bfac) ;
+	 short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
+	 short * up  = (short *) undo_buf ;
+	 short * vvv = (short *) var ;
+	 short   val = (short)   (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){  /* save into undo buffer */
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
-         }
+	 for( ii=0 ; ii < np ; ii++ ){  /* save into undo buffer */
+	    ixyz = undo_xyz[ii] ;
+	    up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
+	 }
 
 	 for( ii=0 ; ii < np ; ii++ ){  /* put into dataset */
 	    ixyz = undo_xyz[ii] ;
 	    if( ixyz >= 0 && ixyz < nxyz )
 	       bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
-         }
+	 }
       }
       break ;
 
       case MRI_byte:{
-         byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
-         byte * up  = (byte *) undo_buf ;
-         byte * vvv = (byte *) var ;
-         byte   val = (byte)   (value_float/bfac) ;
+	 byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
+	 byte * up  = (byte *) undo_buf ;
+	 byte * vvv = (byte *) var ;
+	 byte   val = (byte)   (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz )
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
-         }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
+	 }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    if( ixyz >= 0 && ixyz < nxyz )
+	       bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
+	 }
       }
       break ;
 
       case MRI_float:{
-         float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
-         float * up  = (float *) undo_buf ;
-         float * vvv = (float *) var ;
-         float   val = (value_float/bfac) ;
+	 float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
+	 float * up  = (float *) undo_buf ;
+	 float * vvv = (float *) var ;
+	 float   val = (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0.0 ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz )
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
-         }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0.0 ;
+	 }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    if( ixyz >= 0 && ixyz < nxyz )
+	       bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
+	 }
       }
       break ;
 
       case MRI_complex:{
-         complex * bp  = (complex *) DSET_BRICK_ARRAY(dset,0) ;
-         complex * up  = (complex *) undo_buf ;
-         complex * vvv = (complex *) var ;
-         complex   val ;
-         static complex cxzero = { 0.0 , 0.0 } ;
+	 complex * bp  = (complex *) DSET_BRICK_ARRAY(dset,0) ;
+	 complex * up  = (complex *) undo_buf ;
+	 complex * vvv = (complex *) var ;
+	 complex   val ;
+	 static complex cxzero = { 0.0 , 0.0 } ;
 
-         val = CMPLX( (value_float/bfac) , 0.0 ) ;
+	 val = CMPLX( (value_float/bfac) , 0.0 ) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : cxzero ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz )
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
-         }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : cxzero ;
+	 }
+	 for( ii=0 ; ii < np ; ii++ ){
+	    ixyz = undo_xyz[ii] ;
+	    if( ixyz >= 0 && ixyz < nxyz )
+	       bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ;
+	 }
       }
       break ;
 
@@ -5515,16 +5541,17 @@ static void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar )
    do {
       num = 0 ;
       for( jp=0 ; jp < ny ; jp++ ){
-         for( ip=0 ; ip < nx ; ip++ ){
-            if( AR(ip,jp) == 2 ){
-               for( ii=ip+1; ii < nx && AR(ii,jp) == 0; ii++ ){ AR(ii,jp) = 2; num++; }
-               for( ii=ip-1; ii >= 0 && AR(ii,jp) == 0; ii-- ){ AR(ii,jp) = 2; num++; }
-               for( jj=jp+1; jj < ny && AR(ip,jj) == 0; jj++ ){ AR(ip,jj) = 2; num++; }
-               for( jj=jp-1; jj >= 0 && AR(ip,jj) == 0; jj-- ){ AR(ip,jj) = 2; num++; }
-            }
-         }
+	 for( ip=0 ; ip < nx ; ip++ ){
+	    if( AR(ip,jp) == 2 ){
+	       for( ii=ip+1; ii < nx && AR(ii,jp) == 0; ii++ ){ AR(ii,jp) = 2; num++; }
+	       for( ii=ip-1; ii >= 0 && AR(ii,jp) == 0; ii-- ){ AR(ii,jp) = 2; num++; }
+	       for( jj=jp+1; jj < ny && AR(ip,jj) == 0; jj++ ){ AR(ip,jj) = 2; num++; }
+	       for( jj=jp-1; jj >= 0 && AR(ip,jj) == 0; jj-- ){ AR(ip,jj) = 2; num++; }
+	    }
+	 }
       }
    } while( num > 0 ) ;
 
    return ;
 }
+

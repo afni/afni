@@ -169,7 +169,7 @@ void SC_Syntax(void)
     "\n"
    ) ;
 
-   printf (MASTER_HELP_STRING);
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
 
    exit(0) ;
 

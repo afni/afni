@@ -332,6 +332,8 @@ void PC_syntax(char * msg)
     "                    selector is allowed) [default = use all voxels]\n"
    ) ;
 
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
+
    exit(0) ;
 }
 

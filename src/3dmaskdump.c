@@ -15,6 +15,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * flim ;
    float * flar ;
    int noijk=0 ;
+   byte * cmask=NULL ; int ncmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskdump [options] dataset dataset ...\n"
@@ -25,7 +26,7 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
              "                 Only voxels with nonzero values in 'mset'\n"
-             "                 will be averaged from 'dataset'.  Note\n"
+             "                 will be printed from 'dataset'.  Note\n"
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
              "  -mrange a b  Means to further restrict the voxels from\n"
@@ -38,6 +39,24 @@ int main( int argc , char * argv[] )
              "  -noijk       Means not to write out the i,j,k values.\n"
              "  -o fname     Means to write output to file 'fname'.\n"
              "                 [default = stdout, which you won't like]\n"
+             "\n"
+             "  -cmask 'opts' Means to execute the options enclosed in single\n"
+             "                  quotes as a 3dcalc-like program, and produce\n"
+             "                  produce a mask from the resulting 3D brick.\n"
+             "       Example:\n"
+             "        -cmask '-a fred+orig[7] -b zork+orig[3] -expr step(a-b)'\n"
+             "                  produces a mask that is nonzero only where\n"
+             "                  the 7th sub-brick of fred+orig is larger than\n"
+             "                  the 3rd sub-brick of zork+orig.\n"
+             "       Notes: * You can use both -mask and -cmask in the same\n"
+             "                  run - in this case, only voxels present in\n"
+             "                  both masks will be dumped.\n"
+             "              * Only single sub-brick calculations can be\n"
+             "                  used in the 3dcalc-like calculations -\n"
+             "                  if you input a multi-brick dataset here,\n"
+             "                  without using a sub-brick index, then only\n"
+             "                  its 0th sub-brick will be used.\n"
+             "              * Do not use quotes inside the 'opts' string!\n"
              "\n"
              "Inputs after the last option are datasets whose values you\n"
              "want to be dumped out.  These datasets (and the mask) can\n"
@@ -54,6 +73,9 @@ int main( int argc , char * argv[] )
              "\n"
              "N.B.: This program doesn't work with complex-valued datasets!\n"
             ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 
@@ -67,13 +89,25 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
+      if( strcmp(argv[narg],"-cmask") == 0 ){  /* 16 Mar 2000 */
+         if( narg+1 >= argc ){
+            fprintf(stderr,"*** -cmask option requires a following argument!\n");
+            exit(1) ;
+         }
+         cmask = EDT_calcmask( argv[++narg] , &ncmask ) ;
+         if( cmask == NULL ){
+            fprintf(stderr,"*** Can't compute -cmask!\n"); exit(1);
+         }
+         narg++ ; continue ;
+      }
+
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
             fprintf(stderr,"*** Cannot have two -mask options!\n") ; exit(1) ;
          }
          if( narg+1 >= argc ){
             fprintf(stderr,"*** -mask option requires a following argument!\n");
-             exit(1) ;
+            exit(1) ;
          }
          mask_dset = THD_open_dataset( argv[++narg] ) ;
          if( mask_dset == NULL ){
@@ -167,6 +201,32 @@ int main( int argc , char * argv[] )
       }
       fprintf(stderr,"+++ %d voxels in the mask\n",mcount) ;
       DSET_delete(mask_dset) ;
+   }
+
+   /* 16 Mar 2000: deal with the cmask */
+
+   if( cmask != NULL ){
+      if( ncmask != nvox ){
+         fprintf(stderr,"*** Input and cmask datasets are not same dimensions!\n");
+         exit(1) ;
+      }
+      if( mmm != NULL ){
+         for( ii=0 ; ii < nvox ; ii++ )
+            mmm[ii] = (mmm[ii] && cmask[ii]) ;
+         free(cmask) ;
+         mcount = THD_countmask( nvox , mmm ) ;
+         if( mcount <= 0 ){
+            fprintf(stderr,"*** No voxels in the mask+cmask!\n") ; exit(1) ;
+         }
+         fprintf(stderr,"+++ %d voxels in the mask+cmask\n",mcount) ;
+      } else {
+         mmm = cmask ;
+         mcount = THD_countmask( nvox , mmm ) ;
+         if( mcount <= 0 ){
+            fprintf(stderr,"*** No voxels in the cmask!\n") ; exit(1) ;
+         }
+         fprintf(stderr,"+++ %d voxels in the cmask\n",mcount) ;
+      }
    }
 
    /* read in input dataset bricks */

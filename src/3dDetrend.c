@@ -344,6 +344,8 @@ void DT_Syntax(void)
 #endif
    ) ;
 
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
+
    exit(0) ;
 }
 

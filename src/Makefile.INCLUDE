@@ -220,9 +220,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dmaskave 3dmaskave.o $(LFLAGS) $(LLIBS)
 
-3dmaskdump:3dmaskdump.o
+3dmaskdump:3dmaskdump.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dmaskdump 3dmaskdump.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dmaskdump 3dmaskdump.o parser.o parser_int.o \
+                 $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3drefit:3drefit.o
 	$(RM) $@
@@ -819,7 +820,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
-           edt_fullcopy.o
+           edt_fullcopy.o edt_calcmask.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \

@@ -307,6 +307,7 @@ void UC_syntax(char * msg)
     "  -verbose\n"
     "  -mask mset \n"
     "  -ref file.1D\n"
+    printf("\n" MASTER_SHORTHELP_STRING ) ;
    ) ;
 
    exit(0) ;

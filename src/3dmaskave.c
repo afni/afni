@@ -77,6 +77,9 @@ int main( int argc , char * argv[] )
              "The output is printed to stdout (the terminal), and can be\n"
              "saved to a file using the usual redirection operation '>'.\n"
             ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 

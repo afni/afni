@@ -56,6 +56,7 @@ int main( int argc , char * argv[] )
              "The output is a single sub-brick dataset.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
            ) ;
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
    }
 

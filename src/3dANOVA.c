@@ -108,6 +108,8 @@ void display_help_menu()
      );
 	  
   
+  printf("\n" MASTER_SHORTHELP_STRING ) ;
+
   exit(0);
 }
 

@@ -390,7 +390,7 @@ void TT_syntax(char * msg)
     "      However, the t-statistic at each voxel will be always be\n"
     "      stored as a short integer that is 1000 times the actual t-value.\n"
    ) ;
-
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
    exit(0) ;
 }
 

@@ -107,6 +107,7 @@ void display_help_menu()
      "      -dset 2 'fred+orig[3]'                                          \n"
      );
   
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
   
   exit(0);
 }

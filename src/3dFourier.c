@@ -49,6 +49,9 @@ void  help_message(void) {
 		"\nNote that by combining the lowpass and highpass options, one can construct\n"
 		"bandpass and notch filters\n"
 	);
+
+        printf("\n" MASTER_SHORTHELP_STRING ) ;
+
 }
 int main (int argc, char *argv[]) {
 
@@ -132,13 +135,11 @@ int main (int argc, char *argv[]) {
 	}
 	
 	/* try to open input dataset */
-#if 0
-	input = THD_open_one_dataset( argv[narg] ) ;
-#else
+
 	input = THD_open_dataset( argv[narg] ) ; /* 16 Sep 1999 */
-#endif
+
 	if( input == NULL )
-		Error_Exit("Cannot open input dataset!") ; 
+		Error_Exit("Cannot open input dataset!") ;
 	
 	if (!DSET_GRAPHABLE(input))
 		Error_Exit("Input dataset is not a 3d+time dataset");

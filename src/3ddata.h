@@ -2101,6 +2101,9 @@ extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 
+extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
+extern char * THD_dataset_headname( char * , char * , int ) ;
+
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
 extern char * THD_trailname( char * fname , int lev ) ;
@@ -2146,7 +2149,17 @@ extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
+#define MASTER_SHORTHELP_STRING                                                 \
+ "INPUT DATASET NAMES\n"                                                        \
+ "-------------------\n"                                                        \
+ "This program accepts datasets specified with the sub-brick selection\n"       \
+ "format -- e.g., r1+orig[3..5] -- and with the 3dcalc() runtime computation\n" \
+ "scheme -- e.g., '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'.\n"         \
+ "For details, see the output of 'afni -help'.\n"
+
 #define MASTER_HELP_STRING                                                    \
+    "INPUT DATASET NAMES\n"                                                   \
+    "-------------------\n"                                                   \
     " An input dataset is specified using one of these forms:\n"              \
     "    'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"         \
     " You can also add a sub-brick selection list after the end of the\n"     \
@@ -2174,6 +2187,21 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
     " the shell, so you will have to escape them.  This is most easily\n"     \
     " done by putting the entire dataset plus selection list inside\n"        \
     " forward single quotes, as in 'fred+orig[5..7,9]'.\n"
+
+#define CALC_HELP_STRING                                                   \
+   "CALCULATED DATASETS\n"                                                 \
+   "-------------------\n"                                                 \
+   " Datasets may also be specified as runtime-generated results from\n"   \
+   " program 3dcalc.  This type of dataset specifier is enclosed in\n"     \
+   " quotes, and starts with the string '3dcalc(':\n"                      \
+   "    '3dcalc( opt opt ... opt )'\n"                                     \
+   " where each 'opt' is an option to program 3dcalc; this program\n"      \
+   " is run to generate a dataset in the directory given by environment\n" \
+   " variable TMPDIR (default=/tmp).  This dataset is then read into\n"    \
+   " memory, locked in place, and deleted from disk.  For example\n"       \
+   "    afni -dset '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'\n"    \
+   " will let you look at the average of datasets r1+orig and r2+orig.\n"  \
+   " N.B.: using this dataset input method can consume lots of memory!\n"
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;

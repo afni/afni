@@ -135,7 +135,8 @@ void display_help_menu()
      "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
      "      -dset 2 4 'fred+orig[3]'                                        \n"
      );
-	  	  
+
+  printf("\n" MASTER_SHORTHELP_STRING ) ;
   
   exit(0);
 }

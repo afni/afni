@@ -660,6 +660,17 @@ viewing mode you are using (warped from a brick, or data directly
 extracted from a brick), since the "Define Datamode" control panel
 will not always be open.
 
+----------------
+Variable: TMPDIR
+----------------
+This variable specifies the directory where temporary files are to be
+written.  It is not unique to AFNI, but is used by many Unix programs.
+You must have permission to write into this directory.  If you want to
+use the current directory, setting TMPDIR to "." would work.  If TMPDIR
+is not defined, directory /tmp will be used.  On some systems, this
+directory may not have enough space for the creation of large temporary
+datasets.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

@@ -59,3 +59,72 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    dset = THD_3dim_from_block( dblk ) ;
    return dset ;
 }
+
+/*--------------------------------------------------------------------
+   Returns -1 if no dataset, otherwise returns view_type.
+   * If sname==NULL, then "./" is used.
+   * pname mustn't be NULL.
+   * If vt is a good view type (>= 0), then we only check that,
+       otherwise we check all possible view types (smallest one
+       found wins).
+----------------------------------------------------------------------*/
+
+int THD_is_dataset( char * sname , char * pname , int vt ) /* 17 Mar 2000 */
+{
+   THD_3dim_dataset * dset ;
+   int ii , vv ;
+
+   if( pname == NULL ) return -1 ;
+
+   dset = EDIT_empty_copy(NULL) ;
+   EDIT_dset_items( dset , ADN_prefix , pname , ADN_none ) ;
+
+   if( sname != NULL )
+      EDIT_dset_items( dset , ADN_directory_name , sname , ADN_none ) ;
+
+   if( vt >= FIRST_VIEW_TYPE && vt <= LAST_VIEW_TYPE ){
+      EDIT_dset_items( dset , ADN_view_type , vt , ADN_none ) ;
+      ii = THD_is_file(dset->dblk->diskptr->header_name);
+      THD_delete_3dim_dataset( dset , False ) ;
+      if( ii ) return vt ;
+      return -1 ;
+   }
+
+   for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+      EDIT_dset_items( dset , ADN_view_type , vv , ADN_none ) ;
+      ii = THD_is_file(dset->dblk->diskptr->header_name);
+      if( ii ){
+         THD_delete_3dim_dataset( dset , False ) ;
+         return vv ;
+      }
+   }
+
+   THD_delete_3dim_dataset( dset , False ) ;
+   return -1 ;
+}
+
+/*--------------------------------------------------------------------*/
+
+char * THD_dataset_headname( char * sname , char * pname , int vt )
+{
+   THD_3dim_dataset * dset ;
+   char * str ; int ll ;
+
+   if( pname == NULL ) return NULL ;
+
+   dset = EDIT_empty_copy(NULL) ;
+   EDIT_dset_items( dset , ADN_prefix , pname , ADN_none ) ;
+
+   if( sname != NULL )
+      EDIT_dset_items( dset , ADN_directory_name , sname , ADN_none ) ;
+
+   if( vt >= FIRST_VIEW_TYPE && vt <= LAST_VIEW_TYPE )
+      EDIT_dset_items( dset , ADN_view_type , vt , ADN_none ) ;
+
+   ll = strlen(dset->dblk->diskptr->header_name) + 1 ;
+   str = (char *) malloc(sizeof(char)*ll ) ;
+   strcpy( str , dset->dblk->diskptr->header_name ) ;
+
+   THD_delete_3dim_dataset( dset , False ) ;
+   return str ;
+}

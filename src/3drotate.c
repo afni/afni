@@ -133,6 +133,9 @@ int main( int argc , char * argv[] )
          " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
          " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
       ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 

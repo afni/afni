@@ -48,6 +48,9 @@ int main( int argc , char * argv[] )
              " -sagittal   = Do sagittal slice order\n"
              " -coronal    = Do coronal slice order\n"
             ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 

@@ -528,7 +528,7 @@ DSET_DONE: continue;
    /*** cleanup: check for various errors ***/
 
    if( nopt < argc ){
-     fprintf(stderr,"*** Extra command line arguments puzzle me! %s ...\n",argv[nopt]) ;
+     fprintf(stderr,"*** Extra command line arguments puzzle me! argv[%d]=%s ...\n",nopt,argv[nopt]) ;
      exit(1) ;
    }
 
@@ -688,7 +688,6 @@ void CALC_Syntax(void)
 
 #ifdef ALLOW_SUBV
     "\n"
-    "INPUT DATASET SPECIFICATION:\n"
     MASTER_HELP_STRING
 
     "\n"

@@ -111,6 +111,8 @@ void display_help_menu()
      "[-quiet]           suppress screen output                \n" 
      "[-out file]        file = name of output file            \n"
     );
+
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
   
   exit(0);
 }

@@ -71,6 +71,9 @@ int main (int argc, char * argv[]) {
              "N.B.: The input datasets and the mask dataset can use sub-brick\n"
              "      selectors, as detailed in the output of 3dcalc -help.\n"
             ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 
@@ -85,11 +88,8 @@ int main (int argc, char * argv[]) {
          if( narg+1 >= argc )
             Error_Exit("-mask option requires a following argument!") ;
          
-#if 0
-         mask_dset = THD_open_one_dataset( argv[++narg] ) ;
-#else
          mask_dset = THD_open_dataset( argv[++narg] ) ;  /* 16 Sep 1999 */
-#endif
+
          if( mask_dset == NULL )
             Error_Exit("Cannot open mask dataset!") ; 
          
@@ -246,11 +246,8 @@ int main (int argc, char * argv[]) {
 
    for (;narg<argc;narg++) {
 
-#if 0
-      input_dset = THD_open_one_dataset( argv[narg] ) ;
-#else
       input_dset = THD_open_dataset( argv[narg] ) ; /* 16 Sep 1999 */
-#endif
+
       if( input_dset == NULL ){
          fprintf(stderr,"Warning: Cannot open input dataset %s\n", argv[narg]) ; 
          continue ;

@@ -56,6 +56,8 @@ typedef struct {
       int left_is_left ;  /* 09 Oct 1998 */
       int read_tim ;      /* 19 Oct 1999 */
       int read_1D ;       /* 27 Jan 2000 */
+
+      Boolean read_dsets ;    /* 17 Mar 2000 */
 } AF_options ;
 
 #ifdef MAIN
@@ -120,7 +122,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.25i"
+#define VERSION "2.25j"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/

@@ -260,7 +260,22 @@ void AFNI_syntax(void)
 
    printf(
      "\n"
-     "General options (for either Usage):\n"
+     "Usage 3: read in datasets specified on the command line\n"
+     "\n"
+     "  afni -dset [options] dname1 dname2 ...\n"
+     "\n"
+     "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
+     "the chosen datasets are read in, and they are all put in the same\n"
+     "'session'.  Follower datasets are not created.\n"
+     "\n"
+    MASTER_HELP_STRING
+     "\n"
+    CALC_HELP_STRING
+   ) ;
+
+   printf(
+     "\n"
+     "General options (for any Usage):\n"
      "\n"
      "   -gamma gg    Tells afni that the gamma correction factor for the\n"
      "                  monitor is 'gg' (default gg is 1.0; greater than\n"
@@ -357,6 +372,8 @@ ENTRY("AFNI_parse_args") ;
 
    GLOBAL_argopt.read_sessions = True ;        /* exactly one of these should be True */
    GLOBAL_argopt.read_images   = False ;
+   GLOBAL_argopt.read_dsets    = False ;       /* 17 Mar 2000 */
+
    GLOBAL_argopt.datum         = ILLEGAL_TYPE ;
 
    GLOBAL_argopt.gamma         = INIT_gamma ;
@@ -721,11 +738,21 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -dset option [17 Mar 2000] -----*/
+
+      if( strncmp(argv[narg],"-dset",5) == 0 ){
+         GLOBAL_argopt.read_images   = False ;
+         GLOBAL_argopt.read_sessions = False ;
+         GLOBAL_argopt.read_dsets    = True  ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -im option -----*/
 
       if( strncmp(argv[narg],"-im",3) == 0 ){
          GLOBAL_argopt.read_images   = True ;
          GLOBAL_argopt.read_sessions = False ;
+         GLOBAL_argopt.read_dsets    = False ;       /* 17 Mar 2000 */
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -736,6 +763,7 @@ ENTRY("AFNI_parse_args") ;
 
          GLOBAL_argopt.read_images   = True ;
          GLOBAL_argopt.read_sessions = False ;
+         GLOBAL_argopt.read_dsets    = False ;  /* 17 Mar 2000 */
          GLOBAL_argopt.read_tim      = 1 ;
 
          if( ll > 5 && argv[narg][4] == ':' ){         /* 20 Oct 1999 */
@@ -2642,7 +2670,9 @@ ENTRY("AFNI_read_inputs") ;
       GLOBAL_library.sslist->ssar[0]    = new_ss ;
       GLOBAL_library.have_dummy_dataset = 1 ;
 
-   } else if( GLOBAL_argopt.read_sessions ){
+   } /** end of images input **/
+
+   else if( GLOBAL_argopt.read_sessions ){
 
    /*--- sessions of 3D datasets (from to3d or from afni itself) ---*/
 
@@ -3022,7 +3052,116 @@ STATUS("making descendant datasets") ;
 
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
 
-   } /* end of sessions input */
+   } /** end of sessions input **/
+
+   else if( GLOBAL_argopt.read_dsets ){  /* 17 Mar 2000 */
+
+      int nds = argc - GLOBAL_argopt.first_file_arg ;
+      char str[256] ;
+      THD_3dim_dataset * dset ;
+      THD_session * new_ss ;
+      int ii,nerr=0,vv,nn ;
+
+      if( nds <= 0 ){
+         fprintf(stderr,"\a\n*** No datasets on command line?!\n"); exit(1);
+      }
+
+      /* set up minuscule session and session list */
+
+      new_ss             = myXtNew( THD_session ) ;
+      new_ss->type       = SESSION_TYPE ;
+      BLANK_SESSION(new_ss) ;
+      new_ss->parent     = NULL ;
+
+      strcpy( new_ss->sessname , "." ) ;
+      strcpy( new_ss->lastname , "." ) ;
+
+      GLOBAL_library.sslist->num_sess   = 1 ;
+      GLOBAL_library.sslist->ssar[0]    = new_ss ;
+      GLOBAL_library.have_dummy_dataset = 0 ;
+
+      /* read datasets from command line */
+
+STATUS("reading commandline dsets") ;
+
+      for( ii=GLOBAL_argopt.first_file_arg ; ii < argc ; ii++ ){
+         dset = THD_open_dataset( argv[ii] ) ;
+         REFRESH ;
+         if( dset == NULL ){
+            fprintf(stderr,"\a\n*** Can't read dataset %s\n",argv[ii]) ;
+            nerr++ ;
+         } else {
+            vv = dset->view_type ;
+            if( ISANAT(dset) ){
+               nn = new_ss->num_anat ;
+               if( nn >= THD_MAX_SESSION_ANAT ){
+                  fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
+                  nerr++ ;
+               } else {
+                  new_ss->anat[nn][vv] = dset ;
+                  new_ss->num_anat++ ;
+               }
+            } else if( ISFUNC(dset) ){
+               nn = new_ss->num_func ;
+               if( nn >= THD_MAX_SESSION_FUNC ){
+                  fprintf(stderr,"\a\n*** too many functional datasets!\n") ;
+                  nerr++ ;
+               } else {
+                  new_ss->func[nn][vv] = dset ;
+                  new_ss->num_func++ ;
+               }
+            } else {
+               fprintf(stderr,"\a\n*** Unrecognized dataset type: %s\n",argv[ii]);
+               nerr++ ;
+            }
+         }
+      }
+
+      if( nerr > 0 ) exit(1) ;
+
+      sprintf(str,"\n dataset count = %d" , nds ) ;
+      REPORT_PROGRESS(str) ;
+
+STATUS("reading timeseries files") ;
+
+      GLOBAL_library.timeseries = THD_get_many_timeseries( NULL ) ;
+
+      REFRESH ;
+
+      if( GLOBAL_library.timeseries == NULL )
+         INIT_IMARR(GLOBAL_library.timeseries) ;
+
+      sprintf( str , "\n Time series   = %d files read" ,
+               IMARR_COUNT(GLOBAL_library.timeseries) ) ;
+      REPORT_PROGRESS(str) ;
+
+      /* assign the warp and anatomy parent pointers;
+         then, make any datasets that don't exist but logically
+         descend from the warp and anatomy parents just assigned */
+
+STATUS("checking idcodes for duplicates") ;
+
+      THD_check_idcodes( GLOBAL_library.sslist ) ;
+
+#if 0
+STATUS("reconciling parent pointers") ;
+
+      THD_reconcile_parents( GLOBAL_library.sslist ) ; /* parents from .HEAD files */
+
+STATUS("forcible adoption of unparented datasets") ;
+
+      for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){  /* functions w/o parents, */
+         new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
+         AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
+      }
+#endif
+
+   }  /** end of read datasets from command line **/
+
+   else {  /* should never occur! */
+
+     fprintf(stderr,"\a\n*** Illegal Usage configuration detected!\n"); exit(1);
+   }
 
    MPROBE ;
    EXRETURN ;

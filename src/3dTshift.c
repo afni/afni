@@ -116,6 +116,9 @@ void TS_syntax(char * str)
           "\n"
           "-- RWCox - 31 October 1999\n"
         ) ;
+
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
+
    exit(0) ;
 }
 

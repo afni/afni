@@ -34,6 +34,9 @@ int main( int argc , char * argv[] )
              "  -demean      Means to remove the mean from each volume\n"
              "                 prior to computing the correlation.\n"
             ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 

@@ -89,6 +89,9 @@ int main( int argc , char * argv[] )
              "\n"
              "The histogram is written to stdout.\n"
          ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 

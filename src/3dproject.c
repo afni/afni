@@ -111,6 +111,9 @@ void Syntax(void)
      "   In particular, the '-1thtoin' option can be used to project the\n"
      "   threshold data (if available).\n"
    ) ;
+
+   printf("\n" MASTER_SHORTHELP_STRING ) ;
+
    exit(0) ;
 }
 

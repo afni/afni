@@ -62,6 +62,7 @@ int main( int argc , char * argv[] )
              "  -3lin m = 3 point linear filter: 0.5*(1-m)*a + m*b + 0.5*(1-m)*c\n"
              "              Here, 'm' is a number strictly between 0 and 1.\n"
            ) ;
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
    }
 

@@ -4092,7 +4092,10 @@ STATUS("getting anat info") ;
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
          } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
-            inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
+            if( DBLK_LOCKED(im3d->anat_now->dblk) )
+               inf = THD_zzprintf( inf , "\n*** Locked into memory using malloc.\n") ;
+            else
+               inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
          } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
             inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
          }
@@ -4113,7 +4116,10 @@ STATUS("got func info") ;
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
          } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
-            inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
+            if( DBLK_LOCKED(im3d->fim_now->dblk) )
+               inf = THD_zzprintf( inf , "\n*** Locked into memory using malloc.\n") ;
+            else
+               inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
          } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
             inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
          }

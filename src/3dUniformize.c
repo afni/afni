@@ -99,7 +99,8 @@ void display_help_menu()
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain corrected image     \n"
       );
-  
+
+  printf("\n" MASTER_SHORTHELP_STRING ) ;
   exit(0);
 }
 

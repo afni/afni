@@ -243,7 +243,8 @@ void display_help_menu()
      "      -xydata 2.17 4.59 7.18  'fred+orig[3]'                          \n"
      );
 	  
-  
+  printf("\n" MASTER_SHORTHELP_STRING ) ;
+
   exit(0);
 }
 

@@ -35,6 +35,9 @@ int main( int argc , char * argv[] )
              "  -bmin cc   Means to take the minimum value to consider\n"
              "              as 'cc' [default cc = 1]\n"
          ) ;
+
+      printf("\n" MASTER_SHORTHELP_STRING ) ;
+
       exit(0) ;
    }
 
