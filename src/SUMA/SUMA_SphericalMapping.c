@@ -644,24 +644,25 @@ void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3) {
 }
 
 /*!
-  SO = SUMA_CreateIcosahedron (r, depth, ctr, bin);
- 
+  SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, ToSphere);
+
   This function creates an icosahedron of size r and to tesselation extent depth.
   \param r (float) size of icosahedron (distance from center to node).
   \param depth (int) number of edge subdivisions (bin='n') or depth of recursive tesselation (bin='y')
   \param ctr (float[]) coordinates of center of icosahedron
   \param bin (char[]) indicates whether tesselation binary/recursive ('y') or brute ('n')
+  \param ToSpHere (int) if 1 then project nodes to form a sphere of radius r
   \ret SO (SUMA_SurfaceObject *) icosahedron is a surface object structure.
   returns NULL if function fails.
   SO returned with NodeList, N_Node, FaceSetList, N_FaceSet, and NodeNormList
      
   Written by Brenna Argall  
 */
-SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], char bin[]) 
+SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], char bin[], int ToSphere) 
 {
    static char FuncName[]={"SUMA_CreateIcosahedron"};
    SUMA_SurfaceObject *SO = NULL;
-   int i, numNodes=0, numTri=0;
+   int i, numNodes=0, numTri=0, j, i3;
    float a,b, lgth;
    int nodePtCt, triPtCt, *icosaTri=NULL;
    float *icosaNode=NULL;
@@ -848,6 +849,20 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
       }
       
       
+   }
+   
+   /* project to sphere ? */
+   if (ToSphere) {
+      float dv, uv[3], **U=NULL, *p1;
+      for (i=0; i<SO->N_Node; ++i) {
+         i3 = 3*i;
+         p1 = &(SO->NodeList[i3]);
+         /* SUMA_UNIT_VEC(ctr, p1, uv, dv); */
+         uv[0] = p1[0] - ctr[0]; uv[1] = p1[1] - ctr[1]; uv[2] = p1[2] - ctr[2];
+         U = SUMA_Point_At_Distance(uv, ctr, r);
+         SO->NodeList[i3  ] = U[0][0]; SO->NodeList[i3+1] = U[0][1]; SO->NodeList[i3+2] = U[0][2]; 
+         SUMA_free2D((char **)U, 2); U = NULL;
+      }
    }
    
    /* create surface normals */
@@ -2386,7 +2401,7 @@ int main (int argc, char *argv[])
 
 
    /**create icosahedron*/
-   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin);
+   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
    if (!SO) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateIcosahedron.\n", FuncName);
       exit (1);
@@ -3431,7 +3446,7 @@ int main (int argc, char *argv[])
    
    
    /**create icosahedron*/
-   icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin);
+   icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
    if (!icoSurf) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
