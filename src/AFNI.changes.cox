@@ -4497,3 +4497,10 @@
 12 Apr 2003
  * Modified waver.c -tstim option to skip argv[]'s that start with whitespace
      -- this is to deal with evil Microsoft CR-LF line breaks.
+
+15 Apr 2003
+ * Fixed bug in mri_overlay.c (using data from imover instead of imov!).
+
+16 Apr 2003
+ * Modified 3dUniformize.c to allow byte-valued datasets, and added to standard
+     distributions.

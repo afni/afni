@@ -22,7 +22,7 @@
 #define PROGRAM_NAME "3dUniformize"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "28 January 2000" /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "16 April 2003"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -42,6 +42,8 @@
 
 static THD_3dim_dataset * anat_dset = NULL;     /* input anatomical dataset  */
 char * commandline = NULL ;                /* command line for history notes */
+
+int input_datum = MRI_short ;              /* 16 Apr 2003 - RWCox */
  
 typedef struct UN_options
 { 
@@ -191,6 +193,31 @@ void get_options
 		       option_data->anat_filename); 
 	      UN_error (message); 
 	    }
+
+          /** RWCox [16 Apr 2003]
+              If input is a byte dataset, make a short copy of it. **/
+
+          if( DSET_BRICK_TYPE(anat_dset,0) == MRI_byte ){
+
+            THD_3dim_dataset *qset ;
+            register byte *bar ; register short *sar ;
+            register int ii,nvox ;
+
+            fprintf(stderr,"++ WARNING: converting input dataset from byte to short\n") ;
+            qset = EDIT_empty_copy(anat_dset) ;
+            nvox = DSET_NVOX(anat_dset) ;
+            bar  = (byte *) DSET_ARRAY(anat_dset,0) ;
+            sar  = (short *)malloc(sizeof(short)*nvox) ;
+            for( ii=0 ; ii < nvox ; ii++ ) sar[ii] = (short) bar[ii] ;
+            EDIT_substitute_brick( qset , 0 , MRI_short , sar ) ;
+            DSET_delete(anat_dset) ; anat_dset = qset ; input_datum = MRI_byte ;
+
+          } else if ( DSET_BRICK_TYPE(anat_dset,0) != MRI_short ){
+
+            fprintf(stderr,"** ERROR: input dataset not short or byte type!\n") ;
+            exit(1) ;
+
+          }
 
 	  nopt++;
 	  continue;
@@ -928,6 +955,7 @@ void write_afni_data
   float fimfac;                       /* scale factor for short data */
   int output_datum;                   /* data type for output data */
   char * filename;                    /* prefix filename for output */
+  byte *bfim = NULL ;                 /* 16 Apr 2003 */
 
 
   /*----- initialize local variables -----*/
@@ -948,9 +976,28 @@ void write_afni_data
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset (anat_dset, False);   anat_dset = NULL ;
 
+  /*-- 16 Apr 2003 - RWCox:
+       see if we can convert output back to bytes, if input was bytes --*/
 
-  output_datum = MRI_short ;
-  
+  output_datum = MRI_short ;             /* default, in sfim */
+
+  if( input_datum == MRI_byte ){         /* if input was byte */
+    short stop = sfim[0] ;
+    for( ii=1 ; ii < nxyz ; ii++ )
+      if( sfim[ii] > stop ) stop = sfim[ii] ;
+    output_datum = MRI_byte ;
+    bfim = malloc(sizeof(byte)*nxyz) ;
+    if( stop <= 255 ){                   /* output fits into byte range */
+      for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (byte) sfim[ii] ;
+    } else {                             /* must scale output down */
+      float sfac = 255.9 / stop ;
+      fprintf(stderr,"++ WARNING: scaling by %g back down to byte data\n",sfac);
+      for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (byte)(sfim[ii]*sfac) ;
+    }
+    free(sfim) ;
+  }
+ 
+  /*-- we now return control to your regular programming --*/ 
   ibuf[0] = output_datum ;
   
   ierror = EDIT_dset_items( new_dset ,
@@ -979,15 +1026,20 @@ void write_afni_data
   
   
   /*----- attach bricks to new data set -----*/
-  mri_fix_data_pointer (sfim, DSET_BRICK(new_dset,0)); 
+
+  if( output_datum == MRI_short )
+    mri_fix_data_pointer (sfim, DSET_BRICK(new_dset,0)); 
+  else if( output_datum == MRI_byte )
+    mri_fix_data_pointer (bfim, DSET_BRICK(new_dset,0));    /* 16 Apr 2003 */
+
   fimfac = 1.0;
-  
 
   /*----- write afni data set -----*/
   if (!0)
     {
       printf ("\nWriting anatomical dataset: ");
       printf("%s\n", new_dset->dblk->diskptr->header_name) ;
+      printf("data type = %s\n",MRI_TYPE_name[output_datum]) ;
     }
 
 
