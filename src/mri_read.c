@@ -47,6 +47,18 @@ float MRILIB_xoff      = 0.0 ;   /* 07 Dec 2001 */
 
 float MRILIB_yoff      = 0.0 ;
 
+/*! Global variable saying whether to use MRILIB_xoff. */
+
+int use_MRILIB_xoff    = 0 ;
+
+/*! Global variable saying whether to use MRILIB_yoff. */
+
+int use_MRILIB_yoff    = 0 ;
+
+/*! Global variable saying whether to use MRILIB_yoff. */
+
+int use_MRILIB_zoff    = 0 ;
+
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
 MRI_IMAGE *mri_try_mri( FILE * , int * ) ;  /* prototypes */
@@ -186,25 +198,25 @@ WHOAMI ;
           fread( &hdroff , 4,1 , imfile ) ;  /* location of image header */
           if( swap ) swap_4(&hdroff) ;
           if( hdroff > 0 ){                  /* read from image header */
-             float dx,dy,dz , xyz[9] , zz ; int itr , ii,jj,kk ;
+             float dx,dy,dz, dxx,dyy,dzz, xyz[9], zz ; int itr, ii,jj,kk, qq ;
              static int nzoff=0 ;
              static float zoff ;
 
              /* get voxel grid sizes */
 
              fseek( imfile , hdroff+26 , SEEK_SET ) ;
-             fread( &dz , 4,1 , imfile ) ;
+             fread( &dzz , 4,1 , imfile ) ;
 
              fseek( imfile , hdroff+50 , SEEK_SET ) ;
-             fread( &dx , 4,1 , imfile ) ;
-             fread( &dy , 4,1 , imfile ) ;
+             fread( &dxx , 4,1 , imfile ) ;
+             fread( &dyy , 4,1 , imfile ) ;
 
-             if( swap ){ swap_4(&dx); swap_4(&dy); swap_4(&dz); }
+             if( swap ){ swap_4(&dxx); swap_4(&dyy); swap_4(&dzz); }
 
-             /* save into image header */
+             /* save into image header [dw > 0 is signal that dx,dy,dz are OK] */
 
-             if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
-               im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+             if( dxx > 0.0 && dyy > 0.0 && dzz > 0.0 ){
+               im->dx = dxx; im->dy = dyy; im->dz = dzz; im->dw = 1.0;
              }
 
              /* grid orientation: from 3 sets of LPI corner coordinates: */
@@ -260,7 +272,7 @@ WHOAMI ;
 
              kk = 6 - abs(ii)-abs(jj) ;   /* which spatial direction is z-axis */
                                           /* where 1=L-R, 2=P-A, 3=I-S */
-             zz = xyz[kk-1] ;             /* z-coordinate of this slice */
+             zz = xyz[kk-1] ;             /* z-coordinate of this slice (from TLHC) */
 
              /* getting orientation of z-axis requires 2 images in a row -*/
 
@@ -288,17 +300,35 @@ WHOAMI ;
                 default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
                }
 
-               /* save spatial offset of first slice         */
-               /* [this is positive in the direction of the] */
-               /* [-z axis, so may need to change its sign ] */
+               /* save spatial offset of first slice              */
+               /* [this needs to be positive in the direction of] */
+               /* [the -z axis, so may need to change its sign  ] */
 
-               MRILIB_zoff = zoff ;
+               MRILIB_zoff = zoff ; use_MRILIB_zoff = 1 ;
                if( kk == 1 || kk == 2 || kk == 3 ) MRILIB_zoff = -MRILIB_zoff ;
 
-               MRILIB_xoff = xyz[abs(ii)-1] ;  /* 07 Dec 2001 */
-               MRILIB_yoff = xyz[abs(jj)-1] ;
+               /* Same for x offset; [20 Dec 2001]
+                  This must be at the middle of the TLHC voxel,
+                    so we must move a little bit towards the TRHC edge;
+                  We only use the result if the x-coordinate doesn't
+                    change significantly between the TRHC and BRHC,
+                    to avoid problems with oblique slices.         */
+
+               qq = abs(ii) ;
+               MRILIB_xoff = ( xyz[qq-1]*(nx-0.5) + xyz[qq+2]*0.5 ) / nx ;
                if( ii == 1 || ii == 2 || ii == 3 ) MRILIB_xoff = -MRILIB_xoff ;
+               use_MRILIB_xoff = ( fabs(xyz[qq+2]-xyz[qq+5]) < 0.01*dxx ) ;
+
+               /* Same for y offset;
+                  This must be at the middle of the TLHC voxel,
+                    so we must move a little bit towards the BRHC edge;
+                  We only use the result if the y-coordinate doesn't
+                    change significantly between the TLHC and TRHC. */
+
+               qq = abs(jj) ;
+               MRILIB_yoff = ( xyz[qq-1]*(ny-0.5) + xyz[qq+5]*0.5 ) / ny ;
                if( jj == 1 || jj == 2 || jj == 3 ) MRILIB_yoff = -MRILIB_yoff ;
+               use_MRILIB_yoff = ( fabs(xyz[qq-1]-xyz[qq+2]) < 0.01*dyy ) ;
              }
              nzoff++ ;  /* 3rd and later images don't count for z-orientation */
 
@@ -2240,7 +2270,7 @@ MRI_IMARR * mri_read_siemens( char * hname )
       if (MRILIB_orients[i]=='F') MRILIB_orients[i]='I';
    }
    MRILIB_orients[6] = '\0' ;
-   MRILIB_zoff = fabs(strtod(head.TextSlicePosition,NULL)) ;
+   MRILIB_zoff = fabs(strtod(head.TextSlicePosition,NULL)) ; use_MRILIB_zoff = 1 ;
 
    /*-- create output --*/
 

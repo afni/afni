@@ -79,10 +79,10 @@ $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
 
 totality:all plugins install install_plugins install_lib clean
-	$(CP) README* $(INSTALLDIR)
+	$(CP) ../doc/README/README* $(INSTALLDIR)
 
 vastness:all plugins install install_plugins install_lib
-	$(CP) README* $(INSTALLDIR)
+	$(CP) ../doc/README/README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
 
@@ -97,12 +97,12 @@ libraries:libmri.a libcoxplot.a libvolpack.a libf2c.a
 quotize:quotize.o
 	$(CC) -o quotize quotize.o $(LFLAGS) $(LLIBS)
 
-newstuff.hhh:quotize README.changes
+newstuff.hhh:quotize ../doc/README/README.changes
 	$(RM) newstuff.hhh
-	./quotize newstuff < README.changes > newstuff.hhh
+	./quotize newstuff < ../doc/README/README.changes > newstuff.hhh
 
 license.h:quotize
-	./quotize license < README.copyright > license.h
+	./quotize license < ../doc/README/README.copyright > license.h
 
 3dUndump:3dUndump.o
 	$(CC) -o 3dUndump 3dUndump.o $(LFLAGS) $(LLIBS)

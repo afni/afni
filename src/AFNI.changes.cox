@@ -3404,3 +3404,5 @@
  * Modified ge_header.c to use -verb option to print out more stuff.
  * Modified to3d.c to set default dataset type to ANAT_EPI_TYPE (-epan)
       if user is creating a 3D+time dataset.
+ * Modified mri_read.c and to3d.c to correctly calculate and use
+      MRILIB_xoff and MRILIB_yoff for GEMS images.

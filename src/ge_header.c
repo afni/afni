@@ -52,21 +52,21 @@ int main( int argc , char *argv[] )
    FILE *imfile ;
    int  length , skip , swap=0 , gg ;
    char orients[8] , str[8] ;
-   int nx , ny , bpp , cflag , hdroff , stamp=0 , iarg=1 ;
+   int nx , ny , bpp , cflag , hdroff , verb=0 , iarg=1 ;
 
    /*------ help? ------*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: ge_header [-stamp] file ...\n"
+     printf("Usage: ge_header [-verb] file ...\n"
             "Prints out information from the GE image header of each file.\n"
             "Options:\n"
-            " -stamp: print out the date/time stamp information\n"
+            " -verb: Print out some probably useless extra stuff.\n"
            ) ;
      exit(0) ;
    }
 
-   if( strcmp(argv[iarg],"-stamp") == 0 ){ stamp++ ; iarg++ ; }
-   if( strcmp(argv[iarg],"-stamp") == 0 ){ stamp++ ; iarg++ ; }
+   if( strcmp(argv[iarg],"-verb") == 0 ){ verb++ ; iarg++ ; }
+   if( strcmp(argv[iarg],"-verb") == 0 ){ verb++ ; iarg++ ; }
 
    /*----- loop over input files -----*/
 
@@ -215,7 +215,7 @@ int main( int argc , char *argv[] )
            xx = xyz[abs(ii)-1] ;
            yy = xyz[abs(jj)-1] ;
 
-           printf(" z offset=%g orient=%s xoff=%g yoff=%g",
+           printf(" zoff=%g orient=%s xoff=%g yoff=%g",
                   zz,orients,xx,yy ) ;
 
            /*-- get TR in seconds --*/
@@ -237,9 +237,17 @@ int main( int argc , char *argv[] )
 
            printf("\n") ;
 
+           /*-- verbosity? --*/
+
+           if( verb )
+             printf("  TLHC= %g %g %g\n"
+                    "  TRHC= %g %g %g\n"
+                    "  BRHC= %g %g %g\n" ,
+                    xyz[0],xyz[1],xyz[2],xyz[3],xyz[4],xyz[5],xyz[6],xyz[7],xyz[8] ) ;
+
            /*-- date/time stamp */
 
-           if( stamp > 0 ){
+           if( verb ){
              int dt1 , dt2 ; short in1,in2 ;
              fseek( imfile , hdroff+10 , SEEK_SET ) ;
              fread( &in1 , 2,1 , imfile ) ;
@@ -256,7 +264,7 @@ int main( int argc , char *argv[] )
 
        /* maybe read series header */
 
-       if( stamp > 1 ){
+       if( verb > 1 ){
          int dt1 , dt2 ; short in1,in2 ;
          fseek( imfile , 140L , SEEK_SET ) ;
          fread( &hdroff , 4,1 , imfile ) ;  /* location of series header */
