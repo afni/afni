@@ -4,11 +4,11 @@
 
 /* prototype for function at end */
 
-static int cl1_(integer *k, integer *l, integer *m, integer *n,
-                integer *klmd, integer *klm2d, integer *nklmd,
-                integer *n2d, real *q,
-                integer *kode, real *toler, integer *iter, real *x,
-                real *res, real * error, real *cu, integer *iu, integer *s) ;
+static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
+                    integer *klmd, integer *klm2d, integer *nklmd,
+                    integer *n2d, real *q,
+                    integer *kode, real *toler, integer *iter, real *x,
+                    real *res, real * error, real *cu, integer *iu, integer *s) ;
 
 /*---------------------------------------------------------------------
   Approximately (L1) solve equations
@@ -89,9 +89,9 @@ int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
 
    /*-- do the work --*/
 
-   cl1_( &k, &l, &m, &n,
-         &klmd, &klm2d, &nklmd, &n2d,
-         q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
+   cl1_fort( &k, &l, &m, &n,
+             &klmd, &klm2d, &nklmd, &n2d,
+             q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
 
    free(q) ; free(res) ; free(cu) ; free(iu) ; free(s) ;
 
@@ -194,9 +194,9 @@ int cl1_pos_sum( int ndim , int nvec ,
 
    /*-- do the work --*/
 
-   cl1_( &k, &l, &m, &n,
-         &klmd, &klm2d, &nklmd, &n2d,
-         q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
+   cl1_fort( &k, &l, &m, &n,
+             &klmd, &klm2d, &nklmd, &n2d,
+             q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
 
    free(q) ; free(res) ; free(cu) ; free(iu) ; free(s) ;
 
@@ -219,7 +219,7 @@ int cl1_pos_sum( int ndim , int nvec ,
 	-lf2c -lm   (in that order)
 */
 
-static int cl1_(integer *k, integer *l, integer *m, integer *n,
+static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
 	integer *klmd, integer *klm2d, integer *nklmd, integer *n2d, real *q,
 	integer *kode, real *toler, integer *iter, real *x, real *res, real *
 	error, real *cu, integer *iu, integer *s)
