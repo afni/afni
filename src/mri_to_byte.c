@@ -62,6 +62,16 @@ WHOAMI ; IMHEADER(oldim) ;
 #endif
          break ;
 
+      case MRI_rgb:{                           /* 13 Nov 2002 */
+         byte *rgb = oldim->im.rgb_data ;
+         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
+         for( ii=0 ; ii < npix ; ii++ )
+            ar[ii] = (byte)(  rfac * rgb[3*ii  ]
+                            + gfac * rgb[3*ii+1]
+                            + bfac * rgb[3*ii+2] ) ;
+      }
+      break ;
+
       case MRI_short:
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = scale * (oldim->im.short_data[ii]-shbot) ;

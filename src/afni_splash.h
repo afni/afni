@@ -7,10 +7,6 @@
 #ifndef _AFNI_SPLASH_HEADER
 #define _AFNI_SPLASH_HEADER
 
-static byte map26[26] =
-  {  30,  50,  70,  90, 106, 118, 130, 140, 146, 152, 158, 164, 170,
-    176, 182, 190, 198, 206, 212, 218, 224, 230, 236, 242, 248, 254 } ;
-
 #include "splash_blank.h"
 #include "splash_cox1.h"
 #include "splash_cox2.h"
@@ -29,13 +25,17 @@ static int    lover[NOVER]={NLINE_cox1,NLINE_cox2,NLINE_cox3,NLINE_cox4};
 #undef  NMAIN
 #define NMAIN 2
 #ifdef  NMAIN
-#  include "splash_gang.h"  /* MCW gang */
-#  include "splash_sscc.h"  /* NIH gang */
+#  include "splash_gang.h"  /* MCW gang [gray]  */
+#  include "splash_sscc.h"  /* NIH gang [color] */
 
 static char **bmain[NMAIN]={BAR_gang  ,BAR_sscc  };
 static int    xmain[NMAIN]={NX_gang   ,NX_sscc   };
 static int    ymain[NMAIN]={NY_gang   ,NY_sscc   };
 static int    lmain[NMAIN]={NLINE_gang,NLINE_sscc};
+static byte  *rmapm[NMAIN]={NULL      ,RMAP_sscc };  /* color maps */
+static byte  *gmapm[NMAIN]={NULL      ,GMAP_sscc };
+static byte  *bmapm[NMAIN]={NULL      ,BMAP_sscc };
+static int    nmapm[NMAIN]={0         ,NC_sscc   };
 #endif
 /*------------------------------------------------------------------------------------*/
 

@@ -18,7 +18,7 @@ WHOAMI ; IMHEADER(oldim) ;
 
    if( oldim == NULL ) return NULL ;
 
-   newim = mri_new_conforming( oldim , MRI_rgb ) ; rgb = MRI_BYTE_PTR(newim) ;
+   newim = mri_new_conforming( oldim , MRI_rgb ) ; rgb = MRI_RGB_PTR(newim) ;
    npix  = oldim->nvox ;
 
    switch( oldim->kind ){

@@ -194,6 +194,9 @@ float_scan:float_scan.c
 to26:to26.c
 	$(CC) -o to26 to26.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
+toxx:toxx.c
+	$(CC) -o toxx toxx.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+
 imupsam:imupsam.c
 	$(CC) -o imupsam imupsam.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
