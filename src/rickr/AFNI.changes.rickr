@@ -458,3 +458,9 @@
       - the '-drive_cmd' option can now be used multiple times
       - the realtime zorder is defaulting to seq again (affects physical order)
       - passed lists of drive and RT commands to realtime plugin
+
+18 February 2004:
+  * modified SUMA_3dVol2Surf.[ch] (->v4.2) 
+      - add functionality for mapping functions that require sorting
+      - added mapping functions 'median' and 'mode'
+
