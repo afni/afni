@@ -74,218 +74,229 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\nKeyboard Controls\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  a: attenuation by background, toggle.\n\n");
+      "     a: attenuation by background, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  B: Backface culling, toggle.\n");
+      "     B: Backface culling, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  b: background color, toggle.\n\n");
+      "     b: background color, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  c: load a node color file.\n\n");
+      "     c: load a node color file.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+d: draw ROI controller.\n\n");
+      "     Ctrl+d: draw ROI controller.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  d: Show all DO objects in DOv.\n\n");
+      "     d: Show all DO objects in DOv.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Alt+e: Look for OpenGL errors.\n\n"); 
+      "     Alt+e: Look for OpenGL errors.\n\n"); 
    SS = SUMA_StringAppend (SS, 
-      "\t  F: Flip light position between +z and -z.\n");
+      "     F: Flip light position between +z and -z.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  f: functional overlay, toggle.\n\n");
+      "     f: functional overlay, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  H: Highlight nodes inside a specified box.\n"
-      "\t     Does not update other viewers\n"
-      "\t     Paints into existing colors\n"
-      "\t     Highlight is wiped out with new\n"
-      "\t     colors.\n\n");
+      "     H: Highlight nodes inside a specified box.\n"
+      "        Does not update other viewers\n"
+      "        Paints into existing colors\n"
+      "        Highlight is wiped out with new\n"
+      "        colors.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  h: NO LONGER USED.\n"
-      "\t     Please use Ctrl+h instead.\n");
+      "     h: NO LONGER USED.\n"
+      "        Please use Ctrl+h instead.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+h: help message\n\n");
+      "     Ctrl+h: help message\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  J: Set the selected FaceSet on Surface Object\n"
-      "\t     in Focus. Does not update in other viewers\n"
-      "\t     or in AFNI.\n");
+      "     J: Set the selected FaceSet on Surface Object\n"
+      "        in Focus. Does not update in other viewers\n"
+      "        or in AFNI.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  j: Set the cross hair to a certain node on \n"
-      "\t     SO in Focus.\n"
-      "\t     Does update in other viewers\n"
-      "\t     if linked by index"
-      "\t     and AFNI if connected\n");
+      "     j: Set the cross hair to a certain node on \n"
+      "        SO in Focus.\n"
+      "        Does update in other viewers\n"
+      "        if linked by index"
+      "        and AFNI if connected\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+j: Set the cross hair's XYZ location. \n"
-      "\t     Does update in other viewers\n"
-      "\t     if linked by XYZ"
-      "\t     and AFNI if connected\n");
+      "     Ctrl+j: Set the cross hair's XYZ location. \n"
+      "        Does update in other viewers\n"
+      "        if linked by XYZ"
+      "        and AFNI if connected\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Alt+j: Set the Focus node. \n"
-      "\t     Cross hair's XYZ remain unchanged.\n"
-      "\t     Does not update in other viewers\n"
-      "\t     or in AFNI\n\n");
+      "     Alt+j: Set the Focus node. \n"
+      "        Cross hair's XYZ remain unchanged.\n"
+      "        Does not update in other viewers\n"
+      "        or in AFNI\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  L: Light's XYZ coordinates\n");
+      "     L: Light's XYZ coordinates\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  l: look at point\n");
+      "     l: look at point\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Alt+l: look at cross hair\n");
+      "     Alt+l: look at cross hair\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+l: Switch locking mode for all viewers \n"
-      "\t          between: No Lock, Index Lock and \n"
-      "\t          XYZ Lock. The switching is order is \n"
-      "\t          based on the lock of the first viewer.\n\n");
+      "     Ctrl+l: Switch locking mode for all viewers \n"
+      "             between: No Lock, Index Lock and \n"
+      "             XYZ Lock. The switching is order is \n"
+      "             based on the lock of the first viewer.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+M: Show memory trace if Debug flag \n"
-      "\t          MemTrace is on. (requires compilation \n"
-      "\t          with SUMA_MEMTRACE_FLAG 1).\n");
+      "     Ctrl+M: Show memory trace if Debug flag \n"
+      "             MemTrace is on. (requires compilation \n"
+      "             with SUMA_MEMTRACE_FLAG 1).\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  m: momentum, toggle\n\n");
+      "     m: momentum, toggle\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  n: bring a node to direct view (does not work AT ALL)\n");
+      "     n: bring a node to direct view (does not work AT ALL)\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+n: Open a new surface viewer window.\n\n");
+      "     Ctrl+n: Open a new surface viewer window.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  p: Viewer rendering mode  \n"
-      "\t     (Fill, Line, Points), switch.\n\n");
+      "     p: Viewer rendering mode  \n"
+      "        (Fill, Line, Points), switch.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  r: record current image\n"
-      "\t     in an a la AFNI image viewer.\n"
-      "\t     Identical images are rejected.\n\n");
+      "     r: record current image\n"
+      "        in an a la AFNI image viewer.\n"
+      "        Identical images are rejected.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  R: Toggle continuous recording \n"
-      "\t     to an a la AFNI image viewer.\n"
-      "\t     Identical images are rejected.\n\n");
+      "     R: Toggle continuous recording \n"
+      "        to an a la AFNI image viewer.\n"
+      "        Identical images are rejected.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     s: NO LONGER IN USE. \n"
+      "        View the surface's structure contents.\n"
+      "        Use:View->Surface Controller->More.\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Ctrl+s: Open controller for \n"
+      "             surface in Focus.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  s: NO LONGER IN USE. Use:\n"
-      "\t     View->Surface Controller->More.\n");
+      "     Ctrl+Alt+s: Input filename with coordinates\n"
+      "                 forming a segment (6 values) on \n"
+      "                 each line.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+s: Open controller for \n"
-      "\t          surface in Focus.\n");
+      "     Alt+s: Switch mouse buttons 1 and 3.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+Alt+s: Input filename with coordinates\n"
-      "\t              forming a segment (6 values) on \n"
-      "\t              each line.\n");
+      "     S: Show all surface objects registered in DOv.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Alt+s: Switch mouse buttons 1 and 3.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  S: Show all surface objects registered in DOv.\n\n");
+      "     t: talk to AFNI, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  t: talk to AFNI, toggle.\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+t: Force a resend of \n"
+      "     Ctrl+t: Force a resend of \n"
       "            surfaces to AFNI.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  T: Start listening for niml connections\n\n");
+      "     T: Start listening for niml connections\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+u: Open SUMA controller.\n\n");   
+      "     Ctrl+u: Open SUMA controller.\n\n");   
+   SS = SUMA_StringAppend (SS, 
+      "     v: NO LONGER IN USE. \n"
+      "        View the viewer's structure contents.\n"
+      "        Use: View->Viewer Controller->More.\n"
+      "\n");
+   SS = SUMA_StringAppend (SS, 
+      "     w: This option has been dropped.\n"
+      "        Instead, use 'r' or 'R' recording options\n"
+      "        or use a screen grab instead. \n"
+      "        (like xv on unix systems, and grab on Macs.)\n");
+   SS = SUMA_StringAppend (SS, 
+      "     W: Write ascii files containing the NodeList,\n"
+      "        the FaceSetList and the nodecolors of the \n"
+      "        surface in focus.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Z/z: Zoom in/out\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     [: Show/Hide left hemisphere.\n"
+      "     ]: Show/Hide right hemisphere.\n"
+      "        Window title shows which \n"
+      "        hemispheres are shown :LR:\n"
+      "        :-R: :L-: or :--:\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "  8: Set the number of smoothing iterations\n"
+      "     to be applied to the foreground colors.\n"
+      "     This setting will be applied to all subsequent\n"
+      "     color sets.\n");
+   SS = SUMA_StringAppend (SS, 
+      "  *: Smooth node colors by averaging with neighbors.\n"
+      "     The smoothing is only applied to the current colors,\n"
+      "     and will be not be applied to new color sets.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  v: Show current surface viewer structure (cSV).\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  w: This option has been dropped.\n"
-      "\t     Instead, use 'r' or 'R' recording options\n"
-      "\t     or use a screen grab instead. \n"
-      "\t     (like xv on unix systems, and grab on Macs.)\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  W: Write ascii files containing the NodeList,\n"
-      "\t     the FaceSetList and the nodecolors of the \n"
-      "\t     surface in focus.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  Z/z: Zoom in/out\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  [: Show/Hide left hemisphere.\n"
-      "\t  ]: Show/Hide right hemisphere.\n"
-      "\t     Window title shows which \n"
-      "\t     hemispheres are shown :LR:\n"
-      "\t     :-R: :L-: or :--:\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "\t  *: Smooth node colors by averaging with neighbors.\n\n");
+      "     @: Compute curvatures along principal directions \n"
+      "        on the surface, results written to disk.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  @: Compute curvatures along principal directions \n"
-      "\t     on the surface, results written to disk.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  (: Compute convexity of surface, \n"
-      "\t     results written to disk.\n\n");
+      "     (: Compute convexity of surface, \n"
+      "        results written to disk.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  ,/. (think </>): Switch to next/previous view state.\n\n");
+      "     ,/. (think </>): Switch to next/previous view state.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  SPACE: Toggle between Mapping Reference and\n"
-      "\t         Current view state.\n\n");
+      "     SPACE: Toggle between Mapping Reference and\n"
+      "            Current view state.\n\n");
 
    SS = SUMA_StringAppend (SS, 
-      "\t  L-R arrows: rotate about screen's Y axis\n");
+      "     L-R arrows: rotate about screen's Y axis\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  U-D arrows: rotate about screen's X axis\n");
+      "     U-D arrows: rotate about screen's X axis\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Shift+L-R arrows: translate about screen's \n"
-      "\t                    Y axis\n");
+      "     Shift+L-R arrows: translate about screen's \n"
+      "                       Y axis\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Shift+U-D arrows: translate about screen's \n"
-      "\t                    X axis\n");
+      "     Shift+U-D arrows: translate about screen's \n"
+      "                       X axis\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+L-R arrows: LR cardinal views\n");
+      "     Ctrl+L-R arrows: LR cardinal views\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+U-D arrows: IS cardinal views\n");
+      "     Ctrl+U-D arrows: IS cardinal views\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
+      "     Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
 
    SS = SUMA_StringAppend (SS, 
-      "\t  F1: object axis (X-Red, Y-Green, Z-Blue), \n"
-      "\t      toggle. \n");
+      "     F1: object axis (X-Red, Y-Green, Z-Blue), \n"
+      "         toggle. \n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F2: screen axis (X-Red, Y-Green), toggle. \n");
+      "     F2: screen axis (X-Red, Y-Green), toggle. \n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F3: cross hair, toggle. \n");
+      "     F3: cross hair, toggle. \n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F4: node selection highlight, toggle. \n");
+      "     F4: node selection highlight, toggle. \n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F5: FaceSet selection highlight, toggle.\n");
+      "     F5: FaceSet selection highlight, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F6: Viewer background color, toggle.\n");
+      "     F6: Viewer background color, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F7: Switch between color mixing modes.\n");
+      "     F7: Switch between color mixing modes.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  F12: Time 20 scene renderings.\n\n");
+      "     F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  HOME: reset view to startup\n\n");
+      "     HOME: reset view to startup\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  ESCAPE: close the surface viewer window.\n");
+      "     ESCAPE: close the surface viewer window.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Shft+ESCAPE: close all surface viewer windows.\n\n");
+      "     Shft+ESCAPE: close all surface viewer windows.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Mouse Controls:\n");
+      "     Mouse Controls:\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Button 1-Motion: rotation as if you were using\n"
-      "\t                   a trackball.\n");
+      "     Button 1-Motion: rotation as if you were using\n"
+      "                      a trackball.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t    Pure vertical motion is equivalent to using \n"
-      "\t    the up/down arrow keys.\n");
+      "       Pure vertical motion is equivalent to using \n"
+      "       the up/down arrow keys.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t    Pure horizontal motion is equivalent to using \n"
-      "\t    the left/right arrow keys.\n");
+      "       Pure horizontal motion is equivalent to using \n"
+      "       the left/right arrow keys.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t    Of course, the advantage to using the mouse is \n"
-      "\t    a continuous range of rotation angles and \n");
+      "       Of course, the advantage to using the mouse is \n"
+      "       a continuous range of rotation angles and \n");
    SS = SUMA_StringAppend (SS, 
-      "\t    simultaneous rotations about the screen's \n"
-      "\t    X & Y axis.\n");
+      "       simultaneous rotations about the screen's \n"
+      "       X & Y axis.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t    This mode of rotation is similar to SGI's \n"
-      "\t    ivview interface.\n");
+      "       This mode of rotation is similar to SGI's \n"
+      "       ivview interface.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Button 2-Motion: translation\n"); 
+      "     Button 2-Motion: translation\n"); 
    SS = SUMA_StringAppend (SS, 
-      "\t  Button 1+2-Motion OR \n"
-      "\t   Shift+Button2-Motion: \n"
-      "\t       Zoom in/out\n");
+      "     Button 1+2-Motion OR \n"
+      "      Shift+Button2-Motion: \n"
+      "          Zoom in/out\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Button 3-Press: picking \n");
+      "     Button 3-Press: picking \n");
    SS = SUMA_StringAppend (SS, 
-      "\t  shft+Button 3-Press: ROI drawing \n"
-      "\t                       (when in DrawROI mode)\n");
+      "     shft+Button 3-Press: ROI drawing \n"
+      "                          (when in DrawROI mode)\n");
    SS = SUMA_StringAppend (SS, 
-      "\t \n");
+      "    \n");
    SS = SUMA_StringAppend (SS, 
-      "\t More help at \n"
-      "\t http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
+      "    More help at \n"
+      "    http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
    SS = SUMA_StringAppend (SS, 
       "\n");
    
@@ -328,6 +339,44 @@ void SUMA_help_message(FILE *Out)
    SUMA_RETURNe;
 }
 
+char *SUMA_All_Programs(void )
+{
+   char *s=NULL;
+   static char FuncName[]={"SUMA_All_Programs"};
+   SUMA_STRING  *SS = NULL; 
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   SS = SUMA_StringAppend ( SS,
+         "+ List of programs in the SUMA package:\n"
+         "  3dSurf2Vol\n"
+         "  3dVol2Surf\n"
+         "  CompareSurfaces\n"
+         "  ConvertSurface\n"
+         "  CreateIcosahedron\n"
+         "  inspec\n"
+         "  MakeColorMap\n"
+         "  MapIcosahedron\n"
+         "  quickspec\n"
+         "  ROI2dataset\n"
+         "  ScaleToMap\n"
+         "  SUMA_glxdino\n"
+         "  SurfMeasures\n"
+         "  SurfaceMetrics\n"
+         "  SurfSmooth\n"
+     );
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN(s);      
+   
+}
 /*!
    \brief Returns a string with the new additions and version information
    
@@ -348,8 +397,9 @@ char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
    char *s = NULL;
    int i;
    SUMA_STRING *SS = NULL;
-   float verv[] = {2.45, -1.0}; /* modify this dude and you must update SUMA_New_Additions_perver  
-                                       Add to the left of the vector, leave the last value of -1 untouched*/
+   float verv[] = {2.48, 2.45, -1.00}; /* modify this dude and you must update SUMA_New_Additions_perver  
+                                       Add to the left of the vector, leave the last value of -1 untouched
+                                       The number of significant digits should be constant*/
    
    SUMA_ENTRY;
    
@@ -368,6 +418,7 @@ char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
          s = SUMA_New_Additions_perver( verv[i], StampOnly);
          if (s) {
          SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+         SS = SUMA_StringAppend (SS, "\n");
          }
          ++i;
       }
@@ -404,14 +455,17 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
 {
    static char FuncName[]={"SUMA_New_Additions_perver"};
    char *s = NULL;
-   const int ti = 10000;
+   const int ti = 100; /* The power of 10 should be equal to the significant digits used in ver */
+   int V;
    SUMA_STRING *SS = NULL;
    
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   switch ((int)(ver*ti)) {
+   V = (int)floor(ver*ti);
+   
+   switch (V) {
       /* Must modify verv in SUMA_New_Additions when you touch this block */
       /*
       case (int)(XXX*ti):
@@ -424,16 +478,30 @@ char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
             "  + \n");
          break; 
       */
-      case (int)(2.45*ti):
+      case (int)((2.48*ti)):
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %.2f, Jan. 16 2004\n", ver); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "Modifications:\n"
+            "  + Beginning of multiple group support in SUMA\n"
+            "  + Redisplays of Surface Viewers due to X events\n"
+            "    are no longer passed to the image recorder.\n" );
+         break; 
+         
+      case (int)((2.45*ti)):
          SS = SUMA_StringAppend_va(SS, 
             "++ SUMA version %.2f, Jan. 6 2004\n", ver); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
-            "  + SurfSmooth: Smoothes surface data or geometry\n"
             "  + inspec: Shows the contents of a spec file\n"
             "  + quickspec: Creates a minimal spec file for one\n"
-            "             or a bunch of surfaces.\n"
+            "               or a bunch of surfaces.\n"
+            "  + SurfSmooth: Smoothes surface data or geometry\n"
+            "  + SurfMeasures: Outputs various surface attributes  \n"
+            "                  and measurements such as:\n"
+            "                  Thickness, Area, Volume, etc.\n"
             "Modifications:\n"
+            "  + Foreground color smoothing option (SUMA keyb. 8)\n"
             "  + No more MappingRef field in Spec files.\n"
             "    The field is broken up into a set of other\n"
             "    fields for more flexibility.\n"

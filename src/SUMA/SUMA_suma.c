@@ -13,8 +13,9 @@
 
 
 SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
@@ -49,8 +50,11 @@ void SUMA_usage ()
 			         "   [-iodbg] Trun on the In/Out debug info from the start.\n"     
 			         "   [-memdbg] Turn on the memory tracing from the start.\n"     
                   "   [-visuals] Shows the available glxvisuals and exits.\n"
-                  "   [-version] Shows information on the current version.\n"
-                  "   [-all_versions] Shows all version information available.\n"     
+                  "   [-version] Shows the current version number.\n"
+                  "   [-latest_news] Shows the latest news for the current \n"
+                  "                  version of the entire SUMA package.\n"
+                  "   [-all_latest_news] Shows the history of latest news.\n"
+                  "   [-progs] Lists all the programs in the SUMA package.\n"
                   "\n"
 			         "   For help on interacting with SUMA, press 'ctrl+h' with the mouse pointer\n"
                   "   inside SUMA's window.\n"     
@@ -100,16 +104,17 @@ Side effects :
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA"}; 
-	int kar;
+	int kar, i;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
-	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName, *s = NULL;
+	char  *NameParam, *AfniHostName = NULL, *s = NULL;
+   char *specfilename[SUMA_MAX_N_GROUPS], *VolParName[SUMA_MAX_N_GROUPS];
 	SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
    SUMA_EngineData *ED= NULL;
    DList *list = NULL;
    DListElmt *Element= NULL;
-   int iv15[15], N_iv15;
+   int iv15[15], N_iv15, ispec;
    struct stat stbuf;
    SUMA_Boolean Start_niml = NOPE;
    SUMA_Boolean LocalHead = NOPE;
@@ -135,7 +140,10 @@ int main (int argc,char *argv[])
        }
 		
    /* initialize Volume Parent and AfniHostName to nothing */
-	VolParName = NULL;
+   for (ispec=0; ispec < SUMA_MAX_N_GROUPS; ++ispec) {
+      specfilename[ispec] = NULL;
+      VolParName[ispec] = NULL;
+   }
 	AfniHostName = NULL; 
 	
       
@@ -144,6 +152,7 @@ int main (int argc,char *argv[])
 	   
 	/* Work the options */
 	kar = 1;
+   ispec = 0;
 	brk = NOPE;
 	SurfIn = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -160,14 +169,28 @@ int main (int argc,char *argv[])
 		}
       
       if (strcmp(argv[kar], "-version") == 0) {
+			 s = SUMA_New_Additions (0.0, 1);
+          fprintf (SUMA_STDOUT,"%s\n", s); 
+          SUMA_free(s); s = NULL;
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-all_latest_news") == 0) {
+			 s = SUMA_New_Additions (-1.0, 0);
+          fprintf (SUMA_STDOUT,"%s\n", s); 
+          SUMA_free(s); s = NULL;
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-latest_news") == 0) {
 			 s = SUMA_New_Additions (0.0, 0);
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
 		}
       
-      if (strcmp(argv[kar], "-all_versions") == 0) {
-			 s = SUMA_New_Additions (-1.0, 0);
+      if (strcmp(argv[kar], "-progs") == 0) {
+			 s = SUMA_All_Programs();
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
@@ -202,12 +225,18 @@ int main (int argc,char *argv[])
 		{
 			kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -vp|-sa|-sv ");
+		  		fprintf (SUMA_STDERR, "need argument after -vp|-sa|-sv \n");
 				exit (1);
 			}
-			VolParName = argv[kar];
-			/*fprintf(SUMA_STDOUT, "Found: %s\n", VolParName);*/
-
+			if (!specfilename[ispec]) {
+            fprintf (SUMA_STDERR, "a -spec option must precede each -sv option\n");
+				exit (1);
+         }
+         VolParName[ispec] = argv[kar]; 
+			if (LocalHead) {
+            fprintf(SUMA_STDOUT, "Found: %s\n", VolParName[ispec]);
+         }
+         
 			brk = YUP;
 		}		
 		
@@ -215,7 +244,7 @@ int main (int argc,char *argv[])
 		{
 			kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -ah ");
+		  		fprintf (SUMA_STDERR, "need argument after -ah\n");
 				exit (1);
 			}
 			if (strcmp(argv[kar],"localhost") != 0) {
@@ -229,14 +258,22 @@ int main (int argc,char *argv[])
 		}	
 		if (!brk && strcmp(argv[kar], "-spec") == 0)
 		{ 
-			kar ++;
-		  if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec ");
+		   kar ++;
+		   if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
 				exit (1);
 			}
 			
-			specfilename = argv[kar];
-			/*fprintf(SUMA_STDOUT, "Found: %s\n", specfilename);*/
+         if (ispec >= SUMA_MAX_N_GROUPS) {
+            fprintf (SUMA_STDERR, "Cannot accept more than %d spec files.\n", SUMA_MAX_N_GROUPS);
+            exit(1);
+         }
+         
+			specfilename[ispec] = argv[kar]; 
+			if (LocalHead) {
+            fprintf(SUMA_STDOUT, "Found: %s\n", specfilename[ispec]);
+         }
+         ++ispec;
 			brk = YUP;
 		} 
 		
@@ -251,13 +288,13 @@ int main (int argc,char *argv[])
 		
 	}/* loop accross command ine options */
 
-	if (specfilename == NULL) {
+	if (specfilename[0] == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
 		exit(1);
 	}
 
 	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
-		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName", FuncName);
+		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName\n", FuncName);
 		exit (1);
 	}
    
@@ -280,6 +317,11 @@ int main (int argc,char *argv[])
 	/* Allocate space (and initialize) Surface Viewer Structure */
 	SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);
    
+   /* SUMAg_N_SVv gets updated in SUMA_X_SurfaceViewer_Create
+   and reflects not the number of elements in SUMAg_SVv which is
+   SUMA_MAX_SURF_VIEWERS, but the number of viewers that were realized
+   by X */
+   
 	/* Check on initialization */
 	/*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
 
@@ -290,45 +332,46 @@ int main (int argc,char *argv[])
 	}
    
 	#if 1
-   if (!list) list = SUMA_CreateList();
-   ED = SUMA_InitializeEngineListData (SE_Load_Group);
-   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_cp, (void *)specfilename, 
-                                          SES_Suma, NULL, NOPE, 
-                                          SEI_Head, NULL ))) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
+   for (i=0; i<ispec; ++i) {
+      if (!list) list = SUMA_CreateList();
+      ED = SUMA_InitializeEngineListData (SE_Load_Group);
+      if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_cp, (void *)specfilename[i], 
+                                             SES_Suma, NULL, NOPE, 
+                                             SEI_Head, NULL ))) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+         exit (1);
+      }
+      if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_vp, (void *)VolParName[i], 
+                                             SES_Suma, NULL, NOPE, 
+                                             SEI_In, Element ))) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+         exit (1);
+      }
+
+      N_iv15 = SUMA_MAX_SURF_VIEWERS;
+      if (N_iv15 > 15) {
+         fprintf(SUMA_STDERR,"Error %s: trying to register more than 15 viewers!\n", FuncName);
+         exit(1);
+      }
+      for (kar=0; kar<N_iv15; ++kar) iv15[kar] = kar;
+      if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_iv15, (void *)iv15, 
+                                             SES_Suma, NULL, NOPE, 
+                                             SEI_In, Element ))) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+         exit (1);
+      }
+
+      if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void *)&N_iv15, 
+                                             SES_Suma, NULL, NOPE, 
+                                             SEI_In, Element ))) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+         exit (1);
+      }
    }
-   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_vp, (void *)VolParName, 
-                                          SES_Suma, NULL, NOPE, 
-                                          SEI_In, Element ))) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
-   }
-   
-   N_iv15 = SUMA_MAX_SURF_VIEWERS;
-   if (N_iv15 > 15) {
-      fprintf(SUMA_STDERR,"Error %s: trying to register more than 15 viewers!\n", FuncName);
-      exit(1);
-   }
-   for (kar=0; kar<N_iv15; ++kar) iv15[kar] = kar;
-   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_iv15, (void *)iv15, 
-                                          SES_Suma, NULL, NOPE, 
-                                          SEI_In, Element ))) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
-   }
-   
-   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_i, (void *)&N_iv15, 
-                                          SES_Suma, NULL, NOPE, 
-                                          SEI_In, Element ))) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
-   }
-   
    
    if (!SUMA_Engine (&list)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
@@ -404,7 +447,7 @@ int main (int argc,char *argv[])
 	/* Done, clean up time */
 	  
 	if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) SUMA_error_message(FuncName,"DO Cleanup Failed!",1);
-	if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMAg_N_SVv)) SUMA_error_message(FuncName,"SUMAg_SVv Cleanup Failed!",1);
+	if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)) SUMA_error_message(FuncName,"SUMAg_SVv Cleanup Failed!",1);
 	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   return 0;             /* ANSI C requires main to return int. */
 }/* Main */ 

@@ -4,9 +4,9 @@
 Now only SUMA_USE_WITHDRAW and NOT SUMA_USE_DESTROY should be used*/
 #define SUMA_USE_WITHDRAW
 
-
-extern SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-extern int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+extern SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+extern int SUMAg_N_SVv; /*!< Number of SVs realized by X  */
 /* extern SUMA_SurfaceViewer *SUMAg_cSV; */ /* This variable is no longer used in this file Tue Aug 13 15:27:53 EDT 2002*/ 
 extern int SUMAg_N_DOv; 
 extern SUMA_DO *SUMAg_DOv;
@@ -433,21 +433,27 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   
   /* if recording, take a snap */
   if (csv->Record) {
-   glFinish();
-   glXWaitX();
-#ifdef DARWIN
-   { GLvoid *pixels;
-     pixels = SUMA_grabPixels(1, csv->X->WIDTH, csv->X->HEIGHT);
-     if (pixels) {
-       ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
-                     (unsigned char *)pixels, csv->X->GLXAREA );
-       SUMA_free(pixels);
-     }
-   }
-#else
-   ISQ_snapshot ( csv->X->GLXAREA );
-#endif
+      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
+         glFinish();
+         glXWaitX();
+      #ifdef DARWIN
+         { GLvoid *pixels;
+           pixels = SUMA_grabPixels(1, csv->X->WIDTH, csv->X->HEIGHT);
+           if (pixels) {
+             ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+                           (unsigned char *)pixels, csv->X->GLXAREA );
+             SUMA_free(pixels);
+           }
+         }
+      #else
+         ISQ_snapshot ( csv->X->GLXAREA );
+      #endif
+      }
   }
+  
+  /* reset rdc, if it is the last thing you'll ever do */
+  csv->rdc = SUMA_RDC_NOT_SET;
+  
    SUMA_RETURNe;
 }
 
@@ -596,6 +602,8 @@ SUMA_resize(Widget w,
                sv->GVS[sv->StdView].ViewCamUp[2]);
    sv->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
    sv->WindWidth = callData->width; sv->WindHeight = callData->height;
+   
+   sv->rdc = SUMA_RDC_X_RESIZE;
    SUMA_postRedisplay(w, clientData, call);
    
    SUMA_RETURNe;
@@ -621,6 +629,8 @@ SUMA_expose(Widget w,
       fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
+   
+   sv->rdc = SUMA_RDC_X_EXPOSE;
    
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
    sv->ResetGLStateVariables = YUP;
@@ -649,6 +659,8 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
       SUMA_RETURNe;
    }
 
+   sv->rdc = SUMA_RDC_X_MAPSTATE;
+   
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
    sv->ResetGLStateVariables = YUP;
 
@@ -1430,6 +1442,8 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
       SUMA_RETURNe;
    }
 
+   sv->rdc = SUMA_RDC_X_ENTER_WINDOW;
+   
    if (LocalHead) fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
    sv->ResetGLStateVariables = YUP;  
 
@@ -2088,13 +2102,13 @@ void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callDat
 */
 void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, rc, pb;
+   static char FuncName[] = {"SUMA_cb_createViewerCont"};
+   Widget tl, rc, pb, ViewerFrame, SwitchFrame, QuitFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceViewer *sv;
    int isv;    
    char slabel[100]; 
-
-   static char FuncName[] = {"SUMA_cb_createViewerCont"};
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2110,21 +2124,29 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    
    sprintf(slabel,"[%c] Viewer Controller", 65+isv);
    
+   
    #if SUMA_CONTROLLER_AS_DIALOG /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
+   SUMA_LH("Create a popup");
    sv->X->ViewCont->TopLevelShell = XtVaCreatePopupShell (slabel,
       xmDialogShellWidgetClass, tl,
+      XmNallowShellResize, True, /* let code resize shell */
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);    
    #else
+   SUMA_LH("Create an App");
    /** Feb 03/03: I was using XtVaCreatePopupShell to create a topLevelShellWidgetClass. 
    XtVaCreatePopupShell is used to create dialog shells not toplevel or appshells */
    sv->X->ViewCont->TopLevelShell = XtVaAppCreateShell (slabel, "Suma",
       topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);   
-      /* pop it up if it is a topLevelShellWidgetClass */
-      XtPopup(sv->X->ViewCont->TopLevelShell, XtGrabNone);
    #endif
+   
+   /* allow for code to resize the shell */
+   XtVaSetValues (sv->X->ViewCont->TopLevelShell, 
+         XmNresizePolicy , XmRESIZE_NONE , /* allow (?) childrent to resize */
+         XmNallowShellResize , True ,       /* let code resize shell */
+         NULL);
    
    /* handle the close button from window manager */
    XmAddWMProtocolCallback(/* make "Close" window menu work */
@@ -2132,20 +2154,228 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_closeViewerCont, (XtPointer) sv) ;
    
-   rc = XtVaCreateWidget ("rowcolumn",
-      xmRowColumnWidgetClass, sv->X->ViewCont->TopLevelShell,
-      NULL);
+   /* create a form widget, manage it at the end ...*/
+   sv->X->ViewCont->Mainform = XtVaCreateWidget ("dialog", 
+      xmFormWidgetClass, sv->X->ViewCont->TopLevelShell,
+      XmNborderWidth , 0 ,
+      XmNmarginHeight , SUMA_MARGIN ,
+      XmNmarginWidth  , SUMA_MARGIN ,
+      XmNshadowThickness, 2,
+      XmNshadowType, XmSHADOW_ETCHED_IN,
+      NULL); 
    
-   /* create some button */
-   pb = XmCreatePushButton (rc, "Close", NULL, 0);
-   XtAddCallback (pb, XmNactivateCallback, SUMA_cb_closeViewerCont, (XtPointer) sv);
-   XtManageChild (pb);     
+   rc_mamma = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, sv->X->ViewCont->Mainform,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            XmNleftAttachment , XmATTACH_FORM ,
+            XmNtopAttachment  , XmATTACH_FORM ,
+            XmNrightAttachment , XmATTACH_FORM ,
+            NULL);
+            
+   rc_left = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_mamma,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
    
-   /* now start managing the row column widget */
-   XtManageChild (rc);
+   rc_right = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_mamma,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL); 
+   
+   {/*s group, state and info */ 
+      Widget rc, pb, label;
+      
+      /* put a frame */
+      ViewerFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+         
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, ViewerFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /*put a label containing the surface name, number of nodes and number of facesets */
+      snprintf(slabel, 40*sizeof(char), "Group: %s, State: %s", sv->CurGroupName, sv->State);
+      sv->X->ViewCont->Info_lb = XtVaCreateManagedWidget (slabel, 
+               xmLabelWidgetClass, rc,
+               NULL);
+               
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc, 
+                                 XmNorientation, XmVERTICAL,NULL);
+
+      sv->X->ViewCont->ViewerInfo_pb = XtVaCreateWidget ("more", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (sv->X->ViewCont->ViewerInfo_pb, XmNactivateCallback, SUMA_cb_moreViewerInfo, NULL);
+      XtVaSetValues (sv->X->ViewCont->ViewerInfo_pb, XmNuserData, (XtPointer)sv, NULL); /* store the surface object SO in userData
+                                                                  I think it is more convenient than as data
+                                                                  in the call back structure. This way it will
+                                                                  be easy to change the sv that this same button
+                                                                  might refer to. 
+                                                                  This is only for testing purposes, the pb_close
+                                                                  button still expects sv in clientData*/
+      MCW_register_hint( sv->X->ViewCont->ViewerInfo_pb , "More info on Viewer" ) ;
+      MCW_register_help( sv->X->ViewCont->ViewerInfo_pb , SUMA_moreViewerInfo_help ) ;
+      XtManageChild (sv->X->ViewCont->ViewerInfo_pb); 
+
+      XtManageChild (rc);
+      
+      XtManageChild (ViewerFrame);
+   
+   }
+   { /* switch group and state frames */
+      Widget rc, pb, label;/* put a frame */
+      
+      SwitchFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+         
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SwitchFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /*put a label for Switch */
+      snprintf(slabel, 40*sizeof(char), "Switch:");
+      label = XtVaCreateManagedWidget (slabel, 
+               xmLabelWidgetClass, rc,
+               NULL);
+
+      
+      /* put a button for swiching groups */
+      snprintf(slabel, 40*sizeof(char), "[%c] Switch Group", 65 + isv);
+      sv->X->ViewCont->SwitchGrouplst = SUMA_AllocateScrolledList (slabel, SUMA_LSP_SINGLE, 
+                              NOPE, YUP,
+                              sv->X->ViewCont->TopLevelShell, SWP_TOP_LEFT,
+                              SUMA_cb_SelectSwitchGroup, (void *)sv,
+                              SUMA_cb_SelectSwitchGroup, (void *)sv,
+                              SUMA_cb_CloseSwitchGroup, (void *)sv);
+    
+
+      pb = XtVaCreateWidget ("Group", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ViewerCont_SwitchGroup, (XtPointer) sv);
+      MCW_register_hint( pb , "Switch Group" ) ;
+      MCW_register_help( pb , "Switch Group" ) ;
+      XtManageChild (pb);
+
+      /* put a button for swiching states */
+      pb = XtVaCreateWidget ("State", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ViewerCont_SwitchState, (XtPointer) sv);
+      MCW_register_hint( pb , "Switch State" ) ;
+      MCW_register_help( pb , "Switch State" ) ;
+      XtManageChild (pb);
+      
+      
+      /* now start managing the row column widget */
+      XtManageChild (rc);
+
+      /* manage the frame and the fslabelorm */
+      XtManageChild (SwitchFrame);
+   }               
+   
+   { /*s close and help buttons */
+      Widget rc, pb_close, pb_bhelp;
+      
+      /* put up a frame to group the display controls */
+      QuitFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, sv->X->ViewCont->Mainform,
+         XmNleftAttachment , XmATTACH_FORM ,
+         XmNtopAttachment  , XmATTACH_WIDGET ,
+         XmNtopWidget, SwitchFrame,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+
+         
+      #if 0
+      /* ugly, useless */
+      /* this one requires Motif 1.2 or newer */
+      XtVaCreateManagedWidget ("Disp. Cont.",
+            xmLabelGadgetClass, QuitFrame, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+      #endif
+      
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, QuitFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      pb_close = XtVaCreateWidget ("Close", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb_close, XmNactivateCallback, SUMA_cb_closeViewerCont, (XtPointer) sv);
+      MCW_register_hint( pb_close , "Close Viewer controller" ) ;
+      MCW_register_help( pb_close , SUMA_closeViewerCont_help ) ;
+      XtManageChild (pb_close); 
+
+      pb_bhelp = XtVaCreateWidget ("BHelp", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);
+      XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
+      MCW_register_help(pb_bhelp , SUMA_help_help ) ;
+      MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
+
+      XtManageChild (pb_bhelp); 
+
+
+
+      /* now start managing the row column widget */
+      XtManageChild (rc);
+
+      /* manage the frame and the fslabelorm */
+      XtManageChild (QuitFrame);
+   }
+      
+   XtManageChild (rc_right);
+   XtManageChild (rc_left);
+   XtManageChild (rc_mamma);
+   XtManageChild (sv->X->ViewCont->Mainform);
+   
+   #if SUMA_CONTROLLER_AS_DIALOG    
+   #else
+   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, you should do the popping after all the widgets have been created.
+   Otherwise, the window does not size itself correctly when open */
+   XtPopup(sv->X->ViewCont->TopLevelShell, XtGrabNone);
+   #endif
    
    /* realize the widget */
-   XtRealizeWidget (tl);
+   XtRealizeWidget (sv->X->ViewCont->TopLevelShell);
    
    SUMA_RETURNe;
 }
@@ -2431,7 +2661,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNorientation , XmHORIZONTAL ,
          NULL);
          
-      /* put a push button to switch between ROIs */
+      /* put a push button to switch between color planes */
       SO->SurfCont->SwitchColPlanelst = SUMA_AllocateScrolledList ("Switch Color Plane", SUMA_LSP_SINGLE, 
                                  NOPE, NOPE, /* duplicate deletion, no sorting */ 
                                  SO->SurfCont->TopLevelShell, SWP_POINTER,
@@ -2532,6 +2762,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNtraversalOn , False ,
          NULL); 
 
+         
       /* this one requires Motif 1.2 or newer */
          XtVaCreateManagedWidget ("Disp. Cont.",
             xmLabelGadgetClass, DispFrame, 
@@ -2573,6 +2804,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       /* manage the frame and the fslabelorm */
       XtManageChild (DispFrame);
    }
+   
    XtManageChild (rc_right);
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
@@ -2768,7 +3000,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
    for (i=0; i<SUMAg_N_DOv; ++i) {
       if (SUMA_isSO(SUMAg_DOv[i])) {
          SOi = (SUMA_SurfaceObject *)SUMAg_DOv[i].OP;
-         if (SOi != SO && SUMA_isRelated (SOi, SO)) {
+         if (SOi != SO && SUMA_isRelated (SOi, SO, 1)) { /* do this for kins of the 1st order */
             if (SOi->SurfCont) {
                if (SOi->SurfCont->ColPlane_fr && SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
                   SUMA_InitializeColPlaneShell(SOi, SOi->SurfCont->curColPlane);
@@ -4080,6 +4312,72 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
 }
 
 /*!
+   \brief Callback for Group button
+   -Expects sv in data
+*/
+void SUMA_cb_ViewerCont_SwitchGroup (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_ViewerCont_SwitchGroup"};
+   SUMA_SurfaceViewer *sv=NULL;
+   SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   sv = (SUMA_SurfaceViewer *)data;
+   
+   LW = sv->X->ViewCont->SwitchGrouplst;
+   
+   if (LW->ALS) {
+      /* free that old hag */
+      if (LocalHead) SUMA_S_Err("Freeing the hag.");
+      LW->ALS = SUMA_FreeAssembleListStruct(LW->ALS);
+   }
+   
+   /* assemble the ROI list */
+   LW->ALS = SUMA_AssembleGroupList (sv);
+  
+   if (!LW->ALS) {
+      SUMA_SLP_Err("Error assembling list.");
+      SUMA_RETURNe;
+   }
+   
+   if (LW->ALS->N_clist < 0) {
+      SUMA_SL_Err("Failed in SUMA_AssembleGroupList");
+      SUMA_RETURNe;
+   }
+   
+   if (!LW->ALS->N_clist) {
+      SUMA_SLP_Note ("No Groups to choose from.");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE,
+                             LW);
+                             
+   SUMA_RETURNe;
+}
+/*!
+   \brief Callback for Group button
+   -Expects sv in data
+*/
+void SUMA_cb_ViewerCont_SwitchState (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_ViewerCont_SwitchState"};
+   SUMA_SurfaceViewer *sv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   sv = (SUMA_SurfaceViewer *)data;
+   
+   SUMA_SLP_Warn( "Not implemented yet.\n"
+                  "Use ',' and '.' keys\n");
+                  
+   SUMA_RETURNe;
+}
+
+/*!
    \brief Callback for Switch Col Plane button
    -Expects SO in data
 */
@@ -4345,6 +4643,119 @@ void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 
 /*!
    \brief default selection action, handles single selection mode
+   - expects sv in data
+*/
+void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_SelectSwitchGroup"};
+   SUMA_LIST_WIDGET *LW = NULL;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   char *choice=NULL;
+   SUMA_Boolean CloseShop = NOPE, Found = NOPE;
+   int ichoice = -1;
+   char *strn=NULL;
+   SUMA_SurfaceViewer *sv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+ 
+   SUMA_ENTRY;
+   
+   sv = (SUMA_SurfaceViewer *)data;
+   
+   LW = sv->X->ViewCont->SwitchGrouplst;
+   
+   if (!LW) {
+      SUMA_S_Err("NULL LW!");
+      SUMA_RETURNe;
+   }
+   if (cbs->reason == XmCR_SINGLE_SELECT) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", FuncName, LW->Label);
+      /*double click or enter on that one, close shop after selection */
+      CloseShop = YUP;
+   }
+   
+   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
+ 
+   /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
+   Found = NOPE;
+   ichoice = 0;
+   do {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\n%s\n%s", FuncName, LW->ALS->clist[ichoice], choice);
+      if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
+      else ++ichoice;
+   } while (ichoice < LW->ALS->N_clist && !Found);
+   
+   if (!Found) {
+      SUMA_SLP_Err("Choice not found.");
+      SUMA_RETURNe;
+   }
+   
+   XtFree (choice);
+
+   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
+   if (LW->ALS) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
+      if (LW->ALS->N_clist > ichoice) {
+         strn = (char *)LW->ALS->clist[ichoice];
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved group labeled %s\n", FuncName, strn);
+         /* Now we know what group the user wants so go switch groups */
+         if (!SUMA_SwitchGroups(sv, strn)) { 
+            SUMA_SLP_Err("Failed to switch groups");
+         }
+      }
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
+   }
+
+   /* Now make the viewer switch group */
+   
+   if (CloseShop) {
+      SUMA_LH("Closing Shop");
+      SUMA_cb_CloseSwitchGroup( w,  data,  call_data);
+   }  
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Closes the SwitchGroup window 
+   
+   -expects sv in client_data
+*/
+void SUMA_cb_CloseSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_CloseSwitchGroup"};
+   SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_SurfaceViewer *sv=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   sv = (SUMA_SurfaceViewer *)data;
+   
+   LW = sv->X->ViewCont->SwitchGrouplst;
+   
+   #if defined SUMA_USE_WITHDRAW 
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
+      
+      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+         XtWindow(LW->toplevel),
+         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+   #elif defined SUMA_USE_DESTROY 
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying list widget %s...\n", FuncName, LW->Label);
+         XtDestroyWidget(LW->toplevel);
+         LW->toplevel = NULL;
+   #endif
+   
+   LW->isShaded = YUP; 
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief default selection action, handles single selection mode
    
    -code snipets from Motif Programming Manual
 */
@@ -4367,7 +4778,6 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
       SUMA_S_Err("NULL LW!");
       SUMA_RETURNe;
    }
-   
    
    if (cbs->reason == XmCR_SINGLE_SELECT) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
@@ -5065,6 +5475,91 @@ void SUMA_set_LockView_atb (void)
    }
    
    SUMA_RETURNe;   
+}
+
+/*!
+   \brief opens a text window with information about the surface viewer  
+   -expects sv pointer in userdata
+*/
+void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_moreViewerInfo"};
+   SUMA_SurfaceViewer *sv=NULL;
+   void *n=NULL;
+   char *s = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   XtVaGetValues (w,
+                  XmNuserData, &n,
+                  NULL);
+                  
+   sv = (SUMA_SurfaceViewer *)n;
+   
+   /* check to see if window is already open, if it is, just raise it */
+   if (sv->X->ViewCont->ViewerInfo_TextShell) {
+      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(sv->X->ViewCont->ViewerInfo_TextShell->toplevel));
+      SUMA_RETURNe;
+   }
+   
+   /* for the string of the surface info */
+   s = SUMA_SurfaceViewer_StructInfo(sv, 1);
+   
+   #if 1
+   if (s) {
+      TextShell =  SUMA_CreateTestShellStruct (SUMA_ViewerInfo_open, (void *)sv, 
+                                               SUMA_ViewerInfo_destroyed, (void *)sv);
+      if (!TextShell) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         SUMA_RETURNe;
+      }
+      sv->X->ViewCont->ViewerInfo_TextShell = SUMA_CreateTextShell(s, "FIXME", TextShell);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceViewer_StructInfo.\n", FuncName);
+   }   
+   #else 
+      fprintf (SUMA_STDERR, "%s\n", s);
+      SUMA_free(s); 
+   #endif
+
+    
+   SUMA_RETURNe;
+}
+/*!
+   \brief Function called when Surface Info window is open
+*/
+void SUMA_ViewerInfo_open (void *p) 
+{
+   static char FuncName[] = {"SUMA_ViewerInfo_open"};
+   SUMA_SurfaceViewer *sv= NULL;
+  
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   sv = (SUMA_SurfaceViewer *)p;
+   MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
+   
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Function called when Viewer Info window is destroyed
+*/
+void SUMA_ViewerInfo_destroyed (void *p) 
+{
+   static char FuncName[] = {"SUMA_ViewerInfo_destroyed"};
+   SUMA_SurfaceViewer *sv= NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   sv = (SUMA_SurfaceViewer *)p;
+   MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
+   
+   sv->X->ViewCont->ViewerInfo_TextShell = NULL;
+   SUMA_RETURNe;
 }
 
 /*! 

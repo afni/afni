@@ -13,16 +13,19 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N);
 SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs);
 SUMA_ViewState *SUMA_Alloc_ViewState (int N);
+SUMA_Boolean SUMA_New_ViewState (SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh);
 SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail); 
 char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
+SUMA_Boolean SUMA_AdoptSurfGroup(SUMA_SurfaceViewer *csv, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov);
-int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv);
+int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup);
 SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf);
 SUMA_CommonFields * SUMA_Create_CommonFields (void);
-void SUMA_Show_CommonFields (SUMA_CommonFields *cf);
+void SUMA_Show_CommonFields (SUMA_CommonFields *cf, FILE *out);
+char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail);
 SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO);
@@ -47,9 +50,11 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv);
 void SUMA_UpdateAllViewerCursor(void); 
 void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv); 
 int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceViewer *sv);
- 
-
-
+int SUMA_WhichGroup (SUMA_CommonFields *cf, char *nm);
+SUMA_Boolean SUMA_RegisterGroup (SUMA_CommonFields *cf, SUMA_SurfSpecFile *spec);
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleGroupList (SUMA_SurfaceViewer *sv); 
+SUMA_Boolean SUMA_SwitchGroups (SUMA_SurfaceViewer *sv, char *group);
+SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group);
 
 
 #endif

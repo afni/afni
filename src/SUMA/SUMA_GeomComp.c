@@ -9,8 +9,9 @@
 #ifdef STAND_ALONE
 /* these global variables must be declared even if they will not be used by this main */
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
+                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
 SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
@@ -1934,7 +1935,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 		  		fprintf (SUMA_STDERR, "need 1 arguments after -Niter \n");
 				exit (1);
 			}
-			Opt->N_iter = atoi(argv[kar]); 
+			Opt->N_iter = atoi(argv[kar]);
 			brk = YUP;
 		}
       
@@ -2167,6 +2168,12 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    if (Opt->N_iter < 1) {
       fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
       exit (1);
+   }
+   
+   if ( (Opt->N_iter % 2) &&
+        (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_LM) ) {
+      fprintf (SUMA_STDERR, "Number of iterations must be a multiple of 2.\n%d is not a multiple of 2.\n", Opt->N_iter);
+      exit(1);
    }
    
    if (Opt->ShowNode < 0 && Opt->ShowOffset_DBG) {

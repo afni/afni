@@ -74,6 +74,7 @@
 #define ARROW_TRANSLATE_DELTAX 30
 #define ARROW_TRANSLATE_DELTAY 30
 #define ARROW_ROTATION_ANGLE_DEG 15 
+#define SUMA_MAX_N_GROUPS 100 /*!< Maximum number of surface groups */
 #define SUMA_MAX_MESSAGES 100 /*!< Maximum number of messages stored in list */
 #define SUMA_MAX_MEMBER_FACE_SETS 110 /*!< Maximum number of facesets a node can be part of. 
                                           Used to be 60 but that was not enough for a few
@@ -85,6 +86,7 @@
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
+#define SUMA_MAX_FP_NAME_LENGTH ( SUMA_MAX_DIR_LENGTH + SUMA_MAX_NAME_LENGTH )
 #define SUMA_MAX_COMMAND_LENGTH      2000/*!< Maximum number of characters in a command string */
 #define SUMA_MAX_LABEL_LENGTH 300 /*!< Maximum number of characters for labeling and naming suma fields and objects */
 #define SUMA_IDCODE_LENGTH 50   /*!< Max. length of idcode_str of all suma objects */
@@ -211,6 +213,19 @@ typedef enum { SW_DrawROI_SaveWhat,
                SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under
                                                                            SavingWhat */
 typedef enum { SUMA_NO_ORDER, SUMA_ROW_MAJOR, SUMA_COLUMN_MAJOR }  SUMA_INDEXING_ORDER;
+
+typedef enum {
+   SUMA_RDC_ERROR = -1,
+   SUMA_RDC_NOT_SET = 0,
+   SUMA_RDC_X_START, /*!< flag, Beginning of X reasons */
+   SUMA_RDC_X_EXPOSE,
+   SUMA_RDC_X_RESIZE,
+   SUMA_RDC_X_MAPSTATE,
+   SUMA_RDC_X_ENTER_WINDOW,
+   SUMA_RDC_X_END, /*!< flag, End of X reasons */
+   SUMA_RDC_NEW_CROSSHAIR,
+   SUMA_RDC_NEW_DATA,  
+} SUMA_REDISPLAY_CAUSE; /*!< reasons for requesting a redisplay */
                                                                            
 
 typedef struct {
@@ -501,15 +516,15 @@ typedef struct {
    char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Type of surface loaded: 
                                                                         FreeSurfer, SureFit/Caret, 1D format, inventor, Ply */ 
    char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];  /*!< ASCII or Binary */
-   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Surface Topology (mesh) file 
+   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Surface Topology (mesh) file 
                                                                      renamed from SureFitTopo because 1D uses it too */ 
-   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Surface Coordinate (XYZ) file
+   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Surface Coordinate (XYZ) file
                                                                       renamed from SureFitCoord because 1D uses it too  */ 
-   char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Becoming obsolete. Jan 2 03 */
-   char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< For SureFit only: Name of file containing anatomical
+   char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Becoming obsolete. Jan 2 03 */
+   char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< For SureFit only: Name of file containing anatomical
                                                                              coordinates modification. */
-   char SurfaceFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];  /*!< File containing topology and geometry of surface. */
-   char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];   /*!< Now known as surface volume in the documentation 
+   char SurfaceFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];  /*!< File containing topology and geometry of surface. */
+   char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];   /*!< Now known as surface volume in the documentation 
                                                                           This is the volume from which the surface was created,
                                                                           aligned to the experiment's data. Alignment transforms
                                                                           added by 3dVolreg or 3dAnatNudge that are stored in this 
@@ -519,13 +534,13 @@ typedef struct {
    char State[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];       /*!< Geometrical state of the surface. For example:
                                                                            pial, white, inflated, spherical, etc... */
                                                                            
-   char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];        /*!< Some identifier, best thought of as the name of 
+   char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];        /*!< Some identifier, best thought of as the name of 
                                                                            the subject */
-   char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< A user defined "short" label to use in GUI */
+   char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH]; /*!< A user defined "short" label to use in GUI */
    int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];                            /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
    
    /* modifications to the lame MappingRef field */
-   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry matche the anatomy ?*/
+   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry match the anatomy ?*/
    char Hemisphere[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];     /*!< Left/Right */
    char DomainGrandParentID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!< Grandparent's mesh ID 
                                                                                     (icosahedron's for std-meshes) */
@@ -533,12 +548,12 @@ typedef struct {
                                                                               at one point in time. Surfaces of the same subject,
                                                                               created at different points in time (like in a longitudinal
                                                                               study) will have differing OriginatorID fields */
-   char LocalCurvatureParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  Name of surface (in current spec file)
+   char LocalCurvatureParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];   /*!<  Name of surface (in current spec file)
                                                                                  from which the curvature will be borrowed.
                                                                                  The LocalCurvatureParent must be isotopic to 
                                                                                  the child surface. This Parent used to be
                                                                                  the MappingRef field*/
-   char LocalDomainParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];       /*!< Name of surface (in current spec file)
+   char LocalDomainParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];       /*!< Name of surface (in current spec file)
                                                                                  from which EdgeLists and other shared information
                                                                                  will be borrowed. This field used to be 
                                                                                  the MappingRef field. Naturally, Parent and 
@@ -672,11 +687,6 @@ typedef struct {
    char *s; /*!< string s */
 } SUMA_STRING;
 
-/*! structure containing widgets for surface viewer controllers ViewCont */
-typedef struct {
-   Widget TopLevelShell;/*!< Top level shell for a viewer's controller */
-}SUMA_X_ViewCont;
-
 typedef struct {
    Widget toplevel;  /*!< toplevel widget of the text display window */
    Widget text_w; /*!<  text widget containing string to be displayed */
@@ -701,6 +711,57 @@ typedef enum { SUMA_OK, SUMA_OK_HELP,
                SUMA_OK_APPLY_CANCEL, SUMA_OK_APPLY_CANCEL_HELP,
                SUMA_OK_APPLY_CLEAR_CANCEL, SUMA_OK_APPLY_CLEAR_CANCEL_HELP} SUMA_PROMPT_MODE;
                
+typedef enum {
+   SUMA_LSP_SINGLE, SUMA_LSP_BROWSE, SUMA_LSP_MULTIPLE, SUMA_LSP_EXTENDED
+}  SUMA_ListSelectPolicy; /*!< Flags for motif list selection policy */
+
+typedef struct {
+   char ** clist; /*!< strings displayed in the Scrolled list window */
+   int N_clist; /*!< Number of strings in clist */
+   void **oplist; /*!< list of pointers to objects in the scrolled list */
+} SUMA_ASSEMBLE_LIST_STRUCT;
+
+/*!
+   Structure containing widgets and settings for a list widget 
+*/
+typedef struct {
+   Widget toplevel; /*!< top level shell for list */
+   Widget rc;  /*!< rowcolumn containing all the widgets of the scrolled list */
+   Widget list; /*!< list widget */
+   
+   Widget PosRef; /*!< Widget relative to which list is positioned */
+   SUMA_WINDOW_POSITION Pos; /*! Position of list relative to PosRef*/
+   SUMA_ListSelectPolicy SelectPolicy; /*!< Sets the XmNselectionPolicy resource:
+                          SUMA_LSP_SINGLE: XmSINGLE_SELECT, 
+                          SUMA_LSP_BROWSE: XmBROWSE_SELECT, 
+                          SUMA_LSP_MULTIPLE: XmMULTIPLE_SELECT, 
+                          SUMA_LSP_EXTENDED: XmEXTENDED_SELECT */
+   SUMA_Boolean ShowSorted; /*!< Sort the list in alphabetical order */
+   SUMA_Boolean RemoveDups; /*!< Remove duplicates in list */                        
+   void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a default selection mode is made */ 
+   void *Default_Data; /*!< pointer to data to go with Default_cb. If you pass NULL, the pointer to the List Widget is sent */
+   void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */ 
+   void *Select_Data; /*!< pointer to data to go with Select_cb. If you pass NULL, the pointer to the List Widget is sent */
+   void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callbak to make when a selection is made */
+   void *CloseList_Data; /*!< pointer to data to go with CloseList_cb. If you pass NULL, the pointer to the List Widget is sent */
+   char *Label;
+   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
+   
+   SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
+                                       of the objects the list refers to*/  
+} SUMA_LIST_WIDGET;
+
+/*! structure containing widgets for surface viewer controllers ViewCont */
+typedef struct {
+   Widget TopLevelShell;/*!< Top level shell for a viewer's controller */
+   Widget Mainform; 
+   Widget ViewerInfo_pb;
+   Widget Info_lb;
+   SUMA_LIST_WIDGET *SwitchGrouplst; /*!< a structure containing widgets and options for the switch Group list */
+   SUMA_LIST_WIDGET *SwitchStatelst; /*!< a structure containing widgets and options for the switch State list */
+   SUMA_CREATE_TEXT_SHELL_STRUCT * ViewerInfo_TextShell; /*!< structure containing widgets and options of the viewer info text shell */
+}SUMA_X_ViewCont;
+
 typedef struct {
    SUMA_PROMPT_MODE Mode;
    SUMA_PROMPT_BUTTONS default_button; /*!< button to call when return key is hit in the text field.*/
@@ -778,45 +839,6 @@ typedef struct {
    SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
 } SUMA_ARROW_TEXT_FIELD; 
 
-typedef enum {
-   SUMA_LSP_SINGLE, SUMA_LSP_BROWSE, SUMA_LSP_MULTIPLE, SUMA_LSP_EXTENDED
-}  SUMA_ListSelectPolicy; /*!< Flags for motif list selection policy */
-
-typedef struct {
-   char ** clist; /*!< strings displayed in the Scrolled list window */
-   int N_clist; /*!< Number of strings in clist */
-   void **oplist; /*!< list of pointers to objects in the scrolled list */
-} SUMA_ASSEMBLE_LIST_STRUCT;
-
-/*!
-   Structure containing widgets and settings for a list widget 
-*/
-typedef struct {
-   Widget toplevel; /*!< top level shell for list */
-   Widget rc;  /*!< rowcolumn containing all the widgets of the scrolled list */
-   Widget list; /*!< list widget */
-   
-   Widget PosRef; /*!< Widget relative to which list is positioned */
-   SUMA_WINDOW_POSITION Pos; /*! Position of list relative to PosRef*/
-   SUMA_ListSelectPolicy SelectPolicy; /*!< Sets the XmNselectionPolicy resource:
-                          SUMA_LSP_SINGLE: XmSINGLE_SELECT, 
-                          SUMA_LSP_BROWSE: XmBROWSE_SELECT, 
-                          SUMA_LSP_MULTIPLE: XmMULTIPLE_SELECT, 
-                          SUMA_LSP_EXTENDED: XmEXTENDED_SELECT */
-   SUMA_Boolean ShowSorted; /*!< Sort the list in alphabetical order */
-   SUMA_Boolean RemoveDups; /*!< Remove duplicates in list */                        
-   void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a default selection mode is made */ 
-   void *Default_Data; /*!< pointer to data to go with Default_cb. If you pass NULL, the pointer to the List Widget is sent */
-   void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */ 
-   void *Select_Data; /*!< pointer to data to go with Select_cb. If you pass NULL, the pointer to the List Widget is sent */
-   void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callbak to make when a selection is made */
-   void *CloseList_Data; /*!< pointer to data to go with CloseList_cb. If you pass NULL, the pointer to the List Widget is sent */
-   char *Label;
-   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
-   
-   SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
-                                       of the objects the list refers to*/  
-} SUMA_LIST_WIDGET;
 
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
@@ -922,6 +944,12 @@ typedef struct {
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
    SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets and options of a generic file selection dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number of foreground smoothingLookAt dialog */
+   int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground colors 
+                                 prior to mixing with background. Default is set
+                                 by environment variable SUMA_NumForeSmoothing which 
+                                 is set to 0 (No smoothing). */
+
 }SUMA_X_AllView;
 
 /*! filename and path */
@@ -1021,6 +1049,7 @@ typedef struct {
 /*! structure defining the viewing state of the viewer window */
 typedef struct {
    char *Name; /*!< The name of the viewing state, fiducial, inflated, etc .. */
+   char *Group; /*!< The group to which the viewing state belongs. */
    int *MembSOs; /*!< Indices into DOv of SOs that are members of the viewing state */
    int N_MembSOs; /*!< Number of members in MembSOs. Only SOs that are in MembSOs can
                      be placed into RegisteredDO of the viewer in a particular viewing state.*/                  
@@ -1162,6 +1191,7 @@ typedef struct {
    
    SUMA_CrossHair *Ch; /*!< Pointer to Cross Hair structure */
       
+   
    SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
    int N_VSv; /*!< Number of Viewing State structures */
    char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
@@ -1175,10 +1205,11 @@ typedef struct {
                                           see functions SUMA_display and SUMA_OpenGLStateReset for more info */
                                           
    DList *BS; /*!< The new version of BrushStroke, in doubly linked list form */
-   int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground colors 
-                                 prior to mixing with background. Default is set
-                                 by environment variable SUMA_NumForeSmoothing which 
-                                 is set to 0 (No smoothing). */
+   
+   char *CurGroupName; /*!< current name of group */
+   int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
+   SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
+
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -1588,6 +1619,10 @@ typedef struct {
    SUMA_COL_MIX_MODE ColMixMode; /*!< controls the way colors from multiple planes are mixed together */
    SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
    int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
+
+   char **GroupList; /*!< Names of surface groups */
+   int N_Group;   /*!< number of groups  available */
+
 } SUMA_CommonFields;
                
 /*! structure containing a surface patch */
@@ -1766,5 +1801,21 @@ typedef struct {
    char *suma_host_name;
 }SUMA_COMM_STRUCT;
 
+typedef enum {
+   SUMA_DOMAINS_ERROR = -1,
+   SUMA_DOMAINS_NOT_RELATED = 0,  /*!< Surfaces are not related 
+                                       Above that flag, surfaces are related*/
+   SUMA_SO1_is_SO2,           /*!< Surface1 is the same as Surface2 */
+   SUMA_SO1_is_LDPSO2,        /*!< SO1 is the local domain parent of SO2 */
+   SUMA_SO2_is_LDPSO1,        /*!< SO2 is the local domain parent of SO1 */
+   SUMA_LDPSO1_is_LDPSO2,     /*!< SO1 and SO2 have the same local domain parent */
+   SUMA_NUCELAR_FAMILY,       /*!< A flag to indicate limit of immediate kinship
+                                  (Don't blame me, official syntax in use) 
+                                  Above that flag, kinship is distant */
+   SUMA_SO1_is_GPSO2,         /*!< SO1 is the granddaddy of SO2 */
+   SUMA_SO2_is_GPSO1,         /*!< SO2 is the granddaddy of SO1 */
+   SUMA_GPSO1_is_GPSO2,     /*!< SO1 and SO2 have the same  granddaddy*/
+} SUMA_DOMAIN_KINSHIPS; /*!< The type of relationships between surfaces, modify 
+                              function SUMA_DomainKinships_String; */
 
 #endif
