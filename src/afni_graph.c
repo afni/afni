@@ -142,7 +142,7 @@ ENTRY("new_MCW_grapher") ;
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
-   XtInsertEventHandler( grapher->draw_fd ,     /* handle events in graphs */
+   xtInsertEventHandler( grapher->draw_fd ,     /* handle events in graphs */
 
                             0
                           | KeyPressMask        /* get keystrokes */
@@ -175,8 +175,16 @@ ENTRY("new_MCW_grapher") ;
                        "To turn off the AFNI logo, click Button 1\n"
                        "inside the logo.\n"
                        "\n"
-                       "See the 'Opt' menu for keypress actions and\n"
-                       "for other options to control graph display."
+                       "Miscellaneous Keystrokes:\n"
+                       "< = move back in time 1 point\n"
+                       "> = move forward in time 1 point\n"
+                       "1 = move to 1st time point\n"
+                       "l = move to last time point\n"
+                       "L = turn AFNI logo on/off\n"
+                       "v = Video up in time  V = Video down in time\n"
+                       "\n"
+                       "See the 'Opt' menu for other keypress actions\n"
+                       "and for other options to control graph display."
                     ) ;
 
    /*---------------------------*/
