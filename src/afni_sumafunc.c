@@ -419,6 +419,10 @@ static AFNI_make_surface_widgets( Three_D_View *, int ) ;
                                "Lines" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 , 1 ,  \
                                AFNI_surf_color_CB , im3d ) ;       \
+     MCW_reghint_children( swid->surf_node_av[ii]->wrowcol ,       \
+                           "Color of node boxes" ) ;               \
+     MCW_reghint_children( swid->surf_line_av[ii]->wrowcol ,       \
+                           "Color of triangle lines" ) ;           \
   } while(0)
 
 /*------------------------------------------------------------------------*/
@@ -503,13 +507,15 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    XtAddCallback( swid->done_pb , XmNactivateCallback ,
                   AFNI_surf_done_CB , im3d ) ;
    MCW_set_widget_bg( swid->done_pb, MCW_hotcolor(swid->done_pb), 0 ) ;
+   MCW_register_hint( swid->done_pb, "Close window" ) ;
 
    XtManageChild(rc) ;
 
    /* Separator from other widgets */
 
    ww = XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, swid->rowcol,
-                                    XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                                    XmNseparatorType   , XmSHADOW_ETCHED_IN ,
+                                    XmNshadowThickness , 5 ,
                                  NULL ) ;
 
    /* Now create rows of widgets to control the surfaces */
@@ -532,7 +538,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Update surface widgets */
+/*! Update surface widgets for this controller. */
 
 void AFNI_update_surface_widgets( Three_D_View *im3d )
 {
@@ -589,6 +595,11 @@ ENTRY("AFNI_update_surface_widgets") ;
    for( ii=0 ; ii < num ; ii++ ){
      sprintf(str,"%-14.14s: ",im3d->anat_now->su_surf[ii]->label) ;
      MCW_set_widget_label( swid->surf_lab[ii] , str ) ;
+
+     sprintf(str,"%d Nodes; %d Triangles",               /* 20 Aug 2002:  */
+             im3d->anat_now->su_surf[ii]->num_ixyz ,     /* put a hint    */
+             im3d->anat_now->su_surf[ii]->num_ijk   ) ;  /* on each label */
+     MCW_register_hint( swid->surf_lab[ii] , str ) ;
    }
 
    EXRETURN ;
@@ -642,6 +653,7 @@ ENTRY("AFNI_choose_surface_CB") ;
    /* make control panel visible, if it isn't already */
 
    XtMapWidget( swid->wtop ) ;
+   XRaiseWindow( XtDisplay(swid->wtop), XtWindow(swid->wtop) ) ;
 
    /* put proper labels on widgets, etc. */
 
@@ -653,6 +665,7 @@ ENTRY("AFNI_choose_surface_CB") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Callback for "Done" button for surface control panel. */
 
 static void AFNI_surf_done_CB( Widget w , XtPointer cd, XtPointer cbs )
 {
@@ -668,6 +681,9 @@ ENTRY("AFNI_surf_done_CB") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Callback for press of a colormenu on the surface controls.
+   All this does is to redraw the images, since that is where
+   the actual colors will be grabbed from the swid arrowvals.  */
 
 static void AFNI_surf_color_CB( MCW_arrowval * av , XtPointer cd )
 {

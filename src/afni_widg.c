@@ -1555,9 +1555,14 @@ STATUS("making view->rowcol") ;
                   AFNI_choose_surface_CB , im3d ) ;
 
    MCW_register_help( view->choose_surf_pb ,
-                       "Use this to control the display\n"
-                       "of overlaid surfaces in image\n"
-                       "viewing windows."
+                       "Use this to control the display of\n"
+                       "overlaid surfaces in image viewers:\n"
+                       "\n"
+                       "Surface nodes will have little boxes\n"
+                       "  drawn, when they appear inside a slice.\n"
+                       "Surface triangles will have line segments\n"
+                       "  drawn, where they intersect a slice\n"
+                       "  center-plane."
                     ) ;
    MCW_register_hint( view->choose_surf_pb ,
                       "Control surface overlay" ) ;
