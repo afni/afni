@@ -852,6 +852,7 @@ typedef struct {
 #define LOAD_DSET_VIEWS(iq) \
   do{ LOAD_ANAT_VIEW(iq) ; LOAD_FUNC_VIEW(iq) ; } while(0)
 
+extern void AFNI_speak( char *string , int nofork ) ;   /* 24 Nov 2003 */
 extern int AFNI_count_controllers(void) ;
 extern void AFNI_controller_clonify(void) ;
 extern Three_D_View * new_AFNI_controller( Widget , MCW_DC * , int ) ;

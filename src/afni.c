@@ -1322,16 +1322,7 @@ STATUS("call 0") ;
       break ;
 
       case 1:
-
-#ifndef NO_FRIVOLITIES
-#ifdef DARWIN                 /* 24 Nov 2003 */
-      { char *eee = getenv("AFNI_SPEECH") ;
-        if( eee == NULL || toupper(*eee) != 'N' )
-         system("say -vCellos "
-                "'[[rate +30]]Welcome to [[inpt PHON; emph +; rate -30]]1AEfnIY'");
-      }
-#endif
-#endif
+        AFNI_speak("[[inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
 
       case 2:
       case 3:
@@ -1624,20 +1615,8 @@ ENTRY("AFNI_quit_CB") ;
        ((XButtonEvent *)(pbcbs->event))->state &  /* note single & here! */
        (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
 
-#ifndef NO_FRIVOLITIES
-#ifdef DARWIN                 /* 24 Nov 2003 */
-      { char *eee = getenv("AFNI_SPEECH") ;
-        if( eee == NULL || toupper(*eee) != 'N' ){
-         XUnmapWindow( XtDisplay(im3d->vwid->top_shell) ,
-                         XtWindow(im3d->vwid->top_shell)   ) ;
-         system("say -vCellos Farewell") ;
-        }
-      }
-#endif
-#endif
-
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      /* MCHECK ; */
+      AFNI_speak("farewell",1) ;
       exit(0) ;
    }
 
@@ -1663,18 +1642,7 @@ ENTRY("AFNI_quit_CB") ;
 
    if( AFNI_count_controllers() <= 1 ){
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      /* MCHECK ; */
-#ifndef NO_FRIVOLITIES
-#ifdef DARWIN                 /* 24 Nov 2003 */
-      { char *eee = getenv("AFNI_SPEECH") ;
-        if( eee == NULL || toupper(*eee) != 'N' ){
-          XUnmapWindow( XtDisplay(im3d->vwid->top_shell) ,
-                         XtWindow(im3d->vwid->top_shell)   ) ;
-          system("say -vCellos Goodbye") ;
-        }
-      }
-#endif
-#endif
+      AFNI_speak("goodbye",1) ;
       exit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */
