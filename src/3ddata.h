@@ -3468,9 +3468,10 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
-extern byte * MRI_automask( MRI_IMAGE * ) ;                /* 05 Mar 2003 */
 extern void   THD_automask_verbose( int ) ;                /* 28 Oct 2003 */
 extern void   THD_automask_extclip( int ) ;
+extern byte * mri_automask_image( MRI_IMAGE * ) ;          /* 05 Mar 2003 */
+extern byte * mri_automask_imarr( MRI_IMARR * ) ;          /* 18 Nov 2004 */
 
 extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
                           int *, int * , int *, int * , int *, int * ) ;
@@ -3609,8 +3610,8 @@ extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
 /*! Struct that holds information used during 3D registration. */
 
 typedef struct {
-   MRI_IMARR * fitim ;    /*< Regression basis images */
-   double * chol_fitim ;  /*< Choleski decomposition of the normal equations */
+   MRI_IMARR * fitim ;    /*!< Regression basis images */
+   double * chol_fitim ;  /*!< Choleski decomposition of the normal equations */
    int xa,xb , ya,yb , za,zb ; /* trim box */
 } MRI_3dalign_basis ;
 
@@ -3638,6 +3639,38 @@ extern MRI_IMARR * mri_3dalign_many( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
 extern void mri_3dalign_cleanup( MRI_3dalign_basis * ) ;
 
 extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
+
+/*---------------------------------------------------------------------*/
+
+  /*-- see mri_warp3D_align.c for these routines --*/
+
+typedef struct {
+  float min, max, ident, delta, toler ;
+  float val_init , val_out ;
+  char name[32] ;
+} MRI_warp3D_param_def ;
+
+/*! Struct that holds information used during warp3D registration. */
+
+typedef struct {
+   int nparam ;
+   MRI_warp3D_param_def *param ;
+   float scale_init , scale_out ;
+
+   int regmode , verb , max_iter , num_iter  ;
+   int xedge , yedge , zedge ;
+
+   MRI_IMAGE *imbase , *imwt ;
+
+   void (*vwfor)(float,float,float,float *,float *,float *) ;
+   void (*vwinv)(float,float,float,float *,float *,float *) ;
+   void (*vwset)(int,float *) ;
+
+   MRI_IMAGE *imww ;
+   MRI_IMAGE *imap ;
+   MRI_IMARR *fitim ;
+   double *chol_fitim ;
+} MRI_warp3D_align_basis ;
 
 /*---------------------------------------------------------------------*/
 
