@@ -13,11 +13,14 @@ int main( int argc , char *argv[] )
              "prefix option isn't used, the input filename will be\n"
              "used, after the '.mnc' is chopped off.\n"
              "\n"
-             "Setting environment variable AFNI_MINC_FLOATIZE to Yes\n"
-             "will cause MINC datasets to be converted to floats on\n"
-             "input.  Otherwise, they will be kept in their 'native'\n"
-             "data type if possible, which may cause problems with\n"
-             "scaling on occasion.\n"
+             "NOTES:\n"
+             "* Setting environment variable AFNI_MINC_FLOATIZE to Yes\n"
+             "   will cause MINC datasets to be converted to floats on\n"
+             "   input.  Otherwise, they will be kept in their 'native'\n"
+             "   data type if possible, which may cause problems with\n"
+             "   scaling on occasion.\n"
+             "* The TR recorded in MINC files is often incorrect.  You may\n"
+             "   need to fix this (or other parameters) using 3drefit.\n"
             ) ;
       exit(0) ;
    }

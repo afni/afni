@@ -3250,3 +3250,5 @@
      control conversion to internal floats, and to use
      AFNI_MINC_DATASETS to control whether AFNI itself looks
      at .mnc files.
+ * Added program 3dMINCtoAFNI.c to re-write a MINC file into an AFNI
+     dataset; 3drefit may be useful afterwards.
