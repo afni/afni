@@ -11,6 +11,9 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 2003.01.15
+ *   - do not add any history in this library routine
+ *
  * 2002.07.29
  *   - if we master, be sure output has same view type
  *----------------------------------------------------------------------
@@ -159,9 +162,6 @@ THD_3dim_dataset * r_new_resam_dset
 	THD_delete_3dim_dataset( dout, FALSE );
 	dout = NULL;
     }
-
-    tross_Copy_History( din, dout );
-    tross_Append_History( dout, this_file );
 
     return dout;
 }

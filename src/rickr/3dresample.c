@@ -44,7 +44,6 @@
  *
  * 1.3  January 14, 2003
  *   - clear warp information before writing to disk (fix uncommon problem)
- *   - also use RESAM_shortstr for comparison in resam_str2mode
  *
  * 1.2  July 29, 2002
  *   - no change here, but updated r_new_resam_dset() for view type
