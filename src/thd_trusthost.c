@@ -18,6 +18,7 @@ static char ** host_list = NULL ;
 
 static char * init_hosts[] = { /* Initial list of OK computers */
     "141.106.106." ,           /* MCW computers (we're so trustworthy) */
+    "128.231."     ,           /* NIH computers (also very trustworthy) */
     "127.0.0.1"    ,           /* localhost is always OK */
     "192.168."                 /* private class B networks */
 } ;
