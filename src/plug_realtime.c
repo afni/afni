@@ -784,10 +784,10 @@ void cleanup_rtinp(void)
 
    /* 01 Oct 2002: free stored notes */
 
-   if( rtinp->num_note > 0 ){
+   if( rtinp->num_note > 0 && rtinp->note != NULL ){
      int kk ;
-     for( kk=0 ; kk < rtinp->num_note ; kk++ ) free( rtinp->note[kk] ) ;
-     free(rtinp->note) ;
+     for( kk=0 ; kk < rtinp->num_note ; kk++ ) FREEUP( rtinp->note[kk] ) ;
+     FREEUP(rtinp->note) ;
    }
 
    free(rtinp) ; rtinp = NULL ;            /* destroy data structure */
@@ -1697,9 +1697,12 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
       } else if( STARTER("NOTE") ) {            /* 01 Oct 2002: notes list */
          int nn = rtin->num_note ;
          if( nbuf > 6 ){
-           rtin->note = realloc( rtin->note , sizeof(char *)*(nn+1) ) ;
-           rtin->note[nn] = malloc(nbuf) ;
-           strcpy( rtin->note[nn] , buf+5 ) ;
+           int ii ;
+           rtin->note = realloc( rtin->note , sizeof(char *)*(nn+1) ); /* extend array */
+           rtin->note[nn] = strdup(buf+5) ;                            /* skip "NOTE "  */
+           for( ii=0 ; rtin->note[nn][ii] != '\0' ; ii++ )             /* '\n' insertion */
+             if( rtin->note[nn][ii] == '\a' || rtin->note[nn][ii] == '\f' )
+               rtin->note[nn][ii] = '\n';
            rtin->num_note ++ ;
          } else
            BADNEWS ;
@@ -2028,7 +2031,7 @@ void RT_start_dataset( RT_input * rtin )
      rtin->dset[cc] = EDIT_empty_copy(NULL) ;
      tross_Append_History( rtin->dset[cc] , "plug_realtime: creation" ) ;
 
-     if( rtin->num_note > 0 ){                                /* 01 Oct 2002 */
+     if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
        for( ii=0 ; ii < rtin->num_note ; ii++ )
          tross_Add_Note( rtin->dset[cc] , rtin->note[ii] ) ;
      }
@@ -2212,6 +2215,11 @@ void RT_start_dataset( RT_input * rtin )
 
       EDIT_dset_items( rtin->reg_dset , ADN_prefix , ccpr , ADN_none ) ;
       DSET_lock(rtin->reg_dset) ;
+
+      if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
+        for( ii=0 ; ii < rtin->num_note ; ii++ )
+          tross_Add_Note( rtin->reg_dset , rtin->note[ii] ) ;
+      }
    }
 
    rtin->reg_status    = 0 ;

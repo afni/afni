@@ -3972,3 +3972,7 @@
 30 Sep 2002
  * Modified 3dAFNItoANALYZE.c (and mri_write_analyze.c) to allow output of
      AFNI datasets into a 4D ANALYZE format file.
+
+01 Oct 2002
+ * Modified plug_realtime.c to allow input of notes via a NOTE command.
+     Also modified rtfeedme.c with -note option to test this out.
