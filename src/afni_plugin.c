@@ -4816,19 +4816,19 @@ ENTRY("PLUTO_histoplot") ;
    yzar = (float **) malloc(sizeof(float *)*ny) ;
    yzar[0] = yar ;
    for( jj=0 ; jj < njist ; jj++ )
-      yzar[jj+1] = (float *) malloc(sizeof(float)*nx) ;
+     yzar[jj+1] = (float *) malloc(sizeof(float)*nx) ;
 
    xar[0] = bot ; yar[0] = 0.0 ;
    for( ii=0 ; ii < nbin ; ii++ ){
-      xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
-      xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
+     xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
+     xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
 
-      for( jj=0 ; jj < njist ; jj++ )
-         yzar[jj+1][2*ii+1] = yzar[jj+1][2*ii+2] = (float) jist[jj][ii] ;
+     for( jj=0 ; jj < njist ; jj++ )
+       yzar[jj+1][2*ii+1] = yzar[jj+1][2*ii+2] = (float) jist[jj][ii] ;
    }
    xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0 ;
    for( jj=0 ; jj < njist ; jj++ )
-      yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0 ;
+     yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0 ;
 
    plot_ts_lab( GLOBAL_library.dc->display ,
                 nx , xar , ny , yzar ,
