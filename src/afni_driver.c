@@ -64,15 +64,19 @@ typedef struct { char *nam; dfunc *fun; } AFNI_driver_pair ;
 
 static AFNI_driver_pair dpair[] = {
  { "RESCAN_THIS"      , AFNI_drive_rescan_controller } ,
+
  { "SET_SESSION"      , AFNI_drive_switch_session    } ,
- { "SET_ANATOMY"      , AFNI_drive_switch_anatomy    } ,
- { "SET_FUNCTION"     , AFNI_drive_switch_function   } ,
  { "SWITCH_SESSION"   , AFNI_drive_switch_session    } ,
- { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
- { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "SWITCH_DIRECTORY" , AFNI_drive_switch_session    } ,
+
+ { "SET_ANATOMY"      , AFNI_drive_switch_anatomy    } ,
+ { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_UNDERLAY"  , AFNI_drive_switch_anatomy    } ,
+
+ { "SET_FUNCTION"     , AFNI_drive_switch_function   } ,
+ { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "SWITCH_OVERLAY"   , AFNI_drive_switch_function   } ,
+
  { "PURGE_MEMORY"     , AFNI_drive_purge_memory      } ,
 
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,

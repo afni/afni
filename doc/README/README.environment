@@ -1997,6 +1997,14 @@ you want the time index control to change ONLY the underlay sub-brick,
 then set this variable to NO.
 
 ----------------------------
+Variable: AFNI_SLAVE_THRTIME (editable)
+----------------------------
+When the underlay and overlay datasets both are time-dependent, switching
+the time index will change both the underlay and overlay sub-bricks, but
+NOT the threshold sub-brick.  If you want the time index control to change
+the threshold sub-brick, then set this variable to YES.
+
+----------------------------
 Variable: AFNI_CLICK_MESSAGE
 ----------------------------
 If this veriable is set to NO, then the string
@@ -2007,6 +2015,8 @@ will NOT be appended to the very first popup message window that AFNI
 creates.  This message was added because some people do not realize
 that the way to get rid of these popups (before they vanish on their
 own after 30 seconds) is to click in them.  You know who you are.
+However, if you are advanced enough to read this file, then you probably
+aren't one of THEM.
 
 ------------------------------------
 Variable: AFNI_REALTIME_MP_HOST_PORT (editable)
@@ -2104,9 +2114,9 @@ the 'label2' field from the AFNI dataset .HEAD file, rather than the
 dataset filename.  If the label2 field is set to a nontrivial value,
 that is.  You can set the label2 field with the 3drefit command.
 
----------------------------
+-------------------------------
 Variable: AFNI_SHOW_SURF_POPUPS
----------------------------
+-------------------------------
 If this YES/NO variable is set to YES, then when afni receives surface
 nodes, triangles or normals from suma, a popup message will be displayed.
 Otherwise, the message will be send to stderr (on the terminal window).
