@@ -298,6 +298,8 @@ WHOAMI ;
                                           /* where 1=L-R, 2=P-A, 3=I-S */
              zz = xyz[kk-1] ;             /* z-coordinate of this slice (from TLHC) */
 
+             im->zo = zz ;                /* 07 Aug 2002: save slice offset */
+
              /* getting orientation of z-axis requires 2 images in a row -*/
 
              if( nzoff == 0 ){  /* from 1st GEMS image */
