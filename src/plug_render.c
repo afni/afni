@@ -4351,7 +4351,7 @@ void REND_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
 {
    switch( cbs->reason ){
       case isqCR_destroy:{
-         myXtFree(imseq) ; imseq = NULL ;
+         myXtFree(imseq->status) ; myXtFree(imseq) ; imseq = NULL ;
       }
       break ;
    }

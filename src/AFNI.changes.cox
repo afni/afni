@@ -2765,7 +2765,14 @@
  * Added machdep.c to do machine-dependent runtime startup (supplementing
      machine-dependent compiletime stuff in machdep.h).
 
-22 Apr 2001
+20 Apr 2001
  * Added "addto_args" to a bunch of programs, to let them use the '-@'
      command line switch.
  * Added called to machdep() in a bunch of programs.
+
+23 Apr 2001
+ * Modified imseq.c to draw "EMTPY IMAGE" string into image window if
+     a NULL image is returned.
+
+24 Apr 2001
+ * Added "record" capability to imseq.[ch].

@@ -240,6 +240,28 @@ char * MCW_hotcolor(Widget w)
    return redcolor ;
 }
 
+/*--------------------------------------------------------------------------
+   24 Apr 2001: manage array of widgets, some of which may be NULL
+----------------------------------------------------------------------------*/
+
+void MCW_manage_widgets( Widget * war , int nar )
+{
+   int ii ;
+   if( war == NULL ) return ;
+   for( ii=0 ; ii < nar ; ii++ )
+      if( war[ii] != (Widget) 0 ) XtManageChild( war[ii] ) ;
+   return ;
+}
+
+void MCW_unmanage_widgets( Widget * war , int nar )
+{
+   int ii ;
+   if( war == NULL ) return ;
+   for( ii=0 ; ii < nar ; ii++ )
+      if( war[ii] != (Widget) 0 ) XtUnmanageChild( war[ii] ) ;
+   return ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 #define TIG 25
@@ -669,6 +691,18 @@ void MCW_reghint_children( Widget w , char * msg )
 }
 #endif /* DONT_USE_HINTS */
 /*------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+
+void MCW_unregister_help( Widget w ) /* 24 Apr 2001 */
+{
+   XtCallbackList hc=NULL ;
+
+   XtVaGetValues( w , XmNhelpCallback , &hc , NULL ) ;
+
+   if( hc != NULL )
+      XtRemoveCallbacks( w , XmNhelpCallback , hc ) ;
+}
+
 /*------------------------------------------------------------------------*/
 
 void MCW_register_help( Widget w , char * msg )

@@ -290,7 +290,9 @@ extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
 
-typedef struct {
+struct MCW_imseq ;  /* incomplete definition, completed below: */
+
+typedef struct MCW_imseq {
 
      int valid ;             /* flag if this structure is valid:
                                   0 => no good at all
@@ -417,6 +419,15 @@ typedef struct {
      MCW_arrowval * ov_opacity_av ;
      Widget ov_opacity_sep ;         /* 08 Mar 2001 */
 
+     Widget record_rc , record_cbut ;   /* 24 Apr 2001: recording stuff */
+     MCW_bbox * record_status_bbox ;
+     MCW_bbox * record_method_bbox ;
+     int record_status ;
+     int record_method ;
+     int record_mode ;
+     struct MCW_imseq * record_imseq ;
+     MRI_IMARR * record_imarr ;
+
 } MCW_imseq ;
 
 #define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
@@ -476,6 +487,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 
 #define isqDR_rebar           602  /* 23 Aug 1998 */
 #define isqDR_opacitybut      603  /* 07 Mar 2001 */
+#define isqDR_record_mode     604  /* 24 Apr 2001 */
+#define isqDR_record_disable  605  /* 24 Apr 2001 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -602,5 +615,33 @@ extern void winsor21_box_func( int nx , int ny , double,double , float * ar ) ;
 /*---- temporary, I hope ----*/
 
 void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+
+/*---- 24 Apr 2001: recording stuff ----*/
+
+#define RECORD_STATUS_OFF         (1<<0)
+#define RECORD_STATUS_NEXTONE     (1<<1)
+#define RECORD_STATUS_ON          (1<<2)
+
+#define RECORD_ISON(ib) ((ib) > RECORD_STATUS_OFF)
+
+#define RECORD_METHOD_AFTEREND     (1<<0)
+#define RECORD_METHOD_BEFORESTART  (1<<1)
+#define RECORD_METHOD_INSERT_MM    (1<<2)
+#define RECORD_METHOD_INSERT_PP    (1<<3)
+#define RECORD_METHOD_OVERWRITE    (1<<4)
+#define RECORD_METHOD_OVERWRITE_MM (1<<5)
+#define RECORD_METHOD_OVERWRITE_PP (1<<6)
+
+extern void ISQ_record_button( MCW_imseq * ) ;
+extern void ISQ_record_CB( Widget,XtPointer,XtPointer ) ;
+
+extern void ISQ_record_open( MCW_imseq * ) ;
+extern void ISQ_record_update( MCW_imseq * , int ) ;
+extern void ISQ_record_addim( MCW_imseq * , int,int ) ;
+extern XtPointer ISQ_record_getim( int , int , XtPointer ) ;
+extern void ISQ_record_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
+extern void ISQ_record_kill_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void ISQ_remove_widget( MCW_imseq * , Widget ) ;
 
 #endif /* _MCW_IMSEQ_HEADER_ */

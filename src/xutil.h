@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_XUTIL_HEADER_
 #define _MCW_XUTIL_HEADER_
 
@@ -67,6 +67,8 @@ extern void MCW_register_help( Widget , char * ) ;
 extern void MCW_reghelp_children( Widget , char * ) ;
 extern void MCW_help_CB( Widget , XtPointer , XtPointer ) ;
 extern void MCW_unhelp_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void MCW_unregister_help( Widget ) ;        /* 24 Apr 2001 */
 
 extern void MCW_set_widget_label( Widget , char * ) ;
 extern void MCW_widget_geom( Widget , int * , int * , int * , int * ) ;
@@ -144,5 +146,8 @@ extern void RWC_visibilize_CB( Widget , XtPointer , XtPointer ) ; /* 27 Sep 2000
 
 #define VISIBILIZE_WHEN_MAPPED(w) \
   XtAddCallback(w,XmNmapCallback,RWC_visibilize_CB,NULL)
+
+extern void MCW_manage_widgets  ( Widget * war , int nar ) ; /* 24 Apr 2001 */
+extern void MCW_unmanage_widgets( Widget * war , int nar ) ;
 
 #endif /* _MCW_XUTIL_HEADER_ */

@@ -1579,6 +1579,10 @@ if(PRINT_TRACING)
 
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
+      if( ival > 0 && GLOBAL_library.have_dummy_dataset && lrand48()%2 == 1 ){
+         RETURN(NULL) ;  /* 23 Apr 2001: test of imseq.c NULL image handler */
+      }
+
       im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
 
       if( ival < 0 ) RETURN( (XtPointer) im ) ;  /* return fake image */
@@ -2848,7 +2852,7 @@ if(PRINT_TRACING)
       GLOBAL_library.have_dummy_dataset = 0 ;
 
 #define QQ_NXYZ 16
-#define QQ_NT   15
+#define QQ_NT   12
 #define QQ_FOV  240.0
 
       if( GLOBAL_library.sslist->num_sess <= 0 ){

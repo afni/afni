@@ -4166,12 +4166,13 @@ void T3D_open_view_CB( Widget w ,
    }
 
    wset.seq = open_MCW_imseq( wset.dc , T3D_getim , br ) ;
-   drive_MCW_imseq( wset.seq , isqDR_realize , NULL ) ;
+   drive_MCW_imseq( wset.seq,isqDR_realize , NULL ) ;
 
-   drive_MCW_imseq( wset.seq , isqDR_getimnr , (XtPointer) &nim ) ;
-   drive_MCW_imseq( wset.seq , isqDR_title   , (XtPointer) imnames->ar[nim] ) ;
+   drive_MCW_imseq(wset.seq,isqDR_getimnr, (XtPointer) &nim ) ;
+   drive_MCW_imseq(wset.seq,isqDR_title  , (XtPointer) imnames->ar[nim] ) ;
 
-   drive_MCW_imseq( wset.seq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+   drive_MCW_imseq(wset.seq,isqDR_opacitybut    ,(XtPointer)0); /* 07 Mar 2001 */
+   drive_MCW_imseq(wset.seq,isqDR_record_disable,(XtPointer)0); /* 24 Apr 2001 */
 
    /* 01 Dec 1999: add "sides" markers for image viewer */
 

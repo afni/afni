@@ -697,6 +697,10 @@ if( PRINT_TRACING ){
    }
    SET_SAVE_LABEL(newseq) ;
 
+   /* 24 Apr 2001: initialize recording stuff */
+
+   ISQ_record_button( newseq ) ;
+
    /* buttons on right */
 
    for( ii=0 ; ii < NBUTTON_RIG ; ii++){
@@ -1395,8 +1399,10 @@ ENTRY("ISQ_make_image") ;
       tim = (MRI_IMAGE *) seq->getim( seq->im_nr , isqCR_getimage , seq->getaux ) ;
 
       if( tim == NULL ){
+#if 0
          fprintf(stderr,
                  "\n*** error in ISQ_make_image: NULL image returned for display! ***\n") ;
+#endif
          EXRETURN ;
       }
 
@@ -2066,7 +2072,7 @@ ENTRY("ISQ_saver_CB") ;
 
       tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
       if( tim == NULL ){
-         fprintf(stderr,"\n*** error in ISQ_saver_CB: NULL image %d returned! ***\n",kf) ;
+         fprintf(stderr,"*** error in ISQ_saver_CB: NULL image %d returned! ***\n",kf) ;
          continue ;  /* skip to next one */
       }
       flim = tim ;
@@ -2392,6 +2398,15 @@ ENTRY("ISQ_free_alldata") ;
    myXtFree(seq->status) ;                         /* 05 Feb 2000 */
 #endif
 
+   /* 24 Apr 2001: destroy any recordings */
+
+   if( seq->record_imarr != NULL ) DESTROY_IMARR(seq->record_imarr) ;
+   if( seq->record_imseq != NULL )
+      drive_MCW_imseq( seq->record_imseq , isqDR_destroy , NULL ) ;
+
+   myXtFree( seq->record_status_bbox ) ;
+   myXtFree( seq->record_method_bbox ) ;
+
    EXRETURN ;
 }
 
@@ -2510,8 +2525,38 @@ ENTRY("ISQ_redisplay") ;
    ISQ_rowgraph_draw( seq ) ;
    ISQ_surfgraph_draw( seq ) ;  /* 21 Jan 1999 */
 
-   if( RECUR ) recur_flg = FALSE ;
+   /* 24 Apr 2001: handle image recording */
 
+   if( RECORD_ISON(seq->record_status) ){
+      int pos , meth ;
+
+      /* compute where to put this sucker */
+
+      switch( seq->record_method ){
+         default:
+         case RECORD_METHOD_AFTEREND:    pos = 987654321; meth =  1; break;
+         case RECORD_METHOD_BEFORESTART: pos =  0       ; meth = -1; break;
+         case RECORD_METHOD_INSERT_MM:   pos = -1       ; meth = -1; break;
+         case RECORD_METHOD_INSERT_PP:   pos = -1       ; meth =  1; break;
+         case RECORD_METHOD_OVERWRITE:   pos = -1       ; meth =  0; break;
+      }
+
+      /* put it there */
+
+      ISQ_record_addim( seq , pos , meth ) ;
+
+      /* if recording just one, switch status off */
+
+      if( seq->record_status == RECORD_STATUS_NEXTONE ){
+         seq->record_status = RECORD_STATUS_OFF ;
+         MCW_set_bbox( seq->record_status_bbox , RECORD_STATUS_OFF ) ;
+         MCW_invert_widget( seq->record_cbut ) ;
+      }
+   }
+
+   /* exit stage left */
+
+   if( RECUR ) recur_flg = FALSE ;
    EXRETURN ;
 }
 
@@ -2553,6 +2598,8 @@ ENTRY("ISQ_set_image_number") ;
 
 /*-----------------------------------------------------------------------
   actually put the image into window
+  23 Apr 2001 - modified to deal with case of NULL image from
+                ISQ_make_image() - by drawing a string
 -------------------------------------------------------------------------*/
 
 void ISQ_show_image( MCW_imseq * seq )
@@ -2565,14 +2612,15 @@ ENTRY("ISQ_show_image") ;
 
    if( seq->given_xim == NULL ) ISQ_make_image( seq ) ;
 
+#if 0
    if( seq->given_xim == NULL ){
-      fprintf(stderr,"\n***seq->given_xim == NULL -- cannot display image\n") ;
-      EXRETURN ;
+      fprintf(stderr,"***seq->given_xim == NULL -- cannot display image\n") ;
    }
+#endif
 
    if( ! MCW_widget_visible(seq->wimage) ) EXRETURN ;  /* 03 Jan 1999 */
 
-   if( seq->sized_xim == NULL ){
+   if( seq->given_xim != NULL && seq->sized_xim == NULL ){
       int nx , ny ;
 
 DPR("making sized_xim");
@@ -2582,11 +2630,39 @@ DPR("making sized_xim");
       seq->sized_xim = resize_XImage( seq->dc , seq->given_xim , nx , ny ) ;
    }
 
+
+   if( seq->sized_xim != NULL ){
 DPR("putting sized_xim to screen");
 
-   XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
-              seq->sized_xim , 0,0,0,0,
-              seq->sized_xim->width , seq->sized_xim->height ) ;
+     XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
+                seq->sized_xim , 0,0,0,0,
+                seq->sized_xim->width , seq->sized_xim->height ) ;
+
+   } else {  /* 23 Apr 2001 - draw something else */
+
+      static MEM_plotdata * mp=NULL ;  /* only create once */
+
+      if( mp == NULL ){
+         create_memplot("EmptyImage memplot for imseq.c",1.0) ;
+         mp = find_memplot("EmptyImage memplot for imseq.c") ;
+      }
+      set_color_memplot(1.0,1.0,1.0) ;
+      set_thick_memplot(0.009) ;
+      plotpak_pwritf( 0.4,0.83 , "EMPTY" , 96 , 0 , 0 ) ;
+      plotpak_pwritf( 0.4,0.67 , "IMAGE" , 96 , 0 , 0 ) ;
+      set_color_memplot(0.0,0.0,0.0) ;
+      plotpak_pwritf( 0.6,0.33 , "EMPTY" , 96 , 0 , 0 ) ;
+      plotpak_pwritf( 0.6,0.17 , "IMAGE" , 96 , 0 , 0 ) ;
+      set_color_memplot(1.0,1.0,0.0) ;
+      set_thick_memplot(0.019) ;
+      plotpak_line( 0.01,0.01 , 0.99,0.01 ) ;
+      plotpak_line( 0.99,0.01 , 0.99,0.99 ) ;
+      plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
+      plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
+      XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
+      memplot_to_X11_sef( seq->dc->display ,
+                          XtWindow(seq->wimage) , mp , 0,0,1 ) ;
+   }
 
    /*-- 26 Feb 2001: draw some line overlay, a la coxplot? --*/
    /*** (shouldn't be HERE, but this is just a test)       ***/
@@ -2699,7 +2775,6 @@ ENTRY("ISQ_show_bar") ;
 
    if( seq->sized_xbar == NULL ){
       int nx , ny ;
-
 DPR("making sized_xbar");
 
       MCW_widget_geom( seq->wbar , &nx , &ny , NULL,NULL ) ;
@@ -2707,11 +2782,14 @@ DPR("making sized_xbar");
       seq->sized_xbar = resize_XImage( seq->dc, seq->given_xbar, nx, ny ) ;
    }
 
+
+   if( seq->sized_xbar != NULL ){
 DPR("putting sized_xbar to screen");
 
-   XPutImage( seq->dc->display , XtWindow(seq->wbar) , seq->dc->origGC ,
-              seq->sized_xbar , 0,0,0,0,
-              seq->sized_xbar->width , seq->sized_xbar->height ) ;
+     XPutImage( seq->dc->display , XtWindow(seq->wbar) , seq->dc->origGC ,
+                seq->sized_xbar , 0,0,0,0,
+                seq->sized_xbar->width , seq->sized_xbar->height ) ;
+   }
 
    EXRETURN ;
 }
@@ -2784,6 +2862,8 @@ DPR(" .. really a hidden resize") ;
 
 DPR(" .. KeyPress") ;
 
+         if( seq->record_mode ){ XBell(seq->dc->display,100); EXRETURN; }
+
          /* while Button2 is active, nothing else is allowed */
 
          if( seq->button2_active ){ XBell(seq->dc->display,100); EXRETURN; }
@@ -2812,6 +2892,8 @@ DPR(" .. KeyPress") ;
          int bx,by , width,height , but ;
 
 DPR(" .. ButtonPress") ;
+
+         if( seq->record_mode ){ XBell(seq->dc->display,100); EXRETURN; }
 
          bx  = event->x ;
          by  = event->y ;
@@ -4040,6 +4122,12 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_opacitybut      (int) turns opacity control on/off
 
+*    isqDR_record_mode     (ignored)
+                           makes this an image recorder (irreversibly)
+
+*    isqDR_record_disable  (ignored)
+                           disables the Rec button (irreversibly)
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -4058,6 +4146,76 @@ ENTRY("drive_MCW_imseq") ;
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          RETURN( False );
+      }
+      break ;
+
+      /*--------- record off forever [24 Apr 2001] ----------*/
+
+      case isqDR_record_disable:{
+         ISQ_remove_widget( seq , seq->record_rc ) ;
+         seq->record_status = RECORD_STATUS_OFF ;
+         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- record mode [24 Apr 2001] ----------*/
+
+      case isqDR_record_mode:{
+         int ii ;
+
+         if( seq->record_mode ) RETURN( False ) ;  /* already on */
+         seq->record_mode = 1 ;
+
+         /* disable various widgets */
+
+         ISQ_remove_widget( seq , seq->wbut_bot[NBUT_MONT] ) ;
+         ISQ_remove_widget( seq , seq->record_rc ) ;
+         for( ii=0 ; ii < NBUTTON_RIG ; ii++)
+            ISQ_remove_widget( seq , seq->wbut_rig[ii] ) ;
+         for( ii=0 ; ii < NARROW-1 ; ii++ ) /* keep "i" arrow */
+            ISQ_remove_widget( seq , seq->arrow[ii]->wrowcol ) ;
+         if( seq->ov_opacity_av != NULL ){
+            ISQ_remove_widget( seq , seq->ov_opacity_sep ) ;
+            ISQ_remove_widget( seq , seq->ov_opacity_av->wrowcol ) ;
+         }
+         ISQ_remove_widget( seq , seq->arrowpad->wform ) ;
+         ISQ_remove_widget( seq , seq->wbar ) ;
+         ISQ_remove_widget( seq , seq->winfo ) ;
+
+         /* change to Save:bkg */
+
+         seq->opt.save_one = False ;
+         seq->opt.save_pnm = False ;
+         SET_SAVE_LABEL(seq) ;
+
+         /* change Disp to Kill */
+
+         XtRemoveCallback( seq->wbut_bot[NBUT_DISP] , XmNactivateCallback ,
+                           ISQ_but_bot_def[NBUT_DISP].func_CB , seq        ) ;
+
+         XtAddCallback( seq->wbut_bot[NBUT_DISP] , XmNactivateCallback ,
+                        ISQ_record_kill_CB , seq                       ) ;
+
+         MCW_set_widget_label( seq->wbut_bot[NBUT_DISP] , "Kill" ) ;
+         MCW_unregister_help( seq->wbut_bot[NBUT_DISP] ) ;
+         MCW_register_hint( seq->wbut_bot[NBUT_DISP] , "Erase current image" ) ;
+
+         /* attach Done to Save (since Mont is now hidden) */
+
+         XtVaSetValues( seq->wbut_bot[NBUT_DONE] ,
+                           LEADING_BOT       , XmATTACH_WIDGET          ,
+                           LEADING_WIDGET_BOT, seq->wbut_bot[NBUT_SAVE] ,
+                        NULL ) ;
+
+         /* Miscellaneous stuff */
+
+         XtVaSetValues( seq->wtop , XmNtitle , "Image Recorder" , NULL ) ;
+         if( MCW_isitmwm( seq->wtop ) )
+            XtVaSetValues( seq->wtop ,
+                            XmNmwmDecorations, MWM_DECOR_ALL | MWM_DECOR_MAXIMIZE,
+                           NULL ) ;
+
+         RETURN( True ) ;
       }
       break ;
 
@@ -4134,7 +4292,9 @@ ENTRY("drive_MCW_imseq") ;
             seq->ignore_redraws = 0 ;         /* can listen again */
          }
 
+#if 0
          ISQ_redisplay( seq , -1 , isqDR_display ) ;    /* local redraw */
+#endif
 
          RETURN( True );
       }
@@ -4343,7 +4503,7 @@ ENTRY("drive_MCW_imseq") ;
          MCW_widget_geom( seq->wimage , &ww , &hh , NULL,NULL ) ;
 
          if( turn_on ){
-            XtManageChildren( seq->onoff_widgets , seq->onoff_num ) ;
+            MCW_manage_widgets( seq->onoff_widgets , seq->onoff_num ) ;
             XtVaSetValues(
                seq->wimage ,
                   XmNrightPosition ,(int)( 0.49+seq->image_frac*FORM_FRAC_BASE ),
@@ -4354,7 +4514,7 @@ ENTRY("drive_MCW_imseq") ;
                               XmNheight , (int)(0.49+hh/seq->image_frac) ,
                            NULL ) ;
          } else {
-            XtUnmanageChildren( seq->onoff_widgets , seq->onoff_num ) ;
+            MCW_unmanage_widgets( seq->onoff_widgets , seq->onoff_num ) ;
             XtVaSetValues( seq->wimage ,
                               XmNrightPosition , FORM_FRAC_BASE ,
                               XmNbottomPosition, FORM_FRAC_BASE ,
@@ -4700,7 +4860,7 @@ ENTRY("ISQ_setup_new") ;
    KILL_1MRI(tim) ;  /* don't need tim no more */
 #endif
 
-#if 0
+#if 1
    if( seq->status != NULL ) myXtFree(seq->status) ;  /* 05 Feb 2000 */
 #endif
 
@@ -5177,7 +5337,9 @@ ENTRY("ISQ_montage_action_CB") ;
             seq->ignore_redraws = 0 ;         /* can listen again */
          }
 
+#if 0
          ISQ_redisplay( seq , -1 , isqDR_display ) ;    /* local redraw */
+#endif
 
          if( ib == MONT_APPLY ) MCW_invert_widget(w) ;
 
@@ -5741,6 +5903,8 @@ char * ISQ_transform_label( MCW_arrowval * av , XtPointer cd )
    return xforms->labels[av->ival - 1] ;  /* label for each function */
 }
 
+/*-----------------------------------------------------------------------------*/
+
 void ISQ_transform_CB( MCW_arrowval * av , XtPointer cd )
 {
    MCW_imseq * seq = (MCW_imseq *) cd ;
@@ -5956,7 +6120,7 @@ char * ISQ_surfgraph_label( MCW_arrowval * av , XtPointer cd )
    return "?*?" ;
 }
 
-/*--- called when the user changes the SurfGraph menu button ---*/
+/*-------- called when the user changes the SurfGraph menu button --------*/
 
 void ISQ_surfgraph_CB( MCW_arrowval * av , XtPointer cd )
 {
@@ -5977,7 +6141,7 @@ ENTRY("ISQ_surfgraph_CB") ;
    EXRETURN ;
 }
 
-/*--- called to redraw the surface graph ---*/
+/*---------------- called to redraw the surface graph -------------------*/
 
 void ISQ_surfgraph_draw( MCW_imseq * seq )
 {
@@ -6231,8 +6395,503 @@ ENTRY("ISQ_surfgraph_arrowpad_CB") ;
    ISQ_surfgraph_draw( seq ) ; EXRETURN ;
 }
 
-/************************************************************************/
+/*-----------------------------------------------------------------------
+  24 Apr 2001: remove a widget from the onoff list,
+               and permanently unmanage it (for the recorder)
+-------------------------------------------------------------------------*/
+
+void ISQ_remove_widget( MCW_imseq * seq , Widget w )
+{
+   int ii ;
+ENTRY("ISQ_remove_onoff") ;
+
+   if( !ISQ_VALID(seq) || w == NULL ) EXRETURN ;
+
+   XtUnmanageChild( w ) ;  /* turn it off */
+
+   for( ii=0 ; ii < seq->onoff_num ; ii++ ){     /* find in list */
+      if( w == seq->onoff_widgets[ii] ){
+         seq->onoff_widgets[ii] = NULL ;
+         break ;
+      }
+   }
+
+   for( ii=seq->onoff_num-1 ; ii > 0 ; ii-- ){   /* truncate list */
+      if( seq->onoff_widgets[ii] == NULL )
+         seq->onoff_num = ii ;
+      else
+         break ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  24 Apr 2001: recording button and accoutrements
+-------------------------------------------------------------------------*/
+
+void ISQ_record_button( MCW_imseq * seq )
+{
+   Widget rc , mbar , menu , cbut , wpar ;
+   XmString xstr ;
+
+ENTRY("ISQ_record_button") ;
+
+   /*--- make the widgets ---*/
+
+   /* rowcol to hold the menubar */
+
+   seq->onoff_widgets[(seq->onoff_num)++] = seq->record_rc = rc =
+     XtVaCreateWidget(
+           "dialog" , xmRowColumnWidgetClass , seq->wform ,
+              XmNorientation    , XmHORIZONTAL ,
+              XmNpacking        , XmPACK_TIGHT ,
+
+              LEADING_BOT       , XmATTACH_WIDGET              ,
+              LEADING_WIDGET_BOT, seq->wbut_bot[NBUTTON_BOT-1] ,
+              EDGING_BOT        , XmATTACH_FORM                ,
+
+              XmNmarginWidth  , 0 ,
+              XmNmarginHeight , 0 ,
+              XmNspacing      , 0 ,
+              XmNborderWidth  , 0 ,
+              XmNborderColor  , 0 ,
+
+              XmNrecomputeSize , False ,
+              XmNtraversalOn , False ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
+   /* menubar to hold the cascade button */
+
+   mbar = XmCreateMenuBar( rc , "dialog" , NULL,0 ) ;
+   XtVaSetValues( mbar ,
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNspacing      , 0 ,
+                     XmNborderWidth  , 0 ,
+                     XmNborderColor  , 0 ,
+                     XmNtraversalOn  , False ,
+                     XmNbackground   , seq->dc->ovc->pixov_brightest ,
+                  NULL ) ;
+
+   /* the menu pane */
+
+   menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+   VISIBILIZE_WHEN_MAPPED(menu) ;
+
+   /* the cascade button (what the user sees) */
+
+   xstr = XmStringCreateLtoR( "Rec" , XmFONTLIST_DEFAULT_TAG ) ;
+   seq->record_cbut = cbut =
+     XtVaCreateManagedWidget(
+            "dialog" , xmCascadeButtonWidgetClass , mbar ,
+               XmNlabelString , xstr ,
+               XmNsubMenuId   , menu ,
+               XmNmarginWidth , 0 ,
+               XmNmarginHeight, 0 ,
+               XmNmarginBottom, 0 ,
+               XmNmarginTop   , 0 ,
+               XmNmarginRight , 0 ,
+               XmNmarginLeft  , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XmStringFree( xstr ) ;
+   XtManageChild( mbar ) ;
+   MCW_register_hint( cbut , "Turn image recording on/off" ) ;
+   MCW_register_help( cbut ,
+                      " \n"
+                      "This menu controls image recording. Whenever the image\n"
+                      "displayed is altered, an RGB copy of it can be saved\n"
+                      "into a separate image buffer.  In this way, you can\n"
+                      "build a sequence of images that can later be written\n"
+                      "to disk for further processing (e.g., animation).\n"
+                      "\n"
+                      "---- These options control WHEN images  ----\n"
+                      "---- will be recorded into the sequence ----\n"
+                      "\n"
+                      " Off      = don't record\n"
+                      " Next One = record next image, then turn Off\n"
+                      " Stay On  = record all images\n"
+                      "\n"
+                      "---- These options control WHERE new images ----\n"
+                      "---- are to be stored into the sequence     ----\n"
+                      "\n"
+                      " After End    = at tail of sequence\n"
+                      " Before Start = at head of sequence\n"
+                      " Insert --    = insert before current sequence position\n"
+                      " Insert ++    = insert after current sequence position\n"
+                      " OverWrite    = replace current sequence position\n"
+                      "\n"
+                      "---- HINTS and NOTES ----\n"
+                      "\n"
+                      "* You may want to set Xhairs to 'Off' on the AFNI\n"
+                      "   control panel before recording images.\n"
+                      "* The recording window is like a dataset image\n"
+                      "   viewing window with most controls removed.\n"
+                      "* The new 'Kill' button in the recording window lets\n"
+                      "   you erase one image from the recorded sequence.\n"
+                      "* Use 'Save:bkg' in the recording window to save the\n"
+                      "   sequence of recorded images to disk in PPM format.\n"
+                      "* You may want to use set 'Warp Anat on Demand' on\n"
+                      "   the Datamode control panel to force the display\n"
+                      "   voxels to be cubical.  Otherwise, the saved image\n"
+                      "   pixels will have the same aspect ratio as the voxels\n"
+                      "   in the dataset, which may not be square.\n"
+                     ) ;
+
+   /*-- top of menu = a label to click on that does nothing at all --*/
+
+   xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmLabelWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XmStringFree(xstr) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+   /*-- menu toggles switches --*/
+
+   {  static char * status_label[3] = { "Off" , "Next One" , "Stay On" } ;
+      static char * method_label[5] = { "After End"    ,
+                                        "Before Start" ,
+                                        "Insert --"    ,
+                                        "Insert ++"    ,
+                                        "OverWrite"     } ;
+
+      seq->record_status_bbox =
+         new_MCW_bbox( menu , 3,status_label ,
+                       MCW_BB_radio_one , MCW_BB_noframe ,
+                       ISQ_record_CB , (XtPointer) seq ) ;
+      seq->record_status = RECORD_STATUS_OFF ;
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+               NULL ) ;
+
+      seq->record_method_bbox =
+         new_MCW_bbox( menu , 5,method_label ,
+                       MCW_BB_radio_one , MCW_BB_noframe ,
+                       ISQ_record_CB , (XtPointer) seq ) ;
+      seq->record_method = RECORD_METHOD_AFTEREND ;
+   }
+
+   /*-- done with Widgets --*/
+
+   XtManageChild( rc ) ;
+
+   /*-- setup other variables --*/
+
+   seq->record_mode  = 0 ;    /* not a recorder itself (yet) */
+   seq->record_imseq = NULL ; /* doesn't have a recorder */
+   seq->record_imarr = NULL ; /* doesn't have a recorded sequence */
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  Callback for toggle actions in the record menu
+-------------------------------------------------------------------------*/
+
+void ISQ_record_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   int ib ;
+
+ENTRY("ISQ_record_CB") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+
+   ib = MCW_val_bbox( seq->record_status_bbox ) ;
+   if( ib != seq->record_status ){
+      if( RECORD_ISON(ib) != RECORD_ISON(seq->record_status) )
+         MCW_invert_widget( seq->record_cbut ) ;
+      seq->record_status = ib ;
+   }
+
+   ib = MCW_val_bbox( seq->record_method_bbox ) ;
+   if( ib != seq->record_method ){
+      seq->record_method = ib ;
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+  Insert the current image from seq into seq's recorder, at index pos,
+  with method meth: -1 => insert before pos
+                    +1 => insert after pos
+                     0 => overwrite pos
+  If pos < 0, this means use the current recorder position.
+  The recorder is left positioned at the new image.
+------------------------------------------------------------------------*/
+
+void ISQ_record_addim( MCW_imseq * seq , int pos , int meth )
+{
+   MRI_IMAGE * tim ;
+   int opos , ii,bot,top ;
+
+ENTRY("ISQ_record_addim") ;
+
+   /* sanity checks */
+
+   if( !ISQ_REALZ(seq)        ||
+       seq->record_mode       ||
+       seq->given_xim == NULL   ) EXRETURN; /* bad */
+
+   /* if recorded image sequence doesn't exist, create it */
+
+   if( seq->record_imarr == NULL ){
+      INIT_IMARR(seq->record_imarr) ;
+      meth = 1 ;  /* change meth for this special case */
+   }
+
+   /* convert current XImage to RGB format */
+
+   tim = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB );
+
+   if( tim == NULL ) EXRETURN ; /* bad */
+
+   /* figure out where to put this image in the list */
+
+   opos = pos ;
+   if( opos < 0 ){  /* need current position of recorder */
+
+      if( seq->record_imseq != NULL )
+         drive_MCW_imseq( seq->record_imseq, isqDR_getimnr, (XtPointer)&opos );
+      else
+         opos = -1 ; /* special case */
+
+   } else if( opos >= IMARR_COUNT(seq->record_imarr)-1 ) {
+
+      opos = IMARR_COUNT(seq->record_imarr)-1 ;
+   }
+
+   if( opos < 0 ) meth = 1 ; /* special case: sequence is empty now */
+
+   /* if we are inserting, we need to add an image */
+
+   if( meth != 0 ){
+
+      ADDTO_IMARR( seq->record_imarr , NULL ) ;  /* add at end */
+      bot = (meth < 0) ? opos : opos+1 ;         /* move images up */
+      top = IMARR_COUNT(seq->record_imarr)-2 ;
+      for( ii=top ; ii >= bot ; ii-- )
+         IMARR_SUBIM(seq->record_imarr,ii+1) = IMARR_SUBIM(seq->record_imarr,ii);
+
+      IMARR_SUBIM(seq->record_imarr,bot) = tim ; /* insert */
+
+   } else {  /* overwrite image */
+
+      bot = opos ;
+      mri_free( IMARR_SUBIM(seq->record_imarr,bot) ) ;
+      IMARR_SUBIM(seq->record_imarr,bot) = tim ;
+   }
+
+   /* at this point, we put the new image into location bot in the array */
+
+   /* if the recorder isn't open now, open it, otherwise update it */
+
+   if( seq->record_imseq == NULL )
+      ISQ_record_open( seq ) ;
+   else
+      ISQ_record_update( seq , bot ) ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void ISQ_record_open( MCW_imseq * seq )
+{
+   int ntot ;
+
+ENTRY("ISQ_record_open") ;
+
+   if( !ISQ_REALZ(seq)                     ||
+       seq->record_imarr == NULL           ||
+       IMARR_COUNT(seq->record_imarr) == 0   ) EXRETURN ;
+
+   ntot = IMARR_COUNT(seq->record_imarr) ;
+
+   seq->record_imseq = open_MCW_imseq( seq->dc , ISQ_record_getim , seq ) ;
+   seq->record_imseq->parent = seq ;
+
+   drive_MCW_imseq( seq->record_imseq , isqDR_record_mode , NULL ) ;
+
+   drive_MCW_imseq( seq->record_imseq , isqDR_realize, NULL ) ;
+
+   if( ntot == 1 )
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_offwid);
+   else
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+
+   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void ISQ_record_update( MCW_imseq * seq , int npos )
+{
+   int ntot , ii ;
+
+ENTRY("ISQ_record_update") ;
+
+   if( !ISQ_REALZ(seq)                     ||
+       seq->record_imseq == NULL           ||
+       seq->record_imarr == NULL           ||
+       IMARR_COUNT(seq->record_imarr) == 0   ) EXRETURN ;
+
+   ntot = IMARR_COUNT(seq->record_imarr) ;
+
+        if( npos <  0    ) npos = 0 ;
+   else if( npos >= ntot ) npos = ntot-1 ;
+
+   drive_MCW_imseq( seq->record_imseq , isqDR_newseq , seq ) ;
+
+   if( ntot == 1 )
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_offwid);
+   else
+      drive_MCW_imseq( seq->record_imseq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+
+   drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer)npos ) ;
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------
+   Routine to provide data to the recording imseq.
+   Just returns the control information, or the selected image.
+--------------------------------------------------------------------*/
+
+XtPointer ISQ_record_getim( int n , int type , XtPointer handle )
+{
+   int ntot = 0 ;
+   MCW_imseq * seq = (MCW_imseq *) handle ;  /* parent of recorder */
+
+ENTRY("ISQ_record_getim") ;
+
+   if( seq->record_imarr != NULL ) ntot = IMARR_COUNT(seq->record_imarr) ;
+   if( ntot < 1 ) ntot = 1 ;
+
+   /*--- send control info ---*/
+
+   if( type == isqCR_getstatus ){
+      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ); /* will be free-d */
+                                                             /* when imseq is */
+                                                             /* destroyed    */
+      stat->num_total  = ntot ;
+      stat->num_series = stat->num_total ;
+      stat->send_CB    = ISQ_record_send_CB ;
+      stat->parent     = NULL ;
+      stat->aux        = NULL ;
+
+      stat->transforms0D = NULL ;
+      stat->transforms2D = NULL ;
+
+      RETURN( (XtPointer)stat ) ;
+   }
+
+   /*--- no overlay, never ---*/
+
+   if( type == isqCR_getoverlay ) RETURN( NULL ) ;
+
+   /*--- return a copy of a recorded image
+         (since the imseq will delete it when it is done) ---*/
+
+   if( type == isqCR_getimage || type == isqCR_getqimage ){
+      MRI_IMAGE * im = NULL , * rim ;
+
+      if( seq->record_imarr != NULL ){
+         if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
+         rim = IMARR_SUBIMAGE(seq->record_imarr,n) ;
+         if( rim != NULL ) im = mri_to_rgb( rim ) ;
+      }
+      RETURN( (XtPointer)im ) ;
+   }
+
+   RETURN( NULL ) ; /* should not occur, but who knows? */
+}
+
+/*---------------------------------------------------------------------------
+   Routine called when the recording imseq wants to send a message.
+   In this case, all we need to handle is the destroy message,
+   so that we can free some memory.
+-----------------------------------------------------------------------------*/
+
+void ISQ_record_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
+{
+ENTRY("ISQ_record_send_CB") ;
+
+   switch( cbs->reason ){
+
+      case isqCR_destroy:{
+         MCW_imseq * pseq = (MCW_imseq *) seq->parent ;
+
+         /* turn off recording in the parent */
+
+         pseq->record_imseq = NULL ;
+         if( pseq->record_imarr != NULL ) DESTROY_IMARR(pseq->record_imarr) ;
+         if( RECORD_ISON(pseq->record_status) ){
+            pseq->record_status = RECORD_STATUS_OFF ;
+            MCW_set_bbox( pseq->record_status_bbox , RECORD_STATUS_OFF ) ;
+            MCW_invert_widget( pseq->record_cbut ) ;
+         }
+
+         /* can now clean out the recording imseq */
+
+         myXtFree(seq->status) ; myXtFree(seq) ;
+      }
+      break ;
+
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void ISQ_record_kill_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq * pseq ;
+   int pos=-1 ;
+
+ENTRY("ISQ_record_kill_CB") ;
+
+   if( !ISQ_REALZ(seq) || !seq->record_mode ) EXRETURN ; /* bad */
+
+   pseq = (MCW_imseq *) seq->parent ;  /* the one driving this recorder */
+
+   if( pseq->record_imarr == NULL ) EXRETURN ; /* bad */
+
+   drive_MCW_imseq( seq , isqDR_getimnr, (XtPointer)&pos ) ; /* where am us? */
+
+   if( pos < 0 || pos >= IMARR_COUNT(pseq->record_imarr) ) EXRETURN ;
+
+   /* empty out the image in the recorded sequence */
+
+   mri_free( IMARR_SUBIM(pseq->record_imarr,pos) ) ;
+   IMARR_SUBIM(pseq->record_imarr,pos) = NULL ;
+
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;  /* show the empty image */
+
+   EXRETURN ;
+}
+
+/*======================================================================*/
 /*----------------------- Sample 2D transformations --------------------*/
+/*======================================================================*/
 
 static float * atemp = NULL ;
 static int    natemp = -666 ;
