@@ -5354,4 +5354,5 @@
  * Further matrix.c changes for BLAS-1 on Solaris.
 
 04 Mar 2005
- * Further matrix.c changes: store as one array, not an array of arrays.
+ * Further matrix.c changes: store as one array, not an array-of-arrays,
+     except on Solaris, where the array-of-array approach is faster(!?).

@@ -101,7 +101,12 @@
    SUBMATVEC(m,v,z): [z] = [z] - [m][v]
 .........................................................................*/
 
-#ifdef SETUP_BLAS2
+#ifdef DONT_USE_MATRIX_MAT
+# undef SETUP_BLAS2
+#endif
+
+#ifdef SETUP_BLAS2  /* doesn't seem to help much */
+
 # define MATVEC(m,v,z) dgemv( TRANSA , (m).cols , (m).rows ,       \
                               1.0 , (m).mat , (m).cols ,           \
                               (v).elts , 1 , 0.0 , (z).elts , 1 )
@@ -141,7 +146,9 @@ void matrix_initialize (matrix * m)
   m->rows = 0;
   m->cols = 0;
   m->elts = NULL;
+#ifndef DONT_USE_MATRIX_MAT
   m->mat  = NULL ;  /* 04 Mar 2005 */
+#endif
 }
 
 
@@ -152,11 +159,19 @@ void matrix_initialize (matrix * m)
 
 void matrix_destroy (matrix * m)
 {
-  if (m->elts != NULL) free (m->elts) ;
+  if (m->elts != NULL){
+#ifdef DONT_USE_MATRIX_MAT
+    int i ;
+    for( i=0 ; i < m->rows ; i++ )
+      if( m->elts[i] != NULL ) free(m->elts[i]) ;
+#endif
+    free(m->elts) ;
+  }
+#ifndef DONT_USE_MATRIX_MAT
   if( m->mat  != NULL) free (m->mat ) ;
+#endif
   matrix_initialize (m);
 }
-
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -165,7 +180,7 @@ void matrix_destroy (matrix * m)
 
 void matrix_create (int rows, int cols, matrix * m)
 {
-  register int i, j;
+  register int i ;
 
   matrix_destroy (m);
 
@@ -180,12 +195,18 @@ void matrix_create (int rows, int cols, matrix * m)
   if (m->elts == NULL)
     matrix_error ("Memory allocation error");
 
+#ifdef DONT_USE_MATRIX_MAT
+  for (i = 0;  i < rows;  i++){
+    m->elts[i] = (double *) calloc (sizeof(double) , cols);
+    if (m->elts[i] == NULL) matrix_error ("Memory allocation error");
+  }
+#else
   m->mat  = (double *) calloc( sizeof(double) , rows*cols ) ;
   if( m->mat == NULL )
     matrix_error ("Memory allocation error");
-
   for (i = 0;  i < rows;  i++)
      m->elts[i] = m->mat + (i*cols) ;   /* 04 Mar 2005: offsets into mat */
+#endif
 }
 
 
