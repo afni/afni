@@ -479,3 +479,6 @@
   * modified SUMA_SurfMeasures.[ch] to add functions:
       'n_avearea_A', 'n_avearea_B', 'n_ntri'
 
+01 March 2004:
+  * fixed mbig.c (was using AFMALL() without #include), left malloc() for speed
+
