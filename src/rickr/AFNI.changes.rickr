@@ -280,3 +280,6 @@
   * modified Makefile.INCLUDE - fix cygwin compile
       - created PROGRAM_EXE targets for Imon.exe, file_tool.exe, 3dresample.exe
 
+20 August 2003:
+  * modified Imon.c (-> v2.12)  - retest errors before reporting them
+

@@ -1,8 +1,15 @@
 
-#define IFM_VERSION "version 2.11 (August 14, 2003)"
+#define IFM_VERSION "version 2.12 (August 20, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.12 August 20, 2003
+ *   - It seems that the GE scanners may write the files for a volume
+ *     out of order.  To handle that possibility, volume_match() will
+ *     re-test any volume for error conditions (separated by sleep()).
+ *     Errors will be reported only if they persist (i.e. the scanner
+ *     is not still working on the volume).
  *
  * 2.11 August 14, 2003
  *   - added '-quit' option
@@ -139,6 +146,7 @@
 /* static function declarations */
 
 static int alloc_x_im          ( im_store_t * is, int bytes );
+static int check_error         ( int * retry, float tr, char * note );
 static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
@@ -665,11 +673,12 @@ static int volume_search(
 */
 static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 {
-    finfo_t * fp;
-    finfo_t * fp_test;
-    float     z;
-    int       count, next_start = -1;
-    int       missing = 0;
+    static int   retry = 1;				/* v2.12 */
+    finfo_t    * fp;
+    finfo_t    * fp_test;
+    float        z;
+    int          count, next_start = -1;
+    int          missing = 0;
 
     if ( vin == NULL || vout == NULL ||
 	 p == NULL || p->flist == NULL || start < 0 )
@@ -695,6 +704,10 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	    fp_test = fp + 1;			       /* check next image */
 	    if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < IFM_EPSILON )
 	    {
+		/* report the error?                v2.12 */
+		if ( !check_error(&retry, vin->geh.tr, "slice out of order") )
+		    return 0;
+
 		/* next slice as expected, so current is out of order */
 		/* nothing to do but warn the user and continue */
 
@@ -705,6 +718,10 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	    else if ( fabs(z + vin->z_delta - fp->geh.zoff) < IFM_EPSILON )
 	    {
 		/* current slice matches next expected - slice missing */
+
+		/* report the error? */
+		if ( !check_error(&retry, vin->geh.tr, "slice missing") )
+		    return 0;
 
 		/* nothing to do but note error, warn user and continue */
 		missing++;
@@ -718,12 +735,16 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	    else	/* unknown error - find start of next volume */
 	    {
 		/* search for a next starting point */
-		next_start = find_next_zoff( p, start+count+1, vin->z_first );
+		next_start = find_next_zoff( p, start+count, vin->z_first );
 
 		if ( next_start < 0 )	/* come back and try again later */
 		    return 0;
 		else
 		{
+		    /* report error? */
+		    if ( !check_error(&retry, vin->geh.tr, "vol toasted") )
+			return 0;
+
 		    IFM_BIG_ERROR_MESG( "volume severely toasted!",
 			    p->fnames[fp->index], z, fp->geh.zoff,
 			    fp->geh.uv17, count + 1, vin->nim );
@@ -736,11 +757,13 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	fp++;
     }
 
-    /* check last slice - count and fp should be okay*/
-    z = vin->z_first + count * vin->z_delta;	      /* note expected z   */
+    z = vin->z_first + count * vin->z_delta;      /* note expected z   */
 
-    if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > IFM_EPSILON) )
+    if ( count >= vin->nim )	/* missed second to last slice */
+        next_start = start + vin->nim - missing;
+    else if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > IFM_EPSILON) )
     {
+	/* check last slice - count and fp should be okay*/
 	if ( (p->nused - start) <= vin->nim )   /* no more images to check */
 	    return 0;                           /* wait for more data      */
 	
@@ -749,16 +772,25 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	{
 	    /* next image starts next run, slice is probably out of order */
 
-	    IFM_BIG_ERROR_MESG( "slice out of order!",
+	    /* report error? */
+	    if ( !check_error(&retry, vin->geh.tr, "last slice out of order") )
+		return 0;
+
+	    IFM_BIG_ERROR_MESG( "last slice out of order!",
 		    p->fnames[fp->index], z, fp->geh.zoff,
 		    fp->geh.uv17, count + 1, vin->nim );
 	}
 	else if ( fabs(vin->z_first - fp->geh.zoff) < IFM_EPSILON )
 	{
 	    /* this image starts next run, slice is missing */
+
+	    /* report error? */
+	    if ( !check_error(&retry, vin->geh.tr, "last slice missing") )
+		return 0;
+
 	    missing++;
 
-	    IFM_BIG_ERROR_MESG( "slice missing!",
+	    IFM_BIG_ERROR_MESG( "last slice missing!",
 		    p->fnames[fp->index], z, fp->geh.zoff,
 		    fp->geh.uv17, count + 1, vin->nim );
 	}
@@ -771,14 +803,24 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 		return 0;
 	    else
 	    {
+		/* report error? */
+		if ( !check_error(&retry, vin->geh.tr, "Vol toasted") )
+		    return 0;
+
 		IFM_BIG_ERROR_MESG( "Volume severely toasted!",
 			p->fnames[fp->index], z, fp->geh.zoff,
 			fp->geh.uv17, count + 1, vin->nim );
 	    }
 	}
     }
-    else if ( next_start < 0)
+
+    if ( next_start < 0)
         next_start = start + vin->nim - missing;
+
+    if ( retry == 0 && gD.level > 0 )			/* v2.12 */
+	fprintf(stderr," (retry OK - no errors)\n");
+
+    retry = 1;				/* next error gets two tries - v2.12 */
 
     /* fill volume structure */
 
@@ -800,6 +842,38 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 	return -1;
     else
 	return 1;
+}
+
+/*----------------------------------------------------------------------
+ * check_error:		only report error on second failure	v2.12
+ *
+ * return:  < 0  : on programming error
+ *            0  : do not report error yet
+ *            1  : report error
+ *----------------------------------------------------------------------
+*/
+static int check_error( int * retry, float tr, char * note )
+{
+    if ( !retry )
+	return -1;
+
+    if ( *retry == 1 )
+    {
+	/* let user know we're checking */
+	if ( gD.level > 0 )
+	    fprintf(stderr," (volume retry test for warning '%s'...)\n",
+		    CHECK_NULL_STR(note));
+
+	*retry = 0;
+	sleep( nap_time_from_tr(tr) );
+	return 0;
+    }
+
+    /* so calling function should print error */
+
+    *retry = 2;
+
+    return 1;
 }
 
 
