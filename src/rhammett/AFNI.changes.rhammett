@@ -1,3 +1,8 @@
+05 May 2003
+   * modified mri_read.c to allow a switch to choose to try DICOM
+     processing last on unknown files.  Set the environment variable
+     AFNI_TRY_DICOM_LAST to YES.
+
 04 Mar 2003
    * modified mri_read_dicom.c to allow to3d to read and process 
      Siemens mosaic files while ignoring seemingly meaningful

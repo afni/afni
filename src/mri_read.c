@@ -962,10 +962,13 @@ ENTRY("mri_read_file") ;
    }
 
    /** failed to read anything?  try DICOM format (doesn't have a fixed suffix) **/
+   /* 05 May 2003 added option to try DICOM last                    KRH          */
 
    if( newar == NULL ){
 
-      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+      if ( !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
+        newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+      }	
 
       /** if DICOM failed, try a 2D slice file, hope for the best **/
 
@@ -975,6 +978,10 @@ ENTRY("mri_read_file") ;
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
+      
+      if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
+        newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+      }	
    }
 
    free(new_fname) ;  /* done with the mangled filename */
@@ -2901,10 +2908,13 @@ MRI_IMARR * mri_read_file_delay( char * fname )
 
    }
 
-   /* failed thus far?  try DICOM */
+   /* failed thus far?  try DICOM, unless user has requested DICOM last */
+   /* 05 May 2003 added option to try DICOM last         KRH          */
 
-   if( newar == NULL )
-      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+      
+   if ((newar == NULL) && !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
+     newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+   }	
 
    /* failed again?  try mri_read() for 1 image */
 
@@ -2914,6 +2924,11 @@ MRI_IMARR * mri_read_file_delay( char * fname )
       INIT_IMARR(newar) ;
       ADDTO_IMARR(newar,newim) ;
    }
+   
+   if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
+     newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+   }	
+
    free(new_fname) ;
    return newar ;
 }
