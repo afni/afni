@@ -1800,6 +1800,13 @@ length.  If you would rather have the program stop if it detects this
 problem (the behavior before 22 Oct 2003), then set this environment
 variable to NO.
 
+---------------------------------
+Variable: AFNI_3dDeconvolve_nodup
+---------------------------------
+If this variable is set to YES, then if the 3dDeconvolve program detects
+duplicate input stimulus filenames or duplicate regressors, the program
+will fail (with an error message) rather than attempt to continue.
+
 -------------------------------
 Variable: AFNI_STROKE_THRESHOLD (editable)
 -------------------------------
