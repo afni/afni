@@ -86,7 +86,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        where TYPE specifies the format of the surface\n"
                "        and PREFIX is, well, the prefix.\n"
                "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
-               "        Default is: -o_ply brainwrap_out\n"
+               "        Default is: -o_ply skull_strip_out\n"
                "        More on that below.\n"
                "     -prefix VOL_PREFIX: prefix of output volumes.\n"
                "        If not specified, the prefix is the same\n"
@@ -159,10 +159,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -no_avoid_eyes: Do not use -avoid_eyes.\n"
                "     -use_skull: Use outer skull to limit expansion of surface into\n"
                "                 the skull due to very strong shading artifacts.\n"
-               "                 Default.\n"
-               "                 Turn this option off (-no_use_skull) if you do not\n"
-               "                 have skull imaged at the top or the sides of the brain.\n"
-               "     -no_use_skull: Do not use -use_skull\n"
+               "                 This option is buggy at the moment, use it only \n"
+               "                 if you have leakage into skull.\n"
+               "     -no_use_skull: Do not use -use_skull (Default).\n"
                "     -send_no_skull: Do not send the skull surface to SUMA if you are\n"
                "                     using  -talk_suma\n" 
                "     -perc_int PERC_INT: Percentage of segments allowed to intersect\n"
@@ -313,7 +312,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    Opt->MaxIntIter = 4;
    Opt->UseExpansion = 1;
    Opt->PercInt = 0;
-   Opt->UseSkull = 1;
+   Opt->UseSkull = 0;
    Opt->send_hull = 1;
    Opt->bot_lztclip = 0.65; /* 0.5 is OK but causes too much leakage below cerebellum in most dsets, 0.65 seems better. 0 if you do not want to use it*/
 	Opt->var_lzt = 1.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
@@ -717,9 +716,9 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    }
    
 
-   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("brainwrap_out");
+   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("skull_strip_out");
    if (!Opt->out_vol_prefix) {
-      if (!Opt->out_prefix) Opt->out_vol_prefix = SUMA_copy_string("brainwrap_out");
+      if (!Opt->out_prefix) Opt->out_vol_prefix = SUMA_copy_string("skull_strip_out");
       else Opt->out_vol_prefix = SUMA_copy_string(Opt->out_prefix);
    }
    
@@ -803,6 +802,9 @@ int main (int argc,char *argv[])
         fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
+      Opt->iset_hand = SUMA_THD_handedness( Opt->iset );
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
+      
       /*--- get median brick --*/
       imin = THD_median_brick( Opt->iset ) ;
       if( imin == NULL ){
@@ -995,6 +997,9 @@ int main (int argc,char *argv[])
          fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_NX, THD_BN_NY, THD_BN_NZ );
          exit(1);
       }
+      Opt->iset_hand = SUMA_THD_handedness( Opt->in_vol );
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
+
    }
    
    
@@ -1122,11 +1127,6 @@ int main (int argc,char *argv[])
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
          isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0, NULL);
-         isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
-         if (!isin_float) {
-            SUMA_SL_Crit("Failed to allocate");
-            exit(1);
-         }
          for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { if (isin[i] <= SUMA_ON_NODE) Opt->dvec[i] = 0; }
          #if 0
             SUMA_SL_Note("Writing hull mask");
