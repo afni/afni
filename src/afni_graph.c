@@ -3069,7 +3069,7 @@ STATUS("allocating new Pixmap") ;
   Deal with keypresses in a graph window
 ------------------------------------------------------------*/
 
-void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
+void GRA_handle_keypress( MCW_grapher *grapher , char *buf , XEvent *ev )
 {
    int ii ;
 

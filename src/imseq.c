@@ -4838,229 +4838,12 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
 
          if( nbuf == 0 || ks > 255 ){
            if( seq->record_mode ){ busy=0; EXRETURN ; }
-           switch( ks ){
-
-             case XK_Left:
-             case XK_KP_Left:
-               seq->arrowpad->which_pressed = AP_LEFT ;
-               seq->arrowpad->xev.type = 0 ;
-               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
-             break ;
-
-             case XK_Right:
-             case XK_KP_Right:
-               seq->arrowpad->which_pressed = AP_RIGHT ;
-               seq->arrowpad->xev.type = 0 ;
-               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
-             break ;
-
-             case XK_Down:
-             case XK_KP_Down:
-               seq->arrowpad->which_pressed = AP_DOWN ;
-               seq->arrowpad->xev.type = 0 ;
-               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
-             break ;
-
-             case XK_Up:
-             case XK_KP_Up:
-               seq->arrowpad->which_pressed = AP_UP ;
-               seq->arrowpad->xev.type = 0 ;
-               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
-             break ;
-
-             case XK_Page_Up:
-             case XK_KP_Page_Up:
-             case XK_Page_Down:
-             case XK_KP_Page_Down:{
-               int nn=seq->im_nr , nt=seq->status->num_total ;
-               if( nt > 1 ){
-                 if( ks==XK_Page_Down || ks==XK_KP_Page_Down ){ nn--; if(nn< 0 ) nn=nt-1; }
-                 else                                         { nn++; if(nn>=nt) nn=0   ; }
-#if 1
-                 ISQ_redisplay( seq , nn , isqDR_display ) ;
-#else
-                 ISQ_set_image_number( seq , nn ) ;
-#endif
-               }
-             }
-             break ;
-
-             case XK_Delete:              /* 20 Feb 2003: drawing undo */
-             case XK_KP_Delete:
-               if( seq->button2_enabled && seq->status->send_CB != NULL ){
-                 ISQ_cbs cbs ;
-                 cbs.reason   = isqCR_button2_key ;
-                 cbs.event    = ev ;
-                 cbs.key      = (int) XK_Delete ;
-#if 0
-                 seq->status->send_CB( seq , seq->getaux , &cbs ) ;
-#else
-                 SEND(seq,cbs) ;
-#endif
-               }
-             break ;
-
-             /* 10 Mar 2003: change cursor state to drawing pencil */
-
-             case XK_F2:{
-               if( !seq->button2_enabled ){
-                 MCW_popup_message( w, " \n Only when \n"
-                                          " Drawing!! \n ", MCW_USER_KILL );
-                 XBell(seq->dc->display,100); busy=0; EXRETURN;
-               }
-
-               ISQ_set_cursor_state( seq ,
-                                     (seq->cursor_state == CURSOR_PENCIL)
-                                     ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
-             }
-             break ;
-
-             case XK_Home:
-             case XK_F3:
-             case XK_F4:
-             case XK_F5:
-             case XK_F6:
-             case XK_F7:
-             case XK_F8:
-             case XK_F9:
-             case XK_F10:
-             case XK_F11:
-             case XK_F12:
-               XBell(seq->dc->display,100) ;
-               MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
-               AFNI_speak( "Ouch!" , 0 ) ;
-           }
+           nbuf = ISQ_handle_keypress( seq , (unsigned long)ks ) ;
            busy=0; EXRETURN ;
          }
 
-         if( buf[0] == '\0' ) break ;                  /* nada */
-
-         /* 07 Dec 2002: modified ad hoc series of if-s into a switch */
-
-         switch( buf[0] ){
-
-           /* 10 Mar 2002: quit if 'q' or 'Q' is pressed */
-
-           case 'q':
-           case 'Q':{
-             ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* 03 Dec 2003: advance picture continuously? */
-
-           case 'v':
-           case 'V':{
-             if( seq->button2_enabled ){
-               MCW_popup_message( w, " \n Not when \n"
-                                        " Drawing! \n ", MCW_USER_KILL );
-               XBell(seq->dc->display,100) ;
-             } else if( seq->status->num_total > 1 ){      /* bring it on */
-               seq->timer_func  = ISQ_TIMERFUNC_INDEX ;
-               seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
-               if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
-               seq->timer_param = (buf[0] == 'v') ? 1 : -1 ;
-               seq->timer_id    =
-                 XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
-                                  seq->timer_delay , ISQ_timer_CB , seq ) ;
-             }
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           case 'r':
-           case 'R':{
-             if( seq->button2_enabled ){
-               MCW_popup_message( w, " \n Not when \n"
-                                        " Drawing! \n ", MCW_USER_KILL );
-               XBell(seq->dc->display,100) ;
-             } else if( seq->status->num_total > 1 ){      /* bring it on */
-               seq->timer_func  = ISQ_TIMERFUNC_BOUNCE ;
-               seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
-               if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
-               seq->timer_param = (buf[0] == 'r') ? 1 : -1 ;
-               seq->timer_id    =
-                 XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
-                                  seq->timer_delay , ISQ_timer_CB , seq ) ;
-             }
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* 07 Dec 2002: scroll forward or backward
-                           using '<' or '>' keys (like graphs) */
-
-           case '>':
-           case '<':{
-             int nn=seq->im_nr , nt=seq->status->num_total ;
-             if( nt > 1 ){
-               if( buf[0] == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
-               else               { nn++; if( nn >= nt) nn = 0   ; }
-#if 1
-               ISQ_redisplay( seq , nn , isqDR_display ) ;
-#else
-               ISQ_set_image_number( seq , nn ) ;
-#endif
-             }
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* 05 Apr 2002: zoom out/in for 'z' or 'Z' */
-
-           case 'z':
-           case 'Z':{
-             int call=0 , zlev=seq->zoom_fac ;
-             if( buf[0] == 'z' && zlev > ZOOM_BOT ){
-               AV_assign_ival( seq->zoom_val_av , zlev-1 ) ; call = 1 ;
-             } else if( buf[0] == 'Z' && zlev < ZOOM_TOP ){
-               AV_assign_ival( seq->zoom_val_av , zlev+1 ) ; call = 1 ;
-             }
-             if( call )
-               ISQ_zoom_av_CB( seq->zoom_val_av , (XtPointer)seq ) ;
-             else
-               XBell(seq->dc->display,100) ;
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* and toggle panning with 'p' or 'P' */
-
-           case 'P':
-           case 'p':{
-             if( seq->zoom_fac > 1 )
-               ISQ_zoom_pb_CB( seq->zoom_drag_pb , (XtPointer)seq , NULL ) ;
-             else
-               XBell(seq->dc->display,100) ;
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* 17 Jun 2002: toggle cropping with 'c' or 'C' */
-
-           case 'c':
-           case 'C':{
-             ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-           /* 17 May 2002: do image fraction */
-
-           case 'i':
-           case 'I':{
-             int iv = seq->arrow[NARR_FRAC]->ival ;
-             if( buf[0] == 'i' )
-               AV_assign_ival( seq->arrow[NARR_FRAC] , iv-1 ) ;
-             else if( buf[0] == 'I' )
-               AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
-             ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
-             busy=0; EXRETURN ;
-           }
-           break ;
-
-         } /* end of switch on character typed */
+         nbuf = ISQ_handle_keypress( seq , (unsigned long)buf[0] ) ;
+         if( nbuf ){ busy=0; EXRETURN; }
 
          /* in special modes (record, Button2, zoom-pan) mode, this is bad */
 
@@ -6646,6 +6429,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_setrange        (float *) points to rng_bot,rng_top
 
+*    isqDR_keypress        (unsigned int) character or KeySym to send
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -7090,6 +6875,15 @@ static unsigned char record_bits[] = {
 
          }
          RETURN( True );
+      }
+      break ;
+
+      /*------- send a simulated key press [18 Feb 2005] -------*/
+
+      case isqDR_keypress:{
+        unsigned int key = (unsigned int)drive_data ;
+        (void )ISQ_handle_keypress( seq , key ) ;
+        RETURN( True );
       }
       break ;
 
@@ -10974,4 +10768,252 @@ ENTRY("ISQ_timer_stop") ;
      XtRemoveTimeOut(seq->timer_id); seq->timer_id = 0;
    }
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Deal with a single keypress in an image viewer window.
+    Return value is 1 if processed OK, 0 if not.
+----------------------------------------------------------------------*/
+
+int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key )
+{
+   static int busy=0 ;   /* prevent recursion */
+
+ENTRY("ISQ_handle_keypress") ;
+
+   ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
+
+   if( busy || key == 0 ) RETURN(1) ;
+   busy = 1 ;
+
+   /* 24 Jan 2003: deal with special function keys */
+
+   if( key > 255 ){
+     KeySym ks = (KeySym)key ;
+     switch( ks ){
+
+       case XK_Left:
+       case XK_KP_Left:
+         seq->arrowpad->which_pressed = AP_LEFT ;
+         seq->arrowpad->xev.type = 0 ;
+         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+       break ;
+
+       case XK_Right:
+       case XK_KP_Right:
+         seq->arrowpad->which_pressed = AP_RIGHT ;
+         seq->arrowpad->xev.type = 0 ;
+         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+       break ;
+
+       case XK_Down:
+       case XK_KP_Down:
+         seq->arrowpad->which_pressed = AP_DOWN ;
+         seq->arrowpad->xev.type = 0 ;
+         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+       break ;
+
+       case XK_Up:
+       case XK_KP_Up:
+         seq->arrowpad->which_pressed = AP_UP ;
+         seq->arrowpad->xev.type = 0 ;
+         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+       break ;
+
+       case XK_Page_Up:
+       case XK_KP_Page_Up:
+       case XK_Page_Down:
+       case XK_KP_Page_Down:{
+         int nn=seq->im_nr , nt=seq->status->num_total ;
+         if( nt > 1 ){
+           if( ks==XK_Page_Down || ks==XK_KP_Page_Down ){ nn--; if(nn< 0 ) nn=nt-1; }
+           else                                         { nn++; if(nn>=nt) nn=0   ; }
+#if 1
+           ISQ_redisplay( seq , nn , isqDR_display ) ;
+#else
+           ISQ_set_image_number( seq , nn ) ;
+#endif
+         }
+       }
+       break ;
+
+       case XK_Delete:              /* 20 Feb 2003: drawing undo */
+       case XK_KP_Delete:
+         if( seq->button2_enabled && seq->status->send_CB != NULL ){
+           ISQ_cbs cbs ;
+           cbs.reason   = isqCR_button2_key ;
+           cbs.key      = (int) XK_Delete ;
+#if 0
+           seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+           SEND(seq,cbs) ;
+#endif
+         }
+       break ;
+
+       /* 10 Mar 2003: change cursor state to drawing pencil */
+
+       case XK_F2:{
+         if( !seq->button2_enabled ){
+           MCW_popup_message( seq->wimage,
+                              " \n Only when \n"
+                              " Drawing!! \n ", MCW_USER_KILL );
+           XBell(seq->dc->display,100); busy=0; RETURN(0);
+         }
+
+         ISQ_set_cursor_state( seq ,
+                               (seq->cursor_state == CURSOR_PENCIL)
+                               ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
+       }
+       break ;
+
+       default:
+       case XK_Home:
+       case XK_F3:
+       case XK_F4:
+       case XK_F5:
+       case XK_F6:
+       case XK_F7:
+       case XK_F8:
+       case XK_F9:
+       case XK_F10:
+       case XK_F11:
+       case XK_F12:
+         XBell(seq->dc->display,100) ;
+         MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL );
+         AFNI_speak( "Ouch!" , 0 ) ;
+     }
+     busy=0; RETURN(1) ;
+   }
+
+         /* 07 Dec 2002: modified ad hoc series of if-s into a switch */
+
+   switch( key ){
+
+     /* 10 Mar 2002: quit if 'q' or 'Q' is pressed */
+
+     case 'q':
+     case 'Q':{
+       ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+     /* 03 Dec 2003: advance picture continuously? */
+
+     case 'v':
+     case 'V':{
+       if( seq->button2_enabled ){
+         MCW_popup_message( seq->wimage,
+                               " \n Not when \n"
+                               " Drawing! \n ", MCW_USER_KILL );
+         XBell(seq->dc->display,100) ;
+       } else if( seq->status->num_total > 1 ){      /* bring it on */
+         seq->timer_func  = ISQ_TIMERFUNC_INDEX ;
+         seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+         if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
+         seq->timer_param = (key == 'v') ? 1 : -1 ;
+         seq->timer_id    =
+           XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
+                            seq->timer_delay , ISQ_timer_CB , seq ) ;
+       }
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+     case 'r':
+     case 'R':{
+       if( seq->button2_enabled ){
+         MCW_popup_message( seq->wimage,
+                              " \n Not when \n"
+                              " Drawing! \n ", MCW_USER_KILL );
+         XBell(seq->dc->display,100) ;
+       } else if( seq->status->num_total > 1 ){      /* bring it on */
+         seq->timer_func  = ISQ_TIMERFUNC_BOUNCE ;
+         seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+         if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
+         seq->timer_param = (key == 'r') ? 1 : -1 ;
+         seq->timer_id    =
+           XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
+                            seq->timer_delay , ISQ_timer_CB , seq ) ;
+       }
+       busy=0; EXRETURN ;
+     }
+     break ;
+
+     /* 07 Dec 2002: scroll forward or backward
+                     using '<' or '>' keys (like graphs) */
+
+     case '>':
+     case '<':{
+       int nn=seq->im_nr , nt=seq->status->num_total ;
+       if( nt > 1 ){
+         if( key == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
+         else               { nn++; if( nn >= nt) nn = 0   ; }
+#if 1
+         ISQ_redisplay( seq , nn , isqDR_display ) ;
+#else
+         ISQ_set_image_number( seq , nn ) ;
+#endif
+       }
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+     /* 05 Apr 2002: zoom out/in for 'z' or 'Z' */
+
+     case 'z':
+     case 'Z':{
+       int call=0 , zlev=seq->zoom_fac ;
+       if( key == 'z' && zlev > ZOOM_BOT ){
+         AV_assign_ival( seq->zoom_val_av , zlev-1 ) ; call = 1 ;
+       } else if( key == 'Z' && zlev < ZOOM_TOP ){
+         AV_assign_ival( seq->zoom_val_av , zlev+1 ) ; call = 1 ;
+       }
+       if( call )
+         ISQ_zoom_av_CB( seq->zoom_val_av , (XtPointer)seq ) ;
+       else
+         XBell(seq->dc->display,100) ;
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+     /* and toggle panning with 'p' or 'P' */
+
+     case 'P':
+     case 'p':{
+       if( seq->zoom_fac > 1 )
+         ISQ_zoom_pb_CB( seq->zoom_drag_pb , (XtPointer)seq , NULL ) ;
+       else
+         XBell(seq->dc->display,100) ;
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+     /* 17 Jun 2002: toggle cropping with 'c' or 'C' */
+
+     case 'c':
+     case 'C':{
+       ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+           /* 17 May 2002: do image fraction */
+
+     case 'i':
+     case 'I':{
+       int iv = seq->arrow[NARR_FRAC]->ival ;
+       if( key == 'i' )
+         AV_assign_ival( seq->arrow[NARR_FRAC] , iv-1 ) ;
+       else if( key == 'I' )
+         AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
+       ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
+       busy=0; RETURN(1) ;
+     }
+     break ;
+
+   } /* end of switch on character typed */
+
+   busy=0; RETURN(0);
 }
