@@ -271,5 +271,8 @@
   * modified Imon (-> v2.10): added '-sp SLICE_PATTERN' option
 
 14 August 2003:
-  * modified Imon.[ch], realtime.h: added -quit option
+  * modified Imon.[ch], realtime.h:
+      - added '-quit' option
+      - allow both 'I.*' and 'i.*' filenames
+      
 

@@ -8,6 +8,7 @@
  *   - added '-quit' option
  *   - changed CHECK_NULL_STR() output to (NULL) (to see when used)
  *   - change exit status to 0 (why the heck did I use 1??)
+ *   - allow I.* or i.* filename expansions
  *
  * 2.10 August 5, 2003
  *   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)
@@ -1422,7 +1423,8 @@ int dir_expansion_form( char * sin, char ** sexp )
 
     *cp++ = d2;					/* insert final digit */
 
-    strcpy( cp, "/I.*" );			/* the big finish */
+    /* allow either I.* or i.*  - v2.11 */
+    strcpy( cp, "/[Ii].*" );			/* the big finish */
 
     return 0;
 }
