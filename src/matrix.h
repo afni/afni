@@ -353,3 +353,4 @@ double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
 void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2004 */
 
 double get_matrix_flops(void) ;
+double get_matrix_dotlen(void) ;
