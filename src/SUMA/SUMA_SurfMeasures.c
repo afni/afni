@@ -1,5 +1,5 @@
 
-#define VERSION "version 0.3 (November 14, 2003)"
+#define VERSION "version 0.5 (November 19, 2003)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -31,8 +31,7 @@
 /*----------------------------------------------------------------------
  * history
  *
- * 0.3 November 14, 2003
- *   - wokring on 'usage' for initial release
+ * 0.5 November 19, 2003
  *----------------------------------------------------------------------
 */
 
@@ -40,7 +39,7 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - full usage
+ * - update volume computation 
  * - add '-node_mask' option?  -cmask?
  * - '-no_nodes' option?  remove "nodes" as default?
  *----------------------------------------------------------------------
@@ -60,10 +59,22 @@ SUMA_DO            * SUMAg_DOv = NULL;  /* array of Displayable Objects */
 int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
-/* this must match smeasure_codes_e enum */
+/* these must match smeasure_codes_e enum */
 char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
-			"coord_A", "coord_B", "n_area_A", "n_area_B", "nodes",
-			"node_vol", "thick" };
+			"coord_A", "coord_B", "n_area_A", "n_area_B",
+			"node_vol", "nodes", "thick" };
+
+char * g_sm_desc[] = { "invalid function",
+    		       "angular difference between normals",
+		       "angular diff between segment and first norm",
+		       "angular diff between segment and second norm",
+		       "xyz coordinates of node on first surface",
+		       "xyz coordinates of node on second surface",
+		       "associated node area on first surface",
+		       "associated node area on second surface",
+		       "associated node volume between surfaces",
+		       "node number",
+		       "distance between surfaces along segment" };
 
 /*----------------------------------------------------------------------*/
 
@@ -528,6 +539,175 @@ ENTRY("get_surf_measures");
 	if ( compute_node_areas(opts, p, 1) != 0 )  /* index 1 */
 	    RETURN(-1);
     }
+
+    if( geta && getb )
+    {
+	if ( surf_triangle_match(opts, p) != 0 )
+	    RETURN(-1);
+	if ( test_planar_sides(opts, p) < 0 )
+	    RETURN(-1);
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * surf_triangles_match	- check that the trangle lists match 
+ *----------------------------------------------------------------------
+*/
+int surf_triangle_match( opts_t * opts, param_t * p )
+{
+    int   face, maxf;
+    int * f0, * f1;
+
+ENTRY("surf_triangle_match");
+
+    f0 = p->S.slist[0]->FaceSetList;
+    f1 = p->S.slist[1]->FaceSetList;
+
+    maxf = p->S.slist[0]->N_FaceSet * 3;
+
+    if ( !f0 || !f1 || maxf <= 0 )
+    {
+	fprintf(stderr,"** stm: bad face data (%p, %p, %d)\n", f0, f1, maxf);
+	RETURN(-1);
+    }
+
+    for ( face = 0; face < maxf; face++ )
+    {
+	if (*f0 != *f1 )
+	{
+	    fprintf(stderr,"** face diff @ f3 = %d, *f0,*f1 = (%d,%d)\n",
+		    face, *f0, *f1);
+	    RETURN(-1);
+	}
+	f0++;  f1++;
+    }
+
+    if ( opts->debug > 1 )
+	fprintf(stderr,"-- faces okay, woohoo!\n");
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * test_planar_sides	- check that all pentahedra have planar sides
+ *----------------------------------------------------------------------
+*/
+int test_planar_sides( opts_t * opts, param_t * p )
+{
+    SUMA_SurfaceObject    * so;
+    float                 * nodes0, * nodes1;
+    float                   p1, p2, p3, max, mold;
+    int                     a, b, c, mcount;
+    int                     face, nfaces;
+    int                   * flist;
+
+ENTRY("test_planar_sides");
+
+    flist  = p->S.slist[0]->FaceSetList;
+    nfaces = p->S.slist[1]->N_FaceSet;
+
+    nodes0 = p->S.slist[0]->NodeList;
+    nodes1 = p->S.slist[1]->NodeList;
+
+    if ( !flist || !nodes0 || !nodes1 || nfaces <= 0 )
+    {
+	fprintf(stderr,"** tps: bad face or node data (%p, %p, %p, %d)\n",
+		flist, nodes0, nodes1, nfaces);
+	RETURN(-1);
+    }
+
+    max    = 0.0;
+    mold   = 1.0;		/* basic cutoff  */
+    mcount = 0;			/* count updates */
+    for ( face = 0; face < nfaces; face++ )
+    {
+	a = flist[0] * 3;		/* get the indices into NodeList */
+	b = flist[1] * 3;
+	c = flist[2] * 3;
+
+	p1 = eval_planar_points(nodes0+a, nodes0+b, nodes1+a, nodes1+b);
+	p2 = eval_planar_points(nodes0+b, nodes0+c, nodes1+b, nodes1+c);
+	p3 = eval_planar_points(nodes0+c, nodes0+a, nodes1+c, nodes1+a);
+	if (p1 > max) max = p1;
+	if (p2 > max) max = p2;
+	if (p3 > max) max = p3;
+
+	if ( max > mold )
+	{
+	    mcount++;
+	    if ( opts->debug > 2 )
+	    {
+		fprintf(stderr,"** new max (%d) for face %d, m = %f, m0 = %f\n",
+			mcount, face, max, mold );
+		disp_f3_point("  a0 = ", nodes0+a);
+		disp_f3_point("  b0 = ", nodes0+b);
+		disp_f3_point("  c0 = ", nodes0+c);
+		disp_f3_point("  a1 = ", nodes1+a);
+		disp_f3_point("  b1 = ", nodes1+b);
+		disp_f3_point("  c1 = ", nodes1+c);
+	    }
+	    mold = max*1.5;
+	}
+
+	flist += 3;
+    }
+
+    if ( max > 1.0 )	/* rcr - what test to use? */
+	RETURN(1);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * planar_points		- check whether points are co-planer
+ *
+ * return 0 if false
+ *----------------------------------------------------------------------
+*/
+float eval_planar_points( float * a, float * b, float * c, float * d )
+{
+ENTRY("planar_points");
+
+    double d0[3], d1[3], d2[3];
+    double xp[3];
+    double result;
+
+    d0[0] = c[0] - a[0];
+    d0[1] = c[1] - a[1];
+    d0[2] = c[2] - a[2];
+
+    d1[0] = b[0] - a[0];
+    d1[1] = b[1] - a[1];
+    d1[2] = b[2] - a[2];
+
+    d2[0] = d[0] - c[0];
+    d2[1] = d[1] - c[1];
+    d2[2] = d[2] - c[2];
+
+    cross_product(xp, d1, d2);
+
+    result = d0[0]*xp[0] + d0[1]*xp[1] + d0[2]*xp[2];
+
+    RETURN(fabs(result));
+}
+
+
+/*----------------------------------------------------------------------
+ * cross_product		- return the cross product of u and v
+ *----------------------------------------------------------------------
+*/
+int cross_product( double * res, double * u, double * v )
+{
+ENTRY("cross_product");
+
+    res[0] = u[1]*v[2] - u[2]*v[1];
+    res[1] = u[2]*v[0] - u[0]*v[2];
+    res[2] = u[0]*v[1] - u[1]*v[0];
 
     RETURN(0);
 }
@@ -1035,6 +1215,7 @@ ENTRY("validate_option_lists");
 */
 int usage( char * prog, int use_type )
 {
+    int c;
 
 ENTRY("usage");
 
@@ -1045,6 +1226,180 @@ ENTRY("usage");
     }
     else if ( use_type == ST_USE_LONG )
     {
+	printf(
+	    "\n"
+	    "%s - compute measures from the surface dataset(s)\n"
+	    "\n"
+	    "  usage: %s [options] -spec SPEC_FILE -out_1D OUTFILE.1D\n"
+	    "\n"
+	    "    This program is meant to read in a surface or surface pair,\n"
+	    "    and to output and user-requested measures over the surfaces.\n"
+	    "    The surfaces must be specified in the SPEC_FILE, with their\n"
+	    "    MappingRef set to SAME:\n"
+	    "\n"
+	    "        MappingRef = SAME\n"
+	    "\n"
+	    "    The output will be a 1D format text file, with one column\n"
+	    "    (or possibly 3) per user-specified measure function.  Some\n"
+	    "    functions require only 1 surface, some require 2.\n"
+	    "\n"
+	    "    Current functions (applied with '-func') include:\n"
+	    "\n",
+	    prog, prog );
+
+	/* display current list of measures */
+	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ )
+	    printf( "        %-10s : %s\n", g_sm_names[c], g_sm_desc[c]);
+
+	printf(
+	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
+	    "  examples:\n"
+	    "\n"
+	    "    1. For each node on the single (directly mappable) surface\n"
+	    "       in the spec file fred.spec, output the node number (the\n"
+	    "       default action), the xyz coordinates, and the area\n"
+	    "       associated with the node (1/3 of the total area of\n"
+	    "       triangles having that node as a vertex).\n"
+	    "\n"
+	    "        %s                                   \\\n"
+	    "            -spec       fred1.spec                     \\\n"
+	    "            -func       coord_A                        \\\n"
+	    "            -func       n_area_A                       \\\n"
+	    "            -out_1D     fred1_areas.1D                 \\\n"
+	    "\n"
+	    "    2. For each node of the surface pair, display the:\n"
+	    "         o  node index\n"
+	    "         o  node's area from the first surface\n"
+	    "         o  node's area from the second surface\n"
+	    "         o  node's (approximate) resulting volume\n"
+	    "         o  thickness at that node (segment distance)\n"
+	    "         o  coordinates of the first segment node\n"
+	    "         o  coordinates of the second segment node\n"
+	    "\n"
+	    "         Additionally, diplay some approximate volume results\n"
+	    "         for the entire cortical ribbon.\n"
+	    "\n"
+	    "        %s                                   \\\n"
+	    "            -spec       fred2.spec                     \\\n"
+	    "            -func       n_area_A                       \\\n"
+	    "            -func       n_area_B                       \\\n"
+	    "            -func       node_vol                       \\\n"
+	    "            -func       thick                          \\\n"
+	    "            -func       coord_A                        \\\n"
+	    "            -func       coord_B                        \\\n"
+	    "            -total_vol                                 \\\n"
+	    "            -out_1D     fred2_vol.1D                   \\\n"
+	    "\n"
+	    "    3. For each node of the surface pair, display the:\n"
+	    "         o  node index\n"
+	    "         o  angular diff between the first and second norms\n"
+	    "         o  angular diff between the segment and first norm\n"
+	    "         o  angular diff between the segment and second norm\n"
+	    "\n"
+	    "        %s                                   \\\n"
+	    "            -spec       fred2.spec                     \\\n"
+	    "            -func       ang_norms                      \\\n"
+	    "            -func       ang_ns_A                       \\\n"
+	    "            -func       ang_ns_B                       \\\n"
+	    "            -out_1D     fred2_norm_angles.1D           \\\n"
+	    "\n"
+	    "    4. Same as #3, but also output extra debug info and in\n"
+	    "       particular, info regarding node 5000.\n"
+	    "\n"
+	    "        %s                                   \\\n"
+	    "            -spec       fred2.spec                     \\\n"
+	    "            -func       ang_norms                      \\\n"
+	    "            -func       ang_ns_A                       \\\n"
+	    "            -func       ang_ns_B                       \\\n"
+	    "            -debug      2                              \\\n"
+	    "            -dnode      5000                           \\\n"
+	    "            -out_1D     fred2_norm_angles.1D           \\\n"
+	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
+	    "  REQUIRED COMMAND ARGUMENTS:\n"
+	    "\n"
+	    "    -spec SPEC_FILE       : SUMA spec file\n"
+	    "\n"
+	    "        e.g. -spec fred2.spec\n"
+	    "\n"
+	    "        The surface specification file contains a list of\n"
+	    "        related surfaces.  In order for a surface to be\n"
+	    "        processed by this program, it must be its own mapping\n"
+	    "        reference.\n"
+	    "\n"
+	    "            MappingRef = SAME\n"
+	    "\n"
+	    "        See @SUMA_Make_Spec_FS for more information.\n"
+	    "\n"
+	    "    -out_1D OUT_FILE.1D   : 1D output filename\n"
+	    "\n"
+	    "        e.g. -out_1D pickle_norm_info.1D\n"
+	    "\n"
+	    "        This option is used to specify the name of the output\n"
+	    "        file.  The output file will be in the 1D ascii format,\n"
+	    "        with 2 rows of comments for column headers, and 1 row\n"
+	    "        for each node index.\n"
+	    "\n"
+	    "        There will be 1 or 3 columns per '-func' option, with\n"
+	    "        a default of 1 for \"nodes\".\n"
+	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
+	    "  ALPHABETICAL LISTING OF OPTIONS:\n"
+	    "\n"
+	    "    -debug LEVEL          : display extra run-time info\n"
+	    "\n"
+	    "        e.g.     -debug 2\n"
+	    "        default: -debug 0\n"
+	    "\n"
+	    "    -dnode NODE           : display extra info for node NODE\n"
+	    "\n"
+	    "        e.g. -dnode 5000\n"
+	    "\n"
+	    "        This option can be used to display extra information\n"
+	    "        about node NODE during surface evaluation.\n"
+	    "\n"
+	    "    -func FUNCTION        : request output for FUNCTION\n"
+	    "\n"
+	    "        e.g. -func thick\n"
+	    "\n"
+	    "        This option is used to request output for the given\n"
+	    "        FUNCTION (measure).  Some measures produce one column\n"
+	    "        of output (e.g. thick or ang_norms), and some produce\n"
+	    "        three (e.g. coord_A).  These options, in the order they\n"
+	    "        are given, determine the structure of the output file.\n"
+	    "\n"
+	    "        Current functions include:\n"
+	    "\n",
+	    prog, prog, prog, prog );
+
+	/* display current list of measures */
+	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ )
+	    printf( "            %-10s : %s\n", g_sm_names[c], g_sm_desc[c]);
+
+	printf(
+	    "\n"
+	    "    -help                 : show this help menu\n"
+	    "\n"
+	    "    -sv SURF_VOLUME       : specify an associated AFNI volume\n"
+	    "\n"
+	    "        e.g. -sv fred_anat+orig\n"
+	    "\n"
+	    "        If there is any need to know the orientaion of the\n"
+	    "        surface, a surface volume dataset may be provided.\n"
+	    "\n"
+	    "    -ver                  : show version information\n"
+	    "\n"
+	    "        Show version and compile date.\n"
+	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
+	    "  Author: R. Reynolds  - %s\n"
+	    "\n",
+	    VERSION );
     }
     else if ( use_type == ST_USE_VERSION )
     {
@@ -1075,6 +1430,12 @@ ENTRY("check_func_name");
     if ( sizeof(g_sm_names)/sizeof(char *) != (int)E_SM_FINAL )
     {
 	fprintf(stderr,"** error: g_sm_names mis-match\n");
+	RETURN(E_SM_INVALID);
+    }
+
+    if ( sizeof(g_sm_desc)/sizeof(char *) != (int)E_SM_FINAL )
+    {
+	fprintf(stderr,"** error: g_sm_desc mis-match\n");
 	RETURN(E_SM_INVALID);
     }
 
