@@ -811,3 +811,31 @@
   * modified Makefile.INCLUDE, adding list_struct.o to CS_OBJS
   * modified vol2surf.c, changing float_list to float_list_t
 
+10 December 2004:   added header extensions to nifti library
+  * in nifti1_io.h:
+      - added num_ext and ext_list to the definition of nifti_image
+      - made many functions static (more to follow)
+      - added LNI_MAX_NIA_EXT_LEN, for max nifti_type 3 extension length
+  * added __DATE__ to version output in nifti_disp_lib_version()
+  * added nifti_disp_matrix_orient() to print orientation information
+  * added '.nia' as a valid file extension in nifti_find_file_extension()
+  * added much more debug output
+  * in nifti_image_read(), in the case of an ASCII header, check for
+  * extensions after the end of the header
+  * added nifti_read_extensions() function
+  * added nifti_read_next_extension() function
+  * added nifti_add_exten_to_list() function
+  * added nifti_valid_extension() function
+  * added nifti_write_extensions() function
+  * added nifti_extension_size() function
+  * in nifti_set_iname_offest():
+      - adjust offset by the extension size and the extender size
+      - fixed the 'ceiling modulo 16' computation
+  * in nifti_image_write_hdr_img2():
+      - added extension writing
+      - check for NULL return from nifti_findimgname()
+  * include number of extensions in nifti_image_to_ascii() output
+  * in nifti_image_from_ascii():
+      - return bytes_read as a parameter, computed from the final spos
+      - extract num_ext from ASCII header
+

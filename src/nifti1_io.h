@@ -112,6 +112,9 @@ typedef struct {                  /** Image storage struct **/
   int   byteorder ;               /* byte order on disk (MSB_ or LSB_FIRST) */
   void *data ;                    /* pointer to data: nbyper*nvox bytes */
 
+  int                num_ext ;    /* number of extensions in ext_list */
+  nifti1_extension * ext_list ;   /* array of extension structures (with data)*/
+
 } nifti_image ;
 
 /*****************************************************************************/
@@ -153,9 +156,10 @@ void         nifti_image_infodump( nifti_image *nim ) ;
 
 void         nifti_disp_lib_hist( void ) ;     /* to display library history */
 void         nifti_disp_lib_version( void ) ;  /* to display library version */
+int          nifti_disp_matrix_orient( char * mesg, mat44 mat );
 
 char *       nifti_image_to_ascii  ( nifti_image *nim ) ;
-nifti_image *nifti_image_from_ascii( char *str        ) ;
+nifti_image *nifti_image_from_ascii( char *str, int * bytes_read ) ;
 
 size_t       nifti_get_volsize(nifti_image *nim) ;
 
@@ -203,23 +207,33 @@ void mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod ) ;
 
 /*--------------------- Low level IO routines ------------------------------*/
 
-char *       nifti_makebasename(char* fname);
-int          nifti_is_gzfile(char* fname);
-char *       nifti_findhdrname(char* fname);
-char *       nifti_findimgname(char* fname , int nifti_type);
+static char * nifti_findhdrname (char* fname);
+static char * nifti_findimgname (char* fname , int nifti_type);
+static int    nifti_is_gzfile   (char* fname);
 
-size_t       nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot, nifti_image *nim);
-size_t       nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
-void         nifti_write_all_data(znzFile fp, nifti_image *nim);
+char * nifti_makebasename(char* fname);
 
-    /* write header and optionally close header file and/or write img file */
-    /* control behaviour with write_data mode value (can be 0,1,2,3) */
-znzFile      nifti_image_write_hdr_img(nifti_image *nim , int write_data , 
-				       char* opts);
-znzFile      nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
-					 char* opts, znzFile *imgfile );
+/* extension routines */
+static int nifti_read_extensions( nifti_image *nim, znzFile fp );
+static int nifti_read_next_extension( nifti1_extension * nex,
+                                      nifti_image *nim, znzFile fp );
+static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                                    nifti1_extension ** list, int new_length );
+static int nifti_write_extensions(znzFile fp, nifti_image *nim);
+static int nifti_valid_extension( nifti_image *nim, int size, int code );
 
-znzFile      nifti_image_open(char *hname , char *opts , nifti_image **nim);
+/* internal I/O routines */
+static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data , 
+                                         char* opts);
+static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
+                                           char* opts, znzFile *imgfile );
+static znzFile nifti_image_open(char *hname , char *opts , nifti_image **nim);
+static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
+                                nifti_image *nim);
+
+static void   nifti_write_all_data(znzFile fp, nifti_image *nim);
+static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
+
 
 nifti_image *          nifti_copy_nim_info(nifti_image* src);
 nifti_image *          nifti_simple_init_nim();
@@ -262,6 +276,7 @@ void                   nifti_set_iname_offset(nifti_image *nim);
 #define MSB_FIRST 2
 #define REVERSE_ORDER(x) (3-(x))    /* convert MSB_FIRST <--> LSB_FIRST */
 
+#define LNI_MAX_NIA_EXT_LEN 100000  /* consider a longer extension invalid */
 /*=================*/
 #ifdef  __cplusplus
 }
