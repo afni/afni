@@ -1156,11 +1156,15 @@ int main( int argc , char * argv[] )
 
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
-   if( GLOBAL_argopt.xtwarns == False )
-     (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
+   /* disable X11 and Xt error messages and crashes (we hope) */
 
    (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
    (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
+
+   if( GLOBAL_argopt.xtwarns == False )
+     (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
+
+   /* FIM background threshold */
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){
@@ -1168,6 +1172,8 @@ int main( int argc , char * argv[] )
         if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
      }
    }
+
+   /* locking? */
 
    if( AFNI_yesenv("AFNI_ALWAYS_LOCK") ){
       for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
