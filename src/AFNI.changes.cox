@@ -5176,3 +5176,5 @@
 12 Aug 2004
  * Modified Deconvolve.c and 3dDeconvolve.c to remove mean from baseline
      timeseries if polort>0, and -nodmbase option is not given.
+ * 3dDeconvolve saga: Generate response vectors from stimulus timing and
+     user-specified model.
