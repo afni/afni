@@ -827,7 +827,7 @@ static THD_warp tempA_warp ;  /* temporary warp */
 /*! \brief Contains information about where/how dataset is stored on disk
      The filenames in this structure are really path names
      (that is, they have the directory name prependend).
-/*
+*/
 
 typedef struct {
       int type ;                           /*!< must be DISKPTR_TYPE */

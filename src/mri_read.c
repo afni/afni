@@ -33,31 +33,37 @@ MRI_IMAGE *mri_try_mri( FILE * , int * ) ;
 MRI_IMAGE *mri_try_7D ( FILE * , int * ) ;
 MRI_IMAGE *mri_try_pgm( FILE * , int * ) ;
 
-/*-----------------------------------------------------------------
-  database of preset sizes to get formatting
-  information for reading with 3D prefixes:
-    size   = file size in bytes if head < 0
-               image size in bytes if head >= 0
-    head   = global header size if >=0
-    prefix = character string to prefix to filename
+/*-----------------------------------------------------------------*/
 
-  if( head < 0 ) then file length must match size
+/*! \brief Database of preset file sizes for auto-use of 3D.
+
+  If( head < 0 ) then file length must match size
   else file length must == n*size + head for some
        integer n, which will be the number of slices
        to read from the file.
--------------------------------------------------------------------*/
+*/
 
 typedef struct {
-   int size , head ;
-   char * prefix ;
+   int size ;       /*!< file size in bytes if head < 0; image size in bytes if head >= 0 */
+   int head ;       /*!< global header size if >= 0 */
+   char * prefix ;  /*!< character string to prefix to filename */
 } MCW_imsize ;
+
+/*! \brief Max number of preset file sizes to allow. */
 
 #define MAX_MCW_IMSIZE 99
 
+/*! \brief Array of preset file sizes to use when reading image files. */
+
 static MCW_imsize imsize[MAX_MCW_IMSIZE] ;
-static int MCW_imsize_good = -1 ;           /* < 0 ==> must initialize */
+
+/*! \brief If this < 0 ==> must initialize. */
+
+static int MCW_imsize_good = -1 ;
 
 /*---------------------------------------------------------------*/
+
+/*! \brief Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
 
 static void swap_4(void *ppp)
 {
@@ -69,6 +75,8 @@ static void swap_4(void *ppp)
 }
 
 /*---------------------------------------------------------------*/
+
+/*! \brief Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
 
 static void swap_8(void *ppp)
 {
@@ -85,6 +93,8 @@ static void swap_8(void *ppp)
 
 /*---------------------------------------------------------------*/
 
+/*! \brief Swap the 2 bytes pointed to by ppp: ab -> ba. */
+
 static void swap_2(void *ppp)
 {
    unsigned char *pntr = (unsigned char *) ppp ;
@@ -95,6 +105,13 @@ static void swap_2(void *ppp)
 }
 
 /******************************************************************/
+
+/*! \brief Earliest image reading function.
+
+    \param  fname is the name of the file to try to read
+    \return is NULL if an image couldn't be read, otherwise it
+            is a pointer to an MRI_IMAGE with data, etc.
+*/
 
 MRI_IMAGE *mri_read( char *fname )
 {
@@ -428,6 +445,9 @@ Ready_To_Roll:
      buf[nch]='\0';                                                        \
      var = strtol( buf , NULL , 10 ) ; }
 #else
+
+/*! \brief Skip comments in a PPM file */
+
 #define SKIPCOM                                                            \
     {if(ch == '#') do{ch = getc(imfile) ;}while(ch != '\n' && ch != EOF);}
 
