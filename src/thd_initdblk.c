@@ -284,8 +284,9 @@ ENTRY("THD_datablock_from_atr") ;
        fprintf(stderr,"*** Unknown %s found in dataset %s\n",
                ATRNAME_BYTEORDER , MYHEAD ) ;
 
-   } else if( !no_ordwarn &&
-              DBLK_BRICK_TYPE(dblk,0) != MRI_byte ){ /* 20 Sep 1999 */
+   } else if( !no_ordwarn                         &&
+              DBLK_BRICK_TYPE(dblk,0) != MRI_byte &&
+              dblk->diskptr->storage_mode == STORAGE_BY_BRICK ){ /* 20 Sep 1999 */
 
      static int first=1 ;
      if( first ){
