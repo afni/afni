@@ -947,7 +947,7 @@ SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
    level 2 means extended family (share a grandparent, ultimately this could be the grand icosahedron duc
                                  Surfaces must be the of the same hemi side since both hemispheres can have
                                  the same grandparent, use level 3 if you want to go across hemis.)
-   level 3 is like level with no care for what side of the brain we're working with
+   level 3 is like level 2 with no care for what side of the brain we're working with
    For more definitions on relationships:
    
    \sa SUMA_WhatAreYouToMe

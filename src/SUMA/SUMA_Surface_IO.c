@@ -2778,7 +2778,7 @@ int main (int argc,char *argv[])
    sprintf (out_f_name , "copy_%s", SO->Label);   
    fprintf (SUMA_STDERR,"%s: Success apparent. Now writing SO to %s\n", FuncName, out_f_name);
    if (!SUMA_Ply_Write (out_f_name, SO)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Write.\n", FuncName);
       exit (1);
    } 
       

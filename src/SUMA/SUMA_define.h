@@ -402,6 +402,8 @@ typedef struct {
    SUMA_WIDGET_INDEX_COORDBIAS DoBias;  /*!< use coordinate bias */
    float CoordBiasRange[2]; /*!< Same as IntRange but for brightness modulating column */
    float *BiasVect; /*!< A vector of values to add to the coordinates of the mesh */
+   int AutoIntRange;
+   int AutoBrtRange;
 } SUMA_SCALE_TO_MAP_OPT;
 
 /*! Structure containing one color overlay */
@@ -1012,8 +1014,8 @@ typedef struct {
    Widget Thr_tb;
    Widget Brt_tb;
    Widget CmapLoad_pb;
-   int AutoIntRange;
-   int AutoBrtRange;
+   int IntRangeLocked;
+   int BrtRangeLocked;
 }SUMA_X_SurfCont;
 
 typedef struct {
