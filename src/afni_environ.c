@@ -43,14 +43,14 @@ char * AFNI_suck_file( char * fname )
 
 #define EOLSKIP                                                          \
   do{ for( ; fptr[0] != '\n' && fptr[0] != '\0' ; fptr++ ) ; /* nada */  \
-      if( fptr[0] == '\0' ){ free(fbuf) ; return ; }                     \
+      if( fptr[0] == '\0' ) goto done ;                                  \
       fptr++ ; } while(0)
 
 #define GETSSS                                                            \
   do{ int nu=0,qq;                                                        \
-      if( fptr-fbuf >= nbuf || fptr[0] == '\0' ){ free(fbuf); return; }   \
+      if( fptr-fbuf >= nbuf || fptr[0] == '\0' ) goto done ;              \
       str[0]='\0'; qq=sscanf(fptr,"%127s%n",str,&nu); nused+=nu;fptr+=nu; \
-      if( str[0]=='\0' || qq==0 || nu==0 ){ free(fbuf); return; }         \
+      if( str[0]=='\0' || qq==0 || nu==0 ) goto done ;                    \
     } while(0)
 
 #define GETSTR                                                            \
@@ -145,6 +145,7 @@ ENTRY("AFNI_process_environ") ;
 
    }  /* end of while loop */
 
+ done:
    free(fbuf) ; EXRETURN ;
 }
 

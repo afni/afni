@@ -768,9 +768,22 @@ void segment_envelope
 
   int nx, ny, nz, nxy, nxz, nyz, nxyz;     /* dataset dimensions in voxels */
   int ix, jy, kz, ixy, ixz, iyz, ixyz;     /* voxel indices */
-  
+
+  /* 24 Mar 2004: on Mac OS X, the compiler generates incorrect code
+                  for these large arrays when optimization is turned on;
+                  instead, use malloc() to get them if AIZE is not defined */
+
+#undef AIZE
+#ifndef DARWIN
+# define AIZE
+#endif
+
+#ifdef  AIZE
   float radius[MAXLAT][MAXLNG];      /* max. radius vector to brain voxel */
   float smradius[MAXLAT][MAXLNG];    /* array of smoothed radius vectors */
+#else
+  float **radius , **smradius ;
+#endif
 
   int ilat, jlat;              /* radius array latitude index */
   int ilng, jlng;              /* radius array longitude index */
@@ -787,6 +800,15 @@ void segment_envelope
   /*----- Progress report -----*/
   if (! quiet)  printf ("\nCreating envelope for segmented image \n");
 
+#ifndef AIZE
+  radius   = (float **) malloc(sizeof(float)*MAXLAT) ;
+  smradius = (float **) malloc(sizeof(float)*MAXLAT) ;
+  for (ilat = 0;  ilat < MAXLAT;  ilat++){
+      radius[ilat] = (float *)malloc(sizeof(float)*MAXLNG) ;
+    smradius[ilat] = (float *)malloc(sizeof(float)*MAXLNG) ;
+  }
+#endif
+
 
   /*----- Initialize local variables -----*/
   nx = DSET_NX(anat);   ny = DSET_NY(anat);   nz = DSET_NZ(anat);
@@ -796,6 +818,7 @@ void segment_envelope
   nr = nx;  
   if (ny > nr)  nr = ny;
   if (nz > nr)  nr = nz;
+
     
   
   /*----- Calculate the radius vector -----*/
@@ -828,7 +851,6 @@ void segment_envelope
 	}
     }
   
-  
   /*----- Smooth the radius vectors -----*/
   for (ilat = 0;  ilat < MAXLAT;  ilat++)
     {
@@ -852,16 +874,14 @@ void segment_envelope
 	}
     }
 
-
   /*----- Find maximum radius to a brain voxel -----*/
   maxr = 0.0;
   for (ilat = 0;  ilat < MAXLAT;  ilat++)
     for (ilng = 0;  ilng < MAXLNG;  ilng++)    
       if (maxr < smradius[ilat][ilng])  maxr = smradius[ilat][ilng];
 	  
-  
   /*----- Smooth the brain mask -----*/
-  for (ix = 0;  ix < nx;  ix++)
+  for (ix = 0;  ix < nx;  ix++){
     for (jy = 0;  jy < ny;  jy++)
       {
 	rxy = hypot ((float) (ix-cx), (float) (jy-cy));
@@ -884,7 +904,14 @@ void segment_envelope
 	    
 	  }
       }
- 
+   }
+
+#ifndef AIZE
+  for (ilat = 0;  ilat < MAXLAT;  ilat++){
+    free(  radius[ilat]) ; free(smradius[ilat]) ;
+  }
+  free(smradius); free(radius);
+#endif
 }
 
 

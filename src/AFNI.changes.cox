@@ -5013,3 +5013,7 @@
 
 23 Mar 2004
  * 3dZeropad.c gets new -RL, -AP, -SI options.
+
+24 Mar 2004
+ * Modify Intracranial.c to deal with an optimizing bug on Mac OS X
+     -- doesn't work well with large auto arrays.
