@@ -103,6 +103,9 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_CTFSAM:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF SAM file\n") ; break ;
+
+     case STORAGE_BY_1D:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .1D file\n") ; break ;
    }
 
    /*-- keywords --*/

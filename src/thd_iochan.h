@@ -169,5 +169,6 @@ extern int      read_URL_http( char * url, int msec, char ** data ) ;
 extern int      read_URL_ftp ( char * url, char ** data ) ;
 extern int      read_URL     ( char * url, char ** data ) ;
 extern void     set_URL_ftp_ident( char * name , char * pwd ) ;
+extern void     set_URL_progress( int ) ;
 
 #endif

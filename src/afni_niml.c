@@ -184,7 +184,7 @@ void NIML_to_stderr( void *nini , int send )
        fprintf(stderr,"-------------- AFNI sends NIML element: --------------\n");
      else
        fprintf(stderr,"-------------- AFNI gets NIML element:  --------------\n");
-     NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADER_FLAG ) ;
+     NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADERONLY_FLAG ) ;
      NI_stream_close( ns_err ) ;
    }
 }

@@ -4446,3 +4446,12 @@
  * Modified 3drotate.c to skip rotation if rotation matrix is identity.
      Also modified 3dvolreg.c and 3drotate.c to use "%.4f" format when
      writing command string to THD_rotcom_to_matvec().
+
+20 Mar 2003
+ * Modified afni_func.c, 3ddata.h, afni_graph.c to allow graphing of
+     datasets with only 1 point along a spatial dimension (i.e., ".1D"
+     files).
+ * Modified niml/elemio.c to allow writing and reading of elements
+     with the "# ..." line format for header/trailer fields.  Also
+     modified thd_1Ddset.c to write .1D dataset files out in this
+     format.

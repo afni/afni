@@ -7,8 +7,7 @@ void NIML_to_stderr( void *nini )
    NI_stream ns_err ;
    ns_err = NI_stream_open( "fd:2" , "w" ) ;
    if( ns_err != NULL ){
-     NI_set_attribute_mode( NI_ATTMODE_SPACED ) ;
-     NI_write_element( ns_err , nini , NI_TEXT_MODE ) ;
+     NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) ;
      NI_stream_close( ns_err ) ;
    }
 }

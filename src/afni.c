@@ -4792,7 +4792,7 @@ ENTRY("AFNI_view_xyz_CB") ;
 
     /** Mar 1997: don't open if x or y dimension is 1 **/
 
-    if( brnew->n1 < 2 || brnew->n2 < 2 ) EXRETURN  ;
+    if( snew != NULL && (brnew->n1 < 2 || brnew->n2 < 2) ) EXRETURN  ;
 
     SHOW_AFNI_PAUSE ;
 

@@ -194,15 +194,15 @@ ENTRY("THD_write_1D") ;
 
    fp = fopen( fname , "w" ) ; if( fp == NULL ) EXRETURN ;
 
-   nv   = DSET_NVALS(dset) ;   /* number of columns */
-   nx   = DSET_NX(dset) ;
-   ny   = DSET_NY(dset) ;
-   nz   = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
+   nv = DSET_NVALS(dset) ;  /* number of columns */
+   nx = DSET_NX(dset)    ;
+   ny = DSET_NY(dset)    ;
+   nz = DSET_NZ(dset)    ; nxyz = nx*ny*nz ;  /* number of rows */
 
-   /* write some dataset info as comments */
+   /* write some dataset info as NIML-style header/comments */
 
    fprintf(fp,
-              "# NI_ELEMENT = NIML_1D_dataset\n"
+              "# <AFNI_3D_dataset\n"
               "#  ni_idcode = \"%s\"\n"
               "#  ni_type   = \"%d*float\"\n"
               "#  ni_dimen  = \"%d,%d,%d\"\n"
@@ -245,6 +245,10 @@ ENTRY("THD_write_1D") ;
       fprintf(fp,"\"\n") ;
    }
 
+   /* close header */
+
+   fprintf(fp,"# >\n") ;
+
    /* now write data */
 
    for( ii=0 ; ii < nxyz ; ii++ ){
@@ -278,6 +282,10 @@ ENTRY("THD_write_1D") ;
      }
      fprintf(fp,"\n") ;
    }
+
+   /* trailer */
+
+   fprintf(fp,"# </AFNI_3D_dataset>\n") ;
 
    fclose(fp) ; EXRETURN ;
 }

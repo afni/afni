@@ -3382,7 +3382,7 @@ void GRA_mat_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 
 ENTRY("GRA_mat_choose_CB") ;
 
-   if( ! GRA_VALID(grapher) ) EXRETURN ;
+   if( ! GRA_VALID(grapher) || cbs->ival < 1 ) EXRETURN ;
 
    grapher->mat = MIN( grapher->mat_max , cbs->ival ) ;
    init_mat    ( grapher ) ;

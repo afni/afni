@@ -4,6 +4,10 @@
 /****************** Functions to process a NIML header **********************/
 /****************************************************************************/
 
+/*! Macro to define skippable characters. */
+
+#define SKIPABL(c) ((c)=='#' || isspace(c))
+
 /*--------------------------------------------------------------------------*/
 /*! Deallocate a header_stuff struct.
 ----------------------------------------------------------------------------*/
@@ -85,16 +89,16 @@ header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
 NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
 #endif
 
-   for( id=0 ; id < ndat && dat[id] != '<' ; id++ ) ; /* skip to opening */
+   for( id=0 ; id < ndat && dat[id] != '<' ; id++ ) ; /* skip to opening '<' */
 
    if( id >= ndat-1 ) return NULL ;                   /* bad input */
 
-   hs = NI_malloc(sizeof(header_stuff)) ;             /* make output */
+   hs = NI_malloc(sizeof(header_stuff)) ;             /* make output struct */
    hs->nattr = hs->empty = 0 ;
    hs->name  = NULL ;
    hs->lhs   = hs->rhs = NULL ;
 
-   /* find and assign name string */
+   /* find and assign name string (immediately after '<') */
 
    ss = find_string( id+1 , ndat , dat ) ;
 
@@ -122,7 +126,7 @@ NI_dpr("   parse_header_stuff: name = %s\n",hs->name) ;
 NI_dpr("   parse_header_stuff: scan start at id=%d\n",id) ;
 #endif
 
-      for( ; id < ndat && isspace(dat[id]) ; id++ ) ; /* skip blanks */
+      for( ; id < ndat && SKIPABL(dat[id]) ; id++ ) ; /* skip blanks */
 
       if( id >= ndat ) break ;                 /* end of input found */
 
@@ -161,7 +165,7 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
       id = ss.j ;
       if( id >= ndat ) break ;                      /* end of input ? */
       if( IS_QUOTE_CHAR(dat[id]) ) id++ ;           /* skip close quote */
-      while( id < ndat && isspace(dat[id]) ) id++ ; /* skip blanks */
+      while( id < ndat && SKIPABL(dat[id]) ) id++ ; /* skip blanks */
       if( id >= ndat ) break ;                      /* end of input ? */
 
       if( dat[id] != '=' ){                   /* no '=' means no RHS */
@@ -170,7 +174,7 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
       }
 
       id++ ;                                        /* skip the '=' */
-      while( id < ndat && isspace(dat[id]) ) id++ ; /* skip blanks */
+      while( id < ndat && SKIPABL(dat[id]) ) id++ ; /* skip blanks */
       if( id >= ndat ) break ;                      /* end of input ? */
 
       /* find next string (the RHS) */
@@ -300,7 +304,7 @@ intpair decode_type_field( char *tf )
     - Passing sep in as NULL means to use "," as the separator.
     - In each sub-string, leading and trailing blanks will be excised.
     - This can result in 0 length strings (e.g., "1,,2," will result
-    - in the second and fourth output strings having 0 length).
+      in the second and fourth output strings having 0 length).
 ----------------------------------------------------------------------*/
 
 str_array * decode_string_list( char *ss , char *sep )

@@ -14,7 +14,7 @@ time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    return buf.st_mtime ;
 }
@@ -26,7 +26,7 @@ int THD_is_ondisk( char * pathname )  /* 19 Dec 2002 */
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ;
    return (ii == 0) ;
 }
@@ -36,6 +36,7 @@ int THD_is_ondisk( char * pathname )  /* 19 Dec 2002 */
 
 int THD_cwd( char *pathname )    /* 19 Dec 2002 */
 {
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    return ( chdir(pathname) == 0 ) ;
 }
 
@@ -94,7 +95,7 @@ int THD_is_file( char * pathname )
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    ii = (buf.st_mode & S_IFREG) != 0 ; return ii ;
 }
@@ -106,6 +107,7 @@ int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 {
    char buf[32] ; int ii ;
 
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = readlink( pathname , buf , 32 ) ;
    return (ii > 0) ;
 }
@@ -117,7 +119,7 @@ unsigned long THD_filesize( char * pathname )
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return -1 ;
+   if( pathname == NULL || *pathname == '\0' ) return -1 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
    return buf.st_size ;
 }
@@ -129,7 +131,7 @@ int THD_is_directory( char * pathname )
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    ii = (buf.st_mode & S_IFDIR) != 0 ; return ii ;
 }
@@ -141,7 +143,7 @@ int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
 {
    static struct stat buf ; int ii ;
 
-   if( pathname == NULL ) return 0 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
    ii = stat( pathname , &buf )      ; if( ii ) return 0  ;
    ii = (buf.st_mode & S_IXOTH) != 0 ; if( ii ) return ii ;
 

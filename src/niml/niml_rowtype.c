@@ -955,6 +955,8 @@ int NI_has_String( NI_rowtype *rt )
 {
    int ii , jj ;
 
+   if( rt == NULL ) return 0 ;
+
    /* test #1: if a NIML builtin type, test if it is String */
 
    if( ROWTYPE_is_builtin_code(rt->code) ) return (rt->code == NI_STRING) ;

@@ -1713,11 +1713,11 @@ STATUS("defaulted anatomy underlay") ;
       break ;
    }
 
-   /*--- May 1996: destroy useless needed graph windows ---*/
+   /*--- May 1996: destroy useless graph windows ---*/
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_REDRAWS ;  /* 16 Feb 97 */
 
-   if( !DSET_GRAPHABLE(im3d->b123_ulay->dset) || !BRICK_DRAWABLE(im3d->b123_ulay) ){
+   if( !DSET_GRAPHABLE(im3d->b123_ulay->dset) || !BRICK_GRAPHABLE(im3d->b123_ulay) ){
       if( im3d->g123 != NULL ){
          drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
          im3d->g123 = NULL ;
@@ -1727,7 +1727,7 @@ STATUS("defaulted anatomy underlay") ;
       XtSetSensitive( im3d->vwid->imag->graph_xyz_pb , True ) ;
    }
 
-   if( ! DSET_GRAPHABLE(im3d->b231_ulay->dset) || ! BRICK_DRAWABLE(im3d->b231_ulay) ){
+   if( !DSET_GRAPHABLE(im3d->b231_ulay->dset) || !BRICK_GRAPHABLE(im3d->b231_ulay) ){
       if( im3d->g231 != NULL ){
          drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
          im3d->g231 = NULL ;
@@ -1737,7 +1737,7 @@ STATUS("defaulted anatomy underlay") ;
       XtSetSensitive( im3d->vwid->imag->graph_yzx_pb , True ) ;
    }
 
-   if( ! DSET_GRAPHABLE(im3d->b312_ulay->dset) || ! BRICK_DRAWABLE(im3d->b312_ulay) ){
+   if( !DSET_GRAPHABLE(im3d->b312_ulay->dset) || !BRICK_GRAPHABLE(im3d->b312_ulay) ){
       if( im3d->g312 != NULL ){
          drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
          im3d->g312 = NULL ;
@@ -1749,7 +1749,7 @@ STATUS("defaulted anatomy underlay") ;
 
    /** 05 Mar 1997: disable viewers if x or y dimension is 1 pixel **/
 
-   if( ! BRICK_DRAWABLE(im3d->b123_ulay) ){
+   if( !BRICK_DRAWABLE(im3d->b123_ulay) ){
       if( im3d->s123 != NULL ){
          drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
          im3d->s123 = NULL ;
@@ -1759,7 +1759,7 @@ STATUS("defaulted anatomy underlay") ;
       XtSetSensitive( im3d->vwid->imag->image_xyz_pb , True ) ;
    }
 
-   if( ! BRICK_DRAWABLE(im3d->b231_ulay) ){
+   if( !BRICK_DRAWABLE(im3d->b231_ulay) ){
       if( im3d->s231 != NULL ){
          drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
          im3d->s231 = NULL ;
@@ -1769,7 +1769,7 @@ STATUS("defaulted anatomy underlay") ;
       XtSetSensitive( im3d->vwid->imag->image_yzx_pb , True ) ;
    }
 
-   if( ! BRICK_DRAWABLE(im3d->b312_ulay) ){
+   if( !BRICK_DRAWABLE(im3d->b312_ulay) ){
       if( im3d->s312 != NULL ){
          drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
          im3d->s312 = NULL ;

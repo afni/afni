@@ -115,6 +115,11 @@ IOCHAN * open_URL_http( char * url , int msec )
   return ioc ;
 }
 
+/*--------------------------------------------------------------*/
+
+static int prog=0 ;
+void set_URL_progress( int p ){ prog=p; }  /* 20 Mar 2003 */
+
 /*---------------------------------------------------------------
   Read an "http://" URL, with network waits of up to msec
   milliseconds allowed.  Returns number of bytes read -- if this
@@ -134,7 +139,7 @@ int read_URL_http( char * url , int msec , char ** data )
 {
    IOCHAN * ioc ;
    char * buf=NULL , * cpt , qbuf[QBUF] , qname[256] ;
-   int ii,jj , nall , nuse ;
+   int ii,jj , nall , nuse , nget=0, nmeg=0 ;
    int cflag , first ;
    FILE * cfile ;
 
@@ -185,6 +190,11 @@ int read_URL_http( char * url , int msec , char ** data )
       ii = iochan_recv( ioc , qbuf , QBUF ) ;
       if( ii <= 0 ) break ;                  /* quit if no data */
 
+      if( prog ){
+        nget += ii ; jj = nget/(1024*1024) ;
+        if( jj > nmeg ){ nmeg=jj; fprintf(stderr,"."); }
+      }
+
       if( first ){                           /* check for "not found" */
          if( buf == NULL ){ buf = malloc(ii) ; }
          memcpy( buf , qbuf , ii ) ;
@@ -217,6 +227,8 @@ int read_URL_http( char * url , int msec , char ** data )
       nuse += ii ;                           /* how many bytes so far */
    } while(1) ;
    IOCHAN_CLOSE(ioc) ;
+
+   if( prog && nmeg > 0 ) fprintf(stderr,"!\n") ;
 
    /* didn't get anything? */
 

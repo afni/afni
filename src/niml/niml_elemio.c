@@ -734,15 +734,16 @@ NI_dpr("NI_read_element: returning filled data element\n") ;
 #define NVBUF 127  /* max num chars for one number */
 
 #define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
+#define IS_CRLF(c)    ( (c) == 0x0D || (c) == 0x0A )
 
 /*----------------------------------------------------------------------*/
 /*! From the NI_stream ns, starting at buffer position ns->npos, decode
     one number into *val.
-    - Parameter ltend !=0 means to stop at '<' character [07 Jan 2003].
+    - Parameter ltend != 0 means to stop at '<' character [07 Jan 2003].
+    - ltend != 0 also means to skip lines starting with '#' [20 Mar 2003].
+    - ns->npos will be altered to reflect the current buffer position
+      (one after the last character processed) when all is done.
     - Return value of this function is 1 if we succeeded, 0 if not.
-    - ns->npos will be altered to reflect the
-      current buffer position (one after the last character processed)
-      when all is done.
 ------------------------------------------------------------------------*/
 
 int NI_decode_one_double( NI_stream_type *ns, double *val , int ltend )
@@ -758,8 +759,8 @@ int NI_decode_one_double( NI_stream_type *ns, double *val , int ltend )
 
    num_restart = 0 ;
 Restart:
-   num_restart++ ;
-   if( num_restart > 19 ) return 0 ;  /*** give up ***/
+   num_restart++ ; need_data = 0 ;
+   if( num_restart > 19 ) return 0 ;  /*** too much ==> give up ***/
 
 #ifdef NIML_DEBUG
 NI_dpr(" {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
@@ -774,9 +775,27 @@ NI_dpr(" {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
 
    if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
 
+   /*-- 20 Mar 2003: check if we ran into a comment character '#';
+                     if we did, skip to the end of the line (or '<') --*/
+
+   if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '#' ){
+     int npold = ns->npos ;
+     while( ns->npos < ns->nbuf && !IS_CRLF(ns->buf[ns->npos]) ){
+       if( ns->buf[ns->npos] == '<' ) return 0 ;  /* STOP HERE! */
+       ns->npos++ ;
+     }
+     if( ns->npos < ns->nbuf ){ /* found end of line, so try again */
+       num_restart = 0 ; goto Restart ;
+     }
+     /* if here, didn't find '<' or end of line in buffer */
+     /* so reset pointer back to '#', then read more data */
+     ns->npos = npold ; need_data = 1 ;
+   }
+
    /*-- if we need some data, try to get some --*/
 
-   need_data = (ns->nbuf-ns->npos < 2) ; /* need at least 2 unused bytes */
+   if( !need_data )                        /* need at least 2 unused  */
+     need_data = (ns->nbuf-ns->npos < 2) ; /* bytes to decode a number */
 
    /*-- An input value is decoded from a string of non-useless
         characters delimited by a useless character (or by the
@@ -838,6 +857,7 @@ NI_dpr(" {fill buf}") ;
 
    nn = epos-ns->npos ; if( nn > NVBUF ) nn = NVBUF ;     /* # bytes to read   */
    memcpy( vbuf, ns->buf+ns->npos, nn ); vbuf[nn] = '\0'; /* put bytes in vbuf */
+   *val = 0.0 ;                                           /* initialize val */
    sscanf( vbuf , "%lf" , val ) ;                         /* interpret them    */
    ns->npos = epos ; return 1 ;                           /* retire undefeated */
 }
@@ -846,6 +866,7 @@ NI_dpr(" {fill buf}") ;
 /*! From the NI_stream ns, starting at buffer position ns->npos, decode
     one string into newly NI_malloc()-ed space pointed to by *str.
     - Parameter ltend !=0 means to stop at '<' character [07 Jan 2003].
+    - ltend != 0 also means to skip lines starting with '#' [20 Mar 2003].
     - Return value of this function is 1 if we succeeded, 0 if not.
     - ns->npos will be altered to reflect the current buffer position
       (one after the last character processed) when all is done.
@@ -864,7 +885,7 @@ int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
 
    num_restart = 0 ;
 Restart:
-   num_restart++ ;
+   num_restart++ ; need_data = 0 ;
    if( num_restart > 19 ) return 0 ;  /*** give up ***/
 
    /*-- advance over useless characters in the buffer --*/
@@ -876,9 +897,27 @@ Restart:
 
    if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
 
+   /*-- 20 Mar 2003: check if we ran into a comment character '#';
+                     if we did, skip to the end of the line (or '<') --*/
+
+   if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '#' ){
+     int npold = ns->npos ;
+     while( ns->npos < ns->nbuf && !IS_CRLF(ns->buf[ns->npos]) ){
+       if( ns->buf[ns->npos] == '<' ) return 0 ;  /* STOP HERE! */
+       ns->npos++ ;
+     }
+     if( ns->npos < ns->nbuf ){ /* found end of line, so try again */
+       num_restart = 0 ; goto Restart ;
+     }
+     /* if here, didn't find '<' or end of line in buffer */
+     /* so reset pointer back to '#', then read more data */
+     ns->npos = npold ; need_data = 1 ;
+   }
+
    /*-- if we need some data, try to get some --*/
 
-   need_data = (ns->nbuf-ns->npos < 2) ; /* need at least 2 unused bytes */
+   if( !need_data )                        /* need at least 2 unused  */
+     need_data = (ns->nbuf-ns->npos < 2) ; /* bytes to decode a string */
 
    if( !need_data ){  /* so have at least 2 characters */
 
@@ -1093,6 +1132,7 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 }
 #endif
 
+#if 0
 /*------------------------------------------------------------------------*/
 /*! Mode for writing attributes. */
 
@@ -1101,7 +1141,7 @@ static int att_mode = NI_ATTMODE_NORMAL ;
 /*------------------------------------------------------------------------*/
 /*! Set the mode for writing attributes:
      - NI_ATTMODE_NORMAL =>  lhs="rhs"
-     - NI_ATTMODE_NORMAL =>  lhs = "rhs"  [one per line]
+     - NI_ATTMODE_SPACED =>  lhs = "rhs"  [one per line]
 --------------------------------------------------------------------------*/
 
 void NI_set_attribute_mode( int amode )
@@ -1109,6 +1149,7 @@ void NI_set_attribute_mode( int amode )
    if( amode > 0 && amode <= NI_ATTMODE_LAST ) att_mode = amode ;
    else                                        att_mode = NI_ATTMODE_NORMAL ;
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 /*! Mode for writing names. */
@@ -1158,7 +1199,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
    char *att_prefix , *att_equals , *att_trail ;
 
-   int header_only = ((tmode & NI_HEADER_FLAG) != 0) ;
+   int header_only  = ((tmode & NI_HEADERONLY_FLAG ) != 0) ;  /* 20 Feb 2003 */
+   int header_sharp = ((tmode & NI_HEADERSHARP_FLAG) != 0) ;  /* 20 Mar 2003 */
 
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
@@ -1191,34 +1233,37 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    if( ns->type == NI_STRING_TYPE )      /* string output only in text mode */
       tmode = NI_TEXT_MODE ;
 
+   if( tmode != NI_TEXT_MODE ) header_sharp = 0 ;  /* 20 Mar 2003 */
+
    /*-- 15 Oct 2002: write attributes with lots of space, or little --*/
+   /*-- 20 Mar 2003: modified for "#  lhs = rhs" type of header     --*/
 
-   att_prefix = (att_mode == NI_ATTMODE_SPACED) ? "\n   "
-                                                : " "    ;
+   att_prefix = (header_sharp) ? "\n#  "      /* write this before each attribute */
+                               : " "    ;
 
-   att_equals = (att_mode == NI_ATTMODE_SPACED) ? " = "
-                                                : "="    ;
+   att_equals = (header_sharp) ? " = "        /* write this between lhs and rhs */
+                               : "="    ;
 
-   att_trail  = (att_mode == NI_ATTMODE_SPACED) ? "\n"
-                                                : " "    ;
+   att_trail  = (header_sharp) ? "\n# "       /* write this before closing ">" */
+                               : " "    ;
 
    /*------------------ write a group element ------------------*/
 
    if( tt == NI_GROUP_TYPE ){
+
       NI_group *ngr = (NI_group *) nini ;
 
       /*- group header -*/
 
-      nout = NI_stream_writestring( ns , "<ni_group" ) ;
-      ADDOUT ;
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      nout = NI_stream_writestring( ns , "<ni_group" ) ; ADDOUT ;
 
       /*- attributes -*/
 
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
 
          jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_writestring( ns , att_prefix ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att_prefix ) ; ADDOUT ;
          if( NI_is_name(ngr->attr_lhs[ii]) ){
            nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
          } else {
@@ -1228,37 +1273,33 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          ADDOUT ;
 
          jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_writestring( ns , att_equals ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att_equals ) ; ADDOUT ;
          att = quotize_string( ngr->attr_rhs[ii] ) ;
-         nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
       }
 
       /*- close group header -*/
 
-      nout = NI_stream_writestring( ns , att_trail ) ;
-      ADDOUT ;
-      nout = NI_stream_writestring( ns , ">\n" ) ;
-      ADDOUT ;
+      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT ;
 
       /*- write the group parts (recursively) -*/
 
       for( ii=0 ; ii < ngr->part_num ; ii++ ){
-         nout = NI_write_element( ns , ngr->part[ii] , tmode ) ;
-         ADDOUT ;
+         nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT ;
       }
 
       /*- group trailer -*/
 
-      nout = NI_stream_writestring( ns , "</ni_group>\n" ) ;
-      ADDOUT ;
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      nout = NI_stream_writestring( ns , "</ni_group>\n" ) ; ADDOUT ;
 
       return ntot ;
 
    /*------------------ write a data element ------------------*/
 
    } else if( tt == NI_ELEMENT_TYPE ){
+
       NI_element *nel = (NI_element *) nini ;
 
       /*- sanity check (should never fail) -*/
@@ -1267,11 +1308,11 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /*- select the data output mode -*/
 
-      /* Strings and Lines can only be written in text mode */
+      /* Strings can only be written in text mode */
 
       if( tmode != NI_TEXT_MODE ){
         for( jj=0 ; jj < nel->vec_num ; jj++ ){
-          if( nel->vec_typ[jj]==NI_STRING ){
+          if( NI_has_String(NI_rowtype_find_code(nel->vec_typ[jj])) ){
              tmode = NI_TEXT_MODE ; break ;
           }
         }
@@ -1293,9 +1334,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /* write start of header "<name" */
 
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
       strcpy(att,"<") ; strcat(att,nel->name) ;
-      nout = NI_stream_writestring( ns , att ) ;
-      ADDOUT ;
+      nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
       /*- write "special" attributes, if not an empty element -*/
 
@@ -1307,11 +1348,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          switch( tmode ){
            default:
            case NI_TEXT_MODE:
-#if 0
-             strcpy(att," ni_form=\"text\"") ;
-#else
              *att = '\0' ;   /* text form is default */
-#endif
            break ;
 
            case NI_BINARY_MODE:
@@ -1323,16 +1360,15 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             break ;
          }
          if( *att != '\0' ){
-            nout = NI_stream_writestring( ns , att ) ;
-            ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
          }
 
          /** do ni_type **/
 
          sprintf(att,"%sni_type%s\"" , att_prefix , att_equals ) ;
          for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
-          if( nel->vec_typ[ii] != ll ){  /* not the last type */
-             if( ll >= 0 ){              /* write the last type out now */
+          if( nel->vec_typ[ii] != ll ){  /* not the previous type */
+             if( ll >= 0 ){              /* write the previous type out now */
                 btt = att + strlen(att) ;
                 if( jj > 1 ) sprintf(btt,"%d*%s,",jj,NI_type_name(ll)) ;
                 else         sprintf(btt,"%s,"   ,   NI_type_name(ll)) ;
@@ -1340,17 +1376,16 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
              ll = nel->vec_typ[ii] ;     /* save new type code */
              jj = 1 ;                    /* it now has count 1 */
 
-          } else {                       /* same as last type */
+          } else {                       /* same as previous type */
              jj++ ;                      /* so add 1 to its count */
           }
          }
-         /* write the last type */
+         /* write the last type we found */
          btt = att + strlen(att) ;
          if( jj > 1 ) sprintf(btt,"%d*%s\"",jj,NI_type_name(ll)) ;
          else         sprintf(btt,"%s\""   ,   NI_type_name(ll)) ;
 
-         nout = NI_stream_writestring( ns , att ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
          /** do ni_dimen **/
 
@@ -1358,19 +1393,16 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          qtt = quotize_int_vector( nel->vec_rank ,
                                    nel->vec_axis_len , ',' ) ;
          strcat(att,qtt) ; NI_free(qtt) ;
-         nout = NI_stream_writestring( ns , att ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
 #if 0
          /* extras: ni_veclen and ni_vecnum attributes */
 
          sprintf(att,"%sni_veclen%s\"%d\"", att_prefix,att_equals,nel->vec_len) ;
-         nout = NI_stream_writestring( ns , att ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
          sprintf(att,"%sni_vecnum%s\"%d\"", att_prefix,att_equals,nel->vec_num) ;
-         nout = NI_stream_writestring( ns , att ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 #endif
          /* ni_delta */
 
@@ -1379,8 +1411,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_delta , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ;
-            ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
          }
 
          /* ni_origin */
@@ -1390,8 +1421,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_float_vector( nel->vec_rank ,
                                         nel->vec_axis_origin , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ;
-            ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
          }
 
          /* ni_units */
@@ -1401,8 +1431,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_unit , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ;
-            ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
          }
 
          /* ni_axes */
@@ -1412,8 +1441,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_string_vector( nel->vec_rank ,
                                          nel->vec_axis_label , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
-            nout = NI_stream_writestring( ns , att ) ;
-            ADDOUT ;
+            nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
          }
 
       }
@@ -1453,8 +1481,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             qtt = quotize_string( nel->attr_rhs[ii] ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
          }
-         nout = NI_stream_writestring( ns , att ) ;
-         ADDOUT ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
       }
 
       NI_free(att) ; att = NULL ; /* done with attributes */
@@ -1469,10 +1496,8 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
           nel->vec_typ == NULL ||
           nel->vec     == NULL   ){
 
-        nout = NI_stream_writestring( ns , att_trail ) ;
-        ADDOUT ;
-        nout = NI_stream_writestring( ns , "/>\n" ) ;
-        ADDOUT ;
+        nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
+        nout = NI_stream_writestring( ns , "/>\n" ) ; ADDOUT ;
         return ntot ;                 /* done with empty element */
       }
 
@@ -1506,10 +1531,8 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          break ;
       }
 
-      nout = NI_stream_writestring( ns , att_trail ) ;
-      ADDOUT ;
-      nout = NI_stream_writestring( ns , btt ) ;
-      ADDOUT ;
+      nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , btt ) ; ADDOUT ;
 
 #ifdef USE_NEW_IOFUN   /** 13 Feb 2003: output is now done elsewhere **/
 
@@ -1826,14 +1849,13 @@ NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
       nout = NI_stream_writestring( ns , att_trail ) ;
       ADDOUT ;
 #endif
-      nout = NI_stream_writestring( ns , "</" ) ;
-      ADDOUT ;
-      nout = NI_stream_writestring( ns , nel->name ) ;
-      ADDOUT ;
-      nout = NI_stream_writestring( ns , ">\n\n" ) ;
-      ADDOUT ;
+      if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+      nout = NI_stream_writestring( ns , "</" ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , nel->name ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , ">\n\n" ) ; ADDOUT ;
 
       return ntot ;
+
    } /* end of write data element */
 
    return -1 ; /* should never be reachable */
