@@ -509,6 +509,7 @@ static mday holiday[] = {
    {SEP,16,"Papua New Guinea Independence Day"                       } ,
    {SEP,17,"Anniversary of signing of American Constitution"         } ,
    {SEP,17,"Georg Bernhard Riemann's birthday"                       } ,
+   {SEP,17,"Anniversary of Battle of Antietam"                       } ,
    {SEP,18,"Mexico Independence Day"                                 } ,
    {SEP,19,"Anniversary of Battle of Saratoga"                       } ,
    {SEP,20,"Anniversary of Battle of Chalons"                        } ,
