@@ -927,7 +927,7 @@ void vector_subtract (vector a, vector b, vector * c)
 #endif
 }
 
-#undef VM_DEBUG   /* RWCox */
+#define UNROLL_VECMUL  /* RWCox */
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -946,28 +946,39 @@ void vector_multiply (matrix a, vector b, vector * c)
   rows = a.rows;
   cols = a.cols;
 
-#ifdef VM_DEBUG
-  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
-    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
-    if( ncall%10000 == 0 )
-      fprintf(stderr,"vector_multiply         : ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
-              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
-  }
-#endif
-
   vector_create_noinit (rows, c);
 
+  if( cols <= 0 ){
+    for( i=0 ; i < rows ; i++ ) c->elts[i] = 0.0f ;
+    return ;
+  }
+
   bb = b.elts ;
-  for (i = 0;  i < rows;  i++)
-    {
-      sum = 0.0 ; 
-      if (cols > 0)   /* 18 Mar 2003 */
-	{
-	  aa = a.elts[i] ;
-	  for (j = 0;  j < cols;  j++) sum += aa[j] * bb[j] ;
-	}
-      c->elts[i] = sum ;
+
+#ifdef UNROLL_VECMUL
+  if( cols%2 == 0 ){              /* even number of cols */
+    for (i = 0;  i < rows;  i++){
+        sum = 0.0f ; aa = a.elts[i] ;
+        for (j = 0;  j < cols;  j+=2 )
+          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        c->elts[i] = sum ;
     }
+  } else {                        /* odd number of cols */
+    for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = aa[0]*bb[0] ;
+        for (j = 1;  j < cols;  j+=2 )
+          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        c->elts[i] = sum ;
+    }
+  }
+#else
+    for (i = 0;  i < rows;  i++){
+        sum = 0.0f ; aa = a.elts[i] ;
+        for (j = 0;  j < cols;  j++ ) sum += aa[j]*bb[j] ;
+        c->elts[i] = sum ;
+    }
+#endif /* UNROLL_VECMUL */
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -989,28 +1000,43 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   rows = a.rows;
   cols = a.cols;
 
-#ifdef VM_DEBUG
-  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
-    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
-    if( ncall%10000 == 0 )
-      fprintf(stderr,"vector_multiply_subtract: ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
-              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
-  }
-#endif
-
   vector_create_noinit (rows, d);
 
-  qsum = 0.0 ; bb = b.elts ;
-  for (i = 0;  i < rows;  i++)
-    {
-      sum = c.elts[i] ; aa = a.elts[i] ;
-      if (cols > 0)   /* 18 Mar 2003 */
-	{
-	  aa = a.elts[i] ;
-	  for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
-	}
+  if( cols <= 0 ){
+    qsum = 0.0f ;
+    for( i=0 ; i < rows ; i++ ){
+      d->elts[i] = c.elts[i] ;
+      qsum += d->elts[i] * d->elts[i] ;
+    }
+    return qsum ;
+  }
+
+  qsum = 0.0f ; bb = b.elts ;
+
+#ifdef UNROLL_VECMUL
+  if( cols%2 == 0 ){                   /* even number */
+    for (i = 0;  i < rows;  i++){
+      aa = a.elts[i] ; sum = c.elts[i] ;
+      for (j = 0;  j < cols;  j+=2)
+        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
       d->elts[i] = sum ; qsum += sum*sum ;
     }
+  } else {                            /* odd number */
+    for (i = 0;  i < rows;  i++){
+      aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ;
+      for (j = 1;  j < cols;  j+=2)
+        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
+      d->elts[i] = sum ; qsum += sum*sum ;
+    }
+  }
+#else
+  for (i = 0;  i < rows;  i++){
+    aa = a.elts[i] ; sum = c.elts[i] ;
+    for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
+    d->elts[i] = sum ; qsum += sum*sum ;
+  }
+#endif /* UNROLL_VECMUL */
+
   return qsum ;  /* 26 Feb 2003 */
 }
 
@@ -1030,7 +1056,7 @@ float  vector_dot (vector a, vector b)
 
   dim = a.dim;
 
-  sum = 0.0;
+  sum = 0.0f;
   aa = a.elts ; bb = b.elts ;
   for (i = 0;  i < dim;  i++)
 #if 0
@@ -1054,7 +1080,7 @@ float  vector_dotself( vector a )
   register float  *aa ;
 
   dim = a.dim;
-  sum = 0.0;
+  sum = 0.0f;
   aa = a.elts ;
   for (i = 0;  i < dim;  i++)
 #if 0
@@ -1074,10 +1100,10 @@ float  vector_dotself( vector a )
 float matrix_norm( matrix a )
 {
    int i,j , rows=a.rows, cols=a.cols ;
-   float sum , smax=0.0 ;
+   float sum , smax=0.0f ;
 
    for (i = 0;  i < rows;  i++){
-     sum = 0.0 ;
+     sum = 0.0f ;
      for (j = 0;  j < cols;  j++) sum += fabs(a.elts[i][j]) ;
      if( sum > smax ) smax = sum ;
    }
@@ -1105,7 +1131,7 @@ int * matrix_check_columns( matrix a , double eps )
    int *iar=NULL , nar=0 ;
    double sumi,sumj,sumd ;
 
-   if( eps <= 0.0 ) eps = 1.e-5 ;
+   if( eps <= 0.0f ) eps = 1.e-5 ;
 
    for( i=0 ; i < cols ; i++ ){
      sumi = 0.0 ;

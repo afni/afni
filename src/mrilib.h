@@ -992,6 +992,8 @@ typedef struct { int nar ; float *ar ; } floatvec ;
       free(fv);                                \
   } while(0)
 
+typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+
 typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(fv)                        \
   do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
@@ -1003,7 +1005,7 @@ typedef struct {
   char name[64] ;
 } SYM_irange ;
 
-floatvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *str );
+floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *str );
 
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
 #include "cdflib.h"

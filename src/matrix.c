@@ -951,8 +951,6 @@ void vector_subtract (vector a, vector b, vector * c)
   flops += dim ;
 }
 
-#undef VM_DEBUG        /* RWCox */
-
 #define UNROLL_VECMUL  /* RWCox */
 
 /*---------------------------------------------------------------------------*/
@@ -963,23 +961,14 @@ void vector_multiply (matrix a, vector b, vector * c)
 {
   register int rows, cols;
   register int i, j;
-  register double sum ;
   register double *bb , *aa ;
+  register double sum ;
 
   if (a.cols != b.dim)
     matrix_error ("Incompatible dimensions for vector multiplication");
 
   rows = a.rows;
   cols = a.cols;
-
-#ifdef VM_DEBUG
-  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
-    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
-    if( ncall%10000 == 0 )
-      fprintf(stderr,"vector_multiply         : ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
-              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
-  }
-#endif
 
   vector_create_noinit (rows, c);
 
@@ -991,27 +980,6 @@ void vector_multiply (matrix a, vector b, vector * c)
   bb = b.elts ;
 
 #ifdef UNROLL_VECMUL
-#if 0                               /* experimental code -- RWCox - 17 Nov 2003 */
-  { int jbot = cols%8 ;
-    for (i = 0;  i < rows;  i++){
-     aa = a.elts[i] ;
-     switch( jbot ){
-      case 0: sum = 0.0 ; break ;
-      case 1: sum = aa[0]*bb[0] ; break ;
-      case 2: sum = aa[0]*bb[0]+aa[1]*bb[1] ; break ;
-      case 3: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2] ; break ;
-      case 4: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3] ; break ;
-      case 5: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4] ; break ;
-      case 6: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4]+aa[5]*bb[5] ; break ;
-      case 7: sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2]+aa[3]*bb[3]+aa[4]*bb[4]+aa[5]*bb[5]+aa[6]*bb[6] ; break ;
-     }
-     for( j=jbot ; j < cols ; j+=8 )
-       sum += aa[j]*bb[j] +aa[j+1]*bb[j+1] +aa[j+2]*bb[j+2] +aa[j+3]*bb[j+3] +aa[j+4]*bb[j+4]
-                          +aa[j+5]*bb[j+5] +aa[j+6]*bb[j+6] +aa[j+7]*bb[j+7] ;
-     c->elts[i] = sum ;
-    }
-  }
-#else
   if( cols%2 == 0 ){              /* even number of cols */
     for (i = 0;  i < rows;  i++){
         sum = 0.0 ; aa = a.elts[i] ;
@@ -1027,14 +995,13 @@ void vector_multiply (matrix a, vector b, vector * c)
         c->elts[i] = sum ;
     }
   }
-#endif
 #else
     for (i = 0;  i < rows;  i++){
         sum = 0.0 ; aa = a.elts[i] ;
         for (j = 0;  j < cols;  j++ ) sum += aa[j]*bb[j] ;
         c->elts[i] = sum ;
     }
-#endif
+#endif /* UNROLL_VECMUL */
 
     flops += 2.0l*rows*cols ;
 }
@@ -1049,23 +1016,15 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 {
   register int rows, cols;
   register int i, j;
-  register double sum , qsum ;
+  register double qsum ;
   register double *aa,*bb ;
+  register double sum ;
 
   if (a.cols != b.dim || a.rows != c.dim )
     matrix_error ("Incompatible dimensions for vector multiplication-subtraction");
 
   rows = a.rows;
   cols = a.cols;
-
-#ifdef VM_DEBUG
-  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
-    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
-    if( ncall%10000 == 0 )
-      fprintf(stderr,"vector_multiply_subtract: ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
-              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
-  }
-#endif
 
   vector_create_noinit (rows, d);
 
@@ -1102,7 +1061,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
     for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
     d->elts[i] = sum ; qsum += sum*sum ;
   }
-#endif
+#endif /* UNROLL_VECMUL */
 
   flops += 2.0l*rows*(cols+1) ;
 
