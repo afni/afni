@@ -1,8 +1,13 @@
 
-#define IFM_VERSION "version 2.10 (August 5, 2003)"
+#define IFM_VERSION "version 2.11 (August 14, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.11 August 14, 2003
+ *   - added '-quit' option
+ *   - changed CHECK_NULL_STR() output to (NULL) (to see when used)
+ *   - change exit status to 0 (why the heck did I use 1??)
  *
  * 2.10 August 5, 2003
  *   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)
@@ -443,6 +448,15 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 	{
 	    if ( naps > 0 )
 	    {
+		if ( p->opts.quit )	/* then we are outta here */
+		{
+		    if ( ac->state == ART_STATE_IN_USE )
+			ART_send_end_of_run( ac, run, seq_num, gD.level );
+
+		    show_run_stats( &gS );
+		    return 0;
+		}
+
 		/* continue, regardless */
 		if ( check_stalled_run( run, seq_num, naps, nap_time ) > 0 )
 		    if ( ac->state == ART_STATE_IN_USE )
@@ -1126,11 +1140,15 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		errors++;
 	    }
 	}
-	else if ( ! strncmp( argv[ac], "-quiet", 3 ) )
+	else if ( ! strncmp( argv[ac], "-quiet", 6 ) )
 	{
 	    /* only go quiet if '-debug' option has not changed it */
 	    if ( gD.level == IFM_DEBUG_DEFAULT )
 		gD.level = 0;
+	}
+	else if ( ! strncmp( argv[ac], "-quit", 5 ) )
+	{
+	    p->opts.quit = 1;
 	}
 	else if ( ! strncmp( argv[ac], "-sp", 3 ) )
 	{
@@ -1732,6 +1750,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    "   (argv, argc)       = (%p, %d)\n"
 	    "   (nt, nice)         = (%d, %d)\n"
 	    "   (debug, gert_reco) = (%d, %d)\n"
+	    "   quit               = %d\n"
 	    "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
 	    "   host               = %s\n",
 	    opt,
@@ -1740,7 +1759,8 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    CHECK_NULL_STR(opt->drive_cmd),
 	    CHECK_NULL_STR(opt->sp),
 	    opt->argv, opt->argc,
-	    opt->nt, opt->nice, opt->debug, opt->gert_reco,
+	    opt->nt, opt->nice,
+	    opt->debug, opt->gert_reco, opt->quit,
 	    opt->rt, opt->swap, opt->rev_bo,
 	    CHECK_NULL_STR(opt->host)
 	    );
@@ -1898,7 +1918,7 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    %s -start_dir 003\n"
 	  "    %s -help\n"
-	  "    %s -start_dir 003 -GERT_reco2\n"
+	  "    %s -start_dir 003 -GERT_reco2 -quit\n"
 	  "    %s -start_dir 003 -nt 120 -start_file 043/I.901\n"
 	  "    %s -debug 2 -nice 10 -start_dir 003\n"
 	  "\n"
@@ -1914,6 +1934,9 @@ static int usage ( char * prog, int level )
 	  "    - Once started, this program exits only when a fatal error\n"
 	  "      occurs (single missing or out of order slices are not\n"
 	  "      considered fatal).\n"
+	  "\n"
+	  "      ** This has been modified.  The '-quit' option tells Imon\n"
+	  "         to terminate once it runs out of new data to use.\n"
 	  "\n"
 	  "    - To terminate this program, use <ctrl-c>.\n"
 	  "\n"
@@ -2039,6 +2062,12 @@ static int usage ( char * prog, int level )
 	  "        allow the value to increase based on subsequent runs).\n"
 	  "        Therefore %s would not detect a stalled first run.\n"
 	  "\n"
+	  "    -quit              : quit when there is no new data\n"
+	  "\n"
+	  "        With this option, the program will terminate once a delay\n"
+	  "        in new data occurs.  This is most appropriate to use when\n"
+	  "        the image files have already been collected.\n"
+	  "\n"
 	  "    -quiet             : show only errors and final information\n"
 	  "\n"
 	  "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco2\n"
@@ -2104,13 +2133,13 @@ static void hf_signal( int signum )
 		     signum );
 	    break;
 
-	case SIGINT :
+	case SIGINT  :
 	case SIGTERM :
 	    show_run_stats( &gS );
 	    break;
     }
 
-    exit(1);
+    exit(0);
 }
 
 

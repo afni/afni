@@ -25,7 +25,7 @@
 #define ART_TBUF_LEN           512
 
 #define ART_ADD_TO_BUF(dest,src) ( strcat(dest,src), strcat(dest,"\n") )
-#define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
+#define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
 
 /* ---------------------------------------------------------------------- */
 
