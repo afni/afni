@@ -3529,8 +3529,14 @@ ENTRY("PLUG_startup_plugin_CB") ;
 
    if( plint == NULL ) EXRETURN ;  /* error? */
 
-   XtVaGetValues( w , XmNuserData , &im3d , NULL ) ;  /* set controller from */
-   plint->im3d = im3d ;                               /* data on menu button */
+   if( w != NULL ){
+     XtVaGetValues( w , XmNuserData , &im3d , NULL ) ;  /* set controller from */
+     plint->im3d = im3d ;                               /* data on menu button */
+   } else if( cbs != NULL ){                            /* 21 Jul 2003 */
+     plint->im3d = (Three_D_View *) cbs ;
+     cbs = NULL ;
+   }
+   if( plint->im3d == NULL ) plint->im3d = AFNI_find_open_controller() ;
 
    /*-- if no interface is needed, just call it --*/
 
@@ -3567,7 +3573,7 @@ STATUS("calling plugin") ;
 
    { char ttl[PLUGIN_STRING_SIZE] ;
 
-     sprintf(ttl , "%s%s" , AFNI_controller_label(im3d) , plint->label ) ;
+     sprintf(ttl , "%s%s" , AFNI_controller_label(plint->im3d) , plint->label ) ;
 
      XtVaSetValues( plint->wid->shell ,
                        XmNtitle     , ttl , /* top of window */

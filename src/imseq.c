@@ -8357,6 +8357,12 @@ ENTRY("ISQ_transform_CB") ;
       } else {
          seq->transform0D_func  = seq->status->transforms0D->funcs[av->ival - 1] ;
          seq->transform0D_index = av->ival ;
+
+         /* 21 Jul 2003: do initializing func call, if present */
+
+         if( seq->status->transforms0D->func_init[av->ival-1] != NULL )
+          seq->status->transforms0D->func_init[av->ival-1]() ;
+
       }
    }
 
@@ -8371,6 +8377,11 @@ ENTRY("ISQ_transform_CB") ;
       } else {
          seq->transform2D_func  = seq->status->transforms2D->funcs[av->ival - 1] ;
          seq->transform2D_index = av->ival ;
+
+         /* 21 Jul 2003: do initializing func call, if present */
+
+         if( seq->status->transforms2D->func_init[av->ival-1] != NULL )
+          seq->status->transforms2D->func_init[av->ival-1]() ;
       }
    }
 

@@ -136,13 +136,15 @@ typedef float float_func() ;
 /*! Stores a list of "registered" functions (e.g., "Transforms") */
 
 typedef struct {
-   int num ;                     /*< number of functions */
-   int * flags ;                 /*< flags[i] = bitmask flag for function #i */
-   char ** labels ;              /*< labels[i] = string name for function #i */
-   generic_func ** funcs ;       /*< funcs[i] = function #i */
+   int num ;                     /*!< number of functions */
+   int * flags ;                 /*!< flags[i] = bitmask flag for function #i */
+   char ** labels ;              /*!< labels[i] = string name for function #i */
+   generic_func ** funcs ;       /*!< funcs[i] = function #i */
 
-   void ** func_data ;           /*< 30 Jan 2000 */
+   void ** func_data ;           /*!< 30 Jan 2000 */
    int *   func_code ;
+
+   generic_func ** func_init ;   /*!< 21 Jul 2003 */
 } MCW_function_list ;
 
 /*! MCW_function_list possible bitmask flag */

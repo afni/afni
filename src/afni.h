@@ -1797,6 +1797,7 @@ extern void median21_box_func( int, int, double,double, float * ) ;
 extern void winsor21_box_func( int, int, double,double, float * ) ;
 
 extern void AFNI_register_nD_function( int, char *, generic_func *, int ) ;
+extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
 
 #define AFNI_register_0D_function(cc,ff) AFNI_register_nD_function(0,(cc),(ff),0)
 #define AFNI_register_1D_function(cc,ff) AFNI_register_nD_function(1,(cc),(ff),0)

@@ -581,6 +581,14 @@ static int exp0d_var = 23 ;
 
 static PARSER_code * exp0d_pc = NULL ;
 
+static PLUGIN_interface *plint_EXP0D=NULL ;
+
+static void EXP0D_func_init(void)   /* 21 Jul 2003 */
+{
+   PLUG_startup_plugin_CB( NULL , (XtPointer)plint_EXP0D , NULL ) ;
+}
+
+
 PLUGIN_interface * EXP0D_init(void)
 {
    PLUGIN_interface * plint ;
@@ -599,6 +607,9 @@ PLUGIN_interface * EXP0D_init(void)
    PLUTO_add_string( plint , NULL , 0,NULL , 50 ) ;
 
    PLUTO_register_0D_function( "Expr 0D" , EXP0D_worker ) ;
+
+   plint_EXP0D = plint ;
+   AFNI_register_nD_func_init( 0 , EXP0D_func_init ) ;  /* 21 Jul 2003 */
 
    return plint ;
 }

@@ -4962,6 +4962,9 @@ char * GRA_transform_label( MCW_arrowval * av , XtPointer cd )
    return xforms->labels[av->ival - 1] ;  /* label for each function */
 }
 
+/*-----------------------------------------------------------------------------*/
+/*! Will be called from both the 1D and 0D menus. */
+
 void GRA_transform_CB( MCW_arrowval * av , XtPointer cd )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
@@ -4982,6 +4985,11 @@ ENTRY("GRA_transform_CB") ;
          grapher->transform0D_func  = grapher->status->transforms0D->funcs[av->ival-1];
          grapher->transform0D_index = av->ival ;
          grapher->transform0D_flags = grapher->status->transforms0D->flags[av->ival-1];
+
+         /* 21 Jul 2003: call the init function, if present */
+
+         if( grapher->status->transforms0D->func_init[av->ival-1] != NULL )
+          grapher->status->transforms0D->func_init[av->ival-1]() ;
       }
    }
 
@@ -4997,6 +5005,11 @@ ENTRY("GRA_transform_CB") ;
          grapher->transform1D_func  = grapher->status->transforms1D->funcs[av->ival-1];
          grapher->transform1D_index = av->ival ;
          grapher->transform1D_flags = grapher->status->transforms1D->flags[av->ival-1];
+
+         /* 21 Jul 2003: call the init function, if present */
+
+         if( grapher->status->transforms1D->func_init[av->ival-1] != NULL )
+          grapher->status->transforms1D->func_init[av->ival-1]() ;
       }
    }
 

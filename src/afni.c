@@ -10008,11 +10008,12 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
 #endif /* USE_SONNETS */
 /********************************************************************/
 
-/*----------------------------------------------------------------------
-   Put a function on the list of n-dimensional transformations
-   (modified 03 Nov 1996 from just 0D transforms)
-   (modified 22 Apr 1997 to add int flags to each function)
-   (modified 31 Jan 2002 to add slice_proj for nd=-1)
+/*----------------------------------------------------------------------*/
+/*! Put a function on the list of n-dimensional transformations
+     - modified 03 Nov 1996 from just 0D transforms
+     - modified 22 Apr 1997 to add int flags to each function
+     - modified 31 Jan 2002 to add slice_proj for nd=-1
+     - modified 21 Jul 2003 to add func_init
 ------------------------------------------------------------------------*/
 
 void AFNI_register_nD_function( int nd, char * name,
@@ -10035,8 +10036,10 @@ void AFNI_register_nD_function( int nd, char * name,
 
    num = rlist->num ;
 
-   if( num == 0 ){ rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL;
-                   rlist->func_data=NULL; rlist->func_code=NULL;             }
+   if( num == 0 ){
+     rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL;
+     rlist->func_data=NULL; rlist->func_code=NULL; rlist->func_init=NULL;
+   }
 
    rlist->flags = (int *) XtRealloc( (char *)rlist->flags, sizeof(int)*(num+1) ) ;
 
@@ -10051,14 +10054,43 @@ void AFNI_register_nD_function( int nd, char * name,
 
    rlist->func_code = (int *) XtRealloc( (char *)rlist->func_code, sizeof(int)*(num+1) ) ;
 
-   rlist->flags[num]  = flags ;
-   rlist->labels[num] = XtNewString(name) ;
-   rlist->funcs[num]  = func ;
+   rlist->func_init = (generic_func **) XtRealloc( (char *)rlist->func_init ,
+                                                   sizeof(generic_func *)*(num+1) ) ;
 
+   rlist->flags[num]     = flags ;
+   rlist->labels[num]    = XtNewString(name) ;
+   rlist->funcs[num]     = func ;
    rlist->func_data[num] = NULL ;
    rlist->func_code[num] = nd ;
+   rlist->func_init[num] = NULL ;
 
    rlist->num = num+1 ;
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Add init function to last registered function. This function
+    should be called just after AFNI_register_nD_function(). [21 Jul 2003] */
+
+void AFNI_register_nD_func_init( int nd , generic_func *fin )
+{
+   MCW_function_list * rlist ;
+   int num ;
+
+   if( fin == NULL ) return ;
+
+   switch( nd ){
+      default: return ;
+
+      case 0: rlist = &(GLOBAL_library.registered_0D) ; break ;
+      case 1: rlist = &(GLOBAL_library.registered_1D) ; break ;
+      case 2: rlist = &(GLOBAL_library.registered_2D) ; break ;
+
+      case -1: rlist= &(GLOBAL_library.registered_slice_proj) ; break ;
+   }
+
+   num = rlist->num ; if( num <= 0 ) return ;
+   rlist->func_init[num-1] = fin ;
    return ;
 }
 
