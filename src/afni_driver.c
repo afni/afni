@@ -51,6 +51,7 @@ static int AFNI_setenv                 ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
 static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
 static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
+static int AFNI_redisplay              ( char *cmd ) ;
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -120,6 +121,9 @@ static AFNI_driver_pair dpair[] = {
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
+
+ { "REDISPLAY"          , AFNI_redisplay               } ,
+ { "REDRAW"             , AFNI_redisplay               } ,
 
  { NULL , NULL } } ;
 
