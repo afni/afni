@@ -61,7 +61,8 @@ static void init_colors(void)
    if( !first ) return ;
    first = 0 ;
 
-   for( ii=1 ; ii < NCLR_MAX ; ii++ ){
+   /* init ii to 0 (was 1) to match README.environment   19 May 2004 [rickr] */
+   for( ii=0 ; ii < NCLR_MAX ; ii++ ){
      sprintf(ename,"AFNI_1DPLOT_COLOR_%02d",ii+1) ;
      eee = getenv(ename) ;
      if( eee != NULL ){
