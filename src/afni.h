@@ -983,11 +983,6 @@ typedef struct {
 
    Htable *warptable ;                            /* 28 Aug 2002 */
 
-   int thresh_lock ,                              /* 06 Feb 2004 */
-       pbar_lock ,
-       range_lock ,
-       subbrick_lock ;
-
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -1063,6 +1058,8 @@ extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
 extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_thresh_lock_carryout( Three_D_View * ) ; /* 06 Feb 2004 */
+extern void AFNI_pbar_lock_carryout  ( Three_D_View * ) ; /* 07 Feb 2004 */
+extern void AFNI_equate_pbars        ( Three_D_View *, Three_D_View * ) ;
 
 extern void AFNI_ijk_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 

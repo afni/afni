@@ -1434,7 +1434,7 @@ ENTRY("AFNI_drive_set_threshnew") ;
    smax  = (int)rint( pow(10.0,THR_TOP_EXPON) ) ;
    stop  = smax - 1 ;                             /* max slider value */
 
-   dopval = (val > 0.0) && (val < 1.0) && (strchr(cpt,'p') != NULL) &&
+   dopval = (val >= 0.0) && (val <= 1.0) && (strchr(cpt,'p') != NULL) &&
             (DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) > 0) ;
 
    dostar = (val > 0.0) && (strchr(cpt,'*') != NULL) ;
@@ -1443,7 +1443,7 @@ ENTRY("AFNI_drive_set_threshnew") ;
      pval = THD_pval_to_stat( val ,
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
-     if( pval > 0.0 ) val = pval ;
+     if( pval >= 0.0 ) val = pval ;
    }
 
    if( val >= im3d->vinfo->func_thresh_top || dostar ){ /* reset scale range */
@@ -1554,15 +1554,15 @@ ENTRY("AFNI_drive_set_pbar_sign") ;
 /*-------------------------------------------------------------------------*/
 /*! SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
    "SET_PBAR_ALL A.+5 1.0=yellow 0.5=red 0.05=none -0.05=blue -0.50=cyan"
-   "SET_PBAR_ALL A.+99 topval colorscale_name"
+   "SET_PBAR_ALL A.+99 topval colorscale_name FLIP ROTA=n"
 ---------------------------------------------------------------------------*/
 
 static int AFNI_drive_set_pbar_all( char *cmd )
 {
    int ic , dadd=2 , npan=0 , pos , nn , ii,jj ;
    float pval[NPANE_MAX+1] , val ;
-   int   pcol[NPANE_MAX]   , col ;
-   char  str[256] ;
+   int   pcol[NPANE_MAX]   , col , flip=0 , rota=0 ;
+   char  str[256] , *cpt ;
    MCW_pbar *pbar ;
    Three_D_View *im3d ;
 
@@ -1625,6 +1625,11 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      str[0] = '\0' ; val = 0.0 ;
      sscanf( cmd+dadd , "%f %s" , &val, str ) ;
      if( val <= 0.0 ) RETURN(-1) ;
+
+     flip = ( strstr(cmd+dadd,"FLIP") != NULL ) ;
+
+     cpt = strstr(cmd+dadd,"ROTA=") ;
+     if( cpt != NULL ) sscanf(cpt+5,"%d",&rota) ;
    }
 
    /* now set pbar values (and other widgets) */
@@ -1650,6 +1655,8 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      pmax = val ; pmin = (pbar->mode) ? 0.0 : -pmax ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      PBAR_set_bigmap( pbar , str ) ;
+     rotate_MCW_pbar( pbar , rota ) ;  /* 07 Feb 2004 */
+     if( flip ) PBAR_flip( pbar ) ;    /* 07 Feb 2004 */
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
    }
    FIX_SCALE_SIZE(im3d) ;

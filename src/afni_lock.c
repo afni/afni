@@ -300,9 +300,9 @@ void AFNI_thresh_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
-   int glock , cc,ii ;
-   float thresh ;
-   char cmd[64] ;
+   int glock , cc,ii , dopval,dothresh ;
+   float thresh , pval , tval ;
+   char cmd[64] , *eee ;
 
 ENTRY("AFNI_thresh_lock_carryout") ;
 
@@ -314,7 +314,12 @@ ENTRY("AFNI_thresh_lock_carryout") ;
    if( glock == 0 )                   EXRETURN;  /* nothing to do */
    if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
    if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
-   if( ! GLOBAL_library.thresh_lock ) EXRETURN;  /* don't lock thresh */
+
+   eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
+   if( eee == NULL ) EXRETURN ;
+   dothresh = (*eee == 'V' || *eee == 'v') ;
+   dopval   = (*eee == 'P' || *eee == 'p') ;
+   if( !dothresh && !dopval ) EXRETURN ;         /* no command? */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
 
@@ -329,6 +334,15 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
    thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
 
+   /* get p-value corresponding, if that is what's being locked */
+
+   if( dopval ){
+     pval = THD_stat_to_pval( thresh ,
+                DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+                DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
+     if( pval < 0.0 || pval > 1.0 ){ dopval = 0; dothresh = 1; }
+   }
+
    /* loop through other controllers:
         for those that ARE open, ARE NOT the current
         one, and ARE locked, set the new threshold */
@@ -339,8 +353,103 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
       if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         sprintf( cmd , "SET_THRESHNEW %c %.4f **" , 'A'+cc , thresh ) ;
+         if( dothresh )
+           sprintf( cmd , "SET_THRESHNEW %c %.4f **" , 'A'+cc , thresh ) ;
+         else if( dopval && qq3d->fim_now != NULL &&
+                    DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index) > 0 )
+           sprintf( cmd , "SET_THRESHNEW %c %g *p" , 'A'+cc , pval ) ;
+         else
+           continue ;  /* pval, but not a statistic? */
+
          AFNI_driver( cmd ) ;
+      }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
+
+void AFNI_equate_pbars( Three_D_View *lh3d , Three_D_View *rh3d )
+{
+   MCW_pbar *lbar , *rbar ;
+   char cmd[1024] ;
+   int cc , qq ;
+   MCW_DCOV * ovc = GLOBAL_library.dc->ovc ;
+
+ENTRY("AFNI_equate_pbars") ;
+
+   if( !IM3D_OPEN(lh3d) || !IM3D_OPEN(rh3d) ) EXRETURN ;
+
+   lbar = lh3d->vwid->func->inten_pbar ;
+   rbar = rh3d->vwid->func->inten_pbar ;
+
+   cc = AFNI_controller_index(lh3d) ; if( cc < 0 ) EXRETURN ;
+
+   if( !rbar->bigmode ){
+     sprintf(cmd,"SET_PBAR_ALL %c.%c%d" , 'A'+cc ,
+             (rbar->mode) ? '+' : '-' , rbar->num_panes ) ;
+     for( qq=0 ; qq < rbar->num_panes ; qq++ )
+       sprintf(cmd+strlen(cmd)," %s=%s",
+               AV_uformat_fval(rbar->pval[qq]) ,
+               ovc->label_ov[rbar->ov_index[qq]] ) ;
+   } else {
+     sprintf(cmd,"SET_PBAR_ALL %c.%c%d %f %s\n" , 'A'+cc ,
+             (rbar->mode) ? '+' : '-' , 99 ,
+             rbar->bigtop , PBAR_get_bigmap(rbar) ) ;
+     if( rbar->bigflip )
+       sprintf(cmd+strlen(cmd)," FLIP") ;
+     if( rbar->bigrota )
+       sprintf(cmd+strlen(cmd)," ROTA=%d",rbar->bigrota) ;
+   }
+
+   AFNI_driver( cmd ) ; EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
+
+void AFNI_pbar_lock_carryout( Three_D_View *im3d )
+{
+   Three_D_View *qq3d ;
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+   int glock , cc,ii ;
+   char *eee ;
+
+ENTRY("AFNI_pbar_lock_carryout") ;
+
+   /* first, determine if there is anything to do */
+
+   glock = GLOBAL_library.controller_lock ;     /* not a handgun */
+
+   if( busy )                         EXRETURN;  /* routine already busy */
+   if( glock == 0 )                   EXRETURN;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
+   if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
+
+   eee = getenv( "AFNI_PBAR_LOCK" ) ;            /* determine how to lock */
+   if( eee == NULL ) EXRETURN ;
+   if( *eee != 'Y' && *eee != 'y' ) EXRETURN ;
+
+   ii = AFNI_controller_index(im3d) ;           /* which one am I? */
+
+   if( ii < 0 ) EXRETURN ;                      /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 ) EXRETURN ;      /* input not locked */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   /* loop through other controllers:
+        for those that ARE open, ARE NOT the current one, and ARE locked */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+
+         AFNI_equate_pbars( qq3d , im3d ) ;
       }
    }
 
