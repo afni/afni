@@ -31,6 +31,10 @@ static int ns_flags[NUM_NIML] ;
 
 #define FLAG_CONNECTED  2
 
+/*! Skip flag */
+
+#define FLAG_SKIP       4
+
 /*-------------------------------------*/
 /*! The SUMA stream index in ns_listen */
 
@@ -105,7 +109,10 @@ ENTRY("AFNI_init_niml") ;
 
    /* initialize status and names of all listening NI_streams */
 
-   for( cc=0 ; cc < NUM_NIML ; cc++ ) ns_listen[cc] = NULL ;
+   for( cc=0 ; cc < NUM_NIML ; cc++ ){
+     ns_listen[cc] = NULL ;
+     ns_flags[cc]  = 0 ;
+   }
 
    sprintf(ns_name[0] , "tcp:host:%d" , SUMA_TCP_PORT ) ;
 
@@ -166,7 +173,7 @@ void NIML_to_stderr( void *nini )
 
 static Boolean AFNI_niml_workproc( XtPointer elvis )
 {
-   int cc , nn , ct ;
+   int cc , nn , ct , ngood=0 ;
    void *nini ;
 
    /** loop over input NIML streams **/
@@ -175,10 +182,15 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      /* open streams that aren't open */
 
-     if( ns_listen[cc] == NULL ){
+     if( ns_listen[cc] == NULL && (ns_flags[cc]&FLAG_SKIP)==0 ){
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
+       if( ns_listen[cc] == NULL ){
+          ns_flags[cc] = FLAG_SKIP ; continue ;
+       }
        ns_flags[cc]  = FLAG_WAITING ;
      }
+
+     ngood++ ;
 
      /* now check if stream has gone bad */
 
@@ -222,7 +234,12 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
    dont_tell_suma = 0 ;                              /* talk to SUMA */
 
-   return False ;  /* always call me back */
+   if( ngood == 0 ){
+      fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
+      return True ;
+   }
+
+   return False ;
 }
 
 /*----------------------------------------------------------------------*/
