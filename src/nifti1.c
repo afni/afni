@@ -320,8 +320,14 @@ mat44 quatern_to_mat44( float qb, float qc, float qd,
        orthogonalized prior to calculating the parameters, using
        the polar decomposition to find the orthogonal matrix closest
        to the column-normalized input matrix.
-     - If the 3 input matrix columns are not linearly independent, you'll
-       just have to take your luck, won't you?
+     - However, if the 3 input matrix columns are NOT orthogonal, then
+       the matrix produces by quatern_to_mat44 WILL have orthogonal
+       columns, so it won't be the same as the matrix input here.
+       This "feature" is because the NIFTI 'qform' transform is
+       deliberately not fully general -- it is intended to model a volume
+       with perpendicular axes.
+     - If the 3 input matrix columns are not even linearly independent,
+       you'll just have to take your luck, won't you?
 -----------------------------------------------------------------------------*/
 
 #undef  ASSIF                                 /* assign v to *p, if possible */
