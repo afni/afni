@@ -300,7 +300,9 @@ void AFNI_thresh_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
-   int glock , new_val , cc,ii ;
+   int glock , cc,ii ;
+   float thresh ;
+   char cmd[64] ;
 
 ENTRY("AFNI_thresh_lock_carryout") ;
 
@@ -323,9 +325,9 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
    busy = 1 ;  /* don't let this routine be called recursively */
 
-   /* load time index of this controller => all others get this value, too*/
+   /* get true threshold of this controller => all others get this value, too*/
 
-   XmScaleGetValue( im3d->vwid->func->thr_scale , &new_val ) ;
+   thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
 
    /* loop through other controllers:
         for those that ARE open, ARE NOT the current
@@ -337,8 +339,8 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
       if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         XmScaleSetValue  ( qq3d->vwid->func->thr_scale, new_val ) ;
-         AFNI_thr_scale_CB( qq3d->vwid->func->thr_scale, (XtPointer)qq3d,NULL );
+         sprintf( cmd , "SET_THRESHNEW %c %.4f **" , 'A'+cc , thresh ) ;
+         AFNI_driver( cmd ) ;
       }
    }
 

@@ -36,6 +36,7 @@ static int AFNI_drive_geom_graph    ( char *cmd ) ; /* 16 Nov 2001 */
 
 static int AFNI_drive_add_overlay_color( char *cmd ) ; /* 16 Jan 2003 */
 static int AFNI_drive_set_threshold    ( char *cmd ) ; /* 16 Jan 2003 */
+static int AFNI_drive_set_threshnew    ( char *cmd ) ; /* 06 Feb 2004 */
 static int AFNI_drive_set_pbar_number  ( char *cmd ) ; /* 16 Jan 2003 */
 static int AFNI_drive_set_pbar_sign    ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_drive_set_pbar_all     ( char *cmd ) ; /* 17 Jan 2003 */
@@ -92,6 +93,7 @@ static AFNI_driver_pair dpair[] = {
 
  { "ADD_OVERLAY_COLOR"  , AFNI_drive_add_overlay_color } ,
  { "SET_THRESHOLD"      , AFNI_drive_set_threshold     } ,
+ { "SET_THRESHNEW"      , AFNI_drive_set_threshnew     } ,
  { "SET_FUNC_THRESH"    , AFNI_drive_set_threshold     } ,
  { "SET_PBAR_NUMBER"    , AFNI_drive_set_pbar_number   } ,
  { "SET_PBAR_SIGN"      , AFNI_drive_set_pbar_sign     } ,
@@ -1382,6 +1384,83 @@ ENTRY("AFNI_drive_set_threshold") ;
 
    if( dec >= 0 && dec <= THR_TOP_EXPON )
      AFNI_set_thresh_top( im3d , tval[dec] ) ;
+
+   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! SET_THRESHNEW [c].val [**] -- 06 Feb 2004
+    as in "SET_THRESHNEW A.0.372" or
+          "SET_THRESHNEW 0.372 **"   (the "**" means to set the range too)
+--------------------------------------------------------------------------*/
+
+static int AFNI_drive_set_threshnew( char *cmd )
+{
+   int ic,dadd , olddec,newdec , ival,smax,id,stop , dopval,dostar;
+   Three_D_View *im3d ;
+   float val , pval ;
+   char *cpt ;
+   static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
+                            100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
+
+ENTRY("AFNI_drive_set_threshnew") ;
+
+   if( cmd == NULL || *cmd == '\0' ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){
+     ic = 0 ; dadd = 0 ;
+   } else {
+     if( cmd[1] == '\0' ) RETURN(-1) ;   /* no value following? */
+     dadd = 2 ;                          /* skip period following controller */
+   }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;   /* stupid user */
+
+   /* get val from command line */
+
+   val = strtod( cmd+dadd , &cpt ) ;
+   if( val < 0.0 || val > THR_TOP_VALUE ) RETURN(-1) ; /* stupid user */
+
+   /* get current scale decimal setting */
+
+   olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
+        if( olddec < 0             ) olddec = 0 ;
+   else if( olddec > THR_TOP_EXPON ) olddec = THR_TOP_EXPON ;
+   newdec = olddec ;
+
+   smax  = (int)rint( pow(10.0,THR_TOP_EXPON) ) ;
+   stop  = smax - 1 ;                             /* max slider value */
+
+   dopval = (val > 0.0) && (val < 1.0) && (strchr(cpt,'p') != NULL) &&
+            (DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) > 0) ;
+
+   dostar = (val > 0.0) && (strchr(cpt,'*') != NULL) ;
+
+   if( dopval ){
+     pval = THD_pval_to_stat( val ,
+              DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+              DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
+     if( pval > 0.0 ) val = pval ;
+   }
+
+   if( val >= im3d->vinfo->func_thresh_top || dostar ){ /* reset scale range */
+
+     newdec = (int)( log10(val) + 1.0 ) ;
+          if( newdec < 0             ) newdec = 0 ;
+     else if( newdec > THR_TOP_EXPON ) newdec = THR_TOP_EXPON ;
+   }
+
+   if( newdec != olddec )
+     AFNI_set_thresh_top( im3d , tval[newdec] ) ;
+
+   ival = rint( val/(THR_FACTOR*tval[newdec]) ) ;
+        if( ival < 0    ) ival = 0    ;
+   else if( ival > stop ) ival = stop ;
+
+   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
 
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
    RETURN(0) ;
