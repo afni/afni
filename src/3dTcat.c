@@ -171,14 +171,24 @@ void TCAT_read_opts( int argc , char * argv[] )
 	 nlen = strlen(argv[nopt]);
 	 if (nlen <= 5) ok = 0;
 
+#define BACKASS   /* 03 Oct 2002 -- RWCox */
+
 	 if (ok)
 	   {
-	     for (ilen = 0;  ilen < nlen;  ilen++)
+#ifndef BACKASS
+	     for (ilen = 0;  ilen < nlen;  ilen++)     /* BDW: scan forward */
+#else
+             for( ilen=nlen-3 ; ilen >= 0 ; ilen-- )   /* RWC: scan backward */
+#endif
 	       {
 		 str = argv[nopt] + ilen;
 		 if (str[0] == '+') break;
 	       }
+#ifndef BACKASS
 	     if (ilen == nlen)  ok = 0;
+#else
+             if (ilen <= 0   )  ok = 0;
+#endif
 	   }
 
 	 if (ok)
