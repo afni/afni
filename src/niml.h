@@ -61,9 +61,9 @@ typedef struct { int num; int *ar; } intarray ;
 #define NI_COMPLEX64   5
 #define NI_COMPLEX     NI_COMPLEX64
 #define NI_RGB         6
-#define NI_STRING      7
-#define NI_LINE        8
-#define NI_RGBA        9
+#define NI_RGBA        7
+#define NI_STRING      8
+#define NI_LINE        9
 
 /*! One more than the last NI_ data type code defined above. */
 
@@ -205,7 +205,9 @@ extern int NI_stream_write( NI_stream_type * , char * , int ) ;
 extern int NI_stream_read( NI_stream_type * , char * , int ) ;
 extern void NI_binary_threshold( NI_stream_type * , int ) ;
 extern void NI_sleep( int ) ;
-extern char * NI_stream_buffer( NI_stream_type * ) ;
+extern char * NI_stream_getbuf( NI_stream_type * ) ;
+extern void   NI_stream_setbuf( NI_stream_type * , char * ) ;
+extern char * NI_stream_name( NI_stream_type * ) ;
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
