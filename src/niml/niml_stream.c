@@ -918,6 +918,8 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
    if( ioc->bad == 0 ){
      ii = SHM_alivecheck(ioc->id) ;
      if( ii <= 0 ){                            /* has died */
+        fprintf(stderr,"++ Shared memory connection %s has gone bad!\n",
+                       ioc->name ) ;
         shmdt( ioc->shmbuf ) ; ioc->bad = SHM_IS_DEAD ;
         shmctl( ioc->id , IPC_RMID , NULL ) ; return -1 ;
      }
@@ -2084,6 +2086,11 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
         if( ns->bad == 0 ){  /** if good before, then check if is still good **/
            int ich = 1 ;
            ich = tcp_alivecheck(ns->sd) ;
+
+           if( ich == 0 )  /* 17 Jun 2003 */
+             fprintf(stderr,"++ Socket %s (port %d) has gone bad!\n",
+                     ns->name, ns->port ) ;
+
            if( ich == 0 ) return -1 ;
            return 1 ;
         }
