@@ -54,7 +54,10 @@ floatvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *str 
 
    MCW_intlist_allow_negative(1) ;
    for( ss=0 ; ss < sar->num ; ss++ ){
-     qstr = sar->str[ss] ; if( qstr == NULL || *qstr == '\0' ) continue ;
+     qstr = sar->str[ss] ;
+     if( qstr == NULL || *qstr == '\0' ) continue ;   /* bad entry? */
+     if( *qstr == '#' ||                              /* comment ends line */
+        (*qstr == '/' && *(qstr+1) == '/') ) break ;
 
      qstr  = strdup(sar->str[ss]) ;   /* duplicate for surgery */
      qpt   = strchr(qstr,'[') ;       /* find and decode "[...]" subscripts */
