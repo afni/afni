@@ -34,12 +34,12 @@ void THD_insert_series( int ind , THD_3dim_dataset * dset ,
        !DSET_IS_MALLOC(dset)    ) return ;
 
 
-   nv  = DSET_NVALS(dset) ;  if( npt > nv ) npt = nv ;  /* truncate input? */
+   nv = DSET_NVALS(dset) ; if( npt > nv ) npt = nv;  /* truncate input? */
 
-   if( !DSET_LOADED(dset) ) DSET_load(dset) ;           /* read from disk? */
+   if( !DSET_LOADED(dset) ) DSET_load(dset) ;        /* read from disk? */
    if( !DSET_LOADED(dset) ) return ;
 
-   dtyp = DSET_BRICK_TYPE(dset,0) ;                     /* type of dataset arrays */
+   dtyp = DSET_BRICK_TYPE(dset,0) ;                  /* dataset array type */
 
    /* convert input to a floating point type */
 

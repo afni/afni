@@ -3130,6 +3130,9 @@ extern int     THD_count_databricks( THD_datablock * dblk ) ;
 extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 
+extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
+#define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
+
 #define ALLOW_FSL_FEAT  /* 27 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
@@ -3292,6 +3295,8 @@ extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
+
+extern void THD_mask_dilate( int, int, int, byte *, int ) ; /* 30 Aug 2002 */
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;

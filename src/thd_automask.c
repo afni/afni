@@ -467,7 +467,61 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
      if( nnn[ii] ) mmm[ii] = 1 ;
 #endif
 
-   return ;
+   free(nnn) ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Dilate a mask - that is, fill in zero voxels that have at least ndil
+    neighbors in the mask.  The neighbors are the 18 voxels closest
+    in 3D (nearest and next-nearest neighbors).
+----------------------------------------------------------------------------*/
+
+void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
+{
+   int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   int nxy=nx*ny , nxyz=nxy*nz ;
+   byte *nnn ;
+
+   if( mmm == NULL ) return ;
+        if( ndil < 1  ) ndil =  1 ;
+   else if( ndil > 17 ) ndil = 17 ;
+
+   nnn = calloc(sizeof(byte),nxyz) ;  /* mask of dilated voxels */
+
+   /* mark exterior voxels neighboring enough interior voxels */
+
+   for( kk=0 ; kk < nz ; kk++ ){
+    kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+         if( kk == 0    ) km = kz ;
+    else if( kk == nz-1 ) kp = kz ;
+
+    for( jj=0 ; jj < ny ; jj++ ){
+     jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+          if( jj == 0    ) jm = jy ;
+     else if( jj == ny-1 ) jp = jy ;
+
+     for( ii=0 ; ii < nx ; ii++ ){
+       if( mmm[ii+jy+kz] == 0 ){           /* count nonzero nbhrs */
+         im = ii-1 ; ip = ii+1 ;
+              if( ii == 0    ) im = 0 ;
+         else if( ii == nx-1 ) ip = ii ;
+         num =  mmm[im+jy+km]
+              + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
+              + mmm[ip+jy+km]
+              + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
+              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
+              + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
+              + mmm[im+jy+kp]
+              + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
+              + mmm[ip+jy+kp] ;
+         if( num >= ndil ) nnn[ii+jy+kz] = 1 ;  /* mark to dilate */
+       }
+   } } }
+
+   for( ii=0 ; ii < nxyz ; ii++ )            /* actually dilate */
+     if( nnn[ii] ) mmm[ii] = 1 ;
+
+   free(nnn) ; return ;
 }
 
 /*---------------------------------------------------------------------*/
