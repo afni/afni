@@ -551,6 +551,9 @@ int matrix_inverse (matrix a, matrix * ainv)
   if (a.rows != a.cols) 
     matrix_error ("Illegal dimensions for matrix inversion");
 
+#if 0
+matrix_sprint("matrix_inverse:",a) ;
+#endif
 
   n = a.rows;
   matrix_identity (n, ainv);
@@ -886,7 +889,9 @@ void vector_subtract (vector a, vector b, vector * c)
 #endif
 }
 
-#undef VM_DEBUG   /* RWCox */
+#undef VM_DEBUG        /* RWCox */
+
+#define UNROLL_VECMUL  /* RWCox */
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -916,17 +921,34 @@ void vector_multiply (matrix a, vector b, vector * c)
 
   vector_create_noinit (rows, c);
 
+  if( cols <= 0 ){
+    for( i=0 ; i < rows ; i++ ) c->elts[i] = 0.0l ;
+    return ;
+  }
+
   bb = b.elts ;
-  for (i = 0;  i < rows;  i++)
-    {
-      sum = 0.0 ; 
-      if (cols > 0)   /* 18 Mar 2003 */
-	{
-	  aa = a.elts[i] ;
-	  for (j = 0;  j < cols;  j++) sum += aa[j] * bb[j] ;
-	}
-      c->elts[i] = sum ;
+
+#ifdef UNROLL_VECMUL
+  if( cols%2 == 0 ){              /* even number of cols */
+    for (i = 0;  i < rows;  i++){
+        sum = 0.0 ; aa = a.elts[i] ;
+        for (j = 0;  j < cols;  j+=2 ) sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        c->elts[i] = sum ;
     }
+  } else {                        /* odd number of cols */
+    for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = aa[0]*bb[0] ;
+        for (j = 1;  j < cols;  j+=2 ) sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        c->elts[i] = sum ;
+    }
+  }
+#else
+    for (i = 0;  i < rows;  i++){
+        sum = 0.0 ; aa = a.elts[i] ;
+        for (j = 0;  j < cols;  j++ ) sum += aa[j]*bb[j] ;
+        c->elts[i] = sum ;
+    }
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -959,17 +981,38 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
   vector_create_noinit (rows, d);
 
+  if( cols <= 0 ){
+    qsum = 0.0 ;
+    for( i=0 ; i < rows ; i++ ){
+      d->elts[i] = c.elts[i] ;
+      qsum += d->elts[i] * d->elts[i] ;
+    }
+    return qsum ;
+  }
+
   qsum = 0.0 ; bb = b.elts ;
-  for (i = 0;  i < rows;  i++)
-    {
-      sum = c.elts[i] ; 
-      if (cols > 0)   /* 18 Mar 2003 */
-	{
-	  aa = a.elts[i] ;
-	  for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
-	}
+
+#ifdef UNROLL_VECMUL
+  if( cols%2 == 0 ){
+    for (i = 0;  i < rows;  i++){
+      aa = a.elts[i] ; sum = c.elts[i] ; 
+      for (j = 0;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
       d->elts[i] = sum ; qsum += sum*sum ;
     }
+  } else {
+    for (i = 0;  i < rows;  i++){
+      aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ; 
+      for (j = 1;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
+      d->elts[i] = sum ; qsum += sum*sum ;
+    }
+  }
+#else
+  for (i = 0;  i < rows;  i++){
+    aa = a.elts[i] ; sum = c.elts[i] ; 
+    for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
+    d->elts[i] = sum ; qsum += sum*sum ;
+  }
+#endif
   return qsum ;  /* 26 Feb 2003 */
 }
 
