@@ -508,8 +508,9 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   int        nmap ;
+   int        nmap , nvused , nvtot ;
    NI_element *nel ;
+   char msg[16] ;
 
 ENTRY("AFNI_niml_redisplay_CB") ;
 
@@ -528,7 +529,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    /* build a node+color map */
 
-   nmap = AFNI_vnlist_func_overlay( im3d , &map ) ;
+   nmap = AFNI_vnlist_func_overlay( im3d , &map , &nvused ) ;
    if( nmap < 0 ) EXRETURN ;
 
    if( nmap > 0 ){  /* make a data element with data */
@@ -543,10 +544,23 @@ ENTRY("AFNI_niml_redisplay_CB") ;
       free(map) ;
    } else {         /* make an empty data element */
       nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
+      nvused = 0 ;
    }
+   nvtot = adset->su_vnlist->nvox ;  /* 13 Mar 2002 */
 
-   if( adset->su_surf->idcode[0] != '\0' )
-     NI_set_attribute( nel , "surface_idcode" , adset->su_surf->idcode ) ;
+   /* 13 Mar 2002: send idcodes of surface and datasets involved */
+
+   NI_set_attribute( nel , "surface_idcode" , adset->su_surf->idcode ) ;
+   NI_set_attribute( nel , "volume_idcode"  , adset->idcode.str ) ;
+   NI_set_attribute( nel , "function_idcode", fdset->idcode.str ) ;
+
+   /* 13 Mar 2002: also send the number of voxels in the surface
+                   and the number of voxels that were colored in */
+
+   sprintf(msg,"%d",nvtot) ;
+   NI_set_attribute( nel , "numvox_total" , msg ) ;
+   sprintf(msg,"%d",nvused) ;
+   NI_set_attribute( nel , "numvox_used" , msg ) ;
 
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
@@ -587,6 +601,11 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
    NI_add_column( nel , NI_FLOAT , xyz ) ;
+
+   /* 13 Mar 2002: add idcodes of what we are looking at right now */
+
+   NI_set_attribute( nel, "surface_idcode", im3d->anat_now->su_surf->idcode ) ;
+   NI_set_attribute( nel, "volume_idcode" , im3d->anat_now->idcode.str ) ;
 
    xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
 

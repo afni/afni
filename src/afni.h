@@ -136,7 +136,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "17 Mar 2002      "
+#define RELEASE "13 Mar 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -977,7 +977,7 @@ typedef struct {
 /*-----------------------------------------------------------*/
 /*------------------------ prototypes -----------------------*/
 
-extern int AFNI_vnlist_func_overlay( Three_D_View *, SUMA_irgba ** ) ;
+extern int AFNI_vnlist_func_overlay( Three_D_View *, SUMA_irgba **, int * ) ;
 
 extern void AFNI_parse_args( int argc , char * argv[] );
 extern void FatalError(char * str);
