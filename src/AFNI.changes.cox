@@ -4596,3 +4596,9 @@
 
 16 Jun 2003
  * SUMA+AFNI ROI stuff.
+
+20 Jun 2003
+ * Modified imseq.c to add ISQ_snapshot(Widget) functionality.  Tested
+     in Xphace program.
+ * Modified Makefile.INCLUDE to make libmrix.a that includes all the
+     X11 utilities (imseq.c, xutil.c, xim.c, etc.).

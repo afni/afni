@@ -393,6 +393,8 @@ static void ISQ_setup_ppmto_filters(void)
    return ;
 }
 
+static MCW_DC *first_dc = NULL ;
+
 /*-------------------------------------------------------------------------
   routine to create a new window for displaying an image sequence:
 
@@ -628,6 +630,8 @@ ENTRY("open_MCW_imseq") ;
    newseq->dc     = dc ;               /* copy input pointers */
    newseq->getim  = get_image ;
    newseq->getaux = aux ;
+
+   if( first_dc == NULL ) first_dc = dc ;  /* 18 Jun 2003 */
 
    newseq->never_drawn = 1 ;
 
@@ -9747,5 +9751,196 @@ CropDone:
    }
 
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/**************************************************************************/
+/*** 20 Jun 2003: snapshot stuff for recording the contents of a widget ***/
+
+static int badsnap = 0 ;
+
+/*! X11 error handler for when XGetImage fails to snapshot a window. */
+
+static int SNAP_handler( Display *d , XErrorEvent *x )
+{
+  fprintf(stderr,"** X11 error trying to snapshot window!\n");
+  badsnap = 1 ; return 0 ;
+}
+
+/*--------------------------------------------------------------*/
+/*! Grab the image from a widget's window.  [20 Jun 2003]
+----------------------------------------------------------------*/
+
+static MRI_IMAGE * SNAP_grab_image( Widget w , MCW_DC *dc )
+{
+   XImage * xim ;
+   MRI_IMAGE * tim ;
+   Window win ;
+   Widget wpar=w ;
+   XWindowAttributes wa ;
+   int (*old_handler)(Display *, XErrorEvent *) ;
+
+ENTRY("SNAP_grab_image") ;
+
+   if( w == NULL || !XtIsWidget(w) )         RETURN(NULL) ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) RETURN(NULL) ;
+   if( dc == NULL )                          RETURN(NULL) ;
+   win = XtWindow(w); if( win == (Window)0 ) RETURN(NULL) ;
+
+   while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
+   XRaiseWindow( dc->display , XtWindow(wpar) ) ;
+   XFlush( dc->display ) ;
+   XmUpdateDisplay( w ) ;
+   if( !MCW_widget_visible(w) )              RETURN(NULL) ;
+
+   RWC_sleep(20) ;                           /* allow for refresh time */
+   XGetWindowAttributes( dc->display , win , &wa ) ;
+   xim = NULL ; badsnap = 0 ;
+   old_handler = XSetErrorHandler( SNAP_handler ) ;
+   xim = XGetImage( dc->display , win ,
+                    0,0 , wa.width,wa.height,
+                    (unsigned long)(-1), ZPixmap ) ;
+   (void) XSetErrorHandler( old_handler ) ;
+   if( badsnap ){
+     if( xim != NULL ) MCW_kill_XImage(xim) ;
+     RETURN(NULL) ;
+   }
+   if( xim == NULL ) RETURN(NULL) ;
+
+   tim = XImage_to_mri( dc , xim , X2M_USE_CMAP | X2M_FORCE_RGB ) ;
+   MCW_kill_XImage(xim) ;
+   RETURN(tim) ;
+}
+
+/*----------------------------------------------------------------------*/
+
+static MCW_imseq *snap_isq  = NULL ;
+static MCW_DC    *snap_dc   = NULL ;
+static MRI_IMARR *snap_imar = NULL ;
+
+static void SNAP_imseq_send_CB( MCW_imseq *, XtPointer, ISQ_cbs * ) ;
+
+/*------------------------------------------------------------------
+   Routine to provide data to the imseq.
+   Just returns the control information, or the selected image.
+--------------------------------------------------------------------*/
+
+static XtPointer SNAP_imseq_getim( int n, int type, XtPointer handle )
+{
+   int ntot = 0 ;
+
+   if( snap_imar != NULL ) ntot = IMARR_COUNT(snap_imar) ;
+   if( ntot < 1 ) ntot = 1 ;
+
+   /*--- send control info ---*/
+
+   if( type == isqCR_getstatus ){
+     MCW_imseq_status *stat = myXtNew( MCW_imseq_status ) ; /* will be freed */
+                                                            /* when imseq is */
+                                                            /* destroyed    */
+     stat->num_total  = ntot ;
+     stat->num_series = ntot ;
+     stat->send_CB    = SNAP_imseq_send_CB ;
+     stat->parent     = NULL ;
+     stat->aux        = NULL ;
+
+     stat->transforms0D = NULL ;
+     stat->transforms2D = NULL ;
+     stat->slice_proj   = NULL ;
+
+     return (XtPointer) stat ;
+   }
+
+   /*--- no overlay, never ---*/
+
+   if( type == isqCR_getoverlay ) return NULL ;
+
+   /*--- return a copy of an image
+         (since the imseq will delete it when it is done) ---*/
+
+   if( type == isqCR_getimage || type == isqCR_getqimage ){
+     MRI_IMAGE *im = NULL , *rim ;
+
+     if( snap_imar != NULL ){
+       if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
+       rim = IMARR_SUBIMAGE(snap_imar,n) ;
+       im  = mri_copy( rim ) ;
+     }
+     return (XtPointer) im ;
+   }
+
+   return NULL ; /* should not occur, but who knows? */
+}
+
+/*---------------------------------------------------------------------------
+   Routine called when the imseq wants to send a message.
+   In this case, all we need to handle is the destroy message,
+   so that we can free some memory.
+-----------------------------------------------------------------------------*/
+
+static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs ){
+   switch( cbs->reason ){
+     case isqCR_destroy:{
+       myXtFree(snap_isq) ;         snap_isq  = NULL ;
+       DESTROY_IMARR( snap_imar ) ; snap_imar = NULL ;
+     }
+     break ;
+   }
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Call this function to get a snapshot of a widget and save
+    it into an image viewer.
+------------------------------------------------------------------------*/
+
+void ISQ_snapshot( Widget w )
+{
+   MRI_IMAGE *tim ;
+   Window win ;
+
+ENTRY("ISQ_snapshot") ;
+
+   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
+   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else                   snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
+   }
+
+   tim = SNAP_grab_image( w , snap_dc ) ;
+   if( tim == NULL )                         EXRETURN ;
+
+   if( snap_imar == NULL ) INIT_IMARR(snap_imar) ;
+   ADDTO_IMARR(snap_imar,tim) ;
+
+   if( snap_isq == NULL ){
+
+     snap_isq = open_MCW_imseq( snap_dc, SNAP_imseq_getim, NULL ) ;
+
+#if 0
+    {ISQ_options opt ;
+     ISQ_DEFAULT_OPT(opt) ;
+     opt.save_one = False ;
+     opt.save_pnm = False ;
+     drive_MCW_imseq( snap_isq, isqDR_options     , (XtPointer) &opt ) ;
+    }
+#endif
+     drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0    ) ;
+     drive_MCW_imseq( snap_isq, isqDR_realize     , NULL ) ;
+     drive_MCW_imseq( snap_isq, isqDR_title       , "Snapshots" ) ;
+     XtUnmanageChild( snap_isq->wbar ) ;
+   }
+
+   if( IMARR_COUNT(snap_imar) > 1 ){
+     drive_MCW_imseq( snap_isq, isqDR_newseq      , NULL ) ;
+     drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_onwid  );
+   } else {
+     drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_offwid );
+   }
+
+   ISQ_redisplay( snap_isq , IMARR_COUNT(snap_imar)-1 , isqDR_display ) ;
    EXRETURN ;
 }
