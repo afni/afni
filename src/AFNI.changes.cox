@@ -5338,3 +5338,7 @@
  * Add -min option to 3dmaskave.c.
  * Fixed memory leak in niml_dtable.c (forgot to free second copies of strings).
  * New niml_registry.c stuff, for allocating 'registered' structs.
+
+26 Feb 2005
+ * Modified thd_ctfread.c to seek backwards from end rather than forwards; this
+     makes it work with the new CTF svl format.
