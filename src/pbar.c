@@ -231,6 +231,22 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
    MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_set_CB , dc ) ;
 }
 
+/*--------------------------------------------------------------------*/
+
+void PBAR_set_panecolor( MCW_pbar *pbar , int ip , int ovc ) /* 17 Jan 2003 */
+{
+   if( ovc > 0 ){
+      XtVaSetValues( pbar->panes[ip] ,
+                        XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP ,
+                     NULL ) ;
+      MCW_set_widget_bg( pbar->panes[ip] , NULL , pbar->dc->ovc->pix_ov[ovc] ) ;
+   } else {
+      XtVaSetValues( pbar->panes[ip] ,
+                        XmNbackgroundPixmap , check_pixmap ,
+                     NULL ) ;
+   }
+}
+
 /*--------------------------------------------------------------------
   actual place where color of pane is changed, and user is callbacked
 ----------------------------------------------------------------------*/
