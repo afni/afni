@@ -4544,3 +4544,6 @@
 06 May 2003
  * Minor changes to 3dDeconvolve.c.
  * From Rich Hammett, AFNI_TRY_DICOM_LAST environment variable.
+
+07 May 2003
+ * Parallel computation (-jobs option) addtions to 3dNLfim.c.
