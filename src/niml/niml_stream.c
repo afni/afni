@@ -2404,8 +2404,8 @@ NI_dpr("ENTER NI_stream_write\n") ;
 #endif
 
    if( ns->type != NI_TCP_TYPE ){
-     ii = NI_stream_writecheck(ns,1) ; /* check if stream is still OK */
-     if( ii < 0 ) return ii ;          /* if not, vamoose the ranch  */
+     ii = NI_stream_writecheck(ns,66) ; /* check if stream is still OK */
+     if( ii < 0 ) return ii ;           /* if not, vamoose the ranch  */
    }
 
    switch( ns->type ){

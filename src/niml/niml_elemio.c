@@ -667,9 +667,19 @@ NI_dpr("  scan_for_angles: out of time!\n") ;
    }
 
 #ifdef NIML_DEBUG
-if( ns->npos < ns->nbuf )
-NI_dpr("  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=%.*s\n",
-        ns->npos,epos,ns->nbuf,ns->nbuf-ns->npos,ns->buf+ns->npos ) ;
+if( ns->npos < ns->nbuf && dfp != NULL ){
+  int   nb = ns->nbuf - ns->npos ;
+  char *bf = ns->buf  + ns->npos ;
+  int   ii ;
+  fprintf(dfp,"  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=\n",
+        ns->npos,epos,ns->nbuf ) ;
+  for( ii=0 ; ii < nb ; ii++ ){
+    fprintf(dfp," %02x:%c", (unsigned char)(bf[ii]) ,
+                            isprint(bf[ii]) ? bf[ii] : '.' ) ;
+    if( ii%10 == 9 ) fprintf(dfp,"\n") ;
+  }
+  fprintf(dfp,"\n") ;
+}
 #endif
 
    /*-- scan ahead to find goal in the buffer --*/
@@ -1111,6 +1121,10 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
         nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
         nout = NI_stream_writestring( ns , "/>\n" ) ; ADDOUT ;
+
+#ifdef NIML_DEBUG
+        fprintf(stderr,"NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
+#endif
         return ntot ;                 /* done with empty element */
       }
 
@@ -1144,6 +1158,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
                                      nel->vec_len, nel->vec    , tmode ) ;
         ADDOUT ;
       }
+#ifdef NIML_DEBUG
+      else fprintf(stderr,"NI_write_element: header_only case\n") ;
+#endif
 
       /*- write element trailer -*/
 
@@ -1152,6 +1169,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       nout = NI_stream_writestring( ns , nel->name ) ; ADDOUT ;
       nout = NI_stream_writestring( ns , ">\n\n" ) ; ADDOUT ;
 
+#ifdef NIML_DEBUG
+      fprintf(stderr,"NI_write_element: data element '%s' had %d total bytes\n",nel->name,ntot) ;
+#endif
       return ntot ;
 
    } /* end of write data element */
