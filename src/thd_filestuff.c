@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -74,8 +74,14 @@ int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
    static struct stat buf ; int ii ;
 
    if( pathname == NULL ) return 0 ;
-   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
-   ii = (buf.st_mode & S_IXOTH) != 0 ; return ii ;
+   ii = stat( pathname , &buf )      ; if( ii ) return 0  ;
+   ii = (buf.st_mode & S_IXOTH) != 0 ; if( ii ) return ii ;
+
+   /* 15 Jul 2002: also check if file is owned & executable by user */
+
+   ii = ( getuid() == buf.st_uid       &&
+          (buf.st_mode & S_IXUSR) != 0   ) ;
+   return ii ;
 }
 
 /*--------------------------------------------------------------*/
