@@ -334,7 +334,7 @@ static void ISQ_setup_ppmto_filters(void)
    pg = THD_find_executable( "ppm2tiff" ) ;
    if( pg != NULL ){
       str = malloc(strlen(pg)+32) ;
-      sprintf(str,"%s %%s",pg) ;
+      sprintf(str,"%s -c none %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
    } else {                                     /* 03 Jul 2001:      */
       pg = THD_find_executable( "pnmtotiff" ) ; /* must use ppm2tiff */
@@ -349,14 +349,14 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg  = THD_find_executable( "ppmtobmp" ) ;
 
-   if( AFNI_yesenv("AFNI_OLD_PPMTOBMP") ){
+   if( AFNI_yesenv("AFNI_OLD_PPMTOBMP") ){    /* the old way: quantize */
      pg2 = THD_find_executable( "ppmquant" ) ;
      if( pg != NULL && pg2 != NULL ){
         str = malloc(strlen(pg)+strlen(pg2)+32) ;
         sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
         bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
      }
-   } else if( pg != NULL ){              /* 21 Feb 2003 */
+   } else if( pg != NULL ){                   /* 21 Feb 2003: don't quantize */
       str = malloc(strlen(pg)+32) ;
       sprintf(str,"%s -bpp 24 -windows > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
