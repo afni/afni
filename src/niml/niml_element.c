@@ -394,15 +394,13 @@ NI_element * NI_new_data_element( char *name , int veclen )
 
 void NI_add_column( NI_element *nel , int typ , void *arr )
 {
-   int nn , ii ;
+   int nn ;
    NI_rowtype *rt ;
 
    /* check for reasonable inputs */
 
-   if( nel == NULL || nel->vec_len <= 0 ) return ;
-
-   if( nel->type != NI_ELEMENT_TYPE ) return ;
-
+   if( nel == NULL || nel->vec_len <= 0 )            return ;
+   if( nel->type != NI_ELEMENT_TYPE )                return ;
    rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
 
    /* get number of vectors currently in element */
@@ -425,6 +423,39 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    /* add 1 to the count of vectors */
 
    nel->vec_num = nn+1 ;
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! As in NI_add_column(), but adding every stride-th element from arr.
+    Thus, arr should be at least nel->vec_len * stride elements long.
+--------------------------------------------------------------------------*/
+
+void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
+{
+   int nn , ii ;
+   NI_rowtype *rt ;
+   char *idat ;
+
+   /* check for reasonable inputs */
+
+   if( nel == NULL || nel->vec_len <= 0 )            return ;
+   if( nel->type != NI_ELEMENT_TYPE )                return ;
+   rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
+
+   /* add an empty column */
+
+   NI_add_column( nel , typ , NULL ) ;
+   if( arr == NULL ) return ;          /* no data ==> we're done */
+
+   /* loop over inputs and put them in */
+
+   nn   = nel->vec_num-1 ;
+   idat = (char *) arr ;
+
+   for( ii=0 ; ii < nel->vec_len ; ii++ )
+     NI_insert_value( nel , ii , nn , idat + (ii*stride*rt->size) ) ;
+
    return ;
 }
 

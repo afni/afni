@@ -535,12 +535,12 @@ void CALC_read_opts( int argc , char * argv[] )
            for( ii=0 ; ii < ntime[ival] ; ii++ ){
              if( DSET_BRICK_TYPE(dset,ii) != MRI_float ){
                fprintf(stderr,".") ;
-               far = malloc( sizeof(float) * nxyz ) ;
+               far = calloc( sizeof(float) , nxyz ) ;
                if( far == NULL ){
-                 fprintf(stderr,"\n** can't malloc space for conversion!\n"); exit(1);
+                 fprintf(stderr,"\n** can't malloc space for conversion\n"); exit(1);
                }
                EDIT_coerce_scale_type( nxyz , DSET_BRICK_FACTOR(dset,ii) ,
-                                       DSET_BRICK_TYPE(dset,ii) , DSET_ARRAY(dset,ii) ,
+                                       DSET_BRICK_TYPE(dset,ii), DSET_ARRAY(dset,ii),
                                        MRI_float , far ) ;
                EDIT_substitute_brick( dset , ii , MRI_float , far ) ;
                DSET_BRICK_FACTOR(dset,ii) = 0.0 ;

@@ -503,7 +503,8 @@ extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
-extern void NI_insert_value( NI_element *, int,int, void * ); /* 03 Apr 2003 */
+extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */
+extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 2003 */
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
