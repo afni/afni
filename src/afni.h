@@ -122,21 +122,14 @@ static char * UNDERLAY_typestr[] =
 
 #define TOPSIZE 2048
 
-/** this should always be exactly 5 characters! **/
-/**             "12345" **/
-
-#define VERSION "2.56g"
-
-/** this should always be exactly 17 characters! **/
-/**             "12345678901234567" **/
-
-#define RELEASE "21 Dec 2004      "
+#include "AFNI_label.h"
+#define VERSION AFNI_VERSION_LABEL    /* 21 chars long */
 
 #ifdef MAIN
 #define AFNI_about \
      "************************************************\n"  \
      "* GPL AFNI: Analysis of Functional NeuroImages *\n"  \
-     "*           Version " VERSION " -- " RELEASE " *\n"  \
+     "*           Version " VERSION          "       *\n"  \
      "*                                              *\n"  \
      "* Major portions are Copyright 1994-2000,      *\n"  \
      "*   Medical College of Wisconsin               *\n"  \
