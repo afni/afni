@@ -5,7 +5,8 @@
 /****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
-/*! Allocate memory (actually uses calloc); calls exit() if it fails. */
+/*! Allocate memory (actually uses calloc); calls exit() if it fails.
+----------------------------------------------------------------------------*/
 
 void * NI_malloc( size_t len )
 {
@@ -17,7 +18,8 @@ void * NI_malloc( size_t len )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Free memory; NULL pointer is just ignored. */
+/*! Free memory; NULL pointer is just ignored.
+----------------------------------------------------------------------------*/
 
 void NI_free( void *p )
 {
@@ -29,7 +31,8 @@ void NI_free( void *p )
 #define NI_FREE(p) ( NI_free(p), (p)=NULL )
 
 /*--------------------------------------------------------------------------*/
-/*! Reallocate memory; calls exit() if it fails. */
+/*! Reallocate memory; calls exit() if it fails.
+----------------------------------------------------------------------------*/
 
 void * NI_realloc( void *p , size_t len )
 {
@@ -41,7 +44,8 @@ void * NI_realloc( void *p , size_t len )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Return the file length (-1 if file not found). */
+/*! Return the file length (-1 if file not found).
+----------------------------------------------------------------------------*/
 
 long NI_filesize( char *pathname )
 {
@@ -53,7 +57,8 @@ long NI_filesize( char *pathname )
 }
 
 /*-------------------------------------------------------------------*/
-/*!  Sleep a given # of milliseconds (uses the Unix select routine). */
+/*!  Sleep a given # of milliseconds (uses the Unix select routine).
+---------------------------------------------------------------------*/
 
 void NI_sleep( int msec )
 {
@@ -101,7 +106,10 @@ int NI_clock_time(void)
 /*************************************************************************/
 
 /*--------------------------------------------------------------------------*/
-/*! Like strncpy, but better (result always ends in NUL character). */
+/*! Like strncpy, but better (result always ends in NUL char).
+    If dest is NULL, does nothing.  If src is NULL, put a NUL char
+    in dest[0].
+----------------------------------------------------------------------------*/
 
 char * NI_strncpy( char *dest , const char *src , size_t n )
 {
@@ -112,7 +120,8 @@ char * NI_strncpy( char *dest , const char *src , size_t n )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Like strlen, but better (input=NULL ==> output=0). */
+/*! Like strlen, but better (input=NULL ==> output=0).
+--------------------------------------------------------------------------*/
 
 int NI_strlen( char *str )
 {
@@ -121,7 +130,8 @@ int NI_strlen( char *str )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Like strdup, but better (input=NULL ==> output=NULL). */
+/*! Like strdup, but better (input=NULL ==> output=NULL).
+--------------------------------------------------------------------------*/
 
 char * NI_strdup( char *str )
 {
@@ -131,7 +141,8 @@ char * NI_strdup( char *str )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Find a string in an array of strings; return index (-1 if not found). */
+/*! Find a string in an array of strings; return index (-1 if not found).
+--------------------------------------------------------------------------*/
 
 static int string_index( char *targ, int nstr, char *str[] )
 {
@@ -349,7 +360,8 @@ static char * quotize_string_vector( int num , char **str , char sep )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Quotize a bunch of ints int a string like "1,32,-12". */
+/*! Quotize a bunch of ints int a string like "1,32,-12".
+--------------------------------------------------------------------------*/
 
 static char * quotize_int_vector( int num , int *vec , char sep )
 {
@@ -376,7 +388,8 @@ static char * quotize_int_vector( int num , int *vec , char sep )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Quotize a bunch of floats into a string like "-2.71828,3.1416,1.111". */
+/*! Quotize a bunch of floats into a string like "-2.71828,3.1416,1.111".
+--------------------------------------------------------------------------*/
 
 static char * quotize_float_vector( int num , float *vec , char sep )
 {
@@ -505,7 +518,8 @@ void B64_set_linelen( int ll )
 }
 
 /*----------------------------------------------------------------------*/
-/*! Load the base64 encoding table. */
+/*! Load the base64 encoding table.
+------------------------------------------------------------------------*/
 
 static void load_encode_table(void)
 {
@@ -521,7 +535,8 @@ static void load_encode_table(void)
 }
 
 /*----------------------------------------------------------------------*/
-/*! Load the base64 decoding table. */
+/*! Load the base64 decoding table.
+------------------------------------------------------------------------*/
 
 static void load_decode_table(void)
 {
@@ -576,9 +591,17 @@ static void load_decode_table(void)
 
    Outputs: *nbin = number of binary bytes [*nbin==0 flags an error]
              *bin = pointer to newly malloc()-ed space with bytes
+
+   Example:
+     byte *b64 , *bin ;
+     int  nb64 , nbin=0 ;
+     --load b64 and nb64 somehow--
+     B64_to_binary( nb64,b64 , &nbin, &bin ) ;
+     if( nbin == 0 ){ --failure-- }
+     else           { --bin[0..nbin-1] is decoded data-- }
 ------------------------------------------------------------------------*/
 
-void B64_to_binary( int nb64 , byte * b64 , int * nbin , byte ** bin )
+void B64_to_binary( int nb64 , byte *b64 , int *nbin , byte **bin )
 {
    int ii,jj , nn ;
    byte a,b,c , w,x,y,z ;
@@ -652,9 +675,18 @@ void B64_to_binary( int nb64 , byte * b64 , int * nbin , byte ** bin )
 
    There will be no ASCII NUL character at the end of *b64 -- that is,
    the output is not a C string.
+
+   Example:
+     byte *b64 , *bin ;
+     int  nb64=0 , nbin ;
+     --load bin and nbin somehow--
+     B64_to_base64( nbin,bin , &nb64,&b64 ) ;
+     if( nb64 == 0 ){ --failure-- }
+     else           { --b64[0..nb64-1] is encoded data--
+                      printf("%.*s\n",nb64,b64) ;       }
 ------------------------------------------------------------------------*/
 
-void B64_to_base64( int nbin , byte * bin , int * nb64 , byte ** b64 )
+void B64_to_base64( int nbin , byte *bin , int *nb64 , byte **b64 )
 {
    int ii,jj , nn,n3 ;
    byte a,b,c , w,x,y,z ;
@@ -844,7 +876,7 @@ static unsigned char PADDING[64] = {
 /*! MD5 initialization. Begins an MD5 operation, writing a new context.
 ------------------------------------------------------------------------*/
 
-static void MD5Init (MD5_CTX * context)
+static void MD5Init (MD5_CTX *context)
 {
   context->count[0] = context->count[1] = 0;
 
@@ -862,8 +894,8 @@ static void MD5Init (MD5_CTX * context)
    context.
 ------------------------------------------------------------------------*/
 
-static void MD5Update (MD5_CTX * context, unsigned char * input,
-                                          unsigned int inputLen  )
+static void MD5Update (MD5_CTX *context, unsigned char *input,
+                                         unsigned int inputLen  )
 {
   unsigned int i, index, partLen;
 
@@ -907,7 +939,7 @@ static void MD5Update (MD5_CTX * context, unsigned char * input,
    the message digest and zeroizing the context.
 ------------------------------------------------------------------------*/
 
-static void MD5Final (unsigned char digest[16], MD5_CTX * context)
+static void MD5Final (unsigned char digest[16], MD5_CTX *context)
 {
   unsigned char bits[8];
   unsigned int index, padLen;
@@ -1276,6 +1308,8 @@ char * MD5_B64_file(char *filename)
           Base64 encode this to a 22 byte string. Replace '/' with '-'
           and '+' with '_'. Add 4 character prefix (1st 3 characters
           of environment variable IDCODE_PREFIX plus '_').
+
+  Sample output: "XYZ_VdfGpfzy_NlY-2d7tA8Q1w"
 -------------------------------------------------------------------------*/
 
 char * UNIQ_idcode(void)
@@ -1360,6 +1394,7 @@ char * UNIQ_idcode(void)
 
 /*----------------------------------------------------------------------*/
 /*! Fill a user-supplied buffer (length at least 32) with an idcode.
+    That is, idc should point to a char array of length 32 (or more).
 ------------------------------------------------------------------------*/
 
 void UNIQ_idcode_fill( char *idc )
@@ -1380,6 +1415,8 @@ static int www_debug = 0 ;
 
 /*---------------------------------------------------------------------*/
 static char tmpdir[512] = "\0" ;
+
+/*! Set the temporary working file directory from the environment. */
 
 static void setup_tmpdir(void)
 {
@@ -1751,6 +1788,13 @@ static int read_URL_ftp( char *url , char **data )
    Read a URL (ftp:// or http://) into memory.  The return value
    is the number of bytes read, and *data points to the data.
    If the return value is negative, then something bad happened.
+
+   Example:
+     int nn ;
+     char *data ;
+     nn = NI_read_URL( "http://zork.ork/oog" , &data ) ;
+     if( nn <= 0 ){ --failure-- }
+     else         { --data[0..nn-1] can be used for something-- }
 ---------------------------------------------------------------------*/
 
 int NI_read_URL( char *url , char **data )
@@ -1776,6 +1820,13 @@ int NI_read_URL( char *url , char **data )
   it is saved in is returned in the malloc-ed space *tname.
   The byte count is the return value of the function;
   if <= 0, then an error transpired (and *tname is not set).
+
+  Example:
+    int nn ;
+    char *tname ;
+    nn = NI_read_URL_tmpdir( "ftp://whoople.oog/zorkon" , &tname ) ;
+    if( nn <= 0 ){ --failure-- }
+    else         { --you can read file tname at your leisure-- }
 --------------------------------------------------------------------*/
 
 int NI_read_URL_tmpdir( char *url , char **tname )
@@ -1815,7 +1866,11 @@ int NI_read_URL_tmpdir( char *url , char **tname )
 /*************************************************************************/
 
 /*---------------------------------------------------------------*/
-/*! Find the byte order on this system. */
+/*! Find the byte order on this system.
+    Return is either NI_LSB_FIRST or NI_MSB_FIRST.
+    We are assuming that there are only 2 possible order, which
+    is of course false.
+-----------------------------------------------------------------*/
 
 int NI_byteorder(void)
 {
@@ -1828,7 +1883,8 @@ int NI_byteorder(void)
 }
 
 /*---------------------------------------------------------------*/
-/*! Swap arrays of 2 bytes (shorts). */
+/*! Swap arrays of 2 bytes (shorts).
+-----------------------------------------------------------------*/
 
 typedef struct { unsigned char a,b ; } twobytes ;
 
@@ -1845,7 +1901,8 @@ void NI_swap2( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
-/*! Swap arrays of 4 bytes (ints or floats) */
+/*! Swap arrays of 4 bytes (ints or floats).
+-----------------------------------------------------------------*/
 
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
@@ -1863,7 +1920,8 @@ void NI_swap4( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
-/*! Swap arrays of 8 bytes (doubles or 64 bit ints) */
+/*! Swap arrays of 8 bytes (doubles or 64 bit ints).
+-----------------------------------------------------------------*/
 
 typedef struct { unsigned char a,b,c,d , e,f,g,h ; } eightbytes ;
 
@@ -1887,7 +1945,8 @@ void NI_swap8( int n , void *ar )
 /****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
-/*! Deallocate a header_stuff struct. */
+/*! Deallocate a header_stuff struct.
+----------------------------------------------------------------------------*/
 
 static void destroy_header_stuff( header_stuff *hs )
 {
@@ -2227,7 +2286,6 @@ static str_array * decode_string_list( char *ss , char *sep )
 
 /*--------------------------------------------------------------------*/
 /*! Decode a ni_dimen string into an array of integers.
-
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/
 
@@ -2271,7 +2329,6 @@ static int_array * decode_dimen_string( char *ds )
 
 /*--------------------------------------------------------------------*/
 /*! Decode a data type string into an array of integer codes.
-
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/
 
@@ -2334,7 +2391,8 @@ static int_array * decode_type_string( char *ts )
 }
 
 /*-----------------------------------------------------------------------*/
-/* Given a type code, return the character code. */
+/* Given a type code, return the character code.
+-------------------------------------------------------------------------*/
 
 static char NI_type_char( int typ )
 {
@@ -2420,7 +2478,6 @@ void NI_typedef( char *name , char *type , char *dimen )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Add attributes to a header_stuff struct if it has a special name. */
 
 #define NUM_NIB 10
 static char *niblist[NUM_NIB] = {
@@ -2428,6 +2485,10 @@ static char *niblist[NUM_NIB] = {
       "ni_i1"    , "ni_i2"    , "ni_i3" , "ni_i4" ,
       "ni_irgb"  , "ni_irgba"
 } ;
+
+/*--------------------------------------------------------------------*/
+/*! Add attributes to a header_stuff struct if it has a special name.
+----------------------------------------------------------------------*/
 
 static void enhance_header_stuff( header_stuff *hs )
 {
@@ -2733,7 +2794,8 @@ static NI_group * make_empty_group_element( header_stuff *hs )
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Name for a given integer type code.  Return value is to static string. */
+/*! Name for a given integer type code.  Return value is to static string.
+---------------------------------------------------------------------------*/
 
 char * NI_type_name( int tval )
 {
@@ -2749,7 +2811,8 @@ char * NI_type_name( int tval )
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Byte size of a given integer type code. */
+/*! Byte size of a given integer type code.
+---------------------------------------------------------------------------*/
 
 int NI_type_size( int tval )
 {
@@ -2770,7 +2833,8 @@ int NI_type_size( int tval )
 
 #if 0
 /*----------------------------------------------------------------------*/
-/*! Static table to store byte sizes of NIML types. */
+/*! Static table to store byte sizes of NIML types.
+------------------------------------------------------------------------*/
 
 static int typesize[NI_NUM_TYPES] ;
 
@@ -2789,7 +2853,8 @@ static void init_typesize(void)
 
 #if 0
 /*-------------------------------------------------------------------------*/
-/*! Number of component values of a given integer type code. */
+/*! Number of component values of a given integer type code.
+---------------------------------------------------------------------------*/
 
 static int NI_type_nval( int tval )
 {
@@ -2810,7 +2875,8 @@ static int NI_type_nval( int tval )
 #endif
 
 /*----------------------------------------------------------------------*/
-/*! Return the size in bytes of one row in a data element. */
+/*! Return the size in bytes of one row in a data element.
+------------------------------------------------------------------------*/
 
 int NI_element_rowsize( NI_element *nel )
 {
@@ -2828,7 +2894,8 @@ int NI_element_rowsize( NI_element *nel )
 }
 
 /*----------------------------------------------------------------------*/
-/*! Return the size of all the rows in a data element. */
+/*! Return the size of all the rows in a data element.
+------------------------------------------------------------------------*/
 
 int NI_element_allsize( NI_element *nel )
 {
@@ -2866,7 +2933,8 @@ int NI_element_type( void *nini )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Expunge a data or group element and its contents from the universe.  */
+/*! Expunge a data or group element and its contents from the universe.
+-------------------------------------------------------------------------*/
 
 void NI_free_element( void *nini )
 {
@@ -3061,6 +3129,21 @@ void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
     typ and off arguments, then calls NI_define_rowmap_AR().
      * typ = type code (-1 signals end of argument list)
      * off = byte offset into struct (should be >= 0)
+
+    Example:
+     typedef struct { float ff; short ss; char *SS; } zork ;
+     zork zzz = { 1.3 , -3 , "Puff the Magic Dragon" } ;
+     NI_element *nel = NI_new_data_element( "bythesea" , -1 ) ;
+     NI_define_rowmap_VA( nel ,
+                           NI_FLOAT , offsetof(zork,ff) ,
+                           NI_SHORT , offsetof(zork,ss) ,
+                           NI_STRING, offsetof(zork,SS) , -1 ) ;
+     NI_add_row( nel , &zzz ) ;
+
+    Note that when the "char *SS" field is copied out of the struct
+    into the data element by NI_add_row(), that function will actually
+    copy not the pointer, but will make a copy of the contents of
+    the C string to which the pointer refers.
 -------------------------------------------------------------------------*/
 
 void NI_define_rowmap_VA( NI_element *nel , ... )
@@ -3103,7 +3186,8 @@ void NI_define_rowmap_VA( NI_element *nel , ... )
 /*-----------------------------------------------------------------------*/
 /*! Add a row to a data element from a struct.  You must have defined
     the mapping from the struct to the columns using NI_define_rowmap_??
-    before this.
+    before this.  The datin pointer should to point to the start
+    of the struct from which the data bytes will be extracted.
 -------------------------------------------------------------------------*/
 
 void NI_add_row( NI_element *nel , void *datin )
@@ -3310,7 +3394,10 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Add an attribute to a data or group element. */
+/*! Add an attribute to a data or group element.
+    If an attribute with the same attname already exists, then
+    it will be replaced with this one.
+--------------------------------------------------------------------------*/
 
 void NI_set_attribute( void *nini , char *attname , char *attvalue )
 {
@@ -3411,7 +3498,11 @@ char * NI_get_attribute( void *nini , char *attname )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Set the dimen attribute for a data element. */
+/*! Set the dimen attribute for a data element.
+    If you are adding rows using NI_define_rowmap_VA() and
+    NI_add_row(), then do not call this function until the last
+    row has been added!
+-------------------------------------------------------------------------*/
 
 void NI_set_dimen( NI_element *nel , int rank , int *nd )
 {
@@ -3433,7 +3524,10 @@ void NI_set_dimen( NI_element *nel , int rank , int *nd )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Set the delta attribute for a data element. */
+/*! Set the delta attribute for a data element.
+    Do not call this function until NI_set_dimen() has been called,
+    unless there is only 1 dimension (which is the default).
+-------------------------------------------------------------------------*/
 
 void NI_set_delta( NI_element *nel , float *del )
 {
@@ -3447,7 +3541,10 @@ void NI_set_delta( NI_element *nel , float *del )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Set the origin attribute for a data element. */
+/*! Set the origin attribute for a data element.
+    Do not call this function until NI_set_dimen() has been called,
+    unless there is only 1 dimension (which is the default).
+-------------------------------------------------------------------------*/
 
 void NI_set_origin( NI_element *nel , float *org )
 {
@@ -3461,7 +3558,10 @@ void NI_set_origin( NI_element *nel , float *org )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Set the units attribute for a data element. */
+/*! Set the units attribute for a data element.
+    Do not call this function until NI_set_dimen() has been called,
+    unless there is only 1 dimension (which is the default).
+-------------------------------------------------------------------------*/
 
 void NI_set_units( NI_element *nel , char **units )
 {
@@ -3478,7 +3578,10 @@ void NI_set_units( NI_element *nel , char **units )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Set the axes attribute for a data element. */
+/*! Set the axes attribute for a data element.
+    Do not call this function until NI_set_dimen() has been called,
+    unless there is only 1 dimension (which is the default).
+-------------------------------------------------------------------------*/
 
 void NI_set_axes( NI_element *nel , char **ax )
 {
@@ -3495,7 +3598,8 @@ void NI_set_axes( NI_element *nel , char **ax )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Create a new group element. */
+/*! Create a new group element.
+-------------------------------------------------------------------------*/
 
 NI_group * NI_new_group_element(void)
 {
@@ -3516,7 +3620,8 @@ NI_group * NI_new_group_element(void)
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Add an element to a group element. */
+/*! Add an element to a group element.
+-------------------------------------------------------------------------*/
 
 void NI_add_to_group( NI_group *ngr , void *nini )
 {
@@ -3535,7 +3640,8 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Fill one row of an element with some data bytes (numeric only). */
+/*! Fill one row of an element with some data bytes (numeric only).
+-------------------------------------------------------------------------*/
 
 static void NI_fill_vector_row( NI_element *nel , int row , char *buf )
 {
@@ -3627,7 +3733,8 @@ static void NI_fill_vector_row( NI_element *nel , int row , char *buf )
 }
 
 /*------------------------------------------------------------------*/
-/*! Swap bytes for an array of type code tval. */
+/*! Swap bytes for an array of type code tval.
+--------------------------------------------------------------------*/
 
 void NI_swap_vector( int tval , int nvec , void *vec )
 {
@@ -3770,7 +3877,6 @@ static int tcp_writecheck( int sd , int msec )
 
 /*------------------------------------------------------------------------*/
 /*! Set a socket so that it will cutoff quickly when it is closed.
-
    See http://www.manualy.sk/sock-faq/unix-socket-faq.html for more
    information about this stuff.
 --------------------------------------------------------------------------*/
@@ -4047,7 +4153,7 @@ char * NI_hostname_to_inet( char *host )
 }
 
 /*----------------------------------------------------------------*/
-/* Check if hostname is in dotted form.
+/*! Check if hostname is in dotted form.
 ------------------------------------------------------------------*/
 
 static int hostname_dotted( char *hnam )
@@ -4443,7 +4549,8 @@ int NI_stream_writeable( NI_stream_type *ns )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Return the name set in the NI_stream header. */
+/*! Return the name set in the NI_stream header.
+-------------------------------------------------------------------------*/
 
 char * NI_stream_name( NI_stream_type *ns )
 {
@@ -5632,17 +5739,19 @@ fprintf(stderr,"NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" 
 }
 
 /*----------------------------------------------------------------------*/
+
+#undef  NVBUF
+#define NVBUF 127  /* max num chars for one number */
+
+#define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
+
+/*----------------------------------------------------------------------*/
 /*! From the NI_stream ns, starting at buffer position ns->npos, decode
     one number into *val.  Return value of this function is 1 if
     we succeeded, 0 if not.  ns->npos will be altered to reflect the
     current buffer position (one after the last character processed)
     when all is done.
 ------------------------------------------------------------------------*/
-
-#undef  NVBUF
-#define NVBUF 127  /* max num chars for one number */
-
-#define IS_USELESS(c) ( isspace(c) || iscntrl(c) )
 
 static int decode_one_double( NI_stream_type *ns, double *val )
 {
