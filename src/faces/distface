@@ -8,7 +8,9 @@
 
 # loop over relevan directories in the FTP hierarchy
 
-if( $#argv > 0 && "$argv[1]" == "-html" ) goto html
+if( $?argv && $#argv > 0 ) then
+  if( "$argv[1]" == "-html" ) goto html
+endif
 
 foreach ftpdir ( /FTP/AFNI/bin/* /FTP/AFNI/src/faces ~/abin )
 
@@ -44,13 +46,14 @@ echo  '<body><center><h1><i>AFNI</i> User Images</h1>'                          
 echo  '<h2>Contributed voluntarily by each user</h2>'                            >> afni_faces.html
 echo  'To contribute your personal image, send a JPEG (.jpg) file'               >> afni_faces.html
 echo  'no larger than 128x128 to'                                                >> afni_faces.html
-echo  '<a href="mailto:rwcox@nih.gov">rwcox@nih.gov</a>.'                        >> afni_faces.html
-echo  '<hr width="85%" />'                                                       >> afni_faces.html
-echo  '<table cellpadding=1 cellspacing=0 border=0><tr><td bgcolor="#eecc00">'   >> afni_faces.html
-echo  '<table cellpadding=1 cellspacing=0 border=0><tr><td bgcolor="#cc9900">'   >> afni_faces.html
-echo  '<table cellpadding=1 cellspacing=0 border=0><tr><td bgcolor="#aa6600">'   >> afni_faces.html
-echo  '<table cellpadding=1 cellspacing=0 border=0><tr><td bgcolor="#883300">'   >> afni_faces.html
-echo  '<table cellpadding=1 cellspacing=0 border=0><tr><td bgcolor="#ffdddd">'   >> afni_faces.html
+echo  '<a href="mailto:rwcox@nih.gov">rwcox@nih.gov</a>.<br />'                  >> afni_faces.html
+echo  'These images are also shown randomly in the <i>AFNI</i> splash screen.'   >> afni_faces.html
+echo  '<hr />'                                                                   >> afni_faces.html
+echo  '<table cellpadding=2 cellspacing=0 border=0><tr><td bgcolor="#eecc00">'   >> afni_faces.html
+echo  '<table cellpadding=2 cellspacing=0 border=0><tr><td bgcolor="#cc9900">'   >> afni_faces.html
+echo  '<table cellpadding=2 cellspacing=0 border=0><tr><td bgcolor="#aa6600">'   >> afni_faces.html
+echo  '<table cellpadding=2 cellspacing=0 border=0><tr><td bgcolor="#883300">'   >> afni_faces.html
+echo  '<table cellpadding=2 cellspacing=0 border=0><tr><td bgcolor="#ffdddd">'   >> afni_faces.html
 echo  '<table cellpadding=3 cellspacing=1 border=1>'                             >> afni_faces.html
 echo  '<tr>'                                                                     >> afni_faces.html
 
@@ -76,6 +79,9 @@ echo '</td></tr></table>'                                 >>   afni_faces.html
 echo '</td></tr></table>'                                 >>   afni_faces.html
 echo '<hr /><b>This page generated on'                    >>   afni_faces.html
 date                                                      >>   afni_faces.html
-echo '</b></center></body></html>'                        >>   afni_faces.html
+echo '</b><p>'                                            >>   afni_faces.html
+echo '<a href="http://afni.nimh.nih.gov/afni">'           >>   afni_faces.html
+echo '<i>AFNI</i> main page</a>'                          >>   afni_faces.html
+echo '</center></body></html>'                            >>   afni_faces.html
 
 /bin/cp -f afni_faces.html face_*.jpg ~/afni/faces/
