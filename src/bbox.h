@@ -147,10 +147,6 @@ extern MCW_arrowval * new_MCW_optmenu( Widget , char * ,
                                        gen_func * , XtPointer ,
                                        str_func * , XtPointer ) ;
 
-#if 0
-extern void optmenu_EV_fixup( Widget ) ;  /* 15 Mar 2004 */
-#endif
-
 extern void refit_MCW_optmenu( MCW_arrowval * ,
                                int,int,int,int,
                                str_func * , XtPointer ) ;
