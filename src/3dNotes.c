@@ -23,7 +23,7 @@ void Show_Help(void) {
    "(c)1999 Medical College of Wisconsin\nby - T. Ross\n\n"
    "Usage: 3dNotes [-a \"string\"] [-h \"string\"][-d num] [-help] dataset\n\n"
    "Where:\n"
-   "dataset   Afni compatible dataset [required].\n"
+   "dataset   AFNI compatible dataset [required].\n"
    "-a   \"str\"   Add the string \"str\" to the list of notes.\n"
    "      Note that you can use the standard C escape codes,\n"
    "      \\n for newline \\t for tab, etc.\n"
