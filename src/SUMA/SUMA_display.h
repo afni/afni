@@ -138,6 +138,8 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_
 void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileOpenSurf (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileClose (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_cb_FileSaveView (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_cb_FileLoadView (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData);
@@ -231,7 +233,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode,
                                                          void(*SelectCallback)(char *selection, void *data), void *SelectData,
                                                          void(*CancelCallback)(void *data), void *CancelData,
                                                          void(*HelpCallback)(void *data), void *HelpData,
-                                                         SUMA_Boolean(*VerifyFunction)(char *selection, void *data), void *VerifyData,
+                                                         int(*VerifyFunction)(char *selection, void *data), void *VerifyData,
                                                          SUMA_PROMPT_DIALOG_STRUCT *oprmpt);
 SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 const char * SUMA_PromptButtonLabel(SUMA_PROMPT_BUTTONS code);
@@ -270,7 +272,9 @@ char * SUMA_Format(int n, int w);
 void SUMA_ShowAllVisuals (void); 
 int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead);
 int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
-
+void SUMA_WidgetResize (Widget New, int width, int height);
+void SUMA_LoadVisualState(char *fname, void *csvp);
+void SUMA_SaveVisualState(char *fname, void *csvp);
 
 
 

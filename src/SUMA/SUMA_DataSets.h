@@ -14,7 +14,8 @@ typedef enum {
    SUMA_NODE_RGBb,
    SUMA_NODE_RGBA,
    SUMA_NODE_RGBAb,
-   SUMA_NODE_XYZ
+   SUMA_NODE_XYZ,
+   SUMA_VIEWER_SETTING
 } SUMA_DSET_TYPE; /*!<  Type of data set 
                         When you add a new element, modify functions
                         SUMA_Dset_Type_Name
@@ -97,7 +98,8 @@ typedef struct {
 } SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that 
                            can be used by niml. Fields are a reflection 
                            of those in SUMA_DRAWN_ROI*/
-
+int SUMA_StringToNum (char *s, float *fv, int N);
+int SUMA_isNumString (char *s, void *p);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);

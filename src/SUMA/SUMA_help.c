@@ -260,7 +260,7 @@ char * SUMA_help_message_Info(void)
       "     HOME: reset view to startup\n\n");
    SS = SUMA_StringAppend (SS, 
       "     ESCAPE: close the surface viewer window.\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "     Shft+ESCAPE: close all surface viewer windows.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     Mouse Controls:\n");
@@ -295,6 +295,44 @@ char * SUMA_help_message_Info(void)
       "                          (when in DrawROI mode)\n");
    SS = SUMA_StringAppend (SS, 
       "    \n");
+   SS = SUMA_StringAppend (SS, 
+      "    File Menu:\n"
+      "    ->Save View: Save viewer's display settings.\n"
+      "    ->Load View: Load and apply display settings.\n"
+      "    ->Close: Close this viewer.\n"
+      "             Exit SUMA if this is the only viewer.\n");
+   SS = SUMA_StringAppend (SS, 
+      "    View Menu:\n"
+      "    ->SUMA Controller: Open SUMA controller interface.\n"
+      "    ->Surface Controller: Open selected surface's \n"
+      "                          controller interface.\n"
+      "    ->Viewer Controller: Open viewer's controller interface.\n"
+      "    --------\n"
+      "    ->Cross Hair: Toggle cross hair display.\n"
+      "    ->Node in Focus: Toggle highlight of selected node.\n"
+      "    ->Selected Faceset: Toggle highlight of selected faceset.\n");
+   SS = SUMA_StringAppend (SS, 
+      "    Tools Menu:\n"
+      "    ->Draw ROI: Open Draw ROI controller.\n");
+   SS = SUMA_StringAppend (SS, 
+      "    Help Menu:\n"
+      "    ->Usage: Opens window with this message.\n"
+      "    ->Message Log: Opens window that will \n"
+      "                   contain errors and warnings\n"
+      "                   typically output to screen.\n"
+      "    -------\n"
+      "    ->SUMA Global: Output debugging information\n"
+      "                   about some of SUMA's global \n"
+      "                   structure's variables.\n"
+      "    ->Viewer Struct: Output debugging info on \n"
+      "                     a viewer's structure.\n"
+      "    ->Surface Struct: Output debugging info on\n"
+      "                      the selected surface's struct.\n"
+      "    -------\n"
+      "    ->InOut Notify: Turn on/off function in/out tracing.\n"
+      "    ->MemTrace: Turn on memory tracing.\n"
+      "                Once turned on, this can't be turned off.\n"
+      "\n");
    SS = SUMA_StringAppend (SS, 
       "    More help at \n"
       "    http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
@@ -357,6 +395,7 @@ char *SUMA_All_Programs(void )
          "  CompareSurfaces\n"
          "  ConvertSurface\n"
          "  CreateIcosahedron\n"
+         "  FSread_annot\n"
          "  inspec\n"
          "  MakeColorMap\n"
          "  MapIcosahedron\n"
@@ -367,6 +406,7 @@ char *SUMA_All_Programs(void )
          "  SurfMeasures\n"
          "  SurfaceMetrics\n"
          "  SurfSmooth\n"
+         "  SurfPatch\n"
      );
    
    /* clean SS */
@@ -494,8 +534,14 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
          SS = SUMA_StringAppend_va(SS, 
             "++ SUMA version %.4f, Jan. 16 2004\n", (float)ver/10000.0); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
+            "New Programs:\n"
+            "  + FS_readannot: Program to read FreeSurfer's\n"
+            "                  annotation files.\n"
+            "  + SurfPatch: Program to create surface patches\n"
+            "               from a set of nodes.\n"
             "Modifications:\n"
-            "  + Beginning of multiple group support in SUMA\n"
+            "  + Added saving/loading of viewer settings.\n"
+            "  + Beginning of multiple group support in SUMA.\n"
             "  + Redisplays of Surface Viewers due to X events\n"
             "    are no longer passed to the image recorder.\n" );
          break; 
