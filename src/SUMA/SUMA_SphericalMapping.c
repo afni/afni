@@ -1910,8 +1910,8 @@ int main (int argc, char *argv[])
    else {
       if (SUMA_iswordin( spec1.SurfaceType[0], "SureFit") == 1) {
          surf1file_SF = (SUMA_SFname*) SUMA_malloc( sizeof(SUMA_SFname));
-         strcpy( surf1file_SF->name_coord, spec1.SureFitCoord[0] );
-         strcpy( surf1file_SF->name_topo, spec1.SureFitTopo[0] );
+         strcpy( surf1file_SF->name_coord, spec1.CoordFile[0] );
+         strcpy( surf1file_SF->name_topo, spec1.TopoFile[0] );
          strcpy( surf1file_SF->name_param, spec1.SureFitVolParam[0] );
          surf1 = SUMA_Load_Surface_Object( surf1file_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
          tag1 = "SF";
@@ -1927,8 +1927,8 @@ int main (int argc, char *argv[])
       else {
          if (SUMA_iswordin( spec2.SurfaceType[0], "SureFit") == 1) {
             surf1file_SF = (SUMA_SFname*) SUMA_malloc( sizeof(SUMA_SFname));
-            strcpy( surf2file_SF->name_coord, spec2.SureFitCoord[0] );
-            strcpy( surf2file_SF->name_topo, spec2.SureFitTopo[0] );
+            strcpy( surf2file_SF->name_coord, spec2.CoordFile[0] );
+            strcpy( surf2file_SF->name_topo, spec2.TopoFile[0] );
             strcpy( surf2file_SF->name_param, spec2.SureFitVolParam[0] );
             surf2 = SUMA_Load_Surface_Object( surf2file_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             tag2 = "SF";
@@ -2233,8 +2233,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                sphrFile_SF = (SUMA_SFname*) SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( sphrFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( sphrFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( sphrFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( sphrFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( sphrFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                sphrSurf = SUMA_Load_Surface_Object( sphrFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
@@ -2251,8 +2251,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                sphrNoRegFile_SF = (SUMA_SFname *) SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( smwmFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( smwmFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( smwmFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( smwmFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( smwmFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                sphrNoRegSurf = SUMA_Load_Surface_Object( sphrNoRegFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
@@ -2267,8 +2267,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                inflFile_SF = (SUMA_SFname*)SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( inflFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( inflFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( inflFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( inflFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( inflFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                inflSurf = SUMA_Load_Surface_Object( inflFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
@@ -2283,8 +2283,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                pialFile_SF = (SUMA_SFname*) SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( smwmFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( smwmFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( smwmFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( smwmFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( smwmFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                pialSurf = SUMA_Load_Surface_Object( pialFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
@@ -2299,8 +2299,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                smwmFile_SF = SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( smwmFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( smwmFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( smwmFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( smwmFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( smwmFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                smwmSurf = SUMA_Load_Surface_Object( smwmFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }
@@ -2315,8 +2315,8 @@ int main (int argc, char *argv[])
          else {
             if (SUMA_iswordin( brainSpec.SurfaceType[i], "SureFit") == 1) {
                whiteFile_SF = (SUMA_SFname*) SUMA_malloc( sizeof(SUMA_SFname));
-               strcpy( smwmFile_SF->name_coord, brainSpec.SureFitCoord[i] );
-               strcpy( smwmFile_SF->name_topo, brainSpec.SureFitTopo[i] );
+               strcpy( smwmFile_SF->name_coord, brainSpec.CoordFile[i] );
+               strcpy( smwmFile_SF->name_topo, brainSpec.TopoFile[i] );
                strcpy( smwmFile_SF->name_topo, brainSpec.SureFitVolParam[i] );
                whiteSurf = SUMA_Load_Surface_Object( whiteFile_SF, SUMA_SUREFIT, SUMA_ASCII, NULL);
             }

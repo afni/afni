@@ -234,7 +234,7 @@ typedef struct {
 
 typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
-               SUMA_CMAP_MATLAB_DEF_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128 } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
+               SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128 } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
@@ -464,11 +464,12 @@ Stucture to hold the contents of the specs file
 typedef struct {
    char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];
    char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH]; 
-   char SureFitTopo[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char SureFitCoord[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* renamed from SureFitTopo to make more generic */ 
+   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* renamed from SureFitCoord to make more generic */ 
    char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
    char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+   char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* though named FreeSurferSurface, this variable 
+                                                                             is also used to load SurfaceName spec field */
    char InventorSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
    char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; 
    char *IDcode[SUMA_MAX_N_SURFACE_SPEC];
@@ -662,6 +663,9 @@ typedef struct {
 
 /*!
    Structure containing widgets and settings of an arrow and or a text field
+   
+   - When adding fields to this stucture, make sure you initialize them
+   appropriately in the functions SUMA_CreateTextField and SUMA_CreateArrowField
 */ 
 typedef struct {
    Widget rc;  /*!< rowcolumn containing all the widgets of the arrow field */
@@ -685,7 +689,7 @@ typedef struct {
    void *NewValueCallbackData; 
    SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
    SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
-} SUMA_ARROW_TEXT_FIELD;
+} SUMA_ARROW_TEXT_FIELD; 
 
 typedef enum {
    SUMA_LSP_SINGLE, SUMA_LSP_BROWSE, SUMA_LSP_MULTIPLE, SUMA_LSP_EXTENDED

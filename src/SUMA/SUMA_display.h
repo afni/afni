@@ -259,7 +259,10 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
    "Toggles Afni Link for ROI drawing"
 
 #define SUMA_DrawROI_Save_help \
-   "Save the Drawn ROI"
+   "Save the Drawn ROI to disk.\n"  \
+   "Choose the file format\n"   \
+   "and what is to be saved\n"  \
+   "from the two menus ahead."  \
 
 #define SUMA_DrawROI_Load_help   \
    "Load a Drawn ROI"
@@ -296,17 +299,21 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
 #define SUMA_closeSumaCont_help \
    "Close SUMA controller window.\n"   \
    "Current settings are preserved\n"\
-   "when controller is reopened.\n"
+   "when controller is reopened."
 
 #define SUMA_LockSumaCont_help   \
    "Set the Cross Hair lock \n"  \
    "between viewers.\n" \
    "- No Lock\n"  \
    "i Node index Lock\n"   \
-   "c Coordinate Lock\n"
-
+   "c Coordinate Lock"
+   
+#define SUMA_LockViewSumaCont_help  \
+   "Lock the view point of \n"   \
+   "all viewers."
+   
 #define SUMA_viewerSumaCont_help   \
-   "Opens a new Surface viewer window.\n"  
+   "Opens a new Surface viewer window."  
 
 #define SUMA_closeSurfaceCont_help   \
    "Close Surface controller window.\n"   \

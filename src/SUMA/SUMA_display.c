@@ -846,10 +846,10 @@ SUMA_MenuItem FileOpen_menu[] = {
 };
 
 SUMA_MenuItem File_menu[] = {
-   {  "Open", &xmPushButtonWidgetClass, \
+   /*{  "Open", &xmPushButtonWidgetClass, \
       '\0', NULL, NULL, \
       NULL,  (XtPointer) SW_FileOpen, (SUMA_MenuItem *) FileOpen_menu },
-   
+   */
    {  "Close", &xmPushButtonWidgetClass, \
       'C', NULL, "Esc", \
       SUMA_cb_FileClose, (XtPointer) SW_FileClose, NULL},
@@ -2378,7 +2378,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            SO->SurfCont->ColPlaneOrder);
                              
       SUMA_CreateArrowField ( rc, "Opacity:",
-                           1, 0, 1.1, 0.1,
+                           1, 0.0, 1.0, 0.1,
                            3, SUMA_float,
                            NOPE,
                            SUMA_ColPlane_NewOpacity, (void *)SO,
@@ -2422,19 +2422,22 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
       MCW_register_hint(pb , "Switch between color planes." ) ;
+      MCW_register_help(pb , "Switch between color planes." ) ;
       XtManageChild (pb);
       
       pb = XtVaCreateWidget ("Load", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Load, (XtPointer) SO);
+      MCW_register_hint(pb , "Load a new color plane." ) ;
+      MCW_register_help(pb , "Load a new color plane." ) ;
       XtManageChild (pb);
       
       pb = XtVaCreateWidget ("Delete", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Delete, (XtPointer) SO);
-      XtManageChild (pb);
+      /* XtManageChild (pb); */ /* Not ready for this one yet */
       
       XtManageChild (rc);
       
@@ -2484,6 +2487,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO);
+      MCW_register_hint( pb , "Show/Hide Color Plane controller" ) ;
+      MCW_register_help( pb , "Show/Hide Color Plane controller" ) ;
       XtManageChild (pb);
       
       XtManageChild (rc);
@@ -2853,9 +2858,14 @@ void SUMA_CreateDrawROIWindow(void)
    /* Put a toggle button for real time communication with AFNI */
    SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni Link", 
       xmToggleButtonGadgetClass, rc, NULL);
+   
+   #if 0
    /* can the link be on ? */
    if (SUMAg_CF->Connected) SUMAg_CF->ROI2afni = YUP;
    else SUMAg_CF->ROI2afni = NOPE;
+   #endif
+   SUMAg_CF->ROI2afni = NOPE; /* keep link off when starting, otherwise  it is confusing */
+   
    XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->AfniLink_tb, 
                   XmNvalueChangedCallback, SUMA_cb_AfniLink_toggled, 
@@ -2987,6 +2997,8 @@ void SUMA_CreateDrawROIWindow(void)
       NULL);
    XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
    MCW_register_hint( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice in 5 seconds to delete ROI." ) ;
+   MCW_register_help( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice to delete ROI.\n"
+                                                     "This action cannot be undone.\n");
    MCW_set_widget_bg( SUMAg_CF->X->DrawROI->Delete_pb , MCW_hotcolor(SUMAg_CF->X->DrawROI->Delete_pb) , 0 ) ;
 
    XtManageChild (SUMAg_CF->X->DrawROI->Delete_pb); 
@@ -3012,7 +3024,7 @@ void SUMA_CreateDrawROIWindow(void)
       NULL);
    XtAddCallback (SUMAg_CF->X->DrawROI->Save_pb, XmNactivateCallback, SUMA_cb_DrawROI_Save, NULL);
    MCW_register_help(SUMAg_CF->X->DrawROI->Save_pb , SUMA_DrawROI_Save_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , "Save the Drawn ROI" ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , "Save the Drawn ROI to disk." ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
 
    /* Saving Mode */
@@ -3486,6 +3498,8 @@ void SUMA_CreateTextField ( Widget pw, char *label,
    
    AF->type = SUMA_string;
    AF->NewValueCallback = NewValueCallback;
+   AF->NewValueCallbackData = NULL;
+   AF->arrow_action = NOPE;
    AF->cwidth = cwidth;
    AF->modified = NOPE;
 
@@ -3578,6 +3592,7 @@ void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_d
 {
    static char FuncName[]={"SUMA_ATF_cb_label_change"};
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3587,8 +3602,10 @@ void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_d
    if (AF->type == SUMA_int || AF->type == SUMA_float) SUMA_ATF_SetValue (AF);
    
    if (!AF->NewValueCallbackData) {
+      SUMA_LH("No Callback data.");
       AF->NewValueCallback((void*)AF);
    } else {
+      SUMA_LH("Callback data.");
       AF->NewValueCallback(AF->NewValueCallbackData);
    }
    
@@ -3897,23 +3914,32 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
 void SUMA_ATF_change_value(XtPointer client_data, XtIntervalId *id)
 {
    static char FuncName[]={"SUMA_ATF_change_value"};
+   float ArrowTolerance = 0.0001; /* roundoff and truncation headaches ... */
    int incr;
    SUMA_ARROW_TEXT_FIELD * AF= NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
    
    if (!AF->wrap) {
-      if (AF->value + AF->direction * AF->step> AF->max ||
-        AF->value + AF->direction * AF->step< AF->min)
-        SUMA_RETURNe;
+      if (AF->value + AF->direction * AF->step > (AF->max + ArrowTolerance) ||
+        AF->value + AF->direction * AF->step < (AF->min - ArrowTolerance) ) {
+           SUMA_RETURNe;
+      }
    }
    
    AF->value += AF->direction * AF->step;
    
    if (AF->wrap) SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
    
+   /* round to the tolerance */
+   fprintf (SUMA_STDERR, "%s: Pre Tolerance %f\n", FuncName, AF->value);
+   /* if no negs allowed, take absolute value. Round off errors can cause AF->value to show -0.00000001 or something ugly like that*/
+   if (AF->min >= 0.0 && AF->value < 0.0) AF->value = 0.0;
+   fprintf (SUMA_STDERR, "%s: Post Tolerance %f\n", FuncName, AF->value);
+
    SUMA_ATF_SetString (AF);
 
    AF->arrow_timer_id =
@@ -4497,8 +4523,11 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_m, NULL);
       
       SUMAg_CF->X->SumaCont->LockView_tbg[i] = XtVaCreateManagedWidget("v", 
-         xmToggleButtonGadgetClass, rc_m, NULL);
+         xmToggleButtonWidgetClass, rc_m, NULL);
       XtAddCallback (SUMAg_CF->X->SumaCont->LockView_tbg[i], XmNvalueChangedCallback, SUMA_cb_XHviewlock_toggled, (XtPointer) i);
+
+      /* put some help on this buton*/
+      MCW_reghelp_children( rc_m , SUMA_LockViewSumaCont_help );
             
    }  
    XtManageChild (rc);
@@ -4586,7 +4615,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       NULL);
    XtAddCallback (pb_new, XmNactivateCallback, SUMA_cb_newSumaCont, NULL);
    MCW_register_hint( pb_new , "Opens a new viewer" ) ;
-   MCW_register_hint( pb_new , SUMA_viewerSumaCont_help );
+   MCW_register_help( pb_new , SUMA_viewerSumaCont_help );
    XtManageChild (pb_new); 
 
    pb_close = XtVaCreateWidget ("Close", 
@@ -5963,7 +5992,8 @@ void SUMA_DrawROI_NewLabel (void *data)
    SUMA_ARROW_TEXT_FIELD * AF=NULL;
    void *n=NULL;
    static int ErrCnt=0;
-   SUMA_Boolean Shaded = YUP, LocalHead = NOPE;
+   SUMA_Boolean Shaded = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -5975,7 +6005,7 @@ void SUMA_DrawROI_NewLabel (void *data)
    }
    
    XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
-   /* return if not change has been made */
+   /* return if no change has been made */
    if (!strcmp((char *)n, DrawnROI->Label)) {
       SUMA_LH("No change");
       SUMA_LH((char *)n);
