@@ -3,7 +3,6 @@ include ../Makefile
 PROJNAME = znzlib
 
 INCFLAGS = $(ZLIB_INC)
-USEZLIB = -DHAVE_ZLIB
 
 SRCS=znzlib.c
 OBJS=znzlib.o

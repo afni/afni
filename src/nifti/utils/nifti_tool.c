@@ -84,8 +84,11 @@ static char g_history[] =
   "\n"
   "1.4  02 March 2005 [rickr] - small update\n"
   "   - no validation in nifti_read_header calls\n"
+  "\n"
+  "1.5  05 April 2005 [rickr] - small update\n"
+  "   - refuse mod_hdr for gzipped files (we cannot do partial overwrites)\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "version 1.4 (March 02, 2005)";
+static char g_version[] = "version 1.5 (April 05, 2005)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -1260,13 +1263,20 @@ int act_mod_hdrs( nt_opts * opts )
 
    for( filec = 0; filec < opts->infiles.len; filec++ )
    {
+      fname = opts->infiles.list[filec];  /* for convenience and mod file */
+
+      if( nifti_is_gzfile(fname) ){
+         fprintf(stderr,"** sorry, cannot modify a zipped file: %s\n", fname);
+         continue;
+      }
+
       /* do not validate the header structure */
-      nhdr = nifti_read_header(opts->infiles.list[filec], &swap, 0);
+      nhdr = nifti_read_header(fname, &swap, 0);
       if( !nhdr ) return 1;
 
       if( g_debug > 1 )
          fprintf(stderr,"-d modifying %d fields of '%s' header\n",
-                 opts->flist.len, opts->infiles.list[filec]);
+                 opts->flist.len, fname);
 
       /* okay, let's actually trash the data fields */
       if( modify_all_fields(nhdr, opts, g_hdr_fields, NT_HDR_NUM_FIELDS) )
@@ -1275,17 +1285,16 @@ int act_mod_hdrs( nt_opts * opts )
          return 1;
       }
 
-      fname = opts->infiles.list[filec];  /* init for modification file */
       dupname = NULL;                     /* unless we duplicate file   */
 
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
       {
-         nim = nifti_image_read(opts->infiles.list[filec], 1); /* get data */
+         nim = nifti_image_read(fname, 1); /* get data */
          if( !nim )
          {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
-                    opts->infiles.list[filec]);
+                    fname);
             return 1;
          }
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
@@ -1377,7 +1386,7 @@ int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
 
    bytes = znzwrite(nhdr, 1, sizeof(nifti_1_header), fp);
    if( bytes != sizeof(nifti_1_header)){
-      NTL_FERR(func, "failed to write nifti_1_header to file",fname);
+      NTL_FERR(func, "failed to write header to file",fname);
       fprintf(stderr,"  - wrote %d of %d bytes\n",
               (int)bytes,(int)sizeof(nifti_1_header));
       rv = 1;

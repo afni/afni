@@ -214,8 +214,16 @@ static char gni_history[] =
   "   - gni_debug is now g_opts.debug\n"
   "   - added validity check parameter to nifti_read_header\n"
   "   - need_nhdr_swap no longer does test swaps on the stack\n"
+  "\n"
+  "1.6  05 April 2005 [rickr] - validation and collapsed_image_read\n"
+  "   - added nifti_read_collapsed_image(), an interface for reading partial\n"
+  "     datasets, specifying a subset of array indices\n"
+  "   - for read_collapsed_image, added static functions: rci_read_data(),\n"
+  "     rci_alloc_mem(), and make_pivot_list()\n"
+  "   - added nifti_nim_is_valid() to check for consistency (more to do)\n"
+  "   - added nifti_nim_has_valid_dims() to do many dimensions tests\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.5t (March 02, 2005)";
+static char gni_version[] = "nifti library version 1.6 (April 05, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -226,13 +234,21 @@ static nifti_global_options g_opts = { 1 };
 /* extension routines */
 static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
 static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,                                       int remain, znzFile fp );
-static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);
+static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
 
 /* NBL routines */
 static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
 static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
                                   nifti_brick_list * nbl);
 static int  nifti_copynsort(int nbricks, int *blist, int **slist, int **sindex);
+
+/* for nifti_read_collapsed_image: */
+static int  rci_read_data(nifti_image *nim, int *pivots, int *prods, int nprods,
+                          int dims[], char *data, znzFile fp, int base_offset);
+static int  rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper );
+static int  make_pivot_list(nifti_image * nim, int dims[], int pivots[],
+                            int prods[], int * nprods );
 
 /* misc */
 static int   int_force_positive(int * list, int nel);
@@ -1939,6 +1955,9 @@ char * nifti_find_file_extension( const char * name )
       return ext;
 #endif
 
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"** find_file_ext: failed for name '%s'\n", name);
+
    return NULL;
 }
 
@@ -2920,6 +2939,15 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    int                    rv, ii , filesize, remaining;
    char                   fname[] = { "nifti_image_read" };
    char                  *hfile=NULL;
+
+   if( g_opts.debug > 1 ){
+      fprintf(stderr,"-d image_read from '%s', read_data = %d",hname,read_data);
+#ifdef HAVE_ZLIB
+      fprintf(stderr,", HAVE_ZLIB = 1\n");
+#else
+      fprintf(stderr,", HAVE_ZLIB = 0\n");
+#endif
+   }
 
    /**- determine filename to use for header */
    hfile = nifti_findhdrname(hname);
@@ -4981,3 +5009,349 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read )
 
    return nim ;
 }
+
+
+/*! validate what we can, return 1 if no problems are detected */
+int nifti_nim_is_valid(nifti_image * nim, int complain)
+{
+   int errs = 0;
+
+   if( !nim ){
+      fprintf(stderr,"** is_valid_nim: nim is NULL\n");
+      return 0;
+   }
+
+   if( g_opts.debug > 2 ) fprintf(stderr,"-d nim_is_valid check...\n");
+
+   /** check that dim[] matches the individual values ndim, nx, ny, ... */
+   if( ! nifti_nim_has_valid_dims(nim,complain) ){
+      if( !complain ) return 0;
+      errs++;
+   }
+
+   /* might check nbyper, pixdim, q/sforms, swapsize, nifti_type, ... */
+
+   /** be explicit in return of 0 or 1 */
+   if( errs > 0 ) return 0;
+   else           return 1;
+}
+
+/*! validate nifti dimensions, giving dim[] some priority */
+int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
+{
+   int c, prod, errs = 0;
+
+   /** start with dim[0]: failure here is considered terminal */
+   if( nim->dim[0] <= 0 || nim->dim[0] > 7 ){
+      errs++;
+      if( complain )
+         fprintf(stderr,"** NVd: dim[0] (%d) out of range [1,7]\n",nim->dim[0]);
+      return 0;
+   }
+
+   /** check whether ndim equals dim[0] */
+   if( nim->ndim != nim->dim[0] ){
+      errs++;
+      if( ! complain ) return 0;
+      fprintf(stderr,"** NVd: ndim != dim[0] (%d,%d)\n",nim->ndim,nim->dim[0]);
+   }
+
+   /** compare each dim[i] to the proper nx, ny, ... */
+   if( (nim->dim[1] != nim->nx) || (nim->dim[2] != nim->ny) ||
+       (nim->dim[3] != nim->nz) || (nim->dim[4] != nim->nt) ||
+       (nim->dim[5] != nim->nu) || (nim->dim[6] != nim->nv) ||
+       (nim->dim[7] != nim->nw)   ){
+      errs++;
+      if( !complain ) return 0;
+      fprintf(stderr,"** NVd mismatch: dims    = %d,%d,%d,%d,%d,%d,%d\n"
+                     "                 nxyz... = %d,%d,%d,%d,%d,%d,%d\n",
+                     nim->dim[1], nim->dim[2], nim->dim[3],
+                     nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7],
+                     nim->nx, nim->ny, nim->nz,
+                     nim->nt, nim->nu, nim->nv, nim->nw );
+   }
+
+   /** check the dimensions, and that their product matches nvox */
+   prod = 1;
+   for( c = 1; c <= nim->dim[0]; c++ ){
+      if( nim->dim[c] > 0)
+         prod *= nim->dim[c];
+      else if( nim->dim[c] < 0 ){
+         if( !complain ) return 0;
+         fprintf(stderr,"** NVd: dim[%d] (=%d) < 0\n",c, nim->dim[c]);
+         errs++;
+      }
+   }
+   if( prod != nim->nvox ){
+      if( ! complain ) return 0;
+      fprintf(stderr,"** NVd: nvox does not match dimension product (%d, %d)\n",
+              nim->nvox, prod);
+      errs++;
+   }
+
+   /** check that remaining dims are 1 (if zero, set to 1) */
+   for( c = nim->dim[0]+1; c <= 7; c++ )
+      if( nim->dim[c] == 0 ) nim->dim[c] = 1;
+      else if( nim->dim[c] != 1 ){
+         if( !complain ) return 0;
+         fprintf(stderr,"** NVd: dim[%d] = %d, but ndim = %d\n",
+                 c, nim->dim[c], nim->dim[0]);
+         errs++;
+      }
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-d nim_has_valid_dims check, errs = %d\n", errs);
+
+   /** return invalid or valid */
+   if( errs > 0 ) return 0;
+   else           return 1;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*! read a nifti image, collapsed across dimensions according to dims[8]  <pre>
+
+    This function may be used to read parts of a nifti dataset, such as
+    the time series for a single voxel, or perhaps a slice.
+
+    Here, dims is an array of 8 ints, similar to nim->dim[8].  While dims[0]
+    is unused at this point, the other indices specify which dimensions to
+    collapse (and at which index), and which not to collapse.  If dims[i] is
+    set to -1, then that entire dimension will be read in, from index 0 to
+    index (nim->dim[i] - 1).  If dims[i] >= 0, then only that index will be
+    read in (so dims[i] must also be < nim->dim[i]).
+
+    Example: given  nim->dim[8] = { 4, 64, 64, 21, 80, 1, 1, 1 } (4-D dataset)
+
+      if dims[8] = { 0,  5,  4, 17, -1, -1, -1, -1 }
+         -> read time series for voxel i,j,k = 5,4,17
+
+      if dims[8] = { 0, -1, -1, -1, 17, -1, -1, -1 }
+         -> read single volume at time point 17
+
+    Example: given  nim->dim[8] = { 6, 64, 64, 21, 80, 4, 3, 1 } (6-D dataset)
+
+      if dims[8] = { 0, 5, 4, 17, -1, 2, 1, 0 }
+         -> read time series for the voxel i,j,k = 5,4,17, and dim 5,6 = 2,1
+
+      if dims[8] = { 0, 5, 4, -1, -1, 0, 0, 0 }
+         -> read time series for slice at i,j = 5,4, and dim 5,6,7 = 0,0,0
+            (note that dims[7] is not relevant, but must be 0 or -1)
+
+    Note that *data will be set as a pointer to new memory, allocated here
+    for the resulting collapsed image data.
+
+    \return the total number of bytes read, or < 0 on failure            </pre>
+*//*-------------------------------------------------------------------------*/
+int nifti_read_collapsed_image( nifti_image * nim, int dims [8], void ** data )
+{
+   znzFile fp;
+   int     pivots[8], prods[8], nprods; /* sizes are bounded by dims[], so 8 */
+   int     c, bytes;
+
+   /** - check pointers for sanity */
+   if( !nim || !dims || !data ){
+      fprintf(stderr,"** nifti_RCI: bad params %p, %p, %p\n",
+              (void *)nim, (void *)dims, (void *)data);
+      return -1;
+   }
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"-d read_collapsed_image:\n        dims =");
+      for(c = 0; c < 8; c++) fprintf(stderr," %3d", dims[c]);
+      fprintf(stderr,"\n   nim->dims =");
+      for(c = 0; c < 8; c++) fprintf(stderr," %3d", nim->dim[c]);
+      fputc('\n', stderr);
+   }
+
+   /** - verify that dim[] makes sense */
+   if( ! nifti_nim_is_valid(nim, g_opts.debug > 0) ){
+      fprintf(stderr,"** invalid nim (file is '%s')\n", nim->fname );
+      return -1;
+   }
+
+   /** - verify that dims[] makes sense for this dataset */
+   for( c = 1; c <= nim->dim[0]; c++ ){
+      if( dims[c] >= nim->dim[c] ){
+         fprintf(stderr,"** nifti_RCI: dims[%d] >= nim->dim[%d] (%d,%d)\n",
+                 c, c, dims[c], nim->dim[c]);
+         return -1;
+      }
+   }
+
+   /** - prepare pivot list - pivots are fixed indices */
+   if( make_pivot_list(nim, dims, pivots, prods, &nprods) < 0 ) return -1;
+
+   bytes = rci_alloc_mem(data, prods, nprods, nim->nbyper);
+   if( bytes < 0 ) return -1;
+
+   /** - open the image file for reading at the appropriate offset */
+   fp = nifti_image_load_prep( nim );
+   if( ! fp ){ free(*data);  *data = NULL;  return -1; }     /* failure */
+
+   /** - call the recursive reading function, passing nim, the pivot info,
+         location to store memory, and file pointer and position */
+   c = rci_read_data(nim, pivots,prods,nprods,dims,
+                     (char *)*data, fp, znztell(fp));
+   znzclose(fp);   /* in any case, close the file */
+   if( c < 0 ){ free(*data);  *data = NULL;  return -1; }    /* failure */
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"+d read %d bytes of collapsed image from %s\n",
+              bytes, nim->fname);
+
+   return bytes;
+}
+
+
+/* read the data from the file pointed to by fp
+
+   - this a recursive function, so start with the base case
+   - data is now (char *) for easy incrementing
+
+   return 0 on success, < 0 on failure
+*/
+static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
+           int nprods, int dims[], char * data, znzFile fp, int base_offset)
+{
+   int c, sublen, offset, read_size;
+
+   /* bad check first - base_offset may not have been checked */
+   if( base_offset < 0 || nprods <= 0 ){
+      fprintf(stderr,"** rci_read_data, bad params, %d,%d\n",
+              nprods, base_offset);
+      return -1;
+   }
+
+   /* base case: actually read the data */
+   if( nprods == 1 ){
+      int nread, bytes;
+
+      /* make sure things look good here */
+      if( *pivots != 0 ){
+         fprintf(stderr,"** rciRD: final pivot == %d!\n", *pivots);
+         return -1;
+      }
+
+      /* so just seek and read (prods[0] * nbyper) bytes from the file */
+      znzseek(fp, base_offset, SEEK_SET);
+      bytes = prods[0] * nim->nbyper;
+      nread = nifti_read_buffer(fp, data, bytes, nim);
+      if( nread != bytes ){
+         fprintf(stderr,"** rciRD: read only %d of %d bytes from '%s'\n",
+                 nread, bytes, nim->fname);
+         return -1;
+      } else if( g_opts.debug > 3 )
+         fprintf(stderr,"+d successful read of %d bytes at offset %d\n",
+                 bytes, base_offset);
+
+      return 0;  /* done with base case - return success */
+   }
+
+   /* not the base case, so do a set of reduced reads */
+
+   /* compute size of sub-brick: all dimensions below pivot */
+   for( c = 1, sublen = 1; c < *pivots; c++ ) sublen *= nim->dim[c];
+
+   /* compute number of values to read, i.e. remaining prods */
+   for( c = 1, read_size = 1; c < nprods; c++ ) read_size *= prods[c];
+   read_size *= nim->nbyper;  /* and multiply by bytes per voxel */
+
+   /* now repeatedly compute offsets, and recursively read */
+   for( c = 0; c < prods[0]; c++ ){
+      /* offset is (c * sub-block size (including pivot dim))   */
+      /*         + (dims[] index into pivot sub-block)          */
+      /* the unneeded multiplication is to make this more clear */
+      offset = c * sublen * nim->dim[*pivots] + sublen * dims[*pivots];
+      offset *= nim->nbyper;
+
+      if( g_opts.debug > 3 )
+         fprintf(stderr,"-d reading %d bytes, foff %d + %d, doff %d\n",
+                 read_size, base_offset, offset, c*read_size);
+
+      /* now read the next level down, adding this offset */
+      if( rci_read_data(nim, pivots+1, prods+1, nprods-1, dims,
+                    data + c * read_size, fp, base_offset + offset) < 0 )
+         return -1;
+   }
+
+   return 0;
+}
+
+
+/* allocate memory for all collapsed image data
+
+   return total size on success, and < 0 on failure
+*/
+static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
+{
+   int size, index;
+
+   if( nbyper < 0 || nprods < 1 || nprods > 8 ){
+      fprintf(stderr,"** rci_am: bad params, %d, %d\n", nbyper, nprods);
+      return -1;
+   }
+
+   for( index = 0, size = 1; index < nprods; index++ )
+       size *= prods[index];
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"+d allocating %d (= %d x %d) bytes for collapsed image\n",
+              size*nbyper, size, nbyper);
+
+   size *= nbyper;
+   *data = malloc(size);
+
+   if( ! *data ){
+      fprintf(stderr,"** rci_am: failed to alloc %d bytes for data\n", size);
+      return -1;
+   }
+
+   return size;
+}
+
+
+/* prepare a pivot list for reading
+
+   The pivot points are the indices into dims where the calling function
+   wants to collapse a dimension.  The last pivot should always be zero
+   (note that we have space for that in the lists).
+*/
+static int make_pivot_list(nifti_image * nim, int dims[], int pivots[],
+                                              int prods[], int * nprods )
+{
+   int len, index;
+
+   len = 0;
+   index = nim->dim[0];
+   while( index > 0 ){
+      prods[len] = 1;
+      while( index > 0 && (nim->dim[index] == 1 || dims[index] == -1) ){
+         prods[len] *= nim->dim[index];
+         index--;
+      }
+      pivots[len] = index;
+      len++;
+      index--;  /* fine, let it drop out at -1 */
+   }
+
+   /* make sure to include 0 as a pivot (instead of just 1, if it is) */
+   if( pivots[len-1] != 0 ){
+      pivots[len] = 0;
+      prods[len] = 1;
+      len++;
+   }
+
+   *nprods = len;
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"+d pivot list created, pivots :");
+      for(index = 0; index < len; index++) fprintf(stderr," %d", pivots[index]);
+      fprintf(stderr,", prods :");
+      for(index = 0; index < len; index++) fprintf(stderr," %d", prods[index]);
+      fputc('\n',stderr);
+   }
+
+   return 0;
+}
+
