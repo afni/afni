@@ -1665,3 +1665,4 @@
  * Changed THD_open_one_dataset() to THD_open_dataset() in programs
      3dFourier.c, 3dROIstats.c, 3dmaskave.c, 3dnvals.c, 3dproject.c, 3dttest.c.
  * Modified 3dclust.c to use -1dindex and -1tindex, as in 3dmerge.c
+ * Modified 3dTcat.c to have options -rlt+ and -rlt++.

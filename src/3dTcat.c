@@ -111,8 +111,22 @@ void TCAT_read_opts( int argc , char * argv[] )
 
       /**** -rlt ****/
 
-      if( strncmp(argv[nopt],"-rlt",3) == 0 ){
+      if( strcmp(argv[nopt],"-rlt") == 0 ){
          TCAT_rlt = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -rlt+ [16 Sep 1999] ****/
+
+      if( strcmp(argv[nopt],"-rlt+") == 0 ){  /* 16 Sep 1999 */
+         TCAT_rlt = 2 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -rlt++ [16 Sep 1999] ****/
+
+      if( strcmp(argv[nopt],"-rlt++") == 0 ){  /* 16 Sep 1999 */
+         TCAT_rlt = 3 ;
          nopt++ ; continue ;
       }
 
@@ -226,6 +240,11 @@ void TCAT_read_opts( int argc , char * argv[] )
       ADDTO_XTARR(TCAT_subv,svar) ;  /* list of sub-brick selectors */
 
       max_nsub = MAX( max_nsub , svar[0] ) ;
+
+      if( TCAT_rlt == 3 && svar[0] < 3 )  /* 16 Sep 1999 */
+         fprintf(stderr,
+                 "*** Warning: -rlt++ option won't work properly with\n"
+                 "             less than 3 sub-bricks per input dataset!\n") ;
 
    }  /* end of loop over command line arguments */
 
@@ -391,6 +410,24 @@ void TCAT_Syntax(void)
     "                       data from each dataset is detrended separately.\n"
     "                       At least 3 sub-bricks from a dataset must be input\n"
     "                       for this option to apply.\n"
+    "             Notes: (1) -rlt removes the least squares fit of 'a+b*t'\n"
+    "                          to each voxel time series; this means that\n"
+    "                          the mean is removed as well as the trend.\n"
+    "                          This effect makes it impractical to compute\n"
+    "                          the %% Change using AFNI's internal FIM.\n"
+    "                    (2) To have the mean of each dataset time series added\n"
+    "                          back in, use this option in the form '-rlt+'.\n"
+    "                          In this case, only the slope 'b*t' is removed.\n"
+    "                    (3) To have the overall mean of all dataset time\n"
+    "                          series added back in, use this option in the\n"
+    "                          form '-rlt++'.  In this case, 'a+b*t' is removed\n"
+    "                          from each input dataset separately, and the\n"
+    "                          mean of all input datasets is added back in at\n"
+    "                          the end.  (This option will work properly only\n"
+    "                          if all input datasets use at least 3 sub-bricks!)\n"
+    "                    (4) -rlt can be used on datasets that contain shorts\n"
+    "                          or floats, but not on complex- or byte-valued\n"
+    "                          datasets.\n"
     "\n"
     "Command line arguments after the above are taken as input datasets.\n"
     "A dataset is specified using one of these forms:\n"
@@ -451,6 +488,8 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
    float * rlt0=NULL , *rlt1=NULL ;
+   float *rltsum=NULL ;             /* 16 Sep 1999 */
+   int    nrltsum ;
 
    /*** read input options ***/
 
@@ -459,6 +498,7 @@ int main( int argc , char * argv[] )
    TCAT_read_opts( argc , argv ) ;
 
    /*** create new dataset (empty) ***/
+
    ninp = TCAT_dsar->num ;
    if( ninp < 1 ){
       fprintf(stderr,"*** No input datasets?\n") ; exit(1) ;
@@ -545,13 +585,21 @@ int main( int argc , char * argv[] )
    /*** if needed, create space for detrending ***/
 
    if( TCAT_rlt ){
-      rlt0 = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
-      rlt1 = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
+      rlt0   = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
+      rlt1   = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
       if( rlt0 == NULL || rlt1 == NULL ){
-         fprintf(stderr,"*** Warning: can't malloc memory for detrending!\n") ;
-         if( rlt0 != NULL ) free(rlt0) ;
-         if( rlt1 != NULL ) free(rlt1) ;
-         TCAT_rlt = 0 ;
+         fprintf(stderr,"*** Error: can't malloc memory for detrending!\n") ;
+         exit(1) ;
+      }
+
+      if( TCAT_rlt == 3 ){
+         rltsum = (float *) malloc( sizeof(float) * TCAT_nvox ) ;
+         if( rltsum == NULL ){
+            fprintf(stderr,"*** Error: can't malloc memory for detrending!\n") ;
+            exit(1) ;
+         }
+         for( iv=0 ; iv < TCAT_nvox ; iv++ ) rltsum[iv] = 0.0 ;
+         nrltsum = 0 ;
       }
    }
 
@@ -591,7 +639,7 @@ int main( int argc , char * argv[] )
 	      sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
 	    else
 	      sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
-            EDIT_dset_items( new_dset , ADN_brick_label_one+ivout, buf , ADN_none ) ;
+            EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
 
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
             EDIT_dset_items(
@@ -600,7 +648,7 @@ int main( int argc , char * argv[] )
             EDIT_dset_items(
               new_dset ,
                 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
-                ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv) ,
+                ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv),
               ADN_none ) ;
 
             /** possibly write statistical parameters for this sub-brick **/
@@ -689,7 +737,8 @@ int main( int argc , char * argv[] )
          /* have enough data? */
 
          if( ivtop-ivbot < 3 ){
-            if( TCAT_verb ) printf("-verb: skipping -rlt for %s\n",DSET_FILECODE(dset)) ;
+            if( TCAT_verb )
+               printf("-verb: skipping -rlt for %s\n",DSET_FILECODE(dset)) ;
 
          } else {
             float c0,c1,c2 , det , a0,a1,a2 , qq ;
@@ -721,7 +770,7 @@ int main( int argc , char * argv[] )
                   default:
                      err = 1 ;
                      fprintf(stderr,
-                             "*** Warning: -rlt can't handle datum type %s from %s\n",
+                             "*** Warning: -rlt can't use datum type %s from %s\n",
                              MRI_TYPE_name[DSET_BRICK_TYPE(new_dset,kk)] ,
                              DSET_FILECODE(dset) ) ;
                   break ;
@@ -756,10 +805,21 @@ int main( int argc , char * argv[] )
             /* only do the detrending if no errors happened */
 
             if( !err ){
+               float qmid = 0.0 ;                 /* 16 Sep 1999 */
+
                for( iv=0 ; iv < TCAT_nvox ; iv++ ){     /* transform voxel sums */
                  c0 = a0 * rlt0[iv] + a1 * rlt1[iv] ;
                  c1 = a1 * rlt0[iv] + a2 * rlt1[iv] ;
                  rlt0[iv] = c0 ; rlt1[iv] = c1 ;
+               }
+
+               if( TCAT_rlt == 2 ){               /* 16 Sep 1999 */
+                  qmid = 0.5 * ns ;
+                  for( iv=0 ; iv < TCAT_nvox ; iv++ ) rlt0[iv] = 0.0 ;
+               } else if( TCAT_rlt == 3 ){
+                  nrltsum += ns ;
+                  for( iv=0 ; iv < TCAT_nvox ; iv++ )
+                     rltsum[iv] += (rlt0[iv] + (0.5*ns)*rlt1[iv])*ns ;
                }
 
                for( kk=ivbot ; kk < ivtop ; kk++ ){     /* detrend */
@@ -780,7 +840,7 @@ int main( int argc , char * argv[] )
                         if( fac == 0.0 ) fac = 1.0 ;
                         finv = 1.0 / fac ;
                         for( iv=0 ; iv < TCAT_nvox ; iv++ ){
-                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*qq ;
+                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*(qq-qmid) ;
                            bar[iv] = ROUND(finv*val) ;
                         }
                      }
@@ -793,7 +853,7 @@ int main( int argc , char * argv[] )
                         if( fac == 0.0 ) fac = 1.0 ;
                         finv = 1.0 / fac ;
                         for( iv=0 ; iv < TCAT_nvox ; iv++ ){
-                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*qq ;
+                           val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*(qq-qmid) ;
                            bar[iv] = (finv*val) ;
                         }
                      }
@@ -806,7 +866,43 @@ int main( int argc , char * argv[] )
 
    } /* end of loop over input datasets */
 
-   if( TCAT_rlt ){ free(rlt0) ; free(rlt1) ; }
+   /* 16 Sep 1999: add overall average back in */
+
+   if( TCAT_rlt == 3 && rltsum != NULL && nrltsum > 0 ){
+      float scl = 1.0/nrltsum ; int kk ;
+
+      for( iv=0 ; iv < TCAT_nvox ; iv++ ) rltsum[iv] *= scl ;
+
+      for( kk=0 ; kk < new_nvals ; kk++ ){
+         switch( DSET_BRICK_TYPE(new_dset,kk) ){
+            case MRI_short:{
+               short * bar = (short *) DSET_ARRAY(new_dset,kk) ;
+               float fac = DSET_BRICK_FACTOR(new_dset,kk) , val,finv ;
+
+               if( fac == 0.0 ) fac = 1.0 ;
+               finv = 1.0 / fac ;
+               for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                  val = fac*bar[iv] + rltsum[iv] ; bar[iv] = ROUND(finv*val) ;
+               }
+            }
+            break ;
+
+            case MRI_float:{
+               float * bar = (float *) DSET_ARRAY(new_dset,kk) ;
+               float fac = DSET_BRICK_FACTOR(new_dset,kk) , val,finv ;
+
+               if( fac == 0.0 ) fac = 1.0 ;
+               finv = 1.0 / fac ;
+               for( iv=0 ; iv < TCAT_nvox ; iv++ ){
+                  val = fac*bar[iv] + rltsum[iv] ; bar[iv] = (finv*val) ;
+               }
+            }
+            break ;
+         }
+      }
+   }
+
+   if( TCAT_rlt ){ free(rlt0); free(rlt1); if(rltsum!=NULL)free(rltsum); }
 
    if( ! TCAT_dry ){
       if( TCAT_verb ) printf("-verb: computing sub-brick statistics\n") ;
