@@ -1,0 +1,65 @@
+# This Makefile is for Mac OSX 10.3, G5 CPU.
+# Do NOT use "cc -fast", since that produces incorrect code for 3dDeconvolve!
+# The options below are supposed to be equivalent to "-fast".
+
+CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
+         -falign-loops=32 -falign-jumps=16 -falign-functions=16                \
+         -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural   \
+         -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL                     \
+         -mtune=G5 -mcpu=G5 -mpowerpc64 -fPIC
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
+CCFAST = cc $(CC_G5) -g -DDARWIN -DNO_GAMMA $(CEXTRA)
+# CCFAST = cc -O2 -ffast-math -g -DDARWIN -DNO_GAMMA $(CEXTRA)
+CC     = $(CCFAST)
+CCVOL  = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+CCMIN  = cc
+CCD    = $(CC) $(CCDEBS)
+# IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
+IFLAGS = -I. -I/usr/X11R6/include
+LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
+PLUGIN_CC     = $(CC) -dynamic -fno-common -g3
+PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./macosx_10.3_G5
+LIBDIR = $(INSTALLDIR)
+
+INSTALL_PREREQ = suma
+
+LIBDL = libdl.a
+
+# for dynamic linking
+
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm -lmri -ldl -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lmri -lm -bind_at_load
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+include Makefile.INCLUDE
