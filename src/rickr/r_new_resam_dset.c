@@ -16,6 +16,10 @@
  *
  * 2002.07.29
  *   - if we master, be sure output has same view type
+ *
+ * 2004.07.26
+ *   - added sublist parameter to r_new_resam_dset, as a list of
+ *     sub-bricks to resample (all, if NULL)
  *----------------------------------------------------------------------
 */
 
@@ -47,6 +51,8 @@ static char * this_file = "r_new_resam_dset.c";
  *   - dx,dy,dz : new deltas
  *   - orient   : new orientation string
  *   - resam    : resampling mode
+ *   - sublist  : list of sub-bricks to resample (all if NULL)
+ *                {first element of sublist is the number of sub-bricks}
  *
  * output       : a pointer to the resulting THD_3dim_dataset
  *                (or NULL, on failure)
@@ -65,10 +71,12 @@ THD_3dim_dataset * r_new_resam_dset
 	double             dy,		/* delta for new y-axis         */
 	double             dz,		/* delta for new z-axis         */
 	char               orient [],   /* new orientation code         */
-	int                resam	/* mode to resample with        */
+	int                resam,	/* mode to resample with        */
+	int              * sublist      /* list of sub-bricks to resam  */
     )
 {
     THD_3dim_dataset * dout;
+    THD_3dim_dataset * dtmp;
     THD_dataxes        new_daxes;
     FD_brick         * fdb = NULL;
     int                work;
@@ -83,7 +91,12 @@ THD_3dim_dataset * r_new_resam_dset
     if ( work == LR_RESAM_IN_FAIL )
         return NULL;
 
-    dout = EDIT_empty_copy( din );		/* create new brick */
+    if ( sublist )
+	dtmp = THD_copy_dset_subs(din, sublist);
+    else
+	dtmp = din;
+
+    dout = EDIT_empty_copy( dtmp );		/* create new brick */
     if( ! ISVALID_3DIM_DATASET( dout ) )
     {
 	fprintf( stderr, "ERROR: <%s> - failed to duplicate datset at %p\n",
@@ -147,8 +160,8 @@ THD_3dim_dataset * r_new_resam_dset
     }
 
     /* needed by THD_load_datablock() */
-    dout->warp_parent        = din->warp_parent ? din->warp_parent : din;
-    dout->warp_parent_idcode = din->idcode;	/* needed for HEAD write */
+    dout->warp_parent        = dtmp;
+    dout->warp_parent_idcode = dtmp->idcode;	/* needed for HEAD write */
 
     /* needed to warp from parent */
     dout->wod_flag        = True;		/* mark for WOD          */
@@ -162,6 +175,8 @@ THD_3dim_dataset * r_new_resam_dset
 	THD_delete_3dim_dataset( dout, FALSE );
 	dout = NULL;
     }
+
+    if ( sublist ) DSET_delete(dtmp);
 
     return dout;
 }
