@@ -94,7 +94,7 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    if( function_type == SHOWFUNC_FIM || !have_thr ){
      int ind ;
 
-     /* figure out which sub-brick to show = ind */
+     /* figure out which sub-brick to show (= ind) */
 
      if( fdset_type == FUNC_FIM_TYPE ){   /* allow for 3D+t FIM */
        ind = im3d->vinfo->time_index ;
@@ -127,7 +127,7 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    if( !AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||
        ( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) ){
 
-      RETURN(-1) ;  /* bad function - bad bad bad - no soup for you */
+      RETURN(-1) ;  /* bad function - no soup for you */
    }
 
    /* maybe need to build a voxel-to-node list for func dataset  */
@@ -136,8 +136,14 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    if( adset->su_vnlist[ks] == NULL ||
        !EQUIV_DATAXES(adset->su_vnlist[ks]->dset->daxes,fdset->daxes) ){
 
+     /* if have an old one
+        (that doesn't match current dataset grid),
+        then delete it from the Universe           */
+
      if( adset->su_vnlist[ks] != NULL )
         SUMA_destroy_vnlist( adset->su_vnlist[ks] ) ;
+
+     /* make the new list */
 
      adset->su_vnlist[ks] = SUMA_make_vnlist( adset->su_surf[ks] , fdset ) ;
      if( adset->su_vnlist[ks] == NULL ) RETURN(-1) ;
@@ -157,14 +163,14 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
 #endif
 
-   /** if don't have threshold, will process all voxels for color **/
-
    DSET_load(fdset) ;                     /* if isn't in memory now */
    if( !DSET_LOADED(fdset) ) RETURN(-1) ; /* what the hell?         */
 
+   /** if don't have threshold, will process all voxels for color **/
+
    if( im_thr == NULL ){
 
-     vlist = voxijk ;  /* list of voxels to process */
+     vlist = voxijk ;  /* list of voxels to process = all voxels */
      nout  = nnod   ;  /* number of output nodes */
 
    /** if have threshold, cut out voxels below threshold (set vlist[]=-1) **/
@@ -172,7 +178,7 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
    } else {
 
      vlist = (int *) malloc(sizeof(int)*nvox) ;    /* copy voxel list */
-     memcpy( vlist , voxijk , sizeof(int)*nvox ) ;
+     memcpy( vlist , voxijk , sizeof(int)*nvox ) ; /* then prune it */
 
      switch( im_thr->kind ){
        case MRI_short:{
@@ -218,7 +224,7 @@ fprintf(stderr,"Number functional voxels above threshold = %d\n",jj) ;
 #endif
      if( jj == 0 ){ free(vlist) ; RETURN(0) ; }
 
-     /* count output nodes */
+     /* count output nodes inside each surviving voxel */
 
      for( nout=ii=0 ; ii < nvox ; ii++ )
         if( vlist[ii] >= 0 ) nout += numnod[ii] ;
@@ -229,17 +235,17 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
 
    } /* end of if on existence of threshold sub-brick */
 
-   /*** allocate output structure (maybe too big, but will clip it later) ***/
+   /** allocate output structure (maybe too big, but will clip it later) **/
 
    mmm = (SUMA_irgba *) malloc( sizeof(SUMA_irgba) * nout ) ;
 
-   /*** set overlay colors ***/
+   /** set overlay colors **/
 
    pbar   = im3d->vwid->func->inten_pbar ;
    num_lp = pbar->num_panes ;
 
-   for( lp=0 ; lp < num_lp ; lp++ )       /* overlay color indexes */
-      fim_ovc[lp] = pbar->ov_index[lp] ;  /* run from top of pbar down */
+   for( lp=0 ; lp < num_lp ; lp++ )      /* overlay color indexes */
+     fim_ovc[lp] = pbar->ov_index[lp] ;  /* run from top of pbar down */
 
    /* overlay color index for values below bottom of pbar */
 
@@ -248,133 +254,122 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
    /* get the actual RGB colors of each pane on the pbar */
 
    for( lp=0 ; lp <= num_lp ; lp++ ){
-      ovc_r[lp] = DCOV_REDBYTE  (im3d->dc,fim_ovc[lp]) ;
-      ovc_g[lp] = DCOV_GREENBYTE(im3d->dc,fim_ovc[lp]) ;
-      ovc_b[lp] = DCOV_BLUEBYTE (im3d->dc,fim_ovc[lp]) ;
+     ovc_r[lp] = DCOV_REDBYTE  (im3d->dc,fim_ovc[lp]) ;
+     ovc_g[lp] = DCOV_GREENBYTE(im3d->dc,fim_ovc[lp]) ;
+     ovc_b[lp] = DCOV_BLUEBYTE (im3d->dc,fim_ovc[lp]) ;
    }
 
    /** process im_fim into overlay, depending on data type **/
 
    switch( im_fim->kind ){
 
-      default: nvout = nout = 0 ; break ;   /* should never happen */
+      default: nvout = nout = 0 ; break ;   /* should never happen! */
 
       case MRI_rgb:{                        /* 17 Apr 2002 */
-         byte *ar_fim = MRI_RGB_PTR(im_fim) ;
-         byte r,g,b ;
+        byte *ar_fim = MRI_RGB_PTR(im_fim) ;
+        byte r,g,b ;
 
-         nvout = nout = 0 ;                           /* num output nodes */
-         for( ii=0 ; ii < nvox ; ii++ ){
-            jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
-            r = ar_fim[3*jj]; g = ar_fim[3*jj+1]; b = ar_fim[3*jj+2];
-            if( r == 0 && g ==0 && b == 0 ) continue ; /* uncolored */
-            nlist = adset->su_vnlist[ks]->nlist[ii] ;  /* list of nodes */
-            for( nn=0 ; nn < numnod[ii] ; nn++ ){      /* loop over nodes */
-               mmm[nout].id = ixyz[nlist[nn]].id ;
-               mmm[nout].r  = r ; mmm[nout].g = g ;
-               mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
-            }
-            nvout++ ;                           /* number of voxels used */
-         }
+        nvout = nout = 0 ;                  /* num output nodes & voxels */
+        for( ii=0 ; ii < nvox ; ii++ ){
+          jj = vlist[ii] ; if( jj < 0 ) continue ;   /* skip voxel? */
+          r = ar_fim[3*jj]; g = ar_fim[3*jj+1]; b = ar_fim[3*jj+2];
+          if( r == 0 && g ==0 && b == 0 ) continue ; /* uncolored */
+          nlist = adset->su_vnlist[ks]->nlist[ii] ;  /* list of nodes */
+          for( nn=0 ; nn < numnod[ii] ; nn++ ){      /* loop over nodes */
+            mmm[nout].id = ixyz[nlist[nn]].id ;
+            mmm[nout].r  = r ; mmm[nout].g = g ;
+            mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+          }
+          nvout++ ;                           /* number of voxels used */
+        }
       }
       break ;
 
       case MRI_short:{
-         short * ar_fim = MRI_SHORT_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;
-         byte r,g,b ;
+        short * ar_fim = MRI_SHORT_PTR(im_fim) ;
+        float fim_thr[NPANE_MAX] ;
+        byte r,g,b ;
 
-#if 0
-fprintf(stderr,"scale_factor=%f\n",scale_factor) ;
-#endif
+        for( lp=0 ; lp < num_lp ; lp++ ) /* thresholds for each pane */
+          fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
-         for( lp=0 ; lp < num_lp ; lp++ ) /* thresholds for each pane */
-           fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
-#if 0
-for(lp=0;lp<num_lp;lp++)
-fprintf(stderr,"  fim_thr[%d]=%f\n",lp,fim_thr[lp]) ;
-#endif
-
-         nvout = nout = 0 ;                           /* num output nodes */
-         for( ii=0 ; ii < nvox ; ii++ ){
-            jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
-            if( ar_fim[jj] == 0 )         continue ;  /* no func? */
-            /* find pane this voxel is in */
-            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
-            for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
-               mmm[nout].id = ixyz[nlist[nn]].id ;
-               mmm[nout].r  = r ; mmm[nout].g = g ;
-               mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
-#if 0
-fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
-        jj,ii,ixyz[nlist[nn]].id,r,g,b,r,g,b ) ;
-#endif
-            }
-            nvout++ ;                           /* number of voxels used */
-         }
+        nvout = nout = 0 ;                   /* num output nodes & voxels */
+        for( ii=0 ; ii < nvox ; ii++ ){
+          jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+          if( ar_fim[jj] == 0 )         continue ;  /* no func? */
+          /* find pane this voxel is in */
+          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
+            mmm[nout].id = ixyz[nlist[nn]].id ;
+            mmm[nout].r  = r ; mmm[nout].g = g ;
+            mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+          }
+          nvout++ ;                           /* number of voxels used */
+        }
       }
       break ;
 
       case MRI_byte:{
-         byte * ar_fim = MRI_BYTE_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;
-         byte r,g,b ;
+        byte * ar_fim = MRI_BYTE_PTR(im_fim) ;
+        float fim_thr[NPANE_MAX] ;
+        byte r,g,b ;
 
-         for( lp=0 ; lp < num_lp ; lp++ )
-           if( pbar->pval[lp+1] <= 0.0 )
-             fim_thr[lp] = 0 ;
-           else
-             fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        for( lp=0 ; lp < num_lp ; lp++ )
+          if( pbar->pval[lp+1] <= 0.0 )
+            fim_thr[lp] = 0 ;
+          else
+            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
-         nvout = nout = 0 ;                           /* num output nodes */
-         for( ii=0 ; ii < nvox ; ii++ ){
-            jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
-            if( ar_fim[jj] == 0 )         continue ;  /* no func? */
-            /* find pane this voxel is in */
-            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
-            for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
-               mmm[nout].id = ixyz[nlist[nn]].id ;
-               mmm[nout].r  = r ; mmm[nout].g = g ;
-               mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
-            }
-            nvout++ ;                           /* number of voxels used */
-         }
+        nvout = nout = 0 ;                          /* num output nodes */
+        for( ii=0 ; ii < nvox ; ii++ ){
+          jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+          if( ar_fim[jj] == 0 )         continue ;  /* no func? */
+          /* find pane this voxel is in */
+          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
+            mmm[nout].id = ixyz[nlist[nn]].id ;
+            mmm[nout].r  = r ; mmm[nout].g = g ;
+            mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+          }
+          nvout++ ;                           /* number of voxels used */
+        }
       }
       break ;
 
       case MRI_float:{
-         float * ar_fim = MRI_FLOAT_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;
-         byte r,g,b ;
+        float * ar_fim = MRI_FLOAT_PTR(im_fim) ;
+        float fim_thr[NPANE_MAX] ;
+        byte r,g,b ;
 
-         for( lp=0 ; lp < num_lp ; lp++ )
-            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        for( lp=0 ; lp < num_lp ; lp++ )
+          fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
-         nvout = nout = 0 ;                           /* num output nodes */
-         for( ii=0 ; ii < nvox ; ii++ ){
-            jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
-            if( ar_fim[jj] == 0.0 )       continue ;  /* no func? */
-            /* find pane this voxel is in */
-            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
-            for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
-               mmm[nout].id = ixyz[nlist[nn]].id ;
-               mmm[nout].r  = r ; mmm[nout].g = g ;
-               mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
-            }
-            nvout++ ;                           /* number of voxels used */
-         }
+        nvout = nout = 0 ;                          /* num output nodes */
+        for( ii=0 ; ii < nvox ; ii++ ){
+          jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+          if( ar_fim[jj] == 0.0 )       continue ;  /* no func? */
+          /* find pane this voxel is in */
+          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
+            mmm[nout].id = ixyz[nlist[nn]].id ;
+            mmm[nout].r  = r ; mmm[nout].g = g ;
+            mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+          }
+          nvout++ ;                           /* number of voxels used */
+        }
       }
       break ;
-   }
+
+   } /* end of switch on fim data type */
 
    /** finished: clean up and exit **/
 
@@ -382,11 +377,15 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
 
    if( nout == 0 ){ free(mmm); RETURN(0); }  /* no overlay? */
 
+   /* map gets the array of node IDs + colors */
+
    *map = (SUMA_irgba *) realloc( mmm , sizeof(SUMA_irgba)*nout ) ;
+
+   /* nvused gets the number of voxels used */
 
    if( nvused != NULL ) *nvused = nvout ;    /* 13 Mar 2002 */
 
-   RETURN(nout) ;
+   RETURN(nout) ;  /* number of entries in map */
 }
 
 /*---------------------------------------------------------------------------*/
