@@ -307,11 +307,13 @@ typedef struct {
 
 /* function prototypes for dft and inverse dft functions */
 
+    /* prototypes in plug_delay_V2.h  ZSS Oct 05 04
     extern void fft(COMPLEX *,int);
     extern void ifft(COMPLEX *,int);
+    extern void rfft(float *,COMPLEX *,int);
+    */
     extern void dft(COMPLEX *,COMPLEX *,int);
     extern void idft(COMPLEX *,COMPLEX *,int);
-    extern void rfft(float *,COMPLEX *,int);
     extern void ham(COMPLEX *,int);
     extern void han(COMPLEX *,int);
     extern void triang(COMPLEX *,int);

@@ -54,7 +54,7 @@ static void harris(COMPLEX *,int);
   Plugin to compute a 3D+time dataset voxelwise delay with respect to 
   a reference waveform
 ************************************************************************/
-typedef struct hilbert_data_V2
+typedef struct 
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -90,7 +90,7 @@ typedef struct hilbert_data_V2
 		  FILE * outwritets;
 		  FILE * outlogfile;
 		  char outname[PLUGIN_MAX_STRING_RANGE]; /* output data file name */
-	};
+	}hilbert_data_V2;
 
 /*--------------------- string to 'help' the user --------------------*/
 
@@ -264,15 +264,15 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
                    int npts , float ts[] , double ts_mean , double ts_slope ,
                    void * udp , int nbrick , float * buckar) ;
 
-static void show_ud (struct hilbert_data_V2* ud,int loc);
+static void show_ud (hilbert_data_V2* ud,int loc);
 
-static void write_ud (struct hilbert_data_V2* ud);
+static void write_ud (hilbert_data_V2* ud);
 
-static void indexTOxyz (struct hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos);
+static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos);
 
-static void error_report (struct hilbert_data_V2* ud, int ncall );
+static void error_report (hilbert_data_V2* ud, int ncall );
 
-static void writets (struct hilbert_data_V2* ud,float * ts);
+static void writets (hilbert_data_V2* ud,float * ts);
 
 /*---------------------------- global data ---------------------------*/
 
@@ -483,7 +483,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 static char * DELAY_main( PLUGIN_interface * plint )
 {
-   struct hilbert_data_V2 uda,*ud;
+   hilbert_data_V2 uda,*ud;
    MRI_IMAGE * tsim;
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
@@ -813,14 +813,14 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
                    void * udp , int nbrick , float * buckar)
 {
    static int nvox , ncall ;
-	struct hilbert_data_V2 uda,*ud;
+	hilbert_data_V2 uda,*ud;
 	float del, xcorCoef, buckara[4];
 	float xcor=0.0 ,  tmp=0.0 , tmp2 = 0.0 ,  dtx = 0.0 ,\
 			 delu = 0.0 , slp = 0.0 , vts = 0.0 , vrvec = 0.0 ;
 	int i , is_ts_null , status , opt , actv , zpos , ypos , xpos ;
 	
 	ud = &uda;
-	ud = (struct hilbert_data_V2 *) udp;
+	ud = (hilbert_data_V2 *) udp;
 	
    /** is this a "notification"? **/
 
@@ -930,7 +930,7 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
 /* function to display user data input (debugging stuff)        */
 /* ************************************************************ */
 
-static void show_ud (struct hilbert_data_V2* ud,int loc)
+static void show_ud (hilbert_data_V2* ud,int loc)
 	{
 		printf ("\n\nUser Data Values at location :%d\n",loc);
 		printf ("ud->dsetname= %s\n",ud->dsetname);
@@ -970,7 +970,7 @@ static void show_ud (struct hilbert_data_V2* ud,int loc)
 /* function to write user data input to log file        */
 /* ************************************************************ */
 
-static void write_ud (struct hilbert_data_V2* ud)
+static void write_ud (hilbert_data_V2* ud)
 	{
 		fprintf (ud->outlogfile,"\nLogfile output by Hilbert Delay98 plugin\n");
 		fprintf (ud->outlogfile,"\n\nUser Data Values \n");
@@ -1010,7 +1010,7 @@ static void write_ud (struct hilbert_data_V2* ud)
 /* function to compute x, y, z coordinates from the index       */
 /* ************************************************************ */ 
 
-static void indexTOxyz (struct hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
+static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
 	{
 		*zpos = (int)ncall / (int)(ud->nxx*ud->nyy);
 		*ypos = (int)(ncall - *zpos * ud->nxx * ud->nyy) / (int)ud->nxx;
@@ -1025,7 +1025,7 @@ static void indexTOxyz (struct hilbert_data_V2* ud, int ncall, int *xpos , int *
 /* instantaneously, and need not be logged 							 */
 /* ************************************************************ */
 
-static void error_report (struct hilbert_data_V2* ud, int ncall ) 
+static void error_report (hilbert_data_V2* ud, int ncall ) 
 	{
 		int xpos,ypos,zpos;
 		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos); 
@@ -1059,7 +1059,7 @@ static void error_report (struct hilbert_data_V2* ud, int ncall )
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
-static void writets (struct hilbert_data_V2 * ud,float * ts)
+static void writets (hilbert_data_V2 * ud,float * ts)
 
 	{	
 		int i;
