@@ -15,6 +15,8 @@
  * Code for -minmax,-nzminmax added by R Reynolds 7/04 *
  *-----------------------------------------------------*
  * Fixed minmax initializers           R Reynolds 9/04 *
+ *-----------------------------------------------------*
+ * Code for -mask_f2short              R Reynolds 2/05 *
  *******************************************************/
 
 #include "mrilib.h"
@@ -40,7 +42,7 @@ int main(int argc, char *argv[])
     int minmax = 0, nzminmax = 0;		/* 07 July, 2004 [rickr] */
     short *mask_data;
     int nvox, i, brik;
-    int num_ROI, ROI;
+    int num_ROI, ROI, mask_f2s = 0;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
     double *sum, *sumsq, *nzsum, sig, *sumallbriks;
@@ -66,7 +68,16 @@ int main(int argc, char *argv[])
 	       "                 of the 2s, etc.\n"
 	       "                 Note that the mask dataset and the input dataset\n"
 	       "                 must have the same number of voxels and that mset\n"
-	       "                 must be BYTE or SHORT (i.e., float masks won't work).\n"
+	       "                 must be BYTE or SHORT (i.e., float masks won't work\n"
+	       "                 without the -mask_f2short option).\n"
+	       "                 \n"
+	       "  -mask_f2short  Tells the program to convert a float mask to short\n"
+	       "                 integers, by simple rounding.  This option is needed\n"
+	       "                 when the mask dataset is a 1D file, for instance\n"
+               "                 (since 1D files are read as floats).\n"
+	       "\n"
+	       "                 Be careful with this, it may not be appropriate to do!\n"
+	       "\n"
 	       "  -numROI n     Forces the assumption that the mask dataset's ROIs are\n"
 	       "                 denoted by 1 to n inclusive.  Normally, the program\n"
 	       "                 figures out the ROIs on its own.  This option is \n"
@@ -118,6 +129,11 @@ int main(int argc, char *argv[])
 
     while (narg < argc && argv[narg][0] == '-') {
 
+	if (strncmp(argv[narg], "-mask_f2short", 9) == 0) {
+            mask_f2s = 1;   /* convert float mask to short */
+	    narg++;
+	    continue;
+        }
 	if (strncmp(argv[narg], "-mask", 5) == 0) {
 	    if (mask_dset != NULL)
 		Error_Exit("Cannot have two -mask options!");
@@ -132,9 +148,6 @@ int main(int argc, char *argv[])
 
 	    if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_complex)
 		Error_Exit("Cannot deal with complex-valued mask dataset!");
-
-	    if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_float)
-		Error_Exit("Cannot deal with float-valued mask dataset!");
 
 	    /* 24 Jan 2000: change narg to narg-1 in this block - RWCox */
 
@@ -210,6 +223,13 @@ int main(int argc, char *argv[])
     if (narg >= argc)
 	Error_Exit("No input datasets!?\n");
 
+    /* check the mask dataset type */
+    if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_float && mask_f2s == 0 ){
+        fprintf(stderr, "\nError: Cannot deal with float-valued mask dataset!\n");
+        fprintf(stderr, "(consider the -mask_f2short option)\n");
+        exit(1);
+    }
+
 
     /* See how many ROIS there are to deal with in the mask */
     for (i = 0; i < 65536; non_zero[i++] = 0);
@@ -244,6 +264,22 @@ int main(int argc, char *argv[])
 
 	    for (i = 0; i < nvox; i++) {
 		mask_data[i] = (short) temp_byte[i];
+		if (mask_data[i]) {
+		    if (debug)
+			fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
+		    non_zero[mask_data[i] + 32768] = 1;
+		}
+	    }
+	    break;
+	}
+
+    case MRI_float:{
+	    float *temp_float = (float *) DSET_ARRAY(mask_dset, mask_subbrik);
+	    if ((mask_data = (short *) malloc(nvox * sizeof(short))) == NULL)
+		 Error_Exit("Memory allocation error");
+
+	    for (i = 0; i < nvox; i++) {
+		mask_data[i] = (short) temp_float[i];
 		if (mask_data[i]) {
 		    if (debug)
 			fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);

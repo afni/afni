@@ -991,3 +991,6 @@
   * modified plug_maxima.[ch]:
       - added 'Sphere Values' and 'Dicom Coords' interface options
 
+16 Feb 2005:
+  * modified 3dROIstats, added the -mask_f2short option
+
