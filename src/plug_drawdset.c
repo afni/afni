@@ -1609,7 +1609,17 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
          int mode=ip[3][0] ;                     /* how pts are organized */
          int plane ;
 
-         if( np <= 0 ) return ;  /* some error? */
+         /*-- 20 Feb 2003: undo via keypress --*/
+
+         if( mode == UNDO_MODE ){
+           if( XtIsSensitive(undo_pb) ) DRAW_undo_CB( undo_pb,NULL,NULL ) ;
+           else                         XBell(dc->display,100) ;
+           return ;
+         }
+
+         /*-- Did we get points? --*/
+
+         if( np <= 0 ) return ;
 
          plane = mode - SINGLE_MODE ;
          if( plane < 1 || plane > 3 ) plane = mode - PLANAR_MODE ;

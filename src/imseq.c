@@ -4326,42 +4326,52 @@ DPR(" .. KeyPress") ;
          buf[0] = '\0' ;
          ks     = 0 ;
          nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
+#if 0
+fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
+#endif
 
          /* 24 Jan 2003: deal with special function keys */
 
-         if( nbuf == 0 ){
+         if( nbuf == 0 || ks > 255 ){
            if( seq->record_mode ) EXRETURN ;
            switch( ks ){
+
              case XK_Left:
+             case XK_KP_Left:
                seq->arrowpad->which_pressed = AP_LEFT ;
                seq->arrowpad->xev.type = 0 ;
                ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
              break ;
 
              case XK_Right:
+             case XK_KP_Right:
                seq->arrowpad->which_pressed = AP_RIGHT ;
                seq->arrowpad->xev.type = 0 ;
                ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
              break ;
 
              case XK_Down:
+             case XK_KP_Down:
                seq->arrowpad->which_pressed = AP_DOWN ;
                seq->arrowpad->xev.type = 0 ;
                ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
              break ;
 
              case XK_Up:
+             case XK_KP_Up:
                seq->arrowpad->which_pressed = AP_UP ;
                seq->arrowpad->xev.type = 0 ;
                ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
              break ;
 
              case XK_Page_Up:
-             case XK_Page_Down:{
+             case XK_KP_Page_Up:
+             case XK_Page_Down:
+             case XK_KP_Page_Down:{
                int nn=seq->im_nr , nt=seq->status->num_total ;
                if( nt > 1 ){
-                 if( ks == XK_Page_Down ){ nn--; if( nn <  0 ) nn = nt-1; }
-                 else                    { nn++; if( nn >= nt) nn = 0   ; }
+                 if( ks==XK_Page_Down || ks==XK_KP_Page_Down ){ nn--; if(nn< 0 ) nn=nt-1; }
+                 else                                         { nn++; if(nn>=nt) nn=0   ; }
 #if 1
                  ISQ_redisplay( seq , nn , isqDR_display ) ;
 #else
@@ -4371,18 +4381,31 @@ DPR(" .. KeyPress") ;
              }
              break ;
 
-             case XK_Home:
-             case XK_F2:
-             case XK_F3:
-             case XK_F4:
-             case XK_F5:
-             case XK_F6:
-             case XK_F7:
-             case XK_F8:
-             case XK_F9:
-             case XK_F10:
-             case XK_F11:
-             case XK_F12:
+             case XK_Delete:              /* 20 Feb 2003: drawing undo */
+             case XK_KP_Delete:
+               if( seq->button2_enabled && seq->status->send_CB != NULL ){
+                 ISQ_cbs cbs ;
+                 cbs.reason   = isqCR_button2_key ;
+                 cbs.event    = ev ;
+                 cbs.key      = (int) XK_Delete ;
+                 seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+               }
+             break ;
+
+#if 0
+             case XK_Home:    break ;
+             case XK_F2:      break ;
+             case XK_F3:      break ;
+             case XK_F4:      break ;
+             case XK_F5:      break ;
+             case XK_F6:      break ;
+             case XK_F7:      break ;
+             case XK_F8:      break ;
+             case XK_F9:      break ;
+             case XK_F10:     break ;
+             case XK_F11:     break ;
+             case XK_F12:     break ;
+#endif
            }
            EXRETURN ;
          }

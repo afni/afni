@@ -31,6 +31,7 @@
 #define MAIN
 
 #include "afni.h"
+#include <X11/keysym.h>  /* 20 Feb 2003 */
 
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
@@ -3005,6 +3006,19 @@ if(PRINT_TRACING)
 #endif
       }
       break ; /* end of keyboard press */
+
+      /*--- 20 Feb 2003: keypress while in button2 mode ---*/
+
+      case isqCR_button2_key:{
+        KeySym ks = (KeySym) cbs->key ;
+
+        switch( ks ){
+          case XK_Delete:
+            AFNI_process_drawing( im3d , UNDO_MODE , 0,NULL,NULL,NULL ) ;
+          break ;
+        }
+      }
+      break ; /* end of button2 mode keypress */
 
       /*--- Feb 1998: list of coordinates from button2 drawing ---*/
 
