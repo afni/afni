@@ -595,6 +595,8 @@ typedef struct {
       Widget         misc_niml_pb    ;    /* 02 Mar 2002 */
       Widget         misc_runscript_pb ;  /* 22 Jan 2003 */
 
+      Widget         misc_readme_env_pb ; /* 05 Aug 2004 */
+
 } AFNI_datamode_widgets ;
 
 /*---*/

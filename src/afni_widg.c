@@ -5393,6 +5393,18 @@ ENTRY("AFNI_misc_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
+   dmode->misc_readme_env_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("README.environment") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_readme_env_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_readme_env_pb,"Display README.environment file" );
+
    dmode->misc_license_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
