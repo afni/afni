@@ -23,6 +23,7 @@ typedef struct {
    float update;
    int DoCentrality;
    SUMA_Boolean OutROI;
+   SUMA_Boolean OutClustDset;
    SUMA_Boolean WriteFile;
    SUMA_SURF_CLUST_SORT_MODES SortMode;
    SUMA_Boolean FullROIList;
@@ -54,7 +55,9 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
                            int dothisnode, SUMA_SURFCLUST_OPTIONS *Opt, 
                            float *NodeArea);
                            
-SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, 
+SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, 
+                     DList *list, SUMA_Boolean FullList, char *leName); 
+SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, 
                      DList *list, SUMA_Boolean FullList, char *leName);
 float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO);
 int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDst);
