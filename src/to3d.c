@@ -3812,6 +3812,7 @@ void T3D_read_images(void)
    int     gnim ;
    char ** gname ;
    int time_dep , ltt,kzz , ntt,nzz , nvoxt ;
+   int kzmod ;  /* 06 Nov 2002 */
 
 ENTRY("T3D_read_images") ;
 
@@ -3947,6 +3948,9 @@ printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
 
 #ifndef AFNI_DEBUG
    printf("Reading images: ");fflush(stdout);
+
+   kzmod = (nz < 30) ? 1
+                     : (int)(0.035*nz) ;
 #endif
 
    kz = 0 ; if( time_dep ){ ltt = kzz = 0 ; }
@@ -4173,7 +4177,7 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 
          KILL_1MRI(shim) ;
 #ifndef AFNI_DEBUG
-         if( kz%100 == 0 ){ printf("%d",(kz/100)%10) ; fflush(stdout); }
+         if( kz%kzmod == 0 ){ printf(".") ; fflush(stdout); }
 #endif
       }  /** end of loop over images from 1 file **/
 
