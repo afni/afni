@@ -395,7 +395,7 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
 
    switch( bev->button ){
      case Button3:
-       MCW_choose_strlist( w , "Choose Color Field" ,
+       MCW_choose_strlist( w , "Choose Colorscale" ,
                            bigmap_num ,
                            pbar->bigmap_index ,
                            bigmap_name ,
