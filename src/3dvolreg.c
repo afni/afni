@@ -1620,9 +1620,9 @@ void VL_command_line(void)
    /*** Open the dataset to be registered ***/
 
    if( Iarg > Argc ){
-      fprintf(stderr,"** Too few arguments!?\n") ; exit(1) ;
+      fprintf(stderr,"** Too few arguments!?  Last=%s\n",Argv[Argc-1]) ; exit(1) ;
    } else if( Iarg < Argc-1 ){
-      fprintf(stderr,"** Too many arguments?!\n") ; exit(1) ;
+      fprintf(stderr,"** Too many arguments?!  Dataset=%s?\n",Argv[Iarg]) ; exit(1) ;
    }
 
    VL_dset = THD_open_dataset( Argv[Iarg] ) ;
