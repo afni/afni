@@ -79,9 +79,9 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                          (XtPointer) gp ,       /* client data */
                          XtListTail ) ;         /* last in queue */
 
-   gp->popmenu  = XmCreatePopupMenu( gp->drawer , "menu" , NULL , 0 ) ;
+   gp->popmenu  = XmCreatePopupMenu( gp->drawer , "help" , NULL , 0 ) ;
    gp->poplabel = XtVaCreateManagedWidget(
-                    "menu" , xmLabelWidgetClass , gp->popmenu ,
+                    "help" , xmLabelWidgetClass , gp->popmenu ,
                     LABEL_ARG("I am a label") ,
                     XmNinitialResourcesPersistent , False ,
                   NULL ) ;
@@ -296,7 +296,7 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
            }
 
            AV_fval_to_char( xx,xbuf ); AV_fval_to_char( yy,ybuf );
-           sprintf(str,"%s %s",xbuf,ybuf) ;
+           sprintf(str,"%s %s",xbuf+1,ybuf+1) ;
            MCW_set_widget_label( gp->poplabel , str ) ;
 
            XmMenuPosition( gp->popmenu , event ) ;
