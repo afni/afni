@@ -72,7 +72,7 @@ static char * TTget_URL( int code, float xx, float yy, float zz )
    char *ttahome ;
    int ii,jj,kk ;
 
-   ttahome = getenv("AFNI_TTAHOME") ; if( ttahome == NULL ) ttahome = TTAHOME ;
+   ttahome = getenv("AFNI_TTAHOME"); if( ttahome == NULL ) ttahome = TTAHOME;
 
    switch( code ){
      case 1:                       /* sagittal */
@@ -85,7 +85,7 @@ static char * TTget_URL( int code, float xx, float yy, float zz )
          for( ii=1 ; ii < SAGITTAL_NUM && xx > sagittal_xx[ii] ; ii++ ) ; /* nada */
          if( fabs(xx-sagittal_xx[ii-1]) < fabs(xx-sagittal_xx[ii]) ) ii-- ;
        }
-       sprintf(nbuf,"%s%s", ttahome, sagittal_ff[ii] ) ;
+       strcpy(nbuf,ttahome) ; strcat(nbuf,sagittal_ff[ii]) ;
      break ;
 
      case 2:                       /* coronal */
@@ -98,7 +98,7 @@ static char * TTget_URL( int code, float xx, float yy, float zz )
           for( jj=1 ; jj < CORONAL_NUM && yy > coronal_yy[jj] ; jj++ ) ; /* nada */
           if( fabs(yy-coronal_yy[jj-1]) < fabs(yy-coronal_yy[jj]) ) jj-- ;
        }
-       sprintf(nbuf,"%s%s", ttahome, coronal_ff[jj] ) ;
+       strcpy(nbuf,ttahome) ; strcat(nbuf,coronal_ff[jj]) ;
      break ;
 
      default:
@@ -111,7 +111,7 @@ static char * TTget_URL( int code, float xx, float yy, float zz )
           for( kk=1 ; kk < AXIAL_NUM && zz > axial_zz[kk] ; kk++ ) ; /* nada */
           if( fabs(zz-axial_zz[kk-1]) < fabs(zz-axial_zz[kk]) ) kk-- ;
        }
-       sprintf(nbuf,"%s%s", ttahome, axial_ff[kk] ) ;
+       strcpy(nbuf,ttahome) ; strcat(nbuf,axial_ff[kk]) ;
      break ;
    }
 
@@ -218,12 +218,16 @@ static int is_nih_host( void )
    if( ipad == NULL ) return 0 ;
 
    if( strstr(ipad,"128.231.") == ipad ) return 1 ;
-   if( strstr(ipad,"130.14." ) == ipad ) return 1 ;
    if( strstr(ipad,"137.187.") == ipad ) return 1 ;
+
+#if 1
+   if( strstr(ipad,"130.14." ) == ipad ) return 1 ;
    if( strstr(ipad,"156.40." ) == ipad ) return 1 ;
    if( strstr(ipad,"165.112.") == ipad ) return 1 ;
    if( strstr(ipad,"157.98." ) == ipad ) return 1 ;
+#endif
 
+#if 1
    if( strstr(ipad,"129.43."      ) == ipad ) return 1 ;
    if( strstr(ipad,"199.249.158." ) == ipad ) return 1 ;
    if( strstr(ipad,"209.218.0."   ) == ipad ) return 1 ;
@@ -231,8 +235,23 @@ static int is_nih_host( void )
    if( strstr(ipad,"131.158.140." ) == ipad ) return 1 ;
    if( strstr(ipad,"150.148.11"   ) == ipad ) return 1 ;
    if( strstr(ipad,"150.148.21"   ) == ipad ) return 1 ;
+#endif
 
    return 0 ;
+}
+
+/*----------------------------------------------------------------*/
+
+static int can_get_testfile(void)
+{
+   char *ttahome, *ndata=NULL, url[256]; int nn ;
+
+   ttahome = getenv("AFNI_TTAHOME"); if( ttahome == NULL ) ttahome = TTAHOME;
+   strcpy(url,ttahome) ; strcat(url,"testfile") ;
+   nn = NI_read_URL( url, (char **)&ndata ) ;
+   if( nn <= 0 || ndata == NULL ) return 0 ;
+   if( ndata != NULL ) free(ndata) ;
+   return 1 ;
 }
 
 /*-----------------------------------------------------------------*/
@@ -249,7 +268,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;
 
-   if( ncall > 0 || !is_nih_host() ) return NULL ;
+   if( ncall > 0 || !is_nih_host() || !can_get_testfile() ) return NULL ;
 
    plint = PLUTO_new_interface( "TT Atlas",
                                 "TT Atlas display",
