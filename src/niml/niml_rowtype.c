@@ -831,7 +831,7 @@ int NI_write_rowtype( NI_stream_type *ns, NI_rowtype *rt,
 {
    int ii,jj , row , vsiz,fsiz,dim , ntot,nout ;
    char *ptr ;
-   int  nwbuf,bb,cc;
+   int  nwbuf,bb=0,cc=0;
    char *wbuf=NULL ; /* write buffer */
    char *bbuf=NULL ; /* copy of write buffer */
    char *cbuf=NULL ; /* Base64 buffer */
