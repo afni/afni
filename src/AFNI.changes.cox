@@ -4556,3 +4556,7 @@
 09 May 2003
  * AFNI_THRESH_BIGSTEP environment variable.
  * Boxes in 3dmaskdump.c.
+
+12 May 2003
+ * Modified thd_initdkptr.c to have prefixes that start with '/' override any
+     input directory name.

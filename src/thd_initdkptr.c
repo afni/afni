@@ -10,7 +10,9 @@
 /*---------------------------------------------------------------
    Initialize the names inside a diskptr
    29 Feb 2001: modified to take directory from prefixname
-                as well as from dirname
+                as well as from dirname - RWCox.
+   12 May 2003: if prefixname starts with '/', then dirname
+                will be ignored - RWCox.
 -----------------------------------------------------------------*/
 
 void THD_init_diskptr_names( THD_diskptr * dkptr ,
@@ -36,8 +38,8 @@ void THD_init_diskptr_names( THD_diskptr * dkptr ,
          int lp = strlen(prefixname) , jj , ld ;
          for( ii=lp-1 ; ii >= 0 && prefixname[ii] != '/' ; ii-- ) ; /* find last '/' */
          if( ii >= 0 ){  /* should always be true */
-            ld = strlen(dname) ;
-            if( prefixname[0] != '/' || ld == 0 ){
+            ld = strlen(dname) ; if( prefixname[0] == '/' ) ld = 0 ;
+            if( ld == 0 ){
                memcpy(dname+ld,prefixname,ii+1) ; dname[ld+ii+1] = '\0' ;
             } else {
                memcpy(dname+ld,prefixname+1,ii) ; dname[ld+ii] = '\0' ;
