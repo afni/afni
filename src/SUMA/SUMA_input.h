@@ -3,7 +3,7 @@
 
 #define SUMA_BRUSH_BLOCK 500
 
-void SUMA_input(Widget w, XtPointer clientData, XtPointer callData);
+void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
 int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
 void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
 SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *NP, GLdouble *FP, SUMA_Boolean Show);
