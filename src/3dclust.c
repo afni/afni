@@ -11,9 +11,9 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dclust"                       /* name of this program */
-#define PROGRAM_AUTHOR "R. W. Cox et al."                  /* program author */
-#define PROGRAM_DATE "26 March 1999"             /* date of last program mod */
+#define PROGRAM_NAME   "3dclust"                     /* name of this program */
+#define PROGRAM_AUTHOR "RW Cox et al"                      /* program author */
+#define PROGRAM_DATE   "29 Nov 2001"             /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -55,6 +55,8 @@ voxels per original voxel
 
 */
 
+/*-- 29 Nov 2001: RWCox adds the -prefix option --*/
+
 /*---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +76,8 @@ static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 
 static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 
+static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
+
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
 
@@ -92,7 +96,7 @@ int main( int argc , char * argv[] )
 {
    float rmm , vmul ;
    int iarg ;
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset=NULL ;
    void * vfim ;
    int nx,ny,nz , nxy,nxyz , ivfim ,
        iclu , ptmin , ipt , ii,jj,kk , ndet , nopt,noneg=0 ;
@@ -116,37 +120,57 @@ int main( int argc , char * argv[] )
       printf ("\n");
       printf(
           "Simple-minded Cluster Detection in 3D Datasets\n"
-          "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ...\n"
+          "Usage: 3dclust [editing options] [other options] rmm vmul dset ...\n"
           "  where rmm  = cluster connection radius (mm);\n"
           "        vmul = minimum cluster volume (micro-liters)\n"
           "               (both rmm and vmul must be positive);\n"
           "        dset = input dataset (more than one allowed).\n"
           "  The report is sent to stdout.\n"
-          "  "
-          "  The -noabs option uses the signed voxel intensities (not the \n"
-          "     abs. value) for calculation of the mean and SEM \n"
-          "  The -summarize option will write out only the total\n"
-          "     nonzero voxel count and volume for each dataset.\n"
-          "  The -nosum option will suppress printout of the totals.\n"
-          "  The -verbose option prints out a progress report (to stderr)\n"
-          "     as the computations proceed.\n"
-          "  The -quiet option suppresses all non-essential output. \n"
-          "  The editing options are as in 3dmerge\n"
-          "     (including use of the -1dindex, -1tindex, and -dxyz=1 options).\n"
-          "  The program does not work on complex-valued datasets!\n"
-          "  Using the -1noneg option is strongly recommended!\n "
-          "N.B.: SEM values are not realistic for interpolated data sets! \n"
-          "      A ROUGH correction is to multiply the SEM of the interpolated\n"
-          "      data set by the square root of the number of interpolated \n"
-          "      voxels per original voxel. \n"
-          "N.B.: If you use -dxyz=1, then rmm should be given in terms of\n"
-          "      voxel edges (not mm) and vmul should be given in terms of\n"
-          "      voxel counts (not microliters).  Thus, to connect to only\n"
-          "      3D nearest neighbors and keep clusters of 10 voxels or more,\n"
-          "      use something like '3dclust -dxyz=1 1.1 10 dset+orig'.\n"
-          "      In the report, 'Volume' will be voxel count, but the rest of\n"
-          "      the coordinate dependent information will be in actual xyz\n"
-          "      millimeters.\n"
+          "\n"
+          "Options\n"
+          "-------\n"
+          "* Editing options are as in 3dmerge\n"
+          "  (including -1thresh, -1dindex, -1tindex, -dxyz=1 options)\n"
+          "\n"
+          "* -noabs      ==> use the signed voxel intensities (not the abs\n"
+          "                  value) for calculation of the mean and SEM\n"
+          "\n"
+          "* -summarize  ==> write out only the total nonzero voxel\n"
+          "                  count and volume for each dataset\n"
+          "\n"
+          "* -nosum      ==> suppress printout of the totals\n"
+          "\n"
+          "* -verb       ==> print out a progress report (to stderr)\n"
+          "                  as the computations proceed\n"
+          "\n"
+          "* -quiet      ==> suppress all non-essential output\n"
+          "\n"
+          "* -prefix ppp ==> write a new dataset that is a copy of the\n"
+          "                  input, but with all voxels not in a cluster\n"
+          "                  set to zero; the new dataset's prefix is 'ppp'\n"
+          "            N.B.: use of the -prefix option only affects the\n"
+          "                  first input dataset\n"
+          "\n"
+          "Nota Bene\n"
+          "---------\n"
+          "* The program does not work on complex-valued datasets!\n"
+          "* Using the -1noneg option is strongly recommended!\n "
+          "* 3D+time datasets are allowed, but only if you use the\n"
+          "   -1tindex and -1dindex options.\n"
+          "* Bucket datasets are allowed, but you will almost certainly\n"
+          "   want to use the -1tindex and -1dindex options with these.\n"
+          "* SEM values are not realistic for interpolated data sets! \n"
+          "   A ROUGH correction is to multiply the SEM of the interpolated\n"
+          "   data set by the square root of the number of interpolated \n"
+          "   voxels per original voxel. \n"
+          "* If you use -dxyz=1, then rmm should be given in terms of\n"
+          "   voxel edges (not mm) and vmul should be given in terms of\n"
+          "   voxel counts (not microliters).  Thus, to connect to only\n"
+          "   3D nearest neighbors and keep clusters of 10 voxels or more,\n"
+          "   use something like '3dclust -dxyz=1 1.1 10 dset+orig'.\n"
+          "   In the report, 'Volume' will be voxel count, but the rest of\n"
+          "   the coordinate dependent information will be in actual xyz\n"
+          "   millimeters.\n"
         ) ;
       exit(0) ;
    }
@@ -158,13 +182,13 @@ int main( int argc , char * argv[] )
    nopt = CL_nopt ;
 
  /*----- Identify software -----*/
-  if( !CL_quiet ){
-     printf ("\n\n");
-     printf ("Program: %s \n", PROGRAM_NAME);
-     printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-     printf ("Date:    %s \n", PROGRAM_DATE);
-     printf ("\n");
-  }
+   if( !CL_quiet ){
+      printf ("\n\n");
+      printf ("Program: %s \n", PROGRAM_NAME);
+      printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+      printf ("Date:    %s \n", PROGRAM_DATE);
+      printf ("\n");
+   }
 
    if( nopt+3 >  argc ){
       fprintf(stderr,"\n*** No rmm or vmul arguments?\a\n") ;
@@ -182,7 +206,7 @@ int main( int argc , char * argv[] )
    else
      {
        if( CL_edopt.clust_rmm > 0.0 )  /* 01 Nov 1999 */
-          fprintf(stderr,"*** Warning: replacing -1clust values with later inputs!\n") ;
+          fprintf(stderr,"** Warning: replacing -1clust values with later inputs!\n") ;
 
        CL_edopt.clust_rmm = rmm;
        CL_edopt.clust_vmul = vmul;
@@ -195,14 +219,14 @@ int main( int argc , char * argv[] )
       if( dset != NULL ) THD_delete_3dim_dataset( dset , False ) ; /* flush old   */
       dset = THD_open_dataset( argv[iarg] ) ;                      /* open new    */
       if( dset == NULL ){                                          /* failed?     */
-         fprintf(stderr,"*** Warning: skipping dataset %s\n",argv[iarg]) ;
+         fprintf(stderr,"** Warning: skipping dataset %s\n",argv[iarg]) ;
          continue ;
       }
       if( DSET_NUM_TIMES(dset) > 1 &&
           ( CL_edopt.iv_fim < 0 || CL_edopt.iv_thr < 0 ) ){      /* no time     */
 
          fprintf(stderr,                                           /* dependence! */
-                 "*** cannot use time-dependent dataset %s\n",argv[iarg]) ;
+                 "** Cannot use time-dependent dataset %s\n",argv[iarg]) ;
          continue ;
       }
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ; /* don't mmap  */
@@ -219,12 +243,12 @@ int main( int argc , char * argv[] )
       vfim   = DSET_ARRAY(dset,ivfim) ;                            /* ptr to data */
       fimfac = DSET_BRICK_FACTOR(dset,ivfim) ;                     /* scl factor  */
       if( vfim == NULL ){
-         fprintf(stderr,"*** cannot access data in dataset %s\a\n",argv[iarg]) ;
+         fprintf(stderr,"** Cannot access data in dataset %s\a\n",argv[iarg]) ;
          continue ;
       }
 
       if( ! AFNI_GOOD_FUNC_DTYPE( DSET_BRICK_TYPE(dset,ivfim) ) ){
-         fprintf(stderr,"*** Illegal datum type in dataset %s\a\n",argv[iarg]) ;
+         fprintf(stderr,"** Illegal datum type in dataset %s\a\n",argv[iarg]) ;
          continue ;
       }
 
@@ -233,121 +257,206 @@ int main( int argc , char * argv[] )
       nz    = dset->daxes->nzz ; dz = fabs(dset->daxes->zzdel) ;
       nxy   = nx * ny ; nxyz = nxy * nz ;
 
-	  if( CL_edopt.fake_dxyz ){ dxf = dyf = dzf = 1.0 ; }         /* 24 Jan 2001 */
-	  else                    { dxf = dx ; dyf = dy ; dzf = dz ; }
+      if( CL_edopt.fake_dxyz ){ dxf = dyf = dzf = 1.0 ; }         /* 24 Jan 2001 */
+      else                    { dxf = dx ; dyf = dy ; dzf = dz ; }
 
       ptmin = (int) (vmul / (dxf*dyf*dzf) + 0.99) ;
 
 #if 0
       if( rmm < dxf && rmm < dyf && rmm < dzf ){
          fprintf(stderr,
-            "*** file %s: cluster rmm %f smaller than voxels dx=%f dy=%f dz=%f\n",
+            "** File %s: cluster rmm %f smaller than voxels dx=%f dy=%f dz=%f\n",
             argv[iarg],rmm,dxf,dyf,dzf ) ;
          continue ;
       }
 #endif
 
       /*-- print report header --*/
-  if( !CL_quiet ){
+     if( !CL_quiet ){
 
-      if( CL_summarize != 1 ){
-         printf( "\n"
-          "Cluster report for file %s\n"
+         if( CL_summarize != 1 ){
+            printf( "\n"
+             "Cluster report for file %s\n"
 #if 0
-          "[3D Dataset Name: %s ]\n"
-          "[    Short Label: %s ]\n"
+             "[3D Dataset Name: %s ]\n"
+             "[    Short Label: %s ]\n"
 #endif
-          "[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
-          "[Single voxel volume = %.1f (microliters) ]\n"
-          "[Voxel datum type    = %s ]\n"
-          "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n",
-           argv[iarg] ,
+             "[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
+             "[Single voxel volume = %.1f (microliters) ]\n"
+             "[Voxel datum type    = %s ]\n"
+             "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n",
+              argv[iarg] ,
 #if 0
-           dset->self_name , dset->label1 ,
+              dset->self_name , dset->label1 ,
 #endif
-           rmm , vmul , dx*dy*dz ,
-           MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
-           dx,dy,dz );
+              rmm , vmul , dx*dy*dz ,
+              MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
+              dx,dy,dz );
 
-          if( CL_edopt.fake_dxyz )  /* 24 Jan 2001 */
-            printf("[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
-                   dxf,dyf,dzf) ;
+             if( CL_edopt.fake_dxyz )  /* 24 Jan 2001 */
+               printf("[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
+                      dxf,dyf,dzf) ;
 
-         if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-           printf ("Mean and SEM based on Signed voxel intensities: \n\n");
-         else
-           printf ("Mean and SEM based on Absolute Value "
-                   "of voxel intensities: \n\n");
+            if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+              printf ("Mean and SEM based on Signed voxel intensities: \n\n");
+            else
+              printf ("Mean and SEM based on Absolute Value "
+                      "of voxel intensities: \n\n");
 
          printf (
 "Volume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
 "------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
 
-           ORIENT_tinystr[ CL_cord.xxor ] ,
-           ORIENT_tinystr[ CL_cord.yyor ] ,
-           ORIENT_tinystr[ CL_cord.zzor ] ,
-           ORIENT_tinystr[ CL_cord.xxor ] , ORIENT_tinystr[ CL_cord.xxor ] ,
-           ORIENT_tinystr[ CL_cord.yyor ] , ORIENT_tinystr[ CL_cord.yyor ] ,
-           ORIENT_tinystr[ CL_cord.zzor ] , ORIENT_tinystr[ CL_cord.zzor ] ,
-           ORIENT_tinystr[ CL_cord.xxor ] ,
-           ORIENT_tinystr[ CL_cord.yyor ] ,
-           ORIENT_tinystr[ CL_cord.zzor ]
-          ) ;
+              ORIENT_tinystr[ CL_cord.xxor ] ,
+              ORIENT_tinystr[ CL_cord.yyor ] ,
+              ORIENT_tinystr[ CL_cord.zzor ] ,
+              ORIENT_tinystr[ CL_cord.xxor ] , ORIENT_tinystr[ CL_cord.xxor ] ,
+              ORIENT_tinystr[ CL_cord.yyor ] , ORIENT_tinystr[ CL_cord.yyor ] ,
+              ORIENT_tinystr[ CL_cord.zzor ] , ORIENT_tinystr[ CL_cord.zzor ] ,
+              ORIENT_tinystr[ CL_cord.xxor ] ,
+              ORIENT_tinystr[ CL_cord.yyor ] ,
+              ORIENT_tinystr[ CL_cord.zzor ]
+             ) ;
 
-       } else {
-         if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-           printf ("Mean and SEM based on Signed voxel intensities: \n");
-         else
-           printf ("Mean and SEM based on Absolute Value "
-                   "of voxel intensities: \n");
-         printf("Cluster summary for file %s\n",argv[iarg]);
-         printf("Volume  CM %s  CM %s  CM %s  Mean    SEM    \n",ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
+          } else {
+            if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+              printf ("Mean and SEM based on Signed voxel intensities: \n");
+            else
+              printf ("Mean and SEM based on Absolute Value "
+                      "of voxel intensities: \n");
+            printf("Cluster summary for file %s\n",argv[iarg]);
+            printf("Volume  CM %s  CM %s  CM %s  Mean    SEM    \n",ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
+          }
+      } /* end of report header */
 
+      /*-- actually find the clusters in the dataset */
 
-
-       }
-   }
       clar = MCW_find_clusters( nx,ny,nz , dxf,dyf,dzf ,
                                 DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm ) ;
+
+      /*-- don't need dataset data any more --*/
+
       PURGE_DSET( dset ) ;
 
-#ifdef CLDEBUG
-if( clar != NULL ){
-printf("3DCLUST: found %d clusters\n",clar->num_clu) ;
-for( iclu=0 ; iclu < clar->num_clu ; iclu++)
-  printf(" cluster %d has %d voxels\n",iclu,clar->clar[iclu]->num_pt) ;
-}
-#endif
-
       if( clar == NULL || clar->num_clu == 0 ){
-         printf("*** NO CLUSTERS FOUND ***\n") ;
+         printf("** NO CLUSTERS FOUND ***\n") ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
-         continue ;
+         continue ;                               /* next dataset */
       }
 
-    /** edit for volume (June 1995) **/
+      /** edit for volume (June 1995) **/
+
       INIT_CLARR(clbig) ;
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
          cl = clar->clar[iclu] ;
-         if( cl->num_pt >= ptmin ){ /* big enough */
-            ADDTO_CLARR(clbig,cl) ;    /* copy pointer */
-            clar->clar[iclu] = NULL ;  /* null out original */
+         if( cl != NULL && cl->num_pt >= ptmin ){ /* big enough */
+            ADDTO_CLARR(clbig,cl) ;               /* copy pointer */
+            clar->clar[iclu] = NULL ;             /* null out original */
          }
       }
       DESTROY_CLARR(clar) ;
       clar = clbig ;
       if( clar == NULL || clar->num_clu == 0 ){
-         printf("*** NO CLUSTERS FOUND ***\n") ;
+         printf("** NO CLUSTERS FOUND ***\n") ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;
       }
 
-    /** end of June 1995 addition **/
+      /** end of June 1995 addition **/
+
+      /*-- 29 Nov 2001: write out an edited dataset? --*/
+
+      if( iarg == nopt && CL_prefix != NULL ){
+        int qv ; byte *mmm ;
+
+        /* make a mask of voxels to keep */
+
+        mmm = (byte *) calloc(sizeof(byte),nxyz) ;
+        for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+          cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
+          for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
+            ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
+            mmm[ii+jj*nx+kk*nxy] = 1 ;
+          }
+        }
+
+        DSET_load( dset ) ;             /* reload data from disk */
+
+        EDIT_dset_items( dset ,         /* rename dataset internally */
+                           ADN_prefix , CL_prefix ,
+                         ADN_none ) ;
+
+        tross_Make_History( "3dclust" , argc , argv , dset ) ;
+
+        /* mask out each sub-brick */
+
+        for( qv=0 ; qv < DSET_NVALS(dset) ; qv++ ){
+
+           switch( DSET_BRICK_TYPE(dset,qv) ){
+
+             case MRI_short:{
+               short *bar = (short *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
+             }
+             break ;
+
+             case MRI_byte:{
+               byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
+             }
+             break ;
+
+             case MRI_int:{
+               int *bar = (int *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii] = 0 ;
+             }
+             break ;
+
+             case MRI_float:{
+               float *bar = (float *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+             }
+             break ;
+
+             case MRI_double:{
+               double *bar = (double *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
+             }
+             break ;
+
+             case MRI_complex:{
+               complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
+             }
+             break ;
+
+             case MRI_rgb:{
+               byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0 ;
+             }
+             break ;
+          } /* end of switch over sub-brick type */
+        } /* end of loop over sub-bricks */
+
+        /* write dataset out */
+
+        fprintf(stderr,"++ Writing dataset %s\n",DSET_HEADNAME(dset)) ;
+        DSET_write(dset) ; PURGE_DSET(dset) ; free(mmm) ;
+      }
+
+      /** sort clusters by size, to make a nice report **/
 
       if( clar->num_clu < 1000 ){
          SORT_CLARR(clar) ;
       } else if( CL_summarize != 1 ){
-         printf("*** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n") ;
+         printf("** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n") ;
       }
       ndet = 0 ;
 
@@ -415,7 +524,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
 	 glxxsum += xxsum;
 	 glyysum += yysum;
 	 glzzsum += zzsum;
-	 
+
          ndet++ ;
          xxsum /= mmsum ; yysum /= mmsum ; zzsum /= mmsum ;
 
@@ -454,7 +563,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
 
       DESTROY_CLARR(clar) ;
       if( ndet == 0 )
-         printf("*** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n") ;
+         printf("** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n") ;
 
 
       /* MSB 11/1/96  Calculate global SEM */      
@@ -529,6 +638,19 @@ void CL_read_opts( int argc , char * argv[] )
          continue ;
       }
 
+      /**** 29 Nov 2001: -prefix ****/
+
+      if( strcmp(argv[nopt],"-prefix") == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"need an argument after -prefix!\n") ; exit(1) ;
+         }
+         CL_prefix = argv[nopt] ;
+         if( !THD_filename_ok(CL_prefix) ){
+            fprintf(stderr,"-prefix string is illegal: %s\n",CL_prefix); exit(1);
+         }
+         nopt++ ; continue ;
+      }
+
       /**** Sep 16 1999: -1tindex and -1dindex ****/
 
       if( strncmp(argv[nopt],"-1dindex",5) == 0 ){
@@ -591,13 +713,13 @@ void CL_read_opts( int argc , char * argv[] )
 
       /**** unknown switch ****/
 
-      fprintf(stderr,"*** unrecognized option %s\a\n",argv[nopt]) ;
+      fprintf(stderr,"** Unrecognized option %s\a\n",argv[nopt]) ;
       exit(1) ;
 
    }  /* end of loop over options */
 
 #ifdef CLDEBUG
-printf("*** finished with options\n") ;
+printf("** Finished with options\n") ;
 #endif
 
    CL_nopt = nopt ;

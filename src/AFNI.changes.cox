@@ -3357,3 +3357,7 @@
  * Modified mri_read.c to also allow floatizing of Analyze .img files,
       and guessing at orientation via SPM.
 
+29 Nov 2001
+ * mri_write_analyze() function to write an MRI_IMAGE to Analyze files.
+ * 3DAFNItoANALYZE program to write a dataset to Analyze files.
+ * Added -prefix option to 3dclust.c.
