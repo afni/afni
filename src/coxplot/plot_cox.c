@@ -210,6 +210,20 @@ void plotrect_memplot( float x1 , float y1 , float x2 , float y2 ) /* 21 Mar 200
    return ;
 }
 
+void plotcirc_memplot( float x1 , float y1 , float rad ) /* 10 Mar 2002 */
+{
+   MEM_plotdata * mp ;
+
+   if( active_plot < 0 || active_plot >= num_plotar ||
+       num_plotar == 0 || plotar == NULL            ||
+       plotar[active_plot] == NULL                    ) return ;
+
+   mp = plotar[active_plot] ;
+
+   ADDTO_MEMPLOT( mp , x1,y1,rad,0.0 , active_color , -THCODE_CIRC ) ;
+   return ;
+}
+
 /*----- This routine is called from zzphph.f to draw 1 actual line -----*/
 
 void zzmpli_( float * x1 , float * y1 , float * x2 , float * y2 )

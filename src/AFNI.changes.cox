@@ -3514,3 +3514,10 @@
  * Modified afni_func.c, afni.c, and afni.h to allow the Define Function
      value label to be recomputed/redisplayed even if only 1 image
      window is open.
+
+10 Mar 2002
+ * Modified coxplot/plot_cox.c, plot_x11.c, plot_ps2.c to allow circles.
+ * Modified afni.c, afni_pplug_env.c to use environment variables to set
+     SUMA overlay box size and color.
+ * Modified imseq.c so that 'q' keypress causes a window close (to make
+     this window like the various graph windows).

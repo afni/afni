@@ -1615,12 +1615,15 @@ STATUS("get status") ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
       char str[32] , *eee ;
+      float rx=RX ;
 
-      LOAD_IVEC3(iv,0,0,n+1) ;
+      /* find DICOM coordinates of next slice and previous slice */
+
+      LOAD_IVEC3(iv,0,0,n+1) ;                     /* next */
       ivp = THD_fdind_to_3dind( br , iv ) ;
       fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
       fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
-      LOAD_IVEC3(iv,0,0,n-1) ;
+      LOAD_IVEC3(iv,0,0,n-1) ;                     /* previous */
       ivm = THD_fdind_to_3dind( br , iv ) ;
       fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
       fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
@@ -1628,28 +1631,38 @@ STATUS("get status") ;
       create_memplot_surely( "SUMA_plot" , 1.0 ) ;
       mp = get_active_memplot() ;
 
-      eee = getenv("SUMA_OVERLAY_COLOR") ;
+      eee = getenv("AFNI_SUMA_COLOR") ;    /* define overlay color */
       if( eee == NULL )
         eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
       if( eee != NULL )
          DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
       set_color_memplot(rr,gg,bb) ;
 
+      eee = getenv("AFNI_SUMA_BOXSIZE") ;
+      if( eee != NULL ){
+         float val=strtod(eee,NULL) ;
+         if( val > 0.0 ) rx = val ;
+      }
+
+      /* threshold for determining which axis this slice is along */
+
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
 
-      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* search x */
-         float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;
-         if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }
+      /* find nodes inside this slice */
+
+      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){               /* search x */
+         float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;        /* range of  */
+         if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }         /* x in slice */
          xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
          for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].x > xb && nod[ii].x < xt ){
-               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
-               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
-               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
-               fv = THD_3dfind_to_fdfind( br , fv ) ;
-               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
-                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+            if( nod[ii].x > xb && nod[ii].x < xt ){           /* inside?  */
+               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ; /* convert  */
+               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
+               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;     /* to slice */
+               fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
+               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
+                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
       } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* search y */
@@ -1662,8 +1675,8 @@ STATUS("get status") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
-               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
-                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
+                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
       } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* search z */
@@ -1676,8 +1689,8 @@ STATUS("get status") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
-               plotrect_memplot( s1*(fv.xyz[0]-RX), 1.0-s2*(fv.xyz[1]-RX),
-                                 s1*(fv.xyz[0]+RX), 1.0-s2*(fv.xyz[1]+RX)  ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
+                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
       }

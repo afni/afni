@@ -3533,17 +3533,27 @@ DPR(" .. really a hidden resize") ;
 
 DPR(" .. KeyPress") ;
 
-         if( seq->record_mode ){ XBell(seq->dc->display,100); EXRETURN; }
-
-         /* while Button2 is active, nothing else is allowed */
-
-         if( seq->button2_active ){ XBell(seq->dc->display,100); EXRETURN; }
+         /* get the string corresponding to the key pressed */
 
          buf[0] = '\0' ;
          XLookupString( event , buf , 32 , &ks , NULL ) ;
+         if( buf[0] == '\0' ) break ;                     /* nada */
 
-         if( w == seq->wimage && buf[0] != '\0' &&
-             seq->status->send_CB != NULL         ){
+         /* 10 Mar 2002: quit if 'q' is pressed */
+
+         if( buf[0] == 'q' ){
+            ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; break ;
+         }
+
+         /* in record or Button2 mode, this is illegal */
+
+         if( seq->record_mode || seq->button2_active ){
+           XBell(seq->dc->display,100); EXRETURN;
+         }
+
+         /* otherwise, notify the master, if we have one */
+
+         if( w == seq->wimage && seq->status->send_CB != NULL ){
 
             cbs.reason = isqCR_keypress ;
             cbs.event  = ev ;
@@ -3553,8 +3563,7 @@ DPR(" .. KeyPress") ;
             seq->status->send_CB( seq , seq->getaux , &cbs ) ;
          }
       }
-      ISQ_but_done_reset( seq ) ;
-      break ;
+      break ;  /* end of KeyPress */
 
       /*----- take button press -----*/
 

@@ -245,10 +245,15 @@ PLUGIN_interface * ENV_init(void)
                     "Size of setback for image overlay labels" ,
                     0 , 40 , 3 , 3 , NULL ) ;
 
-   if( SUMA_ENABLED )
+   if( SUMA_ENABLED ){
      ENV_add_string( "AFNI_SUMA_COLOR" ,
                      "Name of color for surface overlays" ,   /* 21 Sep 2001 */
                      0,NULL , NULL ) ;
+
+     ENV_add_numeric( "AFNI_SUMA_BOXSIZE" ,
+                      "Box size for surface node overlays" ,  /* 10 Mar 2002 */
+                      1 , 10 , 1 , 2 , NULL ) ;
+   }
 
 #ifndef NO_FRIVOLITIES
    ENV_add_string( "AFNI_IMAGE_PGMFILE" ,

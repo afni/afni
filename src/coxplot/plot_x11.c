@@ -213,6 +213,23 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                skip = 1 ;
             }
             break ;
+
+            case THCODE_CIRC:{        /* circle */
+               int xcor,ycor , xcen,ycen , xrad,yrad ;
+               unsigned int ww, hh ;
+               xcen = (int)(xoff + xscal * MEMPLOT_X1(mp,ii)         );
+               ycen = (int)(yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) );
+               xrad = (int)(       xscal * MEMPLOT_X2(mp,ii)         );
+               yrad = (int)(       yscal * MEMPLOT_X2(mp,ii)         );
+               xcor = xcen - xrad ; ww = 2*xrad ;
+               ycor = ycen - yrad ; hh = 2*yrad ;
+               if( ww || hh )
+                 XDrawArc( old_dpy,old_w,old_GC , xcor,ycor,ww,hh , 0,360*64 ) ;
+               else
+                 XDrawPoint( old_dpy,old_w,old_GC , xcor,ycor ) ;
+               skip = 1 ;
+            }
+            break ;
          }
 
       } else if( new_thick != old_thick ){ /* normal case: change line thickness */
