@@ -29,11 +29,20 @@ file_tool: file_tool.o file_tool.h
 	$(RM) $@
 	$(CC) -o file_tool file_tool.o -lm
 
-Imon: Imon.o Imon.h
+Imon: Imon.o Imon.h l_mcw_glob.o
 	$(RM) $@
-	$(CC) -o Imon Imon.o $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
+	$(CC) -o Imon Imon.o l_mcw_glob.o $(LFLAGS) -L.. -lm
+
+# Imon needs mcw_glob, but without MCW_MALLOC
+Imon.o:
+	$(RM) $@
+	$(CC) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
+
+l_mcw_glob.o:
+	$(RM) $@
+	$(CC) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
 
 .c.o:
 	$(RM) $@
-	$(CC) -c $*.c -I. -I.. $(IFLAGS)
+	$(CC) -c $*.c -I.. $(IFLAGS)
 

@@ -1,8 +1,13 @@
 
-#define IFM_VERSION "version 1.2 (November, 2002)"
+#define IFM_VERSION "version 1.3 (December, 2002)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 1.3  December 13, 2002
+ *   - compile as standalone (include mcw_glob, but not mcw_malloc)
+ *   - added l_THD_filesize (local copy of THD_filesize)
+ *   - removed dependance on mrilib.h and r_idisp.h
  *
  * 1.2  November 27, 2002
  *   - after N idle mid-run TRs, print warning message
@@ -57,14 +62,18 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <errno.h>
+#include <math.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
-#include "mrilib.h"
-#include "machdep.h"
 #include "Imon.h"
-#include "r_idisp.h"
+
+#include "mcw_glob.h"
 
 #define MAIN
 
@@ -903,7 +912,7 @@ int dir_expansion_form( char * sin, char ** sexp )
 
     cp = out + len - 1;				/* point to end */
 
-    /* we'd better find 00n - ignore the rest??? */
+    /* we'd better find 0[01]n - ignore the rest??? */
     while ( (cp > (out+2)) && !isdigit( *cp ) )
 	cp--;
 
@@ -970,7 +979,7 @@ static int read_ge_header( char * pathname, ge_header_info * hi, ge_extras * E )
    if( pathname    == NULL ||
        pathname[0] == '\0'   ) return -1; /* bad */
 
-   length = THD_filesize( pathname ) ;
+   length = l_THD_filesize( pathname ) ;
    if( length < 1024 ) return -1;         /* bad */
 
    imfile = fopen( pathname , "r" ) ;
@@ -1418,7 +1427,6 @@ static void hf_signal( int signum )
 static int set_volume_stats( vol_t * v )
 {
     run_t * rp;		  /* for a little speed, this will be called often */
-    int     seq_num, run;
 
     if ( v == NULL || v->seq_num < 0 || v->run < 0 )
     {
@@ -1640,3 +1648,18 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 
     return 0;
 }
+
+/*-------------------------------------------------------*/
+/*! Return the file length (-1 if file not found).       */
+/*  (local copy from thd_filestuff.c                     */
+
+unsigned long l_THD_filesize( char * pathname )
+{
+    static struct stat buf ; int ii ;
+
+    if( pathname == NULL ) return -1 ;
+	ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
+
+    return buf.st_size ;
+}
+

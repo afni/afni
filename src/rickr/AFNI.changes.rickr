@@ -86,3 +86,10 @@
   * modified rickr/Makefile to reflect the name change to Imon
   * modified Makefile.INCLUDE to reflect the name change to Imon
 
+13 December 2002:
+  * Imon no longer depends on Motif
+      - mcw_glob.[ch] are used locally as l_mcw_glob.[ch]
+      - Imon.c now depends only on l_mcw_glob.[ch]
+      - rickr/Makefile now compiles Imon.c and l_mcw_glob.c
+        with -DDONT_USE_MCW_MALLOC
+
