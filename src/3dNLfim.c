@@ -72,6 +72,9 @@
    Mod:      Added call to AFNI_logger.
    Date:     15 August 2001
 
+   Mod:      Changes to allow -jobs option.
+   Date:     07 May 2003 - RWCox.
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -79,7 +82,7 @@
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "19 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "07 May 2003"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -88,6 +91,38 @@
 #include <stdlib.h>
 
 #include "mrilib.h"
+
+/*---------------------------------------------------------------------------*/
+/*--------- Global variables for multiple process execution - RWCox. --------*/
+/*--------- All names start with "proc_", so search for that string. --------*/
+
+#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK)
+
+# include "thd_iochan.h"                /* prototypes for shm stuff */
+
+# define PROC_MAX   32                  /* max num processes */
+
+  static int proc_numjob        = 1   ; /* num processes */
+  static pid_t proc_pid[PROC_MAX]     ; /* IDs of processes */
+  static int proc_shmid         = 0   ; /* shared memory ID */
+  static char *proc_shmptr      = NULL; /* pointer to shared memory */
+  static int proc_shmsize       = 0   ; /* total size of shared memory */
+
+  static int proc_shm_arnum     = 0   ; /* num arrays in shared memory */
+  static float ***proc_shm_ar   = NULL; /* *proc_shm_ar[i] = ptr to array #i */
+  static int *proc_shm_arsiz    = NULL; /* proc_shm_arsiz[i] = floats in #i */
+
+  static int proc_vox_bot[PROC_MAX]   ; /* 1st voxel to use in each process */
+  static int proc_vox_top[PROC_MAX]   ; /* last voxel (+1) in each process */
+
+  static int proc_ind                 ; /* index of THIS job */
+
+#else   /* can't use multiple processes */
+
+# define proc_numjob 1   /* flag that only 1 process is in use */
+# define proc_ind    0   /* index of THIS job */
+
+#endif
 
 #include "matrix.h"
 #include "simplex.h"
@@ -234,6 +269,23 @@ void display_help_menu()
      "[-snfit fname]     fname = prefix for output 3d+time signal+noise fit \n"
      "                                                                      \n"
     );
+
+
+#ifdef PROC_MAX
+    printf( "\n"
+            " -jobs J   Run the program with 'J' jobs (sub-processes).\n"
+            "             On a multi-CPU machine, this can speed the\n"
+            "             program up considerably.  On a single CPU\n"
+            "             machine, using this option is silly.\n"
+            "             J should be a number from 1 up to the\n"
+            "             number of CPU sharing memory on the system.\n"
+            "             J=1 is normal (single process) operation.\n"
+            "             The maximum allowed value of J is %d.\n"
+            "         * For more information on parallelizing, see\n"
+            "             http://afni.nimh.nih.gov/afni/parallize.html\n"
+            "         * Use -mask to get more speed; cf. 3dAutomask.\n"
+          , PROC_MAX ) ;
+#endif
   
   exit(0);
 }
@@ -1157,6 +1209,26 @@ void get_options
 	  continue;
 	}      
 
+
+      /*-----   -jobs J   -----*/
+      if( strcmp(argv[nopt],"-jobs") == 0 ){   /* RWCox */
+        nopt++ ;
+        if (nopt >= argc)  NLfit_error ("need J parameter after -jobs ");
+#ifdef PROC_MAX
+        proc_numjob = strtol(argv[nopt],NULL,10) ;
+        if( proc_numjob < 1 ){
+          fprintf(stderr,"** setting number of processes to 1!\n") ;
+          proc_numjob = 1 ;
+        } else if( proc_numjob > PROC_MAX ){
+          fprintf(stderr,"** setting number of processes to %d!\n",PROC_MAX);
+          proc_numjob = PROC_MAX ;
+        }
+#else
+        fprintf(stderr,"** -jobs not supported in this version\n") ;
+#endif
+        nopt++; continue;
+      }
+
       
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
@@ -1362,6 +1434,188 @@ void check_for_valid_inputs
 
 }
 
+/*---------------------------------------------------------------------------*/
+/*
+  Allocate volume memory and fill with zeros.
+*/
+
+void zero_fill_volume (float ** fvol, int nxyz)
+{
+  int ixyz;
+
+  if( proc_numjob == 1 ){ /* 1 process ==> allocate locally */
+
+    *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol);
+    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+      (*fvol)[ixyz]  = 0.0;
+
+  }
+#ifdef PROC_MAX
+   else {             /* multiple processes ==> prepare for shared memory */
+                      /*                        by remembering what to do */
+
+    proc_shm_arnum++ ;
+    proc_shm_arsiz = (int *)  realloc( proc_shm_arsiz ,
+                                       sizeof(int)     *proc_shm_arnum ) ;
+    proc_shm_ar = (float ***) realloc( proc_shm_ar ,
+                                       sizeof(float **)*proc_shm_arnum ) ;
+    proc_shm_arsiz[proc_shm_arnum-1] = nxyz ;
+    proc_shm_ar[proc_shm_arnum-1]    = fvol ;
+
+    /* actual allocation and pointer assignment (to *fvol)
+       will take place in function proc_finalize_shm_volumes() */
+  }
+#endif
+}
+
+
+/*---------------------------------------------------------------------------*/
+
+#ifdef PROC_MAX
+
+/*** signal handler for fatal errors -- make sure shared memory is deleted ***/
+
+#include <signal.h>
+
+void proc_sigfunc(int sig)
+{
+   char * sname ; int ii ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1); else fff=1 ;
+   switch(sig){
+     default:      sname = "unknown" ; break ;
+     case SIGHUP:  sname = "SIGHUP"  ; break ;
+     case SIGTERM: sname = "SIGTERM" ; break ;
+     case SIGILL:  sname = "SIGILL"  ; break ;
+     case SIGKILL: sname = "SIGKILL" ; break ;
+     case SIGPIPE: sname = "SIGPIPE" ; break ;
+     case SIGSEGV: sname = "SIGSEGV" ; break ;
+     case SIGBUS:  sname = "SIGBUS"  ; break ;
+     case SIGINT:  sname = "SIGINT"  ; break ;
+     case SIGFPE:  sname = "SIGFPE"  ; break ;
+   }
+   if( proc_shmid > 0 ){
+     shmctl( proc_shmid , IPC_RMID , NULL ) ; proc_shmid = 0 ;
+   }
+   fprintf(stderr,"Fatal Signal %d (%s) received in job #%d\n",
+           sig,sname,proc_ind) ;
+   exit(1) ;
+}
+
+void proc_atexit( void )  /*** similarly - atexit handler ***/
+{
+  if( proc_shmid > 0 )
+    shmctl( proc_shmid , IPC_RMID , NULL ) ;
+}
+
+/*---------------------------------------------------------------*/
+/*** This function is called to allocate all output
+     volumes at once in shared memory, and set their pointers ***/
+
+void proc_finalize_shm_volumes(void)
+{
+   char kstr[32] ; int ii ;
+
+   if( proc_shm_arnum == 0 ) return ;   /* should never happen */
+
+   proc_shmsize = 0 ;                       /* add up sizes of */
+   for( ii=0 ; ii < proc_shm_arnum ; ii++ ) /* all arrays for */
+     proc_shmsize += proc_shm_arsiz[ii] ;   /* shared memory */
+
+   proc_shmsize *= sizeof(float) ;          /* convert to byte count */
+
+   /* create shared memory segment */
+
+   UNIQ_idcode_fill( kstr ) ;               /* unique string "key" */
+   proc_shmid = shm_create( kstr , proc_shmsize ) ; /* thd_iochan.c */
+   if( proc_shmid < 0 ){
+     fprintf(stderr,"\n** Can't create shared memory of size %d!\n"
+                      "** Try re-running without -jobs option!\n" ,
+             proc_shmsize ) ;
+
+     /** if failed, print out some advice on how to tune SHMMAX **/
+
+     { char *cmd=NULL ;
+#if defined(LINUX)
+       cmd = "cat /proc/sys/kernel/shmmax" ;
+#elif defined(SOLARIS)
+       cmd = "/usr/sbin/sysdef | grep SHMMAX" ;
+#elif defined(DARWIN)
+       cmd = "sysctl -n kern.sysv.shmmax" ;
+#endif
+       if( cmd != NULL ){
+        FILE *fp = popen( cmd , "r" ) ;
+        if( fp != NULL ){
+         unsigned int smax=0 ;
+         fscanf(fp,"%u",&smax) ; pclose(fp) ;
+         if( smax > 0 )
+           fprintf(stderr ,
+                   "\n"
+                   "** POSSIBLY USEFUL ADVICE:\n"
+                   "** Current max shared memory size = %u bytes.\n"
+                   "** For information on how to change this, see\n"
+                   "**   http://afni.nimh.nih.gov/afni/parallize.htm\n"
+                   "** and also contact your system administrator.\n"
+                   , smax ) ;
+        }
+       }
+     }
+     exit(1) ;
+   }
+
+   /* set a signal handler to catch most fatal errors and
+      delete the shared memory segment if program crashes */
+
+   signal(SIGPIPE,proc_sigfunc) ; signal(SIGSEGV,proc_sigfunc) ;
+   signal(SIGINT ,proc_sigfunc) ; signal(SIGFPE ,proc_sigfunc) ;
+   signal(SIGBUS ,proc_sigfunc) ; signal(SIGHUP ,proc_sigfunc) ;
+   signal(SIGTERM,proc_sigfunc) ; signal(SIGILL ,proc_sigfunc) ;
+   signal(SIGKILL,proc_sigfunc) ; signal(SIGPIPE,proc_sigfunc) ;
+   atexit(proc_atexit) ;   /* or when the program exits */
+
+   fprintf(stderr , "++ Shared memory: %d bytes at id=%d\n" ,
+           proc_shmsize , proc_shmid ) ;
+
+   /* get pointer to shared memory segment we just created */
+
+   proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
+   if( proc_shmptr == NULL ){
+     fprintf(stderr,"\n** Can't attach to shared memory!?\n"
+                      "** This is bizarre.\n" ) ;
+     shmctl( proc_shmid , IPC_RMID , NULL ) ;
+     exit(1) ;
+   }
+
+   /* clear all shared memory */
+
+   memset( proc_shmptr , 0 , proc_shmsize ) ;
+
+   /* fix the local pointers to arrays in shared memory */
+
+   *proc_shm_ar[0] = (float *) proc_shmptr ;
+   for( ii=1 ; ii < proc_shm_arnum ; ii++ )
+     *proc_shm_ar[ii] = *proc_shm_ar[ii-1] + proc_shm_arsiz[ii] ;
+}
+
+/*-------------------------------------------------------------*/
+/*** This function replaces free();
+     it won't try to free things stored in the shared memory ***/
+
+void proc_free( void *ptr )
+{
+   int ii ;
+
+   if( ptr == NULL ) return ;
+   if( proc_shmid == 0 ){ free(ptr); return; }  /* no shm */
+   for( ii=0 ; ii < proc_shm_arnum ; ii++ )
+     if( ((float *)ptr) == *proc_shm_ar[ii] ) return;
+   free(ptr); return;
+}
+
+#undef  free            /* replace use of library free() */
+#define free proc_free  /* with proc_free() function     */
+
+#endif /* PROC_MAX */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -1535,59 +1789,29 @@ void initialize_program
 
 
   /*----- allocate memory space for volume data -----*/
-  *freg_vol = (float *) malloc (sizeof(float) * (*nxyz));
-  MTEST (*freg_vol);
-  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*freg_vol)[ixyz] = 0.0;
+  zero_fill_volume( freg_vol , *nxyz ) ;
 
   if ((*freg_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *rmsreg_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*rmsreg_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*rmsreg_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( rmsreg_vol , *nxyz ) ;
 
   if ((*frsqr_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *rsqr_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*rsqr_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*rsqr_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( rsqr_vol , *nxyz ) ;
 
   if ((*fsmax_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *smax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*smax_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*smax_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( smax_vol , *nxyz ) ;
 
   if ((*ftmax_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *tmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*tmax_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*tmax_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( tmax_vol , *nxyz ) ;
 
   
   if ((*fpmax_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *pmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*pmax_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*pmax_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( pmax_vol , *nxyz ) ;
 
   if ((*farea_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *area_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*area_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*area_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( area_vol , *nxyz ) ;
 
   if ((*fparea_filename != NULL) || (option_data->bucket_filename != NULL))
-    {
-      *parea_vol = (float *) malloc (sizeof(float) * (*nxyz));
-      MTEST (*parea_vol);
-      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*parea_vol)[ixyz] = 0.0;
-    }
+      zero_fill_volume( parea_vol , *nxyz ) ;
 
   
   *ncoef_vol = (float **) malloc (sizeof(float *) * (*r));
@@ -1599,23 +1823,13 @@ void initialize_program
     {
       if (((*fncoef_filename)[ip] != NULL) || ((*tncoef_filename)[ip] != NULL)
 	  || (option_data->bucket_filename != NULL))
-	{
-	  (*ncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
-	  MTEST ((*ncoef_vol)[ip]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*ncoef_vol)[ip][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*ncoef_vol)[ip]) , *nxyz ) ;
       else
 	(*ncoef_vol)[ip] = NULL;
 
       if (((*tncoef_filename)[ip] != NULL) 
 	  || (option_data->bucket_filename != NULL))
-	{
-	  (*tncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
-	  MTEST ((*tncoef_vol)[ip]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*tncoef_vol)[ip][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*tncoef_vol)[ip]) , *nxyz ) ;
       else
 	(*tncoef_vol)[ip] = NULL;
     }
@@ -1630,23 +1844,13 @@ void initialize_program
     {
       if (((*fscoef_filename)[ip] != NULL) || ((*tscoef_filename)[ip] != NULL)
 	  || (option_data->bucket_filename != NULL))
-	{
-	  (*scoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
-	  MTEST ((*scoef_vol)[ip]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*scoef_vol)[ip][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*scoef_vol)[ip]) , *nxyz ) ;
       else
 	(*scoef_vol)[ip] = NULL;
 
       if (((*tscoef_filename)[ip] != NULL)
 	  || (option_data->bucket_filename != NULL))
-	{
-	  (*tscoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
-	  MTEST ((*tscoef_vol)[ip]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*tscoef_vol)[ip][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*tscoef_vol)[ip]) , *nxyz ) ;
       else
 	(*tscoef_vol)[ip] = NULL;
     }
@@ -1659,12 +1863,7 @@ void initialize_program
       MTEST(*sfit_vol);
  
       for (it = 0;  it < *ts_length;  it++)
-	{
-	  (*sfit_vol)[it] = (float *) malloc (sizeof(float) * (*nxyz));
-	  MTEST ((*sfit_vol)[it]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*sfit_vol)[it][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*sfit_vol)[it]) , *nxyz ) ;
     }
 
   /*----- Allocate memory space for 3d+time fitted signal+noise model -----*/
@@ -1674,13 +1873,12 @@ void initialize_program
       MTEST(*snfit_vol);
  
       for (it = 0;  it < *ts_length;  it++)
-	{
-	  (*snfit_vol)[it] = (float *) malloc (sizeof(float) * (*nxyz));
-	  MTEST ((*snfit_vol)[it]);
-	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
-	    (*snfit_vol)[it][ixyz] = 0.0;
-	}
+          zero_fill_volume( &((*snfit_vol)[it]) , *nxyz ) ;
     }
+
+#ifdef PROC_MAX
+  if( proc_numjob > 1 ) proc_finalize_shm_volumes() ;  /* RWCox */
+#endif
 
 }
 
@@ -2846,6 +3044,8 @@ int main
   char * label;            /* report results for one voxel */
   int novar;               /* flag for insufficient variation in the data */
 
+  int ixyz_bot , ixyz_top ;
+
   
   /*----- Identify software -----*/
   printf ("\n\n");
@@ -2884,9 +3084,99 @@ int main
 		      &ncoef_vol, &scoef_vol, &tncoef_vol, &tscoef_vol,
 		      &sfit_vol, &snfit_vol, &option_data);
 
+#if 0
+#ifdef SAVE_RAN
+   RAN_setup( nmodel , smodel , r , p , nabs ,
+              min_nconstr, max_nconstr,
+              min_sconstr, max_sconstr,
+              ts_length, x_array, nrand ) ;
+#endif
+#endif
+
+   ixyz_bot = 0 ; ixyz_top = nxyz ;  /* RWCox */
+
+#ifdef PROC_MAX
+   if( proc_numjob > 1 ){    /*---- set up multiple processes ----*/
+     int vv , nvox=nxyz , nper , pp , nv ;
+     pid_t newpid ;
+
+     /* count number of voxels to compute with into nvox */
+
+     if( mask_vol != NULL ){
+       for( vv=nvox=0 ; vv < nxyz ; vv++ )
+         if( mask_vol[vv] != 0 ) nvox++ ;
+     }
+
+     if( nvox < proc_numjob ){  /* too few voxels for multiple jobs? */
+
+       proc_numjob = 1 ;
+
+     } else {                   /* prepare jobs */
+
+       /* split voxels between jobs evenly */
+
+       nper = nvox / proc_numjob ;  /* # voxels per job */
+       if( mask_vol == NULL ){
+         proc_vox_bot[0] = 0 ;
+         for( pp=0 ; pp < proc_numjob ; pp++ ){
+           proc_vox_top[pp] = proc_vox_bot[pp] + nper ;
+           if( pp < proc_numjob-1 ) proc_vox_bot[pp+1] = proc_vox_top[pp] ;
+         }
+         proc_vox_top[proc_numjob-1] = nxyz ;
+       } else {
+         proc_vox_bot[0] = 0 ;
+         for( pp=0 ; pp < proc_numjob ; pp++ ){
+           for( nv=0,vv=proc_vox_bot[pp] ;         /* count ahead until */
+                nv < nper && vv < nxyz  ; vv++ ){  /* find nper voxels */
+             if( mask_vol[vv] != 0 ) nv++ ;        /* inside the mask */
+           }
+           proc_vox_top[pp] = vv ;
+           if( pp < proc_numjob-1 ) proc_vox_bot[pp+1] = proc_vox_top[pp] ;
+         }
+         proc_vox_top[proc_numjob-1] = nxyz ;
+       }
+
+       /* make sure dataset is in memory before forks */
+
+       DSET_load(dset_time) ;  /* so dataset will be common */
+
+       /* start processes */
+
+       fprintf(stderr,"++ Voxels in dataset: %d\n",nxyz) ;
+       if( nvox < nxyz )
+       fprintf(stderr,"++ Voxels in mask:    %d\n",nvox) ;
+       fprintf(stderr,"++ Voxels per job:    %d\n",nper) ;
+
+       for( pp=1 ; pp < proc_numjob ; pp++ ){
+         ixyz_bot = proc_vox_bot[pp] ;   /* these 3 variables   */
+         ixyz_top = proc_vox_top[pp] ;   /* are for the process */
+         proc_ind = pp ;                 /* we're about to fork */
+         newpid   = fork() ;
+         if( newpid == -1 ){
+           fprintf(stderr,"** Can't fork job #%d! Error exit!\n",pp);
+           exit(1) ;
+         }
+         if( newpid == 0 ) break ;   /* I'm the child */
+         proc_pid[pp] = newpid ;     /* I'm the parent */
+         iochan_sleep(10) ;
+       }
+       if( pp == proc_numjob ){       /* only in the parent */
+         ixyz_bot = proc_vox_bot[0] ; /* set the 3 control */
+         ixyz_top = proc_vox_top[0] ; /* variables needed */
+         proc_ind = 0 ;               /* below           */
+       }
+       fprintf(stderr,"++ Job #%d: processing voxels %d to %d; elapsed time=%.3f\n",
+               proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
+     }
+   }
+#endif /* PROC_MAX */
+
+   if( proc_numjob == 1 )
+     fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",COX_clock_time()) ;
+
 
   /*----- loop over voxels in the data set -----*/
-  for (iv = 0;  iv < nxyz;  iv++)
+  for (iv = ixyz_bot;  iv < ixyz_top;  iv++)
     {
       /*----- check for mask -----*/
       if (mask_vol != NULL)
@@ -2919,7 +3209,7 @@ int main
 
 
       /*----- report results for this voxel -----*/
-      if (freg >= fdisp)
+      if (freg >= fdisp && proc_ind == 0 )
 	{
 	  report_results (nname, sname, r, p, npname, spname, ts_length,
 			  par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
@@ -2938,6 +3228,31 @@ int main
 		    tmax_vol, pmax_vol, area_vol, parea_vol,ncoef_vol, 
 		    scoef_vol, tncoef_vol, tscoef_vol, sfit_vol, snfit_vol);
     }
+
+
+    /*-- if this is a child process, we're done.
+         if this is the parent process, wait for the children --*/
+
+#ifdef PROC_MAX
+    if( proc_numjob > 1 ){
+     if( proc_ind > 0 ){                          /* death of child */
+       fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",proc_ind,COX_clock_time()) ;
+       _exit(0) ;
+
+     } else {                      /* parent waits for children */
+       int pp ;
+       fprintf(stderr,"++ Job #0 waiting for children to finish; elapsed time=%.3f\n",COX_clock_time()) ;
+       for( pp=1 ; pp < proc_numjob ; pp++ )
+         waitpid( proc_pid[pp] , NULL , 0 ) ;
+       fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",COX_clock_time()) ;
+     }
+
+     /* when get to here, only parent process is left alive,
+        and all the results are in the shared memory segment arrays */
+   }
+#endif
+   if( proc_numjob == 1 )
+     fprintf(stderr,"++ Calculations finished; elapsed time=%.3f\n",COX_clock_time()) ;
 
 
   /*----- delete input dataset -----*/ 
