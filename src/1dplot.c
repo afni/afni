@@ -52,6 +52,7 @@ int main( int argc , char * argv[] )
    XtAppContext app ;
    Widget shell ;
    int use_stdin=0 ; /* 01 Aug 2001 */
+   int out_ps   =0 ; /* 29 Nov 2002 */
 
    /*-- help? --*/
 
@@ -76,6 +77,12 @@ int main( int argc , char * argv[] )
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it.\n"
+            "\n"
+            " -ps        = Don't draw plot in a window; instead, write it\n"
+            "              to stdout in PostScript format.\n"
+            "              N.B.: If you view this result in 'gv', you should\n"
+            "                    turn 'anti-alias' off, and switch to\n"
+            "                    landscape mode.\n"
             "\n"
             " -ynames aa bb ... = Use the strings 'aa', 'bb', etc., as\n"
             "                     labels to the right of the graphs,\n"
@@ -103,12 +110,19 @@ int main( int argc , char * argv[] )
 
    mainENTRY("1dplot main"); machdep();
 
+   /* 29 Nov 2002: scan for -ps */
+
+   for( ii=1 ; ii < argc ; ii++ )
+     if( strcmp(argv[ii],"-ps") == 0 ){ out_ps = 1; break; }
+
    /* open X11 */
 
-   shell = XtVaAppInitialize(
-              &app , "AFNI" , NULL , 0 , &argc , argv , NULL , NULL ) ;
-   if( shell == NULL ){
-      fprintf(stderr,"** Cannot initialize X11!\n") ; exit(1) ;
+   if( !out_ps ){
+     shell = XtVaAppInitialize(
+                &app , "AFNI" , NULL , 0 , &argc , argv , NULL , NULL ) ;
+     if( shell == NULL ){
+        fprintf(stderr,"** Cannot initialize X11!\n") ; exit(1) ;
+     }
    }
 
    cpt = my_getenv("TMPDIR") ;  /* just for fun */
@@ -117,6 +131,10 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-ps") == 0 ){   /* 29 Nov 2002: already handled above */
+        iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-install") == 0 ){
         install++ ; iarg++ ; continue ;
@@ -192,9 +210,10 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** No tsfile on command line!\n") ; exit(1) ;
    }
 
-   dc = MCW_new_DC( shell , 16 ,
-                    DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
-                    1.0 , install ) ;
+   if( !out_ps )
+     dc = MCW_new_DC( shell , 16 ,
+                      DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
+                      1.0 , install ) ;
 
    if( nyar > 0 ) yname = ynar ;
 
@@ -309,9 +328,22 @@ int main( int argc , char * argv[] )
 
    /* start X11 */
 
-   (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
+   if( !out_ps ){
+     (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
+     XtAppMainLoop(app) ;
+   }
 
-   XtAppMainLoop(app) ;
+   /* 29 Nov 2002: if here, output PostScript to stdout */
+
+   { MEM_plotdata *mp ;
+     int ymask = (sep) ? TSP_SEPARATE_YBOX : 0 ;
+
+     mp = plot_ts_mem( nx,xar , nts,ymask,yar ,
+                       xlabel , ylabel , title , yname ) ;
+
+     memplot_to_postscript( "-" , mp ) ;
+   }
+
    exit(0) ;
 }
 
@@ -326,7 +358,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    /* make graph */
 
    ng = (sep) ? (-nts) : (nts) ;
-   
+
    plot_ts_lab( dc->display , nx , xar , ng , yar ,
                 xlabel , ylabel , title , yname , killfunc ) ;
 
