@@ -130,7 +130,7 @@ GetElement:
                   (nel->vec_axis_unit)   ? nel->vec_axis_unit[nn]   : "NULL" ,
                   (nel->vec_axis_label)  ? nel->vec_axis_label[nn]  : "NULL"  ) ;
        }
-   } else {
+   } else if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
       fprintf(stderr,"Group element:\n"
                      "  part_num = %d\n"
@@ -139,6 +139,14 @@ GetElement:
        for( nn=0 ; nn < ngr->attr_num ; nn++ )
           fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
                   nn , ngr->attr_lhs[nn] , ngr->attr_rhs[nn] ) ;
+
+   } else if( tt == NI_PROCINS_TYPE ){
+      NI_procins *npi = (NI_procins *)nini ;
+      fprintf(stderr,"Processing instruction:\n"
+                     "  target = %s\n" , npi->name ) ;
+      for( nn=0 ; nn < npi->attr_num ; nn++ )
+         fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
+                 nn , npi->attr_lhs[nn] , npi->attr_rhs[nn] ) ;
    }
 
    nsout = NI_stream_open( "str:" , "w" ) ;

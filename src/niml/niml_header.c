@@ -159,6 +159,11 @@ NI_dpr("   parse_header_stuff: scan start at id=%d\n",id) ;
          break ;                /* done with scanning for attributes */
       }
 
+      if( dat[id] == '?' ){                            /* "?>" found */
+        if( id < ndat-1 ) id++ ;
+        break ;
+      }
+
       /* find next string */
 
       ss = find_string( id , ndat , dat ) ;
