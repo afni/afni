@@ -4424,3 +4424,4 @@
 
 14 Mar 2003
  * A few more changes to 3dAnhist.c.
+ * Modified thd_opendset.c to also deal with .1D inputs.

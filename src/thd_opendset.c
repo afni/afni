@@ -58,6 +58,13 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
       return THD_open_ctfsam( pathname ) ;
    }
 
+   /*-- 04 Mar 2003: allow input of .1D files --*/
+
+   if( strstr(pathname,".1D") != NULL ){
+      dset = THD_open_1D( pathname ) ;
+      if( dset != NULL ) return dset ;
+   }
+
    /*-- find directory and last names in the pathname --*/
 
    for( ii=plen-1 ; ii >= 0 ; ii-- ) if( pathname[ii] == '/' ) break ;
