@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.0 (December 18, 2003)"
+#define VERSION "version 3.1 (January 23, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -72,18 +72,16 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  "history:\n"
  "\n"
- "3.0  December 18, 2003\n"
- "  - removed requirement of 2 surfaces for most functions\n"
- "    (so now all functions work with either 1 or 2 input surfaces)\n"
+ "1.0  May 29, 2003\n"
+ "  - initial release\n"
  "\n"
- "2.2  December 15, 2003\n"
- "  - added program arguments '-surf_A' and '-surf_B' (-surf_A is required)\n"
- "  - added option '-hist' (for program history)\n"
- "  - explicit pointer init to NULL (a.o.t. memset() to 0)\n"
+ "1.1  June 11, 2003\n"
+ "  - small reorg of s2v_fill_mask2() (should have no effect)\n"
+ "  - improve description of -f_steps option\n"
  "\n"
- "2.1  October 20, 2003\n"
- "  - call the new engine function, SUMA_LoadSpec_eng()\n"
- "    (this will restrict the debug output from SUMA_LoadSpec())\n"
+ "1.2  July 21, 2003\n"
+ "  - make sure input points fit in output dataset\n"
+ "  - add min/max distance output, along with out-of-bounds count\n"
  "\n"
  "2.0  October 2, 2003\n"
  "  - Major changes accepting surface data, surface coordinates, output data\n"
@@ -93,16 +91,22 @@ static char g_history[] =
  "                         -dnode, -dvoxel, -f_index, -f_p1_fr, -f_pn_fr,\n"
  "                         -f_p1_mm, -f_pn_mm\n"
  "\n"
- "1.2  July 21, 2003\n"
- "  - make sure input points fit in output dataset\n"
- "  - add min/max distance output, along with out-of-bounds count\n"
+ "2.1  October 20, 2003\n"
+ "  - call the new engine function, SUMA_LoadSpec_eng()\n"
+ "    (this will restrict the debug output from SUMA_LoadSpec())\n"
  "\n"
- "1.1  June 11, 2003\n"
- "  - small reorg of s2v_fill_mask2() (should have no effect)\n"
- "  - improve description of -f_steps option\n"
+ "2.2  December 15, 2003\n"
+ "  - added program arguments '-surf_A' and '-surf_B' (-surf_A is required)\n"
+ "  - added option '-hist' (for program history)\n"
+ "  - explicit pointer init to NULL (a.o.t. memset() to 0)\n"
  "\n"
- "1.0  May 29, 2003\n"
- "  - initial release\n"
+ "3.0  December 18, 2003\n"
+ "  - removed requirement of 2 surfaces for most functions\n"
+ "    (so now all functions work with either 1 or 2 input surfaces)\n"
+ "\n"
+ "3.1  January 23, 2004\n"
+ "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
+ "  - reversed order of output for '-hist' option\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -1131,7 +1135,7 @@ ENTRY("get_mappable_surfts");
 
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
-	if ( ! SUMA_isINHmappable( so ) )
+	if ( ! so->AnatCorrect )
 	    continue;
 
 	if ( debug > 3 )

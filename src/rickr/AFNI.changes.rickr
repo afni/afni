@@ -420,3 +420,8 @@
       - added '-sv' option to examples (recommended)
       - reversed order of '-hist' output
 
+23 January 2004
+  * modified SUMA_3dVol2Surf.c, SUMA_3dSurf2Vol.c and SUMA_SurfMeasures.c
+             ( -> v4.0            -> v3.1              -> v 1.5 )
+      - SUMA_isINHmappable() is depricated, check with AnatCorrect field
+

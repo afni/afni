@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.4 (January 22, 2004)"
+#define VERSION "version 1.5 (January 23, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -67,6 +67,9 @@ static char g_history[] =
     "    (for output of node coordinates)\n"
     "  - added '-sv' option to examples\n"
     "  - reversed history list (most recent last) for '-hist' option\n"
+    "\n"
+    "1.5 January 23, 2004  [rickr]\n"
+    "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -1121,7 +1124,9 @@ ENTRY("all_mappable_surfs");
 
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
-	if ( ! SUMA_isINHmappable(so) )
+/*	if ( ! SUMA_isINHmappable(so) )       -  depricated  [v1.5] */
+
+	if ( ! so->AnatCorrect )
 	{
 	    if ( opts->debug )
 		fprintf(stderr,"** warning: surface '%s' is not mappable, "
