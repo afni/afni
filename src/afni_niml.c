@@ -135,7 +135,8 @@ ENTRY("AFNI_init_niml") ;
    redisplay_key[0] = AFNI_receive_init( GLOBAL_library.controllers[0] ,
                                          RECEIVE_FUNCDISPLAY_MASK ,
                                          AFNI_niml_redisplay_CB ,
-                                         GLOBAL_library.controllers[0] ) ;
+                                         GLOBAL_library.controllers[0] ,
+                                         "AFNI_niml_redisplay_CB" ) ;
 
    /* set up to receive notifications (callbacks)
       when the viewpoint is altered by the user  (controller A only) */
@@ -143,7 +144,8 @@ ENTRY("AFNI_init_niml") ;
    viewpoint_key[0] = AFNI_receive_init( GLOBAL_library.controllers[0] ,
                                          RECEIVE_VIEWPOINT_MASK ,
                                          AFNI_niml_viewpoint_CB ,
-                                         GLOBAL_library.controllers[0] ) ;
+                                         GLOBAL_library.controllers[0] ,
+                                         "AFNI_niml_viewpoint_CB" ) ;
 
    /* determine if we actually want to send data */
 

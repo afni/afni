@@ -139,7 +139,8 @@ ENTRY("DSET2_main") ;
 
    if ( g_dset_recv < 0 )	/* only initialize once */
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
-					DSET2_dset_recv, (void *)plint ) ;
+					DSET2_dset_recv, (void *)plint ,
+                                       "DSET2_dset_recv" ) ;
 
    if ( g_dset_recv < 0 )
       RETURN("*************************************\n"

@@ -930,11 +930,13 @@ char * RCREND_main( PLUGIN_interface * plint )
                                  | RECEIVE_DRAWNOTICE_MASK
                                  | RECEIVE_DSETCHANGE_MASK
                                  | RECEIVE_TIMEINDEX_MASK      /* 29 Jan 2003 */
-                               , RCREND_xhair_recv , NULL   ) ;
+                               , RCREND_xhair_recv , NULL ,
+                                "RCREND_xhair_recv"  ) ;
 #else
    xhair_recv = AFNI_receive_init( im3d ,
                                    RECEIVE_VIEWPOINT_MASK ,
-                                   RCREND_xhair_recv , NULL  ) ;
+                                   RCREND_xhair_recv , NULL ,
+                                  "RCREND_xhair_recv" ) ;
 #endif
 
    MPROBE ;

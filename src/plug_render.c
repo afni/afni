@@ -809,11 +809,13 @@ char * REND_main( PLUGIN_interface * plint )
                                    RECEIVE_VIEWPOINT_MASK
                                  | RECEIVE_DRAWNOTICE_MASK
                                  | RECEIVE_DSETCHANGE_MASK ,
-                                   REND_xhair_recv , NULL   ) ;
+                                   REND_xhair_recv , NULL  ,
+                                  "REND_xhair_recv"         ) ;
 #else
    xhair_recv = AFNI_receive_init( im3d ,
                                    RECEIVE_VIEWPOINT_MASK ,
-                                   REND_xhair_recv , NULL  ) ;
+                                   REND_xhair_recv , NULL ,
+                                  "REND_xhair_recv"         ) ;
 #endif
 
    MPROBE ;

@@ -218,6 +218,7 @@ typedef struct {                           /* 29 Mar 1999 */
       gen_func * receiver_func ;
       void *     receiver_data ;
       int        receiver_mask ;
+      char *     receiver_funcname ;       /* 20 Feb 2003 */
 } AFNI_receiver ;
 
 typedef struct {
@@ -1428,7 +1429,7 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define UNDO_MODE           101000
 
 extern void AFNI_toggle_drawing ( Three_D_View * ) ;
-extern int AFNI_receive_init    ( Three_D_View *, int, gen_func * , void * ) ;
+extern int AFNI_receive_init    ( Three_D_View *, int, gen_func *, void *, char * ) ;
 extern void AFNI_receive_destroy( Three_D_View * ) ;
 extern int AFNI_receive_control ( Three_D_View *, int,int, void * ) ;
 
