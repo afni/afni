@@ -43,6 +43,14 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    dset->dblk = blk  ;
    dkptr      = blk->diskptr ;
 
+   if( PRINT_TRACING ){
+     char str[256] ;
+     sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d",
+             dkptr->rank , dkptr->nvals ,
+             dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] ) ;
+     STATUS(str) ;
+   }
+
    INIT_KILL(dset->kl) ;
    ADDTO_KILL(dset->kl,blk) ;
 
@@ -73,7 +81,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    /*-- check for 3D --*/
    /*------------------*/
 
-   if( dkptr->rank != 3 ) DSET_ERR("illegal # of dimensions") ;
+   if( dkptr->rank != 3 ) DSET_ERRN("illegal # of dimensions",dkptr->rank) ;
 
    /*--------------------------------------------------*/
    /*-- find type of image from TYPESTRING attribute --*/

@@ -105,6 +105,14 @@ ENTRY("THD_init_one_datablock") ;
       RETURN( NULL ) ;
    }
 
+   if( PRINT_TRACING ){
+     char str[256] ;
+     sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d",
+             dkptr->rank , dkptr->nvals ,
+             dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] ) ;
+     STATUS(str) ;
+   }
+
    RETURN( dblk ) ;
 }
 
@@ -133,6 +141,8 @@ ENTRY("THD_datablock_from_atr") ;
 
    if( dblk == NULL || dblk->natr <= 0 ) RETURN(0) ; /* bad input */
 
+   dkptr = dblk->diskptr ;
+
    /*-- get relevant attributes: rank, dimensions, view_type & func_type --*/
 
    atr_rank  = THD_find_int_atr( dblk , ATRNAME_DATASET_RANK ) ;
@@ -145,6 +155,8 @@ ENTRY("THD_datablock_from_atr") ;
 
    /*-- load type codes from SCENE attribute --*/
 
+   STATUS("loading *_type from SCENE") ;
+
    view_type = atr_scene->in[0] ;
    func_type = atr_scene->in[1] ;
    dset_type = atr_scene->in[2] ;
@@ -154,18 +166,36 @@ ENTRY("THD_datablock_from_atr") ;
    ok   = True ;
    nvox = 1 ;
 
+   STATUS("loading from RANK") ;
+
    dkptr->rank = atr_rank->in[0] ;                /* N.B.: rank isn't used much */
+   dkptr->nvals = dblk->nvals = nvals = atr_rank->in[1] ;  /* but nvals is used */
+
+   STATUS("loading from DIMENSIONS") ;
+
    for( ii=0 ; ii < dkptr->rank ; ii++ ){
      dkptr->dimsizes[ii] = atr_dimen->in[ii] ;
      ok                  = ( ok && dkptr->dimsizes[ii] >= 1 ) ;
      nvox               *= dkptr->dimsizes[ii] ;
    }
-   dkptr->nvals = dblk->nvals = nvals = atr_rank->in[1] ;  /* but nvals is used */
+
+   if( PRINT_TRACING ){
+     char str[256] ;
+     sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d nvox=%d",
+             dkptr->rank , dkptr->nvals ,
+             dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] , nvox ) ;
+     STATUS(str) ;
+   }
 
    if( !ok || nvals < 1 ||
-       dkptr->rank < THD_MIN_RANK || dkptr->rank > THD_MAX_RANK ) RETURN(0) ;
+       dkptr->rank < THD_MIN_RANK || dkptr->rank > THD_MAX_RANK ){
+     STATUS("bad rank!!??") ;
+     RETURN(0) ;
+   }
 
    /*-- create the storage filenames --*/
+
+   STATUS("creating storage filenames") ;
 
    if( headname != NULL && strchr(headname,'+') != NULL ){
      FILENAME_TO_PREFIX(headname,prefix) ;
@@ -176,6 +206,8 @@ ENTRY("THD_datablock_from_atr") ;
    }
 
    /*-- determine if the BRIK file exists --*/
+
+   STATUS("checking if .BRIK file exists") ;
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
    if( brick_ccode != COMPRESS_NOFILE )
@@ -348,6 +380,14 @@ ENTRY("THD_datablock_from_atr") ;
        THD_store_datablock_stataux( dblk , iv , jv , nv , atr_flt->fl + ipos ) ;
        ipos += nv ;
      }
+   }
+
+   if( PRINT_TRACING ){
+     char str[256] ;
+     sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d",
+             dkptr->rank , dkptr->nvals ,
+             dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] ) ;
+     STATUS(str) ;
    }
 
    RETURN(1) ;

@@ -247,10 +247,12 @@ ATR_any * THD_find_atr( THD_datablock *blk , char *name )
 {
    int ia ;
 
+ENTRY("THD_find_atr") ;
+
    if( ! ISVALID_DATABLOCK(blk) )
       THD_FATAL_ERROR( "Illegal block type in THD_find_atr" ) ;
 
-   if( blk->natr == 0 || blk->atr == NULL ) return NULL ;
+   if( blk->natr == 0 || blk->atr == NULL ) RETURN(NULL) ;
 
    /* loop over attributes and check names */
 
@@ -285,11 +287,11 @@ ATR_any * THD_find_atr( THD_datablock *blk , char *name )
 
       /* check if names match; if so, return the result */
 
-      if( aname != NULL && strcmp(aname,name) == 0 ) return next_atr ;
+      if( aname != NULL && strcmp(aname,name) == 0 ) RETURN(next_atr) ;
 
    } /* end of loop over attributes */
 
-   return NULL ;  /* none matched */
+   RETURN(NULL) ;  /* none matched */
 }
 
 ATR_float * THD_find_float_atr( THD_datablock *blk , char *name )
@@ -328,6 +330,8 @@ void THD_set_atr( THD_datablock *blk , char *aname ,
                   int atype , int acount , void *ar )
 {
    ATR_any *old_atr , *atr ;
+
+ENTRY("THD_set_atr") ;
 
    if( ! ISVALID_DATABLOCK(blk) )
       THD_FATAL_ERROR( "Illegal block type in THD_set_atr" ) ;
@@ -435,6 +439,8 @@ void THD_set_atr( THD_datablock *blk , char *aname ,
       }
       break ;
    }  /* end of switch */
+
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
