@@ -7,13 +7,14 @@
    #define SUMA_IDCODE_LENGTH 50
 #endif
 
-#define SUMA_VERSION_VECTOR 25000, 24800, \
-                            24500, -10000 /*!< modify this dude and you must update SUMA_New_Additions_perver 
+#define SUMA_VERSION_VECTOR 20041229, 20040610, 20040116, \
+                            20040106, -10000 /*!< modify this dude and you must update SUMA_New_Additions_perver 
                                        in SUMA_help.c. 
                                        Add to the left of the vector, leave the last value of -10000 untouched
                                        If you like to think of floating point version numbers,divide by 10000
                                        This define is stuck here so that non-SUMA DataSet manipulating programs 
-                                       can use it, one hopes*/
+                                       can use it, one hopes.
+                                       Numbering is yyyymmdd */
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
 typedef enum { SUMA_notypeset = -1, 
