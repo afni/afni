@@ -24,7 +24,7 @@
 /* Modified 12/27/96 by BDW  Corrections to the SEM calculations. */
 /* Modified 4/19/96 by MSB to give cluster intensity and extent information */
 /* Modified 11/1/96 by MSB to give cluster intensity standard error of the mean
-   (SEM) and average intensity and SEM for all voxels (globally)  
+   (SEM) and average intensity and SEM for all voxels (globally)
 
 Modified source files were
 3dclust.c
@@ -56,6 +56,7 @@ voxels per original voxel
 */
 
 /*-- 29 Nov 2001: RWCox adds the -prefix option --*/
+/*-- 30 Apr 2002: RWCox addes the -mni option --*/
 
 /*---------------------------------------------------------------------------*/
 #include <stdio.h>
@@ -77,6 +78,8 @@ static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 
 static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
+
+static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
 
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
@@ -111,11 +114,12 @@ int main( int argc , char * argv[] )
    float vol_total ;
    char buf1[16],buf2[16],buf3[16] ;
    float dxf,dyf,dzf ;                  /* 24 Jan 2001: for -dxyz=1 option */
+   int do_mni ;                         /* 30 Apr 2002 */
 
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
-      printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+      printf ("Author:  %s \n", PROGRAM_AUTHOR);
       printf ("Date:    %s \n", PROGRAM_DATE);
       printf ("\n");
       printf(
@@ -132,28 +136,41 @@ int main( int argc , char * argv[] )
           "* Editing options are as in 3dmerge\n"
           "  (including -1thresh, -1dindex, -1tindex, -dxyz=1 options)\n"
           "\n"
-          "* -noabs      ==> use the signed voxel intensities (not the abs\n"
+          "* -noabs      => Use the signed voxel intensities (not the abs\n"
           "                  value) for calculation of the mean and SEM\n"
           "\n"
-          "* -summarize  ==> write out only the total nonzero voxel\n"
+          "* -summarize  => Write out only the total nonzero voxel\n"
           "                  count and volume for each dataset\n"
           "\n"
-          "* -nosum      ==> suppress printout of the totals\n"
+          "* -nosum      => Suppress printout of the totals\n"
           "\n"
-          "* -verb       ==> print out a progress report (to stderr)\n"
+          "* -verb       => Print out a progress report (to stderr)\n"
           "                  as the computations proceed\n"
           "\n"
-          "* -quiet      ==> suppress all non-essential output\n"
+          "* -quiet      => Suppress all non-essential output\n"
           "\n"
-          "* -prefix ppp ==> write a new dataset that is a copy of the\n"
+          "* -mni        => If the input dataset is in +tlrc coordinates, this\n"
+          "                  option will stretch the output xyz-coordinates to the\n"
+          "                  MNI template brain.\n"
+          "           N.B.: The MNI template brain is about 5 mm higher (in S),\n"
+          "                  10 mm lower (in I), 5 mm longer (in PA), and tilted\n"
+          "                  about 3 degrees backwards, relative to the Talairach-\n"
+          "                  Tournoux Atlas brain.  For more details, see\n"
+          "                    http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html\n"
+          "           N.B.: If the input dataset is not in +tlrc coordinates,\n"
+          "                  then the only effect is to flip the output\n"
+          "                  coordinates to the 'LPI' (neuroscience) orientation.\n"
+          "                  (As if you gave the '-orient LPI' option.)\n"
+          "\n"
+          "* -prefix ppp => Write a new dataset that is a copy of the\n"
           "                  input, but with all voxels not in a cluster\n"
           "                  set to zero; the new dataset's prefix is 'ppp'\n"
-          "            N.B.: use of the -prefix option only affects the\n"
+          "           N.B.: Use of the -prefix option only affects the\n"
           "                  first input dataset\n"
           "\n"
           "Nota Bene\n"
           "---------\n"
-          "* The program does not work on complex-valued datasets!\n"
+          "* The program does not work on complex- or rgb-valued datasets!\n"
           "* Using the -1noneg option is strongly recommended!\n "
           "* 3D+time datasets are allowed, but only if you use the\n"
           "   -1tindex and -1dindex options.\n"
@@ -181,11 +198,14 @@ int main( int argc , char * argv[] )
    CL_read_opts( argc , argv ) ;
    nopt = CL_nopt ;
 
+   if( CL_do_mni )
+     THD_coorder_fill( "LPI" , &CL_cord ) ;  /* 30 Apr 2002 */
+
  /*----- Identify software -----*/
    if( !CL_quiet ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
-      printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+      printf ("Author:  %s \n", PROGRAM_AUTHOR);
       printf ("Date:    %s \n", PROGRAM_DATE);
       printf ("\n");
    }
@@ -235,6 +255,10 @@ int main( int argc , char * argv[] )
       THD_load_datablock( dset->dblk  ) ;                          /* read in     */
       EDIT_one_dataset( dset , &CL_edopt ) ;                       /* editing?    */
 
+      /* 30 Apr 2002: check if -mni should be used here */
+
+      do_mni = (CL_do_mni && dset->view_type == VIEW_TALAIRACH_TYPE) ;
+
       if( CL_ivfim < 0 )
          ivfim  = DSET_PRINCIPAL_VALUE(dset) ;                     /* useful data */
       else
@@ -247,7 +271,9 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
-      if( ! AFNI_GOOD_FUNC_DTYPE( DSET_BRICK_TYPE(dset,ivfim) ) ){
+      if( !AFNI_GOOD_FUNC_DTYPE( DSET_BRICK_TYPE(dset,ivfim) ) ||
+          DSET_BRICK_TYPE(dset,ivfim) == MRI_rgb                 ){
+
          fprintf(stderr,"** Illegal datum type in dataset %s\a\n",argv[iarg]) ;
          continue ;
       }
@@ -276,7 +302,7 @@ int main( int argc , char * argv[] )
 
          if( CL_summarize != 1 ){
             printf( "\n"
-             "Cluster report for file %s\n"
+             "Cluster report for file %s %s\n"
 #if 0
              "[3D Dataset Name: %s ]\n"
              "[    Short Label: %s ]\n"
@@ -286,6 +312,7 @@ int main( int argc , char * argv[] )
              "[Voxel datum type    = %s ]\n"
              "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n",
               argv[iarg] ,
+              do_mni ? "[MNI coords]" : "" ,  /* 30 Apr 2002 */
 #if 0
               dset->self_name , dset->label1 ,
 #endif
@@ -324,7 +351,8 @@ int main( int argc , char * argv[] )
             else
               printf ("Mean and SEM based on Absolute Value "
                       "of voxel intensities: \n");
-            printf("Cluster summary for file %s\n",argv[iarg]);
+            printf("Cluster summary for file %s %s\n" ,
+                   argv[iarg] , do_mni ? "[MNI coords]" : "");
             printf("Volume  CM %s  CM %s  CM %s  Mean    SEM    \n",ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
           }
       } /* end of report header */
@@ -487,9 +515,12 @@ int main( int argc , char * argv[] )
             fv = THD_3dind_to_3dmm( dset , TEMP_IVEC3(ii,jj,kk) ) ;
             fv = THD_3dmm_to_dicomm( dset , fv ) ;
             xx = fv.xyz[0] ; yy = fv.xyz[1] ; zz = fv.xyz[2] ;
-            THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz ) ;  /* July 1997 */
+            if( !do_mni )
+              THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz ) ;  /* July 1997 */
+            else
+              THD_3tta_to_3mni( &xx , &yy , &zz ) ;           /* 30 Apr 2002 */
 
-            ms = cl->mag[ipt];                         /* BDW  18 Jan 1999 */
+            ms = cl->mag[ipt];                           /* BDW  18 Jan 1999 */
             mm = fabs(ms);
 
 	    mssum += ms;
@@ -528,14 +559,14 @@ int main( int argc , char * argv[] )
          ndet++ ;
          xxsum /= mmsum ; yysum /= mmsum ; zzsum /= mmsum ;
 
-	 if (CL_noabs)   mean = mssum / cl->num_pt;     /* BDW  19 Jan 1999 */ 
-         else            mean = mmsum / cl->num_pt; 
+	 if (CL_noabs)   mean = mssum / cl->num_pt;     /* BDW  19 Jan 1999 */
+         else            mean = mmsum / cl->num_pt;
 
          if( fimfac != 0.0 )
-	   { mean  *= fimfac;  msmax *= fimfac; 
+	   { mean  *= fimfac;  msmax *= fimfac;
 	     sqsum *= fimfac*fimfac; }                      /* BDW 12/27/96 */
 
-	 /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N, 
+	 /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
 	    where s^2 = (SUM Y^2)/N - (Ymean)^2
 	    where sqsum = (SUM Y^2 ) */
 
@@ -566,10 +597,10 @@ int main( int argc , char * argv[] )
          printf("** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n") ;
 
 
-      /* MSB 11/1/96  Calculate global SEM */      
+      /* MSB 11/1/96  Calculate global SEM */
 
       if (CL_noabs)   glmean = glmssum / nvox_total;    /* BDW  19 Jan 1999 */
-      else            glmean = glmmsum / nvox_total; 
+      else            glmean = glmmsum / nvox_total;
 
       /* BDW 12/27/96 */
       if( fimfac != 0.0 ){ glsqsum *= fimfac*fimfac ; glmean *= fimfac ; }
@@ -636,6 +667,13 @@ void CL_read_opts( int argc , char * argv[] )
       if( ival > 0 ){
          nopt += ival ;
          continue ;
+      }
+
+      /**** 30 Apr 2002: -mni ****/
+
+      if( strcmp(argv[nopt],"-mni") == 0 ){
+         CL_do_mni = 1 ;
+         nopt++ ; continue ;
       }
 
       /**** 29 Nov 2001: -prefix ****/

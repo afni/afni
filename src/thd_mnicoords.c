@@ -45,3 +45,21 @@ THD_fvec3 THD_tta_to_mni( THD_fvec3 tv )
    if( mz < 0.0 ) mz *= 1.09523 ;
    LOAD_FVEC3( mv , mx,my,mz ) ; return mv ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+void THD_3tta_to_3mni( float *x , float *y , float *z )
+{
+   THD_fvec3 mv , tv ;
+   LOAD_FVEC3( tv , *x,*y,*z ) ;
+   mv = THD_tta_to_mni( tv ) ;
+   *x = mv.xyz[0] ; *y = mv.xyz[1] ; *z = mv.xyz[2] ; return ;
+}
+
+void THD_3mni_to_3tta( float *x , float *y , float *z )
+{
+   THD_fvec3 mv , tv ;
+   LOAD_FVEC3( mv , *x,*y,*z ) ;
+   tv = THD_mni_to_tta( mv ) ;
+   *x = tv.xyz[0] ; *y = tv.xyz[1] ; *z = tv.xyz[2] ; return ;
+}
