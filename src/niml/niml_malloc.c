@@ -153,7 +153,7 @@ static NI_mallitem * ptr_tracker( void * ) ;
 static NI_mallitem * find_empty_slot( int ) ;
 static void add_tracker( void * , size_t , char * , int ) ;
 static void * malloc_track( size_t , char * , int ) ;
-static void probe_track( NI_mallitem * ) ;
+static void probe_track( NI_mallitem * , char *,int ) ;
 static void * realloc_track( NI_mallitem *, size_t , char *, int  ) ;
 static void * calloc_track( size_t , size_t , char * , int  ) ;
 static void free_track( NI_mallitem * ) ;
@@ -285,7 +285,7 @@ static void * malloc_track( size_t n , char *fn , int ln )
 /*! Check an entry in the hash table for local overrun integrity.
 -------------------------------------------------------------------*/
 
-static void probe_track( NI_mallitem *ip )
+static void probe_track( NI_mallitem *ip , char *fn, int ln )
 {
    int ii ;
    size_t n ;
@@ -300,7 +300,8 @@ static void probe_track( NI_mallitem *ip )
        fprintf(stderr,"*** NI_malloc pre-corruption!  "
                       "serial=%u size=%u source=%s line#=%d\n",
                       ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
-        break ;
+       if( fn != NULL ) fprintf(stderr,"   Caller=%s line#=%d\n",fn,ln) ;
+       break ;
      }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
@@ -308,6 +309,7 @@ static void probe_track( NI_mallitem *ip )
        fprintf(stderr,"*** NI_malloc post-corruption!  "
                       "serial=%u size=%u source=%s line#=%d\n",
                       ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
+       if( fn != NULL ) fprintf(stderr,"   Caller=%s line#=%d\n",fn,ln) ;
        break ;
      }
 
@@ -326,7 +328,7 @@ static void * realloc_track( NI_mallitem *ip, size_t n, char *fn, int ln )
 
    if( ip == NULL ) return NULL ;  /* should not happen */
 
-   probe_track(ip) ;          /* check for integrity before reallocation */
+   probe_track(ip,fn,ln) ;    /* check for integrity before reallocation */
    cfred = (char *)ip->pmt ;  /* old address */
 
    ni_mall_used = 1 ;
@@ -383,7 +385,7 @@ static void free_track( NI_mallitem *ip )
    cfred = (char *) ip->pmt ;
    if( cfred == NULL ) return ;
 
-   probe_track(ip) ;  /* check for integrity before freeing */
+   probe_track(ip,NULL,0) ;  /* check for integrity before freeing */
 
    ni_mall_used = 1 ;
    free(cfred) ; ip->pmt = NULL ; return ;
@@ -406,7 +408,7 @@ char * NI_malloc_status(void)
    for( jj=0 ; jj < SLOTS ; jj++ ){
      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
        if( htab[jj][kk].pmt != NULL ){
-         probe_track( htab[jj]+kk ) ; /* check for integrity */
+         probe_track( htab[jj]+kk , NULL,0 ) ; /* check for integrity */
          nptr++ ; nbyt += htab[jj][kk].psz ;
        }
      }
