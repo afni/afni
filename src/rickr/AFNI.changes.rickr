@@ -317,7 +317,7 @@
 	  '-dvoxel', '-f_index', '-f_p1_fr', '-f_pn_fr', '-f_p1_mm', '-f_pn_mm'
 
 06 October 2003:
-  * modified 2dImReg.c: is nsl == 0, use nzz for num_slices
+  * modified 2dImReg.c: if nsl == 0, use nzz for num_slices
 
 07 October 2003:
   * modified plug_roiedit.[ch]: old/new -> Bold/Bnew for C++ compilation
@@ -342,7 +342,7 @@
     (-> v3.6)
 
 30 October 2003:
-  * modifited 3dbucket.c to search for trailing view type extension from end
+  * modified 3dbucket.c to search for trailing view type extension from end
     (under -glueto option processing)
   * modified plug_realtime.c to compute function on registered data
 
@@ -487,4 +487,7 @@
 
 08 March 2004:
   * modified 3dFWHM.c to output NO_VALUE when results cannot be computed
+
+15 March 2004:
+  * modified 3dfim+.c: init sum to 0.0 in set_fim_thr_level()
 
