@@ -30,8 +30,8 @@ static char helpstring[] =
   "Compressed datasets will save disk space.  The principal cost is\n"
   "the CPU time it takes to read and write compressed files."
   "\n"
-  "As usual, after you make your choice, you must press one of the\n"
-  "'Run' buttons for the plugin to be executed.\n"
+  "After you make your choice, you must press one of the\n"
+  "'Set' buttons for the plugin to send its data to AFNI.\n"
   "Author -- RW Cox"
 ;
 
@@ -77,6 +77,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint( plint , "Control .BRIK compression" ) ;
 
    PLUTO_set_sequence( plint , "A:afnicontrol:dset" ) ;
+
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
    /*---------- 2nd line: other inputs ----------*/
 

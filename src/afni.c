@@ -4727,6 +4727,7 @@ void AFNI_view_xyz_CB( Widget w ,
    Widget        groff , gr_xyz , gr_yzx , gr_zxy ;
    FD_brick    * brnew ;
    int mirror=0 ;
+   int m2m=0 ;     /* 04 Nov 2003 */
 
 ENTRY("AFNI_view_xyz_CB") ;
 
@@ -4774,6 +4775,8 @@ ENTRY("AFNI_view_xyz_CB") ;
     }
 
     /* button pressed and window not open, so prepare to open it */
+
+    m2m = AFNI_yesenv("AFNI_IMAGE_MINTOMAX") ;
 
     if( w == pb_xyz && sxyz == NULL ){
        snew  = &(im3d->s123) ;
@@ -4838,14 +4841,16 @@ STATUS("realizing new image viewer") ;
                       (XtPointer)(int) im3d->vinfo->xhairs_periodic );
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
+      /* 04 Nov 2003: or min-to-max on grayscaling? */
 
-      if( mirror ){
+      if( mirror | m2m ){
          ISQ_options opt ;
 
 STATUS("setting image view to be L-R mirrored") ;
 
          ISQ_DEFAULT_OPT(opt) ;
-         opt.mirror = TRUE ;
+         if( mirror ) opt.mirror = TRUE ;
+         if( m2m    ) opt.scale_range = ISQ_RNG_MINTOMAX ;
          drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
       }
 
@@ -4917,7 +4922,9 @@ STATUS("setting image viewer 'sides'") ;
 
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 0 ) ; /* 16 Aug 2002 */
 
-      AFNI_view_setter( im3d , *snew ) ;
+      AFNI_view_setter ( im3d , *snew ) ;
+      AFNI_range_setter( im3d , *snew ) ;  /* 04 Nov 2003 */
+
     } /* end of creating a new image viewer */
 
     /** Don't forget to send information like the reference timeseries ... **/
@@ -5215,6 +5222,39 @@ void AFNI_do_bkgd_lab( Three_D_View * im3d )
    MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
    XtManageChild( im3d->vwid->func->bkgd_lab ) ;
    FIX_SCALE_SIZE(im3d) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Set the grayscale range in the image window, maybe.  [04 Nov 2003]
+--------------------------------------------------------------------------*/
+
+void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
+{
+   float rng[3] = { 0.0f, 0.0f, 0.0f } ;
+   int ival ;
+   FD_brick *br ;
+   THD_3dim_dataset *ds ;
+
+   if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq)    ) return ;
+   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ) return ;
+
+   br = (FD_brick *)im3d->b123_ulay ; if( br == NULL ) return ;
+   ds = br->dset ;                    if( ds == NULL ) return ;
+
+   if( EQUIV_DSETS(ds,im3d->anat_now) )      /* underlay dataset */
+     ival = im3d->vinfo->anat_index ;
+   else if( EQUIV_DSETS(ds,im3d->fim_now) )  /* overlay dataset */
+     ival = im3d->vinfo->fim_index ;
+   else
+     ival = 0 ;                              /* shouldn't happen */
+
+   if( ISVALID_STATISTIC(ds->stats) && ISVALID_BSTAT(ds->stats->bstat[ival]) ){
+     rng[0] = ds->stats->bstat[ival].min ;
+     rng[1] = ds->stats->bstat[ival].max ;
+   }
+
+   drive_MCW_imseq( seq , isqDR_setrange , (XtPointer) rng ) ;
+   return ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -7222,6 +7262,12 @@ STATUS(" -- turning time index control off") ;
    /*--- attach to viewing windows (if any) ---*/
 
    AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+   /* 04 Nov 2003: set range for image grayscaling? */
+
+   AFNI_range_setter( im3d , im3d->s123 ) ;
+   AFNI_range_setter( im3d , im3d->s231 ) ;
+   AFNI_range_setter( im3d , im3d->s312 ) ;
 
    im3d->vinfo->tempflag = 0 ;
 

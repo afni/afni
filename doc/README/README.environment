@@ -1797,6 +1797,26 @@ up when the grayscale mapping is altered by using the stroking feature
 described above.  N.B.: when the 'Draw Dataset' plugin is active, this
 option is turned off.
 
+-----------------------------
+Variable: AFNI_IMAGE_MINTOMAX (editable)
+-----------------------------
+If this variable is set to YES, then image viewer windows will be set
+to the "Min-to-Max" state rather than the default "2%-to-98%" state
+when they are opened.  If you set this in the "Edit Environment"
+control, it only affects image viewer windows opened after that point.
+
+--------------------------------
+Variable: AFNI_IMAGE_GLOBALRANGE (editable)
+--------------------------------
+If this variable is set to YES, then the image viewer windows will be
+set to scale the bottom gray level to the minimum value in the 3D
+volume and the top gray level to the maximum value in the 3D volume.
+This setting overrides the "Min-to-Max" and "2%-to-98%" settings in
+the "Disp" control panel.  This setting also applies to all image
+viewers.  If you set this in the "Edit Environment" control, it will
+apply to all open image viewers immediately, as well as to any image
+viewers opened later.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

@@ -549,6 +549,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
 
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
+
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
    PLUTO_add_string (plint, "Base", NBASE, baseline_strings, 2);

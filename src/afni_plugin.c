@@ -498,6 +498,8 @@ ENTRY("new_PLUGIN_interface") ;
    plint = new_PLUGIN_interface_1999( label , description , help ,
                                       call_type , call_func , NULL ) ;
 
+   plint->run_label[0]  = '\0' ;  /* 04 Nov 2003 */
+   plint->doit_label[0] = '\0' ;
    RETURN(plint) ;
 }
 
@@ -597,6 +599,18 @@ ENTRY("new_PLUGIN_interface_1999") ;
 #endif
 
    RETURN(plint) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Set the "Run+Keep" and "Run+Close" labels for a plugin. [04 Nov 2003] */
+/*------------------------------------------------------------------------*/
+
+void PLUTO_set_runlabels( PLUGIN_interface *plint , char *rlab , char *dlab )
+{
+   if( plint == NULL ) return ;
+   if( rlab != NULL  ) MCW_strncpy( plint->run_label , rlab, PLUGIN_LABEL_SIZE );
+   if( dlab != NULL  ) MCW_strncpy( plint->doit_label, dlab, PLUGIN_LABEL_SIZE );
+   return ;
 }
 
 /*----------------------------------------------------------------------
@@ -1177,10 +1191,10 @@ ENTRY("PLUTO_prefix_ok") ;
 #define NUM_PLUG_ACT 4
 
 static MCW_action_item PLUG_act[] = {
- { PLUG_quit_label , PLUG_action_CB , NULL , PLUG_quit_help ,"Close window"               , 0 } ,
- { PLUG_run_label  , PLUG_action_CB , NULL , PLUG_run_help  ,"Run plugin and keep window" , 0 } ,
- { PLUG_doit_label , PLUG_action_CB , NULL , PLUG_doit_help ,"Run plugin and close window", 1 } ,
- { PLUG_help_label , PLUG_action_CB , NULL , PLUG_help_help ,"Get help for plugin"        , 0 }
+ { PLUG_quit_label, PLUG_action_CB, NULL, PLUG_quit_help,"Close window"               , 0 },
+ { PLUG_run_label , PLUG_action_CB, NULL, PLUG_run_help ,"Run plugin and keep window" , 0 },
+ { PLUG_doit_label, PLUG_action_CB, NULL, PLUG_doit_help,"Run plugin and close window", 1 },
+ { PLUG_help_label, PLUG_action_CB, NULL, PLUG_help_help,"Get help for plugin"        , 0 }
 } ;
 
 void PLUG_setup_widgets( PLUGIN_interface * plint , MCW_DC * dc )
@@ -1281,7 +1295,14 @@ ENTRY("PLUG_setup_widgets") ;
    /**** create an action area beneath to hold user control buttons ****/
 
    for( ib=0 ; ib < NUM_PLUG_ACT ; ib++ )
-      PLUG_act[ib].data = (XtPointer) plint ;
+     PLUG_act[ib].data = (XtPointer) plint ;
+
+   /* 04 Nov 2003: allow for change of Run+Close and Run+Keep labels */
+
+   if( plint->run_label[0]  == '\0' ) strcpy(plint->run_label ,PLUG_run_label );
+   if( plint->doit_label[0] == '\0' ) strcpy(plint->doit_label,PLUG_doit_label);
+   PLUG_act[1].label = plint->run_label ;
+   PLUG_act[2].label = plint->doit_label;
 
    actar = MCW_action_area( wid->form , PLUG_act ,
                             (plint->helpstring!=NULL) ? NUM_PLUG_ACT
@@ -2021,8 +2042,8 @@ void PLUG_action_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 ENTRY("PLUG_action_CB") ;
 
-   run   = (strcmp(wname,PLUG_doit_label)==0) || (strcmp(wname,PLUG_run_label) ==0);
-   close = (strcmp(wname,PLUG_doit_label)==0) || (strcmp(wname,PLUG_quit_label)==0);
+   run   = (strcmp(wname,plint->doit_label)==0) || (strcmp(wname,plint->run_label)==0);
+   close = (strcmp(wname,plint->doit_label)==0) || (strcmp(wname,PLUG_quit_label) ==0);
    help  = (strcmp(wname,PLUG_help_label)==0) ;
 
    if( run ){

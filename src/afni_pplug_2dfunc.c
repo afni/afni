@@ -98,6 +98,8 @@ PLUGIN_interface * F2D_init(void)
 
    PLUTO_add_hint( plint , "Control 2DChain function" ) ;
 
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
+
    /*-------- Initialize list of all functions that can be chained -----*/
 
    numfunc     = 1 ;

@@ -94,6 +94,8 @@ ENTRY("PLUGIN_init - Dataset#2") ;
 
    PLUTO_add_hint( plint , "Controls 1D function Dataset#2" ) ;
 
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
+
    PLUTO_set_sequence( plint , "A:funcs:dataset#2" ) ;
 
    PLUTO_add_option( plint , "Input" , "Input" , TRUE ) ;
