@@ -136,6 +136,8 @@ time_series * RWC_read_time_series(fname)
 
    }
 
+   fclose(fts) ;  /* Oopsie - 09 Apr 2004! */
+
    if( used_tsar <= 0 ){
       fprintf( stderr , "cannot read data from time_series %s\n" , fname ) ;
       free( vec->fname ) ;
