@@ -83,6 +83,7 @@ typedef struct  /* user options */
     char           * start_dir;     /* user input starting directory    */
     char           * drive_cmd;     /* DRIVE_AFNI command to send       */
     char           * sp;            /* slice acquisition pattern        */
+    char           * gert_outdir;   /* output directory for GERT_Reco2  */
     char	  ** argv;	    /* passed to the program            */
     int              argc;
     int              nt;            /* user input time points per run   */
