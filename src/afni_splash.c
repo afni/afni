@@ -140,10 +140,16 @@ ENTRY("AFNI_splashup") ;
         if( dd == ddold ){ dd = (dd+1)%num_face ; }
         ddold = dd ; imov = mri_read_stuff( fname_face[dd] ) ;
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
-          mri_free(imov) ; imov == NULL ;
+          float xfac=MAX_XOVER/(float)(imov->nx),
+                yfac=MAX_YOVER/(float)(imov->ny) ;
+          int nxnew,nynew ; MRI_IMAGE *imq ;
+          if( xfac > yfac ) xfac = yfac ;
+          nxnew = (int)(xfac*imov->nx) ; nynew = (int)(xfac*imov->ny) ;
+          imq = mri_resize( imov , nxnew,nynew ) ;
+          mri_free(imov) ; imov = imq ;
         }
       }
-      if( imov == NULL ){
+      if( imov == NULL ){  /* if didn't get face jpeg above */
         nov  = (nov+dnov+NOVER) % NOVER ;
         imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
       }
@@ -186,7 +192,7 @@ ENTRY("AFNI_splashup") ;
           imov = mri_read(ufname) ;  /* popup user-supplied image */
           if( imov != NULL ){
             if( imov->nx != NX_TOPOVER || imov->ny != NY_TOPOVER ){
-              MRI_IMAGE * imq = mri_resize(imov,NX_TOPOVER,NY_TOPOVER) ;
+              MRI_IMAGE *imq = mri_resize(imov,NX_TOPOVER,NY_TOPOVER) ;
               mri_free(imov) ; imov = imq ;
             }
             reload_DC_colordef( GLOBAL_library.dc ) ;

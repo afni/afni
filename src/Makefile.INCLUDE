@@ -1063,6 +1063,10 @@ mri_dup.o:mri_dup.c
 	$(RM) $@
 	$(CCFAST) -c mri_dup.c $(IFLAGS)
 
+mri_warp.o:mri_warp.c
+	$(RM) $@
+	$(CCFAST) -c mri_warp.c $(IFLAGS)
+
 thd_rot3d.o:thd_rot3d.c
 	$(RM) $@
 	$(CCFAST) -c thd_rot3d.c $(IFLAGS)
