@@ -3051,7 +3051,7 @@ SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv)
     
      if (!Elmt) {
       /* perhaps reached end of list without success */
-      SUMA_S_Err("Reached EOL without finding Elmt. Not necessarily a bad thing.");
+      SUMA_S_Note("Reached EOL without finding Elmt.\nNot necessarily a bad thing.");
       SUMA_RETURN(ROId);
      } else {
       if (LocalHead) {

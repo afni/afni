@@ -418,7 +418,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
    SUMA_ROI_DATUM *ROId=NULL;
    SUMA_ROI *ROI = NULL;
    DListElmt *NextElm=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
