@@ -20,9 +20,9 @@ $(RICKR_OBJS): $(RICKR_HDRS) $(RICKR_SRCS)
 clean:
 	$(RM) *.o
 
-3dreorient: 3dreorient.o
+3dresample: 3dresample.o
 	$(RM) $@
-	$(CC) -o 3dreorient 3dreorient.o $(AFNI_WARP_OBJS)	\
+	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
 		 $(LFLAGS) -L.. -lrickr $(LLIBS)
 
 .c.o:
