@@ -44,6 +44,8 @@ void AFNI_init_plugouts( void ) ;  /* prototype */
 #define POMODE_DICOM_XYZ_DELTA  2
 #define POMODE_DSET_IJK_DELTA   3
 
+#define POMODE_SURFID_DELTA    21  /* 05 Sep 2001 */
+
 typedef struct {
    IOCHAN * ioc ;                  /* how to talk to plugout */
    int ioc_ready ;                 /* is talking ready? */
@@ -61,6 +63,9 @@ typedef struct {
    int   view_type ;
    int   sess_num , anat_num , func_num ;
    float func_threshold ;
+   int   surfindex ;        /* 06 Sep 2001 */
+
+   int do_ack ;             /* acknowledgements? 06 Sep 2001 */
 
 } PLUGOUT_spec ;
 

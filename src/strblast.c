@@ -36,6 +36,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /* load the target */
 
    targ = argv[1] ; ntarg = strlen(targ) ;

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 #include "afni.h"
 #include "afni_plugout.h"
@@ -156,7 +156,8 @@ ENTRY("AFNI_plugout_workproc") ;
          iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
          free(pobuf) ; RETURN(False) ;
       } else {
-         PO_ACK_OK(ioc_control) ; iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
+         if( pp->do_ack ) PO_ACK_OK(ioc_control) ;
+         iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
          fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
       }
 
@@ -277,7 +278,7 @@ ENTRY("AFNI_process_plugout") ;
      for( nend=0 ; nend < npobuf && pobuf[nend] != '\0' ; nend++ ) ; /* nada */
      if( nend == npobuf ){
         fprintf(stderr,"PO: plugout %s sent non-NUL terminated string!\n",pp->po_name) ;
-        PO_ACK_BAD( pp->ioc ) ;
+        if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
         retval = 2 ; goto Proust ;
      }
 
@@ -295,13 +296,13 @@ ENTRY("AFNI_process_plugout") ;
 
            fprintf(stderr,"PO: malformed TT_XYZ_SET string from plugout %s: %s\n",
                    pp->po_name , pobuf ) ;
-           PO_ACK_BAD( pp->ioc ) ;
+           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
 
         } else if( im3d->vinfo->view_type != VIEW_TALAIRACH_TYPE ){
 
            fprintf(stderr,"PO: can't accept TT_XYZ_SET from plugout %s in %s\n",
                           pp->po_name , VIEW_typestr[im3d->vinfo->view_type]) ;
-           PO_ACK_BAD( pp->ioc ) ;
+           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
 
         } else {
 
@@ -309,8 +310,10 @@ ENTRY("AFNI_process_plugout") ;
               fprintf(stderr,"PO: command TT_XYZ_SET %g %g %g\n",xx,yy,zz) ;
 
            jj = AFNI_jumpto_dicom( im3d , -xx,-yy,zz ) ;
-           if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
-           else         PO_ACK_OK ( pp->ioc ) ;
+           if( pp->do_ack ){
+              if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
+              else         PO_ACK_OK ( pp->ioc ) ;
+           }
 
         }
         retval = 2 ; goto Proust ;
@@ -322,13 +325,15 @@ ENTRY("AFNI_process_plugout") ;
         if( ii < 3 ){
            fprintf(stderr,"PO: malformed DICOM_XYZ_SET string from plugout %s: %s\n",
                    pp->po_name , pobuf ) ;
-           PO_ACK_BAD( pp->ioc ) ;
+           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
         } else {
            if( verbose )
               fprintf(stderr,"PO: command DICOM_XYZ_SET %g %g %g\n",xx,yy,zz) ;
            jj = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
-           if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
-           else         PO_ACK_OK ( pp->ioc ) ;
+           if( pp->do_ack ){
+              if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
+              else         PO_ACK_OK ( pp->ioc ) ;
+           }
         }
         retval = 2 ; goto Proust ;
 
@@ -339,12 +344,12 @@ ENTRY("AFNI_process_plugout") ;
         if( ii < 3 ){
            fprintf(stderr,"PO: malformed DSET_IJK_SET string from plugout %s: %s\n",
                    pp->po_name , pobuf ) ;
-           PO_ACK_BAD( pp->ioc ) ;
+           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
         } else {
            if( verbose )
               fprintf(stderr,"PO: command DSET_IJK_SET %d %d %d\n",ix,jy,kz) ;
            AFNI_set_viewpoint( im3d , ix,jy,kz , REDISPLAY_ALL ) ;
-           PO_ACK_OK ( pp->ioc ) ;
+           if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
         }
         retval = 2 ; goto Proust ;
 
@@ -356,18 +361,50 @@ ENTRY("AFNI_process_plugout") ;
 
         sprintf(pobuf,"DSET_IJK %d %d %d\n" , ix,jy,kz ) ;
         PO_SEND( pp->ioc , pobuf ) ;            /* send */
-        jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
-        if( jj == -1 ) RETURN(-1) ;             /* something bad! */
-        jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
-        if( verbose )
-           fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
-                                    : "PO: did not receive acknowledgment\n" ) ;
+        if( pp->do_ack ){
+          jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
+          if( jj == -1 ) RETURN(-1) ;             /* something bad! */
+          jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
+          if( verbose )
+             fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
+                                      : "PO: did not receive acknowledgment\n" ) ;
+        }
         retval = 2 ; goto Proust ;
+
+#ifdef ALLOW_AGNI
+
+     } else if( strncmp(pobuf,"SURFID",6) == 0 ){
+        if( AGNI_ENABLED && im3d->anat_now->ag_surf != NULL ){
+           int id ;
+
+           ii = sscanf( pobuf , "SURFID %d" , &id ) ;
+           if( ii < 1 ){
+              fprintf(stderr,"PO: malformed SURFID string from plugout %s: %s\n",
+                      pp->po_name , pobuf ) ;
+              if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
+           } else {
+              if( verbose )
+                 fprintf(stderr,"PO: command SURFID %d\n",id) ;
+              ii = AGNI_find_node_id( im3d->anat_now->ag_surf , id ) ;
+              if( ii < 0 ){
+                 fprintf(stderr,"PO: unknown SURFID node number %d\n",id) ;
+                 if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
+              } else {
+                 AFNI_jumpto_dicom( im3d ,
+                                    im3d->anat_now->ag_surf->nod[ii].x ,
+                                    im3d->anat_now->ag_surf->nod[ii].y ,
+                                    im3d->anat_now->ag_surf->nod[ii].z  ) ;
+                 if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
+              }
+           }
+           retval = 2 ; goto Proust ;
+        }
+#endif
 
      } else {
         fprintf(stderr,"PO: plugout %s sent unknown command string: %s\n",
                 pp->po_name , pobuf ) ;
-        PO_ACK_BAD( pp->ioc ) ;
+        if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
         retval = 2 ; goto Proust ;
      }
 
@@ -417,7 +454,37 @@ ENTRY("AFNI_process_plugout") ;
                   sprintf( pobuf + npobuf , "DSET_IJK %d %d %d\n" , ix,jy,kz ) ;
             }
             break ;
-         }
+
+#ifdef ALLOW_AGNI
+            case POMODE_SURFID_DELTA:{          /* 05 Sep 2001 */
+               int ix , jy , kz , new_xyz ;
+               ix = im3d->vinfo->i1 ;
+               jy = im3d->vinfo->j2 ;
+               kz = im3d->vinfo->k3 ;
+               new_xyz = (ix != pp->ix || jy != pp->jy || kz != pp->kz) ;
+
+               if( new_xyz                         &&
+                   AGNI_ENABLED                    &&
+                   im3d->anat_now->ag_surf != NULL &&
+                   im3d->anat_now->ag_vmap != NULL   ){
+
+                   int nx = DSET_NX(im3d->anat_now) ;
+                   int ny = DSET_NY(im3d->anat_now) ;
+                   int qq = im3d->anat_now->ag_vmap[ix + jy*nx + kz*nx*ny] ;
+
+                   if( qq > 0 ){
+                     qq = AGNI_VMAP_UNMASK(qq) ;
+                     if( qq != pp->surfindex ){
+                       sprintf( pobuf + npobuf , "SURFID %d\n" ,
+                                im3d->anat_now->ag_surf->nod[qq].id ) ;
+                       pp->surfindex = qq ;
+                     }
+                   }
+               }
+            }
+            break ;
+#endif
+         } /* end of switch on modes */
 
          npobuf = strlen( pobuf ) ;
       }
@@ -430,12 +497,14 @@ ENTRY("AFNI_process_plugout") ;
                     pp->po_name , pobuf ) ;
 
          PO_SEND( pp->ioc , pobuf ) ;            /* send */
-         jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
-         if( jj == -1 ) RETURN(-1) ;             /* something bad! */
-         jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
-         if( verbose )
-           fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
-                                    : "PO: did not receive acknowledgment\n" ) ;
+         if( pp->do_ack ){
+           jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
+           if( jj == -1 ) RETURN(-1) ;             /* something bad! */
+           jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
+           if( verbose )
+             fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
+                                      : "PO: did not receive acknowledgment\n" ) ;
+         }
          retval = 1 ; goto Proust ;
       } else {
          retval = 0 ; goto Proust ;
@@ -497,6 +566,8 @@ ENTRY("new_PLUGOUT_spec") ;
    pp->ioc         = NULL ;
    strcpy(pp->po_name,"Old One-Eyed Dogface") ;
 
+   pp->do_ack      = 1 ;   /* 06 Sep 2001 */
+
    if( verbose )
       fprintf(stderr,"PO: initializing new plugout -- got %d input bytes\n",nend) ;
 
@@ -551,6 +622,15 @@ ENTRY("new_PLUGOUT_spec") ;
 
          pp->pomode[ pp->npomode ] = POMODE_DSET_IJK_DELTA ;
          pp->npomode ++ ;
+
+      } else if( STARTER("SURFID_DELTA") ){  /* 05 Sep 2001 */
+
+         pp->pomode[ pp->npomode ] = POMODE_SURFID_DELTA ;
+         pp->npomode ++ ;
+
+      } else if( STARTER("NO_ACK") ){        /* 06 Sep 2001 */
+
+         pp->do_ack = 0 ;
 
       } else if( STARTER("IOCHAN") ){
          int kk ;

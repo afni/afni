@@ -4,6 +4,8 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#undef powerof2  /* needed for Mac OS X */
+
 /*---------------------------------------------------------------------------*/
 /*
   This is the header file for software contained in Wavelets.c.

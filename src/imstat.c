@@ -42,6 +42,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strncmp(argv[nopt],"-nolabel",4) == 0 ){
          dolabel = FALSE ;

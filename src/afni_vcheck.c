@@ -35,6 +35,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /*-- otherwise, any options means the user needs help --*/
 
    if( argc > 1 ){

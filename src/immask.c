@@ -31,6 +31,8 @@ int main( int argc , char * argv[] )
      exit(0) ;
    }
 
+   machdep() ;
+
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 

@@ -34,6 +34,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /***** scan for option *****/
 
    while( iarg < argc && argv[iarg][0] == '-' ){

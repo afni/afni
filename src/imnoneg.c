@@ -19,6 +19,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    imin = mri_read(argv[1]) ;
    if( imin == NULL || imin->kind != MRI_short ) exit(1) ;
    npix = imin->nx * imin->ny ;

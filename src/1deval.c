@@ -43,6 +43,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /*-- initialize --*/
 
    for( ii=0 ; ii < 26 ; ii++ ){

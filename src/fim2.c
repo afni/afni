@@ -131,6 +131,8 @@ int main( int argc , char *argv[] )
 
 /*** read command line, and set up as it bids ***/
 
+   machdep() ;
+
    get_line_opt( argc , argv , &opt ) ;
 
    numvox = opt.nxim * opt.nyim ;

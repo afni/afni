@@ -25,6 +25,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    if( !THD_filename_ok(argv[2]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }

@@ -48,7 +48,7 @@ pdf p;                   /* empirical pdf */
 
 #include "randgen.c"
 #include "pdf.c"
-#include "Simplex.c"
+#include "Simplexx.c"
 
 
 /*---------------------------------------------------------------------------*/

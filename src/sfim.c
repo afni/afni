@@ -53,6 +53,8 @@ int main( int argc , char * argv[] )
    if( argc < 2 ) SFIM_syntax("type sfim -help for usage details") ;
    else if( strcmp(argv[1],"-help") == 0 ) SFIM_syntax(NULL) ;
 
+   machdep() ;
+
    SFIM_getopts( argc , argv ) ;
 
    /*----- average over each interval -----*/

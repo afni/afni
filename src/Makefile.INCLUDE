@@ -45,7 +45,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
-           3dTcorrelate
+           3dTcorrelate 3dAnatNudge
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -54,13 +54,13 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp      \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna     \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
-                  3dIntracranial 24swap 3dTsmooth RSFgen float_scan 3dmaskdump       \
+                  24swap 3dTsmooth RSFgen float_scan                                 \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
                   3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot    \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
-                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate
+                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -83,6 +83,8 @@ vastness:cleaner all plugins install install_plugins install_lib
 	$(CP) README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
+
+totality_noplug:libmri.a libcoxplot.a programs_noplug install_noplug clean
 
 programs:$(PROGRAMS)
 
@@ -360,7 +362,7 @@ hide:hide.o
 
 count:count.o
 	$(RM) $@
-	$(CC) -o count count.o $(LFLAGS)
+	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
@@ -471,6 +473,10 @@ strblast:strblast.o
 3drotate:3drotate.o
 	$(RM) $@
 	$(CC) -o 3drotate 3drotate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dAnatNudge:3dAnatNudge.o
+	$(RM) $@
+	$(CC) -o 3dAnatNudge 3dAnatNudge.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 rtfeedme:rtfeedme.o
 	$(RM) $@
@@ -824,14 +830,15 @@ afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
-	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir coxplot volpack moveup moveAFNI ./AFNI98
+	$(CP) -r coxplot volpack moveup moveAFNI* ./AFNI98
+	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
 src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI README* AFNI.* \
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI* README* AFNI.* \
               dist* 3d*.lib gmovie $(SCRIPTS) ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
@@ -839,8 +846,8 @@ src.tgz:
 src.bz2:
 	$(RM) $@
 	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI README* AFNI.* \
-              dist* 3d*.lib $(SCRIPTS) ./SRC
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI* README* AFNI.* \
+              3d*.lib $(SCRIPTS) ./SRC
 	$(RM) ./SRC/cdf_*.c ./SRC/eis_*.c
 	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
 	$(RM) -r ./SRC
@@ -952,7 +959,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
-           mri_histoshort.o
+           mri_histoshort.o mri_shift2D.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -989,7 +996,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o          \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o   \
-           thd_outlier_count.o thd_correlate.o agni.o
+           thd_outlier_count.o thd_correlate.o agni.o thd_autonudge.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1122,6 +1129,10 @@ plugout_ijk:plugout_ijk.o
 plugout_tta:plugout_tta.o
 	$(RM) $@
 	$(CC) -o plugout_tta plugout_tta.o $(LFLAGS) $(LLIBS)
+
+plugout_surf:plugout_surf.o
+	$(RM) $@
+	$(CC) -o plugout_surf plugout_surf.o $(LFLAGS) -lcurses $(LLIBS)
 
 ######################################################################
 # Stuff that was originally in Fortran
@@ -1357,7 +1368,7 @@ Xphace:Xphace.o $(IMOBJS)
 testcox:testcox.o
 	$(CC) -o testcox testcox.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-agni_to_afni:agni_to_afni.o
+agni_to_afni:agni_to_afni.o agni.o
 	$(CC) -o agni_to_afni agni_to_afni.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 #-------------------------------------------------------------------------------

@@ -172,6 +172,21 @@ void * new_MREN_renderer( void )
 }
 
 /*-----------------------------------------------------------------------------
+  Turn depth cueing on or off -- 11 Sep 2001
+-------------------------------------------------------------------------------*/
+
+void MREN_depth_cue( void *ah , int onoff )
+{
+   MREN_stuff * ar = (MREN_stuff *) ah ;
+
+   if( !ISVALID_MREN(ar) ) return ;
+
+   vpSetDepthCueing( ar->vpc , 2.0 , 1.3863 ) ;
+   vpEnable( ar->vpc , VP_DEPTH_CUE , onoff ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------------
    Get rid of an MRI renderer.
 -------------------------------------------------------------------------------*/
 

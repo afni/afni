@@ -39,8 +39,15 @@
 #include <malloc.h>
 #include <strings.h>
 #include <math.h>
-#include <values.h>
 #include "afni.h"
+
+#ifndef DARWIN
+#include <values.h>
+#endif
+
+#ifndef MAXINT
+#define MAXINT (1<<30)
+#endif
 
 static char help[] =
   "This plugin generates a mask dataset that labels brain with the value 1\n"

@@ -58,6 +58,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 

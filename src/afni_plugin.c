@@ -160,13 +160,20 @@ if(PRINT_TRACING)
   STATUS(str) ; }
 
    /*----- find the required symbol -----*/
+   /*..... 13 Sep 2001: add _ for stupid Darwin .....*/
 
+#ifndef DARWIN
    DYNAMIC_SYMBOL(plin->libhandle, "PLUGIN_init" , plin->libinit_func );
+#else
+   DYNAMIC_SYMBOL(plin->libhandle,"_PLUGIN_init" , plin->libinit_func );
+#endif
 
    /*----- if symbol not found, complain and kill this plugin -----*/
 
    if( plin->libinit_func == (vptr_func *) NULL ){
+      char *er = DYNAMIC_ERROR_STRING ;
       fprintf(stderr,"plugin %s lacks PLUGIN_init function\n",fname) ;
+      if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       DYNAMIC_CLOSE( plin->libhandle ) ;
       myXtFree(plin) ;
       RETURN(NULL) ;
@@ -241,6 +248,10 @@ AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
    /*----- sanity checks -----*/
 
 ENTRY("PLUG_get_many_plugins") ;
+
+#ifdef DARWIN
+   if( _dyld_present() == 0 ) RETURN(NULL) ;  /* 05 Sep 2001: Mac OSX */
+#endif
 
    epath = getenv("AFNI_PLUGINPATH") ;     /* get the path list to read from */
 

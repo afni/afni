@@ -43,6 +43,7 @@ int main( int argc , char *argv[] )
    printf(
      "ftosh: convert float images to shorts, by RW Cox\n") ;
 
+   machdep() ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) FTOSH_syntax(NULL) ;
 

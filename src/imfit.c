@@ -31,6 +31,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    im1 = mri_read_just_one( argv[1] ) ;
    im2 = mri_read_just_one( argv[2] ) ;
    if( im1 == NULL || im2 == NULL ) exit(1) ;

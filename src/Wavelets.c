@@ -4,6 +4,8 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#undef powerof2  /* needed for Mac OS X */
+
 /*---------------------------------------------------------------------------*/
 /*
   This file contains routines for performing wavelet analysis of

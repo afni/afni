@@ -1762,6 +1762,13 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 #define DSET_YORG(ds) ((ds)->daxes->yyorg)
 #define DSET_ZORG(ds) ((ds)->daxes->zzorg)
 
+#define DSET_XXMIN(ds) ((ds)->daxes->xxmin) /* 11 Sep 2001 */
+#define DSET_XXMAX(ds) ((ds)->daxes->xxmax)
+#define DSET_YYMIN(ds) ((ds)->daxes->yymin)
+#define DSET_YYMAX(ds) ((ds)->daxes->yymax)
+#define DSET_ZZMIN(ds) ((ds)->daxes->zzmin)
+#define DSET_ZZMAX(ds) ((ds)->daxes->zzmax)
+
   /* these next 4 added 19 Aug 1999 */
 
 #define DSET_index_to_ix(ds,ii)         (  (ii) % (ds)->daxes->nxx)
@@ -2700,8 +2707,13 @@ extern THD_3dim_dataset * TT_retrieve_atlas_either(void); /* 22 Aug 2001 */
 
 /*------------------------------------------------------------------------*/
 
-float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
-float THD_quadrant_corr( int,float *,float *) ;
-float THD_pearson_corr ( int,float *,float *) ;
+extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
+extern float THD_quadrant_corr( int,float *,float *) ;
+extern float THD_pearson_corr ( int,float *,float *) ;
+
+extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,
+                                THD_3dim_dataset *dsant, int ivant,
+                                float step,
+                                int xstep, int ystep, int zstep, int code ) ;
 
 #endif /* _MCW_3DDATASET_ */

@@ -454,6 +454,7 @@ static int   func_computed      = 0 ;
 
 static int   func_showthru      = 0 ;  /* 07 Jan 2000 */
 static int   func_showthru_pass = 0 ;
+static int   func_showthru_dcue = 0 ;  /* 11 Sep 2001 */
 
 #define NOSHADE 1
 #define NOMIX   2
@@ -2255,7 +2256,14 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
       func_showthru_pass = 1 ;
       REND_reload_renderer() ;  /* load showthru data */
 
+      if( func_showthru_dcue )
+        MREN_depth_cue( render_handle , 1 ) ;         /* 11 Sep 2001 */
+
       cim = MREN_render( render_handle , npixels ) ;  /* render it */
+
+      if( func_showthru_dcue )
+        MREN_depth_cue( render_handle , 0 ) ;         /* 11 Sep 2001 */
+
       if( cim == NULL ){
         (void) MCW_popup_message( draw_pb ,
                                      "** ShowThru Rendering fails, **\n"
@@ -2689,6 +2697,12 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         I personally like the results with c=0.65.  This environment\n"
        "         variable (and others) can be set from the AFNI control panel\n"
        "         'Datamode->Misc->Edit Environment' menu item.\n"
+       "   11 Sep 2001: The new option 'ST+Dcue' is the same as ShowThru,\n"
+       "         with the addition of Depth cueing to the color overlay.\n"
+       "         This means that colored voxels in the back half of the\n"
+       "         rendered volume will be darkened, simulating fading off\n"
+       "         with depth.  This helps cue your visual system to understand\n"
+       "         which objects are where in the image.\n"
        "\n"
        " * 'See Overlay' is used to toggle the color overlay computations\n"
        "     on and off - it should be pressed IN for the overlay to become\n"
@@ -5073,18 +5087,18 @@ void REND_func_widgets(void)
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
- { static char * func_opacity_labels[12] = {
+ { static char * func_opacity_labels[13] = { /* 11 Sep 2001: add ST+Dcue */
                        "Underlay" ,
                        " 0.1" , " 0.2" , " 0.3" , " 0.4" , " 0.5" ,
                        " 0.6" , " 0.7" , " 0.8" , " 0.9" , " 1.0" ,
-                       "ShowThru" } ;
+                       "ShowThru" , "ST+Dcue" } ;
 
    wfunc_opacity_av = new_MCW_arrowval(
                           wfunc_opacity_rowcol  , /* parent Widget */
                           "Color Opacity " ,      /* label */
                           MCW_AV_optmenu ,        /* option menu style */
                           0 ,                     /* first option */
-                          11 ,                    /* last option */
+                          12 ,                    /* last option */
                           5 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
@@ -5679,7 +5693,8 @@ void REND_color_opacity_CB( MCW_arrowval * av , XtPointer cd )
 {
    int ofs = func_showthru ;
    func_color_opacity = 0.1 * av->ival ;
-   func_showthru = (av->ival == 11) ;    /* 07 Jan 2000 */
+   func_showthru = (av->ival == 11 || av->ival == 12) ;    /* 07 Jan 2000 */
+   func_showthru_dcue = ( av->ival == 12 ) ;               /* 11 Sep 2001 */
    INVALIDATE_OVERLAY ;
 
    if( func_showthru != ofs ) FREE_VOLUMES ;
@@ -7661,7 +7676,7 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
          XmScaleSetValue( wfunc_thr_scale , cbs.value ) ;  /* oops, forgot this! 12 Apr 2000 */
       }
 
-      if( RSOK(func_color_opacity,0.0,1.101) ){
+      if( RSOK(func_color_opacity,0.0,1.201) ){  /* 11 Sep 2001: add ST+Dcue=12 */
          ii = (int)(rs->func_color_opacity * 10.0 + 0.01) ;
          AV_assign_ival( wfunc_opacity_av , ii ) ;
          REND_color_opacity_CB( wfunc_opacity_av , NULL ) ;

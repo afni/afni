@@ -1631,12 +1631,3 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
      XtRemoveCallback( w, XmNdestroyCallback, RWC_destroy_nullify_CB, p ) ;
    return ;
 }
-
-/*----------  Fix a Linux stupidity  ------------------------------------*/
-
-#ifdef NEED_XSETLOCALE
-#include <locale.h>
-
-char * _Xsetlocale( int category, const char * locale)
-{ return setlocale(category,locale) ; }
-#endif

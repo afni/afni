@@ -12,6 +12,8 @@ AGNI_surface * AGNI_create_empty_surface(void)
 {
    AGNI_surface *ag ;
 
+ENTRY("AGNI_create_empty_surface") ;
+
    ag = (AGNI_surface *) calloc(1,sizeof(AGNI_surface)) ;
    ag->num_nod  = ag->num_tri  = 0 ;
    ag->nall_nod = ag->nall_tri = 1 ;
@@ -29,7 +31,7 @@ AGNI_surface * AGNI_create_empty_surface(void)
 
    ag->seq = ag->seqbase = ag->sorted = 0 ; /* not sequential; not sorted */
 
-   return ag ;
+   RETURN( ag ) ;
 }
 
 /*------------------------------------------------------------------
@@ -38,11 +40,13 @@ AGNI_surface * AGNI_create_empty_surface(void)
 
 void AGNI_destroy_surface( AGNI_surface *ag )
 {
-   if( ag == NULL ) return ;
+ENTRY("AGNI_destroy_surface") ;
+
+   if( ag == NULL ) EXRETURN ;
    if( ag->nod != NULL ) free(ag->nod) ;
    if( ag->tri != NULL ) free(ag->tri) ;
 
-   free(ag) ;
+   free(ag) ; EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -54,10 +58,20 @@ void AGNI_add_nodes_ixyz( AGNI_surface *ag, int nadd,
 {
    int ii , nup ;
 
-   if( ag == NULL || nadd < 1 ) return ;
-   if( xadd == NULL || yadd == NULL || zadd == NULL || iadd == NULL ) return ;
+ENTRY("AGNI_add_nodes_ixyz") ;
+
+   if( ag == NULL || nadd < 1 ) EXRETURN ;
+   if( xadd == NULL || yadd == NULL || zadd == NULL || iadd == NULL ) EXRETURN ;
 
    nup = ag->num_nod + nadd ;
+
+   if( nup >= AGNI_MAX_NODES ){  /* 07 Sep 2001 */
+      fprintf(stderr,
+              "** AGNI surface can't have more than %d nodes!\n",
+              AGNI_MAX_NODES-1 ) ;
+      EXRETURN ;
+   }
+
    if( nup > ag->nall_nod ){ /* extend length of array */
       ag->nall_nod = nup = nup*AGNI_EXTEND_FAC + AGNI_EXTEND_NUM ;
       ag->nod = (AGNI_nod *) realloc( ag->nod , sizeof(AGNI_nod)*nup ) ;
@@ -77,7 +91,7 @@ void AGNI_add_nodes_ixyz( AGNI_surface *ag, int nadd,
 
    ag->num_nod += nadd ;
 
-   ag->seq = ag->sorted = 0 ;
+   ag->seq = ag->sorted = 0 ; EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -97,8 +111,10 @@ void AGNI_add_triangles( AGNI_surface *ag, int nadd, int *it, int *jt, int *kt )
 {
    int ii , nup ;
 
-   if( ag == NULL || nadd < 1 ) return ;
-   if( it == NULL || jt == NULL || kt == NULL ) return ;
+ENTRY("AGNI_add_triangles") ;
+
+   if( ag == NULL || nadd < 1 ) EXRETURN ;
+   if( it == NULL || jt == NULL || kt == NULL ) EXRETURN ;
 
    nup = ag->num_tri + nadd ;
    if( nup > ag->nall_tri ){ /* extend length of array */
@@ -116,7 +132,7 @@ void AGNI_add_triangles( AGNI_surface *ag, int nadd, int *it, int *jt, int *kt )
       ag->tri[ii+nup].k = kt[ii] ;
    }
 
-   ag->num_tri += nadd ;
+   ag->num_tri += nadd ; EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -137,7 +153,9 @@ void AGNI_truncate_memory( AGNI_surface *ag )
 {
    int nn ;
 
-   if( ag == NULL ) return ;
+ENTRY("AGNI_truncate_memory") ;
+
+   if( ag == NULL ) EXRETURN ;
 
    if( ag->num_nod < ag->nall_nod && ag->num_nod > 0 ){
       ag->nall_nod = nn = ag->num_nod ;
@@ -148,6 +166,8 @@ void AGNI_truncate_memory( AGNI_surface *ag )
       ag->nall_tri = nn = ag->num_tri ;
       ag->tri = (AGNI_tri *) realloc( ag->tri , sizeof(AGNI_tri)*nn ) ;
    }
+
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -165,10 +185,12 @@ void AGNI_truncate_memory( AGNI_surface *ag )
 
 void AGNI_nodesort_surface( AGNI_surface *ag )
 {
-   int nn , ii ;
+   int nn , ii , ndup ;
    float xb,yb,zb , xt,yt,zt ;
 
-   if( ag == NULL || ag->num_nod < 1 ) return ;
+ENTRY("AGNI_nodesort_surface") ;
+
+   if( ag == NULL || ag->num_nod < 1 ) EXRETURN ;
 
    AGNI_truncate_memory( ag ) ;
 
@@ -177,14 +199,22 @@ void AGNI_nodesort_surface( AGNI_surface *ag )
 
    /* check if node id-s are sequential */
 
-   for( ii=1 ; ii < nn ; ii ++ )
+   for( ii=1 ; ii < nn ; ii++ )
       if( ag->nod[ii].id != ag->nod[ii-1].id+1 ) break ;
 
    if( ii == nn ){
       ag->seq = 1 ; ag->seqbase = ag->nod[0].id ;
    }
 
-   /* find bounding box of all nodes */
+   /* 07 Sep 2001: check for duplicate node id-s */
+
+   for( ndup=0,ii=1 ; ii < nn ; ii++ )
+      if( ag->nod[ii].id == ag->nod[ii-1].id ) ndup++ ;
+
+   if( ndup > 0 )
+      fprintf(stderr,"** WARNING: duplicate surface node id's found!\n") ;
+
+   /* find bounding box of all nodes (its useful on occasion) */
 
    xb = xt = ag->nod[0].x ;
    yb = yt = ag->nod[0].y ;
@@ -203,6 +233,8 @@ void AGNI_nodesort_surface( AGNI_surface *ag )
    ag->xbot = xb ; ag->xtop = xt ;
    ag->ybot = yb ; ag->ytop = yt ;
    ag->zbot = zb ; ag->ztop = zt ;
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------
@@ -214,15 +246,17 @@ int AGNI_find_node_id( AGNI_surface *ag , int target )
 {
    int nn , ii,jj,kk ;
 
-   if( ag == NULL || ag->num_nod < 1 || target < 0 ) return -1 ;
+ENTRY("AGNI_find_node_id") ;
+
+   if( ag == NULL || ag->num_nod < 1 || target < 0 ) RETURN( -1 );
 
    if( !ag->sorted ) AGNI_nodesort_surface( ag ) ;
 
    if( ag->seq ){  /* node id-s are sequential (the easy case) */
 
       kk = target - ag->seqbase ;
-      if( kk >= 0 && kk < ag->num_nod ) return kk ;
-      return -1 ;
+      if( kk >= 0 && kk < ag->num_nod ) RETURN( kk );
+      RETURN( -1 );
    }
 
    /* node id-s are in increasing order, but not sequential;
@@ -230,24 +264,24 @@ int AGNI_find_node_id( AGNI_surface *ag , int target )
 
    ii = 0 ; jj = ag->num_nod - 1 ;                 /* search bounds */
 
-        if( target <  ag->nod[0].id  ) return -1 ; /* not present */
-   else if( target == ag->nod[0].id  ) return ii ; /* at start!  */
+        if( target <  ag->nod[0].id  ) RETURN( -1 ); /* not present */
+   else if( target == ag->nod[0].id  ) RETURN( ii ); /* at start!  */
 
-        if( target >  ag->nod[jj].id ) return -1 ; /* not present */
-   else if( target == ag->nod[jj].id ) return jj ; /* at end!    */
+        if( target >  ag->nod[jj].id ) RETURN( -1 ); /* not present */
+   else if( target == ag->nod[jj].id ) RETURN( jj ); /* at end!    */
 
    while( jj - ii > 1 ){  /* while search bounds not too close */
 
       kk = (ii+jj) / 2 ;  /* midway between search bounds */
 
       nn = ag->nod[kk].id - target ;
-      if( nn == 0 ) return kk ;       /* AHA! */
+      if( nn == 0 ) RETURN( kk );       /* AHA! */
 
       if( nn < 0 ) ii = kk ;          /* kk before target => bottom = kk */
       else         jj = kk ;          /* kk after target  => top    = kk */
    }
 
-   return -1 ;
+   RETURN( -1 );
 }
 
 /*--------------------------------------------------------------------------
@@ -265,9 +299,13 @@ AGNI_surface * AGNI_read_surface( char *fname )
    int nnod=0, ntri=0 , do_nod=1 , ii ;
    float xx[NBUF],yy[NBUF],zz[NBUF] ;
    int   pp[NBUF],qq[NBUF],rr[NBUF] , nn ;
-   double ct ;
 
-   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+   THD_vecmat mv ;
+   int have_mv=0 ;
+
+ENTRY("AGNI_read_surface") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN( NULL );
 
    /*-- open input --*/
 
@@ -275,20 +313,39 @@ AGNI_surface * AGNI_read_surface( char *fname )
       fp = stdin ;
    } else {
       fp = fopen( fname , "r" ) ;
-      if( fp == NULL ) return NULL ;
+      if( fp == NULL ) RETURN( NULL );
    }
 
    /*-- read data --*/
 
    ag = AGNI_create_empty_surface() ;
 
-ct = COX_cpu_time() ;
-
    nn = 0 ;
 
    while(1){
-      cpt = fgets(lbuf,1024,fp) ;
-      if( cpt == NULL ) break ;
+      cpt = fgets(lbuf,1024,fp) ;  /* read a line */
+      if( cpt == NULL ) break ;    /* end of file */
+
+      if( strncmp(lbuf,"<MATVEC>",8) == 0 ){  /* 07 Sep 2001 */
+         float a11,a12,a13 , v1 ,
+               a21,a22,a23 , v2 ,
+               a31,a32,a33 , v3  ;
+
+         ii = sscanf( lbuf+8 , "%f%f%f%f%f%f%f%f%f%f%f%f" ,
+                      &a11,&a12,&a13 , &v1 ,
+                      &a21,&a22,&a23 , &v2 ,
+                      &a31,&a32,&a33 , &v3  ) ;
+
+         if( ii < 12 ){
+            fprintf(stderr,"** Illegal MATVEC in %s\n",fname) ;
+            have_mv = 0 ;
+         } else {
+            LOAD_FVEC3(mv.vv , v1,v2,v3 ) ;
+            LOAD_MAT  (mv.mm , a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
+            have_mv = 1 ;
+         }
+      }
+
       if( strstr(lbuf,"</NODES>") != NULL ){
          if( nn > 0 ){
             AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
@@ -300,15 +357,25 @@ ct = COX_cpu_time() ;
          break ;                  /* don't create triangles */
 #endif
       }
-      if( do_nod ){
+
+      if( do_nod ){               /* nodes */
+
          ii = sscanf(lbuf,"%d%f%f%f",pp+nn,xx+nn,yy+nn,zz+nn) ;
          if( ii < 4 ) continue ;
+         if( have_mv ){
+            THD_fvec3 fv , qv ;
+            LOAD_FVEC3(fv , xx[nn],yy[nn],zz[nn] ) ;
+            qv = VECSUB_MAT( mv.mm , fv , mv.vv ) ;
+            UNLOAD_FVEC3( qv , xx[nn],yy[nn],zz[nn] ) ;
+         }
          nn++ ; nnod++ ;
          if( nn == NBUF ){
             AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
-      } else {
+
+      } else {                    /* triangles */
+
          ii = sscanf(lbuf,"%d%d%d",pp+nn,qq+nn,rr+nn) ;
          if( ii < 3 ) continue ;
          nn++ ; ntri++ ;
@@ -317,7 +384,8 @@ ct = COX_cpu_time() ;
             nn = 0 ;
          }
       }
-   }
+   } /* end of loop over input lines */
+
    if( fp != stdin ) fclose(fp) ;
    if( nn > 0 ){
       if( do_nod )
@@ -327,29 +395,19 @@ ct = COX_cpu_time() ;
    }
 
    if( nnod < 3 ){
-      AGNI_destroy_surface(ag) ; return NULL ;
+      AGNI_destroy_surface(ag) ; RETURN( NULL );
    }
-
-#if 0
-fprintf(stderr,"AGNI_read_surface(%s): I/O CPU=%g\n",fname,COX_cpu_time()-ct) ;
-ct = COX_cpu_time() ;
-#endif
 
    AGNI_nodesort_surface(ag) ;
 
-#if 0
-fprintf(stderr,"   num_nod=%d seq=%d seqbase=%d nodesort CPU=%g\n"
-               "   xbot=%g xtop=%g  ybot=%g ytop=%g  zbot=%g ztop=%g\n" ,
-        ag->num_nod,ag->seq,ag->seqbase , COX_cpu_time()-ct,
-        ag->xbot,ag->xtop , ag->ybot,ag->ytop , ag->zbot,ag->ztop ) ;
-#endif
-
    /*-- done --*/
 
-   return ag ;
+   RETURN( ag );
 }
 
 /*-----------------------------------------------------------------------------*/
+
+  /* 26 point 3x3x3 nbhd of {0,0,0} */
 
 static int ip[26][3] = { {-1,-1,-1},{-1,-1, 0},{-1,-1, 1},
                          {-1, 0,-1},{-1, 0, 0},{-1, 0, 1},
@@ -361,92 +419,20 @@ static int ip[26][3] = { {-1,-1,-1},{-1,-1, 0},{-1,-1, 1},
                          { 1, 0,-1},{ 1, 0, 0},{ 1, 0, 1},
                          { 1, 1,-1},{ 1, 1, 0},{ 1, 1, 1} } ;
 
-int * AGNI_map_vol_to_surf( AGNI_surface *ag ,
-                            int nx    , int ny    , int nz    ,
-                            float xoff, float yoff, float zoff,
-                            float dx  , float dy  , float dz   )
-{
-   int *vmap , ii,jj,kk , nxy,nxyz , pp,qq , lev , ijk,pbest ;
-   float dbest=0 , xv,yv,zv , sx,sy,sz ;
-
-   if( ag == NULL || ag->num_nod < 1 ) return NULL ;
-
-   if( nx < 3    || ny < 3    || nz < 3    ) return NULL ;
-   if( dx == 0.0 || dy == 0.0 || dz == 0.0 ) return NULL ;
-
-   /* setup */
-
-   nxy = nx*ny ; nxyz = nxy*nz ;
-   vmap = (int *) malloc(sizeof(int)*nxyz) ;
-   if( vmap == NULL ){
-      fprintf(stderr,"AGNI_map_vol_to_surf: can't malloc!\n"); exit(1);
-   }
-   for( ijk=0 ; ijk < nxyz ; ijk++ ) vmap[ijk] = -1 ;
-
-   sx = 1.0/dx ; sy = 1.0/dy ; sz = 1.0/dz ;
-
-   /* put nodes directly into voxels */
-
-   for( pp=0 ; pp < ag->num_nod ; pp++ ){
-      ii = (ag->nod[pp].x - xoff)*sx + 0.499 ;
-      if( ii < 0 || ii >= nx ) continue ;
-
-      jj = (ag->nod[pp].y - yoff)*sy + 0.499 ;
-      if( jj < 0 || jj >= ny ) continue ;
-
-      kk = (ag->nod[pp].z - zoff)*sz + 0.499 ;
-      if( kk < 0 || kk >= nz ) continue ;
-
-      vmap[ii+jj*nx+kk*nxy] = ag->nod[pp].id ;
-   }
-
-#if 0
-   /* scan for voxels that are next to those already mapped */
-
-   for( lev=1 ; lev < 4 ; lev++ ){
-
-      for( kk=1 ; kk < nz-1 ; kk++ ){  /* only do interior voxels */
-       for( jj=1 ; jj < ny-1 ; jj++ ){
-        for( ii=1 ; ii < nx-1 ; ii++ ){
-          ijk = ii+jj*nx+kk*nxy ;
-          if( vmap[ijk] >= 0 ) continue ; /* already mapped */
-
-          xv = xoff+ii*dx ; yv = yoff+ii*dy ; zv = zoff+ii*dz ;
-
-          for( pbest=-1,qq=0 ; qq < 26 ; qq++ ){ /* loop over neighbors */
-
-             pp = vmap[(ii+ip[qq][0]) + (jj+ip[qq][1])*nx + (kk+ip[qq][2])*nxy];
-
-             if( pp >= 0 ){
-                float xp=xv-ag->nod[pp].x, yp=yv-ag->nod[pp].y,
-                                           zp=zv-ag->nod[pp].z ;
-                float dd=xp*xp+yp*yp+zp*zp ;
-                if( pbest >= 0 ){
-                   if( dd < dbest ){ pbest = pp ; dbest = dd ; }
-                } else {
-                   pbest = pp ; dbest = dd ;
-                }
-             }
-          }
-
-          if( pbest >= 0 ) vmap[ijk] = pbest ;
-
-      }}} /* end of loop over interior voxels */
-   } /* end of loop over level */
-#endif
-
-   return vmap ;
-}
-
 /*------------------------------------------------------------------------*/
 
 int * AGNI_map_dset_to_surf( AGNI_surface *ag , THD_3dim_dataset *dset )
 {
-   int *vmap , ii,jj,kk , nx,ny,nz , nxy,nxyz , pp ;
+   int *vmap , ii,jj,kk , nx,ny,nz , nxy,nxyz , pp,qq,pbest ;
    THD_fvec3 fv ;
    THD_ivec3 iv ;
+   int ibot,jbot,kbot , itop,jtop,ktop , lev , ijk ;
+   float xv,yv,zv , dd,dbest , xp,yp,zp ;
+   char *elev ; int ltop , ntop , lmask ;
 
-   if( ag == NULL || ag->num_nod < 1 || !ISVALID_DSET(dset) ) return NULL ;
+ENTRY("AGNI_map_dset_to_surf") ;
+
+   if( ag == NULL || ag->num_nod < 1 || !ISVALID_DSET(dset) ) RETURN( NULL );
 
    /* setup */
 
@@ -456,19 +442,126 @@ int * AGNI_map_dset_to_surf( AGNI_surface *ag , THD_3dim_dataset *dset )
    if( vmap == NULL ){
       fprintf(stderr,"AGNI_map_dset_to_surf: can't malloc!\n"); exit(1);
    }
-   for( ii=0 ; ii < nxyz ; ii++ ) vmap[ii] = -1 ;
+   for( ii=0 ; ii < nxyz ; ii++ ) vmap[ii] = -1 ; /* not mapped yet */
 
    /* put nodes directly into voxels */
 
+STATUS("putting nodes into voxels") ;
+
    for( pp=0 ; pp < ag->num_nod ; pp++ ){
       LOAD_FVEC3( fv , ag->nod[pp].x , ag->nod[pp].y , ag->nod[pp].z ) ;
-      fv = THD_dicomm_to_3dmm( dset , fv ) ;
-      iv = THD_3dmm_to_3dind( dset , fv ) ;
-      UNLOAD_IVEC3( iv , ii,jj,kk ) ;
-      vmap[ii+jj*nx+kk*nxy] = ag->nod[pp].id ;
+      fv = THD_dicomm_to_3dmm( dset , fv ) ; /* convert Dicom */
+      iv = THD_3dmm_to_3dind( dset , fv ) ;  /*   coords to dataset */
+      UNLOAD_IVEC3( iv , ii,jj,kk ) ;        /*   indexes */
+      qq = vmap[ii+jj*nx+kk*nxy] ;           /* previously mapped index? */
+      if( qq < 0 ){                          /* not mapped before */
+         vmap[ii+jj*nx+kk*nxy] = pp ;        /* index, not id */
+      } else {
+         LOAD_IVEC3(iv,ii,jj,kk) ;           /* get Dicom coords of voxel */
+         fv = THD_3dind_to_3dmm( dset , iv ) ;
+         fv = THD_3dmm_to_dicomm( dset , fv ) ;
+         UNLOAD_FVEC3(fv,xv,yv,zv) ;
+
+         xp=xv-ag->nod[qq].x ;
+         yp=yv-ag->nod[qq].y ;
+         zp=zv-ag->nod[qq].z ; dd=xp*xp+yp*yp+zp*zp ;    /* dist to old node */
+
+         xp=xv-ag->nod[pp].x ;
+         yp=yv-ag->nod[pp].y ;
+         zp=zv-ag->nod[pp].z ; dbest=xp*xp+yp*yp+zp*zp ; /* dist to new node */
+
+         if( dbest < dd ) vmap[ii+jj*nx+kk*nxy] = pp ;   /* new is better */
+      }
    }
 
-   return vmap ;
+   LOAD_FVEC3( fv , ag->xbot,ag->ybot,ag->zbot ) ; /* find dataset */
+   fv = THD_dicomm_to_3dmm( dset , fv ) ;          /* indexes for */
+   iv = THD_3dmm_to_3dind( dset , fv ) ;           /* bot point  */
+   UNLOAD_IVEC3( iv , ibot,jbot,kbot ) ;           /* of surface */
+
+   LOAD_FVEC3( fv , ag->xtop,ag->ytop,ag->ztop ) ; /* and for top */
+   fv = THD_dicomm_to_3dmm( dset , fv ) ;
+   iv = THD_3dmm_to_3dind( dset , fv ) ;
+   UNLOAD_IVEC3( iv , itop,jtop,ktop ) ;
+
+   if( ibot > itop ){ ii=ibot ; ibot=itop; itop=ii; }
+   if( jbot > jtop ){ jj=jbot ; jbot=jtop; jtop=jj; }
+   if( kbot > ktop ){ kk=kbot ; kbot=ktop; ktop=kk; }
+   if( ibot < 1 ) ibot = 1 ; if( itop >= nx ) itop = nx-1 ;
+   if( jbot < 1 ) jbot = 1 ; if( jtop >= ny ) jtop = ny-1 ;
+   if( kbot < 1 ) kbot = 1 ; if( ktop >= nz ) ktop = nz-1 ;
+
+   ntop = ag->nod[ag->num_nod-1].id + 100 ;
+
+   /* scan for voxels that are next to those already mapped */
+
+   elev = getenv("AGNI_NBHD_LEVEL") ;  /* find level for expanding out */
+   if( elev != NULL ){
+      char *cpt ;
+      ltop = strtol( elev , &cpt , 10 ) ;
+      if( ltop < 0 || ltop > 7 || (ltop == 0 && *cpt != '\0') ) ltop = 4 ;
+   } else {
+      ltop = 4 ;
+   }
+
+   for( lev=1 ; lev <= ltop ; lev++ ){  /* if ltop = 0, won't be executed */
+
+    if(PRINT_TRACING){
+     char str[256]; sprintf(str,"expansion level %d",lev); STATUS(str);
+    }
+
+    for( kk=kbot ; kk < ktop ; kk++ ){
+     for( jj=jbot ; jj < jtop ; jj++ ){
+      for( ii=ibot ; ii < itop ; ii++ ){
+        ijk = ii+jj*nx+kk*nxy ;
+        if( vmap[ijk] >= 0 ) continue ; /* already mapped */
+
+        LOAD_IVEC3(iv,ii,jj,kk) ;               /* get Dicom coords */
+        fv = THD_3dind_to_3dmm( dset , iv ) ;
+        fv = THD_3dmm_to_dicomm( dset , fv ) ;
+        UNLOAD_FVEC3(fv,xv,yv,zv) ;
+
+        for( pbest=-1,qq=0 ; qq < 26 ; qq++ ){ /* loop over neighbors and */
+                                               /* find closest mapped pt */
+
+          pp = vmap[(ii+ip[qq][0]) + (jj+ip[qq][1])*nx + (kk+ip[qq][2])*nxy];
+
+          if( pp >= 0 ){
+             pp = AGNI_VMAP_UNMASK(pp) ;      /* index of mapped pt */
+             xp=xv-ag->nod[pp].x; yp=yv-ag->nod[pp].y; zp=zv-ag->nod[pp].z;
+             dd=xp*xp+yp*yp+zp*zp ;           /* dist^2 to mapped pt */
+             if( pbest >= 0 ){
+                if( dd < dbest ){ pbest = pp ; dbest = dd ; }
+             } else {
+                pbest = pp ; dbest = dd ;
+             }
+          }
+        }
+
+        /* save closest of the neighbors;
+           temporarily as a large negative number,
+           so we won't hit it again in this level of expansion */
+
+        if( pbest >= 0 ) vmap[ijk] = -(pbest+ntop) ; /* closest of the neighbors */
+
+    }}} /* end of loop over voxels */
+
+    STATUS(".. masking") ;
+
+    lmask = AGNI_VMAP_LEVMASK(lev) ;   /* 07 Sep 2001: put on a mask */
+                                       /* to indicate which level of */
+                                       /* indirection this voxel was */
+
+    for( kk=kbot ; kk < ktop ; kk++ ){  /* change all the ones we found  */
+     for( jj=jbot ; jj < jtop ; jj++ ){ /* at this level to non-negative */
+      for( ii=ibot ; ii < itop ; ii++ ){
+        ijk = ii+jj*nx+kk*nxy ;
+        if( vmap[ijk] < -1 ) vmap[ijk] = (-vmap[ijk] - ntop) | lmask ;
+    }}}
+
+   } /* end of loop over lev */
+
+   RETURN( vmap );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -478,44 +571,50 @@ void AGNI_get_sname( THD_3dim_dataset *dset )
    char *snam ;
    int ii ;
 
-   if( !ISVALID_DSET(dset) || dset->ag_sname != NULL ) return ;
+ENTRY("AGNI_get_sname") ;
+
+   if( !ISVALID_DSET(dset) || dset->ag_sname != NULL ) EXRETURN ;
 
    snam = strdup( DSET_HEADNAME(dset) ) ;
    ii = strlen(snam) ;
    if( ii > 5 ){
       strcpy(snam+ii-4,"SURF") ;
-      if( THD_is_file(snam) ){ dset->ag_sname = snam; return; }
+      if( THD_is_file(snam) ){ dset->ag_sname = snam; EXRETURN; }
    }
-   free(snam) ; return ;
+   free(snam) ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void AGNI_load( THD_3dim_dataset *dset )
 {
-   double ct ;
+
+ENTRY("AGNI_load") ;
 
    if( !ISVALID_DSET(dset)    ||
-       dset->ag_sname == NULL || dset->ag_surf != NULL ) return ;
+       dset->ag_sname == NULL || dset->ag_surf != NULL ) EXRETURN ;
 
    dset->ag_surf = AGNI_read_surface( dset->ag_sname ) ;
 
    if( dset->ag_surf == NULL ){
-      free(dset->ag_sname) ; dset->ag_sname = NULL ; return ;
+      free(dset->ag_sname) ; dset->ag_sname = NULL ; EXRETURN ;
    }
 
-#if 0
-ct = COX_cpu_time() ;
+   if( dset->ag_vmap != NULL ) free(dset->ag_vmap) ;
+
    dset->ag_vmap = AGNI_map_dset_to_surf( dset->ag_surf , dset ) ;
-fprintf(stderr,"AGNI_map_dset_to_surf CPU=%g\n",COX_cpu_time()-ct) ;
-#endif
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
 
 void AGNI_unload( THD_3dim_dataset *dset )
 {
-   if( !ISVALID_DSET(dset) || dset->ag_sname == NULL ) return ;
+
+ENTRY("AGNI_unload") ;
+
+   if( !ISVALID_DSET(dset) || dset->ag_sname == NULL ) EXRETURN ;
 
    if( dset->ag_surf != NULL ){
       AGNI_destroy_surface( dset->ag_surf ) ; dset->ag_surf = NULL ;
@@ -524,6 +623,8 @@ void AGNI_unload( THD_3dim_dataset *dset )
    if( dset->ag_vmap != NULL ){
       free( dset->ag_vmap ) ; dset->ag_vmap = NULL ;
    }
+
+   EXRETURN ;
 }
 
 /*===================*/

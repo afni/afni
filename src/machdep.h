@@ -144,6 +144,10 @@
     DONT_USE_STRPTIME = #define this if your system doesn't have the
                         C function strptime()
 
+    USE_RANDOM = #define this if you want/have to use the srandom/random
+                 functions instead of the srand48/drand48 functions for
+                 random number generation.
+
   Some systems need extra header files included.  Some system header
   files don't give a prototype for alphasort.  This is a place to fix
   these things up.
@@ -272,6 +276,24 @@ extern long   strtol() ;
 # undef  DONT_UNROLL_FFTS         /* helps a lot */
 #endif
 
+/* Mac OSX (Darwin) */
+#ifdef DARWIN
+# include <dirent.h>
+# define THD_MMAP_FLAG  MAP_SHARED
+# define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
+# define SCANDIR_WANTS_CONST
+# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
+/* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
+# define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
+# define BOXUP_SCALE              /* looks nicer */
+# define DYNAMIC_LOADING_VIA_DL
+# undef  DONT_UNROLL_FFTS         /* helps a lot */
+# define USE_FLOCK
+# define DONT_USE_DEBUGTHISFILE
+# define USE_RANDOM
+# define DONT_USE_STRPTIME
+# define NEED_XSETLOCALE
+#endif
 
 /************************************************************************
    Do NOT change anything below this line (unless your name is Cox)!
@@ -285,6 +307,12 @@ extern long   strtol() ;
 
 #ifdef NO_RINT
 extern double rint(double) ;  /* 12 Feb 2001 */
+#endif
+
+#ifdef USE_RANDOM             /* 04 Sep 2001 (cf. machdep.h) */
+extern void srand48(long int);
+extern double drand48(void);
+extern long int lrand48(void);
 #endif
 
 #endif /* _MCW_MACHDEP_ */

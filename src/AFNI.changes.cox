@@ -3077,3 +3077,37 @@
  * Modified afni.c to draw surface nodes in correct places, rather than
      in center of their voxels.  Also involved changes to thd_coords.c,
      to have new functions for floating point coords in FD_bricks.
+
+05 Sep 2001
+ * Modified machdep.[ch] to provide some support for Mac OSX (Darwin).
+ * Modified agni.c to do volume map (vmap) correctly, and faster.
+
+06 Sep 2001
+ * Modified afni_plugout.[ch] to have "NO_ACK" option, so that plugout
+     messages aren't acknowledged.  This is necessary to avoid race
+     conditions with a plugout that both sends and receives messages.
+ * Modified afni_plugout.[ch] to allow sending and receiving of SURFID
+     for surface node identifiers.
+ * Wrote plugout_surf.c as a demo of the SURFID interchange.
+
+07 Sep 2001
+ * Modified agni.[ch] to put a mask into the vmap to mark the level
+     of expansion at which the voxel was mapped.
+ * Modified agni.c to using ENTRY/RETURN.
+ * Modified agni.c to check for duplicate node id's when creating a surface.
+ * Modified afni.c and afni_plugout.c to strip off the vmap mask when
+     querying this array.
+ * Modified machdep.c to get the _Xsetlocale() fixup function; added
+     machdep() to a lot of programs (for Mac OS X compilation).
+
+11 Sep 2001
+ * Modified mri_render.[ch] and plug_render.c to allow depth cueing of
+     ShowThru overlays (new option ST+Dcue on overlay opacity menu).
+
+12 Sep 2001
+ * Wrote thd_autonudge.c and 3dAnatNudge.c to try to fit EPI volume
+     on top of scalped SPGR volume.
+
+13 Sep 2001
+ * Modified afni_plugin.c and NLfit_model.c to properly load .so objects
+     on Mac OS X (DARWIN).

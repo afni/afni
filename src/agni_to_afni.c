@@ -43,9 +43,12 @@ int main( int argc , char *argv[] )
                     ADN_none ) ;
    EDIT_substitute_brick( oset , 0 , MRI_byte , NULL ) ;
 
-   vmap = AGNI_map_dset_to_surf( iset->ag_surf , iset ) ;
+   vmap = iset->ag_vmap ;
    if( vmap == NULL ){
-      fprintf(stderr,"Can't AGNI_map_dset_to_surf\n"); exit(1);
+     vmap = AGNI_map_dset_to_surf( iset->ag_surf , iset ) ;
+     if( vmap == NULL ){
+       fprintf(stderr,"Can't AGNI_map_dset_to_surf\n"); exit(1);
+     }
    }
 
    nxyz = DSET_NX(oset) * DSET_NY(oset) * DSET_NZ(oset) ;

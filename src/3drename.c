@@ -33,6 +33,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /* input arguments */
 
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;

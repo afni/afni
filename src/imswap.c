@@ -16,6 +16,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    im = mri_read_just_one( argv[1] ) ;  if( im == NULL ) exit(1) ;
    mri_swapbytes( im ) ;
    mri_write( argv[2] , im ) ;

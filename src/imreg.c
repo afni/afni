@@ -66,6 +66,8 @@ int main( int argc , char *argv[] )
 
    if( argc < 3 || strncmp(argv[1],"-help",5) == 0 ){ REG_syntax() ; exit(0); }
 
+   machdep() ;
+
    Argc = argc ;
    Argv = argv ;
    Iarg = 1 ;

@@ -24,6 +24,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    nopt = 1 ;
    if( nopt+1 >= argc ){
       fprintf(stderr,"** Need input and output filenames!\n");exit(1);

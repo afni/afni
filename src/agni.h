@@ -46,6 +46,15 @@ typedef struct AGNI_surface {
 #define AGNI_nodcount(ag)  ((ag)->num_nod)
 #define AGNI_tricount(ag)  ((ag)->num_tri)
 
+#define AGNI_MAX_NODES         (1<<26)
+
+#define AGNI_VMAP_LEVMASK(ll)  (ll << 26)       /* for ll=0..7 only! */
+#define AGNI_VMAP_UNMASK(v)    ((v) & ((1<<26)-1))
+#define AGNI_VMAP_LEVEL(v)     (((v) & (7<<26)) >> 26)
+#define AGNI_VMAP_LEVZERO(v)   (((v) & (7<<26)) == 0)
+
+#define AGNI_VMAP_TO_ID(ag,v)  ((ag)->nod[AGNI_VMAP_UNMASK(v)])
+
 /*--- prototypes ---*/
 
 extern AGNI_surface * AGNI_create_empty_surface(void) ;

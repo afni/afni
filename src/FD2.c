@@ -19,6 +19,8 @@
 
 /*** setup macros for Cox modifications ***/
 
+#include "mrilib.h"
+
 #define RWCOX
 #include "RWCox.h"
 
@@ -32,7 +34,6 @@
 
 /***---------------- additions for use of array of MRI_IMAGE --------------***/
 
-#include "mrilib.h"
 #include "overfim.h"
 #include "pcor.h"
 #include "mcw_glob.h"
@@ -541,6 +542,8 @@ float         f_plot[NF_MAX+MAX_SMOOTH];
    npoints = 0;
    gamm = 1.4 ;
    LSQ_ref[0] = NULL ;
+
+   machdep() ;
 
    get_line_args(argc, argv);       /* get command line arguments and files */
 

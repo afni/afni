@@ -55,6 +55,8 @@ int main( int argc , char * argv[] )
    printf(
     "MCW TFIM: t-tests on sets of functional images, by RW Cox\n") ;
 
+   machdep() ;
+
    if( argc < 2 ) TFIM_syntax("try tfim -help for usage") ;
    else if( strcmp(argv[1],"-help") == 0 ) TFIM_syntax(NULL) ;
 

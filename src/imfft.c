@@ -32,6 +32,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    narg = 1 ;
    kim  = 0 ;
 

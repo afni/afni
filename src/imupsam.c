@@ -24,6 +24,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    nup = strtol( argv[1] , NULL , 10 ) ;
    if( nup < 2 || nup > 30 ){
       fprintf(stderr,"** imupsam: nup=%s out of range\n",argv[1]); exit(1);

@@ -27,6 +27,8 @@ extern int  MREN_set_rgbshorts( void * , MRI_IMAGE * ) ;
 extern void MREN_set_viewpoint( void * , float , float , float ) ;
 extern void MREN_set_size     ( void * , float , float , float ) ;
 
+extern void MREN_depth_cue( void * , int ) ; /* 11 Sep 2001 */
+
 extern void MREN_set_precalculation( void * ah , int ) ;
 
 extern MRI_IMAGE * MREN_render( void * , int ) ;

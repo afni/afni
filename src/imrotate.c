@@ -26,6 +26,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /** get parameters **/
 
 #define ERR fprintf(stderr,"Illegal parameter!\n")

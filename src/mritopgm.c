@@ -19,6 +19,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    narg = 1 ;
    im   = mri_read_just_one( argv[narg] ) ;
    if( im == NULL ) exit(1) ;

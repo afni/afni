@@ -28,6 +28,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    /* read input files */
 
    nim = argc-1 ;

@@ -85,6 +85,8 @@ int main( int argc , char * argv[] )
 
    if( argc < 3 || strncmp(argv[1],"-help",2) == 0 ) Syntax() ;
 
+   machdep() ;
+
    for( isl=0 ; isl < SLICES_MAX ; isl++ ){
       imin[isl] = NULL ;
       gap[isl]  = 0.0 ;

@@ -645,6 +645,8 @@ int main
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
+  machdep() ;
+
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv);

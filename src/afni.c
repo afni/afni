@@ -4512,6 +4512,24 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
+#ifdef ALLOW_AGNI                              /* 05 Sep 2001 */
+   if( new_xyz                         &&
+       AGNI_ENABLED                    &&
+       im3d->anat_now->ag_surf != NULL &&
+       im3d->anat_now->ag_vmap != NULL   ){
+
+      int pp = im3d->anat_now->ag_vmap[ i1 + j2*dim1 + k3*dim1*dim2 ] ;
+
+      if( pp >= 0 ){
+        int ll = AGNI_VMAP_LEVEL(pp) ;
+        pp = AGNI_VMAP_UNMASK(pp) ;
+        pp = im3d->anat_now->ag_surf->nod[pp].id ;
+
+        fprintf(stderr,"surface node ID = %d (level %d)\n" , pp,ll ) ;
+      }
+   }
+#endif
+
    EXRETURN ;
 }
 
@@ -5574,9 +5592,9 @@ STATUS("purging old datasets from memory (maybe)") ;
       AFNI_purge_unused_dsets() ;
    }
 #ifdef ALLOW_AGNI
-   else if( AGNI_ENABLED && old_anat != new_anat ){ /* 29 Aug 2001 */
-      AGNI_unload( old_anat ) ;
-      AGNI_load  ( new_anat ) ;
+   if( AGNI_ENABLED ){                                    /* 29 Aug 2001 */
+      if( old_anat != new_anat ) AGNI_unload( old_anat ) ;
+      AGNI_load( new_anat ) ;
    }
 #endif
 

@@ -22,6 +22,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    if( strncmp(argv[1],"-thresh",4) == 0 ){
       thresh = strtol( argv[2] , NULL , 0 ) ;
       thresh = ABS(thresh) ;

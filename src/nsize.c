@@ -23,6 +23,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    imar = mri_read_file( argv[1] ) ;  if( imar == NULL ) ERREX("can't continue!") ;
    if( imar->num != 1 ) ERREX("more than 1 image in input file!") ;
    imin = IMAGE_IN_IMARR(imar,0) ;

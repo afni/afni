@@ -69,6 +69,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   machdep() ;
+
    nopt = 1 ;
    nwin = strtol( argv[nopt] , NULL , 10 ) ;
    if( nwin < 16 ){

@@ -22,6 +22,8 @@ int main( int argc , char * argv[] )
      exit(0) ;
    }
 
+   machdep() ;
+
    imin = mri_read_just_one( argv[1] ) ;
    if( imin == NULL ) exit(1) ;
    if( ! MRI_IS_2D(imin) ){

@@ -91,7 +91,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    if (Argc < 2 || strncmp(Argv[1],"-help",4) == 0) Syntax();
 
    /*----- Add to program log -----*/
-   AFNI_logger (PROGRAM_NAME,Argc,Argv); 
+   machdep(); AFNI_logger (PROGRAM_NAME,Argc,Argv); 
 
    /* --- set default values --- */
    *verbose = FALSE;

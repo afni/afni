@@ -220,6 +220,8 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
 
+   machdep() ;
+
    CALC_read_opts( argc , argv ) ;
 
    /*** make output image (always float datum) ***/

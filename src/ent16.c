@@ -39,6 +39,8 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"++ ent16: Unknown option %s ignored!\n",argv[1]) ;
       }
    }
+
+   machdep() ;
    
    /*--------------------------*/
    
