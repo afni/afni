@@ -4784,3 +4784,7 @@
  * Modified imseq.c to auto-popdown graymap plot if it was auto-popupped
      in the first place.
  * Also added "Edit Environment" button to image window popup menu.
+
+13 Nov 2003
+ * Added argmax() and argnum() functions to parser.f and 3dcalc.c.
+ * Modified Makefile.solaris28_suncc per Vince Hradil's experience.

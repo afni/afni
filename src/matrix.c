@@ -19,7 +19,7 @@
 
   Mod:      Added routines matrix_file_write and matrix_file_read.
   Date:     02 July 1999
-	
+
   Mod:      Added routine for calculating square root of matrix.
   Date:     30 September 1999
 
@@ -42,11 +42,11 @@
             up calculations (including vector_create_noinit) -- RWCox.
   Date:     28 Dec 2001
 
-  Mod:      Allow matrices and vectors with zero rows and columns. 
+  Mod:      Allow matrices and vectors with zero rows and columns.
   Date:     26 February 2002
 
-  Mod:      Corrected errors in vector_multiply and vector_multiply_subtract 
-            routines that would produce segmentation fault for certain input 
+  Mod:      Corrected errors in vector_multiply and vector_multiply_subtract
+            routines that would produce segmentation fault for certain input
 	    matrices.
   Date:     18 March 2003
 
@@ -247,7 +247,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 {
   int i, j;
 
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read ASCII file */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   char message [80];       /* error message */
@@ -258,7 +258,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
 
   /*----- Read the matrix file -----*/
-  flim = mri_read_1D(filename); 
+  flim = mri_read_1D(filename);
   if (flim == NULL)
     if (error_exit)
       {
@@ -271,7 +271,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 	return;
       }
 
-  
+
   /*----- Set pointer to data  -----*/
   far = MRI_FLOAT_PTR(flim);
 
@@ -280,7 +280,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
   if ( (rows != flim->nx) || (cols != flim->ny) )
     if (error_exit)
       {
-	sprintf (message, 
+	sprintf (message,
 		 "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
 		 filename, rows, cols, flim->nx, flim->ny);
 	matrix_error (message);
@@ -290,7 +290,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 	matrix_destroy (m);
 	return;
       }
-  
+
 
   matrix_create (rows, cols, m);
 
@@ -532,10 +532,10 @@ void matrix_transpose (matrix a, matrix * t)
     for (j = 0;  j < cols;  j++)
       t->elts[i][j] = a.elts[j][i];
 }
- 
+
 /*---------------------------------------------------------------------------*/
 /*!
-  Use Gaussian elimination to calculate inverse of matrix a.  Result is 
+  Use Gaussian elimination to calculate inverse of matrix a.  Result is
   matrix ainv.
 */
 
@@ -551,7 +551,7 @@ int matrix_inverse (matrix a, matrix * ainv)
   matrix_initialize (&tmp);
 
 
-  if (a.rows != a.cols) 
+  if (a.rows != a.cols)
     matrix_error ("Illegal dimensions for matrix inversion");
 
 #if 0
@@ -607,10 +607,10 @@ matrix_sprint("matrix_inverse:",a) ;
 }
 
 
- 
+
 /*---------------------------------------------------------------------------*/
 /*!
-  Calculate square root of symmetric positive definite matrix a.  
+  Calculate square root of symmetric positive definite matrix a.
   Result is matrix s.
 */
 
@@ -631,7 +631,7 @@ int matrix_sqrt (matrix a, matrix * s)
   matrix_initialize (&error);
 
 
-  if (a.rows != a.cols) 
+  if (a.rows != a.cols)
     matrix_error ("Illegal dimensions for matrix square root");
 
 
@@ -708,7 +708,7 @@ void vector_create (int dim, vector * v)
   register int i;
 
   vector_destroy (v);
-  
+
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
@@ -732,7 +732,7 @@ static void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
   register int i;
 
   vector_destroy (v);
- 
+
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
@@ -755,7 +755,7 @@ void vector_print (vector v)
   for (i = 0;  i < v.dim;  i++)
     printf ("  %10.4g \n", v.elts[i]);
   printf (" \n");
-    
+
 }
 
 
@@ -839,7 +839,7 @@ void column_to_vector (matrix m, int c, vector * v)
 void vector_to_array (vector v, float * f)
 {
   register int i;
- 
+
   for (i = 0;  i < v.dim;  i++)
     f[i] = v.elts[i];
 }
@@ -935,13 +935,15 @@ void vector_multiply (matrix a, vector b, vector * c)
   if( cols%2 == 0 ){              /* even number of cols */
     for (i = 0;  i < rows;  i++){
         sum = 0.0 ; aa = a.elts[i] ;
-        for (j = 0;  j < cols;  j+=2 ) sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        for (j = 0;  j < cols;  j+=2 )
+          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
         c->elts[i] = sum ;
     }
   } else {                        /* odd number of cols */
     for (i = 0;  i < rows;  i++){
         aa = a.elts[i] ; sum = aa[0]*bb[0] ;
-        for (j = 1;  j < cols;  j+=2 ) sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        for (j = 1;  j < cols;  j+=2 )
+          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
         c->elts[i] = sum ;
     }
   }
@@ -998,20 +1000,22 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 #ifdef UNROLL_VECMUL
   if( cols%2 == 0 ){                   /* even number */
     for (i = 0;  i < rows;  i++){
-      aa = a.elts[i] ; sum = c.elts[i] ; 
-      for (j = 0;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
+      aa = a.elts[i] ; sum = c.elts[i] ;
+      for (j = 0;  j < cols;  j+=2)
+        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
       d->elts[i] = sum ; qsum += sum*sum ;
     }
   } else {                            /* odd number */
     for (i = 0;  i < rows;  i++){
-      aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ; 
-      for (j = 1;  j < cols;  j+=2) sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
+      aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ;
+      for (j = 1;  j < cols;  j+=2)
+        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
       d->elts[i] = sum ; qsum += sum*sum ;
     }
   }
 #else
   for (i = 0;  i < rows;  i++){
-    aa = a.elts[i] ; sum = c.elts[i] ; 
+    aa = a.elts[i] ; sum = c.elts[i] ;
     for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
     d->elts[i] = sum ; qsum += sum*sum ;
   }

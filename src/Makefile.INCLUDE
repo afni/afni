@@ -1712,7 +1712,7 @@ unu:unu.o
 	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 Xphace:Xphace.o
-	$(CC) -o Xphace Xphace.o -lmrix $(IFLAGS) $(LFLAGS) -lcoxplot  -lf2c $(LLIBS)
+	$(CC) -o Xphace Xphace.o $(IFLAGS) $(LFLAGS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -1754,11 +1754,11 @@ niccc:niccc.o
 
 aiv:aiv.o
 	$(RM) $@
-	$(CC) -o aiv aiv.o -lmrix $(LFLAGS) -lcoxplot $(LLIBS) -lf2c
+	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
 asnap:asnap.o
 	$(RM) $@
-	$(CC) -o asnap asnap.o -lmrix $(LFLAGS) -lcoxplot $(LLIBS) -lf2c
+	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
 nifti1_test.o:nifti1_io.c nifti1_io.h nifti1.h
 
