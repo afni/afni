@@ -1,7 +1,7 @@
 ## for SGI (IRIX 6.4, R10000 chip)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -woff all -O2 -Olimit 4000 -n32 -r10000 -DSGI -DUSE_TRACING
+CC     = cc -woff all -O2 -n32 -r10000 -DSGI -DUSE_TRACING -DHAVE_XDBE
 CCFAST = $(CC)
 CCMIN  = cc -s
 CCD    = $(CC) $(CCDEBS)
@@ -29,7 +29,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./sgi10k_6.4
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm -lc
+LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
 
 ###############################################################
 

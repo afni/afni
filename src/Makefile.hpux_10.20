@@ -1,7 +1,7 @@
 ## for HP-UX 10.20
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -Ae -z +O1 -DHP -DUSE_TRACING
+CC     = cc -Ae -z +O1 -DHP -DUSE_TRACING -DHAVE_XDBE
 CCFAST = cc -Ae -z +O3 -DHP +Oaggressive +Olibcalls
 CCMIN  = cc -Ae -s
 CCD    = $(CC) $(CCDEBS)
@@ -29,7 +29,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./hpux_10.20
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm -ldld -lc
+LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -ldld -lc
 
 ######################################################################
 

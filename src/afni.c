@@ -915,6 +915,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
    AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;   /* imseq.c */
    AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;   /* imseq.c */
+   AFNI_register_2D_function( "Lacy9"   , lacy9_box_func )   ;   /* imseq.c */
 
 #ifdef ALLOW_PLUGINS
    if( im3d->type == AFNI_3DDATA_VIEW ){

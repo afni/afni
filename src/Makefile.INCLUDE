@@ -45,6 +45,10 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg
 
+LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
+             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
+             thd_compress.h afni_warp.h coxplot.h f2c.h
+
 all:libmri.a libcoxplot.a programs
 
 itall:all plugins install install_plugins
@@ -562,7 +566,7 @@ install_noplug:
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 
 install_lib:
-	$(CP) libmri.a mrilib.h libf2c.a f2c.h libcoxplot.a coxplot.h $(LIBDIR)
+	$(CP) libmri.a libf2c.a libcoxplot.a $(LIBHEADERS) $(LIBDIR)
 ###################################################################
 # some dependencies (not complete)
 

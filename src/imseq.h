@@ -529,7 +529,7 @@ extern void ISQ_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_transform_label( MCW_arrowval * , XtPointer ) ;
 
 #define ROWGRAPH_MAX  9
-#define SURFGRAPH_MAX 1
+#define SURFGRAPH_MAX 2
 
 #define ROWGRAPH_MASK  1
 #define SURFGRAPH_MASK 2
@@ -543,12 +543,13 @@ extern void ISQ_surfgraph_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_surfgraph_label( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_surfgraph_draw( MCW_imseq * seq ) ;
 extern void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp ) ;
-extern MEM_plotdata * plot_image_surface( MRI_IMAGE * , float,float,int,int ) ;
+extern MEM_plotdata * plot_image_surface( MRI_IMAGE * , float,float,float,int,int ) ;
 extern void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 
 extern void median9_box_func( int nx , int ny , double,double , float * ar ) ;
 extern void winsor9_box_func( int nx , int ny , double,double , float * ar ) ;
 extern void osfilt9_box_func( int nx , int ny , double,double , float * ar ) ;
+extern void lacy9_box_func  ( int nx , int ny , double,double , float * ar ) ;
 
 /*---- temporary, I hope ----*/
 

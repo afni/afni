@@ -2849,7 +2849,10 @@ DPR("ISQ_but_disp_CB");
                                   "rows.  Note that image transformations\n"
                                   "functions and image rotations/flips\n"
                                   "will affect the rowgraphs as well as\n"
-                                  "the image display."
+                                  "the image display.\n\n"
+                                  "N.B.: The color 'UK Flag' marker indicates\n"
+                                  "      the crosshair focus point. It can be\n"
+                                  "      turned off via the 'No Overlay' button."
                                  ) ;
             MCW_reghint_children( seq->rowgraph_av->wrowcol ,
                                   "Number of image rows to graph" ) ;
@@ -5065,7 +5068,7 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
 {
    MEM_plotdata * mp ;
    ISQ_cbs cbs ;
-   int jbot , nrow , jj , nx , ymask ;
+   int jbot,ix,jy , nrow , jj , nx,ny , ymask ;
    float * yar[ROWGRAPH_MAX] ;
 
    if( ! ISQ_REALZ(seq) ) return ;  /* error */
@@ -5089,13 +5092,14 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
 
    cbs.reason = isqCR_getxynim ;
    cbs.xim = cbs.yim = cbs.nim = -666 ;
-   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+   if( seq->status->send_CB != NULL )
+      seq->status->send_CB( seq , seq->getaux , &cbs ) ;
    if( cbs.xim < 0 || cbs.yim < 0 ){
       fprintf(stderr,"*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
       return ;  /* bad result */
    }
    ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
-   jbot = cbs.yim ;
+   jy = jbot = cbs.yim ; ix = cbs.xim ;
 
    /* get pointers to data rows */
 
@@ -5106,6 +5110,7 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
 
    nrow = MIN( seq->rowgraph_num  , jbot+1 ) ;
    nx   = seq->orim->nx ;
+   ny   = seq->orim->ny ;
 
    for( jj=0 ; jj < nrow ; jj++ )
       yar[jj] = MRI_FLOAT_PTR(seq->orim) + (jbot-jj)*nx ;
@@ -5118,6 +5123,42 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
    if( mp == NULL ){
       fprintf(stderr,"*** error in ISQ_rowgraph_draw: can't make plot_ts_mem\n") ;
       return ;  /* error */
+   }
+
+   /*-- plot a * at the selected point (if it is in range) --*/
+
+   if( !seq->opt.no_overlay && ix >= 0 && ix < nx && jy >= 0 && jy < ny ){
+      float xx , yy , dx , dy , xbot,xtop, ybot,ytop ;
+
+      xx = ix ; dx = 0.016 * nx ; yy = yar[0][ix] ;
+#if 0
+      ybot = ytop = yar[0][0] ;
+      for( jj=1 ; jj < nx ; jj++ )
+              if( yar[0][jj] < ybot ) ybot = yar[0][jj] ;
+         else if( yar[0][jj] > ytop ) ytop = yar[0][jj] ;
+      dy = 0.016 * nrow * (ytop-ybot) ;
+#else
+      plotpak_getset( NULL,NULL,NULL,NULL , &xbot,&xtop , &ybot,&ytop ) ;
+      dx = 0.016 * fabs(xtop-xbot) ;
+      dy = 0.016 * fabs(ytop-ybot) * nrow ;
+#endif
+
+#undef  THIK
+#define THIK 0.003
+
+      set_color_memplot( 0.8 , 0.0 , 0.2 ) ;
+      set_thick_memplot( THIK ) ;
+      plotpak_line( xx-dx , yy    , xx+dx , yy    ) ; /* - stroke */
+      plotpak_line( xx    , yy-dy , xx    , yy+dy ) ; /* | stroke */
+      plotpak_line( xx-dx , yy-dy , xx+dx , yy+dy ) ; /* / stroke */
+      plotpak_line( xx+dx , yy-dy , xx-dx , yy+dy ) ; /* \ stroke */
+      set_color_memplot( 0.2 , 0.0 , 0.8 ) ;
+      plotpak_line( xx+dx , yy-dy , xx+dx , yy+dy ) ; /* box around outside */
+      plotpak_line( xx+dx , yy+dy , xx-dx , yy+dy ) ;
+      plotpak_line( xx-dx , yy+dy , xx-dx , yy-dy ) ;
+      plotpak_line( xx-dx , yy-dy , xx+dx , yy-dy ) ;
+      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+      set_thick_memplot( 0.0 ) ;
    }
 
    /* if there is a plot window open, plot into it, otherwise open a new window */
@@ -5156,8 +5197,12 @@ void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp )
 
 char * ISQ_surfgraph_label( MCW_arrowval * av , XtPointer cd )
 {
-   if( av->ival <= 0 ) return "No"  ;
-   else                return "Yes" ;
+   switch( av->ival ){
+      case 0:  return "No"  ;
+      case 1:  return "Yes" ;
+      case 2:  return "Inv" ;
+   }
+   return "?*?" ;
 }
 
 /*--- called when the user changes the SurfGraph menu button ---*/
@@ -5211,18 +5256,19 @@ void ISQ_surfgraph_draw( MCW_imseq * seq )
    } else {
       cbs.reason = isqCR_getxynim ;
       cbs.xim = cbs.yim = cbs.nim = -666 ;
-      seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+      if( seq->status->send_CB != NULL )
+         seq->status->send_CB( seq , seq->getaux , &cbs ) ;
       if( cbs.xim < 0 || cbs.yim < 0 ){
-         fprintf(stderr,"*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
-         return ;  /* bad result */
+         ix = jy = -1 ;
+      } else {
+         ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
+         ix = cbs.xim ; jy = cbs.yim ;
       }
-      ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
-      ix = cbs.xim ; jy = cbs.yim ;
    }
 
    /* plot the data */
 
-   mp = plot_image_surface( seq->orim ,
+   mp = plot_image_surface( seq->orim , (seq->surfgraph_num == 2) ? -1.0 : 1.0 ,
                             seq->surfgraph_theta , seq->surfgraph_phi ,
                             ix , jy ) ;
    if( mp == NULL ) return ;
@@ -5288,7 +5334,7 @@ void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp )
 
 /*--- actually draws an image to a wiremesh, in memory ---*/
 
-MEM_plotdata * plot_image_surface( MRI_IMAGE * im ,
+MEM_plotdata * plot_image_surface( MRI_IMAGE * im , float fac ,
                                    float theta , float phi , int ix , int jy )
 {
    MRI_IMAGE * fim , * qim ;
@@ -5324,7 +5370,9 @@ MEM_plotdata * plot_image_surface( MRI_IMAGE * im ,
    /*-- scale image data --*/
 
    qim = mri_flippo( MRI_ROT_180 , 1 , im ) ;
-   fim = mri_to_float(qim) ; z = MRI_FLOAT_PTR(fim) ; mri_free(qim) ;
+   if( fac == 1.0 || fac == 0.0 ) fim = mri_to_float(qim) ;
+   else                           fim = mri_scale_to_float(fac,qim) ;
+   z = MRI_FLOAT_PTR(fim) ; mri_free(qim) ;
    nxy = nx * ny ; zbot = ztop = z[0] ;
    for( ii=1 ; ii < nxy ; ii++ ){
            if( z[ii] < zbot ) zbot = z[ii] ;
@@ -5332,7 +5380,7 @@ MEM_plotdata * plot_image_surface( MRI_IMAGE * im ,
    }
    ztop = ztop - zbot ;
    if( ztop > 0.0 ){
-      ztop = sqrt( x[nx-1] * y[ny-1] ) / ztop ;
+      ztop = 0.85 * sqrt( x[nx-1] * y[ny-1] ) / ztop ;
       for( ii=0 ; ii < nxy ; ii++ ) z[ii] = (z[ii]-zbot) * ztop ;
    }
 
@@ -5396,9 +5444,10 @@ void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * apad , XtPointer client_data )
 
    if( ! ISQ_REALZ(seq) ) return ;  /* error */
 
-   if( ( xev->type == ButtonPress ||
-         xev->type == ButtonRelease ) &&
-       (xev->state & (ShiftMask | ControlMask)) ) step = 90.0 ;
+   if( ( xev->type == ButtonPress || xev->type == ButtonRelease ) ){
+      if( xev->state & (ShiftMask|ControlMask) ) step = 90.0 ; /* big step   */
+      if( xev->state & Mod1Mask                ) step =  2.0 ; /* small step */
+   }
 
    switch( apad->which_pressed ){
       case AP_MID:   seq->surfgraph_theta = DEFAULT_THETA ;
@@ -5409,8 +5458,14 @@ void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * apad , XtPointer client_data )
       case AP_LEFT:  seq->surfgraph_phi   += step ; break ;
       case AP_RIGHT: seq->surfgraph_phi   -= step ; break ;
 
-      default:                                      return ;
+      default:                                      return ; /* error */
    }
+
+   while( seq->surfgraph_theta < 0.0    ) seq->surfgraph_theta += 360.0 ;
+   while( seq->surfgraph_theta >= 360.0 ) seq->surfgraph_theta -= 360.0 ;
+
+   while( seq->surfgraph_phi < 0.0    ) seq->surfgraph_phi += 360.0 ;
+   while( seq->surfgraph_phi >= 360.0 ) seq->surfgraph_phi -= 360.0 ;
 
    ISQ_surfgraph_draw( seq ) ; return ;
 }
@@ -5426,6 +5481,8 @@ static int    natemp = -666 ;
          if( atemp != NULL ) free(atemp) ;   \
          natemp = (nvox) ;                   \
          atemp  = (float *) malloc( sizeof(float) * natemp ) ; } } while(0)
+
+#define AT(i,j) atemp[(i)+(j)*nx]
 
 void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
 {
@@ -5586,5 +5643,80 @@ void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
       isort_float( 9 , aa ) ;
       ar[nx-1+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
    }
+   return ;
+}
+
+void lacy9_box_func( int nx , int ny , double dx, double dy, float * ar )
+{
+   int ii , jj , nxy , isp , nnn , qqq , imid,jmid ;
+   float val ;
+
+   if( nx < 3 || ny < 3 ) return ;
+
+   osfilt9_box_func( nx,ny,dx,dy,ar ) ;  /* smooth */
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+
+   /** process copy of input back into the input array **/
+
+#undef Z
+#undef ZZ
+#define Z(x,y)    ( ((x)>(y)) ? 0 : ((x)==(y)) ? 1 : 2 )
+#define ZZ(a,b,c) ( Z((a),(b))+Z((c),(b)) >= 3 )
+
+   for( ii=0 ; ii < nxy ; ii++ ) ar[ii] = 0.0 ;
+
+   imid = nx/2 ; jmid = ny/2 ;
+
+   for( jj=1 ; jj < ny-1 ; jj++ ){       /* find local peaks */
+     for( ii=1 ; ii < nx-1 ; ii++ ){     /* in each 3x3 cell */
+
+       val = AT(ii,jj) ;
+
+#if 0
+       isp =    ZZ( AT(ii-1,jj  ) , val , AT(ii+1,jj  ) )
+             || ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
+             || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) )
+             || ZZ( AT(ii  ,jj+1) , val , AT(ii  ,jj-1) ) ;
+#else
+       if( abs(ii-imid) <= abs(jj-jmid) ){
+          isp =    ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
+                || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) )
+                || ZZ( AT(ii  ,jj+1) , val , AT(ii  ,jj-1) ) ;
+       } else {
+          isp =    ZZ( AT(ii-1,jj  ) , val , AT(ii+1,jj  ) )
+                || ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
+                || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) ) ;
+       }
+#endif
+
+       if( isp ) ar[ii+jj*nx] = val ;
+     }
+   }
+
+   qqq = 0 ;
+   do {
+      nnn = 0 ;
+      for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+      for( jj=1 ; jj < ny-1 ; jj++ ){     /* clip off those that */
+        for( ii=1 ; ii < nx-1 ; ii++ ){   /* are too isolated    */
+
+           if( AT(ii,jj) != 0.0 ){
+              isp =  (AT(ii-1,jj  ) != 0.0) + (AT(ii+1,jj  ) != 0.0)
+                   + (AT(ii-1,jj+1) != 0.0) + (AT(ii+1,jj+1) != 0.0)
+                   + (AT(ii-1,jj-1) != 0.0) + (AT(ii+1,jj-1) != 0.0)
+                   + (AT(ii  ,jj-1) != 0.0) + (AT(ii  ,jj-1) != 0.0) ;
+
+              if( isp < 2 ){ ar[ii+jj*nx] = 0.0 ; nnn++ ; }
+           }
+        }
+      }
+      qqq++ ;
+   } while( qqq < 9 && nnn > 0 ) ;
+
    return ;
 }

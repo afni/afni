@@ -1,6 +1,11 @@
 #ifndef _MCW_MEMPLOT_HEADER_
 #define _MCW_MEMPLOT_HEADER_
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------- Header for in-memory adaptation of PLOTPAK ---------------*/
 
 #include <X11/Intrinsic.h>
@@ -9,18 +14,26 @@
 #include <math.h>
 #include <stdlib.h>
 
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
+#ifdef HAVE_XDBE
+#  include <X11/extensions/Xdbe.h>
 
-#ifndef MAX
-#  define MAX(a,b) (((a)<(b)) ? (b) : (a))
+#  ifdef MAIN_COXPLOT_FILE
+      int use_xdbe = -1 ;
+#  else
+      extern int use_xdbe ;
+#  endif
+
+   extern void init_XDBE(Display *) ;
+   extern Window getwin_from_XDBE( Display * , Drawable ) ;
+#else
+#  define getwin_from_XDBE(dd,ww) (ww)
 #endif
 
-#ifndef MIN
-#  define MIN(a,b) (((a)>(b)) ? (b) : (a))
-#endif
+#undef MAX
+#define MAX(a,b) (((a)<(b)) ? (b) : (a))
+
+#undef MIN
+#define MIN(a,b) (((a)>(b)) ? (b) : (a))
 
 #ifndef VOID_FUNC
 #define VOID_FUNC
@@ -157,6 +170,11 @@ typedef struct {
    MEM_plotdata * mp ;
    void * userdata ;
    void_func * killfunc ;
+
+#ifdef HAVE_XDBE
+   int            have_xdbe ;
+   XdbeBackBuffer buf_xdbe ;
+#endif
 } MEM_topshell_data ;
 
 #define MTD_PLOTDATA(mpcb)        ((mpcb)->mp)
@@ -296,6 +314,9 @@ extern void plotpak_tick4( int mx, int lx , int my , int ly ) ;
 extern void plotpak_vector( float x , float y ) ;
 
 extern void plotpak_srface( float *, float *, float *, int,int, float,float ) ;
+
+extern void plotpak_getset( float *xo1,float *xo2 , float *yo1,float *yo2 ,
+                            float *xs1,float *xs2 , float *ys1,float *ys2  ) ;
 
 /*----- Commons from PLOTPAK -----*/
 
