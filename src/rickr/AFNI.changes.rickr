@@ -947,4 +947,6 @@
   * nifti library release 1.1: swap header in nifti_read_header()
 07 Jan 2005: INITIAL RELEASE OF nifti_tool (v 1.0)
   * lots of functions
+  * modified Makefile.INCLUDE to compile nifti_test, nifti_stats and
+    nifti1_test automatically
 
