@@ -13,12 +13,19 @@
 #define ST_SINFO                1	/* infomation type */
 #define ST_SMEASURE             2	/* measure type    */
 
+#define ST_PI			3.141592653589793
+
+#define RANGE(a,b,c) do {if ((b)<(a)) (b)=(a); if ((b)>(c)) (b)=(c);} while (0)
+
 #define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
 
 /* measure codes, to match g_smeasure_names */
 typedef enum
 {
     E_SM_INVALID,			/* do not change INVALID or FINAL    */
+    E_SM_ANG_NORMS,			/* give angle diff between normals   */
+    E_SM_ANG_NS_A,			/* give norm A angle to segment      */
+    E_SM_ANG_NS_B,			/* give norm B angle to segment      */
     E_SM_COORD_A,			/* give coordinates of first node    */
     E_SM_COORD_B,			/* give coordinates of second node   */
     E_SM_N_AREA_A,			/* give node area of first node      */
@@ -79,19 +86,26 @@ int	add_to_flist         ( func_t * F, char * fname );
 int	all_mappable_surfs   ( opts_t * opts, param_t * p );
 int	check_func_name      ( char * func );
 int	compute_node_areas   ( opts_t * opts, param_t * p, int sindex );
+int	disp_f3_point        ( char * info, float * d );
+int	disp_func_t          ( char * info, func_t * d );
+int	disp_opts_t          ( char * info, opts_t * d );
 int	disp_surf_t          ( char * info, surf_t * d );
 float   dist_f3mm            ( THD_fvec3 * p1, THD_fvec3 * p2 );
+float   fvec_magnitude       ( float * vec, int length );
 int	final_cleanup        ( opts_t * opts, param_t * p );
 int	get_surf_data        ( opts_t * opts, param_t * p );
 int	get_surf_measures    ( opts_t * opts, param_t * p );
 int	init_options         ( opts_t * opts, int argc, char * argv[] );
 int	init_opts_t          ( opts_t * opts );
+float   magnitude_vec_N      ( float * vec, int length );
+float	norm2seg_angle       ( THD_fvec3 * p0, THD_fvec3 * p1, float * norm );
 int	print_column_headers ( opts_t * opts, param_t * p );
 int	spec2SUMA            ( SUMA_SurfSpecFile * spec, char * spec_file,
 	                       char * sv_file, int debug );
 int	usage                ( char * prog, int use_type );
 int	validate_option_lists( opts_t * opts, param_t * p );
 int	validate_options     ( opts_t * opts, param_t * p );
+float	vector_angle         ( float * v0, float * v1 );
 int	verify_surf_t        ( opts_t * opts, param_t * p );
 int	write_output         ( opts_t * opts, param_t * p );
 
