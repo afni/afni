@@ -886,6 +886,7 @@ fflush(stdout) ;
 
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
+   newseq->winfo_extra[0] = '\0' ;  /* 07 Aug 1999 */
 
    /***---------- all widgets now created ------------***/
 
@@ -2336,8 +2337,15 @@ void ISQ_draw_winfo( MCW_imseq * seq )
            sprintf( buf+ibuf , " min=%g max=%g" , st->min   , st->max   ) ;
    }
 
-   if( strcmp(buf,seq->im_label) != 0 ){
-      MCW_set_widget_label( seq->winfo , buf ) ;
+   if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
+      if( seq->winfo_extra[0] == '\0' ){
+         MCW_set_widget_label( seq->winfo , buf ) ;
+      } else {                                        /* this winfo_extra stuff */
+         char qbuf[128] ;                             /* is from 07 Aug 1999    */
+         strcpy(qbuf,seq->winfo_extra) ;
+         strcat(qbuf," ") ; strcat(qbuf,buf) ;
+         MCW_set_widget_label( seq->winfo , qbuf ) ;
+      }
       strcpy(seq->im_label,buf) ;
    }
 
@@ -3681,6 +3689,10 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 *    isqDR_rebar           (ignored) erase the color bar and show it again
 
+*    isqDR_winfotext       (char *) sets the winfo extra text
+
+*    isqDR_getoptions      (ISQ_options *) to get the current options
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3700,6 +3712,22 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          return False ;
       }
       break ;
+
+      /*------- winfo extra text [07 Aug 1999] -------*/
+
+      case isqDR_winfotext:{
+         char * wt = (char *) drive_data ;
+
+         if( wt == NULL || wt[0] == '\0' ){
+            seq->winfo_extra[0] = '\0' ;
+         } else {
+            strncpy( seq->winfo_extra , wt , 63 ) ;
+            seq->winfo_extra[63] = '\0' ;
+         }
+         seq->im_label[0] = '\0' ;  /* will force redraw */
+         ISQ_draw_winfo( seq ) ;
+         return True ;
+      }
 
       /*------- button2 stuff -------*/
 
@@ -3959,6 +3987,16 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          return True ;
       }
       break ;
+
+      /*------- get current options [07 Aug 1999] -------*/
+
+      case isqDR_getoptions:{
+         ISQ_options * opt = (ISQ_options *) drive_data ;
+
+         if( opt == NULL ) return False ;
+         *opt = seq->opt ;
+         return True ;
+      }
 
       /*------- turn arrowpad on -------*/
 

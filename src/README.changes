@@ -4,6 +4,20 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+07 Aug 1999:
+   The volume rendering plugin now can remember how it created a 3D view
+     (or set of them), which is very handy.
+   You can now setup AFNI_ environment variables in the .afnirc file --
+     see README.environment for details.
+   Polynomial 'orts' can now be used in the AFNI interactive FIM and FIM+.
+   New program 3dTsmooth is for temporal smoothing of 3D+time datasets.
+   New program floatscan can check floating point .BRIKs for illegal
+     values; you can have AFNI do this automatically with the new
+     AFNI_FLOATSCAN environment variable.
+   The axial and coronal image windows now display a label (below the
+     image itself) showing whether the subject's left is on the left
+     or right of the window.
+--------------------------------------------------------------------------
 05 Apr 1999:
    Try out the new 'Render Dataset' plugin to get some 3D views.
    The new program 'adwarp' provides a batch way to do what the

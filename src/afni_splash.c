@@ -40,7 +40,11 @@ ENTRY("AFNI_splashdown") ;
          if( imspl != NULL ){  /* fade gently away */
             bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ;
             for( kk=0 ; kk < 10 ; kk++ ){
+#if 0
                for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
+#else
+               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii])>>4 ;
+#endif
                SPLASH_popup_image(handle,imspl) ;
                drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
             }
@@ -48,7 +52,7 @@ ENTRY("AFNI_splashdown") ;
          iochan_sleep(100) ; /* 100 msec of solitude */
       }
 #endif
-      SPLASH_popup_image(handle,NULL); handle = NULL;  /* get rid of window */
+      SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
    }
    mri_free(imspl) ; imspl = NULL ;
    EXRETURN ;

@@ -4401,15 +4401,15 @@ ENTRY("AFNI_misc_button") ;
                              "of miscellaneous options:\n"
 #ifdef USE_WRITEOWNSIZE
                              " Write=Own size?   = Write dataset using current\n"
-                             "                     anat dimensions, or using\n"
-                             "                     size of dataset in its own\n"
-                             "                     .HEAD file.\n"
+                             "                      anat dimensions, or using\n"
+                             "                      size of dataset in its own\n"
+                             "                      .HEAD file.\n"
 #endif
                              " Voxel Coords?     = Show crosshair location\n"
-                             "                     in mm or voxel indexes\n"
+                             "                      in mm or voxel indexes\n"
 #ifndef DONT_USE_HINTS
                              " Show Hints?       = Turn popup hints\n"
-                             "                     off or on\n"
+                             "                      off or on\n"
 #endif
                              " Anat Info         = Show 3dinfo output\n"
                              " Func Info         = for current datasets\n"
@@ -4417,7 +4417,7 @@ ENTRY("AFNI_misc_button") ;
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
                              " Debug=MODE        = Set debug mode to\n"
-                             "                     next legal setting\n"
+                             "                      next legal setting\n"
 #endif
 #ifdef USING_MCW_MALLOC
                              " Malloc Summary    = Show memory usage\n"
@@ -4459,7 +4459,6 @@ ENTRY("AFNI_misc_button") ;
 
    /*-- pushbutton for voxel index toggle --*/
 
-#ifdef TOGGLES_ATLAST
    /* 01 Aug 1999: replace pushbutton with toggle button */
 
    { char * blab[1] = { "Voxel Coords?" } ;
@@ -4469,19 +4468,6 @@ ENTRY("AFNI_misc_button") ;
                                              AFNI_misc_CB , (XtPointer)im3d ) ;
      dmode->misc_voxind_pb = dmode->misc_voxind_bbox->wbut[0] ;
    }
-#else
-   dmode->misc_voxind_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , menu ,
-            LABEL_ARG("Voxel Coords?") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-
-   XtAddCallback( dmode->misc_voxind_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
-#endif
    MCW_register_hint( dmode->misc_voxind_pb , "Toggle coordinate display" ) ;
 
     /*-- pushbutton to turn hints on and off --*/
@@ -4502,7 +4488,6 @@ ENTRY("AFNI_misc_button") ;
                   NULL ) ;
 
          } else {
-#ifdef TOGGLES_ATLAST
             { char * blab[1] = { "Show Hints?" } ;
               dmode->misc_hints_bbox = new_MCW_bbox( menu ,
                                                      1 , blab ,
@@ -4510,20 +4495,8 @@ ENTRY("AFNI_misc_button") ;
                                                      AFNI_misc_CB , (XtPointer)im3d ) ;
               dmode->misc_hints_pb = dmode->misc_hints_bbox->wbut[0] ;
             }
-#else
-            dmode->misc_hints_pb =
-               XtVaCreateManagedWidget(
-                  "dialog" , xmPushButtonWidgetClass , menu ,
-                     LABEL_ARG("Show Hints?") ,
-                     XmNmarginHeight , 0 ,
-                     XmNtraversalOn , False ,
-                     XmNinitialResourcesPersistent , False ,
-                  NULL ) ;
-
-            XtAddCallback( dmode->misc_hints_pb , XmNactivateCallback ,
-                           AFNI_misc_CB , im3d ) ;
-#endif
             MCW_register_hint( dmode->misc_hints_pb , "Toggle hints display" ) ;
+            MCW_set_bbox( dmode->misc_hints_bbox , GLOBAL_library.hints_on ) ;
          }
    }
 #else

@@ -393,6 +393,10 @@ typedef struct {
 
      XtPointer parent ;
 
+     /* extra text for winfo [07 Aug 1999] */
+
+     char winfo_extra[64] ;
+
 } MCW_imseq ;
 
 /***---------- prototypes: user callable ----------***/
@@ -423,6 +427,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_periodicmont 120
 
 #define isqDR_arrowpadhint 201
+#define isqDR_winfotext    202
+#define isqDR_getoptions   203
 
 #define isqDR_destroy      666
 

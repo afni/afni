@@ -71,7 +71,13 @@ static AFNI_friend afni_friends[] = {
 /*{ "S.A. Fuller"      , (                 16           ) } ,*/
   { "K.M. Donahue"     , (                 16           ) } ,
   { "P.A. Bandettini"  , (                 16           ) } ,
-  { "A.S. Bloom"       , ( 1 | 2         | 16           ) }
+  { "A.S. Bloom"       , ( 1 | 2         | 16           ) } ,
+  { "T. Ross"          , (         4 | 8                ) } ,
+  { "H. Garavan"       , (         4 | 8                ) } ,
+  { "R. Reynolds"      , (                           64 ) } ,
+  { "S.-J. Li"         , (     2                        ) } ,
+  { "Z. Saad"          , (     2 | 4 | 8 | 16           ) } ,
+  { "K. Ropella"       , (     2                        ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -828,6 +834,8 @@ int main( int argc , char * argv[] )
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
    SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
+   GLOBAL_library.hints_on = 0 ;                       /* 07 Aug 1999 */
+
 #ifdef ALLOW_PLUGINS
    GLOBAL_library.plugins  = NULL ;
 #endif
@@ -1091,11 +1099,9 @@ static Boolean MAIN_workprocess( XtPointer fred )
              GLOBAL_library.hints_on = 0 ;
            }
 
-#ifdef TOGGLES_ATLAST
            if( MAIN_im3d->vwid->dmode->misc_hints_pb != NULL )
               MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
                             GLOBAL_library.hints_on ) ;
-#endif
         }
 
         /* Feb 1998: setup write compression from environment */
@@ -3283,14 +3289,19 @@ ENTRY("AFNI_view_xyz_CB") ;
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images, if desired */
+      /* 07 Aug 1998: put an informational label in those windows, too */
 
-      if( GLOBAL_argopt.left_is_left &&
-          ( (*snew == im3d->s123) || (*snew == im3d->s312) ) ){
+      if( (*snew == im3d->s123) || (*snew == im3d->s312) ){
 
-         ISQ_options opt ;
-         ISQ_DEFAULT_OPT(opt) ;
-         opt.mirror = TRUE ;
-         drive_MCW_imseq( *snew, isqDR_options , (XtPointer) &opt ) ;
+         if( GLOBAL_argopt.left_is_left ){
+            ISQ_options opt ;
+            ISQ_DEFAULT_OPT(opt) ;
+            opt.mirror = TRUE ;
+            drive_MCW_imseq( *snew, isqDR_options   , (XtPointer) &opt ) ;
+            drive_MCW_imseq( *snew, isqDR_winfotext , (XtPointer) "[left is left]" ) ;
+         } else {
+            drive_MCW_imseq( *snew, isqDR_winfotext , (XtPointer) "[left is right]" ) ;
+         }
       }
 
       AFNI_toggle_drawing( im3d ) ;

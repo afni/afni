@@ -495,8 +495,6 @@ typedef struct {
 #  define FIX_SCALE_VALUE(iqqq) /* nada */
 #endif
 
-#define TOGGLES_ATLAST
-
 typedef struct {
       Widget frame , rowcol ;
 
@@ -523,9 +521,7 @@ typedef struct {
       Widget         misc_writeownsize_pb ;   /* 01 Aug 1999 */
       MCW_bbox     * misc_writeownsize_bbox ;
 
-#ifdef TOGGLES_ATLAST
       MCW_bbox     * misc_voxind_bbox , * misc_hints_bbox ; /* 01 Aug 1999 */
-#endif
 } AFNI_datamode_widgets ;
 
 /*---*/

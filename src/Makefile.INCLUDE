@@ -631,6 +631,8 @@ install_lib:
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
+afni_splash.o:afni_splash.h
+
 afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h newstuff.hhh
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h machdep.h
 afni_warp.o:afni_warp.h 3ddata.h machdep.h

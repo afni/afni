@@ -1994,7 +1994,7 @@ STATUS("KeyPress event") ;
             if( buf[0] != '\0' ) GRA_handle_keypress( grapher , buf , ev ) ;
             else if(PRINT_TRACING){
                char str[256] ;
-               sprintf(str,"*** KeyPress was empty!?  nbuf=%d") ;
+               sprintf(str,"*** KeyPress was empty!?  nbuf=%d",nbuf) ;
                STATUS(str) ; }
          }
       }

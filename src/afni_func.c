@@ -3988,26 +3988,22 @@ ENTRY("AFNI_misc_CB") ;
    if( ! IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
 
    if( w == im3d->vwid->dmode->misc_voxind_pb ){
-#ifdef TOGGLES_ATLAST
       im3d->vinfo->show_voxind = MCW_val_bbox(im3d->vwid->dmode->misc_voxind_bbox) ;
-#else
-      im3d->vinfo->show_voxind = ! im3d->vinfo->show_voxind ;
-#endif
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
    }
 
 #ifndef DONT_USE_HINTS
    else if( w == im3d->vwid->dmode->misc_hints_pb ){
-#ifdef TOGGLES_ATLAST
       int val = MCW_val_bbox(im3d->vwid->dmode->misc_hints_bbox) ;
       if( val != GLOBAL_library.hints_on ){
-         MCW_hint_toggle() ;
-         GLOBAL_library.hints_on = val ;
+         int ii ; Three_D_View * qq3d ;
+         MCW_hint_toggle() ; GLOBAL_library.hints_on = val ;
+         for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){             /* this loop:  */
+            qq3d = GLOBAL_library.controllers[ii] ;             /* 07 Aug 1999 */
+            if( IM3D_VALID(qq3d) )
+               MCW_set_bbox( qq3d->vwid->dmode->misc_hints_bbox , val ) ;
+         }
       }
-#else
-      MCW_hint_toggle() ;
-      GLOBAL_library.hints_on = ! GLOBAL_library.hints_on ;
-#endif
    }
 #endif
 
