@@ -88,7 +88,7 @@ int main( int argc , char * argv[] )
          if( narg+1 >= argc ){
             fprintf(stderr,"*** -mask option requires a following argument!\n") ; exit(1) ;
          }
-         mask_dset = THD_open_one_dataset( argv[++narg] ) ;
+         mask_dset = THD_open_dataset( argv[++narg] ) ;
          if( mask_dset == NULL ){
             fprintf(stderr,"*** Cannot open mask dataset!\n") ; exit(1) ;
          }
@@ -212,7 +212,7 @@ int main( int argc , char * argv[] )
 
    /* read input dataset */
 
-   input_dset = THD_open_one_dataset( argv[narg] ) ;
+   input_dset = THD_open_dataset( argv[narg] ) ;
    if( input_dset == NULL ){
       fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
    }

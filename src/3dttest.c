@@ -581,7 +581,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
 /** macro to open a dataset and make it ready for processing **/
 
 #define DOPEN(ds,name)                                                               \
-   do{ int pv ; (ds) = THD_open_one_dataset((name)) ;                                \
+   do{ int pv ; (ds) = THD_open_dataset((name)) ;  /* 16 Sep 1999 */                 \
        if( !ISVALID_3DIM_DATASET((ds)) ){                                            \
           fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; }        \
        if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \

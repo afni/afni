@@ -388,7 +388,7 @@ DB("new arg:",argv[iarg]) ;
 
    /*--- open dataset and set up to extract data slices ---*/
 
-   dset = THD_open_one_dataset( argv[iarg] ) ;
+   dset = THD_open_dataset( argv[iarg] ) ;
    if( dset == NULL ){
       fprintf(stderr,"\n*** Can't open dataset file %s\n",argv[iarg]) ;
       exit(-1) ;

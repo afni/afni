@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; }
 
    for( ; iarg < argc ; iarg++ ){
-      dset = THD_open_one_dataset( argv[iarg] ) ;
+      dset = THD_open_dataset( argv[iarg] ) ;
       if( dset == NULL ){
          printf("-1\n") ;
          continue ;

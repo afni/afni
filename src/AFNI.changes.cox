@@ -1660,3 +1660,8 @@
  * Added default values for i,j,k to 3dcalc.c.
  * Added thd_makemask.c.
  * Added -mask option to 3dpc.c.
+
+16 Sep 1999:
+ * Changed THD_open_one_dataset() to THD_open_dataset() in programs
+     3dFourier.c, 3dROIstats.c, 3dmaskave.c, 3dnvals.c, 3dproject.c, 3dttest.c.
+ * Modified 3dclust.c to use -1dindex and -1tindex, as in 3dmerge.c

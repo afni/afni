@@ -61,6 +61,7 @@ voxels per original voxel
 #include "mrilib.h"
 
 static EDIT_options CL_edopt ;
+static int CL_ivfim=-1 , CL_ivthr=-1 ;
 
 static int CL_nopt ;
 
@@ -125,7 +126,8 @@ int main( int argc , char * argv[] )
           "     abs. value) for calculation of the mean and SEM \n"
           "  The -summarize option will write out only the total\n"
           "     nonzero voxel count and volume for each dataset.\n"
-          "  The editing options are as in 3dmerge.\n"
+          "  The editing options are as in 3dmerge\n"
+          "     (including use of the -1dindex and -1tindex options).\n"
           "  The program does not work on complex-valued datasets!\n"
           "  Using the -1noneg option is strongly recommended!	\n "
           "  SEM values are not realistic for interpolated data sets! \n"
@@ -173,7 +175,12 @@ int main( int argc , char * argv[] )
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ; /* don't mmap  */
       THD_load_datablock( dset->dblk , NULL ) ;                    /* read in     */
       EDIT_one_dataset( dset , &CL_edopt ) ;                       /* editing?    */
-      ivfim  = DSET_PRINCIPAL_VALUE(dset) ;                        /* useful data */
+
+      if( CL_ivfim < 0 )
+         ivfim  = DSET_PRINCIPAL_VALUE(dset) ;                     /* useful data */
+      else
+         ivfim  = CL_ivfim ;                                       /* 16 Sep 1999 */
+
       vfim   = DSET_ARRAY(dset,ivfim) ;                            /* ptr to data */
       fimfac = DSET_BRICK_FACTOR(dset,ivfim) ;                     /* scl factor  */
       if( vfim == NULL ){
@@ -463,6 +470,24 @@ void CL_read_opts( int argc , char * argv[] )
       ival = EDIT_check_argv( argc , argv , nopt , &CL_edopt ) ;
       if( ival > 0 ){
          nopt += ival ;
+         continue ;
+      }
+
+      /**** Sep 16 1999: -1tindex and -1dindex ****/
+
+      if( strncmp(argv[nopt],"-1dindex",5) == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"need an argument after -1dindex!\n") ; exit(1) ;
+         }
+         CL_ivfim = CL_edopt.iv_fim = (int) strtod( argv[nopt++] , NULL ) ;
+         continue ;
+      }
+
+      if( strncmp(argv[nopt],"-1tindex",5) == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"need an argument after -1tindex!\n") ; exit(1) ;
+         }
+         CL_ivthr = CL_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
       }
 

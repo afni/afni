@@ -132,7 +132,11 @@ int main (int argc, char *argv[]) {
 	}
 	
 	/* try to open input dataset */
+#if 0
 	input = THD_open_one_dataset( argv[narg] ) ;
+#else
+	input = THD_open_dataset( argv[narg] ) ; /* 16 Sep 1999 */
+#endif
 	if( input == NULL )
 		Error_Exit("Cannot open input dataset!") ; 
 	
