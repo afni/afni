@@ -125,7 +125,7 @@ int main( int argc , char *argv[] )
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.6f",amat[jj+kk*nvec]) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",amat[jj+kk*nvec]) ;
      printf("\n") ;
    }
 
@@ -136,13 +136,13 @@ int main( int argc , char *argv[] )
 
    printf("\n"
           "++ Eigensolution:\n   " ) ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.6f",eval[jj]) ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",eval[jj]) ;
    printf("\n   ") ;
    for( jj=0 ; jj < nvec ; jj++ ) printf(" ---------") ;
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.6f",amat[kk+jj*nvec]) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",amat[kk+jj*nvec]) ;
      printf("\n") ;
    }
 
@@ -169,7 +169,7 @@ int main( int argc , char *argv[] )
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.6f",bmat[jj+kk*nvec]) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",bmat[jj+kk*nvec]) ;
      printf("\n") ;
    }
 
@@ -193,7 +193,7 @@ int main( int argc , char *argv[] )
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.6f",amat[jj+kk*nvec]) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",amat[jj+kk*nvec]) ;
      printf("\n") ;
    }
 
