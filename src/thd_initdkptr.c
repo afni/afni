@@ -3,13 +3,14 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
-
 /*---------------------------------------------------------------
    Initialize the names inside a diskptr
+   29 Feb 2001: modified to take directory from prefixname
+                as well as from dirname
 -----------------------------------------------------------------*/
 
 void THD_init_diskptr_names( THD_diskptr * dkptr ,
@@ -19,13 +20,41 @@ void THD_init_diskptr_names( THD_diskptr * dkptr ,
 {
    int ii ;
    Boolean redo_filecode = False ;
+   char dname[THD_MAX_NAME]="\0" , pname[THD_MAX_PREFIX]="\0" ; /* 29 Feb 2001 */
 
    if( ! ISVALID_DISKPTR(dkptr) ) return ;
 
-   /*-- rewrite directory name? --*/
+   /* 29 Feb 2001: put dirname and any directories in prefixname together */
 
    if( dirname != NULL && (ii=strlen(dirname)) > 0 ){
-      MCW_strncpy( dkptr->directory_name , dirname , THD_MAX_NAME ) ;
+      MCW_strncpy(dname,dirname,THD_MAX_NAME-2) ;
+      if( dname[ii-1] != '/' ){ dname[ii] = '/'; dname[ii+1] = '\0'; }
+   }
+
+   if( prefixname != NULL ){
+      if( strstr(prefixname,"/") != NULL ){
+         int lp = strlen(prefixname) , jj , ld ;
+         for( ii=lp-1 ; ii >= 0 && prefixname[ii] != '/' ; ii-- ) ; /* find last '/' */
+         if( ii >= 0 ){  /* should always be true */
+            ld = strlen(dname) ;
+            if( prefixname[0] != '/' || ld == 0 ){
+               memcpy(dname+ld,prefixname,ii+1) ; dname[ld+ii+1] = '\0' ;
+            } else {
+               memcpy(dname+ld,prefixname+1,ii) ; dname[ld+ii] = '\0' ;
+            }
+            MCW_strncpy(pname,prefixname+ii+1,THD_MAX_PREFIX) ;
+         } else {
+            MCW_strncpy(pname,prefixname,THD_MAX_PREFIX) ;
+         }
+      } else {
+         MCW_strncpy(pname,prefixname,THD_MAX_PREFIX) ;
+      }
+   }
+
+   /*-- rewrite directory name? --*/
+
+   if( (ii=strlen(dname)) > 0 ){
+      MCW_strncpy( dkptr->directory_name , dname , THD_MAX_NAME ) ;
       if( dkptr->directory_name[ii-1] != '/' ){
          dkptr->directory_name[ii]   = '/' ;
          dkptr->directory_name[ii+1] = '\0' ;
@@ -41,8 +70,8 @@ void THD_init_diskptr_names( THD_diskptr * dkptr ,
 
    /*-- rewrite prefix? --*/
 
-   if( prefixname != NULL && strlen(prefixname) > 0 ){
-      MCW_strncpy( dkptr->prefix , prefixname , THD_MAX_PREFIX ) ;
+   if( strlen(pname) > 0 ){
+      MCW_strncpy( dkptr->prefix , pname , THD_MAX_PREFIX ) ;
       redo_filecode = True ;
    }
 

@@ -2618,3 +2618,7 @@
      This lets the "-prefix" option of 3d* programs put the output dataset
      into a new directory.  New function THD_filename_pure() also checks
      for the '/'.
+
+29 Feb 2001
+ * Modified thd_initdkptr.c to properly treat directory components stored
+     in prefixname.  [Ugh]
