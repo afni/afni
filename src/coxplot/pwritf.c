@@ -58,6 +58,7 @@ extern struct {
 	    zzconv_(char *, integer *, char *, integer *, ftnlen, ftnlen), 
 	    zzphys_(real *, real *), zzstro_(char *, integer *, integer *, 
 	    real *, real *, integer *, ftnlen);
+    static real orr;
 
 
 
@@ -87,8 +88,8 @@ extern struct {
 
 /*  Rotation/scaling factors for digitization */
 
-    or = *ior * .017453292f;
-    ct = size * cos(or);
+    orr = *ior * .017453292f;
+    ct = size * cos(orr);
     st = size * sin(or);
 
 /*  Base location, in internal coordinates */
