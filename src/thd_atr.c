@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -27,6 +27,8 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
    int code , ii ;
    FILE * header_file ;
 
+ENTRY("THD_read_all_atr") ;
+
    if( ! ISVALID_DATABLOCK(blk) )
       THD_FATAL_ERROR( "Illegal datablock type in THD_read_all_atr" ) ;
 
@@ -34,12 +36,10 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
    blk->natr_alloc = 0 ;
    blk->atr        = NULL ;
 
-   if( STRING_HAS_SUFFIX(headername,".mnc") ) return ;
+   if( STRING_HAS_SUFFIX(headername,".mnc") ) EXRETURN ;
 
    header_file = fopen( headername , "r" ) ;
-   if( header_file == NULL ){
-       return ;
-   }
+   if( header_file == NULL ) EXRETURN ;
 
    /* read attributes from the header file */
 
@@ -48,6 +48,7 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
       int  atype , acount ;
 
       atypestr[0] = aname[0] = '\0' ; acount = 0 ;
+
       code = fscanf( header_file ,
                      " type = %s name = %s count = %d" ,
                      atypestr , aname , &acount ) ;
@@ -148,7 +149,7 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
       if( code == FAIL ) break ;  /* exit if an error! */
    } while(1) ; /* end of for loop over all attributes */
 
-   fclose( header_file ) ;
+   fclose( header_file ) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
