@@ -1943,7 +1943,7 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
 {
    static char FuncName[]={"SUMA_SetSO_CoordBias"};
    int i, i3;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

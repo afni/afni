@@ -53,6 +53,7 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SU
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
 SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI); 
+int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO);
 
 /*!
    \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)

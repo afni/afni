@@ -1598,3 +1598,27 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI)
    SUMA_RETURN(YUP);
 }
 
+/*!
+   \brief return  +1 if surface is typically the outer layer surface used in Vol2Surf
+                  -1 if surface is typically the inner layer surface used in Vol2Surf
+                   0 if no comment 
+*/
+int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isTypicalSOforVolSurf"};
+   SUMA_ENTRY;
+   
+   switch (SO->FileType) {
+      case SUMA_FREE_SURFER: 
+         if (SUMA_iswordin (SO->Name.FileName, "smoothwm")) SUMA_RETURN(-1);
+         else if (SUMA_iswordin (SO->Name.FileName, "pial")) SUMA_RETURN(1);
+         else SUMA_RETURN(0);
+         break;
+      default:
+         SUMA_RETURN(0);
+         break;
+   }
+   
+   SUMA_RETURN(0);
+}
+
