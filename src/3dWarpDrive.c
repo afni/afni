@@ -731,7 +731,7 @@ int main( int argc , char * argv[] )
    /*-- make the shell of the new dataset --*/
 
    if( clip_baset > 0.0f && clip_inset > 0.0f ){
-     float fac = clip_baset / clip_inset ;
+     float fac = clip_inset / clip_baset ;
      if( fac > 0.01 && fac < 100.0 ){
        abas.scale_init = fac ;
        if( abas.verb ) fprintf(stderr,"++ Scale factor set to %.2f/%.2f=%.2g\n",
