@@ -75,6 +75,15 @@ THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
    new_dset->markers     = NULL ;
    new_dset->warp_parent = NULL ;
 
+   /*-- 14 Dec 1999: copy the anat_parent, too --*/
+
+   if( old_good ){
+      new_dset->anat_parent = old_dset->anat_parent  ; /* actual link, for use now */
+      EDIT_COPY_ANATOMY_PARENT_ID(new_dset,old_dset) ; /* idcode, for HEAD file later */
+   }
+
+   /*-- end of anat_parent copy --*/
+
    new_dset->vox_warp       = myXtNew( THD_warp ) ;  /* create a voxel warp */
    new_dset->vox_warp->type = ILLEGAL_TYPE ;       /* but don't put anything in it */
 

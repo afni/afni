@@ -72,6 +72,9 @@ void Syntax(char * str)
     "                  use this option on all the +orig dataset that are\n"
     "                  aligned with 'aset' (i.e., that were acquired in the\n"
     "                  same scanning session).\n"
+    "               ** N.B.: Special cases of 'aset'\n"
+    "                   aset = NULL --> remove the anat parent info from the dataset\n"
+    "                   aset = SELF --> set the anat parent to be the dataset itself\n"
     "\n"
     "  -statpar v ...  Changes the statistical parameters stored in this\n"
     "                  dataset.  See 'to3d -help' for more details.\n"
@@ -147,9 +150,13 @@ void Syntax(char * str)
    exit(0) ;
 }
 
+#define ASET_NULL 1
+#define ASET_SELF 2
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset , * aset = NULL ;
+                      int aset_code = 0    ; /* 14 Dec 1999 */
    THD_dataxes      * daxes ;
    int new_stuff = 0 ;
    int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
@@ -200,13 +207,19 @@ int main( int argc , char * argv[] )
          if( iarg+1 >= argc )
             Syntax("need 1 argument after -apar!") ;
 
-         if( aset != NULL )                                  /* 13 Dec 1999 */
+         if( aset != NULL || aset_code != 0 )                 /* 13-14 Dec 1999 */
             Syntax("can't have more than one -apar option!");
 
          iarg++ ;
-         aset = THD_open_one_dataset( argv[iarg] ) ;
-         if( aset == NULL )
-            Syntax("can't open -apar dataset!") ;
+         if( strcmp(argv[iarg],"NULL") == 0 ){    /* 14 Dec 1999: special cases */
+            aset_code = ASET_NULL ;
+         } else if( strcmp(argv[iarg],"SELF") == 0 ){
+            aset_code = ASET_SELF ;
+         } else {
+            aset = THD_open_one_dataset( argv[iarg] ) ;
+            if( aset == NULL )
+               Syntax("can't open -apar dataset!") ;
+         }
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
@@ -554,10 +567,17 @@ int main( int argc , char * argv[] )
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
 
-      /* 14 Oct 1999 */
+      /* 14 Oct 1999: change anat parent */
+      /* 14 Dec 1999: allow special cases: SELF and NULL */
 
-      if( aset != NULL )
+      if( aset != NULL ){
          EDIT_dset_items( dset , ADN_anat_parent , aset , ADN_none ) ;
+      } else if( aset_code == ASET_SELF ){
+         EDIT_dset_items( dset , ADN_anat_parent , dset , ADN_none ) ;
+      } else if( aset_code == ASET_NULL ){
+         EDIT_ZERO_ANATOMY_PARENT_ID( dset ) ;
+         dset->anat_parent_name[0] = '\0' ;
+      }
 
       /* 25 April 1998 */
 

@@ -1922,3 +1922,12 @@
      a dataset is set to be its own anatomy parent.
  * Modified plug_maskave.c to properly initialize sum=sigma=0 for EACH
      separate sub-brick calculation.
+
+14 Dec 1999
+ * Modified edt_emptycopy.c, editvol.h, and afni_plugin.c to have newly
+     created datasets get assigned the same anatomy parent as their
+     progenitors.
+ * Modified afni.c so that manually warped datasets become their own
+     anat parents.
+ * Modified 3drefit.c to allow SELF and NULL to be valid arguments to
+     the -apar option.

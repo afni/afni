@@ -3252,7 +3252,9 @@ ENTRY("PLUTO_add_dset") ;
    THD_load_statistics( dset ) ;
    THD_write_3dim_dataset( NULL,NULL , dset , True ) ;
 
-   AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
+   if( dset->anat_parent == NULL )                          /* if() added 14 Dec 1999 */
+      AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
+
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
 
    /** if desired, jump to this puppy in the viewer **/

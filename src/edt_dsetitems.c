@@ -436,8 +436,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
             else EDERR("illegal new anat_parent") ;
          break ;
 
-#ifndef OMIT_DATASET_IDCODES       /* 13 Dec 1999 */
-         case ADN_anatpar_idcode:{ /* processed now */
+         case ADN_anatpar_idcode:{ /* processed now [13 Dec 1999] */
             MCW_idcode * idc ;
             idc = va_arg( vararg_ptr , MCW_idcode * ) ;
             if( idc != NULL )
@@ -446,9 +445,8 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
                EDERR("illegal new anatpar_idcode") ;
          }
          break ;
-#endif
 
-      }
+      }  /*- end of switch on flag_arg -*/
 
       iarg++ ;
    } while( 1 ) ;  /* end of loop over arguments */

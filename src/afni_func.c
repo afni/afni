@@ -407,7 +407,7 @@ ENTRY("AFNI_follower_dataset") ;
    if( ! ISVALID_3DIM_DATASET(anat_parent) ||
        ! ISVALID_3DIM_DATASET(data_parent)   ) RETURN(NULL) ;
 
-   /* can't warp a time-dependent dataset */
+   /* can't warp a time-dependent dataset (OK, maybe you can) */
 
    if( DSET_NUM_TIMES(data_parent) > 1 && ! GLOBAL_argopt.warp_4D ) RETURN(NULL) ;
 
@@ -499,11 +499,11 @@ if(PRINT_TRACING)
    /* set the axes for this new dataset
       (same as anatomy parent, since that's the meaning of this routine) */
 
-   new_dset->daxes         = myXtNew( THD_dataxes ) ;  /* copy data axes of */
-   *(new_dset->daxes)      = *(anat_parent->daxes) ; /* anatomy parent */
+   new_dset->daxes     = myXtNew( THD_dataxes ) ; /* copy data axes of */
+   *(new_dset->daxes)  = *(anat_parent->daxes)  ; /* anatomy parent   */
 
-   new_dset->wod_daxes     = NULL ;
-   new_dset->wod_flag      = True ;
+   new_dset->wod_daxes = NULL ;
+   new_dset->wod_flag  = True ;
 
    /* 06 Aug 1996: added ability to use 3D+t datasets here */
 
@@ -698,6 +698,8 @@ ENTRY("AFNI_make_descendants_old") ;
 
          orig_row = &(ss->anat[jdd][0]) ;
 
+         if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
+
          /* loop over downstream dataset positions (from orig_dset);
             those that don't exist yet, but have entries in the
             anat_parent_row can be brought into being now */
@@ -750,6 +752,8 @@ ENTRY("AFNI_make_descendants_old") ;
            &(ssl->ssar[find.sess_index]->anat[find.anat_index][0]) ;
 
          orig_row = &(ss->func[jdd][0]) ;
+
+         if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
 
          /* loop over downstream dataset positions (from orig_dset);
             those that don't exist yet, but have entries in the

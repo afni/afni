@@ -140,7 +140,7 @@ extern MCW_cluster * MCW_build_mask (int, int, int,
                                      float, float, float, float);
 
 /* 16 June 1998 */
-extern void * MCW_erode_clusters (int, int, int, float, float, float, int, 
+extern void * MCW_erode_clusters (int, int, int, float, float, float, int,
 				  void *, float, float, int);
 
 
@@ -338,7 +338,7 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 #define ADN_anat_parent          6062     /*=  THD_3dim_dataset *  =*/
 #define ADN_stat_aux             6063     /*=  float *             =*/
 #define ADN_warp                 6064     /*=  THD_warp *          =*/
-#define ADN_anatpar_idcode       6065     /*=  MCW_idcode *        =*/
+#define ADN_anatpar_idcode       6065     /*=  MCW_idcode * [13 Dec 1999] =*/
 
 /* 30 Nov 1997 */
 #define ADN_ONE_STEP            100000
@@ -347,6 +347,19 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 #define ADN_brick_stataux_one           (4*ADN_ONE_STEP)  /*=  float *  =*/
 #define ADN_brick_keywords_replace_one  (5*ADN_ONE_STEP)  /*=  char *   =*/
 #define ADN_brick_keywords_append_one   (6*ADN_ONE_STEP)  /*=  char *   =*/
+
+/*-----------------------------------------------------------------
+   These 2 macros added 14 Dec 1999
+-------------------------------------------------------------------*/
+
+#define EDIT_COPY_ANATOMY_PARENT_ID(nds,ods)                   \
+  do{ if( ISVALID_DSET(nds) && ISVALID_DSET(ods) )              \
+         (nds)->anat_parent_idcode = (ods)->anat_parent_idcode ; \
+    } while(0)
+
+#define EDIT_ZERO_ANATOMY_PARENT_ID(nds)                 \
+  do{ if( ISVALID_DSET(nds) )                             \
+         ZERO_IDCODE((nds)->anat_parent_idcode); } while(0)
 
 /*------------------------------------------------------------------*/
 

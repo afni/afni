@@ -7261,11 +7261,19 @@ printf("  ==> new nx=%d ny=%d nz=%d\n",new_nx,new_ny,new_nz) ;
 
    INIT_STAT_AUX( new_dset , MAX_STAT_AUX , parent_dset->stat_aux ) ;
 
-#ifndef OMIT_DATASET_IDCODES
+#define PARENT_MYSELF  /* 14 Dec 1999 */
+
    new_dset->idcode             = MCW_new_idcode() ;
    new_dset->warp_parent_idcode = adam_dset->idcode ;
+#ifndef PARENT_MYSELF
    ZERO_IDCODE(new_dset->anat_parent_idcode) ;
+   new_dset->anat_parent = NULL ;
+#else
+   new_dset->anat_parent_idcode = new_dset->idcode ; /* 14 Dec 1999 */
+   new_dset->anat_parent        = new_dset ;         /* 14 Dec 1999 */
 #endif
+
+   EMPTY_STRING(new_dset->anat_parent_name) ;
 
    /*------------ initialize dataset fields -------------*/
    /**** July 1997: be careful about adam and parent ****/
@@ -7293,9 +7301,6 @@ STATUS("init new_dset") ;
    MCW_strncpy( &(new_dset->self_name[ii]) ,
                 VIEW_typestr[new_dset->view_type] ,
                 THD_MAX_NAME-ii ) ;
-
-   new_dset->anat_parent = NULL ;
-   EMPTY_STRING(new_dset->anat_parent_name) ;
 
    new_dset->merger_list = NULL ;
    new_dset->death_mark  = 0 ;
