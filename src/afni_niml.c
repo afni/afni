@@ -27,6 +27,9 @@
  *   - process_NIML_SUMA_ixyz: a new surface will replace the existing one
  *   - added g_show_as_popup, receive messages default to terminal
  *   - re-wrote receive messages, only to be shorter
+ *
+ * 11 Jan 2005 [rickr]
+ *   - slist_choose_surfs(): do slist_check_user_surfs() for nsurf == 1
  *----------------------------------------------------------------------*/
 
 /**************************************/
@@ -764,7 +767,8 @@ ENTRY("slist_choose_surfs");
    /* now process each LDP */
    for ( ldp = 0; ldp < ldp_list->nused; ldp++ ) {
       lsurf = &ldp_list->list[ldp];                      /* set pointer   */
-      if( lsurf->nsurf < 2 ) continue;                   /* are we okay?  */
+      /* if( nsurf < 2 ) continue;
+         - must still slist_check_user_surfs()        11 Jan 2004 [rickr] */
 
       if ( slist_surfs_for_ldp(lsurf, surfs, max_surf, sess, po->sopt.debug) )
          continue;                              /* try with current sa sb */
