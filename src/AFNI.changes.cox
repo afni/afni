@@ -4702,3 +4702,6 @@
 11 Aug 2003
  * Fixed bug in afni_sumafunc.c, where func threshold image is bytes -- was
      using index ar_thr[ii] instead of ar_thr[jj] -- not good.
+
+15 Aug 2003
+ * Added -version option to afni.c, per Rick Reynolds.

@@ -988,6 +988,24 @@ int main( int argc , char * argv[] )
    signal(SIGTERM,AFNI_sigfunc) ;
 #endif
 
+   /** -version [15 Aug 2003] **/
+
+   for( ii=1 ; ii < argc ; ii++ ){
+     if( strncmp(argv[ii],"-ver",4) == 0 || strncmp(argv[ii],"--ver",5) == 0 ){
+       printf("AFNI. Version " VERSION " of " RELEASE "\n") ;
+#ifdef SHOWOFF
+#undef SHSH
+#undef SHSHSH
+#define SHSH(x)   #x
+#define SHSHSH(x) SHSH(x)
+       printf( "[[Precompiled binary " SHSHSH(SHOWOFF) ": " __DATE__ "]]\n" ) ;
+#undef SHSH
+#undef SHSHSH
+#endif /* SHOWOFF */
+       exit(0) ;
+     }
+   }
+
    /** debug stuff **/
 
 #ifdef USING_MCW_MALLOC
