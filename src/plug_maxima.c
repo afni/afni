@@ -20,7 +20,7 @@
  *   - allow any anat or func dataset of type short
  *   - added a sub-brick selector
  *   - note that dist and radius are in voxels
- *   - output coordinates in dicom mm format
+ *   - output coordinates in RAI mm format
  *----------------------------------------------------------------------
 */
 
@@ -1041,7 +1041,7 @@ ENTRY("display_coords");
 
 
     printf( "---------------------------------------------\n" );
-    printf( "Dicom coordinates:\n\n" );
+    printf( "RAI mm coordinates:\n\n" );
 
     for ( count = 0, iptr = P->plist; count < P->used; count++, iptr++ )
     {
