@@ -36,13 +36,13 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef DARWIN
+#if !(defined(DARWIN) || defined(FreeBSD))
 # include <malloc.h>
 #endif
 #include <strings.h>
 #include <math.h>
 
-#if !defined(DARWIN) && !defined(CYGWIN)  /* RWCox patch */
+#if !(defined(DARWIN) || defined(CYGWIN) || defined(FreeBSD)) /* RWCox patch */
 #include <values.h>
 #endif
 

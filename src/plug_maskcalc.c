@@ -9,6 +9,9 @@
  * plug_maskcalc.c		- plugin to do mask-based computations
  *
  * $Log$
+ * Revision 1.5  2003/07/15 13:28:30  rwcox
+ * Cput
+ *
  * Revision 1.4  2003/06/25 20:45:07  rwcox
  * Cput
  *
@@ -26,7 +29,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#ifndef DARWIN
+#if !(defined(DARWIN) || defined(FreeBSD))
 #  include <malloc.h>
 #endif
 #include <string.h>
