@@ -4963,3 +4963,8 @@
  * Added range locking to afni_lock.c and afni_func.c.
  * Added tick marks to imseq.c.
  * Rick Reynolds added NN interpolation option for zooming to mri_dup.c.
+
+24 Feb 2004
+ * Fixed bug in thd_sheard3d.c, when input matrix to rot_to_shear_matvec()
+     is identity, could get a bad shear.  In this case, just manually put
+     the correct shear into place.
