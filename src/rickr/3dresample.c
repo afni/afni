@@ -8,11 +8,16 @@
  * 3dresample - create a new dataset by reorienting and resampling
  *              an existing one 
  *
+ * This program can be used to 
+ *    - change the orientation of a dataset to one that is specified
+ *    - change the dx, dy, dz spacing, to one that is specified
+ *    - master a dataset, so that its orientation and spacing matches
+ *
  * usage:  3dresample  [options]  -prefix OUTPUT_DSET  -inset INPUT_DSET
  *
  *    options:
  *		-help             : detailed program info
- *		-debug            : spit out info
+ *		-debug LEVEL      : spit out info
  *              -dxyz DX DY DZ    : resample to a new grid
  *					(DX, DY, DZ are real numbers in mm)
  *		-orient OR_CODE	  : reorient to new orientation code
@@ -40,12 +45,16 @@
 #define DELTA_MIN	 0.1
 #define DELTA_MAX	99.9
 
+#define RL_DEBUG_OFF    0
+#define RL_DEBUG_LOW    1
+#define RL_DEBUG_HIGH   2
+
 typedef struct
 {
     THD_3dim_dataset * dset;
     THD_3dim_dataset * mset;
     double             dx, dy, dz;
-    char               orient[4];
+    char             * orient;
     char             * prefix;
     int                resam;
     int                zeropad;
@@ -58,6 +67,8 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout );
 int resam_str2mode   ( char * mode );
 int sync_master_opts ( options_t * opts );
 int usage            ( char * prog, int level );
+int write_results    ( THD_3dim_dataset * dout, options_t * opts,
+		       int argc, char * argv [] );
 
 /*----------------------------------------------------------------------*/
 
@@ -111,7 +122,21 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 	}
 	else if ( ! strncmp(argv[ac], "-debug", 6) )
 	{
-	    opts->debug = 1;
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -debug LEVEL\n", stderr );
+		usage( argv[0], USE_SHORT );
+		return FAIL;
+	    }
+
+	    opts->debug = atoi(argv[++ac]);
+	    if ( opts->debug < 0 || opts->debug > RL_DEBUG_HIGH )
+	    {
+		fprintf( stderr, "bad debug level <%d>, should be in [%d,%d]\n",
+			opts->debug, RL_DEBUG_OFF, RL_DEBUG_HIGH );
+		usage( argv[0], USE_SHORT );
+		return FAIL;
+	    }
 	}
 	else if ( ! strncmp(argv[ac], "-dxyz", 3) )	/* dxyz */
 	{
@@ -144,7 +169,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 		return FAIL;
 	    }
 
-	    strncpy( opts->orient, argv[++ac], 3 );
+	    opts->orient = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-master", 5) )	/* master */
 	{
@@ -223,9 +248,6 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 	}
     }
 
-    if ( opts->debug )
-	disp_opts_data( "post options: ", opts );
-
     if ( !ISVALID_DSET(opts->dset) || (opts->prefix == NULL) )
     {
 	fprintf( stderr, "missing prefix or input dset, exiting...\n" );
@@ -233,8 +255,145 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 	return FAIL;
     }
 
+    if ( opts->debug >= RL_DEBUG_LOW )
+    {
+	disp_opts_data( "++ options initialized: ", opts );
+
+	if ( opts->debug >= RL_DEBUG_HIGH )	/* dset is valid by now */
+	{
+	    r_idisp_thd_3dim_dataset( "inset : ", opts->dset );
+	    r_idisp_thd_dataxes     ( "inset : ", opts->dset->daxes );
+	    r_idisp_thd_datablock   ( "inset : ", opts->dset->dblk  );
+	    if ( opts->dset->dblk )
+		r_idisp_thd_diskptr ( "inset : ", opts->dset->dblk->diskptr );
+	}
+    }
+
     if ( sync_master_opts( opts ) )
 	return FAIL;
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * new_zeropad_dset - create a new zeropadded dataset
+ *
+ * Replace dout with a new padded one.
+ *
+ * This function copies the master part of 3dZeropad.c.
+ *----------------------------------------------------------------------
+*/
+int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
+{
+    THD_3dim_dataset * tmp_dset;
+    THD_dataxes      * max = opts->mset->daxes, * iax = (*dout)->daxes;
+    int                nerr = 0;
+    float              mxbot,mybot,mzbot, mxtop,mytop,mztop, mdx,mdy,mdz;
+    float              ixbot,iybot,izbot, ixtop,iytop,iztop, idx,idy,idz;
+    int                mnx,mny,mnz, inx,iny,inz;
+    int                add_xb,add_xt, add_yb,add_yt, add_zb,add_zt;
+    int                add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0;
+
+    /* check if datasets are oriented the same */
+    if( max->xxorient != iax->xxorient ||
+        max->yyorient != iax->yyorient ||
+        max->zzorient != iax->zzorient )
+    {
+	fputs("error: orientation mismatch!\n", stderr );
+        nerr++;
+    }
+
+    /* check if datasets have same voxel dimensions */
+    mdx = max->xxdel;  mdy = max->yydel; mdz = max->zzdel;
+    idx = iax->xxdel;  idy = iax->yydel; idz = iax->zzdel;
+    mnx = max->nxx;    mny = max->nyy;   mnz = max->nzz;
+    inx = iax->nxx;    iny = iax->nyy;   inz = iax->nzz;
+
+    if( fabs(mdx-idx) > 0.01*fabs(mdx) ||
+        fabs(mdy-idy) > 0.01*fabs(mdy) ||
+        fabs(mdz-idz) > 0.01*fabs(mdz) )
+    {
+       fputs("error: voxel size mismatch!\n", stderr);
+       nerr++;
+    }
+
+    if ( nerr > 0 )
+	return FAIL;	/* we have already printed the failure cause(s) */
+
+    /* the data looks okay */
+
+    /* calculate coords at top and bottom of each dataset */
+    mxbot = max->xxorg; mxtop = mxbot + mnx*mdx;
+    mybot = max->yyorg; mytop = mybot + mny*mdy;
+    mzbot = max->zzorg; mztop = mzbot + mnz*mdz;
+
+    ixbot = iax->xxorg; ixtop = ixbot + inx*idx;
+    iybot = iax->yyorg; iytop = iybot + iny*idy;
+    izbot = iax->zzorg; iztop = izbot + inz*idz;
+
+    /* calculate amount to add/trim at each face */
+    add_xb = (int) rint((ixbot-mxbot)/idx);
+    add_xt = (int) rint((mxtop-ixtop)/idx);
+    add_yb = (int) rint((iybot-mybot)/idy);
+    add_yt = (int) rint((mytop-iytop)/idy);
+    add_zb = (int) rint((izbot-mzbot)/idz);
+    add_zt = (int) rint((mztop-iztop)/idz);
+
+    /* map trims from x,y,z to RL,AP,IS coords */
+
+    switch( iax->xxorient ){
+	case ORI_R2L_TYPE: add_R = add_xb; add_L = add_xt; break;
+	case ORI_L2R_TYPE: add_L = add_xb; add_R = add_xt; break;
+	case ORI_I2S_TYPE: add_I = add_xb; add_S = add_xt; break;
+	case ORI_S2I_TYPE: add_S = add_xb; add_I = add_xt; break;
+	case ORI_A2P_TYPE: add_A = add_xb; add_P = add_xt; break;
+	case ORI_P2A_TYPE: add_P = add_xb; add_A = add_xt; break;
+	default          : fputs("bad xxorient!\n", stderr); return FAIL;
+    }
+
+    switch( iax->yyorient ){
+	case ORI_R2L_TYPE: add_R = add_yb; add_L = add_yt; break;
+	case ORI_L2R_TYPE: add_L = add_yb; add_R = add_yt; break;
+	case ORI_I2S_TYPE: add_I = add_yb; add_S = add_yt; break;
+	case ORI_S2I_TYPE: add_S = add_yb; add_I = add_yt; break;
+	case ORI_A2P_TYPE: add_A = add_yb; add_P = add_yt; break;
+	case ORI_P2A_TYPE: add_P = add_yb; add_A = add_yt; break;
+	default          : fputs("bad yyorient!\n", stderr); return FAIL;
+    }
+
+    switch( iax->zzorient ){
+	case ORI_R2L_TYPE: add_R = add_zb; add_L = add_zt; break;
+	case ORI_L2R_TYPE: add_L = add_zb; add_R = add_zt; break;
+	case ORI_I2S_TYPE: add_I = add_zb; add_S = add_zt; break;
+	case ORI_S2I_TYPE: add_S = add_zb; add_I = add_zt; break;
+	case ORI_A2P_TYPE: add_A = add_zb; add_P = add_zt; break;
+	case ORI_P2A_TYPE: add_P = add_zb; add_A = add_zt; break;
+	default          : fputs("bad zzorient!\n", stderr); return FAIL;
+    }
+
+    if ( opts->debug >= RL_DEBUG_LOW )
+    {
+	printf( "++ zeropad: (I,S,A,P,L,R) = (%d,%d,%d,%d,%d,%d)\n",
+		add_I, add_S, add_A, add_P, add_L, add_R );
+    }
+
+    /* pad if we need to */
+    if ( add_I || add_S || add_A || add_P || add_L || add_R )
+    {
+	tmp_dset = THD_zeropad( *dout,
+				add_I, add_S, add_A, add_P, add_L, add_R,
+				opts->prefix, ZPAD_PURGE );
+
+	if ( !ISVALID_DSET( tmp_dset ) )
+	{
+	    fputs( "THD_zeropad failed!\n", stderr );
+	    return FAIL;
+	}
+
+	DSET_delete( *dout );
+	*dout = tmp_dset;
+    }
 
     return 0;
 }
@@ -256,7 +415,11 @@ int usage ( char * prog, int level )
 	printf( "\n"
 		"%s - reorient and/or resample a dataset\n"
 		"\n"
-		"  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+		"    This program can be used to change the orientation of a\n"
+		"    dataset (via the -orient option), or the dx,dy,dz\n"
+		"    grid spacing (via the -dxyz option), or change them\n"
+		"    both to match that of a master dataset (via the -master\n"
+		"    option).\n"
 		"\n"
 		"  examples:\n"
 		"\n"
@@ -267,7 +430,10 @@ int usage ( char * prog, int level )
 		"\n"
 		"  options: \n"
 		"    -help            : show this help information\n"
-		"    -debug           : print debug info along the way\n"
+		"\n"
+		"    -debug LEVEL     : print debug info along the way\n"
+		"          e.g.  -debug 1\n"
+		"          default level is 0, max is 2\n"
 		"\n"
 		"    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
 		"          e.g.  -dxyz 1.0 1.0 0.9\n"
@@ -363,12 +529,25 @@ int write_results ( THD_3dim_dataset * dout, options_t * opts,
     tross_Copy_History( opts->dset , dout );
     tross_Make_History( "3dresample", argc, argv, dout );
 
-
     /* write the output files */
     if ( DSET_write( dout ) != True )
     {
-	fprintf( stderr, "failure to write dataset, exiting...\n" );
+	fputs( "failure: cannot write dataset, exiting...\n", stderr );
 	return FAIL;
+    }
+
+    if ( opts->debug >= RL_DEBUG_LOW )
+    {
+	printf( "dset <%s> has been written to disk\n", opts->prefix );
+
+	if ( opts->debug >= RL_DEBUG_HIGH )
+	{
+	    r_idisp_thd_3dim_dataset( "final dset  : ", dout );
+	    r_idisp_thd_dataxes     ( "final daxes : ", dout->daxes );
+	    r_idisp_thd_datablock   ( "final dblk  : ", dout->dblk  );
+	    if ( dout->dblk )
+		r_idisp_thd_diskptr ( "final diskp : ", dout->dblk->diskptr );
+	}
     }
 
     return 0;
@@ -386,23 +565,17 @@ int sync_master_opts ( options_t * opts )
 	return FAIL;
     }
 
-    if ( opts->debug )		/* dset is valid by now */
-    {
-	r_idisp_thd_3dim_dataset( "sync dset : ", opts->dset );
-	r_idisp_thd_dataxes     ( "sync dset : ", opts->dset->daxes );
-    }
-
     if ( !opts->mset )
-	return 0;			/* OK */
+	return 0;	/* OK */
 
     if ( ! ISVALID_DSET(opts->mset) ||
 	 ! ISVALID_DATAXES(opts->mset->daxes ) )
     {
-	fputs( "error: problem with master dset, it is not valid!\n", stderr );
+	fputs( "error: master dset or daxes not valid, exiting...\n", stderr );
 	return FAIL;			/* non-NULL but invalid is bad */
     }
 
-    if ( ( opts->dx != 0.0 ) || ( opts->orient[0] != '\0' ) )
+    if ( ( opts->dx != 0.0 ) || ( opts->orient != NULL ) )
     {
 	fputs( "error: -dxyz and -orient are not valid with -master option, "
 	       "exiting...\n", stderr );
@@ -416,16 +589,30 @@ int sync_master_opts ( options_t * opts )
     opts->dy = fabs(dax->yydel);
     opts->dz = fabs(dax->zzdel);
 
+    /* make space for orient string */
+    if ( (opts->orient = (char *)malloc(4 * sizeof(char)) ) == NULL )
+    {
+	fputs( "failure: malloc failure for orient, exiting...\n", stderr );
+	return FAIL;
+    }
+
     opts->orient[0] = ORIENT_typestr[dax->xxorient][0];
     opts->orient[1] = ORIENT_typestr[dax->yyorient][0];
     opts->orient[2] = ORIENT_typestr[dax->zzorient][0];
     opts->orient[3] = '\0';
 
-    if ( opts->debug )
+    if ( opts->debug >= RL_DEBUG_LOW )
     {
-	disp_opts_data( "sync opts : ", opts );
-	r_idisp_thd_3dim_dataset( "sync mset : ", opts->mset );
-	r_idisp_thd_dataxes     ( "sync mset : ", opts->mset->daxes );
+	disp_opts_data( "++ mastered options : ", opts );
+
+	if ( opts->debug >= RL_DEBUG_HIGH )
+	{
+	    r_idisp_thd_3dim_dataset("sync mset : ", opts->mset );
+	    r_idisp_thd_dataxes     ("sync mset : ", opts->mset->daxes );
+	    r_idisp_thd_datablock   ("sync mset : ", opts->mset->dblk  );
+	    if ( opts->mset->dblk )
+		r_idisp_thd_diskptr ("sync mset : ", opts->mset->dblk->diskptr);
+	}
     }
 
     return 0;
@@ -458,135 +645,6 @@ int disp_opts_data ( char * info, options_t * opts )
 	    opts->dx, opts->dy, opts->dz,
 	    opts->orient, opts->prefix, opts->resam,
 	    opts->zeropad, opts->debug );
-
-    return 0;
-}
-
-
-/*----------------------------------------------------------------------
- * new_zeropad_dset - create a new zeropadded dataset
- *
- * Replace dout with a new padded one.
- * This function copies the master part of 3dZeropad.c.
- *----------------------------------------------------------------------
-*/
-int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
-{
-    THD_3dim_dataset * tmp_dset;
-    THD_dataxes      * max = opts->mset->daxes, * iax = (*dout)->daxes;
-    int                nerr = 0;
-    float              mxbot,mybot,mzbot, mxtop,mytop,mztop, mdx,mdy,mdz;
-    float              ixbot,iybot,izbot, ixtop,iytop,iztop, idx,idy,idz;
-    int                mnx,mny,mnz, inx,iny,inz;
-    int                add_xb,add_xt, add_yb,add_yt, add_zb,add_zt;
-    int                add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0;
-
-    /* check if datasets are oriented the same */
-    if( max->xxorient != iax->xxorient ||
-        max->yyorient != iax->yyorient ||
-        max->zzorient != iax->zzorient )
-    {
-	fputs("error: orientation mismatch!\n", stderr );
-        nerr++;
-    }
-
-    /* check if datasets have same voxel dimensions */
-    mdx = max->xxdel;  mdy = max->yydel; mdz = max->zzdel;
-    idx = iax->xxdel;  idy = iax->yydel; idz = iax->zzdel;
-    mnx = max->nxx;    mny = max->nyy;   mnz = max->nzz;
-    inx = iax->nxx;    iny = iax->nyy;   inz = iax->nzz;
-
-    if( fabs(mdx-idx) > 0.01*fabs(mdx) ||
-        fabs(mdy-idy) > 0.01*fabs(mdy) ||
-        fabs(mdz-idz) > 0.01*fabs(mdz) )
-    {
-       fputs("error: voxel size mismatch!\n", stderr);
-       nerr++;
-    }
-
-    if ( nerr > 0 )
-    {
-	if ( opts->debug )
-	{
-	    r_idisp_thd_dataxes( "dset : ", (*dout)->daxes );
-	    r_idisp_thd_dataxes( "mset : ", opts->mset->daxes );
-	}
-	return FAIL;
-    }
-
-    /* data is good! */
-
-    /* calculate coords at top and bottom of each dataset */
-    mxbot = max->xxorg; mxtop = mxbot + mnx*mdx;
-    mybot = max->yyorg; mytop = mybot + mny*mdy;
-    mzbot = max->zzorg; mztop = mzbot + mnz*mdz;
-
-    ixbot = iax->xxorg; ixtop = ixbot + inx*idx;
-    iybot = iax->yyorg; iytop = iybot + iny*idy;
-    izbot = iax->zzorg; iztop = izbot + inz*idz;
-
-    /* calculate amount to add/trim at each face */
-    add_xb = (int) rint((ixbot-mxbot)/idx);
-    add_xt = (int) rint((mxtop-ixtop)/idx);
-    add_yb = (int) rint((iybot-mybot)/idy);
-    add_yt = (int) rint((mytop-iytop)/idy);
-    add_zb = (int) rint((izbot-mzbot)/idz);
-    add_zt = (int) rint((mztop-iztop)/idz);
-
-    /* map trims from x,y,z to RL,AP,IS coords */
-
-    switch( iax->xxorient ){
-	case ORI_R2L_TYPE: add_R = add_xb; add_L = add_xt; break;
-	case ORI_L2R_TYPE: add_L = add_xb; add_R = add_xt; break;
-	case ORI_I2S_TYPE: add_I = add_xb; add_S = add_xt; break;
-	case ORI_S2I_TYPE: add_S = add_xb; add_I = add_xt; break;
-	case ORI_A2P_TYPE: add_A = add_xb; add_P = add_xt; break;
-	case ORI_P2A_TYPE: add_P = add_xb; add_A = add_xt; break;
-	default          : fputs("bad xxorient!\n", stderr); return FAIL;
-    }
-
-    switch( iax->yyorient ){
-	case ORI_R2L_TYPE: add_R = add_yb; add_L = add_yt; break;
-	case ORI_L2R_TYPE: add_L = add_yb; add_R = add_yt; break;
-	case ORI_I2S_TYPE: add_I = add_yb; add_S = add_yt; break;
-	case ORI_S2I_TYPE: add_S = add_yb; add_I = add_yt; break;
-	case ORI_A2P_TYPE: add_A = add_yb; add_P = add_yt; break;
-	case ORI_P2A_TYPE: add_P = add_yb; add_A = add_yt; break;
-	default          : fputs("bad xxorient!\n", stderr); return FAIL;
-    }
-
-    switch( iax->zzorient ){
-	case ORI_R2L_TYPE: add_R = add_zb; add_L = add_zt; break;
-	case ORI_L2R_TYPE: add_L = add_zb; add_R = add_zt; break;
-	case ORI_I2S_TYPE: add_I = add_zb; add_S = add_zt; break;
-	case ORI_S2I_TYPE: add_S = add_zb; add_I = add_zt; break;
-	case ORI_A2P_TYPE: add_A = add_zb; add_P = add_zt; break;
-	case ORI_P2A_TYPE: add_P = add_zb; add_A = add_zt; break;
-	default          : fputs("bad xxorient!\n", stderr); return FAIL;
-    }
-
-    if ( opts->debug )
-    {
-	printf( "++ zeropad: (I,S,A,P,R,L) = (%d,%d,%d,%d,%d,%d)\n",
-		add_I, add_S, add_A, add_P, add_R, add_L );
-    }
-
-    /* pad if we need to */
-    if ( add_I || add_S || add_A || add_P || add_R || add_L )
-    {
-	tmp_dset = THD_zeropad( *dout,
-				add_I, add_S, add_A, add_P, add_R, add_L,
-				opts->prefix, ZPAD_PURGE );
-
-	if ( !ISVALID_DSET( tmp_dset ) )
-	{
-	    fputs( "THD_zeropad failed!\n", stderr );
-	    return FAIL;
-	}
-
-	DSET_delete( *dout );
-	*dout = tmp_dset;
-    }
 
     return 0;
 }
