@@ -9,7 +9,46 @@
 static char * vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
                          "PseudoColor" , "TrueColor" , "DirectColor"  } ;
 
+static XImage * xim    = NULL ;
+static int      xim_ww = 0 ;
+static int      xim_hh = 0 ;
+
+XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im ) ;
+
 void fred_CB( Widget w , XtPointer cd , XtPointer cb ){ exit(0); }
+
+void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   static int needGC = 1 ;
+   static  GC myGC ;
+   XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
+   XExposeEvent * ev = (XExposeEvent *) cbs->event ;
+   Dimension nx , ny ;
+   int ii , jj ;
+
+   if( cbs->reason != XmCR_EXPOSE || ev->count > 0 ) return ;
+
+   if( needGC ){
+     XGCValues  gcv;
+     gcv.function = GXcopy ;
+     myGC  = XCreateGC( XtDisplay(w) , XtWindow(w) , GCFunction , &gcv ) ;
+     needGC = 0 ;
+   }
+
+   XtVaGetValues( w , XmNwidth  , &nx , XmNheight , &ny , NULL ) ;
+
+   ii = 0 ;
+   do{
+      jj = 0 ;
+      do{
+         XPutImage( XtDisplay(w),XtWindow(w),myGC,xim,0,0,ii,jj,xim_ww,xim_hh) ;
+         jj += xim_hh + 4 ;
+      } while( jj < ny ) ;
+      ii += xim_ww ;
+   } while( ii < nx ) ;
+
+   return ;
+}
 
 int main( int argc , char * argv[] )
 {
@@ -21,7 +60,7 @@ int main( int argc , char * argv[] )
         XVisualInfo     *vinfo_list;    /* returned list of visuals */
         int             count;          /* number of matchs (only 1?) */
         int             vid ;
-        Widget          fred ;
+        Widget          fred , fff ;
 
         /*
          * The following creates a _dummy_ toplevel widget so we can
@@ -48,51 +87,82 @@ int main( int argc , char * argv[] )
                           XtNvisual      , vinfo_list[0].visual ,
                        NULL ) ;
 
+        fff = XtVaCreateWidget( "dialog" , xmFormWidgetClass , top ,
+                                   XmNborderWidth , 0 ,
+                                NULL ) ;
+
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
 #endif
 
-        fred = XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , top ,
+        fred = XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , fff ,
                                           LABEL_ARG("Jumpback") ,
+                                          XmNtopAttachment    , XmATTACH_FORM ,
+                                          XmNleftAttachment   , XmATTACH_FORM ,
+                                          XmNrightAttachment  , XmATTACH_FORM ,
                                          NULL ) ;
-
         XtAddCallback( fred , XmNactivateCallback , fred_CB , NULL ) ;
 
+        fred = XtVaCreateManagedWidget( "dialog" , xmDrawingAreaWidgetClass , fff ,
+                                          XmNtopAttachment    , XmATTACH_WIDGET ,
+                                          XmNtopWidget        , fred ,
+                                          XmNleftAttachment   , XmATTACH_FORM ,
+                                          XmNrightAttachment  , XmATTACH_FORM ,
+                                          XmNbottomAttachment , XmATTACH_FORM ,
+                                        NULL ) ;
+
+        XtAddCallback( fred , XmNexposeCallback , elvis_CB , NULL ) ;
+
+        { MRI_IMAGE * im ;
+          im = mri_read_ppm( "bob.ppm" ) ;
+          xim = rgb_to_XImage( XtDisplay(top) , vinfo_list , im ) ;
+          xim_ww = im->nx ; xim_hh = im->ny ;
+          mri_free(im) ;
+        }
+
+        XtVaSetValues( top ,
+                         XmNwidth , xim_ww ,
+                         XmNheight , xim_hh+40 ,
+                       NULL ) ;
+
+        XtManageChild(fff) ;
         XtRealizeWidget(top);
         XtAppMainLoop(app);
-        return (0);
+
+        exit(0); /* never reached */
 }
 
 /*---------------------------------------------------------------------------
-   Create an XImage from an RGB image.
+   Create an XImage from an RGB image.  Adapted from program "xv".
+   The output of this can be XPutImage-d to a window.
 -----------------------------------------------------------------------------*/
 
-static int highbit(unsigned long ul) ;
+static int highbit(unsigned long ul) ;  /* prototype */
 
 XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
 {
    unsigned long r, g, b, rmask, gmask, bmask ;
    int           rshift, gshift, bshift, bperpix, bperline, border, i,j ;
    int           wide, high ;
-   byte         *imagedata, *lip, *ip, *pp;
+   byte         *imagedata, *lip, *ip, *pp ;
    XImage       *xim = NULL ;
    int          *xcol ;
 
    /* check inputs */
 
    if( vin==NULL || vin->class!=TrueColor || im==NULL || im->kind!=MRI_rgb ){
-      fprintf(stderr,"\a\n*** ILLEGAL image input to rgb_to_XImage\n") ;
+      fprintf(stderr,"\a\n*** ILLEGAL input to rgb_to_XImage\n") ;
       sleep(1) ; exit(1) ;
    }
 
-   /* get color masks */
+   /* get color masks and shifts to put high bit of color byte into place */
 
-   rmask = vin->red_mask  ; rshift = 7 - highbit(rmask) ;
-   gmask = vin->green_mask; gshift = 7 - highbit(gmask) ;
-   bmask = vin->blue_mask ; bshift = 7 - highbit(bmask) ;
+   rmask = vin->red_mask   ; rshift = 7 - highbit(rmask) ;
+   gmask = vin->green_mask ; gshift = 7 - highbit(gmask) ;
+   bmask = vin->blue_mask  ; bshift = 7 - highbit(bmask) ;
 
-   /* image dimensions */
+   /* input image dimensions */
 
    wide = im->nx ;
    high = im->ny ;
@@ -102,9 +172,9 @@ XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
    xim = XCreateImage( dis , vin->visual , vin->depth , ZPixmap, 0, NULL,
                        wide,  high, 32, 0) ;
 
-   bperline = xim->bytes_per_line;
-   bperpix  = xim->bits_per_pixel;
-   border   = xim->byte_order;
+   bperline = xim->bytes_per_line ;
+   bperpix  = xim->bits_per_pixel ;
+   border   = xim->byte_order ;
 
    if(bperpix != 8 && bperpix != 16 && bperpix != 24 && bperpix != 32){
       fprintf(stderr,"\a\n*** rgb_to_XImage: can't use %d-bit TrueColor\n",bperpix) ;
@@ -113,8 +183,8 @@ XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
 
    /* make output image array */
 
-   imagedata = (byte *) XtMalloc((size_t) (high * bperline));
-   xim->data = (char *) imagedata;
+   imagedata = (byte *) XtMalloc((size_t) (high * bperline)) ;
+   xim->data = (char *) imagedata ;
 
    lip = imagedata ;       /* pointer to row of output image array */
    pp  = MRI_RGB_PTR(im) ; /* pointer to input image data */
@@ -123,70 +193,73 @@ XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
 
    /*-- loop over image --*/
 
-   for (i=0; i<high; i++, lip+=bperline) {  /* down rows */
+   for (i=0; i<high; i++, lip+=bperline) {  /* loop over rows */
 
       for (j=0, ip=lip; j<wide; j++) {      /* load color for row #i */
 
-        r = *pp++ ;  g = *pp++ ;  b = *pp++ ;  /* get input RGB values */
+        r = *pp++ ;  g = *pp++ ;  b = *pp++ ;  /* get input RGB byte values */
 
-        r = (rshift<0) ? (r<<(-rshift)) : (r>>rshift) ; r = r & rmask;
-        g = (gshift<0) ? (g<<(-gshift)) : (g>>gshift) ; g = g & gmask;
-        b = (bshift<0) ? (b<<(-bshift)) : (b>>bshift) ; b = b & bmask;
+        /* shift each component to the correct position, and mask it off */
 
-        xcol[j] = r | g | b ;
+        r = (rshift<0) ? (r<<(-rshift)) : (r>>rshift) ; r = r & rmask ;
+        g = (gshift<0) ? (g<<(-gshift)) : (g>>gshift) ; g = g & gmask ;
+        b = (bshift<0) ? (b<<(-bshift)) : (b>>bshift) ; b = b & bmask ;
+
+        xcol[j] = r | g | b ;  /* assemble color for this pixel */
       }
 
-      /* now put all colors for row #i into image array */
+      /* now put all colors for row #i into output image array,
+         allowing for most possible bytes/pixel and byte ordering stupidities */
 
       switch( bperpix ){
            case 32:
              if (border == MSBFirst)
                 for( j=0 ; j < wide ; j++ ){
-                   *ip++ = (xcol[j]>>24) & 0xff;
-                   *ip++ = (xcol[j]>>16) & 0xff;
-                   *ip++ = (xcol[j]>>8)  & 0xff;
-                   *ip++ =  xcol[j]      & 0xff;
+                   *ip++ = (xcol[j]>>24) & 0xff ;
+                   *ip++ = (xcol[j]>>16) & 0xff ;
+                   *ip++ = (xcol[j]>>8)  & 0xff ;
+                   *ip++ =  xcol[j]      & 0xff ;
                  }
              else
                 for( j=0 ; j < wide ; j++ ){
-                   *ip++ =  xcol[j]      & 0xff;
-                   *ip++ = (xcol[j]>>8)  & 0xff;
-                   *ip++ = (xcol[j]>>16) & 0xff;
-                   *ip++ = (xcol[j]>>24) & 0xff;
+                   *ip++ =  xcol[j]      & 0xff ;
+                   *ip++ = (xcol[j]>>8)  & 0xff ;
+                   *ip++ = (xcol[j]>>16) & 0xff ;
+                   *ip++ = (xcol[j]>>24) & 0xff ;
                  }
            break ;
 
            case 24:
              if (border == MSBFirst)
                 for( j=0 ; j < wide ; j++ ){
-                  *ip++ = (xcol[j]>>16) & 0xff;
-                  *ip++ = (xcol[j]>>8)  & 0xff;
-                  *ip++ =  xcol[j]      & 0xff;
+                  *ip++ = (xcol[j]>>16) & 0xff ;
+                  *ip++ = (xcol[j]>>8)  & 0xff ;
+                  *ip++ =  xcol[j]      & 0xff ;
                 }
              else
                 for( j=0 ; j < wide ; j++ ){
-                  *ip++ =  xcol[j]      & 0xff;
-                  *ip++ = (xcol[j]>>8)  & 0xff;
-                  *ip++ = (xcol[j]>>16) & 0xff;
+                  *ip++ =  xcol[j]      & 0xff ;
+                  *ip++ = (xcol[j]>>8)  & 0xff ;
+                  *ip++ = (xcol[j]>>16) & 0xff ;
                 }
            break ;
 
            case 16:
              if (border == MSBFirst)
                 for( j=0 ; j < wide ; j++ ){
-                  *ip++ = (xcol[j]>>8)  & 0xff;
-                  *ip++ =  xcol[j]      & 0xff;
+                  *ip++ = (xcol[j]>>8)  & 0xff ;
+                  *ip++ =  xcol[j]      & 0xff ;
                 }
              else
                 for( j=0 ; j < wide ; j++ ){
-                  *ip++ =  xcol[j]      & 0xff;
-                  *ip++ = (xcol[j]>>8)  & 0xff;
+                  *ip++ =  xcol[j]      & 0xff ;
+                  *ip++ = (xcol[j]>>8)  & 0xff ;
                 }
            break ;
 
            case 8:
                 for( j=0 ; j < wide ; j++ )
-                   *ip++ = xcol[j] & 0xff;
+                   *ip++ = xcol[j] & 0xff ;
            break ;
          }
     } /* end of loop over rows */
@@ -195,12 +268,13 @@ XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
    return xim ;
 }
 
-/***********************/
+/*------------------------------------------------------------------------
+  Returns position of highest set bit in 'ul' as an integer (0-31),
+  or returns -1 if no bit is set.
+--------------------------------------------------------------------------*/
+
 static int highbit(unsigned long ul)
 {
-  /* returns position of highest set bit in 'ul' as an integer (0-31),
-   or -1 if none */
-
   int i;  unsigned long hb;
 
   hb = 0x80;  hb = hb << 24;   /* hb = 0x80000000UL */

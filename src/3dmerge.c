@@ -364,9 +364,10 @@ void MRG_Syntax(void)
     "where the options are:\n"
    ) ;
 
-   printf( "%s\n" , EDIT_options_help ) ;
+   printf( "%s\n" , EDIT_options_help() ) ;
 
    printf(
+    "OTHER OPTIONS:\n"
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
     "          N.B.: Byte data cannot be negative.  If this datum type is chosen,\n"
