@@ -1614,17 +1614,30 @@ STATUS("about to perform 1D transformation") ;
 #endif
             }
 
-            if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
-               grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
-                                          MRI_FLOAT_PTR(qim) ) ;
-            } else {
-               char * quser = NULL ;
-               grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
-                                          MRI_FLOAT_PTR(qim) , &quser ) ;
-STATUS("about to assign tuser string") ;
-               if( quser != NULL )
-                 grapher->tuser[ix][iy] = XtNewString(quser) ;
+            if( ! (grapher->transform1D_flags & PROCESS_MRI_IMAGE) ){  /* older code:i  */
+                                                                       /* process image */
+              if( ! (grapher->transform1D_flags & RETURNS_STRING) ){   /* contents only */
+                 grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
+                                            MRI_FLOAT_PTR(qim) ) ;
+              } else {
+                 char * quser = NULL ;
+                 grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
+                                            MRI_FLOAT_PTR(qim) , &quser ) ;
+                 if( quser != NULL )
+                   grapher->tuser[ix][iy] = XtNewString(quser) ;
+              }
+            } else {                           /* 28 Mar 2002: process MRI_IMAGE struct */
+
+              if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
+                 grapher->transform1D_func( qim ) ;
+              } else {
+                 char *quser = NULL ;
+                 grapher->transform1D_func( qim , &quser ) ;
+                 if( quser != NULL )
+                   grapher->tuser[ix][iy] = XtNewString(quser) ;
+              }
             }
+
          }
 
          /* put this (possibly transformed) image on the list of those to plot */
