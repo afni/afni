@@ -1822,13 +1822,43 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
 	$(CP) SUMA/libSUMA.a ./;	)
 
+libgts.a: 
+	( cd SUMA ;	\
+	rm -f libgts.a	;\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libgts.a 'INSTALLDIR=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
+	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
+	cd ../	;	\
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
+	$(CP) SUMA/libgts.a ./;	)
+
 ###
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface ConvertDset MapIcosahedron CreateIcosahedron SurfaceMetrics \
-   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual packbins 'INSTALLDIR=$(INSTALLDIR)' \
+   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
+	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
+	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
+	cd ../	;)
+
+###
+#Do the GTS related stuff 	
+suma_gts_progs:libgts.a 
+	( cd SUMA ;	\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) SurfMesh 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1913,6 +1943,10 @@ suma_clean:
 	if [ -f SUMA/MapIcosahedron ]; then $(RM) SUMA/MapIcosahedron; fi;
 	if [ -f CreateIcosahedron ]; then $(RM) CreateIcosahedron; fi;
 	if [ -f SUMA/CreateIcosahedron ]; then $(RM) SUMA/CreateIcosahedron; fi;
+	if [ -f SurfMesh ]; then $(RM) SurfMesh; fi;
+	if [ -f SUMA/SurfMesh ]; then $(RM) SUMA/SurfMesh; fi;
+	if [ -f SampBias ]; then $(RM) SampBias; fi;
+	if [ -f SUMA/SampBias ]; then $(RM) SUMA/SampBias; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -1923,10 +1957,10 @@ suma_link:
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual;\
+   quickspec FSread_annot SurfPatch SurfQual SampBias;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual\
+   quickspec FSread_annot SurfPatch SurfQual SampBias\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1945,8 +1979,12 @@ suma_install:
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol SUMA/SurfMeasures \
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
-   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth ${INSTALLDIR} ; \
+   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth \
+   SUMA/SampBias \
+   ${INSTALLDIR} ; \
+   if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
+suma_gts: suma_clean suma_exec suma_gts_progs suma_install
 suma_fromobjs: suma_link suma_install
