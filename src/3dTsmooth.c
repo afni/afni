@@ -10,15 +10,20 @@ void osfilt3_func( int num , float * vec ) ;
 void median3_func( int num , float * vec ) ;
 void linear3_func( int num , float * vec ) ;
 
+/*-- 01 & 03 Mar 2001: linear filtering functions --*/
+
 void linear_filter_extend( int , float * , int , float * ) ;
-float * hamming_window( int ) ;
+void linear_filter_zero  ( int , float * , int , float * ) ;
+void linear_filter_trend ( int , float * , int , float * ) ;
+float * hamming_window ( int ) ;
 float * blackman_window( int ) ;
 
 static float af=0.15 , bf=0.70 , cf=0.15 ;
 
 int main( int argc , char * argv[] )
 {
-   void (*smth)(int,float *) = linear3_func ;
+   void (*smth)(int,float *) = linear3_func ;     /* default filter */
+
    char prefix[256] = "smooth" ;
    int new_datum = ILLEGAL_TYPE , old_datum ;
    int nopt ;
@@ -38,28 +43,41 @@ int main( int argc , char * argv[] )
    float * fac  = NULL ;  /* array of brick scaling factors */
    float * faci = NULL ;
 
-   int do_hamming=0 , do_blackman=0 , ntap=0 ;  /* 01 Mar 2001 */
+#define BLACKMAN 1
+#define HAMMING  2
+
+#define EXTEND   77
+#define ZERO     78
+#define TREND    79
+
+   int ntap=0 ;      /* 01 Mar 2001 */
    float *ftap=NULL ;
+   int nwin=0,nfil=EXTEND ;      /* 03 Mar 2001 */
+
+   void (*lfil)(int,float *,int,float *) = linear_filter_extend ;
+   float * (*lwin)(int) = NULL ;
 
    /* start of code */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTsmooth [options] dataset\n"
-             "Smooths each voxel time series in a 3D+time dataset and produces as\n"
-             "output a new 3D+time dataset.\n"
+             "Smooths each voxel time series in a 3D+time dataset and produces\n"
+             "as output a new 3D+time dataset (e.g., lowpass filter in time).\n"
              "\n"
              "General Options:\n"
              "  -prefix ppp  = Sets the prefix of the output dataset to be 'ppp'.\n"
              "                   [default = 'smooth']\n"
-             "  -datum type  = Coerce the output data to be stored as the given type.\n"
+             "  -datum type  = Coerce output dataset to be stored as the given type.\n"
              "                   [default = input data type]\n"
              "\n"
+             "Three Point Filtering Options [07 July 1999]\n"
+             "--------------------------------------------\n"
              "The following options define the smoothing filter to be used.\n"
-             "All filters in this program use 3 input points to compute one\n"
-             "output point: a = input value before the current point\n"
-             "              b = input value at the current point\n"
-             "              c = input value after the current point\n"
-             "                  [at the left end, a=b; at the right end, c=b]\n"
+             "All these filters  use 3 input points to compute one output point:\n"
+             "  Let a = input value before the current point\n"
+             "      b = input value at the current point\n"
+             "      c = input value after the current point\n"
+             "           [at the left end, a=b; at the right end, c=b]\n"
              "\n"
              "  -lin = 3 point linear filter: 0.15*a + 0.70*b + 0.15*c\n"
              "           [This is the default smoother]\n"
@@ -70,12 +88,21 @@ int main( int argc , char * argv[] )
              "  -3lin m = 3 point linear filter: 0.5*(1-m)*a + m*b + 0.5*(1-m)*c\n"
              "              Here, 'm' is a number strictly between 0 and 1.\n"
              "\n"
+             "General Linear Filtering Options [03 Mar 2001]\n"
+             "----------------------------------------------\n"
              "  -hamming N  = Use N point Hamming or Blackman windows.\n"
              "  -blackman N     (N must be odd and bigger than 1.)\n"
              "    WARNING: If you use long filters, you do NOT want to include the\n"
              "             large early images in the program.  Do something like\n"
              "                3dTsmooth -hamming 13 'fred+orig[4..$]'\n"
              "             to eliminate the first 4 images (say).\n"
+             " The following options determing how the general filters treat\n"
+             " time points before the beginning and after the end:\n"
+             "  -EXTEND = BEFORE: use the first value; AFTER: use the last value\n"
+             "  -ZERO   = BEFORE and AFTER: use zero\n"
+             "  -TREND  = compute a linear trend, and extrapolate BEFORE and AFTER\n"
+             " The default is -EXTEND.  These options do NOT affect the operation\n"
+             " of the 3 point filters described above, which always use -EXTEND.\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
@@ -87,11 +114,26 @@ int main( int argc , char * argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+      if( strcmp(argv[nopt],"-EXTEND") == 0 ){         /* 03 Mar 2001 */
+         nfil = EXTEND ; lfil = linear_filter_extend ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-ZERO") == 0 ){           /* 03 Mar 2001 */
+         nfil = ZERO ; lfil = linear_filter_zero ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-TREND") == 0 ){          /* 03 Mar 2001 */
+         nfil = TREND ; lfil = linear_filter_trend ;
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-hamming") == 0 ){
          if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
-         do_hamming = 1 ;
+         nwin = HAMMING ; lwin = hamming_window ;
          nopt++ ; continue ;
       }
 
@@ -99,7 +141,7 @@ int main( int argc , char * argv[] )
          if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
-         do_blackman = 1 ;
+         nwin = BLACKMAN ; lwin = blackman_window ;
          nopt++ ; continue ;
       }
 
@@ -286,8 +328,10 @@ int main( int argc , char * argv[] )
       }
    }
 
-        if( do_hamming  ) ftap = hamming_window ( ntap ) ;
-   else if( do_blackman ) ftap = blackman_window( ntap ) ;
+   if( lwin != NULL && ntap > 0 ){        /* 03 Mar 2001 */
+      ftap = lwin(ntap) ;
+      if( lfil == NULL ) lfil = linear_filter_extend ;
+   }
 
    /*----------------------------------------------------*/
    /*----- Setup has ended.  Now do some real work. -----*/
@@ -318,9 +362,9 @@ int main( int argc , char * argv[] )
       /* do smoothing */
 
       if( ftap != NULL )
-         linear_filter_extend( ntap,ftap , ntime,fxar ) ;  /* 01 Mar 2001 */
+         lfil( ntap,ftap , ntime,fxar ) ;  /* 01 Mar 2001 */
       else
-         smth( ntime , fxar ) ;                       /* 3 point smoother */
+         smth( ntime , fxar ) ;            /* 3 point smoother */
 
       /*** put data into output dataset ***/
 
@@ -349,7 +393,7 @@ int main( int argc , char * argv[] )
       }
    }  /* end of loop over voxels */
 
-   DSET_unload(old_dset) ;
+   DSET_unload(old_dset) ; free(ftap) ;
    DSET_write(new_dset) ;
    exit(0) ;
 }
@@ -424,6 +468,63 @@ void linear_filter_extend( int ntap , float *wt , int npt , float *x )
 #define XX(i) ( ((i)<0) ? far[0] : ((i)>npt-1) ? far[npt-1] : far[i] )
 
    memcpy( far , x , sizeof(float)*npt ) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+      for( sum=0.0,jj=0 ; jj < ntap ; jj++ ) sum += wt[jj] * XX(ii-nt2+jj) ;
+      x[ii] = sum ;
+   }
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void linear_filter_zero( int ntap , float *wt , int npt , float *x )
+{
+   int ii , nt2=(ntap-1)/2 , jj ;
+   float sum ;
+   static int nfar=0 ;
+   static float *far=NULL ;
+
+   if( npt > nfar ){
+      if(far != NULL) free(far) ;
+      far = (float *)malloc(sizeof(float)*npt) ; nfar = npt ;
+   }
+
+#undef XX
+#define XX(i) ( ((i)<0 || (i)>npt-1) ? 0 : far[i] )
+
+   memcpy( far , x , sizeof(float)*npt ) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+      for( sum=0.0,jj=0 ; jj < ntap ; jj++ ) sum += wt[jj] * XX(ii-nt2+jj) ;
+      x[ii] = sum ;
+   }
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void linear_filter_trend( int ntap , float *wt , int npt , float *x )
+{
+   int ii , nt2=(ntap-1)/2 , jj ;
+   float sum ;
+   static int nfar=0 ;
+   static float *far=NULL ;
+   float a=0.0,b=0.0 ;
+
+   if( npt > nfar ){
+      if(far != NULL) free(far) ;
+      far = (float *)malloc(sizeof(float)*npt) ; nfar = npt ;
+   }
+
+#undef XX
+#define XX(i) ( ((i)<0 || (i)>npt-1) ? (a+b*(i)) : far[i] )
+
+   memcpy( far , x , sizeof(float)*npt ) ;
+
+   get_linear_trend( npt,far , &a,&b ) ; /* cf. thd_detrend.c */
 
    for( ii=0 ; ii < npt ; ii++ ){
       for( sum=0.0,jj=0 ; jj < ntap ; jj++ ) sum += wt[jj] * XX(ii-nt2+jj) ;

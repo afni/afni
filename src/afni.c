@@ -430,7 +430,9 @@ ENTRY("AFNI_parse_args") ;
       if( strncmp(argv[narg],"-rt",3) == 0 ){
          GLOBAL_argopt.allow_rt       = -1 ;
          GLOBAL_argopt.no_frivolities =  1 ;
+#ifdef USE_TRACING
          DBG_trace                    =  0 ;  /* 26 Jan 2001 */
+#endif
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -792,7 +794,9 @@ ENTRY("AFNI_parse_args") ;
 
    } /* end of loop over argv's starting with '-' */
 
+#ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+#endif
 
    /** 16 July 1997: orientation code change **/
 
@@ -914,7 +918,10 @@ int main( int argc , char * argv[] )
 #endif
 
    mainENTRY("AFNI:main") ;              /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
+
+#ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+#endif
 
    /*--- help? ---*/
 

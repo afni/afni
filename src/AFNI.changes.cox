@@ -2634,3 +2634,16 @@
      thd_writedblk.c -- if AFNI_AUTOGZIP is on.
  * Modified afni_environ.c so that yesenv() and noenv() use my_getenv().
  * Modified afni_pplug_env.c to include AFNI_AUTOGZIP.
+ * Modified afni.c to put DBG_trace= statements inside #ifdef USE_TRACING.
+ * Modified 3dZeropad.c to not overwrite existing datasets [Oopsie squared].
+ * Modified 3dmerge.c to print warning message for default indexes
+     (if -1dindex and/or -1tindex is not used).
+ * Added 3ddelay.c from Ziad Saad.
+
+03 Mar 2001
+ * Modified 3dTsmooth (yet again) to allow for different options for
+     dealing with points past the beginning and end of time.
+
+04 Mar 2001
+ * New program ent16.c computes 16-bit entropy of stdin stream.  Can be
+     used in a script to decide when to gzip datasets.

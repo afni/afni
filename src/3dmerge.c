@@ -899,6 +899,11 @@ int main( int argc , char * argv[] )
        THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
      }
 
+   /* 02 Mar 2001: print a message about dataset indices */
+
+   if( MRG_ivfim < 0 ) fprintf(stderr,"++ default -1dindex = 0\n") ;
+   if( MRG_ivthr < 0 ) fprintf(stderr,"++ default -1tindex = 1\n") ;
+
    /* read first dataset */
 
    dset = DSET_OPEN( argv[first_file] ) ;
