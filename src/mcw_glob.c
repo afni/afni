@@ -421,13 +421,13 @@ glob(pattern, flags, errfunc, pglob)
 	return (err);
 
     /*
-     * If there was no match we are going to append the pattern 
+     * If there was no match we are going to append the pattern
      * if GLOB_NOCHECK was specified or if GLOB_NOMAGIC was specified
      * and the pattern did not contain any magic characters
      * GLOB_NOMAGIC is there just for compatibility with csh.
      */
-    if (pglob->gl_pathc == oldpathc && 
-	((flags & GLOB_NOCHECK) || 
+    if (pglob->gl_pathc == oldpathc &&
+	((flags & GLOB_NOCHECK) ||
 	 ((flags & GLOB_NOMAGIC) && !(pglob->gl_flags & GLOB_MAGCHAR)))) {
 	if (!(flags & GLOB_QUOTE)) {
 	    Char *dp = compilebuf;
@@ -600,11 +600,11 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 	/* initial DOT must be matched literally */
 	if (dname[0] == DOT && *pattern != DOT)
 	    continue;
-	for (sc = (unsigned char *) dname, dc = pathend; 
+	for (sc = (unsigned char *) dname, dc = pathend;
 #else
 	if (dp->d_name[0] == DOT && *pattern != DOT)
 	    continue;
-	for (sc = (unsigned char *) dp->d_name, dc = pathend; 
+	for (sc = (unsigned char *) dp->d_name, dc = pathend;
 #endif
 	     (*dc++ = *sc++) != '\0';)
 	    continue;
@@ -695,7 +695,7 @@ match(name, pat, patend, m_not)
 	case M_ALL:
 	    if (pat == patend)
 		return (1);
-	    do 
+	    do
 		if (match(name, pat, patend, m_not))
 		    return (1);
 	    while (*name++ != EOS);
@@ -758,13 +758,13 @@ globfree(pglob)
 static int warn = 0 ;
 void MCW_warn_expand( int www ){ warn = www; return; }  /* 13 Jul 2001 */
 
-/*------------------------------------------------------------------------
-   Routines that allows filename wildcarding to be handled inside
-   to3d.  The advantage: limitations of shell command line lengths.
-   29 July 1996:  Incorporated "glob" functions from tcsh-6.05, rather
-                    than rely on system supplying a library.
-   30 July 1996:  Extended routine to allow for 3D: type prefixes.
-   10 Feb  2000:  and for 3A: prefixes.
+/*------------------------------------------------------------------------*/
+/*! Routines that allows filename wildcarding to be handled inside
+    to3d.  The advantage: limitations of shell command line lengths.
+     - 29 July 1996:  Incorporated "glob" functions from tcsh-6.05, rather
+                       than rely on system supplying a library.
+     - 30 July 1996:  Extended routine to allow for 3D: type prefixes.
+     - 10 Feb  2000:  and for 3A: prefixes.
 --------------------------------------------------------------------------*/
 
 void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
@@ -878,6 +878,51 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
 
    *nout = gnum ; *fout = gout ; return ;
 }
+
+/*-----------------------------------------------------------------------*/
+/*! Simpler interface to MCW_file_expand().
+      - fnam = string of form "*.zork fred*.* ?a?b"; e.g., 1 or more
+               wildcards
+      - nout = pointer to output count
+      - fout = pointer to output list of strings.
+
+    Sample usage:
+      int nfile ; char **flist ;
+      MCW_wildcards( "*.jpg *.JPG" , &nfile , &flist ) ;
+       ... do something with flist[0]..flist[nfile-1] if nfile > 0 ...
+      MCW_free_wildcards( nfile , flist ) ;
+-------------------------------------------------------------------------*/
+
+void MCW_wildcards( char *fnam , int *nout , char ***fout )  /* 01 Dec 2003 */
+{
+   char **fin=NULL, *fcop ;
+   int ii , nin , lf , ls ;
+
+   if( fnam == NULL || *fnam == '\0' ){ *nout = 0 ; return ; }
+   fcop = strdup(fnam) ; lf = strlen(fcop) ;
+   ls = 1 ;
+   for( nin=ii=0 ; ii < lf ; ii++ ){
+     if( isspace(fcop[ii]) ){   /* This is a blank, so next */
+       ls = 1 ;                 /*  non-blank is a new word. */
+       fcop[ii] = '\0' ;        /* Set this char to NUL.      */
+
+     } else {                   /* Not a blank. */
+
+       if( ls ){                /* If last was a blank, is new name. */
+         fin = (char **) realloc( fin , sizeof(char *)*(nin+1) ) ;
+         fin[nin++] = fcop+ii ;
+       }
+       ls = 0 ;
+     }
+   }
+
+   if( nin == 0 ){ *nout = 0 ; free(fcop) ; return ; }
+
+   MCW_file_expand( nin , fin , nout , fout ) ;
+   free(fin) ; free(fcop) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
 
 void MCW_free_expand( int gnum , char ** gout )
 {
