@@ -562,6 +562,7 @@ static char * ISQ_arrow_hint[NARROW] = {
 /*........................................................................*/
 
 #define DEFAULT_MINFRAC 0.02
+#define DEFAULT_MAXFRAC 0.90
 
 #define OPACITY_FAC  0.11111  /* 06-07 Mar 2001: overlay opacity stuff */
 #define OPACITY_BOT  0
@@ -580,6 +581,7 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    MRI_IMAGE * tim ;
    float minfrac=DEFAULT_MINFRAC ; char * eee ; /* 27 Feb 2001 */
    Widget wtemp ;                               /* 11 Mar 2002 */
+   float maxfrac=DEFAULT_MAXFRAC ;              /* 13 Jun 2003 */
 
 ENTRY("open_MCW_imseq") ;
 
@@ -768,6 +770,14 @@ if( PRINT_TRACING ){
       else                                    minfrac = DEFAULT_MINFRAC ;
    }
 
+   eee = my_getenv("AFNI_IMAGE_MAXFRAC") ;
+   if( eee != NULL ){
+      float fff=0.0 ;
+      ii = sscanf(eee,"%f",&fff) ;
+      if( ii > 0 && fff > 0.0 && fff <= 1.0 ) maxfrac = fff ;
+      else                                    maxfrac = DEFAULT_MAXFRAC ;
+   }
+
    { float xxx = newseq->hactual , yyy = newseq->vactual ;
      float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
 
@@ -780,14 +790,19 @@ if( PRINT_TRACING ){
      /* modify if window too big for display */
 
      fff = ggg = 1.0 ;
-     if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx; /* don't let  */
-     if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy; /* be too big */
+     if( xxx >= maxfrac*dc->width ) fff = maxfrac*dc->width / xxx; /* don't let  */
+     if( yyy >= maxfrac*dc->height) ggg = maxfrac*dc->height/ yyy; /* be too big */
      fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
      if( xxx < 1.0 || yyy < 1.0 ){                     /* weird result?? */
        xxx = newseq->hactual ; yyy = newseq->vactual; /* back to old way */
      }
      xwide = (int) ( 0.49 + xxx / IMAGE_FRAC ) ;
      yhigh = (int) ( 0.49 + yyy / IMAGE_FRAC ) ;
+
+     fff = ggg = 1.0 ;
+     if( xwide >= maxfrac*dc->width ) fff = maxfrac*dc->width / xwide; /* don't let  */
+     if( yhigh >= maxfrac*dc->height) ggg = maxfrac*dc->height/ yhigh; /* be too big */
+     fff = MIN(fff,ggg) ; xwide *= fff ; yhigh *= fff ;
    }
 
    /* toggles for widget controls on or off */
@@ -1592,6 +1607,7 @@ void ISQ_reset_dimen( MCW_imseq * seq,  float new_width_mm, float new_height_mm 
    MCW_DC *dc ;
 
    float minfrac=DEFAULT_MINFRAC ; char *eee ; /* 12 Jun 2002 */
+   float maxfrac=DEFAULT_MAXFRAC ;
 
 ENTRY("ISQ_reset_dimen") ;
 
@@ -1616,8 +1632,16 @@ ENTRY("ISQ_reset_dimen") ;
    if( eee != NULL ){
       float fff=0.0 ; int ii ;
       ii = sscanf(eee,"%f",&fff) ;
-      if( ii > 0 && fff > 0.0 && fff <= 0.9 ) minfrac = fff ;
+      if( ii > 0 && fff > 0.0 && fff <= 1.0 ) minfrac = fff ;
       else                                    minfrac = DEFAULT_MINFRAC ;
+   }
+
+   eee = my_getenv("AFNI_IMAGE_MAXFRAC") ;
+   if( eee != NULL ){
+      float fff=0.0 ; int ii ;
+      ii = sscanf(eee,"%f",&fff) ;
+      if( ii > 0 && fff > 0.0 && fff <= 0.9 ) maxfrac = fff ;
+      else                                    maxfrac = DEFAULT_MAXFRAC ;
    }
 
    dc = seq->dc ;
@@ -1634,8 +1658,8 @@ ENTRY("ISQ_reset_dimen") ;
      /* modify if window too big */
 
      fff = ggg = 1.0 ;
-     if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let  */
-     if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
+     if( xxx >= maxfrac*dc->width ) fff = maxfrac*dc->width / xxx ; /* don't let  */
+     if( yyy >= maxfrac*dc->height) ggg = maxfrac*dc->height/ yyy ; /* be too big */
      fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
      if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
         xxx = xwide ; yyy = yhigh ;                    /* back to old way */
@@ -1661,8 +1685,15 @@ if( PRINT_TRACING ){
    /* possibly expand to include control widgets (if they are on) */
 
    if( seq->onoff_state ){
-      xwide = (int) ( 0.49 + xwide / seq->image_frac ) ;  /* new size of shell */
-      yhigh = (int) ( 0.49 + yhigh / seq->image_frac ) ;
+     float fff,ggg ;
+     xwide = (int) ( 0.49 + xwide / seq->image_frac ) ;  /* new size of shell */
+     yhigh = (int) ( 0.49 + yhigh / seq->image_frac ) ;
+
+     fff = ggg = 1.0 ;
+     if( xwide >= maxfrac*dc->width ) fff = maxfrac*dc->width /xwide; /* 13 Jun 2003  */
+     if( yhigh >= maxfrac*dc->height) ggg = maxfrac*dc->height/yhigh; /* Fri the 13th */
+     fff = MIN(fff,ggg) ;
+     fff = MIN(fff,ggg) ; xwide *= fff ; yhigh *= fff ;
    }
 
    if( seq->opt.free_aspect ){
