@@ -748,34 +748,6 @@ file won't be read until AFTER this file is read.  Also note that use
 of the -skip_afnirc option will cause both the system and user setup
 files to be skipped.
 
-----------------------------
-Variable: AFNI_IMAGE_PGMFILE (editable)
-----------------------------
-If this variable is set, it is the name of an image file to be read
-that will be shown in the AFNI splash window, when this window is popped
-up by left-clicking in the blank square just to the right of the AFNI
-controller "done" button.  This image should be in PGM format, and be
-436 pixels wide and 140 deep - otherwise AFNI will resize it to fit these
-dimensions.  (The "AFNI rocks" image will still be shown at startup.)
-This filename should be an absolute pathname, so that AFNI can find it
-regardless of the directory in which AFNI is started.
-
-You may also name additional files using variables
-  AFNI_IMAGE_PGMFILE_1 up to AFNI_IMAGE_PGMFILE_9
-If these environment variables are present, then one of them will
-be chosen randomly for display when the splash window is popped up.
-
-(Bonus hints for the diligent reader):
-[1] If you set AFNI_SPLASH_OVERRIDE to Yes, then one of your PGMFILE
-    images will be popped up instead of the "AFNI rocks" default image
-    when AFNI first starts.
-[2] In fact, your PGMFILE images can be color (PPM format), IF they
-    are exactly 436 pixels wide and 140 deep.
-[3] A file in the AFNI_PLUGINPATH whose name matches the wildcard
-    "afnisplash*.ppm" (and is 436x140) will also be read in to the
-    splash window.  A few such files are distributed with the AFNI
-    binaries.
-
 ------------------------
 Variable: AFNI_PBAR_IMXY (editable)
 ------------------------
