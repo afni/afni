@@ -1,0 +1,8581 @@
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  This software is Copyright 1994-6 by
+
+            Medical College of Wisconsin
+            8701 Watertown Plank Road
+            Milwaukee, WI 53226
+
+ License is granted to use this program for nonprofit research purposes only.
+ It is specifically against the license to use this program for any clinical
+ application.  The Medical College of Wisconsin makes no warranty of utility
+ of this program for any particular purpose.  The redistribution of this
+ program for a fee, or the derivation of for-profit works from this program
+ is not allowed.
+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
+
+/**********************************************************************/
+/* MCW AFNI:                                                          */
+/*    Medical College of Wisconsin Analysis of Functional NeuroImages */
+/*                                                                    */
+/* Author: Robert W. Cox, PhD                                         */
+/*         Biophysics Research Institute                              */
+/*         Medical College of Wisconsin                               */
+/*         8701 Watertown Plank Road                                  */
+/*         Milwaukee, WI 53226                                        */
+/*                                                                    */
+/* Acknowledgments:                                                   */
+/*   + This program would have been much more difficult had           */
+/*     not Andrzej Jesmanowicz forged the way with FD.                */
+/*   + Many neuroscientists have made helpful suggestions along       */
+/*     the way, including Jeff Binder, Ted DeYoe, Jim Hyde, Steve     */
+/*     Rao, and Elliot Stein.                                         */
+/*   + Thanks are also due to Mike Beauchamp, who is perhaps the most */
+/*     sophisticated user of AFNI that I've met, and who has found    */
+/*     many bugs or gotchas in this code.                             */
+/**********************************************************************/
+
+#define MAIN
+
+#include "afni.h"
+
+#if defined(VERSION) && defined(RELEASE)
+#  define ANNOUNCEMENT  \
+   "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n" \
+   "v. " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"       \
+   "Development supported by MCW funds and by NIH grants MH51358 & NS34798.\n"
+#else
+#  define ANNOUNCEMENT \
+     "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n" \
+     "          Copyright 1994,1995 Medical College of Wisconsin\n"
+#endif
+
+/* ----------------------------------- */
+#define USE_FRIENDS
+#ifdef USE_FRIENDS
+
+static char * afni_helptypes[] = {
+   "advice and help"     ,             /* mask =  1 */
+   "much encouragement"  ,             /* mask =  2 */
+   "many suggestions"    ,             /* mask =  4 */
+   "useful feedback"     ,             /* mask =  8 */
+   "`quick' questions"   ,             /* mask = 16 */
+   "inspiration"         ,             /* mask = 32 */
+   "great efforts"                     /* mask = 64 */
+} ;
+
+#define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
+
+typedef struct { char * name ; int helpmask ; } AFNI_friend ;
+
+static AFNI_friend afni_friends[] = {
+  { "J.R. Binder"    , (        4 | 8 | 16           ) } ,
+  { "E.A. DeYoe"     , (1 |     4 | 8                ) } ,
+  { "J.S. Hyde"      , (1 | 2              | 32      ) } ,
+  { "S.M. Rao"       , (        4 | 8 | 16           ) } ,
+  { "E.A. Stein"     , (1 | 2 | 4 | 8 | 16           ) } ,
+  { "A. Jesmanowicz" , (                     32      ) } ,
+  { "F.Z. Yetkin"    , (    2         | 16           ) } ,
+  { "M.S. Beauchamp" , (1 | 2 | 4 | 8 | 16           ) } ,
+  { "M.M. Klosek"    , (1 | 2              | 32      ) } ,
+  { "J.A. Bobholz"   , (                16 | 32      ) } ,
+  { "J.A. Frost"     , (                16           ) } ,
+  { "J. Kummer"      , (            8      | 32      ) } ,
+  { "B.D. Ward"      , (        4 | 8           | 64 ) } ,
+  { "S.A. Fuller"    , (                16           ) }
+} ;
+
+#define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
+
+#endif /* USE_FRIENDS */
+/* ----------------------------------- */
+
+#ifdef AFNI_DEBUG
+#  define REPORT_PROGRESS(str)  /* nada */
+#else
+#  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
+#endif
+
+#define EMPTY_STRING(str) ((str)[0] = '\0')
+
+#ifdef AFNI_DEBUG
+#  define USE_TRACING
+#  define PRINT_TRACING
+#endif
+#include "dbtrace.h"
+
+/********************************************************************
+   Print out some help information and then quit quit quit
+*********************************************************************/
+
+void AFNI_syntax(void)
+{
+   printf(
+     ANNOUNCEMENT
+     "\n"
+     "Usage 1: read in sessions of 3D datasets (created by to3d)\n"
+     "\n"
+     "   afni [options] [session_directory ...]\n"
+     "\n"
+#if MMAP_THRESHOLD > 0
+     "   -purge       Conserve memory by purging data to disk.\n"
+     "                  [Use this if you run out of memory when running AFNI.]\n"
+     "                  [This will slow the code down, so use only if needed.]\n"
+#endif
+     "   -posfunc     Set up the color 'pbar' to use only positive function values.\n"
+     "   -R           Recursively search each session_directory for more session\n"
+     "                  subdirectories.\n"
+     "       WARNING: This will descend the entire filesystem hierarchy from\n"
+     "                  each session_directory given on the command line.  On a\n"
+     "                  large disk, this may take a long time.  To limit the\n"
+     "                  recursion to 5 levels (for example), use -R5.\n"
+     "   -ignore N    Tells the program to 'ignore' the first N points in\n"
+     "                  time series for graphs and FIM calculations.\n"
+     "   -im1 N       Tells the program to use image N as the first one for\n"
+     "                  graphs and FIM calculations (same as '-ignore N-1')\n"
+     "   -tlrc_small  These options set whether to use the 'small' or 'big'\n"
+     "   -tlrc_big      Talairach brick size.  The compiled in default for\n"
+     "                  the program is now 'big', unlike AFNI 1.0x.\n"
+#ifndef WARP_4D
+     "   -warp_4D     Allows the program to Talairach transform and write\n"
+     "                  to disk 3D+time datasets.  Note that the resulting\n"
+     "                  disk files will be gigantic (100s of Megabytes).\n"
+#endif
+     "   -unique      Tells the program to create a unique set of colors\n"
+     "                  for each AFNI controller window.  This allows\n"
+     "                  different datasets to be viewed with different\n"
+     "                  grayscales or colorscales.  Note that -unique\n"
+     "                  will only work on 12 bit PseudoColor displays\n"
+     "                  (for example, SGI workstations).\n"
+     "   -orient code Tells afni the orientation in which to display\n"
+     "                  x-y-z coordinates (upper left of control window).\n"
+     "                  The code must be 3 letters, one each from the\n"
+     "                  pairs {R,L} {A,P} {I,S}.  The first letter gives\n"
+     "                  the orientation of the x-axis, the second the\n"
+     "                  orientation of the y-axis, the third the z-axis:\n"
+     "                   R = right-to-left         L = left-to-right\n"
+     "                   A = anterior-to-posterior P = posterior-to-anterior\n"
+     "                   I = inferior-to-superior  S = superior-to-inferior\n"
+     "                  The default code is RAI ==> DICOM order.  This can\n"
+     "                  be set with the environment variable AFNI_ORIENT.\n"
+     "                  As a special case, using the code 'flipped' is\n"
+     "                  equivalent to 'LPI' (this is for Steve Rao).\n"
+#ifdef ALLOW_PLUGINS
+     "   -noplugins   Tells the program not to load plugins.\n"
+     "                  (Plugins can also be disabled by setting the\n"
+     "                   environment variable AFNI_NOPLUGINS.)\n"
+     "   -yesplugouts Tells the program to listen for plugouts.\n"
+     "                  (Plugouts can also be enabled by setting the\n"
+     "                   environment variable AFNI_YESPLUGOUTS.)\n"
+     "   -noplugouts  Tells the program NOT to listen for plugouts.\n"
+     "                  (This option is available to override\n"
+     "                   the AFNI_YESPLUGOUTS environment variable.)\n"
+#endif
+     "\n"
+     " If no session_directories are given, then the program will use\n"
+     "   the current working directory (i.e., './').\n"
+     " The maximum number of sessions is now set to   %d.\n"
+     " The maximum number of anatomies per session is %d.\n"
+     " The maximum number of functions per session is %d.\n"
+     " A session must have at least one anatomical dataset in it.\n"
+
+     , THD_MAX_NUM_SESSION , THD_MAX_SESSION_ANAT , THD_MAX_SESSION_FUNC
+   ) ;
+
+   printf(
+     "\n"
+     "Usage 2: read in images for 'quick and dirty' viewing\n"
+     "\n"
+     "   afni -im [options] im1 im2 im3 ...\n"
+     "\n"
+     "   -im          Flag to read in images instead of 3D datasets\n"
+     "                  (Talaraich and functional stuff won't work)\n"
+     "   -dy yratio   Tells afni the downscreen pixel size is 'yratio' times\n"
+     "                  the across-screen (x) pixel dimension (default=1.0)\n"
+     "   -dz zratio   Tells afni the slice thickness is 'zratio' times\n"
+     "                  the x pixel dimension (default=1.0)\n"
+     "   -orient code Tells afni the orientation of the input images.\n"
+     "                  The code must be 3 letters, one each from the\n"
+     "                  pairs {R,L} {A,P} {I,S}.  The first letter gives\n"
+     "                  the orientation of the x-axis, the second the\n"
+     "                  orientation of the y-axis, the third the z-axis:\n"
+     "                   R = right-to-left         L = left-to-right\n"
+     "                   A = anterior-to-posterior P = posterior-to-anterior\n"
+     "                   I = inferior-to-superior  S = superior-to-inferior\n"
+     "                  (the default code is ASL ==> sagittal images).\n"
+     "                  Note that this use of '-orient' is different from\n"
+     "                  the use when viewing datasets.\n"
+     "   -resize      Tells afni that all images should be resized to fit\n"
+     "                  the size of the first one, if they don't already fit\n"
+     "                  (by default, images must all 'fit' or afni will stop)\n"
+     "   -datum type  Tells afni to convert input images into the type given:\n"
+     "                  byte, short, float, complex are the legal types.\n"
+     " The image files (im1 ...) are the same formats as accepted by to3d.\n"
+   ) ;
+
+   printf(
+     "\n"
+     "General options (for either Usage):\n"
+     "\n"
+     "   -gamma gg    Tells afni that the gamma correction factor for the\n"
+     "                  monitor is 'gg' (default gg is 1.0; greater than\n"
+     "                  1.0 makes the image contrast larger -- this may\n"
+     "                  also be adjusted interactively)\n"
+     "   -ncolors nn  Tells afni to use 'nn' gray levels for the image\n"
+     "                  displays (default is %d)\n"
+     "   -xtwarns     Tells afni to show any Xt warning messages that may\n"
+     "                  occur; the default is to suppress these messages.\n"
+     "   -tbar name   Uses 'name' instead of 'AFNI' in window titlebars.\n"
+     "\n"
+     "N.B.: Many of these options, as well as the initial color set up,\n"
+     "      can be controlled by appropriate X11 resources.  See the\n"
+     "      file AFNI.Xdefaults for instructions and examples.\n"
+
+     , DEFAULT_NGRAY
+   ) ;
+
+   exit(0) ;
+}
+
+/*----------------------------------------------------------------------
+   parse command line switches and store results in a data structure
+------------------------------------------------------------------------*/
+
+void AFNI_parse_args( int argc , char * argv[] )
+{
+   int narg = 1 ;
+   char * env_orient ;
+
+ENTRY("AFNI_parse_args") ;
+
+   GLOBAL_argopt.dz       = 1.0 ;         /* set up defaults */
+   GLOBAL_argopt.dy       = 1.0 ;
+   GLOBAL_argopt.ignore   = INIT_ignore ;
+   GLOBAL_argopt.allow_rt = 0 ;           /* April 1997 */
+
+#ifdef ALLOW_PLUGINS
+   { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
+     GLOBAL_argopt.noplugins  = (en != NULL) ;
+            en                = getenv( "AFNI_YESPLUGOUTS" ) ;
+     GLOBAL_argopt.noplugouts = (en == NULL) ;
+#if 0
+            en                = getenv( "AFNI_NOPLUGOUTS" ) ;
+     GLOBAL_argopt.noplugouts = (en != NULL) ;
+#endif
+   }
+#endif
+
+   env_orient = getenv( "AFNI_ORIENT" ) ;
+
+   GLOBAL_argopt.read_sessions = True ;        /* exactly one of these should be True */
+   GLOBAL_argopt.read_images   = False ;
+   GLOBAL_argopt.datum         = ILLEGAL_TYPE ;
+
+   GLOBAL_argopt.gamma         = INIT_gamma ;
+   GLOBAL_argopt.gsfac         = 0.0 ;
+   GLOBAL_argopt.ncolor        = INIT_ngray ;
+#if MMAP_THRESHOLD > 0
+   GLOBAL_argopt.auto_purge    = INIT_purge ;
+#else
+   GLOBAL_argopt.auto_purge    = True ;
+#endif
+   GLOBAL_argopt.resize_images = False ;       /* False means all images must match */
+   GLOBAL_argopt.keep_logo     = False ;       /* For making pretty pictures? */
+   GLOBAL_argopt.pos_func      = INIT_posfunc ;/* Positive valued functions? */
+   GLOBAL_argopt.recurse       = 0 ;           /* Recurse on session directories? */
+   GLOBAL_argopt.xtwarns       = False ;       /* True means keep Xt warnings turned on */
+   GLOBAL_argopt.destruct      = False ;       /* True means allow overwrite of datasets */
+                                               /* (Not yet properly implemented!) */
+
+   GLOBAL_argopt.tlrc_big      = INIT_tlrc_big ; /* use the big Talairach box? */
+#ifndef WARP_4D
+   GLOBAL_argopt.warp_4D       = False ;
+#else
+   GLOBAL_argopt.warp_4D       = True ;
+#endif
+
+   GLOBAL_argopt.unique_dcs    = False ;  /* 06 Nov 1996 */
+
+   strcpy(GLOBAL_argopt.orient_code,"---") ;
+
+   strcpy(GLOBAL_argopt.title_name,"AFNI") ;   /* default title bar name */
+
+   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+
+   while( narg < argc ){
+
+      if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
+
+      /*----- -rt option -----*/
+
+      if( strncmp(argv[narg],"-rt",3) == 0 ){
+         GLOBAL_argopt.allow_rt = -1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -tbar 'name' option -----*/
+
+      if( strncmp(argv[narg],"-tbar",5) == 0 ){
+         if( narg+1 >= argc ) FatalError("need an argument after -tbar!");
+         MCW_strncpy(GLOBAL_argopt.title_name,argv[++narg],8) ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -xtwarns option -----*/
+
+      if( strncmp(argv[narg],"-xtwarns",6) == 0 ){
+         GLOBAL_argopt.xtwarns = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -destruct option -----*/
+
+      if( strncmp(argv[narg],"-destruct",6) == 0 ){   /** has no effect at present **/
+         fprintf(stderr,"\n*** -destruct option not implemented at present! ***\n") ;
+         GLOBAL_argopt.destruct = False ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -posfunc option -----*/
+
+      if( strncmp(argv[narg],"-posfunc",6) == 0 ){
+         GLOBAL_argopt.pos_func = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -R option -----*/
+
+      if( strncmp(argv[narg],"-R",2) == 0 ){
+         int ll = strlen(argv[narg]) ;
+         if( ll == 2 ) GLOBAL_argopt.recurse = 999 ;
+         else {
+            ll = strtol( argv[narg]+2 , NULL , 10 ) ;
+            if( ll > 0 ) GLOBAL_argopt.recurse = ll ;
+            else FatalError("illegal -R option!") ;
+         }
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -tlrc_big option -----*/
+
+      if( strncmp(argv[narg],"-tlrc_big",7) == 0 ){
+         GLOBAL_argopt.tlrc_big = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -unique option (06 Nov 1996) -----*/
+
+      if( strncmp(argv[narg],"-unique",5) == 0 ){
+         GLOBAL_argopt.unique_dcs = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+#ifndef WARP_4D
+      /*----- -warp_4D option -----*/
+
+      if( strncmp(argv[narg],"-warp_4D",7) == 0 ){
+         GLOBAL_argopt.warp_4D = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+#endif
+
+      /*----- -tlrc_small option -----*/
+
+      if( strncmp(argv[narg],"-tlrc_small",7) == 0 ){
+         GLOBAL_argopt.tlrc_big = False ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -logo option -----*/
+
+      if( strncmp(argv[narg],"-logo",4) == 0 ){
+         GLOBAL_argopt.keep_logo = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -resize option -----*/
+
+      if( strncmp(argv[narg],"-resize",4) == 0 ){
+         GLOBAL_argopt.resize_images = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -purge option -----*/
+
+      if( strncmp(argv[narg],"-purge",4) == 0 ){
+         GLOBAL_argopt.auto_purge = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+#ifdef ALLOW_PLUGINS
+      /*----- -noplugins option -----*/
+
+      if( strncmp(argv[narg],"-noplugins",10) == 0 ){
+         GLOBAL_argopt.noplugins = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -noplugouts option -----*/
+
+      if( strncmp(argv[narg],"-noplugouts",10) == 0 ){
+         GLOBAL_argopt.noplugouts = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -yesplugouts option -----*/
+
+      if( strncmp(argv[narg],"-yesplugouts",10) == 0 ){
+         GLOBAL_argopt.noplugouts = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+#endif
+
+      /*----- -orient code option -----*/
+
+      if( strncmp(argv[narg],"-orient",4) == 0 ){
+         if( narg+1 >= argc ) FatalError("need an argument after -orient!");
+
+         MCW_strncpy(GLOBAL_argopt.orient_code,argv[++narg],4) ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -ignore # option -----*/
+
+      if( strncmp(argv[narg],"-ignore",4) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -ignore!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val >= 0 ) GLOBAL_argopt.ignore = (int) val ;
+         else fprintf(stderr,
+                "\n*** warning: -ignore value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -im1 # option [must come before '-im' option!] -----*/
+
+      if( strncmp(argv[narg],"-im1",4) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -im1!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val >= 1 ) GLOBAL_argopt.ignore = (int) (val-1.0) ;
+         else fprintf(stderr,
+                "\n*** warning: -ignore value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+
+      /*----- -dy # option -----*/
+
+      if( strncmp(argv[narg],"-dy",3) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -dy!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val > 0 ) GLOBAL_argopt.dy = val ;
+         else fprintf(stderr,
+                "\n*** warning: -dy value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -dz # option -----*/
+
+      if( strncmp(argv[narg],"-dz",3) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -dz!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val > 0 ) GLOBAL_argopt.dz = val ;
+         else fprintf(stderr,
+                "\n*** warning: -dz value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -gamma # option -----*/
+
+      if( strncmp(argv[narg],"-gamma",4) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -gamma!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val > 0 ) GLOBAL_argopt.gamma = val ;
+         else fprintf(stderr,
+                "\n*** warning: -gamma value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+#ifdef USE_GSFAC
+      /*----- -gsfac # option -----*/
+
+      if( strncmp(argv[narg],"-gsfac",4) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -gsfac!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val != 0 ) GLOBAL_argopt.gsfac = val ;
+         else fprintf(stderr,
+                "\n*** warning: -gsfac value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+#endif
+
+      /*----- -datum type option -----*/
+
+      if( strncmp(argv[narg],"-datum",6) == 0 ){
+         if( ++narg >= argc ) FatalError("need an argument after -datum!") ;
+
+         if( strcmp(argv[narg],"short") == 0 ){
+            GLOBAL_argopt.datum= MRI_short ;
+         } else if( strcmp(argv[narg],"float") == 0 ){
+            GLOBAL_argopt.datum= MRI_float ;
+         } else if( strcmp(argv[narg],"complex") == 0 ){
+            GLOBAL_argopt.datum= MRI_complex ;
+         } else if( strcmp(argv[narg],"byte") == 0 ){
+            GLOBAL_argopt.datum= MRI_byte ;
+         } else {
+            char buf[256] ;
+            sprintf(buf,"-datum of type '%s' is not supported in AFNI!",
+                   argv[narg] ) ;
+            FatalError(buf) ;
+         }
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -ncolor # option -----*/
+
+      if( strncmp(argv[narg],"-ncolor",3) == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -ncolor!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val > 2 ) GLOBAL_argopt.ncolor = val ;
+         else fprintf(stderr,
+                "\n*** warning: -ncolor value %s illegal\n", argv[narg]);
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -im option -----*/
+
+      if( strncmp(argv[narg],"-im",3) == 0 ){
+         GLOBAL_argopt.read_images   = True ;
+         GLOBAL_argopt.read_sessions = False ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -- option -----*/
+
+      if( strcmp(argv[narg],"--") == 0 ){
+         narg++ ; break ;  /* end of args */
+      }
+
+      /*----- if we get here, bad news for America! -----*/
+
+      fprintf(stderr,"\n*** Unknown option %s ***",argv[narg]) ;
+      fprintf(stderr,"\n*** Try 'afni -help' for a list of command line options.\n") ;
+      exit(1) ;
+
+   } /* end of loop over argv's starting with '-' */
+
+   /** 16 July 1997: orientation code change **/
+
+   if( GLOBAL_argopt.orient_code[0] == '-' ){
+      if( GLOBAL_argopt.read_images )
+         strcpy(GLOBAL_argopt.orient_code,"ASL") ;
+      else if( env_orient != NULL )
+         MCW_strncpy(GLOBAL_argopt.orient_code,env_orient,4) ;
+      else
+         strcpy(GLOBAL_argopt.orient_code,"RAI") ;
+   }
+
+   THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
+
+#if 0
+fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
+        GLOBAL_library.cord.xxsign ,
+        GLOBAL_library.cord.yysign ,
+        GLOBAL_library.cord.zzsign ,
+        GLOBAL_library.cord.first ,
+        GLOBAL_library.cord.second ,
+        GLOBAL_library.cord.third   ) ;
+#endif
+
+   GLOBAL_argopt.first_file_arg = narg ;  /* rest of args must be files (I hope) */
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+   This routine is used if hiding Xt warnings is enabled.
+   It simply does nothing -- it replaces the default Xt warning handler.
+-------------------------------------------------------------------------*/
+
+void AFNI_handler(char * msg){ return ; }
+
+/*-----------------------------------------------------------------------
+   Fallback resources for AFNI.  May be overridden by the user's
+   .Xdefaults file, or other resource sources.  AFNI does not come
+   with an "app-defaults" file, since that would be too much like work.
+-------------------------------------------------------------------------*/
+
+static char * FALLback[] =
+  {   "AFNI*fontList:             9x15bold=charset1"    ,
+      "AFNI*pbar*fontList:        6x10=charset1"        ,
+      "AFNI*background:           gray40"               ,
+      "AFNI*menu*background:      gray40"               ,
+      "AFNI*borderColor:          gray40"               ,
+      "AFNI*foreground:           yellow"               ,
+      "AFNI*borderWidth:          0"                    ,
+      "AFNI*troughColor:          green"                ,
+      "AFNI*XmLabel.translations: #override<Btn2Down>:" , /* Motif 2.0 bug */
+      "AFNI*help*background:      black"                ,
+      "AFNI*help*foreground:      yellow"               ,
+      "AFNI*cluefont:             9x15bold"             ,
+      "AFNI*help*waitPeriod:      1066"                 ,
+      "AFNI*help*cancelWaitPeriod: 50"                  ,
+   NULL } ;
+
+/*-----------------------------------------------------------------------*/
+
+#ifdef USE_GNU_MALLOC
+   int mcheck() ;  /* start checking of malloc */
+   void mtrace() ; /* not used at this time */
+#else
+#  define mcheck(fred) /* nada */
+#  define mtrace()     /* nada */
+#endif
+
+#define CATCH_SIGNALS
+#ifdef CATCH_SIGNALS
+#include <signal.h>
+void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
+{
+   char * sname ;
+   switch(sig){
+      default:      sname = "unknown" ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE" ; break ;
+      case SIGSEGV: sname = "SIGSEGV" ; break ;
+      case SIGBUS:  sname = "SIGBUS"  ; break ;
+   }
+   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
+   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
+   exit(1) ;
+}
+#endif
+
+int main( int argc , char * argv[] )
+{
+   XtAppContext   app ;
+   XtErrorHandler old_handler ;  /* used for hiding Xt warnings */
+   Three_D_View * im3d ;
+   MCW_DC * dc ;
+   Widget shell ;
+   int ii ;
+
+#ifdef CATCH_SIGNALS
+signal(SIGINT ,AFNI_sigfunc) ;
+signal(SIGBUS ,AFNI_sigfunc) ;
+signal(SIGSEGV,AFNI_sigfunc) ;
+#endif
+
+/** debuggin stuff **/
+
+mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
+
+   /*--- help? ---*/
+
+   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+
+   srand48((long)time(NULL)) ;  /* initialize random number generator */
+
+   REPORT_PROGRESS( ANNOUNCEMENT ) ;
+#ifdef USE_FRIENDS
+   { char buf[100] ; int nf , nh , hmask , qq=0 ;
+     nf = lrand48() % NUM_FRIENDS ;
+     do{
+        nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
+     } while( qq < 9 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+     sprintf( buf  ,
+              "Thanks go to %s for %s.\n" ,
+              afni_friends[nf].name , afni_helptypes[nh] ) ;
+     REPORT_PROGRESS( buf ) ;
+   }
+#endif
+
+   /*-------------------------------------------------------------*/
+   /*------------ initialize the controllers list ----------------*/
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+      GLOBAL_library.controllers[ii] = NULL ;
+
+   GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
+
+#ifdef ALLOW_PLUGINS
+   GLOBAL_library.plugins  = NULL ;
+#endif
+
+   /*--------------------------------------------------------------------*/
+   /*--- initialize X, toplevel window, defaults, and display context ---*/
+
+   REPORT_PROGRESS("Initializing: X11");
+
+   shell = XtVaAppInitialize(
+              &app , "AFNI" , NULL , 0 , &argc , argv , FALLback , NULL ) ;
+
+   if( shell == NULL ){
+      fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
+   }
+
+   REPORT_PROGRESS(".") ;
+
+   if( GLOBAL_argopt.xtwarns == False ){
+      old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
+   }
+
+   AFNI_load_defaults( shell ) ;
+
+   AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
+
+   GLOBAL_library.dc = dc =
+        MCW_new_DC( shell , GLOBAL_argopt.ncolor ,
+                    INIT_ncolovr , INIT_colovr , INIT_labovr ,
+                    GLOBAL_argopt.gamma ) ;
+
+   if( dc->depth < 9 && GLOBAL_argopt.unique_dcs ){ /* 06 Nov 1996 */
+      GLOBAL_argopt.unique_dcs = False ;
+      REPORT_PROGRESS("[-unique off]") ;
+   }
+
+   /*-----------------------------------*/
+   /*--- Create the first controller ---*/
+
+   REPORT_PROGRESS(". Widgets") ;
+
+   im3d = new_AFNI_controller( shell , dc ,
+                               GLOBAL_argopt.read_images ? AFNI_IMAGES_VIEW
+                                                         : AFNI_3DDATA_VIEW ) ;
+
+   GLOBAL_library.controllers[0] = im3d ;
+
+   REPORT_PROGRESS(".") ;
+
+   /*------------------------------------------*/
+   /*--- set up remaining various X11 stuff ---*/
+
+   /* Always turn off Drag-n-Drop (courtesy the Motif FAQ) */
+
+   XtVaSetValues( XmGetXmDisplay(XtDisplay(im3d->vwid->top_shell)) ,
+                     XmNdragInitiatorProtocolStyle , XmDRAG_NONE ,
+                     XmNdragReceiverProtocolStyle  , XmDRAG_NONE ,
+                  NULL ) ;
+
+   /*-----------------------------*/
+   /*--- read the input files! ---*/
+
+   REPORT_PROGRESS(". Input files:") ;
+
+   AFNI_read_inputs( argc , argv ) ;
+
+   if( GLOBAL_library.have_dummy_dataset && im3d->type == AFNI_3DDATA_VIEW )
+      XtSetSensitive( im3d->vwid->prog->clone_pb , False ) ;
+
+   /*--------------------------------------*/
+   /*--- Setup the plugins, if possible ---*/
+
+   GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
+   GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
+   GLOBAL_library.registered_2D.num = 0 ;               /* initialize registry */
+
+   AFNI_register_0D_function( "Log10" , log10_func ) ;  /* afni.c */
+   AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;  /* afni.c */
+
+   AFNI_register_1D_function( "Median3" , median3_func) ;  /* afni.c */
+   AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
+
+   AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
+
+#ifdef ALLOW_PLUGINS
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      int nplug = 0 ;
+      char str[128] ;
+
+      if( ! GLOBAL_argopt.noplugins ){
+         GLOBAL_library.plugins = PLUG_get_many_plugins() ;
+         AFNI_plugin_button( im3d ) ;
+      }
+
+      if( GLOBAL_library.plugins != NULL ) nplug = GLOBAL_library.plugins->num ;
+      sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
+      REPORT_PROGRESS(str) ;
+
+      if( ! GLOBAL_argopt.noplugouts && ! ALLOW_real_time ){  /* June 1997 */
+
+          AFNI_init_plugouts() ;
+          REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
+      }
+   }
+#endif
+
+   /*------------------------------------*/
+   /*------- take it away, Goldie -------*/
+   /*------------------------------------*/
+
+   /*--- do the initial setup on entering the initial view ---*/
+
+   OPEN_CONTROLLER( im3d ) ;
+
+   AFNI_initialize_controller( im3d ) ;  /* decide what to see */
+   AFNI_initialize_view( NULL , im3d ) ; /* set up to see it */
+
+#if 0
+   if( GLOBAL_argopt.xtwarns == False )
+      (void) XtAppSetWarningHandler(app,old_handler) ;  /* turn back on */
+#endif
+
+   /*--- Go! ---*/
+
+   MCW_help_CB( im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
+
+   { char str[64] ;
+     sprintf(str,"\n -orient       = %s\n", GLOBAL_library.cord.orcode ) ;
+     REPORT_PROGRESS(str) ;
+   }
+
+   { char * hh = getenv("AFNI_HINTS") ;
+     if( hh != NULL && ( strncmp(hh,"NO",2)==0 ||
+                         strncmp(hh,"no",2)==0 ||
+                         strncmp(hh,"No",2)==0 ) )
+        MCW_hint_toggle() ;
+   }
+
+   if( ALLOW_real_time > 0 )
+      REPORT_PROGRESS("RT: realtime plugin is active\n") ;
+
+   (void) XtAppAddTimeOut( app , 1234 , AFNI_startup_timeout_CB , im3d ) ;
+
+   XtAppMainLoop(app) ;
+   exit(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void FatalError(char * str)
+{
+   fprintf(stderr,"\n**** Fatal Error ****\n %s\n",str) ;
+   sleep(1) ;
+   exit(1) ;
+}
+
+/*-------------------------------------------------------------------------
+   Callback for the quit button.  If called with the widget == NULL,
+   resets the button to the lowercase state.
+---------------------------------------------------------------------------*/
+
+void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
+
+   if( ! IM3D_OPEN(im3d) ) return ;
+
+   /* NULL widget --> reset button to lowercase */
+
+   if( wcall == NULL ){
+      if( im3d->vwid->prog->quit_first == False ){
+         MCW_set_widget_label( im3d->vwid->prog->quit_pb , "done " ) ;
+         im3d->vwid->prog->quit_first = True ;
+         if( im3d->vwid->picture != NULL && !GLOBAL_argopt.keep_logo )
+            PICTURE_OFF( im3d ) ;
+      }
+      return ;
+   }
+
+   /* Press of button with Shift or Control key pressed --> Death Now */
+
+   if( pbcbs != NULL                       &&
+       pbcbs->event != NULL                &&
+       pbcbs->event->type == ButtonRelease &&
+       ((XButtonEvent *)(pbcbs->event))->state &  /* note single & here! */
+       (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
+
+      XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
+      exit(0) ;
+   }
+
+   /* First press --> just change button label */
+
+   if( wcall == im3d->vwid->prog->quit_pb && im3d->vwid->prog->quit_first ){
+      MCW_set_widget_label( im3d->vwid->prog->quit_pb , "DONE " ) ;
+      im3d->vwid->prog->quit_first = False ;
+      if( im3d->vwid->picture != NULL ) PICTURE_ON( im3d ) ;
+
+      /* if not repressed in 5 seconds, will reset to lowercase */
+
+      (void) XtAppAddTimeOut(
+               XtWidgetToApplicationContext(im3d->vwid->prog->quit_pb) ,
+               5000 , AFNI_quit_timeout_CB , im3d ) ;
+
+      return ;
+   }
+
+   /* close window callback OR button already uppercase --> close window */
+
+   /* if no controller windows will be left, exit the program */
+
+   if( AFNI_count_controllers() <= 1 ){
+      XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
+      exit(0) ;
+
+   } else {  /* otherwise, patch up the other windows and continue */
+
+      CLOSE_CONTROLLER(im3d) ;     /* close window */
+      AFNI_controller_clonify() ;  /* let other controllers know */
+   }
+   return ;
+}
+
+void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   RESET_AFNI_QUIT(im3d) ;
+}
+
+void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   MCW_help_CB(NULL,NULL,NULL) ;
+
+   SHOW_AFNI_READY ;
+   RESET_AFNI_QUIT(im3d) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------
+   routine to extract a plane of data from a 3D brick
+   (used as a "get_image" routine for an MCW_imseq)
+------------------------------------------------------------------------*/
+
+XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br )
+{
+   MRI_IMAGE * im ;
+   MCW_imseq_status * stat ;
+   int i1,i2,jb,bb , dd1,dd2,tt1,tt2 ;
+
+ENTRY("AFNI_brick_to_mri") ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
+#endif
+
+   /*-------------------------------------------------*/
+   /*-------- May 1996: graph callbacks first --------*/
+
+   if( type == graCR_getstatus ){
+      MCW_grapher_status * grstat = XtNew( MCW_grapher_status ) ;
+
+      grstat->num_total  = grstat->num_series = br->dset->dblk->nvals ;
+      grstat->nx         = br->n1 ;
+      grstat->ny         = br->n2 ;
+      grstat->nz         = br->n3 ;
+
+      grstat->send_CB    = AFNI_gra_send_CB ;
+      grstat->parent     = (XtPointer) br ;
+      grstat->aux        = NULL ;
+
+      grstat->transforms0D = & (GLOBAL_library.registered_0D) ;
+      grstat->transforms1D = & (GLOBAL_library.registered_1D) ;
+
+      strcpy( grstat->namecode , br->namecode ) ;
+
+      RETURN( (XtPointer) grstat ) ;
+   }
+
+   if( type == graCR_getseries ){
+      im = FD_brick_to_series( n , br ) ;
+      RETURN( (XtPointer) im ) ;
+   }
+
+   /*----------------------------------------*/
+   /*-------- Now do imseq callbacks --------*/
+
+   if( n < 0 || n >= br->n3 ) RETURN(NULL) ;
+
+   /*--- overlay # n ---*/
+
+   if( type == isqCR_getoverlay  ){
+
+STATUS("get overlay") ;
+
+      im = AFNI_overlay( n , br ) ;
+      RETURN( (XtPointer) im ) ;
+   }
+
+   /*--- status ---*/
+
+   if( type == isqCR_getstatus ){
+
+STATUS("get status") ;
+
+      stat = XtNew( MCW_imseq_status ) ;
+
+      stat->num_total  = br->n3 ;
+      stat->num_series = br->n3 ;
+      stat->send_CB    = AFNI_seq_send_CB ;
+      stat->parent     = (XtPointer) br ;
+      stat->aux        = NULL ;
+
+      stat->transforms0D = & (GLOBAL_library.registered_0D) ;
+      stat->transforms2D = & (GLOBAL_library.registered_2D) ;
+
+      RETURN( (XtPointer) stat ) ;
+   }
+
+   /*--- underlay image # n ---*/
+
+   if( type == isqCR_getimage || type == isqCR_getqimage ){
+      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      int ival = 0 ;
+
+      /*** decide which 3D brick to extract data from (ival) ***/
+
+      if( DSET_NUM_TIMES(br->dset) > 1 ){     /* a time-dependent brick */
+         ival = im3d->vinfo->time_index ;
+         if( ival >= br->dset->dblk->nvals ) ival = br->dset->dblk->nvals -1 ;
+
+      } else if( ISANAT(br->dset) ){          /* an anatomy brick */
+
+         ival = ANAT_ival_zero[br->dset->func_type] ;  /* get default data */
+
+      } else if( ISFUNC(br->dset) ){   /* a functional brick */
+
+        if( im3d->vinfo->showfunc_type == SHOWFUNC_THR  &&  /* showing thr */
+            ISFUNC_UNDERLAY(im3d->vinfo->underlay_type) &&  /* as underlay? */
+            FUNC_HAVE_THR(br->dset->func_type) ){
+
+           ival = FUNC_ival_thr[br->dset->func_type] ; /* get thresh data */
+        } else {
+           ival = FUNC_ival_fim[br->dset->func_type] ; /* get fim data */
+        }
+     }
+
+      if( type == isqCR_getqimage ) ival = -1 ; /* get empty image */
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"getting image n1=%d n2=%d ival=%d",br->n1,br->n2,ival) ;
+  STATUS(str) ; }
+#endif
+
+      LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
+
+      im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
+
+      if( ival < 0 ) RETURN( (XtPointer) im ) ;  /* return fake image */
+
+      /* allow for thresholding of underlay image */
+
+      if( im != NULL && im3d->vinfo->underlay_type == UNDERLAY_THRFUNC &&
+          ISFUNC(br->dset) && FUNC_HAVE_THR(br->dset->func_type) &&
+          im3d->vinfo->func_threshold > 0.0 ){
+
+         MRI_IMAGE * im_thr , * qim ;
+         double thresh ;
+         int ival = FUNC_ival_thr[br->dset->func_type] ;
+
+         if( im3d->vinfo->showfunc_type != SHOWFUNC_THR ){
+            im_thr = FD_warp_to_mri( n , ival ,  br ) ;
+            if( im_thr == NULL ) im_thr = im ;
+         } else {
+            im_thr = im ;  /* if already have threshold data */
+         }
+
+         if( ! AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ){ /* should not occur */
+            qim = mri_to_float( im_thr ) ;           /* but if it does,  */
+            if( im_thr != im ) mri_free( im_thr ) ;  /* make an OK type  */
+            im_thr = qim ;
+         }
+
+#if 0
+         thresh = im3d->vinfo->func_threshold * FUNC_topval[br->dset->func_type];
+#else
+         thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+#endif
+
+         if( im_thr->kind == MRI_short )
+            thresh *= FUNC_scale_short[br->dset->func_type];
+         else if( im_thr->kind == MRI_byte )
+            thresh *= FUNC_scale_byte[br->dset->func_type];
+
+         mri_threshold( -thresh , thresh , im_thr , im ) ;
+         if( im_thr != im ) mri_free( im_thr ) ;
+      }
+
+      /* Load value of current pixel into display label */
+      /* April 1996: only if image is at current slice  */
+
+#ifdef ALLOW_BKGD_LAB
+      { char buf[32] = "\0" ;
+        AFNI_set_valabel( br , n , im , buf ) ;
+        if( buf[0] != '\0' ){
+           if( im3d->vinfo->underlay_type == UNDERLAY_ANAT )
+              strcpy( im3d->vinfo->anat_val , buf ) ;
+           else
+              im3d->vinfo->anat_val[0] = '\0' ;
+
+           if( im->kind != MRI_complex ){
+              char qbuf[32] = "bg =" ;
+              strcat(qbuf,buf) ; strcpy(buf,qbuf) ;
+           }
+           MCW_set_widget_label( im3d->vwid->imag->pop_bkgd_lab , buf ) ;
+           XtManageChild( im3d->vwid->imag->pop_bkgd_lab ) ;
+        }
+      }
+#endif
+
+      RETURN( (XtPointer) im ) ;
+   }
+
+STATUS("get something else, but I don't care!") ;
+
+   RETURN( NULL ) ;
+}
+
+/*-----------------------------------------------------------------------------
+   Set a value label when the nsl-th image is in "im".
+-------------------------------------------------------------------------------*/
+
+void AFNI_set_valabel( FD_brick * br , int nsl , MRI_IMAGE * im , char * blab )
+{
+   Three_D_View * im3d = (Three_D_View *) br->parent ;
+   THD_ivec3 ib ;
+
+   if( ! IM3D_VALID(im3d) || ! im3d->vwid->imag->do_bkgd_lab ||
+       im == NULL         || blab == NULL                      ) return ;
+
+   ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
+                                             im3d->vinfo->j2 ,
+                                             im3d->vinfo->k3  ) ) ;
+
+   if( nsl != ib.ijk[2] ) return ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+         int val = MRI_BYTE_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         sprintf( blab , "%6d" , val ) ;
+      }
+      break ;
+
+      case MRI_short:{
+         int val = MRI_SHORT_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         sprintf( blab , "%6d" , val ) ;
+      }
+      break ;
+
+      case MRI_int:{
+         int val = MRI_INT_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         sprintf( blab , "%6d" , val ) ;
+      }
+      break ;
+
+      case MRI_float:{
+         float val = MRI_FLOAT_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         AV_fval_to_char(val,blab) ;
+      }
+      break ;
+
+      case MRI_complex:{
+         int iblab ;
+         complex val = MRI_COMPLEX_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         AV_fval_to_char(val.r,blab) ; iblab = strlen(blab) ;
+         if( val.i >= 0.0 ) blab[iblab++] = '+' ;
+         AV_fval_to_char(val.i,blab+iblab) ; iblab = strlen(blab) ;
+         blab[iblab++] = 'I' ; blab[iblab++] = '\0' ;
+      }
+      break ;
+   }
+   return ;
+}
+
+/*----------------------------------------------------------------------
+   read image files directly into a 3D dataset.
+   this will be incomplete, but is enough for display purposes.
+------------------------------------------------------------------------*/
+
+THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] )
+{
+   MRI_IMAGE * im , * shim ;
+   char * bar ;
+   register int     npix , ii ;
+   int nx , ny , nz , lf , kz , kim ;
+   MRI_IMARR * arr ;
+   char str[256] ;
+   THD_3dim_dataset * dset ;
+   int datum = GLOBAL_argopt.datum , dsize ;
+
+ENTRY("AFNI_read_images") ;
+
+   /*----- see if there are any images to read! -----*/
+
+   if( nf < 1 ) FatalError("*** No images on command line!? ***") ;
+
+   /* count total number of images */
+
+   nz = 0 ;
+   for( lf=0 ; lf < nf ; lf++ ){
+      ii = mri_imcount( fname[lf] ) ;
+      if( ii == 0 ){
+         sprintf(str,"*** Illegal image file specifier: %s",fname[lf]) ;
+         FatalError(str) ;
+      }
+      nz += ii ;
+   }
+   if( nz == 1 ) nz = 2 ;  /* special case for just one image */
+
+   /*--- read 1st file to get sizes ---*/
+
+   arr = mri_read_file( fname[0] ) ;
+   if( arr == NULL || arr->num == 0 ){
+      sprintf(str,"*** cannot read first image file: %s",fname[0]) ;
+      FatalError(str) ;
+   }
+
+   im = arr->imarr[0] ;
+   nx = im->nx ;
+   ny = im->ny ; npix = nx * ny ;
+
+   if( datum < 0 ) datum = im->kind ;
+   if( ! AFNI_GOOD_DTYPE(datum) )
+      FatalError("*** Illegal datum type found ***") ;
+
+   dsize = mri_datum_size(datum) ;
+   bar   = (char *) malloc( dsize * nx*ny*nz ) ;
+   if( bar == NULL ){
+      fprintf(stderr,"\n** Can't malloc memory for image input!\a\n") ;
+      exit(1) ;
+   }
+
+   /*--- read all files, convert if needed, put in the cube ---*/
+
+   kz = 0 ;
+   for( lf=0 ; lf < nf ; lf++ ){
+
+      /** read the file (except the first, which we already have **/
+
+      if( lf != 0 ){
+         arr = mri_read_file( fname[lf] ) ;
+         if( arr == NULL || arr->num == 0 ){
+           sprintf(str,"*** cannot read image file: %s",fname[lf]) ;
+           FatalError(str) ;
+         }
+      }
+
+      /** for each image in file ... **/
+
+      for( kim=0 ; kim < arr->num ; kim++ ){
+         im = arr->imarr[kim] ;
+
+         /** check if image matches dimensions of first slice **/
+
+         if( im->nx != nx || im->ny != ny ){
+            if( ! GLOBAL_argopt.resize_images ){
+               sprintf(str, "*** image size mismatch:\n"
+                           " *** expected nx=%d ny=%d but got nx=%d ny=%d in file %s" ,
+                           nx,ny,im->nx,im->ny , fname[lf] ) ;
+               FatalError(str) ;
+            } else {
+               MRI_IMAGE * rim ;
+               rim = mri_resize( im , nx , ny ) ;
+               mri_free( im ) ;
+               im = rim ;
+            }
+         }
+
+         /** check if image data type matches the kind we want **/
+
+         if( im->kind == datum ){
+            shim = im ;
+         } else {
+            shim = mri_to_mri( datum , im ) ;
+            if( shim == NULL ) FatalError("*** Illegal convert! ***") ;
+            mri_free( im ) ;
+         }
+
+         /** copy bytes from slice into the "bar" brick **/
+
+         memcpy( bar + dsize*npix*kz , mri_data_pointer(shim) , dsize*npix ) ;
+         kz++ ;
+
+         KILL_1MRI(shim) ;
+         if( kz%10 == 5 ) REPORT_PROGRESS(".") ;
+      }
+      FREE_IMARR(arr) ;  /* not DESTROY_IMARR, since images are already gone */
+   }
+
+   /*** special case of one input image ***/
+
+   if( kz == 1 && nz == 2 ){
+      memcpy( bar + dsize*npix , bar , dsize*npix ) ;
+   }
+
+   /*** tell the user what all we've read ***/
+
+   sprintf(str,": nx=%d ny=%d nz=%d (%s)",nx,ny,nz,MRI_TYPE_name[datum]) ;
+   REPORT_PROGRESS(str) ;
+
+   /*--- now create the rest of the data structure, as far as we can ---*/
+
+   dset                = XtNew( THD_3dim_dataset ) ;
+   dset->dblk          = XtNew( THD_datablock ) ;
+   dset->daxes         = XtNew( THD_dataxes ) ;
+   dset->dblk->diskptr = XtNew( THD_diskptr ) ;
+   dset->markers       = NULL ;
+   dset->warp          = NULL ;
+   dset->vox_warp      = NULL ;
+   dset->warp_parent   = NULL ;
+   dset->anat_parent   = NULL ;
+   dset->stats         = NULL ;
+   dset->pts           = NULL ;
+   dset->merger_list   = NULL ;
+   dset->death_mark    = 0 ;
+   dset->taxis         = NULL ;
+   ZERO_STAT_AUX( dset ) ;
+
+   INIT_KILL(dset->kl) ;
+   INIT_KILL(dset->dblk->kl) ;
+
+   dset->dblk->diskptr->type         = DISKPTR_TYPE ;
+   dset->dblk->diskptr->rank         = 3 ;
+   dset->dblk->diskptr->nvals        = 1 ;
+   dset->dblk->diskptr->dimsizes[0]  = nx ;
+   dset->dblk->diskptr->dimsizes[1]  = ny ;
+   dset->dblk->diskptr->dimsizes[2]  = nz ;
+   dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
+
+   EMPTY_STRING(dset->dblk->diskptr->prefix) ;
+   EMPTY_STRING(dset->dblk->diskptr->viewcode) ;
+   EMPTY_STRING(dset->dblk->diskptr->filecode) ;
+   EMPTY_STRING(dset->dblk->diskptr->directory_name) ;
+   EMPTY_STRING(dset->dblk->diskptr->header_name) ;
+   EMPTY_STRING(dset->dblk->diskptr->brick_name) ;
+
+   dset->dblk->type        = DATABLOCK_TYPE ;
+   dset->dblk->nvals       = 1 ;
+
+   /** here is where we attach "bar" to the dataset **/
+
+   dset->dblk->malloc_type  = DATABLOCK_MEM_MALLOC ;
+   dset->dblk->brick_fac    = NULL ; /* let THD_init_datablock_brick do these */
+   dset->dblk->brick_bytes  = NULL ;
+   dset->dblk->brick        = NULL ;
+   THD_init_datablock_brick( dset->dblk , datum , NULL ) ;
+   mri_fix_data_pointer( bar , DSET_BRICK(dset,0) ) ;  /* the attachment! */
+
+   dset->dblk->natr   = dset->dblk->natr_alloc = 0 ;
+   dset->dblk->atr    = NULL ;
+   dset->dblk->parent = (XtPointer) dset ;
+
+   dset->daxes->type  = DATAXES_TYPE ;
+   dset->daxes->nxx   = nx ;
+   dset->daxes->nyy   = ny ;
+   dset->daxes->nzz   = nz ;
+   dset->daxes->xxdel = 1.0 ;        /* arbitary units */
+   dset->daxes->yydel = GLOBAL_argopt.dy ;  /* these allow user to alter */
+   dset->daxes->zzdel = GLOBAL_argopt.dz ;  /* the images' aspect ratio */
+   dset->daxes->xxorg = dset->daxes->yyorg = dset->daxes->zzorg = 0.0 ;
+   dset->daxes->parent= (XtPointer) dset ;
+
+#ifndef OMIT_DATASET_IDCODES
+   dset->idcode = MCW_new_idcode() ;
+   ZERO_IDCODE(dset->anat_parent_idcode) ;
+   ZERO_IDCODE(dset->warp_parent_idcode) ;
+#endif
+
+   /* set the daxes orientation codes from the command line argument */
+
+#define ORCODE(aa) \
+  ( (aa)=='R' ? ORI_R2L_TYPE : (aa)=='L' ? ORI_L2R_TYPE : \
+    (aa)=='P' ? ORI_P2A_TYPE : (aa)=='A' ? ORI_A2P_TYPE : \
+    (aa)=='I' ? ORI_I2S_TYPE : (aa)=='S' ? ORI_S2I_TYPE : ILLEGAL_TYPE )
+
+#define OR3OK(x,y,z) ( ((x)&6) + ((y)&6) + ((z)&6) == 6 )
+
+   { char acod ;
+     int xx,yy,zz ;
+
+     acod = toupper(GLOBAL_argopt.orient_code[0]) ; xx = ORCODE(acod) ;
+     acod = toupper(GLOBAL_argopt.orient_code[1]) ; yy = ORCODE(acod) ;
+     acod = toupper(GLOBAL_argopt.orient_code[2]) ; zz = ORCODE(acod) ;
+
+     if( xx<0 || yy<0 || zz<0 || ! OR3OK(xx,yy,zz) )
+        FatalError("Unusable -orient code!") ;
+
+     dset->daxes->xxorient = xx ;
+     dset->daxes->yyorient = yy ;
+     dset->daxes->zzorient = zz ;
+   }
+
+   dset->wod_flag  = False ;  /* no warp-on-demand */
+   dset->wod_daxes = NULL ;   /* 02 Nov 1996 */
+
+   dset->type      = GEN_ANAT_TYPE ;
+   dset->view_type = dset->func_type = 0 ;
+
+   MCW_strncpy(  dset->self_name , fname[0]             , THD_MAX_NAME  ) ;
+   MCW_strncpy(  dset->label1    , "Image Display Mode" , THD_MAX_LABEL ) ;
+   EMPTY_STRING( dset->label2 ) ;
+   EMPTY_STRING( dset->warp_parent_name ) ;
+   EMPTY_STRING( dset->anat_parent_name ) ;
+
+   RETURN( dset ) ;
+}
+
+/*----------------------------------------------------------------------
+   respond to events that one of the MCW_imseq's sends to us
+------------------------------------------------------------------------*/
+
+void AFNI_seq_send_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) seq->parent ;
+
+ENTRY("AFNI_seq_send_CB") ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ; sprintf(str,"reason=%d",cbs->reason) ; STATUS(str) ; }
+#endif
+
+   if( ! IM3D_VALID(im3d) ||
+       (im3d->ignore_seq_callbacks==AFNI_IGNORE_EVERYTHING) ) EXRETURN ;
+
+   switch( cbs->reason ){
+
+      default: break ;
+
+      case isqCR_destroy:{
+         MCW_imseq * sxyz = im3d->s123 ,
+                   * syzx = im3d->s231 ,
+                   * szxy = im3d->s312  ;
+         Widget w ;
+         int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
+             az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
+
+              if( seq == sxyz ){
+                 w = im3d->vwid->imag->image_xyz_pb ; im3d->s123 = NULL ; }
+         else if( seq == syzx ){
+                 w = im3d->vwid->imag->image_yzx_pb ; im3d->s231 = NULL ; }
+         else if( seq == szxy ){
+                 w = im3d->vwid->imag->image_zxy_pb ; im3d->s312 = NULL ; }
+         else
+                 EXRETURN ;  /* something goofy happened? */
+
+         myXtFree( seq ) ;
+         MCW_invert_widget(w) ;  /* back to normal */
+         INIT_BKGD_LAB(im3d) ;
+
+         /* July 1996: redraw if we just lost a crosshair montage
+            (it would have been in the z direction of the brick) */
+
+         if( im3d->vinfo->xhairs_ndown.ijk[az] > 0 ||
+             im3d->vinfo->xhairs_nup.ijk[az]   > 0   ){
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"imseq close on axis %d --> lost xhairs in that direction",az) ;
+  STATUS(str) ; }
+#endif
+
+            CLEAR_MONTAGE(im3d,br) ;
+
+            if( im3d->vinfo->xhairs_show_montage &&
+                im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+
+               AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+            }
+         }
+      }
+      break ;  /* end of destroy */
+
+      case isqCR_buttonpress:{
+         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+
+         switch( xev->button ){
+
+            default: EXRETURN ;  /* unused button */
+
+            case Button3:{  /* popup */
+               XtVaSetValues( im3d->vwid->imag->popmenu ,
+                                 XmNuserData , (XtPointer) seq ,   /* who */
+                              NULL ) ;
+               XmMenuPosition( im3d->vwid->imag->popmenu , xev ) ; /* where */
+               XtManageChild ( im3d->vwid->imag->popmenu ) ;       /* pop */
+            }
+            break ;
+
+            case Button1:{
+               THD_ivec3 id ;
+
+               /* April 1996:  only use this button press if
+                               it is inside the confines of the brick */
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"Button1 at %d %d %d\n",
+          cbs->xim,cbs->yim,cbs->nim) ; STATUS(str) ; }
+#endif
+
+               if( cbs->xim >= 0 && cbs->xim < br->n1 &&
+                   cbs->yim >= 0 && cbs->yim < br->n2 &&
+                   cbs->nim >= 0 && cbs->nim < br->n3   ){
+
+                  id = THD_fdind_to_3dind(
+                          br , TEMP_IVEC3(cbs->xim,cbs->yim,cbs->nim) );
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str," 3D dataset coordinates %d %d %d",
+          id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
+#endif
+
+                  SAVE_VPT(im3d) ;  /* save current location as jumpback */
+
+                  if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+                     AFNI_set_viewpoint(
+                        im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+                        (im3d->vinfo->crosshair_visible==True) ?
+                        REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+               }
+            } /* end of button 1 */
+            break ;
+         } /* end of switch on which button */
+      }
+      break ;  /* end of button press */
+
+      case isqCR_newimage:{
+         THD_ivec3 id ;
+
+         id = THD_fdind_to_3dind( br, TEMP_IVEC3(-99999,-99999,cbs->nim) );
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"newimage input %d -> %d %d %d",
+          cbs->nim , id.ijk[0],id.ijk[1],id.ijk[2] ) ;
+  STATUS(str) ; }
+#endif
+
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+            AFNI_set_viewpoint(
+               im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+               (im3d->vinfo->crosshair_visible==True) ?
+               REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+      }
+      break ;  /* end of new image */
+
+      /** July 1996: an image viewer changed montage layout **/
+
+      case isqCR_newmontage:{
+         THD_ivec3 * minf = (THD_ivec3 *) cbs->userdata ;
+         int ndown = minf->ijk[0], nup = minf->ijk[1], nskip = minf->ijk[2] ;
+         int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
+             az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"newmontage: ndown=%d nup=%d nskip=%d a3=%d (on axis az=%d)",
+          ndown,nup,nskip,a3,az) ; STATUS(str) ; }
+#endif
+
+         im3d->vinfo->xhairs_nskip.ijk[az] = nskip ;
+
+         if( a3 > 0 ){
+            im3d->vinfo->xhairs_ndown.ijk[az] = ndown ;
+            im3d->vinfo->xhairs_nup.ijk[az]   = nup ;
+         } else {
+            im3d->vinfo->xhairs_ndown.ijk[az] = nup ;
+            im3d->vinfo->xhairs_nup.ijk[az]   = ndown ;
+         }
+
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+      }
+      break ;
+
+      case isqCR_appress:{
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+            AFNI_crosshair_gap_CB( NULL , (XtPointer) im3d ) ;
+      }
+      break ;  /* end of arrowpad center key press */
+
+      case isqCR_dxplus:
+      case isqCR_dxminus:
+      case isqCR_dyplus:
+      case isqCR_dyminus:{
+         THD_ivec3 ib , id ;
+         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         int step = 1 ;
+
+         if( ( xev->type == ButtonPress ||
+               xev->type == ButtonRelease ) &&
+             (xev->state & (ShiftMask | ControlMask)) ) step = INIT_bigscroll ;
+
+         ib = THD_3dind_to_fdind( br ,
+                                  TEMP_IVEC3( im3d->vinfo->i1 ,
+                                              im3d->vinfo->j2 ,
+                                              im3d->vinfo->k3  ) ) ;
+
+         switch( cbs->reason ){
+            case isqCR_dxplus:   ib.ijk[0] += step ; break ;
+            case isqCR_dxminus:  ib.ijk[0] -= step ; break ;
+            case isqCR_dyplus:   ib.ijk[1] += step ; break ;
+            case isqCR_dyminus:  ib.ijk[1] -= step ; break ;
+         }
+
+         id = THD_fdind_to_3dind( br , ib ) ;
+
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+            AFNI_set_viewpoint(
+               im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+               (im3d->vinfo->crosshair_visible==True) ?
+               REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+      }
+      break ;  /* end of arrowpad arrow press */
+
+      case isqCR_keypress:{
+#if 0
+         MCW_grapher * grapher = VIEWER_TO_GRAPHER(im3d,seq) ;
+         if( grapher != NULL ){
+            char buf[2] ;
+            buf[0] = cbs->key ; buf[1] = '\0' ;
+            GRA_handle_keypress( grapher , buf , cbs->event ) ;
+         }
+#endif
+      }
+      break ; /* end of keyboard press */
+
+   }  /* end of switch on reason for call */
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   respond to events that one of the MCW_grapher's sends to us
+------------------------------------------------------------------------*/
+
+void AFNI_gra_send_CB( MCW_grapher * grapher , FD_brick * br , GRA_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) grapher->parent ;
+
+ENTRY("AFNI_gra_send_CB") ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ; sprintf(str,"reason=%d",cbs->reason) ; STATUS(str) ; }
+#endif
+
+   if( ! IM3D_VALID(im3d) ||
+       (im3d->ignore_seq_callbacks==AFNI_IGNORE_EVERYTHING) ) EXRETURN ;
+
+   switch( cbs->reason ){
+
+      default: break ;  /* unimplemented reasons */
+
+      /*** Death ***/
+
+      case graCR_destroy:{
+         MCW_grapher * gxyz = im3d->g123 ,
+                     * gyzx = im3d->g231 ,
+                     * gzxy = im3d->g312  ;
+         MCW_imseq * seq = GRAPHER_TO_VIEWER(im3d,grapher) ;
+         Widget w ;
+
+              if( grapher == gxyz ){
+                 w = im3d->vwid->imag->graph_xyz_pb ; im3d->g123 = NULL ;
+                 STATUS("destruction of g123") ;
+         }
+         else if( grapher == gyzx ){
+                 w = im3d->vwid->imag->graph_yzx_pb ; im3d->g231 = NULL ;
+                 STATUS("destruction of g231") ;
+         }
+         else if( grapher == gzxy ){
+                 w = im3d->vwid->imag->graph_zxy_pb ; im3d->g312 = NULL ;
+                 STATUS("destruction of g312") ;
+         }
+         else
+                 EXRETURN ;  /* something goofy happened? */
+
+         myXtFree( grapher ) ;   /* free the data space */
+         MCW_invert_widget(w) ;  /* back to normal */
+
+         /* redisplay the crosshairs, if needed */
+
+         if( seq != NULL && im3d->vinfo->crosshair_visible==True &&
+             im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING     )
+
+            drive_MCW_imseq( seq , isqDR_overlay , (XtPointer) -1 ) ;
+      }
+      break ;  /* end of destroy */
+
+      /*** User sets new location ***/
+
+      case graCR_newxyzm:{
+         THD_ivec3 id ;
+
+         if( cbs->xcen >= 0 && cbs->xcen < br->n1 &&
+             cbs->ycen >= 0 && cbs->ycen < br->n2 &&
+             cbs->zcen >= 0 && cbs->zcen < br->n3   ){
+
+            id = THD_fdind_to_3dind(
+                    br , TEMP_IVEC3(cbs->xcen,cbs->ycen,cbs->zcen) );
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str," 3D dataset coordinates %d %d %d",
+          id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
+#endif
+            if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+               AFNI_set_viewpoint(
+                  im3d ,
+                  id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+                  (im3d->vinfo->crosshair_visible==True) ?
+                  REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+         }
+      }
+      break ; /* end of newxyzm */
+
+      /*** User asks for a reference function ***/
+
+      case graCR_pickref:{
+
+STATUS("graCR_pickref") ;
+
+         if( IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
+            int init_ts = AFNI_ts_in_library( im3d->fimdata->fimref ) ;
+
+            MCW_choose_timeseries( grapher->fdw_graph , "FIM Reference Vector" ,
+                                   GLOBAL_library.timeseries , init_ts ,
+                                   AFNI_fimmer_pickref_CB , (XtPointer) im3d ) ;
+         } else {
+            (void) MCW_popup_message(
+                      grapher->option_mbar ,
+                      "No timeseries library\nexists to pick from!" ,
+                      MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         }
+      }
+      break ; /* end of pickref */
+
+      /*** User asks for an ort function ***/
+
+      case graCR_pickort:{
+
+STATUS("graCR_pickort") ;
+
+         if( IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
+            int init_ts = AFNI_ts_in_library( im3d->fimdata->fimort ) ;
+
+            MCW_choose_timeseries( grapher->fdw_graph , "FIM Ort Vector" ,
+                                   GLOBAL_library.timeseries , init_ts ,
+                                   AFNI_fimmer_pickort_CB , (XtPointer) im3d ) ;
+         } else {
+            (void) MCW_popup_message(
+                      grapher->option_mbar ,
+                      "No timeseries library\nexists to pick from!" ,
+                      MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         }
+      }
+      break ; /* end of pickort */
+
+
+      /*** User asks to clear FIM ***/
+
+      case graCR_clearfim:{
+         AFNI_fimmer_setref( im3d , NULL ) ;
+         im3d->fimdata->refadd_count = 0 ;
+      }
+      break ; /* end of clearfim */
+
+      /*** User asks to clear Ort ***/
+
+      case graCR_clearort:{
+         AFNI_fimmer_setort( im3d , NULL ) ;
+      }
+      break ; /* end of clearfim */
+
+      /*** 12 Nov 1996:
+           User supplies a timeseries to add to the global library ***/
+
+      case graCR_timeseries_library:{
+         MRI_IMAGE * tsim = (MRI_IMAGE *) cbs->userdata ;
+
+         AFNI_add_timeseries( tsim ) ;
+      }
+      break ; /* end of timeseries_library */
+
+      /*** User supplies a timeseries for FIM (equals or add) ***/
+
+      case graCR_refadd:
+      case graCR_refequals:{
+         MRI_IMAGE * tsim = (MRI_IMAGE *) cbs->userdata ;
+         MRI_IMAGE * qim , * sim ;
+         float * sar , * qar ;
+
+         if( tsim != NULL ){
+            qim = mri_to_float( tsim ) ;        /* make a copy of input */
+            if( im3d->fimdata->fimref == NULL   ||
+                cbs->reason == graCR_refequals  ||
+                im3d->fimdata->refadd_count < 1   ){
+
+               /** equals **/
+
+               AFNI_fimmer_setref( im3d , qim ) ;
+               im3d->fimdata->refadd_count = 1 ;
+
+            } else {
+               int jj,ii , nxs , nyy , nxq , nxx , npix ;
+               float fs , fq ;
+
+               /** average **/
+
+               sim  = mri_to_float( im3d->fimdata->fimref ) ; /* add into this copy */
+               sar  = MRI_FLOAT_PTR(sim) ;
+               qar  = MRI_FLOAT_PTR(qim) ;
+               nxs  = sim->nx ; nxq = qim->nx ; nxx = MIN(nxs,nxq) ;
+               nyy  = MIN( sim->ny , qim->ny ) ;
+               npix = MIN( sim->nvox , qim->nvox ) ;
+
+               fq = 1.0/( im3d->fimdata->refadd_count + 1.0 ) ;
+               fs = 1.0 - fq ;
+
+               for( jj=0 ; jj < nyy ; jj++ ){
+                  for( ii=0 ; ii < nxx ; ii++ ){
+                     if( sar[ii+jj*nxs] >= WAY_BIG || qar[ii+jj*nxq] >= WAY_BIG )
+                        sar[ii+jj*nxs] = WAY_BIG ;
+                     else
+                        sar[ii+jj*nxs] = fs * sar[ii+jj*nxs] + fq * qar[ii+jj*nxq] ;
+                  }
+               }
+               mri_free( qim ) ;
+
+               AFNI_fimmer_setref( im3d , sim ) ;  /* since caller may free it later */
+               im3d->fimdata->refadd_count++ ;
+            }
+         }
+      }
+      break ;
+
+      /*** User asks to smooth reference ***/
+
+      case graCR_refsmooth:{
+         if( im3d->fimdata->fimref != NULL ){
+            MRI_IMAGE * sim = mri_to_float(im3d->fimdata->fimref) ; /* copy */
+            float * sar = MRI_FLOAT_PTR(sim) ;
+            float aa,bb,cc ;
+            int ii,jj , nx=sim->nx , ny=sim->ny ;
+
+            for( jj=0 ; jj < ny ; jj++ ){
+               bb = sar[jj*nx] ; cc = sar[1+jj*nx] ;
+               for( ii=1 ; ii < nx-1 ; ii++ ){
+                  aa = bb ; bb = cc ; cc = sar[ii+1+jj*nx] ;
+                  if( aa < WAY_BIG && bb < WAY_BIG &&
+                      cc < WAY_BIG && ii > im3d->fimdata->init_ignore )
+                     sar[ii+jj*nx] = OSFILT(aa,bb,cc) ;
+               }
+            }
+            AFNI_fimmer_setref( im3d , sim ) ;
+         }
+      }
+      break ;
+
+      /*** User sets up FIM update frequency ***/
+
+      case graCR_updtfreqfim:{
+         MCW_choose_integer( grapher->fdw_graph , "FIM Refresh Frequency" ,
+                             0 , 99 , im3d->vinfo->fimmer_update_frequency ,
+                             AFNI_fimmer_setupdate_CB , (XtPointer) im3d ) ;
+      }
+      break ; /* end of updtfreqfim */
+
+      /*** User asks to do fim! ***/
+
+      case graCR_dofim:{
+         AFNI_fimmer_execute( im3d ) ;
+      }
+      break ; /* end of dofim */
+
+      /*** User sets initial ignore count ***/
+
+      case graCR_setignore:{
+         AFNI_fimmer_setignore( im3d , cbs->key ) ;
+      }
+      break ;
+
+      /*** User sets time_index ***/
+
+      case graCR_setindex:{
+         MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
+         int new_index = cbs->key ;
+
+         if( new_index != im3d->vinfo->time_index ){
+            AV_assign_ival( tav , new_index ) ;
+            AFNI_time_index_CB( tav , (XtPointer) im3d ) ;
+         }
+      }
+      break ;
+
+   } /* end of switch on callback reasons */
+
+  EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   read the files specified on the command line
+   and create the data structures
+------------------------------------------------------------------------*/
+
+void AFNI_read_inputs( int argc , char * argv[] )
+{
+   int id , last_color ;
+   Boolean isfunc ;
+
+ENTRY("AFNI_read_inputs") ;
+
+   /* create empty library of dataset sessions */
+
+   GLOBAL_library.sslist = XtNew( THD_sessionlist ) ;
+   GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
+   BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
+   GLOBAL_library.sslist->parent = NULL ;
+
+   /*----- read files -----*/
+
+   if( GLOBAL_argopt.first_file_arg >= argc && GLOBAL_argopt.read_images ){
+      FatalError("No image files on command line!!") ;
+   }
+
+   /*--- read directly from images (the old-fashioned way) ---*/
+
+   if( GLOBAL_argopt.read_images ){
+      THD_3dim_dataset * dset ;
+      THD_session * new_ss ;
+      int vv ;
+
+      dset = AFNI_read_images( argc - GLOBAL_argopt.first_file_arg ,
+                               &(argv[GLOBAL_argopt.first_file_arg]) );
+
+      if( dset == NULL )
+         FatalError("Could not form 3D dataset from images!" ) ;
+
+      /* set up minuscule session and session list */
+
+      new_ss             = XtNew( THD_session ) ;
+      new_ss->type       = SESSION_TYPE ;
+      BLANK_SESSION(new_ss) ;
+      new_ss->num_anat   = 1 ;
+      new_ss->anat[0][0] = dset ;
+      new_ss->parent     = NULL ;
+
+      MCW_strncpy( new_ss->sessname ,
+                   argv[GLOBAL_argopt.first_file_arg] , THD_MAX_NAME ) ;
+      MCW_strncpy( new_ss->lastname ,
+                   argv[GLOBAL_argopt.first_file_arg] , THD_MAX_LABEL ) ;
+
+      GLOBAL_library.sslist->num_sess   = 1 ;
+      GLOBAL_library.sslist->ssar[0]    = new_ss ;
+      GLOBAL_library.have_dummy_dataset = 1 ;
+
+   } else if( GLOBAL_argopt.read_sessions ){
+
+   /*--- sessions of 3D datasets (from to3d or from afni itself) ---*/
+
+      char str[256] ;
+      Boolean good ;
+      int num_ss , qd , qs , vv , no_args , jj , nskip_noanat=0 ;
+      THD_string_array * flist , * dlist=NULL ;
+      char * dname ;
+      THD_session * new_ss ;
+
+      num_ss  = argc - GLOBAL_argopt.first_file_arg ;
+      no_args = (num_ss < 1) ;
+
+      INIT_SARR(dlist) ;
+      if( no_args ){
+         if( GLOBAL_argopt.recurse > 0 ){
+            flist = THD_get_all_subdirs( GLOBAL_argopt.recurse , "./" ) ;
+            if( flist != NULL ){
+               for( jj=0 ; jj < flist->num ; jj++ ){
+                  ADDTO_SARR(dlist,flist->ar[jj]) ;
+               }
+               DESTROY_SARR(flist) ;
+            }
+         } else {
+            ADDTO_SARR(dlist,"./") ;
+         }
+      } else {
+         for( id=0 ; id < num_ss ; id++ ){
+            if( GLOBAL_argopt.recurse > 0 ){
+               flist = THD_get_all_subdirs( GLOBAL_argopt.recurse ,
+                                            argv[GLOBAL_argopt.first_file_arg+id] ) ;
+               if( flist != NULL ){
+                  for( jj=0 ; jj < flist->num ; jj++ ){
+                     ADDTO_SARR(dlist,flist->ar[jj]) ;
+                  }
+                  DESTROY_SARR(flist) ;
+               }
+            } else {
+               ADDTO_SARR(dlist,argv[GLOBAL_argopt.first_file_arg+id]) ;
+            }
+         }
+      }
+
+      /* read each session, set parents, put into session list */
+
+      num_ss = dlist->num ;
+      for( id=0 ; id < num_ss ; id++ ){
+         dname  = dlist->ar[id] ;                /* try to read datasets from */
+         new_ss = THD_init_session( dname ) ;    /* this directory name       */
+
+         if( new_ss != NULL && new_ss->num_anat > 0 ){  /* got something? */
+
+            /* for anats, just set parent pointers */
+
+            new_ss->parent = NULL ;
+            for( qd=0 ; qd < new_ss->num_anat ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                  PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
+
+            /* for funcs, just set parent pointers */
+
+            for( qd=0 ; qd < new_ss->num_func ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+
+            /* put the new session into place in the list of sessions */
+
+            GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
+
+            sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
+                        " %d functional datasets",
+                GLOBAL_library.sslist->num_sess ,
+                new_ss->sessname ,
+                new_ss->num_anat , new_ss->num_func ) ;
+
+            REPORT_PROGRESS(str) ;
+
+            if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
+                id < num_ss-1 ){
+               sprintf(str,"\n *** reached max no. sessions (%d) ***",
+                       THD_MAX_NUM_SESSION) ;
+               REPORT_PROGRESS(str) ;
+               break ;                            /* exit the loop over id */
+            }
+         } else {
+
+            if( new_ss != NULL && new_ss->num_anat <= 0 ){  /* not enough */
+               sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
+               REPORT_PROGRESS(str) ;
+               nskip_noanat ++ ;
+            }
+#if 0
+            REMOVEFROM_SARR( dlist , id ) ;  /* no datasets --> don't keep in list */
+#endif
+         }
+      }  /* end of id loop */
+
+      /** did we get anything?? **/
+
+      if( nskip_noanat > 0 ){
+         REPORT_PROGRESS(
+               "\n\n*** Hint: a session directory without anatomical datasets can"
+                 "\n***   have an anatomical warp-on-demand copy of a functional"
+                 "\n***   dataset made using a command of the form"
+                 "\n***   '3ddup -spgr func+orig.HEAD'.\n" ) ;
+
+         if( GLOBAL_library.sslist->num_sess <= 0 ) exit(1) ;
+      }
+
+      /** if nothing read at all, make up a dummy **/
+
+      GLOBAL_library.have_dummy_dataset = 0 ;
+
+#define QQ_NXYZ 16
+#define QQ_NT   16
+#define QQ_FOV  240.0
+
+      if( GLOBAL_library.sslist->num_sess <= 0 ){
+         byte * bar ;  /* as opposed to a bite bar */
+         int ii , nbar , jj ;
+         THD_ivec3 nxyz ;
+         THD_fvec3 fxyz , oxyz ;
+
+         REPORT_PROGRESS("\n*** No datasets or sessions input -- Dummy dataset created.") ;
+
+         /** manufacture a minimal session **/
+
+         new_ss         = XtNew( THD_session ) ;
+         new_ss->type   = SESSION_TYPE ;
+         new_ss->parent = NULL ;
+         BLANK_SESSION(new_ss) ;
+         strcpy( new_ss->sessname , "./" ) ;    /* pretend the dummy session */
+         strcpy( new_ss->lastname , "./" ) ;    /* is the current directory */
+         GLOBAL_library.sslist->num_sess   = 1 ;
+         GLOBAL_library.sslist->ssar[0]    = new_ss ;
+         GLOBAL_library.have_dummy_dataset = 1 ;
+
+         /** manufacture a minimal dataset **/
+
+         new_ss->num_anat   = 1 ;
+         new_ss->anat[0][0] = EDIT_empty_copy(NULL) ;
+         nxyz.ijk[0] = nxyz.ijk[1] = nxyz.ijk[2] = QQ_NXYZ ;
+         fxyz.xyz[0] = fxyz.xyz[1] = fxyz.xyz[2] = QQ_FOV / QQ_NXYZ ;
+         oxyz.xyz[0] = oxyz.xyz[1] = oxyz.xyz[2] = -0.5 * QQ_FOV ;
+         ii = EDIT_dset_items( new_ss->anat[0][0] ,
+                                 ADN_datum_all      , MRI_byte             ,
+                                 ADN_nxyz           , nxyz                 ,
+                                 ADN_xyzdel         , fxyz                 ,
+                                 ADN_xyzorg         , oxyz                 ,
+                                 ADN_directory_name , "./"                 ,
+                                 ADN_prefix         , "Dummy"              ,
+                                 ADN_nvals          , QQ_NT                ,
+                                 ADN_malloc_type    , DATABLOCK_MEM_MALLOC ,
+                                 ADN_type           , HEAD_ANAT_TYPE       ,
+                                 ADN_view_type      , VIEW_ORIGINAL_TYPE   ,
+                                 ADN_func_type      , ANAT_EPI_TYPE        ,
+#if QQ_NT > 1
+                                 ADN_ntt            , QQ_NT                ,
+                                 ADN_ttdel          , 1.0                  ,
+                                 ADN_ttorg          , 0.0                  ,
+                                 ADN_ttdur          , 0.0                  ,
+                                 ADN_tunits         , UNITS_SEC_TYPE       ,
+#endif
+                              ADN_none ) ;
+         if( ii > 0 ){
+            fprintf(stderr,"\n%d errors creating dummy dataset!\a\n",ii) ;
+            exit(1) ;
+         }
+
+         nbar = DSET_BRICK_BYTES(new_ss->anat[0][0],0) ;
+         for( jj=0 ; jj < QQ_NT ; jj++ ){
+            bar    = (byte *) malloc( nbar ) ;
+            bar[0] = (byte) (lrand48()%127) ;
+            for( ii=1 ; ii < nbar ; ii++ )
+               bar[ii] = bar[ii-1] + lrand48()%(jj+2) ;
+            EDIT_substitute_brick( new_ss->anat[0][0] , jj , MRI_byte , bar ) ;
+         }
+         PARENTIZE( new_ss->anat[0][0] , NULL ) ;
+      }
+
+      /*** read all timeseries files from all directories ***/
+
+      GLOBAL_library.timeseries = THD_get_many_timeseries( dlist ) ;
+
+      if( GLOBAL_library.timeseries == NULL )
+         INIT_IMARR(GLOBAL_library.timeseries) ;
+
+      sprintf( str , "\n Time series   = %d files read" ,
+               IMARR_COUNT(GLOBAL_library.timeseries) ) ;
+      REPORT_PROGRESS(str) ;
+
+      /*** throw away the list of directories that were scanned ***/
+
+      DESTROY_SARR(dlist) ;
+
+      /* assign the warp and anatomy parent pointers;
+         then, make any datasets that don't exist but logically
+         descend from the warp and anatomy parents just assigned */
+
+      THD_reconcile_parents( GLOBAL_library.sslist ) ; /* parents from .HEAD files */
+
+      for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){  /* functions w/o parents, */
+         new_ss = GLOBAL_library.sslist->ssar[id] ;               /* forcibly get one */
+         AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
+      }
+
+      AFNI_make_descendants( GLOBAL_library.sslist ) ;
+
+   } /* end of sessions input */
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------
+   delete the viewers associated with these controller panel
+---------------------------------------------------------------------------*/
+
+void AFNI_closedown_3dview( Three_D_View * im3d )
+{
+ENTRY("AFNI_closedown_3dview") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( im3d->s123 != NULL )
+      drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
+
+   if( im3d->s231 != NULL )
+      drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
+
+   if( im3d->s312 != NULL )
+      drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
+
+   if( im3d->g123 != NULL )
+      drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
+
+   if( im3d->g231 != NULL )
+      drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
+
+   if( im3d->g312 != NULL )
+      drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
+
+   myXtFree(im3d->b123_anat) ; im3d->b123_anat = NULL ;
+   myXtFree(im3d->b231_anat) ; im3d->b231_anat = NULL ;
+   myXtFree(im3d->b312_anat) ; im3d->b312_anat = NULL ;
+
+   myXtFree(im3d->b123_fim)  ; im3d->b123_fim  = NULL ;
+   myXtFree(im3d->b231_fim)  ; im3d->b231_fim  = NULL ;
+   myXtFree(im3d->b312_fim)  ; im3d->b312_fim  = NULL ;
+
+   im3d->b123_ulay = im3d->b231_ulay = im3d->b312_ulay = NULL ;
+
+   if( XtIsManaged(im3d->vwid->view->frame) == True )
+      AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
+
+   LOAD_IVEC3(im3d->vinfo->xhairs_ndown,0,0,0) ;
+   LOAD_IVEC3(im3d->vinfo->xhairs_nup  ,0,0,0) ;
+   LOAD_IVEC3(im3d->vinfo->xhairs_nskip,0,0,0) ;
+
+   AFNI_fimmer_setref(im3d,NULL) ; CLEAR_FIMDATA(im3d) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+
+   im3d->anat_now = im3d->fim_now = NULL ;
+
+   AFNI_purge_unused_dsets() ;
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------
+  Open or close the viewing controls panel
+---------------------------------------------------------------------------*/
+void AFNI_controller_panel_CB( Widget wcall , XtPointer cd , XtPointer cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_controller_panel_CB") ;
+
+   if( ! IM3D_OPEN(im3d) || im3d->vwid->prog->panel_pb == NULL ) EXRETURN ;
+
+   /** if view frame is open, close it and all its children **/
+
+   if( XtIsManaged(im3d->vwid->view->frame) == True ){
+
+      if( XtIsManaged(im3d->vwid->marks->frame) == True ){
+         AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
+      }
+
+      if( XtIsManaged(im3d->vwid->func->frame) ){
+         CLOSE_PANEL(im3d,func) ;
+      }
+
+      if( XtIsManaged(im3d->vwid->dmode->frame) ){
+         CLOSE_PANEL(im3d,dmode) ;
+      }
+
+      XtUnmanageChild(im3d->vwid->view->frame) ;
+      if( im3d->vwid->prog->panel_pb_inverted ){
+         MCW_invert_widget(im3d->vwid->prog->panel_pb) ;
+         im3d->vwid->prog->panel_pb_inverted = False ;
+      }
+
+   } else {  /** open the view frame (but not its children) **/
+
+      XtManageChild(im3d->vwid->view->frame) ;
+      if( ! im3d->vwid->prog->panel_pb_inverted ){
+         MCW_invert_widget(im3d->vwid->prog->panel_pb) ;
+         im3d->vwid->prog->panel_pb_inverted = True ;
+      }
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------
+  Called when the user selects a new option for crosshair visibility
+---------------------------------------------------------------------------*/
+
+void AFNI_crosshair_visible_CB( MCW_arrowval * av , XtPointer client_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int val ;
+
+ENTRY("AFNI_crosshair_visible_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( av->ival == av->old_ival ) EXRETURN ;
+
+   switch( av->ival ){
+      default:
+      case AFNI_XHAIRS_OFF:
+         im3d->vinfo->crosshair_visible   = False ;
+         im3d->vinfo->xhairs_show_montage = False ;
+      break ;
+
+      case AFNI_XHAIRS_SINGLE:
+         im3d->vinfo->crosshair_visible   = True ;
+         im3d->vinfo->xhairs_show_montage = False ;
+      break ;
+
+      case AFNI_XHAIRS_MULTI:
+         im3d->vinfo->crosshair_visible   = True ;
+         im3d->vinfo->xhairs_show_montage = True ;
+      break ;
+   }
+
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_wrap_bbox_CB( Widget w ,
+                        XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int bval ;
+
+ENTRY("AFNI_wrap_bbox_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bval = MCW_val_bbox( im3d->vwid->imag->wrap_bbox ) ;
+
+   if( (Boolean) bval == im3d->vinfo->xhairs_periodic ) EXRETURN ;
+
+   im3d->vinfo->xhairs_periodic = (Boolean) bval ;
+
+   if( w != NULL ){
+      drive_MCW_imseq( im3d->s123, isqDR_periodicmont, (XtPointer) bval );
+      drive_MCW_imseq( im3d->s231, isqDR_periodicmont, (XtPointer) bval );
+      drive_MCW_imseq( im3d->s312, isqDR_periodicmont, (XtPointer) bval );
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_xhall_bbox_CB( Widget w ,
+                         XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int bval ;
+
+ENTRY("AFNI_xhall_bbox_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bval = MCW_val_bbox( im3d->vwid->imag->xhall_bbox ) ;
+
+   if( (Boolean) bval == im3d->vinfo->xhairs_all ) EXRETURN ;
+
+   im3d->vinfo->xhairs_all = (Boolean) bval ;
+
+   if( im3d->vinfo->crosshair_visible ){
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_crosshair_color_CB( MCW_arrowval * av , XtPointer client_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int ipx = av->ival ;
+
+ENTRY("AFNI_crosshair_color_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   im3d->vinfo->crosshair_ovcolor = ipx ;
+   if( im3d->vinfo->crosshair_visible ){
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_crosshair_gap_CB( MCW_arrowval * av ,  XtPointer client_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int ipx ;
+
+ENTRY("AFNI_crosshair_gap_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( av != NULL ){
+      ipx = av->ival ;
+   } else {
+      if( im3d->vinfo->crosshair_gap_old > 0 ){
+         ipx = im3d->vinfo->crosshair_gap_old ;
+         im3d->vinfo->crosshair_gap_old = 0 ;
+      } else {
+         im3d->vinfo->crosshair_gap_old = im3d->vinfo->crosshair_gap ;
+         ipx = 0 ;
+      }
+   }
+
+   im3d->vinfo->crosshair_gap = ipx ;
+   if( im3d->vinfo->crosshair_visible ){
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_time_index_CB( MCW_arrowval * av ,  XtPointer client_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int ipx ;
+
+ENTRY("AFNI_time_index_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   ipx = av->ival ;
+   if( ipx >= im3d->vinfo->top_index )
+      ipx = im3d->vinfo->top_index - 1 ;
+
+   if( im3d->vinfo->time_index != ipx ){
+      im3d->vinfo->time_index = ipx ;
+   }
+
+   AFNI_modify_viewing( im3d , False ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------
+   Start a view (12-3, 23-1, or 31-2)
+---------------------------------------------------------------------------*/
+
+static char * AFNI_image_help =
+ "Button 1: Set crosshair location\n"
+ "Button 3: Pop up image menu\n\n"
+ "Shift/Ctrl/Alt + Button 3\n"
+ "will open up the Disp/Mont/Save\n"
+ "control panels, respectively." ;
+
+static char * AFNI_arrowpad_help =
+   "Click arrows to scroll crosshair position\n"
+   "Click button to open/close crosshair gap " ;
+
+static char * AFNI_arrowpad_hint[] = {
+  "Scroll crosshairs down" ,
+  "Scroll crosshairs up" ,
+  "Scroll crosshairs left" ,
+  "Scroll crosshairs right" ,
+  "Close/open crosshairs gap"
+} ;
+
+/*.........................................................................*/
+
+void AFNI_view_xyz_CB( Widget w ,
+                       XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   MCW_imseq   * sxyz , * syzx , * szxy , ** snew = NULL ;
+   MCW_grapher * gxyz , * gyzx , * gzxy , ** gnew = NULL ;
+   Widget        pboff , pb_xyz , pb_yzx , pb_zxy ;
+   Widget        groff , gr_xyz , gr_yzx , gr_zxy ;
+   FD_brick    * brnew ;
+
+ENTRY("AFNI_view_xyz_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+    sxyz = im3d->s123 ; gxyz = im3d->g123 ;
+    syzx = im3d->s231 ; gyzx = im3d->g231 ;
+    szxy = im3d->s312 ; gzxy = im3d->g312 ;
+
+    pb_xyz = im3d->vwid->imag->image_xyz_pb ;
+    pb_yzx = im3d->vwid->imag->image_yzx_pb ;
+    pb_zxy = im3d->vwid->imag->image_zxy_pb ;
+
+    gr_xyz = im3d->vwid->imag->graph_xyz_pb ;
+    gr_yzx = im3d->vwid->imag->graph_yzx_pb ;
+    gr_zxy = im3d->vwid->imag->graph_zxy_pb ;
+
+    /* handle case of button press of already
+       open window by bringing that window to the top */
+
+    if( w == pb_xyz && sxyz != NULL ){
+       if( ISQ_REALZ(sxyz) )
+          XMapRaised( XtDisplay(sxyz->wtop) , XtWindow(sxyz->wtop) ) ;
+       EXRETURN ;
+    } else if( w == pb_yzx && syzx != NULL ){
+       if( ISQ_REALZ(syzx) )
+          XMapRaised( XtDisplay(syzx->wtop) , XtWindow(syzx->wtop) ) ;
+       EXRETURN ;
+    } else if( w == pb_zxy && szxy != NULL ){
+       if( ISQ_REALZ(szxy) )
+          XMapRaised( XtDisplay(szxy->wtop) , XtWindow(szxy->wtop) ) ;
+       EXRETURN ;
+    } else if( w == gr_xyz && gxyz != NULL ){
+       if( GRA_REALZ(gxyz) )
+          XMapRaised( XtDisplay(gxyz->fdw_graph) , XtWindow(gxyz->fdw_graph) ) ;
+       EXRETURN ;
+    } else if( w == gr_yzx && gyzx != NULL ){
+       if( GRA_REALZ(gyzx) )
+          XMapRaised( XtDisplay(gyzx->fdw_graph) , XtWindow(gyzx->fdw_graph) ) ;
+       EXRETURN ;
+    } else if( w == gr_zxy && gzxy != NULL ){
+       if( GRA_REALZ(gzxy) )
+          XMapRaised( XtDisplay(gzxy->fdw_graph) , XtWindow(gzxy->fdw_graph) ) ;
+       EXRETURN ;
+    }
+
+    /* button pressed and window not open, so prepare to open it */
+
+    if( w == pb_xyz && sxyz == NULL ){
+       snew  = &(im3d->s123) ;
+       brnew = im3d->b123_ulay ;
+       pboff = pb_xyz ;
+
+    } else if( w == pb_yzx && syzx == NULL ){
+       snew  = &(im3d->s231) ;
+       brnew = im3d->b231_ulay ;
+       pboff = pb_yzx ;
+
+    } else if( w == pb_zxy && szxy == NULL ){
+       snew  = &(im3d->s312) ;
+       brnew = im3d->b312_ulay ;
+       pboff = pb_zxy ;
+
+    } else if( w == gr_xyz && gxyz == NULL ){
+       gnew  = &(im3d->g123) ;
+       brnew = im3d->b123_ulay ;
+       pboff = gr_xyz ;
+
+    } else if( w == gr_yzx && gyzx == NULL ){
+       gnew  = &(im3d->g231) ;
+       brnew = im3d->b231_ulay ;
+       pboff = gr_yzx ;
+
+    } else if( w == gr_zxy && gzxy == NULL ){
+       gnew  = &(im3d->g312) ;
+       brnew = im3d->b312_ulay ;
+       pboff = gr_zxy ;
+
+    } else
+       EXRETURN ;  /* something funny */
+
+    /** Mar 1997: don't open if x or y dimension is 1 **/
+
+    if( brnew->n1 < 2 || brnew->n2 < 2 ) EXRETURN  ;
+
+    SHOW_AFNI_PAUSE ;
+
+    if( snew != NULL ){
+      MCW_invert_widget(pboff) ;
+      *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
+
+      (*snew)->parent = (XtPointer) im3d ;
+
+      INIT_BKGD_LAB(im3d) ;
+
+      drive_MCW_imseq( *snew, isqDR_imhelptext, (XtPointer) AFNI_image_help ) ;
+      drive_MCW_imseq( *snew, isqDR_arrowpadon, (XtPointer) AFNI_arrowpad_help ) ;
+      drive_MCW_imseq( *snew, isqDR_arrowpadhint , (XtPointer) AFNI_arrowpad_hint ) ;
+      drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
+      drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
+      drive_MCW_imseq( *snew, isqDR_periodicmont,
+                      (XtPointer)(int) im3d->vinfo->xhairs_periodic );
+
+      drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
+
+#ifndef DONT_INSTALL_ICONS
+      if( afni48_good ){
+         Pixmap pm = XmUNSPECIFIED_PIXMAP ;
+
+              if( w == pb_xyz ) pm = afni48axi_pixmap ;
+         else if( w == pb_yzx ) pm = afni48sag_pixmap ;
+         else if( w == pb_zxy ) pm = afni48cor_pixmap ;
+
+         drive_MCW_imseq( *snew,isqDR_icon , (XtPointer) pm ) ;
+      }
+#endif
+    }
+
+    /** Don't forget to send information like the reference timeseries ... **/
+
+    if( gnew != NULL && DSET_GRAPHABLE(brnew->dset) ){
+       MCW_grapher * gr ;
+
+       MCW_invert_widget(pboff) ;
+       gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;
+       drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
+       drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
+       drive_MCW_grapher( gr, graDR_setignore, (XtPointer) im3d->fimdata->init_ignore );
+       drive_MCW_grapher( gr, graDR_setindex , (XtPointer) im3d->vinfo->time_index );
+       drive_MCW_grapher( gr , graDR_realize , NULL ) ;
+
+       *gnew = gr ;
+       (*gnew)->parent = (XtPointer) im3d ;
+
+#ifndef DONT_INSTALL_ICONS
+      if( afni48_good ){
+         Pixmap pm = XmUNSPECIFIED_PIXMAP ;
+
+              if( w == gr_xyz ) pm = afni48graaxi_pixmap ;
+         else if( w == gr_yzx ) pm = afni48grasag_pixmap ;
+         else if( w == gr_zxy ) pm = afni48gracor_pixmap ;
+
+         drive_MCW_grapher( gr , graDR_icon , (XtPointer) pm ) ;
+      }
+#endif
+    }
+
+   /*-- force a jump to the viewpoint of the current location --*/
+
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+
+   SHOW_AFNI_READY ;
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+   The following routines for "locks" were added 04 Nov 1996
+-------------------------------------------------------------------------*/
+
+void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   AFNI_lock_carryout( im3d ) ;
+   RESET_AFNI_QUIT(im3d) ;
+   return ;
+}
+
+void AFNI_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View * qq3d ;
+   int            bval , ii , bold ;
+
+   if( ! IM3D_VALID(im3d) ) return ;
+
+   /* get current global setting and compare to changed lock box */
+
+   bold = GLOBAL_library.controller_lock ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->lock_bbox ) ;
+   if( bval == bold ) return ;                     /* same --> nothing to do */
+
+   /* new value --> save in global setting */
+
+   GLOBAL_library.controller_lock = bval ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+
+      MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , bval ) ;
+   }
+   RESET_AFNI_QUIT(im3d) ;
+   return ;
+}
+
+void AFNI_lock_clear_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * qq3d ;
+   int ii ;
+
+   GLOBAL_library.controller_lock = 0 ;
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_VALID(qq3d) )
+         MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , 0 ) ;
+   }
+   return ;
+}
+
+void AFNI_lock_carryout( Three_D_View * im3d )
+{
+   Three_D_View * qq3d ;
+   int ii,jj,kk , cc , glock ;
+   THD_fvec3 old_fv , fv ;
+   THD_ivec3 iv ;
+   THD_dataxes * daxes ;
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+
+   /* first, determine if there is anything to do */
+
+   glock = GLOBAL_library.controller_lock ;
+
+   if( busy )                       return ;  /* routine already busy */
+   if( glock == 0 )                 return ;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )           return ;  /* bad input */
+   if( GLOBAL_library.ignore_lock ) return ;  /* ordered not to do anything */
+
+   ii = AFNI_controller_index(im3d) ;         /* which one am I? */
+
+   if( ii < 0 ) return ;                      /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 ) return ; /* input not locked */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   /* load Dicom location of current point of view in this controller */
+
+   LOAD_FVEC3( old_fv , im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
+
+   /* loop through other controllers:
+        for those that ARE open, ARE NOT the current one,
+        and ARE locked, transform the above vector to the
+        controller's dataset, and then jump to that point */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+
+         LOAD_ANAT_VIEW(qq3d) ;  /* prepare coordinates */
+
+         fv = AFNI_transform_vector( im3d->anat_now , old_fv , qq3d->anat_now ) ;
+         fv = THD_dicomm_to_3dmm( qq3d->anat_now , fv ) ;
+         iv = THD_3dmm_to_3dind ( qq3d->anat_now , fv ) ;
+         ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+
+         daxes = CURRENT_DAXES(qq3d->anat_now) ;
+         if( ii >= 0 && ii < daxes->nxx &&
+             jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
+
+            SAVE_VPT(qq3d) ;
+            AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
+         }
+      }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_set_viewpoint( Three_D_View * im3d ,
+                         int xx,int yy,int zz , int redisplay_option )
+{
+   int old_i1 , old_j2 , old_k3 , i1,j2,k3 ;
+   int dim1,dim2,dim3 , isq_driver , do_lock ;
+
+   THD_dataxes * daxes ;
+   THD_fvec3 fv ;
+   THD_ivec3 old_ib , new_ib , old_id , new_id ;
+
+ENTRY("AFNI_set_viewpoint") ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"input xx=%d yy=%d zz=%d",xx,yy,zz) ;
+  STATUS(str) ; }
+#endif
+
+   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
+
+   /** 02 Nov 1996:
+         Attach view-specific dataxes and warps to the datasets **/
+
+   LOAD_DSET_VIEWS(im3d) ;
+
+   /** find if input points are inside axes of current display **/
+
+   daxes = CURRENT_DAXES(im3d->anat_now) ;
+   dim1  = daxes->nxx ; dim2 = daxes->nyy ; dim3 = daxes->nzz ;
+
+   old_i1 = im3d->vinfo->i1 ;
+   old_j2 = im3d->vinfo->j2 ;
+   old_k3 = im3d->vinfo->k3 ;
+
+   i1 = im3d->vinfo->i1 = (xx < 0 || xx >= dim1) ? (old_i1) : xx ;
+   j2 = im3d->vinfo->j2 = (yy < 0 || yy >= dim2) ? (old_j2) : yy ;
+   k3 = im3d->vinfo->k3 = (zz < 0 || zz >= dim3) ? (old_k3) : zz ;
+
+   /** determine redisplay mode for image viewers **/
+
+   if( !redisplay_option &&
+       i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) EXRETURN ;
+
+   do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
+
+   isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
+                                                    : isqDR_overlay ;
+
+   LOAD_IVEC3(old_id,old_i1,old_j2,old_k3) ;
+   LOAD_IVEC3(new_id,    i1,    j2,    k3) ;
+
+#ifdef AFNI_DEBUG
+STATUS(" ") ;
+DUMP_IVEC3("  old_id",old_id) ;
+DUMP_IVEC3("  new_id",new_id) ;
+#endif
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      fv = THD_3dind_to_3dmm( im3d->anat_now , new_id ) ;
+      fv = THD_3dmm_to_dicomm( im3d->anat_now , fv ) ;
+      im3d->vinfo->xi = fv.xyz[0] ;  /* set display coords */
+      im3d->vinfo->yj = fv.xyz[1] ;  /* to Dicom standard  */
+      im3d->vinfo->zk = fv.xyz[2] ;
+   }
+
+#ifdef ALLOW_BKGD_LAB
+   im3d->vinfo->func_val[0] = im3d->vinfo->thr_val[0] = '\0' ;
+   if( do_lock || isq_driver==isqDR_display ) im3d->vinfo->anat_val[0] = '\0' ;
+#endif
+
+   /*--- redraw images now ---*/
+
+   im3d->ignore_seq_callbacks = AFNI_IGNORE_EVERYTHING ;
+
+   if( im3d->s123 != NULL || im3d->g123 != NULL ){
+      int xyzm[4] ;
+
+      old_ib = THD_3dind_to_fdind( im3d->b123_ulay , old_id ) ;
+      new_ib = THD_3dind_to_fdind( im3d->b123_ulay , new_id ) ;
+
+#ifdef AFNI_DEBUG
+STATUS(" ") ;
+DUMP_IVEC3(" redraw s123 old_ib",old_ib) ;
+DUMP_IVEC3("             new_ib",new_ib) ;
+#endif
+
+      if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
+         drive_MCW_imseq( im3d->s123 ,
+                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+
+
+      xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
+      xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
+      drive_MCW_grapher( im3d->g123 , graDR_redraw , (XtPointer) xyzm ) ;
+   }
+
+   if( im3d->s231 != NULL || im3d->g231 != NULL ){
+      int xyzm[4] ;
+
+      old_ib = THD_3dind_to_fdind( im3d->b231_ulay , old_id ) ;
+      new_ib = THD_3dind_to_fdind( im3d->b231_ulay , new_id ) ;
+
+#ifdef AFNI_DEBUG
+STATUS(" ") ;
+DUMP_IVEC3(" redraw s231 old_ib",old_ib) ;
+DUMP_IVEC3("             new_ib",new_ib) ;
+#endif
+
+      if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
+         drive_MCW_imseq( im3d->s231 ,
+                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+
+      xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
+      xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
+      drive_MCW_grapher( im3d->g231 , graDR_redraw , (XtPointer) xyzm ) ;
+   }
+
+   if( im3d->s312 != NULL || im3d->g312 != NULL ){
+      int xyzm[4] ;
+
+      old_ib = THD_3dind_to_fdind( im3d->b312_ulay , old_id ) ;
+      new_ib = THD_3dind_to_fdind( im3d->b312_ulay , new_id ) ;
+
+#ifdef AFNI_DEBUG
+STATUS(" ") ;
+DUMP_IVEC3(" redraw s312 old_ib",old_ib) ;
+DUMP_IVEC3("             new_ib",new_ib) ;
+#endif
+
+      if( redisplay_option || old_ib.ijk[2] != new_ib.ijk[2] )
+         drive_MCW_imseq( im3d->s312 ,
+                          isq_driver , (XtPointer) new_ib.ijk[2] ) ;
+
+      xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
+      xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
+      drive_MCW_grapher( im3d->g312 , graDR_redraw , (XtPointer) xyzm ) ;
+   }
+
+   im3d->ignore_seq_callbacks = AFNI_IGNORE_NOTHING ;
+
+   /*--- redraw coordinate display now ---*/
+
+   if( redisplay_option || i1 != old_i1 || j2 != old_j2 || k3 != old_k3 ){
+      XmString xstr ;
+      Boolean same ;
+
+      xstr = AFNI_crosshair_label( im3d ) ;
+      same = XmStringCompare( xstr , im3d->vinfo->old_crosshair_label ) ;
+
+      if( same == False ){
+         XtVaSetValues( im3d->vwid->imag->crosshair_label ,       /* redisplay */
+                           XmNlabelString , xstr ,                /* if changed */
+                        NULL ) ;
+         MCW_expose_widget( im3d->vwid->imag->crosshair_label ) ; /* redraw now! */
+         XmStringFree(im3d->vinfo->old_crosshair_label) ;         /* toss old */
+         im3d->vinfo->old_crosshair_label = xstr ;                /* new old */
+      } else {
+         XmStringFree( xstr ) ;  /* was same --> don't need this copy */
+      }
+
+#ifdef ALLOW_BKGD_LAB
+#define VSTR(x) ( ((x)[0] == '\0') ? ("?") : (x) )
+      if( im3d->vwid->imag->do_bkgd_lab ){
+         char str[256] ;
+         sprintf(str,"Anat = %s\n"
+                     "Func = %s\n"
+                     "Thr  = %s\n" ,
+                 VSTR(im3d->vinfo->anat_val),
+                 VSTR(im3d->vinfo->func_val), VSTR(im3d->vinfo->thr_val) ) ;
+
+         MCW_set_widget_label( im3d->vwid->func->bkgd_lab , str ) ;
+         XtManageChild( im3d->vwid->func->bkgd_lab ) ;
+         FIX_SCALE_SIZE(im3d) ;
+      }
+#undef VSTR
+#endif
+   }
+
+   drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
+   drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
+   drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer) im3d->vinfo->time_index );
+
+   if( do_lock )                    /* 11 Nov 1996 */
+      AFNI_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------
+   get the n-th overlay as an MRI_IMAGE *
+   (return NULL if none;  note that the result must be mri_freed by the user)
+---------------------------------------------------------------------------*/
+
+MRI_IMAGE * AFNI_overlay( int n , FD_brick * br )
+{
+   Three_D_View * im3d = (Three_D_View *) br->parent ;
+   MRI_IMAGE * im = NULL , * fov = NULL ;
+   register short * oar ;
+   int ii,jj , npix , xx,yy,zz , nx,ny , gap,ovc , icr,jcr,kcr ;
+   Boolean ovgood ;
+   THD_ivec3 ib ;
+   THD_3dim_dataset * dset ;
+   FD_brick * br_fim ;
+
+ENTRY("AFNI_overlay") ;
+
+   if( ! IM3D_VALID(im3d) ) RETURN(NULL) ;
+
+   /*--- check if crosshairs, markers, or functions are visible ---*/
+
+   dset = im3d->anat_now ;
+
+   ovgood = (im3d->vinfo->crosshair_visible == True) ||
+
+            (  dset->markers != NULL       &&
+              (dset->markers->numset > 0)  &&
+              (im3d->vwid->marks->ov_visible == True) ) ||
+
+            ( dset->pts != NULL && im3d->vinfo->pts_visible == True ) ||
+
+            ( im3d->vinfo->func_visible == True ) ;
+
+   if( ! ovgood ) RETURN(NULL) ;
+
+   /*-- at least one source of an overlay is present --*/
+
+#ifdef AFNI_DEBUG
+{ char str[256] ; sprintf(str,"n1=%d n2=%d",br->n1,br->n2) ; STATUS(str) ; }
+#endif
+
+   LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
+
+   /*----- get functional overlay, if desired -----*/
+
+   if( im3d->vinfo->func_visible ){
+      br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
+      fov    = AFNI_func_overlay( n , br_fim ) ;
+   }
+
+   /*----- now set up overlay image as the functional overlay
+           (if present), or as a new blank image (otherwise). -----*/
+
+   if( fov != NULL ){
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+sprintf(str,"new overlay from AFNI_func_overlay: nx=%d ny=%d\n",fov->nx,fov->ny) ;
+STATUS(str) ; }
+#endif
+      im  = fov ; ovgood = True ;
+      oar = MRI_SHORT_PTR(im) ;
+   } else {
+STATUS("new overlay is created de novo") ;
+      im  = mri_new( br->n1 , br->n2 , MRI_short ) ; ovgood = False ;
+      oar = MRI_SHORT_PTR(im) ;
+#ifdef DONT_USE_MEMCPY
+      for( ii=0 ; ii < im->nvox ; ii++ ) oar[ii] = 0 ;  /* blank overlay */
+#else
+      (void) memset( oar , 0 , sizeof(short)*im->nvox ) ;
+#endif
+   }
+
+   nx     = im->nx ;
+   ny     = im->ny ;
+   npix   = nx * ny ;
+   im->dx = br->del1 ;  /* load dimensions (not that anyone cares) */
+   im->dy = br->del2 ;
+   im->dz = br->del3 ;
+
+   /*----- put crosshairs on, if desired -----*/
+
+   if( im3d->vinfo->crosshair_visible ){
+      MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
+
+      ib = THD_3dind_to_fdind( br ,
+                              TEMP_IVEC3( im3d->vinfo->i1 ,
+                                          im3d->vinfo->j2 ,
+                                          im3d->vinfo->k3  ) ) ;
+
+      /** April 1996: Only put crosshairs on if image number
+                      matches current slice number of viewpoint.
+                      (This allows for the montage multislice view) **/
+
+      /** July 1996: Allow for multiple crosshairs to indicate
+                     the location of montage multislice views. **/
+
+      /** Aug 1996: Allow for periodic (wrap) or non-periodic montages.
+                    Also, if in "Single" mode and also are graphing,
+                    then only draw the grapher frame, not the crosshairs. **/
+
+      if( n == ib.ijk[2] || im3d->vinfo->xhairs_all ){
+         int jp,ip , jcen,icen , gappp ;
+         int idown,iup,iskip , jdown,jup,jskip , imon,jmon ;
+         int a1 = br->a123.ijk[0] ,   /* x axis of the brick?    */
+             ax = abs(a1) - 1       ; /* 0,1,2 for dataset x,y,z */
+         int a2 = br->a123.ijk[1] ,   /* y axis of the brick?    */
+             ay = abs(a2) - 1       ; /* 0,1,2 for dataset x,y,z */
+         int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
+             az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
+
+         ovc  = im3d->vinfo->crosshair_ovcolor ;
+         gap  = (grapher==NULL) ? im3d->vinfo->crosshair_gap : (grapher->mat+1)/2 ;
+         icen = ib.ijk[0] ;
+         jcen = ib.ijk[1] ;
+
+         /** initialize montage steps **/
+
+         if( im3d->vinfo->xhairs_show_montage ){           /* in "Multi" mode */
+            iskip = im3d->vinfo->xhairs_nskip.ijk[ax] + 1 ;
+            jskip = im3d->vinfo->xhairs_nskip.ijk[ay] + 1 ;
+            if( a1 > 0 ){
+               idown = im3d->vinfo->xhairs_ndown.ijk[ax] ;
+               iup   = im3d->vinfo->xhairs_nup.ijk[ax] ;
+            } else {
+               iup   = im3d->vinfo->xhairs_ndown.ijk[ax] ;
+               idown = im3d->vinfo->xhairs_nup.ijk[ax] ;
+            }
+            if( a2 > 0 ){
+               jdown = im3d->vinfo->xhairs_ndown.ijk[ay] ;
+               jup   = im3d->vinfo->xhairs_nup.ijk[ay] ;
+            } else {
+               jup   = im3d->vinfo->xhairs_ndown.ijk[ay] ;
+               jdown = im3d->vinfo->xhairs_nup.ijk[ay] ;
+            }
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"montage xhairs: ax   =%d ay   =%d az =%d",ax,ay,az)       ; STATUS(str);
+  sprintf(str,"                iskip=%d idown=%d iup=%d",iskip,idown,iup); STATUS(str);
+  sprintf(str,"                jskip=%d jdown=%d jup=%d",jskip,jdown,jup); STATUS(str);
+}
+#endif
+
+         } else {                                          /* in "Single" Mode */
+           idown = iup = jdown = jup = iskip = jskip = 0 ;
+           if( grapher != NULL ){ idown=-(iup+1); jdown=-(jup+1); } /* skip lines? */
+         }
+
+         /* draw vertical lines first */
+
+         for( imon=-idown ; imon <= iup ; imon++ ){
+            icr = icen + imon * iskip ;
+
+            if( im3d->vinfo->xhairs_periodic ){
+               while( icr < 0 )   icr += nx ;
+               while( icr >= nx ) icr -= nx ;
+            } else {
+               if( icr < 0 || icr >= nx ) continue ;
+            }
+
+            gappp = (abs(icr-icen) <= gap) ? gap : -1 ; /* no gap if far from center */
+
+            /* if lines are closely packed, only do alternate pixels */
+
+            if( idown+iup > 0 && iskip == 1 && icr != icen ){
+               for( jj=(imon+idown)%2 ; jj < ny ; jj+=2 )
+                  if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
+            } else {
+               for( jj=0 ; jj < ny ; jj++ )
+                  if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
+            }
+         }
+
+         /* draw horizontal lines */
+
+         for( jmon=-jdown ; jmon <= jup ; jmon++ ){
+            jcr = jcen + jmon * jskip ;
+            if( im3d->vinfo->xhairs_periodic ){
+               while( jcr < 0 )   jcr += ny ;
+               while( jcr >= ny ) jcr -= ny ;
+            } else {
+               if( jcr < 0 || jcr >= ny ) continue ;
+            }
+
+            gappp = (abs(jcr-jcen) <= gap) ? gap : -1 ;  /* no gap if far from center */
+
+            /* if lines are closely packed, only do alternate pixels */
+
+            if( jdown+jup > 0 && jskip == 1 && jcr != jcen ){
+               for( ii=(jmon+jdown)%2 ; ii < nx ; ii+=2 )
+                  if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
+            } else {
+               for( ii=0 ; ii < nx ; ii++ )
+                  if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
+            }
+         }
+
+         /* draw grapher frame, if needed */
+
+         if( grapher != NULL ){
+            int gs = gap , gb = (grapher->mat +2)/2 ;
+
+            jcr = jcen ; icr = icen ;
+
+            ip = icr - gb ; if( ip <  0  ) ip += nx ;
+            ii = icr + gs ; if( ii >= nx ) ii -= nx ;
+            for( jj=jcr-gb ; jj <= jcr+gs ; jj++ ){
+               jp = jj ; if( jp <  0  ) jp += ny ;
+                    else if( jp >= ny ) jp -= ny ;
+               oar[ip+nx*jp] = ovc ;
+               oar[ii+nx*jp] = ovc ;
+            }
+
+            jp = jcr - gb ; if( jp <  0  ) jp += ny ;
+            jj = jcr + gs ; if( jj >= ny ) jj -= ny ;
+            for( ii=icr-gb ; ii <= icr+gs ; ii++ ){
+              ip = ii ; if( ip <  0  ) ip += nx ;
+                   else if( ip >= nx ) ip -= nx ;
+              oar[ip+nx*jp] = ovc ;
+              oar[ip+nx*jj] = ovc ;
+            }
+         } /* end if "if grapher exists" */
+
+         ovgood = True ;
+      } /* end of "if correct slice" */
+
+   } /* end of crosshairs */
+
+   /*----- put markers on, if desired -----*/
+
+   if( im3d->anat_now->markers != NULL &&
+       im3d->anat_now->markers->numset > 0 &&
+       (im3d->vwid->marks->ov_visible == True) ){
+
+      THD_marker_set     * markers = im3d->anat_now->markers ;
+      AFNI_marks_widgets * marks   = im3d->vwid->marks ;
+      AFNI_ovtemplate    * tem     = &(marks->ov_mask) ;
+      int xbase , ybase , zbase , color ;
+      THD_ivec3 ib ;
+
+      /* do secondary points first */
+
+      color = marks->ov_scolor ;
+
+      for( jj=0 ; jj < MARKS_MAXNUM ; jj++ ){
+         if( markers->valid[jj] &&     /* is point set? */
+             color > 0          &&     /* will show up? */
+             !marks->isprimary[jj] ){  /* is secondary? */
+
+            ib = THD_3dmm_to_3dind( br->dset ,
+                                    TEMP_FVEC3( markers->xyz[jj][0] ,
+                                                markers->xyz[jj][1] ,
+                                                markers->xyz[jj][2]  ) ) ;
+            ib = THD_3dind_to_fdind( br , ib ) ;
+
+            xbase = ib.ijk[0] ;  /* coordinates */
+            ybase = ib.ijk[1] ;  /* in and out */
+            zbase = ib.ijk[2] ;  /* of plane  */
+
+            if( zbase == n ){  /* in this display plane */
+               ovgood = True ;
+               for( ii=0 ; ii < tem->numpix ; ii++ ){
+                  xx = xbase + tem->dx[ii] ;
+                  yy = ybase + tem->dy[ii] ;
+                  if( xx >= 0 && xx < nx && yy >=0 && yy < ny )
+                                              oar[xx+nx*yy] = color ;
+               }
+            }
+         } /* end if point set, and secondary */
+      } /* end for loop over all secondary points */
+
+      /* duplicate above for primary points */
+
+      color = marks->ov_pcolor ;
+
+      for( jj=0 ; jj < MARKS_MAXNUM ; jj++ ){
+         if( markers->valid[jj] &&     /* is point set? */
+             color > 0          &&     /* will show up? */
+             marks->isprimary[jj]  ){  /* is primary? */
+
+            ib = THD_3dmm_to_3dind( br->dset ,
+                                    TEMP_FVEC3( markers->xyz[jj][0] ,
+                                                markers->xyz[jj][1] ,
+                                                markers->xyz[jj][2]  ) ) ;
+            ib = THD_3dind_to_fdind( br , ib ) ;
+
+            xbase = ib.ijk[0] ;  /* coordinates */
+            ybase = ib.ijk[1] ;  /* in and out */
+            zbase = ib.ijk[2] ;  /* of plane  */
+
+            if( zbase == n ){  /* in this display plane */
+               ovgood = True ;
+               for( ii=0 ; ii < tem->numpix ; ii++ ){
+                  xx = xbase + tem->dx[ii] ;
+                  yy = ybase + tem->dy[ii] ;
+                  if( xx >= 0 && xx < nx && yy >=0 && yy < ny )
+                                              oar[xx+nx*yy] = color ;
+               }
+            }
+         } /* end if point set, and primary */
+      } /* end for loop over all secondary points */
+
+   } /* end if markers to be shown */
+
+   /*----- May 1995: additional points (single pixels) -----*/
+
+   if( im3d->vinfo->pts_visible   &&
+       dset->pts != NULL          &&
+       im3d->vinfo->pts_color > 0   ){
+
+      int color , jj ;
+      THD_ivec3 ib ;
+
+      color = im3d->vinfo->pts_color ;
+
+      for( jj=0 ; jj < dset->pts->num ; jj++ ){
+         ib = THD_3dind_to_fdind( br , dset->pts->ijk[jj] ) ;
+         if( ib.ijk[2] == n ){
+            oar[ ib.ijk[0] + nx * ib.ijk[1] ] = color ;
+            ovgood = True ;
+         }
+      }
+   }
+
+   /*----- return overlay (kill it if nothing happened) -----*/
+
+   if( !ovgood ) KILL_1MRI(im) ;
+
+   RETURN( im ) ;
+}
+
+/*------------------------------------------------------------------------*/
+
+XmString AFNI_crosshair_label( Three_D_View * im3d )
+{
+   char buf[64] ;
+   XmString xstr ;
+   static char * RR="[R]" , * LL="[L]" ,
+               * PP="[P]" , * AA="[A]" ,
+               * SS="[S]" , * II="[I]" , * ZZ="   " ;
+   char * xx , * yy , * zz ;
+   float xval,yval,zval ;
+
+ENTRY("AFNI_crosshair_label") ;
+
+   if( ! IM3D_VALID(im3d) ) RETURN( NULL );
+
+   if( ! IM3D_OPEN(im3d) ){
+      sprintf(buf,"1234567890123456789\n1234567890123456789\n1234567890123456789") ;
+
+   } else if( im3d->type == AFNI_IMAGES_VIEW || im3d->vinfo->show_voxind ){
+
+STATUS("voxel indexes") ;
+
+      if( ISVALID_3DIM_DATASET(im3d->fim_now) &&
+          im3d->vinfo->func_visible && DSET_INMEMORY(im3d->fim_now) ){
+         THD_fvec3 fv ;
+         THD_ivec3 iv ;
+         int flag ;
+
+         flag = im3d->fim_now->wod_flag ;
+         im3d->fim_now->wod_flag = False ;
+
+         fv = THD_dicomm_to_3dmm( im3d->fim_now ,
+                                  TEMP_FVEC3(im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk) ) ;
+         iv = THD_3dmm_to_3dind( im3d->fim_now , fv ) ;
+
+         im3d->fim_now->wod_flag = flag ;
+
+         sprintf( buf , "x: an=%4d fun=%4d\ny: an=%4d fun=%4d\nz: an=%4d fun=%4d" ,
+                  im3d->vinfo->i1,iv.ijk[0] ,
+                  im3d->vinfo->j2,iv.ijk[1] ,
+                  im3d->vinfo->k3,iv.ijk[2]  ) ;
+      } else {
+         sprintf( buf , "voxel x = %4d\nvoxel y = %4d\nvoxel z = %4d" ,
+                  im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3  ) ;
+      }
+   } else {
+      char bxyz[3][32] ;
+
+STATUS("voxel coordinates") ;
+
+      xval = im3d->vinfo->xi ;
+      yval = im3d->vinfo->yj ;
+      zval = im3d->vinfo->zk ;
+
+      xx = (xval==0.0) ? (ZZ) : ( (xval<0.0) ? (RR) : (LL) ) ;
+      yy = (yval==0.0) ? (ZZ) : ( (yval<0.0) ? (AA) : (PP) ) ;
+      zz = (zval==0.0) ? (ZZ) : ( (zval<0.0) ? (II) : (SS) ) ;
+
+      /** 16 July 1997 **/
+#if 1
+      sprintf( bxyz[0] , "=%9.3f mm %s" ,
+               GLOBAL_library.cord.xxsign * xval , xx ) ;
+
+      sprintf( bxyz[1] , "=%9.3f mm %s" ,
+               GLOBAL_library.cord.yysign * yval , yy ) ;
+
+      sprintf( bxyz[2] , "=%9.3f mm %s" ,
+               GLOBAL_library.cord.zzsign * zval , zz ) ;
+
+      sprintf( buf , "x %17s\ny %17s\nz %17s"   ,
+               bxyz[GLOBAL_library.cord.first]  ,
+               bxyz[GLOBAL_library.cord.second] ,
+               bxyz[GLOBAL_library.cord.third]   ) ;
+#else
+      sprintf( buf , "x =%9.3f mm %s\ny =%9.3f mm %s\nz =%9.3f mm %s" ,
+               xval,xx , yval,yy , zval,zz ) ;
+#endif
+   }
+
+   xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
+
+   RETURN( xstr ) ;
+}
+
+/*-------------------------------------------------------------------------
+   handle the selection of a marker name by the user
+   (using the toggle buttons from the control panel or the popup menu)
+---------------------------------------------------------------------------*/
+
+void AFNI_marktog_CB( Widget w ,
+                      XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   XmToggleButtonCallbackStruct * cbs =
+         (XmToggleButtonCallbackStruct *) call_data ;
+
+   int bval , ip , xx=-1 , yy=-1 , zz=-1 ;
+   Widget * other_tog ;
+
+ENTRY("AFNI_marktog_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   switch( cbs->reason ){
+
+      default:  XBell(XtDisplay(w),100) ; EXRETURN ;  /* error */
+
+      case XmCR_DISARM:   /* button on the control panel */
+         bval      = AFNI_first_tog( MARKS_MAXNUM ,
+                                     im3d->vwid->marks->tog ) ;
+         other_tog = im3d->vwid->marks->poptog ;
+      break ;
+
+      case XmCR_VALUE_CHANGED:  /* button on the menu panel */
+         bval = AFNI_first_tog( MARKS_MAXNUM ,
+                                im3d->vwid->marks->poptog ) ;
+         other_tog = im3d->vwid->marks->tog ;
+      break ;
+   }
+
+   /* bval      = index of toggle that is set (-1 if none)
+      other_tog = pointer to other set of toggles;
+                  set those buttons to match now */
+
+   AFNI_set_tog( bval , MARKS_MAXNUM , other_tog ) ;
+
+   /* set point overlay colors based on bval */
+
+   for( ip=0 ; ip < MARKS_MAXNUM ; ip++ )
+      im3d->vwid->marks->isprimary[ip] = False ;
+
+   if( bval >= 0 ){
+      im3d->vwid->marks->isprimary[bval] = True ;
+
+      if( im3d->anat_now->markers->valid[bval] ){  /* jump to this point */
+         THD_ivec3 ib ;
+
+         LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+         ib = THD_3dmm_to_3dind(
+                 im3d->anat_now ,
+                 TEMP_FVEC3( im3d->anat_now->markers->xyz[bval][0] ,
+                             im3d->anat_now->markers->xyz[bval][1] ,
+                             im3d->anat_now->markers->xyz[bval][2]  )) ;
+
+         xx = ib.ijk[0] ; yy = ib.ijk[1] ; zz = ib.ijk[2] ;  /* jump is below */
+         SAVE_VPT(im3d) ;  /* save current location as jumpback point */
+      }
+   }
+
+   if( im3d->anat_now->markers->numset > 0 )
+      AFNI_set_viewpoint( im3d , xx,yy,zz , REDISPLAY_OVERLAY ) ;  /* redraw */
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+void AFNI_set_tog( int nset , int ntog , Widget * tog )
+{
+   int ib ;
+
+   for( ib=0 ; ib < ntog ; ib++ )
+      XmToggleButtonSetState( tog[ib] , ib==nset , False ) ;
+}
+
+int AFNI_first_tog( int ntog , Widget * tog )
+{
+   int ib ;
+
+   for( ib=0 ; ib < ntog ; ib++ )
+      if( XmToggleButtonGetState(tog[ib]) ) break ;
+
+   if( ib >= ntog ) ib = -1 ;
+   return ib ;
+}
+
+#if 0
+int AFNI_all_tog( int ntog , Widget * tog )
+{
+   int ib , val = 0 ;
+
+   for( ib=0 ; ib < ntog ; ib++ )
+      if( XmToggleButtonGetState(tog[ib]) ) val |= (1<<ib) ;
+   return val ;
+}
+#endif
+
+/*-------------------------------------------------------------------------
+   handle pushbuttons for marks actions:  set and clear markers, etc.
+---------------------------------------------------------------------------*/
+
+void AFNI_marks_action_CB( Widget w ,
+                           XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int itog , ipt , setmask , vwarp ;
+   Boolean sens , transformable ;
+   THD_marker_set * markers ;
+   AFNI_marks_widgets * marks ;
+   THD_fvec3 fv ;
+
+ENTRY("AFNI_marks_action_CB") ;
+
+   /* sanity check */
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   marks = im3d->vwid->marks ;
+
+   /*------ done button (it used to exist) -----*/
+
+   if( w == NULL ){  /* close down */
+
+      Boolean redisplay ;
+
+      MCW_set_bbox( marks->edits_bbox , 0 ) ;
+      AFNI_marks_edits_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+      MCW_set_bbox( im3d->vwid->view->see_marks_bbox ,
+                    marks->old_visible ? 1 : 0 ) ;
+      AFNI_see_marks_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+      redisplay = ! marks->old_visible ;
+
+      for( ipt=0 ; ipt < MARKS_MAXNUM ; ipt++ ){  /* all display as */
+         redisplay = ( redisplay ||  marks->isprimary[ipt] == True ) ;
+         marks->isprimary[ipt] = False ;          /* secondary now */
+      }
+
+      CLOSE_PANEL(im3d,marks) ;  /* close this panel */
+
+      if( redisplay )
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
+
+      /* save markers as they exist now, if any changes made */
+
+      if( marks->changed ){
+#if 0
+         (void) MCW_popup_message(
+                   im3d->vwid->view->define_marks_pb ,
+                   "Saved changed markers\nto dataset disk file." ,
+                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+#endif
+         (void) THD_write_3dim_dataset( NULL,NULL , im3d->anat_now , False ) ;
+      }
+
+      EXRETURN ;
+   }
+
+   /*----- quality button (only on when all markers are defined) -----*/
+
+   if( w == marks->action_quality_pb ){
+      transformable = AFNI_marks_quality_check( True , im3d ) ;
+      SENSITIZE( marks->transform_pb , transformable ) ;
+      EXRETURN ;
+   }
+
+   /*----- if here, either a Set or a Clear -----*/
+
+   /* find which point is active (i.e., which toggle is set, if any) */
+
+   itog = AFNI_first_tog( MARKS_MAXNUM , marks->tog ) ;
+
+   if( itog < 0 || ! marks->editable ){
+      XBell(XtDisplay(w),100) ;  /* none active --> beep and return */
+      EXRETURN ;
+   }
+
+   ipt = itog ;  /* index of point to deal with */
+
+   markers = im3d->anat_now->markers ;
+
+   /*----- set button pressed -----*/
+
+   if( w == marks->action_set_pb || w == marks->pop_set_pb ){
+
+      if( ! markers->valid[ipt] ) (markers->numset) ++ ;  /* newly set */
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"set #%d numset=%d",ipt,markers->numset) ;
+  STATUS(str) ; }
+#endif
+
+      markers->valid[ipt] = True ;
+
+      LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+
+      fv = THD_3dind_to_3dmm( im3d->anat_now ,    /* convert to mm */
+                              TEMP_IVEC3( im3d->vinfo->i1 ,
+                                          im3d->vinfo->j2 ,
+                                          im3d->vinfo->k3  ) ) ;
+
+      markers->xyz[ipt][0] = fv.xyz[0] ;  /* mm in local x,y,z */
+      markers->xyz[ipt][1] = fv.xyz[1] ;
+      markers->xyz[ipt][2] = fv.xyz[2] ;
+
+      /* invert colors to mark that the point is set */
+
+      if( ! marks->inverted[itog] ){
+         MCW_invert_widget( marks->tog[itog] ) ;
+         MCW_invert_widget( marks->poptog[itog] ) ;
+         marks->inverted[itog] = True ;
+      }
+
+      marks->changed = True ;  /* set or reset a marker --> a change */
+   }
+
+   /*----- clear button pressed -----*/
+
+   else if( w == marks->action_clear_pb || w == marks->pop_clear_pb ){
+
+      if( ! markers->valid[ipt] ){
+         XBell(XtDisplay(w),100) ;  /* already clear */
+         EXRETURN ;
+      } else {
+         (markers->numset) -- ;   /* newly unset --> sub one from count */
+         marks->changed = True ;  /* cleared a set marker --> a change */
+      }
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"clr #%d numset=%d",ipt,markers->numset) ;
+  STATUS(str) ; }
+#endif
+
+      markers->valid[ipt] = False ;
+
+      /* restore colors to mark that the point is unset */
+
+      if( marks->inverted[itog] ){
+         MCW_invert_widget( marks->tog[itog] ) ;
+         MCW_invert_widget( marks->poptog[itog] ) ;
+         marks->inverted[itog] = False ;
+      }
+   }
+
+   /*--- allow transformation if all marks are set, etc. ---*/
+
+   vwarp         = WARPED_VIEW(im3d->vinfo->view_type) ;
+   transformable = marks->editable                         &&
+                   (markers->aflags[1] != MARKACTION_NONE) &&
+                   (markers->numdef == markers->numset)    &&
+                   ISVALID_VIEW(vwarp)                       ;
+
+   SENSITIZE( marks->action_quality_pb , transformable ) ;
+   SENSITIZE( marks->transform_pb      , False ) ;  /* require QC first */
+
+   /*--- force a redraw ---*/
+
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  change the resampling size
+-------------------------------------------------------------------------*/
+
+void AFNI_resam_vox_av_CB( MCW_arrowval * av , XtPointer cd )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_resam_vox_av_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( av == im3d->vwid->dmode->resam_vox_av ){
+      im3d->vinfo->resam_vox = av->fval ;
+      SHOW_AFNI_PAUSE ;
+      AFNI_modify_viewing( im3d , True ) ;  /* redisplay */
+      SHOW_AFNI_READY ;
+   }
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------
+   handle the changing arrowvals for marker display controls
+     (set colors and sizes of markers)
+--------------------------------------------------------------------------*/
+
+void AFNI_marks_disp_av_CB( MCW_arrowval * av , XtPointer client_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int ipx = av->ival ;
+
+ENTRY("AFNI_marks_disp_av_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+          if( av == im3d->vwid->marks->disp_pcolor_av ){
+
+            im3d->vwid->marks->ov_pcolor = ipx ;
+
+   } else if( av == im3d->vwid->marks->disp_scolor_av ){
+
+            im3d->vwid->marks->ov_scolor = ipx ;
+
+   } else if( av == im3d->vwid->marks->disp_size_av ){
+
+            im3d->vwid->marks->ov_size = ipx ;
+
+            AFNI_make_ptmask( im3d->vwid->marks->ov_size ,
+                              im3d->vwid->marks->ov_gap ,
+                               &(im3d->vwid->marks->ov_mask) ) ;
+
+   } else if( av == im3d->vwid->marks->disp_gap_av ){
+
+            im3d->vwid->marks->ov_gap = ipx ;
+
+            AFNI_make_ptmask( im3d->vwid->marks->ov_size ,
+                              im3d->vwid->marks->ov_gap ,
+                               &(im3d->vwid->marks->ov_mask) ) ;
+
+   } else
+      EXRETURN ;  /* some error */
+
+   /* force a redraw if any points are set */
+
+   if( im3d->anat_now->markers->numset > 0 )
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+#define PUTPIX(x,y) (tem->dx[npix] = (x) , tem->dy[npix++] = (y))
+#define CHKPIX      if( npix >= MAXOVPIX ) break
+
+void AFNI_make_ptmask( int size , int gap , AFNI_ovtemplate * tem )
+{
+   register int ix , npix=0 , ax ;
+
+   for( ix=-size ; ix <= size ; ix++ ){
+      PUTPIX(ix,-size) ; CHKPIX ;
+      PUTPIX(ix, size) ; CHKPIX ;
+      ax = abs(ix) ;
+      if( ax != size ){ PUTPIX( size,ix); CHKPIX; PUTPIX(-size,ix); CHKPIX; }
+      if( ax >  gap  ){ PUTPIX(ix,0)    ; CHKPIX; PUTPIX(0,ix)    ; CHKPIX; }
+   }
+
+   tem->numpix = npix ;
+   return;
+}
+
+/*========================================================================
+   routines to switch "views" on a dataset
+==========================================================================*/
+
+void AFNI_switchview_CB( Widget w ,
+                         XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int bval ;
+
+ENTRY("AFNI_switchview_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bval = AFNI_first_tog( LAST_VIEW_TYPE+1 ,
+                          im3d->vwid->view->view_bbox->wbut ) ;
+
+   if( bval < 0 || bval == im3d->vinfo->view_type ) EXRETURN ;
+   if( im3d->anat_dset[bval] == NULL ) EXRETURN ;
+
+   SHOW_AFNI_PAUSE ;
+
+   POPDOWN_strlist_chooser ;                        /* might be choosing datasets */
+
+   im3d->vinfo->view_type = bval ;                  /* set the new view type */
+   AFNI_initialize_view( im3d->anat_now , im3d ) ;  /* and initialize it */
+
+   SHOW_AFNI_READY ;
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------
+  Routine to clear out unused datasets
+----------------------------------------------------------*/
+
+void AFNI_purge_unused_dsets(void)
+{
+   int icc , iss , idd , ivv ;
+   Three_D_View * im3d ;
+   THD_session  * sess ;
+   THD_sessionlist * ssl = GLOBAL_library.sslist ;
+   THD_3dim_dataset * dset ;
+
+ENTRY("AFNI_purge_unused_dsets") ;
+
+   /*-- sanity check --*/
+
+   if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ) EXRETURN ;
+
+   /*-- for each session in the list --*/
+
+   for( iss=0 ; iss < ssl->num_sess ; iss++ ){
+      sess = ssl->ssar[iss] ;
+
+      /*-- for each anat dataset in the session --*/
+
+      for( idd=0 ; idd < sess->num_anat ; idd++ ){
+         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
+
+            dset = sess->anat[idd][ivv] ;
+            if( dset == NULL ) continue ;
+
+            /*-- for each controller now running --*/
+
+            for( icc=0 ; icc < MAX_CONTROLLERS ; icc++ ){
+               im3d = GLOBAL_library.controllers[icc] ;
+               if( IM3D_VALID(im3d) &&
+                   ((dset==im3d->anat_now) || (dset==im3d->fimdata->fimdset)) ) break ;
+            }
+
+            /*-- if didn't find it, purge it --*/
+            if( icc == MAX_CONTROLLERS ){
+STATUS(dset->dblk->diskptr->header_name) ;
+               PURGE_DSET( dset ) ;
+            }
+         }
+      }
+
+      /*-- for each func dataset in the session --*/
+
+      for( idd=0 ; idd < sess->num_func ; idd++ ){
+         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
+
+            dset = sess->func[idd][ivv] ;
+            if( dset == NULL ) continue ;
+
+            /*-- for each controller now running --*/
+
+            for( icc=0 ; icc < MAX_CONTROLLERS ; icc++ ){
+               im3d = GLOBAL_library.controllers[icc] ;
+               if( IM3D_VALID(im3d) &&
+                   ((dset==im3d->fim_now) || (dset==im3d->fimdata->fimdset)) ) break ;
+            }
+
+            /*-- if didn't find it, purge it --*/
+            if( icc == MAX_CONTROLLERS ){
+STATUS(dset->dblk->diskptr->header_name) ;
+               PURGE_DSET( dset ) ;
+            }
+         }
+      }
+
+   } /* end of loop over sessions */
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------
+   setup for viewing, given the choices in im3d->vinfo
+   (the indexes of the desired session and datasets, that is)
+-----------------------------------------------------------------------*/
+
+void AFNI_initialize_view( THD_3dim_dataset * old_anat, Three_D_View * im3d )
+{
+   int vvv , itog , lll , sss , aaa , fff , id ;
+   THD_3dim_dataset     * dset , * new_anat , * new_func ;
+   THD_marker_set       * markers ;
+   AFNI_viewing_widgets * view ;
+   AFNI_marks_widgets   * marks ;
+   THD_fvec3 fv ;
+   THD_ivec3 iv ;
+
+ENTRY("AFNI_initialize_view") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   vvv = im3d->vinfo->view_type ;  /* locations of new data to view */
+   sss = im3d->vinfo->sess_num ;
+   aaa = im3d->vinfo->anat_num ;
+   fff = im3d->vinfo->func_num ;
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"view=%d session=%d anat=%d func=%d",vvv,sss,aaa,fff);
+  STATUS(str) ; }
+#endif
+
+   new_anat = GLOBAL_library.sslist->ssar[sss]->anat[aaa][vvv] ;
+   new_func = GLOBAL_library.sslist->ssar[sss]->func[fff][vvv] ;
+
+   /*----------------------------------------------*/
+   /*--- if the old dataset has markers and the
+         marker panel is open, shut it down now ---*/
+
+   if( old_anat != NULL     && old_anat->markers != NULL &&
+       old_anat != new_anat && XtIsManaged(im3d->vwid->marks->frame) ){
+
+      AFNI_marks_action_CB( NULL, (XtPointer) im3d, NULL) ; /* "done" */
+   }
+
+   if( GLOBAL_argopt.auto_purge == True ){ /* purge old datasets? */
+
+STATUS("purging old datasets from memory (maybe)") ;
+
+      im3d->anat_now = new_anat ;
+      im3d->fim_now  = new_func ;
+      AFNI_purge_unused_dsets() ;
+   }
+
+   /*---------------------------------------------------------*/
+   /* set the new datasets that we will deal with from now on */
+
+   for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
+      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->anat[aaa][id] ;
+      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->func[fff][id] ;
+
+      if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
+         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
+      else
+         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
+   }
+
+   im3d->anat_now = im3d->anat_dset[vvv] ;
+   im3d->fim_now  = im3d->fim_dset[vvv] ;
+   im3d->ss_now   = GLOBAL_library.sslist->ssar[sss] ;
+
+   /*------------------------------------------------*/
+   /*--- if markers are defined, then set them up ---*/
+
+   dset    = im3d->anat_now ;
+   markers = dset->markers ;
+   view    = im3d->vwid->view ;
+   marks   = im3d->vwid->marks ;
+
+   if( markers == NULL ){   /*--------- markers NOT defined ---------*/
+
+STATUS("turning markers off") ;
+
+      /* turn controls off */
+
+      SENSITIZE(  view->define_marks_pb , False ) ;
+      SENSITIZE(  view->see_marks_bbox->wrowcol , False ) ;
+
+      marks->ov_visible = False ;
+      marks->editable   = False ;
+
+      XtUnmanageChildren( marks->always_popup    , marks->num_always_popup    ) ;
+      XtUnmanageChildren( marks->sometimes_popup , marks->num_sometimes_popup ) ;
+
+   } else {   /*------------- markers ARE defined ----------------*/
+
+STATUS("turning markers on") ;
+
+      /* turn controls on */
+
+      SENSITIZE( view->define_marks_pb , True ) ;
+      SENSITIZE( view->see_marks_bbox->wrowcol , True ) ;
+
+      vvv = MCW_val_bbox( view->see_marks_bbox ) ;
+      marks->ov_visible = (vvv) ? True : False ;
+
+      marks->editable = False ;
+      MCW_set_bbox( marks->edits_bbox , 0 ) ;
+
+      SENSITIZE( marks->pop_set_pb   , marks->editable ) ;
+      SENSITIZE( marks->pop_clear_pb , marks->editable ) ;
+
+      /* copy help into location where MCW_help will find it */
+
+      for( itog=0 ; itog < MARKS_MAXNUM ; itog++ ){
+         MCW_strncpy( &(marks->tog_help[itog][0]) ,
+                      &(markers->help[itog][0]) , MARKS_MAXHELP ) ;
+      }
+
+      /* copy the non-empty labels into the toggle labels,
+         and make the toggle buttons active (panel AND popup) */
+
+      XtManageChildren( marks->always_popup ,
+                        marks->num_always_popup ) ;
+
+      for( itog=0 ; itog < MARKS_MAXNUM ; itog++ ){
+         lll = strlen( &(markers->label[itog][0]) ) ;
+
+         if( lll == 0 ){
+            XtUnmanageChild( marks->tog[itog] ) ;   /* empty label! */
+            XtUnmanageChild( marks->poptog[itog] ) ;
+         } else {
+            MCW_set_widget_label( marks->tog[itog] ,
+                                  &(markers->label[itog][0]) ) ;
+            SENSITIZE( marks->tog[itog] , True ) ;
+            XtManageChild( marks->tog[itog] ) ;
+
+            MCW_set_widget_label( marks->poptog[itog] ,
+                                  &(markers->label[itog][0]) ) ;
+            SENSITIZE( marks->poptog[itog] , True ) ;
+            XtManageChild( marks->poptog[itog] ) ;
+
+            if( markers->valid[itog] && ! marks->inverted[itog] ){
+               MCW_invert_widget( marks->tog[itog] ) ;
+               MCW_invert_widget( marks->poptog[itog] ) ;
+               marks->inverted[itog] = True ;
+            }
+
+            if( ! markers->valid[itog] && marks->inverted[itog] ){
+               MCW_invert_widget( marks->tog[itog] ) ;
+               MCW_invert_widget( marks->poptog[itog] ) ;
+               marks->inverted[itog] = False ;
+            }
+         }
+      } /* end of loop over markers */
+
+   } /* end of dealing with markers */
+
+   /*------------------------------*/
+   /*----- set up for viewing -----*/
+
+   AFNI_setup_viewing( im3d , True ) ;
+
+   /*-----------------------------------------------------*/
+   /*----- reset viewpoint to same Dicom coordinates -----*/
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      fv = AFNI_transform_vector(
+              old_anat ,
+              TEMP_FVEC3( im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ),
+              dset ) ;
+
+      LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+
+      fv = THD_dicomm_to_3dmm( dset , fv ) ;
+      iv = THD_3dmm_to_3dind( dset , fv ) ;
+   } else {
+      LOAD_IVEC3( iv,  im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
+   }
+
+   DISABLE_LOCK ;  /* 11 Nov 1996 */
+
+   AFNI_set_viewpoint( im3d, iv.ijk[0],iv.ijk[1],iv.ijk[2] , REDISPLAY_ALL ) ;
+
+   ENABLE_LOCK ;   /* 11 Nov 1996 */
+
+   SAVE_VPT(im3d) ;  /* save current location as jumpback */
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   set the stage for viewing:
+     -- prepare for warp-on-demand image production
+     -- setup the viewing FD_bricks
+     -- attach them to the viewing windows
+     -- turn widget controls on and off, based on data status
+
+   02 Nov 1996: set up view specific viewing stuff in im3d,
+                rather than in the datasets.  This is to allow
+                for the possibility that more than one im3d
+                may be looking at the same dataset at once.
+------------------------------------------------------------------------*/
+
+void AFNI_setup_viewing( Three_D_View * im3d , Boolean rescaled )
+{
+   FD_brick ** fbr ;
+   XmString xstr ;
+   Boolean  same , dont_fix_pts , writer ,
+            anat_brick_possible , func_brick_possible ;
+   int      val , top ;
+
+ENTRY("AFNI_setup_viewing") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /*-----------------------------------------------------*/
+   /*--- set up the anat w-o-d axes and viewing bricks ---*/
+
+   anat_brick_possible = DSET_INMEMORY(im3d->anat_now) ;
+
+   im3d->anat_wod_flag = ( im3d->vinfo->force_anat_wod ||       /* 02 Nov 1996 */
+                           !anat_brick_possible          ) ;
+
+   if( im3d->anat_wod_flag )                                    /* 02 Nov 1996 */
+      THD_edit_dataxes( im3d->vinfo->resam_vox ,
+                        im3d->anat_now->daxes , im3d->wod_daxes ) ;
+   else
+      *(im3d->wod_daxes) = *(im3d->anat_now->daxes) ;
+
+   im3d->anat_voxwarp->type =
+      im3d->fim_voxwarp->type = ILLEGAL_TYPE ;                  /* 02 Nov 1996 */
+
+   LOAD_ANAT_VIEW(im3d) ;                                       /* 02 Nov 1996 */
+
+   fbr = THD_setup_bricks( im3d->anat_now ) ;
+   if( fbr == NULL ){
+      fprintf(stderr,"THD_setup_bricks of anat_now fails!\n") ; EXRETURN ;
+   }
+   myXtFree(im3d->b123_anat) ; im3d->b123_anat = fbr[0] ;
+   myXtFree(im3d->b231_anat) ; im3d->b231_anat = fbr[1] ;
+   myXtFree(im3d->b312_anat) ; im3d->b312_anat = fbr[2] ;
+   myXtFree(fbr) ;
+
+   im3d->b123_anat->parent =
+     im3d->b231_anat->parent =
+       im3d->b312_anat->parent = (XtPointer) im3d ;
+
+   im3d->b123_anat->resam_code =
+     im3d->b231_anat->resam_code =
+       im3d->b312_anat->resam_code = im3d->vinfo->anat_resam_mode ;
+
+   /*-----------------------------------------------------*/
+   /*--- set up the func w-o-d axes and viewing bricks ---*/
+
+   if( ISVALID_3DIM_DATASET( im3d->fim_now ) ){
+
+STATUS("function") ;
+
+      /*-- access data in dataset im3d->fim_now IF AND ONLY IF
+             1) its actual data axes are the same as the wod_daxes
+             2) it has actual data
+             3) the user hasn't officially declared for warp-on-demand --*/
+
+STATUS("deciding whether to use function WOD") ;
+
+      func_brick_possible =
+         EQUIV_DATAXES( im3d->fim_now->daxes , im3d->wod_daxes ) &&   /* 02 Nov 1996 */
+         DSET_INMEMORY( im3d->fim_now ) ;
+
+      if( func_brick_possible && ! im3d->vinfo->force_func_wod ){
+STATUS("not forcing function WOD") ;
+         im3d->fim_wod_flag = False ;   /* 02 Nov 1996 */
+      } else {
+STATUS("forcing function WOD") ;
+         im3d->fim_wod_flag = True ;   /* 02 Nov 1996 */
+      }
+
+      LOAD_FUNC_VIEW(im3d) ;  /* 02 Nov 1996 */
+
+      fbr = THD_setup_bricks( im3d->fim_now ) ;
+      if( fbr == NULL ){
+         fprintf(stderr,"THD_setup_bricks of fim_now fails!\n") ; EXRETURN ;
+      }
+      myXtFree(im3d->b123_fim) ; im3d->b123_fim = fbr[0] ;
+      myXtFree(im3d->b231_fim) ; im3d->b231_fim = fbr[1] ;
+      myXtFree(im3d->b312_fim) ; im3d->b312_fim = fbr[2] ;
+      myXtFree(fbr) ;
+
+      im3d->b123_fim->parent =
+        im3d->b231_fim->parent =
+          im3d->b312_fim->parent = (XtPointer) im3d ;
+
+      im3d->b123_fim->resam_code =
+        im3d->b231_fim->resam_code =
+          im3d->b312_fim->resam_code = im3d->vinfo->func_resam_mode ;
+   } else {
+
+STATUS("no function") ;
+
+      myXtFree(im3d->b123_fim) ; im3d->b123_fim = NULL ;
+      myXtFree(im3d->b231_fim) ; im3d->b231_fim = NULL ;
+      myXtFree(im3d->b312_fim) ; im3d->b312_fim = NULL ;
+
+      func_brick_possible = False ;
+   }
+
+   /*------------------------------------------------------------------*/
+   /*--- set widget sensitivity based on kind of data now available ---*/
+
+STATUS("turning widgets on and/or off:") ;
+
+   /*--- datamode controls ---*/
+
+STATUS(" -- datamode widgets") ;
+
+   if( anat_brick_possible ){
+      SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , True ) ;
+   } else {
+      SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , False ) ;
+      MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_WOD_BVAL ) ;
+      im3d->vinfo->force_anat_wod = True ;
+   }
+
+   if( func_brick_possible ){
+      SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , True ) ;
+   } else {
+      SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , False ) ;
+      MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_WOD_BVAL ) ;
+      im3d->vinfo->force_func_wod = True ;
+   }
+
+   AV_SENSITIZE( im3d->vwid->dmode->anat_resam_av , im3d->anat_wod_flag ) ;
+
+   AV_SENSITIZE( im3d->vwid->dmode->resam_vox_av , im3d->anat_wod_flag ) ;
+
+   /* Jan 31, 1995: don't allow writes of datasets without warp parents */
+   /* Jun 22, 1995: allow it if destruct mode is actuated!              */
+
+   if( GLOBAL_argopt.destruct ){
+      writer = True ;
+   } else {
+      writer = (Boolean) ( im3d->anat_now->warp_parent != NULL ) ;
+   }
+
+   SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
+
+   if( GLOBAL_argopt.destruct ){
+      writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
+   } else {
+      writer = (Boolean) ( ISVALID_3DIM_DATASET(im3d->fim_now)  &&
+                           (im3d->fim_now->warp_parent != NULL)    ) ;
+   }
+
+   SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;
+
+   /*--- dataset chooser controls (01 Nov 1996: always allow) ---*/
+
+#if 0
+STATUS(" -- dataset chooser widgets") ;
+
+   SENSITIZE( im3d->vwid->view->choose_sess_pb ,
+                     (Boolean) (GLOBAL_library.sslist->num_sess > 1) ) ;
+
+   SENSITIZE( im3d->vwid->view->choose_anat_pb ,
+                     (Boolean) (im3d->ss_now->num_anat > 1) ) ;
+
+   SENSITIZE( im3d->vwid->view->choose_func_pb ,
+                     (Boolean) (im3d->ss_now->num_func > 1) ) ;
+
+#ifdef POPUP_CHOOSERS
+   XtSetSensitive( im3d->vwid->view->popchoose_sess_pb ,
+                     (Boolean) (GLOBAL_library.sslist->num_sess > 1) ) ;
+
+   XtSetSensitive( im3d->vwid->view->popchoose_anat_pb ,
+                     (Boolean) (im3d->ss_now->num_anat > 1) ) ;
+
+   XtSetSensitive( im3d->vwid->view->popchoose_func_pb ,
+                     (Boolean) (im3d->ss_now->num_func > 1) ) ;
+#endif
+#endif
+
+   /*--- function controls ---*/
+
+#undef CLOSE_FUNC_PANEL
+#ifdef CLOSE_FUNC_PANEL
+   if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){
+
+STATUS(" -- function widgets OFF") ;
+
+      CLOSE_PANEL(im3d,func) ;  /* close the panel */
+
+      SENSITIZE( im3d->vwid->view->define_func_pb      , False ) ;
+      SENSITIZE( im3d->vwid->view->see_func_bbox->wtop , False ) ;
+      im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
+   } else
+#endif
+   {
+      Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
+      Boolean have_thr = have_fim && FUNC_HAVE_THR(im3d->fim_now->func_type) ;
+
+STATUS(" -- function widgets ON") ;
+
+      SENSITIZE( im3d->vwid->view->define_func_pb      , True ) ;
+      SENSITIZE( im3d->vwid->view->see_func_bbox->wtop , True ) ;
+
+      /* make some widgets sensitive if we have the threshold available */
+
+      if( ! have_thr ) XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
+      else{
+         XtManageChild  ( im3d->vwid->func->thr_rowcol ) ;
+         FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+      }
+
+      SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_ALLFUNC],
+                      have_fim ) ;
+      SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_THRFUNC],
+                      have_thr ) ;
+
+      SENSITIZE( im3d->vwid->func->functype_bbox->wbut[SHOWFUNC_FIM],
+                      have_thr ) ;
+      SENSITIZE( im3d->vwid->func->functype_bbox->wbut[SHOWFUNC_THR],
+                      have_thr ) ;
+
+           if( ! have_fim )
+              im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
+      else if( ! have_thr && im3d->vinfo->underlay_type == UNDERLAY_THRFUNC )
+              im3d->vinfo->underlay_type = UNDERLAY_ALLFUNC ;
+
+      if( ! have_thr ) im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
+
+#if 0
+      /* 12 Aug 1996: fix range control sensitivity and settings */
+
+      SENSITIZE( im3d->vwid->func->range_bbox->wrowcol ,
+                 (im3d->vinfo->showfunc_type == SHOWFUNC_FIM) ) ;
+#endif
+
+      /* allow resample control only if we are using w-o-d */
+
+      AV_SENSITIZE( im3d->vwid->dmode->func_resam_av,
+                    have_fim && im3d->fim_wod_flag ) ;
+
+      /** Mar 1996: modify the threshold scale stuff **/
+      /** Oct 1996: increase decim by 1 to allow for
+                    new precision 0..999 of scale (used to be 0..99) **/
+
+      if( have_thr ){
+
+         /* set the number of decimal places to shift for the threshold scale */
+
+#if 0
+         int decim  ;
+         decim = 7 - (int)(4.99+log10(FUNC_topval[im3d->fim_now->func_type])) ;
+
+         XtVaSetValues( im3d->vwid->func->thr_scale ,
+                           XmNdecimalPoints , decim ,
+                        NULL ) ;
+#else
+         AFNI_set_thresh_top( im3d , FUNC_topval[im3d->fim_now->func_type] ) ;
+#endif
+
+         /* set the label at the top of the scale */
+
+         MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                               FUNC_label[im3d->fim_now->func_type] ) ;
+
+         /* set the pval label at the bottom of the scale */
+
+         AFNI_set_thr_pval( im3d ) ;
+      }
+   }
+
+   /*--- set the function type bboxes based on the current
+         viewing set up (which may have changed due to lack of function) ---*/
+
+STATUS(" -- function underlay widgets") ;
+
+   MCW_set_bbox( im3d->vwid->func->underlay_bbox ,
+                 1 << im3d->vinfo->underlay_type ) ;
+
+   MCW_set_bbox( im3d->vwid->func->functype_bbox ,
+                 1 << im3d->vinfo->showfunc_type ) ;
+
+   /*--------------------------------------------------------*/
+   /*--- 3/24/95: deal with the new range widgets in func ---*/
+
+   AFNI_reset_func_range( im3d ) ;
+
+   /*---------------------------------------------------------*/
+   /*--- May 1995: if points exist in some other dataset   ---*/
+   /*---           associated with this one, but not here, ---*/
+   /*---           transform the points to this dataset.   ---*/
+
+   dont_fix_pts = ! rescaled ;  /* if didn't rescale, don't need to fix */
+
+   if( im3d->anat_now->pts == NULL ){
+      int ii ;
+      THD_3dim_dataset * dset_orig = NULL ;
+      THD_fvec3 fv ;
+
+STATUS(" -- scanning for points in other datasets") ;
+
+      for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ ){
+         if( ISVALID_3DIM_DATASET(im3d->anat_dset[ii]) &&
+             im3d->anat_dset[ii]->pts != NULL &&
+             im3d->anat_dset[ii]->pts_original == True ){
+
+            dset_orig = im3d->anat_dset[ii] ;
+            break ;
+         }
+      }
+
+      if( dset_orig != NULL ){
+STATUS(" -- processing points in other dataset") ;
+
+         dont_fix_pts                 = True ;   /* fixing here, so not later */
+         im3d->anat_now->pts_original = False ;
+         INIT_VLIST( im3d->anat_now->pts , im3d->anat_now ) ;
+
+         for( ii=0 ; ii < dset_orig->pts->num ; ii++ ){
+
+            fv = THD_3dmm_to_dicomm( dset_orig , dset_orig->pts->xyz[ii] ) ;
+            fv = AFNI_transform_vector( dset_orig , fv  , im3d->anat_now ) ;
+            fv = THD_dicomm_to_3dmm( im3d->anat_now , fv ) ;
+            ADD_FVEC_TO_VLIST( im3d->anat_now->pts , fv ) ;
+         }
+      }
+   }
+
+   /*--------------------------------------------------*/
+   /*--- May 1995: if points exist in this dataset, ---*/
+   /*---           load their 3dind coordinates.    ---*/
+
+   if( im3d->anat_now->pts != NULL && ! dont_fix_pts ){
+      int ii ;
+STATUS(" -- processing points in this dataset") ;
+
+      for( ii=0 ; ii < im3d->anat_now->pts->num ; ii++ )
+         im3d->anat_now->pts->ijk[ii] =
+            THD_3dmm_to_3dind( im3d->anat_now , im3d->anat_now->pts->xyz[ii] ) ;
+   }
+
+   /*-------------------------------------------------------------------*/
+   /*--- Sep 1995: turn Talairach to button on image popup on or off ---*/
+
+#ifdef USE_TALAIRACH_TO
+STATUS(" -- managing talairach_to button") ;
+
+   if( im3d->vwid->imag->pop_talto_pb != NULL ){
+      if( im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE )
+         XtManageChild( im3d->vwid->imag->pop_talto_pb ) ;
+      else
+         XtUnmanageChild( im3d->vwid->imag->pop_talto_pb ) ;
+   }
+#endif /* USE_TALAIRACH_TO */
+
+   /*------------------------------------*/
+   /*--- May 1996: Time index control ---*/
+   /*--- Mar 1997: Allow FIM also     ---*/
+
+   top = DSET_NUM_TIMES(im3d->anat_now) ;
+   if( ISVALID_3DIM_DATASET(im3d->fim_now) )
+      top = MAX( top , DSET_NUM_TIMES(im3d->fim_now) ) ;
+
+   if( top > 1 ){
+      MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
+STATUS(" -- turning time index control on") ;
+
+      AV_SENSITIZE( tav , True ) ;
+      tav->fmax = tav->imax = top - 1 ; im3d->vinfo->top_index = top ;
+      if( im3d->vinfo->time_index > tav->imax ){
+         im3d->vinfo->time_index = tav->imax ;
+         AV_assign_ival( tav , tav->imax ) ;
+      }
+   } else {
+STATUS(" -- turning time index control off") ;
+      AV_SENSITIZE( im3d->vwid->imag->time_index_av , False ) ;
+   }
+
+   /*--------------------------------------------------------------*/
+   /*--- 19 Nov 1996: Set FIM-able dataset to this, if possible ---*/
+
+   if( DSET_GRAPHABLE(im3d->anat_now) )
+      im3d->fimdata->fimdset = im3d->anat_now ;
+
+   ALLOW_COMPUTE_FIM(im3d) ;
+
+   /*------------------------------------------*/
+   /*--- attach to viewing windows (if any) ---*/
+
+   AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  Eventually, will warp an input Dicom vector from one dataset to another.
+-------------------------------------------------------------------------*/
+
+THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
+                                 THD_fvec3 old_fv ,
+                                 THD_3dim_dataset * new_dset  )
+{
+   if( old_dset == NULL || old_dset == new_dset ) return old_fv ;
+
+   if( old_dset == new_dset->warp_parent ){
+      return AFNI_forward_warp_vector( new_dset->warp , old_fv ) ;
+   } else if( old_dset->warp_parent == new_dset ){
+      return AFNI_backward_warp_vector( old_dset->warp , old_fv ) ;
+
+   } else if( old_dset->warp_parent == new_dset->warp_parent &&
+              old_dset->warp_parent != NULL ){
+
+      THD_fvec3 par_fv ;
+      par_fv = AFNI_backward_warp_vector( old_dset->warp , old_fv ) ;
+      return   AFNI_forward_warp_vector ( new_dset->warp , par_fv ) ;
+   }
+
+   return old_fv ;  /* default is no change */
+}
+
+/*------------------------------------------------------------------------
+   Forward transform a vector following a warp
+--------------------------------------------------------------------------*/
+
+THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+{
+   THD_fvec3 new_fv ;
+
+   if( warp == NULL ) return old_fv ;
+
+   switch( warp->type ){
+
+      default: new_fv = old_fv ; break ;
+
+      case WARP_TALAIRACH_12_TYPE:{
+         THD_linear_mapping map ;
+         int iw ;
+
+         /* forward transform each possible case,
+            and test if result is in bot..top of defined map */
+
+         for( iw=0 ; iw < 12 ; iw++ ){
+            map    = warp->tal_12.warp[iw] ;
+            new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
+
+            if( new_fv.xyz[0] >= map.bot.xyz[0] &&
+                new_fv.xyz[1] >= map.bot.xyz[1] &&
+                new_fv.xyz[2] >= map.bot.xyz[2] &&
+                new_fv.xyz[0] <= map.top.xyz[0] &&
+                new_fv.xyz[1] <= map.top.xyz[1] &&
+                new_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
+         }
+      }
+      break ;
+
+      case WARP_AFFINE_TYPE:{
+         THD_linear_mapping map = warp->rig_bod.warp ;
+         new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
+      }
+      break ;
+
+   }
+   return new_fv ;
+}
+
+/*------------------------------------------------------------------------
+   Backward transform a vector following a warp
+--------------------------------------------------------------------------*/
+
+THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+{
+   THD_fvec3 new_fv ;
+
+   if( warp == NULL ) return old_fv ;
+
+   switch( warp->type ){
+
+      default: new_fv = old_fv ; break ;
+
+      case WARP_TALAIRACH_12_TYPE:{
+         THD_linear_mapping map ;
+         int iw ;
+
+         /* test if input is in bot..top of each defined map */
+
+         for( iw=0 ; iw < 12 ; iw++ ){
+            map = warp->tal_12.warp[iw] ;
+
+            if( old_fv.xyz[0] >= map.bot.xyz[0] &&
+                old_fv.xyz[1] >= map.bot.xyz[1] &&
+                old_fv.xyz[2] >= map.bot.xyz[2] &&
+                old_fv.xyz[0] <= map.top.xyz[0] &&
+                old_fv.xyz[1] <= map.top.xyz[1] &&
+                old_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
+         }
+         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
+      }
+      break ;
+
+      case WARP_AFFINE_TYPE:{
+         THD_linear_mapping map = warp->rig_bod.warp ;
+         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
+      }
+      break ;
+
+   }
+   return new_fv ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   int vwarp ;
+
+ENTRY("AFNI_define_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /*-----  define marks panel -----*/
+
+   if( w == im3d->vwid->view->define_marks_pb ){
+
+      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
+      AFNI_marks_widgets    * marks = im3d->vwid->marks ;
+
+      if( XtIsManaged(marks->frame) == True ){  /* close it down */
+
+STATUS("closing marks") ;
+
+         AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+      } else {                                  /* open it up */
+
+STATUS("opening marks") ;
+
+         marks->old_visible = marks->ov_visible ;
+         marks->ov_visible  = True ;
+         marks->changed     = False ;  /* not changed yet! */
+
+         MCW_set_bbox( marks->edits_bbox , 0 ) ;
+         AFNI_marks_edits_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+         MCW_set_bbox( view->see_marks_bbox , 1 ) ;
+         if( marks->old_visible != marks->ov_visible )
+            AFNI_see_marks_CB( NULL , (XtPointer) im3d , NULL ) ;
+
+         vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
+         SENSITIZE( marks->edits_bbox->wrowcol ,
+                         (Boolean) ISVALID_VIEW(vwarp) ) ;
+         SENSITIZE( marks->tlrc_big_bbox->wrowcol ,
+                    (Boolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
+
+   /*** I don't know why this is needed, but it prevents the
+        marks panels geometry from getting screwed up, so it's here ***/
+
+#define REMANAGE_MARKS
+#ifdef REMANAGE_MARKS
+         XtUnmanageChild( marks->rowcol ) ;
+         XtUnmanageChild( marks->tog_rowcol ) ;
+         XtUnmanageChild( marks->control_rowcol ) ;
+         XtUnmanageChild( marks->control_frame ) ;
+         XtUnmanageChild( marks->tog_frame ) ;
+#endif
+
+         OPEN_PANEL(im3d,marks) ;
+
+#ifdef REMANAGE_MARKS
+         XtManageChild( marks->tog_rowcol ) ;
+         XtManageChild( marks->tog_frame ) ;
+         XtManageChild( marks->control_rowcol ) ;
+         XtManageChild( marks->control_frame ) ;
+         XtManageChild( marks->rowcol ) ;
+#endif
+
+      /* redraw markers if not visible already
+                 (if there are any to redraw!) */
+
+         if( marks->old_visible != True &&
+             im3d->anat_now->markers->numset > 0 )
+
+            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+      }
+
+      EXRETURN ;
+   }
+
+   /*----- define function panel -----*/
+
+   if( w == im3d->vwid->view->define_func_pb ){
+      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
+      AFNI_function_widgets * func  = im3d->vwid->func ;
+
+      if( XtIsManaged(func->frame) ){
+
+STATUS("closing function") ;
+
+         CLOSE_PANEL(im3d,func) ;
+      } else {
+         Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
+         Boolean have_thr = have_fim && FUNC_HAVE_THR(im3d->fim_now->func_type) ;
+
+STATUS("opening function" ) ;
+
+#define REMANAGE_FUNC
+#ifdef REMANAGE_FUNC
+         XtUnmanageChild( im3d->vwid->func->rowcol ) ;
+         XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
+         XtUnmanageChild( im3d->vwid->func->inten_rowcol ) ;
+         XtUnmanageChild( im3d->vwid->func->options_rowcol ) ;
+#endif
+
+         OPEN_PANEL(im3d,func) ;
+
+#ifdef REMANAGE_FUNC
+         if( have_thr ) XtManageChild( im3d->vwid->func->thr_rowcol ) ;
+         XtManageChild( im3d->vwid->func->inten_rowcol ) ;
+         XtManageChild( im3d->vwid->func->options_rowcol ) ;
+         XtManageChild( im3d->vwid->func->rowcol ) ;
+#endif
+         update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
+
+         FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+
+/***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
+      }
+
+      EXRETURN ;
+   }
+
+   /*-- define datamode panel --*/
+
+   if( w == im3d->vwid->view->define_dmode_pb ){
+      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
+      AFNI_datamode_widgets * dmode = im3d->vwid->dmode ;
+
+      if( XtIsManaged(dmode->frame) ){
+
+STATUS("closing dmode") ;
+
+         CLOSE_PANEL(im3d,dmode) ;
+      } else {
+
+STATUS("opening dmode" ) ;
+
+         OPEN_PANEL(im3d,dmode) ;
+      }
+
+      EXRETURN ;
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_marks_edits_CB( Widget w ,
+                          XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   AFNI_marks_widgets * marks ;
+   int bval , vwarp ;
+   Boolean transformable ;
+
+ENTRY("AFNI_marks_edits_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   marks = im3d->vwid->marks ;
+   bval  = MCW_val_bbox( marks->edits_bbox ) ;
+
+   marks->editable = (bval == 0) ? (False) : (True) ;
+
+   /*----- allow transformation if
+             edits are allowed, AND
+             the markers are flagged for it, AND
+             all the markers are defined  ----------*/
+
+   vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
+
+   transformable =
+      marks->editable                                         &&
+      (im3d->anat_now->markers->aflags[1] != MARKACTION_NONE) &&
+      (im3d->anat_now->markers->numdef == im3d->anat_now->markers->numset) &&
+      ISVALID_VIEW(vwarp) ;
+
+   /* turn some buttons on or off, depending on editability */
+
+   SENSITIZE( marks->tog_frame         , True ) ;
+   SENSITIZE( marks->action_set_pb     , marks->editable ) ;
+   SENSITIZE( marks->action_clear_pb   , marks->editable ) ;
+   SENSITIZE( marks->pop_set_pb        , marks->editable ) ;
+   SENSITIZE( marks->pop_clear_pb      , marks->editable ) ;
+   SENSITIZE( marks->action_quality_pb , transformable ) ;
+   SENSITIZE( marks->transform_pb      , False ) ;  /* require QC first */
+
+   if( ! marks->editable ){
+      AFNI_set_tog( -1 , MARKS_MAXNUM , marks->tog ) ;    /* none will */
+      AFNI_set_tog( -1 , MARKS_MAXNUM , marks->poptog ) ; /* be "on" */
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_see_marks_CB( Widget w ,
+                        XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   AFNI_marks_widgets * marks ;
+   AFNI_viewing_widgets * view ;
+   int bval ;
+
+ENTRY("AFNI_see_marks_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   view  = im3d->vwid->view ;
+   marks = im3d->vwid->marks ;
+   bval  = MCW_val_bbox( view->see_marks_bbox ) ;
+
+   marks->ov_visible = (bval == 0) ? (False) : (True) ;
+
+   if( w != NULL ){
+      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   }
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------
+  callback for non-marker buttons on the popup
+--------------------------------------------------------------------*/
+
+void AFNI_imag_pop_CB( Widget w ,
+                       XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+
+ENTRY("AFNI_imag_pop_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /*-- jump back to old location --*/
+
+   if( w == im3d->vwid->imag->pop_jumpback_pb ){
+     int ij,jj,kk ;
+
+     ij = im3d->vinfo->i1_old ;  /* extract old place */
+     jj = im3d->vinfo->j2_old ;
+     kk = im3d->vinfo->k3_old ;
+
+     SAVE_VPT(im3d) ;  /* save current place as old one */
+     AFNI_set_viewpoint( im3d , ij,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
+   }
+
+   /*-- switch window display mode --*/
+
+   if( w == im3d->vwid->imag->pop_imageonly_pb ){
+      MCW_imseq * seq ;
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+      if( ISQ_REALZ(seq) )
+         drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_togwid ) ;
+   }
+
+   /*-- jump to a point --*/
+
+   if( w == im3d->vwid->imag->pop_jumpto_pb &&
+       im3d->type == AFNI_3DDATA_VIEW         ){
+
+      MCW_imseq * seq ;
+      char tbuf[128] ;
+
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+      if( ISQ_REALZ(seq) ){
+         sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
+         MCW_choose_string( seq->wbar , tbuf , NULL ,
+                            AFNI_jumpto_CB , (XtPointer) im3d ) ;
+      }
+   }
+
+#ifdef USE_TALAIRACH_TO
+   /*-- jump to a predetermined Talairach anatomical reference point --*/
+
+   if( w == im3d->vwid->imag->pop_talto_pb &&
+       im3d->type == AFNI_3DDATA_VIEW         ){
+
+      MCW_imseq * seq ;
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+
+      if( ! TTO_labeled ){  /* initialize labels */
+         int ii ;
+         for( ii=0 ; ii < TTO_COUNT ; ii++ ){
+            TTO_labels[ii] = (char *) malloc( sizeof(char) * TTO_LMAX ) ;
+            sprintf( TTO_labels[ii] , TTO_FORMAT , TTO_list[ii].name ,
+                     TTO_list[ii].xx , TTO_list[ii].yy , TTO_list[ii].zz ) ;
+         }
+         TTO_labeled = 1 ;
+      }
+      if( ISQ_REALZ(seq) )
+         MCW_choose_strlist( seq->wbar , NULL ,
+                             TTO_COUNT , TTO_current , TTO_labels ,
+                             AFNI_talto_CB , (XtPointer) im3d ) ;
+   }
+#endif /* USE_TALAIRACH_TO */
+
+   /*--- unmap of the popup itself ---*/
+
+   /*--- exit ---*/
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+#ifdef USE_TALAIRACH_TO
+/*---------------------------------------------------------------------
+   called when the talto chooser is set
+-----------------------------------------------------------------------*/
+
+void AFNI_talto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   THD_dataxes  * daxes ;
+   float xx,yy,zz ;
+   int nn , ii,jj,kk ;
+   THD_fvec3 fv ; THD_ivec3 iv ;
+
+ENTRY("AFNI_talto_CB") ;
+
+   /* check for errors */
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+
+   if( im3d->vinfo->view_type != VIEW_TALAIRACH_TYPE ||
+       cbs->reason != mcwCR_integer                    ){
+
+      POPDOWN_strlist_chooser ;
+      XBell( im3d->dc->display , 100 ) ;
+      EXRETURN ;
+   }
+
+   nn = cbs->ival ;
+   if( nn < 0 || nn >= TTO_COUNT ) EXRETURN ;
+   TTO_current = nn ;
+
+   /* transform point from Dicom to local coords and go there */
+
+   xx = TTO_list[nn].xx ; yy = TTO_list[nn].yy ; zz = TTO_list[nn].zz ;
+
+   LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+
+   fv = THD_dicomm_to_3dmm( im3d->anat_now , TEMP_FVEC3(xx,yy,zz) ) ;
+   iv = THD_3dmm_to_3dind ( im3d->anat_now , fv ) ;
+   ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+
+   daxes = CURRENT_DAXES(im3d->anat_now) ;
+   if( ii >= 0 && ii < daxes->nxx &&
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
+
+      SAVE_VPT(im3d) ;
+      AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
+   } else {
+      XBell( im3d->dc->display , 100 ) ;
+   }
+   EXRETURN ;
+}
+#endif /* USE_TALAIRACH_TO */
+
+/*---------------------------------------------------------------------
+   called when the jumpto chooser is set
+-----------------------------------------------------------------------*/
+
+void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   float xx,yy,zz ;
+   int nn ;
+
+ENTRY("AFNI_jumpto_CB") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   nn = sscanf( cbs->cval , "%f %f %f" , &xx,&yy,&zz ) ;
+   if( nn != 3 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+
+   THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
+
+   nn = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
+   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+int AFNI_jumpto_dicom( Three_D_View * im3d , float xx, float yy, float zz )
+{
+   THD_dataxes  * daxes ;
+   THD_fvec3 fv ; THD_ivec3 iv ;
+   int ii,jj,kk ;
+
+ENTRY("AFNI_jumpto_dicom") ;
+
+   LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+
+   fv = THD_dicomm_to_3dmm( im3d->anat_now , TEMP_FVEC3(xx,yy,zz) ) ;
+   iv = THD_3dmm_to_3dind ( im3d->anat_now , fv ) ;
+   ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+
+   daxes = CURRENT_DAXES(im3d->anat_now) ;
+   if( ii >= 0 && ii < daxes->nxx &&
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
+
+      SAVE_VPT(im3d) ;
+      AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
+      RETURN(1) ;
+   } else {
+      XBell( im3d->dc->display , 100 ) ;
+      RETURN(-1) ;
+   }
+}
+
+/*---------------------------------------------------------------------
+   Transform current dataset based on the existing set of markers
+-----------------------------------------------------------------------*/
+
+#define BEEP_AND_RETURN { XBell(XtDisplay(w),100); EXRETURN ; }
+
+void AFNI_marks_transform_CB( Widget w ,
+                              XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View     * im3d = (Three_D_View *) client_data ;
+   THD_marker_set   * markers ;
+   THD_warp         * warp ;
+   THD_3dim_dataset * new_dset ;
+   THD_session      * ss ;
+   int                vnew , vvv , sss , aaa , fff , id ;
+   float              resam_size ;
+   Widget             wmsg ;
+
+ENTRY("AFNI_marks_transform_CB") ;
+
+   /*--- sanity checks ---*/
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   markers = im3d->anat_now->markers ;
+   if(markers == NULL || markers->aflags[1] != MARKACTION_WARP) BEEP_AND_RETURN ;
+
+   vnew = WARPED_VIEW(im3d->vinfo->view_type) ; /* view index of new dataset */
+   if( !ISVALID_VIEW(vnew) ) BEEP_AND_RETURN ;
+
+   /*--- make warp ---*/
+
+   warp = AFNI_make_warp( im3d ) ;
+   if( warp == NULL ) BEEP_AND_RETURN ;
+
+   /*--- create new dataset (empty at this point) ---*/
+
+   resam_size = im3d->vinfo->resam_vox ;
+   new_dset   = AFNI_init_warp( im3d , im3d->anat_now , warp , resam_size ) ;
+   if( new_dset == NULL ) BEEP_AND_RETURN ;
+
+   /*----- This new dataset may replace a current dataset,
+           and if so, THAT dataset may have a warp child,
+           and so on.  Mark those datasets for destruction,
+           mark their anatomy children for destruction, and destroy them -----*/
+
+   vvv = vnew ;
+   while( ISVALID_VIEW(vvv) && ISVALID_3DIM_DATASET(im3d->anat_dset[vvv]) ){
+      im3d->anat_dset[vvv]->death_mark = DOOMED ;
+      vvv = WARPED_VIEW(vvv) ;
+   }
+
+   AFNI_mark_for_death(GLOBAL_library.sslist ) ;        /* find descendants */
+   AFNI_andersonville (GLOBAL_library.sslist , True ) ; /* kill (including files) */
+
+   /*----- Can now place the new dataset into its rightful place -----*/
+
+   sss = im3d->vinfo->sess_num ;
+   aaa = im3d->vinfo->anat_num ;
+   fff = im3d->vinfo->func_num ;
+   GLOBAL_library.sslist->ssar[sss]->anat[aaa][vnew] = new_dset ;
+
+   /* reload active datasets, to allow for destruction that may
+      have occured (this code is copied from AFNI_initialize_view) */
+
+   for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
+      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->anat[aaa][id] ;
+      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->func[fff][id] ;
+
+      if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
+         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
+      else
+         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
+   }
+
+STATUS("writing new dataset") ;
+
+   (void) THD_write_3dim_dataset( NULL,NULL , new_dset , False ) ; /* header */
+
+   /*--- have transformed this anatomy dataset
+         ==> if the input was the original view, then
+             destroy any other marker sets in the original view
+             and make their datasets anatomical children of this one ---*/
+
+   if( im3d->vinfo->view_type == VIEW_ORIGINAL_TYPE ){
+      int id ;
+      THD_3dim_dataset * dss ;
+
+      /* perform surgery on the anat datasets in this session */
+
+STATUS("re-anat_parenting anatomical datasets in this session") ;
+
+      for( id=0 ; id < im3d->ss_now->num_anat ; id++ ){
+         dss = im3d->ss_now->anat[id][0] ;
+
+         if( ! ISVALID_3DIM_DATASET(dss) || dss == im3d->anat_now ) continue ;
+
+         if( dss->markers != NULL ) SINGLE_KILL(dss->kl,dss->markers) ;
+         dss->markers = NULL ;
+
+         if( dss->anat_parent == NULL ){
+            dss->anat_parent = im3d->anat_now ;
+            MCW_strncpy( dss->anat_parent_name ,
+                         im3d->anat_now->self_name , THD_MAX_NAME ) ;
+#ifndef OMIT_DATASET_IDCODES
+            dss->anat_parent_idcode = im3d->anat_now->idcode ;
+#endif
+         }
+      }
+
+      /* and on the functional datasets */
+
+STATUS("re-anat_parenting functional datasets in this session") ;
+
+      for( id=0 ; id < im3d->ss_now->num_func ; id++ ){
+         dss = im3d->ss_now->func[id][0] ;
+
+         if( ! ISVALID_3DIM_DATASET(dss) ) continue ;
+         if( dss->anat_parent == NULL ){
+            dss->anat_parent = im3d->anat_now ;
+            MCW_strncpy( dss->anat_parent_name ,
+                         im3d->anat_now->self_name , THD_MAX_NAME ) ;
+#ifndef OMIT_DATASET_IDCODES
+            dss->anat_parent_idcode = im3d->anat_now->idcode ;
+#endif
+         }
+      }
+   }
+
+   /*--- now that we have a new potential parent (the warped dataset),
+         and maybe some links to its warp_parent (done just above),
+         try to make some descendants (followup warps) from it     ---*/
+
+   AFNI_make_descendants( GLOBAL_library.sslist ) ;
+
+   /*--- clean up some stuff ---*/
+
+   if( GLOBAL_argopt.auto_purge == True ) AFNI_purge_unused_dsets() ;
+
+   /* Jan 31, 1995: force adoption of any dataset
+                    that was orphaned at Andersonville */
+
+   for( sss=0 ; sss < GLOBAL_library.sslist->num_sess ; sss++ ){
+      ss = GLOBAL_library.sslist->ssar[sss] ;
+      if( ISVALID_SESSION(ss) ) AFNI_force_adoption( ss , GLOBAL_argopt.warp_4D ) ;
+   }
+
+   /*---  close marks panel and exit ---*/
+
+#if 0
+   XtSetSensitive( im3d->vwid->top_shell , True ) ;
+   SHOW_AFNI_READY ;
+#endif
+
+   AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------
+   Compute the warp.
+
+   Notice the convention: the warp is always stored as Dicom-to-Dicom
+   coordinates.  For actual use, it must be converted into the
+   correct form for 3dmm-to-3dmm, or 3dfind-to-3dfind, etc.
+
+   The reason for this convention is that anatomical warps will be
+   applied to functional datasets, which will in general be oriented
+   differently from the anatomical dataset that the warp was computed
+   upon.  By keeping the warp in the generic Dicom system, this
+   application of a warp to another dataset will be possible.
+---------------------------------------------------------------------*/
+
+/* macro to extract the im-th marker vector into a THD_fvec3 structure */
+
+#define MVEC(im) \
+ TEMP_FVEC3(markers->xyz[im][0],markers->xyz[im][1],markers->xyz[im][2])
+
+THD_warp * AFNI_make_warp( Three_D_View * im3d )
+{
+   THD_3dim_dataset * anat    = im3d->anat_now ;
+   THD_marker_set   * markers = im3d->anat_now->markers ;
+   THD_warp         * warp ;
+   Boolean good ;
+
+ENTRY("AFNI_make_warp") ;
+
+   /*--- check the markers for OK-osity ---*/
+
+   good = AFNI_marks_quality_check( False , im3d ) ;
+   if( !good ) RETURN(NULL) ;
+
+   /*--- make a new warp, and then construct it,
+         based on the type of marker set we have here ---*/
+
+   warp = XtNew( THD_warp ) ;
+
+   switch( markers->type ){  /* type of marker set */
+
+      default: RETURN(NULL) ;      /* something bad happened */
+
+      /*--- bounding box markers set ---*/
+
+      case MARKSET_BOUNDING:{
+         THD_talairach_12_warp * twarp = (THD_talairach_12_warp *) warp ;
+         THD_fvec3 mant,mpos,msup,minf,mrig,mlef , pcie ;
+         float dist_sup , dist_inf , dist_ant , dist_med , dist_pos ,
+               dist_lef , dist_rig ;
+         float scale_S , scale_I , scale_A , scale_M , scale_P ,
+               scale_L , scale_R , shift_P ;
+         float bot_S   , bot_I   , bot_A   , bot_M   , bot_P ,
+               bot_L   , bot_R ;
+         float top_S   , top_I   , top_A   , top_M   , top_P ,
+               top_L   , top_R ;
+         THD_fvec3 bv_A , bv_M , bv_P , sv_A , sv_M , sv_P ;
+
+         /* let the world know what kind of warp is being built */
+
+         twarp->type = WARP_TALAIRACH_12_TYPE ;
+
+         /* extract the marker vectors, put in Dicom coords */
+
+         mant = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MANT) ) ;
+         mpos = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MPOS) ) ;
+         msup = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSUP) ) ;
+         minf = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MINF) ) ;
+         mrig = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MRIG) ) ;
+         mlef = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MLEF) ) ;
+
+         /* convert Posterior Commissure from parent to current coords */
+
+         LOAD_FVEC3( pcie ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][0] ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][1] ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][2]  ) ;
+
+         pcie = THD_3dmm_to_dicomm( anat->warp_parent , pcie ) ;
+         pcie = AFNI_transform_vector( anat->warp_parent , pcie , anat ) ;
+
+         /* compute distances between points in various directions */
+
+         dist_ant = -mant.xyz[1] ;
+         dist_med =  pcie.xyz[1] ;
+         dist_pos =  mpos.xyz[1] - pcie.xyz[1] ;
+
+         dist_sup =  msup.xyz[2] ;
+         dist_inf = -minf.xyz[2] ;
+         dist_lef =  mlef.xyz[0] ;
+         dist_rig = -mrig.xyz[0] ;
+
+         /* from these, compute the scalings needed in each
+            direction and the shift needed posterior to the PC */
+
+         scale_A = ATLAS_FRONT_TO_AC / dist_ant ;
+         scale_M = ATLAS_AC_TO_PC    / dist_med ;
+         scale_P = ATLAS_PC_TO_BACK  / dist_pos ;
+         scale_S = ATLAS_AC_TO_TOP   / dist_sup ;
+         scale_I = ATLAS_BOT_TO_AC   / dist_inf ;
+         scale_L = ATLAS_AC_TO_LAT   / dist_lef ;
+         scale_R = ATLAS_AC_TO_LAT   / dist_rig ;
+
+         shift_P = scale_P * dist_med - ATLAS_AC_TO_PC ;
+
+         /* shift vectors in each direction, for each y cell (A,M,P) */
+
+         LOAD_FVEC3( bv_A , 0,0,0 ) ; bv_M = sv_A = sv_M = bv_A ;
+
+         LOAD_FVEC3( bv_P , 0 , shift_P , 0 ) ;
+         LOAD_FVEC3( sv_P , 0 , -shift_P / scale_P , 0 ) ;
+
+         /* bounds information for each direction, for each cell */
+
+         bot_A = -9999.0        ; top_A = 0.0 ;
+         bot_M =     0.0        ; top_M = ATLAS_AC_TO_PC ;
+         bot_P = ATLAS_AC_TO_PC ; top_P = 9999.0 ;
+
+         bot_R = -9999.0        ; top_R =    0.0 ;
+         bot_L =     0.0        ; top_L = 9999.9 ;
+
+         bot_I = -9999.0        ; top_I =    0.0 ;
+         bot_S =     0.0        ; top_S = 9999.9 ;
+
+         /* Compute the 12 linear maps:
+               They are all linear scalings (diagonal matrices);
+               posterior to the PC, they also contain shifts
+               to align stuff to the nominal PC location.
+            N.B.: these are maps from AC-PC aligned coordinates
+                  to the Talairach system.  Maps from the
+                  original data to the Talairach system
+                  will be computed later (in AFNI_concatenate_warps). */
+
+   /* ------- a macro to automate map making:
+              xx = R or L , yy = A, M, or P , zz = I or S --------*/
+
+#define MAKE_MAP(xx,yy,zz) \
+(\
+   LOAD_DIAG_MAT( twarp->warp[W_ ## xx ## yy ## zz].mfor ,      \
+                  scale_ ## xx , scale_ ## yy , scale_ ## zz ) ,\
+\
+   LOAD_DIAG_MAT( twarp->warp[W_ ## xx ## yy ## zz].mbac ,                 \
+           1.0 / scale_ ## xx , 1.0 / scale_ ## yy , 1.0 / scale_ ## zz ) ,\
+\
+   twarp->warp[W_ ## xx ## yy ## zz].bvec = bv_ ## yy , \
+\
+   twarp->warp[W_ ## xx ## yy ## zz].svec = sv_ ## yy , \
+\
+   LOAD_FVEC3( twarp->warp[W_ ## xx ## yy ## zz].bot ,   \
+               bot_ ## xx , bot_ ## yy , bot_ ## zz   ) ,\
+\
+   LOAD_FVEC3( twarp->warp[W_ ## xx ## yy ## zz].top ,   \
+               top_ ## xx , top_ ## yy , top_ ## zz   )  \
+)
+
+   /*------- end of MAKE_MAP macro --------*/
+
+         MAKE_MAP(R,A,S) ;   /* right-anterior -superior */
+         MAKE_MAP(L,A,S) ;   /* left -anterior -superior */
+         MAKE_MAP(R,M,S) ;   /* right-medial   -superior */
+         MAKE_MAP(L,M,S) ;   /* left -medial   -superior */
+         MAKE_MAP(R,P,S) ;   /* right-posterior-superior */
+         MAKE_MAP(L,P,S) ;   /* left -posterior-superior */
+         MAKE_MAP(R,A,I) ;   /* right-anterior -inferior */
+         MAKE_MAP(L,A,I) ;   /* left -anterior -inferior */
+         MAKE_MAP(R,M,I) ;   /* right-medial   -inferior */
+         MAKE_MAP(L,M,I) ;   /* left -medial   -inferior */
+         MAKE_MAP(R,P,I) ;   /* right-posterior-inferior */
+         MAKE_MAP(L,P,I) ;   /* left -posterior-inferior */
+
+#undef MAKE_MAP
+
+#ifdef AFNI_DEBUG
+STATUS("Aligned -> Talairach warp::") ;
+DUMP_T12_WARP(*twarp) ;
+#endif
+
+      }
+      break ; /* end of Bounding markers set */
+
+      /*--- AC-PC alignment markers set ---*/
+
+      case MARKSET_ALIGN:{
+         THD_affine_warp * awarp = (THD_affine_warp *) warp ;
+
+         THD_fvec3 acsup , acpos , pcinf , msag1 , msag2 ,
+                   alpha1,alpha2,alpha,beta,gamma,rr1,rr2,rr , dif ;
+         THD_mat33 to_al ;
+         float size ;
+
+         /* let the world know what kind of warp is being built */
+
+         awarp->type = WARP_AFFINE_TYPE ;
+
+         /* extract the marker vectors, put in Dicom coords */
+
+         acsup = THD_3dmm_to_dicomm( anat , MVEC(IMARK_ACSE) ) ;
+         acpos = THD_3dmm_to_dicomm( anat , MVEC(IMARK_ACPM) ) ;
+         pcinf = THD_3dmm_to_dicomm( anat , MVEC(IMARK_PCIE) ) ;
+         msag1 = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSA1) ) ;
+         msag2 = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSA2) ) ;
+
+         /*--- new y direction (beta) ---*/
+
+         beta = SUB_FVEC3(pcinf,acsup) ;  beta = NORMALIZE_FVEC3(beta) ;
+
+         /*--- new x direction (alpha) ---*/
+
+         rr     = SUB_FVEC3(msag1,acsup) ;
+         alpha1 = CROSS_FVEC3(beta,rr) ; alpha1 = NORMALIZE_FVEC3(alpha1) ;
+
+         rr     = SUB_FVEC3(msag2,acsup) ;
+         alpha2 = CROSS_FVEC3(beta,rr) ; alpha2 = NORMALIZE_FVEC3(alpha2) ;
+
+         alpha  = SCLADD_FVEC3(0.5,alpha1,0.5,alpha2) ;
+         alpha  = NORMALIZE_FVEC3(alpha) ;
+
+         /*--- new z direction (gamma) ---*/
+
+         gamma = CROSS_FVEC3(alpha,beta) ; gamma = NORMALIZE_FVEC3(gamma) ;
+
+         /*--- origin of Talairach coordinates (rr) --*/
+
+         dif  = SUB_FVEC3(acsup,acpos) ;
+         size = DOT_FVEC3(dif,gamma) ;
+         rr1  = SCLADD_FVEC3(1.0,acpos,size,gamma) ;
+
+         size = DOT_FVEC3(dif,beta) ;
+         rr2  = SCLADD_FVEC3(1.0,acsup,-size,beta) ;
+
+         rr   = SCLADD_FVEC3(0.5,rr1,0.5,rr2) ;
+
+         /*--- at this point, have:
+                  new origin in rr ;
+                  new axes directions in alpha,beta,gamma.
+               Now construct the transformation between
+               the Dicom coordinate systems ---------------------*/
+
+         to_al.mat[0][0] = alpha.xyz[0] ;  /* first row is alpha */
+         to_al.mat[0][1] = alpha.xyz[1] ;
+         to_al.mat[0][2] = alpha.xyz[2] ;
+
+         to_al.mat[1][0] = beta.xyz[0] ;   /* second row is beta */
+         to_al.mat[1][1] = beta.xyz[1] ;
+         to_al.mat[1][2] = beta.xyz[2] ;
+
+         to_al.mat[2][0] = gamma.xyz[0] ;  /* third row is gamma */
+         to_al.mat[2][1] = gamma.xyz[1] ;
+         to_al.mat[2][2] = gamma.xyz[2] ;
+
+         /*--- put into warp structure ---*/
+
+         awarp->warp.type = MAPPING_LINEAR_TYPE ;
+         awarp->warp.mfor = to_al ;
+         awarp->warp.mbac = TRANSPOSE_MAT(to_al) ;  /* orthog^(-1) */
+         awarp->warp.bvec = MATVEC(to_al,rr) ;
+         awarp->warp.svec = rr ;  NEGATE_FVEC3(awarp->warp.svec) ;
+
+         /* load bot & top with largest possible excursions from
+            origin (the ALIGNBOX dimensions were added 3/25/95)  */
+#if 1
+         LOAD_FVEC3(awarp->warp.bot,
+                    -ATLAS_ALIGNBOX_LAT,-ATLAS_ALIGNBOX_ANT,-ATLAS_ALIGNBOX_INF);
+         LOAD_FVEC3(awarp->warp.top,
+                     ATLAS_ALIGNBOX_LAT, ATLAS_ALIGNBOX_POS, ATLAS_ALIGNBOX_SUP);
+#else
+         LOAD_FVEC3(awarp->warp.bot,
+                     -ATLAS_BBOX_LAT,-ATLAS_BBOX_ANT,-ATLAS_BBOX_INF);
+         LOAD_FVEC3(awarp->warp.top,
+                      ATLAS_BBOX_LAT, ATLAS_BBOX_POS, ATLAS_BBOX_SUP);
+#endif
+
+#ifdef AFNI_DEBUG
+STATUS("Original -> Aligned Map::") ;
+DUMP_LMAP(awarp->warp) ;
+#endif
+
+      }  /* end of AC-PC alignment case */
+      break ;
+
+   } /* end of switch on marker set type */
+
+   RETURN(warp) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+#define ADD_ERROR(str)                                \
+   { int ll = strlen(str) + strlen(error_list) + 16 ; \
+     STATUS(str) ;                                    \
+     error_list = XtRealloc( error_list , ll ) ;      \
+     strcat( error_list , "*** ERROR:  ") ;           \
+     strcat( error_list , str ) ; num_error++ ; }
+
+#define ADD_REPORT(str)                               \
+   { int ll = strlen(str) + strlen(error_list) + 16 ; \
+     STATUS(str) ;                                    \
+     error_list = XtRealloc( error_list , ll ) ;      \
+     strcat( error_list , str ) ; num_report++ ; }
+
+Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View * im3d )
+{
+   THD_3dim_dataset * anat    = im3d->anat_now ;
+   THD_marker_set   * markers = im3d->anat_now->markers ;
+
+   char *  error_list ;
+   int     num_error , num_report ;
+   char    msg[128] ;
+   Boolean good ;
+
+ENTRY("AFNI_marks_quality_check") ;
+
+   /*--- for compiling a list of errors and/or reports ---*/
+
+   error_list = XtNewString(
+                "             *** MARKERS QUALITY REPORT ***           \n\n") ;
+   num_error  = 0 ;
+   num_report = 0 ;
+
+   /*--- what we do depends on the kinds of markers we have ---*/
+
+   switch( markers->type ){
+
+      default: RETURN(False) ;      /* something bad happened */
+
+      /*--- bounding box markers set ---*/
+
+      case MARKSET_BOUNDING:{
+         THD_fvec3 mant,mpos,msup,minf,mrig,mlef , pcie ;
+         float dist_sup , dist_inf , dist_ant , dist_med , dist_pos ,
+               dist_lef , dist_rig ;
+
+         /* extract the marker vectors, put in Dicom coords */
+
+         mant = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MANT) ) ;
+         mpos = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MPOS) ) ;
+         msup = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSUP) ) ;
+         minf = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MINF) ) ;
+         mrig = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MRIG) ) ;
+         mlef = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MLEF) ) ;
+
+         /* convert Posterior Commissure from parent to current coords */
+
+         LOAD_FVEC3( pcie ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][0] ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][1] ,
+                     anat->warp_parent->markers->xyz[IMARK_PCIE][2]  ) ;
+
+         pcie = THD_3dmm_to_dicomm( anat->warp_parent , pcie ) ;
+         pcie = AFNI_transform_vector( anat->warp_parent , pcie , anat ) ;
+
+         /* compute distances between points in various directions */
+
+         dist_ant = -mant.xyz[1] ;
+         dist_med =  pcie.xyz[1] ;
+         dist_pos =  mpos.xyz[1] - pcie.xyz[1] ;
+
+         dist_sup =  msup.xyz[2] ;
+         dist_inf = -minf.xyz[2] ;
+
+         dist_lef =  mlef.xyz[0] ;
+         dist_rig = -mrig.xyz[0] ;
+
+         /* check anterior distance and report it */
+
+         if( dist_ant/ATLAS_FRONT_TO_AC < MIN_ALLOWED_DEVIATION ||
+             dist_ant/ATLAS_FRONT_TO_AC > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Front to Anterior commissure: %5.1f mm (Atlas:%5.1f)\n",
+                 dist_ant,ATLAS_FRONT_TO_AC) ;
+         ADD_REPORT(msg) ;
+
+         /* medial */
+
+#if 0
+         if( dist_med/ATLAS_AC_TO_PC < MIN_ALLOWED_DEVIATION ||
+             dist_med/ATLAS_AC_TO_PC > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+#endif
+         sprintf(msg,"Intercommissural distance:    %5.1f mm (Atlas:%5.1f)\n",
+                 dist_med,ATLAS_AC_TO_PC) ;
+         ADD_REPORT(msg) ;
+
+
+         /* posterior */
+
+         if( dist_pos/ATLAS_PC_TO_BACK < MIN_ALLOWED_DEVIATION ||
+             dist_pos/ATLAS_PC_TO_BACK > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Posterior commissure to back: %5.1f mm (Atlas:%5.1f)\n",
+                 dist_pos,ATLAS_PC_TO_BACK) ;
+         ADD_REPORT(msg) ;
+
+         /* inferior */
+
+         if( dist_inf/ATLAS_BOT_TO_AC < MIN_ALLOWED_DEVIATION ||
+             dist_inf/ATLAS_BOT_TO_AC > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Bottom to Anterior commissure:%5.1f mm (Atlas:%5.1f)\n",
+                 dist_inf,ATLAS_BOT_TO_AC) ;
+         ADD_REPORT(msg) ;
+
+         /* superior */
+
+         if( dist_sup/ATLAS_AC_TO_TOP < MIN_ALLOWED_DEVIATION ||
+             dist_sup/ATLAS_AC_TO_TOP > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Anterior commissure to top:   %5.1f mm (Atlas:%5.1f)\n",
+                 dist_sup,ATLAS_AC_TO_TOP) ;
+         ADD_REPORT(msg) ;
+
+         /* left */
+
+         if( dist_lef/ATLAS_AC_TO_LAT < MIN_ALLOWED_DEVIATION ||
+             dist_lef/ATLAS_AC_TO_LAT > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Anterior commissure to left:  %5.1f mm (Atlas:%5.1f)\n",
+                 dist_lef,ATLAS_AC_TO_LAT) ;
+         ADD_REPORT(msg) ;
+
+         /* right */
+
+         if( dist_rig/ATLAS_AC_TO_LAT < MIN_ALLOWED_DEVIATION ||
+             dist_rig/ATLAS_AC_TO_LAT > MAX_ALLOWED_DEVIATION   )
+         ADD_ERROR("The following measurement is outside the allowed range!\n");
+
+         sprintf(msg,"Anterior commissure to right: %5.1f mm (Atlas:%5.1f)\n",
+                 dist_rig,ATLAS_AC_TO_LAT) ;
+         ADD_REPORT(msg) ;
+      }
+      break ;  /* end of Boundings marker case */
+
+      /*--- AC-PC alignment markers set ---*/
+
+      case MARKSET_ALIGN:{
+         THD_fvec3 acsup , acpos , pcinf , msag1 , msag2 ,
+                   alpha1,alpha2,alpha,beta,gamma,rr1,rr2,rr , dif ;
+         float size , slim ;
+
+         /* extract the marker vectors, put in Dicom coords */
+
+         acsup = THD_3dmm_to_dicomm( anat , MVEC(IMARK_ACSE) ) ;
+         acpos = THD_3dmm_to_dicomm( anat , MVEC(IMARK_ACPM) ) ;
+         pcinf = THD_3dmm_to_dicomm( anat , MVEC(IMARK_PCIE) ) ;
+         msag1 = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSA1) ) ;
+         msag2 = THD_3dmm_to_dicomm( anat , MVEC(IMARK_MSA2) ) ;
+
+         /*-- check the points for proper distances between each other --*/
+
+         rr = SUB_FVEC3(acsup,acpos) ; size = SIZE_FVEC3(rr) ;
+         if( size > 4.0 )
+         ADD_ERROR("The two AC points are more than 4 mm apart.\n") ;
+
+         slim = MIN_ALLOWED_DEVIATION * ATLAS_AC_TO_PC ;
+         rr = SUB_FVEC3(acsup,pcinf) ; size = SIZE_FVEC3(rr) ;
+         if( size <= slim ){
+            sprintf(msg, "The AC & PC points are separated by %5.2f mm\n"
+                         "which is closer than the minimum %5.2f mm!\n" ,
+                    size,slim ) ;
+            ADD_ERROR(msg) ;
+         }
+
+         rr = SUB_FVEC3(acsup,msag1) ; size = SIZE_FVEC3(rr) ;
+         if( size < 20.0 )
+         ADD_ERROR("The AC and 1st mid-sag points are closer than 20 mm.\n");
+
+         rr = SUB_FVEC3(acsup,msag2) ; size = SIZE_FVEC3(rr) ;
+         if( size < 20.0 )
+         ADD_ERROR("The AC and 2nd mid-sag points are closer than 20 mm.\n");
+
+         rr = SUB_FVEC3(msag1,msag2) ; size = SIZE_FVEC3(rr) ;
+         if( size < 20.0 )
+         ADD_ERROR("The two mid-sag points are closer than 20 mm.\n");
+
+         rr = SUB_FVEC3(pcinf,msag1) ; size = SIZE_FVEC3(rr) ;
+         if( size < 20.0 )
+         ADD_ERROR("The PC and 1st mid-sag points are closer than 20 mm.\n");
+
+         rr = SUB_FVEC3(pcinf,msag2) ; size = SIZE_FVEC3(rr) ;
+         if( size < 20.0 )
+         ADD_ERROR("The PC and 2nd mid-sag points are closer than 20 mm.\n");
+
+         /*--- compute the new y direction (beta) ---*/
+
+         beta = SUB_FVEC3(pcinf,acsup) ;  beta = NORMALIZE_FVEC3(beta) ;
+
+         /*--- compute the new x direction (alpha) ---*/
+
+         rr     = SUB_FVEC3(msag1,acsup) ;
+         alpha1 = CROSS_FVEC3(beta,rr) ; alpha1 = NORMALIZE_FVEC3(alpha1) ;
+
+         rr     = SUB_FVEC3(msag2,acsup) ;
+         alpha2 = CROSS_FVEC3(beta,rr) ; alpha2 = NORMALIZE_FVEC3(alpha2) ;
+
+         size = DOT_FVEC3(alpha1,alpha2) ;  /* angle < 2 degrees ? */
+         if( size < 0.99939 )               /* (size = cos(angle) */
+         ADD_ERROR("The AC + PC + mid-sag pts do not form a good plane.\n");
+
+         size = acos((double)size) * 180/3.14159265 ;  /* report angle */
+         sprintf(msg,
+         "Angular deviation between AC+PC+mid-sag pts: %6.2f degrees\n",size);
+         ADD_REPORT(msg) ;
+
+         alpha = SCLADD_FVEC3(0.5,alpha1,0.5,alpha2) ;
+         alpha = NORMALIZE_FVEC3(alpha) ;
+
+         /*--- compute the new z direction (gamma) ---*/
+
+         gamma = CROSS_FVEC3(alpha,beta) ; gamma = NORMALIZE_FVEC3(gamma) ;
+
+         /*--- now, consider the ray from the AC posterior margin (acpos)
+               in the gamma direction, and the ray from the AC superior
+               edge (acsup) in the beta direction.  Nominally, these rays
+               should intersect.  Find their points of closest approach
+               (rr1,rr2).  The average of these is the Talairach center
+               of coordinates (rr). ------------------------------------*/
+
+         dif  = SUB_FVEC3(acsup,acpos) ;
+         size = DOT_FVEC3(dif,gamma) ;
+         rr1  = SCLADD_FVEC3(1.0,acpos,size,gamma) ;
+
+         size = DOT_FVEC3(dif,beta) ;
+         rr2  = SCLADD_FVEC3(1.0,acsup,-size,beta) ;
+
+         dif = SUB_FVEC3(rr1,rr2) ; size = SIZE_FVEC3(dif) ;
+         if( size > 2.0 )
+         ADD_ERROR("AC Talairach origin mismatch more than 2 mm!\n") ;
+
+         sprintf(msg,
+         "Mismatch between AC-PC line and Talairach origin: %6.2f mm\n",size);
+         ADD_REPORT(msg) ;
+
+         rr = SCLADD_FVEC3(0.5,rr1,0.5,rr2) ;
+
+         /*-- Use the trace of the rotation matrix to find
+              the total rotation angle [suggested by M. Klosek] --*/
+
+         { float theta, costheta ;
+
+            costheta = 0.5 * sqrt(1.0+alpha.xyz[0]+beta.xyz[1]+gamma.xyz[2]) ;
+            theta    = 2.0 * acos(costheta) * 180/3.14159265 ;
+            sprintf(msg,
+            "Total rotation to align AC-PC and mid-sag:   %6.2f degrees\n",theta) ;
+            ADD_REPORT(msg) ;
+         }
+
+#ifdef AFNI_DEBUG
+STATUS("AC-PC alignment markers computation:") ;
+DUMP_FVEC3("   acsup ",acsup ) ;
+DUMP_FVEC3("   acpos ",acpos ) ;
+DUMP_FVEC3("   pcinf ",pcinf ) ;
+DUMP_FVEC3("   msag1 ",msag1 ) ;
+DUMP_FVEC3("   msag2 ",msag2 ) ;
+DUMP_FVEC3("   beta  ",beta  ) ;
+DUMP_FVEC3("   alpha1",alpha1) ;
+DUMP_FVEC3("   alpha2",alpha2) ;
+DUMP_FVEC3("   alpha ",alpha ) ;
+DUMP_FVEC3("   gamma ",gamma ) ;
+DUMP_FVEC3("   rr1   ",rr1   ) ;
+DUMP_FVEC3("   rr2   ",rr2   ) ;
+DUMP_FVEC3("   rr    ",rr    ) ;
+printf("\n") ;
+#endif
+
+      }  /* end of AC-PC alignment case */
+      break ;
+
+   } /* end of switch on marker set type */
+
+   if( num_error > 0 || (make_report && num_report > 0) ){
+      (void) MCW_popup_message( im3d->vwid->marks->frame ,
+                                error_list ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
+
+   myXtFree( error_list ) ;
+
+   if( num_error > 0 ) RETURN(False) ;
+   RETURN(True ) ;
+}
+
+/*------------------------------------------------------------------
+  Create a new dataset that has the geometry specified as the
+  warp from the parent.  The actual data will not be filled in yet.
+--------------------------------------------------------------------*/
+
+THD_3dim_dataset * AFNI_init_warp( Three_D_View * im3d ,
+                                   THD_3dim_dataset * parent_dset ,
+                                   THD_warp * warp_init , float resam_vox )
+{
+   THD_3dim_dataset * adam_dset ;  /* the farthest ancestor */
+   THD_warp         * warp_total ; /* the warp from that ancestor */
+   THD_fvec3          xnew_bot , xnew_top ;
+
+   THD_3dim_dataset * new_dset ;
+   THD_datablock    * new_dblk  , * adam_dblk  , * parent_dblk ;
+   THD_dataxes      * new_daxes , * adam_daxes , * parent_daxes ;
+   THD_diskptr      * new_dkptr , * adam_dkptr , * parent_dkptr ;
+   THD_marker_set   * new_markers ;
+
+   int new_nx , new_ny , new_nz , ii ;
+   THD_ivec3 ivbot , ivtop ;
+
+ENTRY("AFNI_init_warp") ;
+
+   /*----- It is possible that this warp is one in a succession
+           of warps.  In that case, the actual transformation is
+           to be done directly from the "adam" dataset, rather
+           than in succession from the parent.  The reason for
+           this is to avoid repeated interpolation.  Thus, we
+           first scan backward along the line of descent, and
+           create the total warp from "adam" to the new dataset -----*/
+
+   adam_dset   = parent_dset ;
+   warp_total  = XtNew( THD_warp ) ;  /* copy initial warp into final warp */
+   *warp_total = *warp_init ;
+
+   while( adam_dset->warp != NULL ){
+      AFNI_concatenate_warp( warp_total , adam_dset->warp ) ;
+      adam_dset = adam_dset->warp_parent ;
+   }
+
+   if( warp_total->type < FIRST_WARP_TYPE ||
+       warp_total->type > LAST_WARP_TYPE    ) RETURN(NULL) ;  /* error! */
+
+#ifdef AFNI_DEBUG
+{ char str[256] ;
+  sprintf(str,"parent = %s ; adam = %s",
+          parent_dset->self_name , adam_dset->self_name ) ;
+  STATUS(str) ;
+
+  STATUS("warp_total dump:") ;
+  if( warp_total->type == WARP_AFFINE_TYPE ){
+     DUMP_LMAP(warp_total->rig_bod.warp) ;
+  } else {
+     DUMP_T12_WARP(warp_total->tal_12) ;
+  }
+}
+#endif
+
+   adam_dblk  = adam_dset->dblk ;
+   adam_daxes = adam_dset->daxes ;
+   adam_dkptr = adam_dblk->diskptr ;
+
+   parent_dblk  = parent_dset->dblk ;
+   parent_daxes = parent_dset->daxes ;
+   parent_dkptr = parent_dblk->diskptr ;
+
+   /*----- We now determine the bounding box of the new dataset.
+           This depends on the warp type:
+              affine warps   --> use transformed bounding box of adam;
+              Talairach warp --> use Talairach standard geometry;
+           The results are in the vectors xnew_bot and xnew_top. -----*/
+
+   switch( warp_total->type ){
+
+      default:  RETURN(NULL) ;  /* something bad happened */
+
+      /*--- 12 case Talairach mapping
+            (sizes chosen to include borders of Atlas figures) ---*/
+
+      case WARP_TALAIRACH_12_TYPE:{
+         float zbottom ;
+         int   use_tlrc_big ;
+
+         use_tlrc_big = MCW_val_bbox( im3d->vwid->marks->tlrc_big_bbox ) ;
+         zbottom      = (use_tlrc_big != 0) ? ATLAS_BBOX_INF_NEW : ATLAS_BBOX_INF ;
+
+         LOAD_FVEC3(xnew_bot,-ATLAS_BBOX_LAT,-ATLAS_BBOX_ANT,-zbottom       );
+         LOAD_FVEC3(xnew_top, ATLAS_BBOX_LAT, ATLAS_BBOX_POS, ATLAS_BBOX_SUP);
+      }
+      break ;
+
+      /*--- linear warp ---*/
+
+      case WARP_AFFINE_TYPE:{
+         THD_fvec3 corner , base , xnew , aff_bot , aff_top ;
+         THD_mat33 to_new ;
+
+         to_new  = warp_total->rig_bod.warp.mfor ;
+         base    = warp_total->rig_bod.warp.bvec ;
+
+         /*--- transform each of the 8 corner locations in
+               the adam dataset to the aligned system, and
+               determine the outer limits of the new datablock ---*/
+
+         LOAD_FVEC3(corner,adam_daxes->xxmin,
+                           adam_daxes->yymin,adam_daxes->zzmin) ;  /* 1 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew_bot = xnew_top = MATVEC_SUB(to_new,corner,base) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmax,
+                           adam_daxes->yymin,adam_daxes->zzmin) ;  /* 2 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmin,
+                           adam_daxes->yymax,adam_daxes->zzmin) ;  /* 3 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmax,
+                           adam_daxes->yymax,adam_daxes->zzmin) ;  /* 4 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmin,
+                           adam_daxes->yymin,adam_daxes->zzmax) ;  /* 5 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmax,
+                           adam_daxes->yymin,adam_daxes->zzmax) ;  /* 6 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmin,
+                           adam_daxes->yymax,adam_daxes->zzmax) ;  /* 7 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         LOAD_FVEC3(corner,adam_daxes->xxmax,
+                           adam_daxes->yymax,adam_daxes->zzmax) ;  /* 8 */
+         corner   = THD_3dmm_to_dicomm( adam_dset , corner ) ;
+         xnew     = MATVEC_SUB(to_new,corner,base) ;
+         xnew_bot = MIN_FVEC3(xnew_bot,xnew) ;
+         xnew_top = MAX_FVEC3(xnew_top ,xnew ) ;
+
+         /* If the warp had any data in it about
+            the region to map to, apply that data. */
+
+         aff_bot = warp_total->rig_bod.warp.bot  ;
+         aff_top = warp_total->rig_bod.warp.top  ;
+
+         if( (aff_bot.xyz[0] < aff_top.xyz[0]) &&
+             (aff_bot.xyz[1] < aff_top.xyz[1]) &&
+             (aff_bot.xyz[2] < aff_top.xyz[2])   ){
+
+   /* 3/25/95: use the bot & top INSTEAD of the corners
+               (old version used in ADDITION to corners) */
+
+#if 0
+            xnew_bot = MIN_FVEC3(xnew_bot,aff_bot) ;
+            xnew_top = MAX_FVEC3(xnew_top,aff_top) ;
+#else
+            xnew_bot = aff_bot ;
+            xnew_top = aff_top ;
+#endif
+         }
+
+      }  /* end of affine warp case */
+      break ;
+
+   } /* end of xnew_bot & xnew_top computed from warp */
+
+   /* force bounds to be integral multiples of resampling size */
+
+#define FLOOR(qq) ( ((qq) >= 0) ? ((int)(qq)) : (-1+(int)(qq)) )
+
+   ivbot.ijk[0] = FLOOR( 0.01 + xnew_bot.xyz[0] / resam_vox ) ;
+   ivbot.ijk[1] = FLOOR( 0.01 + xnew_bot.xyz[1] / resam_vox ) ;
+   ivbot.ijk[2] = FLOOR( 0.01 + xnew_bot.xyz[2] / resam_vox ) ;
+
+   ivtop.ijk[0] = FLOOR( 0.99 + xnew_top.xyz[0] / resam_vox ) ;
+   ivtop.ijk[1] = FLOOR( 0.99 + xnew_top.xyz[1] / resam_vox ) ;
+   ivtop.ijk[2] = FLOOR( 0.99 + xnew_top.xyz[2] / resam_vox ) ;
+
+#undef FLOOR
+
+   xnew_bot.xyz[0] = ivbot.ijk[0] * resam_vox ;
+   xnew_bot.xyz[1] = ivbot.ijk[1] * resam_vox ;
+   xnew_bot.xyz[2] = ivbot.ijk[2] * resam_vox ;
+
+   xnew_top.xyz[0] = ivtop.ijk[0] * resam_vox ;
+   xnew_top.xyz[1] = ivtop.ijk[1] * resam_vox ;
+   xnew_top.xyz[2] = ivtop.ijk[2] * resam_vox ;
+
+   /* compute dimensions of the new brick */
+
+   new_nx = (xnew_top.xyz[0] - xnew_bot.xyz[0])/resam_vox + 1.5 ;
+   new_ny = (xnew_top.xyz[1] - xnew_bot.xyz[1])/resam_vox + 1.5 ;
+   new_nz = (xnew_top.xyz[2] - xnew_bot.xyz[2])/resam_vox + 1.5 ;
+
+   xnew_top.xyz[0] = xnew_bot.xyz[0] + (new_nx-1) * resam_vox ;
+   xnew_top.xyz[1] = xnew_bot.xyz[1] + (new_ny-1) * resam_vox ;
+   xnew_top.xyz[2] = xnew_bot.xyz[2] + (new_nz-1) * resam_vox ;
+
+#ifdef AFNI_DEBUG
+DUMP_FVEC3("  -- xnew_bot",xnew_bot) ;
+DUMP_FVEC3("  -- xnew_top",xnew_top) ;
+printf("  ==> new nx=%d ny=%d nz=%d\n",new_nx,new_ny,new_nz) ;
+#endif
+
+   /*----- make a new 3D dataset !!! -----*/
+
+   new_dset    =                     XtNew( THD_3dim_dataset ) ;
+   new_dblk    = new_dset->dblk    = XtNew( THD_datablock ) ;
+   new_daxes   = new_dset->daxes   = XtNew( THD_dataxes ) ;
+   new_markers = new_dset->markers = NULL ;                 /* later, dude */
+   new_dkptr   = new_dblk->diskptr = XtNew( THD_diskptr ) ;
+
+   INIT_KILL(new_dset->kl) ; INIT_KILL(new_dblk->kl) ;
+
+   ADDTO_KILL(new_dset->kl,new_dblk)  ;
+   ADDTO_KILL(new_dset->kl,new_daxes) ;
+   ADDTO_KILL(new_dset->kl,new_dkptr) ;
+
+   ADDTO_KILL(new_dset->kl,warp_total) ;
+
+   new_dset->wod_daxes = NULL ;
+   new_dset->wod_flag  = True ;
+
+   new_dset->taxis = NULL ;
+
+   INIT_STAT_AUX( new_dset , MAX_STAT_AUX , parent_dset->stat_aux ) ;
+
+#ifndef OMIT_DATASET_IDCODES
+   new_dset->idcode             = MCW_new_idcode() ;
+   new_dset->warp_parent_idcode = adam_dset->idcode ;
+   ZERO_IDCODE(new_dset->anat_parent_idcode) ;
+#endif
+
+   /*------------ initialize dataset fields -------------*/
+   /**** July 1997: be careful about adam and parent ****/
+
+STATUS("init new_dset") ;
+
+   new_dset->type      = parent_dset->type;                    /* data types */
+   new_dset->func_type = parent_dset->func_type;
+   new_dset->view_type = WARPED_VIEW(parent_dset->view_type) ; /* view type */
+
+   new_dset->warp      = warp_total ;                          /* warp info */
+   new_dset->vox_warp  = NULL ;
+
+   new_dset->warp_parent = adam_dset ;
+   MCW_strncpy( new_dset->warp_parent_name ,
+                adam_dset->self_name       , THD_MAX_NAME ) ;
+
+   MCW_strncpy( new_dset->label1 , parent_dset->label1 , THD_MAX_LABEL ) ;
+   MCW_strncpy( new_dset->label2 , parent_dset->label2 , THD_MAX_LABEL ) ;
+
+   MCW_strncpy( new_dset->self_name  ,
+                parent_dset->self_name , THD_MAX_NAME ) ;  /* make up */
+   ii = strlen( new_dset->self_name ) ;                    /* a new name */
+   new_dset->self_name[ii++] = '+' ;
+   MCW_strncpy( &(new_dset->self_name[ii]) ,
+                VIEW_typestr[new_dset->view_type] ,
+                THD_MAX_NAME-ii ) ;
+
+   new_dset->anat_parent = NULL ;
+   EMPTY_STRING(new_dset->anat_parent_name) ;
+
+   new_dset->merger_list = NULL ;
+   new_dset->death_mark  = 0 ;
+
+   /*--- initialize disk pointer fields ---*/
+
+STATUS("init new_dkptr") ;
+
+   new_dkptr->type         = DISKPTR_TYPE ;
+   new_dkptr->rank         = 3 ;
+   new_dkptr->nvals        = adam_dkptr->nvals ;
+   new_dkptr->dimsizes[0]  = new_nx ;
+   new_dkptr->dimsizes[1]  = new_ny ;
+   new_dkptr->dimsizes[2]  = new_nz ;
+   new_dkptr->storage_mode = STORAGE_UNDEFINED ;
+   THD_init_diskptr_names( new_dkptr ,
+                           parent_dkptr->directory_name, NULL, parent_dkptr->prefix ,
+                           new_dset->view_type , True ) ;
+
+   /*--- initialize datablock fields ---*/
+
+STATUS("init new_dblk") ;
+
+   new_dblk->type        = DATABLOCK_TYPE ;
+   new_dblk->nvals       = adam_dblk->nvals ;
+   new_dblk->malloc_type = DATABLOCK_MEM_UNDEFINED ;
+   new_dblk->natr        = new_dblk->natr_alloc = 0 ;
+   new_dblk->atr         = NULL ;
+   new_dblk->parent      = (XtPointer) new_dset ;
+
+   new_dblk->brick_fac   = NULL ;  /* THD_init_datablock_brick */
+   new_dblk->brick_bytes = NULL ;  /* will initialize these arrays */
+   new_dblk->brick       = NULL ;
+   THD_init_datablock_brick( new_dblk , -1 , adam_dblk ) ;
+
+   /*--- initialize data axes fields ---*/
+
+STATUS("init new_daxes") ;
+
+   new_daxes->type     = DATAXES_TYPE ;
+   new_daxes->nxx      = new_nx ;
+   new_daxes->nyy      = new_ny ;
+   new_daxes->nzz      = new_nz ;
+   new_daxes->xxorg    = xnew_bot.xyz[0] ;
+   new_daxes->yyorg    = xnew_bot.xyz[1] ;
+   new_daxes->zzorg    = xnew_bot.xyz[2] ;
+   new_daxes->xxdel    = resam_vox ;       /* cubical voxels */
+   new_daxes->yydel    = resam_vox ;
+   new_daxes->zzdel    = resam_vox ;
+   new_daxes->xxmin    = xnew_bot.xyz[0] ; /* save new bounding box */
+   new_daxes->yymin    = xnew_bot.xyz[1] ;
+   new_daxes->zzmin    = xnew_bot.xyz[2] ;
+   new_daxes->xxmax    = xnew_top.xyz[0] ;
+   new_daxes->yymax    = xnew_top.xyz[1] ;
+   new_daxes->zzmax    = xnew_top.xyz[2] ;
+   new_daxes->parent   = (XtPointer) new_dset ;
+
+   new_daxes->xxorient = ORI_R2L_TYPE ;    /* Dicom standard axes! */
+   new_daxes->yyorient = ORI_A2P_TYPE ;
+   new_daxes->zzorient = ORI_I2S_TYPE ;
+   LOAD_DIAG_MAT(new_daxes->to_dicomm,1,1,1) ;  /* identity matrix */
+
+   /*--- if view type is appropriate, set new markers ---*/
+
+   switch( new_dset->view_type ){
+
+      default:
+STATUS("no new_markers") ;
+      break ;   /* no markers */
+
+      /*--- AC-PC aligned ==> can do the BOUNDING set of markers ---*/
+
+      case VIEW_ACPCALIGNED_TYPE:
+      if( new_dset->type == HEAD_ANAT_TYPE ){
+         int ii , jj ;
+
+STATUS("init new_markers") ;
+
+         new_markers = new_dset->markers = XtNew( THD_marker_set ) ;
+         ADDTO_KILL(new_dset->kl,new_markers) ;
+
+         new_markers->numdef = NMARK_BOUNDING ;
+         new_markers->numset = 0 ;                /* null data out */
+         for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){
+
+            new_markers->xyz[ii][0] =
+              new_markers->xyz[ii][1] =
+                new_markers->xyz[ii][2] = -99999999.99 ;
+
+            for( jj=0 ; jj < MARKS_MAXLAB ; jj++ )
+               new_markers->label[ii][jj] = '\0' ;
+
+            for( jj=0 ; jj < MARKS_MAXHELP ; jj++ )
+               new_markers->help[ii][jj] = '\0' ;
+
+            new_markers->valid[ii]   = False ;
+            new_markers->ovcolor[ii] = -1 ;    /* not used yet */
+         }
+
+         for( ii=0 ; ii < NMARK_BOUNDING ; ii++ ){       /* copy strings in */
+            MCW_strncpy( &(new_markers->label[ii][0]) ,
+                         THD_bounding_label[ii] , MARKS_MAXLAB ) ;
+            MCW_strncpy( &(new_markers->help[ii][0]) ,
+                         THD_bounding_help[ii] , MARKS_MAXHELP ) ;
+         }
+
+         for( ii=0 ; ii < MARKS_MAXFLAG ; ii++ )     /* copy flags in */
+            new_markers->aflags[ii] = THD_bounding_aflags[ii] ;
+         new_markers->type = new_markers->aflags[0] ;
+      }
+      break ;  /* end of BOUNDING markers */
+
+   }  /* end of marker creation */
+
+   /*----- copy statistics, if any -----*/
+
+   new_dset->stats = NULL ;
+   AFNI_copy_statistics( adam_dset , new_dset ) ;
+
+   new_dset->pts = NULL ;
+
+   /*----- dataset ready for warping -----*/
+
+   PARENTIZE(new_dset,adam_dset->parent) ;
+
+STATUS("initialization complete") ;
+
+   RETURN( new_dset ) ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_copy_statistics( THD_3dim_dataset * dsold , THD_3dim_dataset * dsnew )
+{
+   int ibr , nvold , nvnew ;
+   THD_statistics * stold , * stnew ;
+
+ENTRY("AFNI_copy_statistics") ;
+
+   if( !ISVALID_3DIM_DATASET(dsold) || !ISVALID_3DIM_DATASET(dsnew) ) EXRETURN ;
+
+   nvold = dsold->dblk->nvals ;
+   nvnew = dsnew->dblk->nvals ;
+   stold = dsold->stats ;
+   stnew = dsnew->stats ;
+   if( !ISVALID_STATISTIC(stold) ) EXRETURN ;
+
+   if( stnew == NULL ){
+      dsnew->stats  = stnew = XtNew( THD_statistics ) ;
+      stnew->type   = STATISTICS_TYPE ;
+      stnew->nbstat = nvnew ;
+      stnew->bstat  = (THD_brick_stats *)
+                        XtMalloc( sizeof(THD_brick_stats) * nvnew ) ;
+      ADDTO_KILL(dsnew->kl,stnew) ;
+      stnew->parent = (XtPointer) dsnew ;
+   } else {
+      stnew->nbstat = nvnew ;
+      stnew->bstat  = (THD_brick_stats *)
+                        XtRealloc( (char *) stnew->bstat ,
+                                   sizeof(THD_brick_stats) * nvnew ) ;
+   }
+
+   for( ibr=0 ; ibr < nvnew ; ibr++ ){
+      if( ibr < nvold )
+         stnew->bstat[ibr] = stold->bstat[ibr] ;
+      else
+         INVALIDATE_BSTAT(stnew->bstat[ibr]) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void AFNI_set_cursor( int cursor_code )
+{
+   Three_D_View * im3d ;
+   int id ;
+
+   for( id=0 ; id < MAX_CONTROLLERS ; id++ ){
+      im3d = GLOBAL_library.controllers[id] ;
+      if( IM3D_OPEN(im3d) ){
+         switch( cursor_code ){
+
+            default:
+            case AFNI_DEFAULT_CURSOR:
+               MCW_alter_widget_cursor( im3d->vwid->top_shell ,
+                                        -XC_left_ptr , "yellow","blue" ) ;
+
+               if( ISQ_REALZ(im3d->s123) )
+                  MCW_alter_widget_cursor( im3d->s123->wtop ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( ISQ_REALZ(im3d->s231) )
+                  MCW_alter_widget_cursor( im3d->s231->wtop ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( ISQ_REALZ(im3d->s312) )
+                  MCW_alter_widget_cursor( im3d->s312->wtop ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( GRA_REALZ(im3d->g123) )
+                  MCW_alter_widget_cursor( im3d->g123->fdw_graph ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( GRA_REALZ(im3d->g231) )
+                  MCW_alter_widget_cursor( im3d->g231->fdw_graph ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( GRA_REALZ(im3d->g312) )
+                  MCW_alter_widget_cursor( im3d->g312->fdw_graph ,
+                                           -XC_left_ptr , "yellow","blue" ) ;
+
+               if( im3d->vinfo->inverted_pause ){
+                  im3d->vinfo->inverted_pause = False ;
+                  if( im3d->vwid->picture != NULL ){
+                     if( !GLOBAL_argopt.keep_logo ) PICTURE_OFF(im3d) ;
+                  } else
+                     MCW_invert_widget( im3d->vwid->top_form ) ;
+               }
+
+               break ;
+
+            case AFNI_WAITING_CURSOR:
+               MCW_set_widget_cursor( im3d->vwid->top_shell , -XC_watch ) ;
+
+               if( ISQ_REALZ(im3d->s123) )
+                  MCW_set_widget_cursor( im3d->s123->wtop , -XC_watch ) ;
+
+               if( ISQ_REALZ(im3d->s231) )
+                  MCW_set_widget_cursor( im3d->s231->wtop , -XC_watch ) ;
+
+               if( ISQ_REALZ(im3d->s312) )
+                  MCW_set_widget_cursor( im3d->s312->wtop , -XC_watch ) ;
+
+               if( GRA_REALZ(im3d->g123) )
+                  MCW_set_widget_cursor( im3d->g123->fdw_graph , -XC_watch ) ;
+
+               if( GRA_REALZ(im3d->g231) )
+                  MCW_set_widget_cursor( im3d->g231->fdw_graph , -XC_watch ) ;
+
+               if( GRA_REALZ(im3d->g312) )
+                  MCW_set_widget_cursor( im3d->g312->fdw_graph , -XC_watch ) ;
+
+               if( ! im3d->vinfo->inverted_pause ){
+                  im3d->vinfo->inverted_pause = True ;
+                  if( im3d->vwid->picture != NULL )
+                     PICTURE_ON(im3d) ;
+                  else
+                     MCW_invert_widget( im3d->vwid->top_form ) ;
+               }
+
+               break ;
+         }
+
+         XSync( XtDisplay(im3d->vwid->top_shell) , False ) ;
+         XmUpdateDisplay( im3d->vwid->top_shell ) ;
+      }
+   }
+
+   return ;
+}
+
+/****************************************************************/
+/***** June 1995: routine to load constants from X defaults *****/
+
+#define NAME2INT(nnn,iii,bot,top) \
+  { xdef = XGetDefault(display,"AFNI",nnn) ; \
+    if( xdef != NULL ){                      \
+       ival = strtol( xdef , &cpt , 10 ) ;   \
+       if( *cpt == '\0' && ival >= (bot) && ival <= (top) ) (iii) = ival ; } }
+
+#define NAME2FLOAT(nnn,fff,bot,top) \
+  { xdef = XGetDefault(display,"AFNI",nnn) ; \
+    if( xdef != NULL ){                      \
+       fval = strtod( xdef , &cpt ) ;        \
+       if( *cpt == '\0' && fval >= (bot) && fval <= (top) ) (fff) = fval ; } }
+
+#define NAME2STRING(nnn,sss) \
+  { xdef = XGetDefault(display,"AFNI",nnn) ; \
+    if( xdef != NULL ) sss  = XtNewString(xdef) ; }
+
+#define BAD -999
+
+void AFNI_load_defaults( Widget w )
+{
+   char    * xdef ;
+   Display * display ;
+   int       ival , ii,jj ;
+   float     fval ;
+   char *    cpt ;
+   char      buf[64] ;
+   float     pthr[NPANE_MAX+1] ;
+   int       pov[NPANE_MAX+1] ;
+
+   if( w == NULL ){
+      fprintf(stderr,"\n*** AFNI_load_defaults: NULL input widget ***\n") ;
+      return ;
+   }
+
+   display = XtDisplay( w ) ;
+
+   /** initialize overlay color arrays from defaults **/
+
+   for( ii=0 ; ii < DEFAULT_NCOLOVR ; ii++ ){
+      INIT_colovr[ii] = XtNewString(INIT_def_colovr[ii]) ;
+      INIT_labovr[ii] = XtNewString(INIT_def_labovr[ii]) ;
+   }
+   for( ; ii < MAX_NCOLOVR ; ii++ ){
+      INIT_colovr[ii] = INIT_labovr[ii] = NULL ;
+   }
+
+   /** initialize display and overlay colors **/
+
+   NAME2INT("ncolors",INIT_ngray,3,MAX_COLORS) ;
+
+   NAME2INT("ncolovr",INIT_ncolovr,2,MAX_NCOLOVR) ;
+
+   NAME2FLOAT("gamma",INIT_gamma,0.1,9.9) ;
+
+   for( ii=0 ; ii < INIT_ncolovr ; ii++ ){
+      sprintf( buf , "ovdef%02d" , ii+1 ) ;
+      NAME2STRING(buf,INIT_colovr[ii] ) ;
+
+      sprintf( buf , "ovlab%02d" , ii+1 ) ;
+      NAME2STRING(buf,INIT_labovr[ii] ) ;
+   }
+
+   NAME2INT("ovcrosshair"      , INIT_crosshair_color,0,INIT_ncolovr) ;
+   NAME2INT("ovmarksprimary"   , INIT_marks1_color   ,0,INIT_ncolovr) ;
+   NAME2INT("ovmarkssecondary" , INIT_marks2_color   ,0,INIT_ncolovr) ;
+   NAME2INT("markssize"        , INIT_marks_size     ,2,MAXOVSIZE   ) ;
+   NAME2INT("marksgap"         , INIT_marks_gap      ,0,MAXOVSIZE-1 ) ;
+   NAME2INT("crosshairgap"     , INIT_crosshair_gap  ,0,MAXOVSIZE   ) ;
+   NAME2INT("bigscroll"        , INIT_bigscroll      ,1,MAXOVSIZE   ) ;
+
+   NAME2INT("graph_boxes_color" ,INIT_GR_boxes_color ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_backg_color" ,INIT_GR_backg_color ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_grid_color"  ,INIT_GR_grid_color  ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_text_color"  ,INIT_GR_text_color  ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_data_color"  ,INIT_GR_data_color  ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_ideal_color" ,INIT_GR_ideal_color ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_ort_color"   ,INIT_GR_ort_color   ,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_ignore_color",INIT_GR_ignore_color,BLUEST_COLOR,INIT_ncolovr) ;
+   NAME2INT("graph_dplot_color" ,INIT_GR_dplot_color ,BLUEST_COLOR,INIT_ncolovr) ;
+
+   NAME2INT("graph_boxes_thick" ,INIT_GR_boxes_thick ,0,1) ;
+   NAME2INT("graph_grid_thick"  ,INIT_GR_grid_thick  ,0,1) ;
+   NAME2INT("graph_data_thick"  ,INIT_GR_data_thick  ,0,1) ;
+   NAME2INT("graph_ideal_thick" ,INIT_GR_ideal_thick ,0,1) ;
+   NAME2INT("graph_ort_thick"   ,INIT_GR_ort_thick   ,0,1) ;
+   NAME2INT("graph_dplot_thick" ,INIT_GR_dplot_thick ,0,1) ;
+
+   /** initialize other junk **/
+
+   cpt = NULL ;
+   NAME2STRING( "tlrc_big" , cpt ) ;
+   if( cpt != NULL ){
+      INIT_tlrc_big = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+      XtFree(cpt) ;
+   }
+
+   cpt = NULL ;
+   NAME2STRING( "montage_periodic" , cpt ) ;
+   if( cpt != NULL ){
+      INIT_montage_periodic = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+      XtFree(cpt) ;
+   }
+
+   NAME2INT("ignore",INIT_ignore,0,999) ;
+
+   cpt = NULL ;
+   NAME2STRING( "purge" , cpt ) ;
+   if( cpt != NULL ){
+      INIT_purge = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+      myXtFree(cpt) ;
+   }
+
+   NAME2FLOAT("resam_vox",INIT_resam_vox,0.1,4.0) ;
+   INIT_resam_vox = 0.1 * ( (int)(10*INIT_resam_vox) ) ;
+
+   cpt = NULL ;
+   NAME2STRING( "resam_anat" , cpt ) ;
+   if( cpt != NULL ){
+      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
+         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+      }
+      if( ii <= LAST_RESAM_TYPE ) INIT_resam_anat = ii ;
+      myXtFree(cpt) ;
+   }
+
+   cpt = NULL ;
+   NAME2STRING( "resam_func" , cpt ) ;
+   if( cpt != NULL ){
+      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
+         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+      }
+      if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
+      myXtFree(cpt) ;
+   }
+
+   /** initialize pbar panes **/
+
+   cpt = NULL ;
+   NAME2STRING( "pbar_posfunc" , cpt ) ;
+   if( cpt != NULL ){
+      INIT_posfunc = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+      myXtFree(cpt) ;
+   }
+
+   cpt = NULL ;
+   NAME2STRING( "pbar_hide" , cpt ) ;
+   if( cpt != NULL ){
+      INIT_panes_hide = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+      myXtFree(cpt) ;
+   }
+
+   NAME2INT("pbar_pos_pane_count" , INIT_panes_pos , NPANE_MIN , NPANE_MAX ) ;
+   NAME2INT("pbar_sgn_pane_count" , INIT_panes_sgn , NPANE_MIN , NPANE_MAX ) ;
+
+   for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
+      fval     = 1.0 / ii ;
+      pthr[0]  = 1.0 ;
+      pthr[ii] = 0.0 ;
+      for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-jj) ;
+      for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
+
+      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
+      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
+   }
+
+   for( ii=NPANE_MIN ; ii <= NPANE_MAX ; ii++ ){
+
+      for( jj=0 ; jj <= ii ; jj++ ){
+         sprintf( buf , "pbar_pos_pane%02d_thr%02d" , ii,jj ) ;
+         pthr[jj] = BAD ;
+         NAME2FLOAT(buf,pthr[jj],0.0,1.0) ;
+      }
+
+      for( jj=0 ; jj < ii ; jj++ ){
+         sprintf( buf , "pbar_pos_pane%02d_ov%02d" , ii,jj ) ;
+         pov[jj] = BAD ;
+         NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
+      }
+
+      /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
+
+      if( pthr[0] != 1.0 || pthr[jj] != 0.0 ) continue ;
+      for( jj=1 ; jj <= ii ; jj++ ){
+         if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
+      }
+      if( jj <= ii ) continue ;
+
+      /* check pov for OK-ness */
+
+      for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
+      if( jj < ii ) continue ;
+
+      /* get to here --> load pthr and pov into arrays */
+
+      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
+      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
+
+   }
+
+   /** initialize signed pbar panes **/
+
+   for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
+      fval     =  1.0 / ii ;
+      pthr[0]  =  1.0 ;
+      pthr[ii] = -1.0 ;
+      for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-2*jj) ;
+      for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
+
+      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
+      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
+   }
+
+   for( ii=NPANE_MIN ; ii <= NPANE_MAX ; ii++ ){
+
+      for( jj=0 ; jj <= ii ; jj++ ){
+         sprintf( buf , "pbar_sgn_pane%02d_thr%02d" , ii,jj ) ;
+         pthr[jj] = BAD ;
+         NAME2FLOAT(buf,pthr[jj],0.0,1.0) ;
+      }
+
+      for( jj=0 ; jj < ii ; jj++ ){
+         sprintf( buf , "pbar_sgn_pane%02d_ov%02d" , ii,jj ) ;
+         pov[jj] = BAD ;
+         NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
+      }
+
+      /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
+
+      if( pthr[0] != 1.0 || pthr[jj] != -1.0 ) continue ;
+      for( jj=1 ; jj <= ii ; jj++ ){
+         if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
+      }
+      if( jj <= ii ) continue ;
+
+      /* check pov for OK-ness */
+
+      for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
+      if( jj < ii ) continue ;
+
+      /* get to here --> load pthr and pov into arrays */
+
+      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
+      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
+
+   }
+
+   return ;
+}
+
+/********************************************************************/
+#ifdef USE_SONNETS
+void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   MCW_choose_cbs * cbs ;
+   char buf[2048] ;
+
+   if( ! IM3D_VALID(im3d) ) return ;
+
+   if( w == im3d->vwid->prog->hidden_sonnet_pb ){  /* start the process */
+
+      MCW_choose_integer( im3d->vwid->picture ,
+                          "Sonnet " ,
+                          1 , NUM_SONNETS , sonnet_index+1 ,
+                          AFNI_sonnet_CB , (XtPointer) im3d ) ;
+      return ;
+   }
+
+   /** if get to here, finish the process **/
+
+   cbs = (MCW_choose_cbs *) call_data ;
+   if( cbs->reason != mcwCR_integer ){  /* error */
+      XBell( XtDisplay(w) , 100 ) ;
+      return ;
+   }
+
+   if( cbs->ival < 1 || cbs->ival > NUM_SONNETS ){ /* error */
+      XBell( XtDisplay(w) , 100 ) ;
+      return ;
+   }
+
+   sprintf( buf , "                    * %d *\n" , cbs->ival ) ;
+   strcat( buf , sonnets[cbs->ival-1] ) ;
+   (void) MCW_popup_message( im3d->vwid->picture , buf , MCW_USER_KILL ) ;
+   return ;
+}
+#endif /* USE_SONNETS */
+/********************************************************************/
+
+/*----------------------------------------------------------------------
+   Put a function on the list of n-dimensional transformations
+   (modified 03 Nov 1996 from just 0D transforms)
+   (modified 22 Apr 1997 to add int flags to each function)
+------------------------------------------------------------------------*/
+
+void AFNI_register_nD_function( int nd, char * name,
+                                generic_func * func, int flags )
+{
+   MCW_function_list * rlist ;
+   int num ;
+
+   if( name == NULL || strlen(name) == 0 || func == NULL ) return ;
+
+   switch( nd ){
+      default: return ;
+
+      case 0: rlist = &(GLOBAL_library.registered_0D) ; break ;
+      case 1: rlist = &(GLOBAL_library.registered_1D) ; break ;
+      case 2: rlist = &(GLOBAL_library.registered_2D) ; break ;
+   }
+
+   num = rlist->num ;
+
+   if( num == 0 ){ rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL; }
+
+   rlist->flags = (int *) XtRealloc( (char *)rlist->flags, sizeof(int)*(num+1) ) ;
+
+   rlist->labels = (char **) XtRealloc( (char *)rlist->labels ,
+                                        sizeof(char *)*(num+1) ) ;
+
+   rlist->funcs = (generic_func **) XtRealloc( (char *)rlist->funcs ,
+                                               sizeof(generic_func *)*(num+1) ) ;
+
+   rlist->flags[num]  = flags ;
+   rlist->labels[num] = XtNewString(name) ;
+   rlist->funcs[num]  = func ;
+
+   rlist->num = num+1 ;
+   return ;
+}
+
+/*--------------- Sample function: log10 of each input point ---------------*/
+
+void log10_func( int num , float * vec )
+{
+   int ii ;
+   float vmax , vmin ;
+
+   if( num <= 0 || vec == NULL ) return ;
+
+   /* find largest element */
+
+   vmax = vec[0] ;
+   for( ii=1 ; ii < num ; ii++ ) vmax = MAX( vmax , vec[ii] ) ;
+
+   /* if all are nonpositive, return all zeros */
+
+   if( vmax <= 0.0 ){
+      for( ii=0 ; ii < num ; ii++ ) vec[ii] = 0.0 ;
+      return ;
+   }
+
+   /* find smallest positive element */
+
+   vmin = vmax ;
+   for( ii=0 ; ii < num ; ii++ )
+      if( vec[ii] > 0.0 ) vmin = MIN( vmin , vec[ii] ) ;
+
+   /* take log10 of each positive element;
+      nonpositive elements get the log10 of vmin instead */
+
+   vmin = log10(vmin) ;
+   for( ii=0 ; ii < num ; ii++ )
+      vec[ii] = (vec[ii] > 0.0) ? log10(vec[ii]) : vmin ;
+
+   return ;
+}
+
+/*------------ Sample function: Signed sqrt of each input point ------------*/
+
+void ssqrt_func( int num , float * vec )
+{
+   int ii ;
+   double val ;
+
+   if( num <= 0 || vec == NULL ) return ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+      val = sqrt(fabs(vec[ii])) ;                /* will be positive */
+      vec[ii] = (vec[ii] >= 0.0) ? val : -val ;  /* output sign = input sign */
+   }
+
+   return ;
+}
+
+/*--------------- Sample function: Order Statistics Filter ----------------*/
+
+void osfilt3_func( int num , double to,double dt, float * vec )
+{
+   int ii ;
+   float aa,bb,cc ;
+
+   bb = vec[0] ; cc = vec[1] ;
+   for( ii=1 ; ii < num-1 ; ii++ ){
+      aa = bb ; bb = cc ; cc = vec[ii+1] ;
+      vec[ii] = OSFILT(aa,bb,cc) ;         /* see mrilib.h */
+   }
+
+   return ;
+}
+
+/*--------------- Sample function: Median of 3 Filter ----------------*/
+
+void median3_func( int num , double to,double dt, float * vec )
+{
+   int ii ;
+   float aa,bb,cc ;
+
+   bb = vec[0] ; cc = vec[1] ;
+   for( ii=1 ; ii < num-1 ; ii++ ){
+      aa = bb ; bb = cc ; cc = vec[ii+1] ;
+      vec[ii] = MEDIAN(aa,bb,cc) ;         /* see mrilib.h */
+   }
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Add a timeseries to the global list
+-------------------------------------------------------------------------*/
+
+void AFNI_add_timeseries( MRI_IMAGE * tsim )
+{
+ENTRY("AFNI_add_timeseries") ;
+
+   if( tsim != NULL ){
+      POPDOWN_timeseries_chooser ;
+      ADDTO_IMARR(GLOBAL_library.timeseries,tsim) ;
+   }
+   EXRETURN ;
+}
+
+
+
+
+/************************************************************************/
+/************************************************************************/
+/****     For debugging, include the GNU malloc library.                */
+/************************************************************************/
+/************************************************************************/
+#ifdef USE_GNU_MALLOC
+
+#  ifdef MALLOC_TRACE
+#    undef malloc
+#    undef realloc
+#    undef calloc
+#    undef free
+#  endif
+
+/* DO NOT EDIT THIS FILE -- it is automagically generated.  -*- C -*- */
+
+#define _MALLOC_INTERNAL
+
+/* The malloc headers and source files from the C library follow here.  */
+
+/* Declarations for `malloc' and friends.
+   Copyright 1990, 1991, 1992, 1993, 1995 Free Software Foundation, Inc.
+		  Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+#ifndef _MALLOC_H
+
+#define _MALLOC_H	1
+
+#ifdef _MALLOC_INTERNAL
+
+#if	defined(_LIBC) || defined(STDC_HEADERS) || defined(USG)
+#include <string.h>
+#else
+#ifndef memset
+#define	memset(s, zero, n)	bzero ((s), (n))
+#endif
+#ifndef memcpy
+#define	memcpy(d, s, n)		bcopy ((s), (d), (n))
+#endif
+#endif
+
+#if	defined (__GNU_LIBRARY__) || (defined (__STDC__) && __STDC__)
+#include <limits.h>
+#else
+#ifndef CHAR_BIT
+#define	CHAR_BIT	8
+#endif
+#endif
+
+#ifdef	HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#endif	/* _MALLOC_INTERNAL.  */
+
+
+#ifdef	__cplusplus
+extern "C"
+{
+#endif
+
+#if defined (__cplusplus) || (defined (__STDC__) && __STDC__) || defined(SOLARIS)
+#undef	__P
+#define	__P(args)	args
+#undef	__ptr_t
+#define	__ptr_t		void *
+#else /* Not C++ or ANSI C.  */
+#undef	__P
+#define	__P(args)	()
+#undef	const
+#define	const
+#undef	__ptr_t
+#define	__ptr_t		char *
+#endif /* C++ or ANSI C.  */
+
+#if defined (__STDC__) && __STDC__
+#include <stddef.h>
+#define	__malloc_size_t		size_t
+#define	__malloc_ptrdiff_t	ptrdiff_t
+#else
+#define	__malloc_size_t		unsigned int
+#define	__malloc_ptrdiff_t	int
+#endif
+
+#ifndef	NULL
+#define	NULL	0
+#endif
+
+
+/* Allocate SIZE bytes of memory.  */
+extern __ptr_t malloc __P ((__malloc_size_t __size));
+/* Re-allocate the previously allocated block
+   in __ptr_t, making the new block SIZE bytes long.  */
+extern __ptr_t realloc __P ((__ptr_t __ptr, __malloc_size_t __size));
+/* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
+extern __ptr_t calloc __P ((__malloc_size_t __nmemb, __malloc_size_t __size));
+/* Free a block allocated by `malloc', `realloc' or `calloc'.  */
+extern void free __P ((__ptr_t __ptr));
+
+/* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
+extern __ptr_t memalign __P ((__malloc_size_t __alignment,
+			      __malloc_size_t __size));
+
+/* Allocate SIZE bytes on a page boundary.  */
+extern __ptr_t valloc __P ((__malloc_size_t __size));
+
+
+#ifdef _MALLOC_INTERNAL
+
+/* The allocator divides the heap into blocks of fixed size; large
+   requests receive one or more whole blocks, and small requests
+   receive a fragment of a block.  Fragment sizes are powers of two,
+   and all fragments of a block are the same size.  When all the
+   fragments in a block have been freed, the block itself is freed.  */
+#define INT_BIT		(CHAR_BIT * sizeof(int))
+#define BLOCKLOG	(INT_BIT > 16 ? 12 : 9)
+#define BLOCKSIZE	(1 << BLOCKLOG)
+#define BLOCKIFY(SIZE)	(((SIZE) + BLOCKSIZE - 1) / BLOCKSIZE)
+
+/* Determine the amount of memory spanned by the initial heap table
+   (not an absolute limit).  */
+#define HEAP		(INT_BIT > 16 ? 4194304 : 65536)
+
+/* Number of contiguous free blocks allowed to build up at the end of
+   memory before they will be returned to the system.  */
+#define FINAL_FREE_BLOCKS	8
+
+/* Data structure giving per-block information.  */
+typedef union
+  {
+    /* Heap information for a busy block.  */
+    struct
+      {
+	/* Zero for a large (multiblock) object, or positive giving the
+	   logarithm to the base two of the fragment size.  */
+	int type;
+	union
+	  {
+	    struct
+	      {
+		__malloc_size_t nfree; /* Free frags in a fragmented block.  */
+		__malloc_size_t first; /* First free fragment of the block.  */
+	      } frag;
+	    /* For a large object, in its first block, this has the number
+	       of blocks in the object.  In the other blocks, this has a
+	       negative number which says how far back the first block is.  */
+	    __malloc_ptrdiff_t size;
+	  } info;
+      } busy;
+    /* Heap information for a free block
+       (that may be the first of a free cluster).  */
+    struct
+      {
+	__malloc_size_t size;	/* Size (in blocks) of a free cluster.  */
+	__malloc_size_t next;	/* Index of next free cluster.  */
+	__malloc_size_t prev;	/* Index of previous free cluster.  */
+      } free;
+  } malloc_info;
+
+/* Pointer to first block of the heap.  */
+extern char *_heapbase;
+
+/* Table indexed by block number giving per-block information.  */
+extern malloc_info *_heapinfo;
+
+/* Address to block number and vice versa.  */
+#define BLOCK(A)	(((char *) (A) - _heapbase) / BLOCKSIZE + 1)
+#define ADDRESS(B)	((__ptr_t) (((B) - 1) * BLOCKSIZE + _heapbase))
+
+/* Current search index for the heap table.  */
+extern __malloc_size_t _heapindex;
+
+/* Limit of valid info table indices.  */
+extern __malloc_size_t _heaplimit;
+
+/* Doubly linked lists of free fragments.  */
+struct list
+  {
+    struct list *next;
+    struct list *prev;
+  };
+
+/* Free list headers for each fragment size.  */
+extern struct list _fraghead[];
+
+/* List of blocks allocated with `memalign' (or `valloc').  */
+struct alignlist
+  {
+    struct alignlist *next;
+    __ptr_t aligned;		/* The address that memaligned returned.  */
+    __ptr_t exact;		/* The address that malloc returned.  */
+  };
+extern struct alignlist *_aligned_blocks;
+
+/* Instrumentation.  */
+extern __malloc_size_t _chunks_used;
+extern __malloc_size_t _bytes_used;
+extern __malloc_size_t _chunks_free;
+extern __malloc_size_t _bytes_free;
+
+/* Internal version of `free' used in `morecore' (malloc.c). */
+extern void _free_internal __P ((__ptr_t __ptr));
+
+#endif /* _MALLOC_INTERNAL.  */
+
+/* Given an address in the middle of a malloc'd object,
+   return the address of the beginning of the object.  */
+extern __ptr_t malloc_find_object_address __P ((__ptr_t __ptr));
+
+/* Underlying allocation function; successive calls should
+   return contiguous pieces of memory.  */
+extern __ptr_t (*__morecore) __P ((__malloc_ptrdiff_t __size));
+
+/* Default value of `__morecore'.  */
+extern __ptr_t __default_morecore __P ((__malloc_ptrdiff_t __size));
+
+/* If not NULL, this function is called after each time
+   `__morecore' is called to increase the data size.  */
+extern void (*__after_morecore_hook) __P ((void));
+
+/* Nonzero if `malloc' has been called and done its initialization.  */
+extern int __malloc_initialized;
+
+/* Hooks for debugging versions.  */
+extern void (*__malloc_initialize_hook) __P ((void));
+extern void (*__free_hook) __P ((__ptr_t __ptr));
+extern __ptr_t (*__malloc_hook) __P ((__malloc_size_t __size));
+extern __ptr_t (*__realloc_hook) __P ((__ptr_t __ptr, __malloc_size_t __size));
+extern __ptr_t (*__memalign_hook) __P ((__malloc_size_t __size,
+					__malloc_size_t __alignment));
+
+/* Return values for `mprobe': these are the kinds of inconsistencies that
+   `mcheck' enables detection of.  */
+enum mcheck_status
+  {
+    MCHECK_DISABLED = -1,	/* Consistency checking is not turned on.  */
+    MCHECK_OK,			/* Block is fine.  */
+    MCHECK_FREE,		/* Block freed twice.  */
+    MCHECK_HEAD,		/* Memory before the block was clobbered.  */
+    MCHECK_TAIL			/* Memory after the block was clobbered.  */
+  };
+
+/* Activate a standard collection of debugging hooks.  This must be called
+   before `malloc' is ever called.  ABORTFUNC is called with an error code
+   (see enum above) when an inconsistency is detected.  If ABORTFUNC is
+   null, the standard function prints on stderr and then calls `abort'.  */
+extern int mcheck __P ((void (*__abortfunc) __P ((enum mcheck_status))));
+
+/* Check for aberrations in a particular malloc'd block.  You must have
+   called `mcheck' already.  These are the same checks that `mcheck' does
+   when you free or reallocate a block.  */
+extern enum mcheck_status mprobe __P ((__ptr_t __ptr));
+
+/* Activate a standard collection of tracing hooks.  */
+extern void mtrace __P ((void));
+extern void muntrace __P ((void));
+
+/* Statistics available to the user.  */
+struct mstats
+  {
+    __malloc_size_t bytes_total; /* Total size of the heap. */
+    __malloc_size_t chunks_used; /* Chunks allocated by the user. */
+    __malloc_size_t bytes_used;	/* Byte total of user-allocated chunks. */
+    __malloc_size_t chunks_free; /* Chunks in the free list. */
+    __malloc_size_t bytes_free;	/* Byte total of chunks in the free list. */
+  };
+
+/* Pick up the current statistics. */
+extern struct mstats mstats __P ((void));
+
+/* Call WARNFUN with a warning message when memory usage is high.  */
+extern void memory_warnings __P ((__ptr_t __start,
+				  void (*__warnfun) __P ((const char *))));
+
+
+/* Relocating allocator.  */
+
+/* Allocate SIZE bytes, and store the address in *HANDLEPTR.  */
+extern __ptr_t r_alloc __P ((__ptr_t *__handleptr, __malloc_size_t __size));
+
+/* Free the storage allocated in HANDLEPTR.  */
+extern void r_alloc_free __P ((__ptr_t *__handleptr));
+
+/* Adjust the block at HANDLEPTR to be SIZE bytes long.  */
+extern __ptr_t r_re_alloc __P ((__ptr_t *__handleptr, __malloc_size_t __size));
+
+
+#ifdef	__cplusplus
+}
+#endif
+
+#endif /* malloc.h  */
+/* Allocate memory on a page boundary.
+   Copyright (C) 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+#if defined (__GNU_LIBRARY__) || defined (_LIBC)
+#include <stddef.h>
+#include <sys/cdefs.h>
+extern size_t __getpagesize __P ((void));
+#else
+
+/* Emulate getpagesize on systems that lack it.  */
+
+#ifndef HAVE_GETPAGESIZE
+
+#ifdef VMS
+#define getpagesize() 512
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef _SC_PAGESIZE
+#define getpagesize() sysconf(_SC_PAGESIZE)
+#else
+
+#include <sys/param.h>
+
+#ifdef EXEC_PAGESIZE
+#define getpagesize() EXEC_PAGESIZE
+#else
+#ifdef NBPG
+#define getpagesize() NBPG * CLSIZE
+#ifndef CLSIZE
+#define CLSIZE 1
+#endif /* no CLSIZE */
+#else /* no NBPG */
+#ifdef NBPC
+#define getpagesize() NBPC
+#else /* no NBPC */
+#ifdef PAGESIZE
+#define getpagesize() PAGESIZE
+#endif
+#endif /* NBPC */
+#endif /* no NBPG */
+#endif /* no EXEC_PAGESIZE */
+#endif /* no _SC_PAGESIZE */
+
+#endif /* not HAVE_GETPAGESIZE */
+#define	 __getpagesize()	getpagesize()
+#endif
+
+static __malloc_size_t pagesize;
+
+__ptr_t
+valloc (size)
+     __malloc_size_t size;
+{
+  if (pagesize == 0)
+    pagesize = __getpagesize ();
+
+  return memalign (pagesize, size);
+}
+/* Memory allocator `malloc'.
+   Copyright 1990, 1991, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
+		  Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+/* How to really get more memory.  */
+__ptr_t (*__morecore) __P ((ptrdiff_t __size)) = __default_morecore;
+
+/* Debugging hook for `malloc'.  */
+__ptr_t (*__malloc_hook) __P ((__malloc_size_t __size));
+
+/* Pointer to the base of the first block.  */
+char *_heapbase;
+
+/* Block information table.  Allocated with align/__free (not malloc/free).  */
+malloc_info *_heapinfo;
+
+/* Number of info entries.  */
+static __malloc_size_t heapsize;
+
+/* Search index in the info table.  */
+__malloc_size_t _heapindex;
+
+/* Limit of valid info table indices.  */
+__malloc_size_t _heaplimit;
+
+/* Free lists for each fragment size.  */
+struct list _fraghead[BLOCKLOG];
+
+/* Instrumentation.  */
+__malloc_size_t _chunks_used;
+__malloc_size_t _bytes_used;
+__malloc_size_t _chunks_free;
+__malloc_size_t _bytes_free;
+
+/* Are you experienced?  */
+int __malloc_initialized;
+
+void (*__malloc_initialize_hook) __P ((void));
+void (*__after_morecore_hook) __P ((void));
+
+/* Aligned allocation.  */
+static __ptr_t align __P ((__malloc_size_t));
+static __ptr_t
+align (size)
+     __malloc_size_t size;
+{
+  __ptr_t result;
+  unsigned long int adj;
+
+  result = (*__morecore) (size);
+  adj = (unsigned long int) ((unsigned long int) ((char *) result -
+						  (char *) NULL)) % BLOCKSIZE;
+  if (adj != 0)
+    {
+      adj = BLOCKSIZE - adj;
+      (void) (*__morecore) (adj);
+      result = (char *) result + adj;
+    }
+
+  if (__after_morecore_hook)
+    (*__after_morecore_hook) ();
+
+  return result;
+}
+
+/* Set everything up and remember that we have.  */
+static int initialize __P ((void));
+static int
+initialize ()
+{
+  if (__malloc_initialize_hook)
+    (*__malloc_initialize_hook) ();
+
+  heapsize = HEAP / BLOCKSIZE;
+  _heapinfo = (malloc_info *) align (heapsize * sizeof (malloc_info));
+  if (_heapinfo == NULL)
+    return 0;
+  memset (_heapinfo, 0, heapsize * sizeof (malloc_info));
+  _heapinfo[0].free.size = 0;
+  _heapinfo[0].free.next = _heapinfo[0].free.prev = 0;
+  _heapindex = 0;
+  _heapbase = (char *) _heapinfo;
+
+  /* Account for the _heapinfo block itself in the statistics.  */
+  _bytes_used = heapsize * sizeof (malloc_info);
+  _chunks_used = 1;
+
+  __malloc_initialized = 1;
+  return 1;
+}
+
+/* Get neatly aligned memory, initializing or
+   growing the heap info table as necessary. */
+static __ptr_t morecore __P ((__malloc_size_t));
+static __ptr_t
+morecore (size)
+     __malloc_size_t size;
+{
+  __ptr_t result;
+  malloc_info *newinfo, *oldinfo;
+  __malloc_size_t newsize;
+
+  result = align (size);
+  if (result == NULL)
+    return NULL;
+
+  /* Check if we need to grow the info table.  */
+  if ((__malloc_size_t) BLOCK ((char *) result + size) > heapsize)
+    {
+      newsize = heapsize;
+      while ((__malloc_size_t) BLOCK ((char *) result + size) > newsize)
+	newsize *= 2;
+      newinfo = (malloc_info *) align (newsize * sizeof (malloc_info));
+      if (newinfo == NULL)
+	{
+	  (*__morecore) (-size);
+	  return NULL;
+	}
+      memcpy (newinfo, _heapinfo, heapsize * sizeof (malloc_info));
+      memset (&newinfo[heapsize], 0,
+	      (newsize - heapsize) * sizeof (malloc_info));
+      oldinfo = _heapinfo;
+      newinfo[BLOCK (oldinfo)].busy.type = 0;
+      newinfo[BLOCK (oldinfo)].busy.info.size
+	= BLOCKIFY (heapsize * sizeof (malloc_info));
+      _heapinfo = newinfo;
+      /* Account for the _heapinfo block itself in the statistics.  */
+      _bytes_used += newsize * sizeof (malloc_info);
+      ++_chunks_used;
+      _free_internal (oldinfo);
+      heapsize = newsize;
+    }
+
+  _heaplimit = BLOCK ((char *) result + size);
+  return result;
+}
+
+/* Allocate memory from the heap.  */
+__ptr_t
+malloc (size)
+     __malloc_size_t size;
+{
+  __ptr_t result;
+  __malloc_size_t block, blocks, lastblocks, start;
+  register __malloc_size_t i;
+  struct list *next;
+
+  /* ANSI C allows `malloc (0)' to either return NULL, or to return a
+     valid address you can realloc and free (though not dereference).
+
+     It turns out that some extant code (sunrpc, at least Ultrix's version)
+     expects `malloc (0)' to return non-NULL and breaks otherwise.
+     Be compatible.  */
+
+#if	0
+  if (size == 0)
+    return NULL;
+#endif
+
+  if (__malloc_hook != NULL)
+    return (*__malloc_hook) (size);
+
+  if (!__malloc_initialized)
+    if (!initialize ())
+      return NULL;
+
+  if (size < sizeof (struct list))
+    size = sizeof (struct list);
+
+#ifdef SUNOS_LOCALTIME_BUG
+  if (size < 16)
+    size = 16;
+#endif
+
+  /* Determine the allocation policy based on the request size.  */
+  if (size <= BLOCKSIZE / 2)
+    {
+      /* Small allocation to receive a fragment of a block.
+	 Determine the logarithm to base two of the fragment size. */
+      register __malloc_size_t log = 1;
+      --size;
+      while ((size /= 2) != 0)
+	++log;
+
+      /* Look in the fragment lists for a
+	 free fragment of the desired size. */
+      next = _fraghead[log].next;
+      if (next != NULL)
+	{
+	  /* There are free fragments of this size.
+	     Pop a fragment out of the fragment list and return it.
+	     Update the block's nfree and first counters. */
+	  result = (__ptr_t) next;
+	  next->prev->next = next->next;
+	  if (next->next != NULL)
+	    next->next->prev = next->prev;
+	  block = BLOCK (result);
+	  if (--_heapinfo[block].busy.info.frag.nfree != 0)
+	    _heapinfo[block].busy.info.frag.first = (unsigned long int)
+	      ((unsigned long int) ((char *) next->next - (char *) NULL)
+	       % BLOCKSIZE) >> log;
+
+	  /* Update the statistics.  */
+	  ++_chunks_used;
+	  _bytes_used += 1 << log;
+	  --_chunks_free;
+	  _bytes_free -= 1 << log;
+	}
+      else
+	{
+	  /* No free fragments of the desired size, so get a new block
+	     and break it into fragments, returning the first.  */
+	  result = malloc (BLOCKSIZE);
+	  if (result == NULL)
+	    return NULL;
+
+	  /* Link all fragments but the first into the free list.  */
+	  for (i = 1; i < (__malloc_size_t) (BLOCKSIZE >> log); ++i)
+	    {
+	      next = (struct list *) ((char *) result + (i << log));
+	      next->next = _fraghead[log].next;
+	      next->prev = &_fraghead[log];
+	      next->prev->next = next;
+	      if (next->next != NULL)
+		next->next->prev = next;
+	    }
+
+	  /* Initialize the nfree and first counters for this block.  */
+	  block = BLOCK (result);
+	  _heapinfo[block].busy.type = log;
+	  _heapinfo[block].busy.info.frag.nfree = i - 1;
+	  _heapinfo[block].busy.info.frag.first = i - 1;
+
+	  _chunks_free += (BLOCKSIZE >> log) - 1;
+	  _bytes_free += BLOCKSIZE - (1 << log);
+	  _bytes_used -= BLOCKSIZE - (1 << log);
+	}
+    }
+  else
+    {
+      /* Large allocation to receive one or more blocks.
+	 Search the free list in a circle starting at the last place visited.
+	 If we loop completely around without finding a large enough
+	 space we will have to get more memory from the system.  */
+      blocks = BLOCKIFY (size);
+      start = block = _heapindex;
+      while (_heapinfo[block].free.size < blocks)
+	{
+	  block = _heapinfo[block].free.next;
+	  if (block == start)
+	    {
+	      /* Need to get more from the system.  Check to see if
+		 the new core will be contiguous with the final free
+		 block; if so we don't need to get as much.  */
+	      block = _heapinfo[0].free.prev;
+	      lastblocks = _heapinfo[block].free.size;
+	      if (_heaplimit != 0 && block + lastblocks == _heaplimit &&
+		  (*__morecore) (0) == ADDRESS (block + lastblocks) &&
+		  (morecore ((blocks - lastblocks) * BLOCKSIZE)) != NULL)
+		{
+ 		  /* Which block we are extending (the `final free
+ 		     block' referred to above) might have changed, if
+ 		     it got combined with a freed info table.  */
+ 		  block = _heapinfo[0].free.prev;
+  		  _heapinfo[block].free.size += (blocks - lastblocks);
+		  _bytes_free += (blocks - lastblocks) * BLOCKSIZE;
+		  continue;
+		}
+	      result = morecore (blocks * BLOCKSIZE);
+	      if (result == NULL)
+		return NULL;
+	      block = BLOCK (result);
+	      _heapinfo[block].busy.type = 0;
+	      _heapinfo[block].busy.info.size = blocks;
+	      ++_chunks_used;
+	      _bytes_used += blocks * BLOCKSIZE;
+	      return result;
+	    }
+	}
+
+      /* At this point we have found a suitable free list entry.
+	 Figure out how to remove what we need from the list. */
+      result = ADDRESS (block);
+      if (_heapinfo[block].free.size > blocks)
+	{
+	  /* The block we found has a bit left over,
+	     so relink the tail end back into the free list. */
+	  _heapinfo[block + blocks].free.size
+	    = _heapinfo[block].free.size - blocks;
+	  _heapinfo[block + blocks].free.next
+	    = _heapinfo[block].free.next;
+	  _heapinfo[block + blocks].free.prev
+	    = _heapinfo[block].free.prev;
+	  _heapinfo[_heapinfo[block].free.prev].free.next
+	    = _heapinfo[_heapinfo[block].free.next].free.prev
+	    = _heapindex = block + blocks;
+	}
+      else
+	{
+	  /* The block exactly matches our requirements,
+	     so just remove it from the list. */
+	  _heapinfo[_heapinfo[block].free.next].free.prev
+	    = _heapinfo[block].free.prev;
+	  _heapinfo[_heapinfo[block].free.prev].free.next
+	    = _heapindex = _heapinfo[block].free.next;
+	  --_chunks_free;
+	}
+
+      _heapinfo[block].busy.type = 0;
+      _heapinfo[block].busy.info.size = blocks;
+      ++_chunks_used;
+      _bytes_used += blocks * BLOCKSIZE;
+      _bytes_free -= blocks * BLOCKSIZE;
+
+      /* Mark all the blocks of the object just allocated except for the
+	 first with a negative number so you can find the first block by
+	 adding that adjustment.  */
+      while (--blocks > 0)
+	_heapinfo[block + blocks].busy.info.size = -blocks;
+    }
+
+  return result;
+}
+
+#ifndef _LIBC
+
+/* On some ANSI C systems, some libc functions call _malloc, _free
+   and _realloc.  Make them use the GNU functions.  */
+
+__ptr_t
+_malloc (size)
+     __malloc_size_t size;
+{
+  return malloc (size);
+}
+
+void
+_free (ptr)
+     __ptr_t ptr;
+{
+  free (ptr);
+}
+
+__ptr_t
+_realloc (ptr, size)
+     __ptr_t ptr;
+     __malloc_size_t size;
+{
+  return realloc (ptr, size);
+}
+
+#endif
+/* Free a block of memory allocated by `malloc'.
+   Copyright 1990, 1991, 1992, 1994 Free Software Foundation, Inc.
+		  Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+/* Debugging hook for free.  */
+void (*__free_hook) __P ((__ptr_t __ptr));
+
+/* List of blocks allocated by memalign.  */
+struct alignlist *_aligned_blocks = NULL;
+
+/* Return memory to the heap.
+   Like `free' but don't call a __free_hook if there is one.  */
+void
+_free_internal (ptr)
+     __ptr_t ptr;
+{
+  int type;
+  __malloc_size_t block, blocks;
+  register __malloc_size_t i;
+  struct list *prev, *next;
+
+  block = BLOCK (ptr);
+
+  type = _heapinfo[block].busy.type;
+  switch (type)
+    {
+    case 0:
+      /* Get as many statistics as early as we can.  */
+      --_chunks_used;
+      _bytes_used -= _heapinfo[block].busy.info.size * BLOCKSIZE;
+      _bytes_free += _heapinfo[block].busy.info.size * BLOCKSIZE;
+
+      /* Find the free cluster previous to this one in the free list.
+	 Start searching at the last block referenced; this may benefit
+	 programs with locality of allocation.  */
+      i = _heapindex;
+      if (i > block)
+	while (i > block)
+	  i = _heapinfo[i].free.prev;
+      else
+	{
+	  do
+	    i = _heapinfo[i].free.next;
+	  while (i > 0 && i < block);
+	  i = _heapinfo[i].free.prev;
+	}
+
+      /* Determine how to link this block into the free list.  */
+      if (block == i + _heapinfo[i].free.size)
+	{
+	  /* Coalesce this block with its predecessor.  */
+	  _heapinfo[i].free.size += _heapinfo[block].busy.info.size;
+	  block = i;
+	}
+      else
+	{
+	  /* Really link this block back into the free list.  */
+	  _heapinfo[block].free.size = _heapinfo[block].busy.info.size;
+	  _heapinfo[block].free.next = _heapinfo[i].free.next;
+	  _heapinfo[block].free.prev = i;
+	  _heapinfo[i].free.next = block;
+	  _heapinfo[_heapinfo[block].free.next].free.prev = block;
+	  ++_chunks_free;
+	}
+
+      /* Now that the block is linked in, see if we can coalesce it
+	 with its successor (by deleting its successor from the list
+	 and adding in its size).  */
+      if (block + _heapinfo[block].free.size == _heapinfo[block].free.next)
+	{
+	  _heapinfo[block].free.size
+	    += _heapinfo[_heapinfo[block].free.next].free.size;
+	  _heapinfo[block].free.next
+	    = _heapinfo[_heapinfo[block].free.next].free.next;
+	  _heapinfo[_heapinfo[block].free.next].free.prev = block;
+	  --_chunks_free;
+	}
+
+      /* Now see if we can return stuff to the system.  */
+      blocks = _heapinfo[block].free.size;
+      if (blocks >= FINAL_FREE_BLOCKS && block + blocks == _heaplimit
+	  && (*__morecore) (0) == ADDRESS (block + blocks))
+	{
+	  register __malloc_size_t bytes = blocks * BLOCKSIZE;
+	  _heaplimit -= blocks;
+	  (*__morecore) (-bytes);
+	  _heapinfo[_heapinfo[block].free.prev].free.next
+	    = _heapinfo[block].free.next;
+	  _heapinfo[_heapinfo[block].free.next].free.prev
+	    = _heapinfo[block].free.prev;
+	  block = _heapinfo[block].free.prev;
+	  --_chunks_free;
+	  _bytes_free -= bytes;
+	}
+
+      /* Set the next search to begin at this block.  */
+      _heapindex = block;
+      break;
+
+    default:
+      /* Do some of the statistics.  */
+      --_chunks_used;
+      _bytes_used -= 1 << type;
+      ++_chunks_free;
+      _bytes_free += 1 << type;
+
+      /* Get the address of the first free fragment in this block.  */
+      prev = (struct list *) ((char *) ADDRESS (block) +
+			   (_heapinfo[block].busy.info.frag.first << type));
+
+      if (_heapinfo[block].busy.info.frag.nfree == (BLOCKSIZE >> type) - 1)
+	{
+	  /* If all fragments of this block are free, remove them
+	     from the fragment list and free the whole block.  */
+	  next = prev;
+	  for (i = 1; i < (__malloc_size_t) (BLOCKSIZE >> type); ++i)
+	    next = next->next;
+	  prev->prev->next = next;
+	  if (next != NULL)
+	    next->prev = prev->prev;
+	  _heapinfo[block].busy.type = 0;
+	  _heapinfo[block].busy.info.size = 1;
+
+	  /* Keep the statistics accurate.  */
+	  ++_chunks_used;
+	  _bytes_used += BLOCKSIZE;
+	  _chunks_free -= BLOCKSIZE >> type;
+	  _bytes_free -= BLOCKSIZE;
+
+	  free (ADDRESS (block));
+	}
+      else if (_heapinfo[block].busy.info.frag.nfree != 0)
+	{
+	  /* If some fragments of this block are free, link this
+	     fragment into the fragment list after the first free
+	     fragment of this block. */
+	  next = (struct list *) ptr;
+	  next->next = prev->next;
+	  next->prev = prev;
+	  prev->next = next;
+	  if (next->next != NULL)
+	    next->next->prev = next;
+	  ++_heapinfo[block].busy.info.frag.nfree;
+	}
+      else
+	{
+	  /* No fragments of this block are free, so link this
+	     fragment into the fragment list and announce that
+	     it is the first free fragment of this block. */
+	  prev = (struct list *) ptr;
+	  _heapinfo[block].busy.info.frag.nfree = 1;
+	  _heapinfo[block].busy.info.frag.first = (unsigned long int)
+	    ((unsigned long int) ((char *) ptr - (char *) NULL)
+	     % BLOCKSIZE >> type);
+	  prev->next = _fraghead[type].next;
+	  prev->prev = &_fraghead[type];
+	  prev->prev->next = prev;
+	  if (prev->next != NULL)
+	    prev->next->prev = prev;
+	}
+      break;
+    }
+}
+
+/* Return memory to the heap.  */
+void
+free (ptr)
+     __ptr_t ptr;
+{
+  register struct alignlist *l;
+
+  if (ptr == NULL)
+    return;
+
+  for (l = _aligned_blocks; l != NULL; l = l->next)
+    if (l->aligned == ptr)
+      {
+	l->aligned = NULL;	/* Mark the slot in the list as free.  */
+	ptr = l->exact;
+	break;
+      }
+
+  if (__free_hook != NULL)
+    (*__free_hook) (ptr);
+  else
+    _free_internal (ptr);
+}
+/* Copyright (C) 1991, 1993, 1994 Free Software Foundation, Inc.
+This file is part of the GNU C Library.
+
+The GNU C Library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+The GNU C Library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with the GNU C Library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.  */
+
+#ifdef _LIBC
+
+#include <ansidecl.h>
+#include <gnu-stabs.h>
+
+#undef	cfree
+
+function_alias(cfree, free, void, (ptr),
+	       DEFUN(cfree, (ptr), PTR ptr))
+
+#else
+
+void
+cfree (ptr)
+     __ptr_t ptr;
+{
+  free (ptr);
+}
+
+#endif
+/* Change the size of a block allocated by `malloc'.
+   Copyright 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+		     Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+#if  (defined (MEMMOVE_MISSING) || \
+      !defined(_LIBC) && !defined(STDC_HEADERS) && !defined(USG))
+
+/* Snarfed directly from Emacs src/dispnew.c:
+   XXX Should use system bcopy if it handles overlap.  */
+#ifndef emacs
+
+/* Like bcopy except never gets confused by overlap.  */
+
+static void
+safe_bcopy (from, to, size)
+     char *from, *to;
+     int size;
+{
+  if (size <= 0 || from == to)
+    return;
+
+  /* If the source and destination don't overlap, then bcopy can
+     handle it.  If they do overlap, but the destination is lower in
+     memory than the source, we'll assume bcopy can handle that.  */
+  if (to < from || from + size <= to)
+    bcopy (from, to, size);
+
+  /* Otherwise, we'll copy from the end.  */
+  else
+    {
+      register char *endf = from + size;
+      register char *endt = to + size;
+
+      /* If TO - FROM is large, then we should break the copy into
+	 nonoverlapping chunks of TO - FROM bytes each.  However, if
+	 TO - FROM is small, then the bcopy function call overhead
+	 makes this not worth it.  The crossover point could be about
+	 anywhere.  Since I don't think the obvious copy loop is too
+	 bad, I'm trying to err in its favor.  */
+      if (to - from < 64)
+	{
+	  do
+	    *--endt = *--endf;
+	  while (endf != from);
+	}
+      else
+	{
+	  for (;;)
+	    {
+	      endt -= (to - from);
+	      endf -= (to - from);
+
+	      if (endt < to)
+		break;
+
+	      bcopy (endf, endt, to - from);
+	    }
+
+	  /* If SIZE wasn't a multiple of TO - FROM, there will be a
+	     little left over.  The amount left over is
+	     (endt + (to - from)) - to, which is endt - from.  */
+	  bcopy (from, to, endt - from);
+	}
+    }
+}
+#endif	/* Not emacs.  */
+
+#define memmove(to, from, size) safe_bcopy ((from), (to), (size))
+
+#endif
+
+
+#define min(A, B) ((A) < (B) ? (A) : (B))
+
+/* Debugging hook for realloc.  */
+__ptr_t (*__realloc_hook) __P ((__ptr_t __ptr, __malloc_size_t __size));
+
+/* Resize the given region to the new size, returning a pointer
+   to the (possibly moved) region.  This is optimized for speed;
+   some benchmarks seem to indicate that greater compactness is
+   achieved by unconditionally allocating and copying to a
+   new region.  This module has incestuous knowledge of the
+   internals of both free and malloc. */
+__ptr_t
+realloc (ptr, size)
+     __ptr_t ptr;
+     __malloc_size_t size;
+{
+  __ptr_t result;
+  int type;
+  __malloc_size_t block, blocks, oldlimit;
+
+  if (size == 0)
+    {
+      free (ptr);
+      return malloc (0);
+    }
+  else if (ptr == NULL)
+    return malloc (size);
+
+  if (__realloc_hook != NULL)
+    return (*__realloc_hook) (ptr, size);
+
+  block = BLOCK (ptr);
+
+  type = _heapinfo[block].busy.type;
+  switch (type)
+    {
+    case 0:
+      /* Maybe reallocate a large block to a small fragment.  */
+      if (size <= BLOCKSIZE / 2)
+	{
+	  result = malloc (size);
+	  if (result != NULL)
+	    {
+	      memcpy (result, ptr, size);
+	      _free_internal (ptr);
+	      return result;
+	    }
+	}
+
+      /* The new size is a large allocation as well;
+	 see if we can hold it in place. */
+      blocks = BLOCKIFY (size);
+      if (blocks < _heapinfo[block].busy.info.size)
+	{
+	  /* The new size is smaller; return
+	     excess memory to the free list. */
+	  _heapinfo[block + blocks].busy.type = 0;
+	  _heapinfo[block + blocks].busy.info.size
+	    = _heapinfo[block].busy.info.size - blocks;
+	  _heapinfo[block].busy.info.size = blocks;
+	  /* We have just created a new chunk by splitting a chunk in two.
+	     Now we will free this chunk; increment the statistics counter
+	     so it doesn't become wrong when _free_internal decrements it.  */
+	  ++_chunks_used;
+	  _free_internal (ADDRESS (block + blocks));
+	  result = ptr;
+	}
+      else if (blocks == _heapinfo[block].busy.info.size)
+	/* No size change necessary.  */
+	result = ptr;
+      else
+	{
+	  /* Won't fit, so allocate a new region that will.
+	     Free the old region first in case there is sufficient
+	     adjacent free space to grow without moving. */
+	  blocks = _heapinfo[block].busy.info.size;
+	  /* Prevent free from actually returning memory to the system.  */
+	  oldlimit = _heaplimit;
+	  _heaplimit = 0;
+	  _free_internal (ptr);
+	  _heaplimit = oldlimit;
+	  result = malloc (size);
+	  if (result == NULL)
+	    {
+	      /* Now we're really in trouble.  We have to unfree
+		 the thing we just freed.  Unfortunately it might
+		 have been coalesced with its neighbors.  */
+	      if (_heapindex == block)
+	        (void) malloc (blocks * BLOCKSIZE);
+	      else
+		{
+		  __ptr_t previous = malloc ((block - _heapindex) * BLOCKSIZE);
+		  (void) malloc (blocks * BLOCKSIZE);
+		  _free_internal (previous);
+		}
+	      return NULL;
+	    }
+	  if (ptr != result)
+	    memmove (result, ptr, blocks * BLOCKSIZE);
+	}
+      break;
+
+    default:
+      /* Old size is a fragment; type is logarithm
+	 to base two of the fragment size.  */
+      if (size > (__malloc_size_t) (1 << (type - 1)) &&
+	  size <= (__malloc_size_t) (1 << type))
+	/* The new size is the same kind of fragment.  */
+	result = ptr;
+      else
+	{
+	  /* The new size is different; allocate a new space,
+	     and copy the lesser of the new size and the old. */
+	  result = malloc (size);
+	  if (result == NULL)
+	    return NULL;
+	  memcpy (result, ptr, min (size, (__malloc_size_t) 1 << type));
+	  free (ptr);
+	}
+      break;
+    }
+
+  return result;
+}
+/* Copyright (C) 1991, 1992, 1994 Free Software Foundation, Inc.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+/* Allocate an array of NMEMB elements each SIZE bytes long.
+   The entire array is initialized to zeros.  */
+__ptr_t
+calloc (nmemb, size)
+     register __malloc_size_t nmemb;
+     register __malloc_size_t size;
+{
+  register __ptr_t result = malloc (nmemb * size);
+
+  if (result != NULL)
+    (void) memset (result, 0, nmemb * size);
+
+  return result;
+}
+/* Copyright (C) 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+This file is part of the GNU C Library.
+
+The GNU C Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
+
+The GNU C Library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the GNU C Library; see the file COPYING.  If not, write to
+the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
+
+#ifndef	__GNU_LIBRARY__
+#define	__sbrk	sbrk
+#endif
+
+#ifdef __GNU_LIBRARY__
+/* It is best not to declare this and cast its result on foreign operating
+   systems with potentially hostile include files.  */
+extern __ptr_t __sbrk __P ((int increment));
+#endif
+
+#ifndef NULL
+#define NULL 0
+#endif
+
+/* Allocate INCREMENT more bytes of data space,
+   and return the start of data space, or NULL on errors.
+   If INCREMENT is negative, shrink data space.  */
+__ptr_t
+__default_morecore (increment)
+#ifdef __STDC__
+     ptrdiff_t increment;
+#else
+     int increment;
+#endif
+{
+  __ptr_t result = (__ptr_t) __sbrk ((int) increment);
+  if (result == (__ptr_t) -1)
+    return NULL;
+  return result;
+}
+/* Copyright (C) 1991, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.  */
+
+__ptr_t (*__memalign_hook) __P ((size_t __size, size_t __alignment));
+
+__ptr_t
+memalign (alignment, size)
+     __malloc_size_t alignment;
+     __malloc_size_t size;
+{
+  __ptr_t result;
+  unsigned long int adj;
+
+  if (__memalign_hook)
+    return (*__memalign_hook) (alignment, size);
+
+  size = ((size + alignment - 1) / alignment) * alignment;
+
+  result = malloc (size);
+  if (result == NULL)
+    return NULL;
+  adj = (unsigned long int) ((unsigned long int) ((char *) result -
+						  (char *) NULL)) % alignment;
+  if (adj != 0)
+    {
+      struct alignlist *l;
+      for (l = _aligned_blocks; l != NULL; l = l->next)
+	if (l->aligned == NULL)
+	  /* This slot is free.  Use it.  */
+	  break;
+      if (l == NULL)
+	{
+	  l = (struct alignlist *) malloc (sizeof (struct alignlist));
+	  if (l == NULL)
+	    {
+	      free (result);
+	      return NULL;
+	    }
+	  l->next = _aligned_blocks;
+	  _aligned_blocks = l;
+	}
+      l->exact = result;
+      result = l->aligned = (char *) result + alignment - adj;
+    }
+
+  return result;
+}
+/* Standard debugging hooks for `malloc'.
+   Copyright 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+   Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+/* Old hook values.  */
+static void (*old_free_hook) __P ((__ptr_t ptr));
+static __ptr_t (*old_malloc_hook) __P ((__malloc_size_t size));
+static __ptr_t (*old_realloc_hook) __P ((__ptr_t ptr, __malloc_size_t size));
+
+/* Function to call when something awful happens.  */
+static void (*abortfunc) __P ((enum mcheck_status));
+
+/* Arbitrary magical numbers.  */
+#define MAGICWORD	0xfedabeeb
+#define MAGICFREE	0xd8675309
+#define MAGICBYTE	((char) 0xd7)
+#define MALLOCFLOOD	((char) 0x93)
+#define FREEFLOOD	((char) 0x95)
+
+struct hdr
+  {
+    __malloc_size_t size;		/* Exact size requested by user.  */
+    unsigned long int magic;	/* Magic number to check header integrity.  */
+  };
+
+#if	defined(_LIBC) || defined(STDC_HEADERS) || defined(USG)
+#define flood memset
+#else
+static void flood __P ((__ptr_t, int, __malloc_size_t));
+static void
+flood (ptr, val, size)
+     __ptr_t ptr;
+     int val;
+     __malloc_size_t size;
+{
+  char *cp = ptr;
+  while (size--)
+    *cp++ = val;
+}
+#endif
+
+static enum mcheck_status checkhdr __P ((const struct hdr *));
+static enum mcheck_status
+checkhdr (hdr)
+     const struct hdr *hdr;
+{
+  enum mcheck_status status;
+  switch (hdr->magic)
+    {
+    default:
+      status = MCHECK_HEAD;
+      break;
+    case MAGICFREE:
+      status = MCHECK_FREE;
+      break;
+    case MAGICWORD:
+      if (((char *) &hdr[1])[hdr->size] != MAGICBYTE)
+	status = MCHECK_TAIL;
+      else
+	status = MCHECK_OK;
+      break;
+    }
+  if (status != MCHECK_OK)
+    (*abortfunc) (status);
+  return status;
+}
+
+static void freehook __P ((__ptr_t));
+static void
+freehook (ptr)
+     __ptr_t ptr;
+{
+  struct hdr *hdr = ((struct hdr *) ptr) - 1;
+  checkhdr (hdr);
+  hdr->magic = MAGICFREE;
+  flood (ptr, FREEFLOOD, hdr->size);
+  __free_hook = old_free_hook;
+  free (hdr);
+  __free_hook = freehook;
+}
+
+static __ptr_t mallochook __P ((__malloc_size_t));
+static __ptr_t
+mallochook (size)
+     __malloc_size_t size;
+{
+  struct hdr *hdr;
+
+  __malloc_hook = old_malloc_hook;
+  hdr = (struct hdr *) malloc (sizeof (struct hdr) + size + 1);
+  __malloc_hook = mallochook;
+  if (hdr == NULL)
+    return NULL;
+
+  hdr->size = size;
+  hdr->magic = MAGICWORD;
+  ((char *) &hdr[1])[size] = MAGICBYTE;
+  flood ((__ptr_t) (hdr + 1), MALLOCFLOOD, size);
+  return (__ptr_t) (hdr + 1);
+}
+
+static __ptr_t reallochook __P ((__ptr_t, __malloc_size_t));
+static __ptr_t
+reallochook (ptr, size)
+     __ptr_t ptr;
+     __malloc_size_t size;
+{
+  struct hdr *hdr = ((struct hdr *) ptr) - 1;
+  __malloc_size_t osize = hdr->size;
+
+  checkhdr (hdr);
+  if (size < osize)
+    flood ((char *) ptr + size, FREEFLOOD, osize - size);
+  __free_hook = old_free_hook;
+  __malloc_hook = old_malloc_hook;
+  __realloc_hook = old_realloc_hook;
+  hdr = (struct hdr *) realloc ((__ptr_t) hdr, sizeof (struct hdr) + size + 1);
+  __free_hook = freehook;
+  __malloc_hook = mallochook;
+  __realloc_hook = reallochook;
+  if (hdr == NULL)
+    return NULL;
+
+  hdr->size = size;
+  hdr->magic = MAGICWORD;
+  ((char *) &hdr[1])[size] = MAGICBYTE;
+  if (size > osize)
+    flood ((char *) (hdr + 1) + osize, MALLOCFLOOD, size - osize);
+  return (__ptr_t) (hdr + 1);
+}
+
+static void
+mabort (status)
+     enum mcheck_status status;
+{
+  const char *msg;
+  switch (status)
+    {
+    case MCHECK_OK:
+      msg = "memory is consistent, library is buggy";
+      break;
+    case MCHECK_HEAD:
+      msg = "memory clobbered before allocated block";
+      break;
+    case MCHECK_TAIL:
+      msg = "memory clobbered past end of allocated block";
+      break;
+    case MCHECK_FREE:
+      msg = "block freed twice";
+      break;
+    default:
+      msg = "bogus mcheck_status, library is buggy";
+      break;
+    }
+  fprintf (stderr, "mcheck: %s\n", msg);
+  fflush (stderr);
+#ifdef USE_TRACING
+  DBG_sigfunc(-1) ;
+#endif
+  abort ();
+}
+
+static int mcheck_used = 0;
+
+int
+mcheck (func)
+     void (*func) __P ((enum mcheck_status));
+{
+  abortfunc = (func != NULL) ? func : &mabort;
+
+  /* These hooks may not be safely inserted if malloc is already in use.  */
+  if (!__malloc_initialized && !mcheck_used)
+    {
+      old_free_hook = __free_hook;
+      __free_hook = freehook;
+      old_malloc_hook = __malloc_hook;
+      __malloc_hook = mallochook;
+      old_realloc_hook = __realloc_hook;
+      __realloc_hook = reallochook;
+      mcheck_used = 1;
+    }
+
+  return mcheck_used ? 0 : -1;
+}
+
+enum mcheck_status
+mprobe (__ptr_t ptr)
+{
+  return mcheck_used ? checkhdr (ptr) : MCHECK_DISABLED;
+}
+/* More debugging hooks for `malloc'.
+   Copyright (C) 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+		 Written April 2, 1991 by John Gilmore of Cygnus Support.
+		 Based on mcheck.c by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
+#ifndef	__GNU_LIBRARY__
+extern char *getenv ();
+#else
+#include <stdlib.h>
+#endif
+
+static FILE *mallstream;
+static char mallenv[]= "MALLOC_TRACE";
+static char mallbuf[BUFSIZ];	/* Buffer for the output.  */
+
+/* Address to breakpoint on accesses to... */
+__ptr_t mallwatch;
+
+/* File name and line number information, for callers that had
+   the foresight to call through a macro.  */
+char *_mtrace_file;
+int _mtrace_line;
+
+/* Old hook values.  */
+static void (*tr_old_free_hook) __P ((__ptr_t ptr));
+static __ptr_t (*tr_old_malloc_hook) __P ((__malloc_size_t size));
+static __ptr_t (*tr_old_realloc_hook) __P ((__ptr_t ptr, __malloc_size_t size));
+
+/* This function is called when the block being alloc'd, realloc'd, or
+   freed has an address matching the variable "mallwatch".  In a debugger,
+   set "mallwatch" to the address of interest, then put a breakpoint on
+   tr_break.  */
+
+void tr_break __P ((void));
+void
+tr_break ()
+{
+}
+
+static void tr_where __P ((void));
+static void
+tr_where ()
+{
+  if (_mtrace_file)
+    {
+      fprintf (mallstream, "@ %s:%d ", _mtrace_file, _mtrace_line);
+      _mtrace_file = NULL;
+    }
+}
+
+static void tr_freehook __P ((__ptr_t));
+static void
+tr_freehook (ptr)
+     __ptr_t ptr;
+{
+  tr_where ();
+  fprintf (mallstream, "- %p\n", ptr);	/* Be sure to print it first.  */
+  if (ptr == mallwatch)
+    tr_break ();
+  __free_hook = tr_old_free_hook;
+  free (ptr);
+  __free_hook = tr_freehook;
+}
+
+static __ptr_t tr_mallochook __P ((__malloc_size_t));
+static __ptr_t
+tr_mallochook (size)
+     __malloc_size_t size;
+{
+  __ptr_t hdr;
+
+  __malloc_hook = tr_old_malloc_hook;
+  hdr = (__ptr_t) malloc (size);
+  __malloc_hook = tr_mallochook;
+
+  tr_where ();
+  /* We could be printing a NULL here; that's OK.  */
+  fprintf (mallstream, "+ %p %lx\n", hdr, (unsigned long)size);
+
+  if (hdr == mallwatch)
+    tr_break ();
+
+  return hdr;
+}
+
+static __ptr_t tr_reallochook __P ((__ptr_t, __malloc_size_t));
+static __ptr_t
+tr_reallochook (ptr, size)
+     __ptr_t ptr;
+     __malloc_size_t size;
+{
+  __ptr_t hdr;
+
+  if (ptr == mallwatch)
+    tr_break ();
+
+  __free_hook = tr_old_free_hook;
+  __malloc_hook = tr_old_malloc_hook;
+  __realloc_hook = tr_old_realloc_hook;
+  hdr = (__ptr_t) realloc (ptr, size);
+  __free_hook = tr_freehook;
+  __malloc_hook = tr_mallochook;
+  __realloc_hook = tr_reallochook;
+  tr_where ();
+  if (hdr == NULL)
+    /* Failed realloc.  */
+    fprintf (mallstream, "! %p %lx\n", ptr, (unsigned long)size);
+  else
+    fprintf (mallstream, "< %p\n> %p %lx\n", ptr, hdr, (unsigned long)size);
+
+  if (hdr == mallwatch)
+    tr_break ();
+
+  return hdr;
+}
+
+/* We enable tracing if either the environment variable MALLOC_TRACE
+   is set, or if the variable mallwatch has been patched to an address
+   that the debugging user wants us to stop on.  When patching mallwatch,
+   don't forget to set a breakpoint on tr_break!  */
+
+void
+mtrace ()
+{
+  char *mallfile;
+
+  /* Don't panic if we're called more than once.  */
+  if (mallstream != NULL)
+    return;
+
+  mallfile = getenv (mallenv);
+  if (mallfile != NULL || mallwatch != NULL)
+    {
+      mallstream = fopen (mallfile != NULL ? mallfile : "/dev/null", "w");
+      if (mallstream != NULL)
+	{
+	  /* Be sure it doesn't malloc its buffer!  */
+	  setbuf (mallstream, mallbuf);
+	  fprintf (mallstream, "= Start\n");
+	  tr_old_free_hook = __free_hook;
+	  __free_hook = tr_freehook;
+	  tr_old_malloc_hook = __malloc_hook;
+	  __malloc_hook = tr_mallochook;
+	  tr_old_realloc_hook = __realloc_hook;
+	  __realloc_hook = tr_reallochook;
+	}
+    }
+}
+
+void
+muntrace ()
+{
+  if (mallstream == NULL)
+    return;
+
+  fprintf (mallstream, "= End\n");
+  fclose (mallstream);
+  mallstream = NULL;
+  __free_hook = tr_old_free_hook;
+  __malloc_hook = tr_old_malloc_hook;
+  __realloc_hook = tr_old_realloc_hook;
+}
+
+/**-------------- RWCox: provide Xt routines too --------------**/
+
+#undef XtMalloc
+#undef XtRealloc
+#undef XtFree
+#undef XtCalloc
+
+#ifdef MALLOC_TRACE
+   char *XtMalloc ( Cardinal n )            { return malloc_track(n) ; }
+   char *XtRealloc( char *p, Cardinal n )   { return realloc_track(p,n) ; }
+   void  XtFree   ( char *p )               { free_track(p) ; return ; }
+   char *XtCalloc( Cardinal n , Cardinal m ){ return calloc_track(n,m) ; }
+#else
+   char *XtMalloc ( Cardinal n )            { return malloc(n) ; }
+   char *XtRealloc( char *p, Cardinal n )   { return realloc(p,n) ; }
+   void  XtFree   ( char *p )               { free(p) ; return ; }
+   char *XtCalloc( Cardinal n , Cardinal m ){ return calloc(n,m) ; }
+#endif
+
+/**----------- RWCox: do some tracking and debugging ----------**/
+#ifdef MALLOC_TRACE
+
+#undef malloc
+#undef realloc
+#undef calloc
+#undef free
+
+#define INC_MT 4096
+static int amt = 0 , nmt = 0 ;
+static void  ** pmt = NULL ;
+static size_t * psz = NULL ;
+
+int ptr_tracker( void * fred )
+{
+   int ii ;
+   if( fred == NULL ) return -1 ;
+   for( ii=0 ; ii < nmt ; ii++ ) if( fred == pmt[ii] ) return ii ;
+   return -1 ;
+}
+
+int nul_tracker(void)
+{
+   int ii ;
+   for( ii=0 ; ii < nmt ; ii++ ) if( pmt[ii] == NULL ) return ii ;
+   return -1 ;
+}
+
+void add_tracker( void * fred , size_t n )
+{
+   int ii ;
+   if( nmt == amt ){
+      amt += INC_MT ;
+      pmt  = (void **)  realloc( pmt , sizeof(void *)*amt ) ;
+      psz  = (size_t *) realloc( psz , sizeof(size_t)*amt ) ;
+   }
+   ii = nul_tracker() ;
+   if( ii < 0 ){ psz[nmt] = n ; pmt[nmt++] = fred ; }
+   else        { psz[ii]  = n ; pmt[ii]    = fred ; }
+   return ;
+}
+
+void * malloc_track( size_t n )
+{
+   void * fred ;
+
+   fred = malloc(n) ; if( fred == NULL ) return NULL ;
+   add_tracker(fred,n) ;
+   return fred ;
+}
+
+void * realloc_track( void * fred , size_t n )
+{
+   void * nfred ;
+   int ii ;
+
+   ii = ptr_tracker( fred ) ;
+   nfred = realloc( fred , n ) ;
+   if( ii >= 0 ){ psz[ii] = n ; pmt[ii] = nfred ; }
+   else         add_tracker(nfred,n) ;
+   return nfred ;
+}
+
+void * calloc_track( size_t n , size_t m )
+{
+   void * fred ;
+   fred = calloc(n,m) ; if( fred == NULL ) return NULL ;
+   add_tracker(fred,n*m) ;
+   return fred ;
+}
+
+void free_track( void * fred )
+{
+   int ii ;
+
+   if( fred == NULL ) return ;
+   ii = ptr_tracker( fred ) ;
+   if( ii >= 0 ) pmt[ii] = NULL ;
+   free(fred) ;
+   return ;
+}
+
+char * check_malloc(void)
+{
+   static char buf[128] = "\0" ;
+   int ii , nptr=0 ; size_t nbyt=0 ;
+   struct hdr * hdr ;
+
+   for( ii=0 ; ii < nmt ; ii++ )
+      if( pmt[ii] != NULL ){
+         hdr = ((struct hdr *) pmt[ii]) - 1 ; mprobe(hdr);
+         nptr++ ; nbyt += psz[ii] ;
+      }
+#if 0
+   if( buf[0] == '\0' ){fprintf(stderr,"sizeof(struct hdr)=%d\n",sizeof(struct hdr));sleep(2);}
+#endif
+
+   sprintf(buf,"chunks=%d bytes=%d",nptr,(int)nbyt) ; return buf ;
+}
+#endif /* MALLOC_TRACE */
+#endif /* USE_GNU_MALLOC */

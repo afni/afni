@@ -1,0 +1,116 @@
+#define  NEED_PARSER_INTERNALS
+#include "parser.h"
+
+/***** C routines to interface to the f2c generated parser code *****/
+
+/*------------------------------------------------------------------
+   Input  = expression string
+   Output = structure containing information about how to
+            evaluate the expression; should be free-d when unneeded;
+            if NULL is returned, an error occurred.
+--------------------------------------------------------------------*/
+
+PARSER_code * PARSER_generate_code( char * expression )
+{
+   logical false = FALSE_ ;
+   integer num_code ;
+   int nexp ;
+   PARSER_code * pc ;
+
+   if( expression == NULL ) return NULL ;
+   nexp = strlen( expression ) ;
+   if( nexp == 0 ) return NULL ;
+
+   pc = (PARSER_code *) malloc( sizeof(PARSER_code) ) ;
+
+   parser_( expression , &false , &num_code , pc->c_code ,
+            (ftnlen) nexp , (ftnlen) 8 ) ;
+
+   if( num_code <= 0 ){ free(pc) ; return NULL ; }
+
+   pc->num_code = (int) num_code ;
+   return pc ;
+}
+
+/*---------------------------------------------------------------
+   pc   = code to evaluate expression
+   atoz = double [26] containing values for variables A,B,...,Z
+-----------------------------------------------------------------*/
+
+double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
+{
+   integer num_code ;
+   double  value ;
+
+   if( pc == NULL || pc->num_code <= 0 ) return 0.0 ;
+
+   num_code = (integer) pc->num_code ;
+
+   value = (double) pareval_( &num_code, pc->c_code,
+                              (doublereal *) atoz , (ftnlen) 8 ) ;
+   return value ;
+}
+
+/*----------------------------------------------------------------------
+   pc    = code to evaluate expression
+   atoz  = double [26] containing values for variables A..Z
+   iv    = index (0..25) of variable that will be drawn from vector
+             vvar instead of from atoz
+   nv    = length of vectors
+   vvar  = double [nv] containing replacement values for atoz[iv]
+   vout  = double [nv]; will get the output of the expression
+             evaluated using the fixed values in atoz and the
+             variable values in vvar.
+
+   The only reason for calling this routine instead of
+   PARSER_evaluate_one nv different times is efficiency.
+------------------------------------------------------------------------*/
+
+void PARSER_evaluate_vector( PARSER_code * pc , double* atoz[] ,
+                             int nv , double vout[] )
+{
+   integer num_code , nvar , ivar , lvec , ldvec ;
+
+   if( pc == NULL || pc->num_code <= 0 ) return ;
+
+   num_code = (integer) pc->num_code ;
+   lvec     = (integer) nv ;
+
+   parevec_( &num_code , pc->c_code ,
+             (doublereal *) atoz[0] , (doublereal *) atoz[1] ,
+             (doublereal *) atoz[2] ,(doublereal *) atoz[3] ,
+	     (doublereal *) atoz[4] ,(doublereal *) atoz[5] ,
+        	(doublereal *) atoz[6] ,(doublereal *) atoz[7] ,
+	     (doublereal *) atoz[8] ,(doublereal *) atoz[9] ,
+	     (doublereal *) atoz[10] ,(doublereal *) atoz[11] ,
+	     (doublereal *) atoz[12] ,(doublereal *) atoz[13] ,
+	     (doublereal *) atoz[14] ,(doublereal *) atoz[15] ,
+	     (doublereal *) atoz[16] ,(doublereal *) atoz[17] ,
+	     (doublereal *) atoz[18] ,(doublereal *) atoz[19] ,
+	     (doublereal *) atoz[20] ,(doublereal *) atoz[21] ,
+	     (doublereal *) atoz[22] ,(doublereal *) atoz[23] ,
+	     (doublereal *) atoz[24] ,(doublereal *) atoz[25] ,
+        	 &lvec , (doublereal *) vout , (ftnlen) 8 ) ;
+
+   return ;
+}
+
+/*** use the math library to provide Bessel and error functions ***/
+
+doublereal dbesj0_( doublereal * x )
+{ return (doublereal) j0( (double) *x ) ; }
+
+doublereal dbesj1_( doublereal * x )
+{ return (doublereal) j1( (double) *x ) ; }
+
+doublereal dbesy0_( doublereal * x )
+{ return (doublereal) (*x>0) ? y0( (double) *x ) : 0.0 ; }
+
+doublereal dbesy1_( doublereal * x )
+{ return (doublereal) (*x>0) ? y1( (double) *x ) : 0.0 ; }
+
+doublereal derf_ ( doublereal * x )
+{ return (doublereal) erf( (double) *x ) ; }
+
+doublereal derfc_( doublereal * x )
+{ return (doublereal) erfc( (double) *x ) ; }

@@ -1,0 +1,35 @@
+## for DEC Alpha under OSF/1
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = gcc -ansi -O -DSGI
+CCMIN  = gcc
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I.
+LFLAGS = -s -L.
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. 
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+LD     = /bin/ld
+GZIP   = /usr/local/bin/gzip
+
+RM = /usr/bin/rm -f
+MV = /usr/bin/mv -f
+CP = /usr/bin/cp
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./alpha
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm -lc
+
+###############################################################
+
+include Makefile.INCLUDE

@@ -1,0 +1,2338 @@
+\documentstyle[12pt,art12cox,epsf]{article}
+
+\newcommand{\afni}{{\it AFNI\,}}
+\newcommand{\afnit}{{\it AFNI\/}\ }
+\newcommand{\tothreed}{{\sf to3d\,}}
+\newcommand{\tothreedit}{{\sf to3d\/}\ }
+\newcommand{\MCW}{{\sf MCW}}
+
+\setlength{\topmargin}{0.0in}
+\setlength{\textheight}{9.02in}
+\setlength{\textwidth}{6.5in}
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+
+\hyphenpenalty=200
+
+\def\mypleft{\footnotesize \MCW$\!$ \afnit 2.00}
+\def\mypright{\scriptsize Dec 30, 1996}
+\dashpage
+
+\raggedbottom
+
+\newcommand{\seeme}[1]%
+{\marginpar{\raggedright%
+$\star\star\star$\hspace*{0pt plus 1fill}$\longrightarrow$\\{}%
+\scriptsize\bf#1}}
+
+\newcommand{\blob}{\hspace*{1em}}
+
+\setlength{\fboxsep}{1.3pt}
+\setlength{\fboxrule}{0.6pt}
+\newcommand{\button}[1]{\fbox{\tt #1}}
+
+\newcommand{\mysec}[1]{%
+\vspace{1.1in}\goodbreak\vspace{-1.09in}\section{#1}}
+
+\newcommand{\mysubsec}[1]{%
+\vspace{0.9in}\goodbreak\vspace{-0.89in}\subsection{#1}}
+
+\newcommand{\mysubsubsec}[1]{%
+\vspace{0.8in}\goodbreak\vspace{-0.8in}\subsubsection{#1}}
+
+%---------------------------------------------------------------------
+\begin{document}
+\thispagestyle{empty}
+
+\vspace*{-0.2in}
+\centerline{\LARGE\bf \MCW$\!$ \afnit --- User Manual}\vspace{1.8ex}
+\centerline{\Large\bf Medical College of Wisconsin}\vspace{1ex}
+\centerline{\Large\bf Analysis of Functional NeuroImages}\vspace{1ex}
+\centerline{\large\bf Version 2.00, December 1996}\vspace{1.5ex}
+\centerline{\bf Robert W. Cox, Ph.D.}\vspace{0.5ex}
+\centerline{Biophysics Research Institute}
+\centerline{Medical College of Wisconsin}
+\centerline{8701 Watertown Plank Road}
+\centerline{Milwaukee, WI 53226}\vspace{1ex}
+
+\centerline{\copyright\ 1996 Medical College of Wisconsin}
+
+\vspace{1.1ex}
+\noindent
+{\it Summary\/}:
+\MCW$\!$ \afnit displays three dimensional functional
+neuroimages overlaid onto anatomical reference scans.
+Data may be transformed to the Talairach-Tournoux (stereotaxic)
+proportional grid system.
+Images may be generated in each of the three cardinal orthogonal planes,
+and switched among multiple functional/anatomical data volumes.
+Auxiliary programs are provided to manipulate and combine 3D image sets.
+Time-dependent 3D image sets may also be stored, displayed, and manipulated.
+An application programmer interface is provided to allow users to extend
+the functionality of \afnit (via `plugins').
+
+\vspace{1.1ex}
+\noindent
+{\it Document\/}:
+This manual describes the use of the \afnit program, version 2.00.
+Earlier versions (1.xx) are superseded by this version;
+bugs in the earlier programs will no longer be fixed.
+Separate manuals are provided for the auxiliary programs, and for the
+programming of plugins.
+
+\vspace{1.1ex}
+\noindent
+{\it Disclaimer\/}:
+This software and its associated manuals are provided AS IS, and no warranty for
+their usefulness or correctness for any purpose is made or implied by the
+Medical College of Wisconsin or by the author.
+This software has not been approved or evaluated by the United States
+Food and Drug Administration for any clinical application.
+
+\vspace{1.1ex}
+\noindent
+{\it Ownership and License to Use\/}:
+This software and its associated manuals are Copyright 1994-96
+by the Medical College of Wisconsin.  Permission is granted to make use of
+and to make copies
+of this software and its manuals for non-commercial research purposes only.
+Use of the software or its manuals by for-profit organizations is
+prohibited without prior written permission.
+Redistribution of this work, or any derived work, outside
+of the licensed organization is prohibited without prior
+written permission.  Copies may be made within the licensed organization
+without separate permission from the Medical College of Wisconsin.
+
+\vspace{1.1ex}
+\noindent
+{\it Distribution and Registration\/}:
+\MCW$\!$ \afnit is available free for research purposes, but users
+must register with the Medical College of Wisconsin.
+For information, send an e-mail request to the author at
+{\tt rwcox@mcw.edu}, write to the address above, or see the
+final page of this manual.
+
+\vspace{1.1ex}
+\noindent
+{\it Acknowledgement\/}:
+This work was developed with internal MCW funds
+and was also partly supported by the United States NIH through 
+grants MH51358 and NS34798.
+
+%%%\vspace*{0pt plus 1fill}
+%%%\noindent
+%%%{\scriptsize \hspace*{0pt plus 1fill}Manual last updated Dec 30 1996.}
+
+%---------------------------------------------------------------------------
+\newpage
+\setlength{\columnsep}{1.1em}
+\setlength{\columnseprule}{0.5pt}
+\twocolumn[\centerline{\Large\bf Contents}\vspace*{6ex}]
+{%\small
+\renewcommand\contentsname{\vspace*{-25pt}}
+\tableofcontents
+}
+\onecolumn
+
+%===========================================================================
+\newpage
+\mysec{Introduction}
+\afnit is an interactive program
+for viewing the results of 3D functional neuroimaging.
+It can overlay the (usually) low resolution results of functional brain
+scans onto higher resolution structural volume data sets.  By marking fiducial
+points, you may transform the data to the proportional grid
+(stereotaxic coordinates) of Talairach and Tournoux~\cite{Talairach}.
+Time-dependent 3D volume data sets can also be created and viewed.
+Auxiliary programs are provided for combining and editing 3D and
+3D+time functional data sets.
+
+With this new version of \MCW$\!$ \afni, my intention is to add many new
+analytical capabilities to the software system.  Some of these are
+found in the auxiliary programs.  Others are found in the \afnit program
+itself; in particular, the interactive ability to compute functional activation
+using the correlation method~\cite{Bandettini}.  The
+new plugins capability offers C-literate users the ability
+to integrate their own analytical tools into \afni.  It is my hope
+that other sites will develop \afnit plugins and share them with
+the FMRI community.
+
+This document has been extensively rewritten from the version 1.0x
+manuals.  Major new\seeme{Whats New?}
+facilities in \afnit are outlined in the next section.
+
+The\seeme{Computer requisites}
+program runs on Unix workstations, using the X11 windowing
+system and the Motif 1.2 toolkit for its graphical interface.  Minimum system
+requirements to use \afnit are 32 MB RAM (64-128 MB will work much better), X11R5 with
+Motif 1.2, an ANSI~C compiler,
+and enough disk space to hold the 3D data volumes required.
+\afnit is designed to work with 8- or 12-bit PseudoColor X11 visuals.
+A~visual of this type must be the default visual on the system used to display \afni.
+The program has been tested on the following systems:
+\begin{itemize}
+   \item SGI Indigo workstations (R4400 and R10000 CPUs) running IRIX~5.3
+         and IRIX~6.2.
+   \item HP 9000/735 workstations running HP-UX 9.05.
+   \item Intel-based Linux 1.2.13 systems.
+   \item Sun SPARCstations running Solaris 2.5.
+\end{itemize}
+It has not been tested on other platforms.
+It {\it will not\/} work with X11R4 or Motif~1.1
+(in particular, it does not work under SGI IRIX~4.x).
+There are no plans to port it to radically different platforms such as
+Microsoft Windows or the Apple Macintosh.
+
+\afnit is a powerful program for display and manipulation
+of functional neuroimages, with many options.  Study of this
+manual and experience with the program are both required to make full
+use of \afni.  Some experience with using X11 is also very useful,
+and will be assumed in this manual.
+
+\displayline{Nomenclature}
+In general, I refer to ``\MCW$\!$ \afni'' as the whole software package.
+The particular program ``\afni'' is at the heart of the package, and
+is the subject of this manual.  The package includes a number of other
+programs and the programming interface for
+creating plugins, both of which are documented elsewhere.
+
+If you find \MCW$\!$ \afnit useful and wish to refer to it in
+a publication, the appropriate citation is~\cite{Cox-AFNI}.
+
+%=======================================================================
+\mysec{What's New?}
+\begin{description}\vspace*{-2.2ex}
+  \item[\blob 1. Atomic Datum Types] \blob\\
+    Previously, the data stored in an \afnit dataset had to be 16 bit
+      signed integers ({\tt short} datum).
+    The new dataset format allows for
+      8 bit unsigned integers ({\tt byte} datum),
+      32 bit floating points numbers ({\tt float} datum),
+      and 64 bit complex numbers ({\tt complex} datum).
+    The purpose of the
+      {\tt byte} datum is to allow for compact storage of datasets
+    where the 0--255 range has sufficient precision.
+    The purpose of the {\tt float} datum is to allow for more natural storage
+      of statistical quantities, without the need for rescaling to the
+      limited range of values allowed with {\tt short}s.
+    (But see item~2 below.)
+    The purpose of the
+      {\tt complex} datum is to eventually allow for unprocessed reconstructed
+      images to be directly imported into \afni.
+
+  \item[\blob 2. Scale Factors] \blob\\
+    Each 3D sub-brick in a dataset can now have a floating point scale
+    factor attached to it.  The purpose of this is to allow data to be
+    stored in the more compact {\tt byte} or {\tt short} formats, but always to
+    be automatically scaled to the correct units when accessed by an
+    \MCW$\!$ \afnit program.  For example, correlation coefficients
+    can still be stored as {\tt short}s ${\in} [-10000,10000]$, but will
+    be scaled by $0.0001$ to their true range $\in [-1.0,1.0]$
+    before being displayed or processed.  (The new interactive {\tt FIM}
+    utility in \afnit does this --- see item~6 below.)  The new {\sf to3d} can
+    take as input floating point volumes and scale them to produce
+    {\tt short} or {\tt byte} datasets, with the appropriate scale
+    factor(s) attached.
+
+  \item[\blob 3. Auxiliary Statistical Data] \blob\\
+    There are three new types of datasets: the {\tt fico}, {\tt fitt}, and {\tt fift}
+    functions.  {\tt fico} means ``functional intensity with correlation'';
+    {\tt fitt} means ``functional intensity with $t$-test'';
+    {\tt fift} means ``functional intensity with $F$-test''.
+    These are similar in concept to the {\tt fith} images, but the
+    threshold data now has the statistical parameters ({\it e.g.},~degrees
+    of freedom) attached that
+    allow calculation of the significance ($p$) level.  With
+    such a dataset, \afnit will interactively display the $p$-value
+    associated with the chosen threshold.
+    At present, only \afnit and {\sf 3dfim} generated {\tt fico},
+    {\sf 3dttest} generated {\tt fitt},
+    and {\sf 3dANOVA} generated {\tt fift} datasets have the
+    statistical parameters automatically attached.  Using the new
+    {\sf to3d}, it is possible to create your own datasets of these types
+    if you provide the needed auxiliary statistical parameters.
+
+  \item[\blob 4. Demise of Dataset `Name' and `Short Label'] \blob\\
+    These values are no longer used in {\sf to3d} or \afni.
+    The filename of a dataset is now used for display in the \afnit window
+    titlebars and selection choosers.
+
+    The original purpose of the name and short label values was
+    to assign descriptions to a dataset that did not depend on the
+    filename.  This is needed when one dataset refers to another,
+    which happens during the warp-on-demand procedure.
+    If you renamed a dataset, and if filenames
+    were used as the internal method of keeping track of such references,
+    \afnit would get confused.  To solve this problem, I~have instead
+    put inside each dataset's {\tt .HEAD} file an internally generated
+    identifier code.  This is designed to be unique, and independent
+    of filenames.  When you run an \afnit program on an old dataset,
+    you will see a message that it is generating a `new ID code'.
+    These ID codes are pseudorandomly generated using the current time and
+    machine name as seeds.  For more information, see the plugins manual.
+
+    If you use the Unix command {\tt cp} to copy a dataset, then
+    the new dataset will have the same ID code as the original.
+    \afnit will not run correctly if two such datasets are read
+    into the program.  To fix this, you can use the auxiliary
+    program {\sf 3dnewid} to attach a new ID code to a dataset.
+
+  \item[\blob 5. 3D+time Datasets] \blob\\
+    \afnit now supports time-dependent 3D datasets,
+    which I refer to as `3D+time datasets'.  At present, only
+    anatomical datasets may be usefully set up to be time-dependent.
+    3D+time datasets are created with {\sf to3d}, using the
+    new {\tt -time:zt} or {\tt -time:tz} command line switches.
+
+    3D+time datasets can be viewed in the image viewing windows in
+    the usual orthogonal slices. (Scrolling in time
+    through these views is a good way to check for subject movement.)
+    They can also be graphed vs.\ time (similar to the program {\sf FD2}).
+
+  \item[\blob 6. Interactive Functional Activation Analysis] \blob\\
+    \afnit now has the ability to run the equivalent of the
+    {\sf fim2} program on a 3D+time dataset, producing as output
+    a new 3D {\tt fico} dataset.
+
+  \item[\blob 7. Image Montage] \blob\\
+    One of the most visible changes to \afnit itself is the addition of
+    the `montage' (display of an array of slices)
+    feature to the image viewing windows.
+    This is accessed using the new \button{Mont} button.
+
+   \item[\blob 8. Big Talairach Box]\blob\\
+   The size of the default Talairach coordinates brick has been extended down
+   (inferior) by 10~mm.  This is to make sure that the brick includes the entire
+   cerebellum, which is not the case using the old brick dimensions (taken
+   from the Atlas).
+
+   \item[\blob 9. Threshold Resampling]\blob\\
+   The type of interpolation used for functional dataset resampling is controlled by
+   the \button{Resam mode} button in the {\tt Datamode} control panel.
+   In \afnit 1.0x, both the functional intensity (`{\tt fim}') and the threshold
+   data were resampled using the chosen method.  In this version of \afni,
+   the threshold data ({\it e.g.},~correlation coefficient) is always
+   resampled using the {\tt NN} method.  This is because thresholding with
+   an interpolated nonlinear statistic is a somewhat dubious procedure.
+
+   \item[\blob 10. Multiple \afnit Controllers]\blob\\
+   Using the \button{New} button, you can open up multiple controller windows
+   in a single run of \afni.  This allows you to view more than one dataset
+   at a time.  Using the \button{Lock} menu, you can force the coordinates
+   of the different viewing windows to be locked together.  This feature
+   allows you to scroll in unison through multiple datasets.
+
+\goodbreak
+
+    \item[\blob 11. Session Directories]\blob\\
+     If you don't specify any directories on the command line,
+     then \afnit acts as if you had typed~`{\tt ./}' --- that is,
+     it will try to read datasets from the current directory.
+     The new `{\tt -R}' switch will tell \afnit to read from
+     all subdirectories of the given session directories, recursively.
+     Using the {\tt Rescan} buttons, you can re-read sessions.
+     This is useful if you use an auxiliary program ({\it e.g.},~{\sf 3dmerge})
+     to create a dataset, and then want to import it into \afni.
+
+    \item[\blob 12. Writing Many Datasets to Disk at Once]\blob\\
+     A new button allows you to select many datasets at once for output to disk.
+     This makes it possible to start a long Talairach output session, and
+     then leave the computer unattended while it computes each output {\tt .BRIK}.
+
+%%%   \item[\blob 13. Plugins]\blob\\
+%%%     A programming interface has been defined that allows the
+%%%     addition of new routines to \afni.  These are called `plugins',
+%%%     and have a separate manual.
+
+\end{description}
+
+%======================================================================================
+\mysec{Fundamentals}
+This section explains how data is organized in the \MCW$\!$ \afnit package.
+The two indispensable concepts are {\it datasets} and {\it sessions}.
+
+%------------------------------------------------------------------------------
+\mysubsec{Datasets}
+The\seeme{Crucial information}
+fundamental unit of data in \afnit is the {\it dataset\/}: one or more 3D bricks of
+imaging data, together with some auxiliary information ({\it e.g.},~axes orientation,
+coordinates of marked fiducial points,~\ldots).  There are two classes of
+datasets: {\it anatomical\/} and {\it functional\/}.  An example of the former
+would be a Spoiled GRASS MRI scan.  An example of the latter would be
+the results of cross-correlating a functional MRI (FMRI) time course of
+images~\cite{Bandettini}.  When you create a dataset (using the
+\tothreedit program), you must specify whether it is anatomical or functional
+in nature.  When you are using \afni, at any given time you will be displaying
+one anatomical dataset as the grayscale underlay, and (possibly)
+one functional dataset as the false color overlay.
+
+Within the class of anatomical datasets, \tothreedit provides you with a list
+of possible types ({\it e.g.}, Spoiled GRASS, Echo-Planar, MR Angiogram,~\ldots).  At present,
+all anatomical types of datasets are treated identically.  The only reason
+for choosing a particular anatomical type is to remind yourself of the
+dataset's origin.
+
+Anatomical\seeme{3D+time}
+datasets may be in the `3D' or the `3D+time' format.
+The 3D format stores one value per voxel.  The 3D+time format stores
+a series of values per voxel.  This can be used to stored all the data
+from a 3D FMRI imaging run.  The auxiliary program {\sf 3dfim} or
+the internal \afnit {\tt FIM} capability can be used to produce
+functional activation datasets from 3D+time datasets.
+
+Within the class of functional datasets, there are presently
+five types.
+\begin{tabbing}
+   XXXX \= {\bf FFFFF} \= \kill
+        \> {\tt fim}   \> Functional Intensity \\*
+        \>             \> $\bullet$ one value is stored per voxel \\[1ex]
+%
+        \> {\tt fith}  \> Functional Intensity + Threshold\\*
+        \>             \> $\bullet$ two values are stored per voxel: \\*
+        \>             \> $\bullet$ the first is `intensity' (defined arbitrarily); \\*
+        \>             \> $\bullet$ \parbox[t]{4.5in}{
+                              the second is `threshold',
+                              which is a either a floating point number between $-1.0$ and $1.0$
+                              or a 2 byte integer between $-10000$ and $10000$,
+                              which can be used to select which
+                              voxels are considered `active'.} \\[1ex]
+%
+        \> {\tt fico}  \> Functional Intensity + Correlation\\*
+        \>             \> $\bullet$ two values are stored per voxel:\\*
+        \>             \> $\bullet$ the first is `intensity'; \\*
+        \>             \> $\bullet$ \parbox[t]{4.5in}{
+                              the second is a correlation coefficient
+                              (between $-1.0$ and $1.0$),
+                              which can be used to select `active' voxels
+                              at a given significance ($p$) value.}\\[1ex]
+%
+        \> {\tt fitt} \> Functional Intensity + $t$-test\\*
+        \>             \> $\bullet$ two values are stored per voxel:\\*
+        \>             \> $\bullet$ the first is `intensity'; \\*
+        \>             \> $\bullet$ \parbox[t]{4.5in}{
+                              the second is a $t$-statistic, which
+                              can be used to select `active' voxels
+                              at a given significance.}\\[1ex]
+%
+        \> {\tt fift} \> Functional Intensity + $F$-test\\*
+        \>             \> $\bullet$ two values are stored per voxel:\\*
+        \>             \> $\bullet$ the first is `intensity'; \\*
+        \>             \> $\bullet$ \parbox[t]{4.5in}{
+                              the second is an $F$-statistic, which
+                              can be used to select `active' voxels
+                              at a given significance.}
+\end{tabbing}
+By {\it intensity}, I mean a signed
+number indicating the level of functional activity in each voxel.
+
+I consider the {\tt fith} dataset type to be obsolete.  It is retained
+for compatibility with \afnit version 1.0x.  The latter three functional
+types differ from the {\tt fith} type in that \afnit knows how to
+statistically interpret the second value attached to each voxel.
+
+The\seeme{Atomic datum}
+values stored at each voxel can be any of the following:
+\begin{tabbing}
+  \blob\blob COMPL      \= \kill
+  \blob\blob{\tt byte}    \> = a~{\tt typedef} for {\tt unsigned char}  \\
+  \blob\blob{\tt short}   \> = 2 byte signed {\tt int}  \\
+  \blob\blob{\tt float}   \> = single precision; 4 bytes  \\
+  \blob\blob{\tt complex} \> = a~{\tt struct} containing two {\tt float}s; 8 bytes
+\end{tabbing}
+I~refer to these types as the `atomic' datum types of a dataset.
+{\tt Float} and {\tt complex} datasets may not be portable
+between CPU architectures.  Also, {\tt short} datasets may need to be
+byte-swapped if the files are moved to a different computer.
+(Specifically,
+Intel CPUs are reversed from most other Unix systems, so that
+{\tt short} brick files created on an SGI system would have to be
+byte-reversed before they could be used on an Intel based system.)
+The auxiliary program {\sf 2swap} can perform this function.
+
+For most purposes, the {\tt short} atomic datum is the most useful.
+Each 3D brick within a {\tt short} (or {\tt byte}) dataset
+can have a floating point scaling factor attached, so that the
+\afnit programs will interpret the value stored as
+${\hbox{\it factor} * \hbox{\it voxel value}}$.
+
+Datasets are stored in two files: the {\it header\/} and {\it brick\/} files.
+The header file contains all the auxiliary information about a dataset,
+stored in an ASCII format.
+The brick file contains only the actual 3D volume data.
+For details on the storage, see the \afnit plugins manual.
+
+The\seeme{File names}
+files in a dataset have highly structured names, and these names should
+not be casually altered, or \afnit will not be able to read them.
+The general form of the dataset filenames is
+`{\tt prefix+view.NAME}',
+where `{\tt prefix}' is to be supplied by the user (you), and presumably
+would be used to indicate the type of data stored in the file
+({\it e.g.},~{\tt spgr} for Spoiled GRASS, {\tt func}~for functional intensity,~etc.)
+The `{\tt +view}' code
+indicates the origin of the data and is assigned by \afni;
+the possibilities are:
+\begin{description}
+   \item[\blob{\tt +orig}] for original data (untransformed by \afnit)
+   \item[\blob{\tt +acpc}] for datasets which have been aligned to the AC--PC line
+   \item[\blob{\tt +tlrc}] for datasets which have been transformed to the Talairach-Tournoux grid
+\end{description}
+Datasets in the {\tt +acpc} and {\tt +tlrc} views would normally be
+created by \afni; {\tt +orig} files would be created by \tothreed.
+The `{\tt .NAME}' suffix is
+{\tt .HEAD} for the header file, and is {\tt .BRIK} for the brick file.
+
+One reason for splitting the auxiliary information from the volume data
+in each dataset is for efficiency of access to the brick file.  Another
+reason is that in an emergency, the auxiliary information is stored in
+ASCII form and so can be edited manually (this requires extreme care!).
+A~third reason is that when transformed datasets ({\tt +acpc} and {\tt +tlrc})
+are created, their
+brick files may be deleted later to save disk space --- as long as the
+transformed header files and the {\tt +orig} brick files exist, \afnit
+can recreate the transformed data.
+
+Once raw images have been put into the \afnit dataset format, they are
+no longer needed for any of the programs described herein.
+It is always possible (using \afnit or {\sf from3d}) to extract images out of the 3D
+data brick, although you may then have to convert them into whatever
+format you desire.
+
+If you choose to rename the pair of files that make up a dataset, the
+only part you should touch is the prefix.  If you alter the {\tt +view}
+or {\tt .NAME} parts, \afnit will probably refuse to read the files at all.
+
+Not\seeme{Warp-on-demand}
+all datasets will have a {\tt .BRIK} file.  \afnit is capable of
+transforming data from a `parent' dataset as needed for image display.
+If the necessary transformation ({\it e.g.},~from {\tt +orig} to {\tt +tlrc})
+is available, then the `child' dataset ({\it e.g.}~the {\tt +tlrc} dataset)
+need not have a {\tt .BRIK} file---it can be ``warped-on-demand'' for display.
+Normally, {\tt +orig} datasets do not have a warp parent dataset, so they
+must have a {\tt .BRIK} file.  (An exception to this rule can be
+created with the auxiliary program {\sf 3ddup}.)
+
+At this time, no program but \afnit itself can deal with warp-on-demand
+datasets.  That is, all the auxiliary programs (and plugins) must
+deal with actual dataset {\tt .BRIK}s.
+
+%--------------------------------------------------------------------------------
+\mysubsec{Sessions}
+All\seeme{Crucial information}
+of the dataset files that `go together' should be gathered into
+a single directory.
+By `go together', I~specifically mean those datasets gathered during the same
+scanning session on a single subject.  After their positions and orientations
+are set up (in \tothreed), all these datasets are presumed to be aligned to
+one another.  {\it If this is not the case, then the images making up the
+datasets should be registered before entry into \tothreed.}
+The auxiliary program {\sf imreg} may be useful for this purpose.
+Alternatively, the program {\sf AIR} from UCLA might be needed.  {\tt AIR}
+is available at {\verb=http://bishopw.loni.ucla.edu/AIR/index.html=}.
+
+\vspace{1in}\goodbreak\vspace{-1in}
+A directory containing datasets is called a {\tt session}.
+The hierarchy of files that make up a session
+is pictured below:
+\begin{samepage}\begin{verbatim}
+                       session             <-- top-level directory
+                      /   |   \
+                     /    |    \
+                    /     |     \
+           ... header   header  header ... <-- actual data files
+               brick    brick   brick
+               header   header  header
+               brick    brick
+\end{verbatim}\end{samepage}
+
+It is permissible to save other files ({\it e.g.},~the original image files)
+in the session directory --- these files will simply be ignored by \afni.
+
+\afnit takes as input a collection of sessions (specified by their directory
+names), and allows you to switch
+between them and between their constituent anatomical and functional datasets.
+It is important to understand the dataset concepts,
+file structure, and directory hierarchy described and depicted above.
+
+Sessions\seeme{Command line names for sessions, datasets}
+are referred to
+by the top-level directory name under which
+all their datasets reside.  An individual dataset is referred to (on auxiliary
+program command lines) by
+the name of its header file, the name of its brick file, or just
+by the {\tt prefix+view} part of the filenames; for example,\\*[.5ex]
+\centerline{\tt 12dec94/func03+acpc.HEAD \blob
+                12dec94/func03+acpc.BRIK \blob 12dec94/func03+acpc}\vspace{.5ex}
+would all refer to the same dataset residing in a given session
+directory.
+
+By moving to the directory {\it above\/} the session directory,
+you can save and compress all the files in a session using the command\\*[.5ex]
+\centerline{\tt tar cvf - session\_directory | gzip -9v > session.tgz}\vspace{0.5ex}
+This presumes that you have the {\tt GNU gzip} compression utility installed
+on your system.  The command to uncompress and restore from the compressed
+archive would be\\*[.5ex]
+\centerline{\tt gzip -dc session.tgz | tar xvf -}
+
+%============================================================================
+\newpage
+\mysec{A Tour of \afni}
+The best way to learn the program is to
+read this tour through, and then sit down with the program
+and try it out.
+
+%---------------------------------------------------------------------
+\mysubsec{Starting Up}
+The command line to run \afnit is quite simple:\\*[.5ex]
+\centerline{\tt afni session1 session2 ...}\vspace{0.5ex}
+Here, {\tt session*} is the name of a session directory to
+read in.  All the 3D datasets under each named session directory
+will be read in.  If no sessions are specified on the command line,
+the current working directory will be used.
+(Command line options for \afnit will be discussed in a later section.)
+
+For \afnit to be able to use a session, it must
+contain at least one anatomical dataset (3D or 3D+time).  If none are
+available, the auxiliary program {\sf 3ddup} can be
+used to create a warp-on-demand copy of a functional dataset.
+Alternatively, you could use
+the first image from the FMRI time course in each slice to form
+an anatomical dataset, but a separate higher-resolution scan will
+be more useful and look better.
+At any given moment in \afni,
+you are viewing one given anatomical dataset and (possibly) one given
+functional dataset.  Controls are supplied to let you switch among
+sessions and among datasets within sessions.
+
+\goodbreak
+
+A useful model is to think of each session as being organized in a
+two dimensional layout:
+\goodbreak\begin{samepage}\begin{verbatim}
+                          --------- View Type --------
+                          +orig       +acpc      +tlrc
+
+               | anat  :    X           X
+        prefix | angio :    X           O
+               | func1 :    X           O
+               | func2 :    X           O
+\end{verbatim}\end{samepage}
+Across the top is the view type (Original, AC--PC aligned, or Talairach).
+Down is the dataset prefix.  {\tt X}'s mark datasets that
+actually exist on disk.  In the sample above, the {\tt anat}
+original data has also been transformed to the AC--PC aligned
+view (using the marker driven transformation described later).
+
+When \afnit starts, all the other datasets in this session
+will also have AC--PC aligned view versions made internally
+in the program --- these are indicated by {\tt O}'s in the
+table above.  (No {\tt .HEAD} files will be written for these
+datasets at this time.  These datasets will be warp-on-demand
+until and unless you write out the {\tt .BRIK} files using
+one of the {\tt Write} buttons described later.)
+The transformation from {\tt +orig} to {\tt +acpc}
+in the {\tt anat} dataset (stored in the {\tt .HEAD} file) will
+be applied to the other datasets in the {\tt +orig} view.  These
+`follower' datasets are what makes \afnit work and easy to use.  When the
+{\tt anat} transformation from {\tt +acpc} to {\tt +tlrc} is defined
+--- when the {\tt X} is placed at the top of the third column ---
+then all the other datasets in this session will again
+follow along --- {\tt O}'s will fill in the rest of the third column.
+
+For this to be possible, it is necessary that the correct
+geometrical relationship
+between the datasets comprising a session be established when
+\tothreedit is run --- that is the import of getting the axes
+orientations and origins correct in \tothreed.
+
+\afnit is\seeme{{\tt afni -im}}
+also capable of directly reading in and displaying
+a set of image files.  Use the command `{\tt afni~-help}' for
+detailed instructions on how to do this.  In this mode, none
+of the controls for dataset transformation, functional overlay,
+etc\@., are available.
+
+\goodbreak\begin{samepage}
+After you start \afni, a control window opens on the X11 screen:\\*[2ex]
+\centerline{\epsfysize=3.2in\epsffile{afni200_panel1.eps}\blob
+            \epsfysize=3.2in\epsffile{afni200_image1.eps}}\vspace{1ex}
+\centerline{\sf \afnit controller and image viewing windows}
+\end{samepage}\goodbreak
+
+%-----------------------------------------------------------------------------
+\mysubsec{Program Control}
+At the lower left of the control panel are four buttons which
+control various `global' program functions:
+\begin{description}
+  \item[\blob\button{New}]
+    This button will open up a new \afnit controller window.
+    In this way, it is possible to open up image viewers
+    on more than one dataset (or session) at a time.
+    (A~maximum of 5 controller windows can be open at once.)
+    The first controller window and its children are
+    marked with {\tt [A]} in their titlebars; the second
+    is marked with {\tt [B]}, and so forth.
+
+  \item[\blob\button{Views}]
+    This button will open and close the control panels to the
+    right of the first column of the controller window
+    (the first such control panel starts with {\tt Original~View}
+     in the figure above).
+    This function allows you to save some screen space without
+    iconifying the controller window.
+
+  \item[\blob\button{BHelp}]
+    This button allows you to popup a help window for
+    most controls within \afni.  Pressing \button{BHelp}
+    will cause the mouse cursor to change to a small hand shape.
+    Pressing mouse Button~1 while the hand is over an \afnit control
+    will popup a help window for that control.  Clicking Button~1 inside the help
+    window will dismiss it.
+
+    Button help is implemented as a {\tt help callback} in Motif.  If your terminal
+    keyboard is appropriately set up, then pressing the Motif `{\tt Help}' key
+    (often~{\tt F1}) while the mouse cursor is over a button or other widget
+    will also cause the help window for that widget to popup.
+
+  \item[\blob\button{done}]
+    This button will close the controller window when pressed
+    twice within 5 seconds.  If this is the
+    only controller window running, \afnit will also exit.
+    (For more details, try using \button{BHelp} on \button{done}.)
+\end{description}
+The \MCW\ logo will appear in the empty space just
+to the right of these four buttons when the program is doing
+some operation that is potentially time consuming.  At the
+same time, the mouse cursor will change to a watch shape.
+When the time consuming operation is over, the logo will
+be removed and the cursor will change back to its usual arrow shape.
+
+A trick I sometime use to visually grab attention when a lengthy task
+is underway is to click the \button{Swap} button in an image window.
+This will turn the images to reverse video when the program catches
+up with you.  Then \button{Swap} again, and proceed.
+
+%-----------------------------------------------------------------------------
+\mysubsec{Image Display}
+The first column of the controller window contains the controls
+that enable you to open the image viewing windows:  the three \button{Image}
+buttons.  The windows open separately on the X11 display screen, and
+may be positioned and resized independently.  A~little practice is
+needed to decide upon a good layout scheme for these windows.  The reason
+\afnit does not define their locations and sizes is that it is often
+desirable expand one window to look at some details, and temporarily
+cover up the other windows.
+
+When an \button{Image} button is highlighted in inverted colors, this
+means that its window is already open.  Pressing the button again
+will bring that window to the top of the display --- this is useful
+if the image viewing window is hidden beneath some other window, or
+is iconified.
+
+An image viewing window can be closed by using the \button{Done}
+button along its bottom edge.  Alternatively, the window manager
+{\tt Close} or {\tt Delete} function may be used.
+
+\mysubsubsec{Crosshairs and the Viewpoint}
+You can have up to three image viewing windows open at any given time:
+one axial, one sagittal, and one coronal.  (In the axial and coronal windows,
+images are displayed with the subject's left\seeme{Left is Right!}
+on the screen right --- the
+usual radiological convention.)  These windows are orthogonal slices
+through the 3D dataset.  The colored crosshairs that overlay each image
+mark the slices that are visible in the other image windows.  The point
+at which the crosshairs intersect is called the {\tt viewpoint}.
+
+In the upper left hand corner of the \afnit controller
+window are displayed the coordinates of the current viewpoint.
+These coordinates are presented in the DICOM 3.0 standard order:
+\begin{description}
+  \item[\blob $x$-axis] is Right (negative) to Left (positive)
+  \item[\blob $y$-axis] is Anterior (negative) to Posterior (positive)
+  \item[\blob $z$-axis] is Inferior (negative) to Superior (positive)
+\end{description}
+Internally, \afnit uses DICOM coordinates to keep track of everything.
+(However, \afnit cannot read DICOM files!)
+
+The button \button{Xhairs} just under the coordinate display
+allows you to switch between 3 modes for crosshair display:
+\begin{description}
+  \item[\blob\button{Off}] Crosshairs are not displayed.
+  \item[\blob\button{Single}] A single crosshair is displayed at the
+                      $(x,y,z)$ coordinates of the `viewpoint'
+                      ({\it i.e.},~the point whose coordinates
+                      are given in the upper left corner).
+  \item[\blob\button{Multi}] If a montage of slices is displayed in an image
+                     viewing window, then the orthogonal slices will
+                     have crosshairs indicated for all the montaged
+                     slices.  This is useful for indicating the
+                     anatomical location of the montage layout.
+\end{description}
+You may change the crosshair color and central gap
+with the selectors just underneath the \button{Xhairs} button.
+The colors available for the various overlays are built into \afni,
+but can be altered by appropriate changes to your {\tt .Xdefaults}
+file.
+
+If you click the left mouse button while the cursor is in an image
+window, then the crosshairs will immediately jump to that location.
+This will usually mean that the other two windows will display new
+slices.  The image windows are always `linked' in this fashion.
+
+The \button{Index} control on the \afnit controller window is
+used to control the time index of the viewpoint.  This control
+is only active if the current anatomical dataset is in the
+3D+time format.  (The time index can also be controlled in
+a graph viewer.)
+
+\mysubsubsec{Colormap Controls}
+At the right of each image window is a set of buttons that are used
+to control the X11 colormap assigned to the windows.  From top to
+bottom, these controls
+\begin{description}
+  \item[\blob\button{Colr}]  Change from grayscale to a colorscale, and back.
+  \item[\blob\button{Swap}]  Invert the grayscale or colorscale (swap it end-for-end).
+  \item[\blob\button{Norm}]  Return the colormap to its initial state (after you
+               mess it up).
+  \item[\blob\button{c}]    Change the contrast of the grayscale (a multiplicative
+               change to the intensity of each pixel).
+  \item[\blob\button{b}]    Change the brightness of the grayscale (an additive change
+               to the intensity of each pixel).
+  \item[\blob\button{r}]    Rotate the grayscale or colorscale.
+  \item[\blob\button{g}]    Change the $\gamma$ correction factor for the grayscale.
+  \item[\blob\button{i}]    Change the fraction of the viewing window taken up
+                            by the image.
+\end{description}
+You may have to drag
+the viewing windows to be larger than their initial
+sizes so that these and the other controls don't obscure each other.
+Changing the colormap in one viewing window affects all the
+other windows from the same \afnit process.
+
+\mysubsubsec{Position Controls}
+Below each image is a slider that indicates the image number in the
+current sequence.  By dragging this slider, you can move through the
+slices to any given slice number.  In doing so, you will also move the
+crosshairs in the other two image windows.
+
+At the lower right of the image window is an `arrowpad' of four arrows
+arranged in a N--E--W--S pattern, plus a central button.  Clicking
+on one of the arrows will cause the crosshair viewpoint to move one
+voxel in the direction pointed by the arrow {\it in that window}.
+Clicking on the central (unlabeled) button causes the crosshair gap
+to close;  clicking this button again causes the gap to open up again.
+This is very useful when positioning the crosshairs prior to setting
+an anatomical marker.
+
+\vspace{1ex}
+
+\goodbreak\begin{samepage}
+\centerline{\epsfysize=3.9in\epsffile{afni200_image2.eps}\blob\blob
+            \epsfxsize=1.9in\epsffile{afni200_image3.eps}}\vspace{1ex}
+\centerline{\sf Image viewer \button{Disp} and \button{Mont} control panels}
+\end{samepage}\goodbreak
+
+\mysubsubsec{\button{Disp} Control}
+This button opens up a control panel (pictured above) that lets you change how the
+images will be displayed in this window.
+The \button{Rotation} and \button{Mirror} items control the orientation
+of the image in the window.  The \button{No~Overlay} item allows
+you to turn off all color overlay items ({\it i.e.},~crosshairs,
+anatomical markers, and function).
+The \button{Min-to-Max} and \button{2\%-to-98\%} items choose how the
+values in the image array are mapped to grayscale levels on
+the screen.  The former choice maps the minimum image value
+to black and the maximum to white; the latter choice computes
+the cumulative histogram of the image and maps the 2\% point to black and
+the 98\% point to white.
+
+The \button{Free Aspect} control lets you resize the image window to
+any bizarre aspect ratio.  Normally, the program restricts the
+image window resizing so as to keep the data-voxel to display-pixel
+geometric relationship correct (assuming that display pixels are square!).
+
+The \button{Save} controls actually have nothing to do with image display.
+They are just here because it was a convenient place to put them.
+They control the operation of the \button{Save:} button on the image
+viewing window (next to the \button{Disp} button) --- this is discussed
+below.
+
+The {\tt Tran} menus allow you to pick from a list of image
+transformations.
+The \button{Tran~0D} transformations are all `pointwise'; that is, the
+image intensity output at a given pixel is a function of the
+image intensity input at that given pixel only.  The built-in
+\button{Tran~0D} functions are \button{Log10} and \button{SSqrt}, which
+take the common logarithm ($\log_{10}$) of each pixel, and
+take the `signed square root' ($\hbox{sgn}\,(x) |x|^{1/2}$) of each pixel,
+respectively.
+
+\button{Tran~2D} functions are more global image transformations,
+where the image intensity output at a given pixel can be a function
+of other pixels.  The only built-in \button{Tran~2D} function is
+\button{Median9}, which replaces each pixel by the median overs
+its $3\times3$ neighborhood.
+
+\afnit plugin authors can add functions
+to these {\tt Tran} menus --- hopefully, they will be documented.
+At the bottom of the \button{Disp} panel are 3 other built-in image processing
+functions:
+\begin{description}
+  \item[\blob\button{Flatten}]  Histogram `flattening' (or equalization) is
+                             performed on the image prior to display.
+  \item[\blob\button{Sharpen}]  High-emphasis `sharpening' is performed on
+                             the image prior to display.  When printing images
+                             on printers with relatively few colors available
+                             per pixel,
+                             the combination of \button{Median9} and \button{Sharpen}
+                             gives nice results.
+  \item[\blob\button{Edge Detect}] Sobel edge detection is performed on
+                             the image prior to display.
+\end{description}
+If more than one of these are selected, they are performed in the
+top-to-bottom order, as displayed; also, these operations are performed
+after any {\tt Tran} functions.
+
+\mysubsubsec{\button{Save:} Control}
+This button takes one of three forms, depending on the choices
+made in the \button{Disp} panel:
+\begin{description}
+  \item[\blob\button{Save:one}]
+   This form of the {\tt Save} function
+   is selected by toggling on the \button{Save One} option on the \button{Disp}
+   control panel.
+   In this form, the action is to save the current image to disk.  {\it This is
+   the only way provided by \afnit to save a montage layout.}
+
+   This button pops up a little `chooser' window which asks you to input
+   the filename prefix for the output image.  The image will be saved
+   in the `raw PNM' format, with the name `{\tt prefix.pnm}'.
+   Images in this format can be converted to other formats (such as {\tt TIFF})
+   with command line utilities\seeme{{\sf netpbm} and~{\sf xv}}
+   in the {\sf netpbm} package, or the {\sf xv} shareware program.
+   (Images which contain no color will be saved in the PGM format; images
+    with colored pixels will be saved in the PPM format.)
+
+  \item[\blob\button{Save:pnm}]
+   This form of the {\tt Save} function
+   is selected by toggling on the \button{PNM Save} option on the \button{Disp}
+   control panel.
+   In this form, the action is to save a collection of slice images (underlay
+   and color overlay) to disk in
+   the raw PNM format.  Even if a montage is being displayed, only
+   single slices will be saved with this function.
+
+   This button also pops up a chooser window which asks you to input the
+   filename prefix for the slice data.  If you enter `{\tt fred}' for the prefix,
+   then the $238^{\rm th}$ slice would be named {\tt fred.0238.pnm}.
+   After you type in the desired prefix, you click the \button{Set} button,
+   and then must choose the first and last slice indexes for the save operation
+   from the new choosers that will popup.
+   When you \button{Set} the last slice index, the write-to-disk operation starts.
+
+  \item[\blob\button{Save:bkg}]
+   This form of the {\tt Save} function
+   is selected by toggling off the \button{PNM Save} and
+   \button{Save One} options on the \button{Disp} control panel.
+   In this form, the action is to save the background image
+   pixel values.  This does {\it not\/} mean the grayscale intensities displayed in
+   the window.  It means that the actual values stored in the dataset {\tt .BRIK}
+   file will be written to disk.
+
+   This button operates similarly to the \button{Save:pnm} function:
+   you must choose a filename prefix, and the first and last slice
+   indexes for the save operation.
+   If \button{Nsize Save} is selected on the \button{Disp} control panel,
+   then the saved images will be expanded to the next largest power of
+   two.
+
+   Using the {\tt Function} controls, you can
+   switch to have the function displayed as the background.
+   In that way, the functional dataset voxel values may be written to
+   disk in slice format.  Alternatively, the auxiliary program {\sf from3d}
+   can be used to write slice image files out of a dataset.
+\end{description}
+For all {\tt Save} options, the actual size of the displayed
+window doesn't matter ---
+the images saved to disk will reflect the voxel dimensions of
+the dataset.  In particular, if the dataset voxels are not square
+in the plane of view, then the saved image aspect ratio will be
+distorted.  The only way to rectify this in \afnit is to switch
+the dataset to be warp-on-demand (using the {\tt Datamode} controls),
+which always interpolates to square pixels.
+
+To actually save the pixels
+as displayed on the screen, some sort of `snapshot' or `window grab'
+utility is needed.  If none other is available, the shareware program
+{\sf xv} has a window grab function.  Or the {\sf xwd} command line
+program can be used, with appropriate conversion using the {\sf netpbm}
+utilities.  For example, the images displayed in this manual were
+captured with variants of the following command line:\\*[.5ex]
+\centerline{\tt
+  xwd -frame|xwdtopnm|pnmdepth 255|ppmtopgm|pgmnorm|pnmtops -noturn>name.eps}
+
+\mysubsubsec{\button{Mont} control}
+This button allows you to make a montage of more than one slice
+in the image window.  It pops up a control panel (pictured earlier and below).
+For convenience in programming, only one of the \button{Disp} and \button{Mont}
+control panels can be open at a time (per image viewer).  This restriction
+may be lifted in some later version of \afnit (but no guarantees).\\[2ex]
+\goodbreak\begin{samepage}
+\centerline{\epsfxsize=5in\epsffile{afni200_image4.eps}}\vspace{2ex}
+\centerline{\sf Example of slice montage, with \button{Mont} control panel}\vspace{1ex}
+\end{samepage}\goodbreak
+
+\noindent
+The five montage menu controls from top to bottom are:
+\begin{description}
+  \item[\blob\button{Across:}]
+    This controls the number of slices to be displayed horizontally
+    across the window.  In the example above, {\tt Across} and {\tt Down}
+    are both set to~3.
+
+  \item[\blob\button{Down:}]
+    This controls the number of slices to be displayed vertically down the window.
+
+  \item[\blob\button{Spacing:}]
+    This controls the frequency with which slices are displayed.  {\tt Spacing}
+    of 1 means that adjacent slices will be displayed;  2~means that every other
+    slice will be displayed, etc.  The units of this selector are slices,
+    not millimeters; thus, changing the resolution of a warp-on-demand
+    dataset (using {\tt Datamode} controls) will change the inter-slice
+    distance as displayed here.  In the example above, the images
+    are 10 slices apart.  Since this is in the Talairach view (which can
+    be seen from the dataset names in the image viewer titlebar), and
+    the default voxel size of 1~mm was used, these sagittal slices
+    are 10~mm apart (center-to-center).
+
+  \item[\blob\button{Border:}]
+    This controls the thickness (in dataset pixels, not screen pixels)
+    of the border to draw between slice images.  In the above example,
+    this is set to~3.
+
+  \item[\blob\button{Color:}]
+    This controls the color of the border drawn between slice images.
+    In the above example, this is set to a gray color (under the presumption
+    that you do not have a color PostScript printer with which to output this manual).
+\end{description}
+Across the bottom of the \button{Mont} control panel are four
+action buttons.  Their functions are:
+\begin{description}
+  \item[\blob\button{Quit}]
+    This will close the \button{Mont} control panel, and leave
+    the current montage layout unchanged.
+
+  \item[\blob\button{1x1}]
+    This will reset the \button{Across:} and \button{Down:}
+    controls to each be~1.  This is simply a convenience, for
+    when you wish to go back to displaying a single slice.
+
+  \item[\blob\button{Draw}]
+    This will instruct the image viewing window to redraw itself
+    as currently commanded.  (This button will display in inverted
+    colors until the redraw operation is complete.  If the dataset
+    is warp-on-demand, and many slices are requested, this operation
+    may take several seconds.)
+
+  \item[\blob\button{Set}]
+    This combines the functions of \button{Draw} and \button{Quit}:
+    it will redraw the window as commanded, and also close the
+    \button{Mont} control panel.
+\end{description}
+Slices are displayed starting in the
+upper left corner, then from left-to-right, then top-to-bottom.
+If the \button{Disp} controls are used to rotate or mirror the images,
+these operations apply to each slice individually, not to the montage
+as a whole.
+
+If the number of slices displayed ({\tt Across}$\,\times\,${\tt Down})
+is large, and {\tt Spacing} is large, then the extreme slices requested
+may be outside the dataset.  In such a case,
+the toggle \button{Wrap} on the \afnit controller window (next to the
+\button{Gap} menu)  controls what happens.  If \button{Wrap} is turned
+on, then slices requested past the edge of the dataset will be wrapped
+back to the opposite edge.  If \button{Wrap} is turned off, then
+slices requested past the edge of the dataset will be filled with zeros.
+
+The only slice image which will have crosshairs displayed is the one
+containing the current viewpoint.  Clicking mouse Button~1 in
+any slice image will cause the current viewpoint to jump to that
+location in that slice.  This will also cause that slice to jump
+to the center position in the montage layout.
+
+If the \button{Xhairs} button is set to \button{Multi}, then orthogonal
+image viewing windows will show crosshairs for each slice drawn
+in the montaged window.
+
+The only way that \afnit provides to save a montage display to
+disk is the \button{Save:one} function, described earlier.
+This function (as all {\tt Save} functions) saves the
+image at its `natural' size --- one output pixel per dataset pixel,
+regardless of any window resizing you may have imposed.
+
+\mysubsubsec{Popup Menu}
+If you click-and-hold mouse Button~3 (usually the rightmost button)
+while the cursor is in an image
+window, a menu will popup at that point.  The first item on the
+menu is \button{Jumpback}.  This will reset the crosshair viewpoint to
+the last location clicked upon.  The main use of this feature is to
+recover from accidentally clicking Button~1 in an inconvenient location.
+
+The second item on the popup menu is \button{Jump to}.  This will popup
+a window in which you may enter the $(x,y,z)$ coordinates (DICOM order)
+of the point to which you wish to set the crosshair viewpoint.
+(One application: the cluster locations reported by {\sf 3dclust}
+may be pasted into the window.)
+
+The third item on the popup menu is \button{Image display}.  This will collapse
+the viewing window to just include the image.  Selecting this item again
+will bring the viewing window controls back.
+(One application: making snapshots of nice functional displays.)
+{\bf N.B.}:~This function does not work well on all X11 displays, for
+unknown reasons.  It may collapse the image window to zero size, which
+is slightly inconvenient.
+
+When\seeme{Seeing individual voxel values}
+all three viewing windows ({\tt Axial}, {\tt Sagittal}, and {\tt Coronal})
+are open, the bottom item on the popup
+menu will contain a display of the background pixel value at the center
+of the crosshairs.  (The background is normally an anatomical image, but
+can also be switched to be a functional image using the {\tt Function} controls.)
+
+\mysubsubsec{Resizing Image Windows}
+When a viewing window is first opened, it is at the `natural' dimension
+for the resolution set in the {\tt Datamode} controls (or in the dataset
+header file, if viewing from the data brick).  When jumping from one
+coordinate system to another, or from one dataset to another, the
+program attempts to keep the on-screen pixels/mm the same, so that no
+sudden scale changes occur.
+
+When the viewing windows are resized, the images are stretched by
+nearest-neighbor resampling.  This has nothing to do with the resampling
+modes set in the {\tt Datamode} and {\tt Function} controls.  For example,
+the crosshairs are exactly one pixel thick in the `natural' dimension of
+each window.  If a window is stretched, then the crosshairs will become
+thicker.  If a window is shrunk, the crosshairs may disappear when they
+are missed during the display resampling.
+
+When viewing from the data brick, and when the data voxels are not cubical,
+the viewing windows will similarly stretch the coarser direction to maintain
+the correct physical aspect ratio on the screen (assuming that the X11 pixels
+are square).  This can produce a blocky looking image.  To force a smoothing,
+the {\tt Warp~on~Demand} mode should be used.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=5in\epsffile{afni200_graph1.eps}}\vspace{1ex}
+\centerline{\sf Sample Graphing Window}
+\end{samepage}\goodbreak\vspace{1ex}
+
+
+%-----------------------------------------------------------------------------
+\mysubsec{Graph Display}
+When the current anatomical dataset is 3D+time and is not set to
+warp-on-demand (using the {\tt Datamode} controls), then the
+three \button{Graph} buttons (next to the \button{Image} buttons) will be activated.
+These allow the display of graphs of voxel intensity vs.\ time.
+(Although \afnit graph windows look very like the graph window in the auxiliary program
+{\sf FD2}, there is at least one major difference: \afnit graph windows
+can be resized\seeme{}.)
+
+The above figure shows a sample, with $3\times3$ data time series sub-graphs displayed.
+The central sub-graph is bordered in a light color (here, a~shade of gray).
+This sub-graph is a plot of the data time series at the viewpoint voxel --- the one
+displayed at the crosshairs in the image viewing windows.  The other sub-graphs
+are of neighboring pixels, in this case in the sagittal plane.  (In the
+corresponding sagittal viewing window, the crosshairs will show a box
+outlining the pixels being graphed.)  If you shift the viewpoint in
+an image viewer, then the graph viewpoint will shift accordingly.
+
+The voxel indexes of the viewpoint are shown at
+the lower left edge of the graph display; for example, {\tt Z:~8} means
+that this is slice number~8 (counting from~0).
+Then the spacing between vertical grid lines (in time steps) is shown; in this
+case, there is a grid line every $10^{\rm th}$ time step.  The {\tt Num:}
+label shows the number of points in the time series.
+At the bottom of the graphs is a label starting with {\tt index=}.
+This shows the time index of the current point (which can be altered
+with the \button{Index} control on the \afnit controller window),
+the value of the time series at that point, and the time coordinate
+of that time index (in this case, {\tt 211.25} seconds).  The current time
+point is displayed with a little red ball overlaid n the central sub-graph
+(in the figure above, red is rendered in gray).
+
+At the\seeme{Graph scaling}
+left of the graphs are two numeric labels; in this case, {\tt 802}
+and {\tt 891} (${}={\tt 802}+{\tt 89}$).
+This shows the vertical range of the central sub-graph.
+In this display, each sub-graph has its minimum point at the
+bottom of its sub-window.  {\it Every sub-graph has the same vertical
+scale factor, but has a different vertical offset.}  This is so
+that they will all fit in the same display easily.  This can be
+confusing when comparing levels of adjacent pixels: it is important
+to realize that there can be an arbitrary constant offset between
+adjacent sub-graphs.
+The \button{Baseline}
+button on the \button{Opt} menu can be used
+to ensure that all sub-graphs are plotted
+with the same vertical offset.
+
+\mysubsubsec{Button Clicks in a Graph}
+At the lower left of the graph window is a logo, whose main function is to
+remind you from which plane these graphs are drawn.  This can be
+suppressed (for window snapshot purposes) by clicking Button~1 on the
+logo.  Clicking Button~1 in that space again will restore the logo.
+(The \button{FIM} and \button{Opt} buttons will also be hidden and
+restored by these operations.)
+
+Clicking Button~1 on the central sub-graph will cause the time index
+to jump to that point.  If the Shift or Ctrl key is pressed while
+doing this, the time index instead will move up or down by~1, in
+whichever direction corresponds to the mouse cursor relative to
+the time index indicator ball.
+
+Clicking Button~1 on any other sub-graph
+will cause the spatial viewpoint to jump to that location, without
+changing the time index.  Clicking Button~3 on a sub-graph will popup
+a small window with some statistics about that time series.
+
+Some keystrokes, if pressed while the graph window has `focus',
+will carry out certain functions.  These functions are also available from
+the \button{Opt} menu, and are described below.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=5in\epsffile{afni200_graph2.eps}}\vspace{1ex}
+\centerline{\sf Graphing \button{FIM} (left) and \button{Opt} (right) menus}
+\end{samepage}\goodbreak
+
+\newcommand{\bitem}[1]{\item[\blob\button{#1}]}
+\newcommand{\kq}[1]{`{\tt #1}'}
+
+\mysubsubsec{\button{Opt} menu}
+The items on this menu control the appearance of the graphs:
+\begin{description}
+
+   \bitem{Scale} This is a `pullright' menu, used to control the
+                 vertical scale of the graphs.  The figure above
+                 shows the sub-menu that results from pulling-right
+                 on this item.  The \button{Down} and \button{Up}
+                 buttons will cause the graphs to scale down (shrink)
+                 and up (grow).  Pressing the keys \kq{-} and \kq{+}
+                 in the graph window will have the same effects.
+                 The \button{Choose} button will cause a little
+                 chooser to popup, which allows you set the vertical
+                 scale factor manually.  If the scale factor
+                 is positive, then it is the number of screen pixels
+                 to use per unit of data.  If the scale factor is
+                 negative, its absolute value is the number of units
+                 of data per screen pixel.  Thus, increasing the
+                 scale factor will cause the graph to grow vertically.
+                 There is no provision in \afnit for automatic
+                 scaling to fit the dataset range; each graph window
+                 starts with its scale factor set to~1.  Judicious
+                 use of the \kq{-} or \kq{+} keys may be needed to
+                 make a graph visible.
+
+   \bitem{Matrix} This pullright menu is used to control the number
+                  of sub-graphs displayed.  It shows a sub-menu
+                  similar to the \button{Scale} sub-menu.
+                  In this case, \button{Down} (keystroke~\kq{m})
+                  will cause the number of sub-graphs displayed
+                  across and down to decrease by~1; \button{Up}
+                  (keystroke~\kq{M}) will increase the array size by~1;
+                  \button{Choose} will let you directly set the
+                  number of sub-graphs.
+
+  \bitem{Grid}  This pullright menu lets you control the spacing
+                (in time steps) between vertical grid lines.
+
+  \bitem{Slice} This pullright menu lets you move the spatial viewpoint
+                between slices in the dataset (moving within a slice is controlled
+                by Button~1 clicks, as described above).
+
+  \bitem{Grid Color} This item just rotates the vertical grid color between the
+                     available choices.
+
+  \bitem{Baseline} This item switches the way that graph baselines
+                    are computed.  By default, each sub-graph has the
+                    minimum value of its time series mapped to the bottom
+                    of its sub-window.  By pressing this item
+                    (or the \kq{b} key), the sub-graphs will switch to
+                   having a common baseline.  That is, the minimum
+                   value in {\tt all\/} the displayed time series will mapped
+                   to the bottom of each sub-window.  (In many cases, doing
+                   this will require scaling down the graphs with the \kq{-} key.)
+                   Choosing this item again will restore the original
+                   graph baseline mode.
+
+  \bitem{Write Center} Selecting this item (or pressing the \kq{w} key) will
+                       write the dataset time series in the central sub-graph to
+                       disk, in a filename like {\tt 033\_034\_008.suffix.1D}\@.
+                       The \kq{suffix}
+                       is selected by the next menu item, \button{Set 'w' Suffix},
+                       and the prefix numbers are from the voxel spatial index
+                       in the dataset.
+                       The output file is ASCII, one number per line.
+                       ({\bf N.B.}:~the output is the dataset time series,
+                        and is unaffected by the {\tt Tran} transformations below.)
+
+  \bitem{Tran 0D} This item is the same as the \button{Tran 0D} item on
+                  the image viewer \button{Disp} panel.  It allows the
+                  application of a pointwise transformation function to
+                  the time series before graphing occurs.
+
+   \bitem{Tran 1D} This item allows the application of general
+                   transformations to the time series before graphing.
+                   The two built-in \button{Tran 1D} functions are
+                   \button{Median3} and \button{OSfilt3}, which are
+                   order-statistics smoothing filters using a 3-wide neighborhood.
+                   (In addition, the {\tt plug\_lsqfit} plugin defines two
+                   more functions, which can be used to do linear least squares
+                   fits of various functions to dataset time series.)
+
+   \bitem{Double Plot} Normally, if a \button{Tran 1D} transformation is
+                       applied, the graph of the transformed data replaces
+                       the graph of the original data.  If this item is
+                       selected, then both graphs will be displayed.
+                       (This was added to be able to see the least squares
+                        fits from {\tt plug\_lsqfit} plotted over the input data.)
+
+   \bitem{Done} This closes the graphing window (the keystroke \kq{q} has the
+                same effect).
+\end{description}
+
+
+\mysubsubsec{\button{FIM} menu}
+This menu is used to control the computation of functional datasets (of the
+{\tt fico} type) from 3D+time datasets.  Some of the functions of this
+menu are duplicated on the {\tt Function} control panel \button{FIM} menu.
+
+\displayline{Theory of {\tt FIM}}
+If $x_n$ is a data time series, and $r_n$ is a known reference (or ideal)
+vector corresponding to the expected activation time course, then
+the statistical model for $x_n$ is
+\begin{eqnarray*}
+  x_n    &=& \alpha r_n + a + b n + \eta_n \qquad (n=0,1,\ldots) \\*
+  \eta_n &\sim& N(0,\sigma^2) \qquad\qquad\qquad \hbox{i.i.d.}
+\end{eqnarray*}
+where $\alpha$ is the unknown amplitude of the activation,
+$a$~is the unknown mean signal level, $b$~is the unknown linear drift in
+time, and $\sigma^2$ is the unknown noise variance.  The correlation
+method~\cite{Bandettini,Cox-Rtime} computes the sample
+correlation coefficient between $x_n$ and $r_n$, and uses that to
+determine the significance of the hypothesis that $\alpha \neq 0$.
+
+\displayline{Time Series Files}
+\MCW$\!$ \afnit stores single time series (such as $r_n$) in the format
+described earlier: ASCII format, one number per line.  A~number greater
+than $33333.0$ means that particular point in time should be ignored.
+This convention goes back to the original {\sf fim} program in 1990, and
+is due to Andrzej Jesmanowicz of \MCW.
+(The \button{Write Center} button described above is one way to create
+such a time series file.  Another is with the auxiliary program {\sf sqwave}.
+Yet another is simply to use a text editor, such as {\tt vi}.)
+
+When \afnit starts up, it will read in time series files from the session
+directories that it opens.  The program will attempt to read a time series
+from any file whose name ends in \kq{.1D}.
+These time series will be pooled into
+a `library', whose entries can be selected from a menu, as described below.
+
+You may wish to keep some time series files stored separately from any
+particular session directory.  \afnit can be made to read such files
+by defining the shell environment variable {\tt AFNI\_TSPATH}.
+Like the executables variable {\tt PATH}, this is a colon-separated
+list of directories in which to search for particular files: in this
+case, \kq{*.1D} files.  For example:\\*[1ex]
+\centerline{\tt setenv AFNI\_TSPATH \$\{HOME\}/timeseries:./}\vspace{1ex}
+will cause \afnit to search for time series in the {\tt timeseries} directory under
+your home directory, and in the current working directory.
+Normally, you would put this type of command in your {\tt .cshrc} file so that
+it would always be executed when you login (I'm assuming
+that you use the C-shell {\tt csh} or its superset,~{\tt tcsh}.)
+
+I said above that time series files are stored as one number per line.
+This is true of the older programs such as {\sf fim2}, {\sf FD2}, etc\@.,
+but \afnit itself allows more than one number per line.  In this way, more
+than one time series can be stored per file:
+\begin{samepage}\begin{verbatim}
+       99999    99999    99999    99999
+       99999    99999    99999    99999
+           0        0        0        0
+          10        0        0        0
+          10       10        0        0
+           0       10       10        0
+           0        0       10       10
+          10        0        0       10
+          10       10        0        0
+          ...      ...      ...      ...
+\end{verbatim}\end{samepage}
+The above example defines four time series in one file.  Each one
+starts with two {\tt 99999}s, which indicates that these two points
+should not be used in any analysis with these time series.
+The subsequent values could be used as an ideal waveform in {\tt FIM}
+analysis.  In this example, each timeseries (after the first) is a time-delayed copy
+of the one to the left.
+A~Unix command of the form\\[1ex]
+\centerline{\tt pr -m -t -s" " a.1D b.1D c.1D d.1D > abcd.1Dx}\vspace{1ex}
+can be used to `glue' multiple files together horizontally
+into a single file with multiple columns.  You should be sure that all the files have the
+same number of lines before using the {\tt pr} command, which is
+really a program designed for formatting files for printout.
+(On SGI workstations, the {\tt pr} command has a small upper limit
+to the number of columns it will output.  On such systems, it may
+be necessary to `paste up' a large number of columns in two stages.)
+
+To allow such time series files to be distinguished from `ordinary' files
+(containing only one time series), \afnit allows the use of the filename
+suffix \kq{.1Dx}, as in the {\tt pr} command example above.
+However, there is no difference between the \kq{.1Dx} files and
+the \kq{.1D} files as far as \afnit is concerned: it is perfectly
+acceptable to have a multi-column time series filename end
+in \kq{.1D}, or to have a single column time series filename end
+in \kq{.1Dx}.
+
+At this release, only the actual \afnit program will recognize
+these multi-column time series files correctly.  Other programs, such
+as {\sf fim2}, still require each file to contain only one time series.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=2.5in\epsffile{afni200_graph3.eps}}\vspace{1ex}
+\centerline{\sf Sample time series chooser menu}
+\end{samepage}\goodbreak
+
+\displayline{\button{FIM} Menu Items}
+\begin{description}\vspace*{-3.2ex}
+  \bitem{Pick Ideal} This button pops up a chooser window which allows you
+                     to select a time series file to be used as the
+                     ideal waveform $r_n$
+                     (an example of this chooser is shown above).
+                     With each time series filename is shown the
+                     dimensions of the time series.  In the example,
+                     the file {\tt qqq.1Dx} has 68 points in time (68 lines of data)
+                     and has 13 columns.
+
+                     If the ideal time series has more than one column, the
+                     {\tt FIM} computations compute the correlation coefficient
+                     of each voxel with each column separately.  Then the
+                     column that is most highly correlated with the voxel
+                     time series is selected to compute the $\alpha$ for
+                     that voxel;  $\alpha$ becomes the `intensity' and
+                     the correlation coefficient becomes the second sub-brick
+                     stored in the resulting {\tt fico} dataset.
+
+                     When the ideal time series is selected, it will be plotted
+                     at the top of the center sub-graph window, in red.
+                     Sections of it that are marked to be ignored will
+                     be plotted in blue.  If there is more than one
+                     column in the ideal time series, by default they will all
+                     be plotted.
+
+                     (By the way, the \button{Plot} button on the time series
+                      chooser is permanently deactivated.  I~intended to
+                      provide the ability to preview a time series in a little
+                      window, but never got around to implementing it.
+                      The button remains to remind me of this, and to remind me
+                      of all my other goals for \afnit that have yet to come to fruition.)
+
+  \bitem{Pick Ort}  In the mathematical model for $x_n$ given earlier, note
+                    that we included $a + b n$ in the model to represent
+                    the unknown baseline and drift of the data time series.
+                    These are `orts': time series to which the data time series
+                    is orthogonalized prior to the correlation coefficient
+                    calculation~\cite{Cox-Rtime}.  \afnit always orthogonalizes
+                    the data to these two time series.  In addition, you
+                    may specify another time series to which the data time
+                    series in each voxel should be orthogonalized.
+                    If the ort time series has more than one column, each
+                    data time series will be orthogonalized to all columns
+                    prior to the correlation coefficient calculation.
+
+                    When the ort time series is selected, it will be plotted
+                    in the middle of the center sub-graph window, in green.
+                    Sections of it that are marked to be ignored will
+                    be plotted in blue.
+
+   \bitem{Edit Ideal} This pullright sub-menu (shown in a figure far above)
+                      is used to control the ideal waveform.
+                      The menu sub-items are:
+   \begin{itemize}
+      \item \button{Ideal = Center} will take the central sub-graph data time
+             series and make it the ideal time series.
+
+      \item \button{Ideal+= Center} will take the central sub-graph data time
+             series and average it into the ideal time series.  In this way,
+             it is possible to select a group of voxels (one at a time)
+             and average them together to make a single waveform.
+
+      \item \button{Smooth Ideal} will apply a 3-neighborhood order-statistics
+             filter to smooth the current ideal waveform.  If the 3 points
+             input are $a$, $b$, and $c$, then
+             the output is
+             \begin{displaymath}
+                y_n = 0.70 \cdot {\rm median}\,(a,b,c)
+                    + 0.15 \cdot {\rm max}\,(a,b,c)
+                    + 0.15 \cdot {\rm min}\,(a,b,c) \;.
+             \end{displaymath}
+
+      \item \button{Shift Ideal} will popup a control panel that allows you
+            to generate shifted copies of the current ideal waveform.
+            All the shifted copies form a multi-column time series.
+            In this way, it is possible to construct a single column ideal
+            waveform, use \afnit to create time shifted copies of it,
+            and then correlate them all with the data, picking out the
+            `best' time shift at each voxel.
+
+      \item \button{Clear Ideal} will clear the current ideal waveform; that is,
+             the ideal waveform will be undefined after this is pressed.
+             The graph of the ideal waveform will also be cleared.
+
+      \item \button{Clear Ort} will clear the current ort waveform.
+
+      \item \button{Read Ideal} allows you to read in the ideal waveform
+             from an external file.
+
+      \item \button{Write Ideal} allows you to write the current ideal waveform
+            to disk.  In this way, an ideal created from the current dataset
+            can be saved for later analysis.
+
+      \item \button{Store Ideal} allows you to store the current ideal waveform
+            into the \afnit menu for possible later selection.
+            (The only way to create an ort from a dataset is to first create
+            it as an ideal, then to store it with this button, and then
+            to use \button{Pick Ort} to get it off the time series menu.)
+            The {\tt Write} and {\tt Store} operations are independent:
+            writing to disk does not imply storing in the menu system, or
+            {\it vice versa}.
+   \end{itemize}
+
+   \bitem{Ignore} This pullright menu allows you set the number of points
+                  to be ignored at the beginning of each time series.
+                  (This is often desirable, since in rapid scan MRI the
+                   longitudinal magnetization may take several images
+                   to reach steady state.)  Time points that are ignored --- either
+                  through the use of this control or large values (33333+) in
+                  the ideal waveform --- will be skipped in the correlation
+                  analysis.  In addition, points that are ignored with
+                  this control will not be graphed.  This allows
+                  large initial transients to be suppressed, and makes
+                  it easier to read the graphs.
+
+   \bitem{FIM Plots} This pullright menu allows you to specify whether
+                     all the columns of the ideal and ort waveforms should
+                     be plotted, or just the first columns.
+
+   \bitem{Compute FIM} This will start the correlation calculations.
+                       At the least, an ideal waveform must be specified
+                       before this button will work.  You may also wish
+                       to set the {\tt Ignore} value and the ort waveform
+                       prior to these computations.
+
+                       The calculations use the recursive method of Cox
+                       {\it et al.}~\cite{Cox-Rtime}.  While they are
+                       proceeding, a~`progress meter' will display
+                       over the titlebar of the \afnit controller window.
+                       When the results are finished, the new {\tt fico}
+                       dataset will become the current functional
+                       dataset, and can be examined immediately in
+                       the image viewers.  If the input 3D+time dataset
+                       were named {\tt elvis+orig}, then the {\tt fico}
+                       dataset will be named {\tt elvis@\#+orig}, where
+                       {\tt \#} will be one of {\tt 1}, {\tt 2}, {\tt 3},~\ldots.
+                       If desired, the {\tt Dataset Rename} ({\tt plug\_rename.c})
+                       plugin can be used to change the prefix to something more
+                       convenient.
+\end{description}
+
+%-----------------------------------------------------------------------------
+\mysubsec{Viewing Controls}
+The second column of the \afnit control window contains many controls
+that affect how the datasets are viewed, transformed, and output.
+
+\mysubsubsec{View Modes}
+At the top of this second column are the view mode controls.  These
+let you switch between the available views: {\tt Original},
+{\tt AC-PC aligned}, or {\tt Talairach}.
+If a particular view is not available for the currently active
+anatomical dataset, then the corresponding button will be inactive (grayed-out).
+
+When you switch view modes, you will see that the windows change size.
+That is because in the {\tt +acpc} and {\tt +tlrc} views, the images are
+clipped to the known dimensions of human heads.  This is to save space
+when such datasets are written to disk.  The window resizing is set up to preserve
+the pixels-per-brain-millimeter ratio.  The program also attempts to keep
+the crosshair viewpoint
+in the same anatomical location as they were in the previous view
+mode, but they may shift slightly.  Since the {\tt +orig} view will
+generally be rotated from the {\tt +acpc} and {\tt +tlrc} views, keeping
+the viewpoint at the same location does {\it not\/} mean keeping the
+slices in the same location.
+
+\mysubsubsec{\button{Define} Controls}
+Each \button{Define} button opens up another control panel to the right
+of this second column.  They are discussed separately later.  Note
+that to close a {\tt Define} control panel, you press its button again.
+To help with this, the \button{Define} buttons that are currently open are
+displayed in inverted colors.  You may open more than one {\tt Define} control
+panel at a time, but they will all lie on top of each other (most recently opened
+panel on top).
+
+\mysubsubsec{\button{Switch} Controls}
+These controls let you choose which session, and which datasets from
+that session, you are viewing at any given moment.  They popup
+a chooser that lets you cycle between the session directories,
+the anatomical dataset prefixes, and the functional dataset prefixes,
+respectively.
+
+When you switch datasets, \afnit may be forced to switch views as
+well.  This can occur if the new dataset doesn't exist in the view
+mode you were formerly in.  For example, if you save several
+functional datasets in the Talairach view mode
+(using the {\tt Datamode} controls), then combine them with {\tt 3dmerge},
+the result will only exist in the {\tt +tlrc} view.  You can only
+view this functional dataset when the view mode corresponds, so the
+program will jump to that mode.  If such a view mode switch occurs,
+the program will beep when it makes the transition.
+
+%-----------------------------------------------------------------------------
+\mysubsec{\button{Define Markers}}
+The transformation to the AC--PC aligned view, and from there to the
+Talairach view, is accomplished by means of `markers'.  These are anatomical
+landmarks that you manually select using the control column opened up
+by this control.
+
+Only 3D anatomical datasets can have markers set;  3D+time datasets
+have the markers disabled.  It is only possible to transform a 3D+time
+dataset to Talairach coordinates using a `parent' 3D dataset,
+as described earlier (the \kq{X}s and \kq{O}s diagram).
+
+\mysubsubsec{Markers for the AC--PC Aligned Transformation}
+The AC--PC aligned view mode is defined by a rigid body transformation
+that makes the AC--PC line the new $y$-axis, makes the longitudinal
+fissure the new $xz$-plane, and makes the line perpendicular to that
+the new $x$-axis (right-to-left).  The new origin is put at the
+intersection of the AC--PC line and the vertical line passing through
+the posterior margin of the~AC.  See \cite{Talairach} for details.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=5in\epsffile{afni200_acpc.eps}}\vspace{1ex}
+\centerline{\sf Cartoon of central brain, showing key anatomical locations}
+\end{samepage}\goodbreak
+
+To select the landmarks, you must first choose \button{Allow edits}, so
+that \afnit will let you change the markers.  After that, you
+choose the five landmarks:
+\begin{description}
+  \item[\blob AC superior edge]  The highest point on the anterior commissure,
+                           in the mid-sagittal plane.
+  \item[\blob AC posterior margin] The rearmost point on the anterior commissure,
+                           in the mid-sagittal plane.
+  \item[\blob PC inferior edge] The lowest point on the posterior commissure,
+                           in the mid-sagittal plane.
+  \item[\blob First mid-sag pt] Two points are required in the longitudinal
+      fissure --- they are used to define the new $z$-axis.  (Two points
+      are required to make sure that the new vertical plane is defined
+      adequately; the mismatch between the AC--PC line and these two
+      points must be less than~$2^\circ$.)
+  \item[\blob Another mid-sag pt] Should be at least 20 mm away from the first one.
+\end{description}
+\goodbreak\begin{samepage}
+\centerline{\epsfxsize=6.4in\epsffile{afni200_mark1.eps}}\vspace{1ex}
+\centerline{\sf Original (left) and AC-PC Aligned (right) \button{Define Markers} Control Panels}
+\end{samepage}\goodbreak
+You select a landmark by depressing its button, then moving the crosshairs
+to the desired location, then clicking the \button{Set} button.  A~visible
+marker will appear.  You can reset this point, or \button{Clear} it.  When a
+marker is set, its toggle button will appear in inverted colors.
+
+The atlas definitions of the marker locations are always in terms of
+a boundary.  That is slightly ambiguous when it comes to discrete
+images:  do you mark the last voxel visible in the structure, or the first
+voxel just outside the structure?
+My arbitrary solution to this problem is always
+to mark the last voxel visible in the structure.  For example, in
+marking the `top' of the AC, I~move up until it is just no longer visible
+in the axial image.  Then I drop back down one axial slice.
+It is possible to use
+`warp-on-demand'\seeme{Sub-voxel marker locations}
+to place markers at subvoxel locations --- see the {\tt Datamode} controls.
+
+On MR images with 1 mm$^3$ voxels and with good gray-white matter
+contrast, it is usually quite easy to set the
+AC markers.  (At \MCW, we use a GE Signa SPGR sequence for this purpose.)
+The PC is harder to spot, but it is always near the
+top of the cerebral aqueduct (in subjects with normal anatomy --- it might
+be displaced by some pathological conditions; if you suspect this has
+happened, consult a neuroradiologist immediately!).
+Examination of the sample \afnit dataset, and some consultation with a
+neuroanatomy textbook will probably be helpful
+in learning to recognize the required anatomical landmarks.
+
+\mysubsubsec{Making the Transformation}
+When all markers are set, the \button{Quality?} button will become active.
+This button will check the marker set for elementary consistency.
+If the markers {\it don't\/} pass the test, an error message pops up
+to explain what happened.  If they do pass the test, then the
+\button{Transform Data} button becomes active.  When you press this, the
+new dataset will be created (in this case, the {\tt +acpc} view of the
+anatomical dataset you were just marker-ing).
+
+This new dataset will {\it not\/} have a {\tt .BRIK} file
+on disk, just a {\tt .HEAD} file.  When \afnit comes to display this
+dataset, it will simply transform the needed data from the {\tt +orig}
+dataset.  If you wish, you may save the data voxels in the new view
+to disk using the {\tt Datamode} controls.
+(If you wish to manipulate a transformed
+dataset using the auxiliary programs, you will have
+to save the data voxels to disk.)
+
+\mysubsubsec{Transformation to Stereotaxic ({\it i.e.}, Talairach) Coordinates}
+After you create the AC--PC aligned view, you can switch to it with
+the \button{AC-PC Aligned} button.
+At this point, you can set markers for the scaling to the
+Talairach view.  Six markers are required to define the bounding box
+of the cerebral cortex.  These should be set quite carefully, since
+it is often easy to mistake the sagittal sinus for cortex, which would
+give an erroneously large box in the $+z$-direction.  Generally, I~find
+that the most inferior point (in one of the temporal lobes) is the hardest to pick out.
+
+In the {\tt +acpc}~$\to$~{\tt +tlrc} transformation marker control
+panel, a~toggle switch labeled \button{Big Talairach Box} appears
+just below the \button{Transform Data} button.  In the earliest versions
+of \afni, the brain data was clipped at 55 mm inferior to the AC-PC line,
+this being the location of the bottom of the Talairach-Tournoux atlas figures.
+In subsequent work, we found this was inadequate for cerebellar
+imaging.  The new default clipping level is 65 mm inferior to the AC-PC line,
+and this is referred to as the {\tt Big Talairach Box}.  Datasets {\tt .BRIK}s
+created with the old (small) box size are smaller than the new box size.
+There is no way to mix old and new box size datasets together when
+using the auxiliary analysis programs such as {\sf 3dANOVA}.
+For this reason, and to maintain compatibility with old analyses,
+it is possible to write out old box size dataset {\tt .BRIK}s
+by toggling this switch off.  For all future work, I~strongly recommend
+using the new Talairach box size.
+
+The transformation carried out is precisely the one described in
+\cite{Talairach}, and I recommend that anyone using \afnit read this atlas.
+The dataset is divided into 12 subvolumes:
+\begin{itemize}
+  \item In $x$: Right-to-Midsagittal, Midsagittal-to-Left
+  \item In $y$: Anterior-to-AC, AC-to-PC, PC-to-Posterior
+  \item In $z$: Inferior-to-AC, AC-to-Superior
+\end{itemize}
+Each region is scaled separately to match the millimetric coordinates
+in the atlas:\\[.5ex]
+\centerline{\begin{tabular}{ll}
+   $x$ axis: AC--PC line to most left point of cerebrum     & = \ 68 mm \\
+   $x$ axis: AC--PC line to most right point of cerebrum    & = \ 68 mm \\
+   $y$ axis: Most anterior point of cerebrum to AC          & = \ 70 mm \\
+   $y$ axis: AC to PC                                       & = \ 23 mm \\
+   $y$ axis: PC to most posterior point of cerebrum         & = \ 79 mm \\
+   $z$ axis: Most inferior point of cerebrum to AC--PC line & = \ 42 mm \\
+   $z$ axis: AC--PC line to most superior point of cerebrum & = \ 74 mm
+\end{tabular}}\vspace{0.5ex}
+The atlas brain is from an adult female, and so a typical adult male brain will be
+slightly compressed by these standard measurements.
+(Any jokes at this point will be sternly dealt with.)
+This transformation is then combined with the
+{\tt +orig}~$\to$~{\tt +acpc} transformation, so that the data viewed
+in the Talairach mode is only interpolated once, not twice.
+
+The whole procedure to produce the {\tt +tlrc} view from the
+{\tt +orig} view only takes a few moments, once you become adept at
+recognizing the requisite anatomical landmarks.
+
+You will find that the marker toggle buttons and set/clear
+buttons are duplicated on the popup menu from the imaging windows.
+This is for convenience, since it is often necessary to peer closely
+at the screen to decide on a marker point, and I personally find it
+annoying to have to switch my attention to another window in order
+to set the marker.  Also, note that depressing the toggle button (in the
+marker control column or on the popup menu) for
+an already set marker will cause \afnit to jump the crosshair viewpoint
+to that marker location.
+
+Finally, note that there are no markers available to be set in the
+Talairach view mode.  At present, there are no transformations beyond
+this one --- maybe someday.
+
+\mysubsubsec{Re-transformation and Re-creation of Datasets}
+If you decide to re-mark and re-transform an anatomical dataset, then
+the old transformed version will be deleted from disk before the new
+version is made.  Not only that,
+but all the automatically manufactured transformed datasets that follow
+on this transformation will also be destroyed and remade.
+This can be disconcerting at first, but it is the only logical course
+of action for \afnit to take --- otherwise, the transformed functional
+datasets would have been made with a different transformation than the
+new anatomical dataset on which they will be overlaid.
+
+The only time this destruction is inappropriate is when the
+functional datasets in the transformed view are not in fact transformations
+from original datasets in the same session.  This could happen if you
+copied a {\tt +tlrc} dataset into a session from another directory, or
+if you created a {\tt +tlrc} dataset using {\sf 3dmerge}, say.
+\afnit will not delete a dataset if there is no `parent' dataset from which
+it was warped.
+
+\afnit will not let you mark and transform more than one anatomical dataset
+per session.  Once you have transformed one dataset in a session,
+the others will be off-limits to direct marking and transformation.
+Their transformations will be derived from the `master' dataset
+that you mark first.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=3.4in\epsffile{afni200_func.eps}
+            \blob\blob
+            \epsfxsize=1.9in\epsffile{afni200_datamode.eps}}\vspace{1ex}
+\centerline{\sf \button{Define Function} and \button{Define Datamode} control panels}
+\end{samepage}\goodbreak
+
+%-----------------------------------------------------------------------------
+\mysubsec{\button{Define Function}}
+The buttons and other `widgets' on this control panel are used to manipulate how
+functional datasets are displayed in the viewer windows.
+
+\mysubsubsec{Threshold Slider}
+If the current functional dataset has a threshold data
+sub-brick ({\it i.e.},~is not of the {\tt fim} type),
+then the first item in the Function control panel
+is a slider that lets you select the threshold to apply.
+Only voxels whose associated value is equal to or
+above this threshold will be overlaid in color.
+If the functional dataset type is {\tt fico}, {\tt fitt},
+or {\tt fift}, then \afnit knows how to interpret the
+threshold level in terms of the standard normal models
+for these statistics, and will show the corresponding
+`$p$' value (per voxel) just below the slider.  The dataset threshold
+type is shown at the top of the slider.
+
+If the functional dataset is of the {\tt fim} type,
+then this slider will not be visible.  In this case,
+the leftmost item in the Function panel will be:
+
+\mysubsubsec{Color Pbar}
+The multi-colored vertical bar with numerical
+labels to the right, and a number selector labeled~{\tt \#} below
+is called the `pbar' (after its name in the C~code).
+This device controls the colors for the functional overlay.
+
+The number selector
+beneath the pbar control how many color panes
+are present: from 2 to 10 are available (the default in \afnit is set
+to 9~panes).  Just below that is a toggle switch \button{Pos.}.
+This allows you to specify that only positive values will the
+shown in the color pbar, or that both positive and negative
+values will be shown.  (Some functional datasets are naturally
+nonnegative; for these, allocating colors to the negative range
+is pointless.)
+
+The color in any pane may be altered by clicking inside the
+pane itself.  A~chooser will then popup to let you select from
+the available palette (which is hard-coded into \afni, and can
+only be changed via the {\tt .Xdefaults} file).
+One color choice is `none', which
+means that no color will display for that range of functional
+intensities, even if they appear in voxels that are over the
+selected threshold.
+
+Each color pane applies to the indicated range of functional
+intensities.  These intensities are relative to the {\tt Range}
+control settings (to the lower right).
+The {\tt Range} setting is is mapped to `{\tt 1.0}' on the pbar,
+and all other pbar settings correspond to the similarly scaled
+values in the functional dataset sub-brick being viewed.
+You may click-and-drag on the `sashes' between the color panes
+to change the intensity thresholds.
+
+\mysubsubsec{Options}
+The options column is a grab bag of functional dataset stuff.
+The first boxed set of buttons (\button{Anat underlay}, etc\@.)
+lets you choose whether the anatomical dataset
+or the functional dataset appears as the background (grayscale)
+images in the viewing windows.
+The second boxed set (\button{Func=Intensity}, etc\@.)
+lets you choose between displaying the intensity or the threshold as the
+color-determining function.
+
+The third boxed set comprised the range controls for the functional coloring.
+At the top are the minimum and maximum values found in the current
+datasets ({\it cf.}~auxiliary program {\sf 3dinfo}).
+The next control is a toggle labeled \button{autoRange: xxxx}.  The value
+represented by {\tt xxxx} is the automatically assigned range for
+the functional range (which corresponds to {\tt 1.0} on the pbar).
+This {\tt autoRange} is chosen by \afnit as the largest absolute
+value in the dataset sub-brick.  If the toggle is off, then
+the control below is activated, and allows you to specify the
+functional value that maps to {\tt 1.0} on the pbar.  Controlling this
+range may be desirable when comparing several datasets.
+
+The lowest (so far) control in this column provides another \button{FIM} menu
+button (see the Graph section).  The label to the right of this button
+shows the dataset that will be processed once the \button{Compute FIM}
+button is pressed.
+
+%-----------------------------------------------------------------------------
+\mysubsec{\button{Define Datamode}}
+This control column determines how datasets are manipulated by \afni.
+It also contains some miscellaneous controls that didn't `fit in'
+elsewhere.
+
+\mysubsubsec{Resampling}
+The\seeme{Warp-on-demand; subvoxel markers}
+top boxed set of controls
+lets you choose how the anatomical data that is actually displayed will be
+generated.  You can view the data directly from the {\tt .BRIK} file,
+if it is available.  In this case, you are limited to seeing the dataset
+at the voxel resolution at which the data was generated.  Alternatively,
+you can choose \button{Warp Anat on Demand} viewing, which means that the data
+will be interpolated from its source to whatever resolution you order
+(using the controls just below).  In this way, it is possible to place
+markers at subvoxel locations.
+
+At present, \afnit cannot display graphs from a warp-on-demand
+dataset.  If you take an action that causes a 3D+time dataset
+to be switched to warp-on-demand mode, then any open graph
+windows will be destroyed.  This will happen, for example, if
+you switch from {\tt +orig} to {\tt +tlrc} view, and have
+not yet written the 3D+time dataset to disk.
+
+The\seeme{Resampling modes}
+interpolation modes are nearest-neighbor (\kq{NN}), linear (\kq{Li}),
+cubic (\kq{Cu}), and `blocky' (\kq{Bk}) [this latter is intended mainly for
+functional datasets, and is intermediate between {\tt NN} and {\tt Li}; its
+mathematical definition is at the end of this manual].
+{\tt NN},~{\tt Li}, and {\tt Bk}
+are fairly rapid on a decent workstation, but {\tt Cu} can be noticeably
+slow.  Since it uses 64 neighboring grid points to interpolate, vs.\ 8
+for {\tt Li} and~{\tt Bk},
+and it uses more complex formulas, this is understandable.  For most
+purposes, {\tt Li} interpolation for anatomical images and {\tt Bk} interpolation
+for functional images will be the best.
+{\bf N.B.}:~threshold data in functional datasets is {\it always\/} resampled
+using the {\tt NN} mode.  This is because it is somewhat unreasonable to interpolate
+a nonlinear statistic (such as correlation coefficient) between voxels,
+and then to interpret this statistic using probabilistic models that
+assume independence.
+
+The smallest resolution allowed by the {\tt Resam~(mm)}
+selector is 0.1~mm.  This is very tiny, and images will display
+very slowly.  You can do it if you wish; however, don't try to
+write out a whole human head dataset to disk at this resolution!
+The disk space required would be rather large.
+
+Controls for determining whether the functional dataset {\tt .BRIK}
+(if available) or warp-on-demand will be used for computing the
+functional slices are the next set down.  The
+functional {\tt .BRIK} can be used only if it actually exists
+in the current view ({\it i.e.},~coordinate system)
+and if it is at the same spatial resolution as the anatomical
+dataset being viewed.
+
+\mysubsubsec{Dataset Output and Input}
+The {\tt Write} buttons
+will compute and write the {\tt .BRIK} files
+to disk for the indicated datasets.  The current resampling mode and
+resampling dimension will be used for this purpose.
+The \button{Anat} button will output the current anatomical
+dataset; the \button{Func} button outputs the current functional dataset.
+The \button{Many} button allows you to select more than one dataset
+(from all sessions) and write them all out.  This new control is provided
+since the resampling process can be relatively slow --- now you can
+select many datasets, start their output in Talairach coordinates, and
+then go get something good to eat while \afnit churns away.
+
+\afnit will\seeme{}
+not write over a dataset {\tt .BRIK} which cannot be
+recreated by warping from a parent.
+(This precaution does not extend to plugins, which can be
+written so as to destroy unrecoverable {\tt .BRIK}s.)
+It {\it is\/} possible to
+use \afnit to resample a dataset in the {\tt +orig} view, but
+only if the dataset is warp-on-demand from another dataset as parent.
+This can be arranged using the {\sf 3ddup} auxiliary program.
+
+The {\tt Rescan} buttons are designed to re-read data from disk.
+The first one, \button{This}, will re-read the current session.
+This is useful if you use an auxiliary program such as {\sf 3dANOVA}
+to create a new dataset outside of \afni, and then wish to view it.
+In earlier versions, it was necessary to exit \afnit and restart
+it to get new datasets into the program.
+The \button{All} button will re-read all the sessions that were
+initially loaded (there is no facility to read in an entire new
+session at this time).  Finally, the \button{*.1D} button
+will re-read the time series directories, and load any new time
+series files that are found.
+
+\mysubsubsec{Controller \button{Lock}}
+With the \button{New} button (lower left of \afnit controller window),
+it is possible to view several datasets at once in several sets of
+viewing (and graphing) windows.
+Normally, the viewpoints of the separate controllers are independent;
+that is, clicking in the sagittal window of controller {\tt [A]}
+will change the viewpoint of {\tt [A]}'s coronal and axial windows,
+but will have no effect on {\tt [B]}'s image and graph windows.
+
+Under some circumstances, you may wish to lock some controllers
+together, so that their viewer windows move in unison.  This can
+be done with the \button{Lock} menu.  There is only one lock
+in \afni.  This menu determines which controller windows participate
+in the lock.  If the spatial viewpoint is changed in any
+window that is affected by the lock, then \afnit will attempt
+to jump all other locked windows to the corresponding viewpoint.
+
+In addition, the \button{Lock} menu has a \button{Clear} button,
+to detach all controllers from the lock, and an \button{Enforce}
+button, which can be used to make all viewer windows affected jump
+to the locked position.  (\button{Enforce} is only needed just after choosing
+which controllers to be locked together.)
+
+A couple of applications for the lock:
+\begin{itemize}
+  \item Scrolling\seeme{Try this!}
+        through several anatomies in Talairach coordinates, simultaneously
+        viewing the similarities and differences.
+
+  \item Viewing a dataset in Original and Talairach coordinates simultaneously.
+
+  \item Comparing several different functional datasets overlaid on the
+        same anatomy.
+\end{itemize}
+\afnit can have trouble when the lock is used between controllers
+in different coordinate systems.  The lock subroutine will work properly
+if the dataset being viewed in one controller is just the realization
+of the other controller's dataset in a different coordinate system --- it
+will carry out the Talairach transformation (or its inverse) as needed
+to keep the lock anatomically reasonable.
+It will fail if the two controllers have different coordinate systems
+and different datasets; for example, it doesn't know how to transform
+from Talairach coordinates in one dataset to Original coordinates
+in another dataset.
+
+\mysubsubsec{Plugins}
+The last item in the {\tt Datamode} control panel is the
+\button{Plugins} menu button.  This will only be present
+if \afnit is compiled with plugin support, and if the
+program finds at least one plugin when it starts up.
+
+Plugins are external C functions, written in conformance
+with the plugins manual, that provide extra functionality
+to \afni.  They are compiled into `shared objects' (or `shared libraries')
+with the filename suffix~{\tt .so} (or~{\tt .sl} on HP-UX).
+\afnit searches for them in a set of directories
+specified in the shell environment variable
+{\tt AFNI\_PLUGINPATH}.  If this is not defined, then
+{\tt PATH} is used; that way, storing the compiled plugins in the
+same place as the \MCW$\!$ \afnit executables will work.
+
+Each plugin will create one or more `interface panels'.
+When you select a plugin from the \button{Plugins} menu,
+its interface panel will pop up.  At that point, you
+fill in the desired parameters, and then execute the actual
+plugin code with one of the {\tt Run} buttons.
+\vspace{2ex}\goodbreak\begin{samepage}
+\centerline{\epsfxsize=4.5in\epsffile{plugclust.eps}}\vspace{1ex}
+\centerline{\sf Clustering plugin ({\tt plug\_clust.c}) interface panel}
+\end{samepage}\goodbreak
+
+%=======================================================================
+\mysec{Command line switches}
+The general form for the \afnit command line is\\*[1ex]
+\centerline{\tt afni [options] [session\_directory ...]}\vspace{1ex}
+where the options, listed below, all start with the character~\kq{-}.
+If no session directories are entered, then the program acts
+as if the user had typed \kq{./} for the session, which means
+that the current working directory will be scanned for datasets.
+
+What I consider to be the more useful options are listed below.
+A~complete list can be found by entering the command \kq{afni -help}.
+\begin{itemize}
+   \item {\tt -purge}\\
+         Conserves memory by purging datasets to disk when not in use.
+         Use this if you run out of memory when running AFNI.
+         This will slow the code down, so use only if needed.
+
+         Another application for the {\tt -purge} switch arises when
+         using Unix symbolic links to make a dataset appear as if it is in more
+         than one session directory at once (without copying the brick file).
+         For example, suppose one creates (using {\tt 3dmerge}) an averaged
+         anatomical dataset: {\tt GRP+tlrc.HEAD} and {\tt GRP+tlrc.BRIK}, from
+         sessions {\tt fred}, {\tt ethel}, and {\tt lucy}.  This could be done
+         (from the directory above the sessions) by the commands
+\goodbreak\begin{samepage}\begin{verbatim}
+       3dmerge -prefix GRP -gmean */anat+tlrc.HEAD
+       ln -s GRP+tlrc.HEAD fred/GRP+tlrc.HEAD
+       ln -s GRP+tlrc.BRIK fred/GRP+tlrc.BRIK
+       ln -s GRP+tlrc.HEAD ethel/GRP+tlrc.HEAD
+       ln -s GRP+tlrc.BRIK ethel/GRP+tlrc.BRIK
+       ln -s GRP+tlrc.HEAD lucy/GRP+tlrc.HEAD
+       ln -s GRP+tlrc.BRIK lucy/GRP+tlrc.BRIK
+\end{verbatim}\end{samepage}\goodbreak
+        The {\tt ln -s} commands put links to the {\tt GRP} anatomy dataset into
+        each of the session directories.  In this way, if the user runs \afnit
+        with the command\\*[.5ex]
+        \centerline{\tt afni fred ethel lucy}\vspace{.5ex}
+        then each of the sessions will have access to the {\tt GRP} dataset,
+        but there will only be one physical copy of it on disk.
+
+        A problem arises with this scheme
+        because of the manner in which \afnit accesses large brick files.
+        The program will not recognize
+        that the links point to the same actual file, and it will attempt
+        to {\tt mmap} the {\tt GRP+tlrc.BRIK} file more than once.  This
+        will likely fail, and the program will crash when the second access
+        is attempted (when the user switches to the second session).
+
+        Using the {\tt -purge} switch will avoid this problem.  Before a new
+        dataset is accessed (when switching sessions, anatomies, or functions),
+        existing dataset bricks will be be {\tt munmap}-ed.  This will prevent
+        the attempt to {\tt mmap} the same brick file twice at the same instant.
+
+        Another way to approach this problem would be through
+        the use of the {\sf 3ddup} program to create warp-on-demand copies
+        of the {\tt GRP+tlrc} dataset in each of the session directories.
+
+   \item {\tt -R}\\
+            Recursively searches each {\tt session\_directory} for more session
+            subdirectories.
+            This will descend the entire filesystem hierarchy from
+            each session\_directory given on the command line.  On a
+            large disk, this may take a long time.  To limit the
+            recursion to 5 levels (for example), use {\tt -R5}.
+
+   \item {\tt -ignore N} \\
+         Tells the program to ignore the first {\tt N} points in
+                  time series for graphs and {\tt FIM} calculations.
+
+   \item {\tt -unique}\\
+         Tells the program to create a unique set of colors
+         for each AFNI controller window.  This allows
+         different datasets to be viewed with different
+         grayscales or colorscales.  {\tt -unique}
+         will only work on 12-bit PseudoColor displays
+         (for example, SGI workstations).
+
+   \item {\tt -ncolors nn}\\
+       Tells \afnit to use {\tt nn} gray levels for the image
+       displays (default is 80).  Since \afnit always uses the
+       default colormap, on a 8-bit graphics system you may
+       run out of colors if you run several graphics programs
+       at once.  WWW browsers are notorious for causing this problem,
+       since they usually allocate many colormap entries and
+       hold onto them (just like \afnit does).
+\end{itemize}
+
+%=======================================================================
+\mysec{Technical Notes}
+The \MCW$\!$ \afnit package is distributed as a compressed Unix {\tt tar}
+file: {\tt afni96.tgz}.
+It is unpacked with the command\\*[1ex]
+\centerline{\tt gzip -dc afni96.tgz | tar xf -}\vspace{1ex}
+The files will go into a directory named {\tt AFNI96}.
+
+\afnit requires an ANSI C compiler, X11R5, and Motif~1.2.
+It also requires that the default X11 Visual be an 8-
+or 12-bit PseudoColor visual;  the program will not work with anything
+else.  This is ordinarily not a problem except on very low end and
+very high end workstations and/or X-terminals.
+
+Several {\tt Makefile}s are included in the distribution.
+The machines they are intended for are indicated by their filename suffix.
+In general, you will have to modify one of these to fit your needs.
+You may also need to edit the file
+{\tt machdep.h} to set up the flags for the {\tt mmap} routine appropriately.
+
+Copy the appropriate file to be {\tt Makefile}.  Examine it
+to make sure that it makes sense on your system!
+To build the executables, use the command {\tt make~all}.
+If you set the {\tt INSTALLDIR} macro correctly in the {\tt Makefile},
+then {\tt make~install} will {\tt mv} the executable images to their
+final resting spot.
+After that, a {\tt make~clean} is appropriate.
+
+To make and install the plugins supplied with \afni, the
+commands {\tt make~plugins} and {\tt make~install\_plugins}
+will work.  Not all system specific {\tt Makefile}s have
+the commands needed to compile plugins.  This is because I do
+not have access to such computer systems.
+
+There are undoubtedly still bugs in this software.
+Suggestions for further improvements will be gladly received,
+but no action on such suggestions can be guaranteed!
+The e-mail address for \afnit comments is {\tt rwcox@mcw.edu}.
+
+%------------------------------------------------------------------
+\mysubsec{{\tt mmap}-ing}
+\afnit uses the Unix function {\tt mmap} to access the {\tt .BRIK} files.
+This is what makes it possible to read in many large datasets and
+not choke the memory or swap space of the computer.  Data is only read
+from disk using {\tt mmap} --- all writes are done using {\tt fwrite}.
+
+If you need to disable the use of {\tt mmap}, edit the file
+{\tt 3ddata.h} and {\tt \#define} {\tt MMAP\_THRESHOLD} to be~{\tt -1}.
+This will make \afnit use {\tt malloc} and {\tt fread} to
+access the {\tt .BRIK} data.  This will also strongly limit the number
+of datasets that can be used.
+
+If you receive a message that \afnit cannot load a dataset into memory
+(or {\tt mmap} it),
+then you should restart the program with the {\tt -purge} option.
+This will force datasets not in immediate use to be purged from memory
+and to be {\tt munmap}-ed, which might solve your problem.
+This will also make the program run slower when you switch between datasets.
+
+\mysubsec{{\tt machdep.h}}
+This C header file contains machine specific settings.  If you are
+porting \afnit to a system not available at MCW, you will have
+to create a {\tt Makefile} appropriate for your computer, and will
+have to edit {\tt machdep.h} to set various flags correctly.
+In particular, flags for {\tt mmap} and dynamic loading of
+plugins must be set correctly.  Comments in this file describe
+the options that are available.
+
+%--------------------------------------------------------------------
+\mysubsec{X11 Resources for \afni}
+Included in the \MCW$\!$ \afnit distribution is a file called
+{\tt AFNI.Xdefaults}.  This contains examples of how various
+features of \afnit can be controlled using X11 resources.
+
+
+%--------------------------------------------------------------------
+\mysubsec{Formula for {\tt Bk} Resampling}
+Define the cardinal basis function
+\begin{displaymath}
+  \phi(x) =
+    \left\{ \begin{array}{ll}
+               1 - 8 x^4 & 0 \leq |x| \leq \thalf \\[.5ex]
+%
+               8 (1-|x|)^4 & \thalf < |x| < 1 \\[.5ex]
+%
+               0          & 1 \leq |x|
+    \end{array}\right.
+\end{displaymath}
+Then `blocky' interpolation in 3D of a function defined on a grid
+with spacings $(\Delta x,\Delta y,\Delta z)$ to an arbitrary point in space is
+\begin{displaymath}
+  f(x,y,z) = \sum_i \sum_j \sum_k f(i\Delta x,j\Delta y,k\Delta z)
+                                  \phi\left(\frac{x-i\Delta x}{\Delta x}\right)
+                                  \phi\left(\frac{y-j\Delta y}{\Delta y}\right)
+                                  \phi\left(\frac{z-k\Delta z}{\Delta z}\right) \;.
+\end{displaymath}
+The actual implementation of interpolation is done in a somewhat
+different fashion, for the sake of efficiency.  See the source
+code in {\tt afni\_slice.c}.
+
+%========================================================================
+\mysec{Acknowledgements}
+Many thanks to Jim Hyde for much support and many discussions on the
+direction of FMRI analyses.  Thanks also are due to Andrzej Jesmanowicz
+for forging the way with \afni's grandfather,~{\sf FD}\@.
+Doug Ward has contributed a lot with the {\sf 3dfim} and {\sf 3dANOVA}
+programs, new features in {\sf 3dmerge}, plus the creation of the auxiliary
+programs manual.
+Mike Beauchamp has aided immeasurably by testing earlier versions
+of this software and by coming up with many useful ideas.
+Jay Kummer contributed the initial idea for plugins.
+Many other people at \MCW\ have also helped, particularly
+with ``quick questions'' (you know who you are) and the
+occasional warm pumpernickel bagel.
+This work was partly supported by the United States NIH through
+grants MH51358 and NS34798, for which I am also grateful.
+
+
+%============================================================================
+% for articles, \bit{authors}{title}{journal}{volume}{pages~(year)}
+% for books,    \bit{authors}{}{\rm ``title''}{}{publisher}
+
+\newcommand{\bit}[5]{{\rm #1}{\rm #2}{\it #3}{\bf #4}{\rm, #5}.}
+
+%\addcontentsline{toc}{section}{References}
+\begin{thebibliography}{99}\vspace*{-2ex}
+\addcontentsline{toc}{section}{References}
+
+\bibitem{Talairach}
+   \bit{Jean Talairach and Pierre Tournoux, }{}
+       {``Co-Planar Stereotaxic Atlas of the Human Brain''}{}
+       {Thieme Medical Publishers, New York, 1988}
+
+\bibitem{Bandettini}
+   \bit{Peter A. Bandettini, Andrzej Jesmanowicz, Eric C. Wong, and James S. Hyde, }
+      {Processing strategies for time-course data sets in functional MRI
+        of the human brain. }
+      {Magn.\ Reson.\ Med.}{~30}{161--173~(1993)}
+
+\bibitem{Cox-AFNI}
+    \bit{Robert W. Cox, }
+        {AFNI: Software for analysis and visualization
+         of functional magnetic resonance neuroimages. }
+        {Computers and Biomedical Research}{~29}{162--173~(1996)}
+
+\bibitem{Cox-Rtime}
+   \bit{Robert W. Cox, Andrzej Jesmanowicz, and James S. Hyde, }
+       {Real-time functional magnetic resonance imaging. }
+       {Magn.\ Reson.\ Med.}{~33}{230--236~(1995)}
+
+\end{thebibliography}
+%=====================================================================
+\newpage
+%%\thispagestyle{empty}
+\addcontentsline{toc}{section}{\MCW$\!$ \afnit Registration Form}
+\small
+\vspace*{0pt plus 1fill}
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5ex}
+\setlength{\oddsidemargin}{0in}
+\setlength{\textwidth}{6.6in}
+
+\displayline{Disclaimer:}
+\MCW$\!$~\afni, its associated programs, and its documentation are provided
+as is, and no warranty for their correctness or usefulness for any
+purpose is made or implied by the Medical College of Wisconsin (\MCW),
+or by the author of the software.  Neither \MCW\ nor the author
+accepts any liability for any
+defects in this software or its manuals, or for any damages caused by use of this
+software.
+
+\displayline{Ownership, Conditions of Use, and Restrictions:}
+\begin{itemize}\vspace*{-4.9ex}\setlength{\parindent}{0em}\setlength{\parskip}{0.1ex}
+   \item Permission is granted to make use of and to make copies of the
+        \MCW$\!$~\afnit software and documentation for non-commercial research
+        purposes only.  Ownership of \MCW$\!$~\afnit and all copies is retained by the
+        Medical College of Wisconsin.
+
+   \item Patient-care applications are not recommended.  \MCW$\!$~\afnit has not
+        been evaluated by or approved by the United States Food and Drug Administration.
+
+   \item Use for {\it any\/} purpose
+         by for-profit organizations is prohibited without prior arrangement
+         and written permission.
+
+   \item Redistribution of \MCW$\!$~\afni, or any derived work, outside the receiving
+        institution is prohibited without prior permission.
+
+   \item Copies may be made within the receiving institution without separate
+        permission from the Medical College of Wisconsin.
+
+   \item Technical support ({\it e.g.},~the fixing of bugs)
+                  for\ \MCW$\!$~\afnit is not guaranteed.
+\end{itemize}
+I agree to abide by the terms and restrictions above.\vspace{2ex}
+
+{\bf SIGNATURE}:\vspace{2ex}
+
+
+{\bf NAME}:\\
+(print clearly, or type)\vspace{2ex}
+
+{\bf DATE}:\vspace{2ex}
+
+{\bf E-MAIL ADDRESS}:\\
+(print clearly, or type)\vspace{0.5ex}
+
+\displayline{To Register}
+Copy this page onto your departmental or institutional letterhead,
+sign and date, include your e-mail address, and return via mail or FAX to\\[.5ex]
+\hspace*{3em} Robert W. Cox, PhD \\
+\hspace*{3em} Biophysics Research Institute \\
+\hspace*{3em} Medical College of Wisconsin \\
+\hspace*{3em} 8701 Watertown Plank Road \\
+\hspace*{3em} Milwaukee WI 53226 USA\\[0.5ex]
+\hspace*{3em} FAX: 414--456--6512 \\[0.5ex]
+Instructions on how to obtain \afnit by {\tt anonymous ftp}
+will be sent by e-mail.
+
+\end{document}

@@ -1,0 +1,41 @@
+## for HP-UX 9.05
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -Ae -z +O2 +Olibcalls -DHP
+CCMIN  = cc -Ae -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/include/X11R5 -I/usr/include/Motif1.2
+LFLAGS = -s -L. -L/usr/lib/X11R5 -L/usr/lib/Motif1.2
+
+PLUGIN_SUFFIX = sl
+PLUGIN_LFLAGS = -ldld -lc -b
+PLUGIN_CC     = $(CC) +z
+PLFLAGS       = -Wl,-E -Wl,-x -L. -L/usr/lib/X11R5 -L/usr/lib/Motif1.2
+
+AR     = /bin/ar
+RANLIB = /bin/ranlib
+TAR    = /bin/tar
+GZIP   = gzip
+MKDIR  = /bin/mkdir
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+LD = /bin/ld
+
+LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./hpux_9.05
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm -ldld -lc
+
+## The following is needed for 3dpc: 
+##  The directory must have the lapack, blas, F77, and I77 libraries;
+##  These may be obtained from netlib@ornl.gov
+
+LLAPACK = -L/users/cox/rwcox/lapack -llapack -lblas -lF77 -lI77
+
+######################################################################
+
+include Makefile.INCLUDE

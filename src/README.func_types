@@ -1,0 +1,102 @@
+Functional Dataset Types
+========================
+At present (23 July 1997), there are 11 functional dataset types.
+(The first five are documented in "afni_plugins.ps".)
+
+The first one ("fim") stores a single number per voxel.  All the
+others store 2 numbers per voxel.  The second type ("fith") is
+obsolescent, and will not be discussed further here.
+
+The remaining types differ in the interpretation given to their
+second sub-brick values.  In each case, the second value is
+used as a threshold for functional color overlay.  The main
+difference is the statistical interpretation given to each
+functional type.  The types are
+
+ Name  Type Index     Distribution        Auxiliary Parameters [stataux]
+ ----  -------------  -----------------  -----------------------------------
+ fico  FUNC_COR_TYPE  Correlation Coeff. # Samples, # Fit Param, # Ort Param
+ fitt  FUNC_TT_TYPE   Student t          Degrees-of-Freedom (DOF)
+ fift  FUNC_FT_TYPE   F ratio            Numerator DOF, Denominator DOF
+ fizt  FUNC_ZT_TYPE   Standard Normal    -- none --
+ fict  FUNC_CT_TYPE   Chi-Squared        DOF
+ fibt  FUNC_BT_TYPE   Incomplete Beta    Parameters "a" and "b"
+ fibn  FUNC_BN_TYPE   Binomial           # Trials, Probability per trial
+ figt  FUNC_GT_TYPE   Gamma              Shape, Scale
+ fipt  FUNC_PT_TYPE   Poisson            Mean
+
+These were chosen because the needed CDF and inverse CDF routines
+are found in the "cdf" library from the University of Texas.
+
+When creating a dataset of these types, you will probably want to
+store the threshold sub-brick as shorts, to save disk space.  You then
+need to attach a scale factor to that sub-brick so that AFNI programs
+will deal with it properly.  If you store it as shorts, but do not
+supply a scale factor, AFNI will supply one.
+
+ Name  Short Scale  Slider Top
+ ----  -----------  ----------
+ fico    0.0001          1.0
+ fitt    0.001          10.0
+ fift    0.01          100.0
+ fizt    0.001          10.0
+ fict    0.01          100.0
+ fibt    0.0001          1.0
+ fibn    0.01          100.0
+ figt    0.001          10.0
+ fipt    0.01          100.0
+
+The default scale factor is useful for some types, such as the fico and
+fibt datasets, where the natural ranges of these thresholds is fixed to
+[-1,1] and [0,1], respectively.  For other types, the default scale factor
+may not always be useful.  It is a good practice to create an explicit
+scale factor for threshold sub-bricks, even if the default is acceptable.
+
+The table above also gives the default value that AFNI will use for the
+range of the threshold slider.  AFNI now allows the user to set the range
+of this slider to be from 0 to 10**N, where N=0, 1, 2, or 3.  This is to
+allow for dataset types where the range of the threshold may vary
+substantially, depending on the auxiliary parameters.  The user can now
+switch the range of the threshold slider to encompass the threshold range
+shown to the right of the overlay color selector/slider.  At this time
+there is no way to have the range of the threshold slider set automatically
+to match the values in the dataset -- the user must make the switch
+manually.
+
+Distributional Notes
+====================
+fico: (Correlation coefficient)**2 is incomplete-beta distributed, so
+      the fibt type is somewhat redundant, but was included since the
+      "cdf" library had the needed function just lying there.
+
+fizt: This is N(0,1) distributed, so there are no parameters.
+
+fibn: The "p-value" computed and displayed by AFNI is the probability
+      that a binomial deviate will be larger than the threshold value.
+
+figt: The PDF of the gamma distribution is proportional to
+         x**(Shape-1) * exp(-Scale * x)
+      (for x >= 0).
+
+fipt: The "p-value" is the probability that a Poisson deviate is larger
+      than the threshold value.
+
+For more details, see Abramowitz and Stegun, and "cdflib.txt".
+
+The "p-values" for fico, fitt, and fizt datasets are 2-sided: that is,
+the value displayed by AFNI (below the slider) is the probability that
+the absolute value of such a deviate will exceed the threshold value
+on the slider.  The "p-values" for the other types are 1-sided: that is,
+the value displayed by AFNI is the probability that the value of the
+deviate will exceed the threshold value.  (Of course, these probabilities
+are computed under the appropriate null hypothesis, and assuming that
+the distributional model holds exactly.  The latter assumption, in
+particular, is fairly dubious.)
+
+Finally, only the fico, fitt, fift, fizt, and fict types have actually
+been tested.  The others remain to be verified.
+
+================================
+Robert W. Cox, PhD
+Biophysics Research Institute
+Medical College of Wisconsin

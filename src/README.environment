@@ -1,0 +1,152 @@
+Unix Environment Variables Used by AFNI
+=======================================
+The AFNI program allows you to use several Unix environment variables
+to influence its behavior.  The mechanics of setting an environment
+variable depend on which shell you are using.  To set an environment
+variable named "FRED" to the string "Elvis":
+
+   csh or tcsh:  setenv FRED Elvis
+   bash or ksh:  FRED=Elvis ; export FRED
+
+Normally, these commands would go in your .cshrc or .profile files,
+so that they would be invoked when you login.
+
+You don't need to set any of these variables -- AFNI will still work
+correctly.  But they are an easy way to set up certain defaults to
+make AFNI a little easier on your brain.
+
+---------------------
+Variable: AFNI_ORIENT
+---------------------
+This is a string used to control the display of coordinates in the AFNI
+main control window.  The string must be 3 letters, one each from the
+pairs {R,L} {A,P} {I,S}.  The first letter in the string gives the
+orientation of the x-axis, the second the orientation of the y-axis,
+the third the z-axis:
+
+   R = right-to-left           L = left-to-right
+   A = anterior-to-posterior   P = posterior-to-anterior
+   I = inferior-to-superior    S = superior-to-inferior
+
+If AFNI_ORIENT is undefined, the default is RAI.  This is the order
+used by DICOM, and means 
+
+   the -x axis is Right,    the +x axis is Left,
+   the -y axis is Anterior, the +y axis is Posterior,
+   the -z axis is Inferior, the +z axis is Superior.
+
+As a special case, using the code 'flipped' is equivalent to 'LPI',
+which is the orientation used in many neuroscience journals.
+
+This variable is also recognized by program 3dclust, which will report
+the cluster coordinates in the (x,y,z) order given by AFNI_ORIENT.
+Both AFNI and 3dclust also recognize the command line switch
+"-orient string", where string is a 3 letter code that can be used
+to override the value of AFNI_ORIENT.
+
+The plugin "Coord Order" (plug_coord.c) allows you to interactively
+change the orientation of the variable display within AFNI.
+
+-------------------------
+Variable: AFNI_PLUGINPATH
+-------------------------
+This variable should be the directory in which AFNI should search
+for plugins.  If there is more than one appropriate directory, they
+can be separated by colons, as in
+
+   setenv AFNI_PLUGINPATH /directory/one:/directory/two
+
+If this variable is not set, then AFNI will use the PATH variable
+instead.  This will waste time, since most directories in the PATH
+will not have plugins.  On some systems, using the PATH has been
+known to cause problems when AFNI starts.  I believe this is due
+to bugs in the system library routines (e.g., dlopen) used to manage
+dynamically loaded shared objects.
+
+------------------------
+Variable: AFNI_NOPLUGINS
+------------------------
+If this variable is set to anything, then AFNI will not try to read
+plugins when it starts up.  The command line switch "-noplugins"
+will have the same effect.
+
+--------------------------
+Variable: AFNI_YESPLUGOUTS
+--------------------------
+If this variable is set to anything, then AFNI will try to listen
+for plugouts when it starts.  The command line switch "-yesplugouts"
+will have the same effect.  (Plugouts are an experimental feature
+that allow external programs to exchange data with AFNI.)
+
+---------------------
+Variable: AFNI_TSPATH
+---------------------
+This variable should be set to any directory which you want to have
+AFNI scan for timeseries files (*.1D -- see that AFNI manual).  If
+more than one directory is desired, then colons can be used to
+separate them, as in AFNI_PLUGINPATH.  Note that timeseries files
+are read from all session directories, so directories provided by
+AFNI_TSPATH are designed to contain extra timeseries files that
+you want loaded no matter what AFNI sessions and datasets are being
+viewed.
+
+------------------------
+Variable: AFNI_MODELPATH
+------------------------
+This variable should be set to the directory from which you want AFNI
+timeseries models to be loaded.  These models are similar to plugins,
+and are used by programs 3dNLfim, 3dTSgen, and the plugin plug_nlfit
+(menu label "NLfit & NLerr") -- see documentation file 3dNLfim.ps.
+If AFNI_MODELPATH is not given, then AFNI_PLUGINPATH will be used
+instead.
+
+-----------------------------------------
+Variable: AFNI_IMSIZE_* (or MCW_IMSIZE_*)
+-----------------------------------------
+These variables (named AFNI_IMSIZE_1 to AFNI_IMSIZE_99) allow you
+to control how the AFNI programs read binary image files.  The use of
+these is somewhat complicated, and is explained in detail at the end
+of the auxiliary programs manual (afni_aux.ps), in the section on "3D:"
+file specifications.
+
+------------------------
+Variable: AFNI_SESSTRAIL
+------------------------
+This variable controls the number of directory levels shown when
+choosing between session directories with the "Switch Session"
+button.  This variable should be set to a nonnegative integer.
+If a session directory name were
+   this/is/a/directory/name/
+then the "Switch Session" chooser would display the following:
+
+   AFNI_SESSTRAIL    Display
+   --------------    -------
+            0        name/
+            1        directory/name/
+            2        a/directory/name/
+            3        is/a/directory/name/
+            4        this/is/a/directory/name/
+
+That is, AFNI_SESSTRAIL determines how many trailing levels of
+the directory name are used for the display.  If AFNI_SESSTRAIL
+is not set, then it is equivalent to setting it to 0 (which
+was the old method).
+
+--------------------
+Variable: AFNI_HINTS
+--------------------
+This is a string controlling whether or not the popup "hints" are
+displayed when AFNI starts.  If the string is "NO", then the hints
+are disabled when AFNI starts, otherwise they are enabled.  In
+either case, they can be turned off and on from the "Misc" menu in
+the Datamode control panel.
+
+Hints can be permanently disabled by setting the C macro
+DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can
+also be disabled by setting AFNI_HINTS to "KILL".
+
+=================================
+| Robert W. Cox, PhD            |
+| Biophysics Research Institute |
+| Medical College of Wisconsin  |
+=================================

@@ -1,0 +1,35 @@
+## for SGI (IRIX 6.3, R10000 chip)
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -woff all -O3 -n32 -r10000 -DSGI
+CCMIN  = cc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I.
+LFLAGS = -s -L.
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -n32
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -n32
+
+AR     = /usr/bin/ar
+RANLIB = /sbin/touch
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+LD     = /bin/ld
+GZIP   = /usr/local/bin/gzip
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./sgi10k_6.3
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm -lc
+
+###############################################################
+
+include Makefile.INCLUDE

@@ -1,0 +1,34 @@
+## for SunOS 4.1.3 (using the gcc compiler, maquerading as ep_cc
+##                  and stored in a peculiar place)
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = ep_cc -O -DSPARKY -D_POSIX_SOURCE
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/home/sparky/ESE/ESEsun4/psdtools/ccsparclib.sun4/gcc-include \
+         -I/home/X11R5/include -I/home/Motif1.2.4/include
+LFLAGS = -L. -L/home/sparky/ESE/ESEsun4/psdtools/ccsparclib.sun4 \
+         -L/home/Motif1.2.4/lib -L/home/X11R5/lib
+
+# At this time, I don't know how to make plugins work on sparky!
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -r
+PLUGIN_CC     = $(CC)
+PLFLAGS       = $(LFLAGS)
+
+AR     = /usr/bin/ar
+RANLIB = /bin/ranlib
+TAR    = /bin/tar
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./sparky
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm
+######################################################################
+include Makefile.INCLUDE

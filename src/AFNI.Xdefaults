@@ -1,0 +1,539 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!  How to set up AFNI defaults using X11:
+!!   a) put lines like this in your .Xdefaults file in your home directory;
+!!   b) edit to fit your needs
+!!   c) log out and log back in (or use the command "xrdb -merge .Xdefaults")
+!!
+!!  The values in this file are the values "hard-wired" into AFNI, and
+!!  so you only need to put into the .Xdefaults file those values you
+!!  wish to change.
+!!
+!!  The resources up to and including AFNI*gamma also apply
+!!  to the program TO3D -- all those after are specific to AFNI.
+
+!! font to use in most widgets
+AFNI*fontList:		9x15bold=charset1
+
+!! background color in most widgets
+AFNI*background:	gray40
+AFNI*borderColor:	gray40
+
+!! background color in most popup and pulldown menu panes
+!! (this choice gives some contrast with the gray40 overall background)
+AFNI*menu*background:	black
+
+!! foreground color in most widgets
+AFNI*foreground:	yellow
+
+!! color in the "trough" of the slider controls (images and threshold)
+AFNI*troughColor:	green
+
+!! color for quit and other "hot" buttons
+AFNI*hotcolor:		red3
+
+!! gray/color levels used for image display
+!! (overridden by the -ncol option)
+AFNI*ncolors:		100
+
+!! correction for screen
+!! (overridden by the -gamma option)
+AFNI*gamma:		1.0
+
+!! This option is actually only for TO3D;
+!! it specifies the initial value to put in the
+!! field-of-view widget (in mm).
+AFNI*init_fov:		240.0
+
+!!****
+!!**** Resources below here apply only to AFNI, not to TO3D
+!!****
+!! auto-purge datasets from memory? (True or False)
+!! (overridden by the -purge option)
+AFNI*purge:		False
+
+!! Whether to use the "big" Talairach box, which
+!! extends 10 mm more inferior than the AFNI 1.0x
+!! to accomodate the cerebellum.
+AFNI*tlrc_big:		True
+
+!! Whether or not to use periodic montage layouts.
+AFNI*montage_periodic:	True
+
+!! Use these to set the colors used in the BHelp popup
+!! AFNI*help*background:	#ffffaa
+!! AFNI*help*foreground:	black
+
+!! Set this to False to turn off the window manager
+!! borders on the BHelp popup
+AFNI*help*helpborder:	True
+
+!! number of slices to scroll in image viewers when
+!! Shift key is pressed along with arrowpad button
+AFNI*bigscroll:		5
+
+!! default resampling modes (from the set NN, Li, Cu, Bk)
+!! and voxel dimension (always cubical, in mm)
+AFNI*resam_anat:	Li
+AFNI*resam_func:	NN
+AFNI*resam_vox:		1.0
+
+!! Whether to pop a list chooser down on double click or not
+!! "Set"   means double click is the same as the Set button
+!!           (and will pop the chooser down)
+!! "Apply" means double click is the same as the Apply button
+!!           (and will keep the chooser up)
+!!
+AFNI*chooser_doubleclick:	Set
+
+!! For scrolling list choosers (the "Switch" buttons),
+!! defines the max number of entries to display in
+!! a window before attaching scrollbars.
+!! (N.B.: if the number of entries to choose between
+!!        is only a few more than this, then the
+!!        window will be expanded and no scrollbars used.)
+AFNI*chooser_listmax:		10
+
+!! Initial dimensions of graphing region, in pixels
+AFNI*graph_width:	512
+AFNI*graph_height:	512
+
+!! Initial number of points to ignore in graphs and FIMs
+!! (overridden by the -ignore option)
+AFNI*ignore:		0
+
+!! number of overlay colors to allocate: from 2 to 99
+AFNI*ncolovr:		20
+
+!! Definitions of colors (RGB or color database strings).
+!! Note that color number 0 means "none" and can't be redefined.
+!! These color indices (1 .. ncolovr) can be used in various places below.
+
+!! Note that if you just want to add new colors, you can
+!!  a) set AFNI*ncolovr to a larger value
+!!  b) supply "ovdef" and "ovlab" values for each new color index
+!!       from 21 .. ncolovr
+
+AFNI*ovdef01:	#ffff00
+AFNI*ovdef02:	#ffcc00
+AFNI*ovdef03:	#ff9900
+AFNI*ovdef04:	#ff6900
+AFNI*ovdef05:	#ff4400
+AFNI*ovdef06:	#ff0000
+AFNI*ovdef07:	#0000ff
+AFNI*ovdef08:	#0044ff
+AFNI*ovdef09:	#0069ff
+AFNI*ovdef10:	#0099ff
+AFNI*ovdef11:	#00ccff
+AFNI*ovdef12:	#00ffff
+AFNI*ovdef13:	green
+AFNI*ovdef14:	limegreen
+AFNI*ovdef15:	violet
+AFNI*ovdef16:	hotpink
+AFNI*ovdef17:	white
+AFNI*ovdef18:	#dddddd
+AFNI*ovdef19:	#bbbbbb
+AFNI*ovdef20:	black
+
+!! Labels used for colors in "choosers"
+!! (only 1st 9 characters are used).
+
+AFNI*ovlab01:	yellow
+AFNI*ovlab02:	yell-oran
+AFNI*ovlab03:	oran-yell
+AFNI*ovlab04:	orange
+AFNI*ovlab05:	oran-red
+AFNI*ovlab06:	red
+AFNI*ovlab07:	dk-blue
+AFNI*ovlab08:	blue
+AFNI*ovlab09:	lt-blue1
+AFNI*ovlab10:	lt-blue2
+AFNI*ovlab11:	blue-cyan
+AFNI*ovlab12:	cyan
+AFNI*ovlab13:	green
+AFNI*ovlab14:	limegreen
+AFNI*ovlab15:	violet
+AFNI*ovlab16:	hotpink
+AFNI*ovlab17:	white
+AFNI*ovlab18:	gry-dd
+AFNI*ovlab19:	gry-bb
+AFNI*ovlab20:	black
+
+!! index of color used for crosshairs at startup
+AFNI*ovcrosshair:	13
+
+!! color used for primary marker at startup
+AFNI*ovmarksprimary:	17
+
+!! color used for secondary markers at startup
+AFNI*ovmarkssecondary:	14
+
+!! pixel width for markers at startup
+AFNI*markssize:		8
+
+!! pixel gap for markers at startup
+AFNI*marksgap:		3
+
+!! pixel gap for crosshairs at startup
+AFNI*crosshairgap:	5
+
+!! Used to set default colors for graph windows.
+!! The values are positive color indices, or
+!! can be  -1 == brightest color in the overlay list
+!!         -2 == darkest color
+!!         -3 == reddest color
+!!         -4 == greenest color
+!!         -5 == bluest color
+
+!! boxes  == Outlines drawn around each graph
+!! backg  == Background
+!! grid   == Uniformly spaced vertical lines in each graph
+!! text   == Text (except for value under current time index)
+!! data   == Data timeseries graph
+!! ideal  == Ideal timeseries graph
+!!             (also used to indicate the current time index)
+!! ort    == Ort timeseries graph
+!! ignore == Used to indicate which points are ignored for FIM
+!! dplot  == Double plot overlay color
+
+AFNI*graph_boxes_color:  -2
+AFNI*graph_backg_color:  -1
+AFNI*graph_grid_color:    1
+AFNI*graph_text_color:   -2
+AFNI*graph_data_color:   -2
+AFNI*graph_ideal_color:  -3
+AFNI*graph_ort_color:    -4
+AFNI*graph_ignore_color: -5
+AFNI*graph_dplot_color:  -3
+
+!! Used to set the whether certain types of
+!! lines in the graph windows are thick or
+!! not.  Use 0 to indicate "thin" and use
+!! "1" to indicate "thick".
+
+AFNI*graph_boxes_thick:   0
+AFNI*graph_grid_thick:    0
+AFNI*graph_data_thick:    0
+AFNI*graph_ideal_thick:   0
+AFNI*graph_ort_thick:     0
+AFNI*graph_dplot_thick:   0
+
+!! Used to set the font for drawing text into
+!! graph windows.  The default font is chosen
+!! from a list "tfont_hopefuls" in the source file
+!! display.h.  You can find out what fonts are
+!! available on your system by using the command
+!! "xlsfonts | more"
+
+AFNI*gfont:               7x14
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! font to use in pbar widgets
+AFNI*pbar*fontList:  7x13bold=charset1
+
+!! A smaller font for pbar
+!!AFNI*pbar*fontList:  6x10=charset1
+
+!! start pbar in positive mode (True or False)
+AFNI*pbar_posfunc:	False
+
+!! hide process of changing pbar panes (True or False)
+AFNI*pbar_hide:		False
+
+!! initial number of panes in the pbar (pos and sgn modes)
+AFNI*pbar_pos_pane_count:	8
+AFNI*pbar_sgn_pane_count:	9
+
+!! Set the color "pbar" initial thresholds and colors
+!!
+!!  _pos    --> positive only pbar (range from 1.0 to  0.0)
+!!  _sgn    --> signed pbar        (range from 1.0 to -1.0)
+!!
+!!  _panexx --> data for case with xx panes (from 02 to 10)
+!!
+!!  _thryy  --> yy'th threshold:  00 is top (always 1.0),
+!!                                01 is next to top, up to yy = xx
+!!                                (always 0.0 for pos_, -1.0 for sgn_)
+!!
+!!  _ovyy   --> yy'th color index: 00 is top pane, up to yy = xx-1
+!!
+!! The thr values must decrease monotonically with yy.
+!! The ov values must be color indices from the ovdef table
+!! (including color 0 --> no color).
+!!
+!! N.B.: If you supply values for a particular xx, you must
+!!       supply ALL the values (_thr and _ov), or AFNI will
+!!       ignore these values and use its built in defaults
+!!       for that number of panes.
+
+AFNI*pbar_pos_pane02_thr00:	1.0
+AFNI*pbar_pos_pane02_thr01:	0.5
+AFNI*pbar_pos_pane02_thr02:	0.0
+
+AFNI*pbar_pos_pane02_ov00:	1
+AFNI*pbar_pos_pane02_ov01:	0
+
+AFNI*pbar_pos_pane03_thr00:	1.0
+AFNI*pbar_pos_pane03_thr01:	0.67
+AFNI*pbar_pos_pane03_thr02:	0.33
+AFNI*pbar_pos_pane03_thr03:	0.0
+
+AFNI*pbar_pos_pane03_ov00:	1
+AFNI*pbar_pos_pane03_ov01:	6
+AFNI*pbar_pos_pane03_ov02:	0
+
+AFNI*pbar_pos_pane04_thr00:	1.0
+AFNI*pbar_pos_pane04_thr01:	0.75
+AFNI*pbar_pos_pane04_thr02:	0.50
+AFNI*pbar_pos_pane04_thr03:	0.25
+AFNI*pbar_pos_pane04_thr04:	0.00
+
+AFNI*pbar_pos_pane04_ov00:	1
+AFNI*pbar_pos_pane04_ov01:	4
+AFNI*pbar_pos_pane04_ov02:	6
+AFNI*pbar_pos_pane04_ov03:	0
+
+AFNI*pbar_pos_pane05_thr00:	1.0
+AFNI*pbar_pos_pane05_thr01:	0.80
+AFNI*pbar_pos_pane05_thr02:	0.60
+AFNI*pbar_pos_pane05_thr03:	0.40
+AFNI*pbar_pos_pane05_thr04:	0.20
+AFNI*pbar_pos_pane05_thr05:	0.00
+
+AFNI*pbar_pos_pane05_ov00:	1
+AFNI*pbar_pos_pane05_ov01:	3
+AFNI*pbar_pos_pane05_ov02:	5
+AFNI*pbar_pos_pane05_ov03:	6
+AFNI*pbar_pos_pane05_ov04:	0
+
+AFNI*pbar_pos_pane06_thr00:	1.0
+AFNI*pbar_pos_pane06_thr01:	0.84
+AFNI*pbar_pos_pane06_thr02:	0.67
+AFNI*pbar_pos_pane06_thr03:	0.50
+AFNI*pbar_pos_pane06_thr04:	0.33
+AFNI*pbar_pos_pane06_thr05:	0.16
+AFNI*pbar_pos_pane06_thr06:	0.00
+
+AFNI*pbar_pos_pane06_ov00:	1
+AFNI*pbar_pos_pane06_ov01:	2
+AFNI*pbar_pos_pane06_ov02:	3
+AFNI*pbar_pos_pane06_ov03:	5
+AFNI*pbar_pos_pane06_ov04:	6
+AFNI*pbar_pos_pane06_ov05:	0
+
+AFNI*pbar_pos_pane07_thr00:	1.0
+AFNI*pbar_pos_pane07_thr01:	0.90
+AFNI*pbar_pos_pane07_thr02:	0.75
+AFNI*pbar_pos_pane07_thr03:	0.60
+AFNI*pbar_pos_pane07_thr04:	0.45
+AFNI*pbar_pos_pane07_thr05:	0.30
+AFNI*pbar_pos_pane07_thr06:	0.15
+AFNI*pbar_pos_pane07_thr07:	0.00
+
+AFNI*pbar_pos_pane07_ov00:	1
+AFNI*pbar_pos_pane07_ov01:	2
+AFNI*pbar_pos_pane07_ov02:	3
+AFNI*pbar_pos_pane07_ov03:	4
+AFNI*pbar_pos_pane07_ov04:	5
+AFNI*pbar_pos_pane07_ov05:	6
+AFNI*pbar_pos_pane07_ov06:	0
+
+AFNI*pbar_pos_pane08_thr00:	1.0
+AFNI*pbar_pos_pane08_thr01:	0.80
+AFNI*pbar_pos_pane08_thr02:	0.70
+AFNI*pbar_pos_pane08_thr03:	0.60
+AFNI*pbar_pos_pane08_thr04:	0.50
+AFNI*pbar_pos_pane08_thr05:	0.40
+AFNI*pbar_pos_pane08_thr06:	0.30
+AFNI*pbar_pos_pane08_thr07:	0.15
+AFNI*pbar_pos_pane08_thr08:	0.00
+
+AFNI*pbar_pos_pane08_ov00:	1
+AFNI*pbar_pos_pane08_ov01:	2
+AFNI*pbar_pos_pane08_ov02:	3
+AFNI*pbar_pos_pane08_ov03:	4
+AFNI*pbar_pos_pane08_ov04:	5
+AFNI*pbar_pos_pane08_ov05:	6
+AFNI*pbar_pos_pane08_ov06:	16
+AFNI*pbar_pos_pane08_ov07:	0
+
+AFNI*pbar_pos_pane09_thr00:	1.0
+AFNI*pbar_pos_pane09_thr01:	0.90
+AFNI*pbar_pos_pane09_thr02:	0.80
+AFNI*pbar_pos_pane09_thr03:	0.70
+AFNI*pbar_pos_pane09_thr04:	0.60
+AFNI*pbar_pos_pane09_thr05:	0.50
+AFNI*pbar_pos_pane09_thr06:	0.25
+AFNI*pbar_pos_pane09_thr07:	0.15
+AFNI*pbar_pos_pane09_thr08:	0.05
+AFNI*pbar_pos_pane09_thr09:	0.00
+
+AFNI*pbar_pos_pane09_ov00:	1
+AFNI*pbar_pos_pane09_ov01:	2
+AFNI*pbar_pos_pane09_ov02:	3
+AFNI*pbar_pos_pane09_ov03:	4
+AFNI*pbar_pos_pane09_ov04:	5
+AFNI*pbar_pos_pane09_ov05:	6
+AFNI*pbar_pos_pane09_ov06:	16
+AFNI*pbar_pos_pane09_ov07:	15
+AFNI*pbar_pos_pane09_ov08:	0
+
+AFNI*pbar_pos_pane10_thr00:	1.0
+AFNI*pbar_pos_pane10_thr01:	0.90
+AFNI*pbar_pos_pane10_thr02:	0.80
+AFNI*pbar_pos_pane10_thr03:	0.70
+AFNI*pbar_pos_pane10_thr04:	0.60
+AFNI*pbar_pos_pane10_thr05:	0.50
+AFNI*pbar_pos_pane10_thr06:	0.40
+AFNI*pbar_pos_pane10_thr07:	0.30
+AFNI*pbar_pos_pane10_thr08:	0.20
+AFNI*pbar_pos_pane10_thr09:	0.10
+AFNI*pbar_pos_pane10_thr10:	0.00
+
+AFNI*pbar_pos_pane10_ov00:	1
+AFNI*pbar_pos_pane10_ov01:	2
+AFNI*pbar_pos_pane10_ov02:	3
+AFNI*pbar_pos_pane10_ov03:	4
+AFNI*pbar_pos_pane10_ov04:	5
+AFNI*pbar_pos_pane10_ov05:	6
+AFNI*pbar_pos_pane10_ov06:	16
+AFNI*pbar_pos_pane10_ov07:	15
+AFNI*pbar_pos_pane10_ov08:	7
+AFNI*pbar_pos_pane10_ov09:	0
+
+AFNI*pbar_sgn_pane02_thr00:	1.0
+AFNI*pbar_sgn_pane02_thr01:	0.0
+AFNI*pbar_sgn_pane02_thr02:	-1.0
+
+AFNI*pbar_sgn_pane02_ov00:	1
+AFNI*pbar_sgn_pane02_ov01:	11
+
+AFNI*pbar_sgn_pane03_thr00:	1.0
+AFNI*pbar_sgn_pane03_thr01:	0.05
+AFNI*pbar_sgn_pane03_thr02:	-0.05
+AFNI*pbar_sgn_pane03_thr03:	-1.0
+
+AFNI*pbar_sgn_pane03_ov00:	1
+AFNI*pbar_sgn_pane03_ov01:	0
+AFNI*pbar_sgn_pane03_ov02:	11
+
+AFNI*pbar_sgn_pane04_thr00:	1.0
+AFNI*pbar_sgn_pane04_thr01:	0.50
+AFNI*pbar_sgn_pane04_thr02:	0.0
+AFNI*pbar_sgn_pane04_thr03:	-0.50
+AFNI*pbar_sgn_pane04_thr04:	-1.0
+
+AFNI*pbar_sgn_pane04_ov00:	1
+AFNI*pbar_sgn_pane04_ov01:	4
+AFNI*pbar_sgn_pane04_ov02:	8
+AFNI*pbar_sgn_pane04_ov03:	11
+
+AFNI*pbar_sgn_pane05_thr00:	1.0
+AFNI*pbar_sgn_pane05_thr01:	0.50
+AFNI*pbar_sgn_pane05_thr02:	0.05
+AFNI*pbar_sgn_pane05_thr03:	-0.05
+AFNI*pbar_sgn_pane05_thr04:	-0.50
+AFNI*pbar_sgn_pane05_thr05:	-1.0
+
+AFNI*pbar_sgn_pane05_ov00:	1
+AFNI*pbar_sgn_pane05_ov01:	4
+AFNI*pbar_sgn_pane05_ov02:	0
+AFNI*pbar_sgn_pane05_ov03:	8
+AFNI*pbar_sgn_pane05_ov04:	11
+
+AFNI*pbar_sgn_pane06_thr00:	1.0
+AFNI*pbar_sgn_pane06_thr01:	0.66
+AFNI*pbar_sgn_pane06_thr02:	0.33
+AFNI*pbar_sgn_pane06_thr03:	0.00
+AFNI*pbar_sgn_pane06_thr04:	-0.33
+AFNI*pbar_sgn_pane06_thr05:	-0.66
+AFNI*pbar_sgn_pane06_thr06:	-1.0
+
+AFNI*pbar_sgn_pane06_ov00:	1
+AFNI*pbar_sgn_pane06_ov01:	3
+AFNI*pbar_sgn_pane06_ov02:	5
+AFNI*pbar_sgn_pane06_ov03:	7
+AFNI*pbar_sgn_pane06_ov04:	9
+AFNI*pbar_sgn_pane06_ov05:	11
+
+AFNI*pbar_sgn_pane07_thr00:	1.0
+AFNI*pbar_sgn_pane07_thr01:	0.66
+AFNI*pbar_sgn_pane07_thr02:	0.33
+AFNI*pbar_sgn_pane07_thr03:	0.05
+AFNI*pbar_sgn_pane07_thr04:	-0.05
+AFNI*pbar_sgn_pane07_thr05:	-0.33
+AFNI*pbar_sgn_pane07_thr06:	-0.66
+AFNI*pbar_sgn_pane07_thr07:	-1.0
+
+AFNI*pbar_sgn_pane07_ov00:	1
+AFNI*pbar_sgn_pane07_ov01:	3
+AFNI*pbar_sgn_pane07_ov02:	5
+AFNI*pbar_sgn_pane07_ov03:	0
+AFNI*pbar_sgn_pane07_ov04:	7
+AFNI*pbar_sgn_pane07_ov05:	9
+AFNI*pbar_sgn_pane07_ov06:	11
+
+AFNI*pbar_sgn_pane08_thr00:	1.0
+AFNI*pbar_sgn_pane08_thr01:	0.75
+AFNI*pbar_sgn_pane08_thr02:	0.50
+AFNI*pbar_sgn_pane08_thr03:	0.25
+AFNI*pbar_sgn_pane08_thr04:	0.00
+AFNI*pbar_sgn_pane08_thr05:	-0.25
+AFNI*pbar_sgn_pane08_thr06:	-0.50
+AFNI*pbar_sgn_pane08_thr07:	-0.75
+AFNI*pbar_sgn_pane08_thr08:	-1.00
+
+AFNI*pbar_sgn_pane08_ov00:	1
+AFNI*pbar_sgn_pane08_ov01:	2
+AFNI*pbar_sgn_pane08_ov02:	4
+AFNI*pbar_sgn_pane08_ov03:	5
+AFNI*pbar_sgn_pane08_ov04:	8
+AFNI*pbar_sgn_pane08_ov05:	9
+AFNI*pbar_sgn_pane08_ov06:	10
+AFNI*pbar_sgn_pane08_ov07:	11
+
+AFNI*pbar_sgn_pane09_thr00:	1.0
+AFNI*pbar_sgn_pane09_thr01:	0.75
+AFNI*pbar_sgn_pane09_thr02:	0.50
+AFNI*pbar_sgn_pane09_thr03:	0.25
+AFNI*pbar_sgn_pane09_thr04:	0.05
+AFNI*pbar_sgn_pane09_thr05:	-0.05
+AFNI*pbar_sgn_pane09_thr06:	-0.25
+AFNI*pbar_sgn_pane09_thr07:	-0.50
+AFNI*pbar_sgn_pane09_thr08:	-0.75
+AFNI*pbar_sgn_pane09_thr09:	-1.00
+
+AFNI*pbar_sgn_pane09_ov00:	1
+AFNI*pbar_sgn_pane09_ov01:	2
+AFNI*pbar_sgn_pane09_ov02:	4
+AFNI*pbar_sgn_pane09_ov03:	5
+AFNI*pbar_sgn_pane09_ov04:	0
+AFNI*pbar_sgn_pane09_ov05:	8
+AFNI*pbar_sgn_pane09_ov06:	9
+AFNI*pbar_sgn_pane09_ov07:	10
+AFNI*pbar_sgn_pane09_ov08:	11
+
+AFNI*pbar_sgn_pane10_thr00:	1.0
+AFNI*pbar_sgn_pane10_thr01:	0.80
+AFNI*pbar_sgn_pane10_thr02:	0.60
+AFNI*pbar_sgn_pane10_thr03:	0.40
+AFNI*pbar_sgn_pane10_thr04:	0.20
+AFNI*pbar_sgn_pane10_thr05:	0.00
+AFNI*pbar_sgn_pane10_thr06:	-0.20
+AFNI*pbar_sgn_pane10_thr07:	-0.40
+AFNI*pbar_sgn_pane10_thr08:	-0.60
+AFNI*pbar_sgn_pane10_thr09:	-0.80
+AFNI*pbar_sgn_pane10_thr10:	-1.00
+
+AFNI*pbar_sgn_pane10_ov00:	1
+AFNI*pbar_sgn_pane10_ov01:	2
+AFNI*pbar_sgn_pane10_ov02:	3
+AFNI*pbar_sgn_pane10_ov03:	4
+AFNI*pbar_sgn_pane10_ov04:	5
+AFNI*pbar_sgn_pane10_ov05:	7
+AFNI*pbar_sgn_pane10_ov06:	8
+AFNI*pbar_sgn_pane10_ov07:	9
+AFNI*pbar_sgn_pane10_ov08:	10
+AFNI*pbar_sgn_pane10_ov09:	11
+
+!! End of MCW AFNI X11 Resources
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

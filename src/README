@@ -1,0 +1,335 @@
+
+    ***** Welcome to the world of MCW AFNI, version 2.10 *****
+    *****  Robert W. Cox, Medical College of Wisconsin   *****
+    *****                  June 1997                     *****
+
+The documentation for MCW AFNI is in the following files:
+
+  afni200.ps      = User documentation for the AFNI program itself.
+  afni_plugins.ps = Programmer documentation for writing "plugins"
+                      to extend the capabilities of AFNI.
+  afni_aux.ps     = User documentation for MCW AFNI auxiliary programs.
+  3dANOVA3.ps     = User documentation for new 3dANOVA3 program
+                      (also included in afni_aux.ps).
+  FD2.ps          = User documentation for the older program FD2.
+  paper.ps        = AFNI paper from "Computers and Biomedical Research".
+  regnotes.ps     = Some notes on subject motion and image registration.
+  README          = This file.
+  README.changes  = Additions to the package since manuals were written.
+
+Most of these files are no longer included in the base distribution,
+afni96.tgz, but are in the file doc.tgz.  This change is due to their
+ever-growing size.
+
+The *.ps files are PostScript.  If you do not have a PostScript printer,
+then the freeware programs Ghostscript and Ghostview will enable you to
+display the documents on the screen and format them for output to other
+types of printers.  See the WWW site
+   http://www.cs.wisc.edu/~ghost/index.html
+for more information about the Ghostscript and Ghostview programs.
+
+As is often the case with Unix software, installation requires work.
+
+ARCHIVES
+--------
+AFNI files are tar-ed and gzip-ed archives.  If you don't have GNU gzip,
+you will find the archive for gzip on the computer system whence you got
+the AFNI distribution.  To make the executable file 'gzip', the following
+commands should suffice:
+
+   tar xf gzip.tar
+   cd gzip-1.2.4
+   -- follow the instructions in the INSTALL file --
+
+The archive file with the source code for AFNI and its associated programs
+is afni96.tgz.  To uncompress this, the following commands should work:
+
+   gzip -dc afni96.tgz | tar xf -
+   cd ./AFNI96
+   -- follow the instructions in the README file    --
+   -- (which are similar to the instructions below) --
+
+The PostScript documentation is unpacked with
+
+   gzip -dc doc.tgz | tar xf -
+   -- files are in subdirectory DOC/ --
+
+For some platforms (those which we have easily available at MCW),
+binaries are available in the binaries/ subdirectory at the FTP
+distribution site.
+
+COMPILATION
+-----------
+To compile AFNI, you will have to choose a Makefile.  Versions in the
+distribution file are
+
+  filename             target system            compiler
+  -------------        ---------------          -----------------------
+  Makefile.hpux*       HP 7000/8000 series      HP compiler, HP Motif
+  Makefile.sgi*        SGI IRIX systems         SGI compiler, SGI Motif
+  Makefile.linux       Linux                    GCC compiler, Red Hat Motif
+  Makefile.sparky      SunOS 4.1.3              GCC compiler, 3rd party Motif
+  Makefile.sunultra    Solaris 2.5              Sun compiler, /usr/dt Motif
+  Makefile.rs6000      IBM RS/6000              IBM compiler, IBM Motif
+  Makefile.osf1        DEC Alpha OSF/1          GCC compiler
+
+(The hpux and sgi Makefiles come in slightly different versions for the
+different versions of IRIX and the different cpu classes.  Not all the
+possibilities are represented here -- just those to which I have easy
+access in Milwaukee.)
+
+You will undoubtedly need to alter the INSTALLDIR macro in the Makefile
+before you compile.  The flags for the C compiler and loader likely
+need to be changed before anything useful can be done, unless you are
+compiling on a system virtually identical to one we have at MCW.
+Once you have figured this part out (what fun!), then the commands
+
+   cp Makefile.whatever Makefile
+   make all install clean
+
+should do to compile and install the programs in your chosen directory.
+To compile and install the optional plugin packages, the command
+
+   make all plugins install install_plugins clean
+or
+   make itall clean
+
+should be used instead.  Note that the SunOS 4.1.3 and IBM RS/6000
+Makefiles do not include plugin support, since I don't have regular
+access to such systems.  I believe that these systems are similar to
+SGI systems in this regards.  (The only system that I know of which
+is different is HP-UX.)  Note also that the new "models" routines
+and "nlfit" programs require that plugins be compiled.  To get the
+plugin code to run correctly on a new type of system, you must
+edit the file "machdep.h" appropriately.
+
+GENERAL WOES
+------------
+1) The plugin startup code searches all the directories given in
+   the environment variable AFNI_PLUGINPATH for plugin libraries.
+   If this environment variable is not set, then the PATH variable
+   will be used instead.  The use of PATH has caused problems at 2
+   sites, for reasons unknown.  Therefore, it is best to set
+   AFNI_PLUGINPATH directly before starting the afni program.
+   In the C shell:
+
+        setenv AFNI_PLUGINPATH /plugin/directory
+
+   In the Bourne or Korn shells
+
+        AFNI_PLUGINPATH=/plugin/directory ; export AFNI_PLUGINPATH
+
+   Logically, these go best in your startup files (e.g., .cshrc).
+   If you wish to avoid trying to load plugins altogther, the new
+   switch "-noplugins" can be used on the afni command line.
+   You may also set the environment variable AFNI_NOPLUGINS; this
+   too will prevent the plugin startup code from being executed.
+
+2) If you develop your own plugins (see afni_plugins.ps), you must
+   be sure to compile them with the same Makefile that was used
+   to compile the AFNI package.  Otherwise they may not be loaded
+   correctly.  This problem has arisen with our SGI systems, which
+   have several different binary execution modes (selected by
+   compile-time options to cc), which are not compatible with
+   each other (e.g., a "-n32" module can't be mixed with a "-64"
+   module).
+
+WOES: Sun
+---------
+If you are using a Sun workstation and SunOS 4.1.3, you should be aware that
+older versions of Sun's X11 graphics server ("xnews") is prone to crash with
+Motif programs, including AFNI.  A new version of this server is available
+in the "Public Patch" section of SunSolve's WWW pages, at
+http://sunsolve1.sun.com/pub-cgi/patchpage.pl (I have heard that the new
+server is also on the SunSolve CD).  To use the programs AFNI and to3d
+successfully, you MUST install this new server.  (It is quite easy, if you
+have super-user access.)
+
+Sun's ANSI C compiler will produce lots of warning messages.  The
+program still seems to work.  One site has reported a problem with
+AFNI compiled under Solaris with Sun's Motif.  Apparently, there
+is a bug in some versions of Sun's Motif that causes the value for
+the threshold slider not to be displayed.  I don't know how to fix
+this problem, so I implemented a workaround.
+
+If you are running Solaris AND have this problem, edit the "machdep.h"
+file, and uncomment the line where the macro FIX_SCALE_VALUE_PROBLEM
+is defined.  Then remake afni, and the threshold slider value will be
+displayed in the top of the slider window (where the label normally appears).
+
+Do not use very high levels of optimization (-xO4, say) with the Sun
+compiler.  It introduces bugs in AFNI, and the Talairach transformation
+will be computed incorrectly.  (This occurred with the compiler as
+of 1996, and may be fixed by now.)
+
+GOOD NEWS: Sun
+--------------
+Solaris 2.5 and above now ship with Motif.  The libraries are stored
+in the directory /usr/dt/lib.  By changing IFLAGS and LFLAGS
+appropriately in the Makefile, you should be able to compile and
+run the afni and to3d programs.  (Assuming you have the ANSI C
+compiler, of course.)  Makefile.sunultra will probably work for you.
+
+/usr/dt/lib is not included in the default search path when a program
+starts.  To force this directory to be searched for libraries at program
+runtime, you must set the environment variable LD_LIBRARY_PATH properly.
+Using the C shell:
+
+   setenv LD_LIBRARY_PATH /usr/dt/lib:/usr/openwin/lib:/usr/ucblib
+
+Using the Bourne or Korn shells:
+
+   LD_LIBRARY_PATH=/usr/dt/lib:/usr/openwin/lib:/usr/ucblib
+   export LD_LIBRARY_PATH
+
+Again, these should go in your startup files (e.g., .cshrc) so that
+they are executed whenever you login.
+
+There seem to be some bugs in Sun's Motif.  In particular, the
+File Selection Box used in the "Read Session" (and other) buttons
+in AFNI doesn't work too well.  I don't know how to fix this
+problem.  Also, AFNI sometimes crashes under Solaris if the graph
+windows are used.  I don't know what causes this problem, or
+how to fix it, either.  It doesn't occur on the systems to which
+I have regular access (SGI, HP, Linux).
+
+WOES: Hewlett Packard
+---------------------
+If you are using an HP workstation and HP-UX 9.0x, you should be aware
+that older versions of the HP ANSI C compiler have bugs at the higher
+optimization levels.  You will need to upgrade your compiler.  To find
+out what compiler revision you have, use the command
+   strings /bin/cc | grep "HP C"
+You should be at revision A.09.73 (at least).  For more details, see
+   http://hpux.cae.wisc.edu/pubdomain/ANSI_C.html
+   http://support.mayfield.hp.com/slx/html/ptc_hpux.html
+If you cannot upgrade your compiler easily, you should change the +O3
+compiler switch in Makefile.hp to +O2.
+
+Under HP-VUE, you'll find that the window manager hogs all the colors
+to make the window decorations look nice.  You have to reclaim some of
+these colors before AFNI will work.  To do this, you click on the VUE
+control panel icon that is like a painter's palette.  Under that
+application, choose "Color" (or something like that), and under that
+menu, choose "HP-VUE Color Usage".  Then pick "Medium" or "Low",
+instead of "Default".  After that is done, you'll have to confirm it,
+and then logout and login to have this change take effect.
+
+WOES: Common Desktop Environment
+--------------------------------
+The above remarks about color usage also apply to the Common Desktop
+Environment DeskTop (CDE DT), which is in fact adapted from HP-VUE.
+Another "feature" is that the default action is that dropdown menus
+(as in the AFNI 'Lock' menu) don't stay posted when the mouse
+button is released.  This makes it difficult to click on an item
+such as a Toggle Button (as in the AFNI 'Lock' menu).  I don't know
+how to make the menus stay up, but a workaround is to popup the
+menus with the right mouse button (Button 3) and, while holding
+Button 3 down, use Button 1 to activate the Toggle Button.
+
+WOES: Silicon Graphics
+----------------------
+Text entry fields don't show a vertical (I-beam) cursor, unlike other
+platforms.  Apparently this is a bug (or a feature?) with SGI's Motif
+library.  I have been unable to find a way around this problem.  I don't
+know why software from SGI doesn't have this problem.
+
+Some older versions of the SGI X11 server (Xsgi) don't seem to discard
+their garbage very well.  This can lead to consumption of huge quantities
+of memory over time.  The solution is to forcibly restart the server
+every time you log out.  This can be done by setting the
+"terminateServer" resource to "True" in file /var/X11/xdm/xdm-config.
+(Only the superuser can do this.)  Note also that AFNI can only
+run if the default X11 visual is a PseudoColor visual.  This may
+not be the case with a high end SGI workstation.  In that case,
+the superuser must manually configure /var/X11/xdm/Xservers to
+start Xsgi with the correct visual as the default.  See "man Xsgi"
+and "xdpyinfo" to get the needed information.  (We use the 12 bit
+PseudoColor visual for our default, but some freeware utilities
+don't work well with anything but 8 bit PseudoColor visuals.)
+
+The SGI compiler on the R5000 processor sometimes core dumps
+at optimization -O3.  That's why Makefile.sgi5k* uses -O2.
+
+WOES: Linux
+-----------
+You will have to byte swap short images from most other workstation
+platforms.  The program 2swap can do this for 2D and 3D data.  Also,
+the "3Ds:" input format can do this as the images are read in -- see
+the output of 'to3d -help' for more details.
+
+Linux does not seem to handle large mmap-ed files very well.  I have
+heard this is much better in kernels 2.x, but I am still using
+1.2.13, so cannot speak to this issue.
+
+My version of Linux does not like it if more than 20 (or so) plugins
+and models are loaded.  This seems to be a bug in the dlfcn routines,
+but I don't know how common it is.  Maybe this will be the goad that
+makes me upgrade my Linux (which is woefully old).
+
+SAMPLE DATASETS
+---------------
+The file sample.tgz has a pair of sample datasets, one anatomical
+and one functional.  You can use this to try AFNI out, and see if it
+is useful for your purposes before you go to the trouble to put your
+data into the program's 3D format.  To uncompress and run:
+
+   gzip -dc sample.tgz | tar xf -
+   afni sample
+
+The anatomical dataset has the markers already set for the transformation
+to stereotaxic coordinates.  This may help you learn to find the commissures
+and the other anatomical landmarks that need to be marked.  However, you
+will certainly need to get some guidance from a neuroanatomy textbook
+in order to become adept at marking the required locations.
+
+The file sample96.tgz has some sample 3D+time datasets.  This file is
+huge (20 Megabytes), so please try to download it at night or on a
+weekend.
+
+MISCELLANY
+----------
+The manual and the sample dataset should get you started.  Don't forget
+the 'BHelp' feature, either: it will give you a few lines of reminder
+about any given item in the AFNI and to3d interfaces.  Also, every program
+accepts the command line option "-help", which will display some information
+about how to use the software.  In some cases (e.g., 3dmerge), this -help
+information is quite lengthy.
+
+Image file formats are described in the auxiliary programs manual.  The
+'3D:' formats should allow you to input almost any uncompressed data file.
+Note that it is possible to set up the Unix environment to recognize
+certain file sizes as containing images of pre-specified dimensions -- this
+is described in the '3D:' section of the auxiliary programs manual.
+
+I'm interested in bug reports.  However, if you have problems on a particular
+system that we don't have in the Biophysics Research Institute at MCW, I may
+not be able to say anything useful.  I'm also interested in reports of
+success in getting AFNI to run on other systems than those listed earlier
+(especially in Makefiles and in changes needed to machdep.h), and in
+reports of success in using AFNI to analyze FMRI datasets.
+
+AFNI is a big package with lots of features.  If you are just getting
+started in FMRI, you will probably want to use the FD2 and fim2 programs
+first, to deal with 2D+time data.  After you are comfortable with that,
+you can move up to the more complex world of 3D and 3D+time datasets.
+When you do that, you will find that you need a lot of disk space to store
+your data.  For example, a 3D data volume in Talairach coordinates, resampled
+at 1 mm resolution, takes up over 8 Mbytes of space.  It is easy to gather
+hundreds of such data volumes.  Storing and processing this much data will
+occupy a good workstation.  At MCW, we have 15 workstations and 150 Gbytes
+of disk space devoted to processing FMRI data -- and it isn't enough.
+
+The "netpbm" package of image utilities is very useful.  It is also available
+on the MCW AFNI distribution computer, in the same directory.  This software
+is not written here, but by many people from around the world.  The "Save:"
+button in AFNI saves images to disk in the PNM format, which can then
+be converted to TIFF, GIF, etc., using utilities in netpbm (or using the
+shareware program "xv").
+
+There is a link to the Web pages made for AFNI on my home page, given below.
+=============================================================================
+Robert W. Cox, PhD
+Biophysics Research Institute / Medical College of Wisconsin
+Voice: 414-456-4038 / Fax: 414-266-8515 / mailto:rwcox@mcw.edu
+http://www.biophysics.mcw.edu/BRI-people/cox.html

@@ -1,0 +1,33 @@
+## AFNI 1.03 Makefile
+## for RS6000  (AIX 3.2, GCC 2.4.5, Motif 1.2)
+## (courtesy Doug Morris at UIUC)
+
+## Note that the stuff needed for plugins is not installed here,
+## nor in the machdep.h file!
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = gcc -O2 -DRS6000
+CCMIN  = gcc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I.
+LFLAGS = -s -L.
+
+AR     = /usr/bin/ar
+RANLIB = /bin/touch
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./ibm
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm
+
+######################################################################
+
+include Makefile.INCLUDE
