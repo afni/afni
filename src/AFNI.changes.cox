@@ -3795,5 +3795,8 @@
 
 17 Jun 2002
  * Added 'crop' pushbutton to imseq.[ch].
- * Modified default font for imseq to 7x13 in afni.c.
- * Modified imseq.c to reduce margins, to squish widgets a little more.
+ * Modified default font for imseq to 7x13 in afni.c, and
+     modified imseq.c to shrink button margins, to squish widgets together.
+
+19 Jun 2002
+ * Fixed clipping error in plot_cox.c (dangling else problem, d'oh).
