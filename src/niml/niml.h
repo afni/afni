@@ -405,6 +405,7 @@ extern void *   findin_Htable( char *, Htable * ) ;
 extern void     removefrom_Htable( char *, Htable * ) ;
 extern void     profile_Htable( char *, Htable * ) ;
 extern void     subsume_Htable( Htable *, Htable * ) ;
+extern void     Htable_set_vtkill( int ) ;
 
 #define         sizeof_Htable(ht) ((ht)->ntot)
 
@@ -423,6 +424,8 @@ extern char *   findin_Dtable_b( char *, Dtable * ) ;
 extern void     removefrom_Dtable_a( char *, Dtable * ) ;
 extern void     removefrom_Dtable_b( char *, Dtable * ) ;
 extern int      listize_Dtable( Dtable *, char ***, char *** ) ;
+extern char *   Dtable_to_nimlstring( Dtable * , char * ) ;
+extern Dtable * Dtable_from_nimlstring( char * ) ;
 
 /*****------------------- DIME stuff [04 Nov 2002] ------------------*****/
 

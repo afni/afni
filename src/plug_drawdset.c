@@ -37,6 +37,7 @@ void DRAW_ttatlas_CB( Widget , XtPointer , XtPointer ) ; /* 22 Aug 2001 */
 
 void DRAW_label_CB( Widget , XtPointer , XtPointer ) ; /* 15 Oct 2003 */
 void DRAW_label_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+void DRAW_attach_dtable( Dtable *, char *, THD_3dim_dataset * ) ;
 
 void DRAW_receiver( int , int , void * , void * ) ;
 int  DRAW_into_dataset( int , int * , int * , int * , void * ) ;
@@ -602,9 +603,6 @@ void DRAW_make_widgets(void)
                            (XtPointer) NULL ,
                            XtListTail ) ;     /* last in queue */
 
-     XtUnmanageChild( label_label ) ;
-     XtUnmanageChild( label_textf ) ;
-
      XtManageChild(rc) ;
    }
 
@@ -903,6 +901,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
          AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ;
       if( dset_changed ){
          MCW_invert_widget( done_pb ) ;
+         DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
          DSET_write(dset) ;
          MCW_invert_widget( done_pb ) ;
       }
@@ -993,6 +992,7 @@ void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    MCW_invert_widget(save_pb) ;
 
+   DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
    DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
 
    MCW_invert_widget(save_pb) ;
@@ -1066,6 +1066,7 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /*-- switch current dataset to be the copy just made --*/
 
    dset = cset ; dset_idc = dset->idcode ;
+   DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
    DSET_write(dset) ; DSET_mallocize(dset) ; DSET_load(dset) ; DSET_lock(dset) ;
 
    /*-- re-write the informational label --*/
@@ -1605,6 +1606,17 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
      }
    }
 
+   /* 20 Oct 2003: get VALUE_LABEL_DTABLE, if present */
+
+   if( vl_dtable != NULL ){ destroy_Dtable(vl_dtable); vl_dtable = NULL; }
+
+   { ATR_string *atr ;
+     atr = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ) ;
+     if( atr != NULL && atr->nch > 5 )
+       vl_dtable = Dtable_from_nimlstring( atr->ch ) ;
+     DRAW_set_value_label() ;
+   }
+
    return ;
 }
 
@@ -1674,16 +1686,13 @@ void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
 static void dump_vallab(void)
 {
 #if 0
-   int nn,ii ; char **la,**lb ;
-   if( vl_dtable == NULL ) return ;
-   nn = listize_Dtable( vl_dtable, &la,&lb ) ; if( nn <= 0 ) return ;
-   printf("\nValue label Dtable:\n") ;
-   for( ii=0 ; ii < nn ; ii++ ) printf(" %s <-> %s\n",la[ii],lb[ii]) ;
+   char *str = Dtable_to_nimlstring( vl_dtable , "VALUE_LABEL_DTABLE" ) ;
+   if( str != NULL ){ printf("%s\n",str); free(str); }
    return ;
 #endif
 }
 
-char * DRAW_value_string( float val )
+char * DRAW_value_string( float val )  /* returns a fixed pointer! */
 {
    static char str[32] ;
    sprintf(str,"%.5g",val) ;
@@ -1705,17 +1714,69 @@ void DRAW_set_value_label(void)
 
 void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
 {
-   char *str_val , *str_lab ;
+   char *str_val , *str_lab , *str_old ;
    int ll , ii ;
 
-   str_lab = XmTextFieldGetString( label_textf ) ;
-   if( str_lab == NULL ) return ;
-   ll = strlen(str_lab) ;
-   for( ii=0 ; ii < ll && isspace(str_lab[ii]) ; ii++ ) ; /* nada */
-   if( ii == ll ) return ;
+   /* get string from text field, see if it is empty or ends in blanks */
 
-   if( vl_dtable == NULL ) vl_dtable = new_Dtable(13) ;
-   str_val = DRAW_value_string( value_float ) ;
+   str_lab = XmTextFieldGetString( label_textf ) ;
+   if( str_lab == NULL ){
+     if( vl_dtable == NULL ) return ;  /* do nothing */
+   } else {
+     ll = strlen(str_lab) ;
+     for( ii=ll-1 ; ii >= 0 && isspace(str_lab[ii]) ; ii-- ) ; /* nada */
+     if( ii < 0 ){                       /*-- all blanks */
+       if( vl_dtable == NULL ) return ;    /* do nothing */
+       free(str_lab) ; str_lab = NULL ;    /* otherwise, clobber entry */
+     } else if( ii < ll-1 ){             /*-- ends in blanks */
+       str_lab[ii+1] = '\0' ;              /* so truncate them */
+     }
+   }
+
+   /* create (value,label) pair Dtable -- NULL label ==> erase old label */
+
+   if( vl_dtable == NULL ) vl_dtable = new_Dtable(7) ;
+
+   str_val = DRAW_value_string( value_float ) ;   /* value string */
+
+   /* check if old label for this value is same as new label;
+      if it is, then don't need to do anything                */
+
+   str_old = findin_Dtable_a( str_val , vl_dtable ) ;
+   if( str_old != NULL ){
+     if( str_lab != NULL && strcmp(str_old,str_lab) == 0 ){  /* same as old */
+       free(str_lab) ; return ;
+     } else if( str_lab == NULL ){                     /* erase the old one */
+       removefrom_Dtable_a( str_val , vl_dtable ) ;
+       dump_vallab() ;
+       return ;
+     }
+   }
+   if( str_lab == NULL ) return ;  /* is NULL ==> nothing to do here */
+
+   /* check if new label is already in the table under a different value */
+
+   str_old = findin_Dtable_b( str_lab , vl_dtable ) ;
+   if( str_old != NULL && strcmp(str_old,str_val) != 0 ){
+     char msg[1024] ;
+     sprintf(msg," \n"
+                 " *********************************** \n"
+                 " ** ERROR * ERROR * ERROR * ERROR ** \n"
+                 " **\n"
+                 " ** Label = %s\n"
+                 " **   is already associated with\n"
+                 " ** Value = %s\n"
+                 " **\n"
+                 " ** Value,Label pairs must be unique \n"
+                 " *********************************** \n"
+             , str_lab , str_old ) ;
+     (void) MCW_popup_message( label_textf , msg , MCW_USER_KILL ) ;
+     PLUTO_beep() ;
+     free(str_lab) ; return ;
+   }
+
+   /* add new value,label pair to Dtable (will clobber old one, if present) */
+
    addto_Dtable( str_val , str_lab , vl_dtable ) ;
    free(str_lab) ;
 
@@ -1733,6 +1794,16 @@ void DRAW_label_EV( Widget wtex , XtPointer cld ,
 
    cbs.reason = XmCR_ACTIVATE ;  /* simulate a return press */
    DRAW_label_CB( wtex , NULL , &cbs ) ;
+}
+
+void DRAW_attach_dtable( Dtable *dt, char *atname, THD_3dim_dataset *ds )
+{
+   char *str ;
+   if( dt == NULL || atname == NULL || ds == NULL ) return ;
+   str = Dtable_to_nimlstring( dt , atname ) ;
+   if( str == NULL ) return ;
+   THD_set_string_atr( ds->dblk , atname , str ) ;
+   free(str) ; return ;
 }
 
 /*******************************************************************
@@ -2551,11 +2622,11 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
    /*-- make a new dataset, somehow --*/
 
    if( zfill == 0 ){
-      new_dset = PLUTO_copy_dset( dset , new_prefix ) ;  /* full copy */
-      dtype = -1 ;
+     new_dset = PLUTO_copy_dset( dset , new_prefix ) ;  /* full copy */
+     dtype = -1 ;
    } else {
-      new_dset = EDIT_empty_copy( dset ) ;               /* zero fill */
-      EDIT_dset_items( new_dset, ADN_prefix,new_prefix, ADN_none ) ;
+     new_dset = EDIT_empty_copy( dset ) ;               /* zero fill */
+     EDIT_dset_items( new_dset, ADN_prefix,new_prefix, ADN_none ) ;
    }
 
    if( new_dset == NULL ) return NULL ; /* bad, real bad */
@@ -2611,6 +2682,15 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
          EDIT_BRICK_FACTOR(new_dset,ival,0.0) ;        /* brick factor  */
          memset( bp , 0 , nbytes ) ;
       }
+   }
+
+   /* 20 Oct 2003: copy VALUE_LABEL_DTABLE attribute, if present */
+
+   { ATR_string *atr ;
+     atr = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ) ;
+     if( atr != NULL )
+       THD_set_char_atr( new_dset->dblk , "VALUE_LABEL_DTABLE" ,
+                         atr->nch , atr->ch                     ) ;
    }
 
    /*-- done successfully!!! --*/

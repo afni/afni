@@ -177,8 +177,8 @@ ENTRY("THD_init_one_datablock") ;
 
    atr_flt = THD_find_float_atr( dblk , ATRNAME_BRICK_FLTFAC ) ;
    if( atr_flt != NULL ){
-      for( ibr=0 ; ibr < nvals && ibr < atr_flt->nfl ; ibr++ )
-         dblk->brick_fac[ibr] = atr_flt->fl[ibr] ;
+     for( ibr=0 ; ibr < nvals && ibr < atr_flt->nfl ; ibr++ )
+       dblk->brick_fac[ibr] = atr_flt->fl[ibr] ;
    }
 
    /** Now create an empty shell of the "brick" == the data structure
@@ -194,9 +194,9 @@ ENTRY("THD_init_one_datablock") ;
    atr_btype = THD_find_int_atr( dblk , ATRNAME_BRICK_TYPES ) ;
 
    if( atr_btype == NULL ){
-      THD_init_datablock_brick( dblk , MRI_short , NULL ) ;
+     THD_init_datablock_brick( dblk , MRI_short , NULL ) ;
    } else {
-      THD_init_datablock_brick( dblk , atr_btype->nin , atr_btype->in ) ;
+     THD_init_datablock_brick( dblk , atr_btype->nin , atr_btype->in ) ;
    }
 
    /* 25 April 1998: check if the byte order is stored inside */
@@ -342,13 +342,12 @@ ENTRY("THD_init_one_datablock") ;
                         by (int *) btype.
 ------------------------------------------------------------------*/
 
-void THD_init_datablock_brick( THD_datablock * dblk ,
-                               int ntype , void * btype )
+void THD_init_datablock_brick( THD_datablock *dblk, int ntype, void *btype )
 {
    int ibr , nx,ny,nz , typ , nvals ;
-   MRI_IMAGE * qim ;
-   THD_datablock * pblk = NULL ;
-   int * itype = NULL ;
+   MRI_IMAGE *qim ;
+   THD_datablock *pblk = NULL ;
+   int *itype = NULL ;
 
 ENTRY("THD_init_datablock_brick") ;
 
@@ -356,11 +355,11 @@ ENTRY("THD_init_datablock_brick") ;
    if( ntype <  0 && btype == NULL ) EXRETURN ;
    if( ntype == 0 && btype != NULL ) EXRETURN ;
 
-   if( ntype < 0 ){                             /* copy types from */
-      pblk = (THD_datablock *) btype ;          /* datablock pblk  */
-      if( ! ISVALID_DATABLOCK(pblk) ) EXRETURN ;
+   if( ntype < 0 ){                            /* copy types from */
+     pblk = (THD_datablock *) btype ;          /* datablock pblk  */
+     if( ! ISVALID_DATABLOCK(pblk) ) EXRETURN ;
    } else {
-      itype = (int *) btype ;
+     itype = (int *) btype ;
    }
 
    nx    = dblk->diskptr->dimsizes[0] ;
@@ -372,14 +371,14 @@ ENTRY("THD_init_datablock_brick") ;
 
    if( dblk->brick_bytes == NULL ){
 STATUS("making dblk->brick_bytes") ;
-      dblk->brick_bytes = (int *) XtMalloc( sizeof(int) * nvals ) ;
+     dblk->brick_bytes = (int *) XtMalloc( sizeof(int) * nvals ) ;
    }
 
    if( dblk->brick_fac == NULL ){
 STATUS("making dblk->brick_fac") ;
-      dblk->brick_fac = (float *) XtMalloc( sizeof(float) * nvals ) ;
-      for( ibr=0 ; ibr < nvals ; ibr++ )
-         dblk->brick_fac[ibr] = (ntype < 0) ? pblk->brick_fac[ibr] : 0.0 ;
+     dblk->brick_fac = (float *) XtMalloc( sizeof(float) * nvals ) ;
+     for( ibr=0 ; ibr < nvals ; ibr++ )
+       dblk->brick_fac[ibr] = (ntype < 0) ? pblk->brick_fac[ibr] : 0.0 ;
    }
 
    dblk->total_bytes = 0 ;
