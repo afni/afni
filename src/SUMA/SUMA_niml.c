@@ -294,10 +294,10 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
       if (cf->ns_v[si]) { /* stream is open, nothing to do */
          cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
          if (LocalHead) fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
-         fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName);
+         fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName); fflush(SUMA_STDOUT);
       }else {   /* must open stream */              
          /* contact afni */
-            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName);
+            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName); fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {
                cf->ns_flags_v[si] = 0;

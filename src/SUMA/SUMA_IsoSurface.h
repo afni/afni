@@ -87,7 +87,9 @@ typedef struct {
    THD_3dim_dataset *iset;
    FILE *dbg_eyenodes;
    float SpatShift[3];
-   THD_3dim_dataset *OrigSpatNormedSet;
+   THD_3dim_dataset *OrigSpatNormedSet;   
+   THD_3dim_dataset *in_edvol;
+   float blur_fwhm;
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);
