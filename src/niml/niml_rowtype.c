@@ -1348,15 +1348,15 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- OK, have to read the hard ways --*/
 
-   for( nn=1,row=0 ; nn && row < col_len ; row++ ){      /* loop over rows */
-                                                         /* until all done */
-                                               /* or ReadFun fails (nn==0) */
-    /* loop over columns, read into struct */
+   for( nn=1,row=0 ; row < col_len ; row++ ){             /* loop over rows */
+                                                          /* until all done */
+     /* loop over columns, read into struct */
 
-    for( col=0 ; nn && col < col_num ; col++ ){
-      ptr = col_dat[col] + fsiz[col]*row ;         /* ptr to row-th struct */
-      nn  = ReadFun( ns , rt[col] , ptr , ltend ) ; /* read data to struct */
-    }
+     for( col=0 ; nn && col < col_num ; col++ ){
+       ptr = col_dat[col] + fsiz[col]*row ;         /* ptr to row-th struct */
+       nn  = ReadFun( ns , rt[col] , ptr , ltend ) ; /* read data to struct */
+     }
+     if( !nn ) break ;                             /* some ReadFun() failed */
    }
 
    if( row == 0 ){ FREEUP; return -1; }  /* didn't finish any rows */
@@ -1388,8 +1388,8 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 
    if( rt->code == NI_STRING ) return 0 ;            /* shouldn't happen */
 
-   if( rt->size == rt->psiz ){                   /* type with no padding */
-                                    /* can read directly into data struct */
+   if( rt->size == rt->psiz ){        /* fixed-size type with no padding */
+                               /* ==> can read directly into data struct */
 
      jj = NI_stream_readbuf( ns , dpt , rt->size ) ;
      return (jj == rt->size) ;
@@ -1447,12 +1447,11 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 
      if( nn == 0 ){
        for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
-       NI_free( aaa ) ;
-       return 0 ;
      }
+     NI_free( aaa ) ;  /* don't need list of var dim arrays no more */
    }
 
-   return 1 ;
+   return nn ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1486,7 +1485,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 
        for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
 
-         if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+         if( rt->part_dim[ii] < 0 ){                /* one fixed size part */
 
            nn = NI_text_to_val( ns, rt->part_rtp[ii],
                                 dat+rt->part_off[ii], ltend );
@@ -1517,6 +1516,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
          NI_free( aaa ) ;
          return 0 ;
        }
+       NI_free( aaa ) ;  /* in any case, dump this */
      }
      break ;
 
