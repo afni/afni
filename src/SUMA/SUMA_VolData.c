@@ -815,10 +815,10 @@ SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord)
    SUMA_Boolean DoFlip = NOPE;
    int i, i3;
    float mx = 0.0,my = 0.0,mz  = 0.0, tx = 0.0,ty = 0.0,tz = 0.0 ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
-   if (strcmp(Coord,"RAI")) DoFlip = NOPE;
-   else if (strcmp(Coord,"LPI")) DoFlip = YUP;
+   if (strcmp(Coord,"RAI") == 0) DoFlip = NOPE;
+   else if (strcmp(Coord,"LPI") == 0) DoFlip = YUP;
    else {
       SUMA_S_Err("Can't do. Either RAI or LPI");
       SUMA_RETURN(NOPE);
@@ -828,11 +828,11 @@ SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord)
    for (i=0; i< N_Node; ++i) {
       i3 = 3*i;
       if (DoFlip) {
-         SUMA_LH("Flipping to LPI");
+         if (!i) SUMA_LH("Flipping to LPI");
          tx = - NodeList[i3]; ty = -NodeList[i3+1] ;  /* flip xy from RAI to LPI */
          tz = NodeList[i3+2] ;
       } else {
-         SUMA_LH("No Flipping, RAI maintained");
+         if (!i) SUMA_LH("No Flipping, RAI maintained");
          tx =  NodeList[i3]; ty = NodeList[i3+1] ;  /* flip xy from RAI to LPI */
          tz =  NodeList[i3+2] ;
       }

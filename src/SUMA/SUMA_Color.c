@@ -1148,9 +1148,9 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    ilin = 0;
    for (i=0; i < SM->N_Col; ++i) {
       if (LSM->Sgn >= 0) {
-         ilin_stp = (int)(ceilf(SM->frac[i] * (float)LSM->N_Col)) - 1;
+         ilin_stp = (int)(ceil((double)SM->frac[i] * (double)LSM->N_Col)) - 1;
       } else {
-         ilin_stp = (int)(ceilf( (1.0 + SM->frac[i]) * (float)LSM->N_Col/2 ) ) - 1;
+         ilin_stp = (int)(ceil( (1.0 + (double)SM->frac[i]) * (double)LSM->N_Col/2 ) ) - 1;
       }
       while (ilin < ilin_stp) {
          LSM->M[ilin][0] = SM->M[i][0];

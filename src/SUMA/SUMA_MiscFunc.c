@@ -3629,9 +3629,21 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
    float dx, dy, dz;
    SUMA_EDGE_LIST *SEL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (!FL) {
+      SUMA_SL_Err("Null FL");
+      SUMA_RETURN(NULL);
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: %d Facesets to work with.\n", FuncName, N_FL);
+   }
+   if (!N_FL) {
+      SUMA_SL_Err("zero N_FL");
+      SUMA_RETURN(NULL);
+   }
    /* allocate and form the List of edges */
    SEL = (SUMA_EDGE_LIST *) SUMA_malloc(sizeof(SUMA_EDGE_LIST));
 
@@ -3655,7 +3667,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }
 
    /* form the edge list */
-   /*fprintf(SUMA_STDERR, "%s: Forming edge list ...\n", FuncName);*/
+   SUMA_LH("Forming Edge List...\n");
    for (i=0; i< N_FL; ++i) {/* begin, form edge list */
       /* first edge, 0->1*/
       ie = 3*i;
@@ -3707,7 +3719,9 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       ELp[ie][1] = i; /* FaceSetMember */
       
    }/* end, form edge list */
-   /*fprintf(SUMA_STDERR,"%s: Edge list done.\n", FuncName);*/
+   SUMA_LH("Edge list done.");
+   
+   if (LocalHead) SUMA_Show_Edge_List(SEL,NULL);
    
    #if 0
       fprintf(SUMA_STDERR,"%s: Node1 Node2 | FlipVal Triangle\n", FuncName); 
@@ -3717,7 +3731,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    #endif
 
    /* now sort the Edge list */
-   /*fprintf(SUMA_STDERR,"%s: Sorting edge list...\n", FuncName);*/
+   SUMA_LH("Sorting edge list...");
    isort_EL = SUMA_dqsortrow (SEL->EL, SEL->N_EL, 2);
    
    /* reorder ELp to match sorted EL */
@@ -3726,7 +3740,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       SEL->ELps[i][1] = ELp[isort_EL[i]][1];
    }
    
-   /*fprintf(SUMA_STDERR,"%s: Sorting edge list done.\n", FuncName);*/
+   SUMA_LH("Sorting edge list done.");
    
    if (isort_EL) SUMA_free(isort_EL);
    isort_EL = NULL;
@@ -3753,8 +3767,10 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    ELp = NULL;
    
    SEL->max_N_Hosts = -1;
-   SEL->min_N_Hosts = 100;
+   SEL->min_N_Hosts = 1000;
+   
    /* do a search for some funky stuff */
+   SUMA_LH("Searching SEL for funky stuff");
    i=0;
    while (i < SEL->N_EL) {
       /* store the location of this edge for the triangle hosting it */
@@ -3781,6 +3797,13 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       if (SEL->max_N_Hosts < SEL->ELps[i][2]) SEL->max_N_Hosts = SEL->ELps[i][2];
       if (SEL->min_N_Hosts > SEL->ELps[i][2]) SEL->min_N_Hosts = SEL->ELps[i][2]; 
       i += lu;
+   }
+   SUMA_LH("Do adjust your radio.\nNo funk here");
+   
+   if (SEL->max_N_Hosts == -1 || SEL->min_N_Hosts == 1000) {
+      SUMA_SL_Crit("Bad bad news.\nCould not calculate max_N_Hosts &/| min_N_Hosts");
+      SUMA_free_Edge_List(SEL); SEL = NULL;
+      SUMA_RETURN(SEL);
    }
    
    {
@@ -3816,7 +3839,8 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    the first reference of an edge containing nb starts at EL(ELloc(nb),:)
    NOTE: ELloc contains an entry for each node in FaceSetList, except the largest node index since that's never in the 
    first column of EL */
-   /* fprintf(SUMA_STDERR, "%s: storing locations ...\n", FuncName); */
+   
+   SUMA_LH("storing locations ...");
    for (i=0; i < N_Node; ++i) SEL->ELloc[i] = -1;
    i = 0;
    icur = SEL->EL[0][0];
@@ -3828,7 +3852,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       }
       ++i;
    }
-
+   SUMA_LH("Done with storage, returning...\n");
    SUMA_RETURN (SEL);
 }
 
@@ -4458,7 +4482,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
    int i;
    float *curr_attr=NULL, *attr_sm=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
