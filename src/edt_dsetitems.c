@@ -599,8 +599,8 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
          for( ii=0 ; ii < nvals ; ii++ )
             datum_array[ii] =  (new_datum_all)  ? datum_all
                              : (ii < old_nvals) ? DSET_BRICK_TYPE(dset,ii)
-                                                : MRI_short ;
-      }
+                                                : DSET_BRICK_TYPE(dset,0) ;
+      }                                           /* 06 Apr 2005 [rickr] */
 
       if( new_nvals ){
          if( dset->dblk->nvals != nvals )
