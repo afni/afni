@@ -432,21 +432,54 @@ void DC_init_im_gry( MCW_DC * dc )
 
 /*----------------------------------------------------------------------*/
 /*! Return a color from the spectrum.  Input "an" is between 0 and 360.
-    Adapted from Andrzej Jesmanowicz, etc. -- 30 Jan 2003 - RWCox.
+    Adapted from Ziad Saad. -- 01 Feb 2003 - RWCox.
 ------------------------------------------------------------------------*/
 
-rgbyte DC_spectrum( MCW_DC *dc , double an )
+rgbyte DC_spectrum_ZSS( double an , double gamm )
 {
-   int r,g,b , m ;
-   double gamm , ak,ab,s,c,sb,cb ;
+   int r,g,b ;
    rgbyte color ;
 
-#if 0
-   if( dc != NULL ) gamm = dc->gamma ;
-   else             gamm = 1.0 ;
-#else
-   gamm = 1.000 ;
-#endif
+   if( gamm <= 0.0 ) gamm = 1.0 ;
+
+   while( an <   0.0 ) an += 360.0 ;
+   while( an > 360.0 ) an -= 360.0 ;
+
+   an = an / 90.0 ;
+
+   if( an <= 1.0 ){
+     r = 255.*mypow(1.0-an,gamm)+0.5 ;
+     g = 255.*mypow(0.5*an,gamm)+0.5 ;
+     b = 255.*mypow(an    ,gamm)+0.5 ;
+   } else if( an <= 2.0 ){
+     r = 0 ;
+     g = 255.*mypow(0.5*an,gamm)+0.5 ;
+     b = 255.*mypow(2.0-an,gamm)+0.5 ;
+   } else if( an <= 3.0 ){
+     r = 255.*mypow(an-2.0,gamm)+0.5 ;
+     g = 255 ;
+     b = 0   ;
+   } else {
+     r = 255 ;
+     g = 255.*mypow(4.0-an,gamm)+0.5 ;
+     b = 0   ;
+   }
+
+   color.r = r ; color.g = g ; color.b = b ; return color ;
+}
+  
+/*----------------------------------------------------------------------*/
+/*! Return a color from the spectrum.  Input "an" is between 0 and 360.
+    Adapted from Andrzej Jesmanowicz. -- 30 Jan 2003 - RWCox.
+------------------------------------------------------------------------*/
+
+rgbyte DC_spectrum_AJJ( double an , double gamm )
+{
+   int r,g,b , m ;
+   double ak,ab,s,c,sb,cb ;
+   rgbyte color ;
+
+   if( gamm <= 0.0 ) gamm = 1.0 ;
 
 #if 0
    ak = 105.; s  = 255.0-ak; c  = s /60.;     /* AJ's choices */
