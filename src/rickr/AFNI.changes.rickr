@@ -21,3 +21,15 @@
 01 July 2002:
   * added rai orientation to plug_crender.c
   * added plug_crender.so target to Makefile.INCLUDE for use of librickr.a
+
+02 July 2002:
+  * modified 3dresample
+      - fully align dataset to the master (not just dxyz and orient)
+      - removed '-zeropad' option (no longer useful with new alignment)
+  * modified r_new_resma_dset.[ch]
+      - r_new_resam_dset() now takes an additional mset argument, allowing
+        a master alignment dataset (overriding dxyz and orient inputs)
+  * modified plug_crender.c to pass NULL for the new mset argument to
+      r_new_resam_dset()
+  * modified @SUMA_AlignToExperiment, removing '-zeropad' argument when
+      running program 3dresample
