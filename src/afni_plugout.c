@@ -468,9 +468,9 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
                  if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
               } else {
                  AFNI_jumpto_dicom( im3d ,
-                                    im3d->anat_now->su_surf->nod[ii].x ,
-                                    im3d->anat_now->su_surf->nod[ii].y ,
-                                    im3d->anat_now->su_surf->nod[ii].z  ) ;
+                                    im3d->anat_now->su_surf->ixyz[ii].x ,
+                                    im3d->anat_now->su_surf->ixyz[ii].y ,
+                                    im3d->anat_now->su_surf->ixyz[ii].z  ) ;
                  if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
               }
            }
@@ -597,7 +597,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
                      qq = SUMA_VMAP_UNMASK(qq) ;
                      if( qq != pp->surfindex ){
                        sprintf( pobuf + npobuf , "SURFID %d\n" ,
-                                im3d->anat_now->su_surf->nod[qq].id ) ;
+                                im3d->anat_now->su_surf->ixyz[qq].id ) ;
                        pp->surfindex = qq ;
                      }
                    }

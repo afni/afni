@@ -1314,8 +1314,11 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
         /* NIML listening on */
 
-        if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml )
-           AFNI_init_niml() ;
+        if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
+          AFNI_init_niml() ;
+          XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
+        }
+
       }
       break ;
 
@@ -1603,8 +1606,8 @@ STATUS("get status") ;
      if( !SUMA_ENABLED || br->dset->su_surf == NULL ) RETURN(NULL) ;
      {
       Three_D_View * im3d = (Three_D_View *) br->parent ;
-      int nn=br->dset->su_surf->num_nod , ii,jj ;
-      SUMA_nod *nod = br->dset->su_surf->nod ;
+      int nn=br->dset->su_surf->num_ixyz , ii,jj ;
+      SUMA_ixyz *nod = br->dset->su_surf->ixyz ;
       MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -4673,7 +4676,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       if( pp >= 0 ){
         int ll = SUMA_VMAP_LEVEL(pp) ;
         pp = SUMA_VMAP_UNMASK(pp) ;
-        pp = im3d->anat_now->su_surf->nod[pp].id ;
+        pp = im3d->anat_now->su_surf->ixyz[pp].id ;
 
         fprintf(stderr,"surface node ID = %d (level %d)\n" , pp,ll ) ;
       }

@@ -4832,6 +4832,11 @@ STATUS("got func info") ;
    }
 #endif /* ALLOW_PLUGINS */
 
+   else if( w == im3d->vwid->dmode->misc_niml_pb ){ /* 02 Mar 2002 */
+      AFNI_init_niml() ;
+      XtSetSensitive(w,False) ;
+   }
+
    /*.........................................................*/
 
    /****----- Get Outta Here -----****/

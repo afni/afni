@@ -574,6 +574,7 @@ typedef struct {
       Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
       Widget         misc_license_pb ;    /* 03 Dec 2000 */
       Widget         misc_plugout_pb ;    /* 07 Nov 2001 */
+      Widget         misc_niml_pb    ;    /* 02 Mar 2002 */
 
 } AFNI_datamode_widgets ;
 

@@ -4522,6 +4522,18 @@ ENTRY("PLUTO_register_timeseries") ;
 }
 
 /*----------------------------------------------------------------------------
+  Find a dataset, given its idcode string. [02 Mar 2002]
+------------------------------------------------------------------------------*/
+
+THD_3dim_dataset * PLUTO_find_dset_idc( char * idc )
+{
+   MCW_idcode idcode ;
+   if( idc == NULL ) return NULL ;
+   MCW_strncpy( idcode.str , idc , MCW_IDSIZE ) ;
+   return PLUTO_find_dset( &idcode ) ;
+}
+
+/*----------------------------------------------------------------------------
   Routine to find a dataset in the global sessionlist, given its idcode.
   If this returns NULL, then you are SOL.
 ------------------------------------------------------------------------------*/

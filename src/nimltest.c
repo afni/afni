@@ -10,10 +10,20 @@ int main( int argc , char *argv[] )
    NI_stream ns , nsout , nsf=NULL ;
    int nn , tt , nopt=1 , bmode ;
    void *nini ;
+   char *ccc ;
 
    if( argc < 2 ){
       printf("Usage: nimltest [-b fname] [-w] streamspec\n");exit(0);
    }
+
+#if 0
+   for( nn=0 ; nn < 5 ; nn++ ){
+     ccc = UNIQ_idcode() ;
+     fprintf(stderr,"%d: %s\n",nn,ccc) ; free(ccc) ;
+   }
+   ccc = UNIQ_hashcode("Elvis") ;
+   fprintf(stderr,"   %s\n",ccc) ; free(ccc) ;
+#endif
 
    /* writing to a stream? */
 

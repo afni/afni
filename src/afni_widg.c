@@ -4969,6 +4969,21 @@ ENTRY("AFNI_misc_button") ;
    dmode->misc_plugout_pb = NULL ;
 #endif
 
+   /*-- 02 Mar 2002: button to start NIML --*/
+
+   dmode->misc_niml_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Start NIML") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_niml_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_niml_pb ,
+                      "Start listening for NIML connections" ) ;
+
    /*--- Utility buttons ---*/
 
    (void) XtVaCreateManagedWidget(

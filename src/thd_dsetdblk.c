@@ -703,7 +703,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    }
 #endif
 
-   SUMA_get_sname(dset) ;
+   DSET_NULL_SUMA(dset) ;     /* clean surface map stuff */
+   SUMA_get_surfname(dset) ;  /* set the surface filename */
 
    RETURN( dset );
 }
