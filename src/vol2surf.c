@@ -15,11 +15,12 @@
  *     int disp_v2s_opts_t    ( char * info, v2s_opts_t * sopt );
  *     int disp_v2s_param_t   ( char * info, v2s_param_t * p );
  *     int disp_v2s_results   ( char * mesg, v2s_results * d );
+ *
+ * Author: R Reynolds
  *----------------------------------------------------------------------
  */
 
-#include "mrilib.h"
-#include "vol2surf.h"
+#define _VOL2SURF_C_		/* so the header files know */
 
 char gv2s_history[] =
     "----------------------------------------------------------------------\n"
@@ -27,7 +28,15 @@ char gv2s_history[] =
     "\n"
     "September 01, 2004 [rickr]\n"
     "  - initial install into afni\n"
+    "\n"
+    "September 02, 2004 [rickr]\n"
+    "  - moved gv2s_map_names here (from SUMA_3dVol2Surf.c)\n"
+    "  - moved v2s_map_type (and test) here (from SUMA_3dVol2Surf.c)\n"
+    "  - define _VOL2SURF_C_, to allow extern defines in vol2surf.h\n"
     "---------------------------------------------------------------------\n";
+
+#include "mrilib.h"
+#include "vol2surf.h"
 
 /*----------------------------------------------------------------------*/
 /* local typedefs							*/
@@ -91,8 +100,14 @@ static float  v2s_apply_filter(range_3dmm_res *rr, v2s_opts_t *sopt, int index,
 static int    v2s_map_needs_sort(int map);
 static int    validate_v2s_inputs(v2s_opts_t * sopt, v2s_param_t * p);
 
-/* globals to be accessed by plugin and in afni_suma.c */
+/*----------------------------------------------------------------------*/
+/* globals to be accessed by plugin and in afni_suma.c                  */
 v2s_plugin_opts gv2s_plug_opts = {0, -1, -1};
+			    /* this must match v2s_map_nums enum */
+char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
+                            "count", "min", "max", "max_abs", "seg_vals",
+                            "median", "mode" };
+
 
 /*----------------------------------------------------------------------
  * afni_vol2surf     - create v2s_results from gv2s_* afni globals
@@ -1560,6 +1575,11 @@ ENTRY("validate_v2s_inputs");
 	fprintf(stderr,"** invalid mapping index %d\n", sopt->map);
 	RETURN(1);
     }
+    else if ( v2s_map_type(gv2s_map_names[sopt->map]) != sopt->map )
+    {
+	fprintf(stderr,"** mapping index failure for %d\n", sopt->map);
+	RETURN(1);
+    }
 
     if ( sopt->f_steps <= 0 || sopt->f_steps >= V2S_STEPS_TOOOOO_BIG )
     {
@@ -1662,4 +1682,38 @@ int v2s_vals_over_steps( int map )
 
     return 0;
 }
+
+                                                                                
+/*----------------------------------------------------------------------
+ * v2s_map_type - return an E_SMAP_XXX code
+ *
+ * on failure, return -1 (E_SMAP_INVALID)
+ * else        return >0 (a valid map code)
+ *----------------------------------------------------------------------
+*/
+int v2s_map_type ( char * map_str )
+{
+    v2s_map_nums map;
+                                                                                
+ENTRY("v2s_map_type");
+                                                                                
+    if ( map_str == NULL )
+    {
+        fprintf( stderr, "** v2s_map_type: missing map_str parameter\n" );
+        RETURN((int)E_SMAP_INVALID);
+    }
+                                                                                
+    if ( sizeof(gv2s_map_names) / sizeof(char *) != (int)E_SMAP_FINAL )
+    {
+        fprintf( stderr, "** error:  gv2s_map_names/v2s_map_num mis-match\n");
+        RETURN((int)E_SMAP_INVALID);
+    }
+                                                                                
+    for ( map = E_SMAP_INVALID; map < E_SMAP_FINAL; map++ )
+        if ( !strcmp( map_str, gv2s_map_names[map] ) )
+            RETURN((int)map);
+                                                                                
+    RETURN((int)E_SMAP_INVALID);
+}
+                                                                                
 
