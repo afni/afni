@@ -10,6 +10,9 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib
 
+CCSVD  = $(CCFAST)
+
+
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared -s
 PLUGIN_CC     = $(CC)
