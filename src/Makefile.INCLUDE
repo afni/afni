@@ -124,7 +124,7 @@ LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
 
 ### Make everything, install it too, and cleanup
 
-totality:clean all plugins install install_plugins install_lib clean
+totality:clean all plugins install install_plugins install_lib cleann
 
 ### Make everything, install it too, but don't cleanup
 
@@ -974,6 +974,9 @@ iochan_relay:iochan_relay.o
 ### Sort of clean
 
 clean:
+	$(RM) `find . -name \*.o -print`
+
+cleann:
 	$(RM) `find . -name \*.o -print`
 
 cleaner:clean
