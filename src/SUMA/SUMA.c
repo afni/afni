@@ -126,7 +126,7 @@ int main (int argc,char *argv[])
           exit (1);
 		}
 		
-		if (!brk && (strcmp(argv[kar], "-vp") == 0 || strcmp(argv[kar], "-sa") == 0))
+		if (!brk && (strcmp(argv[kar], "-vp") == 0 || strcmp(argv[kar], "-sa") == 0 || strcmp(argv[kar], "-sv") == 0))
 		{
 			kar ++;
 			if (kar >= argc)  {
