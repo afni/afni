@@ -985,4 +985,5 @@
      - nifti_set_filenames: added set_byte_order parameter option
        (it seems appropriate to set the BO when new files are associated)
      - disp_nifti_1_header: prints to stdout (a.o.t. stderr), with fflush
+  * modified thd_niftiread.c to call nifti_swap_Nbytes (nifti_ is new)
 

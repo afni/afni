@@ -398,8 +398,8 @@ ENTRY("THD_load_nifti") ;
      for( ibr=0 ; ibr < nv ; ibr++ ){
        fread( DBLK_ARRAY(dblk,ibr), 1, DBLK_BRICK_BYTES(dblk,ibr), fp ) ;
 
-       if( nim->swapsize > 1 && nim->byteorder != norder )           /* byte */
-         swap_Nbytes( DBLK_BRICK_BYTES(dblk,ibr)/nim->swapsize ,     /* swap */
+       if( nim->swapsize > 1 && nim->byteorder != norder )            /* byte */
+         nifti_swap_Nbytes( DBLK_BRICK_BYTES(dblk,ibr)/nim->swapsize ,/* swap */
                       nim->swapsize , DBLK_ARRAY(dblk,ibr)      ) ;
 
        if( AFNI_yesenv("AFNI_FLOATSCAN") ){  /*--- check float inputs? ---*/
@@ -429,7 +429,7 @@ ENTRY("THD_load_nifti") ;
        memset( sbuf , 0 , nbuf ) ;
        fread( sbuf , 1,nbuf , fp ) ;
        if( nim->swapsize > 1 && nim->byteorder != norder )           /* byte */
-         swap_Nbytes( nbuf/nim->swapsize , nim->swapsize , sbuf ) ;  /* swap */
+         nifti_swap_Nbytes(nbuf/nim->swapsize ,nim->swapsize , sbuf);/* swap */
 
        /* macro to convert data from type "ityp" in sbuf to float in dataset */
 
