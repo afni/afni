@@ -22,6 +22,8 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *) ;   /* 14 Mar 2002 */
 static MRI_IMAGE * mri_dup2D_rgb3( MRI_IMAGE *) ;   /* 14 Mar 2002 */
 static MRI_IMAGE * mri_dup2D_rgb2( MRI_IMAGE *) ;   /* 22 Mar 2002 */
 
+static MRI_IMAGE * mri_dup2D_rgb_NN( MRI_IMAGE *, int);/* 22 Feb 2004 [rickr] */
+
 /*-----------------------------------------------------------------------------
   Set resample mode for mri_dup2D (1 or 7)
 -------------------------------------------------------------------------------*/
@@ -43,7 +45,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
 {
    MRI_IMAGE *flim , *newim ;
    float     *flar , *newar , *cold , *cnew ;
-   int nx,ny , nxup,nyup , ii,jj,kk ;
+   int nx,ny , nxup,nyup , ii,jj,kk, NNmode = 0 ;
 
 ENTRY("mri_dup2D") ;
    /*-- sanity checks --*/
@@ -51,6 +53,12 @@ ENTRY("mri_dup2D") ;
    if( nup < 1 || nup > MAX_NUP || imin == NULL ) RETURN( NULL );
 
    if( nup == 1 ){ newim = mri_to_mri( imin->kind, imin ); RETURN(newim); }
+
+   /* does the user want neighbor interpolation?     22 Feb 2004 [rickr] */
+   if ( AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) {
+      mri_dup2D_mode(0);
+      NNmode = 1;
+   }
 
    /*-- complex-valued images: do each part separately --*/
 
@@ -75,32 +83,37 @@ ENTRY("mri_dup2D") ;
 
    if( imin->kind == MRI_rgb ){
      MRI_IMAGE *qqim=NULL ;
-     switch(nup){
-       case 4: qqim = mri_dup2D_rgb4(imin); break; /* special purpose fast codes */
-       case 3: qqim = mri_dup2D_rgb3(imin); break; /* using fixed pt arithmetic  */
-       case 2: qqim = mri_dup2D_rgb2(imin); break;
+     if ( NNmode )
+         qqim = mri_dup2D_rgb_NN(imin, nup);  /* 22 Feb 2004 [rickr] */
+     else {
+       switch(nup){
+         case 4: qqim = mri_dup2D_rgb4(imin); break; /* special purpose fast codes */
+         case 3: qqim = mri_dup2D_rgb3(imin); break; /* using fixed pt arithmetic  */
+         case 2: qqim = mri_dup2D_rgb2(imin); break;
 
-      /*-- other factors: do each color separately as a byte image --*/
-      default:{
-         MRI_IMARR *imtriple ; MRI_IMAGE *rim, *gim, *bim, *tim ;
+        /*-- other factors: do each color separately as a byte image --*/
+        default:{
+           MRI_IMARR *imtriple ; MRI_IMAGE *rim, *gim, *bim, *tim ;
 
-         imtriple = mri_rgb_to_3byte( imin ) ;
-         if( imtriple == NULL ){
-           fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); RETURN(NULL);
+           imtriple = mri_rgb_to_3byte( imin ) ;
+           if( imtriple == NULL ){
+             fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); RETURN(NULL);
+           }
+           rim = IMAGE_IN_IMARR(imtriple,0) ;
+           gim = IMAGE_IN_IMARR(imtriple,1) ;
+           bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
+           tim = mri_dup2D( nup, rim ); mri_free(rim); rim = tim;
+           tim = mri_dup2D( nup, gim ); mri_free(gim); gim = tim;
+           tim = mri_dup2D( nup, bim ); mri_free(bim); bim = tim;
+           newim = mri_3to_rgb( rim, gim, bim ) ;
+           mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
+           MRI_COPY_AUX(newim,imin) ;
+           qqim = newim ;
          }
-         rim = IMAGE_IN_IMARR(imtriple,0) ;
-         gim = IMAGE_IN_IMARR(imtriple,1) ;
-         bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
-         tim = mri_dup2D( nup, rim ); mri_free(rim); rim = tim;
-         tim = mri_dup2D( nup, gim ); mri_free(gim); gim = tim;
-         tim = mri_dup2D( nup, bim ); mri_free(bim); bim = tim;
-         newim = mri_3to_rgb( rim, gim, bim ) ;
-         mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
-         MRI_COPY_AUX(newim,imin) ;
-         qqim = newim ;
+         break ;
        }
-       break ;
      }
+
      RETURN(qqim) ;
    }
 
@@ -443,6 +456,52 @@ static void upsample_1by4( int nar, byte *bar , byte *bout )
 /*************************************************************************/
 /*************************************************************************/
 
+/* added option for nearest neighbor (if AFNI_IMAGE_ZOOM_NN is Y/y)
+                                                     22 Feb 2004 [rickr] */
+
+static MRI_IMAGE * mri_dup2D_rgb_NN( MRI_IMAGE *inim, int nup )
+{
+   rgbyte *bin , *bout , *bin1 ;
+   MRI_IMAGE *outim ;
+   int ii,jj,kk,ll , nx,ny , nxup,nyup ;
+
+ENTRY("mri_dup2D_rgb_NN") ;
+   if( inim == NULL || inim->kind != MRI_rgb ) RETURN(NULL);
+
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) RETURN(NULL);
+
+   /* make output image **/
+
+   nx = inim->nx ; ny = inim->ny ; nxup = nup*nx ; nyup = nup*ny ;
+   outim = mri_new( nxup , nyup , MRI_rgb ) ;
+   bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
+
+   for( jj=0 ; jj < ny ; jj++ ){   /* loop over input rows */
+     
+     for ( kk= 0; kk < nup; kk++ ) { /* do rows nup times */
+
+       bin1 = bin;
+
+       for( ii=0 ; ii < nx ; ii++ ){
+
+         for ( ll= 0; ll < nup; ll++ ) {
+	     *bout++ = *bin1;
+         }
+
+         bin1++;
+       }
+
+     }
+     bin += nx ;
+   }
+
+   MRI_COPY_AUX(outim,inim) ;
+   RETURN(outim) ;
+}
+
+/*************************************************************************/
+/*************************************************************************/
+
 static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
 {
    rgbyte *bin , *bout , *bin1,*bin2 , *bout1,*bout2,*bout3,*bout4 ;
@@ -487,6 +546,7 @@ ENTRY("mri_dup2D_rgb4") ;
 #define BOUT_13(ul,ur,ll,lr) BOUT(ul,ur,ll,lr, 5, 3,35,21)
 #define BOUT_23(ul,ur,ll,lr) BOUT(ul,ur,ll,lr, 3, 5,21,35)
 #define BOUT_33(ul,ur,ll,lr) BOUT(ul,ur,ll,lr, 1, 7, 7,49)
+
 
   /** do 16 interpolations between  ul ur
                                     ll lr  for index #k, color #c **/

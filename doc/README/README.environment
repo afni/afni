@@ -1940,6 +1940,12 @@ If this variable is set to YES, then the Define Function color bars
 coordinated.  Changes to one locked pbar will be reflected in the
 others immediately.
 
+----------------------------
+Variable: AFNI_IMAGE_ZOOM_NN (editable)
+----------------------------
+If this variable is set to YES, then image viewer windows will use
+nearest neighbor interpolation for zooming.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
