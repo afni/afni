@@ -196,49 +196,6 @@ SUMA_INODE *SUMA_CreateInode (void *data, char *ID)
 }
 
 /*!
-Create a Surface Object data structure 
-*/
-
-SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
-{
-	static char FuncName[]={"SUMA_Alloc_SurfObject_Struct"};
-	SUMA_SurfaceObject *SO;
-	int i, j;
-	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-	SO = (SUMA_SurfaceObject *)malloc(sizeof(SUMA_SurfaceObject)*N);
-	if (SO == NULL) {
-		SUMA_alloc_problem("SUMA_Alloc_SurfObject_Struct: could not allocate memory for SO");
-	}
-	
-	for (i=0; i< N; ++i) {
-		SO[i].Name_NodeParent = NULL;
-		SO[i].EmbedDim = 3;
-		SO[i].MF = NULL;
-		SO[i].FN = NULL;
-		SO[i].FN_Inode = NULL;
-		SO[i].EL = NULL;
-		SO[i].EL_Inode = NULL;
-		SO[i].PolyArea = NULL;
-		SO[i].SC = NULL;
-		SO[i].Cx = NULL;
-		SO[i].Cx_Inode = NULL;
-		SO[i].VolPar = NULL;
-		/* create vector of pointers */
-		SO[i].Overlays = (SUMA_OVERLAYS **) malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
-		SO[i].Overlays_Inode = (SUMA_INODE **) malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
-		/* fill pointers with NULL */
-		for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
-			SO[i].Overlays[j] = NULL;
-			SO[i].Overlays_Inode[j] = NULL;
-		}
-		SO[i].N_Overlays = 0;
-	}
-	SUMA_RETURN(SO);
-}/* SUMA_Alloc_SurfObject_Struct */
-
-/*!
 Create a Displayable Object data structure 
 */
 SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N)
@@ -254,6 +211,7 @@ SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N)
 	}
 	SUMA_RETURN(dov);
 }/*SUMA_Alloc_DisplayObject_Struct*/
+
 
 /*!
 Free a Displayable Object data structure 
@@ -479,3 +437,112 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 		SUMA_RETURN(do_id);
 }
 
+/*!
+	searches all SO_type DO objects for idcode
+	YUP if found, NOPE if not
+*/
+SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+	static char FuncName[]={"SUMA_existDO"};
+	SUMA_SurfaceObject *SO;
+	int i;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (idcode == NULL) {
+		fprintf(SUMA_STDERR,"Warning SUMA_existDO: NULL idcode.\n");
+		SUMA_RETURN (NOPE);
+	}
+	for (i=0; i< N_dov; ++i) {
+		if (dov[i].ObjectType == SO_type) {
+			SO = (SUMA_SurfaceObject *)dov[i].OP;
+			if (strcmp(idcode, SO->idcode_str)== 0) {
+				SUMA_RETURN (YUP);
+			}
+		}
+	}
+	SUMA_RETURN(NOPE);
+}
+/*!
+	searches all SO_type DO objects for idcode
+	\ret i (int) index into dov of object with matching idcode 
+	    -1 if not found
+*/
+int SUMA_findDO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+	static char FuncName[]={"SUMA_findDO"};
+	SUMA_SurfaceObject *SO;
+	int i;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	for (i=0; i<N_dov; ++i) {
+		if (dov[i].ObjectType == SO_type) {
+			SO = (SUMA_SurfaceObject *)dov[i].OP;
+			if (strcmp(idcode, SO->idcode_str)== 0) {
+				SUMA_RETURN (i);
+			}
+		}
+	}
+	SUMA_RETURN(-1);
+}
+
+/*!
+	determines if a Surface Object is mappable (ie MapRef_idcode_str != NULL)
+	ans = SUMA_ismappable (SUMA_SurfaceObject *SO)
+	\param SO (SUMA_SurfaceObject *)
+	\ret YUP/NOPE
+*/
+SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO)
+{
+	static char FuncName[]={"SUMA_ismappable"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (SO->MapRef_idcode_str != NULL) {
+		/* SO is mappable */
+		SUMA_RETURN (YUP);
+	} 
+	SUMA_RETURN (NOPE);
+
+}
+
+/*!
+	determines if a Surface Object is inherently mappable (ie MapRef_idcode_str == idcode_str)
+	ans = SUMA_isINHmappable (SUMA_SurfaceObject *SO)
+	\param SO (SUMA_SurfaceObject *)
+	\ret YUP/NOPE
+*/
+SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO)
+{
+	static char FuncName[]={"SUMA_isINHmappable"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (SO->MapRef_idcode_str == NULL) {
+		SUMA_RETURN (NOPE);
+	}
+	if (strcmp(SO->MapRef_idcode_str, SO->idcode_str) == 0) {
+		/* SO is inherently mappable */
+		SUMA_RETURN (YUP);
+	} 
+	SUMA_RETURN (NOPE);
+}
+
+
+/*!
+SUMA_Boolean SUMA_isSO (SUMA_DO DO) 
+	returns YUP if DO is of SO_type
+	ans = SUMA_isSO (DO) ;
+*/
+SUMA_Boolean SUMA_isSO (SUMA_DO DO) 
+{
+	static char FuncName[]={"SUMA_isSO"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (DO.ObjectType == SO_type) {
+		SUMA_RETURN (YUP);
+	}
+	SUMA_RETURN (NOPE);
+}

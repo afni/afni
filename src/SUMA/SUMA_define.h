@@ -182,24 +182,25 @@ typedef struct {
 Stucture to hold the contents of the specs file 
 */
 typedef struct {
-	char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][100];
-	char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][100]; 
-	char SureFitTopo[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char SureFitCoord[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char MappingRef[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char InventorSurface[SUMA_MAX_N_SURFACE_SPEC][1000];
-	char VolParName[SUMA_MAX_N_SURFACE_SPEC][1000]; 
+	char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];
+	char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH]; 
+	char SureFitTopo[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char SureFitCoord[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char InventorSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; 
 	char *IDcode[SUMA_MAX_N_SURFACE_SPEC];
-	char State[SUMA_MAX_N_SURFACE_SPEC][100];
-	char Group[SUMA_MAX_N_SURFACE_SPEC][1000];
+	char State[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];
+	char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
+	char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
 	int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];
 	int N_Surfs;
 	int N_States;
 	int N_Groups;
 	char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
-	char SpecFilePath[2000];
+	char SpecFilePath[SUMA_MAX_DIR_LENGTH];
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */
@@ -592,6 +593,7 @@ typedef struct {
 	SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate file (for SureFit files) */
 	SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file  (for SureFit files)*/
 	char *idcode_str; /*!< string containing the idcode of the surface */
+	char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
 	
 	SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
 	SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/

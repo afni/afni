@@ -30,7 +30,7 @@ void SUMA_help_message(FILE *Out)
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
 	 fprintf (Out, "\t  t: talk to AFNI, toggle.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");
-	 fprintf (Out, "\t  w: Write the rendered scene to an image file on disk (suma_img*.eps).\n");
+	 fprintf (Out, "\t  w: Write the rendered scene to an image file on disk (Surface_Label*.eps or suma_img*.eps).\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  W: Write ascii files containing the NodeList and the FaceSetList of the surface in focus.\n");
 	 fprintf (Out, "\t  Z/z: Zoom in/out\n");
 	 
