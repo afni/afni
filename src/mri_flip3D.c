@@ -26,15 +26,13 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
    char *inar , *outar ;
    float delx,dely,delz ;
 
-fprintf(stderr,"mri_flip3D: outx=%d outy=%d outz=%d\n",outx,outy,outz) ;
-
+   if( inim == NULL || outx == 0 || outy == 0 || outz == 0 ) return NULL ;
    ii = abs(outx) ; jj = abs(outy) ; kk = abs(outz) ;
-   if( outim == NULL || outx == 0 || outy == 0 || outz == 0 ) return NULL ;
-   if( ii > 3 || jj > 3 || kk > 3 )                           return NULL ;
-   if( ii == jj || ii == kk || jj == kk )                     return NULL ;
-   if( ii+jj+kk != 6 )                                        return NULL ;
+   if( ii > 3 || jj > 3 || kk > 3 )                          return NULL ;
+   if( ii == jj || ii == kk || jj == kk )                    return NULL ;
+   if( ii+jj+kk != 6 )                                       return NULL ;
 
-   if( ii==1 && jj==2 && kk==3 ) return mri_copy(inim) ;  /* easy case */
+   if( outx==1 && outy==2 && outz==3 ) return mri_copy(inim) ;  /* easy case */
 
    nxin = inim->nx ;
    nyin = inim->ny ; nxyin = nxin*nyin ;
@@ -66,15 +64,12 @@ fprintf(stderr,"mri_flip3D: outx=%d outy=%d outz=%d\n",outx,outy,outz) ;
      case  1:  az=0     ; bz= 1; cz= 0; dz= 0; nzout=nxin; delz=inim->dx; break;
      case -1:  az=nxin-1; bz=-1; cz= 0; dz= 0; nzout=nxin; delz=inim->dx; break;
      case  2:  az=0     ; bz= 0; cz= 1; dz= 0; nzout=nyin; delz=inim->dy; break;
-     case -2:  az=nzin-1; bz= 0; cz=-1; dz= 0; nzout=nyin; delz=inim->dy; break;
+     case -2:  az=nyin-1; bz= 0; cz=-1; dz= 0; nzout=nyin; delz=inim->dy; break;
      case  3:  az=0     ; bz= 0; cz= 0; dz= 1; nzout=nzin; delz=inim->dz; break;
      case -3:  az=nzin-1; bz= 0; cz= 0; dz=-1; nzout=nzin; delz=inim->dz; break;
      default: return NULL ;
    }
    nxyout = nxout*nyout ;
-
-fprintf(stderr,"mri_flip3D: nxin =%d nyin =%d nzin=%d\n",nxin ,nyin ,nzin ) ;
-fprintf(stderr,"mri_flip3D: nxout=%d nyout=%d nzout%d\n",nxout,nyout,nzout) ;
 
    /* 3D index ijk_out = i_out + nxout*j_out + nxyout*k_out
 

@@ -91,7 +91,7 @@ int main( int argc , char *argv[] )
 
        MCW_strncpy(orient_code,argv[++iarg],4) ;
        if( strlen(orient_code) != 3 ){
-         fprintf(stderr,"** Illegal code after -orient!\n"); exit(1);
+         fprintf(stderr,"** Illegal code '%s' after -orient!\n",argv[iarg]); exit(1);
        }
 
        acod = toupper(orient_code[0]) ; xxor = ORCODE(acod) ;
@@ -132,7 +132,9 @@ int main( int argc , char *argv[] )
      if( xdir == 1 && ydir == 2 && zdir == 3 ) xdir = 0 ;
    }
    if( xdir != 0 ){
-     float dx=fabs(DSET_DX(dset)),dy=fabs(DSET_DY(dset)),dz=fabs(DSET_DZ(dset));
+     float dx=fabs(DSET_DX(dset)) ,
+           dy=fabs(DSET_DY(dset)) ,
+           dz=fabs(DSET_DZ(dset))  ;
      DSET_mallocize(dset) ;
      switch( xdir ){
        case 1: case -1: xdel = dx ; break ;
@@ -182,7 +184,7 @@ int main( int argc , char *argv[] )
 
      im->dx = xdel ;                    /* load voxel sizes */
      im->dy = ydel ;
-     im->dz = ydel ;
+     im->dz = zdel ;
      im->dw = 1.0 ;
 
      im->nt = DSET_NVALS(dset) ;        /* add a time axis */
