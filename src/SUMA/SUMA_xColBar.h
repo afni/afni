@@ -1,35 +1,82 @@
 #ifndef SUMA_XCOLBAR_INCLUDED
 #define SUMA_XCOLBAR_INCLUDED
 
-#define SUMA_SCALE_HEIGHT 310    
-#define SUMA_SCALE_WIDTH 70
 #define SUMA_CMAP_WIDTH    20
 #define SUMA_CMAP_HEIGHT   300
+#define SUMA_SCALE_WIDTH 70
+#define SUMA_SCALE_HEIGHT  SUMA_CMAP_HEIGHT   
 #define SUMA_CMAP_ORIGIN   0.0,  0.0,     0.0
 #define SUMA_CMAP_TOPLEFT  SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT,   0.0
-#define SUMA_RANGE_STRING(m_nel, m_i, m_str_min, m_str_max, m_range){  \
-   int m_loc[2];  \
-   if (SUMA_GetColRange(m_nel, m_i, m_range, m_loc)) {   \
-      sprintf(m_str_min, "%.2f %d", m_range[0], m_loc[0]);   \
-      sprintf(m_str_max, "%.2f %d", m_range[1], m_loc[1]);   \
-   } else { \
-      sprintf(m_str_min, "??? ???");   \
-      sprintf(m_str_max, "??? ???");   \
-   }  \
+#define SUMA_CMAP_VIEW_FROM (2 * SUMA_CMAP_HEIGHT)
+#define SUMA_CMAP_FOV_INITIAL 28.07249 /*!< 2 * atan((double)SUMA_CMAP_HEIGHT/2.0/(double)SUMA_CMAP_VIEW_FROM) * 180 * SUMA_PI , see labbook page 3 */
+#if 0 /* the old one */
+   #define SUMA_RANGE_STRING(m_nel, m_i, m_str_min, m_str_max, m_range){  \
+      int m_loc[2];  \
+      if (SUMA_GetColRange(m_nel, m_i, m_range, m_loc)) {   \
+         sprintf(m_str_min, "%.2f %d", m_range[0], m_loc[0]);   \
+         sprintf(m_str_max, "%.2f %d", m_range[1], m_loc[1]);   \
+      } else { \
+         sprintf(m_str_min, "??? ???");   \
+         sprintf(m_str_max, "??? ???");   \
+      }  \
+   }
+#else
+   #define SUMA_RANGE_STRING(m_nel, m_i, m_str_min, m_str_max, m_str_minloc, m_str_maxloc, m_range){  \
+      int m_loc[2];  \
+      if (SUMA_GetColRange(m_nel, m_i, m_range, m_loc)) {   \
+         sprintf(m_str_min, "%s", MV_format_fval2(m_range[0], 7));   \
+         sprintf(m_str_max, "%s", MV_format_fval2(m_range[1], 7));   \
+         sprintf(m_str_minloc, "%d", m_loc[0]);   \
+         sprintf(m_str_maxloc, "%d", m_loc[1]);   \
+      } else { \
+         sprintf(m_str_min, "???");   \
+         sprintf(m_str_max, "???");   \
+         sprintf(m_str_minloc, "???");   \
+         sprintf(m_str_maxloc, "???");   \
+      }  \
+   }
+#endif
+
+#define SUMA_XHAIR_STRING(v, str)   {\
+   /* sprintf(str,"%5s , %5s , %5s", \
+               MV_format_fval(v[0]), MV_format_fval(v[1]), MV_format_fval(v[2]));   */\
+   /*
+   This one below does not work, all three three strings have the same value
+   sprintf(str,"%s, %s, %s", \
+      MV_format_fval2(v[0], 7),  MV_format_fval2(v[1], 7),  MV_format_fval2(v[2], 7)); */\
+   sprintf(str,"%s", MV_format_fval2(v[0], 7)); \
+   sprintf(str,"%s, %s", str, MV_format_fval2(v[1], 7)); \
+   sprintf(str,"%s, %s", str, MV_format_fval2(v[2], 7)); \
 }
 
 #define SUMA_INSERT_CELL_STRING(TF, i, j, strng)   {  \
+   if (TF->str_value) { \
+      SUMA_STRING_REPLACE(TF->str_value[j*TF->Ni+i], strng);\
+   }  \
    XtVaSetValues (TF->cells[j*TF->Ni+i], XmNvalue, strng, NULL);  \
 }
 
 #define SUMA_INSERT_CELL_VALUE(TF, i, j, val)   {  \
    if (TF->type == SUMA_int || TF->type == SUMA_float) { \
       TF->cell_modified = j*TF->Ni+i;  \
-      TF->value = val;  \
+      TF->num_value[TF->cell_modified] = val;  \
       SUMA_TableF_SetString(TF);\
       TF->cell_modified = -1; \
    }  else {   \
       SUMA_SL_Err("Macro for numerical tables only"); \
+   }  \
+}
+
+/*!
+   \brief retrieves the cell index using the cell's widget
+*/
+#define SUMA_WHICH_CELL(TF, w, Found)  {  \
+   int m_nmx, m_i=0; \
+   m_nmx = TF->Ni*TF->Nj;  \
+   Found = -1; \
+   while (m_i<m_nmx) {  \
+      if (TF->cells[m_i] == w) { Found = m_i; m_i = m_nmx; }      \
+      ++m_i;   \
    }  \
 }
 
@@ -76,7 +123,9 @@ SUMA_Boolean SUMA_RedisplayAllShowing(char *SO_idcode_str, SUMA_SurfaceViewer *S
 void SUMA_CreateTable(  Widget parent,
                         int Ni, int Nj, 
                         char **row_tit, char **col_tit, 
-                        int cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
+                        char **row_hint, char **col_hint,
+                        char **row_help, char **col_help, 
+                        int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
                         void (*NewValueCallback)(void * data), void *cb_data,
                         void (*TitLabelCallback)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelCallbackData,
                         SUMA_TABLE_FIELD *TF);
@@ -90,7 +139,18 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
 SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO);
-
+void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv);
+void SUMA_XhairInput (void* data);
+SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
+void SUMA_NodeInput (void* data);
+void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode);
+void SUMA_TriInput (void* data);
+SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO);
 
          
          

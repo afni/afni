@@ -458,9 +458,41 @@ static void MV_fval_to_char( float qval , char * buf )
    strcpy(buf,lbuf) ; return ;
 }
 
+/*!
+   \sa MV_format_fval2  ZSS May 28 04
+*/
 char * MV_format_fval( float fval )
 {
    static char buf[32] ;
    MV_fval_to_char( fval , buf ) ;
    return buf ;
+}
+
+/*!
+   \brief s = MV_format_fval2( fval, len);
+   same as fval, but will attempt to keep
+   the number len characters long. That's done
+   by truncating digits to the right of the decimal 
+   point, if one exists. 
+   \sa MV_fval_to_char
+   \sa MV_format_fval      ZSS, RickR May 28 04
+*/
+char * MV_format_fval2( float fval, int len)
+{
+   static char buf[32] ;
+   int wid;
+   char *pos = NULL;
+   
+   MV_fval_to_char( fval , buf ) ;
+   if (len < 1) return (buf);
+   if (strlen(buf) < len) return (buf);
+   
+   /* trim it down */
+   pos = strchr (buf, '.');
+   if (!pos) return(buf);  /* can't do no'in */
+   wid = pos - buf;
+   if (wid < len) buf[len] = '\0';
+   if (buf[len-1] == '.') buf[len-1] = '\0'; /* remove trailing period */
+   return buf ;
+
 }

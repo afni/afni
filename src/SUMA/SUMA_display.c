@@ -2519,7 +2519,8 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    }
    
    SUMA_Init_SurfCont_SurfParam(SO);
-
+   SUMA_Init_SurfCont_CrossHair(SO);
+   
    if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
       SO->SurfCont->PosRef = sv->X->TOPLEVEL;
       SUMA_PositionWindowRelative (SO->SurfCont->TopLevelShell, SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
@@ -2969,7 +2970,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
 */
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, pb, form, DispFrame, SurfFrame, RenderSetFrame, rc_left, rc_right, rc_mamma;
+   Widget tl, pb, form, DispFrame, SurfFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel, *lbl30; 
@@ -3069,8 +3070,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             XmNmarginWidth , SUMA_MARGIN ,
             NULL); 
                     
-   {/*s surface label and info */ 
-      Widget rc, label;
+   
+   {/*surface properties */ 
+      Widget rc, label, rc_SurfProp, pb;
      
       /* put a frame */
       SurfFrame = XtVaCreateWidget ("dialog",
@@ -3079,14 +3081,27 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNshadowThickness , 5 ,
          XmNtraversalOn , False ,
          NULL); 
-
-      /* row column Lock rowcolumns */
-      rc = XtVaCreateWidget ("rowcolumn",
+      
+      XtVaCreateManagedWidget ("Surface Properties",
+            xmLabelGadgetClass, SurfFrame, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+      
+      rc_SurfProp = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfFrame,
             XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL); 
+      
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_SurfProp,
+            XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmHORIZONTAL ,
-            XmNmarginHeight, SUMA_MARGIN ,
-            XmNmarginWidth , SUMA_MARGIN ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
             NULL);
 
       /*put a label containing the surface name, number of nodes and number of facesets */
@@ -3127,16 +3142,77 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       XtManageChild (rc);
       
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc_SurfProp, 
+                                 XmNorientation, XmHORIZONTAL,NULL);
+
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_SurfProp,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /* rendering menu option */
+      SUMA_BuildMenuReset(0);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                                 "RenderMode", '\0', YUP, RenderMode_Menu, 
+                                 (void *)(SO->SurfCont->curSOp), SO->SurfCont->RenderModeMenu );
+      XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
+      
+      pb = XtVaCreateWidget ("Dsets", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO->SurfCont->curSOp);
+      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
+      MCW_register_help( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
+      XtManageChild (pb);
+      
+      XtManageChild (rc);
+
+      XtManageChild (rc_SurfProp);
       XtManageChild (SurfFrame);
    }  
    
-   /* put the colorplane frame */
-   {
-       Widget rc, rcv, pb;
-     
-      
+   {  /* Xhair Controls */
+      Widget rcv;
       /* put a frame */
-      SO->SurfCont->ColPlane_fr = XtVaCreateWidget ("dialog",
+      SO->SurfCont->Xhair_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Xhair Info",
+            xmLabelGadgetClass, SO->SurfCont->Xhair_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SO->SurfCont->Xhair_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+      if (SUMAg_CF->Dev) {
+         /* create the widgets for the colormap stuff */
+         SUMA_CreateXhairWidgets(rcv, SO);
+      }
+      
+      XtManageChild(rcv);
+      XtManageChild(SO->SurfCont->Xhair_fr);
+   }  /* Xhair Controls */
+    
+   {  /* Dset Mapping */
+      Widget rcv;
+      /* put a frame */
+      SO->SurfCont->DsetMap_fr = XtVaCreateWidget ("dialog",
          xmFrameWidgetClass, rc_right,
          XmNrightAttachment , XmATTACH_FORM ,
          XmNleftAttachment, XmATTACH_WIDGET,
@@ -3146,14 +3222,57 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNshadowThickness , 5 ,
          XmNtraversalOn , False ,
          NULL); 
+      
+      XtVaCreateManagedWidget ("Dset Mapping",
+            xmLabelGadgetClass, SO->SurfCont->DsetMap_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SO->SurfCont->DsetMap_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
 
+      if (SUMAg_CF->Dev) {
+         /* create the widgets for the colormap stuff */
+         SUMA_CreateCmapWidgets(rcv, SO);
+      }
+      
+      XtManageChild(rcv);
+      XtManageChild(SO->SurfCont->DsetMap_fr);
+   }
+
+   /* Dset Controls */
+   {
+       Widget rc, rcv, pb;
+     
+      
+      /* put a frame */
+      SO->SurfCont->ColPlane_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Dset Controls",
+            xmLabelGadgetClass, SO->SurfCont->ColPlane_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SO->SurfCont->ColPlane_fr,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmVERTICAL ,
-            XmNmarginHeight, SUMA_MARGIN ,
-            XmNmarginWidth , SUMA_MARGIN ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
             NULL);
             
       /* row column for label*/
@@ -3161,15 +3280,28 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             xmRowColumnWidgetClass, rcv,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmHORIZONTAL ,
-            XmNmarginHeight, SUMA_MARGIN ,
-            XmNmarginWidth , SUMA_MARGIN ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
             NULL);
       
       /*put a label containing the surface name, number of nodes and number of facesets */
-      sprintf(slabel,"Label:-\nParent:-"); 
-      SO->SurfCont->ColPlaneLabel_Parent_lb = XtVaCreateManagedWidget (slabel, 
-               xmLabelWidgetClass, rcv,
-               NULL);
+      {
+         char *Dset_tit[]  =  {  "Lbl", "Par", NULL };
+         char *Dset_hint[] =  {  "Label of Dset", 
+                                 "Parent surface of Dset", NULL };
+         char *Dset_help[] =  {  "Label of Dset", 
+                                 "Parent surface of Dset.\n", NULL };
+         int colw[]={ 3, 27};
+         SUMA_CreateTable(rc, 
+            2, 2,
+            Dset_tit, NULL,
+            Dset_hint, NULL,
+            Dset_help, NULL,
+            colw, NOPE, SUMA_string,
+            NULL, NULL,
+            NULL, NULL, 
+            SO->SurfCont->ColPlaneLabelTable);
+      }
       XtManageChild (rc);
       
       /* add a rc for the colorplane order and opacity */
@@ -3277,68 +3409,22 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
        
       XtManageChild (rc);
       
-      if (SUMAg_CF->Dev) {
-         /* create the widgets for the colormap stuff */
-         SUMA_CreateCmapWidgets(rcv, SO);
-      }
-      
       /* manage vertical row column */
       XtManageChild (rcv);
       
       XtManageChild (SO->SurfCont->ColPlane_fr);
    }
    
-   { /* rendering mode and transparency level */
-      Widget rc, label, pb;
-     
-      /* put a frame */
-      RenderSetFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, rc_left,
-         XmNleftAttachment , XmATTACH_FORM ,
-         XmNtopAttachment  , XmATTACH_WIDGET ,
-         XmNtopWidget, SurfFrame,
-         XmNshadowType , XmSHADOW_ETCHED_IN ,
-         XmNshadowThickness , 5 ,
-         XmNtraversalOn , False ,
-         NULL); 
-      
-      /* row column  */
-      rc = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, RenderSetFrame,
-            XmNpacking, XmPACK_TIGHT, 
-            XmNorientation , XmHORIZONTAL ,
-            XmNmarginHeight, SUMA_MARGIN ,
-            XmNmarginWidth , SUMA_MARGIN ,
-            NULL);
-
-      /* rendering menu option */
-     SUMA_BuildMenuReset(0);
-     SUMA_BuildMenu (rc, XmMENU_OPTION, 
-                                 "RenderMode", '\0', YUP, RenderMode_Menu, 
-                                 (void *)(SO->SurfCont->curSOp), SO->SurfCont->RenderModeMenu );
-      XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
-      
-      pb = XtVaCreateWidget ("Dsets", 
-         xmPushButtonWidgetClass, rc, 
-         NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO->SurfCont->curSOp);
-      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
-      MCW_register_help( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
-      XtManageChild (pb);
-      
-      XtManageChild (rc);
-      XtManageChild (RenderSetFrame);
-   }
    
-   { /*s close and help buttons */
+   if (1){ /*s close and help buttons */
       Widget rc, pb_close, pb_bhelp;
       
       /* put up a frame to group the display controls */
       DispFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, SO->SurfCont->Mainform,
+         xmFrameWidgetClass, rc_left,
          XmNleftAttachment , XmATTACH_FORM ,
-         XmNtopAttachment  , XmATTACH_WIDGET ,
-         XmNtopWidget, RenderSetFrame,
+         XmNbottomAttachment  , XmATTACH_WIDGET ,
+         XmNbottomWidget, rc_left,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
          XmNshadowThickness , 5 ,
          XmNtraversalOn , False ,
@@ -3634,7 +3720,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    float range[2];
-   int loc[2];
+   int loc[2], i;
+   
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3644,7 +3731,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    
    if (!ColPlane) {
       SUMA_LH("Initializing with NULL");
-      SUMA_SET_LABEL(SO->SurfCont->ColPlaneLabel_Parent_lb, "Label: -\nParent: -");
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, "-");
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, "-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, "-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield,"-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield,"-");
@@ -3652,7 +3740,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_LH("Initializing for real");
       if (strlen(ColPlane->Label) + strlen(SO->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
          SUMA_SL_Warn("Surface Labels too long!");
-         SUMA_SET_LABEL(SO->SurfCont->ColPlaneLabel_Parent_lb,"Surface Labels too long!");
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, "Surface Labels too long!");
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, "Surface Labels too long!");
       } else {
          if (strlen(SO->Label) > 40) {
             char *tmpstr=NULL;
@@ -3661,10 +3750,13 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
                sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, tmpstr);
                free(tmpstr); tmpstr = NULL;
             }
+            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
+            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, tmpstr);
          } else {
             sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SO->Label);
          }
-         SUMA_SET_LABEL_MAX(SO->SurfCont->ColPlaneLabel_Parent_lb,sbuf, 150);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, SO->Label);
       }
       
       SO->SurfCont->ColPlaneOrder->value = ColPlane->PlaneOrder;
@@ -3685,6 +3777,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
 
    SO->SurfCont->curColPlane = ColPlane;
+      
+   /* update the cross hair group */
+   SUMA_Init_SurfCont_CrossHair(SO);
    
    /* set the colormap */
    if (SO->SurfCont->cmap_context) {
@@ -4957,6 +5052,7 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
    SUMA_RemixRedisplay(SO);
+   SUMA_UpdateNodeLblField(SO);
    
    SUMA_RETURNe;
 }
@@ -8565,10 +8661,15 @@ void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
    
    if (ncall > 0) {
       XtUnmanageChild(SO->SurfCont->ColPlane_fr);
-      /* if nothing else remains in the parent of ColPlane, then unmanage its parent (rc_right) too. */
-      XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr));
+      /* if nothing else remains in the parent of ColPlane, then unmanage its parent (rc_right) too. 
+       *** Parent of that frame is now rc_left    May 25 04*/
+      /*XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
+      XtUnmanageChild(SO->SurfCont->DsetMap_fr);
+      XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
    } else {
-      XtManageChild(XtParent(SO->SurfCont->ColPlane_fr));
+      /* XtManageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
+      XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
+      XtManageChild((Widget)SO->SurfCont->DsetMap_fr);
       XtManageChild((Widget)SO->SurfCont->ColPlane_fr);
       XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), XtWindow(SO->SurfCont->TopLevelShell));
    }

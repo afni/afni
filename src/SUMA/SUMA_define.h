@@ -910,8 +910,9 @@ typedef struct{
    SUMA_Boolean HasRowTit; /*!< YUP = table's 1st col is titles */
    int Ni;   /*!< Number of rows = Number of elements PER COLUMN (1st dim)*/
    int Nj;   /*!< Number of columns = Number of elements PER ROW (2nd dim)*/
-   int cwidth; /*!< charcter spaces to save for widget */
-   float value; /*!< when type is numerical, this holds the value of the cell */
+   int *cwidth; /*!< charcter spaces to save for widget per column */
+   float *num_value;   /*!< current value at each cell (for numeric cells)*/
+   char **str_value;   /*!< current string at each cell (for string cells) */
    SUMA_Boolean editable;
    SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
    void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
@@ -944,14 +945,21 @@ typedef struct {
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
    Widget RenderModeMenu[SW_N_SurfCont_Render]; /*!< vector of widgets controlling the rendering mode menu */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
+   Widget DsetMap_fr; /*!< the frame for mapping Dset to colormap */
+   Widget Xhair_fr; /*!< The frame for cross hair Info and controls */ 
    SUMA_ARROW_TEXT_FIELD *ColPlaneOrder; /*!< structure for arrow/text field widget controlling color plane order */
    SUMA_ARROW_TEXT_FIELD *ColPlaneOpacity; /*!< structure for arrow/text field widget controlling color plane opacity */
    SUMA_ARROW_TEXT_FIELD *ColPlaneDimFact; /*!< structure for arrow/text field widget controlling color plane DimFact */
    SUMA_TABLE_FIELD *SetRangeTable; /*!< structure for range setting table */
    SUMA_TABLE_FIELD *RangeTable; /*!< structure for range  table */
+   SUMA_TABLE_FIELD *XhairTable; /*!< structure for Cross hair  table */
+   SUMA_TABLE_FIELD *NodeTable; /*!< structure for node index  table */
+   SUMA_TABLE_FIELD *FaceTable;
+   SUMA_TABLE_FIELD *DataTable;
+   SUMA_TABLE_FIELD *LabelTable;
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
-   Widget ColPlaneLabel_Parent_lb;
+   SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
    void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
    Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
@@ -968,7 +976,8 @@ typedef struct {
    Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
    int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
    Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the switch coord bias widgets */
-   Widget opts_rc; /*!< rowcolumn containing all options for colormapping */
+   Widget opts_rc; /*!< rowcolumn containing color map, color bar and the switch buttons */
+   Widget opts_form; /*!< rowcolumn containing all options for colormapping */
    Widget rcvo; /*!< vertical rowcol for colormapping options */
    Widget rcsw;   /*!<  rowcol for switching intensity, threshold and brightness */
    Widget rcsw_v1;   /*!< rowcol containing Menu for Int. Thr. and Brt. */
