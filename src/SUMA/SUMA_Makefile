@@ -44,11 +44,11 @@ endif
 ifndef SUMA_LINK_LIB
 #No need for those unless you are using SUMA_MOTIF_GLXAREA
 #-lMesaGLwM lXm 
-SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
 endif
 
-ifndef SUMA_OBJS_ARCHIVE
-SUMA_OBJS_ARCHIVE = SUMA_Objs_Linux_rh71.tar
+ifndef SUMA_BIN_ARCHIVE
+SUMA_BIN_ARCHIVE = SUMA_Local.tar
 endif
 
 ifndef CP
@@ -102,8 +102,9 @@ install:
 
 packobjs:
 	${CP} ../libmri.a ../librickr.a ./
-	tar -cf $(SUMA_OBJS_ARCHIVE) libSUMA.a libmri.a librickr.a	
+	tar -cf $(SUMA_BIN_ARCHIVE) suma MakeColorMap libSUMA.a libmri.a librickr.a	
+	${RM} libmri.a librickr.a
 	
-all: libSUMA.a suma MakeColorMap install packobjs
+all: libSUMA.a suma MakeColorMap packobjs install 
 
-anew: clean libSUMA.a suma MakeColorMap install packobjs
+anew: clean libSUMA.a suma MakeColorMap packobjs install 

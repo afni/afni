@@ -1583,8 +1583,9 @@ nicat:nicat.o
 libSUMA.a:  
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
-	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a packobjs 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)';	\
 	cd ../	;	\
@@ -1596,10 +1597,11 @@ libSUMA.a:
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap packobjs 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	;	\
 	cd ../	;)
@@ -1612,10 +1614,10 @@ suma_clean:
 	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
 
 ###
-#Use precompiled libraries, just link SUMA
+#Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
 suma_link:
 	( cd SUMA ;	\
-	tar -xf $(SUMA_OBJS_ARCHIVE)	;\
+	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a ../	;\
 	$(RM) suma MakeColorMap	;\
@@ -1623,6 +1625,7 @@ suma_link:
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	;	\
 	cd ../	;)
@@ -1634,5 +1637,5 @@ suma_install:
 	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
-suma_full: suma_clean suma_exec suma_install
-suma: suma_link suma_install
+suma: suma_clean suma_exec suma_install
+suma_fromobjs: suma_link suma_install
