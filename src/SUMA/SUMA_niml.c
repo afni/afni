@@ -48,8 +48,13 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
      /* if here, stream is good;
         see if there is any data to be read */
 
-     nn = NI_stream_readcheck( SUMAg_cSV->ns , 1 ) ;
-
+	#if 0
+		/* not good enough, checks socket only, not buffer */
+		nn = NI_stream_readcheck( SUMAg_cSV->ns , 1 ) ;
+	#else
+		nn = NI_stream_hasinput( SUMAg_cSV->ns , 1 ) ;
+	#endif
+	
      if( nn > 0 ){                                   /* has data */
        int ct = NI_clock_time() ;
 		fprintf(SUMA_STDERR,"NIML: reading data stream") ;
