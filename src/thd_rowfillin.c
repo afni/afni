@@ -208,7 +208,7 @@ ENTRY("THD_dataset_rowfillin") ;
           for( yy=0 ; yy < ytop ; yy++ )
             for( xx=0 ; xx < xtop ; xx++ ){
                row = THD_get_dset_row( dset,ival , dcode,xx,yy,zz ) ;
-               nff = THD_rowfillin_byte( nrow , row , maxgap ) ;
+               nff = THD_rowfillin_float( nrow , row , maxgap ) ;
                if( nff > 0 ){
                   THD_put_dset_row( dset,ival , dcode,xx,yy,zz , row ) ;
                   nfftot += nff ;

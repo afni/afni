@@ -135,35 +135,38 @@ ENTRY("PLUG_read_plugin") ;
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"opening library %s" , fname ) ; STATUS(str) ; }
+  sprintf(str,"opening plugin %s" , fname ) ; STATUS(str) ; }
 
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
-   if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){
 
-if(PRINT_TRACING)
-{ char str[256]; sprintf(str,"failed to open library %s",fname); STATUS(str); }
+   if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){  /* open failed */
 
-      myXtFree(plin) ;
-      RETURN(NULL) ;
+      /* 24 May 2001: always print if there is an error */
+
+      char *er ;
+      fprintf(stderr,"Failed to open plugin %s",fname) ;
+      er = DYNAMIC_ERROR_STRING ;
+      if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
+      else             fprintf(stderr,"\n") ;
+
+      myXtFree(plin) ; RETURN(NULL) ;
    }
+
+   /* open was good */
 
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"opened library %s with handle %p" , fname,plin->libhandle ) ;
   STATUS(str) ; }
 
-   /*----- find the required symbols -----*/
+   /*----- find the required symbol -----*/
 
    DYNAMIC_SYMBOL(plin->libhandle, "PLUGIN_init" , plin->libinit_func );
 
-   /*----- if symbols not found, complain and kill this plugin -----*/
+   /*----- if symbol not found, complain and kill this plugin -----*/
 
    if( plin->libinit_func == (vptr_func *) NULL ){
-
-if(PRINT_TRACING)
-{ char str[256] ;
-  sprintf(str,"library %s lacks required global symbol",fname) ; STATUS(str) ; }
-
+      fprintf(stderr,"plugin %s lacks PLUGIN_init function\n",fname) ;
       DYNAMIC_CLOSE( plin->libhandle ) ;
       myXtFree(plin) ;
       RETURN(NULL) ;
@@ -3421,52 +3424,6 @@ ENTRY("PLUTO_copy_dset") ;
 }
 
 /*----------------------------------------------------------------------
-   Routine to force AFNI to redisplay images in all open controllers.
-------------------------------------------------------------------------*/
-
-void PLUTO_force_redisplay(void)
-{
-   Three_D_View * im3d ;
-   int ii ;
-
-ENTRY("PLUTO_force_redisplay") ;
-
-   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      im3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_OPEN(im3d) ){
-         im3d->anat_voxwarp->type =                       /* 11 Jul 1997 */
-            im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
-         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
-      }
-   }
-   EXRETURN ;
-}
-
-/*----------------------------------------------------------------------
-   Force the redisplay of the color bars in all image windows.
-   23 Aug 1998 -- RWCox.
-------------------------------------------------------------------------*/
-
-void PLUTO_force_rebar(void)
-{
-   Three_D_View * im3d ;
-   int ii ;
-
-ENTRY("PLUTO_force_rebar") ;
-
-   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      im3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_OPEN(im3d) ){
-         drive_MCW_imseq( im3d->s123 , isqDR_rebar , NULL ) ;
-         drive_MCW_imseq( im3d->s231 , isqDR_rebar , NULL ) ;
-         drive_MCW_imseq( im3d->s312 , isqDR_rebar , NULL ) ;
-      }
-   }
-   EXRETURN ;
-}
-
-
-/*----------------------------------------------------------------------
    Routine to force AFNI to redisplay controllers that are attached
    to a given dataset.  (Feb 1998)
 ------------------------------------------------------------------------*/
@@ -4146,280 +4103,11 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
    RETURN(new_dset) ;
 }
 
-
-/*------------------------------------------------------------------------*/
-static int num_workp      = 0 ;
-static XtWorkProc * workp = NULL ;
-static XtPointer *  datap = NULL ;
-static XtWorkProcId wpid ;
-
-#undef WPDEBUG
-
-void PLUTO_register_workproc( XtWorkProc func , XtPointer data )
-{
-ENTRY("PLUTO_register_workproc") ;
-
-   if( func == NULL ){
-      fprintf(stderr,"PLUTO_register_workproc: func=NULL on entry!\n") ;
-      EXRETURN ;
-   }
-
-   if( num_workp == 0 ){
-      workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
-      datap = (XtPointer *)  malloc( sizeof(XtPointer) ) ;
-      wpid  = XtAppAddWorkProc( PLUTO_Xt_appcontext, PLUG_workprocess, NULL ) ;
-#ifdef WPDEBUG
-      fprintf(stderr,"PLUTO_register_workproc: wpid = %x\n",(int)wpid) ;
-#endif
-   } else {
-      workp = (XtWorkProc *) realloc( workp, sizeof(XtWorkProc)*(num_workp+1) ) ;
-      datap = (XtPointer*)   realloc( datap, sizeof(XtPointer) *(num_workp+1) ) ;
-   }
-
-   workp[num_workp] = func ;
-   datap[num_workp] = data ;
-   num_workp++ ;
-
-#ifdef WPDEBUG
-fprintf(stderr,"PLUTO_register_workproc: have %d workprocs\n",num_workp) ;
-#endif
-
-   EXRETURN ;
-}
-
-void PLUTO_remove_workproc( XtWorkProc func )
-{
-   int ii , ngood ;
-
-ENTRY("PLUTO_remove_workproc") ;
-
-   if( func == NULL || num_workp == 0 ){
-      fprintf(stderr,"*** PLUTO_remove_workproc: illegal parameters!\n") ;
-      EXRETURN ;
-   }
-
-   for( ii=0 ; ii < num_workp ; ii++ ){
-      if( func == workp[ii] ) workp[ii] = NULL ;
-   }
-
-   for( ii=0,ngood=0 ; ii < num_workp ; ii++ )
-      if( workp[ii] != NULL ) ngood++ ;
-
-   if( ngood == 0 ){
-#ifdef WPDEBUG
-      fprintf(stderr,"PLUTO_remove_workproc: No workprocs left\n") ;
-#endif
-      XtRemoveWorkProc( wpid ) ;
-      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
-      num_workp = 0 ;
-   } else {
-#ifdef WPDEBUG
-      fprintf(stderr,"PLUTO_remove_workproc: %d workprocs left\n",ngood) ;
-#endif
-   }
-
-   EXRETURN ;
-}
-
-Boolean PLUG_workprocess( XtPointer fred )
-{
-   int ii , ngood ;
-   Boolean done ;
-
-#ifdef WPDEBUG
-   { static int ncall=0 ;
-     if( (ncall++) % 1000 == 0 )
-       fprintf(stderr,"PLUG_workprocess: entry %d\n",ncall) ; }
-#endif
-
-   if( num_workp == 0 ) return True ;
-
-   for( ii=0,ngood=0 ; ii < num_workp ; ii++ ){
-      if( workp[ii] != NULL ){
-         done = workp[ii]( datap[ii] ) ;
-         if( done == True ) workp[ii] = NULL ;
-         else               ngood++ ;
-      }
-   }
-
-   if( ngood == 0 ){
-#ifdef WPDEBUG
-      fprintf(stderr,"Found no workprocs left\n") ;
-#endif
-      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
-      num_workp = 0 ;
-      return True ;
-   }
-   return False ;
-}
-
-/*---------------------------------------------------------------*/
-
-typedef struct {
-  generic_func * func ;
-  XtPointer      cd ;
-} mytimeout ;
-
-static void PLUG_dotimeout_CB( XtPointer cd , XtIntervalId * id )
-{
-   mytimeout * myt = (mytimeout *) cd ;
-
-ENTRY("PLUTO_register_timeout") ;
-
-   if( myt == NULL ) EXRETURN ;  /* bad news */
-
-STATUS("calling user timeout function") ;
-
-   myt->func( myt->cd ) ;
-
-   myXtFree(myt) ; EXRETURN ;
-}
-
-void PLUTO_register_timeout( int msec, generic_func * func, XtPointer cd )
-{
-   mytimeout * myt ;
-
-ENTRY("PLUTO_register_timeout") ;
-
-   if( func == NULL ){
-      fprintf(stderr,"PLUTO_register_timeout: func=NULL on entry!\n") ;
-      EXRETURN ;
-   }
-
-   if( msec < 0 ) msec = 0 ;
-
-   myt       = myXtNew(mytimeout) ;
-   myt->func = func ;
-   myt->cd   = cd ;
-
-   (void) XtAppAddTimeOut( PLUTO_Xt_appcontext , msec ,
-                           PLUG_dotimeout_CB , (XtPointer) myt ) ;
-
-   EXRETURN ;
-}
-
-/*---------------------------------------------------------------*/
-
-double PLUTO_elapsed_time(void) /* in seconds */
-{
-   struct timeval  new_tval ;
-   struct timezone tzone ;
-   static struct timeval old_tval ;
-   static int first = 1 ;
-
-   gettimeofday( &new_tval , &tzone ) ;
-
-   if( first ){
-      old_tval = new_tval ;
-      first    = 0 ;
-      return 0.0 ;
-   }
-
-   if( old_tval.tv_usec > new_tval.tv_usec ){
-      new_tval.tv_usec += 1000000 ;
-      new_tval.tv_sec -- ;
-   }
-
-   return (double)( (new_tval.tv_sec  - old_tval.tv_sec )
-                   +(new_tval.tv_usec - old_tval.tv_usec)*1.0e-6 ) ;
-}
-
-double PLUTO_cpu_time(void)  /* in seconds */
-{
-   struct tms ttt ;
-
-   (void) times( &ttt ) ;
-   return (  (double) (ttt.tms_utime
-                                     /* + ttt.tms_stime */
-                      )
-           / (double) CLK_TCK ) ;
-}
-
 void PLUTO_report( PLUGIN_interface * plint , char * str )
 {
    if( plint == NULL || str == NULL ) return ;
    printf("\n%15.15s= %s" , plint->label , str ) ;
    return ;
-}
-
-/**************************************************************************/
-/*========================================================================*/
-/*============ These must remain the last lines of this file! ============*/
-
-/** put library routines here that must be loaded **/
-
-#include "mri_render.h"
-#include "mcw_graf.h"
-
-static vptr_func * forced_loads[] = {
-   (vptr_func *) startup_lsqfit ,
-   (vptr_func *) delayed_lsqfit ,
-   (vptr_func *) mri_align_dfspace ,
-   (vptr_func *) EDIT_one_dataset ,
-   (vptr_func *) EDIT_add_brick ,
-   (vptr_func *) mri_2dalign_setup ,
-   (vptr_func *) mri_3dalign_setup ,
-   (vptr_func *) qsort_floatint ,
-   (vptr_func *) qsort_floatfloat ,
-   (vptr_func *) symeig_double ,
-   (vptr_func *) MREN_render ,
-   (vptr_func *) new_MCW_graf ,
-   (vptr_func *) THD_makemask ,
-   (vptr_func *) mri_copy ,
-   (vptr_func *) beta_t2p ,
-   (vptr_func *) get_laguerre_table ,
-   (vptr_func *) mri_fix_data_pointer ,
-   (vptr_func *) THD_zeropad ,
-   (vptr_func *) THD_axcode ,
-   (vptr_func *) THD_dataset_rowfillin ,
-NULL } ;
-
-vptr_func * MCW_onen_i_estel_edain(int n){
-  return forced_loads[n] ;
-}
-
-#else  /* not ALLOW_PLUGINS */
-
-void * MCW_onen_i_estel_edain(int n){} ;  /* dummy routine */
-
-#endif /* ALLOW_PLUGINS */
-
-/***********************************************************************
-   Routines that are always compiled, since they are used in
-   a few places in AFNI that are not plugin-specific.
-************************************************************************/
-
-void PLUTO_register_timeseries( char * cname , MRI_IMAGE * tsim )
-{
-   MRI_IMAGE * qim ;
-
-ENTRY("PLUTO_register_timeseries") ;
-
-   if( tsim != NULL ){
-      qim = mri_to_float( tsim ) ;  /* a copy */
-      mri_add_name( cname , qim ) ; /* the name */
-      AFNI_add_timeseries( qim ) ;  /* give it to AFNI */
-   }
-   EXRETURN ;
-}
-
-/*----------------------------------------------------------------------------
-  Routine to find a dataset in the global sessionlist, given its idcode.
-  If this returns NULL, then you are SOL.
-------------------------------------------------------------------------------*/
-
-THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * idcode )
-{
-   THD_slist_find find ;
-
-ENTRY("PLUTO_find_dset") ;
-
-   if( idcode == NULL || ISZERO_IDCODE(*idcode) ) RETURN(NULL) ;
-
-   find = THD_dset_in_sessionlist( FIND_IDCODE , idcode ,
-                                   GLOBAL_library.sslist , -1 ) ;
-
-   RETURN(find.dset) ;
 }
 
 /*----------------------------------------------------------------------------
@@ -4503,6 +4191,86 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
 {
    if( av == NULL ) return NULL ;
                     return XmTextFieldGetString( av->textf ) ;
+}
+
+/**************************************************************************/
+/*========================================================================*/
+/*============ These must remain the last lines of this file! ============*/
+
+/** put library routines here that must be loaded **/
+
+#include "mri_render.h"
+#include "mcw_graf.h"
+
+static vptr_func * forced_loads[] = {
+   (vptr_func *) startup_lsqfit ,
+   (vptr_func *) delayed_lsqfit ,
+   (vptr_func *) mri_align_dfspace ,
+   (vptr_func *) EDIT_one_dataset ,
+   (vptr_func *) EDIT_add_brick ,
+   (vptr_func *) mri_2dalign_setup ,
+   (vptr_func *) mri_3dalign_setup ,
+   (vptr_func *) qsort_floatint ,
+   (vptr_func *) qsort_floatfloat ,
+   (vptr_func *) symeig_double ,
+   (vptr_func *) MREN_render ,
+   (vptr_func *) new_MCW_graf ,
+   (vptr_func *) THD_makemask ,
+   (vptr_func *) mri_copy ,
+   (vptr_func *) beta_t2p ,
+   (vptr_func *) get_laguerre_table ,
+   (vptr_func *) mri_fix_data_pointer ,
+   (vptr_func *) THD_zeropad ,
+   (vptr_func *) THD_axcode ,
+   (vptr_func *) THD_dataset_rowfillin ,
+NULL } ;
+
+vptr_func * MCW_onen_i_estel_edain(int n){
+  return forced_loads[n] ;
+}
+
+#else  /* not ALLOW_PLUGINS */
+
+void * MCW_onen_i_estel_edain(int n){} ;  /* dummy routine */
+
+#endif /* ALLOW_PLUGINS */
+
+/***********************************************************************
+   Routines that are always compiled, since they are used in
+   a few places in AFNI that are not plugin-specific.
+************************************************************************/
+
+void PLUTO_register_timeseries( char * cname , MRI_IMAGE * tsim )
+{
+   MRI_IMAGE * qim ;
+
+ENTRY("PLUTO_register_timeseries") ;
+
+   if( tsim != NULL ){
+      qim = mri_to_float( tsim ) ;  /* a copy */
+      mri_add_name( cname , qim ) ; /* the name */
+      AFNI_add_timeseries( qim ) ;  /* give it to AFNI */
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------
+  Routine to find a dataset in the global sessionlist, given its idcode.
+  If this returns NULL, then you are SOL.
+------------------------------------------------------------------------------*/
+
+THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * idcode )
+{
+   THD_slist_find find ;
+
+ENTRY("PLUTO_find_dset") ;
+
+   if( idcode == NULL || ISZERO_IDCODE(*idcode) ) RETURN(NULL) ;
+
+   find = THD_dset_in_sessionlist( FIND_IDCODE , idcode ,
+                                   GLOBAL_library.sslist , -1 ) ;
+
+   RETURN(find.dset) ;
 }
 
 /*-----------------------------------------------------------------
@@ -4734,4 +4502,237 @@ ENTRY("PLUTO_scatterplot") ;
    (void) memplot_to_topshell( GLOBAL_library.dc->display , mp , NULL ) ;
 
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   Routine to force AFNI to redisplay images in all open controllers.
+------------------------------------------------------------------------*/
+
+void PLUTO_force_redisplay(void)
+{
+   Three_D_View * im3d ;
+   int ii ;
+
+ENTRY("PLUTO_force_redisplay") ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_OPEN(im3d) ){
+         im3d->anat_voxwarp->type =                       /* 11 Jul 1997 */
+            im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+      }
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------
+   Force the redisplay of the color bars in all image windows.
+   23 Aug 1998 -- RWCox.
+------------------------------------------------------------------------*/
+
+void PLUTO_force_rebar(void)
+{
+   Three_D_View * im3d ;
+   int ii ;
+
+ENTRY("PLUTO_force_rebar") ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_OPEN(im3d) ){
+         drive_MCW_imseq( im3d->s123 , isqDR_rebar , NULL ) ;
+         drive_MCW_imseq( im3d->s231 , isqDR_rebar , NULL ) ;
+         drive_MCW_imseq( im3d->s312 , isqDR_rebar , NULL ) ;
+      }
+   }
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+static int num_workp      = 0 ;
+static XtWorkProc * workp = NULL ;
+static XtPointer *  datap = NULL ;
+static XtWorkProcId wpid ;
+
+#undef WPDEBUG
+
+void PLUTO_register_workproc( XtWorkProc func , XtPointer data )
+{
+ENTRY("PLUTO_register_workproc") ;
+
+   if( func == NULL ){
+      fprintf(stderr,"PLUTO_register_workproc: func=NULL on entry!\n") ;
+      EXRETURN ;
+   }
+
+   if( num_workp == 0 ){
+      workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
+      datap = (XtPointer *)  malloc( sizeof(XtPointer) ) ;
+      wpid  = XtAppAddWorkProc( PLUTO_Xt_appcontext, PLUG_workprocess, NULL ) ;
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_register_workproc: wpid = %x\n",(int)wpid) ;
+#endif
+   } else {
+      workp = (XtWorkProc *) realloc( workp, sizeof(XtWorkProc)*(num_workp+1) ) ;
+      datap = (XtPointer*)   realloc( datap, sizeof(XtPointer) *(num_workp+1) ) ;
+   }
+
+   workp[num_workp] = func ;
+   datap[num_workp] = data ;
+   num_workp++ ;
+
+#ifdef WPDEBUG
+fprintf(stderr,"PLUTO_register_workproc: have %d workprocs\n",num_workp) ;
+#endif
+
+   EXRETURN ;
+}
+
+void PLUTO_remove_workproc( XtWorkProc func )
+{
+   int ii , ngood ;
+
+ENTRY("PLUTO_remove_workproc") ;
+
+   if( func == NULL || num_workp == 0 ){
+      fprintf(stderr,"*** PLUTO_remove_workproc: illegal parameters!\n") ;
+      EXRETURN ;
+   }
+
+   for( ii=0 ; ii < num_workp ; ii++ ){
+      if( func == workp[ii] ) workp[ii] = NULL ;
+   }
+
+   for( ii=0,ngood=0 ; ii < num_workp ; ii++ )
+      if( workp[ii] != NULL ) ngood++ ;
+
+   if( ngood == 0 ){
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_remove_workproc: No workprocs left\n") ;
+#endif
+      XtRemoveWorkProc( wpid ) ;
+      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      num_workp = 0 ;
+   } else {
+#ifdef WPDEBUG
+      fprintf(stderr,"PLUTO_remove_workproc: %d workprocs left\n",ngood) ;
+#endif
+   }
+
+   EXRETURN ;
+}
+
+Boolean PLUG_workprocess( XtPointer fred )
+{
+   int ii , ngood ;
+   Boolean done ;
+
+#ifdef WPDEBUG
+   { static int ncall=0 ;
+     if( (ncall++) % 1000 == 0 )
+       fprintf(stderr,"PLUG_workprocess: entry %d\n",ncall) ; }
+#endif
+
+   if( num_workp == 0 ) return True ;
+
+   for( ii=0,ngood=0 ; ii < num_workp ; ii++ ){
+      if( workp[ii] != NULL ){
+         done = workp[ii]( datap[ii] ) ;
+         if( done == True ) workp[ii] = NULL ;
+         else               ngood++ ;
+      }
+   }
+
+   if( ngood == 0 ){
+#ifdef WPDEBUG
+      fprintf(stderr,"Found no workprocs left\n") ;
+#endif
+      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      num_workp = 0 ;
+      return True ;
+   }
+   return False ;
+}
+
+/*---------------------------------------------------------------*/
+
+typedef struct {
+  generic_func * func ;
+  XtPointer      cd ;
+} mytimeout ;
+
+static void PLUG_dotimeout_CB( XtPointer cd , XtIntervalId * id )
+{
+   mytimeout * myt = (mytimeout *) cd ;
+
+ENTRY("PLUTO_dotimeout_CB") ;
+
+   if( myt == NULL ) EXRETURN ;  /* bad news */
+
+STATUS("calling user timeout function") ;
+
+   myt->func( myt->cd ) ;
+
+   myXtFree(myt) ; EXRETURN ;
+}
+
+void PLUTO_register_timeout( int msec, generic_func * func, XtPointer cd )
+{
+   mytimeout * myt ;
+
+ENTRY("PLUTO_register_timeout") ;
+
+   if( func == NULL ){
+      fprintf(stderr,"PLUTO_register_timeout: func=NULL on entry!\n") ;
+      EXRETURN ;
+   }
+
+   if( msec < 0 ) msec = 0 ;
+
+   myt       = myXtNew(mytimeout) ;
+   myt->func = func ;
+   myt->cd   = cd ;
+
+   (void) XtAppAddTimeOut( PLUTO_Xt_appcontext , msec ,
+                           PLUG_dotimeout_CB , (XtPointer) myt ) ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
+
+double PLUTO_elapsed_time(void) /* in seconds */
+{
+   struct timeval  new_tval ;
+   struct timezone tzone ;
+   static struct timeval old_tval ;
+   static int first = 1 ;
+
+   gettimeofday( &new_tval , &tzone ) ;
+
+   if( first ){
+      old_tval = new_tval ;
+      first    = 0 ;
+      return 0.0 ;
+   }
+
+   if( old_tval.tv_usec > new_tval.tv_usec ){
+      new_tval.tv_usec += 1000000 ;
+      new_tval.tv_sec -- ;
+   }
+
+   return (double)( (new_tval.tv_sec  - old_tval.tv_sec )
+                   +(new_tval.tv_usec - old_tval.tv_usec)*1.0e-6 ) ;
+}
+
+double PLUTO_cpu_time(void)  /* in seconds */
+{
+   struct tms ttt ;
+
+   (void) times( &ttt ) ;
+   return (  (double) (ttt.tms_utime
+                                     /* + ttt.tms_stime */
+                      )
+           / (double) CLK_TCK ) ;
 }

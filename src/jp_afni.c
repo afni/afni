@@ -18,11 +18,56 @@ EXT struct im_info imX[] ;  /* the image data */
 
 static char AFNI_infobuf[1024] = "\0" ;  /* initialize to nothing */
 
+/*--- 23 May 2001: allow for forking to send data to AFNI ---*/
+
+#define USE_FORK    /* turn this off to disable forkage */
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
+static int   use_fork = 0 ;
+static pid_t pid_fork = 0 ;
+
+/*****************************************************************************/
+
+#include <signal.h>
+
+static void AFNI_sigfunc(int sig)  /** signal handler for fatal errors **/
+{
+   char * sname ;
+   switch(sig){
+      default:      sname = "unknown" ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE" ; break ;
+      case SIGSEGV: sname = "SIGSEGV" ; break ;
+      case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGTERM: sname = "SIGTERM" ; break ;
+   }
+   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
+   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
+   exit(1) ;
+}
+
 /*****************************************************************************/
 
 void AFNI_exit(void)                   /* Function to be called to make sure */
 {                                      /* the AFNI data channels get closed. */
    iochan_close(AFNI_ioc) ;
+
+#ifdef USE_FORK
+   if( use_fork && pid_fork != 0 && pid_fork != (pid_t)(-1) ){
+      int kk = kill( pid_fork , SIGTERM ) ;
+      if( kk == 0 ){
+         pid_t qpid=0 ;
+         for( kk=0 ; kk < 10 && qpid == 0 ; kk++ ){
+            iochan_sleep(5) ;
+            qpid = waitpid( pid_fork , NULL , WNOHANG ) ;
+         }
+      }
+   }
+#endif
+
    return ;
 }
 
@@ -69,12 +114,15 @@ void AFNI_start_io( int nim )
 
       if( AFNI_ioc == NULL ){
          fprintf(stderr,"Can't open control channel %s to AFNI!\a\n",AFNI_iochan) ;
-         AFNI_mode = 0 ;                       /* disable AFNI */
-         return ;
+         AFNI_mode = 0 ; return ;
       } else {
          if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_WAIT_CONTROL_MODE.\n") ;
          AFNI_mode = AFNI_WAIT_CONTROL_MODE ;  /* begin waiting for AFNI connection */
       }
+
+      signal( SIGTERM , AFNI_sigfunc ) ; /* 23 May 2001 */
+      signal( SIGSEGV , AFNI_sigfunc ) ;
+      signal( SIGINT  , AFNI_sigfunc ) ;
    }
 
    /***** Check if the control socket is connected to AFNI *****/
@@ -89,8 +137,7 @@ void AFNI_start_io( int nim )
       if( ii < 0 ){
          fprintf(stderr,"Control channel to AFNI failed!\a\n") ;
          IOCHAN_CLOSE(AFNI_ioc) ;
-         AFNI_mode = 0 ;                    /* disable AFNI */
-         return ;
+         AFNI_mode = 0 ; return ;
       } else if( ii > 0 ){
          if( AFNI_verbose ) fprintf(stderr,"Control channel connected to AFNI."
                                            "  Entering AFNI_OPEN_DATA_MODE.\n") ;
@@ -107,7 +154,7 @@ void AFNI_start_io( int nim )
       /** decide name of data channel: it can be TCP/IP or shared memory **/
 
       if( AFNI_use_tcp ) sprintf(AFNI_iochan,"tcp:%s:%d",AFNI_host,AFNI_TCP_PORT) ;
-      else               strcpy(AFNI_iochan,"shm:eps:1M") ;
+      else               strcpy(AFNI_iochan,"shm:eps:8M") ;
 
       strcpy(AFNI_buf,AFNI_iochan) ;     /* tell AFNI where to read data */
       if( AFNI_infocom[0] != '\0' ){
@@ -125,8 +172,7 @@ void AFNI_start_io( int nim )
       if( ii < 0 ){
          fprintf(stderr,"Transmission of control data to AFNI failed!\a\n") ;
          IOCHAN_CLOSE(AFNI_ioc) ;
-         AFNI_mode = 0 ;
-         return ;
+         AFNI_mode = 0 ; return ;
       } else {
          while( ! iochan_clearcheck(AFNI_ioc,2) ) /* wait for control data to clear */
             iochan_sleep(2) ;
@@ -135,15 +181,35 @@ void AFNI_start_io( int nim )
          if( AFNI_verbose )
             fprintf(stderr,"Opening data channel %s to AFNI.\n",AFNI_iochan) ;
 
-         AFNI_ioc = iochan_init( AFNI_iochan , "w" ) ; /* open data channel */
-         if( AFNI_ioc == NULL ){
-            fprintf(stderr,"Can't open data channel %s to AFNI!\a\n",AFNI_iochan) ;
-            AFNI_mode = 0 ;
-            return ;
-         } else {
-            if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_CATCHUP_MODE.\n") ;
-            AFNI_mode = AFNI_CATCHUP_MODE ;
+#ifdef USE_FORK
+         use_fork = AFNI_use_tcp ;
+#endif
+
+         if( use_fork ){  /* fork a relay process to talk to AFNI */
+
+            AFNI_ioc = iochan_init( "shm:forkage:8M" , "create" ) ;
+            if( AFNI_ioc == NULL ){
+               fprintf(stderr,"Can't open shm:forkage:8M for relay to AFNI!\n");
+               use_fork = 0 ; AFNI_mode = 0 ; return ;
+            }
+            pid_fork = iochan_fork_relay( "shm:forkage:8M" , AFNI_iochan ) ;
+            if( pid_fork == (pid_t)(-1) || pid_fork == 0 ){
+               fprintf(stderr,"Can't fork for relay to AFNI!\n") ;
+               IOCHAN_CLOSE(AFNI_ioc) ; pid_fork = 0 ; use_fork = 0 ;
+               AFNI_mode = 0 ; return ;
+            }
+
+         } else {  /* directly handle I/O to AFNI ourselves */
+
+            AFNI_ioc = iochan_init( AFNI_iochan , "w" ) ; /* open data channel */
+            if( AFNI_ioc == NULL ){
+               fprintf(stderr,"Can't open data channel %s to AFNI!\a\n",AFNI_iochan) ;
+               AFNI_mode = 0 ; return ;
+            }
          }
+
+         if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_CATCHUP_MODE.\n") ;
+         AFNI_mode = AFNI_CATCHUP_MODE ;
       }
    }
 
@@ -156,8 +222,7 @@ void AFNI_start_io( int nim )
       if( ii < 0 ){
          fprintf(stderr,"AFNI data channel aborted before any data was sent!\a\n") ;
          IOCHAN_CLOSE( AFNI_ioc ) ;
-         AFNI_mode = 0 ;
-         return ;
+         use_fork = 0 ; AFNI_mode = 0 ; return ;
       } else if( ii > 0 ){                      /* can now send data to AFNI! */
          if( AFNI_verbose )
             fprintf(stderr,"AFNI data channel %s is connected.\n",AFNI_iochan) ;
@@ -193,8 +258,7 @@ void AFNI_start_io( int nim )
                        "***          Closing connection to AFNI.\n") ;
 
                IOCHAN_CLOSE( AFNI_ioc ) ;
-               AFNI_mode = 0 ;
-               return ;
+               use_fork = 0 ; AFNI_mode = 0 ; return ;
             }
 
             tt = COX_clock_time() - tt ;
@@ -339,14 +403,44 @@ void AFNI_send_image( int nim )
 
    }
 
+   jj = iochan_writecheck( AFNI_ioc , 1 ) ;
+   if( jj <= 0 ){
+      fprintf(stderr,"Image transmission to AFNI impossible at #%d.\a\n",nim) ;
+      if( AFNI_ioc->type == SHM_IOCHAN )
+         fprintf(stderr," shm: bstart=%d  bend=%d\n",
+                *(AFNI_ioc->bstart),*(AFNI_ioc->bend) ) ;
+      iochan_sleep(1) ;
+      IOCHAN_CLOSE(AFNI_ioc) ;
+      use_fork = 0 ; AFNI_mode = 0 ;
+      fprintf(stderr,"Closed connection to AFNI\n") ;
+      return ;
+   }
+   if( AFNI_ioc->type == SHM_IOCHAN && jj < nbytes ){
+      fprintf(stderr,"Image transmission to AFNI incomplete at #%d.\a\n",nim) ;
+      if( AFNI_ioc->type == SHM_IOCHAN )
+         fprintf(stderr," shm: bstart=%d  bend=%d\n",
+                *(AFNI_ioc->bstart),*(AFNI_ioc->bend) ) ;
+      iochan_sleep(1) ;
+      IOCHAN_CLOSE(AFNI_ioc) ;
+      use_fork = 0 ; AFNI_mode = 0 ;
+      fprintf(stderr,"Closed connection to AFNI\n") ;
+      return ;
+   }
+
    jj = iochan_sendall( AFNI_ioc , imX[nim].arr + soff , nbytes ) ;
 
    /** if the data channel failed, stop **/
 
    if( jj < 0 ){
       fprintf(stderr,"Image transmission to AFNI fails at #%d.\a\n",nim) ;
+      if( AFNI_ioc->type == SHM_IOCHAN )
+         fprintf(stderr," shm: bstart=%d  bend=%d\n",
+                *(AFNI_ioc->bstart),*(AFNI_ioc->bend) ) ;
+      iochan_sleep(1) ;
       IOCHAN_CLOSE(AFNI_ioc) ;
-      AFNI_mode = 0 ;
+      use_fork = 0 ; AFNI_mode = 0 ;
+      fprintf(stderr,"Closed connection to AFNI\n") ;
+      return ;
    }
 
    return ;

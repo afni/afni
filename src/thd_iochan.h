@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_IOCHAN_HEADER_
 #define _MCW_IOCHAN_HEADER_
 
@@ -13,9 +13,8 @@
 #undef _POSIX_SOURCE
 #endif
 
-#include "mcw_malloc.h"
-
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
@@ -134,14 +133,18 @@ extern int      iochan_recvall( IOCHAN * , char * , int ) ;
 extern int      iochan_ctl( IOCHAN * , int , int ) ;
 extern int      iochan_force_clear( IOCHAN * ) ;
 
+extern int      iochan_recvloop( IOCHAN *, char *, int ); /* 22 May 2001 */
+extern pid_t    iochan_fork_relay( char *, char * );      /* 23 May 2001 */
+
+
 /** codes for the "cmd" argument to iochan_ctl **/
 
 #define IOC_TCP_SENDSIZE 501
 
 #define IOCHAN_CLOSE(ioc) ( iochan_close(ioc) , (ioc)=NULL )
 
-extern double COX_clock_time(void) ; /* return total elapsed time in seconds */
-extern double COX_cpu_time(void) ;   /* return total cpu time used in seconds */
+extern double COX_clock_time(void) ; /* total elapsed time in seconds */
+extern double COX_cpu_time(void) ;   /* total cpu time used in seconds */
 
 #define CLEAR_SHM(ic,ms)                             \
   do{ if( (ic) != NULL && (ic)->type == SHM_IOCHAN ) \

@@ -7,7 +7,7 @@
 #include "mrilib.h"
 #include "string.h"
 
-#define ERREX(str) ( fprintf(stderr,"ERROR: %d\a\n",str) , exit(1) )
+#define ERREX(str) ( fprintf(stderr,"ERROR: %s\a\n",str) , exit(1) )
 
 int main( int argc , char * argv[] )
 {

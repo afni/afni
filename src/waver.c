@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +32,8 @@ double ztone( double x )
 {
    double y , z ;
 
-   if( x < 0.0 ) return 0.0 ;
-   if( x > 1.0 ) return 1.0 ;
+   if( x <= 0.0 ) return 0.0 ;
+   if( x >= 1.0 ) return 1.0 ;
 
    y = (0.5*PI) * ( 1.6 * x - 0.8 ) ;
    z = ZT_FAC * ( tanh(tan(y)) + ZT_ADD ) ;
@@ -126,6 +126,10 @@ static int      OUT_xy   = 0 ;
 static int      OUT_npts = -666 ;
 static double * OUT_ts   = NULL ;
 
+static int      IN_num_tstim = -666 ;  /* 16 May 2001 = #8 */
+static double * IN_tstim     = NULL ;
+static double   IN_top_tstim = 0.0  ;
+
 int main( int argc , char * argv[] )
 {
    int ii , jj ;
@@ -171,7 +175,7 @@ int main( int argc , char * argv[] )
 
    /*---- if no input timeseries, just output waveform ----*/
 
-   if( IN_npts < 1 ){
+   if( IN_npts < 1 && IN_num_tstim < 1 ){
       if( OUT_xy ){
          for( ii=0 ; ii < WAV_npts ; ii++ )
             printf( "%g %g\n" , WAV_dt * ii , WAV_ts[ii] ) ;
@@ -184,21 +188,39 @@ int main( int argc , char * argv[] )
 
    /*---- must convolve input with waveform ----*/
 
-   OUT_npts = IN_npts + WAV_npts ;
-   OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
+   if( IN_npts > 0 ){
+      OUT_npts = IN_npts + WAV_npts ;
+      OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
+      for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
 
-   for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
+      for( jj=0 ; jj < IN_npts ; jj++ ){
+         val = IN_ts[jj] ;
+         if( val == 0.0 || fabs(val) >= 33333.0 ) continue ;
+         for( ii=0 ; ii < WAV_npts ; ii++ )
+            OUT_ts[ii+jj] += val * WAV_ts[ii] ;
+      }
 
-   for( jj=0 ; jj < IN_npts ; jj++ ){
-      val = IN_ts[jj] ;
-      if( val == 0.0 || fabs(val) >= 33333.0 ) continue ;
-      for( ii=0 ; ii < WAV_npts ; ii++ )
-         OUT_ts[ii+jj] += val * WAV_ts[ii] ;
-   }
+      for( jj=0 ; jj < IN_npts ; jj++ ){
+         val = IN_ts[jj] ;
+         if( fabs(val) >= 33333.0 ) OUT_ts[jj] = 99999.0 ;
+      }
 
-   for( jj=0 ; jj < IN_npts ; jj++ ){
-      val = IN_ts[jj] ;
-      if( fabs(val) >= 33333.0 ) OUT_ts[jj] = 99999.0 ;
+   } else if( IN_num_tstim > 0 ){  /* 16 May 2001 */
+      int ibot,itop ;
+
+      OUT_npts = ceil(IN_top_tstim/WAV_dt) + WAV_npts ;
+      OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
+      for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
+
+      for( jj=0 ; jj < IN_num_tstim ; jj++ ){
+        ibot = (int) (IN_tstim[jj]/WAV_dt) ;
+        itop = ibot + WAV_npts ;
+        if( itop > OUT_npts ) itop = OUT_npts ; /* shouldn't happen */
+        for( ii=ibot ; ii < itop ; ii++ ){
+           val = WAV_peak * waveform( WAV_dt * ii - IN_tstim[jj] ) ;
+           OUT_ts[ii] += val ;
+        }
+      }
    }
 
    if( OUT_xy ){
@@ -266,8 +288,22 @@ void Syntax(void)
     "      Note that * must be typed as \\* to prevent the shell from\n"
     "      trying to interpret it as a filename wildcard.]\n"
     "\n"
+    "  -tstim DATA    = Read discrete stimulation times from the command line\n"
+    "                     and convolve the waveform with delta-functions at\n"
+    "                     those times.  In this input format, the times do\n"
+    "                     NOT have to be at intervals of '-dt'.  For example\n"
+    "                       -dt 2.0 -tstim 5.6 9.3 13.7 16.4\n"
+    "                     specifies a TR of 2 s and stimuli at 4 times\n"
+    "                     (5.6 s, etc.) that do not correspond to integer\n"
+    "                     multiples of TR.  DATA values cannot be negative.\n"
+    "                   If the DATA is stored in a file, you can read it\n"
+    "                     onto the command line using something like\n"
+    "                       -tstim `cat filename`\n"
+    "                     where using the backward-single-quote operator\n"
+    "                     of the usual Unix shells.\n"
+    "\n"
     "At least one option is required, or the program will just print this message\n"
-    "to stdout.  Only one of the timeseries input options above can be used.\n"
+    "to stdout.  Only one of the 3 timeseries input options above can be used.\n"
     "\n"
     "If you have the 'xmgr' graphing program, then a useful way to preview the\n"
     "results of this program is through a command pipe like\n"
@@ -376,7 +412,7 @@ void Process_Options( int argc , char * argv[] )
          float * tsar ;
          int ii ;
 
-         if( IN_npts > 0 ){
+         if( IN_npts > 0 || IN_num_tstim > 0 ){
             fprintf(stderr,"Cannot input two timeseries!\n") ;
             exit(1) ;
          }
@@ -393,12 +429,41 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-tstim") == 0 ){  /* 16 May 2001 */
+         int iopt , nnn ;
+         float value ;
+
+         if( IN_num_tstim > 0 || IN_npts > 0 ){
+            fprintf(stderr,"Cannot input two timeseries!\n") ;
+            exit(1) ;
+         }
+         if( nopt+1 >= argc ) ERROR ;
+
+         iopt         = nopt+1 ;
+         IN_num_tstim = 0 ;
+         IN_tstim     = (double *) malloc( sizeof(double) ) ;
+         while( iopt < argc && argv[iopt][0] != '-' ){
+
+            nnn = sscanf( argv[iopt] , "%f" , &value ) ;
+            if( nnn != 1 || value < 0.0 ){
+               fprintf(stderr,"Illegal value after -tstim: %s\n",argv[iopt]) ;
+               exit(1) ;
+            }
+
+            IN_tstim = (double *)realloc(IN_tstim,sizeof(double)*(IN_num_tstim+1));
+            IN_tstim[IN_num_tstim++] = value ;
+            if( value > IN_top_tstim ) IN_top_tstim = value ;
+            iopt++ ;
+         }
+         nopt = iopt ; continue ;
+      }
+
       if( strncmp(argv[nopt],"-inl",4) == 0 ){
          int iopt , count , nnn ;
          float value ;
          char sep ;
 
-         if( IN_npts > 0 ){
+         if( IN_npts > 0 || IN_num_tstim > 0 ){
             fprintf(stderr,"Cannot input two timeseries!\n") ;
             exit(1) ;
          }

@@ -4,9 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-#include "thd_iochan.h"
-#include "afni_environ.h"
-#include "debugtrace.h"
+#include "mrilib.h"
 
 static int debug = 0 ;
 #define FAILED     if(debug)fprintf(stderr," **FAILED\n")

@@ -3878,7 +3878,6 @@ STATUS("making prog->rowcol") ;
 
       /*-----------------------------------*/
       /*-- pushbutton for sonnet display --*/
-      /*-- (should be last on this menu) --*/
       /*-----------------------------------*/
 
 #ifdef USE_SONNETS
@@ -3896,6 +3895,17 @@ STATUS("making prog->rowcol") ;
                         AFNI_sonnet_CB , im3d ) ;
       }
 #endif
+
+      prog->hidden_mission_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Mission") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_mission_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
 
    }
 #endif  /* USE_HIDDEN */

@@ -32,6 +32,11 @@
 #  define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
+#ifdef DONT_USE_DEBUGTHISFILE  /* 04 Jun 2001 */
+# undef  DEBUGTHISFILE
+# define DEBUGTHISFILE 0
+#endif
+
 #ifndef DEBUGTHISFILE
    /** as in
          if( DEBUGTHISFILE ) fprintf(stderr,"Yo mama!\n") ;

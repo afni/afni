@@ -10,7 +10,7 @@
    %%% Some of this file is "frivolities" and could be removed from AFNI %%%
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-#ifdef NO_FRIVOLITIES
+#if defined(NO_FRIVOLITIES) || !defined(ALLOW_PLUGINS)
 
 void AFNI_splashdown (void){ return; }  /* for party poopers */
 void AFNI_splashup   (void){ return; }
@@ -522,9 +522,12 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId * id )
    int ipl ;
 
    Three_D_View * im3d         = GLOBAL_library.controllers[0] ; /* already open */
+
+#ifdef ALLOW_PLUGINS
    int      npbut              = im3d->vwid->nplugbut ;      /* how many plugins */
    char **  pluglab            = im3d->vwid->pluglab ;       /* their labels     */
    PLUGIN_interface ** plugint = im3d->vwid->plugint ;       /* their interfaces */
+#endif
 
 ENTRY("AFNI_startup_layout_CB") ;
 
@@ -575,6 +578,7 @@ STATUS("no ***LAYOUT found") ;
 
    /*-- initialize list of plugins --*/
 
+#ifdef ALLOW_PLUGINS
    if( npbut > 0 ){
       plugin_cont = (int *)   malloc(sizeof(int)   *npbut) ;
       plugin_geom = (char **) malloc(sizeof(char *)*npbut) ;
@@ -583,6 +587,7 @@ STATUS("no ***LAYOUT found") ;
          plugin_geom[ipl] = NULL ;    /* geometry string to start it with */
       }
    }
+#endif
 
    /*-- read and process further lines until a "***" line is found, or the end --*/
 
@@ -695,6 +700,7 @@ STATUS("no ***LAYOUT found") ;
 
       } else if( strncmp(linbuf+1,".plugin.",8) == 0 ){
 
+#ifdef ALLOW_PLUGINS
          char * pname = linbuf+9 ;
          int pl,ll,qq , jj,nn ;
 
@@ -750,6 +756,7 @@ STATUS("no ***LAYOUT found") ;
                continue ;
             }
          } while(1) ;
+#endif
 
       /*-- Quien Sabe? --*/
 
@@ -941,6 +948,7 @@ STATUS("no ***LAYOUT found") ;
 
    } /* end of loop over controllers */
 
+#ifdef ALLOW_PLUGINS
    /*-- now loop over plugins --*/
 
    for( ipl=0 ; ipl < npbut ; ipl++ ){
@@ -975,14 +983,17 @@ STATUS("no ***LAYOUT found") ;
       AFNI_splashraise() ;
 
    } /* end of loop over plugins */
+#endif
 
    /*--- done ---*/
 
+#ifdef ALLOW_PLUGINS
    if( npbut > 0 ){
       for( ipl=0 ; ipl < npbut ; ipl++ )
          if( plugin_geom[ipl] != NULL ) free(plugin_geom[ipl]) ;
       free(plugin_cont) ; free(plugin_geom) ;
    }
+#endif
 
    if( e_turnoff ) putenv("AFNI_ENFORCE_ASPECT=NO") ;
 
@@ -1025,9 +1036,12 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    char * plab ;
 
    Three_D_View * qm3d         = GLOBAL_library.controllers[0]; /* already open */
+
+#ifdef ALLOW_PLUGINS
    int      npbut              = qm3d->vwid->nplugbut;      /* how many plugins */
    char **  pluglab            = qm3d->vwid->pluglab;       /* their labels     */
    PLUGIN_interface ** plugint = qm3d->vwid->plugint;       /* their interfaces */
+#endif
 
 ENTRY("AFNI_finalsave_layout_CB") ;
 
@@ -1114,6 +1128,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
 
    } /* end of loop over controllers */
 
+#ifdef ALLOW_PLUGINS
    /*-- loop over plugins --*/
 
    for( ipl=0 ; ipl < npbut ; ipl++ ){
@@ -1143,6 +1158,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
       fprintf(fp , "  %c.plugin.%s geom=+%d+%d\n" ,
                    abet[cc] , plab , gxx,gyy ) ;
    }
+#endif
 
    /*-- finito! --*/
 

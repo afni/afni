@@ -3,8 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "thd_iochan.h"
+#include <errno.h>
 
 /****************************************************************
   Routines to manipulate IOCHANs, something RWCox invented as
@@ -55,7 +56,7 @@
 #  define PERROR(x) perror(x)
 #  define STATUS(x) fprintf(stderr,"%s\n",x)
 #else
-#  define PERROR(x) /* nada */
+#  define PERROR(x) perror(x)
 #  define STATUS(x) /* nada */
 #endif
 
@@ -110,6 +111,7 @@ int tcp_readcheck( int sd , int msec )
    /** STATUS("tcp_readcheck: call select") ; **/
 
    ii = select(sd+1, &rfds, NULL, NULL, tvp) ;  /* check it */
+   if( ii == -1 ) PERROR( "tcp_readcheck select" ) ;
    return ii ;
 }
 
@@ -134,6 +136,7 @@ int tcp_writecheck( int sd , int msec )
    /** STATUS("tcp_writecheck: call select") ; **/
 
    ii = select(sd+1, NULL , &wfds, NULL, tvp) ;  /* check it */
+   if( ii == -1 ) PERROR( "tcp_writecheck select" ) ;
    return ii ;
 }
 
@@ -191,8 +194,10 @@ int tcp_alivecheck( sd )
    ii = tcp_readcheck(sd,0) ;                 /* can I read?          */
    if( ii == 0 ) return 1 ;                   /* can't read is OK     */
    if( ii <  0 ) return 0 ;                   /* some error is bad    */
+   errno = 0 ;
    ii = tcp_recv( sd , bbb , 1 , MSG_PEEK ) ; /* try to read one byte */
    if( ii == 1 ) return 1 ;                   /* if we get it, good   */
+   if( errno ) PERROR("tcp_alivecheck") ;
    return 0 ;                                 /* no data ==> death!   */
 }
 
@@ -552,7 +557,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
          ioc->id = tcp_listen( port ) ;                   /* set up to listen  */
          if( ioc->id < 0 ){ free(ioc) ; return NULL ; }   /* error? must die!  */
          ioc->bad = TCP_WAIT_ACCEPT ;                     /* not connected yet */
-         ii = tcp_readcheck(ioc->id,3) ;                  /* see if ready      */
+         ii = tcp_readcheck(ioc->id,1) ;                  /* see if ready      */
          if( ii > 0 ){                                    /* if socket  ready  */
             jj = tcp_accept( ioc->id , NULL,&hend ) ;     /* accept connection */
             if( jj >= 0 ){                                /* if accept worked  */
@@ -634,7 +639,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
 
       if( do_accept ){
          ioc->whoami = ACCEPTOR ;          /* 24 June 1997 */
-         for( ii=0 ; ii < 3 ; ii++ ){      /* try to find segment */
+         for( ii=0 ; ii < 2 ; ii++ ){      /* try to find segment */
             ioc->id = shm_accept( key ) ;  /* several times       */
             if( ioc->id >= 0 ) break ;     /* works? break out    */
             iochan_sleep(1) ;              /* wait 1 millisecond  */
@@ -1063,7 +1068,8 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
        buffer == NULL || nbytes < 0          ) return -1 ;
 
    if( nbytes == 0 ) return 0 ;
-   if( iochan_goodcheck(ioc,0) != 1 ) return -1 ;
+   if( iochan_goodcheck(ioc,0)  != 1 ) return -1 ;
+   if( iochan_writecheck(ioc,1) <= 0 ) return -1 ;
 
    /** tcp: ==> just use send **/
 
@@ -1072,6 +1078,7 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
 
       if( ioc->sendsize <= 0 || nbytes <= ioc->sendsize ){
          int nsent = send( ioc->id , buffer , nbytes , 0 ) ;
+         if( nsent == -1 ) PERROR("tcp send") ;
          if( nsent == 0 ) nsent = -1 ;
          return nsent ;
       } else {
@@ -1080,6 +1087,7 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
             while( tcp_writecheck(ioc->id,1) == 0 ) ;      /* spin */
             ntosend = MIN( ioc->sendsize , nbytes-ntot ) ;
             nsent   = send( ioc->id , buffer+ntot , ntosend , 0 ) ;
+            if( nsent == -1 ) PERROR("tcp send") ;
             if( nsent <= 0 ) return ((ntot>0) ? ntot : -1) ;
             ntot += nsent ;
          } while( ntot < nbytes ) ;
@@ -1148,11 +1156,11 @@ int iochan_sendall( IOCHAN * ioc , char * buffer , int nbytes )
    if( nbytes == 0 ) return 0 ;
 
    while(1){
-      ii = iochan_send( ioc , buffer+ntot , nbytes-ntot ) ;  /* send what's left  */
-      if( ii == -1 ) return -1 ;                             /* an error!?        */
-      ntot += ii ;                                           /* total sent so far */
-      if( ntot == nbytes ) return nbytes ;                   /* all done!?        */
-      dms = NEXTDMS(dms) ; iochan_sleep(dms) ;               /* wait a while      */
+      ii = iochan_send( ioc , buffer+ntot , nbytes-ntot ); /* send what's left  */
+      if( ii == -1 ) return -1 ;                           /* an error!?        */
+      ntot += ii ;                                         /* total sent so far */
+      if( ntot == nbytes ) return nbytes ;                 /* all done!?        */
+      dms = NEXTDMS(dms) ; iochan_sleep(dms) ;             /* wait a while      */
    }
    return -1 ;   /* should never be reached */
 }
@@ -1176,7 +1184,11 @@ int iochan_recv( IOCHAN * ioc , char * buffer , int nbytes )
 
    /** tcp: just use recv **/
 
-   if( ioc->type == TCP_IOCHAN ) return tcp_recv( ioc->id , buffer , nbytes , 0 ) ;
+   if( ioc->type == TCP_IOCHAN ){
+      int ii = tcp_recv( ioc->id , buffer , nbytes , 0 ) ;
+      if( ii == -1 ) PERROR("tcp recv") ;
+      return ii ;
+   }
 
    /** shm: read from the circular buffer, starting at bstart **/
 
@@ -1214,6 +1226,35 @@ fprintf(stderr,"iochan_recv: get 2 pieces: %d to %d AND %d to %d\n",
    }
 
    return -1 ;  /* should not be reached */
+}
+
+/*----------------------------------------------------------------------------
+   Read as much data as possible from the iochan, looping until nothing
+   is left -- 22 May 2001 -- RWCox.
+------------------------------------------------------------------------------*/
+
+int iochan_recvloop( IOCHAN * ioc , char * buffer , int nbytes )
+{
+   int jj , nbuf=0 ;
+
+   /** check for reasonable inputs **/
+
+   if( ioc    == NULL || IOC_BAD(ioc) != 0 ||
+       buffer == NULL || nbytes < 0          ) return -1 ;
+
+   if( iochan_goodcheck(ioc,0) != 1 ) return -1 ;
+
+   if( nbytes == 0 ) return 0 ;
+
+   while(1){
+      jj = iochan_recv( ioc , buffer+nbuf , nbytes-nbuf ) ;
+      if( jj < 1 ) break ;  /* stop if nothing more comes in */
+      nbuf += jj ;
+      if( nbuf >= nbytes ) break ;  /* stop if overflow */
+      iochan_sleep(1) ;
+   }
+
+   return nbuf ;
 }
 
 /*----------------------------------------------------------------------------
@@ -1277,6 +1318,202 @@ int iochan_ctl( IOCHAN * ioc , int cmd , int arg )
 
    }
    return -1 ;
+}
+
+/*-----------------------------------------------------------------
+  Relay data from one IOCHAN to another in a fork()-ed process:
+   name_in  = name of input IOCHAN; will be read from only
+              - should be opened with "create" in the caller before
+                this call, and then the child process will open with
+                "accept".
+   name_out = name of output IOCHAN; will be written to only
+              - will be opened with "create" in the child and then
+                child will wait for someone to "accept"
+  Return value is the pid of the forked process; (pid_t)-1 if
+  something bad happened at startup.  If something bad happens
+  later, the child will _exit(1), and it will also close both
+  IOCHANs it opened.  You can detect the child exit with waitpid(),
+  and can detect the closing of the name_in IOCHAN using
+  iochan_writecheck(), as in this fragment:
+
+     pid_t qpid , ppid ;
+     IOCHAN *ioc ;
+     char * data ;
+     int   ndata ;
+
+     ioc  = iochan_init( "shm:Elvis:1M" , "create" ) ;
+     if( ioc == NULL ){
+        ... do something here if can't open for output
+     }
+     ppid = iochan_fork_relay( "shm:Elvis:1M" , "tcp:Fabian:1234" ) ;
+     if( ppid == (pid_t)-1 ){
+        IOCHAN_CLOSE(ioc) ;
+        ... do something here if fork failed
+     }
+
+     ... later: check if child process died
+
+     qpid = waitpid( ppid , NULL , WNOHANG ) ;
+     if( qpid == ppid ){
+        IOCHAN_CLOSE(ioc) ;
+        ... probably do something else here to, to mark end of output
+     }
+
+     ... check if output IOCHAN is ready for data
+
+     if( iochan_writecheck(ioc,0) >= ndata ){
+        iochan_sendall( ioc , data , ndata ) ;
+     } else {
+        IOCHAN_CLOSE(ioc) ;
+        ... probably do something else here to, to mark end of output
+     }
+
+  As in the example, the usual way to use this would have name_in
+  be a shm IOCHAN, and name_out be a tcp IOCHAN; this would then
+  let a main program relay socket data through a separate process,
+  so if the socket freezes up, then the main program can merrily
+  continue (by using iochan_writecheck to see if the shm IOCHAN
+  is available for output).
+
+  -- 23 May 2001 -- RWCox
+-------------------------------------------------------------------*/
+
+static IOCHAN *ioc_kill_1 = NULL ;
+static IOCHAN *ioc_kill_2 = NULL ;
+
+static void iochan_fork_sigfunc(int sig)
+{
+   switch( sig ){
+      case SIGTERM:
+        if( ioc_kill_1 != NULL ) iochan_close(ioc_kill_1) ;
+        if( ioc_kill_2 != NULL ) iochan_close(ioc_kill_2) ;
+        fprintf(stderr,"\n*** iochan_fork received SIGTERM signal\n");
+        fflush(stderr) ;
+        _exit(1) ;
+      case SIGSEGV:
+        if( ioc_kill_1 != NULL ) iochan_close(ioc_kill_1) ;
+        if( ioc_kill_2 != NULL ) iochan_close(ioc_kill_2) ;
+        fprintf(stderr,"\n*** iochan_fork received SIGSEGV signal\n");
+        fflush(stderr) ;
+        _exit(1) ;
+   }
+}
+
+/*-----------------------------------------------------------------*/
+
+pid_t iochan_fork_relay( char * name_in , char * name_out )
+{
+   pid_t ppid = (pid_t)(-1) ;
+   int jj , kk , nbuf ;
+#define MBUF 1048576
+   char * buf ;
+   IOCHAN *ioc_in, *ioc_out ;
+
+   if( name_in == NULL || name_out == NULL ) return ppid ;
+
+   /*-- fork into two processes --*/
+
+   ppid = fork() ;
+   if( ppid == (pid_t)(-1) ){
+      perror("iochan_fork failed") ;
+      return ppid ;
+   }
+
+   if( ppid != 0 ){      /* the parent process */
+      pid_t qpid ;
+      iochan_sleep(5) ;                         /* wait a little bit */
+      qpid = waitpid( ppid , NULL , WNOHANG ) ; /* see if child died */
+      if( qpid == ppid ) ppid = (pid_t)(-1) ;   /* if it did, return error */
+      return ppid ;
+   }
+
+   /*--- from here on is the child process, which never returns ---*/
+
+   ioc_in = iochan_init( name_in , "accept" ) ;  /* open input */
+   if( ioc_in == NULL ) _exit(1) ;               /* failed?   */
+
+   ioc_out = iochan_init( name_out , "create" ) ; /* open output */
+   if( ioc_out == NULL ){                         /* failed?    */
+      iochan_close(ioc_in) ; _exit(1) ;
+   }
+
+   ioc_kill_1 = ioc_in  ;
+   ioc_kill_2 = ioc_out ;
+   signal( SIGTERM , iochan_fork_sigfunc ) ;
+   signal( SIGSEGV , iochan_fork_sigfunc ) ;
+
+   fprintf(stderr,"forked process for shm->tcp started\n") ;
+
+   do{  /* loop until both iochans are ready */
+
+      jj = iochan_goodcheck(ioc_in ,1) ;
+      kk = iochan_goodcheck(ioc_out,1) ;
+      if( jj < 0 || kk < 0 ){
+         iochan_close(ioc_in) ; iochan_close(ioc_out) ; _exit(1) ;
+      }
+
+   } while( jj == 0 || kk == 0 ) ;
+
+   fprintf(stderr,"forked process fully connected\n") ;
+
+   buf = malloc(MBUF) ; /* workspace for transfers */
+   if( buf == NULL ){
+      fprintf(stderr,"forked process can't malloc I/O buffer") ;
+      iochan_close(ioc_in) ; iochan_close(ioc_out) ; _exit(1) ;
+   }
+
+   while(1){  /* loop, waiting for data */
+
+      errno = 0 ;
+      jj = iochan_readcheck( ioc_in , 20 ) ;          /* any input? */
+      if( jj < 0 ){                                   /* bad news?  */
+         if( errno ) perror( "forked readcheck" ) ;
+         else        fprintf(stderr,"forked readcheck abort: jj=%d!\n",jj) ;
+         break ;
+      }
+      if( jj == 0 ) continue ;                        /* no news    */
+
+      nbuf = iochan_recvloop( ioc_in , buf , MBUF ) ; /* get input! */
+      if( nbuf <= 0 ) continue ;                      /* too weird! */
+
+#if 0
+      fprintf(stderr,"forked process read %d bytes\n",nbuf) ;
+#endif
+
+      errno = 0 ;
+      kk = iochan_writecheck( ioc_out , 1 ) ;         /* check      */
+      if( kk == 0 ){
+         int qq ;
+         fprintf(stderr,"forked writecheck repeat:") ;
+         for( qq=0 ; qq < 1000 ; qq++ ){
+           if( qq%10 == 0 ) fprintf(stderr," %d",qq+1) ;
+           kk = iochan_writecheck( ioc_out , 2 ) ;
+           if( kk != 0 ) break ;
+         }
+         fprintf(stderr,"\n") ;
+      }
+      if( kk <= 0 ){
+         if( errno ) perror( "forked writecheck" ) ;
+         else        fprintf(stderr,"forked writecheck abort: kk=%d!\n",kk) ;
+         break ;
+      }
+      kk = iochan_sendall( ioc_out , buf , nbuf ) ;   /* send data! */
+      if( kk < 0 ){                                   /* bad news?  */
+         if( errno ) perror( "forked sendall" ) ;
+         else        fprintf(stderr,"forked sendall abort: kk=%d!\n",kk) ;
+         break ;
+      }
+
+#if 0
+      fprintf(stderr,"forked process wrote %d bytes\n",nbuf) ;
+#endif
+   }
+
+   /* bad news ==> shut down child operations */
+
+   fprintf(stderr,"forked process fails!\n") ;
+
+   iochan_close(ioc_in) ; iochan_close(ioc_out) ; _exit(1) ;
 }
 
 /*-----------------------------------------------------------------

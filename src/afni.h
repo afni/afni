@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.29h"
+#define VERSION "2.29i"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "07 May 2001      "
+#define RELEASE "07 Jun 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -590,6 +590,8 @@ typedef struct {
 
    int    hidden_code ;
 
+   Widget hidden_mission_pb ;  /* 06 Jun 2001 */
+
 #endif  /* USE_HIDDEN */
 
 } AFNI_program_widgets ;
@@ -856,8 +858,8 @@ extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
 /*-----------------------------------------------------------------------------*/
 /*---------------------------- Global library data ----------------------------*/
 
+#include "afni_plugin.h"
 #ifdef ALLOW_PLUGINS
-#  include "afni_plugin.h"
 
    /*-- pseudo-plugin functions --*/
 

@@ -2800,3 +2800,36 @@
      it was only processed AFTER the autosave test was executed.  It was
      moved before the autosave.  Also added the -zorigin option to let
      the user set the slice offset (a la 3drefit).
+
+16 May 2001
+ * Modified waver.c to add new -tstim option (for specifying stimulus
+     times directly on command line).
+
+18 May 2001
+ * Modified afni_plugin.[ch] to STATUS() an error message if a
+     plugin library cannot be loaded into the system.
+
+22 May 2001
+ * Modified thd_iochan.[ch] to add function iochan_recvloop(), which
+     loops to receive as much data as possible without waiting.
+
+23 May 2001
+ * Modified thd_iochan.[ch] to add function iochan_fork_delay(),
+     which allows relays of data from a shm IOCHAN to a tcp IOCHAN
+     through a child process.
+
+24 May 2001
+ * Modified afni_plugin.c to fprintf(stderr) the error message if
+     a plugin library cannot be loaded into the system.  (This way
+     it always appears, even if trace is turned off.)
+
+04 Jun 2001
+ * Modified thd_iochan.c iochan_fork_delay() to retry communications,
+     and to print more error messages.
+ * Added DONT_USE_DEBUGTHISFILE to machdep.h and debugtrace.h.
+
+05 Jun 2001
+ * Modified afni_plugin.c to move some routines into the "always
+     compiled" section; and afni_plugin.h to reflect this change.
+     Small changes also to afni.h, afni_func.c, and afni_pplug_*.c.
+     (All of this is to get afni to compile again without plugins.)

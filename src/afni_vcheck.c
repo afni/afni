@@ -6,9 +6,9 @@
    
 #include "afni.h"
 
-#define VERSION_URL "http://141.106.106.221/~cox/AFNI.version"
+#define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
 
-#define VERSION_FILE "www/AFNI.version"
+#define VERSION_FILE "/home3/afni/AFNI.version"
 
 /*------------------------------------------------------------------------
    Program to check (or write) the AFNI version information.

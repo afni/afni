@@ -2044,6 +2044,7 @@ void REND_reload_dataset(void)
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
 
    new_dset = 0 ; new_data_loaded = 1 ;
+   FIX_SCALE_SIZE ;     /* 09 May 2001 */
    return ;
 }
 

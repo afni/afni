@@ -4544,6 +4544,10 @@ STATUS("got func info") ;
   May 1995: Hidden popup menu stuff
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 
+#ifndef ALLOW_PLUGINS
+# undef WANT_RWCOX_IMAGE
+#endif
+
 #ifdef WANT_RWCOX_IMAGE
 void RWCOX_popper(void) ;
 #endif
@@ -4624,6 +4628,22 @@ ENTRY("AFNI_hidden_CB") ;
                           im3d->dc ,
                           im3d->vinfo->pts_color ,
                           AFNI_hidden_pts_CB , cd  ) ;
+   }
+
+   /****----- Mission Statement -----****/
+
+   if( w == im3d->vwid->prog->hidden_mission_pb ){
+      (void)  MCW_popup_message( im3d->vwid->picture ,
+                                    " \n"
+                                    " AFNI Mission Statement\n"
+                                    " ----------------------\n"
+                                    " To empower neuroscientists\n"
+                                    " to perform their own state-\n"
+                                    " of-the-art data analyses and\n"
+                                    " visualizations, so they will \n"
+                                    " stop bugging me with their\n"
+                                    " pitiful 'quick questions'.\n " ,
+                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
    /****----- Get Outta Here -----****/

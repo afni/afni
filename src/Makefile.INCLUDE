@@ -752,6 +752,10 @@ iotest:iotest.o
 	$(RM) $@
 	$(CC) -o iotest iotest.o $(LFLAGS) $(LLIBS)
 
+iochan_relay:iochan_relay.o
+	$(RM) $@
+	$(CC) -o iochan_relay iochan_relay.o $(LFLAGS) $(LLIBS)
+
 # These programs are from Tom Ross
 
 3dFourier:3dFourier.o

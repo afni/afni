@@ -3,13 +3,19 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _AFNI_PLUGIN_HEADER_
 #define _AFNI_PLUGIN_HEADER_
 
-#ifdef SPARKY
-#undef _POSIX_SOURCE
-#endif
+/*-----------------------------------------------------------------
+  Most of this file is included only if ALLOW_PLUGINS is defined,
+  but a little at the end is always used.
+-------------------------------------------------------------------*/
+
+#define PLUTO_X11_display   (GLOBAL_library.dc->display)
+#define PLUTO_Xt_appcontext (GLOBAL_library.dc->appcontext)
+
+#ifdef ALLOW_PLUGINS
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -49,6 +55,8 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #  define DYNAMIC_OPEN(libname,handle) \
       (handle) = dlopen( (libname) , RTLD_LAZY )
 
+#  define DYNAMIC_ERROR_STRING  dlerror()  /* 18 May 2001 */
+
 #  define DYNAMIC_CLOSE(handle) \
       (void) dlclose( (handle) )
 
@@ -62,12 +70,16 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 
 #ifdef DYNAMIC_LOADING_VIA_SHL
 #  include <dl.h>
+#  include <errno.h>  /* 18 May 2001 */
+
    typedef shl_t DYNAMIC_handle ;
 
 #  define ISVALID_DYNAMIC_handle(handle) ((handle) != (DYNAMIC_handle) 0)
 
 #  define DYNAMIC_OPEN(libname,handle) \
       (handle) = shl_load( (libname) , BIND_DEFERRED , 0L )
+
+#  define DYNAMIC_ERROR_STRING strerror(errno) /* 18 May 2001 */
 
 #  define DYNAMIC_CLOSE(handle) \
       (void) shl_unload( (handle) )
@@ -381,8 +393,6 @@ extern char * peek_optiontag_from_PLUGIN_interface     ( PLUGIN_interface * ) ;
 #define NEXT_OPTION            NEXT_PLUGIN_OPTION
 #define PLUTO_next_option      NEXT_PLUGIN_OPTION
 
-extern THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * ) ;
-
 #define BAD_NUMBER        (-31416.666)
 #define PLUTO_BAD_NUMBER  BAD_NUMBER
 
@@ -501,8 +511,6 @@ extern int PLUTO_add_dset( PLUGIN_interface *, THD_3dim_dataset *, int ) ;
 
 extern THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset *, char * ) ;
 
-extern void PLUTO_force_redisplay( void ) ;
-extern void PLUTO_force_rebar( void ) ;
 extern void PLUTO_dset_redisplay_mode( THD_3dim_dataset * , int ) ;
 extern void PLUTO_dset_redisplay( THD_3dim_dataset * ) ;
 
@@ -598,6 +606,22 @@ extern THD_3dim_dataset * PLUTO_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
                                                   generic_func * user_func ,
                                                   void * user_data ) ;
 
+extern void PLUTO_report( PLUGIN_interface * , char * ) ;
+
+#define PLUTO_output_header(ds) THD_write_3dim_dataset(NULL,NULL,(ds),False)
+
+extern PLUGIN_strval * new_PLUGIN_strval( Widget , char * ) ;
+extern void destroy_PLUGIN_strval( PLUGIN_strval * ) ;
+extern void alter_PLUGIN_strval_width( PLUGIN_strval * , int ) ;
+extern void set_PLUGIN_strval( PLUGIN_strval * , char * ) ;
+extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
+
+#endif /* ALLOW_PLUGINS */
+
+/*--------------------------------------------------------------------
+  Stuff that is always defined
+----------------------------------------------------------------------*/
+
 #define PLUTO_extract_series(ijk,ds)     THD_extract_series((ijk),(ds),0)
 #define PLUTO_extract_series_raw(ijk,ds) THD_extract_series((ijk),(ds),1)
 
@@ -609,32 +633,22 @@ extern THD_3dim_dataset * PLUTO_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
 extern void PLUTO_register_timeseries( char * , MRI_IMAGE * ) ;
 
-extern void PLUTO_register_workproc( XtWorkProc , XtPointer ) ;
-extern void PLUTO_remove_workproc  ( XtWorkProc ) ;
-extern Boolean PLUG_workprocess( XtPointer ) ;
-
-extern void PLUTO_register_timeout( int, generic_func *, XtPointer ) ;
-
-extern double PLUTO_cpu_time(void) ;
-extern double PLUTO_elapsed_time(void) ;
-
-extern void PLUTO_report( PLUGIN_interface * , char * ) ;
-
-#define PLUTO_output_header(ds) THD_write_3dim_dataset(NULL,NULL,(ds),False)
-
-#define PLUTO_X11_display   (GLOBAL_library.dc->display)
-#define PLUTO_Xt_appcontext (GLOBAL_library.dc->appcontext)
-
-extern PLUGIN_strval * new_PLUGIN_strval( Widget , char * ) ;
-extern void destroy_PLUGIN_strval( PLUGIN_strval * ) ;
-extern void alter_PLUGIN_strval_width( PLUGIN_strval * , int ) ;
-extern void set_PLUGIN_strval( PLUGIN_strval * , char * ) ;
-extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
+extern THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * ) ;
 
 extern void PLUTO_histoplot( int, float, float, int *,
                              char *, char *, char * , int,int ** ) ;
 
 extern void PLUTO_scatterplot( int , float *, float *,
                                char *, char *, char * ) ;
+
+extern void PLUTO_force_redisplay( void ) ;
+extern void PLUTO_force_rebar( void ) ;
+
+extern void PLUTO_register_workproc( XtWorkProc , XtPointer ) ;
+extern void PLUTO_remove_workproc  ( XtWorkProc ) ;
+extern Boolean PLUG_workprocess( XtPointer ) ;
+extern void PLUTO_register_timeout( int, generic_func *, XtPointer ) ;
+extern double PLUTO_cpu_time(void) ;
+extern double PLUTO_elapsed_time(void) ;
 
 #endif /* _AFNI_PLUGIN_HEADER_ */

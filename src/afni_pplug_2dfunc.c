@@ -8,8 +8,8 @@
 #include "parser.h"
 
 #ifndef ALLOW_PLUGINS
-#  error "Plugins not properly set up -- see machdep.h"
-#endif
+void F2D_init(void){}
+#else
 
 /***********************************************************************
   Pseudo-plugin to set generic 2D func
@@ -440,3 +440,4 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
 
    return ;
 }
+#endif

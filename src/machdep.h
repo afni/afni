@@ -101,6 +101,10 @@
                               [God, I hope this is the end of this ]
                               [Solaris nightmare -- I'm sick of it!]
 
+    DONT_USE_DEBUGTHISFILE = if this is defined, then the DEBUGTHISFILE
+                             macro in debugtrace.h will be disabled;
+                             this macro has caused trouble on one system
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 

@@ -7,8 +7,8 @@
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
-#  error "Plugins not properly set up -- see machdep.h"
-#endif
+void ENV_init(void){}
+#else
 
 /***********************************************************************
   Pseudo-plugin to set/show environment variables
@@ -619,3 +619,4 @@ static void ENV_marksquality( char * vname )
    char * str = getenv(vname) ;
    GLOBAL_argopt.elide_quality = YESSISH(str) ;
 }
+#endif
