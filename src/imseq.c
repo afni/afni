@@ -9196,25 +9196,29 @@ ENTRY("ISQ_cropper") ;
    ISQ_mapxy( seq , x1,y1 , &imx1,&imy1,&nim1 ) ;
    ISQ_mapxy( seq , x2,y2 , &imx2,&imy2,&nim2 ) ;
 
-   /*** if dragging occured across sub-images in a montage, quit ***/
-
-   if( nim1 != nim2 ){
-#define NINS 10
-static char *ins[NINS]={ "Stupid","Moronic","Cretinous","Idiotic","Bozonic",
-                         "Criminal","Sadistic","Vicious","Repulsive","Dumb" };
-     int ii = (lrand48()>>5) % NINS ;
-     char str[64] ;
-     sprintf(str," \n  %s \n  crop\n  rectangle! \n ",ins[ii]) ;
-     MCW_popup_message( seq->wimage,str, MCW_USER_KILL|MCW_TIMER_KILL ) ;
-     XBell(seq->dc->display,100); goto CropDone;
-   }
-
-   /*** make sure coords of rectangle run upwards ***/
+   /*** ensure coords of rectangle run upwards (upperleft to lowerright) ***/
 
    if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
    if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
 
-   if( imx1 < 0 || imy1 < 0 ){
+   /*** if dragging occured across sub-images in a montage,
+        or if rectangle edge is in a Montage's inter-image border */
+
+   if( nim1 != nim2 || imx1 < 0 || imy1 < 0 ){
+     static int npop=0 ;
+     char str[64] ;
+     if( npop < 5 ){
+#define NINSULT 17
+       static char *ins[NINSULT]={
+                      "Stupid","Moronic","Cretinous","Idiotic","Bozonic",
+                      "Criminal","Repulsive","Dumb",
+                      "Pinheaded","Fatuous","Asinine","Imbecilic",
+                      "Oafish","Doltish","Duncical","Witless","Brainless" };
+       int ii = (lrand48()>>5) % NINSULT ;
+       sprintf(str," \n  %s \n  crop\n  rectangle! \n ",ins[ii]) ;
+       MCW_popup_message( seq->wimage,str, MCW_USER_KILL|MCW_TIMER_KILL ) ;
+       npop++ ;
+     }
      XBell(seq->dc->display,100); goto CropDone;
    }
 
