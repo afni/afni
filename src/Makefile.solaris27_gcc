@@ -16,6 +16,7 @@ EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
 # EXTRA_LIBS = /usr/openwin/lib/libXt.a /usr/openwin/lib/libXext.a \
 #              -lICE -lSM /usr/openwin/lib/libX11.a /usr/openwin/lib/libXext.a \
 #              /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl
+EXTRA_LIBS_2 = -lsocket -lnsl -lc
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -G -s
