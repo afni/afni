@@ -2,6 +2,17 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
+static char s_ver[100];
+
+static char * SUMA_ver2date(int ver)
+{
+   int yy, mm, dd;
+   yy = ver/10000;
+   mm = (ver % 10000) / 100;
+   dd = ver % 100;
+   sprintf(s_ver,"%d_%d_%d", yy, mm, dd);
+   return(s_ver);
+} 
 
 /*!
    \brief Returns a string with the new additions and version information
@@ -15,7 +26,7 @@ extern SUMA_CommonFields *SUMAg_CF;
    \sa SUMA_New_Additions_perver
    
    - To add a new version, you must add a case statement in SUMA_New_Additions_perver
-     AND add the version number in the beginning of verv in SUMA_New_Additions
+     AND add the version number in the beginning of SUMA_VERSION_VECTOR  in SUMA_DataSets.h
 */
 
 static int verv[] = { SUMA_VERSION_VECTOR }; 
@@ -57,6 +68,9 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
       }
    }
    
+   /* add the CVS tag */
+   SS = SUMA_StringAppend_va (SS, "\nCVS tag:\n   %s\n", SUMA_VERSION_LABEL);
+   
    /* add the compile date */
    SS = SUMA_StringAppend_va (SS, "\nCompile Date:\n   %s\n",__DATE__);
    
@@ -69,6 +83,8 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
    SUMA_RETURN(s);      
    
 }
+
+ 
 /*!
    \brief Returns a string with version information
    \param ver (float) Version number
@@ -78,7 +94,7 @@ char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
    \sa SUMA_New_Additions
    
    - To add a new version, you must add a case statement in SUMA_New_Additions_perver
-     AND add the version number in the beginning of verv in SUMA_New_Additions
+     AND add the version number in the beginning of SUMA_VERSION_VECTOR  in SUMA_DataSets.h
 */
 char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
 {
@@ -96,7 +112,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
       /*
       case XX:
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.2f, DATEHERE\n", (float)ver/10000.0); if (StampOnly) break;
+            "++ SUMA version %s\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + \n"
@@ -104,10 +120,10 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + \n");
          break; 
       */
-      /*
-      case 24900:
+      
+      case 20041229:
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.2f, DATEHERE\n", (float)ver/10000.0); if (StampOnly) break;
+            "++ SUMA version %s\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + SurfClust: Program to find clusters of activation\n"
@@ -148,10 +164,10 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    without additional comments.\n"
             );
          break; 
-         */
-      case 25000:
+         
+      case 20040610:   /* used to be 25000 */
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.4f, June 10 2004\n", (float)ver/10000.0); if (StampOnly) break;
+            "++ SUMA version %s (used to be 2.500)\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "Modifications:\n"
             "  + SUMA's surface controller 'ctrl+s' has been\n"
@@ -174,9 +190,9 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             );
          break;
          
-      case 24800:
+      case 20040116:    /* used to be 24800 */
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.4f, Jan. 16 2004\n", (float)ver/10000.0); if (StampOnly) break;
+            "++ SUMA version %s (used to be 2.480)\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + FS_readannot: Program to read FreeSurfer's\n"
@@ -195,9 +211,9 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    are no longer passed to the image recorder.\n" );
          break; 
          
-      case 24500:
+      case 20040106:    /* used to be 24500 */
          SS = SUMA_StringAppend_va(SS, 
-            "++ SUMA version %.4f, Jan. 6 2004\n", (float)ver/10000.0); if (StampOnly) break;
+            "++ SUMA version %s (used to be 2.450)\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
             "  + inspec: Shows the contents of a spec file\n"
@@ -221,7 +237,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
          break;
       
       default:
-         SS = SUMA_StringAppend_va(SS, "++ %f? No such version, fool!\n", (float)ver/10000.0);
+         SS = SUMA_StringAppend_va(SS, "++ %d? No such version, fool!\n", ver);
          break;
    }
    
