@@ -274,7 +274,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "21 July 2004"        /* latest program revision date*/
+#define PROGRAM_LATEST  "27 July 2004"        /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -336,7 +336,7 @@
 
 void JPEG_matrix_gray( matrix X , char *fname ) ; /* save X matrix to a JPEG */
 
-void XSAVE_matrices( THD_3dim_dataset * ) ;       /* save X matrix into file */
+void XSAVE_output( char * ) ;                     /* save X matrix into file */
 
 static int xsave=0 ;                                   /* globals for -xsave */
 static int nGoodList=0 , *GoodList=NULL ;
@@ -347,6 +347,7 @@ static matrix X , XtXinv , XtXinvXt ;
 
 static int xrestore = 0 ;                           /* globals for -xrestore */
 static char *xrestore_filename = NULL ;
+static int NumTimePoints=0 , NumRegressors=0 ;
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -3159,7 +3160,7 @@ void calculate_results
   matrix_initialize (&xtxinvxt_full);
   matrix_initialize (&x_base);
   matrix_initialize (&xtxinvxt_base);
-  vector_initialize (&coef);
+  vector_initialize (&coef) ;
   vector_initialize (&scoef);
   vector_initialize (&tcoef);
   vector_initialize (&y);
@@ -3802,10 +3803,8 @@ void write_ts_array
   bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
 
-
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
-
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
@@ -4014,7 +4013,6 @@ void write_bucket_data
 
   bout = !option_data->nobout ;
   cout = !option_data->nocout ;
-
 
   /*----- Initialize local variables -----*/
   nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
@@ -4291,7 +4289,7 @@ void write_bucket_data
 
   /*----- 25 Jul 2004: save matrix info (etc.) to dataset header -----*/
 
-  if( xsave ) XSAVE_matrices( new_dset ) ;
+  if( xsave ) XSAVE_output( DSET_PREFIX(new_dset) ) ;
 
   /*----- General linear test statistics -----*/
   for (iglt = 0;  iglt < num_glt;  iglt++)
@@ -5179,6 +5177,21 @@ NI_element * intvec_to_niml( int nvec , int *vec , char *ename )
 
 /*-------------------------------------------------------------------*/
 
+void niml_to_intvec( NI_element *nel , int *nvec , int **vec )
+{
+   if( nel == NULL || nvec == NULL || vec == NULL ) return ;
+
+   if( nel->vec_len < 1 || nel->vec_num < 1 ) return ;
+   if( nel->vec_typ[0] != NI_INT ) return ;
+
+   *nvec = nel->vec_len ;
+   *vec  = (int *)malloc(*nvec*sizeof(int)) ;
+   memcpy(*vec,nel->vec[0],*nvec*sizeof(int)) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------*/
+
 NI_element * stringvec_to_niml( int nstr , char **str , char *ename )
 {
    NI_element *nel ;
@@ -5194,17 +5207,37 @@ NI_element * stringvec_to_niml( int nstr , char **str , char *ename )
 
 /*-------------------------------------------------------------------*/
 
-void XSAVE_matrices( THD_3dim_dataset *dset )
+void niml_to_stringvec( NI_element *nel , int *nstr , char ***str )
 {
-   char *fname , *prefix , *cpt ;
+   int ii ;
+   char **sv ;
+
+   if( nel == NULL || nstr == NULL || str == NULL ) return ;
+
+   if( nel->vec_len < 1 || nel->vec_num < 1 ) return ;
+   if( nel->vec_typ[0] != NI_STRING ) return ;
+   sv = (char **) nel->vec[0] ;
+
+   *nstr = nel->vec_len ;
+   *str  = (char **)calloc(sizeof(char *),*nstr) ;
+   for( ii=0 ; ii < *nstr ; ii++ ) (*str)[ii] = strdup(sv[ii]) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------*/
+
+void XSAVE_output( char *prefix )
+{
+   char *fname , *cpt ;
    NI_stream ns ;
    NI_element *nel ;
 
-   if( !ISVALID_DSET(dset) || !xsave ) return ;
+   if( !xsave ) return ;
 
-   /*-- open output stream, based on name of dataset --*/
+   /*-- open output stream --*/
 
-   prefix = DSET_PREFIX( dset ) ;
+   if( prefix == NULL || *prefix == '\0' ) prefix = "X" ;
+
    fname  = malloc( sizeof(char) * (strlen(prefix)+32) ) ;
    strcpy(fname,"file:") ; strcat(fname,prefix) ; strcat(fname,".xsave") ;
    if( THD_is_ondisk(fname+5) )
@@ -5251,24 +5284,24 @@ void XSAVE_matrices( THD_3dim_dataset *dset )
    /*-- write the matrices --*/
 
    nel = matrix_to_niml( X , "matrix" ) ;
-   NI_set_attribute( nel , "name" , "X" ) ;
+   NI_set_attribute( nel , "Xname" , "X" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
    nel = matrix_to_niml( XtXinv , "matrix" ) ;
-   NI_set_attribute( nel , "name" , "XtXinv" ) ;
+   NI_set_attribute( nel , "Xname" , "XtXinv" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
    nel = matrix_to_niml( XtXinvXt , "matrix" ) ;
-   NI_set_attribute( nel , "name" , "XtXinvXt" ) ;
+   NI_set_attribute( nel , "Xname" , "XtXinvXt" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
    /*-- list of good time points --*/
 
    nel = intvec_to_niml( nGoodList , GoodList , "intvec" ) ;
-   NI_set_attribute( nel , "name" , "GoodList" ) ;
+   NI_set_attribute( nel , "Xname" , "GoodList" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
@@ -5276,7 +5309,7 @@ void XSAVE_matrices( THD_3dim_dataset *dset )
 
    if( ParamIndex != NULL ){
      nel = intvec_to_niml( nParam, ParamIndex , "intvec" ) ;
-     NI_set_attribute( nel , "name" , "ParamIndex" ) ;
+     NI_set_attribute( nel , "Xname" , "ParamIndex" ) ;
      (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
      NI_free_element( nel ) ;
    }
@@ -5284,14 +5317,14 @@ void XSAVE_matrices( THD_3dim_dataset *dset )
    /*-- which stimlus input file, for each parameter --*/
 
    nel = intvec_to_niml( nParam, ParamStim , "intvec" ) ;
-   NI_set_attribute( nel , "name" , "ParamStim" ) ;
+   NI_set_attribute( nel , "Xname" , "ParamStim" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
    /*-- stimulus label, for each parameter --*/
 
    nel = stringvec_to_niml( nParam , ParamLabel , "stringvec" ) ;
-   NI_set_attribute( nel , "name" , "ParamLabel" ) ;
+   NI_set_attribute( nel , "Xname" , "ParamLabel" ) ;
    (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
    NI_free_element( nel ) ;
 
@@ -5300,37 +5333,562 @@ void XSAVE_matrices( THD_3dim_dataset *dset )
    NI_stream_close(ns) ; free((void *)fname) ; return ;
 }
 
+/*-------------------------------------------------------------------*/
+
+void XSAVE_input( char *xname )
+{
+   char *fname , *cpt ;
+   NI_stream ns ;
+   NI_element *nel ;
+
+   if( xname == NULL || *xname == '\0' ) return ;
+
+   /*-- open input file --*/
+
+   fname  = malloc( sizeof(char) * (strlen(xname)+32) ) ;
+   strcpy(fname,"file:") ; strcat(fname,xname) ;
+   ns = NI_stream_open( fname , "r" ) ;
+   free((void *)fname) ;
+   if( ns == (NI_stream)NULL ){
+     fprintf(stderr,"** ERROR: can't open file %s for -xrestore!\n",xname) ;
+     return ;
+   }
+
+   /*-- read and decode header element --*/
+
+   nel = NI_read_element( ns , 1 ) ;
+   if( nel == NULL ){
+     fprintf(stderr,"** ERROR: can't read header in file %s for -xrestore!\n",xname) ;
+     NI_stream_close( ns ) ; return ;
+   }
+
+   /* extract filenames */
+
+   cpt = NI_get_attribute( nel , "InputFilename"  ) ;
+                if( cpt != NULL ) InputFilename = strdup(cpt) ;
+   cpt = NI_get_attribute( nel , "BucketFilename" ) ;
+                if( cpt != NULL ) BucketFilename = strdup(cpt) ;
+   cpt = NI_get_attribute( nel , "CoefFilename"   ) ;
+                if( cpt != NULL ) CoefFilename = strdup(cpt) ;
+
+   /* extract other stuff (not used, yet) */
+
+   cpt = NI_get_attribute( nel , "NumTimePoints" ) ;
+                if( cpt != NULL ) NumTimePoints = strtol(cpt,NULL,10) ;
+   cpt = NI_get_attribute( nel , "NumRegressors" ) ;
+                if( cpt != NULL ) NumRegressors = strtol(cpt,NULL,10) ;
+
+   NI_free_element( nel ) ;
+
+   /*-- read succeeding elements, decode and store them --*/
+
+   while(1){
+
+     nel = NI_read_element( ns , 1 ) ;
+     if( nel == NULL ) break ;          /* end of input */
+
+     cpt = NI_get_attribute( nel , "Xname" ) ;  /*- name of variable to save -*/
+     if( cpt == NULL ){
+       NI_free_element( nel ) ; continue ;        /*- unnamed ==> skip this! -*/
+     }
+
+     if( strcmp(nel->name,"matrix") == 0 ){              /*- matrix elements -*/
+
+            if( strcmp(cpt,"X"       )==0 ) niml_to_matrix( nel , &X        );
+       else if( strcmp(cpt,"XtXinv"  )==0 ) niml_to_matrix( nel , &XtXinv   );
+       else if( strcmp(cpt,"XtXinvXt")==0 ) niml_to_matrix( nel , &XtXinvXt );
+
+     } else if( strcmp(nel->name,"intvec") == 0 ){       /*- intvec elements -*/
+
+            if( strcmp(cpt,"GoodList")   == 0 )
+                              niml_to_intvec( nel , &nGoodList, &GoodList   );
+       else if( strcmp(cpt,"ParamIndex") == 0 )
+                              niml_to_intvec( nel , &nParam   , &ParamIndex );
+       else if( strcmp(cpt,"ParamStim" ) == 0 )
+                              niml_to_intvec( nel , &nParam   , &ParamStim  );
+
+     } else if( strcmp(nel->name,"stringvec") == 0 ){ /*- stringvec elements -*/
+
+       if( strcmp(cpt,"ParamLabel") == 0 )
+                             niml_to_stringvec( nel , &nParam , &ParamLabel );
+
+     } else {                                            /*- other elements? -*/
+                                                      /*- silently skip them -*/
+     }
+
+     NI_free_element( nel ) ;  /* toss the trash (or recycle it) */
+
+   } /*-- end of loop over elements in file --*/
+
+   NI_stream_close( ns ) ; return ;
+}
+
 /*============================================================================*/
 /*------ xrestore operations: 26 Jul 2004 ------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
+void check_xrestore_data(void)
+{
+   int nerr = 0 ;
+
+   if( X.rows < 1 || X.cols < 1 ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s has bad X matrix\n",xrestore_filename) ;
+     nerr++ ;
+   }
+   if( XtXinv.rows < 1 || XtXinv.cols < 1 ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s has bad XtXinv matrix\n",xrestore_filename) ;
+     nerr++ ;
+   }
+   if( XtXinvXt.rows < 1 || XtXinvXt.cols < 1 ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s has bad XtXinvXt matrix\n",xrestore_filename) ;
+     nerr++ ;
+   }
+   if( X.cols != nParam ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s X matrix cols mismatch: %d != %d\n",
+             xrestore_filename, X.cols , nParam ) ;
+     nerr++ ;
+   }
+   if( GoodList == NULL ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s missing GoodList field\n",xrestore_filename) ;
+     nerr++ ;
+   } else if( nGoodList != X.rows ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s X matrix rows mismatch: %d != %d\n",
+             xrestore_filename, X.cols , nGoodList ) ;
+     nerr++ ;
+   }
+   if( ParamStim == NULL ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s missing ParamStim field\n",xrestore_filename) ;
+     nerr++ ;
+   }
+   if( ParamLabel == NULL ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s missing ParamLabel field\n",xrestore_filename) ;
+     nerr++ ;
+   }
+   if( InputFilename == NULL ){
+     fprintf(stderr,
+             "** ERROR: -xrestore %s missing InputFilename field\n",xrestore_filename) ;
+     nerr++ ;
+   }
+
+   if( nerr > 0 ) exit(1) ;   /** bad bad bad **/
+   return ;
+}
+
+/*-------------------------------------------------------------------*/
+
 void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 {
-  if( option_data->num_glt < 1 ){
-    fprintf(stderr,"** ERROR: -xrestore with no new GLTs?\n") ;
-    exit(1) ;
-  }
+   THD_3dim_dataset *dset_time , *dset_coef, *dset_buck ;
+   int nt , np , ii, nxyz, tout,rout,fout, ixyz,novar,view ;
+   char *buck_prefix , *buck_name ;
+   short **bar ;
+   char brick_label[THD_MAX_NAME] ;
 
-  /*-- read xsave file --*/
+   float *ts_array = NULL; /* array of measured data for one voxel */
+#undef  NGET
+#define NGET 32            /* number to get at one time */
+   int nget=0 ,            /* number of time series current gotten */
+       cget=0 ,            /* index of next timeseries in iget & imget */
+       jget   ,            /* loop index for iget */
+       iget[NGET] ;        /* voxel index of timeseries */
+   MRI_IMARR *imget=NULL ; /* array of timeseries */
 
-  /*-- read input time series dataset --*/
+   int num_glt , iglt , ilc,nlc ;
+   matrix *glt_cmat , *glt_amat , *cxtxinvct ;
+   vector *glt_coef , *glt_tcoef, y , coef ;
+   float *fglt , *rglt ;
+   char **glt_label ;
+   int *glt_rows ;
+   float ***glt_coef_vol       ,
+         ***glt_tcoef_vol=NULL ,
+         ** glt_fstat_vol=NULL ,
+         ** glt_rstat_vol=NULL  ;
+   float *cdar=NULL , ssef , *volume ;
+   int ivol , nvol , nbuck ;
 
-  /*-- read coefficient dataset (if possible) --*/
+   /*----- Check for GLT options -----*/
 
-  /*-- read new GLT matrices --*/
+   num_glt   = option_data->num_glt   ;
+   glt_label = option_data->glt_label ;
+   glt_rows  = option_data->glt_rows  ;
 
-  /*-- initialize new GLT calculations:
-       - calculate matrices
-       - malloc space for output bricks --*/
+   tout = option_data->tout ;
+   rout = option_data->rout ;
+   fout = option_data->fout ;
 
-  /*-- loop over voxels:
-       - fetch coefficients (check for all zero), or recompute them
-       - fetch time series
-       - compute SSE of full model
-       - compute and store new GLT results in arrays --*/
+   if( num_glt < 1 ){
+     fprintf(stderr,"** ERROR: -xrestore with no new GLTs???\n"); exit(1);
+   }
 
-  /*-- open old dataset for output if
-        (a) -bucket was given for an existing dataset, or
-        (b) no -bucket option was given;
-       otherwise, open a new dataset for output of the GLT results --*/
+   /*----- initialize values to be read from xsave file -----*/
+
+   matrix_initialize( &X )        ;
+   matrix_initialize( &XtXinv )   ;
+   matrix_initialize( &XtXinvXt ) ;
+   nGoodList = 0 ; GoodList   = NULL ;
+   nParam    = 0 ; ParamIndex = NULL ; ParamStim = NULL ; ParamLabel = NULL ;
+
+   /*----- read xsave file -----*/
+
+   XSAVE_input( xrestore_filename ) ;
+   check_xrestore_data() ;
+
+   nt = X.rows ; np = X.cols ;  /* number of time points and parameters */
+
+   /*----- read input time series dataset -----*/
+
+   dset_time = THD_open_one_dataset( InputFilename ) ;
+   if( dset_time == NULL ){
+     fprintf(stderr,
+             "** ERROR: -xrestore can't open time series dataset %s\n" ,
+             InputFilename ) ;
+     exit(1) ;
+   }
+   DSET_load( dset_time ) ;
+   if( !DSET_LOADED(dset_time) ){
+     fprintf(stderr,
+             "** ERROR: -xrestore can't load time series dataset %s\n" ,
+             InputFilename ) ;
+     exit(1) ;
+   }
+   nxyz = DSET_NVOX(dset_time) ;  /* number of voxels */
+   view = dset_time->view_type ;  /* +orig, +acpc, +tlrc ? */
+
+   /*----- read coefficient dataset (if possible) -----*/
+
+   dset_coef = NULL ;
+   if( CoefFilename != NULL ){
+     dset_coef = THD_open_one_dataset( CoefFilename ) ;
+     if( dset_coef == NULL ){
+       fprintf(stderr,
+               "** WARNING: -xrestore can't open coefficient dataset %s\n",
+               CoefFilename);
+     } else {
+       DSET_load(dset_coef) ;
+       if( !DSET_LOADED(dset_coef) ){
+         fprintf(stderr,
+                 "** WARNING: -xrestore can't load coefficient dataset %s\n",
+                 CoefFilename);
+         DSET_delete(dset_coef) ; dset_coef = NULL ;
+       }
+     }
+     if( dset_coef != NULL && DSET_NVALS(dset_coef) < np ){
+       fprintf(stderr,
+               "** WARNING: -xrestore coefficient dataset %s too short\n",
+               CoefFilename);
+       DSET_delete(dset_coef) ; dset_coef = NULL ;
+     }
+     if( dset_coef != NULL ){
+       if( ParamIndex != NULL ) free((void *)ParamIndex) ;
+       ParamIndex = (int *)malloc(sizeof(int)*np) ;
+       for( ii=0 ; ii < np ; ii++ ) ParamIndex[ii] = ii ;
+     }
+   }
+
+   /*----- if above failed, try the old bucket dataset -----*/
+
+   if( dset_coef == NULL && BucketFilename != NULL && ParamIndex != NULL ){
+     dset_coef = THD_open_one_dataset( BucketFilename ) ;
+     if( dset_coef == NULL ){
+       fprintf(stderr,
+               "** WARNING: -xrestore can't open old bucket dataset %s\n",
+               BucketFilename);
+     } else {
+       DSET_load(dset_coef) ;
+       if( !DSET_LOADED(dset_coef) ){
+         fprintf(stderr,
+                 "** WARNING: -xrestore can't load old bucket dataset %s\n",
+                 BucketFilename);
+         DSET_delete(dset_coef) ; dset_coef = NULL ;
+       }
+     }
+     if( dset_coef != NULL && DSET_NVALS(dset_coef) < ParamIndex[np-1] ){
+       fprintf(stderr,
+               "** WARNING: -xrestore old bucket dataset %s too short\n",
+               BucketFilename);
+       DSET_delete(dset_coef) ; dset_coef = NULL ;
+     }
+   }
+
+   if( ISVALID_DSET(dset_coef) && DSET_NVOX(dset_coef) != nxyz ){
+     fprintf(stderr,
+             "** ERROR: dataset mismatch between time series and coef!\n") ;
+     exit(1) ;
+   }
+
+   /*----- neither worked ==> must recompute from input data time series -----*/
+
+   if( dset_coef == NULL )
+     fprintf(stderr,
+           "** WARNING: -xrestore recomputing coefficients from time series\n");
+
+   /*----- read new GLT matrices -----*/
+
+   glt_cmat = (matrix *) malloc( sizeof(matrix) * num_glt ) ;
+
+   for( iglt=0; iglt < num_glt ; iglt++){
+     matrix_initialize( glt_cmat + iglt ) ;
+     matrix_file_read ( option_data->glt_filename[iglt] ,
+                            option_data->glt_rows[iglt] ,
+                        np , glt_cmat+iglt , 1           ) ;
+     if( glt_cmat[iglt].elts == NULL ){
+       fprintf(stderr,
+               "** ERROR: Can't read GLT matrix from file %s\n",
+               option_data->glt_filename[iglt] ) ;
+       exit(1) ;
+     }
+   }
+
+   /*----- initialize new GLT calculations:
+            - setup space for matrices and vectors
+            - calculate matrices
+            - malloc space for output bricks -----*/
+
+   cxtxinvct = (matrix *) malloc( sizeof(matrix) * num_glt ) ;
+   glt_amat  = (matrix *) malloc( sizeof(matrix) * num_glt ) ;
+   glt_coef  = (vector *) malloc( sizeof(vector) * num_glt ) ;
+   glt_tcoef = (vector *) malloc( sizeof(vector) * num_glt ) ;
+
+   for( iglt=0 ; iglt < num_glt ; iglt++ ){
+     matrix_initialize( cxtxinvct+iglt ) ;  /* will be loaded in   */
+     matrix_initialize( glt_amat +iglt ) ;  /* init_glt_analysis() */
+     vector_initialize( glt_coef +iglt ) ;
+     vector_initialize( glt_tcoef+iglt ) ;
+   }
+
+   fglt = (float *) malloc( sizeof(float) * num_glt ) ;
+   rglt = (float *) malloc( sizeof(float) * num_glt ) ;
+
+   vector_initialize( &y )   ; vector_create( nt, &y    );  /* time series */
+   vector_initialize( &coef ); vector_create( np, &coef );  /* parameters */
+
+   if( dset_coef != NULL )
+     cdar = (float *)malloc( sizeof(float) * DSET_NVALS(dset_coef) ) ;
+
+   init_glt_analysis( XtXinv , num_glt , glt_cmat , glt_amat , cxtxinvct ) ;
+
+   /*-- malloc output bricks --*/
+
+   glt_coef_vol = (float ***) malloc( sizeof(float **) * num_glt ) ;
+   if( tout )
+     glt_tcoef_vol  = (float ***) malloc( sizeof(float **) * num_glt ) ;
+   if( fout )
+     glt_fstat_vol = (float **) malloc( sizeof(float *)  * num_glt ) ;
+   if( rout )
+     glt_rstat_vol = (float **) malloc( sizeof(float *)  * num_glt ) ;
+
+   nvol = 0 ;
+   for( iglt=0 ; iglt < num_glt ; iglt++ ){
+     nlc = glt_rows[iglt];
+     glt_coef_vol[iglt] = (float **) malloc( sizeof(float *) * nlc ) ;
+     if( tout )
+       glt_tcoef_vol[iglt] = (float **) malloc( sizeof(float *) * nlc ) ;
+     for( ilc=0 ; ilc < nlc ; ilc++ ){
+       glt_coef_vol[iglt][ilc] = (float *)calloc(sizeof(float),nxyz); nvol++;
+       if( tout ){
+         glt_tcoef_vol[iglt][ilc] = (float *)calloc(sizeof(float),nxyz); nvol++;
+       }
+     }
+     if( fout ){
+       glt_fstat_vol[iglt] = (float *)calloc( sizeof(float), nxyz ); nvol++;
+     }
+     if( rout ){
+       glt_rstat_vol[iglt] = (float *)calloc( sizeof(float), nxyz ); nvol++;
+     }
+   }
+
+   /*----- loop over voxels:
+            - fetch coefficients (check for all zero), or recompute them
+            - fetch time series
+            - compute SSE of full model
+            - compute and store new GLT results in arrays -----*/
+
+   for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
+
+     /*** race ahead and extract a bunch of voxel time series at once ***/
+
+     if( cget == nget ){
+       if( imget != NULL ) DESTROY_IMARR(imget) ;
+       iget[0] = ixyz ; nget = 1 ;
+       for( jget=ixyz+1 ; jget < nxyz && nget < NGET ; jget++ )
+         iget[nget++] = jget ;
+       imget = THD_extract_many_series( nget, iget, dset_time ) ;
+       cget  = 0 ;  /* the next one to take out of imget */
+     }
+
+     /*** Extract Y-data for this voxel ***/
+
+     ts_array = MRI_FLOAT_PTR(IMARR_SUBIM(imget,cget)) ; cget++ ;
+     for( ii=0 ; ii < nt ; ii++ ) y.elts[ii] = ts_array[GoodList[ii]];
+
+     /*** Extract or recompute coefficients for this voxel ***/
+
+     if( dset_coef != NULL ){
+       (void) THD_extract_array( ixyz , dset_coef , 0 , cdar ) ;
+       for( ii=0 ; ii < np ; ii++ ) coef.elts[ii] = cdar[ParamIndex[ii]] ;
+     } else {
+       vector_multiply( XtXinvXt , y , &coef ) ;
+     }
+
+     /*** if coef is all zero, skip this voxel ***/
+
+     for( ii=0 ; ii < np ; ii++ ) if( coef.elts[ii] != 0.0 ) break ;
+     novar = (ii==np) ;
+
+     if( !novar ) ssef = calc_sse( X , coef , y ) ;
+
+     /*** Do the work we came here for ***/
+
+     glt_analysis( nt , np ,
+                   X , y , ssef , coef , novar ,
+                   cxtxinvct , num_glt , glt_rows , glt_cmat , glt_amat ,
+                   glt_coef , glt_tcoef , fglt , rglt ) ;
+
+     /*** save results into output bricks ***/
+
+     if (glt_coef_vol != NULL)
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+       if (glt_coef_vol[iglt] != NULL)
+        for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+         glt_coef_vol[iglt][ilc][ixyz] = glt_coef[iglt].elts[ilc];
+
+     if (glt_tcoef_vol != NULL)
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+       if (glt_tcoef_vol[iglt] != NULL)
+        for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+         glt_tcoef_vol[iglt][ilc][ixyz] = glt_tcoef[iglt].elts[ilc];
+
+     if (glt_fstat_vol != NULL)
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+       if (glt_fstat_vol[iglt] != NULL)
+        glt_fstat_vol[iglt][ixyz] = fglt[iglt];
+
+     if (glt_rstat_vol != NULL)
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+       if (glt_rstat_vol[iglt] != NULL)
+        glt_rstat_vol[iglt][ixyz] = rglt[iglt];
+
+   } /*** end of loop over voxels */
+
+   /*** unload input datasets to save memory ***/
+
+                           DSET_unload( dset_time ) ;
+   if( dset_coef != NULL ) DSET_delete( dset_coef ) ;
+
+   /*----- open old dataset for output if
+             (a) -bucket was given for an existing dataset, or
+             (b) no -bucket option was given;
+            otherwise, open a new dataset for output of the GLT results -----*/
+
+   if( option_data->bucket_filename != NULL ){
+     buck_prefix = strdup(option_data->bucket_filename) ;
+   } else if( BucketFilename != NULL ){
+     buck_prefix = (char *)malloc(strlen(BucketFilename)+4) ;
+     FILENAME_TO_PREFIX( BucketFilename , buck_prefix ) ;
+   } else {
+     buck_prefix = strdup("X") ;   /* bad user, bad bad bad */
+   }
+
+   /*** try to open dataset as an old one **/
+
+   buck_name = (char *)malloc(strlen(buck_prefix)+32) ;
+   strcpy(buck_name,buck_prefix) ;
+   strcat(buck_name,"+") ; strcat(buck_name,VIEW_codestr[view]) ;
+
+   dset_buck = THD_open_one_dataset( buck_name ) ;
+
+   if( dset_buck != NULL ){
+
+     fprintf(stderr,"++ -xrestore appending to dataset %s\n",buck_name) ;
+     DSET_mallocize( dset_buck ) ;
+     if( DSET_NVOX(dset_buck) != nxyz ){
+       fprintf(stderr,
+               "** ERROR: dataset %s mismatch with %s\n" ,
+               buck_name , DSET_HEADNAME(dset_time)       );
+       exit(0) ;
+     }
+     DSET_load( dset_buck ) ;
+     if( !DSET_LOADED(dset_buck) ){
+       fprintf(stderr,
+               "** ERROR: can't load dataset %s from disk\n" , buck_name ) ;
+       exit(1) ;
+     }
+
+     /* add nvol empty bricks at the end */
+
+     ivol = DSET_NVALS(dset_buck) ;   /* where to save first new brick */
+
+     EDIT_add_bricklist( dset_buck , nvol, NULL, NULL, NULL ) ;
+
+   } else {  /*** create a new dataset ***/
+
+     fprintf(stderr,"++ -xrestore creating new dataset %s\n",buck_name) ;
+
+     dset_buck = EDIT_empty_copy( dset_time ) ;
+     (void) EDIT_dset_items( dset_buck ,
+                             ADN_prefix,          buck_prefix ,
+                             ADN_type,            HEAD_FUNC_TYPE,
+                             ADN_func_type,       FUNC_BUCK_TYPE,
+                             ADN_datum_all,       MRI_short ,
+                             ADN_ntt,             0,               /* no time */
+                             ADN_nvals,           nvol ,
+                             ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
+                             ADN_none ) ;
+     ivol = 0 ;
+   }
+
+   tross_Make_History( PROGRAM_NAME , argc , argv , dset_buck ) ;
+
+   nbuck = DSET_NVALS(dset_buck) ;
+   bar   = (short **)calloc( sizeof(short *) , nbuck ) ;
+
+   /*** attach sub-bricks to output ***/
+
+   for( iglt=0 ; iglt < num_glt ; iglt++ ){
+
+     for( ilc=0 ; ilc < glt_rows[iglt] ; ilc++ ){
+       sprintf( brick_label , "%s LC[%d] coef" , glt_label[iglt], ilc ) ;
+       volume = glt_coef_vol[iglt][ilc];
+       attach_sub_brick( dset_buck, ivol, volume, nxyz,
+                         FUNC_FIM_TYPE, brick_label, 0, 0, 0, bar);
+       free((void *)volume) ; ivol++ ;
+
+       if( tout ){
+         sprintf( brick_label , "%s LC[%d] t-st" , glt_label[iglt], ilc ) ;
+         volume = glt_tcoef_vol[iglt][ilc];
+         attach_sub_brick( dset_buck, ivol, volume, nxyz,
+                           FUNC_TT_TYPE, brick_label, nt-np, 0, 0, bar);
+         free((void *)volume) ; ivol++ ;
+       }
+     }
+
+     if( rout ){
+       sprintf( brick_label , "%s R^2" , glt_label[iglt] ) ;
+       volume = glt_rstat_vol[iglt];
+       attach_sub_brick( dset_buck, ivol, volume, nxyz,
+                         FUNC_THR_TYPE, brick_label, 0, 0, 0, bar);
+       free((void *)volume) ; ivol++ ;
+     }
+
+     if( fout ){
+       sprintf( brick_label , "%s F-stat" , glt_label[iglt] ) ;
+       volume = glt_fstat_vol[iglt];
+       attach_sub_brick( dset_buck, ivol, volume, nxyz,
+                         FUNC_FT_TYPE, brick_label, 0, glt_rows[iglt], nt-np, bar);
+       free((void *)volume) ; ivol++ ;
+     }
+   }  /** End loop over general linear tests **/
+
+   /*----- Write dataset out! -----*/
+
+   DSET_write( dset_buck ) ;
+   return ;
 }
