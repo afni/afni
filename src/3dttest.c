@@ -484,7 +484,7 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
 
    if( iv > 0 ){
       fprintf(stderr,
-              "*** %d errors in attempting to create output dataset!\n" ) ;
+              "*** %d errors in attempting to create output dataset!\n",iv ) ;
       exit(1) ;
    }
 

@@ -7,7 +7,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -63,13 +62,12 @@ ENTRY("AFNI_dataset_slice") ;
    if( ival == DSET_THRESH_VALUE(dset) ) resam_mode = RESAM_NN_TYPE ;
 #endif
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"Input dataset = %s",DSET_FILECODE(dset)) ; STATUS(str) ;
   sprintf(str,"nxx=%d nyy=%d nzz=%d",nxx,nyy,nzz) ;  STATUS(str) ;
   sprintf(str,"fixed_axis=%d fixed_index=%d ival=%d resam=%d",
           fixed_axis,fixed_index,ival,resam_mode ) ; STATUS(str) ; }
-#endif
 
    /*--------- setup output image ---------*/
 
@@ -114,12 +112,11 @@ ENTRY("AFNI_dataset_slice") ;
 
    if( ival < 0 ) RETURN(newim) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"newim nx=%d ny=%d dx=%f dy=%f",
           newim->nx , newim->ny , newim->dx , newim->dy ) ;
   STATUS(str) ; }
-#endif
 
    /*----- if datablock exists and not forcing warp-on-demand, use it -----*/
 
@@ -202,11 +199,11 @@ STATUS("setting parent_to_child_warp to identity") ;
    }
 
    if( dset->warp_parent != NULL ){
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting parent_dset to stored warp_parent=%p  this dset=%p",
           (void *) dset->warp_parent , (void *) dset ) ; STATUS(str) ; }
-#endif
+
       parent_dset = dset->warp_parent ;
    } else {
 STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
@@ -814,12 +811,11 @@ ENTRY("FD_warp_to_mri") ;
    ax_2 = br->a123.ijk[1] ;
    ax_3 = br->a123.ijk[2] ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"kslice=%d ax_1=%d ax_2=%d ax_3=%d",
           kslice,ax_1,ax_2,ax_3) ;
   STATUS(str) ; }
-#endif
 
    daxes = CURRENT_DAXES(br->dset) ;
 
@@ -845,23 +841,21 @@ ENTRY("FD_warp_to_mri") ;
                 fixed_index = daxes->nzz - kslice - 1 ; break ;
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"fixed_axis=%d fixed_index=%d dsl_1=%d dsl_2=%d",
           fixed_axis,fixed_index,dsl_1,dsl_2) ;
   STATUS(str) ; }
-#endif
 
    resam_code = ( DSET_BRICK_STATCODE(br->dset,ival) > 0 )
                 ? br->thr_resam_code
                 : br->resam_code ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"ival=%d  statcode=%d  resam_code=%d",
           ival,DSET_BRICK_STATCODE(br->dset,ival),resam_code) ;
   STATUS(str) ; }
-#endif
 
    dsim = AFNI_dataset_slice( br->dset ,
                               fixed_axis , fixed_index , ival , resam_code ) ;
@@ -910,12 +904,11 @@ ENTRY("FD_warp_to_mri") ;
       RETURN(NULL) ;
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"flipping output image: rot=%d mir=%d",rot,mir) ; STATUS(str) ;
   sprintf(str,"input to mri_flippo: nx=%d ny=%d type=%s",
           dsim->nx,dsim->ny,MRI_TYPE_name[dsim->kind]) ; STATUS(str) ; }
-#endif
 
    flim = mri_flippo( rot , mir , dsim ) ;  /* will set dx,dy OK */
 

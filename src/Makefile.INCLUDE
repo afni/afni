@@ -30,19 +30,19 @@ MISC    = afni.montage AFNI.Xdefaults mF64 mF128 3d*.lib
 PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
-           p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
+           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg 3dmaskave 3dbuc2fim byteorder imstack
+           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
-                  p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
+                  p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-                  imstack byteorder
+                  imstack byteorder 3dDeconvolve
 
 all:libmri.a libcoxplot.a programs
 
@@ -72,9 +72,6 @@ byteorder:byteorder.o
 
 3dbuc2fim:3dbuc2fim.o
 	$(CC) -o 3dbuc2fim 3dbuc2fim.o $(LFLAGS) $(LLIBS)
-
-whirlgif:whirlgif.h whirlgif.c
-	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 mritopgm:mritopgm.c
 	$(CC) -o mritopgm mritopgm.c $(IFLAGS) $(LFLAGS) $(LLIBS)
@@ -199,6 +196,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dbucket 3dbucket.o $(LFLAGS) $(LLIBS)
 
+3dTcat:3dTcat.o
+	$(RM) $@
+	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
+
 from3d:from3d.o
 	$(RM) $@
 	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
@@ -214,6 +215,10 @@ from3d:from3d.o
 p2t:p2t.o
 	$(RM) $@
 	$(CC) -o p2t p2t.o $(LFLAGS) $(LLIBS)
+
+cdf:cdf.o
+	$(RM) $@
+	$(CC) -o cdf cdf.o $(LFLAGS) $(LLIBS)
 
 hide:hide.o
 	$(RM) $@
@@ -308,6 +313,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) $(LLIBS)
 
+3dDeconvolve:3dDeconvolve.o
+	$(RM) $@
+	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) $(LLIBS)
+
 2dImReg:2dImReg.o
 	$(RM) $@
 	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) $(LLIBS)
@@ -337,13 +346,7 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
                 dafni_pcor_float.o parser.c parser_int.c \
                 pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
                 afni_plugin.c afni_plugout.c afni_setup.c afni_receive.c \
-                $(PLFLAGS) -lf2c $(LLIBS)
-	$(RM) afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o afni_pcor.o \
-              pbar.o display.o imseq.o bbox.o xim.o xutil.o \
-              parser.o parser_int.o afni_plugout.o afni_setup.o \
-              dafni_pcor_float.o afni_graph.o afni_plugin.o afni_receive.o \
-              dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
-              dafni_slice_complex.o
+                $(PLFLAGS) -lcoxplot -lf2c $(LLIBS)
 
 dto3d:to3d.c display.c imseq.c bbox.c xim.c xutil.c
 	$(CCD) -o dto3d $(IFLAGS) \
@@ -618,7 +621,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
-           edt_scl2max.o edt_substbrick.o edt_volamax.o
+           edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o
 
 CS_OBJS  = cs_sort_fi.o
 
@@ -640,12 +643,12 @@ thd_iochan.o:thd_iochan.h
 
 SO = $(PLUGIN_SUFFIX)
 
-plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO) \
-        plug_3ddot.$(SO)    plug_power.$(SO)    plug_stats.$(SO)  \
-        plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)   \
-        plug_nlfit.$(SO)    plug_realtime.$(SO)                   \
-        plug_coorder.$(SO)  plug_compress.$(SO)                   \
-        plug_drawdset.$(SO) plug_maskave.$(SO)                    \
+plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
+        plug_3ddot.$(SO)    plug_power.$(SO)    plug_stats.$(SO)       \
+        plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)        \
+        plug_nlfit.$(SO)    plug_realtime.$(SO)                        \
+        plug_coorder.$(SO)  plug_compress.$(SO)                        \
+        plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
@@ -798,6 +801,12 @@ rmz:rmz.o
 
 uncomment:uncomment.o
 	$(CC) -o uncomment uncomment.o $(LFLAGS) $(LLIBS)
+
+ibinom:ibinom.o
+	$(CC) -o ibinom ibinom.o $(LFLAGS) $(LLIBS)
+
+whirlgif:whirlgif.h whirlgif.c
+	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

@@ -143,7 +143,7 @@ typedef struct {
      INIT_KILL((name)->kl) )
 
 #define ADDTO_SARR(name,str)                                          \
-   { if( (name)->num == (name)->nall ){                               \
+ do{ if( (name)->num == (name)->nall ){                               \
       (name)->nall += INC_SARR ;                                      \
       (name)->ar    = (char **) XtRealloc( (char *) (name)->ar ,      \
                                  sizeof(char *) * (name)->nall ) ;    \
@@ -153,17 +153,17 @@ typedef struct {
       strcpy( (name)->ar[(name)->num] , (str) ) ;                     \
       ADDTO_KILL((name)->kl,(name)->ar[(name)->num]) ;                \
       ((name)->num)++ ;                                               \
-     } }
+     } } while(0)
 
 #define REMOVEFROM_SARR(name,ijk)                \
-   { SINGLE_KILL((name)->kl,(name)->ar[(ijk)]) ; \
-     (name)->ar[(ijk)] = NULL ; }
+ do{ SINGLE_KILL((name)->kl,(name)->ar[(ijk)]) ; \
+     (name)->ar[(ijk)] = NULL ; } while(0)
 
 #define DESTROY_SARR(name)    \
-   if( (name) != NULL ){      \
+ do{ if( (name) != NULL ){    \
      KILL_KILL((name)->kl) ;  \
      myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; }
+     myXtFree( (name) ) ; } } while(0)
 
 extern int SARR_find_string( THD_string_array * sar , char * str ) ;
 extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
@@ -171,10 +171,10 @@ extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
 extern int SARR_lookfor_string   ( THD_string_array * sar , char * str , int nstart ) ;
 extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart ) ;
 
-#define PATH_CONCAT(pout,p1,p2)                          \
-  { int zq ; strcpy((pout),(p1)) ; zq = strlen((pout)) ; \
-    if( (pout)[zq-1] != '/' ) strcat((pout),"/") ;       \
-    strcat((pout),(p2)) ; }
+#define PATH_CONCAT(pout,p1,p2)                            \
+  do{ int zq ; strcpy((pout),(p1)) ; zq = strlen((pout)) ; \
+      if( (pout)[zq-1] != '/' ) strcat((pout),"/") ;       \
+      strcat((pout),(p2)) ; } while(0)
 
 /*************** dynamic array of sorted (x,y,z) points *************/
 
@@ -2031,6 +2031,7 @@ extern int THD_is_directory( char * pathname ) ;
 extern int THD_equiv_files( char * , char * ) ;
 extern long THD_filesize( char * pathname ) ;
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
+extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
@@ -2168,7 +2169,9 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;
 #endif
 
-extern float THD_stat_to_pval( float thr , int statcode , float * stataux ) ;
+extern float THD_stat_to_pval  ( float thr , int statcode , float * stataux ) ;
+extern float THD_pval_to_stat  ( float pval, int statcode , float * stataux ) ;
+extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
 
 extern int THD_filename_ok( char * ) ; /* 24 Apr 1997 */
 

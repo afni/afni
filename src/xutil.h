@@ -37,6 +37,11 @@ extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 
+extern Colormap MCW_get_colormap( Widget ) ;            /* 01 Sep 1998 */
+extern void     MCW_set_colormap( Widget , Colormap ) ; /* 14 Sep 1998 */
+extern int      MCW_get_depth( Widget ) ;
+extern Visual * MCW_get_visual( Widget ) ;
+
 extern void MCW_set_widget_cursor( Widget,int ) ;
 extern void MCW_alter_widget_cursor( Widget,int , char * , char * ) ;
 

@@ -77,6 +77,15 @@ ENTRY("THD_get_many_timeseries") ;
          ii = SARR_find_string( dlist , ename ) ;  /* skip this directory */
          if( ii >= 0 ) continue ;                  /* if already was scanned */
 
+         /* 09 Sep 1998: check for file equivalence as well */
+
+         if( dlist != NULL ){
+            for( ii=0 ; ii < dlist->num ; ii++ )
+               if( THD_equiv_files(dlist->ar[ii],ename) ) break ;
+
+            if( ii < dlist->num ) continue ;  /* skip to end of do loop */
+         }
+
          eee = strstr( elocal , ename ) ;
          if( eee != NULL && (eee-elocal) < epos-id ) continue ;
 
@@ -138,7 +147,11 @@ ENTRY("THD_get_all_timeseries") ;
       fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
 
       ll = strlen(fname) - 3 ; if( ll < 1 ) continue ;
-      if( strcmp(fname+ll,".1D")==0 || strcmp(fname+ll,"1Dx")==0 ){
+
+      if( strcmp(fname+ll,".1D")==0 ||
+          strcmp(fname+ll,"1Dx")==0 ||
+          strcmp(fname+ll,"1Dv")==0   ){
+
          outim = mri_read_ascii( fname ) ;
          if( outim != NULL ){
             if( outim->kind != MRI_float ){

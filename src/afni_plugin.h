@@ -466,6 +466,7 @@ extern int PLUTO_add_dset( PLUGIN_interface *, THD_3dim_dataset *, int ) ;
 extern THD_3dim_dataset * PLUTO_copy_dset( THD_3dim_dataset *, char * ) ;
 
 extern void PLUTO_force_redisplay( void ) ;
+extern void PLUTO_force_rebar( void ) ;
 extern void PLUTO_dset_redisplay( THD_3dim_dataset * ) ;
 
 extern int PLUTO_prefix_ok( char * ) ;

@@ -46,7 +46,7 @@
 
 #define ANNOUNCEMENT  \
    "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n"  \
-   "v. " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"        \
+   "version " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"        \
    "Development supported by MCW funds and by NIH grants MH51358 & NS34798.\n"    \
    "Clinical uses are not recommended, and have not been evaluated by the FDA.\n"
 
@@ -69,20 +69,23 @@ static char * afni_helptypes[] = {
 typedef struct { char * name ; int helpmask ; } AFNI_friend ;
 
 static AFNI_friend afni_friends[] = {
-  { "J.R. Binder"    , (        4 | 8 | 16           ) } ,
-  { "E.A. DeYoe"     , (1 |     4 | 8                ) } ,
-  { "J.S. Hyde"      , (1 | 2              | 32      ) } ,
-  { "S.M. Rao"       , (        4 | 8 | 16           ) } ,
-  { "E.A. Stein"     , (1 | 2 | 4 | 8 | 16           ) } ,
-  { "A. Jesmanowicz" , (                     32      ) } ,
-  { "F.Z. Yetkin"    , (    2         | 16           ) } ,
-  { "M.S. Beauchamp" , (1 | 2 | 4 | 8 | 16           ) } ,
-  { "M.M. Klosek"    , (1 | 2              | 32      ) } ,
-  { "J.A. Bobholz"   , (                16 | 32      ) } ,
-  { "J.A. Frost"     , (                16           ) } ,
-  { "J. Kummer"      , (            8      | 32      ) } ,
-  { "B.D. Ward"      , (        4 | 8           | 64 ) } ,
-  { "S.A. Fuller"    , (                16           ) }
+  { "J.R. Binder"      , ( 1 |     4 | 8 | 16           ) } ,
+  { "E.A. DeYoe"       , ( 1 |     4 | 8                ) } ,
+  { "J.S. Hyde"        , ( 1 | 2              | 32      ) } ,
+  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           ) } ,
+  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           ) } ,
+  { "A. Jesmanowicz"   , (                      32      ) } ,
+/*{ "F.Z. Yetkin"      , (     2         | 16           ) } ,*/
+  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16           ) } ,
+  { "M.M. Klosek"      , ( 1 | 2              | 32      ) } ,
+  { "J.A. Bobholz"     , (             8 | 16 | 32      ) } ,
+  { "J.A. Frost"       , (                 16           ) } ,
+  { "J. Kummer"        , (         4 | 8      | 32      ) } ,
+  { "B.D. Ward"        , (         4 | 8           | 64 ) } ,
+/*{ "S.A. Fuller"      , (                 16           ) } ,*/
+  { "K.M. Donahue"     , (                 16           ) } ,
+  { "P.A. Bandettini"  , (                 16           ) } ,
+  { "A.S. Bloom"       , ( 1 | 2         | 16           ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -100,7 +103,6 @@ static AFNI_friend afni_friends[] = {
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -147,8 +149,8 @@ void AFNI_syntax(void)
      "                  for each AFNI controller window.  This allows\n"
      "                  different datasets to be viewed with different\n"
      "                  grayscales or colorscales.  Note that -unique\n"
-     "                  will only work on 12 bit PseudoColor displays\n"
-     "                  (for example, SGI workstations).\n"
+     "                  will only work on displays that support 12 bit\n"
+     "                  PseudoColor (e.g., SGI workstations) or TrueColor.\n"
      "   -orient code Tells afni the orientation in which to display\n"
      "                  x-y-z coordinates (upper left of control window).\n"
      "                  The code must be 3 letters, one each from the\n"
@@ -228,6 +230,9 @@ void AFNI_syntax(void)
      "                  monitor is 'gg' (default gg is 1.0; greater than\n"
      "                  1.0 makes the image contrast larger -- this may\n"
      "                  also be adjusted interactively)\n"
+     "   -install     Tells afni to install a new X11 Colormap.  This only\n"
+     "                  means something for PseudoColor displays.  Also, it\n"
+     "                  usually cause the notorious 'technicolor' effect.\n"
      "   -ncolors nn  Tells afni to use 'nn' gray levels for the image\n"
      "                  displays (default is %d)\n"
      "   -xtwarns     Tells afni to show any Xt warning messages that may\n"
@@ -235,6 +240,7 @@ void AFNI_syntax(void)
      "   -tbar name   Uses 'name' instead of 'AFNI' in window titlebars.\n"
 #ifdef USE_TRACING
      "   -trace       Turns routine call tracing on, for debugging purposes.\n"
+     "   -TRACE       Turns even more verbose tracing on, for more debugging.\n"
 #endif
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -265,6 +271,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.elide_quality  = 0 ;      /* Dec 1997 */
    GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
+   GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -326,6 +333,10 @@ ENTRY("AFNI_parse_args") ;
 #ifdef USE_TRACING
       if( strncmp(argv[narg],"-trace",5) == 0 ){
          DBG_trace = 1 ;
+         narg++ ; continue ;
+      }
+      if( strncmp(argv[narg],"-TRACE",5) == 0 ){  /* 23 Aug 1998 */
+         DBG_trace = 2 ;
          narg++ ; continue ;
       }
 #endif
@@ -406,6 +417,13 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-unique",5) == 0 ){
          GLOBAL_argopt.unique_dcs = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -install option (14 Sep 1998) -----*/
+
+      if( strncmp(argv[narg],"-install",5) == 0 ){
+         GLOBAL_argopt.install_cmap = True ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -745,6 +763,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 #ifdef USE_TRACING
    if( argc > 1 && strncmp(argv[1],"-trace",5) == 0 ) DBG_trace = 1 ;
+   if( argc > 1 && strncmp(argv[1],"-TRACE",5) == 0 ) DBG_trace = 2 ; /* 23 Aug 1998 */
 #endif
 
    srand48((long)time(NULL)) ;  /* initialize random number generator */
@@ -755,11 +774,13 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
      nf = lrand48() % NUM_FRIENDS ;
      do{
         nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-     } while( qq < 9 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+     } while( qq < 11 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
      sprintf( buf  ,
               "Thanks go to %s for %s.\n" ,
               afni_friends[nf].name , afni_helptypes[nh] ) ;
      REPORT_PROGRESS( buf ) ;
+
+     if( argc > 1 && strcmp(argv[1],"-friend") == 0 ) exit(0) ;  /* 19 Sep 1998 */
    }
 #endif
 
@@ -819,9 +840,9 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    GLOBAL_library.dc = dc =
         MCW_new_DC( shell , GLOBAL_argopt.ncolor ,
                     INIT_ncolovr , INIT_colovr , INIT_labovr ,
-                    GLOBAL_argopt.gamma ) ;
+                    GLOBAL_argopt.gamma , GLOBAL_argopt.install_cmap ) ;
 
-   if( dc->depth < 9 && GLOBAL_argopt.unique_dcs ){ /* 06 Nov 1996 */
+   if( dc->depth < 9 && dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
       GLOBAL_argopt.unique_dcs = False ;
       REPORT_PROGRESS("[-unique off]") ;
    }
@@ -1064,9 +1085,7 @@ XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br )
 
 ENTRY("AFNI_brick_to_mri") ;
 
-#ifdef AFNI_DEBUG
-{ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
-#endif
+if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
 
    /*-------------------------------------------------*/
    /*-------- May 1996: graph callbacks first --------*/
@@ -1169,11 +1188,10 @@ STATUS("get status") ;
 
       if( type == isqCR_getqimage ) ival = -1 ; /* get empty image */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"getting image n1=%d n2=%d ival=%d",br->n1,br->n2,ival) ;
   STATUS(str) ; }
-#endif
 
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
@@ -1562,9 +1580,8 @@ void AFNI_seq_send_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
 
 ENTRY("AFNI_seq_send_CB") ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"reason=%d",cbs->reason) ; STATUS(str) ; }
-#endif
 
    if( ! IM3D_VALID(im3d) ||
        (im3d->ignore_seq_callbacks==AFNI_IGNORE_EVERYTHING) ) EXRETURN ;
@@ -1600,11 +1617,10 @@ ENTRY("AFNI_seq_send_CB") ;
          if( im3d->vinfo->xhairs_ndown.ijk[az] > 0 ||
              im3d->vinfo->xhairs_nup.ijk[az]   > 0   ){
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"imseq close on axis %d --> lost xhairs in that direction",az) ;
   STATUS(str) ; }
-#endif
 
             CLEAR_MONTAGE(im3d,br) ;
 
@@ -1639,11 +1655,10 @@ ENTRY("AFNI_seq_send_CB") ;
                /* April 1996:  only use this button press if
                                it is inside the confines of the brick */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"Button1 at %d %d %d\n",
           cbs->xim,cbs->yim,cbs->nim) ; STATUS(str) ; }
-#endif
 
                if( cbs->xim >= 0 && cbs->xim < br->n1 &&
                    cbs->yim >= 0 && cbs->yim < br->n2 &&
@@ -1652,11 +1667,10 @@ ENTRY("AFNI_seq_send_CB") ;
                   id = THD_fdind_to_3dind(
                           br , TEMP_IVEC3(cbs->xim,cbs->yim,cbs->nim) );
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str," 3D dataset coordinates %d %d %d",
           id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
-#endif
 
                   SAVE_VPT(im3d) ;  /* save current location as jumpback */
 
@@ -1677,12 +1691,11 @@ ENTRY("AFNI_seq_send_CB") ;
 
          id = THD_fdind_to_3dind( br, TEMP_IVEC3(-99999,-99999,cbs->nim) );
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"newimage input %d -> %d %d %d",
           cbs->nim , id.ijk[0],id.ijk[1],id.ijk[2] ) ;
   STATUS(str) ; }
-#endif
 
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
             AFNI_set_viewpoint(
@@ -1700,11 +1713,10 @@ ENTRY("AFNI_seq_send_CB") ;
          int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
              az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"newmontage: ndown=%d nup=%d nskip=%d a3=%d (on axis az=%d)",
           ndown,nup,nskip,a3,az) ; STATUS(str) ; }
-#endif
 
          im3d->vinfo->xhairs_nskip.ijk[az] = nskip ;
 
@@ -1830,6 +1842,14 @@ ENTRY("AFNI_seq_send_CB") ;
       }
       break ; /* end of button2 coordinates */
 
+      /*--- 22 Aug 1998: redraw everything ---*/
+
+      case isqCR_force_redisplay:{
+         PLUTO_force_redisplay() ;  /* see afni_plugin.c */
+         PLUTO_force_rebar() ;      /* ditto [23 Aug 1998] */
+      }
+      break ; /* end of forced redisplay */
+
    }  /* end of switch on reason for call */
 
    EXRETURN ;
@@ -1845,9 +1865,8 @@ void AFNI_gra_send_CB( MCW_grapher * grapher , FD_brick * br , GRA_cbs * cbs )
 
 ENTRY("AFNI_gra_send_CB") ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"reason=%d",cbs->reason) ; STATUS(str) ; }
-#endif
 
    if( ! IM3D_VALID(im3d) ||
        (im3d->ignore_seq_callbacks==AFNI_IGNORE_EVERYTHING) ) EXRETURN ;
@@ -1904,11 +1923,11 @@ ENTRY("AFNI_gra_send_CB") ;
             id = THD_fdind_to_3dind(
                     br , TEMP_IVEC3(cbs->xcen,cbs->ycen,cbs->zcen) );
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str," 3D dataset coordinates %d %d %d",
           id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
-#endif
+
             if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
                AFNI_set_viewpoint(
                   im3d ,
@@ -2227,6 +2246,13 @@ ENTRY("AFNI_read_inputs") ;
                ADDTO_SARR(dlist,argv[GLOBAL_argopt.first_file_arg+id]) ;
             }
          }
+      }
+
+      /** 09 Sep 1998: eliminate duplicates from the directory list **/
+
+      { THD_string_array * qlist ;
+        qlist = THD_normalize_flist( dlist ) ;
+        if( qlist != NULL ){ DESTROY_SARR(dlist) ; dlist = qlist ; }
       }
 
       /* read each session, set parents, put into session list */
@@ -3019,11 +3045,10 @@ void AFNI_set_viewpoint( Three_D_View * im3d ,
 
 ENTRY("AFNI_set_viewpoint") ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"input xx=%d yy=%d zz=%d",xx,yy,zz) ;
   STATUS(str) ; }
-#endif
 
    if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
 
@@ -3253,9 +3278,8 @@ ENTRY("AFNI_overlay") ;
 
    /*-- at least one source of an overlay is present --*/
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"n1=%d n2=%d",br->n1,br->n2) ; STATUS(str) ; }
-#endif
 
    LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
@@ -3270,11 +3294,12 @@ ENTRY("AFNI_overlay") ;
            (if present), or as a new blank image (otherwise). -----*/
 
    if( fov != NULL ){
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
 sprintf(str,"new overlay from AFNI_func_overlay: nx=%d ny=%d\n",fov->nx,fov->ny) ;
 STATUS(str) ; }
-#endif
+
       im  = fov ; ovgood = True ;
       oar = MRI_SHORT_PTR(im) ;
    } else {
@@ -3351,13 +3376,12 @@ STATUS("new overlay is created de novo") ;
                jdown = im3d->vinfo->xhairs_nup.ijk[ay] ;
             }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"montage xhairs: ax   =%d ay   =%d az =%d",ax,ay,az)       ; STATUS(str);
   sprintf(str,"                iskip=%d idown=%d iup=%d",iskip,idown,iup); STATUS(str);
   sprintf(str,"                jskip=%d jdown=%d jup=%d",jskip,jdown,jup); STATUS(str);
 }
-#endif
 
          } else {                                          /* in "Single" Mode */
            idown = iup = jdown = jup = iskip = jskip = 0 ;
@@ -3831,11 +3855,10 @@ ENTRY("AFNI_marks_action_CB") ;
 
       if( ! markers->valid[ipt] ) (markers->numset) ++ ;  /* newly set */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"set #%d numset=%d",ipt,markers->numset) ;
   STATUS(str) ; }
-#endif
 
       markers->valid[ipt] = True ;
 
@@ -3873,11 +3896,10 @@ ENTRY("AFNI_marks_action_CB") ;
          marks->changed = True ;  /* cleared a set marker --> a change */
       }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"clr #%d numset=%d",ipt,markers->numset) ;
   STATUS(str) ; }
-#endif
 
       markers->valid[ipt] = False ;
 
@@ -4135,11 +4157,10 @@ ENTRY("AFNI_initialize_view") ;
    aaa = im3d->vinfo->anat_num ;
    fff = im3d->vinfo->func_num ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"view=%d session=%d anat=%d func=%d",vvv,sss,aaa,fff);
   STATUS(str) ; }
-#endif
 
    new_anat = GLOBAL_library.sslist->ssar[sss]->anat[aaa][vvv] ;
    new_func = GLOBAL_library.sslist->ssar[sss]->func[fff][vvv] ;
@@ -5682,11 +5703,6 @@ ENTRY("AFNI_make_warp") ;
          MAKE_MAP(L,P,I) ;   /* left -posterior-inferior */
 
 #undef MAKE_MAP
-
-#ifdef AFNI_DEBUG
-STATUS("Aligned -> Talairach warp::") ;
-DUMP_T12_WARP(*twarp) ;
-#endif
 
       }
       break ; /* end of Bounding markers set */

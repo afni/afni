@@ -53,14 +53,14 @@ typedef struct {
     (cc)->num_pt = (cc)->num_all = 0 , \
     (cc)->i = NULL , (cc)->j = NULL , (cc)->k = NULL ,(cc)->mag = NULL )
 
-#define KILL_CLUSTER(cc)             \
-  do{ if( cc != NULL ){              \
+#define KILL_CLUSTER(cc)       \
+  do{ if( cc != NULL ){        \
          myXtFree((cc)->i) ;   \
          myXtFree((cc)->j) ;   \
          myXtFree((cc)->k) ;   \
          myXtFree((cc)->mag) ; \
          myXtFree((cc)) ;      \
-         (cc) = NULL ;               \
+         (cc) = NULL ;         \
       } break ; } while(0)
 
 #ifdef CLUST_DEBUG
@@ -189,6 +189,8 @@ typedef struct EDIT_options {
 
    int   iv_fim , iv_thr ;        /* 30 Nov 1997 --> use these sub-bricks     */
 
+   int   zscore ;                 /* 17 Sep 1998 --> convert statistic to Z   */
+
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -234,8 +236,9 @@ typedef struct EDIT_options {
         (edopt)->do_zvol       = 0   , \
         (edopt)->clip_unscaled = 0   , \
         (edopt)->iv_fim        = -1  , \
-        (edopt)->iv_thr        = -1    \
-      )
+        (edopt)->iv_thr        = -1  , \
+        (edopt)->zscore        = 0   , \
+       0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
 
@@ -253,6 +256,8 @@ extern float EDIT_coerce_autoscale( int , int,void * , int,void * ) ;
 
 extern void EDIT_aver_fvol( int, int, int,
                             float, float, float, float *, float) ;
+
+extern void EDIT_zscore_vol( int,int,float,void *,int,float * ) ;
 
 /********************* New routines for AFNI-96 ****************************/
 

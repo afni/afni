@@ -612,6 +612,59 @@ int main( int argc , char * argv[] )
       if( MRG_datum >= 0 ) output_datum = MRG_datum ;
       else                 output_datum = input_datum ;
 
+      /** 17 Sep 1998: Move the creation of the new dataset
+                       to AFTER the editing operations, so that any
+                       dataset parameter changes in EDIT_one_dataset
+                       will properly be propagated to the new dataset.
+                       The creation shown here is just to check if the
+                       output dataset exists already.                   **/
+
+      new_dset = EDIT_empty_copy( dset ) ;
+
+      EDIT_dset_items( new_dset ,
+                          ADN_prefix         , MRG_output_prefix ,
+                          ADN_directory_name , MRG_output_session ,
+                       ADN_none ) ;
+
+      if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
+         fprintf(stderr,
+                 "*** Output file %s already exists -- cannot continue!\n",
+                 new_dset->dblk->diskptr->header_name ) ;
+         exit(1) ;
+      }
+
+      THD_delete_3dim_dataset( new_dset , False ) ;  /* toss this junk */
+
+      /** get ready to go **/
+
+      if( ! MRG_be_quiet ){
+         printf("-- editing input dataset in memory (%.1f MB)\n",
+                ((double)dset->dblk->total_bytes) / MEGA ) ;
+         fflush(stdout) ;
+      }
+
+  /* 02 Feb 1998 */  
+  if (MRG_doall)
+    {  iv_bot = 0;  iv_top = DSET_NVALS(dset);  }
+  else
+    {  iv_bot = DSET_PRINCIPAL_VALUE(dset);  iv_top = iv_bot + 1;  }
+
+  /*----- Iterate over sub-bricks -----*/
+  for (iv = iv_bot;  iv < iv_top;  iv++)
+    {
+      if ((!MRG_be_quiet) && MRG_doall)
+	printf ("Editing sub-brick %d\n", iv);
+
+      MRG_edopt.iv_fim = iv;
+
+      EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
+
+      if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
+    }
+    if( !MRG_be_quiet && !MRG_doall ) printf("\n") ;
+
+      /** 17 Sep 1998: NOW create the new dataset **/
+
       new_dset = EDIT_empty_copy( dset ) ;
 
       EDIT_dset_items( new_dset ,
@@ -620,7 +673,6 @@ int main( int argc , char * argv[] )
                           ADN_directory_name , MRG_output_session ,
                        ADN_none ) ;
       strcat( new_dset->self_name , "(ED)" ) ;
-
                                                            /* 02 Feb 1998 */
       if( (! MRG_keepthr) && (new_dset->dblk->nvals > 1) && (! MRG_doall) )
          EDIT_dset_items( new_dset ,
@@ -637,40 +689,11 @@ int main( int argc , char * argv[] )
          output_thdatum = input_thdatum = ILLEGAL_TYPE ;
       }
 
-      if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
-         fprintf(stderr,
-                 "*** Output file %s already exists -- cannot continue!\n",
-                 new_dset->dblk->diskptr->header_name ) ;
-         exit(1) ;
-      }
-
-      if( ! MRG_be_quiet ){
-         printf("-- editing input dataset in memory (%.1f MB)",
-                ((double)dset->dblk->total_bytes) / MEGA ) ;
-         fflush(stdout) ;
-      }
-
-
-  /* 02 Feb 1998 */  
-  if (MRG_doall)
-    {  iv_bot = 0;  iv_top = DSET_NVALS(dset);  }
-  else
-    {  iv_bot = DSET_PRINCIPAL_VALUE(dset);  iv_top = iv_bot + 1;  }
-
-  /*----- Iterate over sub-bricks -----*/
-  for (iv = iv_bot;  iv < iv_top;  iv++)
-    {
-      if ((!MRG_be_quiet) && MRG_doall)
-	printf ("Editing sub-brick %d \n", iv);
-
-      MRG_edopt.iv_fim = iv;
-
-      EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
-
-      if( ! MRG_be_quiet ){ printf(".\n") ; fflush(stdout) ; }
-
       /** Coerce the output data type into a new brick, if needed **/
 
+  /*----- Iterate over sub-bricks [again] -----*/
+  for (iv = iv_bot;  iv < iv_top;  iv++)
+    {
   /* 02 Feb 1998 */
   if (MRG_doall)
     {
@@ -690,7 +713,9 @@ int main( int argc , char * argv[] )
 
          mri_fix_data_pointer( DSET_ARRAY(dset,ival) , DSET_BRICK(new_dset,ii) ) ;
 
+#if 0
          DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival) ;
+#endif
 
       } else {
 
@@ -717,7 +742,7 @@ int main( int argc , char * argv[] )
          mri_free( DSET_BRICK(dset,ival) ) ;
       }
 
-      /** Now do the threshold data **/
+      /** Now do the threshold data [won't happen if doall is also happening] **/
 
       if( output_thdatum >= 0 ){
 
@@ -728,7 +753,9 @@ int main( int argc , char * argv[] )
 
             mri_fix_data_pointer( DSET_ARRAY(dset,ival),DSET_BRICK(new_dset,ii) ) ;
 
+#if 0
             DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival) ;
+#endif
 
          } else {
             void * dfim , * efim ;

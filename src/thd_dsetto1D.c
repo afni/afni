@@ -1,6 +1,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*---------------------------------------------------------------
   Routine to extract a time-series (fixed index, variable ival)

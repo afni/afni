@@ -1,12 +1,18 @@
 #include "mrilib.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /*** Not actually MRI processing routines -- just some statistics ***/
 
-/*---------------------------------------------------------------
+/*-----------------------------------------------------------------
   Student t-statistic:
-    given threshold, compute 2-sided tail probability ("t2p"), or
-    given 2-sided tail probability, compute threshold ("p2t").
------------------------------------------------------------------*/
+    given threshold, compute 2-sided tail probability  ("t2p"), or
+    given statistic, compute equivalent N(0,1) deviate ("t2z"), or
+    given 2-sided tail probability, compute threshold  ("p2t").
+-------------------------------------------------------------------*/
 
 double student_p2t( double pp , double dof )
 {
@@ -30,6 +36,26 @@ double student_t2p( double tt , double dof )
    xx = dof/(dof + tt*tt) ;
    pp = incbeta( xx , 0.5*dof , 0.5 , bb ) ;
    return pp ;
+}
+
+double student_t2z( double tt , double dof )
+{
+   static double bb , dof_old = -666.666 ;
+   double xx , pp ;
+
+   if( dof != dof_old ){
+      bb      = lnbeta( 0.5*dof , 0.5 ) ;
+      dof_old = dof ;
+   }
+
+   xx = dof/(dof + tt*tt) ;
+   pp = incbeta( xx , 0.5*dof , 0.5 , bb ) ;
+
+   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
+   else           pp = 0.5 * pp ;
+
+   xx = qginv(pp) ;
+   return -xx ;
 }
 
 /*---------------------------------------------------------------------
@@ -67,6 +93,17 @@ double correl_t2p( double rho , double nsam , double nfit , double nort )
    return pp ;
 }
 
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double correl_t2z( double rho , double nsam , double nfit , double nort )
+{
+   double pp , xx ;
+   pp = 0.5 * correl_t2p( fabs(rho) , nsam , nfit , nort ) ;
+   xx = qginv(pp) ;
+   return ( (rho > 0) ? xx : -xx ) ;
+}
+
 /*----------------------------------------------------------
    Averaged t-statistic
 ------------------------------------------------------------*/
@@ -96,12 +133,29 @@ double studave_p2t( double pp , double dof , double nn )
 
 double studave_t2p( double tt , double dof , double nn )
 {
-   fprintf(stderr,"\n*** studave_t2p: NOT IMPLEMENTED YET! ***\a\n") ;
-   exit(1) ;
+   static int nc = 0 ;
+   if( nc < 9 ){
+      fprintf(stderr,"*** studave_t2p: NOT IMPLEMENTED YET!\n") ; nc++ ;
+   }
+   return 0.0 ;
 }
 
+double studave_t2z( double tt , double dof , double nn )
+{
+   static int nc = 0 ;
+   if( nc < 9 ){
+      fprintf(stderr,"*** studave_t2z: NOT IMPLEMENTED YET!\n") ; nc++ ;
+   }
+   return 0.0 ;
+}
+
+/***********************************************************************/
+/*** The routines below here are wrappers for the cdflib routines    ***/
+/*** (cdf_*.c) from U Texas -- see file cdflib.txt for the details.  ***/
+/***********************************************************************/
+
 /*---------------------------------------------------------------
-  F statistic
+  F statistic: single sided
 -----------------------------------------------------------------*/
 
 double fstat_p2t( double pp , double dofnum , double dofden )
@@ -140,28 +194,14 @@ double fstat_t2p( double ff , double dofnum , double dofden )
    else              return 1.0 ;
 }
 
-/*---------------------------------------------------------------
-  Convert a Student t deviate to a normal deviate
------------------------------------------------------------------*/
+/******************************/
+/*** added this 17 Sep 1998 ***/
 
-double student_to_normal( double tt , double dof )
+double fstat_t2z( double ff , double dofnum , double dofden )
 {
-   static double bb , dof_old = -666.666 ;
-   double xx , pp ;
-
-   if( dof != dof_old ){
-      bb      = lnbeta( 0.5*dof , 0.5 ) ;
-      dof_old = dof ;
-   }
-
-   xx = dof/(dof + tt*tt) ;
-   pp = incbeta( xx , 0.5*dof , 0.5 , bb ) ;
-
-   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
-   else           pp = 0.5 * pp ;
-
-   xx = qginv(pp) ;
-   return -xx ;
+   double pp ;
+   pp = 0.5 * fstat_t2p( ff , dofnum , dofden ) ;
+   return qginv(pp) ;
 }
 
 /*---------------------------------------------------------------
@@ -261,7 +301,6 @@ lab5:
     p and q, alpha between zero and one.
     log of complete beta function, beta, is assumed to be known.
 ------------------------------------------------------------------*/
-
 
 #define SAE   -15.0
 #define TWO     2.0
@@ -393,7 +432,7 @@ lab12:
 double qginv( double p )
 {
    double dp , dx , dt , ddq , dq ;
-   int    newt ;
+   int    newt ;                       /* not Gingrich, but Isaac */
 
    dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
 
@@ -464,7 +503,8 @@ double gamma( double x )
    double w , g ;
 
    if( x <= 0.0 ){
-      fprintf(stderr,"Internal gamma: argument %g <= 0\a\n",x);exit(-1);
+      fprintf(stderr,"Internal gamma: argument %g <= 0\a\n",x) ;
+      return 0.0 ;
    }
 
    if( x <  1.0 ) return gamma_12( x+1.0 ) - log(x) ;
@@ -499,8 +539,27 @@ double normal_t2p( double zz )
 
    cdfnor( &which , &p , &q , &x , &mean , &sd , &status , &bound ) ;
 
-   if( status == 0 ) return 2.0*q ;
+   if( status == 0 ) return 2.0*q ;  /* double sided prob = 2 times single sided */
    else              return 1.0 ;
+}
+
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double normal_p2t( double qq )
+{
+   int which , status ;
+   double p , q , x , mean,sd,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - 0.5 * qq ;
+   q      = 0.5 * qq ;        /* single sided prob = 1/2 of double sided */
+   x      = 0.0 ;
+   mean   = 0.0 ;
+   sd     = 1.0 ;
+
+   cdfnor( &which , &p , &q , &x , &mean , &sd , &status , &bound ) ;
+   return x ;
 }
 
 /*----------------------------------------------------------------
@@ -524,6 +583,31 @@ double chisq_t2p( double xx , double dof )
    else              return 1.0 ;
 }
 
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double chisq_p2t( double qq , double dof )
+{
+   int which , status ;
+   double p,q,x,df,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - qq ;
+   q      = qq ;
+   x      = 0.0 ;
+   df     = dof ;
+
+   cdfchi( &which , &p , &q , &x , &df , &status , &bound ) ;
+   return x ;
+}
+
+double chisq_t2z( double xx , double dof )
+{
+   double pp ;
+   pp = 0.5 * chisq_t2p( xx , dof ) ;
+   return qginv(pp) ;
+}
+
 /*----------------------------------------------------------------
    Compute upper tail probability for incomplete beta distribution
 ------------------------------------------------------------------*/
@@ -545,6 +629,34 @@ double beta_t2p( double xx , double aa , double bb )
 
    if( status == 0 ) return q ;
    else              return 1.0 ;
+}
+
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double beta_t2z( double xx , double aa , double bb )
+{
+   double pp ;
+   pp = 0.5 * beta_t2p( xx , aa , bb ) ;
+   return qginv(pp) ;
+}
+
+double beta_p2t( double qq , double aa , double bb )
+{
+   int which , status ;
+   double p,q,x,y,a,b,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - qq ;
+   q      = qq ;
+   x      = 0.0 ;
+   y      = 1.0 ;
+   a      = aa ;
+   b      = bb ;
+
+   cdfbet( &which , &p , &q , &x , &y , &a , &b ,  &status , &bound ) ;
+
+   return x ;
 }
 
 /*----------------------------------------------------------------
@@ -572,6 +684,35 @@ double binomial_t2p( double ss , double ntrial , double ptrial )
    else              return 1.0 ;
 }
 
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double binomial_t2z( double ss , double ntrial , double ptrial )
+{
+   double pp ;
+   pp = 0.5 * binomial_t2p( ss , ntrial , ptrial ) ;
+   return qginv(pp) ;
+}
+
+double binomial_p2t( double qq , double ntrial , double ptrial )
+{
+   int which , status ;
+   double p,q, s,xn,pr,ompr,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - qq ;
+   q      = qq ;
+   s      = 0.0 ;
+   xn     = ntrial ;
+   pr     = ptrial ;
+   ompr   = 1.0 - ptrial ;
+
+   cdfbin( &which , &p , &q , &s , &xn , &pr , &ompr , &status , &bound ) ;
+
+   if( status == 0 ) return s ;
+   else              return 0.0 ;
+}
+
 /*----------------------------------------------------------------
    Compute upper tail probability for the gamma distribution.
 ------------------------------------------------------------------*/
@@ -594,6 +735,33 @@ double gamma_t2p( double xx , double sh , double sc )
    else              return 1.0 ;
 }
 
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double gamma_t2z( double xx , double sh , double sc )
+{
+   double pp ;
+   pp = 0.5 * gamma_t2p( xx , sh , sc ) ;
+   return qginv(pp) ;
+}
+
+double gamma_p2t( double qq , double sh , double sc )
+{
+   int which , status ;
+   double p,q, x,shape,scale,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - qq ;
+   q      = qq ;
+   x      = 0.0 ;
+   shape  = sh ;
+   scale  = sc ;
+
+   cdfgam( &which , &p , &q , &x , &shape , &scale , &status , &bound ) ;
+
+   return x ;
+}
+
 /*----------------------------------------------------------------
    Compute upper tail probability for the Poisson distribution
    (that is, the probability that the value is greater than xx).
@@ -614,4 +782,30 @@ double poisson_t2p( double xx , double lambda )
 
    if( status == 0 ) return q ;
    else              return 1.0 ;
+}
+
+/******************************/
+/*** added this 17 Sep 1998 ***/
+
+double poisson_t2z( double xx , double lambda )
+{
+   double pp ;
+   pp = 0.5 * poisson_t2p( xx , lambda ) ;
+   return qginv(pp) ;
+}
+
+double poisson_p2t( double qq , double lambda )
+{
+   int which , status ;
+   double p,q, s,xlam,bound ;
+
+   which  = 2 ;
+   p      = 1.0 - qq ;
+   q      = qq ;
+   s      = 0.0 ;
+   xlam   = lambda ;
+
+   cdfpoi( &which , &p , &q , &s , &xlam , &status , &bound ) ;
+
+   return s ;
 }

@@ -24,7 +24,11 @@
            types for base and input datasets.
   Date:    3 June 1998
 
+  Mod:     Corrected problem with base image memory deallocation.
+  Date:    20 July 1998
+
 */
+
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -34,7 +38,7 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "2dImReg"                       /* name of this program */
-#define LAST_MOD_DATE "3 June 1998"              /* date of last program mod */
+#define LAST_MOD_DATE "20 July 1998"             /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80          /* max. strength length for file names */ 
 #define STATE_DIM 4                 /* number of registration parameters */   
@@ -810,7 +814,6 @@ void eval_registration
 
 #define FREE_WORKSPACE                             \
   do{ FREEUP(bptr) ; FREEUP(sptr) ; FREEUP(fptr) ; \
-      FREEUP(bbase); FREEUP(sbase); FREEUP(fbase); \
       FREEUP(bout) ; FREEUP(sout) ; FREEUP(fout) ; \
       FREEUP(dxar) ; FREEUP(dyar) ; FREEUP(phiar); \
     } while(0) ;

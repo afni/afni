@@ -218,10 +218,12 @@ For some Unix systems, the following should work:
   setenv AFNI_PSPRINT "lp -"
 For others, this may work
   setenv AFNI_PSPRINT "lpr -"
-It all depends on the printer software setup you have.
+It all depends on the printer software setup you have.  To send the
+output into GhostView
+  setenv AFNI_PSPRINT "ghostview -landscape -"
 
-In the future, I may add the ability to print to a PostScript file
-or printer to other windows (e.g., image and graph displays).
+In the (far distant) future, other windows (e.g., image and graph
+displays) may get the ability to print to a PostScript file or printer.
 
 =================================
 | Robert W. Cox, PhD            |

@@ -16,12 +16,10 @@
 #include <X11/Shell.h>
 #include <X11/cursorfont.h>
 
-#ifndef linux
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
 #include <Xm/DialogS.h>
 #include <Xm/PushB.h>
-#endif
 
 #include "mrilib.h"
 
@@ -97,7 +95,7 @@ typedef struct {
       Screen *     screen ;
       int          screen_num ;
       Visual *     visual ;
-      Colormap     colormap ;
+      Colormap     colormap , default_colormap ;
       GC           myGC , origGC ;
       int          planes ;
       int          depth ;
@@ -118,6 +116,8 @@ typedef struct {
                    xcol_im[MAX_COLORS]  ;
 
       Pixel        pix_im[MAX_COLORS] ;
+      int          pix_im_ready ;         /* 22 Aug 1998 */
+      int          byper , bypad ;        /* 23 Aug 1998 */
 
       MCW_DCOV *   ovc ;                  /* Dec 1997 */
 
@@ -145,7 +145,9 @@ static char * tfont_hopefuls[] = {
 
 /*** prototypes ***/
 
-extern MCW_DC * MCW_new_DC( Widget, int, int, char * c[] , char * l[] , double ) ;
+extern void DC_yokify( Widget , MCW_DC * ) ; /* 14 Sep 1998 */
+
+extern MCW_DC * MCW_new_DC( Widget, int, int, char * c[], char * l[], double, int ) ;
 
 extern void DC_init_im_gry( MCW_DC * ) ;
 extern void DC_init_im_col( MCW_DC * ) ;
@@ -180,7 +182,7 @@ extern void DC_palette_setcolor( MCW_DC * ) ;
 
 extern Boolean MCW_check_iconsize( int,int,MCW_DC * ) ;
 
-extern XColor * DCpix_to_XColor( MCW_DC * , int ) ;
+extern XColor * DCpix_to_XColor( MCW_DC * , Pixel ) ;
 
 extern void DC_fg_color( MCW_DC * , int ) ;
 extern void DC_bg_color( MCW_DC * , int ) ;
@@ -189,5 +191,7 @@ extern void DC_linewidth( MCW_DC * , int ) ;
 extern void DC_fg_colorpix( MCW_DC * , Pixel ) ;
 
 extern void OVC_mostest( MCW_DCOV * ) ;
+
+extern void DC_set_image_colors( MCW_DC * ) ;  /* 22 Aug 1998 */
 
 #endif /* _MCW_DISPLAY_HEADER_ */

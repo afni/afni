@@ -53,6 +53,7 @@ typedef struct {
       int first_file_arg , recurse ;
       int elide_quality ;
       int no_frivolities ;
+      int install_cmap ;
 } AF_options ;
 
 #ifdef MAIN
@@ -122,7 +123,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "17 August 1998   "
+#define RELEASE "21 September 1998"
 
 #ifdef MAIN
 #define AFNI_about \

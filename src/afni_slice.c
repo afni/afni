@@ -122,7 +122,6 @@ static complex complex_zero = { 0.0,0.0 } ;
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 

@@ -9,7 +9,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -68,6 +67,8 @@ ENTRY("new_MCW_grapher") ;
            XmNallowShellResize , False ,          /* let code resize shell */
            XmNinitialResourcesPersistent , False ,
       NULL ) ;
+
+   DC_yokify( grapher->fdw_graph , dc ) ;  /* 14 Sep 1998 */
 
    /** find initial size of new graphs **/
 
@@ -591,12 +592,11 @@ ENTRY("new_MCW_grapher") ;
 
    /** initialize the internal parameters **/
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[128] ;
   sprintf(str,"STATUS: num_series=%d nx=%d ny=%d",
           grapher->status->num_series,grapher->status->nx,grapher->status->ny ) ;
   STATUS(str) ; }
-#endif
 
    grapher->fscale      =  0 ;
    grapher->mat         =  0 ;
@@ -3456,6 +3456,14 @@ ENTRY("GRA_setshift_startup") ;
                          XmNtitle , "Shifts" ,
                          XmNdeleteResponse , XmDO_NOTHING ,
                          XmNinitialResourcesPersistent , False ,
+
+                         XmNvisual   , grapher->dc->visual ,         /* 14 Sep 1998 */
+                         XmNcolormap , grapher->dc->colormap ,
+                         XmNdepth    , grapher->dc->depth ,
+                         XmNscreen   , grapher->dc->screen ,
+                         XmNbackground  , 0 ,
+                         XmNborderColor , 0 ,
+
                       NULL ) ;
 
    if( MCW_isitmwm(grapher->fdw_graph) ){

@@ -5,7 +5,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -92,12 +91,11 @@ ENTRY("AFNI_fimmer_setref") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting fimref to %s",
      (tsim==NULL) ? "Nothing" : (tsim->name==NULL) ? "NoName" : tsim->name) ;
   STATUS(str) ; }
-#endif
 
    if( im3d->g123 != NULL )
       drive_MCW_grapher( im3d->g123 , graDR_addref_ts , (XtPointer) tsim ) ;
@@ -110,20 +108,18 @@ ENTRY("AFNI_fimmer_setref") ;
 
    ii = AFNI_ts_in_library( tsim ) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found new ref in library at ii=%d",ii) ;
   STATUS(str) ; }
-#endif
 
    ii = AFNI_ts_in_library( im3d->fimdata->fimref ) ;
 
    /* 12 Nov 1996: fix problem with freeing old
                    ref that might be in the library */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found old ref in library at ii=%d",ii) ;
   STATUS(str) ; }
-#endif
 
    if( ii < 0 && im3d->fimdata->fimref != NULL ){
       mri_free(im3d->fimdata->fimref) ;
@@ -149,12 +145,11 @@ ENTRY("AFNI_fimmer_setort") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting fimort to %s",
      (tsim==NULL) ? "Nothing" : (tsim->name==NULL) ? "NoName" : tsim->name) ;
   STATUS(str) ; }
-#endif
 
    if( im3d->g123 != NULL )
       drive_MCW_grapher( im3d->g123 , graDR_addort_ts , (XtPointer) tsim ) ;
@@ -167,20 +162,18 @@ ENTRY("AFNI_fimmer_setort") ;
 
    ii = AFNI_ts_in_library( tsim ) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found new ort in library at ii=%d",ii) ;
   STATUS(str) ; }
-#endif
 
    ii = AFNI_ts_in_library( im3d->fimdata->fimort ) ;
 
    /* 12 Nov 1996: fix problem with freeing old
                    ort that might be in the library */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found old ort in library at ii=%d",ii) ;
   STATUS(str) ; }
-#endif
 
    if( ii < 0 && im3d->fimdata->fimort != NULL ){
       mri_free(im3d->fimdata->fimort) ;
@@ -284,12 +277,11 @@ ENTRY("AFNI_fimmer_compute") ;
        code == 0                      ||           /* Jan 1998 */
        ref_ts->nx < DSET_NUM_TIMES(dset_time) ){
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"illegal inputs: ntime=%d num_ts=%d",
           DSET_NUM_TIMES(dset_time), (ref_ts==NULL) ? (0) : (ref_ts->nx) ) ;
   STATUS(str) ; }
-#endif
 
       RETURN(NULL) ;
    }
@@ -360,10 +352,9 @@ ENTRY("AFNI_fimmer_compute") ;
       }
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"new prefix = %s",new_prefix) ; STATUS(str) ; }
-#endif
 
    /*--- FIM: find values above threshold to fim ---*/
 
@@ -476,10 +467,9 @@ ENTRY("AFNI_fimmer_compute") ;
       ibest = NULL ;  /* 15 Dec 1997 */
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"nxyz = %d  nvox = %d",nxyz,nvox) ; STATUS(str) ; }
-#endif
 
    /*--- FIM: initialize recursive updates ---*/
 
@@ -657,11 +647,10 @@ ENTRY("AFNI_fimmer_compute") ;
             ref_vec[ny_ort+2] = tsar[it] ; /* ref value */
          }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"time index=%d  ideal[%d]=%f" , it,ivec,tsar[it] ) ;
   STATUS(str) ; }
-#endif
 
          /* process the ort+ref update */
 
@@ -1400,22 +1389,20 @@ ENTRY("AFNI_fimmer_fix_optmenu") ;
 
    if( im3d->vwid->func->fim_menu->fim_ignore_choose_av->imax != igtop ){
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"refit 0..%d, init %d",igtop,im3d->fimdata->init_ignore) ;
   STATUS(str) ; }
-#endif
 
       refit_MCW_optmenu( im3d->vwid->func->fim_menu->fim_ignore_choose_av ,
                          0 , igtop , im3d->fimdata->init_ignore, 0,
                          NULL , NULL ) ;
    } else {
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"assign init %d",im3d->fimdata->init_ignore) ;
   STATUS(str) ; }
-#endif
 
       AV_assign_ival( im3d->vwid->func->fim_menu->fim_ignore_choose_av ,
                       im3d->fimdata->init_ignore ) ;

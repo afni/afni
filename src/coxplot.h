@@ -175,7 +175,7 @@ extern void ps_circle( int , int , int ) ;                 /* draw a circle   */
 extern void ps_erase( void ) ;                             /* new page        */
 extern void ps_linemod( char * ) ;                         /* line styles     */
 extern void ps_space( int , int , int , int ) ;            /* set plot space  */
-extern void ps_openpl( char * ) ;                          /* open plot file  */
+extern int  ps_openpl( char * ) ;                          /* open plot file  */
 extern void ps_closepl( void ) ;                           /* close plot file */
 extern void ps_setrgb( float , float , float ) ;           /* set color */
 extern void ps_setwidth( float ) ;                         /* set linewidth */
@@ -258,5 +258,35 @@ extern void plotpak_tick4( int mx, int lx , int my , int ly ) ;
 extern void plotpak_vector( float x , float y ) ;
 
 extern void plotpak_srface( float *, float *, float *, int,int, float,float ) ;
+
+/*----- Commons from PLOTPAK -----*/
+
+#ifdef PLOTPAK_COMMONS
+#  define EXT  /* nada */
+#else
+#  define EXT extern
+#endif
+
+EXT struct {
+    real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
+             ybot, xtop, ytop, xmin, ymin, xmax, ymax;
+    integer ixcoor, iycoor;
+    real alphxx, betaxx, alphyy, betayy, tmajx, tminx, tmajy, tminy;
+    integer majrx, minrx, majry, minry, isizx, isizy;
+    real xphold, yphold;
+} zzzplt_;
+
+EXT struct {
+    real xphmax, yphmax;
+    integer ixpmax, iypmax;
+    real xpscal, ypscal;
+    integer iflip, nplotr;
+    char cfile[64];
+} zzpltr_;
+
+EXT struct {
+    integer ndash;
+    real xldash[8], xid;
+} zzdash_;
 
 #endif

@@ -1,23 +1,7 @@
-
-
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994-7 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #include "to3d.h"
 
@@ -65,6 +49,8 @@ static struct {
 #endif
 
    int editing ;      /* -edit     */
+
+   int swap_two , swap_four ;  /* 14 Sep 1998 */
 
 } argopt  ;
 
@@ -126,6 +112,8 @@ int main( int argc , char * argv[] )
    argopt.delay_input = FALSE ;
 #endif
    argopt.editing     = FALSE ;
+
+   argopt.swap_two = argopt.swap_four = 0 ;  /* 14 Sep 1998 */
 
    /* read the inputs */
 
@@ -225,7 +213,7 @@ void T3D_create_widgets(void)
    static char * redcolor = NULL ;
 
    wset.dc  = MCW_new_DC( wset.topshell, argopt.ncolor,
-                          NCOLOVR,FD_colovr,FD_colovr, argopt.gamma );
+                          NCOLOVR,FD_colovr,FD_colovr, argopt.gamma , 0 );
    wset.seq = NULL ;  /* no viewing open now */
 
    /*---- form to hold all widgets ----*/
@@ -1627,6 +1615,31 @@ QQQ("types and files setup") ;
             XmNpacking     , XmPACK_TIGHT ,
          NULL ) ;
 
+   /* 14 Sep 1998: add a button to swap bytes in the images */
+
+   { int    dd = mri_datum_size((MRI_TYPE)argopt.datum_all) ;
+     char * tt = "Byte Swap[2]" ;
+     char * ff = "Byte Swap[4]" ;
+     if( dd == 2 || dd == 4 ){
+        if( dd == 2 )
+           wset.swap_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , wset.action_rowcol ,
+                  LABEL_ARG(tt) , NULL ) ;
+         else
+           wset.swap_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , wset.action_rowcol ,
+                  LABEL_ARG(ff) , NULL ) ;
+
+         XtAddCallback( wset.swap_pb , XmNactivateCallback ,
+                        T3D_swap_CB , NULL ) ;
+         MCW_register_hint( wset.swap_pb , "Use if images need this" ) ;
+     } else {
+        wset.swap_pb = NULL ;
+     }
+   }
+
    wset.button_help_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , wset.action_rowcol ,
@@ -2547,6 +2560,18 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -2swap and -4swap options -----*/
+
+      if( strncmp(Argv[nopt],"-2swap",4) == 0 ){
+         argopt.swap_two = 1 ;
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(Argv[nopt],"-4swap",4) == 0 ){
+         argopt.swap_four = 1 ;
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("*** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -2769,7 +2794,7 @@ void Syntax()
     "       (a) If the slice values all fall in the range -32767 .. 32767,\n"
     "           then no scaling is performed.\n"
     "       (b) Otherwise, the image values are scaled to lie in the range\n"
-    "           0 .. 10000 (original slice min -> 0, original max -> 10000.\n"
+    "           0 .. 10000 (original slice min -> 0, original max -> 10000).\n"
     "       This latter option is almost surely not what you want!  Therefore,\n"
     "       if you use the 3Di:, 3Df:, or 3Dc: input methods and store the\n"
     "       data as shorts, I suggest you supply a global scaling factor.\n"
@@ -2796,9 +2821,19 @@ void Syntax()
     "           a series of 64x64x100 files with names 'sl.01', 'sl.02' ....\n"
     "           This type of expansion is specific to to3d; the shell will not\n"
     "           properly expand such 3D: file specifications.\n"
+    "       (d) In the C shell (csh or tcsh), you can use forward single 'quotes'\n"
+    "           to prevent shell expansion of the wildcards, as in the command\n"
+    "               to3d '3D:0:0:64:64:100:sl.*'\n"
     "     The globbing code is adapted from software developed by the\n"
     "     University of California, Berkeley, and is copyrighted by the\n"
-    "     Regents of the University of California.\n"
+    "     Regents of the University of California (see file mcw_glob.c).\n"
+    "\n"
+    "  -2swap\n"
+    "     This option will force all input 2 byte images to be byte-swapped\n"
+    "     after they are read in.\n"
+    "  -4swap\n"
+    "     This option will force all input 4 byte images to be byte-swapped\n"
+    "     after they are read in.\n"
     "\n"
     "  -gsfac value\n"
     "     will scale each input slice by 'value'.  For example,\n"
@@ -3078,6 +3113,29 @@ void T3D_quit_CB( Widget wcall ,
      return ;
   }
   exit(0) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void T3D_swap_CB( Widget w , XtPointer cd , XtPointer call_data )
+{
+   int dd = mri_datum_size((MRI_TYPE)argopt.datum_all) ;
+   int nx , ny , nz , nv , nvox ;
+
+   nx = dset->daxes->nxx ; ny = dset->daxes->nyy ;
+   nz = dset->daxes->nzz ; nv = dblk->nvals      ; nvox = nx*ny*nz*nv ;
+
+   switch( dd ){
+      case 2: swap_twobytes ( nvox , dbrick ) ; break ;
+      case 4: swap_fourbytes( nvox , dbrick ) ; break ;
+   }
+
+   if( ISQ_REALZ(wset.seq) ){
+      drive_MCW_imseq( wset.seq , isqDR_clearstat , NULL ) ;
+      drive_MCW_imseq( wset.seq , isqDR_display   , (XtPointer)-1 ) ;
+   }
+
+   return ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -3459,6 +3517,14 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
          if( argopt.delay_input )
             (void) mri_data_pointer( im ) ;  /* force load of image from disk */
 #endif
+
+         /* 14 Sep 1998: swap bytes if ordered */
+
+         if( im->pixel_size == 2 && argopt.swap_two ){
+            swap_twobytes( im->nvox , mri_data_pointer(im) ) ;
+         } else if( im->pixel_size == 4 && argopt.swap_two ){
+            swap_fourbytes( im->nvox , mri_data_pointer(im) ) ;
+         }
 
          /*--- convert input image to desired type:  im --> shim ---*/
 
@@ -3927,6 +3993,11 @@ void T3D_imseq_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
       case isqCR_newimage:
          drive_MCW_imseq( seq, isqDR_title, (XtPointer) imnames->ar[cbs->nim] ) ;
       break ;
+
+      case isqCR_force_redisplay:{  /* 22 Aug 1998 */
+         drive_MCW_imseq( seq , isqDR_display , (XtPointer) seq->im_nr ) ;
+         drive_MCW_imseq( seq , isqDR_rebar   , (XtPointer) seq->im_nr ) ;
+      }
 
    }
    return ;

@@ -1,5 +1,15 @@
 #include "xim.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+/*********************************************************************/
+/***** 22 Aug 1998: modified to allow for 3 and 4 byte visuals,  *****/
+/*****              and for either possible byte order -- RW Cox *****/
+/*********************************************************************/
+
 /*------------------------------------------------------------------------*/
 
 void MCW_kill_XImage( XImage * image )
@@ -21,14 +31,15 @@ void MCW_kill_XImage( XImage * image )
 
 XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 {
-   int  iN, w2, width, height ;
-   char      * Image;
-   XImage    * ximage;
+   int  w2, width, height ;
+   unsigned char * Image;
+   XImage        * ximage;
+   int  border ;        /* 22 Aug 1998 */
 
    register int     i , hw , sk , k ;
    register short * sar ;
    register Pixel * ppix , * npix ;
-   register char  * ptr;
+   register unsigned char * ptr;
 
    if( im->kind != MRI_short ){
       fprintf(stderr,"\a\n*** ILLEGAL image input to mri_to_XImage\n") ;
@@ -41,12 +52,11 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
    width  = im->nx ;
    height = im->ny ;
 
-   iN = (dc->planes + 7) / 8;       /* 1 or 2, bytes per pixel */
-   w2 = width * iN;                 /* rowlength in bytes */
+   w2 = width * dc->byper ;  /* rowlength in bytes */
 
-   Image = (char *) XtMalloc( (size_t) (w2*height) );
+   Image = (unsigned char *) XtMalloc( (size_t) (w2*height) );
 
-   ximage = XCreateImage( dc->display , dc->visual , dc->planes ,
+   ximage = XCreateImage( dc->display , dc->visual , dc->depth ,
                           ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
 
    if( ximage == NULL ){
@@ -54,35 +64,116 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
       sleep(1) ; exit(1) ;
    }
 
+   border = ximage->byte_order ;          /* 22 Aug 1998 */
+
    ptr = Image;
    k   = 0;
    hw  = height * width ;
 
-   switch( iN ){
+   switch( dc->byper ){
 
       case 1:                             /* 1 byte data goes into Image. */
          for( i=0 ; i < hw ; i++ ){
             sk = sar[k++] ;
-            *ptr++ = (sk >= 0) ? ppix[sk] : npix[-sk] ;
+            *ptr++ = (sk >= 0) ? (ppix[sk]  & 0xff)
+                               : (npix[-sk] & 0xff) ;
          }
       break ;
 
-                                          /* [Note byte order assumption] */
       case 2:                             /* 2 byte data goes into Image. */
-         for( i=0 ; i < hw ; i++ ){
-            sk = sar[k++] ;
-            if( sk >= 0 ){
-               *ptr++ = ppix[sk] >> 8 ;  /* MSB */
-               *ptr++ = ppix[sk] ;       /* LSB */
-            } else {
-               *ptr++ = npix[-sk] >> 8 ;
-               *ptr++ = npix[-sk] ;
+         if( border == MSBFirst ){        /* 22 Aug 1998 */
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk] >> 8) & 0xff ;  /* MSB */
+                  *ptr++ = (ppix[sk])      & 0xff ;  /* LSB */
+               } else {
+                  *ptr++ = (npix[-sk] >> 8) & 0xff ;
+                  *ptr++ = (npix[-sk])      & 0xff ;
+               }
+            }
+         } else {                          /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk])      & 0xff ;  /* LSB */
+                  *ptr++ = (ppix[sk] >> 8) & 0xff ;  /* MSB */
+               } else {
+                  *ptr++ = (npix[-sk])      & 0xff ;
+                  *ptr++ = (npix[-sk] >> 8) & 0xff ;
+               }
+            }
+         }
+      break ;
+
+      case 3:                            /* 3 & 4 byte data: 22 Aug 1998 */
+         if( border == MSBFirst ){
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk] >> 16) & 0xff ;  /* MSB */
+                  *ptr++ = (ppix[sk] >>  8) & 0xff ;
+                  *ptr++ = (ppix[sk])       & 0xff ;  /* LSB */
+               } else {
+                  *ptr++ = (npix[-sk] >> 16) & 0xff ;
+                  *ptr++ = (npix[-sk] >>  8) & 0xff ;
+                  *ptr++ = (npix[-sk])       & 0xff ;
+               }
+            }
+         } else {                          /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk])       & 0xff ;  /* LSB */
+                  *ptr++ = (ppix[sk] >>  8) & 0xff ;
+                  *ptr++ = (ppix[sk] >> 16) & 0xff ;  /* MSB */
+               } else {
+                  *ptr++ = (npix[-sk])       & 0xff ;
+                  *ptr++ = (npix[-sk] >>  8) & 0xff ;
+                  *ptr++ = (npix[-sk] >> 16) & 0xff ;
+               }
+            }
+         }
+      break ;
+
+      case 4:
+         if( border == MSBFirst ){
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk] >> 24) & 0xff ;  /* MSB */
+                  *ptr++ = (ppix[sk] >> 16) & 0xff ;
+                  *ptr++ = (ppix[sk] >>  8) & 0xff ;
+                  *ptr++ = (ppix[sk])       & 0xff ;  /* LSB */
+               } else {
+                  *ptr++ = (npix[-sk] >> 24) & 0xff ;
+                  *ptr++ = (npix[-sk] >> 16) & 0xff ;
+                  *ptr++ = (npix[-sk] >>  8) & 0xff ;
+                  *ptr++ = (npix[-sk])       & 0xff ;
+               }
+            }
+         } else {                          /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               sk = sar[k++] ;
+               if( sk >= 0 ){
+                  *ptr++ = (ppix[sk])       & 0xff ;  /* LSB */
+                  *ptr++ = (ppix[sk] >>  8) & 0xff ;
+                  *ptr++ = (ppix[sk] >> 16) & 0xff ;
+                  *ptr++ = (ppix[sk] >> 24) & 0xff ;  /* MSB */
+               } else {
+                  *ptr++ = (npix[-sk])       & 0xff ;
+                  *ptr++ = (npix[-sk] >>  8) & 0xff ;
+                  *ptr++ = (npix[-sk] >> 16) & 0xff ;
+                  *ptr++ = (npix[-sk] >> 24) & 0xff ;
+               }
             }
          }
       break ;
 
       default:
-         fprintf(stderr,"\a\n*** ILLEGAL value of iN in mri_to_XImage\n");
+         fprintf(stderr,
+                 "\a\n*** ILLEGAL value of display bytes/pix=%d in mri_to_XImage\n",
+                 dc->byper);
          sleep(1) ; exit(1) ;
    }
 
@@ -101,7 +192,7 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
    static int * lt = NULL ;       /* lookup table stuff */
    static int old_width = -1 ;
 
-   register int iy, ex, ey, iW, iH, iN, w2 ;
+   register int iy, ex, ey, iW, iH, w2 ;
    char         *ximag;
    char         *Ep, *El, *Ip, *Il, *Id , *Ed ; /* d=data, l=row, p=pixel */
    int          Erow , Irow ;
@@ -119,7 +210,6 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
 
    /*** data about input image ***/
 
-   iN = image->bits_per_pixel / 8;    /* 1 or 2, bytes per pixel */
    iW = image->width ;                /* input width and height */
    iH = image->height ;
 
@@ -129,7 +219,7 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
 
    /*** create emage of the appropriate size ***/
 
-   w2    = new_width * iN ;
+   w2    = new_width * dc->byper ;
    ximag = (char *) XtMalloc( (size_t) (w2 * new_height) );
 
    if( ximag == NULL ){
@@ -137,7 +227,7 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
       sleep(1) ; exit(1) ;
    }
 
-   emage = XCreateImage( dc->display , dc->visual , dc->planes ,
+   emage = XCreateImage( dc->display , dc->visual , dc->depth ,
                          ZPixmap, 0, ximag, new_width,new_height, 8, w2 ) ;
 
    if( emage == NULL ){
@@ -153,14 +243,14 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
    }
 
    for( ex=0 ; ex < new_width ; ex++ )
-      lt[ex] = MAP_XY(ex,new_width,iW) * iN ;
+      lt[ex] = MAP_XY(ex,new_width,iW) * dc->byper ;
 
    /*** get ready to go ***/
 
    Ed = (char *) emage->data ; Erow = emage->bytes_per_line ;
    Id = (char *) image->data ; Irow = image->bytes_per_line ;
 
-   switch( iN ){
+   switch( dc->byper ){
 
       case 1:                                 /* 1 byte per pixel */
          for( ey=0 ; ey < new_height ; ey++ ){
@@ -191,8 +281,41 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
          }
       break ;
 
+      case 3:                                 /* 3 & 4 added 22 Aug 1998 */
+         for( ey=0 ; ey < new_height ; ey++ ){
+
+            iy = MAP_XY(ey,new_height,iH) ;   /* row index in input image */
+            Il = Id + Irow * iy ;             /* start of that row */
+            El = Ed + Erow * ey ;             /* start of row in output */
+            Ep = El ;
+            for( ex=0 ; ex < new_width ; ex++ ){
+               Ip = Il + lt[ex] ;             /* data pointer in input */
+               *Ep++ = *Ip ;
+               *Ep++ = *(Ip+1) ;
+               *Ep++ = *(Ip+2) ;
+            }
+         }
+      break ;
+
+      case 4:
+         for( ey=0 ; ey < new_height ; ey++ ){
+
+            iy = MAP_XY(ey,new_height,iH) ;   /* row index in input image */
+            Il = Id + Irow * iy ;             /* start of that row */
+            El = Ed + Erow * ey ;             /* start of row in output */
+            Ep = El ;
+            for( ex=0 ; ex < new_width ; ex++ ){
+               Ip = Il + lt[ex] ;             /* data pointer in input */
+               *Ep++ = *Ip ;
+               *Ep++ = *(Ip+1) ;
+               *Ep++ = *(Ip+2) ;
+               *Ep++ = *(Ip+3) ;
+            }
+         }
+      break ;
+
       default:
-         fprintf(stderr,"\a\n***ILLEGAL planes for resizing\n") ;
+         fprintf(stderr,"\a\n***ILLEGAL bytes/pix=%d for resizing\n",dc->byper) ;
          sleep(1) ; exit(1) ;
    }
 
@@ -206,12 +329,14 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
 
 MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage )
 {
-   int nx , ny , npix , ii,jj , kk , pix_bytes , allgray , pp , lsize ;
+   int nx , ny , npix , ii,jj , kk , allgray , lsize ;
+   Pixel pp ;
    byte * rgb , * gray ;
    byte rr,gg,bb ;
    byte * ptr ;
    XColor * xc ;
    MRI_IMAGE * outim ;
+   int  border ;        /* 22 Aug 1998 */
 
    if( ximage == NULL || ximage->data == NULL ) return NULL ;
 
@@ -229,8 +354,7 @@ fprintf(stderr,
 
    lsize = ximage->bytes_per_line ;
 
-   pix_bytes = ximage->bits_per_pixel / 8;    /* 1 or 2 bytes per pixel */
-   ptr       = (byte *) ximage->data ;        /* pointer to pixels */
+   ptr = (byte *) ximage->data ;        /* pointer to pixels */
 
    rgb = (byte *) malloc( sizeof(byte) * 3*npix ) ;
    if( rgb == NULL ){
@@ -238,7 +362,9 @@ fprintf(stderr,
       sleep(1) ; exit(1) ;
    }
 
-   switch( pix_bytes ){
+   border = ximage->byte_order ;           /* 22 Aug 1998 */
+
+   switch( dc->byper ){
 
       case 1:                              /* 1 byte per pixel */
          kk = 0 ; allgray = 1 ;
@@ -258,7 +384,51 @@ fprintf(stderr,
          kk = 0 ; allgray = 1 ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
-               pp = (ptr[2*ii+jj*lsize] << 8) + ptr[2*ii+jj*lsize+1] ;
+               if( border == MSBFirst )
+                  pp = (ptr[2*ii+jj*lsize]   << 8) | ptr[2*ii+jj*lsize+1] ;
+               else
+                  pp = (ptr[2*ii+jj*lsize+1] << 8) | ptr[2*ii+jj*lsize] ;
+
+               xc = DCpix_to_XColor( dc , pp ) ;
+               rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
+               gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
+               bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
+               allgray = allgray && (rr==gg) && (gg=bb) ;
+            }
+         }
+      break ;
+
+      case 3:                               /* 3 & 4 added 22 Aug 1998 */
+         kk = 0 ; allgray = 1 ;
+         for( jj=0 ; jj < ny ; jj++ ){
+            for( ii=0 ; ii < nx ; ii++ ){
+               if( border == MSBFirst )
+                  pp = (ptr[3*ii+jj*lsize]   << 16) |
+                       (ptr[3*ii+jj*lsize+1] <<  8) | ptr[3*ii+jj*lsize+2] ;
+               else
+                  pp = (ptr[3*ii+jj*lsize+2] << 16) |
+                       (ptr[3*ii+jj*lsize+1] <<  8) | ptr[3*ii+jj*lsize] ;
+
+               xc = DCpix_to_XColor( dc , pp ) ;
+               rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
+               gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
+               bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
+               allgray = allgray && (rr==gg) && (gg=bb) ;
+            }
+         }
+      break ;
+
+      case 4:
+         kk = 0 ; allgray = 1 ;
+         for( jj=0 ; jj < ny ; jj++ ){
+            for( ii=0 ; ii < nx ; ii++ ){
+               if( border == MSBFirst )
+                  pp = (ptr[4*ii+jj*lsize]   << 24) | (ptr[4*ii+jj*lsize+1] << 16) |
+                       (ptr[4*ii+jj*lsize+2] <<  8) |  ptr[4*ii+jj*lsize+3] ;
+               else
+                  pp = (ptr[4*ii+jj*lsize+3] << 24) | (ptr[4*ii+jj*lsize+2] << 16) |
+                       (ptr[4*ii+jj*lsize+1] <<  8) |  ptr[4*ii+jj*lsize] ;
+
                xc = DCpix_to_XColor( dc , pp ) ;
                rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
                gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
@@ -269,7 +439,9 @@ fprintf(stderr,
       break ;
 
       default:
-         fprintf(stderr,"\n*** ILLEGAL value of pix_bytes in XImage_to_mri\n");
+         fprintf(stderr,
+                 "\n*** ILLEGAL value of bytes/pix=%d in XImage_to_mri\n",
+                 dc->byper);
          sleep(1) ; exit(1) ;
    }
 

@@ -204,6 +204,8 @@ void DRAW_make_widgets(void)
            XmNinitialResourcesPersistent , False ,
       NULL ) ;
 
+   DC_yokify( shell , dc ) ; /* 14 Sep 1998 */
+
    if( afni48_good )             /* set icon pixmap */
       XtVaSetValues( shell ,
                         XmNiconPixmap , afni48_pixmap ,

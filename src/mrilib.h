@@ -377,6 +377,9 @@ char * my_strdup( char * str ) ;
 
 extern void mri_swapbytes( MRI_IMAGE * ) ;
 
+extern void swap_twobytes ( int n , void * ar ) ;  /* 14 Sep 1998 */
+extern void swap_fourbytes( int n , void * ar ) ;
+
 extern MRI_IMAGE *mri_to_float( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_short( double , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_short_scl( double,double , MRI_IMAGE * ) ;
@@ -555,24 +558,43 @@ extern double qginv          ( double ) ;
 
 extern double student_t2p( double , double ) ;
 extern double student_p2t( double , double ) ;
+extern double student_t2z( double , double ) ;
 
 extern double correl_t2p ( double , double , double , double ) ;
+extern double correl_t2z ( double , double , double , double ) ;
 extern double correl_p2t ( double , double , double , double ) ;
 
-extern double studave_t2p( double , double , double ) ;
+extern double studave_t2p( double , double , double ) ;  /* not implemented */
+extern double studave_t2z( double , double , double ) ;  /* not implemented */
 extern double studave_p2t( double , double , double ) ;
 
 extern double fstat_p2t( double , double , double ) ;
 extern double fstat_t2p( double , double , double ) ;
-
-extern double student_to_normal( double , double ) ;
+extern double fstat_t2z( double , double , double ) ;
 
 extern double normal_t2p  ( double zz ) ;
+extern double normal_p2t  ( double qq ) ;
+#define       normal_t2z(x) (x)                     /* no function needed here! */
+
 extern double chisq_t2p   ( double xx , double dof ) ;
+extern double chisq_t2z   ( double xx , double dof ) ;
+extern double chisq_p2t   ( double qq , double dof ) ;
+
 extern double beta_t2p    ( double xx , double aa , double bb ) ;
+extern double beta_t2z    ( double xx , double aa , double bb ) ;
+extern double beta_p2t    ( double qq , double aa , double bb ) ;
+
 extern double binomial_t2p( double ss , double ntrial , double ptrial ) ;
+extern double binomial_t2z( double ss , double ntrial , double ptrial ) ;
+extern double binomial_p2t( double qq , double ntrial , double ptrial ) ;
+
 extern double gamma_t2p   ( double xx , double sh , double sc ) ;
+extern double gamma_t2z   ( double xx , double sh , double sc ) ;
+extern double gamma_p2t   ( double qq , double sh , double sc ) ;
+
 extern double poisson_t2p ( double xx , double lambda ) ;
+extern double poisson_t2z ( double xx , double lambda ) ;
+extern double poisson_p2t ( double qq , double lambda ) ;
 
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
 #include "cdflib.h"

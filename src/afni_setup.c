@@ -3,7 +3,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -97,11 +96,10 @@ ENTRY("AFNI_process_setup") ;
 
    str[0] = '\0' ;  /* initialize string */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"Reading AFNI setup file = %s (%d bytes)",fname,nbuf) ;
   STATUS(str);}
-#endif
 
    while( nused < nbuf ){
 
@@ -120,10 +118,10 @@ STATUS("enter ***COLORS") ;
 
          while(1){                          /* loop, looking for 'label = color' */
             GETEQN ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"GETEQN: %s %s %s",left,middle,right) ; STATUS(str);}
-#endif
 
             /* don't allow 'none' to be redefined! */
 
@@ -135,20 +133,22 @@ STATUS("enter ***COLORS") ;
                   ii = INIT_ncolovr++ ;
                   INIT_labovr[ii] = XtNewString(left) ;
                   INIT_colovr[ii] = XtNewString(right) ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setup into #%d",ii) ; STATUS(str);}
-#endif
+
                } else {
                   fprintf(stderr,"\nIn setup file %s, color table overflow!\n",fname);
                   goto SkipSection ;
                }
             } else if( mode == SETUP_LATER_MODE ){
                ii = DC_add_overlay_color( dc , right , left ) ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"'new' color index returned as #%d",ii) ; STATUS(str);}
-#endif
+
                if( ii < 0 )
                   fprintf(stderr,"\nIn setup file %s, unknown color %s\n",fname,right);
                else
@@ -162,7 +162,7 @@ STATUS("enter ***COLORS") ;
       /**-- PALETTES section --**/
 
       if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
-         char label[128] = "NoName" , ccc , * cpt ;
+         char label[128] = "NoThing" , ccc , * cpt ;
          PBAR_palette_array * ppar ;
          PBAR_palette ** ppp ;
          PBAR_palette  * ppnew ;
@@ -174,7 +174,7 @@ STATUS("enter ***PALETTES") ;
          if( GPT == NULL ){               /* 1st time in --> create palettry */
 STATUS("create initial palettes") ;
             INIT_PALTAB(GPT) ;
-            INIT_PALARR(ppar,"NoName") ;
+            INIT_PALARR(ppar,"NoThing") ;
             ADDTO_PALTAB(GPT,ppar) ;
          }
 
@@ -191,31 +191,32 @@ STATUS("create initial palettes") ;
                           fname,label) ;
                   free(fbuf) ; EXRETURN ;
                }
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"found palette label=%s. [len=%d label[0]=%d]",
           label,strlen(label),(int)label[0]); STATUS(str);
   sprintf(str,"nbuf=%d fptr-fbuf=%d",nbuf,fptr-fbuf); STATUS(str);}
-#endif
+
                ii = label_in_PALTAB( GPT , label ) ; /* an old one? */
                if( ii < 0 ){
 STATUS("making a new palette array") ;
                   INIT_PALARR(ppar,label) ;          /* make a new palette array */
                   ADDTO_PALTAB(GPT,ppar) ;
                } else {
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"matches old palette array #%d",ii) ; STATUS(str);}
-#endif
+
                   ppar = PALTAB_ARR(GPT,ii) ;        /* retrieve old palette array */
                }
                GETSTR ; if( ISTARRED(str) ) goto SkipSection ;
             }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"GPT now has %d arrays",PALTAB_NUM(GPT)) ; STATUS(str);}
-#endif
 
             if( str[0] != '[' ){                    /* bad news! */
                fprintf(stderr,"\nIn setup file %s, expected palette '[n]' here: %s\n",
@@ -239,11 +240,10 @@ STATUS("making a new palette array") ;
             ppp   = (pmode==0) ? (ppar->psgn + npane)   /* pointer to pointer */
                                : (ppar->ppos + npane) ; /* to existing palette */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"palette definition: npane=%d pmode=%d",npane,pmode) ;
   STATUS(str); }
-#endif
 
             ppnew = XtNew(PBAR_palette) ;               /* make a new palette */
             ppnew->npane = npane ;
@@ -256,10 +256,10 @@ STATUS("making a new palette array") ;
 
             for( ii=0 ; ii < npane ; ii++ ){
                GETEQN ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"GETEQN: %s %s %s",left,middle,right) ; STATUS(str);}
-#endif
 
                val = strtod(left,&cpt) ;
                if( val == 0.0 && *cpt != '\0' ) val = PAL_FIGNORE ;
@@ -275,18 +275,20 @@ STATUS("making a new palette array") ;
                } else if( mode == SETUP_LATER_MODE ){
                   icol = DC_find_overlay_color( dc , right ) ;
                   if( icol < 0 ) icol = PAL_IIGNORE ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"  DC_find_overlay_color(%s) returns %d\n",right,icol) ;
   STATUS(str) ; }
-#endif
+
                }
                ppnew->val[ii] = val ; ppnew->col[ii] = icol ;
-#ifdef AFNI_DEBUG
+
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"new palette entry #%d: val=%f col=%d",ii,val,icol) ;
   STATUS(str);}
-#endif
+
             }
 
             ii = check_PBAR_palette( ppnew ) ;
@@ -671,35 +673,47 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
 
       case XmCR_OK:{
          char * text = NULL ;
-         int ii ;
+         int ii , npal1 , npal2 ;
          Three_D_View * qq3d ;
          XmStringGetLtoR( cbs->value , XmFONTLIST_DEFAULT_TAG , &text ) ;
          if( text != NULL ){
             if( THD_is_file(text) && !THD_is_directory(text) ){ /* read in file */
 
+               npal1 = (GPT == NULL) ? 0 : PALTAB_NUM(GPT) ;  /* how many before */
+
                AFNI_process_setup( text , SETUP_LATER_MODE , im3d->dc ) ;
 
-               if( GPT != NULL && PALTAB_NUM(GPT) > 0 ){
+               npal2 = (GPT == NULL) ? 0 : PALTAB_NUM(GPT) ;  /* how many after */
+
+               if( npal2 > npal1 ){                           /* if got some new ones */
                   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
                      qq3d = GLOBAL_library.controllers[ii] ;
                      if( IM3D_VALID(qq3d) ){
                         refit_MCW_optmenu( qq3d->vwid->func->pbar_palette_av ,
                                            0 ,                     /* new minval */
-                                           PALTAB_NUM(GPT)-1 ,     /* new maxval */
+                                           npal2-1 ,               /* new maxval */
                                            0 ,                     /* new inival */
                                            0 ,                     /* new decim? */
                                            AFNI_palette_label_CB , /* text routine */
                                            NULL                    /* text data */
                                           ) ;
 
-                        XtManageChild( qq3d->vwid->func->pbar_palette_av->wrowcol ) ;  /* 14 Jul 1998 */
+                        /* 14 Jul 1998: whoops */
+                        XtManageChild( qq3d->vwid->func->pbar_palette_av->wrowcol ) ;
+
+                        /* 18 Sep 1998: set this palette to be the active one in the caller */
+
+                        if( qq3d == im3d ){
+                           AV_assign_ival( qq3d->vwid->func->pbar_palette_av , PALTAB_NUM(GPT)-1 ) ;
+                           AFNI_palette_av_CB( qq3d->vwid->func->pbar_palette_av , im3d ) ;
+                        }
                      }
                   }
                }
 
                dum = dump_PBAR_palette_table(0) ;
                (void) MCW_popup_message( im3d->vwid->func->options_label ,
-                                         dum , MCW_USER_KILL            ) ;
+                                         dum , MCW_USER_KILL | MCW_TIMER_KILL ) ;
                free(dum) ;
 
                XtPopdown( im3d->vwid->file_dialog ) ;  /* done with dialog */

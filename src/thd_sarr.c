@@ -1,6 +1,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
 
 /*--------------------------------------------------------------
    SARR: string array routines (not easily coded as macros)
@@ -238,4 +242,63 @@ THD_string_array * THD_extract_directories( THD_string_array * star_in )
 
    if( star_out->num == 0 ) DESTROY_SARR(star_out) ;
    return star_out ;
+}
+
+/*-------------------------------------------------------------------
+   Take a list of filenames, convert them into "real" names
+   (excising things like ../ and symbolic links), and then
+   cast out duplicates.  09 Sep 1998 -- RWCox.
+---------------------------------------------------------------------*/
+
+THD_string_array * THD_normalize_flist( THD_string_array * star_in )
+{
+   THD_string_array * star_out , * star_qqq ;
+   static char rpath[2048] ;
+   char * rp ;
+   int ii , jj , nleft ;
+
+   if( star_in == NULL || star_in->num <= 0 ) return NULL ;
+
+   INIT_SARR(star_out) ;
+
+   for( ii=0 ; ii < star_in->num ; ii++ ){
+      rp = realpath( star_in->ar[ii] , rpath ) ;
+      if( rp != NULL ) ADDTO_SARR( star_out , rp ) ;
+   }
+
+   if( star_out->num == 0 ){ DESTROY_SARR(star_out) ; return NULL ; }
+
+   nleft = 0 ;
+   for( ii=0 ; ii < star_out->num ; ii++ ){
+      rp = star_out->ar[ii] ;
+      if( rp != NULL ){
+         nleft++ ; jj = ii ;
+         while( jj >= 0 ){
+            jj = SARR_lookfor_string( star_out , rp , jj+1 ) ;
+            if( jj >= 0 ) REMOVEFROM_SARR(star_out,jj) ;
+         }
+
+         for( jj=ii+1 ; jj < star_out->num ; jj++ ){
+            if( THD_equiv_files(rp,star_out->ar[jj]) )
+               REMOVEFROM_SARR(star_out,jj) ;
+         }
+      }
+   }
+
+   if( nleft == 0 ){ DESTROY_SARR(star_out) ; return NULL ; }
+
+   if( nleft == star_out->num ) return star_out ;
+
+   INIT_SARR(star_qqq) ;
+   for( ii=0 ; ii < star_out->num ; ii++ ){
+      rp = star_out->ar[ii] ;
+      if( rp != NULL ) ADDTO_SARR(star_qqq,rp) ;
+   }
+
+#if 0
+fprintf(stderr,"\nTHD_normalize_flist: in=%d out=%d qqq=%d\n",
+        star_in->num , star_out->num , star_qqq->num ) ;
+#endif
+
+   DESTROY_SARR(star_out) ; return star_qqq ;
 }

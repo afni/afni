@@ -286,8 +286,9 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
          pcor[vox] = 0.0 ;
       }
 #else
+      /*----- Allow for numerical roundoff error,  26 August 1998  BDW -----*/
       den = VCH(vc,vox,nr) + SQR(VCH(vc,vox,nr-1)) ;
-      if( den > 0.0 )
+      if( den > DENEPS )
          pcor[vox] = VCH(vc,vox,nr-1) / sqrt(den) ;
       else
          pcor[vox] = 0.0 ;

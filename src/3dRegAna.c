@@ -1,3 +1,4 @@
+/*---------------------------------------------------------------------------*/
 /*
   This program performs multiple linear regression analysis across AFNI
   3d datasets.
@@ -16,8 +17,11 @@
   Mod:     Modified calculation of required disk space to account for the
            'bucket' dataset.
            08 January 1998
-*/
 
+  Mod:     Some of the regression analysis software has been moved to 
+           the include file RegAna.c.
+	   20 August 1998
+*/
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -25,34 +29,22 @@
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-
-*/
-
-/*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dRegAna"                      /* name of this program */
-#define LAST_MOD_DATE "8 January 1998"           /* date of last program mod */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "20 August 1998"            /* date of last program mod */
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
 
 #include <stdio.h>
 #include <math.h>
 #include "mrilib.h"
 #include "matrix.h"
-#include "matrix.c"
 
+
+#include "RegAna.c"
+
+
+/*---------------------------------------------------------------------------*/
 
 /*** HP-UX ***/
 #ifdef HP
@@ -83,6 +75,8 @@
 # define DF "df"
 #endif
 
+
+/*---------------------------------------------------------------------------*/
 
 #define MAX_XVARS 101            /* max. number of independent variables */
 #define MAX_OBSERVATIONS 1000    /* max. number of input datasets */
@@ -142,7 +136,6 @@ typedef struct RA_options
   char ** brick_label;         /* character string label for sub-brick */
 
 } RA_options;
-
 
 
 /*---------------------------------------------------------------------------*/
@@ -221,18 +214,6 @@ void display_help_menu()
   exit(0);
 }
 
-
-/*---------------------------------------------------------------------------*/
-     
-/** macro to test a malloc-ed pointer for validity **/
-     
-#define MTEST(ptr) \
-     if((ptr)==NULL) \
-     ( fprintf(stderr,"*** Cannot allocate memory for statistics!\n"         \
-	       "*** Try using the -workmem option to reduce memory needs,\n" \
-	       "*** or create more swap space in the operating system.\n"    \
-	       ), exit(0) )
-     
 
 /*---------------------------------------------------------------------------*/
 
@@ -2034,51 +2015,6 @@ void initialize_program
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate constant matrices to be used for all voxels.
-*/
-
-void calc_matrices 
-(
-  matrix x,                     /* independent variable matrix X   */
-  matrix * xtxinv,              /* matrix:  1/(X'X)                */
-  matrix * xtxinvxt,            /* matrix:  (1/(X'X))X'            */
-  matrix * a                    /* matrix:  I - X(1/(X'X))X'       */
-)
-
-{
-  matrix ident, xt, xtx, tmp;   /* temporary matrix calculation results */
-  int ok;                       /* flag for successful matrix inversion */
-
-
-  /*----- initialize matrices -----*/
-  matrix_initialize (&ident);
-  matrix_initialize (&xt);
-  matrix_initialize (&xtx);
-  matrix_initialize (&tmp);
-
-
-  /*----- calculate various matrices which will be needed later -----*/
-  matrix_transpose (x, &xt);
-  matrix_multiply (xt, x, &xtx);
-  ok = matrix_inverse (xtx, xtxinv);
-  if (! ok)  RA_error ("Improper X matrix  (cannot invert X'X) ");
-  matrix_multiply (*xtxinv, xt, xtxinvxt);
-  matrix_multiply (x, *xtxinvxt, &tmp);
-  matrix_identity (tmp.rows, &ident);
-  matrix_subtract (ident, tmp, a);
-
-
-  /*----- dispose of matrices -----*/
-  matrix_destroy (&tmp);
-  matrix_destroy (&xtx);
-  matrix_destroy (&xt);
-  matrix_destroy (&ident);
-
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
   Perform initialization required for the regression analysis.
 */
 
@@ -2097,7 +2033,6 @@ void init_regression_analysis
 )
 
 {
-  matrix xzero, xrdcd, xfull;   /* matrices extracted from X matrix */
   int zlist[MAX_XVARS];         /* list of parameters in constant model */
   int ip;                       /* parameter index */
 
@@ -2107,277 +2042,11 @@ void init_regression_analysis
     zlist[ip] = 0;
 
 
-  /*----- initialize matrices -----*/
-  matrix_initialize (&xzero);
-  matrix_initialize (&xrdcd);
-  matrix_initialize (&xfull);
-
-
-  /*----- extract the constant, reduced, and full data matrices from the 
-    input data matrix -----*/
-  matrix_extract (*xdata, 1, zlist, &xzero);
-  matrix_extract (*xdata, q, rlist, &xrdcd);
-  matrix_extract (*xdata, p, flist, &xfull);  
-
-
   /*----- calculate constant matrices which will be needed later -----*/
-  calc_matrices (xzero, xtxinv, xtxinvxt, azero);
-  calc_matrices (xrdcd, xtxinv, xtxinvxt, ardcd);
-  calc_matrices (xfull, xtxinv, xtxinvxt, afull);
+  calc_matrices (*xdata, 1, zlist, xtxinv, xtxinvxt, azero);
+  calc_matrices (*xdata, q, rlist, xtxinv, xtxinvxt, ardcd);
+  calc_matrices (*xdata, p, flist, xtxinv, xtxinvxt, afull);
 
-
-  /*----- dispose of matrices -----*/
-  matrix_destroy (&xfull);
-  matrix_destroy (&xrdcd);
-  matrix_destroy (&xzero);
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the error sum of squares.
-*/
-
-float  calc_sse 
-(
-  matrix a,                  /* matrix:  A = I - X(1/(X'X))X'  */
-  vector y                   /* vector of measured data */
-)
-
-{
-  vector ay;                 /* product Ay */  
-  float sse;                 /* error sum of squares */
-
-
-  /*----- initialize vector -----*/
-  vector_initialize (&ay);
-
-
-  /*----- calculate the error sum of squares -----*/
-  vector_multiply (a, y, &ay);
-  sse = vector_dot (ay, ay);
-
-
-  /*----- dispose of vector -----*/
-  vector_destroy (&ay);
-
-
-  /*----- return SSE -----*/
-  return (sse);
- 
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the pure error sum of squares.
-*/
-
-float  calc_sspe 
-(
-  vector y,                  /* vector of measured data */
-  int * levels,              /* indices for repeat observations */
-  int * counts,              /* number of observations at each level */
-  int c                      /* number of unique rows in ind. var. matrix */
-)
-
-{
-  int i, j;                  /* indices */
-  float * sum = NULL;        /* sum of observations at each level */
-  float diff;                /* difference between observation and average */
-  float sspe;                /* pure error sum of squares */
-
-
-  /*----- initialize sum -----*/
-  sum = (float *) malloc (sizeof(float) * c);
-  MTEST (sum);
-  
-  for (j = 0;  j < c;  j++)
-    sum[j] = 0.0;
-
-
-  /*----- accumulate sum for each level -----*/
-  for (i = 0;  i < y.dim;  i++)
-    {
-      j = levels[i];
-      sum[j] += y.elts[i];
-    }
-
-
-  /*----- calculate SSPE -----*/
-  sspe = 0.0;
-  for (i = 0;  i < y.dim;  i++)
-    {
-      j = levels[i];
-      diff = y.elts[i] - (sum[j]/counts[j]);
-      sspe += diff * diff;
-    }
-
-  
-  free (sum);   sum = NULL;
-
-
-  /*----- return SSPE -----*/
-  return (sspe);
- 
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the F-statistic for lack of fit.
-*/
-
-float calc_flof
-(
-  int n,                      /* number of data points */
-  int p,                      /* number of parameters in the full model */
-  int c,                      /* number of unique rows in ind. var. matrix */
-  float sse,                  /* error sum of squares from full model */
-  float sspe                 /* error sum of squares due to pure error */
-)
-
-{
-  const float EPSILON = 1.0e-10;      /* protection against divide by zero */
-  float mspe;                 /* mean square error due to pure error */
-  float sslf;                 /* error sum of squares due to lack of fit */
-  float mslf;                 /* mean square error due to lack of fit */
-  float flof;                 /* F-statistic for lack of fit */
-
-
-  /*----- calculate mean sum of squares due to pure error -----*/
-  mspe = sspe / (n - c);
-
-
-  /*----- calculate mean sum of squares due to lack of fit -----*/
-  sslf = sse - sspe;
-  mslf = sslf / (c - p);
-
-
-  /*----- calculate F-statistic for lack of fit -----*/
-  if (fabs(mspe) < EPSILON)
-    flof = 0.0;
-  else
-    flof = mslf / mspe;
-
-
-  /*----- return F-statistic for lack of fit -----*/
-  return (flof);
-
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the regression coefficients.
-*/
-
-void calc_coef 
-(
-  matrix xtxinvxt,            /* matrix:  (1/(Xf'Xf))Xf'   */
-  vector y,                   /* vector of measured data   */
-  vector * coef               /* vector of regression parameters */
-)
-
-{
-
-  /*----- calculate regression coefficients -----*/
-  vector_multiply (xtxinvxt, y, coef);
-
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate t-statistics for the regression coefficients.
-*/
-
-void calc_tcoef 
-(
-  int n,                      /* number of data points */
-  int p,                      /* number of parameters in the full model */
-  float sse,                  /* error sum of squares */
-  matrix xtxinv,              /* matrix:  1/(Xf'Xf)        */
-  vector coef,                /* vector of regression parameters */
-  vector * tcoef              /* t-statistics for regression parameters */
-)
-
-{
-  const float EPSILON = 1.0e-10;      /* protection against divide by zero */
-  int df;                     /* error degrees of freedom */
-  float mse;                  /* mean square error */
-  int i;                      /* parameter index */
-  float stddev;               /* standard deviation for parameter estimate */
-
-
-  /*----- calculate t-statistics for regression coefficients -----*/
-  df = n - p;
-  mse = sse / df;
-  vector_equate (coef, tcoef);
-  for (i = 0;  i < p;  i++)
-    {
-      stddev = sqrt (mse * xtxinv.elts[i][i]);
-      if (fabs(stddev) < EPSILON)
-	tcoef->elts[i] = 0.0;
-      else
-	tcoef->elts[i] /= stddev;
-    }
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the F-statistic for significance of the regression.
-*/
-
-void calc_freg
-(
-  int n,                      /* number of data points */
-  int p,                      /* number of parameters in the full model */
-  int q,                      /* number of parameters in the rdcd model */
-  float ssef,                 /* error sum of squares from full model */
-  float sser,                 /* error sum of squares from reduced model */
-  float * freg                /* F-statistic for the full regression model */
-)
-
-{
-  const float EPSILON = 1.0e-10;      /* protection against divide by zero */
-  float msef;                 /* mean square error for the full model */
-  float msreg;                /* mean square due to the regression */
-
-
-  /*----- F-statistic for significance of the regression -----*/
-  msreg = (sser - ssef) / (p - q);
-  msef   = ssef / (n - p);
-  if (fabs(msef) < EPSILON)
-    *freg = 0.0;
-  else
-    *freg = msreg / msef;
-
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Calculate the coefficient of multiple determination R^2.
-*/
-
-void calc_rsqr 
-(
-  float ssef,                 /* error sum of squares from full model */
-  float ssto,                 /* total (corrected for mean) sum of squares */
-  float * rsqr                /* coeff. of multiple determination R^2  */
-)
-
-{
-  const float EPSILON = 1.0e-10;      /* protection against divide by zero */
-
-
-  /*----- coefficient of multiple determination R^2 -----*/
-  if (fabs(ssto) < EPSILON)
-    *rsqr = 0.0;
-  else
-    *rsqr = 1.0 - ssef/ssto;
 }
 
 
@@ -2404,6 +2073,7 @@ void regression_analysis
   float flofmax,              /* max. allowed F-stat due to lack of fit */  
   float * flof,               /* F-statistic for lack of fit */
   vector * coef,              /* regression parameters */
+  vector * scoef,             /* std. devs. for regression parameters */
   vector * tcoef,             /* t-statistics for regression parameters */
   float * freg,               /* F-statistic for the full regression model */
   float * rsqr                /* coeff. of multiple determination R^2  */
@@ -2416,8 +2086,9 @@ void regression_analysis
   float sspe;                 /* pure error sum of squares */
 
 
-  /*----- initialization -----*/
+  /*----- Initialization -----*/
   vector_create (p, coef);
+  vector_create (p, scoef);
   vector_create (p, tcoef);
   *freg = 0.0;
   *rsqr = 0.0;
@@ -2459,15 +2130,15 @@ void regression_analysis
 
 
   /*----- Calculate t-statistics for the regression coefficients -----*/
-  calc_tcoef (n, p, sse_full, xtxinv, *coef, tcoef);
+  calc_tcoef (n, p, sse_full, xtxinv, *coef, scoef, tcoef);
 
       
   /*----- Calculate F-statistic for significance of the regression -----*/
-  calc_freg (n, p, q, sse_full, sse_rdcd, freg);
+  *freg = calc_freg (n, p, q, sse_full, sse_rdcd);
 
 
   /*----- Calculate coefficient of multiple determination R^2 -----*/
-  calc_rsqr (sse_full, ssto, rsqr);
+  *rsqr = calc_rsqr (sse_full, ssto);
    
 }
 
@@ -2564,6 +2235,7 @@ void calculate_results
   float freg;                 /* F-statistic for the full regression model */
   float rsqr;                 /* coeff. of multiple determination R^2  */
   vector coef;                /* regression parameters */
+  vector scoef;               /* std. devs. for regression parameters */
   vector tcoef;               /* t-statistics for regression parameters */
   matrix xtxinv, xtxinvxt;    /* intermediate matrix calculation results */
   matrix afull, ardcd, azero; /* intermediate matrix calculation results */
@@ -2594,6 +2266,7 @@ void calculate_results
   matrix_initialize (&ardcd);
   matrix_initialize (&azero);
   vector_initialize (&coef);
+  vector_initialize (&scoef);
   vector_initialize (&tcoef);
   vector_initialize (&y);
 
@@ -2660,7 +2333,7 @@ void calculate_results
 			       y, option_data->rms_min, option_data->levels, 
 			       option_data->counts, option_data->c, 
 			       option_data->flofmax, &flof,
-			       &coef, &tcoef, &freg, &rsqr);
+			       &coef, &scoef, &tcoef, &freg, &rsqr);
     
 
 	  /*----- save results for this voxel -----*/
@@ -2688,6 +2361,7 @@ void calculate_results
   /*----- dispose of matrices -----*/
   vector_destroy (&y);
   vector_destroy (&tcoef);
+  vector_destroy (&scoef);
   vector_destroy (&coef);
   matrix_destroy (&azero);
   matrix_destroy (&ardcd); 
@@ -3395,8 +3069,12 @@ void main
   int piece_size;              /* number of voxels in dataset piece */
 
 
-  printf ("\n\nProgram %s \n", PROGRAM_NAME);
-  printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
 
   
   /*----- program initialization -----*/
@@ -3415,3 +3093,6 @@ void main
   terminate_program (&xdata, &regmodel, &option_data);  
 
 }
+
+
+/*---------------------------------------------------------------------------*/

@@ -3,7 +3,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -42,9 +41,8 @@ ENTRY("PLUG_get_all_plugins") ;
 
    INIT_PLUGIN_ARRAY( outar ) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"scanning directory %s",dname) ; STATUS(str) ; }
-#endif
 
    /*----- find all filenames -----*/
 
@@ -63,9 +61,8 @@ ENTRY("PLUG_get_all_plugins") ;
       RETURN(NULL) ;
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"%d files to scan",rlist->num) ; STATUS(str) ; }
-#endif
 
    /*----- scan thru and find all filenames ending in DYNAMIC_suffix -----*/
 
@@ -80,10 +77,9 @@ ENTRY("PLUG_get_all_plugins") ;
       }
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"directory %s has %d plugins",dname,outar->num) ; STATUS(str) ; }
-#endif
 
    DESTROY_SARR(rlist) ;
    if( outar->num == 0 ) DESTROY_PLUGIN_ARRAY(outar) ;
@@ -121,19 +117,17 @@ ENTRY("PLUG_read_plugin") ;
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
    if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256]; sprintf(str,"failed to open library %s",fname); STATUS(str); }
-#endif
 
       myXtFree(plin) ;
       RETURN(NULL) ;
    }
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"opened library %s with handle %p" , fname,plin->libhandle ) ;
   STATUS(str) ; }
-#endif
 
    /*----- find the required symbols -----*/
 
@@ -143,10 +137,9 @@ ENTRY("PLUG_read_plugin") ;
 
    if( plin->libinit_func == (vptr_func *) NULL ){
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"library %s lacks required global symbol",fname) ; STATUS(str) ; }
-#endif
 
       DYNAMIC_CLOSE( plin->libhandle ) ;
       myXtFree(plin) ;
@@ -178,14 +171,9 @@ ENTRY("PLUG_read_plugin") ;
 
    plin->interface_count = nin ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"library %s created %d interfaces",fname,nin) ; STATUS(str) ;
-#ifdef MALLOC_TRACE
-   check_malloc() ;
-#endif
-}
-#endif
+  sprintf(str,"library %s created %d interfaces",fname,nin) ; STATUS(str) ; }
 
    /*----- done -----*/
 
@@ -231,10 +219,9 @@ ENTRY("PLUG_get_many_plugins") ;
    for( ii=0 ; ii < ll ; ii++ )
       if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { STATUS("paths to be searched for plugins follows:") ;
   printf("%s\n",elocal) ; fflush(stdout) ; }
-#endif
 
    /*----- extract blank delimited strings;
            use as directory names to get libraries -----*/
@@ -269,9 +256,8 @@ ENTRY("PLUG_get_many_plugins") ;
 
    myXtFree(elocal) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found %d plugins",outar->num) ; STATUS(str) ; }
-#endif
 
    if( outar->num == 0 ) DESTROY_PLUGIN_ARRAY(outar) ;
    RETURN(outar) ;
@@ -892,6 +878,8 @@ ENTRY("PLUG_setup_widgets") ;
            XmNallowShellResize  , False ,        /* let code resize shell? */
            XmNinitialResourcesPersistent , False ,
       NULL ) ;
+
+   DC_yokify( wid->shell , dc ) ; /* 14 Sep 1998 */
 
    if( afni48_good )
       XtVaSetValues( wid->shell ,
@@ -2853,6 +2841,30 @@ ENTRY("PLUTO_force_redisplay") ;
    }
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------
+   Force the redisplay of the color bars in all image windows.
+   23 Aug 1998 -- RWCox.
+------------------------------------------------------------------------*/
+
+void PLUTO_force_rebar(void)
+{
+   Three_D_View * im3d ;
+   int ii ;
+
+ENTRY("PLUTO_force_rebar") ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_OPEN(im3d) ){
+         drive_MCW_imseq( im3d->s123 , isqDR_rebar , NULL ) ;
+         drive_MCW_imseq( im3d->s231 , isqDR_rebar , NULL ) ;
+         drive_MCW_imseq( im3d->s312 , isqDR_rebar , NULL ) ;
+      }
+   }
+   EXRETURN ;
+}
+
 
 /*----------------------------------------------------------------------
    Routine to force AFNI to redisplay controllers that are attached

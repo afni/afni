@@ -4,7 +4,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -274,11 +273,10 @@ ENTRY("AFNI_set_thr_pval") ;
       pval = THD_stat_to_pval( thresh , im3d->fim_now->func_type ,
                                         im3d->fim_now->stat_aux   ) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char buf[128] ;
   sprintf( buf, "thresh=%g  top=%g  pval=%g",
            thresh,im3d->vinfo->func_thresh_top,pval ) ; STATUS(buf) ; }
-#endif
 
    if( pval < 0.0 ){
       strcpy( buf , THR_PVAL_LABEL_NONE ) ;
@@ -753,11 +751,10 @@ ENTRY("AFNI_make_descendants_old") ;
 
    }  /* end of loop over sessions */
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"total # descendants made = %d",num_made) ;
   STATUS(str) ; }
-#endif
 
    EXRETURN ;
 }
@@ -2044,17 +2041,15 @@ ENTRY("AFNI_finalize_read_sess_CB") ;
 
             /** if the user selected a file, strip it back to a directory **/
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"input text = %s",text) ; STATUS(str) ; }
-#endif
 
             if( THD_is_file(text) ){
                int ii = strlen(text)-1 ;
                for( ; ii > 0 && text[ii] != '/' ; ii-- ) text[ii] = '\0' ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"defiled text = %s",text) ; STATUS(str) ; }
-#endif
             }
 
             /** if the name given is a directory, try to read it **/
@@ -3014,13 +3009,12 @@ ENTRY("AFNI_write_dataset_CB") ;
 
    good = AFNI_refashion_dataset( im3d , dset , daxes , resam_mode ) ;
 
-#ifdef AFNI_DEBUG
+if(PRINT_TRACING){
 if( good ){
    STATUS("successful refashioning") ;
 } else {
    STATUS("failed refashioning") ;
-}
-#endif
+}}
 
    if( good && ISFUNC(dset) ){
       AFNI_reset_func_range( im3d ) ;
@@ -3987,9 +3981,9 @@ ENTRY("AFNI_misc_CB") ;
       AFNI_purge_dsets( 1 ) ;
    }
 
-#if defined(USE_TRACING) && !defined(PRINT_TRACING)
+#ifdef USE_TRACING
    else if( w == im3d->vwid->dmode->misc_tracing_pb ){
-      DBG_trace = ! DBG_trace ;
+      DBG_trace = (DBG_trace + 1) % 3 ;  /* Aug 23 1998: cycle between 0,1,2 */
    }
 #endif
 

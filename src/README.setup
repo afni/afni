@@ -14,6 +14,10 @@ file (although there is no particular reason why this is needed).
 Comments can be put in the .afnirc file using the C++ "//" style:
 everything from the "//" to the end of line will be ignored.
 
+The file AFNI.afnirc in the afni98.tgz distribution contains
+an example of defining colors and using them to create palettes
+for functional overlay.
+
 Defining the Colors Available for Overlays
 ------------------------------------------
 The "***COLORS" section is used to define colors that will be added
@@ -37,15 +41,18 @@ component.
 
 Note that the file /usr/lib/X11/rgb.txt (or its equivalent) contains
 the definitions of many color names that the X11 system recognizes.
-See 'man XLookupColor' for more information on ways to define X11 colors.
+See 'man XLookupColor' for more information on the many ways to define
+colors to X11.
 
 If you use a label that has been defined previously (either internally
 within AFNI, or earlier in the setup file), then that color will be
 redefined.  That is, you could do something stupid like
    blue = red
 and AFNI won't complain at all.  ("blue" is one of the pre-defined colors
-in AFNI.)  Color labels are case sensitive, so "BLUE = red" is different
-than "blue = red".  You cannot redefine the label "none".
+in AFNI.  I suppose you could use this 'feature' to make AFNI into some
+sort of twisted Stroop test.)  Color labels are case sensitive, so
+"BLUE = red" is different than "blue = red".  You cannot redefine the
+label "none".
 
 On 8 bit graphics systems (the vast majority), you must be parsimonious
 when defining new colors.  You may run out of color "cells", since there
@@ -85,12 +92,11 @@ restricted to positive values only.  These are denoted by [2+] to
     0.5 -> none
     0.1 -> limegreen
 
-If the rainbow palette is the active one, when you switch to
-positive-only function mode (using the "Pos" toggle button),
-and then to use 3 panes (using the "#" chooser), then the top
-pane will run from 1.0 to 0.5 in blue, the second pane from
-0.5 to 0.1 and have no color, and the third pane from 0.1 to 0.0
-in limegreen.
+If the rainbow palette is the active one, when you switch to positive-
+only function mode (using the "Pos" toggle button), and then to use 3
+panes (using the "#" chooser), then the top pane will run from 1.0 to
+0.5 in blue, the second pane from 0.5 to 0.1 and have no color, and the
+third pane from 0.1 to 0.0 in limegreen.
 
 It is possible to define palettes that only change the colors,
 not the separating values.  This is done by using the special
@@ -128,17 +134,19 @@ items:
                           file like .afnirc (with ***COLORS and/or
                           ***PALETTES sections).  AFNI expects such
                           files to have names that end in ".pal".
-                          Note that new colors defined this way will
-                          NOT be visible on previously created color
-                          menus (such as the Crosshairs Color chooser),
-                          but will be visible on menus created later.
+                    N.B.: New colors defined this way will NOT be visible
+                          on previously created color menus (such as the
+                          Crosshairs Color chooser), but will be visible
+                          on menus created later.
+                    N.B.: Reading in a palette that has the same name
+                          as an existing one will NOT create a new one.
 
    Write out palette  = Writes out the currently visible palette to
                           a ".pal" file.  In this way, you can set up
                           a palette that you like, write it out, and
                           then read it back in later.  (Or you could
                           copy the data into your .afnirc file, and
-                          it would be available at all times.)
+                          it would be available in all later runs.)
                           The program asks you for a palette name,
                           which is also used to for the filename -- if
                           you enter "elvis" for the palette name, then
@@ -156,12 +164,14 @@ items:
                           in a palette table does not make it active --
                           you must then choose it from this menu.  Writing
                           a palette out does not enter it into this menu.
-                          Also, if a palette table does not have an entry
-                          for a given number of panes, then nothing will
-                          happen until you use the "#" chooser to make
-                          the number of panes correspond to the selected
-                          palette table.
-
+         ======>>> N.B.:  If a palette table does not have an entry for a
+                          given number of panes, then nothing will happen
+                          until you use the "#" chooser to make the number
+                          of panes correspond to the selected palette table.
+         => 18 Sep 1998:  In versions of AFNI released after this date,
+                          reading in a palette file causes the last
+                          palette in that file to become the active one.
+                          [Suggested by SM Rao of MCW Neuropsychology]
 The Future
 ----------
 I will probably add more sections to the setup file.  Someday.  Maybe.

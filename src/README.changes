@@ -4,6 +4,16 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+14 Sep 1998:
+   The new 3dDeconvolve program is available to perform multiple linear
+     regression and linear deconvolution on 3D+time datasets.  See the
+     file 3dDeconvolve.ps for documentation and examples.
+--------------------------------------------------------------------------
+22 Aug 1998:
+   Experimental support for X11 TrueColor visuals has been implemented.
+     In this context, 'experimental' means that if it becomes too much
+     of a bother to make work right, this feature will be axed.
+--------------------------------------------------------------------------
 17 Aug 1998:
    The 'Plot' feature in the timeseries chooser has finally been
      implemented (after a wait of about 2 years).  Break out the

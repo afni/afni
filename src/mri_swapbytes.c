@@ -22,3 +22,40 @@ WHOAMI ; IMHEADER(im) ;
 
    return ;
 }
+
+/*---------------------------------------------------------------------
+   Routines to swap byte arrays in pairs and tetrads -- 14 Sep 1998
+-----------------------------------------------------------------------*/
+
+typedef struct { unsigned char a,b ; } twobytes ;
+
+void swap_twobytes( int n , void * ar )
+{
+   register int ii ;
+   register twobytes * tb = (twobytes *) ar ;
+   register unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt       = tb[ii].a ;
+      tb[ii].a = tb[ii].b ;
+      tb[ii].b = tt ;
+   }
+}
+
+typedef struct { unsigned char a,b,c,d ; } fourbytes ;
+
+void swap_fourbytes( int n , void * ar )
+{
+   register int ii ;
+   register fourbytes * tb = (fourbytes *) ar ;
+   register unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt       = tb[ii].a ;
+      tb[ii].a = tb[ii].d ;
+      tb[ii].d = tt ;
+      tt       = tb[ii].b ;
+      tb[ii].b = tb[ii].c ;
+      tb[ii].c = tt ;
+   }
+}

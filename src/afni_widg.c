@@ -24,7 +24,6 @@
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
-#  define PRINT_TRACING
 #endif
 #include "dbtrace.h"
 
@@ -3811,13 +3810,9 @@ ENTRY("new_AFNI_controller") ;
                                  NULL ) ;
    }
 
+   DC_yokify( im3d->vwid->top_shell , dc ) ;
+
    XtVaSetValues( im3d->vwid->top_shell ,
-                     XmNvisual   , dc->visual ,
-                     XmNcolormap , dc->colormap ,
-                     XmNdepth    , dc->depth ,
-                     XmNscreen   , dc->screen ,
-                     XmNbackground , 0 ,
-                     XmNborderColor , 0 ,
                      XmNtitle    , im3d->window_title ,
                      XmNallowShellResize , True ,       /* let code resize shell */
                      XmNdeleteResponse , XmDO_NOTHING , /* deletion handled below */
@@ -4100,7 +4095,7 @@ ENTRY("AFNI_clone_controller_CB") ;
       if( GLOBAL_argopt.unique_dcs )
          new_dc = MCW_new_DC( wcall , GLOBAL_argopt.ncolor ,
                               INIT_ncolovr , INIT_colovr , INIT_labovr ,
-                              GLOBAL_argopt.gamma ) ;
+                              GLOBAL_argopt.gamma , 0 ) ;
 
       if( new_dc == NULL ) new_dc = old_dc ;
 
@@ -4480,11 +4475,11 @@ ENTRY("AFNI_misc_button") ;
    MCW_register_hint( dmode->misc_newstuff_pb , "Purge unused datasets" ) ;
 
    /*--- pushbutton to toggle routine tracing ---*/
-#if defined(USE_TRACING) && !defined(PRINT_TRACING)
+#ifdef USE_TRACING
    dmode->misc_tracing_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Debug Trace") ,
+               LABEL_ARG("Debug Trace++") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,

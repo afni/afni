@@ -6,6 +6,9 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
+static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
+                             "PseudoColor" , "TrueColor" , "DirectColor"  } ;
+
 /*------------------------------------------------------------------------
   Returns position of highest set bit in 'ul' as an integer (0-31),
   or returns -1 if no bit is set.
@@ -20,8 +23,36 @@ static int highbit(unsigned long ul)
   return i;
 }
 
-static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
-                             "PseudoColor" , "TrueColor" , "DirectColor"  } ;
+/*-------------------------------------------------------------------------
+   Setup the number of bytes per pixel.  For depth 24, this might
+   be 3 or 4, depending on the server.  RWCox -- 23 Aug 1998.
+---------------------------------------------------------------------------*/
+
+static void setup_byper( MCW_DC * dc )
+{
+   XPixmapFormatValues * xpv ;
+   int                  nxpv = 0 , ii ;
+
+   xpv = XListPixmapFormats( dc->display , &nxpv ) ;
+
+   if( xpv == NULL || nxpv == 0 ){
+      dc->byper = dc->depth / 8 ; dc->bypad = 1 ;  /* defaults */
+      return ;
+   }
+
+   /* scan for this depth in the array of pixmap formats */
+
+   for( ii=0 ; ii < nxpv ; ii++ ){
+      if( xpv[ii].depth == dc->depth ){
+         dc->byper = xpv[ii].bits_per_pixel / 8 ;  /* bytes, not bits */
+         dc->bypad = xpv[ii].scanline_pad   / 8 ;
+         XFree(xpv) ; return ;
+      }
+   }
+
+   dc->byper = dc->depth / 8 ; dc->bypad = 1 ;  /* defaults */
+   XFree(xpv) ; return ;
+}
 
 /*------------------------------------------------------------------------
   Create and initialize a new MCW_DC structure.
@@ -32,12 +63,20 @@ static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
     covr = array of strings of overlay color names  [used for XAlloc...]
     lovr = array of strings of overlay color labels [used for display]
     gam  = gamma value to use
+
+  22 Aug 1998: Modified to support TrueColor visuals,
+               as well as the original PseudoColor -- RWCox.
+
+  14 Sep 1998: Modified to add argument
+    newcmap = if nonzero, create a new Colormap;
+              if zero, use the default Colormap for the display
 ------------------------------------------------------------------------*/
 
 static MCW_DCOV * only_ovc = NULL ;  /* Dec 1997 */
 
 MCW_DC * MCW_new_DC( Widget wid , int ncol ,
-                     int novr , char * covr[] , char * lovr[] , double gam )
+                     int novr , char * covr[] , char * lovr[] ,
+                     double gam , int newcmap )
 {
    MCW_DC * dc ;
    int ok , ii , new_ovc ;
@@ -56,10 +95,15 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    dc->screen     = XtScreen( wid ) ;
    dc->screen_num = XScreenNumberOfScreen(   dc->screen ) ;
    dc->visual     = DefaultVisualOfScreen(   dc->screen ) ;
-   dc->colormap   = DefaultColormapOfScreen( dc->screen ) ;
    dc->origGC     = DefaultGCOfScreen(       dc->screen ) ;
    dc->planes     = PlanesOfScreen(          dc->screen ) ;
    dc->depth      = DefaultDepthOfScreen(    dc->screen ) ;
+
+   setup_byper(dc) ;  /* 23 Aug 1998 */
+
+   dc->default_colormap = DefaultColormapOfScreen( dc->screen ) ; /* 01 Sep 1998 */
+
+   dc->colormap = DefaultColormapOfScreen( dc->screen ) ; /* may be changed later */
 
    dc->parent_widget = wid ;  /* 06 Oct 1996 */
 
@@ -81,6 +125,30 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
         dc->visual_blueshift  = 7 - highbit(dc->visual_bluemask) ;
         dc->visual_class      = dc->visual_info->class ;
 
+        if( dc->visual_class != PseudoColor &&
+            dc->visual_class != TrueColor      ){
+
+           fprintf(stderr,"\n\n"
+                          " ** The default X11 visual type on your computer is set to %s.\n"
+                          " ** AFNI programs only work with PseudoColor or TrueColor visuals.\n"
+                          " ** You must have your superuser modify your system's setup.\a\n" ,
+                   x11_vcl[dc->visual_class] ) ;
+
+           dc->visual_class = PseudoColor ;  /* let the program fail later */
+        }
+
+        if( dc->visual_class == TrueColor ){
+           static int done = 0 ;
+           if( !done )
+              fprintf(stderr,
+                 "\n"
+                 " ** The default X11 visual type on your computer is %d bit TrueColor.\n"
+                 " ** Support for this is experimental.  AFNI was developed to use 4..12\n"
+                 " ** bit PseudoColor visuals for image display -- RW Cox, 22 Aug 1998.\n" ,
+                 dc->depth ) ;
+           done = 1 ;
+        }
+
 #if 0
         fprintf(stderr,"\n"
                        "DC: redmask=%lx greenmask=%lx bluemask=%lx\n"
@@ -91,40 +159,11 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
                 dc->visual_class , x11_vcl[dc->visual_class] , dc->depth ) ;
 #endif
 
-     } else {
-        dc->visual_info = NULL ;
+     } else {                            /* should never occur! */
+        dc->visual_info  = NULL ;
+        dc->visual_class = PseudoColor ; /* we hope */
      }
    }
-
-
-/** this stuff is experimentation with X **/
-
-#if 0
-   { XIconSize * xsl = NULL ;
-     int         nsl = 0 , ii ;
-     XGetIconSizes( dc->display , RootWindowOfScreen(dc->screen) , &xsl , &nsl ) ;
-     if( xsl != NULL && nsl > 0 ){
-        for( ii=0 ; ii < nsl ; ii++ )
-           printf("IconSize %d: minx=%d miny=%d maxx=%d maxy=%d dx=%d dy=%d\n",
-             ii , xsl[ii].min_width , xsl[ii].min_height ,
-                  xsl[ii].max_width , xsl[ii].max_height ,
-                  xsl[ii].width_inc , xsl[ii].height_inc  ) ;
-     } else {
-        printf("XGetIconSizes fails\n") ;
-     }
-     XFree(xsl) ;
-   }
-#endif
-
-#if 0
-{  XVisualInfo vin ;
-   int stat ;
-   stat = XMatchVisualInfo( dc->display,dc->screen_num, 8,PseudoColor,&vin ) ;
-   if( stat != 0 ) printf("found  8 bit visual\n") ;
-   stat = XMatchVisualInfo( dc->display,dc->screen_num,12,PseudoColor,&vin ) ;
-   if( stat != 0 ) printf("found 12 bit visual\n") ;
-}
-#endif
 
 #if 0
 {  long reqmax ;
@@ -133,11 +172,16 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 }
 #endif
 
-/** end of experimentation **/
+#define DEPTH_BOT  4
+#define DEPTH_TOP 32
 
-   if( dc->planes < 4 || dc->planes > 16 ){
-      fprintf(stderr,"\a\n*** ILLEGAL number of bitplanes: %d\n",dc->planes) ;
-      exit(-1) ;
+   if( dc->depth < DEPTH_BOT || dc->depth > DEPTH_TOP ){
+      fprintf(stderr,"\n\n"
+                     " ** Your X11 display is set to %d bitplanes for image display.\n"
+                     " ** AFNI programs can only deal with between %d and %d bitplanes.\n"
+                     " ** You must have your superuser modify your system's setup.\a\n" ,
+              dc->depth , DEPTH_BOT , DEPTH_TOP ) ;
+      exit(1) ;
    }
 
    dc->width   = WidthOfScreen(  dc->screen ) ;
@@ -146,22 +190,51 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    dc->ncol_im = ncol ;
    dc->gamma   = dc->gamma_init = gam  ;
 
-   ok = XAllocColorCells( dc->display , dc->colormap ,
-                          True , plane_masks , nplmsk ,
-                          dc->pix_im , dc->ncol_im ) ;
+   if( dc->visual_class == PseudoColor ){                  /* 22 Aug 1998 */
 
-   if( ! ok ){
-      fprintf(stderr,
-              "\a\n*** XAllocColorCells fails for %d colors\n",dc->ncol_im) ;
-      fprintf(stderr,
-              "\n*** try the -ncolor option to reduce # of colors\n");
-      exit(-1) ;
+      if( newcmap ){                                       /* 14 Sep 1998 */
+         int ncold , cc ;
+         XColor xcold ;
+
+         /* make a new colormap */
+
+         dc->colormap = XCreateColormap( dc->display , RootWindowOfScreen(dc->screen) ,
+                                         dc->visual  , AllocNone ) ;
+
+         /* allocate some colors from the old one (to reduce flashing) */
+
+#define NREUSE 9
+         ncold = dc->visual_info->colormap_size ;
+         if( ncold > NREUSE ) ncold = NREUSE ;
+         for( cc=0 ; cc < ncold ; cc++ ){
+            xcold.pixel = cc ;
+            XQueryColors( dc->display , dc->default_colormap , &xcold , 1 ) ;
+            XAllocColor( dc->display , dc->colormap , &xcold ) ;
+         }
+      }
+
+      ok = XAllocColorCells( dc->display , dc->colormap ,
+                             True , plane_masks , nplmsk ,
+                             dc->pix_im , dc->ncol_im ) ;
+
+      if( ! ok ){
+         fprintf(stderr,
+                 "\a\n** XAllocColorCells fails for %d colors\n",dc->ncol_im) ;
+         fprintf(stderr,
+                 "\n** try the -ncolor option to reduce # of colors\n");
+         exit(1) ;
+      }
+
+      dc->pix_im_ready = 1 ;
+   } else if( dc->visual_class == TrueColor ){
+      dc->pix_im_ready = 0 ;
    }
 
-   DC_init_im_gry( dc ) ;
    DC_init_im_col( dc ) ;
-   XStoreColors( dc->display , dc->colormap , dc->xgry_im , dc->ncol_im ) ;
+   DC_init_im_gry( dc ) ;
+
    dc->use_xcol_im = False ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998: replaces XStoreColors */
 
    /* set up overlay colors from list of names
       (since the XImage routines use negative indices
@@ -240,70 +313,91 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    return dc ;
 }
 
-/*------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Set the image display to grayscale
+-------------------------------------------------------------------------*/
 
 void DC_palette_setgray( MCW_DC * dc )
 {
-   XStoreColors( dc->display , dc->colormap , dc->xgry_im , dc->ncol_im ) ;
    dc->use_xcol_im = False ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
+
+/*-----------------------------------------------------------------------
+   Set the image display to colorscale
+-------------------------------------------------------------------------*/
 
 void DC_palette_setcolor( MCW_DC * dc )
 {
-   XStoreColors( dc->display , dc->colormap , dc->xcol_im , dc->ncol_im ) ;
    dc->use_xcol_im = True ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
-/*------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Restore the color and grayscale palettes to their defaults
+-------------------------------------------------------------------------*/
 
 void DC_palette_restore( MCW_DC * dc , double new_gamma )
 {
    dc->gamma = (new_gamma > 0 ) ? new_gamma : dc->gamma_init ;
    DC_init_im_col( dc ) ;
    DC_init_im_gry( dc ) ;
-
-   if( dc->use_xcol_im ){
-      XStoreColors( dc->display , dc->colormap , dc->xcol_im , dc->ncol_im ) ;
-   } else {
-      XStoreColors( dc->display , dc->colormap , dc->xgry_im , dc->ncol_im ) ;
-   }
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
 }
 
-/*------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Initialize the grayscale image palette.
+   Modified 22 Aug 1998 for TrueColor support.
+-------------------------------------------------------------------------*/
+
+double mypow( double x , double y )  /* replaces the math library pow */
+{
+   double b ;
+   if( x <= 0.0 ) return 0.0 ;
+   b = log(x) ; b = exp( y*b ) ;
+   return b ;
+}
 
 void DC_init_im_gry( MCW_DC * dc )
 {
-   register int i, k, m;
-   int    nc ;
-   double a , gamm ;
+   int i, k, m, nc ;
+   float a , gamm , b ;
 
    nc   = dc->ncol_im ;
    gamm = dc->gamma ;
    a    = 200. / nc ;
 
    for (i=0; i < nc ; i++) {
-         k = 255.*pow((a*i+55.)/255., gamm) + .5;
-         m = BYTE_TO_INTEN(k);
+      b = log( (a*i+55.0)/255.0 ) ;   /* The code that used to be here */
+      b = exp( gamm * b ) ;           /* (using pow) was replaced due  */
+      k = (int)( 255.0 * b + 0.5 ) ;  /* to some bug in gcc on Linux.  */
 
-         dc->xint_im[i]       = m ;
+      m = BYTE_TO_INTEN(k) ;
+
+      dc->xint_im[i]       = m ;
+      dc->xgry_im[i].red   = m;
+      dc->xgry_im[i].green = m;
+      dc->xgry_im[i].blue  = m;
+      dc->xgry_im[i].flags = DoRed|DoGreen|DoBlue;
+
+      if( dc->visual_class == PseudoColor )        /* 22 Aug 1998 */
          dc->xgry_im[i].pixel = dc->pix_im[i];
-         dc->xgry_im[i].red   = m;
-         dc->xgry_im[i].green = m;
-         dc->xgry_im[i].blue  = m;
-         dc->xgry_im[i].flags = DoRed|DoGreen|DoBlue;
    }
 
    return ;
 }
 
-/*-------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------
+   Initialize the color image palette.
+   Modified 22 Aug 1998 for TrueColor support.
+-------------------------------------------------------------------------*/
 
 void DC_init_im_col( MCW_DC * dc )
 {
    double da, an, c, s, sb, cb, ak, ab , a1,a2 , gamm ;
-   register int i, r, g, b , nc ;
+   int i, r, g, b , nc ;
 
    a1 = 0.0   ;  /* range of spectrum -- hardwired for now */
    a2 = 240.0 ;
@@ -321,23 +415,25 @@ void DC_init_im_col( MCW_DC * dc )
      an += da; an = fmod(an,360.);
 
      if((an >= 0) && (an < 120.)) {
-          r = 255.*pow((ak + MIN(s,(120. - an)*c))/255., gamm) +.5;
-          g = 255.*pow((ak + MIN(s,an*c))/255., gamm) +.5;
+          r = 255.*mypow((ak + MIN(s,(120. - an)*c))/255., gamm) +.5;
+          g = 255.*mypow((ak + MIN(s,an*c))/255., gamm) +.5;
           b = 0;
      } else if((an >= 120.) && (an < 240.)) {
           r = 0;
-          g = 255.*pow((ak + MIN(s ,(240. - an)*c))/255., gamm) +.5;
-          b = 255.*pow((ab + MIN(sb,(an - 120.)*cb))/255., gamm) +.5;
+          g = 255.*mypow((ak + MIN(s ,(240. - an)*c))/255., gamm) +.5;
+          b = 255.*mypow((ab + MIN(sb,(an - 120.)*cb))/255., gamm) +.5;
      } else if(an >= 240.) {
-          r =  255.*pow((ak + MIN(s,(an - 240.)*c))/255., gamm) +.5;
+          r =  255.*mypow((ak + MIN(s,(an - 240.)*c))/255., gamm) +.5;
           g = 0;
-          b = 255.*pow((ak + MIN(s,(360. - an)*c))/255., gamm) +.5;
+          b = 255.*mypow((ak + MIN(s,(360. - an)*c))/255., gamm) +.5;
      }
-     dc->xcol_im[i].pixel = dc->pix_im[i];
      dc->xcol_im[i].red   = BYTE_TO_INTEN(r) ;
      dc->xcol_im[i].green = BYTE_TO_INTEN(g) ;
      dc->xcol_im[i].blue  = BYTE_TO_INTEN(b) ;
      dc->xcol_im[i].flags = DoRed|DoGreen|DoBlue;
+
+     if( dc->visual_class == PseudoColor )        /* 22 Aug 1998 */
+        dc->xcol_im[i].pixel = dc->pix_im[i];
    }
    return ;
 }
@@ -380,6 +476,7 @@ Pixel Name_to_color( MCW_DC * dc , char * name )
    and return its index (negative if an error occurred)
    Dec 1997: modified to use read-write color cells,
              and recycle them if the same label is passed in.
+   22 Aug 1998: modified for TrueColor support
 ----------------------------------------------------------------------------*/
 
 int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
@@ -403,13 +500,21 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 
       if( ii >= MAX_COLORS ) return -1 ;   /* too many overlay colors! */
 
-      ok = XAllocColorCells( dc->display , dc->colormap ,
-                             True , plane_masks , nplmsk , &newpix , 1 ) ;
-      if( !ok ) return -1 ;                /* couldn't get a new cell */
-      cell.pixel = newpix ;
-   } else {
+      if( dc->visual_class == PseudoColor ){  /* 22 Aug 1998 */
+         ok = XAllocColorCells( dc->display , dc->colormap ,
+                                True , plane_masks , nplmsk , &newpix , 1 ) ;
+         if( !ok ) return -1 ;                /* couldn't get a new cell */
+         cell.pixel = newpix ;
+      }
+
+   } else {                                /** Reusing an old cell **/
+
       if( strcmp(name,dc->ovc->name_ov[ii]) == 0 ) return ii ; /* no change! */
-      cell.pixel = dc->ovc->pix_ov[ii] ;
+
+      if( dc->visual_class == PseudoColor )  /* 22 Aug 1998 */
+         cell.pixel = dc->ovc->pix_ov[ii] ;
+      else if( dc->visual_class == TrueColor )
+         XFreeColors( dc->display, dc->colormap, dc->ovc->pix_ov+ii, 1, 0 ) ;
    }
 
    ok = XParseColor( dc->display , dc->colormap , name, &cell ) ;
@@ -422,12 +527,16 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
       myXtFree( dc->ovc->label_ov[ii] ) ;
    }
 
-   dc->ovc->xcol_ov[ii]  = cell ;          /** save cell info **/
+   if( dc->visual_class == PseudoColor )                  /* 22 Aug 1998 */
+      XStoreColor( dc->display , dc->colormap , &cell ) ;
+   else if( dc->visual_class == TrueColor )
+      XAllocColor( dc->display , dc->colormap , &cell ) ;
+
+   dc->ovc->xcol_ov[ii]  = cell ;                      /* save cell info */
    dc->ovc->pix_ov[ii]   = cell.pixel ;
    dc->ovc->name_ov[ii]  = XtNewString(name) ;
    dc->ovc->label_ov[ii] = XtNewString(label) ;
 
-   XStoreColor( dc->display , dc->colormap , &cell ) ; /** make it work **/
    return ii ;
 }
 
@@ -473,7 +582,7 @@ void DC_palette_rotate( MCW_DC * dc , int kk )
 
    if( dc->use_xcol_im ){
       xc = & ( dc->xcol_im[0] ) ;  /* choose active palette */
-      k  = -kk ;                    /* direction of rotation */
+      k  = -kk ;                   /* direction of rotation */
    } else {
       xc = & ( dc->xgry_im[0] ) ;
       k  = -kk ;
@@ -489,13 +598,12 @@ void DC_palette_rotate( MCW_DC * dc , int kk )
       xc[i].blue  = tmp3[j] ;
    }
 
-   XStoreColors( dc->display , dc->colormap , xc , nc ) ;
-
    if( ! dc->use_xcol_im ){  /* rotate xint_im as well for graymap */
       for( i=0 ; i < nc ; i++ ) tmpi[i] = dc->xint_im[i] ;
       for( i=0 ; i < nc ; i++ ) dc->xint_im[i] = tmpi[(i+nc+k)%nc] ;
    }
 
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
@@ -522,13 +630,13 @@ void DC_palette_swap( MCW_DC * dc )
      xc[i].green = tmp2[k-i];
      xc[i].blue  = tmp3[k-i];
    }
-   XStoreColors( dc->display , dc->colormap , xc , nc ) ;
 
    if( ! dc->use_xcol_im ){  /* swap xint_im as well for graymap */
       for( i=0 ; i < nc ; i++ ) tmpi[i] = dc->xint_im[i] ;
       for( i=0 ; i < nc ; i++ ) dc->xint_im[i] = tmpi[k-i] ;
    }
 
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
@@ -557,7 +665,7 @@ void DC_color_bright( MCW_DC * dc , int dlev )
       xc[i].green = CLIP_INTEN( c * xc[i].green ) ;
       xc[i].blue  = CLIP_INTEN( c * xc[i].blue  ) ;
    }
-   XStoreColors( dc->display , dc->colormap , xc , nc ) ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
@@ -576,7 +684,7 @@ void DC_gray_change( MCW_DC * dc , int dlev )
       k = in[i] += delta ;
       xc[i].red = xc[i].green = xc[i].blue = CLIP_INTEN(k) ;
    }
-   XStoreColors( dc->display , dc->colormap , xc , nc ) ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
@@ -593,7 +701,7 @@ void DC_palette_squeeze( MCW_DC * dc , int dd )
 
 void DC_color_squeeze( MCW_DC * dc , int dlev )
 {
-   return ;
+   return ;  /* not implemented */
 }
 
 
@@ -613,7 +721,7 @@ void DC_gray_contrast( MCW_DC * dc , int dlev )
       k = in[i] += i * delta ;
       xc[i].red = xc[i].green = xc[i].blue = CLIP_INTEN(k) ;
    }
-   XStoreColors( dc->display , dc->colormap , xc , nc ) ;
+   DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
    return ;
 }
 
@@ -653,7 +761,7 @@ Boolean MCW_check_iconsize( int width , int height , MCW_DC * dc )
    Given a pixel index, return a pointer to its color (not very efficiently).
 -----------------------------------------------------------------------------*/
 
-XColor * DCpix_to_XColor( MCW_DC * dc , int pp )
+XColor * DCpix_to_XColor( MCW_DC * dc , Pixel pp )
 {
    XColor * ulc , * ovc ;
    int ii ;
@@ -765,4 +873,58 @@ void OVC_mostest( MCW_DCOV * ovc )
    ovc->ov_reddest   = red_ii    ; ovc->pixov_reddest   = ovc->pix_ov[red_ii] ;
    ovc->ov_greenest  = green_ii  ; ovc->pixov_greenest  = ovc->pix_ov[green_ii] ;
    ovc->ov_bluest    = blue_ii   ; ovc->pixov_bluest    = ovc->pix_ov[blue_ii] ;
+}
+
+/*-------------------------------------------------------------------------------
+   Store the colors needed for image display,
+   based on the value of dc->use_xcol_im (colors for image, or grayscale?).
+   This replaces the use of XStoreColors directly in the code above.
+   22 Aug 1998 -- RWCox.
+---------------------------------------------------------------------------------*/
+
+void DC_set_image_colors( MCW_DC * dc )
+{
+   int ii , nc ;
+   XColor * xc ;
+
+   nc = dc->ncol_im ;
+   xc = (dc->use_xcol_im) ? (dc->xcol_im) : (dc->xgry_im) ;
+
+   if( dc->visual_class == PseudoColor ){      /* actually change colormap */
+
+      XStoreColors( dc->display , dc->colormap , xc , nc ) ;
+
+   } else if( dc->visual_class == TrueColor ){  /* change internal pixel array */
+
+      for( ii=0 ; ii < nc ; ii++ ){
+         if( dc->pix_im_ready )
+            XFreeColors( dc->display, dc->colormap, dc->pix_im+ii, 1, 0 ) ;
+
+         XAllocColor( dc->display , dc->colormap , xc+ii ) ;
+         dc->pix_im[ii] = xc[ii].pixel ;
+      }
+      dc->pix_im_ready = 1 ;
+
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------
+   Yoke the widget to the DC -- 14 Sep 1998
+----------------------------------------------------------------*/
+
+void DC_yokify( Widget w , MCW_DC * dc )
+{
+   if( w == NULL || dc == NULL || !XtIsWidget(w) ) return ;
+
+   XtVaSetValues( w ,
+                     XmNvisual   , dc->visual ,
+                     XmNcolormap , dc->colormap ,
+                     XmNdepth    , dc->depth ,
+                     XmNscreen   , dc->screen ,
+                     XmNbackground  , 0 ,
+                     XmNborderColor , 0 ,
+                  NULL ) ;
+   return ;
 }

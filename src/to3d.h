@@ -96,6 +96,7 @@ typedef struct {
 
    Widget action_frame , action_rowcol ,
           button_help_pb , open_view_pb , save_file_pb , quit_pb ;
+   Widget swap_pb ;  /* 14 Sep 1998 */
 
    /** April 1996: new widgets **/
 
@@ -163,6 +164,7 @@ void T3D_centered_CB  (Widget, XtPointer, XtPointer );
 void T3D_open_view_CB (Widget, XtPointer, XtPointer );
 void T3D_save_file_CB (Widget, XtPointer, XtPointer );
 void T3D_quit_CB      (Widget, XtPointer, XtPointer );
+void T3D_swap_CB      (Widget, XtPointer, XtPointer );
 
 void T3D_geometry_parent_CB(Widget, XtPointer, XtPointer );
 void T3D_anatomy_parent_CB (Widget, XtPointer, XtPointer );

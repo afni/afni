@@ -82,6 +82,13 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
       nopt++ ; CHECK_DONE ;
    }
 
+   /**** -1zscore (17 Sep 1998) ****/
+
+   if( strncmp(argv[nopt],"-1zscore",6) == 0 ){
+      edopt->zscore = 1 ;
+      nopt++ ; CHECK_DONE ;
+   }
+
    /**** -1noneg ****/
 
    if( strncmp(argv[nopt],"-1noneg",6) == 0 ){

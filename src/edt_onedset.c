@@ -25,7 +25,6 @@
                edopt->iv_fim entry
 
   17 June 1998:  Modifications for erosion and dilation of clusters.
-
 ----------------------------------------------------------------------*/
 
 void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
@@ -742,6 +741,50 @@ STATUS("mult") ;
         case MRI_complex: for( ii=0 ; ii < nxyz ; ii++ )
                              cfim[ii].r *= edit_mult , cfim[ii].i *= edit_mult ;
         break ;
+      }
+   }
+
+   /*----- 17 Sep 1998: conversion to z-score? -----*/
+
+   { int kv = DSET_BRICK_STATCODE(dset,iv_fim) ;
+     float par[2] ;
+
+     if( FUNC_IS_STAT(kv) && kv != FUNC_ZT_TYPE ){
+
+#if 0
+fprintf(stderr," -1zscore: converting\n") ;
+#endif
+
+        EDIT_zscore_vol( nxyz , fim_type , fimfac , vfim ,
+                         kv , DSET_BRICK_STATAUX(dset,iv_fim) ) ;
+
+        if( ISBUCKET(dset) ){
+
+#if 0
+fprintf(stderr," -1zscore: bucketing\n") ;
+#endif
+
+           par[0] = FUNC_ZT_TYPE ;
+           par[1] = 0 ;
+           EDIT_dset_items( dset , ADN_brick_stataux_one+iv_fim,par , ADN_none ) ;
+
+        } else if( ISFUNC(dset)                  &&
+                   FUNC_IS_STAT(dset->func_type) &&
+                   iv_fim == FUNC_ival_thr[dset->func_type]  ){
+
+#if 0
+fprintf(stderr," -1zscore: retyping\n") ;
+#endif
+
+           dset->func_type   = FUNC_ZT_TYPE ;
+           dset->stat_aux[0] = 0.0 ;
+
+        } else {
+           fprintf(stderr,"*** -1zscore error: non-bucket & non-func!\n") ;
+        }
+
+        if( fim_type == MRI_short )
+           DSET_BRICK_FACTOR(dset,iv_fim) = 1.0 / FUNC_ZT_SCALE_SHORT ;
       }
    }
 

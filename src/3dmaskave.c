@@ -6,12 +6,14 @@
 
 int main( int argc , char * argv[] )
 {
-   int narg , nvox , ii , mcount , iv ;
+   int narg , nvox , ii , mcount , iv , mc ;
    THD_3dim_dataset * mask_dset=NULL , * input_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte * mmm = NULL ;
    int dumpit = 0 , sigmait = 0 ;
-   int miv = 0 ;                   /* 06 Aug 1998 */
+   int miv = 0 ;                              /* 06 Aug 1998 */
+   int div = -1 , div_bot,div_top , drange=0; /* 16 Sep 1998 */
+   float data_bot=666.0 , data_top=-666.0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -19,22 +21,29 @@ int main( int argc , char * argv[] )
              "which satisfy the criterion in the options list.\n"
              "If no options are given, then all voxels are included.\n"
              "Options:\n"
-             "  -sigma       Means to compute the standard deviation as well\n"
-             "                 as the mean.\n"
-             "  -mask dset   Means to use the dataset 'dset' as a mask:\n"
-             "                 Only voxels with nonzero values in 'dset'\n"
+             "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
+             "                 Only voxels with nonzero values in 'mset'\n"
              "                 will be averaged from 'dataset'.  Note\n"
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
              "  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
              "                 dataset.  If not given, miv=0.\n"
              "  -mrange a b  Means to further restrict the voxels from\n"
-             "                 'dset' so that only those mask values\n"
+             "                 'mset' so that only those mask values\n"
              "                 between 'a' and 'b' (inclusive) will\n"
              "                 be used.  If this option is not given,\n"
-             "                 all nonzero values from 'dset' are used.\n"
-             "                 Note that if a voxel is zero in 'dset', then\n"
+             "                 all nonzero values from 'mset' are used.\n"
+             "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
+             "\n"
+             "  -dindex div  Means to use sub-brick #'div' from the dataset.\n"
+             "                 If not given, all sub-bricks will be processed.\n"
+             "  -drange a b  Means to only include voxels from the dataset whose\n"
+             "                 values fall in the range 'a' to 'b' (inclusive).\n"
+             "                 Otherwise, all voxel values are included.\n"
+             "\n"
+             "  -sigma       Means to compute the standard deviation as well\n"
+             "                 as the mean.\n"
              "  -dump        Means to print out all the voxel values that\n"
              "                 go into the average.  This option cannot be\n"
              "                 used unles the -mask option is also used.\n"
@@ -97,6 +106,32 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
+      /* 16 Sep 1998 */
+
+      if( strncmp(argv[narg],"-dindex",5) == 0 ){
+         if( narg+1 >= argc ){
+            fprintf(stderr,"*** -dindex option needs 1 following argument!\n") ; exit(1) ;
+         }
+         div = (int) strtod( argv[++narg] , NULL ) ;
+         if( div < 0 ){
+            fprintf(stderr,"*** -dindex value is negative!\n") ; exit(1) ;
+         }
+         narg++ ; continue ;
+      }
+
+      if( strncmp(argv[narg],"-drange",5) == 0 ){
+         if( narg+2 >= argc ){
+            fprintf(stderr,"*** -drange option requires 2 following arguments!\n") ; exit(1) ;
+         }
+         data_bot = strtod( argv[++narg] , NULL ) ;
+         data_top = strtod( argv[++narg] , NULL ) ;
+         if( data_top < data_top ){
+            fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
+         }
+         drange = 1 ;
+         narg++ ; continue ;
+      }
+
       if( strncmp(argv[narg],"-dump",5) == 0 ){
          dumpit = 1 ;
          narg++ ; continue ;
@@ -121,9 +156,11 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** No input dataset!?\n") ; exit(1) ;
    }
 
+#if 0
    if( dumpit && mask_dset == NULL ){
       fprintf(stderr,"*** Can't use dump option without -mask!\n") ; exit(1) ;
    }
+#endif
 
    if( miv > 0 ){                /* 06 Aug 1998 */
       if( mask_dset == NULL ){
@@ -143,10 +180,18 @@ int main( int argc , char * argv[] )
    if( DSET_BRICK_TYPE(input_dset,0) == MRI_complex ){
       fprintf(stderr,"*** Cannot deal with complex-valued input dataset!\n") ; exit(1) ;
    }
+   if( div >= DSET_NVALS(input_dset) ){
+      fprintf(stderr,"*** Not enough sub-bricks in dataset for -dindex %d!\n",div) ; exit(1) ;
+   }
 
    nvox = DSET_NVOX(input_dset) ;
 
    /* make a byte mask from mask dataset */
+
+   mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
+   if( mmm == NULL ){
+      fprintf(stderr,"*** Cannot malloc workspace!\n") ; exit(1) ;
+   }
 
    if( mask_dset != NULL ){
       if( DSET_NVOX(mask_dset) != nvox ){
@@ -155,10 +200,6 @@ int main( int argc , char * argv[] )
       DSET_load(mask_dset) ;
       if( DSET_ARRAY(mask_dset,miv) == NULL ){
          fprintf(stderr,"*** Cannot read in mask dataset BRIK!\n") ; exit(1) ;
-      }
-      mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
-      if( mmm == NULL ){
-         fprintf(stderr,"*** Cannot malloc workspace!\n") ; exit(1) ;
       }
 
       switch( DSET_BRICK_TYPE(mask_dset,miv) ){
@@ -229,8 +270,9 @@ int main( int argc , char * argv[] )
       }
    } else {
       mcount = nvox ;
+      memset( mmm , 1 , mcount ) ;
    }
-   fprintf(stderr,"+++ %d voxels being averaged\n",mcount) ;
+   fprintf(stderr,"+++ %d voxels survive the mask\n",mcount) ;
 
    if( mcount < 2 && sigmait ){
       fprintf(stderr,"+++ [cannot compute sigma]\n") ;
@@ -244,13 +286,22 @@ int main( int argc , char * argv[] )
 
    /* loop over input sub-bricks */
 
-   for( iv=0 ; iv < DSET_NVALS(input_dset) ; iv++ ){
+   if( div < 0 ){
+      div_bot = 0 ; div_top = DSET_NVALS(input_dset) ;
+   } else {
+      div_bot = div ; div_top = div+1 ;
+   }
+
+   for( iv=div_bot ; iv < div_top ; iv++ ){
 
       switch( DSET_BRICK_TYPE(input_dset,iv) ){
 
          default:
             printf("*** Illegal sub-brick datum at %d\n",iv) ;
          break ;
+
+#define INRANGE(i) ( !drange || ( mfac*bar[i] >= data_bot && mfac*bar[i] <= data_top ) )
+#define GOOD(i)    ( mmm[i] && INRANGE(i) )
 
          case MRI_short:{
             short * bar = (short *) DSET_ARRAY(input_dset,iv) ;
@@ -261,26 +312,19 @@ int main( int argc , char * argv[] )
             if( dumpit ){
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
                                                  if( noscal ) printf(" %d\n",bar[ii]) ;
                                                  else         printf(" %g\n",bar[ii]*mfac) ;
                                               }
             }
 
-            if( mmm != NULL ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sum += bar[ii] ;
-            } else {
-               for( ii=0 ; ii < nvox ; ii++ ) sum += bar[ii] ;
-            }
-            sum = sum / mcount ;
+            for( ii=mc=0 ; ii < nvox ; ii++ )
+               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+            if( mc > 0 ) sum = sum / mc ;
 
-            if( sigmait ){
-               if( mmm != NULL ){
-                  for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
-               } else {
-                  for( ii=0 ; ii < nvox ; ii++ ) sigma += SQR(bar[ii]-sum) ;
-               }
-               sigma = mfac * sqrt( sigma/(mcount-1) ) ;
+            if( sigmait && mc > 1 ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
+               sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
             sum = mfac * sum ;
 
@@ -291,7 +335,7 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf("\n") ;
+            printf(" [%d voxels]\n",mc) ;
          }
          break ;
 
@@ -304,26 +348,19 @@ int main( int argc , char * argv[] )
             if( dumpit ){
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
                                                  if( noscal ) printf(" %d\n",bar[ii]) ;
                                                  else         printf(" %g\n",bar[ii]*mfac) ;
                                               }
             }
 
-            if( mmm != NULL ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sum += bar[ii] ;
-            } else {
-               for( ii=0 ; ii < nvox ; ii++ ) sum += bar[ii] ;
-            }
-            sum = sum / mcount ;
+            for( ii=mc=0 ; ii < nvox ; ii++ )
+               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+            if( mc > 0 ) sum = sum / mc ;
 
-            if( sigmait ){
-               if( mmm != NULL ){
-                  for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
-               } else {
-                  for( ii=0 ; ii < nvox ; ii++ ) sigma += SQR(bar[ii]-sum) ;
-               }
-               sigma = mfac * sqrt( sigma/(mcount-1) ) ;
+            if( sigmait && mc > 1 ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
+               sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
             sum = mfac * sum ;
 
@@ -334,7 +371,7 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf("\n") ;
+            printf(" [%d voxels]\n",mc) ;
          }
          break ;
 
@@ -347,26 +384,19 @@ int main( int argc , char * argv[] )
             if( dumpit ){
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
                                                  if( noscal ) printf(" %g\n",bar[ii]) ;
                                                  else         printf(" %g\n",bar[ii]*mfac) ;
                                               }
             }
 
-            if( mmm != NULL ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sum += bar[ii] ;
-            } else {
-               for( ii=0 ; ii < nvox ; ii++ ) sum += bar[ii] ;
-            }
-            sum = sum / mcount ;
+            for( ii=mc=0 ; ii < nvox ; ii++ )
+               if( GOOD(ii) ){ sum += bar[ii] ; mc++ ; }
+            if( mc > 0 ) sum = sum / mc ;
 
-            if( sigmait ){
-               if( mmm != NULL ){
-                  for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
-               } else {
-                  for( ii=0 ; ii < nvox ; ii++ ) sigma += SQR(bar[ii]-sum) ;
-               }
-               sigma = mfac * sqrt( sigma/(mcount-1) ) ;
+            if( sigmait && mc > 1 ){
+               for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ) sigma += SQR(bar[ii]-sum) ;
+               sigma = mfac * sqrt( sigma/(mc-1) ) ;
             }
             sum = mfac * sum ;
 
@@ -377,7 +407,7 @@ int main( int argc , char * argv[] )
                if( dumpit ) printf("  Sigma = %g",sigma) ;
                else         printf("  %g",sigma) ;
             }
-            printf("\n") ;
+            printf(" [%d voxels]\n",mc) ;
          }
          break ;
       }

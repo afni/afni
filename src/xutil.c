@@ -31,6 +31,54 @@ void MCW_expose_widget( Widget w )
 }
 
 /*--------------------------------------------------------------------
+  Get the Colormap for a widget -- 01 Sep 1998
+----------------------------------------------------------------------*/
+
+Colormap MCW_get_colormap( Widget w )
+{
+   Colormap cmap = (Colormap) 0 ;
+
+   if( w == NULL || ! XtIsWidget(w) ) return (Colormap) 0 ;
+
+   XtVaGetValues( w , XmNcolormap  , &cmap , NULL ) ;
+   return cmap ;
+}
+
+int MCW_get_depth( Widget w )  /* 14 Sep 1998 */
+{
+   int depth = 0 ;
+
+   if( w == NULL || ! XtIsWidget(w) ) return 0 ;
+   XtVaGetValues( w , XmNdepth  , &depth , NULL ) ;
+   return depth ;
+}
+
+Visual * MCW_get_visual( Widget w )  /* 14 Sep 1998 */
+{
+   Visual * visual = NULL ;
+   Widget wpar = w ;
+
+   if( w == NULL || ! XtIsWidget(w) ) return NULL ;
+
+   while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
+
+   XtVaGetValues( wpar , XmNvisual , &visual , NULL ) ;
+   return visual ;
+}
+
+/*--------------------------------------------------------------------
+  Set the Colormap for a widget -- 14 Sep 1998
+  (Will only work if widget is not yet realized)
+----------------------------------------------------------------------*/
+
+void MCW_set_colormap( Widget w , Colormap cmap )
+{
+   if( w == NULL || ! XtIsWidget(w) ) return ;
+   XtVaSetValues( w , XmNcolormap  , cmap , NULL ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------
    swap the fg and bg colors of a widget
    (the shadow colors are altered to fit the new bg)
 ----------------------------------------------------------------------*/
@@ -1023,10 +1071,10 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
    XtPopup( tw->wshell , XtGrabNone ) ;
 
    if( swid > 0 )
-      XtVaSetValues( tw->wshell , XmNwidth , swid , NULL ) ; 
+      XtVaSetValues( tw->wshell , XmNwidth , swid , NULL ) ;
 
    if( shi > 0 )
-      XtVaSetValues( tw->wshell , XmNheight , shi , NULL ) ; 
+      XtVaSetValues( tw->wshell , XmNheight , shi , NULL ) ;
 
    return tw ;
 }

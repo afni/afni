@@ -1,7 +1,7 @@
 
     ***** Welcome to the world of MCW AFNI, version 2.20 *****
     *****  Robert W. Cox, Medical College of Wisconsin   *****
-    *****                   July 1998                    *****
+    *****                  August 1998                   *****
 
 The documentation for MCW AFNI is in the following files:
 
@@ -96,6 +96,8 @@ To compile and install the optional plugin packages, the command
    make all plugins install install_plugins clean
 or
    make itall clean
+or
+   make totality
 
 should be used instead.  Note that the SunOS 4.1.3 and IBM RS/6000
 Makefiles do not include plugin support, since I don't have regular
@@ -145,6 +147,14 @@ GENERAL WOES
    is set to "TrueColor", AFNI will not work.  The mechanism for
    changing the default varies between operating systems.
 
+** 22 Aug 1998: AFNI now supports the use of TrueColor Visuals, the
+   other major form of bit-pattern-to-color mapping in X11.  At this
+   time, the implementation of TrueColor in AFNI is experimental, and
+   probably has undiscovered flaws.  The pre-AFNI program "FD2" does
+   not work with TrueColor.  AFNI still uses the default X11 Visual
+   for all its display purposes (i.e., you can't instruct the program
+   to use another Visual).
+
 4) As far as I know, only SGI supports the use of 12 bit PseudoColor
    Visuals in X11; all other X11 servers only support 8 bits in
    PseudoColor.  AFNI will use about 130 colors when it runs.  On an
@@ -166,25 +176,26 @@ The last time I checked, the patch number was 100444-76.  To use the programs
 AFNI and to3d, you MUST install this new server.  (It is quite easy, if you
 have super-user access.)
 
-Sun's ANSI C compiler will produce lots of warning messages.  The
-program still seems to work.  One site has reported a problem with
-AFNI compiled under Solaris with Sun's Motif.  Apparently, there
-is a bug in some versions of Sun's Motif that causes the value for
-the threshold slider not to be displayed.  I don't know how to fix
-this problem, so I implemented a workaround.
-
-If you are running Solaris AND have this problem, edit the "machdep.h"
-file, and uncomment the line where the macro FIX_SCALE_VALUE_PROBLEM
-is defined.  Then remake afni, and the threshold slider value will be
-displayed in the top of the slider window (where the label normally appears).
+Sun's ANSI C compiler will produce lots of warning messages.  The program
+still seems to work.  One site has reported a problem with AFNI compiled
+under Solaris with Sun's Motif.  Apparently, there is a bug in some versions
+of Sun's Motif that causes the value for the threshold slider not to be
+displayed.  I don't know how to fix this problem, so I implemented a
+workaround.  If you are running Solaris AND have this problem, edit the
+"machdep.h" file, and uncomment the line where the macro
+FIX_SCALE_VALUE_PROBLEM is defined.  Then remake afni, and the threshold
+slider value will be displayed in the top of the slider window (where
+the label normally appears).
 
 Do not use very high levels of optimization (-xO4, say) with the Sun
 compiler.  It introduces bugs in AFNI, and the Talairach transformation
-will be computed incorrectly.  (This occurred with the compiler as
+will be computed incorrectly.  This occurred with the compiler as
 of 1996, and may be fixed by now.  But I don't have much access to any
 Sun machines, nor do I particularly care to.  Getting AFNI to work on
 Solaris is apparently troublesome, due to Sun bugs and incompatibilities
-with other flavors of Unix.)
+with other flavors of Unix.  I have had reports of serious trouble with
+Solaris 2.6, but not having easy access to such a machine, don't know
+what to do about it.
 
 GOOD NEWS: Sun
 --------------
@@ -281,14 +292,7 @@ their garbage very well.  This can lead to consumption of huge quantities
 of memory over time.  The solution is to forcibly restart the server
 every time you log out.  This can be done by setting the
 "terminateServer" resource to "True" in file /var/X11/xdm/xdm-config.
-(Only the superuser can do this.)  Note also that AFNI can only
-run if the default X11 visual is a PseudoColor visual.  This may
-not be the case with a high end SGI workstation.  In that case,
-the superuser must manually configure /var/X11/xdm/Xservers to
-start Xsgi with the correct visual as the default.  See "man Xsgi"
-and "xdpyinfo" to get the needed information.  (We use the 12 bit
-PseudoColor visual for our default, but a few freeware utilities
-don't work well with anything but 8 bit PseudoColor visuals.)
+(Only the superuser can do this.)
 
 The SGI compiler on the R5000 processor sometimes core dumps
 at optimization -O3.  That's why Makefile.sgi5k* uses -O2.
@@ -297,8 +301,8 @@ The file /var/X11/xdm/Xservers is the place where you can set the
 SGI X11 server to start up in 12 bit mode, if that is supported
 on your machine.  On our machines, I have set this file to be
 
-   :0 secure /usr/bin/X11/X -bs -nobitscale -c -pseudomap 4sight
-      -solidroot sgilightblue -cursorFG red -cursorBG white -depth 12
+  :0 secure /usr/bin/X11/X -bs -nobitscale -c -pseudomap 4sight
+     -solidroot sgilightblue -cursorFG red -cursorBG white -depth 12
 
 (This is all one line.  I have just added the option "-depth 12" to
 the default setup shipped by SGI.)
@@ -310,15 +314,20 @@ platforms.  The program 2swap can do this for 2D and 3D data.  Also,
 the "3Ds:" input format can do this as the images are read in -- see
 the output of 'to3d -help' for more details.
 
-Update, May 1998: AFNI now stores the byte order of datasets in the
-header files, and will swap bytes appropriately on input.  See file
-README.environment for a few more details.  ... Later in May: I just
-now remembered to update the sample datasets on the ftp site, so
-that they should display correctly without byte swapping.
+** May 1998: AFNI now stores the byte order of datasets in the
+   header files, and will swap bytes appropriately on input.  See
+   file README.environment for a few more details.  ... Later in May:
+   I just now remembered to update the sample datasets on the ftp site,
+   so that they should display correctly without byte swapping.
 
 Linux does not seem to handle large mmap-ed files very well.  I have
 heard this is much better in kernels 2.x, but I am still using
 1.2.13, so cannot speak to this issue.
+
+If you need to reconfigure your X11 server and are using XFree86,
+this can be done with the program xf86config, or with some programs
+that come with various Linux distributions (e.g., Xconfigurator
+from RedHat).
 
 SAMPLE DATASETS
 ---------------
@@ -337,8 +346,8 @@ will certainly need to get some guidance from a neuroanatomy textbook
 in order to become adept at marking the required locations.
 
 The file sample96.tgz has some sample 3D+time datasets.  This file is
-huge (20 Megabytes), so please try to download it at night or on a
-weekend.
+huge (20 Megabytes), so you will probably be happier if you download it
+at night or on a weekend (considering the congestion on the Internet).
 
 MISCELLANY
 ----------
@@ -402,7 +411,7 @@ A number of software tools for FMRI (including AFNI) are reviewed in
 
    S Gold, B Christian, S Arndt, G Zeien, T Cizadlo, DL Johnson,
    M Flaum, and NC Andreasen.
-   Functional MRI statistical software packages: a comparative analysis. 
+   Functional MRI statistical software packages: a comparative analysis.
    Human Brain Mapping, 6:73-84, 1998
 =============================================================================
 Robert W. Cox, PhD

@@ -223,6 +223,20 @@ typedef struct {
 
 #define isqCR_button2_points 501  /* Feb 1998 */
 
+#define isqCR_force_redisplay 601 /* 22 Aug 1998 */
+
+#define COLORMAP_CHANGE(sq)                                          \
+  do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
+         if( (sq)->status->send_CB != NULL ){                        \
+            ISQ_cbs cbs ;                                            \
+            cbs.reason = isqCR_force_redisplay ;                     \
+            (sq)->status->send_CB( (sq) , (sq)->getaux , &cbs ) ;    \
+         } else {                                                    \
+            KILL_2XIM( (sq)->given_xbar , (sq)->sized_xbar ) ;       \
+            ISQ_redisplay( (sq) , -1 , isqDR_display ) ;             \
+         }                                                           \
+    } } while(0)
+
 /*------------------------------*/
 
 #ifndef MONT_NMAX
@@ -391,6 +405,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define BUTTON2_CLOSEDPOLY      1
 #define BUTTON2_POINTS          2
 #define BUTTON2_NODRAW          3
+
+#define isqDR_rebar           602  /* 23 Aug 1998 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 

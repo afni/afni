@@ -126,6 +126,11 @@ static char * helpstring =
     "  -1scale          = Linearly scale intensities so that max is 10000\n"
 #endif
     "  -1mult factor    = Multiply intensities by the given factor\n"
+    "  -1zscore         = If the sub-brick is labeled as a statistic from\n"
+    "                     a known distribution, it will be converted to\n"
+    "                     an equivalent N(0,1) deviate (or 'z score').\n"
+    "                     If the sub-brick is not so labeled, nothing will\n"
+    "                     be done.\n"
     "\n"
     "The above '-1' options are carried out in the order given above,\n"
     "regardless of the order in which they are entered on the command line.\n"

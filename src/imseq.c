@@ -6,7 +6,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 #include "mrilib.h"
 
 #include "imseq.h"
@@ -544,6 +543,8 @@ fflush(stdout) ;
 
            XmNinitialResourcesPersistent , False ,
       NULL ) ;
+
+   DC_yokify( newseq->wtop , dc ) ;  /* 14 Sep 1998 */
 
 #if 1
    if( MCW_isitmwm( newseq->wtop ) )
@@ -1538,6 +1539,7 @@ void ISQ_but_color_CB( Widget w , XtPointer client_data ,
    if( seq->dc->use_xcol_im ) DC_palette_setgray( seq->dc ) ;
    else                       DC_palette_setcolor( seq->dc ) ;
 
+   COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
    ISQ_but_done_reset( seq ) ;
    return ;
 }
@@ -1550,7 +1552,7 @@ void ISQ_but_cswap_CB( Widget w , XtPointer client_data ,
    if( ! ISQ_REALZ(seq) ) return ;
 
    DC_palette_swap( seq->dc ) ;
-
+   COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
    ISQ_but_done_reset( seq ) ;
    return ;
 }
@@ -2163,6 +2165,8 @@ void ISQ_show_image( MCW_imseq * seq )
 
 DPR("ISQ_show_image");
 
+   if( seq->given_xbar == NULL ) ISQ_show_bar( seq ) ;  /* 22 Aug 1998 */
+
    if( seq->given_xim == NULL ) ISQ_make_image( seq ) ;
 
    if( seq->given_xim == NULL ){
@@ -2688,6 +2692,8 @@ DPR("ISQ_but_disp_CB");
 
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
+
+   DC_yokify( seq->dialog , seq->dc ) ;  /* 14 Sep 1998 */
 
    seq->dialog_starter = NBUT_DISP ;
 
@@ -3317,21 +3323,25 @@ printf("ISQ_arrow_CB: fval=%f old=%f\n" , av->fval , av->old_fval ) ;
 fflush(stdout) ;
 #endif
 
-        if( av == seq->arrow[NARR_SQUEEZE] )
+        if( av == seq->arrow[NARR_SQUEEZE] ){
            DC_palette_squeeze( seq->dc , ddd ) ;
+           COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
 
-   else if( av == seq->arrow[NARR_BRIGHT]  )
+   } else if( av == seq->arrow[NARR_BRIGHT]  ){
            DC_palette_bright(  seq->dc , ddd ) ;
+           COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
 
-   else if( av == seq->arrow[NARR_ROTATE]  )
+   } else if( av == seq->arrow[NARR_ROTATE]  ){
            DC_palette_rotate(  seq->dc ,-ddd ) ;
+           COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
 
-   else if( av == seq->arrow[NARR_GAMMA]   ){
+   } else if( av == seq->arrow[NARR_GAMMA]   ){
            double new_gamma = seq->dc->gamma ;
            if( ddd > 0 ) new_gamma *= 0.98 ;
            else          new_gamma /= 0.98 ;
 
            DC_palette_restore( seq->dc , new_gamma ) ;
+           COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
 
    } else if( av == seq->arrow[NARR_FRAC]  ){  /* 25 Oct 1996 */
       float nfrac = seq->image_frac ;
@@ -3373,7 +3383,7 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( ! ISQ_REALZ(seq) ) return ;
 
    DC_palette_restore( seq->dc , 0.0 ) ;
-
+   COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
    ISQ_but_done_reset( seq ) ;
    return ;
 }
@@ -3460,6 +3470,8 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
                               BUTTON2_CLOSEDPOLY == closed polygon
                               BUTTON2_POINTS     == only draw points
                               BUTTON2_NODRAW     == don't draw anything
+
+*    isqDR_rebar           (ignored) erase the color bar and show it again
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -3703,6 +3715,15 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
 
          if( ! seq->ignore_redraws )
             ISQ_redisplay( seq , n , drive_code ) ;
+         return True ;
+      }
+      break ;
+
+      /*------- display bar anew [23 Aug 1998] -------*/
+
+      case isqDR_rebar:{
+         KILL_2XIM( seq->given_xbar , seq->sized_xbar ) ; /* destroy old */
+         if( seq->onoff_state ) ISQ_show_bar( seq ) ;     /* show new?  */
          return True ;
       }
       break ;
@@ -4153,6 +4174,8 @@ void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
+
+   DC_yokify( seq->dialog , seq->dc ) ; /* 14 Sep 1998 */
 
    seq->dialog_starter = NBUT_MONT ;
 

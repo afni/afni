@@ -1,10 +1,17 @@
 #ifndef _MCW_DEBUGTRACE_
 #define _MCW_DEBUGTRACE_
 
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
 /** inputs:
      USE_TRACING   ==> if set, include tracing information in AFNI
-     PRINT_TRACING ==> if also set, prints as it goes (otherwise, no print)
      MALLOC_TRACE  ==> if also set, enables GNU malloc and malloc debugging **/
+
+/*** Modified 23 Aug 1998 to eliminate PRINT_TRACING.
+     Now, if DBG_trace > 1, will print STATUS messages. ***/
 
 /*********************************************************************/
 #ifdef USE_TRACING
@@ -44,13 +51,8 @@
 /*---------------------------------------------------------------*/
 #ifdef MAIN
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
-   int DBG_num = 1 ;
-
-#  ifdef PRINT_TRACING
-     int DBG_trace = 1 ;   /* turn on from start */
-#  else
-     int DBG_trace = 0 ;   /* turn off at start */
-#  endif
+   int DBG_num   = 1 ;
+   int DBG_trace = 0 ;   /* turn off at start */
 
 #include <signal.h>
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
@@ -107,14 +109,12 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                           TRMOUT ; fflush(stdout) ; }                         \
                         DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ; } while(0)
 
-/*---------------------------------------------------------------*/
-#ifdef PRINT_TRACING
-# define STATUS(str) \
-     (printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)),fflush(stdout))
-#else
-# define STATUS(str) /* nada */
-#endif
-/*---------------------------------------------------------------*/
+#define PRINT_TRACING (DBG_trace > 1)
+
+#define STATUS(str)                                               \
+  do{ if(PRINT_TRACING){                                           \
+        printf("%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)); \
+        fflush(stdout) ; } } while(0)
 
 /*********************************************************************/
 #else /* don't USE_TRACING */
@@ -126,6 +126,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define DBG_SIGNALS
 #  define TRMOUT
 #  define TRMNOT
+#  define PRINT_TRACING 0
 
 #endif /* USE_TRACING */
 /*********************************************************************/
