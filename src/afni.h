@@ -125,12 +125,12 @@ static char * UNDERLAY_typestr[] =
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.55j"
+#define VERSION "2.56a"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "04 Dec 2003      "
+#define RELEASE "11 Feb 2004      "
 
 #ifdef MAIN
 #define AFNI_about \
