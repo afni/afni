@@ -5,6 +5,13 @@
 
 #include "mrilib.h"
 
+static int allow_negative = 0 ;
+
+void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
+{
+   allow_negative = iii ; return ;
+}
+
 /*-----------------------------------------------------------------
    Get an integer list in the range 0..(nvals-1), from the
    character string str.  If we call the output pointer fred,
@@ -47,7 +54,7 @@ int * MCW_get_intlist( int nvals , char * str )
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
-         if( ibot < 0 ){ free(subv) ; return NULL ; }
+         if( ibot < 0 && !allow_negative ){ free(subv) ; return NULL ; }
          if( ibot >= nvals ) ibot = nvals-1 ;
          nused = (cpt-(str+ipos)) ;
          if( ibot == 0 && nused == 0 ){ free(subv) ; return NULL ; }
@@ -80,7 +87,7 @@ int * MCW_get_intlist( int nvals , char * str )
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
-         if( itop < 0 ){ free(subv) ; return NULL ; }
+         if( itop < 0 && !allow_negative ){ free(subv) ; return NULL ; }
          if( itop >= nvals ) itop = nvals-1 ;
          nused = (cpt-(str+ipos)) ;
          if( itop == 0 && nused == 0 ){ free(subv) ; return NULL ; }

@@ -23,10 +23,10 @@ Modified output to scale each sub-brick to shorts/bytes separately
 
 Modifed sub-brick selection of type "-b3 name+view" to mangle dataset
 into form "name+view[3]", since that code works better on 3D+time.
-  [RW Cox, Nov 1999]
-
 Modified TS_reader to use new mri_read_1D() function, instead of
 mri_read_ascii().
+Added -histpar option.
+Added the _dshift stuff.
   [RW Cox, Nov 1999]
 ----------------------------------------------------------------------------*/
 
@@ -49,6 +49,22 @@ static int                ntime[26] ;
 static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
+
+static int                CALC_histpar = -1 ; /* 22 Nov 1999 */
+
+#define DSHIFT_MODE_STOP  0
+#define DSHIFT_MODE_WRAP  1
+#define DSHIFT_MODE_ZERO  2
+
+static int                CALC_dshift     [26] ; /* 22 Nov 1999 */
+static int                CALC_dshift_i   [26] ;
+static int                CALC_dshift_j   [26] ;
+static int                CALC_dshift_k   [26] ;
+static int                CALC_dshift_l   [26] ;
+static int                CALC_dshift_mode[26] ;
+
+static int                CALC_dshift_mode_current = DSHIFT_MODE_STOP ;
+static int                CALC_has_timeshift       = 0 ;
 
 static int   CALC_has_sym[26] ;                      /* 15 Sep 1999 */
 static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
@@ -88,7 +104,8 @@ static int         TS_make = 0 ;
 /* this macro tells if a variable (index 0..25) is defined,
    either by a time series file or an input dataset - 16 Nov 1999 */
 
-#define VAR_DEFINED(kv) (TS_flim[kv] != NULL || CALC_dset[kv] != NULL)
+#define VAR_DEFINED(kv) \
+   (TS_flim[kv] != NULL || CALC_dset[kv] != NULL || CALC_dshift[kv] >= 0)
 
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
@@ -127,17 +144,35 @@ void CALC_read_opts( int argc , char * argv[] )
    int ii, kk;
 
    for( ids=0 ; ids < 26 ; ids++ ){
-      CALC_type[ids] = -1 ;
-      TS_flim[ids]   = NULL ;
+      CALC_dset[ids]   = NULL ;
+      CALC_type[ids]   = -1 ;
+      TS_flim[ids]     = NULL ;
+
+      CALC_dshift[ids]      = -1 ;                        /* 22 Nov 1999 */
+      CALC_dshift_mode[ids] = CALC_dshift_mode_current ;
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      /**** -histpar letter [22 Nov 1999] ****/
+
+      if( strncmp(argv[nopt],"-histpar",5) == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"*** need an argument after -histpar!\n") ; exit(1) ;
+         }
+         if( argv[nopt][0] < 'a' || argv[nopt][0] > 'z'){
+            fprintf(stderr,"*** argument after -histpar is illegal!\n"); exit(1);
+         }
+         CALC_histpar = (int) (argv[nopt][0] - 'a') ;
+
+         nopt++ ; continue ;  /* go to next arg */
+      }
 
       /**** -datum type ****/
 
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -datum!\n") ; exit(1) ;
+            fprintf(stderr,"*** need an argument after -datum!\n") ; exit(1) ;
          }
          if( strcmp(argv[nopt],"short") == 0 ){
             CALC_datum = MRI_short ;
@@ -148,7 +183,7 @@ void CALC_read_opts( int argc , char * argv[] )
          } else if( strcmp(argv[nopt],"complex") == 0 ){  /* not listed help */
             CALC_datum = MRI_complex ;
          } else {
-            fprintf(stderr,"-datum of type '%s' is not supported in 3dmerge!\n",
+            fprintf(stderr,"*** -datum of type '%s' not supported in 3dmerge!\n",
                     argv[nopt] ) ;
             exit(1) ;
          }
@@ -181,7 +216,7 @@ void CALC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ){
-            fprintf(stderr,"need argument after -prefix!\n") ; exit(1) ;
+            fprintf(stderr,"*** need argument after -prefix!\n") ; exit(1) ;
          }
          MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
@@ -192,7 +227,7 @@ void CALC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-session",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ){
-            fprintf(stderr,"need argument after -session!\n") ; exit(1) ;
+            fprintf(stderr,"*** need argument after -session!\n") ; exit(1) ;
          }
          MCW_strncpy( CALC_session , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
@@ -202,18 +237,39 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-expr",4) == 0 ){
          if( CALC_code != NULL ){
-            fprintf(stderr,"cannot have 2 -expr options!\n") ; exit(1) ;
+            fprintf(stderr,"*** cannot have 2 -expr options!\n") ; exit(1) ;
          }
          nopt++ ;
          if( nopt >= argc ){
-            fprintf(stderr,"need argument after -expr!\n") ; exit(1) ;
+            fprintf(stderr,"*** need argument after -expr!\n") ; exit(1) ;
          }
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL ){
-            fprintf(stderr,"illegal expression!\n") ; exit(1) ;
+            fprintf(stderr,"*** illegal expression!\n") ; exit(1) ;
          }
          PARSER_mark_symbols( CALC_code , CALC_has_sym ) ; /* 15 Sep 1999 */
          continue ;
+      }
+
+      /**** -dsSTOP [22 Nov 1999] ****/
+
+      if( strncmp(argv[nopt],"-dsSTOP",6) == 0 ){
+         CALC_dshift_mode_current = DSHIFT_MODE_STOP ;
+         nopt++ ; continue ;
+      }
+
+      /**** -dsWRAP [22 Nov 1999] ****/
+
+      if( strncmp(argv[nopt],"-dsWRAP",6) == 0 ){
+         CALC_dshift_mode_current = DSHIFT_MODE_WRAP ;
+         nopt++ ; continue ;
+      }
+
+      /**** -dsZERO [22 Nov 1999] ****/
+
+      if( strncmp(argv[nopt],"-dsZERO",6) == 0 ){
+         CALC_dshift_mode_current = DSHIFT_MODE_ZERO ;
+         nopt++ ; continue ;
       }
 
       /**** -<letter>[number] dataset ****/
@@ -229,7 +285,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
          ival = argv[nopt][1] - 'a' ;
          if( VAR_DEFINED(ival) ){
-            fprintf(stderr,"can't open duplicate %s datasets!\n",argv[nopt]) ;
+            fprintf(stderr,"*** Can't define %c symbol twice\n",argv[nopt][1]);
             exit(1) ;
          }
 
@@ -241,7 +297,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
          nopt++ ;
          if( nopt >= argc ){
-            fprintf(stderr,"need argument after %s!\n",argv[nopt-1]) ; exit(1) ;
+            fprintf(stderr,"*** need argument after %s\n",argv[nopt-1]); exit(1);
          }
 
          /*-- 17 Apr 1998: allow for a *.1D filename --*/
@@ -254,15 +310,75 @@ void CALC_read_opts( int argc , char * argv[] )
             /* get to here => something bad happened, so try it as a dataset */
          }
 
+         /*-- 22 Nov 1999: allow for a differentially
+                           subscripted name, as in "-b a[1,0,0,0]" --*/
+
+         if( ll >= 10             &&
+             argv[nopt][1] == '[' &&
+             argv[nopt][0] >= 'a' && argv[nopt][0] <= 'z' ){
+
+            int jds = argv[nopt][0] - 'a' ;  /* actual dataset index */
+            int * ijkl ;
+
+            if( ids > 2 ){
+               fprintf(stderr,
+                       "*** Can't combine %s with differential subscripting %s\n",
+                       argv[nopt-1],argv[nopt]) ;
+               exit(1) ;
+            }
+            if( CALC_dset[jds] == NULL ){
+               fprintf(stderr,
+                       "*** Must define dataset %c before using it in %s\n",
+                       argv[nopt][0] , argv[nopt] ) ;
+               exit(1) ;
+            }
+
+            MCW_intlist_allow_negative(1) ;
+            ijkl = MCW_get_intlist( 9999 , argv[nopt]+1 ) ;
+            MCW_intlist_allow_negative(0) ;
+
+            if( ijkl == NULL || ijkl[0] != 4 ){
+               fprintf(stderr,"*** Illegal differential subscripting %s\n",
+                              argv[nopt] ) ;
+               exit(1) ;
+            }
+
+            if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
+               fprintf(stderr,
+                       "--- Warning: differential subscript %s is all zero\n",
+                       argv[nopt] ) ;
+            }
+
+            if( ntime[jds] == 1 && ijkl[4] != 0 ){
+               fprintf(stderr,
+                       "--- Warning: differential subscript %s has nonzero time\n"
+                       "             shift on base dataset with 1 sub-brick!\n",
+                       argv[nopt] ) ;
+               ijkl[4] = 0 ;
+            }
+
+            CALC_dshift  [ival] = jds ;
+            CALC_dshift_i[ival] = ijkl[1] ;
+            CALC_dshift_j[ival] = ijkl[2] ;
+            CALC_dshift_k[ival] = ijkl[3] ;
+            CALC_dshift_l[ival] = ijkl[4] ;
+
+            CALC_dshift_mode[ival] = CALC_dshift_mode_current ;
+
+            CALC_has_timeshift = CALC_has_timeshift || (ijkl[4] != 0) ;
+
+            free(ijkl) ; nopt++ ; goto DSET_DONE ;
+         }
+
          /*-- back to the normal dataset opening routine --*/
 
 #ifndef ALLOW_SUBV
          dset = THD_open_one_dataset( argv[nopt++] ) ;
          if( dset == NULL ){
-            fprintf(stderr,"can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
+            fprintf(stderr,"*** can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
          }
          if( isub >= DSET_NVALS(dset) ){
-            fprintf(stderr,"dataset %s only has %d sub-bricks\n",
+            fprintf(stderr,"*** dataset %s only has %d sub-bricks\n",
                     argv[nopt-1],DSET_NVALS(dset)) ;
             exit(1) ;
          }
@@ -284,7 +400,7 @@ void CALC_read_opts( int argc , char * argv[] )
            }
            dset = THD_open_dataset( dname ) ;              /* open it */
            if( dset == NULL ){
-              fprintf(stderr,"can't open dataset %s\n",dname) ; exit(1) ;
+              fprintf(stderr,"*** can't open dataset %s\n",dname) ; exit(1) ;
            }
          }
 #endif
@@ -303,7 +419,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( CALC_nvox < 0 ){
             CALC_nvox = nxyz ;
          } else if( nxyz != CALC_nvox ){
-            fprintf(stderr,"dataset %s differs in size from others\n",argv[nopt-1]);
+            fprintf(stderr,"*** dataset %s differs in size from others\n",argv[nopt-1]);
             exit(1) ;
          }
 
@@ -330,21 +446,21 @@ void CALC_read_opts( int argc , char * argv[] )
 
          THD_load_datablock( dset->dblk , NULL ) ;
          if( ! DSET_LOADED(dset) ){
-            fprintf(stderr,"Can't read data brick for dataset %s\n",argv[nopt-1]) ;
+            fprintf(stderr,"*** Can't read data brick for dataset %s\n",argv[nopt-1]) ;
             exit(1) ;
          }
 
          /* set pointers for actual dataset arrays */
 
          switch (CALC_type[ival]) {
-	    case MRI_short:
-	       CALC_short[ival] = (short **) malloc( sizeof(short *) * ntime[ival] ) ;
-	       if (ntime[ival] == 1 )
-		  CALC_short[ival][0] = (short *) DSET_ARRAY(dset, isub) ;
-	       else
-		  for (ii=0; ii < ntime[ival]; ii++)
-		     CALC_short[ival][ii] = (short *) DSET_ARRAY(dset, ii);
-	    break;
+             case MRI_short:
+                CALC_short[ival] = (short **) malloc( sizeof(short *) * ntime[ival] ) ;
+                if (ntime[ival] == 1 )
+                    CALC_short[ival][0] = (short *) DSET_ARRAY(dset, isub) ;
+                else
+                    for (ii=0; ii < ntime[ival]; ii++)
+                       CALC_short[ival][ii] = (short *) DSET_ARRAY(dset, ii);
+             break;
 
             case MRI_float:
                CALC_float[ival] = (float **) malloc( sizeof(float *) * ntime[ival] ) ;
@@ -353,7 +469,7 @@ void CALC_read_opts( int argc , char * argv[] )
                else
                   for (ii=0; ii < ntime[ival]; ii++)
                      CALC_float[ival][ii] = (float *) DSET_ARRAY(dset, ii);
-       	    break;
+                    break;
 
             case MRI_byte:
                CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
@@ -362,16 +478,16 @@ void CALC_read_opts( int argc , char * argv[] )
                else
                   for (ii=0; ii < ntime[ival]; ii++)
                      CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
-	    break;
+             break;
 
-	 } /* end of switch over type switch */
+          } /* end of switch over type switch */
          if( CALC_datum < 0 ) CALC_datum = CALC_type[ival] ;
 
 DSET_DONE: continue;
 
       } /* end of dataset input */
 
-      fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
 
    }  /* end of loop over options */
 
@@ -379,25 +495,30 @@ DSET_DONE: continue;
    /*** cleanup: check for various errors ***/
 
    if( nopt < argc ){
-     fprintf(stderr,"Extra command line arguments puzzle me! %s ...\n",argv[nopt]) ;
+     fprintf(stderr,"*** Extra command line arguments puzzle me! %s ...\n",argv[nopt]) ;
      exit(1) ;
    }
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
    if( ids == 26 ){
-      fprintf(stderr,"No input datasets given!\n") ; exit(1) ;
+      fprintf(stderr,"*** No actual input datasets given!\n") ; exit(1) ;
    }
 
    if( CALC_code == NULL ){
-      fprintf(stderr,"No expression given!\n") ; exit(1) ;
+      fprintf(stderr,"*** No expression given!\n") ; exit(1) ;
+   }
+
+   if( CALC_histpar >= 0 && CALC_dset[CALC_histpar] == NULL ){
+      fprintf(stderr,"*** Warning: -histpar dataset not defined!\n") ;
+      CALC_histpar = -1 ;
    }
 
    for (ids=0; ids < 26; ids ++)
       if (ntime[ids] > 1 && ntime[ids] != ntime_max ) {
 #ifdef ALLOW_BUCKETS
-	 fprintf(stderr, "Multi-brick datasets don't match!\n") ;
+          fprintf(stderr, "*** Multi-brick datasets don't match!\n") ;
 #else
-	 fprintf(stderr, "3D+time datasets don't match!\n") ;
+          fprintf(stderr, "*** 3D+time datasets don't match!\n") ;
 #endif
          exit(1) ;
       }
@@ -410,7 +531,7 @@ DSET_DONE: continue;
       ntime_max = TS_nmax ;
       TS_make   = 1 ;        /* flag to force manufacture of a 3D+time dataset */
       fprintf(stderr,
-              "*** Calculating 3D+time[%d]"
+              "+++ Calculating 3D+time[%d]"
               " dataset from 3D datasets and time series\n" ,
               ntime_max ) ;
    }
@@ -503,6 +624,14 @@ void CALC_Syntax(void)
     "                    [default='calc']\n"
     "  -session dir  = Use 'dir' for the output dataset session directory.\n"
     "                    [default='./'=current working directory]\n"
+    "  -histpar a    = Use input dataset 'a' as the source of the previous\n"
+    "                    History Note for the output, where 'a' is any letter\n"
+    "                    that was used to input a dataset.  By default, the\n"
+    "                    prevous History Note is only created if a single input\n"
+    "                    dataset is given.  This option is needed if and only\n"
+    "                    if multiple input datasets are used, and you wish\n"
+    "                    to have the previous history of one of them prepended\n"
+    "                    to the History Note of the newly created dataset.\n"
     "\n"
     "3D+TIME DATASETS:\n"
     " This version of 3dcalc can operate on 3D+time datasets.  Each input dataset\n"
@@ -584,9 +713,52 @@ void CALC_Syntax(void)
     " Otherwise undefined letters will be set to zero.  In the future,\n"
     " new default values for other letters may be added.\n"
     "\n"
+    "DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]:\n"
+    " Normal calculations with 3dcalc are strictly on a per-voxel basis:\n"
+    " there is no 'cross-talk' between spatial or temporal locations.\n"
+    " The differential subscript feature allows you to specify variables\n"
+    " that refer to different locations, relative to the base voxel.\n"
+    " For example,\n"
+    "   -a fred+orig -b 'a[1,0,0,0]' -c 'a[0,-1,0,0]' -d 'a[0,0,2,0]'\n"
+    " means: symbol 'a' refers to a voxel in dataset fred+orig,\n"
+    "        symbol 'b' refers to the following voxel in the x-direction,\n"
+    "        symbol 'c' refers to the previous voxel in the y-direction\n"
+    "        symbol 'd' refers to the 2nd following voxel in the z-direction\n"
+    "\n"
+    " To use this feature, you must define the base dataset (e.g., 'a')\n"
+    " first.  Then the differentially subscripted symbols are defined\n"
+    " using the base dataset symbol followed by 4 integer subscripts,\n"
+    " which are the shifts in the x-, y-, z-, and t- (or sub-brick index)\n"
+    " directions. For example,\n"
+    "   -a fred+orig -b 'a[0,0,0,1]' -c 'a[0,0,0,-1]' -expr 'median(a,b,c)'\n"
+    " will produce a temporal median smoothing of a 3D+time dataset (this\n"
+    " can be done more efficiently with program 3dTsmooth).\n"
+    "\n"
+    " Note that the physical directions of the x-, y-, and z-axes depend\n"
+    " on how the dataset was acquired or constructed.  See the output of\n"
+    " program 3dinfo to determine what direction corresponds to what axis.\n"
+    "\n"
+    " When a shift calls for a voxel that is outside of the dataset range,\n"
+    " one of three things can happen:\n"
+    "   STOP => shifting stops at the edge of the dataset\n"
+    "   WRAP => shifting wraps back to the opposite edge of the dataset\n"
+    "   ZERO => the voxel value is returned as zero\n"
+    " Which one applies depends on the setting of the shifting mode at the\n"
+    " time the symbol using differential subscripting is defined.  The mode\n"
+    " is set by one of the switches '-dsSTOP', '-dsWRAP', or '-dsZERO'.  The\n"
+    " default mode is STOP.  Suppose that a dataset has range 0..99 in the\n"
+    " x-direction.  Then when voxel 101 is called for, the value returned is\n"
+    "   STOP => value from voxel 99 [didn't shift past edge of dataset]\n"
+    "   WRAP => value from voxel 1  [wrapped back through opposite edge]\n"
+    "   ZERO => the number 0.0 \n"
+    " You can set the shifting mode more than once - the most recent setting\n"
+    " on the command line applies when a differential subscript symbol is\n"
+    " encountered.\n"
+    "\n"
     "PROBLEMS:\n"
-    " ** Complex-valued datasets cannot be processed.\n"
-    " ** This program is not very efficient (but is faster than it used to be).\n"
+    " * Complex-valued datasets cannot be processed.\n"
+    " * This program is not very efficient (but is faster than it once was).\n"
+    " * Differential subscripts slow the program down even more.\n"
     "\n"
     "EXPRESSIONS:\n"
     " Arithmetic expressions are allowed, using + - * / ** and parentheses.\n"
@@ -690,12 +862,17 @@ int main( int argc , char * argv[] )
       for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL &&
                                           ntime[ids] > 1           ) break ;
    }
-   if( ids == 26 ){fprintf(stderr,"Can't find template dataset?!\n");exit(1);}
+   if( ids == 26 ){fprintf(stderr,"*** Can't find template dataset?!\n");exit(1);}
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
 
-   for( iii=jjj=0 ; iii < 26 ; iii++ )
-      if( CALC_dset[iii] != NULL ) jjj++ ;
+   if( CALC_histpar < 0 ){
+      for( iii=jjj=0 ; iii < 26 ; iii++ )
+         if( CALC_dset[iii] != NULL ) jjj++ ;
+   } else {
+      ids = CALC_histpar ;
+      jjj = 1 ;
+   }
 
    if( jjj == 1 ) tross_Copy_History( CALC_dset[ids] , new_dset ) ;
    tross_Make_History( "3dcalc" , argc,argv , new_dset ) ;
@@ -739,7 +916,7 @@ int main( int argc , char * argv[] )
 
    for( ids=0 ; ids < 26 ; ids++ )  /* initialize to all zeros */
       for (ii=0; ii<VSIZE; ii++)
-	 atoz[ids][ii] = 0.0 ;
+          atoz[ids][ii] = 0.0 ;
 
    /*** loop over time steps ***/
 
@@ -757,7 +934,7 @@ int main( int argc , char * argv[] )
 
       buf[kt] = (float *) malloc(sizeof(float) * CALC_nvox);
       if( buf[kt] == NULL ){
-         fprintf(stderr,"Can't malloc output dataset sub-brick %d!\n",kt) ;
+         fprintf(stderr,"*** Can't malloc output dataset sub-brick %d!\n",kt) ;
          exit(1) ;
       }
 
@@ -765,12 +942,12 @@ int main( int argc , char * argv[] )
 
       for ( ii = 0 ; ii < CALC_nvox ; ii += VSIZE ) {
 
-	 jbot = ii ;
-	 jtop = MIN( ii + VSIZE , CALC_nvox ) ;
+          jbot = ii ;
+          jtop = MIN( ii + VSIZE , CALC_nvox ) ;
 
          /* loop over datasets or other symbol definitions */
 
-	 for (ids = 0 ; ids < 26 ; ids ++ ) {
+          for (ids = 0 ; ids < 26 ; ids ++ ) {
 
             /* 17 Apr 1998: if a time series is used here instead of a dataset,
                             just copy the single value (or zero) to all voxels. */
@@ -786,15 +963,133 @@ int main( int argc , char * argv[] )
                }
             }
 
+            /* 22 Nov 1999: if a differentially subscripted dataset is here */
+
+            else if( CALC_dshift[ids] >= 0 ){
+               int jds = CALC_dshift[ids] ;     /* actual dataset index */
+               int kts , jjs , ix,jy,kz ;
+               int id=CALC_dshift_i[ids] , jd=CALC_dshift_j[ids] ,
+                   kd=CALC_dshift_k[ids] , ld=CALC_dshift_l[ids] ;
+               int ijkd = ((id!=0) || (jd!=0) || (kd!=0)) ;
+               int dsx = DSET_NX(CALC_dset[jds]) - 1 ;
+               int dsy = DSET_NY(CALC_dset[jds]) - 1 ;
+               int dsz = DSET_NZ(CALC_dset[jds]) - 1 ;
+               int dst = ntime[jds]              - 1 ;
+               int mode = CALC_dshift_mode[ids] , dun=0 ;
+
+               kts = kt + ld ;                        /* t shift */
+               if( kts < 0 || kts > dst ){
+                  switch( mode ){
+                     case DSHIFT_MODE_ZERO:
+                       for( jj=jbot ; jj < jtop ; jj++ ) atoz[ids][jj-ii] = 0.0 ;
+                       dun = 1 ;
+                     break ;
+                     default:
+                     case DSHIFT_MODE_STOP:
+                            if( kts <  0  ) kts = 0   ;
+                       else if( kts > dst ) kts = dst ;
+                     break ;
+                     case DSHIFT_MODE_WRAP:
+                        while( kts <  0  ) kts += (dst+1) ;
+                        while( kts > dst ) kts -= (dst+1) ;
+                     break ;
+                  }
+               }
+
+               if( !dun ){
+                  for( dun=0,jj=jbot ; jj < jtop ; jj++ ){
+                     jjs = jj ;
+                     if( ijkd ){
+                        ix = DSET_index_to_ix(CALC_dset[jds],jj) ;
+                        jy = DSET_index_to_jy(CALC_dset[jds],jj) ;
+                        kz = DSET_index_to_kz(CALC_dset[jds],jj) ;
+
+                        ix += id ;                  /* x shift */
+                        if( ix < 0 || ix > dsx ){
+                           switch( mode ){
+                              case DSHIFT_MODE_ZERO:
+                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                              break ;
+                              default:
+                              case DSHIFT_MODE_STOP:
+                                     if( ix <  0  ) ix = 0   ;
+                                else if( ix > dsx ) ix = dsx ;
+                              break ;
+                              case DSHIFT_MODE_WRAP:
+                                 while( ix <  0  ) ix += (dsx+1) ;
+                                 while( ix > dsx ) ix -= (dsx+1) ;
+                              break ;
+                           }
+                        }
+                        if( dun ){ dun=0; continue; } /* go to next jj */
+
+                        jy += jd ;                  /* y shift */
+                        if( jy < 0 || jy > dsy ){
+                           switch( mode ){
+                              case DSHIFT_MODE_ZERO:
+                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                              break ;
+                              default:
+                              case DSHIFT_MODE_STOP:
+                                     if( jy <  0  ) jy = 0   ;
+                                else if( jy > dsy ) jy = dsy ;
+                              break ;
+                              case DSHIFT_MODE_WRAP:
+                                 while( jy <  0  ) jy += (dsy+1) ;
+                                 while( jy > dsy ) jy -= (dsy+1) ;
+                              break ;
+                           }
+                        }
+                        if( dun ){ dun=0; continue; } /* go to next jj */
+
+                        kz += kd ;                  /* z shift */
+                        if( kz < 0 || kz > dsz ){
+                           switch( mode ){
+                              case DSHIFT_MODE_ZERO:
+                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                              break ;
+                              default:
+                              case DSHIFT_MODE_STOP:
+                                     if( kz <  0  ) kz = 0   ;
+                                else if( kz > dsz ) kz = dsz ;
+                              break ;
+                              case DSHIFT_MODE_WRAP:
+                                 while( kz <  0  ) kz += (dsz+1) ;
+                                 while( kz > dsz ) kz -= (dsz+1) ;
+                              break ;
+                           }
+                        }
+                        if( dun ){ dun=0; continue; } /* go to next jj */
+
+                        jjs = DSET_ixyz_to_index(CALC_dset[jds],ix,jy,kz) ;
+                     }
+                     switch( CALC_type[jds] ) {
+                        case MRI_short:
+                           atoz[ids][jj-ii] =  CALC_short[jds][kts][jjs]
+                                             * CALC_ffac[jds][kts];
+                        break ;
+                        case MRI_float:
+                           atoz[ids][jj-ii] =  CALC_float[jds][kts][jjs]
+                                             * CALC_ffac[jds][kts];
+                        break ;
+                        case MRI_byte:
+                           atoz[ids][jj-ii] =  CALC_byte[jds][kts][jjs]
+                                             * CALC_ffac[jds][kts];
+                        break ;
+                     }
+                  }
+               }
+            }
+
             /* the case of a 3D dataset (i.e., only 1 sub-brick) */
 
             else if ( ntime[ids] == 1 && CALC_type[ids] >= 0 ) {
-	       switch( CALC_type[ids] ) {
-		  case MRI_short:
-		     for (jj =jbot ; jj < jtop ; jj ++ ){
-			atoz[ids][jj-ii] = CALC_short[ids][0][jj] * CALC_ffac[ids][0] ;
+               switch( CALC_type[ids] ) {
+                    case MRI_short:
+                       for (jj =jbot ; jj < jtop ; jj ++ ){
+                           atoz[ids][jj-ii] = CALC_short[ids][0][jj] * CALC_ffac[ids][0] ;
                      }
-		  break;
+                    break;
 
                   case MRI_float:
                      for (jj =jbot ; jj < jtop ; jj ++ ){
@@ -807,18 +1102,18 @@ int main( int argc , char * argv[] )
                         atoz[ids][jj-ii] = CALC_byte[ids][0][jj] * CALC_ffac[ids][0] ;
                      }
                   break;
-	      }	
-	   }
+               }
+            }
 
            /* the case of a 3D+time dataset (or a bucket, etc.) */
 
-	   else if( ntime[ids] > 1 && CALC_type[ids] >= 0 ) {
-	      switch ( CALC_type[ids] ) {
-	         case MRI_short:
-		    for (jj = jbot ; jj < jtop ; jj ++ ) {
-		       atoz[ids][jj-ii] = CALC_short[ids][kt][jj] * CALC_ffac[ids][kt];
-		    }
-		 break;
+            else if( ntime[ids] > 1 && CALC_type[ids] >= 0 ) {
+               switch ( CALC_type[ids] ) {
+                  case MRI_short:
+                      for (jj = jbot ; jj < jtop ; jj ++ ) {
+                         atoz[ids][jj-ii] = CALC_short[ids][kt][jj] * CALC_ffac[ids][kt];
+                      }
+                   break;
 
                  case MRI_float:
                     for (jj = jbot ; jj < jtop ; jj ++ ){
@@ -831,7 +1126,7 @@ int main( int argc , char * argv[] )
                        atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
                     }
                  break;
-	       }
+                }
              }
 
            /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
@@ -891,27 +1186,29 @@ int main( int argc , char * argv[] )
                  break ;
                } /* end of switch on symbol subscript */
 
-	     } /* end of choice over data type (if-else cascade) */
-	    } /* end of loop over datasets/symbols */
+              } /* end of choice over data type (if-else cascade) */
+             } /* end of loop over datasets/symbols */
 
             /**** actually do the work! ****/
 
             PARSER_evaluate_vector(CALC_code, atoz, jtop-jbot, temp);
-	    for ( jj = jbot ; jj < jtop ; jj ++ )
-	       buf[kt][jj] = temp[jj-ii];
+             for ( jj = jbot ; jj < jtop ; jj ++ )
+                buf[kt][jj] = temp[jj-ii];
 
          } /* end of loop over space (voxels) */
 
          /* 30 April 1998: purge 3D+time sub-bricks if possible */
 
-	 for( ids=0 ; ids < 26 ; ids ++ ){
-            if( CALC_dset[ids] != NULL && ntime[ids] > 1 &&
-                CALC_dset[ids]->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
+         if( ! CALC_has_timeshift ){
+            for( ids=0 ; ids < 26 ; ids ++ ){
+              if( CALC_dset[ids] != NULL && ntime[ids] > 1 &&
+                  CALC_dset[ids]->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
 
-               void * ptr = DSET_ARRAY(CALC_dset[ids],kt) ;
-               if( ptr != NULL ) free(ptr) ;
-               mri_clear_data_pointer( DSET_BRICK(CALC_dset[ids],kt) ) ;
-            }
+                 void * ptr = DSET_ARRAY(CALC_dset[ids],kt) ;
+                 if( ptr != NULL ) free(ptr) ;
+                 mri_clear_data_pointer( DSET_BRICK(CALC_dset[ids],kt) ) ;
+              }
+           }
          }
 
    } /* end of loop over time steps */
@@ -933,8 +1230,8 @@ int main( int argc , char * argv[] )
 
       case MRI_float:{
          for (ii=0; ii< ntime_max; ii++) {
-	    EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
-	    DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
+             EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
+             DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
          }
       }
       break ;
@@ -948,7 +1245,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
                     MRI_TYPE_name[CALC_datum] ) ;
 
-	 dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
+          dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 
          if( CALC_gscale ){   /* 01 Apr 1999: allow global scaling */
             gtop = 0.0 ;
@@ -956,16 +1253,16 @@ int main( int argc , char * argv[] )
                gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
                gtop  = MAX( gtop , gtemp ) ;
                if( gtemp == 0.0 )
-                  fprintf(stderr,"  ** Warning: output sub-brick %d is all zeros!\n",ii) ;
+                  fprintf(stderr,"  -- Warning: output sub-brick %d is all zeros!\n",ii) ;
             }
          }
 
-	 for (ii = 0 ; ii < ntime_max ; ii ++ ) {
+          for (ii = 0 ; ii < ntime_max ; ii ++ ) {
 
             if( ! CALC_gscale ){
-	       gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
+                gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
                if( gtop == 0.0 )
-                  fprintf(stderr,"  ** Warning: output sub-brick %d is all zeros!\n",ii) ;
+                  fprintf(stderr,"  -- Warning: output sub-brick %d is all zeros!\n",ii) ;
             }
 
             if( CALC_fscale ){   /* 16 Mar 1998 */
@@ -983,15 +1280,15 @@ int main( int argc , char * argv[] )
             }
 
             dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
-            if( dfim[ii] == NULL ){ fprintf(stderr,"malloc fails at output\n");exit(1); }
+            if( dfim[ii] == NULL ){ fprintf(stderr,"*** malloc fails at output\n");exit(1); }
 
-	    EDIT_coerce_scale_type( CALC_nvox , fimfac ,
+             EDIT_coerce_scale_type( CALC_nvox , fimfac ,
                                     MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
-	    free( buf[ii] ) ;
-	    EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
+             free( buf[ii] ) ;
+             EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
 
             DSET_BRICK_FACTOR(new_dset,ii) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
-	 }
+          }
       }
       break ;
    }

@@ -1825,3 +1825,8 @@
  * Used the previous change in afni.c to add the environment variable
      AFNI_OPTIONS that will always be added to the command line args.
  * Incorporated the OSF1 changes from Matthew Belmonte.
+
+22 Nov 1999
+ * Added -histpar option to 3dcalc.c.
+ * Added differential subscripting to 3dcalc.c.
+ * Modified thd_intlist.c to allow for negative list elements.

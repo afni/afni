@@ -2132,6 +2132,7 @@ extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 
 extern int * MCW_get_intlist( int , char * ) ;
+extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
 #define MASTER_HELP_STRING                                                    \
     " An input dataset is specified using one of these forms:\n"              \
