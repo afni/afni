@@ -215,8 +215,12 @@ typedef enum { SW_DrawROI_SaveMode,
                                                                            SavingMode */
 typedef enum { SW_DrawROI_SaveWhat,
                SW_DrawROI_SaveWhatThis, SW_DrawROI_SaveWhatRelated, 
-               SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under
-                                                                           SavingWhat */
+               SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under SavingWhat */
+
+typedef enum { SW_DrawROI_WhatDist,
+               SW_DrawROI_WhatDistNothing, SW_DrawROI_WhatDistTrace, SW_DrawROI_WhatDistAll, 
+               SW_N_DrawROI_WhatDist } SUMA_WIDGET_INDEX_DRAWROI_WHATDIST; /*!< Indices to widgets in DrawROI under
+                                                                           WhatDist */
 typedef enum { SUMA_NO_ORDER, SUMA_ROW_MAJOR, SUMA_COLUMN_MAJOR }  SUMA_INDEXING_ORDER;
 
 typedef enum { SW_CoordBias,
@@ -1064,8 +1068,10 @@ typedef struct {
    SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and options for the switch ROI list */
    int SaveWhat;  /*!< option for determining what ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT */
    int SaveMode;  /*!< option for determining format of ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   int WhatDist;  /*!< option for determining format of ROI to save, acceptable values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
    Widget SaveModeMenu[SW_N_DrawROI_SaveMode]; /*!< set of widgets for SaveMode menu */
    Widget SaveWhatMenu[SW_N_DrawROI_SaveWhat]; /*!< set of widgets for SaveWhat menu */
+   Widget WhatDistMenu[SW_N_DrawROI_WhatDist]; /*!< set of widgets for SaveWhat menu */
 } SUMA_X_DrawROI;
 
                
@@ -1727,7 +1733,7 @@ typedef struct {
 } SUMA_SFname;
 
 typedef enum {    SMT_Nothing, 
-                  SMT_Notice, SMT_Warning, SMT_Error, SMT_Critical,  
+                  SMT_Notice, SMT_Warning, SMT_Error, SMT_Critical, SMT_Text, 
                   SMT_N }  SUMA_MESSAGE_TYPES; /*!< different types of messages */
 
 typedef enum {    SMA_Nothing, 

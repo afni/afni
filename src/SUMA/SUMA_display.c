@@ -1369,7 +1369,21 @@ SUMA_MenuItem DrawROI_SaveWhat_Menu[]= {
    {NULL},
 };
 
-      
+SUMA_MenuItem DrawROI_WhatDist_Menu[]= {
+   {  "----", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDrawROI_WhatDist, (XtPointer) SW_DrawROI_WhatDistNothing, NULL},
+   
+   {  "trace", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDrawROI_WhatDist, (XtPointer) SW_DrawROI_WhatDistTrace, NULL},
+   
+   {  "all", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetDrawROI_WhatDist, (XtPointer) SW_DrawROI_WhatDistAll, NULL},
+         
+   {NULL},
+};      
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
    static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
@@ -4218,7 +4232,7 @@ void SUMA_CreateDrawROIWindow(void)
    else XtSetSensitive (SUMAg_CF->X->DrawROI->Penmode_tb, 0);
    
    /* Put a toggle button for real time communication with AFNI */
-   SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni Link", 
+   SUMAg_CF->X->DrawROI->AfniLink_tb = XtVaCreateManagedWidget("Afni", 
       xmToggleButtonWidgetClass, rc, NULL);
    
    #if 0
@@ -4238,7 +4252,15 @@ void SUMA_CreateDrawROIWindow(void)
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->AfniLink_tb);
    
-   /* manage rc */
+   /* put a menu for writing distance info */
+   SUMA_BuildMenuReset(0);
+   SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                   "Dist", '\0', YUP, DrawROI_WhatDist_Menu, 
+                   "DoDist", "Report length of drawn segments? (BHelp for more)", SUMA_DrawROI_WhatDist_help,   
+                   SUMAg_CF->X->DrawROI->WhatDistMenu);
+   XtManageChild (SUMAg_CF->X->DrawROI->WhatDistMenu[SW_DrawROI_WhatDist]);
+   
+    /* manage rc */
    XtManageChild (rc);
    
    /* add a rc for the ROI label and the ROI node value */
@@ -7366,6 +7388,27 @@ void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, XtPointer
    - expects a SUMA_MenuCallBackData * in  client_data
    Nothing in client_data->ContID and Menubutton in client_data->callback_data
 */
+void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetDrawROI_WhatDist"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   datap = (SUMA_MenuCallBackData *)client_data;
+
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting WhatDist to %d\n", FuncName, (int)datap->callback_data);
+   SUMAg_CF->X->DrawROI->WhatDist = (int)datap->callback_data; 
+   
+   SUMA_RETURNe;
+} 
+
+/*!
+   \brief sets the " what distance" parameter
+   - expects a SUMA_MenuCallBackData * in  client_data
+   Nothing in client_data->ContID and Menubutton in client_data->callback_data
+*/
 void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_SetDrawROI_SaveWhat"};
@@ -7502,6 +7545,9 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
          case SMT_Critical:
             wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
             break;
+         case SMT_Text:
+            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL | MCW_TIMER_KILL);
+            break;
          default:
             break;
       }
@@ -7541,6 +7587,9 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
          break;
       case SMT_Critical:
          sprintf(s,"Critical Error %s:\n%s\n", MD->Source, MD->Message);
+         break;
+      case SMT_Text:
+         sprintf(s,"%s", MD->Message);
          break;
       default:
          sprintf(s,"BAD MESSAGE.\n");

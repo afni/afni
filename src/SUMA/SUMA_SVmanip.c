@@ -1716,6 +1716,7 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    DrawROI->Delete_first = YUP;
    DrawROI->SaveMode = SW_DrawROI_SaveMode1D;
    DrawROI->SaveWhat = SW_DrawROI_SaveWhatThis;
+   DrawROI->WhatDist = SW_DrawROI_WhatDistNothing;
    return (DrawROI);
 }
 

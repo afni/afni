@@ -315,6 +315,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
                                        double *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
 SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1, int y1, int meth);
+void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer call_data);
 
 
 
@@ -424,6 +425,50 @@ SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1,
    "   This: saves the current ROI. \n"   \
    "   All: saves all ROIs on surfaces related to the Parent \n"  \
    "        surface of the current ROI."
+   
+#define SUMA_DrawROI_WhatDist_help  \
+   "Report length of drawn segments?\n" \
+   "   -----: No distance calculations. \n"   \
+   "   trace: Calculate distance along last\n"  \
+   "          traced segment.\n" \
+   "   all:   In addition to output from\n"  \
+   "          'trace', calculate the shortest\n"   \
+   "          distance between the first and \n"   \
+   "          last node of the trace.\n"  \
+   "   The results are output to the Message Log \n"  \
+   "   window (Help --> Message Log) with the following\n" \
+   "   information:\n"  \
+   "   n0, n1: Indices of first and last node forming\n" \
+   "           the traced path.\n"  \
+   "   N_n:    Number of nodes forming the trace.\n"  \
+   "   lt:     Trace length calculated as the sum\n"  \
+   "           of the distances from node to node.\n"   \
+   "           This length is a slight overestimation\n"  \
+   "           of the geodesic length.\n" \
+   "           Units for all distances is the same as\n" \
+   "           the units for surface coordinates. Usually\n"   \
+   "           and hopefully in mm.\n" \
+   "   lt_c:   Trace length corrected by a scaling factor\n"  \
+   "           from [1] to better approximate geodesic \n"  \
+   "           distances. Factor is 2/(1+sqrt(2)).\n" \
+   "           Do not use this factor when N_n is small. \n"\
+   "           Think of the extreme case when N_n is 2.\n"   \
+   "   sd:     Shortest distance on the mesh (graph) \n" \
+   "           between n0 and n1 using Dijkstra's algorithm.\n"   \
+   "   sd_c:   Corrected shortest distance as for lt_c.\n"  \
+   "\n"  \
+   "   Note 1: sd and sd_c take some time to compute. That is \n"  \
+   "           why they are only calculated when you select 'all'.\n"   \
+   "   Note 2: The output is formatted to be cut and pasted into\n"  \
+   "           a .1D file for ease of processing.\n"  \
+   "           You can include all the comment lines that\n"   \
+   "           start with '#'. But you cannot combine entries\n"  \
+   "           from the output obtained using 'all' option with \n" \
+   "           those from 'trace' since they produce different \n"  \
+   "           numbers of values.\n"  \
+   "\n"  \
+   "   [1] Fischl et al, Neuroimage 9, 195-207 1999, \n" \
+   "       Cortical Surface-Based Analysis."
    
 #define SUMA_DrawROI_Save_help \
    "Save the Drawn ROI to disk.\n"  \

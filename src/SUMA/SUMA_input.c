@@ -2664,7 +2664,9 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          else {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_PushActionStack.\n", FuncName);
             SUMA_RETURN (DrawnROI);
-         } 
+         }
+         if (SUMAg_CF->X->DrawROI->WhatDist == SW_DrawROI_WhatDistTrace ||  SUMAg_CF->X->DrawROI->WhatDist == SW_DrawROI_WhatDistAll) 
+            SUMA_ReportDrawnROIDatumLength(SO, ROIA->ROId, NULL, SUMAg_CF->X->DrawROI->WhatDist);
          break;
       case SUMA_BSA_JoinEnds:
          /* store the action */
@@ -2679,6 +2681,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_PushActionStack.\n", FuncName);
             SUMA_RETURN (DrawnROI);
          }
+         if (SUMAg_CF->X->DrawROI->WhatDist == SW_DrawROI_WhatDistTrace ||  SUMAg_CF->X->DrawROI->WhatDist == SW_DrawROI_WhatDistAll) 
+            SUMA_ReportDrawnROIDatumLength(SO, ROIA->ROId, NULL, SUMAg_CF->X->DrawROI->WhatDist);
          break;
       case SUMA_BSA_FillArea:
          /* store the action */
