@@ -112,6 +112,8 @@ ENTRY("AFNI_splashup") ;
 
    if( ! PLUTO_popup_open(handle) ){
 
+      int nxov,nyov,ff ;
+
       /* get some fun stuff, first time in */
 
       if( ncall == 0 ){
@@ -152,10 +154,22 @@ ENTRY("AFNI_splashup") ;
       if( imov == NULL ){  /* if didn't get face jpeg above */
         nov  = (nov+dnov+NOVER) % NOVER ;
         imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
+        ff   = 0 ;
+      } else {
+        ff   = 1 ;
       }
-      dd = IXOVER + (MAX_XOVER-imov->nx)/2 ;
-      ee = JYOVER + (MAX_YOVER-imov->ny)/2 ;
+      nxov = imov->nx ; nyov = imov->ny ;
+      dd = IXOVER + (MAX_XOVER-nxov)/2 ;
+      ee = JYOVER + (MAX_YOVER-nyov)/2 ;
       mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
+      if( ff ){
+        imov = SPLASH_decodexx( NX_facetitle,NY_facetitle,NLINE_facetitle,
+                                NC_facetitle,RMAP_facetitle,
+                                RMAP_facetitle,RMAP_facetitle ,
+                                BAR_facetitle ) ;
+        dd = IXOVER + (MAX_XOVER-imov->nx)/2 ; ee += nyov+1 ;
+        mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
+      }
 
       /* possibly replace the splash image at the top */
 
@@ -639,7 +653,7 @@ void AFNI_find_face_jpegs(void)  /* 28 Mar 2003 */
 {
    char *epath , *elocal , *eee ;
    char edir[THD_MAX_NAME] , **ename ;
-   int epos , ll , ii , id , nface , nx,ny ;
+   int epos , ll , ii , id , nface , nx,ny , nep ;
    char **fface ;
 
 ENTRY("AFNI_find_face_jpegs") ;
@@ -692,11 +706,16 @@ ENTRY("AFNI_find_face_jpegs") ;
           edir[ii]  = '/' ; edir[ii+1] = '\0' ;
       }
       strcpy(ename[0],edir) ;
-      strcat(ename[0],"face_*.ppm") ;        /* add filenname pattern */
+      strcat(ename[0],"face_*.jpg") ;        /* add filename pattern */
+#if 0
       strcpy(ename[1],edir) ;
-      strcat(ename[1],"face_*.jpg") ;        /* add filenname pattern */
+      strcat(ename[1],"face_*.gif") ;        /* add filename pattern */
+      nep = 2 ;
+#else
+      nep = 1 ;
+#endif
 
-      MCW_file_expand( 2,ename, &nface , &fface );   /* find files that match */
+      MCW_file_expand( nep,ename, &nface , &fface );   /* find files that match */
       if( nface <= 0 ) continue ;                   /* no files found */
 
       /** add files we found to list **/
