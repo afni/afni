@@ -1888,31 +1888,19 @@ with it to see how it affects your images.
 Variable: AFNI_LOGO16 (etc.)
 ----------------------------
 If this variable is set to NO, then the 'AFNI' background logo used in
-the controller windows will be disabled.  Otherwise, by default, this
-logo will be used.  You can control the colors of this logo by the
+the controller and image windows will be disabled.  Otherwise, by default,
+this logo will be used.  You can control the colors of this logo by the
 following variables:
- AFNI_LOGO16_FOREGROUND_x
- AFNI_LOGO16_BACKGROUND_x
+  AFNI_LOGO16_FOREGROUND_x
+  AFNI_LOGO16_BACKGROUND_x
 where 'x' is 'A', 'B', 'C', etc., for the various controller labels.
-The values of these variables should be the names of one of the
-labels on the color chooser menus (e.g., the "Xhairs Color" menu).
-You can use these variables to make the windows for the various
-controllers somewhat distinct in appearance.  For example, in my
-.afnirc file I have the following assignments:
-
-   AFNI_LOGO16_FOREGROUND_A = yellow
-   AFNI_LOGO16_BACKGROUND_A = black
-   AFNI_LOGO16_FOREGROUND_B = red
-   AFNI_LOGO16_BACKGROUND_B = black
-   AFNI_LOGO16_FOREGROUND_C = blue-cyan
-   AFNI_LOGO16_BACKGROUND_C = black
-   AFNI_LOGO16_FOREGROUND_D = green
-   AFNI_LOGO16_BACKGROUND_D = black
-   AFNI_LOGO16_FOREGROUND_E = violet
-   AFNI_LOGO16_BACKGROUND_E = black
-
-Your tastes may vary, of course.  If these color variables are not
-set, then AFNI will use the default colors for the button labels.
+If AFNI_LOGO16_BACKGROUND_x isn't set, then AFNI_LOGO16_BACKGROUND
+(with no suffix) is checked as an alternate.  The values of these
+variables should be the names of one of the labels on the color chooser
+menus (e.g., the "Xhairs Color" menu).  You can use these variables to
+make the windows for the various controllers somewhat distinct in
+appearance.  If these color variables are not set at all, then AFNI
+uses some colors of my choosing for this purpose.
 
 =============================================
 | Robert W Cox, PhD                         |
