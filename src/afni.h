@@ -122,12 +122,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.26d"
+#define VERSION "2.26e"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "20 Jun 2000      "
+#define RELEASE "04 Jul 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -540,6 +540,7 @@ typedef struct {
 
 #ifdef ALLOW_PLUGINS
       Widget         misc_environ_pb ;  /* 20 Jun 2000 */
+      Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
 #endif
 
 } AFNI_datamode_widgets ;
@@ -836,6 +837,7 @@ extern int AFNI_controller_index( Three_D_View * ) ;
    extern void ENV_add_string( char * , char * ,
                                int , char ** , generic_func * ) ;
 
+   extern PLUGIN_interface * F2D_init(void) ;            /* 03 Jul 2000 */
 #endif
 
 typedef struct {                 /* windows and widgets */
@@ -1314,6 +1316,7 @@ extern void ssqrt_func  ( int , float * ) ;  /* another */
 
 extern void osfilt3_func( int , double,double , float * ) ;  /* a sample 1D function */
 extern void median3_func( int , double,double , float * ) ;  /* another */
+extern void absfft_func ( int , double,double , float * ) ;  /* another */
 
 extern void AFNI_register_nD_function( int , char * , generic_func * , int ) ;
 

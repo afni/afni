@@ -1197,13 +1197,16 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         AFNI_register_1D_function( "Median3" , median3_func) ;  /* afni.c */
         AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
+        AFNI_register_1D_function( "|FFT()|" , absfft_func ) ;  /* afni.c */
 
-        AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
-        AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;   /* imseq.c */
-        AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;   /* imseq.c */
+        AFNI_register_2D_function( "Median9" , median9_box_func ) ;  /* imseq.c */
+        AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;  /* imseq.c */
+        AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;  /* imseq.c */
 
-        AFNI_register_2D_function( "Median21" , median21_box_func ) ;   /* imseq.c */
-        AFNI_register_2D_function( "Winsor21" , winsor21_box_func ) ;   /* imseq.c */
+        AFNI_register_2D_function( "Median21" , median21_box_func ); /* imseq.c */
+        AFNI_register_2D_function( "Winsor21" , winsor21_box_func ); /* imseq.c */
+
+        AFNI_register_2D_function( "|FFT2D|"     , fft2D_func ) ;       /* imseq.c */
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
@@ -8339,6 +8342,36 @@ void median3_func( int num , double to,double dt, float * vec )
       aa = bb ; bb = cc ; cc = vec[ii+1] ;
       vec[ii] = MEDIAN(aa,bb,cc) ;         /* see mrilib.h */
    }
+
+   return ;
+}
+
+/*---------------- Sample function: abs(FFT) [30 Jun 2000] --------------*/
+
+void absfft_func( int num , double to,double dt, float * vec )
+{
+   static complex * cx=NULL ;
+   static int      ncx=0 , numold=0 ;
+   float f0,f1 ;
+   int ii ;
+
+   if( num < 2 ) return ;
+   if( num > numold ){
+      numold = num ;
+      ncx    = csfft_nextup(numold) ;
+      if( cx != NULL ) free(cx) ;
+      cx = (complex *) malloc(sizeof(complex)*ncx) ;
+   }
+
+   get_linear_trend( num , vec , &f0,&f1 ) ;  /* thd_detrend.c */
+
+   for( ii=0 ; ii < num ; ii++ ){ cx[ii].r = vec[ii]-(f0+f1*ii); cx[ii].i = 0.0; }
+   for(      ; ii < ncx ; ii++ ){ cx[ii].r = cx[ii].i = 0.0 ; }
+
+   csfft_cox( -1 , ncx , cx ) ;               /* csfft.c */
+
+   vec[0] = 0.0 ;
+   for( ii=1 ; ii < num ; ii++ ) vec[ii] = CABS(cx[ii]) ;
 
    return ;
 }

@@ -2183,3 +2183,13 @@
  * Added ability to set initial string in a "user-typein" string field
      in PLUTO_add_string().
  * Created plug_environ.c.
+
+30 Jun 2000
+ * Moved plug_environ.c into main afni, on the Misc menu.  Modified
+     places where environment variables are used to allow this
+     "Edit Environment" feature to work.
+ * Added "|FFT()|" 1D function to afni.c.
+ * Created program Xphace.c.
+
+03 Jul 2000
+ * Added 2DChain pseudoplugin.

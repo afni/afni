@@ -4264,6 +4264,56 @@ STATUS("got func info") ;
 
       XtMapWidget( wpop ) ;  /* after this, is up to user */
    }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_2dchain_pb ){ /* 20 Jun 2000 */
+      static PLUGIN_interface * plint=NULL ;
+      Widget wpop ;
+
+      /* first time in: create interface like a plugin */
+
+      if( plint == NULL ){
+         plint = F2D_init() ;
+         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+      }
+
+      if( cbs == NULL ) EXRETURN ;  /* only for a setup call */
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint->im3d = im3d ;
+      XtVaSetValues( plint->wid->shell ,
+                      XmNtitle     , "AFNI 2DChain Function", /* top of window */
+                      XmNiconName  , "2DChain"              , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint->wid->shell ;
+
+      if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
+   }
 #endif
 
    /*.........................................................*/

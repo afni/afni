@@ -17,7 +17,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             pbar.o afni_graph.o afni_plugin.o     \
             parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
-            afni_pplug_env.o                                     \
+            afni_pplug_env.o afni_pplug_2dfunc.o                 \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -1123,8 +1123,8 @@ unu.o:unu.c
 unu:unu.o
 	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
-phace:phace.o
-	$(CC) -o phace phace.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+Xphace:Xphace.o $(IMOBJS)
+	$(CC) -o Xphace Xphace.o $(IMOBJS) $(IFLAGS) $(LFLAGS) -lcoxplot  -lf2c $(LLIBS)
 
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)

@@ -4505,6 +4505,7 @@ ENTRY("AFNI_misc_button") ;
                              " Func Info         = for current datasets\n"
 #ifdef ALLOW_PLUGINS
                              " Edit Environment  = Control environment vars\n"
+                             " Edit 2DChain      = Control 2DChain function\n"
 #endif
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
@@ -4625,7 +4626,12 @@ ENTRY("AFNI_misc_button") ;
    /*--- 20 Jun 2000: pushbutton to popup the Environment pseudo-plugin ---*/
 
 #ifdef ALLOW_PLUGINS
-   dmode->misc_environ_pb =
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+   dmode->misc_environ_pb =                              /* 20 Jun 2000 */
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
                LABEL_ARG("Edit Environment") ,
@@ -4636,6 +4642,19 @@ ENTRY("AFNI_misc_button") ;
    XtAddCallback( dmode->misc_environ_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_environ_pb , "Control environment variables" ) ;
+
+   dmode->misc_2dchain_pb =                              /* 03 Jul 2000 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Edit 2DChain") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_2dchain_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_2dchain_pb , "Control 2DChain function" ) ;
+   AFNI_misc_CB( dmode->misc_2dchain_pb , im3d , NULL ) ;
 #endif
 
    (void) XtVaCreateManagedWidget(
