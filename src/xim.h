@@ -28,4 +28,8 @@ extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 #define X2M_USE_CMAP  (1<<0)  /* masks for XImage_to_mri() 3rd arg */
 #define X2M_FORCE_RGB (1<<1)
 
+extern void ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
+extern MRI_IMAGE * SNAP_grab_image( Widget , MCW_DC * ) ;
+
+
 #endif /* _MCW_XIM_HEADER_ */

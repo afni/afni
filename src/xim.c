@@ -738,3 +738,115 @@ ENTRY("rgb_to_XImage_clever") ;
 
    free(par) ; RETURN( xim ) ;
 }
+
+/**************************************************************************/
+/********** 26 Jun 2003: stuff for snapping a Widget to an image **********/
+
+static int     badsnap = 0 ;
+static MCW_DC *snap_dc = NULL ;
+
+/*! X11 error handler for when XGetImage fails. */
+
+static int SNAP_errhandler( Display *d , XErrorEvent *x )
+{
+  fprintf(stderr,"** X11 error trying to snapshot window!\n");
+  badsnap = 1 ; return 0 ;
+}
+
+/*--------------------------------------------------------------*/
+/*! Grab the image from a widget's window.  [20 Jun 2003]
+----------------------------------------------------------------*/
+
+MRI_IMAGE * SNAP_grab_image( Widget w , MCW_DC *dc )
+{
+   XImage * xim ;
+   MRI_IMAGE * tim ;
+   Window win ;
+   Widget wpar=w ;
+   XWindowAttributes wa ;
+   int (*old_handler)(Display *, XErrorEvent *) ;
+
+ENTRY("SNAP_grab_image") ;
+
+   if( dc == NULL )                          RETURN(NULL) ;
+
+   if( w == NULL ){
+     win = RootWindow( dc->display , dc->screen_num ) ;
+   } else {
+     if( !XtIsWidget(w)   ||
+         !XtIsRealized(w) ||
+         !XtIsManaged(w)    )                RETURN(NULL) ;
+     win = XtWindow(w) ;
+     if( win == (Window)0 )                  RETURN(NULL) ;
+
+     while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
+     XRaiseWindow( dc->display , XtWindow(wpar) ) ;    /* make it visible */
+     XFlush( dc->display ) ;
+     XmUpdateDisplay( w ) ;
+     if( !MCW_widget_visible(w) )            RETURN(NULL) ;
+   }
+
+   RWC_sleep(20) ;                                       /* allow refresh */
+   XGetWindowAttributes( dc->display , win , &wa ) ;      /* get win size */
+   xim = NULL ; badsnap = 0 ;
+   old_handler = XSetErrorHandler( SNAP_errhandler ) ;
+   xim = XGetImage( dc->display , win ,
+                    0,0 , wa.width,wa.height,
+                    (unsigned long)(-1), ZPixmap ) ;
+   (void) XSetErrorHandler( old_handler ) ;
+   if( badsnap ){
+     if( xim != NULL ) MCW_kill_XImage(xim) ;
+     RETURN(NULL) ;
+   }
+   if( xim == NULL ) RETURN(NULL) ;
+
+   tim = XImage_to_mri( dc , xim , X2M_USE_CMAP | X2M_FORCE_RGB ) ;
+   MCW_kill_XImage(xim) ;
+   RETURN(tim) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Call this function to get a snapshot of a widget and save
+    it into a PPM file.
+------------------------------------------------------------------------*/
+
+void ISQ_snapfile( Widget w )
+{
+   MRI_IMAGE *tim ;
+   Window win ;
+   char fname[64] , *eee , prefix[32] ;
+   int ii ; static int last_ii=1 ;
+
+ENTRY("ISQ_snapfile") ;
+
+   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
+   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+
+   /* create display context if we don't have one */
+
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else                   snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
+   }
+
+   /* try to get image */
+
+   tim = SNAP_grab_image( w , snap_dc ) ;
+   if( tim == NULL )                         EXRETURN ;
+
+   eee = getenv("AFNI_SNAPFILE_PREFIX") ;
+   if( eee == NULL ){
+     strcpy(prefix,"S_") ;
+   } else {
+     strncpy(prefix,eee,30) ; prefix[30] = '\0' ; strcat(prefix,"_") ;
+     if( !THD_filename_ok(prefix) ) strcpy(prefix,"S_") ;
+   }
+   for( ii=last_ii ; ii <= 999999 ; ii++ ){
+     sprintf(fname,"%s%06d.ppm",prefix,ii) ;
+     if( ! THD_is_ondisk(fname) ) break ;
+   }
+   if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
+   mri_free(tim) ; last_ii = ii ;
+   EXRETURN ;
+}

@@ -176,6 +176,8 @@ typedef struct {
 #endif
 } MCW_DC ;
 
+extern MCW_DC *first_dc ;                     /* 26 Jun 2003 */
+
 #define DC_REDBYTE(dc,i)     ((dc)->r_im[i])  /* 06 Mar 2001 */
 #define DC_GREENBYTE(dc,i)   ((dc)->g_im[i])
 #define DC_BLUEBYTE(dc,i)    ((dc)->b_im[i])

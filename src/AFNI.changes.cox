@@ -4605,3 +4605,6 @@
 
 25 Jun 2003
  * ISQ_snapfile(Widget) added to imseq.c; other tweaks to ISQ_snapshot().
+
+26 Jun 2003
+ * Moved some snapshot stuff to xim.c rather than imseq.c.

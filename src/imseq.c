@@ -393,8 +393,6 @@ static void ISQ_setup_ppmto_filters(void)
    return ;
 }
 
-static MCW_DC *first_dc = NULL ;
-
 /*-------------------------------------------------------------------------
   routine to create a new window for displaying an image sequence:
 
@@ -630,8 +628,6 @@ ENTRY("open_MCW_imseq") ;
    newseq->dc     = dc ;               /* copy input pointers */
    newseq->getim  = get_image ;
    newseq->getaux = aux ;
-
-   if( first_dc == NULL ) first_dc = dc ;  /* 18 Jun 2003 */
 
    newseq->never_drawn = 1 ;
 
@@ -9757,71 +9753,9 @@ CropDone:
 /**************************************************************************/
 /*** 20 Jun 2003: snapshot stuff for recording the contents of a widget ***/
 
-static int badsnap = 0 ;
-
-/*! X11 error handler for when XGetImage fails to snapshot a window. */
-
-static int SNAP_errhandler( Display *d , XErrorEvent *x )
-{
-  fprintf(stderr,"** X11 error trying to snapshot window!\n");
-  badsnap = 1 ; return 0 ;
-}
-
 /*! Xt warning handler (to avoid messages to screen). */
 
 static void SNAP_warnhandler(char * msg){ return ; }
-
-/*--------------------------------------------------------------*/
-/*! Grab the image from a widget's window.  [20 Jun 2003]
-----------------------------------------------------------------*/
-
-static MRI_IMAGE * SNAP_grab_image( Widget w , MCW_DC *dc )
-{
-   XImage * xim ;
-   MRI_IMAGE * tim ;
-   Window win ;
-   Widget wpar=w ;
-   XWindowAttributes wa ;
-   int (*old_handler)(Display *, XErrorEvent *) ;
-
-ENTRY("SNAP_grab_image") ;
-
-   if( dc == NULL )                          RETURN(NULL) ;
-
-   if( w == NULL ){
-     win = RootWindow( dc->display , dc->screen_num ) ;
-   } else {
-     if( !XtIsWidget(w)   ||
-         !XtIsRealized(w) ||
-         !XtIsManaged(w)    )                RETURN(NULL) ;
-     win = XtWindow(w) ;
-     if( win == (Window)0 )                  RETURN(NULL) ;
-
-     while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
-     XRaiseWindow( dc->display , XtWindow(wpar) ) ;
-     XFlush( dc->display ) ;
-     XmUpdateDisplay( w ) ;
-     if( !MCW_widget_visible(w) )            RETURN(NULL) ;
-   }
-
-   RWC_sleep(20) ;                           /* allow refresh */
-   XGetWindowAttributes( dc->display , win , &wa ) ;
-   xim = NULL ; badsnap = 0 ;
-   old_handler = XSetErrorHandler( SNAP_errhandler ) ;
-   xim = XGetImage( dc->display , win ,
-                    0,0 , wa.width,wa.height,
-                    (unsigned long)(-1), ZPixmap ) ;
-   (void) XSetErrorHandler( old_handler ) ;
-   if( badsnap ){
-     if( xim != NULL ) MCW_kill_XImage(xim) ;
-     RETURN(NULL) ;
-   }
-   if( xim == NULL ) RETURN(NULL) ;
-
-   tim = XImage_to_mri( dc , xim , X2M_USE_CMAP | X2M_FORCE_RGB ) ;
-   MCW_kill_XImage(xim) ;
-   RETURN(tim) ;
-}
 
 /*----------------------------------------------------------------------*/
 
@@ -9935,7 +9869,7 @@ ENTRY("ISQ_snapshot") ;
    /* create viewer, if not present already */
 
    if( snap_isq == NULL ){
-     int ii , xr,yr , wx,hy , xx,yy ;
+     int xr,yr , wx,hy , xx,yy ;
      Position xroot,yroot ;
      Widget wpar ;
 
@@ -9949,18 +9883,6 @@ ENTRY("ISQ_snapshot") ;
      drive_MCW_imseq( snap_isq, isqDR_options     , (XtPointer) &opt ) ;
     }
 #endif
-
-     /* disable some controls in the image viewer */
-
-     XtUnmanageChild( snap_isq->wbar ) ;
-     XtUnmanageChild( snap_isq->arrowpad->wform ) ;
-     for( ii=0 ; ii < NBUTTON_RIG ; ii++)
-       XtUnmanageChild( snap_isq->wbut_rig[ii] ) ;
-     for( ii=0 ; ii < NARROW-1 ; ii++ ) /* keep "i" arrow */
-       XtUnmanageChild( snap_isq->arrow[ii]->wrowcol ) ;
-     XtUnmanageChild( snap_isq->ov_opacity_sep ) ;
-     XtUnmanageChild( snap_isq->ov_opacity_av->wrowcol ) ;
-     XtUnmanageChild( snap_isq->winfo ) ;
 
      drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0    ) ;
      drive_MCW_imseq( snap_isq, isqDR_realize     , NULL ) ;
@@ -9984,8 +9906,18 @@ ENTRY("ISQ_snapshot") ;
    /* tell the image viewer about the new image */
 
    if( IMARR_COUNT(snap_imar) > 1 ){
+     int ii ;
      drive_MCW_imseq( snap_isq, isqDR_newseq      , NULL ) ;
      drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_onwid  );
+     XtUnmanageChild( snap_isq->wbar ) ;
+     XtUnmanageChild( snap_isq->arrowpad->wform ) ;
+     for( ii=0 ; ii < NBUTTON_RIG ; ii++)
+       XtUnmanageChild( snap_isq->wbut_rig[ii] ) ;
+     for( ii=0 ; ii < NARROW-1 ; ii++ ) /* keep "i" arrow */
+       XtUnmanageChild( snap_isq->arrow[ii]->wrowcol ) ;
+     XtUnmanageChild( snap_isq->ov_opacity_sep ) ;
+     XtUnmanageChild( snap_isq->ov_opacity_av->wrowcol ) ;
+     XtUnmanageChild( snap_isq->winfo ) ;
    } else {
      drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_offwid );
    }
@@ -9994,44 +9926,5 @@ ENTRY("ISQ_snapshot") ;
 
    ISQ_redisplay( snap_isq , IMARR_COUNT(snap_imar)-1 , isqDR_display ) ;
 
-   EXRETURN ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! Call this function to get a snapshot of a widget and save
-    it into a PPM file.
-------------------------------------------------------------------------*/
-
-void ISQ_snapfile( Widget w )
-{
-   MRI_IMAGE *tim ;
-   Window win ;
-   char fname[32] ;
-   int ii ; static int last_ii=1 ;
-
-ENTRY("ISQ_snapfile") ;
-
-   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
-   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
-   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
-
-   /* create display context if we don't have one */
-
-   if( snap_dc == NULL ){
-     if( first_dc != NULL ) snap_dc = first_dc ;
-     else                   snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
-   }
-
-   /* try to get image */
-
-   tim = SNAP_grab_image( w , snap_dc ) ;
-   if( tim == NULL )                         EXRETURN ;
-
-   for( ii=last_ii ; ii <= 999999 ; ii++ ){
-     sprintf(fname,"S_%06d.ppm",ii) ;
-     if( ! THD_is_ondisk(fname) ) break ;
-   }
-   if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
-   mri_free(tim) ; last_ii = ii ;
    EXRETURN ;
 }
