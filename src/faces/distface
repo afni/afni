@@ -1,43 +1,9 @@
 #!/bin/tcsh
 
-# Shell script to put faces into files that
-# are accessible by anonymous FTP -- RWCox.
+# Shell script to put faces into a Web page - RWCox
 
-# Usage: distface [-html]
+# Usage: distface
 # -- to be run inside the AFNI/src/faces directory
-
-# loop over relevan directories in the FTP hierarchy
-
-if( $?argv && $#argv > 0 ) then
-  if( "$argv[1]" == "-html" ) goto html
-endif
-
-foreach ftpdir ( /FTP/AFNI/bin/* /FTP/AFNI/src/faces ~/abin )
-
-   if( -d $ftpdir ) then
-     echo "===== Starting to install faces into $ftpdir"
-     foreach fname ( face_*.jpg )
-       if( -f $ftpdir/$fname ) then
-          cmp -s $ftpdir/$fname $fname
-          set mmm = $status
-          if( $mmm > 1 ) set mmm = 0
-       else
-          set mmm = 1
-       endif
-       if( $mmm ) then
-         echo "/bin/cp -pf $fname $ftpdir"
-               /bin/cp -pf $fname $ftpdir
-       endif
-       chmod -R ugo+r $ftpdir
-       chmod -R go-w  $ftpdir
-     end
-   else
-       echo "+++++ $ftpdir isn't a directory"
-   endif
-
-end
-
-html:
 
 echo "===== Making afni_faces.html"
 
@@ -71,7 +37,7 @@ foreach face ( face_*.jpg )
 
   echo '<td align="center"> <img src="'${face}'" /></td>' >>   afni_faces.html
 
-  @ nn = ($nn + 1) % 5
+  @ nn = ($nn + 1) % 6
 end
 
 echo '</tr></table>'                                      >>   afni_faces.html
@@ -87,4 +53,5 @@ echo '<a href="http://afni.nimh.nih.gov/afni">'           >>   afni_faces.html
 echo '<i>AFNI</i> main page</a>'                          >>   afni_faces.html
 echo '</center></body></html>'                            >>   afni_faces.html
 
-/bin/cp -f afni_faces.html face_*.jpg ~/afni/faces/
+scp afni_faces.html face_*.jpg elrond:/var/www/html/afni/community/faces/
+ssh elrond chmod ugo+r /var/www/html/afni/community/faces/\*.jpg
