@@ -69,6 +69,11 @@ char gv2s_history[] =
     "  - added fill_sopt_default()\n"
     "  - moved v2s_write_outfile_*() here, with print_header()\n"
     "  - in afni_vol2surf(), actually write output files\n"
+    "\n"
+    "October 25, 2004 [rickr]\n"
+    "  - apply debug and dnode, even for defaults\n"
+    "  - if the user sets dnode, then skip any (debug > 0) tests for it\n"
+    "  - check for out of bounds, even if an endpoint is in (e.g. midpoint)\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -190,6 +195,10 @@ ENTRY("afni_vol2surf");
     {
 	sopt = &sopt_def;
         fill_sopt_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
+
+	/* but apply any debug options */
+        sopt->debug = gv2s_plug_opts.sopt.debug;
+        sopt->dnode = gv2s_plug_opts.sopt.dnode;
     }
     else 
 	sopt = &gv2s_plug_opts.sopt;
@@ -418,8 +427,8 @@ ENTRY("dump_surf_3dt");
   	if ( r3mm.debug )
 	    r3mm.debug = 0;
 
-	if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
-	    r3mm.debug = sopt->debug;
+	if ( nindex == sopt->dnode )      /* if we have dnode, forget debug */
+	    r3mm.debug = sopt->debug > 0 ? sopt->debug : 1;
 
 	/* if both points are outside our dataset, skip the pair   v2.3 */
 	oob1 = f3mm_out_of_bounds( &r3mm.p1, &r3mm.dset_min, &r3mm.dset_max );
@@ -432,7 +441,7 @@ ENTRY("dump_surf_3dt");
 					sopt->oob.index, sopt->oob.index,
 					sopt->oob.index, sopt->oob.value) )
 		    RETURN(1);
-	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
+	    if ( nindex == sopt->dnode )
 	    {
 		disp_surf_vals("-d debug node, out-of-bounds : ", sd, -1);
 	        fprintf(stderr,"-d dnode coords: (%f, %f, %f)\n",
@@ -452,15 +461,35 @@ ENTRY("dump_surf_3dt");
 
 	if ( r3mm_res.ims.num == 0 )	/* any good voxels in the bunch? */
 	{
-	    oomc++;
-	    if ( sopt->oom.show )
-		if ( set_all_surf_vals( sd, nindex, r3mm_res.ifirst,
-			r3mm_res.i3first.ijk[0], r3mm_res.i3first.ijk[1],
-			r3mm_res.i3first.ijk[2], sopt->oom.value ) )
-		    RETURN(1);
-	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
-		disp_surf_vals("-d debug node, out-of-mask : ", sd, -1);
-	    continue;
+	    /* oob or oom? */
+	    if ( r3mm_res.oob == sopt->f_steps ) /* out of bounds */
+	    {
+		oobc++;
+		if ( sopt->oob.show )
+		    if ( set_all_surf_vals( sd, nindex, sopt->oob.index,
+					    sopt->oob.index, sopt->oob.index,
+					    sopt->oob.index, sopt->oob.value) )
+			RETURN(1);
+		if ( nindex == sopt->dnode )
+		    disp_surf_vals("-d debug node, out-of-bounds : ", sd, -1);
+	    }
+	    else   /* then we consider it out of mask */
+	    {
+		oomc++;
+		if ( sopt->oom.show )
+		    if ( set_all_surf_vals( sd, nindex, r3mm_res.ifirst,
+			    r3mm_res.i3first.ijk[0], r3mm_res.i3first.ijk[1],
+			    r3mm_res.i3first.ijk[2], sopt->oom.value ) )
+			RETURN(1);
+		if ( nindex == sopt->dnode )
+		    disp_surf_vals("-d debug node, out-of-mask : ", sd, -1);
+	    }
+
+	    if ( nindex == sopt->dnode )
+		fprintf(stderr,"-d dnode coords: (%f, %f, %f)\n",
+			r3mm.p1.xyz[0], r3mm.p1.xyz[1], r3mm.p1.xyz[2]);
+
+	    continue;   /* in any case */
 	}
 
 	/* get element 0, just for the findex */
@@ -548,15 +577,16 @@ ENTRY("set_surf_results");
 	    sd->vals[c][sd->nused] = 0.0;
 
     /* rcr : should I nuke the MRI images, and just copy what is needed? */
-    if ( ! p->over_steps && sopt->gp_index >= 0 &&
-	 (sopt->debug > 1) && (node == sopt->dnode) )
-	    fprintf(stderr,"** dnode %d gets %f from gp_index %d\n",
-		    node, sd->vals[0][sd->nused], sopt->gp_index);
-    
-    if ( (sopt->debug > 1) && (node == sopt->dnode) )
+    if ( node == sopt->dnode )
     {
-	fprintf(stderr, "-d debug: node, findex, vol_index = %d, %d, %d\n",
-		node, findex, volind );
+	fprintf(stderr,
+                "--------------------------------------------------\n");
+	if ( ! p->over_steps && sopt->gp_index >= 0 )
+	    fprintf(stderr,"+d dnode %d gets %f from gp_index %d\n",
+		    node, sd->vals[0][sd->nused], sopt->gp_index);
+ 	if ( sopt->debug > 1 )
+	    fprintf(stderr, "-d debug: node %d, findex %d, vol_index %d\n",
+		    node, findex, volind );
 	if ( sopt->use_norms )
 	{
 	    float * fp = p->surf[0].norm[node].xyz;
@@ -1733,6 +1763,7 @@ static int disp_surf_vals( char * mesg, v2s_results * sd, int node )
 
 ENTRY("disp_surf_vals");
 
+    fprintf(stderr, "-------------------------------------------------\n");
     if ( mesg ) fputs( mesg, stderr );
     if ( sd->nused < 1 )
     {

@@ -1,6 +1,29 @@
 #include "afni.h"
 #include "vol2surf.h"
 
+/*----------------------------------------------------------------------
+ * history:
+ * 
+ * ... [rwcox] ...
+ *
+ * 08 Oct 2004 [rickr]
+ *   - AFNI_process_NIML_data() has been broken into many process_NIML_TYPE()
+ *     functions.  Functionality has been added for local_domain_parents, such
+ *     that surface data is sent per LDP, not per surface.
+ *
+ * 25 Oct 2004 [rickr]
+ *   - use vol2surf for all surfaces now (so nvused is no longer computed)
+ *   - in ldp_surf_list, added _ldp suffix and full_label_ldp for clarity
+ *   - added functions int_list_posn, slist_choose_surfs, 
+ *     slist_check_user_surfs and slist_surfs_for_ldp to handle an arbitrary
+ *     number of surfaces per LDP
+ *   - moved any fprintf off the margin
+ *   - pass data/threshold pointers to AFNI_vol2surf_func_overlay()
+ *   - prepare for sending data to suma (but must still define new NIML type)
+ *     can get data and global threshold from vol2surf
+ *   - for users, try to track actual LDP label in full_label_ldp
+ *----------------------------------------------------------------------*/
+
 /**************************************/
 /** global data for NIML connections **/
 /**************************************/
@@ -66,8 +89,9 @@ static int dont_hear_suma = 0 ;
 /*--------------------------------------------------------*/
 /*! local structure types for organizing surfaces and LDPs */
 typedef struct {
-   char * idcode;
-   char * label;
+   char * idcode_ldp;
+   char * label_ldp;
+   char   full_label_ldp[64];
    int    nsurf;
    int    sA, sB;
    int    use_v2s;
@@ -117,6 +141,13 @@ static int     process_NIML_Node_ROI( NI_element * nel, int ct_start ) ;
 static int     disp_ldp_surf_list(LDP_list * ldp_list, THD_session * sess);
 static int     fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
                                   v2s_plugin_opts * po);
+static int     int_list_posn(int * vals, int nvals, int test_val);
+static int     slist_choose_surfs(LDP_list * ldp_list, THD_session * sess,
+                                  v2s_plugin_opts * po);
+static int     slist_check_user_surfs(ldp_surf_list * lsurf, int * surfs,
+                                      v2s_plugin_opts * po);
+static int     slist_surfs_for_ldp(ldp_surf_list * lsurf, int * surfs, int max,
+                                   THD_session * sess, int debug);
 
 
 /*-----------------------------------------------------------------------*/
@@ -343,7 +374,7 @@ ENTRY("AFNI_process_NIML_data") ;
    nel = (NI_element *) nini ;
 
 #if 0
-fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
+ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 #endif
 
    /* broke out as functions, added node_normals         06 Oct 2004 [rickr] */
@@ -396,8 +427,9 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   int        nmap, nvused , nvtot , ct , kldp ;
-   int        sA, sB, v2s;
+   float      *rdata, rthresh ;
+   int        nmap, nvtot , ct , kldp ;
+   int        sA, sB;
    NI_element *nel ;
    char msg[16] ;
    THD_session *sess ;   /* 20 Jan 2004 */
@@ -423,6 +455,10 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    ct = NI_clock_time() ;
 
+   if ( gv2s_plug_opts.sopt.debug > 0 || gv2s_plug_opts.sopt.dnode >= 0 )
+      fprintf(stderr,
+           "============================================================\n");
+
    if( fill_ldp_surf_list(&ldp_list, sess, &gv2s_plug_opts) != 0 )
      EXRETURN ;
 
@@ -439,36 +475,37 @@ ENTRY("AFNI_niml_redisplay_CB") ;
       *               else, call vol2surf w/midpoint on the 2 surfaces
       *                                             07 Oct 2004 [rickr] */
 
-     nvused = -1 ;
-     v2s    =  0 ;
-
      sA = ldp_list.list[kldp].sA;   /* for the sake of laziness */
      sB = ldp_list.list[kldp].sB;
 
+     rdata = NULL;   /* if we want these values, send them to A_vol2surf */
+     rthresh = 0.0;
+
      if( ldp_list.list[kldp].use_v2s ){            /* vol2surf was requested */
-       nmap = AFNI_vol2surf_func_overlay( im3d, &map, sA, sB, 0 ) ;
-       v2s = 1;
-     } else if ( ldp_list.list[kldp].nsurf == 2 ){  /* use v2s with defaults */
-       nmap = AFNI_vol2surf_func_overlay( im3d, &map, sA, sB, 1 ) ;
-       v2s = 1;
+       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 0, NULL, &rthresh);
+     } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defaults */
+       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB, 1, NULL, &rthresh);
      } else {  /* one surface, no request: use vnlist */
-       nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;
-       if( gv2s_plug_opts.sopt.debug > 0 )
-          fprintf(stderr,"AFNI_vnlist returned %d for surf %d\n", nmap, sA) ;
+       /* okay, no more vnlist...  :(                   25 Oct 2004 [rickr] */
+       /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;       */
+
+       nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA, -1, 1, NULL, &rthresh);
      }
 
 #if 0
      if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
-#endif
 
-     /* base the error checking on which mapping method was used */
+     /* we always use v2s now */
      if( ! v2s && ( nmap < 0 || sess->su_surf[sA]->vn == NULL ) )
      {
        if( gv2s_plug_opts.sopt.debug > 0 )
          fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", sA, nmap, map);
        continue ; /* this is bad */
      }
-     else if( v2s && (nmap < 0 || (nmap > 0 && !map))) /* 29 Sep 2004 [rickr] */
+#endif
+
+     /* base the error checking on which mapping method was used */
+     if( nmap < 0 || (nmap > 0 && !map) ) /* 29 Sep 2004 [rickr] */
      {
        if( gv2s_plug_opts.sopt.debug > 0 )
          fprintf(stderr,"** bad v2s map %d, ret: %d,%p\n", sA, nmap, map);
@@ -489,6 +526,16 @@ ENTRY("AFNI_niml_redisplay_CB") ;
        NI_add_column( nel , NI_BYTE , NULL ) ; bcol = nel->vec[3] ;
        NI_add_column( nel , NI_BYTE , NULL ) ; acol = nel->vec[4] ;
 
+#if 0       /* just as a reminder, will we send the data to suma? */
+       if( rdata ){
+          if( gv2s_plug_opts.sopt.debug > 1 )
+            fprintf(stderr,"-d sending data and thresh (%f) to suma\n",rthresh);
+          NI_add_column( nel , NI_FLOAT, rdata ) ;
+          free(rdata) ;
+          rdata = NULL ;
+       }
+#endif
+
        for( ii=0 ; ii < nmap ; ii++ ){   /* copy data into element */
          icol[ii] = map[ii].id ;
          rcol[ii] = map[ii].r  ; gcol[ii] = map[ii].g ;
@@ -500,8 +547,6 @@ ENTRY("AFNI_niml_redisplay_CB") ;
      } else {         /*--- make an empty data element ---*/
 
        nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
-       nvused = 0 ;
-
      }
 
      if ( sess->su_surf[sA]->vn )            /* 29 Sep 2004 [rickr] */
@@ -524,10 +569,16 @@ ENTRY("AFNI_niml_redisplay_CB") ;
        sprintf(msg,"%d",nvtot) ;
        NI_set_attribute( nel , "numvox_total" , msg ) ;
      }
+
+#if 0  /* we no longer have this number */
      if ( nvused >= 0 ) {
        sprintf(msg,"%d",nvused) ;
        NI_set_attribute( nel , "numvox_used" , msg ) ;
      }
+#endif
+
+     /* 22 Oct 2004: pass the threshold (only works for vol2surf now!) */
+     NI_set_attribute( nel , "threshold" , MV_format_fval(rthresh)) ;
 
      if( sendit )
        NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
@@ -570,13 +621,13 @@ ENTRY("disp_ldp_surf_list");
    }
 
    fprintf(stderr,"+d LDP_list:\n"
-                  "       (nused, nalloc)       = (%d, %d)\n",
+                  "     (nused, nalloc)       = (%d, %d)\n",
                   ldp_list->nused, ldp_list->nalloc);
 
    for (ldp = 0, slist = ldp_list->list; ldp < ldp_list->nused; ldp++, slist++ )
-      fprintf(stderr,"       (nsurf,sA,sB,use_v2s) = (%d, %d, %d, %d) : '%s'\n",
-              slist->nsurf, slist->sA, slist->sB, slist->use_v2s, slist->label);
-
+      fprintf(stderr,"     (nsurf,sA,sB,use_v2s) = (%d, %d, %d, %d) : '%s'\n",
+           slist->nsurf, slist->sA, slist->sB, slist->use_v2s,
+           slist->full_label_ldp[0] ? slist->full_label_ldp : slist->label_ldp);
    RETURN(0);
 }
 
@@ -587,7 +638,7 @@ static int fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
                               v2s_plugin_opts * po)
 {
    ldp_surf_list * slist;
-   int             surf, surf_tmp, ldp;
+   int             surf, ldp;
 
 ENTRY("fill_ldp_surf_list");
 
@@ -605,7 +656,7 @@ ENTRY("fill_ldp_surf_list");
       ldp_list->list = (ldp_surf_list *)realloc(ldp_list->list,
                                  ldp_list->nalloc * sizeof(ldp_surf_list));
       if( !ldp_list->list ){
-         fprintf(stderr,"** can't allocate ldp_list (%d)\n", ldp_list->nalloc);
+         fprintf(stderr,"** cannot allocate ldp_list (%d)\n", ldp_list->nalloc);
          exit(1);
       }
    }
@@ -615,85 +666,264 @@ ENTRY("fill_ldp_surf_list");
 
    /* next, fill the list with ldp and their surfaces (beware of O(n^2)...) */
    for ( surf = 0; surf < sess->su_num; surf++ ) {
-      for ( ldp = 0; ldp < ldp_list->nused; ldp++ )  /* does thie ldp exist? */
-         if ( strncmp(ldp_list->list[ldp].idcode,
+      for ( ldp = 0; ldp < ldp_list->nused; ldp++ )  /* does this ldp exist? */
+         if ( strncmp(ldp_list->list[ldp].idcode_ldp,
                       sess->su_surf[surf]->idcode_ldp,32) == 0 )
             break;
       slist = &ldp_list->list[ldp];     /* note where we are */
 
       if( ldp == ldp_list->nused ){     /* then we have a new ldp */
-         slist->idcode  = sess->su_surf[surf]->idcode_ldp;
-         slist->label   = sess->su_surf[surf]->label_ldp;
-         slist->nsurf   = 1;     /* adding first surface        */
-         slist->sA      = surf;  /* the session's surface index */
-         slist->sB      = -1;    /* init to unused              */
-         slist->use_v2s = 0;     /* assume no user request      */
+         slist->idcode_ldp        = sess->su_surf[surf]->idcode_ldp;
+         slist->label_ldp         = sess->su_surf[surf]->label_ldp;
+         slist->full_label_ldp[0] = '\0';  /* init to empty               */
+         slist->nsurf             = 1;     /* adding first surface        */
+         slist->sA                = surf;  /* the session's surface index */
+         slist->sB                = -1;    /* init to unused              */
+         slist->use_v2s           = 0;     /* assume no user request      */
 
          ldp_list->nused++;     /* we have added a new ldp entry */
+
+         if ( po->sopt.debug > 2 )
+            fprintf(stderr,"+d ldp_list add: ldp '%s', surf #%d '%s'\n",
+                    slist->label_ldp, surf, sess->su_surf[surf]->label);
       } else {
-         if( slist->nsurf == 0 ){
-            fprintf(stderr,"** fill_ldp_surf_list insert screwup!\n");
-            RETURN(1);
-         } else if ( slist->nsurf > 1 ){
-            fprintf(stderr,"** warning, found too many surfaces for LDP:\n"  
-                    "      LDP         : %s\n"
-                    "      new surface : %s\n"
-                    "      surf 0      : %s\n"
-                    "      surf 1      : %s\n",
-                    slist->label, sess->su_surf[surf]->label,
-                    sess->su_surf[slist->sA]->label,
-                    sess->su_surf[slist->sB]->label);
-            fprintf(stderr,"   --> ignoring new surface...\n");
-         } else {
-           slist->sB = surf;    /* the easy, good case */
-           slist->nsurf++;
+         slist->nsurf++;
+         if( slist->nsurf == 2 ) slist->sB = surf;
+
+         if ( po->sopt.debug > 2 )
+            fprintf(stderr,"+d ldp_list add: ldp '%s', surf #%d '%s'\n",
+                    slist->label_ldp, surf, sess->su_surf[surf]->label);
+      }
+   }
+
+   (void)slist_choose_surfs(ldp_list, sess, po);
+
+   RETURN(0);
+}
+
+/*! Now there are 2 things to clear up for each LDP (when there is more
+ *  than 1 surface).  If the user has selected any surfaces for v2s, then
+ *  set sA and sB appropriately (and do some error checking).  Also, any
+ *  time there are more surfaces than needed, inform the user which will
+ *  be used, and which will be ignored.
+ */
+static int slist_choose_surfs(LDP_list * ldp_list, THD_session * sess,
+                                  v2s_plugin_opts * po)
+{
+   ldp_surf_list * lsurf;
+   int           * surfs, max_surf, ldp;
+   int             first, surf;
+
+ENTRY("slist_choose_surfs");
+
+   /* first, decide on how much memory we need for surfs */
+   max_surf = 0;
+   for ( ldp = 0; ldp < ldp_list->nused; ldp++ )  /* does this ldp exist? */
+      if ( ldp_list->list[ldp].nsurf > max_surf )
+         max_surf = ldp_list->list[ldp].nsurf;
+
+   /* and allocate */
+   surfs = (int *)malloc(max_surf * sizeof(int));
+   if ( !surfs ) {
+      fprintf(stderr,"** scs: failed to allocate %d ints\n", max_surf);
+      exit(1);
+   }
+
+   /* now process each LDP */
+   for ( ldp = 0; ldp < ldp_list->nused; ldp++ ) {
+      lsurf = &ldp_list->list[ldp];                      /* set pointer   */
+      if( lsurf->nsurf < 2 ) continue;                   /* are we okay?  */
+
+      if ( slist_surfs_for_ldp(lsurf, surfs, max_surf, sess, po->sopt.debug) )
+         continue;                              /* try with current sa sb */
+
+      slist_check_user_surfs(lsurf, surfs, po);/* proceed even on failure */
+
+      if ( lsurf->sB < 0 ) first = 1;               /* we know nsurf >= 2 */
+      else                 first = 2;
+
+      /* if something is discarded and using defaults or debug */
+      if ( (first < lsurf->nsurf) && (! lsurf->use_v2s || po->sopt.debug > 1) ){
+         fprintf(stderr,
+           "--------------------------------------------------\n"
+           "received too many surfaces for LDP '%s'\n",
+           lsurf->full_label_ldp[0] ? lsurf->full_label_ldp : lsurf->label_ldp);
+         for ( surf = 0; surf < first; surf++ )
+            fprintf(stderr,"    using    surf #%d : %s\n",
+                    surfs[surf], sess->su_surf[surfs[surf]]->label);
+         for ( surf = first; surf < lsurf->nsurf; surf++ )
+            fprintf(stderr,"    ignoring surf #%d : %s\n",
+                    surfs[surf], sess->su_surf[surfs[surf]]->label);
+      }
+   }
+
+   free(surfs);
+
+   RETURN(0);
+}
+
+/*! sort slist (and sa,sb) by user selections         21 Oct 2004 [rickr] */
+/*  Note that sa and sb are already initialized to the first 2 surfaces.  */
+static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
+                                   v2s_plugin_opts * po )
+{
+   int done = 0, posn;
+   ENTRY("slist_check_user_surfs");
+
+   /* the easiest check */
+   if ( ! po->ready ) RETURN(0);
+   if ( ! po->use0 && ! po->use1 ) RETURN(0);
+
+   if ( po->use0 ) {
+      posn = int_list_posn(surfs, lsurf->nsurf, po->s0A);
+      if ( posn >= 0 ) {
+         done = 1;
+         lsurf->use_v2s = 1;                            /* ready for v2s   */
+         if ( posn != 0 ) {                             /* swap and set sA */
+             lsurf->sA   = surfs[posn];
+             surfs[posn] = surfs[0];
+             surfs[0]    = lsurf->sA;
+         }
+
+         /* check for surfB, but skip the first position (avoid duplicate) */
+         if ( po->s0B < 0 )
+            lsurf->sB = -1;
+         else {
+            posn = int_list_posn(surfs+1, lsurf->nsurf-1, po->s0B) + 1;
+            if ( posn >= 1 ) {                          /* we've added 1   */
+               if ( posn != 1 ) {                       /* swap and set sB */
+                   lsurf->sB   = surfs[posn];
+                   surfs[posn] = surfs[1];
+                   surfs[1]    = lsurf->sB;
+               }
+            } else                      /* complain, and just use sB as is */
+               fprintf(stderr,"** user requested surf pair (%d,%d), but\n"
+                           "   cannot find surf %d for LDP '%s'\n"
+                           "   --> giving up and using pair (%d,%d)\n",
+                           po->s0A, po->s0B, po->s0B, lsurf->label_ldp,
+                           lsurf->sA, lsurf->sB);
          }
       }
    }
 
-   /* rcr - fix mis-match for the case where we skip a user-requested surface */
+   /* if we did not apply pair 0, check pair 1 */
+   if ( ! done && po->use1 ) {
+      posn = int_list_posn(surfs, lsurf->nsurf, po->s1A);
+      if ( posn >= 0 ) {
+         done = 1;
+         lsurf->use_v2s = 1;                            /* ready for v2s   */
+         if ( posn != 0 ) {                             /* swap and set sA */
+             lsurf->sA   = surfs[posn];
+             surfs[posn] = surfs[0];
+             surfs[0]    = lsurf->sA;
+         }
 
-   if( ! po->ready ) RETURN(0);   /* then don't worry about vol2surf */
-
-   /* now go back and verify which surface(s) can use vol2surf */
-   for ( ldp = 0; ldp< ldp_list->nused; ldp++ ){
-      slist = &ldp_list->list[ldp];
-      surf  = slist->sA;
-      if( po->use0 && surf == po->s0A ) {
-         if( po->s0B >= 0 && po->s0B != slist->sB ){
-            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
-                           po->s0A, po->s0B, slist->sA, slist->sB);    
-         } else {
-           slist->use_v2s = 1;     /* we have a match, maybe a pair */
-         }
-      } else if( po->use0 && surf == po->s0B ) {
-         if( po->s0A >= 0 && po->s0A != slist->sB ){
-            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
-                           po->s0B, po->s0A, slist->sA, slist->sB);    
-         } else {  /* regardless of pair */
-           slist->use_v2s = 1;     /* we have a match, but reverse */
-           surf_tmp = po->s0A;
-           po->s0A  = po->s0B;
-           po->s0B  = surf_tmp;
-         }
-      } else if( po->use1 && surf == po->s1A ) {
-         if( po->s1B >= 0 && po->s1B != slist->sB ){
-            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
-                           po->s1A, po->s1B, slist->sA, slist->sB);    
-         } else {
-           slist->use_v2s = 1;     /* we have a match, maybe pair */
-         }
-      } else if( po->use1 && surf == po->s1B ) {
-         if( po->s1A >= 0 && po->s1A != slist->sB ){
-            fprintf(stderr,"** user surfs %d and %d should match %d and %d\n",
-                           po->s1B, po->s1A, slist->sA, slist->sB);    
-         } else {
-           slist->use_v2s = 1;     /* we have a match, but reverse */
-           surf_tmp = po->s1A;
-           po->s1A  = po->s1B;
-           po->s1B  = surf_tmp;
+         /* check for surfB, but skip the first position (avoid duplicate) */
+         if ( po->s1B < 0 )
+            lsurf->sB = -1;
+         else {
+            posn = int_list_posn(surfs+1, lsurf->nsurf-1, po->s1B) + 1;
+            if ( posn >= 1 ) {
+               if ( posn != 1 ) {                       /* swap and set sB */
+                   lsurf->sB   = surfs[posn];
+                   surfs[posn] = surfs[1];
+                   surfs[1]    = lsurf->sB;
+               }
+            } else                      /* complain, and just use sB as is */
+               fprintf(stderr,"** user requested surf pair (%d,%d), but\n"
+                              "   cannot find surf %d for LDP '%s'\n"
+                              "   --> giving up and using pair (%d,%d)\n",
+                              po->s1A, po->s1B, po->s1B, lsurf->label_ldp,
+                              lsurf->sA, lsurf->sB);
          }
       }
+   }
+
+   if ( po->sopt.debug > 1 ) {
+      if ( done )
+         fprintf(stderr,"+d user surfs (sA,sB) = (%d,%d) {of %d}, LDP '%s'\n",
+                          lsurf->sA, lsurf->sB, lsurf->nsurf, lsurf->label_ldp);
+      else
+         fprintf(stderr,"+d default    (sA,sB) = (%d,%d) {of %d}, LDP '%s'\n",
+                          lsurf->sA, lsurf->sB, lsurf->nsurf, lsurf->label_ldp);
+   }
+
+   RETURN(0);
+}
+
+/*! search list for test_val and return position     21 Oct 2004 [rickr] */
+static int int_list_posn(int * vals, int nvals, int test_val)
+{
+   int c;
+ENTRY("int_list_posn");
+
+   for (c = 0; c < nvals; c++)
+      if ( vals[c] == test_val )
+         RETURN(c);
+
+   RETURN(-1);
+}
+
+/*! construct list of surfaces for this LDP          21 Oct 2004 [rickr] */
+static int slist_surfs_for_ldp( ldp_surf_list * lsurf, int * surfs, int max,
+                                THD_session * sess, int debug )
+{
+   SUMA_surface * ss;
+   int            count, surf, len;
+
+ENTRY("slist_surfs_for_ldp");
+
+   if ( debug > 2 )
+      fprintf(stderr,"-d ss_for_ldp: LDP '%s', ldp.nsurf = %d, su_num = %d\n",
+              lsurf->label_ldp, lsurf->nsurf, sess->su_num);
+
+   count = 0;
+   for ( surf = 0; surf < sess->su_num; surf++ )
+   {
+      ss = sess->su_surf[surf];
+
+      if ( strncmp(lsurf->idcode_ldp, ss->idcode_ldp, 32) == 0 ) {
+         if (count >= max) {
+            fprintf(stderr,"** failure: ss_for_ldp #1 (%s: %d,%d,%d)\n",
+                    lsurf->label_ldp, surf, count, max);
+            RETURN(1);
+         }
+
+         if ( debug > 2 )
+            fprintf(stderr,"-d surfs_for_ldp: surf %d '%s' matches LDP '%s'\n",
+                    surf, ss->label, ss->label_ldp);
+
+         /* found a surface for this LDP: note it and check if it is LDP */
+         surfs[count++] = surf;
+         len = strlen(ss->label_ldp);
+         if ( ((len >= 4) && (strncmp(ss->label+len-4, "SAME", 4) == 0)) ||
+              (strncmp(lsurf->idcode_ldp, ss->idcode, 64) == 0) ) {
+            /* then this surface is also a Local Domain Parent */
+            strncpy(lsurf->full_label_ldp, ss->label, 63);
+            lsurf->full_label_ldp[63] = '\0';
+            if ( strlen(lsurf->full_label_ldp) < (63 - 11) )
+               strcat(lsurf->full_label_ldp, " (via SAME)");
+
+            if ( debug > 2 )
+               fprintf(stderr,"-d surfs_for_ldp: surf %d '%s' is LDP '%s'\n",
+                    surf, ss->label, lsurf->full_label_ldp);
+         }
+      }
+   }
+
+   /* do a little quick verification that the first 1 or 2 match sa and sb */
+   if ( lsurf->sA != surfs[0] ) {
+      fprintf(stderr,"** failure: ss_for_ldp #2 (%d,%d)\n",lsurf->sA,surfs[0]);
+      RETURN(1);
+   }
+   if ( lsurf->nsurf > 1 && lsurf->sB != surfs[1] ) {
+      fprintf(stderr,"** failure: ss_for_ldp #3 (%d,%d)\n",lsurf->sB,surfs[1]);
+      RETURN(1);
+   }
+   /* and that we didn't miss anything */
+   if ( count != lsurf->nsurf ) {
+      fprintf(stderr,"** failure: ss_for_ldp #4 (%d,%d)\n",count,lsurf->nsurf);
+      RETURN(1);
    }
 
    RETURN(0);
@@ -984,14 +1214,6 @@ ENTRY("process_NIML_SUMA_ixyz");
    }
    MCW_strncpy(ag->idcode_ldp,idc,32) ;
 
-   /*-- 06 Oct 2004: get label of local domain parent (or make it up) --*/
-
-   idc = NI_get_attribute( nel , "local_domain_parent" ) ;
-   if( idc == NULL )
-     sprintf(ag->label_ldp,"Surf#%d_local_domain_parent",num+1) ;
-   else
-     MCW_strncpy(ag->label_ldp,idc,64) ;
-
    /*-- 19 Aug 2002: get surface label (or make it up) --*/
 
    idc = NI_get_attribute( nel , "surface_label" ) ;
@@ -1002,6 +1224,14 @@ ENTRY("process_NIML_SUMA_ixyz");
      MCW_strncpy(ag->label,idc,64) ;
    else
      sprintf(ag->label,"Surf#%d",num+1) ;
+
+   /*-- 06 Oct 2004: get label of local domain parent (or make it up) --*/
+
+   idc = NI_get_attribute( nel , "local_domain_parent" ) ;
+   if( idc == NULL )
+     sprintf(ag->label_ldp,"Surf#%d_local_domain_parent",num+1) ;
+   else
+     MCW_strncpy(ag->label_ldp,idc,64) ;
 
    /*-- set IDCODEs of surface and of its dataset --*/
 
@@ -1671,7 +1901,7 @@ STATUS("locking Node_ROI dataset into memory") ;
             attached to the surface ; if so zero out those voxels **/
 
    if( ag->vv != NULL ){
-fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
+ fprintf(stderr,"++ erasing %d voxels from previous SUMA ROI\n",ag->vv->nvox) ;
      for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
      DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
    } else {
@@ -1681,7 +1911,7 @@ STATUS("no old Node_ROI vvlist") ;
    /** now put values from SUMA into dataset array **/
 
    if( num_list > 0 ){
-fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",num_list) ;
+ fprintf(stderr,"++ writing %d voxels from SUMA ROI\n",num_list) ;
      ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
      ag->vv->nvox   = num_list ;
      ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;

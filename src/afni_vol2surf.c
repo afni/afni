@@ -8,9 +8,15 @@
 /*----------------------------------------------------------------------
  * R. Reynolds    September, 2004
  *
+ * history:
+ *
  * 08 Oct 2004 [rickr]:
  *   - AFNI_vol2surf_func_overlay() has new params, surfA,surfB,use_defaults
  *   - pass use_defaults to afni_vol2surf()
+ *
+ * 25 Oct 2004 [rickr]:
+ *   - accept Rdata and Rthr pointers, for optionally returning the data
+ *     and global threshold
  *----------------------------------------------------------------------
  */
 
@@ -27,6 +33,8 @@ static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
       - -1 return ==> some error (e.g., no surface nodes on this dataset)
       = positive  ==> can use *map
     - *map is set to a newly malloc()-ed array (if return > 0)
+    - if (Rdata) return data from results structure
+    - if (Rthr) return overlay threshold from afni
 
     Sample usage:
     - SUMA_irgba * map;
@@ -39,7 +47,7 @@ static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
     * based on AFNI_vnlist_func_overlay()
 -------------------------------------------------------------------------*/
 int AFNI_vol2surf_func_overlay(Three_D_View *im3d, SUMA_irgba **map,
-                               int surfA, int surfB, int use_defaults )
+         int surfA, int surfB, int use_defaults, float ** Rdata, float * Rthr )
 {
     THD_3dim_dataset * oset;		/* overlay dataset */
     THD_session      * ss;
@@ -79,6 +87,10 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 	}
 	RETURN(-1);
     }
+
+    /* init return values */
+    if ( Rdata ) *Rdata = NULL;
+    if ( Rthr )  *Rthr  = 0.0;
 
     /* set surface pointers */
     sA = ss->su_surf[surfA];
@@ -125,6 +137,9 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
  	/* note real threshold */
         thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top;
 
+        /* maybe we want to return this */
+        if ( Rthr ) *Rthr = thresh;
+
 	if( im_thr && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) )
 	    im_thr = NULL;
 
@@ -169,6 +184,14 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 
     /*-------------------- set overlay colors --------------------*/
     nout = map_v2s_results(results, im3d, map, debug, go->sopt.dnode);
+
+    /* before free()ing results, check whether we want to return the values */
+    if ( Rdata )
+    {
+	*Rdata = results->vals[0];
+	results->vals[0] = NULL;   /* do not let free_v2s_results() free it */
+    }
+
     free_v2s_results(results);
 
     if ( debug > 1 ) fprintf(stderr,"++ map_v2s_results: nout = %d\n", nout);
