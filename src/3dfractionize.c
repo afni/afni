@@ -247,11 +247,11 @@ int main( int argc , char * argv[] )
    /*- 18 Oct 1999: check input for legality if we are voting --*/
 
    if( do_vote ){
-      vtype = DSET_BRICK_TYPE(iset,0) ;
-      if( vtype != MRI_short ){
-         fprintf(stderr,"** -preserve option requires short-valued input dataset!\n");
-         exit(1);
-      }
+     vtype = DSET_BRICK_TYPE(iset,0) ;
+     if( vtype != MRI_short && vtype != MRI_byte ){
+       fprintf(stderr,"** -preserve option requires short- or byte-valued input dataset!\n");
+       exit(1);
+     }
    }
 
    /*-- start to create output dataset --*/
@@ -326,9 +326,9 @@ int main( int argc , char * argv[] )
       for( iv=0 ; iv < nvoxin ; iv++ ){
          kv = (vtype == MRI_short) ? sin[iv] : bin[iv] ;   /* voxel value */
          if( kv == 0 ) continue ;                          /* skip zeroes */
-         for( jv=0 ; jv < nvote_val ; jv++ )               /* find in list */
+         for( jv=0 ; jv < nvote_val ; jv++ )              /* find in list */
             if( vote_val[jv] == kv ) break ;
-         if( jv < nvote_val ) continue ;                   /* skip if in list */
+         if( jv < nvote_val ) continue ;       /* skip if already in list */
 
          vote_val = (int *) realloc( vote_val , sizeof(int)*(nvote_val+1) ) ;
          vote_val[nvote_val++] = kv ;
@@ -361,7 +361,7 @@ int main( int argc , char * argv[] )
       f = DSET_BRICK_FACTOR(iset,0) ;
       if( f != 0.0 && f != 1.0 ) EDIT_BRICK_FACTOR(dset,0,f) ;
 
-      /* 5: if input if bytes, make the output be that too */
+      /* 5: if input is bytes, make the output be that too */
 
       if( vtype == MRI_byte )
          EDIT_dset_items( dset , ADN_datum_all , MRI_byte , ADN_none ) ;
