@@ -23,6 +23,7 @@ void DRAW_make_widgets(void) ;
 
 void DRAW_done_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_undo_CB  ( Widget , XtPointer , XtPointer ) ;
+void DRAW_redo_CB  ( Widget , XtPointer , XtPointer ) ;  /* 19 Nov 2003 */
 void DRAW_help_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_quit_CB  ( Widget , XtPointer , XtPointer ) ;
 void DRAW_save_CB  ( Widget , XtPointer , XtPointer ) ;
@@ -93,7 +94,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 /* Interface widgets */
 
 static Widget shell=NULL , rowcol , info_lab , choose_pb ;
-static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb , saveas_pb ;
+static Widget done_pb, undo_pb,redo_pb, help_pb, quit_pb, save_pb, saveas_pb ;
 static MCW_arrowval *value_av , *color_av , *mode_av ;
 static MCW_arrowval *rad_av ;                         /* 16 Oct 2002 */
 static Widget label_textf , label_label ;             /* 15 Oct 2003 */
@@ -262,11 +263,76 @@ static int dset_changed = 0 ;
 static int recv_open    = 0 ;
 static int recv_key     = -1;
 
-static int undo_bufsiz = 0 ;     /* size of undo_buf in bytes */
-static int undo_bufnum = 0 ;     /* size of undo_xyz in ints */
-static int undo_bufuse = 0 ;     /* number of entries in undo buffer */
-static void * undo_buf = NULL ;  /* stores data to be copied back to dataset */
-static int  * undo_xyz = NULL ;  /* stores voxel indices for copying */
+/****** 19 Nov 2003: new stuff for multiple undo/redo ******/
+
+typedef struct {   /* structure holds one drawing operation */
+  int npt , btyp ; /* number of data points, type of data */
+  int *xyz ;       /* 1D index into dataset array */
+  void *buf ;      /* data from dataset array */
+} dobuf ;
+
+  /* macro to create an empty buffer */
+
+#define CREATE_DOBUF(db,np,ip)                                       \
+ do{ db      = (dobuf *)calloc(1 ,sizeof(dobuf)) ;                   \
+     db->xyz = (int *)  calloc(np,sizeof(int)) ;                     \
+     db->buf = (void *) calloc(np,mri_datum_size(ip)) ;              \
+     db->npt = np ; db->btyp = ip ;                                  \
+ } while(0)
+
+  /* macro to delete a buffer from the Macrocosmic All */
+
+#define DESTROY_DOBUF(db)  do{ if( db != NULL ){                     \
+                                if( db->xyz != NULL ) free(db->xyz); \
+                                if( db->buf != NULL ) free(db->buf); \
+                                free(db) ;                           \
+                           }} while(0)
+
+  /* amount of memory used by a buffer */
+
+#define SIZEOF_DOBUF(db)                                             \
+  ( db->npt * ( sizeof(int) + mri_datum_size(db->btyp) ) )
+
+static int undo_num       = 0 ;     /* depth of undo stack */
+static int redo_num       = 0 ;     /* depth of redo stack */
+static dobuf **undo_stack = NULL ;  /* undo stack */
+static dobuf **redo_stack = NULL ;  /* redo stack */
+static int undo_how       = 0 ;     /* where to save undo info */
+
+static void DRAW_undo_sizecheck(void) ;  /* check/limit undo stack size */
+
+  /* this macro erases the undo stack */
+
+#define CLEAR_UNDOBUF                                                \
+   do{ if( undo_num > 0 || undo_stack != NULL ){                     \
+        int ii ;                                                     \
+        for( ii=0 ; ii < undo_num ; ii++ )                           \
+          DESTROY_DOBUF( undo_stack[ii] ) ;                          \
+        if( undo_stack != NULL ) free( undo_stack ) ;                \
+        undo_num = 0 ; undo_stack = NULL ;                           \
+       }                                                             \
+       SENSITIZE(undo_pb,0) ;                                        \
+   } while(0)
+
+  /* this macro erases the redo stack */
+
+#define CLEAR_REDOBUF                                                \
+   do{ if( redo_num > 0 || redo_stack != NULL ){                     \
+        int ii ;                                                     \
+        for( ii=0 ; ii < redo_num ; ii++ )                           \
+          DESTROY_DOBUF( redo_stack[ii] ) ;                          \
+        if( redo_stack != NULL )free( redo_stack ) ;                 \
+        redo_num = 0 ; redo_stack = NULL ;                           \
+       }                                                             \
+       SENSITIZE(redo_pb,0) ;                                        \
+   } while(0)
+
+  /* this macro erases both stacks */
+
+#define CLEAR_UNREDOBUF                                              \
+   do{ CLEAR_UNDOBUF ; CLEAR_REDOBUF ; undo_how = 0 ; } while(0)
+
+/******/
 
 static THD_dataxes dax_save ;    /* save this for later reference */
 
@@ -334,9 +400,15 @@ char * DRAW_main( PLUGIN_interface * plint )
      destroy_Dtable(vl_dtable) ; vl_dtable = NULL ;
    }
 
-   SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
+   SENSITIZE(undo_pb,0) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    SENSITIZE(choose_pb,1) ;
+
+   /* 19 Nov 2003: new undo/redo stuff */
+
+   SENSITIZE(redo_pb,0) ;
+   undo_num = redo_num = undo_how = 0 ;
+   undo_stack = redo_stack = NULL ;
 
    old_stroke_autoplot = AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ;
    if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=NO") ;
@@ -350,11 +422,14 @@ char * DRAW_main( PLUGIN_interface * plint )
 
 /*-- structures defining action buttons (at bottom of popup) --*/
 
-#define NACT 6  /* number of action buttons */
+#define NACT 7  /* number of action buttons */
 
 static MCW_action_item DRAW_actor[NACT] = {
  {"Undo",DRAW_undo_CB,NULL,
   "Undoes previous draw\naction, if possible","Undo last change",0} ,
+
+ {"Redo",DRAW_redo_CB,NULL,
+  "Redoes previous undone\naction, if possible","Redo last undo",0} ,
 
  {"Help",DRAW_help_CB,NULL,
   "Displays more help" , "Displays more help",0} ,
@@ -879,11 +954,12 @@ void DRAW_make_widgets(void)
    (void) MCW_action_area( rowcol , DRAW_actor , NACT ) ;
 
    undo_pb   = (Widget) DRAW_actor[0].data ;
-   help_pb   = (Widget) DRAW_actor[1].data ;
-   quit_pb   = (Widget) DRAW_actor[2].data ;
-   save_pb   = (Widget) DRAW_actor[3].data ;
-   saveas_pb = (Widget) DRAW_actor[4].data ;  /* 24 Sep 2001 */
-   done_pb   = (Widget) DRAW_actor[5].data ;
+   redo_pb   = (Widget) DRAW_actor[1].data ;  /* 19 Nov 2003 */
+   help_pb   = (Widget) DRAW_actor[2].data ;
+   quit_pb   = (Widget) DRAW_actor[3].data ;
+   save_pb   = (Widget) DRAW_actor[4].data ;
+   saveas_pb = (Widget) DRAW_actor[5].data ;  /* 24 Sep 2001 */
+   done_pb   = (Widget) DRAW_actor[6].data ;
 
    /*** that's all ***/
 
@@ -924,11 +1000,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
       dset = NULL ; dset_changed = 0 ;
    }
 
-   if( undo_buf != NULL ){
-      free(undo_buf) ; free(undo_xyz) ;
-      undo_buf = NULL; undo_xyz = NULL;
-      undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
-   }
+   CLEAR_UNREDOBUF ;  /* 19 Nov 2003 */
 
    XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
    if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=YES") ;
@@ -936,32 +1008,54 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 }
 
 /*-------------------------------------------------------------------
-  Callback for undo button
+  Callback for undo button [heavily modified 19 Nov 2003]
 ---------------------------------------------------------------------*/
 
 void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   void * ub ; int * ux, * uy, * uz ;
-   int ubs = undo_bufsiz , uis = sizeof(int)*undo_bufuse ;
+   dobuf *sb ;  /* saved drawing buffer that will be redrawn */
 
-   if( undo_bufuse <= 0 ){ XBell(dc->display,100) ; return ; }
+   if( undo_num <= 0 || undo_stack == NULL ){ XBell(dc->display,100); return; }
 
-   /* since the undo_stuff will be modified by the
-      drawing function, we must make temporary copies */
+   undo_how = 1 ;  /* the next drawing save will be onto redo stack */
 
-#if 0
-fprintf(stderr,"Undo: %d voxels\n",undo_bufuse) ;
-#endif
+   sb = undo_stack[undo_num-1] ;  /* saved buffer */
 
-   ub =         malloc(ubs) ; memcpy(ub,undo_buf,ubs) ;
-   ux = (int *) malloc(uis) ; memcpy(ux,undo_xyz,uis) ;
+   DRAW_into_dataset( sb->npt , sb->xyz,NULL,NULL , sb->buf ) ;
 
-   DRAW_into_dataset( undo_bufuse , ux,NULL,NULL , ub ) ;
-
-   free(ub) ; free(ux) ;
+   DESTROY_DOBUF(sb) ;  /* purge and pop top of undo stack */
+   undo_num-- ;
+   if( undo_num == 0 ) SENSITIZE(undo_pb,0) ;
 
    AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
 
+   undo_how = 0 ; /* further draws go onto undo stack */
+   return ;
+}
+
+/*-------------------------------------------------------------------
+  Callback for redo button [from DRAW_undo_CB(), 19 Nov 2003]
+---------------------------------------------------------------------*/
+
+void DRAW_redo_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   dobuf *sb ;
+
+   if( redo_num <= 0 || redo_stack == NULL ){ XBell(dc->display,100); return; }
+
+   undo_how = 2 ;  /* drawing save will be onto undo stack */
+
+   sb = redo_stack[redo_num-1] ;  /* saved buffer */
+
+   DRAW_into_dataset( sb->npt , sb->xyz,NULL,NULL , sb->buf ) ;
+
+   DESTROY_DOBUF(sb) ;  /* purge and pop top of redo stack */
+   redo_num-- ;
+   if( redo_num == 0 ) SENSITIZE(redo_pb,0) ;
+
+   AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
+
+   undo_how = 0 ; /* further draws go onto undo stack */
    return ;
 }
 
@@ -972,27 +1066,23 @@ fprintf(stderr,"Undo: %d voxels\n",undo_bufuse) ;
 void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( dset != NULL ){
-      if( recv_open ) AFNI_receive_control( im3d, recv_key,DRAWING_SHUTDOWN, NULL ) ;
-      DSET_unlock(dset) ;
-      DSET_unload(dset) ; DSET_anyize(dset) ;
-      if( dset_changed ){
-         if( recv_open ){
-            AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
-            AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ; /* 25 Sep 2001 */
-         }
-         MCW_invert_widget(quit_pb) ;
-         THD_load_statistics( dset ) ;
-         PLUTO_dset_redisplay( dset ) ;
-         MCW_invert_widget(quit_pb) ;
-      }
-      dset = NULL ; dset_changed = 0 ;
+     if( recv_open ) AFNI_receive_control( im3d,recv_key,DRAWING_SHUTDOWN,NULL );
+     DSET_unlock(dset) ;
+     DSET_unload(dset) ; DSET_anyize(dset) ;
+     if( dset_changed ){
+       if( recv_open ){
+         AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
+         AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ; /* 25 Sep 2001 */
+       }
+       MCW_invert_widget(quit_pb) ;
+       THD_load_statistics( dset ) ;
+       PLUTO_dset_redisplay( dset ) ;
+       MCW_invert_widget(quit_pb) ;
+     }
+     dset = NULL ; dset_changed = 0 ;
    }
 
-   if( undo_buf != NULL ){
-      free(undo_buf) ; free(undo_xyz) ;
-      undo_buf = NULL; undo_xyz = NULL;
-      undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
-   }
+   CLEAR_UNREDOBUF ;  /* 19 Nov 2003 */
 
    XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
    if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=YES") ;
@@ -1293,9 +1383,11 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * The last drawing operation can be undone -- that is,\n"
   "            pressing 'Undo' will restore the voxel values before\n"
   "            the last button 2 press-release operation.\n"
-  "        * There is only one level of undo.  Undo-ing the undo\n"
-  "            will put things back the way they were.  Anyone who\n"
-  "            implements a better undo system will be appreciated.\n"
+  "        * 'Redo' will undo the last 'Undo'.\n"
+  "        * Multiple levels of Undo/Redo are now implemented.\n"
+  "        * The amount of memory set aside for Undo/Redo operations\n"
+  "            is controlled by environment variable AFNI_DRAW_UNDOSIZE,\n"
+  "            which is in megabytes; its value defaults to 6.\n"
   "\n"
   "Step 7) Save dataset (maybe).\n"
   "        * While a dataset is being edited, it is locked into memory.\n"
@@ -1361,8 +1453,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "\n"
   "SUGGESTIONS?\n"
   "  * Please send them to " COXEMAIL "\n"
-  "  * Even better than suggestions are implementations.\n"
-  "  * Even better than implementations are pumpernickel bagels.\n"
+  "  * Better than suggestions are implementations.\n"
+  "  * Better than implementations are pumpernickel bagels.\n"
   "Author -- RW Cox"
 
     , TEXT_READONLY ) ;
@@ -1620,7 +1712,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
    AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, (void *)color_index ) ;
    recv_open = 1 ;
 
-   undo_bufuse = 0 ; SENSITIZE(undo_pb,0) ;
+   CLEAR_UNREDOBUF ;  /* 19 Nov 2003 */
 
    /* 29 Jul 2003: switch to this dataset */
 
@@ -2354,36 +2446,29 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    float bfac = DSET_BRICK_FACTOR(dset,0) ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
        nxy = nx*ny , nxyz = nxy*nz , ii , ixyz ;
-   int nbytes , ndrawn=0 ;
+   int ndrawn=0 ;
+   dobuf *sb ;  /* 19 Nov 2003: save buffer */
+   int *xyz ;
 
    /* sanity check */
 
    if( dset==NULL || np <= 0 || xd==NULL ) return 0 ;
 
-   /* make space for undo */
+   /* make space for undo/redo (save old state in buffer) [19 Nov 2003] */
 
-   nbytes = np * mri_datum_size(ityp) ;       /* bytes needed for save */
-   if( nbytes > undo_bufsiz ){
-      if( undo_buf != NULL ) free(undo_buf) ;
-      undo_buf    = malloc(nbytes) ;
-      undo_bufsiz = nbytes ;
-   }
-   if( np > undo_bufnum ){
-      if( undo_xyz != NULL ) free(undo_xyz);
-      undo_xyz    = (int *) malloc(sizeof(int)*np) ;
-      undo_bufnum = np ;
-   }
+   CREATE_DOBUF(sb,np,ityp) ;
+   xyz = sb->xyz ;             /* list of indexes to be altered */
 
-   /* compute (or copy) data index into undo_xyz */
+   /* compute (or copy) data index into save buffer */
 
-   if( yd == NULL ){                       /* direct supply of index */
-      memcpy(undo_xyz,xd,sizeof(int)*np) ;
+   if( yd == NULL ){                       /* direct supply of 1-index */
+     memcpy(xyz,xd,sizeof(int)*np) ;
    } else {                                /* collapse 3-index into 1 */
-      for( ii=0 ; ii < np ; ii++ )
-         undo_xyz[ii] = xd[ii] + yd[ii] * nx + zd[ii] * nxy ;
+     for( ii=0 ; ii < np ; ii++ )
+       xyz[ii] = xd[ii] + yd[ii] * nx + zd[ii] * nxy ;
    }
 
-   /* actually copy data, based on type */
+   /* copy data into save buffer, based on type */
 
    if( bfac == 0.0 ) bfac = 1.0 ;
 
@@ -2396,81 +2481,81 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
 #define DOIT (infill_mode==0 || bp[ixyz]==0)
 
       case MRI_short:{
-         short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
-         short * up  = (short *) undo_buf ;
-         short * vvv = (short *) var ;
-         short   val = (short)   (value_float/bfac) ;
+        short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
+        short * up  = (short *) sb->buf ;
+        short * vvv = (short *) var ;
+        short   val = (short)   (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){  /* save into undo buffer */
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){  /* put into dataset */
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz && DOIT ){
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
-            }
-         }
+        for( ii=0 ; ii < np ; ii++ ){  /* save into buffer */
+          ixyz = xyz[ii] ;
+          up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
+        }
+        for( ii=0 ; ii < np ; ii++ ){  /* put into dataset */
+          ixyz = xyz[ii] ;
+          if( ixyz >= 0 && ixyz < nxyz && DOIT ){
+            bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
+          }
+        }
       }
       break ;
 
       case MRI_byte:{
-         byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
-         byte * up  = (byte *) undo_buf ;
-         byte * vvv = (byte *) var ;
-         byte   val = (byte)   (value_float/bfac) ;
+        byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
+        byte * up  = (byte *) sb->buf ;
+        byte * vvv = (byte *) var ;
+        byte   val = (byte)   (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz && DOIT ){
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
-            }
-         }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0 ;
+        }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          if( ixyz >= 0 && ixyz < nxyz && DOIT ){
+            bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
+          }
+        }
       }
       break ;
 
       case MRI_float:{
-         float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
-         float * up  = (float *) undo_buf ;
-         float * vvv = (float *) var ;
-         float   val = (value_float/bfac) ;
+        float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
+        float * up  = (float *) sb->buf ;
+        float * vvv = (float *) var ;
+        float   val = (value_float/bfac) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0.0 ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz && DOIT ){
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
-            }
-         }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : 0.0 ;
+        }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          if( ixyz >= 0 && ixyz < nxyz && DOIT ){
+            bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
+          }
+        }
       }
       break ;
 
       case MRI_complex:{
-         complex * bp  = (complex *) DSET_BRICK_ARRAY(dset,0) ;
-         complex * up  = (complex *) undo_buf ;
-         complex * vvv = (complex *) var ;
-         complex   val ;
-         static complex cxzero = { 0.0 , 0.0 } ;
+        complex * bp  = (complex *) DSET_BRICK_ARRAY(dset,0) ;
+        complex * up  = (complex *) sb->buf ;
+        complex * vvv = (complex *) var ;
+        complex   val ;
+        static complex cxzero = { 0.0 , 0.0 } ;
 
-         val = CMPLX( (value_float/bfac) , 0.0 ) ;
+        val = CMPLX( (value_float/bfac) , 0.0 ) ;
 
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : cxzero ;
-         }
-         for( ii=0 ; ii < np ; ii++ ){
-            ixyz = undo_xyz[ii] ;
-            if( ixyz >= 0 && ixyz < nxyz && (infill_mode==0 || bp[ixyz].r==0) ){
-               bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
-            }
-         }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          up[ii] = (ixyz >= 0 && ixyz < nxyz) ? bp[ixyz] : cxzero ;
+        }
+        for( ii=0 ; ii < np ; ii++ ){
+          ixyz = xyz[ii] ;
+          if( ixyz >= 0 && ixyz < nxyz && (infill_mode==0 || bp[ixyz].r==0) ){
+            bp[ixyz] = (vvv==NULL) ? val : vvv[ii] ; ndrawn++ ;
+          }
+        }
       }
       break ;
 
@@ -2483,14 +2568,68 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    /* now redisplay dataset, in case anyone is looking at it */
 
    PLUTO_dset_redisplay( dset ) ;
-
-   undo_bufuse  = np ;
    dset_changed = 1 ;
    SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
    SENSITIZE(choose_pb,0) ;
-   SENSITIZE(undo_pb,1) ;
+
+   /* save buffer pushed onto appropriate stack */
+
+   if( undo_how == 1 ){   /* save on redo stack */
+     redo_stack = realloc( (void *)redo_stack, sizeof(dobuf *)*(redo_num+1) );
+     redo_stack[redo_num++] = sb ;
+     SENSITIZE(redo_pb,1) ;
+   } else {               /* save on undo stack */
+     undo_stack = realloc( (void *)undo_stack, sizeof(dobuf *)*(undo_num+1) );
+     undo_stack[undo_num++] = sb ;
+     SENSITIZE(undo_pb,1) ;
+     DRAW_undo_sizecheck() ;
+     if( undo_how == 0 ){  /* normal draw ==> can't redo */
+       CLEAR_REDOBUF ;
+     }
+   }
 
    return ndrawn ;
+}
+
+/*---------------------------------------------------------------------------
+  Limit size of data allowed in undo/redo buffers [19 Nov 2003]
+-----------------------------------------------------------------------------*/
+
+static void DRAW_undo_sizecheck(void)
+{
+  int ii,jj , ss , lim=6 ;
+  char *eee ;
+
+  if( undo_num <= 1 ) return ;  /* will always keep 1 level of undo */
+
+  /* get the limit of allowed mem usage for the undo buffers */
+
+  eee = getenv("AFNI_DRAW_UNDOSIZE") ;
+  if( eee != NULL ){
+    ii = 0 ; sscanf(eee,"%d",&ii) ;
+    if( ii > 0 ) lim = ii ; if( lim > 1024 ) lim = 1024 ;
+  }
+  lim *= (1024*1024) ;  /* megabytes */
+
+  /* scan from top of stack,
+     stopping when total size goes over the limit */
+
+  for( ss=0,ii=undo_num-1 ; ii >= 0 && ss < lim ; ii-- )
+    ss += SIZEOF_DOBUF( undo_stack[ii] ) ;
+
+  if( ii <= 0 ) return ;  /* didn't go over limit before bottom */
+
+  /* if here, stack elements from 0..ii-1 should be removed
+              and the elements above them moved down to fill in */
+
+  for( jj=0 ; jj < ii ; jj++ )         /* removal */
+    DESTROY_DOBUF( undo_stack[jj] ) ;
+
+  for( jj=ii ; jj < undo_num ; jj++ )  /* move-al */
+    undo_stack[jj-ii] = undo_stack[jj] ;
+
+  undo_num = undo_num - ii ;
+  return ;
 }
 
 /*---------------------------------------------------------------------------

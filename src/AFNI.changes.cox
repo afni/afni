@@ -4796,3 +4796,6 @@
 18 Nov 2003
  * Modified imseq.c to prevent beep when user tries to zoom when Mont
      is on, or vice-versa.
+
+19 Nov 2003
+ * Multiple level undo/redo in plug_drawdset.c.
