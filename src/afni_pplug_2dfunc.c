@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 #include "parser.h"
 
@@ -59,7 +59,7 @@ static void F2D_chainfunc( int , int , double , double , float * ) ;
 ************************************************************************/
 
 #define NUM_CHAIN 8
-static char alpha[26] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+static char alpha[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
 
 #define RR 17
 #define SS 18
@@ -94,7 +94,8 @@ PLUGIN_interface * F2D_init(void)
    plint = PLUTO_new_interface( "2D Chain Func" ,
                                 "Control 2DChain function" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , F2D_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (char *(*)())F2D_main  ) ;
 
    PLUTO_add_hint( plint , "Control 2DChain function" ) ;
 
@@ -111,33 +112,39 @@ PLUGIN_interface * F2D_init(void)
    rlist = &(GLOBAL_library.registered_0D) ;
    num0D = rlist->num ;
    if( num0D > 0 ){
-      funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num0D) );
-      func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
-      for( ii=0 ; ii < num0D ; ii++ ){
+     int n0 = 0 ;
+     funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num0D) );
+     func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
+     for( ii=0 ; ii < num0D ; ii++ ){
+       if( rlist->flags[ii] == 0 ){            /* 18 Dec 2003: only allow "normal" funcs */
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = AFMALL(char,ll+8) ;
-         strcpy(funcname[ii+numfunc],"0D: ") ;
-         strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
-
-         func0D[ii] = rlist->funcs[ii] ;
-      }
-      numfunc += num0D ;
+         funcname[numfunc] = AFMALL(char,ll+8) ;
+         strcpy(funcname[numfunc],"0D: ") ;
+         strcat(funcname[numfunc],rlist->labels[ii]) ;
+         func0D[n0++] = rlist->funcs[ii] ;
+         numfunc++ ;
+       }
+     }
+     num0D = n0 ;
    }
 
    rlist = &(GLOBAL_library.registered_2D) ;
    num2D = rlist->num ;
    if( num2D > 0 ){
-      funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num2D) );
-      func2D   = (generic_func **) malloc( sizeof(generic_func *)*num2D ) ;
-      for( ii=0 ; ii < num2D ; ii++ ){
+     int n2 = 0 ;
+     funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num2D) );
+     func2D   = (generic_func **) malloc( sizeof(generic_func *)*num2D ) ;
+     for( ii=0 ; ii < num2D ; ii++ ){
+       if( rlist->flags[ii] == 0 ){            /* 18 Dec 2003: only allow "normal" funcs */
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
-         strcpy(funcname[ii+numfunc],"2D: ") ;
-         strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
-
-         func2D[ii] = rlist->funcs[ii] ;
-      }
-      numfunc += num2D ;
+         funcname[numfunc] = AFMALL(char, ll+8) ;
+         strcpy(funcname[numfunc],"2D: ") ;
+         strcat(funcname[numfunc],rlist->labels[ii]) ;
+         func2D[n2++] = rlist->funcs[ii] ;
+         numfunc++ ;
+       }
+     }
+     num2D = n2 ;
    }
 
    AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;  /* add this only now */
@@ -314,116 +321,124 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
    /* loop over chain links */
 
    for( kk=0 ; kk < NUM_CHAIN ; kk++ ){
-      if( !chain_do[kk] ) continue ;     /* skip this link */
+     if( !chain_do[kk] ) continue ;     /* skip this link */
 
-      switch( chain_dd[kk] ){
+     switch( chain_dd[kk] ){
 
-         case 0:                                      /* 0D func */
-            memcpy( abc[kk] , aprev , sizeof(float)*nxy ) ;
-            chain_ff[kk]( nxy , abc[kk] ) ;
-         break ;
+       case 0:                                      /* 0D func */
+         memcpy( abc[kk] , aprev , sizeof(float)*nxy ) ;
+#if 0
+         chain_ff[kk]( nxy , abc[kk] ) ;
+#else
+         AFNI_CALL_0D_function( chain_ff[kk] , nxy,abc[kk] ) ;
+#endif
+       break ;
 
-         case 2:                                      /* 2D func */
-            memcpy( abc[kk] , aprev , sizeof(float)*nxy ) ;
-            chain_ff[kk]( nx,ny , dx,dy , abc[kk] ) ;
-         break ;
+       case 2:                                      /* 2D func */
+         memcpy( abc[kk] , aprev , sizeof(float)*nxy ) ;
+#if 0
+         chain_ff[kk]( nx,ny , dx,dy , abc[kk] ) ;
+#else
+         AFNI_CALL_2D_function( chain_ff[kk] , nx,ny,dx,dy,abc[kk] ) ;
+#endif
+       break ;
 
-         case -1:{                                    /* Expr 3x3 */
-            int hasym[26] , jj ;
+      case -1:{                                    /* Expr 3x3 */
+        int hasym[26] , jj ;
 
-            PARSER_mark_symbols( chain_pc[kk] , hasym ) ;  /* which symbols to load? */
+        PARSER_mark_symbols( chain_pc[kk] , hasym ) ;  /* which symbols to load? */
 
-            for( jj=0 ; jj < ny ; jj++ ){  /* loop over rows */
+        for( jj=0 ; jj < ny ; jj++ ){  /* loop over rows */
 
-               uvw = aprev + jj*nx ;                     /* row containing u,v,w */
+           uvw = aprev + jj*nx ;                     /* row containing u,v,w */
 
-               rst = (jj == 0) ? uvw                     /* row containing r,s,t */
-                               : aprev + (jj-1)*nx ;
+           rst = (jj == 0) ? uvw                     /* row containing r,s,t */
+                           : aprev + (jj-1)*nx ;
 
-               xyz = (jj == ny-1 ) ? uvw                 /* row containing x,y,z */
-                                   : aprev + (jj+1)*nx ;
+           xyz = (jj == ny-1 ) ? uvw                 /* row containing x,y,z */
+                               : aprev + (jj+1)*nx ;
 
-               /* initialize all variables to 0 */
+           /* initialize all variables to 0 */
 
-               for( pp=0 ; pp < 26 ; pp++){
-                  for( ii=0 ; ii < nx ; ii++ ) atoz[pp][ii] = 0.0 ;
-               }
+           for( pp=0 ; pp < 26 ; pp++){
+             for( ii=0 ; ii < nx ; ii++ ) atoz[pp][ii] = 0.0 ;
+           }
 
-               /* load previous images */
+           /* load previous images */
 
-               for( pp=0 ; pp < kk ; pp++ ){
-                  if( hasym[pp] ){
-                     for( ii=0 ; ii < nx ; ii++ )
-                        atoz[pp][ii] = (double) abc[pp][ii+jj*nx] ;
-                  }
-               }
+           for( pp=0 ; pp < kk ; pp++ ){
+             if( hasym[pp] ){
+               for( ii=0 ; ii < nx ; ii++ )
+                 atoz[pp][ii] = (double) abc[pp][ii+jj*nx] ;
+             }
+           }
 
-               if( hasym[RR] ){                         /* load R */
-                  atoz[RR][0] = (double) rst[0] ;
-                  for( ii=1 ; ii < nx ; ii++ )
-                     atoz[RR][ii] = (double) rst[ii-1] ;
-               }
+           if( hasym[RR] ){                         /* load R */
+             atoz[RR][0] = (double) rst[0] ;
+             for( ii=1 ; ii < nx ; ii++ )
+               atoz[RR][ii] = (double) rst[ii-1] ;
+           }
 
-               if( hasym[SS] ){                         /* load S */
-                  for( ii=0 ; ii < nx ; ii++ )
-                     atoz[SS][ii] = (double) rst[ii] ;
-               }
+           if( hasym[SS] ){                         /* load S */
+             for( ii=0 ; ii < nx ; ii++ )
+               atoz[SS][ii] = (double) rst[ii] ;
+           }
 
-               if( hasym[TT] ){                         /* load T */
-                  for( ii=0 ; ii < nx-1 ; ii++ )
-                     atoz[TT][ii] = (double) rst[ii+1] ;
-                  atoz[TT][nx-1] = (double) rst[nx-1] ;
-               }
+           if( hasym[TT] ){                         /* load T */
+             for( ii=0 ; ii < nx-1 ; ii++ )
+               atoz[TT][ii] = (double) rst[ii+1] ;
+             atoz[TT][nx-1] = (double) rst[nx-1] ;
+           }
 
-               if( hasym[UU] ){                         /* load U */
-                  atoz[UU][0] = (double) uvw[0] ;
-                  for( ii=1 ; ii < nx ; ii++ )
-                     atoz[UU][ii] = (double) uvw[ii-1] ;
-               }
+           if( hasym[UU] ){                         /* load U */
+             atoz[UU][0] = (double) uvw[0] ;
+             for( ii=1 ; ii < nx ; ii++ )
+               atoz[UU][ii] = (double) uvw[ii-1] ;
+           }
 
-               if( hasym[VV] ){                         /* load V */
-                  for( ii=0 ; ii < nx ; ii++ )
-                     atoz[VV][ii] = (double) uvw[ii] ;
-               }
+           if( hasym[VV] ){                         /* load V */
+             for( ii=0 ; ii < nx ; ii++ )
+               atoz[VV][ii] = (double) uvw[ii] ;
+           }
 
-               if( hasym[WW] ){                         /* load W */
-                  for( ii=0 ; ii < nx-1 ; ii++ )
-                     atoz[WW][ii] = (double) uvw[ii+1] ;
-                  atoz[WW][nx-1] = (double) uvw[nx-1] ;
-               }
+           if( hasym[WW] ){                         /* load W */
+             for( ii=0 ; ii < nx-1 ; ii++ )
+               atoz[WW][ii] = (double) uvw[ii+1] ;
+             atoz[WW][nx-1] = (double) uvw[nx-1] ;
+           }
 
-               if( hasym[XX] ){                         /* load X */
-                  atoz[XX][0] = (double) xyz[0] ;
-                  for( ii=1 ; ii < nx ; ii++ )
-                     atoz[XX][ii] = (double) xyz[ii-1] ;
-               }
+           if( hasym[XX] ){                         /* load X */
+             atoz[XX][0] = (double) xyz[0] ;
+             for( ii=1 ; ii < nx ; ii++ )
+               atoz[XX][ii] = (double) xyz[ii-1] ;
+           }
 
-               if( hasym[YY] ){                         /* load Y */
-                  for( ii=0 ; ii < nx ; ii++ )
-                     atoz[YY][ii] = (double) xyz[ii] ;
-               }
+           if( hasym[YY] ){                         /* load Y */
+             for( ii=0 ; ii < nx ; ii++ )
+               atoz[YY][ii] = (double) xyz[ii] ;
+           }
 
-               if( hasym[ZZ] ){                         /* load Z */
-                  for( ii=0 ; ii < nx-1 ; ii++ )
-                     atoz[ZZ][ii] = (double) xyz[ii+1] ;
-                  atoz[ZZ][nx-1] = (double) xyz[nx-1] ;
-               }
+           if( hasym[ZZ] ){                         /* load Z */
+             for( ii=0 ; ii < nx-1 ; ii++ )
+               atoz[ZZ][ii] = (double) xyz[ii+1] ;
+             atoz[ZZ][nx-1] = (double) xyz[nx-1] ;
+           }
 
-               /* compute this row! */
+           /* compute this row! */
 
-               PARSER_evaluate_vector( chain_pc[kk] , atoz , nx , tmp ) ;
+           PARSER_evaluate_vector( chain_pc[kk] , atoz , nx , tmp ) ;
 
-               /* store back in output row */
+           /* store back in output row */
 
-               uvw = abc[kk] + jj*nx ;
-               for( ii=0 ; ii < nx ; ii++ ) uvw[ii] = (float) tmp[ii] ;
+           uvw = abc[kk] + jj*nx ;
+           for( ii=0 ; ii < nx ; ii++ ) uvw[ii] = (float) tmp[ii] ;
 
-            } /* end of loop over rows */
-         }
-         break ;
-      }
+        } /* end of loop over rows */
+       }
+       break ;
+     }
 
-      aprev = abc[kk] ;  /* for next time, this is previous image */
+     aprev = abc[kk] ;  /* for next time, this is previous image */
    }
 
    /* copy last result into input array: this is the result */
@@ -433,11 +448,11 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
    /* take out the trash */
 
    for( kk=0 ; kk < NUM_CHAIN ; kk++ )       /* images */
-      if( abc[kk] != NULL ) free(abc[kk]) ;
+     if( abc[kk] != NULL ) free(abc[kk]) ;
 
    if( nexp > 0 ){
-      for( ii=0 ; ii < 26 ; ii++ ) free(atoz[ii]) ;  /* expression variables */
-      free(tmp) ;
+     for( ii=0 ; ii < 26 ; ii++ ) free(atoz[ii]) ;  /* expression variables */
+     free(tmp) ;
    }
 
    return ;

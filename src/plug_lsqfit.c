@@ -611,7 +611,7 @@ PLUGIN_interface * EXP0D_init(void)
    PLUTO_register_0D_function( "Expr 0D" , EXP0D_worker ) ;
 
    plint_EXP0D = plint ;
-   AFNI_register_nD_func_init( 0 , EXP0D_func_init ) ;  /* 21 Jul 2003 */
+   AFNI_register_nD_func_init( 0 , (generic_func *)EXP0D_func_init ) ;  /* 21 Jul 2003 */
 
    return plint ;
 }

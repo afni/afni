@@ -10,6 +10,7 @@
 #undef  USE_IMPIX
 
 #include "afni.h"
+#include "afni_plugout.h"
 
 /** if USE_OPTMENUS is defined, then option menus will
     be used in place of MCW_arrowvals wherever possible **/

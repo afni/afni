@@ -7,6 +7,7 @@
 #undef MAIN
 
 #include "afni.h"
+#include "afni_plugout.h"
 
 /*-------------------------------------------------------------------
    This routine is also used by the macros
@@ -928,16 +929,26 @@ STATUS("couldn't get Func image!") ;
 
    if( im3d->vwid->func->pbar_transform0D_func != NULL ){
      MRI_IMAGE * tim = mri_to_float(im_fim) ;
+#if 0
      im3d->vwid->func->pbar_transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
+#else
+     AFNI_CALL_0D_function( im3d->vwid->func->pbar_transform0D_func ,
+                            tim->nvox , MRI_FLOAT_PTR(tim)           ) ;
+#endif
      if( im_fim != im_thr ) mri_free(im_fim) ;
      im_fim = tim ;
    }
 
    if( im3d->vwid->func->pbar_transform2D_func != NULL ){
      MRI_IMAGE * tim = mri_to_float(im_fim) ;
+#if 0
      im3d->vwid->func->pbar_transform2D_func( tim->nx, tim->ny,
                                               tim->dx, tim->dy,
                                               MRI_FLOAT_PTR(tim) ) ;
+#else
+     AFNI_CALL_2D_function( im3d->vwid->func->pbar_transform2D_func ,
+                            tim->nx, tim->ny, tim->dx, tim->dy, MRI_FLOAT_PTR(tim) ) ;
+#endif
      if( im_fim != im_thr ) mri_free(im_fim) ;
      im_fim = tim ;
    }

@@ -11,12 +11,28 @@
 
 static int show_grapher_pixmap = 1 ;
 
-MCW_grapher * new_MCW_grapher( MCW_DC * dc , get_ptr getser , XtPointer aux )
+/*! Macro to call the getser function with correct prototype. */
+
+#undef  CALL_getser
+#define CALL_getser(gr,aa,bb,rtyp,rval)                         \
+ do{ XtPointer (*gs)(int,int,XtPointer) =                       \
+      (XtPointer (*)(int,int,XtPointer))(gr->getser) ;          \
+    rval = (rtyp) gs(aa,bb,gr->getaux) ;                        \
+ } while(0)
+
+#undef  CALL_sendback
+#define CALL_sendback(gr,scb)                                                 \
+ do{ void (*sb)(MCW_grapher *,XtPointer,GRA_cbs *) =                          \
+      (void (*)(MCW_grapher *,XtPointer,GRA_cbs *))(gr->status->send_CB) ;    \
+     if( sb != NULL ) sb(gr,gr->getaux,&scb) ;                                \
+ } while(0)
+
+MCW_grapher * new_MCW_grapher( MCW_DC *dc , get_ptr getser , XtPointer aux )
 {
    int ii ;
-   MCW_grapher * grapher ;
+   MCW_grapher *grapher ;
    static int new_xsize = -1 , new_ysize = -1 ;
-   char * buf , * cpt ;
+   char *buf , *cpt ;
    Widget rc_tmp , mb_tmp , form_tmp ;  /* 29 Sep 2000 */
 
 ENTRY("new_MCW_grapher") ;
@@ -44,7 +60,11 @@ ENTRY("new_MCW_grapher") ;
    grapher->glogo_pixmap = XmUNSPECIFIED_PIXMAP ;
    grapher->glogo_width  = grapher->glogo_height = 0 ;
 
+#if 0
    grapher->status = (MCW_grapher_status *) getser(0,graCR_getstatus,aux) ;
+#else
+   CALL_getser( grapher , 0,graCR_getstatus , MCW_grapher_status *,grapher->status ) ;
+#endif
 
 #ifndef GRAPHER_ALLOW_ONE                    /* 22 Sep 2000 */
    if( grapher->status->num_series < 2 ){
@@ -951,7 +971,11 @@ STATUS("destroying widgets") ;
       GRA_cbs cbs ;
       cbs.reason = graCR_destroy ;
 STATUS("calling AFNI") ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    } else {
 STATUS("freeing grapher") ;
       myXtFree( grapher ) ;    /* otherwise, we will free the data */
@@ -1439,8 +1463,12 @@ ENTRY("text_graphs") ;
 
          index = ztemp + ytemp * grapher->status->nx + xtemp ;
 
+#if 0
          tsim  = (MRI_IMAGE *) grapher->getser( index , graCR_getseries ,
                                                         grapher->getaux ) ;
+#else
+         CALL_getser( grapher , index,graCR_getseries , MRI_IMAGE *,tsim ) ;
+#endif
 
          if( tsim == NULL ) break ;
          if( tsim->nx < 1 ){ mri_free(tsim); break; }  /* shouldn't happen */
@@ -1457,7 +1485,12 @@ ENTRY("text_graphs") ;
 
 #if 0
          if( grapher->transform0D_func != NULL )
+# if 0
             grapher->transform0D_func( tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
+# else
+            AFNI_CALL_0D_function( grapher->transform0D_func ,
+                                   tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
+# endif
 #endif
 
          jv = iv ; if( jv >= tsim->nx ) jv = tsim->nx - 1 ;
@@ -1581,8 +1614,12 @@ ENTRY("plot_graphs") ;
 
          /** get the desired time series, using the provided routine **/
 
+#if 0
          tsim  = (MRI_IMAGE *) grapher->getser( index , graCR_getseries ,
                                                         grapher->getaux ) ;
+#else
+         CALL_getser( grapher , index,graCR_getseries , MRI_IMAGE *,tsim ) ;
+#endif
 
          /* 08 Nov 1996: allow for return of NULL timeseries */
 
@@ -1603,7 +1640,12 @@ ENTRY("plot_graphs") ;
 
          if( grapher->transform0D_func != NULL ){
 STATUS("about to perform 0D transformation") ;
+#if 0
             grapher->transform0D_func( tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
+#else
+            AFNI_CALL_0D_function( grapher->transform0D_func ,
+                                   tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
+#endif
          }
 
          /* 03 Nov 1996: 1D transformations, too */
@@ -1639,22 +1681,42 @@ STATUS("about to perform 1D transformation") ;
             if( ! (grapher->transform1D_flags & PROCESS_MRI_IMAGE) ){  /* older code:   */
                                                                        /* process image */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){   /* contents only */
+#if 0
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                             MRI_FLOAT_PTR(qim) ) ;
+#else
+                 AFNI_CALL_1D_function( grapher->transform1D_func ,
+                                        qim->nx , qim->xo , qim->dx ,
+                                        MRI_FLOAT_PTR(qim) ) ;
+#endif
               } else {
                  char * quser = NULL ;
+#if 0
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                             MRI_FLOAT_PTR(qim) , &quser ) ;
+#else
+                 AFNI_CALL_1D_funcstr( grapher->transform1D_func ,
+                                       qim->nx , qim->xo , qim->dx ,
+                                       MRI_FLOAT_PTR(qim) , quser ) ;
+#endif
                  if( quser != NULL )
                    grapher->tuser[ix][iy] = XtNewString(quser) ;
               }
             } else {                           /* 28 Mar 2002: process MRI_IMAGE struct */
                                                                             /* in place */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
+#if 0
                  grapher->transform1D_func( qim ) ;
+#else
+                 AFNI_CALL_1D_funcmrim( grapher->transform1D_func , qim ) ;
+#endif
               } else {
                  char *quser = NULL ;
+#if 0
                  grapher->transform1D_func( qim , &quser ) ;
+#else
+                 AFNI_CALL_1D_funcmrimstr( grapher->transform1D_func , qim,quser ) ;
+#endif
                  if( quser != NULL )
                    grapher->tuser[ix][iy] = XtNewString(quser) ;
               }
@@ -2292,7 +2354,11 @@ ENTRY("send_newinfo") ;
       cbs.ycen   = grapher->ypoint ;
       cbs.zcen   = grapher->zpoint ;
       cbs.mat    = grapher->mat ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    EXRETURN ;
@@ -2607,7 +2673,11 @@ STATUS("button press") ;
                cbs.xcen   = xloc ;
                cbs.ycen   = yloc ;
                cbs.zcen   = grapher->zpoint ;
+#if 0
                grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+               CALL_sendback( grapher , cbs ) ;
+#endif
             } else {
                XBell(XtDisplay(w),100) ;
             }
@@ -2677,7 +2747,11 @@ STATUS("button press") ;
                   cbs.reason = graCR_setindex ;
                   cbs.key    = i ;
                   cbs.event  = ev ;
+#if 0
                   grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+                  CALL_sendback( grapher , cbs ) ;
+#endif
                } else {
                   (void) drive_MCW_grapher( grapher,graDR_setindex,(XtPointer)i );
                }
@@ -2999,7 +3073,11 @@ STATUS(str); }
              cbs.reason = graCR_setindex ;
              cbs.key    = ii;
              cbs.event  = NULL ;
+#if 0
              grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+#else
+             CALL_sendback( grapher , cbs ) ;
+#endif
            } else {
              (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ii) ;
            }
@@ -3083,8 +3161,12 @@ STATUS(str); }
               grapher->ypoint * grapher->status->nx +
               grapher->zpoint * grapher->status->nx * grapher->status->ny ;
 
+#if 0
          tsim  = (MRI_IMAGE *) grapher->getser( ll , graCR_getseries ,
                                                      grapher->getaux ) ;
+#else
+         CALL_getser( grapher , ll,graCR_getseries , MRI_IMAGE *,tsim ) ;
+#endif
 
          if( tsim != NULL ){
              mri_write_1D( wcfname , tsim ) ;  /* 16 Nov 1999: replaces mri_write_ascii */
@@ -3104,7 +3186,11 @@ STATUS(str); }
             cbs.reason = graCR_keypress ;
             cbs.key    = buf[0] ;
             cbs.event  = ev ;
+#if 0
             grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+            CALL_sendback( grapher , cbs ) ;
+#endif
          }
       break ;
    }
@@ -3540,7 +3626,11 @@ ENTRY("GRA_ignore_choose_CB") ;
 
       gbs.reason = graCR_setignore ;
       gbs.key    = cbs->ival ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+#else
+      CALL_sendback( grapher , gbs ) ;
+#endif
    }
    EXRETURN ;
 }
@@ -3564,7 +3654,11 @@ ENTRY("GRA_polort_choose_CB") ;
 
       gbs.reason = graCR_polort ;
       gbs.key    = cbs->ival ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+#else
+      CALL_sendback( grapher , gbs ) ;
+#endif
    }
    EXRETURN ;
 }
@@ -3608,7 +3702,11 @@ ENTRY("GRA_refread_choose_CB") ;
 
    gbs.reason   = graCR_refequals ;
    gbs.userdata = (XtPointer) flim ;
+#if 0
    grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+#else
+   CALL_sendback( grapher , gbs ) ;
+#endif
    mri_free(flim) ;
    EXRETURN ;
 }
@@ -3679,7 +3777,11 @@ ENTRY("GRA_refwrite_choose_CB") ;
       mri_add_name( cbs->cval , IMARR_SUBIMAGE(grapher->ref_ts,0) ) ;
       gbs.reason   = graCR_timeseries_library ;
       gbs.userdata = (XtPointer) IMARR_SUBIMAGE(grapher->ref_ts,0) ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+#else
+      CALL_sendback( grapher , gbs ) ;
+#endif
    }
    EXRETURN ;
 }
@@ -4087,9 +4189,13 @@ STATUS("replacing ort timeseries") ;
 
          GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
 
+         grapher->getaux = drive_data ;
+#if 0
          grapher->status = (MCW_grapher_status *)
                               grapher->getser(0,graCR_getstatus,drive_data) ;
-         grapher->getaux = drive_data ;
+#else
+         CALL_getser( grapher , 0,graCR_getstatus , MCW_grapher_status *,grapher->status ) ;
+#endif
          init_const( grapher ) ;
 
          if( npold < 2 ){                       /* 22 Sep 2000 */
@@ -4157,28 +4263,44 @@ ENTRY("GRA_fim_CB") ;
 
    if( w == grapher->fmenu->fim_pickref_pb ){
       cbs.reason = graCR_pickref ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    /*** Pick ort ***/
 
    else if( w == grapher->fmenu->fim_pickort_pb ){
       cbs.reason = graCR_pickort ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    /*** Clear FIM ***/
 
    else if( w == grapher->fmenu->fim_editref_clear_pb ){
       cbs.reason = graCR_clearfim ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    /*** Clear Ort ***/
 
    else if( w == grapher->fmenu->fim_editort_clear_pb ){
       cbs.reason = graCR_clearort ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    /*** set ref to central time series ***/
@@ -4192,14 +4314,22 @@ ENTRY("GRA_fim_CB") ;
            grapher->ypoint * grapher->status->nx +
            grapher->zpoint * grapher->status->nx * grapher->status->ny ;
 
+#if 0
       tsim  = (MRI_IMAGE *) grapher->getser( ll , graCR_getseries ,
                                                   grapher->getaux ) ;
+#else
+      CALL_getser( grapher , ll,graCR_getseries , MRI_IMAGE *,tsim ) ;
+#endif
 
       if( tsim != NULL ){
          cbs.reason   = (w == grapher->fmenu->fim_editref_equals_pb)
                         ? graCR_refequals : graCR_refadd ;
          cbs.userdata = (XtPointer) tsim ;
+#if 0
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+         CALL_sendback( grapher , cbs ) ;
+#endif
          mri_free( tsim ) ;
       }
    }
@@ -4235,7 +4365,11 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fim_editref_smooth_pb ){
       cbs.reason = graCR_refsmooth ;
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
+#if 0
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+         CALL_sendback( grapher , cbs ) ;
+#endif
       } else {
          XBell( grapher->dc->display , 100 ) ;
       }
@@ -4260,7 +4394,11 @@ ENTRY("GRA_fim_CB") ;
       }
       cbs.mat = 0 ; /* Feb 2000 */
       GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    else if( w == grapher->fmenu->fim_execfimp_pb ){
@@ -4269,7 +4407,11 @@ ENTRY("GRA_fim_CB") ;
       cbs.mat    = MCW_val_bbox(grapher->fmenu->fimp_user_bbox) ; /* Feb 2000 */
       GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       if( cbs.key || cbs.mat )
+#if 0
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+         CALL_sendback( grapher , cbs ) ;
+#endif
       else
          XBell( grapher->dc->display , 100 ) ;
    }
@@ -4315,7 +4457,11 @@ ENTRY("GRA_fim_CB") ;
 
       cbs.reason = graCR_setignore ;
       cbs.key    = grapher->init_ignore - 1 ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    else if( w == grapher->fmenu->fim_ignore_up_pb && grapher->status->send_CB != NULL ){
@@ -4323,7 +4469,11 @@ ENTRY("GRA_fim_CB") ;
 
       cbs.reason = graCR_setignore ;
       cbs.key    = grapher->init_ignore + 1 ;
+#if 0
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+#else
+      CALL_sendback( grapher , cbs ) ;
+#endif
    }
 
    else if( w == grapher->fmenu->fim_ignore_choose_pb && grapher->status->send_CB != NULL ){
@@ -4623,7 +4773,11 @@ ENTRY("GRA_doshift") ;
 
    gbs.reason   = graCR_refequals ;
    gbs.userdata = (XtPointer) newim ;
+#if 0
    grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+#else
+   CALL_sendback( grapher , gbs ) ;
+#endif
    mri_free( newim ) ;
    EXRETURN ;
 }
@@ -5411,7 +5565,11 @@ ENTRY("GRA_timer_CB") ;
            cbs.reason = graCR_setindex ;
            cbs.key    = nn ;
            cbs.event  = NULL ;
+#if 0
            grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+#else
+           CALL_sendback( grapher , cbs ) ;
+#endif
          } else {
            (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
          }
@@ -5434,7 +5592,11 @@ ENTRY("GRA_timer_CB") ;
            cbs.reason = graCR_setindex ;
            cbs.key    = nn ;
            cbs.event  = NULL ;
+#if 0
            grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+#else
+           CALL_sendback( grapher , cbs ) ;
+#endif
          } else {
            (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
          }

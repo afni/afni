@@ -1268,7 +1268,7 @@ ucode_stuff:
 
       /* mark which ones to execute */
 
-      for( newbrik=nuse=uu=0 ; uu < rlist->num ; uu++ ){
+      for( newbrik=nuse=uu=0 ; uu < rlist->num && nuse < MAXUFUN ; uu++ ){
          if( (ucode & (1<<uu)) != 0 ){
             uuse [nuse] = uu ;
             ufunc[nuse] = rlist->funcs[uu] ;     /* user_func for this func */
@@ -1295,7 +1295,12 @@ ucode_stuff:
 #endif
 
       for( uu=0 ; uu < nuse ; uu++ )
+#if 0
          ufunc[uu]( ntime , NULL , udata[uu] , nbrik[uu] , (void *)(&fd) ) ;
+#else
+         AFNI_CALL_fim_function( ufunc[uu] ,
+                                 ntime, NULL, udata[uu], nbrik[uu], (&fd) ) ;
+#endif
 
       /* loop over voxels,
          assemble time series,
@@ -1317,8 +1322,13 @@ ucode_stuff:
             tsar = MRI_FLOAT_PTR(tsim) ;
 
             for( uu=0 ; uu < nuse ; uu++ ){
+#if 0
                ufunc[uu]( ntime , tsar ,                          /* func */
                           udata[uu] , nbrik[uu] , (void *) val ) ;
+#else
+               AFNI_CALL_fim_function( ufunc[uu] ,
+                                       ntime, tsar, udata[uu], nbrik[uu], val ) ;
+#endif
 
                for( it=0 ; it < nbrik[uu] ; it++ )             /* storage */
                   vbr[it+brik1[uu]][iv+jts] = val[it] ;
@@ -1396,8 +1406,14 @@ ucode_stuff:
       /* do the ending calls to user_func */
 
       for( uu=0 ; uu < nuse ; uu++ )
+#if 0
          ufunc[uu]( -(brik1[uu]+oldbrik) , NULL ,
                     udata[uu] , nbrik[uu] , (void *) new_dset ) ;
+#else
+         AFNI_CALL_fim_function( ufunc[uu] ,
+                                 -(brik1[uu]+oldbrik) , NULL ,
+                                 udata[uu] , nbrik[uu] , new_dset ) ;
+#endif
 
    } /* 01 Feb 2000: end of user_func addition to FIMming */
 

@@ -2675,15 +2675,26 @@ DPR("begin IMPROCessing") ;
 
       if( seq->transform0D_func != NULL ){
          tim = mri_to_float(qim) ;
+#if 0
          seq->transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
+#else
+         AFNI_CALL_0D_function( seq->transform0D_func ,
+                                tim->nvox , MRI_FLOAT_PTR(tim) ) ;
+#endif
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
       }
 
       if( seq->transform2D_func != NULL ){
          tim = mri_to_float(qim) ;
+#if 0
          seq->transform2D_func( tim->nx , tim->ny ,
                                 tim->dx , tim->dy , MRI_FLOAT_PTR(tim) ) ;
+#else
+         AFNI_CALL_2D_function( seq->transform2D_func ,
+                                tim->nx , tim->ny ,
+                                tim->dx , tim->dy , MRI_FLOAT_PTR(tim) ) ;
+#endif
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
       }
@@ -9996,7 +10007,11 @@ ENTRY("ISQ_getimage") ;
 
       for( ii=0 ; ii < rr ; ii++ ) far[ii] = iar[ii][jj] ;
 
+#if 0
       val = seq->slice_proj_func( rr , far ) ;
+#else
+      AFNI_CALL_proj_function( seq->slice_proj_func , rr,far , val ) ;
+#endif
 
       qar[jj] = val ;
    }
