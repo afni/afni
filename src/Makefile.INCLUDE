@@ -1595,6 +1595,7 @@ suma:libSUMA.a libmri.a librickr.a
 	'CC=$(CC)'	;	\
 	cd ../	;\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; )
+	$(CP) SUMA/suma SUMA/MakeColorMap ${INSTALLDIR} ; \
+	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	 
 	
