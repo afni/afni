@@ -324,10 +324,12 @@ typedef struct PLUGIN_interface {
 #define BRICK_SHORT_MASK      (1<<9)
 #define BRICK_FLOAT_MASK      (1<<10)
 #define BRICK_COMPLEX_MASK    (1<<11)
-#define BRICK_ALLTYPE_MASK    ( BRICK_BYTE_MASK  | BRICK_SHORT_MASK |   \
-                                BRICK_FLOAT_MASK | BRICK_COMPLEX_MASK )
+#define BRICK_RGB_MASK        (1<<12)
+#define BRICK_ALLTYPE_MASK    ( BRICK_BYTE_MASK  | BRICK_SHORT_MASK   |  \
+                                BRICK_FLOAT_MASK | BRICK_COMPLEX_MASK |  \
+                                BRICK_RGB_MASK                         )
 
-#define BRICK_ALLREAL_MASK    ( BRICK_BYTE_MASK  | BRICK_SHORT_MASK |   \
+#define BRICK_ALLREAL_MASK    ( BRICK_BYTE_MASK  | BRICK_SHORT_MASK |    \
                                 BRICK_FLOAT_MASK )
 
 extern int PLUGIN_dset_check( int,int    , THD_3dim_dataset * ) ;
