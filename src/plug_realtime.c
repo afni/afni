@@ -13,8 +13,8 @@
 #endif
 
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
-#define INFO_SIZE  (16*1024)          /* change this ==> change SHM_CHILD below */
-#define SHM_CHILD  "shm:afnibahn:16K" /* for data from the child */
+#define INFO_SIZE  (32*1024)          /* change this ==> change SHM_CHILD below */
+#define SHM_CHILD  "shm:afnibahn:32K" /* for data from the child */
 
 #define SHORT_DELAY      1            /* msec */
 #define LONG_DELAY      10
@@ -170,6 +170,9 @@ typedef struct {
    double elapsed , cpu ;         /* times */
    double last_elapsed ;
    int    last_nvol ;
+
+   int    num_note ;              /* 01 Oct 2002 */
+   char **note ;
 
 } RT_input ;
 
@@ -779,6 +782,14 @@ void cleanup_rtinp(void)
       mri_clear_data_pointer(rtinp->image_space) ; mri_free(rtinp->image_space) ;
    }
 
+   /* 01 Oct 2002: free stored notes */
+
+   if( rtinp->num_note > 0 ){
+     int kk ;
+     for( kk=0 ; kk < rtinp->num_note ; kk++ ) free( rtinp->note[kk] ) ;
+     free(rtinp->note) ;
+   }
+
    free(rtinp) ; rtinp = NULL ;            /* destroy data structure */
    ioc_control = NULL ;                    /* ready to listen again */
    GRIM_REAPER ;                           /* reap dead child, if any */
@@ -1041,7 +1052,7 @@ Boolean RT_worker( XtPointer elvis )
       while( nb < RT_NBUF-1 ){
         ii = iochan_readcheck( rtinp->ioc_data , SHORT_DELAY ) ;
         if( ii <= 0 ) break ;
-        ii = iochan_recv( rtinp->ioc_data , rtinp->buf+nb , RT_NBUF-nb ) ; 
+        ii = iochan_recv( rtinp->ioc_data , rtinp->buf+nb , RT_NBUF-nb ) ;
         if( ii <= 0 ) break ;
         nb += ii ;
       }
@@ -1162,7 +1173,7 @@ RT_input * new_RT_input(void)
 
    /** make new structure **/
 
-   rtin = (RT_input *) malloc( sizeof(RT_input) ) ;
+   rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
    con  = (char *)     malloc( INFO_SIZE ) ;
 
    if( rtin == NULL || con == NULL ){
@@ -1424,6 +1435,9 @@ RT_input * new_RT_input(void)
    rtin->elapsed = PLUTO_elapsed_time() ; rtin->last_elapsed = rtin->elapsed ;
    rtin->cpu     = PLUTO_cpu_time() ;     rtin->last_nvol = 0 ;
 
+   rtin->num_note = 0 ;      /* 01 Oct 2002: notes list */
+   rtin->note     = NULL ;
+
    free(con) ; return rtin ;
 }
 
@@ -1610,7 +1624,7 @@ void RT_check_info( RT_input * rtin , int prt )
 
 #define BADNEWS     fprintf(stderr,"RT: illegal header info=%s\a\n",buf)
 #define STARTER(st) (strncmp(buf,st,strlen(st)) == 0)
-#define NBUF        256
+#define NBUF        1024
 
 int RT_process_info( int ninfo , char * info , RT_input * rtin )
 {
@@ -1679,6 +1693,16 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
               BADNEWS ;
+
+      } else if( STARTER("NOTE") ) {            /* 01 Oct 2002: notes list */
+         int nn = rtin->num_note ;
+         if( nbuf > 6 ){
+           rtin->note = realloc( rtin->note , sizeof(char *)*(nn+1) ) ;
+           rtin->note[nn] = malloc(nbuf) ;
+           strcpy( rtin->note[nn] , buf+5 ) ;
+           rtin->num_note ++ ;
+         } else
+           BADNEWS ;
 
       } else if( STARTER("NUMVOL") ){
          int val = 0 ;
@@ -2003,6 +2027,11 @@ void RT_start_dataset( RT_input * rtin )
    for( cc=0 ; cc < rtin->num_chan ; cc++ ){
      rtin->dset[cc] = EDIT_empty_copy(NULL) ;
      tross_Append_History( rtin->dset[cc] , "plug_realtime: creation" ) ;
+
+     if( rtin->num_note > 0 ){                                /* 01 Oct 2002 */
+       for( ii=0 ; ii < rtin->num_note ; ii++ )
+         tross_Add_Note( rtin->dset[cc] , rtin->note[ii] ) ;
+     }
    }
 
    /********************************/
