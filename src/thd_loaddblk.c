@@ -807,6 +807,7 @@ ENTRY("THD_alloc_datablock") ;
      /*-------------------------------------------------------------------*/
 
      case DATABLOCK_MEM_SHARED:{
+#if !defined(DONT_USE_SHM) && !defined(CYGWIN)
        unsigned int offset ;
        if( blk->shm_idcode[0] == '\0' ){   /* new segment */
          UNIQ_idcode_fill( blk->shm_idcode ) ;
@@ -825,6 +826,9 @@ ENTRY("THD_alloc_datablock") ;
        }
      }
      RETURN(1) ;
+#else
+     RETURN(0) ;
+#endif
 
    }
 
