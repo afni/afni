@@ -353,6 +353,10 @@ static intpair find_string( int nst, int nch, char *ch )
    int ii,jj ;
    char quot ;
 
+#if 0
+fprintf(stderr,"  find_string: nst=%d nch=%d\n",nst,nch) ;
+#endif
+
    if( nst >= nch || nch < 2 || ch == NULL ) return ans;        /* bad input */
 
    for( ii=nst; ii<nch && !IS_STRING_CHAR(ch[ii]); ii++ ) ; /* skip to start */
@@ -391,6 +395,10 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
 
    if( ndat < 2 || dat == NULL ) return NULL ;        /* bad input */
 
+#if 0
+fprintf(stderr,"Enter parse_header_stuff: %.*s\n",ndat,dat) ;
+#endif
+
    for( id=0 ; id < ndat && dat[id] != '<' ; id++ ) ; /* skip to opening */
 
    if( id >= ndat-1 ) return NULL ;                   /* bad input */
@@ -412,6 +420,10 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
    hs->name = NI_malloc(nn+1) ;
    NI_strncpy( hs->name , dat+ss.i , nn+1 ) ;
 
+#if 0
+fprintf(stderr,"  name = %s\n",hs->name) ;
+#endif
+
    /* start scanning for next string at location id */
 
    id = ss.j ; if( IS_QUOTE_CHAR(dat[id]) ) id++ ;
@@ -419,6 +431,10 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
    /* find and assign attribute strings */
 
    while(1){
+
+#if 0
+fprintf(stderr,"  scan start at id=%d\n",id) ;
+#endif
 
       for( ; id < ndat && isspace(dat[id]) ; id++ ) ; /* skip blanks */
 
@@ -437,6 +453,10 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
       ss = find_string( id , ndat , dat ) ;
 
       if( ss.i < 0 || ss.j <= ss.i ) break ; /* didn't find a string */
+
+#if 0
+fprintf(stderr,"  next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
+#endif
 
       /* extend size of attribute arrays */
 
@@ -470,6 +490,10 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
 
       if( ss.i < 0 || ss.j <= ss.i ) break ; /* didn't find a string */
 
+#if 0
+fprintf(stderr,"  next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
+#endif
+
       /* this is the RHS string */
 
       nn = ss.j - ss.i ;                      /* length of string */
@@ -495,71 +519,123 @@ static header_stuff * parse_header_stuff( int ndat, char *dat, int *nused )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Add attributes to a header_stuff struct if it has a special name. */
+/*! Decode a single type field.  Return value is an intpair with
+    the .i component being the type code and the .j component being
+    the number of characters consumed.  If the .i component is -1,
+    then no legal type was found (and .j will be 1).
+----------------------------------------------------------------------*/
 
-static void enhance_header_stuff( header_stuff *hs )
+static intpair decode_type_field( char *tf )
 {
-   char ntype[32]="\0" ;
-   int ii ;
+   intpair ans = {-1,1} ;  /* default answer */
 
-   /* check for goofy inputs */
+   /* check input for goodness */
 
-   if( hs == NULL         ||
-       hs->name == NULL   ||
-       hs->name[0] != 'n' ||
-       hs->name[1] != 'i' ||
-       hs->name[2] != '_'   ) return ;
+   if( tf == NULL ) return ans ;  /* should never happen */
 
-   if( strcmp(hs->name,"ni_group") == 0 ) return ;
+   /* check if tf[0] starts a full datum name,
+      or if it is just an initial              */
 
-   /* OK, check for special names with predefined types */
+   switch( tf[0] ){
 
-        if( strcmp(hs->name,"ni_f1") == 0 ) strcpy(ntype,"f") ;
-   else if( strcmp(hs->name,"ni_f2") == 0 ) strcpy(ntype,"2f") ;
-   else if( strcmp(hs->name,"ni_f3") == 0 ) strcpy(ntype,"3f") ;
-   else if( strcmp(hs->name,"ni_f4") == 0 ) strcpy(ntype,"4f") ;
+      default: break ;  /* not a legal datum character */
 
-   else if( strcmp(hs->name,"ni_i1") == 0 ) strcpy(ntype,"i") ;
-   else if( strcmp(hs->name,"ni_i2") == 0 ) strcpy(ntype,"2i") ;
-   else if( strcmp(hs->name,"ni_i3") == 0 ) strcpy(ntype,"3i") ;
-   else if( strcmp(hs->name,"ni_i4") == 0 ) strcpy(ntype,"4i") ;
+      case 'b':
+        ans.i = NI_BYTE ;
+        if( strncmp(tf,"byte"   ,4) == 0 ) ans.j = 4 ;
+      break ;
 
-   else if( strcmp(hs->name,"ni_irgb")  == 0 ) strcpy(ntype,"i,r") ;
-   else if( strcmp(hs->name,"ni_irgba") == 0 ) strcpy(ntype,"i,R") ;
+      case 's':
+        ans.i = NI_SHORT ;
+        if( strncmp(tf,"short"  ,5) == 0 ) ans.j = 5 ;
+      break ;
 
-   /* if didn't set ntype, exit */
+      case 'i':
+        ans.i = NI_INT ;
+        if( strncmp(tf,"int"    ,3) == 0 ) ans.j = 3 ;
+      break ;
 
-   if( ntype[0] == '\0' ) return ;
+      case 'f':
+        ans.i = NI_FLOAT ;
+        if( strncmp(tf,"float"  ,5) == 0 ) ans.j = 5 ;
+      break ;
 
-   /* see if we already have a ni_type attribute */
+      case 'c':
+        ans.i = NI_COMPLEX ;
+        if( strncmp(tf,"complex",7) == 0 ) ans.j = 7 ;
+      break ;
 
-   ii = string_index( "ni_type" , hs->nattr , hs->lhs ) ;
-   if( ii < 0 )
-     ii = string_index( "ni_typ" , hs->nattr , hs->lhs ) ;
+      case 'd':
+        ans.i = NI_DOUBLE ;
+        if( strncmp(tf,"double" ,6) == 0 ) ans.j = 6 ;
+      break ;
 
-   if( ii >= 0 ){  /* replace existing RHS */
+      case 'r':
+        ans.i = NI_RGB ;
+        if( strncmp(tf,"rgb"    ,3) == 0 ) ans.j = 3 ;
+      break ;
 
-      NI_free( hs->rhs[ii] ) ;
-      hs->rhs[ii] = NI_malloc(strlen(ntype)+1) ;
-      strcpy( hs->rhs[ii] , ntype ) ;
+      case 'R':
+        ans.i = NI_RGBA ;
+        if( strncmp(tf,"RGBA"   ,4) == 0 ) ans.j = 4 ;
+      break ;
 
-   } else {
+      case 'S':
+        ans.i = NI_STRING ;
+        if( strncmp(tf,"STRING" ,6) == 0 ) ans.j = 6 ;
+      break ;
 
-      /* otherwise, append the ni_type attribute */
-
-      hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
-      hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
-
-      hs->lhs[hs->nattr] = NI_malloc(8) ;
-      strcpy( hs->lhs[hs->nattr] , "ni_type" ) ;
-
-      hs->rhs[hs->nattr] = NI_malloc(strlen(ntype)+1) ;
-      strcpy( hs->rhs[hs->nattr] , ntype ) ;
-
-      hs->nattr++ ;
+      case 'L':
+        ans.i = NI_LINE ;
+        if( strncmp(tf,"LINE"   ,4) == 0 ) ans.j = 4 ;
+      break ;
    }
 
-   return ;
+   return ans ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Decode a dimen string into an array of integers.
+
+  Returns NULL if the input is bad bad bad.
+----------------------------------------------------------------------*/
+
+static intarray * decode_dimen_string( char *ds )
+{
+   int num , dd,nn,id,jd , lds ;
+   intarray *iar ;
+
+   if( ds == NULL || ds[0] == '\0' ) return NULL ;
+
+   iar = NI_malloc(sizeof(intarray)) ;  /* create output */
+   iar->num = 0 ; iar->ar = NULL ;
+
+   /* scan string for integers */
+
+   num = id = 0 ;
+   lds = strlen(ds) ;
+   do{
+      /* skip ahead until ds[id] is a digit */
+
+      while( id < lds && !isdigit(ds[id]) ) id++ ;
+      if( id == lds ) break ;                      /* end of input */
+
+      /* decode integer starting here */
+
+      nn = jd = 0 ;
+      sscanf( ds+id , "%d%n" , &jd , &nn ) ;       /* get the count */
+      if( jd <= 0 || nn <= 0 ) break ;             /* something bad */
+      id += nn ;                                   /* skip these chars */
+
+      /* extend output array, store new dimension in it */
+
+      iar->ar = NI_realloc( iar->ar , sizeof(int)*(num+1) ) ;
+      iar->ar[num++] = jd ;
+   } while(1) ;
+
+   if( num == 0 ){ NI_free(iar); return NULL; }    /* bad */
+
+   iar->num = num ; return iar ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -570,122 +646,220 @@ static void enhance_header_stuff( header_stuff *hs )
 
 static intarray * decode_type_string( char *ts )
 {
-   int num, typ, lts, id,jd,kd, nn,kk ;
+   int num, typ, lts, id,jd, nn,kk ;
    intarray *iar ;
+   intpair dc ;
 
    if( ts == NULL || ts[0] == '\0' ) return NULL ;
 
    iar = NI_malloc(sizeof(intarray)) ;  /* create output */
    iar->num = 0 ; iar->ar = NULL ;
 
-   /* scan type string 1 time to get count */
+   /* scan type string to find counts/fields and add to output */
 
    lts = strlen(ts) ;
    num = 0 ;            /* will be count of fields */
 
-   for( id=0 ; id < lts ; id++ ){
+   for( id=kk=0 ; id < lts ; ){  /* loop over input string */
 
       if( isdigit(ts[id]) ){   /* a count prefix */
          jd = nn = 0 ;
          sscanf( ts+id , "%d%n" , &jd , &nn ) ;   /* get the count */
-         if( jd <= 0 || nn <= 0 ){
-            NI_free(iar->ar) ; NI_free(iar) ; return NULL ; /* bad */
+         if( jd <= 0 || nn <= 0 ){                /* shouldn't happen */
+            NI_free(iar->ar) ; NI_free(iar) ; return NULL ;
          }
-         num += jd ;     /* this many fields so far */
-         id  += nn ;     /* skip count prefix (plus next character) */
-
-         if( !IS_DATUM_CHAR(ts[id]) ){
-            NI_free(iar->ar) ; NI_free(iar) ; return NULL ; /* bad */
-         }
-
-         continue ;      /* try for something new */
+         id += nn ;                  /* skip count prefix characters */
+         if( ts[id] == '*' ) id++ ;  /* allow for "3*float" */
+      } else {
+         jd = 1 ;       /* default count of 1 */
       }
 
-      switch( ts[id] ){  /* should be a type code */
+      dc = decode_type_field( ts+id ) ;
 
-        default: break ;   /* skip unknown characters */
+      /* dc.i = type code; dc.j = character count used to get type code */
 
-        case 'b':
-        case 's':
-        case 'i':
-        case 'f':
-        case 'd':
-        case 'c':
-        case 'r':
-        case 'R':
-        case 'S':
-        case 'L':
-           num++ ; break ; /* add a single field */
-      }
-   }
+      id += dc.j ;              /* skip these characters */
+      if( dc.i < 0 ) continue ; /* bad type code */
+
+      num += jd ;               /* this many fields so far */
+
+      /* extend output array length */
+
+      iar->ar = NI_realloc( iar->ar , sizeof(int)*num ) ;
+
+      /* put values into output array */
+
+      for( nn=0 ; nn < jd ; nn++ ) iar->ar[kk++] = dc.i ;
+
+   } /* end of loop over input string */
+
+   /* nothing found? */
 
    if( num <= 0 ){
       NI_free(iar->ar) ; NI_free(iar) ; return NULL ; /* bad */
    }
 
-   /* allocate space for result */
+   iar->num = num ; return iar ;
+}
 
-   iar->num = num ;
-   iar->ar  = NI_malloc(sizeof(int)*num) ;
+/*-----------------------------------------------------------------------*/
+/* Given a type code, return the character code. */
 
-   /* rescan and assign result */
+static char NI_type_char( int typ )
+{
+   switch( typ ){
+        case NI_BYTE:     return 'b' ;
+        case NI_SHORT:    return 's' ;
+        case NI_INT:      return 'i' ;
+        case NI_FLOAT:    return 'f' ;
+        case NI_DOUBLE:   return 'd' ;
+        case NI_COMPLEX:  return 'c' ;
+        case NI_RGB:      return 'r' ;
+        case NI_RGBA:     return 'R' ;
+        case NI_STRING:   return 'S' ;
+        case NI_LINE:     return 'L' ;
+        default:          return '\0';
+   }
+}
 
-   for( id=kk=0 ; id < lts ; id++ ){
+/*--------------------------------------------------------------------*/
 
-      if( isdigit(ts[id]) ){   /* a count prefix */
-         sscanf( ts+id , "%d%n" , &jd , &nn ) ;   /* get the count */
-         id += nn ;      /* skip count prefix */
-      } else {
-         jd = 1 ;        /* default is a single count */
-      }
+static int     typedef_num = 0    ;
+static char ** typedef_nam = NULL ;
+static char ** typedef_typ = NULL ;
+static char ** typedef_dim = NULL ;
 
-      switch( ts[id] ){  /* type code (or junk) */
+/*--------------------------------------------------------------------*/
+/*! Implement typedef-ing.
+     name = name string for new type
+     type = type string for new type
+     dimen= dimen string for new type (can be NULL)
+    The routine will fail (silently) if name or type is NULL, or
+    if name is the same as an existing typedef name, or if the
+    type string is indecipherable.
+----------------------------------------------------------------------*/
 
-        default: break ;   /* skip junk characters */
+void NI_typedef( char *name , char *type , char *dimen )
+{
+   int nn ;
+   intarray *ar ;
 
-        case 'b':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_BYTE ;
-        break ;
+   if( name == NULL || name[0] == '\0' ||
+       strcmp(name,"ni_group") == 0    ||
+       type == NULL || type[0] == '\0'   ) return ; /* bad input */
 
-        case 's':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_SHORT ;
-        break ;
+   /* search for name in current list */
 
-        case 'i':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_INT ;
-        break ;
+   for( nn=0 ; nn < typedef_num ; nn++ )
+      if( strcmp(name,typedef_nam[nn]) == 0 ) break ;
 
-        case 'f':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_FLOAT ;
-        break ;
+   /* found it ==> error exit */
 
-        case 'd':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_DOUBLE ;
-        break ;
+   if( nn < typedef_num ) return ;
 
-        case 'c':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_COMPLEX ;
-        break ;
+   /* check type string for integrity */
 
-        case 'r':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_RGB ;
-        break ;
+   ar = decode_type_string( type ) ;
+   if( ar == NULL || ar->num == 0 ){ NI_free(ar); return; } /* bad */
 
-        case 'R':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_RGBA ;
-        break ;
+   /* check dimen string (if any) for integrity */
 
-        case 'S':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_STRING ;
-        break ;
-
-        case 'L':
-           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_LINE ;
-        break ;
-      }
+   if( dimen != NULL ){
+      ar = decode_dimen_string( dimen ) ;
+      if( ar == NULL || ar->num == 0 ){ NI_free(ar); return; } /* bad */
+      NI_free(ar->ar) ; NI_free(ar) ;                          /* OK */
    }
 
-   return iar ;
+   /* add to typedef_ arrays */
+
+   typedef_num++ ;
+   typedef_nam = NI_realloc( typedef_nam , sizeof(char *)*typedef_num ) ;
+   typedef_typ = NI_realloc( typedef_typ , sizeof(char *)*typedef_num ) ;
+   typedef_dim = NI_realloc( typedef_dim , sizeof(char *)*typedef_num ) ;
+
+   typedef_nam[nn] = strdup(name) ;
+   typedef_typ[nn] = strdup(type) ;
+   if( dimen != NULL )
+      typedef_dim[nn] = strdup(dimen) ;
+   else
+      typedef_dim[nn] = NULL ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Add attributes to a header_stuff struct if it has a special name. */
+
+static void enhance_header_stuff( header_stuff *hs )
+{
+   char *ntype , *ndimen ;
+   int nn ;
+
+   /* check for goofy inputs */
+
+   if( hs == NULL || hs->name == NULL ) return ;
+   if( strcmp(hs->name,"ni_group") == 0 ) return ;
+
+   /* initialize pre-defined types */
+
+   if( typedef_num == 0 ){
+      NI_typedef( "ni_f1" , "f"  , NULL ) ;
+      NI_typedef( "ni_f2" , "2f" , NULL ) ;
+      NI_typedef( "ni_f3" , "3f" , NULL ) ;
+      NI_typedef( "ni_f4" , "4f" , NULL ) ;
+
+      NI_typedef( "ni_i1" , "i"  , NULL ) ;
+      NI_typedef( "ni_i2" , "2i" , NULL ) ;
+      NI_typedef( "ni_i3" , "3i" , NULL ) ;
+      NI_typedef( "ni_i4" , "4i" , NULL ) ;
+
+      NI_typedef( "ni_irgb"  , "i,r" , NULL ) ;
+      NI_typedef( "ni_irgba" , "i,R" , NULL ) ;
+   }
+
+   /* Check for special names with predefined types */
+
+   for( nn=0 ; nn < typedef_num ; nn++ )
+      if( strcmp(hs->name,typedef_nam[nn]) == 0 ) break ;
+   if( nn == typedef_num ) return ;
+
+   ntype  = typedef_typ[nn] ;
+   ndimen = typedef_dim[nn] ;
+
+   /* see if we already have a ni_type attribute */
+
+   nn = string_index( "ni_type" , hs->nattr , hs->lhs ) ;
+
+   if( nn >= 0 ){  /* replace existing RHS */
+
+      NI_free( hs->rhs[nn] ) ;
+      hs->rhs[nn] = strdup(ntype) ;
+
+   } else {
+
+      /* otherwise, append the ni_type attribute */
+
+      hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
+      hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
+
+      hs->lhs[hs->nattr] = strdup("ni_type") ;
+      hs->rhs[hs->nattr] = strdup(ntype) ;
+      hs->nattr++ ;
+   }
+
+   /* see if we need to add a ni_dimen attribute */
+
+   nn = string_index( "ni_dimen" , hs->nattr , hs->lhs ) ;
+   if( nn < 0 && ndimen != NULL ){
+      hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
+      hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
+
+      hs->lhs[hs->nattr] = strdup("ni_dimen") ;
+      hs->rhs[hs->nattr] = strdup(ndimen) ;
+      hs->nattr++ ;
+   }
+
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -1079,38 +1253,48 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
    if( tt == NI_ELEMENT_TYPE ){
       NI_element *nel = (NI_element *) nini ;
 
-      nn = nel->attr_num ;
+      for( nn=0 ; nn < nel->attr_num ; nn++ )
+         if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
 
-      nel->attr_lhs = NI_realloc( nel->attr_lhs , sizeof(char *)*(nn+1) ) ;
-      nel->attr_rhs = NI_realloc( nel->attr_rhs , sizeof(char *)*(nn+1) ) ;
+      if( nn == nel->attr_num ){
+        nel->attr_lhs = NI_realloc( nel->attr_lhs , sizeof(char *)*(nn+1) ) ;
+        nel->attr_rhs = NI_realloc( nel->attr_rhs , sizeof(char *)*(nn+1) ) ;
+        nel->attr_num = nn+1 ;
+      } else {
+        NI_free(nel->attr_lhs[nn]) ;
+        NI_free(nel->attr_rhs[nn]) ;
+      }
 
       nel->attr_lhs[nn] = strdup(attname) ;
 
       if( attvalue != NULL && attvalue[0] != '\0' )
-         nel->attr_lhs[nn] = strdup(attvalue) ;
+         nel->attr_rhs[nn] = strdup(attvalue) ;
       else
-         nel->attr_lhs[nn] = NULL ;
-
-      nel->attr_num = nn+1 ;
+         nel->attr_rhs[nn] = NULL ;
 
    /* input is a group element */
 
    } else if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
 
-      nn = ngr->attr_num ;
+      for( nn=0 ; nn < ngr->attr_num ; nn++ )
+         if( strcmp(ngr->attr_lhs[nn],attname) == 0 ) break ;
 
-      ngr->attr_lhs = NI_realloc( ngr->attr_lhs , sizeof(char *)*(nn+1) ) ;
-      ngr->attr_rhs = NI_realloc( ngr->attr_rhs , sizeof(char *)*(nn+1) ) ;
+      if( nn == ngr->attr_num ){
+        ngr->attr_lhs = NI_realloc( ngr->attr_lhs , sizeof(char *)*(nn+1) ) ;
+        ngr->attr_rhs = NI_realloc( ngr->attr_rhs , sizeof(char *)*(nn+1) ) ;
+        ngr->attr_num = nn+1 ;
+      } else {
+        NI_free(ngr->attr_lhs[nn]) ;
+        NI_free(ngr->attr_rhs[nn]) ;
+      }
 
       ngr->attr_lhs[nn] = strdup(attname) ;
 
       if( attvalue != NULL && attvalue[0] != '\0' )
-         ngr->attr_lhs[nn] = strdup(attvalue) ;
+         ngr->attr_rhs[nn] = strdup(attvalue) ;
       else
-         ngr->attr_lhs[nn] = NULL ;
-
-      ngr->attr_num = nn+1 ;
+         ngr->attr_rhs[nn] = NULL ;
    }
 
    return ;
@@ -1852,7 +2036,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 /*-----------------------------------------------------------------------*/
 /*! Return the name set in the NI_stream header. */
 
-char * NI_stream_name( NI_stream_type * )
+char * NI_stream_name( NI_stream_type *ns )
 {
    if( ns == NULL ) return NULL ;
    return ns->name ;
@@ -2513,6 +2697,32 @@ HeadRestart:                            /* loop back here to retry */
       nel = make_empty_data_element( hs ) ;
       destroy_header_stuff( hs ) ;
 
+      /* check if this is a ni_typedef element */
+
+      if( strcmp(nel->name,"ni_typedef") == 0 ){
+         int nn , nt , nd ;
+fprintf(stderr,"ni_typdef!\n") ;
+         nn = string_index( "ni_name" , nel->attr_num , nel->attr_lhs ) ;
+fprintf(stderr," nn=%d\n",nn) ;
+         nt = string_index( "ni_type" , nel->attr_num , nel->attr_lhs ) ;
+fprintf(stderr," nt=%d\n",nt) ;
+         nd = string_index( "ni_dimen", nel->attr_num , nel->attr_lhs ) ;
+fprintf(stderr," nd=%d\n",nd) ;
+
+         /* needs ni_name and ni_type attributes */
+
+         if( nn >= 0 && nt >= 0 )
+            NI_typedef( nel->attr_rhs[nn] ,
+                        nel->attr_rhs[nt] ,
+                        (nd >= 0) ? nel->attr_rhs[nd] : NULL ) ;
+
+         /* try for another element now */
+
+         goto HeadRestart ;
+      }
+
+      /* check if this is an empty element */
+
       if( nel == NULL          ||     /* nel == NULL should never happen. */
           nel->vec_len == 0    ||     /* These other cases are indication */
           nel->vec_num == 0    ||     /* that this is an 'empty' element. */
@@ -2983,6 +3193,7 @@ Restart:                                       /* loop back here to retry */
    ns->nbuf = ns->npos = 0 ; return -1 ;
 }
 
+#if 0
 /*-----------------------------------------------------------------*/
 /*! Set the binary threshold size for NI_write_element.
 
@@ -3001,6 +3212,7 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
    ns->bin_thresh = size ;
    return ;
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 /* Quotize (and escapize) a string, returning a new string. */
@@ -3112,26 +3324,24 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       /*- attributes -*/
 
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
-         jj = NI_strlen( ngr->attr_lhs[ii] ) ;
-         if( jj > 0 ){
-            nout = NI_stream_write( ns , " " , 1 ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-            if( NI_is_name(ngr->attr_lhs[ii]) ){
-              nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
-            } else {
-              att = quotize_string( ngr->attr_lhs[ii] ) ;
-              nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
-            }
-              if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
+         nout = NI_stream_write( ns , " " , 1 ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+         if( NI_is_name(ngr->attr_lhs[ii]) ){
+           nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
+         } else {
+           att = quotize_string( ngr->attr_lhs[ii] ) ;
+           nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
          }
-         jj = NI_strlen( ngr->attr_rhs[ii] ) ;
-         if( jj > 0 ){
-            nout = NI_stream_write( ns , "=" , 1 ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-            att = quotize_string( ngr->attr_rhs[ii] ) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-         }
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
+         nout = NI_stream_write( ns , "=" , 1 ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+         att = quotize_string( ngr->attr_rhs[ii] ) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
       }
 
       /*- close header -*/
@@ -3185,28 +3395,62 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
         if( nout < 0 ) return -1 ; else ntot += nout ;
 
+      /*- write "special" attributes, if not an empty element -*/
+
+      if( nel->vec_len > 0 && nel->vec_num > 0 ){
+         char *btt ; int ll ;
+
+         att = NI_malloc( 128 + 2*nel->vec_num ) ;
+         sprintf(att," ni_dimen=\"%d\" ni_type=\"" , nel->vec_len ) ;
+         for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
+            if( nel->vec_typ[ii] != ll ){  /* not the last type */
+               if( ll >= 0 ){              /* write the last type out now */
+                  btt = att + strlen(att) ;
+                  if( jj > 1 ) sprintf(btt,"%d%c,",jj,NI_type_char(ll)) ;
+                  else         sprintf(btt,"%c,"  ,   NI_type_char(ll)) ;
+               }
+               ll = nel->vec_typ[ii] ;     /* save new type code */
+               jj = 1 ;                    /* it now has count 1 */
+
+            } else {                       /* same as last type */
+               jj++ ;                      /* so add 1 to its count */
+            }
+         }
+         /* write the last one */
+         btt = att + strlen(att) ;
+         if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
+         else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+      }
+
       /*- attributes -*/
 
       for( ii=0 ; ii < nel->attr_num ; ii++ ){
-         jj = NI_strlen( nel->attr_lhs[ii] ) ;
-         if( jj > 0 ){
-            nout = NI_stream_write( ns , " " , 1 ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-            if( NI_is_name(nel->attr_lhs[ii]) ){
-              nout = NI_stream_write( ns , nel->attr_lhs[ii] , jj ) ;
-            } else {
-              att = quotize_string( nel->attr_lhs[ii] ) ;
-              nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
-            }
+
+         jj = NI_strlen( nel->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
+
+         /* skip "special" attributes */
+
+         if( strcmp(nel->attr_lhs[ii],"ni_type")  == 0 ) continue ;
+         if( strcmp(nel->attr_lhs[ii],"ni_dimen") == 0 ) continue ;
+
+         nout = NI_stream_write( ns , " " , 1 ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+         if( NI_is_name(nel->attr_lhs[ii]) ){
+           nout = NI_stream_write( ns , nel->attr_lhs[ii] , jj ) ;
+         } else {
+           att = quotize_string( nel->attr_lhs[ii] ) ;
+           nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
          }
-         jj = NI_strlen( nel->attr_rhs[ii] ) ;
-         if( jj > 0 ){
-            nout = NI_stream_write( ns , "=" , 1 ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-            att = quotize_string( nel->attr_rhs[ii] ) ;
-            nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
-         }
+         if( nout < 0 ) return -1 ; else ntot += nout ;
+
+         jj = NI_strlen( nel->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
+         nout = NI_stream_write( ns , "=" , 1 ) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
+         att = quotize_string( nel->attr_rhs[ii] ) ;
+         nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
+           if( nout < 0 ) return -1 ; else ntot += nout ;
       }
 
       /*- close header -*/

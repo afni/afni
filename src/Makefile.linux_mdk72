@@ -1,7 +1,7 @@
 # This Makefile works on Linux 2.0.39
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE
 CC     = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O3 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
