@@ -3775,3 +3775,6 @@
  * New function mri_cut_3D() in mri_cut.c.
  * Modified mri_3dalign.c to do trimming to save memory.
  * Modified 3dvolreg.c to add -wtrim and -wtinp options.
+
+07 Jun 2002
+ * Refined default threshold for termination of 3dvolreg.c.
