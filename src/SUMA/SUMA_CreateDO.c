@@ -1255,8 +1255,12 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             mapcode = SUMA_CMAP_ROI64;
          } else if (strcmp (eee, "ygbrp128") == 0) {
             mapcode = SUMA_CMAP_ROI128;
+         } else if (strcmp (eee, "ygbrp256") == 0) {
+            mapcode = SUMA_CMAP_ROI256;
          } else if (strcmp (eee, "roi128") == 0) {
             mapcode = SUMA_CMAP_ROI128;
+         } else if (strcmp (eee, "roi256") == 0) {
+            mapcode = SUMA_CMAP_ROI256;
          } else {
             mapcode = SUMA_CMAP_ROI128;
             if (LocalHead) fprintf(SUMA_STDERR,"%s: Unrecognized option. Using default\n", FuncName);
@@ -1266,7 +1270,11 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
       }
    }
-   
+   if (LocalHead) {
+      int N_tmp;
+      char *nm_tmp = SUMA_StandardMapName (mapcode, &N_tmp);
+      fprintf(SUMA_STDERR,"%s: mapcode = %d, named %s %d cols\n", FuncName, mapcode, nm_tmp, N_tmp);
+   }
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
    /* go through all ROIs and place each under its ROI plane */
@@ -1362,6 +1370,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                                  "color map. Reverting\n"
                                  "to FillColors");
                   D_ROI->ColorByLabel = NOPE;
+               }
+               if (LocalHead) {
+                  fprintf (SUMA_STDERR,"%s:\nHave colormap of code %d, %d colors.\n", FuncName, mapcode, SUMAg_CF->ROI_CM->N_Col);
                }
                /* if connected to AFNI, send color map */
                if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && SUMAg_CF->ROI2afni) {
@@ -2334,6 +2345,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->Name.Path\n", FuncName);
    if (SO->Name.Path) SUMA_free(SO->Name.Path);
+   if (SO->SpecFile.Path) SUMA_free(SO->SpecFile.Path);
+   if (SO->SpecFile.FileName) SUMA_free(SO->SpecFile.FileName);
    if (SO->MeshAxis) SUMA_Free_Axis (SO->MeshAxis);
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->NodeMarker\n", FuncName);
    if (SO->NodeMarker) SUMA_Free_SphereMarker (SO->NodeMarker);
@@ -2514,6 +2527,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             break;
       }
 
+      SS = SUMA_StringAppend_va (SS,"SpecFile:");
+      if (SO->SpecFile.Path) SS = SUMA_StringAppend_va (SS,"%s", SO->SpecFile.Path);
+      if (SO->SpecFile.FileName) SS = SUMA_StringAppend_va (SS,"%s", SO->SpecFile.FileName);
+      SS = SUMA_StringAppend_va (SS,"\n");
+      
       SS = SUMA_StringAppend_va (SS,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
 
       SS = SUMA_StringAppend_va (SS,"IDcode: %s\n", SO->idcode_str);
@@ -2923,6 +2941,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Group = NULL;
       SO[i].FaceSetMarker = NULL;
       SO[i].idcode_str = NULL;
+      SO[i].SpecFile.Path = NULL;
+      SO[i].SpecFile.FileName = NULL;
       SO[i].Name.Path = NULL;
       SO[i].Name.FileName = NULL;
       SO[i].Name_coord.Path = NULL;

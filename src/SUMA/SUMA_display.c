@@ -4079,7 +4079,7 @@ void SUMA_CreateDrawROIWindow(void)
                            SUMAg_CF->X->DrawROI->ROIlbl);
                         
    SUMA_CreateArrowField ( rc, "Value:",
-                           1, 0, 100, 1,
+                           1, 0, 999, 1,
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue, NULL,
