@@ -3632,17 +3632,30 @@ void calculate_results
 
   /*-- 14 Jul 2004: calculate matrix condition number - RWCox --*/
 
+#ifndef PSINV_EPS
+#define PSINV_EPS 1.e-12
+#endif
   if( !option_data->nocond ){
-    double *ev , emin,emax ; int i ;
+    double *ev , ebot,emin,emax ; int i , nsmall ;
     ev = matrix_singvals( xdata ) ;
     emin = 1.e+38 ; emax = 1.e-38 ;
     if( show_singvals ) fprintf(stderr,"++ Matrix singular values:") ;
     for( i=0 ; i < xdata.cols ; i++ ){
       if( show_singvals ) fprintf(stderr," %g",ev[i]) ;
-      if( ev[i] > 0.0 && ev[i] < emin ) emin = ev[i] ;
-      if(                ev[i] > emax ) emax = ev[i] ;
+      if( ev[i] > emax ) emax = ev[i] ;
+    }
+    ebot = sqrt(PSINV_EPS)*emax ;
+    for( i=nsmall=0 ; i < xdata.cols ; i++ ){
+      if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
+      if( ev[i] <  ebot ) nsmall++ ;
     }
     if( show_singvals ) fprintf(stderr,"\n") ;
+    if( nsmall > 0 ){
+      fprintf(stderr,
+              "** WARNING: Largest singular value=%g;"
+              " %d are less than cutoff=%g\n" ,
+              emax , nsmall , ebot ) ;
+    }
     free((void *)ev) ;
     if( emin <= 0.0 || emax <= 0.0 ){
       fprintf(stderr,"** Matrix condition:  UNDEFINED: "
@@ -3655,7 +3668,7 @@ void calculate_results
 #ifdef FLOATIZE
       if( cond > 100.0 ) fprintf(stderr,"  ** BEWARE **") ;
 #else
-      if( cond > 1.e7  ) fprintf(stderr,"  ** BEWARE **") ;
+      if( cond > 1.e6  ) fprintf(stderr,"  ** BEWARE **") ;
 #endif
       fprintf(stderr,"\n") ;
     }
