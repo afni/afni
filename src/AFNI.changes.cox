@@ -4919,3 +4919,8 @@
  * Added "WinAver" feature to afni_graph.[ch] and afni.c.  This shows the
      "ideal" waveform as the average of all the timeseries in a graphing
      window.
+ * Modified afni.[ch] and afni_widg.c to set a flag in each im3d, so that
+     if it is created when the dummy dataset is present, then when a real
+     dataset becomes available, the controller will get set to the middle
+     of THAT dataset's coordinates, rather than the dummy's middle.  This
+     is useful for realtime imaging (which is why the dummy is there).

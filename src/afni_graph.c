@@ -4947,6 +4947,7 @@ ENTRY("AFNI_new_fim_menu") ;
                       "      Smooth    --> A 3 point filter\n"
                       "      Shift     --> Time-shifted copies\n"
                       "      Clear     --> Turn ideal off\n"
+                      "      WinAver   --> Average of sub-graphs\n"
                       "      Read      --> Input from external file\n"
                       "      Write     --> Output to external file\n"
                       "      Store     --> Save in internal list\n"

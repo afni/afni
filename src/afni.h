@@ -834,6 +834,8 @@ typedef struct {
       int brand_new ;                           /* 07 Dec 2001 */
 
       THD_warp * fim_selfwarp ;                 /* 27 Aug 2002 */
+
+      int dummied ;                             /* 27 Jan 2004 */
 } Three_D_View ;
 
 /* 02 Nov 1996: macro to load current viewing data into current datasets */
