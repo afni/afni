@@ -94,7 +94,7 @@ static void AFNI_niml_exit( void )
 {
    int cc ;
    for( cc=0 ; cc < NUM_NIML ; cc++ )        /* close any open sockets */
-      NI_stream_close( ns_listen[cc] ) ;
+     NI_stream_closenow( ns_listen[cc] ) ;
    return ;
 }
 
@@ -189,7 +189,7 @@ void NIML_to_stderr( void *nini , int send )
      else
        fprintf(stderr,"-------------- AFNI gets NIML element:  --------------\n");
      NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADERONLY_FLAG ) ;
-     NI_stream_close( ns_err ) ;
+     NI_stream_closenow( ns_err ) ;
    }
 }
 
@@ -232,7 +232,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        fprintf(stderr,"++ NIML connection closed from %s\n",
                 NI_stream_name(ns_listen[cc])               ) ;
 
-       NI_stream_close( ns_listen[cc] ) ;
+       NI_stream_closenow( ns_listen[cc] ) ;
        ns_listen[cc] = NULL ;  /* will reopen next time */
        continue ;              /* skip to next stream  */
      }
