@@ -528,3 +528,6 @@
   * modified plug_realtime.so [request of tross]
       - move RT_mp_comm_close() out of check for resize plot
 
+07 April 2004:
+  * modified SUMA_3dVol2Surf.c (-> v4.5) to fix default direction of normals
+
