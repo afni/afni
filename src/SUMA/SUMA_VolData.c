@@ -59,7 +59,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	MCW_idcode idcode;
 		
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-fprintf (SUMA_STDERR, "CRAP\n");
+
 	/* read the header of the parent volume */
 	dset = THD_open_dataset(volparent_name);
 	if (dset == NULL) {

@@ -950,6 +950,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    SO->EL = NULL;
    SO->EL_Inode = NULL;
+
+   if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
    if (SO) SUMA_free(SO);
    
@@ -1282,7 +1284,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_coord.FileName = NULL;
       SO[i].Name_topo.Path = NULL;
       SO[i].Name_topo.FileName = NULL;
-      
+      SO[i].SUMA_VolPar_Aligned = NOPE;
+      SO[i].VOLREG_APPLIED = NOPE;
+      SO[i].SurfCont = SUMA_CreateSurfContStruct();
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

@@ -1,7 +1,7 @@
 #ifndef SUMA_ENGINE_INCLUDED
 #define SUMA_ENGINE_INCLUDED
 
-SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_Engine (DList **listp);
 SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv );
 int SUMA_ShownSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs);
 int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnxt);

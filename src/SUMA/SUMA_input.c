@@ -17,7 +17,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    KeySym keysym;
    int xls, ntot, id = 0, ND, ip, NP;
    float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
-   SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
+   SUMA_EngineData *ED = NULL; 
    char CommString[SUMA_MAX_COMMAND_LENGTH];
    static char FuncName[]= {"SUMA_input"};
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
@@ -28,11 +28,12 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    XButtonEvent Bev;
    XMotionEvent Mev;
    int isv;
-   SUMA_SurfaceViewer *sv;
+   SUMA_SurfaceViewer *sv, *svi = NULL;
    GLfloat *glar_ColorList = NULL;
    static Time B1time = 0;
    static int pButton, mButton, rButton;
    SUMA_Boolean ROI_mode, DoubleClick;
+   DList *list = NULL;
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
    /*float ft;
@@ -51,11 +52,6 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    }
    if (LocalHead) fprintf (SUMA_STDERR,"%s: A call from SUMA_SurfaceViewer[%d], Pointer %p\n", FuncName, isv, sv);
    
-   /* initialize EngineData */
-   if (!SUMA_InitializeEngineData (&EngineData)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-      SUMA_RETURNe;
-   }
 
    Kev = (XKeyEvent) cd->event->xkey;
    Bev = (XButtonEvent) cd->event->xbutton;
@@ -147,6 +143,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Escape: /* there's more:  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
             /* control mask and escape is grabbed by gnome window manager .... */
             if (Kev.state & ShiftMask){/* kill all */
+               XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
                exit(0);
             }else { 
                SUMA_ButtClose_pushed (w, clientData, callData);
@@ -213,8 +210,24 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_b:
             /* Show/hide the background */
-            sprintf(CommString,"Redisplay|ToggleBackground~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
+            if (!list) list = SUMA_CreateList();
+            ED = SUMA_InitializeEngineListData (SE_ToggleBackground);
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_Empty, NULL,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+            
+            ED = SUMA_InitializeEngineListData (SE_Redisplay);
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_Empty, NULL,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+                                                   
+            if (!SUMA_Engine (&list)) {
                fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
             }
             break;            
@@ -235,7 +248,6 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                s[i] = '\0';
                if (!i) SUMA_RETURNe;
             }
-            EngineData.N_cols = 4;
             /* find out if file exists and how many values it contains */
             ntot = SUMA_float_file_size (s);
             if (ntot < 0) {
@@ -244,40 +256,45 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
 
             /* make sure it's a full matrix */
-            if ((ntot % EngineData.N_cols)) {
-               fprintf(stderr,"Error SUMA_Read_2Dfile: file %s contains %d values, not divisible by ncols %d.\n", s, ntot, EngineData.N_cols);
+            if ((ntot % 4)) {
+               fprintf(stderr,"Error SUMA_Read_2Dfile: file %s contains %d values, not divisible by ncols %d.\n", s, ntot, 4);
                SUMA_RETURNe;
             }
-            EngineData.N_rows = ntot/EngineData.N_cols;
+            
 
             /* allocate space */
-            fm = (float **)SUMA_allocate2D (EngineData.N_rows, EngineData.N_cols, sizeof(float));
+            fm = (float **)SUMA_allocate2D (ntot/4, 4, sizeof(float));
             if (fm == NULL) {
                fprintf(stderr,"Error SUMA_input: Failed to allocate space for fm\n");
                SUMA_RETURNe;
             }
 
-            EngineData.N_rows = SUMA_Read_2Dfile (s, fm, EngineData.N_cols, EngineData.N_rows);
-            if (EngineData.N_rows < 0) {
+            if (SUMA_Read_2Dfile (s, fm, 4, ntot/4) != ntot/4 ) {
                fprintf(stderr,"SUMA_input Error: Failed to read full matrix from %s\n", s);
                SUMA_RETURNe;
             }
 
-            /*register fm with EngineData */
-            sprintf(sfield,"fm");
-            sprintf(sdestination,"SetNodeColor");
-            if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-               break;
-            }
+            if (!list) list = SUMA_CreateList();
+            ED = SUMA_InitializeEngineListData (SE_SetNodeColor);
+            ED->N_cols = 4;
+            ED->N_rows = ntot/4;
+            if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_fm, (void*)fm,
+                                                   SES_Suma, (void *)sv, YUP,
+                                                   SEI_Head, NULL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+               break;                                      
+            } 
 
-            sprintf(CommString,"Redisplay|SetNodeColor~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+            
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+            if (!SUMA_Engine (&list)) {
+               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
 
             /* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
-            if (fm) SUMA_free2D ((char **)fm, EngineData.N_rows);
+            if (fm) SUMA_free2D ((char **)fm, ntot/4);
 
             break;
 
@@ -304,16 +321,23 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case XK_F:
-            sprintf(CommString,"Redisplay|FlipLight0Pos~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
+            /* flip light position */
+            if (!list) list = SUMA_CreateList(); 
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_FlipLight0Pos, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+            if (!SUMA_Engine (&list)) {
                fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
             }
             break;
 
          case XK_f:
             /* Show/hide the foreground */
-            sprintf(CommString,"Redisplay|ToggleForeground~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
+            if (!list) list = SUMA_CreateList(); 
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleForeground, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+            if (!SUMA_Engine (&list)) {
                fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
             }
             break;            
@@ -337,17 +361,21 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fv15[0], fv15[1],fv15[2],\
                   fv15[3], fv15[4],fv15[5]);
 
-               /* register fv15 with EngineData */
-               sprintf(sfield,"fv15");
-               sprintf(sdestination,"HighlightNodes");
-               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                  break;
+               /* register fv15 with ED */
+               if (!list) list = SUMA_CreateList(); 
+               ED = SUMA_InitializeEngineListData (SE_HighlightNodes);
+               if (!SUMA_RegisterEngineListCommand (     list, ED, 
+                                                         SEF_fv15, (void*)fv15,
+                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;                                      
                }
+               
+               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
-               sprintf(CommString,"Redisplay|HighlightNodes~");         
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
             }
             break;
@@ -394,17 +422,20 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      SUMA_RETURNe;
                   }
                   /* Now set the cross hair position */
-                     sprintf(sfield,"fv3");
-                     sprintf(sdestination,"SetCrossHair");
-                     if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv3, sdestination, ssource,NOPE)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                        SUMA_RETURNe;
-                     }
-                     sprintf(CommString,"SetCrossHair~");
-                     if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                        SUMA_RETURNe;
-                     }
+                  if (!list) list = SUMA_CreateList ();
+                  ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_fv3, (void*)fv3,
+                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;                                      
+                  } 
+
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
                } else if (Kev.state & Mod1Mask){     
                   fprintf(stdout,"Enter index of focus node, cross hair's XYZ will not be affected (nothing to cancel):\n");
                   it = SUMA_ReadNumStdin (fv3, 1);
@@ -416,15 +447,18 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   /* Set the Nodeselection  */
                   it = (int) fv3[0];
-                  sprintf(sfield,"i");
-                  sprintf(sdestination,"SetSelectedNode");
-                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                     SUMA_RETURNe;
-                  }
-                  sprintf(CommString,"SetSelectedNode~");
-                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                     fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                  if (!list) list = SUMA_CreateList ();
+                  ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_i, (void*)(&it),
+                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;                                      
+                  } 
+                  
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                      SUMA_RETURNe;
                   }
                } else {
@@ -438,30 +472,32 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   /* Set the Nodeselection  */
                   it = (int) fv3[0];
-                  sprintf(sfield,"i");
-                  sprintf(sdestination,"SetSelectedNode");
-                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                     SUMA_RETURNe;
-                  }
-                  sprintf(CommString,"SetSelectedNode~");
-                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                     fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-                     SUMA_RETURNe;
-                  }
+                  if (!list) list = SUMA_CreateList ();
+                  ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_i, (void*)(&it),
+                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;                                      
+                  } 
+                  
 
                   /* Now set the cross hair position at the selected node*/
                   {
                      SUMA_SurfaceObject *SO= NULL;
                      SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-                     sprintf(sfield,"fv3");
-                     sprintf(sdestination,"SetCrossHair");
-                     if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)&(SO->NodeList[3*it]), sdestination, ssource,NOPE)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                        SUMA_RETURNe;
-                     }
-                     sprintf(CommString,"SetCrossHair~");
-                     if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                     ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+                     if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                            SEF_fv3, (void*)&(SO->NodeList[3*it]),
+                                                            SES_Suma, (void *)sv, NOPE,
+                                                            SEI_Head, NULL)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                        break;                                      
+                     } 
+                     
+                     /* call with the list */
+                     if (!SUMA_Engine (&list)) {
                         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                         SUMA_RETURNe;
                      }
@@ -487,14 +523,17 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
                /* Set the Nodeselection  */
                it = (int) fv3[0];
-               sprintf(sfield,"i");
-               sprintf(sdestination,"SetSelectedFaceSet");
-               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                  SUMA_RETURNe;
+               if (!list) list = SUMA_CreateList ();
+               ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_i, (void*)&it,
+                                                      SES_Suma, (void *)sv, NOPE,
+                                                      SEI_Head, NULL)) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  break;                                      
                }
-               sprintf(CommString,"SetSelectedFaceSet~");
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
+               
+               if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   SUMA_RETURNe;
                }
@@ -508,16 +547,17 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_l:
             if (Kev.state & ControlMask){
                if (SUMAg_CF->Dev) {
-                  char LockName[100];
-                  SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
-                  fprintf (SUMA_STDERR,"%s: Switching Locktype from %s", FuncName, LockName);
-                  /* change the locking type of viewer 0 */
-                  SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, SUMA_N_Lock_Types);
-                  SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
-                  fprintf (SUMA_STDERR," %s\n", LockName);
-                  /* Change the locking type of all remaining viewers */
-                  for (ii=1; ii<SUMAg_N_SVv; ++ii) {
-                     SUMAg_CF->Locked[ii] = SUMAg_CF->Locked[0];                  
+                  if (!list) list = SUMA_CreateList();
+                  ED = SUMA_InitializeEngineListData (SE_ToggleLockAllCrossHair);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_Empty, NULL, 
+                                                        SES_Suma, (void *)sv, NOPE, 
+                                                        SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                     break;
+                  }
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
             } else {
@@ -536,17 +576,18 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
 
-               /* register fv3 with EngineData */
-               sprintf(sfield,"fv3");
-               sprintf(sdestination,"SetLookAt");
-               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv3, sdestination, ssource, NOPE)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+               /* register fv3 with ED */
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_SetLookAt);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_fv3, (void *)fv3, 
+                                                      SES_Suma, (void *)sv, NOPE, 
+                                                      SEI_Head, NULL )) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                   break;
                }
-
-               sprintf(CommString,"SetLookAt~");         
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
             }
             break;
@@ -665,17 +706,20 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fv15[0], fv15[1],fv15[2],\
                      fv15[3], fv15[4],fv15[5]);
 
-                  /* register fv15 with EngineData */
-                  sprintf(sfield,"fv15");
-                  sprintf(sdestination,"GetNearestNode");
-                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                  /* register fv15 with ED */
+                  if (!list) list = SUMA_CreateList ();
+                  ED = SUMA_InitializeEngineListData (SE_GetNearestNode);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_fv15, (void *)fv15, 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                      break;
-                  }               
-
-                  sprintf(CommString,"Redisplay|GetNearestNode~");         
-                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                     fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                  }
+                  
+                  SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
                }
             }
@@ -807,14 +851,18 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_t:
             if ((Kev.state & ControlMask) && SUMAg_CF->Dev){
                   fprintf(SUMA_STDOUT, "%s: Forcing a resend of Surfaces to Afni...\n", FuncName);
-                  sprintf(CommString,"SetForceAfniSurf~");
-                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                     fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
+                  if (!list) list = SUMA_CreateList();
+                  SUMA_REGISTER_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
+                  
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
             } else {
-               sprintf(CommString,"ToggleConnected~");         
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
+               
+               if (!SUMA_Engine (&list)) {
+                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
             }
             break;
@@ -1098,9 +1146,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
 
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
-               sprintf(CommString,"Redisplay~");
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
             }
             break;
@@ -1127,9 +1176,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
 
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
-               sprintf(CommString,"Redisplay~");
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
 
                break;
@@ -1163,24 +1213,30 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_F3: /* F3 */
-            sprintf(CommString, "Redisplay|ToggleCrossHair~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
-            } 
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
             break;
 
          case XK_F4: /* F4 */
-            sprintf(CommString, "Redisplay|ToggleShowSelectedNode~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
-            } 
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
             break;
 
          case XK_F5: /* F5 */
-            sprintf(CommString, "Redisplay|ToggleShowSelectedFaceSet~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
-            } 
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
             break;
 
          case XK_F6: /*F6 */
@@ -1189,9 +1245,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } else { /* goto black */
                sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 0.0;
             }
-            sprintf(CommString, "Redisplay~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
             break; 
             
@@ -1225,10 +1282,13 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          
          case XK_Home:   
             /*printf("HOME\n");*/
-            sprintf(CommString, "Redisplay|FOVreset|Home~");
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
-            } 
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_FOVreset, SES_Suma, sv);
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
             break;
 
          case XK_Left:   /*KEY_LEFT:*/
@@ -1450,6 +1510,19 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->GVS[sv->StdView].spinBeginY = (int)Bev.y;
                sv->GVS[sv->StdView].spinDeltaX = 0;
                sv->GVS[sv->StdView].spinDeltaY = 0;   
+               /* check to see if other viewers need to be notified */
+               ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
+               if (SUMAg_CF->ViewLocked[ii]) {
+                  for (it=0; it < SUMAg_N_SVv; ++it) {
+                     svi = &SUMAg_SVv[it];
+                     if (it != ii && SUMAg_CF->ViewLocked[it]) {
+                        svi->GVS[svi->StdView].spinBeginX = (int)Bev.x;
+                        svi->GVS[svi->StdView].spinBeginY = (int)Bev.y;
+                        svi->GVS[svi->StdView].spinDeltaX = 0;
+                        svi->GVS[svi->StdView].spinDeltaY = 0; 
+                     }  
+                  }
+               }
             }
             break;
             
@@ -1859,6 +1932,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             else if (sv->FOV[sv->iState] > FOV_MAX) sv->FOV[sv->iState] = FOV_MAX;
                sv->GVS[sv->StdView].zoomBegin = (float)(int)Mev.y;
                /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
+            ii = SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);
             SUMA_postRedisplay(w, clientData, callData);    
             break;
             
@@ -1876,8 +1950,48 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->GVS[sv->StdView].spinBeginX = (int)Mev.x;
                sv->GVS[sv->StdView].spinBeginY = (int)Mev.y;
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               
+               ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
+               if (ii < 0) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
+                  break;
+               }
+               if (!SUMAg_CF->ViewLocked[ii]) { /* No locking, just redisplay current viewer */
+                  SUMA_postRedisplay(w, clientData, callData);    
+               } else { /* locking, update and redisplay those locked */
+                  DList *list = NULL;
+                  SUMA_EngineData *ED = NULL;
+                  /* redisplay current viewer immediately */
+                  list = SUMA_CreateList ();
+                  ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
+                  SUMA_RegisterEngineListCommand (list, ED,
+                                                   SEF_Empty, NULL,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL);
+                  for (it=0; it < SUMAg_N_SVv; ++it) {
+                     svi = &SUMAg_SVv[it];
+                     if (it != ii && SUMAg_CF->ViewLocked[it]) {
+                        /* copy quaternions */
+                        svi->GVS[svi->StdView].spinBeginX = sv->GVS[sv->StdView].spinBeginX;
+                        svi->GVS[svi->StdView].spinBeginY = sv->GVS[sv->StdView].spinBeginY;
+                        SUMA_COPY_VEC(sv->GVS[sv->StdView].deltaQuat, svi->GVS[svi->StdView].deltaQuat, 4, float, float);
+                        SUMA_COPY_VEC(sv->GVS[sv->StdView].currentQuat, svi->GVS[svi->StdView].currentQuat, 4, float, float);
+                       
+                        /* add a redisplay now */
+                        ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
+                        SUMA_RegisterEngineListCommand ( list, ED,
+                                                         SEF_Empty, NULL,
+                                                         SES_Suma, (void *)svi, NOPE,
+                                                         SEI_Head, NULL); 
+                     }
+                  }
+                  if (!SUMA_Engine (&list)) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed calling SUMA_Engine.\n", FuncName);
+                     break;
+                  }
+               }
             }
+
             break;
             
          case SUMA_Button_2_Motion:
@@ -1971,18 +2085,14 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    struct timeval tt_tmp; 
    int ip, it, id, iv3[3], ii, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], imin;
    char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
-   static char ssource[]={"suma"};
-   SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
+   SUMA_EngineData *ED = NULL;
+   DList *list = NULL;
+   DListElmt *SetNodeElem = NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   /* initialize EngineData */
-   if (!SUMA_InitializeEngineData (&EngineData)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-      SUMA_RETURN (-1);
-   }
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -2062,9 +2172,11 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
          /* register a call to SetAfniCrossHair */
-         sprintf(CommString,"SetAfniCrossHair~");
-         if (!SUMA_Engine (CommString, &EngineData, sv)) {
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
             fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN (-1);
          }
       }else {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
@@ -2072,60 +2184,67 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 
       /* Set the Nodeselection at the closest node */
       it = MTI->inodemin;
-      sprintf(sfield,"i");
-      sprintf(sdestination,"SetSelectedNode");
-      if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+      if (!list) list = SUMA_CreateList();
+      ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+      SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void*)&it,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL);
+      if (!SetNodeElem) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register SetNodeElem\n", FuncName);
          SUMA_RETURN (-1);
       }
-      sprintf(CommString,"SetSelectedNode~");
-      if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-         SUMA_RETURN (-1);
-      }
-
 
       /* Set the FaceSetselection */
       it = MTI->ifacemin;
-      sprintf(sfield,"i");
-      sprintf(sdestination,"SetSelectedFaceSet");
-      if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+      ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void*)&it,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-      sprintf(CommString,"SetSelectedFaceSet~");
-      if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-         SUMA_RETURN (-1);
-      }
+      
       /* Now set the cross hair position at the intersection*/
-      sprintf(sfield,"fv3");
-      sprintf(sdestination,"SetCrossHair");
-      if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (-1);
-      }
-      sprintf(CommString,"SetCrossHair~");
-      if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_fv3, (void*)MTI->P,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
 
       /* attach the cross hair to the selected surface */
       iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
       iv3[1] = MTI->inodemin;
-      sprintf(sfield,"iv3");
-      sprintf(sdestination,"BindCrossHair");
-      if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (-1);
-      }
-      sprintf(CommString,"LockCrossHair|BindCrossHair~"); 
-      if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_iv3, (void*)iv3,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
       
+      /* now put in a request for locking cross hair but you must do this after the node selection has been executed */
+      ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: SetNodeElem = %p\n", FuncName, SetNodeElem);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_iv3, (void*)iv3,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Before, SetNodeElem)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+      
+      if (!SUMA_Engine (&list)) {
+         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+      
+
    } 
    /* clear MTI */
    if (MTI) {

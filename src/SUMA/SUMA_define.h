@@ -73,7 +73,7 @@
 #define SUMA_MAX_MEMBER_FACE_SETS 60 /*!< Maximum number of facesets a node can be part of */
 #define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
 #define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Maximum number of displayable Objects */
-#define SUMA_MAX_SURF_VIEWERS 5 /*!< Maximum number of surface viewers allowed */
+#define SUMA_MAX_SURF_VIEWERS 6 /*!< Maximum number of surface viewers allowed */
 #define SUMA_N_STANDARD_VIEWS 2/*!< Maximum number of standard views, see SUMA_STANDARD_VIEWS*/
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
@@ -129,17 +129,28 @@ typedef enum { SE_Empty, \
                SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, \
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,\
+               SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, \
+               SE_Load_Group, SE_Home_AllVisible, \
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, \
                SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, \
                SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, \
+               SEF_cp, SEF_fp, SEF_ip, \
                SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
                
 typedef enum { SES_Empty,\
-               SES_Afni,\
-               SES_Suma,\
+               SES_Afni,\  /*!< command from Afni directly which practically means that Srcp in EngineData is not SUMA_SurfaceViewer * . In the future, some Afni related pointer might get passed here. */
+               SES_Suma,\  /*!< command from Suma, which means that Srcp is a SUMA_SurfaceViewer * to the viewer making the command. */
+               SES_SumaWidget, \ /*!< command from a widget in Suma. Usually means, do not try to update widget ... */
+               SES_SumaFromAfni, \  /*!< command from Suma in response to a request from Afni. Srcp is still a SUMA_SurfaceViewer * but Afni, havin initiated the command should not receive the command back from Suma. Think cyclical cross hair setting... */
+               SES_SumaFromAny, \ /*!< Same concept as SES_SumaFromAfni but from generic program. */
                SES_Unknown} SUMA_ENGINE_SOURCE;
+               
+typedef enum { SEI_WTSDS,  \
+               SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,\
+               SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
+               
 typedef enum { SUMA_int, SUMA_float } SUMA_VARTYPE;
 
 typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,\
@@ -151,6 +162,9 @@ typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI
 typedef enum { SUMA_ROI_ClosedPath} SUMA_ROI_DRAWING_TYPE;  /* an ROI created by drawing */
 
 typedef enum { SUMA_ROI_NodeGroup, SUMA_ROI_EdgeGroup, SUMA_ROI_FaceGroup } SUMA_ROI_TYPE; /* a generic ROI */
+
+typedef enum { SXR_default, SXR_NP, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
+
 
 #define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
 typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states \
@@ -337,10 +351,53 @@ typedef struct {
                                     or after the shift and rotation matrices are applied */
 } SUMA_DO;
 
+
+/*! structure containing widgets for surface viewer controllers ViewCont */
+typedef struct {
+   Widget TopLevelShell;/*!< Top level shell for a viewer's controller */
+}SUMA_X_ViewCont;
+
+/*! structure containing widgets for surface  controllers SurfCont */
+typedef struct {
+   Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
+}SUMA_X_SurfCont;
+
+typedef struct {
+   int N_rb_group; /*!< number of radio buttons in group */
+   int N_but; /*!< number of buttons per radio button group */
+   Widget *tb; /*!< vector of N_rb_group * N_but toggle button widgets */
+   Widget *rb; /*!< vetor of N_rb_group radio box widget */
+   Widget arb; /*!< widget of radiobox for all lock buttons */
+   Widget *atb; /*!< widget of toggle buttons in arb */
+}SUMA_rb_group;
+
+/*! structure containing widgets for Suma's controller SumaCont */
+typedef struct {
+   Widget AppShell; /*!< AppShell widget for Suma's controller */
+   Widget quit_pb; /*!< quit push button */
+   SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
+   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio button groups */
+   Widget *LockView_tbg;   /*!< vector of toggleview buttons */
+   Widget LockAllView_tb;  /*!< widget of toggleAllview button */
+}SUMA_X_SumaCont;
+
+typedef enum { SW_File, \
+               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, \
+               SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
+                                                      Make sure you begin with SW_File and end
+                                                      with SW_N_File */
+typedef enum { SW_View, \
+               SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, \
+               SW_ViewSep1,\
+               SW_ViewCrossHair, SW_ViewNodeInFocus, SW_ViewSelectedFaceset,\
+               SW_N_View } SUMA_WIDGET_INDEX_VIEW; /*!< Indices to widgets under View menu. 
+                                                      Make sure you begin with SW_View and end
+                                                      with SW_N_View */
+                                                      
 /*! structure containg X vars for surface viewers*/
 typedef struct {
    Display *DPY; /*!< display of toplevel widget */
-   Widget TOPLEVEL, FORM, FRAME, GLXAREA, ViewCont;
+   Widget TOPLEVEL, FORM, FRAME, GLXAREA;
    XVisualInfo *VISINFO;
    GLXContext GLXCONTEXT;
    Colormap CMAP;
@@ -349,15 +406,18 @@ typedef struct {
    int WIDTH, HEIGHT;
    XtWorkProcId REDISPLAYID, MOMENTUMID;
    
-   Widget ToggleCrossHair_View_tglbtn; /*!< Toggle button in View-> menu */
-         
+   SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer controller widget structure */
+   Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
+   Widget FileMenu[SW_N_File]; /*!< Vector of widgets under File Menu */       
+   Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
 }SUMA_X;
 
 /*! structure containg X vars common to all viewers */
 typedef struct {
-   Widget SumaCont; /*!< AppShell widget for Suma's controller */
+   SUMA_X_SumaCont *SumaCont; /*!< structure containing widgets for Suma's controller */
    XtAppContext App; /*!< Application Context for SUMA */
    Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
+   SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
 }SUMA_X_AllView;
 
 /*! filename and path */
@@ -567,54 +627,72 @@ typedef struct {
 
 /*! structure defining an EngineData structure */
 typedef struct {
+   SUMA_ENGINE_CODE CommandCode; /*!< Code of command to be executed by SUMA_Engine function, 
+                                    this is the same as the _Dest fields for each variable type.
+                                    However, the _Dest fields are left as a way to make sure that
+                                    the user has correctly initialized EngineData for a certain command.*/
+   
+   void *Srcp; /*!< Pointer to data structure of the calling source, typically, a typecast version of SUMA_SurfaceViewer * */
+   SUMA_ENGINE_SOURCE Src; /*!< Source of command. This replaces the _Source fields in the older version of the structure */
+   
    float fv3[3]; /*!< Float vector, 3 values */
-   int fv3_Dest; /*!< float3 vector destination */
-   int fv3_Source; /*!< float3 vector source */
+   SUMA_ENGINE_CODE fv3_Dest; /*!<  float3 vector destination */
+   SUMA_ENGINE_SOURCE fv3_Source; /*!< OBSOLETE float3 vector source */
    
    int iv3[3];      /*!< Integer vector, 3 values */
-   int iv3_Dest;  /*!< Integer3 vector destination */
-   int iv3_Source;  /*!< Integer3 vector source */
+   SUMA_ENGINE_CODE iv3_Dest;  /*!<  Integer3 vector destination */
+   SUMA_ENGINE_SOURCE iv3_Source;  /*!<OBSOLETE  Integer3 vector source */
    
    float fv15[15]; /*!< Float vector, 15 values */
-   int fv15_Dest; /*!< float15 vector destination */
-   int fv15_Source; /*!< float15 vector source */
+   SUMA_ENGINE_CODE fv15_Dest; /*!<  float15 vector destination */
+   SUMA_ENGINE_SOURCE fv15_Source; /*!< OBSOLETE float15 vector source */
    
-   float iv15[15];/*!< Integer vector, 15 values */
-   int iv15_Dest;/*!< Integer15 vector destination */
-   int iv15_Source; /*!< Integer15 vector source */
+   int iv15[15];/*!< Integer vector, 15 values */
+   SUMA_ENGINE_CODE iv15_Dest;/*!<  Integer15 vector destination */
+   SUMA_ENGINE_SOURCE iv15_Source; /*!< OBSOLETE Integer15 vector source */
    
    int i;      /*!< integer */
-   int i_Dest;   /*!< integer destination */
-   int i_Source; /*!< integer source */
+   SUMA_ENGINE_CODE i_Dest;   /*!<  integer destination */
+   SUMA_ENGINE_SOURCE i_Source; /*!< OBSOLETE integer source */
    
    float f; /*!< float, ingenious ain't it! */
-   int f_Dest; /*!< float destination */
-   int f_Source; /*!< float source */
+   SUMA_ENGINE_CODE f_Dest; /*!<  float destination */
+   SUMA_ENGINE_SOURCE f_Source; /*!< OBSOLETE float source */
    
    char s[SUMA_MAX_STRING_LENGTH]; /*!< string */
-   int s_Dest; /*!< string destination */
-   int s_Source; /*!< string source */
+   SUMA_ENGINE_CODE s_Dest; /*!<  string destination */
+   SUMA_ENGINE_SOURCE s_Source; /*!< OBSOLETE string source */
+   
+   int *ip; /*!< integer pointer */
+   SUMA_ENGINE_CODE ip_Dest; /*!<  integer pointer destination */
+   
+   float *fp; /*!< float pointer */
+   SUMA_ENGINE_CODE fp_Dest; /*!< float pointer destination */
+   
+   char *cp; /*!< char pointer */
+   SUMA_ENGINE_CODE cp_Dest; /*!< character pointer destination */
    
    float **fm; /*!< float matrix pointer */
    SUMA_Boolean fm_LocalAlloc; /*!< Locally allocated matrix pointer ? (if it is then it is freed in SUMA_ReleaseEngineData ) */
-   int fm_Dest; /*!< destination of fm */
-   int fm_Source; /*!< source of fm*/
+   SUMA_ENGINE_CODE fm_Dest; /*!<  destination of fm */
+   SUMA_ENGINE_SOURCE fm_Source; /*!< OBSOLETE source of fm*/
    
    int **im; /*!< Same dance as fm but for integers */
    SUMA_Boolean im_LocalAlloc;
-   int im_Dest;
-   int im_Source; /*!< source of im */
+   SUMA_ENGINE_CODE im_Dest; /*!<  destination of im */
+   SUMA_ENGINE_SOURCE im_Source; /*!< OBSOLETE source of im */
    
    void *vp; /*!< pointer to void */
-   int vp_Dest; /*!< destination of fm */
-   int vp_Source; /*!< source of fm*/
+   SUMA_ENGINE_CODE vp_Dest; /*!<  destination of fm */
+   SUMA_ENGINE_SOURCE vp_Source; /*!< OBSOLETE source of fm*/
    
-   int N_rows;
-   int N_cols;
+   int N_rows; /*!< Number of rows in fm or im */
+   int N_cols; /*!< Number of colums in fm or im */
    
 } SUMA_EngineData;
+
  
-/*! structure defininf an axis object */
+/*! structure defining an axis object */
 typedef struct {
    GLfloat XaxisColor[4] ;
    GLfloat YaxisColor[4] ;
@@ -812,6 +890,8 @@ typedef struct {
    SUMA_INODE **Overlays_Inode; /*!< vector of pointers to Inodes corresponding to each Overlays struct */
    int N_Overlays; /*!< number of pointers to overlay structures */
    
+   SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface controller widget structure */
+
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
@@ -900,8 +980,8 @@ typedef struct {
                      not be sent to AFNI again as would be the case if the stream 
                      was completely closed */
    SUMA_Boolean Connected; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI */
-   int Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] = YUP are locked together */   
-   
+   SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] != SUMA_No_Lock have their cross hair locked together */   
+   SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
    SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
 } SUMA_CommonFields;

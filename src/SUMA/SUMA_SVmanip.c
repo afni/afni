@@ -198,7 +198,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->REDISPLAYPENDING = 0;
       SV->X->DOUBLEBUFFER = True;
       SV->X->WIDTH = SV->X->HEIGHT = 300; /* if you change this, make sure you do so for fallbackResources in SUMA_display */
-      SV->X->ViewCont = NULL;
+      SV->X->ViewCont = SUMA_CreateViewContStruct();
       
       SV->Focus_SO_ID = -1;
       SV->Focus_DO_ID = -1;
@@ -236,6 +236,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
+   if (SV->X->ViewCont) SUMA_FreeViewContStruct(SV->X->ViewCont);
    if (SV->X) SUMA_free(SV->X);
    if (SV->ShowDO) SUMA_free(SV->ShowDO);
    if (SV->VSv) {
@@ -1104,6 +1105,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->Connected = NOPE;
    for (i=0; i<SUMA_MAX_SURF_VIEWERS; ++i) {
       cf->Locked[i] = SUMA_I_Lock;
+      cf->ViewLocked[i] = NOPE;
    }
    
    cf->SwapButtons_1_3 = SUMA_SWAP_BUTTONS_1_3;
@@ -1113,12 +1115,159 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
      fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
      SUMA_RETURN (NULL); 
    }
-   cf->X->SumaCont = NULL;
+   cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DPY_controller1 = NULL;
+   cf->X->X_Resources = SXR_NP;
    
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    return (cf);
 
+}
+
+/*!
+\brief creates the structure for storing the radio buttons used to control viewer locking
+   Do not use CommonFields structure here.
+
+*/ 
+SUMA_rb_group *SUMA_CreateLock_rbg (int N_rb_group, int N_but) 
+{
+   static char FuncName[]={"SUMA_CreateLock_rbg"};
+   SUMA_rb_group *Lock_rb;
+
+   Lock_rb = (SUMA_rb_group *) malloc(sizeof(SUMA_rb_group));
+   if (!Lock_rb) { 
+      fprintf (SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
+      return(NULL);
+   }
+   Lock_rb->N_rb_group = N_rb_group;
+   Lock_rb->N_but = N_but;
+   Lock_rb->tb = (Widget *) calloc(N_rb_group*N_but, sizeof(Widget));
+   Lock_rb->rb = (Widget *) calloc(N_rb_group, sizeof(Widget));
+   Lock_rb->atb = (Widget *) calloc(N_but, sizeof(Widget));
+   Lock_rb->arb = NULL;
+   if (!Lock_rb->tb || !Lock_rb->rb || !Lock_rb->atb) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
+      return(NULL);
+   }
+   return(Lock_rb);
+
+}
+
+/*!
+   free SUMA_rb_group *
+   Do not use CommonFields structure here.
+*/
+void * SUMA_FreeLock_rbg (SUMA_rb_group *Lock_rb)
+{
+  static char FuncName[]={"SUMA_FreeLock_rb"};
+  
+  if (Lock_rb->rb) free(Lock_rb->rb);
+  if (Lock_rb->tb) free(Lock_rb->tb);
+  if (Lock_rb->atb) free (Lock_rb->atb);
+  if (Lock_rb) free(Lock_rb);
+
+  return (NULL);
+}
+
+/*!
+   \brief SumaCont = SUMA_CreateSumaContStruct();
+   allocates and initializes structure of type SUMA_X_SumaCont
+   \return SUMA_X_SumaCont *
+   
+*/
+SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void) 
+{
+   static char FuncName[]={"SUMA_CreateSumaContStruct"};
+   SUMA_X_SumaCont *SumaCont = NULL;
+   /* do not use commonfields related stuff here for obvious reasons */
+   SumaCont = (SUMA_X_SumaCont *)malloc(sizeof(SUMA_X_SumaCont));
+   SumaCont->AppShell = NULL;
+   SumaCont->quit_pb = NULL;
+   SumaCont->quit_first = YUP;
+   SumaCont->Lock_rbg = SUMA_CreateLock_rbg (SUMA_MAX_SURF_VIEWERS, 3);
+   if (!SumaCont->Lock_rbg) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateLock_rb.\n", FuncName);
+      return (NULL);
+   }
+   SumaCont->LockView_tbg = (Widget *)calloc (SUMA_MAX_SURF_VIEWERS, sizeof(Widget));
+   SumaCont->LockAllView_tb = NULL;
+   
+   return (SumaCont);
+}
+
+/*!
+   \brief frees structure SUMA_X_SumaCont, returns null
+   
+*/
+void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont)
+{
+   static char FuncName[]={"SUMA_FreeSumaContStruct"};
+
+   /* do not use commonfields related stuff here for obvious reasons */
+   if (SumaCont->Lock_rbg) SUMA_FreeLock_rbg (SumaCont->Lock_rbg);
+   if (SumaCont->LockView_tbg) free (SumaCont->LockView_tbg);
+   if (SumaCont) free(SumaCont);
+   return (NULL);
+}
+
+/*!
+   \brief ViewCont = SUMA_CreateViewContStruct();
+   allocates and initializes structure of type SUMA_X_ViewCont
+   \return SUMA_X_ViewCont *
+   
+*/
+SUMA_X_ViewCont *SUMA_CreateViewContStruct (void) 
+{
+   static char FuncName[]={"SUMA_CreateViewContStruct"};
+   SUMA_X_ViewCont *ViewCont = NULL;
+   /* do not use commonfields related stuff here for obvious reasons */
+   ViewCont = (SUMA_X_ViewCont *)malloc(sizeof(SUMA_X_ViewCont));
+   ViewCont->TopLevelShell = NULL;
+   
+   return (ViewCont);
+}
+
+/*!
+   \brief frees structure SUMA_X_ViewCont, returns null
+   
+*/
+void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont)
+{
+   static char FuncName[]={"SUMA_FreeViewContStruct"};
+
+   /* do not use commonfields related stuff here for obvious reasons */
+   if (ViewCont) free(ViewCont);
+   return (NULL);
+}
+
+/*!
+   \brief SurfCont = SUMA_CreateSurfContStruct();
+   allocates and initializes structure of type SUMA_X_SurfCont
+   \return SUMA_X_SurfCont *
+   
+*/
+SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void) 
+{
+   static char FuncName[]={"SUMA_CreateSurfContStruct"};
+   SUMA_X_SurfCont *SurfCont = NULL;
+   /* do not use commonfields related stuff here for obvious reasons */
+   SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
+   SurfCont->TopLevelShell = NULL;
+   
+   return (SurfCont);
+}
+
+/*!
+   \brief frees structure SUMA_X_SurfCont, returns null
+   
+*/
+void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
+{
+   static char FuncName[]={"SUMA_FreeSurfContStruct"};
+
+   /* do not use commonfields related stuff here for obvious reasons */
+   if (SurfCont) free(SurfCont);
+   return (NULL);
 }
 
 /*! free SUMA_CommonFields */
@@ -1129,6 +1278,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    /* do not use commonfields related stuff here for obvious reasons */
    
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
+   if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X) free(cf->X);
    if (cf) free(cf);
    
@@ -1354,8 +1504,8 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    SUMA_EyeAxisStandard ((SUMA_Axis *)DOv[EyeAxis_ID].OP, cSV);
 
 
-   /* Set the index Current SO pointer to the first object read, tiz a surface of course*/
-   cSV->Focus_SO_ID = 0;
+   /* Set the index Current SO pointer to the first surface object read of the first state, tiz NOT (Fri Jan 31 15:18:49 EST 2003) a surface of course*/
+   cSV->Focus_SO_ID = cSV->VSv[0].MembSOs[0];
 
 
    /* if surface is SureFit, flip lights */

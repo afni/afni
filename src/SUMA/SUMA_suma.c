@@ -90,6 +90,10 @@ int main (int argc,char *argv[])
 	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
 	SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
+   SUMA_EngineData *ED= NULL;
+   DList *list = NULL;
+   DListElmt *Element= NULL;
+   int iv15[15], N_iv15;
    SUMA_Boolean LocalHead = YUP;
     
    if (argc < 3)
@@ -206,25 +210,6 @@ int main (int argc,char *argv[])
 		exit (1);
 	}
 	
-	/* load the specs file and the specified surfaces*/
-		/* Load The spec file */
-		if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
-			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-			exit(1);
-		}	
-
-		/* make sure only one group was read in */
-		if (Spec.N_Groups != 1) {
-			fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
-			exit(1);
-		}
-		
-		/* load the surfaces specified in the specs file, one by one*/			
-		if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
-			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
-			exit(1);
-		}
-	
 	/* create an Eye Axis DO */
 	EyeAxis = SUMA_Alloc_Axis ("Eye Axis");
 	if (EyeAxis == NULL) {
@@ -246,6 +231,77 @@ int main (int argc,char *argv[])
 	/* Check on initialization */
 	/*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
 
+	/* Create the Surface Viewer Window */
+	if (!SUMA_X_SurfaceViewer_Create ()) {
+		fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
+		return 1;
+	}
+   
+	#if 1
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_Load_Group);
+   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_cp, (void *)specfilename, 
+                                          SES_Suma, NULL, NOPE, 
+                                          SEI_Head, NULL ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_vp, (void *)VolParName, 
+                                          SES_Suma, NULL, NOPE, 
+                                          SEI_In, Element ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   
+   N_iv15 = SUMA_MAX_SURF_VIEWERS;
+   if (N_iv15 > 15) {
+      fprintf(SUMA_STDERR,"Error %s: trying to register more than 15 viewers!\n", FuncName);
+      exit(1);
+   }
+   for (kar=0; kar<N_iv15; ++kar) iv15[kar] = kar;
+   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv15, (void *)iv15, 
+                                          SES_Suma, NULL, NOPE, 
+                                          SEI_In, Element ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   
+   if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void *)&N_iv15, 
+                                          SES_Suma, NULL, NOPE, 
+                                          SEI_In, Element ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
+      exit (1);
+   }
+   #else
+   /* load the specs file and the specified surfaces*/
+		/* Load The spec file */
+		if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
+			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+			exit(1);
+		}	
+
+		/* make sure only one group was read in */
+		if (Spec.N_Groups != 1) {
+			fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
+			exit(1);
+		}
+		
+		/* load the surfaces specified in the specs file, one by one*/			
+		if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
+			exit(1);
+		}
+	
 	/* Register the surfaces in Spec file with the surface viewer and perform setups */
 	for (kar = 0; kar < SUMA_MAX_SURF_VIEWERS; ++kar) {
 		if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[kar])) {
@@ -254,11 +310,30 @@ int main (int argc,char *argv[])
 		}
 	}
 	
-	/* Create the Surface Viewer Window */
-	if (!SUMA_X_SurfaceViewer_Create ()) {
-		fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
-		return 1;
-	}
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_Home);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_Empty, NULL, 
+                                          SES_Afni, (void*)&SUMAg_SVv[0], NOPE, 
+                                          SEI_Tail, NULL )) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   ED = SUMA_InitializeEngineListData (SE_Redisplay);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_Empty, NULL, 
+                                          SES_Afni, (void*)&SUMAg_SVv[0], NOPE, 
+                                          SEI_Tail, NULL )) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      exit (1);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
+      exit (1);
+   }
+   
+   #endif
 
 	/*Main loop */
 	XtAppMainLoop(SUMAg_CF->X->App);

@@ -16,27 +16,42 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
 /*!
-This is the function that runs the viewers. 
-It acts on the viewer that sv points to
-To add a new command:
-include it SUMA_define.h in SUMA_ENGINE_CODE's typedef
-include it in SUMA_ParseCommands.c, SUMA_CommandCode function 
+   \brief This is the function that runs the viewers. 
+   success = SUMA_Engine (listp);
+   
+   \param listp (DList **) pointer to doubly linked list pointer containing Engine commands
+   
+   \return success (YUP/NOPE)
+   
+   - *listp is destroyed just before SUMA_Engine returns and *listp is set to null
+   - To add a new command:
+   include it SUMA_define.h in SUMA_ENGINE_CODE's typedef
+   include it in SUMA_ParseCommands.c, SUMA_CommandCode, SUMA_CommandString functions 
+   - OLD Format: SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_SurfaceViewer *sv)
+      
 */
 
-SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_Engine (DList **listp)
 {
-   char NextCom[SUMA_MAX_COMMAND_LENGTH], tmpcom[SUMA_MAX_COMMAND_LENGTH], ssource[100], sfield[100], sdestination[100];
+   char tmpcom[SUMA_MAX_COMMAND_LENGTH], sfield[100], sdestination[100];
+   const char *NextCom;
    static char FuncName[]={"SUMA_Engine"};
    int NextComCode, ii, i, id, ND, ip, NP;
-   SUMA_SurfaceObject *SO;
+   SUMA_SurfaceObject *SO = NULL;
    float delta_t;
    struct  timeval tt;
    int it, Wait_tot, nn=0, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
-   SUMA_Boolean Found, LocalHead = NOPE;
+   SUMA_Boolean Found, LocalHead = YUP;
    SUMA_SurfaceViewer *svi;
+   SUMA_SurfaceViewer *sv = NULL;
+   static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
+   SUMA_EngineData *EngineData=NULL, *ED = NULL; /* EngineData is what get passed from a list element, 
+                                                   ED is what gets added to the list inside SUMA_Engine */ 
+   DListElmt *NextElem;
+   DList *list= NULL;
    
    /*int iv3[3], iv15[15], **im;
    float fv3[3];
@@ -44,27 +59,127 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
    
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   NextComCode = SUMA_GetNextCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, NextCom);
-   if (!NextComCode) {
-      fprintf (stderr, "%s Error: executing SUMA_GetNextCommand\n", FuncName);
+   
+   list = *listp; /* listp is now passed instead of list so that I can set list to NULL from within this function */
+   
+   if (!list) {
+      fprintf (SUMA_STDERR, "Error %s: Nothing to do.\n", FuncName);
       SUMA_RETURN (NOPE);
-   } 
+   }
    
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: ", FuncName);
-   while (NextComCode) {/* cycle through NextComs */
-      if (LocalHead) fprintf (SUMA_STDOUT,"->%s<-\t", NextCom);
+   while (list->size) {/* cycle through NextComs */
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Fetching next element\n", FuncName);
+     /* get the next command from the head of the list */
+      NextElem = dlist_head(list);
+      EngineData = (SUMA_EngineData *)NextElem->data;
+      
+      /* decide on what Srcp might be. Currently only sv is passed when the source is Suma*/
+      sv = NULL;
+      switch (EngineData->Src) {
+         case SES_Suma: 
+         case SES_SumaFromAfni:
+         case SES_SumaWidget:
+         case SES_SumaFromAny:
+            sv = (SUMA_SurfaceViewer *)EngineData->Srcp;
+         case SES_Afni:
+            break;
+         default:  
+      } 
+      
+      NextComCode = EngineData->CommandCode;
+      if (!NextComCode) {
+         fprintf (stderr, "%s Error: Bad next element code\n", FuncName);
+         SUMA_RETURN (NOPE);
+      } 
+      NextCom = SUMA_CommandString (NextComCode);
+      if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_Load_Group:
+            /* Does not need an sv 
+               expects  a pointer to .spec filename in cp, 
+                        a VolumeParent name in vp,
+                        the indices of the viewers to register the surfaces with in iv15. 
+                        and the number of viewers specified in iv15 in i.
+                        Surfaces are registered with all i viewers in iv15*/
+            
+            if (EngineData->cp_Dest != NextComCode || EngineData->vp_Dest != NextComCode 
+               || EngineData->iv15_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d\n", \
+                  FuncName, NextCom, NextComCode, EngineData->cp_Dest, EngineData->vp_Dest, 
+                  EngineData->iv15_Dest, EngineData->i_Dest);
+               break;
+            } 
+            {
+     		      SUMA_SurfSpecFile Spec;   
+               char *VolParName = NULL, *specfilename = NULL;
+               
+               VolParName = (char *)EngineData->vp;
+               specfilename = EngineData->cp;
+               
+               
+               /* Load The spec file */
+		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
+               if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
+			         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+			         break;
+		         }	
+
+		         /* make sure only one group was read in */
+		         if (Spec.N_Groups != 1) {
+			         fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
+			         break;
+		         }
+
+		         /* load the surfaces specified in the specs file, one by one*/			
+		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
+		         if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
+			         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
+			         break;
+		         }
+
+	            /* Register the surfaces in Spec file with the surface viewer and perform setups */
+	            if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
+               for (ii = 0; ii < EngineData->i; ++ii) {
+		            if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[EngineData->iv15[ii]])) {
+			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
+			            break;
+		            }
+	            }
+
+               if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding call to Home and Redisplay \n", FuncName);
+               /* add a call to Home and a redisplay */
+               if (!list) {
+                  if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new list.\n", FuncName);
+                  list = SUMA_CreateList();
+               }
+               ED = SUMA_InitializeEngineListData (SE_Home_AllVisible);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_Empty, NULL, 
+                                                      SES_Afni, NULL, NOPE, 
+                                                      SEI_Tail, NULL )) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  break;
+               }
+               ED = SUMA_InitializeEngineListData (SE_Redisplay_AllVisible);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_Empty, NULL, 
+                                                      SES_Afni, NULL, NOPE, 
+                                                      SEI_Tail, NULL )) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  break;
+               }
+   
+            }
+            if (LocalHead) fprintf (SUMA_STDERR, "%s: Done in SE_Load_Spec.\n", FuncName);
+            break;
+            
          case SE_SetLookAt:
             /* expects a center XYZ in EngineData->fv3[0 .. 2] */
-            /* Double check on Data destination */
             if (EngineData->fv3_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
-            /* save the calling source */
-            SUMA_EngineSourceString (ssource, EngineData->fv15_Dest);
-
+            }
             /* calculate the transform required to bring the new look at location to the current one */
             {
                float ulook_old[3], ulook_new[3];
@@ -95,39 +210,37 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_FromToRotation.\n",FuncName);
                      break;
                   }
-                  /* Register m with EngineData and send it to SetRotMatrix */
-                  sprintf(sfield,"fm");
-                  sprintf(sdestination,"SetRotMatrix");
-                  EngineData->N_cols = 4;
-                  EngineData->N_rows = 4;
-                  if (!SUMA_RegisterEngineData (EngineData, sfield, (void *)fm, sdestination, ssource, NOPE)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                  
+                  /* add a SetRotMatrix to list*/
+                  ED = SUMA_InitializeEngineListData (SE_SetRotMatrix);
+                  ED->N_cols = 4;
+                  ED->N_rows = 4;
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_fm, (void *)fm, 
+                                                         EngineData->Src, EngineData->Srcp, NOPE, 
+                                                         SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                      break;
                   }
-                  /* register a call to SetRotMatrix */
-                  #if 0
-                     /* you can simply add the command to the queue here, you must force SUMA to execute */
-                     sprintf(tmpcom,"Redisplay|SetRotMatrix");
-                     SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
-                  #else
-                     /* you want to set the Rotation Matrix but not you redisplay call should be to ReidsplayNow
-                     If you use Redisplay instead, you will not see the motion because all the calls will be rendered
-                     once */
-                     sprintf(tmpcom,"RedisplayNow|SetRotMatrix~");
-                     if (!SUMA_Engine (tmpcom, EngineData, sv)) {
-                        fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-                     }  
-                     /* free fm for next call */         
-                     if (!SUMA_ReleaseEngineData (EngineData, sdestination)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to Release EngineData \n", FuncName);
-                     }
-                  #endif
+                                    
+                  /* add a redisplay call */
+                  ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_Empty, NULL, 
+                                                         EngineData->Src, EngineData->Srcp, NOPE, 
+                                                         SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                     break;
+                  }
+                  
                }
+               /* fm was copied into engine data, free it */
                SUMA_free2D((char **)fm, 4);
             }
             break;
          
          case SE_ToggleConnected:
+               /* expects nothing in EngineData */
                if (!SUMA_CanTalkToAfni (SUMAg_DOv, SUMAg_N_DOv)) {
                   fprintf(SUMA_STDOUT,"%s: Cannot connect to AFNI.\n\tNot one of the surfaces is mappable and has a Surface Volume.\n\tDid you use the -sv option when launching SUMA ?\n", FuncName);
                   break;
@@ -181,8 +294,11 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 
                   /* register a call for sending the surface to afni (SetAfniSurf)*/
                   if (LocalHead) fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
-                  sprintf(tmpcom,"SetAfniSurf");
-                  SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);/* form surface nel */
+                  ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
+                  SUMA_RegisterEngineListCommand (list, ED, 
+                                                   SEF_Empty, NULL,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL); 
                   break;
                } else {
                   fprintf(SUMA_STDOUT,"%s: Disconnecting from afni.\n", FuncName);
@@ -192,8 +308,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                   if (!SUMAg_CF->ns) {
                      /* It looks like the stream was closed, do the clean up */
                      fprintf(SUMA_STDERR,"Warning %s: sv->ns is null, stream must have gotten closed. Cleaning up ...\n", FuncName);
-                     sprintf(tmpcom,"CloseStream4All");
-                     SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
+                     ED = SUMA_InitializeEngineListData (SE_CloseStream4All);
+                     SUMA_RegisterEngineListCommand (list, ED, 
+                                                   SEF_Empty, NULL,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL); 
+                     
                      break;
                   }
                   
@@ -211,6 +331,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                }
    
          case SE_CloseStream4All:
+            /* expects nothing in EngineData */
+               
             /* odds are AFNI died or closed stream, mark all surfaces as unsent */
             for (ii=0; ii<SUMAg_N_DOv; ++ii) {
                if (SUMA_isSO(SUMAg_DOv[ii])) {
@@ -233,6 +355,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             
          case SE_SetForceAfniSurf:
+            /* expects nothing in EngineData */
             /* send to afni surfaces that can be sent even if they have been sent already */
             for (ii=0; ii<sv->N_DO; ++ii) {
                if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
@@ -242,11 +365,15 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             }
             
             /* proceed to SE_SetAfniSurf: */
-            sprintf(tmpcom,"SetAfniSurf");
-            SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);/* form surface nel */
+            ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
+            SUMA_RegisterEngineListCommand (list, ED, 
+                                            SEF_Empty, NULL,
+                                            SES_Suma, (void *)sv, NOPE,
+                                            SEI_Head, NULL); 
             break;
             
          case SE_SetAfniSurf:
+            /* expects nothing in EngineData */
             { int loc_ID;
             
             /* send to afni the list of inherently mappable surfaces and with a surface volume*/
@@ -318,12 +445,27 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             }
          case SE_ToggleShowSelectedNode:
-            for (ii=0; ii<sv->N_DO; ++ii) {
-               if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
-                  SO->ShowSelectedNode = !SO->ShowSelectedNode;
-                  fprintf(SUMA_STDOUT,"SO->ShowSelectedNode = %d\n", SO->ShowSelectedNode);
+            /* expects nothing in EngineData */
+            {
+               int CommonState = -1;
+               
+               for (ii=0; ii<sv->N_DO; ++ii) {
+                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+                     if (CommonState < 0) {
+                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+                        SO->ShowSelectedNode = !SO->ShowSelectedNode;
+                        CommonState = SO->ShowSelectedNode;
+                        fprintf(SUMA_STDOUT,"SO->ShowSelectedNode = %d\n", SO->ShowSelectedNode);
+                     } else {
+                        SO->ShowSelectedNode = CommonState;
+                     }
+                  }
+                
                }
+            
+            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewNodeInFocus], 
+                  CommonState, NOPE); 
+                
             }
             break;
          
@@ -335,17 +477,28 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
             SO->SelectedNode = EngineData->i;
+            
             break;
             
          case SE_ToggleShowSelectedFaceSet:
-            for (ii=0; ii<sv->N_DO; ++ii) {
-               if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
-                  SO->ShowSelectedFaceSet = !SO->ShowSelectedFaceSet;
-                  fprintf(SUMA_STDOUT,"SO->ShowSelectedFaceSet = %d\n", \
-                     SO->ShowSelectedFaceSet);
+            /* expects nothing ! */
+            { int CommonState = -1;
+               for (ii=0; ii<sv->N_DO; ++ii) {
+                  if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+                     if (CommonState < 0) { /* first surface, set the common state */
+                        SO->ShowSelectedFaceSet = !SO->ShowSelectedFaceSet;
+                        CommonState = SO->ShowSelectedFaceSet;
+                        fprintf(SUMA_STDOUT,"SO->ShowSelectedFaceSet = %d\n", \
+                           SO->ShowSelectedFaceSet);
+                      }else {
+                        SO->ShowSelectedFaceSet = CommonState;
+                     }
+                  }
                }
-            }
+            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewSelectedFaceset], 
+                  CommonState, NOPE);  
+            }          
             break;
          
          case SE_SetSelectedFaceSet:
@@ -378,8 +531,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             
          case SE_ToggleCrossHair:
+            /* expects nothing in EngineData */
             sv->ShowCrossHair = !sv->ShowCrossHair;
-            XmToggleButtonSetState (sv->X->ToggleCrossHair_View_tglbtn, 
+            XmToggleButtonSetState (sv->X->ViewMenu[SW_ViewCrossHair], 
                sv->ShowCrossHair, NOPE);            
             break;
             
@@ -388,7 +542,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (EngineData->fv3_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
+            }
             sv->Ch->c[0] = EngineData->fv3[0]; sv->Ch->c[1]= EngineData->fv3[1]; sv->Ch->c[2]= EngineData->fv3[2];
             break;
          
@@ -397,13 +551,90 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (EngineData->iv3_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
+            }
             sv->Ch->SurfaceID = EngineData->iv3[0];
             sv->Ch->NodeID = EngineData->iv3[1];
             
             break;
          
+         case SE_ToggleLockView:
+            /* expects index of viewer in i to toggle its lock view */
+            /* toggles the lock view button */
+            if (EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            }
+            SUMAg_CF->ViewLocked[EngineData->i] = !SUMAg_CF->ViewLocked[EngineData->i];
+            /* update button if needed*/
+            if (EngineData->Src != SES_SumaWidget) {
+               XmToggleButtonSetState (SUMAg_CF->X->SumaCont->LockView_tbg[EngineData->i], SUMAg_CF->ViewLocked[EngineData->i], NOPE);
+            }
+            
+            /* call function to update the AllLock button */
+            SUMA_set_LockView_atb ();
+            
+            break;
+         
+         case SE_ToggleLockAllViews:
+            /* expects nothing, toggles all locked view buttons */
+            
+            /* get the current value of the button */
+            {
+               SUMA_Boolean CurState;
+               CurState = XmToggleButtonGetState (SUMAg_CF->X->SumaCont->LockAllView_tb);
+               for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) { /* set all buttons accrodingly */
+                  XmToggleButtonSetState (SUMAg_CF->X->SumaCont->LockView_tbg[ii], CurState, NOPE);
+                  SUMAg_CF->ViewLocked[ii] = CurState;
+               }
+            }
+            break;
+         
+         case SE_ToggleLockAllCrossHair:
+            /* expects nothing, toggles cross hair lock for all viewers */
+            {
+               char LockName[100];
+               SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
+               fprintf (SUMA_STDERR,"%s: Switching Locktype from %s", FuncName, LockName);
+               /* change the locking type of viewer 0 */
+               SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, SUMA_N_Lock_Types);
+               SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
+               fprintf (SUMA_STDERR," %s\n", LockName);
+               /* update the widget */
+               SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, 0, SUMAg_CF->Locked[0]);
+               /* Change the locking type of all remaining viewers, including unopen ones */
+               for (ii=1; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
+                  SUMAg_CF->Locked[ii] = SUMAg_CF->Locked[0];                  
+                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, SUMAg_CF->Locked[ii]);
+               }
+
+               /* now update the all lock keys */
+               SUMA_set_Lock_arb (SUMAg_CF->X->SumaCont->Lock_rbg);
+
+            }
+            break;
+         
+         case SE_SetLockAllCrossHair:
+            /* expects a Lock value in i , sets the lock of all viewers */
+            if (EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            }
+            {
+               
+               /* Change the locking type of all remaining viewers, including unopen ones */
+               for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
+                  SUMAg_CF->Locked[ii] = EngineData->i;                  
+                  SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, ii, SUMAg_CF->Locked[ii]);
+               }
+
+               /* now update the all lock keys */
+               SUMA_set_Lock_arb (SUMAg_CF->X->SumaCont->Lock_rbg);
+            }
+            break;
+            
          case SE_LockCrossHair:
+            /* expects nothing in EngineData */
+
             /* calls other viewers and determine if the cross hair needs to be locked to the calling sv */
 
             /* check to see if other viewers need to share the fate */
@@ -416,10 +647,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                for (i=0; i < SUMAg_N_SVv; ++i) {
                   svi = &SUMAg_SVv[i];
                   if (i != ii) {
-                     switch (SUMAg_CF->Locked[ii]) { 
+                     switch (SUMAg_CF->Locked[i]) { 
                         case SUMA_No_Lock:
+                           if (LocalHead) fprintf (SUMA_STDERR, "%s: No lock for viewer %d.\n", FuncName, i);
                            break;
                         case SUMA_XYZ_Lock:
+                           if (LocalHead) fprintf (SUMA_STDERR, "%s: Try to XYZ lock viewer %d.\n", FuncName, i);
                            /* just set the XYZ, and free the binding to the surfaces */
                            svi->Ch->c[0] = sv->Ch->c[0];
                            svi->Ch->c[1] = sv->Ch->c[1];
@@ -433,6 +666,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                         case SUMA_I_Lock: 
                            {
                               SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
+                              
+                              if (LocalHead) fprintf (SUMA_STDERR, "%s: Try to I lock viewer %d to node %d.\n", FuncName, i, sv->Ch->NodeID);
                               
                               /* determine the list of shown surfaces */
                               N_SOlist = SUMA_ShownSOs(svi, SUMAg_DOv, SOlist);
@@ -459,10 +694,13 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                                     }else{
                                        svi->Ch->NodeID = sv->Ch->NodeID;
                                     }
+                                    
                                     /* set the XYZ */
                                     svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID];
                                     svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+1];
                                     svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+2];
+                                    fprintf (SUMA_STDERR,"%s: new XYZ %f %f %f\n", FuncName, 
+                                       svi->Ch->c[0], svi->Ch->c[1], svi->Ch->c[2]); 
                                     Found = YUP;
                                  }
                                  ++it;
@@ -490,6 +728,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
                         
          case SE_SetAfniCrossHair:
+            /* expects nothing in EngineData */
             /* sends the current cross hair to afni */
             /* form nel */
             nel = SUMA_makeNI_CrossHair (sv);
@@ -566,6 +805,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
 
          case SE_Redisplay_AllVisible:
+            /* expects nothing in EngineData */
             /* post a redisplay to all visible viewers */
             for (ii=0; ii<SUMAg_N_SVv; ++ii) {
                if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
@@ -580,6 +820,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             
          case SE_Redisplay:
+            /* expects nothing in EngineData */
             /*post a redisplay to one specific viewer*/
             if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplay ...", FuncName);
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -587,6 +828,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
          
          case SE_RedisplayNow:
+            /* expects nothing in EngineData */
             /*call handle redisplay immediately to one specific viewer*/
             if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplaying NOW ...", FuncName);
             SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
@@ -608,6 +850,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             
          case SE_ToggleForeground:
+            /* expects nothing in EngineData */
             /* Show/hide the foreground */
             sv->ShowForeground = !sv->ShowForeground;
             if (!sv->ShowForeground) {
@@ -623,6 +866,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
          
          case SE_ToggleBackground:
+            /* expects nothing in EngineData */
             /* Show/hide the background */
             sv->ShowBackground = !sv->ShowBackground;
             if (!sv->ShowBackground) {
@@ -638,6 +882,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
                      
          case SE_Home:
+            /* expects nothing in EngineData, needs sv */
             sv->GVS[sv->StdView].translateVec[0]=0; sv->GVS[sv->StdView].translateVec[1]=0;
             glMatrixMode(GL_PROJECTION);
             /* sv->FOV[sv->iState] = FOV_INITIAL;   *//* Now done in SE_FOVreset *//* reset the zooming */
@@ -653,7 +898,24 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
             break;
          
+         case SE_Home_AllVisible:
+            /* expects nothing in EngineData, needs no sv */
+            {
+               for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+                  if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+                     /* you must check for both conditions because by default 
+                     all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+                     if (LocalHead) fprintf (SUMA_STDERR,"%s: Home call viewer %d.\n", FuncName, ii);
+                     if (!list) list= SUMA_CreateList();
+                     SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, &SUMAg_SVv[ii]);
+                  }
+               }
+            }
+            break;
+         
          case SE_FOVreset:
+            /* expects nothing in EngineData */
             sv->FOV[sv->iState] = FOV_INITIAL;   /* reset the zooming */
             break;
             
@@ -663,7 +925,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (EngineData->fm_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
+            }
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
             {
                GLfloat *glar_ColorList;
@@ -683,6 +945,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
             
          case SE_FlipLight0Pos:
+            /* expects nothing in EngineData */
             sv->light0_position[2] *= -1;
             glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
             break;
@@ -694,9 +957,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (EngineData->fv15_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
-            /* save the calling source */
-            SUMA_EngineSourceString (ssource, EngineData->fv15_Dest);
+            }
             {
                SUMA_ISINBOX IB;
                
@@ -726,40 +987,40 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                      EngineData->fv15[5] = SO->NodeNormList[id+2];
                   #endif
                   /* Color the nodes*/
-                     fm = (float **)SUMA_allocate2D(IB.nIsIn, 4, sizeof(float));
-                     if (fm == NULL) {
-                        fprintf(SUMA_STDERR,"Error %s: Could not allocate for fm.\n", FuncName);
-                        break;
-                     }
-                     for (i=0; i < IB.nIsIn; ++i) {
-                         /* id = ND * IB.IsIn[i]; */
-                         /*fprintf (SUMA_STDOUT,"\t[%d] %f %f %f\n", IB.IsIn[i] ,\
-                                      SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);*/
-                        /* color those nodes in yellow, just for kicks */
-                        fm[i][0] = (float)IB.IsIn[i];
-                        fm[i][1] = 0; 
-                        fm[i][2] = 0.4;
-                        fm[i][3] = 0.4; 
-                     }
-                     /* register fm with EngineData */
-                     sprintf(sfield,"fm");
-                     sprintf(sdestination,"SetNodeColor");
-                     EngineData->N_cols = 4;
-                     EngineData->N_rows = IB.nIsIn;
-                     if (!SUMA_RegisterEngineData (EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                        break;
-                     }
+                  fm = (float **)SUMA_allocate2D(IB.nIsIn, 4, sizeof(float));
+                  if (fm == NULL) {
+                     fprintf(SUMA_STDERR,"Error %s: Could not allocate for fm.\n", FuncName);
+                     break;
+                  }
+                  for (i=0; i < IB.nIsIn; ++i) {
+                      /* id = ND * IB.IsIn[i]; */
+                      /*fprintf (SUMA_STDOUT,"\t[%d] %f %f %f\n", IB.IsIn[i] ,\
+                                   SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);*/
+                     /* color those nodes in yellow, just for kicks */
+                     fm[i][0] = (float)IB.IsIn[i];
+                     fm[i][1] = 0; 
+                     fm[i][2] = 0.4;
+                     fm[i][3] = 0.4; 
+                  }
 
-                     /* add and place a call to SE_SetNodeColor */
-                     sprintf(tmpcom,"Redisplay|SetNodeColor");
-                     SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
-                     if (!SUMA_Engine (Command, EngineData, sv)) {
-                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                        break;
-                     }
-                  
-                  /* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
+                  /* Place a call to Redisplay and SetNodeColor */
+                  ED = SUMA_InitializeEngineListData (SE_SetNodeColor);
+                  ED->N_cols = 4;
+                  ED->N_rows = IB.nIsIn;
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_fm, (void*)fm,
+                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;                                      
+                  } 
+                  ED = SUMA_InitializeEngineListData (SE_Redisplay);
+                  SUMA_RegisterEngineListCommand (  list, ED, 
+                                                    SEF_Empty, NULL,
+                                                    SES_Suma, (void *)sv, NOPE, 
+                                                    SEI_Head, NULL);
+
+                  /* free fm since it was copied to EngineData*/
                   if (fm) SUMA_free2D ((char **)fm, IB.nIsIn);
                   
                   /* get ridd of IB's vectors */
@@ -780,7 +1041,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             if (EngineData->fv15_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
+            }
             {
                SUMA_ISINBOX IB;
                
@@ -791,14 +1052,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                delta_t = SUMA_etime (&tt, 1);
                fprintf (SUMA_STDOUT,"Elapsed time for isinbox operation: %f\n", delta_t);
                fprintf (SUMA_STDOUT,"\t%d nodes (out of %d) found in box\n",IB.nIsIn, SO->N_Node);
-               /* save the calling source */
-               SUMA_EngineSourceString (ssource, EngineData->fv15_Dest);
-               /* release fv15 since it will be reused below*/
-               if (!SUMA_ReleaseEngineData (EngineData, NextCom)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to release fv15.\n", FuncName);
-                  break;
-               }
-
+               
                if (IB.nIsIn) { /* found some, find the closest node */
                   /* locate the closest node and store it's id in EngineData*/
                   SUMA_MIN_LOC_VEC (IB.d, IB.nIsIn, ft, it);
@@ -811,18 +1065,16 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                   fv15[3] = SO->NodeNormList[id];
                   fv15[4] = SO->NodeNormList[id+1];
                   fv15[5] = SO->NodeNormList[id+2];
-                  /* register fv in EngineData */
-                     sprintf(sfield,"fv15");
-                     sprintf(sdestination,"SetLookAtNode");
-                     if (!SUMA_RegisterEngineData (EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                        break;
-                     }
-
-                  /* register a call to SetLookAtNode */
-                     sprintf(tmpcom,"SetLookAtNode");
-                     SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
-
+                  
+                  ED = SUMA_InitializeEngineListData (SE_SetLookAtNode);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                         SEF_fv15, (void *)fv15, 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_Head, NULL)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     break;
+                  }
+                  
                   /* get ridd of IB's vectors */
                   if (!SUMA_Free_IsInBox (&IB)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed to free IB\n", FuncName);
@@ -837,11 +1089,10 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             /* expects a rotation matrix in fm, 4x4 */
             /* takes the rotation matrix 3x3 with 0 in 4th row and column and 1.0 at 4,4 
             makes a quaternion from it and sets csv->currentQuat and posts redisplay */
-            /* Double check on Data destination */
             if (EngineData->fm_Dest != NextComCode) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
-            } 
+            }
             if (EngineData->N_rows != 4 || EngineData->N_cols != 4) {
                fprintf(SUMA_STDERR,"Error %s: fm must have 4 cols and 4 rows in SetRotMatrix\n", FuncName);
                break;
@@ -861,18 +1112,20 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
          
       } /* switch NextComCode */
-      /* release used EngineData */
-      if (EngineData) {
-         /*fprintf(SUMA_STDERR,"%s: Releasing Engine Data ...", FuncName);*/
-         if (!SUMA_ReleaseEngineData (EngineData, NextCom)) {
-            fprintf(SUMA_STDERR,"Error SUMA_Engine: Failed to Release EngineData \n");
+      
+      /* release used Element */
+      if (LocalHead) fprintf (SUMA_STDERR, "\n%s: Releasing Engine Element.\n", FuncName);
+      if (!SUMA_ReleaseEngineListElement (list, NextElem)) {
+            fprintf(SUMA_STDERR,"Error SUMA_Engine: Failed to Release element \n");
          }
-         /*fprintf(SUMA_STDERR,"%s: OK.\n", FuncName);*/
-      }
-      NextComCode = SUMA_GetNextCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, NextCom);
+         
    } /* cycle through NextCom */
-   if (LocalHead) fprintf (SUMA_STDERR, "\n");
-   /* If you get here, all is well */
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "\n%s: Destroying List.\n", FuncName);
+   /* If you get here, all is well, destroy the list since it is empty*/
+   list = SUMA_DestroyList (list);
+   *listp = NULL; 
+   
    SUMA_RETURN (YUP);
 }
 
@@ -1014,6 +1267,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    int EyeAxis_ID;
    char CommString[100];
    SUMA_EngineData ED;
+   DList *list = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1057,8 +1311,10 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    }
    
    /* Home call baby */
-   sprintf(CommString,"Home~");
-   if (!SUMA_Engine (CommString, &ED, sv)) {
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+
+   if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
    }
 
@@ -1086,6 +1342,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    int curstateID, i, j, jmax, prec_ID;
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
    float *XYZ, *XYZmap;
+   DList *list = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1286,8 +1543,9 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    
     
    /* Home call baby */
-   sprintf(CommString,"Home~");
-   if (!SUMA_Engine (CommString, &ED, sv)) {
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+   if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
    }
 
