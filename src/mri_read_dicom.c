@@ -429,7 +429,7 @@ ENTRY("mri_read_dicom") ;
               "\n\a" ,
              sp+th , dz ) ;
        }
-       if( nwarn == NWMAX )
+       if( sp > 0.0 && sp < th && nwarn == NWMAX )
          fprintf(stderr,"++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
        nwarn++ ;
      }
