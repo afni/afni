@@ -611,7 +611,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    ept = getenv("AFNI_REALTIME_volreg_graphgeom") ;
    if( ept != NULL ){
-      char * str = malloc(strlen(ept)+20) ;
+      char *str = malloc(strlen(ept)+20) ;
       sprintf(str,"AFNI_tsplotgeom=%s",ept) ;
       putenv(str) ;
    }
