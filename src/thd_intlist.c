@@ -90,7 +90,8 @@ int * MCW_get_intlist( int nvals , char *str )
          subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
          subv[0]    = nout ;
          subv[nout] = ibot ;
-         ipos++ ; continue ;  /* re-start loop at next sub-selector */
+         if( ISEND(str[ipos]) ) break ; /* done */
+         ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
       /** otherwise, must have '..' or '-' as next inputs **/
@@ -145,8 +146,7 @@ int * MCW_get_intlist( int nvals , char *str )
       /** check if we have a comma to skip over **/
 
       while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
-
-      if( str[ipos] == ',' ) ipos++ ;
+      if( str[ipos] == ',' ) ipos++ ;                       /* skip commas */
 
    }  /* end of loop through selector string */
 
