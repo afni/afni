@@ -243,7 +243,7 @@ int main( int argc , char * argv[] )
        if( ++nopt >= argc ){
          fprintf(stderr,"** ERROR: need an argument after -prefix!\n"); exit(1);
        }
-       if( !THD_filename_ok(prefix) ){
+       if( !THD_filename_ok(argv[nopt]) ){
          fprintf(stderr,"** ERROR: -prefix argument is invalid!\n"); exit(1);
        }
        prefix = argv[nopt] ; nopt++ ; continue ;
