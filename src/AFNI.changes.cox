@@ -4974,3 +4974,13 @@
 
 09 Mar 2004
  * Added 'ms' time unit selection to 3dcalc.c -dt/-taxis options.
+
+11 Mar 2004
+ * Modified use of SPM originator field in thd_analyzeread.c to subtract
+     1 from indexes.
+ * Modified mri_warp3D.c and 3dWarp.c to do MNI<->TTA transforms.
+ * Don't need "-eval" option on ccalc command line anymore.
+
+12 Mar 2004
+ * Modified afni.[ch], afni_widg.c, to put popup DICOM/SPM coordinate menu
+     on crosshair coordinate label.
