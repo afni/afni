@@ -30,6 +30,9 @@
 
   Mod:     Set MAX_STRING_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Convert input from MRI_byte to MRI_short if needed.
+  Date:    05 December 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -169,6 +172,23 @@ void get_options
 	      sprintf (message, "Can't access data: %s\n", anat_filename); 
 	      SI_error (message); 
 	    }
+
+          /** RWCox [05 Dec 2002]
+              If input is a byte dataset, make a short copy of it. **/
+
+          if( DSET_BRICK_TYPE(anat,0) == MRI_byte ){
+            THD_3dim_dataset *qset ;
+            register byte *bar ; register short *sar ;
+            register int ii,nvox ;
+            fprintf(stderr,"++ WARNING: converting input dataset from byte to short\n") ;
+            qset = EDIT_empty_copy(anat) ;
+            nvox = DSET_NVOX(anat) ;
+            bar  = (byte *) DSET_ARRAY(anat,0) ;
+            sar  = (short *)malloc(sizeof(short)*nvox) ;
+            for( ii=0 ; ii < nvox ; ii++ ) sar[ii] = (short) bar[ii] ;
+            EDIT_substitute_brick( qset , 0 , MRI_short , sar ) ;
+            DSET_delete(anat) ; anat = qset ;
+          }
 
 	  nopt++;
 	  continue;
