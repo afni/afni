@@ -1638,9 +1638,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
-   /* 13 Jan 2003: Check if LessTif was used for this AFNI */
+   if( !AFNI_noenv("AFNI_STARTUP_WARNINGS") ){  /* 22 Jul 2003 */
 
-#ifdef LESSTIF_VERSION
+#ifdef LESSTIF_VERSION /* 13 Jan 2003: If LessTif was used for this AFNI */
+
     (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
                                  " \n"
                                  "*** WARNING:                ***\n"
@@ -1653,9 +1654,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
 
-   /* 21 Jul 2003: Check if this is a stupid system. */
+#ifdef BAD_BUTTON3_POPUPS /* 21 Jul 2003: If this is a stupid system */
 
-#ifdef BAD_BUTTON3_POPUPS
     (void) MCW_popup_message( MAIN_im3d->vwid->imag->topper,
                               " \n"
                               "*** WARNING:                  ***\n"
@@ -1669,6 +1669,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "*** at the same time.         ***\n" ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
+   }
 
    /* 21 Nov 2002: check the AFNI version */
 

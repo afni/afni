@@ -251,7 +251,6 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          CALC_verbose = 1 ;
-         PARSER_set_printout(1) ;  /* 21 Jul 2003 */
          nopt++ ; continue ;
       }
 
@@ -311,6 +310,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( nopt >= argc ){
             fprintf(stderr,"*** need argument after -expr!\n") ; exit(1) ;
          }
+         PARSER_set_printout(1) ;  /* 21 Jul 2003 */
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL ){
             fprintf(stderr,"*** illegal expression!\n") ; exit(1) ;
