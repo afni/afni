@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.2 (December 15, 2003)"
+#define VERSION "version 3.0 (December 18, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -72,6 +72,10 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  "history:\n"
  "\n"
+ "3.0  December 18, 2003\n"
+ "  - removed requirement of 2 surfaces for most functions\n"
+ "    (so now all functions work with either 1 or 2 input surfaces)\n"
+ "\n"
  "2.2  December 15, 2003\n"
  "  - added program arguments '-surf_A' and '-surf_B' (-surf_A is required)\n"
  "  - added option '-hist' (for program history)\n"
@@ -104,7 +108,6 @@ static char g_history[] =
 
 /*----------------------------------------------------------------------
  * todo:
- *   - allow a single surface input for most functions
  *   - handle niml input
  *----------------------------------------------------------------------
 */
@@ -893,6 +896,15 @@ ENTRY("init_node_list");
     memset(N,0,sizeof(*N));	/* first, clear it out - have care w/pointers */
     N->nodes = NULL;  N->fdata = NULL;  N->ilist = NULL;
 
+    nsurf = SUMAg_N_DOv;				/* [v3.0] */
+    if ( (nsurf < 1) || (nsurf > S2V_MAX_SURFS) )
+    {
+	fprintf(stderr,"** inl: SUMAg_N_DOv has invalid valud of %d\n", nsurf);
+	RETURN(-1);
+    }
+
+#if 0 		/* remove requrement of 2 surfaces for functions [v3.0] */
+
     if ( sopt->map == E_SMAP_MASK )
 	nsurf = 1;
     else
@@ -907,6 +919,7 @@ ENTRY("init_node_list");
 
 	nsurf = 2;
     }
+#endif
 
     if ( p->sxyz_im )
 	rv = sxyz_1D_to_nlist( opts, sopt, p, N, nsurf );
