@@ -1,8 +1,8 @@
 
-#define VERSION "version 2.3 (July 21, 2003)"
+#define VERSION "version 3.0 (August 5, 2003)"
 
 /*----------------------------------------------------------------------
- * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
+ * 3dVol2Surf - dump ascii dataset values corresponding to a surface
  *
  * This program is used to display AFNI dataset values that correspond to
  * a surface.  The surface points are mapped to xyz coordinates, according
@@ -13,8 +13,8 @@
  * to mask regions for output.
  *
  * usage:
- *    3dSurfMaskDump [options] -spec SPEC_FILE -sv SURF_VOL               \
- *                              -grid_par AFNI_DSET -map_func MAPPING_FUNC
+ *    3dVol2Surf [options] -spec SPEC_FILE -sv SURF_VOL               \
+ *                         -grid_par AFNI_DSET -map_func MAPPING_FUNC
  *
  * options:
  *
@@ -22,27 +22,28 @@
  * 	-version
  *
  * 	-grid_par   AFNI_DSET
+ * 	-map_func   MAP_FUNCTION
  * 	-spec       SPEC_FILE
  * 	-sv         SURF_VOL
  *
  * 	-cmask      MASK_COMMAND
  * 	-debug      LEVEL
- * 	-m2_index   INDEX_TYPE
- * 	-m2_steps   NUM_STEPS
- * 	-outfile    OUTPUT_FILE
+ * 	-f_index    INDEX_TYPE
+ * 	-f_steps    NUM_STEPS
+ * 	-out_1D     OUTPUT_FILE
  * 	-no_headers
  *
  * examples:
  *
- *    3dSurfMaskDump -spec     SubjA.spec     -sv       SubjA_anat+orig   \ 
- *                   -grid_par SubjA_EPI+orig -map_func mask  >  output.txt
+ *    3dVol2Surf -spec     SubjA.spec     -sv       SubjA_anat+orig   \ 
+ *               -grid_par SubjA_EPI+orig -map_func mask  >  output.txt
  *
- *    3dSurfMaskDump -spec     SubjectA.spec                              \
- *                   -sv       SubjectA_spgr+orig                         \ 
- *                   -grid_par SubjA_EPI+orig                             \
- *                   -cmask    '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
- *                   -map_func midpoint					  \
- *                   -outfile  SubjA_surf_out.txt
+ *    3dVol2Surf -spec       SubjectA.spec                              \
+ *               -sv         SubjectA_spgr+orig                         \ 
+ *               -grid_par   SubjA_EPI+orig                             \
+ *               -cmask      '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
+ *               -map_func   midpoint					\
+ *               -out_1D     SubjA_surf_out.txt
  *
  *----------------------------------------------------------------------
 */
@@ -50,13 +51,29 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 3.0  August 05, 2003
+ *   - renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]
+ *   - all output functions now go through dump_surf_3dt
+ *   - dump_surf_3dt() is a generalized function to get an MRI_IMARR for one
+ *     or a pair of nodes, by converting to a segment of points
+ *   - added v2s_adjust_endpts() to apply segment endpoint modifications
+ *   - added segment_imarr() to get the segment of points and fill the
+ *     MRI_IMARR list (along with other info)
+ *   - filter functions have been taken to v2s_apply_filter()
+ *   - added min, max and seg_vals map functions (filters)
+ *   - added options of the form -f_pX_XX to adjust segment endpoints
+ *   - added -dnode option for specific node debugging
+ *   - changed -output option to -out_1D
+ *   - added new debug info
+ *   - added checking of surface order (process from inner to outer)
+ *
  * 2.3  July 21, 2003
  *   - fixed problem with nodes outside grid_par dataset
  *   - added min/max distance info
  *
  * 2.2  June 19, 2003
- *   - added -m2_index INDEX_TYPE option (to index across nodes, too)
- *   - set the default of -m2_steps to 2
+ *   - added -f_index INDEX_TYPE option (to index across nodes, too)
+ *   - set the default of -f_steps to 2
  *   - use SMD prefix for macros
  *
  * 2.1  June 10, 2003
@@ -82,9 +99,16 @@
  *----------------------------------------------------------------------
 */
 
+/*----------------------------------------------------------------------
+ * todo:
+ *
+ * - update help
+ *----------------------------------------------------------------------
+*/
+
 #include "mrilib.h"
 #include "SUMA_suma.h"
-#include "SUMA_3dSurfMaskDump.h"
+#include "SUMA_3dVol2Surf.h"
 
 /* globals */
 SUMA_SurfaceViewer * SUMAg_SVv = NULL;	/* array of Surf View structs   */
@@ -95,7 +119,7 @@ SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
 
 /* this must match smap_nums enum */
 char * g_smap_names[] = { "none", "mask", "midpoint", "mask2", "ave",
-                          "count", "min", "max" };
+                          "count", "min", "max", "seg_vals" };
 
 
 /* AFNI prototype */
@@ -114,9 +138,9 @@ int main( int argc , char * argv[] )
     opts_t             opts;
     int                ret_val;
 
-    mainENTRY("3dSurfMaskDump main");
+    mainENTRY("3dVol2Surf main");
     machdep();
-    AFNI_logger("3dSurfMaskDump",argc,argv);
+    AFNI_logger("3dVol2Surf",argc,argv);
 
     /* validate inputs and init options structure */
     if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
@@ -165,30 +189,21 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
     switch (sopt->map)
     {
 	case E_SMAP_AVE:
+	case E_SMAP_MASK:
+	case E_SMAP_MAX:
+	case E_SMAP_MIDPT:
+	case E_SMAP_MIN:
+	case E_SMAP_SEG_VALS:
 	{
-	    dump_ave_map( sopt, p, N );
+	    dump_surf_3dt( sopt, p, N );
 	    break;
 	}
 
 	case E_SMAP_COUNT:
-	case E_SMAP_MAX:
-	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	{
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[sopt->map] );
-	    break;
-	}
-
-	case E_SMAP_MIDPT:
-	{
-	    dump_midpt_map( sopt, p, N );
-	    break;
-	}
-
-	case E_SMAP_MASK:
-	{
-	    dump_single_map( sopt, p, N );
 	    break;
 	}
 
@@ -202,201 +217,145 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 
 
 /*----------------------------------------------------------------------
- * dump_ave_map - for each node pair, dump the average voxel value
- *                along the connecting line segment
+ * dump_surf_3dt - for each node index, get an appropriate node sampling,
+ *                 and compute and output results across sub-bricks
  *----------------------------------------------------------------------
 */
-int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 {
-    THD_fvec3   f3mm0, f3mmn, f3mm;
-    THD_ivec3   i3ind;
-    MRI_IMAGE * im;
-    double    * bdata;		/* brick data, and for sums */
-    double    * bptr, * bave;   /* temp pointers into bdata */
-    float     * fser;
-    float       rat0, ratn;
-    float       dist, min_dist, max_dist;    /* for debug checks       v2.3 */
-    int         node, sub, subs, oobc;
-    int         vindex, sindex, prev_ind;
-    int		scount, bcount;		    /* step and sub-brick counters */
-    int         dcount;
-    int		steps;
-    int         nx, ny, nz;
+    range_3dmm_res r3mm_res;
+    range_3dmm     r3mm;
+    THD_ivec3      i3;				/* for coordinates */
+    float          dist, min_dist, max_dist;
+    int            sub, subs, nindex, findex, index1d;
+    int            oobc, index, max_index;
 
     if ( sopt == NULL || p == NULL || N == NULL )
     {
-	fprintf( stderr, "** smd_dsm : bad params (%p,%p,%p)\n", sopt, p, N );
+	fprintf( stderr, "** smd_dmm : bad params (%p,%p,%p)\n", sopt, p, N );
 	return -1;
     }
-
-    nx   = DSET_NX(p->gpar);
-    ny   = DSET_NY(p->gpar);
-    nz   = DSET_NZ(p->gpar);
-    subs = DSET_NVALS(p->gpar);
 
     /* one last precaution */
-    if ( N->depth < 2 || N->nnodes <= 0 ||
-	 sopt->m2_steps < SMD_M2_STEPS_DEFAULT )
+    if ( N->depth < 1 || N->nnodes <= 0 || sopt->f_steps < 1 )
     {
-	fprintf( stderr, "** bad setup for ave mapping (%d,%d,%d)\n",
-		 N->depth, N->nnodes, sopt->m2_steps );
+	fprintf( stderr, "** bad setup for mapping (%d,%d,%d)\n",
+		 N->depth, N->nnodes, sopt->f_steps );
 	return -1;
     }
 
-    if ( sopt->debug > 1 )
-	fprintf( stderr, "++ output (depth, nnodes, subs, nvox) = "
-		                   "(%d, %d, %d, %d)\n",
-		 	 N->depth, N->nnodes, subs, nx*ny*nz );
-
-    /* store info for each step (in case of debug), plus one for bave */
-    bdata = (double *)malloc(subs * (sopt->m2_steps+1) * sizeof(double));
-    if ( bdata == NULL )
-    {
-	fprintf(stderr, "** can't allocate %d doubles\n", subs*sopt->m2_steps);
-	return -1;
-    }
-    bave = bdata + sopt->m2_steps * subs;	/* point to our extra array */
+    subs = DSET_NVALS(p->gpar);
 
     if ( ! sopt->no_head )
     {
-	fprintf( p->outfp,
-                 "# --------------------------------------------------\n" );
-	fprintf( p->outfp, "# surface '%s', '%s' :\n",
-		 N->labels[0], g_smap_names[sopt->map] );
-	fprintf( p->outfp, "#\n" );
-
-	/* output column headers */
-	fprintf( p->outfp, "#    node     1dindex    i    j    k     nvox" );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, "       v%-2d  ", sub );
-	fputc( '\n', p->outfp );
-
-	/* underline the column headers */
-	fprintf( p->outfp, "#   ------    -------   ---  ---  ---    ----   " );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, " --------   " );
-	fputc( '\n', p->outfp );
+	if ( vals_over_steps(sopt->map) )
+	    print_header(p->outfp, N->labels[0], g_smap_names[sopt->map],
+		         sopt->f_steps);
+	else 
+	    print_header(p->outfp, N->labels[0], g_smap_names[sopt->map], subs);
     }
-
-    steps  = sopt->m2_steps;
-    dcount = 2;
 
     min_dist = 9999.9;						/* v2.3 */
     max_dist = -1.0;
     oobc     = 0; 			  /* init out-of-bounds counter */
 
+    /* prepare range structs */
+    r3mm.dset          = p->gpar;
+    r3mm.debug         = 0;
+
+    r3mm_res.ims.num   = 0;
+    r3mm_res.ims.nall  = 0;
+    r3mm_res.ims.imarr = NULL;
+    r3mm_res.i3arr     = NULL;
+
     /* note, NodeList elements are in dicomm mm orientation */
 
-    for ( node = 0; node < N->nnodes; node++ )
+    for ( nindex = 0; nindex < N->nnodes; nindex++ )
     {
 	/* note the endpoints */
-	f3mm0 = THD_dicomm_to_3dmm(p->gpar, N->nodes[node]);
-	f3mmn = THD_dicomm_to_3dmm(p->gpar, N->nodes[node+N->nnodes]);
+	r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex]);
+	if ( N->depth > 1 )
+	    r3mm.pn = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex+N->nnodes]);
+	else
+	    r3mm.pn = r3mm.p1;
+
+	/* make any user-defined ajustments */
+	v2s_adjust_endpts( sopt, &r3mm.p1, &r3mm.pn );
 
 	/* if either point is outside our dataset, skip the pair   v2.3 */
-	if ( f3mm_out_of_bounds( &f3mm0, &p->f3mm_min, &p->f3mm_max ) ||
-	     f3mm_out_of_bounds( &f3mmn, &p->f3mm_min, &p->f3mm_max ) )
+	if ( f3mm_out_of_bounds( &r3mm.p1, &p->f3mm_min, &p->f3mm_max ) ||
+	     f3mm_out_of_bounds( &r3mm.pn, &p->f3mm_min, &p->f3mm_max ) )
 	{
 	    oobc++;
 	    continue;
 	}
 
-	dist = dist_f3mm( &f3mm0, &f3mmn );			/* v2.3 */
+	dist = dist_f3mm( &r3mm.p1, &r3mm.pn );
 	if ( dist < min_dist ) min_dist = dist;
 	if ( dist > max_dist ) max_dist = dist;
 
-	/* init values for average */
-	scount   = 0;		/* for count of used voxels            */
-	prev_ind = -1;		/* want only new indices along segment */
-	vindex   = -1;		/* basically useless                   */
-
-	/* compute the dataset average along this node pair segment */
-	for ( sindex = 0; sindex < steps; sindex++ )
+	if ( sopt->debug > 0 )
 	{
-	    /* set ratios for current point */
-	    ratn = (float)sindex / (steps - 1);
-	    rat0 = 1.0 - ratn;
-
-	    f3mm.xyz[0] = rat0 * f3mm0.xyz[0] + ratn * f3mmn.xyz[0];
-	    f3mm.xyz[1] = rat0 * f3mm0.xyz[1] + ratn * f3mmn.xyz[1];
-	    f3mm.xyz[2] = rat0 * f3mm0.xyz[2] + ratn * f3mmn.xyz[2];
-
-	    i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm );
-	    vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
-
-	    /* if we don't want this index, skip it */
-	    if ( p->cmask && !p->cmask[vindex] )
-		continue;
-
-	    /* or, if we index by voxel and this is the same, skip it */
-	    if ( (sopt->m2_index == SMD_M2_INDEX_VOXEL) &&
-		 (vindex == prev_ind) )
-		continue;
-
-	    /* woohoo! a new voxel to add to our bdata matrix */
-	    
-	    im   = THD_extract_series( vindex, p->gpar, 0 );
-	    fser = MRI_FLOAT_PTR( im ); /* get series, as float array    */
-
-	    /* store the information */
-	    bptr = bdata + scount * subs;	/* don't repeat calc.    */
-
-	    for ( bcount = 0; bcount < subs; bcount++ )
-		bptr[bcount] = fser[bcount];
-
-	    prev_ind = vindex;		/* so we don't repeat this one   */
-	    scount++;			/* count the voxel               */
-
-	    free(im);			/* free the image for this voxel */
+	    if ( nindex == sopt->dnode )
+	    {
+		fprintf(stderr,"-- debug node: %d\n", nindex );
+		r3mm.debug = sopt->debug;
+	    }
+	    else if ( r3mm.debug )
+		r3mm.debug = 0;
 	}
 
-	if ( scount == 0 )		/* any good voxels in the bunch? */
+	if ( segment_imarr( &r3mm_res, &r3mm, sopt ) != 0 )
 	    continue;
 
-	/* compute sums of and using bdata */
-	for (bcount = 0; bcount < subs; bcount++ )	/* init to zero     */
-	    bave[bcount] = 0.0;
-	for ( sindex = 0; sindex < scount; sindex++ )
-	{
-	    bptr = bdata + sindex * subs;
-	    for (bcount = 0; bcount < subs; bcount++ )	/* compute the sums */
-		bave[bcount] += bptr[bcount];
-	}
-	for (bcount = 0; bcount < subs; bcount++ )	/* and take average */
-	    bave[bcount] /= scount;
+	if ( r3mm_res.ims.num == 0 )	/* any good voxels in the bunch? */
+	    continue;
 
-	/* debug display if first node with step index greater than last one */
-	if ( sopt->debug > 1 && scount > dcount && node > N->nnodes/10 )
-	{
-	    dcount = scount;	/* allow for more displays as the grow */
-	    fprintf( stderr, "++ (node, vindex, scount) = "
-		     "(%d, %d, %d)\n",
-		     node, vindex, scount );
-	    fprintf( stderr, "++ data :\n" );
+	/* get element 0, just for the findex */
+	(void)v2s_apply_filter(&r3mm_res, sopt, 0, &findex);
 
-	    /* data is in row major order, so just walk through it */
-	    bptr = bdata;
-	    for ( sindex = 0; sindex < scount; sindex++ )
-	    {
-		fprintf( stderr, "   step %3d : ", sindex );
-		for (bcount = 0; bcount < subs; bcount++, bptr++ )
-		    fprintf( stderr, "%10s ", MV_format_fval((float)*bptr) );
-		fputc( '\n', stderr );
-	    }
-	    fprintf( stderr, "++ ave      : " );
-	    for (bcount = 0; bcount < subs; bcount++ )
-		fprintf( stderr, "%10s ", MV_format_fval(bave[bcount]) );
-	    fputc( '\n', stderr );
-	}
+	/* now get 3D and 1D coordinates */
+	i3 = r3mm_res.i3arr[findex];
+	index1d = i3.ijk[0] + DSET_NX(r3mm.dset) *
+	    	 (i3.ijk[1] + DSET_NY(r3mm.dset) * i3.ijk[2] );
 
 	/* output surface, volume, ijk indices and nvoxels*/
 	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d     %3d",
-	     node, vindex, i3ind.ijk[0], i3ind.ijk[1], i3ind.ijk[2], scount );
+	         nindex, index1d,
+		 i3.ijk[0], i3.ijk[1], i3.ijk[2], r3mm_res.ims.num);
 
-	/* hey, these numbers are why I'm writing the program, woohoo! */
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, "  %10s", MV_format_fval(bave[sub]) );
+	/* Hey, these numbers are why I'm writing the program, woohoo! */
+	/* Decide to print over steps or sub-bricks.                   */
+	if ( vals_over_steps(sopt->map) )
+	    max_index = r3mm_res.ims.num;
+	else
+	    max_index = subs;
+
+	for ( index = 0; index < max_index; index++ )
+	    fprintf( p->outfp, "  %10s",
+		MV_format_fval(v2s_apply_filter(&r3mm_res,sopt,index,NULL)));
+
+	/* possibly fill line with default if by steps and short */
+	if ( vals_over_steps(sopt->map) && (max_index < sopt->f_steps) )
+	    for ( index = max_index; index < sopt->f_steps; index++ )
+		fprintf(p->outfp, "  %10s", MV_format_fval(0.0));
+
 	fputc( '\n', p->outfp );
+
+	if ( (sopt->debug > 1) && (nindex == sopt->dnode) )
+	{
+	    fprintf(stderr, "-- nindex, findex, index1d = %d, %d, %d\n",
+		    nindex, findex, index1d );
+	    disp_mri_imarr( "++ raw data: ", &r3mm_res.ims );
+	}
+
+	/* clean up the MRI_IMARR struct, but don't free imarr */
+	for ( sub = 0; sub < r3mm_res.ims.num; sub++ )
+	{
+	    free(r3mm_res.ims.imarr[sub]);
+	    r3mm_res.ims.imarr[sub] = NULL;
+	}
+	r3mm_res.ims.num = 0;
     }
 
     if ( sopt->debug > 0 )					/* v2.3 */
@@ -407,238 +366,130 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 		 oobc,N->nnodes);
     }
 
-    free(bdata);
-
-    return 0;
-}
-
-
-/*----------------------------------------------------------------------
- * dump_midpt_map - for each node pair, dump dataset values derived
- *                  from their midpoint
- *----------------------------------------------------------------------
-*/
-int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
-{
-    THD_fvec3   f3mma, f3da;
-    THD_fvec3 * f3p0, * f3p1;
-    THD_ivec3   i3ind;
-    MRI_IMAGE * im;
-    float       dist, min_dist, max_dist;    /* for debug checks       v2.3 */
-    float     * fser, * fp;
-    int         oobc;
-    int         node, sub, subs;
-    int         vindex;
-    int         nx, ny, nz;
-
-    if ( sopt == NULL || p == NULL || N == NULL )
+    /* now we can free the imarr and voxel lists */
+    if ( r3mm_res.ims.nall > 0 )
     {
-	fprintf( stderr, "** smd_dsm : bad params (%p,%p,%p)\n", sopt, p, N );
-	return -1;
-    }
-
-    nx   = DSET_NX(p->gpar);
-    ny   = DSET_NY(p->gpar);
-    nz   = DSET_NZ(p->gpar);
-    subs = DSET_NVALS(p->gpar);
-
-    /* one last precaution */
-    if ( N->depth < 2 || N->nnodes <= 0 )
-    {
-	fprintf( stderr, "** bad setup for midpoint mapping!\n" );
-	return -1;
-    }
-
-    if ( sopt->debug > 1 )
-	fprintf( stderr, "++ output (depth, nnodes, subs, nvox) = "
-		                   "(%d, %d, %d, %d)\n",
-		 	 N->depth, N->nnodes, subs, nx*ny*nz );
-
-    if ( ! sopt->no_head )
-    {
-	fprintf( p->outfp,
-                 "# --------------------------------------------------\n" );
-	fprintf( p->outfp, "# surface '%s', '%s' :\n",
-		 N->labels[0], g_smap_names[sopt->map] );
-	fprintf( p->outfp, "#\n" );
-
-	/* output column headers */
-	fprintf( p->outfp, "#    node     1dindex    i    j    k     " );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, "    v%-2d     ", sub );
-	fputc( '\n', p->outfp );
-
-	/* underline the column headers */
-	fprintf( p->outfp, "#   ------    -------   ---  ---  ---    " );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, " --------   " );
-	fputc( '\n', p->outfp );
-    }
-
-    min_dist = 9999.9;						/* v2.3 */
-    max_dist = -1.0;
-    oobc     = 0; 			  /* init out-of-bounds counter */
-
-    /* note, NodeList elements are in dicomm mm orientation */
-
-    f3p0 = N->nodes;			/* set the 2 node pointers */
-    f3p1 = N->nodes + N->nnodes;
-    for ( node = 0; node < N->nnodes; node++, f3p0++, f3p1++ )
-    {
-	/* use the geometric midpoint */
-	f3da.xyz[0] = (f3p0->xyz[0] + f3p1->xyz[0]) / 2.0;
-	f3da.xyz[1] = (f3p0->xyz[1] + f3p1->xyz[1]) / 2.0;
-	f3da.xyz[2] = (f3p0->xyz[2] + f3p1->xyz[2]) / 2.0;
-
-	dist = dist_f3mm( f3p0, f3p1 );		/* dicom is okay */
-	if ( dist < min_dist ) min_dist = dist;
-	if ( dist > max_dist ) max_dist = dist;
-
-	f3mma = THD_dicomm_to_3dmm( p->gpar, f3da );
-
-	/* make sure that we are still in the dataset 		    v2.3 */
-	if ( f3mm_out_of_bounds( &f3mma, &p->f3mm_min, &p->f3mm_max ) )
-	{
-	    oobc++;
-	    continue;
-	}
-
-	if ( (sopt->debug > 2) && (node % 15000 == 0) )
-	{
-	    fprintf( stderr, "++ node %6d: (%f,%f,%f), (%f,%f,%f)\n"
-			     "             (%f,%f,%f), (%f,%f,%f)\n",
-		     node,
-		     f3p0->xyz[0], f3p0->xyz[1], f3p0->xyz[2], 
-		     f3p1->xyz[0], f3p1->xyz[1], f3p1->xyz[2], 
-		     f3da.xyz[0],  f3da.xyz[1],  f3da.xyz[2], 
-		     f3mma.xyz[0], f3mma.xyz[1], f3mma.xyz[2] );
-	}
-
-	i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mma );
-	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
-
-	/* if we don't want this index, skip it */
-	if ( p->cmask && !p->cmask[vindex] )
-	    continue;
-
-	/* output surface, volume, and ijk indices */
-	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d ",
-		 node, vindex, i3ind.ijk[0], i3ind.ijk[1], i3ind.ijk[2] );
-
-	/* get series, as float array */
-	im   = THD_extract_series( vindex, p->gpar, 0 );
-	fser = MRI_FLOAT_PTR( im );
-
-	/* hey, these numbers are why I'm writing the program, woohoo! */
-	for ( sub = 0; sub < im->nx; sub++ )
-	    fprintf( p->outfp, "  %10s", MV_format_fval(fser[sub]) );
-	fputc( '\n', p->outfp );
-
-	free(im);
-    }
-
-    if ( sopt->debug > 0 )					/* v2.3 */
-    {
-	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
-		 min_dist, max_dist );
-	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
-		 oobc,N->nnodes);
+	free(r3mm_res.ims.imarr);
+	free(r3mm_res.i3arr);
+	r3mm_res.ims.nall = 0;
     }
 
     return 0;
 }
 
 
-/*----------------------------------------------------------------------
- * dump_single_map - for each node, dump dataset value for each sub-brick
- *----------------------------------------------------------------------
+/***********************************************************************
+ * segment_imarr	- get MRI_IMARR for steps over a segment
+ *
+ * The res->ims structure should be empty, except that it may
+ * optionally contain space for pointers in imarr.  Note that nall
+ * should be accurate.
+ *
+ * return 0 on success
+ ***********************************************************************
 */
-int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
 {
-    THD_fvec3   f3mm;
-    THD_ivec3   i3ind;
-    MRI_IMAGE * im;
-    float     * fser, * fp;
-    int         oobc;
-    int         node, sub, subs;
-    int         vindex;
-    int         nx, ny, nz;
+    THD_fvec3 f3mm;
+    THD_ivec3 i3ind;
+    float     rat1, ratn;
+    int       nx, ny;
+    int       step, vindex, prev_ind;
 
-    if ( sopt == NULL || p == NULL || N == NULL )
+    /* check params for validity */
+    if ( !R || !sopt || !res || !R->dset )
     {
-	fprintf( stderr, "** smd_dsm : bad params (%p,%p,%p)\n", sopt, p, N );
+	fprintf(stderr, "** seg_imarr: invalid params (%p,%p,%p)\n",R,sopt,res);
+	if ( R ) disp_range_3dmm("segment_imarr: bad inputs:", R );
 	return -1;
     }
 
-    nx   = DSET_NX(p->gpar);
-    ny   = DSET_NY(p->gpar);
-    nz   = DSET_NZ(p->gpar);
-    subs = DSET_NVALS(p->gpar);
+    if ( R->debug > 1 )
+	disp_range_3dmm("segment_imarr: ", R );
 
-    if ( N->nnodes <= 0 )
-	return -1;
-
-    if ( ! sopt->no_head )
+    /* handle this as an acceptable, trivial case */
+    if ( sopt->f_steps < 1 )
     {
-	fprintf( p->outfp,
-                 "# --------------------------------------------------\n" );
-	fprintf( p->outfp, "# surface '%s', '%s' :\n",
-		 N->labels[0], g_smap_names[sopt->map] );
-	fprintf( p->outfp, "#\n" );
-
-	/* output column headers */
-	fprintf( p->outfp, "#    node     1dindex    i    j    k     " );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, "    v%-2d     ", sub );
-	fputc( '\n', p->outfp );
-
-	/* underline the column headers */
-	fprintf( p->outfp, "#   ------    -------   ---  ---  ---    " );
-	for ( sub = 0; sub < subs; sub++ )
-	    fprintf( p->outfp, " --------   " );
-	fputc( '\n', p->outfp );
+	res->ims.num = 0;
+	return 0;
     }
 
-    oobc = 0;     		     /* init out-of-bounds counter   v2.3 */
+    nx = DSET_NX(R->dset);
+    ny = DSET_NY(R->dset);
 
-    /* note, NodeList elements are in dicomm mm orientation */
-
-    for ( node = 0; node < N->nnodes; node++ )
+    /* if we don't have enough memory for results, (re)allocate some */
+    if ( res->ims.nall < sopt->f_steps )
     {
-	f3mm   = THD_dicomm_to_3dmm( p->gpar, N->nodes[node] );
+	if ( R->debug > 1 )
+	    fprintf(stderr,"++ realloc of imarr (from %d to %d pointers)\n",
+		    res->ims.nall,sopt->f_steps);
 
-	/* make sure that we are still in the dataset 		    v2.3 */
-	if ( f3mm_out_of_bounds( &f3mm, &p->f3mm_min, &p->f3mm_max ) )
+	res->ims.nall  = sopt->f_steps;
+	res->ims.imarr = realloc(res->ims.imarr,
+                                 sopt->f_steps*sizeof(MRI_IMAGE *));
+	res->i3arr     = realloc(res->i3arr, sopt->f_steps*sizeof(THD_ivec3));
+	if ( !res->ims.imarr || !res->i3arr )
 	{
-	    oobc++;
+	    fprintf(stderr,"** seg_imarr: no memory for %d MRI_IMAGE ptrs\n",
+		    sopt->f_steps);
+	    res->ims.nall = res->ims.num = 0;
+	    /* one might be good */
+	    if ( res->ims.imarr ) free(res->ims.imarr);
+	    if ( res->i3arr )     free(res->i3arr);
+	    return -1;
+	}
+    }
+
+    /* init return structure */
+    res->ims.num = 0;
+    res->masked  = 0;
+
+    prev_ind = -1;			/* in case we want unique voxels */
+
+    for ( step = 0; step < sopt->f_steps; step++ )
+    {
+	/* set our endpoint ratios */
+	if ( sopt->f_steps < 2 )     /* if this is based on a single point */
+	    ratn = 0.0;
+	else
+	    ratn = (float)step / (sopt->f_steps - 1);
+	rat1 = 1.0 - ratn;
+
+	f3mm.xyz[0] = rat1 * R->p1.xyz[0] + ratn * R->pn.xyz[0];
+	f3mm.xyz[1] = rat1 * R->p1.xyz[1] + ratn * R->pn.xyz[1];
+	f3mm.xyz[2] = rat1 * R->p1.xyz[2] + ratn * R->pn.xyz[2];
+
+	i3ind = THD_3dmm_to_3dind( R->dset, f3mm );
+	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
+
+	/* is this voxel masked out? */
+	if ( sopt->cmask && !sopt->cmask[vindex] )
+	{
+	    res->masked++;
 	    continue;
 	}
 
-	i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm );
-	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
-
-	/* if we don't want this index, skip it */
-	if ( p->cmask && !p->cmask[vindex] )
+	/* is this voxel repeated, and if so, do we skip it? */
+	if ( sopt->f_index == V2S_M2_INDEX_VOXEL && vindex == prev_ind )
 	    continue;
 
-	/* output surface, volume, and ijk indices */
-	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d ",
-		 node, vindex, i3ind.ijk[0], i3ind.ijk[1], i3ind.ijk[2] );
+	/* Huston, we have a good voxel... */
 
-	/* get series, as float array */
-	im   = THD_extract_series( vindex, p->gpar, 0 );
-	fser = MRI_FLOAT_PTR( im );
+	prev_ind    = vindex;		/* note this for next time  */
 
-	/* hey, these numbers are why I'm writing the program, woohoo! */
-	for ( sub = 0; sub < im->nx; sub++ )
-	    fprintf( p->outfp, "  %10s", MV_format_fval(fser[sub]) );
-	fputc( '\n', p->outfp );
+	/* now for the big finish, get and insert the actual data */
 
-	free(im);
+	res->i3arr    [res->ims.num] = i3ind;	/* store the 3-D indices */
+	res->ims.imarr[res->ims.num] = THD_extract_series( vindex, R->dset, 0 );
+	res->ims.num++;
+
+	if ( R->debug > 2 )
+	    fprintf(stderr, "-- seg step %2d, vindex %d, coords %f %f %f\n",
+		    step,vindex,f3mm.xyz[0],f3mm.xyz[1],f3mm.xyz[2]);
     }
 
-    if ( sopt->debug > 0 )					/* v2.3 */
-	fprintf( stderr, "-- out-of-bounds count = %d\n", oobc );
+    if ( R->debug > 0 )
+	disp_range_3dmm_res( "++ i3mm_seg_imarr results: ", res );
 
     return 0;
 }
@@ -660,8 +511,6 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
     switch (sopt->map)
     {
 	case E_SMAP_COUNT:
-	case E_SMAP_MAX:
-	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[sopt->map] );
@@ -674,7 +523,10 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 	    break;
 
 	case E_SMAP_AVE:
+	case E_SMAP_MAX:
+	case E_SMAP_MIN:
 	case E_SMAP_MIDPT:
+	case E_SMAP_SEG_VALS:
 	    if ( alloc_node_list( sopt, N, 2 ) )
 		return -1;
 	    break;
@@ -701,7 +553,8 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 {
     SUMA_SurfaceObject ** so;
     THD_fvec3          *  fvp;
-    float              *  fp;
+    float              *  fp, radius[2];
+    float              *  radp = radius;
     int                   rv, nindex, sindex;
 
     if ( sopt == NULL || N == NULL || nsurf < 0 )
@@ -730,7 +583,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
     /* fill node list struct */
     N->depth  = nsurf;
     N->nnodes = so[0]->N_Node;
-    N->nodes  = (THD_fvec3 *)malloc(N->depth * N->nnodes * sizeof(THD_fvec3));
+    N->nodes  = (THD_fvec3 *)malloc(N->depth*N->nnodes*(int)sizeof(THD_fvec3));
     if ( N->nodes == NULL )
     {
 	fprintf( stderr, "** cnlm: failed to allocate %d THD_fvec3 structs\n",
@@ -771,11 +624,20 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 	    memcpy( fvp->xyz, fp, 3*sizeof(float) );
 	    fvp++;
 	}
+
+	surf_ave_radius(radp, so[sindex], sopt->debug);
+
+	/* for 2 surfaces, note both of the radii */
+	if ( nsurf == 2 )
+	    radp++;
     }
 
+    if ( nsurf == 2 && !sopt->f_kso )
+	verify_2surf_order(radius, N, sopt->debug);
+
     if ( sopt->debug > 1 )
-	fprintf( stderr, "++ allocated %d x %d (x %d) node list\n",
-		 N->depth, N->nnodes, (int)sizeof(THD_fvec3) );
+	fprintf(stderr, "++ allocated %d x %d (x %d) node list\n",
+		N->depth, N->nnodes, sizeof(THD_fvec3));
 
     free(so);
     return 0;
@@ -830,7 +692,7 @@ int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug )
 
 
 /*----------------------------------------------------------------------
- * set_smap_opts  - given options and mapping function, set flag bits
+ * set_smap_opts  - fill smap_opts_t struct
  *
  * return  0 : success
  *        -1 : error condition
@@ -846,19 +708,26 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
     /* set defaults before checking map type */
 
     sopt->debug   = opts->debug;	/* for output in library functions */
+    sopt->dnode   = opts->dnode;	/* for output in library functions */
     sopt->no_head = opts->no_head;
-    sopt->cmask   = p->cmask;
 
-    if ( opts->m2_steps <= SMD_M2_STEPS_DEFAULT )	/* default is 2    */
-	sopt->m2_steps = SMD_M2_STEPS_DEFAULT;
+    sopt->f_index = V2S_M2_INDEX_VOXEL;	     /* default is "voxel" */
+
+    if ( (opts->f_index_str != NULL) &&
+	 (!strncmp(opts->f_index_str, "node", 4)) )
+	    sopt->f_index = V2S_M2_INDEX_NODE;
+
+    if ( opts->f_steps <= V2S_M2_STEPS_DEFAULT )	/* default is 2    */
+	sopt->f_steps = V2S_M2_STEPS_DEFAULT;
     else
-	sopt->m2_steps = opts->m2_steps;
+	sopt->f_steps = opts->f_steps;
 
-    sopt->m2_index = SMD_M2_INDEX_VOXEL;	     /* default is "voxel" */
+    sopt->f_p1_fr = opts->f_p1_fr;         /* copy fractions & distances */
+    sopt->f_pn_fr = opts->f_pn_fr;
+    sopt->f_p1_mm = opts->f_p1_mm;
+    sopt->f_pn_mm = opts->f_pn_mm;
 
-    if ( (opts->m2_index_str != NULL) &&
-	 (!strncmp(opts->m2_index_str, "node", 4)) )
-	    sopt->m2_index = SMD_M2_INDEX_NODE;
+    sopt->cmask = p->cmask;
 
     /* great, now my switch is ineffective - save for later */
     switch (sopt->map)
@@ -866,18 +735,29 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 	default:
 	    break;
 
+	case E_SMAP_AVE:
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
-	case E_SMAP_MASK:
 	case E_SMAP_MASK2:
+	case E_SMAP_SEG_VALS:
+	    break;
+
+	case E_SMAP_MASK:
 	case E_SMAP_MIDPT:
-	case E_SMAP_AVE:
+	    if (sopt->f_steps != V2S_M2_STEPS_DEFAULT)
+	    {
+		fprintf(stderr,"** -f_steps option not valid\n");
+		return -1;
+	    }
+
+	    /* we will only use the first point in the computation */
+	    sopt->f_steps = 1;
 	    break;
     }
 
     if ( opts->debug > 0 )
-	disp_smap_opts_t( "++ smap_opts_set :", sopt );
+	disp_smap_opts_t( "++ smap opts set :", sopt );
 
     return 0;
 }
@@ -924,11 +804,11 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
     }
 
     /* for SUMA type notifications */
-    if ( opts->debug > 2 )
+    if ( opts->debug > 3 )
     {
 	SUMAg_CF->MemTrace = 1;
 
-	if ( opts->debug > 3 )
+	if ( opts->debug > 4 )
 	    SUMAg_CF->InOut_Notify = 1;
     }
 
@@ -981,19 +861,21 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 
     if ( argc < 2 )
     {
-	usage( PROG_NAME, SMD_USE_LONG );
+	usage( PROG_NAME, V2S_USE_LONG );
 	return -1;
     }
 
     /* clear out the options and parameter structures */
     memset( opts, 0, sizeof( opts_t) );
 
+    opts->dnode = -1;			/* init to something invalid */
+
     for ( ac = 1; ac < argc; ac++ )
     {
 	/* do help first, the rest alphabetically */
 	if ( ! strncmp(argv[ac], "-help", 2) )
 	{
-	    usage( PROG_NAME, SMD_USE_LONG );
+	    usage( PROG_NAME, V2S_USE_LONG );
 	    return -1;
 	}
 	else if ( ! strncmp(argv[ac], "-cmask", 6) )
@@ -1001,7 +883,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -cmask COMMAND\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
@@ -1012,18 +894,99 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -debug LEVEL\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
 	    opts->debug = atoi(argv[++ac]);
-	    if ( opts->debug < 0 || opts->debug > SMD_DEBUG_MAX_LEV )
+	    if ( opts->debug < 0 || opts->debug > V2S_DEBUG_MAX_LEV )
 	    {
 		fprintf( stderr, "bad debug level <%d>, should be in [0,%d]\n",
-			opts->debug, SMD_DEBUG_MAX_LEV );
-		usage( PROG_NAME, SMD_USE_SHORT );
+			opts->debug, V2S_DEBUG_MAX_LEV );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
+	}
+	else if ( ! strncmp(argv[ac], "-dnode", 6) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -dnode NODE_NUM\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->dnode = atoi(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-f_index", 7) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_index INDEX_TYPE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_index_str = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-f_keep_surf_order", 9) )
+	{
+	    opts->f_kso = 1;
+	}
+	else if ( ! strncmp(argv[ac], "-f_p1_fr", 9) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_p1_fr FRACTION\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_p1_fr = atof(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-f_pn_fr", 9) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_pn_fr FRACTION\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_pn_fr = atof(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-f_p1_mm", 9) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_p1_mm DISTANCE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_p1_mm = atof(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-f_pn_mm", 9) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_pn_mm DISTANCE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_pn_mm = atof(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-f_steps", 7) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -f_steps NUM_STEPS\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->f_steps = atoi(argv[++ac]);
 	}
 	else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
 		  ! strncmp(argv[ac], "-inset", 6)       ||
@@ -1032,33 +995,11 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -grid_parent INPUT_DSET\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
 	    opts->gpar_file = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-m2_index", 7) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -m2_index INDEX_TYPE\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
-		return -1;
-	    }
-
-	    opts->m2_index_str = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-m2_steps", 7) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -m2_steps NUM_STEPS\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
-		return -1;
-	    }
-
-	    opts->m2_steps = atoi(argv[++ac]);
 	}
 	else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
 	{
@@ -1074,12 +1015,12 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	{
 	    opts->no_head = 1;
 	}
-	else if ( ! strncmp(argv[ac], "-outfile", 4) )
+	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
 	{
 	    if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -outfile OUTPUT_FILE\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		fputs( "option usage: -out_1D OUTPUT_FILE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
@@ -1090,7 +1031,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
             {
 		fputs( "option usage: -spec SPEC_FILE\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
@@ -1101,7 +1042,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
             {
 		fputs( "option usage: -sv SURFACE_VOLUME\n\n", stderr );
-		usage( PROG_NAME, SMD_USE_SHORT );
+		usage( PROG_NAME, V2S_USE_SHORT );
 		return -1;
 	    }
 
@@ -1109,13 +1050,13 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	}
 	else if ( ! strncmp(argv[ac], "-version", 2) )
 	{
-	    usage( PROG_NAME, SMD_USE_VERSION );
+	    usage( PROG_NAME, V2S_USE_VERSION );
 	    return -1;
 	}
 	else	 /* invalid option */
 	{
 	    fprintf( stderr, "invalid option <%s>\n", argv[ac] );
-	    usage( PROG_NAME, SMD_USE_SHORT );
+	    usage( PROG_NAME, V2S_USE_SHORT );
 	    return -1;
 	}
     }
@@ -1135,7 +1076,10 @@ int validate_options ( opts_t * opts, param_t * p )
     memset( p, 0, sizeof(*p) );
 
     if ( opts->debug > 0 )
+    {
+	usage( PROG_NAME, V2S_USE_VERSION );
 	disp_opts_t ( "++ opts read: ", opts );
+    }
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
 	return -1;
@@ -1228,8 +1172,6 @@ int check_map_func ( char * map_str )
 	    break;
 
 	case E_SMAP_COUNT:
-	case E_SMAP_MAX:
-	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[map] );
@@ -1238,15 +1180,15 @@ int check_map_func ( char * map_str )
 
 	case E_SMAP_AVE:
 	case E_SMAP_MASK:
+	case E_SMAP_MAX:
+	case E_SMAP_MIN:
 	case E_SMAP_MIDPT:
+	case E_SMAP_SEG_VALS:
 	    break;
     }
 
     if ( map == E_SMAP_INVALID )
-    {
 	fprintf( stderr, "** invalid map string '%s'\n", map_str );
-	return -1;
-    }
 
     return map;
 }
@@ -1369,14 +1311,14 @@ int validate_datasets( opts_t * opts, param_t * p )
 /*----------------------------------------------------------------------
  * usage  -  output usage information
  *
- * SMD_USE_SHORT	- display brief output
- * SMD_USE_LONG		- display long output
- * SMD_USE_VERSION	- show the VERSION of the program
+ * V2S_USE_SHORT	- display brief output
+ * V2S_USE_LONG		- display long output
+ * V2S_USE_VERSION	- show the VERSION of the program
  *----------------------------------------------------------------------
 */
 int usage ( char * prog, int level )
 {
-    if ( level == SMD_USE_SHORT )
+    if ( level == V2S_USE_SHORT )
     {
 	fprintf( stderr,
 		 "usage: %s [options] -spec SPEC_FILE -sv SURF_VOL "
@@ -1385,38 +1327,74 @@ int usage ( char * prog, int level )
 		 prog, prog );
 	return 0;
     }
-    else if ( level == SMD_USE_LONG )
+    else if ( level == V2S_USE_LONG )
     {
 	printf(
 	    "\n"
-	    "%s - dump ascii dataset values corresponding to a surface\n"
-	    "\n"
-	    "This program is used to display AFNI dataset values that\n"
-	    "correspond to a surface.  The surface points are mapped to xyz\n"
-	    "coordinates, according to the SURF_VOL (surface volume) AFNI\n"
-	    "dataset.  These coordinates are then matched to voxels in other\n"
-	    "AFNI datasets.  So given any other AFNI dataset, this program\n"
-	    "can output all of the sub-brick values that correspond to each\n"
-	    "of the suface locations.  The user also has options to mask\n"
-	    "regions for output.\n"
-	    "\n"
-	    "Different mappings are allowed from the surface(s) to the grid\n"
-	    "parent dataset.  The mapping function is a required parameter to\n"
-	    "the program.\n"
-	    "\n"
-	    "The current mapping functions are:\n"
-	    "\n"
-	    "    ave       : for each node pair (from 2 surfaces), output the\n"
-	    "                average of all voxel values along that line\n"
-	    "                segment\n"
-	    "    mask      : each node in the surface is mapped to one voxel\n"
-	    "    midpoint  : for each node pair (from 2 surfaces), output the\n"
-	    "                dataset value at their midpoint (in xyz space)\n"
+	    "%s - map data from a volume domain to a surface domain\n"
 	    "\n"
 	    "  usage: %s [options] -spec SPEC_FILE -sv SURF_VOL \\\n"
 	    "                    -grid_parent AFNI_DSET -map_func MAP_FUNC\n"
 	    "\n"
+            "This program is used to map data values from an AFNI volume\n"
+            "dataset to a surface dataset.  A filter may be applied to the\n"
+            "volume data to produce the value(s) for each surface node.\n"
+            "\n"
+            "The surface and volume domains are spacially matched via the\n"
+            "'surface volume' AFNI dataset.  This gives each surface node xyz\n"
+            "coordinates, which are then matched to the input 'grid parent'\n"
+            "dataset.  This grid parent is an AFNI dataset containing the\n"
+            "data values destined for output.\n"
+            "\n"
+            "Typically, two corresponding surfaces will be input (via the\n"
+            "spec file), along with a mapping function and relevant options.\n"
+            "The mapping function will act as a filter over the values in\n"
+            "the AFNI volume.\n"
+            "\n"
+            "For each pair of corresponding surface nodes, let NA be the node\n"
+            "on the inner surface (such as a white/grey boundary) and NB be\n"
+            "the corresponding node on the outer surface (such as a pial\n"
+            "surface).  The filter is applied to the volume data values along\n"
+            "the segment from NA to NB (consider the average or maximum as\n"
+            "filter examples).\n"
+	    "\n"
+	    "Note: if either endpoint of a segment is outside the grid parent\n"
+	    "      volume, that node (pair) will be skipped.\n"
+            "\n"
+            "By default, this segment only consists of the endpoints, NA and\n"
+            "NB (the actual nodes on the two surfaces).  However the number\n"
+            "of evenly spaced points along the segment may be specified with\n"
+            "the -f_steps option, and the actual locations of NA and NB may\n"
+            "be altered with any of the -f_pX_XX options, covered below.\n"
+	    "\n"
+	    "As an example, for each node pair, one could output the average\n"
+	    "value from some functional dataset along a segment of 10 evenly\n"
+	    "spaced points, where the segment endpoints are defined by the\n"
+	    "xyz coordinates of the nodes.  This is example 3, below.\n"
+	    "\n"
+	    "The mapping function (i.e. filter) is a required parameter to\n"
+	    "the program.\n"
+	    "\n"
+	    "Brief descriptions of the current mapping functions are as\n"
+	    "follows.  These functions are defined over a segment of points.\n"
+	    "\n"
+	    "    ave       : output the average of all voxel values along the\n"
+	    "                segment\n"
+	    "    mask      : output the voxel value for the trivial case of a\n"
+	    "                segment - defined by a single surface point\n"
+	    "    midpoint  : output the dataset value at the segment midpoint\n"
+	    "    max       : output the maximum volume value over the segment\n"
+	    "    min       : output the minimum volume value over the segment\n"
+	    "    seg_vals  : output _all_ volume values over the segment (one\n"
+	    "                sub-brick only)\n"
+	    "\n"
+	    "  --------------------------------------------------\n"
+	    "\n"
 	    "  examples:\n"
+	    "\n"
+	    "    1. Apply a single surface mask to output volume values over\n"
+	    "       each surface node.  Output is one value per sub-brick\n"
+	    "       (per surface node).\n"
 	    "\n"
 	    "    %s                       \\\n"
 	    "       -spec         fred.spec                \\\n"
@@ -1424,25 +1402,84 @@ int usage ( char * prog, int level )
 	    "       -grid_parent  fred_anat+orig           \\\n"
 	    "       -map_func     mask                     \\\n"
 	    "\n"
-	    "    %s                       \\\n"
-	    "       -spec         fred.spec                               \\\n"
-	    "       -sv           fred_anat+orig                          \\\n"
-	    "       -grid_parent 'fred_epi+orig[0]'                       \\\n"
-	    "       -map_func     mask                                    \\\n"
-	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -debug        2                                       \\\n"
-	    "       -output       fred_surf_vals.txt\n"
+	    "    2. Apply a single surface mask to output volume values over\n"
+	    "       each surface node.  In this case restrict output to the\n"
+	    "       mask implied by the -cmask option.  Supply additional\n"
+	    "       debug output, and more for surface node 1874\n"
 	    "\n"
 	    "    %s                       \\\n"
-	    "       -spec         fred.spec                               \\\n"
-	    "       -sv           fred_anat+orig                          \\\n"
-	    "       -grid_parent  fred_anat+orig                          \\\n"
-	    "       -map_func     ave                                     \\\n"
-	    "       -m2_steps     10                                      \\\n"
-	    "       -m2_index     nodes                                   \\\n"
-	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
-	    "       -output       fred_surf_ave.txt\n"
+	    "       -spec         fred.spec                                \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent 'fred_epi+orig[0]'                        \\\n"
+	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)'  \\\n"
+	    "       -map_func     mask                                     \\\n"
+	    "       -debug        2                                        \\\n"
+	    "       -dnode        1874                                     \\\n"
+	    "       -out_1D       fred_surf_vals.1D\n"
 	    "\n"
+	    "    3. Given a pair of related surfaces, for each node pair,\n"
+	    "       break the connected line segment into 10 points, and\n"
+	    "       compute the average dataset value over those points.\n"
+	    "       Since the index is nodes, each of the 10 points will be\n"
+	    "       part of the average.  This could be changed so that only\n"
+	    "       values from distinct volume nodes are considered (by\n"
+	    "       changing the -f_index from nodes to voxels).\n"
+	    "       Output is one average value per sub-brick (per surface\n"
+	    "       node).\n"
+	    "\n"
+	    "    %s                       \\\n"
+	    "       -spec         fred.spec                                \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+	    "       -map_func     ave                                      \\\n"
+	    "       -f_steps      10                                       \\\n"
+	    "       -f_index      nodes                                    \\\n"
+	    "       -out_1D       fred_surf_ave.1D\n"
+	    "\n"
+	    "    4. Similar to example 3, but each of the node pair segments\n"
+	    "       has grown by 10%% on the inside of the first surface,\n"
+	    "       and 20%% on the outside of the second.  This is a 30%%\n"
+	    "       increase in the length of each segment.  To shorten the\n"
+	    "       node pair segment, use a '+' sign for p1 and a '-' sign\n"
+	    "       for pn.\n"
+	    "       As an interesting side note, '-f_p1_fr 0.5 -f_pn_fr -0.5'\n"
+	    "       would give a zero length vector identical to that of the\n"
+	    "       'midpoint' filter.\n"
+	    "\n"
+	    "    %s                       \\\n"
+	    "       -spec         fred.spec                                \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+	    "       -map_func     ave                                      \\\n"
+	    "       -f_steps      10                                       \\\n"
+	    "       -f_index      voxels                                   \\\n"
+	    "       -f_p1_fr      -0.1                                     \\\n"
+	    "       -f_pn_fr      0.2                                      \\\n"
+	    "       -out_1D       fred_surf_ave.1D\n"
+	    "\n"
+	    "    5. Similar to example 4, instead of computing the average\n"
+	    "       across each segment (one average per sub-brick), output\n"
+	    "       the volume value at _every_ point across the segment.\n"
+	    "       The output here would be 'f_steps' values per node pair,\n"
+	    "       though the output could again be restricted to unique\n"
+	    "       voxels along each segment with '-f_index voxels'.\n"
+	    "       Note that only sub-brick 0 will be considered here.\n"
+	    "\n"
+	    "    %s                       \\\n"
+	    "       -spec         fred.spec                                \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+	    "       -map_func     seg_vals                                 \\\n"
+	    "       -f_steps      10                                       \\\n"
+	    "       -f_index      nodes                                    \\\n"
+	    "       -f_p1_fr      -0.1                                     \\\n"
+	    "       -f_pn_fr      0.2                                      \\\n"
+	    "       -out_1D       fred_surf_ave.1D\n"
+	    "\n"
+	    "  --------------------------------------------------\n"
 	    "\n"
 	    "  REQUIRED COMMAND ARGUMENTS:\n"
 	    "\n"
@@ -1455,7 +1492,7 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "        See @SUMA_Make_Spec_FS and @SUMA_Make_Spec_SF.\n"
 	    "\n"
-	    "    -sv SURFACE_VOLUME     : AFNI dataset\n"
+	    "    -sv SURFACE_VOLUME     : AFNI volume dataset\n"
 	    "\n"
 	    "        e.g. -sv fred_anat+orig\n"
 	    "\n"
@@ -1463,75 +1500,164 @@ int usage ( char * prog, int level )
 	    "        This dataset is used for the intial surface node to xyz\n"
 	    "        coordinate mapping, in the Dicomm orientation.\n"
 	    "\n"
-	    "    -grid_parent AFNI_DSET : AFNI dataset\n"
+	    "    -grid_parent AFNI_DSET : AFNI volume dataset\n"
 	    "\n"
 	    "        e.g. -grid_parent fred_function+orig\n"
 	    "\n"
 	    "        This dataset is used as a grid and orientation master\n"
-	    "        for the output.  Output coordinates are based upon\n"
-	    "        this dataset.\n"
+	    "        for the output (i.e. it defines the volume domain).\n"
+	    "        It is also the source of the output data values.\n"
 	    "\n"
-	    "    -map_func MAP_FUNC     : surface to dataset function\n"
+	    "    -map_func MAP_FUNC     : filter for values along the segment\n"
 	    "\n"
 	    "        e.g. -map_func ave\n"
-	    "        e.g. -map_func ave -m2_steps 10\n"
-	    "        e.g. -map_func ave -m2_steps 10 -m2_index nodes\n"
-	    "        e.g. -map_func mask\n"
-	    "        e.g. -map_func midpoint\n"
+	    "        e.g. -map_func ave -f_steps 10\n"
+	    "        e.g. -map_func ave -f_steps 10 -f_index nodes\n"
 	    "\n"
-	    "        Given one or more surfaces, there are many ways to\n"
-	    "        select voxel locations, and to select corresponding\n"
-	    "        values for the output dataset.  Some of the functions\n"
-	    "        will have separate options.\n"
+	    "        The current mapping function for 1 surface is:\n"
 	    "\n"
-	    "        The current mapping functions are:\n"
+	    "          mask     : For each surface xyz location, output the\n"
+	    "                     dataset values of each sub-brick.\n"
 	    "\n"
-	    "          ave      : Given 2 related surfaces, for each node\n"
-	    "                     pair, output the average of the dataset\n"
-	    "                     values located along the segment joining\n"
-	    "                     those nodes.\n"
+	    "        Most mapping functions are defined for 2 related input\n"
+	    "        surfaces (such as white/grey boundary and pial).  For\n"
+	    "        each node pair, the function will be performed on the\n"
+	    "        values from the 'grid parent dataset', and along the\n"
+	    "        segment connecting the nodes.\n"
 	    "\n"
-	    "                  -m2_steps NUM_STEPS :\n"
+	    "          ave      : Output the average of the dataset values\n"
+	    "                     along the segment.\n"
 	    "\n"
-	    "                     The -m2_steps option may be added here, to\n"
-	    "                     specify the number of points to use in the\n"
-	    "                     average.  The default and minimum is 2.\n"
+	    "          max      : Output the maximum dataset value along the\n"
+	    "                     connecting segment.\n"
 	    "\n"
-	    "                     e.g.  -map_func ave -m2_steps 10\n"
-	    "                     default: -m2_steps 2\n"
+	    "          midpoint : Output the dataset value with xyz\n"
+	    "                     coordinates at the midpoint of the nodes.\n"
 	    "\n"
-	    "                  -m2_index TYPE :\n"
+	    "          min      : Output the minimum dataset value along the\n"
+	    "                     connecting segment.\n"
 	    "\n"
-	    "                     The -m2_index options is used to specify\n"
-	    "                     whether the average is taken by indexing\n"
-	    "                     over distict nodes or over distict voxels.\n"
+	    "          seg_vals : Output all of the dataset values along the\n"
+	    "                     connecting segment.  Here, only sub-brick\n"
+	    "                     number 0 will be considered.\n"
+	    "\n"
+	    "  options specific to functions on 2 surfaces:\n"
+	    "\n"
+	    "          -f_steps NUM_STEPS :\n"
+	    "\n"
+	    "                     Use this option to specify the number of\n"
+	    "                     evenly spaced points along each segment.\n"
+	    "                     The default is 2 (i.e. just use the two\n"
+	    "                     surface nodes as endpoints).\n"
+	    "\n"
+	    "                     e.g.     -f_steps 10\n"
+	    "                     default: -f_steps 2\n"
+	    "\n"
+	    "          -f_index TYPE :\n"
+	    "\n"
+	    "                     This option specifies whether to use all\n"
+	    "                     segment point values in the filter (using\n"
+	    "                     the 'nodes' TYPE), or to use only those\n"
+	    "                     corresponding to unique volume voxels (by\n"
+	    "                     using the 'voxel' TYPE).\n"
 	    "\n"
 	    "                     For instance, when taking the average along\n"
 	    "                     one node pair segment using 10 node steps,\n"
 	    "                     perhaps 3 of those nodes may occupy one\n"
 	    "                     particular voxel.  In this case, does the\n"
 	    "                     user want the voxel counted only once, or 3\n"
-	    "                     times?  Each case makes sense.\n"
+	    "                     times?  Each way makes sense.\n"
 	    "                     \n"
 	    "                     Note that this will only make sense when\n"
-	    "                     used along with the '-m2_steps' option.\n"
+	    "                     used along with the '-f_steps' option.\n"
 	    "                     \n"
 	    "                     Possible values are \"nodes\", \"voxels\".\n"
 	    "                     The default value is voxels.  So each voxel\n"
 	    "                     along a segment will be counted only once.\n"
 	    "                     \n"
-	    "                     e.g.  -m2_index nodes\n"
-	    "                     e.g.  -m2_index voxels\n"
-	    "                     default: -m2_index voxels\n"
+	    "                     e.g.  -f_index nodes\n"
+	    "                     e.g.  -f_index voxels\n"
+	    "                     default: -f_index voxels\n"
 	    "\n"
-	    "          mask     : For each surface xyz location, output the\n"
-	    "                     dataset values of each sub-brick.\n"
+	    "          Note: The following -f_pX_XX options are used to alter\n"
+	    "                the lengths and locations of the computaional\n"
+	    "                segments.  Recall that by default, segments are\n"
+	    "                defined using the node pair coordinates as\n"
+	    "                endpoints.  And the direction from p1 to pn is\n"
+	    "                from the inner surace to the outer surface.\n"
 	    "\n"
-	    "          midpoint : Given 2 related surfaces, for each node\n"
-	    "                     pair, output the dataset value with xyz\n"
-	    "                     coordinates at the midpoint of the nodes.\n"
+	    "          -f_p1_mm DISTANCE :\n"
 	    "\n"
-	    "  options:\n"
+	    "                     This option is used to specify a distance\n"
+	    "                     in milimeters to add to the first point of\n"
+	    "                     each line segment (in the direction of the\n"
+	    "                     second point).  DISTANCE can be negative\n"
+	    "                     (which would set p1 to be farther from pn\n"
+	    "                     than before).\n"
+	    "\n"
+	    "                     For example, if a computation is over the\n"
+	    "                     grey matter (from the white matter surface\n"
+	    "                     to the pial), and it is wished to increase\n"
+	    "                     the range by 1mm, set this DISTANCE to -1.0\n"
+	    "                     and the DISTANCE in -f_pn_mm to 1.0.\n"
+	    "\n"
+	    "                     e.g.  -f_p1_mm -1.0\n"
+	    "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
+	    "\n"
+	    "          -f_pn_mm DISTANCE :\n"
+	    "\n"
+	    "                     Similar to -f_p1_mm, this option is used\n"
+	    "                     to specify a distance in milimeters to add\n"
+	    "                     to the second point of each line segment.\n"
+	    "                     Note that this is in the same direction as\n"
+	    "                     above, from point p1 to point pn.\n"
+	    "                     \n"
+	    "                     So a positive DISTANCE, for this option,\n"
+	    "                     would set pn to be farther from p1 than\n"
+	    "                     before, and a negative DISTANCE would set\n"
+	    "                     it to be closer.\n"
+	    "\n"
+	    "                     e.g.  -f_pn_mm 1.0\n"
+	    "                     e.g.  -f_p1_mm -1.0 -f_pn_mm 1.0\n"
+	    "\n"
+	    "          -f_p1_fr FRACTION :\n"
+	    "\n"
+	    "                     Like the -f_pX_mm options above, this\n"
+	    "                     is used to specify a change to point p1, in\n"
+	    "                     the direction of point pn, but the change\n"
+	    "                     is a fraction of the original distance,\n"
+	    "                     not a pure change in milimeters.\n"
+	    "                     \n"
+	    "                     For example, suppose one wishes to do a\n"
+	    "                     computaion based on the segments spanning\n"
+	    "                     the grey matter, but to add 20%% to either\n"
+	    "                     side.  Then use -0.2 and 0.2:\n"
+	    "\n"
+	    "                     e.g.  -f_p1_fr -0.2\n"
+	    "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
+	    "\n"
+	    "          -f_pn_fr FRACTION :\n"
+	    "\n"
+	    "                     See -f_p1_fr above.  Note again that the\n"
+	    "                     FRACTION is in the direction from p1 to pn.\n"
+	    "                     So to extend the segment past pn, this\n"
+	    "                     FRACTION will be positive (and to reduce\n"
+	    "                     the segment back toward p1, this -f_pn_fr\n"
+	    "                     FRACTION will be negative).\n"
+	    "\n"
+	    "                     e.g.  -f_pn_fr 0.2\n"
+	    "                     e.g.  -f_p1_fr -0.2 -f_pn_fr 0.2\n"
+	    "\n"
+	    "                     Just for entertainment, one could reverse\n"
+	    "                     the order that the segment points are\n"
+	    "                     considered by adjusting p1 to be pn, and\n"
+	    "                     pn to be p1.  This could be done by adding\n"
+	    "                     a fraction of 1.0 to p1 and by subtracting\n"
+	    "                     a fraction of 1.0 from pn.\n"
+	    "\n"
+	    "                     e.g.  -f_p1_fr 1.0 -f_pn_fr -1.0\n"
+	    "\n"
+	    "  general options:\n"
 	    "\n"
 	    "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
 	    "\n"
@@ -1552,17 +1678,23 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "        This option is used to print out status information \n"
 	    "        during the execution of the program.  Current levels are\n"
-	    "        from 0 to 4.\n"
+	    "        from 0 to 5.\n"
+	    "\n"
+	    "    -dnode NODE_NUM        :  (optional) node for debug\n"
+	    "\n"
+	    "        e.g. -dnode 1874\n"
+	    "\n"
+	    "        This option is used to print out status information \n"
+	    "        for node NODE_NUM.\n"
 	    "\n"
 	    "    -help                  : show this help\n"
 	    "\n"
 	    "        If you can't get help here, please get help somewhere.\n"
 	    "\n"
-	    "    -outfile OUTPUT_FILE   : specify a file for the output\n"
+	    "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
 	    "\n"
-	    "        e.g. -outfile some_output_file\n"
-	    "        e.g. -outfile mask_values_over_dataset.txt\n"
-	    "        e.g. -outfile stderr\n"
+	    "        e.g. -out_1D mask_values_over_dataset.1D\n"
+	    "        e.g. -out_1D stderr\n"
 	    "        default: write to stdout\n"
 	    "\n"
 	    "        This is where the user will specify which file they want\n"
@@ -1572,16 +1704,58 @@ int usage ( char * prog, int level )
 	    "        Two special (valid) cases are stdout and stderr, either\n"
 	    "        of which may be specified.\n"
 	    "\n"
-	    "    -noscale               : no scale factor in output dataset\n"
-	    "\n"
-	    "        If the output dataset is an integer type (byte, shorts\n"
-	    "        or ints), then the output dataset may end up with a\n"
-	    "        scale factor attached (see 3dcalc -help).  With this\n"
-	    "        option, the output dataset will not be scaled.\n"
-	    "\n"
 	    "    -version               : show version information\n"
 	    "\n"
 	    "        Show version and compile date.\n"
+	    "\n"
+	    "  --------------------------------------------------\n"
+	    "\n"
+	    "Output from the program defaults to 1D format, in ascii text.\n"
+	    "For each node (pair) that results in output, there will be one\n"
+	    "line, consisting of:\n"
+	    "\n"
+	    "    node    : the index of the current node (or node pair)\n"
+	    "\n"
+	    "    1dindex : the global index of the AFNI voxel used for output\n"
+	    "\n"
+	    "              Note that for filters like min, max and midpoint,\n"
+	    "              there is a specific location (and therefore voxel)\n"
+	    "              that the result comes from.  It will be accurate.\n"
+	    "\n"
+	    "              For filters without a well-defined source (such as\n"
+	    "              average or seg_vals), the 1dindex will come from\n"
+	    "              the first point of the corresponding segment.\n"
+	    "\n"
+	    "    i j k   : the i j k indices matching 1dindex\n"
+	    "\n"
+	    "              These indices are based on the orientation of the\n"
+	    "              grid parent dataset.\n"
+	    "\n"
+	    "    vals    : the number of segment values applied to the filter\n"
+	    "\n"
+	    "              Note that when -f_index is 'nodes', this will\n"
+	    "              always be the same as -f_steps, except when using\n"
+	    "              the -cmask option.  In that case, along a single \n"
+	    "              segment, some points may be in the mask, and some\n"
+	    "              may not.\n"
+	    "\n"
+	    "              When -f_index is 'voxels' and -f_steps is used,\n"
+	    "              vals will often be much smaller than -f_steps.\n"
+	    "              This is because many segment points may in a\n"
+	    "              single voxel.\n"
+	    "\n"
+	    "    v0, ... : the requested output values\n"
+	    "\n"
+	    "              These are the filtered values, usually one per\n"
+	    "              AFNI sub-brick.  For example, if the -map_func\n"
+	    "              is 'ave', then there will be one segment-based\n"
+	    "              average output per sub-brick of the grid parent.\n"
+	    "\n"
+	    "              In the case of the 'seg_vals' filter, however,\n"
+	    "              there will be one output value per segment point\n"
+	    "              (possibly further restricted to voxels).  Since\n"
+	    "              output is not designed for a matrix of values,\n"
+	    "              'seg_vals' is restricted to a single sub-brick.\n"
 	    "\n"
 	    "\n"
 	    "  Author: R. Reynolds  - %s\n"
@@ -1589,138 +1763,20 @@ int usage ( char * prog, int level )
 	    "                (many thanks to Z. Saad and R.W. Cox)\n"
 	    "\n",
 	    prog, prog,
-	    prog, prog, prog,
+	    prog, prog, prog, prog, prog,
 	    VERSION );
 
 	return 0;
     }
-    else if ( level == SMD_USE_VERSION )
+    else if ( level == V2S_USE_VERSION )
     {
-	printf( "%s : %s, compile date: %s\n", prog, VERSION, __DATE__ );
+	fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
 	return 0;
     }
 
     fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     return -1;
-}
-
-
-/*----------------------------------------------------------------------
- * disp_opts_t  -  display the contents of the opts_t struct
- *----------------------------------------------------------------------
-*/
-int disp_opts_t ( char * info, opts_t * opts )
-{
-    if ( info )
-	fputs( info, stdout );
-
-    if ( opts == NULL )
-    {
-	printf( "disp_opts_t: opts == NULL\n" );
-	return -1;
-    }
-
-    printf( "options struct at %p :\n"
-	    "    gpar_file          = %s\n"
-	    "    out_file           = %s\n"
-	    "    spec_file          = %s\n"
-	    "    sv_file            = %s\n"
-	    "    cmask_cmd          = %s\n"
-	    "    map_str            = %s\n"
-	    "    debug, no_head     = %d, %d\n"
-	    "    m2_index_str       = %s\n"
-	    "    m2_steps           = %d\n"
-	    , opts,
-	    opts->gpar_file, opts->out_file, opts->spec_file, opts->sv_file,
-	    opts->cmask_cmd, opts->map_str, opts->debug, opts->no_head,
-	    opts->m2_index_str, opts->m2_steps
-	    );
-
-    return 0;
-}
-
-
-/*----------------------------------------------------------------------
- * disp_param_t  -  display the contents of the param_t struct
- *----------------------------------------------------------------------
-*/
-int disp_param_t ( char * info, param_t * p )
-{
-    if ( info )
-	fputs( info, stdout );
-
-    if ( p == NULL )
-    {
-	printf( "disp_param_t: p == NULL\n" );
-	return -1;
-    }
-
-    printf( "param_t struct at %p :\n"
-	    "    gpar  : vcheck  = %p : %s\n"
-	    "    f3mm_min (xyz)  = (%f, %f, %f)\n"
-	    "    f3mm_max (xyz)  = (%f, %f, %f)\n"
-	    "    outfp, cmask    = %p : %p\n"
-	    "    ncmask, ccount  = %d, %d\n"
-	    "    nvox            = %d\n"
-	    , p,
-	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
-	    p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2], 
-	    p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2], 
-	    p->outfp, p->cmask, p->ncmask, p->ccount, p->nvox
-	    );
-
-    return 0;
-}
-
-
-/*----------------------------------------------------------------------
- * disp_smap_opts_t  -  display the contents of the smap_opts_t struct
- *----------------------------------------------------------------------
-*/
-int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
-{
-    if ( info )
-	fputs( info, stdout );
-
-    if ( sopt == NULL )
-    {
-	printf( "disp_smap_opts_t: sopt == NULL\n" );
-	return -1;
-    }
-
-    printf( "smap_opts_t struct at %p :\n"
-	    "    map, debug, no_head = %d, %d, %d\n"
-	    "    m2_index, m2_steps  = %d, %d\n"
-	    "    cmask               = %p\n"
-	    , sopt,
-	    sopt->map, sopt->debug, sopt->no_head,
-	    sopt->m2_index, sopt->m2_steps, sopt->cmask
-	    );
-
-    return 0;
-}
-
-
-/*----------------------------------------------------------------------
- * dist_f3mm		- return Euclidean distance between the points
- *----------------------------------------------------------------------
-*/
-float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
-{
-    double d0, d1, d2;
-
-    if ( p1 == NULL || p2 == NULL )
-    {
-	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
-	return 0.0;
-    }
-
-    d0 = p1->xyz[0] - p2->xyz[0];
-    d1 = p1->xyz[1] - p2->xyz[1];
-    d2 = p1->xyz[2] - p2->xyz[2];
-
-    return sqrt(d0*d0 + d1*d1 + d2*d2);
 }
 
 
@@ -1786,3 +1842,522 @@ int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max )
 
     return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * print_header	   - dump standard header for node output         - v2.4
+ *----------------------------------------------------------------------
+*/
+int print_header( FILE * outfp, char * surf, char * map, int nvals )
+{
+    int val;
+
+    fprintf( outfp, "# --------------------------------------------------\n" );
+    fprintf( outfp, "# surface '%s', '%s' :\n", surf, map );
+    fprintf( outfp, "#\n" );
+
+    /* output column headers */
+    fprintf( outfp, "#    node     1dindex    i    j    k     vals" );
+    for ( val = 0; val < nvals; val++ )
+	fprintf( outfp, "       v%-2d  ", val );
+    fputc( '\n', outfp );
+
+    /* underline the column headers */
+    fprintf( outfp, "#   ------    -------   ---  ---  ---    ----   " );
+    for ( val = 0; val < nvals; val++ )
+	fprintf( outfp, " --------   " );
+    fputc( '\n', outfp );
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ * v2s_adjust_endpoints		- adjust endpoints for map and options
+ *
+ * return   0 on success
+ *        < 0 on error
+ *----------------------------------------------------------------------
+*/
+int v2s_adjust_endpts( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn )
+{
+    THD_fvec3 f3_diff;
+    float     dist, factor;
+
+    if ( !sopt || !p1 || !pn )
+    {
+	fprintf(stderr,"** v2s_ae: invalid params (%p,%p,%p)\n", sopt, p1, pn);
+	return -1;
+    }
+
+    /* first, get the difference, and distance */
+    f3_diff.xyz[0] = pn->xyz[0] - p1->xyz[0];
+    f3_diff.xyz[1] = pn->xyz[1] - p1->xyz[1];
+    f3_diff.xyz[2] = pn->xyz[2] - p1->xyz[2];
+
+    dist = dist_f3mm( p1, pn );
+
+    if ( (sopt->f_p1_fr != 0.0) || (sopt->f_p1_mm != 0.0) )
+    {
+	if ( sopt->f_p1_fr != 0.0 )	/* what the heck, choose fr if both */
+	    factor = sopt->f_p1_fr;
+	else
+	    factor = (dist == 0.0) ? 0.0 : sopt->f_p1_mm / dist;
+
+	p1->xyz[0] += factor * f3_diff.xyz[0];
+	p1->xyz[1] += factor * f3_diff.xyz[1];
+	p1->xyz[2] += factor * f3_diff.xyz[2];
+    }
+
+    if ( (sopt->f_pn_fr != 0.0) || (sopt->f_pn_mm != 0.0) )
+    {
+	if ( sopt->f_pn_fr != 0.0 )
+	    factor = sopt->f_pn_fr;
+	else
+	    factor = (dist == 0.0) ? 0.0 : sopt->f_pn_mm / dist;
+
+	pn->xyz[0] += factor * f3_diff.xyz[0];
+	pn->xyz[1] += factor * f3_diff.xyz[1];
+	pn->xyz[2] += factor * f3_diff.xyz[2];
+    }
+
+    switch ( sopt->map )
+    {
+	default:
+	    fprintf(stderr,"** v2s_ae: mapping %d not ready\n", sopt->map );
+	    return -1;
+
+	case E_SMAP_AVE:
+	case E_SMAP_MAX:
+	case E_SMAP_MIN:
+	case E_SMAP_MASK:
+	case E_SMAP_SEG_VALS:
+	    break;
+
+	case E_SMAP_MIDPT:
+
+	    /* set the first point to be the average of the two */
+	    p1->xyz[0] = (p1->xyz[0] + pn->xyz[0]) / 2.0;
+	    p1->xyz[1] = (p1->xyz[1] + pn->xyz[1]) / 2.0;
+	    p1->xyz[2] = (p1->xyz[2] + pn->xyz[2]) / 2.0;
+
+	    break;
+    }
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+ * vals_over_steps	- return whether a function is displayed over steps
+ *
+ * Most function results are output per sub-brick.  These functions will
+ * have results displayed over the segment steps.
+ *---------------------------------------------------------------------------
+*/
+int vals_over_steps( int map )
+{
+    if ( map == E_SMAP_SEG_VALS )
+	return 1;
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+ * v2s_apply_filter  - compute results for the given function and index
+ *
+ * As a side step, return any filter result index.
+ *---------------------------------------------------------------------------
+*/
+float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
+ 		        int * findex )
+{
+    double tmp, comp = 0.0;
+    int    count;
+
+    if ( !rr || !sopt || index < 0 )
+    {
+	fprintf(stderr,"** v2s_cm2: invalid params (%p,%p,%d)\n",
+		rr, sopt, index);
+	return 0.0;
+    }
+    
+    if ( rr->ims.num <= 0 )
+	return 0.0;
+
+    switch ( sopt->map )
+    {
+	default:
+	    if ( findex ) *findex = 0;
+	    return 0.0;
+
+	case E_SMAP_AVE:
+	    if ( findex ) *findex = 0;
+	    for ( count = 0; count < rr->ims.num; count++ )
+		comp += MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+
+	    comp = comp / rr->ims.num;
+	    break;
+
+	case E_SMAP_MASK:
+	case E_SMAP_MIDPT:
+	    if ( findex ) *findex = 0;
+	    /* we have only the one point */
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+	    break;
+
+	case E_SMAP_MAX:
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+	    if ( findex ) *findex = 0;
+
+	    for ( count = 1; count < rr->ims.num; count++ )
+	    {
+		tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+		if ( tmp > comp )
+		{
+		    if ( findex ) *findex = count;
+		    comp = tmp;
+		}
+	    }
+	    break;
+
+	case E_SMAP_MIN:
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+	    if ( findex ) *findex = 0;
+
+	    for ( count = 1; count < rr->ims.num; count++ )
+	    {
+		tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+		if ( tmp < comp )
+		{
+		    if ( findex ) *findex = count;
+		    comp = tmp;
+		}
+	    }
+	    break;
+
+	case E_SMAP_SEG_VALS:
+	    if ( findex ) *findex = 0;
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[index])[0];
+	    break;
+    }
+
+    return (float)comp;
+}
+
+
+/*---------------------------------------------------------------------------
+ * verify_2surf_order  - if surfaces are not inner to outer, swap them
+ *---------------------------------------------------------------------------
+*/
+int verify_2surf_order( float radii[2], node_list_t * N, int debug )
+{
+    THD_fvec3   node;
+    THD_fvec3 * fp0, * fp1;
+    char      * tmp_label;
+    int         index;
+
+    if ( !radii || !N )
+    {
+	fprintf(stderr,"** v2so: invalid params (%p,%p)\n", radii, N);
+	return -1;
+    }
+
+    if (radii[0] <= radii[1])		/* cool, we're outta here... */
+    {
+	if (debug > 1)
+	    fprintf(stderr,"-- surfaces are already ordered inner to outer\n"
+		           "   (radius %f <= radius %f)\n", radii[0], radii[1]);
+	return 0;
+    }
+
+    fprintf(stderr, "++ surfaces %s and %s have radii %f and %f\n"
+	            "   -> swapping surface order (to go inner to outer)\n",
+		    N->labels[0], N->labels[1], radii[0], radii[1]);
+
+    /* first just switch labels */
+    tmp_label    = N->labels[0];
+    N->labels[0] = N->labels[1];
+    N->labels[1] = tmp_label;
+
+    /* now, *sigh*, switch all nodes */
+    fp0 = N->nodes;
+    fp1 = N->nodes + N->nnodes;
+    for ( index = 0; index < N->nnodes; index++, fp0++, fp1++ )
+    {
+	node = *fp0;
+	*fp0 = *fp1;
+	*fp1 = node;
+    }
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+ * surf_ave_radius  -  compute the average distance from the Center
+ *---------------------------------------------------------------------------
+*/
+int surf_ave_radius( float * radius, SUMA_SurfaceObject * so, int disp )
+{
+    double   ss, sum = 0.0;
+    float  * fp;
+    float    c0, c1, c2;
+    int      node;
+
+    if ( !so || !radius || so->N_Node <= 0 )
+    {
+	fprintf(stderr, "** disp_sar, so, radius == %p,%p\n", so, radius );
+	return -1;
+    }
+
+    c0 = so->Center[0];				   /* for a little speed */
+    c1 = so->Center[1];
+    c2 = so->Center[2];
+
+    fp = so->NodeList;
+    for ( node = 0; node < so->N_Node; node++ )
+    {
+	ss  = (*fp - c0) * (*fp - c0);   fp++;
+	ss += (*fp - c1) * (*fp - c1);   fp++;
+	ss += (*fp - c2) * (*fp - c2);   fp++;
+
+	sum += sqrt(ss);
+    }
+
+    *radius = sum/so->N_Node;
+
+    if ( disp )
+	fprintf(stderr,"-- surf %s has average dist %f to center %f, %f, %f\n",
+		so->Label, *radius, c0, c1, c2 );
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_param_t  -  display the contents of the param_t struct
+ *----------------------------------------------------------------------
+*/
+int disp_param_t ( char * info, param_t * p )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( p == NULL )
+    {
+	fprintf(stderr, "disp_param_t: p == NULL\n" );
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "param_t struct at %p :\n"
+	    "    gpar  : vcheck  = %p : %s\n"
+	    "    f3mm_min (xyz)  = (%f, %f, %f)\n"
+	    "    f3mm_max (xyz)  = (%f, %f, %f)\n"
+	    "    outfp, cmask    = %p : %p\n"
+	    "    ncmask, ccount  = %d, %d\n"
+	    "    nvox            = %d\n"
+	    , p,
+	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
+	    p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2], 
+	    p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2], 
+	    p->outfp, p->cmask, p->ncmask, p->ccount, p->nvox
+	    );
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_opts_t  -  display the contents of the opts_t struct
+ *----------------------------------------------------------------------
+*/
+int disp_opts_t ( char * info, opts_t * opts )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( opts == NULL )
+    {
+	fprintf( stderr, "disp_opts_t: opts == NULL\n" );
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "options struct at %p :\n"
+	    "    gpar_file          = %s\n"
+	    "    out_file           = %s\n"
+	    "    spec_file          = %s\n"
+	    "    sv_file            = %s\n"
+	    "    cmask_cmd          = %s\n"
+	    "    map_str            = %s\n"
+	    "    no_head            = %d\n"
+	    "    debug, dnode       = %d, %d\n"
+	    "    f_index_str        = %s\n"
+	    "    f_steps, f_kso     = %d, %d\n"
+	    "    f_p1_fr, f_pn_fr   = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm   = %f, %f\n"
+	    , opts,
+	    opts->gpar_file, opts->out_file, opts->spec_file, opts->sv_file,
+	    opts->cmask_cmd, opts->map_str, opts->no_head, opts->debug,
+	    opts->dnode, opts->f_index_str, opts->f_steps, opts->f_kso,
+	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
+	    );
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_smap_opts_t  -  display the contents of the smap_opts_t struct
+ *----------------------------------------------------------------------
+*/
+int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( sopt == NULL )
+    {
+	fprintf(stderr, "disp_smap_opts_t: sopt == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "smap_opts_t struct at %p :\n"
+	    "    map, debug, dnode   = %d, %d, %d\n"
+	    "    no_head, f_index    = %d, %d\n"
+	    "    f_steps, f_kso      = %d, %d\n"
+	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
+	    "    cmask               = %p\n"
+	    , sopt,
+	    sopt->map, sopt->debug, sopt->dnode, sopt->no_head,
+	    sopt->f_index, sopt->f_steps, sopt->f_kso,
+	    sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
+	    sopt->cmask
+	    );
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * dist_f3mm		- return Euclidean distance between the points
+ *----------------------------------------------------------------------
+*/
+float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
+{
+    double d0, d1, d2;
+
+    if ( p1 == NULL || p2 == NULL )
+    {
+	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
+	return 0.0;
+    }
+
+    d0 = p1->xyz[0] - p2->xyz[0];
+    d1 = p1->xyz[1] - p2->xyz[1];
+    d2 = p1->xyz[2] - p2->xyz[2];
+
+    return sqrt(d0*d0 + d1*d1 + d2*d2);
+}
+
+
+/*---------------------------------------------------------------------------
+ * disp_range_3dmm  -  display the contents of the range_3dmm struct
+ *---------------------------------------------------------------------------
+*/
+int disp_range_3dmm ( char * info, range_3dmm * dp )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( dp == NULL )
+    {
+	fprintf(stderr, "disp_range_3dmm: dp == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "range_3dmm struct at %p :\n"
+	    "    dset    = %p : %s\n"
+	    "    p1      = (%f, %f, %f)\n"
+	    "    pn      = (%f, %f, %f)\n",
+	    dp, dp->dset, ISVALID_DSET(dp->dset) ? "valid" : "invalid",
+	    dp->p1.xyz[0], dp->p1.xyz[1], dp->p1.xyz[2],
+	    dp->pn.xyz[0], dp->pn.xyz[1], dp->pn.xyz[2] );
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+ * disp_range_3dmm_res  -  display the contents of the range_3dmm_res struct
+ *---------------------------------------------------------------------------
+*/
+int disp_range_3dmm_res ( char * info, range_3dmm_res * dp )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( dp == NULL )
+    {
+	fprintf(stderr, "disp_range_3dmm: dp == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "range_3dmm_res struct at %p :\n"
+	    "    ims.num, ims.nall  = %d, %d\n"
+	    "    ims.imarr          = %p\n"
+	    "    masked, i3arr      = %d, %p\n"
+	    , dp,
+	    dp->ims.num, dp->ims.nall, dp->ims.imarr, dp->masked, dp->i3arr );
+
+    if ( dp->i3arr )
+	fprintf(stderr,
+	    "    i3arr[0].ijk       = %d, %d, %d\n",
+	    dp->i3arr[0].ijk[0], dp->i3arr[0].ijk[1], dp->i3arr[0].ijk[2] );
+
+    return 0;
+}
+
+
+/*---------------------------------------------------------------------------
+ * disp_mri_imarr  -  display the contents of the MRI_IMARR struct
+ *---------------------------------------------------------------------------
+*/
+int disp_mri_imarr ( char * info, MRI_IMARR * dp )
+{
+    float * fp;
+    int     cr, cc;
+
+    if ( info )
+	fputs( info, stderr );
+
+    if ( dp == NULL )
+    {
+	fprintf(stderr, "disp_mri_imarr: dp == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "mri_imarr struct at %p :\n"
+	    "    num, nall = %d, %d\n",
+	    dp, dp->num, dp->nall );
+
+    for ( cr = 0; cr < dp->num; cr++ )
+    {
+	fp = MRI_FLOAT_PTR(dp->imarr[cr]);
+	fprintf(stderr, "    %3d: ", cr);
+	for ( cc = 0; cc < dp->imarr[cr]->nx; cc++, fp++ )
+	    fprintf(stderr, "%f  ", *fp );
+	fputc( '\n', stderr );
+    }
+
+    return 0;
+}
+
+
