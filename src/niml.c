@@ -1410,7 +1410,8 @@ static char * get_UNIQ_string(void)
    char *buf ;
 #define NURR 32                        /* # bytes from /dev/urandom at a time */
 #ifdef NURR
-   static int urr[NURR] , nurr=0 ;     /* will use 1 byte from urr[nurr] */
+   static int nurr=0 ;
+   static byte urr[NURR] ;     /* will use 1 byte from urr[nurr] */
 #endif
 
    /* get info about this system */
@@ -1442,8 +1443,8 @@ static char * get_UNIQ_string(void)
 
    nn = gettimeofday( &tv , NULL ) ;
    if( nn == -1 ){              /* should never happen */
-     tv.tv_sec  = (long) time(NULL) ;
-     tv.tv_usec = (long) buf ;
+     tv.tv_sec  = (long) time(NULL) ;  /* get seconds another way */
+     tv.tv_usec = (long) buf ;         /* address as an integer */
    }
 
    /* even if called twice in very rapid succession,
@@ -1468,7 +1469,7 @@ static char * get_UNIQ_string(void)
          fread( &urr , 1,NURR, ufp ); fclose(ufp);
        }
      }
-     nbuf = strlen(buf); sprintf(buf+nbuf,"%02x",urr[nurr]);
+     nbuf = strlen(buf); sprintf(buf+nbuf,"%02x",(int)urr[nurr]);
      nurr = (nurr+1) % NURR ;
 URR_DONE:
    }
