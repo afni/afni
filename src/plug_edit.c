@@ -80,7 +80,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   char * boolean_types[2] = {"False", "True"};
   char * blur_types[3] = {"Sigma", "RMS", "FWHM"};
   char * cluster_types[6] = {"Same", "Mean", "Max", "AMax", "SMax", "Size"};
-  char * filter_types[5] = {"Mean", "NZMean", "Max", "AMax", "SMax"};
+  char * filter_types[6] = {"Mean", "NZMean", "Max", "AMax", "SMax", "Aver" };
   char * brick_types[2] = {"Intensity", "Threshold"};
   char * datum_types[3] = {"Byte", "Short", "Float"};
 
@@ -181,7 +181,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
   /*----- line 9 of input: Filtering -----*/
   PLUTO_add_option (plint, "Filter", "Filter", FALSE);
-  PLUTO_add_string (plint, "Type", 5, filter_types, 0);
+  PLUTO_add_string (plint, "Type", 6, filter_types, 0);
   PLUTO_add_number (plint, "Radius(mm)", 0, 100, 1, 20, TRUE);
 
   /*----- line 10 of input: Multiply -----*/
@@ -203,7 +203,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
   /*----- line 14 of input: Threshold Filter -----*/
   PLUTO_add_option (plint, "Thr Filter", "Thr Filter", FALSE);
-  PLUTO_add_string (plint, "Type", 5, filter_types, 0);
+  PLUTO_add_string (plint, "Type", 6, filter_types, 0);
   PLUTO_add_number (plint, "Radius(mm)", 0, 100, 1, 20, TRUE);
 
   /*----- line 15 of input: Threshold Datum -----*/
@@ -534,11 +534,14 @@ char * EDIT_opts
 		else
 		  if (strcmp(str,"SMax") == 0)
 		    edopt->filter_opt = FCFLAG_SMAX;
-		  else
-		    return 
-		      "********************************\n"
-		      "EDIT_opts: Illegal Filter option\n"
-		      "********************************";
+                  else
+		    if (strcmp(str,"Aver") == 0)       /* 07 Jan 1998 */
+		      edopt->filter_opt = FCFLAG_AVER;
+		    else
+		      return 
+		        "********************************\n"
+		        "EDIT_opts: Illegal Filter option\n"
+		        "********************************";
 	  
 	  continue;
 	}
@@ -678,11 +681,14 @@ char * EDIT_opts
 		else
 		  if (strcmp(str,"SMax") == 0)
 		    edopt->thrfilter_opt = FCFLAG_SMAX;
-		  else
-		    return 
-		      "************************************\n"
-		      "EDIT_opts: Illegal Thr Filter option\n"
-		      "************************************";
+                  else
+		    if (strcmp(str,"Aver") == 0)       /* 07 Jan 1998 */
+		      edopt->thrfilter_opt = FCFLAG_AVER;
+		    else
+		      return 
+		        "************************************\n"
+		        "EDIT_opts: Illegal Thr Filter option\n"
+		        "************************************";
 
 	  *keepthr = 1;
 	  
