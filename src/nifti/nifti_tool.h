@@ -40,7 +40,7 @@ typedef struct{
  *----------------------------------------------------------------------*/
 
 #define NT_FIELD_NAME_LEN  20       /* more than length of longest name */
-#define NT_NHDR_NUM_FIELDS 43       /* in the nifti_1_header struct     */
+#define NT_HDR_NUM_FIELDS  43       /* in the nifti_1_header struct     */
 #define NT_NIM_NUM_FIELDS  63       /* in the nifti_image struct        */
 #define NT_DT_STRING      -0xfff    /* some strange number to abuse...  */
 #define NT_DT_POINTER     -0xfef    /* some strange number to abuse...  */
@@ -68,33 +68,42 @@ typedef struct {
 /*-----  prototypes  ---------------------------------------------------*/
 /*----------------------------------------------------------------------*/
 int    act_add_exts   ( nt_opts * opts );
-int    act_diff_hdrs  ( nt_opts * opts, field_s * hdr_fields );
-int    act_diff_nims  ( nt_opts * opts, field_s * nim_fields );
+int    act_diff_hdrs  ( nt_opts * opts );
+int    act_diff_nims  ( nt_opts * opts );
 int    act_disp_exts  ( nt_opts * opts );
-int    act_disp_hdrs  ( nt_opts * opts, field_s * nhdr_fields );
-int    act_disp_nims  ( nt_opts * opts, field_s * nim_fields );
-int    act_mod_hdrs   ( nt_opts * opts, field_s * nhdr_fields );
-int    act_mod_nims   ( nt_opts * opts, field_s * nim_fields );
+int    act_disp_hdrs  ( nt_opts * opts );
+int    act_disp_nims  ( nt_opts * opts );
+int    act_mod_hdrs   ( nt_opts * opts );
+int    act_mod_nims   ( nt_opts * opts );
 int    act_rm_ext     ( nt_opts * opts );
 
-int    add_string     (str_list * slist, char * str);
-int    check_total_size(char *mesg, field_s *fields, int nfields, int tot_size);
-int    diff_field(field_s *fieldp, void * str0, void * str1, int nfields);
-int    disp_nifti1_extension(char *mesg, nifti1_extension * ext);
-int    disp_field(char *mesg, field_s *fp, void * str, int nfields, int header);
-int    disp_field_s_list(char * mesg, field_s *, int nfields);
-int    disp_nt_opts   (char * mesg, nt_opts * opts);
-char * field_type_str (int type);
-int    fill_field     (field_s *fp, int type, int offset, int num, char *name);
-int    fill_hdr_field_array(field_s * nh_fields);
-int    fill_nim_field_array(field_s * nim_fields);
-int    modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
-int    modify_field   (void * basep, field_s * field, char * data);
-int    process_opts   (int argc, char * argv[], nt_opts * opts);
-int    usage          (char * prog, int level);
-int    use_full       (char * prog);
-int    verify_opts    (nt_opts * opts, char * prog);
-int    write_header_to_file(nifti_1_header * nhdr, char * fname);
+field_s * get_hdr_field( char * fname, int show_fail );
+field_s * get_nim_field( char * fname, int show_fail );
+char    * field_type_str (int type);
+
+int diff_hdrs     (nifti_1_header *s0, nifti_1_header *s1, int display);
+int diff_hdrs_list(nifti_1_header *s0, nifti_1_header *s1, str_list *slist,
+                   int display);
+int diff_nims     (nifti_image *s0,nifti_image *s1,        int display);
+int diff_nims_list(nifti_image *s0,nifti_image *s1,str_list *slist,int display);
+
+int add_string       (str_list * slist, char * str);
+int check_total_size (char *mesg, field_s *fields, int nfields, int tot_size);
+int diff_field       (field_s *fieldp, void * str0, void * str1, int nfields);
+int disp_nifti1_extension(char *mesg, nifti1_extension * ext);
+int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
+int disp_field_s_list(char * mesg, field_s *, int nfields);
+int disp_nt_opts     (char * mesg, nt_opts * opts);
+int fill_field       (field_s *fp, int type, int offset, int num, char *name);
+int fill_hdr_field_array(field_s * nh_fields);
+int fill_nim_field_array(field_s * nim_fields);
+int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
+int modify_field     (void * basep, field_s * field, char * data);
+int process_opts     (int argc, char * argv[], nt_opts * opts);
+int usage            (char * prog, int level);
+int use_full         (char * prog);
+int verify_opts      (nt_opts * opts, char * prog);
+int write_hdr_to_file(nifti_1_header * nhdr, char * fname);
 
 
 
