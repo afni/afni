@@ -3475,3 +3475,6 @@
 
 19 Feb 2002
  * Modified 3dAutoTcorrelate.c to add "-time" option.
+
+25 Feb 2002
+ * Modified thd_getpathprogs.c to skip path elements that aren't directories.
