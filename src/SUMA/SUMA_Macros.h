@@ -767,7 +767,8 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
    amin minimum of each column in a (make sure types of a and amin match)
    amax maximum of each column in a (make sure types of a and amin match)
    asum sum of each column in a (the mean is not computed because the / operation would then depend on the type of a)
-
+   
+   \sa SUMA_MIN_MAX_SUM_VECMAT_MASK_COL
 */
 #define SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum) { \
                   int m_IX, m_JX, m_id;   \
@@ -780,6 +781,46 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                         if (a[m_id] > amax[m_IX]) amax[m_IX] = a[m_id];\
                         if (a[m_id] < amin[m_IX]) amin[m_IX] = a[m_id];\
                         asum[m_IX] += a[m_id];   \
+                     }   \
+                  }   \
+               }
+/*! \def SUMA_MIN_MAX_SUM_VECMAT_MASK_COL(a, rows, cols, rowmask, amin, amax, asum)
+\brief  SUMA_MIN_MAX_SUM_VECMAT_MASK_COL macro for minimum, maximum and sum of each column in a matrix stored in vector format
+   ONLY rows n where rowmask[n] is not 0 are used 
+   matrix    1 2 3 
+            4 5 6
+            7 8 9 
+   is stored as 1 2 3 4 5 6 7 8 9...
+   
+   a pointer to vector containing rwos x cols elements
+   rows number of rows
+   cols number of cols
+   rowmask pointer to vector containing rows x 1 mask values 
+   amin minimum of each column in a (make sure types of a and amin match)
+   amax maximum of each column in a (make sure types of a and amin match)
+   asum sum of each column in a (the mean is not computed because the / operation would then depend on the type of a)
+
+*/
+#define SUMA_MIN_MAX_SUM_VECMAT_MASK_COL(a, rows, cols, rowmask, amin, amax, asum) { \
+                  int m_IX, m_JX, m_id, m_start_row=0;   \
+                  m_JX = 0;   \
+                  while (!m_start_row && m_JX < rows) {  \
+                     if (rowmask[m_JX]) m_start_row = m_JX+1;  \
+                     ++m_JX;  \
+                  }  \
+                  --m_start_row; \
+                  for (m_IX = 0; m_IX < cols ; m_IX++) {   \
+                     amax[m_IX]=a[cols * m_start_row + m_IX];   \
+                     amin[m_IX]=a[cols * m_start_row + m_IX];   \
+                     asum[m_IX]=a[cols * m_start_row + m_IX];   \
+                     ++m_start_row; \
+                     for (m_JX = m_start_row ; m_JX < rows ; m_JX++) { \
+                        if (rowmask[m_JX]) { \
+                           m_id = cols * m_JX + m_IX;   \
+                           if (a[m_id] > amax[m_IX]) amax[m_IX] = a[m_id];\
+                           if (a[m_id] < amin[m_IX]) amin[m_IX] = a[m_id];\
+                           asum[m_IX] += a[m_id];   \
+                        }  \
                      }   \
                   }   \
                }

@@ -41,16 +41,16 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
 /*!
    \brief A function to test if a spherical surface is indeed spherical
    
-   SUMA_SphereQuality (SUMA_SurfaceObject *SO, char *Froot)
+   SUMA_SphereQuality (SUMA_SurfaceObject *SO, char *Froot, char *historynote)
    
    This function reports on a few parameters indicative of
    the quality of a spherical surface:
    it calculates the absolute deviation between
    the distance of each node from SO->Center (d) and the estimated radius(r)
       abs (d - r) 
-   The distances are sorted and written to the file: <Froot>_SortedDdist.1D . The
+   The distances are  written to the file: <Froot>_Ddist.1D . The
    first column represents node index. A colorized version is written to 
-   <Froot>_SortedDdist.1D.col (node index followed by r g b values)
+   <Froot>_Ddist.1D.col (node index followed by r g b values)
    
    The function also computes the cosine of the angle between the normal at
    a node and the direction vector formed by the center and that node. 
@@ -63,10 +63,11 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
    
       
 */
-SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
+   float dmin, dmax, dminloc, dmaxloc;
    int i, i3, *isortdist = NULL;
    int *bad_ind = NULL, ibad =-1;
    FILE *fid;
@@ -113,6 +114,52 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    /* calculate the difference from mdist */
    for (i=0; i<SO->N_Node; ++i) dist[i] = fabs(dist[i] - mdist);
    
+   
+   /* Colorize results */
+   SV = SUMA_Create_ColorScaledVect(SO->N_Node);
+   if (!SV) {
+      fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+      if (dist) SUMA_free(dist);
+      if (CM) SUMA_Free_ColorMap (CM);
+      if (OptScl) SUMA_free(OptScl);
+      exit(1);
+   }
+   SUMA_MIN_MAX_VEC(dist, SO->N_Node, dmin, dmax, dminloc, dmaxloc);
+   if (!SUMA_ScaleToMap (dist, SO->N_Node, dmin, dmax, CM, OptScl, SV)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+      if (dist) SUMA_free(dist);
+      if (CM) SUMA_Free_ColorMap (CM);
+      if (OptScl) SUMA_free(OptScl);
+      exit(1);
+   }
+
+   /* write the data */
+   fname = SUMA_append_string(Froot, "_Dist.1D.dset");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#Node distance from center of mass.\n"
+               "#col 0: Node Index\n"
+               "#col 1: distance\n");
+   if (shist) fprintf(fid,"#History:%s\n", shist);
+   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dist[i]);
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
+ 
+   /* write the colorized data */
+   fname = SUMA_append_string(Froot, "_Dist.1D.col");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#Color file of node distance from center of mass.\n"
+               "#col 0: Node Index\n"
+               "#col 1: R\n"
+               "#col 2: G\n"
+               "#col 3: B\n");
+   if (shist) fprintf(fid,"#History:%s\n", shist);
+   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
+   if (SV) SUMA_Free_ColorScaledVect (SV);
+   
    /* Now sort that */ 
    isortdist = SUMA_z_qsort ( dist , SO->N_Node  );
    
@@ -128,51 +175,6 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
    }
    
    
-   /* Colorize results */
-   SV = SUMA_Create_ColorScaledVect(SO->N_Node);
-   if (!SV) {
-      fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
-      if (isortdist) SUMA_free(isortdist);
-      if (dist) SUMA_free(dist);
-      if (CM) SUMA_Free_ColorMap (CM);
-      if (OptScl) SUMA_free(OptScl);
-      exit(1);
-   }
-
-   if (!SUMA_ScaleToMap (dist, SO->N_Node, dist[0], dist[SO->N_Node-1], CM, OptScl, SV)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
-      if (isortdist) SUMA_free(isortdist);
-      if (dist) SUMA_free(dist);
-      if (CM) SUMA_Free_ColorMap (CM);
-      if (OptScl) SUMA_free(OptScl);
-      exit(1);
-   }
-
-   /* write the data */
-   fname = SUMA_append_string(Froot, "_SortedDist.1D.dset");
-   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
-   fid = fopen(fname, "w");
-   fprintf(fid,"#Sorted node distance from center of mass.\n"
-               "#col 0: Node Index\n"
-               "#col 1: distance\n");
-   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", isortdist[i], dist[i]);
-   fclose(fid);
-   SUMA_free(fname); fname = NULL;
- 
-   /* write the colorized data */
-   fname = SUMA_append_string(Froot, "_SortedDist.1D.col");
-   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
-   fid = fopen(fname, "w");
-   fprintf(fid,"#Color file of sorted node distance from center of mass.\n"
-               "#col 0: Node Index\n"
-               "#col 1: R\n"
-               "#col 2: G\n"
-               "#col 3: B\n");
-   for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", isortdist[i], SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
-   fclose(fid);
-   SUMA_free(fname); fname = NULL;
-   if (SV) SUMA_Free_ColorScaledVect (SV);
-      
    /* New idea:
    If we had a perfect sphere then the normal of each node
    will be colinear with the direction of the vector between the
@@ -211,6 +213,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
                   "#col 0: Node Index\n"
                   "#col 1: cos(angle)\n"
                   ); 
+      if (shist) fprintf(fid,"#History:%s\n", shist);
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dot[i]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -242,6 +245,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
                   "#col 2: G\n"
                   "#col 3: B\n"
                   ); 
+      if (shist) fprintf(fid,"#History:%s\n", shist);
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -254,6 +258,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
                   "#col 0: Node Index\n"
                   "#col 1: cos(angle)\n"
                   ); 
+      if (shist) fprintf(fid,"#History:%s\n", shist);
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\n", bad_ind[i], bad_dot[i]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -291,6 +296,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot)
                   "#col 1: R\n"
                   "#col 2: G\n"
                   "#col 3: B\n" ); 
+      if (shist) fprintf(fid,"#History:%s\n", shist);
       for (i=0; i<ibad; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", bad_ind[i], SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
       fclose(fid);
       SUMA_free(fname); fname = NULL;
@@ -3168,8 +3174,8 @@ int main (int argc, char *argv[])
                                          surfaces_orig[id]->NodeNormList, surfaces_orig[id]->FN, OutName);
             if (Cx) SUMA_free(Cx); Cx = NULL;
             if (surfaces_orig[id]) {
-               if (id == 4) SUMA_SphereQuality (surfaces_orig[id], "SphereRegSurf");
-               else if (id == 3) SUMA_SphereQuality (surfaces_orig[id], "SphereSurf");
+               if (id == 4) SUMA_SphereQuality (surfaces_orig[id], "SphereRegSurf", NULL);
+               else if (id == 3) SUMA_SphereQuality (surfaces_orig[id], "SphereSurf", NULL);
                else {
                   SUMA_SL_Err("Logic flow error.");
                   exit(1);

@@ -1332,7 +1332,7 @@ typedef struct {
    int ShowCrossHair; /*!< ShowCrossHair */
    SUMA_Boolean ShowForeground;    /*!< Flag for showing/not showing foreground colors */
    SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */   
-   
+   SUMA_Boolean UsePatchDims; /*!< Flag for using patch based dimensions (rather than entire nodelist) */
    
    int Focus_SO_ID; /*!< index into SUMAg_DOv of the surface currently in focus, -1 for nothing*/
    int Focus_DO_ID; /*!< index into SUMAg_DOv of the Displayabl Object currently in focus -1 for nothing*/
@@ -1566,11 +1566,18 @@ typedef struct {
    float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each node*/
    float *FaceNormList ; /*!< N_FaceSet x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each polygon*/ 
    
-   float Center[3];       /*!< The centroid of the surface */
+   float Center[3];       /*!< The centroid of the surface (using all the nodes in NodeList)*/
    float MaxDims[3];      /*!< The maximum along each of the XYZ dimensions */
    float MinDims[3];      /*!< The minimum along each of the XYZ dimensions */
    float aMinDims;      /*!< The maximum across all dimensions*/
    float aMaxDims;      /*!< The minimum across all dimensions*/
+   
+   int N_patchNode; /*!< Number of nodes used in the mesh. For patches, this number is < SO->N_Node */
+   float patchCenter[3];  /*!< The centroid of the surface (using all the nodes in FaceSetList)*/
+   float patchMaxDims[3];      /*!< The maximum along each of the XYZ dimensions (using all the nodes in FaceSetList)*/
+   float patchMinDims[3];      /*!< The minimum along each of the XYZ dimensions (using all the nodes in FaceSetList)*/
+   float patchaMinDims;      /*!< The maximum across all dimensions(using all the nodes in FaceSetList)*/
+   float patchaMaxDims;      /*!< The minimum across all dimensions(using all the nodes in FaceSetList)*/
    
    int RotationWeight; /*!< Contribution to center of rotation calculation. 
                            set to 0 if not contributing.

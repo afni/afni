@@ -302,6 +302,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
       SV->ShowForeground = YUP;
       SV->ShowBackground = YUP;
+      
+      {
+         char *eee = getenv("SUMA_CenterOnPatch");
+         if (eee) {
+            if (strcmp (eee, "YES") == 0) SV->UsePatchDims = YUP;
+            else SV->UsePatchDims = NOPE;
+         } else {
+            SV->UsePatchDims = NOPE;
+         }
+      }
       SV->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
       
       SV->isShaded = NOPE; 
@@ -775,7 +785,7 @@ Updates the View Center and view from of SV based on the contents of RegisteredD
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
    int i, do_id, TotWeight;
-   float NewCenter[3];
+   float NewCenter[3], UsedCenter[3];
    SUMA_SurfaceObject *so_op;
    static char FuncName[]={"SUMA_UpdateViewPoint"};
       
@@ -792,10 +802,12 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
+            if (SV->UsePatchDims) { SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  } 
+            else {  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); }
             if (so_op->ViewCenterWeight) {
-               NewCenter[0] += so_op->ViewCenterWeight*so_op->Center[0];
-               NewCenter[1] += so_op->ViewCenterWeight*so_op->Center[1];
-               NewCenter[2] += so_op->ViewCenterWeight*so_op->Center[2];
+               NewCenter[0] += so_op->ViewCenterWeight*UsedCenter[0];
+               NewCenter[1] += so_op->ViewCenterWeight*UsedCenter[1];
+               NewCenter[2] += so_op->ViewCenterWeight*UsedCenter[2];
                TotWeight += so_op->ViewCenterWeight;
             }
             break;
@@ -838,7 +850,7 @@ Updates the Rotation Center of SV based on the contents of RegisteredDO
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
    int i, do_id, TotWeight;
-   float NewCenter[3];
+   float NewCenter[3], UsedCenter[3];
    SUMA_SurfaceObject *so_op;
    static char FuncName[]={"SUMA_UpdateRotaCenter"};
    
@@ -849,16 +861,19 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
    NewCenter[2] = 0.0;
    TotWeight = 0;
    
+   
    i = 0;
    while (i < SV->N_DO) {
       do_id = SV->RegisteredDO[i];
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
+            if (SV->UsePatchDims) { SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  } 
+            else {  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); }
             if (so_op->RotationWeight) {
-               NewCenter[0] += so_op->RotationWeight*so_op->Center[0];
-               NewCenter[1] += so_op->RotationWeight*so_op->Center[1];
-               NewCenter[2] += so_op->RotationWeight*so_op->Center[2];
+               NewCenter[0] += so_op->RotationWeight*UsedCenter[0];
+               NewCenter[1] += so_op->RotationWeight*UsedCenter[1];
+               NewCenter[2] += so_op->RotationWeight*UsedCenter[2];
                TotWeight += so_op->RotationWeight;
             }
             break;

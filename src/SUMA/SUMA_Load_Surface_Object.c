@@ -218,6 +218,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
    SUMA_FreeSurfer_struct *FS;
    SUMA_SurfaceObject *SO;
    SUMA_SURF_NORM SN;
+   SUMA_Boolean *PatchNodeMask=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -650,6 +651,25 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
    SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
    SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
 
+   /* calculate the center and dimensions for the nodes in the patch only */
+   PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
+   if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
+      if (!PatchNodeMask ) { SUMA_SL_Err("Faied in SUMA_MaskOfNodesInPatch.\nUsing values from all nodes."); }
+      SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
+      SUMA_COPY_VEC(SO->MinDims, SO->patchMinDims, 3, float, float);
+      SUMA_COPY_VEC(SO->MaxDims, SO->patchMaxDims, 3, float, float);
+      SO->patchaMaxDims = SO->aMaxDims;
+      SO->patchaMinDims = SO->aMinDims;
+   }else {
+      SUMA_MIN_MAX_SUM_VECMAT_MASK_COL (SO->NodeList, SO->N_Node, SO->NodeDim, PatchNodeMask, SO->patchMinDims, SO->patchMaxDims, SO->patchCenter);
+      SO->patchCenter[0] /= SO->N_patchNode;
+      SO->patchCenter[1] /= SO->N_patchNode;
+      SO->patchCenter[2] /= SO->N_patchNode;
+      SUMA_MIN_VEC (SO->patchMinDims, 3, SO->patchaMinDims );
+      SUMA_MAX_VEC (SO->patchMaxDims, 3, SO->patchaMaxDims);
+      SUMA_free(PatchNodeMask) ; PatchNodeMask = NULL;
+   }
+   
    #ifdef DO_SCALE_RANGE
    { float tmpfact;
    /* Now do some scaling */
@@ -2130,7 +2150,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                /* make sure that specified Mapping ref had been loaded */
                   int j = 0, ifound = -1;
                   while (j < Spec->N_Surfs) {
-                     if (LocalHead) { fprintf(SUMA_STDERR,"%s:\n%s\n%s\n%s\n%s\n", FuncName, \
+                     if (LocalHead) { fprintf(SUMA_STDERR,"%s-voila%d/%d:\n%s\n%s\n%s\n%s\n", FuncName, j, Spec->N_Surfs,\
                         Spec->LocalDomainParent[i], Spec->CoordFile[j], Spec->TopoFile[j],\
                          Spec->SurfaceFile[j]); }
                      if (strcmp(Spec->LocalDomainParent[i], Spec->CoordFile[j]) == 0 || \
@@ -2143,10 +2163,15 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                      ++j;
                   }
                if (ifound >= 0) { /* found */
-                  /*fprintf (SUMA_STDERR,"ifound = %d, i = %d\nSpec->LocalDomainParent[i]:->%s<-\n", ifound, i, Spec->LocalDomainParent[i]);*/
+                  if (LocalHead) fprintf (SUMA_STDERR,"ifound = %d, i = %d\nSpec->LocalDomainParent[i]:->%s<-\n", ifound, i, Spec->LocalDomainParent[i]);
                   if (!SUMA_existSO (Spec->IDcode[ifound], dov, *N_dov)) {
                      fprintf(SUMA_STDERR,"MappingRef unavailable, that should not happen here.\n");
                      SO->LocalDomainParentID = NULL;
+                     /* showme the contents */
+                     if (!SUMA_ShowSpecStruct (Spec, NULL, 3)) {
+                        SUMA_SL_Err("Failed in SUMA_ShowSpecStruct\n");
+                        exit(1);
+                     }
                   } else {
                      /*fprintf(SUMA_STDERR,"MappingRef found in mappable surfaces\n");*/
                      SO->LocalDomainParentID = (char *)SUMA_calloc(strlen(Spec->IDcode[ifound])+1, sizeof(char));
@@ -2861,7 +2886,7 @@ int main (int argc,char *argv[])
    for (i=1; i < N_surf; ++i) {
       if (!State[i]) { 
          ++idefstate;
-         sprintf(stmp,"\tStateDef = S_%d", idefstate);
+         sprintf(stmp,"\tStateDef = S_%d\n", idefstate);
          Unique_st = SUMA_append_replace_string (Unique_st, stmp, "", 1);
       } else { 
          if (SUMA_iswordin(Unique_st, State[i]) != 1) {
@@ -4014,13 +4039,25 @@ int SUMA_swap_spec_entries( SUMA_SurfSpecFile * spec, int i0, int i1, int debug)
 	    cssave, SUMA_MAX_NAME_LENGTH);
     swap_strings(spec->MappingRef[i0], spec->MappingRef[i1],
 	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->AnatCorrect[i0], spec->AnatCorrect[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->Hemisphere[i0], spec->Hemisphere[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->DomainGrandParentID[i0], spec->DomainGrandParentID[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);     
+    swap_strings(spec->OriginatorID[i0], spec->OriginatorID[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->LocalCurvatureParent[i0], spec->LocalCurvatureParent[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->LocalDomainParent[i0], spec->LocalDomainParent[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
     swap_strings(spec->SureFitVolParam[i0], spec->SureFitVolParam[i1],
 	    cssave, SUMA_MAX_NAME_LENGTH);
     swap_strings(spec->SurfaceFile[i0], spec->SurfaceFile[i1],
 	    cssave, SUMA_MAX_NAME_LENGTH);
     swap_strings(spec->VolParName[i0], spec->VolParName[i1],
 	    cssave, SUMA_MAX_NAME_LENGTH);
-
+    
     cpsave           = spec->IDcode[i0];	/* (char *)IDcode */
     spec->IDcode[i0] = spec->IDcode[i1];
     spec->IDcode[i1] = cpsave;

@@ -1070,6 +1070,132 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
    SUMA_RETURN(YUP);
 }
 
+/*!
+   \brief stretch each node along the center--node direction such that the new distance is = radius
+   \param SO The surface to be modified.
+          Adjust node coordinates of SO so that
+          Node i on SO is repositioned such 
+          that |c i| = radius
+          c is the centers of SO .
+   \param SOref reference SurfaceObject, used to communicate with SUMA 
+   \param radius , you know what.
+   \param cs the famed communication structure
+*/
+/*
+#define FROM_THIS_NODE 0
+#define TO_THIS_NODE 10
+*/
+SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref ,float radius, SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_ProjectSurfaceToSphere"};
+   int i=0, j=0, cnt = 0, istrt, istp;
+   struct timeval start_time, start_time_all;
+   float etime_GetOffset, etime_GetOffset_all, ave_dist= 0.0, dj = 0.0, ave_dist_ref= 0.0, *a=NULL;
+   float **P2=NULL, U[3], Un;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !SOref) { SUMA_SL_Err("NULL surface"); SUMA_RETURN(NOPE); }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           " SO    Center: %f, %f, %f\n"
+                           " radius = %f\n", FuncName, 
+                           SO->Center[0], SO->Center[1], SO->Center[2],
+                           radius);  
+   }
+      
+   #ifdef FROM_THIS_NODE
+   istrt = FROM_THIS_NODE;
+   istp = TO_THIS_NODE+1;
+   #else
+   istrt = 0;
+   istp = SO->N_Node;
+   #endif
+   ave_dist_ref =  radius;
+   for (i =istrt ; i<istp; ++i) {
+      if (i == 0) {
+         SUMA_etime(&start_time,0);
+      }
+      /* move node i to the reference average location
+      Do not travel along normals, you should travel along
+      radial direction Center-->node*/
+      a = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, a, U, Un);
+      if (Un) {
+         P2 = SUMA_Point_At_Distance(U, SO->Center, ave_dist_ref);
+         if (P2) {
+            SO->NodeList[3*i] = P2[0][0]; SO->NodeList[3*i+1] = P2[0][1]; SO->NodeList[3*i+2] = P2[0][2];
+            SUMA_free2D((char **)P2, 2);  P2 = NULL;
+         }else {
+            SUMA_SL_Err("Failed in SUMA_Point_At_Distance!\n"
+                        "No coordinates modified");
+         }
+      } else {
+            SUMA_SL_Err("Identical points!\n"
+                        "No coordinates modified");
+      }
+      
+      if (LocalHead) {
+         if (! (i%999)) {
+            a = &(SO->NodeList[3*i]);
+            SUMA_SEG_LENGTH(a, SO->Center, dj);
+            fprintf(SUMA_STDERR, "%s:\n"
+                           "node i=%d, avg_dist_ref = %f\ncnt = %d\n"
+                           "Check on P2: New dist =%f ?=? %f\n", 
+                           FuncName, i, ave_dist_ref, cnt, dj, ave_dist_ref);
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                  "Projected completion time: %f minutes\n",
+                  FuncName, radius, etime_GetOffset, i+1,
+                  etime_GetOffset * SO->N_Node / 60.0 / (i+1));
+         }
+      }
+      if (! (i%99) && cs) {
+         if (cs->Send) { /* send the first monster (it's SOref  "in SUMA" that's being modified on the fly*/
+            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            }
+         }
+      }
+      
+      #ifdef FROM_THIS_NODE
+      {
+         FILE *fid=NULL;
+         char *outname=NULL, tmp[20];
+         int ii;
+         if (cs->Send) { /* send the first monster (it's SOref that's being modified on the fly*/
+            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            }
+         }
+         sprintf(tmp,"offset_n%d", FROM_THIS_NODE);
+         outname = SUMA_Extension("", ".1D", YUP);
+         outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+         fid = fopen(outname, "w"); free(outname); outname = NULL;
+         if (!fid) {
+            SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+         } else {
+            fprintf (fid,"#Column 1 = Node index\n"
+                         "#column 2 = Neighborhood layer\n"
+                         "#Column 3 = Distance from node %d\n", 99);
+            for (ii=0; ii<SO->N_Node; ++ii) {
+               if (OffS->LayerVect[ii] >= 0) {
+                  fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+               }
+            }
+            fclose(fid);
+         }
+         { int jnk; fprintf(SUMA_STDOUT,"Pausing, next node is %d...", i+1); jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+      }
+      #endif
+             
+      
+   }   
+   
+   
+   SUMA_RETURN(YUP);
+}
 
 /*!
    \brief make the size of 2 surfaces match see help -match_size option in SurfSmooth
@@ -3070,6 +3196,18 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
          Opt->MatchMethod = 3;
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-match_sphere") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -match_sphere \n");
+				exit (1);
+			}
+			Opt->lim = atof(argv[kar]);
+         Opt->MatchMethod = 4;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -3534,6 +3672,24 @@ int main (int argc,char *argv[])
                   }
                   /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
                   dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
+                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+                  break;
+               case 4:
+                  if (!SUMA_ProjectSurfaceToSphere(SOnew, SO, Opt->lim, cs)) {
+                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  }
+
+                  /* send the unshrunk bunk */
+                  if (cs->Send) {
+                     SUMA_LH("Sending last fix to SUMA ...");
+                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                     }
+                  }
+                  
+                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+                  dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
                   SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
                   SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
                   break;
@@ -4169,6 +4325,52 @@ int main (int argc,char *argv[])
    SUMA_RETURN(0);
 } 
 #endif
+
+/*!
+   \brief a function to return a mask indicating if a node is 
+   part of a patch or not
+   isNodeInPatch = SUMA_MaskOfNodesInPatch( SUMA_SurfaceObject *SO, int * N_NodesUsedInPatch);
+
+   \param SO (SUMA_SurfaceObject *) the surface object
+   \param N_NodesUsedInPatch (int *) will contain the number of nodes used in the mesh of the patch (that is SO->FaceSetList)
+                                     if *N_NodesUsedInPatch == SO->N_Node then all nodes in the nodelist are used
+                                     in the mesh
+   \return isNodeInPatch (SUMA_Boolean *) a vector SO->N_Node long such that if isNodeInPatch[n] = YUP then node n is used
+                                    in the mesh 
+*/
+SUMA_Boolean *SUMA_MaskOfNodesInPatch(SUMA_SurfaceObject *SO, int *N_NodesUsedInPatch)
+{
+   static char FuncName[]={"SUMA_MaskOfNodesInPatch"};
+   int k;
+   SUMA_Boolean *NodesInPatchMesh = NULL;
+
+   SUMA_ENTRY;
+
+   *N_NodesUsedInPatch = 0;
+
+   if (!SO) {
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FaceSetList || !SO->N_FaceSet) {
+      SUMA_SL_Err("NULL or empty SO->FaceSetList");
+      SUMA_RETURN(NULL);
+   }
+
+   NodesInPatchMesh = (SUMA_Boolean *)SUMA_calloc(SO->N_Node, sizeof(SUMA_Boolean)); 
+   if (!NodesInPatchMesh) {
+      SUMA_SL_Crit("Failed to allocate for NodesInPatchMesh");
+      SUMA_RETURN(NULL);
+   }
+   for (k=0; k<SO->FaceSetDim*SO->N_FaceSet; ++k) {
+      if (!NodesInPatchMesh[SO->FaceSetList[k]]) { 
+         ++*N_NodesUsedInPatch;
+         NodesInPatchMesh[SO->FaceSetList[k]] = 1;         
+      }
+   }
+
+   SUMA_RETURN(NodesInPatchMesh);  
+}
 
 /*!
    Given a set of node indices, return a patch of the original surface that contains them
@@ -6892,12 +7094,12 @@ void usage_SUMA_SurfQual ()
                "              With this option you get the following output.\n"
                "              - Absolute deviation between the distance (d) of each\n"
                "                node from the surface's center and the estimated\n"
-               "                radius(r). The distances, abs (d - r), are sorted\n"
-               "                and written to the file OUTPREF_SortedDist.1D.dset .\n"
+               "                radius(r). The distances, abs (d - r), are \n"
+               "                and written to the file OUTPREF_Dist.1D.dset .\n"
                "                The first column represents node index and the \n"
                "                second is the absolute distance. A colorized \n"
                "                version of the distances is written to the file \n"
-               "                OUTPREF_SortedDist.1D.col (node index followed \n"
+               "                OUTPREF_Dist.1D.col (node index followed \n"
                "                by r g b values). A list of the 10 largest absolute\n"
                "                distances is also output to the screen.\n"
                "              - Also computed is the cosine of the angle between \n"
@@ -7067,7 +7269,7 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfQual"};
-   char *OutName = NULL, ext[5], *prefix = NULL;
+   char *OutName = NULL, ext[5], *prefix = NULL, *shist=NULL;
    SUMA_SURFQUAL_OPTIONS *Opt; 
    int SO_read = -1;
    int i, cnt, trouble;
@@ -7165,7 +7367,9 @@ int main (int argc,char *argv[])
          } else { 
             OutName = SUMA_copy_string (prefix);
          }
-         SUMA_SphereQuality (SO, OutName);   
+         shist = SUMA_HistString (NULL, argc, argv, NULL);
+         SUMA_SphereQuality (SO, OutName, shist);   
+         if (shist) SUMA_free(shist); shist = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
       

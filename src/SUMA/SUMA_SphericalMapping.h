@@ -64,7 +64,7 @@ void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3);
 SUMA_SO_map *SUMA_Create_SO_map (void);
 SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 
 SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out); 
-SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot);
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist);
 
 #define SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth){ /* r is the radius parameter passed to SUMA_CreateIcosahedron or the -rad option in CreateIcosahedron*/ \
    a = r*(1+sqrt(5)) / (sqrt(10+2*sqrt(5))); \
