@@ -136,6 +136,13 @@ typedef struct NI_rowtype {
 
 #define ROWTYPE_is_varsize(rr) (((rr)->flag & ROWTYPE_VARSIZE_MASK) != 0)
 
+/*! Get the dimension of the qq-th part of
+    the struct stored at pointer pt, of type rt.
+    This macro should only be used if rt->part_dim[qq] >= 0. */
+
+#define ROWTYPE_part_dimen(rt,pt,qq)                           \
+ ( *((int *)( (pt) + (rt)->part_off[ (rt)->part_dim[qq] ] )) )
+
 /*! Macro to delete a NI_rowtype struct.  Only used when an
     error happens when creating one, since new types last forever. */
 
@@ -496,6 +503,7 @@ extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
+extern void NI_insert_value( NI_element *, int,int, void * ); /* 03 Apr 2003 */
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;

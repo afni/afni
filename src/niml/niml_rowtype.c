@@ -66,13 +66,6 @@ static int         rowtype_num    = 0    ;
 
 #define ROWTYPE_is_builtin_code(cc) ((cc) >= 0 && (cc) < ROWTYPE_OFFSET)
 
-/*! Get the dimension of the qq-th part of
-    the struct stored at pointer pt, of type rt.
-    This macro should only be used if rt->part_dim[qq] >= 0. */
-
-#define ROWTYPE_part_dimen(rt,pt,qq)                           \
- ( *((int *)( (pt) + (rt)->part_off[ (rt)->part_dim[qq] ] )) )
-
 /*! Register a rowtype into the table and array. */
 
 #define ROWTYPE_register(rr)                               \

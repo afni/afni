@@ -429,6 +429,60 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Replace the row-th value in the col-th column of the data element.
+     - dat is the pointer to the data values to copy into the element.
+     - The column must have been created with NI_add_column() before
+       calling this function!
+     - RWCox - 03 Apr 2003
+--------------------------------------------------------------------------*/
+
+void NI_insert_value( NI_element *nel, int row, int col, void *dat )
+{
+   NI_rowtype *rt ;
+   char *cdat , *idat=(char *)dat , *qpt ;
+   int jj , kk ;
+
+   /* check for reasonable inputs */
+
+   if( nel == NULL || nel->vec_len <= 0   ) return ;
+   if( row < 0     || row >= nel->vec_len ) return ;
+   if( col < 0     || col >= nel->vec_num ) return ;
+   if( nel->type   != NI_ELEMENT_TYPE     ) return ;
+   if( idat == NULL                       ) return ;
+
+   rt = NI_rowtype_find_code( nel->vec_typ[col] ) ;
+   if( rt == NULL )                         return ;
+
+   cdat = (char *) nel->vec[col] ;   /* points to column data */
+   cdat = cdat + rt->size * row ;    /* points to data to alter */
+
+   /* shallow copy of input data over data now present */
+
+   memcpy( cdat , idat , rt->size ) ;
+
+   /* copy any var dim arrays inside */
+
+   if( ROWTYPE_is_varsize(rt) ){
+     for( jj=0 ; jj < rt->part_num ; jj++ ){            /* loop over parts */
+
+       if( rt->part_typ[jj] == NI_STRING ){               /* a string part */
+         char **apt = (char **)(cdat+rt->part_off[jj]) ;   /* *apt => data */
+         qpt = NI_strdup(*apt) ; *apt = qpt ;
+
+       } else if( rt->part_dim[jj] >= 0 ){                /* var dim array */
+         char **apt = (char **)(cdat+rt->part_off[jj]) ;   /* *apt => data */
+         if( *apt != NULL ){
+           kk  = ROWTYPE_part_dimen(rt,cdat,jj) * rt->part_rtp[jj]->size ;
+           qpt = NI_malloc(kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
+         }
+       }
+     }
+   }
+
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Add an attribute to a data or group element.
     If an attribute with the same attname already exists, then
     it will be replaced with this one.
