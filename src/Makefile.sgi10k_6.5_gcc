@@ -33,6 +33,14 @@ LIBDIR = $(INSTALLDIR)
 
 LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
 
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I../ -I./ -I/usr/Motif-2.1/include 
+SUMA_LINK_PATH = -L/usr/lib32 -L/usr/X11R6/lib -L../ -L/usr/Motif-2.1
+SUMA_LINK_LIB = -lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11
+SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
+SUMA_BIN_ARCHIVE = SUMA_SGI.tar
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ###############################################################
 

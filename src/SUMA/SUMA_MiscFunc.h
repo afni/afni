@@ -25,6 +25,7 @@ void SUMA_error_message (char *s1,char *s2,int ext);
 int SUMA_iswordin (const char *sbig,const char *ssub);
 SUMA_FileName SUMA_StripPath (char *FileName);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName);
+char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 float SUMA_etime (struct  timeval  *t, int Report);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);

@@ -117,9 +117,10 @@ int main (int argc,char *argv[])
 	VolParName = NULL;
 	AfniHostName = NULL; 
 	
+      
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-	
+	   
 	/* Work the options */
 	kar = 1;
 	brk = NOPE;

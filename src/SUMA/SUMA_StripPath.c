@@ -194,7 +194,111 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
    
 	SUMA_RETURN (NewName);
 }/*SUMA_ParseFname*/
+
+/*!
+   \brief ans = SUMA_Extension(filename, ext, Remove);
+      removes or enforces an arbitrary extension from/to a filename
    
+   \param filename(char *) input filename
+   \param ext (char *) extension
+   \param Remove (SUMA_Boolean) YUP = Remove extension if found
+                                      Do nothing if it is not there already 
+                                NOPE = Add extension if not there
+                                       Do nothing if it is there already    
+   \returns ans (char*) containing filename without ext
+  
+   - You must free ans on your own
+   Examples:
+      {
+      char *ans=NULL;
+      ans = SUMA_Extension("Junk.niml.roi", ".niml.roi", YUP);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension("Junk.niml.roi", ".niml.roi", NOPE);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension("Junk.niml.roi", ".niml.roxi", NOPE);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension("Junk.niml.roi", ".niml.roxi", YUP);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension("Junk.niml.roi", "", YUP);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension(".roi", "Junk.niml.roi", NOPE);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      ans = SUMA_Extension("", "", NOPE);
+      SUMA_LH(ans); SUMA_free(ans);
+      
+      exit(1);
+    }
+
+*/
+char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
+{
+   static char FuncName[]={"SUMA_Extension"}; 
+   char *ans = NULL;
+   int i, next, nfilename, ifile;
+   SUMA_Boolean NoMatch = NOPE, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!filename) SUMA_RETURN(NULL);
+   nfilename = strlen(filename);
+   
+   if (!ext) {
+      ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
+      ans = strcpy(ans,filename);
+      SUMA_RETURN(ans);
+   }
+   next = strlen(ext);
+   
+   if (nfilename < next || next < 1 || nfilename < 1) {
+      ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
+      ans = strcpy(ans,filename);
+      SUMA_RETURN(ans);
+   }
+   
+   ifile = nfilename - next;
+   NoMatch = NOPE;
+   i = 0;
+   do {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing %c %c\n", FuncName, filename[ifile+i], ext[i]);
+      if (filename[ifile+i] != ext[i]) NoMatch = YUP;
+      ++i;
+   }  while (ifile < nfilename && i < next && NoMatch);
+
+   if (NoMatch) {
+      if (Remove) { /* nothing to do */
+         SUMA_LH("NoMatch, nothing to do");
+         ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
+         ans = strcpy(ans,filename);
+         SUMA_RETURN(ans);
+      } else { /* add extension */
+         SUMA_LH("NoMatch, adding extensio");
+         ans = (char *)SUMA_malloc((nfilename+next+1)*sizeof(char));
+         sprintf(ans,"%s%s", filename, ext);
+         SUMA_RETURN(ans);
+      }
+   }else {
+      if (Remove) { /* remove it */
+         SUMA_LH("Match, removing extension");
+         ans = (char *)SUMA_malloc((nfilename - next+2)*sizeof(char));
+         for (i=0; i< nfilename - next; ++i)  ans[i] = filename[i];
+         ans[nfilename - next] = '\0'; /* for good measure */
+      } else { /* nothing to do */
+         SUMA_LH("Match, nothing to do");
+         ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
+         ans = strcpy(ans,filename);
+         SUMA_RETURN(ans);
+      }
+   }
+   
+   SUMA_RETURN (ans);
+
+}   
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test) 
 {
    static char FuncName[]={"SUMA_Free_Parsed_Name"}; 

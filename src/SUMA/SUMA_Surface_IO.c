@@ -2229,6 +2229,8 @@ int main (int argc,char *argv[])
 void SUMA_OpenDrawnROI (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_OpenDrawnROI"};
+   DList *list=NULL;
+   int i;
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2244,20 +2246,45 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       SUMA_RETURNe;
    }
    
+   /* if there are no currentROIs selected, set currentROI to the
+      first in the list */
+   if (!SUMAg_CF->X->DrawROI->curDrawnROI) {
+      i = 0;
+      do {
+         if (SUMAg_DOv[i].ObjectType == ROIdO_type) SUMAg_CF->X->DrawROI->curDrawnROI =
+                                             (SUMA_DRAWN_ROI *)SUMAg_DOv[i].OP;
+         ++i;
+      } while (i < SUMAg_N_DOv && !SUMAg_CF->X->DrawROI->curDrawnROI);
+   }
+   
+   if (SUMAg_CF->X->DrawROI->curDrawnROI) {
+      SUMA_InitializeDrawROIWindow(SUMAg_CF->X->DrawROI->curDrawnROI);   
+   }
+   
+   /* put a nice redisplay here */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
+   if (!SUMA_Engine(&list)) {
+      SUMA_SLP_Err("Failed to redisplay.");
+      SUMA_RETURNe;
+   }
+   
    SUMA_RETURNe; 
 }
 
 SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
 { /* begin embedded function */
    static char FuncName[]={"SUMA_OpenDrawnROI_NIML"};
-   char stmp[SUMA_MAX_NAME_LENGTH+100];
+   char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode;
    NI_element *nel = NULL;
+   NI_element **nelv=NULL;
    NI_stream ns ;
-   int n_read=0, i, answer;
+   int n_read=0, idat, answer, inel, iDO, N_nel;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
    SUMA_DRAWN_ROI *ROI=NULL;
-   SUMA_Boolean found = YUP, LocalHead = YUP;
+   SUMA_Boolean found = YUP, AddNel = YUP, AlwaysReplace = NOPE, NeverReplace = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->nimlROI_Datum_type < 0) {
       SUMA_SL_Err("Bad niml type code");
@@ -2272,11 +2299,16 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
       SUMA_RETURN(NOPE);
    }
    
+   nelv = (NI_element **) SUMA_calloc(SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(NI_element *));
+   if (!nelv) {
+      SUMA_SLP_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   NeverReplace = NOPE;
+   AlwaysReplace = NOPE;
+   inel = 0;
    do {
-      if (nel) {
-         SUMA_SL_Err ("nel is not null!");
-         SUMA_RETURN(NOPE);
-      }
       nel = NI_read_element(ns,1) ;
       
       if (nel) {
@@ -2295,84 +2327,67 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
          }
 
          /* find out if a displayable object exists with the same idcode_str */
-         if (SUMA_existDO(NI_get_attribute( nel , "idcode_str"), SUMAg_DOv, SUMAg_N_DOv)) {
-            sprintf(stmp, "Found duplicate ROIs.\n"\
-                                       "Replace ROI %s (%s) by\n" \
-                                       "version in file ?", 
-                  NI_get_attribute( nel , "Label"), NI_get_attribute( nel , "idcode_str")); 
-            
-            answer = AskUser (SUMAg_SVv[0].X->TOPLEVEL, 
-                              stmp, 
-                              "Yes", "No", 1);
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
-            switch (answer) {
-               case 1:
-                  SUMA_LH("1");
-                  break;
-                  
-               case 2:
-                  SUMA_LH("2");
-                  break;
-               
-               default:
-                  SUMA_LH("default");
-                  break;
+         nel_idcode = NI_get_attribute( nel , "idcode_str");
+         if (SUMA_existDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) {
+            if (AlwaysReplace) {
+               AddNel = YUP; 
             }
-         }
-         /* store nel in nimlROI struct */
-         
-         /* allocate for nimlROI */
-         nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
-         nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
-         nimlROI->idcode_str = NI_get_attribute( nel , "idcode_str");
-         nimlROI->Parent_idcode_str = NI_get_attribute( nel , "Parent_idcode_str");
-         nimlROI->Label = NI_get_attribute( nel , "Label");
-         nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
-         nimlROI->N_ROI_datum = nel->vec_len;
-         niml_ROI_datum_buff = nel->vec[0];
-         if (LocalHead) {
-            fprintf (SUMA_STDERR,"%s: vec_type[0] = %d (%d)\n", 
-               FuncName, nel->vec_typ[0], SUMAg_CF->nimlROI_Datum_type) ;
-            fprintf (SUMA_STDERR,"%s: vec_len =%d\tvec_num = %d\nidcode_str %s, Parent_idcode_str %s\n",
-               FuncName, nel->vec_len, nel->vec_num,
-               nimlROI->idcode_str, nimlROI->Parent_idcode_str);
-         }
-                
-         nimlROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)SUMA_malloc(nimlROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
-         
-         /* now fill the ROI_datum structures */
-          
-         for (i=0; i< nimlROI->N_ROI_datum ; ++i) {
-            nimlROI->ROI_datum[i].action = niml_ROI_datum_buff[i].action;
-            nimlROI->ROI_datum[i].Type = niml_ROI_datum_buff[i].Type;
-            nimlROI->ROI_datum[i].N_n = niml_ROI_datum_buff[i].N_n;
-            if (nimlROI->ROI_datum[i].N_n > 0) {
-               nimlROI->ROI_datum[i].nPath = (int *)SUMA_malloc(sizeof(int)*nimlROI->ROI_datum[i].N_n);
-               memcpy(nimlROI->ROI_datum[i].nPath, niml_ROI_datum_buff[i].nPath, sizeof(int)*nimlROI->ROI_datum[i].N_n);
-            } else {
-               nimlROI->ROI_datum[i].nPath = NULL;
+            if (NeverReplace) {
+               AddNel = NOPE;
+            }
+            if (!AlwaysReplace && !NeverReplace) {   /* ASk */
+               sprintf(stmp, "Found duplicate ROIs.\n"\
+                                          "Replace ROI %s (%s) by\n" \
+                                          "version in file ?", 
+               NI_get_attribute( nel , "Label"), nel_idcode); 
+
+               answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                                 stmp, 
+                                 0);
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
+               switch (answer) {
+                  case SUMA_YES:
+                     SUMA_LH("YES");
+                     AddNel = YUP;
+                     break;
+
+                  case SUMA_NO:
+                     SUMA_LH("NO");
+                     /* don't add this one */
+                     AddNel = NOPE;
+                     break;
+
+                  case SUMA_YES_ALL:
+                     SUMA_LH("YES ALL");
+                     /* cancel Check_Prior */
+                     AddNel = YUP;
+                     AlwaysReplace = YUP;
+                     break;
+
+                  case SUMA_NO_ALL:
+                     SUMA_LH("NO ALL");
+                     /* don't add this one and set flag to ignore the doubles */
+                     AddNel = NOPE;
+                     NeverReplace = YUP;
+                     break;
+
+                  default:
+                     SUMA_SLP_Crit("Don't know what to do with this button.");
+                     SUMA_RETURN(NOPE);
+                     break;
+               }
             } 
-            if (LocalHead) { 
-               fprintf (SUMA_STDERR,"%s: Segment %d\tType %d\tN_n %d\taction %d\n", 
-                  FuncName, i, nimlROI->ROI_datum[i].Type,  
-                  nimlROI->ROI_datum[i].N_n,nimlROI->ROI_datum[i].action);
-            }
-         }
-
-         /* transfom nimlROI to a series of ROI actions */
-         ROI = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI);
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROI->Parent_idcode_str);
+         } else {
+            AddNel = YUP;
+         } 
          
-         /* add ROI to DO list */
-         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROI, ROIdO_type, SUMA_LOCAL)) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+         if (AddNel) {
+            SUMA_LH("Adding Nel");
+            nelv[inel] = nel;
+            ++inel; 
+         }else {
+            SUMA_LH("Skipping Nel");
          }
-
-         /* free nel and get it ready for the next load */
-         NI_free_element(nel) ; nel = NULL;
-         
-         /* free nimlROI */
-         nimlROI = SUMA_Free_NIMLDrawROI(nimlROI);
          
          ++n_read;
       }else {
@@ -2382,12 +2397,102 @@ SUMA_Boolean SUMA_OpenDrawnROI_NIML (char *filename)
    } while (found);
    
    NI_stream_close(ns) ;
-
+   N_nel = inel;
+   
    if( !n_read){
-     SUMA_SL_Err("Found no elements in file!"); 
-     SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Found no elements in file!"); 
+      SUMA_free(nelv);
+      SUMA_RETURN(NOPE);
    }
    
+   /* Now turn those nel into ROIS */
+   for (inel=0; inel < N_nel; ++inel) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing nel %d/%d...\n", FuncName, inel, N_nel);
+      nel = nelv[inel];
+      nel_idcode = NI_get_attribute( nel , "idcode_str");
+
+      /* store nel in nimlROI struct */
+
+      /* allocate for nimlROI */
+      nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
+      nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
+      nimlROI->idcode_str = NI_get_attribute( nel , "idcode_str");
+      nimlROI->Parent_idcode_str = NI_get_attribute( nel , "Parent_idcode_str");
+      nimlROI->Label = NI_get_attribute( nel , "Label");
+      nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
+      nimlROI->N_ROI_datum = nel->vec_len;
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: vec_type[0] = %d (%d)\n", 
+            FuncName, nel->vec_typ[0], SUMAg_CF->nimlROI_Datum_type) ;
+         fprintf (SUMA_STDERR,"%s: vec_len =%d\tvec_num = %d\nidcode_str %s, Parent_idcode_str %s\n",
+            FuncName, nel->vec_len, nel->vec_num,
+            nimlROI->idcode_str, nimlROI->Parent_idcode_str);
+      }
+
+      nimlROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)SUMA_malloc(nimlROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
+
+      /* DO NOT use niml_ROI_datum_buff = (SUMA_NIML_ROI_DATUM *)nel->vec[idat];
+      inside the loop.
+      For the SUMA_NIML_DRAWN_ROI you have one column of (SUMA_NIML_ROI_DATUM *)
+      ni_type = "SUMA_NIML_ROI_DATUM". If you had for type:
+      "SUMA_NIML_ROI_DATUM, int" then you'd have two columns with the second
+      column being a vector of ints. The only caveat is that the second column
+      must be of equal length to the first. */
+      niml_ROI_datum_buff = (SUMA_NIML_ROI_DATUM *)nel->vec[0]; 
+      /* now fill the ROI_datum structures */
+      SUMA_LH("Filling ROI datum structures...");
+      for (idat=0; idat< nimlROI->N_ROI_datum ; ++idat) {
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: i=%d\n", FuncName, idat);
+         nimlROI->ROI_datum[idat].action = niml_ROI_datum_buff[idat].action;
+         nimlROI->ROI_datum[idat].Type = niml_ROI_datum_buff[idat].Type;
+         nimlROI->ROI_datum[idat].N_n = niml_ROI_datum_buff[idat].N_n;
+         if (nimlROI->ROI_datum[idat].N_n > 0) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Copying nPath, %d values\n", FuncName, nimlROI->ROI_datum[idat].N_n);
+            nimlROI->ROI_datum[idat].nPath = (int *)SUMA_malloc(sizeof(int)*nimlROI->ROI_datum[idat].N_n);
+            memcpy(nimlROI->ROI_datum[idat].nPath, niml_ROI_datum_buff[idat].nPath, sizeof(int)*nimlROI->ROI_datum[idat].N_n);
+         } else {
+            SUMA_LH("Null nPath");
+            nimlROI->ROI_datum[idat].nPath = NULL;
+         } 
+         if (LocalHead) { 
+            fprintf (SUMA_STDERR,"%s: Segment %d\tType %d\tN_n %d\taction %d\n", 
+               FuncName, idat, nimlROI->ROI_datum[idat].Type,  
+               nimlROI->ROI_datum[idat].N_n,nimlROI->ROI_datum[idat].action);
+         }
+      }
+
+      /* Does ROI already exist with the same idcode_str ?*/
+      
+      SUMA_LH("Checking for duplicates...");
+      if ((iDO = SUMA_whichDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) >= 0) {
+         SUMA_LH("Duplicate found ... Deleteing old one...");
+         /* ROI already exists delete it */
+         if (!SUMA_DeleteROI ((SUMA_DRAWN_ROI *)SUMAg_DOv[iDO].OP)) {
+            SUMA_SLP_Err("Failed to delete ROI");
+            SUMA_RETURN(NOPE); 
+         }
+      }
+      
+      /* transfom nimlROI to a series of drawing actions */
+      SUMA_LH("Transforming ROI to a series of actions...");
+      ROI = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI);
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROI->Parent_idcode_str);
+
+      /* add ROI to DO list */
+      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROI, ROIdO_type, SUMA_LOCAL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+      }
+
+      /* free nimlROI */
+      nimlROI = SUMA_Free_NIMLDrawROI(nimlROI);
+
+      /* free nel and get it ready for the next load */
+      NI_free_element(nel) ; nel = NULL;
+      
+   }
+   
+   /* free nelv */
+   SUMA_free(nelv);
    
    SUMA_RETURN(YUP);
 } 
@@ -2409,7 +2514,6 @@ void SUMA_SaveDrawnROI (char *filename, void *data)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    SUMA_LH("Called");   
-   
    if (!data) {
       DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
    } else {
@@ -2540,6 +2644,7 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
 {
    static char FuncName[]={"SUMA_Write_DrawnROI_NIML"};
    char stmp[SUMA_MAX_NAME_LENGTH+20];
+   char *newname=NULL;
    int i;
    NI_element *nel ;
    NI_stream ns ;
@@ -2562,8 +2667,16 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
    }
    if (LocalHead) fprintf(SUMA_STDERR, "%s: roi_type code = %d\n", FuncName, SUMAg_CF->nimlROI_Datum_type) ;
 
+   /* add a .niml.roi extension */
+   if (strlen(filename) >= SUMA_MAX_NAME_LENGTH-20) {
+      SUMA_SLP_Err("Give me a break, what kind of a filename is this ?");
+      SUMA_RETURN(NOPE);
+   }
+
    sprintf(stmp,"file:%s", filename);
-   ns = NI_stream_open( stmp , "w" ) ;
+   newname = SUMA_Extension(stmp, ".niml.roi", NOPE); 
+   SUMA_LH(newname);
+   ns = NI_stream_open( newname , "w" ) ;
 
    /* write the various ROIs */
    for (i=0; i < N_ROI; ++i) {
@@ -2598,12 +2711,6 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
 
       if (LocalHead) SUMA_nel_stdout (nel);
 
-      /* Now write the element */
-      if (strlen(filename) >= SUMA_MAX_NAME_LENGTH-20) {
-         SUMA_SLP_Err("Give me a break, what kind of a filename is this ?");
-         NI_stream_close( ns ) ; 
-         SUMA_RETURN(NOPE);
-      }
       if (!WriteBin) {
          SUMA_LH ("Writing element, Text mode.");
          if (NI_write_element( ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) < 0) {
@@ -2629,6 +2736,8 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
    }
    
    NI_stream_close( ns ) ; 
+   
+   if (newname) SUMA_free(newname);
    
    SUMA_RETURN(YUP);
 }

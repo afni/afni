@@ -32,6 +32,7 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
+int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO);
@@ -47,6 +48,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, i
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
+SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI); 
 
 /*!
    \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)
