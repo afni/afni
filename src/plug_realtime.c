@@ -35,10 +35,10 @@
   system at the Medical College of Wisconsin.
 ************************************************************************/
 
-/*** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER    [rickr] */
-/*** 27 Jun 2003: added BYTEORDER command for automatic byte swapping [rickr] */
-
-/*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls ***/
+/*** 30 Oct 2003: if possible, compute function on registered data              [rickr] ***/
+/*** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER              [rickr] ***/
+/*** 27 Jun 2003: added BYTEORDER command for automatic byte swapping           [rickr] ***/
+/*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls                               ***/
 
 /**************************************************************************/
 /*********************** struct for reading data **************************/
@@ -2784,6 +2784,18 @@ void RT_process_image( RT_input * rtin )
          VMCHECK ;
       }
 
+#ifdef ALLOW_REGISTRATION
+      /* do registration before function computation   - 30 Oct 2003 [rickr] */
+      switch( rtin->reg_mode ){
+           case REGMODE_2D_RTIME: RT_registration_2D_realtime( rtin ) ;
+           break ;
+
+           case REGMODE_3D_RTIME:
+           case REGMODE_3D_ESTIM: RT_registration_3D_realtime( rtin ) ;
+           break ;
+      }
+#endif /* ALLOW_REGISTRATION */
+
       /** compute function, maybe? **/
 
       if( rtin->func_code > 0 ){
@@ -2802,17 +2814,6 @@ void RT_process_image( RT_input * rtin )
          if( rtin->func_code > 0 )
             rtin->func_func( rtin , rtin->nvol[cc] - 1 ) ;
       }
-
-#ifdef ALLOW_REGISTRATION
-      switch( rtin->reg_mode ){
-           case REGMODE_2D_RTIME: RT_registration_2D_realtime( rtin ) ;
-           break ;
-
-           case REGMODE_3D_RTIME:
-           case REGMODE_3D_ESTIM: RT_registration_3D_realtime( rtin ) ;
-           break ;
-      }
-#endif /* ALLOW_REGISTRATION */
 
       /** make space for next sub-brick to arrive **/
 
@@ -4065,6 +4066,9 @@ int RT_fim_recurse( RT_input * rtin , int mode )
    static char new_prefix[THD_MAX_PREFIX] ;
    static char old_prefix[THD_MAX_PREFIX] ;
 
+   static int first_pass = 1;     /* flag for first FIM computation   30 Oct 2003 [rickr] */
+   int        start_index;        /* in case of loop FIM computation  30 Oct 2003 [rickr] */
+
    int ifim, it, iv, ivec, nnow, itbot , ip ;
    float fthr , topval , stataux[MAX_STAT_AUX] ;
    float * tsar ;
@@ -4083,8 +4087,17 @@ int RT_fim_recurse( RT_input * rtin , int mode )
 
    if( mode == INIT_MODE ){
 
+      dset_time = rtin->dset[0] ;       /* assign dset_time first   30 Oct 2003 [rickr] */
+
+#ifdef ALLOW_REGISTRATION
+      /* now check for use of registered dataset                    30 Oct 2003 [rickr] */
+      if( (rtin->reg_mode == REGMODE_2D_RTIME) || (rtin->reg_mode == REGMODE_3D_RTIME) )
+         dset_time = rtin->reg_dset;
+#endif /* ALLOW_REGISTRATION */
+
+      if( dset_time == NULL ) return -1 ;
+
       im3d      = rtin->im3d[0] ;         if( im3d      == NULL ) return -1 ;
-      dset_time = rtin->dset[0] ;         if( dset_time == NULL ) return -1 ;
       ref_ts    = im3d->fimdata->fimref ; if( ref_ts    == NULL ) return -1 ;
       ort_ts    = im3d->fimdata->fimort ; /* NULL is legal here */
       nupdt     = 0 ;                     /* number of updates done yet */
@@ -4179,6 +4192,8 @@ int RT_fim_recurse( RT_input * rtin , int mode )
       }
       IFree(vval) ; IFree(indx)  ; IFree(pc_ref) ; IFree(pc_vc)  ;
       IFree(aval) ; IFree(rbest) ; IFree(abest)  ;
+
+      first_pass = 1;                /* reset for future datasets    30 Oct 2003 [rickr] */
 
       return 1 ;
    }
@@ -4333,7 +4348,16 @@ int RT_fim_recurse( RT_input * rtin , int mode )
             compute the threshold (fthr) from it,
             make indx[i] be the 3D index of the i-th voxel above threshold ----*/
 
-   if( mode == it1 ){  /* am exactly at the first time relevant to fim */
+   /* be sure dset_time has enough sub-bricks for this time point   30 Oct 2003 [rickr] */
+   if ( (DSET_NVALS(dset_time) <= mode) || (DSET_ARRAY(dset_time,mode) == NULL) )
+      return 1;
+
+#if 0				/* change to first_pass test */
+   if( mode == it1 ){
+#endif
+
+   /* check for first fim computation with this dataset            30 Oct 2003 [rickr] */
+   if( first_pass == 1 ){
 
       switch( dtyp ){  /* process each datum type separately */
 
@@ -4475,58 +4499,70 @@ int RT_fim_recurse( RT_input * rtin , int mode )
 
    /*---- do recursive update for this time point ----*/
 
-   it   = mode ;  /* time index */
-   nnow = 0 ;     /* number of refs used this time */
-
-   if( it >= nx_ref ) return 1 ;  /* can't update without references! */
-
-   for( ivec=0 ; ivec < ny_ref ; ivec++ ){           /* for each ideal time series */
-      tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ;
-      if( tsar[it] >= WAY_BIG ) continue ;           /* skip this time series */
-
-      ref_vec[0] = 1.0 ;         /* we always supply ort for constant */
-      for( ip=1 ; ip <= polort ; ip++ )              /* 02 Jun 1999:    */
-         ref_vec[ip] = ref_vec[ip-1] * ((float)it) ; /* and polynomials */
-
-      if( internal_ort ){
-         ref_vec[ip] = tsar[it] ;                    /* ideal */
-      } else {
-         for( iv=0 ; iv < ny_ort ; iv++ )            /* any other orts? */
-            ref_vec[iv+ip] = (it < nx_ort) ? ortar[it+iv*nx_ort]
-                                           : 0.0 ;
-
-         ref_vec[ny_ort+ip] = tsar[it] ;             /* ideal */
-      }
-
-      update_PCOR_references( ref_vec , pc_ref[ivec] ) ;  /* Choleski refs */
-
-      /* load data from dataset into local float array vval */
-
-      switch( dtyp ){
-         case MRI_short:{
-            short * dar = (short *) DSET_ARRAY(dset_time,it) ;
-            for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
-         }
-         break ;
-
-         case MRI_float:{
-            float * dar = (float *) DSET_ARRAY(dset_time,it) ;
-            for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
-         }
-         break ;
-
-         case MRI_byte:{
-            byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
-            for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
-         }
-         break ;
-      }
-
-      PCOR_update_float( vval , pc_ref[ivec] , pc_vc[ivec] ) ;  /* Choleski data */
-      nnow++ ;
-
+   /* process as loop, in case this is the first time (and we need to backtrack) */
+   /*                                                        30 Oct 2003 [rickr] */
+   if ( first_pass == 1 )
+   {
+      first_pass  = 0;
+      start_index = it1;      /* start from timepoint of first FIM computation */
    }
-   if( nnow > 0 ) nupdt++ ;  /* at least one ideal vector was used */
+   else
+      start_index = mode;     /* if not first pass, the "loop" will be this one iteration */
+
+   for ( it = start_index; it <= mode; it++ )
+   {
+      nnow = 0 ;     /* number of refs used this time */
+   
+      if( it >= nx_ref ) return 1 ;  /* can't update without references! */
+   
+      for( ivec=0 ; ivec < ny_ref ; ivec++ ){           /* for each ideal time series */
+         tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ;
+         if( tsar[it] >= WAY_BIG ) continue ;           /* skip this time series */
+   
+         ref_vec[0] = 1.0 ;         /* we always supply ort for constant */
+         for( ip=1 ; ip <= polort ; ip++ )              /* 02 Jun 1999:    */
+            ref_vec[ip] = ref_vec[ip-1] * ((float)it) ; /* and polynomials */
+   
+         if( internal_ort ){
+            ref_vec[ip] = tsar[it] ;                    /* ideal */
+         } else {
+            for( iv=0 ; iv < ny_ort ; iv++ )            /* any other orts? */
+               ref_vec[iv+ip] = (it < nx_ort) ? ortar[it+iv*nx_ort]
+                                              : 0.0 ;
+   
+            ref_vec[ny_ort+ip] = tsar[it] ;             /* ideal */
+         }
+   
+         update_PCOR_references( ref_vec , pc_ref[ivec] ) ;  /* Choleski refs */
+   
+         /* load data from dataset into local float array vval */
+   
+         switch( dtyp ){
+            case MRI_short:{
+               short * dar = (short *) DSET_ARRAY(dset_time,it) ;
+               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
+            }
+            break ;
+   
+            case MRI_float:{
+               float * dar = (float *) DSET_ARRAY(dset_time,it) ;
+               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
+            }
+            break ;
+   
+            case MRI_byte:{
+               byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
+               for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
+            }
+            break ;
+         }
+   
+         PCOR_update_float( vval , pc_ref[ivec] , pc_vc[ivec] ) ;  /* Choleski data */
+         nnow++ ;
+   
+      }
+      if( nnow > 0 ) nupdt++ ;  /* at least one ideal vector was used */
+   }
 
    return 1 ;
 }

@@ -344,4 +344,5 @@
 30 October 2003:
   * modifited 3dbucket.c to search for trailing view type extension from end
     (under -glueto option processing)
+  * modified plug_realtime.c to compute function on registered data
 
