@@ -118,7 +118,8 @@ static char * ROIPLOT_main( PLUGIN_interface * plint )
    char *tag ;
    MCW_cluster_array *clustar ;
    MRI_IMAGE *flim ;
-   float     *flar , **yar ;
+   float     *flar , **yar , *xar ;
+   char      **nam_yyy ;
    MEM_plotdata * mp ;
 
    /*--------------------------------------------------------------------*/
@@ -293,24 +294,35 @@ static char * ROIPLOT_main( PLUGIN_interface * plint )
 
    flim = THD_average_timeseries( clustar , input_dset ) ;
 
-   DESTROY_CLARR(clustar) ;
-
-   if( flim == NULL )
+   if( flim == NULL ){
+     DESTROY_CLARR(clustar) ;
      return "***********************************************\n"
             "ROIPLOT_main:  Can't extract average timeseries\n"
             "***********************************************\n" ;
+   }
 
    nc   = flim->ny ;
    nt   = flim->nx ;
    flar = MRI_FLOAT_PTR(flim) ;
    yar  = (float **) malloc(sizeof(float *)*nc) ;
    for( ii=0 ; ii < nc ; ii++ ) yar[ii] = flar + (ii*nt+iv_start) ;
+   xar  = (float *) malloc(sizeof(float)*nt) ;
+   for( ii=0 ; ii < nt ; ii++ ) xar[ii] = ii ;
+   nam_yyy = (char **) malloc(sizeof(char *)*nc) ;
+   for( ii=0 ; ii < nc ; ii++ ){
+      nam_yyy[ii] = malloc(64) ;
+      sprintf(nam_yyy[ii],"%d voxels",clustar->clar[ii]->num_pt) ;
+   }
+   DESTROY_CLARR(clustar);
 
-   mp = plot_ts_mem( iv_stop-iv_start+1 , NULL ,
+   mp = plot_ts_mem( iv_stop-iv_start+1 , xar+iv_start ,
                      nc,TSP_SEPARATE_YBOX,yar ,
-                     NULL,NULL,NULL,NULL ) ;
+                     NULL,NULL,NULL,nam_yyy ) ;
 
-   mri_free(flim) ; free(yar) ;
+   for( ii=0 ; ii < nc ; ii++ ) free(nam_yyy[ii]) ;
+   free(nam_yyy);
+   free(xar); free(yar); mri_free(flim);
+
    if( mp == NULL )
      return "******************************************\n"
             "ROIPLOT_main:  Can't create in-memory plot\n"
