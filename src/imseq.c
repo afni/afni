@@ -348,10 +348,17 @@ static void ISQ_setup_ppmto_filters(void)
    /*-- write Windows BMP --*/
 
    pg  = THD_find_executable( "ppmtobmp" ) ;
-   pg2 = THD_find_executable( "ppmquant" ) ;
-   if( pg != NULL && pg2 != NULL ){
-      str = malloc(strlen(pg)+strlen(pg2)+32) ;
-      sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
+
+   if( AFNI_yesenv("AFNI_OLD_PPMTOBMP") ){
+     pg2 = THD_find_executable( "ppmquant" ) ;
+     if( pg != NULL && pg2 != NULL ){
+        str = malloc(strlen(pg)+strlen(pg2)+32) ;
+        sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
+        bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
+     }
+   } else if( pg != NULL ){              /* 21 Feb 2003 */
+      str = malloc(strlen(pg)+32) ;
+      sprintf(str,"%s -bpp 24 -windows > %%s",pg2,pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
    }
 
