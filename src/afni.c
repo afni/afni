@@ -6909,7 +6909,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
                          ) ;
       }
 
-      if( im3d->anat_now != old_anat ){
+      if( im3d->anat_now != old_anat || im3d != old_im3d ){
         refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
                            0 ,                             /* new minval */
                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */

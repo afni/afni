@@ -262,6 +262,9 @@
   Mod:     If SVD is on, don't eliminate all-zero stim files.
            Also, add -xjpeg option.
   Date     21 Jul 2004 - RWCox
+
+  Mod:     -xsave and -xrestore options, to be able to run extra GLTs
+  Date     28 Jul 2004 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -274,15 +277,13 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "27 July 2004"        /* latest program revision date*/
+#define PROGRAM_LATEST  "28 July 2004"        /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
 #define RA_error DC_error
 
-#if 1             /* set this to 0 to disable multiple gets */
 #define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
-#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -348,6 +349,8 @@ static matrix X , XtXinv , XtXinvXt ;
 static int xrestore = 0 ;                           /* globals for -xrestore */
 static char *xrestore_filename = NULL ;
 static int NumTimePoints=0 , NumRegressors=0 ;
+
+static int verb = 1 ;
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -561,7 +564,7 @@ void display_help_menu()
     "                     ignored.                                          \n"
     "                                                                       \n"
     "     The following options control the screen output only:             \n"
-    "[-quiet]             Flag to suppress initial screen output            \n"
+    "[-quiet]             Flag to suppress most screen output               \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
     "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
@@ -990,8 +993,7 @@ void get_options
 
       if( strcmp(argv[nopt],"-xrestore") == 0 ){
         nopt++;
-        if( nopt >= argc)
-          DC_error ("need argument after -xrestore ");
+        if( nopt >= argc) DC_error ("need argument after -xrestore ");
         xrestore_filename = strdup( argv[nopt] ) ;
         if( !THD_is_file(xrestore_filename) )
           DC_error("file named after -xrestore doesn't exist") ;
@@ -1001,7 +1003,7 @@ void get_options
       /*-----   -quiet   -----*/
       if (strcmp(argv[nopt], "-quiet") == 0)
 	{
-	  option_data->quiet = 1;
+	  option_data->quiet = 1;  verb = 0 ;
 	  nopt++;
 	  continue;
 	}
@@ -1437,14 +1439,14 @@ void get_options
 #ifdef PROC_MAX
         proc_numjob = strtol(argv[nopt],NULL,10) ;
         if( proc_numjob < 1 ){
-          fprintf(stderr,"** setting number of processes to 1!\n") ;
+          fprintf(stderr,"** WARNING: setting number of processes to 1!\n") ;
           proc_numjob = 1 ;
         } else if( proc_numjob > PROC_MAX ){
-          fprintf(stderr,"** setting number of processes to %d!\n",PROC_MAX);
+          fprintf(stderr,"** WARNING: setting number of processes to %d!\n",PROC_MAX);
           proc_numjob = PROC_MAX ;
         }
 #else
-        fprintf(stderr,"** -jobs not supported in this version\n") ;
+        fprintf(stderr,"** WARNING: -jobs not supported in this version\n") ;
 #endif
         proc_use_jobs = 1 ;     /* -jobs opt given    2003.08.15 [rickr] */
         nopt++; continue;
@@ -1464,8 +1466,10 @@ void get_options
   /*---- if -jobs is given, make sure are processing 3D data ----*/
 
 #ifdef PROC_MAX
-  if( xrestore || option_data->input1D_filename != NULL )
+  if( (xrestore || option_data->input1D_filename != NULL) && proc_numjob > 1 ){
     proc_numjob = 1 ;
+    if( verb ) fprintf(stderr,"** WARNING: -jobs reset to 1\n") ;
+  }
 #endif
 
 }
@@ -1514,7 +1518,7 @@ float * read_time_series
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
   if( ny > 1 ){
-    fprintf(stderr,"WARNING: time series %s has %d columns\n",ts_filename,ny);
+    fprintf(stderr,"** WARNING: time series %s has %d columns\n",ts_filename,ny);
   }
 
 
@@ -1593,7 +1597,7 @@ void read_input_data
           for( js=is+1 ; js < num_stimts ; js++ ){
             if( strcmp( option_data->stim_filename[is] ,
                         option_data->stim_filename[js]  ) == 0 )
-              fprintf(stderr,"** -stim_file WARNING: "
+              fprintf(stderr,"** WARNING: -stim_file "
                              "#%d '%s' same as #%d '%s'\n" ,
                       is+1,option_data->stim_filename[is] ,
                       js+1,option_data->stim_filename[js]  ) ;
@@ -2019,7 +2023,6 @@ void check_for_valid_inputs
   int * glt_rows;          /* number of linear constraints in glt */
   int iglt;                /* general linear test index */
   int nerr=0 ;             /* 22 Oct 2003 */
-  int can_xsave ;
 
 
   /*----- Initialize local variables -----*/
@@ -2036,15 +2039,7 @@ void check_for_valid_inputs
 
   /*----- Check if -xsave was given without -bucket ------*/
   if( xsave && option_data->bucket_filename == NULL ){
-    fprintf(stderr,"** WARNING: -xsave given without -bucket!\n") ;
-    xsave = 0 ;
-  }
-  can_xsave = (!option_data->nocout && !option_data->nobout) ||
-              (CoefFilename != NULL) ;
-  if( xsave && !can_xsave ){
-    fprintf(stderr,
-            "** WARNING: -xsave disabled since you used -nocout and/or -nobout\n"
-            "            and did not use -cbucket!\n" ) ;
+    fprintf(stderr,"** WARNING: -xsave given without -bucket; -xsave is disabled!\n") ;
     xsave = 0 ;
   }
 
@@ -2134,7 +2129,7 @@ void check_for_valid_inputs
 #else
           int nlen=nt*nptr[is], qq ;
           fprintf(stderr,
-                  "++ WARNING: input stimulus time series file %s is too short:\n"
+                  "** WARNING: input stimulus time series file %s is too short:\n"
                   "            length = %d, but should be at least %d.\n" ,
             option_data->stim_filename[is] , stim_length[is] , nlen ) ;
           stimulus[is] = (float *) realloc( stimulus[is] , sizeof(float)*nlen ) ;
@@ -2724,7 +2719,9 @@ void initialize_program
   if( xrestore ) return ;  /* 26 Jul 2004 - special operations to do! */
 
   /*----- Tell the user if he is being foolish -----*/
-  if( !legendre_polort && (*option_data)->polort > 1 ){  /* 20 Jul 2004 */
+  if( !(*option_data)->quiet &&
+      !legendre_polort       &&
+      (*option_data)->polort > 1 ){  /* 20 Jul 2004 */
     fprintf(stderr,"** WARNING: you have polynomials of order %d for the baseline\n"
                    "**          but disabled use of the Legendre polynomials!\n"
                    "**          Check the matrix condition and accuracy of results!\n" ,
@@ -3235,7 +3232,7 @@ void calculate_results
   { int *iar , k ;
     iar = matrix_check_columns( xdata , 1.e-3 ) ;
     if( iar != NULL ){
-      fprintf(stderr,"** Problems with the X matrix columns:\n") ;
+      fprintf(stderr,"** WARNING: Problems with the X matrix columns:\n") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
         if( iar[2*k+1] >= 0 )
           fprintf(stderr," * Columns %d and %d are nearly collinear!\n",
@@ -3266,7 +3263,9 @@ void calculate_results
                      "min ev=%g  max ev=%g  ** VERY BAD **\n",emin,emax ) ;
     } else {
       double cond = sqrt(emax/emin) ;
-      fprintf(stderr,"++ Matrix condition:  %g",cond) ;
+      if( !use_psinv ) cond = cond*cond ;  /* Gaussian elim is twice as bad */
+      fprintf(stderr,"++ Matrix condition [%s]:  %g",
+              (use_psinv) ? "X" : "XtX" , cond  ) ;
 #ifdef FLOATIZE
       if( cond > 100.0 ) fprintf(stderr,"  ** BEWARE **") ;
 #else
@@ -3360,10 +3359,10 @@ void calculate_results
 
           /* start processes */
 
-          fprintf(stderr,"++ Voxels in dataset: %d\n",nxyz) ;
+          if( !option_data->quiet ) fprintf(stderr,"++ Voxels in dataset: %d\n",nxyz) ;
           if( nvox < nxyz )
-          fprintf(stderr,"++ Voxels in mask:    %d\n",nvox) ;
-          fprintf(stderr,"++ Voxels per job:    %d\n",nper) ;
+          if( !option_data->quiet ) fprintf(stderr,"++ Voxels in mask:    %d\n",nvox) ;
+          if( !option_data->quiet ) fprintf(stderr,"++ Voxels per job:    %d\n",nper) ;
 
           for( pp=1 ; pp < proc_numjob ; pp++ ){
             ixyz_bot = proc_vox_bot[pp] ;   /* these 3 variables   */
@@ -3383,13 +3382,14 @@ void calculate_results
             ixyz_top = proc_vox_top[0] ; /* variables needed */
             proc_ind = 0 ;               /* below           */
           }
-          fprintf(stderr,"++ Job #%d: processing voxels %d to %d; elapsed time=%.3f\n",
-                  proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
+          if( !option_data->quiet )
+            fprintf(stderr,"++ Job #%d: processing voxels %d to %d; elapsed time=%.3f\n",
+                    proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
         }
       }
 #endif /* PROC_MAX */
 
-      if( proc_numjob == 1 )
+      if( proc_numjob == 1 && !option_data->quiet )
         fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",COX_clock_time()) ;
 
       /*----- Loop over all voxels -----*/
@@ -3489,22 +3489,25 @@ void calculate_results
 #ifdef PROC_MAX
         if( proc_numjob > 1 ){
           if( proc_ind > 0 ){                          /* death of child */
-            fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",proc_ind,COX_clock_time()) ;
+            if( !option_data->quiet )
+              fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",proc_ind,COX_clock_time()) ;
             _exit(0) ;
 
           } else {                      /* parent waits for children */
             int pp ;
-            fprintf(stderr,"++ Job #0 waiting for children to finish; elapsed time=%.3f\n",COX_clock_time()) ;
+            if( !option_data->quiet )
+              fprintf(stderr,"++ Job #0 waiting for children to finish; elapsed time=%.3f\n",COX_clock_time()) ;
             for( pp=1 ; pp < proc_numjob ; pp++ )
               waitpid( proc_pid[pp] , NULL , 0 ) ;
-            fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",COX_clock_time()) ;
+            if( !option_data->quiet )
+              fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",COX_clock_time()) ;
           }
 
           /* when get to here, only parent process is left alive,
              and all the results are in the shared memory segment arrays */
         }
 #endif
-        if( proc_numjob == 1 )
+        if( proc_numjob == 1 && !option_data->quiet )
           fprintf(stderr,"++ Calculations finished; elapsed time=%.3f\n",COX_clock_time()) ;
 
         if( option_data->input1D_filename == NULL)  /* don't need data anymore */
@@ -4855,11 +4858,11 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
-  if (proc_use_jobs == 1){       /* output requested - 2003.08.15 [rickr] */
+  if( proc_use_jobs == 1 && verb ){ /* output requested - 2003.08.15 [rickr] */
     fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time());
   }
 #ifndef FLOATIZE
-  if( proc_numjob == 1 ){              /* 16 Jan 2004: print operation count */
+  if( proc_numjob == 1 && verb ){ /* 16 Jan 2004: print operation count */
     double fv = get_matrix_flops() ;
     if( proc_use_jobs == 1 )
       fprintf(stderr,"++ Flops=%g\n",fv) ;
@@ -5056,7 +5059,7 @@ void JPEG_matrix_gray( matrix X , char *fname )
    fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
    fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
    (void) pclose(fp) ;
-   fprintf(stderr,"++ Wrote X matrix image to file %s\n",fname) ;
+   if( verb ) fprintf(stderr,"++ Wrote X matrix image to file %s\n",fname) ;
 
    mri_free(im) ; free((void *)jpfilt) ; return ;
 }
@@ -5231,8 +5234,11 @@ void XSAVE_output( char *prefix )
    char *fname , *cpt ;
    NI_stream ns ;
    NI_element *nel ;
+   int nimode = NI_BINARY_MODE ;
 
    if( !xsave ) return ;
+
+   if( AFNI_yesenv("AFNI_XSAVE_TEXT") ) nimode = NI_TEXT_MODE ;
 
    /*-- open output stream --*/
 
@@ -5240,7 +5246,7 @@ void XSAVE_output( char *prefix )
 
    fname  = malloc( sizeof(char) * (strlen(prefix)+32) ) ;
    strcpy(fname,"file:") ; strcat(fname,prefix) ; strcat(fname,".xsave") ;
-   if( THD_is_ondisk(fname+5) )
+   if( THD_is_ondisk(fname+5) && verb )
      fprintf(stderr,
              "** WARNING: -xsave output file %s will be overwritten!\n",fname+5) ;
    ns = NI_stream_open( fname , "w" ) ;
@@ -5278,31 +5284,31 @@ void XSAVE_output( char *prefix )
    NI_set_attribute( nel , "Username" , cpt ) ;
    free((void *)cpt) ;
 
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    /*-- write the matrices --*/
 
    nel = matrix_to_niml( X , "matrix" ) ;
    NI_set_attribute( nel , "Xname" , "X" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    nel = matrix_to_niml( XtXinv , "matrix" ) ;
    NI_set_attribute( nel , "Xname" , "XtXinv" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    nel = matrix_to_niml( XtXinvXt , "matrix" ) ;
    NI_set_attribute( nel , "Xname" , "XtXinvXt" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    /*-- list of good time points --*/
 
    nel = intvec_to_niml( nGoodList , GoodList , "intvec" ) ;
    NI_set_attribute( nel , "Xname" , "GoodList" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    /*-- list of bucket indices with estimated parameters --*/
@@ -5310,7 +5316,7 @@ void XSAVE_output( char *prefix )
    if( ParamIndex != NULL ){
      nel = intvec_to_niml( nParam, ParamIndex , "intvec" ) ;
      NI_set_attribute( nel , "Xname" , "ParamIndex" ) ;
-     (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     (void) NI_write_element( ns , nel , nimode ) ;
      NI_free_element( nel ) ;
    }
 
@@ -5318,14 +5324,14 @@ void XSAVE_output( char *prefix )
 
    nel = intvec_to_niml( nParam, ParamStim , "intvec" ) ;
    NI_set_attribute( nel , "Xname" , "ParamStim" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    /*-- stimulus label, for each parameter --*/
 
    nel = stringvec_to_niml( nParam , ParamLabel , "stringvec" ) ;
    NI_set_attribute( nel , "Xname" , "ParamLabel" ) ;
-   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   (void) NI_write_element( ns , nel , nimode ) ;
    NI_free_element( nel ) ;
 
    /*-- done, finito, ciao babee --*/
@@ -5446,7 +5452,7 @@ void check_xrestore_data(void)
              "** ERROR: -xrestore %s has bad XtXinvXt matrix\n",xrestore_filename) ;
      nerr++ ;
    }
-   if( X.cols != nParam ){
+   if( nParam > 0 && X.cols != nParam ){
      fprintf(stderr,
              "** ERROR: -xrestore %s X matrix cols mismatch: %d != %d\n",
              xrestore_filename, X.cols , nParam ) ;
@@ -5462,6 +5468,7 @@ void check_xrestore_data(void)
              xrestore_filename, X.cols , nGoodList ) ;
      nerr++ ;
    }
+#if 0
    if( ParamStim == NULL ){
      fprintf(stderr,
              "** ERROR: -xrestore %s missing ParamStim field\n",xrestore_filename) ;
@@ -5472,6 +5479,7 @@ void check_xrestore_data(void)
              "** ERROR: -xrestore %s missing ParamLabel field\n",xrestore_filename) ;
      nerr++ ;
    }
+#endif
    if( InputFilename == NULL ){
      fprintf(stderr,
              "** ERROR: -xrestore %s missing InputFilename field\n",xrestore_filename) ;
@@ -5512,7 +5520,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
          ** glt_fstat_vol=NULL ,
          ** glt_rstat_vol=NULL  ;
    float *cdar=NULL , ssef , *volume ;
-   int ivol , nvol , nbuck ;
+   int ivol , nvol , nbuck , vstep ;
 
    /*----- Check for GLT options -----*/
 
@@ -5538,6 +5546,8 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    /*----- read xsave file -----*/
 
+   if( verb ) fprintf(stderr,"++ Starting -xrestore %s\n",xrestore_filename) ;
+
    XSAVE_input( xrestore_filename ) ;
    check_xrestore_data() ;
 
@@ -5545,6 +5555,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    /*----- read input time series dataset -----*/
 
+   if( verb ) fprintf(stderr,"++ loading time series dataset %s\n",InputFilename);
    dset_time = THD_open_one_dataset( InputFilename ) ;
    if( dset_time == NULL ){
      fprintf(stderr,
@@ -5566,6 +5577,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    dset_coef = NULL ;
    if( CoefFilename != NULL ){
+     if( verb) fprintf(stderr,"++ loading coefficient dataset %s\n",CoefFilename);
      dset_coef = THD_open_one_dataset( CoefFilename ) ;
      if( dset_coef == NULL ){
        fprintf(stderr,
@@ -5596,6 +5608,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    /*----- if above failed, try the old bucket dataset -----*/
 
    if( dset_coef == NULL && BucketFilename != NULL && ParamIndex != NULL ){
+     if( verb ) fprintf(stderr,"++ loading original bucket dataset %s\n",BucketFilename) ;
      dset_coef = THD_open_one_dataset( BucketFilename ) ;
      if( dset_coef == NULL ){
        fprintf(stderr,
@@ -5626,8 +5639,8 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    /*----- neither worked ==> must recompute from input data time series -----*/
 
-   if( dset_coef == NULL )
-     fprintf(stderr,
+   if( dset_coef == NULL && verb )
+    fprintf(stderr,
            "** WARNING: -xrestore recomputing coefficients from time series\n");
 
    /*----- read new GLT matrices -----*/
@@ -5711,7 +5724,11 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
             - compute SSE of full model
             - compute and store new GLT results in arrays -----*/
 
+   if( verb ) fprintf(stderr,"++ starting voxel loop") ;
+   vstep = nxyz/20 ; if( vstep < 1 ) vstep = 1 ;
    for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
+
+     if( verb && ixyz%vstep == 0 ) fprintf(stderr,".") ;  /* progress meter */
 
      /*** race ahead and extract a bunch of voxel time series at once ***/
 
@@ -5745,7 +5762,9 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
      if( !novar ) ssef = calc_sse( X , coef , y ) ;
 
+     /************************************/
      /*** Do the work we came here for ***/
+     /************************************/
 
      glt_analysis( nt , np ,
                    X , y , ssef , coef , novar ,
@@ -5778,6 +5797,8 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    } /*** end of loop over voxels */
 
+   if( verb ) fprintf(stderr,"\n") ;  /* end of progress meter */
+
    /*** unload input datasets to save memory ***/
 
                            DSET_unload( dset_time ) ;
@@ -5807,7 +5828,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    if( dset_buck != NULL ){
 
-     fprintf(stderr,"++ -xrestore appending to dataset %s\n",buck_name) ;
+     if( verb) fprintf(stderr,"++ -xrestore appending to dataset %s\n",buck_name) ;
      DSET_mallocize( dset_buck ) ;
      if( DSET_NVOX(dset_buck) != nxyz ){
        fprintf(stderr,
@@ -5830,7 +5851,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    } else {  /*** create a new dataset ***/
 
-     fprintf(stderr,"++ -xrestore creating new dataset %s\n",buck_name) ;
+     if( verb ) fprintf(stderr,"++ -xrestore creating new dataset %s\n",buck_name) ;
 
      dset_buck = EDIT_empty_copy( dset_time ) ;
      (void) EDIT_dset_items( dset_buck ,
