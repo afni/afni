@@ -1331,6 +1331,17 @@ from this control panel's "Save" button.  This filename should be an absolute
 path (e.g., /home/yourname/.afni_ttcolors), since otherwise it will be read
 relative to the directory in which you start AFNI.
 
+-----------------------------
+Variable: AFNI_LOAD_PRINTSIZE
+-----------------------------
+AFNI will print (to stderr) a warning that it is loading a large dataset from
+disk.  This value determines the meaning of "large".  For example, setting
+this variable to "40M" means that loading a dataset larger than 40 Megabytes
+will trigger the warning.  If not given, the default value is 100 Megabytes.
+The purpose of the warning is just to let the user know that it may be several
+seconds before the dataset is loaded (e.g., before the images appear).  If you
+don't want this warning at all, set this variable to the string "0".
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
