@@ -4773,7 +4773,7 @@ void REND_func_widgets(void)
 #endif
 
 #ifdef USING_LESSTIF
-   XtVaSetValues( wfunc_thr_scale , XmNwidth,20 , NULL ) ;
+   XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 
    XtAddCallback( wfunc_thr_scale , XmNvalueChangedCallback ,
@@ -5349,8 +5349,8 @@ static void fixscale( XtPointer client_data , XtIntervalId * id )
 {
    FIX_SCALE_SIZE ;
 
-#ifdef USING_LESSTIF
-   XtVaSetValues( wfunc_thr_scale , XmNwidth,40 , NULL ) ;
+#if 0
+   XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 
 }

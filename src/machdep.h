@@ -286,7 +286,6 @@ extern long   strtol() ;
 # define NO_FRIVOLITIES
 # define USING_LESSTIF            /* try to avoid some bugs */
 # define FIX_SCALE_SIZE_PROBLEM
-# define FIX_SCALE_SIZE_LATER
 #endif
 
 /* SCO UDK under Unixware 7 -- contributed by Jason Bacon */
