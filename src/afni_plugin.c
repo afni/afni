@@ -497,9 +497,6 @@ ENTRY("new_PLUGIN_interface") ;
 
    plint = new_PLUGIN_interface_1999( label , description , help ,
                                       call_type , call_func , NULL ) ;
-
-   plint->run_label[0]  = '\0' ;  /* 04 Nov 2003 */
-   plint->doit_label[0] = '\0' ;
    RETURN(plint) ;
 }
 
@@ -597,6 +594,9 @@ ENTRY("new_PLUGIN_interface_1999") ;
       }
    }
 #endif
+
+   plint->run_label[0]  = '\0' ;  /* 04 Nov 2003 */
+   plint->doit_label[0] = '\0' ;
 
    RETURN(plint) ;
 }
