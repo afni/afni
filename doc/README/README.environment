@@ -1825,11 +1825,11 @@ Variable: AFNI_MPEG_DATASETS
 This variable can be used to allow MPEG files to be read in as AFNI datasets.
 Such datasets are inherently 3 dimensional.  How they will be organized inside
 AFNI depends on the setting of this variable.  The options are:
-  TIME  = the frame sequence number will be the time axis
   SPACE = the frame sequence number will be the z-axis
-If this variable is NOT set to anything, then MPEG files will not be read as
-AFNI datasets.  If it is set to anything other than one of the values above,
-this variable will be treated as TIME.
+  TIME  = the frame sequence number will be the time axis
+  NO    = MPEG files won't be read as AFNI datasets
+          (they can still be read as images into to3d, aiv, etc.)
+If this variable is NOT set to anything, then it is the same as SPACE.
 
 MPEG filenames input to AFNI programs (as sources of images or as datasets)
 must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG datasets will be read
