@@ -15,17 +15,26 @@
 
 #define V2S_M2_STEPS_DEFAULT      2
 
+#define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
+
 /* surface to voxel mapping codes, along with command-line strings */
 typedef enum
 {
     E_SMAP_INVALID,			/* do not change INVALID or FINAL */
-    E_SMAP_MASK, E_SMAP_MIDPT,
+    E_SMAP_MASK,    E_SMAP_MIDPT,
     E_SMAP_MASK2,
-    E_SMAP_AVE,  E_SMAP_COUNT,
-    E_SMAP_MIN,  E_SMAP_MAX,
-    E_SMAP_SEG_VALS,
+    E_SMAP_AVE,     E_SMAP_COUNT,
+    E_SMAP_MIN,     E_SMAP_MAX,
+    E_SMAP_MAX_ABS, E_SMAP_SEG_VALS,
     E_SMAP_FINAL			/* do not change FINAL */
 } smap_nums;
+
+typedef struct
+{
+    int   show;
+    int   index;
+    float value;
+} oob_t;
 
 
 /* user options */
@@ -47,6 +56,7 @@ typedef struct
     float    f_pn_fr;			/* fractional dist: add to pn  */
     float    f_p1_mm;			/* mm distance to add to p1    */
     float    f_pn_mm;			/* mm distance to add to pn    */
+    oob_t    oob;			/* display info for oob nodes  */
 } opts_t;
 
 typedef struct
@@ -76,6 +86,7 @@ typedef struct
     int                ncmask;		/* nvox for cmask             */
     int                ccount;          /* mask size                  */
     int                nvox;		/* gpar nxyz                  */
+    oob_t              oob;		/* display info for oob nodes  */
 } param_t;
 
 /* node list structure */

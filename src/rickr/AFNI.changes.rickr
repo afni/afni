@@ -296,3 +296,9 @@
 17 September 2003:
   * modified SUMA_3dVol2Surf.c: fixed help info for '-cmask option'
 
+21 September 2003:
+  * modifited SUMA_3dVol2Surf.c:
+      - added max_abs mapping function
+      - added '-oob_index' and '-oob_value' options
+      - added CHECK_NULL_STR macro
+
