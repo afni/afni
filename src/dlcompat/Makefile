@@ -56,6 +56,7 @@ libdl.a: $(OBJS)
 
 libdl.dylib: $(OBJS)
 	$(CC) -dynamiclib -o libdl.dylib $(OBJS) -install_name $(prefix)/lib/libdl.dylib
+	$(RANLIB) libdl.a
 
 clean:
 	rm -f $(OBJS) libdl.*
