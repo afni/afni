@@ -4094,6 +4094,18 @@ DPR(" .. KeyPress") ;
            EXRETURN ;
          }
 
+         /* 17 May 2002: do image fraction */
+
+         if( buf[0] == 'i' || buf[0] == 'I' ){
+           int iv = seq->arrow[NARR_FRAC]->ival ;
+           if( buf[0] == 'i' )
+             AV_assign_ival( seq->arrow[NARR_FRAC] , iv-1 ) ;
+           else if( buf[0] == 'I' )
+             AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
+           ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
+           EXRETURN ;
+         }
+
          /* in special modes (record, Button2, Zoom) mode, this is bad */
 
          if( seq->record_mode || seq->button2_active || seq->zoom_button1 ){
