@@ -83,6 +83,7 @@ static int   MRG_thdatum      = ILLEGAL_TYPE ;
 static int   MRG_be_quiet     = 0 ;
 static int   MRG_cflag_gthr   = THFLAG_NONE ;  /* 29 Aug 1996 */
 static int   MRG_doall        = 0;             /* 02 Feb 1998 */
+static int   MRG_verbose      = 0;             /* 29 Jul 2003 */
 
 static char  MRG_output_session[THD_MAX_NAME]   = "./" ;
 static char  MRG_output_prefix [THD_MAX_PREFIX] = "mrg" ;
@@ -131,6 +132,13 @@ int MRG_read_opts( int argc , char * argv[] )
       if( ival > 0 ){
          nopt += ival ; MRG_have_edopt = 1 ;
          continue ;
+      }
+
+      /*** 29 Jul 2003: -verbose ***/
+
+      if( strncmp(argv[nopt],"-verb",5) == 0 ){
+        MRG_verbose = MRG_edopt.verbose = 1 ;
+        nopt++ ; continue ;
       }
 
       /**** Nov 1998: -1tindex and -1dindex ****/

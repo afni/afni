@@ -159,13 +159,13 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
       nnw = mnum - nw ;
       filter_opt = FCFLAG_WINSOR ;
 
+      fprintf(stderr,"++ Winsor filter: N=%d nw=%d\n",mnum+1,nw) ;
       if( first || nnw < nw ){
-         fprintf(stderr,"++ Winsor filter: N=%d nw=%d\n",mnum+1,nw) ;
-         first = 0 ;
-         if( nnw < nw ){
-            fprintf(stderr,"** Illegal Winsor parameters - skipping!\n") ;
-            return ;
-         }
+        first = 0 ;
+        if( nnw < nw ){
+          fprintf(stderr,"** Illegal Winsor parameters - skipping!\n") ;
+          return ;
+        }
       }
 
       sw = (float *) malloc(sizeof(float)*(mnum+1)) ;
