@@ -4485,3 +4485,7 @@
 29 Mar 2003
  * Modified mri_resize() [in mri_warp.c] to properly deal with images of
      MRI_byte, MRI_short, and MRI_rgb types.
+
+09 Apr 2003
+ * Fixed thd_shear3d.h function DMAT_svdrot() to work properly when input matrix
+     is singular.

@@ -613,7 +613,7 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
    /* 13 Feb 2001: make sure it is orthogonal;
                    even slightly off produces bad shears */
 
-   p = DMAT_svdrot( rmat ) ;
+   p = DMAT_svdrot_old( rmat ) ;
    q = TRANSPOSE_DMAT( p ) ;
 #endif
 
@@ -686,6 +686,16 @@ THD_dmat33 DMAT_xt_x( THD_dmat33 inmat )
    THD_dmat33 tt,mm ;
    tt = TRANSPOSE_DMAT(inmat) ;
    mm = DMAT_MUL(tt,inmat) ;
+   return mm ;
+}
+
+/*--------------------------------------------------------------------*/
+                                           /*                T  */
+THD_dmat33 DMAT_x_xt( THD_dmat33 inmat )   /* [inmat] [inmat]   */
+{                                          /* 09 Apr 2003 - RWC */
+   THD_dmat33 tt,mm ;
+   tt = TRANSPOSE_DMAT(inmat) ;
+   mm = DMAT_MUL(inmat,tt) ;
    return mm ;
 }
 
@@ -770,7 +780,7 @@ THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp )
    which is the same thing (do your linear algebra, dude).
 -----------------------------------------------------------------------*/
 
-THD_dmat33 DMAT_svdrot( THD_dmat33 inmat )
+THD_dmat33 DMAT_svdrot_old( THD_dmat33 inmat )
 {
    THD_dmat33 sq , out , tt ;
 
@@ -778,6 +788,26 @@ THD_dmat33 DMAT_svdrot( THD_dmat33 inmat )
    tt  = TRANSPOSE_DMAT(inmat) ;
    out = DMAT_MUL( sq , tt ) ;
    return out ;
+}
+
+/*---------------------------------------------------------------------*/
+/*  Alternative calculation to above, computing U and V directly.
+-----------------------------------------------------------------------*/
+
+THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat )
+{
+   THD_dmat33 mm , nn ;
+   THD_dvecmat vm , um ;
+
+   mm = DMAT_xt_x( inmat ) ;
+   vm = DMAT_symeig( mm ) ;  /* vm.mm matrix is now V */
+
+   mm = DMAT_x_xt( inmat ) ;
+   um = DMAT_symeig( mm ) ;  /* um.mm matrix is now U */
+
+   mm = TRANSPOSE_DMAT(um.mm) ;
+   nn = DMAT_MUL( vm.mm , mm ) ;
+   return nn ;
 }
 
 /*---------------------------------------------------------------------
@@ -792,12 +822,12 @@ THD_dmat33 DMAT_svdrot( THD_dmat33 inmat )
   and uses the routines above to compute the matrix [R].
 -----------------------------------------------------------------------*/
 
-THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww )
+THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
 {
    THD_dvecmat out ;
    THD_dfvec3  cx,cy , tx,ty ;
    THD_dmat33  cov ;
-   double * wt , wsum ;
+   double *wt , wsum ;
    int ii,jj,kk ;
 
    /*- check for bad inputs -*/
@@ -819,7 +849,7 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww
    for( kk=0 ; kk < n ; kk++ ){
       cx = SCLADD_DFVEC3(1,cx,wt[kk],xx[kk]) ;  /* weighted sums of vectors */
       cy = SCLADD_DFVEC3(1,cy,wt[kk],yy[kk]) ;
-      wsum += wt[kk] ;                         /* sum of weights */
+      wsum += wt[kk] ;                          /* sum of weights */
    }
    wsum = 1.0 / wsum ;
    cx.xyz[0] *= wsum ; cx.xyz[1] *= wsum ; cx.xyz[2] *= wsum ;  /* centroids */
@@ -836,12 +866,12 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww
             cov.mat[ii][jj] += wt[kk]*tx.xyz[ii]*ty.xyz[jj] ;
    }
 
-   out.mm = DMAT_svdrot( cov ) ;    /* compute rotation matrix [R] */
+   out.mm = DMAT_svdrot_new( cov ) ;  /* compute rotation matrix [R] */
 
-   tx = DMATVEC( out.mm , cx ) ;    /* compute translation vector V */
+   tx = DMATVEC( out.mm , cx ) ;     /* compute translation vector V */
    out.vv = SUB_DFVEC3( cy , tx ) ;
 
-   if( wt != ww ) free(wt) ;       /* toss the trash, if any */
+   if( wt != ww ) free(wt) ;               /* toss the trash, if any */
 
    return out ;
 }
