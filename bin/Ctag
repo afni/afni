@@ -1,14 +1,42 @@
 #!/bin/tcsh
 
+set llist = ( AFNI SUMA RICKR )
+
 if( $#argv < 1 || "$1" == "-help" )then
-   echo "Usage: Ctag label [files]"
-   echo "Write a version string tag to all CVS files here and below."
-   echo "The tag is the output of the command 'date +label_%Y_%m_%d_%H:%M'"
-   echo "Where the label is input on the command line."
-   echo "You should check in (i.e., 'Cput .') before using this."
+   echo " Usage: Ctag NAME [files]"
+   echo "  + Write a version string tag to all CVS files here and below."
+   echo "  + The tag is the output of the command 'date +NAME_%Y_%m_%d_%H:%M'"
+   echo "    where the NAME is input on the command line."
+   echo "  + You should check in (i.e., 'Cput .') before using this."
+   echo "  + Also, will create a file named NAME_label.h in the cwd."
+   echo "  + The legal values for NAME are: ${llist} ."
    exit 0
 endif
 
-set ttt = `date +${1}_%Y_%m_%d_%H:%M`
+set nnn = ${1}
 
-echo "WOULD DO THIS: cvs tag -R $ttt $argv[2-]"
+set nll = $#llist
+set iii = 1
+while( $iii <= $#llist )
+   if( $llist[$iii] == $nnn ) break
+   @ iii++
+end
+if( $iii > $#llist )then
+  echo "NAME = $nnn is not in the legal list: ${llist} ."
+  exit 1
+endif
+
+set ttt = `date +${nnn}_%Y_%m_%d_%H:%M`
+set fff = ${nnn}_label.h
+
+if( -f ${fff} )then
+  set do_Cadd = 0
+else
+  set do_Cadd = 1
+endif
+
+echo "WOULD DO THIS: cvs tag -R $ttt"
+echo "#define ${nnn}_VERSION_LABEL " \"${ttt}\" > ${nnn}_label.h
+
+### if( do_Cadd == 1 ) cvs add ${fff}
+### cvs commit -m "Ctag" ${fff}
