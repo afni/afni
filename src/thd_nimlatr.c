@@ -424,7 +424,7 @@ ENTRY("THD_subbrick_to_niml") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Put an entire dataset into a NI group element.
+/*! Put an entire dataset into a single NI group element.
 -----------------------------------------------------------------------------*/
 
 NI_group * THD_dataset_to_niml( THD_3dim_dataset *dset )

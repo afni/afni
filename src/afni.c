@@ -4282,7 +4282,7 @@ STATUS("reading commandline dsets") ;
             /* 26 Mar 2001: might get some 1D files, too */
 
             if( XTARR_IC(dsar,dd) == IC_FLIM ){  /* save 1D file for later */
-               MRI_IMAGE * im = (MRI_IMAGE *) XTARR_XT(dsar,dd) ;
+               MRI_IMAGE *im = (MRI_IMAGE *) XTARR_XT(dsar,dd) ;
                ADDTO_IMARR(webtsar,im) ;
                continue ;              /* next one */
             }
