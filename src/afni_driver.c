@@ -7,6 +7,21 @@
   presses various buttons.
 ********************************************************************/
 
+static int AFNI_drive_rescan_controller( char *code ) ;
+static int AFNI_drive_switch_session( char *cmd ) ;
+static int AFNI_drive_switch_anatomy( char *cmd ) ;
+static int AFNI_drive_switch_function( char *cmd ) ;
+static int AFNI_drive_open_window( char *cmd ) ;
+static int AFNI_drive_close_window( char *cmd ) ;
+static int AFNI_drive_quit( char *cmd ) ;
+
+static int AFNI_drive_open_plugin( char *cmd ) ;    /* 13 Nov 2001 */
+
+static int AFNI_drive_open_graph_xy ( char *cmd ) ; /* 14 Nov 2001 */
+static int AFNI_drive_close_graph_xy( char *cmd ) ;
+static int AFNI_drive_clear_graph_xy( char *cmd ) ;
+static int AFNI_drive_addto_graph_xy( char *cmd ) ;
+
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
   Return value is 0 if good, -1 if bad.
@@ -26,6 +41,10 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
  { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
+ { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
+ { "CLOSE_GRAPH_XY"   , AFNI_drive_close_graph_xy    } ,
+ { "CLEAR_GRAPH_XY"   , AFNI_drive_clear_graph_xy    } ,
+ { "ADDTO_GRAPH_XY"   , AFNI_drive_addto_graph_xy    } ,
  { "QUIT"             , AFNI_drive_quit              } ,
 
  { NULL , NULL } } ;
@@ -91,7 +110,7 @@ ENTRY("AFNI_controller_code_to_index") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_rescan_controller( char *code )
+static int AFNI_drive_rescan_controller( char *code )
 {
    int ic ;
    Three_D_View *im3d ;
@@ -117,7 +136,7 @@ ENTRY("AFNI_rescan_controller") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_switch_session( char *cmd )
+static int AFNI_drive_switch_session( char *cmd )
 {
    int ic , dadd=2 ;
    Three_D_View *im3d ;
@@ -165,7 +184,7 @@ ENTRY("AFNI_switch_session") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_switch_anatomy( char *cmd )
+static int AFNI_drive_switch_anatomy( char *cmd )
 {
    int ic , dadd=2 ;
    Three_D_View *im3d ;
@@ -211,7 +230,7 @@ ENTRY("AFNI_switch_anatomy") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_switch_function( char *cmd )
+static int AFNI_drive_switch_function( char *cmd )
 {
    int ic , dadd=2 ;
    Three_D_View *im3d ;
@@ -258,7 +277,7 @@ ENTRY("AFNI_switch_function") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_open_window( char *cmd )
+static int AFNI_drive_open_window( char *cmd )
 {
    int ic ;
    Three_D_View *im3d ;
@@ -290,6 +309,13 @@ ENTRY("AFNI_drive_open_window") ;
 
    if( strlen(cmd) < 3 ) RETURN(0) ;         /* no commands? */
 
+   /* 13 Nov 2001: plugins are done in a separate function */
+
+   if( strstr(cmd,"plugin.") != NULL ){
+      ic = AFNI_drive_open_plugin( cmd ) ;
+      RETURN(ic) ;
+   }
+
    /* open a window */
 
         if( strstr(cmd,"axialimage") != NULL ){
@@ -320,9 +346,8 @@ ENTRY("AFNI_drive_open_window") ;
    /* find geom=..., if present */
 
    cpt = strstr(cmd,"geom=") ;
-   if( cpt != NULL ){
+   if( cpt != NULL )
       AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
-   }
 
    /*--- opened an image viewer: maybe modify it ---*/
 
@@ -413,7 +438,7 @@ ENTRY("AFNI_drive_open_window") ;
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-int AFNI_drive_close_window( char *cmd )
+static int AFNI_drive_close_window( char *cmd )
 {
    int ic ;
    Three_D_View *im3d ;
@@ -436,8 +461,6 @@ ENTRY("AFNI_drive_close_window") ;
    }
 
    /* close a window */
-
-
 
         if( strstr(cmd,"axialimage") != NULL )
           drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
@@ -463,10 +486,496 @@ ENTRY("AFNI_drive_close_window") ;
    RETURN(0) ;
 }
 
+/*---------------------------------------------------------------
+   Open a plugin window -- 13 Nov 2001
+-----------------------------------------------------------------*/
+
+static int AFNI_drive_open_plugin( char *cmd )
+{
+   int ic , ipl , ll , pl , qq ;
+   Three_D_View *im3d ;
+   char *cpt ;
+   int gww=-1,ghh=-1,gxx=-1,gyy=-1 ;
+
+   int      npbut              ;       /* how many plugins */
+   char **  pluglab            ;       /* their labels     */
+   PLUGIN_interface ** plugint ;       /* their interfaces */
+
+ENTRY("AFNI_drive_open_plugin") ;
+
+   /* this is always good,
+      since we are called from a place that just made sure of that */
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ) ic = 0 ;
+   im3d = GLOBAL_library.controllers[ic] ;
+
+   cpt = strstr(cmd,"plugin.") ;
+   if( cpt == NULL || strlen(cpt) < 9 ) RETURN(-1) ;
+   cpt += 7 ;  /* start of plugin name */
+   pl   = strlen(cpt) ;
+
+   /* get list of plugins */
+
+   npbut   = im3d->vwid->nplugbut; if( npbut < 1 ) RETURN(-1) ;
+   pluglab = im3d->vwid->pluglab ;
+   plugint = im3d->vwid->plugint ;
+
+   /* check name after plugin. vs. list */
+
+   for( ipl=0 ; ipl < npbut ; ipl++ ){
+      for( ll=strlen(pluglab[ipl]) ;   /* truncate trailing blanks */
+           ll >= 0 && isspace(pluglab[ipl][ll]) ; ll-- ) ; /* nada */
+      if( ll < 0 ) continue ;                        /* all blanks?! ERROR */
+      if( pl < ll ) continue ;                       /* too short to match */
+      for( qq=0 ; qq < ll ; qq++ )                   /* match each nonblank */
+         if( !isspace(pluglab[ipl][qq]) && cpt[qq]!=pluglab[ipl][qq] ) break ;
+      if( qq == ll ) break ;  /* found a match */
+   }
+
+   if( ipl >= npbut ) RETURN(-1) ;  /* no plugin found with this name */
+
+   /* try to start the plugin */
+
+   PLUG_startup_plugin_CB( im3d->vwid->plugbut[ipl] , plugint[ipl] , NULL ) ;
+
+   /* find geom=..., if present */
+
+   cpt = strstr(cmd,"geom=") ;
+   if( cpt != NULL )
+      AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
+
+   if( gxx >= 0                         &&
+       gyy >= 0                         &&
+       plugint[ipl]->wid        != NULL &&
+       plugint[ipl]->wid->shell != NULL   ){
+
+       XtVaSetValues( plugint[ipl]->wid->shell,
+                      XmNx , gxx , XmNy , gyy , NULL ) ;
+   }
+
+   RETURN(0) ;
+}
+
 /*---------------------------------------------------------------*/
 
-int AFNI_drive_quit( char *cmd )
+static int AFNI_drive_quit( char *cmd )
 {
   fprintf(stderr,"\n*** Plugout commanded AFNI to quit! ***\n") ;
   exit(0) ;
+}
+
+/*===============================================================
+  14 Nov 2001: Draw graphs from plugout-supplied data
+=================================================================*/
+
+/*--------------------------------------------------------------------------
+  Free up an array of strings
+----------------------------------------------------------------------------*/
+
+static void freeup_strings( int n , char **sar )
+{
+   int ii ;
+   if( sar == NULL ) return ;
+   for( ii=0 ; ii < n ; ii++ )
+      if( sar[ii] != NULL ) free(sar[ii]) ;
+   free(sar) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------
+  Break a string into a set of sub-strings.
+  Return value is number of sub-strings (< 0 is an error);
+  (*stok)[i] is the i-th string.
+----------------------------------------------------------------------------*/
+
+#define QUOTE '"'
+#define NUL   '\0'
+
+static int breakup_string( char *sin , char ***stok )
+{
+   int n_tok , quote , ll ;
+   char **s_tok , *cpt , *sss ;
+
+   if( stok == NULL || sin == NULL || sin[0] == NUL ) return -1 ;
+
+   n_tok = 0 ;
+   s_tok = NULL ;
+
+   cpt = sin ;
+
+   while( *cpt != '\0' ){  /* loop until we use up the input string */
+
+      /* skip whitespace */
+
+      while( isspace(*cpt) ) cpt++ ;
+      if( *cpt == NUL ) break ;        /* reached end */
+
+      /* if starts with a quote, note that factoid */
+
+      quote = 0 ;
+      if( *cpt == QUOTE ){ quote=1 ; cpt++; if( *cpt == NUL ) break; }
+
+      /* scan until end of sub-string */
+
+      sss = cpt ;    /* start of sub-string */
+      if( quote ){
+         while( *cpt != NUL && *cpt != QUOTE  ) cpt++ ;  /* scan to next quote */
+      } else {
+         while( *cpt != NUL && !isspace(*cpt) ) cpt++ ;  /* to next non-blank */
+      }
+
+      /* cpt now points to character after end of sub-string */
+
+      ll = cpt - sss ;  /* number of characters in sub-string (may be zero) */
+
+      /* make a new entry in the string table */
+
+      s_tok = (char **) realloc( s_tok , sizeof(char *) * (n_tok+1) ) ;
+      s_tok[n_tok] = (char *) malloc(ll+4) ;
+      if( ll > 0 ) memcpy( s_tok[n_tok] , sss , ll ) ;
+      s_tok[n_tok][ll] = NUL ;
+      n_tok++ ;
+
+      /* skip the character after the end of sub-string */
+
+      cpt++ ;
+   } /* end of loop over input string */
+
+   *stok = s_tok ; return n_tok ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#include "coxplot.h"
+
+typedef struct {
+   char gname[THD_MAX_NAME] ;  /* graph name */
+   int ny ;                    /* number of sub-graphs */
+   float xbot,xtop ,           /* graph ranges */
+         ybot,ytop  ;
+
+   int num_pt ;                /* number points now graphed */
+   int num_mpinit ;            /* number lines used when initializing graph */
+
+   MEM_topshell_data *mp ; /* the plotting/display data structure */
+
+   float last_x ;          /* last plotted points (if num_pt > 0) */
+   float *last_y ;
+} Graph_xy ;
+
+static int        num_Graph_xy  = 0 ;     /* how many graphs now have */
+static Graph_xy **Graph_xy_list = NULL ;  /* array of existing graphs */
+
+/*--------------------------------------------------------------------------
+  Find a graph in the list, and return its index; if not present, return -1
+----------------------------------------------------------------------------*/
+
+static int find_graph_xy_name( char *name )
+{
+   int ii ;
+
+   if( name == NULL || name[0] == '\0' ) return -1 ;
+
+   for( ii=0 ; ii < num_Graph_xy ; ii++ )
+      if( Graph_xy_list[ii] != NULL                  &&
+          strcmp(Graph_xy_list[ii]->gname,name) == 0   ) return ii ;
+
+   return -1 ;
+}
+
+/*--------------------------------------------------------------------------
+  Find an empty slot in the graph list, or make one
+----------------------------------------------------------------------------*/
+
+static int find_empty_graph_xy(void)
+{
+   int ii ;
+
+   /* nothing in list ==> make a new list */
+
+   if( Graph_xy_list == NULL ){
+      Graph_xy_list    = (Graph_xy **) malloc(sizeof(Graph_xy *)) ;
+      Graph_xy_list[0] = NULL ;
+      num_Graph_xy     = 1 ;
+      return 0 ;
+   }
+
+   /* search list for empty element */
+
+   for( ii=0 ; ii < num_Graph_xy ; ii++ )
+      if( Graph_xy_list[ii] == NULL ) return ii ;
+
+   /* add empty element to list */
+
+   Graph_xy_list = (Graph_xy **) realloc( Graph_xy_list ,
+                                          sizeof(Graph_xy *)*(num_Graph_xy+1) ) ;
+   Graph_xy_list[num_Graph_xy] = NULL ;
+   num_Graph_xy++ ;
+   return (num_Graph_xy-1) ;
+}
+
+/*--------------------------------------------------------------------------
+  If the user kills a graph, do this
+----------------------------------------------------------------------------*/
+
+static void kill_graph_xy( MEM_topshell_data * mp )
+{
+   int ii ;
+
+   if( mp == NULL || Graph_xy_list == NULL ) return ;
+
+   /* find this graph in the list */
+
+   for( ii=0 ; ii < num_Graph_xy ; ii++ )
+      if( Graph_xy_list[ii]     != NULL &&
+          Graph_xy_list[ii]->mp == mp     ) break ;
+
+   if( ii >= num_Graph_xy ) return ;
+
+   /* free data from this graph */
+
+   if( Graph_xy_list[ii]->last_y != NULL )
+      free( Graph_xy_list[ii]->last_y ) ;
+
+   free( Graph_xy_list[ii] ) ; Graph_xy_list[ii] = NULL ; return ;
+}
+
+/*--------------------------------------------------------------------------
+  OPEN_GRAPH_XY gname toplabel xbot xtop xlabel
+                            ny ybot ytop ylabel yname_1 ... yname_ny
+----------------------------------------------------------------------------*/
+
+static int AFNI_drive_open_graph_xy( char *cmd )
+{
+   int ntok , ig ;
+   char **stok=NULL ;
+
+   char *gname , *toplabel=NULL , *xlabel=NULL , *ylabel=NULL ;
+   int   ny=1 ;
+   float xbot=0.0,xtop=1.0 , ybot=0.0,ytop=1.0 ;
+   char **yname=NULL ;
+
+   Graph_xy *gxy ;
+
+ENTRY("AFNI_drive_open_graph_xy") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   gname = stok[0] ;
+   ig = find_graph_xy_name( gname ) ;
+   if( ig >= 0 ){
+      freeup_strings(ntok,stok) ; RETURN(-1) ;   /* already used = bad */
+   }
+
+   /* create a graph */
+
+   ig = find_empty_graph_xy() ;
+
+   Graph_xy_list[ig] = gxy = (Graph_xy *) malloc(sizeof(Graph_xy)) ;
+
+   MCW_strncpy( gxy->gname , gname , THD_MAX_NAME ) ;
+
+#if 0
+{ int qq ;
+  fprintf(stderr,"AFNI_drive_open_graph_xy tokens:\n") ;
+  for( qq=0 ; qq < ntok ; qq++ ) fprintf(stderr," %2d:%s\n",qq,stok[qq]); }
+#endif
+
+   /* parse values out of the tokens */
+
+   if( ntok > 1 ) toplabel = stok[1] ;
+
+   if( ntok > 2 ) xbot = strtod(stok[2],NULL) ;
+   if( ntok > 3 ) xtop = strtod(stok[3],NULL) ;
+   if( xbot == xtop )    { xtop = xbot+1.0 ; }
+   else if( xbot > xtop ){ float qq = xbot; xbot = xtop; xtop = qq ; }
+
+   if( ntok > 4 ) xlabel = stok[4] ;
+
+   if( ntok > 5 ){
+      int qq = strtol(stok[5],NULL,10) ;
+      if( qq > 1 ) ny = qq ;
+   }
+
+   if( ntok > 6 ) ybot = strtod(stok[6],NULL) ;
+   if( ntok > 7 ) ytop = strtod(stok[7],NULL) ;
+   if( ybot == ytop )    { ytop = ybot+1.0 ; }
+   else if( ybot > ytop ){ float qq = ybot; ybot = ytop; ytop = qq ; }
+
+   if( ntok > 8 ) ylabel = stok[8] ;
+
+   if( ntok > 9 ){
+      int qq ;
+      yname = (char **) calloc( ny , sizeof(char *) ) ;
+      for( qq=0 ; qq < ny && qq+9 < ntok ; qq++ ) yname[qq] = stok[qq+9] ;
+   }
+
+   /* put values into graph struct */
+
+   gxy->xbot = xbot ; gxy->xtop = xtop ;
+   gxy->ybot = ybot ; gxy->ytop = ytop ; gxy->ny = ny ;
+
+   gxy->num_pt = 0.0 ;
+
+   /* create the actual graph */
+
+   gxy->mp = plot_ts_init( GLOBAL_library.dc->display ,
+                           xbot , xtop ,
+                           -ny , ybot , ytop ,
+                           xlabel , ylabel ,
+                           toplabel , yname , kill_graph_xy ) ;
+
+   if( gxy->mp == NULL ){         /* should not happen */
+      freeup_strings(ntok,stok) ;
+      free(Graph_xy_list[ig]) ; Graph_xy_list[ig] = NULL ;
+      if( yname != NULL ) free(yname) ;
+      RETURN(-1) ;
+   }
+
+   gxy->num_mpinit = MEMPLOT_NLINE(gxy->mp->mp) ;
+
+   gxy->last_y = (float *) calloc(ny,sizeof(float)) ;
+
+   RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------------
+  CLOSE_GRAPH_XY gname
+----------------------------------------------------------------------------*/
+
+static int AFNI_drive_close_graph_xy( char *cmd )
+{
+   int ig , ntok ;
+   char **stok = NULL ;
+
+ENTRY("AFNI_drive_close_graph_xy") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   freeup_strings(ntok,stok) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ) RETURN(-1) ;
+
+   plotkill_topshell( Graph_xy_list[ig]->mp ) ;
+   RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------------
+  CLEAR_GRAPH_XY gname
+----------------------------------------------------------------------------*/
+
+static int AFNI_drive_clear_graph_xy( char *cmd )
+{
+   int ig , ntok ;
+   char **stok = NULL ;
+
+ENTRY("AFNI_drive_clear_graph_xy") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   freeup_strings(ntok,stok) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ) RETURN(-1) ;
+
+   TRUNC_MEMPLOT( Graph_xy_list[ig]->mp->mp ,
+                  Graph_xy_list[ig]->num_mpinit ) ;
+
+   redraw_topshell( Graph_xy_list[ig]->mp ) ;
+   Graph_xy_list[ig]->num_pt = 0 ;
+   RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------------
+  ADDTO_GRAPH_XY gname x y_1 y_2 .. y_ny [repeat]
+----------------------------------------------------------------------------*/
+
+static int AFNI_drive_addto_graph_xy( char *cmd )
+{
+   int ig , ntok , nx , ny , ii,jj , tt , num_pt , ibot ;
+   char **stok = NULL ;
+   Graph_xy *gxy ;
+   float *x , **y ;
+
+ENTRY("AFNI_drive_addto_graph_xy") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ){
+      freeup_strings(ntok,stok) ; RETURN(-1) ;
+   }
+   gxy = Graph_xy_list[ig] ;
+
+   /* number of sub-graphs */
+
+   ny = gxy->ny ;
+
+   /* number of points to add to each sub-graph */
+
+   nx = (ntok-1)/(ny+1) ;
+   if( nx < 1 ){ freeup_strings(ntok,stok); RETURN(-1); }
+
+   /* attach last_x and last_y? */
+
+   num_pt = gxy->num_pt ;
+   if( num_pt > 0 ) nx++ ;
+
+   x = (float *) calloc(nx,sizeof(float)) ;
+   y = (float **) malloc( sizeof(float *)*ny ) ;
+   for( jj=0 ; jj < ny ; jj++ )
+      y[jj] = (float *) calloc(nx,sizeof(float)) ;
+
+   if( num_pt > 0 ){
+      x[0] = gxy->last_x ;
+      for( jj=0 ; jj < ny ; jj++ ) y[jj][0] = gxy->last_y[jj] ;
+      ibot = 1 ;
+   } else {
+      ibot = 0 ;
+   }
+
+   tt = 1 ;                            /* token index */
+   for( ii=ibot ; ii < nx ; ii++ ){
+      x[ii] = strtod( stok[tt++] , NULL ) ;
+      for( jj=0 ; jj < ny ; jj++ )
+         y[jj][ii] = strtod( stok[tt++] , NULL ) ;
+   }
+
+   /* save last_x and last_y */
+
+   gxy->last_x = x[nx-1] ;
+   for( jj=0 ; jj < ny ; jj++ ) gxy->last_y[jj] = y[jj][nx-1] ;
+
+   /* graphing! */
+
+   plot_ts_addto( gxy->mp , nx , x , -ny , y ) ;
+
+   /* cleanup */
+
+   gxy->num_pt += nx ;
+
+   for( jj=0 ; jj < ny ; jj++ ) free(y[jj]) ;
+   free(y) ; free(x) ; freeup_strings(ntok,stok) ;
+
+   RETURN(0) ;
 }

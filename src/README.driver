@@ -1,0 +1,79 @@
+
+Driving AFNI from a Plugout
+===========================
+A plugout can control some aspects of AFNI.  This is done by passing a
+command line of the form
+
+  DRIVE_AFNI command arguments ...
+
+to AFNI (once the plugout connection is open, of course).  The commands
+available are described below.  The sample plugout plugout_drive.c
+can be used to test things.
+
+RESCAN_THIS [c]
+  rescans the current session directory for controller 'c', where 'c'
+  is one of 'A', 'B', 'C', 'D', or 'E'.  If 'c' is absent, the 'A'
+  controller's current session is scanned.  If the specified controller
+  is not open, the acknowledgement from AFNI will be "BAD", otherwise
+  it will be "good".
+
+SET_SESSION [c.]directoryname
+  Switches controller 'c' to be looking at the named directory.  The
+  match on directory names is done by a sub-string match - that is,
+  directoryname = "fred" will match an AFNI session directory named
+  "wilhelm/frederick/von/guttenstein".
+
+SET_ANATOMY [c.]prefix
+  Switches controller 'c' to be looking at the anatomical dataset with
+  the given prefix.  The prefix must be a perfect match - this is NOT
+  a sub-string match.
+
+SET_FUNCTION [c.]prefix
+  Same, but for the functional dataset in controller 'c'.
+
+OPEN_WINDOW [c].windowname [geom=+x+y]
+  Opens a window from controller 'c'.  The window name can be one of
+    axialimage sagittalimage coronalimage
+    axialgraph sagittalgraph coronalgraph
+  or can be a plugin, specified by something like
+    plugin.Fourier_Stuff
+  If geom=+x+y is present on the command line, then the window is positioned
+  at the given location.
+
+CLOSE_WINDOW [c].windowname
+  Closes a window from controller 'c'.  You can only close graph and image
+  viewer windows this way, not plugin windows.
+
+QUIT
+  AFNI will exit immediately.
+
+OPEN_GRAPH_XY gname toplab xbot xtop xlab ny ybot ytop ylab nam_1 .. nam_ny
+  This opens a graph window for graphing non-MRI data.  Each graph window
+  has a gname string; this lets you graph into more than one window.
+  Other arguments are
+    toplab = string to graph at top of graph              [empty]
+    xbot   = numerical minimum of x-axis in graph         [0]
+    xtop   = numerical maximum of x-axis in graph         [1]
+    xlab   = string to graph below x-axis                 [empty]
+    ny     = number of sub-graphs (all share same x-axis) [1]
+    ybot   = numerical minimum of y-axis in graph         [0]
+    ytop   = numerical maximum of y-axis in graph         [1]
+    nam_1  = name to plot at right of sub-graph 1, etc.   [not plotted]
+  Arguments are separated by spaces.  If a label has a space in it, you can
+  put the label inside "double quote characters".  If you don't want a particular
+  label plotted, make it the empty string "".  If you don't want names plotted
+  at the right of sub-graphs, stop the arguments at ylab.  Only the gname
+  argument is strictly required - the other arguments have default values,
+  which are given in [brackets] above.
+
+CLOSE_GRAPH_XY gname
+  Closes the graph window with the given name.
+
+CLEAR_GRAPH_XY gname
+  Clears the graph out of the given window (leaves the axes and labels).
+
+ADDTO_GRAPH_xy gname x y_1 y_2 .. y_ny [repeat]
+  Actually plots data into the given window.  In the i-th sub-graph, a line
+  will be drawn connecting to (x,y_i), for i=1..ny.  You can put may sets
+  of points on the line, subject to the limitation that a plugout command
+  line cannot contain more than 64 Kbytes.

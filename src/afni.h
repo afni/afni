@@ -1664,15 +1664,7 @@ extern TTRR_params * TTRR_get_params(void) ;
 /*--- driving AFNI programmatically ---*/
 
 extern int AFNI_driver( char *cmd ) ;                    /* 07 Nov 2001 */
-
 extern int AFNI_controller_code_to_index( char *code ) ;
-extern int AFNI_drive_rescan_controller( char *code ) ;
-extern int AFNI_drive_switch_session( char *cmd ) ;
-extern int AFNI_drive_switch_anatomy( char *cmd ) ;
-extern int AFNI_drive_switch_function( char *cmd ) ;
-extern int AFNI_drive_open_window( char *cmd ) ;
-extern int AFNI_drive_close_window( char *cmd ) ;
-extern int AFNI_drive_quit( char *cmd ) ;
 
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/

@@ -3310,3 +3310,9 @@
 12 Nov 2001
  * Modified imreg.c to have -cmass option for pre-alignment of
      center of mass.
+
+13 Nov 2001
+ * Modified afni_driver.c to allow OPEN_WINDOW to open a plugin.
+ * Modified afni_splash.c so that layout code doesn't check plugin
+     widgets if this is a custom plugin (which won't put widgets
+     into the "plint" struct).

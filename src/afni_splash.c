@@ -1079,12 +1079,21 @@ STATUS("no ***LAYOUT found") ;
 
       if(goslow || PRINT_TRACING) sleep(1);
 
+      /* 13 Nov 2001: don't check interface widgets for customized plugins */
+
+      if( GLOBAL_library.controllers[cc]->vwid->plugint[ipl]->call_method == PLUGIN_CALL_IMMEDIATELY )
+        continue ;
+
+      /* check interface widgets to see if plugin opened */
+
       if( GLOBAL_library.controllers[cc]->vwid->plugint[ipl]->wid        == NULL ||
           GLOBAL_library.controllers[cc]->vwid->plugint[ipl]->wid->shell == NULL   ){
 
          fprintf(stderr,"\n** LAYOUT: couldn't start plugin %s\n",pluglab[ipl]) ;
          continue ;
       }
+
+      /* set the location of the interface widgets */
 
       if( plugin_geom[ipl] != NULL ){
             AFNI_decode_geom( plugin_geom[ipl] , &gww,&ghh,&gxx,&gyy ) ;

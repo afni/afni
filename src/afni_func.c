@@ -2815,6 +2815,7 @@ void AFNI_rescan_session( int sss )
    THD_slist_find find ;
 
 ENTRY("AFNI_rescan_session") ;
+{ char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 
@@ -4739,7 +4740,7 @@ STATUS("got func info") ;
       AFNI_init_plugouts() ;
       XtSetSensitive(w,False) ;
    }
-#endif /* ALLOW_PLUGINS
+#endif /* ALLOW_PLUGINS */
 
    /*.........................................................*/
 

@@ -972,7 +972,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
-           mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o
+           mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o          \
+           mri_get_cmass.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -1179,7 +1180,7 @@ f2c.tgz:
 
 #######
 
-libcoxplot.a:
+libcoxplot.a:coxplot.h
 	( cd coxplot ; \
 	  make libcoxplot.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \

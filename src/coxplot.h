@@ -83,6 +83,9 @@ typedef struct {
          free( (name) ) ; (name) = NULL ; }                    \
   } while(0)
 
+#define TRUNC_MEMPLOT(name,num)                                         \
+  do{ if( (num) < (name)->nxyline ) (name)->nxyline = (num); } while(0)
+
 #define MEMPLOT_X1(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii])    /* from x */
 #define MEMPLOT_Y1(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+1])  /* from y */
 #define MEMPLOT_X2(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+2])  /* to x   */

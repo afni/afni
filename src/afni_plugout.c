@@ -223,7 +223,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
    data to a plugout.  Both will not occur in the same cycle.
 --------------------------------------------------------------------------*/
 
-#define PO_BUFSIZE (16*1024)
+#define PO_BUFSIZE (64*1024)  /* 14 Nov 2001: expand from 16K to 64K */
 
 int AFNI_process_plugout( PLUGOUT_spec * pp )
 {
