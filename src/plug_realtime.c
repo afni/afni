@@ -29,6 +29,9 @@
 #  include "coxplot.h"
 #endif
 
+#define COMMAND_MARKER        "Et Earello Endorenna utulien.\n"
+#define COMMAND_MARKER_LENGTH 30
+
 /***********************************************************************
   Plugin to accept data from an external process and assemble
   it into a dataset.  Initial implementation for the Bruker 3T/60
