@@ -2018,7 +2018,9 @@ if(PRINT_TRACING)
          else
                  EXRETURN ;  /* something goofy happened? */
 
+#if 1
          myXtFree( seq->status ) ; /* 28 Sep 1998: via Purify */
+#endif
          myXtFree( seq ) ;
          MCW_invert_widget(w) ;  /* back to normal */
          INIT_BKGD_LAB(im3d) ;

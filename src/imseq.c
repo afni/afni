@@ -230,7 +230,7 @@ static char ** ISQ_bb_allhint[] = {
             and returns a "XtPointer".  Note that the MRI_IMAGEs returned
             will be mri_free-d after being used internally.  Therefore,
             if you want to keep them, you should send a copy, not the
-            original.
+            original.  The same applies to the MCW_imseq_status struct.
 
     aux = XtPointer supplied by user, pointing to data to be passed
             get_image for its own internal use (similar in concept to
@@ -376,7 +376,7 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    float fac ;
    MRI_IMAGE * tim ;
 
-#define ERREX { free(newseq) ; XBell(dc->display,100) ; return NULL ; }
+#define ERREX { myXtFree(newseq) ; XBell(dc->display,100) ; return NULL ; }
 
    newseq = (MCW_imseq *) XtMalloc( sizeof(MCW_imseq) ) ;  /* new structure */
 
@@ -387,7 +387,7 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    newseq->never_drawn = 1 ;
 
    imstatus = (MCW_imseq_status *) get_image(0,isqCR_getstatus,aux) ;
-   if( imstatus->num_total < 1 ) ERREX ;
+   if( imstatus->num_total < 1 ){ ERREX ; }
    one_image = (imstatus->num_total == 1) ;
 
    tim = (MRI_IMAGE *) get_image(0,isqCR_getqimage,aux) ;  /* fake image */
@@ -2085,6 +2085,10 @@ DPR("ISQ_free_alldata");
       seq->surfgraph_mtd->killfunc = NULL ;
       plotkill_topshell( seq->surfgraph_mtd ) ;
    }
+
+#if 0
+   myXtFree(seq->status) ;                         /* 05 Feb 2000 */
+#endif
 
    return ;
 }
@@ -4274,11 +4278,15 @@ Boolean ISQ_setup_new( MCW_imseq * seq , XtPointer newaux )
    if( !ISQ_VALID(seq) ) return False ;
 
    imstatus = (MCW_imseq_status *) seq->getim(0,isqCR_getstatus,newaux);
-   if( imstatus->num_total < 1 ) return False ;  /* 09 Feb 1999: allow 1 */
+   if( imstatus->num_total < 1 ){ return False; }  /* 09 Feb 1999: allow 1 */
 
 #if 0
    tim = (MRI_IMAGE *) seq->getim(0,isqCR_getqimage,newaux) ; /* 1st image */
    KILL_1MRI(tim) ;  /* don't need tim no more */
+#endif
+
+#if 0
+   if( seq->status != NULL ) myXtFree(seq->status) ;  /* 05 Feb 2000 */
 #endif
 
    seq->status = imstatus ;

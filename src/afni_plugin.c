@@ -3625,8 +3625,9 @@ void PLUGIN_seq_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
    switch( cbs->reason ){
 
       case isqCR_destroy:{
-         XtFree((char*)imp->seq) ; imp->seq = NULL ;
-         mri_free( imp->im )     ; imp->im  = NULL ;
+         XtFree((char*)imp->seq->status) ;
+         XtFree((char*)imp->seq)         ; imp->seq = NULL ;
+         mri_free( imp->im )             ; imp->im  = NULL ;
       }
       break ;
    }

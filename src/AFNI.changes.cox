@@ -2037,3 +2037,8 @@
      fimfunc work in afni_fimmer.c.
  * Fixed error in 3dbuc2fim.c, where stat_aux array was not malloc()-ed
      large enough for the EDIT_dset_items() routine usage.
+
+06 Feb 2000
+ * Added mcw_malloc_sizeof() to mcw_malloc.[ch], to return the size of
+     of a malloc()-ed region, if possible.
+ * Added TRUNCATE_IMARR() macro to mrilib.h.

@@ -194,35 +194,43 @@ typedef struct MRI_IMARR {
 
 #define IMAGE_IN_IMARR(name,nn) ((name)->imarr[(nn)])
 #define IMARR_SUBIMAGE          IMAGE_IN_IMARR
+#define IMARR_SUBIM             IMAGE_IN_IMARR
 #define IMARR_COUNT(name)       ((name)->num)
 
 #define INC_IMARR 32
 
-#define INIT_IMARR(name) \
-   do{ int iq ; (name) = (MRI_IMARR *) malloc(sizeof(MRI_IMARR)) ;  \
-       (name)->num = 0 ; (name)->nall = INC_IMARR ;  \
-       (name)->imarr = (MRI_IMAGE **)malloc(sizeof(MRI_IMAGE *)*INC_IMARR) ;  \
+#define INIT_IMARR(name)                                                           \
+   do{ int iq ; (name) = (MRI_IMARR *) malloc(sizeof(MRI_IMARR)) ;                 \
+       (name)->num = 0 ; (name)->nall = INC_IMARR ;                                \
+       (name)->imarr = (MRI_IMAGE **)malloc(sizeof(MRI_IMAGE *)*INC_IMARR) ;       \
        for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->imarr[iq] = NULL ; \
        break ; } while(0)
 
-#define ADDTO_IMARR(name,imm) \
-   do{ int nn , iq ;   \
-       if( (name)->num == (name)->nall ){   \
-          nn = (name)->nall = 1.1*(name)->nall + INC_IMARR ;  \
-          (name)->imarr = realloc( (name)->imarr,sizeof(MRI_IMAGE *)*nn ); \
+#define ADDTO_IMARR(name,imm)                                                           \
+   do{ int nn , iq ;                                                                    \
+       if( (name)->num == (name)->nall ){                                               \
+          nn = (name)->nall = 1.1*(name)->nall + INC_IMARR ;                            \
+          (name)->imarr = realloc( (name)->imarr,sizeof(MRI_IMAGE *)*nn );              \
           for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->imarr[iq] = NULL ; } \
-       nn = (name)->num ; ((name)->num)++ ;   \
+       nn = (name)->num ; ((name)->num)++ ;                                             \
        (name)->imarr[nn] = (imm) ; break ; } while(0)
 
-#define FREE_IMARR(name) \
-   do{ if( (name) != NULL ){ \
+#define FREE_IMARR(name)                                                        \
+   do{ if( (name) != NULL ){                                                    \
           free((name)->imarr); free((name)); (name) = NULL; } break; } while(0)
 
-#define DESTROY_IMARR(name)  \
-   do{ int nn ;              \
-       if( (name) != NULL ){ \
-          for( nn=0 ; nn < (name)->num ; nn++ ) mri_free((name)->imarr[nn]) ; \
+#define DESTROY_IMARR(name)                                                     \
+   do{ int nn ;                                                                 \
+       if( (name) != NULL ){                                                    \
+          for( nn=0 ; nn < (name)->num ; nn++ ) mri_free((name)->imarr[nn]) ;   \
           free((name)->imarr); free((name)); (name) = NULL; } break; } while(0)
+
+#define TRUNCATE_IMARR(name,qq)                                                 \
+   do{ int nn ;                                                                 \
+       if( (name) != NULL && qq < (name)->num ){                                \
+          for( nn=qq ; nn < (name)->num ; nn++ ) mri_free((name)->imarr[nn]);   \
+          (name)->num = qq ;                                                    \
+       } } while(0)
 
 /******* macros for complex arithmetic, using comma operator *******/
 

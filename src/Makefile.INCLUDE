@@ -818,7 +818,8 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_fullcopy.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
-           cs_addto_args.o multivector.o afni_environ.o cs_qmed.o
+           cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
+           cs_sort_fv.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1086,6 +1087,12 @@ qqq.o:qqq.c
 
 qqq:qqq.o
 	$(CC) -o qqq qqq.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+bitvec.o:bitvec.c
+	$(CCFAST) -c bitvec.c $(IFLAGS)
+
+bitvec:bitvec.o
+	$(CC) -o bitvec bitvec.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

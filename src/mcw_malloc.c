@@ -7,10 +7,10 @@
 
 #define INC_MT 16384
 static int amt = 0 , nmt = 0 ;
-static void  ** pmt = NULL ;
-static size_t * psz = NULL ;
-static char  ** pfn = NULL ;
-static int    * pln = NULL ;
+static void  ** pmt = NULL ;     /* ptr to allocated memory       */
+static size_t * psz = NULL ;     /* size of allocated memory       */
+static char  ** pfn = NULL ;     /* function name that did it       */
+static int    * pln = NULL ;     /* function line number that did it */
 
 #define MAGIC  ((char) 0xd7)
 #define NEXTRA (2*sizeof(int))
@@ -43,6 +43,14 @@ static int ptr_tracker( void * fred )
 #else
 #  define shift_tracker(fff)  ptr_tracker( ((char *)(fff)) - NEXTRA )
 #endif
+
+/*-----------------------------------------------------------------*/
+
+size_t mcw_malloc_sizeof( void * pt )  /* 06 Feb 2000 */
+{
+   int ip = shift_tracker(pt) ;
+   return ( (ip >= 0) ? psz[ip] : -1 ) ;
+}
 
 /*-----------------------------------------------------------------*/
 

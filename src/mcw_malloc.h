@@ -14,6 +14,7 @@
 #ifdef DONT_USE_MCW_MALLOC
 
 #define MCW_MALLOC_enabled 0
+#define mcw_malloc_sizeof(pt) -1   /* 06 Feb 2000 */
 
 #else
 
@@ -38,6 +39,7 @@ extern void   mcw_free( void * ) ;
 extern char * mcw_malloc_status(void) ;
 extern void   mcw_malloc_dump(void) ;
 extern int    mcw_malloc_enabled(void) ;
+extern size_t mcw_malloc_sizeof( void * ) ;  /* 06 Feb 2000 */
 
 #define MCW_MALLOC_enabled mcw_malloc_enabled()
 
