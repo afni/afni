@@ -27,10 +27,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    XKeyEvent Kev;
    XButtonEvent Bev;
    XMotionEvent Mev;
-   SUMA_Boolean LocalHead = YUP; /* local debugging messages */
    int isv;
    SUMA_SurfaceViewer *sv;
    GLfloat *glar_ColorList = NULL;
+   SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
    
    /*float ft;
    int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
@@ -88,8 +88,8 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_space:   /* The spacebar. */
             /* toggle between state containing mapping reference of SO in focus and other view */
             {
-               SUMA_SurfaceObject *SO = NULL;
-               int curstateID = -1, nxtstateID = -1;
+               SUMA_SurfaceObject *SO = NULL, *SOmap = NULL;
+               int curstateID = -1, nxtstateID = -1, dov_ID = -1;
 
                curstateID = SUMA_WhichState(sv->State, sv);
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
@@ -99,19 +99,34 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf(SUMA_STDERR,"Warning %s: Nothing defined to toggle with yet.\n", FuncName); 
                      break;
                   }
-
+                  
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,"%s: surface is inherrently mappable, switching to last non mappable state %d.\n", \
+                        FuncName, sv->LastNonMapStateID);
+                        
                   if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, sv->LastNonMapStateID)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
                      break;
                   }
 
                } else {/* that's a non mappable, go to state containing reference */
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,"%s: surface is not inherrently mappable, searching for mapping reference and its state.\n", \
+                        FuncName);
+                        
                   /* find SO that is mappable reference & get corresponding state ID*/
-                  nxtstateID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  dov_ID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
+                  nxtstateID = SUMA_WhichState(SOmap->State, sv);
+                  
                   if (nxtstateID < 0) {
                      fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
                      break;
                   }
+                  
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,"%s: Found mapping reference in viewer state %d.\n", FuncName, nxtstateID);
+                     
                   /* store this location */
                   sv->LastNonMapStateID = curstateID;
 
@@ -1180,10 +1195,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case Button3:
-               if (LocalHead && 0) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
-               ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                
+               ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
                   break;
                }
@@ -1200,13 +1215,19 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MarkLineSurfaceIntersect.\n", FuncName);
                   break;
                }
-
+            
             break;
       } /* switch type of button Press */
       break;
       
    case ButtonRelease:
-      /*fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); */
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
+      switch (Bev.button) { /* switch type of button Press */
+         case Button3:
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
+         break;
+      } /* switch type of button Press */
+      break;
       break;
       
    case MotionNotify:

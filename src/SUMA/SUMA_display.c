@@ -121,7 +121,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
    
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
-     glMatrixMode (GL_PROJECTION);
+   glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
    gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
 
@@ -387,8 +387,22 @@ SUMA_expose(Widget w,
   XtPointer clientData, XtPointer call)
 {
   static char FuncName[]={"SUMA_expose"};
+  int isv;
+  SUMA_SurfaceViewer *sv;
+  SUMA_Boolean LocalHead = YUP;
   
   /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/ /* No need for that, done in display */
+  
+  
+   /* get the viewer just entered. */
+   SUMA_ANY_WIDGET2SV(w, sv, isv);
+   if (isv < 0) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
+   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);
    SUMA_postRedisplay(w, clientData, call);
 
 }
@@ -411,6 +425,9 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
       SUMA_RETURNe;
    }
 
+   /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
+   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);
+
   /*fprintf(stdout, "widget window being mapped/unmapped\n");*/
   switch (event->type) {
   case MapNotify:
@@ -424,6 +441,8 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
       XtRemoveTimeOut(sv->X->MOMENTUMID);
     break;
   }
+  
+  SUMA_postRedisplay(w, clientData, NULL);
   
   SUMA_RETURNe;
 }
@@ -715,6 +734,9 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont)
 {
    static char FuncName[]={"SUMA_SetcSV"};
+   SUMA_SurfaceViewer *sv;
+   int isv;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -726,6 +748,21 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
       But on the macosx10, -lXm does not help, so we manage the foucs ourselves */
       XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
    #endif
+   
+
+   /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
+   SUMA_ANY_WIDGET2SV(w, sv, isv);
+   if (isv < 0) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
+   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);  
+
+   SUMA_postRedisplay(w, clientData, NULL);
+
+   
    SUMA_RETURNe;
 }
 
@@ -1006,21 +1043,55 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
    GLint viewport[4];
    GLdouble mvmatrix[16], projmatrix[16];
    GLint realy; /* OpenGL y coordinate position */
-   SUMA_Boolean LocalHead = YUP;
+   char CommString[100];
+   SUMA_EngineData ED;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", \
-      FuncName, sv->GVS[sv->StdView].currentQuat[0], sv->GVS[sv->StdView].currentQuat[1], \
-      sv->GVS[sv->StdView].currentQuat[2],sv->GVS[sv->StdView].currentQuat[3]);
+   
+   
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", \
+       FuncName, sv->GVS[sv->StdView].currentQuat[0], sv->GVS[sv->StdView].currentQuat[1], \
+       sv->GVS[sv->StdView].currentQuat[2],sv->GVS[sv->StdView].currentQuat[3]);
+      fprintf (SUMA_STDERR, "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n", \
+         FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], \
+         sv->GVS[sv->StdView].translateVec[2]);
+      fprintf (SUMA_STDERR, "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", \
+         FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], \
+         sv->GVS[sv->StdView].RotaCenter[2]);
+   }
+      
+   
    /* go through the ModelView transforms as you would in display since the modelview matrix is popped
    after each display call */
    SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
    glMatrixMode(GL_MODELVIEW);
+   /* The next line appears to fix some bug with GL_MODELVIEW's matrix. When you clicked button3 for the first time in a viewer, 
+   the chosen point was off. The next click in the identical position would select the correct point and subsequent clicks are OK.
+   None of the parameters used for the selection would change between the first click and the next but it appears that going from one
+   viewer to the next caused GL_MODELVIEW to change (sometimes) slightly. Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+   to check (and debug) what was happening to GL_MODELVIEW matrix between one viewer and the next fixed the clicking problem. So, we keep
+   it here as a fix until a better one comes along. PS: This was also the source of the Z (blue) eye axis showing up when it should not. */  
+      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      if (LocalHead) {
+         int itmp = 0;
+         fprintf (SUMA_STDERR, "%s: Initial Modelview:\nMV=[ ", FuncName);
+         while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+         fprintf (SUMA_STDERR, "]\n");
+      }
    glPushMatrix();
    glTranslatef (sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], 0.0);
    glTranslatef (sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], sv->GVS[sv->StdView].RotaCenter[2]);
    glMultMatrixf(&rotationMatrix[0][0]);
+      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      if (LocalHead) {
+         int itmp = 0;
+         fprintf (SUMA_STDERR, "%s: Modelview After Translation & Rotation:\nMVtr=[ ", FuncName);
+         while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+         fprintf (SUMA_STDERR, "]\n");
+      }
    glTranslatef (-sv->GVS[sv->StdView].RotaCenter[0], -sv->GVS[sv->StdView].RotaCenter[1], -sv->GVS[sv->StdView].RotaCenter[2]);
 
    glGetIntegerv(GL_VIEWPORT, viewport);

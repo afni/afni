@@ -450,7 +450,7 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 
    *N = 0;
 
-   do_id = (int *)SUMA_calloc (sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
+   do_id = (int *)SUMA_calloc (SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
 
    if (do_id == NULL) {
       fprintf(stderr,"Error SUMA_GetDO_Type: Could not allocate for do_id\n");
@@ -515,7 +515,7 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
          SO = (SUMA_SurfaceObject *)dov[i].OP;
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Comparing :%s:to:%s:\n", \
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Comparing \n\t:%s:to\n\t:%s:\n", \
                   FuncName, idcode, SO->idcode_str);
          if (strcmp(idcode, SO->idcode_str)== 0) {
             SUMA_RETURN (i);

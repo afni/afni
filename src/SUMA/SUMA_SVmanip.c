@@ -124,7 +124,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       SV->Open = NOPE;
       
-      SV->ShowDO = (int *)SUMA_calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
+      SV->ShowDO = (int *)SUMA_calloc( SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
       if (SV->ShowDO == NULL) {
          fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->ShowDO\n");
          SUMA_RETURN (NULL);
