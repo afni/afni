@@ -2881,11 +2881,21 @@ if(PRINT_TRACING)
 
                   SAVE_VPT(im3d) ;  /* save current location as jumpback */
 
-                  if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
-                     AFNI_set_viewpoint(
-                        im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
-                        (im3d->vinfo->crosshair_visible==True) ?
-                        REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+                  if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+
+                    /* 20 Feb 2003: set plane from which viewpoint is controlled */
+
+                    MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
+                         if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
+                    else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
+                    else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
+                    else                   im3d->vinfo->view_setter = -1      ;
+
+                    AFNI_set_viewpoint(
+                       im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+                       (im3d->vinfo->crosshair_visible==True) ?
+                       REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+                  }
                }
             } /* end of button 1 */
             break ;
@@ -2904,11 +2914,21 @@ if(PRINT_TRACING)
           cbs->nim , id.ijk[0],id.ijk[1],id.ijk[2] ) ;
   STATUS(str) ; }
 
-         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+
+            /* 20 Feb 2003: set plane from which viewpoint is controlled */
+
+            MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
+                 if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
+            else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
+            else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
+            else                   im3d->vinfo->view_setter = -1      ;
+
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                (im3d->vinfo->crosshair_visible==True) ?
                REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+         }
       }
       break ;  /* end of new image */
 
@@ -2987,11 +3007,21 @@ if(PRINT_TRACING)
 
          id = THD_fdind_to_3dind( br , ib ) ;
 
-         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+
+            /* 20 Feb 2003: set plane from which viewpoint is controlled */
+
+            MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
+                 if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
+            else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
+            else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
+            else                   im3d->vinfo->view_setter = -1      ;
+
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                (im3d->vinfo->crosshair_visible==True) ?
                REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+         }
       }
       break ;  /* end of arrowpad arrow press */
 
@@ -3165,12 +3195,14 @@ if(PRINT_TRACING)
   sprintf(str," 3D dataset coordinates %d %d %d",
           id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
 
-            if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+            if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+               im3d->vinfo->view_setter = -1 ;  /* 20 Feb 2003: no plane setting */
                AFNI_set_viewpoint(
                   im3d ,
                   id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                   (im3d->vinfo->crosshair_visible==True) ?
                   REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+            }
          }
       }
       break ; /* end of newxyzm */
@@ -5014,6 +5046,7 @@ ENTRY("AFNI_lock_carryout") ;
              jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
 
             SAVE_VPT(qq3d) ;
+            qq3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
             AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
          }
       }
@@ -5113,6 +5146,8 @@ if(PRINT_TRACING)
 
    if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
 
+   if( xx < 0 && yy < 0 && zz < 0 ) im3d->vinfo->view_setter = -1 ;
+
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
 
@@ -5136,7 +5171,7 @@ if(PRINT_TRACING)
    new_xyz =
     do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   if( !redisplay_option && !new_xyz ) EXRETURN ;
+   if( !redisplay_option && !new_xyz ){ im3d->vinfo->view_setter = -1; EXRETURN; }
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -5329,7 +5364,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    }
 #endif
 
-   EXRETURN ;
+   im3d->vinfo->view_setter = -1 ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -5914,8 +5949,10 @@ ENTRY("AFNI_marktog_CB") ;
       }
    }
 
-   if( im3d->anat_now->markers->numset > 0 )
+   if( im3d->anat_now->markers->numset > 0 ){
+      im3d->vinfo->view_setter = -1 ;                         /* 20 Feb 2003 */
       AFNI_set_viewpoint( im3d , xx,yy,zz , REDISPLAY_OVERLAY ) ;  /* redraw */
+   }
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -6542,6 +6579,7 @@ STATUS("turning markers on") ;
 
    DISABLE_LOCK ;  /* 11 Nov 1996 */
 
+   im3d->vinfo->view_setter = -1 ;                 /* 20 Feb 2003 */
    AFNI_set_viewpoint( im3d, iv.ijk[0],iv.ijk[1],iv.ijk[2] , REDISPLAY_ALL ) ;
 
    ENABLE_LOCK ;   /* 11 Nov 1996 */
@@ -7684,6 +7722,7 @@ ENTRY("AFNI_imag_pop_CB") ;
      kk = im3d->vinfo->k3_old ;
 
      SAVE_VPT(im3d) ;  /* save current place as old one */
+     im3d->vinfo->view_setter = -1 ;                      /* 20 Feb 2003 */
      AFNI_set_viewpoint( im3d , ij,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
    }
 
@@ -7936,6 +7975,7 @@ ENTRY("AFNI_talto_CB") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
 
       SAVE_VPT(im3d) ;
+      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
    } else {
       XBell( im3d->dc->display , 100 ) ;
@@ -8106,6 +8146,7 @@ ENTRY("AFNI_jumpto_dicom") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
+      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
@@ -8129,6 +8170,7 @@ ENTRY("AFNI_jumpto_ijk") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
+      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {

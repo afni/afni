@@ -354,6 +354,7 @@ typedef NI_stream_type *NI_stream ;
 #define NI_TEXT_MODE    0
 #define NI_BINARY_MODE  1
 #define NI_BASE64_MODE  2
+#define NI_HEADER_FLAG  (1<<8)  /* 20 Feb 2003 */
 
 #define NI_LSB_FIRST    1
 #define NI_MSB_FIRST    2

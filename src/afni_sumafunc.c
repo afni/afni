@@ -431,6 +431,44 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
    RETURN(nout) ;  /* number of entries in map */
 }
 
+/*-----------------------------------------------------------------------*/
+/*! Find node in surface closest to given DICOM vector, with limitation
+    that node's x is in range xbot..xtop, etc.  Return value is node
+    index into ixyz array (not necessarily node ID), -1 if none is found.
+-------------------------------------------------------------------------*/
+
+int AFNI_find_closest_node( int num_ixyz , SUMA_ixyz *ixyz ,
+                            float xtarg, float ytarg, float ztarg,
+                            float xbot , float xtop ,
+                            float ybot , float ytop ,
+                            float zbot , float ztop  )
+{
+   int ii ,      ibest=-1 ;
+   float x,y,z , dbest, d ;
+
+ENTRY("AFNI_find_closest_node") ;
+
+   if( num_ixyz <= 0 || ixyz == NULL ) RETURN(-1) ;  /* bad inputs */
+
+   /* if search ranges are incoherent, make them very wide */
+
+   if( xbot >= xtop ){ xbot = -WAY_BIG; xtop = WAY_BIG; }
+   if( ybot >= ytop ){ ybot = -WAY_BIG; ytop = WAY_BIG; }
+   if( zbot >= ztop ){ zbot = -WAY_BIG; ztop = WAY_BIG; }
+
+   for( ii=0 ; ii < num_ixyz ; ii++ ){
+     x = ixyz[ii].x; y = ixyz[ii].y; z = ixyz[ii].z;
+     if( x < xbot || x > xtop ||
+         y < ybot || y > ytop ||
+         z < zbot || z > ztop   ) continue ;  /* outside box */
+
+     d = (xtarg-x)*(xtarg-x) + (ytarg-y)*(ytarg-y) + (ztarg-z)*(ztarg-z) ;
+     if( ibest < 0 || d < dbest ){ ibest = ii; dbest = d; }
+   }
+
+   RETURN(ibest) ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*-------- Stuff below here is for surface control panel [19 Aug 2002] ------*/
 

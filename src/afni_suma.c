@@ -268,16 +268,14 @@ int SUMA_find_node_id( SUMA_surface *ag , int target )
 {
    int nn , ii,jj,kk ;
 
-ENTRY("SUMA_find_node_id") ;
-
-   if( ag == NULL || ag->num_ixyz < 1 || target < 0 ) RETURN( -1 );
+   if( ag == NULL || ag->num_ixyz < 1 || target < 0 ) return( -1 );
 
    if( !ag->sorted ) SUMA_ixyzsort_surface( ag ) ;
 
    if( ag->seq ){  /* node id-s are sequential (the easy case) */
       kk = target - ag->seqbase ;
-      if( kk >= 0 && kk < ag->num_ixyz ) RETURN( kk );
-      RETURN( -1 );
+      if( kk >= 0 && kk < ag->num_ixyz ) return( kk );
+      return( -1 );
    }
 
    /* node id-s are in increasing order, but not sequential;
@@ -285,24 +283,24 @@ ENTRY("SUMA_find_node_id") ;
 
    ii = 0 ; jj = ag->num_ixyz - 1 ;                 /* search bounds */
 
-        if( target <  ag->ixyz[0].id  ) RETURN( -1 ); /* not present */
-   else if( target == ag->ixyz[0].id  ) RETURN( ii ); /* at start!  */
+        if( target <  ag->ixyz[0].id  ) return( -1 ); /* not present */
+   else if( target == ag->ixyz[0].id  ) return( ii ); /* at start!  */
 
-        if( target >  ag->ixyz[jj].id ) RETURN( -1 ); /* not present */
-   else if( target == ag->ixyz[jj].id ) RETURN( jj ); /* at end!    */
+        if( target >  ag->ixyz[jj].id ) return( -1 ); /* not present */
+   else if( target == ag->ixyz[jj].id ) return( jj ); /* at end!    */
 
    while( jj - ii > 1 ){  /* while search bounds not too close */
 
       kk = (ii+jj) / 2 ;  /* midway between search bounds */
 
       nn = ag->ixyz[kk].id - target ;
-      if( nn == 0 ) RETURN( kk );     /* AHA! */
+      if( nn == 0 ) return( kk );     /* AHA! */
 
       if( nn < 0 ) ii = kk ;          /* kk before target => bottom = kk */
       else         jj = kk ;          /* kk after target  => top    = kk */
    }
 
-   RETURN( -1 );
+   return( -1 );
 }
 
 /*----------------------------------------------------------*/
