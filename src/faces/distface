@@ -67,6 +67,7 @@ foreach face ( face_*.jpg )
   endif
 
   if( "$face" == "face_rwcox2.jpg" ) continue ;
+  if( "$face" == "face_rwcox3.jpg" ) continue ;
 
   echo '<td align="center"> <img src="'${face}'" /></td>' >>   afni_faces.html
 
