@@ -448,13 +448,13 @@ void CALC_read_opts( int argc , char * argv[] )
 
             if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
                fprintf(stderr,
-                       "!! WARNING: differential subscript %s is all zero\n",
+                       "** WARNING: differential subscript %s is all zero\n",
                        argv[nopt] ) ;
             }
 
             if( ntime[jds] == 1 && ijkl[4] != 0 ){
                fprintf(stderr,
-                       "!! WARNING: differential subscript %s has nonzero time\n"
+                       "** WARNING: differential subscript %s has nonzero time\n"
                        "             shift on base dataset with 1 sub-brick!\n"
                        "             Setting time shift to 0.\n" ,
                        argv[nopt] ) ;
@@ -700,7 +700,7 @@ DSET_DONE: continue;
    if( CALC_taxis_num > 0 ){  /* 28 Apr 2003 */
      if( ntime_max > 1 ){
        fprintf(stderr,
-               "!! WARNING: -taxis %d overriden by dataset input(s)\n",
+               "** WARNING: -taxis %d overriden by dataset input(s)\n",
                CALC_taxis_num) ;
      } else {
        ntime_max = CALC_taxis_num ;
@@ -718,14 +718,14 @@ DSET_DONE: continue;
    for (ids=0; ids < 26; ids ++){
       if( VAR_DEFINED(ids) && !CALC_has_sym[ids] )
          fprintf(stderr ,
-                 "!! WARNING: input '%c' is not used in the expression\n" ,
+                 "** WARNING: input '%c' is not used in the expression\n" ,
                  abet[ids] ) ;
 
       else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
 
          if( ((1<<ids) & PREDEFINED_MASK) == 0 )
             fprintf(stderr ,
-                    "!! WARNING: symbol %c is used but not defined\n" ,
+                    "** WARNING: symbol %c is used but not defined\n" ,
                     abet[ids] ) ;
          else {
             CALC_has_predefined++ ;
@@ -1212,8 +1212,8 @@ int main( int argc , char * argv[] )
 
       buf[kt] = (float *) malloc(sizeof(float) * CALC_nvox);
       if( buf[kt] == NULL ){
-         fprintf(stderr,"** Can't malloc output dataset sub-brick %d!\n",kt) ;
-         exit(1) ;
+        fprintf(stderr,"** Can't malloc output dataset sub-brick %d!\n",kt) ;
+        exit(1) ;
       }
 
       /*** loop over voxels ***/
@@ -1507,8 +1507,8 @@ int main( int argc , char * argv[] )
             /**** actually do the calculation work! ****/
 
             PARSER_evaluate_vector(CALC_code, atoz, jtop-jbot, temp);
-             for ( jj = jbot ; jj < jtop ; jj ++ )
-                buf[kt][jj] = temp[jj-ii];
+            for ( jj = jbot ; jj < jtop ; jj ++ )
+              buf[kt][jj] = temp[jj-ii];
 
          } /* end of loop over space (voxels) */
 
@@ -1517,7 +1517,7 @@ int main( int argc , char * argv[] )
          nbad = thd_floatscan( CALC_nvox , buf[kt] ) ;
          if( nbad > 0 )
            fprintf(stderr,
-                   "!! WARNING: %d bad floats replaced by 0 in sub-brick %d\n\a",
+                   "** WARNING: %d bad floats replaced by 0 in sub-brick %d\n\a",
                    nbad , kt ) ;
 
          /* 30 April 1998: purge 3D+time sub-bricks if possible */
@@ -1546,18 +1546,18 @@ int main( int argc , char * argv[] )
    switch( CALC_datum ){
 
       default:
-         fprintf(stderr,
-                 "** Fatal Error ***\n"
-                 "*** Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
+        fprintf(stderr,
+                "** Fatal Error ***\n"
+                "*** Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
       exit(1) ;
 
       /* the easy case! */
 
       case MRI_float:{
-         for (ii=0; ii< ntime_max; ii++) {
-             EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
-             DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
-         }
+        for( ii=0 ; ii < ntime_max ; ii++ ){
+          EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
+          DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
+        }
       }
       break ;
 
@@ -1580,7 +1580,7 @@ int main( int argc , char * argv[] )
              gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              gtop  = MAX( gtop , gtemp ) ;
              if( gtemp == 0.0 )
-               fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
+               fprintf(stderr,"** WARNING: output sub-brick %d is all zeros!\n",ii) ;
            }
          }
 
@@ -1591,7 +1591,7 @@ int main( int argc , char * argv[] )
            if( ! CALC_gscale ){
              gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              if( gtop == 0.0 )
-               fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
+               fprintf(stderr,"** WARNING: output sub-brick %d is all zeros!\n",ii) ;
            }
 
            /* compute scaling factor for this brick into fimfac */
@@ -1629,6 +1629,16 @@ int main( int argc , char * argv[] )
 
            dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
            if( dfim[ii] == NULL ){ fprintf(stderr,"** malloc fails at output\n");exit(1); }
+
+           if( CALC_datum == MRI_byte ){  /* 29 Nov 2004: check for bad byte-ization */
+             int nneg ;
+             for( nneg=jj=0 ; jj < CALC_nvox ; jj++ ) nneg += (buf[ii][jj] < 0.0f) ;
+             if( nneg > 0 ){
+               fprintf(stderr,
+                "** WARNING: sub-brick #%d has %d negative values set=0 in conversion to bytes\n",
+                ii , nneg ) ;
+             }
+           }
 
            EDIT_coerce_scale_type( CALC_nvox , fimfac ,
                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
