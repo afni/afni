@@ -767,7 +767,7 @@ cleaner:
 
 backup:
 	ssh afni chmod -R u+w /home/rwcox/BACKUP
-	scp -prv * afni:/home/rwcox/BACKUP
+	scp -prq * afni:/home/rwcox/BACKUP
 
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
