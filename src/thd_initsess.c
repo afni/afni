@@ -533,6 +533,39 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
      } /* end of if we found CTF files */
    }
 
+   /*-- 03 Dec 2001: try to read MPEG "datasets" --*/
+
+   if( getenv("AFNI_MPEG_DATASETS") != NULL ){
+     char ename[4*THD_MAX_NAME+64] , **fn_mpeg , *eee ;
+     int num_mpeg , ii ;
+
+     STATUS("looking for MPEG files") ;
+
+     sprintf(ename,"%s*.mpg %s*.mpeg %s*.MPEG %s*.MPG" , 
+             sess->sessname, sess->sessname, sess->sessname, sess->sessname ) ;
+     MCW_wildcards( ename , &num_mpeg , &fn_mpeg ) ;   /* find files */
+
+     if( num_mpeg > 0 ){                               /* got some! */
+       STATUS("opening MPEG files") ;
+       for( ii=0 ; ii < num_mpeg ; ii++ ){             /* loop over files */
+         dset = THD_open_mpeg( fn_mpeg[ii] ) ;         /* try it on */
+         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+             "\n*** Session %s table overflow with MPEG dataset %s ***\n",
+             sessname , fn_mpeg[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for loop */
+         }
+         iview = dset->view_type ;
+         sess->dsset[nds][iview] = dset ;
+         sess->num_dsset ++ ;
+       } /* end of loop over files */
+       MCW_free_expand( num_mpeg , fn_mpeg ) ;
+     } /* end of if we found MPEG files */
+   }
+
    /*-- done! --*/
 
    if( sess->num_dsset == 0 ){

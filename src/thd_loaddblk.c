@@ -147,6 +147,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      RETURN( False ) ;
    }
 
+   if( dkptr->storage_mode == STORAGE_BY_MPEG ){   /* 03 Dec 2003 */
+     THD_load_mpeg( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read MPEG dataset file?!") ;
+     RETURN( False ) ;
+   }
+
    /*-- allocate data space --*/
 
    nx = dkptr->dimsizes[0] ;
