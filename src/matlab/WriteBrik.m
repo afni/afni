@@ -98,7 +98,11 @@ if (~isfield(Opt, 'Prefix') | isempty (Opt.Prefix)),
    ErrMessage = sprintf('Error %s: You must specify Opt.Prefix.', FuncName);  
    errordlg(ErrMessage); return;
 end
-   
+%set format if not present
+if (~isfield(Info,'FileFormat') | isempty(Info.FileFormat)),
+	Info.FileFormat = 'BRIK';
+end
+    
 %is this a 1D file ?
 is1D = 0;
 if (isempty(Info) & size(M,4) == 1 & size(M,3) == 1),
