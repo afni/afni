@@ -58,13 +58,13 @@ void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {	
 	int i;
    GLfloat rotationMatrix[4][4];
-	build_rotmatrix(rotationMatrix, csv->currentQuat);
+	build_rotmatrix(rotationMatrix, csv->GVS[csv->StdView].currentQuat);
 	 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
 	
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
-   gluPerspective((GLdouble)csv->FOV, csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
 
 	/* cycle through csv->ShowDO and display those things that have a fixed CoordType*/
 	i = 0;
@@ -89,7 +89,7 @@ void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 	
 	
 	/*
-	 fprintf(stdout,"Translation Vector: %f %f\n", csv->translateVec[0], csv->translateVec[1]);
+	 fprintf(stdout,"Translation Vector: %f %f\n", csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1]);
 	fprintf(stdout,"Rotation Matrix:\n");
 	for (i=0; i<4; ++i){ fprintf(stdout, "%f\t%f\t%f\t%f\n",\
 	 rotationMatrix[i][0], rotationMatrix[i][1], rotationMatrix[i][2], rotationMatrix[i][3]); }
@@ -97,10 +97,10 @@ void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 	 */
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glTranslatef (csv->translateVec[0], csv->translateVec[1], 0.0);
-	glTranslatef (csv->RotaCenter[0], csv->RotaCenter[1], csv->RotaCenter[2]);
+	glTranslatef (csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1], 0.0);
+	glTranslatef (csv->GVS[csv->StdView].RotaCenter[0], csv->GVS[csv->StdView].RotaCenter[1], csv->GVS[csv->StdView].RotaCenter[2]);
 	glMultMatrixf(&rotationMatrix[0][0]);
-	glTranslatef (-csv->RotaCenter[0], -csv->RotaCenter[1], -csv->RotaCenter[2]);
+	glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], -csv->GVS[csv->StdView].RotaCenter[1], -csv->GVS[csv->StdView].RotaCenter[2]);
 
 	/* cycle through csv->ShowDO and display those things that have a Local CoordType*/
 	i = 0;
@@ -199,7 +199,8 @@ SUMA_context_Init(void)
 
 	glClearColor (SUMA_CLEAR_COLOR);
    glShadeModel (GL_SMOOTH);
-	 switch (SUMAg_cSV->PolyMode) {
+
+	switch (SUMAg_cSV->PolyMode) {
 		case 0:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			break;
@@ -246,7 +247,7 @@ SUMA_context_Init(void)
 	done on the surface */
 	glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-	gluLookAt (SUMAg_cSV->ViewFrom[0], SUMAg_cSV->ViewFrom[1], SUMAg_cSV->ViewFrom[2], SUMAg_cSV->ViewCenter[0], SUMAg_cSV->ViewCenter[1], SUMAg_cSV->ViewCenter[2], SUMAg_cSV->ViewCamUp[0], SUMAg_cSV->ViewCamUp[1], SUMAg_cSV->ViewCamUp[2]);
+	gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 
 	/*glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);*/
    /*glLightfv(GL_LIGHT1, GL_POSITION, SUMAg_cSV->light1_position);*/
@@ -271,7 +272,7 @@ resize(Widget w,
 	
 	glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   gluLookAt (SUMAg_cSV->ViewFrom[0], SUMAg_cSV->ViewFrom[1], SUMAg_cSV->ViewFrom[2], SUMAg_cSV->ViewCenter[0], SUMAg_cSV->ViewCenter[1], SUMAg_cSV->ViewCenter[2], SUMAg_cSV->ViewCamUp[0], SUMAg_cSV->ViewCamUp[1], SUMAg_cSV->ViewCamUp[2]);
+   gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 	SUMAg_cSV->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
 	SUMAg_cSV->WindWidth = callData->width; SUMAg_cSV->WindHeight = callData->height;
 
@@ -601,8 +602,26 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
 	glFinish (); /* make sure you wait until rendering is over */
 	
-  SUMA_generateEPS("suma.rgb.eps", /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
-  /*SUMA_generateEPS("dino.bw.eps",  0, csv->X->WIDTH, csv->X->HEIGHT);*//* black&white */
+  /* find out the next best name and write it*/
+  {
+  		char tmpprfx[100], *padprfx, padname[100];
+		int cntindx=0;
+		SUMA_Boolean OKname = NOPE;
+		while (!OKname) {
+			sprintf (tmpprfx, "%d", cntindx);
+			padprfx = SUMA_pad_str (tmpprfx, '0', 4, 0);
+			sprintf(padname,"suma.rgb%s.eps", padprfx);
+			if (SUMA_filexists(padname)) {
+				++cntindx;
+			} else { OKname = YUP; }
+			
+			free (padprfx);
+		}
+	  
+	  fprintf (SUMA_STDOUT,"%s: Writing image to %s ...", FuncName, padname);
+	  SUMA_generateEPS(padname, /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
+	  fprintf (SUMA_STDOUT,"Done.\n");
+  }
 	
 	/* render to original context */
 	glXMakeCurrent(XtDisplay(csv->X->Wd), XtWindow(csv->X->Wd),  csv->X->GLXCONTEXT); 

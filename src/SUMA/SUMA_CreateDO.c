@@ -81,9 +81,9 @@ void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
 {
 	Ax->Stipple = SUMA_DASHED_LINE;
 	Ax->XYZspan[0] = Ax->XYZspan[1] = Ax->XYZspan[2] = 1000.0;
-	Ax->Center[0] = csv->ViewCenter[0];
-	Ax->Center[1] = csv->ViewCenter[1];
-	Ax->Center[2] = csv->ViewCenter[2];
+	Ax->Center[0] = csv->GVS[csv->StdView].ViewCenter[0];
+	Ax->Center[1] = csv->GVS[csv->StdView].ViewCenter[1];
+	Ax->Center[2] = csv->GVS[csv->StdView].ViewCenter[2];
 	return;
 }
 

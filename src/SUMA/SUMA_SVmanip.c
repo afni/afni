@@ -22,18 +22,96 @@ Create a SurfaceViewer data structure
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 {
 	SUMA_SurfaceViewer *SV, *SVv;
-	int i;
+	static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
+	int i, j;
 	
 	SVv =  (SUMA_SurfaceViewer *)malloc(sizeof(SUMA_SurfaceViewer)*N);
 	if (SVv == NULL) {
-		fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to malloc SV\n");
-		exit(1);
+		fprintf(SUMA_STDERR,"Error %s:: Failed to malloc SV\n", FuncName);
+		return (NULL);
 	}
 	for (i=0; i < N; ++i) {
 		SV = &SVv[i];
+		
+		SV->N_GVS = SUMA_N_STANDARD_VIEWS;
+		SV->GVS = (SUMA_GEOMVIEW_STRUCT *)malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
+		if (!SV->GVS) {
+			fprintf(SUMA_STDERR,"Error %s: Could not allocate for N_GVS.\n", FuncName);
+			return (NULL);
+		}
+		SV->StdView = SUMA_3D; /* default */
+		
+		/* set the standards for all viewing modes here */
 		SV->verbose = 1;
-		SV->FOV = FOV_INITIAL;
 		SV->Aspect = 1.0;
+		SV->FOV = NULL;
+		for (j=0; j < SV->N_GVS; ++j) {
+			switch (j) {
+				case SUMA_2D_Z0:
+					SV->GVS[j].currentQuat[0] = 0.252199;
+					SV->GVS[j].currentQuat[1] = -0.129341;
+					SV->GVS[j].currentQuat[2] = -0.016295;
+					SV->GVS[j].currentQuat[3] = 0.958854;
+
+					SV->GVS[j].ApplyMomentum = False;
+
+					SV->GVS[j].MinIdleDelta = 1;
+					SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
+					SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
+					SV->GVS[j].ArrowtranslateDeltaY = ARROW_TRANSLATE_DELTAY;
+
+					SV->GVS[j].ViewCamUp[0] = 0.0;
+					SV->GVS[j].ViewCamUp[1] = 1.0;
+					SV->GVS[j].ViewCamUp[2] = 0.0;
+
+					SV->GVS[j].ViewFrom[0] = 0.0;
+					SV->GVS[j].ViewFrom[1] = 0.0;
+					SV->GVS[j].ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
+
+					SV->GVS[j].ViewCenter[0] = 0.0;
+					SV->GVS[j].ViewCenter[1] = 0.0;
+					SV->GVS[j].ViewCenter[2] = 0.0;
+
+					SV->GVS[j].RotaCenter[0] = 0.0;
+					SV->GVS[j].RotaCenter[1] = 0.0;
+					SV->GVS[j].RotaCenter[2] = 0.0;
+					break;
+				case SUMA_3D:
+					SV->GVS[j].currentQuat[0] = 0.252199;
+					SV->GVS[j].currentQuat[1] = -0.129341;
+					SV->GVS[j].currentQuat[2] = -0.016295;
+					SV->GVS[j].currentQuat[3] = 0.958854;
+
+					SV->GVS[j].ApplyMomentum = False;
+
+					SV->GVS[j].MinIdleDelta = 1;
+					SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
+					SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
+					SV->GVS[j].ArrowtranslateDeltaY = ARROW_TRANSLATE_DELTAY;
+
+					SV->GVS[j].ViewCamUp[0] = 0.0;
+					SV->GVS[j].ViewCamUp[1] = 1.0;
+					SV->GVS[j].ViewCamUp[2] = 0.0;
+
+					SV->GVS[j].ViewFrom[0] = 0.0;
+					SV->GVS[j].ViewFrom[1] = 0.0;
+					SV->GVS[j].ViewFrom[2] = 0.0;
+
+					SV->GVS[j].ViewCenter[0] = 0.0;
+					SV->GVS[j].ViewCenter[1] = 0.0;
+					SV->GVS[j].ViewCenter[2] = 0.0;
+
+					SV->GVS[j].RotaCenter[0] = 0.0;
+					SV->GVS[j].RotaCenter[1] = 0.0;
+					SV->GVS[j].RotaCenter[2] = 0.0;
+					break;
+				default:
+					fprintf(SUMA_STDERR,"Error %s: Undefined viewing mode.\n", FuncName);
+					return (NULL);
+					
+			}
+		}
+		
 
 		SV->light0_position[0] = 0.0;
 		SV->light0_position[1] = 0.0;
@@ -49,33 +127,6 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->WindWidth = 350;
 		SV->WindHeight = 350;
 
-		SV->currentQuat[0] = 0.252199;
-		SV->currentQuat[1] = -0.129341;
-		SV->currentQuat[2] = -0.016295;
-		SV->currentQuat[3] = 0.958854;
-
-		SV->ApplyMomentum = False;
-
-		SV->MinIdleDelta = 1;
-		SV->TranslateGain = TRANSLATE_GAIN;
-		SV->ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
-		SV->ArrowtranslateDeltaY = ARROW_TRANSLATE_DELTAY;
-
-		SV->ViewCamUp[0] = 0.0;
-		SV->ViewCamUp[1] = 1.0;
-		SV->ViewCamUp[2] = 0.0;
-
-		SV->ViewFrom[0] = 0.0;
-		SV->ViewFrom[1] = 0.0;
-		SV->ViewFrom[2] = 0.0;
-
-		SV->ViewCenter[0] = 0.0;
-		SV->ViewCenter[1] = 0.0;
-		SV->ViewCenter[2] = 0.0;
-
-		SV->RotaCenter[0] = 0.0;
-		SV->RotaCenter[1] = 0.0;
-		SV->RotaCenter[2] = 0.0;
 		
 		SV->ShowDO = (int *)calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 		if (SV->ShowDO == NULL) {
@@ -114,6 +165,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->LastNonMapStateID = -1;
 		
 		SV->PolyMode = 0;
+		
 		#if SUMA_BACKFACE_CULL
 			SV->BF_Cull = YUP;
 		#else
@@ -143,6 +195,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
 			}
 		}
 	}
+	if (SV->GVS) free (SV->GVS);
 	if (SV->State) SV->State = NULL; /* never free that one */ 
 	return(YUP);
 }
@@ -194,28 +247,28 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
 		++i;
 	}
 	if (TotWeight) {
-		SV->ViewCenter[0] = NewCenter[0]/(float)TotWeight;
-		SV->ViewCenter[1] = NewCenter[1]/(float)TotWeight;
-		SV->ViewCenter[2] = NewCenter[2]/(float)TotWeight;
-		SV->ViewFrom[0] = SV->ViewCenter[0];
-		SV->ViewFrom[1] = SV->ViewCenter[1];
-		SV->ViewFrom[2] = SV->ViewCenter[2]+SUMA_DEFAULT_VIEW_FROM;	
-		SV->ViewDistance = SUMA_DEFAULT_VIEW_FROM;	
+		SV->GVS[SV->StdView].ViewCenter[0] = NewCenter[0]/(float)TotWeight;
+		SV->GVS[SV->StdView].ViewCenter[1] = NewCenter[1]/(float)TotWeight;
+		SV->GVS[SV->StdView].ViewCenter[2] = NewCenter[2]/(float)TotWeight;
+		SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewCenter[0];
+		SV->GVS[SV->StdView].ViewFrom[1] = SV->GVS[SV->StdView].ViewCenter[1];
+		SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+SUMA_DEFAULT_VIEW_FROM;	
+		SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;	
 		
 	} else
 	{/* default back to o.o, o.o, o.o */
-		SV->ViewCenter[0] = SV->ViewCenter[1] = SV->ViewCenter[2] = 0.0;
-		SV->ViewFrom[0] = SV->ViewFrom[1] = 0.0; SV->ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
-		SV->ViewDistance = SUMA_DEFAULT_VIEW_FROM;	
+		SV->GVS[SV->StdView].ViewCenter[0] = SV->GVS[SV->StdView].ViewCenter[1] = SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
+		SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewFrom[1] = 0.0; SV->GVS[SV->StdView].ViewFrom[2] = SUMA_DEFAULT_VIEW_FROM;
+		SV->GVS[SV->StdView].ViewDistance = SUMA_DEFAULT_VIEW_FROM;	
 	}
 	
 		/* Store that info in case subjects change things */
-		SV->ViewCenterOrig[0] = SV->ViewCenter[0];
-		SV->ViewCenterOrig[1] = SV->ViewCenter[1];
-		SV->ViewCenterOrig[2] = SV->ViewCenter[2];
-		SV->ViewFromOrig[0] = SV->ViewFrom[0];
-		SV->ViewFromOrig[1] = SV->ViewFrom[1];
-		SV->ViewFromOrig[2] = SV->ViewFrom[2];
+		SV->GVS[SV->StdView].ViewCenterOrig[0] = SV->GVS[SV->StdView].ViewCenter[0];
+		SV->GVS[SV->StdView].ViewCenterOrig[1] = SV->GVS[SV->StdView].ViewCenter[1];
+		SV->GVS[SV->StdView].ViewCenterOrig[2] = SV->GVS[SV->StdView].ViewCenter[2];
+		SV->GVS[SV->StdView].ViewFromOrig[0] = SV->GVS[SV->StdView].ViewFrom[0];
+		SV->GVS[SV->StdView].ViewFromOrig[1] = SV->GVS[SV->StdView].ViewFrom[1];
+		SV->GVS[SV->StdView].ViewFromOrig[2] = SV->GVS[SV->StdView].ViewFrom[2];
 
 	return (YUP);
 	
@@ -254,12 +307,12 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
 		++i;
 	}
 	if (TotWeight) {
-		SV->RotaCenter[0] = NewCenter[0]/(float)TotWeight;
-		SV->RotaCenter[1] = NewCenter[1]/(float)TotWeight;
-		SV->RotaCenter[2] = NewCenter[2]/(float)TotWeight;
+		SV->GVS[SV->StdView].RotaCenter[0] = NewCenter[0]/(float)TotWeight;
+		SV->GVS[SV->StdView].RotaCenter[1] = NewCenter[1]/(float)TotWeight;
+		SV->GVS[SV->StdView].RotaCenter[2] = NewCenter[2]/(float)TotWeight;
 	} else
 	{/* default back to o.o, o.o, o.o */
-		SV->RotaCenter[0] = SV->RotaCenter[1] = SV->RotaCenter[2] = 0.0;
+		SV->GVS[SV->StdView].RotaCenter[0] = SV->GVS[SV->StdView].RotaCenter[1] = SV->GVS[SV->StdView].RotaCenter[2] = 0.0;
 	}
 	return (YUP);
 	
@@ -276,33 +329,34 @@ void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 	
 	fprintf(Out,"\nSV contents:\n");
 	fprintf(Out,"\tverbose = %d\n", SV->verbose);
-	fprintf(Out,"\tFOV = %f\n", SV->FOV);
 	fprintf(Out,"\tAspect = %f\n", SV->Aspect);
-	fprintf(Out,"\tViewFrom = [%f %f %f]\n", SV->ViewFrom[0], SV->ViewFrom[1], SV->ViewFrom[2]);
-	fprintf(Out,"\tViewFromOrig = [%f %f %f]\n", SV->ViewFromOrig[0], SV->ViewFromOrig[1], SV->ViewFromOrig[2]);
-	fprintf(Out,"\tViewCenter = [%f %f %f]\n", SV->ViewCenter[0], SV->ViewCenter[1], SV->ViewCenter[2]);
-	fprintf(Out,"\tViewCenterOrig = [%f %f %f]\n", SV->ViewCenterOrig[0], SV->ViewCenterOrig[1], SV->ViewCenterOrig[2]);
-	fprintf(Out,"\tViewCamUp = [%f %f %f]\n", SV->ViewCamUp[0], SV->ViewCamUp[1], SV->ViewCamUp[2]);
-	fprintf(Out,"\tRotaCenter = [%f %f %f]\n", SV->RotaCenter[0], SV->RotaCenter[1], SV->RotaCenter[2]);
+	fprintf(Out,"\tViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
+	fprintf(Out,"\tViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);
+	fprintf(Out,"\tViewCenter = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenter[0], SV->GVS[SV->StdView].ViewCenter[1], SV->GVS[SV->StdView].ViewCenter[2]);
+	fprintf(Out,"\tViewCenterOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenterOrig[0], SV->GVS[SV->StdView].ViewCenterOrig[1], SV->GVS[SV->StdView].ViewCenterOrig[2]);
+	fprintf(Out,"\tViewCamUp = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCamUp[0], SV->GVS[SV->StdView].ViewCamUp[1], SV->GVS[SV->StdView].ViewCamUp[2]);
+	fprintf(Out,"\tRotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
 	fprintf(Out,"\tlight0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
 	fprintf(Out,"\tlight1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
 	fprintf(Out,"\tWindWidth = %d\n", SV->WindWidth);
 	fprintf(Out,"\tWindHeight = %d\n", SV->WindHeight);
-	fprintf(Out,"\tcurrentQuat = [%f %f %f %f]\n", SV->currentQuat[0], SV->currentQuat[1], SV->currentQuat[2], SV->currentQuat[3]);
-	fprintf(Out,"\tdeltaQuat = [%f %f %f %f]\n", SV->deltaQuat[0], SV->deltaQuat[1], SV->deltaQuat[2], SV->deltaQuat[3]);
-	fprintf(Out,"\tApplyMomentum = %d\n", SV->ApplyMomentum);
-	fprintf(Out,"\tMinIdleDelta = %d\n", SV->MinIdleDelta);
-	fprintf(Out,"\tzoomDelta = %f, zoomBegin = %f\n", SV->zoomDelta, SV->zoomBegin);
-	fprintf(Out,"\tspinDeltaX/Y = %d/%d\n", SV->spinDeltaX, SV->spinDeltaY);
-	fprintf(Out,"\tspinBeginX/Y = %d/%d\n", SV->spinBeginX, SV->spinBeginY);	
-	fprintf(Out,"\tTranslateGain = %f\n", SV->TranslateGain);
-	fprintf(Out,"\tArrowtranslateDeltaX/Y = %f/%f\n", SV->ArrowtranslateDeltaX, SV->ArrowtranslateDeltaY);
-	fprintf(Out,"\ttranslateBeginX/Y = %d/%d\n", SV->translateBeginX, SV->translateBeginY);
-	fprintf(Out,"\ttranslateDeltaX/Y = %f/%f\n", SV->translateDeltaX, SV->translateDeltaY);
-	fprintf(Out,"\ttranslateVec = [%f %f 0.0]\n", SV->translateVec[0], SV->translateVec[1]);
+	fprintf(Out,"\tcurrentQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].currentQuat[0], SV->GVS[SV->StdView].currentQuat[1], SV->GVS[SV->StdView].currentQuat[2], SV->GVS[SV->StdView].currentQuat[3]);
+	fprintf(Out,"\tdeltaQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].deltaQuat[0], SV->GVS[SV->StdView].deltaQuat[1], SV->GVS[SV->StdView].deltaQuat[2], SV->GVS[SV->StdView].deltaQuat[3]);
+	fprintf(Out,"\tApplyMomentum = %d\n", SV->GVS[SV->StdView].ApplyMomentum);
+	fprintf(Out,"\tMinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
+	fprintf(Out,"\tzoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
+	fprintf(Out,"\tspinDeltaX/Y = %d/%d\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
+	fprintf(Out,"\tspinBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);	
+	fprintf(Out,"\tTranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
+	fprintf(Out,"\tArrowtranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].ArrowtranslateDeltaX, SV->GVS[SV->StdView].ArrowtranslateDeltaY);
+	fprintf(Out,"\ttranslateBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
+	fprintf(Out,"\ttranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].translateDeltaX, SV->GVS[SV->StdView].translateDeltaY);
+	fprintf(Out,"\ttranslateVec = [%f %f 0.0]\n", SV->GVS[SV->StdView].translateVec[0], SV->GVS[SV->StdView].translateVec[1]);
 	fprintf(Out,"\tShow Mesh Axis %d\n", SV->ShowMeshAxis);
 	fprintf(Out,"\tShow Eye Axis %d\n", SV->ShowEyeAxis);
 	fprintf(Out,"\tShow Cross Hair %d\n", SV->ShowCrossHair);
+	fprintf(Out,"\tPolyMode %d\n", SV->PolyMode);
+	
 	fprintf(Out,"\tN_DO = %d\n", SV->N_DO);
 	fprintf(Out,"\tShowDO = [");
 	for (i=0; i< SV->N_DO; ++i)
@@ -317,12 +371,12 @@ void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 	/* show some state stuff */
 	fprintf(Out,"\nView States:\n");
 	for (i=0; i < SV->N_VSv; ++i) {
-		fprintf(Out,"\nView State %d/%d:\n", i, SV->N_VSv);
+		fprintf(Out,"\nView State %d/%d (FOV = %f):\n", i, SV->N_VSv, SV->FOV[i]);
 		if (!SUMA_Show_ViewState (&(SV->VSv[i]), Out)) {
 			fprintf(Out,"Error in SUMA_Show_ViewState\n");
 		}
 	}
-	
+	fprintf(Out, "\nStandard viewing mode: %d\n", SV->StdView );
 	fprintf(Out, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
 	fprintf(Out, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
 	
@@ -509,10 +563,16 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 		}
 	}
 	
+	
 	/*fprintf(SUMA_STDERR,"%s: allocating ...\n", FuncName);*/
 	
-	/* allocate space for MembSOs counters will be reset for later use counting proceeds*/
+	/* allocate for FOV */
+	csv->FOV = (float *)calloc(csv->N_VSv, sizeof(float));
+	
+	/* allocate space for MembSOs counters will be reset for later use counting proceeds
+	also initialize FOV*/
 	for (i=0; i < csv->N_VSv; ++i) {
+		csv->FOV[i] = FOV_INITIAL;
 		csv->VSv[i].MembSOs = (int *) calloc(csv->VSv[i].N_MembSOs, sizeof(int));
 		if (csv->VSv[i].MembSOs == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[i].MembSOs.\n", FuncName);
@@ -521,6 +581,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 		csv->VSv[i].N_MembSOs = 0;
 	}
 
+	
 	/*fprintf(SUMA_STDERR,"%s: placement ...\n", FuncName);*/
 	
 	/* now place each SO where it belongs */
@@ -618,4 +679,50 @@ SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName
 
 	fprintf(SUMA_STDOUT, "%s: Set AfniHostName to %s (stream name: %s)\n", FuncName, cf->AfniHostName, cf->NimlAfniStream);
 	return (YUP);
+}
+
+/*!
+	This function determines the most suitable standard view of a surface viewer
+	This is based on the surface objects being displayed and their embedding dimension.
+	The highest Embedding dimension of the lot determines what view to use 
+	ans = SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov)
+	
+	\param sv (SUMA_SurfaceViewer *) Surface viewer structure
+	\param dov (SUMA_DO *) vector of displayable objects
+	\param N_dov (int) number of displayable objects
+	\ret ans (SUMA_SUMA_STANDARD_VIEWS) recommended view
+	
+*/	
+SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov)
+{
+	static char FuncName[] = {"SUMA_BestStandardView"};
+	SUMA_STANDARD_VIEWS ans;
+	int i, maxdim = -1, is;
+	SUMA_SurfaceObject *SO = NULL;
+	
+	is = sv->iState;
+	if (is < 0) {
+		fprintf(SUMA_STDERR, "Error %s: sv->iState undefined.\n", FuncName);
+		return (SUMA_Dunno); 
+	}
+	
+	for (i=0; i<sv->VSv[is].N_MembSOs; ++i) {	
+		SO = (SUMA_SurfaceObject *)(dov[sv->VSv[is].MembSOs[i]].OP);
+		if (SO == NULL) {
+			fprintf(SUMA_STDERR,"Error %s: SO is null ???\n.", FuncName);
+			return (SUMA_Dunno);
+		}
+		if (SO->EmbedDim > maxdim) maxdim = SO->EmbedDim;
+	}
+	
+	switch (maxdim) {
+		case 2:
+			return (SUMA_2D_Z0);
+		case 3:
+			return(SUMA_3D);
+		default:
+			fprintf(SUMA_STDERR,"Error %s: No provision for such a maximum embedding dimension.\n", FuncName);
+			return(SUMA_Dunno);
+	}
+
 }

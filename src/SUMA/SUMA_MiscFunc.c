@@ -3977,3 +3977,57 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 	return (C);
 } 
 
+/*! 
+	Function to pad a string to a certain length
+	
+		char * SUMA_pad_str (char *str, char pad_val , int pad_ln , int opt)
+ 
+ 		str, (char *) string with the original string
+ 		pad_char, (char )  padding character
+ 		pad_ln, (int) final padded lenght, 
+ 		opt, (int) 0 if padding occurs to the left of str (00005)
+ 						1 if padding occurs to the right of str (50000)
+	Returns : 
+ 		a pointer to the padded string .
+ 
+*/
+
+char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
+	{/*SUMA_pad_str*/
+ 		static char FuncName[]={"SUMA_pad_str"};
+		int lo,i;
+ 		char *strp , *buf1;
+ 		
+ 		assert (str);
+ 		
+ 		lo = (int)strlen(str);
+		
+		buf1 = (char *)calloc (pad_ln-lo+2,sizeof (char));
+ 		strp = (char *)calloc (pad_ln+lo+2,sizeof (char));
+				
+		for (i=0;i<pad_ln-lo;++i)
+ 			{
+ 				if (i == 0) sprintf (buf1,"%c",pad_val);
+ 					else sprintf (buf1,"%s%c",buf1,pad_val);
+ 						
+ 			}
+ 		if (opt == 0)
+ 			sprintf (strp,"%s%s",buf1,str);
+ 		else if (opt == 1)
+ 			{
+ 				sprintf (strp,"%s%s",str,buf1);
+ 				
+			}			
+ 			else 
+ 				{
+ 					fprintf (SUMA_STDERR, "Error SUMA_pad_str: Wrong opt paramter, only (0,1) allowed\n", FuncName);
+ 					free (strp);
+					free (buf1);
+					return (NULL);
+ 				}
+ 		
+ 		free (buf1);
+ 		
+ 		return (strp);
+ 		
+	}/*SUMA_pad_str*/

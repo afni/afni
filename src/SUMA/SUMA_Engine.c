@@ -79,12 +79,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				/* calculate the transform required to bring the new look at location to the current one */
 				{
 					float ulook_old[3], ulook_new[3];
-					ulook_old[0] = SUMAg_cSV->ViewFrom[0] - SUMAg_cSV->ViewCenter[0];
-					ulook_old[1] = SUMAg_cSV->ViewFrom[1] - SUMAg_cSV->ViewCenter[1];
-					ulook_old[2] = SUMAg_cSV->ViewFrom[2] - SUMAg_cSV->ViewCenter[2];
-					ulook_new[0] = EngineData->fv3[0]- SUMAg_cSV->ViewCenter[0];
-					ulook_new[1] = EngineData->fv3[1]- SUMAg_cSV->ViewCenter[1];
-					ulook_new[2] = EngineData->fv3[2]- SUMAg_cSV->ViewCenter[2];
+					ulook_old[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0];
+					ulook_old[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1];
+					ulook_old[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2];
+					ulook_new[0] = EngineData->fv3[0]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0];
+					ulook_new[1] = EngineData->fv3[1]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1];
+					ulook_new[2] = EngineData->fv3[2]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2];
 					fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
 					if (fm == NULL) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate fm.\n",FuncName);
@@ -357,17 +357,17 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				  float **fm2_3;
 				  
 				/* modify the ViewFrom Value such that the viewing distance remains the same */
-				CurrentDistance = sqrt((SUMAg_cSV->ViewFrom[0]-SUMAg_cSV->ViewCenter[0])*(SUMAg_cSV->ViewFrom[0]-SUMAg_cSV->ViewCenter[0]) +\
-												(SUMAg_cSV->ViewFrom[1]-SUMAg_cSV->ViewCenter[1])*(SUMAg_cSV->ViewFrom[1]-SUMAg_cSV->ViewCenter[1]) +\
-												(SUMAg_cSV->ViewFrom[2]-SUMAg_cSV->ViewCenter[2])*(SUMAg_cSV->ViewFrom[2]-SUMAg_cSV->ViewCenter[2]));
+				CurrentDistance = sqrt((SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0]) +\
+												(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1]) +\
+												(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2]));
 				
 				/* set the ViewCenter Value to that of the node's XYZ*/
-				SUMAg_cSV->ViewCenter[0] = EngineData->fv15[0];
-				SUMAg_cSV->ViewCenter[1] = EngineData->fv15[1]; 
-				SUMAg_cSV->ViewCenter[2] = EngineData->fv15[2];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0] = EngineData->fv15[0];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1] = EngineData->fv15[1]; 
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2] = EngineData->fv15[2];
 				
 				/* obtain the LookFrom point based on CurrentDistance and the normal vector */
-				fm2_3 = SUMA_Point_At_Distance(&(EngineData->fv15[3]), SUMAg_cSV->ViewCenter, CurrentDistance);
+				fm2_3 = SUMA_Point_At_Distance(&(EngineData->fv15[3]), SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter, CurrentDistance);
 				if (fm2_3 == NULL) {
 					fprintf(SUMA_STDOUT,"Error %s: SUMA_Point_At_Distance failed.\n", FuncName);
 					break;
@@ -376,14 +376,14 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fm2_3[0][0], fm2_3[0][1], fm2_3[0][2], \
 					fm2_3[1][0], fm2_3[1][1], fm2_3[1][2]);
 				
-				SUMAg_cSV->ViewFrom[0] = fm2_3[0][0]; 
-				SUMAg_cSV->ViewFrom[1] = fm2_3[0][1]; 
-				SUMAg_cSV->ViewFrom[2] = fm2_3[0][2]; 
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = fm2_3[0][0]; 
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = fm2_3[0][1]; 
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = fm2_3[0][2]; 
 				
 				/* fm2_3 not needed anymore */
 				SUMA_free2D((char **)fm2_3, 2);
 				
-				gluLookAt (SUMAg_cSV->ViewFrom[0], SUMAg_cSV->ViewFrom[1], SUMAg_cSV->ViewFrom[2], SUMAg_cSV->ViewCenter[0], SUMAg_cSV->ViewCenter[1], SUMAg_cSV->ViewCenter[2], SUMAg_cSV->ViewCamUp[0], SUMAg_cSV->ViewCamUp[1], SUMAg_cSV->ViewCamUp[2]);
+				gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 				}
 				
 				break;
@@ -394,10 +394,10 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					break;
 				} 
 				/* set the LookFrom option */
-				SUMAg_cSV->ViewFrom[0] = EngineData->fv3[0];
-				SUMAg_cSV->ViewFrom[1] = EngineData->fv3[1]; 
-				SUMAg_cSV->ViewFrom[2] = EngineData->fv3[2];
-				gluLookAt (SUMAg_cSV->ViewFrom[0], SUMAg_cSV->ViewFrom[1], SUMAg_cSV->ViewFrom[2], SUMAg_cSV->ViewCenter[0], SUMAg_cSV->ViewCenter[1], SUMAg_cSV->ViewCenter[2], SUMAg_cSV->ViewCamUp[0], SUMAg_cSV->ViewCamUp[1], SUMAg_cSV->ViewCamUp[2]);
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = EngineData->fv3[0];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = EngineData->fv3[1]; 
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = EngineData->fv3[2];
+				gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 				break;
 
 			case SE_Redisplay:
@@ -442,21 +442,25 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				break;
 							
 			case SE_Home:
-				SUMAg_cSV->translateVec[0]=0; SUMAg_cSV->translateVec[1]=0;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0]=0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1]=0;
 				glMatrixMode(GL_PROJECTION);
-				SUMAg_cSV->FOV = FOV_INITIAL;	/* reset the zooming */
-				SUMAg_cSV->ViewFrom[0] = SUMAg_cSV->ViewFromOrig[0];
-				SUMAg_cSV->ViewFrom[1] = SUMAg_cSV->ViewFromOrig[1];
-				SUMAg_cSV->ViewFrom[2] = SUMAg_cSV->ViewFromOrig[2];
-				SUMAg_cSV->ViewCenter[0] = SUMAg_cSV->ViewCenterOrig[0];
-				SUMAg_cSV->ViewCenter[1] = SUMAg_cSV->ViewCenterOrig[1];
-				SUMAg_cSV->ViewCenter[2] = SUMAg_cSV->ViewCenterOrig[2];
+				/* SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_INITIAL;	*//* Now done in SE_FOVreset *//* reset the zooming */
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[0];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[1];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[2];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[0];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[1];
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[2];
 				
 				glMatrixMode(GL_MODELVIEW);
    			glLoadIdentity();
-   			gluLookAt (SUMAg_cSV->ViewFrom[0], SUMAg_cSV->ViewFrom[1], SUMAg_cSV->ViewFrom[2], SUMAg_cSV->ViewCenter[0], SUMAg_cSV->ViewCenter[1], SUMAg_cSV->ViewCenter[2], SUMAg_cSV->ViewCamUp[0], SUMAg_cSV->ViewCamUp[1], SUMAg_cSV->ViewCamUp[2]);
+   			gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 				break;
-
+			
+			case SE_FOVreset:
+				SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_INITIAL;	/* reset the zooming */
+				break;
+				
 			case SE_SetNodeColor:
 				/* expects a four-columned fm in EngineData->fm[0 .. N][0..3] 
 				[Node Index] [R] [G] [B] RGB between 0 and 1*/
@@ -632,7 +636,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf(SUMA_STDERR,"Error %s: fm must have 4 cols and 4 rows in SetRotMatrix\n", FuncName);
 					break;
 				}
-				if (!SUMA_mattoquat (EngineData->fm, SUMAg_cSV->currentQuat))
+				if (!SUMA_mattoquat (EngineData->fm, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat))
 					{
 						fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_mattoquat\n", FuncName);
 						break;
@@ -1206,9 +1210,18 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
 	/* switch the state accordingly */
 	sv->State =  sv->VSv[nxtstateID].Name;
+	sv->iState = nxtstateID;
 	
 	/* set the focus ID to the first surface in the next view   */
 	sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
+
+	/* decide what the best state is */
+	sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
+	/*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);*/
+	if (sv->StdView == SUMA_Dunno) {
+		fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+		sv->StdView = SUMA_3D;
+	}
 
 	/* modify the rotation center */
 	if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
@@ -1232,6 +1245,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 		SUMA_EyeAxisStandard (EyeAxis, sv);
 	}
 	
+	 
 	/* Home call baby */
 	sprintf(CommString,"Home~");
 	if (!SUMA_Engine (CommString, &ED)) {

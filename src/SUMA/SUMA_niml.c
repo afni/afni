@@ -320,7 +320,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 						SOmap = SO;
 					} else {
 						_ID = SUMA_findDO(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-						if (_ID < -1) {
+						if (_ID < 0) {
 								/* not found */
 								fprintf(SUMA_STDERR, "Error %s: Map reference %s not found.\n",\
 								 FuncName, SO->MapRef_idcode_str);

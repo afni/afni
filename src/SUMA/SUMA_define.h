@@ -101,7 +101,7 @@ typedef enum {	SE_Empty, \
 					SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, \
 					SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,\
 					SE_ToggleShowSelectedFaceSet, SE_ToggleTalkToAfni, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_BindCrossHair,\
-					SE_Remix, SE_ToggleForeground, SE_ToggleBackground,\
+					SE_Remix, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset,\
 					SE_BadCode} SUMA_ENGINE_CODE;
 					
 typedef enum { SEF_Empty, \
@@ -119,6 +119,12 @@ typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,\
 					SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, \
 					SUMA_CMAP_MATLAB_DEF_BGYR64} SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
+#define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
+typedef enum {	SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states \
+																						SUMA_2D_Z0 2D views, with Z = 0 good for flat surfaces
+																						SUMA_3D standard 3D view
+																						SUMA_Dunno used to flag errors leave this at the end 
+																						Keep in sync with SUMA_N_STANDARD_VIEWS*/
 /*! structure containing a data block information */
 typedef struct {
 	void *data;	/*!< pointer to data location */
@@ -184,6 +190,7 @@ typedef struct {
 	char *IDcode[SUMA_MAX_N_SURFACE_SPEC];
 	char State[SUMA_MAX_N_SURFACE_SPEC][100];
 	char Group[SUMA_MAX_N_SURFACE_SPEC][1000];
+	int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];
 	int N_Surfs;
 	int N_States;
 	int N_Groups;
@@ -370,7 +377,7 @@ typedef struct {
 	SUMA_ViewState_Hist *Hist; /*!< Pointer to structure containing various parameter settings for that viewing state */				
 } SUMA_ViewState;
 
-/*! structure defining the state of a viewer window */
+/*! structure containing the geometric settings for viewing the surface */
 typedef struct {
 	float ViewFrom[3]; /*!< Location of observer's eyes */
 	float ViewFromOrig[3]; /*!< Original Location of observer's eyes */
@@ -378,8 +385,6 @@ typedef struct {
 	float ViewCenterOrig[3];	/*!< Original Center of observer's gaze */
 	float ViewCamUp[3];	/*!< Camera Up direction vector */
 	float ViewDistance; /*!< Viewing distance */
-	float FOV; /*!< Field of View (affects zoom level)*/
-	float Aspect;	/*!< Aspect ratio of the viewer*/
 	
 	int translateBeginX; /*!< User Input (mouse) X axis current position for translation */
 	int translateBeginY; /*!< User Input (mouse) Y axis current position for translation */
@@ -400,9 +405,17 @@ typedef struct {
 	float deltaQuat[4];	/*!< Quaternion increment */
 	float currentQuat[4]; /*!< Current quaternion */
 	Boolean ApplyMomentum;	/*<! Turn momentum ON/OFF */
+} SUMA_GEOMVIEW_STRUCT;
+
+/*! structure defining the state of a viewer window */
+typedef struct {
+	SUMA_STANDARD_VIEWS StdView; /*!< viewing mode, for 2D or 3D */
+	SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing geometric viewing settings */
+	int N_GVS; /*!< Number of different geometric viewing structures */
 
 	short verbose;	/*!< Verbosity of viewer */
 
+	float Aspect;	/*!< Aspect ratio of the viewer*/
 	GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
 	GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
 	
@@ -432,7 +445,9 @@ typedef struct {
 	SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
 	int N_VSv; /*!< Number of Viewing State structures */
 	char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
+	int iState; /*!< index into VSv corresponding to State */
 	int LastNonMapStateID; /*!< Index into the state in VSv from which a toggle to the mappable state was initiated */ 
+	float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
 	
 	int PolyMode; /*!< polygon viewing mode, 0, filled, 1, outline, 0, points */
 	SUMA_Boolean BF_Cull; /*!< flag for backface culling */
@@ -576,7 +591,8 @@ typedef struct {
 	SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
 	
 	int N_Node; /*!< Number of nodes in the SO */
-	int NodeDim; /*!< Dimension of Node coordinates, 2 for 2D (Z = 0), 3 for 3D */
+	int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
+	int EmbedDim; /*!< Embedding dimension of the surface, 2 for flat surfaces 3 for ones with non zero curvature other. */ 
 	float **NodeList; /*!< N_Node x 3 matrix containing the XYZ node coordinates. 
 								If NodeDim is 2 then the third column is all zeros*/
 	char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
@@ -616,7 +632,10 @@ typedef struct {
 	
 	SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets representing each node */
 	SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
+	SUMA_INODE *FN_Inode; /*!< Inode structure for FN */
 	SUMA_EDGE_LIST *EL; /*!< structure containing the edge list */
+	SUMA_INODE *EL_Inode; /*!< Inode structure for EL */
+	
 	float *PolyArea; /*!< N_FaceSet x 1 vector containing the area of each polygon in FaceSetList */
 	SUMA_SURFACE_CURVATURE *SC; /*!< Structure containing the surface curvature info */
 	

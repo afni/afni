@@ -277,12 +277,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
 				case 'm':
-         			SUMAg_cSV->ApplyMomentum = !SUMAg_cSV->ApplyMomentum;
-						if (SUMAg_cSV->ApplyMomentum) {
+         			SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum = !SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum;
+						if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum) {
 	         			 SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, momentum, 0);
 							 /* wait till user initiates turning */
-							SUMAg_cSV->spinDeltaX = 0; SUMAg_cSV->spinDeltaY = 0;
-							SUMAg_cSV->translateDeltaX = 0; SUMAg_cSV->translateDeltaY = 0;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
 						}
        			   else {
 							if (SUMAg_cSV->X->MOMENTUMID)  XtRemoveTimeOut(SUMAg_cSV->X->MOMENTUMID);
@@ -392,22 +392,21 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 						
 				case 'w':
+					fprintf(SUMA_STDOUT,"%s: Began rendering to file. Please wait ...\n", FuncName);
 					if (!SUMA_RenderToPixMap (SUMAg_cSV, SUMAg_DOv)) {
 						fprintf(SUMA_STDERR, "Error %s: Failed to write image.\n", FuncName);
-					} else {
-						fprintf(SUMA_STDERR, "%s: File suma.rgb.eps should have been written to disk.\n", FuncName);
-					}
+					} 
 					break;
 				
 				case 'Z':
 					/*fprintf(stdout,"Zoom in");*/
-					SUMAg_cSV->FOV /= FOV_IN_FACT; if (SUMAg_cSV->FOV < FOV_MIN) SUMAg_cSV->FOV = FOV_MIN; 
+					SUMAg_cSV->FOV[SUMAg_cSV->iState] /= FOV_IN_FACT; if (SUMAg_cSV->FOV[SUMAg_cSV->iState] < FOV_MIN) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MIN; 
 					postRedisplay();
 					break;
 				
 				case 'z':
 					/*fprintf(stdout,"Zoom out");*/
-					SUMAg_cSV->FOV /= FOV_OUT_FACT; if (SUMAg_cSV->FOV > FOV_MAX) SUMAg_cSV->FOV = FOV_MAX;
+					SUMAg_cSV->FOV[SUMAg_cSV->iState] /= FOV_OUT_FACT; if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
 					postRedisplay();
 					break;
 				
@@ -676,7 +675,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					
 				case 97:	
 					/*printf("HOME\n");*/
-					sprintf(CommString, "Redisplay|Home~");
+					sprintf(CommString, "Redisplay|FOVreset|Home~");
 					if (!SUMA_Engine (CommString, &EngineData)) {
 						fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
 					} 
@@ -686,8 +685,8 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*fprintf(stdout,"Left Key\n");*/
 					switch ((int)(XKeyEvent *) cd->event->xkey.state) {
 						case ShiftMask:
-							SUMAg_cSV->translateVec[0] -= (GLfloat)SUMAg_cSV->ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->TranslateGain;
-							/*SUMAg_cSV->translateVec[1] -= 0;*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] -= (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+							/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
 							postRedisplay();
 							break;
 						
@@ -697,12 +696,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						case Mod1Mask:
 							break;
 						default:
-								trackball(SUMAg_cSV->deltaQuat, 
+								trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
 								ArrowDeltaRot, 0.0, /* first point */
 								-ArrowDeltaRot, 0.0); /* ending x,y */
-							add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
-							SUMAg_cSV->spinDeltaX = -2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
-							SUMAg_cSV->spinDeltaY = 0;
+							add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = -2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
 							postRedisplay();
 							break;
 					}
@@ -711,8 +710,8 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*printf("Right Key\n");*/
 					switch ((int)(XKeyEvent *) cd->event->xkey.state) {
 						case ShiftMask:
-							SUMAg_cSV->translateVec[0] += (GLfloat)SUMAg_cSV->ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->TranslateGain;
-							/*SUMAg_cSV->translateVec[1] -= 0;*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+							/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
 							postRedisplay();
 							break;
 						
@@ -723,12 +722,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							break;
 							
 						default:
-							trackball(SUMAg_cSV->deltaQuat, 
+							trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
 								-ArrowDeltaRot, 0.0, /* first point */
 								ArrowDeltaRot, 0.0); /* ending x,y */
-							add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
-							SUMAg_cSV->spinDeltaX = 2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
-							SUMAg_cSV->spinDeltaY = 0;
+							add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
 							postRedisplay();
 							break;
 					}
@@ -737,8 +736,8 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*printf("Down Key\n");*/
 					switch ((int)(XKeyEvent *) cd->event->xkey.state) {
 						case ShiftMask:
-							/*SUMAg_cSV->translateVec[0] += 0;*/
-							SUMAg_cSV->translateVec[1] -=  (GLfloat)SUMAg_cSV->ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->TranslateGain;
+							/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 							postRedisplay();
 							break;
 						case ControlMask:
@@ -746,15 +745,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						case Mod1Mask:
 							break;
 						default:
-							trackball(SUMAg_cSV->deltaQuat, 
+							trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
 								0.0, ArrowDeltaRot, /* first point */
 								0.0, -ArrowDeltaRot); /* ending x,y */
-							/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->currentQuat[i]);} fprintf(stdout,"\n");
-							fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->deltaQuat[i]);} fprintf(stdout,"\n");*/
-							add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
-							/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->currentQuat[i]);} fprintf(stdout,"\n");*/
-							SUMAg_cSV->spinDeltaX = 0;
-							SUMAg_cSV->spinDeltaY = -2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
+							/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
+							fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
+							add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+							/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = -2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
 							postRedisplay();
 							break;
 					}
@@ -766,15 +765,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							#ifdef USELESS_BLOCK
 							/* This shows how to have momentum work for arrow translation. But that is largely useless
 							because the object  quickly disappears from view */
-							SUMAg_cSV->translateDeltaX = 0/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->TranslateGain;
-							SUMAg_cSV->translateDeltaY = SUMAg_cSV->ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->TranslateGain;
-							SUMAg_cSV->translateVec[0] += (GLfloat)SUMAg_cSV->translateDeltaX;
-							SUMAg_cSV->translateVec[1] += (GLfloat)SUMAg_cSV->translateDeltaY;
-							SUMAg_cSV->translateDeltaX = 0; /* if you do not turn these back to 0 then the surface will quickly go out of sight if momentum is turned on */
-							SUMAg_cSV->translateDeltaY = 0;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; /* if you do not turn these back to 0 then the surface will quickly go out of sight if momentum is turned on */
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
 							#endif
-							/*SUMAg_cSV->translateVec[0] += 0;*/
-							SUMAg_cSV->translateVec[1] +=  (GLfloat)SUMAg_cSV->ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->TranslateGain;
+							/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] +=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 							postRedisplay();
 							break;
 						case ControlMask:
@@ -782,15 +781,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						case Mod1Mask:
 							break;
 						default:
-							trackball(SUMAg_cSV->deltaQuat, 
+							trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
 							0.0, -ArrowDeltaRot, /* first point */
 							0.0, ArrowDeltaRot); /* ending x,y */
-							/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->currentQuat[i]);} fprintf(stdout,"\n");
-							fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->deltaQuat[i]);} fprintf(stdout,"\n");*/
-							add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
-							/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->currentQuat[i]);} fprintf(stdout,"\n");*/
-							SUMAg_cSV->spinDeltaX = 0;
-							SUMAg_cSV->spinDeltaY = 2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
+							/*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");
+							fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
+							add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+							/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+							SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
 							postRedisplay();
 							break;
 					}
@@ -811,10 +810,10 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					case 0:
 						/*fprintf(stdout,"Button 1 down, plain jane\n");*/
 						/* setup initial spinning conditions */
-						SUMAg_cSV->spinBeginX = (int)(XButtonEvent *)cd->event->xbutton.x;
-						SUMAg_cSV->spinBeginY = (int)(XButtonEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->spinDeltaX = 0;
-						SUMAg_cSV->spinDeltaY = 0;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XButtonEvent *)cd->event->xbutton.x;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XButtonEvent *)cd->event->xbutton.y;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
 						break;
 					case ShiftMask:
 						/*fprintf(stdout,"Button 1, + Shift\n");*/
@@ -822,8 +821,8 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					case Button2Mask:
 						/* When pressing both 1&2, Button 2 gets the first mention so you would want to negate its effects when you want to record both buttons events */
 						/*fprintf(stdout,"Buttons 1& 2 simultaneously\n");*/
-						SUMAg_cSV->zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->zoomDelta = 0;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0;
 						break;
 				}
 				break;
@@ -832,10 +831,10 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					case 0:
 						/*fprintf(stdout,"Button 2 down, plain jane\n");*/
 						/* setup initial translation conditions */
-						SUMAg_cSV->translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-						SUMAg_cSV->translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
-						SUMAg_cSV->translateDeltaX = 0;
-						SUMAg_cSV->translateDeltaY = 0;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0;
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
 						break;
 					case ShiftMask:
 						/*fprintf(stdout,"Button 2, + Shift\n");*/
@@ -863,13 +862,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							
 							/* go through the ModelView transforms as you would in display since the modelview matrix is popped
 							after each display call */
-							build_rotmatrix(rotationMatrix, SUMAg_cSV->currentQuat);
+							build_rotmatrix(rotationMatrix, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 							glMatrixMode(GL_MODELVIEW);
 							glPushMatrix();
-							glTranslatef (SUMAg_cSV->translateVec[0], SUMAg_cSV->translateVec[1], 0.0);
-							glTranslatef (SUMAg_cSV->RotaCenter[0], SUMAg_cSV->RotaCenter[1], SUMAg_cSV->RotaCenter[2]);
+							glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1], 0.0);
+							glTranslatef (SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
 							glMultMatrixf(&rotationMatrix[0][0]);
-							glTranslatef (-SUMAg_cSV->RotaCenter[0], -SUMAg_cSV->RotaCenter[1], -SUMAg_cSV->RotaCenter[2]);
+							glTranslatef (-SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[0], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[1], -SUMAg_cSV->GVS[SUMAg_cSV->StdView].RotaCenter[2]);
 							
 							glGetIntegerv(GL_VIEWPORT, viewport);
 							glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
@@ -1156,30 +1155,30 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 			case Button1Mask:	/* button 1 motion, reports a 256*/ 
 				/*fprintf (stdout, "\nbutton 1 motion %d\n", Button1Mask);*/
 				/* spinning mode */
-				SUMAg_cSV->spinDeltaX = ((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->spinBeginX);
-				SUMAg_cSV->spinDeltaY = ((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->spinBeginY);
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = ((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX);
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = ((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY);
 				/*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
-								SUMAg_cSV->spinBeginX, SUMAg_cSV->spinBeginY, SUMAg_cSV->spinDeltaX, SUMAg_cSV->spinDeltaY, SUMAg_cSV->WindWidth, SUMAg_cSV->WindHeight);*/
-				if (SUMAg_cSV->spinDeltaX || SUMAg_cSV->spinDeltaY){
-					trackball(SUMAg_cSV->deltaQuat, 
-						(float)(2*SUMAg_cSV->spinBeginX - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*SUMAg_cSV->spinBeginY)/(float)SUMAg_cSV->WindHeight,
+								SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY, SUMAg_cSV->WindWidth, SUMAg_cSV->WindHeight);*/
+				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY){
+					trackball(SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, 
+						(float)(2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY)/(float)SUMAg_cSV->WindHeight,
 				 		(float)(2*(int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->WindWidth)/(float)SUMAg_cSV->WindWidth, (float)(SUMAg_cSV->WindHeight - 2*(int)(XMotionEvent *)cd->event->xbutton.y)/(float)SUMAg_cSV->WindHeight); /* comput the increment Quat */
-					SUMAg_cSV->spinBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-					SUMAg_cSV->spinBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
-					add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}
 				
 				break;
 			case Button2Mask: /* button 2 motion, reports a 512*/
 				/*fprintf (stdout, "\nbutton 2 motion \n");*/
-				SUMAg_cSV->translateDeltaX = (float)((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->translateBeginX)/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->TranslateGain;
-				SUMAg_cSV->translateDeltaY = -(float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->translateBeginY)/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->TranslateGain;
-				if (SUMAg_cSV->translateDeltaX || SUMAg_cSV->translateDeltaY){
-					SUMAg_cSV->translateVec[0] += (GLfloat)SUMAg_cSV->translateDeltaX;
-					SUMAg_cSV->translateVec[1] += (GLfloat)SUMAg_cSV->translateDeltaY;
-					SUMAg_cSV->translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
-					SUMAg_cSV->translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = (float)((int)(XMotionEvent *)cd->event->xbutton.x - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX)/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = -(float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY)/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
+				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX || SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY){
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)(XMotionEvent *)cd->event->xbutton.x;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)(XMotionEvent *)cd->event->xbutton.y;
 					postRedisplay();
 				}
 				break;
@@ -1188,14 +1187,14 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				break;
 			case Button1Mask+Button2Mask: /* buttons 1 & 2 motion, reports a 256+512 */
 				/*fprintf (stdout, "\nbuttons 1+2 motion \n");*/
-				SUMAg_cSV->zoomDelta = 1.0 + (float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->zoomBegin)/MOUSE_ZOOM_FACT;
-				if (SUMAg_cSV->zoomDelta > 2.0) SUMAg_cSV->zoomDelta = 2.0;
-				else if (SUMAg_cSV->zoomDelta < 0.5) SUMAg_cSV->zoomDelta = 0.5;
-				SUMAg_cSV->FOV /= SUMAg_cSV->zoomDelta;
-				if (SUMAg_cSV->FOV < FOV_MIN) SUMAg_cSV->FOV = FOV_MIN;
-				else if (SUMAg_cSV->FOV > FOV_MAX) SUMAg_cSV->FOV = FOV_MAX;
-					SUMAg_cSV->zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
-					/*fprintf(stdout, "FOV zoom Delta = %f=n", SUMAg_cSV->zoomDelta);*/
+				SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 1.0 + (float)((int)(XMotionEvent *)cd->event->xbutton.y - SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
+				if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta > 2.0) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 2.0;
+				else if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta < 0.5) SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta = 0.5;
+				SUMAg_cSV->FOV[SUMAg_cSV->iState] /= SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta;
+				if (SUMAg_cSV->FOV[SUMAg_cSV->iState] < FOV_MIN) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MIN;
+				else if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
+					SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)(XMotionEvent *)cd->event->xbutton.y;
+					/*fprintf(stdout, "FOV zoom Delta = %f=n", SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta);*/
 					postRedisplay();			
 				break;
 			case NO_BUTTON_MOTION+ShiftMask:
@@ -1220,16 +1219,16 @@ void momentum(XtPointer clientData, XtIntervalId *id)
 	static int ReDisp;
 	ReDisp = 0;
 	/*fprintf(stdout,"In momentum ...\n");*/
-		if ( ((SUMAg_cSV->spinDeltaX*SUMAg_cSV->spinDeltaX) > SUMAg_cSV->MinIdleDelta ) || ((SUMAg_cSV->spinDeltaY*SUMAg_cSV->spinDeltaY) > SUMAg_cSV->MinIdleDelta ) ) 
+		if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) ) 
 		{ /* rotate if momentum is enabled and spinDeltaX or spinDeltaY are larger than the minimum set */ 
-			/*fprintf(stdout,"momentum:  spinDeltaX %d spinDeltaY %d\n",  SUMAg_cSV->spinDeltaX, SUMAg_cSV->spinDeltaY);*/
-			add_quats (SUMAg_cSV->deltaQuat, SUMAg_cSV->currentQuat, SUMAg_cSV->currentQuat);
+			/*fprintf(stdout,"momentum:  spinDeltaX %d spinDeltaY %d\n",  SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY);*/
+			add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 			ReDisp = 1;
 		}
-		if ( ((SUMAg_cSV->translateDeltaX*SUMAg_cSV->translateDeltaX) > SUMAg_cSV->MinIdleDelta ) || ((SUMAg_cSV->translateDeltaY*SUMAg_cSV->translateDeltaY) > SUMAg_cSV->MinIdleDelta ) )
+		if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) )
 		{ /* translate */
-			SUMAg_cSV->translateVec[0] += (GLfloat)SUMAg_cSV->translateDeltaX;
-			SUMAg_cSV->translateVec[1] += (GLfloat)SUMAg_cSV->translateDeltaY;
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
+			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
 			ReDisp = 1;
 		}
 	if (ReDisp) {
