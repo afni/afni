@@ -20,7 +20,8 @@ void main( int argc , char * argv[] )
    nvec_in = strtol( argv[narg++] , NULL , 10 ) ;
 
    if( len > 0 && len != csfft_nextup(len) ){
-      fprintf(stderr,"Can't do FFT of length %d\n",len) ; exit(1) ;
+      fprintf(stderr,"Can't do FFT of length %d; try %d\n",len,csfft_nextup(len)) ;
+      exit(1) ;
    } else if ( len < 0 ){
       len = -len ;
    }

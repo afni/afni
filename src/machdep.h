@@ -140,6 +140,7 @@
 # define BOXUP_SCALE
 # define FIX_SCALE_SIZE_PROBLEM
 # define DYNAMIC_LOADING_VIA_SHL
+# undef  DONT_UNROLL_FFTS    /* FFTs are faster, but csfft.c compiles slowly */
 #endif
 
 /*** SGI IRIX ***/
