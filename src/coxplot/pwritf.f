@@ -7,11 +7,11 @@ C
       INTEGER       NCH , ISIZ,IOR,ICENT
       CHARACTER*(*) CH
 C
-      PARAMETER ( NSAVE = 6666 )
+      PARAMETER ( NSAVE = 66666 )
       REAL    XSTR(NSAVE) , YSTR(NSAVE)
       LOGICAL LSTR(NSAVE)
 C
-      CHARACTER*666 CHLOC
+      CHARACTER*6666 CHLOC
 C.......................................................................
       PARAMETER ( DG2RAD = .017453292 )
 C
@@ -728,7 +728,7 @@ C  Check if this is a newline character
 C
          ELSEIF( ICH .EQ. 10 )THEN
             XCUR = 0.0
-            YCUR = YCUR - 1.0
+            YCUR = YCUR - 1.1
 C.....................................................................
 C  Otherwise, this is a real character with real strokes
 C

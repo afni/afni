@@ -43,11 +43,11 @@ extern struct {
 
     /* Local variables */
     static real xold, yold, size, xorg, yorg;
-    static logical lstr[6666];
+    static logical lstr[96666];
     static integer nstr;
-    static real xstr[6666], ystr[6666];
+    static real xstr[96666], ystr[96666];
     static integer i__;
-    static char chloc[666];
+    static char chloc[6666];
     static integer nchar, isize;
     static real ct, or;
     static integer nchloc;
@@ -827,7 +827,7 @@ L200:
 
        } else if (ich == 10) {  /* RWCox: 04 Apr 2002 */
            xcur = 0.f;
-           ycur += -1.2f;
+           ycur += -1.44f;
 /* ...............................................................
 ...... */
 /*  Otherwise, this is a real character with real strokes */
