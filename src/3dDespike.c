@@ -38,9 +38,9 @@ int main( int argc , char * argv[] )
    char *prefix="despike" , *tprefix=NULL ;
 
    int corder=-1 , nref , ignore=0 , polort=2 , nuse , nomask=0 ;
-   int nspike,qspike , nbig,qbig , nproc ;
+   int nspike, nbig, nproc ;
    float **ref ;
-   float  *fit , *ssp , tval , c21,ic21 , pspike,pbig ;
+   float  *fit , *ssp , snew , c21,ic21 , pspike,pbig ;
    short  *sar , *qar ;
    byte   *tar , *mask=NULL ;
    float  *zar , *yar ;
@@ -378,7 +378,7 @@ int main( int argc , char * argv[] )
         kzold = kz ;
       }
 
-      /* extract ii-th time series into far[] */
+      /*** extract ii-th time series into far[] ***/
 
       switch( datum ){
         case MRI_short:
@@ -389,30 +389,32 @@ int main( int argc , char * argv[] )
         break ;
         case MRI_float:
           for( iv=0 ; iv < nuse ; iv++ ){
-            zar = DSET_ARRAY(dset,iv+ignore) ;   /* skip ignored data */
+            zar = DSET_ARRAY(dset,iv+ignore) ;
             far[iv] = zar[ii] ;
           }
         break ;
       }
-      memcpy(dar,far,sizeof(float)*nuse) ;   /* copy data into dar[] */
+      memcpy(dar,far,sizeof(float)*nuse) ;   /* copy time series into dar[] */
 
-      jj = cl1_solve( nuse , nref , far , ref , fit,0 );  /* get fit */
+      /*** solve for L1 fit ***/
 
-      if( jj ){                              /* bad fit! */
+      jj = cl1_solve( nuse , nref , far , ref , fit,0 );
+
+      if( jj ){                              /* fit failed! */
 #if 0
         fprintf(stderr,"curve fit fails at voxel %d %d %d\n",
                 DSET_index_to_ix(dset,ii) ,
                 DSET_index_to_jy(dset,ii) ,
                 DSET_index_to_kz(dset,ii)  ) ;
 #endif
-        continue ;
+        continue ;                           /* skip this voxel */
       }
 
       for( iv=0 ; iv < nuse ; iv++ ){        /* detrend */
         val =  fit[0]
-             + fit[1]*ref[1][iv]
+             + fit[1]*ref[1][iv]             /* quadratic part of curve fit */
              + fit[2]*ref[2][iv] ;
-        for( jj=3 ; jj < nref ; jj++ )       /* curve fit */
+        for( jj=3 ; jj < nref ; jj++ )       /* rest of curve fit */
           val += fit[jj] * ref[jj][iv] ;
 
         fitar[iv] = val ;                    /* save curve value */
@@ -420,19 +422,19 @@ int main( int argc , char * argv[] )
         far[iv]   = fabs(var[iv]) ;          /* abs value of resid */
       }
 
-      /* find standard deviation of detrended data */
+      /*** compute estimate standard deviation of detrended data ***/
 
       fsig = sq2p * qmed_float(nuse,far) ;   /* also mangles far array */
 
-      /* process time series for spikes, editing data in dar[] */
+      /*** process time series for spikes, editing data in dar[] ***/
 
-      if( fsig > 0.0 ){
+      if( fsig > 0.0 ){                      /* data wasn't fit perfectly */
 
         /* find spikiness for each point in time */
 
         fq = 1.0 / fsig ;
         for( iv=0 ; iv < nuse ; iv++ ){
-          ssp[iv] = fq * var[iv] ;           /* spikiness s */
+          ssp[iv] = fq * var[iv] ;           /* spikiness s = how many sigma out */
         }
 
         /* save spikiness in -ssave datset */
@@ -440,30 +442,29 @@ int main( int argc , char * argv[] )
         if( tset != NULL ){
           for( iv=0 ; iv < nuse ; iv++ ){
             tar   = DSET_ARRAY(tset,iv+ignore) ;
-            tval   = ITFAC*fabs(ssp[iv]) ;   /* scale for byte storage */
-            tar[ii] = BYTEIZE(tval) ;        /* cf. mrilib.h */
+            snew   = ITFAC*fabs(ssp[iv]) ;   /* scale for byte storage */
+            tar[ii] = BYTEIZE(snew) ;        /* cf. mrilib.h */
           }
         }
 
         /* process values of |s| > cut1, editing dar[] */
 
-        qspike = qbig = 0 ;
         for( iv=0 ; iv < nuse ; iv++ ){
           if( ssp[iv] > cut1 ){
-            tval = cut1 + c21*mytanh((ssp[iv]-cut1)*ic21) ;
-            dar[iv] = fitar[iv] + tval*fsig ;
-            qspike++ ; if( ssp[iv] > cut2 ) qbig++ ;
+            snew = cut1 + c21*mytanh((ssp[iv]-cut1)*ic21) ;   /* edit s down */
+            dar[iv] = fitar[iv] + snew*fsig ;
+            nspike++ ; if( ssp[iv] > cut2 ) nbig++ ;          /* count edits */
           } else if( ssp[iv] < -cut1 ){
-            tval = -cut1 + c21*mytanh((ssp[iv]+cut1)*ic21) ;
-            dar[iv] = fitar[iv] + tval*fsig ;
-            qspike++ ; if( ssp[iv] < -cut2 ) qbig++ ;
+            snew = -cut1 + c21*mytanh((ssp[iv]+cut1)*ic21) ;  /* edit s up */
+            dar[iv] = fitar[iv] + snew*fsig ;
+            nspike++ ; if( ssp[iv] < -cut2 ) nbig++ ;
           }
         }
-        nspike += qspike ; nbig += qbig ; nproc += nuse ;
+        nproc += nuse ;  /* number data points processed */
 
       } /* end of processing time series when fsig is positive */
 
-      /* put dar[] into output bricks */
+      /* put dar[] time series (possibly edited above) into output bricks */
 
       switch( datum ){
         case MRI_short:
@@ -482,6 +483,8 @@ int main( int argc , char * argv[] )
 
    } /* end of loop over voxels #ii */
 
+   /*--- finish up ---*/
+
    DSET_delete(dset) ; /* delete input dataset */
 
    if( nproc > 0 ){
@@ -490,7 +493,7 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"++ FINAL: %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]\n",
              nproc,nspike,pspike,nbig,pbig ) ;
    } else {
-     fprintf(stderr,"++ FINAL: no edits made!\n") ;
+     fprintf(stderr,"++ FINAL: no good voxels found to process!!!!\n") ;
    }
 
    /* write results */
