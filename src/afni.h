@@ -399,7 +399,7 @@ typedef struct {
       AFNI_surface_widgets *swid ;
 } AFNI_viewing_widgets ;
 
-#define OPEN_PANEL(iq,panel)                                             \
+#define OPEN_PANEL(iq,panel)                                            \
    {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                    \
       if( ! (iq)->vwid->view->  panel ## _pb_inverted ){                  \
          MCW_invert_widget( (iq)->vwid->view->define_ ## panel ## _pb ) ;  \

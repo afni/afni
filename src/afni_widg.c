@@ -4751,7 +4751,7 @@ ENTRY("AFNI_initialize_controller") ;
 
    /* 06 Dec 2001: cool cursor stuff */
 
-   WAIT_for_window(im3d->vwid->top_shell) ;
+   WAIT_for_window( im3d->vwid->top_shell ) ;
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
