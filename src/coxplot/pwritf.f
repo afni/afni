@@ -724,6 +724,12 @@ C
                YCUR  = YCUR + 12.*SCALE
             ENDIF
 C.....................................................................
+C  Check if this is a newline character
+C
+         ELSEIF( ICH .EQ. 10 )THEN
+            XCUR = 0.0
+            YCUR = YCUR - 1.0
+C.....................................................................
 C  Otherwise, this is a real character with real strokes
 C
          ELSE
@@ -889,7 +895,7 @@ CCC            WRITE(*,666) ' end compound super/subscript'
 C.......................................................................
 C  Anything else that doesn't start with a \ is passed straight through
 C
-         ELSEIF( CHIN(INC:INC) .NE. '\' )THEN
+         ELSEIF( CHIN(INC:INC) .NE. '\\' )THEN
             LOUT   = .TRUE.
             NUSED  = 1
             NCHOUT = NCHOUT + 1

@@ -43,6 +43,7 @@ static char helpstring[] =
    "   Index  = Sub-brick index to define the ROIs\n"
    "   Min   }= Range of values to\n"
    "   Max   }= use for the ROIS\n"
+   " *** N.B.: Values selection is NOT YET IMPLEMENTED ***\n"
    "\n"
    " Author -- RW Cox - April 2002"
 ;
@@ -114,13 +115,15 @@ static char * ROIPLOT_main( PLUGIN_interface * plint )
    THD_3dim_dataset *input_dset , *mask_dset ;
    int iv_start,iv_stop , nvox , iv_mask ;
    float thr,rmm,vmul    , dx,dy,dz ;
-   int val_min , val_max , nx,ny,nz , ii , nt,nc ;
+   int val_min , val_max , nx,ny,nz , ii,jj , nt,nc ;
    char *tag ;
    MCW_cluster_array *clustar ;
    MRI_IMAGE *flim ;
-   float     *flar , **yar , *xar ;
+   float     *flar , **yar , *xar , xcm,ycm,zcm ;
    char      **nam_yyy ;
    MEM_plotdata * mp ;
+
+#define MAX_NC 7
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -301,7 +304,7 @@ static char * ROIPLOT_main( PLUGIN_interface * plint )
             "***********************************************\n" ;
    }
 
-   nc   = flim->ny ;
+   nc   = flim->ny ; if( nc > MAX_NC ) nc = MAX_NC ;
    nt   = flim->nx ;
    flar = MRI_FLOAT_PTR(flim) ;
    yar  = (float **) malloc(sizeof(float *)*nc) ;
@@ -310,8 +313,20 @@ static char * ROIPLOT_main( PLUGIN_interface * plint )
    for( ii=0 ; ii < nt ; ii++ ) xar[ii] = ii ;
    nam_yyy = (char **) malloc(sizeof(char *)*nc) ;
    for( ii=0 ; ii < nc ; ii++ ){
-      nam_yyy[ii] = malloc(64) ;
-      sprintf(nam_yyy[ii],"%d voxels",clustar->clar[ii]->num_pt) ;
+      xcm = ycm = zcm = 0.0 ;
+      for( jj=0 ; jj < clustar->clar[ii]->num_pt ; jj++ ){
+        xcm += clustar->clar[ii]->i[ii] ;
+        ycm += clustar->clar[ii]->j[ii] ;
+        zcm += clustar->clar[ii]->k[ii] ;
+      }
+      xcm /= clustar->clar[ii]->num_pt ;
+      ycm /= clustar->clar[ii]->num_pt ;
+      zcm /= clustar->clar[ii]->num_pt ;
+      nam_yyy[ii] = malloc(256) ;
+      sprintf(nam_yyy[ii],"%d voxels\n"
+                          "_{ijk: %d %d %d}" ,
+              clustar->clar[ii]->num_pt ,
+              (int)(xcm+0.499) , (int)(ycm+0.499) , (int)(zcm+0.499) ) ;
    }
    DESTROY_CLARR(clustar);
 

@@ -233,14 +233,21 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    /*-- assemble output string(s) --*/
 
 #define WAMI_HEAD "+++++++ nearby Talairach Daemon structures +++++++\n"
-#define WAMI_TAIL "\n******* Please use results with caution! *******"   \
-                  "\n******* Brain anatomy is quite variable! *******"   \
-                  "\n******* The database may contain errors! *******"
+#define WAMI_TAIL "\n******** Please use results with caution! ********"  \
+                  "\n******** Brain anatomy is quite variable! ********"  \
+                  "\n******** The database may contain errors! ********"
 
    if( nfind == 0 ){
-      rbuf = strdup( WAMI_HEAD
-                     "\n"
-                     "***** Not near any region stored in database *****\n") ;
+      char xlab[24], ylab[24] , zlab[24] ;
+      sprintf(xlab,"%.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
+      sprintf(ylab,"%.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
+      sprintf(zlab,"%.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
+      rbuf = malloc(256) ;
+      sprintf(rbuf,"%s\n"
+                   "Focus point= %s, %s, %s\n"
+                   "\n"
+                   "***** Not near any region stored in database *****\n" ,
+              WAMI_HEAD , xlab,ylab,zlab ) ;
       RETURN(rbuf) ;
    }
 
@@ -264,6 +271,16 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    /*-- find anatomical label for each found marker, make result string --*/
 
    INIT_SARR(sar) ; ADDTO_SARR(sar,WAMI_HEAD) ;
+
+   /* 04 Apr 2002: print coordinates (LPI) as well (the HH-PB addition) */
+
+   { char lbuf[128], xlab[24], ylab[24] , zlab[24] ;
+     sprintf(xlab,"%.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
+     sprintf(ylab,"%.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
+     sprintf(zlab,"%.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
+     sprintf(lbuf,"Focus point= %s, %s, %s\n",xlab,ylab,zlab) ;
+     ADDTO_SARR(sar,lbuf) ;
+   }
 
    rff = -1 ;  /* rff = radius of last found label */
 
