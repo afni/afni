@@ -87,6 +87,11 @@ void Syntax(char * str)
     "                   aset = NULL --> remove the anat parent info from the dataset\n"
     "                   aset = SELF --> set the anat parent to be the dataset itself\n"
     "\n"
+    "  -clear_bstat    Clears the statistics (min and max) stored for each sub-brick\n"
+    "                  in the dataset.  This is useful if you have done something to\n"
+    "                  modify the contents of the .BRIK file associated with this\n"
+    "                  dataset.\n"
+    "\n"
     "  -statpar v ...  Changes the statistical parameters stored in this\n"
     "                  dataset.  See 'to3d -help' for more details.\n"
     "\n"
@@ -188,6 +193,7 @@ int main( int argc , char * argv[] )
    int new_key    = 0 ; char * key ;
    int new_byte_order = 0 ;          /* 25 Apr 1998 */
    int new_toff_sl    = 0 ;          /* 12 Feb 2001 */
+   int clear_bstat    = 0 ;          /* 28 May 2002 */
    char str[256] ;
    int  iarg , ii ;
 
@@ -244,6 +250,13 @@ int main( int argc , char * argv[] )
                Syntax("can't open -apar dataset!") ;
          }
 
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -clear_bstat option [28 May 2002] -----*/
+
+      if( strcmp(argv[iarg],"-clear_bstat") == 0 ){
+         clear_bstat = 1 ;
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
@@ -631,10 +644,10 @@ int main( int argc , char * argv[] )
    for( ; iarg < argc ; iarg++ ){
       dset = THD_open_one_dataset( argv[iarg] ) ;
       if( dset == NULL ){
-         fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]) ;
+         fprintf(stderr,"** 3drefit: Can't open dataset %s\n",argv[iarg]) ;
          continue ;
       }
-      fprintf(stderr,"Processing dataset %s\n",argv[iarg]) ;
+      fprintf(stderr,"++ 3drefit: Processing dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
 
@@ -648,6 +661,19 @@ int main( int argc , char * argv[] )
       } else if( aset_code == ASET_NULL ){
          EDIT_ZERO_ANATOMY_PARENT_ID( dset ) ;
          dset->anat_parent_name[0] = '\0' ;
+      }
+
+      /* 28 May 2002: clear brick stats */
+
+      if( clear_bstat ){
+        if( !ISVALID_STATISTIC(dset->stats) ){
+          fprintf(stderr,"++   -clear_bstat: dataset has no brick statistics\n") ;
+        } else {
+          KILL_STATISTIC(dset->stats) ;
+          REMOVEFROM_KILL( dset->kl , dset->stats ) ;
+          REMOVEFROM_KILL( dset->kl , dset->stats->bstat ) ;
+          dset->stats = NULL ;
+        }
       }
 
       /* 25 April 1998 */

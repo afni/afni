@@ -3755,3 +3755,6 @@
 
 17 May 2002
  * Modified imseq.c to allow image fraction change with 'i', 'I' keys.
+
+28 May 2002
+ * Modified 3drefit.c to add -clear_bstat option.
