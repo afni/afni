@@ -28,6 +28,8 @@ static int dcode = -1 ;
 static int wproc = 0 ;   /* 06 Jun 2002: process imwt? */
 static int wtrim = 0 ;   /* 06 Jun 2002: trimming stuff */
 
+static float sinit = 1.0 ; /* 22 Mar 2004: init scale? */
+
 #define DOTRIM (basis->xa >= 0)
 
 #define IMTRIM(qqq) mri_cut_3D( qqq , basis->xa,basis->xb ,  \
@@ -54,6 +56,11 @@ static int wtrim = 0 ;   /* 06 Jun 2002: trimming stuff */
 void mri_3dalign_wtrimming( int ttt ){ wtrim = ttt; } /* 06 Jun 2002 */
 
 void mri_3dalign_wproccing( int ttt ){ wproc = ttt; } /* 06 Jun 2002 */
+
+void mri_3dalign_scaleinit( float ttt )               /* 22 Mar 2004 */
+{
+  if( ttt > 0.0 ) sinit = ttt ;
+}
 
 /*--------------------------------------------------------------------*/
 
@@ -188,8 +195,8 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE *imbase , MRI_IMAGE *imwt )
 ENTRY("mri_3dalign_setup") ;
 
    if( !MRI_IS_3D(imbase) ){
-      fprintf(stderr,"\n*** mri_3dalign_setup: cannot use nD images!\a\n") ;
-      RETURN( NULL );
+     fprintf(stderr,"\n*** mri_3dalign_setup: cannot use nD images!\a\n") ;
+     RETURN( NULL );
    }
 
    /*--- create output struct ---*/
@@ -366,7 +373,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
+   delta = sinit * 0.5 * DFAC / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
@@ -390,7 +397,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
+   delta = sinit * 0.5 * DFAC / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
@@ -414,7 +421,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
+   delta = sinit * 0.5 * DFAC / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
@@ -438,7 +445,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 / delta ;
+   delta = sinit * 0.5 / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
@@ -462,7 +469,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 / delta ;
+   delta = sinit * 0.5 / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
@@ -486,7 +493,7 @@ ENTRY("mri_3dalign_setup") ;
    if( verbose ) fprintf(stderr,":") ;
 
    dim   = mri_new_conforming( cim , MRI_float ) ;
-   delta = 0.5 / delta ;
+   delta = sinit * 0.5 / delta ;
    dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
    for( ii=0 ; ii < dim->nvox ; ii++ )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;

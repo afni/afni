@@ -63,6 +63,8 @@ static THD_3dim_dataset *VL_rotpar_dset =NULL ,  /* 14 Feb 2001 */
 static int VL_tshift        = 0 ,                /* 15 Feb 2001 */
            VL_tshift_ignore = 0  ;
 
+static int VL_sinit = 1 ;                        /* 22 Mar 2004 */
+
 /******* prototypes *******/
 
 void VL_syntax(void) ;
@@ -121,6 +123,8 @@ int main( int argc , char *argv[] )
 
    Argc = argc ; Argv = argv ; Iarg = 1 ;
    VL_command_line() ;
+
+   mri_3dalign_wtrimming(1) ;  /* 22 Mar 2004: always turn this on */
 
    /*-- setup the registration algorithm parameters --*/
 
@@ -413,8 +417,8 @@ int main( int argc , char *argv[] )
       int sx=66666,sy,sz ;
 
       if( VL_verbose ){
-         fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n") ;
-         cputim = COX_cpu_time();
+        fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n") ;
+        cputim = COX_cpu_time();
       }
 
       tp_base = mri_to_float(VL_imbase) ;  /* make a copy, blur it */
@@ -456,18 +460,16 @@ int main( int argc , char *argv[] )
          /* find shift of 1st data brick that best overlaps with base brick */
 
          if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
-            if( VL_verbose ) fprintf(stderr,"++ Getting best coarse shift:") ;
-            get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
-            if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+           if( VL_verbose ) fprintf(stderr,"++ Getting best coarse shift [0]:") ;
+           get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
+           if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
          } else {
-            sx = sy = sz = 0 ;
+           sx = sy = sz = 0 ;
          }
 
 #define BAR(i,j,k) bar[(i)+(j)*nx+(k)*nxy]
 #define QAR(i,j,k) qar[(i)+(j)*nx+(k)*nxy]
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]
-
-         /* add the blurred+shifted data brick to the blurred base brick */
 
          qim = mri_copy(tp_base) ; qar = MRI_FLOAT_PTR(qim) ;
 
@@ -475,10 +477,28 @@ int main( int argc , char *argv[] )
          ee = abs(sy) ; nybot = ee ; nytop = ny-ee ;
          ee = abs(sz) ; nzbot = ee ; nztop = nz-ee ;
 
-         for( kk=nzbot ; kk < nztop ; kk++ )
+         if( VL_sinit ){        /* 22 Mar 2004: initialize scale factor */
+           float sf=0.0,sq=0.0 ;
+           for( kk=nzbot ; kk < nztop ; kk++ )
             for( jj=nybot ; jj < nytop ; jj++ )
-               for( ii=nxbot ; ii < nxtop ; ii++ )
-                  QAR(ii,jj,kk) += FAR(ii-sx,jj-sy,kk-sz) ;
+             for( ii=nxbot ; ii < nxtop ; ii++ ){
+              sf += FAR(ii-sx,jj-sy,kk-sz) ; sq += QAR(ii,jj,kk) ;
+             }
+           if( sq > 0.0 ){
+             sf = sf / sq ;
+             if( sf > 0.05 && sf < 20.0 ){
+               mri_3dalign_scaleinit(sf) ;
+               if( VL_verbose ) fprintf(stderr,"++ Scale init = %g\n",sf) ;
+             }
+           }
+         }
+
+         /* add the blurred+shifted data brick to the blurred base brick */
+
+         for( kk=nzbot ; kk < nztop ; kk++ )
+          for( jj=nybot ; jj < nytop ; jj++ )
+           for( ii=nxbot ; ii < nxtop ; ii++ )
+            QAR(ii,jj,kk) += FAR(ii-sx,jj-sy,kk-sz) ;
 
          mri_free(fim) ;
 
@@ -1191,6 +1211,13 @@ void VL_syntax(void)
     "                                  xyz-axes origins reset to those of the\n"
     "                                  base dataset.  This is equivalent to using\n"
     "                                  '3drefit -duporigin' on the output dataset.\n"
+#if 0
+    "                       -sinit = When using -twopass registration on volumes\n"
+    "                                  whose magnitude differs significantly, the\n"
+    "                                  least squares fitting procedure can be\n"
+    "                                  speeded up by doing a zero-th pass estimate\n"
+    "                                  of the scale difference between the bricks.\n"
+#endif
     "              -coarse del num = When doing the first pass, the first step is\n"
     "                                  to do a number of coarse shifts in order to\n"
     "                                  find a starting point for the iterations.\n"
@@ -1205,6 +1232,7 @@ void VL_syntax(void)
     "                             N.B.: The 'del' parameter cannot be larger than\n"
     "                                   10%% of the smallest dimension of the input\n"
     "                                   dataset.\n"
+#if 0
     "              -wtrim          = Attempt to trim the intermediate volumes to\n"
     "                                  a smaller region (determined by the weight\n"
     "                                  volume).  The purpose of this is to save\n"
@@ -1212,6 +1240,7 @@ void VL_syntax(void)
     "                                  will report on the trimming usage.\n"
     "                             N.B.: At some point in the future, -wtrim will\n"
     "                                   become the default.\n"
+#endif
     "              -wtinp          = Use sub-brick[0] of the input dataset as the\n"
     "                                  weight brick in the final registration pass.\n"
     "\n"
@@ -1249,6 +1278,14 @@ void VL_command_line(void)
    /***========= look for options on command line =========***/
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
+
+#if 0
+      /** -sinit [22 Mar 2004] **/
+
+      if( strcmp(Argv[Iarg],"-sinit") == 0 ){
+        VL_sinit = 1 ; Iarg++ ; continue ;
+      }
+#endif
 
       /** -params [not in the help list] **/
 
@@ -1369,7 +1406,7 @@ void VL_command_line(void)
          VL_resam = MRI_LINEAR ;
          Iarg++ ; continue ;
       }
-            
+
       /** -cubic **/
 
       if( strncmp(Argv[Iarg],"-cubic",4) == 0 ||
@@ -1498,7 +1535,11 @@ void VL_command_line(void)
       /** 06 Jun 2002: -wtrim **/
 
       if( strcmp(Argv[Iarg],"-wtrim") == 0 ){
+#if 0
          mri_3dalign_wtrimming(1) ;
+#else
+         fprintf(stderr,"++ Notice: -wtrim is now always enabled\n"); /* 22 Mar 2004 */
+#endif
          Iarg++ ; continue ;
       }
 

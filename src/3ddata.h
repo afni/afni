@@ -3612,6 +3612,7 @@ extern void mri_3dalign_edging_default( int , int , int ) ;
 extern void mri_3dalign_force_edging( int ) ;
 extern void mri_3dalign_wtrimming( int ) ;
 extern void mri_3dalign_wproccing( int ) ;
+extern void mri_3dalign_scaleinit( float ) ;  /* 22 Mar 2004 */
 
 extern void mri_3dalign_params( int , float , float , float ,
                                 int , int , int , int ) ;
