@@ -2259,10 +2259,11 @@ STATUS("making func->rowcol") ;
       "Drag the slider bar to\n"
       "adjust the threshold\n"
       "for function display.\n\n"
-      "N.B.: this is the only\n"
-      "  widget that is usable\n"
-      "  during 'real-time'\n"
-      "  FIM calculations!"
+      "* Threshold doesn't apply\n"
+      "  if dataset is RGB-format.\n"
+      "* Threshold applies to statistic\n"
+      "  sub-brick if available; else\n"
+      "  to functional data sub-brick.\n"
     ) ;
 #if 0
    MCW_register_hint( func->thr_scale , "Threshold for functional overlay" ) ;

@@ -1064,7 +1064,10 @@ ENTRY("AFNI_func_overlay") ;
          else
             ind = FUNC_ival_fim[fdset_type] ;
       }
-      im_fim       = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
+      if( im_thr != NULL && ind == ival )    /* 06 Feb 2003: allow for */
+        im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
+      else
+        im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
       scale_factor = im3d->vinfo->fim_range ;
       if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
 
@@ -1094,8 +1097,8 @@ STATUS("couldn't get Func image!") ;
    }
 
    if( im_fim->kind == MRI_rgb ){                   /* 15 Apr 2002 */
-      if( im_thr != im_fim ) KILL_1MRI(im_thr) ;
-      RETURN(im_fim) ;
+      if( im_thr != im_fim ) KILL_1MRI(im_thr) ;    /* RGB image is */
+      RETURN(im_fim) ;                              /* shown "as is" */
    }
 
    if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||

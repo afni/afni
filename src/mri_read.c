@@ -701,7 +701,7 @@ ENTRY("mri_read_3D") ;
 
    if( tname == NULL || strlen(tname) < 10 ) RETURN(NULL) ;
 
-   switch( tname[2] ){  /* allow for 3D: or 3Ds: or 3Db: */
+   switch( tname[2] ){  /* allow for 3D: or 3Ds: or 3Db:, etc */
 
       default:
       case ':':
@@ -738,6 +738,15 @@ ENTRY("mri_read_3D") ;
          swap       = 0 ;
          datum_type = MRI_float ;
          datum_len  = sizeof(float) ;  /* better be 4 */
+         break ;
+
+      case 'd':                                            /* 06 Feb 2003 */
+         ngood = sscanf( tname , "3Dd:%d:%d:%d:%d:%d:%s" ,
+                         &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+
+         swap       = 0 ;
+         datum_type = MRI_double ;
+         datum_len  = sizeof(double) ;  /* better be 8 */
          break ;
 
       case 'i':
@@ -1062,6 +1071,11 @@ ENTRY("mri_imcount") ;
 
          case 'f':
             ngood = sscanf( new_fname , "3Df:%d:%d:%d:%d:%d:%s" ,
+                            &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+            break ;
+
+         case 'd':                                            /* 06 Feb 2003 */
+            ngood = sscanf( new_fname , "3Dd:%d:%d:%d:%d:%d:%s" ,
                             &hglobal , &himage , &nx , &ny , &nz , fname ) ;
             break ;
 
@@ -2923,6 +2937,15 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
          swap       = 0 ;
          datum_type = MRI_float ;
          datum_len  = sizeof(float) ;  /* better be 4 */
+         break ;
+
+      case 'd':                                            /* 06 Feb 2003 */
+         ngood = sscanf( tname , "3Dd:%d:%d:%d:%d:%d:%s" ,
+                         &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+
+         swap       = 0 ;
+         datum_type = MRI_float ;
+         datum_len  = sizeof(double) ;  /* better be 8 */
          break ;
 
       case 'i':

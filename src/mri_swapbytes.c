@@ -65,3 +65,19 @@ void swap_fourbytes( int n , void * ar )
       tb[ii].c = tt ;
    }
 }
+
+typedef struct { unsigned char a,b,c,d , D,C,B,A ; } eightbytes ;
+
+void swap_eightbytes( int n , void * ar )
+{
+   register int ii ;
+   register eightbytes * tb = (eightbytes *) ar ;
+   register unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt = tb[ii].a ; tb[ii].a = tb[ii].A ; tb[ii].A = tt ;
+      tt = tb[ii].b ; tb[ii].b = tb[ii].B ; tb[ii].B = tt ;
+      tt = tb[ii].c ; tb[ii].c = tb[ii].C ; tb[ii].C = tt ;
+      tt = tb[ii].d ; tb[ii].d = tb[ii].D ; tb[ii].D = tt ;
+   }
+}

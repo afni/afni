@@ -4273,3 +4273,13 @@
 
 05 Feb 2003
  * Added "OPEN_PANEL" command to afni_driver.c, and to afni_splash.c.
+
+06 Feb 2003
+ * This time, modified 3ddata.h, afni.c, afni_func.c to ALWAYS keep threshold
+     slider active, and when there is no threshold, use the function for the
+     threshold.  (However, RGB overlays are not thresholded, so this is the
+     only case in which the threshold slider is desensitized.  Also, the first
+     time the user switches to a fim dataset, the threshold slider is set to 0.)
+ * Modified to3d.c to deal with double input images (to be converted to floats).
+     Also changed mri_read.c, mcw_glob.c, mri_swapbytes.c, 3ddata.h to add
+     a "3Dd:" input format for reading doubles from arbitrary files.
