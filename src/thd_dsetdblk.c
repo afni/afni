@@ -700,10 +700,5 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
       THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
 
-   if( dset != NULL ){
-     DSET_NULL_SUMA(dset) ;     /* clean surface map stuff */
-     SUMA_get_surfname(dset) ;  /* set the surface filename */
-   }
-
    RETURN( dset );
 }

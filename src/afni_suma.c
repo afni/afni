@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+/********************************************************************
+ ****** Functions to create and deal with SUMA_surface structs ******
+ ********************************************************************/
+
 #define SUMA_EXTEND_NUM 64
 #define SUMA_EXTEND_FAC 1.05
 
@@ -20,19 +24,24 @@ ENTRY("SUMA_create_empty_surface") ;
    ag->nall_ixyz = ag->nall_ijk = 1 ;
    ag->ixyz = (SUMA_ixyz *) malloc(sizeof(SUMA_ixyz)) ; /* space for */
    ag->ijk  = (SUMA_ijk *)  malloc(sizeof(SUMA_ijk) ) ; /* 1 of each */
+   ag->norm = NULL ;                                  ; /* none of this */
 
    if( ag->ixyz == NULL || ag->ijk == NULL ){
       fprintf(stderr,"SUMA_create_empty_surface: can't malloc!\n"); EXIT(1);
    }
 
-   ag->idcode[0] = ag->idcode_dset[0] = ag->label[0] = '\0' ;
+   ag->idcode[0] =
+    ag->idcode_dset[0] =
+     ag->idcode_domaingroup[0] = ag->label[0] = '\0' ;
 
    ag->xbot = ag->ybot = ag->zbot =  WAY_BIG ;
    ag->xtop = ag->ytop = ag->ztop = -WAY_BIG ;
+   ag->xcen = ag->ycen = ag->zcen = 0.0      ;
 
    ag->seq = ag->seqbase = ag->sorted = 0 ; /* not sequential; not sorted */
 
    ag->vv = NULL ;  /* 16 Jun 2003 */
+   ag->vn = NULL ;  /* 22 Jan 2004 */
 
    RETURN( ag ) ;
 }
@@ -46,10 +55,14 @@ void SUMA_destroy_surface( SUMA_surface *ag )
 ENTRY("SUMA_destroy_surface") ;
 
    if( ag == NULL ) EXRETURN ;
-   if( ag->ixyz != NULL ) free(ag->ixyz) ;
-   if( ag->ijk  != NULL ) free(ag->ijk) ;
+   if( ag->ixyz != NULL ) free((void *)ag->ixyz) ;
+   if( ag->ijk  != NULL ) free((void *)ag->ijk) ;
+   if( ag->norm != NULL ) free((void *)ag->norm) ;
 
-   free(ag) ; EXRETURN ;
+   if( ag->vv != NULL ) DESTROY_VVLIST(ag->vv) ;
+   if( ag->vn != NULL ) SUMA_destroy_vnlist(ag->vn) ;
+
+   free((void *)ag) ; EXRETURN ;
 }
 
 /*------------------------------------------------------------------*/
@@ -69,27 +82,27 @@ ENTRY("SUMA_add_nodes_ixyz") ;
    nup = ag->num_ixyz + nadd ;
 
    if( nup >= SUMA_MAX_NODES ){  /* 07 Sep 2001 */
-      fprintf(stderr,
-              "** SUMA surface can't have more than %d nodes!\n",
-              SUMA_MAX_NODES-1 ) ;
-      EXRETURN ;
+     fprintf(stderr,
+             "** SUMA surface can't have more than %d nodes!\n",
+             SUMA_MAX_NODES-1 ) ;
+     EXRETURN ;
    }
 
    if( nup > ag->nall_ixyz ){ /* extend length of array */
-      ag->nall_ixyz = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
-      ag->ixyz = (SUMA_ixyz *) realloc( ag->ixyz , sizeof(SUMA_ixyz)*nup ) ;
-      if( ag->ixyz == NULL ){
-         fprintf(stderr,"SUMA_add_nodes_ixyz: can't malloc!\n"); EXIT(1);
-      }
+     ag->nall_ixyz = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
+     ag->ixyz = (SUMA_ixyz *) realloc( (void *)ag->ixyz, sizeof(SUMA_ixyz)*nup );
+     if( ag->ixyz == NULL ){
+       fprintf(stderr,"SUMA_add_nodes_ixyz: can't malloc!\n"); EXIT(1);
+     }
    }
 
    nup = ag->num_ixyz ;
 
    for( ii=0 ; ii < nadd ; ii++ ){
-      ag->ixyz[ii+nup].x  = xadd[ii] ;
-      ag->ixyz[ii+nup].y  = yadd[ii] ;
-      ag->ixyz[ii+nup].z  = zadd[ii] ;
-      ag->ixyz[ii+nup].id = iadd[ii] ;
+     ag->ixyz[ii+nup].x  = xadd[ii] ;
+     ag->ixyz[ii+nup].y  = yadd[ii] ;
+     ag->ixyz[ii+nup].z  = zadd[ii] ;
+     ag->ixyz[ii+nup].id = iadd[ii] ;
    }
 
    ag->num_ixyz += nadd ;
@@ -121,18 +134,18 @@ ENTRY("SUMA_add_triangles") ;
 
    nup = ag->num_ijk + nadd ;
    if( nup > ag->nall_ijk ){ /* extend length of array */
-      ag->nall_ijk = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
-      ag->ijk = (SUMA_ijk *) realloc( ag->ijk , sizeof(SUMA_ijk)*nup ) ;
-      if( ag->ijk == NULL ){
-         fprintf(stderr,"SUMA_add_triangles: can't malloc!\n"); EXIT(1);
-      }
+     ag->nall_ijk = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
+     ag->ijk = (SUMA_ijk *) realloc( (void *)ag->ijk , sizeof(SUMA_ijk)*nup ) ;
+     if( ag->ijk == NULL ){
+       fprintf(stderr,"SUMA_add_triangles: can't malloc!\n"); EXIT(1);
+     }
    }
 
    nup = ag->num_ijk ;
    for( ii=0 ; ii < nadd ; ii++ ){
-      ag->ijk[ii+nup].id = it[ii] ;
-      ag->ijk[ii+nup].jd = jt[ii] ;
-      ag->ijk[ii+nup].kd = kt[ii] ;
+     ag->ijk[ii+nup].id = it[ii] ;
+     ag->ijk[ii+nup].jd = jt[ii] ;
+     ag->ijk[ii+nup].kd = kt[ii] ;
    }
 
    ag->num_ijk += nadd ; EXRETURN ;
@@ -161,13 +174,13 @@ ENTRY("SUMA_truncate_memory") ;
    if( ag == NULL ) EXRETURN ;
 
    if( ag->num_ixyz < ag->nall_ixyz && ag->num_ixyz > 0 ){
-      ag->nall_ixyz = nn = ag->num_ixyz ;
-      ag->ixyz = (SUMA_ixyz *) realloc( ag->ixyz , sizeof(SUMA_ixyz)*nn ) ;
+     ag->nall_ixyz = nn = ag->num_ixyz ;
+     ag->ixyz = (SUMA_ixyz *) realloc( (void *)ag->ixyz, sizeof(SUMA_ixyz)*nn );
    }
 
    if( ag->num_ijk < ag->nall_ijk && ag->num_ijk > 0 ){
-      ag->nall_ijk = nn = ag->num_ijk ;
-      ag->ijk = (SUMA_ijk *) realloc( ag->ijk , sizeof(SUMA_ijk)*nn ) ;
+     ag->nall_ijk = nn = ag->num_ijk ;
+     ag->ijk = (SUMA_ijk *) realloc( (void *)ag->ijk , sizeof(SUMA_ijk)*nn ) ;
    }
 
    EXRETURN ;
@@ -193,7 +206,7 @@ ENTRY("SUMA_truncate_memory") ;
 void SUMA_ixyzsort_surface( SUMA_surface *ag )
 {
    int nn , ii , ndup ;
-   float xb,yb,zb , xt,yt,zt ;
+   float xb,yb,zb , xt,yt,zt , xc,yc,zc ;
 
 ENTRY("SUMA_ixyzsort_surface") ;
 
@@ -206,13 +219,13 @@ ENTRY("SUMA_ixyzsort_surface") ;
    /* check if nodes are already sorted [26 Oct 2001] */
 
    for( ii=1 ; ii < nn ; ii++ )
-      if( ag->ixyz[ii].id <= ag->ixyz[ii-1].id ) break ;
+     if( ag->ixyz[ii].id <= ag->ixyz[ii-1].id ) break ;
 
    /* if not in increasing order,
       sort them using the function generated above */
 
    if( ii < nn ){
-      qsort_SUMA_ixyz( nn , ag->ixyz ) ;
+     qsort_SUMA_ixyz( nn , ag->ixyz ) ;
    }
 
    ag->sorted = 1 ;  /* mark as sorted */
@@ -220,20 +233,20 @@ ENTRY("SUMA_ixyzsort_surface") ;
    /* check if node id-s are sequential */
 
    for( ii=1 ; ii < nn ; ii++ )
-      if( ag->ixyz[ii].id != ag->ixyz[ii-1].id+1 ) break ;
+     if( ag->ixyz[ii].id != ag->ixyz[ii-1].id+1 ) break ;
 
    /* if we finished that loop all the way,
       mark the nodes as being sequential, and
       store the base of the sequence (id of node #0) */
 
    if( ii == nn ){
-      ag->seq = 1 ; ag->seqbase = ag->ixyz[0].id ;
+     ag->seq = 1 ; ag->seqbase = ag->ixyz[0].id ;
    }
 
    /* 07 Sep 2001: check for duplicate node id-s */
 
    for( ndup=0,ii=1 ; ii < nn ; ii++ )
-      if( ag->ixyz[ii].id == ag->ixyz[ii-1].id ) ndup++ ;
+     if( ag->ixyz[ii].id == ag->ixyz[ii-1].id ) ndup++ ;
 
    if( ndup > 0 )
      fprintf(stderr,"** SUMA WARNING: %d duplicate surface node id's found!\n",ndup);
@@ -243,20 +256,27 @@ ENTRY("SUMA_ixyzsort_surface") ;
    xb = xt = ag->ixyz[0].x ;
    yb = yt = ag->ixyz[0].y ;
    zb = zt = ag->ixyz[0].z ;
+   xc = yc = zc = 0.0 ;
    for( ii=1 ; ii < nn ; ii++ ){
-           if( ag->ixyz[ii].x < xb ) xb = ag->ixyz[ii].x ;
-      else if( ag->ixyz[ii].x > xt ) xt = ag->ixyz[ii].x ;
+     xc += ag->ixyz[ii].x ;
+     yc += ag->ixyz[ii].y ;
+     zc += ag->ixyz[ii].z ;
 
-           if( ag->ixyz[ii].y < yb ) yb = ag->ixyz[ii].y ;
-      else if( ag->ixyz[ii].y > yt ) yt = ag->ixyz[ii].y ;
+          if( ag->ixyz[ii].x < xb ) xb = ag->ixyz[ii].x ;
+     else if( ag->ixyz[ii].x > xt ) xt = ag->ixyz[ii].x ;
 
-           if( ag->ixyz[ii].z < zb ) zb = ag->ixyz[ii].z ;
-      else if( ag->ixyz[ii].z > zt ) zt = ag->ixyz[ii].z ;
+          if( ag->ixyz[ii].y < yb ) yb = ag->ixyz[ii].y ;
+     else if( ag->ixyz[ii].y > yt ) yt = ag->ixyz[ii].y ;
+
+          if( ag->ixyz[ii].z < zb ) zb = ag->ixyz[ii].z ;
+     else if( ag->ixyz[ii].z > zt ) zt = ag->ixyz[ii].z ;
    }
 
    ag->xbot = xb ; ag->xtop = xt ;
    ag->ybot = yb ; ag->ytop = yt ;
    ag->zbot = zb ; ag->ztop = zt ;
+
+   ag->xcen = xc/nn ; ag->ycen = yc/nn ; ag->zcen = zc/nn ;
 
    EXRETURN ;
 }
@@ -305,9 +325,201 @@ int SUMA_find_node_id( SUMA_surface *ag , int target )
    return( -1 );
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Create the voxel-to-node list for this surface/dataset combo.
+---------------------------------------------------------------------------*/
+
+SUMA_vnlist * SUMA_make_vnlist( SUMA_surface *ag , THD_3dim_dataset *dset )
+{
+   int ii,jj,kk , nx,ny,nz , nxy,nxyz , nnode , ijk , pp,qq,nn,nvox  ;
+   THD_fvec3 fv ;
+   THD_ivec3 iv ;
+   float xv,yv,zv , xp,yp,zp ;
+   int *vlist , *nlist , wodsave ;
+   SUMA_vnlist *vnlist ;
+   float xbot,xtop , ybot,ytop , zbot,ztop ;
+
+ENTRY("SUMA_make_vnlist") ;
+
+   if( ag == NULL || ag->num_ixyz < 1 || !ISVALID_DSET(dset) ) RETURN(NULL) ;
+
+   if( !ag->sorted ) SUMA_ixyzsort_surface( ag ) ;
+
+   /* setup: create arrays for voxel list and node list */
+
+   nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
+   nxy = nx*ny ; nxyz = nxy*nz ; nnode = ag->num_ixyz ;
+   vlist = (int *) malloc(sizeof(int)*nnode) ;
+   nlist = (int *) malloc(sizeof(int)*nnode) ;
+   if( vlist == NULL || nlist == NULL ){
+      fprintf(stderr,"SUMA_make_vnlist: can't malloc!\n"); EXIT(1);
+   }
+
+   /* for each node, find which voxel it is in */
+
+   wodsave = dset->wod_flag ; dset->wod_flag = 0 ;
+
+   xbot = DSET_XXMIN(dset) ; xtop = DSET_XXMAX(dset) ;
+   ybot = DSET_YYMIN(dset) ; ytop = DSET_YYMAX(dset) ;
+   zbot = DSET_ZZMIN(dset) ; ztop = DSET_ZZMAX(dset) ;
+
+   for( nn=pp=0 ; pp < nnode ; pp++ ){
+      LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
+      fv = THD_dicomm_to_3dmm( dset , fv ) ; /* convert Dicom coords */
+
+      if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
+      if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
+      if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
+
+      iv = THD_3dmm_to_3dind( dset , fv ) ;  /*   in surface to     */
+      UNLOAD_IVEC3( iv , ii,jj,kk ) ;        /*   dataset indexes  */
+
+      nlist[nn] = pp ;                       /* list of nodes */
+      vlist[nn] = ii + jj*nx + kk*nxy ;      /* list of voxels */
+      nn++ ;
+   }
+
+   nnode = nn ; /* number of nodes inside dataset volume */
+   if( nnode == 0 ){ free(nlist); free(vlist); RETURN(NULL); }
+
+   dset->wod_flag = wodsave ;
+
+   /* now sort the 2 lists so that vlist is increasing
+      (and each nlist still corresponds to its original vlist) */
+
+   qsort_intint( nnode , vlist , nlist ) ;
+
+   /* count how many distinct voxels we found */
+
+   nvox = 1 ; ii = vlist[0] ;
+   for( pp=1 ; pp < nnode ; pp++ ){
+      if( vlist[pp] != ii ){ nvox++; ii = vlist[pp]; }
+   }
+
+   /* now create the output vnlist */
+
+   vnlist         = (SUMA_vnlist *) malloc( sizeof(SUMA_vnlist) ) ;
+   vnlist->nvox   = nvox ;
+   vnlist->voxijk = (int *) malloc(sizeof(int) *nvox) ;
+   vnlist->numnod = (int *) calloc(sizeof(int) ,nvox) ;
+   vnlist->nlist  = (int **)malloc(sizeof(int*)*nvox);
+   vnlist->dset   = dset ;
+
+   if( vnlist->voxijk==NULL || vnlist->numnod==NULL || vnlist->nlist==NULL ){
+     fprintf(stderr,"SUMA_make_vnlist: can't malloc!\n"); EXIT(1);
+   }
+
+   /* now count how many nodes are at each voxel in the list */
+
+   ii = vlist[0] ; qq = nn = 0 ;
+   for( pp=1 ; pp < nnode ; pp++ ){
+     if( vlist[pp] != ii ){         /* qq..pp-1 are the same */
+       vnlist->voxijk[nn] = ii ;
+       vnlist->numnod[nn] = jj = pp-qq ;
+       vnlist->nlist[nn]  = (int *) malloc(sizeof(int)*jj) ;
+       memcpy( vnlist->nlist[nn] , nlist+qq , sizeof(int)*jj ) ;
+       ii = vlist[pp] ; nn++ ; qq = pp ;
+     }
+   }
+   vnlist->voxijk[nn] = ii ;
+   vnlist->numnod[nn] = jj = pp-qq ;
+   vnlist->nlist[nn]  = (int *) malloc(sizeof(int)*jj) ;
+   memcpy( vnlist->nlist[nn] , nlist+qq , sizeof(int)*jj ) ;
+
+   /* and we're done! */
+
+   free(nlist) ; free(vlist) ; RETURN( vnlist ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Destroy a SUMA_vnlist struct.
+---------------------------------------------------------------------------*/
+
+void SUMA_destroy_vnlist( SUMA_vnlist *vnlist )
+{
+   int ii ;
+   if( vnlist == NULL ) return ;
+   if( vnlist->voxijk != NULL ) free( vnlist->voxijk ) ;
+   if( vnlist->numnod != NULL ) free( vnlist->numnod ) ;
+   if( vnlist->nlist  != NULL ){
+     for( ii=0 ; ii < vnlist->nvox ; ii++ )
+       if( vnlist->nlist[ii] != NULL ) free( vnlist->nlist[ii] ) ;
+     free( vnlist->nlist ) ;
+   }
+   free( vnlist ) ;
+}
+
+/*--------------------------------------------------------------------------
+   The following routines are used to convert DICOM order coordinates
+   (used in AFNI) to SureFit order coordinates -- 25 Oct 2001 - RWCox
+----------------------------------------------------------------------------*/
+
+THD_fvec3 THD_dicomm_to_surefit( THD_3dim_dataset *dset , THD_fvec3 fv )
+{
+   float xx,yy,zz , xbase,ybase,zbase ;
+   THD_fvec3 vout ;
+
+   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now LPI */
+
+   if( dset != NULL ){
+      THD_fvec3 v1 , v2 ;
+      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
+      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
+      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
+                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
+                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
+      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
+      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;  /* Left-most */
+      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;  /* Posterior */
+      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;                   /* Inferior  */
+   } else {
+      xbase = ybase = zbase = 0.0 ;
+   }
+
+   vout.xyz[0] = xx - xbase ;
+   vout.xyz[1] = yy - ybase ;
+   vout.xyz[2] = zz - zbase ; return vout ;
+}
+
+/* --------------------------------------------------------------------------*/
+
+THD_fvec3 THD_surefit_to_dicomm( THD_3dim_dataset *dset , THD_fvec3 fv )
+{
+   float xx,yy,zz , xbase,ybase,zbase ;
+   THD_fvec3 vout ;
+
+   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now RAI */
+
+   if( dset != NULL ){
+      THD_fvec3 v1 , v2 ;
+      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
+      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
+      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
+                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
+                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
+      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
+      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;
+      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;
+      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;
+   } else {
+      xbase = ybase = zbase = 0.0 ;
+   }
+
+   vout.xyz[0] = xx - xbase ;
+   vout.xyz[1] = yy - ybase ;
+   vout.xyz[2] = zz + zbase ; return vout ;
+}
+
+/****************************************************************************
+ ********** AFNI no longer reads surface from files [22 Jan 2004] ***********
+ ****************************************************************************/
+
+#undef ALLOW_SURFACE_FILES
+#ifdef ALLOW_SURFACE_FILES
 /*----------------------------------------------------------*/
 /*! Will load this many items (nodes, triangles) at a time. */
 
+#undef  NBUF
 #define NBUF 64
 
 /*------------------------------------------------------------------------*/
@@ -683,130 +895,6 @@ STATUS("putting nodes into voxels") ;
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Create the voxel-to-node list for this surface/dataset combo.
----------------------------------------------------------------------------*/
-
-SUMA_vnlist * SUMA_make_vnlist( SUMA_surface *ag , THD_3dim_dataset *dset )
-{
-   int ii,jj,kk , nx,ny,nz , nxy,nxyz , nnode , ijk , pp,qq,nn,nvox  ;
-   THD_fvec3 fv ;
-   THD_ivec3 iv ;
-   float xv,yv,zv , xp,yp,zp ;
-   int *vlist , *nlist , wodsave ;
-   SUMA_vnlist *vnlist ;
-   float xbot,xtop , ybot,ytop , zbot,ztop ;
-
-ENTRY("SUMA_make_vnlist") ;
-
-   if( ag == NULL || ag->num_ixyz < 1 || !ISVALID_DSET(dset) ) RETURN(NULL) ;
-
-   if( !ag->sorted ) SUMA_ixyzsort_surface( ag ) ;
-
-   /* setup: create arrays for voxel list and node list */
-
-   nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
-   nxy = nx*ny ; nxyz = nxy*nz ; nnode = ag->num_ixyz ;
-   vlist = (int *) malloc(sizeof(int)*nnode) ;
-   nlist = (int *) malloc(sizeof(int)*nnode) ;
-   if( vlist == NULL || nlist == NULL ){
-      fprintf(stderr,"SUMA_make_vnlist: can't malloc!\n"); EXIT(1);
-   }
-
-   /* for each node, find which voxel it is in */
-
-   wodsave = dset->wod_flag ; dset->wod_flag = 0 ;
-
-   xbot = DSET_XXMIN(dset) ; xtop = DSET_XXMAX(dset) ;
-   ybot = DSET_YYMIN(dset) ; ytop = DSET_YYMAX(dset) ;
-   zbot = DSET_ZZMIN(dset) ; ztop = DSET_ZZMAX(dset) ;
-
-   for( nn=pp=0 ; pp < nnode ; pp++ ){
-      LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
-      fv = THD_dicomm_to_3dmm( dset , fv ) ; /* convert Dicom coords */
-
-      if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
-      if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
-      if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
-
-      iv = THD_3dmm_to_3dind( dset , fv ) ;  /*   in surface to     */
-      UNLOAD_IVEC3( iv , ii,jj,kk ) ;        /*   dataset indexes  */
-
-      nlist[nn] = pp ;                       /* list of nodes */
-      vlist[nn] = ii + jj*nx + kk*nxy ;      /* list of voxels */
-      nn++ ;
-   }
-
-   nnode = nn ; /* number of nodes inside dataset volume */
-   if( nnode == 0 ){ free(nlist); free(vlist); RETURN(NULL); }
-
-   dset->wod_flag = wodsave ;
-
-   /* now sort the 2 lists so that vlist is increasing
-      (and each nlist still corresponds to its original vlist) */
-
-   qsort_intint( nnode , vlist , nlist ) ;
-
-   /* count how many distinct voxels we found */
-
-   nvox = 1 ; ii = vlist[0] ;
-   for( pp=1 ; pp < nnode ; pp++ ){
-      if( vlist[pp] != ii ){ nvox++; ii = vlist[pp]; }
-   }
-
-   /* now create the output vnlist */
-
-   vnlist         = (SUMA_vnlist *) malloc( sizeof(SUMA_vnlist) ) ;
-   vnlist->nvox   = nvox ;
-   vnlist->voxijk = (int *) malloc(sizeof(int) *nvox) ;
-   vnlist->numnod = (int *) calloc(sizeof(int) ,nvox) ;
-   vnlist->nlist  = (int **)malloc(sizeof(int*)*nvox);
-   vnlist->dset   = dset ;
-
-   if( vnlist->voxijk==NULL || vnlist->numnod==NULL || vnlist->nlist==NULL ){
-      fprintf(stderr,"SUMA_make_vnlist: can't malloc!\n"); EXIT(1);
-   }
-
-   /* now count how many nodes are at each voxel in the list */
-
-   ii = vlist[0] ; qq = nn = 0 ;
-   for( pp=1 ; pp < nnode ; pp++ ){
-      if( vlist[pp] != ii ){         /* qq..pp-1 are the same */
-         vnlist->voxijk[nn] = ii ;
-         vnlist->numnod[nn] = jj = pp-qq ;
-         vnlist->nlist[nn]  = (int *) malloc(sizeof(int)*jj) ;
-         memcpy( vnlist->nlist[nn] , nlist+qq , sizeof(int)*jj ) ;
-         ii = vlist[pp] ; nn++ ; qq = pp ;
-      }
-   }
-   vnlist->voxijk[nn] = ii ;
-   vnlist->numnod[nn] = jj = pp-qq ;
-   vnlist->nlist[nn]  = (int *) malloc(sizeof(int)*jj) ;
-   memcpy( vnlist->nlist[nn] , nlist+qq , sizeof(int)*jj ) ;
-
-   /* and we're done! */
-
-   free(nlist) ; free(vlist) ; RETURN( vnlist ) ;
-}
-
-/*-------------------------------------------------------------------------*/
-/*! Destroy a SUMA_vnlist struct.
----------------------------------------------------------------------------*/
-
-void SUMA_destroy_vnlist( SUMA_vnlist *vnlist )
-{
-   int ii ;
-   if( vnlist == NULL ) return ;
-   if( vnlist->voxijk != NULL ) free( vnlist->voxijk ) ;
-   if( vnlist->numnod != NULL ) free( vnlist->numnod ) ;
-   if( vnlist->nlist  != NULL ){
-     for( ii=0 ; ii < vnlist->nvox ; ii++ )
-       if( vnlist->nlist[ii] != NULL ) free( vnlist->nlist[ii] ) ;
-     free( vnlist->nlist ) ;
-   }
-   free( vnlist ) ;
-}
-
-/*-------------------------------------------------------------------------*/
 /*! Load the surface for this dataset from its file (if any).
 ---------------------------------------------------------------------------*/
 
@@ -891,67 +979,6 @@ ENTRY("SUMA_unload") ;
    }
 
    EXRETURN ;
-}
-
-/*--------------------------------------------------------------------------
-   The following routines are used to convert DICOM order coordinates
-   (used in AFNI) to SureFit order coordinates -- 25 Oct 2001 - RWCox
-----------------------------------------------------------------------------*/
-
-THD_fvec3 THD_dicomm_to_surefit( THD_3dim_dataset *dset , THD_fvec3 fv )
-{
-   float xx,yy,zz , xbase,ybase,zbase ;
-   THD_fvec3 vout ;
-
-   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now LPI */
-
-   if( dset != NULL ){
-      THD_fvec3 v1 , v2 ;
-      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
-      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
-      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
-                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
-                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
-      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
-      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;  /* Left-most */
-      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;  /* Posterior */
-      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;                   /* Inferior  */
-   } else {
-      xbase = ybase = zbase = 0.0 ;
-   }
-
-   vout.xyz[0] = xx - xbase ;
-   vout.xyz[1] = yy - ybase ;
-   vout.xyz[2] = zz - zbase ; return vout ;
-}
-
-/* --------------------------------------------------------------------------*/
-
-THD_fvec3 THD_surefit_to_dicomm( THD_3dim_dataset *dset , THD_fvec3 fv )
-{
-   float xx,yy,zz , xbase,ybase,zbase ;
-   THD_fvec3 vout ;
-
-   xx = -fv.xyz[0] ; yy = -fv.xyz[1] ; zz = fv.xyz[2] ;   /* xyz now RAI */
-
-   if( dset != NULL ){
-      THD_fvec3 v1 , v2 ;
-      LOAD_FVEC3(v1, DSET_XORG(dset),DSET_YORG(dset),DSET_ZORG(dset)) ;
-      v1 = THD_3dmm_to_dicomm( dset , v1 ) ;
-      LOAD_FVEC3(v2, DSET_XORG(dset)+(DSET_NX(dset)-1)*DSET_DX(dset) ,
-                     DSET_YORG(dset)+(DSET_NY(dset)-1)*DSET_DY(dset) ,
-                     DSET_ZORG(dset)+(DSET_NZ(dset)-1)*DSET_DZ(dset)  ) ;
-      v2 = THD_3dmm_to_dicomm( dset , v2 ) ;
-      xbase = MAX( v1.xyz[0] , v2.xyz[0] ) ; xbase = -xbase ;
-      ybase = MAX( v1.xyz[1] , v2.xyz[1] ) ; ybase = -ybase ;
-      zbase = MIN( v1.xyz[2] , v2.xyz[2] ) ;
-   } else {
-      xbase = ybase = zbase = 0.0 ;
-   }
-
-   vout.xyz[0] = xx - xbase ;
-   vout.xyz[1] = yy - ybase ;
-   vout.xyz[2] = zz + zbase ; return vout ;
 }
 
 /*---------------------------------------------------------------------
@@ -1095,3 +1122,4 @@ ENTRY("THD_get_surfname") ;
    }
    free(snam) ; EXRETURN ;  /* .SURF file does not exist */
 }
+#endif  /* ALLOW_SURFACE_FILES */

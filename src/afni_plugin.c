@@ -3736,21 +3736,19 @@ ENTRY("PLUTO_copy_dset") ;
    to a given dataset.  (Feb 1998)
 ------------------------------------------------------------------------*/
 
-void PLUTO_dset_redisplay( THD_3dim_dataset * dset )
+void PLUTO_dset_redisplay( THD_3dim_dataset *dset )
 {
    PLUTO_dset_redisplay_mode( dset , REDISPLAY_OPTIONAL ) ;
 }
 
 /*---- 23 Oct 1998: superseded above routine with this one; RWCox -----*/
 
-void PLUTO_dset_redisplay_mode( THD_3dim_dataset * dset , int mode )
+void PLUTO_dset_redisplay_mode( THD_3dim_dataset *dset , int mode )
 {
    Three_D_View * im3d ;
    int ii , amode , fmode ;
 
 ENTRY("PLUTO_dset_redisplay_mode") ;
-
-   if( ! ISVALID_DSET(dset) ) EXRETURN ;
 
    if( mode == REDISPLAY_OPTIONAL ){
       amode = REDISPLAY_ALL ;
@@ -3763,7 +3761,12 @@ ENTRY("PLUTO_dset_redisplay_mode") ;
       im3d = GLOBAL_library.controllers[ii] ;
       if( ! IM3D_OPEN(im3d) ) continue ;
 
-      if( im3d->anat_now == dset ){
+      if( ! ISVALID_DSET(dset) ){
+         im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
+         im3d->fim_voxwarp->type  = ILLEGAL_TYPE ;
+         AFNI_reset_func_range( im3d ) ;
+         AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+      } else if( im3d->anat_now == dset ){
          im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
          AFNI_imseq_clearstat( im3d ) ;

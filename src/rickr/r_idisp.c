@@ -299,11 +299,6 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   kl.nalloc : %d\n"
             "   kl.kill   : %p\n"
             "   parent    : %p\n"
-            "   -------------------\n"
-            "   su_surf   : %p\n"
-            "   su_sname  : %p\n"
-            "   su_vmap   : %p\n"
-            "   su_vnlist : %p\n"
             "-------------------------------------------\n",
 	    dp, dp->type, dp->view_type, dp->func_type,
             dp->dblk, dp->daxes, dp->wod_daxes, dp->wod_flag,
@@ -322,8 +317,7 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
 	    CHECK_NULL_STR(dp->warp_parent_idcode.date),
 #endif
             dp->keywords, dp->tagset,
-	    dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent,
-	    dp->su_surf, dp->su_sname, dp->su_vmap, dp->su_vnlist
+	    dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent
           );
 
     return 0;
