@@ -4,6 +4,11 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*! \file
+    This file contains all the functions for reading image files.
+    It is primarily used by to3d.c
+*/
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -21,15 +26,29 @@
 
 #include "mrilib.h"
 
+/*! Global variable to signal image orientation, if possible. */
+
 char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
+
+/*! Global variable to signal image slice offset, if possible. */
+
 float MRILIB_zoff      = 0.0 ;
+
+/*! Global variable to signal image TR, if possible. */
+
 float MRILIB_tr        = 0.0 ;   /* 03 Dec 2001 */
+
+/*! Global variable to signal image x offset, if possible. */
+
 float MRILIB_xoff      = 0.0 ;   /* 07 Dec 2001 */
+
+/*! Global variable to signal image y offset, if possible. */
+
 float MRILIB_yoff      = 0.0 ;
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
-MRI_IMAGE *mri_try_mri( FILE * , int * ) ;
+MRI_IMAGE *mri_try_mri( FILE * , int * ) ;  /* prototypes */
 MRI_IMAGE *mri_try_7D ( FILE * , int * ) ;
 MRI_IMAGE *mri_try_pgm( FILE * , int * ) ;
 
@@ -49,21 +68,21 @@ typedef struct {
    char * prefix ;  /*!< character string to prefix to filename */
 } MCW_imsize ;
 
-/*! \brief Max number of preset file sizes to allow. */
+/*! Max number of preset file sizes to allow. */
 
 #define MAX_MCW_IMSIZE 99
 
-/*! \brief Array of preset file sizes to use when reading image files. */
+/*! Array of preset file sizes to use when reading image files. */
 
 static MCW_imsize imsize[MAX_MCW_IMSIZE] ;
 
-/*! \brief If this < 0 ==> must initialize. */
+/*! If this < 0 ==> must initialize array of preset file sizes. */
 
 static int MCW_imsize_good = -1 ;
 
 /*---------------------------------------------------------------*/
 
-/*! \brief Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
+/*! Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
 
 static void swap_4(void *ppp)
 {
@@ -76,7 +95,7 @@ static void swap_4(void *ppp)
 
 /*---------------------------------------------------------------*/
 
-/*! \brief Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
+/*! Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
 
 static void swap_8(void *ppp)
 {
@@ -93,7 +112,7 @@ static void swap_8(void *ppp)
 
 /*---------------------------------------------------------------*/
 
-/*! \brief Swap the 2 bytes pointed to by ppp: ab -> ba. */
+/*! Swap the 2 bytes pointed to by ppp: ab -> ba. */
 
 static void swap_2(void *ppp)
 {
@@ -106,7 +125,7 @@ static void swap_2(void *ppp)
 
 /******************************************************************/
 
-/*! \brief Earliest image reading function.
+/*! \brief Earliest image reading function in the AFNI package.
 
     \param  fname is the name of the file to try to read
     \return is NULL if an image couldn't be read, otherwise it
@@ -446,10 +465,12 @@ Ready_To_Roll:
      var = strtol( buf , NULL , 10 ) ; }
 #else
 
-/*! \brief Skip comments in a PPM file */
+/*! Skip comments in a PPM file. */
 
 #define SKIPCOM                                                            \
     {if(ch == '#') do{ch = getc(imfile) ;}while(ch != '\n' && ch != EOF);}
+
+/*! Scan for a number in the imfile stream. */
 
 #define NUMSCAN(var)                                                       \
    { SKIPCOM ;                                                             \
@@ -458,6 +479,16 @@ Ready_To_Roll:
      buf[nch]='\0';                                                        \
      var = strtol( buf , NULL , 10 ) ; }
 #endif
+
+/*! \brief Try to read an file in the "Cox MRI" format.
+
+    \param imfile is a pointer to an open FILE.
+    \param skip is a pointer to an int that will be set to the number
+           of bytes to skip from the file start to find the image data
+    \return is NULL if the file doesn't work for "Cox MRI" format;
+            otherwise, the return is a pointer to an MRI_IMAGE ready
+            to have its data read from imfile.
+*/
 
 MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
 {
@@ -487,6 +518,8 @@ MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
 /**************************************************************************
    7D format: MRn kind n-dimensions data, where 'n' = 1-7.
 ***************************************************************************/
+
+/*! \brief Try to read a "Cox nD MRI" image file (fat chance). */
 
 MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 {
@@ -533,6 +566,15 @@ MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 
 /*********************************************************************/
 
+/*! \brief Try to read a raw PGM format image file.
+
+    \param imfile is a pointer to an open FILE
+    \param skip is a pointer to an int; *skip will be set to the
+           byte offset at which to start reading data
+    \return is a pointer to an MRI_IMAGE ready to have its data read in
+            (if the file is a PGM file), or is NULL.
+*/
+
 MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
 {
    int ch , nch , nx,ny,maxval ;
@@ -567,6 +609,8 @@ MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
 
    [N.B.: if this routine is altered, don't forget mri_imcount!]
 ----------------------------------------------------------------*/
+
+/*! \brief Read one or more 2D slices from a "3D:" formatted image file. */
 
 MRI_IMARR * mri_read_3D( char * tname )
 {
@@ -723,6 +767,26 @@ MRI_IMARR * mri_read_3D( char * tname )
 
 /*--------------------------------------------------------------*/
 
+/*! \brief Read one or more 2D images from a file.
+
+   This function is the main point of input for to3d.c.
+   \param fname is the name of the file to read.  This file
+          might be in one of these formats:
+           - "3D:" format (implicitly or explicitly)
+           - "3A:" format
+           - *.hdr (ANALYZE 2D-4D) format
+           - *.ima (Siemens 2D array) format
+           - I.*   (GEMS) format
+           - PGM format
+           - PPM format
+           - List of ASCII numbers
+           - pre-defined 2D file size in mri_read()
+           - "Cox MRI" (god help you, no one else can)
+          
+   \return is a pointer to an array of 2D images.  If nothing
+           could be read, NULL is returned.
+*/
+
 MRI_IMARR * mri_read_file( char * fname )
 {
    MRI_IMARR * newar ;
@@ -761,6 +825,14 @@ MRI_IMARR * mri_read_file( char * fname )
    return newar ;
 }
 
+/*-----------------------------------------------------------------*/
+
+/*! \brief Like mri_read_file(), but will only return 1 2D image.
+
+    If the input file has more than 1 slice, or cannot be read,
+    then NULL is returned.
+*/
+
 MRI_IMAGE * mri_read_just_one( char * fname )
 {
    MRI_IMARR * imar ;
@@ -781,6 +853,14 @@ MRI_IMAGE * mri_read_just_one( char * fname )
 /*-----------------------------------------------------------------
   return a count of how many 2D images will be read from this file
 -------------------------------------------------------------------*/
+
+/*! \brief Return a count of how many 2D images are in a file.
+
+    Used by to3d.c to figure out how many slices will be read
+    later using mri_read_file().  Return value is 0 if the images
+    can't be counted.  If you add a new file type to mri_read_file(),
+    then you need to modify this function as well!
+*/
 
 static int mri_imcount_analyze75( char * ) ;  /* prototype */
 static int mri_imcount_siemens( char * ) ;
