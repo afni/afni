@@ -97,7 +97,6 @@ SET_ANATOMY [c.]prefix
   the given prefix.  The prefix must be a perfect match - this is NOT
   a sub-string match.
 
-
 SET_FUNCTION [c.]prefix
   Same, but for the functional dataset in controller 'c'.
 
@@ -134,6 +133,13 @@ CLOSE_WINDOW [c].windowname
 
 QUIT
   AFNI will exit immediately.
+
+SETENV name value
+  Set the environment variable "name" to "value" in AFNI; for example
+    SETENV AFNI_CROSSHAIR_LINES YES
+
+REDISPLAY
+  Forces all images and graphs to be redrawn.
 
 
 ============
