@@ -61,7 +61,7 @@ int main( int argc , char * argv[] )
    int   SIax=0 , SIbot,SItop ;
    short *sar , *mar ;
    float pval[128] , wval[128] ;
-   int npk , verb=1 , win=0 , his=0 ;
+   int npk , verb=1 , win=0 , his=0 , fit=1 ;
    char *dname , cmd[2222] , *label=NULL , *fname="Anhist" ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -76,6 +76,7 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -q  = be quiet (don't print progress reports)\n"
              "  -h  = dump histogram data to Anhist.1D and plot to Anhist.ps\n"
+             "  -F  = DON'T fit histogram with stupid curves.\n"
              "  -w  = apply a Winsorizing filter prior to histogram scan\n"
              "         (or -w7 to Winsorize 7 times, etc.)\n"
              "\n"
@@ -107,6 +108,7 @@ int main( int argc , char * argv[] )
 
       if( argv[iarg][1] == 'q' ){ verb=0 ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'h' ){ his =1 ; iarg++ ; continue ; }
+      if( argv[iarg][1] == 'F' ){ fit =0 ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'w' ){
         win = -1 ;
         if( isdigit(argv[iarg][2]) )
@@ -386,7 +388,7 @@ int main( int argc , char * argv[] )
        float *pkbest,*wwbest,*apbest,*lambest , pplm,aplm,wplm ;
        float *pklast,*wwlast,*aplast ;
        npos = 0 ;
-       if( npk > 0 ){
+       if( npk > 0 && fit ){
          int ndim=ctop-cbot+1 , nvec=npk , iw,nw ;
          srand48((long)time(NULL)) ;
          Gmat = (float **)malloc(sizeof(float *)*nvec) ;
@@ -483,7 +485,7 @@ int main( int argc , char * argv[] )
          if( verb ) fprintf(stderr,".") ;
          if( nregtry < 8 ){ nregtry++ ; goto RegTry ; }
          if( verb ) fprintf(stderr,"\n") ;
-       }
+       } /* end of fitting */
 
        sprintf(cmd,"%s.1D",fname) ;
        hf = fopen( cmd , "w" ) ;
@@ -495,9 +497,9 @@ int main( int argc , char * argv[] )
          for( ii=1 ; ii < argc ; ii++ ) fprintf(hf," %s",argv[ii]) ;
          fprintf(hf,"\n") ;
          for( jj=0 ; jj < npk ; jj++ ){
-           fprintf(hf,"# Peak %d: location=%.1f\n",jj+1,pval[jj]) ;
+           fprintf(hf,"# Peak %d: location=%.1f histpeak=%.1f\n",jj+1,pval[jj],wval[jj]) ;
          }
-         if( npos > 0 ){
+         if( fit && npos > 0 ){
            for( jj=0 ; jj < npk ; jj++ ){
              fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
                      jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
@@ -507,6 +509,7 @@ int main( int argc , char * argv[] )
              }
            }
            fprintf(hf,"#\n") ;
+           fprintf(hf,"# Histogram Region: min=%d max=%d\n",cbot,ctop) ;
            fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
            fprintf(hf,"# --- ------ ------ ------\n") ;
            for( ii=cbot ; ii <= ctop ; ii++ )
@@ -519,6 +522,7 @@ int main( int argc , char * argv[] )
            sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel '%s:%s' '%s.1D[1..3]' > %s.ps" ,
                    cbot , label , pbuf , fname,fname ) ;
          } else {
+           fprintf(hf,"# Histogram Region: min=%d max=%d\n",cbot,ctop) ;
            fprintf(hf,"# Val Histog\n") ;
            fprintf(hf,"# --- ------\n") ;
            for( ii=cbot ; ii <= ctop ; ii++ )
