@@ -159,6 +159,9 @@ OPEN_WINDOW [c.]windowname [options]
     geom=PxQ+R+S or geom=PxQ or geom=+R+S
     to make the window be PxQ pixels in size and located at screen
     coordinates (R,S).
+  Another option for graph and image windows is
+    keypress=c   -> where 'c' is a single character to send as if
+                    the user pressed that key in the specified window
   For image windows, other options available are:
     ifrac=number -> set image fraction in window to number (<= 1.0)
     mont=PxQ:R   -> montage P across, Q down, every R'th slice
