@@ -52,21 +52,45 @@ static char help_end[] =
 
 /*----------- list of variables that CANNOT be edited ---------------------*/
 
-static char * env_fixed[] = {
+static char *env_fixed[] = {
     "AFNI_PLUGINPATH"    , "AFNI_NOPLUGINS"  , "AFNI_YESPLUGOUTS"   ,
     "AFNI_TSPATH"        , "AFNI_MODELPATH"  , "AFNI_HINTS"         ,
     "AFNI_NO_MCW_MALLOC" , "AFNI_NOREALPATH" , "AFNI_NOSPLASH"      ,
+    "AFNI_SPLASH_XY"     , "AFNI_SPLASHTIME" ,
     "AFNI_NOTES_DLINES"  , "AFNI_OPTIONS"    , "AFNI_SYSTEM_AFNIRC" ,
     "AFNI_ALWAYS_LOCK"   , "AFNI_FIM_BKTHR"  , "AFNI_NO_XDBE"       ,
     "AFNI_GRAYSCALE_BOT" , "AFNI_NOMMAP"     ,
 #ifndef USE_SESSTRAIL
     "AFNI_SESSTRAIL" ,
 #endif
-    "AFNI_RENDER_PRECALC_MODE"     ,
-    "AFNI_NO_ADOPTION_WARNING"     ,
-    "AFNI_BYTEORDER"               ,
-    "AFNI_BYTEORDER_INPUT"         ,
-    "AFNI_NO_BYTEORDER_WARNING"
+    "AFNI_RENDER_PRECALC_MODE"  ,
+    "AFNI_NO_ADOPTION_WARNING"  ,
+    "AFNI_BYTEORDER"            ,
+    "AFNI_BYTEORDER_INPUT"      ,
+    "AFNI_NO_BYTEORDER_WARNING" ,
+    "AFNI_COLORSCALE_DEFAULT"   ,
+    "AFNI_RESCAN_METHOD"        ,
+    "AFNI_THRESH_BIGSTEP"       ,
+    "AFNI_PCOR_DENEPS"          , "AFNI_FIM_MASK"   , "AFNI_FIM_IDEAL" ,
+    "AFNI_LAYOUT_FILE"          , "AFNI_tsplotgeom" ,
+    "AFNI_IMAGE_MAXFRAC"        , "AFNI_DEFAULT_OPACITY"  ,
+    "AFNI_DEFAULT_IMSAVE"       , "AFNI_IMAGE_ZEROCOLOR"  ,
+    "AFNI_IMAGE_LABEL_MODE"     , "AFNI_IMAGE_LABEL_SIZE" ,
+    "AFNI_GRAPH_BASELINE"       , "AFNI_GRAPH_GLOBALBASE" ,
+    "AFNI_MINC_DATASETS"        , "AFNI_MINC_FLOATIZE"    , "AFNI_MINC_SLICESCALE"  ,
+    "AFNI_ANALYZE_DATASETS"     , "AFNI_ANALYZE_SCALE"    , "AFNI_ANALYZE_FLOATIZE" ,
+    "AFNI_ANALYZE_ORIENT"       , "AFNI_ANALYZE_AUTOCENTER" ,
+    "AFNI_MPEG_DATASETS"        , "AFNI_MPEG_GRAYIZE"     ,
+    "AFNI_1D_TIME"              , "AFNI_1D_TIME_TR"       ,
+    "AFNI_START_SMALL"          , "AFNI_MENU_COLSIZE"     ,
+    "AFNI_GLOBAL_SESSION"       , "AFNI_NIML_START"       ,
+    "AFNI_TTRR_SETUP"           , "AFNI_LOAD_PRINTSIZE"   ,
+    "AFNI_VALUE_LABEL_DTABLE"   ,
+    "AFNI_VERSION_CHECK"        ,
+    "AFNI_AGIF_DELAY"           , "AFNI_MPEG_FRAMERATE"   ,
+    "AFNI_STARTUP_SCRIPT"       , "AFNI_STARTUP_WARNINGS" ,
+    "AFNI_VERSION_CHECK"        , "AFNI_LOGO16"           ,
+    "IDCODE_PREFIX"             , "TMPDIR"
 } ;
 
 #define NUM_env_fixed (sizeof(env_fixed)/sizeof(char *))
@@ -108,6 +132,9 @@ static void ENV_byteorder( char * ) ;
 
 #define NUM_yesno_list 2
 static char *yesno_list[] = { "YES" , "NO" } ;
+
+#define NUM_threshlock_list 3
+static char *threshlock_list[] = { "NO" , "VALUE" , "P-VALUE" } ;
 
 /*--------- variables that can be edited ----------------------------------*/
 
@@ -349,7 +376,13 @@ PLUGIN_interface * ENV_init(void)
                     "Entropy threshold: below this, 2%-98% is off." ,
                     0,10,1,0 , NULL ) ;
 
-   ENV_add_yesno( "AFNI_THRESH_LOCK" , "Enable threshold lock" ) ; /* 06 Feb 2004 */
+   ENV_add_string( "AFNI_THRESH_LOCK" ,                            /* 06 Feb 2004 */
+                   "Lock Threshold slider values together?" ,
+                   NUM_threshlock_list , threshlock_list , NULL  ) ;
+
+   ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
+
+   ENV_add_yesno( "AFNI_DISP_SCROLLBARS" , "Image Disp menu get scrollbars?" ) ;
 
    /*---------------- compute helpstring -----------------------*/
 

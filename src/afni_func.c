@@ -84,12 +84,7 @@ ENTRY("AFNI_thr_scale_CB") ;
    if( ! DOING_REALTIME_WORK )
      AFNI_redisplay_func( im3d ) ;
 
-   if( AFNI_yesenv("AFNI_THRESH_LOCK") ){  /* 06 Feb 2004 */
-     GLOBAL_library.thresh_lock = 1 ;
-     AFNI_thresh_lock_carryout(im3d) ;
-   } else {
-     GLOBAL_library.thresh_lock = 0 ;
-   }
+   AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -185,12 +180,7 @@ ENTRY("AFNI_thresh_top_CB") ;
 
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
-     if( AFNI_yesenv("AFNI_THRESH_LOCK") ){  /* 06 Feb 2004 */
-       GLOBAL_library.thresh_lock = 1 ;
-       AFNI_thresh_lock_carryout(im3d) ;
-     } else {
-       GLOBAL_library.thresh_lock = 0 ;
-     }
+     AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
    }
 
    EXRETURN ;
@@ -309,6 +299,8 @@ ENTRY("AFNI_inten_pbar_CB") ;
                                                       : im3d->vinfo->fim_autorange ) ;
 
    FIX_SCALE_SIZE(im3d) ;
+
+   AFNI_pbar_lock_carryout(im3d) ; /* 07 Feb 2004 */
    EXRETURN ;
 }
 

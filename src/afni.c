@@ -1157,11 +1157,6 @@ int main( int argc , char * argv[] )
    GLOBAL_library.ijk_lock  = 0 ;                      /* 11 Sep 2000 */
    SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
-   GLOBAL_library.thresh_lock  =
-    GLOBAL_library.pbar_lock    =
-     GLOBAL_library.range_lock   =
-     GLOBAL_library.subbrick_lock = 0 ;                /* 06 Feb 2004 */
-
    GLOBAL_library.hints_on  = 0 ;                      /* 07 Aug 1999 */
 
 #ifdef ALLOW_PLUGINS

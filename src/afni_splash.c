@@ -1496,11 +1496,15 @@ ENTRY("AFNI_startup_script_CB") ;
 
    fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*(NLBUF+1)) ;
 
+   GLOBAL_library.ignore_lock = 1 ;  /* 06 Feb 2004 */
+
    while(1){
      ii = get_linbuf( fptr ) ; fptr += ii ;
-     if( linbuf[0] == '\0' || fptr-fbuf >= nbuf ){ free(linbuf); EXRETURN; }
+     if( linbuf[0] == '\0' || fptr-fbuf >= nbuf ){ free(linbuf); break; }
      AFNI_driver( linbuf ) ;
-   } /* can't exit this loop except as above */
+   }
+
+   GLOBAL_library.ignore_lock = 0 ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/

@@ -214,6 +214,8 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
 
    pbar->bigmode      = 0 ;
+   pbar->bigflip      = 0 ;
+   pbar->bigrota      = 0 ;
    pbar->bigset       = 0 ;
    pbar->bigmap_index = 0 ;
    pbar->bigbot  = -1.0 ; pbar->bigtop = 1.0 ;
@@ -631,7 +633,9 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
      XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; return;
    }
 
-   pbar->bigname = bigmap_name[ind] ;  /* 22 Oct 2003 */
+   pbar->bigflip      = 0 ;                 /* 07 Feb 2004 */
+   pbar->bigrota      = 0 ;
+   pbar->bigname      = bigmap_name[ind] ;  /* 22 Oct 2003 */
    pbar->bigmap_index = ind ;
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
@@ -791,6 +795,25 @@ void PBAR_labelize( float val , char * buf )
    return ;
 }
 
+/*--------------------------------------------------------------------*/
+
+void PBAR_flip( MCW_pbar *pbar )  /* 07 Feb 2004 */
+{
+   rgbyte tc ; int ip ;
+
+   if( pbar == NULL || !pbar->bigmode ) return ;
+
+   for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
+     tc = pbar->bigcolor[ip] ;
+     pbar->bigcolor[ip] = pbar->bigcolor[NPANE_BIG-1-ip] ;
+     pbar->bigcolor[NPANE_BIG-1-ip] = tc ;
+   }
+   MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+   PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+   pbar->bigflip = ! pbar->bigflip ;
+   return ;
+}
+
 /*--------------------------------------------------------------------
   pbar pane was clicked --> set its color
 ----------------------------------------------------------------------*/
@@ -805,14 +828,7 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
    if( pbar == NULL ) return ;
 
    if( pbar->bigmode ){   /* 30 Jan 2003: reverse color spectrum */
-     rgbyte tc ;
-     for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
-       tc = pbar->bigcolor[ip] ;
-       pbar->bigcolor[ip] = pbar->bigcolor[NPANE_BIG-1-ip] ;
-       pbar->bigcolor[NPANE_BIG-1-ip] = tc ;
-     }
-     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-     PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+     PBAR_flip( pbar ) ;
      PBAR_callback(pbar,pbCR_COLOR) ;
      return ;
    }
@@ -897,6 +913,8 @@ ENTRY("rotate_MCW_pbar") ;
        pbar->bigcolor[ip] = oldcolor[(ip+n)%NPANE_BIG] ;
 
      PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+
+     pbar->bigrota += (pbar->bigflip) ? -n : n ;  /* 07 Feb 2004 */
 
    } else {                         /* the older way */
      dc = pbar->dc ;

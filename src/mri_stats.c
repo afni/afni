@@ -19,7 +19,9 @@ double student_p2t( double pp , double dof )
 {
    double bb , binv , tt ;
 
-   if( pp <= 0.0 || pp >= 0.9999999 || dof < 1.0 ) return 0.0 ;
+   if( pp  <= 0.0      ) return 99.99 ;
+   if( pp  >= 0.999999 ) return 0.0 ;
+   if( dof < 1.0       ) return 0.0 ;
 
    bb   = lnbeta( 0.5*dof , 0.5 ) ;
    binv = incbeta_inverse( pp, 0.5*dof , 0.5 , bb ) ;
@@ -70,8 +72,10 @@ double correl_p2t( double pp , double nsam , double nfit , double nort )
 {
    double bb , binv , rho ;
 
-   if( pp <= 0.0 || pp >= 0.9999999 ||
-       nsam <= nfit+nort || nfit < 1.0 || nort < 1.0 ) return 0.0 ;
+   if( pp <= 0.0      ) return 0.999 ;
+   if( pp >= 0.999999 ) return 0.0 ;
+
+   if( nsam <= nfit+nort || nfit < 1.0 || nort < 1.0 ) return 0.0 ;
 
    bb   = lnbeta( 0.5*nfit , 0.5*(nsam-nfit-nort) ) ;
    binv = incbeta_inverse( pp, 0.5*(nsam-nfit-nort) , 0.5*nfit , bb ) ;
@@ -113,7 +117,10 @@ double studave_p2t( double pp , double dof , double nn )
 {
    double ww , xx , gam2,gam4 , tt ;
 
-   if( pp <= 0.0 || pp >= 0.9999999 || dof < 6.01 || nn < 1.0 ) return 0.0 ;
+   if( pp <= 0.0      ) return 99.99 ;
+   if( pp >= 0.999999 ) return 0.0 ;
+
+   if( dof < 6.01 || nn < 1.0 ) return 0.0 ;
 
    /* 4th and 6th order moments (or scaled cumulants) */
 
@@ -163,6 +170,9 @@ double fstat_p2t( double pp , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
+
+   if( pp <= 0.0      ) return 999.99 ;
+   if( pp >= 0.999999 ) return 0.0 ;
 
    which  = 2 ;
    p      = 1.0 - pp ;  /* 20 Jan 1999: p and q were switched! */
@@ -562,6 +572,9 @@ double normal_p2t( double qq )
    int which , status ;
    double p , q , x , mean,sd,bound ;
 
+   if( qq <= 0.0      ) return 9.99 ;
+   if( qq >= 0.999999 ) return 0.0 ;
+
    which  = 2 ;
    p      = 1.0 - 0.5 * qq ;
    q      = 0.5 * qq ;        /* single sided prob = 1/2 of double sided */
@@ -601,6 +614,9 @@ double chisq_p2t( double qq , double dof )
 {
    int which , status ;
    double p,q,x,df,bound ;
+
+   if( qq <= 0.0      ) return 999.9 ;
+   if( qq >= 0.999999 ) return 0.0 ;
 
    which  = 2 ;
    p      = 1.0 - qq ;
@@ -657,6 +673,9 @@ double beta_p2t( double qq , double aa , double bb )
    int which , status ;
    double p,q,x,y,a,b,bound ;
 
+   if( qq <= 0.0      ) return 0.9999 ;
+   if( qq >= 0.999999 ) return 0.0 ;
+
    which  = 2 ;
    p      = 1.0 - qq ;
    q      = qq ;
@@ -710,6 +729,9 @@ double binomial_p2t( double qq , double ntrial , double ptrial )
    int which , status ;
    double p,q, s,xn,pr,ompr,bound ;
 
+   if( qq <= 0.0      ) return 99.99 ;
+   if( qq >= 0.999999 ) return 0.0 ;
+
    which  = 2 ;
    p      = 1.0 - qq ;
    q      = qq ;
@@ -761,6 +783,9 @@ double gamma_p2t( double qq , double sh , double sc )
    int which , status ;
    double p,q, x,shape,scale,bound ;
 
+   if( qq <= 0.0      ) return 999.9 ;
+   if( qq >= 0.999999 ) return 0.0 ;
+
    which  = 2 ;
    p      = 1.0 - qq ;
    q      = qq ;
@@ -809,6 +834,9 @@ double poisson_p2t( double qq , double lambda )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
+
+   if( qq <= 0.0      ) return 999.9 ;
+   if( qq >= 0.999999 ) return 0.0 ;
 
    which  = 2 ;
    p      = 1.0 - qq ;

@@ -81,6 +81,8 @@ typedef struct {
   XImage * bigxim ;
   int    bigmap_index ;         /* 31 Jan 2003 */
   float  bigfac ;               /* 11 Feb 2003 */
+  int    bigflip ;              /* 07 Feb 2004 */
+  int    bigrota ;              /* 07 Feb 2004 */
 
   Widget big_menu , big_label , big_choose_pb ;
 } MCW_pbar ;
@@ -107,6 +109,6 @@ void PBAR_make_bigmap( char *,
 void PBAR_set_bigmap( MCW_pbar * , char * ) ;               /* 03 Feb 2003 */
 char * PBAR_get_bigmap( MCW_pbar * ) ;                      /* 03 Feb 2003 */
 int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
-
+void PBAR_flip( MCW_pbar * ) ;                              /* 07 Feb 2004 */
 
 #endif

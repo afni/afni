@@ -4935,3 +4935,9 @@
 06 Feb 2004
  * Added threshold locking (via environment variable AFNI_THRESH_LOCK).
      Also, moved lock code from afni.c to new file afni_lock.c.
+
+07 Feb 2004
+ * Added pbar locking (via environment variable AFNI_PBAR_LOCK), and
+     threshold p-value locking.
+ * Added AFNI_DISP_SCROLLBARS to afni_pplug_env.c, to control if Disp
+     menu in image viewer gets scrollbars.

@@ -19,6 +19,8 @@ float THD_stat_to_pval( float thr , int statcode , float * stataux )
 
    if( stataux == NULL && statcode != FUNC_ZT_TYPE ) return pval ;
 
+   if( thr == 0.0 ) return 1.0 ;
+
    switch( statcode ){  /* if statcode is illegal, will return -1 */
 
       case FUNC_COR_TYPE:
@@ -66,6 +68,8 @@ float THD_stat_to_pval( float thr , int statcode , float * stataux )
 float THD_pval_to_stat( float pval , int statcode , float * stataux )
 {
    float stat = -1.0 ;   /* error flag */
+
+   if( pval >= 0.999999 ) return 0.0 ;  /* WTF */
 
    if( stataux == NULL && statcode != FUNC_ZT_TYPE ) return pval ;
 
