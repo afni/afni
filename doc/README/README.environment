@@ -1772,6 +1772,21 @@ length.  If you would rather have the program stop if it detects this
 problem (the behavior before 22 Oct 2003), then set this environment
 variable to NO.
 
+-------------------------------
+Variable: AFNI_STROKE_THRESHOLD (editable)
+-------------------------------
+If you press Button-1 in an image window, and then move it left or
+right ("stroke it") before releasing the button, the grayscale mapping
+changes in the same way as if you pressed the 'c' button up and the 'b'
+button down.  This variable sets the threshold for the stroking movement
+size in pixels; a movement of this number of pixels rightwards corresponds
+to one press of 'c' up and 'b' down, while a leftwards movement is like
+one press of 'c' down and 'b' up.  Larger movements make larger adjustments.
+
+A larger threshold makes the stroking less sensitive; a smaller threshold
+makes it more sensitive.  The value you choose will depend on your personal
+taste.  The default is 32 pixels, which is the flavor I prefer.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
