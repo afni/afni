@@ -998,6 +998,9 @@ ENTRY("DCM_OpenFile") ;
 #endif
     }
     if (fd < 0) {
+        char msg[1024] ;
+        sprintf(msg,"DCM_OpenFile open(%s) fails",name) ;
+        perror(msg) ;
 	RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
 				  DCM_Message(DCM_FILEOPENFAILED), name,
 				  "DCM_OpenFile"));
