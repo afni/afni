@@ -18,6 +18,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o   \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
+            afni_niml.o niml.o                                     \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)

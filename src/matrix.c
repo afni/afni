@@ -42,6 +42,8 @@
             up calculations (including vector_create_noinit) -- RW Cox.
   Date:     28 Dec 2001
 
+  Mod:      Allow matrices and vectors with zero rows and columns. 
+  Date:     26 February 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -104,11 +106,12 @@ void matrix_create (int rows, int cols, matrix * m)
 
   matrix_destroy (m);
 
-  if ((rows < 1) || (cols < 1))
+  if ((rows < 0) || (cols < 0))
     matrix_error ("Illegal dimensions for new matrix");
 
   m->rows = rows;
   m->cols = cols;
+  if ((rows < 1) || (cols < 1))  return;
 
   m->elts = (double **) malloc (sizeof(double *) * rows);
   if (m->elts == NULL)
@@ -385,7 +388,7 @@ void matrix_identity (int n, matrix * m)
 {
   register int i, j;
 
-  if (n < 1)
+  if (n < 0)
     matrix_error ("Illegal dimensions for identity matrix");
 
   matrix_create (n, n, m);
@@ -692,9 +695,11 @@ void vector_create (int dim, vector * v)
 
   vector_destroy (v);
   
-  if (dim < 1)  matrix_error ("Illegal dimensions for new vector");
+  if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
+  if (dim < 1)  return;
+
   v->elts = (double *) malloc (sizeof(double) * dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
@@ -710,9 +715,11 @@ static void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
 
   vector_destroy (v);
  
-  if (dim < 1)  matrix_error ("Illegal dimensions for new vector");
+  if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
+  if (dim < 1)  return;
+
   v->elts = (double *) malloc (sizeof(double) * dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
@@ -954,3 +961,5 @@ double vector_dotself( vector a )
 }
 
 /*---------------------------------------------------------------------------*/
+
+

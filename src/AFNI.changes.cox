@@ -3491,3 +3491,5 @@
 
 28 Feb 2002
  * Fixed a small problem with thd_info.c (damn you, Jim Haxby).
+ * Incorporated a few more 3dDeconvolve changes from Doug Ward.
+ * First cut at putting niml.[ch] into AFNI, along with afni_niml.c.

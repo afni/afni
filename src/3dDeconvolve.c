@@ -204,14 +204,23 @@
   Mod:     Extended -tout option to write a t-statistic sub-brick for each
            of the GLT linear combinations (i.e., each row of each GLT matrix).
   Date:    08 February 2002
+
+  Mod:     Allow user to specify no baseline parameters in the model with
+           command "-polort -1".
+  Date:    26 February 2002
+
+  Mod:     Added -nobout option, to suppress the bucket dataset output
+           of baseline parameters and statistics.
+  Date:    27 February 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
-#define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "08 Feb  2002"    /* date of latest program revision */
+#define PROGRAM_INITIAL "02 Sep 1998"     /* date of initial program release */
+#define PROGRAM_LATEST  "27 Feb 2002"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -271,6 +280,7 @@ typedef struct DC_options
   int rout;             /* flag to output R^2 statistics */
   int tout;             /* flag to output t-statistics */
   int vout;             /* flag to output variance map */
+  int nobout;           /* flag to suppress output of baseline coefficients */
   int nocout;           /* flag to suppress output of fit coefficients */
   int xout;             /* flag to write X and inv(X'X) matrices to screen */
   int full_first;       /* flag to output full model stats first */
@@ -372,8 +382,10 @@ void display_help_menu()
     "[-rout]            Flag to output the R^2 statistics                   \n"
     "[-tout]            Flag to output the t-statistics                     \n"
     "[-vout]            Flag to output the sample variance (MSE) map        \n"
-    "[-nocout]          Flag to suppress output of fit coefficients (and    \n"
-    "                     associated statistics)                            \n"
+    "[-nobout]          Flag to suppress output of baseline coefficients    \n"
+    "                     (and associated statistics)                       \n"
+    "[-nocout]          Flag to suppress output of regression coefficients  \n"
+    "                     (and associated statistics)                       \n"
     "[-full_first]      Flag to specify that the full model statistics will \n"
     "                     appear first in the bucket dataset output         \n"
     "                                                                       \n"
@@ -441,6 +453,7 @@ void initialize_options
   option_data->tout = 0;
   option_data->vout = 0;
   option_data->xout = 0;
+  option_data->nobout = 0;
   option_data->nocout = 0;
   option_data->full_first = 0;
 
@@ -716,7 +729,7 @@ void get_options
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -polort ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
+	  if (ival < -1)
 	    DC_error ("illegal argument after -polort ");
 	  option_data->polort = ival;
 	  nopt++;
@@ -1051,6 +1064,15 @@ void get_options
       if (strcmp(argv[nopt], "-xout") == 0)
 	{
 	  option_data->xout = 1;
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -nobout   -----*/
+      if (strcmp(argv[nopt], "-nobout") == 0)
+	{
+	  option_data->nobout = 1;
 	  nopt++;
 	  continue;
 	}
@@ -1815,8 +1837,10 @@ void check_for_valid_inputs
   nbricks = 0;
   if (option_data->bucket_filename != NULL)
     {
+      if ((! option_data->nobout) && (! option_data->nocout))
+	nbricks += q * (1 + option_data->tout);
       if (! option_data->nocout)
-	nbricks += p * (1 + option_data->tout)
+	nbricks += (p-q) * (1 + option_data->tout)
 	  + num_stimts * (option_data->rout + option_data->fout);
       nbricks += option_data->rout + option_data->fout + option_data->vout;
       if (num_glt > 0)
@@ -1927,6 +1951,7 @@ void allocate_memory
   int rout;             /* flag to output R^2 statistics */
   int tout;             /* flag to output t-statistics */
   int vout;             /* flag to output variance map */
+  int bout;             /* flag to output baseline coefficients */
   int cout;             /* flag to output fit coefficients */
 
 
@@ -1944,6 +1969,7 @@ void allocate_memory
   rout  = option_data->rout;
   tout  = option_data->tout;
   vout  = option_data->vout;
+  bout  = 1 - (option_data->nobout || option_data->nocout);
   cout  = 1 - option_data->nocout;
 
 
@@ -1958,7 +1984,7 @@ void allocate_memory
       (*tcoef_vol)[ip] = NULL;
     }
 
-  if (cout)
+  if (bout)
     for (ip = 0;  ip < q;  ip++)
       {
 	zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
@@ -3270,37 +3296,42 @@ void write_bucket_data
     {
 
       /*----- Baseline statistics -----*/
-      strcpy (label, "Base");
-      for (icoef = 0;  icoef < q;  icoef++)
+      if (! option_data->nobout)
 	{
-	  if (q == polort+1)
-	    strcpy (label, "Base");
-	  else
-	    sprintf (label, "Run #%d", icoef/(polort+1) + 1);
-
-	  /*----- Baseline coefficient -----*/
-	  ibrick++;
-	  brick_type = FUNC_FIM_TYPE;
-	  sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
-	  volume = coef_vol[icoef];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			    brick_type, brick_label, 0, 0, 0, bar);
-
-	  /*----- Baseline t-stat -----*/
-	  if (option_data->tout)
+	  strcpy (label, "Base");
+	  for (icoef = 0;  icoef < q;  icoef++)
 	    {
+	      if (q == polort+1)
+		strcpy (label, "Base");
+	      else
+		sprintf (label, "Run #%d", icoef/(polort+1) + 1);
+	      
+	      /*----- Baseline coefficient -----*/
 	      ibrick++;
-	      brick_type = FUNC_TT_TYPE;
-	      dof = N - p;
-	      sprintf (brick_label, "%s t^%d t-st", label, icoef % (polort+1));
-	      volume = tcoef_vol[icoef];
+	      brick_type = FUNC_FIM_TYPE;
+	      sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
+	      volume = coef_vol[icoef];
 	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-				brick_type, brick_label, dof, 0, 0, bar);
+				brick_type, brick_label, 0, 0, 0, bar);
+	      
+	      /*----- Baseline t-stat -----*/
+	      if (option_data->tout)
+		{
+		  ibrick++;
+		  brick_type = FUNC_TT_TYPE;
+		  dof = N - p;
+		  sprintf (brick_label, "%s t^%d t-st", 
+			   label, icoef % (polort+1));
+		  volume = tcoef_vol[icoef];
+		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				    brick_type, brick_label, dof, 0, 0, bar);
+		}
 	    }
 	}
       
-      
+
       /*----- Stimulus statistics -----*/
+      icoef = q;
       for (istim = 0;  istim < num_stimts;  istim++)        
 	{                                 
 	  strcpy (label, option_data->stim_label[istim]);
@@ -3310,15 +3341,12 @@ void write_bucket_data
 	       ilag <= option_data->stim_maxlag[istim];  ilag++)
 	    {                             
 	      /*----- Stimulus coefficient -----*/
-	      if (! option_data->nocout)
-		{
-		  ibrick++;
-		  brick_type = FUNC_FIM_TYPE;
-		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
-		  volume = coef_vol[icoef];		  
-		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-				    brick_type, brick_label, 0, 0, 0, bar);
-		}
+	      ibrick++;
+	      brick_type = FUNC_FIM_TYPE;
+	      sprintf (brick_label, "%s[%d] Coef", label, ilag);
+	      volume = coef_vol[icoef];		  
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				brick_type, brick_label, 0, 0, 0, bar);
 	      
 	      /*----- Stimulus t-stat -----*/
 	      if (option_data->tout)

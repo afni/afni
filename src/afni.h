@@ -65,6 +65,8 @@ typedef struct {
       int enable_suma ;       /* 29 Aug 2001 */
 
       int quiet ;             /* 25 Aug 2001 */
+
+      int yes_niml ;          /* 28 Feb 2002 */
 } AF_options ;
 
 #ifdef MAIN
@@ -1227,6 +1229,8 @@ extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;
 extern void   AFNI_thresh_top_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void AFNI_set_valabel( FD_brick *, int, MRI_IMAGE *, char * ) ;
+
+extern void AFNI_init_niml( void ) ; /* 28 Feb 2002 */
 
 /*-------------------------------------------------------------------
   Include prototypes for actual data warping and slicing here.

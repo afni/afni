@@ -302,6 +302,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
+   GLOBAL_argopt.yes_niml       = 0 ;      /* 28 Feb 2002 */
 
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
@@ -457,11 +458,18 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      /*---- -agni [29 Aug 2001] -----*/
+      /*---- -agni [29 Aug 2001] or -suma -----*/
 
-      if( strcmp(argv[narg],"-agni") == 0 || strcmp(argv[narg],"-suma") ){
+      if( strcmp(argv[narg],"-agni")==0 || strcmp(argv[narg],"-suma")==0 ){
          fprintf(stderr,"\n-agni/-suma are now turned on by default\n") ;
          GLOBAL_argopt.enable_suma = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*---- -niml [28 Feb 2002] -----*/
+
+      if( strcmp(argv[narg],"-niml") == 0 ){
+         GLOBAL_argopt.yes_niml = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -1303,6 +1311,11 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            }
         }
 #endif
+
+        /* NIML listening on */
+
+        if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml )
+           AFNI_init_niml() ;
       }
       break ;
 
