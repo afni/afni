@@ -39,6 +39,9 @@
 	    Also, added screen display of p-values.
   Date:     10 May 2000
 
+  Mod:      Add stuff for longjmp() return from NLfit_error().
+  Date:     01 May 2003 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -50,6 +53,10 @@
    Routine to print error message and stop.
 */
 
+#include <setjmp.h>                    /* 01 May 2003 */
+static int jump_on_NLfit_error = 0 ;
+static jmp_buf NLfit_error_jmpbuf ;
+
 void NLfit_error
 (
   char * message         /* message to be displayed */
@@ -57,6 +64,7 @@ void NLfit_error
 
 {
    fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
+   if( jump_on_NLfit_error ) longjmp( NLfit_error_jmpbuf , 1 ) ;  /* 01 May 2003 */
    exit(1);
 }
 

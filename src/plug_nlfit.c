@@ -550,8 +550,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    char message[MAX_NAME_LENGTH];    /* error message */
 
 
-
    if( ncall > 0 ) return NULL ;  /* generate interfaces for ncall 0 */
+
+   jump_on_NLfit_error = 1 ;                 /* 01 May 2003: */
+   if( setjmp(NLfit_error_jmpbuf) != 0 ){    /* NLfit_error() was invoked */
+     jump_on_NLfit_error = 0 ;               /* somewhere below here */
+     fprintf(stderr,"\n*** Can't load NLfit plugin! ***\n");
+     return NULL ;
+   }
 
    /***** otherwise, do interface # 0 *****/
 
@@ -573,7 +579,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if ((model_array == NULL) || (model_array->num == 0))
 #if 1
      { PLUTO_report( plint , "Found no models!") ;
-       return NULL ; }
+       jump_on_NLfit_error = 0 ; return NULL ; }
 #else
      NLfit_error ("Unable to locate any models");
 #endif
@@ -740,7 +746,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    DESTROY_MODEL_ARRAY (model_array);
 #endif
 
-   return plint ;
+   jump_on_NLfit_error = 0 ; return plint ;
 }
 
 /***************************************************************************
