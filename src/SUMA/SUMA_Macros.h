@@ -9,6 +9,38 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+/*!
+   \brief SUMA_EULER_SO (SO, eu)
+   computes the euler number = N  + E + F
+   eu = SO->N_Node + SO->FaceSetDim * SO->N_FaceSet + SO->N_FaceSet
+   eu = 2 for closed surfaces 
+*/
+
+#define SUMA_EULER_SO (SO, eu) { \
+   eu = SO->N_Node + SO->FaceSetDim * SO->N_FaceSet + SO->N_FaceSet; \
+}
+   
+/*!
+
+   \brief   SUMA_IS_IN_VEC (vec, nel, val, loc);
+   \param vec pointer to vector of at least nel elements
+   \param nel (int) number of elements to check in vec
+   \param val value to look for in vec
+   \param loc (int) index in vec where val was found. -1 if nothing was found
+*/
+#define SUMA_IS_IN_VEC (m_vec, m_nel, m_val, m_loc) { \
+   int m_i=0;\
+   m_loc = -1;\
+   while (m_i < m_nel) {   \
+      if (m_vec[m_i] == m_val) { \
+         m_loc = m_i;   \
+         m_i = m_nel;   \
+      }  else {   \
+         ++ m_i;  \
+      }  \
+   }  \
+}
+
 #define SUMA_DBG_IN_NOTIFY(m_fname) { \
    int m_i;\
    ++SUMAg_CF->InOut_Level;   \

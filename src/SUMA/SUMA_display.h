@@ -14,6 +14,12 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2);
 SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO* dov);
 void SUMA_context_Init(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y);
+void SUMA_cb_quit(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_view_surface_controller(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_view_viewer_controller(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callData);
 
 
 #endif

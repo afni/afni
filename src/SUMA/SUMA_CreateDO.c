@@ -5,6 +5,84 @@ extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern int SUMAg_N_DOv;
 
+/*!
+ allocate for a segment DO 
+   SDO = SUMA_Alloc_SegmentDO ( N_n, Label)
+
+   \param N_n (int) number of nodes to allocate for n0 and n1. 
+      if N_n > 0  SDO->n0 and n1 (GLfloat *) vector to 3*N_n elements to contain the XYZ of nodes n0 and n1.
+      else SDO->n0 and n1 = NULL
+   \param Label (char *) label of segment DO. Pass NULL for no labels
+
+   \returns SDO (SUMA_SegmentDO *) 
+     
+*/
+SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
+{
+   static char FuncName[]={"SUMA_Alloc_Segment"};
+   SUMA_SegmentDO * SDO= NULL;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (N_n > 0) {
+      SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
+      if (!SDO) {
+         fprintf(stderr,"Error %s: Failed to allocate for SDO\n", FuncName);
+         SUMA_RETURN (SDO);
+      }
+      SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+      SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+   
+      if (!SDO->n0 || !SDO->n1) {
+         fprintf(stderr,"Error %s: Failed to allocate for SDO-n1 or SDO->n0\n", FuncName);
+         if (SDO->n0) SUMA_free (SDO->n0);
+         if (SDO->n1) SUMA_free (SDO->n1);
+         if (SDO) SUMA_free (SDO);
+         SUMA_RETURN (NULL);
+      }
+   } else {
+      SDO->n0 = NULL;
+      SDO->n1 = NULL;
+      SDO->N_n = 0;
+   }
+   
+   SDO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
+   UNIQ_idcode_fill(SDO->idcode_str);
+   
+   
+   if (Label) {
+      SDO->Label = (char *)SUMA_calloc (strlen (SDO->Label)+1, sizeof(char));
+      SDO->Label = strcpy (SDO->Label, Label);
+   } else {
+      SDO->Label = NULL;
+   }
+   
+   SDO->N_n = N_n;
+   SDO->Stipple = SUMA_SOLID_LINE;
+   /* setup some default values */
+   SDO->LineWidth = 4.0;
+   SDO->LineCol[0] = 1.0; SDO->LineCol[1] = 0.3; SDO->LineCol[2] = 1.0; SDO->LineCol[3] = 1.0; 
+   
+   SUMA_RETURN (SDO);
+}
+
+void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
+{
+   static char FuncName[]={"SUMA_free_SegmentDO"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SDO) SUMA_RETURNe;
+   
+   if (SDO->n0) SUMA_free(SDO->n0);
+   if (SDO->n1) SUMA_free(SDO->n1);
+   if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
+   if (SDO->Label) SUMA_free(SDO->Label);
+   if (SDO) SUMA_free(SDO);
+   
+   SUMA_RETURNe;
+}
+
 /*! Allocate for a axis object */
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 {   
@@ -13,7 +91,7 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   Ax = SUMA_malloc (sizeof (SUMA_Axis));
+   Ax = (SUMA_Axis *) SUMA_malloc (sizeof (SUMA_Axis));
    if (Ax == NULL) {
       fprintf(stderr,"SUMA_Alloc_Axis Error: Failed to allocate Ax\n");
       SUMA_RETURN (Ax);
@@ -101,6 +179,57 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
    SUMA_RETURNe;
 }
 
+SUMA_Boolean SUMA_CreateSegmentDO (SUMA_SegmentDO *SDO)
+{
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int i;
+   static char FuncName[]={"SUMA_CreateSegmentDO"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SDO) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   glLineWidth(SDO->LineWidth);
+   
+   switch (SDO->Stipple) {
+      case SUMA_DASHED_LINE:
+         glEnable(GL_LINE_STIPPLE);
+         glLineStipple (1, 0x00FF); /* dashed, see OpenGL Prog guide, page 55 */
+         break;
+      case SUMA_SOLID_LINE:
+         break;
+      default:
+         fprintf(stderr,"Error %s: Unrecognized Stipple option\n", FuncName);
+         SUMA_RETURN(NOPE);
+   }
+   
+   glBegin(GL_LINES);
+   glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity for axis*/
+   glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
+   glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+   
+   i = 0;
+   while (i < SDO->N_n) {
+      glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+      glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+      i += 3;
+   }
+   
+   glEnd();
+      switch (SDO->Stipple) {
+      case SUMA_DASHED_LINE:
+         glDisable(GL_LINE_STIPPLE);
+         break;
+      case SUMA_SOLID_LINE:
+         break;
+   }
+   
+   SUMA_RETURN (YUP);
+   
+}
 SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
 { 
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};

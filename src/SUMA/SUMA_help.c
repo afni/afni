@@ -36,6 +36,7 @@ void SUMA_help_message(FILE *Out)
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+n: Open a new surface viewer window.\n");
 	 fprintf (Out, "\t  p: rendering mode (Fill, Line, Points), switch.\n");
     if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+Alt+s: Input filename with coordinates forming a segment (6 values) on each line.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
 	 fprintf (Out, "\t  t: talk to AFNI, toggle.\n");
     if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+t: Force a resend of surfaces to AFNI.\n");
