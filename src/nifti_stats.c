@@ -11033,8 +11033,8 @@ int main( int argc , char *argv[] )
      if( doq )
        p = nifti_stat2rcdf( val , code,p1,p2,p3 ) ;
      else if( dod )
-       p = 100.0*( nifti_stat2cdf(val+.01,code,p1,p2,p3)
-                  -nifti_stat2cdf(val    ,code,p1,p2,p3)) ;
+       p = 1000.0*( nifti_stat2cdf(val+.001,code,p1,p2,p3)
+                   -nifti_stat2cdf(val     ,code,p1,p2,p3)) ;
      else
        p = nifti_stat2cdf ( val , code,p1,p2,p3 ) ;
      printf("%.9g\n",p) ;
