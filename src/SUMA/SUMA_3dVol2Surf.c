@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.6 (October 21, 2003)"
+#define VERSION "version 3.7 (November 4, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -58,6 +58,9 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 3.7  November 4, 2003
+ *   - added ENTRY() stuff
  *
  * 3.6  October 21, 2003
  *   - finish upates for -f_keep_surf_order option
@@ -132,8 +135,6 @@
 
 /*----------------------------------------------------------------------
  * todo:
- *
- *   - add inner to outer surface order
  *----------------------------------------------------------------------
 */
 
@@ -210,11 +211,13 @@ int main( int argc , char * argv[] )
 int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 	           node_list_t * N )
 {
+ENTRY("write_output");
+
     if ( sopt == NULL || opts == NULL || p == NULL || N == NULL )
     {
 	fprintf( stderr, "** smd_wo - bad params (%p,%p,%p,%p)\n",
 		 sopt, opts, p, N );
-	return -1;
+	RETURN(-1);
     }
 
     switch (sopt->map)
@@ -244,7 +247,7 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 	    break;
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -262,10 +265,12 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     int            sub, subs, nindex, findex, index1d;
     int            oobc, oomc, index, max_index;
 
+ENTRY("dump_surf_3dt");
+
     if ( sopt == NULL || p == NULL || N == NULL )
     {
 	fprintf( stderr, "** smd_dmm : bad params (%p,%p,%p)\n", sopt, p, N );
-	return -1;
+	RETURN(-1);
     }
 
     /* one last precaution */
@@ -273,7 +278,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     {
 	fprintf( stderr, "** bad setup for mapping (%d,%d,%d)\n",
 		 N->depth, N->nnodes, sopt->f_steps );
-	return -1;
+	RETURN(-1);
     }
 
     subs = DSET_NVALS(p->gpar);
@@ -423,7 +428,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	r3mm_res.ims.nall = 0;
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -438,8 +443,10 @@ int print_default_line( FILE * fp, int max_ind, int node_ind,
 {
     int cc;
 
+ENTRY("print_default_line");
+
     if ( !fp )
-	return -1;
+	RETURN(-1);
 
     fprintf( fp, "  %8d   %8d   %3d  %3d  %3d     %3d",
 	     node_ind, vind, i, j, k, max_ind );
@@ -448,7 +455,7 @@ int print_default_line( FILE * fp, int max_ind, int node_ind,
 	fprintf( fp, "  %10s", MV_format_fval(fval));
     fputc( '\n', fp );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -470,12 +477,14 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
     int       nx, ny;
     int       step, vindex, prev_ind;
 
+ENTRY("segment_imarr");
+
     /* check params for validity */
     if ( !R || !sopt || !res || !R->dset )
     {
 	fprintf(stderr, "** seg_imarr: invalid params (%p,%p,%p)\n",R,sopt,res);
 	if ( R ) disp_range_3dmm("segment_imarr: bad inputs:", R );
-	return -1;
+	RETURN(-1);
     }
 
     if ( R->debug > 1 )
@@ -485,7 +494,7 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
     if ( sopt->f_steps < 1 )
     {
 	res->ims.num = 0;
-	return 0;
+	RETURN(0);
     }
 
     nx = DSET_NX(R->dset);
@@ -510,7 +519,7 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
 	    /* one might be good */
 	    if ( res->ims.imarr ) free(res->ims.imarr);
 	    if ( res->i3arr )     free(res->i3arr);
-	    return -1;
+	    RETURN(-1);
 	}
     }
 
@@ -568,7 +577,7 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
     if ( R->debug > 0 )
 	disp_range_3dmm_res( "++ i3mm_seg_imarr results: ", res );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -579,10 +588,12 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
 */
 int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 {
+ENTRY("create_node_list");
+
     if ( sopt == NULL || N == NULL )
     {
 	fprintf( stderr, "** cnl - bad params (%p,%p)\n", sopt, N );
-	return -1;
+	RETURN(-1);
     }
 
     switch (sopt->map)
@@ -591,12 +602,12 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[sopt->map] );
-	    return -1;
+	    RETURN(-1);
 	    break;
 
 	case E_SMAP_MASK:
 	    if ( alloc_node_list( sopt, N, 1 ) )
-		return -1;
+		RETURN(-1);
 	    break;
 
 	case E_SMAP_AVE:
@@ -606,15 +617,15 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 	case E_SMAP_MIDPT:
 	case E_SMAP_SEG_VALS:
 	    if ( alloc_node_list( sopt, N, 2 ) )
-		return -1;
+		RETURN(-1);
 	    break;
 
 	default:
 	    fprintf( stderr, "** cnl: unknown map %d\n", sopt->map );
-	    return -1;
+	    RETURN(-1);
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -635,11 +646,13 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
     float              *  radp = radius;
     int                   rv, nindex, sindex;
 
+ENTRY("alloc_node_list");
+
     if ( sopt == NULL || N == NULL || nsurf < 0 )
     {
 	fprintf( stderr, "** anl: bad params (%p,%p,%d)\n",
 		 sopt, N, nsurf );
-	return -1;
+	RETURN(-1);
     }
 
     /* create a temporary list of surface pointers */
@@ -647,7 +660,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
     if ( so == NULL )
     {
 	fprintf( stderr, "** anl: failed to alloc %d surf pointers\n", nsurf );
-	return -1;
+	RETURN(-1);
     }
 
     if ( (rv = get_mappable_surfs( so, nsurf, sopt->debug )) != nsurf )
@@ -655,7 +668,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 	fprintf( stderr, "** found %d mappable surfaces (but expected %d)\n",
 		 rv, nsurf );
 	free(so);
-	return -1;
+	RETURN(-1);
     }
 
     /* fill node list struct */
@@ -667,7 +680,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 	fprintf( stderr, "** cnlm: failed to allocate %d THD_fvec3 structs\n",
 		 N->depth * N->nnodes );
 	free(so);
-	return -1;
+	RETURN(-1);
     }
 
     N->labels = (char **)malloc(N->depth * sizeof(char *));
@@ -676,7 +689,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 	fprintf(stderr,"** cnlm: failed to allocate for %d labels\n",N->depth);
 	free(so);
 	free(N->nodes);
-	return -1;
+	RETURN(-1);
     }
 
     /* copy the xyz coordinates for each node */
@@ -690,7 +703,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 		     so[sindex]->N_Node, N->nnodes );
 	    free( N->nodes );  N->nodes = NULL;
 	    free(so);
-	    return -1;					/* bail */
+	    RETURN(-1);
 	}
 
 	N->labels[sindex] = so[sindex]->Label;
@@ -718,7 +731,7 @@ int alloc_node_list ( smap_opts_t * sopt, node_list_t * N, int nsurf )
 		N->depth, N->nnodes, sizeof(THD_fvec3));
 
     free(so);
-    return 0;
+    RETURN(0);
 }
 
 
@@ -733,10 +746,12 @@ int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug )
     SUMA_SurfaceObject * so;
     int			 count, socount = 0;
 
+ENTRY("get_mappable_surfs");
+
     if ( slist == NULL )
     {
 	fprintf( stderr, "** gms: missing slist!\n" );
-	return -1;
+	RETURN(-1);
     }
 
     for ( count = 0; count < SUMAg_N_DOv; count++ )
@@ -765,7 +780,7 @@ int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug )
     if ( debug > 1 )
 	fprintf( stderr, "++ found %d mappable surfaces\n", socount );
 
-    return socount;
+    RETURN(socount);
 }
 
 
@@ -778,10 +793,12 @@ int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug )
 */
 int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 {
+ENTRY("set_smap_opts");
+
     memset( sopt, 0, sizeof(*sopt) );
 
     if ( (sopt->map = check_map_func( opts->map_str )) == E_SMAP_INVALID )
-	return -1;
+	RETURN(-1);
 
     /* set defaults before checking map type */
 
@@ -829,7 +846,7 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 	    if (sopt->f_steps != V2S_M2_STEPS_DEFAULT)
 	    {
 		fprintf(stderr,"** -f_steps option not valid\n");
-		return -1;
+		RETURN(-1);
 	    }
 
 	    /* we will only use the first point in the computation */
@@ -840,7 +857,7 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
     if ( opts->debug > 0 )
 	disp_smap_opts_t( "++ smap opts set :", sopt );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -851,6 +868,7 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
 		     node_list_t * N )
 {
+ENTRY("final_clean_up");
     if ( ( SUMAg_DOv != NULL ) &&
 	 ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
 	fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
@@ -862,7 +880,7 @@ int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
     if ( ( SUMAg_CF != NULL ) && ( SUMA_Free_CommonFields(SUMAg_CF) == 0 ) )
 	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -874,6 +892,8 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
     int debug;						/* v3.5 [rickr] */
     
+ENTRY("read_surf_files");
+
     debug = (opts->debug > 2);
 
     if ( debug )
@@ -885,7 +905,7 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
     if ( SUMAg_CF == NULL )
     {
 	fprintf( stderr, "** failed SUMA_Create_CommonFields(), exiting...\n" );
-	return -1;
+	RETURN(-1);
     }
 
     /* for SUMA type notifications */
@@ -908,7 +928,7 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
 	fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
-	return -1;
+	RETURN(-1);
     }
 
     /* make sure only group was read from spec file */
@@ -916,7 +936,7 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
     {
 	fprintf( stderr,"** error: N_Groups <%d> must be 1 in spec file <%s>\n",
 		 spec->N_Groups, opts->spec_file );
-	return -1;
+	RETURN(-1);
     }
 
     if ( debug )
@@ -926,13 +946,13 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
     if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug) == 0)
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
-	return -1;
+	RETURN(-1);
     }
 
     if ( opts->debug > 1 )
 	fputs( "++ surfaces loaded.\n", stderr );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -944,10 +964,12 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 {
     int ac;
 
+ENTRY("init_options");
+
     if ( argc < 2 )
     {
 	usage( PROG_NAME, V2S_USE_LONG );
-	return -1;
+	RETURN(-1);
     }
 
     /* clear out the options and parameter structures */
@@ -961,7 +983,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	if ( ! strncmp(argv[ac], "-help", 2) )
 	{
 	    usage( PROG_NAME, V2S_USE_LONG );
-	    return -1;
+	    RETURN(-1);
 	}
 	else if ( ! strncmp(argv[ac], "-cmask", 6) )
 	{
@@ -969,7 +991,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -cmask COMMAND\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->cmask_cmd = argv[++ac];
@@ -980,7 +1002,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -debug LEVEL\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->debug = atoi(argv[++ac]);
@@ -989,7 +1011,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 		fprintf( stderr, "bad debug level <%d>, should be in [0,%d]\n",
 			opts->debug, V2S_DEBUG_MAX_LEV );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 	}
 	else if ( ! strncmp(argv[ac], "-dnode", 6) )
@@ -998,7 +1020,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -dnode NODE_NUM\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->dnode = atoi(argv[++ac]);
@@ -1009,7 +1031,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_index INDEX_TYPE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_index_str = argv[++ac];
@@ -1024,7 +1046,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_p1_fr FRACTION\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_p1_fr = atof(argv[++ac]);
@@ -1035,7 +1057,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_pn_fr FRACTION\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_pn_fr = atof(argv[++ac]);
@@ -1046,7 +1068,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_p1_mm DISTANCE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_p1_mm = atof(argv[++ac]);
@@ -1057,7 +1079,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_pn_mm DISTANCE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_pn_mm = atof(argv[++ac]);
@@ -1068,7 +1090,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -f_steps NUM_STEPS\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->f_steps = atoi(argv[++ac]);
@@ -1081,7 +1103,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    {
 		fputs( "option usage: -grid_parent INPUT_DSET\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->gpar_file = argv[++ac];
@@ -1091,7 +1113,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -map_func FUNCTION\n\n", stderr );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->map_str = argv[++ac];	    /* store user string for now */
@@ -1106,7 +1128,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -oob_index INDEX_VALUE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->oob.show  = 1;
@@ -1118,7 +1140,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -oob_value VALUE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->oob.show  = 1;
@@ -1130,7 +1152,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -oob_value VALUE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
 	    opts->oom.show  = 1;
@@ -1142,7 +1164,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -out_1D OUTPUT_FILE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
             opts->out_file = argv[++ac];
@@ -1153,7 +1175,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -spec SPEC_FILE\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
             opts->spec_file = argv[++ac];
@@ -1164,7 +1186,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
             {
 		fputs( "option usage: -sv SURFACE_VOLUME\n\n", stderr );
 		usage( PROG_NAME, V2S_USE_SHORT );
-		return -1;
+		RETURN(-1);
 	    }
 
             opts->sv_file = argv[++ac];
@@ -1172,17 +1194,17 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	else if ( ! strncmp(argv[ac], "-version", 2) )
 	{
 	    usage( PROG_NAME, V2S_USE_VERSION );
-	    return -1;
+	    RETURN(-1);
 	}
 	else	 /* invalid option */
 	{
 	    fprintf( stderr, "invalid option <%s>\n", argv[ac] );
 	    usage( PROG_NAME, V2S_USE_SHORT );
-	    return -1;
+	    RETURN(-1);
 	}
     }
 
-    return 0;
+    RETURN(0);
 }
 
 /*----------------------------------------------------------------------
@@ -1194,6 +1216,8 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 */
 int validate_options ( opts_t * opts, param_t * p )
 {
+ENTRY("validate_options");
+
     memset( p, 0, sizeof(*p) );
 
     if ( opts->debug > 0 )
@@ -1203,25 +1227,25 @@ int validate_options ( opts_t * opts, param_t * p )
     }
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
-	return -1;
+	RETURN(-1);
 
     if ( set_outfile( opts, p ) != 0 )
-	return -1;
+	RETURN(-1);
 
     if ( opts->spec_file == NULL )
     {
 	fprintf( stderr, "** missing '-spec_file SPEC_FILE' option\n" );
-	return -1;
+	RETURN(-1);
     }
 
     if ( opts->sv_file == NULL )
     {
 	fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
-	return -1;
+	RETURN(-1);
     }
 
     if ( validate_datasets( opts, p ) != 0 )
-	return -1;
+	RETURN(-1);
 
     p->oob = opts->oob;		/* out of bounds info */
     p->oom = opts->oom;		/* out of bounds info */
@@ -1229,13 +1253,13 @@ int validate_options ( opts_t * opts, param_t * p )
     if ( p->oom.show && !p->cmask )
     {
 	fprintf(stderr,"** '-cmask' option is required with '-oom_value'\n");
-	return -1;
+	RETURN(-1);
     }
 
     if ( opts->debug > 1 )
 	disp_param_t( "++ opts validated: ", p );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -1245,8 +1269,10 @@ int validate_options ( opts_t * opts, param_t * p )
 */
 int set_outfile( opts_t * opts, param_t * p )
 {
+ENTRY("set_outfile");
+
     if ( opts == NULL || p == NULL )
-	return -1;
+	RETURN(-1);
 
     if ( opts->out_file == NULL )
 	p->outfp = stdout;
@@ -1260,7 +1286,7 @@ int set_outfile( opts_t * opts, param_t * p )
 	{
 	    fprintf( stderr, "** output file '%s' already exists\n",
 		     opts->out_file );
-	    return -1;
+	    RETURN(-1);
 	}
 
 	p->outfp = fopen( opts->out_file, "w" );
@@ -1268,11 +1294,11 @@ int set_outfile( opts_t * opts, param_t * p )
 	{
 	    fprintf( stderr, "** failure to open '%s' for writing\n",
 		     opts->out_file );
-	    return -1;
+	    RETURN(-1);
 	}
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -1287,10 +1313,12 @@ int check_map_func ( char * map_str )
 {
     int map;
 
+ENTRY("check_map_func");
+
     if ( map_str == NULL )
     {
 	fprintf( stderr, "** missing option: '-map_func FUNCTION'\n" );
-	return E_SMAP_INVALID;
+	RETURN(E_SMAP_INVALID);
     }
 
     map = smd_map_type( map_str );
@@ -1305,7 +1333,7 @@ int check_map_func ( char * map_str )
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[map] );
-	    return E_SMAP_INVALID;
+	    RETURN(E_SMAP_INVALID);
 	    break;
 
 	case E_SMAP_AVE:
@@ -1321,7 +1349,7 @@ int check_map_func ( char * map_str )
     if ( map == E_SMAP_INVALID )
 	fprintf( stderr, "** invalid map string '%s'\n", map_str );
 
-    return map;
+    RETURN(map);
 }
 
 
@@ -1336,23 +1364,25 @@ int smd_map_type ( char * map_str )
 {
     smap_nums map;
 
+ENTRY("smd_map_type");
+
     if ( map_str == NULL )
     {
 	fprintf( stderr, "** smd_map_type: missing map_str parameter\n" );
-	return (int)E_SMAP_INVALID;
+	RETURN((int)E_SMAP_INVALID);
     }
 
     if ( sizeof(g_smap_names) / sizeof(char *) != (int)E_SMAP_FINAL )
     {
 	fprintf( stderr, "** error:  g_smap_names/smd_map_num mis-match\n");
-	return (int)E_SMAP_INVALID;
+	RETURN((int)E_SMAP_INVALID);
     }
 
     for ( map = E_SMAP_INVALID; map < E_SMAP_FINAL; map++ )
 	if ( !strcmp( map_str, g_smap_names[map] ) )
-	    return (int)map;
+	    RETURN((int)map);
 
-    return (int)E_SMAP_INVALID;
+    RETURN((int)E_SMAP_INVALID);
 }
 
 
@@ -1369,6 +1399,8 @@ int smd_map_type ( char * map_str )
 */
 int validate_datasets( opts_t * opts, param_t * p )
 {
+ENTRY("validate_datasets");
+
     p->gpar = THD_open_dataset( opts->gpar_file );
 
     if ( !ISVALID_DSET(p->gpar) )
@@ -1378,14 +1410,14 @@ int validate_datasets( opts_t * opts, param_t * p )
 	else
 	    fprintf( stderr, "** error: invalid input dataset '%s'\n",
 		     opts->gpar_file);
-	return -1;
+	RETURN(-1);
     }
     else if ( DSET_BRICK_TYPE(p->gpar, 0) == MRI_complex )
     {
 	fprintf(stderr,
 		"** failure: cannot deal with complex-valued dataset, '%s'\n",
 		opts->gpar_file);
-	return -1;
+	RETURN(-1);
     }
 
     p->nvox = DSET_NVOX( p->gpar );
@@ -1411,13 +1443,13 @@ int validate_datasets( opts_t * opts, param_t * p )
 	{
 	    fprintf( stderr, "** failure: cannot compute mask from option:\n"
 		     "   -cmask '%s'\n", opts->cmask_cmd );
-	    return -1;
+	    RETURN(-1);
 	}
 	if ( p->ncmask != p->nvox )
 	{
 	    fprintf( stderr, "** error: input and cmask datasets do not have "
 		     "the same dimensions\n" );
-	    return -1;
+	    RETURN(-1);
 	}
 	if ( ( p->ccount = THD_countmask( p->ncmask, p->cmask ) ) <= 0 )
 	{
@@ -1436,7 +1468,7 @@ int validate_datasets( opts_t * opts, param_t * p )
 	    fprintf( stderr, " (%d voxels in mask)\n", p->ccount );
     }
 
-    return 0;
+    RETURN(0);
 }
 
 /*----------------------------------------------------------------------
@@ -1449,6 +1481,8 @@ int validate_datasets( opts_t * opts, param_t * p )
 */
 int usage ( char * prog, int level )
 {
+ENTRY("usage");
+
     if ( level == V2S_USE_SHORT )
     {
 	fprintf( stderr,
@@ -1456,7 +1490,7 @@ int usage ( char * prog, int level )
 		                    " -grid_parent AFNI_DSET\n"
 		 "usage: %s -help\n",
 		 prog, prog );
-	return 0;
+	RETURN(0);
     }
     else if ( level == V2S_USE_LONG )
     {
@@ -1994,17 +2028,17 @@ int usage ( char * prog, int level )
 	    prog, prog, prog, prog, prog, prog,
 	    VERSION );
 
-	return 0;
+	RETURN(0);
     }
     else if ( level == V2S_USE_VERSION )
     {
 	fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
-	return 0;
+	RETURN(0);
     }
 
     fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
-    return -1;
+    RETURN(-1);
 }
 
 
@@ -2019,11 +2053,13 @@ int set_3dmm_bounds ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max)
     float tmp;
     int   c;
 
+ENTRY("set_3dmm_bounds");
+
     if ( !dset || !min || !max )
     {
 	fprintf(stderr, "** invalid params to set_3dmm_bounds: (%p,%p,%p)\n",
 		dset, min, max );
-	return -1;
+	RETURN(-1);
     }
 
     /* get undirected bounds */
@@ -2044,7 +2080,7 @@ int set_3dmm_bounds ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max)
 	    max->xyz[c] = tmp;
 	}
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2059,16 +2095,16 @@ int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max )
     int c;
 
     if ( !cp || !min || !max )
-	return -1;
+	return(-1);
 
     for ( c = 0; c < 3; c++ )
     {
 	if ( ( cp->xyz[c] < min->xyz[c] ) ||
 	     ( cp->xyz[c] > max->xyz[c] ) )
-	    return 1;
+	    return(-1);
     }
 
-    return 0;
+    return(0);
 }
 
 
@@ -2079,6 +2115,8 @@ int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max )
 int print_header( FILE * outfp, char * surf, char * map, int nvals )
 {
     int val;
+
+ENTRY("print_header");
 
     fprintf( outfp, "# --------------------------------------------------\n" );
     fprintf( outfp, "# surface '%s', '%s' :\n", surf, map );
@@ -2096,7 +2134,7 @@ int print_header( FILE * outfp, char * surf, char * map, int nvals )
 	fprintf( outfp, " --------   " );
     fputc( '\n', outfp );
 
-    return 0;
+    RETURN(0);
 }
 
 /*----------------------------------------------------------------------
@@ -2111,10 +2149,12 @@ int v2s_adjust_endpts( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn )
     THD_fvec3 f3_diff;
     float     dist, factor;
 
+ENTRY("v2s_adjust_endpts");
+
     if ( !sopt || !p1 || !pn )
     {
 	fprintf(stderr,"** v2s_ae: invalid params (%p,%p,%p)\n", sopt, p1, pn);
-	return -1;
+	RETURN(-1);
     }
 
     /* first, get the difference, and distance */
@@ -2152,7 +2192,7 @@ int v2s_adjust_endpts( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn )
     {
 	default:
 	    fprintf(stderr,"** v2s_ae: mapping %d not ready\n", sopt->map );
-	    return -1;
+	    RETURN(-1);
 
 	case E_SMAP_AVE:
 	case E_SMAP_MAX:
@@ -2172,7 +2212,7 @@ int v2s_adjust_endpts( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn )
 	    break;
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2204,21 +2244,23 @@ float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
     double tmp, comp = 0.0;
     int    count;
 
+ENTRY("v2s_apply_filter");
+
     if ( !rr || !sopt || index < 0 )
     {
 	fprintf(stderr,"** v2s_cm2: invalid params (%p,%p,%d)\n",
 		rr, sopt, index);
-	return 0.0;
+	RETURN(0.0);
     }
     
     if ( rr->ims.num <= 0 )
-	return 0.0;
+	RETURN(0.0);
 
     switch ( sopt->map )
     {
 	default:
 	    if ( findex ) *findex = 0;
-	    return 0.0;
+	    RETURN(0.0);
 
 	case E_SMAP_AVE:
 	    if ( findex ) *findex = 0;
@@ -2286,7 +2328,7 @@ float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
 	    break;
     }
 
-    return (float)comp;
+    RETURN((float)comp);
 }
 
 
@@ -2301,10 +2343,12 @@ int verify_2surf_order( float radii[2], node_list_t * N, int debug )
     char      * tmp_label;
     int         index;
 
+ENTRY("verify_2surf_order");
+
     if ( !radii || !N )
     {
 	fprintf(stderr,"** v2so: invalid params (%p,%p)\n", radii, N);
-	return -1;
+	RETURN(-1);
     }
 
     if (radii[0] <= radii[1])		/* cool, we're outta here... */
@@ -2312,7 +2356,7 @@ int verify_2surf_order( float radii[2], node_list_t * N, int debug )
 	if (debug > 1)
 	    fprintf(stderr,"-- surfaces are already ordered inner to outer\n"
 		           "   (radius %f <= radius %f)\n", radii[0], radii[1]);
-	return 0;
+	RETURN(0);
     }
 
     fprintf(stderr, "++ surfaces %s and %s have radii %f and %f\n"
@@ -2334,7 +2378,7 @@ int verify_2surf_order( float radii[2], node_list_t * N, int debug )
 	*fp1 = node;
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2349,10 +2393,12 @@ int surf_ave_radius( float * radius, SUMA_SurfaceObject * so, int disp )
     float    c0, c1, c2;
     int      node;
 
+ENTRY("surf_ave_radius");
+
     if ( !so || !radius || so->N_Node <= 0 )
     {
 	fprintf(stderr, "** disp_sar, so, radius == %p,%p\n", so, radius );
-	return -1;
+	RETURN(-1);
     }
 
     c0 = so->Center[0];				   /* for a little speed */
@@ -2375,7 +2421,7 @@ int surf_ave_radius( float * radius, SUMA_SurfaceObject * so, int disp )
 	fprintf(stderr,"-- surf %s has average dist %f to center %f, %f, %f\n",
 		so->Label, *radius, c0, c1, c2 );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2385,13 +2431,15 @@ int surf_ave_radius( float * radius, SUMA_SurfaceObject * so, int disp )
 */
 int disp_param_t ( char * info, param_t * p )
 {
+ENTRY("disp_param_t");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( p == NULL )
     {
 	fprintf(stderr, "disp_param_t: p == NULL\n" );
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2409,7 +2457,7 @@ int disp_param_t ( char * info, param_t * p )
 	    p->outfp, p->cmask, p->ncmask, p->ccount, p->nvox
 	    );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2419,13 +2467,15 @@ int disp_param_t ( char * info, param_t * p )
 */
 int disp_opts_t ( char * info, opts_t * opts )
 {
+ENTRY("disp_opts_t");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( opts == NULL )
     {
 	fprintf( stderr, "disp_opts_t: opts == NULL\n" );
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2451,7 +2501,7 @@ int disp_opts_t ( char * info, opts_t * opts )
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2461,13 +2511,15 @@ int disp_opts_t ( char * info, opts_t * opts )
 */
 int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
 {
+ENTRY("disp_smap_opts_t");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( sopt == NULL )
     {
 	fprintf(stderr, "disp_smap_opts_t: sopt == NULL\n");
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2485,7 +2537,7 @@ int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
 	    sopt->cmask
 	    );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2500,14 +2552,14 @@ float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
     if ( p1 == NULL || p2 == NULL )
     {
 	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
-	return 0.0;
+	return(0.0);
     }
 
     d0 = p1->xyz[0] - p2->xyz[0];
     d1 = p1->xyz[1] - p2->xyz[1];
     d2 = p1->xyz[2] - p2->xyz[2];
 
-    return sqrt(d0*d0 + d1*d1 + d2*d2);
+    return(sqrt(d0*d0 + d1*d1 + d2*d2));
 }
 
 
@@ -2517,13 +2569,15 @@ float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
 */
 int disp_range_3dmm ( char * info, range_3dmm * dp )
 {
+ENTRY("disp_range_3dmm");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( dp == NULL )
     {
 	fprintf(stderr, "disp_range_3dmm: dp == NULL\n");
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2535,7 +2589,7 @@ int disp_range_3dmm ( char * info, range_3dmm * dp )
 	    dp->p1.xyz[0], dp->p1.xyz[1], dp->p1.xyz[2],
 	    dp->pn.xyz[0], dp->pn.xyz[1], dp->pn.xyz[2] );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2545,13 +2599,15 @@ int disp_range_3dmm ( char * info, range_3dmm * dp )
 */
 int disp_range_3dmm_res ( char * info, range_3dmm_res * dp )
 {
+ENTRY("disp_range_3dmm_res");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( dp == NULL )
     {
 	fprintf(stderr, "disp_range_3dmm: dp == NULL\n");
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2571,7 +2627,7 @@ int disp_range_3dmm_res ( char * info, range_3dmm_res * dp )
 	    "    i3arr[0].ijk       = %d, %d, %d\n",
 	    dp->i3arr[0].ijk[0], dp->i3arr[0].ijk[1], dp->i3arr[0].ijk[2] );
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -2584,13 +2640,15 @@ int disp_mri_imarr ( char * info, MRI_IMARR * dp )
     float * fp;
     int     cr, cc;
 
+ENTRY("disp_mri_imarr");
+
     if ( info )
 	fputs( info, stderr );
 
     if ( dp == NULL )
     {
 	fprintf(stderr, "disp_mri_imarr: dp == NULL\n");
-	return -1;
+	RETURN(-1);
     }
 
     fprintf(stderr,
@@ -2607,7 +2665,7 @@ int disp_mri_imarr ( char * info, MRI_IMARR * dp )
 	fputc( '\n', stderr );
     }
 
-    return 0;
+    RETURN(0);
 }
 
 
