@@ -277,7 +277,7 @@ void AFNI_make_wid3 (Three_D_View *) ;
 
 /*--------------------------------------------------------------------*/
 
-void AFNI_make_widgets( Three_D_View * im3d )
+void AFNI_make_widgets( Three_D_View *im3d )
 {
 
 ENTRY("AFNI_make_widgets") ;
@@ -285,7 +285,7 @@ ENTRY("AFNI_make_widgets") ;
    /*---- initialize -----*/
 
    if( ! IM3D_VALID(im3d) )
-      FatalError("illegal call to AFNI_make_widgets") ;
+     FatalError("illegal call to AFNI_make_widgets") ;
 
    num_entry++ ;
 
@@ -433,9 +433,29 @@ STATUS("WANT_AFNI_BITMAP") ;
                          afni48gracor_bits , afni48gracor_width , afni48gracor_height ,
                          ICON_fg , ICON_bg ,
                          DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
+
+      if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && !AFNI_noenv("AFNI_LOGO16") ){
+#include "afni16.xbm"
+        Pixel fg16=ICON_bg , bg16=ICON_fg ; int ic ; char ename[32] ;
+        sprintf(ename,"AFNI_LOGO16_FOREGROUND_%c" , 'A'+num_entry-1 ) ;
+        ic = DC_find_closest_overlay_color( im3d->dc , getenv(ename) ) ;
+        if( ic >= 0 ) fg16 = im3d->dc->ovc->pix_ov[ic] ;
+        sprintf(ename,"AFNI_LOGO16_BACKGROUND_%c" , 'A'+num_entry-1 ) ;
+        ic = DC_find_closest_overlay_color( im3d->dc , getenv(ename) ) ;
+        if( ic >= 0 ) bg16 = im3d->dc->ovc->pix_ov[ic] ;
+        afni16_pixmap[num_entry-1] = XCreatePixmapFromBitmapData(
+                                      XtDisplay(vwid->top_shell) ,
+                                      RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
+                                      afni16_bits , afni16_width , afni16_height ,
+                                      fg16 , bg16 ,
+                                      DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
+      }
 #endif  /* WANT_AFNI_BITMAP */
    }
 #endif  /* if WANT any of the BITMAPs */
+
+   if( afni16_pixmap[num_entry-1] != XmUNSPECIFIED_PIXMAP )
+     XtVaSetValues( vwid->top_form , XmNbackgroundPixmap,afni16_pixmap[num_entry-1] , NULL ) ;
 
    /* create each control panel, and a container frame for each */
 
@@ -4233,7 +4253,7 @@ void AFNI_popup_message( char *str )
   Find out which controller this is.  Return -1 if there is an error.
 ---------------------------------------------------------------------*/
 
-int AFNI_controller_index( Three_D_View * im3d )
+int AFNI_controller_index( Three_D_View *im3d )
 {
    int ii ;
 
@@ -4242,7 +4262,7 @@ ENTRY("AFNI_controller_index") ;
    if( ! IM3D_VALID(im3d) ) RETURN(-1) ;
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-      if( GLOBAL_library.controllers[ii] == im3d ) RETURN(ii) ;
+     if( GLOBAL_library.controllers[ii] == im3d ) RETURN(ii) ;
 
    RETURN(-1) ;
 }
@@ -4259,12 +4279,12 @@ ENTRY("AFNI_controller_index") ;
       all the information pertaining to the X11 display.
    "im3d_type" is one of AFNI_3DDATA_VIEW or AFNI_IMAGES_VIEW.  The former
       is for viewing 3D datasets; the latter is a restricted version for
-      viewing images only.
+      viewing images only (mostly obsolete now -- use program aiv instead).
 -----------------------------------------------------------------------------*/
 
-Three_D_View * new_AFNI_controller( Widget shell , MCW_DC * dc , int im3d_type )
+Three_D_View * new_AFNI_controller( Widget shell , MCW_DC *dc , int im3d_type )
 {
-   Three_D_View * im3d ;
+   Three_D_View *im3d ;
    int ii , last_color ;
 
 ENTRY("new_AFNI_controller") ;
@@ -4370,7 +4390,7 @@ ENTRY("new_AFNI_controller") ;
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */
 
-   im3d->vinfo->receiver          = AFMALL( AFNI_receiver*, 
+   im3d->vinfo->receiver          = AFMALL( AFNI_receiver*,
 					    sizeof(AFNI_receiver *));
    im3d->vinfo->receiver[0]       = NULL ;
    im3d->vinfo->num_receiver      = 0 ;
