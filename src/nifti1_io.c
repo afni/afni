@@ -774,6 +774,8 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
      swap_4bytes(4,h->srow_y);
      swap_4bytes(4,h->srow_z);
      swap_2(h->intent_code); swap_4(h->toffset);
+     swap_2(h->slice_start); swap_2(h->slice_end);
+     swap_4(h->slice_duration);
    }
    return ;
 }
@@ -900,7 +902,8 @@ nifti_image *nifti_image_read( char *hname , int read_data )
    if( fp == NULL )                      ERREX("can't open header file") ;
 
    /** test if header file starts with ASCII string "<nifti_image";
-       if so, read the dataset that special way                     **/
+       if so, read the dataset that special way and return now
+       (this is NOT part of the NIFTI-1 standard!)                **/
 
    ii = fread( buf , 1 , 12 , fp ) ;
    if( ii < 12 ){ fclose( fp ) ;         ERREX("bad header read") ; }
@@ -921,7 +924,7 @@ nifti_image *nifti_image_read( char *hname , int read_data )
      return nim ;
    }
 
-   /** read binary header **/
+   /***** Normal case:  read binary header *****/
 
    ii = fread( &nhdr , 1 , sizeof(nhdr) , fp ) ;          /* read the thing */
    fclose( fp ) ;                                         /* close the file */
@@ -1124,8 +1127,17 @@ nifti_image *nifti_image_read( char *hname , int read_data )
 
      memcpy(nim->intent_name,nhdr.intent_name,15); nim->intent_name[15] = '\0';
 
-     nim->xyz_units  = nhdr.xyz_units  ;
-     nim->time_units = nhdr.time_units ;
+     nim->xyz_units  = XYZT_TO_SPACE(nhdr.xyzt_units) ;
+     nim->time_units = XYZT_TO_TIME (nhdr.xyzt_units) ;
+
+     nim->freq_dim  = DIM_INFO_TO_FREQ_DIM ( nhdr.dim_info ) ;
+     nim->phase_dim = DIM_INFO_TO_PHASE_DIM( nhdr.dim_info ) ;
+     nim->slice_dim = DIM_INFO_TO_SLICE_DIM( nhdr.dim_info ) ;
+
+     nim->slice_code     = nhdr.slice_code  ;
+     nim->slice_start    = nhdr.slice_start ;
+     nim->slice_end      = nhdr.slice_end   ;
+     nim->slice_duration = FIXED_FLOAT(nhdr.slice_duration) ;
    }
 
    /* Miscellaneous ANALYZE stuff */
@@ -1323,6 +1335,7 @@ void nifti_image_write( nifti_image *nim )
        nim->iname_offset = sizeof(nhdr) ;
      break ;
 
+               /* non-standard case: */
      case 3:{  /* NIFTI-1 ASCII header + binary data (single file) */
        char *hstr ;
        nim->iname_offset = -1 ;              /* compute offset from filesize */
@@ -1343,7 +1356,7 @@ void nifti_image_write( nifti_image *nim )
    /** load the ANALYZE-7.5 generic parts of the header struct **/
 
    nhdr.sizeof_hdr = sizeof(nhdr) ;
-   nhdr.regular    = 'r' ;
+   nhdr.regular    = 'r' ;             /* for some stupid reason */
 
    nhdr.dim[0] = nim->ndim ;
    nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
@@ -1393,8 +1406,7 @@ void nifti_image_write( nifti_image *nim )
      }
 
      nhdr.vox_offset  = (float) nim->iname_offset ;
-     nhdr.xyz_units   = (char) nim->xyz_units ;
-     nhdr.time_units  = (char) nim->time_units ;
+     nhdr.xyzt_units  = SPACE_TIME_TO_XYZT( nim->xyz_units, nim->time_units ) ;
      nhdr.toffset     = nim->toffset ;
 
      if( nim->qform_code > 0 ){
@@ -1423,6 +1435,13 @@ void nifti_image_write( nifti_image *nim )
        nhdr.srow_z[2]  = nim->sto_xyz.m[2][2] ;
        nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
      }
+
+     nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
+                                        nim->phase_dim , nim->slice_dim ) ;
+     nhdr.slice_code     = nim->slice_code ;
+     nhdr.slice_start    = nim->slice_start ;
+     nhdr.slice_end      = nim->slice_end ;
+     nhdr.slice_duration = nim->slice_duration ;
    }
 
    /** Open file, write header **/
@@ -1711,7 +1730,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
    }
 
    if( nim->toffset != 0.0 )
-     sprintf( buf+strlen(buf) , "  toffset = '%g'\n",nim->toffset) ;
+     sprintf( buf+strlen(buf) , "  toffset = '%g'\n",nim->toffset ) ;
 
    if( nim->xyz_units > 0 )
      sprintf( buf+strlen(buf) ,
@@ -1724,6 +1743,22 @@ char *nifti_image_to_ascii( nifti_image *nim )
               "  time_units = '%d'\n"
               "  time_units_name = '%s'\n" ,
               nim->time_units , nifti_units_string(nim->time_units) ) ;
+
+   if( nim->freq_dim > 0 )
+     sprintf( buf+strlen(buf) , "  freq_dim = '%d'\n",nim->freq_dim ) ;
+   if( nim->phase_dim > 0 )
+     sprintf( buf+strlen(buf) , "  phase_dim = '%d'\n",nim->phase_dim ) ;
+   if( nim->slice_dim > 0 )
+     sprintf( buf+strlen(buf) , "  slice_dim = '%d'\n",nim->slice_dim ) ;
+   if( nim->slice_code > 0 )
+     sprintf( buf+strlen(buf) , "  slice_code = '%d'\n",nim->slice_code ) ;
+   if( nim->slice_start > 0 )
+     sprintf( buf+strlen(buf) , "  slice_start = '%d'\n",nim->slice_start ) ;
+   if( nim->slice_end > 0 )
+     sprintf( buf+strlen(buf) , "  slice_end = '%d'\n",nim->slice_end ) ;
+   if( nim->slice_duration != 0.0 )
+     sprintf( buf+strlen(buf) , "  slice_duration = '%g'\n",
+              nim->slice_duration ) ;
 
    if( nim->descrip[0] != '\0' ){
      ebuf = escapize_string(nim->descrip) ;
@@ -1980,6 +2015,13 @@ nifti_image *nifti_image_from_ascii( char *str )
      else QNUM(qoffset_z) ;
      else QNUM(qfac) ;
      else QNUM(sform_code) ;
+     else QNUM(freq_dim) ;
+     else QNUM(phase_dim) ;
+     else QNUM(slice_dim) ;
+     else QNUM(slice_code) ;
+     else QNUM(slice_start) ;
+     else QNUM(slice_end) ;
+     else QNUM(slice_duration) ;
 
    } /* end of while loop */
 
