@@ -89,6 +89,7 @@ typedef struct  /* user options */
     int              nice;          /* nice offset (must be >= 0)       */
     int              debug;         /* debug level                      */
     int              gert_reco;     /* output GERT_Reco2 script         */
+    int              quit;          /* quit when no new images found    */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
