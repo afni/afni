@@ -467,3 +467,8 @@
 19 February 2004:
   * modified SUMA_3dVol2Surf.[ch] (->v4.3) to track 1dindex sources 
 
+20 February 2004:
+  * modified plug_maxima.c
+      - added ENTRY/RETURN calls
+      - error: do not process last plane in find_local_maxima()
+

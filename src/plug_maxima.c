@@ -11,6 +11,15 @@
  *----------------------------------------------------------------------
 */
 
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 2004 Feb 20 [rickr]
+ *   - added ENTRY/RETURN calls to most functions
+ *   _ do not process last plane in find_local_maxima()
+ *----------------------------------------------------------------------
+*/
+
 #include "afni.h"
 #include "plug_maxima.h"
 
@@ -239,29 +248,29 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     int                negatives = 0, quiet = 0, true_max = 0, opcnt = 0;
     int                style = MAX_SORT_N_REMOVE_STYLE;
 
+ENTRY("process_args");
     /* get AFNI inputs */
 
     if( plint == NULL )
-	return "----------------------\n"
+	RETURN("----------------------\n"
                "arguments : NULL input\n"
-               "----------------------";
+               "----------------------");
 
     if ( ! init_afni_s( A ) )
-	return  "------------------------\n"
+	RETURN( "------------------------\n"
 		"arguments : init failure\n"
-		"------------------------";
+		"------------------------");
 
     PLUTO_next_option( plint );
     idc  = PLUTO_get_idcode( plint );
     dset = PLUTO_find_dset( idc );
 
     if( dset == NULL )
-	return "-----------------------------\n"
+	RETURN("-----------------------------\n"
                "arguments : bad input dataset\n"
-               "-----------------------------";
+               "-----------------------------");
 
     DSET_load( dset );
-
 
     for ( optag  = PLUTO_get_optiontag( plint );
 	  optag != NULL;
@@ -272,10 +281,9 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 	{
 	    outfile = PLUTO_get_string( plint );
 	    if ( ! PLUTO_prefix_ok( outfile ) )
-		return
-		    "-------------------------\n"
-		    "options : bad file prefix\n"
-		    "-------------------------";
+		RETURN( "-------------------------\n"
+		        "options : bad file prefix\n"
+			"-------------------------");
 	}
 	else if ( ! strcmp( optag, "cutoff" ) )
 	{
@@ -284,18 +292,16 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 	else if ( ! strcmp( optag, "min_dist" ) )
 	{
 	    if ( ( min_dist = PLUTO_get_number( plint ) ) < 0 )
-		return
-		    "-----------------------------------------\n"
-		    "options : Separation must be non-negative\n"
-		    "-----------------------------------------";
+		RETURN( "-----------------------------------------\n"
+			"options : Separation must be non-negative\n"
+			"-----------------------------------------");
 	}
 	else if ( ! strcmp( optag, "out_rad" ) )
 	{
 	    if ( ( out_rad = PLUTO_get_number( plint ) ) < 0 )
-		return
-		    "--------------------------------------------\n"
-		    "options : Output radius must be non-negative\n"
-		    "--------------------------------------------";
+		RETURN( "--------------------------------------------\n"
+			"options : Output radius must be non-negative\n"
+			"--------------------------------------------");
 	}
 	else if ( ! strcmp( optag, "negatives" ) )
 	{
@@ -304,10 +310,9 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 	else if ( ! strcmp( optag, "style" ) )
 	{
 	    if ( ( style_str = PLUTO_get_string( plint ) ) == NULL )
-		return
-		    "-------------------------------\n"
-		    "options : missing style string?\n"
-		    "-------------------------------";
+		RETURN( "-------------------------------\n"
+			"options : missing style string?\n"
+			"-------------------------------");
 	    if ((( style = PLUTO_string_index(style_str, 2, grStyle)) 
 				< 0 ) || ( style > MAX_MAX_STYLE ) )
 	    {
@@ -315,7 +320,7 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 		    "---------------------------\n"
 		    "options : bad style is %d\n"
 		    "---------------------------", style );
-		return grMessage;
+		RETURN(grMessage);
 	    }
 	}
 	else if ( ! strcmp( optag, "true_max" ) )
@@ -330,28 +335,26 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 	{
 	    sprintf( grMessage, "Error: pa_00\n"
 		     "Unexpected option #%d: '%s'", opcnt, optag );
-	    return grMessage;
+	    RETURN(grMessage);
 	}
 
 	opcnt++;
     }
 
     if ( ( out_rad > 0 ) && ( outfile == NULL ) )
-	return
-		"------------------------------------------------\n"
+	RETURN( "------------------------------------------------\n"
                 "arguments : specify outfile to use output radius\n"
-                "------------------------------------------------";
+                "------------------------------------------------");
 
     if ( ! r_set_afni_s_from_dset( A, dset ) )
-	return
-		"-------------------------------\n"
+	RETURN( "-------------------------------\n"
                 "arguments : afni_s init failure\n"
-                "-------------------------------";
+                "-------------------------------");
 
     if ( ! init_maxima_s( M, A, outfile ) )
-	return "----------------------------------\n"
+	RETURN("----------------------------------\n"
                "MAXIMA_main: maxima_s init failure\n"
-               "----------------------------------";
+               "----------------------------------");
 
     /* now fill any remaining parameters */
     M->cutoff     = cutoff/A->factor[0];
@@ -363,7 +366,7 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     M->quiet      = quiet;
     M->true_max   = true_max;
 
-    return NULL;
+    RETURN(NULL);
 }
 
 
@@ -376,10 +379,11 @@ process_args( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 static int
 process_data( maxima_s * M )
 {
+ENTRY("process_data");
     ( void )find_local_maxima( M );
 
     if ( ! create_point_list( M ) )
-        return 0;
+        RETURN(0);
 
     gr_orig_data = M->sdata;            /* global needed for sorting */
     if ( M->negatives )
@@ -388,12 +392,12 @@ process_data( maxima_s * M )
         qsort( M->P.plist, M->P.used, sizeof( int ), point_comp_pos );
 
     if ( ( M->min_dist > 1.0 ) && ! apply_min_dist( M ) )
-        return 0;
+        RETURN(0);
 
     if ( M->outfile )
         apply_fill_radius( M );
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -642,13 +646,15 @@ create_point_list( maxima_s * M )
     int            count;
     point_list_s * P = &M->P;
 
+ENTRY("create_pint_list");
+
     mptr = M->result;
     for ( count = 0; count < M->nvox; count++ )
 	if ( *mptr++ )
 	    if ( ! add_point_to_list( P, count ) )
-		return 0;
+		RETURN(0);
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -661,6 +667,7 @@ create_point_list( maxima_s * M )
 static int
 add_point_to_list( point_list_s * P, int offset )
 {
+ENTRY("add_point_to_list");
     if ( ! P->plist )
     {
 	P->M = 100;
@@ -670,7 +677,7 @@ add_point_to_list( point_list_s * P, int offset )
 	{
 	    rERROR( "Error: aptl_10\n"
 		    "Failed to allocate memory for initial point list.\n" );
-	    return 0;
+	    RETURN(0);
 	}
     }
     else if ( P->used == P->M )
@@ -681,14 +688,14 @@ add_point_to_list( point_list_s * P, int offset )
 	{
 	    sprintf( grMessage, "Error: aptl_20\n"
 		    "Failed to reallocate %d ints for point list", P->M );
-	    return 0;
+	    RETURN(0);
 	}
     }
 
     P->plist[P->used] = offset;
     P->used++;
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -705,6 +712,8 @@ apply_fill_radius( maxima_s * M )
     int    x, y, z;
     int  * iptr;
 
+ENTRY("apply_fill_radius");
+
     for ( count = 0, iptr = M->P.plist; count < M->P.used; count++, iptr++ )
     {
 	if ( M->out_rad < 1.0 )
@@ -720,8 +729,7 @@ apply_fill_radius( maxima_s * M )
 	radial_fill( x, y, z, M );
     }
 
-
-    return 1;
+    RETURN(1);
 }
 
 
@@ -737,6 +745,8 @@ radial_fill( int X, int Y, int Z, maxima_s * M )
     int xmin, xmax, ymin, ymax, zmin, zmax;
     int yc, zc, xrad, yrad, yrad2;
     int xbase, ybase, zbase;
+
+ENTRY("radial_fill");
 
     short * sptr, * optr;
     float   radius = M->out_rad;
@@ -773,7 +783,7 @@ radial_fill( int X, int Y, int Z, maxima_s * M )
         }
     }
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -792,6 +802,8 @@ find_local_maxima( maxima_s * M )
     int     maxy = M->ny - 1;
     int     nx = M->nx, nxy = M->nx * M->ny;
     int     offset[ 26 ];		/* for speed */
+
+ENTRY("find_local_maxima");
 
     offset[ 0] = +1;
     offset[ 1] = -1;
@@ -823,7 +835,7 @@ find_local_maxima( maxima_s * M )
     sourcep = M->sdata  + nxy;		/* skip first plane */
     destp   = M->result + nxy;
 
-    for ( cz = 0; cz < M->nz-1; cz++ )	/* don't need to do last plane */
+    for ( cz = 0; cz < M->nz-2; cz++ )  /* and skip last plane (1->2) [rickr] */
     {
 	for ( cy = 0; cy < M->ny; cy++ )
 	{
@@ -921,7 +933,7 @@ find_local_maxima( maxima_s * M )
 	}
     }
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -938,11 +950,13 @@ write_results( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
 {
     THD_3dim_dataset * newdset;
 
+ENTRY("write_results");
+
     if ( ! M->quiet )
 	display_coords( A, M );
 
     if ( ! *M->outfile )
-	return 1;
+	RETURN(1);
 
 
     /* actually write a new dataset */
@@ -950,7 +964,7 @@ write_results( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     if ( ( newdset = EDIT_empty_copy( M->dset ) ) == NULL )
     {
 	rERROR( "Error: wr_00\n" "Failed to copy dataset." );
-	return 0;
+	RETURN(0);
     }
 
     { char * his = PLUTO_commandstring(plint) ;
@@ -974,12 +988,12 @@ write_results( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     if ( PLUTO_add_dset( plint, newdset, DSET_ACTION_MAKE_CURRENT ) )
     {
 	rERROR( "Error: wr_10\n" "Failed to make current dataset." );
-	return 0;
+	RETURN(0);
     }
     else
 	DSET_unload( M->dset );
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1004,6 +1018,8 @@ display_coords( r_afni_s * A, maxima_s * M )
     int   * iptr;
     int     X, Y, Z, offset, count;
     int     xm1 = M->nx - 1, ym1 = M->ny - 1, zm1 = M->nz - 1;
+
+ENTRY("display_coords");
 
     point_list_s * P = &M->P;
 
@@ -1046,7 +1062,7 @@ display_coords( r_afni_s * A, maxima_s * M )
     printf( "---------------------------------------------\n" );
 
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1061,6 +1077,8 @@ display_coords( r_afni_s * A, maxima_s * M )
 static int
 init_afni_s( r_afni_s * A )
 {
+ENTRY("init_afni_s");
+
     memset( A, 0, sizeof( r_afni_s ) );
 
     A->must_be_short   = 1;
@@ -1068,7 +1086,7 @@ init_afni_s( r_afni_s * A )
     A->subs_must_equal = 1;
     A->max_subs        = 1;
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1081,6 +1099,8 @@ init_afni_s( r_afni_s * A )
 static int
 init_maxima_s( maxima_s * M, r_afni_s * A, char * outprefix )
 {
+ENTRY("init_maxima_s");
+
     M->dset   = A->dset[0];
 
     M->sdata = A->simage[0];
@@ -1090,7 +1110,7 @@ init_maxima_s( maxima_s * M, r_afni_s * A, char * outprefix )
         sprintf( grMessage, "Error: ims_05\n"
 		 "Failed to allocate M for %d shorts.", A->nvox );
 	rERROR( grMessage );
-	return 0;
+	RETURN(0);
     }
 
     M->nx 	 = A->nx;
@@ -1114,7 +1134,7 @@ init_maxima_s( maxima_s * M, r_afni_s * A, char * outprefix )
         sprintf( grMessage, "Error: ims_10\n"
 		 "Outfile prefix exceeds %d characters.", R_FILE_L );
 	rERROR( grMessage );
-	return 0;
+	RETURN(0);
     }
 
     if ( outprefix )
@@ -1132,7 +1152,7 @@ init_maxima_s( maxima_s * M, r_afni_s * A, char * outprefix )
     M->quiet        = 0;
     M->true_max     = 0;
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1189,6 +1209,8 @@ point_comp_neg( const void * p1, const void * p2 )
 int
 r_set_afni_s_from_dset( r_afni_s * A, THD_3dim_dataset * dset )
 {
+ENTRY("r_set_afni_s_from_dset");
+
     if ( A->num_dsets >= R_MAX_AFNI_DSETS )
     {
         sprintf( grMessage, "Error: rsasfd_00\n"
@@ -1196,7 +1218,7 @@ r_set_afni_s_from_dset( r_afni_s * A, THD_3dim_dataset * dset )
                  R_MAX_AFNI_DSETS );
         rERROR( grMessage );
 
-        return 0;
+        RETURN(0);
     }
 
     A->dset[ A->num_dsets ] = dset;
@@ -1226,7 +1248,7 @@ r_set_afni_s_from_dset( r_afni_s * A, THD_3dim_dataset * dset )
                      "Failed to allocate memory for %d floats.\n", A->nvox );
             rERROR( grMessage );
 
-            return 0;
+            RETURN(0);
         }
 
         fptr = A->fimage[ A->num_dsets ];
@@ -1236,9 +1258,9 @@ r_set_afni_s_from_dset( r_afni_s * A, THD_3dim_dataset * dset )
     }
 
     A->max_u_short  = r_get_max_u_short( (u_short *)A->simage[0], A->nvox );
-    A->num_dsets++;
+/*    A->num_dsets++;   not using more than one */
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1273,6 +1295,7 @@ r_get_max_u_short( u_short * S, int size )
 static void
 free_memory( r_afni_s * A, maxima_s * M )
 {
+ENTRY("free_memory");
     if ( A->want_floats && A->fimage[0] )
 	free( A->fimage[0] );
 
@@ -1281,6 +1304,8 @@ free_memory( r_afni_s * A, maxima_s * M )
 
     if ( M->P.plist )
 	free( M->P.plist );
+
+    EXRETURN;
 }
 
 
