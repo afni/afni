@@ -1,21 +1,4 @@
 /*! Dealings with volume data */
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <Xm/Form.h>    /* Motif Form widget. */
-#include <Xm/Frame.h>   /* Motif Frame widget. */
-#include <X11/keysym.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>  /* For XA_RGB_DEFAULT_MAP. */
-#include <X11/Xmu/StdCmap.h>  /* For XmuLookupStandardColormap. */
-#include <math.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glx.h>
-#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
-
-#include "mrilib.h"
 #include "SUMA_suma.h"
 
 THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO, THD_fvec3 iv );
