@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.4 (October 1, 2003)"
+#define VERSION "version 3.5 (October 20, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -59,8 +59,11 @@
 /*----------------------------------------------------------------------
  * history:
  *
- * 3.4  October 1, 2003
+ * 3.5  October 20, 2003
+ *   - call the new engine function, SUMA_LoadSpec_eng()
+ *     (this will restrict the debug output from SUMA_LoadSpec())
  *
+ * 3.4  October 1, 2003
  *   - added -oom_value option
  *   - added additional help example (for -oob and -oom options)
  *
@@ -863,7 +866,11 @@ int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
 */
 int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
-    if ( opts->debug > 2 )
+    int debug;						/* v3.5 [rickr] */
+    
+    debug = (opts->debug > 2);
+
+    if ( debug )
 	fputs( "-- SUMA_Create_CommonFields()...\n", stderr );
 
     /* initialize common fields struct */
@@ -884,12 +891,12 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 	    SUMAg_CF->InOut_Notify = 1;
     }
 
-    if ( opts->debug > 2 )
+    if ( debug )
 	fputs( "-- SUMA_Alloc_DisplayObject_Struct()...\n", stderr );
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-    if ( opts->debug > 2 )
+    if ( debug )
 	fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
 
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
@@ -906,13 +913,13 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 	return -1;
     }
 
-    if ( opts->debug > 2 )
-	fputs( "-- SUMA_LoadSpec()...\n", stderr );
+    if ( debug )
+	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
-    if ( SUMA_LoadSpec(spec, SUMAg_DOv, &SUMAg_N_DOv, opts->sv_file) == 0 )
+    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug) == 0)
     {
-	fprintf( stderr, "** error: failed SUMA_LoadSpec(), exiting...\n" );
+	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
 	return -1;
     }
 

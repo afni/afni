@@ -325,3 +325,14 @@
 08 October 2003:
   * modified @SUMA_AlignToExperiment to use tcsh instead of csh (for $#)
 
+20 October 2003:
+  * modified SUMA files SUMA_Load_Surface_Object.[ch] SUMA_MiscFunc.[ch] and
+    SUMA_Surface_IO.[ch] to make non-error output optional via a debug flag
+      - renamed the following functions to XXX_eng (engine functions):
+          SUMA_Load_Surface_Object, SUMA_LoadSpec, SUMA_SurfaceMetrics,
+          SUMA_Make_Edge_List, SUMA_FreeSurfer_Read
+      - wrote functions with original names to call engines with debug
+        flags set
+  * modified SUMA_3dVol2Surf.c to call the new SUMA_LoadSpec_eng()  (-> v3.5)
+  * modified SUMA_3dSurf2Vol.c to call the new SUMA_LoadSpec_eng()  (-> v2.1)
+
