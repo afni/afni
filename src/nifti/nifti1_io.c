@@ -18,7 +18,7 @@
 
 
 /* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.6 (December 15, 2004)";
+static char gni_version[] = "nifti library version 0.6a (December 15, 2004)";
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -117,6 +117,7 @@ static char gni_history[] =
   "   - nifti_set_iname_offset(): case 1 must have sizeof() cast to int\n"
   "   - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data\n"
   "   - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()\n"
+  "   - included compression abilities\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
@@ -1727,7 +1728,8 @@ char * nifti_find_file_extension( char * name )
 #ifdef HAVE_ZLIB
    if ( len < 7 ) return NULL;
 
-   ext = name - 7;
+   ext = name + len - 7;
+
    if ( (strcmp(ext, ".hdr.gz") == 0) || (strcmp(ext, ".img.gz") == 0) ||
         (strcmp(ext, ".nia.gz") == 0) || (strcmp(ext, ".nii.gz") == 0) )
       return ext;
