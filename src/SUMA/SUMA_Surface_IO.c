@@ -669,8 +669,12 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	
 	if (SF->AC[0] == SF->AC_WholeVolume[0] && SF->AC[1] == SF->AC_WholeVolume[1] && SF->AC[2] == SF->AC_WholeVolume[2])
 	{
-		fprintf (SUMA_STDERR,"Error %s: Idetincal values for AC and AC_WholeVolume. Check you params file.\n", FuncName);
+		SUMA_SL_Warn("Idetincal values for AC and AC_WholeVolume.\nCheck your params file if not using Talairach-ed surfaces.\n");
+      /* looks like that's OK for TLRC surfaces ...*/
+      /*
+      fprintf (SUMA_STDERR,"Error %s: Idetincal values for AC and AC_WholeVolume. Check your params file.\n", FuncName);
 		SUMA_RETURN (NOPE);
+      */
 	}
 	if (SF->AC[0] < 0 || SF->AC[1] < 0 || SF->AC[2] < 0 || SF->AC_WholeVolume[0] < 0 || SF->AC_WholeVolume[1] < 0 || SF->AC_WholeVolume[2] < 0) 
 	{
@@ -860,6 +864,11 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	/* read in the number of nodes and the number of facesets */
 	ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
 	
+   if (FS->N_Node <= 0 || FS->N_FaceSet <= 0) {
+      SUMA_SL_Crit("Trouble parsing FreeSurfer file.\nNull or negative number of nodes &/| facesets.\n");
+      SUMA_RETURN(NOPE);
+   }
+   
 	if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for NodeList (%dx3) and FaceSetList(%dx3)\n", FuncName, FS->N_Node, FS->N_FaceSet);
    
    /* allocate space for NodeList and FaceSetList */
@@ -1770,7 +1779,7 @@ void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
           printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
-                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_app]\n");
+                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai]\n");
           printf ("\t reads in a surface and writes it out in another format.\n");
           printf ("\t Note: This is a not a general utility conversion program. \n");
           printf ("\t Only fields pertinent to SUMA are preserved.\n");
@@ -1799,7 +1808,7 @@ void usage_SUMA_ConvertSurface ()
           printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
           printf ("\t -tlrc: Apply Talairach transform (which must be in talairach version of SurfaceVolume)\n");
           printf ("\t     to the surface vertex coordinates. This option must be used with the -sv option.\n");
-          printf ("\t -MNI_app: Apply Andreas Meyer Lindenberg's transform to turn AFNI tlrc coordinates (RAI)\n"
+          printf ("\t -MNI_rai: Apply Andreas Meyer Lindenberg's transform to turn AFNI tlrc coordinates (RAI)\n"
                   "\t     into MNI coord space (in RAI not LPI).\n");
           printf ("\t     this option must be used with the -tlrc option.\n"); 
           printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
@@ -1823,7 +1832,7 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni ;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI ;
    SUMA_Boolean LocalHead = NOPE;
    
 	/* allocate space for CommonFields structure */
@@ -1842,7 +1851,8 @@ int main (int argc,char *argv[])
    kar = 1;
 	brk = NOPE;
    Do_tlrc = NOPE;
-   Do_mni = NOPE;
+   Do_mni_RAI = NOPE;
+   Do_mni_LPI = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -1970,10 +1980,16 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-MNI_app") == 0)) {
-         Do_mni = YUP;
+      if (!brk && (strcmp(argv[kar], "-MNI_rai") == 0)) {
+         Do_mni_RAI = YUP;
          brk = YUP;
       }
+      
+      if (!brk && (strcmp(argv[kar], "-MNI_lpi") == 0)) {
+         Do_mni_LPI = YUP;
+         brk = YUP;
+      }
+      
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -1984,6 +2000,11 @@ int main (int argc,char *argv[])
    }
 
    /* sanity checks */
+   if (Do_mni_LPI && Do_mni_RAI) {
+      fprintf (SUMA_STDERR,"Error %s:\nCombining -MNI_lpi and -MNI_rai options.\nNot good.", FuncName);
+      exit(1);
+   }
+   
    if (!if_name) {
       fprintf (SUMA_STDERR,"Error %s: input surface not specified.\n", FuncName);
       exit(1);
@@ -2017,7 +2038,7 @@ int main (int argc,char *argv[])
       }
    }
 
-   if (Do_mni && !Do_tlrc) {
+   if (( Do_mni_RAI || Do_mni_LPI) && !Do_tlrc) {
       SUMA_SL_Warn ("I hope you know what you're doing.\nThe MNI transform should only be applied to a\nSurface in the AFNI tlrc coordinate space.\n");
    }
    
@@ -2195,13 +2216,22 @@ int main (int argc,char *argv[])
       
    }
    
-   if (Do_mni) {
+   if (Do_mni_RAI) {
       /* apply the mni warp */
       if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "RAI")) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
          exit(1);
       }
    }
+   
+   if (Do_mni_LPI) {
+      /* apply the mni warp */
+      if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "LPI")) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
+         exit(1);
+      }
+   }
+   
   
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    

@@ -540,7 +540,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          /* read the param file */
          if (strlen(SF_FileName->name_param)){
             if (!SUMA_Read_SureFit_Param(SF_FileName->name_param, SF)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SureFit_Read_Topo.\n", FuncName);
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Read_SureFit_Param.\n", FuncName);
             }
          } else {
             if (VolParName != NULL) {
@@ -1306,7 +1306,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
    SUMA_Boolean brk, SurfIn=NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
    if ( debug )
        fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
