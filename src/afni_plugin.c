@@ -4279,6 +4279,8 @@ ENTRY("PLUGIN_seq_send_CB") ;
          changes the kill function/data to kfunc/kdata;
       PLUTO_imseq_addto(handle,im)
          adds the single image "im" to the display
+      PLUTO_imseq_setim(handle,n)
+         sets the image index to 'n'
       PLUTO_imseq_destroy(handle)
          pops down the image viewer;
          destroys the internal copies of the images;
@@ -4297,7 +4299,7 @@ void * PLUTO_imseq_popim( MRI_IMAGE * im, generic_func * kfunc, void * kdata )
    INIT_IMARR(imar) ;
    ADDTO_IMARR(imar,im) ;
    handle = PLUTO_imseq_popup( imar,kfunc,kdata ) ;
-   FREE_IMARR(imar) ;
+   FREE_IMARR(imar) ;  /* not DESTROY_IMARR: we don't 'own' im */
    return handle ;
 }
 
@@ -4412,6 +4414,19 @@ void PLUTO_imseq_addto( void * handle , MRI_IMAGE * im )
 
    drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot) ) ;
 
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void PLUTO_imseq_setim( void *handle , int n )    /* 17 Dec 2004 */
+{
+   PLUGIN_imseq *psq = (PLUGIN_imseq *)handle ;
+
+   if( psq == NULL || psq->seq == NULL ||
+       n   <  0    || n        >= IMARR_COUNT(psq->imar) ) return ;
+
+   drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(n) ) ;
    return ;
 }
 
