@@ -26,7 +26,7 @@ static char ns_name[NUM_NIML][64] ;
 /*--------------------------------*/
 /*! If 1, won't send info to SUMA */
 
-static int dont_tell_suma = 0 ;
+static int dont_tell_suma = 1 ;
 
 /*---------------------------------------*/
 /*! If 1, won't listen to info from SUMA */
@@ -179,6 +179,8 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        NI_free_element( nini ) ;                     /* trash it */
      }
    }
+
+   dont_tell_suma = 0 ;                              /* talk to SUMA */
 
    return False ;  /* always call me back */
 }
@@ -354,8 +356,7 @@ ENTRY("AFNI_process_NIML_data") ;
 
      xyz = (float *) nel->vec[0] ;
      dont_tell_suma = 1 ;
-     AFNI_jumpto_dicom( GLOBAL_library.controllers[0] ,
-                        xyz[0] , xyz[1] , xyz[2]       ) ;
+     AFNI_jumpto_dicom( GLOBAL_library.controllers[0], xyz[0],xyz[1],xyz[2] );
      dont_tell_suma = 0 ;
      EXRETURN ;
    }
