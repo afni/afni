@@ -609,6 +609,7 @@ extern void        mri_dup2D_mode( int ) ;                /* 12 Mar 2002 */
 
 extern void mri_move_guts( MRI_IMAGE *, MRI_IMAGE * ) ;  /* 28 Mar 2002 */
 extern MRI_IMAGE * mri_copy( MRI_IMAGE * ) ;             /* 17 Apr 2000 */
+extern MRI_IMAGE * mri_expand_2D( int , MRI_IMAGE * ) ;  /* 22 Feb 2004 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern MRI_IMAGE *mri_read_ge4( char * ) ;               /* 03 Jun 2003 */
