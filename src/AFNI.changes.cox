@@ -3697,6 +3697,7 @@
  * New functions in thd_mnicoords.c to translate TT atlas coords to/from
      MNI template coords.
  * Used above in thd_ttatlas_query.c.
+ * Samia Saad was born today!
 
 30 Apr 2002
  * Modified 3dclust.c to add -mni option.
@@ -3707,3 +3708,4 @@
      'See Function' on if the edited dataset is functional type.
  * Added edt_clust2.c (NIH_find_clusters) to implement ISOVALUE_MODE and
      ISOMERGE_MODE.
+ * Incorporated Ziad Saad's Ifile program into AFNI distribution.
