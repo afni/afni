@@ -4067,3 +4067,5 @@
 29 Nov 2002
  * Modified mri_read_stuff.c to allow for case when initial 4096 byte buffer
      contains all the image data (i.e., for tiny images).
+ * Modified coxplot/plot_ps.c to allow output to stdout.
+ * Modified 1dplot.c to allout PostScript output to stdout.
