@@ -4906,6 +4906,9 @@ void REND_func_widgets(void)
    smax  = (int)( pow(10.0,decim) + 0.001 ) ;         /* for scale display. */
    stop  = smax - 1 ;
    sstep = smax / 1000 ;  if( sstep < 1 ) sstep = 1 ;
+   { char *eee = getenv("AFNI_THRESH_BIGSTEP") ;      /* 09 May 2003 */
+     if( eee != NULL ){ int iq=strtol(eee,NULL,10); if(iq > 0) sstep=iq; }
+   }
 
 #ifdef BOXUP_SCALE
    wqqq = XtVaCreateManagedWidget(

@@ -365,7 +365,7 @@ int main( int argc , char * argv[] )
                                             XmNvalue         , 0 ,
                                             XmNwidth         , P_swide ,
                                             XmNshowValue     , True ,
-                                            XmNscaleMultiple , 5 ,
+                                            XmNscaleMultiple , 10 ,
                                             XmNorientation   , XmHORIZONTAL ,
                                             XmNtraversalOn , False ,
                                          NULL ) ;
@@ -393,7 +393,7 @@ int main( int argc , char * argv[] )
                                             XmNvalue         , 0 ,
                                             XmNwidth         , P_swide ,
                                             XmNshowValue     , True ,
-                                            XmNscaleMultiple , 5 ,
+                                            XmNscaleMultiple , 10 ,
                                             XmNorientation   , XmHORIZONTAL ,
                                             XmNtraversalOn , False ,
                                          NULL ) ;
