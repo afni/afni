@@ -1352,7 +1352,7 @@ ENTRY("init_const") ;
    grapher->mat_max = MIN( grapher->mat_max , grapher->status->nx ) ;
    grapher->mat_max = MIN( grapher->mat_max , grapher->status->ny ) ;
 
-   if( grapher->mat <= 0 ) grapher->mat = 3 ;
+   if( grapher->mat <= 0 ) grapher->mat = INIT_GR_gmat ;
    grapher->mat = MIN( grapher->mat , grapher->mat_max ) ;
 
    if( grapher->xpoint < 0 || grapher->xpoint >= grapher->status->nx )
