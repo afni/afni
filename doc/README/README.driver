@@ -11,6 +11,14 @@ available are described below.  The sample plugout plugout_drive.c can
 be used to test how things work (highly recommended before you start
 writing your own code).
 
+SYSTEM command string
+  Executes "command string" using the system() library function; for
+  example, "SYSTEM mkdir aaa".
+
+
+CHDIR newdirectory
+  Changes the current directory; for example, "CHDIR aaa".
+
 
 RESCAN_THIS [c]
   rescans the current session directory for controller 'c', where 'c'
