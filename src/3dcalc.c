@@ -555,7 +555,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
          /* load floating scale factors */
 
-         CALC_ffac[ival] = (float * ) malloc( sizeof(float) * ntime[ival] ) ;
+         CALC_ffac[ival] = (float *) malloc( sizeof(float) * ntime[ival] ) ;
          if ( ntime[ival] == 1 ) {
             CALC_ffac[ival][0] = DSET_BRICK_FACTOR( dset , isub) ;
             if (CALC_ffac[ival][0] == 0.0 ) CALC_ffac[ival][0] = 1.0 ;

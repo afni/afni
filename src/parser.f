@@ -1313,34 +1313,84 @@ C
 ccc         WRITE(*,9802) IVBOT,IVTOP
 ccc9802     FORMAT('   .. PAREVEC: loop from',I5,' to',I5)
 C
-            DO 100 IV=IVBOT,IVTOP
-               R8VAL(IV-IBV, 1) = VA(IV)
-               R8VAL(IV-IBV, 2) = VB(IV)
-               R8VAL(IV-IBV, 3) = VC(IV)
-               R8VAL(IV-IBV, 4) = VD(IV)
-               R8VAL(IV-IBV, 5) = VE(IV)
-               R8VAL(IV-IBV, 6) = VF(IV)
-               R8VAL(IV-IBV, 7) = VG(IV)
-               R8VAL(IV-IBV, 8) = VH(IV)
-               R8VAL(IV-IBV, 9) = VI(IV)
-               R8VAL(IV-IBV,10) = VJ(IV)
-               R8VAL(IV-IBV,11) = VK(IV)
-               R8VAL(IV-IBV,12) = VL(IV)
-               R8VAL(IV-IBV,13) = VM(IV)
-               R8VAL(IV-IBV,14) = VN(IV)
-               R8VAL(IV-IBV,15) = VO(IV)
-               R8VAL(IV-IBV,16) = VP(IV)
-               R8VAL(IV-IBV,17) = VQ(IV)
-               R8VAL(IV-IBV,18) = VR(IV)
-               R8VAL(IV-IBV,19) = VS(IV)
-               R8VAL(IV-IBV,20) = VT(IV)
-               R8VAL(IV-IBV,21) = VU(IV)
-               R8VAL(IV-IBV,22) = VV(IV)
-               R8VAL(IV-IBV,23) = VW(IV)
-               R8VAL(IV-IBV,24) = VX(IV)
-               R8VAL(IV-IBV,25) = VY(IV)
-               R8VAL(IV-IBV,26) = VZ(IV)
+         DO 100 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 1) = VA(IV)
 100      CONTINUE
+         DO 101 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 2) = VB(IV)
+101      CONTINUE
+         DO 102 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 3) = VC(IV)
+102      CONTINUE
+         DO 103 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 4) = VD(IV)
+103      CONTINUE
+         DO 104 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 5) = VE(IV)
+104      CONTINUE
+         DO 105 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 6) = VF(IV)
+105      CONTINUE
+         DO 106 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 7) = VG(IV)
+106      CONTINUE
+         DO 107 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 8) = VH(IV)
+107      CONTINUE
+         DO 108 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV, 9) = VI(IV)
+108      CONTINUE
+         DO 109 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,10) = VJ(IV)
+109      CONTINUE
+         DO 110 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,11) = VK(IV)
+110      CONTINUE
+         DO 111 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,12) = VL(IV)
+111      CONTINUE
+         DO 112 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,13) = VM(IV)
+112      CONTINUE
+         DO 113 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,14) = VN(IV)
+113      CONTINUE
+         DO 114 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,15) = VO(IV)
+114      CONTINUE
+         DO 115 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,16) = VP(IV)
+115      CONTINUE
+         DO 116 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,17) = VQ(IV)
+116      CONTINUE
+         DO 117 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,18) = VR(IV)
+117      CONTINUE
+         DO 118 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,19) = VS(IV)
+118      CONTINUE
+         DO 119 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,20) = VT(IV)
+119      CONTINUE
+         DO 120 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,21) = VU(IV)
+120      CONTINUE
+         DO 121 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,22) = VV(IV)
+121      CONTINUE
+         DO 122 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,23) = VW(IV)
+122      CONTINUE
+         DO 123 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,24) = VX(IV)
+123      CONTINUE
+         DO 124 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,25) = VY(IV)
+124      CONTINUE
+         DO 125 IV=IVBOT,IVTOP
+             R8VAL(IV-IBV,26) = VZ(IV)
+125      CONTINUE
 C
          NEVAL  = 0
          NCODE  = 0
