@@ -36,7 +36,7 @@ C  Rotation/scaling factors for digitization
 C
       ORR= DG2RAD * IOR
       CT = SIZE * COS(ORR)
-      ST = SIZE * SIN(OR)
+      ST = SIZE * SIN(ORR)
 C
 C  Base location, in internal coordinates
 C

@@ -50,7 +50,7 @@ extern struct {
     static integer nchar;
     extern /* Subroutine */ int color_(integer *);
     static integer isize;
-    static real ct, or;
+    static real ct;
     static integer nchloc;
     static real st, xr, yr, xx, yy;
     extern integer lastnb_(char *, ftnlen);
@@ -90,7 +90,7 @@ extern struct {
 
     orr = *ior * .017453292f;
     ct = size * cos(orr);
-    st = size * sin(or);
+    st = size * sin(orr);
 
 /*  Base location, in internal coordinates */
 
