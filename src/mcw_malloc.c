@@ -214,7 +214,7 @@ static void probe_track( mallitem * ip )
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[ii] != MAGIC ){
-         fprintf(stderr,"*** malloc pre-corruption!  "
+         fprintf(stderr,"*** MCW_malloc pre-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
                         ip->pss,ip->psz,ip->pfn,ip->pln ) ;
          break ;
@@ -222,7 +222,7 @@ static void probe_track( mallitem * ip )
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[n+NEXTRA+ii] != MAGIC ){
-         fprintf(stderr,"*** malloc post-corruption!  "
+         fprintf(stderr,"*** MCW_malloc post-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
                         ip->pss,ip->psz,ip->pfn,ip->pln ) ;
          break ;
