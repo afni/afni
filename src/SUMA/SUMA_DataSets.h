@@ -1,6 +1,8 @@
 #ifndef SUMA_DATASETS_INCLUDED
 #define SUMA_DATASETS_INCLUDED
 
+#define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
+#define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
 #ifndef SUMA_IDCODE_LENGTH
    #define SUMA_IDCODE_LENGTH 50
 #endif
@@ -8,6 +10,21 @@
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
 typedef enum { SUMA_notypeset = -1, SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
+
+/*! filename and path */
+typedef struct {
+   char *Path;
+   char *FileName;
+}SUMA_FileName;
+
+/*! filename, extension and path */
+typedef struct {
+   char *Path;
+   char *FileName;
+   char *FileName_NoExt;
+   char *Ext;
+}SUMA_PARSED_NAME;
+
 
 /*! string stucture 
 */
@@ -35,11 +52,11 @@ typedef enum {
 
 typedef enum {
    SUMA_ERROR_DSET_FORMAT = -1,
-   SUMA_NO_DSET_FORMAT,
-   SUMA_ASCII_NIML,
-   SUMA_BINARY_NIML,
-   SUMA_NIML,
-   SUMA_1D,
+   SUMA_NO_DSET_FORMAT,       /* 0 */
+   SUMA_ASCII_NIML,           /* 1 */
+   SUMA_BINARY_NIML,          /* 2 */
+   SUMA_NIML,                 /* 3 */
+   SUMA_1D,                   /* 4 */
 } SUMA_DSET_FORMAT; /*!<  Format of data set
                           When you add a new element, modify functions
                           SUMA_Dset_Format_Name
@@ -115,7 +132,9 @@ typedef struct {
 
 typedef enum { SUMA_NO_PTR_TYPE, 
                SUMA_LINKED_DSET_TYPE, /*!< For pointers to SUMA_DSET */
-               SUMA_LINKED_OVERLAY_TYPE, /*!< For pointers to SUMA_OVERLAYS (not used yet)*/
+               SUMA_LINKED_OVERLAY_TYPE, /*!< For pointers to SUMA_OVERLAYS */
+               SUMA_LINKED_ND_FRST_NEI_TYPE, /*!< For pointers to SUMA_NODE_FIRST_NEIGHB*/
+               SUMA_LINKED_MEMB_FACE_TYPE, /*!< For pointers to SUMA_MEMBER_FACE_SETS*/
                SUMA_N_LINKED_PTR_TYPES } SUMA_LINKED_PTR_TYPES;
 /*!   
    Structure to track copies of a certain pointer.
@@ -131,14 +150,6 @@ typedef struct {
 /*! Structure to contain a dataset defined on the surface */
 
 typedef struct {
-   /* WHAT WILL YOU DO ABOUT THE FACT THAT YOU'LL NEED NodeDef 
-   and N_NodeDef both here AND in SUMA_OVERLAYS. 
-   You Might want to move it here because it is not 
-   really a property of SUMA_OVERLAYS. 
-   But you'll need a quick way to grab it from SUMA_DSET 
-   for a certain overlay and you'll need to create a SUMA_DSET
-   when you load a color file ... */
-   
    /* *** DO NOT ADD ANYTHING BEFORE THESE FIELDS
           DO NOT CHANGE THE ORDER OF THESE FIELDS
           These fields are use for tracking copies
@@ -151,55 +162,113 @@ typedef struct {
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
    
    /* *** You can go crazy below */
-   NI_element *nel;  /*!< The whole deal */
-   
-   #if 0 /* all these fields are inside of nel */
-   char *name; /*! ATTRIBUTE: The name of the data set */
-   char *Label; /*! ATTRIBUTE: A short label of the data set */
-   char *idcode_str; /*!< ATTRIBUTE: Unique identifier for this data set */
-   char *domain_idcode_str; /*!< ATTRIBUTE: Unique identifier for the domain over which this set is defined */
-   
-   int N_NodeDef;    /*!< (Column of type SUMA_NODE_INDEX)
-                           ATTRIBUTE: vec_filled. The number of nodes over which the data are defined. */
-   int *NodeDef;     /*!< (Column of type SUMA_NODE_INDEX)
-                           The vector of nodes over which the data are defined. */ 
-   int N_Alloc;      /*!< (ATTRIBUTE: vec_len) This would be You'd think this should be equal to NodeDef, but in 
-                          instances where you may be receiving data for a varying
-                          number of nodes, it's a pain to have to free and realloc space.
-                          So, while the juice is only up to N_NodeDef, the allocation 
-                          is for N_Alloc */
-   SUMA_Boolean SortedNodeDef; /*!< (ATTRIBUTE:) flag indicating that nodes in NodeDef are sorted.
-                                    Need function to do binary search for a certain
-                                    node index... IS IT ALWAYS THE CASE THAT NodeDef 
-                                    is used or is it assumed that indexing is explicit
-                                    when a complete set is loaded ?*/ 
-   int N_sub;      /*!< (vec_num) Think number of sub-bricks, subsets ...*/
-   /* NO NEED FOR THIS FIELD because you can create columns of structures ....
-   See SUMA_NIML_ROI_DATUM and SUMA_NIML_DRAWN_ROI for inspiration */
-   int *N_mx;      /*!< Multiplexing of data vector [i]. Typically, 
-                       I hope this would be 1. But you could have this
-                       number be 3 or the number of time points, should
-                       you choose, for efficiency reasons, to store 
-                       data that typically goes into multiple sub-bricks 
-                       into one vector. I will regret this, I am sure. 
-                       This vector is N_sub elements long.
-                       Multiplexing is done in the SUMA_ROW_MAJOR order, so 
-                       RGB values for node j will be at:
-                       data[i][j*3], data[i][j*3+1], data[i][j*3+2] 
-                       Should you wish to use SUMA_COLUMN_MAJOR then
-                       split your vector along data[i1], data[i2] and data[i3]
-                       since there is no memory access disadvantage this way*/
-   void **data; /*!< (that's nel->vec baby) data is a vector of N_sub data[i] pointers to data vectors.
-                     Each data[i] will point to a vector of N_mx[i]*N_Alloc values.
-                     Because of N_mx, data[i1] can be of a different length from data[i2]
-                     You do not have to have data associated with an overlay plane,
-                     it can be just colors.
-                */
-   SUMA_VARTYPE *tp; /*!< Already taken care of with functions SUMA_AddNelCol and the like ... 
-                        type of values stored in data[i]. This vector is N_sub long. */
-   #endif
+   NI_element *nel;  /*!< The whole deal 
+      nel is a NIML data element which is briefly
+      defined by a set of attributes, and a collection
+      of data columns.
+      nel contains the following string attributes:
+         name: A string for the type of dataset.
+               See functions:
+                  SUMA_Dset_Type_Name
+                  SUMA_Dset_Type
+               and typedef:
+                  SUMA_DSET_TYPE
+         filename: The filename
+         label: A short text label identifying the data set.
+                Typically, a short version of the filename                          
+         idcode_str: Unique identifier for the data set
+         MeshParent_idcode: Unique identifier of the surface containing the mesh  
+                            over which this set is defined
+         GeomParent_idcode: Unique identifier of the surface containing the 
+                            coordinates of the nodes whose attributes 
+                            (values) are in this set.
+         sorted_node_def: flag indicating that nodes in NodeDef are sorted
+                          see NodeDef below. 
+         RangeCol_'i': Range of values in column i. 
+                       See function:
+                        SUMA_GetColRange.
+         TypeCol_'i': Type of data in column i.
+                      See functions:
+                        SUMA_Col_Type  
+                        SUMA_Col_Type_Name
+                        SUMA_ColType2TypeCast 
+                      and typedef:
+                        SUMA_COL_TYPE             
+         AttrCol_'i': Attributes specific to that column type.
+                      At the moment, I don't use it much. But
+                      think attributes to store with an f-stat
+                      column for example and so on.
+         RangeCol_, TypeCol_ and AttrCol_: are automatically 
+                                           generated, see:
+                                             SUMA_AddColAttr
+                                             SUMA_AddGenColAttr
+      
+      nel structure contains the following fields:
+         vec: A vector of pointers to the data columns. 
+         vec_num: Number of columns in vec. So your columns
+                  are vec[0] .. vec[vec_num - 1]
+                  THINK SUB-BRICKS
+         vec_len: Total number of rows in the dset. Think total
+                  number of voxels.
+         vec_filled: Number of rows (node data) filled in the dset.
+                     You'd think this should be equal to vec_len,
+                     but in instances where you may be receiving data for a 
+                     varying number of nodes, it's a pain to have to destroy 
+                     and recreate dsets. The trouble is not one of allocation 
+                     but of of mutiple links and associated structures created
+                     for each new dset. So, while the juice is only up to 
+                     vec_filled, the allocation is for vec_len 
+         NodeDef: A vector containing an explicit list of the node index
+                  associated with each row of data.
+                  ACTUALLY this is not a field of nel, but it is a column of 
+                  data of the type SUMA_NODE_INDEX or "Node_Index". This
+                  column may or may not exist. If it exist then NodeDef is
+                  (int *)nel->vec[i_node_index] where i_node_index is the
+                  index of the column containing node definitions. To 
+                  find i_node_index, see function:
+                     SUMA_GetColIndex
+         
+         Functions to read and write dsets:
+            SUMA_LoadDset
+            SUMA_Load1DDset
+            SUMA_LoadNimlDset
+            SUMA_WriteDset
+            SUMA_RemoveDsetExtension
+         Functions to form/access dsets and contents:
+            SUMA_NewNel
+            SUMA_AddNelCol
+            SUMA_FillNelCol
+            SUMA_GetColIndex
+            SUMA_Col2Float
+            SUMA_GetNodeDef
+            SUMA_FreeDset
+         Functions for debugging:   
+            SUMA_ShowNel
+            SUMA_DsetInfo
+            SUMA_ShowMeSome
+         Miscellaneous functions/tools:
+            SUMA_Dset_Format 
+            SUMA_Dset_Format_Name
+            SUMA_AddNelHist
+                    
+         Sample Code: SUMA_Test_DSET_IO_STANDALONE
+         
+         */              
 } SUMA_DSET;
 
+#define SUMA_SKIP_COMMON_OPTIONS(m_brk, m_kar) {\
+   if (!m_brk &&                                     \
+       ( (strcmp(argv[m_kar], "-memdbg") == 0) ||    \
+         (strcmp(argv[m_kar], "-iodbg") == 0)  ||    \
+         (strcmp(argv[m_kar], "-nomall") == 0) ||    \
+         (strcmp(argv[m_kar], "-yesmall") == 0) ||   \
+         (strcmp(argv[m_kar], "-trace") == 0) ||     \
+         (strcmp(argv[m_kar], "-TRACE") == 0)) ) {   \
+		/* valid options, but already taken care of */  \
+		m_brk = YUP;                                   \
+	}                                               \
+}
+      
 /*!
    Convenience function for SUMA_StringAppend cleanup
 */
@@ -312,19 +381,24 @@ NodeDef might be dynamically changed in the overlay plane */
 #define NEL_WRITE_1D(nel, frm, suc) { \
    NI_stream m_ns = NULL;  \
    suc = 1; \
-   m_ns = NI_stream_open( frm , "w" ) ;   \
-   if( m_ns == NULL ) {    \
-      SUMA_SL_Err ("Failed to open stream");  \
+   if (!SUMA_OK_1Dnel(nel)) { \
+      SUMA_SL_Err ("Element cannont be written to 1D format");    \
       suc = 0; \
-   } else { \
-      /* write out the element */   \
-      if (NI_write_element( m_ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG) < 0) { \
-         SUMA_SL_Err ("Failed to write element");  \
+   } else {   \
+      m_ns = NI_stream_open( frm , "w" ) ;   \
+      if( m_ns == NULL ) {    \
+         SUMA_SL_Err ("Failed to open stream");  \
          suc = 0; \
+      } else { \
+         /* write out the element */   \
+         if (NI_write_element( m_ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG) < 0) { \
+            SUMA_SL_Err ("Failed to write element");  \
+            suc = 0; \
+         }  \
       }  \
+      /* close the stream */  \
+      NI_stream_close( m_ns ) ; \
    }  \
-   /* close the stream */  \
-   NI_stream_close( m_ns ) ; \
 }
 #define NEL_WRITE_BI(nel, frm, suc) { \
    NI_stream m_ns = NULL;  \
@@ -344,8 +418,6 @@ NodeDef might be dynamically changed in the overlay plane */
    NI_stream_close( m_ns ) ; \
 }
 
-int SUMA_StringToNum (char *s, float *fv, int N);
-int SUMA_isNumString (char *s, void *p);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);
@@ -361,11 +433,6 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name);
 char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
-char *SUMA_copy_string(char *buf);
-char * SUMA_append_string(char *s1, char *s2);
-char * SUMA_append_replace_string(  char *s1, char *s2, 
-                                    char *Spc, int whichTofree);
-char * SUMA_truncate_string (char *s1, int length);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset (char *idcode_str, DList *DsetList);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
@@ -378,8 +445,6 @@ SUMA_DSET * SUMA_CreateDsetPointer (
                               char *domain_idcode_str,
                               int N_Alloc); 
 int SUMA_InsertDsetPointer (SUMA_DSET *dset, DList *DsetList);
-SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
-SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer) ;
 #if 0
 SUMA_DSET *SUMA_LinkToDset(SUMA_DSET *dset);
@@ -395,9 +460,67 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
 int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
 SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb);
-SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT form);
+SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb);
 SUMA_DSET *SUMA_Load1DDset (char *Name, int verb);
+char *SUMA_RemoveDsetExtension (char*Name, SUMA_DSET_FORMAT form);
+char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb); 
+SUMA_DSET * SUMA_far2dset( char *FullName, char *dset_id, char *dom_id, 
+                                 float **farp, int vec_len, int vec_num, 
+                                 int ptr_cpy);
+int SUMA_OK_1Dnel(NI_element *nel);
+SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 
+/*********************** BEGIN Miscellaneous support functions **************************** */
+#ifdef SUMA_COMPILED
+   #define SUMA_STANDALONE_INIT {   \
+      /* install signal handler, shamelessly copied from AFNI) */ \
+      signal(SIGINT ,SUMA_sigfunc) ;      \
+      signal(SIGBUS ,SUMA_sigfunc) ;   \
+      signal(SIGSEGV,SUMA_sigfunc) ;   \
+      signal(SIGTERM,SUMA_sigfunc) ;   \
+      SUMA_process_environ(); \
+         SUMAg_CF = SUMA_Create_CommonFields ();   \
+	      if (SUMAg_CF == NULL) { \
+		      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName); \
+		      exit(1); \
+	      }  \
+         SUMAg_CF->scm = SUMA_Build_Color_maps();  \
+      SUMA_ParseInput_basics (argv, argc);   \
+   }
+#else
+   #define SUMA_STANDALONE_INIT {   \
+      /* install signal handler, shamelessly copied from AFNI) */ \
+      signal(SIGINT ,SUMA_sigfunc) ;      \
+      signal(SIGBUS ,SUMA_sigfunc) ;   \
+      signal(SIGSEGV,SUMA_sigfunc) ;   \
+      signal(SIGTERM,SUMA_sigfunc) ;   \
+      SUMA_process_environ(); \
+      SUMA_ParseInput_basics (argv, argc);   \
+   }
+
+#endif   
+
+int SUMA_filexists (char *f_name);
+char *SUMA_help_basics();
+void SUMA_process_environ(void);
+void SUMA_ParseInput_basics (char *argv[], int argc); 
+SUMA_FileName SUMA_StripPath (char *FileName);
+SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName);
+char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
+SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
+void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
+int SUMA_StringToNum (char *s, float *fv, int N);
+int SUMA_isNumString (char *s, void *p);
+char *SUMA_copy_string(char *buf);
+char * SUMA_append_string(char *s1, char *s2);
+char * SUMA_append_replace_string(  char *s1, char *s2, 
+                                    char *Spc, int whichTofree);
+char * SUMA_truncate_string (char *s1, int length);
+SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
+SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
+void SUMA_sigfunc(int sig);
+
+/*********************** END Miscellaneous support functions **************************** */
 
 
 #endif

@@ -13,7 +13,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out);
 int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N);
 SUMA_Boolean SUMA_Free_Displayable_Object_Vect (SUMA_DO *dov, int N);
-SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim);
+SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim, char *ownerid);
 SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF);
 SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name);
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP);

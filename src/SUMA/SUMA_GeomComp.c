@@ -1714,6 +1714,7 @@ void usage_SUMA_SurfSmooth ()
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
       char * s = NULL;
+      s = SUMA_help_basics();
       printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
               "\n"
               "   Method specific options:\n"
@@ -1799,9 +1800,7 @@ void usage_SUMA_SurfSmooth ()
               "      -ni_binary: Use NI_BINARY_MODE for data transmission.\n"
               "                  (default is ni_binary).\n"
               "\n"
-              "   Debugging Options:\n"
-              "      -iodbg: trace through function calls.\n"
-              "      -memdbg: track memory allocation.\n"
+              "%s"
               "\n"
               "   Sample commands lines for data smoothing:\n"
               "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
@@ -1852,7 +1851,7 @@ void usage_SUMA_SurfSmooth ()
               "\n"
               "   See Also:   \n"
               "       ScaleToMap  to colorize the output and then load into SUMA\n"
-              "\n");
+              "\n", s); SUMA_free(s); s = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -2453,15 +2452,9 @@ int main (int argc,char *argv[])
 	SUMA_SurfSpecFile Spec;   
    SUMA_Boolean LocalHead = NOPE;
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+	SUMA_mainENTRY;
+   SUMA_STANDALONE_INIT;
    
-   /* sets the debuging flags, if any */
-   SUMA_ParseInput_basics(argv, argc);
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -2814,6 +2807,7 @@ void usage_SUMA_getPatch ()
    {
       static char FuncName[]={"usage_SUMA_getPatch"};
       char * s = NULL;
+      s = SUMA_help_basics();
       printf ( "\nUsage:\n"
                "  SurfPatch <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
                "            <-input nodefile inode ilabel> <-prefix outpref>  \n"
@@ -2840,6 +2834,7 @@ void usage_SUMA_getPatch ()
                "  Optional parameters:\n"
                "     -hits min_hits: Minimum number of nodes specified for a triangle\n"
                "                     to be made a part of the patch (1 <= min_hits <= 3)\n"
+               "                     default is 2.\n"
                "     -masklabel msk: If specified, then only nodes that are labeled with\n"
                "                     with msk are considered for the patch.\n"
                "                     This option is useful if you have an ROI dataset file\n"
@@ -2847,7 +2842,8 @@ void usage_SUMA_getPatch ()
                "                     in that file. This option must be used with ilabel \n"
                "                     specified (not = -1)\n"
                "\n"
-               "\n");
+               "%s"
+               "\n",s); SUMA_free(s); s = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -2911,16 +2907,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
           exit (0);
 		}
 		
-		if (!brk && 
-          ( (strcmp(argv[kar], "-memdbg") == 0) || 
-            (strcmp(argv[kar], "-iodbg") == 0)  ||
-            (strcmp(argv[kar], "-nomall") == 0) ||
-            (strcmp(argv[kar], "-yesmall") == 0) ||
-            (strcmp(argv[kar], "-trace") == 0) ||
-            (strcmp(argv[kar], "-TRACE") == 0)) ) {
-			/* valid options, but already taken care of */
-			brk = YUP;
-		}
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -3040,15 +3027,10 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
-   /* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+   SUMA_mainENTRY;
    
-   /* sets the debuging flags, if any */
-   SUMA_ParseInput_basics(argv, argc);
+   SUMA_STANDALONE_INIT;
+   
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -3190,8 +3172,10 @@ int main (int argc,char *argv[])
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
-
-   exit(0);
+   
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
+   
+   SUMA_RETURN(0);
 } 
 #endif
 
@@ -3373,7 +3357,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
-      SEL = SUMA_Make_Edge_List_eng (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList, 0);
+      SEL = SUMA_Make_Edge_List_eng (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList, 0, NULL);
    
       /* SUMA_Show_Edge_List (SEL, NULL); */
       /* allocate for maximum */
@@ -5471,6 +5455,7 @@ void usage_SUMA_SurfQual ()
    {
       static char FuncName[]={"usage_SUMA_SurfQual"};
       char * s = NULL;
+      s = SUMA_help_basics();
       printf ( "\nUsage:\n"
                "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
                "             <-sphere> [-prefix OUTPREF]  \n"
@@ -5529,7 +5514,9 @@ void usage_SUMA_SurfQual ()
                "     - There are no utilities within SUMA to correct these defects.\n"
                "     It is best to fix these problems with the surface creation\n"
                "     software you are using.\n"
-               "\n");
+               "%s"
+               "\n", s);
+       SUMA_free(s); s = NULL;        
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -5672,15 +5659,9 @@ int main (int argc,char *argv[])
    SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE;   
    SUMA_Boolean LocalHead = NOPE;
 	
-   /* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+   SUMA_mainENTRY;
    
-   /* sets the debuging flags, if any */
-   SUMA_ParseInput_basics(argv, argc);
+   SUMA_STANDALONE_INIT;
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -5776,7 +5757,7 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("DO Cleanup Failed!");
    }
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-   exit(0);
+   SUMA_RETURN(0);
 } 
 #endif
 

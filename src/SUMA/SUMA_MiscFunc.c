@@ -3,7 +3,8 @@
 extern SUMA_CommonFields *SUMAg_CF; 
 
 #ifdef USE_SUMA_MALLOC
-/* This group of functions will get replaced by Bob's mcw_malloc functions that are more efficient */
+   /* NO LONGER SUPPORTED Apr. 09 04 */
+   /* This group of functions will get replaced by Bob's mcw_malloc functions that are more efficient */
 
    /*!
       ptr = SUMA_malloc_fn (const char *CF,  size );
@@ -228,6 +229,8 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    SUMA_MEMTRACE_STRUCT *Mem;
  
    #ifdef USE_SUMA_MALLOC
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   SUMA_RETURN(NULL);
    /* you cannot use SUMAg_CF here because the function that allocates for SUMAg_CF calls that one */
    
    /* DO NOT USE SUMA_malloc function here ! */
@@ -258,6 +261,8 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    SUMA_ENTRY;
    
    #ifdef USE_SUMA_MALLOC
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   SUMA_RETURNe;
    if (!Out) Out = SUMA_STDERR;
    if (!Mem) {
       fprintf (Out,"\nNull struct. Nothing to show.\n");
@@ -309,6 +314,8 @@ SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    static char FuncName[]={"SUMA_Free_MemTrace"};
          
    #ifdef USE_SUMA_MALLOC
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   return(NOPE);
    /* DO NOT USE SUMA_free function here ! */
    if (Mem->Pointers) free (Mem->Pointers);
    if (Mem->Size) free(Mem->Size);
@@ -766,7 +773,8 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    SUMA_ENTRY;
    
    #ifdef USE_SUMA_MALLOC
-      /* don't use ifndef, keep it parallel with stuff below */
+      SUMA_SL_Err("NO LONGER SUPPORTED");
+      SUMA_RETURN(NULL);
    #else
       pause_mcw_malloc();
    #endif
@@ -836,7 +844,9 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    }
    
    #ifdef USE_SUMA_MALLOC
-   
+   SUMA_SL_Err("NO LONGER SUPPORTED");
+   SUMA_RETURN(NULL);
+
    #if SUMA_MEMTRACE_FLAG
    if (SUMAg_CF->MemTrace) {
       ++SUMAg_CF->Mem->N_alloc;
@@ -903,6 +913,9 @@ void SUMA_free2D(char **a,int rows)
 
 
       #ifdef USE_SUMA_MALLOC
+         SUMA_SL_Err("NO LONGER SUPPORTED");
+         SUMA_RETURNe;
+
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace && a) {
             SUMA_Boolean Found = NOPE;
@@ -934,6 +947,9 @@ void SUMA_free2D(char **a,int rows)
 
    #ifdef USE_SUMA_MALLOC
       /* don't use ifndef, keep it parallel with stuff above */
+      SUMA_SL_Err("NO LONGER SUPPORTED");
+      SUMA_RETURNe;
+
    #else
       resume_mcw_malloc();
    #endif
@@ -3626,7 +3642,12 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    static char FuncName[]={"SUMA_free_Edge_List"};
    
    SUMA_ENTRY;
-
+   if (!SEL) SUMA_RETURNe;
+   if (SEL->N_links) {
+      SEL = (SUMA_EDGE_LIST*)SUMA_UnlinkFromPointer((void *)SEL);
+      SUMA_RETURNe;
+   }
+   
    if (SEL->EL) SUMA_free2D((char **)SEL->EL, SEL->N_EL);
    if (SEL->ELloc) SUMA_free(SEL->ELloc);
    if (SEL->ELps) SUMA_free2D((char **)SEL->ELps, SEL->N_EL);
@@ -3638,13 +3659,13 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 /*!
  * call engine with debug flag set                    20 Oct 2003 [rickr] 
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList, char *ownerid)
 {
    static char FuncName[]={"SUMA_Make_Edge_List"};
    
    SUMA_ENTRY;
 
-   SUMA_RETURN(SUMA_Make_Edge_List_eng(FL, N_FL, N_Node, NodeList, 1));
+   SUMA_RETURN(SUMA_Make_Edge_List_eng(FL, N_FL, N_Node, NodeList, 1, ownerid));
 }
 
 
@@ -3677,7 +3698,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *Node
    DO NOT MODIFY WHAT THIS FUNCTION RETURNS without serious thought.
    Complicated functions depend on it.                
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *NodeList, int debug)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *NodeList, int debug, char *ownerid)
 {
    static char FuncName[]={"SUMA_Make_Edge_List_eng"};
    int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
@@ -3700,6 +3721,11 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }
    /* allocate and form the List of edges */
    SEL = (SUMA_EDGE_LIST *) SUMA_malloc(sizeof(SUMA_EDGE_LIST));
+
+   SEL->N_links = 0;
+   if (ownerid) sprintf(SEL->owner_id, "%s", ownerid);
+   else SEL->owner_id[0] = '\0';
+   SEL->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
 
    SEL->N_EL = 3 * N_FL;
    SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge list */
@@ -4612,7 +4638,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    \ret FN (SUMA_NODE_FIRST_NEIGHB *) pointer to the neighbor list structure
 
 */
-SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
+SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node, char *ownerid)
 {
    static char FuncName[]={"SUMA_Build_FirstNeighb"};
    int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0, IOtrace = 0;
@@ -4621,9 +4647,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
    
    SUMA_ENTRY;
 
-   #ifndef USE_SUMA_MALLOC
-      if (DBG_trace > 1) IOtrace = 1;
-   #endif
+   if (DBG_trace > 1) IOtrace = 1;
    
    if (el == NULL || N_Node == 0) {
       fprintf(SUMA_STDERR, "Error %s: el == NULL or N_Node == 0, nothing to do.\n", FuncName);
@@ -4635,6 +4659,11 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
       fprintf(SUMA_STDERR, "Error %s: Could not allocate space for FN\n", FuncName);
       SUMA_RETURN (NULL);
    }
+   
+   FN->N_links = 0;
+   if (ownerid) sprintf(FN->owner_id, "%s", ownerid);
+   else FN->owner_id[0] = '\0';
+   FN->LinkedPtrType = SUMA_LINKED_ND_FRST_NEI_TYPE;
    
    /* allocate space for FN's matrices */
    FN->N_Node = N_Node;
@@ -4762,15 +4791,19 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
    SUMA_ENTRY;
    SUMA_LH("Entered");
    if (!FN) SUMA_RETURN(YUP);
-   SUMA_LH("1");
+
+   if (FN->N_links) {
+      SUMA_LH("Just a link release");
+      FN = (SUMA_NODE_FIRST_NEIGHB *)SUMA_UnlinkFromPointer((void *)FN);
+      SUMA_RETURN (YUP);
+   }
+   
+   /* no more links, go for it */
+   SUMA_LH("No more links, here we go");
    if (FN->NodeId) SUMA_free(FN->NodeId);
-   SUMA_LH("2");
    if (FN->N_Neighb) SUMA_free(FN->N_Neighb);
-   SUMA_LH("3");
    if (FN->FirstNeighb) SUMA_free2D ((char **)FN->FirstNeighb, FN->N_Node);
-   SUMA_LH("4");
    if (FN) SUMA_free(FN);
-   SUMA_LH("Leaving");
    SUMA_RETURN (YUP);
 }
 

@@ -1,8 +1,6 @@
 #ifndef SUMA_PARSECOMMANDS_INCLUDED
 #define SUMA_PARSECOMMANDS_INCLUDED
 
-void SUMA_process_environ(void);
-void SUMA_ParseInput_basics (char *argv[], int argc); 
 int  SUMA_GetNextCommand (char *S, char d, char term, char *Scom);
 SUMA_Boolean  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);
 int SUMA_CommandCode(char *Scom);
@@ -217,18 +215,5 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
    if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
 }
 
-#define SUMA_SKIP_COMMON_OPTIONS(m_brk, m_kar) {\
-   if (!m_brk &&                                     \
-       ( (strcmp(argv[m_kar], "-memdbg") == 0) ||    \
-         (strcmp(argv[m_kar], "-iodbg") == 0)  ||    \
-         (strcmp(argv[m_kar], "-nomall") == 0) ||    \
-         (strcmp(argv[m_kar], "-yesmall") == 0) ||   \
-         (strcmp(argv[m_kar], "-trace") == 0) ||     \
-         (strcmp(argv[m_kar], "-TRACE") == 0)) ) {   \
-		/* valid options, but already taken care of */  \
-		m_brk = YUP;                                   \
-	}                                               \
-}
-      
 
 #endif

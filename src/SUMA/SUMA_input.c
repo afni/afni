@@ -554,16 +554,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_M:
             if ((Kev.state & Mod1Mask) && (Kev.state & ControlMask) ){
-               #ifdef USE_SUMA_MALLOC
-               #if SUMA_MEMTRACE_FLAG
-                  if (SUMAg_CF->MemTrace) {
-                    SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);
-                  } else {
-                     fprintf (SUMA_STDERR,"%s: Memtrace is disabled. Try ctrl+h.\n", FuncName);
-                     SUMA_RETURNe;
-                  }
-               #endif
-               #else
                   #ifndef DONT_USE_MCW_MALLOC
                   /* write memtrace results to disk */
                   if (!mcw_malloc_enabled) {
@@ -584,7 +574,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                    "if using SUN.");
                      SUMA_RETURNe;
                   #endif
-               #endif
             }
             break;
             

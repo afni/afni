@@ -196,7 +196,6 @@ int main (int argc,char *argv[])
    int *FaceSetList = NULL;
    char sbuf[100], fName[100];
    SUMA_SURF_NORM SN;
-   SUMA_INODE *NewColPlane_Inode = NULL;
    SUMA_OVERLAYS *NewColPlane=NULL;
    SUMA_SurfaceObject **SOv=NULL;
    FILE *SpecOut = NULL;
@@ -462,13 +461,6 @@ int main (int argc,char *argv[])
             SUMA_RETURN (NOPE);
          } 
 
-         /* make an Inode for the overlay */
-         NewColPlane_Inode = SUMA_CreateInode ((void *)NewColPlane, SOv[ipart]->idcode_str);
-         if (!NewColPlane_Inode) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-
          /* Now place the color map in the Coloroverlay structure */
          NewColPlane->ColVec = SV->cV; SV->cV = NULL; /* this way the color vector will not be freed */
          NewColPlane->N_NodeDef = SOv[ipart]->N_Node;
@@ -477,7 +469,7 @@ int main (int argc,char *argv[])
          NewColPlane->BrightMod = YUP;
 
          /* Add this plane to SOv[ipart]->Overlays */
-         if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane, NewColPlane_Inode)) {
+         if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane)) {
             SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(NewColPlane);
             SUMA_RETURN (NOPE);

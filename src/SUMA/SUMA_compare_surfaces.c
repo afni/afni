@@ -79,12 +79,8 @@ int main (int argc,char *argv[])
   SUMA_EDGE_LIST *SEL = NULL;
   SUMA_Boolean KeepMTI = YUP, Partial = NOPE, SkipConsistent = NOPE;
 
-  /* allocate space for CommonFields structure */
-  SUMAg_CF = SUMA_Create_CommonFields ();
-  if (SUMAg_CF == NULL) {
-    fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-    exit(1);
-  }
+  SUMA_mainENTRY;
+  SUMA_STANDALONE_INIT;
   
   if (argc < 7) {
     cmp_surf_usage();
@@ -300,7 +296,7 @@ int main (int argc,char *argv[])
   SO2 = Surf2;
   
 
-  SEL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList); 
+  SEL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList, SO1->idcode_str); 
   if (SkipConsistent) {
    fprintf (SUMA_STDERR,"Skipping consistency check.\n");
   } else {
@@ -310,7 +306,7 @@ int main (int argc,char *argv[])
        fprintf(SUMA_STDERR,"faces are not consistent\n");
   }
  
- SEL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node,SO2->NodeList); 
+ SEL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node,SO2->NodeList, SO2->idcode_str); 
   if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SEL, 1) == YUP)
     fprintf(SUMA_STDERR,"faces are consistent\n");
   else
@@ -464,10 +460,10 @@ int main (int argc,char *argv[])
        fclose (colorfile);
      }
 
-  if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-  
   if (fname) SUMA_free(fname);
-  return 1;
+  
+  if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);  
+  SUMA_RETURN (1);
 }
 
 /*************************** FUNCTION DEFINITIONS **********************************/
@@ -476,7 +472,7 @@ void cmp_surf_usage ()
 {
   static char FuncName[]={"cmp_surf_usage"};
   char * s = NULL;
-  
+  s = SUMA_help_basics();
   printf ("\n"
           "   Usage:    CompareSurfaces \n"
           "             -spec <Spec file>\n"
@@ -508,9 +504,11 @@ void cmp_surf_usage ()
           "              This speeds up the start time so it is useful\n"
           "              for debugging runs.\n"
           "\n"
+          "%s"
           "\n   For more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
           "\n"
-          "\n   If you can't get help here, please get help somewhere.\n");
+          "\n   If you can't get help here, please get help somewhere.\n", s);
+  SUMA_free(s); s = NULL;
   s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
   printf ("\n    Shruti Japee LBC/NIMH/NIH shruti@codon.nih.gov Ziad S. Saad SSSC/NIMH/NIH ziad@nih.gov \n\n");
   /*
