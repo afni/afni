@@ -839,3 +839,6 @@
       - return bytes_read as a parameter, computed from the final spos
       - extract num_ext from ASCII header
 
+11 Dec 2004:
+  * added a description of the default operation to the Help in plug_vol2surf.c
+
