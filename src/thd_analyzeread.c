@@ -91,6 +91,7 @@ static void swap_analyze_hdr( struct dsr *pntr )
 
 /*-----------------------------------------------------------------*/
 /*! Open an ANALYZE .hdr file as an unpopulated AFNI dataset.
+    It will be populated from the .img file, in THD_load_analyze().
 -------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_open_analyze( char *hname )
@@ -112,14 +113,14 @@ THD_3dim_dataset * THD_open_analyze( char *hname )
 
 ENTRY("THD_open_analyze") ;
 
-   /* check & prepare filenames */
+   /*-- check & prepare filenames --*/
 
    if( hname == NULL ) RETURN( NULL );
    ii = strlen(hname) ; if( ii < 5 ) RETURN( NULL );
    if( strcmp(hname+ii-4,".hdr") != 0 ) RETURN( NULL );
    strcpy(iname,hname) ; strcpy(iname+ii-3,"img") ;  /* .img filename */
 
-   /* read .hdr file into struct */
+   /*-- read .hdr file into struct --*/
 
    fp = fopen( hname , "rb" ) ;
    if( fp == NULL ) RETURN( NULL );
@@ -131,7 +132,7 @@ ENTRY("THD_open_analyze") ;
       RETURN( NULL ) ;
    }
 
-   /* check .img file for existence and size */
+   /*-- check .img file for existence and size --*/
 
    length = THD_filesize(iname) ;  /* will use this later */
    if( length <= 0 ){
@@ -139,12 +140,12 @@ ENTRY("THD_open_analyze") ;
       RETURN( NULL );
    }
 
-   /* check for swap-age of header */
+   /*-- check for swap-age of header --*/
 
    doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
    if( doswap ) swap_analyze_hdr( &hdr ) ;
 
-   /* 27 Nov 2001: get a scale factor for images */
+   /*-- get a scale factor for images --*/
 
    if( !AFNI_noenv("AFNI_ANALYZE_SCALE") ){
       fac = hdr.dime.funused1 ;
@@ -152,7 +153,7 @@ ENTRY("THD_open_analyze") ;
       if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
    }
 
-   /* get data type */
+   /*-- get data type for each voxel --*/
 
    switch( hdr.dime.datatype ){
       default:
@@ -166,13 +167,13 @@ ENTRY("THD_open_analyze") ;
       case ANDT_COMPLEX:       datum_type = MRI_complex; break;
       case ANDT_RGB:           datum_type = MRI_rgb    ; break;
 #if 0
-      case ANDT_SIGNED_INT:    datum_type = MRI_int    ; break;  /* not supported in AFNI */
+      case ANDT_SIGNED_INT:    datum_type = MRI_int    ; break; /* not in AFNI */
 #endif
    }
 
-   datum_len = mri_datum_size(datum_type) ;
+   datum_len = mri_datum_size(datum_type) ;  /* number bytes per voxel */
 
-   /* compute dimensions of images, and number of images */
+   /*-- compute dimensions of images, and number of images --*/
 
    nx = hdr.dime.dim[1] ;
    ny = hdr.dime.dim[2] ;
@@ -191,12 +192,14 @@ ENTRY("THD_open_analyze") ;
    if( nz < 1 ) nz = 1 ;
    if( nt < 1 ) nt = 1 ;
 
+   /*-- voxel sizes --*/
+
    dx = fabs(hdr.dime.pixdim[1]) ; if( dx == 0.0 )            dx = 1.0 ;
    dy = fabs(hdr.dime.pixdim[2]) ; if( dy == 0.0 )            dy = 1.0 ;
    dz = fabs(hdr.dime.pixdim[3]) ; if( dz == 0.0 )            dz = 1.0 ;
    dt = fabs(hdr.dime.pixdim[4]) ; if( dt == 0.0 || nt == 1 ) dt = 1.0 ;
 
-   ngood = datum_len*nx*ny*nz*nt ;  /* # bytes needed in .img file */
+   ngood = datum_len*nx*ny*nz*nt ;  /* number bytes needed in .img file */
    if( length < ngood ){
       fprintf( stderr,
         "*** ANALYZE file %s is %d bytes long but must be %d bytes long\n"
@@ -209,7 +212,7 @@ ENTRY("THD_open_analyze") ;
 
    dset = EDIT_empty_copy(NULL) ;
 
-   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes with something special */
+   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes */
    dset->idcode.str[1] = 'N' ;
    dset->idcode.str[2] = 'L' ;
    dset->idcode.str[3] = 'Z' ;
@@ -217,19 +220,19 @@ ENTRY("THD_open_analyze") ;
    ppp = THD_trailname(hname,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 
-   nxyz.ijk[0] = nx ; dxyz.xyz[0] = dx ;  /* setup axes */
+   nxyz.ijk[0] = nx ; dxyz.xyz[0] = dx ;  /* setup axes lengths and voxel sizes */
    nxyz.ijk[1] = ny ; dxyz.xyz[1] = dy ;
    nxyz.ijk[2] = nz ; dxyz.xyz[2] = dz ;
 
-   /* default orientation is LPI */
+   /*-- default orientation is LPI, but user can alter via environment --*/
 
    { char *ori = getenv("AFNI_ANALYZE_ORIENT") ;
      int oxx,oyy,ozz ;
-     if( ori == NULL || strlen(ori) < 3 ) ori = "LPI" ;
+     if( ori == NULL || strlen(ori) < 3 ) ori = "LPI"; /* set default LPI */
 
      oxx = ORCODE(ori[0]); oyy = ORCODE(ori[1]); ozz = ORCODE(ori[2]);
      if( !OR3OK(oxx,oyy,ozz) ){
-       oxx = ORI_L2R_TYPE; oyy = ORI_P2A_TYPE; ozz = ORI_I2S_TYPE;
+       oxx = ORI_L2R_TYPE; oyy = ORI_P2A_TYPE; ozz = ORI_I2S_TYPE; /* LPI? */
      }
 
      orixyz.ijk[0] = oxx ;
@@ -237,41 +240,41 @@ ENTRY("THD_open_analyze") ;
      orixyz.ijk[2] = ozz ;
    }
 
-   /* origin of coordinates */
+   /*-- origin of coordinates --*/
 
-   orgxyz.xyz[0] = 0.5*dx ;  /* FSL: (0,0,0) is at outer corner of 1st voxel */
-   orgxyz.xyz[1] = 0.5*dy ;
+   orgxyz.xyz[0] = 0.5*dx ;  /* FSL:  (0,0,0) is at outer corner of 1st voxel */
+   orgxyz.xyz[1] = 0.5*dy ;  /* AFNI: these are coords of center of 1st voxel */
    orgxyz.xyz[2] = 0.5*dz ;
 
-   /* 04 Oct 2002: allow auto-centering of ANALYZE datasets */
+   /*-- 04 Oct 2002: allow auto-centering of ANALYZE datasets --*/
 
    if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
-     float size ;
-
-     size = 0.5 * (nx-1) * dx ;
-     orgxyz.xyz[0] = (ORIENT_sign[orixyz.ijk[0]] == '-') ? (-size) : (size) ;
-
-     size = 0.5 * (ny-1) * dy ;
-     orgxyz.xyz[1] = (ORIENT_sign[orixyz.ijk[1]] == '-') ? (-size) : (size) ;
-
-     size = 0.5 * (nz-1) * dz ;
-     orgxyz.xyz[2] = (ORIENT_sign[orixyz.ijk[2]] == '-') ? (-size) : (size) ;
-
-     /* also, change the voxel size signs, if needed */
-
-     if( ORIENT_sign[orixyz.ijk[0]] == '-' ) dxyz.xyz[0] = -dx ;
-     if( ORIENT_sign[orixyz.ijk[1]] == '-' ) dxyz.xyz[1] = -dy ;
-     if( ORIENT_sign[orixyz.ijk[2]] == '-' ) dxyz.xyz[2] = -dz ;
-
-#if 0
-     fprintf(stderr,"\n") ;
-     DUMP_IVEC3("orixyz",orixyz) ;
-     DUMP_FVEC3("orgxyz",orgxyz) ;
-     DUMP_FVEC3("dxyz  ",dxyz  ) ;
-#endif
+     orgxyz.xyz[0] = -0.5 * (nx-1) * dx ;
+     orgxyz.xyz[1] = -0.5 * (ny-1) * dy ;
+     orgxyz.xyz[2] = -0.5 * (nz-1) * dz ;
    }
 
-   iview = VIEW_ORIGINAL_TYPE ;
+   /* 10 Oct 2002: change voxel size signs, if axis orientation is negative */
+   /*              [above, we assumed that axes were oriented in - to + way] */
+
+   if( ORIENT_sign[orixyz.ijk[0]] == '-' ){
+     dxyz.xyz[0]   = -dxyz.xyz[0]   ;
+     orgxyz.xyz[0] = -orgxyz.xyz[0] ;
+   }
+
+   if( ORIENT_sign[orixyz.ijk[1]] == '-' ){
+     dxyz.xyz[1]   = -dxyz.xyz[1]   ;
+     orgxyz.xyz[1] = -orgxyz.xyz[1] ;
+   }
+
+   if( ORIENT_sign[orixyz.ijk[2]] == '-' ){
+     dxyz.xyz[2]   = -dxyz.xyz[2]   ;
+     orgxyz.xyz[2] = -orgxyz.xyz[2] ;
+   }
+
+   iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed */
+
+   /*-- actually send the values above into the dataset header --*/
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
@@ -287,18 +290,7 @@ ENTRY("THD_open_analyze") ;
                       ADN_func_type   , ANAT_MRAN_TYPE ,
                     ADN_none ) ;
 
-   /* modify axis stuff from orientation codes (swiped from to3d.c) */
-
-   if( ORIENT_sign[dset->daxes->xxorient] == '+' ) dset->daxes->xxorg = -dset->daxes->xxorg;
-   else                                            dset->daxes->xxdel = -dset->daxes->xxdel;
-
-   if( ORIENT_sign[dset->daxes->yyorient] == '+' ) dset->daxes->yyorg = -dset->daxes->yyorg;
-   else                                            dset->daxes->yydel = -dset->daxes->yydel;
-
-   if( ORIENT_sign[dset->daxes->zzorient] == '+' ) dset->daxes->zzorg = -dset->daxes->zzorg;
-   else                                            dset->daxes->zzdel = -dset->daxes->zzdel;
-
-   if( nt > 1 )              /* pretend it is 3D+time */
+   if( nt > 1 )              /** pretend it is 3D+time **/
       EDIT_dset_items( dset ,
                          ADN_func_type, ANAT_EPI_TYPE ,
                          ADN_ntt      , nt ,
@@ -318,7 +310,7 @@ ENTRY("THD_open_analyze") ;
                       ADN_none ) ;
 #endif
 
-   /* set brick factors? */
+   /*-- set brick factors (all the same) --*/
 
    if( fac > 0.0 ){
      float *bf = malloc(sizeof(float)*nt) ;
@@ -327,7 +319,7 @@ ENTRY("THD_open_analyze") ;
      free(bf) ;
    }
 
-   /* set byte order */
+   /*-- set byte order (for reading from disk) --*/
 
    ii = mri_short_order() ;
    if( doswap ) ii = REVERSE_ORDER(ii) ;
@@ -354,13 +346,15 @@ void THD_load_analyze( THD_datablock *dblk )
 
 ENTRY("THD_load_analyze") ;
 
+   /*-- check inputs --*/
+
    if( !ISVALID_DATABLOCK(dblk)                          ||
        dblk->diskptr->storage_mode != STORAGE_BY_ANALYZE ||
        dblk->brick == NULL                                 ) EXRETURN ;
 
    dkptr = dblk->diskptr ;
 
-   fp = fopen( dkptr->brick_name , "rb" ) ;
+   fp = fopen( dkptr->brick_name , "rb" ) ;  /* .img file */
    if( fp == NULL ) EXRETURN ;
 
    /*-- allocate space for data --*/
@@ -372,7 +366,7 @@ ENTRY("THD_load_analyze") ;
 
    dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
-   /** malloc space for each brick separately **/
+   /*-- malloc space for each brick separately --*/
 
    for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
       if( DBLK_ARRAY(dblk,ibr) == NULL ){
@@ -382,10 +376,11 @@ ENTRY("THD_load_analyze") ;
       }
    }
 
-   /** if couldn't get them all, take our ball and go home in a snit **/
+   /*-- if couldn't get them all, take our ball and go home in a snit --*/
 
    if( nbad > 0 ){
-      fprintf(stderr,"\n** failed to malloc %d ANALYZE bricks out of %d\n\a",nbad,nv) ;
+      fprintf(stderr,
+              "\n** failed to malloc %d ANALYZE bricks out of %d\n\a",nbad,nv);
       for( ibr=0 ; ibr < nv ; ibr++ ){
         if( DBLK_ARRAY(dblk,ibr) != NULL ){
            free(DBLK_ARRAY(dblk,ibr)) ;
@@ -395,50 +390,50 @@ ENTRY("THD_load_analyze") ;
       fclose(fp) ; EXRETURN ;
    }
 
-   /** read data! **/
+   /*-- read data from .img file into sub-brick arrays! --*/
 
    for( ibr=0 ; ibr < nv ; ibr++ )
      fread( DBLK_ARRAY(dblk,ibr), 1, DBLK_BRICK_BYTES(dblk,ibr), fp ) ;
 
    fclose(fp) ;
 
-   /** swap bytes? **/
+   /*-- swap bytes? --*/
 
    if( dkptr->byte_order != mri_short_order() ){
-      for( ibr=0 ; ibr < nv ; ibr++ ){
-         switch( DBLK_BRICK_TYPE(dblk,ibr) ){
-            case MRI_short:
-               mri_swap2( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
-            break ;
+     for( ibr=0 ; ibr < nv ; ibr++ ){
+       switch( DBLK_BRICK_TYPE(dblk,ibr) ){
+         case MRI_short:
+           mri_swap2( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
+         break ;
 
-            case MRI_complex:
-               mri_swap4( 2*DBLK_BRICK_NVOX(dblk,ibr), DBLK_ARRAY(dblk,ibr)) ;
-            break ;
+         case MRI_complex:
+           mri_swap4( 2*DBLK_BRICK_NVOX(dblk,ibr), DBLK_ARRAY(dblk,ibr)) ;
+         break ;
 
-            case MRI_float:
-            case MRI_int:
-               mri_swap4( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
-            break ;
-         }
-      }
+         case MRI_float:
+         case MRI_int:
+           mri_swap4( DBLK_BRICK_NVOX(dblk,ibr) , DBLK_ARRAY(dblk,ibr) ) ;
+         break ;
+       }
+     }
    }
 
-   /** check floats? **/
+   /*-- check floats --*/
 
    for( ibr=0 ; ibr < nv ; ibr++ ){
-      if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float ){
-         nbad += thd_floatscan( DBLK_BRICK_NVOX(dblk,ibr) ,
-                                DBLK_ARRAY(dblk,ibr)        ) ;
+     if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float ){
+       nbad += thd_floatscan( DBLK_BRICK_NVOX(dblk,ibr) ,
+                              DBLK_ARRAY(dblk,ibr)        ) ;
 
-      } else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex ) {  /* 14 Sep 1999 */
-         nbad += thd_complexscan( DBLK_BRICK_NVOX(dblk,ibr) ,
-                                  DBLK_ARRAY(dblk,ibr)        ) ;
-      }
+     } else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex ) {
+       nbad += thd_complexscan( DBLK_BRICK_NVOX(dblk,ibr) ,
+                                DBLK_ARRAY(dblk,ibr)        ) ;
+     }
    }
    if( nbad > 0 )
-      fprintf(stderr ,
-              "*** %s: found %d float errors -- see program float_scan\n" ,
-              dkptr->brick_name , nbad ) ;
+     fprintf(stderr ,
+             "*** %s: found %d float errors -- see program float_scan\n" ,
+             dkptr->brick_name , nbad ) ;
 
    EXRETURN ;
 }
