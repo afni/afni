@@ -38,8 +38,8 @@ void SUMA_usage ()
 			 printf ("\n\t        \n");
 			 printf ("\n\t[-iodbg] This option will trun on the In/Out debug info from the getgo.\n");
 			 printf ("\n\t[-memdbg] This option will trun on the memory tracing from the getgo.\n");
-          printf ("\n\t[-visuals] Shows the available glxvisuals and exits.\n");
           */
+          printf ("\n\t[-visuals] Shows the available glxvisuals and exits.\n");
 			 /*SUMA_VolSurf_help(NULL); OBSOLETE */
 			 printf ("\n\n\tFor help on interacting with SUMA, press 'ctrl+h' with the mouse pointer inside SUMA's window.\n");
 			 printf ("\n\n\tFor more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
