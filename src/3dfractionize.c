@@ -63,7 +63,7 @@ int main( int argc , char * argv[] )
              "fraction aren't used.  This can be done in 3dmaskave, by using\n"
              "3calc, or with the '-clip' option below.\n"
              "\n"
-             "Options are [the first 2 are 'required options']:\n"
+             "Options are [the first 2 are 'mandatory options']:\n"
              "  -template tset  = Use dataset 'tset' as a template for the output.\n"
              "                      The output dataset will be on the same grid as\n"
              "                      this dataset.\n"
