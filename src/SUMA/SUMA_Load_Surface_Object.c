@@ -200,6 +200,24 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
             SUMA_RETURN(NULL);
          }
          SO->idcode_str = UNIQ_hashcode((char *)SO_FileName_vp); 
+         
+         /* change coordinates to align them with volparent data set, if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+
          break;
          
       case SUMA_INVENTOR_GENERIC:
@@ -335,6 +353,24 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
         
          
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
+         
+         /* change coordinates to align them with volparent data set, if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+
          SO->idcode_str = UNIQ_hashcode(stmp);
          break;
          
@@ -1115,7 +1151,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
             
-            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName);
             
             if (SO == NULL)   {
                fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
@@ -1384,7 +1420,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
             
-            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName);
             
             if (SO == NULL)   {
                fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);

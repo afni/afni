@@ -959,6 +959,366 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    SUMA_RETURN (YUP);
 }   
 
+
+/*!
+   \brief Creates a string containing information about the surface
+   
+   \param SO (SUMA_SurfaceObject *) pointer to surface object structure
+   \return s (char *) pointer to NULL terminated string containing surface info.
+   It is your responsability to free it.
+   \sa SUMA_Print_Surface_Object
+   
+*/
+char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_SurfaceObject_Info"};
+   int MaxShow = 5, i,j, ND = 0, NP = 0, N_max = 10000;
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+      
+   if (SO) {
+      ND = SO->NodeDim;
+      NP = SO->FaceSetDim;
+      
+      if (SO->Label == NULL)
+         SS = SUMA_StringAppend (SS,"Label is NULL.\n");
+      else   {
+         sprintf (stmp,"Label: %s\n", SO->Label);
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      switch (SO->FileType) {
+         case SUMA_SUREFIT:
+            sprintf (stmp,"SureFit surface.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Coord FileName: %s \n", SO->Name_coord.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Coord Path: %s \n", SO->Name_coord.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Topo FileName: %s \n", SO->Name_topo.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Topo Path: %s \n", SO->Name_topo.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         case SUMA_VEC:
+            sprintf (stmp,"VEC surface.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"NodeList FileName: %s \n", SO->Name_coord.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"NodeList Path: %s \n", SO->Name_coord.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"FaceSetList Path: %s \n", SO->Name_topo.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         case SUMA_FREE_SURFER:
+            sprintf (stmp,"FreeSurfer surface.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Path: %s\n", SO->Name.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         case SUMA_INVENTOR_GENERIC:
+            sprintf (stmp,"Inventor generic surface.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Path: %s\n", SO->Name.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         case SUMA_PLY: 
+            sprintf (stmp,"PLY surface.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend (SS,stmp);
+            sprintf (stmp,"Path: %s\n", SO->Name.Path);
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         case SUMA_FT_NOT_SPECIFIED:
+            sprintf (stmp,"File Type not specified.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+         default:
+            sprintf (stmp,"Unknown surface type.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+            break;
+      }
+
+      sprintf (stmp,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      sprintf (stmp,"IDcode: %s\n", SO->idcode_str);
+      SS = SUMA_StringAppend (SS,stmp);
+      
+      if (SO->MapRef_idcode_str == NULL) {
+         sprintf (stmp,"MapRef_idcode_str is NULL\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         sprintf (stmp,"MapRef_idcode_str: %s\n", SO->MapRef_idcode_str);
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      sprintf (stmp,"Group: %s\tState: %s\n", SO->Group, SO->State);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      if (SUMA_ismappable(SO)) {
+         if (SUMA_isINHmappable(SO)) {
+            sprintf (stmp,"Surface is Inherently Mappable.\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         } else {
+            sprintf (stmp,"Surface is Mappable.\n");
+           SS = SUMA_StringAppend (SS,stmp);
+         }
+      } else {
+         sprintf (stmp,"Surface is NOT Mappable.\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+
+      if (SO->Name_NodeParent == NULL) {
+         sprintf (stmp,"Name_NodeParent is NULL\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else   {
+         sprintf (stmp,"Name_NodeParent: %s\n", SO->Name_NodeParent);
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      if (SO->MeshAxis) {
+         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Defined\n", SO->ShowMeshAxis);
+         SS = SUMA_StringAppend (SS,stmp);
+      }   else {
+         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Undefined\n", SO->ShowMeshAxis);
+         SS = SUMA_StringAppend (SS,stmp);
+      }  
+
+      sprintf (stmp,"N_Node: %d\t NodeDim: %d, EmbedDim: %d\n", \
+         SO->N_Node, SO->NodeDim, SO->EmbedDim);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"RotationWeight: %d, ViewCenterWeight %d\n", SO->RotationWeight, SO->ViewCenterWeight);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n\n", SO->N_FaceSet, SO->FaceSetDim);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      sprintf (stmp,"Center: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      sprintf (stmp,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2], SO->aMaxDims);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      sprintf (stmp,"Minimum: [%.3f\t%.3f\t%.3f]\t (aMin %.3f)\n\n", SO->MinDims[0], SO->MinDims[1],SO->MinDims[2], SO->aMinDims);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"SUMA_VolPar_Aligned: %d\n", SO->SUMA_VolPar_Aligned);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"VOLREG_APPLIED: %d\n", SO->VOLREG_APPLIED);
+      SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"ShowSelecetedNode: %d\tSelectedNode %d\n",\
+         SO->ShowSelectedNode, SO->SelectedNode);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      sprintf (stmp,"ShowSelecetedFaceSet: %d\tSelectedFaceSet %d\n\n",\
+         SO->ShowSelectedFaceSet, SO->SelectedFaceSet);
+      SS = SUMA_StringAppend (SS,stmp);
+
+      SS = SUMA_StringAppend (SS, SUMA_VolPar_Info(SO->VolPar));
+
+      if (SO->NodeList == NULL) {
+         sprintf (stmp,"NodeList is NULL\n\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
+         sprintf (stmp, "NodeList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow; ++i)   {
+            for (j=0; j < SO->NodeDim; ++j) {
+               sprintf (stmp, "\t%.3f", SO->NodeList[ND * i + j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp, "\n\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+      }
+
+      if (SO->NodeNormList == NULL) {
+         sprintf (stmp,"NodeNormList is NULL\n\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
+         sprintf (stmp, "NodeNormList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow; ++i)   {
+            for (j=0; j < 3; ++j) {
+               sprintf (stmp, "\t%.3f", SO->NodeNormList[ND * i + j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp, "\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+
+      if (SO->FaceSetList == NULL) {
+         sprintf (stmp,"FaceSetList is NULL\n\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
+         sprintf (stmp, "FaceSetList: (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow; ++i)   {
+            for (j=0; j < SO->FaceSetDim; ++j) {
+               sprintf (stmp, "\t%d", SO->FaceSetList[NP * i + j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp, "\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      if (SO->FaceNormList == NULL) {
+         sprintf (stmp,"FaceNormList is NULL\n\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
+         sprintf (stmp, "FaceNormList (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow; ++i)   {
+            for (j=0; j < 3; ++j) {
+               sprintf (stmp, "\t%.3f", SO->FaceNormList[NP * i + j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp, "\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+
+      if (SO->MF == NULL) {
+         sprintf (stmp,"SO->MF = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
+         sprintf (stmp, "SO->MF (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\tNode %d: Member of %d FaceSets: ", i, SO->MF->N_Memb[i]);
+            SS = SUMA_StringAppend (SS,stmp);
+            for (j=0; j < SO->MF->N_Memb[i]; ++j) {
+               sprintf (stmp,"%d, ", SO->MF->NodeMemberOfFaceSet[i][j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp,"\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      if (SO->FN == NULL) {
+         sprintf (stmp,"SO->FN = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
+         sprintf (stmp, "SO->FN, Max. Neighbs of %d (showing %d out of %d elements):\n", SO->FN->N_Neighb_max, MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\tNode %d: %d Neighbors:\t", i, SO->FN->N_Neighb[i]);
+            SS = SUMA_StringAppend (SS,stmp);
+             for (j=0; j< SO->FN->N_Neighb[i]; ++j) {
+               sprintf (stmp,"%d, ", SO->FN->FirstNeighb[i][j]);
+               SS = SUMA_StringAppend (SS,stmp);
+            }
+            sprintf (stmp,"\n");
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      if (SO->EL == NULL) {
+         sprintf (stmp,"SO->EL = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->EL->N_EL) MaxShow = SO->EL->N_EL; 
+         sprintf (stmp, "SO->EL, %d edges, max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
+               SO->EL->N_EL, SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d\n",\
+                i, SO->EL->EL[i][0], SO->EL->EL[i][1], SO->EL->ELps[i][0], SO->EL->ELps[i][1],SO->EL->ELps[i][2]);
+            SS = SUMA_StringAppend (SS,stmp);   
+         }
+         sprintf (stmp,"\n");
+         SS = SUMA_StringAppend (SS,stmp);
+         
+         if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
+         sprintf (stmp, "Triangle Limbs, (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\tTri_limb[%d][:] = %d %d %d\n", \
+            i, SO->EL->Tri_limb[i][0], SO->EL->Tri_limb[i][1],SO->EL->Tri_limb[i][2]);
+            SS = SUMA_StringAppend (SS,stmp);
+         } 
+         sprintf (stmp, "\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+
+      if (SO->PolyArea == NULL) {
+         sprintf (stmp,"SO->PolyArea = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet;
+         sprintf (stmp, "SO->PolyArea, showing %d out of %d elements:\n", MaxShow, SO->N_FaceSet);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\tFaceSet %d: Area = %f\n", i, SO->PolyArea[i]);
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+      }
+      sprintf (stmp,"\n");
+      SS = SUMA_StringAppend (SS,stmp);
+
+      if (SO->Cx == NULL) {
+         sprintf (stmp,"SO->Cx = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         if (MaxShow > SO->N_Node) MaxShow = SO->N_Node;
+         sprintf (stmp, "SO->Cx, showing %d out of %d elements:\n", MaxShow, SO->N_Node);
+         SS = SUMA_StringAppend (SS,stmp);
+         for (i=0; i < MaxShow ; ++i)   {
+            sprintf (stmp,"\t SO->Cx[%d] = %f\n", i, SO->Cx[i]);
+            SS = SUMA_StringAppend (SS,stmp);
+         }
+      }
+
+      sprintf (stmp,"\n");
+      SS = SUMA_StringAppend (SS,stmp);
+
+      
+   } else {
+      sprintf (stmp, "NULL Surface Object Pointer.");
+      SS = SUMA_StringAppend (SS, stmp);
+   }   
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+}
+
 /*!**
 File : SUMA_Load_Surface_Object.c
 \author Ziad Saad
@@ -980,248 +1340,27 @@ Input paramters :
          afterwards. You can pass a NULL pointer and the output 
          will default to stdout.
          
-\sa SUMA_Load_Surface_Object        
+\sa SUMA_Load_Surface_Object  
+\sa SUMA_SurfaceObject_Info      
 ***/
    
 void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 {   
    static char FuncName[]={"SUMA_Print_Surface_Object"};
-   int MaxShow = 5, i,j, ND, NP;
+   char *s;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (Out == NULL) Out = stdout;
       
-   if (SO == NULL) {
-      fprintf (Out, "NULL Surface Object Pointer\n");
-      SUMA_RETURNe;
-   }
-
-   ND = SO->NodeDim;
-   NP = SO->FaceSetDim;
-   fprintf (Out,"\n---------------------------------\n");
-   if (SO->Label == NULL)
-      fprintf (Out,"Label is NULL\n");
-   else   {
-      fprintf (Out,"Label: %s\n", SO->Label);
-   }
-
-   switch (SO->FileType) {
-      case SUMA_SUREFIT:
-         fprintf (Out,"SureFit surface.\n");
-         fprintf (Out,"Coord FileName: %s \n", SO->Name_coord.FileName);
-         fprintf (Out,"Coord Path: %s \n", SO->Name_coord.Path);
-         fprintf (Out,"Topo FileName: %s \n", SO->Name_topo.FileName);
-         fprintf (Out,"Topo Path: %s \n", SO->Name_topo.Path);
-         break;
-      case SUMA_VEC:
-         fprintf (Out,"VEC surface.\n");
-         fprintf (Out,"NodeList FileName: %s \n", SO->Name_coord.FileName);
-         fprintf (Out,"NodeList Path: %s \n", SO->Name_coord.Path);
-         fprintf (Out,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
-         fprintf (Out,"FaceSetList Path: %s \n", SO->Name_topo.Path);
-         break;
-      case SUMA_FREE_SURFER:
-         fprintf (Out,"FreeSurfer surface.\n");
-         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
-         fprintf (Out,"Path: %s\n", SO->Name.Path);
-      case SUMA_INVENTOR_GENERIC:
-         fprintf (Out,"Inventor generic surface.\n");
-         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
-         fprintf (Out,"Path: %s\n", SO->Name.Path);
-      case SUMA_PLY: 
-         fprintf (Out,"PLY surface.\n");
-         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
-         fprintf (Out,"Path: %s\n", SO->Name.Path);
-      case SUMA_FT_NOT_SPECIFIED:
-         fprintf (Out,"File Type not specified.\n");
-         break;
-      default:
-         fprintf (Out,"Unknown surface type.\n");
-         break;
-   }
+   s = SUMA_SurfaceObject_Info (SO);
    
-   fprintf (Out,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
-   
-   fprintf (Out,"IDcode: %s\n", SO->idcode_str);
-   if (SO->MapRef_idcode_str == NULL) {
-      fprintf (Out,"MapRef_idcode_str is NULL\n");
-   } else {
-      fprintf (Out,"MapRef_idcode_str: %s\n", SO->MapRef_idcode_str);
-   }
-   
-   fprintf (Out,"Group: %s\tState: %s\n", SO->Group, SO->State);
-   
-   if (SUMA_ismappable(SO)) {
-      if (SUMA_isINHmappable(SO)) {
-         fprintf (Out,"Surface is Inherently Mappable.\n");
-      } else {
-         fprintf (Out,"Surface is Mappable.\n");
-      }
-   } else {
-      fprintf (Out,"Surface is NOT Mappable.\n");
-   }
-   
-   
-   if (SO->Name_NodeParent == NULL)
-      fprintf (Out,"Name_NodeParent is NULL\n");
-   else   {
-      fprintf (Out,"Name_NodeParent: %s\n", SO->Name_NodeParent);
-   }
-   
-   if (SO->MeshAxis) fprintf (Out,"ShowMeshAxis: %d\t MeshAxis Defined\n", SO->ShowMeshAxis);
-      else fprintf (Out,"ShowMeshAxis: %d\t MeshAxis Undefined\n", SO->ShowMeshAxis);
-   
-   fprintf (Out,"N_Node: %d\t NodeDim: %d, EmbedDim: %d\n", \
-      SO->N_Node, SO->NodeDim, SO->EmbedDim);
-   fprintf (Out,"RotationWeight: %d, ViewCenterWeight %d\n", SO->RotationWeight, SO->ViewCenterWeight);
-   fprintf (Out,"N_FaceSet: %d, FaceSetDim %d\n\n", SO->N_FaceSet, SO->FaceSetDim);
-   
-   fprintf (Out,"Center: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
-   
-   fprintf (Out,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2], SO->aMaxDims);
-   
-   fprintf (Out,"Minimum: [%.3f\t%.3f\t%.3f]\t (aMin %.3f)\n\n", SO->MinDims[0], SO->MinDims[1],SO->MinDims[2], SO->aMinDims);
-   fprintf (Out,"SUMA_VolPar_Aligned: %d\n", SO->SUMA_VolPar_Aligned);
-   fprintf (Out,"VOLREG_APPLIED: %d\n", SO->VOLREG_APPLIED);
-   fprintf (Out,"ShowSelecetedNode: %d\tSelectedNode %d\n",\
-      SO->ShowSelectedNode, SO->SelectedNode);
-   
-   fprintf (Out,"ShowSelecetedFaceSet: %d\tSelectedFaceSet %d\n\n",\
-      SO->ShowSelectedFaceSet, SO->SelectedFaceSet);
- 
-   if (Out == stdout) {
-      fprintf (Out,"Strrrrrike return to look at more details ...");
-      i = getchar();
-      fprintf (Out,"\n");
-   }
-   
-   SUMA_Show_VolPar(SO->VolPar, Out);
-   
-   if (Out == stdout) {
-      fprintf (Out,"Strrrrrike return to look at more details ...");
-      i = getchar();
-      fprintf (Out,"\n");
-   }
-   if (SO->NodeList == NULL)
-      fprintf (Out,"NodeList is NULL\n\n");
-   else {
-      if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-      fprintf (Out, "NodeList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
-      for (i=0; i < MaxShow; ++i)   {
-         for (j=0; j < SO->NodeDim; ++j) fprintf (Out, "\t%.3f", SO->NodeList[ND * i + j]);
-         fprintf (Out, "\n\n");
-      }
-   }
-
-   if (SO->NodeNormList == NULL)
-      fprintf (Out,"NodeNormList is NULL\n\n");
-   else {
-      if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-      fprintf (Out, "NodeNormList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
-      for (i=0; i < MaxShow; ++i)   {
-         for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->NodeNormList[ND * i + j]);
-         fprintf (Out, "\n");
-      }
-      fprintf (Out, "\n");
-   }
-
-
-   if (SO->FaceSetList == NULL)
-      fprintf (Out,"FaceSetList is NULL\n\n");
-   else {
-      if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-      fprintf (Out, "FaceSetList: (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
-      for (i=0; i < MaxShow; ++i)   {
-         for (j=0; j < SO->FaceSetDim; ++j) fprintf (Out, "\t%d", SO->FaceSetList[NP * i + j]);
-         fprintf (Out, "\n");
-      }
-      fprintf (Out, "\n");
-   }
-   
-   if (SO->FaceNormList == NULL)
-      fprintf (Out,"FaceNormList is NULL\n\n");
-   else {
-      if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-      fprintf (Out, "FaceNormList (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
-      for (i=0; i < MaxShow; ++i)   {
-         for (j=0; j < 3; ++j) fprintf (Out, "\t%.3f", SO->FaceNormList[NP * i + j]);
-         fprintf (Out, "\n");
-      }
-      fprintf (Out, "\n");
-   }
-      
-   
-   if (SO->MF == NULL)
-      fprintf (Out,"SO->MF = NULL\n\n") ;
-   else {
-      if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-      fprintf (Out, "SO->MF (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\tNode %d: Member of %d FaceSets: ", i, SO->MF->N_Memb[i]);
-         for (j=0; j < SO->MF->N_Memb[i]; ++j) fprintf (Out,"%d, ", SO->MF->NodeMemberOfFaceSet[i][j]);
-         fprintf (Out,"\n");
-      }
-      fprintf (Out, "\n");
-   }
-   
-   if (SO->FN == NULL)
-      fprintf (Out,"SO->FN = NULL\n\n") ;
-   else {
-      if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-      fprintf (Out, "SO->FN, Max. Neighbs of %d (showing %d out of %d elements):\n", SO->FN->N_Neighb_max, MaxShow, SO->N_Node);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\tNode %d: %d Neighbors:\t", i, SO->FN->N_Neighb[i]);
-          for (j=0; j< SO->FN->N_Neighb[i]; ++j) fprintf (Out,"%d, ", SO->FN->FirstNeighb[i][j]);
-         fprintf (Out,"\n");
-      }
-      fprintf (Out, "\n");
-   }
-   
-   if (SO->EL == NULL)
-      fprintf (Out,"SO->EL = NULL\n\n") ;
-   else {
-      if (MaxShow > SO->EL->N_EL) MaxShow = SO->EL->N_EL; 
-      fprintf (Out, "SO->EL, %d edges, max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
-            SO->EL->N_EL, SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d",\
-             i, SO->EL->EL[i][0], SO->EL->EL[i][1], SO->EL->ELps[i][0], SO->EL->ELps[i][1],SO->EL->ELps[i][2]);
-         fprintf (Out,"\n");
-      }
-      if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-      fprintf (Out, "Triangle Limbs, (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\tTri_limb[%d][:] = %d %d %d\n", \
-         i, SO->EL->Tri_limb[i][0], SO->EL->Tri_limb[i][1],SO->EL->Tri_limb[i][2]);
-      } 
-      fprintf (Out, "\n");
-   }
-   
-   if (SO->PolyArea == NULL)
-      fprintf (Out,"SO->PolyArea = NULL\n\n") ;
-   else {
-      if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet;
-      fprintf (Out, "SO->PolyArea, showing %d out of %d elements:\n", MaxShow, SO->N_FaceSet);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\tFaceSet %d: Area = %f\n", i, SO->PolyArea[i]);
-      }
-   }
-   fprintf (Out,"\n");
-   
-   if (SO->Cx == NULL)
-      fprintf (Out,"SO->Cx = NULL\n\n") ;
-   else {
-      if (MaxShow > SO->N_Node) MaxShow = SO->N_Node;
-      fprintf (Out, "SO->Cx, showing %d out of %d elements:\n", MaxShow, SO->N_Node);
-      for (i=0; i < MaxShow ; ++i)   {
-         fprintf (Out,"\t SO->Cx[%d] = %f\n", i, SO->Cx[i]);
-      }
-   }
-   
-   fprintf (Out,"\n");
-      
-   fprintf (Out,"---------------------------------\n\n");
+   if (s) {
+      fprintf (Out, "%s", s);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
+   }   
    
    SUMA_RETURNe;
 }   

@@ -1118,7 +1118,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DPY_controller1 = NULL;
    cf->X->X_Resources = SXR_NP;
-   
+   cf->X->Help_TextShell = NULL;
+   cf->X->Log_TextShell = NULL;
+   cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    return (cf);
 
@@ -1253,6 +1255,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void)
    /* do not use commonfields related stuff here for obvious reasons */
    SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
    SurfCont->TopLevelShell = NULL;
+   SurfCont->SurfInfo_pb = NULL;
+   SurfCont->SurfInfo_TextShell = NULL;
    
    return (SurfCont);
 }
@@ -1280,6 +1284,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X) free(cf->X);
+   if (cf->MessageList) SUMA_DestroyList(cf->MessageList);
    if (cf) free(cf);
    
    return (YUP);

@@ -36,7 +36,6 @@ menu item in different controllers and one needs a way to know from which contro
 activated.
 */
 
-
 /*!
    macro that converts a callback data from a File Menu widget into the 
    index of the viewer containing it and the widget's SUMA_WIDGET_INDEX_FILE type
@@ -56,7 +55,7 @@ activated.
          
 #define SUMA_MARGIN  3
 
-static String *SUMA_get_fallbackResources ();         
+String *SUMA_get_fallbackResources ();         
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
@@ -99,6 +98,24 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_
 void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileOpenSurf (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileClose (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData);
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+                                                            void (*closecallback)(void*data), void *closedata);
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShellStruct);
+void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd);
+void SUMA_SurfInfo_open (void *SO);
+void SUMA_SurfInfo_destroyed (void *SO);
+void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_helpViewer (Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData);
+char * SUMA_FormatMessage (SUMA_MessageData *MD);
+void SUMA_PopUpMessage (SUMA_MessageData *MD);
+
+
+ 
+
 
 #define SUMA_help_help \
    "Click the hand\n"   \
@@ -125,5 +142,9 @@ void SUMA_cb_FileClose (Widget w, XtPointer client_data, XtPointer callData);
    "Current settings are preserved\n"\
    "when controller is reopened.\n"
    
+#define  SUMA_moreSurfInfo_help  \
+   "Opens a dialog with detailed\n" \
+   "information about the surface\n"\
+   "object.\n"
    
 #endif

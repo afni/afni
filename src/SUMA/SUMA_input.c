@@ -7,10 +7,11 @@ extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
-/*! Mouse and Keyboard input handler function */
 
-void
-SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
+
+/*! Mouse and Keyboard input handler function for SUMA's viewer*/
+
+void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 {
    GLwDrawingAreaCallbackStruct *cd;
    char buffer[10], cbuf = '\0', cbuf2='\0';
@@ -381,32 +382,26 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_h:
-            if (Kev.state & ControlMask){
-               fprintf(SUMA_STDOUT,"Enter Debug Flags: (0/1)\n");
-               fflush (stdin);
-               do {
-                  fprintf(SUMA_STDOUT,"-InOut_Notify (current %d): ", SUMAg_CF->InOut_Notify);
-                   cbuf = getc(stdin);
-                   if (cbuf != 'n') {
-                      cbuf2 = getc(stdin);
-                   }else { cbuf2 = cbuf; }
-               } while (cbuf2 != 'n' && cbuf != '1' && cbuf != '0'); 
-               if (cbuf == '1') { SUMAg_CF->InOut_Notify = YUP; SUMAg_CF->InOut_Level = 1;
-               }else if (cbuf == '0') { SUMAg_CF->InOut_Notify = NOPE; SUMAg_CF->InOut_Level = 0;}   
-               #if SUMA_MEMTRACE_FLAG
-                  fflush (stdin);
-                  do {
-                     fprintf(SUMA_STDOUT,"-MemTrace (current %d): ", SUMAg_CF->MemTrace);
-                      cbuf = getc(stdin);
-                      if (cbuf != 'n') {
-                         cbuf2 = getc(stdin);
-                      }else { cbuf2 = cbuf; }
-                  } while (cbuf2 != 'n' && cbuf != '1' && cbuf != '0'); 
-                  if (cbuf == '1') { SUMAg_CF->MemTrace = YUP; 
-                  }else if (cbuf == '0') { SUMAg_CF->MemTrace = NOPE;}   
-               #endif   
-            }else {
-               SUMA_help_message(NULL);
+            if (Kev.state & Mod1Mask){
+              if (!list) list = SUMA_CreateList();
+              SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
+              if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+              }    
+            }else if (Kev.state & ControlMask){
+               /* open the error log window */
+               if (!list) list = SUMA_CreateList();
+              SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL);
+              if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+              }
+            }else{
+              /* fake some error logs */
+              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice", "Me Ars", SMT_Notice, SMA_Log);
+              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice2", "Me Ars", SMT_Notice, SMA_LogAndPopup);
+              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Warning", "Me Ars", SMT_Warning, SMA_LogAndPopup);
+              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Error", "Me Ars", SMT_Error, SMA_LogAndPopup);
+              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Critical", "Me Ars", SMT_Critical, SMA_LogAndPopup);
             }
             break;
 
@@ -841,10 +836,13 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf (SUMA_STDOUT,"%s: Default functions for buttons 1 and 3.\n", FuncName);
                }               
             } else if (SUMAg_CF->Dev) {
+               #if 0
+               /** Feb 03/03 No longer in use.*/
                for (ii=0; ii< sv->N_DO; ++ii) {
                   if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) 
                      SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[sv->ShowDO[ii]].OP, stdout);
                }
+               #endif
             }
             break;
 

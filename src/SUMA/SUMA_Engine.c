@@ -52,7 +52,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                    ED is what gets added to the list inside SUMA_Engine */ 
    DListElmt *NextElem;
    DList *list= NULL;
-   
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
+
    /*int iv3[3], iv15[15], **im;
    float fv3[3];
    char s[SUMA_MAX_STRING_LENGTH];*/ /* keep standard unused variables undeclared, else compiler complains*/
@@ -95,6 +96,65 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_ShowLog:
+            /* Updates the Log window if it is open */
+            {
+               if (SUMAg_CF->X->Log_TextShell) {
+                  char *s = NULL;
+                  s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
+                  (void) SUMA_CreateTextShell (s, "Message Log", SUMAg_CF->X->Log_TextShell);
+                  XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
+                  if (s) SUMA_free(s);
+               }
+            }
+            break;
+            
+         case SE_Log:
+            /* opens log window, needs nothing for the moment*/
+            {
+               char *s = NULL;
+               if (SUMAg_CF->X->Log_TextShell) { /* just raise it */
+                  XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
+                  break;
+               }else { /* create it */
+                  s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Message string:\n%s\n", FuncName, s);
+                  LogShell =  SUMA_CreateTestShellStruct (NULL, NULL, NULL, NULL);
+                  if (!LogShell) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+                     break;
+                  }
+                  SUMAg_CF->X->Log_TextShell = SUMA_CreateTextShell(s, "SUMA log", LogShell);
+                  SUMA_free(s);
+               }
+            }
+            break;
+            
+         case SE_Help:
+            /* opens help window, needs nothing for the moment*/
+            {
+               char *s = NULL;
+               if (SUMAg_CF->X->Help_TextShell) { /* just raise it */
+                     XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
+                     break;
+               }
+                  
+               s = SUMA_help_message_Info();
+               if (!s) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_message_Info.\n", FuncName);
+                  break;
+               }else {
+                  TextShell =  SUMA_CreateTestShellStruct (SUMA_Help_open, NULL, 
+                                                           SUMA_Help_destroyed, NULL);
+                  if (!TextShell) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+                     break;
+                  }
+                  SUMAg_CF->X->Help_TextShell = SUMA_CreateTextShell(s, "SUMA help", TextShell);
+                  SUMA_free(s);   
+               }
+            }
+            break;
          case SE_Load_Group:
             /* Does not need an sv 
                expects  a pointer to .spec filename in cp, 

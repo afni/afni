@@ -70,6 +70,7 @@
 #define TRANSLATE_GAIN 50 /*!< between 40 and 80 */
 #define ARROW_TRANSLATE_DELTAX 30
 #define ARROW_TRANSLATE_DELTAY 30
+#define SUMA_MAX_MESSAGES 100 /*!< Maximum number of messages stored in list */
 #define SUMA_MAX_MEMBER_FACE_SETS 60 /*!< Maximum number of facesets a node can be part of */
 #define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
 #define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Maximum number of displayable Objects */
@@ -130,7 +131,7 @@ typedef enum { SE_Empty, \
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,\
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, \
-               SE_Load_Group, SE_Home_AllVisible, \
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_ShowLog,\
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, \
@@ -351,15 +352,37 @@ typedef struct {
                                     or after the shift and rotation matrices are applied */
 } SUMA_DO;
 
+/*! string stucture 
+*/
+typedef struct {
+   int N_alloc;  /*!< space allocated for s */
+   char *s; /*!< string s */
+} SUMA_STRING;
 
 /*! structure containing widgets for surface viewer controllers ViewCont */
 typedef struct {
    Widget TopLevelShell;/*!< Top level shell for a viewer's controller */
 }SUMA_X_ViewCont;
 
+typedef struct {
+   Widget toplevel;  /*!< toplevel widget of the text display window */
+   Widget text_w; /*!<  text widget containing string to be displayed */
+   Widget search_w;  /*!< widget of string search field */
+   Widget text_output;  /*!< widget of search result field */
+   SUMA_Boolean case_sensitive;  /*!< Case sensitive widget search */
+   SUMA_Boolean allow_edit; /*!< allow editing of text displayed*/
+   void (*OpenCallBack)(void *data); /*!< call back performed when SUMA_CreateTextShell is entered */
+   void * OpenData;  /*!< data sent along with OpenCallBack */
+   void (*DestroyCallBack)(void *data);   /*!< call back performed when SUMA_DestroyTextShell is entered */
+   void * DestroyData; /*!< data sent along with DestroyCallBack */
+} SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets for the text shell window */
+
+
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
    Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
+   Widget SurfInfo_pb; /*!< More info push button */
+   SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
 }SUMA_X_SurfCont;
 
 typedef struct {
@@ -393,7 +416,12 @@ typedef enum { SW_View, \
                SW_N_View } SUMA_WIDGET_INDEX_VIEW; /*!< Indices to widgets under View menu. 
                                                       Make sure you begin with SW_View and end
                                                       with SW_N_View */
-                                                      
+typedef enum { SW_Help, \
+               SW_HelpViewer,  SW_HelpSep1, SW_HelpIONotify,
+               SW_HelpMemTrace,  \
+               SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
+                                                         Make sure you begin with SW_View and end
+                                                         with SW_N_View */                                                   
 /*! structure containg X vars for surface viewers*/
 typedef struct {
    Display *DPY; /*!< display of toplevel widget */
@@ -410,6 +438,7 @@ typedef struct {
    Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
    Widget FileMenu[SW_N_File]; /*!< Vector of widgets under File Menu */       
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
+   Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
 }SUMA_X;
 
 /*! structure containg X vars common to all viewers */
@@ -418,6 +447,8 @@ typedef struct {
    XtAppContext App; /*!< Application Context for SUMA */
    Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
    SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
 }SUMA_X_AllView;
 
 /*! filename and path */
@@ -957,6 +988,24 @@ typedef struct {
    char name_param[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
 } SUMA_SFname;
 
+typedef enum {    SMT_Nothing, \
+                  SMT_Notice, SMT_Warning, SMT_Error, SMT_Critical,  \
+                  SMT_N }  SUMA_MESSAGE_TYPES; /*!< different types of messages */
+
+typedef enum {    SMA_Nothing, \
+                  SMA_Log, SMA_LogAndPopup,  \
+                  SMA_N }  SUMA_MESSAGE_ACTION; /*!< different actions to perform with messages */
+
+ 
+                                 
+/*! structure containing a SUMA Message structure */
+typedef struct {
+   SUMA_MESSAGE_TYPES Type;   /*!< type of message */
+   SUMA_MESSAGE_ACTION  Action; /*!< what to do with message*/
+   char *Message; /*!< null terminated message string */
+   char *Source;  /*!< source of message, usually calling function */
+}  SUMA_MessageData;
+
 /*! structure containing information global to all surface viewers */
 typedef struct {
    char AfniHostName[SUMA_MAX_NAME_LENGTH]; /*!< name or ipaddress of afni host maximum allowed name is 20 chars less than allocated for, see SUMA_Assign_AfniHostName*/ 
@@ -984,6 +1033,7 @@ typedef struct {
    SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
    SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
+   DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */

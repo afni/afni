@@ -24,6 +24,12 @@ DList * SUMA_DestroyList (DList *list);
 void SUMA_FreeEngineListData(void *MTI);
 SUMA_ENGINE_CODE SUMA_GetListNextCommand (DList *list);
 void SUMA_ShowList (DList *list, FILE *Out);
+void SUMA_FreeMessageListData(void *Hv);
+SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element) ;
+DList *SUMA_CreateMessageList (void);
+SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SUMA_MESSAGE_TYPES Type, SUMA_MESSAGE_ACTION Action);
+char *SUMA_BuildMessageLog (DList *ML);
+
 
 /*!
    \brief Macro that adds a command to the head of command list.

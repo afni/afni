@@ -17,6 +17,7 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
+char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, SUMA_ROI_DRAWING_TYPE Type, char * label);
 SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_TYPE Type, char * label, int N_ElInd, int *ElInd);
