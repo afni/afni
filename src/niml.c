@@ -1,6 +1,32 @@
 #include "niml.h"
 
 /****************************************************************************/
+/******************** typedefs used only internally *************************/
+/****************************************************************************/
+
+/*! Holds strings from the <header and=attributes> */
+
+typedef struct {
+   int nattr ;            /*!< Number of attributes. */
+   int empty ;            /*!< Did header end in '/>'? */
+   char *name ;           /*!< Header name string. */
+   char **lhs ;           /*!< Left-hand-sides of attributes. */
+   char **rhs ;           /*!< Right-hand-sides of attributes (may be NULL). */
+} header_stuff ;
+
+/*! A pair of integers. */
+
+typedef struct { int i,j ; } intpair ;
+
+/*! An array of integers. */
+
+typedef struct { int num; int *ar; } int_array ;
+
+/*! An array of strings, each allocated with NI_malloc(). */
+
+typedef struct { int num; char **str;} str_array ;
+
+/****************************************************************************/
 /*********************** NIML Utility functions *****************************/
 /****************************************************************************/
 

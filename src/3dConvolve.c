@@ -25,6 +25,10 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Allow user to specify no baseline parameters in the model with
+           command "-polort -1".
+  Date:    28 February 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -32,7 +36,7 @@
 #define PROGRAM_NAME    "3dConvolve"                 /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "28 June 2001"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "28 Feb  2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -403,7 +407,7 @@ void get_options
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -polort ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
+	  if (ival < -1)
 	    DC_error ("illegal argument after -polort ");
 	  option_data->polort = ival;
 	  nopt++;
@@ -1676,8 +1680,12 @@ void calculate_results
       /*----- Extract model parameters for this voxel -----*/
       if (option_data->input1D)
 	{
-	  for (ip = 0;  ip < q;  ip++)
-	    coef.elts[ip] = base_data[ip];
+	  if (q > 0)
+	    {
+	      for (ip = 0;  ip < q;  ip++)
+		coef.elts[ip] = base_data[ip];
+	    }
+	  ip = q;
 	  for (is = 0;  is < num_stimts;  is++)
 	    for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	      {
@@ -1687,10 +1695,13 @@ void calculate_results
 	}
       else
 	{
-	  extract_ts_array (base_dset, ixyz, coefts);
-	  for (ip = 0;  ip < q;  ip++)
-	    coef.elts[ip] = coefts[ip];
-
+	  if (q > 0)
+	    {
+	      extract_ts_array (base_dset, ixyz, coefts);
+	      for (ip = 0;  ip < q;  ip++)
+		coef.elts[ip] = coefts[ip];
+	    }
+	  ip = q;
 	  for (is = 0;  is < num_stimts;  is++)
 	    {
 	      extract_ts_array (irf_dset[is], ixyz, coefts);

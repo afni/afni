@@ -31,37 +31,27 @@
 
 /*-----------------------------------------------------------*/
 
+#ifndef TYPEDEF_byte
+#define TYPEDEF_byte
 typedef unsigned char byte ;
+#endif
 
+#ifndef TYPEDEF_rgb
+#define TYPEDEF_rgb
 typedef struct { byte r,g,b ; } rgb ;
+#endif
 
+#ifndef TYPEDEF_rgba
+#define TYPEDEF_rgba
 typedef struct { byte r,g,b,a ; } rgba ;
+#endif
 
+#ifndef TYPEDEF_complex
+#define TYPEDEF_complex
 typedef struct { float r,i ; } complex ;
+#endif
 
 /*-----------------------------------------*/
-
-/*! Holds strings from the <header and=attributes> */
-
-typedef struct {
-   int nattr ;            /*!< Number of attributes. */
-   int empty ;            /*!< Did header end in '/>'? */
-   char *name ;           /*!< Header name string. */
-   char **lhs ;           /*!< Left-hand-sides of attributes. */
-   char **rhs ;           /*!< Right-hand-sides of attributes (may be NULL). */
-} header_stuff ;
-
-/*! A pair of integers. */
-
-typedef struct { int i,j ; } intpair ;
-
-/*! An array of integers. */
-
-typedef struct { int num; int *ar; } int_array ;
-
-/*! An array of strings, each allocated with NI_malloc(). */
-
-typedef struct { int num; char **str;} str_array ;
 
 /* Macros for data type codes. */
 
@@ -97,6 +87,8 @@ typedef struct { int num; char **str;} str_array ;
 
 /*! A data element. */
 
+#ifndef TYPEDEF_NI_element
+#define TYPEDEF_NI_element
 typedef struct {
    int    type ;       /*!< What type of struct is this? */
    char  *name ;       /*!< Name of element. */
@@ -121,9 +113,12 @@ typedef struct {
    int *rowmap_off ;   /*!< Array of offsets into struct. */
    int *rowmap_siz ;   /*!< Array of sizes of components. */
 } NI_element ;
+#endif
 
 /*! A bunch of elements. */
 
+#ifndef TYPEDEF_NI_group
+#define TYPEDEF_NI_group
 typedef struct {
    int    type ;       /*!< What type of struct is this? */
    int    attr_num ;   /*!< Number of attributes. */
@@ -134,6 +129,7 @@ typedef struct {
    int   *part_typ ;   /*!< Type of each part (element or group). */
    void **part ;       /*!< Pointer to each part. */
 } NI_group ;
+#endif
 
 /*! Size of NI_stream buffer. */
 
@@ -141,6 +137,8 @@ typedef struct {
 
 /*! Data needed to process input stream. */
 
+#ifndef TYPEDEF_NI_stream_type
+#define TYPEDEF_NI_stream_type
 typedef struct {
    int type ;        /*!< NI_TCP_TYPE or NI_FILE_TYPE */
    int bad ;         /*!< Tells whether I/O is OK for this yet */
@@ -163,6 +161,14 @@ typedef struct {
    int bufsize ;           /*!< Length of buf array. */
    char *buf ;             /*!< I/O buffer (may be NULL). */
 } NI_stream_type ;
+#endif
+
+/*! Opaque type for the C API. */
+
+#ifndef TYPEDEF_NI_stream
+#define TYPEDEF_NI_stream
+typedef NI_stream_type *NI_stream ;
+#endif
 
 #define NI_TCP_TYPE    1
 #define NI_FILE_TYPE   2
@@ -186,10 +192,6 @@ typedef struct {
 
 #define NI_LSB_FIRST    1
 #define NI_MSB_FIRST    2
-
-/*! Opaque type for the C API. */
-
-typedef NI_stream_type *NI_stream ;
 
 /*-------------- prototypes ---------------*/
 

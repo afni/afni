@@ -106,6 +106,12 @@
            function regression coefficients.  Display of t-stats and p-values
            for individual linear constraints within a GLT.
   Date:    29 January 2002
+
+
+  Mod:     Allow user to specify no baseline parameters in the model 
+           by setting Baseline to "None".           
+  Date:    26 February 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -113,7 +119,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "29 Jan  2002"    /* date of latest program revision */
+#define PROGRAM_LATEST  "26 Feb  2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -153,7 +159,7 @@ static void DC_error (char * message)
 static char helpstring[] =
    " Purpose: Control DC_Fit, DC_Err, and DC_IRF  Deconvolution Functions.  \n"
    "                                                                        \n"
-   " Control:     Baseline  = 'Constant', 'Linear', 'Quadratic',            \n"
+   " Control:     Baseline  = 'None', 'Constant', 'Linear', 'Quadratic',    \n"
    "                          'Cubic', 'Quartic', or 'Quintic'              \n"
    "              NFirst    = Number of first time series point to use.     \n"
    "              NLast     = Number of last time series point to use.      \n"
@@ -188,9 +194,9 @@ static char helpstring[] =
 
 /*------- Strings for baseline control ------*/
 
-#define NBASE 6
-static char * baseline_strings[NBASE] = {"Constant", "Linear", "Quadratic",
-					 "Cubic", "Quartic", "Quintic" };
+#define NBASE 7
+static char * baseline_strings[NBASE] = {"None", "Constant", "Linear", 
+			    "Quadratic", "Cubic", "Quartic", "Quintic" };
 
 /*--------------- prototypes for internal routines ---------------*/
 
@@ -514,7 +520,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
-   PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 1);
+   PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 2);
    PLUTO_add_number (plint, "NFirst", -1, 32767, 0, -1, TRUE);
    PLUTO_add_number (plint, "NLast",  0, 32767, 0, 32767,  TRUE);
    PLUTO_add_string( plint, "IRF Label",    0, NULL, 1);
@@ -677,7 +683,7 @@ static char * DC_main( PLUGIN_interface * plint )
   /*--------- go to Control input line ---------*/
   PLUTO_next_option (plint);
   str    = PLUTO_get_string (plint);
-  plug_polort = PLUTO_string_index (str, NBASE, baseline_strings);
+  plug_polort = PLUTO_string_index (str, NBASE, baseline_strings) - 1;
   plug_NFirst = PLUTO_get_number (plint);
   plug_NLast  = PLUTO_get_number (plint);
   strcpy (IRF_label, PLUTO_get_string (plint));

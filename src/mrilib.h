@@ -59,11 +59,17 @@ extern int use_MRILIB_yoff ;
 
 /*! The MRI_byte data type. */
 
+#ifndef TYPEDEF_byte
+#define TYPEDEF_byte
 typedef unsigned char byte ;
+#endif
 
 /*! RGBA data type; not used anywhere (yet). */
 
+#ifndef TYPEDEF_rgba
+#define TYPEDEF_rgba
 typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
+#endif
 
 #define LOAD_rgba(s,rr,gg,bb,aa)   ((s).r=(rr),(s).g=(gg),(s).b=(bb),(s).a=(bb))
 #define UNLOAD_rgba(s,rr,gg,bb,aa) ((rr)=(s).r,(gg)=(s).g,(bb)=(s).b,(aa)=(s).a)
@@ -130,13 +136,19 @@ static float MRI_TYPE_maxval[7] =
 
 /*! I suppose that the next C makes this pleonastic. */
 
+#ifndef TYPEDEF_complex
+#define TYPEDEF_complex
 typedef struct complex { float r , i ; } complex ;
+#endif
 
 /*-------*/
 
 /*! Triple to hold RGB bytes. */
 
+#ifndef TYPEDEF_rgbyte
+#define TYPEDEF_rgbyte
 typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
+#endif
 
 static rgbyte tEMp_rgbyte_aAa ;
 
