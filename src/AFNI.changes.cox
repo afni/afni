@@ -3778,3 +3778,7 @@
 
 07 Jun 2002
  * Refined default threshold for termination of 3dvolreg.c.
+
+10 Jun 2002
+ * Modified afni.h and afni.c to incorporate RGBCYC cyclic color map from
+     Ziad Saad.
