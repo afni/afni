@@ -153,6 +153,19 @@ ENTRY("mri_write_analyze") ;
      hdr.dime.glmax = 0.0 ;
    }
 
+   /*--KRH 03/11/04 writing out originator field from AFNI origin--*/
+   /*- adding 1.5 to value for rounding (+0.5) and conversion      */
+   /*                           to 1-based matlab arrays (+1.0)  - */
+   /*--change abs() to -()                    25 Mar 2004  [rickr] */
+
+  if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") ){
+    short xyzuv[5] = {0};
+    xyzuv[0] = -im->xo/im->dx + 1.5;
+    xyzuv[1] = -im->yo/im->dy + 1.5;
+    xyzuv[2] = -im->zo/im->dz + 1.5;
+    memcpy( hdr.hist.originator, xyzuv, 10 );
+  }
+
    /*-- write header --*/
 
    fff = AFMALL(char, strlen(fname)+16 ) ;

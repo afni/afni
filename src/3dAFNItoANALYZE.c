@@ -201,6 +201,24 @@ int main( int argc , char *argv[] )
      im->dz = zdel ;
      im->dw = 1.0 ;
 
+     if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") ){
+       im->xo = dset->daxes->xxorg ;                    /* load voxel origin */
+       im->yo = dset->daxes->yyorg ;                    /* 03/11/04 KRH added this bit for SPM */
+       im->zo = dset->daxes->zzorg ;
+       if( ORIENT_sign[dset->daxes->xxorient] == '-' ){
+         im->dx = -im->dx ;
+         /* im->xo = -im->xo ; */
+       }
+       if( ORIENT_sign[dset->daxes->yyorient] == '-' ){
+         im->dy = -im->dy ;
+         /* im->yo = -im->yo ; */
+       }
+       if( ORIENT_sign[dset->daxes->zzorient] == '-' ){
+         im->dz = -im->dz ;
+         /* im->zo = -im->zo ; */
+       }
+     }
+
      im->nt = DSET_NVALS(dset) ;        /* add a time axis */
      im->dt = DSET_TR(dset) ;
      if( im->dt <= 0.0 ) im->dt = 1.0 ;
@@ -250,6 +268,25 @@ int main( int argc , char *argv[] )
         qim->dy = ydel ;
         qim->dz = zdel ;
         qim->dw = 1.0 ;
+
+        if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") ){
+          qim->xo = dset->daxes->xxorg ;                    /* load voxel origin */
+          qim->yo = dset->daxes->yyorg ;                    /* 03/11/04 KRH added this bit for SPM */
+          qim->zo = dset->daxes->zzorg ;
+  
+          if( ORIENT_sign[dset->daxes->xxorient] == '-' ){
+            qim->dx   = -qim->dx   ;
+            /* qim->xo = -qim->xo ; */
+          }
+          if( ORIENT_sign[dset->daxes->yyorient] == '-' ){
+            qim->dy   = -qim->dy   ;
+            /* qim->yo = -qim->yo ; */
+          }
+          if( ORIENT_sign[dset->daxes->zzorient] == '-' ){
+            qim->dz   = -qim->dz   ;
+            /* qim->zo = -qim->zo ; */
+          }
+        }
 
         sprintf(fname,"%s_%04d",aname,ii) ;  /* make up a filename */
         mri_write_analyze( fname , qim ) ;   /* do the real work */
