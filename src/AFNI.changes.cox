@@ -5137,3 +5137,9 @@
  * Modified matrix_f.c to include loop unrolling found in matrix.c.
  * Modified mri_symbolize.c and 3dDeconvolve.c to use '[[...]]' subscripting
      for -gltsym multi-row expansion.
+
+03 Aug 2004
+ * Modified matrix_print() in matrix.c and matrix_f.c to print shorter strings
+     when the matrix comprises all 1 digit integers.
+ * Modified 3dDeconvolve.c to print -gltsym matrices when AFNI_GLTSYM_PRINT
+     environment variable is YES.

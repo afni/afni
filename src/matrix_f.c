@@ -50,6 +50,9 @@
 	    matrices.
   Date:     18 March 2003
 
+  Mod:      Added UNROLL_VECMUL stuff from matrix.c to this file as well.
+            Added 'ipr' to matrix_print().
+  Date:     03 Aug 2004
 */
 
 /*---------------------------------------------------------------------------*/
@@ -144,14 +147,26 @@ void matrix_print (matrix m)
 {
   int i, j;
   int rows, cols;
+  float val ;
+  int ipr ;
 
   rows = m.rows;
   cols = m.cols;
 
+  for( i=0 ; i < rows ; i++ ){
+    for( j=0 ; j < cols ; j++ ){
+      val = (int)m.elts[i][j] ;
+      if( val != m.elts[i][j] || fabs(val) > 9.0f ) goto zork ;
+    }
+  }
+zork:
+  ipr = (i==rows && j==cols) ;
+
   for (i = 0;  i < rows;  i++)
     {
       for (j = 0;  j < cols;  j++)
-	printf (" %10.4g", m.elts[i][j]);
+        if( ipr ) printf (" %2d"   , (int)m.elts[i][j]);
+        else      printf (" %10.4g", m.elts[i][j]);
       printf (" \n");
     }
   printf (" \n");

@@ -53,6 +53,8 @@
   Mod:      UNROLL_VECMUL defined to allow unrolling by 2 of vector-multiply
             dot product loops.
 
+  Mod:      'ipr' added to matrix_print() function.
+  Date:     03 Aug 2004 - RWCox
 */
 
 
@@ -151,14 +153,26 @@ void matrix_print (matrix m)
 {
   int i, j;
   int rows, cols;
+  double val ;
+  int ipr ;
 
   rows = m.rows;
   cols = m.cols;
 
+  for( i=0 ; i < rows ; i++ ){
+    for( j=0 ; j < cols ; j++ ){
+      val = (int)m.elts[i][j] ;
+      if( val != m.elts[i][j] || fabs(val) > 9.0l ) goto zork ;
+    }
+  }
+zork:
+  ipr = (i==rows && j==cols) ;
+
   for (i = 0;  i < rows;  i++)
     {
       for (j = 0;  j < cols;  j++)
-	printf (" %10.4g", m.elts[i][j]);
+        if( ipr ) printf (" %2d"   , (int)m.elts[i][j]);
+        else      printf (" %10.4g", m.elts[i][j]);
       printf (" \n");
     }
   printf (" \n");

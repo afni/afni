@@ -280,7 +280,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "28 July 2004"        /* latest program revision date*/
+#define PROGRAM_LATEST  "03 August 2004"      /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
