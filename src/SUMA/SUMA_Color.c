@@ -1,5 +1,12 @@
 #include "SUMA_suma.h"
 
+#ifdef SUMA_MakeColorMap_STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF;
+#elif defined SUMA_ScaleToMap_STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF;
+#else
+	extern SUMA_CommonFields *SUMAg_CF; 
+#endif
 
 /*! The set of functions deals with node colors
 */
@@ -41,12 +48,14 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
 	int i, j, Ninter, Ngap, im, Ncolsgood, Npergap;
 	SUMA_COLOR_MAP * SM;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+	
 	/* check for bad input */
 	for (i=0; i < Nfid; ++i) {
 		for (j=0; j < 3; ++j) {
 			if (Fiducials[i][j] < 0 || Fiducials[i][j] > 1) {
 				fprintf (SUMA_STDERR,"Error %s: Fiducial colors must be between 0 & 1 (found %f)\n", FuncName, Fiducials[i][j]);
-				return (NULL);
+				SUMA_RETURN (NULL);
 			}
 		}
 	}
@@ -64,14 +73,14 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
 		
 		fprintf (SUMA_STDERR,"Error %s: The choice of Ncols does not work with the number\nof fiducial colours.\nTry Ncols = %d\n", \
 		FuncName, Ncolsgood); 
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* allocate for M */
 	M = (float **)SUMA_allocate2D (Ncols, 3, sizeof(float));
 	if (M == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for M.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* start forming M */
@@ -106,19 +115,19 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
 	SM = (SUMA_COLOR_MAP *)malloc(sizeof(SUMA_COLOR_MAP));
 	if (SM == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	SM->Name = (char *)calloc(strlen(Name)+1, sizeof(char));
 	if (SM->Name == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	sprintf(SM->Name, "%s",Name); 
 	SM->M = M;
 	SM->N_Col = Ncols;
-	
-	return (SM);
+
+	SUMA_RETURN (SM);
 }
 
 /*! 
@@ -156,16 +165,18 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
 	int i, j, im, Ncols;
 	SUMA_COLOR_MAP * SM;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	/* check for bad input and calculate the total number of colors*/
 	if (Nint[0]) {
 		fprintf (SUMA_STDERR,"Error %s: The index of the first color (%d) must be 0, indexing starts at 0 not 1.\n", FuncName, Nint[0]);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	for (i=0; i < Nfid; ++i) {
 		for (j=0; j < 3; ++j) {
 			if (Fiducials[i][j] < 0 || Fiducials[i][j] > 1) {
 				fprintf (SUMA_STDERR,"Error %s: Fiducial colors must be between 0 & 1 (found %f)\n", FuncName, Fiducials[i][j]);
-				return (NULL);
+				SUMA_RETURN (NULL);
 			}
 		}
 	}
@@ -178,7 +189,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
 	M = (float **)SUMA_allocate2D (Ncols, 3, sizeof(float));
 	if (M == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for M.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* start forming M */
@@ -210,28 +221,33 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
 	SM = (SUMA_COLOR_MAP *)malloc(sizeof(SUMA_COLOR_MAP));
 	if (SM == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	SM->Name = (char *)calloc(strlen(Name)+1, sizeof(char));
 	if (SM->Name == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	sprintf(SM->Name, "%s",Name); 
 	SM->M = M;
 	SM->N_Col = Ncols;
 	
-	return (SM);
+	SUMA_RETURN (SM);
 }
 
 /*! function to free memory allocated for SUMA_COLOR_MAP */
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM)
 {
+	static char FuncName[]={"SUMA_Free_ColorMap"};
+	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (SM->Name) free (SM->Name);
 	if (SM->M) SUMA_free2D((char **)SM->M, SM->N_Col);
 	if (SM) free (SM);
-	return;
+
+	SUMA_RETURNe;
 }
 
 
@@ -457,6 +473,14 @@ int main (int argc,char *argv[])
 		fprintf (SUMA_STDERR,"\nWarning %s: -pos option is obsolete.\n", FuncName);
 	}
 	
+	/* allocate space for CommonFields structure and initialize debug*/
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	SUMAg_CF->InOut_Notify = NOPE;
+	
 	/* read the fiducials file */
 	N_Fid = SUMA_float_file_size(FidName);
 	if (N_Fid < 1) {
@@ -605,6 +629,8 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 	int i,j, i0, i1, mxColindex;
 	float MinCol, MaxCol, Vrange, Vscl, r;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	/* find the values to be masked out */
 	if (Opt->ApplyMask){
 		for (i=0; i < N_V; ++i) {
@@ -639,7 +665,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 	/* if brightness factor is given, apply it to color map and mask color */
 	if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
 		fprintf (SUMA_STDERR,"Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}else {
 		if (Opt->BrightFact != 1) {
 			for (i=0; i < ColMap->N_Col; ++i) {
@@ -659,7 +685,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 	Vrange = Vmax - Vmin; 
 	if (Vrange <= 0) {
 		fprintf (SUMA_STDERR,"Error %s: Vmax <= Vmin.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	mxColindex = ColMap->N_Col -1;
@@ -688,7 +714,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
 		}
 	}
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 } 
 
 /*! function to allocate and initialize a structure of the type SUMA_COLOR_SCALED_VECT
@@ -701,10 +727,12 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
 	static char FuncName[]={"SUMA_Create_ColorScaledVect"};
 	SUMA_COLOR_SCALED_VECT * S;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	S = (SUMA_COLOR_SCALED_VECT *)malloc(sizeof(SUMA_COLOR_SCALED_VECT));
 	if (S == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (S);
 	}
 	
 	S->cM = (float **) SUMA_allocate2D(N_Node, 3, sizeof(float));
@@ -712,14 +740,14 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
 	
 	if (!S->cM || !S->isMasked) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S->cM or S->isMasked.\n", FuncName);
-		free(S);
-		return (NULL);
+		free(S); S = NULL;
+		SUMA_RETURN (S);
 	}
 	
 	S->N_Node = N_Node;
 	
 	
-	return(S);
+	SUMA_RETURN(S);
 }
 
 /*! function to free structures of the type SUMA_COLOR_SCALED_VECT
@@ -730,10 +758,14 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
 */
 void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S)
 {
+	static char FuncName[]={"SUMA_Free_ColorScaledVect"};
+	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (S->cM) SUMA_free2D((char **)S->cM, S->N_Node);
 	if (S->isMasked) free(S->isMasked);
 	if (S) free (S);
-	return;
+	SUMA_RETURNe;
 }
 
 /*! 
@@ -757,11 +789,13 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
 	SUMA_SCALE_TO_MAP_OPT * Opt;
 	static char FuncName[]={"SUMA_ScaleToMapOptInit"};
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	Opt = (SUMA_SCALE_TO_MAP_OPT *)malloc(sizeof(SUMA_SCALE_TO_MAP_OPT));
 	
 	if (Opt == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not allocate for Opt.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	Opt->ApplyMask = NOPE;
@@ -771,7 +805,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
 	Opt->ClipRange[0] = Opt->ClipRange[1] = 0.0;
 	Opt->BrightFact = 1.0;
 	
-	return (Opt);
+	SUMA_RETURN (Opt);
 
 }
 
@@ -797,6 +831,8 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 		int Ncols, NFid;
 		SUMA_COLOR_MAP * CM;
 		
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 		switch (mapname) {
 			case SUMA_CMAP_RGYBR20:
 				{
@@ -805,7 +841,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					Fiducials = (float **)SUMA_allocate2D(5, 3, sizeof(float));
 					if (!Fiducials) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					/* create the fiducial colors */
 					k = 0;
@@ -822,7 +858,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				}
@@ -833,7 +869,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					Fiducials = (float **)SUMA_allocate2D(4, 3, sizeof(float));
 					if (!Fiducials) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					/* create the fiducial colors */
 					k = 0;
@@ -849,7 +885,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				}
@@ -861,7 +897,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
 					if (!Fiducials) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					/* create the fiducial colors */
 					k = 0;
@@ -875,7 +911,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				}
@@ -887,7 +923,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
 					if (!Fiducials) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					/* create the fiducial colors */
 					k = 0;
@@ -901,7 +937,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				}
@@ -913,7 +949,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					Fiducials = (float **)SUMA_allocate2D(2, 3, sizeof(float));
 					if (!Fiducials) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					/* create the fiducial colors */
 					k = 0;
@@ -927,7 +963,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				}
@@ -943,7 +979,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!Fiducials || !Nind) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
-						return (NULL);
+						SUMA_RETURN (NULL);
 					}
 					
 					/* create the fiducial colors */
@@ -968,18 +1004,18 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					
 					if (!CM) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
-						return (NULL);	
+						SUMA_RETURN (NULL);	
 					}
 					break;
 				
 				}
 			default:
 				fprintf (SUMA_STDERR,"Error %s: Unrecognized color map name.\n", FuncName);
-				return (NULL);
+				SUMA_RETURN (NULL);
 		
 		}
 		
-		return (CM);
+		SUMA_RETURN (CM);
 	}
 
 #ifdef SUMA_ScaleToMap_STAND_ALONE
@@ -1008,7 +1044,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"SUMA_MakeColorMap-main"}, *IntName, *Prfx, h[9]; 
+   char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName, *Prfx, h[9]; 
 	int N_V, N_Int, kar, k;
 	int Vminloc, Vmaxloc;
 	float Vmin, Vmax, brfact;
@@ -1170,6 +1206,14 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 	
+	/* allocate space for CommonFields structure and initialize debug*/
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+	SUMAg_CF->InOut_Notify = NOPE;
+
 	/* if you decide to have two values per column */
 	#ifdef TWO_VALS
 		if (N_V % 2) {
@@ -1293,10 +1337,12 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 	static char FuncName[] = {"SUMA_PercRange"};
 	int *isort, il, ih;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (PercRange[0] < 0 || PercRange[0] > 100 || PercRange[1] < 0 || PercRange[1] > 100) {
 		fprintf (SUMA_STDERR, "Error %s: Values in PercRange must be between 0 and 100.\nVsort will be freed.\n", FuncName);
 		if (Vsort) free(Vsort);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	 
 	if (!Vsort) {
@@ -1304,7 +1350,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 	  	Vsort = (float *)calloc (N_V, sizeof(float));
 		if (!Vsort) {
 			fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Vsort.\n", FuncName);
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 		/* copy V to Vsort */
 		SUMA_COPY_VEC (V, Vsort, N_V, float, float);
@@ -1319,7 +1365,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 	PercRangeVal[0] = Vsort[il];
 	PercRangeVal[1] = Vsort[ih];
 	
-	return (Vsort);
+	SUMA_RETURN (Vsort);
 }
 
 /*!
@@ -1348,15 +1394,17 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 	static char FuncName[]={"SUMA_CreateOverlayPointer"};
 	SUMA_OVERLAYS *Sover=NULL;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	Sover = (SUMA_OVERLAYS *)malloc(sizeof(SUMA_OVERLAYS));
 	if (!Sover) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	if (strlen(Name) - 1 > SUMA_MAX_LABEL_LENGTH) {
 		fprintf (SUMA_STDERR,"Error %s: Name must be less than %d characters in length.\n", FuncName, SUMA_MAX_LABEL_LENGTH-1);
 		free (Sover);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} else {
 		strcpy (Sover->Name, Name);
 	}
@@ -1369,7 +1417,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 	if (!Sover->NodeDef || !Sover->ColMat || !Sover->LocalOpacity) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover fields.\n", FuncName);
 		free (Sover);
-		return (NULL);	
+		SUMA_RETURN (NULL);	
 	}
 	
 	Sover->GlobalOpacity = -1.0; /* no factor applied */
@@ -1379,7 +1427,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 	Sover->Show = NOPE;
 	Sover->PlaneOrder = -1; /* No order is specified */
 	Sover->BrightMod = 0; /* no brightness modulation effects */
-	return (Sover);
+
+	SUMA_RETURN (Sover);
 }
 
 /*! 
@@ -1396,9 +1445,11 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
 {
 	static char FuncName[]={"SUMA_FreeOverlayPointer"};
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (Sover == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Sover is NULL, nothing to do. Returning OK flag.\n", FuncName);
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
 	if (Sover->NodeDef) free (Sover->NodeDef);
@@ -1407,7 +1458,7 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
 	
 	free (Sover); Sover = NULL;
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! 
@@ -1429,18 +1480,21 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
 	int i;
 	SUMA_OVERLAYS *ptr= NULL;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	for (i=0; i < N_Overlays; ++i) {
 		if (!strcmp(Overlays[i]->Name, Name)) {
 			*OverInd = i;
 			/*fprintf (SUMA_STDOUT,"%s: Found overlay plane %s, indexed %d.\n", FuncName, Name, i);*/
-			return (Overlays[i]);
+			SUMA_RETURN (Overlays[i]);
 		}
 	}
 	
 	/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s was not found.\n", FuncName, Name);*/
 	
 	*OverInd = -1;
-	return (NULL);
+
+	SUMA_RETURN (NULL);
 } 
  
 /*!
@@ -1470,10 +1524,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	SUMA_Boolean *isColored, *isColored_Fore, *isColored_Back;
 	GLfloat *glcolar_Fore , *glcolar_Back;
 	float avg_Back, avgfact;
+	SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */	
+
 	
-	
-	/*fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
-	SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); */ 
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
+	if (LocalHead)	{ 
+		fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
+		SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); } 
 	
 
 	/* get the indices into the color structure vector of overlays to be shown */
@@ -1493,14 +1551,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 		}
 	}
 
-	/*fprintf (SUMA_STDERR,"%s: Found %d Mix overlays and %d Mix-Brightmod overlays.\n", FuncName, NshowOverlays, NshowOverlays_Back);*/
+	if (LocalHead)	fprintf (SUMA_STDERR,"%s: Found %d Mix overlays and %d Mix-Brightmod overlays.\n", FuncName, NshowOverlays, NshowOverlays_Back);
 	
 	/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv allocate space ------------------------------------*/
 	
 	isColored = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));/* allocate for flag indicating the a node is colored */
 	if (!isColored) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	glcolar_Back = NULL;
@@ -1512,7 +1570,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 
 			if (!isColored_Back || !glcolar_Back) {
 				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Back || glcolar_Back.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 		}
 	}
@@ -1521,12 +1579,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	glcolar_Fore = NULL;
 	if (ShowForeground) {
 		if (NshowOverlays) {
-			isColored_Fore = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
 			glcolar_Fore = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
+			isColored_Fore = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
 
 			if (!isColored_Fore || !glcolar_Fore) {
 				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Fore || glcolar_Fore.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 		}		
 	}
@@ -1553,11 +1611,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 
 		/* mix the colors that will constitute background*/
 		if (NshowOverlays_Back) {
-			/*fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);*/
+			if (LocalHead)	fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);
 
 			if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_Back_sort, NshowOverlays_Back, glcolar_Back, N_Node, isColored_Back, NOPE)) {
 				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 		} else {
 			ShowBackground = NOPE;
@@ -1588,10 +1646,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 
 		/* Now mix the foreground colors */
 		if (NshowOverlays) {
-				/*fprintf (SUMA_STDERR,"%s: Mixing Foreground colors ....\n", FuncName);*/
+				if (LocalHead)	fprintf (SUMA_STDERR,"%s: Mixing Foreground colors ....\n", FuncName);
 				if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
 					fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
-					return (NOPE);
+					SUMA_RETURN (NOPE);
 				}
 		} else {
 			ShowForeground = NOPE;
@@ -1603,7 +1661,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 
 	/* time to modulate the mixed colors with the average brightness */
 	if (NshowOverlays && NshowOverlays_Back) {
-		/*fprintf (SUMA_STDERR,"%s: Modulating Brightness of Foreground colors ...\n", FuncName);*/
+		if (LocalHead)	fprintf (SUMA_STDERR,"%s: Modulating Brightness of Foreground colors ...\n", FuncName);
+
 		for (i=0; i < N_Node; ++i) {
 			avgfact = Back_Modfact / 3.0;
 			if (isColored_Fore[i] && isColored_Back[i]) { /* colors from both sides, adjust brightness */
@@ -1647,10 +1706,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 			}
 		}
 		
-		/*fprintf (SUMA_STDERR,"%s: Done Modulating Brightness of overlay colors.\n", FuncName);*/
+		if (LocalHead)	fprintf (SUMA_STDERR,"%s: Done Modulating Brightness of overlay colors.\n", FuncName);
 	} 
 	if (NshowOverlays && !NshowOverlays_Back) {
-		/*fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);*/
+		if (LocalHead)	fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
 			for (i=0; i < N_Node; ++i) {
 				if (isColored_Fore[i]) {
 					i4 = 4 * i;
@@ -1670,7 +1729,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	}
 	
 	if (!NshowOverlays && NshowOverlays_Back) {
-		/*fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);*/
+		if (LocalHead)	fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
 			for (i=0; i < N_Node; ++i) {
 				if (isColored_Back[i]) {
 					i4 = 4 * i;
@@ -1705,8 +1764,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	if (isColored_Fore) free(isColored_Fore);
 	if (glcolar_Fore) free(glcolar_Fore);
 	
-	/*fprintf (SUMA_STDERR,"%s: Returning ...\n", FuncName);*/
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 /*! 
 	function to mix overlay plane colors 
@@ -1729,10 +1787,13 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 	static char FuncName[] = {"SUMA_MixOverlays"};
 	int i, j;
 	SUMA_Boolean Full, Fill, Locl, Glob;
+	SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */	
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (!isColored) {
 		fprintf (SUMA_STDERR, "Error %s: isColored is NULL.\n", FuncName); 
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	if (!NshowOverlays) { /* nothing to see here */
 		fprintf (SUMA_STDERR, "Warning %s: Nothing to do.\n", FuncName); 
@@ -1740,7 +1801,7 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 			fprintf (SUMA_STDERR, "Warning %s: Filling with blank default color\n", FuncName); 
 			SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
 		}
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
 	/* start building the node colors */
@@ -1753,7 +1814,7 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 		i = ShowOverlays[j];
 		
 		/* is this a full listing */
-		/*fprintf (SUMA_STDOUT, "%s: Full listing flag: %d\n", FuncName, Overlays[i]->NodeDef[0]);*/
+		if (LocalHead) fprintf (SUMA_STDOUT, "%s: Full listing flag: %d\n", FuncName, Overlays[i]->NodeDef[0]);
 		if (Overlays[i]->NodeDef[0] < 0) {			Fill = NOPE;	/* Full list, no need to fill up unvisited nodes at the end */	} 
 		else {			Full = NOPE; /* Not a full list */		}
 		
@@ -1767,14 +1828,14 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 			Glob = NOPE; Locl = NOPE;
 		}
 		
-		/*
-		fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d, Locl=%d,Fill=%d\n", \
+		if (LocalHead) 
+			fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d, Locl=%d,Fill=%d\n", \
 			FuncName, j, i, Overlays[i]->Name, (int)Full, (int)Glob, (int)Locl, (int)Fill);
-		 */
+		
 		   
 		/* call the appropriate macro to add the overlay */
 		if (Full && Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op ...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op ...\n", FuncName);
 			
 			/* This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
 			but name was too long for some compilers */
@@ -1783,49 +1844,49 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 		}
 		
 		if (!Full && Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op ...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op ...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
 			SUMA_RGB_PGL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
 		}
 		
 		if (Full && !Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FnGL_AR4op...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FnGL_AR4op...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity */
 			SUMA_RGB_FnGL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->LocalOpacity, isColored);			
 		}
 		
 		if (!Full && !Glob && Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGL_AR4op ...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGL_AR4op ...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity*/
 			SUMA_RGB_PnGL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->LocalOpacity, N_Node);
 		}
 		
 		if (Full && !Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FnGnL_AR4op ...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FnGnL_AR4op ...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
 			SUMA_RGB_FnGnL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, isColored);			
 		}
 		
 		if (!Full && !Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGnL_AR4op ...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PnGnL_AR4op ...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity */
 			SUMA_RGB_PnGnL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, N_Node);
 		}
 		
 		if (Full && Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
 			SUMA_RGB_FGnL_AR4op(\
 			Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
 		}
 		 
 		if (!Full && Glob && !Locl) {
-			/*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op...\n", FuncName);*/
+			if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op...\n", FuncName);
 			/* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
 			SUMA_RGB_PGnL_AR4op(\
 			Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
@@ -1833,13 +1894,12 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
 	}
 	
 	if (FILL && Fill) { /* nothing to see here */
-		/*fprintf (SUMA_STDOUT,"%s: Some nodes received no colors from any of the overplanes, filling them with background color ...\n", FuncName);*/
+		if (LocalHead) fprintf (SUMA_STDOUT,"%s: Some nodes received no colors from any of the overplanes, filling them with background color ...\n", FuncName);
 		SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
-	/*fprintf (SUMA_STDOUT,"%s: Returning.\n", FuncName);*/
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 /*!
 	This is the first incarnation: NOW OBSOLETE
@@ -1862,6 +1922,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
 	SUMA_Boolean Fill, Full, Glob, Locl, add;
 	SUMA_Boolean *isColored;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
 	SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); 
 	
@@ -1877,13 +1939,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
 	isColored = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
 	if (!isColored) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	if (!NshowOverlays) { /* nothing to see here */
 		SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
 		free (isColored);
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
 	/* start building the node colors */
@@ -1958,11 +2020,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
 	if (Fill) { /* nothing to see here */
 		/*fprintf (SUMA_STDOUT,"%s: Some nodes received no colors from any of the overplanes, filling them with background color ...\n", FuncName);*/
 		SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 
 	free(isColored);
-	return (YUP);
+
+	SUMA_RETURN (YUP);
 }
 
 /*! 
@@ -1980,6 +2043,8 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
 	static char FuncName[]={"SUMA_Show_ColorOverlayPlanes"};
 	int i;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	for (i=0; i < N_Overlays; ++i) {
 		fprintf (SUMA_STDOUT, "%s: Overlay plane %s, order %d, indexed %d.\n", FuncName, Overlays[i]->Name, Overlays[i]->PlaneOrder, i);
 		if (!Overlays[i]) {
@@ -1999,7 +2064,8 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
 			Overlays[i]->LocalOpacity[2], Overlays[i]->LocalOpacity[3], Overlays[i]->LocalOpacity[4]);
 		fprintf (SUMA_STDOUT, "\n");
 	}
-	return (YUP);
+
+	SUMA_RETURN (YUP);
 }
 	
 /*! 
@@ -2023,19 +2089,21 @@ SUMA_Boolean SUMA_SetPlaneOrder (SUMA_OVERLAYS **Overlays, int N_Overlays, const
 	int i, PlaneIndex = -1;
 	SUMA_Boolean Found;
 	
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
 	if (!SUMA_Fetch_OverlayPointer (Overlays, N_Overlays, Name, &PlaneIndex)) {
 		fprintf (SUMA_STDERR,"Error %s: Plane %s not found.\n", FuncName, Name);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 
 	if (PlaneIndex < 0 || PlaneIndex >= N_Overlays) {
 		fprintf (SUMA_STDERR,"Error %s: PlaneIndex <0 || >= N_Overlays.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	if (NewOrder < 0 || NewOrder >= N_Overlays) {
 		fprintf (SUMA_STDERR,"Error %s: NewOrder <0 || NewOrder >= .\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* find out if NewOrder alreay exists */
@@ -2050,7 +2118,7 @@ SUMA_Boolean SUMA_SetPlaneOrder (SUMA_OVERLAYS **Overlays, int N_Overlays, const
 	/* if a new order, assign it and leave */
 	if (!Found) {
 		Overlays[PlaneIndex]->PlaneOrder = NewOrder;
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
 	/* not a new order, some shifting required */
@@ -2067,5 +2135,6 @@ SUMA_Boolean SUMA_SetPlaneOrder (SUMA_OVERLAYS **Overlays, int N_Overlays, const
 	}
 	*/
 
-	return (YUP);
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }
+	SUMA_RETURN (YUP);
 }	

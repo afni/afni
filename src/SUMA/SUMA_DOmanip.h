@@ -4,13 +4,13 @@
 float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
 int **SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
 SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetList, int N_FaceSetList );
-SUMA_SurfaceObject *Alloc_SurfObject_Struct(int N);
+SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
-void CreateMesh(SUMA_SurfaceObject *SurfObj);
+void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj);
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov);
-SUMA_DO *Alloc_DisplayObject_Struct (int N);
+SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N);
 SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType);
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);

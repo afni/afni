@@ -6,6 +6,7 @@
 extern SUMA_SurfaceViewer *SUMAg_cSV;
 extern int SUMAg_N_DOv; 
 extern SUMA_DO *SUMAg_DOv;
+extern SUMA_CommonFields *SUMAg_CF; 
 
 /*-----------------------------------------------*/
 /*! Flag to tell if NIML things are initialized. */
@@ -26,12 +27,15 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    int cc , nn ;
    void *nini ;
 	static char FuncName[]={"SUMA_niml_workproc"};
+	SUMA_Boolean LocalHead = NOPE;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
      /* check if stream is open */
 
      if( SUMAg_cSV->ns == NULL ){
        fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
-		 return (True); /* Don't call me with that lousy stream again */
+		 SUMA_RETURN(True); /* Don't call me with that lousy stream again */
      }
 
      /* check if stream has gone bad */
@@ -42,7 +46,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        NI_stream_close( SUMAg_cSV->ns ) ;
        SUMAg_cSV->ns = NULL ;
 		 fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream gone bad. Stream closed. \n");
-       return (True);               /* Don't call me with that lousy stream again */
+       SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
      }
 
      /* if here, stream is good;
@@ -57,19 +61,19 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 	
      if( nn > 0 ){                                   /* has data */
        int ct = NI_clock_time() ;
-		fprintf(SUMA_STDERR,"NIML: reading data stream") ;
+		 if (LocalHead)	fprintf(SUMA_STDERR,"$s: reading data stream", FuncName) ;
 
        nini = NI_read_element( SUMAg_cSV->ns , 1 ) ;  /* read it */
 
-		fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
+		if (LocalHead)	fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
        if( nini != NULL ) {
-       	/*
-			NI_element *nel ;
-			nel = (NI_element *)nini ;
-			fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
-					nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
-			*/		
+       	if (LocalHead)	{
+				NI_element *nel ;
+				nel = (NI_element *)nini ;
+				fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
+						nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+			}		
 		    if (!SUMA_process_NIML_data( nini )) {
 			 	fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
 			 }
@@ -77,12 +81,12 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
       NI_free_element( nini ) ;
 
-		fprintf(SUMA_STDERR,"processing time=%d ms\n",NI_clock_time()-ct) ;
+		if (LocalHead)	fprintf(SUMA_STDERR,"processing time=%d ms\n",NI_clock_time()-ct) ;
 
      }
    
 
-   return (False) ;  /* always call me back */
+   SUMA_RETURN(False) ;  /* always call me back */
 }
 
 /*----------------------------------------------------------------------*/
@@ -100,13 +104,15 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	int i, *inel, I_C = -1, iv3[3];
 	byte *r, *g, *b;
 	static char FuncName[]={"SUMA_process_NIML_data"};
-	SUMA_Boolean Empty_irgba = NOPE;
+	SUMA_Boolean Empty_irgba = NOPE, LocalHead = NOPE;
 	
 	SUMA_SurfaceObject *SO;
 	/*int it;
 	float fv3[3], fv15[15];*/
 	/*float ft;
 	int **im,  iv15[15];*/ /* keep unused variables undeclared to quite compiler */
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
   	/* retrieve the Surface Object in Focus*/
 		SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
@@ -115,17 +121,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	/* initialize EngineData */
 	if (!SUMA_InitializeEngineData (&EngineData)) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-		return(NOPE);
+		SUMA_RETURN(NOPE);
 	}
 
    if( tt < 0 ) {/* should never happen */
 		fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
-		return(NOPE);
+		SUMA_RETURN(NOPE);
 	} 
 
    if( tt != NI_ELEMENT_TYPE ){  /* should never happen */
 		fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
-		return(NOPE);
+		SUMA_RETURN(NOPE);
 	}
    
 	/* if here, have a single data element;
@@ -133,33 +139,32 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 
    nel = (NI_element *) nini ;
 	
-	/*
-	fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
+	if (LocalHead)  {
+		fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
 					nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
-	*/
+	}
 	
    /*--- CrossHair XYZ ---*/
 	if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0) {/* SUMA_crosshair_xyz */
      /*-- check element for suitability --*/
      if( nel->vec_len    < 1 || nel->vec_filled <  1) {  /* empty element?             */
 			fprintf(SUMA_STDERR,"%s: Empty crosshair xyz.\n", FuncName);
-	  		return (YUP);
+	  		SUMA_RETURN(YUP);
 	  }
 	  if( nel->vec_len != 3 || nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
 	  		fprintf(SUMA_STDERR,"%s: SUMA_crosshair_xyz requires 3 floats in one vector.\n", FuncName);
-			return(NOPE);
+			SUMA_RETURN(NOPE);
 	  }
 
 		/*SUMA_nel_stdout (nel);*/
 
   	   /* set the cross hair XYZ for now */
-		fprintf (SUMA_STDERR,"%s: Her2e\n", FuncName);
 	   I_C = -1;
 	   XYZ = SUMA_XYZmap_XYZ (nel->vec[0], SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
 	  
 	  if (XYZ == NULL) {
 	  	fprintf(SUMA_STDERR,"Error %s: No linkage possible.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN(NOPE);
 	  }
 
 		/* attach the cross hair to the selected surface */
@@ -176,7 +181,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		sprintf(sdestination,"BindCrossHair");
 		if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-			return (NOPE);
+			SUMA_RETURN(NOPE);
 		}
 		sprintf(CommString,"BindCrossHair~");
 		if (!SUMA_Engine (CommString, &EngineData)) {
@@ -196,8 +201,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 		}		
 		
 		/* don't free nel, it's freed later on */
-		return (YUP) ;
-		fprintf (SUMA_STDERR,"%s: Here\n", FuncName);
+		SUMA_RETURN(YUP) ;
 	}/* SUMA_crosshair_xyz */
 	
 	/* SUMA_irgba Node colors */
@@ -208,24 +212,24 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	  	}else {
 			if( nel->vec_num != 5 || nel->vec_typ[0] != NI_INT || nel->vec_typ[1] != NI_BYTE || nel->vec_typ[2] != NI_BYTE || nel->vec_typ[3] != NI_BYTE) {
 	  			fprintf(SUMA_STDERR,"%s: SUMA_irgba Bad format\n", FuncName);
-				return(NOPE);
+				SUMA_RETURN(NOPE);
 		  }
 		}
 	  
 	  /* show me nel */
-	  /*SUMA_nel_stdout (nel);*/
+	  if (LocalHead) SUMA_nel_stdout (nel);
 	  
 		/* make sure that the Surface idcode corresponds to the one in focus */
 	   nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
 		if (nel_surfidcode == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN(NOPE);
 		} else {
 			if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) != 0) {
 				fprintf(SUMA_STDERR,"Error %s: surface_idcode in nel not equal to SO->MapRef_idcode_str.\n", FuncName);
-				return(NOPE);
+				SUMA_RETURN(NOPE);
 			} else {
-				fprintf(SUMA_STDOUT,"%s: Matching surface idcode\n", FuncName);
+				if (LocalHead) fprintf(SUMA_STDOUT,"%s: Matching surface idcode\n", FuncName);
 			}
 		}
 	  
@@ -238,7 +242,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			fm = (float **)SUMA_allocate2D (EngineData.N_rows, EngineData.N_cols, sizeof(float));
 			if (fm == NULL) {
 				fprintf(stderr,"Error %s: Failed to allocate space for fm\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN(NOPE);
 			}
 
 			/* set all node colors to nothingness */
@@ -290,14 +294,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			sprintf(ssource,"afni");
 			if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fm, sdestination, ssource, YUP)) {
 				fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-				return(NOPE);
+				SUMA_RETURN(NOPE);
 			}
 
 			/* call EngineData */
 			sprintf(CommString,"Redisplay|SetNodeColor~");
 			if (!SUMA_Engine (CommString, &EngineData)) {
 				fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 
 			/* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
@@ -323,21 +327,21 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 								/* not found */
 								fprintf(SUMA_STDERR, "Error %s: Map reference %s not found.\n",\
 								 FuncName, SO->MapRef_idcode_str);
-								return (NOPE);;
+								SUMA_RETURN(NOPE);
 							}
 						SOmap = (SUMA_SurfaceObject *)(SUMAg_DOv[_ID].OP);
 					}
 					SOmap->Overlays[SOmap->N_Overlays] = SUMA_CreateOverlayPointer (SOmap->N_Node, "FuncAfni_0");
 					if (!SOmap->Overlays[SOmap->N_Overlays]) {
 						fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN(NOPE);
 					} 
 					
 					/* make an Inode for the overlay */
 					SOmap->Overlays_Inode[SOmap->N_Overlays] = SUMA_CreateInode ((void *)SOmap->Overlays[SOmap->N_Overlays], SOmap->idcode_str);
 					if (!SOmap->Overlays_Inode[SOmap->N_Overlays]) {
 						fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN(NOPE);
 					}
 					
 					OverInd = SOmap->N_Overlays; 
@@ -346,7 +350,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 					/* place the overlay plane on top */
 					if(!SUMA_SetPlaneOrder (SOmap->Overlays, SOmap->N_Overlays, "FuncAfni_0", SOmap->N_Overlays-1)) {
 						fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetPlaneOrder\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN(NOPE);
 					}
 					
 					/* If the surface was not inherently mappable, create the links to the new overlay plane */
@@ -361,7 +365,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 										 SOmap->Overlays_Inode[SOmap->N_Overlays-1]);
 						if (!SO->Overlays_Inode[SO->N_Overlays]) {
 								fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-								return (NOPE);
+								SUMA_RETURN(NOPE);
 							}
 						/* now copy the actual overlay plane pointer */
 						SO->Overlays[SO->N_Overlays] = SOmap->Overlays[SOmap->N_Overlays-1];
@@ -402,7 +406,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
 						SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 						fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN(NOPE);
 				}
 				
 				
@@ -410,12 +414,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				sprintf(CommString,"Redisplay~");
 				if (!SUMA_Engine (CommString, NULL)) {
 					fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-					return (NOPE);
+					SUMA_RETURN(NOPE);
 				}
 			}
 		#endif
 		/* don't free nel, it's freed later on */
-		return (YUP) ;
+		SUMA_RETURN(YUP) ;
 
 		 
 	}/* SUMA_irgba */
@@ -423,7 +427,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
    /*** If here, then name of element didn't match anything ***/
 
    fprintf(SUMA_STDERR,"Error %s: Unknown NIML input: %s\n", FuncName ,nel->name) ;
-   return (NOPE) ;
+   SUMA_RETURN(NOPE) ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -436,10 +440,13 @@ static XtWorkProcId wpid ;
 
 void SUMA_register_workproc( XtWorkProc func , XtPointer data )
 {
+   static char FuncName[]={"SUMA_register_workproc"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if( func == NULL ){
-      fprintf(stderr,"SUMA_register_workproc: func=NULL on entry!\n") ;
-      return;
+	if( func == NULL ){
+      fprintf(SUMA_STDERR,"Error %s: func=NULL on entry!\n", FuncName) ;
+      SUMA_RETURNe;
    }
 
    if( num_workp == 0 ){
@@ -462,16 +469,19 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data )
 fprintf(stderr,"SUMA_register_workproc: have %d workprocs\n",num_workp) ;
 #endif
 
-   return ;
+   SUMA_RETURNe ;
 }
 
 void SUMA_remove_workproc( XtWorkProc func )
 {
    int ii , ngood ;
+	static char FuncName[]={"SUMA_remove_workproc"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if( func == NULL || num_workp == 0 ){
-      fprintf(stderr,"*** SUMA_remove_workproc: illegal parameters!\n") ;
-      return ;
+      fprintf(SUMA_STDERR,"Error %s: *** illegal parameters!\n", FuncName) ;
+      SUMA_RETURNe ;
    }
 
    for( ii=0 ; ii < num_workp ; ii++ ){
@@ -494,13 +504,16 @@ void SUMA_remove_workproc( XtWorkProc func )
 #endif
    }
 
-   return ;
+   SUMA_RETURNe ;
 }
 
 Boolean SUMA_workprocess( XtPointer fred )
 {
+	static char FuncName[]={"SUMA_workprocess"};
    int ii , ngood ;
    Boolean done ;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 #ifdef WPDEBUG
    { static int ncall=0 ;
@@ -508,7 +521,7 @@ Boolean SUMA_workprocess( XtPointer fred )
        fprintf(stderr,"SUMA_workprocess: entry %d\n",ncall) ; }
 #endif
 
-   if( num_workp == 0 ) return True ;
+   if( num_workp == 0 ) SUMA_RETURN(True) ;
 
    for( ii=0,ngood=0 ; ii < num_workp ; ii++ ){
       if( workp[ii] != NULL ){
@@ -524,9 +537,9 @@ Boolean SUMA_workprocess( XtPointer fred )
 #endif
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
-      return True ;
+      SUMA_RETURN(True) ;
    }
-   return False ;
+   SUMA_RETURN(False) ;
 }
 
 /*---------------------------------------------------------------*/

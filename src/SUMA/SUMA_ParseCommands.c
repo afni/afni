@@ -9,7 +9,8 @@
    
 #include "SUMA_suma.h"
 
- 
+extern SUMA_CommonFields *SUMAg_CF; 
+
 /* CODE */
    
    
@@ -45,17 +46,17 @@ Support :
 ***/
 int SUMA_GetNextCommand (char *S, char d, char term, char *Scom)
 {/*SUMA_GetNextCommand*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_GetNextCommand"}; 
    int i=0, iBegin, iStop;
-	/* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_GetNextCommand");
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	iStop = strlen(S)-1;
 	
 	/*fprintf(stdout,"%s %c %c\n", S, S[iStop], term);  */
 	if (S[iStop] != term) {
 		fprintf (stderr, "%s Error: Command poorly terminated!\n\a", FuncName);
-		return (0);
+		SUMA_RETURN (0);
 	}
 	/* Make sure character just before term is not d */
 	if (S[iStop-1] == d) {
@@ -88,44 +89,48 @@ int SUMA_GetNextCommand (char *S, char d, char term, char *Scom)
 	}
 	
 	/*get the code of the command*/
-	return (SUMA_CommandCode(Scom));
+	SUMA_RETURN (SUMA_CommandCode(Scom));
 
 }/*SUMA_GetNextCommand*/
 
 int SUMA_CommandCode(char *Scom)
 {	
-	if (!strlen(Scom)) return (SE_Empty);
-	if (strcmp(Scom,"~") == 0) return (SE_Empty);
+	static char FuncName[]={"SUMA_CommandCode"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (!strlen(Scom)) SUMA_RETURN (SE_Empty);
+	if (strcmp(Scom,"~") == 0) SUMA_RETURN (SE_Empty);
 	
 	/*fprintf(stdout,"Looking for %s\n", Scom);*/
-	if (!strcmp(Scom,"SetLookAt")) return(SE_SetLookAt);	
-	if (!strcmp(Scom,"SetLookFrom")) return(SE_SetLookFrom);
-	if (!strcmp(Scom,"Redisplay")) return(SE_Redisplay);
-	if (!strcmp(Scom,"SetNodeColor")) return (SE_SetNodeColor);
-	if (!strcmp(Scom,"FlipLight0Pos"))	return(SE_FlipLight0Pos);
-	if (!strcmp(Scom,"GetNearestNode"))	return (SE_GetNearestNode);
-	if (!strcmp(Scom,"SetLookAtNode"))	return (SE_SetLookAtNode);
-	if (!strcmp(Scom,"SetRotMatrix"))	return (SE_SetRotMatrix);
-	if (!strcmp(Scom,"SetCrossHair"))	return (SE_SetCrossHair);
-	if (!strcmp(Scom,"ToggleCrossHair"))	return (SE_ToggleCrossHair);
-	if (!strcmp(Scom,"HighlightNodes"))	return (SE_HighlightNodes);
-	if (!strcmp(Scom,"ToggleShowSelectedNode"))	return (SE_ToggleShowSelectedNode);
-	if (!strcmp(Scom,"SetSelectedNode"))	return (SE_SetSelectedNode);
-	if (!strcmp(Scom,"SetSelectedFaceSet"))	return (SE_SetSelectedFaceSet);
-	if (!strcmp(Scom,"ToggleShowSelectedFaceSet"))	return (SE_ToggleShowSelectedFaceSet);
-	if (!strcmp(Scom,"ToggleTalkToAfni")) return (SE_ToggleTalkToAfni);
-	if (!strcmp(Scom,"SetAfniCrossHair")) return (SE_SetAfniCrossHair);
-	if (!strcmp(Scom,"SetAfniSurf")) return (SE_SetAfniSurf);
-	if (!strcmp(Scom,"BindCrossHair")) return(SE_BindCrossHair);
-	if (!strcmp(Scom,"Remix")) return (SE_Remix);
-	if (!strcmp(Scom,"ToggleForeground")) return (SE_ToggleForeground);
-	if (!strcmp(Scom,"ToggleBackground")) return (SE_ToggleBackground);
-	if (!strcmp(Scom,"FOVreset")) return (SE_FOVreset);
-	if (!strcmp(Scom,"Home")) return (SE_Home);
-	/*if (!strcmp(Scom,"")) return(SE_);*/
+	if (!strcmp(Scom,"SetLookAt")) SUMA_RETURN(SE_SetLookAt);	
+	if (!strcmp(Scom,"SetLookFrom")) SUMA_RETURN(SE_SetLookFrom);
+	if (!strcmp(Scom,"Redisplay")) SUMA_RETURN(SE_Redisplay);
+	if (!strcmp(Scom,"SetNodeColor")) SUMA_RETURN (SE_SetNodeColor);
+	if (!strcmp(Scom,"FlipLight0Pos"))	SUMA_RETURN(SE_FlipLight0Pos);
+	if (!strcmp(Scom,"GetNearestNode"))	SUMA_RETURN (SE_GetNearestNode);
+	if (!strcmp(Scom,"SetLookAtNode"))	SUMA_RETURN (SE_SetLookAtNode);
+	if (!strcmp(Scom,"SetRotMatrix"))	SUMA_RETURN (SE_SetRotMatrix);
+	if (!strcmp(Scom,"SetCrossHair"))	SUMA_RETURN (SE_SetCrossHair);
+	if (!strcmp(Scom,"ToggleCrossHair"))	SUMA_RETURN (SE_ToggleCrossHair);
+	if (!strcmp(Scom,"HighlightNodes"))	SUMA_RETURN (SE_HighlightNodes);
+	if (!strcmp(Scom,"ToggleShowSelectedNode"))	SUMA_RETURN (SE_ToggleShowSelectedNode);
+	if (!strcmp(Scom,"SetSelectedNode"))	SUMA_RETURN (SE_SetSelectedNode);
+	if (!strcmp(Scom,"SetSelectedFaceSet"))	SUMA_RETURN (SE_SetSelectedFaceSet);
+	if (!strcmp(Scom,"ToggleShowSelectedFaceSet"))	SUMA_RETURN (SE_ToggleShowSelectedFaceSet);
+	if (!strcmp(Scom,"ToggleTalkToAfni")) SUMA_RETURN (SE_ToggleTalkToAfni);
+	if (!strcmp(Scom,"SetAfniCrossHair")) SUMA_RETURN (SE_SetAfniCrossHair);
+	if (!strcmp(Scom,"SetAfniSurf")) SUMA_RETURN (SE_SetAfniSurf);
+	if (!strcmp(Scom,"BindCrossHair")) SUMA_RETURN(SE_BindCrossHair);
+	if (!strcmp(Scom,"Remix")) SUMA_RETURN (SE_Remix);
+	if (!strcmp(Scom,"ToggleForeground")) SUMA_RETURN (SE_ToggleForeground);
+	if (!strcmp(Scom,"ToggleBackground")) SUMA_RETURN (SE_ToggleBackground);
+	if (!strcmp(Scom,"FOVreset")) SUMA_RETURN (SE_FOVreset);
+	if (!strcmp(Scom,"Home")) SUMA_RETURN (SE_Home);
+	/*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
 	
 	/* Last one is Bad Code */
-	return (SE_BadCode);
+	SUMA_RETURN (SE_BadCode);
 	  
 }
 
@@ -162,9 +167,9 @@ Support :
 ***/
 SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_Boolean Prepend)
 {	int i, iStop, iorig, iStopNew, nCom;
-	char FuncName[100];
-	/* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_RegisterCommand");
+	static char FuncName[]={"SUMA_RegisterCommand"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	iStop = strlen(S)-1;
 		
@@ -172,11 +177,11 @@ SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_
 	/*fprintf (stdout,"Scom->%s<-, length %d\n", Scom, nCom);*/
 	if (strlen(Scom) + iStop + 2 > SUMA_MAX_COMMAND_LENGTH ) {
 		fprintf (stderr, "%s Error: Resultant command longer than SUMA_MAX_COMMAND_LENGTH!\n\a", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	if (S[iStop] != term) {
 		fprintf (stderr, "%s Error: S improperly terminated!\n\a", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	if (!Prepend) {
 		/* add a delimiter */
@@ -191,7 +196,7 @@ SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_
 		iStop += nCom;
 		S[iStop] = term;
 		S[iStop+1] = '\0';
-		return (YUP);
+		SUMA_RETURN (YUP);
 	} else {
 		/* move old string forward*/
 		iStopNew = iStop+nCom+1;
@@ -208,44 +213,55 @@ SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_
 			S[i] = Scom[i];
 		}
 		iStop = iStopNew;
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 }
 
 int SUMA_EngineFieldCode(char *Scom)
 {	
+	static char FuncName[]={"SUMA_EngineFieldCode"};
 	
-	if (!strlen(Scom)) return (SEF_Empty);
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (!strlen(Scom)) SUMA_RETURN (SEF_Empty);
 	
 	/*fprintf(stdout,"Looking for %s\n", Scom);*/
-	if (!strcmp(Scom,"fm")) return(SEF_fm);	
-	if (!strcmp(Scom,"im")) return(SEF_im);	
-	if (!strcmp(Scom,"fv3")) return(SEF_fv3);
-	if (!strcmp(Scom,"iv3")) return(SEF_iv3);
-	if (!strcmp(Scom,"fv15")) return(SEF_fv15);
-	if (!strcmp(Scom,"iv15")) return(SEF_iv15);
-	if (!strcmp(Scom,"i")) return(SEF_i);
-	if (!strcmp(Scom,"f")) return (SEF_f);
-	if (!strcmp(Scom,"s")) return (SEF_s);
-	/*if (!strcmp(Scom,"")) return(SEF_);*/
+	if (!strcmp(Scom,"fm")) SUMA_RETURN(SEF_fm);	
+	if (!strcmp(Scom,"im")) SUMA_RETURN(SEF_im);	
+	if (!strcmp(Scom,"fv3")) SUMA_RETURN(SEF_fv3);
+	if (!strcmp(Scom,"iv3")) SUMA_RETURN(SEF_iv3);
+	if (!strcmp(Scom,"fv15")) SUMA_RETURN(SEF_fv15);
+	if (!strcmp(Scom,"iv15")) SUMA_RETURN(SEF_iv15);
+	if (!strcmp(Scom,"i")) SUMA_RETURN(SEF_i);
+	if (!strcmp(Scom,"f")) SUMA_RETURN (SEF_f);
+	if (!strcmp(Scom,"s")) SUMA_RETURN (SEF_s);
+	/*if (!strcmp(Scom,"")) SUMA_RETURN(SEF_);*/
 	
 	/* Last one is Bad Code */
-	return (SEF_BadCode);
+	SUMA_RETURN (SEF_BadCode);
 	  
 }
 
 int SUMA_EngineSourceCode (char *Scom)
 {
-	if (!strlen(Scom)) return (SES_Empty);
-	if (!strcmp(Scom,"suma")) return(SES_Suma);
-	if (!strcmp(Scom,"afni")) return(SES_Afni);
+	static char FuncName[]={"SUMA_EngineSourceCode"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (!strlen(Scom)) SUMA_RETURN (SES_Empty);
+	if (!strcmp(Scom,"suma")) SUMA_RETURN(SES_Suma);
+	if (!strcmp(Scom,"afni")) SUMA_RETURN(SES_Afni);
 	
 	/* got here? Unknown */
-	return (SES_Unknown);
+	SUMA_RETURN (SES_Unknown);
 }  
 
 void SUMA_EngineSourceString (char *Scom, int i)
 {
+	static char FuncName[]={"SUMA_EngineSourceString"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	switch (i) {
 		case SES_Empty:
 			Scom[0]='\0';
@@ -260,7 +276,7 @@ void SUMA_EngineSourceString (char *Scom, int i)
 			sprintf(Scom, "unknown");
 			break;
 	}
-	return;
+	SUMA_RETURNe;
 }
 /*!
 SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void *FldValp, char *DestName, char *SourceName, SUMA_Boolean PassByPointer)
@@ -290,9 +306,9 @@ set correctly before you call the function.
 SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void *FldValp, char *DestName, char *SourceName, SUMA_Boolean PassByPointer)
 { /* SUMA_RegisterEngineData*/
 	int Dest, Fld, Src;
-	char FuncName[100];
+	static char FuncName[]={"SUMA_RegisterEngineData"};
 	
-	sprintf(FuncName, "SUMA_RegisterEngineData");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	Dest = SUMA_CommandCode((char *)DestName);
 	Fld = SUMA_EngineFieldCode((char *)Fldname);
@@ -302,11 +318,11 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 	switch (Dest) {
 		case SE_BadCode:
 			fprintf (SUMA_STDERR, "Error in %s: Bad code string.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 		case SE_Empty:
 			fprintf (SUMA_STDERR, "Error in %s: Empty code string.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 		default:
 			break;
@@ -318,7 +334,7 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 		case SEF_fm:
 			if (MTI->fm_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->fm_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			/* space available*/
 			if (PassByPointer) {
@@ -329,16 +345,16 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			else { /* pass by value */
 				if (MTI->fm != NULL) {
 					fprintf(SUMA_STDERR, "Error %s: Passing by value and MTI->fm is not NULL. Clean up your act.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				} 
 				if (!MTI->N_rows || !MTI->N_cols) {
 					fprintf(SUMA_STDERR, "Error %s: MTI->N_rows or MTI->N_cols is 0.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				}
 				MTI->fm = (float **)SUMA_allocate2D(MTI->N_rows, MTI->N_cols, sizeof(float));
 				if (MTI->fm == NULL) {
 					fprintf(SUMA_STDERR, "Error %s: Failed to allocate fm.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				}
 				MTI->fm_LocalAlloc = YUP; /* allocation done by Engine functions, this can be freed*/
 				{/* copy the data */
@@ -354,12 +370,12 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			/* set the new destination*/
 			MTI->fm_Dest = Dest;
 			MTI->fm_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 		case SEF_im:
 			if (MTI->im_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->im_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			/* space available*/
 			if (PassByPointer) {
@@ -369,16 +385,16 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}	else { /* pass by value */
 				if (MTI->im != NULL) {
 					fprintf(SUMA_STDERR, "Error %s: Passing by value and MTI->im is not NULL. Clean up your act.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				} 
 				if (!MTI->N_rows || !MTI->N_cols) {
 					fprintf(SUMA_STDERR, "Error %s: MTI->N_rows or MTI->N_cols is 0.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				}
 				MTI->im = (int **)SUMA_allocate2D(MTI->N_rows, MTI->N_cols, sizeof(int));
 				if (MTI->im == NULL) {
 					fprintf(SUMA_STDERR, "Error %s: Failed to allocate im.\n", FuncName);
-					return(NOPE);
+					SUMA_RETURN(NOPE);
 				}
 				MTI->im_LocalAlloc = YUP; /* allocation done by Engine functions, this can be freed*/
 				{/* copy the data */
@@ -394,13 +410,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			/* set the new destination*/
 			MTI->im_Dest = Dest;
 			MTI->im_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 
 		case SEF_i:
 			if (MTI->i_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->i_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				int *it;
@@ -409,13 +425,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->i_Dest = Dest;
 			MTI->i_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 			
 		case SEF_f:
 			if (MTI->f_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->f_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				float *ft;
@@ -424,13 +440,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->f_Dest = Dest;
 			MTI->f_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 
 		case SEF_fv3:
 			if (MTI->fv3_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->fv3_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				float *fvt;
@@ -440,13 +456,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->fv3_Dest = Dest;
 			MTI->fv3_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 
 		case SEF_fv15:
 			if (MTI->fv15_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->fv15_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				float *fvt;
@@ -456,13 +472,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->fv15_Dest = Dest;
 			MTI->fv15_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 			
 		case SEF_iv3:
 			if (MTI->iv3_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->iv3_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				int *ivt;
@@ -472,13 +488,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->iv3_Dest = Dest;
 			MTI->iv3_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 			
 		case SEF_iv15:
 			if (MTI->iv15_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->iv15_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				int *ivt;
@@ -488,13 +504,13 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 			}
 			MTI->iv15_Dest = Dest;
 			MTI->iv15_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 
 		case SEF_s:
 			if (MTI->s_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
 				fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->s_Dest);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			{ /* assign by value */
 				char *st;
@@ -503,17 +519,17 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
 					sprintf(MTI->s,"%s", st);
 				} else {
 					fprintf(SUMA_STDERR, "Error %s: string in FldValp is longer than SUMA_MAX_STRING_LENGTH.\n", FuncName);
-					return (NOPE);
+					SUMA_RETURN (NOPE);
 				}
 			}
 			MTI->s_Dest = Dest;
 			MTI->s_Source = Src;
-			return (YUP);	
+			SUMA_RETURN (YUP);	
 			break;
 			
 		default:
 			fprintf(SUMA_STDERR, "Error %s: Not setup for field %s yet.\n", FuncName, Fldname);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 	}/* switch Fld */
 	 
@@ -531,15 +547,16 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI)
 */
 SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI)
 {	int i;
-	char FuncName[100];
+	static char FuncName[]={"SUMA_InitializeEngineData"};
 	
-	sprintf(FuncName, "SUMA_InitializeEngineData");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	
 	if (MTI == NULL) MTI = malloc(sizeof(SUMA_EngineData));
 		
 	if (MTI == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for MTI.\n", FuncName);
-		return (NOPE);	
+		SUMA_RETURN (NOPE);	
 	}
 	
 	MTI->fm = NULL;
@@ -562,7 +579,7 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI)
 	MTI->fm_Source = MTI->im_Source = MTI->i_Source = MTI->f_Source = MTI->iv3_Source = MTI->fv3_Source = \
 	MTI->fv15_Source = MTI->iv15_Source = MTI->s_Source = SES_Empty;
 
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -580,23 +597,24 @@ it is released. MTI itself is not freed
 */
 SUMA_Boolean SUMA_FreeEngineData (SUMA_EngineData *MTI)
 {
-	char FuncName[100];
+	static char FuncName[]={"SUMA_FreeEngineData"};
 	
-	sprintf(FuncName, "SUMA_FreeEngineData");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (MTI == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: MTI is null, nothing to do!\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* check on Dynamic Memory Allocations needs */
 	if (MTI->fm_LocalAlloc) {
 		if (!MTI->N_rows || !MTI->N_cols) {
 			fprintf(SUMA_STDERR,"Error %s: N_rows or N_cols are 0.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		if (MTI->fm == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: MTI->fm is NULL, not good here.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		/* OK, free MTI->fm */
 		SUMA_free2D((char **)MTI->fm, MTI->N_rows);
@@ -605,18 +623,18 @@ SUMA_Boolean SUMA_FreeEngineData (SUMA_EngineData *MTI)
 	if (MTI->im_LocalAlloc) {
 		if (!MTI->N_rows || !MTI->N_cols) {
 			fprintf(SUMA_STDERR,"Error %s: N_rows or N_cols are 0.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		if (MTI->im == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: MTI->im is NULL, not good here.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		/* OK, free MTI->im */
 		SUMA_free2D((char **)MTI->im, MTI->N_rows);
 	} 
 	
 	/* good deal, DO NOT flush MTI in case it was not dynamically allocated*/
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -642,9 +660,10 @@ Memory is freed for fm and im only if their assignment in SUMA_RegisterEngineDat
 */
 SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
 {/* SUMA_ReleaseEngineData*/
+	static char FuncName[]={"SUMA_ReleaseEngineData"};
 	int Loc;
-	char FuncName[100];
-	sprintf(FuncName, "SUMA_ReleaseEngineData");
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* search through all fields and clear (or release) all those who should be */
 	Loc = SUMA_CommandCode((char *)Location);
@@ -653,11 +672,11 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
 	switch (Loc) {
 		case SE_BadCode:
 			fprintf (SUMA_STDERR, "Error in %s: Bad code string.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 		case SE_Empty:
 			fprintf (SUMA_STDERR, "Error in %s: Empty code string.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 			break;
 		default:
 			break;
@@ -672,11 +691,11 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
 			/* must be freed */
 			if (!MTI->N_rows || !MTI->N_cols) {
 				fprintf (SUMA_STDERR, "Error in %s: MTI->N_rows or MTI->N_cols is 0 .\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			if (MTI->fm == NULL) {
 				fprintf (SUMA_STDERR, "Error in %s: fm is null already. This should not be .\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			SUMA_free2D((char **)MTI->fm, MTI->N_rows);
 			MTI->N_rows = MTI->N_cols = 0; 
@@ -698,11 +717,11 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
 			/* must be freed */
 			if (!MTI->N_rows || !MTI->N_cols) {
 				fprintf (SUMA_STDERR, "Error in %s: MTI->N_rows or MTI->N_cols is 0 .\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			if (MTI->im == NULL) {
 				fprintf (SUMA_STDERR, "Error in %s: im is null already. This should not be .\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			SUMA_free2D((char **)MTI->im, MTI->N_rows);
 			MTI->N_rows = MTI->N_cols = 0; 
@@ -759,8 +778,8 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
 		MTI->s_Source = SES_Empty;
 	}
 
-	/* return, tout va bien */
-	return (YUP);
+	/* SUMA_RETURN, tout va bien */
+	SUMA_RETURN (YUP);
 }
 #ifdef STAND_ALONE
 void usage ()

@@ -1,6 +1,7 @@
 
 #include "SUMA_suma.h"
  
+extern SUMA_CommonFields *SUMAg_CF; 
    
 /* CODE */
    
@@ -39,18 +40,17 @@ Side effects :
 ***/
 SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Coord*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_SureFit_Read_Coord"}; 
    FILE *sf_file;
 	int ex, EndHead, FoundHead, evl, cnt, skp;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_SureFit_Read_Coord");
-   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	sprintf(SF->name_coord, "%s", f_name);
@@ -60,7 +60,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	if (sf_file == NULL)
 		{
 			SUMA_error_message (FuncName,"Could not open input file ",0);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 	/* read until you reach the begin header BeginHeader */
@@ -125,7 +125,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	
 	if (SF->NodeList == NULL || SF->NodeId == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for NodeList &/| NodeId.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* Now read the nodes until the end of the file */
@@ -137,26 +137,25 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 		}
 	if (cnt != SF->N_Node) {
 		fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n", FuncName, SF->N_Node, cnt);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	fclose (sf_file);
-	return (YUP); 
+	SUMA_RETURN (YUP); 
 }/*SUMA_SureFit_Read_Coord*/
 
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
-	char FuncName[100]; 
+	static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
    FILE *sf_file;
 	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_SureFit_Read_Topo");
-   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	sprintf(SF->name_topo, "%s", f_name);
@@ -166,7 +165,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	if (sf_file == NULL)
 		{
 			SUMA_error_message (FuncName,"Could not open input file ",0);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 	/* read until you reach the begin header BeginHeader */
@@ -237,7 +236,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	
 	if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	} 
 	
 	/* Now read the node specs */
@@ -251,7 +250,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 		if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
 			fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
 				FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
 		
@@ -266,7 +265,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	}
 	if (cnt != SF->N_Node_Specs) {
 		fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	/*fprintf (stdout, "Done with Node Specs.\n");*/
 	ex = fscanf (sf_file,"%d", &(SF->N_FaceSet));
@@ -275,7 +274,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	SF->FaceSetList = (int **) SUMA_allocate2D(SF->N_FaceSet, 3, sizeof(int));
 	if (SF->FaceSetList == NULL){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->FaceSetList.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	} 
 	
 	/*fprintf (stdout,"About to read FaceSets\n");*/
@@ -287,11 +286,11 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	}
 	if (cnt != SF->N_FaceSet) {
 		fprintf(SUMA_STDERR, "Error %s: Expecting %d FaceSets, read %d.\n", FuncName, SF->N_FaceSet, cnt);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	fclose (sf_file);
 	
-return (YUP);
+SUMA_RETURN (YUP);
 }/*SUMA_SureFit_Read_Topo*/
 
 /*!
@@ -299,6 +298,9 @@ Show data structure containing SureFit surface object
 */
 void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 {	int cnt;
+	static char FuncName[]={"SUMA_Show_SureFit"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (Out == NULL) Out = SUMA_STDOUT;
 	fprintf (Out, "\n%s: Coord Info\n", SF->name_coord);
@@ -337,7 +339,7 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 		++cnt;
 	}
 
-	return;
+	SUMA_RETURNe;
 }
 
 /*!
@@ -345,6 +347,10 @@ free data structure containing SureFit surface object
 */
 SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)  
 {
+	static char FuncName[]={"SUMA_Free_SureFit"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (SF->NodeList != NULL) SUMA_free2D ((char **)SF->NodeList, SF->N_Node);
 	if (SF->NodeId != NULL) free(SF->NodeId);
 	if (SF->Specs_mat != NULL) SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
@@ -354,7 +360,7 @@ SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)
 	if (SF->FaceSetList != NULL) SUMA_free2D((char **)SF->FaceSetList, SF->N_FaceSet);
 	if (SF!= NULL) free(SF);
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -362,19 +368,18 @@ Read in some parameters from a .param file
 */
 SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 {
-	char FuncName[100];
+	static char FuncName[]={"SUMA_Read_SureFit_Param"};
 	int ex, evl; 
    FILE *sf_file;
 	SUMA_Boolean Done;
 	char delimstr[] = {' ', '\0'}, stmp[100], s[1000], *st;
 
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_Read_SureFit_Param");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 
 	sprintf(SF->name_param, "%s", f_name);
@@ -384,7 +389,7 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	if (sf_file == NULL)
 		{
 			fprintf (SUMA_STDERR,"Error %s: Could not open input file ",FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 	/* read until you reach something you like */
@@ -476,26 +481,26 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	/* Sanity Checks */
 	if (SF->AC[0] == 0.0 && SF->AC[1] == 0.0 && SF->AC[2] == 0.0) {
 		fprintf (SUMA_STDERR,"Error %s: All values for AC are 0.0. Check your params file.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	if (SF->AC_WholeVolume[0] == 0.0 && SF->AC_WholeVolume[1] == 0.0 && SF->AC_WholeVolume[2] == 0.0) {
 		fprintf (SUMA_STDERR,"Error %s: All values for AC_WholeVolume are 0.0. Check your params file.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	if (SF->AC[0] == SF->AC_WholeVolume[0] && SF->AC[1] == SF->AC_WholeVolume[1] && SF->AC[2] == SF->AC_WholeVolume[2])
 	{
 		fprintf (SUMA_STDERR,"Error %s: Idetincal values for AC and AC_WholeVolume. Check you params file.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	if (SF->AC[0] < 0 || SF->AC[1] < 0 || SF->AC[2] < 0 || SF->AC_WholeVolume[0] < 0 || SF->AC_WholeVolume[1] < 0 || SF->AC_WholeVolume[2] < 0) 
 	{
 		fprintf (SUMA_STDERR,"Error %s: Negative values in AC or AC_WholeVolume. Check you params file.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 #ifdef STAND_ALONE
 void usage ()
@@ -510,13 +515,10 @@ void usage ()
    
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_SureFit-Main"}; 
    char SF_name[200];
 	SUMA_SureFit_struct *SF;
 	
-   /* initialize Main function name for verbose output */
-   sprintf (FuncName,"SUMA_SureFit-Main-");
-   
 	/* Allocate for SF */
 	SF = (SUMA_SureFit_struct *) malloc(sizeof(SUMA_SureFit_struct));	
 	if (SF == NULL) {
@@ -549,6 +551,6 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 	
-	return (0);
+	SUMA_RETURN (0);
 }/* Main */
 #endif

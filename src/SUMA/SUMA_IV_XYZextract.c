@@ -4,6 +4,10 @@
 	#define DEBUG_2
 	#define DEBUG_3
 #endif
+
+#include "SUMA_suma.h"
+
+extern SUMA_CommonFields *SUMAg_CF; 
  
 /*!
  
@@ -65,6 +69,7 @@ Side effects :
 /* CODE */
 float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex)
 {/* SUMA_IV_XYZextract */
+	static char FuncName[]={"SUMA_IV_XYZextract"};
 	char s[500],serr[500];
 	char seq_strt[5][30], seq_end[5][30];
 	float f, *linv, **NodeList;
@@ -73,6 +78,8 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	div_t cnt3;
 	FILE*iv_file;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* intialize the number of points read to 0 */
 	*N_NodeList = 0;
 	
@@ -80,7 +87,7 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	if (!linv)
 		{
 				SUMA_alloc_problem ("Allocation error in SUMA_IV-XYZExtract");
-				return (NULL);
+				SUMA_RETURN (NULL);
 		}
 	
 	/*This is the sequence to trigger reading the numbers*/
@@ -194,7 +201,7 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 								if (!linv)
 									{
 										SUMA_alloc_problem ("Re-Allocation error in IV-FaceSetExtract");
-										return (NULL);
+										SUMA_RETURN (NULL);
 									}
 								
 							}  
@@ -260,7 +267,7 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	if (!NodeList)
 		{
 			SUMA_alloc_problem("SUMA_IV_XYZextract : Could not allocate");
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 	
 	if (!IncludeIndex)
@@ -288,7 +295,7 @@ float ** SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeInde
 	fclose (iv_file);
 	free (linv);
 	
-	return (NodeList);
+	SUMA_RETURN (NodeList);
 	
 	
 }/* SUMA_IV_XYZextract */

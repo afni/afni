@@ -1,18 +1,26 @@
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF; 
+
 /*! Taken from filexists 
 returns 1 if file can be read/found
 */
 int SUMA_filexists (char *f_name)
 {/*SUMA_filexists*/
  	FILE *outfile;
- 	
+ 	static char FuncName[]={"SUMA_filexists"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
  	outfile = fopen (f_name,"r");
- 	if (outfile == NULL)
- 		return (0);
- 	else 
- 		fclose (outfile);
- 		return (1);
+ 	if (outfile == NULL) {
+ 		SUMA_RETURN(0); 
+	}
+ 	else {
+ 		fclose (outfile); 
+	}
+ 	
+	SUMA_RETURN(1);
  		
 }/*SUMA_filexists*/
 
@@ -45,108 +53,112 @@ Side effects :
 */	
 int SUMA_Read_dfile (int *x,char *f_name,int n_points)
    
-    { /* pass a 0 to n_points if you want to read till EOF */
-     int cnt=0,ex,dec;
-     
-     FILE*internal_file;
-     
-     internal_file = fopen (f_name,"r");
-     if (internal_file == NULL) {
-     								fprintf(SUMA_STDERR, "\aCould not open %s \n",f_name);
-     								fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
-     								exit (0);
-     						   	}
-     ex = fscanf (internal_file,"%d",&x[cnt]);					   	
-     while (ex != EOF)
-      {
-        ++cnt;
-        /* NOT WORKING, RETURNS SIZEOF (FLOAT) .....
-        if (sizeof(x) < cnt)
-        	{
-        	  fprintf(SUMA_STDERR, "%d = sizeof(x)\n",sizeof(x));
-        	  fprintf(SUMA_STDERR, "\nNot Enough Memory Allocated \n\a");
-        	  fprintf(SUMA_STDERR, "Exiting @SUMA_Read_file function\n");
-        	  exit (0);
-        	}
-        ............................................ */
-        ex = fscanf (internal_file,"%d",&x[cnt]);
-        
-        if ((n_points != 0) && (cnt == n_points)) ex = EOF;
-      }
-      
-      if (cnt < n_points) 
-      	{
-      	 fprintf(SUMA_STDERR, "\a\nAttempt to read %d points failed,\n",n_points);
-      	 fprintf(SUMA_STDERR, " file contains %d points only.\n",cnt);
-      	 do {
-      	 
-      	 fprintf(SUMA_STDERR, "End Execution (Yes (1) No (0) ? : ");
-      	 ex=scanf ("%d",&dec);
-      	 } while (ex != 1 || (dec != 1 && dec !=0));
-      	 if (dec)
-      	  {
-      	    fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
-     		exit (0);
-     		}
-         else fprintf(SUMA_STDERR, "\nContinuing execution with %d points\n",cnt);
+{ /* pass a 0 to n_points if you want to read till EOF */
+	int cnt=0,ex,dec;
+	static char FuncName[]={"SUMA_Read_dfile"};
+	FILE*internal_file;
 
-      	}
-      
-      fclose (internal_file);
-      return (cnt);  							     
-   }
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	internal_file = fopen (f_name,"r");
+	if (internal_file == NULL) {
+     							fprintf(SUMA_STDERR, "\aCould not open %s \n",f_name);
+     							fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
+     							exit (0);
+     							}
+	ex = fscanf (internal_file,"%d",&x[cnt]);					   	
+	while (ex != EOF)
+	{
+	  ++cnt;
+	  /* NOT WORKING, RETURNS SIZEOF (FLOAT) .....
+	  if (sizeof(x) < cnt)
+   	{
+   	  fprintf(SUMA_STDERR, "%d = sizeof(x)\n",sizeof(x));
+   	  fprintf(SUMA_STDERR, "\nNot Enough Memory Allocated \n\a");
+   	  fprintf(SUMA_STDERR, "Exiting @SUMA_Read_file function\n");
+   	  exit (0);
+   	}
+	  ............................................ */
+	  ex = fscanf (internal_file,"%d",&x[cnt]);
+
+	  if ((n_points != 0) && (cnt == n_points)) ex = EOF;
+	}
+
+	if (cnt < n_points) 
+   	{
+   	 fprintf(SUMA_STDERR, "\a\nAttempt to read %d points failed,\n",n_points);
+   	 fprintf(SUMA_STDERR, " file contains %d points only.\n",cnt);
+   	 do {
+
+   	 fprintf(SUMA_STDERR, "End Execution (Yes (1) No (0) ? : ");
+   	 ex=scanf ("%d",&dec);
+   	 } while (ex != 1 || (dec != 1 && dec !=0));
+   	 if (dec)
+   	  {
+      	 fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
+   	exit (0);
+   	}
+   	else fprintf(SUMA_STDERR, "\nContinuing execution with %d points\n",cnt);
+
+   	}
+
+	fclose (internal_file);
+	SUMA_RETURN (cnt);  							     
+}
 int SUMA_Read_file (float *x,char *f_name,int n_points)
    
-    { /* pass a 0 to n_points if you want to read till EOF */
-     int cnt=0,ex,dec;
-     
-     FILE*internal_file;
-     
-     internal_file = fopen (f_name,"r");
-     if (internal_file == NULL) {
-     								fprintf(SUMA_STDERR, "\aCould not open %s \n",f_name);
-     								fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
-     								exit (0);
-     						   	}
-     ex = fscanf (internal_file,"%f",&x[cnt]);					   	
-     while (ex != EOF)
-      {
-        ++cnt;
-        /* NOT WORKING, RETURNS SIZEOF (FLOAT) .....
-        if (sizeof(x) < cnt)
-        	{
-        	  fprintf(SUMA_STDERR, "%d = sizeof(x)\n",sizeof(x));
-        	  fprintf(SUMA_STDERR, "\nNot Enough Memory Allocated \n\a");
-        	  fprintf(SUMA_STDERR, "Exiting @SUMA_Read_file function\n");
-        	  exit (0);
-        	}
-        ............................................ */
-        ex = fscanf (internal_file,"%f",&x[cnt]);
-        
-        if ((n_points != 0) && (cnt == n_points)) ex = EOF;
-      }
-      
-      if (cnt < n_points) 
-      	{
-      	 fprintf(SUMA_STDERR, "\a\nAttempt to read %d points failed,\n",n_points);
-      	 fprintf(SUMA_STDERR, " file contains %d points only.\n",cnt);
-      	 do {
-      	 
-      	 fprintf(SUMA_STDERR, "End Execution (Yes (1) No (0) ? : ");
-      	 ex=scanf ("%d",&dec);
-      	 } while (ex != 1 || (dec != 1 && dec !=0));
-      	 if (dec)
-      	  {
-      	    fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
-     				exit (0);
-     		}
-         else fprintf(SUMA_STDERR, "\nContinuing execution with %d points\n",cnt);
+{ /* pass a 0 to n_points if you want to read till EOF */
+	int cnt=0,ex,dec;
+	FILE*internal_file;
+	static char FuncName[]={"SUMA_Read_file"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-      	}
-      
-      fclose (internal_file);
-      return (cnt);  							     
-   }
+	internal_file = fopen (f_name,"r");
+	if (internal_file == NULL) {
+     							fprintf(SUMA_STDERR, "\aCould not open %s \n",f_name);
+     							fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
+     							exit (0);
+     							}
+	ex = fscanf (internal_file,"%f",&x[cnt]);					   	
+	while (ex != EOF)
+	{
+	  ++cnt;
+	  /* NOT WORKING, RETURNS SIZEOF (FLOAT) .....
+	  if (sizeof(x) < cnt)
+   	{
+   	  fprintf(SUMA_STDERR, "%d = sizeof(x)\n",sizeof(x));
+   	  fprintf(SUMA_STDERR, "\nNot Enough Memory Allocated \n\a");
+   	  fprintf(SUMA_STDERR, "Exiting @SUMA_Read_file function\n");
+   	  exit (0);
+   	}
+	  ............................................ */
+	  ex = fscanf (internal_file,"%f",&x[cnt]);
+
+	  if ((n_points != 0) && (cnt == n_points)) ex = EOF;
+	}
+
+	if (cnt < n_points) 
+   	{
+   	 fprintf(SUMA_STDERR, "\a\nAttempt to read %d points failed,\n",n_points);
+   	 fprintf(SUMA_STDERR, " file contains %d points only.\n",cnt);
+   	 do {
+
+   	 fprintf(SUMA_STDERR, "End Execution (Yes (1) No (0) ? : ");
+   	 ex=scanf ("%d",&dec);
+   	 } while (ex != 1 || (dec != 1 && dec !=0));
+   	 if (dec)
+   	  {
+      	 fprintf(SUMA_STDERR, "Exiting @ SUMA_Read_file function\n");
+     			exit (0);
+   	}
+   	else fprintf(SUMA_STDERR, "\nContinuing execution with %d points\n",cnt);
+
+   	}
+
+	fclose (internal_file);
+	return (cnt);  							     
+}
 
 /*!**
  
@@ -189,36 +201,38 @@ Side effects :
  
 int SUMA_Read_2Dfile (char *f_name, float **x,  int n_cols, int n_rows)
 {/*SUMA_Read_2Dfile*/
-  int ir=0, ic=0, ex;
-  FILE*internal_file;
-  static char FuncName[]={"SUMA_Read_2Dfile"};
-  
-  
- 	 internal_file = fopen (f_name,"r");
-     if (internal_file == NULL) {
-     								fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
-     								return (-1);
-     						   	}
- 	  ir = 0;
-	  while (ir < n_rows)
-      {
- 			ic = 0;
-			while (ic < n_cols)
-				{
-					ex = fscanf (internal_file,"%f",&x[ir][ic]);	
-					if (ex == EOF)
-						{
-							fprintf(stderr,"Error SUMA_Read_2Dfile: Premature EOF\n");
-							fclose (internal_file);
-							return (n_rows);
-						}
-					++ic;
-				}
-			++ir;
-		}
-		
-fclose (internal_file);
-return (ir);		
+	int ir=0, ic=0, ex;
+	FILE*internal_file;
+	static char FuncName[]={"SUMA_Read_2Dfile"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+
+	internal_file = fopen (f_name,"r");
+	if (internal_file == NULL) {
+     							fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
+     							SUMA_RETURN (-1);
+     							}
+	ir = 0;
+	while (ir < n_rows)
+	{
+ 		ic = 0;
+		while (ic < n_cols)
+			{
+				ex = fscanf (internal_file,"%f",&x[ir][ic]);	
+				if (ex == EOF)
+					{
+						fprintf(stderr,"Error SUMA_Read_2Dfile: Premature EOF\n");
+						fclose (internal_file);
+						SUMA_RETURN (n_rows);
+					}
+				++ic;
+			}
+		++ir;
+	}
+
+	fclose (internal_file);
+	SUMA_RETURN (ir);		
 		
 }/*SUMA_Read_2Dfile*/
 
@@ -241,38 +255,40 @@ Input paramters :
 */
 int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols)
 {/*SUMA_Read_2Ddfile*/
-  int ir, ic, ex;
-  FILE*internal_file;
-  static char FuncName[]={"SUMA_Read_2Ddfile"};
-     
-  internal_file = fopen (f_name,"r");
-  if (internal_file == NULL) {
-     	fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
-		return (-1);
-     	}
+	int ir, ic, ex;
+	FILE*internal_file;
+	static char FuncName[]={"SUMA_Read_2Ddfile"};
 
-  
-     
-	  ir = 0;
-	  while (ir < n_rows)
-      {
- 			ic = 0;
-			while (ic < n_cols)
-				{
-					ex = fscanf (internal_file,"%d",&x[ir][ic]);	
-					if (ex == EOF)
-						{
-							fprintf(stderr,"Error SUMA_Read_2Ddfile: Premature EOF\n");
-							fclose (internal_file);
-							return(ir);
-						}
-					++ic;
-				}
-			++ir;
-		}
-		
-fclose (internal_file);
-return (ir);		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	internal_file = fopen (f_name,"r");
+	if (internal_file == NULL) {
+		fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
+		SUMA_RETURN (-1);
+	}
+
+
+
+	ir = 0;
+	while (ir < n_rows)
+	{
+ 		ic = 0;
+		while (ic < n_cols)
+			{
+				ex = fscanf (internal_file,"%d",&x[ir][ic]);	
+				if (ex == EOF)
+					{
+						fprintf(stderr,"Error SUMA_Read_2Ddfile: Premature EOF\n");
+						fclose (internal_file);
+						SUMA_RETURN(ir);
+					}
+				++ic;
+			}
+		++ir;
+	}
+
+	fclose (internal_file);
+	SUMA_RETURN (ir);		
 		
 }/*SUMA_Read_2Ddfile*/
 
@@ -282,42 +298,44 @@ count the number of float values in a file
 -1 if the file could not be open
 */ 
 int SUMA_float_file_size (char *f_name)
-   
-    { 
-     int cnt=0,ex;
-     float buf;
-     
-     FILE*internal_file;
-     
-     internal_file = fopen (f_name,"r");
-     if (internal_file == NULL) {
-     								printf ("\aCould not open %s \n",f_name);
-     								return (-1);
-     						   	}
-     ex = fscanf (internal_file,"%f",&buf);					   	
-     while (ex != EOF)
-      {
-        ++cnt;
-        ex = fscanf (internal_file,"%f",&buf);
-      }
-      
-      
-      fclose (internal_file);
-      return (cnt);  							     
-   }
+{ 
+	int cnt=0,ex;
+	float buf;
+	static char FuncName[]={"SUMA_float_file_size"};
+	FILE*internal_file;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	internal_file = fopen (f_name,"r");
+	if (internal_file == NULL) {
+     							printf ("\aCould not open %s \n",f_name);
+     							SUMA_RETURN (-1);
+     							}
+	ex = fscanf (internal_file,"%f",&buf);					   	
+	while (ex != EOF)
+	{
+	  ++cnt;
+	  ex = fscanf (internal_file,"%f",&buf);
+	}
+
+
+	fclose (internal_file);
+	SUMA_RETURN (cnt);  							     
+}
 
 
 /*! Taken from SUMA_alloc_problem */
 void SUMA_alloc_problem (char *s1)
  
- {
- 
-   printf ("\n\n\a\33[1mError in memory allocation\33[0m\n");
-   printf ("Error origin : %s\n\n",s1);
-   printf ("Exiting Program ..\n\n");
-   exit (0);
-   
-  }
+{
+	static char FuncName[]={"SUMA_alloc_problem"};
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	printf ("\n\n\a\33[1mError in memory allocation\33[0m\n");
+	printf ("Error origin : %s\n\n",s1);
+	printf ("Exiting Program ..\n\n");
+	exit (0);
+}
 
 /*!
 
@@ -341,73 +359,76 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 char **SUMA_allocate2D (int rows,int cols,int element_size)
 
 {
-    int i;
-    char **A;
+	int i;
+	char **A;
+	static char FuncName[]={"SUMA_allocate2D"};
 
-/* try to allocate the request */
-    switch(element_size) {
-        case sizeof(short): {    /* integer matrix */
-            short **int_matrix;
-            int_matrix = (short **)calloc(rows,sizeof(short *));
-            if(!int_matrix) {
-                printf("\nError making pointers in %dx%d int matrix\n"
-                            ,rows,cols);
-                exit(1);
-            }
-            for(i = 0 ; i < rows ; i++) {
-                int_matrix[i] = (short *)calloc(cols,sizeof(short));
-                if(!int_matrix[i]) {
-                    printf("\nError making row %d in %dx%d int matrix\n"
-                            ,i,rows,cols);
-                    exit(1);
-                }
-            }
-            A = (char **)int_matrix;
-            break;
-        }
-        case sizeof(float): {    /* float matrix */
-            float **float_matrix;
-            float_matrix = (float **)calloc(rows,sizeof(float *));
-            if(!float_matrix) {
-                printf("\nError making pointers in %dx%d float matrix\n"
-                            ,rows,cols);
-                exit(1);
-            }
-            for(i = 0 ; i < rows ; i++) {
-                float_matrix[i] = (float *)calloc(cols,sizeof(float));
-                if(!float_matrix[i]) {
-                    printf("\nError making row %d in %dx%d float matrix\n"
-                            ,i,rows,cols);
-                    exit(1);
-                }
-            }
-            A = (char **)float_matrix;
-            break;
-        }
-        case sizeof(double): {   /* double matrix */
-            double **double_matrix;
-            double_matrix = (double **)calloc(rows,sizeof(double *));
-            if(!double_matrix) {
-                printf("\nError making pointers in %dx%d double matrix\n"
-                            ,rows,cols);
-                exit(1);
-            }
-            for(i = 0 ; i < rows ; i++) {
-                double_matrix[i] = (double *)calloc(cols,sizeof(double));
-                if(!double_matrix[i]) {
-                    printf("\nError making row %d in %dx%d double matrix\n"
-                            ,i,rows,cols);
-                    exit(1);
-                }
-            }
-            A = (char **)double_matrix;
-            break;
-        }
-        default:
-            printf("\nERROR in matrix_allocate: unsupported type\n");
-            exit(1);
-    }
-    return(A);
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	/* try to allocate the request */
+	switch(element_size) {
+	  case sizeof(short): {    /* integer matrix */
+      	short **int_matrix;
+      	int_matrix = (short **)calloc(rows,sizeof(short *));
+      	if(!int_matrix) {
+         	 printf("\nError making pointers in %dx%d int matrix\n"
+                     	 ,rows,cols);
+         	 exit(1);
+      	}
+      	for(i = 0 ; i < rows ; i++) {
+         	 int_matrix[i] = (short *)calloc(cols,sizeof(short));
+         	 if(!int_matrix[i]) {
+            	  printf("\nError making row %d in %dx%d int matrix\n"
+                     	 ,i,rows,cols);
+            	  exit(1);
+         	 }
+      	}
+      	A = (char **)int_matrix;
+      	break;
+	  }
+	  case sizeof(float): {    /* float matrix */
+      	float **float_matrix;
+      	float_matrix = (float **)calloc(rows,sizeof(float *));
+      	if(!float_matrix) {
+         	 printf("\nError making pointers in %dx%d float matrix\n"
+                     	 ,rows,cols);
+         	 exit(1);
+      	}
+      	for(i = 0 ; i < rows ; i++) {
+         	 float_matrix[i] = (float *)calloc(cols,sizeof(float));
+         	 if(!float_matrix[i]) {
+            	  printf("\nError making row %d in %dx%d float matrix\n"
+                     	 ,i,rows,cols);
+            	  exit(1);
+         	 }
+      	}
+      	A = (char **)float_matrix;
+      	break;
+	  }
+	  case sizeof(double): {   /* double matrix */
+      	double **double_matrix;
+      	double_matrix = (double **)calloc(rows,sizeof(double *));
+      	if(!double_matrix) {
+         	 printf("\nError making pointers in %dx%d double matrix\n"
+                     	 ,rows,cols);
+         	 exit(1);
+      	}
+      	for(i = 0 ; i < rows ; i++) {
+         	 double_matrix[i] = (double *)calloc(cols,sizeof(double));
+         	 if(!double_matrix[i]) {
+            	  printf("\nError making row %d in %dx%d double matrix\n"
+                     	 ,i,rows,cols);
+            	  exit(1);
+         	 }
+      	}
+      	A = (char **)double_matrix;
+      	break;
+	  }
+	  default:
+      	printf("\nERROR in matrix_allocate: unsupported type\n");
+      	exit(1);
+	}
+	SUMA_RETURN(A);
 }
 
 /*!
@@ -431,18 +452,20 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 				Ziad Saad						Oct_22_96
 *************************************************************************/
 void SUMA_free2D(char **a,int rows)
-    
 {
-    int i;
-    
-/* free each row of data */
-    for(i = 0 ; i < rows ; i++) free(a[i]);
+	int i;
+	static char FuncName[]={"SUMA_free2D"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-/* free each row pointer */
-    free((char *)a);
-    a = NULL;           /* set to null for error */
-    
-	return;
+	/* free each row of data */
+	for(i = 0 ; i < rows ; i++) free(a[i]);
+
+	/* free each row pointer */
+	free((char *)a);
+	a = NULL;           /* set to null for error */
+
+	SUMA_RETURNe;
 }
 
 /*!
@@ -468,7 +491,10 @@ Header Files    */
 void SUMA_error_message (char *s1,char *s2,int ext)
  
  {
- 
+ 	static char FuncName[]={"SUMA_error_message"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
    printf ("\n\n\a\33[1mError: \33[0m%s\n",s2);
    printf ("\33[1mError origin:\33[0m %s\n\n",s1);
    if (ext == 1)
@@ -476,7 +502,7 @@ void SUMA_error_message (char *s1,char *s2,int ext)
   		printf ("Exiting Program ..\n\n");
    		exit (0);
    	}
-   	else return;
+   	else SUMA_RETURNe;
    
   }
 
@@ -526,30 +552,35 @@ Side effects :
  
 int SUMA_iswordin (const char *sbig, const char *ssub)
 {/*SUMA_iswordin*/
- int i=0,j=0;
- 
- if (sbig == NULL && ssub == NULL) return (-2);
- if (sbig == NULL || ssub == NULL) return (-1);
- 
- if (strlen(sbig) < strlen(ssub))
- 		return (0);
- 
- j=0;
- while (sbig[i] != '\0' && ssub[j] != '\0')
- 	{
+	int i=0,j=0;
+	static char FuncName[]={"SUMA_iswordin"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (sbig == NULL && ssub == NULL) SUMA_RETURN (-2);
+	if (sbig == NULL || ssub == NULL) SUMA_RETURN (-1);
+
+	if (strlen(sbig) < strlen(ssub))
+ 		SUMA_RETURN (0);
+
+	j=0;
+	while (sbig[i] != '\0' && ssub[j] != '\0')
+	{
  		if (sbig[i] == ssub[j])
  			{
  				++j;
  				/*printf ("j=%d ",j);*/
  			}
  		else j=0;
- 	++i;
- 	}
- 
-	if (j == strlen (ssub))
-		return (1);
-	else 
-		return (0);
+	++i;
+	}
+
+	if (j == strlen (ssub)) {
+		SUMA_RETURN (1);
+	}
+	else {
+		SUMA_RETURN (0);
+	}
 
 }/*SUMA_iswordin*/
 
@@ -591,18 +622,21 @@ Side effects :
  
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt)
 {/*SUMA_disp_dmat*/
-   char spc [40]; 
- 	int i,j;
-	
+	char spc [40]; 
+	int i,j;
+	static char FuncName[]={"SUMA_disp_dmat"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!SpcOpt)
 		sprintf(spc," ");
 	else if (SpcOpt == 1)
 		sprintf(spc,"\t");
 	else
 		sprintf(spc," , ");
-	
+
 	fprintf (SUMA_STDOUT,"\n");
-   for (i=0; i < nr; ++i)
+	for (i=0; i < nr; ++i)
 		{
 			for (j=0; j < nc; ++j)
 					fprintf (SUMA_STDOUT,"%d%s",v[i][j],spc);
@@ -637,7 +671,10 @@ void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt)
 {/*SUMA_disp_mat*/
    char spc [40]; 
  	int i,j;
-	
+	static char FuncName[]={"SUMA_disp_mat"};
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!SpcOpt)
 		sprintf(spc," ");
 	else if (SpcOpt == 1)
@@ -673,19 +710,22 @@ Input Parameters:
 
 */
 void SUMA_disp_vect (float *v,int l)
-        { int i;
+{ int i;
+	static char FuncName[]={"SUMA_disp_vect"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-                fprintf (SUMA_STDOUT,"\n");
-                if ((l-1) == 0)
-							fprintf (SUMA_STDOUT,"%f\n",*v);
-                else 
-                {
-                	for (i=0;i<l;++i)
-										  fprintf (SUMA_STDOUT,"%f\t",v[i]);
-                	fprintf (SUMA_STDOUT,"\n");
-                }
-                return;
-        }
+	fprintf (SUMA_STDOUT,"\n");
+	if ((l-1) == 0)
+		fprintf (SUMA_STDOUT,"%f\n",*v);
+	else 
+	{
+	for (i=0;i<l;++i)
+					  fprintf (SUMA_STDOUT,"%f\t",v[i]);
+	fprintf (SUMA_STDOUT,"\n");
+	}
+	SUMA_RETURNe;
+}
 
 /*
 File : SUMA_MiscFunc.c,  from disp_dvect.c
@@ -706,20 +746,23 @@ Input Parameters:
 
 */
 void SUMA_disp_dvect (int *v,int l)
-        { int i;
+{	int i;
+	static char FuncName[]={"SUMA_disp_dvect"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-                fprintf (SUMA_STDOUT,"\n");
-                if ((l-1) == 0)
-							fprintf (SUMA_STDOUT, "%d\n",*v);
-                else 
-                {
-                	for (i=0;i<l;++i)
-							fprintf (SUMA_STDOUT,"%d\t",v[i]);
-                	
-						fprintf (SUMA_STDOUT,"\n");
-                }
-                return;
-        }
+	fprintf (SUMA_STDOUT,"\n");
+	if ((l-1) == 0)
+		fprintf (SUMA_STDOUT, "%d\n",*v);
+	else 
+	{
+	for (i=0;i<l;++i)
+		fprintf (SUMA_STDOUT,"%d\t",v[i]);
+
+	fprintf (SUMA_STDOUT,"\n");
+	}
+	SUMA_RETURNe;
+}
 
 
 /*!
@@ -767,14 +810,13 @@ Side effects :
 ***/
 float SUMA_etime (struct  timeval  *t, int Report  )
 {/*SUMA_etime*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_etime"}; 
    struct  timeval  tn;
 	float Time_Fact = 1000000.0;
 	float delta_t;
 
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_etime");
-   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* get time */
 	gettimeofday(&tn,0);
 	
@@ -789,7 +831,7 @@ float SUMA_etime (struct  timeval  *t, int Report  )
 			delta_t = 0.0;
 		}
 		
-	return (delta_t);
+	SUMA_RETURN (delta_t);
 	
 }/*SUMA_etime*/
    
@@ -835,14 +877,13 @@ Side effects :
 ***/
 SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_rad , int BoundIn )
 {/*SUMA_isinsphere*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_isinsphere"}; 
    float *t, t0, t1, t2, ta;
 	int k, *IsIn;
 	SUMA_ISINSPHERE IsIn_strct;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_isinsphere");
-   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	IsIn_strct.nIsIn = 0;
 		
 	t = (float *) calloc (nr, sizeof(float));
@@ -851,7 +892,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 	if (!t || !IsIn)
 		{
 			SUMA_alloc_problem (FuncName);
-			return (IsIn_strct);
+			SUMA_RETURN (IsIn_strct);
 		}
 	
 	
@@ -902,7 +943,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 		{
 			IsIn_strct.nIsIn = 0;
 			SUMA_alloc_problem(FuncName);
-			return (IsIn_strct);
+			SUMA_RETURN (IsIn_strct);
 		}
 	
 	SUMA_COPY_VEC (t, IsIn_strct.d, IsIn_strct.nIsIn, float , float);
@@ -911,7 +952,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 	free (t);
 	free (IsIn);
 	
-	return (IsIn_strct);
+	SUMA_RETURN (IsIn_strct);
 	
 }/*SUMA_isinsphere*/
 
@@ -965,6 +1006,8 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 	int k , *IsIn;
 	SUMA_ISINBOX IsIn_strct;
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
    /*
 	fprintf(SUMA_STDOUT,"%f %f %f, %f %f %f, %d, %f, %f, %f\n",\
 		S_cent[0], S_cent[1], S_cent[2], S_dim[0], S_dim[1], S_dim[2], nr, XYZ[0][0], XYZ[0][1], XYZ[0][2]);
@@ -982,7 +1025,7 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 	if (!IsIn || !d)
 		{
 			SUMA_alloc_problem (FuncName);
-			return (IsIn_strct);
+			SUMA_RETURN (IsIn_strct);
 		}
 
 	if (BoundIn) /* split into two to avoid checking for this condition all the time */
@@ -1039,7 +1082,7 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 			{
 				IsIn_strct.nIsIn = 0;
 				SUMA_alloc_problem(FuncName);
-				return (IsIn_strct);
+				SUMA_RETURN (IsIn_strct);
 			}
 
 		SUMA_COPY_VEC (IsIn, IsIn_strct.IsIn , IsIn_strct.nIsIn, int , int);
@@ -1055,7 +1098,7 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 	free (d);
 	/*fprintf(SUMA_STDERR,"%s: freed\n", FuncName);*/
 
-	return (IsIn_strct) ;
+	SUMA_RETURN (IsIn_strct) ;
 
 }/*SUMA_isinbox*/
 
@@ -1065,14 +1108,18 @@ Structure pointer is not freed
 */
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB)
 {
+	static char FuncName[]={"SUMA_Free_IsInBox"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (IB == NULL) {
 		fprintf (SUMA_STDERR,"Error SUMA_Free_IsInBox: pointer to null cannot be freed\n");
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	if (IB->IsIn != NULL) free(IB->IsIn);
 	if (IB->d != NULL) free (IB->d);
 	IB->nIsIn = 0;
-	return (YUP);	
+	SUMA_RETURN (YUP);	
 }
 /*!**
 File : SUMA_MiscFunc.c
@@ -1109,17 +1156,16 @@ Support :
 ***/
 float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 {/*SUMA_Point_At_Distance*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_Point_At_Distance"}; 
 	float bf, **P2, P1orig[3], Uorig[3];
 	float m, n, p, q, D, A, B, C;
 	int flip, i;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_Point_At_Distance");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (d == 0) {
 		fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	fprintf (SUMA_STDOUT,"%s: U %f, %f, %f, P1 %f %f %f, d %f\n", FuncName,\
 			U[0], U[1], U[2], P1[0], P1[1], P1[2], d);
@@ -1147,7 +1193,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 				flip = 2;
 			} else { /* U[2] = 0 */
 				fprintf(SUMA_STDERR, "Error %s: 0 direction vector.\n", FuncName);
-				return (NULL);
+				SUMA_RETURN (NULL);
 			}
 		}/*U[1] = 0; */
 	}/*U[0] = 0; */
@@ -1172,13 +1218,13 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 	D = B*B - 4*A*C;
 	if (D < 0) {
 		fprintf(SUMA_STDERR, "Error %s: Negative Delta.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	P2 = (float **)SUMA_allocate2D(2,3, sizeof(float));
 	if (P2 == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate for 6 floats! What is this? What is the matter with you?!\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	P2[0][0] = (-B + sqrt(D)) / (2 *A);
@@ -1225,7 +1271,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
 		}
 	}
 
-return (P2);
+SUMA_RETURN (P2);
 	
 }/*SUMA_Point_At_Distance*/
 
@@ -1257,15 +1303,15 @@ Returns :
 */
 SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min)
 {
-	char FuncName[100];
+	static char FuncName[]={"SUMA_Point_To_Line_Distance"};
 	float U[3], Un, xn, yn, zn, dx, dy, dz;
 	int i;
 	
-	sprintf(FuncName,"SUMA_Point_To_Line_Distance");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	if (N_points < 1) {
 		fprintf(SUMA_STDERR,"Error %s: N_points is 0.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	/* Calculate normalized unit vector of line formed by P1, P2 */
 	U[0] = P2[0] - P1[0];
@@ -1275,7 +1321,7 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 	
 	if (Un == 0) {
 		fprintf(SUMA_STDERR,"Error %s: P1 and P2 are identical.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	U[0] /= Un;
@@ -1290,7 +1336,7 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 	
 	if (d2 == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: d2 not allocated for.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	
@@ -1323,7 +1369,7 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 			*i2min = i;
 		}
 	}
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -1351,15 +1397,15 @@ Returns :
 */
 SUMA_Boolean SUMA_Point_To_Point_Distance (float **Points, int N_points, float *P1, float *d2, float *d2min, int *i2min)
 {
-	char FuncName[100];
+	static char FuncName[]={"SUMA_Point_To_Point_Distance"};
 	float xn, yn, zn;
 	int i;
 	
-	sprintf(FuncName,"SUMA_Point_To_Point_Distance");
-	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (N_points < 1) {
 		fprintf(SUMA_STDERR,"Error %s: N_points is 0.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	
@@ -1367,7 +1413,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float **Points, int N_points, float *
 	
 	if (d2 == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: d2 not allocated for.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	
@@ -1393,12 +1439,14 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float **Points, int N_points, float *
 			*i2min = i;
 		}
 	}
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 
 /*! Sorting Functions */
 #define SUMA_Z_QSORT_structs
+
+/* DO not add debugging in the sorting functions since that might slow them down */
 
 	typedef struct {
 		float x;
@@ -1476,90 +1524,89 @@ Side effects :
 ***/
 int *SUMA_z_qsort (float *x , int nx )
 {/*SUMA_z_qsort*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_z_qsort"}; 
    int *I, k;
 	SUMA_Z_QSORT_FLOAT *Z_Q_fStrct;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_z_qsort");
-   
-			/* allocate for the structure */
-			Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
-			I = (int *) calloc (nx,sizeof(int));
-	
-			if (!Z_Q_fStrct || !I)
-				{
-					fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
-					return (NULL);
-				}
-			
-			for (k=0; k < nx; ++k) /* copy the data into a structure */
-				{
-					Z_Q_fStrct[k].x = x[k];
-					Z_Q_fStrct[k].Index = k;
-				}
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-			/* sort the structure by it's field value */
-			qsort(Z_Q_fStrct, nx, sizeof(SUMA_Z_QSORT_FLOAT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_FLOAT);
-			
-			/* recover the index table */
-			for (k=0; k < nx; ++k) /* copy the data into a structure */
-				{
-					x[k] = Z_Q_fStrct[k].x;
-					I[k] = Z_Q_fStrct[k].Index;
-				}
-				
-			/* free the structure */
-			free (Z_Q_fStrct);
-			
-			/* return */
-			return (I);
-	
-		
+	/* allocate for the structure */
+	Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
+	I = (int *) calloc (nx,sizeof(int));
+
+	if (!Z_Q_fStrct || !I)
+		{
+			fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
+			SUMA_RETURN (NULL);
+		}
+
+	for (k=0; k < nx; ++k) /* copy the data into a structure */
+		{
+			Z_Q_fStrct[k].x = x[k];
+			Z_Q_fStrct[k].Index = k;
+		}
+
+	/* sort the structure by it's field value */
+	qsort(Z_Q_fStrct, nx, sizeof(SUMA_Z_QSORT_FLOAT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_FLOAT);
+
+	/* recover the index table */
+	for (k=0; k < nx; ++k) /* copy the data into a structure */
+		{
+			x[k] = Z_Q_fStrct[k].x;
+			I[k] = Z_Q_fStrct[k].Index;
+		}
+
+	/* free the structure */
+	free (Z_Q_fStrct);
+
+	/* return */
+	SUMA_RETURN (I);
+
+
 }/*SUMA_z_qsort*/
 
 
 int *SUMA_z_dqsort (int *x , int nx )
 {/*SUMA_z_dqsort*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_z_dqsort"}; 
    int *I, k;
 	SUMA_Z_QSORT_INT *Z_Q_iStrct;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_z_dqsort");
-   
-			/* allocate for the structure */
-			Z_Q_iStrct = (SUMA_Z_QSORT_INT *) calloc(nx, sizeof (SUMA_Z_QSORT_INT));
-			I = (int *) calloc (nx,sizeof(int));
-	
-			if (!Z_Q_iStrct || !I)
-				{
-					fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
-					return (NULL);
-				}
-			
-			for (k=0; k < nx; ++k) /* copy the data into a structure */
-				{
-					Z_Q_iStrct[k].x = x[k];
-					Z_Q_iStrct[k].Index = k;
-				}
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-			/* sort the structure by it's field value */
-			qsort(Z_Q_iStrct, nx, sizeof(SUMA_Z_QSORT_INT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_INT);
-			
-			/* recover the index table */
-			for (k=0; k < nx; ++k) /* copy the data into a structure */
-				{
-					x[k] = Z_Q_iStrct[k].x;
-					I[k] = Z_Q_iStrct[k].Index;
-				}
-				
-			/* free the structure */
-			free (Z_Q_iStrct);
-			
-			/* return */
-			return (I);
-	
+	/* allocate for the structure
+ */
+	Z_Q_iStrct = (SUMA_Z_QSORT_INT *) calloc(nx, sizeof (SUMA_Z_QSORT_INT));
+	I = (int *) calloc (nx,sizeof(int));
+
+	if (!Z_Q_iStrct || !I)
+		{
+			fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
+			SUMA_RETURN (NULL);
+		}
+
+	for (k=0; k < nx; ++k) /* copy the data into a structure */
+		{
+			Z_Q_iStrct[k].x = x[k];
+			Z_Q_iStrct[k].Index = k;
+		}
+
+	/* sort the structure by it's field value */
+	qsort(Z_Q_iStrct, nx, sizeof(SUMA_Z_QSORT_INT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_INT);
+
+	/* recover the index table */
+	for (k=0; k < nx; ++k) /* copy the data into a structure */
+		{
+			x[k] = Z_Q_iStrct[k].x;
+			I[k] = Z_Q_iStrct[k].Index;
+		}
+
+	/* free the structure */
+	free (Z_Q_iStrct);
+
+	/* return */
+	SUMA_RETURN (I);
+
 		
 }/*SUMA_z_dqsort*/
    
@@ -1573,6 +1620,7 @@ typedef struct {
 		int Index;
 	} SUMA_QSORTROW_FLOAT;
 
+/* DO not add debugging in the sorting functions since that might slow them down */
 
 int compare_SUMA_QSORTROW_FLOAT (SUMA_QSORTROW_FLOAT *a, SUMA_QSORTROW_FLOAT *b)
 	{
@@ -1611,11 +1659,13 @@ Usage :
 */
 int * SUMA_fqsortrow (float **X , int nr, int nc  )
 {/*SUMA_fqsortrow*/
-   char FuncName[]={"SUMA_fqsortrow"}; 
+   static char FuncName[]={"SUMA_fqsortrow"}; 
    int k, *I;
 	SUMA_QSORTROW_FLOAT *Z_Q_fStrct;
 	
 	   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* allocate for the structure */
 	Z_Q_fStrct = (SUMA_QSORTROW_FLOAT *) calloc(nr, sizeof (SUMA_QSORTROW_FLOAT));
 	I = (int *) calloc (nr,sizeof(int));
@@ -1623,7 +1673,7 @@ int * SUMA_fqsortrow (float **X , int nr, int nc  )
 	if (!Z_Q_fStrct || !I)
 		{
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for Z_Q_fStrct || I\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 		}
 
 	for (k=0; k < nr; ++k) /* copy the data into a structure */
@@ -1647,7 +1697,7 @@ int * SUMA_fqsortrow (float **X , int nr, int nc  )
 	free (Z_Q_fStrct);
 
 	/* return */
-	return (I);
+	SUMA_RETURN (I);
 	
 	
 }/*SUMA_fqsortrow*/
@@ -1698,10 +1748,11 @@ Usage :
 
 int * SUMA_dqsortrow (int **X , int nr, int nc  )
 {/*SUMA_dqsortrow*/
-   char FuncName[]={"SUMA_dqsortrow"}; 
+   static char FuncName[]={"SUMA_dqsortrow"}; 
    int k,  *I;
 	SUMA_QSORTROW_INT *Z_Q_dStrct;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	/* allocate for the structure */
 	Z_Q_dStrct = (SUMA_QSORTROW_INT *) calloc(nr, sizeof (SUMA_QSORTROW_INT));
@@ -1710,7 +1761,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 	if (!Z_Q_dStrct || !I)
 		{
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for Z_Q_dStrct || I\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 		}
 
 	for (k=0; k < nr; ++k) /* copy the data into a structure */
@@ -1734,7 +1785,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 	free (Z_Q_dStrct);
 
 	/* return */
-	return (I);
+	SUMA_RETURN (I);
 	
 	
 }/*SUMA_dqsortrow*/
@@ -1781,19 +1832,22 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 SUMA_MT_INTERSECT_TRIANGLE *
 SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet)
 {
-   double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
+   static char FuncName[]={"SUMA_MT_intersect_triangle"};
+	double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
    double det,inv_det;
 	int iface;
 	double vert0[3],vert1[3], vert2[3], dir[3], dirn, orig[3];
 	float tmin, tmax, dii;
 	SUMA_MT_INTERSECT_TRIANGLE *MTI;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	tmin = 10000000.0;
 	tmax = 0.0;
 	MTI = (SUMA_MT_INTERSECT_TRIANGLE *)malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
 	if (MTI == NULL) {
 		fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI\n");
-		return (MTI);
+		SUMA_RETURN (MTI);
 	}
 	MTI->t = NULL;
 	MTI->u = NULL;
@@ -1821,7 +1875,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 	
 	if (MTI->isHit == NULL || MTI->t == NULL || MTI->u == NULL || MTI->v == NULL) {
 		fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI->isHit | MTI->t | MTI->u | MTI->v\n");
-		return (MTI);
+		SUMA_RETURN (MTI);
 	}
 	MTI->N_hits = 0;
 	for (iface= 0; iface < N_FaceSet; ++iface) {/* iface */
@@ -1966,7 +2020,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 	#endif
 	}/*iface */
 	MTI->N_el = N_FaceSet;
-	return (MTI);
+	SUMA_RETURN (MTI);
 }
 
 /*!
@@ -1975,24 +2029,27 @@ Show contents of SUMA_MT_INTERSECT_TRIANGLE structure
 */
 SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FILE *Out)
 {
+	static char FuncName[]={"SUMA_Show_MT_intersect_triangle"};
 	int MaxShow = 5, i,j;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Out == NULL) Out = stdout;
 		
 	if (MTI == NULL) {
 		fprintf (Out, "NULL Surface Object Pointer\n");
-		return(NOPE);
+		SUMA_RETURN(NOPE);
 	}
 	
 	fprintf (Out,"\n---------------------------------\n");
 	if (!MTI->N_el) {
 		fprintf (Out,"Zero elements in structure\n");
-		return (YUP);
+		SUMA_RETURN (YUP);
 	}
 	
 	if (MTI->isHit == NULL) {
 		fprintf (SUMA_STDERR,"Error SUMA_Show_MT_intersect_triangle: isHit is NULL\n\n");
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	else {
 		if (MaxShow > MTI->N_el) MaxShow = MTI->N_el; 
@@ -2028,20 +2085,23 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FI
 		}
 
 	}
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 /*!
 free structure SUMA_MT_INTERSECT_TRIANGLE
 */
 SUMA_Boolean SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
 {
-	/*fprintf (SUMA_STDOUT,"Freeing MT_intersect_triangle\n");*/
+	static char FuncName[]={"SUMA_Free_MT_intersect_triangle"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (MTI->t) free(MTI->t);
 	if (MTI->u) free(MTI->u);
 	if (MTI->v) free(MTI->v);
 	if (MTI->isHit) free(MTI->isHit);
 	if (MTI) free(MTI);
-	return(YUP);
+	SUMA_RETURN(YUP);
 }
 
 /*!
@@ -2063,17 +2123,17 @@ determines rotation matrix required to rotate vector from to vector to
 */
 SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
 {/* SUMA_FromToRotation */
-	char FuncName[100];
+	char FuncName[]={"SUMA_FromToRotation"};
 	float v[3], vn;
 	float e, h, f;
 
-	sprintf(FuncName,"SUMA_FromToRotation");
-	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/*normalize both vectors */
 	vn = sqrt(v0[0]*v0[0] + v0[1]*v0[1] + v0[2]*v0[2]);
 	if (vn == 0.0) {
 		fprintf(SUMA_STDERR,"Error %s: v0 is null.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	v0[0] /= vn;
 	v0[1] /= vn;
@@ -2082,7 +2142,7 @@ SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
 	vn = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2]);
 	if (vn == 0.0) {
 		fprintf(SUMA_STDERR,"Error %s: v1 is null.\n",FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	v1[0] /= vn;
 	v1[1] /= vn;
@@ -2187,7 +2247,7 @@ SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
 	mtx[3][1] = 0.0;
 	mtx[3][2] = 0.0;
 	mtx[3][3] = 1.0;
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*
@@ -2207,10 +2267,10 @@ SUMA_Boolean	SUMA_mattoquat (float **mat, float *q)
 {
 	double tr, s;
 	int i,j,k, nxt[3] = {1, 2, 0};
-	char FuncName[100];
+	static char FuncName[]={"SUMA_mattoquat"};
 	
-	sprintf(FuncName,"SUMA_mattoquat");
-	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* calculate the trace */
 	tr = mat[0][0] + mat[1][1] + mat[2][2];
 	if (tr > 0.0) {
@@ -2235,7 +2295,7 @@ SUMA_Boolean	SUMA_mattoquat (float **mat, float *q)
 		q[j] = (mat[i][j] + mat[j][i])*s;
 		q[k] = (mat[i][k] + mat[k][i])*s;
 	} /* tr < 0.0 */
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*------------------------- Triangle Consistency Functions BEGIN --------------------------------------- */
@@ -2253,9 +2313,11 @@ typedef enum {SUMA_NO_NEIGHB, SUMA_NO_MORE_TO_VISIT, SUMA_VISITED_ALL, SUMA_BAD_
 */
 int SUMA_isConsistent (int *T, int *t)
 {
-	static char FuncName[]={""};
+	static char FuncName[]={"SUMA_isConsistent"};
 	static int ic, in, LOC[2], loc[2], d, D;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	ic = 0;	/* common node index*/
 	in = 0; /* number of node searched in T */
 	while (ic < 2 && in < 3) {
@@ -2280,7 +2342,7 @@ int SUMA_isConsistent (int *T, int *t)
 	}
 	if (ic != 2) {
 		fprintf(SUMA_STDERR,"Error %s: Triangles do not share 2 nodes.\n", FuncName);
-		return (0);
+		SUMA_RETURN (0);
 	}
 	
 	D = (LOC[1]-LOC[0]);
@@ -2294,7 +2356,7 @@ int SUMA_isConsistent (int *T, int *t)
 
 	if (d != D) {
 		/*fprintf(SUMA_STDERR,"%s: Triangles consistent.\n", FuncName);*/
-		return (1);
+		SUMA_RETURN (1);
 	}
 	
 		
@@ -2302,7 +2364,7 @@ int SUMA_isConsistent (int *T, int *t)
 	in = t[0];
 	t[0] = t[2];
 	t[2] = in;
-	return (-1);
+	SUMA_RETURN (-1);
 }
 
 #ifdef SUMA_isConsistent_STANDALONE
@@ -2420,11 +2482,14 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
 {
 	static int entry = 0, seed=-1;
 	int Found1 = -1, Found2 = -1, i, N_NotVisNeighb, itry;
+	static char FuncName[]={"SUMA_Next_Best_Seed"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (!entry) { /* entry = 0 */
 		for (i=0; i < N_FL; ++i) {
 			if (SFFN->N_Neighb[i] == 3) {
-				seed = i; ++entry; return(seed);
+				seed = i; ++entry; SUMA_RETURN(seed);
 			}
 			if (SFFN->N_Neighb[i] == 2) Found2 = i;
 			if (SFFN->N_Neighb[i] == 1) Found1 = i;
@@ -2432,15 +2497,15 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
 				
 		if (Found2 > 0) {
 			++entry;
-			return (Found2);
+			SUMA_RETURN (Found2);
 		}
 			
 		if (Found1 > 0) {
 			++entry;
-			return (Found1);
+			SUMA_RETURN (Found1);
 		}
 		
-		return (-1); /* No seeds found */		
+		SUMA_RETURN (-1); /* No seeds found */		
 	}/* entry = 0 */
 	else {/* entry > 0 */
 		for (i=0; i < N_FL; ++i) {
@@ -2453,7 +2518,7 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
 					++itry;
 				}
 				if (N_NotVisNeighb == 2) {
-					seed = i; ++entry; return (seed);
+					seed = i; ++entry; SUMA_RETURN (seed);
 				}
 				if (N_NotVisNeighb == 1) {
 					Found1 = i;
@@ -2462,9 +2527,9 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
 		}
 		if (Found1 > 0) {
 			++entry;
-			return (Found1);
+			SUMA_RETURN (Found1);
 		}
-		return (-1); /* No seeds found */	
+		SUMA_RETURN (-1); /* No seeds found */	
 	}/* entry > 0 */
 }
 
@@ -2486,6 +2551,8 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 	int NotFound, itry, curface, nxtface;
 	static int entry=0;
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	curface = seed;
 	if (!visited[curface]) { /* a new visit this should only happen on the first call */
 		if (!entry) {
@@ -2495,11 +2562,11 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 			/*fprintf (SUMA_STDERR, "%s: visited %d\n", FuncName, curface);*/
 		}else {
 			fprintf (SUMA_STDERR, "Error %s: You should not send unvisited seeds, except at the very first call.\n", FuncName);
-			return (SUMA_BAD_SEED);
+			SUMA_RETURN (SUMA_BAD_SEED);
 		}
 	}
 	if (SFFN->N_Neighb[curface] == 0) {
-		return (SUMA_NO_NEIGHB);
+		SUMA_RETURN (SUMA_NO_NEIGHB);
 	}
 	++entry;
 
@@ -2536,12 +2603,12 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 
 		if (NotFound) { /* no more useful neighbors on this walk, get outa here */
 			/*fprintf (SUMA_STDERR, "%s:  N_visited = %d, N_tot = %d\n", FuncName, *N_visited, N_FL);*/
-			return (SUMA_NO_MORE_TO_VISIT);
+			SUMA_RETURN (SUMA_NO_MORE_TO_VISIT);
 		}
 
 	}
 	
-	return (SUMA_VISITED_ALL);
+	SUMA_RETURN (SUMA_VISITED_ALL);
 }
 
 /*!
@@ -2551,13 +2618,16 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 */
 void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 {
+	static char FuncName[]={"SUMA_free_Edge_List"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (SEL->EL) SUMA_free2D((char **)SEL->EL, SEL->N_EL);
 	if (SEL->ELloc) free(SEL->ELloc);
 	if (SEL->ELps) SUMA_free2D((char **)SEL->ELps, SEL->N_EL);
 	if (SEL->Tri_limb) SUMA_free2D((char **)SEL->Tri_limb, SEL->N_EL/3);
 	if (SEL) free (SEL);
-	return;
+	SUMA_RETURNe;
 }
 
 /*! 
@@ -2582,6 +2652,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int **FL, int N_FL, int N_Node)
 	int i, ie, *isort_EL, **ELp, lu, ht, *iTri_limb, icur;
 	SUMA_EDGE_LIST *SEL;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* allocate and form the List of edges */
 	SEL = (SUMA_EDGE_LIST *) malloc(sizeof(SUMA_EDGE_LIST));
@@ -2602,7 +2673,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int **FL, int N_FL, int N_Node)
 	
 	if (SEL == NULL || SEL->EL == NULL || ELp == NULL || SEL->ELps == NULL || SEL->Tri_limb == NULL || iTri_limb== NULL || SEL->ELloc == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for EL, ELp.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	/* form the edge list */
@@ -2758,7 +2829,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int **FL, int N_FL, int N_Node)
 		++i;
 	}
 
-	return (SEL);
+	SUMA_RETURN (SEL);
 }
 
 /*! finds triangles incident to an edge 
@@ -2779,6 +2850,8 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
 	static char FuncName[] = {"SUMA_Get_Incident"};
 	int nt, in1, iseek, m_N_EL;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/*fprintf(SUMA_STDERR,"Entering %s: n1,n2 =%d,%d ...", FuncName,n1,n2);*/
 	if (n1 > n2) {
 		/*make the first node be the smallest */
@@ -2800,13 +2873,13 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
 		++iseek;
 		if (iseek > m_N_EL) {
 			if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
-			return (YUP);
+			SUMA_RETURN (YUP);
 		}
 		
 	}
 	if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
 	/*fprintf(SUMA_STDERR,"Leaving %s.\n", FuncName);*/
-	return(YUP);	
+	SUMA_RETURN(YUP);	
 }
 
 /*! 
@@ -2818,10 +2891,14 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
 */ 
 void SUMA_free_FaceSet_Edge_Neighb (SUMA_FACESET_FIRST_EDGE_NEIGHB * S)
 {
+	static char FuncName[]={"SUMA_free_FaceSet_Edge_Neighb"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (S->FirstNeighb) SUMA_free2D((char **)S->FirstNeighb, S->N_FaceSet);
 	if (S->N_Neighb) free(S->N_Neighb);
 	if (S) free (S);
-	return;
+	SUMA_RETURNe;
 }
 
 /*! Allocate space for SUMA_FACESET_FIRST_EDGE_NEIGHB *
@@ -2834,26 +2911,27 @@ void SUMA_free_FaceSet_Edge_Neighb (SUMA_FACESET_FIRST_EDGE_NEIGHB * S)
 SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet)
 {
 	static char FuncName[]={"SUMA_FACESET_FIRST_EDGE_NEIGHB"};
-	
 	SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SFFN = malloc(sizeof(SUMA_FACESET_FIRST_EDGE_NEIGHB));
 	if (SFFN == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not allocate for SFFN.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	SFFN->FirstNeighb = (int **) SUMA_allocate2D(N_FaceSet, SUMA_MAX_FACESET_EDGE_NEIGHB, sizeof(int));
 	SFFN->N_Neighb = (int *) calloc (N_FaceSet, sizeof(int));
 	if (SFFN->FirstNeighb == NULL || SFFN->N_Neighb == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not allocate for FirstNeighb or N_Neighb.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
 	
 	SFFN->N_Neighb_max = -1; /* ridiculously low */
 	SFFN->N_FaceSet = N_FaceSet;
 	SFFN->N_Neighb_min = 100; /* ridiculously high */
-	return (SFFN);
+	SUMA_RETURN (SFFN);
 }
 
 /*!
@@ -2874,12 +2952,13 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 	int i, i1, F0, F1, in0, in1;
 	SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
 	
-	fprintf (SUMA_STDERR, "%s: Doing FaceSet neighbors....\n", FuncName);	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	
 	SFFN = SUMA_allocate_FaceSet_Edge_Neighb(N_EL/3);
 	if (SFFN == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_allocate_FaceSet_Edge_Neighb.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	i = 0;
@@ -2893,7 +2972,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 			in0 = SFFN->N_Neighb[F0]; in1 = SFFN->N_Neighb[F1];
 			if (in0 > SUMA_MAX_FACESET_EDGE_NEIGHB -1 || in1 > SUMA_MAX_FACESET_EDGE_NEIGHB -1) {
 				fprintf (SUMA_STDERR, "Error %s: A faceset has more than three neighbors. Bad surface or non triangular mesh\n", FuncName);
-				return (NULL);
+				SUMA_RETURN (NULL);
 			}
 			SFFN->FirstNeighb[F0][in0] = F1; 
 			SFFN->FirstNeighb[F1][in1] = F0;
@@ -2928,7 +3007,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 	}
 	#endif
 	
-	return (SFFN);
+	SUMA_RETURN (SFFN);
 }	
 
 /*!
@@ -2952,12 +3031,14 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 	static char FuncName[]={"SUMA_MakeConsistent"};
 	SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	isflip = (int *)calloc(SEL->N_EL/3, sizeof(int));
 	ischecked = (int *)calloc(SEL->N_EL/3, sizeof(int));
 	
 	if (isflip == NULL || ischecked == NULL ) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for isflip\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	
@@ -2999,7 +3080,7 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 				if (ischecked[ht0] && !ischecked[ht1]) {
 					if (NotConsistent == 0) {
 						fprintf(SUMA_STDERR, "Error %s: NotConsistent = 0 here. This should not be.\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN (NOPE);
 					}
 					if (NotConsistent < 0) {
 						/* triangles hosting these edges are consistent */
@@ -3029,7 +3110,7 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 				if (ischecked [ht1] && !ischecked[ht0]) {
 					if (NotConsistent == 0) {
 						fprintf(SUMA_STDERR, "Error %s: NotConsistent = 0 here. This should not be.\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN (NOPE);
 					}
 					if (NotConsistent < 0) {
 						/* triangles hosting these edges are consistent */
@@ -3088,7 +3169,7 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 	if (ischecked) free(ischecked);
 	fprintf(SUMA_STDERR,"%s: returning.\n", FuncName);
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 #ifdef SUMA_MakeConsistent_STANDALONE
@@ -3175,17 +3256,19 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 	static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
 	int i, j;
 	 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (attr_sm && attr_sm == attr) {
 		fprintf (SUMA_STDERR, "Error %s: attr and attr_sm point to the same location. BAD!\n",FuncName);
-		return (NULL); 
+		SUMA_RETURN (NULL); 
 	}
 	if (fn == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: fn is null, nothing to do.\n",FuncName);
-		return (NULL); 
+		SUMA_RETURN (NULL); 
 	}
 	if (fn->N_Node != N_attr) {
 		fprintf (SUMA_STDERR, "Error %s: N_attr (%d) must be equal to fn->N_Node (%d).\n",FuncName, N_attr, fn->N_Node);
-		return (NULL); 
+		SUMA_RETURN (NULL); 
 	}
 	
 	attr_sm = (float *)attr_sm;
@@ -3196,7 +3279,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 	if (attr_sm == NULL)
 	{
 		fprintf (SUMA_STDERR, "Error %s: Failed to allocate for returning variable.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
 	
 	for (i=0; i < N_attr; ++i) {
@@ -3207,7 +3290,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 				FuncName, fn->NodeId[i], i, i); */
 			/*free (attr_sm); 
 			attr_sm = NULL;
-			return (attr_sm);*/
+			SUMA_RETURN (attr_sm);*/
 			continue;
 		}
 		attr_sm[i] = attr[i];
@@ -3218,7 +3301,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 		attr_sm[i] /= (fn->N_Neighb[i]+1);
 	}
 	
-	return (attr_sm);	
+	SUMA_RETURN (attr_sm);	
 } 
 /*-------------------------Node Attributes, smoothing functions END ------------------- */
 
@@ -3238,15 +3321,17 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 	SUMA_Boolean skp;
 	SUMA_NODE_FIRST_NEIGHB *FN;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (el == NULL || N_Node == 0) {
 		fprintf(SUMA_STDERR, "Error %s: el == NULL or N_Node == 0, nothing to do.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}	
 	
 	FN = (SUMA_NODE_FIRST_NEIGHB *)malloc(sizeof(SUMA_NODE_FIRST_NEIGHB));
 	if (FN == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for FN\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* allocate space for FN's matrices */
@@ -3259,7 +3344,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 	
 	if (FN->FirstNeighb == NULL || FN->N_Neighb == NULL || FN->NodeId == NULL ){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space forFN->FirstNeighb &/| FN->N_Neighb &/| FN->NodeId.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
 	
 	/*fprintf(SUMA_STDOUT, "%s: Creating list ...\n", FuncName);*/
@@ -3275,7 +3360,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 		if (FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
 			fprintf(SUMA_STDERR, "Error %s: Maximum number of node neighbors exceeded, increase SUMA_MAX_NUMBER_NODE_NEIGHB (%d)", FuncName, SUMA_MAX_NUMBER_NODE_NEIGHB);
 			SUMA_Free_FirstNeighb (FN);
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 	
 		/*register the neighbors for both nodes*/
@@ -3311,7 +3396,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 	if (FirstNeighb == NULL){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for FirstNeighb\n", FuncName);
 		SUMA_Free_FirstNeighb (FN);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
 
 	/* crop left over allocated space */
@@ -3322,7 +3407,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 	}
 	SUMA_free2D((char **)FN->FirstNeighb, N_Node);
 	FN->FirstNeighb = FirstNeighb;
-	return (FN);
+	SUMA_RETURN (FN);
 }
 
 /*!
@@ -3330,11 +3415,15 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 */ 
 SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
 {
+	static char FuncName[]={"SUMA_Free_FirstNeighb"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (FN->NodeId) free (FN->NodeId);
 	if (FN->N_Neighb) free(FN->N_Neighb);
 	if (FN->FirstNeighb) SUMA_free2D ((char **)FN->FirstNeighb, FN->N_Node);
 	if (FN) free(FN);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -3356,12 +3445,14 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 	float **V, *A, ax, ay, az, an;
 	int i, ii, coord, kk, jj;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	A = (float *) calloc (N_FaceSet, sizeof(float));
 	V = (float **) SUMA_allocate2D(PolyDim+2, 3, sizeof(float));
 	
 	if (A == NULL || V == NULL) {
 		fprintf(SUMA_STDERR,"Error %s; Failed to allocate for A or V\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	for (i=0; i < N_FaceSet; ++i) {
@@ -3430,7 +3521,7 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 	} /* for i*/
 	
 	SUMA_free2D((char **)V, PolyDim+2);
-	return (A);
+	SUMA_RETURN (A);
 }
 
 /* choose debug level for SUMA_Surface_Curvature, _1 gvies a pacifier, _2 gives a lot of info, _3 pauses for each node */
@@ -3475,10 +3566,12 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 	SUMA_Boolean *SkipNode;
 	SUMA_SURFACE_CURVATURE *SC;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SC = (SUMA_SURFACE_CURVATURE *)malloc (sizeof(SUMA_SURFACE_CURVATURE));
 	if (!SC) {
 		fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SC.\n", FuncName);
-		return(NULL);
+		SUMA_RETURN(NULL);
 	}
 	
 	Wij = (float *)calloc (FN->N_Neighb_max, sizeof(float));
@@ -3522,7 +3615,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 		if (Qt) SUMA_free2D((char **)Qt, 3);
 		if (Mi) SUMA_free2D((char **)Mi, 3);
 		if (SC) SUMA_Free_SURFACE_CURVATURE (SC);		
-		return(NULL);
+		SUMA_RETURN(NULL);
 	}
 
 	/* 3x3 identity matrix */
@@ -3628,7 +3721,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 					if (Qt) SUMA_free2D((char **)Qt, 3);
 					if (Mi) SUMA_free2D((char **)Mi, 3);
 					if (SC) SUMA_Free_SURFACE_CURVATURE (SC);		
-					return(NULL);
+					SUMA_RETURN(NULL);
 				}
 
 				#ifdef DBG_2
@@ -3789,7 +3882,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 	
 	fprintf (SUMA_STDERR, "%s: Done with curvature computations.\n", FuncName);
 
-	return (SC);
+	SUMA_RETURN (SC);
 }
 
 /*!
@@ -3797,13 +3890,17 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 */
 void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC)
 {
-	if (SC == NULL) return;
+	static char FuncName[]={"SUMA_Free_SURFACE_CURVATURE"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (SC == NULL) SUMA_RETURNe;
 	if (SC->Kp1) free (SC->Kp1);
 	if (SC->Kp2) free (SC->Kp2);
 	if (SC->T1) SUMA_free2D ((char **)SC->T1, SC->N_Node);
 	if (SC->T2) SUMA_free2D ((char **)SC->T2, SC->N_Node);
 	if (SC) free(SC);
-	return;
+	SUMA_RETURNe;
 }
 
 /*!
@@ -3830,6 +3927,8 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 	#ifdef TAUBIN_Householder
 	float d[3], s[3], nd, ns;
 	#endif
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	e[0] = 1.0; e[1] = 0.0; e[2] = 0.0;
 	
@@ -3842,7 +3941,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 
 		if (mb == 0) {
 			fprintf (SUMA_STDERR,"Error %s: mb = 0\n",FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 		b[0] /= mb; b[1] /= mb; b[2] /= mb;
@@ -3858,7 +3957,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 		
 		if (!nd || !ns) {
 			fprintf (SUMA_STDERR,"Error %s: nd || ns = 0\n",FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		
 		if (nd > ns) {
@@ -3891,7 +3990,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 	Q[1][2] = - 2 * b[1] * b[2];
 	Q[2][2] = 1 - 2 * b[2] * b[2];
 
-	return (YUP);	
+	SUMA_RETURN (YUP);	
 }
 
 /*! 
@@ -3920,6 +4019,8 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 	float *C, d, D, dij;
 	int i, j, in;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	C = NULL;
 	
 	/* allocate for C */
@@ -3927,7 +4028,7 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 	
 	if (C == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for C.\n", FuncName);
-		return (C);
+		SUMA_RETURN (C);
 	}
 	
 	for (i=0; i < N_N; ++i) {
@@ -3973,7 +4074,7 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 	}
 	#endif
 	
-	return (C);
+	SUMA_RETURN (C);
 } 
 
 /*! 
@@ -3992,41 +4093,113 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 */
 
 char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
-	{/*SUMA_pad_str*/
- 		static char FuncName[]={"SUMA_pad_str"};
-		int lo,i;
- 		char *strp , *buf1;
- 		
- 		assert (str);
- 		
- 		lo = (int)strlen(str);
-		
-		buf1 = (char *)calloc (pad_ln-lo+2,sizeof (char));
- 		strp = (char *)calloc (pad_ln+lo+2,sizeof (char));
-				
-		for (i=0;i<pad_ln-lo;++i)
+{/*SUMA_pad_str*/
+ 	static char FuncName[]={"SUMA_pad_str"};
+	int lo,i;
+ 	char *strp , *buf1;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+ 	assert (str);
+
+ 	lo = (int)strlen(str);
+
+	buf1 = (char *)calloc (pad_ln-lo+2,sizeof (char));
+ 	strp = (char *)calloc (pad_ln+lo+2,sizeof (char));
+
+	for (i=0;i<pad_ln-lo;++i)
+ 		{
+ 			if (i == 0) sprintf (buf1,"%c",pad_val);
+ 				else sprintf (buf1,"%s%c",buf1,pad_val);
+
+ 		}
+ 	if (opt == 0)
+ 		sprintf (strp,"%s%s",buf1,str);
+ 	else if (opt == 1)
+ 		{
+ 			sprintf (strp,"%s%s",str,buf1);
+
+		}			
+ 		else 
  			{
- 				if (i == 0) sprintf (buf1,"%c",pad_val);
- 					else sprintf (buf1,"%s%c",buf1,pad_val);
- 						
+ 				fprintf (SUMA_STDERR, "Error %s: Wrong opt paramter, only (0,1) allowed\n", FuncName);
+ 				free (strp);
+				free (buf1);
+				SUMA_RETURN (NULL);
  			}
- 		if (opt == 0)
- 			sprintf (strp,"%s%s",buf1,str);
- 		else if (opt == 1)
- 			{
- 				sprintf (strp,"%s%s",str,buf1);
- 				
-			}			
- 			else 
- 				{
- 					fprintf (SUMA_STDERR, "Error %s: Wrong opt paramter, only (0,1) allowed\n", FuncName);
- 					free (strp);
-					free (buf1);
-					return (NULL);
- 				}
- 		
- 		free (buf1);
- 		
- 		return (strp);
- 		
-	}/*SUMA_pad_str*/
+
+ 	free (buf1);
+
+ 	SUMA_RETURN (strp);
+
+}/*SUMA_pad_str*/
+
+/*! 
+	Function to get a bunch of numbers from stdin
+	
+	int SUMA_ReadNumStdin (float *fv, int nv)
+	
+ 	\param fv (float *) pointer to nv x 1 vector that will hold the input. 
+	\param nr (int) number of values to be read and stored in fv
+	\ret nvr (int) number of values actually read from stdin
+	-1 in case of error
+	 
+*/
+
+
+int SUMA_ReadNumStdin (float *fv, int nv)
+{	
+	int i=0, nvr = 0;
+	char *endp, *strtp, s[SUMA_MAX_STRING_LENGTH], cbuf;
+	static char FuncName[]={"SUMA_ReadNumStdin"};
+	SUMA_Boolean eos, LocalHead = NOPE;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	fflush (stdin);
+	
+	while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
+		if (cbuf == ',' || cbuf == '\t') {/* change , and tab  to space*/
+			cbuf = ' ';
+		}
+			s[i] = cbuf;
+			++ i;
+	}
+	
+	if (i == SUMA_MAX_STRING_LENGTH-1) {
+		fprintf(SUMA_STDERR,"Error %s: No more than %d characters are allowed on stdin.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
+		fflush(stdin);
+		SUMA_RETURN(-1);
+	}
+	
+	s[i] = '\0';
+	
+	if (!i) SUMA_RETURN(0);
+	
+	/* parse s */
+	strtp = s;
+	endp = NULL;
+	nvr = 0;
+	eos = NOPE;
+	while (nvr < nv && !eos) {
+		fv[nvr] = strtod(strtp, &endp);
+		if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); 
+		if (errno) {
+			fprintf(SUMA_STDERR,"Error %s: Syntax error reading item %d.\n", FuncName, i);
+			SUMA_RETURN (-1);
+		}
+		if (endp == strtp) { 
+			eos = YUP;
+		} else {
+			++nvr;
+			strtp = endp;
+		}
+	}
+	
+	if (eos && nvr < nv) {
+		fprintf (SUMA_STDERR, "Warning %s: Expected to read %d elements, read only %d.\n", FuncName, nv, nvr);
+	}
+	
+	SUMA_RETURN(nvr);
+}
+				

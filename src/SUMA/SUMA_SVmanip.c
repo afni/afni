@@ -1,6 +1,8 @@
 
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF;
+
 /* This is used to hold the functions that manipulate SV, Surface Viewer Structures */
 /*!
 Create a SurfaceViewer data structure
@@ -11,10 +13,12 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 	static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
 	int i, j;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SVv =  (SUMA_SurfaceViewer *)malloc(sizeof(SUMA_SurfaceViewer)*N);
 	if (SVv == NULL) {
-		fprintf(SUMA_STDERR,"Error %s:: Failed to malloc SV\n", FuncName);
-		return (NULL);
+		fprintf(SUMA_STDERR,"Error %s: Failed to malloc SV\n", FuncName);
+		SUMA_RETURN (NULL);
 	}
 	for (i=0; i < N; ++i) {
 		SV = &SVv[i];
@@ -23,7 +27,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->GVS = (SUMA_GEOMVIEW_STRUCT *)malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
 		if (!SV->GVS) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for N_GVS.\n", FuncName);
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 		SV->StdView = SUMA_3D; /* default */
 		
@@ -96,7 +100,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 					break;
 				default:
 					fprintf(SUMA_STDERR,"Error %s: Undefined viewing mode.\n", FuncName);
-					return (NULL);
+					SUMA_RETURN (NULL);
 					
 			}
 		}
@@ -120,7 +124,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->ShowDO = (int *)calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 		if (SV->ShowDO == NULL) {
 			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to malloc SV->ShowDO\n");
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 		SV->N_DO = 0; /* Nothing is registered with the viewer yet */
 
@@ -130,13 +134,13 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->Ch = SUMA_Alloc_CrossHair ();
 		if (SV->Ch == NULL) {
 			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed in SUMA_Alloc_CrossHair\n");
-			return (NULL); 
+			SUMA_RETURN (NULL); 
 		} else SV->ShowCrossHair = 1;
 		
 		SV->X = (SUMA_X *)malloc(sizeof(SUMA_X));
 		if (SV->X == NULL) {
 			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to malloc SV->X\n");
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 
 		SV->X->MOMENTUMID = 0;
@@ -167,7 +171,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		
 
 	}
-	return (SVv);
+	SUMA_RETURN (SVv);
 }
 
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
@@ -175,6 +179,8 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
 	static char FuncName[]={"SUMA_Free_SurfaceViewer_Struct"};
 	int i;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
 	if (SV->X) free (SV->X);
 	if (SV->ShowDO) free (SV->ShowDO);
@@ -187,20 +193,23 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
 	}
 	if (SV->GVS) free (SV->GVS);
 	if (SV->State) SV->State = NULL; /* never free that one */ 
-	return(YUP);
+	SUMA_RETURN(YUP);
 }
 
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N)
 {
+	static char FuncName[]={"SUMA_Free_SurfaceViewer_Struct_Vect"};
 	int i;
 	SUMA_Boolean Ret= YUP;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	for (i=0; i < N; ++i)  {
 		if (&SVv[i] != NULL) {
 			Ret = Ret * SUMA_Free_SurfaceViewer_Struct (&SVv[i]);
 		}
 	}
-	return(Ret);
+	SUMA_RETURN(Ret);
 }
 
 /*!
@@ -212,7 +221,10 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
 	int i, do_id, TotWeight;
 	float NewCenter[3];
 	SUMA_SurfaceObject *so_op;
-	
+	static char FuncName[]={"SUMA_UpdateViewPoint"};
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	NewCenter[0] = 0.0;
 	NewCenter[1] = 0.0;
 	NewCenter[2] = 0.0;
@@ -260,7 +272,7 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
 		SV->GVS[SV->StdView].ViewFromOrig[1] = SV->GVS[SV->StdView].ViewFrom[1];
 		SV->GVS[SV->StdView].ViewFromOrig[2] = SV->GVS[SV->StdView].ViewFrom[2];
 
-	return (YUP);
+	SUMA_RETURN (YUP);
 	
 	
 }
@@ -272,7 +284,10 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
 	int i, do_id, TotWeight;
 	float NewCenter[3];
 	SUMA_SurfaceObject *so_op;
+	static char FuncName[]={"SUMA_UpdateRotaCenter"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	NewCenter[0] = 0.0;
 	NewCenter[1] = 0.0;
 	NewCenter[2] = 0.0;
@@ -304,7 +319,7 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
 	{/* default back to o.o, o.o, o.o */
 		SV->GVS[SV->StdView].RotaCenter[0] = SV->GVS[SV->StdView].RotaCenter[1] = SV->GVS[SV->StdView].RotaCenter[2] = 0.0;
 	}
-	return (YUP);
+	SUMA_RETURN (YUP);
 	
 }
 
@@ -314,6 +329,9 @@ output the state variable contents of the Surface Viewer
 void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 {
 	int i;
+	static char FuncName[]={""};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (Out == NULL) Out = stdout;
 	
@@ -375,18 +393,22 @@ void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 	fprintf(Out,"\t\n", SV->);
 	fprintf(Out,"\t\n", SV->);*/
 	fprintf(Out,"\n");
-	return;
+	SUMA_RETURNe;
 }
 
 /*! Show the ViewState structure */
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out) 
 {
+	static char FuncName[]={"SUMA_Show_ViewState"};
 	int i;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Out == NULL) Out = stdout;
 
 	if (VS == NULL) {
 		fprintf(Out,"VS is NULL\n");		
-		return(NOPE);
+		SUMA_RETURN(NOPE);
 	}
 
 	if (VS->Name) fprintf(Out,"\tName: %s\n", VS->Name);
@@ -411,7 +433,7 @@ SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out)
 		fprintf(Out,"\tHist is NULL\n");
 	}
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -422,21 +444,27 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void)
 	static char FuncName[]={"SUMA_Alloc_ViewState_Hist"};
 	SUMA_ViewState_Hist *vsh;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	vsh = (SUMA_ViewState_Hist *)malloc(sizeof(SUMA_ViewState_Hist));
 	if (vsh == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for vsh.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	vsh->ShowDO = NULL;
 	vsh->N_DO = 0;
-	return (vsh);
+	SUMA_RETURN (vsh);
 }	
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh)
 {
-	if (vsh == NULL) return (YUP);
+	static char FuncName[]={"SUMA_Free_ViewState_Hist"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (vsh == NULL) SUMA_RETURN (YUP);
 	if (vsh->ShowDO) free(vsh->ShowDO);
 	if (vsh) free (vsh);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -448,10 +476,12 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
 	int i;
 	static char FuncName[]={"SUMA_Alloc_ViewState"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	vs = (SUMA_ViewState *)malloc(sizeof(SUMA_ViewState)*N);
 	if (vs == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for vs.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	for (i=0; i< N; ++i) {
 		vs[i].Name = NULL;
@@ -461,20 +491,23 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
 		if (vs[i].Hist == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for vs->Hist.\n", FuncName);
 			free(vs);
-			return (NULL);
+			SUMA_RETURN (NULL);
 		}
 	}
-	return (vs);
+	SUMA_RETURN (vs);
 }	
 
 SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs)
 {
-	if (vs == NULL) return (YUP);
+	static char FuncName[]={"SUMA_Free_ViewState"};
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (vs == NULL) SUMA_RETURN (YUP);
 	if (vs->Name) free(vs->Name);
 	if (vs->MembSOs) free(vs->MembSOs);
 	if (vs->Hist) SUMA_Free_ViewState_Hist (vs->Hist);
 	if (vs) free (vs);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! 
@@ -486,15 +519,17 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv)
 	static char FuncName[]={"SUMA_WhichState"};
 	int i = 0;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	while (i < csv->N_VSv) {
 		/*fprintf(SUMA_STDERR,"%s: comparing csv->VSv[%d].Name = %s to %s ...\n", FuncName, i, csv->VSv[i].Name, state);*/
 		if (strcmp(csv->VSv[i].Name, state) == 0) {
 			/*fprintf(SUMA_STDERR,"%s: FOUND, i=%d!\n", FuncName, i);*/
-			return (i);
+			SUMA_RETURN (i);
 		}
 		++i;
 	}
-	return (-1);
+	SUMA_RETURN (-1);
 }
 
 /*! 
@@ -508,6 +543,8 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 	int is, i;
 	SUMA_SurfaceObject * SO;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* allocate for space depending on the number of states present */
 	
 	/*fprintf(SUMA_STDERR,"%s: Entering ...\n", FuncName);*/
@@ -515,7 +552,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 	csv->VSv = SUMA_Alloc_ViewState (Spec->N_States);
 	if (csv->VSv == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VSv.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	csv->N_VSv = 0;
 	
@@ -528,7 +565,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 				csv->VSv[csv->N_VSv].Name = (char *)malloc(sizeof(char)*strlen(SO->State));
 				if (csv->VSv[csv->N_VSv].Name == NULL) {
 					fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[csv->N_VSv].Name.\n", FuncName);
-					return (NOPE);
+					SUMA_RETURN (NOPE);
 				}
 				csv->VSv[csv->N_VSv].Name = strcpy (csv->VSv[csv->N_VSv].Name, SO->State);  
 				csv->VSv[csv->N_VSv].N_MembSOs = 1;
@@ -540,7 +577,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 					csv->VSv[csv->N_VSv].Name = (char *)malloc(sizeof(char)*strlen(SO->State));
 					if (csv->VSv[csv->N_VSv].Name == NULL) {
 						fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[csv->N_VSv].Name.\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN (NOPE);
 					}	
 					csv->VSv[csv->N_VSv].Name = strcpy (csv->VSv[csv->N_VSv].Name, SO->State); 
 					csv->VSv[csv->N_VSv].N_MembSOs = 1;
@@ -566,7 +603,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 		csv->VSv[i].MembSOs = (int *) calloc(csv->VSv[i].N_MembSOs, sizeof(int));
 		if (csv->VSv[i].MembSOs == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[i].MembSOs.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}	
 		csv->VSv[i].N_MembSOs = 0;
 	}
@@ -582,7 +619,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 			is = SUMA_WhichState (SO->State, csv);
 			if (is < 0) {
 				fprintf(SUMA_STDERR,"Error %s: This should not be.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			/*
 			fprintf (SUMA_STDERR,"%s: Performing csv->VSv[%d].MembSOs[%d] = %d ...\n", \
@@ -596,7 +633,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 	
 	/*fprintf(SUMA_STDERR,"%s: Leaving ...\n", FuncName);*/
 
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! allocate and intialize SUMA_CommonFields */
@@ -605,6 +642,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 	static char FuncName[]={"SUMA_Create_CommonFields"};
 	SUMA_CommonFields *cf;
 	
+	/* This is the function that creates the debugging flags, do not use them here */
+
 	cf = NULL;
 	
 	/* allocate */
@@ -612,11 +651,12 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 	
 	if (cf == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
-		return (cf);
+		SUMA_RETURN (cf);
 	}
 	
 	cf->Dev = NOPE;
-	
+	cf->InOut_Notify = NOPE;
+	cf->InOut_Level = 0;
 	return (cf);
 
 }
@@ -625,21 +665,25 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 {
 	static char FuncName[]={"SUMA_Free_CommonFields"};
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (cf) free(cf);
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf)
 {
 	static char FuncName[]={"SUMA_Show_CommonFields"};
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (cf == NULL) {
 		fprintf (SUMA_STDOUT,"%s: NULL structure.\n", FuncName);
-		return;
+		SUMA_RETURNe;
 	}
 	fprintf (SUMA_STDOUT,"%s: AfniHostName: %s\n", FuncName, cf->AfniHostName);
 	fprintf (SUMA_STDOUT,"%s: NimlAfniStream: %s\n", FuncName, cf->NimlAfniStream);
-	return;
+	SUMA_RETURNe;
 }
 /*! assign new afni host name 
 	 SUMA_Assign_AfniHostName (cf, AfniHostName)
@@ -657,12 +701,14 @@ SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName
 {
 	static char FuncName[]={"SUMA_Assign_AfniHostName"};
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (AfniHostName == NULL)
 		sprintf(cf->AfniHostName, "localhost");
 	else {	
 		if (strlen(AfniHostName) > SUMA_MAX_NAME_LENGTH - 20) {
 			fprintf(SUMA_STDERR,"Error %s: too long a host name (> %d chars).\n", FuncName, SUMA_MAX_NAME_LENGTH - 20);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		sprintf(cf->AfniHostName,"%s", AfniHostName);
 	}
@@ -670,7 +716,7 @@ SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName
 	sprintf(cf->NimlAfniStream,"tcp:%s:53211", cf->AfniHostName);
 
 	fprintf(SUMA_STDOUT, "%s: Set AfniHostName to %s (stream name: %s)\n", FuncName, cf->AfniHostName, cf->NimlAfniStream);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -692,29 +738,31 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 	int i, maxdim = -1, is;
 	SUMA_SurfaceObject *SO = NULL;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	is = sv->iState;
 	if (is < 0) {
 		fprintf(SUMA_STDERR, "Error %s: sv->iState undefined.\n", FuncName);
-		return (SUMA_Dunno); 
+		SUMA_RETURN (SUMA_Dunno); 
 	}
 	
 	for (i=0; i<sv->VSv[is].N_MembSOs; ++i) {	
 		SO = (SUMA_SurfaceObject *)(dov[sv->VSv[is].MembSOs[i]].OP);
 		if (SO == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: SO is null ???\n.", FuncName);
-			return (SUMA_Dunno);
+			SUMA_RETURN (SUMA_Dunno);
 		}
 		if (SO->EmbedDim > maxdim) maxdim = SO->EmbedDim;
 	}
 	
 	switch (maxdim) {
 		case 2:
-			return (SUMA_2D_Z0);
+			SUMA_RETURN (SUMA_2D_Z0);
 		case 3:
-			return(SUMA_3D);
+			SUMA_RETURN(SUMA_3D);
 		default:
 			fprintf(SUMA_STDERR,"Error %s: No provision for such a maximum embedding dimension.\n", FuncName);
-			return(SUMA_Dunno);
+			SUMA_RETURN(SUMA_Dunno);
 	}
 
 }

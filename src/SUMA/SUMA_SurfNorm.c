@@ -9,6 +9,8 @@
    
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF; 
+
 /* CODE */
    
    
@@ -53,13 +55,12 @@ Side effects :
 ***/
 SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_SurfNorm"}; 
 	float d1[3], d2[3], d, nrm;
 	SUMA_SURF_NORM RetStrct;
 	int *Index, *N_Memb, i, j, maxind, NotMember;
 	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_SurfNorm");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	RetStrct.N_Node = N_NodeList; /* redundant, but practical for clean up outside the function */
 	RetStrct.N_Face = N_FaceSetList;
@@ -72,7 +73,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 	if (!RetStrct.Face_NormList || !RetStrct.Node_NormList || !Index || !N_Memb)
 		{
 			SUMA_alloc_problem (FuncName);
-			return (RetStrct);
+			SUMA_RETURN (RetStrct);
 		}
 	
 	/* calculate and normalize triangle normals */
@@ -94,7 +95,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 			if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, N_NodeList);
 			if (Index) free(Index);
 			if (N_Memb) free(N_Memb);
-			return (RetStrct);*/
+			SUMA_RETURN (RetStrct);*/
 		RetStrct.Face_NormList[i][0] = 1.0;
 		RetStrct.Face_NormList[i][1] = 1.0;
 		RetStrct.Face_NormList[i][2] = 1.0;
@@ -111,7 +112,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 				if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, N_NodeList);
 				if (Index) free(Index);
 				if (N_Memb) free(N_Memb);
-				return (RetStrct);
+				SUMA_RETURN (RetStrct);
 			}
 
 			RetStrct.Node_NormList[FaceSetList[i][0]][0] += RetStrct.Face_NormList[i][0];
@@ -160,7 +161,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 		}
 	if (N_Memb) free (N_Memb);
 	if (Index) free (Index);
-	return (RetStrct);
+	SUMA_RETURN (RetStrct);
 }/*SUMA_SurfNorm*/
 
    
@@ -233,14 +234,13 @@ Side effects :
 ***/
 SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nFr , int FaceDim)
 {/*SUMA_MemberFaceSets*/
-   char FuncName[100]; 
+   static char FuncName[]={"SUMA_MemberFaceSets"}; 
    SUMA_MEMBER_FACE_SETS *RetStrct;
 	int **tmpMember;
 	int i, inode, iface;
    
-	/* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_MemberFaceSets");
-	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	RetStrct = (SUMA_MEMBER_FACE_SETS *)malloc(sizeof(SUMA_MEMBER_FACE_SETS));
 	
 	RetStrct->N_Memb_max = RetStrct->Nnode = 0;
@@ -254,7 +254,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
 	if (!tmpMember || !RetStrct->N_Memb)
 		{
 			fprintf (SUMA_STDERR,"Error %s: Failed to allocate for tmpMember or RetStrct->N_Memb\n", FuncName);
-			return (RetStrct);
+			SUMA_RETURN (RetStrct);
 		}
 	
 	/* loop through all facesets and tag nodes that make up FaceSets*/
@@ -264,14 +264,14 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
 			inode = FaceSetList[iface][i];
 			if (inode > Nind) {
 				fprintf (SUMA_STDERR,"Error %s: FaceSetList contains node indices >= Nind\n", FuncName);
-				return (RetStrct);
+				SUMA_RETURN (RetStrct);
 			}
 			tmpMember[inode][RetStrct->N_Memb[inode]] = iface; 
 			++RetStrct->N_Memb[inode];
 			if (RetStrct->N_Memb[inode] >= SUMA_MAX_MEMBER_FACE_SETS) {
 				fprintf (SUMA_STDERR,"Error %s: Node %d is member of (%d FaceSets) more than SUMA_MAX_MEMBER_FACE_SETS (%d)\n",\
 					 FuncName, inode, RetStrct->N_Memb[inode], SUMA_MAX_MEMBER_FACE_SETS);
-				return (RetStrct);
+				SUMA_RETURN (RetStrct);
 			}
 			if (RetStrct->N_Memb[inode] > RetStrct->N_Memb_max) RetStrct->N_Memb_max = RetStrct->N_Memb[inode];
 			++i;
@@ -283,7 +283,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
 	if (!RetStrct->NodeMemberOfFaceSet)
 		{
 			fprintf(SUMA_STDERR,"Error %s: Failed to allocate for RetStrct->NodeMemberOfFaceSet\n", FuncName);
-			return (RetStrct);
+			SUMA_RETURN (RetStrct);
 		}
 
 	/* loop through all nodes, cp results into RetStrct->NodeMemberOfFaceSet and seal with -1 */
@@ -301,7 +301,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
 	if (tmpMember) SUMA_free2D((char **)tmpMember, Nind);
 	
 	RetStrct->Nnode = Nind;
-	return (RetStrct);
+	SUMA_RETURN (RetStrct);
 
 }/*SUMA_MemberFaceSets*/
 
@@ -309,10 +309,14 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
  
 SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
 {
+	static char FuncName[]={"SUMA_Free_MemberFaceSets"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (MF->NodeMemberOfFaceSet) SUMA_free2D((char **)MF->NodeMemberOfFaceSet, MF->Nnode);
 	if (MF->N_Memb) free (MF->N_Memb);
 	if (MF) free (MF);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }   
 #ifdef TEST_SUMA_MemberFaceSets
 void usage ()
@@ -361,7 +365,7 @@ int main (int argc,char *argv[])
 			}
 		}
    SUMA_free2D((char **)X, 3);
-	return (0);	
+	SUMA_RETURN (0);	
 }/* Main */
 #endif
 
@@ -427,6 +431,6 @@ int main (int argc,char *argv[])
 	if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, RetStrct.N_Node);
 	if (FaceSetList) SUMA_free2D((char **)FaceSetList, nface);
 	if (NodeList) SUMA_free2D((char **)NodeList, nnode);
-	return (0);
+	SUMA_RETURN (0);
 }/* Main */
 #endif

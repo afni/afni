@@ -3,6 +3,7 @@
 extern SUMA_SurfaceViewer *SUMAg_cSV;
 extern int SUMAg_N_DOv; 
 extern SUMA_DO *SUMAg_DOv;
+extern SUMA_CommonFields *SUMAg_CF; 
 
 /*! Widget initialization */
 static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 12,
@@ -20,29 +21,38 @@ static String fallbackResources[] = {
 
 
 Boolean
-handleRedisplay(XtPointer closure)
+SUMA_handleRedisplay(XtPointer closure)
 {
-	display(SUMAg_cSV, SUMAg_DOv);
-  SUMAg_cSV->X->REDISPLAYPENDING = 0;
-  return True;
+	static char FuncName[]={"SUMA_handleRedisplay"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	SUMA_display(SUMAg_cSV, SUMAg_DOv);
+	SUMAg_cSV->X->REDISPLAYPENDING = 0;
+	
+	SUMA_RETURN(True);
 }
 
 void
-postRedisplay(void)
+SUMA_postRedisplay(void)
 {
 	static XtPointer elvis;
-  if(!SUMAg_cSV->X->REDISPLAYPENDING) {
-    /*SUMAg_cSV->X->REDISPLAYID = XtAppAddWorkProc(SUMAg_cSV->X->APP, handleRedisplay, 0);*/
-	 SUMA_register_workproc( handleRedisplay , elvis );
-    SUMAg_cSV->X->REDISPLAYPENDING = 1;
-  }
+	if(!SUMAg_cSV->X->REDISPLAYPENDING) {
+	 /*SUMAg_cSV->X->REDISPLAYID = XtAppAddWorkProc(SUMAg_cSV->X->APP, handleRedisplay, 0);*/
+	 SUMA_register_workproc( SUMA_handleRedisplay , elvis );
+	 SUMAg_cSV->X->REDISPLAYPENDING = 1;
+	}
 }
 
 
-void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
+void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {	
 	int i;
    GLfloat rotationMatrix[4][4];
+	static char FuncName[]={"display"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	build_rotmatrix(rotationMatrix, csv->GVS[csv->StdView].currentQuat);
 	 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
@@ -93,7 +103,7 @@ void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 		if (dov[csv->ShowDO[i]].CoordType == SUMA_LOCAL) {
 			switch (dov[csv->ShowDO[i]].ObjectType) {
 				case SO_type:
-					CreateMesh((SUMA_SurfaceObject *)dov[csv->ShowDO[i]].OP); /* create the surface */
+					SUMA_CreateMesh((SUMA_SurfaceObject *)dov[csv->ShowDO[i]].OP); /* create the surface */
 					break;
 				case AO_type:
 					if (csv->ShowMeshAxis) {
@@ -146,13 +156,17 @@ void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   if (!glXIsDirect(SUMAg_cSV->X->DPY, SUMAg_cSV->X->GLXCONTEXT))
     glFinish();
 
+	SUMA_RETURNe;
 }
 
 void
-graphicsInit(Widget w, XtPointer clientData, XtPointer call)
+SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
 {
 	
 	XVisualInfo *SUMAg_cVISINFO;
+	static char FuncName[]={"SUMA_graphicsInit"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* Create OpenGL rendering context. */
 	SUMAg_cSV->X->Wd = w; /* store the window widget */
@@ -166,11 +180,14 @@ graphicsInit(Widget w, XtPointer clientData, XtPointer call)
 	
 	/* call context_Init to setup colors and lighting */	
 	SUMA_context_Init();
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_OUT_NOTIFY(FuncName);
 }
 
 void 
 SUMA_context_Init(void)
 {
+	static char FuncName[]={"SUMA_context_Init"};
 	GLfloat mat_specular[] = { SUMA_MAT_SPECULAR_INIT};
    GLfloat mat_shininess[] = { SUMA_MAT_SHININESS_INIT };
 	GLfloat mat_ambient[] = { SUMA_MAT_AMBIENT_INIT};
@@ -181,6 +198,8 @@ SUMA_context_Init(void)
    /*GLfloat green_light[] = { 0.0, 1.0, 0.0, 1.0};*/
 	
 	GLfloat lmodel_ambient[] = {SUMA_LMODEL_AMBIENT};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	glClearColor (SUMA_CLEAR_COLOR);
    glShadeModel (GL_SMOOTH);
@@ -237,14 +256,16 @@ SUMA_context_Init(void)
 	/*glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);*/
    /*glLightfv(GL_LIGHT1, GL_POSITION, SUMAg_cSV->light1_position);*/
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_OUT_NOTIFY(FuncName);
 
 }
 
 	
 void
-resize(Widget w,
+SUMA_resize(Widget w,
   XtPointer clientData, XtPointer call)
 {
+  static char FuncName[]={"SUMA_resize"};
   GLwDrawingAreaCallbackStruct *callData;
 
 /*	fprintf(stdout, "Resizn'...\n");*/
@@ -260,18 +281,19 @@ resize(Widget w,
    gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 	SUMAg_cSV->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
 	SUMAg_cSV->WindWidth = callData->width; SUMAg_cSV->WindHeight = callData->height;
-	postRedisplay();
+	SUMA_postRedisplay();
 
 }
 
 
 void
-expose(Widget w,
+SUMA_expose(Widget w,
   XtPointer clientData, XtPointer call)
 {
-  /*fprintf(stdout,"Ahhhhhhhh, exposed! You Pervert!\n");*/
+  static char FuncName[]={"SUMA_expose"};
+  
   /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/ /* No need for that, done in display */
-	postRedisplay();
+	SUMA_postRedisplay();
 
 }
 
@@ -283,7 +305,7 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
   switch (event->type) {
   case MapNotify:
     if (SUMAg_cSV->X->MOMENTUMID)
-      SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, momentum, 0);
+      SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, SUMA_momentum, 0);
     break;
   case UnmapNotify:
     if (SUMAg_cSV->X->MOMENTUMID)
@@ -294,6 +316,10 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
 
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char *argv[])
 {
+	static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
   /* Step 1. */
   csv->X->TOPLEVEL = XtAppInitialize(&csv->X->APP, "SUMA", NULL, 0, &argc, argv,
     fallbackResources, NULL, 0);
@@ -314,7 +340,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char
 	 csv->X->VISINFO = glXChooseVisual(csv->X->DPY, DefaultScreen(csv->X->DPY), snglBuf);
     if (csv->X->VISINFO == NULL) {
       XtAppError(csv->X->APP, "no good visual");
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 		}
     csv->X->DOUBLEBUFFER = False;
   }
@@ -355,55 +381,64 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char
 	#endif
 	
   /* Step 7. */
-  XtAddCallback(csv->X->GLXAREA, GLwNginitCallback, graphicsInit, NULL);
-  XtAddCallback(csv->X->GLXAREA, GLwNexposeCallback, expose, NULL);
-  XtAddCallback(csv->X->GLXAREA, GLwNresizeCallback, resize, NULL);
-  XtAddCallback(csv->X->GLXAREA, GLwNinputCallback, input, NULL);
+  XtAddCallback(csv->X->GLXAREA, GLwNginitCallback, SUMA_graphicsInit, NULL);
+  XtAddCallback(csv->X->GLXAREA, GLwNexposeCallback, SUMA_expose, NULL);
+  XtAddCallback(csv->X->GLXAREA, GLwNresizeCallback, SUMA_resize, NULL);
+  XtAddCallback(csv->X->GLXAREA, GLwNinputCallback, SUMA_input, NULL);
 
   /* Step 8. */
   XtRealizeWidget(csv->X->TOPLEVEL);
 
-return (YUP);
+
+	SUMA_RETURN (YUP);
 }
 
 Colormap
 SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
 {
-  Status status;
-  XStandardColormap *standardCmaps;
-  Colormap cmap;
-  int i, numCmaps;
+	Status status;
+	XStandardColormap *standardCmaps;
+	Colormap cmap;
+	int i, numCmaps;
 	XVisualInfo * vi;
+	static char FuncName[]={"SUMA_getShareableColormap"};
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	vi = csv->X->VISINFO;
 	
-  /* Be lazy; using DirectColor too involved for this example. */
-  if (vi->class != TrueColor)
-    XtAppError(csv->X->APP, "no support for non-TrueColor visual");
-  /* If no standard colormap but TrueColor, just make an
-     unshared one. */
-  status = XmuLookupStandardColormap(csv->X->DPY, vi->screen, vi->visualid,
-    vi->depth, XA_RGB_DEFAULT_MAP,
-    False,              /* Replace. */
-    True);              /* Retain. */
-  if (status == 1) {
-    status = XGetRGBColormaps(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen),
-      &standardCmaps, &numCmaps, XA_RGB_DEFAULT_MAP);
-    if (status == 1)
-      for (i = 0; i < numCmaps; i++)
-        if (standardCmaps[i].visualid == vi->visualid) {
-          cmap = standardCmaps[i].colormap;
-          XFree(standardCmaps);
-          return cmap;
-        }
-  }
-  cmap = XCreateColormap(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen), vi->visual, AllocNone);
-  return cmap;
+	/* Be lazy; using DirectColor too involved for this example. */
+	if (vi->class != TrueColor)
+	 XtAppError(csv->X->APP, "no support for non-TrueColor visual");
+	
+	/* If no standard colormap but TrueColor, just make an
+	  unshared one. */
+	status = XmuLookupStandardColormap(csv->X->DPY, vi->screen, vi->visualid,
+	 vi->depth, XA_RGB_DEFAULT_MAP,
+	 False,              /* Replace. */
+	 True);              /* Retain. */
+	if (status == 1) {
+	 status = XGetRGBColormaps(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen),
+   	&standardCmaps, &numCmaps, XA_RGB_DEFAULT_MAP);
+	 if (status == 1)
+   	for (i = 0; i < numCmaps; i++)
+   	  if (standardCmaps[i].visualid == vi->visualid) {
+      	 cmap = standardCmaps[i].colormap;
+      	 XFree(standardCmaps);
+      	 SUMA_RETURN(cmap);
+   	  }
+	}
+	cmap = XCreateColormap(csv->X->DPY, RootWindow(csv->X->DPY, vi->screen), vi->visual, AllocNone);
+
+  SUMA_RETURN(cmap);
 }
 
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont)
 {
-	/*fprintf(stdout,"\nEntering Window\n");*/
+	static char FuncName[]={"SUMA_SetcSV"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	#ifdef DARWIN
 		/* Set the focus manually.
 		If you're not using motif widgets, window focus is not managed.
@@ -412,7 +447,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
 		But on the macosx10, -lXm does not help, so we manage the foucs ourselves */
 		XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
 	#endif
-	return;
+	SUMA_RETURNe;
 }
 
 /* ------------------------------------------------------------------------------------------------------------*/
@@ -436,180 +471,188 @@ GLvoid *SUMA_grabPixels(int inColor, unsigned int width, unsigned int height);
 int
 SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int height)
 {
-  FILE *fp;
-  GLvoid *pixels;
-  unsigned char *curpix;
-  int components, pos, i;
+	FILE *fp;
+	GLvoid *pixels;
+	unsigned char *curpix;
+	int components, pos, i;
+	static char FuncName[]={"SUMA_generateEPS"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-  pixels = SUMA_grabPixels(inColor, width, height);
-  if (pixels == NULL)
-    return 1;
-  if (inColor)
-    components = 3;     /* Red, green, blue. */
-  else
-    components = 1;     /* Luminance. */
+	pixels = SUMA_grabPixels(inColor, width, height);
+	if (pixels == NULL)
+	 SUMA_RETURN (1);
+	if (inColor)
+	 components = 3;     /* Red, green, blue. */
+	else
+	 components = 1;     /* Luminance. */
 
-  fp = fopen(filename, "w");
-  if (fp == NULL) {
-    return 2;
-  }
-  fprintf(fp, "%%!PS-Adobe-2.0 EPSF-1.2\n");
-  fprintf(fp, "%%%%Creator: OpenGL pixmap render output\n");
-  fprintf(fp, "%%%%BoundingBox: 0 0 %d %d\n", width, height);
-  fprintf(fp, "%%%%EndComments\n");
-  fprintf(fp, "gsave\n");
-  fprintf(fp, "/bwproc {\n");
-  fprintf(fp, "    rgbproc\n");
-  fprintf(fp, "    dup length 3 idiv string 0 3 0\n");
-  fprintf(fp, "    5 -1 roll {\n");
-  fprintf(fp, "    add 2 1 roll 1 sub dup 0 eq\n");
-  fprintf(fp, "    { pop 3 idiv 3 -1 roll dup 4 -1 roll dup\n");
-  fprintf(fp, "        3 1 roll 5 -1 roll put 1 add 3 0 }\n");
-  fprintf(fp, "    { 2 1 roll } ifelse\n");
-  fprintf(fp, "    } forall\n");
-  fprintf(fp, "    pop pop pop\n");
-  fprintf(fp, "} def\n");
-  fprintf(fp, "systemdict /colorimage known not {\n");
-  fprintf(fp, "    /colorimage {\n");
-  fprintf(fp, "        pop\n");
-  fprintf(fp, "        pop\n");
-  fprintf(fp, "        /rgbproc exch def\n");
-  fprintf(fp, "        { bwproc } image\n");
-  fprintf(fp, "    } def\n");
-  fprintf(fp, "} if\n");
-  fprintf(fp, "/picstr %d string def\n", width * components);
-  fprintf(fp, "%d %d scale\n", width, height);
-  fprintf(fp, "%d %d %d\n", width, height, 8);
-  fprintf(fp, "[%d 0 0 %d 0 0]\n", width, height);
-  fprintf(fp, "{currentfile picstr readhexstring pop}\n");
-  fprintf(fp, "false %d\n", components);
-  fprintf(fp, "colorimage\n");
+	fp = fopen(filename, "w");
+	if (fp == NULL) {
+	 SUMA_RETURN (2);
+	}
+	fprintf(fp, "%%!PS-Adobe-2.0 EPSF-1.2\n");
+	fprintf(fp, "%%%%Creator: OpenGL pixmap render output\n");
+	fprintf(fp, "%%%%BoundingBox: 0 0 %d %d\n", width, height);
+	fprintf(fp, "%%%%EndComments\n");
+	fprintf(fp, "gsave\n");
+	fprintf(fp, "/bwproc {\n");
+	fprintf(fp, "    rgbproc\n");
+	fprintf(fp, "    dup length 3 idiv string 0 3 0\n");
+	fprintf(fp, "    5 -1 roll {\n");
+	fprintf(fp, "    add 2 1 roll 1 sub dup 0 eq\n");
+	fprintf(fp, "    { pop 3 idiv 3 -1 roll dup 4 -1 roll dup\n");
+	fprintf(fp, "        3 1 roll 5 -1 roll put 1 add 3 0 }\n");
+	fprintf(fp, "    { 2 1 roll } ifelse\n");
+	fprintf(fp, "    } forall\n");
+	fprintf(fp, "    pop pop pop\n");
+	fprintf(fp, "} def\n");
+	fprintf(fp, "systemdict /colorimage known not {\n");
+	fprintf(fp, "    /colorimage {\n");
+	fprintf(fp, "        pop\n");
+	fprintf(fp, "        pop\n");
+	fprintf(fp, "        /rgbproc exch def\n");
+	fprintf(fp, "        { bwproc } image\n");
+	fprintf(fp, "    } def\n");
+	fprintf(fp, "} if\n");
+	fprintf(fp, "/picstr %d string def\n", width * components);
+	fprintf(fp, "%d %d scale\n", width, height);
+	fprintf(fp, "%d %d %d\n", width, height, 8);
+	fprintf(fp, "[%d 0 0 %d 0 0]\n", width, height);
+	fprintf(fp, "{currentfile picstr readhexstring pop}\n");
+	fprintf(fp, "false %d\n", components);
+	fprintf(fp, "colorimage\n");
 
-  curpix = (unsigned char *) pixels;
-  pos = 0;
-  for (i = width * height * components; i > 0; i--) {
-    fprintf(fp, "%02hx", *curpix++);
-    if (++pos >= 32) {
-      fprintf(fp, "\n");
-      pos = 0;
-    }
-  }
-  if (pos)
-    fprintf(fp, "\n");
+	curpix = (unsigned char *) pixels;
+	pos = 0;
+	for (i = width * height * components; i > 0; i--) {
+	 fprintf(fp, "%02hx", *curpix++);
+	 if (++pos >= 32) {
+   	fprintf(fp, "\n");
+   	pos = 0;
+	 }
+	}
+	if (pos)
+	 fprintf(fp, "\n");
 
-  fprintf(fp, "grestore\n");
-  free(pixels);
-  fclose(fp);
-  return 0;
+	fprintf(fp, "grestore\n");
+	free(pixels);
+	fclose(fp);
+	SUMA_RETURN (0);
 }
 
 GLvoid *
 SUMA_grabPixels(int inColor, unsigned int width, unsigned int height)
 {
-  GLvoid *buffer;
-  GLint swapbytes, lsbfirst, rowlength;
-  GLint skiprows, skippixels, alignment;
-  GLenum format;
-  unsigned int size;
+	GLvoid *buffer;
+	GLint swapbytes, lsbfirst, rowlength;
+	GLint skiprows, skippixels, alignment;
+	GLenum format;
+	unsigned int size;
+	static char FuncName[]={"SUMA_grabPixels"};
 
-  if (inColor) {
-    format = GL_RGB;
-    size = width * height * 3;
-  } else {
-    format = GL_LUMINANCE;
-    size = width * height * 1;
-  }
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	
+	if (inColor) {
+	 format = GL_RGB;
+	 size = width * height * 3;
+	} else {
+	 format = GL_LUMINANCE;
+	 size = width * height * 1;
+	}
 
-  buffer = (GLvoid *) malloc(size);
-  if (buffer == NULL)
-    return NULL;
+	buffer = (GLvoid *) malloc(size);
+	if (buffer == NULL)
+	 SUMA_RETURN (buffer);
 
-  /* Save current modes. */
-  glGetIntegerv(GL_PACK_SWAP_BYTES, &swapbytes);
-  glGetIntegerv(GL_PACK_LSB_FIRST, &lsbfirst);
-  glGetIntegerv(GL_PACK_ROW_LENGTH, &rowlength);
-  glGetIntegerv(GL_PACK_SKIP_ROWS, &skiprows);
-  glGetIntegerv(GL_PACK_SKIP_PIXELS, &skippixels);
-  glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
-  /* Little endian machines (DEC Alpha for example) could
-     benefit from setting GL_PACK_LSB_FIRST to GL_TRUE
-     instead of GL_FALSE, but this would require changing the
-     generated bitmaps too. */
-  glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
-  glPixelStorei(GL_PACK_LSB_FIRST, GL_TRUE);
-  glPixelStorei(GL_PACK_ROW_LENGTH, 0);
-  glPixelStorei(GL_PACK_SKIP_ROWS, 0);
-  glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
-  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	/* Save current modes. */
+	glGetIntegerv(GL_PACK_SWAP_BYTES, &swapbytes);
+	glGetIntegerv(GL_PACK_LSB_FIRST, &lsbfirst);
+	glGetIntegerv(GL_PACK_ROW_LENGTH, &rowlength);
+	glGetIntegerv(GL_PACK_SKIP_ROWS, &skiprows);
+	glGetIntegerv(GL_PACK_SKIP_PIXELS, &skippixels);
+	glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
+	/* Little endian machines (DEC Alpha for example) could
+	  benefit from setting GL_PACK_LSB_FIRST to GL_TRUE
+	  instead of GL_FALSE, but this would require changing the
+	  generated bitmaps too. */
+	glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
+	glPixelStorei(GL_PACK_LSB_FIRST, GL_TRUE);
+	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-  /* Actually read the pixels. */
-  glReadPixels(0, 0, width, height, format,
-    GL_UNSIGNED_BYTE, (GLvoid *) buffer);
+	/* Actually read the pixels. */
+	glReadPixels(0, 0, width, height, format,
+	 GL_UNSIGNED_BYTE, (GLvoid *) buffer);
 
-  /* Restore saved modes. */
-  glPixelStorei(GL_PACK_SWAP_BYTES, swapbytes);
-  glPixelStorei(GL_PACK_LSB_FIRST, lsbfirst);
-  glPixelStorei(GL_PACK_ROW_LENGTH, rowlength);
-  glPixelStorei(GL_PACK_SKIP_ROWS, skiprows);
-  glPixelStorei(GL_PACK_SKIP_PIXELS, skippixels);
-  glPixelStorei(GL_PACK_ALIGNMENT, alignment);
-  return buffer;
+	/* Restore saved modes. */
+	glPixelStorei(GL_PACK_SWAP_BYTES, swapbytes);
+	glPixelStorei(GL_PACK_LSB_FIRST, lsbfirst);
+	glPixelStorei(GL_PACK_ROW_LENGTH, rowlength);
+	glPixelStorei(GL_PACK_SKIP_ROWS, skiprows);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, skippixels);
+	glPixelStorei(GL_PACK_ALIGNMENT, alignment);
+	SUMA_RETURN (buffer);
 }
  
 
 SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov) 
 {
-  static int configuration[] = { GLX_DOUBLEBUFFER, GLX_RGBA, GLX_DEPTH_SIZE, 16,
-  GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None};
-  Display *dpy;
-  XVisualInfo *vi;
-  GLXContext cx;
-  Pixmap pmap;
-  GLXPixmap glxpmap;
+	static int configuration[] = { GLX_DOUBLEBUFFER, GLX_RGBA, GLX_DEPTH_SIZE, 16,
+	GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None};
+	Display *dpy;
+	XVisualInfo *vi;
+	GLXContext cx;
+	Pixmap pmap;
+	GLXPixmap glxpmap;
 	static char FuncName[]={"SUMA_RenderToPixMap"};
-	
-  dpy = XOpenDisplay(NULL);
-  if (dpy == NULL)
-    fprintf(SUMA_STDERR,"Error %s: could not open display", FuncName);
 
-  if (!glXQueryExtension(dpy, NULL, NULL))
-    fprintf(SUMA_STDERR,"Error %s: X server has no OpenGL GLX extension", FuncName);
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-  /* find an OpenGL-capable RGB visual with depth buffer */
-  #if 1  /* use screen rendering Xvisual */
-  vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[1]);
-  if (vi == NULL) {
-  	/*fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);*/
-    vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[0]);
-    if (vi == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: no appropriate RGB visual with depth buffer", FuncName);
-    }
-  }
+	dpy = XOpenDisplay(NULL);
+	if (dpy == NULL)
+	 fprintf(SUMA_STDERR,"Error %s: could not open display", FuncName);
+
+	if (!glXQueryExtension(dpy, NULL, NULL))
+	 fprintf(SUMA_STDERR,"Error %s: X server has no OpenGL GLX extension", FuncName);
+
+	/* find an OpenGL-capable RGB visual with depth buffer */
+	#if 1  /* use screen rendering Xvisual */
+	vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[1]);
+	if (vi == NULL) {
+	/*fprintf(SUMA_STDERR,"%s: Trying to use useless double buffering configuration.\n", FuncName);*/
+	 vi = glXChooseVisual(dpy, DefaultScreen(dpy), &configuration[0]);
+	 if (vi == NULL) {
+   	fprintf(SUMA_STDERR,"Error %s: no appropriate RGB visual with depth buffer", FuncName);
+	 }
+	}
 	#else
 	vi = csv->X->VISINFO;
-  #endif
+	#endif
 
-  
-  /* create an OpenGL rendering context */
-  cx = glXCreateContext(dpy, vi,
-    NULL,               /* no sharing of display lists */
-    False);             /* direct rendering if possible */
-  if (cx == NULL)
-    fprintf(SUMA_STDERR,"Error %s: could not create rendering context", FuncName);
-  
-  pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
-    csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
-  glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
-  glXMakeCurrent(dpy, glxpmap, cx);
 
-  SUMA_context_Init();
-  glViewport(0, 0, csv->X->WIDTH, csv->X->HEIGHT);
-  display(csv, dov);
+	/* create an OpenGL rendering context */
+	cx = glXCreateContext(dpy, vi,
+	 NULL,               /* no sharing of display lists */
+	 False);             /* direct rendering if possible */
+	if (cx == NULL)
+	 fprintf(SUMA_STDERR,"Error %s: could not create rendering context", FuncName);
+
+	pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
+	 csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
+	glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
+	glXMakeCurrent(dpy, glxpmap, cx);
+
+	SUMA_context_Init();
+	glViewport(0, 0, csv->X->WIDTH, csv->X->HEIGHT);
+	SUMA_display(csv, dov);
 
 	glFinish (); /* make sure you wait until rendering is over */
-	
-  /* find out the next best name and write it*/
-  {
+
+	/* find out the next best name and write it*/
+	{
   		char tmpprfx[100], *padprfx, padname[100];
 		int cntindx=0;
 		SUMA_Boolean OKname = NOPE;
@@ -620,19 +663,19 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 			if (SUMA_filexists(padname)) {
 				++cntindx;
 			} else { OKname = YUP; }
-			
+
 			free (padprfx);
 		}
-	  
+
 	  fprintf (SUMA_STDOUT,"%s: Writing image to %s ...", FuncName, padname);
 	  SUMA_generateEPS(padname, /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
 	  fprintf (SUMA_STDOUT,"Done.\n");
-  }
-	
+	}
+
 	/* render to original context */
 	glXMakeCurrent(XtDisplay(csv->X->Wd), XtWindow(csv->X->Wd),  csv->X->GLXCONTEXT); 
-	
-	return (YUP);
+
+	SUMA_RETURN (YUP);
 }
 
 /* ------------------------------------------------------------------------------------------------------------*/

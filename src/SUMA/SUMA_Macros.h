@@ -1,6 +1,30 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+#define SUMA_DBG_IN_NOTIFY(m_fname) { \
+	int m_i;\
+	++SUMAg_CF->InOut_Level;	\
+	for (m_i=0; m_i < SUMAg_CF->InOut_Level; ++m_i) fprintf (SUMA_STDERR," ");\
+	fprintf (SUMA_STDERR,"--dbg: Entered %s (lvl %d).\n", m_fname, SUMAg_CF->InOut_Level); \
+}
+
+#define SUMA_DBG_OUT_NOTIFY(m_fname) { \
+	int m_i;\
+	for (m_i=0; m_i < SUMAg_CF->InOut_Level; ++m_i) fprintf (SUMA_STDERR," ");\
+	fprintf (SUMA_STDERR,"--dbg: Left %s (lvl %d).\n", m_fname, SUMAg_CF->InOut_Level); \
+	--SUMAg_CF->InOut_Level;	\
+}
+
+#define SUMA_RETURN(m_rvar) {\
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
+	return(m_rvar);\
+}
+
+#define SUMA_RETURNe  {\
+	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
+	return ;\
+}
+
 /* Many of these macros are taken from DSP_in_C examples in
 C Language Algorithms for Digital Signal Processing 
 by
@@ -786,22 +810,22 @@ WARNING: The input data vectors are not cast to the type of s.
 		int m_I, m_I4 = 0; \
 		if (!add) {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		} else {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] += RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] += RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] += RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		}\
@@ -828,22 +852,22 @@ WARNING: The input data vectors are not cast to the type of s.
 		int m_I, m_I4 = 0, m_II; \
 		if (!add) {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		} else {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] += fact * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] += fact * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] += fact * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		}\
@@ -871,22 +895,22 @@ WARNING: The input data vectors are not cast to the type of s.
 		int m_I, m_I4 = 0; \
 		if (!add) {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] = locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		} else {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] += locfact[m_I] * fact * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		}\
@@ -914,22 +938,22 @@ WARNING: The input data vectors are not cast to the type of s.
 		int m_I, m_I4 = 0; \
 		if (!add) {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		}else {\
 			for (m_I=0; m_I < nrgb; ++m_I) {\
-				isColored[NodeId[m_I]] = YUP;\
 				if (NodeId[m_I] < N_Node) {\
 					m_I4 = 4*NodeId[m_I]; \
 					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
 					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
 					glcolar[m_I4] += locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+					isColored[NodeId[m_I]] = YUP;\
 				}\
 			}\
 		}\
@@ -1097,8 +1121,8 @@ WARNING: The input data vectors are not cast to the type of s.
 						glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
 						glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
 						glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+						isColored[NodeId[m_I]] = YUP;\
 					}\
-					isColored[NodeId[m_I]] = YUP;\
 				}\
 	}
 	
@@ -1130,8 +1154,8 @@ WARNING: The input data vectors are not cast to the type of s.
 						glcolar[m_I4] = fact * RGBmat[m_I][0]; ++m_I4;\
 						glcolar[m_I4] = fact * RGBmat[m_I][1]; ++m_I4;\
 						glcolar[m_I4] = fact * RGBmat[m_I][2]; ++m_I4;\
+						isColored[NodeId[m_I]] = YUP;\
 					}\
-					isColored[NodeId[m_I]] = YUP;\
 				}else {/* mixing to be done */\
 					if (NodeId[m_I] < N_Node) {\
 						m_I4 = 4*NodeId[m_I]; \
@@ -1173,8 +1197,8 @@ WARNING: The input data vectors are not cast to the type of s.
 						glcolar[m_I4] = m_of * RGBmat[m_I][0]; ++m_I4;\
 						glcolar[m_I4] = m_of * RGBmat[m_I][1]; ++m_I4;\
 						glcolar[m_I4] = m_of * RGBmat[m_I][2]; ++m_I4;\
+						isColored[NodeId[m_I]] = YUP;\
 					}\
-					isColored[NodeId[m_I]] = YUP;\
 				}else { /* mixing to be done */\
 					if (NodeId[m_I] < N_Node) {\
 						m_I4 = 4*NodeId[m_I]; \
@@ -1216,8 +1240,8 @@ WARNING: The input data vectors are not cast to the type of s.
 						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][0]; ++m_I4;\
 						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][1]; ++m_I4;\
 						glcolar[m_I4] = locfact[m_I] * RGBmat[m_I][2]; ++m_I4;\
+						isColored[NodeId[m_I]] = YUP;\
 					}\
-					isColored[NodeId[m_I]] = YUP;\
 				}else { /* mixing to be done */\
 					if (NodeId[m_I] < N_Node) {\
 						m_I4 = 4*NodeId[m_I]; \

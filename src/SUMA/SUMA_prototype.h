@@ -2,16 +2,16 @@
 #define SUMA_PROTOTYPE_INCLUDED
 
 /* functions that have yet to be prototyped in a particular spot */
-void postRedisplay(void);
-void display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
-void momentum(XtPointer clientData, XtIntervalId *id);
-Boolean spin(XtPointer clientData);
+void SUMA_postRedisplay(void);
+void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
+void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
+Boolean SUMA_spin(XtPointer clientData);
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);
-void graphicsInit(Widget w, XtPointer clientData, XtPointer call);
-void expose(Widget w, XtPointer clientData, XtPointer call);
-void resize(Widget w, XtPointer clientData, XtPointer call);
-void input(Widget w, XtPointer clientData, XtPointer callData);
+void SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call);
+void SUMA_expose(Widget w, XtPointer clientData, XtPointer call);
+void SUMA_resize(Widget w, XtPointer clientData, XtPointer call);
+void SUMA_input(Widget w, XtPointer clientData, XtPointer callData);
 void SUMA_help(void);
 void SUMA_help_message(FILE *Out);
 void SUMA_VolSurf_help (FILE *Out);

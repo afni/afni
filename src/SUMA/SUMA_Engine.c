@@ -39,10 +39,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 	char s[SUMA_MAX_STRING_LENGTH];*/ /* keep standard unused variables undeclared, else compiler complains*/
 	
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	NextComCode = SUMA_GetNextCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, NextCom);
 	if (!NextComCode) {
 		fprintf (stderr, "%s Error: executing SUMA_GetNextCommand\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	} 
 	
 	/*fprintf (SUMA_STDOUT,"%s: ", FuncName);*/
@@ -169,7 +171,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 								continue;
 							}
 							_ID = SUMA_findDO(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-							if (_ID < -1) {
+							if (_ID < 0) {
 								/* not found */
 								fprintf(SUMA_STDERR, "Warning %s: Map reference %s not found.\n",\
 								 FuncName, SO->MapRef_idcode_str);
@@ -386,7 +388,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 			case SE_Redisplay:
 				/*post a redisplay */
 				/*fprintf (SUMA_STDOUT,"%s: Redisplay ...", FuncName);*/
-				postRedisplay();
+				SUMA_postRedisplay();
 				/*fprintf (SUMA_STDOUT,"%s: OK\n", FuncName);*/
 				break;
 			
@@ -646,7 +648,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 	} /* cycle through NextCom */
 	
 	/* If you get here, all is well */
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*------------------------------------------------------------------*/
@@ -657,20 +659,21 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 
 NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 {
-	char FuncName[100];
+	static char FuncName[]={"SUMA_makeNI_SurfIXYZ"};
 	NI_element *nel;
 	int *ic, ii;
 	float *xc, *yc, *zc;
 	
-	sprintf(FuncName,"SUMA_makeNI_SurfIXYZ");
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	
 	if (SO == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Null SO.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	if (SO->N_Node <= 0) {
 		fprintf(SUMA_STDERR,"Error %s: No nodes in SO.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* make a new data element, to be filled by columns */
@@ -684,7 +687,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 
 	if (!nel || !ic || !xc || !yc || !zc) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, ic, xc, yc or zc.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 
@@ -706,7 +709,8 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
 
 	NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
 	NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
-   return (nel);
+
+   SUMA_RETURN (nel);
 }
 
 /*------------------------------------------------------------------*/
@@ -722,14 +726,16 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 	int  ii;
 	int *I, *J, *K;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	
 	if (SO == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Null SO.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	if (SO->N_FaceSet <= 0) {
 		fprintf(SUMA_STDERR,"Error %s: No FaceSets in SO.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* make a new data element, to be filled by columns */
@@ -742,7 +748,7 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 
 	if (!nel || !I || !J || !K ) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, I, J or K.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 
@@ -762,19 +768,28 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 
 	NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
 	NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
-   return (nel);
+
+   SUMA_RETURN (nel);
 }
 
 SUMA_Boolean SUMA_nel_stdout (NI_element *nel) 
 {
+	static char FuncName[]={"SUMA_nel_stdout"};
 	NI_stream nstdout;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	nstdout = NI_stream_open( "fd:1","w");
-	if( nstdout == NULL ){ fprintf(SUMA_STDERR,"Can't open fd:1\n"); return(NOPE); }
+	if( nstdout == NULL ){ 
+		fprintf(SUMA_STDERR,"%s: Can't open fd:1\n", FuncName); 
+		SUMA_RETURN(NOPE); 
+	}
 	fprintf (stdout, "\n----------------------------nel stdout begin-------------------\n");
 	NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
 	fprintf (stdout, "----------------------------nel stdout end  -------------------\n");
 	NI_stream_close(nstdout);
-	return(YUP);
+
+	SUMA_RETURN(YUP);
 }
 
 NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
@@ -785,13 +800,15 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 	int I_C = -1;
 	SUMA_SurfaceObject *SO;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (sv == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Null sv.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	if (sv->Ch == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: NULL Ch.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
@@ -803,7 +820,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 		XYZmap = (float *)calloc (3, sizeof(float));
 		if (XYZmap == NULL) {
 			fprintf (SUMA_STDERR, "Error %s: Give me a break !\n", FuncName);
-			return (NULL); 
+			SUMA_RETURN (NULL); 
 		}
 		XYZmap[0] = sv->Ch->c[0];
 		XYZmap[1] = sv->Ch->c[1];
@@ -815,13 +832,14 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 	
 	if (!nel) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	NI_add_column( nel , NI_FLOAT , XYZmap );
 	
 	if (XYZmap) free(XYZmap);
-	return (nel);
+
+	SUMA_RETURN (nel);
 }
 
 /*!
@@ -839,15 +857,18 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 	int i;
 	SUMA_SurfaceObject *SO;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	for (i=0; i< sv->N_DO; ++i) {
 		if (SUMA_isSO(dov[sv->ShowDO[i]])) {
 			SO = (SUMA_SurfaceObject *)(dov[sv->ShowDO[i]].OP);
 			if (SO->MapRef_idcode_str == NULL || SO->VolPar == NULL) {
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 		} 
 	}
-	return (YUP);
+	
+	SUMA_RETURN (YUP);
 }
 /*!
 	ans = SUMA_ShownSOs (sv, dov, SO_IDs);
@@ -861,14 +882,19 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 */
 int SUMA_ShownSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 {
+	static char FuncName[]={"SUMA_ShownSOs"};
 	int i, k = 0;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	for (i=0; i< sv->N_DO; ++i) {
 		if (SUMA_isSO(dov[sv->ShowDO[i]])) {
 			if (SO_IDs != NULL) SO_IDs[k] = sv->ShowDO[i];
 			++k;
 		}
 	}
-	return (k);
+
+	SUMA_RETURN (k);
 }
 
 /*! 
@@ -882,18 +908,20 @@ int SUMA_ShownSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 */
 int SUMA_NextState(SUMA_SurfaceViewer *sv)
 {
-	int inxt, icur;
 	static char FuncName[] = {"SUMA_NextState"};
+	int inxt, icur;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	icur = SUMA_WhichState (sv->State, sv);
 	if (icur < 0) {
 		fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	} else {
-		return((icur + 1) % sv->N_VSv);
+		SUMA_RETURN((icur + 1) % sv->N_VSv);
 	}
 	
-	return (-1);
+	SUMA_RETURN (-1);
 }
 
 /*!
@@ -903,19 +931,21 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
 */
 int SUMA_PrevState(SUMA_SurfaceViewer *sv)
 {
-	int inxt, icur;
 	static char FuncName[] = {"SUMA_PrevState"};
+	int inxt, icur;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	icur = SUMA_WhichState (sv->State, sv);	if (icur < 0) {
 		fprintf(SUMA_STDERR,"Error %s: SUMA_WhichState failed.\n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	} else {
 		icur = icur -1;
 		if (icur < 0) icur = sv->N_VSv + icur;
-		return(icur);
+		SUMA_RETURN(icur);
 	}
 	
-	return (-1);
+	SUMA_RETURN (-1);
 }
 
 
@@ -932,20 +962,23 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
 
 int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnxt)
 {
-	int icur, icheck, ncheck;
 	static char FuncName[] = {"SUMA_NextSO"};
+	int icur, icheck, ncheck;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (SOnxt != NULL) {
 		fprintf(SUMA_STDERR,"Error %s: SOnxt should be null when you call this function.\n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	}
 	if (n_dov < 1) {
 		fprintf(SUMA_STDERR,"Error %s: dov contains no elements.\n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	}
 	icur = SUMA_findDO (idcode, dov, n_dov);
 	if (icur < 0) {
 		fprintf (SUMA_STDERR,"Error %s: idcode not found in dov.\n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	}
 	
 	ncheck = 0;
@@ -956,12 +989,12 @@ int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnx
 		if (SUMA_isSO(dov[icheck])) {
 			/*fprintf(SUMA_STDERR,"%s: Settling on %d\n", FuncName, icheck);*/
 			SOnxt = (SUMA_SurfaceObject *)dov[icheck].OP;
-			return (icheck);
+			SUMA_RETURN (icheck);
 		}
 		++ncheck;
 	}
 	/* should not get here */
-	return (-1);
+	SUMA_RETURN (-1);
 }
 
 /*! 
@@ -976,11 +1009,13 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
 	char CommString[100];
 	SUMA_EngineData ED;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* unregister the current surface from ShowDO */
 	/*fprintf(SUMA_STDERR,"%s: Unregistering DOv[%d]...\n", FuncName, SOcurID);*/
 	if (!SUMA_UnRegisterDO(SOcurID, sv)) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 
 	/* set the focus ID to the current surface */
@@ -990,19 +1025,19 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
 	/*fprintf(SUMA_STDERR,"%s: Registering DOv[%d]...\n", FuncName, sv->Focus_SO_ID); */
 	if (!SUMA_RegisterDO(sv->Focus_SO_ID, sv)) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 
 	/* modify the rotation center */
 	if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* set the viewing points */
 	if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* Change the defaults of the eye axis to fit standard EyeAxis */
@@ -1026,7 +1061,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
 
 	/* to do elsewhere */
 	/* when a cross hair needs to be communicated, you must use the MapRef_idcode_str surface and not the Focus_Surface */
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! 
@@ -1045,27 +1080,30 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 	int curstateID, i, j, jmax, prec_ID;
 	SUMA_SurfaceObject *SO_nxt, *SO_prec;
 	float *XYZ, *XYZmap;
+	SUMA_Boolean LocalHead = NOPE;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	XYZ = NULL;
 	XYZmap = NULL;
 	
 	curstateID = SUMA_WhichState(sv->State, sv);
 	
 	/* unregister all the surfaces for the current view */
-	/*fprintf(SUMA_STDERR,"%s: Unregistering \n", FuncName);*/
+	if (LocalHead) fprintf(SUMA_STDERR,"Local Debug %s: Unregistering \n", FuncName);
 	for (i=0; i<sv->VSv[curstateID].N_MembSOs; ++i) {
 		if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembSOs[i], sv)) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 	}
 	
 	/* register all the surfaces from the next view */
-	/*fprintf(SUMA_STDERR,"%s: Registering DOv...\n", FuncName); */
+	if (LocalHead) fprintf(SUMA_STDERR,"Local Debug %s: Registering DOv...\n", FuncName);
 	for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
 		if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembSOs[i], sv)) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 	}
 
@@ -1076,12 +1114,12 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
 		/* Get the Mapping Reference surface, that's the precursor*/
 		if (!SO_nxt->MapRef_idcode_str) {
-		 prec_ID = -1;
+			prec_ID = -1;
 		}else {
 			prec_ID = SUMA_findDO(SO_nxt->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
 		}
-		if (prec_ID < -1) {
-			/* no precursors found, notify used */
+		if (prec_ID < 0) {
+			/* no precursors found, notify user */
 			fprintf(SUMA_STDERR, "\n\aWarning %s: No precursors found for surface %d.\nColors, selected nodes and facesets will not be reflect those in previous state.\n.",\
 			 FuncName, sv->VSv[nxtstateID].MembSOs[i]);
 			continue;
@@ -1097,11 +1135,11 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 			for (j=0; j < SO_prec->N_Overlays; ++j) {
 				if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
 					/* plane not found, create a link to it */
-					/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);*/
+					if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);
 					SO_nxt->Overlays_Inode[SO_nxt->N_Overlays] = SUMA_CreateInodeLink (SO_nxt->Overlays_Inode[SO_nxt->N_Overlays], SO_prec->Overlays_Inode[j]);
 					if (!SO_nxt->Overlays_Inode[SO_nxt->N_Overlays]) {
 						fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-						return (NOPE);
+						SUMA_RETURN (NOPE);
 					}
 					/* now copy the actual overlay plane pointer */
 					SO_nxt->Overlays[SO_nxt->N_Overlays] = SO_prec->Overlays[j];
@@ -1109,7 +1147,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 					++SO_nxt->N_Overlays;
 				} else {
 					/* plane found, do nothing */
-					/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s found. Index#%d\n.", FuncName, SO_prec->Overlays[j]->Name, OverInd);*/
+					if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s found. Index#%d\n.", FuncName, SO_prec->Overlays[j]->Name, OverInd);
 				}
 			}
 
@@ -1140,28 +1178,28 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 			if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SO_nxt->glar_ColorList, SO_nxt->N_Node,\
 				 SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 			
 		}
 	
 	/* Bind the cross hair to a reasonable surface, if possible */
 	if (sv->Ch->SurfaceID >= 0) {		
-		/*fprintf(SUMA_STDERR, "%s: Linking Cross Hair via SurfaceID...\n", FuncName);*/
+		if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Linking Cross Hair via SurfaceID...\n", FuncName);
 		j = SUMA_MapRefRelative (sv->Ch->SurfaceID, sv->VSv[nxtstateID].MembSOs, sv->VSv[nxtstateID].N_MembSOs, dov);
-		/*fprintf(SUMA_STDERR, "%s: Cross Hair's New SurfaceID = %d\n", FuncName, j );*/
+		if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Cross Hair's New SurfaceID = %d\n", FuncName, j );
 		
 		/* set the XYZ of the cross hair based on the coordinates of the upcoming surface, if possible */
 		if (j >= 0) {
 			SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
 			if (sv->Ch->NodeID >= 0) {
-				fprintf(SUMA_STDERR, "%s: Using NodeID for link.\n", FuncName);
+				if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using NodeID for link.\n", FuncName);
 				sv->Ch->c[0] = SO_nxt->NodeList[sv->Ch->NodeID][0];
 				sv->Ch->c[1] = SO_nxt->NodeList[sv->Ch->NodeID][1];
 				sv->Ch->c[2] = SO_nxt->NodeList[sv->Ch->NodeID][2];
 			} else {
 				/* no node associated with cross hair, use XYZ */
-				fprintf(SUMA_STDERR, "%s: Using XYZ for link.\n", FuncName);
+				if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using XYZ for link.\n", FuncName);
 				SO_prec = (SUMA_SurfaceObject *)(dov[sv->Ch->SurfaceID].OP);
 				/* go from XYZ to XYZmap on current surface then from XYZmap to XYZ on new surface */
 				I_C = -1;
@@ -1186,7 +1224,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 			fprintf(SUMA_STDERR, "%s: No relatives between states. CrossHair location will not correspond between states\n", FuncName); 
 		}
 	 	sv->Ch->SurfaceID = j;
-		/*fprintf(SUMA_STDERR, "%s: Linking Cross Hair Via NodeID Done.\n", FuncName);*/
+		if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Linking Cross Hair Via NodeID Done.\n", FuncName);
 	}
 	
 
@@ -1200,7 +1238,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
 	/* decide what the best state is */
 	sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
-	/*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);*/
+	if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
 	if (sv->StdView == SUMA_Dunno) {
 		fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
 		sv->StdView = SUMA_3D;
@@ -1209,13 +1247,13 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 	/* modify the rotation center */
 	if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* set the viewing points */
 	if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}
 	
 	/* Change the defaults of the eye axis to fit standard EyeAxis */
@@ -1235,7 +1273,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 		fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 	}
 
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*!
@@ -1249,10 +1287,12 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 */
 int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 {
-	int i, k = -1, cnt = 0;
 	static char FuncName[]={"SUMA_GetEyeAxis"};
+	int i, k = -1, cnt = 0;
 	SUMA_Axis *AO;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	for (i=0; i< sv->N_DO; ++i) {
 		if (dov[sv->ShowDO[i]].ObjectType == AO_type) {
 			AO = (SUMA_Axis *)(dov[sv->ShowDO[i]].OP);
@@ -1264,10 +1304,10 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 	}
 	if (cnt > 1) {
 		fprintf (SUMA_STDERR,"Error %s: Found more than one Eye Axis. \n", FuncName);
-		return (-1);
+		SUMA_RETURN (-1);
 	}
 	
-	return (k);
+	SUMA_RETURN (k);
 }
 
 /*! 
@@ -1298,23 +1338,26 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	SUMA_SurfaceObject *SOmap;
 	int SOmapID;
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* allocate for return */
 	XYZmap = (float *)calloc (3, sizeof(float));
 	if (XYZmap == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for XYZmap.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
+	
 	/* if surface is Inherently mappable, do the obivious */
 	if (SUMA_isINHmappable(SO)){
-		fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZmap = XYZ.\n", FuncName);
+		/*fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZmap = XYZ.\n", FuncName); */
 		SUMA_COPY_VEC (XYZ, XYZmap, 3, float, float);
-		return (XYZmap);	
+		SUMA_RETURN (XYZmap);	
 	}
 	/* if surface is not Inherrently mappable, do the deed */
 	if (!SUMA_ismappable(SO)){
 		fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
 		free (XYZmap);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	/* surface is mappable, things will get more complicated */
@@ -1330,7 +1373,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 				/* set the search box dimensions */
 				Bd[0] = Bd[1] = Bd[2] = SUMA_XYZ_XFORM_BOXDIM_MM;
 				IB = SUMA_isinbox (SO->NodeList, SO->N_Node, XYZ, Bd,  YUP);
-				fprintf (SUMA_STDERR,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SO->N_Node);
+				fprintf (SUMA_STDOUT,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SO->N_Node);
 
 				if (IB.nIsIn) { /* found some, find the closest node */
 					/* locate the closest node and store it's id in EngineData*/
@@ -1345,9 +1388,9 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 					}
 
 				} else { /* no node is close enough */
-					fprintf (SUMA_STDERR,"%s: Non node was close enough to XYZ, no linkage possible\n", FuncName);
+					fprintf (SUMA_STDERR,"%s: No node was close enough to XYZ, no linkage possible\n", FuncName);
 					free (XYZmap);
-					return (NULL);
+					SUMA_RETURN (NULL);
 				}
 				/* store iclosest for lazy user */
 				*I_C = iclosest;
@@ -1361,7 +1404,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	if (SOmapID < 0) {
 		fprintf (SUMA_STDERR,"%s: Failed in SUMA_findDO This should not happen.\n", FuncName);
 		free (XYZmap);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	SOmap = (SUMA_SurfaceObject *)(dov[SOmapID].OP);
@@ -1370,7 +1413,8 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	XYZmap[2]=SOmap->NodeList[iclosest][2];
 
 	/* all is done */
-	return (XYZmap);
+
+	SUMA_RETURN (XYZmap);
 }/* SUMA_XYZ_XYZmap */
 
 /*! 
@@ -1401,23 +1445,25 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	SUMA_SurfaceObject *SOmap;
 	int SOmapID;
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* allocate for return */
 	XYZ = (float *)calloc (3, sizeof(float));
 	if (XYZ == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for XYZ.\n", FuncName);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	} 
 	/* if surface is Inherently mappable, do the obivious */
 	if (SUMA_isINHmappable(SO)){
 		fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZ = XYZmap.\n", FuncName);
 		SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
-		return (XYZ);	
+		SUMA_RETURN (XYZ);	
 	}
 	/* if surface is not Inherrently mappable, do the deed */
 	if (!SUMA_ismappable(SO)){
 		fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
 		free (XYZ);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 
 	/* surface is mappable, things will get more complicated */
@@ -1426,7 +1472,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	if (SOmapID < 0) {
 		fprintf (SUMA_STDERR,"%s: Failed in SUMA_findDO This should not happen.\n", FuncName);
 		free (XYZ);
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	SOmap = (SUMA_SurfaceObject *)(dov[SOmapID].OP);
 
@@ -1458,7 +1504,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 				} else { /* no node is close enough */
 					fprintf (SUMA_STDERR,"%s: Non node was close enough to XYZmap, no linkage possible\n", FuncName);
 					free (XYZ);
-					return (NULL);
+					SUMA_RETURN (NULL);
 				}
 				/* store iclosest for lazy user */
 				*I_C = iclosest;
@@ -1470,10 +1516,9 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	XYZ[0]=SO->NodeList[iclosest][0];
 	XYZ[1]=SO->NodeList[iclosest][1];
 	XYZ[2]=SO->NodeList[iclosest][2];
-fprintf (SUMA_STDERR,"%s: 22222hhhhgd\n", FuncName);
 
 	/* all is done */
-	return (XYZ);
+	SUMA_RETURN (XYZ);
 }/* SUMA_XYZmap_XYZ */
 
 /*! 
@@ -1495,10 +1540,12 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
 	static char FuncName[]={"SUMA_MapRefRelative"};
 	SUMA_SurfaceObject *SOcur, *SO_prec;
 
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SOcur = (SUMA_SurfaceObject *)(dov[cur_id].OP);
 	/* if surface has no MapRef then it cannot receive colors from precursors */
 	if (!SUMA_ismappable(SOcur)) {
-		return (-1);
+		SUMA_RETURN (-1);
 	}
 
 	for (i=0; i<N_prec_list; ++i) {
@@ -1514,7 +1561,7 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
 		}
 	}
 
-	return (rel_id);
+	SUMA_RETURN (rel_id);
 
 }
 

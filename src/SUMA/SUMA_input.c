@@ -9,10 +9,10 @@ extern SUMA_CommonFields *SUMAg_CF;
 /*! Mouse and Keyboard input handler function */
 
 void
-input(Widget w, XtPointer clientData, XtPointer callData)
+SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 {
 	GLwDrawingAreaCallbackStruct *cd = (GLwDrawingAreaCallbackStruct *) callData;
-	char buffer[10], cbuf;
+	char buffer[10], cbuf = '\0', cbuf2='\0';
 	KeySym keysym;
 	int xls, ntot;
 	float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
@@ -26,14 +26,16 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 	XKeyEvent Kev;
 	XButtonEvent Bev;
 	XMotionEvent Mev;
-	
+	SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 	/*float ft;
 	int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	/* initialize EngineData */
 	if (!SUMA_InitializeEngineData (&EngineData)) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-		return;
+		SUMA_RETURNe;
 	}
 
 	Kev = (XKeyEvent) cd->event->xkey;
@@ -105,7 +107,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					}
 
 				}
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_Escape: /* there's more:  XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete */
@@ -133,13 +135,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 							if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
 								SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 								fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-								return;
+								SUMA_RETURNe;
 							}
 						}
 					}
 				}
 
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_B:
@@ -148,10 +150,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					if (SUMAg_cSV->BF_Cull) {
 						glCullFace (GL_BACK);
    					glEnable (GL_CULL_FACE);
+						fprintf (SUMA_STDOUT,"%s: BackFace Culling enabled.\n", FuncName);
 					} else {
 						glDisable(GL_CULL_FACE);
-					}
-					postRedisplay();
+						fprintf (SUMA_STDOUT,"%s: BackFace Culling disabled.\n", FuncName);
+				}
+					SUMA_postRedisplay();
 				}
 				break;
 
@@ -175,23 +179,23 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					if (i == SUMA_MAX_STRING_LENGTH-1) {
 						fprintf(SUMA_STDERR,"Error %s: Filename should not be longer than %d.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
 						fflush(stdin);
-						return;
+						SUMA_RETURNe;
 					}
 					s[i] = '\0';
-					if (!i) return;
+					if (!i) SUMA_RETURNe;
 				}
 				EngineData.N_cols = 4;
 				/* find out if file exists and how many values it contains */
 				ntot = SUMA_float_file_size (s);
 				if (ntot < 0) {
 					fprintf(stderr,"Error SUMA_input: filename %s could not be open.\n", s);
-					return;
+					SUMA_RETURNe;
 				}
 
 				/* make sure it's a full matrix */
 				if ((ntot % EngineData.N_cols)) {
 					fprintf(stderr,"Error SUMA_Read_2Dfile: file %s contains %d values, not divisible by ncols %d.\n", s, ntot, EngineData.N_cols);
-					return;
+					SUMA_RETURNe;
 				}
 				EngineData.N_rows = ntot/EngineData.N_cols;
 
@@ -199,13 +203,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				fm = (float **)SUMA_allocate2D (EngineData.N_rows, EngineData.N_cols, sizeof(float));
 				if (fm == NULL) {
 					fprintf(stderr,"Error SUMA_input: Failed to allocate space for fm\n");
-					return;
+					SUMA_RETURNe;
 				}
 
 				EngineData.N_rows = SUMA_Read_2Dfile (s, fm, EngineData.N_cols, EngineData.N_rows);
 				if (EngineData.N_rows < 0) {
 					fprintf(stderr,"SUMA_input Error: Failed to read full matrix from %s\n", s);
-					return;
+					SUMA_RETURNe;
 				}
 
 				/*register fm with EngineData */
@@ -250,11 +254,20 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 			case XK_H:
 				if (SUMAg_CF->Dev) {
-					do {
-						fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
-																&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
-					fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
+					fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
+
+					it = SUMA_ReadNumStdin (fv15, 6);
+					if (it > 0 && it < 6) {
+						fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
+						SUMA_RETURNe;
+					}else if (it < 0) {
+						fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+						SUMA_RETURNe;
+					}else if (it == 0) {
+						SUMA_RETURNe;
+					}
+				
+					fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n",\
 						fv15[0], fv15[1],fv15[2],\
 						fv15[3], fv15[4],fv15[5]);
 
@@ -274,49 +287,35 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				break;
 
 			case XK_h:
-				SUMA_help_message(NULL);
+				if (Kev.state & ControlMask){
+					fprintf(SUMA_STDOUT,"Enter Debug Flags: (0/1)\n");
+					fflush (stdin);
+					do {
+						fprintf(SUMA_STDOUT,"-InOut_Notify (current %d): ", SUMAg_CF->InOut_Notify);
+						 cbuf = getc(stdin);
+						 if (cbuf != 'n') {
+						 	cbuf2 = getc(stdin);
+						 }else { cbuf2 = cbuf; }
+					} while (cbuf2 != 'n' && cbuf != '1' && cbuf != '0'); 
+					if (cbuf == '1') { SUMAg_CF->InOut_Notify = YUP; SUMAg_CF->InOut_Level = 1;
+					}else if (cbuf == '0') { SUMAg_CF->InOut_Notify = NOPE; SUMAg_CF->InOut_Level = 0;}		
+				}else {
+					SUMA_help_message(NULL);
+				}
 				break;
 
 			case XK_l:
-				{	int i=0;
-					char *endp, *strtp;
-					fprintf(SUMA_STDOUT,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
-					fflush (stdin);
-					while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
-						if (cbuf == ',' || cbuf == '\t') {/* change , and tab  to space*/
-							cbuf = ' ';
-						}
-							s[i] = cbuf;
-							++ i;
-					}
-					if (i == SUMA_MAX_STRING_LENGTH-1) {
-						fprintf(SUMA_STDERR,"Error %s: No more than %d characters are allowed on stdin.\n", FuncName, SUMA_MAX_STRING_LENGTH-1);
-						fflush(stdin);
-						return;
-					}
-					s[i] = '\0';
-					if (!i) return;
-					/* parse s */
-					strtp = s;
-					fv3[0] = strtod(strtp, &endp);
-					/*fprintf (SUMA_STDERR, "%s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); */
-					if (errno || endp == strtp) {
-						fprintf(SUMA_STDERR,"Error %s: Syntax error.\n", FuncName);
-						return;
-					}
-					strtp = endp;
-					fv3[1] = strtod(strtp,&endp);
-					if (errno || endp == strtp) {
-						fprintf(SUMA_STDERR,"Error %s: Syntax error, second value.\n", FuncName);
-						return;
-					}
-					strtp = endp;
-					fv3[2] = strtod(strtp,&endp);
-					if (errno || endp == strtp) {
-						fprintf(SUMA_STDERR,"Error %s: Syntax error, third value.\n", FuncName);
-						return;
-					}
-					
+				fprintf(stdout,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
+
+				it = SUMA_ReadNumStdin (fv3, 3);
+				if (it > 0 && it < 3) {
+					fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+					SUMA_RETURNe;
+				}else if (it < 0) {
+					fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+					SUMA_RETURNe;
+				}else if (it == 0) {
+					SUMA_RETURNe;
 				}
 				
 				fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
@@ -337,17 +336,29 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 			case XK_L:
 				if (SUMAg_CF->Dev) {
-					do {
-						fprintf(stdout,"Enter XYZ coordinates to look from (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f", &(fv3[0]), &(fv3[1]),&(fv3[2])) != 3);
-					fprintf(stdout,"You Entered: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+					fprintf(stdout,"NOT USED, Sorry.\n");
+					SUMA_RETURNe;
+					fprintf(stdout,"Enter XYZ coordinates to look from (enter nothing to cancel):\n");
+					it = SUMA_ReadNumStdin (fv3, 3);
+					if (it > 0 && it < 3) {
+						fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+						SUMA_RETURNe;
+					}else if (it < 0) {
+						fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+						SUMA_RETURNe;
+					}else if (it == 0) {
+						SUMA_RETURNe;
+					}
+				
+					fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+
 				}
 				break;
 
 			case XK_m:
          		SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum = !SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum;
 					if (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ApplyMomentum) {
-	         		 SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, momentum, 0);
+	         		 SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, SUMA_momentum, 0);
 						 /* wait till user initiates turning */
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
@@ -359,11 +370,21 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 			case XK_n:
 				if (SUMAg_CF->Dev) {
-					do {
-						fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
-																&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
-					fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
+					
+					fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
+
+					it = SUMA_ReadNumStdin (fv15, 6);
+					if (it > 0 && it < 6) {
+						fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
+						SUMA_RETURNe;
+					}else if (it < 0) {
+						fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+						SUMA_RETURNe;
+					}else if (it == 0) {
+						SUMA_RETURNe;
+					}
+				
+					fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n", \
 						fv15[0], fv15[1],fv15[2],\
 						fv15[3], fv15[4],fv15[5]);
 
@@ -395,7 +416,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 						break;
 				}
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_S:
@@ -475,13 +496,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 			case XK_Z:
 				/*fprintf(stdout,"Zoom in");*/
 				SUMAg_cSV->FOV[SUMAg_cSV->iState] /= FOV_IN_FACT; if (SUMAg_cSV->FOV[SUMAg_cSV->iState] < FOV_MIN) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MIN; 
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_z:
 				/*fprintf(stdout,"Zoom out");*/
 				SUMAg_cSV->FOV[SUMAg_cSV->iState] /= FOV_OUT_FACT; if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_asterisk:
@@ -530,7 +551,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					free (attr_sm);
 					free (attrbuf);
 					/*fprintf(SUMA_STDOUT, "%s: Smoothing Done ...\n", FuncName);*/
-					postRedisplay();
+					SUMA_postRedisplay();
 				}
 
 				break;
@@ -632,7 +653,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						}
 
 					fprintf(SUMA_STDOUT, "%s: Convexity mapping done ...\n", FuncName);
-					postRedisplay();	
+					SUMA_postRedisplay();	
 				}
 				break;
 			case XK_comma:
@@ -699,7 +720,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 			case XK_F1: /* F1 */
 				/*printf("F1\n");*/
 				SUMAg_cSV->ShowEyeAxis = !SUMAg_cSV->ShowEyeAxis;
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_F2:
@@ -719,7 +740,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						free(do_id);
 					}
 				}
-				postRedisplay();
+				SUMA_postRedisplay();
 				break;
 
 			case XK_F3: /* F3 */
@@ -759,14 +780,14 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						SUMAg_cSV->light0_position[2] *= -1;
 						glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);
 						/* direct call to display */
-						display(SUMAg_cSV, SUMAg_DOv);
+						SUMA_display(SUMAg_cSV, SUMAg_DOv);
 						/* wait for display */
 						glFinish();
 					}
 					delta_t = SUMA_etime (&tti, 1);
 					SUMAg_cSV->light0_position[2] = buf;
 					glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);
-					postRedisplay();
+					SUMA_postRedisplay();
 					fprintf (SUMA_STDOUT,"Done.\nElapsed time: %f seconds. %.2f displays/second.\n", delta_t, nd/delta_t);
 				} 
 				break;
@@ -787,7 +808,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] -= (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ControlMask){
 					float a[3], cQ[4], dQ[4];
 					/* From top view, rotate about x 90 degrees.*/ 
@@ -798,7 +819,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					axis_to_quat(a, SUMA_PI/2.0, dQ);
 					/*add and apply rotation*/
 					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
 					/*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
 				}else {
@@ -809,7 +830,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = -2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
-					postRedisplay();
+					SUMA_postRedisplay();
 				}
 					
 				break;
@@ -822,7 +843,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaX/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ControlMask){
 					float a[3], cQ[4], dQ[4];
 					/* From top view, rotate about x 90 degrees */ 
@@ -833,7 +854,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					axis_to_quat(a, -SUMA_PI/2.0, dQ);
 					/*add and apply rotation*/
 					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 					
 				}else if (Kev.state & Mod1Mask) {
 					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
@@ -845,7 +866,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 2*ArrowDeltaRot*SUMAg_cSV->WindWidth;
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 0;
-					postRedisplay();
+					SUMA_postRedisplay();
 				}
 				break;
 
@@ -862,12 +883,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					axis_to_quat(a, SUMA_PI, dQ);
 					/*add rotation */
 					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ShiftMask) {
 					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ControlMask){
 					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
 					/* Inferior view ctrl+down*/
@@ -875,7 +896,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/* From top view, rotate by 180 degrees about y axis */
 					a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
 					axis_to_quat(a, SUMA_PI, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
 					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
 				}else {
@@ -889,7 +910,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = -2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
-					postRedisplay();
+					SUMA_postRedisplay();
 				}
 				
 				break;
@@ -902,22 +923,22 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/* From top view, rotate by 90 degrees about x axis */
 					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
 					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ShiftMask) {
 					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
 					#ifdef USELESS_BLOCK
-						/* This shows how to have momentum work for arrow translation. But that is largely useless
+						/* This shows how to have SUMA_momentum work for arrow translation. But that is largely useless
 						because the object  quickly disappears from view */
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0/(float)SUMAg_cSV->WindWidth*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
-						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; /* if you do not turn these back to 0 then the surface will quickly go out of sight if momentum is turned on */
+						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX = 0; /* if you do not turn these back to 0 then the surface will quickly go out of sight if SUMA_momentum is turned on */
 						SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY = 0;
 					#endif
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += 0;*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] +=  (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].ArrowtranslateDeltaY/(float)SUMAg_cSV->WindHeight*SUMAg_cSV->GVS[SUMAg_cSV->StdView].TranslateGain;
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & ControlMask){
 					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
 					/* Top view ctrl+up*/
@@ -925,7 +946,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/* Default top view, rotate by nothing */
 					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
 					axis_to_quat(a, 0, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-					postRedisplay();
+					SUMA_postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
 					/*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
 				}else {
@@ -939,7 +960,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX = 0;
 					SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY = 2*ArrowDeltaRot*SUMAg_cSV->WindHeight;
-					postRedisplay();
+					SUMA_postRedisplay();
 						
 				}
 				
@@ -1116,7 +1137,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 								if (SO->FaceSetDim != 3) {
 									fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle only works for triangular meshes.\n", FuncName);
 								} else {
+									
+									float delta_t_tmp; struct timeval tt_tmp; 
+  									SUMA_etime (&tt_tmp, 0);
+									 
 									MTI = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
+									
+									delta_t_tmp = SUMA_etime (&tt_tmp, 1);
+									if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: Intersection took %f seconds.\n", FuncName, delta_t_tmp);
+									
 									if (MTI == NULL) {
 										fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
 									}else {
@@ -1252,7 +1281,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 			else if (SUMAg_cSV->FOV[SUMAg_cSV->iState] > FOV_MAX) SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_MAX;
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomBegin = (float)(int)Mev.y;
 				/*fprintf(stdout, "FOV zoom Delta = %f=n", SUMAg_cSV->GVS[SUMAg_cSV->StdView].zoomDelta);*/
-			postRedisplay();			
+			SUMA_postRedisplay();			
 		} else if(Mev.state & Button1MotionMask) {
 			/*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
 			/* spinning mode */
@@ -1267,7 +1296,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginX = (int)Mev.x;
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinBeginY = (int)Mev.y;
 				add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
-				postRedisplay();
+				SUMA_postRedisplay();
 			}
 		
 		}else if(Mev.state & Button2MotionMask) { 
@@ -1279,27 +1308,32 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginX = (int)Mev.x;
 				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateBeginY = (int)Mev.y;
-				postRedisplay();
+				SUMA_postRedisplay();
 			}
 				
 		}
 		
 		break;
   }/* switch event type */
+
+	SUMA_RETURNe;
 }
 
-void momentum(XtPointer clientData, XtIntervalId *id)
+void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
 {
+	static char FuncName[]={"SUMA_momentum"};
 	static int ReDisp;
 	ReDisp = 0;
-	/*fprintf(stdout,"In momentum ...\n");*/
-		if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) ) 
-		{ /* rotate if momentum is enabled and spinDeltaX or spinDeltaY are larger than the minimum set */ 
-			/*fprintf(stdout,"momentum:  spinDeltaX %d spinDeltaY %d\n",  SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY);*/
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) ) 
+		{ /* rotate if SUMA_momentum is enabled and spinDeltaX or spinDeltaY are larger than the minimum set */ 
+			/*fprintf(stdout,"SUMA_momentum:  spinDeltaX %d spinDeltaY %d\n",  SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaX, SUMAg_cSV->GVS[SUMAg_cSV->StdView].spinDeltaY);*/
 			add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 			ReDisp = 1;
 		}
-		if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) )
+	if ( ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) || ((SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY) > SUMAg_cSV->GVS[SUMAg_cSV->StdView].MinIdleDelta ) )
 		{ /* translate */
 			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaX;
 			SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] += (GLfloat)SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateDeltaY;
@@ -1307,11 +1341,11 @@ void momentum(XtPointer clientData, XtIntervalId *id)
 		}
 	if (ReDisp) {
 		/*fprintf(stdout,"Momentum Redisplay\n");*/
-		postRedisplay();
+		SUMA_postRedisplay();
 	}
-	SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, momentum, 0);
+	SUMAg_cSV->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_cSV->X->APP, 1, SUMA_momentum, 0);
 
-  return;         
+  SUMA_RETURNe;         
 }
 
  

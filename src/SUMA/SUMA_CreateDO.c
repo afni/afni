@@ -1,15 +1,20 @@
 /*! Functions to create Displayable Objects */
 #include "SUMA_suma.h"
 
+extern SUMA_CommonFields *SUMAg_CF; 
+
 /*! Allocate for a axis object */
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 {	
 	static char FuncName[]={"SUMA_Alloc_Axis"};
 	SUMA_Axis* Ax;
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	Ax = malloc (sizeof (SUMA_Axis));
 	if (Ax == NULL) {
 		fprintf(stderr,"SUMA_Alloc_Axis Error: Failed to allocate Ax\n");
-		return (NULL);
+		SUMA_RETURN (Ax);
 	}
 	
 	/* setup some default values */
@@ -52,38 +57,54 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 		}
 		
 	}
-	return (Ax);
+	SUMA_RETURN (Ax);
 }
 void SUMA_Free_Axis (SUMA_Axis *Ax)
 {
+	static char FuncName[]={"SUMA_Free_Axis"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Ax->Name != NULL) free (Ax->Name);
 	if (Ax->idcode_str != NULL) free (Ax->idcode_str);
 	if (Ax) free(Ax);
-	return;
+	SUMA_RETURNe;
 }
 
 void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
 {
+	static char FuncName[]={"SUMA_EyeAxisStandard"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	Ax->Stipple = SUMA_DASHED_LINE;
 	Ax->XYZspan[0] = Ax->XYZspan[1] = Ax->XYZspan[2] = 1000.0;
 	Ax->Center[0] = csv->GVS[csv->StdView].ViewCenter[0];
 	Ax->Center[1] = csv->GVS[csv->StdView].ViewCenter[1];
 	Ax->Center[2] = csv->GVS[csv->StdView].ViewCenter[2];
-	return;
+	SUMA_RETURNe;
 }
 
 void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
 {
+	static char FuncName[]={"SUMA_EyeAxisStandard"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	Ax->Stipple = SUMA_SOLID_LINE;
 	Ax->XYZspan[0]= Ax->XYZspan[1]= Ax->XYZspan[2]= 100.0;
 	Ax->Center[0] = cso->Center[0];
 	Ax->Center[1] = cso->Center[1];
 	Ax->Center[2] = cso->Center[2];
-	return;
+	SUMA_RETURNe;
 }
 
 SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
 { static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+	static char FuncName[]={"SUMA_CreateAxis"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	glLineWidth(Ax->LineWidth);
 	switch (Ax->Stipple) {
 		case SUMA_DASHED_LINE:
@@ -94,7 +115,7 @@ SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
 			break;
 		default:
 			fprintf(stderr,"Error SUMA_CreateAxis: Unrecognized Stipple option\n");
-			return(NOPE);
+			SUMA_RETURN(NOPE);
 	}
 	glBegin(GL_LINES);
    glMaterialfv(GL_FRONT, GL_EMISSION, Ax->XaxisColor); /*turn on emissivity for axis*/
@@ -121,13 +142,17 @@ SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
 		case SUMA_SOLID_LINE:
 			break;
 	}
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! Create the cross hair */
 SUMA_Boolean SUMA_CreateCrossHair (SUMA_CrossHair* Ch)
 {
+	static char FuncName[]={"SUMA_CreateCrossHair"};
 	static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	glLineWidth(Ch->LineWidth);
 	/*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
 		Ch->c[0], Ch->c[2], Ch->c[2], Ch->g, Ch->r);*/
@@ -179,17 +204,21 @@ SUMA_Boolean SUMA_CreateCrossHair (SUMA_CrossHair* Ch)
 		glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
 	}
 	
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /* Allocate for a CrossHair object */
 SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
 {	
+	static char FuncName[]={"SUMA_Alloc_CrossHair"};
 	SUMA_CrossHair* Ch;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	Ch = malloc (sizeof (SUMA_CrossHair));
 	if (Ch == NULL) {
 		fprintf(stderr,"SUMA_Alloc_CrossHair Error: Failed to allocate Ch\n");
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* setup some default values */
@@ -235,26 +264,34 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
 	
 	Ch->SurfaceID = -1;
 	Ch->NodeID = -1;
-	return (Ch);
+	SUMA_RETURN (Ch);
 }
 
 /*! Free a CrossHair object */
 void SUMA_Free_CrossHair (SUMA_CrossHair *Ch)
 {
+	static char FuncName[]={"SUMA_Free_CrossHair"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Ch->sphobj) gluDeleteQuadric(Ch->sphobj);
 	if (Ch) free(Ch);
-	return;
+	SUMA_RETURNe;
 }
 
 
 /* Allocate for a SphereMarker object */
 SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
 {	
+	static char FuncName[]={"SUMA_SphereMarker"};
 	SUMA_SphereMarker* SM;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	SM = malloc (sizeof (SUMA_SphereMarker));
 	if (SM == NULL) {
 		fprintf(stderr,"SUMA_Alloc_SphereMarker Error: Failed to allocate SM\n");
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	
 	/* create the ball object*/
@@ -274,20 +311,28 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
 	SM->stacks = 10;
 	SM->c[0] = SM->c[1] = SM->c[2] = 0.0; 
 	
-	return (SM);
+	SUMA_RETURN (SM);
 }
 
 /*! Free a SphereMarker object */
 void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM)
 {
+	static char FuncName[]={"SUMA_Free_SphereMarker"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (SM->sphobj) gluDeleteQuadric(SM->sphobj);
 	if (SM) free(SM);
-	return;
+	SUMA_RETURNe;
 }
 
 /*! Create the highlighted faceset  marker */
 SUMA_Boolean SUMA_CreateFaceSetMarker (SUMA_FaceSetMarker* FM)
 {	static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, dx, dy, dz;
+	static char FuncName[]={"SUMA_CreateFaceSetMarker"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	dx = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[0];
 	dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[1];
 	dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[2];
@@ -310,36 +355,48 @@ SUMA_Boolean SUMA_CreateFaceSetMarker (SUMA_FaceSetMarker* FM)
 		glVertex3f(FM->n2[0]-dx, FM->n2[1]-dy, FM->n2[2]-dz);
 	glEnd();
 	glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }	
 
 /* Allocate for a faceset mrker */
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void)
 {
 	SUMA_FaceSetMarker* FM;
+	static char FuncName[]={"SUMA_Alloc_FaceSetMarker"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	FM = malloc (sizeof (SUMA_FaceSetMarker));
 	if (FM == NULL) {
 		fprintf(stderr,"SUMA_Alloc_FaceSetMarker Error: Failed to allocate FM\n");
-		return (NULL);
+		SUMA_RETURN (NULL);
 	}
 	 
 	/* setup some default values */
 	FM->LineWidth = SUMA_SELECTED_FACESET_LINE_WIDTH;
 	FM->LineCol[0] = FM->LineCol[1] = FM->LineCol[2] = SUMA_SELECTED_FACESET_LINE_INTENSITY;
 	
-	return (FM);
+	SUMA_RETURN (FM);
 }
 /*! Free a FaceSetMarker object */
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 {
+	static char FuncName[]={"SUMA_Free_FaceSetMarker"};
+
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (FM) free(FM);
-	return;
+	SUMA_RETURNe;
 }
 
 /*! Create a tesselated mesh */
-void CreateMesh(SUMA_SurfaceObject *SurfObj)
+void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
 	int i;
+	static char FuncName[]={"SUMA_CreateMesh"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	switch (DRAW_METHOD) { 
    	case STRAIGHT:
 			switch (RENDER_METHOD) {
@@ -386,7 +443,7 @@ void CreateMesh(SUMA_SurfaceObject *SurfObj)
 			if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
 				/*fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");				*/
 				if (!SUMA_CreateFaceSetMarker (SurfObj->FaceSetMarker)) {
-					fprintf(SUMA_STDERR,"Error CreateMesh: Failed in SUMA_CreateFaceSetMarker\b");
+					fprintf(SUMA_STDERR,"Error SUMA_CreateMesh: Failed in SUMA_CreateFaceSetMarker\b");
 				}
 			} 
 			/* This allows each node to follow the color specified when it was drawn */ 
@@ -417,12 +474,12 @@ void CreateMesh(SUMA_SurfaceObject *SurfObj)
    		glDisableClientState (GL_COLOR_ARRAY);	
 			glDisableClientState (GL_VERTEX_ARRAY);
    		glDisableClientState (GL_NORMAL_ARRAY);	
-			/*fprintf(stdout, "Out CreateMesh, ARRAY mode\n");*/
+			/*fprintf(stdout, "Out SUMA_CreateMesh, ARRAY mode\n");*/
 			
 			glDisable(GL_COLOR_MATERIAL);
 			
 			break;
 
 	} /* switch DRAW_METHOD */
-
-} /* CreateMesh */
+	SUMA_RETURNe;
+} /* SUMA_CreateMesh */
