@@ -3641,3 +3641,8 @@
  * New program 3dAutomask.
  * Modified a few programs to use -automask as a synonym for -autoclip:
      3dAutoTcorrelate.c, 3dTcorrelate.c, 3dToutcount.c, and 3dTqual.c.
+
+11 Apr 2002
+ * New program 3dAFNItoMINC.c, and new function thd_mincwrite.c.
+ * Fixed bug in thd_mincread.c: it formerly scaled float inputs, which
+     apparently is wrong.

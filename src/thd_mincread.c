@@ -321,8 +321,10 @@ ENTRY("THD_open_minc") ;
 
    /*-- read and save the global:history attribute --*/
 
+#if 0
    sprintf(prefix,"THD_open_minc(%s)",pathname) ;
    tross_Append_History( dset , prefix ) ;
+#endif
 
    code = nc_inq_attlen( ncid , NC_GLOBAL , "history" , &len ) ;
    if( code == NC_NOERR && len > 0 ){
@@ -354,7 +356,7 @@ void THD_load_minc( THD_datablock *dblk )
    nc_type im_type=NC_SHORT ;
    float im_valid_range[2], fac,denom , intop,inbot , outbot,outtop ;
    float *im_min=NULL  , *im_max=NULL  ;
-   int    im_min_varid ,  im_max_varid ;
+   int    im_min_varid ,  im_max_varid , do_scale ;
 
 ENTRY("THD_load_minc") ;
 
@@ -408,6 +410,8 @@ ENTRY("THD_load_minc") ;
 
    (void) nc_inq_vartype( ncid , im_varid , &im_type ) ;
 
+   do_scale = (im_type==NC_BYTE || im_type==NC_SHORT || im_type==NC_INT ) ;
+
    code = nc_get_att_float( ncid,im_varid , "valid_range" , im_valid_range ) ;
 
    /** if can't get valid_range, make something up **/
@@ -431,22 +435,24 @@ ENTRY("THD_load_minc") ;
 
    /** get range of image to which valid_range will be scaled **/
 
-   code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
-   if( code == NC_NOERR ){
-      im_min = (float *) calloc(sizeof(float),nslice) ;
-      code = nc_get_var_float( ncid , im_min_varid , im_min ) ;
-   }
+   if( do_scale ){
+     code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
+     if( code == NC_NOERR ){
+       im_min = (float *) calloc(sizeof(float),nslice) ;
+       code = nc_get_var_float( ncid , im_min_varid , im_min ) ;
+     }
 
-   if( im_min != NULL ){
-      code = nc_inq_varid( ncid , "image-max" , &im_max_varid ) ;
-      if( code == NC_NOERR ){
+     if( im_min != NULL ){
+       code = nc_inq_varid( ncid , "image-max" , &im_max_varid ) ;
+       if( code == NC_NOERR ){
          im_max = (float *) malloc(sizeof(float)*nslice) ;
          code = nc_get_var_float( ncid , im_max_varid , im_max ) ;
          if( code != NC_NOERR ){
-            free(im_min) ; im_min = NULL ;
-            free(im_max) ; im_max = NULL ;
+           free(im_min) ; im_min = NULL ;
+           free(im_max) ; im_max = NULL ;
          }
-      }
+       }
+     }
    }
 
    /** read data! **/
