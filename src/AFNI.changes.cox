@@ -4897,3 +4897,5 @@
      up in machdep() function).  Also added a couple friends.
  * When re-f2c-ing a .f file, must remove declarations of built-in functions
      from the C code, since they cause the g++ compilation to fail to link.
+     Also, in coxplot/*.c functions, must manually change the COMMON struct
+     definitions to extern.
