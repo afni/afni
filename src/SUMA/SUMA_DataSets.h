@@ -442,7 +442,7 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset (char *idcode_str, DList *DsetList);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
-char *SUMA_ShowMeSome (void *dt, SUMA_COL_TYPE tp, int N_dt, int mxshow);
+char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow);
 SUMA_DSET * SUMA_NewDsetPointer(void);
 SUMA_DSET * SUMA_CreateDsetPointer (  
                               char *name, 

@@ -2935,7 +2935,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
    }   
-   
+
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
 

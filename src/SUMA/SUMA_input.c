@@ -2367,10 +2367,7 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
          bsd = (SUMA_BRUSH_STROKE_DATUM *)NE->data;
          bsdn = (SUMA_BRUSH_STROKE_DATUM *)NEn->data;
          
-         XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
-                    (int)bsd->x, (int)bsd->y,
-                    (int)bsdn->x, (int)bsdn->y);
-          
+         SUMA_DrawWindowLine(sv, (int)bsd->x, (int)bsd->y, (int)bsdn->x, (int)bsdn->y, 1);
       } while (NEn != dlist_tail(sv->BS));
       
    } else {
@@ -2380,9 +2377,8 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
       bsd = (SUMA_BRUSH_STROKE_DATUM *)NE->data;
       bsdn = (SUMA_BRUSH_STROKE_DATUM *)NEn->data;
       
-      XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
-                    (int)bsd->x, (int)bsd->y,
-                    (int)bsdn->x, (int)bsdn->y);
+      SUMA_DrawWindowLine(sv, (int)bsd->x, (int)bsd->y, (int)bsdn->x, (int)bsdn->y, 1 );
+          
    }
    SUMA_RETURNe;
 

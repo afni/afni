@@ -90,6 +90,29 @@ sets the select color of the widget to its foreground color */
    m_s = (char *)n;  \
 }
 
+#define SUMA_SET_GL_PROJECTION(csv) {  \
+   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName); \
+   glMatrixMode (GL_PROJECTION); \
+   glLoadIdentity ();   \
+   gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+}
+
+#define SUMA_SET_GL_MODELVIEW(csv) {   \
+   if (LocalHead) {  \
+      int m_i; \
+      fprintf(stdout,"Translation Vector: %f %f\n", \
+         csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1]); \
+      fprintf(stdout,"Rotation Matrix:\n");  \
+      for (m_i=0; m_i<4; ++m_i){ fprintf(stdout, "%f\t%f\t%f\t%f\n",   \
+         rotationMatrix[m_i][0], rotationMatrix[m_i][1], rotationMatrix[m_i][2], rotationMatrix[m_i][3]); }   \
+   }  \
+   glMatrixMode(GL_MODELVIEW);   \
+   glPushMatrix();   \
+   glTranslatef (csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1], 0.0);   \
+   glTranslatef (csv->GVS[csv->StdView].RotaCenter[0], csv->GVS[csv->StdView].RotaCenter[1], csv->GVS[csv->StdView].RotaCenter[2]); \
+   glMultMatrixf(&rotationMatrix[0][0]);  \
+   glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], -csv->GVS[csv->StdView].RotaCenter[1], -csv->GVS[csv->StdView].RotaCenter[2]); \
+}   
 
 
 #define SUMA_MARGIN  1
@@ -291,6 +314,7 @@ void SUMA_BuildMenuReset(int nchar);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
                                        double *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
+SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1, int y1, int meth);
 
 
 
