@@ -2559,6 +2559,11 @@ void scale_up( MCW_grapher * grapher )
    if (grapher->fscale > 0) grapher->fscale *= 2;
    else if (grapher->fscale < -2) grapher->fscale /= 2;
    else grapher->fscale = 1;
+
+   if( grapher->fscale > 1000000.0 ){
+     static int nn=0 ;
+     nn++ ; if( nn < 9 ) fprintf(stderr,"Is that you, Bellgowan?  If so, stop it!\a\n") ;
+   }
    return ;
 }
 
