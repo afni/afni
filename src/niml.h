@@ -159,11 +159,12 @@ typedef struct {
 
 /* Data modes for a NI_stream_type: text, binary, base64. */
 
-#define NI_TEXT_MODE            0
-#define NI_BINARY_MSBFIRST_MODE 1
-#define NI_BINARY_LSBFIRST_MODE 2
-#define NI_BASE64_MSBFIRST_MODE 3
-#define NI_BASE64_LSBFIRST_MODE 4
+#define NI_TEXT_MODE    0
+#define NI_BINARY_MODE  1
+#define NI_BASE64_MODE  2
+
+#define NI_LSB_FIRST    1
+#define NI_MSB_FIRST    2
 
 /*! Opaque type for the C API. */
 

@@ -47,6 +47,151 @@ char * NI_strncpy( char *dest , const char *src , size_t n )
    dest[n] = '\0' ; return dest ;
 }
 
+/*------------------------------------------------------------------------*/
+/*! Find a string in an array of strings; return index (-1 if not found). */
+
+static int string_index( char *targ , int nstr , char *str[] )
+{
+   int ii ;
+
+   if( nstr < 1 || str == NULL || targ == NULL ) return -1 ;
+
+   for( ii=0 ; ii < nstr ; ii++ )
+      if( str[ii] != NULL && strcmp(str[ii],targ) == 0 ) return ii ;
+
+   return -1 ;
+}
+
+/*-------------------------------------------------------------------*/
+/*!  Sleep a given # of milliseconds (uses the Unix select routine). */
+
+void NI_sleep( int msec )
+{
+   struct timeval tv ;
+   if( msec <= 0 ) return ;
+   tv.tv_sec  = msec/1000 ;
+   tv.tv_usec = (msec%1000)*1000 ;
+   select( 1 , NULL,NULL,NULL , &tv ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Return time elapsed since first call to this routine (msec). */
+
+int NI_clock_time(void)
+{
+   struct timeval  new_tval ;
+   struct timezone tzone ;
+   static struct timeval old_tval ;
+   static int first = 1 ;
+
+   gettimeofday( &new_tval , &tzone ) ;
+
+   if( first ){
+      old_tval = new_tval ;
+      first    = 0 ;
+      return 0.0 ;
+   }
+
+   if( old_tval.tv_usec > new_tval.tv_usec ){
+      new_tval.tv_usec += 1000000 ;
+      new_tval.tv_sec -- ;
+   }
+
+   return (int)( (new_tval.tv_sec  - old_tval.tv_sec )*1000.0
+                +(new_tval.tv_usec - old_tval.tv_usec)*0.001 + 0.5 ) ;
+}
+
+/****************************************************************************/
+/************************* Byte ordering functions **************************/
+/****************************************************************************/
+
+/*---------------------------------------------------------------*/
+/*! Find the byte order on this system. */
+
+static int NI_byteorder(void)
+{
+   union { unsigned char bb[2] ;
+           short         ss    ; } fred ;
+
+   fred.bb[0] = 1 ; fred.bb[1] = 0 ;
+
+   return (fred.ss == 1) ? NI_LSB_FIRST : NI_MSB_FIRST ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Swap arrays of 2 bytes (shorts). */
+
+typedef struct { unsigned char a,b ; } twobytes ;
+
+static void NI_swap2( int n , void *ar )
+{
+   register int ii ;
+   register twobytes *tb = (twobytes *) ar ;
+   register unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt       = tb[ii].a ;
+      tb[ii].a = tb[ii].b ;
+      tb[ii].b = tt ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Swap arrays of 4 bytes (ints or floats) */
+
+typedef struct { unsigned char a,b,c,d ; } fourbytes ;
+
+static void NI_swap4( int n , void *ar )
+{
+   register int ii ;
+   register fourbytes *tb = (fourbytes *) ar ;
+   register unsigned char tt , uu ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt       = tb[ii].a ;
+      tb[ii].a = tb[ii].d ;
+      tb[ii].d = tt ;
+
+      uu       = tb[ii].b ;
+      tb[ii].b = tb[ii].c ;
+      tb[ii].c = uu ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Swap arrays of 8 bytes (doubles or 64 bit ints) */
+
+typedef struct { unsigned char a,b,c,d , e,f,g,h ; } eightbytes ;
+
+static void NI_swap8( int n , void *ar )
+{
+   register int ii ;
+   register eightbytes *tb = (eightbytes *) ar ;
+   register unsigned char tt , uu , vv , ww ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+      tt       = tb[ii].a ;
+      tb[ii].a = tb[ii].h ;
+      tb[ii].h = tt ;
+
+      uu       = tb[ii].b ;
+      tb[ii].b = tb[ii].g ;
+      tb[ii].g = uu ;
+
+      vv       = tb[ii].c ;
+      tb[ii].c = tb[ii].f ;
+      tb[ii].f = vv ;
+
+      ww       = tb[ii].d ;
+      tb[ii].d = tb[ii].e ;
+      tb[ii].e = ww ;
+   }
+   return ;
+}
+
 /****************************************************************************/
 /****************** Functions to process a NIML header **********************/
 /****************************************************************************/
@@ -387,31 +532,24 @@ static NI_element * make_empty_data_element( header_stuff *hs )
 
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
-     for( ii=0 ; ii < nel->attr_num ; ii++ ){  /* loop over attributes */
+     /* ni_type attribute */
 
-       /* ni_type attribute */
-
-       if( nel->vec_typ == NULL && strcmp(nel->attr_lhs[ii],"ni_type") == 0 ){
-
-         intarray *iar = decode_type_string( nel->attr_rhs[ii] ) ;
-
-         if( iar != NULL ){
-           nel->vec_num = iar->num ;  /* number of vectors */
-           nel->vec_typ = iar->ar ;   /* vector types */
-           NI_free(iar) ;             /* just the shell of the struct */
-         }
+     ii = string_index( "ni_type" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->attr_rhs[ii] != NULL ){
+       intarray *iar = decode_type_string( nel->attr_rhs[ii] ) ;
+       if( iar != NULL ){
+         nel->vec_num = iar->num ;  /* number of vectors */
+         nel->vec_typ = iar->ar ;   /* vector types */
+         NI_free(iar) ;             /* just the shell of the struct */
        }
+     }
 
-       /* ni_dimen attribute */
+     /* ni_dimen attribute */
 
-       else if( nel->vec_len == 0                         &&
-                nel->attr_rhs[ii] != NULL                 &&
-                strcmp(nel->attr_lhs[ii],"ni_dimen") == 0   ){
-
-          int qq = strtol( nel->attr_rhs[ii] , NULL , 10 ) ;
-          if( qq > 0 ) nel->vec_len = qq ;
-       }
-
+     ii = string_index( "ni_dimen" , nel->attr_num , nel->attr_lhs ) ;
+     if( ii >= 0 && nel->attr_rhs[ii] != NULL ){
+        int qq = strtol( nel->attr_rhs[ii] , NULL , 10 ) ;
+        if( qq > 0 ) nel->vec_len = qq ;
      }
 
      /* supply vector parameters if none was given */
@@ -1560,21 +1698,83 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
    return -1 ;  /* should not be reached */
 }
 
-/*------------------------------------------------------------------*/
-/*!  Sleep a given # of milliseconds (uses the Unix select routine) */
+/*-----------------------------------------------------------------------*/
+/*! Try to fill up the stream's input buffer.
 
-void NI_sleep( int msec )
+    minread = Minimum number of bytes to read.
+              Will wait until we get at least this many,
+              until the stream is bad or the buffer is full.
+              If minread=0, then may read nothing (but will try).
+
+    msec    = Maximum amount of time to wait to satisfy minread,
+              in milliseconds.  If msec<0, will wait forever.
+              If msec=0, will return after 1st read attempt, even
+              if nothing was obtained.
+
+    Returns number of bytes read (-1 if input stream is bad at start).
+-------------------------------------------------------------------------*/
+
+static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 {
-   struct timeval tv ;
-   if( msec <= 0 ) return ;
-   tv.tv_sec  = msec/1000 ;
-   tv.tv_usec = (msec%1000)*1000 ;
-   select( 1 , NULL,NULL,NULL , &tv ) ;
-   return ;
+   int nn , ii , ntot=0 ;
+   int start_msec = NI_clock_time() ;
+
+   if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
+
+   if( ns->nbuf >= NI_BUFSIZE ) return 0 ;      /* buffer already full */
+
+   if( msec < 0 ) msec = 999999999 ;            /* a long time (11+ days) */
+
+   /* read loop */
+
+   while(1){
+
+      nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
+
+      if( nn < 0 ) break ;             /* data stream gone bad, so return */
+
+      if( nn > 0 ){                    /* we can read! */
+
+         ii = NI_stream_read( ns, ns->buf + ns->nbuf, NI_BUFSIZE-ns->nbuf ) ;
+
+         if( ii > 0 ){                 /* we got data! */
+            ns->nbuf += ii ;           /* buffer is now longer */
+            ntot     += ii ;           /* total number read here so far */
+
+            /* if buffer is full,
+               or we have all the data that was asked for, then exit */
+
+            if( ns->nbuf >= NI_BUFSIZE || ntot >= minread ) break ;
+         }
+      }
+
+      /* if we don't require data, then return no matter what our status is */
+
+      if( minread == 0 ) break ;
+
+      /* if the max time has elapsed, then return */
+
+      if( NI_clock_time()-start_msec >= msec ) break ;
+
+      /* otherwise, sleep a little bit before trying again */
+
+      NI_sleep(5) ;
+   }
+
+   return ntot ;
 }
 
 /*-----------------------------------------------------------------*/
-/*! Set the binary threshold size for NI_write_element. */
+/*! Set the binary threshold size for NI_write_element.
+
+    If a data element takes up more than 'size' bytes, then it
+    will be written in binary form, otherwise in text form.
+    If size=0, then all elements are written in binary.
+    If size<0, then all elements are written in text.
+    This function only affects what happens when you write
+    data elements.  Reading is controlled by the contents of
+    each element header (i.e., the ni_form attribute).
+-------------------------------------------------------------------*/
 
 void NI_binary_threshold( NI_stream_type *ns , int size )
 {
@@ -1590,14 +1790,21 @@ void NI_binary_threshold( NI_stream_type *ns , int size )
 /*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream.
 
-   Return is NULL if nothing can be read.  Otherwise, use
-   NI_element_type(return value) to determine if the element
+   Return is NULL if nothing can be read at this time.  Otherwise,
+   use NI_element_type(return value) to determine if the element
    read is a data element or a group element.
 
-   Note that a header that is longer than NI_BUFSIZE will never
-   be read properly, since we must have the entire header in
+   Note that a header that is longer than NI_BUFSIZE (64K) will
+   never be read properly, since we must have the entire header in
    the buffer before processing it.  This should only be a problem
-   for deranged users.
+   for deranged users.  If such a vast header is encountered, it
+   will be flushed (i.e., if an opening '<' is found and no '>' is
+   found in the next 64K, then all those 64K bytes will be discarded
+   and then NULL will be returned).
+
+   If header start '<' and stop '>' are encountered, then this
+   function will read data until it can create an element, or until
+   the data stream is bad (i.e., the file ends, or the socket closes).
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns )
@@ -1607,19 +1814,23 @@ void * NI_read_element( NI_stream_type *ns )
    char *cstart , *cstop ;
    header_stuff *hs ;
 
-   /* check if we have any data left over in the buffer,
-      or if we at least can read some data from the stream */
+   int num_restart=0 ;
+
+   /*-- Check if we have any data left over in the buffer,
+        or if we at least can read some data from the stream --*/
 
 Restart:                            /* loop back here to retry */
+   num_restart++ ;
+   if( num_restart > 9 ) return NULL ;  /* don't allow too many loops */
 
-   nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
-   if( nn < 0 ) return NULL ;       /* stream is bad */
+   nn = NI_stream_readcheck(ns,1) ; /* check if data can be read */
+   if( nn < 0 ) return NULL ;       /* stream has done gone bad */
 
-   /* minimum element is "<a/>", which is 4 bytes long */
+   /*-- Minimum element is "<a/>", which is 4 bytes long --*/
 
    if( ns->nbuf < 4 && nn == 0  ) return NULL ; /* no data */
 
-   /* read some data, if there is any space for it */
+   /*-- Read some data, if there is any space for it --*/
 
    if( ns->nbuf < NI_BUFSIZE && nn > 0 ){
 
@@ -1632,7 +1843,7 @@ Restart:                            /* loop back here to retry */
       if( ns->nbuf < 4 ) return NULL ; /* not enough data yet */
    }
 
-   /* check buffer for header start character */
+   /*-- Check buffer for header start character --*/
 
    cstart = memchr( ns->buf , '<' , ns->nbuf ) ;
 
@@ -1641,9 +1852,9 @@ Restart:                            /* loop back here to retry */
       goto Restart ;       /* try to read more data */
    }
 
-   /* If here, we found a start character! */
+   /*-- If here, we found a start character! --*/
 
-   nn = cstart - ns->buf ; /* index of start character */
+   nn = cstart - ns->buf ; /* index of start character in buf */
 
    if( nn+1 >= ns->nbuf ){ /* start character is last in buf */
       ns->nbuf   = 1   ;   /* toss out all stuff before '<'  */
@@ -1651,7 +1862,7 @@ Restart:                            /* loop back here to retry */
       goto Restart     ;   /* try to read more data */
    }
 
-   /* Now look for a stop character. */
+   /*-- Now look for a stop character. --*/
 
    cstop = memchr( cstart+1 , '>' , ns->nbuf-nn-1 ) ;
 
@@ -1662,10 +1873,20 @@ Restart:                            /* loop back here to retry */
          ns->nbuf -= nn ;
       }
       if( ns->nbuf < NI_BUFSIZE ) goto Restart ; /* try to read more data */
-      return NULL ;
+
+      /* If here, then the header is apparently more than 64K long.
+         This is unacceptable, and so we will flush all the data
+         and try again.  However, something bad will probably happen
+         if there really is an element that has such a large header,
+         since we just cut off the start of that header, and now will
+         have to deal with its tail.  Oh well; life is tough, then you die. */
+
+      ns->nbuf = 0 ;
+      goto Restart ;  /* try to read more data */
    }
 
-   /* If here, have start and stop characters, so parse the header data! */
+   /*----- If here, have start and stop characters,
+           so parse the header data and prepare to make an element! -----*/
 
    hs = parse_header_stuff( ns->nbuf-nn , cstart , &nhs ) ;
 
@@ -1682,30 +1903,68 @@ Restart:                            /* loop back here to retry */
       goto Restart ; /* try to read more data */
    }
 
-   /* If here, have parsed a header.
-      First, erase the data bytes that were consumed to make the header. */
+   /*----- If here, have parsed a header.
+           First, expunge the data bytes that
+           were consumed to make the header. -----*/
 
-   if( nhs < ns->nbuf ){
-      memmove( ns->buf , ns->buf+nhs , ns->nbuf-nhs ) ;
-      ns->nbuf -= nhs ;
+   if( nn+nhs < ns->nbuf ){
+      memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-nn-nhs ) ;
+      ns->nbuf -= (nhs+nn) ;
    } else {
       ns->nbuf = 0 ;
    }
 
-   /**************** Now make an element of some kind ****************/
+   /*--------------- Now make an element of some kind ---------------*/
 
-   if( strcmp(hs->name,"ni_group") == 0 ){  /*** a group element ***/
+   if( strcmp(hs->name,"ni_group") == 0 ){  /*--- a group element ---*/
 
       NI_group *ngr = make_empty_group_element( hs ) ;
       destroy_header_stuff( hs ) ;
    }
 
-   else { /*********************** a data element ******************/
+   else { /*---------------------- a data element -------------------*/
 
       NI_element *nel = make_empty_data_element( hs ) ;
+      int form , swap ;
       destroy_header_stuff( hs ) ;
 
-      if( nel == NULL || nel->vec_len == 0 ) return nel ;
+      if( nel == NULL          ||     /* nel == NULL should never happen. */
+          nel->vec_len == 0    ||     /* These other cases are indication */
+          nel->vec_num == 0    ||     /* that this is an 'empty' element. */
+          nel->vec_typ == NULL ||
+          nel->vec     == NULL   ) return nel ;
+
+      /*-- If here, must read data from the buffer into nel->vec --*/
+
+      /* Find the form of the input */
+
+      ii = string_index( "ni_form" , nel->attr_num , nel->attr_lhs ) ;
+
+      form = NI_TEXT_MODE ; /* default is text mode */
+      swap = 0 ;            /* and then don't byte swap */
+
+      if( ii >= 0 &&  nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
+
+         /* at present, the only non-text mode is "binary" */
+
+         if( strstr(nel->attr_rhs[ii],"binary") != NULL ){
+            int order=NI_MSB_FIRST ; /* default input byteorder */
+
+            form = NI_BINARY_MODE ;
+
+            /* check byteorder in header vs. this CPU */
+
+            if( strstr(nel->attr_rhs[ii],"lsb") != NULL ) order = NI_LSB_FIRST;
+
+            swap = ( order != NI_byteorder() ) ;  /* swap bytes? */
+         }
+      }
+
+      /*-- Try to fill up the input buffer --*/
+
+      (void) NI_stream_fillbuf( ns , 0 , 0 ) ;
+
+      /*-- Now must actually read data and put it somewhere (ugh). */
    }
 
    return NULL ; /* should never be reached */
