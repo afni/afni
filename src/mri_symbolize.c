@@ -88,7 +88,7 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
                                        /* now scan for intlist, if present */
      if( qls != NULL ){
        MCW_intlist_allow_negative( (rang[rr].nbot < 0) ) ;
-       qlist = MCW_get_intlist( rang[rr].ntop , qls ) ;
+       qlist = MCW_get_intlist( rang[rr].ntop+1 , qls ) ;
 
        if( qlist != NULL && *qls == '[' ){  /** [[...]] type of subscript **/
          if( nvec == 0 ){

@@ -229,15 +229,15 @@ ENTRY("THD_setup_mastery") ;
    /* redo brick_lab */
 
    if( old_brick_lab != NULL ){
-      for( ibr=0 ; ibr < new_nvals ; ibr++ )
-         THD_store_datablock_label( dblk , ibr , old_brick_lab[ivl[ibr]] ) ;
+     for( ibr=0 ; ibr < new_nvals ; ibr++ )
+       THD_store_datablock_label( dblk , ibr , old_brick_lab[ivl[ibr]] ) ;
    }
 
    /* redo brick_keywords */
 
    if( old_brick_keywords != NULL ){
-      for( ibr=0 ; ibr < new_nvals ; ibr++ )
-         THD_store_datablock_keywords( dblk , ibr , old_brick_keywords[ivl[ibr]] ) ;
+     for( ibr=0 ; ibr < new_nvals ; ibr++ )
+       THD_store_datablock_keywords( dblk , ibr , old_brick_keywords[ivl[ibr]] ) ;
    }
 
    /* redo brick_statcode and brick_stataux */
@@ -260,13 +260,13 @@ ENTRY("THD_setup_mastery") ;
    myXtFree( old_brick_fac ) ;
 
    if( old_brick_lab != NULL ){
-      for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_lab[ibr] ) ;
-      myXtFree( old_brick_lab ) ;
+     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_lab[ibr] ) ;
+     myXtFree( old_brick_lab ) ;
    }
 
    if( old_brick_keywords != NULL ){
-      for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_keywords[ibr] ) ;
-      myXtFree( old_brick_keywords ) ;
+     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_keywords[ibr] ) ;
+     myXtFree( old_brick_keywords ) ;
    }
 
    if( old_brick_statcode != NULL ) myXtFree( old_brick_statcode ) ;

@@ -1441,13 +1441,13 @@ void get_options
 
       if( strcmp(argv[nopt],"-gltsym") == 0 ){
         nopt++ ;
-        if( nopt+1 >= argc ) DC_error("need 1 argument after -glt") ;
+        if( nopt >= argc ) DC_error("need 1 argument after -gltsym") ;
 
         if( option_data->num_glt == 0 )
           initialize_glt_options(option_data,10) ;   /* default limit on GLTs */
 
         if( iglt+1 > option_data->num_glt )
-          DC_error("Use -num_glt option to specify number of GLTs") ;
+          DC_error("Use -num_glt option to specify number of GLTs when more than 10") ;
 
         option_data->glt_rows[iglt] = -1 ;  /* flag for symbolic read */
 
@@ -6626,7 +6626,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
 
        buf = fdup ;
        while(1){
-         fpt = strchr(buf,'\\') ;
+         fpt = strchr(buf,'\\') ;          /* end of 'line' */
          if( fpt != NULL ) *fpt = '\0' ;
          fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
          if( fvv == NULL || fvv->nvec < 1 ) continue ;
@@ -6660,7 +6660,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
      for( ii=0 ; ii < nr ; ii++ ) free((void *)far[ii]) ;
      free((void *)far) ;
 
-     if( AFNI_yesenv("AFNI_GLTSYM_PRINT") ){
+     if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
        printf("GLT matrix from '%s':\n",fname) ;
        matrix_print( *cmat ) ; fflush(stdout) ;
      }

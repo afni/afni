@@ -598,6 +598,7 @@ ENTRY("pixar_to_XImage") ;
 }
 
 /*-------------------------------------------------------------------*/
+#undef INLINE
 #ifdef __GNUC__
 # define INLINE inline
 #else

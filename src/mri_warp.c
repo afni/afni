@@ -10,14 +10,10 @@
 
 /*** functions to "warp" images -- not very efficient, but quite general ***/
 
-#ifdef __GNUC__
-# define INLINE inline
-#else
-# define INLINE /*nada*/
-# ifdef HP
-#  pragma INLINE  xxMRI_scaler
-#  pragma INLINE  xxMRI_rotfunc
-# endif
+#ifdef HP
+# undef INLINE
+# pragma INLINE  xxMRI_scaler
+# pragma INLINE  xxMRI_rotfunc
 #endif
 
 #define FINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \

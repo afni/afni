@@ -65,6 +65,7 @@ static mallitem ** htab  = NULL ; /* table of lists */
 static int *       nhtab = NULL ; /* size of each list */
 static UINT       serial = 0    ; /* serial number of allocation */
 
+#undef INLINE
 #ifdef __GNUC__
 # define INLINE inline
 #else
