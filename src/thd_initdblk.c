@@ -304,6 +304,7 @@ ENTRY("THD_datablock_from_atr") ;
 #if MMAP_THRESHOLD > 0
      dblk->malloc_type = (dblk->total_bytes > MMAP_THRESHOLD)
                          ? DATABLOCK_MEM_MMAP : DATABLOCK_MEM_MALLOC ;
+     DBLK_mmapfix(dblk) ;  /* 18 Mar 2005 */
 #else
      dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
 #endif

@@ -10,7 +10,7 @@
 static int native_order = -1 ;
 static int no_mmap      = -1 ;
 
-void THD_force_malloc_type( THD_datablock * blk , int mem_type )
+void THD_force_malloc_type( THD_datablock *blk , int mem_type )
 {
    int new_type ;
 
@@ -53,5 +53,7 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
    if( blk->malloc_type == new_type ) return ;
    (void) THD_purge_datablock( blk , blk->malloc_type ) ;
    blk->malloc_type = new_type ;
+
+   DBLK_mmapfix(blk) ;  /* 28 Mar 2005 */
    return ;
 }
