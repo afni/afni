@@ -1,0 +1,322 @@
+#! /bin/sh
+
+usage()
+{
+    cat <<EOF
+Usage: gtstemplate [OPTIONS] Class ParentClass
+Options:
+	[--no-extra-data]
+	[--no-extra-method]
+	[--overload=METHOD]
+EOF
+    exit $1
+}
+
+form_name()
+{
+    echo $1 | sed 's/[ABCDEFGHIJKLMNOPQRSTUVWXYZ]/_&/g' | awk '{ 
+	if (substr ($1, 1, 1) == "_") 
+	    print tolower(substr ($1, 2)); 
+	else 
+	    print tolower($1);}'
+}
+
+if test $# -lt 2; then
+	usage 1 1>&2
+fi
+
+while test $# -gt 0; do
+  case "$1" in
+  -*=*) optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+  *) optarg= ;;
+  esac
+
+  case $1 in
+    --no-extra-data)
+      no_extra_data=yes
+      ;;
+    --no-extra-method)
+      no_extra_method=yes
+      ;;
+    --overload=*)
+      methods="$methods $optarg"
+      ;;
+    --*)
+      usage 1 1>&2
+      ;;
+      *)
+      if test -z "$Object"; then
+	Object=$1
+      elif test -z "$ParentObject"; then
+	ParentObject=$1
+      else
+	usage 1 1>&2
+      fi
+      ;;
+  esac
+  shift
+done
+
+if test -z "$Object" -o -z "$ParentObject"; then
+    usage 1 1>&2
+fi
+
+object=`form_name $Object`
+ObjectName=$Object
+if test "$no_extra_data" = "yes"; then
+    Object=$ParentObject
+fi
+OBJECT=`echo $object | awk '{print toupper ($1)}'`
+
+if test "$no_extra_method" = "yes"; then
+    ObjectClass=$ParentObject"Class"
+else
+    ObjectClass=$ObjectName"Class"
+    OBJECT_CLASS=$OBJECT"_CLASS"
+fi
+ 
+parent_object=`form_name $ParentObject`
+parent_object_class=$parent_object"_class"
+ParentObjectClass=$ParentObject"Class"
+object_class=$object"_class"
+
+cat <<EOF
+/* $ObjectName: Header */
+
+EOF
+if test "$no_extra_data" != "yes"; then
+    cat <<EOF
+typedef struct _$Object         $Object;
+
+struct _$Object {
+  /*< private >*/
+  $ParentObject parent;
+
+  /*< public >*/
+  /* add extra data here (if public) */
+};
+
+EOF
+fi
+if test "$no_extra_method" != "yes"; then
+    cat <<EOF
+typedef struct _$ObjectClass    $ObjectClass;
+
+struct _$ObjectClass {
+  /*< private >*/
+  $ParentObjectClass parent_class;
+
+  /*< public >*/
+  /* add extra methods here */
+};
+
+EOF
+fi
+if test "$no_extra_data" != "yes"; then
+    cat <<EOF
+#define $OBJECT(obj)            GTS_OBJECT_CAST (obj,\\
+					         $Object,\\
+					         $object_class ())
+EOF
+fi
+if test "$no_extra_method" != "yes"; then
+    cat <<EOF
+#define $OBJECT_CLASS(klass)    GTS_OBJECT_CLASS_CAST (klass,\\
+						 $ObjectClass,\\
+						 $object_class())
+EOF
+fi
+cat <<EOF
+#define IS_$OBJECT(obj)         (gts_object_is_from_class (obj,\\
+						 $object_class ()))
+
+$ObjectClass * $object_class  (void);
+EOF
+if test "$no_extra_data" != "yes"; then
+    object_new=$object"_new"
+    cat <<EOF
+$Object * $object_new    ($ObjectClass * klass);
+EOF
+fi
+cat <<EOF
+
+/* $ObjectName: Object */
+
+EOF
+
+for method in $methods; do
+    case $method in
+	destroy)
+	object_destroy=$object"_destroy"
+	cat <<EOF
+static void $object_destroy (GtsObject * object)
+{
+  /* do object-specific cleanup here */
+  
+  /* do not forget to call destroy method of the parent */
+  (* GTS_OBJECT_CLASS ($object_class ())->parent_class->destroy) 
+    (object);
+}
+
+EOF
+	;;
+	read)
+	object_read=$object"_read"
+	cat <<EOF
+static void $object_read (GtsObject ** o, GtsFile * fp)
+{
+  /* call read method of parent */
+  if (GTS_OBJECT_CLASS ($object_class ())->parent_class->read)
+    (* GTS_OBJECT_CLASS ($object_class ())->parent_class->read) 
+      (o, fp);
+  if (fp->type == GTS_ERROR)
+    return;
+
+  /* do object-specific read here */
+
+  /* do not forget to prepare for next read */
+  gts_file_next_token (fp);
+}
+
+EOF
+	;;
+	write)
+	object_write=$object"_write"
+	cat <<EOF
+static void $object_write (GtsObject * o, FILE * fp)
+{
+  /* call write method of parent */
+  if (GTS_OBJECT_CLASS ($object_class ())->parent_class->write)
+    (* GTS_OBJECT_CLASS ($object_class ())->parent_class->write) 
+      (o, fp);
+
+  /* do object specific write here */
+}
+
+EOF
+	;;
+	color)
+	object_color=$object"_color"
+	cat <<EOF
+static GtsColor $object_color (GtsObject * o)
+{
+  GtsColor c = { 1., 1., 1. }; /* white */
+
+  return c;
+}
+
+EOF
+	;;
+	event)
+	object_event=$object"_event"
+	cat <<EOF
+static gboolean $object_event (GfsEvent * event, GfsSimulation * sim)
+{
+  if ((* GFS_EVENT_CLASS (GTS_OBJECT_CLASS ($object_class ())->parent_class)->event) (event, sim)) {
+    /* do object-specific event here */
+
+    return TRUE;
+  }
+  return FALSE;
+}
+
+EOF
+	;;
+	*)
+	echo "gtstemplate: unknown method '$method'"
+	exit 1;
+	;;
+    esac
+done
+
+if test -n "$methods" -o "$no_extra_method" != "yes"; then
+    object_class_init=$object_class"_init"
+    cat <<EOF
+static void $object_class_init ($ObjectClass * klass)
+{
+  /* define new methods and overload inherited methods here */
+
+EOF
+    if test -n "$object_event"; then
+	cat <<EOF
+  GFS_EVENT_CLASS (klass)->event = $object_event;
+EOF
+    fi
+    if test -n "$object_read"; then
+	cat <<EOF
+  GTS_OBJECT_CLASS (klass)->read = $object_read;
+EOF
+    fi
+    if test -n "$object_write"; then
+	cat <<EOF
+  GTS_OBJECT_CLASS (klass)->write = $object_write;
+EOF
+    fi
+    if test -n "$object_color"; then
+	cat <<EOF
+  GTS_OBJECT_CLASS (klass)->color = $object_color;
+EOF
+    fi
+    if test -n "$object_destroy"; then
+	cat <<EOF
+  GTS_OBJECT_CLASS (klass)->destroy = $object_destroy;
+EOF
+    fi
+    cat <<EOF
+}
+
+EOF
+else
+    object_class_init=NULL
+fi
+
+if test "$no_extra_data" != "yes"; then
+    object_init=$object"_init"
+    cat <<EOF
+static void $object_init ($Object * object)
+{
+  /* initialize object here */
+}
+
+EOF
+else
+    object_init=NULL
+fi    
+
+object_info=$object"_info"
+cat <<EOF
+$ObjectClass * $object_class (void)
+{
+  static $ObjectClass * klass = NULL;
+
+  if (klass == NULL) {
+    GtsObjectClassInfo $object_info = {
+      "$ObjectName",
+      sizeof ($Object),
+      sizeof ($ObjectClass),
+      (GtsObjectClassInitFunc) $object_class_init,
+      (GtsObjectInitFunc) $object_init,
+      (GtsArgSetFunc) NULL,
+      (GtsArgGetFunc) NULL
+    };
+    klass = gts_object_class_new (GTS_OBJECT_CLASS ($parent_object_class ()),
+				  &$object_info);
+  }
+
+  return klass;
+}
+
+EOF
+
+if test -n "$object_new"; then
+    cat <<EOF
+$Object * $object_new ($ObjectClass * klass)
+{
+  $Object * object;
+
+  object = $OBJECT (gts_object_new (GTS_OBJECT_CLASS (klass)));
+
+  return object;
+}
+EOF
+fi
