@@ -908,4 +908,13 @@
       - rewrote the logic of all cases to be easier to follow
   * broke out code as nifti_write_ascii_image() function
   * added debug to top-level write functions, and free the znzFile
+  * removed unused internal function nifti_image_open()
+  * modified Makefiles for optional zlib compilation
+    on:  Makefile.linux_gcc32, Makefile.linux_gcc33_64, Makefile.macosx_10.3_G5
+    off: Makefile.linux_glibc22 Makefile.macosx_10.2, Makefile.macosx_10.3,
+         Makefile.solaris29_suncc, Makefile.solaris9_suncc_64, Makefile.BSD,
+         Makefile.darwin, Makefile.cygwin, Makefile.FreeBSD, Makefile.linuxPPC,
+         Makefile.sgi10k_6.5, Makefile.sgi10k_6.5_gcc, Makefile.sgi5k_6.3,
+         Makefile.solaris28_gcc, Makefile.solaris28_suncc, Makefile.solaris_gcc,
+         Makefile.sparc5_2.5, Makefile.sparky, Makefile.sunultra
 

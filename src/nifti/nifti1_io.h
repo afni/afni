@@ -271,7 +271,6 @@ static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data ,
                                          char* opts);
 static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts , 
                          char* opts, znzFile imgfile, nifti_brick_list * NBL );
-static znzFile nifti_image_open(char *hname , char *opts , nifti_image **nim);
 static znzFile nifti_image_load_prep( nifti_image *nim );
 static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
                                 nifti_image *nim);

@@ -154,10 +154,11 @@ static char gni_history[] =
   "       o rewrote the logic of all cases to be easier to follow\n"
   "   - broke out code as nifti_write_ascii_image() function\n"
   "   - added debug to top-level write functions, and free the znzFile\n"
+  "   - removed unused internal function nifti_image_open()\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
-static int gni_debug = 0;
+static int gni_debug = 1;  /* default to basic output */
 
 /* for calling from some main program */
 void nifti_disp_lib_hist( void )
@@ -2458,33 +2459,6 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
     - nifti_image_free() can be used to delete the returned struct,
       when you are done with it.
 ----------------------------------------------------------------------------*/
-
-#undef  ERREX
-#define ERREX(msg)                                           \
- do{ fprintf(stderr,"** ERROR: nifti_image_open(%s): %s\n",  \
-             (hname != NULL) ? hname : "(null)" , (msg) ) ;  \
-     return fptr ; } while(0)
-
-static znzFile nifti_image_open( char *hname , char *opts , nifti_image **nim)
-{
-  znzFile fptr=NULL;
-
-  /* open the hdr and reading it in, but do not load the data  */
-  *nim = nifti_image_read(hname,0);
-
-  /* open the image file, ready for reading
-   * - NB: compressed works for all reads */
-  if( ((*nim) == NULL)      || ((*nim)->iname == NULL) ||
-      ((*nim)->nbyper <= 0) || ((*nim)->nvox <= 0)       )
-     ERREX("bad header info") ;
-
-  /** open image data file **/  
-  fptr = znzopen((*nim)->iname ,opts,1);
-  if( znz_isnull(fptr) ) ERREX("Can't open data file") ;
-  
-  return fptr;
-}
-
 
 /* use macro LNI_FILE_ERROR instead of ERREX()
 #undef  ERREX
