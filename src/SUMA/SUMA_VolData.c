@@ -174,7 +174,7 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
 
    /* read the header of the parent volume */
    if (dset == NULL) {
-      fprintf (SUMA_STDERR,"NULL dset\n", FuncName);
+      fprintf (SUMA_STDERR,"Error %s:\nNULL dset\n", FuncName);
       SUMA_RETURN (NULL);
    }
    
