@@ -234,8 +234,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
       }
       
       /* Now free FS->NodeList & FS->NodeId */
-		free(FS->NodeList);
-		free(FS->NodeId);
+		SUMA_free(FS->NodeList);
+		SUMA_free(FS->NodeId);
       
 		/*make FS->NodeList be NodeList */
 		FS->NodeList = NodeList;
@@ -257,11 +257,11 @@ SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (FS->FaceSetList != NULL) free(FS->FaceSetList);
-	if (FS->NodeList != NULL) free(FS->NodeList);
-	if (FS->NodeId != NULL) free(FS->NodeId);
-	if (FS->FaceSetIndexInParent != NULL) free(FS->FaceSetIndexInParent);
-	if (FS != NULL) free (FS);
+	if (FS->FaceSetList != NULL) SUMA_free(FS->FaceSetList);
+	if (FS->NodeList != NULL) SUMA_free(FS->NodeList);
+	if (FS->NodeId != NULL) SUMA_free(FS->NodeId);
+	if (FS->FaceSetIndexInParent != NULL) SUMA_free(FS->FaceSetIndexInParent);
+	if (FS != NULL) SUMA_free(FS);
 	SUMA_RETURN (YUP);
 }
 

@@ -262,7 +262,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	
 	fclose (iv_file);
 	
-	free(linv);
+	SUMA_free(linv);
 	
 	return (FaceSetList);
 
@@ -380,7 +380,7 @@ if (writeout == 1) {
 	}
 }
 	
-free (FaceSetList);
+SUMA_free(FaceSetList);
 	
 }/* Main */
 #endif

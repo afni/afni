@@ -116,6 +116,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       /* The allocation */
       ptr = calloc (nmemb, size);
 
+      /* the block below is also used in SUMA_allocate2D */
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace) {
             ++SUMAg_CF->Mem->N_alloc;
@@ -172,6 +173,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       #endif
 
 
+      /* This block is also used in SUMA_free2D */
       #if SUMA_MEMTRACE_FLAG
 
          if (SUMAg_CF->MemTrace && ptr) {
@@ -244,6 +246,9 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
 void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out) 
 {
    static char FuncName[]={"SUMA_ShowMemTrace"};
+   int i, *isort = NULL, *mem_sz_sort = NULL, Tot;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!Out) Out = SUMA_STDERR;
    if (!Mem) {
@@ -252,14 +257,43 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    }
    
    fprintf (Out,"\nShowing SUMA_MEMTRACE_STRUCT: %p\n", Mem);    
-   fprintf (Out,"->Pointers: %p\n", Mem->Pointers);
-   fprintf (Out,"->Size: %p\n", Mem->Size);
-   fprintf (Out,"->N_alloc: %d\n", Mem->N_alloc);
+   fprintf (Out,"->N_alloc: %d allocated elements.\n", Mem->N_alloc);
    fprintf (Out,"->N_MaxPointers: %d\n", Mem->N_MaxPointers);
    
+   /* sort the pointers by their sizes */
+   /* make a copy of Mem->Size to keep it from getting modified then sort it.
+   Do not use SUMA_calloc here because that'll increment N_alloc after space is allocated! */
+   mem_sz_sort = (int *)calloc(Mem->N_alloc, sizeof(int));
+   if (!mem_sz_sort) {
+      fprintf (SUMA_STDERR, "Error %s: Could not allocate for mem_sz_sort.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   #if 1
+   for (i=0; i < Mem->N_alloc; ++i) mem_sz_sort[i] = Mem->Size[i];
+   isort = SUMA_z_dqsort_nsc (mem_sz_sort, Mem->N_alloc); /* this version of SUMA_z_dqsort does not use SUMA_calloc for allocation thus keeping the memory trace unchanged */
+   
+   Tot = 0;
+   for (i=0; i < Mem->N_alloc; ++i) {
+      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", i, Mem->Pointers[isort[i]], Mem->Size[isort[i]]);
+      Tot += Mem->Size[isort[i]];
+   }
+   #else
+     
+   Tot = 0;
+   for (i=0; i < Mem->N_alloc; ++i) {
+      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", i, Mem->Pointers[i], Mem->Size[i]);
+      Tot += Mem->Size[i];
+   }
+   #endif
+   
+   fprintf (Out,"Total Memory Allocated %f Mbytes.\n", (float)Tot/1000000.0);
+   if (mem_sz_sort) free(mem_sz_sort); /* mem_sz_sort should not be freed with SUMA_free */
+   if (isort) free(isort); /* isort should not be freed with SUMA_free */
    SUMA_RETURNe;
    
 }
+
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    static char FuncName[]={"SUMA_Free_MemTrace"};
       
@@ -625,6 +659,10 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 1991, Prentice Hall
 
             Ziad Saad                  Oct_21_96
+
+This function should not use SUMA_calloc because it can slow things down 
+for Nxm arrays where N is very large. 
+
 *************************************************************************/
 
 char **SUMA_allocate2D (int rows,int cols,int element_size)
@@ -640,14 +678,14 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    switch(element_size) {
      case sizeof(short): {    /* integer matrix */
          short **int_matrix;
-         int_matrix = (short **)SUMA_calloc(rows,sizeof(short *));
+         int_matrix = (short **)calloc(rows,sizeof(short *));
          if(!int_matrix) {
              printf("\nError making pointers in %dx%d int matrix\n"
                          ,rows,cols);
              exit(1);
          }
          for(i = 0 ; i < rows ; i++) {
-             int_matrix[i] = (short *)SUMA_calloc(cols,sizeof(short));
+             int_matrix[i] = (short *)calloc(cols,sizeof(short));
              if(!int_matrix[i]) {
                  printf("\nError making row %d in %dx%d int matrix\n"
                          ,i,rows,cols);
@@ -659,14 +697,14 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
      }
      case sizeof(float): {    /* float matrix */
          float **float_matrix;
-         float_matrix = (float **)SUMA_calloc(rows,sizeof(float *));
+         float_matrix = (float **)calloc(rows,sizeof(float *));
          if(!float_matrix) {
              printf("\nError making pointers in %dx%d float matrix\n"
                          ,rows,cols);
              exit(1);
          }
          for(i = 0 ; i < rows ; i++) {
-             float_matrix[i] = (float *)SUMA_calloc(cols,sizeof(float));
+             float_matrix[i] = (float *)calloc(cols,sizeof(float));
              if(!float_matrix[i]) {
                  printf("\nError making row %d in %dx%d float matrix\n"
                          ,i,rows,cols);
@@ -678,14 +716,14 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
      }
      case sizeof(double): {   /* double matrix */
          double **double_matrix;
-         double_matrix = (double **)SUMA_calloc(rows,sizeof(double *));
+         double_matrix = (double **)calloc(rows,sizeof(double *));
          if(!double_matrix) {
              printf("\nError making pointers in %dx%d double matrix\n"
                          ,rows,cols);
              exit(1);
          }
          for(i = 0 ; i < rows ; i++) {
-             double_matrix[i] = (double *)SUMA_calloc(cols,sizeof(double));
+             double_matrix[i] = (double *)calloc(cols,sizeof(double));
              if(!double_matrix[i]) {
                  printf("\nError making row %d in %dx%d double matrix\n"
                          ,i,rows,cols);
@@ -699,6 +737,33 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
          printf("\nERROR in matrix_allocate: unsupported type\n");
          exit(1);
    }
+   
+   #if SUMA_MEMTRACE_FLAG
+   if (SUMAg_CF->MemTrace) {
+      ++SUMAg_CF->Mem->N_alloc;
+      if (SUMAg_CF->Mem->N_MaxPointers <= SUMAg_CF->Mem->N_alloc) {
+         /* must reallocate */
+         /* SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);*/
+         SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
+
+         SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
+         SUMAg_CF->Mem->Size  = (int *)realloc ((void *)SUMAg_CF->Mem->Size, sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
+         if (!SUMAg_CF->Mem->Pointers || !SUMAg_CF->Mem->Pointers) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate.\nTurning off memory tracing.\n", \
+               FuncName);
+            /* free up allocated space, clean up pointers, turn off memory tracing DO NOT USE SUMA_free here*/
+            if (SUMAg_CF->Mem->Pointers) free(SUMAg_CF->Mem->Pointers); SUMAg_CF->Mem->Pointers = NULL;
+            if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); SUMAg_CF->Mem->Size = NULL;
+            SUMAg_CF->MemTrace = 0;
+            SUMAg_CF->Mem->N_alloc = 0;
+            SUMAg_CF->Mem->N_MaxPointers =0;
+         }
+      }
+      SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1] = A;
+      SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = rows * cols * element_size;
+   }
+   #endif
+
    SUMA_RETURN(A);
 }
 
@@ -721,6 +786,10 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 
 
             Ziad Saad                  Oct_22_96
+
+This function should not use SUMA_free for freeing the pointers making up the matrix.
+Doing so would result in very slow execution times.
+
 *************************************************************************/
 void SUMA_free2D(char **a,int rows)
 {
@@ -728,6 +797,26 @@ void SUMA_free2D(char **a,int rows)
    static char FuncName[]={"SUMA_free2D"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+
+      #if SUMA_MEMTRACE_FLAG
+         if (SUMAg_CF->MemTrace && a) {
+            SUMA_Boolean Found = NOPE;
+            for (i=0; i < SUMAg_CF->Mem->N_alloc && !Found; ++i) {
+               if (SUMAg_CF->Mem->Pointers[i] == a) {
+                  SUMAg_CF->Mem->Pointers[i] = SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1];
+                  SUMAg_CF->Mem->Size[i] = SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1];
+                  SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc-1] = NULL;
+                  SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = 0;
+                  --SUMAg_CF->Mem->N_alloc;
+                  Found = YUP;
+               }
+            }
+            if (!Found) {
+              fprintf (SUMA_STDERR, "Error %s: Pointer %p not found in Mem struct. \n", FuncName,a); 
+            }
+         }
+      #endif
 
    /* free each row of data */
    for(i = 0 ; i < rows ; i++) free(a[i]);
@@ -1318,8 +1407,8 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float
    SUMA_COPY_VEC (t, IsIn_strct.d, IsIn_strct.nIsIn, float , float);
    SUMA_COPY_VEC (IsIn, IsIn_strct.IsIn , IsIn_strct.nIsIn, int , int);
    
-   free (t);
-   free (IsIn);
+   SUMA_free(t);
+   SUMA_free(IsIn);
    
    SUMA_RETURN (IsIn_strct);
    
@@ -1466,8 +1555,8 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
    }
    
    /*fprintf(SUMA_STDERR,"%s: freeing\n", FuncName);*/
-   free (IsIn);
-   free (d);
+   SUMA_free(IsIn);
+   SUMA_free(d);
    /*fprintf(SUMA_STDERR,"%s: freed\n", FuncName);*/
 
    SUMA_RETURN (IsIn_strct) ;
@@ -1488,8 +1577,8 @@ SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB)
       fprintf (SUMA_STDERR,"Error SUMA_Free_IsInBox: pointer to null cannot be freed\n");
       SUMA_RETURN (NOPE);
    }
-   if (IB->IsIn != NULL) free(IB->IsIn);
-   if (IB->d != NULL) free (IB->d);
+   if (IB->IsIn != NULL) SUMA_free(IB->IsIn);
+   if (IB->d != NULL) SUMA_free(IB->d);
    IB->nIsIn = 0;
    SUMA_RETURN (YUP);   
 }
@@ -1960,7 +2049,7 @@ int *SUMA_z_qsort (float *x , int nx )
       }
 
    /* free the structure */
-   free (Z_Q_fStrct);
+   SUMA_free(Z_Q_fStrct);
 
    /* return */
    SUMA_RETURN (I);
@@ -2005,7 +2094,7 @@ int *SUMA_z_dqsort (int *x , int nx )
       }
 
    /* free the structure */
-   free (Z_Q_iStrct);
+   SUMA_free(Z_Q_iStrct);
 
    /* return */
    SUMA_RETURN (I);
@@ -2013,6 +2102,52 @@ int *SUMA_z_dqsort (int *x , int nx )
       
 }/*SUMA_z_dqsort*/
    
+/*!
+   same as SUMA_z_dqsort but does not use SUMA_calloc or SUMA_free functions. 
+*/
+int *SUMA_z_dqsort_nsc (int *x , int nx )
+{/*SUMA_z_dqsort_nsc*/
+   static char FuncName[]={"SUMA_z_dqsort_nsc"}; 
+   int *I, k;
+   SUMA_Z_QSORT_INT *Z_Q_iStrct;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* allocate for the structure
+ */
+   Z_Q_iStrct = (SUMA_Z_QSORT_INT *) calloc(nx, sizeof (SUMA_Z_QSORT_INT));
+   I = (int *) calloc (nx,sizeof(int));
+
+   if (!Z_Q_iStrct || !I)
+      {
+         fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
+         SUMA_RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_iStrct[k].x = x[k];
+         Z_Q_iStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_iStrct, nx, sizeof(SUMA_Z_QSORT_INT), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_INT);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_iStrct[k].x;
+         I[k] = Z_Q_iStrct[k].Index;
+      }
+
+   /* free the structure */
+   free(Z_Q_iStrct);
+
+   /* return */
+   SUMA_RETURN (I);
+
+      
+}/*SUMA_z_dqsort_nsc*/
    
    
 /*--------------------- Matrix Sorting functions Begin -----------------------------------*/
@@ -2097,7 +2232,7 @@ int * SUMA_fqsortrow (float **X , int nr, int nc  )
       }
    
    /* free the structure */
-   free (Z_Q_fStrct);
+   SUMA_free(Z_Q_fStrct);
 
    /* return */
    SUMA_RETURN (I);
@@ -2185,7 +2320,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
       }
    
    /* free the structure */
-   free (Z_Q_dStrct);
+   SUMA_free(Z_Q_dStrct);
 
    /* return */
    SUMA_RETURN (I);
@@ -2506,11 +2641,11 @@ SUMA_Boolean SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (MTI->t) free(MTI->t);
-   if (MTI->u) free(MTI->u);
-   if (MTI->v) free(MTI->v);
-   if (MTI->isHit) free(MTI->isHit);
-   if (MTI) free(MTI);
+   if (MTI->t) SUMA_free(MTI->t);
+   if (MTI->u) SUMA_free(MTI->u);
+   if (MTI->v) SUMA_free(MTI->v);
+   if (MTI->isHit) SUMA_free(MTI->isHit);
+   if (MTI) SUMA_free(MTI);
    SUMA_RETURN(YUP);
 }
 
@@ -3033,10 +3168,10 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (SEL->EL) SUMA_free2D((char **)SEL->EL, SEL->N_EL);
-   if (SEL->ELloc) free(SEL->ELloc);
+   if (SEL->ELloc) SUMA_free(SEL->ELloc);
    if (SEL->ELps) SUMA_free2D((char **)SEL->ELps, SEL->N_EL);
    if (SEL->Tri_limb) SUMA_free2D((char **)SEL->Tri_limb, SEL->N_EL/3);
-   if (SEL) free (SEL);
+   if (SEL) SUMA_free(SEL);
    SUMA_RETURNe;
 }
 
@@ -3160,7 +3295,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
    
    /*fprintf(SUMA_STDERR,"%s: Sorting edge list done.\n", FuncName);*/
    
-   if (isort_EL) free(isort_EL);
+   if (isort_EL) SUMA_free(isort_EL);
    isort_EL = NULL;
    
    
@@ -3307,8 +3442,8 @@ void SUMA_free_FaceSet_Edge_Neighb (SUMA_FACESET_FIRST_EDGE_NEIGHB * S)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (S->FirstNeighb) SUMA_free2D((char **)S->FirstNeighb, S->N_FaceSet);
-   if (S->N_Neighb) free(S->N_Neighb);
-   if (S) free (S);
+   if (S->N_Neighb) SUMA_free(S->N_Neighb);
+   if (S) SUMA_free(S);
    SUMA_RETURNe;
 }
 
@@ -3580,8 +3715,8 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
       
    /* freedom */
    fprintf(SUMA_STDERR,"%s: Free time \n", FuncName);
-   if (isflip) free(isflip);
-   if (ischecked) free(ischecked);
+   if (isflip) SUMA_free(isflip);
+   if (ischecked) SUMA_free(ischecked);
    fprintf(SUMA_STDERR,"%s: returning.\n", FuncName);
    
    SUMA_RETURN (YUP);
@@ -3704,7 +3839,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
          /* It's OK not to die here. This does occur in patches */
          /*fprintf (SUMA_STDERR, "Warning %s: fn does not seem to contain an explicit list of neighbors, from 0..N_attr. fn->NodeId[i] = %d, i = %d. Skipping node %d.\n", \
             FuncName, fn->NodeId[i], i, i); */
-         /*free (attr_sm); 
+         /*SUMA_free(attr_sm); 
          attr_sm = NULL;
          SUMA_RETURN (attr_sm);*/
          continue;
@@ -3835,10 +3970,10 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (FN->NodeId) free (FN->NodeId);
-   if (FN->N_Neighb) free(FN->N_Neighb);
+   if (FN->NodeId) SUMA_free(FN->NodeId);
+   if (FN->N_Neighb) SUMA_free(FN->N_Neighb);
    if (FN->FirstNeighb) SUMA_free2D ((char **)FN->FirstNeighb, FN->N_Node);
-   if (FN) free(FN);
+   if (FN) SUMA_free(FN);
    SUMA_RETURN (YUP);
 }
 
@@ -4019,10 +4154,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
 
    if (!fa22 || !mMir || !mMi || !Wij || !Kij || !Tij || !Ni || !Nit || !fa33 || !fb33 || !fc33 || !I || !Num || !SkipNode || !Mi || !Q || !Qt || !SC->T1 || !SC->T2 || !SC->Kp1 || !SC->Kp2) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Wij, Kij, Tij.\n", FuncName);
-      if (Wij) free (Wij);
-      if (Kij) free (Kij);
-      if (Num) free (Num);
-      if (SkipNode) free(SkipNode);
+      if (Wij) SUMA_free(Wij);
+      if (Kij) SUMA_free(Kij);
+      if (Num) SUMA_free(Num);
+      if (SkipNode) SUMA_free(SkipNode);
       if (mMi) SUMA_free2D((char **)mMi, 2);
       if (mMir) SUMA_free2D((char **)mMir, 2);
       if (fa22) SUMA_free2D((char **)fa22, 2);
@@ -4128,10 +4263,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
             if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident))
             {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-               if (Wij) free (Wij);
-               if (Kij) free (Kij);
-               if (Num) free (Num);
-               if (SkipNode) free(SkipNode);
+               if (Wij) SUMA_free(Wij);
+               if (Kij) SUMA_free(Kij);
+               if (Num) SUMA_free(Num);
+               if (SkipNode) SUMA_free(SkipNode);
                if (mMi) SUMA_free2D((char **)mMi, 2);
                if (mMir) SUMA_free2D((char **)mMir, 2);
                if (fa22) SUMA_free2D((char **)fa22, 2);
@@ -4287,10 +4422,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
    }
    
    /* free the left overs */
-   if (Wij) free (Wij);
-   if (Kij) free (Kij);
-   if (Num) free (Num);
-   if (SkipNode) free(SkipNode);
+   if (Wij) SUMA_free(Wij);
+   if (Kij) SUMA_free(Kij);
+   if (Num) SUMA_free(Num);
+   if (SkipNode) SUMA_free(SkipNode);
    if (mMi) SUMA_free2D((char **)mMi, 2);
    if (mMir) SUMA_free2D((char **)mMir, 2);
    if (fa22) SUMA_free2D((char **)fa22, 2);
@@ -4319,11 +4454,11 @@ void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (SC == NULL) SUMA_RETURNe;
-   if (SC->Kp1) free (SC->Kp1);
-   if (SC->Kp2) free (SC->Kp2);
+   if (SC->Kp1) SUMA_free(SC->Kp1);
+   if (SC->Kp2) SUMA_free(SC->Kp2);
    if (SC->T1) SUMA_free2D ((char **)SC->T1, SC->N_Node);
    if (SC->T2) SUMA_free2D ((char **)SC->T2, SC->N_Node);
-   if (SC) free(SC);
+   if (SC) SUMA_free(SC);
    SUMA_RETURNe;
 }
 
@@ -4551,12 +4686,12 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
        else 
           {
              fprintf (SUMA_STDERR, "Error %s: Wrong opt paramter, only (0,1) allowed\n", FuncName);
-             free (strp);
-            free (buf1);
+             SUMA_free(strp);
+            SUMA_free(buf1);
             SUMA_RETURN (NULL);
           }
 
-    free (buf1);
+    SUMA_free(buf1);
 
     SUMA_RETURN (strp);
 

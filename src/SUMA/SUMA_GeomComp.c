@@ -72,7 +72,7 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
 		}
 	}
 	
-	if (BeenSelected) free(BeenSelected);
+	if (BeenSelected) SUMA_free(BeenSelected);
 	
 	SUMA_RETURN(Patch);	
 }
@@ -92,9 +92,9 @@ SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	
-	if (Patch->FaceSetIndex) free(Patch->FaceSetIndex);
-	if (Patch->FaceSetList) free(Patch->FaceSetList);
-	if (Patch) free(Patch);
+	if (Patch->FaceSetIndex) SUMA_free(Patch->FaceSetIndex);
+	if (Patch->FaceSetList) SUMA_free(Patch->FaceSetList);
+	if (Patch) SUMA_free(Patch);
 	SUMA_RETURN(YUP);
 	
 }

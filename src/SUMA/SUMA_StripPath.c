@@ -109,8 +109,8 @@ int main (int argc,char *argv[])
 	if (Test.Path)
 		{
 			fprintf(stdout,"%s %s", Test.Path, Test.FileName);
-			free (Test.Path);
-			if (Test.FileName) free(Test.FileName);
+			SUMA_free(Test.Path);
+			if (Test.FileName) SUMA_free(Test.FileName);
 		}
 	fprintf (stdout,"\n");
 	

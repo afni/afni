@@ -235,7 +235,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
 			fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
 			break;
 	}	
-	if (dov) free (dov);
+	if (dov) SUMA_free(dov);
 	SUMA_RETURN(YUP);
 }
 

@@ -37,15 +37,15 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (VP->prefix != NULL) free (VP->prefix);
-	if (VP->filecode != NULL) free (VP->filecode);
-	if (VP->dirname != NULL) free (VP->dirname);
-	if (VP->idcode_str != NULL) free (VP->idcode_str);
-	if (VP->idcode_date != NULL) free (VP->idcode_date);
-	if (VP->VOLREG_CENTER_OLD != NULL) free (VP->VOLREG_CENTER_OLD);
-	if (VP->VOLREG_CENTER_BASE != NULL) free (VP->VOLREG_CENTER_BASE);
-	if (VP->VOLREG_MATVEC != NULL) free (VP->VOLREG_MATVEC);
-	if (VP != NULL) free (VP);
+	if (VP->prefix != NULL) SUMA_free(VP->prefix);
+	if (VP->filecode != NULL) SUMA_free(VP->filecode);
+	if (VP->dirname != NULL) SUMA_free(VP->dirname);
+	if (VP->idcode_str != NULL) SUMA_free(VP->idcode_str);
+	if (VP->idcode_date != NULL) SUMA_free(VP->idcode_date);
+	if (VP->VOLREG_CENTER_OLD != NULL) SUMA_free(VP->VOLREG_CENTER_OLD);
+	if (VP->VOLREG_CENTER_BASE != NULL) SUMA_free(VP->VOLREG_CENTER_BASE);
+	if (VP->VOLREG_MATVEC != NULL) SUMA_free(VP->VOLREG_MATVEC);
+	if (VP != NULL) SUMA_free(VP);
 	SUMA_RETURN (YUP);
 }
 

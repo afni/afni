@@ -92,6 +92,14 @@
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.14159 
 
+/*!
+   Debugging flags
+*/
+#define SUMA_NIML_WORKPROC_IO_NOTIFY 0  /*!< If set to 1 then SUMA_niml_workprocess will send a notification when InOut_Notify is ON
+                                          You should keep it off unless you suspect a problem in that function. Otherwise
+                                         you'll get many reports from the function making it difficult to see other messages. */
+#define SUMA_WORKPROC_IO_NOTIFY 0  /*!< Same as above but for SUMA_workprocess */
+                                    
 typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
 typedef enum { SUMA_ASCII, SUMA_BINARY } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;

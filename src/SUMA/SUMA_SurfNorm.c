@@ -49,8 +49,8 @@ Support :
    
 Side effects : 
 	to free memory from RetStrct
-	if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
-	if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
+	if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);
+	if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
    
 ***/
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
@@ -94,10 +94,10 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 			/* I used to return here with a nasty message, but it seems that FreeSurfer surfaces contain such conditions 
 			So, now I just set the normal to 1.0 in that case */
 			/*SUMA_error_message (FuncName,"Zero length vector, returning",1);
-			if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
-			if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
-			if (Index) free(Index);
-			if (N_Memb) free(N_Memb);
+			if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);
+			if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
+			if (Index) SUMA_free(Index);
+			if (N_Memb) SUMA_free(N_Memb);
 			SUMA_RETURN (RetStrct);*/
 			RetStrct.FaceNormList[ip] = 1.0;
 			RetStrct.FaceNormList[ip+1] = 1.0;
@@ -111,10 +111,10 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 			/*each node making up the FaceSet will get its normal vector updated*/
 			if (FaceSetList[ip] > maxind || FaceSetList[ip+1] > maxind || FaceSetList[ip+2] > maxind) {
 				SUMA_error_message (FuncName,"FaceSetList contains indices >= N_NodeList",1);
-				if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
-				if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
-				if (Index) free(Index);
-				if (N_Memb) free(N_Memb);
+				if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);
+				if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
+				if (Index) SUMA_free(Index);
+				if (N_Memb) SUMA_free(N_Memb);
 				SUMA_RETURN (RetStrct);
 			}
 
@@ -167,8 +167,8 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 			fprintf(SUMA_STDERR,"\nWARNING %s: %d nodes (%f%% of total) are not members of any FaceSets. Their Normals are set to the unit vector.\n\n\a"\
 					,FuncName, NotMember, (float)NotMember/(float)N_NodeList*100.0);
 		}
-	if (N_Memb) free (N_Memb);
-	if (Index) free (Index);
+	if (N_Memb) SUMA_free(N_Memb);
+	if (Index) SUMA_free(Index);
 	SUMA_RETURN (RetStrct);
 }/*SUMA_SurfNorm*/
 
@@ -236,7 +236,7 @@ and RetStruct.N_Memb is:
 Side effects : 
    To free RetStruct, use:
 	if (RetStruct.NodeMemberOfFaceSet) free2D((char **)RetStruct.NodeMemberOfFaceSet, Nind);
-	if (RetStruct.N_Memb) free (RetStruct.N_Memb);
+	if (RetStruct.N_Memb) SUMA_free(RetStruct.N_Memb);
    
    
 ***/
@@ -324,8 +324,8 @@ SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (MF->NodeMemberOfFaceSet) SUMA_free2D((char **)MF->NodeMemberOfFaceSet, MF->Nnode);
-	if (MF->N_Memb) free (MF->N_Memb);
-	if (MF) free (MF);
+	if (MF->N_Memb) SUMA_free(MF->N_Memb);
+	if (MF) SUMA_free(MF);
 	SUMA_RETURN (YUP);
 }   
 #ifdef TEST_SUMA_MemberFaceSets
@@ -437,10 +437,10 @@ int main (int argc,char *argv[])
 	SUMA_disp_vecmat (RetStrct.FaceNormList, RetStrct.N_Face, 3, 1);
 	
 	
-	if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
-	if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
-	if (FaceSetList) free(FaceSetList);
-	if (NodeList) free(NodeList);
+	if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);
+	if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
+	if (FaceSetList) SUMA_free(FaceSetList);
+	if (NodeList) SUMA_free(NodeList);
 	SUMA_RETURN (0);
 }/* Main */
 #endif

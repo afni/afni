@@ -183,8 +183,8 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
-	if (SV->X) free (SV->X);
-	if (SV->ShowDO) free (SV->ShowDO);
+	if (SV->X) SUMA_free(SV->X);
+	if (SV->ShowDO) SUMA_free(SV->ShowDO);
 	if (SV->VSv) {
 		for (i=0; i < SV->N_VSv; ++i) {
 			if (!SUMA_Free_ViewState (&(SV->VSv[i]))) {
@@ -192,7 +192,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
 			}
 		}
 	}
-	if (SV->GVS) free (SV->GVS);
+	if (SV->GVS) SUMA_free(SV->GVS);
 	if (SV->State) SV->State = NULL; /* never free that one */ 
 	SUMA_RETURN(YUP);
 }
@@ -463,8 +463,8 @@ SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (vsh == NULL) SUMA_RETURN (YUP);
-	if (vsh->ShowDO) free(vsh->ShowDO);
-	if (vsh) free (vsh);
+	if (vsh->ShowDO) SUMA_free(vsh->ShowDO);
+	if (vsh) SUMA_free(vsh);
 	SUMA_RETURN (YUP);
 }
 
@@ -491,7 +491,7 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
 		vs[i].Hist = SUMA_Alloc_ViewState_Hist ();
 		if (vs[i].Hist == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for vs->Hist.\n", FuncName);
-			free(vs);
+			SUMA_free(vs);
 			SUMA_RETURN (NULL);
 		}
 	}
@@ -504,10 +504,10 @@ SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (vs == NULL) SUMA_RETURN (YUP);
-	if (vs->Name) free(vs->Name);
-	if (vs->MembSOs) free(vs->MembSOs);
+	if (vs->Name) SUMA_free(vs->Name);
+	if (vs->MembSOs) SUMA_free(vs->MembSOs);
 	if (vs->Hist) SUMA_Free_ViewState_Hist (vs->Hist);
-	if (vs) free (vs);
+	if (vs) SUMA_free(vs);
 	SUMA_RETURN (YUP);
 }
 
@@ -672,7 +672,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
-	if (cf) free(cf);
+	if (cf) SUMA_free(cf);
 	
 	SUMA_RETURN (YUP);
 }
@@ -733,7 +733,7 @@ SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName
 	\param sv (SUMA_SurfaceViewer *) Surface viewer structure
 	\param dov (SUMA_DO *) vector of displayable objects
 	\param N_dov (int) number of displayable objects
-	\ret ans (SUMA_SUMA_STANDARD_VIEWS) recommended view
+	\ret ans (SUMA_STANDARD_VIEWS) recommended view
 	
 */	
 SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov)

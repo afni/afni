@@ -132,7 +132,7 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-		#ifdef SUMA_MEMTRACE_FLAG
+		#if SUMA_MEMTRACE_FLAG
          if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
 			   fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
 			   SUMAg_CF->MemTrace = YUP;

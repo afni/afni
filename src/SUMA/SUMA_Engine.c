@@ -1018,8 +1018,8 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 					}
 					
 				}
-				if (XYZ) free (XYZ);
-				if (XYZmap) free(XYZmap);
+				if (XYZ) SUMA_free(XYZ);
+				if (XYZmap) SUMA_free(XYZmap);
 			}
 		} else {
 			fprintf(SUMA_STDERR, "%s: No relatives between states. CrossHair location will not correspond between states\n", FuncName); 
@@ -1157,7 +1157,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	/* if surface is not Inherrently mappable, do the deed */
 	if (!SUMA_ismappable(SO)){
 		fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
-		free (XYZmap);
+		SUMA_free(XYZmap);
 		SUMA_RETURN (NULL);
 	}
 
@@ -1190,7 +1190,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 
 				} else { /* no node is close enough */
 					fprintf (SUMA_STDERR,"%s: No node was close enough to XYZ, no linkage possible\n", FuncName);
-					free (XYZmap);
+					SUMA_free(XYZmap);
 					SUMA_RETURN (NULL);
 				}
 				/* store iclosest for lazy user */
@@ -1204,7 +1204,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	SOmapID = SUMA_findDO(SO->MapRef_idcode_str, dov, N_dov);
 	if (SOmapID < 0) {
 		fprintf (SUMA_STDERR,"%s: Failed in SUMA_findDO This should not happen.\n", FuncName);
-		free (XYZmap);
+		SUMA_free(XYZmap);
 		SUMA_RETURN (NULL);
 	}
 
@@ -1265,7 +1265,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	/* if surface is not Inherrently mappable, do the deed */
 	if (!SUMA_ismappable(SO)){
 		fprintf(SUMA_STDERR,"%s: Surface is NOT mappable, returning NULL.\n", FuncName);
-		free (XYZ);
+		SUMA_free(XYZ);
 		SUMA_RETURN (NULL);
 	}
 
@@ -1274,7 +1274,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	SOmapID = SUMA_findDO(SO->MapRef_idcode_str, dov, N_dov);
 	if (SOmapID < 0) {
 		fprintf (SUMA_STDERR,"%s: Failed in SUMA_findDO This should not happen.\n", FuncName);
-		free (XYZ);
+		SUMA_free(XYZ);
 		SUMA_RETURN (NULL);
 	}
 	SOmap = (SUMA_SurfaceObject *)(dov[SOmapID].OP);
@@ -1306,7 +1306,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 
 				} else { /* no node is close enough */
 					fprintf (SUMA_STDERR,"%s: Non node was close enough to XYZmap, no linkage possible\n", FuncName);
-					free (XYZ);
+					SUMA_free(XYZ);
 					SUMA_RETURN (NULL);
 				}
 				/* store iclosest for lazy user */
