@@ -3768,3 +3768,4 @@
 04 Jun 2002
  * Modified 3dAutomask.c to print out how many planes are cut off in the
      the mask.
+ * Modified thd_automask.c to be faster.

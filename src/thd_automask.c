@@ -1,11 +1,13 @@
 #include "mrilib.h"
 
-#define USE_MCLUST
+#undef USE_MCLUST
 
 #ifdef USE_MCLUST
 static void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 static void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
 #endif
+
+#define DILATE 1
 
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
@@ -75,8 +77,12 @@ ENTRY("THD_automask") ;
    /* 18 Apr 2002: now erode the resulting volume
                    (to break off any thinly attached pieces) */
 
+#ifdef USE_MCLUST
+   THD_mask_erode( nx,ny,nz, mmm ) ;
+#else
    MCW_erode_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
-                       MRI_byte,mmm , 1.42 , 0.90 , 1 ) ;
+                       MRI_byte,mmm , 1.42 , 0.90 , DILATE ) ;
+#endif
 
    /* now recluster it, and again keep only the largest survivor */
 
@@ -253,11 +259,14 @@ ENTRY("THD_mask_fillin_completely") ;
 /*------------------------------------------------------------------*/
 
 #ifdef USE_MCLUST
-# define DALL 1024
+# define DALL 1024  /* Allocation size for cluster arrays */
+
+/*! Put (i,j,k) into the current cluster, if it is nonzero. */
+
 # define CPUT(i,j,k)                                            \
   do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;                        \
       if( mmm[ijk] ){                                           \
-        if( nnow == nall ){                                     \
+        if( nnow == nall ){ /* increase array lengths */        \
           nall += DALL ;                                        \
           inow = (short *) realloc(inow,sizeof(short)*nall) ;   \
           jnow = (short *) realloc(jnow,sizeof(short)*nall) ;   \
@@ -300,43 +309,43 @@ static void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 
      /* init current cluster list with this point */
 
-     nall = DALL ;
-     inow = (short *) malloc(sizeof(short)*DALL) ;
+     mmm[ijk] = 0 ;                                /* clear found point */
+     nall = DALL ;                                 /* # allocated pts */
+     nnow = 1 ;                                    /* # pts in cluster */
+     inow = (short *) malloc(sizeof(short)*DALL) ; /* coords of pts */
      jnow = (short *) malloc(sizeof(short)*DALL) ;
      know = (short *) malloc(sizeof(short)*DALL) ;
      IJK_TO_THREE(ijk, inow[0],jnow[0],know[0] , nx,nxy) ;
-     nnow = 1 ;
-     mmm[ijk] = 0 ;             /* clear found point */
 
      /*--
         for each point in cluster:
            check neighboring points for nonzero entries in mmm
-           enter those into cluster
+           enter those into cluster (and clear them in mmm)
            continue until end of cluster is reached
              (note that cluster is expanding as we progress)
      --*/
 
      for( icl=0 ; icl < nnow ; icl++ ){
-        ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
-        im = ii-1      ; jm = jj-1      ; km = kk-1 ;
-        ip = ii+1      ; jp = jj+1      ; kp = kk+1 ;
+       ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ;
+       im = ii-1      ; jm = jj-1      ; km = kk-1 ;
+       ip = ii+1      ; jp = jj+1      ; kp = kk+1 ;
 
-        if( im >= 0 ) CPUT(im,jj,kk) ;
-        if( ip < nx ) CPUT(ip,jj,kk) ;
-        if( jm >= 0 ) CPUT(ii,jm,kk) ;
-        if( jp < ny ) CPUT(ii,jp,kk) ;
-        if( km >= 0 ) CPUT(ii,jj,km) ;
-        if( kp < nz ) CPUT(ii,jj,kp) ;
+       if( im >= 0 ) CPUT(im,jj,kk) ;
+       if( ip < nx ) CPUT(ip,jj,kk) ;
+       if( jm >= 0 ) CPUT(ii,jm,kk) ;
+       if( jp < ny ) CPUT(ii,jp,kk) ;
+       if( km >= 0 ) CPUT(ii,jj,km) ;
+       if( kp < nz ) CPUT(ii,jj,kp) ;
      }
 
-     /* see if new cluster is larger than best yet */
+     /* see if now cluster is larger than best yet */
 
-     if( nnow > nbest ){   /* new is bigger */
-       free(ibest) ; free(jbest) ; free(kbest) ;
-       nbest = nnow ; ibest = inow ;
+     if( nnow > nbest ){                         /* now is bigger; */
+       free(ibest) ; free(jbest) ; free(kbest) ; /* replace best  */
+       nbest = nnow ; ibest = inow ;             /* with now     */
        jbest = jnow ; kbest = know ;
-     } else {              /* old is bigger */
-       free(inow) ; free(jnow) ; free(know) ;
+     } else {                                    /* old is bigger */
+       free(inow) ; free(jnow) ; free(know) ;    /* toss now     */
      }
 
    } /* loop ends when all nonzero points are clustered */
@@ -353,6 +362,11 @@ static void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Erode away nonzero voxels that aren't neighbored by mostly other
+    nonzero voxels.  Then restore those that were eroded that are
+    neighbors of survivors.  The neighbors are the 18 voxels closest
+    in 3D (nearest and next-nearest neighbors).
+----------------------------------------------------------------------------*/
 
 void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 {
@@ -362,7 +376,9 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    if( mmm == NULL ) return ;
 
-   nnn = calloc(sizeof(byte),nxyz) ;
+   nnn = calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
+
+   /* mark nonzero voxels that don't have 17 out of 18 nonzero nbhrs */
 
    for( kk=1 ; kk < nz-1 ; kk++ ){
     km = (kk-1)*nxy ; kp = (kk+1)*nxy ; kz = kk*nxy ;
@@ -379,8 +395,8 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
               + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
               + mmm[im+jy+kp]
               + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
-              + mmm[ip+jy+kp]
-         if( num < 16 ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
+              + mmm[ip+jy+kp] ;
+         if( num < 17 ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
        }
    } } }
 
@@ -389,5 +405,29 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    /* re-dilate eroded voxels that are next to survivors */
 
+#if DILATE==1
+   for( kk=1 ; kk < nz-1 ; kk++ ){
+    km = (kk-1)*nxy ; kp = (kk+1)*nxy ; kz = kk*nxy ;
+    for( jj=1 ; jj < ny-1 ; jj++ ){
+     jm = (jj-1)*nx ; jp = (jj+1)*nx ; jy = jj*nx ;
+     for( ii=1 ; ii < nx-1 ; ii++ ){
+       if( nnn[ii+jy+kz] )            /* was eroded */
+         nnn[ii+jy+kz] =              /* see if has any nbhrs */
+               mmm[im+jy+km]
+            || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
+            || mmm[ip+jy+km]
+            || mmm[im+jm+kz] || mmm[im+jy+kz] || mmm[im+jp+kz]
+            || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
+            || mmm[ip+jm+kz] || mmm[ip+jy+kz] || mmm[ip+jp+kz]
+            || mmm[im+jy+kp]
+            || mmm[ii+jm+kp] || mmm[ii+jy+kp] || mmm[ii+jp+kp]
+            || mmm[ip+jy+kp] ;
+   } } }
+
+   for( ii=0 ; ii < nxyz ; ii++ )            /* actually un-erode */
+     if( nnn[ii] ) mmm[ii] = 1 ;
+#endif
+
+   return ;
 }
 #endif /* USE_MCLUST */
