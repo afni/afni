@@ -4602,3 +4602,6 @@
      in Xphace program.
  * Modified Makefile.INCLUDE to make libmrix.a that includes all the
      X11 utilities (imseq.c, xutil.c, xim.c, etc.).
+
+25 Jun 2003
+ * ISQ_snapfile(Widget) added to imseq.c; other tweaks to ISQ_snapshot().

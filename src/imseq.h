@@ -733,5 +733,6 @@ extern void ISQ_remove_widget( MCW_imseq * , Widget ) ;
 extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 extern void ISQ_snapshot( Widget w ) ;  /* 18 Jun 2003 */
+extern void ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
 
 #endif /* _MCW_IMSEQ_HEADER_ */
