@@ -19,6 +19,9 @@
              any noise models.
    Date:     26 December 1997
 
+   Mod:      Added novar flag to eliminate unnecessary calculations.
+   Date:     13 July 1999
+       
 */
 
 
@@ -27,33 +30,20 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
+/*---------------------------------------------------------------------------*/
+
+#define PROGRAM_NAME "plug_nlfit"                    /* name of this program */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "13 July 1999"              /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
 
 
-/*---------------------------------------------------------------------------*/
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
-
-#define PROGRAM_NAME "plug_nlfit"                  /* name of this program */
-#define LAST_MOD_DATE "09 January 1998"        /* date of last program mod */
 
 
 #include <math.h>
@@ -466,6 +456,7 @@ float *  nlfit
   float * min_sconstr = NULL;  /* min parameter constraints for signal model */
   float * max_sconstr = NULL;  /* max parameter constraints for signal model */
 
+  int novar;               /* flag for insufficient variation in the data */
 
    
   /*----- program initialization -----*/
@@ -486,7 +477,7 @@ float *  nlfit
   calc_full_model (nmodel, smodel, r, p, 
 		   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 		   ts_length, x_array, ts_array, par_rdcd, sse_rdcd, 
-		   nabs, nrand, nbest, rms_min, par_full, &sse_full);
+		   nabs, nrand, nbest, rms_min, par_full, &sse_full, &novar);
 
 
   /*----- create estimated time series using the full model parameters -----*/
@@ -495,7 +486,7 @@ float *  nlfit
       
 
   /*----- calculate statistics for the full model -----*/
-  analyze_results (nmodel, smodel, r, p,
+  analyze_results (nmodel, smodel, r, p, novar,
 		   min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		   ts_length, x_array,
 		   par_rdcd, sse_rdcd, par_full, sse_full,
@@ -851,9 +842,16 @@ char * NL_main( PLUGIN_interface * plint )
      } while(1) ;
 
 
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
+
+   
    /*----- show current input options -----*/
-   printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-   printf ("Last revision: %s\n", LAST_MOD_DATE);
    printf ("\nControls: \n");
    printf ("Ignore       = %5d \n", plug_ignore);
    printf ("Num Random   = %5d \n", plug_nrand);

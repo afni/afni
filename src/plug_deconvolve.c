@@ -32,18 +32,28 @@
   Mod:     Change NLast default value.
   Date:    27 May 1999
 
-*/
+  Mod:     Added option for matrix calculation of general linear tests.
+  Date:    02 July 1999
 
+
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+
+*/
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "27 May 1999"               /* date of last program mod */
+#define PROGRAM_DATE "02 July 1999"              /* date of last program mod */
+
+/*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 200                           /* max. number of parameters */
 #define MAX_STIMTS 10                 /* max. number of stimulus time series */
+#define MAX_GLT 10                    /* max. number of general linear tests */
+#define MAX_CONSTR 10                 /* max. number of linear constraints   */
 
 #define RA_error DC_error
 
@@ -53,7 +63,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-   Print error message and stop.
+   Print error message and return.
 */
 
 void DC_error (char * message)
@@ -109,10 +119,12 @@ int calculate_results();
 static PLUGIN_interface * global_plint = NULL;
 
 static int plug_polort=1;   /* degree of polynomial for baseline model */
+static int plug_p = 0;      /* total number of parameters in the model */
 static int plug_NFirst=0;   /* first image from input 3d+time dataset to use */
-static int plug_NLast=1000; /* last image from input 3d+time dataset to use */
+static int plug_NLast=32767;/* last image from input 3d+time dataset to use */
 static int plug_IRF=-1;     /* which impulse response fuction to plot */
-static int initialize=1;    /* flag for perform initialization */
+static int initialize=0;    /* flag for perform initialization */
+static int prev_nt=0;       /* previous time series length */
 
 static int num_stimts = 0;                 /* number of stimulus time series */
 static char * stim_label[MAX_STIMTS];      /* stimulus time series labels */
@@ -129,6 +141,14 @@ static matrix xtxinvxt_base;      /* matrix:  (1/(X'X))X' for baseline model */
 static matrix x_rdcd[MAX_STIMTS]; /* extracted X matrices for reduced models */
 static matrix xtxinvxt_rdcd[MAX_STIMTS];     
                                   /* matrix:  (1/(X'X))X' for reduced models */
+
+static int glt_num = 0;           /* number of general linear tests */
+static int glt_rows[MAX_GLT];     /* number of linear constraints in glt */
+static char * glt_filename[MAX_GLT];       /* file containing glt matrix */
+
+static matrix glt_cmat[MAX_GLT];  /* general linear test matrices */
+static matrix glt_amat[MAX_GLT];  /* constant GLT matrices for later use */
+static vector glt_coef[MAX_GLT];  /* linear combinations from GLT matrices */
 
 
 /*---------------------------------------------------------------------------*/
@@ -148,6 +168,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */
    int is;                        /* input stimulus index */
+   int iglt;                   /* index for general linear test */
 
 
    if( ncall > 0 ) return NULL ;  /* generate interface for ncall 0 */
@@ -169,8 +190,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
    PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 1);
-   PLUTO_add_number (plint, "NFirst", 0, 32767, 0, 0,     TRUE);
-   PLUTO_add_number (plint, "NLast",  0, 32767, 0, 32767, TRUE);
+   PLUTO_add_number (plint, "NFirst", 0, 32767, 0, 0, TRUE);
+   PLUTO_add_number (plint, "NLast",  0, 32767, 0, 32767,  TRUE);
    PLUTO_add_string( plint, "IRF Label",    0, NULL, 1);
 
 
@@ -183,6 +204,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
        PLUTO_add_number (plint, "Min Lag", 0, 100, 0, 0, TRUE);
        PLUTO_add_number (plint, "Max Lag", 0, 100, 0, 0, TRUE);
       
+     }
+
+   /*----- General Linear Test -----*/
+   for (is = 0;  is < MAX_GLT;  is++)
+     {
+       PLUTO_add_option (plint, "GLT Matrix", "GLT Matrix", FALSE);
+       PLUTO_add_number (plint, "Rows", 1, 10, 0, 0, TRUE);
+       PLUTO_add_string( plint, "File", 0, NULL, 1);     
      }
 
    /*--------- done with interface setup ---------*/
@@ -207,6 +236,17 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       strcpy (stim_label[is], " ");
     }
 
+  for (iglt =0;  iglt < MAX_GLT;  iglt++)
+    {
+      glt_rows[iglt] = 0;
+      matrix_initialize (&glt_cmat[iglt]);
+      matrix_initialize (&glt_amat[iglt]);
+      vector_initialize (&glt_coef[iglt]);
+      glt_filename[iglt] = malloc (sizeof(char)*MAX_NAME_LENGTH);
+      MTEST (glt_filename[iglt]);
+      strcpy (glt_filename[iglt], " ");
+    }
+
 
    return plint ;
 }
@@ -224,7 +264,12 @@ char * DC_main( PLUGIN_interface * plint )
   char * str;                           /* input string */
   int is;                               /* stimulus index */
   char IRF_label[MAX_NAME_LENGTH];      /* label of stimulus for IRF plot */
+  int iglt;                             /* general linear test index */
   
+
+  /*----- reset flag for successful initialization -----*/
+  initialize = 0;
+    
 
   /*--------- go to Control input line ---------*/
   PLUTO_next_option (plint);
@@ -235,40 +280,57 @@ char * DC_main( PLUGIN_interface * plint )
   strcpy (IRF_label, PLUTO_get_string (plint));
 
 
-  /*------ read Input Stimulus line(s) -----*/
+  /*------ read input line(s) -----*/
   plug_IRF = -1;
   num_stimts = 0;
+  glt_num = 0;
+
   do
     {
       str = PLUTO_get_optiontag(plint); 
       if (str == NULL)  break;
-      if (strcmp (str, "Stimulus") != 0)
+      if ((strcmp (str, "Stimulus") != 0) && (strcmp (str, "GLT Matrix") != 0))
         return "************************\n"
                "Illegal optiontag found!\n"
                "************************";
      
+
+      /*----- Read Input Stimulus Line -----*/
+      if (strcmp (str, "Stimulus") == 0)
+	{      
+	  strcpy (stim_label[num_stimts], PLUTO_get_string(plint));
+	  if (strcmp(stim_label[num_stimts], IRF_label) == 0)
+	    plug_IRF = num_stimts;
+	  
+	  stimulus[num_stimts] = PLUTO_get_timeseries(plint) ;
+	  
+	  if (stimulus[num_stimts] == NULL || stimulus[num_stimts]->nx < 3 
+	      ||  stimulus[num_stimts]->kind != MRI_float)
+	    return "*************************\n"
+	           "Illegal Timeseries Input!\n"
+	           "*************************"  ;
+	  
+	  min_lag[num_stimts] = PLUTO_get_number(plint);
+	  max_lag[num_stimts] = PLUTO_get_number(plint);
+	  
+	  if (min_lag[num_stimts] > max_lag[num_stimts])
+	    return "**************************\n"
+                   "Require Min Lag <= Max Lag\n"
+	           "**************************"  ;
+	  
+	  num_stimts++;
+	}
+
+
+      /*----- Read General Matrix Test Line -----*/
+      if (strcmp (str, "GLT Matrix") == 0)
+	{      
+	  glt_rows[glt_num] = PLUTO_get_number(plint);
+
+	  strcpy (glt_filename[glt_num], PLUTO_get_string(plint));
       
-      strcpy (stim_label[num_stimts], PLUTO_get_string(plint));
-      if (strcmp(stim_label[num_stimts], IRF_label) == 0)
-	plug_IRF = num_stimts;
-
-      stimulus[num_stimts] = PLUTO_get_timeseries(plint) ;
-  
-      if (stimulus[num_stimts] == NULL || stimulus[num_stimts]->nx < 3 
-	  ||  stimulus[num_stimts]->kind != MRI_float)
-	return "*************************\n"
-	       "Illegal Timeseries Input!\n"
-	       "*************************"  ;
-
-      min_lag[num_stimts] = PLUTO_get_number(plint);
-      max_lag[num_stimts] = PLUTO_get_number(plint);
-
-      if (min_lag[num_stimts] > max_lag[num_stimts])
-	return "**************************\n"
-	       "Require Min Lag <= Max Lag\n"
-	       "**************************"  ;
-
-      num_stimts++;
+	  glt_num++;
+	}
 
     }
 
@@ -291,10 +353,36 @@ char * DC_main( PLUGIN_interface * plint )
       printf ("\nStimulus:  %s \n", stim_label[is]);
       printf ("Min. Lag =%3d   Max. Lag =%3d \n", min_lag[is], max_lag[is]);
     }
-  
+ 
+
+  /*----- Determine total number of parameters in the model -----*/
+  plug_p = plug_polort + 1;
+  for (is = 0;  is < num_stimts;  is++)
+    plug_p += max_lag[is] - min_lag[is] + 1;
+ 
+
+  /*----- Read the general linear test matrices -----*/
+  if (glt_num > 0)
+    for (iglt = 0;  iglt < glt_num;  iglt++)
+      {
+	printf ("\nGLT #%d   #rows = %d   from file: %s \n", 
+		iglt, glt_rows[iglt], glt_filename[iglt]);
+	matrix_file_read (glt_filename[iglt],
+			  glt_rows[iglt],
+			  plug_p,
+			  &(glt_cmat[iglt]));
+	if (glt_cmat[iglt].elts == NULL)
+	  { 
+	    return "**************************\n"
+                   "Unable to read GLT matrix \n"
+	           "**************************"  ;
+	  }
+      } 
+
 
   /*--- nothing left to do until data arrives ---*/
-  initialize = 1 ;  /* force re-initialization */
+  initialize = 1 ;  /* successful initialization */
+  prev_nt = 0;      /* previous time series length */
   
   return NULL ;
 }
@@ -336,7 +424,6 @@ int calculate_results
 
   vector y;                   /* vector of measured data */       
 
-  int polort;            /* degree of polynomial for baseline model */
   int NFirst;            /* first image from input 3d+time dataset to use */
   int NLast;             /* last image from input 3d+time dataset to use */
   int i;                 /* data point index */
@@ -344,6 +431,12 @@ int calculate_results
 
   float rms_min = 0.0;   /* minimum variation in data to fit full model */
   int ok;                /* flag for successful matrix calculation */
+  int novar;             /* flag for insufficient variation in data */
+  float fglt[MAX_GLT];   /* F-statistics for the general linear tests */
+
+
+  /*----- Check initialization flag -----*/
+  if (! initialize)  return (0);
 
 
   /*----- Initialize vectors -----*/
@@ -354,14 +447,10 @@ int calculate_results
   
 
   /*----- Initialize local variables -----*/
-  polort = plug_polort;
+  q = plug_polort + 1;
+  p = plug_p;
   NFirst = plug_NFirst;
   NLast = plug_NLast;
-
-  q = polort + 1;
-  p = q;
-  for (is = 0;  is < num_stimts;  is++)
-    p += (max_lag[is]-min_lag[is]+1);
 
   for (is = 0;  is < num_stimts;  is++)
     if (NFirst < max_lag[is])  NFirst = max_lag[is];
@@ -380,16 +469,31 @@ int calculate_results
   *nfit = p;
 
 
-  /*----- Initialize the independent variable matrix -----*/
-  init_indep_var_matrix (p, q, NFirst, N, num_stimts,
-			 stimulus, min_lag, max_lag, &xdata);
+  /*----- Perform initialization only if something has changed -----*/
+  if (nt == prev_nt)
+    {
+      ok = 1;
+    }
+  else
+    {
+      /*----- Initialize the independent variable matrix -----*/
+      ok = init_indep_var_matrix (p, q, NFirst, N, num_stimts,
+				  stimulus, min_lag, max_lag, &xdata);
+
+      
+      /*----- Initialization for the regression analysis -----*/
+      if (ok)
+	ok = init_regression_analysis (p, q, num_stimts, min_lag, max_lag, 
+			     xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
+			     &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
 
 
-  /*----- Initialization for the regression analysis -----*/
-  ok = init_regression_analysis (p, q, num_stimts, min_lag, max_lag, xdata, 
-			       &x_full, &xtxinv_full, &xtxinvxt_full,
-			       &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
-
+      /*----- Initialization for the general linear test analysis -----*/
+      if (ok)
+	if (glt_num > 0)
+	  ok = init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat);
+    }
+      
   if (ok)
     {
       /*----- Extract Y-data for this voxel -----*/
@@ -401,11 +505,17 @@ int calculate_results
       
       /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
-			   x_full, xtxinv_full, xtxinvxt_full, x_base,
-			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
-			   &mse, &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
+		 x_full, xtxinv_full, xtxinvxt_full, x_base,
+	         xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
+	   	 &mse, &coef, &scoef, &tcoef, fpart, &freg, &rsqr, &novar);
       
+ 	  
+      /*----- Perform the general linear tests for this voxel -----*/
+      if (glt_num > 0)
+	glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar,
+		      glt_num, glt_rows, glt_cmat, glt_amat, glt_coef, fglt);
       
+     
       /*----- Save the fit parameters -----*/
       vector_to_array (coef, fit);
   
@@ -413,8 +523,11 @@ int calculate_results
       /*----- Report results for this voxel -----*/
       printf ("\nResults for Voxel: \n");
       report_results (q, num_stimts, stim_label, min_lag, max_lag,
-		      coef, tcoef, fpart, freg, rsqr, label);
+		      coef, tcoef, fpart, freg, rsqr, 
+		      glt_num, glt_rows, glt_coef, fglt, label);
       printf ("%s \n", *label);
+
+      prev_nt = nt;
     }
 
   else
@@ -423,6 +536,7 @@ int calculate_results
       vector_to_array (coef, fit);
       strcpy (lbuf, "");
       *label = lbuf;
+      prev_nt = 0;
     }
 
   

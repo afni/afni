@@ -5,11 +5,15 @@
   Author:   B. Douglas Ward
   Date:     23 April 1997
 
-  Mod:      05 August 1997
-            Changed print format for functions matrix_print and vector_print.
+  Mod:      Changed print format for functions matrix_print and vector_print.
+  Date:     05 August 1997
 
-  Mod:      04 November 1997
-            Changed initialization in function vector_create.
+  Mod:      Changed initialization in function vector_create.
+  Date:     04 November 1997
+
+  Mod:      Added routines matrix_file_write and matrix_file_read.
+  Date:     02 July 1999
+	    
 */
 
 
@@ -17,23 +21,6 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -143,6 +130,34 @@ void matrix_print (matrix m)
 
 /*---------------------------------------------------------------------------*/
 /*
+  Print contents of matrix m to specified file.
+*/
+
+void matrix_file_write (char * filename, matrix m)
+{
+  int i, j;
+  int rows, cols;
+  FILE * outfile = NULL;
+
+
+  outfile = fopen (filename, "w");
+
+  rows = m.rows;
+  cols = m.cols;
+
+  for (i = 0;  i < rows;  i++)
+    {
+      for (j = 0;  j < cols;  j++)
+        fprintf (outfile, "  %f", m.elts[i][j]);
+      fprintf (outfile, " \n");
+    }
+  fprintf (outfile, " \n");
+
+  fclose (outfile);
+}
+
+ /*---------------------------------------------------------------------------*/
+/*
   Manual entry of matrix data.
 */
 
@@ -166,6 +181,46 @@ void matrix_enter (matrix * m)
 	scanf ("%f", &fval);
 	m->elts[i][j] = fval;
       }
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Read contents of matrix m from specified file.
+  Return null matrix if unable to read matrix from file.
+*/
+
+void matrix_file_read (char * filename, int rows, int cols,  matrix * m)
+{
+  int i, j;
+  float fval;
+  FILE * infile = NULL;
+
+
+  matrix_create (rows, cols, m);
+
+  infile = fopen (filename, "r");
+  if (infile == NULL) 
+    {
+      matrix_destroy (m);
+      return;
+    }
+ 
+
+  for (i = 0;  i < rows;  i++)
+    {
+      for (j = 0;  j < cols;  j++)
+        if (fscanf(infile,"%f", &fval) == EOF)  
+	  {
+	    matrix_destroy (m);
+	    return;
+	  }
+        else
+          m->elts[i][j] = fval;
+    }
+
+  fclose (infile);
+
 }
 
 

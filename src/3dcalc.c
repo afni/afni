@@ -393,7 +393,7 @@ void CALC_Syntax(void)
     "                   factor was used.  This would cause trouble if the values\n"
     "                   in different sub-bricks were in vastly different scales.\n"
     "                   In this version, each sub-brick gets its own scale factor.\n"
-    "                   To override this behaviour, use the '-gscale option'.\n"
+    "                   To override this behaviour, use the '-gscale' option.\n"
     "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
     "                   get the same scaling factor.  This may be desirable\n"
     "                   for 3D+time datasets, for example.\n"

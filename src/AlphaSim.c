@@ -9,37 +9,25 @@
   Date:    18 June 1997
 
   Mod:     Changed random number generator function from rand to drand48.
-           26 August 1997
-*/
+  Date:    26 August 1997
+
+  Mod:     Corrected problem: attempt to close a file which was not open.
+  Date:    21 June 1999
 
 
-
-/*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
-******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
 */
 
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
-#define LAST_MOD_DATE "26 August 1997"           /* date of last program mod */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "21 June 1999"              /* date of last program mod */
+
+/*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80            /* max. strength length for file names */
 #define MAX_CLUSTER_SIZE 1000        /* max. size of cluster for freq. table */
@@ -536,9 +524,8 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
 			     float rmm,  float pthr,  int niter, 
 			     char * outfilename)
 {
-  FILE * fout;
+  FILE * fout = NULL;
   char message[MAX_NAME_LENGTH];     /* error message */
-
 
   if (nx <= 0)  AlphaSim_error ("Illegal value for nx ");
   if (ny <= 0)  AlphaSim_error ("Illegal value for ny ");
@@ -566,8 +553,6 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
 	  sprintf (message, "Output file %s already exists. ", outfilename); 
 	  AlphaSim_error (message);
 	}
-      else
-	fclose(fout);
     }
 
 }
@@ -598,7 +583,7 @@ void initialize (int argc, char ** argv,
   double p, q, z, mean, sd;
   int status;
   double bound;
- 
+
 
   /*----- get command line inputs -----*/
   get_options(argc, argv, 
@@ -614,7 +599,7 @@ void initialize (int argc, char ** argv,
 			  *rmm,  *pthr,  *niter,  *outfilename);
 
 
-  /*----- allocate memory space for image data -----*/   
+  /*----- allocate memory space for image data -----*/
   nxyz = (*nx) * (*ny) * (*nz); 
   *fim = (float *) malloc(nxyz * sizeof(float));
   if (*fim == NULL)
@@ -678,6 +663,7 @@ void initialize (int argc, char ** argv,
 
   /*----- initialize random number generator -----*/
   srand48 (1234567);
+
 }
 
 
@@ -1225,7 +1211,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 
   /*----- print out the results -----*/
   fprintf (fout, "\n\nProgram %s \n\n", PROGRAM_NAME);
-  fprintf (fout, "Last revision: %s \n\n", LAST_MOD_DATE);
+  fprintf (fout, "Last revision: %s \n\n", PROGRAM_DATE);
 
   fprintf (fout, "Data set dimensions: \n");
   fprintf (fout, "nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
@@ -1303,7 +1289,7 @@ void terminate (float ** fim,  float ** arfim,
   Alpha simulation.
 */
  
-void main (int argc, char ** argv)
+int main (int argc, char ** argv)
 {
   int nx;                  /* number of voxels along x-axis */
   int ny;                  /* number of voxels along y-axis */
@@ -1340,10 +1326,16 @@ void main (int argc, char ** argv)
   long * freq_table = NULL;
   long * max_table = NULL;
 
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
+
 
   /*----- program initialization -----*/
-  printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-  printf ("Last revision: %s\n", LAST_MOD_DATE);
   initialize (argc, argv, 
 	      &nx, &ny, &nz, &dx, &dy, &dz, &filter, &sigmax, &sigmay, &sigmaz,
 	      &egfw, &avgsx, &avgsy, &avgsz, &power, &ax, &ay, &az, &zsep, 

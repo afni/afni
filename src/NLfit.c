@@ -11,14 +11,18 @@
   Date:     21 August 1997
 
   Mod:      Changed random number initialization from srand to srand48.
-            29 August 1997
+  Date:     29 August 1997
 
   Mod:      Added options for percent signal change above baseline, and
             calculation of area under the signal above baseline.
-            26 November 1997
+  Date:     26 November 1997
 
   Mod:      Continuation of previous modification.
-            8 January 1998
+  Date:     8 January 1998
+
+  Mod:      Added novar flag to eliminate unnecessary calculations.
+  Date:     13 July 1999
+
 */
 
 
@@ -27,22 +31,6 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
 
 
 /*---------------------------------------------------------------------------*/
@@ -810,7 +798,8 @@ void calc_full_model
   int nbest,              /* number of random vectors to keep */
   float rms_min,          /* minimum rms error required to reject rdcd model */
   float * par_full,       /* estimated parameters for the full model */
-  float * sse_full        /* error sum of squares for the full model */
+  float * sse_full,       /* error sum of squares for the full model */
+  int * novar             /* flag for insufficient variation in data */
 )
 
 {
@@ -825,6 +814,7 @@ void calc_full_model
 	  just use the reduced model -----*/
   if ( (p < 1) || (sqrt(sse_rdcd/(ts_length - r)) < rms_min) ) 
     {
+      *novar = 1;
       for (ip = 0;  ip < r;  ip++)
 	par_full[ip] = par_rdcd[ip];
       for (ip = r;  ip < r+p;  ip++)
@@ -832,6 +822,9 @@ void calc_full_model
       *sse_full = sse_rdcd;
       return;
     }
+  else
+    *novar = 0;
+
 
   /*----- initialize random number generator -----*/
   srand48 (1234567);
@@ -973,6 +966,7 @@ void analyze_results
   vfp smodel,             /* pointer to signal model */
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
+  int novar,              /* flag for insufficient variation in the data */
   float * min_nconstr,    /* minimum parameter constraints for noise model */
   float * max_nconstr,    /* maximum parameter constraints for noise model */
   float * min_sconstr,    /* minimum parameter constraints for signal model */
@@ -1015,6 +1009,15 @@ void analyze_results
   dimension = r + p;
   df_rdcd = ts_length - r;
   df_full = ts_length - dimension;
+
+  /*----- check for insufficient variation in the data -----*/
+  if (novar)
+    {
+      *rmsreg = *freg = *smax = *tmax = *pmax = *area = *parea = 0.0;
+      for (ip = 0;  ip < dimension;  ip++)
+	tpar_full[ip] = 0.0;
+      return;
+    }
 
   /*----- MSE for full model -----*/
   mse_full = sse_full / df_full;

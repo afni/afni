@@ -16,6 +16,9 @@
            (Avoids redundant error messages.)
   Date:    06 January 1999
 
+  Mod:     Modifications for matrix calculation of general linear tests.
+  Date:    02 July 1999
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -31,7 +34,7 @@
    Initialize independent variable X matrix 
 */
 
-void init_indep_var_matrix 
+int init_indep_var_matrix 
 (
   int p,                      /* number of parameters in the full model */   
   int q,                      /* number of parameters in the baseline model */ 
@@ -73,6 +76,11 @@ void init_indep_var_matrix
   m = q;
   for (is = 0;  is < num_stimts;  is++)
     {
+      if (stimulus[is]->nx < N+NFirst)
+	{
+	  DC_error ("Input stimulus time series is too short");
+	  return (0);
+	}
       stim_array = MRI_FLOAT_PTR (stimulus[is]);
       for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	{
@@ -84,6 +92,8 @@ void init_indep_var_matrix
 	  m++;
 	}
     }
+
+  return (1);
 
 }
 
@@ -175,6 +185,34 @@ int init_regression_analysis
 
 
 /*---------------------------------------------------------------------------*/
+/*
+  Initialization for the general linear test analysis.
+*/
+
+int init_glt_analysis 
+(
+  matrix xtxinv,              /* matrix:  1/(X'X)  for full model */
+  int glt_num,                /* number of general linear tests */
+  matrix * glt_cmat,          /* general linear test matrices */
+  matrix * glt_amat           /* constant GLT matrices for later use */
+)
+
+{
+  int iglt;                   /* index for general linear test */
+  int ok;                     /* flag for successful matrix inversion */
+
+
+  for (iglt = 0;  iglt < glt_num;  iglt++)
+    {
+      ok = calc_glt_matrix (xtxinv, glt_cmat[iglt], &(glt_amat[iglt]));
+      if (! ok)  return (0);
+    }
+
+  return (1);
+}
+
+
+/*---------------------------------------------------------------------------*/
 /* 
    Calculate results for this voxel. 
 */
@@ -202,7 +240,8 @@ void regression_analysis
   vector * tcoef_full,      /* t-statistics for regression parameters */
   float * fpart,            /* partial F-statistics for the stimuli */
   float * freg,             /* regression F-statistic */
-  float * rsqr              /* coeff. of multiple determination R^2  */
+  float * rsqr,             /* coeff. of multiple determination R^2  */
+  int * novar               /* flag for insufficient variation in data */
 )
 
 {
@@ -228,6 +267,7 @@ void regression_analysis
   /*----- Stop here if variation about baseline is sufficiently low -----*/
   if (sqrt(sse_base/N) < rms_min)
     {
+      *novar = 1;
       vector_create (p, coef_full);
       vector_create (p, scoef_full);
       vector_create (p, tcoef_full);
@@ -239,6 +279,8 @@ void regression_analysis
       vector_destroy (&coef_temp);
       return;
     }
+  else
+    *novar = 0;
 
 
   /*----- Calculate regression coefficients for the full model  -----*/
@@ -289,6 +331,72 @@ void regression_analysis
   
 
 /*---------------------------------------------------------------------------*/
+/*
+  Perform the general linear test analysis for this voxel.
+*/
+
+void glt_analysis 
+(
+  int n,                      /* number of data points */
+  int p,                      /* number of parameters in the full model */
+  matrix x,                   /* X matrix for full model */
+  vector y,                   /* vector of measured data */       
+  float ssef,                 /* error sum of squares from full model */
+  vector coef,                /* regression parameters for full model */
+  int novar,                  /* flag for insufficient variation in data */
+  int glt_num,                /* number of general linear tests */
+  int * glt_rows,             /* number of linear constraints in glt */
+  matrix * glt_cmat,          /* general linear test matrices */
+  matrix * glt_amat,          /* constant matrices */
+  vector * glt_coef,          /* linear combinations from GLT matrices */
+  float * fglt                /* F-statistics for the general linear tests */
+)
+
+{
+  int iglt;                   /* index for general linear test */
+  int q;                      /* number of parameters in the rdcd model */
+  float sser;                 /* error sum of squares, reduced model */
+  vector rcoef;               /* regression parameters for reduced model */
+
+
+  /*----- Initialization -----*/
+  vector_initialize (&rcoef);
+
+
+  /*----- Loop over multiple general linear tests -----*/
+  for (iglt = 0;  iglt < glt_num;  iglt++)
+    {
+      /*----- Test for insufficient variation in data -----*/
+      if (novar)
+	{
+	  vector_create (glt_rows[iglt], &glt_coef[iglt]);
+	  fglt[iglt] = 0.0;
+	}
+      else
+	{
+	  /*----- Calculate the GLT linear combinations -----*/
+	  calc_lcoef (glt_cmat[iglt], coef, &glt_coef[iglt]);
+	  
+	  /*----- Calculate regression parameters for the reduced model -----*/
+	  calc_rcoef (glt_amat[iglt], coef, &rcoef);
+
+	  /*----- Calculate error sum of squares for the reduced model -----*/
+	  sser = calc_sse (x, rcoef, y);
+
+	  /*----- Calculate the F-statistic for the reduced model -----*/
+	  q = p - glt_rows[iglt]; 
+	  fglt[iglt] = calc_freg (n, p, q, ssef, sser);
+	}
+    }
+
+
+  /*----- Dispose of vector -----*/
+  vector_destroy (&rcoef);
+
+}
+
+
+/*---------------------------------------------------------------------------*/
 
 static char lbuf[4096];   /* character string containing statistical summary */
 static char sbuf[256];
@@ -306,6 +414,10 @@ void report_results
   float * fpart,              /* partial F-statistics for the stimuli */
   float freg,                 /* total regression F-statistic */
   float rsqr,                 /* coeff. of multiple determination R^2  */
+  int glt_num,                /* number of general linear tests */
+  int * glt_rows,             /* number of linear constraints in glt */
+  vector *  glt_coef,         /* linear combinations from GLT matrices */
+  float * fglt,               /* F-statistics for the general linear tests */
   char ** label               /* statistical summary for ouput display */
 )
 
@@ -313,6 +425,9 @@ void report_results
   int m;                      /* coefficient index */
   int is;                     /* stimulus index */
   int ilag;                   /* time lag index */
+
+  int iglt;                   /* general linear test index */
+  int ilc;                    /* linear combination index */
 
 
   /** 22 Apr 1997: create label if desired by AFNI         **/
@@ -323,7 +438,9 @@ void report_results
     lbuf[0] = '\0' ;   /* make this a 0 length string to start */
     
     /** for each reference, make a string into sbuf **/
-    
+
+
+    /*----- Statistical results for baseline fit -----*/ 
     sprintf (sbuf, "\nBaseline: \n");
     strcat(lbuf,sbuf);
     for (m=0;  m < q;  m++)
@@ -334,6 +451,8 @@ void report_results
 	strcat(lbuf,sbuf) ;
       }
     
+
+    /*----- Statistical results for stimulus response -----*/
     m = q;
     for (is = 0;  is < num_stimts;  is++)
       {
@@ -350,7 +469,28 @@ void report_results
 	sprintf (sbuf, "%26sPartial F   = %10.4f \n", "", fpart[is]);
 	strcat (lbuf, sbuf);
       }
+
+
+    /*----- Statistical results for general linear test -----*/
+    if (glt_num > 0)
+      {
+	for (iglt = 0;  iglt < glt_num;  iglt++)
+	  {
+	    sprintf (sbuf, "\nGeneral Linear Test #%d: \n", iglt+1);
+	    strcat (lbuf,sbuf);
+	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+	      {
+		sprintf (sbuf, "LC[%d]  = %10.4f \n", 
+			 ilc, glt_coef[iglt].elts[ilc]);
+		strcat (lbuf,sbuf);
+	      }
+	    sprintf (sbuf, "F-stat = %10.4f \n", fglt[iglt]);
+	    strcat (lbuf,sbuf);
+	  }
+      }
     
+
+    /*----- Statistical results for full model -----*/
     sprintf (sbuf, "\nFull Model: \n");
     strcat (lbuf, sbuf);
 

@@ -9,6 +9,9 @@
   Mod:     Restructured matrix calculations to improve execution speed.
   Date:    16 December 1998
 
+  Mod:     Added routines for matrix calculation of general linear tests.
+  Date:    02 July 1999
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -70,6 +73,57 @@ int calc_matrices
   /*----- dispose of matrices -----*/
   matrix_destroy (&xtx);
   matrix_destroy (&xt);
+
+
+  return (ok);
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate constant matrix to be used for general linear test (GLT).
+*/
+
+int calc_glt_matrix 
+(
+  matrix xtxinv,              /* matrix:  1/(X'X)  */
+  matrix c,                   /* matrix representing GLT linear constraints */
+  matrix * a                  /* constant matrix for use later */
+)
+
+{
+  matrix ct, xtxinvct, t1, t2;  /* temporary matrix calculation results */
+  int ok;                       /* flag for successful matrix inversion */
+
+
+  /*----- initialize matrices -----*/
+  matrix_initialize (&ct);
+  matrix_initialize (&xtxinvct);
+  matrix_initialize (&t1);
+  matrix_initialize (&t2);
+
+
+  /*----- calculate the constant matrix which will be needed later -----*/
+  matrix_transpose (c, &ct); 
+  matrix_multiply (xtxinv, ct, &xtxinvct);
+  matrix_multiply (c, xtxinvct, &t1);
+  ok = matrix_inverse (t1, &t2);
+  if (ok)
+    {
+      matrix_multiply (xtxinvct, t2, &t1);
+      matrix_multiply (t1, c, &t2);
+      matrix_identity (xtxinv.rows, &t1);
+      matrix_subtract (t1, t2, a);
+    }
+  else
+    RA_error ("Improper C matrix  ( cannot invert C(1/(X'X))C' ) ");
+
+
+  /*----- dispose of matrices -----*/
+  matrix_destroy (&ct);
+  matrix_destroy (&xtxinvct);
+  matrix_destroy (&t1);
+  matrix_destroy (&t2);
 
 
   return (ok);
@@ -231,6 +285,46 @@ void calc_coef
 
   /*----- calculate regression coefficients -----*/
   vector_multiply (xtxinvxt, y, coef);
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate least squares estimators under the reduced model.
+*/
+
+void calc_rcoef 
+(
+  matrix a,            /* constant matrix for least squares calculation  */
+  vector coef,         /* vector of regression parameters */
+  vector * rcoef       /* reduced model regression coefficients */
+)
+
+{
+
+  /*----- calculate reduced model regression coefficients -----*/
+  vector_multiply (a, coef, rcoef);
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate linear combinations of regression coefficients.
+*/
+
+void calc_lcoef 
+(
+  matrix c,            /* matrix representing GLT linear constraints  */
+  vector coef,         /* vector of regression parameters */
+  vector * lcoef       /* linear combinations of regression parameters */
+)
+
+{
+
+  /*----- calculate linear combinations -----*/
+  vector_multiply (c, coef, lcoef);
 
 }
 

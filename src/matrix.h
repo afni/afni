@@ -5,6 +5,9 @@
   Author:   B. Douglas Ward
   Date:     23 April 1997
 
+  Mod:      Added routines matrix_file_write and matrix_file_read.
+  Date:     02 July 1999
+
 */
 
 
@@ -13,23 +16,6 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -94,10 +80,27 @@ void matrix_print (matrix m);
 
 /*---------------------------------------------------------------------------*/
 /*
+  Print contents of matrix m to specified file.
+*/
+
+void matrix_file_write (char * filename, matrix m);
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Manual entry of matrix data.
 */
 
 void matrix_enter (matrix * m);
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Read contents of matrix m from specified file.
+  Return null matrix if unable to read matrix from file.
+*/
+
+void matrix_file_read (char * filename, int rows, int cols,  matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
