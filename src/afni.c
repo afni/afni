@@ -1047,19 +1047,11 @@ int main( int argc , char * argv[] )
 #undef SHSHSH
 #define SHSH(x)   #x
 #define SHSHSH(x) SHSH(x)
-   if( DBG_trace ){                             /* 01 Dec 1999 */
-      if( strcmp("NO",SHSHSH(SHOWOFF)) != 0 ){  /* 29 Nov 1999 */
-         REPORT_PROGRESS( "[[Precompiled binary "
-                          SHSHSH(SHOWOFF)
-                          ": "
-                          __DATE__
-                          "]]\n" ) ;
-      } else {
-         REPORT_PROGRESS( "[[Compilation date: "
-                          __DATE__
-                          "]]\n" ) ;
-      }
-   }
+   REPORT_PROGRESS( "[[Precompiled binary "
+                    SHSHSH(SHOWOFF)
+                    ": "
+                    __DATE__
+                    "]]\n" ) ;
 #undef SHSH
 #undef SHSHSH
 #endif /* SHOWOFF */
