@@ -13,6 +13,7 @@ extern int SUMAg_N_SVv;
 
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 {
+   static char FuncName[]= {"SUMA_input"};
    GLwDrawingAreaCallbackStruct *cd;
    char buffer[10], cbuf = '\0', cbuf2='\0';
    KeySym keysym;
@@ -20,7 +21,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
    SUMA_EngineData *ED = NULL; 
    char CommString[SUMA_MAX_COMMAND_LENGTH];
-   static char FuncName[]= {"SUMA_input"};
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
    static char ssource[]={"suma"};
    int it, ii, iv3[3], hit = 0;
@@ -830,13 +830,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_Z:
             /*fprintf(stdout,"Zoom in");*/
-            sv->FOV[sv->iState] /= FOV_IN_FACT; if (sv->FOV[sv->iState] < FOV_MIN) sv->FOV[sv->iState] = FOV_MIN; 
+            sv->FOV[sv->iState] /= FOV_IN_FACT; if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
             SUMA_postRedisplay(w, clientData, callData);
             break;
 
          case XK_z:
             /*fprintf(stdout,"Zoom out");*/
-            sv->FOV[sv->iState] /= FOV_OUT_FACT; if (sv->FOV[sv->iState] > FOV_MAX) sv->FOV[sv->iState] = FOV_MAX;
+            sv->FOV[sv->iState] /= FOV_OUT_FACT; if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
             SUMA_postRedisplay(w, clientData, callData);
             break;
 

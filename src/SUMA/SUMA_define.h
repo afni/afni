@@ -149,7 +149,7 @@ typedef enum { SE_Empty,
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
@@ -928,6 +928,13 @@ typedef struct{
                            cell_modified = j * Ni + i */
 } SUMA_TABLE_FIELD;
 
+typedef struct {
+   Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
+   float FOV;  /*! FOV for viewing colormap */
+   GLXContext cmap_context;   /* graphic context for cmap */
+   float translateVec[3];
+} SUMA_CMAP_RENDER_AREA;
+
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
    /* *** DO NOT ADD ANYTHING BEFORE THESE FIELDS
@@ -969,8 +976,7 @@ typedef struct {
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
    void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
-   Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
-   GLXContext cmap_context;   /* graphic context for cmap */
+   SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
    Widget brt_sc;   /*! scale for brightness data */
    Widget thr_lb;   /*! threshold title */
@@ -1087,6 +1093,7 @@ typedef struct {
    Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
    SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Cmap_TextShell; /*!< structure containing widgets and options of colormap help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
    SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets and options of a generic file selection dialog */
    SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number of foreground smoothingLookAt dialog */

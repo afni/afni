@@ -173,6 +173,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"ToggleLockAllViews")) SUMA_RETURN(SE_ToggleLockAllViews);
    if (!strcmp(Scom,"Load_Group")) SUMA_RETURN(SE_Load_Group);
    if (!strcmp(Scom,"Help")) SUMA_RETURN(SE_Help);
+   if (!strcmp(Scom,"Help_Cmap")) SUMA_RETURN(SE_Help_Cmap);
    if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
@@ -335,6 +336,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("Load_Group"); 
       case SE_Help:
          SUMA_RETURN("Help");
+      case SE_Help_Cmap:
+         SUMA_RETURN("Help_Cmap");
       case SE_UpdateLog:
          SUMA_RETURN("UpdateLog"); 
       case SE_Log:

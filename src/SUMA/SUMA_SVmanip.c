@@ -1523,6 +1523,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    
    cf->X->Help_TextShell = NULL;
+   cf->X->Help_Cmap_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
    cf->X->N_ForeSmooth_prmpt = NULL;
@@ -1815,8 +1816,11 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->curColPlane = NULL;
    SurfCont->curSOp = (void **)malloc(sizeof(void*));
    SurfCont->PosRef = NULL;
-   SurfCont->cmap_wid = NULL;
-   SurfCont->cmap_context = NULL;
+   SurfCont->cmp_ren = (SUMA_CMAP_RENDER_AREA *)SUMA_malloc(sizeof(SUMA_CMAP_RENDER_AREA));
+   SurfCont->cmp_ren->cmap_wid = NULL;
+   SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
+   SurfCont->cmp_ren->cmap_context = NULL;
+   SurfCont->cmp_ren->translateVec[0] = SurfCont->cmp_ren->translateVec[0] = SurfCont->cmp_ren->translateVec[1] = 0.0;
    SurfCont->thr_sc = NULL;
    SurfCont->brt_sc = NULL;
    SurfCont->thr_lb = NULL;
@@ -1885,6 +1889,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->SwitchBrtMenu) { XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); SUMA_free(SurfCont->SwitchBrtMenu); }
    if (SurfCont->SwitchCmapMenu) { XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); SUMA_free(SurfCont->SwitchCmapMenu); }
    if (SurfCont->curSOp) free(SurfCont->curSOp);
+   if (SurfCont->cmp_ren) free(SurfCont->cmp_ren);
    if (SurfCont) free(SurfCont);
    return (NULL);
 }
