@@ -1252,7 +1252,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       SUMA_BINARY is set to SUMA_BINARY_BE
    \return ans (SUMA_Boolean) success flag.
    
-   In its current incarnation, the function does overwrite a pre-existing file.
+   In its current incarnation, the function does not overwrite a pre-existing file.
       
 */ 
 SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO) 
@@ -1265,13 +1265,27 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    float version;
    int nverts ;
    int nfaces ;
-   char *elem_names[] = { "vertex", "face" };/* list of the kinds of elements in the user's object */
+   char *f_name2, *elem_names[] = { "vertex", "face" };/* list of the kinds of elements in the user's object */
    int n_elem_names = 2;
    Vertex **verts = NULL;
    Face *faces = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (SUMA_filexists (f_name)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }else {
+      f_name2 = (char*) SUMA_malloc ((strlen(f_name)+10) * sizeof(char));
+      sprintf(f_name2,"%s.ply", f_name);
+      if (SUMA_filexists (f_name2)) {
+         fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name2);
+         SUMA_free(f_name2);
+         SUMA_RETURN (NOPE);
+      }
+      SUMA_free(f_name2);
+   }
    
    nverts = SO->N_Node;
    nfaces = SO->N_FaceSet;
@@ -1379,7 +1393,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    \return YUP/NOPE
    
    
-   The function will overwrite pre-existing files!
+   The function will not overwrite pre-existing.
    Written by Brenna Bargall
 */
 SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine) 
@@ -1389,7 +1403,12 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    FILE *outFile = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   if (SUMA_filexists(fileNm)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, fileNm);
+      SUMA_RETURN (NOPE);
+   }
+   
    if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
       fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
       SUMA_RETURN (NOPE);
@@ -1433,7 +1452,7 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    \return YUP/NOPE
    
    \sa SUMA_VEC_Read
-   The function will overwrite pre-existing files!
+   The function will not overwrite pre-existing files.
    
 */
 SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
@@ -1445,6 +1464,14 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (SUMA_filexists(Fname->name_coord)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_coord);
+      SUMA_RETURN (NOPE);
+   }
+   if (SUMA_filexists(Fname->name_topo)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_topo);
+      SUMA_RETURN (NOPE);
+   }
    if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
       fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
       SUMA_RETURN (NOPE);
@@ -1479,6 +1506,17 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    SUMA_RETURN (YUP);
 
 }
+
+/*!
+   \brief A function to write a Surface Object into a Surefit ascii format 
+   \param F_prefix (char *) Prefix of surace filenames. Output will be of the form:
+         Prefix.N_NODE.topo
+         Prefix.N_NODE.coord where N_Node is the number of nodes making up the surface.
+   \param SO (SUMA_SurfaceObject *) surface object
+   \return YUP/NOPE
+   
+*/
+
 
 #ifdef SUMA_Ply_Read_STAND_ALONE
 void usage_SUMA_Ply_Read_Main ()
