@@ -268,6 +268,9 @@
 
   Mod:     -gltsym option
   Date     29 Jul 2004 - RWCox
+
+  Mod:     Multiple files (auto-tcat) for -input
+  Date     05 Aug 2004
 */
 
 /*---------------------------------------------------------------------------*/
@@ -280,7 +283,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "03 August 2004"      /* latest program revision date*/
+#define PROGRAM_LATEST  "05 August 2004"      /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -487,6 +490,10 @@ void display_help_menu()
     "                                                                       \n"
     "     Input data and control options:                                   \n"
     "-input fname         fname = filename of 3d+time input dataset         \n"
+    "                       (more than  one filename  can be  given)        \n"
+    "                       (here,   and  these  datasets  will  be)        \n"
+    "                       (catenated  in time;   if you do this, )        \n"
+    "                       ('-concat' is not needed and is ignored)        \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-nodata]            Evaluate experimental design only (no input data) \n"
     "[-mask mname]        mname = filename of 3d mask dataset               \n"
@@ -866,12 +873,28 @@ void get_options
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
 	{
+          int iopt , slen ;
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -input ");
+#if 0
 	  option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->input_filename);
 	  strcpy (option_data->input_filename, argv[nopt]);
 	  nopt++;
+#else                   /* 05 Aug 2004: multiple input datasets */
+          slen = 0 ;
+          for( iopt=nopt ; iopt < argc && argv[iopt][0] != '-' ; iopt++ )
+            slen += strlen(argv[iopt])+8 ;
+          option_data->input_filename = calloc(sizeof(char),slen) ;
+	  MTEST (option_data->input_filename);
+          for( iopt=nopt ; iopt < argc && argv[iopt][0] != '-' ; iopt++ ){
+            strcat( option_data->input_filename , argv[iopt] ) ;
+            strcat( option_data->input_filename , " "        ) ;
+          }
+          slen = strlen(option_data->input_filename) ;
+          option_data->input_filename[slen-1] = '\0' ; /* trim last blank */
+          nopt = iopt ;
+#endif
 	  continue;
 	}
 
@@ -1697,7 +1720,7 @@ void read_input_data
       *dset_time = THD_open_dataset (option_data->input_filename);
       if (!ISVALID_3DIM_DATASET(*dset_time))
 	{
-	  sprintf (message,  "Unable to open data file: %s",
+	  sprintf (message,  "Unable to open dataset '%s'",
 		   option_data->input_filename);
 	  DC_error (message);
 	}
@@ -1708,7 +1731,7 @@ void read_input_data
       if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004 **/
         if( option_data->concat_filename != NULL ){
           fprintf(stderr,
-             "** WARNING: -concat %s is ignored, since input dataset is catenated\n" ,
+             "** WARNING: '-concat %s' ignored: input dataset is auto-catenated\n" ,
              option_data->concat_filename ) ;
           option_data->concat_filename = NULL ;
         }
@@ -1717,6 +1740,12 @@ void read_input_data
         (*block_list)[0] = 0;
         for( it=0 ; it < (*num_blocks)-1 ; it++ )
           (*block_list)[it+1] = (*block_list)[it] + (*dset_time)->tcat_len[it] ;
+        if( verb ){
+          fprintf(stderr,"++ Auto-catenated datasets start at:") ;
+          for( it=0 ; it < (*num_blocks) ; it++ )
+            fprintf(stderr," %d",(*block_list)[it]) ;
+          fprintf(stderr,"\n") ;
+        }
       }
 
 
@@ -1738,7 +1767,7 @@ void read_input_data
 	       || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
 	       || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
 	    {
-	      sprintf (message, "%s and %s have incompatible dimensions",
+	      sprintf (message, "datasets '%s' and '%s' have incompatible dimensions",
 		      option_data->input_filename, option_data->mask_filename);
 	      DC_error (message);
 	    }
@@ -4208,7 +4237,7 @@ void write_bucket_data
     if( DSET_IS_TCAT(old_dset) )
       InputFilename = strdup(old_dset->tcat_list) ;
     else
-      InputFilename  = strdup(THD_trailname(DSET_HEADNAME(old_dset),0)) ;
+      InputFilename = strdup(THD_trailname(DSET_HEADNAME(old_dset),0)) ;
 
     BucketFilename = strdup(THD_trailname(DSET_HEADNAME(new_dset),0)) ;
 
@@ -5730,7 +5759,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    /*----- read input time series dataset -----*/
 
-   if( verb ) fprintf(stderr,"++ loading time series dataset %s\n",InputFilename);
+   if( verb ) fprintf(stderr,"++ loading time series dataset '%s'\n",InputFilename);
    dset_time = THD_open_dataset( InputFilename ) ;
    if( dset_time == NULL ){
      fprintf(stderr,
