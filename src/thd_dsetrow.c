@@ -62,7 +62,7 @@ ENTRY("THD_get_dset_row") ;
 
       case 2: case -2:
          if( xx < 0 || xx >= nx || zz < 0 || zz >= nz ) RETURN(NULL) ;
-         kbot = xx + zz*nxy ; kdel = ny ;
+         kbot = xx + zz*nxy ; kdel = nx ;
       break ;
 
       case 3: case -3:
@@ -171,7 +171,7 @@ ENTRY("THD_put_dset_row") ;
 
       case 2: case -2:
          if( xx < 0 || xx >= nx || zz < 0 || zz >= nz ) EXRETURN ;
-         kbot = xx + zz*nxy ; kdel = ny ;
+         kbot = xx + zz*nxy ; kdel = nx ;
       break ;
 
       case 3: case -3:

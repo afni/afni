@@ -6,6 +6,7 @@ int main( int argc , char * argv[] )
    char * prefix="rowfillin" , * dstr=NULL;
    THD_3dim_dataset * inset , * outset ;
    MRI_IMAGE * brim ;
+   int verb=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dRowFillin [options] dataset\n"
@@ -42,6 +43,10 @@ int main( int argc , char * argv[] )
    /*-- scan args --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strncmp(argv[iarg],"-verb",5) == 0 ){
+         verb++ ; iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
@@ -124,6 +129,8 @@ int main( int argc , char * argv[] )
    if( dcode == 0 ){
       fprintf(stderr,"*** Illegal -dir direction!\n") ; exit(1) ;
    }
+   if( verb )
+      fprintf(stderr,"++ Direction = axis %d in dataset\n",dcode) ;
 
    DSET_load(inset) ;
    if( !DSET_LOADED(inset) ){
