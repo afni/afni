@@ -1035,14 +1035,14 @@ ENTRY("AFNI_func_overlay") ;
    need_thr = have_thr && ( function_type == SHOWFUNC_THR ||      /* 10 Dec 1997 */
                             im3d->vinfo->func_threshold > 0.0 ) ;
 
+   /* get the threshold image? */
+
    if( need_thr ) im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
    else           im_thr = NULL ;
 
    have_thr = (im_thr != NULL) ;
 
-#ifdef ALLOW_BKGD_LAB
    AFNI_set_valabel( br_fim , n , im_thr , im3d->vinfo->thr_val ) ;
-#endif
 
    if( function_type == SHOWFUNC_FIM ){
       int ind ;
@@ -1057,13 +1057,11 @@ ENTRY("AFNI_func_overlay") ;
          else
             ind = FUNC_ival_fim[fdset_type] ;
       }
-      im_fim       = FD_warp_to_mri( n, ind, br_fim ) ;
+      im_fim       = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
       scale_factor = im3d->vinfo->fim_range ;
       if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
 
-#ifdef ALLOW_BKGD_LAB
-   AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
-#endif
+      AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
    } else {
       im_fim = im_thr ;
 #if 0
@@ -1078,9 +1076,7 @@ ENTRY("AFNI_func_overlay") ;
       if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
 #endif
 
-#ifdef ALLOW_BKGD_LAB
-   im3d->vinfo->func_val[0] = '\0' ;
-#endif
+      im3d->vinfo->func_val[0] = '\0' ;
    }
 
    /* if component images not good, quit now */

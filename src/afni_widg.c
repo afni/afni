@@ -3024,7 +3024,6 @@ STATUS("making func->rowcol") ;
      ADDTO_KILL(im3d->kl,func->see_ttatlas_bbox) ;
    }
 
-#ifdef ALLOW_BKGD_LAB
    xstr = XmStringCreateLtoR( "Anat = xxxxxxxxxxxxxxxx\n"
                               "Func = xxxxxxxxxxxxxxxx\n"
                               "Thr  = xxxxxxxxxxxxxxxx" ,
@@ -3054,9 +3053,6 @@ STATUS("making func->rowcol") ;
                       " open!"
                     ) ;
    MCW_register_hint( func->bkgd_lab , "Values at crosshairs voxel" ) ;
-#else
-   func->bkgd_lab = NULL ;
-#endif
 
    /*-- manage the managers --*/
 
@@ -3776,7 +3772,6 @@ STATUS("making prog->rowcol") ;
 
    /*--- label for background pixel ---*/
 
-#ifdef ALLOW_BKGD_LAB
    imag->pop_bkgd_lab =
       XtVaCreateWidget(
          "dialog" , xmLabelWidgetClass , imag->popmenu ,
@@ -3786,9 +3781,6 @@ STATUS("making prog->rowcol") ;
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-#else
-   imag->pop_bkgd_lab = NULL ;
-#endif
 
    imag->do_bkgd_lab = False ;
 
