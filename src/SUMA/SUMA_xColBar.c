@@ -720,7 +720,7 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    
    SO->SurfCont->curColPlane->OptScl->find = imenu - 1;
 
-   SUMA_InitRangeTable(SO) ;
+   SUMA_InitRangeTable(SO, 0) ;
 
    if (!SO->SurfCont->curColPlane->Show) { SUMA_RETURNe; } /* nothing else to do */
    
@@ -774,7 +774,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
       SUMA_RETURNe;
    }
     
-   SUMA_InitRangeTable(SO) ;
+   SUMA_InitRangeTable(SO, -1) ;
    
    SUMA_UpdateNodeValField(SO);
    
@@ -817,7 +817,7 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    
    SO->SurfCont->curColPlane->OptScl->bind = imenu - 1;
 
-   SUMA_InitRangeTable(SO) ;
+   SUMA_InitRangeTable(SO, 1) ;
 
    SUMA_UpdateNodeValField(SO);
    if (!SO->SurfCont->curColPlane->OptScl->UseBrt) { SUMA_RETURNe; } /* nothing else to do */
@@ -1536,7 +1536,7 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
             }else if (bev->button == Button3) { /* reset to autorange values */
                AutoHist = SO->SurfCont->AutoIntRange; 
                SO->SurfCont->AutoIntRange = 1;
-               SUMA_InitRangeTable(SO); /* overkill but little overhead */
+               SUMA_InitRangeTable(SO, 0); /* overkill but little overhead */
                SUMA_ColorizePlane(SO->SurfCont->curColPlane);
                SUMA_RemixRedisplay(SO);
                SO->SurfCont->AutoIntRange = AutoHist; 
@@ -1549,7 +1549,7 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
             }else if (bev->button == Button3) { /* reset to autorange values */
                AutoHist = SO->SurfCont->AutoBrtRange; 
                SO->SurfCont->AutoBrtRange = 1;
-               SUMA_InitRangeTable(SO); /* overkill but little overhead */
+               SUMA_InitRangeTable(SO, 1); /* overkill but little overhead */
                SUMA_ColorizePlane(SO->SurfCont->curColPlane);
                SUMA_RemixRedisplay(SO);
                SO->SurfCont->AutoBrtRange = AutoHist; 
@@ -2556,21 +2556,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "I", '\0', YUP, SwitchInt_Menu, 
                            (void *)SO, 
                            "Select Intensity (I) column", 
-                           "Select Intensity (I) column.\n"
-                           "Use this menu to select\n"
-                           "which column in the\n"
-                           "dataset (Dset) should be \n"
-                           "used for an Intensity (I)\n"
-                           "measure.\n\n"
-                           "I values are the ones that \n"
-                           "get colored by the colormap.\n\n"
-                           "No coloring is done if the\n"
-                           "'v' button on the right is\n"
-                           "turned off.\n\n"
-                           "I value for the selected node\n"
-                           "is shown in the 'Val' table\n"
-                           "of the 'Xhair Info' section \n"
-                           "on the left.",
+                           SUMA_SurfContHelp_SelInt,
                            SO->SurfCont->SwitchIntMenu );
          if (LocalHead) SUMA_ShowMeTheChildren(SO->SurfCont->SwitchIntMenu[0]);
          XtManageChild (SO->SurfCont->SwitchIntMenu[0]);
@@ -2598,28 +2584,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "T", '\0', YUP, SwitchThr_Menu, 
                            (void *)SO,  
                            "Select Threshold (T) column", 
-                           "Select Threshold (T) column.\n"
-                           "Use this menu to select\n"
-                           "which column in the\n"
-                           "dataset (Dset) should be \n"
-                           "used for a Threshold (T)\n"
-                           "measure.\n\n"
-                           "T values are the ones used \n"
-                           "to determine if a node \n"
-                           "gets colored based on its\n"
-                           "I value.\n\n"
-                           "A node n is not colored if:\n"
-                           "    T(n)   < Tscale   \n"
-                           "or if '|T|' option below\n"
-                           "is turned ON.\n"
-                           "  | T(n) | < Tscale .\n\n"
-                           "Thresholding is not applied\n"
-                           "when the 'v' button on the \n"
-                           "right is turned off.\n\n"
-                           "T(n) for the selected node n\n"
-                           "is shown in the 'Val'\n"
-                           "table of the 'Xhair Info'\n"
-                           "section on the left.\n" ,    
+                           SUMA_SurfContHelp_SelThr ,    
                            SO->SurfCont->SwitchThrMenu );
          XtManageChild (SO->SurfCont->SwitchThrMenu[0]);
          /* Now destroy the SwitchThr_Menu */
@@ -2646,25 +2611,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "B", '\0', YUP, SwitchBrt_Menu, 
                            (void *)SO,  
                            "Select Brightness (B) column", 
-                           "Select Brightness (B) column.\n"
-                           "Use this menu to select\n"
-                           "which column in the\n"
-                           "dataset (Dset) should be \n"
-                           "used for color Brightness (B)\n"
-                           "modulation.\n\n"
-                           "B values are the ones used \n"
-                           "to control the brightness of\n"
-                           "a node's color.\n\n"
-                           "Brightness modulation is\n"
-                           "controlled by ranges in the\n"
-                           "'B' cells of the table below.\n\n"
-                           "Brightness modulation is not\n"
-                           "applied when the 'v' button on \n"
-                           "the right is turned off.\n\n"
-                           "B(n) for the selected node n\n"
-                           "is shown in the 'Val'\n"
-                           "table of the 'Xhair Info'\n"
-                           "section on the left.\n", 
+                           SUMA_SurfContHelp_SelBrt,
                            SO->SurfCont->SwitchBrtMenu );
          XtManageChild (SO->SurfCont->SwitchBrtMenu[0]);
          /* Now destroy the SwitchBrt_Menu */
@@ -2685,7 +2632,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             XtAddCallback (SO->SurfCont->Int_tb, 
                   XmNvalueChangedCallback, SUMA_cb_SwithInt_toggled, SO);
             MCW_register_hint(SO->SurfCont->Int_tb,   "View (ON)/Hide Dset node colors");
-            MCW_register_help(SO->SurfCont->Int_tb,   "View (ON)/Hide Dset node colors.");
+            MCW_register_help(SO->SurfCont->Int_tb,   SUMA_SurfContHelp_SelIntTgl);
 
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Int_tb);
          } 
@@ -2698,7 +2645,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                   XmNvalueChangedCallback, SUMA_cb_SwithThr_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Thr_tb);
             MCW_register_hint(SO->SurfCont->Thr_tb,   "Apply (ON)/Ignore thresholding");
-            MCW_register_help(SO->SurfCont->Thr_tb,   "Apply (ON)/Ignore thresholding");
+            MCW_register_help(SO->SurfCont->Thr_tb,   SUMA_SurfContHelp_SelThrTgl);
          }
          if (SO->SurfCont->curColPlane->OptScl->tind >=0) {
             XmToggleButtonSetState (SO->SurfCont->Thr_tb, SO->SurfCont->curColPlane->OptScl->UseThr, NOPE);
@@ -2712,8 +2659,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             XtAddCallback (SO->SurfCont->Brt_tb, 
                      XmNvalueChangedCallback, SUMA_cb_SwithBrt_toggled, SO);
             SUMA_SET_SELECT_COLOR(SO->SurfCont->Brt_tb);
-            MCW_register_hint(SO->SurfCont->Thr_tb,   "View (ON)/Ignore brightness modulation");
-            MCW_register_help(SO->SurfCont->Thr_tb,   "View (ON)/Ignore brightness modulation");
+            MCW_register_hint(SO->SurfCont->Brt_tb,   "View (ON)/Ignore brightness modulation");
+            MCW_register_help(SO->SurfCont->Brt_tb,   SUMA_SurfContHelp_SelBrtTgl);
          }
          if (SO->SurfCont->curColPlane->OptScl->bind >=0) {
             XmToggleButtonSetState (SO->SurfCont->Brt_tb, SO->SurfCont->curColPlane->OptScl->UseBrt, NOPE);
@@ -2731,52 +2678,20 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       char *col_hint[]= {  "Clipping ranges", 
                            "Minimum clip value", 
                            "Maximum clip value" , NULL};
-      char *col_help[]= {  "Clipping ranges", 
-                           "Minimum clip value", 
-                           "Maximum clip value" , NULL};
+      char *col_help[]= {  SUMA_SurfContHelp_SetRngTbl_r0, 
+                           SUMA_SurfContHelp_SetRngTbl_c1, 
+                           SUMA_SurfContHelp_SetRngTbl_c2 , NULL};
       char *row_tit[]=  {  " ", "I", "B", " " , "C", NULL};
       char *row_hint[]= {  "Clipping ranges ", 
                            "Intensity clipping range (much more with BHelp)", 
                            "Brightness modulation clipping range (much more with BHelp)", 
                            "Brightness modulation factor range (much more with BHelp)" , 
                            "Coordinate bias range (much more with BHelp)", NULL};
-      char *row_help[]= {  "Clipping ranges ", 
-                           "Intensity clipping range.\n"
-                           "Values in the intensity data \n"
-                           "that are less than Min are colored\n"
-                           "by the first (bottom) color of the \n"
-                           "colormap. \n"
-                           "Values larger than Max are mapped \n"
-                           "to the top color.\n\n"
-                           "Left click locks ranges\n"
-                           "from automatic resetting.\n\n"
-                           "Right click resets values\n"
-                           "to full range in data.\n",
-                           "Brightness modulation clipping range.\n"
-                           "Values in the brightness data are\n"
-                           "clipped to the Min to Max range before\n"
-                           "calculating their modulation factor\n"
-                           "(see next table row).\n\n"
-                           "Left click locks ranges\n"
-                           "from automatic resetting.\n\n"
-                           "Right click resets values\n"
-                           "to full range in data.\n\n", 
-                           "Brightness modulation factor range.\n"
-                           "Brightness modulation values, after\n"
-                           "clipping per the values in the row above,\n"
-                           "are scaled to fit the range specified\n"
-                           "here.\n", 
-                           "Coordinate bias range.\n"
-                           "Coordinates of nodes that are mapped\n"
-                           "to the colormap can have a bias added\n"
-                           "to their coordinates. \n\n"
-                           "Nodes mapped to the first color of \n"
-                           "the map receive the minimum bias and\n"
-                           "nodes mapped to the last color receive\n"
-                           "the maximum bias. \n\n"
-                           "Nodes not colored, because of \n"
-                           "thresholding for example, will \n"
-                           "have no bias applied.", NULL};
+      char *row_help[]= {  SUMA_SurfContHelp_SetRngTbl_r0, 
+                           SUMA_SurfContHelp_SetRngTbl_r1,
+                           SUMA_SurfContHelp_SetRngTbl_r2, 
+                           SUMA_SurfContHelp_SetRngTbl_r3, 
+                           SUMA_SurfContHelp_SetRngTbl_r4, NULL};
       if (!SO->SurfCont->rccm) {
          SO->SurfCont->rccm = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SO->SurfCont->rcvo,
@@ -2822,15 +2737,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                                "Col", '\0', YUP, CmapMode_Menu, 
                                (void *)SO,  
                                "Switch between color mapping modes.", 
-                               "Switch between color mapping modes.\n"
-                               "Int: Interpolate linearly between\n"
-                               "     colors in colormap\n"
-                               "NN : Use the nearest color in the\n"
-                               "     colormap. \n"
-                               "Dir: Use intensity values as indices\n"
-                               "     into the colormap.\n"
-                               "     In Dir mode, the intensity \n"
-                               "     clipping range is of no use.\n",
+                               SUMA_SurfContHelp_Col,
                                SO->SurfCont->CmapModeMenu);
                XtManageChild (SO->SurfCont->CmapModeMenu[SW_CmapMode]);
                
@@ -2840,18 +2747,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                                "Bias", '\0', YUP, CoordBias_Menu, 
                                (void *)SO, 
                                "Coordinate bias direction", 
-                               "Coordinate bias direction.\n"
-                               "   -: No bias thank you\n"
-                               "   x: X coord bias\n"
-                               "   y: Y coord bias\n"
-                               "   z: Z coord bias\n"
-                               "   n: bias along node's normal\n\n"
-                               "See more info in Bhelp for\n"
-                               "'C' table entry above.\n\n"
-                               "This option will produce\n"
-                               "'Extremely Cool' images \n"
-                               "that are best appreciated \n"
-                               "with Chuck E. Weiss' music.\n" , 
+                               SUMA_SurfContHelp_Bias, 
                                SO->SurfCont->CoordBiasMenu);
                XtManageChild (SO->SurfCont->CoordBiasMenu[SW_CoordBias]);
                
@@ -2887,23 +2783,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                                  NULL);
                XtAddCallback (SO->SurfCont->CmapLoad_pb, XmNactivateCallback, SUMA_cb_Cmap_Load, (XtPointer) SO);
                MCW_register_hint(SO->SurfCont->CmapLoad_pb , "Load new colormap");
-               MCW_register_help(SO->SurfCont->CmapLoad_pb ,   "Load new colormap.\n"
-                                                               "Loaded map will replace a\n"
-                                                               "pre-existing one with the\n"
-                                                               "same name.\n"
-                                                               "\n"
-                                                               "See ScaleToMap -help for \n"
-                                                               "details on the format of \n"
-                                                               "colormap file. The formats\n"
-                                                               "are described in the section\n"
-                                                               "for the option -cmapfile.\n"
-                                                               "\n"
-                                                               "A sample colormap would be:\n"
-                                                               " 0 0 1\n"
-                                                               " 1 1 1\n"
-                                                               " 1 0 0\n"
-                                                               "saved into a cmap file called\n"
-                                                               "cmap_test.1D.cmap");
+               MCW_register_help(SO->SurfCont->CmapLoad_pb ,  SUMA_SurfContHelp_CmpNew);
             }
          } /* new colormaps */
          if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) XtManageChild (SO->SurfCont->rccm_swcmap); 
@@ -2931,22 +2811,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtAddCallback (SO->SurfCont->AbsThresh_tb, 
                XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, SO);
          MCW_register_hint(SO->SurfCont->AbsThresh_tb , "Absolute threshold ON/OFF");
-         MCW_register_help(SO->SurfCont->AbsThresh_tb ,  "Toggle Absolute thresholding.\n"
-                                                         "OFF: Mask node color for\n"
-                                                         "     nodes that have:  \n"
-                                                         "     T(n) < Tscale\n"
-                                                         "ON:  Mask node color for\n"
-                                                         "     nodes that have:\n"
-                                                         "     | T(n) | < Tscale\n" 
-                                                         "where:\n"
-                                                         "Tscale is the value set by\n"
-                                                         "       the threshold scale.\n"
-                                                         "T(n) is the node value in the \n"
-                                                         "     selected threshold column (T).\n"
-                                                         "     this value is seen in the \n"
-                                                         "     second cell of the 'Value'\n"
-                                                         "     table on the left side.\n"
-                                                         );
+         MCW_register_help(SO->SurfCont->AbsThresh_tb ,  SUMA_SurfContHelp_AbsThr );
          
          SUMA_SET_SELECT_COLOR(SO->SurfCont->AbsThresh_tb);
          
@@ -2956,16 +2821,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtAddCallback (SO->SurfCont->SymIrange_tb, 
                XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, SO);
          MCW_register_hint(SO->SurfCont->SymIrange_tb, "Intensity range symmetry about 0 ");
-         MCW_register_help(SO->SurfCont->SymIrange_tb,   "Toggle Intensity range symmetry\n"
-                                                         "about 0. \n"
-                                                         "ON : Intensity clipping range\n"
-                                                         "     is forced to go from \n"
-                                                         "     -val to val\n"
-                                                         "     This allows you to mimic\n"
-                                                         "     AFNI's ranging mode.\n" 
-                                                         "OFF: Intensity clipping range\n"
-                                                         "     can be set to your liking."
-                                                         );
+         MCW_register_help(SO->SurfCont->SymIrange_tb,   SUMA_SurfContHelp_Isym);
          SUMA_SET_SELECT_COLOR(SO->SurfCont->SymIrange_tb);
          
          /* add a button for zero masking */
@@ -2974,14 +2830,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          XtAddCallback (SO->SurfCont->ShowZero_tb, 
                XmNvalueChangedCallback, SUMA_cb_ShowZero_tb_toggled, SO);
          MCW_register_hint(SO->SurfCont->ShowZero_tb,   "Color masking of nodes with intensity = 0 ");
-         MCW_register_help(SO->SurfCont->ShowZero_tb,    "Toggle color masking of nodes \n"
-                                                         "with intensity = 0 \n"
-                                                         "ON : 0 intensities are mapped\n"
-                                                         "     to the colormap as any\n"
-                                                         "     other values.\n" 
-                                                         "OFF: 0 intensities are masked,\n"
-                                                         "     a la AFNI"
-                                                         );
+         MCW_register_help(SO->SurfCont->ShowZero_tb,    SUMA_SurfContHelp_Shw0);
          SUMA_SET_SELECT_COLOR(SO->SurfCont->ShowZero_tb);
          XtManageChild (rc);
       }
@@ -3010,31 +2859,25 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
    
    if (1){ /* The Range values block*/
       char *col_tit[]=  {  " ", "Min", "Node", "Max", "Node", NULL};
-      char *col_hint[]= {  "Full range in data", 
-                           "Minimum value in data", 
+      char *col_hint[]= {  "Full range in Dset", 
+                           "Minimum value in Dset column", 
                            "Node index at minimum", 
-                           "Maximum value in data", 
+                           "Maximum value in Dset column", 
                            "Node index at maximum", NULL};
-      char *col_help[]= {  "Full range in data", 
-                           "Minimum value in data.",
-                           "Node index at minimum.\n"
-                           "Right click in cell to\n"
-                           "have crosshair jump to\n"
-                           "node's index.", 
-                           "Maximum value in data", 
-                           "Node index at maximum.\n"
-                           "Right click in cell to\n"
-                           "have crosshair jump to\n"
-                           "node's index.", NULL};
+      char *col_help[]= {  SUMA_SurfContHelp_RangeTbl_c0, 
+                           SUMA_SurfContHelp_RangeTbl_c1,
+                           SUMA_SurfContHelp_RangeTbl_c2, 
+                           SUMA_SurfContHelp_RangeTbl_c3, 
+                           SUMA_SurfContHelp_RangeTbl_c4, NULL};
       char *row_tit[]=  {  " ", "I", "T", "B", NULL};
-      char *row_hint[]= {  "Full range in data", 
-                           "Range of values in intensity data", 
-                           "Range of values in threshold data", 
-                           "Range of values in brightness data", NULL};
-      char *row_help[]= {  "Full range in data", 
-                           "Range of values in intensity data", 
-                           "Range of values in threshold data", 
-                           "Range of values in brightness data", NULL};
+      char *row_hint[]= {  "Full range in Dset", 
+                           "Range of values in intensity (I) column", 
+                           "Range of values in threshold (T) column", 
+                           "Range of values in brightness (B) column", NULL};
+      char *row_help[]= {  SUMA_SurfContHelp_RangeTbl_c0, 
+                           SUMA_SurfContHelp_RangeTbl_r1, 
+                           SUMA_SurfContHelp_RangeTbl_r2, 
+                           SUMA_SurfContHelp_RangeTbl_r3, NULL};
       if (!SO->SurfCont->rcswr) {
          SO->SurfCont->rcswr = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SO->SurfCont->opts_form,
@@ -3067,7 +2910,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          
    if (NewDset) {
       /* initialize tables of range values */
-      SUMA_InitRangeTable(SO);
+      SUMA_InitRangeTable(SO, 2);
    }
    
    if (!XtIsManaged(SO->SurfCont->rcvo)) XtManageChild (SO->SurfCont->rcvo);
@@ -3121,15 +2964,7 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
                         "Cmp", '\0', YUP, SwitchCmap_Menu, 
                         (void *)SO,  
                         "Switch between available color maps. (BHelp for more)", 
-                        "Switch between available color maps.\n"
-                        "If the number of colormaps is too large\n"
-                        "for the menu button, right click over\n"
-                        "the 'Cmp' label and a chooser with a \n"
-                        "slider bar will appear.\n"
-                        "\n"
-                        "More help is available via\n"
-                        "ctrl+h while mouse is over the\n"
-                        "colormap.", 
+                        SUMA_SurfContHelp_Cmp, 
                         SO->SurfCont->SwitchCmapMenu );
       XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      /* handle events in optmenu */
                         ButtonPressMask ,  /* button presses */
@@ -3147,7 +2982,17 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO) 
+/*!
+   \brief updates table with data value range
+            and the table where user sets mapping
+            range (that last one depends on what)
+   SO: You know what
+   what: (int)   -1: Do NOTHING with user accessible mapping ranges
+                  0: intensity only
+                  1: brightness modulation only
+                  2: Set all user accessible mapping ranges
+*/
+SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what) 
 {
    static char FuncName[]={"SUMA_InitRangeTable"};
    char srange_min[50], srange_max[50], srange_minloc[50], srange_maxloc[50];
@@ -3156,6 +3001,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    float range[2];
    NI_element *nel;
    SUMA_SCALE_TO_MAP_OPT *OptScl;
+   SUMA_Boolean DoIs = NOPE, DoBs = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3170,6 +3016,27 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    ti = OptScl->tind;
    bi = OptScl->bind;
    
+   switch (what) {
+      case -1:
+         DoIs = NOPE;
+         DoBs = NOPE;
+         break;
+      case 2:
+         DoIs = YUP;
+         DoBs = YUP;
+         break;
+      case 0:
+         DoIs = YUP;
+         break;
+      case 1:
+         DoBs = YUP;
+         break;
+      default:
+         SUMA_SL_Err("That's stupid Joe!");
+         SUMA_RETURN(NOPE);
+         break;
+   }
+   
    /* TF Range table Int*/
    SUMA_LH("Setting Int.");
    SUMA_RANGE_STRING(SO->SurfCont->curColPlane->dset_link, fi, srange_min, srange_max, srange_minloc, srange_maxloc, range); 
@@ -3178,7 +3045,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    SUMA_INSERT_CELL_STRING(TF, 1, 3, srange_max);/* max */
    SUMA_INSERT_CELL_STRING(TF, 1, 4, srange_maxloc);/* maxloc */
    /* TFs Range table Int*/
-   if (SO->SurfCont->AutoIntRange) { 
+   if (SO->SurfCont->AutoIntRange && DoIs) { 
       if (!SO->SurfCont->curColPlane->ForceIntRange[0] && !SO->SurfCont->curColPlane->ForceIntRange[1]) {
          OptScl->IntRange[0] = range[0]; OptScl->IntRange[1] = range[1]; 
       } else {
@@ -3212,7 +3079,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    SUMA_INSERT_CELL_STRING(TF, 3, 3, srange_max);/* max */
    SUMA_INSERT_CELL_STRING(TF, 3, 4, srange_maxloc);/* maxloc */
    /* TFs Range table Brt*/
-   if (SO->SurfCont->AutoBrtRange) { 
+   if (SO->SurfCont->AutoBrtRange && DoBs) { 
       OptScl->BrightRange[0] = range[0]; OptScl->BrightRange[1] = range[1]; 
       SUMA_INSERT_CELL_VALUE(TFs, 2, 1, OptScl->BrightRange[0]);/* min */
       SUMA_INSERT_CELL_VALUE(TFs, 2, 2, OptScl->BrightRange[1]);/* max */
@@ -3595,59 +3462,32 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
    static char FuncName[]={"SUMA_CreateXhairWidgets"};
    char *Xhair_tit[]=   {  "Xhr ", NULL};
    char *Xhair_hint[]=  {  "Crosshair coordinates.", NULL};
-   char *Xhair_help[]=  {  "Crosshair coordinates on\n"
-                           "this controller's surface.\n"
-                           "Entering new coordinates \n"
-                           "makes the crosshair jump\n"
-                           "to that location (like 'ctrl+j').\n"
-                           "Use 'alt+l' to center the\n"
-                           "cross hair in your viewer." , NULL};
+   char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
    char *Node_tit[]=    {  "Node"   , NULL};
    char *Node_hint[]=   {  "Node index", NULL};
-   char *Node_help[]=   {  "Node index of node in\n"
-                           "focus on this controller's\n"
-                           "surface. Nodes in focus are\n"
-                           "highlighted by the blue sphere\n"
-                           "in the crosshair.\n"
-                           "Entering a new node's index\n"
-                           "will put that node in focus\n"
-                           "and send the crosshair to its\n"
-                           "location (like 'j').\n"
-                           "Use 'alt+l' to center the\n"
-                           "cross hair in your viewer." , NULL};
+   char *Node_help[]=   {  SUMA_SurfContHelp_Node , NULL};
    char *Face_tit[]=    {  "Tri ", NULL};
    char *Face_hint[]=   {  "1- Triangle index, 2- Nodes forming tiangle", NULL};
-   char *Face_help[]=   {  "1- Triangle (faceset) index of\n"
-                           "triangle in focus on this \n"
-                           "on this controller's surface.\n"
-                           "Triangle in focus is highlighted\n"
-                           "in gray. Entering a new triangle's\n"
-                           "index will set a new triangle in\n"
-                           "focus (like 'J').\n"
-                           "2- Nodes forming triangle." , NULL};
+   char *Face_help[]=   {  SUMA_SurfContHelp_Tri , NULL};
    char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
-   char *Data_hint[]=   {  "Data Values at node in focus", 
-                           "Intensity (I) value", 
-                           "Threshold (T) value", 
-                           "Brightness modulation (B) value" , NULL};
-   char *Data_help[]=   {  "Data Values at node in focus", 
-                           "Intensity (I) value", 
-                           "Threshold (T) value", 
-                           "Brightness modulation (B) value" , NULL}; 
+   char *Data_colhint[]=      {  "Data Values at node in focus", 
+                                 "Intensity (I) value", 
+                                 "Threshold (T) value", 
+                                 "Brightness modulation (B) value" , NULL};
+   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+                                 SUMA_SurfContHelp_NodeValTblc1, 
+                                 SUMA_SurfContHelp_NodeValTblc2, 
+                                 SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
    
-   char *Data_rtit[]=   {  "    ", "Val " , NULL};
-   char *Data_rhint[]=  {  "Data Values at node in focus", 
-                           "Data Values at node in focus" , NULL};
-   char *Data_rhelp[]=  {  "Data Values at node in focus", 
-                           "Data Values at node in focus" , NULL};
+   char *Data_rtit[]=      {  "    ", "Val " , NULL};
+   char *Data_rowhint[]=   {  "Data Values at node in focus", 
+                              "Data Values at node in focus" , NULL};
+   char *Data_rowhelp[]=   {  SUMA_SurfContHelp_NodeValTblr0, 
+                              SUMA_SurfContHelp_NodeValTblr0 , NULL};
    
    char *Label_tit[]=   {  "Lbl ", NULL};
    char *Label_hint[]=  {  "Color at node in focus", NULL};
-   char *Label_help[]=  {  "Color at node in focus.\n"
-                           "For the moment, only color\n"
-                           "is displayed. The plan is\n"
-                           "to display labels of various\n"
-                           "sorts here.\n" , NULL};
+   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
    
    Widget rcc;
    
@@ -3721,8 +3561,8 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO)
       SUMA_CreateTable(rcc, 
          2, 4,
          Data_rtit, Data_tit,
-         Data_rhint, Data_hint,
-         Data_rhelp, Data_help,
+         Data_rowhint, Data_colhint,
+         Data_rowhelp, Data_colhelp,
          colw, NOPE, SUMA_float,
          NULL, NULL,
          NULL, NULL, 
