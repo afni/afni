@@ -4366,7 +4366,7 @@ ENTRY("ISQ_drawing_EV") ;
 
          /* Button1 release: turn off zoom-pan mode, if it was on */
 
-         if( event->button == Button1 ){
+         if( event->button == Button1 && w == seq->wimage ){
 
            if( seq->zoom_button1 && !AFNI_yesenv("AFNI_KEEP_PANNING") ){
              seq->zoom_button1 = 0 ;
@@ -4375,6 +4375,16 @@ ENTRY("ISQ_drawing_EV") ;
            } else if( !seq->zoom_button1 ){           /* 23 Oct 2003 */
              if( seq->cmap_changed ){
                COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
+             } else if( seq->status->send_CB != NULL ){  /* 04 Nov 2003 */
+                int imx,imy,nim;
+                seq->wimage_width = -1 ;
+                ISQ_mapxy( seq , seq->last_bx,seq->last_by , &imx,&imy,&nim ) ;
+                cbs.reason = isqCR_buttonpress ;
+                cbs.event  = ev ;
+                cbs.xim    = imx ;       /* delayed send of Button1 */
+                cbs.yim    = imy ;       /* event to AFNI now       */
+                cbs.nim    = nim ;
+                seq->status->send_CB( seq , seq->getaux , &cbs ) ;
              }
            }
          }
@@ -4836,7 +4846,8 @@ DPR(" .. ButtonPress") ;
                    event->button = Button3 ;        /* fake Button3 press */
                 }
 
-                seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+                if( event->button == Button3 )      /* 04 Nov 2003: only for Button3 */
+                  seq->status->send_CB( seq , seq->getaux , &cbs ) ;
               }
             }
             break ;
@@ -4866,6 +4877,16 @@ DPR(" .. ButtonPress") ;
          XConfigureEvent * event = (XConfigureEvent *) ev ;
 
          static int am_active = 0  ;  /* 09 Oct 1999 */
+
+#if 0
+         /* 04 Nov 2003: don't do anything while mouse is down */
+
+         { Window rW,cW ; int rx,ry,x,y ; unsigned int mask ;
+           XQueryPointer(XtDisplay(w),XtWindow(w),&rW,&cW,&rx,&ry,&x,&y,&mask) ;
+           if( mask & (Button1Mask|Button2Mask|Button3Mask) ) break ;
+         }
+#endif
+
          if( am_active ) break ;      /* prevent recursion */
          am_active = 1 ;
 
@@ -6226,6 +6247,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_setimsave       (char *) suffix of image save mode
 
+*    isqDR_setrange        (float *) points to rng_bot,rng_top
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -6244,6 +6267,20 @@ ENTRY("drive_MCW_imseq") ;
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          RETURN( False );
+      }
+      break ;
+
+      /*--------- set display range [04 Nov 2003] ----------*/
+
+      case isqDR_setrange:{
+        float *rng = (float *)drive_data ;
+        if( rng == NULL ){
+          seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0f ;
+        } else {
+          seq->rng_bot = rng[0] ; seq->rng_top = rng[1] ; seq->rng_ztop = 0.0 ;
+        }
+        ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        RETURN( True ) ;
       }
       break ;
 
@@ -7364,7 +7401,7 @@ ENTRY("ISQ_set_rng_CB") ;
 
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
-   seq->rng_bot = seq->rng_top = seq->rng_ztop = 0 ;
+   seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0 ;
    sscanf( cbs->cval , "%f%f%f" ,
            &(seq->rng_bot) , &(seq->rng_top) , &(seq->rng_ztop) ) ;
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */

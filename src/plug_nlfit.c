@@ -574,6 +574,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
 
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
+
    /*----- initialize the model array -----*/
    model_array = NLFIT_get_many_MODELs ();
    if ((model_array == NULL) || (model_array->num == 0))

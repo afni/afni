@@ -198,7 +198,7 @@ static char helpstring[] =
    "\n"
    " USAGE:\n"
    " Set the controls to the state you want BEFORE realtime image input\n"
-   " begins, then press one of the 'Run' buttons to send the control\n"
+   " begins, then press one of the 'Set' buttons to send the control\n"
    " information to AFNI.\n"
    "\n"
    " INPUTS:\n"
@@ -431,6 +431,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:AArealtime" ) ;
    PLUTO_set_butcolor( plint , "hot" ) ;
+
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
    /*-- 28 Apr 2000: Images Only mode --*/
 

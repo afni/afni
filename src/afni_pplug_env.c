@@ -41,7 +41,7 @@ static char help_mid[] =
 static char help_end[] =
   "\n"
   "The variables shown above may be set using the plugin interface.\n"
-  "As usual, one of the 'Run' buttons must be used for any changes\n"
+  "As usual, one of the 'Send' buttons must be used for any changes\n"
   "you make to be communicated to AFNI.  Depending on the variables\n"
   "that are altered, there may be no immediate effects visible in the\n"
   "AFNI interface, until you take some action that is dependent on\n"
@@ -86,6 +86,7 @@ static char * cord_strings[NUM_cord_strings] = {
 } ;
 
 static void ENV_coorder( char * ) ;
+static void ENV_globalrange( char * ) ;
 static void ENV_compressor( char * ) ;
 static void ENV_leftisleft( char * ) ;
 static void ENV_marksquality( char * ) ;
@@ -320,6 +321,16 @@ PLUGIN_interface * ENV_init(void)
                    "To automatically draw grayscale-data value plot?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+   /* 04 Nov 2003 */
+
+   ENV_add_string( "AFNI_IMAGE_MINTOMAX" ,
+                   "Set image viewers to do min-to-max grayscaling?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
+   ENV_add_string( "AFNI_IMAGE_GLOBALRANGE" ,
+                   "Set image viewers to use 3D global data range min-to-max?" ,
+                   NUM_yesno_list , yesno_list , ENV_globalrange  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
@@ -354,6 +365,8 @@ PLUGIN_interface * ENV_init(void)
    free(helpstring) ;
 
    PLUTO_add_hint( plint , "Environment variables control" ) ;
+
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
    /*--------- make interface lines: 1 for each variable -----------*/
 
@@ -467,8 +480,8 @@ void ENV_add_yesno( char * vname , char * vhint ) /* 08 Aug 2001 */
                    NUM_yesno_list , yesno_list , NULL  ) ;
 }
 
-void ENV_add_string( char * vname , char * vhint ,
-                     int vcount , char ** vlist , generic_func * cbfunc )
+void ENV_add_string( char *vname , char *vhint ,
+                     int vcount , char **vlist , generic_func *cbfunc )
 {
    int ii ;
 
@@ -582,6 +595,31 @@ static char * ENV_main( PLUGIN_interface * plint )
    if( ndone == 0 ) return " \n*** Don't you want to do anything? ***\n " ;
 
    return NULL ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_globalrange( char *vname )
+{
+   Three_D_View *im3d ;
+   int ii , gbr=AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ;
+
+fprintf(stderr,"Enter ENV_globalrange()\n") ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     im3d = GLOBAL_library.controllers[ii] ;
+     if( ! IM3D_OPEN(im3d) ) continue ;
+     if( gbr ){
+       AFNI_range_setter( im3d , im3d->s123 ) ;
+       AFNI_range_setter( im3d , im3d->s231 ) ;
+       AFNI_range_setter( im3d , im3d->s312 ) ;
+     } else {
+       drive_MCW_imseq( im3d->s123 , isqDR_setrange , (XtPointer)NULL ) ;
+       drive_MCW_imseq( im3d->s231 , isqDR_setrange , (XtPointer)NULL ) ;
+       drive_MCW_imseq( im3d->s312 , isqDR_setrange , (XtPointer)NULL ) ;
+     }
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/

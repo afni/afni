@@ -52,6 +52,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:newdset:copy" ) ;
 
+   PLUTO_set_runlabels( plint , "Copy+Keep" , "Copy+Close" ) ;  /* 04 Nov 2003 */
+
    /*-- first line of input: Dataset --*/
 
    PLUTO_add_option( plint , "Input" , "Input" , TRUE ) ;

@@ -70,6 +70,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:afniinfo:dsethistog" ) ;
 
+   PLUTO_set_runlabels( plint , "Plot+Keep" , "Plot+Close" ) ;  /* 04 Nov 2003 */
+
    /*-- first line of input --*/
 
    PLUTO_add_option( plint , "Source" , "Source" , TRUE ) ;

@@ -34,7 +34,7 @@ static char helpstring[] =
    "\n"
    " Usage:\n"
    " 1) Choose in this plugin the 3D+time datasets you want to graph,\n"
-   "     and their overlay colors.  Then press 'Run+Keep'.\n"
+   "     and their overlay colors.  Then press 'Set+Keep'.\n"
    " 2) In an AFNI graph window, choose 'Tran 1D' to be 'Dataset#N'.\n"
    "     This will cause the time series chosen here to replace the\n"
    "     time series of the dataset being graphed.\n"
@@ -43,7 +43,7 @@ static char helpstring[] =
    "     from the current AFNI graph window.\n"
    "\n"
    " Note that changes in this plugin interface are not communicated\n"
-   " to AFNI itself until you press one of the 'Run' buttons.\n"
+   " to AFNI itself until you press one of the 'Set' buttons.\n"
 #ifdef USE_WHERE
    "\n"
    " Justify = Left  means to put timeseries data at start of output array\n"
@@ -116,6 +116,8 @@ ENTRY("PLUGIN_init - Dataset#N") ;
    PLUTO_add_hint( plint , "Controls 1D function Dataset#N" ) ;
 
    PLUTO_set_sequence( plint , "A:funcs:dataset#N" ) ;
+
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
    for( id=0 ; id < NMAX ; id++ ){
      PLUTO_add_option( plint , "Input" , "Input" , FALSE ) ;

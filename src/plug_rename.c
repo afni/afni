@@ -47,6 +47,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_sequence( plint , "A:afnicontrol:dset" ) ;
 
+   PLUTO_set_runlabels( plint , "Rename+Keep" , "Rename+Close" ) ;  /* 04 Nov 2003 */
+
    /*-- first line of input: Dataset --*/
 
    PLUTO_add_option( plint , "Input" , "Input" , TRUE ) ;

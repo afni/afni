@@ -129,6 +129,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Control LSqFit and LSqDtr Functions" ) ;
 
+   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
+
    /*----- Parameters -----*/
 
    PLUTO_add_option( plint , "Parameters" , "Parameters" , TRUE ) ;
