@@ -470,10 +470,10 @@ ENTRY("dump_PBAR_palette_table") ;
 
 /*------------------------------------------------------------------------------*/
 
-void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par , int fixim )
+void load_PBAR_palette_array( MCW_pbar *pbar, PBAR_palette_array *par, int fixim )
 {
    int ii , jj , jm , nn ;
-   PBAR_palette * pp ;
+   PBAR_palette *pp ;
 
 ENTRY("load_PBAR_palette_array") ;
 

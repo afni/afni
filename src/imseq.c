@@ -228,8 +228,8 @@ static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
 
-#define GIFSICLE_SUFFIX    "-O2 -d 20 -k 127 -l %s > %s"
-#define WHIRLGIF_SUFFIX    "-time 20 -loop %s > %s"
+#define GIFSICLE_SUFFIX    "-O2 -d %d -k 127 -l %%s > %%s"
+#define WHIRLGIF_SUFFIX    "-time %d -loop %%s > %%s"
 #define MPEG_ENCODE_SUFFIX "-realquiet %s"
 
 #define DO_AGIF(sq) ((sq)->opt.save_agif)
@@ -251,7 +251,7 @@ static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
 
 static void ISQ_setup_ppmto_filters(void)
 {
-   char *pg , *pg2 , *str ;
+   char *pg , *pg2 , *str , *eee ;
    int bv ;
 
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
@@ -296,6 +296,8 @@ static void ISQ_setup_ppmto_filters(void)
    pg  = THD_find_executable( "ppmtogif" ) ;
    pg2 = THD_find_executable( "ppmquant" ) ;
    if( pg != NULL && pg2 != NULL ){
+      int adel=20 ; char asuff[64] ;               /* 16 Jan 2003 */
+
       str = malloc(strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s 255 | %s > %%s",pg2,pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv) ;
@@ -304,16 +306,23 @@ static void ISQ_setup_ppmto_filters(void)
 
       ppmto_gif_filter = str ;  /* save this filter string */
 
+      /* 16 Jan 2003: get animated GIF delay (centiseconds) from environment */
+
+      eee = getenv( "AFNI_AGIF_DELAY" ) ;
+      if( eee != NULL ){ adel=(int)strtod(eee,NULL); if(adel < 2)adel=20; }
+
       pg = THD_find_executable( "gifsicle" ) ;    /* preferred */
       if( pg != NULL ){
+         sprintf(asuff,GIFSICLE_SUFFIX,adel) ;    /* 16 Jan 2003 */
          str = malloc(strlen(pg)+64) ;
-         sprintf(str,"%s %s",pg,GIFSICLE_SUFFIX) ;
+         sprintf(str,"%s %s",pg,asuff) ;
          ppmto_agif_filter = str ;
       } else {
          pg = THD_find_executable( "whirlgif" ) ; /* but is OK */
          if( pg != NULL ){
+            sprintf(asuff,WHIRLGIF_SUFFIX,adel) ; /* 16 Jan 2003 */
             str = malloc(strlen(pg)+64) ;
-            sprintf(str,"%s %s",pg,WHIRLGIF_SUFFIX) ;
+            sprintf(str,"%s %s",pg,asuff) ;
             ppmto_agif_filter = str ;
          }
       }

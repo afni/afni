@@ -4207,3 +4207,9 @@
  * Modified afni.c to let user set SUMA line thickness via environment
      variable.  Also changed afni_pplug_env.c to match.
  * Modified afni_func.c to purge all datasets in a session after rescan.
+
+16 Jan 2003
+ * Modified imseq.c to let user setenv AFNI_AGIF_DELAY to control speed
+     of animated GIF output.
+ * Modified afni_driver.c to allow remote changing of thresholds, the
+     addition of overlay colors, and the setting of pbar pane number.

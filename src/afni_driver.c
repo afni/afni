@@ -34,6 +34,10 @@ static int AFNI_drive_addto_graph_1D( char *cmd ) ;
 
 static int AFNI_drive_geom_graph    ( char *cmd ) ; /* 16 Nov 2001 */
 
+static int AFNI_drive_add_overlay_color( char *cmd ) ; /* 16 Jan 2003 */
+static int AFNI_drive_set_threshold    ( char *cmd ) ; /* 16 Jan 2003 */
+static int AFNI_drive_set_pbar_number  ( char *cmd ) ; /* 16 Jan 2003 */
+
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
   Return value is 0 if good, -1 if bad.
@@ -73,6 +77,10 @@ static AFNI_driver_pair dpair[] = {
 
  { "SYSTEM"           , AFNI_drive_system            } ,
  { "CHDIR"            , AFNI_drive_chdir             } ,
+
+ { "ADD_OVERLAY_COLOR", AFNI_drive_add_overlay_color } ,
+ { "SET_THRESHOLD"    , AFNI_drive_set_threshold     } ,
+ { "SET_PBAR_NUMBER"  , AFNI_drive_set_pbar_number   } ,
 
  { NULL , NULL } } ;
 
@@ -1269,5 +1277,107 @@ ENTRY("AFNI_drive_addto_graph_1D") ;
    for( jj=0 ; jj < ny ; jj++ ) free(y[jj]) ;
    free(y) ; freeup_strings(ntok,stok) ;
 
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! ADD_OVERLAY_COLOR colordef colorlab -- 16 Jan 2003
+--------------------------------------------------------------------------*/
+
+static int AFNI_drive_add_overlay_color( char *cmd )
+{
+   char cdef[256]="\0" , clab[256]="\0" ;
+   int ii ;
+
+ENTRY("AFNI_drive_add_overlay_color") ;
+
+   sscanf( cmd , "%255s %255s" , cdef,clab ) ;
+   if( cdef[0] == '\0' || clab[0] == '\0' ) RETURN(-1) ;
+
+   if( GLOBAL_library.dc == NULL ){           /* before X11 started */
+     if( INIT_ncolovr < MAX_NCOLOVR ){
+       ii = INIT_ncolovr++ ;
+       INIT_labovr[ii] = XtNewString(cdef) ;
+       INIT_colovr[ii] = XtNewString(clab) ;
+     } else
+       RETURN(-1) ;
+   } else {                                   /* after X11 started */
+     ii = DC_add_overlay_color( GLOBAL_library.dc , cdef , clab ) ;
+     if( ii < 0 ) RETURN(-1) ;
+     OVC_mostest( GLOBAL_library.dc->ovc ) ;
+   }
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! SET_THRESHOLD [c].val [dec] -- 16 Jan 2003
+    as in "SET_THRESHOLD A.3327 2" or
+          "SET_THRESHOLD .9932 2"
+--------------------------------------------------------------------------*/
+
+static int AFNI_drive_set_threshold( char *cmd )
+{
+   int ic , dadd=1 , dec=-1 , ival , smax ;
+   Three_D_View *im3d ;
+   float val ;
+   char *cpt ;
+   static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
+                            100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
+
+ENTRY("AFNI_drive_set_threshold") ;
+
+   if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   /* get val and set scale */
+
+   if( cmd[dadd] != '.' ) RETURN(-1) ;
+   val = strtod( cmd+dadd , &cpt ) ;
+   ival = rint(val/THR_FACTOR) ;
+   smax = (int)( pow(10.0,THR_TOP_EXPON) + 0.001 ) - 1 ;
+   if( ival < 0 || ival > smax ) RETURN(-1) ;
+   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
+
+   /* get dec, if present, and apply it */
+
+   sscanf(cpt,"%d",&dec) ;
+
+   if( dec >= 0 && dec <= THR_TOP_EXPON )
+     AFNI_set_thresh_top( im3d , tval[dec] ) ;
+
+   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! SET_PBAR_NUMBER [c.]num
+    as in "SET_PBAR_NUMBER A.3"
+--------------------------------------------------------------------------*/
+
+static int AFNI_drive_set_pbar_number( char *cmd )
+{
+   int ic , dadd=2 , num=-1 ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_drive_set_pbar_number") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   if( !isdigit(cmd[dadd]) ) RETURN(-1) ;
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   num = (int) strtod( cmd+dadd , NULL ) ;
+   if( num < 2 ) RETURN(-1) ;
+   AV_assign_ival( im3d->vwid->func->inten_av , num ) ;
+   alter_MCW_pbar( im3d->vwid->func->inten_pbar , num , NULL ) ;
    RETURN(0) ;
 }
