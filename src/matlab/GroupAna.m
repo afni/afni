@@ -88,12 +88,12 @@ switch NF
    fprintf('\n\tType 2: Factorial (crossed) design AXBXCXD - only factor D is random. If D is subject it is also');
    fprintf('\n\t        called 3-way design with all 3 factors A, B, and C varying within subject.');
    fprintf('\n\tType 3: Mixed design BXCXD(A)- only the nested (4th) factor (usually subject) is random.');
-   fprintf('\n\t        Also called 3-way design with factors B and C varying within subject and factor A between subject.');
+   fprintf('\n\t        Also called 3-way design with factors B and C varying within subject and factor A between subjects.');
    fprintf('\n\tType 4: Mixed design BXCXD(A)- D is nested within A, but only the 3rd factor (usually subject)');
    fprintf('\n\t        is random.');
    fprintf('\n\tType 5: Mixed design CXD(AXB) - only the nested (4th) factor (usually subject) is random,');
    fprintf('\n\t        but factor D is nested within both factors A and B. If D is subject it is also called 3-way');
-   fprintf('\n\t        design with factor D varying within-subject and factors A and B between-subject.\n');
+   fprintf('\n\t        design with factor D varying within-subject and factors A and B between-subjects.\n');
 	fprintf('\nNotice: This is NOT an exhaustive list of design types for 4-way ANOVA. Other types might be implemented upon request.\n');
 end
 
@@ -189,7 +189,7 @@ if (((NF == 3 | NF == 4) & dsgn == 3)),
  		   FL(NF).UL(i).n(j).expr = input(' is: ', 's');
  		end	
  		UL_sum = UL_sum + FL(NF).UL(i).N_level;
- 		FL(NF).N_level = max(FL(NF).UL(:).N_level);   % This is for positioning those contrast columns in the design matrix in PreProc.m
+ 		FL(NF).N_level = max([FL(NF).UL(:).N_level]);   % This is for positioning those contrast columns in the design matrix in PreProc.m
  	end 
  	ntot = ntot * UL_sum / FL(1).N_level;	
 		
@@ -565,7 +565,7 @@ if (NF == 1),
    % 1st order contrasts
    flg = 0;
    while flg == 0,
-      fprintf('\n1st order contrasts with %i factor(s) collapsed.\n', NF-1);
+      fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
 	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
@@ -592,7 +592,7 @@ if (NF == 2),
    % 1st order contrasts ONLY at this point
    flg = 0;
    while flg == 0,
-      fprintf('\n1st order contrasts with %i factor(s) collapsed.\n', NF-1);
+      fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
 	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
@@ -614,7 +614,7 @@ if (NF == 2),
    % 2nd order contrasts
    flg = 0;
    while flg == 0,
-      fprintf('\n2nd order contrasts with %i factor(s) collapsed.\n', NF-2);
+      fprintf('\n2nd order contrasts have %i factor(s) collapsed.\n', NF-2);
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord2.tot = input('\nHow many 2nd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord2.tot) == 0 | Contr.ord2.tot < 0),
@@ -644,7 +644,7 @@ if (NF == 3 | NF == 4),
    % 1st order contrasts
    flg = 0;
    while flg == 0,
-      fprintf('\n1st order contrasts with %i factor(s) collapsed.\n', NF-1);
+      fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
    	%fprintf('\t1. Simple mean for a factor level, such as [1 0 0];\n'); 
 	   %fprintf('\t2. Difference between two factor levels, such as [1 -1 0];\n');
    	%fprintf('\t3. Linear combination of factor levels, such as [0.5 0.5 -1];\n');
@@ -672,7 +672,7 @@ if (NF == 3 | NF == 4),
    % 2nd order contrasts
    flg = 0;
    while flg == 0,
-      fprintf('\n2nd order contrasts with %i factor(s) collapsed.\n', NF-2);
+      fprintf('\n2nd order contrasts have %i factor(s) collapsed.\n', NF-2);
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord2.tot = input('\nHow many 2nd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord2.tot) == 0 | Contr.ord2.tot < 0),
@@ -698,7 +698,7 @@ if (NF == 3 | NF == 4),
 	% 3rd-order contrasts
 	flg = 0;
    while flg == 0,
-      fprintf('\n3rd order contrasts with %i factor(s) collapsed.\n', NF-3);
+      fprintf('\n3rd order contrasts have %i factor(s) collapsed.\n', NF-3);
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord3.tot = input('\nHow many 3rd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord3.tot) == 0 | Contr.ord3.tot < 0),
