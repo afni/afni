@@ -652,8 +652,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
              break;
 
          case XK_n:
-            if (SUMAg_CF->Dev) {
-               
                if (Kev.state & ControlMask){
                   fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
                   /* open a new controller */
@@ -662,40 +660,41 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      SUMA_RETURNe;
                   } 
                }else {
-                  fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
+                  if (SUMAg_CF->Dev) {
+                     fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
 
-                  it = SUMA_ReadNumStdin (fv15, 6);
-                  if (it > 0 && it < 6) {
-                     fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
-                     SUMA_RETURNe;
-                  }else if (it < 0) {
-                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                     SUMA_RETURNe;
-                  }else if (it == 0) {
-                     SUMA_RETURNe;
-                  }
+                     it = SUMA_ReadNumStdin (fv15, 6);
+                     if (it > 0 && it < 6) {
+                        fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
+                        SUMA_RETURNe;
+                     }else if (it < 0) {
+                        fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                        SUMA_RETURNe;
+                     }else if (it == 0) {
+                        SUMA_RETURNe;
+                     }
 
-                  fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n", \
-                     fv15[0], fv15[1],fv15[2],\
-                     fv15[3], fv15[4],fv15[5]);
+                     fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n", \
+                        fv15[0], fv15[1],fv15[2],\
+                        fv15[3], fv15[4],fv15[5]);
 
-                  /* register fv15 with ED */
-                  if (!list) list = SUMA_CreateList ();
-                  ED = SUMA_InitializeEngineListData (SE_GetNearestNode);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_fv15, (void *)fv15, 
-                                                         SES_Suma, (void *)sv, NOPE, 
-                                                         SEI_Head, NULL )) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-                     break;
-                  }
-                  
-                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-                  if (!SUMA_Engine (&list)) {
-                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     /* register fv15 with ED */
+                     if (!list) list = SUMA_CreateList ();
+                     ED = SUMA_InitializeEngineListData (SE_GetNearestNode);
+                     if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                            SEF_fv15, (void *)fv15, 
+                                                            SES_Suma, (void *)sv, NOPE, 
+                                                            SEI_Head, NULL )) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                        break;
+                     }
+
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+                     if (!SUMA_Engine (&list)) {
+                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     }
                   }
                }
-            }
             break;
 
          case XK_p:
