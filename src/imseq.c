@@ -9872,8 +9872,8 @@ ENTRY("ISQ_snapshot") ;
    if( IMARR_COUNT(snap_imar) > 0 ){
      MRI_IMAGE *qim = IMARR_LASTIM( snap_imar ) ;
      if( mri_equal(qim,tim) ){
-       fprintf(stderr,"++ ISQ_snapshot: rejected duplicate image at #%d.\n",
-               IMARR_COUNT(snap_imar) ) ;
+       fprintf(stderr,"++ Image recorder: reject duplicate image at #%d\n",
+               IMARR_COUNT(snap_imar)-1 ) ;
        mri_free(tim); EXRETURN;
      }
    }
