@@ -25,7 +25,7 @@ echo "  removes files from working directory and CVS repository"
 echo "Cunk"
 echo "  lists files in working directory that are unknown to CVS"
 
-echo "cvs tag -c afni-2.33q ."
+echo "cvs tag -c afni-2-33q ."
 echo "  tags all files in CVS repository as being part of release afni-2.33q"
 
 echo "cvs checkout"

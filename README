@@ -26,7 +26,7 @@ Crm file [file ...]
 Cunk
   lists files in working directory that are unknown to CVS
 
-cvs tag -c afni-2.33q .
+cvs tag -c afni-2-33q .
   tags all files in CVS repository as being part of release afni-2.33q
 cvs checkout dname
   get all files under dname in CVS repository into working directory
