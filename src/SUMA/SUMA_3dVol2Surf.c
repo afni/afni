@@ -1,5 +1,5 @@
 
-#define VERSION "version 4.0 (January 23, 2004)"
+#define VERSION "version 4.1 (February 10, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -152,6 +152,10 @@ static char g_history[] =
     "4.0  January 23, 2004  [rickr]\n"
     "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
     "  - version -> 4.0 to celebrate normals :)\n"
+    "\n"
+    "4.1  February 10, 2004  [rickr]\n"
+    "  - output a little more debug info for !AnatCorrect case\n"
+    "  - small updates to help examples\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -937,12 +941,17 @@ ENTRY("get_mappable_surfs");
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
 	if ( ! so->AnatCorrect )
+	{
+	    if ( debug )
+		fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
+			socount, CHECK_NULL_STR(so->Label));
 	    continue;
+	}
 
 	if ( debug > 2 )
 	{
-	    fprintf( stderr, "\n---------- surface #%d -----------",
-		     socount );
+	    fprintf( stderr, "\n---------- surface #%d '%s' -----------\n",
+		     socount, CHECK_NULL_STR(so->Label) );
 	    SUMA_Print_Surface_Object( so, stderr );
 	}
 
@@ -1158,7 +1167,7 @@ ENTRY("read_surf_files");
     }
 
     if ( opts->debug > 1 )
-	fputs( "++ surfaces loaded.\n", stderr );
+	fprintf(stderr, "++ %d surfaces loaded.\n", spec->N_Surfs );
 
     RETURN(0);
 }
@@ -1858,7 +1867,7 @@ ENTRY("usage");
 	    "       -sv           fred_anat+orig           \\\n"
 	    "       -grid_parent  fred_anat+orig           \\\n"
 	    "       -map_func     mask                     \\\n"
-	    "       -out_1D       fred_surf_vals.1D\n"
+	    "       -out_1D       fred_anat_vals.1D\n"
 	    "\n"
 	    "    2. Apply a single surface mask to output volume values over\n"
 	    "       each surface node.  In this case restrict input to the\n"
@@ -1874,7 +1883,7 @@ ENTRY("usage");
 	    "       -map_func     mask                                     \\\n"
 	    "       -debug        2                                        \\\n"
 	    "       -dnode        1874                                     \\\n"
-	    "       -out_1D       fred_surf_vals.1D\n"
+	    "       -out_1D       fred_epi_vals.1D\n"
 	    "\n"
 	    "    3. Given a pair of related surfaces, for each node pair,\n"
 	    "       break the connected line segment into 10 points, and\n"
@@ -1892,12 +1901,12 @@ ENTRY("usage");
 	    "       -surf_A       smoothwm                                 \\\n"
 	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_func+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
 	    "       -map_func     ave                                      \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_surf_ave.1D\n"
+	    "       -out_1D       fred_func_ave.1D\n"
 	    "\n"
 	    "    4. Similar to example 3, but each of the node pair segments\n"
 	    "       has grown by 10%% on the inside of the first surface,\n"
@@ -1914,14 +1923,14 @@ ENTRY("usage");
 	    "       -surf_A       smoothwm                                 \\\n"
 	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_func+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
 	    "       -map_func     ave                                      \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      voxels                                   \\\n"
 	    "       -f_p1_fr      -0.1                                     \\\n"
 	    "       -f_pn_fr      0.2                                      \\\n"
-	    "       -out_1D       fred_surf_ave2.1D\n"
+	    "       -out_1D       fred_func_ave2.1D\n"
 	    "\n"
 	    "    5. Similar to example 3, instead of computing the average\n"
 	    "       across each segment (one average per sub-brick), output\n"
@@ -1936,12 +1945,12 @@ ENTRY("usage");
 	    "       -surf_A       smoothwm                                 \\\n"
 	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_func+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
 	    "       -map_func     seg_vals                                 \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_surf_vals.1D\n"
+	    "       -out_1D       fred_func_segvals_10.1D\n"
 	    "\n"
             "    6. Similar to example 5, but make sure there is output for\n"
             "       every node pair in the surfaces.  Since it is expected\n"
@@ -1959,13 +1968,14 @@ ENTRY("usage");
 	    "       -surf_A       smoothwm                                 \\\n"
 	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_func+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
 	    "       -map_func     seg_vals                                 \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
 	    "       -oob_value    0.0                                      \\\n"
-	    "       -out_1D       fred_surf_ave.1D\n"
+	    "       -oom_value    0.0                                      \\\n"
+	    "       -out_1D       fred_func_segvals_10_all.1D\n"
 	    "\n"
 	    "    7. This is a basic example of calculating the average along\n"
 	    "       each segment, but where the segment is produced by only\n"
@@ -1979,10 +1989,10 @@ ENTRY("usage");
 	    "       -grid_parent  fred_anat+orig                           \\\n"
 	    "       -use_norms                                             \\\n"
 	    "       -norm_len     2.5                                      \\\n"
-	    "       -map_func     seg_vals                                 \\\n"
+	    "       -map_func     ave                                      \\\n"
 	    "       -f_steps      10                                       \\\n"
 	    "       -f_index      nodes                                    \\\n"
-	    "       -out_1D       fred_surf_norm_ave.1D\n"
+	    "       -out_1D       fred_anat_norm_ave.2.5.1D\n"
 	    "\n"
 	    "  --------------------------------------------------\n"
 	    "\n"

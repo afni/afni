@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.1 (January 23, 2004)"
+#define VERSION "version 3.2 (February 10, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -107,6 +107,9 @@ static char g_history[] =
  "3.1  January 23, 2004\n"
  "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
  "  - reversed order of output for '-hist' option\n"
+ "\n"
+ "3.2  February 10, 2004\n"
+ "  - output a little more debug info for !AnatCorrect case\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -1136,12 +1139,17 @@ ENTRY("get_mappable_surfts");
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
 	if ( ! so->AnatCorrect )
-	    continue;
-
-	if ( debug > 3 )
 	{
-	    fprintf( stderr, "\n---------- surface #%d -----------",
-		     socount );
+	    if ( debug )
+		fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
+			socount, CHECK_NULL_STR(so->Label));
+	    continue;
+	}
+
+	if ( debug > 1 )
+	{
+	    fprintf( stderr, "\n---------- surface #%d '%s' -----------\n",
+		     socount, CHECK_NULL_STR(so->Label) );
 	    SUMA_Print_Surface_Object( so, stderr );
 	}
 
@@ -1667,7 +1675,7 @@ ENTRY("fill_SUMA_structs");
     }
 
     if ( opts->debug > 1 )
-	fputs( "++ surfaces loaded.\n", stderr );
+	fprintf(stderr, "++ %d surfaces loaded.\n", spec->N_Surfs );
 
     RETURN(0);
 }
