@@ -4570,9 +4570,9 @@ DPR(" .. really a hidden resize") ;
 
 DPR(" .. KeyPress") ;
 
-         /* discard if a mouse button is also pressed at this time */
-
          ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
+
+         /* discard if a mouse button is also pressed at this time */
 
          if( event->state & (Button1Mask|Button2Mask|Button3Mask) ){
            XBell(seq->dc->display,100); EXRETURN;
@@ -5096,6 +5096,8 @@ ENTRY("ISQ_button2_EV") ;
    /* check for legality */
 
    if( !ISQ_REALZ(seq) || !seq->button2_enabled || w != seq->wimage ) EXRETURN ;
+
+   ISQ_timer_stop(seq) ;
 
    switch( ev->type ){
 
@@ -7039,6 +7041,7 @@ static unsigned char record_bits[] = {
       /*------- death! -------*/
 
       case isqDR_destroy:{
+         ISQ_timer_stop(seq) ;
          ISQ_but_done_CB( NULL , (XtPointer) seq , NULL ) ;
          RETURN( True );
       }
@@ -9848,6 +9851,8 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
 
    if( !ISQ_REALZ(seq) ) return ;
 
+   ISQ_timer_stop(seq) ;
+
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
@@ -10360,6 +10365,7 @@ ENTRY("SNAP_imseq_getim") ;
 
 static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
 {
+ENTRY("SNAP_imseq_send_CB") ;
    switch( cbs->reason ){
      case isqCR_destroy:{
        myXtFree(snap_isq) ;         snap_isq  = NULL ;
@@ -10367,7 +10373,7 @@ static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
      }
      break ;
    }
-   return ;
+   EXRETURN ;
 }
 /*------------------------------------------------------------------------*/
 /*! Create display context if we don't have one.  [03 Jul 2003] */
@@ -10605,5 +10611,9 @@ ENTRY("ISQ_timer_CB") ;
 
 void ISQ_timer_stop( MCW_imseq *seq )
 {
-   if( seq->timer_id > 0 ){ XtRemoveTimeOut(seq->timer_id); seq->timer_id = 0; }
+ENTRY("ISQ_timer_stop") ;
+   if( seq != NULL && seq->timer_id > 0 ){
+     XtRemoveTimeOut(seq->timer_id); seq->timer_id = 0;
+   }
+   EXRETURN ;
 }
