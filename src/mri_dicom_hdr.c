@@ -140,6 +140,16 @@ static int RWC_printf( char *fmt , ... )
 
 /****************************************************************/
 
+static off_t        pxl_off = 0 ;  /* store pixel array offset */
+static unsigned int pxl_len = 0 ;  /* and length in file */
+
+void mri_dicom_pxlarr( off_t *poff , unsigned int *plen )
+{
+   *poff = pxl_off ; *plen = pxl_len ;
+}
+
+/****************************************************************/
+
 char * mri_dicom_header( char *fname )
 {
     DCM_OBJECT * object;
@@ -161,7 +171,8 @@ char * mri_dicom_header( char *fname )
 
     DCM_Debug(verbose);
 
-    RWC_clear_pbuf() ;
+    RWC_clear_pbuf() ; pxl_len = 0 ; pxl_off = 0 ;
+
     cond = DCM_OpenFile(fname, options, &object);
     if (cond != DCM_NORMAL && ((options & DCM_PART10FILE) == 0)) {
       (void) DCM_CloseObject(&object);
@@ -3486,7 +3497,7 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 
     if (debug)
 	fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", l,
-		sizeof(PRV_ELEMENT_ITEM) + l);
+		(int)(sizeof(PRV_ELEMENT_ITEM) + l));
 
     *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
     if (debug)
@@ -6669,11 +6680,15 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 	    (*elementItem)->element.representation = DCM_OW;
 	if (fileFlag) {
 	    if (fd != -1) {
-		if ((*elementItem)->element.length != DCM_UNSPECIFIEDLENGTH)
+		if ((*elementItem)->element.length != DCM_UNSPECIFIEDLENGTH){
+
+                    pxl_off = lseek( fd , 0 , SEEK_CUR ) ;
+                    pxl_len = (*elementItem)->element.length ;
+
 		    (void) lseek(fd,
 				 (off_t) (*elementItem)->element.length,
 				 SEEK_CUR);
-		else {
+		} else {
 		    U32 l1 = 0;
 		    U32 s1;
 		    off_t f1 = 0;
@@ -11153,6 +11168,14 @@ LST_Index(LST_HEAD ** l, int index)
 **	be found below.
 **
 */
+
+#ifdef DARWIN
+#define USEREGCOMP
+#endif
+
+#ifdef USEREGCOMP
+#include <regex.h>
+#endif
 
 CONDITION
 UTL_RegexMatch(char *regex, char *stm)

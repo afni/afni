@@ -538,6 +538,7 @@ extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
+extern void   mri_dicom_pxlarr( off_t *, unsigned int * ) ;
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
