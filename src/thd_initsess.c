@@ -232,14 +232,21 @@ ENTRY("THD_init_session") ;
    /*-- 27 Aug 2002: try to read any ANALYZE "datasets" here --*/
 
    if( !AFNI_noenv("AFNI_ANALYZE_DATASETS") ){
-     char ename[THD_MAX_NAME] , **fn_anlz , *eee ;
-     int num_anlz , ii ;
+     char *ename[2] , **fn_anlz ;
+     int num_anlz , ii , nee ;
 
      STATUS("looking for ANALYZE files") ;
 
-     strcpy(ename,sess->sessname) ; strcat(ename,"*.hdr") ;
-     eee = ename ;
-     MCW_file_expand( 1,&eee , &num_anlz,&fn_anlz ) ;  /* find files */
+     ename[0] = malloc(THD_MAX_NAME) ;
+     strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.hdr") ;
+     nee = 1 ;
+#ifdef ALLOW_FSL_FEAT
+     ename[1] = malloc(THD_MAX_NAME) ;
+     strcpy(ename[1],sess->sessname) ; strcat(ename[1],"stats/*stat*.hdr") ;
+     nee++ ;
+#endif
+     MCW_file_expand( nee,ename , &num_anlz,&fn_anlz ) ;  /* find files */
+     for( ii=0 ; ii < nee ; ii++ ) free(ename[ii]) ;
 
      if( num_anlz > 0 ){                               /* got some! */
        STATUS("opening ANALYZE files") ;
