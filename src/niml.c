@@ -1743,12 +1743,15 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
               If msec=0, will return after 1st read attempt, even
               if nothing was obtained.
 
-    Returns number of bytes read (-1 if input stream is bad at start).
+    Returns number of bytes read (-1 if input stream goes bad before
+    any data is read).  If the input stream goes bad AFTER some data
+    is read, there is no indication of that (until the next time
+    you call this, of course).
 -------------------------------------------------------------------------*/
 
 static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 {
-   int nn , ii , ntot=0 ;
+   int nn , ii , ntot=0 , ngood=0 ;
    int start_msec = NI_clock_time() ;
 
    if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
@@ -1761,11 +1764,11 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
    while(1){
 
-      nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
+      ngood = NI_stream_readcheck(ns,0) ; /* check if data can be read */
 
-      if( nn < 0 ) break ;             /* data stream gone bad, so return */
+      if( ngood < 0 ) break ;             /* data stream gone bad, so exit */
 
-      if( nn > 0 ){                    /* we can read! */
+      if( ngood > 0 ){                    /* we can read! */
 
          ii = NI_stream_read( ns, ns->buf + ns->nbuf, NI_BUFSIZE-ns->nbuf ) ;
 
@@ -1777,14 +1780,17 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
                or we have all the data that was asked for, then exit */
 
             if( ns->nbuf >= NI_BUFSIZE || ntot >= minread ) break ;
+
+         } else if( ii < 0 ){          /* stream suddenly died? */
+            ngood = ii ; break ;
          }
       }
 
-      /* if we don't require data, then return no matter what our status is */
+      /* if we don't require data, then exit no matter what our status is */
 
       if( minread == 0 ) break ;
 
-      /* if the max time has elapsed, then return */
+      /* if the max time has elapsed, then exit */
 
       if( NI_clock_time()-start_msec >= msec ) break ;
 
@@ -1793,6 +1799,7 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
       NI_sleep(5) ;
    }
 
+   if( ntot == 0 && ngood < 0 ) return ngood ;
    return ntot ;
 }
 
@@ -1937,7 +1944,8 @@ Restart:                            /* loop back here to retry */
 
    /*----- If here, have parsed a header.
            First, expunge the data bytes that
-           were consumed to make the header. -----*/
+           were consumed to make the header; that is, we can
+           start reading data from ns->buf[0]..ns->buf[ns->nbuf-1]. --*/
 
    if( nn+nhs < ns->nbuf ){
       memmove( ns->buf , ns->buf+nn+nhs , ns->nbuf-nn-nhs ) ;
@@ -1952,34 +1960,37 @@ Restart:                            /* loop back here to retry */
 
       NI_group *ngr = make_empty_group_element( hs ) ;
       destroy_header_stuff( hs ) ;
+
+      /* we now have to read the elements within the group */
+
    }
 
    else { /*---------------------- a data element -------------------*/
 
       NI_element *nel = make_empty_data_element( hs ) ;
-      int form , swap , nball ;
+      int form , swap , nball , nbrow ;
       destroy_header_stuff( hs ) ;
 
       if( nel == NULL          ||     /* nel == NULL should never happen. */
           nel->vec_len == 0    ||     /* These other cases are indication */
           nel->vec_num == 0    ||     /* that this is an 'empty' element. */
-          nel->vec_typ == NULL ||
+          nel->vec_typ == NULL ||     /* ==> The header is all there is.  */
           nel->vec     == NULL   ) return nel ;
 
       /*-- If here, must read data from the buffer into nel->vec --*/
 
       /* Find the form of the input */
 
-      ii = string_index( "ni_form" , nel->attr_num , nel->attr_lhs ) ;
-
       form = NI_TEXT_MODE ; /* default is text mode */
       swap = 0 ;            /* and then don't byte swap */
+
+      ii = string_index( "ni_form" , nel->attr_num , nel->attr_lhs ) ;
 
       if( ii >= 0 &&  nel->attr_rhs[ii] != NULL ){ /* parse ni_form=rhs */
 
          /* at present, the only non-text mode is "binary" */
 
-         if( strstr(nel->attr_rhs[ii],"binary") != NULL ){
+         if( strstr(nel->attr_rhs[ii],"bin") != NULL ){
             int order=NI_MSB_FIRST ; /* default input byteorder */
 
             form = NI_BINARY_MODE ;
@@ -1993,13 +2004,13 @@ Restart:                            /* loop back here to retry */
       }
 
       /*-- Determine if the buffer might already have enough data;
-           if it doesn't, try to read some more data right now.    --*/
+           if it don't, try to read some more data bytes RIGHT NOW. --*/
 
-      nball = NI_element_allsize( nel ) ;
-
+      nbrow = NI_element_rowsize( nel ) ;
+      nball = nbrow * nel->vec_len ;
       if( ns->nbuf < nball ) (void) NI_stream_fillbuf( ns , 0 , 0 ) ;
 
-      /*-- Now must actually read data and put it somewhere (ugh). */
+      /*-- Now must actually read data and put it somewhere (oog). */
    }
 
    return NULL ; /* should never be reached */
