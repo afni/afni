@@ -33,6 +33,10 @@ char gv2s_history[] =
     "  - moved gv2s_map_names here (from SUMA_3dVol2Surf.c)\n"
     "  - moved v2s_map_type (and test) here (from SUMA_3dVol2Surf.c)\n"
     "  - define _VOL2SURF_C_, to allow extern defines in vol2surf.h\n"
+    "\n"
+    "September 09, 2004 [rickr]\n"
+    "  - in afni_vol2surf(), print v2s option if debug > 1\n"
+    "  - allow (first_node > last_node) if (last == 0), then change to n-1\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -124,6 +128,7 @@ v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, SUMA_surface * sA,
 			      SUMA_surface * sB, byte * mask )
 {
     static v2s_param_t   P;
+    v2s_plugin_opts    * popt;
     v2s_opts_t         * sopt;
 
 ENTRY("afni_vol2surf");
@@ -134,6 +139,7 @@ ENTRY("afni_vol2surf");
     if (       check_SUMA_surface(sA) ) RETURN(NULL);
     if ( sB && check_SUMA_surface(sB) ) RETURN(NULL);
 
+    popt = &gv2s_plug_opts;
     sopt = &gv2s_plug_opts.sopt;
 
     /* now fill the param struct based on the inputs */
@@ -146,6 +152,14 @@ ENTRY("afni_vol2surf");
     P.surf[0]    = *sA;
 
     if ( sB ) P.surf[1] = *sB;
+
+    if ( sopt->debug > 1 )
+    {
+	fprintf(stderr, "**afni_vol2surf: \n"
+			"  ready, surf_A, surf_B = %d, %d, %d\n",
+			popt->ready, popt->surfA, popt->surfB);
+	disp_v2s_opts_t ("  options: ", &gv2s_plug_opts.sopt);
+    }
 
     /* fire it up */
 
@@ -1096,7 +1110,8 @@ static v2s_results * alloc_output_mem(v2s_opts_t *sopt, v2s_param_t *p)
 
 ENTRY("allocate_output_mem");
 
-    if ( sopt->first_node > sopt->last_node )
+    /* if last <= 0, it will be set to nodes-1 */
+    if ( sopt->first_node > sopt->last_node && sopt->last_node > 0 )
     {
 	fprintf(stderr,"** error : first_node (%d) > last_node (%d)\n",
 		sopt->first_node, sopt->last_node);

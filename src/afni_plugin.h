@@ -657,6 +657,10 @@ extern void alter_PLUGIN_strval_width( PLUGIN_strval * , int ) ;
 extern void set_PLUGIN_strval( PLUGIN_strval * , char * ) ;
 extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
 
+/* for vol2surf plugin                                09 Sep 2004 [rickr] */
+extern int PLUTO_set_v2s_globals(void ** vopt, char *** maps, char ** hist);
+
+
 #endif /* ALLOW_PLUGINS */
 
 /*--------------------------------------------------------------------
