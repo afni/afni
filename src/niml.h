@@ -322,6 +322,7 @@ extern void   NI_stream_setbuf( NI_stream_type *, char * ) ;
 extern char * NI_stream_name( NI_stream_type * ) ;
 extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
+extern int NI_stream_hasinput( NI_stream_type * , int ) ;
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 

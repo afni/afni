@@ -221,7 +221,7 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      /* see if there is any data to be read */
 
-     nn = NI_stream_readcheck( ns_listen[cc] , 0 ) ;
+     nn = NI_stream_hasinput( ns_listen[cc] , 0 ) ;
 
      if( nn > 0 ){                                   /* has data!*/
        ct   = NI_clock_time() ;                      /* start timer */
