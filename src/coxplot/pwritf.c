@@ -824,6 +824,10 @@ L200:
 		xcur += scale * 4.f;
 		ycur += scale * 12.f;
 	    }
+
+       } else if (ich == 10) {  /* RWCox: 04 Apr 2002 */
+           xcur = 0.f;
+           ycur += -1.2f;
 /* ...............................................................
 ...... */
 /*  Otherwise, this is a real character with real strokes */

@@ -47,7 +47,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
-           3dAutoTcorrelate 3dFDR
+           3dAutoTcorrelate 3dFDR rtfeedme
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -1089,6 +1089,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
         plug_zeropad.$(SO)  plug_nth_dataset.$(SO)                     \
+        plug_roiplot.$(SO)                                             \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
@@ -1156,7 +1157,7 @@ PLUGIN_FIXED = plug_clust.fixed    plug_copy.fixed     plug_rename.fixed     \
                plug_scatplot.fixed plug_nudge.fixed                          \
                plug_zeropad.fixed  plug_3Ddump_V2.fixed                      \
                plug_4Ddump.fixed   plug_delay_V2.fixed plug_extract.fixed    \
-               plug_betafit.fixed                                            \
+               plug_betafit.fixed  plug_roiplot.fixed                        \
                plug_second_dataset.fixed                                     \
                plug_stavg.fixed    plug_reorder.fixed                        \
                plug_roiedit.fixed  plug_hemisub.fixed  plug_maskcalc.fixed   \
