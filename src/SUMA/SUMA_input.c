@@ -790,7 +790,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					postRedisplay();
 				}else if (Kev.state & ControlMask){
 					float a[3];
-					/* From top view, rotate about x 90 degrees */ 
+					/* From top view, rotate about x ~90 degrees. Rotations are not exact because consecutive 90* were producing different results on different systems*/ 
 					a[0] = 1.0; a[1] = 0.0;
 					axis_to_quat(a, SUMA_PI/2.001, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					/* then rotate about y 90 degrees */
