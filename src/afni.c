@@ -6835,19 +6835,21 @@ STATUS(" -- function widgets ON") ;
 
       /* make some widgets sensitive if we have the threshold available */
 
-#define DONT_UNMANAGE_THRESH  /* 31 Jan 2003 */
-
       if( ! have_thr ){
-#ifndef DONT_UNMANAGE_THRESH
-         XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
-#else
          SENSITIZE( im3d->vwid->func->thr_rowcol , 0 ) ;
-#endif
       } else {
-         XtManageChild  ( im3d->vwid->func->thr_rowcol ) ;
-#ifdef DONT_UNMANAGE_THRESH
-         SENSITIZE( im3d->vwid->func->thr_rowcol , 1 ) ;
-#endif
+         static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
+         if( first ){
+           first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) zfim[qq]=1;
+         }
+         XtManageChild( im3d->vwid->func->thr_rowcol ) ;
+         SENSITIZE( im3d->vwid->func->thr_rowcol ,
+             DSET_BRICK_TYPE(im3d->fim_now,im3d->vinfo->fim_index) != MRI_rgb );
+         qq = AFNI_controller_index(im3d) ;
+         if( zfim[qq] && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
+           XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
+           im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
+         }
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
       }
 
@@ -7505,22 +7507,22 @@ STATUS("opening function" ) ;
 #endif
 
 #ifdef REMANAGE_FUNC
+STATUS("unmanaging children") ;
          XtUnmanageChild( im3d->vwid->func->rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->inten_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->options_rowcol ) ;
 #endif
 
+STATUS("opening panel") ;
          OPEN_PANEL(im3d,func) ;
 
 #ifdef REMANAGE_FUNC
-
-# ifndef DONT_UNMANAGE_THRESH
-         if( have_thr ) XtManageChild( im3d->vwid->func->thr_rowcol ) ;
-# else
+STATUS("remanaging children") ;
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
-         SENSITIZE( im3d->vwid->func->thr_rowcol , have_thr ) ;
-# endif
+         if( im3d->fim_now != NULL )
+           SENSITIZE( im3d->vwid->func->thr_rowcol ,
+                      DSET_BRICK_TYPE(im3d->fim_now,im3d->vinfo->fim_index) != MRI_rgb ) ;
          XtManageChild( im3d->vwid->func->inten_rowcol ) ;
          XtManageChild( im3d->vwid->func->options_rowcol ) ;
          XtManageChild( im3d->vwid->func->rowcol ) ;

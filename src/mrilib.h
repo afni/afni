@@ -651,8 +651,9 @@ extern void mri_overlay_2D( MRI_IMAGE *, MRI_IMAGE *, int,int ) ;
 
 extern void mri_swapbytes( MRI_IMAGE * ) ;
 
-extern void swap_twobytes ( int n , void * ar ) ;  /* 14 Sep 1998 */
-extern void swap_fourbytes( int n , void * ar ) ;
+extern void swap_twobytes  ( int n , void * ar ) ;  /* 14 Sep 1998 */
+extern void swap_fourbytes ( int n , void * ar ) ;
+extern void swap_eightbytes( int n , void * ar ) ;  /* 06 Feb 2003 */
 
 extern MRI_IMAGE *mri_to_float( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_short( double , MRI_IMAGE * ) ;

@@ -1710,13 +1710,13 @@ static char * FUNC_prefixstr[] = {
 } ;
 
 static float FUNC_topval[] = {
-  0.0 , FUNC_THR_TOP , FUNC_COR_TOP , FUNC_TT_TOP , FUNC_FT_TOP ,
+  1.0 , FUNC_THR_TOP , FUNC_COR_TOP , FUNC_TT_TOP , FUNC_FT_TOP ,
         FUNC_ZT_TOP  , FUNC_CT_TOP  , FUNC_BT_TOP ,
         FUNC_BN_TOP  , FUNC_GT_TOP  , FUNC_PT_TOP , FUNC_BUCK_TOP
 } ;
 
 static int FUNC_scale_short[] = {
-  0 , FUNC_THR_SCALE_SHORT , FUNC_COR_SCALE_SHORT ,
+  1 , FUNC_THR_SCALE_SHORT , FUNC_COR_SCALE_SHORT ,
       FUNC_TT_SCALE_SHORT  , FUNC_FT_SCALE_SHORT  ,
       FUNC_ZT_SCALE_SHORT  , FUNC_CT_SCALE_SHORT  , FUNC_BT_SCALE_SHORT ,
       FUNC_BN_SCALE_SHORT  , FUNC_GT_SCALE_SHORT  , FUNC_PT_SCALE_SHORT ,
@@ -1724,7 +1724,7 @@ static int FUNC_scale_short[] = {
 } ;
 
 static int FUNC_scale_byte[] = {
-  0 , FUNC_THR_SCALE_BYTE , FUNC_COR_SCALE_BYTE ,
+  1 , FUNC_THR_SCALE_BYTE , FUNC_COR_SCALE_BYTE ,
       FUNC_TT_SCALE_BYTE  , FUNC_FT_SCALE_BYTE  ,
       FUNC_ZT_SCALE_BYTE  , FUNC_CT_SCALE_BYTE  , FUNC_BT_SCALE_BYTE ,
       FUNC_BN_SCALE_BYTE  , FUNC_GT_SCALE_BYTE  , FUNC_PT_SCALE_BYTE ,
@@ -1747,7 +1747,10 @@ static char * FUNC_descriptor[] = {
 
 static int FUNC_nvals[]    = {  1, 2,2,2,2,2,2,2,2,2,2, 1 } ; /* # in each dataset */
 static int FUNC_ival_fim[] = {  0, 0,0,0,0,0,0,0,0,0,0, 0 } ; /* index of fim      */
-static int FUNC_ival_thr[] = { -1, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of thresh   */
+
+#define FIMTHR 0   /* set = -1 to disable thresholding for FIM type - 06 Feb 2003 */
+
+static int FUNC_ival_thr[] = { FIMTHR, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of thresh */
 
 #define FUNC_HAVE_FIM(ftyp)  ((ftyp) >= 0 && \
                               (ftyp) <= LAST_FUNC_TYPE && FUNC_ival_fim[(ftyp)] >= 0)

@@ -68,6 +68,8 @@ static struct {
 
    int nofloatscan ;           /* 14 Sep 1999 */
 
+   int swap_eight ;            /* 06 Feb 2003 */
+
 } argopt  ;
 
 /*----------------------------------------------------------------------*/
@@ -188,6 +190,7 @@ int main( int argc , char * argv[] )
    argopt.editing     = FALSE ;
 
    argopt.swap_two = argopt.swap_four = 0 ;  /* 14 Sep 1998 */
+   argopt.swap_eight = 0 ;                   /* 06 Feb 2003 */
 
    argopt.nofloatscan = 0 ;                  /* 14 Sep 1999 */
 
@@ -2832,6 +2835,11 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      if( strncmp(Argv[nopt],"-8swap",4) == 0 ){    /* 06 Feb 2003 */
+         argopt.swap_eight = 1 ;
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -nofloatscan -----*/
 
       if( strncmp(Argv[nopt],"-nofloatscan",6) == 0 ){
@@ -3069,6 +3077,7 @@ void Syntax()
     "    3Di:hglobal:himage:nx:ny:nz:fname  [32 bit input]\n"
     "    3Df:hglobal:himage:nx:ny:nz:fname  [floating point input]\n"
     "    3Dc:hglobal:himage:nx:ny:nz:fname  [complex input]\n"
+    "    3Dd:hglobal:himage:nx:ny:nz:fname  [double input]\n"
     "\n"
     "  where '3D:' or '3Ds': signals this is a 3D input file of signed shorts\n"
     "        '3Db:'          signals this is a 3D input file of unsigned bytes\n"
@@ -3076,6 +3085,8 @@ void Syntax()
     "        '3Df:'          signals this is a 3D input file of floats\n"
     "        '3Dc:'          signals this is a 3D input file of complex numbers\n"
     "                         (real and imaginary pairs of floats)\n"
+    "        '3Dd:'          signals this is a 3D input file of double numbers\n"
+    "                         (will be converted to floats)\n"
     "        hglobal = number of bytes to skip at start of whole file\n"
     "        himage  = number of bytes to skip at start of each 2D image\n"
     "        nx      = x dimension of each 2D image in the file\n"
@@ -3096,6 +3107,8 @@ void Syntax()
     "  * The int, float, and complex formats presume that the data in\n"
     "      the image file are in the 'native' format for this CPU; that is,\n"
     "      there is no provision for data conversion (unlike the 3Ds: format).\n"
+    "  * Double input will be converted to floats (or whatever -datum is)\n"
+    "      since AFNI doesn't support double precision datasets.\n"
     "  * Whether the 2D image data is interpreted as a 3D block or a 3D+time\n"
     "      block depends on the rest of the command line parameters.  The\n"
     "      various 3D: input formats are just ways of inputting multiple 2D\n"
@@ -3205,6 +3218,9 @@ void Syntax()
     "     after they are read in.\n"
     "  -4swap\n"
     "     This option will force all input 4 byte images to be byte-swapped\n"
+    "     after they are read in.\n"
+    "  -8swap\n"
+    "     This option will force all input 8 byte images to be byte-swapped\n"
     "     after they are read in.\n"
     "  BUT PLEASE NOTE:\n"
     "     Input images that are auto-detected to need byte-swapping\n"
@@ -3575,8 +3591,9 @@ ENTRY("T3D_swap_CB") ;
    nz = dset->daxes->nzz ; nv = dblk->nvals      ; nvox = nx*ny*nz*nv ;
 
    switch( dd ){
-      case 2: swap_twobytes ( nvox , dbrick ) ; break ;
-      case 4: swap_fourbytes( nvox , dbrick ) ; break ;
+      case 2: swap_twobytes  ( nvox , dbrick ) ; break ;
+      case 4: swap_fourbytes ( nvox , dbrick ) ; break ;
+      case 8: swap_eightbytes( nvox , dbrick ) ; break ;
    }
 
    if( argopt.datum_all == MRI_short && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING") ){ /* 24 Aug 2001 */
@@ -4036,6 +4053,23 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
                 first = 0 ;
               }
               swap_fourbytes( im->nvox , mri_data_pointer(im) ) ;
+            }
+         } else if( im->pixel_size == 8 && argopt.swap_eight ){   /* 06 Feb 2003 */
+            if( im->was_swapped ){  /* don't swap me again */
+              static int first=1 ;
+              if( first ){          /* but print a missive */
+                fprintf(stderr,"++ Ignoring -8swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "" : im->fname ) ;
+                first = 0 ;
+              }
+            } else {                /* swap me, swap me */
+              static int first=1 ;
+              if( first ){          /* and print a message */
+                fprintf(stderr,"++ Executing -8swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "." : im->fname ) ;
+                first = 0 ;
+              }
+              swap_eightbytes( im->nvox , mri_data_pointer(im) ) ;
             }
          }
 
