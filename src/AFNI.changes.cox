@@ -4299,3 +4299,11 @@
      value, rather than 0.
  * Modified pbar.[ch] to use a popup menu to deal with Button-3 events, rather
      than directly do stuff.  Included a value+color label on this menu.
+
+12 Feb 2003
+ * Modified niml/ to read/write full type names rather than just abbreviations
+     to the "ni_type" attribute of data elements.
+ * Modified niml/niml_do.c to add a "typedef" verb, and to let the user program
+     define its own verb/callback pairs.
+ * Modified afni_niml.c to define a "ni_do" verb "DRIVE_AFNI", to let external
+     program (hint: SUMA) access this stuff.

@@ -1036,10 +1036,10 @@ extern void * NI_dataset_transpose( void * ) ;
 
 /*-------------------------------------------------------------------------*/
 
-typedef void NI_doer() ;
+typedef void NI_voidfunc() ;
 
 extern int NI_do( NI_stream_type * , NI_element * ) ;
-extern void NI_register_doer( char *verb , NI_doer *func ) ;
+extern void NI_register_doer( char *, NI_voidfunc * ) ;
 /*-------------------------------------------------------------------------*/
 
 #endif /* _NIML_HEADER_FILE */

@@ -92,6 +92,11 @@ SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
     SET_FUNC_RESAM A.Li.Li
   sets the func and threshold resampling modes both to Linear interpolation.
 
+OPEN_PANEL [c.]Panel_Name
+  Opens the specified controller panel, where 'Panel_Name' is one of
+  'Define_Function', 'Define_Datamode', or 'Define_Markers'.  At this time,
+  there is no way to close a panel.
+
 SYSTEM command string
   Executes "command string" using the system() library function; for
   example, "SYSTEM mkdir aaa".

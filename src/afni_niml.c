@@ -80,7 +80,7 @@ static Boolean AFNI_niml_workproc( XtPointer ) ;
 static void    AFNI_process_NIML_data( int , void * , int ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
-static void    AFNI_niml_driver( NI_element *nel ) ;
+static void    AFNI_niml_driver( char * , NI_stream_type *, NI_element * ) ;
 
 /*-----------------------------------------------------------------------*/
 /*! Routine executed at AFNI exit: shutdown all open NI_stream.
@@ -160,17 +160,11 @@ ENTRY("AFNI_init_niml") ;
 }
 
 /*---------------------------------------------------------------*/
-/*! Drive AFNI from a NIML element. */
+/*! Drive AFNI from a NIML element. [12 Feb 2003] */
 
-void AFNI_niml_driver( NI_element *nel )  /* 12 Feb 2003 */
+void AFNI_niml_driver( char *object , NI_stream_type *ns , NI_element *nel )
 {
-   char *object ;
-
-   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
-
-   object = NI_get_attribute( nel , "ni_object" ) ;
-   if( object != NULL ) AFNI_driver( object ) ;
-
+   (void) AFNI_driver( object ) ;
    return ;
 }
 
