@@ -204,8 +204,21 @@ ENTRY("mri_read") ;
    /*[[[ Information herein from Medical Image Format FAQ ]]]*/
 
    { char str[5]="AFNI" ;
-     int nx , ny , bpp , cflag , hdroff ;
-     rewind(imfile) ; fread(str,1,4,imfile) ;      /* check for "IMGF" */
+     int nx , ny , bpp , cflag , hdroff , extraskip=0 ;
+     rewind(imfile) ; fread(str,1,4,imfile) ;   /* check for "IMGF" or "GEMS" */
+
+     if( str[0]=='G' && str[1]=='E' && str[2]=='M' && str[3]=='S' ){ /* 12 Feb 2004 */
+       char buf[4096]; int bb,cc;                /* search for IMGF in 1st 4K */
+       rewind(imfile); cc=fread(buf,1,4096,imfile); cc-=4 ;
+       for( bb=4; bb < cc ; bb++ )
+        if( buf[bb]=='I' && buf[bb+1]=='M' && buf[bb+2]=='G' && buf[bb+3]=='F' ) break ;
+       if( bb < cc ){
+         fseek( imfile , (long)bb , SEEK_SET ) ; extraskip = bb ;
+         fread(str,1,4,imfile) ;
+       }
+     }
+
+     /* 12 Feb 2004: modified to allow for starting at extraskip */
 
      if( str[0]=='I' && str[1]=='M' && str[2]=='G' && str[3]=='F' ){
 
@@ -220,6 +233,7 @@ ENTRY("mri_read") ;
          swap_4(&skip); swap_4(&nx) ;
          swap_4(&ny)  ; swap_4(&bpp); swap_4(&cflag);
        }
+       skip += extraskip ;             /* location of image data in file */
        if( nx < 0 || nx > 8192 || ny < 0 || ny > 8192 ) goto The_Old_Way ;
        if( skip < 0  || skip  >= length )               goto The_Old_Way ;
        if( bpp != 16 || cflag != 1      )               goto The_Old_Way ;
@@ -230,7 +244,7 @@ ENTRY("mri_read") ;
 
        /* try to read image auxiliary data as well (not mandatory) */
 
-       length = fseek( imfile , 148L , SEEK_SET ) ; /* magic GEMS offset */
+       length = fseek( imfile , 148L+extraskip , SEEK_SET ) ; /* magic GEMS offset */
        if( length == 0 ){
           fread( &hdroff , 4,1 , imfile ) ;  /* location of image header */
           if( swap ) swap_4(&hdroff) ;
@@ -241,10 +255,10 @@ ENTRY("mri_read") ;
 
              /* get voxel grid sizes */
 
-             fseek( imfile , hdroff+26 , SEEK_SET ) ;
+             fseek( imfile , hdroff+26+extraskip , SEEK_SET ) ;
              fread( &dzz , 4,1 , imfile ) ;
 
-             fseek( imfile , hdroff+50 , SEEK_SET ) ;
+             fseek( imfile , hdroff+50+extraskip , SEEK_SET ) ;
              fread( &dxx , 4,1 , imfile ) ;
              fread( &dyy , 4,1 , imfile ) ;
 
@@ -252,7 +266,7 @@ ENTRY("mri_read") ;
 
              /* save into image header [dw > 0 is signal that dx,dy,dz are OK] */
 
-             if( dxx > 0.0 && dyy > 0.0 && dzz > 0.0 ){
+             if( dxx > 0.01 && dyy > 0.01 && dzz > 0.01 ){
                im->dx = dxx; im->dy = dyy; im->dz = dzz; im->dw = 1.0;
              }
 
@@ -264,7 +278,7 @@ ENTRY("mri_read") ;
              /* Orientation is saved into global string MRILIB_orients.  */
              /* N.B.: AFNI coordinates are RAI orientation.              */
 
-             fseek( imfile , hdroff+154 , SEEK_SET ) ;
+             fseek( imfile , hdroff+154+extraskip , SEEK_SET ) ;
              fread( xyz , 4,9 , imfile ) ;
              if( swap ) swap_fourbytes(9,xyz) ;
 
@@ -381,7 +395,7 @@ ENTRY("mri_read") ;
              /* get TR, save into global variable */
 
              if( MRILIB_tr <= 0.0 ){
-               fseek( imfile , hdroff+194 , SEEK_SET ) ;
+               fseek( imfile , hdroff+194+extraskip , SEEK_SET ) ;
                fread( &itr , 4,1 , imfile ) ;
                if( swap ) swap_4(&itr) ;
                MRILIB_tr = im->dt = 1.0e-6 * itr ;
