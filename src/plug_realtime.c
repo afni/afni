@@ -1935,13 +1935,13 @@ void RT_start_dataset( RT_input * rtin )
      /* open new controllers if needed */
 
      if( nc < rtin->num_chan && nc < MAX_CONTROLLERS ){
-       nc = MIN( rtin->num_chan , MAX_CONTROLLERS ) - nc ;
+       nc = MIN( rtin->num_chan , MAX_CONTROLLERS ) - nc ;  /* number to add */
 
        fprintf(stderr,
                "RT: %d channel data requires opening %d more AFNI controllers",
                rtin->num_chan , nc ) ;
 
-       for( ic=0 ; ic < nc ; ic++ )
+       for( ic=0 ; ic < nc ; ic++ )                         /* add them */
          AFNI_clone_controller_CB(NULL,NULL,NULL) ;
      }
 
@@ -1955,7 +1955,7 @@ void RT_start_dataset( RT_input * rtin )
          nc++ ;
        }
      }
-     nc = num_open_controllers ;  /* nugatory */
+     nc = num_open_controllers ;  /* nugatory or moot */
 
      /* now assign channels to controllers */
 
@@ -1997,6 +1997,7 @@ void RT_start_dataset( RT_input * rtin )
       sprintf( npr , "%.31s#%03d" , rtin->root_prefix , ii ) ;
 
       if( rtin->num_chan == 1 ){                  /* the old way */
+
          if( PLUTO_prefix_ok(npr) ) break ;
 
       } else {                                    /* 02 Aug 2002: the multichannel way */
@@ -2563,19 +2564,19 @@ void RT_tell_afni( RT_input *rtin , int mode )
 
    if( rtin == NULL ) return ;
 
-   /* tell separately for each one */
+   /*** tell separately for each one ***/
 
    for( cc=0 ; cc < rtin->num_chan ; cc++ )
      RT_tell_afni_one( rtin , mode , cc ) ;
 
-   /* at the end of acquisition, print a message */
+   /*** at the end of acquisition, show messages ***/
 
    if( mode == TELL_FINAL && ISVALID_DSET(rtin->dset[0]) ){
      char qbuf[256*(MAX_CHAN+1)] , zbuf[256] ;
      sprintf( qbuf ,
                 " \n"
                 " Acquisition Terminated\n\n"
-                " Brick Dimensions: %d x %d x %d  Type: %s\n\n" ,
+                " Brick Dimensions: %d x %d x %d  Datum: %s\n\n" ,
                rtin->nxx,rtin->nyy,rtin->nzz , MRI_TYPE_name[rtin->datum] );
 
      for( cc=0 ; cc < rtin->num_chan ; cc++ ){
@@ -2585,12 +2586,14 @@ void RT_tell_afni( RT_input *rtin , int mode )
                   cc+1 , DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ) ;
        else
          sprintf( zbuf ,
-                  " Channel %d: INVALID DATASET!\n",cc) ;
+                  " Channel %d: INVALID DATASET?!\n",cc) ;
        strcat( qbuf , zbuf ) ;
      }
      strcat(qbuf,"\n") ;
 
      PLUTO_beep(); PLUTO_popup_transient(plint,qbuf);
+
+     if( verbose == 2 ) SHOW_TIMES ;
    }
 
    return ;
@@ -2615,28 +2618,32 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
    im3d = rtin->im3d[cc] ;                      /* AFNI controller */
    sess = rtin->sess[cc] ;                      /* AFNI session */
-   tav  = im3d->vwid->imag->time_index_av ;     /* time index widget */
 
-   ii   = AFNI_controller_index( im3d ) ;
-   cstr = AFNI_controller_label( im3d ) ; clll = cstr[1] ;
+   if( im3d != NULL ){   /* 05 Aug 2002: allow for NULL im3d controller */
 
-   old_anat = im3d->anat_now ;  /* the default */
+     tav  = im3d->vwid->imag->time_index_av ;   /* time index widget */
+     ii   = AFNI_controller_index( im3d ) ;
+     cstr = AFNI_controller_label( im3d ) ; clll = cstr[1] ;
+
+     old_anat = im3d->anat_now ;  /* the default */
+   }
 
    /**--- deal with the input dataset ---**/
 
    if( rtin->afni_status[cc] == 0 ){  /** first time for this dataset **/
 
-      if( verbose )
-         fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
-                          "    to AFNI[%c], session %s\n" ,
-                 DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ,
-                 clll , sess->sessname ) ;
-      VMCHECK ;
-
       EDIT_dset_items( rtin->dset[cc],
                          ADN_directory_name,sess->sessname,
                        ADN_none ) ;
 
+      if( im3d != NULL ){
+        if( verbose )
+           fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
+                            "    to AFNI[%c], session %s\n" ,
+                   DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ,
+                   clll , sess->sessname ) ;
+
+      }
       THD_load_statistics( rtin->dset[cc] ) ;
 
       /** put it into the current session in the current controller **/
@@ -2677,30 +2684,33 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
       /** tell AFNI controller to jump to this dataset and session **/
 
-      if( ISANAT(rtin->dset[cc]) )
-         im3d->vinfo->anat_num = sess->num_anat - 1 ;
-      else
-         im3d->vinfo->func_num = sess->num_func - 1 ;
+      if( im3d != NULL ){
+        if( ISANAT(rtin->dset[cc]) )
+           im3d->vinfo->anat_num = sess->num_anat - 1 ;
+        else
+           im3d->vinfo->func_num = sess->num_func - 1 ;
 
-      im3d->vinfo->sess_num = rtin->sess_num[cc] ;
+        im3d->vinfo->sess_num = rtin->sess_num[cc] ;
 
-      im3d->vinfo->time_index = 0 ;
-      AV_assign_ival( tav , 0 ) ;
+        im3d->vinfo->time_index = 0 ;
+        AV_assign_ival( tav , 0 ) ;
+      }
 
-      afni_init             = 1 ;   /* below: will initialize AFNI to see this dataset */
-      rtin->afni_status[cc] = 1 ;   /* AFNI knows now */
+      afni_init             = 1 ; /* below: will initialize AFNI to see this dataset */
+      rtin->afni_status[cc] = 1 ; /* mark dataset to show that AFNI knows about it now */
 
    } else {  /** 2nd or later call for this dataset **/
 
       THD_update_statistics( rtin->dset[cc] ) ;
 
-      if( verbose )
-        fprintf(stderr,"RT: update with %d bricks in channel %02d to AFNI[%c]\n",
-                rtin->nvol[cc],cc+1,clll) ;
-      VMCHECK ;
+      if( im3d != NULL ){
+        if( verbose )
+          fprintf(stderr,"RT: update with %d bricks in channel %02d to AFNI[%c]\n",
+                  rtin->nvol[cc],cc+1,clll) ;
 
-      tav->fmax = tav->imax = im3d->vinfo->time_index = rtin->nvol[cc] - 1  ;
-      AV_assign_ival( tav , tav->imax ) ;
+        tav->fmax = tav->imax = im3d->vinfo->time_index = rtin->nvol[cc] - 1  ;
+        AV_assign_ival( tav , tav->imax ) ;
+      }
    }
 
    /**--- Deal with the computed function, if any ---**/
@@ -2715,12 +2725,11 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
          if( rtin->func_status == 0 ){  /** first time for this dataset **/
 
-            if( verbose )
+            if( im3d != NULL && verbose )
                fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
                                 "    to AFNI controller [%c] session %s\n" ,
                        DSET_FILECODE(rtin->func_dset) , DSET_NVALS(rtin->func_dset) ,
                        clll , sess->sessname ) ;
-            VMCHECK ;
 
             EDIT_dset_items( rtin->func_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
             id = sess->num_func ;
@@ -2732,9 +2741,11 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
             AFNI_force_adoption( sess , False ) ;
             POPDOWN_strlist_chooser ;
 
-            im3d->vinfo->func_num = sess->num_func - 1 ;
+            if( im3d != NULL ){
+              im3d->vinfo->func_num = sess->num_func - 1 ;
+              AFNI_SETUP_FUNC_ON(im3d) ;
+            }
 
-            AFNI_SETUP_FUNC_ON(im3d) ;
             rtin->func_status = 1 ;   /* AFNI knows now */
             afni_init = 1 ;           /* below: tell AFNI to look at this function */
 
@@ -2755,12 +2766,13 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
          THD_load_statistics( rtin->reg_dset ) ;
 
-         if( verbose )
-               fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
-                                "    to AFNI controller [%c] session %s\n" ,
-                       DSET_FILECODE(rtin->reg_dset) , DSET_NVALS(rtin->reg_dset) ,
-                       clll , sess->sessname ) ;
-         VMCHECK ;
+         if( im3d != NULL ){
+           if( verbose )
+                 fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
+                                  "    to AFNI controller [%c] session %s\n" ,
+                         DSET_FILECODE(rtin->reg_dset) , DSET_NVALS(rtin->reg_dset) ,
+                         clll , sess->sessname ) ;
+         }
 
          EDIT_dset_items( rtin->reg_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
 
@@ -2784,13 +2796,17 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
    /**--- actually talk to AFNI now ---**/
 
    if( afni_init ){  /* tell AFNI to view new dataset(s) */
-      AFNI_SETUP_VIEW(im3d,VIEW_ORIGINAL_TYPE) ;
-      if( EQUIV_DSETS(rtin->dset[cc],old_anat) ) THD_update_statistics( rtin->dset[cc] ) ;
-      else                                       THD_load_statistics  ( rtin->dset[cc] ) ;
 
-      AFNI_initialize_view( old_anat , im3d ) ;  /* Geronimo! */
+     if( im3d != NULL ){
+       AFNI_SETUP_VIEW(im3d,VIEW_ORIGINAL_TYPE) ;
+       if( EQUIV_DSETS(rtin->dset[cc],old_anat) ) THD_update_statistics( rtin->dset[cc] ) ;
+       else                                       THD_load_statistics  ( rtin->dset[cc] ) ;
+
+       AFNI_initialize_view( old_anat , im3d ) ;  /* Geronimo! */
+     }
 
    } else {          /* just tell AFNI to refresh the images/graphs */
+
       Three_D_View * qq3d ;
       int review ;
 
@@ -2817,7 +2833,8 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
          }
       }
    }
-   XmUpdateDisplay( im3d->vwid->top_shell ) ;
+   if( im3d != NULL )
+     XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
    /**--- if this is the final call, do some cleanup stuff ---**/
 
@@ -2827,12 +2844,12 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
       if( verbose == 2 )
          fprintf(stderr,"RT: finalizing dataset to AFNI (including disk output).\n") ;
-      VMCHECK ;
 
-      fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
-                       "    to AFNI controller [%c] session %s\n" ,
-              DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ,
-              clll , sess->sessname ) ;
+      if( im3d != NULL )
+        fprintf(stderr , "RT: sending dataset %s with %d bricks\n"
+                         "    to AFNI controller [%c] session %s\n" ,
+                DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ,
+                clll , sess->sessname ) ;
 
 /**
       THD_load_statistics( rtin->dset[cc] ) ;
@@ -2871,9 +2888,6 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       AFNI_purge_unused_dsets() ; sync() ;  /* 08 Mar 2000: sync disk */
       SHOW_AFNI_READY ;
    }
-
-   if( verbose == 2 ) SHOW_TIMES ;
-   VMCHECK ;
 
    return ;
 }
