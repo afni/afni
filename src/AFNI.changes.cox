@@ -3913,3 +3913,6 @@
 19 Aug 2002
  * Modified afni_sumafunc.c (afni.h, etc.) to have a control panel for
      surface stuff.  At this time, lets user set colors.
+
+20 Aug 2002
+ * Modifications to surface controls: hints, help, comments.

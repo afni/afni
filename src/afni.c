@@ -1698,8 +1698,8 @@ STATUS("get status") ;
 
       /* define overlay color for node boxes and triangle lines */
 
-      if( swid != NULL ){                        /* 19 Aug 2002: the new way */
-        int cc ;                                 /*            to set colors */
+      if( swid != NULL && ks < swid->nrow ){     /* 19 Aug 2002: the new way */
+        int cc ;                                 /*           to set colors: */
         cc = swid->surf_node_av[ks]->ival ;      /* from the surface widgets */
         skip_boxes = (cc == 0) ;
         if( !skip_boxes ){
@@ -1716,7 +1716,7 @@ STATUS("get status") ;
         }
 
       } else {                                   /* the old way    */
-                                                 /* to set colors   */
+                                                 /* to set colors:  */
         eee = getenv("AFNI_SUMA_BOXCOLOR") ;     /* from environment */
         if( eee == NULL )
           eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
@@ -1781,7 +1781,7 @@ STATUS("get status") ;
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
 
-      set_color_memplot(rr_box,gg_box,bb_box) ;
+      set_color_memplot(rr_box,gg_box,bb_box) ;  /* box drawing colors */
 
       /* find nodes inside this slice */
 
@@ -1853,7 +1853,7 @@ STATUS("get status") ;
         THD_fvec3 fvijk[3] ;
         float ci,cj,ck ;
 
-        set_color_memplot(rr_lin,gg_lin,bb_lin) ;
+        set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
 
         /* loop over triangles */
 
