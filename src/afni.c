@@ -3383,7 +3383,7 @@ if(PRINT_TRACING)
 
          REFRESH ;
 
-         if( new_ss != NULL && new_ss->num_anat > 0 ){  /* got something? */
+         if( new_ss != NULL ){                   /* got something? */
 
             /* for anats, just set parent pointers */
 
@@ -3461,9 +3461,8 @@ if(PRINT_TRACING)
 
         GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = gss ;
 
-        sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
+        sprintf(str,"\n AFNI_GLOBAL_SESSION = %s %d anatomical datasets,"
                     " %d functional datasets",
-            GLOBAL_library.sslist->num_sess ,
             gss->sessname , gss->num_anat , gss->num_func ) ;
 
         num_dsets += (gss->num_anat + gss->num_func) ;
