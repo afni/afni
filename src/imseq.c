@@ -4629,6 +4629,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
              case XK_F12:
                XBell(seq->dc->display,100) ;
                MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
+               AFNI_speak( "Ouch!" , 0 ) ;
            }
            EXRETURN ;
          }
@@ -9728,8 +9729,9 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
             for( pp=0 ; pp < nstr ; pp++ ) free(strlist[pp]) ;
             free(strlist) ;
          } else if( event->button == Button2 ){
-            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
             XBell(XtDisplay(w),100) ;
+            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
+            AFNI_speak( "Ouch!" , 0 ) ;
          }
       }
       break ;
