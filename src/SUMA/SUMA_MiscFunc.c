@@ -2,8 +2,7 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
-#define USE_SUMA_ALLOC 
-#ifdef USE_SUMA_ALLOC
+#ifdef USE_SUMA_MALLOC
 /* This group of functions will get replaced by Bob's mcw_malloc functions that are more efficient */
 
    /*!
@@ -26,7 +25,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       static char FuncName[]={"SUMA_malloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
-         if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+         SUMA_ENTRY;
       #endif
       /* The allocation */
       ptr = malloc (size);
@@ -67,7 +66,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       static char FuncName[]={"SUMA_realloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
-         if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+         SUMA_ENTRY;
       #endif
 
       /* The allocation */
@@ -112,7 +111,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       static char FuncName[]={"SUMA_calloc_fn"};
 
       #if SUMA_MEMTRACE_FLAG
-         if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+         SUMA_ENTRY;
       #endif
 
       /* The allocation */
@@ -172,7 +171,7 @@ extern SUMA_CommonFields *SUMAg_CF;
       int i;
 
       #if SUMA_MEMTRACE_FLAG
-         if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+         SUMA_ENTRY;
       #endif
 
 
@@ -228,6 +227,7 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    static char FuncName[]={"SUMA_Create_MemTrace"};
    SUMA_MEMTRACE_STRUCT *Mem;
  
+   #ifdef USE_SUMA_MALLOC
    /* you cannot use SUMAg_CF here because the function that allocates for SUMAg_CF calls that one */
    
    /* DO NOT USE SUMA_malloc function here ! */
@@ -244,6 +244,9 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
       return (NULL);
    }
    return(Mem);
+   #else
+   return(NULL);
+   #endif
 }
 
 
@@ -252,8 +255,9 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    static char FuncName[]={"SUMA_ShowMemTrace"};
    int i, *isort = NULL, *mem_sz_sort = NULL, Tot;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
+   #ifdef USE_SUMA_MALLOC
    if (!Out) Out = SUMA_STDERR;
    if (!Mem) {
       fprintf (Out,"\nNull struct. Nothing to show.\n");
@@ -294,6 +298,9 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    fprintf (Out,"Total Memory Allocated %f Mbytes.\n", (float)Tot/1000000.0);
    if (mem_sz_sort) free(mem_sz_sort); /* mem_sz_sort should not be freed with SUMA_free */
    if (isort) free(isort); /* isort should not be freed with SUMA_free */
+   
+   #endif
+   
    SUMA_RETURNe;
    
 }
@@ -301,11 +308,12 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    static char FuncName[]={"SUMA_Free_MemTrace"};
          
+   #ifdef USE_SUMA_MALLOC
    /* DO NOT USE SUMA_free function here ! */
    if (Mem->Pointers) free (Mem->Pointers);
    if (Mem->Size) free(Mem->Size);
    if (Mem) free (Mem);
-   
+   #endif
    return(YUP);
 }
 
@@ -317,7 +325,7 @@ int SUMA_filexists (char *f_name)
     FILE *outfile;
     static char FuncName[]={"SUMA_filexists"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
     outfile = fopen (f_name,"r");
     if (outfile == NULL) {
@@ -365,7 +373,7 @@ int SUMA_Read_dfile (int *x,char *f_name,int n_points)
    static char FuncName[]={"SUMA_Read_dfile"};
    FILE*internal_file;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
@@ -419,7 +427,7 @@ int SUMA_Read_file (float *x,char *f_name,int n_points)
    FILE*internal_file;
    static char FuncName[]={"SUMA_Read_file"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
@@ -504,7 +512,7 @@ int SUMA_Read_2Dfile (char *f_name, float **x,  int n_cols, int n_rows)
    FILE*internal_file;
    static char FuncName[]={"SUMA_Read_2Dfile"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
@@ -544,7 +552,7 @@ SUMA_IRGB *SUMA_Create_IRGB(int n_el)
    SUMA_IRGB *irgb=NULL;
    static char FuncName[]={"SUMA_Create_IRGB"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    irgb = (SUMA_IRGB *)SUMA_malloc(sizeof(SUMA_IRGB));
    
@@ -574,7 +582,7 @@ SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb)
 {
    static char FuncName[]={"SUMA_Free_IRGB"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (irgb) {
       if (irgb->i) SUMA_free(irgb->i);
@@ -604,7 +612,7 @@ SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name)
    SUMA_IRGB *irgb=NULL;
    static char FuncName[]={"SUMA_Read_IRGB_file"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    im = mri_read_1D (f_name);
    
@@ -669,7 +677,7 @@ int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols)
    FILE*internal_file;
    static char FuncName[]={"SUMA_Read_2Ddfile"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
@@ -714,7 +722,7 @@ int SUMA_float_file_size (char *f_name)
    static char FuncName[]={"SUMA_float_file_size"};
    FILE*internal_file;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
@@ -739,7 +747,7 @@ void SUMA_alloc_problem (char *s1)
  
 {
    static char FuncName[]={"SUMA_alloc_problem"};
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    printf ("\n\n\aError in memory allocation\n");
    printf ("Error origin : %s\n\n",s1);
@@ -777,8 +785,14 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    char **A;
    static char FuncName[]={"SUMA_allocate2D"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   SUMA_ENTRY;
+   
+   #ifdef USE_SUMA_MALLOC
+      /* don't use ifndef, keep it parallel with stuff below */
+   #else
+      pause_mcw_malloc();
+   #endif
+   
    /* try to allocate the request */
    switch(element_size) {
      case sizeof(short): {    /* integer matrix */
@@ -843,6 +857,8 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
          exit(1);
    }
    
+   #ifdef USE_SUMA_MALLOC
+   
    #if SUMA_MEMTRACE_FLAG
    if (SUMAg_CF->MemTrace) {
       ++SUMAg_CF->Mem->N_alloc;
@@ -868,7 +884,11 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
       SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc-1] = rows * cols * element_size;
    }
    #endif
-
+   
+   #else
+      resume_mcw_malloc();
+   #endif
+   
    SUMA_RETURN(A);
 }
 
@@ -901,9 +921,10 @@ void SUMA_free2D(char **a,int rows)
    int i;
    static char FuncName[]={"SUMA_free2D"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
 
+      #ifdef USE_SUMA_MALLOC
       #if SUMA_MEMTRACE_FLAG
          if (SUMAg_CF->MemTrace && a) {
             SUMA_Boolean Found = NOPE;
@@ -922,7 +943,10 @@ void SUMA_free2D(char **a,int rows)
             }
          }
       #endif
-
+      #else
+         pause_mcw_malloc();
+      #endif
+      
    /* free each row of data */
    for(i = 0 ; i < rows ; i++) free(a[i]);
 
@@ -930,6 +954,12 @@ void SUMA_free2D(char **a,int rows)
    free((char *)a);
    a = NULL;           /* set to null for error */
 
+   #ifdef USE_SUMA_MALLOC
+      /* don't use ifndef, keep it parallel with stuff above */
+   #else
+      resume_mcw_malloc();
+   #endif
+   
    SUMA_RETURNe;
 }
 
@@ -958,7 +988,7 @@ void SUMA_error_message (char *s1,char *s2,int ext)
  {
     static char FuncName[]={"SUMA_error_message"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    printf ("\n\n\aError: %s\n",s2);
    printf ("Error origin: %s\n\n",s1);
@@ -1020,7 +1050,7 @@ int SUMA_iswordin (const char *sbig, const char *ssub)
    int i=0,j=0;
    static char FuncName[]={"SUMA_iswordin"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (sbig == NULL && ssub == NULL) SUMA_RETURN (-2);
    if (sbig == NULL || ssub == NULL) SUMA_RETURN (-1);
@@ -1091,7 +1121,7 @@ void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt)
    int i,j;
    static char FuncName[]={"SUMA_disp_dmat"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SpcOpt)
       sprintf(spc," ");
@@ -1138,7 +1168,7 @@ void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt)
     int i,j;
    static char FuncName[]={"SUMA_disp_mat"};
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SpcOpt)
       sprintf(spc," ");
@@ -1194,7 +1224,7 @@ void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt,
    FILE *foutp;
    static char FuncName[]={"SUMA_disp_vecmat"};
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!fout) foutp = stdout;
    else foutp = fout;
@@ -1269,7 +1299,7 @@ void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt,
    FILE *foutp;
    static char FuncName[]={"SUMA_disp_vectdmat"};
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!fout) foutp = stdout;
    else foutp = fout;
@@ -1326,7 +1356,7 @@ void SUMA_disp_vect (float *v,int l)
 { int i;
    static char FuncName[]={"SUMA_disp_vect"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDOUT,"\n");
    if ((l-1) == 0)
@@ -1362,7 +1392,7 @@ void SUMA_disp_dvect (int *v,int l)
 {   int i;
    static char FuncName[]={"SUMA_disp_dvect"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDOUT,"\n");
    if ((l-1) == 0)
@@ -1428,7 +1458,7 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    float Time_Fact = 1000000.0;
    float delta_t;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* get time */
    gettimeofday(&tn,0);
@@ -1496,7 +1526,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float
    int k, *IsIn, id, ND;
    SUMA_ISINSPHERE IsIn_strct;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ND = 3;
    IsIn_strct.nIsIn = 0;
@@ -1623,7 +1653,7 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
    int k , *IsIn, id, ND;
    SUMA_ISINBOX IsIn_strct;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ND = 3;
    /*
@@ -1730,7 +1760,7 @@ SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB)
 {
    static char FuncName[]={"SUMA_Free_IsInBox"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (IB == NULL) {
       fprintf (SUMA_STDERR,"Error SUMA_Free_IsInBox: pointer to null cannot be freed\n");
@@ -1782,7 +1812,7 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    int flip, i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (d == 0) {
       fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
@@ -1960,7 +1990,7 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *
    float U[3], Un, xn, yn, zn, dx, dy, dz;
    int i, id, ND;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ND = 3;
    if (N_points < 1) {
@@ -2056,7 +2086,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    float xn, yn, zn;
    int i, id, ND;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ND = 3;
    if (N_points < 1) {
@@ -2196,7 +2226,7 @@ int *SUMA_z_qsort (float *x , int nx )
    int *I, k;
    SUMA_Z_QSORT_FLOAT *Z_Q_fStrct;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for the structure */
    Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) SUMA_calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
@@ -2240,7 +2270,7 @@ int *SUMA_z_dqsort (int *x , int nx )
    int *I, k;
    SUMA_Z_QSORT_INT *Z_Q_iStrct;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for the structure
  */
@@ -2287,7 +2317,7 @@ int *SUMA_z_dqsort_nsc (int *x , int nx )
    int *I, k;
    SUMA_Z_QSORT_INT *Z_Q_iStrct;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for the structure
  */
@@ -2378,7 +2408,7 @@ int * SUMA_fqsortrow (float **X , int nr, int nc  )
    SUMA_QSORTROW_FLOAT *Z_Q_fStrct;
    
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for the structure */
    Z_Q_fStrct = (SUMA_QSORTROW_FLOAT *) SUMA_calloc(nr, sizeof (SUMA_QSORTROW_FLOAT));
@@ -2466,7 +2496,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
    int k,  *I;
    SUMA_QSORTROW_INT *Z_Q_dStrct;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* allocate for the structure */
    Z_Q_dStrct = (SUMA_QSORTROW_INT *) SUMA_calloc(nr, sizeof (SUMA_QSORTROW_INT));
@@ -2539,7 +2569,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
    double dir[3], dirn, orig[3];
    SUMA_Boolean hit = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* direction from two points */
    orig[0] = (double)P0[0];
@@ -2674,7 +2704,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
    static int N_FaceSet_Previous = 0, entry = 0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    tmin = 10000000.0;
    tmax = 0.0;
@@ -2903,7 +2933,7 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FI
    static char FuncName[]={"SUMA_Show_MT_intersect_triangle"};
    int MaxShow = 5, i,j;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
       
@@ -2968,7 +2998,7 @@ void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
 {
    static char FuncName[]={"SUMA_Free_MT_intersect_triangle"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (MTI->t) SUMA_free(MTI->t);
    if (MTI->u) SUMA_free(MTI->u);
@@ -2997,11 +3027,11 @@ determines rotation matrix required to rotate vector from to vector to
 */
 SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
 {/* SUMA_FromToRotation */
-   char FuncName[]={"SUMA_FromToRotation"};
+   static char FuncName[]={"SUMA_FromToRotation"};
    float v[3], vn;
    float e, h, f;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /*normalize both vectors */
    vn = sqrt(v0[0]*v0[0] + v0[1]*v0[1] + v0[2]*v0[2]);
@@ -3143,7 +3173,7 @@ SUMA_Boolean   SUMA_mattoquat (float **mat, float *q)
    int i,j,k, nxt[3] = {1, 2, 0};
    static char FuncName[]={"SUMA_mattoquat"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* calculate the trace */
    tr = mat[0][0] + mat[1][1] + mat[2][2];
@@ -3182,54 +3212,49 @@ typedef enum {SUMA_NO_NEIGHB, SUMA_NO_MORE_TO_VISIT, SUMA_VISITED_ALL, SUMA_BAD_
    \param n1 (int) first node 
    \param n2 (int) second node
    \param n3 (int) third node
+   \param IOtrace (int) this function is called a lot, set
+   IOtrace to 1 if you want IOtracing to be enabled (if 1 then
+   the function will trace if DBG_trace is not 0)
    \return Tri index of triangle containing n1, n2 and n3
          -1 if no such triangle was found 
 
 */
-int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3)
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace)
 {
    static char FuncName[]={"SUMA_whichTri"};
    int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, N_IncTri_E2 = 0, i, j, Tri= -1;
    SUMA_Boolean Found = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (IOtrace) SUMA_ENTRY;
    
+   Tri = -1;
    /* find incident triangles to n1-n2 edge */
-   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1)) {
+   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace)) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-      SUMA_RETURN (-1);
-   }
-   
-   /* find incident triangles to n1-n3 edge */
-   if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2)) {
+   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace)) {
+      /* find incident triangles to n1-n3 edge */
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-      SUMA_RETURN (-1);
-   }
-   
-   /* check that we did not go overboard */
-   if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
+   } else if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
+      /* check that we did not go overboard */
       fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
-      SUMA_RETURN (-1);
-   }
-
-   /* find triangle incident to both edges */
-   i=0;
-   Found = NOPE;
-   while (i < N_IncTri_E1 && !Found) {
-      j = 0;
-      while (j < N_IncTri_E2 && !Found) {
-         if (IncTri_E2[j] == IncTri_E1[i]) { 
-            Found = YUP;
-            Tri = IncTri_E2[j];
+   } else {
+      /* find triangle incident to both edges */
+      i=0;
+      Found = NOPE;
+      while (i < N_IncTri_E1 && !Found) {
+         j = 0;
+         while (j < N_IncTri_E2 && !Found) {
+            if (IncTri_E2[j] == IncTri_E1[i]) { 
+               Found = YUP;
+               Tri = IncTri_E2[j];
+            }
+            ++j;
          }
-         ++j;
+         ++i;
       }
-      ++i;
    }
-   
-   if (!Found) SUMA_RETURN (-1);
-   
-   SUMA_RETURN (Tri);
+   if (IOtrace) { SUMA_RETURN (Tri); }
+   else return(Tri);
 }
 
 /*! 
@@ -3247,7 +3272,7 @@ int SUMA_isTriLinked (int*T, int *t, int *cn)
    static char FuncName[]={"SUMA_isTriLinked"};
    int ic, in;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ic = 0;   /* common node index*/
    in = 0; /* number of node searched in T */
@@ -3287,7 +3312,7 @@ int SUMA_isConsistent (int *T, int *t)
    static char FuncName[]={"SUMA_isConsistent"};
    static int ic, in, LOC[2], loc[2], d, D;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ic = 0;   /* common node index*/
    in = 0; /* number of node searched in T */
@@ -3455,7 +3480,7 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
    int Found1 = -1, Found2 = -1, i, N_NotVisNeighb, itry;
    static char FuncName[]={"SUMA_Next_Best_Seed"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!entry) { /* entry = 0 */
       for (i=0; i < N_FL; ++i) {
@@ -3522,7 +3547,7 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
    int NotFound, itry, curface, nxtface, ipcur, ipnxt, NP;
    static int entry=0;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    NP = 3;
    curface = seed;
    if (!visited[curface]) { /* a new visit this should only happen on the first call */
@@ -3592,7 +3617,7 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
    static char FuncName[]={"SUMA_Show_Edge_List"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (Out == NULL) Out = stdout;
    
@@ -3622,7 +3647,7 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 {
    static char FuncName[]={"SUMA_free_Edge_List"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SEL->EL) SUMA_free2D((char **)SEL->EL, SEL->N_EL);
    if (SEL->ELloc) SUMA_free(SEL->ELloc);
@@ -3639,7 +3664,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *Node
 {
    static char FuncName[]={"SUMA_Make_Edge_List"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN(SUMA_Make_Edge_List_eng(FL, N_FL, N_Node, NodeList, 1));
 }
@@ -3682,7 +3707,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    SUMA_EDGE_LIST *SEL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!FL) {
       SUMA_SL_Err("Null FL");
@@ -3925,7 +3950,7 @@ int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri)
    static char FuncName[]={"SUMA_FindEdgeInTri"};
    int eloc;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* make sure n1 is smallest*/
    if (n2 < n1) {
@@ -3963,7 +3988,7 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    int eloc;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* make sure n1 is smallest*/
    if (n2 < n1) {
@@ -4008,7 +4033,7 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
    static char FuncName[] = {"SUMA_Get_NodeIncident"};
    int i, n3, N_Neighb;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N_Incident = 0;
    
@@ -4023,7 +4048,7 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
    while ((i < N_Neighb )) { 
       if ( i+1 == N_Neighb) n3 = SO->FN->FirstNeighb[n1][0];
       else n3 = SO->FN->FirstNeighb[n1][i+1];
-      if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3)) < 0) {
+      if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3, 1)) < 0) {
          fprintf (SUMA_STDERR, "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
             FuncName, n1, SO->FN->FirstNeighb[n1][i], n3);
          SUMA_RETURN(NOPE);
@@ -4036,25 +4061,25 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
 }
 
 /*! \brief finds triangles incident to an edge 
-   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident);
+   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident, IOtrace);
    
    \param n1 (int) node 1
    \param n2 (int) node 2
    \param SEL (SUMA_EDGE_LIST *) Edge List structure
    \param Incident (int *) a pre-allocated vector where incident triangle indices will be stored. MAKE SURE you allocate enough
    \param N_Incident (int *) pointer where the number of incident triangles is stored
-   
+   \param IOtrace (int) if 1 then allows the use of SUMA_ENTRY and SUMA_RETURN
    \ret ans (SUMA_Boolean) YUP/NOPE
    
    \sa SUMA_Make_Edge_List
    \sa SUMA_Get_NodeIncident
 */
-SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident)
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace)
 {
    static char FuncName[] = {"SUMA_Get_Incident"};
    int nt, in1, iseek, m_N_EL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (IOtrace) SUMA_ENTRY;
 
    /*fprintf(SUMA_STDERR,"Entering %s: n1,n2 =%d,%d ...", FuncName,n1,n2);*/
    if (n1 > n2) {
@@ -4077,13 +4102,15 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
       ++iseek;
       if (iseek > m_N_EL) {
          if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
-         SUMA_RETURN (YUP);
+         if (IOtrace) { SUMA_RETURN (YUP); }
+         else return(YUP);
       }
       
    }
    if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
    /*fprintf(SUMA_STDERR,"Leaving %s.\n", FuncName);*/
-   SUMA_RETURN(YUP);   
+   if (IOtrace) { SUMA_RETURN(YUP); }
+   else return(YUP);   
 }
 
 /*! 
@@ -4097,7 +4124,7 @@ void SUMA_free_FaceSet_Edge_Neighb (SUMA_FACESET_FIRST_EDGE_NEIGHB * S)
 {
    static char FuncName[]={"SUMA_free_FaceSet_Edge_Neighb"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (S->FirstNeighb) SUMA_free2D((char **)S->FirstNeighb, S->N_FaceSet);
    if (S->N_Neighb) SUMA_free(S->N_Neighb);
@@ -4117,7 +4144,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_allocate_FaceSet_Edge_Neighb (int N_FaceSet
    static char FuncName[]={"SUMA_FACESET_FIRST_EDGE_NEIGHB"};
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SFFN = SUMA_malloc(sizeof(SUMA_FACESET_FIRST_EDGE_NEIGHB));
    if (SFFN == NULL) {
@@ -4156,7 +4183,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
    int i, i1, F0, F1, in0, in1;
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    
    SFFN = SUMA_allocate_FaceSet_Edge_Neighb(N_EL/3);
@@ -4238,7 +4265,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (detail > 1) LocalHead = YUP;
    
@@ -4479,7 +4506,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
    int ni, im, offs, j;
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (attr_sm && attr_sm == attr) {
       fprintf (SUMA_STDERR, "Error %s: attr and attr_sm point to the same location. BAD!\n",FuncName);
@@ -4549,7 +4576,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    float *curr_attr=NULL, *attr_sm=NULL;
    SUMA_Boolean LocalHead = NOPE;
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (N_rep < 1) {
       SUMA_SL_Err("N_rep < 1");
@@ -4599,12 +4626,16 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
 SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 {
    static char FuncName[]={"SUMA_Build_FirstNeighb"};
-   int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0;
+   int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp, TessErr_Cnt=0, IOtrace = 0;
    SUMA_Boolean skp;
    SUMA_NODE_FIRST_NEIGHB *FN;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
+   #ifndef USE_SUMA_MALLOC
+      if (DBG_trace > 1) IOtrace = 1;
+   #endif
+   
    if (el == NULL || N_Node == 0) {
       fprintf(SUMA_STDERR, "Error %s: el == NULL or N_Node == 0, nothing to do.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -4691,7 +4722,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
         j = 1;
         jj = 1;
         while (j < FN->N_Neighb[i]) {
-            if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], FN->FirstNeighb[i][j]) >= 0) {
+            if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], FN->FirstNeighb[i][j], IOtrace) >= 0) {
                FirstNeighb[i][jj] = FN->FirstNeighb[i][j];
                /* now swap in FN->FirstNeighb[i] the positions of jj and j */
                tmp =  FN->FirstNeighb[i][jj];
@@ -4735,7 +4766,7 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
 {
    static char FuncName[]={"SUMA_Free_FirstNeighb"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (FN->NodeId) SUMA_free(FN->NodeId);
    if (FN->N_Neighb) SUMA_free(FN->N_Neighb);
@@ -4797,7 +4828,7 @@ float SUMA_TriSurf3 (float *n0, float *n1, float *n2)
    float dv[3], dw[3], cross[3], A; 
    int i, ii, coord, kk, jj;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_MT_SUB (dv, n1, n0);
    SUMA_MT_SUB (dw, n2, n0);
@@ -4826,7 +4857,7 @@ float * SUMA_TriSurf3v (float *NodeList, int *FaceSets, int N_FaceSet)
    float *A = NULL, *n0, *n1, *n2, a;
    int i, i3;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    A = (float *) SUMA_calloc (N_FaceSet, sizeof(float));
    if (A == NULL ) {
@@ -4870,7 +4901,7 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
    float **V, *A, ax, ay, az, an;
    int i, ii, coord, kk, jj, id, ND, ip, NP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ND = 3;
    NP = PolyDim;
@@ -4999,7 +5030,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
    SUMA_Boolean *SkipNode;
    SUMA_SURFACE_CURVATURE *SC;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!A || !NodeList || !NodeNormList || !FN || !SEL) {
       fprintf (SUMA_STDERR, "Error %s: One of your inputs is NULL.\n", FuncName);
@@ -5142,7 +5173,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
          
          /* calculate the weights for integration, Wij */
             /* find the incident triangles */
-            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident))
+            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident, 1))
             {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
                if (Wij) SUMA_free(Wij);
@@ -5333,7 +5364,7 @@ void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC)
 {
    static char FuncName[]={"SUMA_Free_SURFACE_CURVATURE"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SC == NULL) SUMA_RETURNe;
    if (SC->Kp1) SUMA_free(SC->Kp1);
@@ -5369,7 +5400,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    float d[3], s[3], nd, ns;
    #endif
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    e[0] = 1.0; e[1] = 0.0; e[2] = 0.0;
    
@@ -5463,7 +5494,7 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
    static char FuncName[]={"SUMA_Convexity"};
    float *C=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    C = SUMA_Convexity_Engine (NL, N_N, NNL, FN, NULL);
    
@@ -5496,7 +5527,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
    int i, j, jj, in, id, ind, ND;
    FILE *fid = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    C = NULL;
    
@@ -5596,7 +5627,7 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
    int lo,i;
     char *strp , *buf1;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
     assert (str);
 
@@ -5652,7 +5683,7 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    static char FuncName[]={"SUMA_ReadNumStdin"};
    SUMA_Boolean eos, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fflush (stdin);
    
@@ -5714,7 +5745,7 @@ SUMA_Boolean SUMA_isNumString (char *s, void *p)
    double d;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!s) SUMA_RETURN(YUP); 
    
@@ -5786,7 +5817,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
    double d;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!s) SUMA_RETURN(0); 
       
@@ -5875,7 +5906,7 @@ int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation)
    static char FuncName[]={"SUMA_Find_inIntVect"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate the maximum  space for ValLocation */
    tmp = (int *) SUMA_calloc(xsz,sizeof(int));
@@ -5951,7 +5982,7 @@ int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_UniqueInt"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    *kunq = 0;
 
    if (!xsz)
@@ -6034,7 +6065,7 @@ int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup)
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_UniqueInt_ind"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *kunq = 0;
 
@@ -6097,7 +6128,7 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    static char FuncName[]={"SUMA_reorder"};
    int i = 0, *yr = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
    
@@ -6126,7 +6157,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    int N_chunk = 1000;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SS) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Allocating for SS.\n", FuncName);
@@ -6203,7 +6234,7 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
    va_list vararg_ptr ;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SS) {
       SUMA_LH("NULL SS");

@@ -46,7 +46,7 @@ float * SUMA_HomerVertex(Point3 *Vert, int sz_vect, int *N)
    int i, k;
    SUMA_Boolean LocalHead = NOPE;
      
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N = sz_vect/sizeof(Point3);
    fprintf(SUMA_STDERR,"%d (%d/%d) elements in Vert.\n", 
@@ -79,7 +79,7 @@ int * SUMA_HomerFace(long *face, int sz_vect, int *N)
    int *FaceSetList=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *N = sz_vect/sizeof(long);
    fprintf(SUMA_STDERR,"%d (%d/%d) elements in Vert.\n", 

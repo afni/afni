@@ -126,7 +126,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
 	SUMA_PARSED_NAME *NewName = NULL;
    SUMA_Boolean FoundPath = NOPE, FoundExt, FoundFile;
 	
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
 
 	N_FileName = strlen(FileName);
@@ -205,7 +205,7 @@ SUMA_Boolean SUMA_isExtension(char *filename, char *ext)
    static char FuncName[]={"SUMA_isExtension"}; 
    int cnt, N_ext, N_filename;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!filename) SUMA_RETURN(NOPE);
    if (!ext) SUMA_RETURN(NOPE);
@@ -270,7 +270,7 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    int i, next, nfilename, ifile;
    SUMA_Boolean NoMatch = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!filename) SUMA_RETURN(NULL);
    nfilename = strlen(filename);
@@ -332,7 +332,7 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
 {
    static char FuncName[]={"SUMA_Free_Parsed_Name"}; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!Test) SUMA_RETURN (NULL);
    if (Test->Path) SUMA_free(Test->Path);

@@ -36,7 +36,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    SUMA_EngineData *ED = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMA_NIML_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (SUMA_NIML_WORKPROC_IO_NOTIFY) {SUMA_ENTRY;}
 
    if (!SUMAg_CF->niml_work_on) SUMAg_CF->niml_work_on = YUP;
    
@@ -397,7 +397,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    /*float ft;
    int **im,  iv15[15];*/ /* keep unused variables undeclared to quite compiler */
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if( tt < 0 ) {/* should never happen */
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
@@ -798,7 +798,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    int *ic, ii, ND, id;
    float *xc, *yc, *zc;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    
    if (SO == NULL) {
@@ -861,7 +861,7 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    int  ii,  ip, NP;
    int *I, *J, *K;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    
    if (SO == NULL) {
@@ -914,7 +914,7 @@ SUMA_Boolean SUMA_nel_stdout (NI_element *nel)
    static char FuncName[]={"SUMA_nel_stdout"};
    NI_stream nstdout;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    nstdout = NI_stream_open( "fd:1","w");
    if( nstdout == NULL ){ 
@@ -937,7 +937,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    int I_C = -1;
    SUMA_SurfaceObject *SO;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (sv == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Null sv.\n", FuncName);
@@ -996,7 +996,7 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov)
    int i;
    SUMA_SurfaceObject *SO;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    for (i=0; i< N_dov; ++i) {
       if (SUMA_isSO(dov[i])) {
@@ -1023,7 +1023,7 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data )
 {
    static char FuncName[]={"SUMA_register_workproc"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if( func == NULL ){
       fprintf(SUMA_STDERR,"Error %s: func=NULL on entry!\n", FuncName) ;
@@ -1063,7 +1063,7 @@ void SUMA_remove_workproc2( XtWorkProc func , XtPointer data )
    static char FuncName[]={"SUMA_remove_workproc2"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (LocalHead)   fprintf (SUMA_STDERR, "%s: func = %p, num_workp = %d\n", FuncName, func, num_workp);
    
@@ -1107,7 +1107,7 @@ void SUMA_remove_workproc( XtWorkProc func )
    int ii , ngood ;
    static char FuncName[]={"SUMA_remove_workproc"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if( func == NULL || num_workp == 0 ){
       fprintf(SUMA_STDERR,"Error %s: *** illegal parameters!\n", FuncName) ;
@@ -1145,8 +1145,8 @@ Boolean SUMA_workprocess( XtPointer fred )
    int ii , ngood ;
    Boolean done ;
 
-   if (SUMA_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   if (SUMA_WORKPROC_IO_NOTIFY) {SUMA_ENTRY;}
+   
 #ifdef WPDEBUG
    { static int ncall=0 ;
      if( (ncall++) % 1000 == 0 )
@@ -1206,7 +1206,7 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    int i = -1;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!ROI) {
       SUMA_SL_Err("Null ROI");
@@ -1282,7 +1282,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!nimlROI) SUMA_RETURN(NULL);
    
@@ -1392,7 +1392,7 @@ SUMA_NIML_DRAWN_ROI * SUMA_Free_NIMLDrawROI (SUMA_NIML_DRAWN_ROI *nimlROI)
    static char FuncName[]={"SUMA_Free_NIMLDrawROI"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!nimlROI) SUMA_RETURN(NULL);
    

@@ -3,6 +3,8 @@
 #undef STAND_ALONE
 
 #if defined SUMA_SurfSmooth_STAND_ALONE
+#define STAND_ALONE
+#elif defined SUMA_getPatch_STANDALONE
 #define STAND_ALONE 
 #endif
 
@@ -51,7 +53,7 @@ SUMA_Boolean SUMA_getoffsets (int n, SUMA_SurfaceObject *SO, float *Off, float l
    SUMA_Boolean Visit = NOPE;
    static SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    #if DoCheck
    if (!SO->FN || !SO->EL) {
@@ -125,7 +127,7 @@ SUMA_GET_OFFSET_STRUCT *SUMA_Initialize_getoffsets (int N_Node)
    int i;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (N_Node <= 0) {
       SUMA_SL_Err("Bad values for N_Node");
@@ -225,7 +227,7 @@ SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS)
    int i = 0;
    static SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!OffS) SUMA_RETURN(NULL);
    
@@ -313,7 +315,7 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
    int i, j;
    static SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SO) { SUMA_RETURN(NULL); }
    if (!SO->FN) { SUMA_RETURN(NULL); }
@@ -412,7 +414,7 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
    SUMA_Boolean AllDone = NOPE;
    static SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!OffS) {
       SUMA_SL_Err("NULL OffS");
@@ -499,7 +501,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
    int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3, i_dbg;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SO) {
       SUMA_SL_Err("Null SO");
@@ -620,7 +622,7 @@ SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Ou
    float fk, k;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (N % 2) {
       SUMA_SL_Err("N_iter must be even");
@@ -673,7 +675,7 @@ SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m)
    SUMA_Boolean Done = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (k < 0) { SUMA_SL_Err("k < 0"); SUMA_RETURN(NOPE); }
    
@@ -767,7 +769,7 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    int i, n , k, j, niter, vnk, n_offset; 
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (N_iter % 2) {
       SUMA_SL_Err("N_iter must be an even number\n");
@@ -1303,7 +1305,7 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    int n , k, j, niter, vnk, os;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (N_iter % 2) {
       SUMA_SL_Err("N_iter must be an even number\n");
@@ -1696,7 +1698,9 @@ void usage_SUMA_SurfSmooth ()
               "                distance and the spatial derivatives of the signals being \n"
               "                filtered on the surface.\n"
               "                As a rule of thumb, if increasing Niter does not alter\n"
-              "                the results then your choice is fine (smoothing has converged).\n" 
+              "                the results then your choice is fine (smoothing has converged).\n"
+              "                For an example of the artifact caused by small Niter see:\n"
+              "          http://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
               "      -output out.1D: Name of output file. \n"
               "                      The default is inData_sm.1D with LB_FEM method\n"
               "                      and NodeList_sm.1D with LM method.\n" 
@@ -1773,7 +1777,7 @@ void usage_SUMA_SurfSmooth ()
    }
 
 
-#define GEOMPCOMP_MAX_SURF 1  /*!< Maximum number of input surfaces */
+#define SURFSMOOTH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
 typedef enum { SUMA_NO_METH, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE} SUMA_SMOOTHING_METHODS;
 
@@ -1804,7 +1808,7 @@ typedef struct {
    char *suma_host_name; /* this one's dynamically allocated so you'll have to free it yourself */
    char *ShowOffset_DBG;
    char *surf_out;
-   char *surf_names[GEOMPCOMP_MAX_SURF];
+   char *surf_names[SURFSMOOTH_MAX_SURF];
    char *spec_file;
 } SUMA_SURFSMOOTH_OPTIONS;
 
@@ -1816,6 +1820,7 @@ typedef struct {
    \return Opt (SUMA_SURFSMOOTH_OPTIONS *) options structure.
                To free it, use 
                SUMA_free(Opt->out_name); 
+               SUMA_free(Opt->suma_host_name);
                SUMA_free(Opt);
 */
 SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
@@ -1827,7 +1832,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
@@ -1855,7 +1860,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    Opt->rps = -1.0;
    Opt->insurf_method = 0;
    Opt->spec_file = NULL;
-   for (i=0; i<GEOMPCOMP_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+   for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    Opt->suma_host_name = NULL;
    outname = NULL;
 	brk = NOPE;
@@ -1866,7 +1871,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
           exit (0);
 		}
 		
-		if (!brk && ( (strcmp(argv[kar], "-memdbg") == 0) || (strcmp(argv[kar], "-iodbg") == 0)) ) {
+		if (!brk && 
+          ( (strcmp(argv[kar], "-memdbg") == 0) || 
+            (strcmp(argv[kar], "-iodbg") == 0)  ||
+            (strcmp(argv[kar], "-nomall") == 0) ||
+            (strcmp(argv[kar], "-yesmall") == 0) ||
+            (strcmp(argv[kar], "-trace") == 0) ||
+            (strcmp(argv[kar], "-TRACE") == 0)) ) {
 			/* valid options, but already taken care of */
 			brk = YUP;
 		}
@@ -2094,7 +2105,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			Opt->spec_file = argv[kar];
          if (!Opt->insurf_method) Opt->insurf_method = 2;
          else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
+            fprintf (SUMA_STDERR, "already specified spec file.\n");
             exit(1);
          }
 			brk = YUP;
@@ -2106,7 +2117,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			ind = argv[kar][6] - 'A';
-         if (ind < 0 || ind >= GEOMPCOMP_MAX_SURF) {
+         if (ind < 0 || ind >= SURFSMOOTH_MAX_SURF) {
             fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range,\n"
                                   "   only surf_A allowed.\n");
 				exit (1);
@@ -2376,7 +2387,7 @@ int main (int argc,char *argv[])
 	}
    
    /* sets the debuging flags, if any */
-   SUMA_ParseInput_basics((void *)SUMAg_CF, argv, argc);
+   SUMA_ParseInput_basics(argv, argc);
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -2434,7 +2445,7 @@ int main (int argc,char *argv[])
 			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 			exit(1);
 		}
-      SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, GEOMPCOMP_MAX_SURF, 0);
+      SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFSMOOTH_MAX_SURF, 0);
       if ( SO_read != 1 )
       {
 	      fprintf(SUMA_STDERR,"Error %s: Found %d surfaces, expected only 1.\n", FuncName,  SO_read);
@@ -2722,6 +2733,386 @@ int main (int argc,char *argv[])
 }
 #endif
 
+#ifdef SUMA_getPatch_STANDALONE
+#define SURFPATCH_MAX_SURF 10  /*!< Maximum number of input surfaces */
+
+void usage_SUMA_getPatch ()
+   {
+      static char FuncName[]={"usage_SUMA_getPatch"};
+      char * s = NULL;
+      printf ( "\nUsage:\n"
+               "  SurfPatch <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
+               "            <-input nodefile inode ilabel> <-prefix outpref>  \n"
+               "            [-hits min_hits] [-masklabel msk]\n"
+               "\n"
+               "  Mandatory parameters:\n"
+               "     -spec SpecFile: Spec file containing input surfaces.\n"
+               "     -surf_X: Name of input surface X where X is a character\n"
+               "              from A to Z. If surfaces are specified using two\n"
+               "              files, use the name of the node coordinate file.\n"
+               "     -input nodefile inode ilabel: \n"
+               "            nodefile is the file containing nodes defining the patch.\n"
+               "            inode is the index of the column containing the nodes\n"
+               "            ilabel is the index of the column containing labels of\n"
+               "                   the nodes in column inode. If you want to use\n"
+               "                   all the nodes in column indode, then set this \n"
+               "                   parameter to -1 (default). \n"
+               "                   If ilabel is not equal to 0 then the corresponding \n"
+               "                   node is used in creating the patch.\n"
+               "                   See -masklabel option for one more variant.\n"
+               "     -prefix outpref: Prefix of output patch. If more than one surface\n"
+               "                      are entered, then the prefix will have _X added\n"
+               "                      to it, where X is a character from A to Z.\n"
+               "  Optional parameters:\n"
+               "     -hits min_hits: Minimum number of nodes specified for a triangle\n"
+               "                     to be made a part of the patch (1 <= min_hits <= 3)\n"
+               "     -masklabel msk: If specified, then only nodes that are labeled with\n"
+               "                     with msk are considered for the patch.\n"
+               "                     This option is useful if you have an ROI dataset file\n"
+               "                     and whish to create a patch from one out of many ROIs\n"
+               "                     in that file. This option must be used with ilabel \n"
+               "                     specified (not = -1)\n"
+               "\n"
+               "\n");
+       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       exit (0);
+   }
+
+typedef struct {
+   SUMA_SO_File_Type iType;
+   char *out_prefix;
+   char *sv_name;
+   char *surf_names[SURFPATCH_MAX_SURF];
+   int N_surf;
+   char *spec_file;
+   char *in_name;
+   int minhits;
+   int thislabel;
+   int labelcol;
+   int nodecol;
+} SUMA_GETPATCH_OPTIONS;
+
+/*!
+   \brief parse the arguments for SurfSmooth program
+   
+   \param argv (char *)
+   \param argc (int)
+   \return Opt (SUMA_GETPATCH_OPTIONS *) options structure.
+               To free it, use 
+               SUMA_free(Opt->out_prefix); 
+               SUMA_free(Opt);
+*/
+SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
+{
+   static char FuncName[]={"SUMA_GetPatch_ParseInput"}; 
+   SUMA_GETPATCH_OPTIONS *Opt=NULL;
+   int kar, i, ind;
+   char *outprefix;
+   SUMA_Boolean brk = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   Opt = (SUMA_GETPATCH_OPTIONS *)SUMA_malloc(sizeof(SUMA_GETPATCH_OPTIONS));
+
+   kar = 1;
+   Opt->iType = SUMA_FT_NOT_SPECIFIED;
+   Opt->out_prefix = NULL;
+   Opt->sv_name = NULL;
+   Opt->spec_file = NULL;
+   Opt->in_name = NULL;
+   Opt->minhits = 2;
+   Opt->labelcol = -1;
+   Opt->nodecol = -1;
+   Opt->thislabel = -1;
+   Opt->N_surf = -1;
+   for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+	brk = NOPE;
+   
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_getPatch();
+          exit (0);
+		}
+		
+		if (!brk && 
+          ( (strcmp(argv[kar], "-memdbg") == 0) || 
+            (strcmp(argv[kar], "-iodbg") == 0)  ||
+            (strcmp(argv[kar], "-nomall") == 0) ||
+            (strcmp(argv[kar], "-yesmall") == 0) ||
+            (strcmp(argv[kar], "-trace") == 0) ||
+            (strcmp(argv[kar], "-TRACE") == 0)) ) {
+			/* valid options, but already taken care of */
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
+				exit (1);
+			}
+			Opt->spec_file = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-hits") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -hits \n");
+				exit (1);
+			}
+			Opt->minhits = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-masklabel") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -masklabel \n");
+				exit (1);
+			}
+			Opt->thislabel = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
+				exit (1);
+			}
+			Opt->out_prefix = SUMA_copy_string(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+			if (kar+2 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -input \n");
+				exit (1);
+			}
+			Opt->in_name = argv[kar]; kar ++;
+         Opt->nodecol = atoi(argv[kar]); kar ++;
+         Opt->labelcol = atoi(argv[kar]); 
+			brk = YUP;
+		}
+      
+      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
+			if (kar + 1>= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
+				exit (1);
+			}
+			ind = argv[kar][6] - 'A';
+         if (ind < 0 || ind >= SURFPATCH_MAX_SURF) {
+            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n");
+				exit (1);
+         }
+         kar ++;
+         Opt->surf_names[ind] = argv[kar];
+         Opt->N_surf = ind+1;
+         brk = YUP;
+		}
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+      
+   }
+   
+   /* sanity checks */
+   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("SurfPatch");
+   
+   if (Opt->thislabel >= 0 && Opt->labelcol < 0) {
+      SUMA_SL_Err("Cannot use -masklabel without specifying ilabel in -input option");
+      exit(1);
+   } 
+   if (Opt->minhits < 1 || Opt->minhits > 3) {
+      SUMA_SL_Err("minhits must be > 0 and < 3");
+      exit(1);
+   }
+   if (Opt->N_surf < 1) {
+      SUMA_SL_Err("No surface specified.");
+      exit(1);
+   }
+   if (!Opt->in_name) {
+      SUMA_SL_Err("No input specified.");
+      exit(1);
+   }
+   SUMA_RETURN (Opt);
+     
+}
+
+int main (int argc,char *argv[])
+{/* Main */    
+   static char FuncName[]={"SurfPatch"};
+   SUMA_GETPATCH_OPTIONS *Opt; 
+   char *ppref=NULL, ext[5]; 
+   float *far=NULL;
+   MRI_IMAGE *im = NULL;
+   int SO_read = -1;
+   int *NodePatch=NULL, N_NodePatch=-1, *FaceSetList=NULL , N_FaceSet = -1;          
+   int i, inodeoff=-1, ilabeloff=-1, nvec, ncol, cnt;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_PATCH *ptch = NULL; 
+   SUMA_SurfSpecFile Spec;
+   SUMA_INDEXING_ORDER d_order;
+   void *SO_name = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+	
+   /* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   /* sets the debuging flags, if any */
+   SUMA_ParseInput_basics(argv, argc);
+   
+	/* Allocate space for DO structure */
+	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   
+   if (argc < 4)
+       {
+          usage_SUMA_getPatch();
+          exit (1);
+       }
+   
+   Opt = SUMA_GetPatch_ParseInput (argv, argc);
+   
+   /* read all surfaces */
+   if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
+		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+		exit(1);
+	}
+   SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFPATCH_MAX_SURF, 0);
+   if ( SO_read != Opt->N_surf )
+   {
+	   fprintf(SUMA_STDERR,"Error %s: Found %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
+      exit(1);
+   }
+   /* now read into SUMAg_DOv */
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0) ) {
+	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+      exit(1);
+   }
+   
+   /* read in the file containing the node information */
+   im = mri_read_1D (Opt->in_name);
+
+   if (!im) {
+      SUMA_SL_Err("Failed to read 1D file");
+      exit(1);
+   }
+
+   far = MRI_FLOAT_PTR(im);
+   nvec = im->nx;
+   ncol = im->ny;
+   d_order = SUMA_COLUMN_MAJOR;
+
+   if (!nvec) {
+      SUMA_SL_Err("Empty file");
+      exit(1);
+   }
+   /* form the node vector */
+   NodePatch = (int *)SUMA_malloc(sizeof(int)*nvec);
+   if (!NodePatch) {
+      SUMA_SL_Crit("Failed to allocate.");
+      exit(1);
+   }
+   inodeoff = Opt->nodecol*nvec;
+   if (Opt->labelcol < 0) { /* all listed nodes */ 
+      for (i=0; i<nvec; ++i) {
+         NodePatch[i] = far[i+inodeoff];
+      }
+      N_NodePatch = nvec;
+   } else {
+      ilabeloff =  Opt->labelcol*nvec;
+      if (Opt->thislabel < 0) { /* all nodes with non zero labels */
+         cnt = 0;
+         for (i=0; i<nvec; ++i) {
+            if (far[i+ilabeloff]) {
+               NodePatch[cnt] = far[i+inodeoff];
+               ++cnt;
+            }
+         }
+         N_NodePatch = cnt;     
+      } else { /* select labels */
+         cnt = 0;
+         for (i=0; i<nvec; ++i) {
+            if (far[i+ilabeloff] == Opt->thislabel) {
+               NodePatch[cnt] = far[i+inodeoff];
+               ++cnt;
+            }
+         }
+         N_NodePatch = cnt;    
+      }
+      NodePatch = (int *) SUMA_realloc(NodePatch , sizeof(int)*N_NodePatch);
+   }
+   
+   /* done with im, free it */
+   mri_free(im); im = NULL;   
+   FaceSetList = NULL;
+   N_FaceSet = -1;
+   for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
+      /* now identify surface needed */
+      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
+      /* extract the patch */
+      if (!SO->MF) {
+         SUMA_SL_Warn ("NULL MF");
+      }
+      ptch = SUMA_getPatch (NodePatch, N_NodePatch, SO->FaceSetList, SO->N_FaceSet, SO->MF, Opt->minhits);
+      if (!ptch) {
+         SUMA_SL_Err("Failed to form patch.");
+         exit(1);
+      }
+      if (LocalHead) SUMA_ShowPatch(ptch, NULL);
+      
+      /* Now create a surface with that patch */
+      if (Opt->N_surf > 1) {
+         sprintf(ext, "_%c", 65+i);
+         ppref = SUMA_append_string(Opt->out_prefix, ext);
+      } else {
+         ppref = SUMA_copy_string(Opt->out_prefix);
+      }
+      SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType);
+      if (ppref) SUMA_free(ppref); ppref = NULL;
+      /* save the original pointers to the facesets and their number */
+      FaceSetList = SO->FaceSetList;
+      N_FaceSet = SO->N_FaceSet;
+      /* replace with Patch */
+      SO->FaceSetList = ptch->FaceSetList;
+      SO->N_FaceSet = ptch->N_FaceSet; 
+      if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+      }
+      /* bring SO back to shape */
+      SO->FaceSetList = FaceSetList; FaceSetList = NULL;
+      SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
+      if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+      if (ptch) SUMA_freePatch(ptch); ptch = NULL;
+   }
+   
+   
+   SUMA_LH("clean up");
+   if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
+   if (Opt) SUMA_free(Opt);   
+   if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SL_Err("DO Cleanup Failed!");
+   }
+
+   exit(0);
+} 
+#endif
+
 /*!
    Given a set of node indices, return a patch of the original surface that contains them
    
@@ -2751,7 +3142,7 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
    SUMA_PATCH *Patch;
    static char FuncName[]={"SUMA_getPatch"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    NP = 3;
    BeenSelected = (int *)SUMA_calloc (N_Full_FaceSetList, sizeof(int));
@@ -2821,7 +3212,7 @@ SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch)
 {
    static char FuncName[]={"SUMA_freePatch"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    if (Patch->FaceSetIndex) SUMA_free(Patch->FaceSetIndex);
@@ -2837,7 +3228,7 @@ SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out)
    static char FuncName[]={"SUMA_freePatch"};
    int ip, i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!Out) Out = stderr;
    
@@ -2865,7 +3256,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    SUMA_CONTOUR_EDGES *CE = NULL;
    SUMA_Boolean *isNode=NULL, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    *N_ContEdges = -1;
    
@@ -2991,7 +3382,7 @@ float * SUMA_Plane_Equation (float * P1, float *P2, float *P3)
    float *Eq;
    static char FuncName[] = {"SUMA_Plane_Equation"}; 
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    Eq = (float *) SUMA_calloc(4,sizeof(float));
    if (!Eq)
@@ -3055,7 +3446,7 @@ SUMA_SURF_PLANE_INTERSECT *SUMA_Surf_Plane_Intersect (SUMA_SurfaceObject *SO, fl
    SUMA_Boolean LocalHead = NOPE;
    SUMA_Boolean  Hit;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* Start timer for next function */
    SUMA_etime(&start_time2,0);
@@ -3233,7 +3624,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
    SUMA_Boolean DrawIntersNodeStrip = NOPE; /* Draw intersection node strip which is the shortest path between beginning and ending nodes */ 
    SUMA_Boolean DrawIntersTriStrip=NOPE; /* Draw intersection triangle strip which is the shortest path between beginning and ending nodes */
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* computing plane's equation */
    Eq = SUMA_Plane_Equation ( &(SO->NodeList[3*Nfrom]), 
@@ -3435,7 +3826,7 @@ SUMA_TRI_BRANCH* SUMA_AssignTriBranch (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_I
    SUMA_TRI_BRANCH *Bv = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
 
    i_Branch = 0;
@@ -3624,7 +4015,7 @@ SUMA_Boolean SUMA_show_STB (SUMA_TRI_BRANCH *B, FILE *Out)
    static char FuncName[]={"SUMA_show_STB"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
   
    if (!Out) Out = SUMA_STDERR;
    
@@ -3651,7 +4042,7 @@ void SUMA_free_STB (SUMA_TRI_BRANCH *Bv, int N_Bv)
    static char FuncName[]={"SUMA_free_STB"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    for (i=0; i < N_Bv; ++i) {
       if (Bv[i].list) SUMA_free(Bv[i].list);
@@ -3677,7 +4068,7 @@ SUMA_SURF_PLANE_INTERSECT * SUMA_Allocate_SPI (SUMA_SurfaceObject *SO)
    int i;
    SUMA_SURF_PLANE_INTERSECT *SPI = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SPI = (SUMA_SURF_PLANE_INTERSECT *) SUMA_malloc(sizeof(SUMA_SURF_PLANE_INTERSECT));
    if (!SPI) {
@@ -3711,7 +4102,7 @@ void SUMA_free_SPI (SUMA_SURF_PLANE_INTERSECT *SPI)
 {
    static char FuncName[]={"SUMA_free_SPI"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SPI) SUMA_RETURNe;
    if (SPI->IntersTri) SUMA_free(SPI->IntersTri);
@@ -3734,7 +4125,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    static char FuncName[]={"SUMA_Show_SPI"};
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!Out) Out = SUMA_STDERR;
    
@@ -3771,7 +4162,7 @@ SUMA_Boolean SUMA_Mark_Tri (SUMA_EDGE_LIST  *EL, int E1, int iBranch, int *TriBr
    SUMA_Boolean LocalHead = NOPE;
    
    /* this is a recursive function, you don't want to log every time it is called */
-   /* if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);    */
+   /* SUMA_ENTRY;    */
    
    ++In;
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Entered #%d.\n", FuncName, In);
@@ -3878,7 +4269,7 @@ int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST  *EL, int *IsInter, int N_IsInter, int 
 {
    static char FuncName[]={"SUMA_Find_Edge_Nhost"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (*i=0; *i < N_IsInter; ++(*i)) {
       if (EL->ELps[IsInter[*i]][2] == Nhost) SUMA_RETURN (IsInter[*i]);
@@ -3938,7 +4329,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
    float *Lmins; 
    
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    *Lfinal = -1.0;
    *N_Path = 0;
@@ -4288,7 +4679,7 @@ int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, int *
    int *ePath = NULL, i, i0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
  
  
   *N_Edge = 0;
@@ -4333,7 +4724,7 @@ SUMA_Boolean SUMA_isSameEdge (SUMA_EDGE_LIST *EL, int E1, int E2)
 {
    static char FuncName[]={"SUMA_isSameEdge"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (EL->EL[E1][0] == EL->EL[E2][0] && EL->EL[E1][1] == EL->EL[E2][1]) {
       SUMA_RETURN (YUP);
@@ -4380,7 +4771,7 @@ int * SUMA_IntersectionStrip (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT 
    float d1, d2;
    SUMA_Boolean *Visited = NULL, Found, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* find the edge containing the 1st 2 nodes of the Dijkstra path */
    /* find the triangle that contains the edge formed by the 1st 2 nodes of the Dijkstra path and is intersected by the plane*/
@@ -4389,7 +4780,7 @@ int * SUMA_IntersectionStrip (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT 
       fprintf (SUMA_STDERR, "%s: Looking for a triangle containing nodes [%d %d].\n", FuncName, nPath[0], nPath[1]);
    }
    
-   Found = SUMA_Get_Incident(nPath[0], nPath[1], SO->EL, Incident, &N_Incident);
+   Found = SUMA_Get_Incident(nPath[0], nPath[1], SO->EL, Incident, &N_Incident, 1);
    if (!Found) {
       /* no such triangle, get a triangle that contains nPath[0] and is intersected */
       fprintf (SUMA_STDERR, "%s: No triangle contains nodes [%d %d].\n", FuncName, nPath[0], nPath[1]);
@@ -4577,7 +4968,7 @@ SUMA_Boolean SUMA_FromIntEdgeToIntEdge (int Tri, int E1, int E2, SUMA_EDGE_LIST 
    float dx, dy, dz;
    SUMA_Boolean Found, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Tri < 0 || E1 < 0 || E2 < 0) {
       fprintf (SUMA_STDERR, "Error %s: Tri (%d) or E1 (%d) or E2 (%d) is negative!\n", FuncName, Tri, E1, E2);
@@ -4623,7 +5014,7 @@ SUMA_Boolean SUMA_FromIntEdgeToIntEdge (int Tri, int E1, int E2, SUMA_EDGE_LIST 
    
    /* now get the second intersected triangle, incident to E2 */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Searching for triangles incident to E2 %d.\n", FuncName, E2);
-   if (!SUMA_Get_Incident(EL->EL[E2][0], EL->EL[E2][1], EL, Incident, &N_Incident)) {
+   if (!SUMA_Get_Incident(EL->EL[E2][0], EL->EL[E2][1], EL, Incident, &N_Incident, 1)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to get Incident triangles.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -4700,7 +5091,7 @@ int *SUMA_NodePath_to_TriPath_Inters ( SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_I
       HostTri, PrevTri, k, N1[2], N2[2], cnt, MissTri = 0, candidate;
    SUMA_Boolean Found, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    tPath = (int *) SUMA_calloc(2*N_nPath, sizeof(int));
    if (!tPath) {
@@ -4769,22 +5160,22 @@ int *SUMA_NodePath_to_TriPath_Inters ( SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_I
                   while (!Found && cnt < 4) {
                      switch (cnt) {
                         case 0:
-                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[0], N2[0]);
+                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[0], N2[0], 1);
                            if (LocalHead) fprintf (SUMA_STDERR, "%s: looking for triangle with nodes %d and %d... Tri = %d\n", 
                                  FuncName, N1[0], N2[0], MissTri);
                            break;
                         case 1:
-                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[0], N2[1]);
+                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[0], N2[1], 1);
                            if (LocalHead) fprintf (SUMA_STDERR, "%s: looking for triangle with nodes %d and %d... Tri = %d\n", 
                                  FuncName, N1[0], N2[1], MissTri);
                            break;
                         case 2:
-                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[1], N2[0]);
+                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[1], N2[0], 1);
                            if (LocalHead) fprintf (SUMA_STDERR, "%s: looking for triangle with nodes %d and %d... Tri = %d\n", 
                                  FuncName, N1[1], N2[0], MissTri);
                            break;
                         case 3:
-                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[1], N2[1]);
+                           MissTri = SUMA_whichTri (SO->EL, nc[0], N1[1], N2[1], 1);
                            if (LocalHead) fprintf (SUMA_STDERR, "%s: looking for triangle with nodes %d and %d... Tri = %d\n", 
                                  FuncName, N1[1], N2[1], MissTri);
                            break;
@@ -4855,7 +5246,7 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
    int *tPath = NULL, ilist, i0, Tri, eTri, EdgeBuf, Tri0, Tri1, Direction, i1, loc2f, iDirSet;
    SUMA_Boolean LocalHead = NOPE, Found = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
  
  
   *N_Tri = 0;
@@ -5054,7 +5445,7 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
                      FILE *TimeOut;
                      SUMA_Boolean LocalHead = NOPE; 
 
-                     if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+                     SUMA_ENTRY;
 
                      if (LocalHead) SUMA_disp_dmat (NodeLoc_in_InterMat, 20, 4, 1); 
 
@@ -5324,7 +5715,7 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
                      static char FuncName[]={"SUMA_WeldBranches"};
                      SUMA_Boolean LocalHead = NOPE;
 
-                     if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+                     SUMA_ENTRY;
 
                      nlst1 = branch[brIndx1].listsz;
                      nlst2 = branch[brIndx2].listsz;

@@ -1,6 +1,6 @@
 #ifndef SUMA_SURFACE_IO_INCLUDED
 #define SUMA_SURFACE_IO_INCLUDED
-
+void *SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO_File_Type oType);
 SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF);
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF);
 void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out);
@@ -25,7 +25,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D(char *filename, char *Parent_idcode_str, 
 void SUMA_OpenDrawnROI (char *filename, void *data);
 NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str); 
 void SUMA_SaveSOascii (char *filename, void *data);
-
+float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowmajor, SUMA_Boolean SkipCoords);
 
 
 #endif

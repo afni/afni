@@ -63,42 +63,76 @@ void SUMA_process_environ(void)
 /*!
    \brief parse command line arguments for input/output debugging and
    memory debugging. Use no fancies in this function!
+   
+   This function is to be called after SUMAg_CF has been created,
+   if #ifdef SUMA_COMPILED 
+   
+   Default for iotrace = 0
+               memtrace = 1 
+   Those defaults are common to all apps 
+   
 */
-void SUMA_ParseInput_basics (void *cfv, char *argv[], int argc) 
+void SUMA_ParseInput_basics (char *argv[], int argc) 
 {
+
+   static char FuncName[]={"SUMA_ParseInput_basics"};
+   int brk = 0;
+   int kar, Domemtrace, Doiotrace;
+
+   if (!argv) return;
+   if (argc < 2) return;
+
+   kar = 1;
+   brk = 0;
+   Domemtrace = 1;
+   Doiotrace = 0;
+   while (kar < argc) { /* loop accross tracing and debugging command line options */
+		if ((strcmp(argv[kar], "-memdbg") == 0) ||
+          (strcmp(argv[kar], "-yesmall") == 0) ) {
+			fprintf(SUMA_STDOUT,"Warning %s:  running in memory trace mode.\n", FuncName);
+			Domemtrace = 1;
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-nomall") == 0)) {
+			fprintf(SUMA_STDOUT,"Warning %s:  turning off memory trace mode.\n", FuncName);
+			Domemtrace = 0;
+			brk = 1;
+		}
+
+      if (!brk && ( (strcmp(argv[kar], "-trace") == 0) ||
+                   (strcmp(argv[kar], "-iodbg") == 0)) ){
+			fprintf(SUMA_STDERR,"Warning %s: SUMA running in I/O trace mode.\n", FuncName);
+			Doiotrace = 1;
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-TRACE") == 0)) {
+			fprintf(SUMA_STDERR,"Warning %s: SUMA running in detailed I/O trace mode.\n", FuncName);
+			Doiotrace = 2;
+         brk = 1;
+		}
+      
+      brk = 0;
+      kar ++;
+   }
+   
    #ifdef SUMA_COMPILED 
-      {
-         static char FuncName[]={"SUMA_ParseInput_basics"};
-         int brk = 0;
-         int kar;
-         SUMA_CommonFields *cf;
-         
-         cf = (SUMA_CommonFields *)cfv;
+      if (Doiotrace) { SUMA_INOUT_NOTIFY_ON; } 
+      if (Domemtrace) { SUMA_MEMTRACE_ON; }
 
-         if (!cf) return;
-         if (!argv) return;
-         if (argc < 2) return;
+      /* some more special ones */
+      #ifdef USE_SUMA_MALLOC
 
-         kar = 1;
-         brk = 0;
-         while (kar < argc) { /* loop accross command ine options */
-		      if ((strcmp(argv[kar], "-memdbg") == 0)) {
-			      fprintf(SUMA_STDOUT,"Warning %s:  running in memory trace mode.\n", FuncName);
-			      cf->MemTrace = YUP;
-			      brk = 1;
-		      }
-
-            if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
-			      fprintf(SUMA_STDOUT,"Warning %s:  running in in/out debug mode.\n", FuncName);
-			      cf->InOut_Notify = YUP;
-			      brk = 1;
-		      }
-
-            brk = 0;
-            kar ++;
-         }
-      }
+      #else
+         if (Doiotrace == 2) { DBG_trace = 2; } 
+      #endif
+   #else
+      /* for afni use */
+      DBG_trace = Doiotrace;
+      if (Domemtrace) {  mcw_malloc_enable(); }
    #endif
+   
    return;
 }
 
@@ -118,7 +152,7 @@ SUMA_ENGINE_CODE SUMA_GetListNextCommand (DList *list)
    DListElmt *next;
    SUMA_EngineData *ED = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!dlist_size(list)) {
       SUMA_RETURN (SE_Empty);
@@ -163,7 +197,7 @@ int SUMA_GetNextCommand (char *S, char d, char term, char *Scom)
    static char FuncName[]={"SUMA_GetNextCommand"}; 
    int i=0, iBegin, iStop;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_GetListNextCommand instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -214,7 +248,7 @@ int SUMA_CommandCode(char *Scom)
 {   
    static char FuncName[]={"SUMA_CommandCode"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!strlen(Scom)) SUMA_RETURN (SE_Empty);
    if (strcmp(Scom,"~") == 0) SUMA_RETURN (SE_Empty);
@@ -281,7 +315,7 @@ const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode)
 {
    static char FuncName[]={"SUMA_ColMixModeString"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    switch (mode) {
       case SUMA_BAD_MODE:
@@ -336,7 +370,7 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
 {
    static char FuncName[]={"SUMA_CommandString"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    switch (code) {
       case SE_SetLookAt:
@@ -534,7 +568,7 @@ SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_
 {   int i, iStop, iorig, iStopNew, nCom;
    static char FuncName[]={"SUMA_RegisterCommand"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_RegisterCommand instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -592,7 +626,7 @@ const char* SUMA_EngineFieldString (SUMA_ENGINE_FIELD_CODE i)
 {
    static char FuncName[]={"SUMA_EngineFieldString"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    switch (i) {
       case (SEF_fm):
@@ -646,7 +680,7 @@ SUMA_ENGINE_FIELD_CODE SUMA_EngineFieldCode(char *Scom)
 {   
    static char FuncName[]={"SUMA_EngineFieldCode"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!strlen(Scom)) SUMA_RETURN (SEF_Empty);
    
@@ -675,7 +709,7 @@ int SUMA_EngineSourceCode (char *Scom)
 {
    static char FuncName[]={"SUMA_EngineSourceCode"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!strlen(Scom)) SUMA_RETURN (SES_Empty);
    if (!strcmp(Scom,"suma")) SUMA_RETURN(SES_Suma);
@@ -693,7 +727,7 @@ void SUMA_EngineSourceString (char *Scom, int i)
 {
    static char FuncName[]={"SUMA_EngineSourceString"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    switch (i) {
       case SES_Empty:
@@ -746,7 +780,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    SUMA_Boolean TryLogWindow = NOPE;
    int i=0, TrimTheFat=0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!list) {
       fprintf (SUMA_STDERR, "Warning %s: list has not been initialized.\n"
@@ -828,7 +862,7 @@ char *SUMA_BuildMessageLog (DList *ML)
    SUMA_STRING *SS = NULL;
    DListElmt *CurElmt=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
   
    if (!ML->size) { /* Nothing */
@@ -909,7 +943,7 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
    SUMA_EngineData * Old_ED=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: list has not been initialized.\n", FuncName);
@@ -1295,7 +1329,7 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *ED, char *Fldname, void *
    int Dest, Fld, Src;
    static char FuncName[]={"SUMA_RegisterEngineData"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_RegisterEngineListCommand instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -1581,7 +1615,7 @@ SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode)
    SUMA_EngineData *ED=NULL;
    int i;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (CommandCode <= SE_Empty || CommandCode >= SE_BadCode) {
       fprintf(SUMA_STDERR,"Error %s: Bad command code.\n", FuncName);
@@ -1641,7 +1675,7 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *ED)
 {   int i;
    static char FuncName[]={"SUMA_InitializeEngineData"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_InitializeEngineListData instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -1688,7 +1722,7 @@ void SUMA_FreeActionStackData(void *asdata)
    SUMA_ACTION_STACK_DATA *AS_data=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    AS_data=(SUMA_ACTION_STACK_DATA *)asdata;
    if (AS_data) {
@@ -1714,7 +1748,7 @@ void SUMA_ReleaseActionStackData (void *asdata)
    SUMA_ACTION_STACK_DATA *AS_data=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    AS_data=(SUMA_ACTION_STACK_DATA *)asdata;
    if (AS_data) {
@@ -1739,7 +1773,7 @@ void SUMA_FreeMessageListData(void *Hv)
    static char FuncName[]={"SUMA_FreeMessageListData"};
    SUMA_MessageData *H = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    H = (SUMA_MessageData *)Hv;
    
@@ -1777,7 +1811,7 @@ void SUMA_FreeEngineListData(void *EDv)
    static char FuncName[]={"SUMA_FreeEngineListData"};
    SUMA_EngineData *ED = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ED = (SUMA_EngineData *)EDv;
    
@@ -1837,7 +1871,7 @@ SUMA_Boolean SUMA_FreeEngineData (SUMA_EngineData *ED)
 {
    static char FuncName[]={"SUMA_FreeEngineData"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_FreeEngineListData instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -1893,7 +1927,7 @@ SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element)
    static char FuncName[]={"SUMA_ReleaseEngineListElement"};
    void *ED=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (dlist_remove (list, element, &ED) < 0) {
       fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
@@ -1921,7 +1955,7 @@ SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element)
    static char FuncName[]={"SUMA_ReleaseMessageListElement"};
    void *H=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (dlist_remove (list, element, &H) < 0) {
       fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
@@ -1949,7 +1983,7 @@ DList * SUMA_DestroyList (DList *list)
 {
    static char FuncName[]={"SUMA_DestroyList"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (list->size) {
       fprintf (SUMA_STDERR, "Error %s: list still contains elements.\n", FuncName);
@@ -1974,7 +2008,7 @@ DList * SUMA_EmptyDestroyList (DList *list)
 {
    static char FuncName[]={"SUMA_EmptyDestroyList"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    dlist_destroy(list);
    if (list) SUMA_free(list);
@@ -1993,7 +2027,7 @@ DList *SUMA_CreateActionStack (void)
    static char FuncName[]={"SUMA_CreateActionStack"};
    DList *list=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    list = (DList *)malloc (sizeof(DList));
    if (!list) {
@@ -2024,7 +2058,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS)
 {
    static char FuncName[]={"SUMA_DestroyActionStack"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    dlist_destroy(AS);
    
@@ -2067,7 +2101,7 @@ DList *SUMA_CreateList (void)
    static char FuncName[]={"SUMA_CreateList"};
    DList *list=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    list = (DList *)SUMA_malloc (sizeof(DList));
    if (!list) {
@@ -2107,7 +2141,7 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *ED, char *Location)
    static char FuncName[]={"SUMA_ReleaseEngineData"};
    int Loc;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_ReleaseEngineListElement instead.\n", FuncName);
    SUMA_RETURN (NOPE);
@@ -2263,7 +2297,7 @@ void SUMA_ShowList (DList *list, FILE *Out)
    DListElmt *NE;
    SUMA_EngineData *ED;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!Out) Out = stdout;
    

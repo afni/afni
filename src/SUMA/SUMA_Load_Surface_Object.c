@@ -80,7 +80,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
 {/*SUMA_Save_Surface_Object*/
    static char FuncName[]={"SUMA_Save_Surface_Object"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    switch (SO_FT) {
@@ -139,9 +139,9 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
 */
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName)
 {/*SUMA_Load_Surface_Object*/
-   char FuncName[]={"SUMA_Load_Surface_Object"};
+   static char FuncName[]={"SUMA_Load_Surface_Object"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN( SUMA_Load_Surface_Object_eng( SO_FileName_vp, SO_FT, SO_FF,
                                               VolParName, 1) );
@@ -210,7 +210,7 @@ Input paramters :
 ***/
 SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug)
 {/*SUMA_Load_Surface_Object_eng*/
-   char FuncName[]={"SUMA_Load_Surface_Object_eng"};
+   static char FuncName[]={"SUMA_Load_Surface_Object_eng"};
    char stmp[1000], *SO_FileName=NULL;
    SUMA_SFname *SF_FileName; 
    int k, ND, id;
@@ -220,7 +220,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
    SUMA_SURF_NORM SN;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* Allocate and initialize SUMA_SurfaceObject Pointer */
    SO = SUMA_Alloc_SurfObject_Struct(1);
@@ -739,7 +739,7 @@ SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
    static char FuncName[]={"SUMA_ParseLHS_RHS"};
    char *st;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (s == NULL) {
       fprintf(SUMA_STDERR,"Error %s: NULL s\n", FuncName);
@@ -790,7 +790,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    char DupWarn[]={"Bad format in specfile (you may need a NewSurface line). Duplicate specification of"};
    char NewSurfWarn[]={"Bad format in specfile. You must start with NewSurface line before any other field."};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /*make sure file is there */
    if (!SUMA_filexists(f_name)) {
@@ -1564,7 +1564,7 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
    int i;
    SUMA_Boolean ShowCoord, ShowTopo, ShowRest;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ShowCoord = ShowTopo = ShowRest = NOPE;
    
@@ -1850,7 +1850,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 {/* SUMA_LoadSpec */
    static char FuncName[]={"SUMA_LoadSpec"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN( SUMA_LoadSpec_eng(Spec, dov, N_dov, VolParName, 1) );
 
@@ -1876,7 +1876,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
    SUMA_Boolean SurfIn = NOPE;
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if ( debug )
        fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
@@ -1886,7 +1886,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
          if ( debug || 1) { /* turned this back on as a pacifier */
 	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 	    fprintf (SUMA_STDERR,
-		     "Surface #%d/%d(Local Domain Parent), loading ...\n",i, Spec->N_Surfs );
+		     "Surface #%d/%d(Local Domain Parent), loading ...\n",i+1, Spec->N_Surfs );
 	 }
 
          if (Spec->VolParName[i][0] != '\0') {
@@ -2072,7 +2072,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
 	 if ( debug  || 1) { /* turned this back on as a pacifier */
             fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
             fprintf (SUMA_STDERR,
-		     "Surface #%d/%d (mappable via Local Domain Parent), loading ...\n",i, Spec->N_Surfs);
+		     "Surface #%d/%d (mappable via Local Domain Parent), loading ...\n",i+1, Spec->N_Surfs);
 	 }
          
          SO = SUMA_Load_Spec_Surf(Spec, i, tmpVolParName, debug);
@@ -2197,7 +2197,7 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
 {
    static char FuncName[]={"SUMA_SurfaceMetrics"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN(SUMA_SurfaceMetrics_eng(SO, Metrics, SOinh, 1));
 }
@@ -2240,7 +2240,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, LocalHead = NOPE;
    int i = 0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (debug)
       fprintf (SUMA_STDERR,"%s: Calculating surface metrics, please be patient...\n", FuncName);
@@ -3572,7 +3572,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    char *Name=NULL;
    int nalloc=0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* check if recognizable type */
    switch (SO->FileType) {
@@ -3688,7 +3688,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_GuessSide"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:

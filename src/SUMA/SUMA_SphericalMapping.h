@@ -37,22 +37,14 @@ SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI);
 SUMA_1dData *SUMA_Create_1dData (void);
 SUMA_Boolean SUMA_Free_1dData (SUMA_1dData *data); 
 
-float *SUMA_morphToStd (float *nodeList, SUMA_MorphInfo *MI);
+SUMA_SurfaceObject * SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI, SUMA_Boolean nodeChk);
 float *SUMA_readColor (int numNodes, char* colFileNm);
 void SUMA_writeColorFile (float *array, int numNode, int *index, char fileNm[]);   
 void SUMA_writeFSfile (SUMA_SurfaceObject *SO, char firstLine[], char fileNm[]);
 void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[]);
-//float* SUMA_readMapDump (int* N_Node, char* dumpFileNm);
-//void SUMA_quickSort( float *valArray, int num, int *i_curr, float *srtdArray );
 void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data);
-//float* SUMA_read1D (int *N_Node, char* fileNm, int i_colm);
-//float* SUMA_readANOVA1D (int *N_Node, char* fileNm, SUMA_Boolean sig);
 void SUMA_write1D ( int *num, float *vals, int *index, char firstline[], char outFileNm[]);
-//void SUMA_write1D ( int num, float *vals, char firstline[], char outFileNm[]);
-//int SUMA_colToNum( char col );
 float * SUMA_createColGradient( float *col, int numSeg, SUMA_Boolean allGvn );
-//float * SUMA_createColGradient( float *col, int numDiv );
-//float * SUMA_createColGradient( char *col, int numDiv );
 float * SUMA_assignColors( float *vals, float *cols, int numVal, int numCol, float *colRng, float *valDiv );
 
 SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg);

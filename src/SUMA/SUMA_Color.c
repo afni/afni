@@ -66,7 +66,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
    int i, j, Ninter, Ngap, im, Ncolsgood, Npergap;
    SUMA_COLOR_MAP * SM;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    /* check for bad input */
    for (i=0; i < Nfid; ++i) {
@@ -146,6 +146,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
    SM->N_Col = Ncols;
 
    SM->frac = NULL; /* a linear map */
+   SM->cname = NULL;
    SM->Sgn = 0; /* setup for linear maps with no signing, mapping a la old ScaleToMap*/
    
    SUMA_RETURN (SM);
@@ -186,7 +187,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
    int i, j, im, Ncols;
    SUMA_COLOR_MAP * SM;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    /* check for bad input and calculate the total number of colors*/
    if (Nint[0]) {
@@ -255,6 +256,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
    SM->N_Col = Ncols;
    
    SM->frac = NULL; /* a linear map */
+   SM->cname = NULL;
    SM->Sgn = 0; /* setup for linear maps with no signing, mapping a la old ScaleToMap*/
    
    SUMA_RETURN (SM);
@@ -264,11 +266,16 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM)
 {
    static char FuncName[]={"SUMA_Free_ColorMap"};
+   int i = 0;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (SM->Name) SUMA_free(SM->Name);
    if (SM->M) SUMA_free2D((char **)SM->M, SM->N_Col);
+   if (SM->cname) {
+      for (i=0; i<SM->N_Col; ++i) { if (SM->cname[i]) SUMA_free(SM->cname[i]); }
+      SUMA_free(SM->cname);
+   }
    if (SM->frac) SUMA_free(SM->frac);
    if (SM) SUMA_free(SM);
 
@@ -305,7 +312,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_Boolean LocalHead_Detail = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    
    /* initilialize*/
@@ -370,6 +377,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
          SUMA_SL_Crit ("Failed to allocate for CMp &/| CMn.");
          SUMA_RETURN(NULL);
       }
+      CMp->cname = NULL;
+      CMn->cname = NULL;
       CMp->N_Col = i; 
       CMn->N_Col = i;
       CMp->Sgn = 1;
@@ -538,7 +547,7 @@ SUMA_RGB_NAME * SUMA_Add_Color (char *Name, float r, float g, float b, float a, 
    int iadd;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    if (!(r == -1.0 && g == -1.0 && b == -1.0)) {
       if (  r < 0 || r > 1 ||
@@ -618,7 +627,7 @@ SUMA_COLOR_MAP ** SUMA_Add_ColorMap (SUMA_COLOR_MAP *CM, SUMA_COLOR_MAP **OldCMv
    int iadd;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (!CM) {
       SUMA_S_Warn("Null CM, nothing to do");
@@ -690,7 +699,7 @@ char *SUMA_ColorVec_Info (SUMA_RGB_NAME *Cv, int N_cols)
    SUMA_STRING *SS = NULL;  
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
@@ -740,7 +749,7 @@ char *SUMA_ColorMapVec_Info (SUMA_COLOR_MAP **CMv, int N_maps, int detail)
    SUMA_STRING *SS = NULL;  
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    SUMA_LH("Entered");
    SS = SUMA_StringAppend (NULL, NULL);
@@ -851,7 +860,7 @@ void SUMA_Show_ColorVec (SUMA_RGB_NAME *CMv, int N_maps, FILE *Out)
    static char FuncName[]={"SUMA_Show_ColorVec"};
    char *s;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
       
@@ -877,7 +886,7 @@ void SUMA_Show_ColorMapVec (SUMA_COLOR_MAP **CMv, int N_maps, FILE *Out, int det
    char *s;
    SUMA_Boolean LocalHead  = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    
    if (Out == NULL) Out = stdout;
@@ -909,7 +918,7 @@ int SUMA_Find_Color ( char *Name, SUMA_RGB_NAME *Cv, int N_cols)
    int icol = -1, i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    if (!Cv) {
       SUMA_S_Warn("Nothing to do. NULL Cv");
@@ -945,7 +954,7 @@ int SUMA_Find_ColorMap ( char *Name, SUMA_COLOR_MAP **CMv, int N_maps, int sgn)
    int imap = -1, i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    if (!CMv) {
       SUMA_S_Warn("Nothing to do. NULL CMv");
@@ -998,7 +1007,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    SUMA_COLOR_MAP* SM = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (!Name) {
       SUMA_S_Err("NULL file name");
@@ -1022,6 +1031,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    
    /* allocate for SM */
    SM = (SUMA_COLOR_MAP*) SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM->cname = NULL;
    SM->N_Col = im->nx;
    SM->Name = (char *)SUMA_malloc(sizeof(char)*(strlen(Name)+1));
    sprintf(SM->Name, "%s", Name);
@@ -1098,7 +1108,7 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    int ilin = 0, i = 0, ilin_stp = -1; 
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (!SM) {
       SUMA_S_Err("NULL color map");
@@ -1133,6 +1143,7 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    sprintf(LSM->Name, "%s_lin",SM->Name); 
    LSM->N_Col = N_lin;
    LSM->frac = NULL;
+   LSM->cname = NULL;
    LSM->Sgn = SM->Sgn;
                                        
    LSM->M = (float **)SUMA_allocate2D (LSM->N_Col, 3, sizeof(float));
@@ -1329,7 +1340,8 @@ int main (int argc,char *argv[])
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
       exit(1);
    }
-   SUMAg_CF->InOut_Notify = NOPE;
+   
+   SUMA_INOUT_NOTIFY_OFF;
    
    if (argc < 2) {
       SUMA_MakeColorMap_usage();
@@ -1604,7 +1616,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
    SUMA_Boolean NewMap = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    /* Autorange ?*/
    
@@ -1882,7 +1894,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
    SUMA_Boolean NewMap = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    
    /* No negative colormaps here */
@@ -2101,7 +2113,7 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
    static char FuncName[]={"SUMA_Create_ColorScaledVect"};
    SUMA_COLOR_SCALED_VECT * S;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    S = (SUMA_COLOR_SCALED_VECT *)SUMA_malloc(sizeof(SUMA_COLOR_SCALED_VECT));
    if (S == NULL) {
@@ -2134,7 +2146,7 @@ void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S)
 {
    static char FuncName[]={"SUMA_Free_ColorScaledVect"};
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (S->cM) SUMA_free2D((char **)S->cM, S->N_Node);
    if (S->isMasked) SUMA_free(S->isMasked);
@@ -2163,7 +2175,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    SUMA_SCALE_TO_MAP_OPT * Opt;
    static char FuncName[]={"SUMA_ScaleToMapOptInit"};
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    Opt = (SUMA_SCALE_TO_MAP_OPT *)SUMA_malloc(sizeof(SUMA_SCALE_TO_MAP_OPT));
    
@@ -2198,7 +2210,7 @@ char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
 {
    static char FuncName[]={"SUMA_StandardMapName"};
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    *N_col = -1;
    switch (mapcode) {
@@ -2259,7 +2271,7 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
 {
    static char FuncName[]={"SUMA_StandardMapCode"};
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    if (!Name) SUMA_RETURN(SUMA_CMAP_ERROR);
    if (!strcmp(Name, "Undefined")) SUMA_RETURN(SUMA_CMAP_UNDEFINED);
@@ -2298,7 +2310,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
       int Ncols, NFid;
       SUMA_COLOR_MAP * CM;
       
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
       switch (mapcode) {
          case SUMA_CMAP_RGYBR20:
@@ -2780,8 +2792,10 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   SUMAg_CF->InOut_Notify = NOPE;
-
+   /* fill the color maps */
+   SUMAg_CF->scm = SUMA_Get_AFNI_Default_Color_Maps();
+   
+   SUMA_INOUT_NOTIFY_OFF;
    
    /* this is placed down here to */
    /* 
@@ -2827,7 +2841,7 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-ionot") == 0) {
-         SUMAg_CF->InOut_Notify = YUP;
+         SUMA_INOUT_NOTIFY_ON;
          brk = YUP;
       }
       
@@ -3222,22 +3236,26 @@ int main (int argc,char *argv[])
       }
    }
    
-   /* Load AFNI default color maps */
-   SAC = SUMA_Get_AFNI_Default_Color_Maps ();
-   if (!SAC) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to obtain AFNI's standard colors.\n", FuncName);
-      exit(1);
-   } else {
-      /* are there database files to read */
-      if (dbfile) {
-         SUMA_LH("Now trying to read db file");
-         if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
-            exit(1);
+   #if 0
+      /*    ++ Feb 20, Now inside SUMAg_CF */
+      /* Load AFNI default color maps */
+      SAC = SUMA_Get_AFNI_Default_Color_Maps ();
+      if (!SAC) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to obtain AFNI's standard colors.\n", FuncName);
+         exit(1);
+      } else {
+         /* are there database files to read */
+         if (dbfile) {
+            SUMA_LH("Now trying to read db file");
+            if (SUMA_AFNI_Extract_Colors ( dbfile, SAC ) < 0) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
+               exit(1);
+            }
          }
       }
-   }
-   
+   #else
+      SAC = SUMAg_CF->scm;
+   #endif
    
    FromAFNI = NOPE; /* assume colormap is not coming from SAC (the colormap database structure) */
    if (CmapFileName) { 
@@ -3377,9 +3395,12 @@ int main (int argc,char *argv[])
    if (!FromAFNI) if (CM) SUMA_Free_ColorMap (CM); /* only free CM if it was a pointer copy from a map in SAC */
    if (OptScl) SUMA_free(OptScl);
    if (SV) SUMA_Free_ColorScaledVect (SV);
-   if (SAC) SAC = SUMA_DestroyAfniColors(SAC); /* destroy SAC */
-   
-
+   #if 0
+      if (SAC) SAC = SUMA_DestroyAfniColors(SAC); /* destroy SAC */
+   #else
+      SAC = NULL; /* freeing is done in SUMAg_CF */
+   #endif
+   SUMA_Free_CommonFields(SUMAg_CF);
    
    exit (0);
 }   
@@ -3398,7 +3419,7 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
    float t;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
    if (!CM) SUMA_RETURNe;
    
@@ -3447,7 +3468,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
    static char FuncName[] = {"SUMA_PercRange"};
    int *isort, il, ih;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (PercRange[0] < 0 || PercRange[0] > 100 || PercRange[1] < 0 || PercRange[1] > 100) {
       fprintf (SUMA_STDERR, "Error %s: Values in PercRange must be between 0 and 100.\nVsort will be freed.\n", FuncName);
@@ -3505,7 +3526,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_FileName sfn;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    Sover = (SUMA_OVERLAYS *)SUMA_malloc(sizeof(SUMA_OVERLAYS));
    if (!Sover) {
@@ -3542,6 +3563,13 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    Sover->PlaneOrder = -1; /* No order is specified */
    Sover->BrightMod = 0; /* no brightness modulation effects */
    
+   /* new, from Feb 20 */
+   Sover->cmapname = NULL;
+   Sover->N_sub = -1;
+   Sover->dset_idcode_str = NULL;
+   Sover->find = -1; 
+   Sover->tind = -1;
+   Sover->bind = -1;
    SUMA_RETURN (Sover);
 }
 
@@ -3580,7 +3608,7 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
 {
    static char FuncName[]={"SUMA_FreeOverlayPointer"};
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (Sover == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Sover is NULL, nothing to do. Returning OK flag.\n", FuncName);
@@ -3592,6 +3620,8 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity);
    if (Sover->Label) SUMA_free(Sover->Label);
    if (Sover->Name) SUMA_free(Sover->Name);
+   if (Sover->cmapname) SUMA_free(Sover->cmapname);
+   if (Sover->dset_idcode_str) SUMA_free(Sover->dset_idcode_str);
    SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);
@@ -3617,7 +3647,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    SUMA_OVERLAYS *ptr= NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    for (i=0; i < N_Overlays; ++i) {
       if (!strcmp(Overlays[i]->Name, Name)) {
@@ -3677,7 +3707,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
    SUMA_Boolean ShowForeground;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4!");
@@ -3961,7 +3991,7 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    SUMA_Boolean Full, Fill, Locl, Glob;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    if (!isColored) {
       fprintf (SUMA_STDERR, "Error %s: isColored is NULL.\n", FuncName); 
@@ -4118,7 +4148,7 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
    static char FuncName[]={"SUMA_Show_ColorOverlayPlanes"};
    char *s;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    s = SUMA_ColorOverlayPlane_Info (Overlays, N_Overlays);
    if (s) {
@@ -4140,7 +4170,7 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
    int i, j, ShowN;
    SUMA_STRING *SS = NULL;
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    SS = SUMA_StringAppend (NULL, NULL);
    
@@ -4189,7 +4219,7 @@ void SUMA_FreeOverlayListDatum (void *OLDv)
    static char FuncName[]={"SUMA_FreeOverlayListDatum"};
    SUMA_Boolean LocalHead = NOPE; 
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
 
    if (OLDv) SUMA_free(OLDv); 
    
@@ -4223,7 +4253,7 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
    SUMA_OVERLAYS *oPlane=NULL;
    SUMA_Boolean Found, LocalHead = NOPE;  
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    listop = (DList *)SUMA_malloc(sizeof(DList));
    
@@ -4299,7 +4329,7 @@ SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop)
    int i, fg_shift = 0;
    DListElmt *Elmop=NULL;
 
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    /* First pass, do background */
    if (listop->size) {
@@ -4346,7 +4376,7 @@ int SUMA_GetLargestBackroundOrder (DList *listop)
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    Order = 0;
    Elmop = NULL;
@@ -4378,7 +4408,7 @@ int SUMA_GetSmallestForegroundOrder (DList *listop)
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL, *oOvD = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
 
    Order = listop->size -1 ;
    Elmop = NULL;
@@ -4408,7 +4438,7 @@ SUMA_Boolean SUMA_isOverlayOfSO (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Plane)
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
 
    for (i=0; i< SO->N_Overlays; ++i) if (SO->Overlays[i] == Plane) SUMA_RETURN(YUP);
    
@@ -4420,7 +4450,7 @@ void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out)
    static char FuncName[]={"SUMA_Print_PlaneOrder"};
    char *s;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (Out == NULL) Out = stdout;
       
@@ -4448,7 +4478,7 @@ char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
    DListElmt *Elm=NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* get the background and foreground lists */
    SS = SUMA_StringAppend (NULL, NULL);
@@ -4502,7 +4532,7 @@ SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name)
    int junk=0;
    SUMA_Boolean Found = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    /* search for the plane by name */
    SUMA_LH("Searching for plane");
@@ -4569,7 +4599,7 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
    int junk=0;
    SUMA_Boolean Found = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    /* search for the plane by name */
    SUMA_LH("Searching for plane");
@@ -4635,7 +4665,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    int junk=0;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    if (!Overlay || !Overlay_Inode) {
       SUMA_S_Err("You sent me NULLS!");
@@ -4712,7 +4742,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i<sv->N_ColList; ++i) {
       if (sv->ColList[i].Remix) {
@@ -4762,7 +4792,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
    SUMA_INODE *Overlay_Inode = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
       SUMA_LH("Fetching Overlay Pointer");
       /* if plane exists use it, else create a new one on the mappable surface */
@@ -4947,7 +4977,7 @@ SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, S
    int i, OverInd;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!PlaneName) SUMA_RETURN(YUP);
    
@@ -4991,7 +5021,7 @@ void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO)
    SUMA_LIST_WIDGET *LW = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    LW = SO->SurfCont->SwitchColPlanelst;
    
@@ -5058,7 +5088,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
    SUMA_Boolean Found = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* get list of all Overlay planes */
    OverlayPlanelist = SUMA_OverlaysToOrderedList (SO, 0);
@@ -5190,7 +5220,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    SUMA_LIST_WIDGET *LW=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!data) {
       SUMA_SLP_Err("Null data"); 
@@ -5458,7 +5488,9 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                SUMA_SL_Crit ("Failed to allocate for CM");
                SUMA_RETURN(-1);
             }
-            CM->N_Col = npane; 
+            CM->N_Col = npane;
+            CM->cname = NULL;
+ 
             if (ccc == '+') CM->Sgn = 1;
             else CM->Sgn = -1;
             
@@ -5533,7 +5565,7 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
    Colormap cmap;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   SUMA_ENTRY;
    
       if (Name[0] == '#') { /* explicitly defined */
          sprintf(stmp,"0x%c%c", Name[1], Name[2]);

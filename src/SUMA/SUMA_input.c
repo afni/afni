@@ -43,7 +43,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    /*float ft;
    int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* get the callData pointer */
    cd = (GLwDrawingAreaCallbackStruct *) callData;
@@ -553,7 +553,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_M:
-            if (Kev.state & ControlMask){
+            if ((Kev.state & Mod1Mask) && (Kev.state & ControlMask) ){
+               #ifdef USE_SUMA_MALLOC
                #if SUMA_MEMTRACE_FLAG
                   if (SUMAg_CF->MemTrace) {
                     SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);
@@ -561,6 +562,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fprintf (SUMA_STDERR,"%s: Memtrace is disabled. Try ctrl+h.\n", FuncName);
                      SUMA_RETURNe;
                   }
+               #endif
+               #else
+               /* write memtrace results to disk */
+               if (!mcw_malloc_enabled) {
+                  SUMA_SLP_Warn("Memory tracing\n"
+                               "is not enabled.\n"
+                               "Use Help-->MemTrace.");
+                  SUMA_RETURNe;
+               } else {
+                  SUMA_SLP_Note("Dumping memory tracing\n"
+                               "to latest ./malldump.???\n"
+                               "file (if possible).");
+                  mcw_malloc_dump();
+               }
                #endif
             }
             break;
@@ -1822,6 +1837,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                } else { /* locking, update and redisplay those locked */
                   DList *list = NULL;
                   SUMA_EngineData *ED = NULL;
+                  SUMA_STANDARD_VIEWS ed_sv, ed_svi;
                   /* redisplay current viewer immediately */
                   list = SUMA_CreateList ();
                   ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
@@ -1829,9 +1845,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    SEF_Empty, NULL,
                                                    SES_Suma, (void *)sv, NOPE,
                                                    SEI_Head, NULL);
+                  ed_sv = SUMA_BestStandardView(sv, SUMAg_DOv, SUMAg_N_DOv);
                   for (it=0; it < SUMAg_N_SVv; ++it) {
                      svi = &SUMAg_SVv[it];
-                     if (it != ii && SUMAg_CF->ViewLocked[it]) {
+                     ed_svi = SUMA_BestStandardView(svi, SUMAg_DOv, SUMAg_N_DOv);
+                     if (it != ii && SUMAg_CF->ViewLocked[it] && ed_svi == ed_sv) {
                         /* copy quaternions */
                         svi->GVS[svi->StdView].spinBeginX = sv->GVS[sv->StdView].spinBeginX;
                         svi->GVS[svi->StdView].spinBeginY = sv->GVS[sv->StdView].spinBeginY;
@@ -1918,7 +1936,7 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    int isv;
    SUMA_SurfaceViewer *sv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* the widget is passed as client data */
    w = (Widget)clientData;
@@ -1981,7 +1999,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
 
    P0f[0] = sv->Pick0[0];
@@ -2163,7 +2181,7 @@ void SUMA_ShowBrushStroke (SUMA_SurfaceViewer *sv, FILE *out)
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
    DListElmt *Next_Elm = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!out) out = SUMA_STDERR;
    
@@ -2214,7 +2232,7 @@ void  SUMA_ClearBrushStroke (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_ClearBrushStroke"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* THE NEW VERSION */
    if (sv->BS) {
@@ -2240,7 +2258,7 @@ SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_CreateBrushStroke"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
       
    /* New Version */
    if (sv->BS) {  /* bad news, this should be NULL to begin with */
@@ -2261,7 +2279,7 @@ SUMA_BRUSH_STROKE_DATUM * SUMA_CreateBSDatum(void)
    static char FuncName[]={"SUMA_CreateBSDatum"};
    SUMA_BRUSH_STROKE_DATUM *bsd = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    bsd = (SUMA_BRUSH_STROKE_DATUM *)SUMA_malloc(sizeof(SUMA_BRUSH_STROKE_DATUM));
    if (!bsd) {
@@ -2288,7 +2306,7 @@ void SUMA_FreeBSDatum (void *bsd)
 {
    static char FuncName[]={"SUMA_FreeBSDatum"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* nothing is allocated for inside bsd */
    if (bsd) SUMA_free(bsd);
@@ -2317,7 +2335,7 @@ SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdou
    int ip;
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* New version */
    bsd = SUMA_CreateBSDatum();
@@ -2341,7 +2359,7 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    static char FuncName[]={"SUMA_SetSVForegroundColor"};
    XColor col, unused;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 	/* using sv->X->CMAP instead of 
 	         DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
 		is useless */
@@ -2376,7 +2394,7 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
    DListElmt *NE=NULL, *NEn=NULL;
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL, *bsdn = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
 	if (!sv->BS) SUMA_RETURNe;
    
@@ -2436,7 +2454,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
       
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SO) {
       fprintf (SUMA_STDERR, "%s: No surface object in focus, nothing to do.\n", FuncName); 
@@ -2757,7 +2775,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL, *obsd=NULL;
    DListElmt *Elmt = NULL, *oElmt=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
@@ -2880,7 +2898,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
                else n3 = SO->FN->FirstNeighb[n1][i+1];
                #if 0
                   if (LocalHead) {
-                     fprintf (SUMA_STDERR, " %d: [%d %d %d] Tri %d\n", i, n1, n2, n3, SUMA_whichTri(SO->EL, n1, n2, n3));
+                     fprintf (SUMA_STDERR, " %d: [%d %d %d] Tri %d\n", i, n1, n2, n3, SUMA_whichTri(SO->EL, n1, n2, n3, 1));
                      fprintf (SUMA_STDERR, " %d: [%.2f, %.2f, %.2f]\n", 
                                              n1, SO->NodeList[3*n1], SO->NodeList[3*n1+1], SO->NodeList[3*n1+2]);
                      fprintf (SUMA_STDERR, " %d: [%.2f, %.2f, %.2f]\n", 
@@ -2900,7 +2918,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
                   else if (ni == 1) ni = n2;
                   else ni = n3;
 
-                  ti = SUMA_whichTri(SO->EL, n1, n2, n3);
+                  ti = SUMA_whichTri(SO->EL, n1, n2, n3, 1);
                }
 
                #if 0
@@ -3086,7 +3104,7 @@ SUMA_ROI_DATUM *SUMA_LinkThisNodeToNodeInStroke (SUMA_SurfaceViewer *sv, int Non
    int Nfrom, Nto;
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    
@@ -3124,7 +3142,7 @@ SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke (SUMA_SurfaceViewer *sv, SUMA_DRAW
    DListElmt *Elm=NULL;
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    
@@ -3168,7 +3186,7 @@ SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv)
    DListElmt *Elmt = NULL, *oElmt = NULL;
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    ROId = SUMA_AllocROIDatum();
@@ -3251,7 +3269,7 @@ DListElmt * SUMA_PushActionStack (DList *ActionStack, DListElmt *StackPos,
    SUMA_ACTION_STACK_DATA *AS_data=NULL;
    SUMA_ACTION_RESULT ActionResult = SAR_Undefined;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* execute action */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Executing Action.\n", FuncName);
@@ -3304,7 +3322,7 @@ DListElmt * SUMA_RedoAction (DList *ActionStack, DListElmt *StackPos)
    SUMA_ACTION_RESULT ActionResult = SAR_Undefined;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!StackPos) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: At bottom of stack. Working up.\n", FuncName);
@@ -3350,7 +3368,7 @@ DListElmt * SUMA_UndoAction (DList *ActionStack, DListElmt *StackPos)
    SUMA_ACTION_RESULT ActionResult = SAR_Undefined;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!StackPos) {
       SUMA_SLP_Err("At bottom of stack.");
@@ -3394,7 +3412,7 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
    SUMA_SurfaceObject *SOparent=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
    
@@ -3469,7 +3487,7 @@ SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
    DListElmt *tail_elm=NULL;
    SUMA_ROI_DATUM *ROId=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
    
@@ -3513,7 +3531,7 @@ SUMA_ACTION_RESULT SUMA_AddToTailJunctionROIDatum (void *data, SUMA_ACTION_POLAR
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
    void *eldata=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
    
@@ -3561,7 +3579,7 @@ SUMA_ACTION_RESULT SUMA_AddToTailROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
    void *eldata=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
    
@@ -3599,7 +3617,7 @@ void SUMA_DestroyROIActionData (void *data)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
    
@@ -3631,7 +3649,7 @@ void SUMA_SetLight0 (char *s, void *data)
    float fv3[3];
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -3676,7 +3694,7 @@ void SUMA_SetNumForeSmoothing (char *s, void *data)
    float fv3[3];
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -3725,7 +3743,7 @@ void SUMA_LookAtCoordinates (char *s, void *data)
    float fv3[3];
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -3771,7 +3789,7 @@ void SUMA_JumpIndex (char *s, void *data)
    int it, iv3[3];
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -3877,7 +3895,7 @@ void SUMA_JumpXYZ (char *s, void *data)
    float fv3[3];
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -3959,7 +3977,7 @@ void SUMA_JumpFocusNode (char *s, void *data)
    int it;
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -4014,7 +4032,7 @@ void SUMA_JumpFocusFace (char *s, void *data)
    int it;
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 
@@ -4073,7 +4091,7 @@ void SUMA_HighlightBox (char *s, void *data)
    int it;
    SUMA_Boolean LocalHead = NOPE; 
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!s) SUMA_RETURNe;
 

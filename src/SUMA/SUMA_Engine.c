@@ -59,7 +59,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    char s[SUMA_MAX_STRING_LENGTH];*/ /* keep standard unused variables undeclared, else compiler complains*/
    
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    list = *listp; /* listp is now passed instead of list so that I can set list to NULL from within this function */
    
@@ -1580,7 +1580,7 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    static char FuncName[]={"SUMA_RegisteredSOs"};
    int i, k = 0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
@@ -1609,7 +1609,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_SurfaceObject *SO=NULL;
    int i, k = 0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
@@ -1650,7 +1650,7 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
    int inxt, icur;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);
    if (icur < 0) {
@@ -1688,7 +1688,7 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
    int inxt, icur;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    icur = SUMA_WhichState (sv->State, sv, sv->CurGroupName);   
    if (icur < 0) {
@@ -1730,7 +1730,7 @@ int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnx
    static char FuncName[] = {"SUMA_NextSO"};
    int icur, icheck, ncheck;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SOnxt != NULL) {
       fprintf(SUMA_STDERR,"Error %s: SOnxt should be null when you call this function.\n", FuncName);
@@ -1775,7 +1775,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    SUMA_EngineData ED;
    DList *list = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* unregister the current surface from RegisteredDO */
    /*fprintf(SUMA_STDERR,"%s: Unregistering DOv[%d]...\n", FuncName, SOcurID);*/
@@ -1851,7 +1851,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    DList *list = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    XYZ = NULL;
    XYZmap = NULL;
@@ -2172,7 +2172,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
+   SUMA_ENTRY;   
    
    #if 0
    /* modify the rotation center */
@@ -2229,7 +2229,7 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    int i, k = -1, cnt = 0;
    SUMA_Axis *AO;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
       if (dov[sv->RegisteredDO[i]].ObjectType == AO_type) {
@@ -2277,7 +2277,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
    int SOmapID;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for return */
    XYZmap = (float *)SUMA_calloc (3, sizeof(float));
@@ -2387,7 +2387,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    SUMA_SurfaceObject *SOmap;
    int SOmapID;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* allocate for return */
    XYZ = (float *)SUMA_calloc (3, sizeof(float));
@@ -2494,7 +2494,7 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
    static char FuncName[]={"SUMA_MapRefRelative"};
    SUMA_SurfaceObject *SOcur, *SO_prec;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SOcur = (SUMA_SurfaceObject *)(dov[cur_id].OP);
    /* if surface has no MapRef then it cannot receive colors from precursors */

@@ -52,7 +52,7 @@ LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm -lmri -ldl -lc -lm -l
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
 SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lmri -lm -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile

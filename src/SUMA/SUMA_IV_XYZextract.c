@@ -78,7 +78,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	div_t cnt3;
 	FILE*iv_file;
 	
-	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	SUMA_ENTRY;
 
 	/* intialize the number of points read to 0 */
 	*N_NodeList = 0;

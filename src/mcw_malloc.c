@@ -511,6 +511,35 @@ void enable_mcw_malloc()       /* cannot be disabled */
    return ;
 }
 
+/* ---------------------------------------
+   Force a halt to memory tracking.
+   the halt is meant to be temporary.
+   Had to add this for SUMA to get around
+   the problem of using allocate2D with
+   large numbers of pointers. ZSS 03/04
+   --------------------------------------- */
+static int pz = 0;   /* flag to indicate pause */
+void pause_mcw_malloc()
+{
+   if (pz) return;   /* nothing to do */
+   if (use_tracking) {
+      pz = 1;
+      use_tracking = 0;
+   }
+   return;
+}    
+void resume_mcw_malloc()
+{
+   if (!pz) return; 
+   pz = 0;
+   use_tracking = 1;
+   return;
+}
+int mcw_malloc_paused()
+{
+   return(pz);
+}
+   
 /*---------------------------------------------------------------*/
 /*--- lets the user check if the tracking routines are in use ---*/
 

@@ -50,7 +50,7 @@ This file might be compiled and used by AFNI
    #define SUMA_malloc(size) \
 	   malloc(size)
    #define SUMA_realloc( ptr, size) \
-	   realloc( FuncName, ptr, size)
+	   realloc( ptr, size)
    #define SUMA_RETURN(m_rvar) { \
       return(m_rvar);\
    }
@@ -59,6 +59,7 @@ This file might be compiled and used by AFNI
    }
    #define SUMA_ENTRY { \
    }
+   #define SUMA_mainENTRY { }
 #endif
 
 /*!
@@ -186,6 +187,10 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
          NI_set_attribute ( nel, Attr, NULL);
          break;  
          
+      case SUMA_NODE_STRING:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;     
+      
       default:
          NI_set_attribute ( nel, Attr, NULL);
          break;          
@@ -232,6 +237,9 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
       case SUMA_NODE_Bb:
       case SUMA_NODE_Ab:
          NI_add_column_stride ( nel, NI_BYTE, (byte *)col, stride );      
+         break;
+      case SUMA_NODE_STRING:
+         NI_add_column_stride ( nel, NI_STRING, (char **)col, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -394,6 +402,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_B:
          SUMA_RETURN("B_col");
          break;
+      case SUMA_NODE_STRING:
+         SUMA_RETURN("Generic_String");
+         break;
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -419,6 +430,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"R_col")) SUMA_RETURN (SUMA_NODE_R);
    if (!strcmp(Name,"G_col")) SUMA_RETURN (SUMA_NODE_G);
    if (!strcmp(Name,"B_col")) SUMA_RETURN (SUMA_NODE_B);
+   if (!strcmp(Name,"Generic_String")) SUMA_RETURN (SUMA_NODE_STRING);
    // if (!strcmp(Name,"")) SUMA_RETURN ();
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 
@@ -451,8 +463,8 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
 {
    static char FuncName[]={"SUMA_GetColIndex"};
    int *iv=NULL, i=0;
-   char stmp[500];
-   
+   char stmp[500], *atr;
+
    SUMA_ENTRY;
    
    *N_i = -1;
@@ -464,9 +476,11 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
    *N_i = 0;
    for (i=0; i < nel->vec_num; ++i) {
       sprintf(stmp,"TypeCol_%d",i);
-      if (SUMA_Col_Type(stmp) == tp) {
+      atr = NI_get_attribute(nel,stmp);
+      if (SUMA_Col_Type(atr) == tp) {
          iv[*N_i] = i;
-         *N_i++;
+         *N_i = *N_i + 1;
+
       }
    }
    
@@ -796,7 +810,7 @@ int main (int argc,char *argv[])
    { /* BEGIN: Test to save a data set with a bunch of node values */
       int i, i3, *node = NULL, N_Node;
       float *r=NULL, *g=NULL, *b=NULL, *rgb=NULL;
-      char stmp[500], idcode_str[50];
+      char stmp[500], idcode_str[50], **s;
       NI_element *nel=NULL;
       NI_stream ns;
       int found = 0, NoStride = 0;
@@ -809,11 +823,14 @@ int main (int argc,char *argv[])
       r = (float *)SUMA_malloc(N_Node * sizeof(float));
       g = (float *)SUMA_malloc(N_Node * sizeof(float));
       b = (float *)SUMA_malloc(N_Node * sizeof(float));
+      s = (char **)SUMA_malloc(N_Node * sizeof(char *));
       for (i=0; i<N_Node; ++i) {
          node[i] = i;
          r[i] = sin((float)i/N_Node*5);
          g[i] = sin((float)i/N_Node*10);
          b[i] = cos((float)i/N_Node*7);
+         sprintf(stmp,"teststr_%d", i);
+         s[i] = SUMA_copy_string(stmp);
       }
       /* what if you had a vector of say, triplets */
       rgb = (float *)SUMA_malloc(3 * N_Node * sizeof(float));
@@ -885,6 +902,12 @@ int main (int argc,char *argv[])
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
+      }
+      
+      /* add a string column, just for kicks ..*/
+      if (!SUMA_AddNelCol (nel, SUMA_NODE_STRING, (void *)s, NULL, 1)) {
+         fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+         exit(1);  
       }
       
       /* Test writing results in asc, 1D format */ 
@@ -977,20 +1000,23 @@ int main (int argc,char *argv[])
          {   
             int j, *iv, N_i;
             float *fp;
-            
+            fprintf (stderr,"---Looking for green column ---\n");
             iv = SUMA_GetColIndex (nel, SUMA_NODE_G, &N_i);
             if (!iv) {
                fprintf (stderr,"Error %s: Failed to find column.\n"
                            , FuncName);
             } else {
-         
-               fp = (float *)nel->vec[iv[0]]; /* I know we only have one 
-                                                such col. here */
-               fprintf (stderr,"Column %s (%d): \t", stmp, i); 
-               for (j=0; j < nel->vec_len; ++j) {
-                  fprintf (stderr,"%f, ", fp[j]);
+               fprintf (stderr,"\t%d columns of type SUMA_NODE_G found.\n",
+                           N_i);
+               if (N_i) {
+                  fprintf (stderr,"\tReporting values at index %d\n", iv[0]);
+                  fp = (float *)nel->vec[iv[0]]; /* I know we only have one 
+                                                   such col. here */
+                  for (j=0; j < nel->vec_len; ++j) {
+                     fprintf (stderr,"%f, ", fp[j]);
+                  }
+                  free(iv); iv = NULL;
                }
-               free(iv); iv = NULL;
             }
             
                   
@@ -1006,7 +1032,13 @@ int main (int argc,char *argv[])
       if (g) free(g); g = NULL;
       if (b) free(b); b = NULL;
       if (rgb) free(rgb); rgb = NULL;
-      if (node) free(node); node = NULL;   
+      if (node) free(node); node = NULL;  
+      if (s) {
+         for (i=0; i<N_Node; ++i) {
+            if (s[i]) free(s[i]);
+         }
+         free(s);
+      } 
    } /* END: Test to save a data set with a bunch of node values */
  	  
    return(0);

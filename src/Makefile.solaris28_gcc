@@ -48,7 +48,7 @@ LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
-SUMA_INCLUDE_PATH = -I/usr/openwin/share/include/X11 -I../ -I./
+SUMA_INCLUDE_PATH = -I/usr/openwin/share/include/X11 -I../ -I../niml/ -I./
 SUMA_LINK_PATH = -L/usr/openwin/lib -R/usr/openwin/lib -L../
 SUMA_LINK_LIB = -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev

@@ -2,7 +2,7 @@
 #define SUMA_PARSECOMMANDS_INCLUDED
 
 void SUMA_process_environ(void);
-void SUMA_ParseInput_basics (void *cf, char *argv[], int argc); 
+void SUMA_ParseInput_basics (char *argv[], int argc); 
 int  SUMA_GetNextCommand (char *S, char d, char term, char *Scom);
 SUMA_Boolean  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);
 int SUMA_CommandCode(char *Scom);

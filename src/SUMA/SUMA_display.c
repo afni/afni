@@ -146,7 +146,7 @@ String *SUMA_get_fallbackResources ()
 {
    static char FuncName[]={"SUMA_get_fallbackResources"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    switch (SUMAg_CF->X->X_Resources) {
       case SXR_Afni:
@@ -174,7 +174,7 @@ SUMA_handleRedisplay(XtPointer closure)
    SUMA_SurfaceViewer *sv;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (LocalHead) {
       SUMA_REPORT_WICH_WIDGET_SV ((Widget)closure);
@@ -240,7 +240,7 @@ SUMA_postRedisplay(Widget w,
    SUMA_SurfaceViewer *sv;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
@@ -269,7 +269,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    static char FuncName[]={"SUMA_display"};
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
    glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
@@ -466,7 +466,7 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
    int isv;
    SUMA_SurfaceViewer *sv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV((Widget)w, sv, isv);
@@ -508,7 +508,7 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    
    GLfloat lmodel_ambient[] = {SUMA_LMODEL_AMBIENT};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    glClearColor (sv->clear_color[0], sv->clear_color[1], sv->clear_color[2], sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
@@ -573,7 +573,7 @@ SUMA_resize(Widget w,
    SUMA_SurfaceViewer *sv;
    int isv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
@@ -648,7 +648,7 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
    SUMA_SurfaceViewer *sv;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -708,7 +708,9 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
   callback for PushButton or ToggleButton menu items.
   
  */
-Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_mnemonic, SUMA_Boolean tear_off, SUMA_MenuItem *items, void *ContID, Widget *MenuWidgets )
+Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
+                     char menu_mnemonic, SUMA_Boolean tear_off, SUMA_MenuItem *items, 
+                     void *ContID, Widget *MenuWidgets )
 {
    static char FuncName[]={"SUMA_BuildMenu"};
    Widget menu = NULL, cascade = NULL;
@@ -716,7 +718,7 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_
    XmString str;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Here.\n", FuncName);
    
@@ -924,9 +926,9 @@ SUMA_MenuItem Tools_menu[] = {
 
 
 SUMA_MenuItem Help_menu[] = {
-   {  "Viewer Usage", &xmPushButtonWidgetClass, \
-      'V', "Ctrl <Key>h", "Ctrl+h", \
-      SUMA_cb_helpViewer, (XtPointer) SW_HelpViewer, NULL},
+   {  "Usage", &xmPushButtonWidgetClass, \
+      'U', "Ctrl <Key>h", "Ctrl+h", \
+      SUMA_cb_helpUsage, (XtPointer) SW_HelpUsage, NULL},
       
    {  "Message Log", &xmPushButtonWidgetClass, \
       'L', NULL, NULL, \
@@ -935,7 +937,23 @@ SUMA_MenuItem Help_menu[] = {
    {  "Separator 1", &xmSeparatorWidgetClass, \
       '\0', NULL, NULL, \
       NULL, (XtPointer) SW_HelpSep1, NULL }, 
-      
+   
+   {  "SUMA Global", &xmPushButtonWidgetClass, \
+      'G', NULL, NULL, \
+      SUMA_cb_helpSUMAGlobal, (XtPointer) SW_HelpSUMAGlobal, NULL},
+   
+   {  "Viewer struct", &xmPushButtonWidgetClass, \
+      'V', NULL, NULL, \
+      SUMA_cb_helpViewerStruct, (XtPointer) SW_HelpViewerStruct, NULL},
+   
+   {  "Surface struct", &xmPushButtonWidgetClass, \
+      'S', NULL, NULL, \
+      SUMA_cb_helpSurfaceStruct, (XtPointer) SW_HelpSurfaceStruct, NULL},
+   
+   {  "Separator 2", &xmSeparatorWidgetClass, \
+      '\0', NULL, NULL, \
+      NULL, (XtPointer) SW_HelpSep2, NULL },    
+   
    {  "InOut Notify", &xmToggleButtonWidgetClass, \
       'I', NULL, NULL, \
       SUMA_cb_helpIO_notify, (XtPointer) SW_HelpIONotify, NULL},
@@ -1002,7 +1020,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_Boolean LocalHead = NOPE;
    char slabel[20]; 
        
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* Step 1. */
    if (CallNum == 0) { /* first call, initialize App */
@@ -1103,6 +1121,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
+         if (SUMAg_CF->MemTrace) {  XtSetSensitive (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 0); }
+
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
             SUMAg_CF->InOut_Notify, NOPE);
          
@@ -1208,7 +1228,7 @@ void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 {
    static char FuncName[]={"SUMA_ButtOpen_pushed"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SUMA_X_SurfaceViewer_Create ()) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
@@ -1220,7 +1240,7 @@ void SUMA_cb_FileOpenSpec (Widget w, XtPointer data, XtPointer calldata)
 {
    static char FuncName[]={"SUMA_cb_FileOpenSpec"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    fprintf (SUMA_STDERR, "%s: called.\n", FuncName);
    SUMA_RETURNe;
@@ -1230,7 +1250,7 @@ void SUMA_cb_FileOpenSurf (Widget w, XtPointer data, XtPointer calldata)
 {
    static char FuncName[]={"SUMA_cb_FileOpenSurf"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    fprintf (SUMA_STDERR, "%s: called.\n", FuncName);
    SUMA_RETURNe;
@@ -1242,7 +1262,7 @@ void SUMA_cb_FileClose (Widget w, XtPointer data, XtPointer calldata)
    int isv, widtype;
    SUMA_SurfaceViewer *sv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* find the index of the viewer closed */
    SUMA_VIEWER_FROM_FILEMENU_CALLBACK(data, isv, widtype);
@@ -1267,7 +1287,7 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
    int ic, Found;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");
    ic = 0;
@@ -1368,7 +1388,7 @@ Colormap SUMA_getShareableColormap_Eng (XVisualInfo * vi, Display *dpy)
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_getShareableColormap_Eng"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* Be lazy; using DirectColor too involved for this example. */
 #if defined(__cplusplus) || defined(c_plusplus)
@@ -1411,7 +1431,7 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_getShareableColormap"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_RETURN(SUMA_getShareableColormap_Eng(csv->X->VISINFO, csv->X->DPY));
 }
@@ -1423,7 +1443,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    int isv;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    #ifdef DARWIN
       /* Set the focus manually.
@@ -1457,7 +1477,7 @@ void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * co
 {
    static char FuncName[]={"SUMA_unSetcSV"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    SUMA_RETURNe;
 }
 
@@ -1486,7 +1506,7 @@ SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned int h
    int components, pos, i;
    static char FuncName[]={"SUMA_generateEPS"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    pixels = SUMA_grabPixels(inColor, width, height);
    
@@ -1561,7 +1581,7 @@ SUMA_grabPixels(int inColor, unsigned int width, unsigned int height)
    unsigned int size;
    static char FuncName[]={"SUMA_grabPixels"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (inColor) {
     format = GL_RGB;
@@ -1619,7 +1639,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    GLXPixmap glxpmap;
    static char FuncName[]={"SUMA_RenderToPixMap"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    dpy = XOpenDisplay(NULL);
    if (dpy == NULL)
@@ -1735,7 +1755,7 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
    char CommString[100];
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    
@@ -1813,12 +1833,12 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
    \brief A call back to open the help window 
    No input parameters needed
 */
-void SUMA_cb_helpViewer (Widget w, XtPointer data, XtPointer callData)
+void SUMA_cb_helpUsage (Widget w, XtPointer data, XtPointer callData)
 {
-   static char FuncName[] = {"SUMA_cb_helpViewer"};
+   static char FuncName[] = {"SUMA_cb_helpUsage"};
    DList *list = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
    if (!SUMA_Engine (&list)) {
@@ -1838,7 +1858,7 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_helpMessageLog"};
    DList *list = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL); 
    if (!SUMA_Engine (&list)) {
@@ -1849,6 +1869,88 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
 
 }
 
+/*!
+   \brief A call back to open the viewer Info window 
+   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+*/
+void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpViewerStruct"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   
+   SUMA_ENTRY;
+   
+   datap = (SUMA_MenuCallBackData *)data;
+   sv = &(SUMAg_SVv[(int)datap->ContID]);
+   
+   if (!sv->X->ViewCont->TopLevelShell) { /* see comments on similar section in SUMA_cb_helpSurfaceStruct */
+      SUMA_cb_createViewerCont( w, (XtPointer)sv, callData);
+      SUMA_cb_closeViewerCont ( w, (XtPointer)sv, callData); 
+   }
+   /* Now do the info thingy */
+   SUMA_cb_moreViewerInfo (w, (XtPointer)sv, callData);
+
+   
+   SUMA_RETURNe;
+
+}
+
+/*!
+   \brief A call back to open the surface Info window 
+   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+*/
+void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpSurfaceStruct"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   
+   SUMA_ENTRY;
+   
+   datap = (SUMA_MenuCallBackData *)data;
+   sv = &(SUMAg_SVv[(int)datap->ContID]);
+   if (sv->Focus_SO_ID >= 0) {
+      SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   }else {
+      SUMA_SLP_Err("No surface object in focus.\n");
+      SUMA_RETURNe;
+   }
+
+   if (!SO->SurfCont->TopLevelShell) {
+      /* Before you open the surface info widget, you'll need to open
+      the surface controller to initialize the Surface Controller first */
+      SUMA_cb_createSurfaceCont( w, (XtPointer)SO, callData);
+      /* NOW CLOSE IT, user need not use it.
+      Could have been a bit more elegant here
+      but that's good enough*/
+      SUMA_cb_closeSurfaceCont ( w, (XtPointer)SO, callData); 
+   }
+   
+   /* Now do the info thingy */
+   SUMA_cb_moreSurfInfo (w, (XtPointer)SO, callData);
+
+   SUMA_RETURNe;
+
+}
+
+void SUMA_cb_helpSUMAGlobal (Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpSUMAGlobal"};
+   
+   SUMA_ENTRY;
+   
+   if (!SUMAg_CF->X->SumaCont->AppShell) { /* create */
+      SUMA_cb_createSumaCont( w, data, callData);
+      SUMA_cb_closeSumaCont ( w, data, callData);
+   }
+   
+   /* Now open the info thingy */
+   SUMA_cb_moreSumaInfo (w, data, callData);
+   
+   SUMA_RETURNe;
+}
 
 /*!
  function to toggle the IOnotify debugging flag
@@ -1859,10 +1961,10 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_helpIO_notify"};
    int ii;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
-   SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify;
-
+   SUMA_INOUT_NOTIFY_TOGGLE;
+   
    /* must update the state of toggle buttons in otherviewers */
    for (ii=0; ii<SUMAg_N_SVv; ++ii) {
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
@@ -1875,7 +1977,7 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
       }
    }
    
-   
+    
    SUMA_RETURNe; 
 }
 
@@ -1888,19 +1990,29 @@ void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_helpIO_notify"};
    int ii;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
-   SUMAg_CF->MemTrace = !SUMAg_CF->MemTrace;
+   SUMA_MEMTRACE_TOGGLE;
    
    /* must update the state of toggle buttons in otherviewers */
    for (ii=0; ii<SUMAg_N_SVv; ++ii) {
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
          /* you must check for both conditions because by default 
          all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+         #ifdef USE_SUMA_MALLOC
          if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace]) {
             XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
                SUMAg_CF->MemTrace, NOPE);
          }
+         #else
+         XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
+            SUMAg_CF->MemTrace, NOPE);
+         if (SUMAg_CF->MemTrace) {
+            /* can't turn it off */
+             XtSetSensitive (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 0);
+         }
+         #endif
+         
       }
    }
    
@@ -1916,7 +2028,7 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_viewSumaCont"};
    Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->SumaCont->AppShell) { /* create */
       if (LocalHead) fprintf (SUMA_STDERR,"%s: creating controller \n", FuncName);
@@ -1946,7 +2058,7 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_viewSurfaceCont"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
@@ -1991,7 +2103,7 @@ void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_viewViewerCont"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
@@ -2024,7 +2136,7 @@ void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
    DList *list = NULL;
    SUMA_SurfaceViewer *sv;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
@@ -2048,7 +2160,7 @@ void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData)
    DList *list = NULL;
    SUMA_SurfaceViewer *sv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
@@ -2072,7 +2184,7 @@ void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callDat
    DList *list = NULL;
    SUMA_SurfaceViewer *sv;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_VIEWER_FROM_VIEWMENU_CALLBACK (data, isv, widtype);
    
@@ -2110,7 +2222,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    char slabel[100]; 
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    sv = (SUMA_SurfaceViewer *)data;
    isv = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
@@ -2224,14 +2336,16 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       sv->X->ViewCont->ViewerInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (sv->X->ViewCont->ViewerInfo_pb, XmNactivateCallback, SUMA_cb_moreViewerInfo, NULL);
-      XtVaSetValues (sv->X->ViewCont->ViewerInfo_pb, XmNuserData, (XtPointer)sv, NULL); /* store the surface object SO in userData
+      XtAddCallback (sv->X->ViewCont->ViewerInfo_pb, XmNactivateCallback, SUMA_cb_moreViewerInfo, (XtPointer) sv);
+      XtVaSetValues (sv->X->ViewCont->ViewerInfo_pb, XmNuserData, (XtPointer)sv, NULL); /* store sv in userData
                                                                   I think it is more convenient than as data
                                                                   in the call back structure. This way it will
                                                                   be easy to change the sv that this same button
                                                                   might refer to. 
                                                                   This is only for testing purposes, the pb_close
-                                                                  button still expects sv in clientData*/
+                                                                  button still expects sv in clientData
+                                                                  Feb 23 04: UserData works well, but other 
+                                                                  functions don't use it much so also store sv in clientData*/
       MCW_register_hint( sv->X->ViewCont->ViewerInfo_pb , "More info on Viewer" ) ;
       MCW_register_help( sv->X->ViewCont->ViewerInfo_pb , SUMA_moreViewerInfo_help ) ;
       XtManageChild (sv->X->ViewCont->ViewerInfo_pb); 
@@ -2389,7 +2503,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_SurfaceViewer *sv;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    sv = (SUMA_SurfaceViewer *)data;
    
@@ -2427,7 +2541,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
    
@@ -2557,8 +2671,13 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, NULL);
-      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO, NULL); /* store the surface object SO in userData
+      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, (XtPointer)SO);
+      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO, NULL); /* 
+                                                                  Feb 23 04: XmNuserData is not used anymore.
+                                                                  See notes for SUMA_cb_moreViewerInfo
+                                                                  call for reasons why this was done...
+                                                                  
+                                                                  store the surface object SO in userData
                                                                   I think it is more convenient than as data
                                                                   in the call back structure. This way it will
                                                                   be easy to change the SO that this same button
@@ -2834,7 +2953,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_SurfaceObject *SO;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
    
@@ -2869,7 +2988,7 @@ SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
    static char FuncName[] = {"SUMA_OpenDrawROIWindow"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->DrawROI->AppShell) { /* need to create window */
       SUMA_CreateDrawROIWindow ();
@@ -2899,7 +3018,7 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!DrawnROI) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
@@ -2936,7 +3055,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    if (!SO->SurfCont->ColPlane_fr) SUMA_RETURN(YUP);
@@ -2994,7 +3113,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
    SUMA_SurfaceObject *SOi=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* find out which surfaces are related to SO */
    for (i=0; i<SUMAg_N_DOv; ++i) {
@@ -3023,7 +3142,7 @@ void SUMA_CreateDrawROIWindow(void)
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (SUMAg_CF->X->DrawROI->AppShell) {
       fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->DrawROI->AppShell!=NULL. Should not be here.\n", FuncName);
@@ -3413,7 +3532,7 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy,
    static char FuncName[]={"SUMA_AllocateScrolledList"};
    SUMA_LIST_WIDGET *LW = NULL;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
 
    if (!Label) {
@@ -3451,7 +3570,7 @@ SUMA_LIST_WIDGET * SUMA_FreeScrolledList (SUMA_LIST_WIDGET *LW)
 {
    static char FuncName[]={"SUMA_FreeScrolledList"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    if (LW->Label) SUMA_free(LW->Label);
    if (LW->ALS) SUMA_FreeAssembleListStruct(LW->ALS);
    if (LW) SUMA_free(LW);
@@ -3485,7 +3604,7 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
    SUMA_Boolean New = NOPE, LocalHead=NOPE;
    
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!LW) { /* Never been created */
       SUMA_SL_Err ("Null LW!");
@@ -3690,7 +3809,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
 {
    static char FuncName[]={"SUMA_CreateArrowField"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!AF) {
       SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
@@ -3777,7 +3896,7 @@ void SUMA_CreateTextField ( Widget pw, char *label,
 {
    static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* techincally, one should have a structure that is only for text but that is not necessary, I think */
    
@@ -3840,7 +3959,7 @@ void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_d
    static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data ;
    if (!AF->arrow_action) AF->modified = YUP;
@@ -3861,7 +3980,7 @@ void SUMA_leave_EV( Widget w , XtPointer client_data ,
    static char FuncName[]={"SUMA_leave_EV"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data ;
    if( lev->type != LeaveNotify || !AF->modified ) SUMA_RETURNe; 
@@ -3882,7 +4001,7 @@ void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_d
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* make call to NewValue callback */
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
@@ -3920,7 +4039,7 @@ void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data)
         (XmArrowButtonCallbackStruct *) call_data;
    
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    XtVaGetValues(w, XmNuserData, &n, NULL);
    AF = (SUMA_ARROW_TEXT_FIELD *)n;
@@ -3958,7 +4077,7 @@ void SUMA_DrawROI_NewValue (void *data)
    DList *list=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    AF = (SUMA_ARROW_TEXT_FIELD *)data;
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
@@ -4019,7 +4138,7 @@ void SUMA_ColPlane_NewOrder (void *data)
    SUMA_Boolean Shaded, Decent; 
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
    
@@ -4112,7 +4231,7 @@ void SUMA_ColPlane_NewOpacity (void *data)
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -4140,7 +4259,7 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
    DList *list=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    /* remix colors for all viewers displaying related surfaces */
@@ -4171,7 +4290,7 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -4208,7 +4327,7 @@ void SUMA_ATF_change_value(XtPointer client_data, XtIntervalId *id)
    SUMA_ARROW_TEXT_FIELD * AF= NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
    
@@ -4246,7 +4365,7 @@ void SUMA_ATF_SetString (SUMA_ARROW_TEXT_FIELD * AF)
    static char FuncName[]={"SUMA_ATF_SetString"};
    char buf[36];
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (AF->type == SUMA_int) {
       sprintf (buf, "%-4d", (int)AF->value);
@@ -4270,7 +4389,7 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
    void *n;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
   
    XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
@@ -4387,7 +4506,7 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data, XtPointer call_d
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    SO = (SUMA_SurfaceObject *)data;
@@ -4407,7 +4526,7 @@ void SUMA_cb_DrawROI_SwitchROI (Widget w, XtPointer data, XtPointer call_data)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_LIST_WIDGET *LW = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    LW = (SUMA_LIST_WIDGET *)data;
    
@@ -4446,7 +4565,7 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
 {
    static char FuncName[] = {"SUMA_cb_DrawROImode_toggled"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMAg_CF->ROI_mode = !SUMAg_CF->ROI_mode;
    
@@ -4468,7 +4587,7 @@ void SUMA_cb_DrawROIPen_toggled (Widget w, XtPointer data, XtPointer call_data)
 {
    static char FuncName[] = {"SUMA_cb_DrawROIPen_toggled"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMAg_CF->Pen_mode = !SUMAg_CF->Pen_mode;
    
@@ -4490,7 +4609,7 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMA_EngineData *ED = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMAg_CF->ROI2afni = !SUMAg_CF->ROI2afni;
    
@@ -4550,7 +4669,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead=NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
    LW = SO->SurfCont->SwitchColPlanelst;
@@ -4620,7 +4739,7 @@ void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_LIST_WIDGET *LW = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    LW = (SUMA_LIST_WIDGET *)data;
    
@@ -4731,7 +4850,7 @@ void SUMA_cb_CloseSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
    SUMA_SurfaceViewer *sv=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    sv = (SUMA_SurfaceViewer *)data;
    
@@ -4770,7 +4889,7 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName); 
+   SUMA_ENTRY; 
    
    LW = (SUMA_LIST_WIDGET *)data;
    
@@ -4836,7 +4955,7 @@ void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_LIST_WIDGET *LW = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    LW = (SUMA_LIST_WIDGET *)data;
    
@@ -4864,7 +4983,7 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
    static char FuncName[] = {"SUMA_cb_CloseDrawROIWindow"};
    SUMA_Boolean Shaded = NOPE, LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->DrawROI->AppShell) SUMA_RETURNe;
    
@@ -4900,7 +5019,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (SUMAg_CF->X->SumaCont->AppShell) {
       fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->SumaCont->AppShell!=NULL. Should not be here.\n", FuncName);
@@ -5159,7 +5278,7 @@ void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs)
    XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* NULL widget --> reset button to lowercase */
    if( wcall == NULL ){
@@ -5209,7 +5328,7 @@ void SUMA_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    static char FuncName[] = {"SUMA_quit_timeout_CB"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_cb_doneSumaCont(NULL, NULL, NULL);
 
@@ -5224,7 +5343,7 @@ void SUMA_cb_XHlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
    
    cd = (int) client_data;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    i = cd / SUMAg_CF->X->SumaCont->Lock_rbg->N_but;
    j = cd % SUMAg_CF->X->SumaCont->Lock_rbg->N_but;
@@ -5244,7 +5363,7 @@ void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callDat
    DList *list=NULL;
    SUMA_EngineData *ED = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
  
    i = (int) client_data;
    
@@ -5272,7 +5391,7 @@ void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer cal
    DList *list=NULL;
    SUMA_EngineData *ED = NULL;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_ToggleLockAllViews);
@@ -5300,7 +5419,7 @@ void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer client_data, XtPointer callD
    SUMA_EngineData *ED = NULL;
    int i = (int) client_data;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_ToggleLockView);
@@ -5327,7 +5446,7 @@ void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_newSumaCont"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
    /* open a new controller */
@@ -5346,7 +5465,7 @@ void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_closeSumaCont"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->SumaCont->AppShell) SUMA_RETURNe;
    
@@ -5398,7 +5517,7 @@ void SUMA_set_Lock_rb (SUMA_rb_group * Lock_rbg, int irb, int but)
    Widget w;
    int i, itb, ifb;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
       
    ifb = irb*Lock_rbg->N_but; /* index of first button in radio box irb */
    itb = ifb+but; /* index of button to modify */
@@ -5422,7 +5541,7 @@ void SUMA_set_Lock_arb (SUMA_rb_group * Lock_rbg)
    static char FuncName[] = {"SUMA_set_Lock_arb"};
    int i, sumlock;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!Lock_rbg->atb[0]) SUMA_RETURNe;
    /* find out if all buttons are set to the same value */
@@ -5458,7 +5577,7 @@ void SUMA_set_LockView_atb (void)
    static char FuncName[] = {"SUMA_set_LockView_atb"};
    int i, sumlock;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    /* find out if all buttons are set to the same value */
    sumlock = 0;
@@ -5480,6 +5599,8 @@ void SUMA_set_LockView_atb (void)
 /*!
    \brief opens a text window with information about the surface viewer  
    -expects sv pointer in userdata
+   Feb 23 04: Now requiring sv in client_data. Other widgets will be calling
+   this function too so w should not be used
 */
 void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData)
 {
@@ -5490,13 +5611,19 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
+   #if 0
+   /* The userdata way , 
+   not setup for all widgets calling this function .... */
    XtVaGetValues (w,
                   XmNuserData, &n,
                   NULL);
-                  
    sv = (SUMA_SurfaceViewer *)n;
+   #else
+   /* the good old way, Feb 23 04 */          
+   sv = (SUMA_SurfaceViewer *)client_data;
+   #endif
    
    /* check to see if window is already open, if it is, just raise it */
    if (sv->X->ViewCont->ViewerInfo_TextShell) {
@@ -5536,7 +5663,7 @@ void SUMA_ViewerInfo_open (void *p)
    static char FuncName[] = {"SUMA_ViewerInfo_open"};
    SUMA_SurfaceViewer *sv= NULL;
   
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    sv = (SUMA_SurfaceViewer *)p;
    MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
@@ -5553,7 +5680,7 @@ void SUMA_ViewerInfo_destroyed (void *p)
    static char FuncName[] = {"SUMA_ViewerInfo_destroyed"};
    SUMA_SurfaceViewer *sv= NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    sv = (SUMA_SurfaceViewer *)p;
    MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
@@ -5562,9 +5689,81 @@ void SUMA_ViewerInfo_destroyed (void *p)
    SUMA_RETURNe;
 }
 
+
+/*!
+   \brief Opens a text viewer with SUMA's structure info
+   - expects nothing for input 
+*/
+void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_moreSumaInfo"};
+   SUMA_SurfaceObject *SO=NULL;
+   void *n=NULL;
+   char *s = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
+   
+   SUMA_ENTRY;
+   
+   /* check to see if window is already open, if it is, just raise it */
+   if (SUMAg_CF->X->SumaCont->SumaInfo_TextShell) {
+      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->SumaCont->SumaInfo_TextShell->toplevel));
+      SUMA_RETURNe;
+   }
+   
+   /* for the string of the surface info */
+   s = SUMA_CommonFieldsInfo (SUMAg_CF, 1);
+   
+   if (s) {
+      TextShell =  SUMA_CreateTestShellStruct (SUMA_SumaInfo_open, NULL, 
+                                               SUMA_SumaInfo_destroyed, NULL);
+      if (!TextShell) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         SUMA_RETURNe;
+      }
+      SUMAg_CF->X->SumaCont->SumaInfo_TextShell = SUMA_CreateTextShell(s, "SUMA", TextShell);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CommonFieldsInfo.\n", FuncName);
+   }   
+
+    
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Function called when Suma Info window is open
+*/
+void SUMA_SumaInfo_open (void *p) 
+{
+   static char FuncName[] = {"SUMA_SumaInfo_open"};
+  
+   SUMA_ENTRY;
+   
+   /* nothing to do here ... */
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Function called when Suma Info window is destroyed
+*/
+void SUMA_SumaInfo_destroyed (void *p) 
+{
+   static char FuncName[] = {"SUMA_SumaInfo_destroyed"};
+   SUMA_SurfaceObject *SO= NULL;
+   
+   SUMA_ENTRY;
+
+   SUMAg_CF->X->SumaCont->SumaInfo_TextShell = NULL;
+   SUMA_RETURNe;
+}
+
 /*! 
    \brief opens a text window with information about the surface object in focus 
    -expects SO pointer in userdata
+   Feb 23 04: Now requiring sv in client_data. Other widgets will be calling
+   this function too, so w should not be used
 */
 void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
 {
@@ -5575,13 +5774,17 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
+   #if 0
    XtVaGetValues (w,
                   XmNuserData, &n,
                   NULL);
                   
    SO = (SUMA_SurfaceObject *)n;
+   #else
+   SO = (SUMA_SurfaceObject *)client_data;
+   #endif
    
    /* check to see if window is already open, if it is, just raise it */
    if (SO->SurfCont->SurfInfo_TextShell) {
@@ -5617,7 +5820,7 @@ void SUMA_SurfInfo_open (void *p)
    static char FuncName[] = {"SUMA_SurfInfo_open"};
    SUMA_SurfaceObject *SO= NULL;
   
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)p;
    MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
@@ -5634,7 +5837,7 @@ void SUMA_SurfInfo_destroyed (void *p)
    static char FuncName[] = {"SUMA_SurfInfo_destroyed"};
    SUMA_SurfaceObject *SO= NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SO = (SUMA_SurfaceObject *)p;
    MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
@@ -5651,7 +5854,7 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
    static char FuncName[] = {"SUMA_DestroyTextShell"};
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
    
@@ -5683,7 +5886,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)
    static char FuncName[] = {"SUMA_CreateTestShellStruct"};
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *) SUMA_malloc (sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
    if (!TextShell) {
@@ -5725,7 +5928,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
    Pixel fg_pix;
    Arg args[20];
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (TextShell->OpenCallBack) { /* do the opening callback */
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Calling OpenCallBack.\n", FuncName);
@@ -5834,7 +6037,7 @@ void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, XtPointer c
    static char FuncName[]={"SUMA_cb_ToggleCaseSearch"};
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)client_data;
    TextShell->case_sensitive = !TextShell->case_sensitive;
@@ -5862,7 +6065,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
    static char FuncName[]={"SUMA_search_text"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)client_data;
@@ -5934,7 +6137,7 @@ void SUMA_cb_SetDrawROI_SaveMode(Widget widget, XtPointer client_data, XtPointer
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    datap = (SUMA_MenuCallBackData *)client_data;
    
@@ -5956,7 +6159,7 @@ void SUMA_cb_SetDrawROI_SaveWhat(Widget widget, XtPointer client_data, XtPointer
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    datap = (SUMA_MenuCallBackData *)client_data;
    
@@ -5982,7 +6185,7 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
    SUMA_SurfaceObject *SO = NULL;
    int imenu = 0;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
@@ -6041,7 +6244,7 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
    Widget Parent_w=NULL;
    int ii;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_N_SVv) {
       /* no graphics here, get out */
@@ -6100,7 +6303,7 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
    static char FuncName[]={"SUMA_FormatMessage"};
    char *s=NULL;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    s = (char *)SUMA_calloc (strlen(MD->Message)+strlen(MD->Source)+100, sizeof(char));
    if (!s) {
@@ -6142,7 +6345,7 @@ void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
    DList *list = NULL;
    SUMA_MenuCallBackData * datap=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    /* get the surface viewer that the command was made in */
    datap = (SUMA_MenuCallBackData *)client_data;
@@ -6169,7 +6372,7 @@ void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data)
    DListElmt *tmp=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) SUMA_RETURNe;
    
@@ -6223,7 +6426,7 @@ void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data)
    SUMA_Boolean LocalHead = NOPE;
    
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) SUMA_RETURNe;
    
@@ -6273,7 +6476,7 @@ void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data)
    DListElmt *tmpStackPos=NULL;
    DList *list=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
    
@@ -6349,7 +6552,7 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    DListElmt *tmpStackPos=NULL;
    DList *list=NULL;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
    
@@ -6403,7 +6606,7 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!SUMAg_CF->X->DrawROI->curDrawnROI && wcall) { 
       /* remember, you'll always get the callback from the time out function
@@ -6478,7 +6681,7 @@ void SUMA_delete_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    static char FuncName[] = {"SUMA_delete_timeout_CB"};
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_cb_DrawROI_Delete(NULL, NULL, NULL);
 
@@ -6497,7 +6700,7 @@ void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data)
    DListElmt *NextElm = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -6538,7 +6741,7 @@ void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
    DListElmt *NextElm = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_OpenDrawnROIFileSelection);
@@ -6572,7 +6775,7 @@ void SUMA_DrawROI_NewLabel (void *data)
    SUMA_Boolean Shaded = YUP;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    AF = (SUMA_ARROW_TEXT_FIELD *)data;
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
@@ -6634,7 +6837,7 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
    Dimension RefW, RefH, ScrW, ScrH;
    SUMA_Boolean LocalHead=NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    ScrW = WidthOfScreen (XtScreen(New));
    ScrH = HeightOfScreen (XtScreen(New));
@@ -6740,7 +6943,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode,
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!oprmpt) {
       SUMA_LH ("New prompt structure");
@@ -6800,7 +7003,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
    XmString string;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!prmpt->dialog) {
       SUMA_LH ("Creating new prompt dialog.");
@@ -6896,7 +7099,7 @@ const char * SUMA_PromptButtonLabel(SUMA_PROMPT_BUTTONS code)
 {
    static char FuncName[]={"SUMA_CommandString"};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    switch (code) {
       case SUMA_OK_BUTTON:
@@ -6923,7 +7126,7 @@ SUMA_Boolean SUMA_CreatePromptActionArea (SUMA_PROMPT_DIALOG_STRUCT *prmpt)
    SUMA_Boolean DoButt[SUMA_N_PROMPT_BUTTONS];
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH ("Called");
    /* initialize DoButt */
@@ -7063,7 +7266,7 @@ void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7102,7 +7305,7 @@ void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7132,7 +7335,7 @@ void SUMA_PromptOk_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
 
@@ -7158,7 +7361,7 @@ void SUMA_PromptClear_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7181,7 +7384,7 @@ void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata)
    char *text=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7228,7 +7431,7 @@ void SUMA_PromptCancel_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7256,7 +7459,7 @@ void SUMA_PromptHelp_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7281,7 +7484,7 @@ void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt)
    static char FuncName[]={"SUMA_FreePromptDialogStruct"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    SUMA_LH("Called");
    
    if (!prmpt) SUMA_RETURNe;
@@ -7333,7 +7536,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
    SUMA_SELECTION_DIALOG_STRUCT * dlg = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (!odlg) { /* new structure */
       SUMA_LH("A new structure ");    
@@ -7389,7 +7592,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title_extens
    SUMA_SELECTION_DIALOG_STRUCT *dlg = NULL;
    XmString button, title, pattern;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    dlg = *dlgp;   
    if (!dlg->dlg_w) {/* need to create it for the first time */
@@ -7458,7 +7661,7 @@ void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer c
    SUMA_SELECTION_DIALOG_STRUCT *dlg;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7488,7 +7691,7 @@ void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer cal
    SUMA_SELECTION_DIALOG_STRUCT **dlgp;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7522,7 +7725,7 @@ void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg)
    static char FuncName[]={"SUMA_FreeFileSelectionDialogStruct"};
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    SUMA_LH("Called");
    
    
@@ -7550,7 +7753,7 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
      (XmFileSelectionBoxCallbackStruct *) call_data;
    SUMA_Boolean LocalHead = NOPE;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    SUMA_LH("Called");
    
@@ -7630,7 +7833,7 @@ void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
    SUMA_SurfaceObject *SO = NULL;
    int xx, yy;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
    
@@ -7663,7 +7866,7 @@ void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data)
    DListElmt *NextElm = NULL;
    SUMA_Boolean LocalHead = NOPE;
     
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    
@@ -7703,7 +7906,7 @@ void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data)
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_LH("Called");
    SUMA_RETURNe;
@@ -7732,7 +7935,7 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
     XmString text, yes, no;
     static int answer;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!dialog) {
      dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
@@ -7827,7 +8030,7 @@ int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans)
     XmString text, yes, no;
     static int answer;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (!dialog) {
      dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
@@ -7978,7 +8181,7 @@ void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
    SUMA_Boolean LocalHead = NOPE;
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    switch (cbs->reason) {
    case XmCR_OK:
@@ -8028,7 +8231,7 @@ void SUMA_ShowAllVisuals (void)
 
 
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    dpy = XOpenDisplay(NULL);
    if (!dpy) {
@@ -8119,7 +8322,7 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
       auxBuffers, redSize, greenSize, blueSize, alphaSize, depthSize,
       stencilSize, acRedSize, acGreenSize, acBlueSize, acAlphaSize;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    if (ShowHead) {
       fprintf(SUMA_STDERR, "\n");
@@ -8169,7 +8372,7 @@ char * SUMA_ClassOf(int c)
 {
    static char FuncName[]={"SUMA_ClassOf"};
   
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    switch (c) {
       case StaticGray:   SUMA_RETURN("sg");
@@ -8189,7 +8392,7 @@ char * SUMA_Format(int n, int w)
    static int bufptr;
    char *buf;
 
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
 
    if (bufptr >= sizeof(buffer) - w)
       bufptr = 0;
@@ -8212,7 +8415,7 @@ void  (Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={""};
    
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_ENTRY;
    
    SUMA_RETURNe;
 }

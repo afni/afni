@@ -1,6 +1,12 @@
 #ifndef SUMA_MISCFUNC_INCLUDED
 #define SUMA_MISCFUNC_INCLUDED
 
+#ifdef USE_SUMA_MALLOC
+/* The pre-March 3/04 way, SUMA uses its own version of memory allocation
+and tracing. Those tools did not allow for memory corruption checking and
+used linear pointer storage methods making for inefficient searching 
+   Use -DUSE_SUMA_MALLOC in the compile line if you wish to use the old stuff
+*/
 #define SUMA_free( p ) \
 	SUMA_free_fn( FuncName, p )
 #define SUMA_calloc( nmemb,  size) \
@@ -12,7 +18,79 @@
 #define SUMA_ENTRY  { \
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   \
 }
+#define SUMA_RETURN(m_rvar) {\
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
+   return(m_rvar);\
+}
+#define SUMA_RETURNe  {\
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
+   return ;\
+}
+#define SUMA_mainENTRY {}
 
+#define SUMA_INOUT_NOTIFY_ON {\
+   SUMAg_CF->InOut_Notify = YUP; \
+}
+#define SUMA_INOUT_NOTIFY_OFF {\
+   SUMAg_CF->InOut_Notify = NOPE; \
+}
+
+#define SUMA_INOUT_NOTIFY_TOGGLE {\
+   SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
+}
+#define SUMA_MEMTRACE_ON {\
+   SUMAg_CF->MemTrace = YUP;  \
+}
+#define SUMA_MEMTRACE_OFF {   \
+   SUMAg_CF->MemTrace = OFF;  \
+}
+#define SUMA_MEMTRACE_TOGGLE {   \
+   SUMAg_CF->MemTrace = !SUMAg_CF->MemTrace; \
+}
+#else
+   /* post March 3 04, using AFNI's allocation and tracing routines
+   instead of SUMA's 
+   If you do not want to use AFNI's allocation functions, then use
+   -DDONT_USE_MCW_MALLOC in your compile command
+   
+   Relevant afni files:
+   mcw_malloc.c/h
+   debugtrace.c/h
+   */
+   #define SUMA_free mcw_free
+   #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
+   #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)
+   #define SUMA_realloc(a,b) mcw_realloc((a),(b),__FILE__,__LINE__)
+   #define SUMA_ENTRY ENTRY(FuncName)
+   #define SUMA_RETURN RETURN
+   #define SUMA_RETURNe EXRETURN
+   #define SUMA_mainENTRY mainENTRY(FuncName)
+   #include "../mcw_malloc.h"
+   #define SUMA_INOUT_NOTIFY_ON {\
+      SUMAg_CF->InOut_Notify = YUP; \
+      DBG_trace = 1;\
+   }
+   #define SUMA_INOUT_NOTIFY_OFF {\
+      SUMAg_CF->InOut_Notify = NOPE; \
+      DBG_trace = 0; \
+   }
+   #define SUMA_INOUT_NOTIFY_TOGGLE {\
+      SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify; \
+      if (!DBG_trace) DBG_trace = 1;  \
+      else DBG_trace = 0;  \
+   }
+   #define SUMA_MEMTRACE_ON {\
+      enable_mcw_malloc() ;   \
+      SUMAg_CF->MemTrace = YUP;  \
+   }
+   #define SUMA_MEMTRACE_OFF {   /* No such thing */ }
+   #define SUMA_MEMTRACE_TOGGLE {   \
+      if (!SUMAg_CF->MemTrace) { \
+         SUMAg_CF->MemTrace = YUP; \
+         enable_mcw_malloc() ;   \
+      }  \
+   }
+#endif
       
 void* SUMA_free_fn(const char *CallingFunc, void *ptr);
 void *SUMA_calloc_fn (const char *CallingFunc, size_t nmemb, size_t size);
@@ -97,8 +175,8 @@ int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup);
 void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
-int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3);
-SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident);
+int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace);
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
