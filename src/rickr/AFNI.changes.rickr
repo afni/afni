@@ -1,0 +1,19 @@
+08 March 2002:
+  * added plug_crender.c
+
+21 May 2002:
+  * added rickr directory containing r_idisp.[ch], r_misc.[ch],
+      r_new_resam_dset.[ch] and Makefile
+  * added new program 3dresample (rickr/3dresample.c)
+  * modified Makefile.INCLUDE to build rickr directory
+
+06 June 2002:
+  * added @SUMA_Make_Spec_FS
+
+20 June 2002:
+  * added @make_stim_file
+
+21 June 2002:
+  * modified afni_plugin.c, NLfit_model.c and thd_get1D.c to
+      validate directories
+  * added rickr/AFNI.changes.rickr
