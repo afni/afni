@@ -461,7 +461,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
         EXRETURN ;
      }
 
-     /*-- dataset musst already have a surface */
+     /*-- dataset must already have a surface */
 
      ag = dset->su_surf ;
      if( ag == NULL ){
