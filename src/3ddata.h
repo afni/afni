@@ -60,32 +60,60 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 /***************************** dimensions ***************************/
 
+/*! \brief Max length of a "name" of a file, or stuff like that */
 #define THD_MAX_NAME      256
+
+/*! \brief Max length of a dataset label */
 #define THD_MAX_LABEL     38
+
+/*! \brief Max length of a dataset prefix */
 #define THD_MAX_PREFIX     (127+1)  /* must be more than THD_MAX_LABEL */
+
+/*! \brief Max length of a dataset view code (+orig, etc) */
 #define THD_MAX_VIEWCODE   (4+1)
+
+/*! \brief Max length of a dataset suffix (BRIK, etc) */
 #define THD_MAX_SUFFIX     (4+1)
+
+/*! \brief Max length of a dataset filecode (prefix+view) */
 #define THD_MAX_FILECODE   (THD_MAX_PREFIX+THD_MAX_VIEWCODE)
 
+/*! \brief Default label for a dataset
+    Labels aren't really used anymore, since the stupid users didn't like them
+*/
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-#define THD_MAX_SESSION_ANAT  512   /* max num anat datasets per directory */
-#define THD_MAX_SESSION_FUNC  512   /* max num func datasets per directory */
-#define THD_MAX_NUM_SESSION    80   /* max number of directories */
+/*! \brief Max num anat datasets per session */
+#define THD_MAX_SESSION_ANAT  512
 
-#define THD_MAX_CHOICES THD_MAX_SESSION_FUNC  /* largest of the above! */
+/*! \brief Max num func datasets per session */
+#define THD_MAX_SESSION_FUNC  512
+
+/*! \brief Max number of directories */
+#define THD_MAX_NUM_SESSION    80
+
+/*! \brief Largest of THD_MAX_SESSION_ANAT THD_MAX_SESSION_FUNC THD_MAX_NUM_SESSION */
+#define THD_MAX_CHOICES THD_MAX_SESSION_FUNC
 
 #define THD_MAX_MARKSET       5
 
 #define FAIL    -1
 #define SUCCESS  1
 
+/*! \brief General "type code" for invalid data
+    Various things are labeled with non-negative type codes (e.g., statistics types).
+    Negative type codes indicate something is not valid.
+*/
+
 #define ILLEGAL_TYPE -666
 
 /***************  generic function with no return value  **********************/
 
+/*! \brief Generic function type returning void */
 typedef void generic_func() ;
-typedef float float_func() ; /* generic function returning float */
+
+/*! \brief Generic function type returning float */
+typedef float float_func() ;
 
 typedef struct {                 /* for "registered" functions */
    int num ;
@@ -109,13 +137,13 @@ typedef struct {                 /* for "registered" functions */
 
 /******************************** macros ******************************/
 
-/** combine two interpreted tokens into one using TWO_TWO **/
-
+/*! \brief First part of TWO_TWO macro */
 #define TWO_ONE(x,y) x ## y
+
+/*! \brief Combine two interpreted tokens into one using TWO_TWO */
 #define TWO_TWO(x,y) TWO_ONE(x,y)
 
-/* copy n units of the given type "type * ptr",
-     into a structure "str",
+/*! Copy n units of the given type "type * ptr", into a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
          off is most easily computed with XtOffsetOf       */
@@ -123,8 +151,19 @@ typedef struct {                 /* for "registered" functions */
 #define COPY_INTO_STRUCT(str,off,type,ptr,n) \
    (void) memcpy( (char *)(&(str))+(off), (char *)(ptr), (n)*sizeof(type) )
 
+/*! Copy n units of the given type "type * ptr", from a structure "str",
+     starting at byte offset "off";
+   N.B.: str is the structure itself, not a pointer to it
+         off is most easily computed with XtOffsetOf       */
+
 #define COPY_FROM_STRUCT(str,off,type,ptr,n) \
    (void) memcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
+
+/*! \brief Safe version of strncpy, which always leaves a NUL at the end
+    The standard stupid strncpy(dest,src,n) might not leave a NUL character
+    at the end if the src string is too long.  This criminal behavior is
+    reformed by this macro.
+*/
 
 #define MCW_strncpy(dest,src,n) \
    ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
@@ -134,19 +173,27 @@ typedef struct {                 /* for "registered" functions */
 #define IC_DSET 44301
 #define IC_FLIM 55402
 
+/*! \brief Dynamically extendable array of XtPointer */
+
 typedef struct {
-      int num , nall ;
-      XtPointer * ar ;
-      int * ic ;         /* added 26 Mar 2001 */
+      int num ;          /*!< Number currently in use */
+      int nall ;         /*!< Number currently allocated */
+      XtPointer * ar ;   /*!< Array of pointers: [0..num-1] are valid */
+      int * ic ;         /*!< added 26 Mar 2001 */
 } XtPointer_array ;
 
 #define INC_XTARR 8
 
+/*! \brief Initialize dynamic XtPointer array named "name"
+    XtPointer_array *name ;
+*/
 #define INIT_XTARR(name)               \
    ( (name) = XtNew(XtPointer_array) , \
      (name)->num = (name)->nall = 0 ,  \
      (name)->ar  = NULL ,              \
      (name)->ic  = NULL   )
+
+/*! \brief Add a pointer to a dynamic XtPointer array */
 
 #define ADDTO_XTARR(name,bblk)                                 \
    { if( (name)->num == (name)->nall ){                        \
@@ -163,9 +210,17 @@ typedef struct {
       ((name)->num)++ ;                              \
      } }
 
+/*! \brief Number of good entries in a dynamic XtPointer array */
 #define XTARR_NUM(name)  ((name)->num)
+
+/*! \brief i-th entry in a dynamic XtPointer array */
 #define XTARR_XT(name,i) ((name)->ar[i])
+
 #define XTARR_IC(name,i) ((name)->ic[i])
+
+/*! \brief Free a dynamic XtPointer array
+    But not what the pointers point to - that is a completely separate matter
+*/
 
 #define FREE_XTARR(name)      \
    if( (name) != NULL ){      \
@@ -178,22 +233,34 @@ typedef struct {
 
 /************************* string array stuff *************************/
 
+/*! \brief Dynamic array of character strings */
+
 typedef struct {
-      int num , nall ;
-      char ** ar ;
-      KILL_list kl ;
+      int num ;      /*!< Number of strings currently stored */
+      int nall ;     /*!< Number of strings space is set aside for */
+      char ** ar ;   /*!< Array of pointers to strings */
+      KILL_list kl ; /*!< For semi-automatic memory cleanup */
 } THD_string_array ;
 
+/*! \brief Return pointer to qq-th string in dynamic string array ss */
 #define SARR_STRING(ss,qq) ((ss)->ar[(qq)])
+
+/*! \brief Return number of strings stored in dynamic string array ss */
 #define SARR_NUM(ss)       ((ss)->num)
 
 #define INC_SARR 64
+
+/*! \brief Initialize an empty dynamic string array named "name"
+    THD_string_array *name ;
+*/
 
 #define INIT_SARR(name)                 \
    ( (name) = XtNew(THD_string_array) , \
      (name)->num = (name)->nall = 0 ,   \
      (name)->ar  = NULL ,               \
      INIT_KILL((name)->kl) )
+
+/*! \brief Add string str to dynamic string array "name" */
 
 #define ADDTO_SARR(name,str)                                          \
  do{ if( (name)->num == (name)->nall ){                               \
@@ -208,9 +275,13 @@ typedef struct {
       ((name)->num)++ ;                                               \
      } } while(0)
 
+/*! \brief Remove the ijk-th string from dynamic string array "name" */
+
 #define REMOVEFROM_SARR(name,ijk)                \
  do{ SINGLE_KILL((name)->kl,(name)->ar[(ijk)]) ; \
      (name)->ar[(ijk)] = NULL ; } while(0)
+
+/*! \brief Kill all entries in the dynamic string array "name" */
 
 #define DESTROY_SARR(name)    \
  do{ if( (name) != NULL ){    \
@@ -224,6 +295,11 @@ extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
 extern int SARR_lookfor_string   ( THD_string_array * sar , char * str , int nstart ) ;
 extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nstart ) ;
 
+/*! \brief Concatenate strings p1 and p2 into string pout, making them a filesystem path
+    If p1 doesn't end in a '/', the '/' between p1/p2 will be added.
+    The pout array must be previously allocated.
+*/
+
 #define PATH_CONCAT(pout,p1,p2)                            \
   do{ int zq ; strcpy((pout),(p1)) ; zq = strlen((pout)) ; \
       if( (pout)[zq-1] != '/' ) strcat((pout),"/") ;       \
@@ -231,20 +307,30 @@ extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nst
 
 /*************** dynamic array of sorted (x,y,z) points *************/
 
+/*! \brief Dynamic array of sorted (x,y,z) points */
+
 typedef struct {
-      int num , nall ;
-      THD_fvec3 * xyz ;
-      THD_ivec3 * ijk ;
-      struct THD_3dim_dataset * parent ;
+      int num ;                          /*!< Number of points currently in use */
+      int nall ;                         /*!< Number of points currently allocated */
+      THD_fvec3 * xyz ;                  /*!< Array of xyz coordinates */
+      THD_ivec3 * ijk ;                  /*!< Array of ijk indexes */
+      struct THD_3dim_dataset * parent ; /*!< Dataset these things come from */
 } THD_vector_list ;
 
 #define INC_VLIST 64
+
+/*! \brief Initialize a dynamic array of xyz points, attached to datset ddd */
 
 #define INIT_VLIST(name,ddd) \
    ( (name) = XtNew(THD_vector_list) ,  \
      (name)->num = (name)->nall = 0 ,   \
      (name)->xyz = NULL , (name)->ijk = NULL , \
      (name)->parent = (ddd) )
+
+/*! \brief Add 1 xyz-vector to the array of xyz points
+    The ijk-vector will be converted from the xyz coordinates,
+    using the dataset for this array.
+*/
 
 #define ADD_FVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
@@ -258,6 +344,11 @@ typedef struct {
      (name)->ijk[(name)->num] = THD_3dmm_to_3dind((name)->parent,(vec)) ;  \
      ((name)->num)++; }
 
+/*! \brief Add one ijk-vector to the array of xyz points
+    The xyz-vector will be converted from the ijk indexes, using
+    the dataset for this array.
+*/
+
 #define ADD_IVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
       (name)->nall += INC_VLIST ;                                          \
@@ -269,6 +360,8 @@ typedef struct {
      (name)->ijk[(name)->num] = (vec);                                     \
      (name)->xyz[(name)->num] = THD_3dind_to_3dmm((name)->parent,(vec)) ;  \
      ((name)->num)++; }
+
+/*! \brief Destroy an array of xyz points */
 
 #define DESTROY_VLIST(name)      \
    { if( (name) != NULL ){       \
@@ -287,37 +380,47 @@ typedef struct {
 #define FIRST_ATR_TYPE 0
 #define LAST_ATR_TYPE  2
 
+/*! \brief Things to look for in the .HEAD file */
+
 static char * ATR_typestr[] = {
    "string-attribute" , "float-attribute" , "integer-attribute"
 } ;
 
+/*! \brief Stores an integer-attribute (array of ints) */
+
 typedef struct {
-      int    type ;
-      char * name ;
-      int    nin ;
-      int  * in ;
+      int    type ;   /*!< should be ATR_INT_TYPE */
+      char * name ;   /*!< name of attribute, read from HEAD file */
+      int    nin ;    /*!< number of ints stored here */
+      int  * in ;     /*!< array of ints stored here */
 } ATR_int ;
 
-typedef struct {
-      int     type ;
-      char *  name ;
-      int     nfl ;
-      float * fl ;
-} ATR_float ;
+/*! \brief Stores a float-attribute (array of floats) */
 
 typedef struct {
-      int    type ;
-      char * name ;
-      int    nch ;
-      char * ch ;
+      int     type ;  /*!< should be ATR_FLOAT_TYPE */
+      char *  name ;  /*!< name of attribute, read from HEAD file */
+      int     nfl ;   /*!< number of floats stored here */
+      float * fl ;    /*!< array of floats stored here */
+} ATR_float ;
+
+/*! \brief Stores a string-attribute (array of strings) */
+
+typedef struct {
+      int    type ;   /*!< should be ATR_STRING_TYPE */
+      char * name ;   /*!< name of attribute, read from HEAD file */
+      int    nch ;    /*!< number of characters in string */
+      char * ch ;     /*!< array of characters (may not be NUL terminated) */
 } ATR_string ;
 
 #define ZBLOCK 126
 extern void THD_zblock(int,char *) ;   /* replace zeros with ZBLOCKs */
 extern void THD_unzblock(int,char *) ; /* undo the above */
 
+/*! \brief Union type to hold an arbitrary attribute */
+
 typedef union {
-      int          type ;
+      int          type ;      /*!< Determines type of data here */
       ATR_string   str_atr ;
       ATR_float    flo_atr ;
       ATR_int      int_atr ;
@@ -2043,47 +2146,104 @@ static char tmp_dblab[8] ;
 
 /** macros to load and unload a dataset from memory **/
 
+/*! \brief Load dataset ds's sub-bricks into memory
+    If it is already loaded, does nothing
+*/
 #define DSET_load(ds)   THD_load_datablock( (ds)->dblk )
+
+/*! \brief Unload dataset ds's sub-bricks from memory
+    Won't do anything if the dataset is locked into memory
+*/
 #define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
 
+/*! \brief Unload sub-brick iv in dataset ds from memory
+    Only does something if the dataset is malloc()-ed,
+    not mmap()-ed, and not locked in memory
+*/
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
 
+/*! \brief Delete dataset ds's volumes and struct from memory
+    Does not delete from disk
+*/
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
+/*! \brief Write dataset ds to disk
+    Also loads the sub-brick statistics
+*/
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
+/*! \brief Write only the dataset header to disk, for dataset ds */
 #define DSET_write_header(ds)  THD_write_3dim_dataset( NULL,NULL , (ds),False )
 
+/*! \brief Check if dataset ds if fully loaded into memory
+    If return is 0 (false), you could try DSET_load(ds)
+*/
 #define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
 
+/*! \brief Lock dataset ds into memory */
 #define DSET_lock(ds)      DBLK_lock((ds)->dblk)       /* Feb 1998 */
+/*! \brief Unlock dataset ds (so it can be purged) */
 #define DSET_unlock(ds)    DBLK_unlock((ds)->dblk)
+/*! \brief Check if dataset ds is locked into memory */
 #define DSET_LOCKED(ds)    DBLK_LOCKED((ds)->dblk)
+
+/*! \brief Force this dataset to be loaded into memory using malloc()
+    If you are altering the dataset contents, this is required,
+    since a mmap()-ed dataset is readonly.
+*/
 #define DSET_mallocize(ds) DBLK_mallocize((ds)->dblk)
+/*! \brief Force this dataset to be loaded into memory using mmap()
+    You cannot alter any sub-brick data, since mmap() is done in
+    readonly mode.
+*/
 #define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
+/*! \brief Let AFNI decide how to load a dataset into memory
+    May choose mmap() or malloc()
+*/
 #define DSET_anyize(ds)    DBLK_anyize((ds)->dblk)
 
+/*! \brief Super-lock dataset ds into memory
+    Super-locked datasets will not be unlocked by DSET_unlock
+*/
 #define DSET_superlock(ds) DBLK_superlock((ds)->dblk)  /* 22 Mar 2001 */
 
+/*! \brief Check if dataset ds is loaded into memory using malloc() */
 #define DSET_IS_MALLOC(ds)  DBLK_IS_MALLOC((ds)->dblk)
+/*! \brief Check if dataset ds is loaded into memory using mmap() */
 #define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
 
+/*! \brief Check if dataset ds is "mastered": gets its data from someone else
+    Mastered datasets are specified on the command line with the
+    [a..b] syntax, etc.
+*/
 #define DSET_IS_MASTERED(ds) DBLK_IS_MASTERED((ds)->dblk)
 
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
+/*! \brief A dynamic array type for AFNI datasets
+    This is used when collecting all the datasets in a directory
+    into a "session"
+*/
+
 typedef struct THD_3dim_dataset_array {
-      int num , nall ;
-      THD_3dim_dataset ** ar ;
+      int num ;                   /*!< Number of datasets stored */
+      int nall ;                  /*!< Number of datasets slots allocated */
+      THD_3dim_dataset ** ar ;    /*!< Array of datasets: [0..num-1] are in use */
 } THD_3dim_dataset_array ;
 
 #define INC_3DARR 8
 
+/*! \brief Initialize a new AFNI dataset array into variable "name"
+    You should declare
+      THD_3dim_dataset_array *name
+*/
 #define INIT_3DARR(name)                  \
    ( (name) = XtNew(THD_3dim_dataset_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
+
+/*! \brief Add dataset ddset to AFNI dataset array "name" */
 
 #define ADDTO_3DARR(name,ddset)                                       \
    { if( (name)->num == (name)->nall ){                               \
@@ -2097,18 +2257,31 @@ typedef struct THD_3dim_dataset_array {
       ((name)->num)++ ;                  \
      } }
 
+/*! \brief Free the AFNI dataset array (but don't kill the datasets)
+    This would be used after the dataset pointers have been moved
+    someplace else (into the THD_session structure)
+*/
+
 #define FREE_3DARR(name)      \
    if( (name) != NULL ){      \
      myXtFree( (name)->ar ) ; \
      myXtFree( (name) ) ; }
 
+/*! \brief Macro to access the nn-th dataset in AFNI dataset array name */
+
 #define DSET_IN_3DARR(name,nn) ((name)->ar[(nn)])
+
+/*! \brief Determine if two datasets are properly ordered */
 
 #define DSET_ORDERED(d1,d2)                  \
   ( ( (d1)->view_type < (d2)->view_type ) || \
     ( (d1)->view_type==(d2)->view_type && (d1)->func_type<(d2)->func_type ) )
 
+/*! \brief Swap 2 dataset pointers (thru pointer dt) */
+
 #define DSET_SWAP(d1,d2) (dt=(d1),(d1)=(d2),(d2)=dt)
+
+/*! \brief Sort an AFNI dataset array */
 
 #define SORT_3DARR(name)                                               \
    if( (name) != NULL && (name)->num > 1 ){                            \
@@ -2124,17 +2297,26 @@ typedef struct THD_3dim_dataset_array {
 
 #define SESSION_TYPE 97
 
+/*! \brief Holds all the datasets from a directory (session) */
+
 typedef struct {
-      int type , num_anat , num_func ;
-      char sessname[THD_MAX_NAME] , lastname[THD_MAX_LABEL] ;
+      int type     ;                  /*!< code indicating this is a THD_session */
+      int num_anat ;                  /*!< Number of anatomical datasets */
+      int num_func ;                  /*!< Number of functional dataset */
+      char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
+      char lastname[THD_MAX_LABEL] ;  /*!< Just/the/last/name of the directory */
 
-      THD_3dim_dataset * anat[THD_MAX_SESSION_ANAT][LAST_VIEW_TYPE+1] ;
-      THD_3dim_dataset * func[THD_MAX_SESSION_FUNC][LAST_VIEW_TYPE+1] ;
+      THD_3dim_dataset * anat[THD_MAX_SESSION_ANAT][LAST_VIEW_TYPE+1] ;  /*!< array of anatomical datasets */
+      THD_3dim_dataset * func[THD_MAX_SESSION_FUNC][LAST_VIEW_TYPE+1] ;  /*!< array of functional datasets */
 
-      XtPointer parent ;
+      XtPointer parent ;                                                 /*!< generic pointer to "owner"  */
 } THD_session ;
 
+/*! \brief Determine if ss points to a valid THD_session */
+
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
+
+/*! \brief Initialize THD_session ss to hold nothing at all */
 
 #define BLANK_SESSION(ss) \
   if( ISVALID_SESSION((ss)) ){ \
@@ -2147,13 +2329,21 @@ typedef struct {
 
 #define SESSIONLIST_TYPE 107
 
+/*! \brief Array of THD_sessions
+    Holds all the datasets read into AFNI from all directories
+*/
+
 typedef struct {
       int type , num_sess ;
       THD_session * ssar[THD_MAX_NUM_SESSION] ;
       XtPointer parent ;
 } THD_sessionlist ;
 
+/*! \brief Determine if sl is a valid THD_sessionlist */
+
 #define ISVALID_SESSIONLIST(sl) ( (sl)!=NULL && (sl)->type==SESSIONLIST_TYPE )
+
+/*! \brief Initialize a THD_sessionlist to contain nothing */
 
 #define BLANK_SESSIONLIST(sl) \
    if( ISVALID_SESSIONLIST((sl)) ){ \
@@ -2161,12 +2351,22 @@ typedef struct {
       for( is=0 ; is < THD_MAX_NUM_SESSION ; is++ ) (sl)->ssar[is] = NULL ; \
       (sl)->num_sess = 0 ; }
 
-/*--- return type for sessionlist searching (see THD_dset_in_*) ---*/
+/*! \brief Return type for THD_sessionlist searching (see THD_dset_in_*)
+    There are different ways to search for a dataset in THD_sessionlist
+      - FIND_NAME    to find by the name field (is now obsolete)
+      - FIND_IDCODE  to find by the dataset ID code
+      - FIND_PREFIX  to find by the dataset prefix
+*/
 
 typedef struct {
-   int sess_index , anat_index , func_index , view_index ;
+   int sess_index ;
+   int anat_index ;
+   int func_index ;
+   int view_index ;
    THD_3dim_dataset * dset ;
 } THD_slist_find ;
+
+/*! \brief Set the find codes to indicate a bad result */
 
 #define BADFIND(ff) \
    ( (ff).sess_index=(ff).anat_index=(ff).func_index=(ff).view_index=-1 , \
