@@ -482,6 +482,7 @@ extern MRI_IMAGE *mri_rota_shear   ( MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_rota_variable( int, MRI_IMAGE * , float,float,float ) ;
 
 extern MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *,int,float,float,float,float) ;
+extern MRI_IMAGE *mri_aff2d_rgb ( MRI_IMAGE *,int,float,float,float,float) ;
 
 extern void ft_shift2( int, int, float, float *, float, float * ) ;
 

@@ -31,11 +31,12 @@
 #include "afni.h"
 
 #define ANNOUNCEMENT  \
- "  GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"  \
- "  This is Version " VERSION " of " RELEASE"\n"                               \
+ " GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"  \
+ " This is Version " VERSION " of " RELEASE"\n"                               \
  "  ** This software was designed to be used only for research purposes. **\n" \
- "  ** Clinical uses are not recommended, and have not been evaluated.   **\n" \
- "  ** This software comes with no warranties of any kind whatsoever.    **\n"
+ "  ** Clinical uses are not recommended, and have never been evaluated. **\n" \
+ "  ** This software comes with no warranties of any kind whatsoever,    **\n" \
+ "  ** and may not be useful for anything.  Use it at your own risk!     **\n"
 
 /* ----------------------------------- */
 #define USE_FRIENDS
@@ -995,7 +996,7 @@ int main( int argc , char * argv[] )
         nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
      } while( qq < 19 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
      sprintf( buf  ,
-              "  Thanks go to %s for %s.\n\n" ,
+              " Thanks go to %s for %s.\n\n" ,
               afni_friends[nf].name , afni_helptypes[nh] ) ;
      REPORT_PROGRESS( buf ) ;
 
