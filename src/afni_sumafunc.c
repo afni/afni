@@ -575,10 +575,10 @@ ENTRY("AFNI_update_surface_widgets") ;
    /* make more widget rows? (1 per surface is needed) */
 
    if( swid->nall < num ){
-     swid->surf_rc      = (Widget *)        XtRealloc( swid->surf_rc     ,num*sizeof(Widget)         );
-     swid->surf_lab     = (Widget *)        XtRealloc( swid->surf_lab    ,num*sizeof(Widget)         );
-     swid->surf_node_av = (MCW_arrowval **) XtRealloc( swid->surf_node_av,num*sizeof(MCW_arrowval *) );
-     swid->surf_line_av = (MCW_arrowval **) XtRealloc( swid->surf_line_av,num*sizeof(MCW_arrowval *) );
+     swid->surf_rc      = (Widget *)        XtRealloc( (char *)swid->surf_rc     ,num*sizeof(Widget)         );
+     swid->surf_lab     = (Widget *)        XtRealloc( (char *)swid->surf_lab    ,num*sizeof(Widget)         );
+     swid->surf_node_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_node_av,num*sizeof(MCW_arrowval *) );
+     swid->surf_line_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
      for( ii=swid->nall ; ii < num ; ii++ ){
        MAKE_SURF_ROW(ii) ;
      }
