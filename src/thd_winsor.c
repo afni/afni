@@ -22,7 +22,7 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
    short *shin , *shout , *di,*dj,*dk , *tmp , val,nval ;
    MCW_cluster *cl ;
    int jj,kk , krep,kdiff, nx,ny,nz,nxy,nxyz , nd,dd ;
-   int ip,jp,kp , nx1,ny1,nz1 ;
+   int ip,jp,kp , nx1,ny1,nz1 , verb=1 ;
    int nrep_until ;
    register int ii,ijk ;
 
@@ -37,6 +37,8 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
    if( nrep < 0 ){ nrep_until = abs(nrep) ; nrep = 999 ; }
    else          { nrep_until = 2 ; }
 
+   if( irad < 0.0 ){ verb=0 ; irad = -irad ; }
+
    if( irad < 1.01 ) irad = 1.01 ;
    if( !THD_filename_ok(prefix) ) prefix = "Winsor" ;
 
@@ -50,7 +52,7 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
 
    di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
 
-   fprintf(stderr,"+++ WINsorize irad=%f nbhd=%d\n",irad,nd) ;
+   if( verb ) fprintf(stderr,"+++ WINsorize irad=%f nbhd=%d\n",irad,nd) ;
 
    /*- make output array -*/
 
@@ -71,11 +73,11 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
    if( cbot <= 0 || cbot >= nd-1 ){
       cbot = rint( CFRAC*nd ) ;
       if( cbot <= 0 ) cbot = 1 ;
-      fprintf(stderr,"+++ WINsorize cbot=%d\n",cbot) ;
+      if( verb ) fprintf(stderr,"+++ WINsorize cbot=%d\n",cbot) ;
    }
    if( ctop <= cbot || cbot >= nd-1 ){
       ctop = nd-1-cbot ;
-      fprintf(stderr,"+++ WINsorize ctop=%d\n",ctop) ;
+      if( verb ) fprintf(stderr,"+++ WINsorize ctop=%d\n",ctop) ;
    }
 
    /*- do the work -*/
@@ -116,7 +118,7 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
 
       /* prepare for next iteration */
 
-      fprintf(stderr,"+++ WINsorize iter%2d: # changed=%d\n",krep+1,kdiff) ;
+      if( verb ) fprintf(stderr,"+++ WINsorize iter%2d: # changed=%d\n",krep+1,kdiff) ;
 
       if( kdiff < nrep_until ) break ;
 

@@ -11,14 +11,18 @@ int main( int argc , char * argv[] )
    int   SIax=0 , SIbot,SItop ;
    short *sar , *mar ;
    float pval[128] , wval[128] ;
-   int npk , verb=1 ;
+   int npk , verb=1 , win=0 , his=0 ;
    char *dname ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dAnhist [-q] dataset\n"
+      printf("Usage: 3dAnhist [options] dataset\n"
              "Input dataset is a T1-weighted high-res of the brain (shorts only).\n"
+             "Output is a list of peaks in the histogram.\n"
              "Options:\n"
              "  -q  = be quiet (don't print progress reports)\n"
+             "  -h  = dump histogram to stdout\n"
+             "  -w  = apply a Winsorizing filter\n"
+             "        (or -w7 to Winsorize 7 times, etc.)\n"
             ) ;
       exit(0) ;
    }
@@ -30,7 +34,15 @@ int main( int argc , char * argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
       if( argv[iarg][1] == 'q' ){ verb=0 ; iarg++ ; continue ; }
-        
+      if( argv[iarg][1] == 'h' ){ his =1 ; iarg++ ; continue ; }
+      if( argv[iarg][1] == 'w' ){
+        win = -1 ;
+        if( isdigit(argv[iarg][2]) )
+          sscanf(argv[iarg],"-w%d",&win) ;
+        if( win <= 0 ) win = 1 ;
+        iarg++ ; continue ;
+      }
+
       fprintf(stderr,"** ILLEGAL option: %s\n",argv[iarg]) ; exit(1) ;
    }
 
@@ -100,7 +112,7 @@ int main( int argc , char * argv[] )
          for( kk=0 ; kk < nz ; kk++ )
            for( jj=0 ; jj < ny ; jj++ )
              if( mask[ii+jj*nx+kk*nxy] ) goto CP6 ;
-     CP6: 
+     CP6:
        SIax = 1 ; SIbot = 0 ; SItop = ii - (int)(SIhh/fabs(DSET_DX(dset))+0.5) ;
      }
 
@@ -172,6 +184,16 @@ int main( int argc , char * argv[] )
      print_results( dname,0,NULL,NULL); exit(1);
    }
 
+   /* Winsorize? */
+
+   if( win ){
+     THD_3dim_dataset *wset ; float irad ;
+     irad = (verb) ? 3.0 : -3.0 ;
+     wset = WINsorize( dset , win , -1,-1 , irad , "winsor" , 0,0 , mask ) ;
+     DSET_delete(dset) ;
+     dset = wset ;
+   }
+
    /* copy data in mask region to private array, then expunge dataset */
 
    sar = DSET_ARRAY(dset,0) ;
@@ -237,7 +259,7 @@ int main( int argc , char * argv[] )
        float ws=0.0 ;
        int ibot,itop ;
 
-       if( verb ) fprintf(stderr,"++ Smoothing range = %d..%d\n",-nwid,nwid) ;
+       if( verb ) fprintf(stderr,"++ Smoothing range = %d .. %d around each value\n",-nwid,nwid) ;
        for( ii=0 ; ii <= 2*nwid ; ii++ ){
          wt[ii] = nwid+0.5-abs(nwid-ii) ; ws += wt[ii] ;
        }
@@ -259,9 +281,24 @@ int main( int argc , char * argv[] )
            gist[ii] > gist[ii-2] &&
            gist[ii] > gist[ii+1] &&
            gist[ii] > gist[ii+2]   ){ pval[npk]=ii; wval[npk++] = 0; }
+
+       else if( gist[ii] == gist[ii+1] &&   /* very special case */
+                gist[ii] >  gist[ii-1] &&
+                gist[ii] >  gist[ii-2] &&
+                gist[ii] >  gist[ii+2]   ){ pval[npk]=ii+0.5; wval[npk++] = 0; }
+
+       else if( gist[ii] == gist[ii+1] &&   /* super special case */
+                gist[ii] == gist[ii-1] &&
+                gist[ii] >  gist[ii-2] &&
+                gist[ii] >  gist[ii+2]   ){ pval[npk]=ii; wval[npk++] = 0; }
      }
 
      print_results( dname,npk , pval , wval ) ;
+
+     if( his ){
+       for( ii=cbot ; ii <= ctop ; ii++ )
+         printf("%3d %6d\n",ii,gist[ii]) ;
+     }
    }
 
    exit(0) ;
