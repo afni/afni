@@ -517,6 +517,7 @@ extern char * NI_stream_name( NI_stream_type * ) ;
 extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
 extern int NI_stream_hasinput( NI_stream_type * , int ) ;
+extern void NI_stream_seek( NI_stream_type * , int , int ) ; /* 24 Mar 2003 */
 
 extern int NI_stream_setbufsize( NI_stream_type *, int ) ; /* 03 Jan 2003 */
 extern int NI_stream_getbufsize( NI_stream_type * ) ;

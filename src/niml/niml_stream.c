@@ -1842,6 +1842,23 @@ NI_dpr("NI_stream_reopen: closing old stream\n") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Seek file: stream to a specific offset location.
+      - whence is one of SEEK_SET, SEEK_CUR, SEEK_END (cf. "man fseek").
+      - Also clears the stream buffer.
+-------------------------------------------------------------------------*/
+
+void NI_stream_seek( NI_stream_type *ns , int offset , int whence )
+{
+   if( ns          == NULL             ||
+       ns->bad     == MARKED_FOR_DEATH ||
+       ns->type    != NI_FILE_TYPE     ||
+       ns->fp      == NULL               ) return ;
+
+   fseek( ns->fp , offset , whence ) ;   /* seek file */
+   ns->nbuf = ns->npos = 0 ;             /* clear buffer */
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Return 1 if it is legal to read from this stream, 0 if it isn't.
     This doesn't say anything about if it is practical to read
     at this moment; for that, use NI_stream_readcheck().
