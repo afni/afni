@@ -2077,7 +2077,17 @@ If this YES/NO variable is set to YES, then the .xsave file created by
 the "-xsave" option to 3dDeconvolve will be saved in text format.  The
 default is a binary format, which preserves the full accuracy of the
 matrices stored therein.  However, if you want to look at the .xsave
-file yourself, the binary format is hard to grok.
+file yourself, the binary format is hard to grok.  Note that the two
+forms are not quite equivalent, since the binary format stores the
+exact matrices used internally in the program, whereas the ASCII format
+stores only a decimal approximation of these matrices.
+
+---------------------------
+Variable: AFNI_GLTSYM_PRINT
+---------------------------
+If this YES/NO variable is set to YES, then the GLT matrices generated
+in 3dDeconvolve by the "-gltsym" option will be printed to the screen
+when the program starts up.
 
 =============================================
 | Robert W Cox, PhD                         |

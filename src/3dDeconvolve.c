@@ -353,8 +353,7 @@ static int xrestore = 0 ;                           /* globals for -xrestore */
 static char *xrestore_filename = NULL ;
 static int NumTimePoints=0 , NumRegressors=0 ;
 
-static int  verb = 1 ;
-static int mverb = 0 ;
+static int verb = 1 ;
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -1018,11 +1017,6 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-
-      if( strcmp(argv[nopt],"-verb") == 0 ){
-          option_data->quiet = 0 ; verb = 1 ; mverb = 1 ;
-          nopt++ ; continue ;
-      }
 
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
@@ -6140,7 +6134,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
      for( ii=0 ; ii < nr ; ii++ ) free((void *)far[ii]) ;
      free((void *)far) ;
 
-     if( mverb ){
+     if( AFNI_yesenv("AFNI_GLTSYM_PRINT") ){
        printf("GLT matrix from '%s':\n",fname) ;
        matrix_print( *cmat ) ; fflush(stdout) ;
      }
