@@ -80,6 +80,7 @@ static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
 
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
+static int    CL_isomode = 0 ;   /* 30 Apr 2002 -- RWCox */
 
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
@@ -127,7 +128,11 @@ int main( int argc , char * argv[] )
           "Usage: 3dclust [editing options] [other options] rmm vmul dset ...\n"
           "  where rmm  = cluster connection radius (mm);\n"
           "        vmul = minimum cluster volume (micro-liters)\n"
-          "               (both rmm and vmul must be positive);\n"
+          "              * If rmm = 0, then clusters are defined\n"
+          "                 by nearest-neighbor connectivity.\n"
+          "              * If vmul = 0, then all clusters are kept.\n"
+          "              * If vmul < 0, then abs(vmul) is the minimum\n"
+          "                 number of voxels allowed in a cluster.\n"
           "        dset = input dataset (more than one allowed).\n"
           "  The report is sent to stdout.\n"
           "\n"
@@ -162,6 +167,18 @@ int main( int argc , char * argv[] )
           "                  coordinates to the 'LPI' (neuroscience) orientation.\n"
           "                  (As if you gave the '-orient LPI' option.)\n"
           "\n"
+          "* -isovalue   => Clusters will be formed only from contiguous (in the\n"
+          "                  rmm sense) voxels that also have the same value.\n"
+          "           N.B.: The normal method is to cluster all contiguous\n"
+          "                  nonzero voxels together.\n"
+          "\n"
+          "* -isomerge   => Clusters will be formed from each distinct value\n"
+          "                  in the dataset; spatial contiguity will not be\n"
+          "                  used (but you still have to supply rmm and vmul\n"
+          "                  on the command line).\n"
+          "           N.B.: 'Clusters' formed this way may well have components\n"
+          "                  that are widely separated!\n"
+          "\n"
           "* -prefix ppp => Write a new dataset that is a copy of the\n"
           "                  input, but with all voxels not in a cluster\n"
           "                  set to zero; the new dataset's prefix is 'ppp'\n"
@@ -184,7 +201,7 @@ int main( int argc , char * argv[] )
           "   voxel edges (not mm) and vmul should be given in terms of\n"
           "   voxel counts (not microliters).  Thus, to connect to only\n"
           "   3D nearest neighbors and keep clusters of 10 voxels or more,\n"
-          "   use something like '3dclust -dxyz=1 1.1 10 dset+orig'.\n"
+          "   use something like '3dclust -dxyz=1 1.01 10 dset+orig'.\n"
           "   In the report, 'Volume' will be voxel count, but the rest of\n"
           "   the coordinate dependent information will be in actual xyz\n"
           "   millimeters.\n"
@@ -217,20 +234,17 @@ int main( int argc , char * argv[] )
 
    rmm  = strtod( argv[nopt++] , NULL ) ;
    vmul = strtod( argv[nopt++] , NULL ) ;
-   if( rmm <= 0.0 || vmul <= 0.0 ){
-      fprintf(stderr,"\n*** Illegal rmm=%f and/or vmul=%f\a\n",rmm,vmul) ;
+   if( rmm < 0.0 ){
+      fprintf(stderr,"\n*** Illegal rmm=%f \a\n",rmm) ;
       exit(1) ;
    }
 
    /* BDW  26 March 1999  */
-   else
-     {
-       if( CL_edopt.clust_rmm > 0.0 )  /* 01 Nov 1999 */
-          fprintf(stderr,"** Warning: replacing -1clust values with later inputs!\n") ;
 
-       CL_edopt.clust_rmm = rmm;
-       CL_edopt.clust_vmul = vmul;
-     }
+   if( CL_edopt.clust_rmm >= 0.0 ){  /* 01 Nov 1999 */
+      fprintf(stderr,"** Warning: -1clust can't be used in 3dclust!\n") ;
+      CL_edopt.clust_rmm  = -1.0 ;
+   }
 
    /**-- loop over datasets --**/
 
@@ -286,16 +300,10 @@ int main( int argc , char * argv[] )
       if( CL_edopt.fake_dxyz ){ dxf = dyf = dzf = 1.0 ; }         /* 24 Jan 2001 */
       else                    { dxf = dx ; dyf = dy ; dzf = dz ; }
 
-      ptmin = (int) (vmul / (dxf*dyf*dzf) + 0.99) ;
-
-#if 0
-      if( rmm < dxf && rmm < dyf && rmm < dzf ){
-         fprintf(stderr,
-            "** File %s: cluster rmm %f smaller than voxels dx=%f dy=%f dz=%f\n",
-            argv[iarg],rmm,dxf,dyf,dzf ) ;
-         continue ;
-      }
-#endif
+      if( vmul >= 0.0 )
+        ptmin = (int) (vmul / (dxf*dyf*dzf) + 0.99) ;
+      else
+        ptmin = (int) fabs(vmul) ;  /* 30 Apr 2002 */
 
       /*-- print report header --*/
      if( !CL_quiet ){
@@ -316,7 +324,7 @@ int main( int argc , char * argv[] )
 #if 0
               dset->self_name , dset->label1 ,
 #endif
-              rmm , vmul , dx*dy*dz ,
+              rmm , ptmin*dx*dy*dz , dx*dy*dz ,
               MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
               dx,dy,dz );
 
@@ -359,8 +367,8 @@ int main( int argc , char * argv[] )
 
       /*-- actually find the clusters in the dataset */
 
-      clar = MCW_find_clusters( nx,ny,nz , dxf,dyf,dzf ,
-                                DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm ) ;
+      clar = NIH_find_clusters( nx,ny,nz , dxf,dyf,dzf ,
+                                DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm , CL_isomode ) ;
 
       /*-- don't need dataset data any more --*/
 
@@ -667,6 +675,18 @@ void CL_read_opts( int argc , char * argv[] )
       if( ival > 0 ){
          nopt += ival ;
          continue ;
+      }
+
+      /**** 30 Apr 2002: -isovalue and -isomerge ****/
+
+      if( strcmp(argv[nopt],"-isovalue") == 0 ){
+         CL_isomode = ISOVALUE_MODE ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-isomerge") == 0 ){
+         CL_isomode = ISOMERGE_MODE ;
+         nopt++ ; continue ;
       }
 
       /**** 30 Apr 2002: -mni ****/

@@ -99,6 +99,9 @@ typedef struct {
       (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ; \
       (cc)->mag[nn] = (m) ; break ; } while(0)
 
+#define ISOVALUE_MODE  1
+#define ISOMERGE_MODE  2
+
 /*----------------------------------------------------------------------------*/
 
 /*! Struct to store a bunch of MCW_cluster stuff. */
@@ -158,6 +161,10 @@ typedef struct {
 
 extern MCW_cluster_array * MCW_find_clusters( int,int,int , float,float,float ,
                                               int , void * , float ) ;
+
+ /* 30 Apr 2002 */
+extern MCW_cluster_array * NIH_find_clusters( int,int,int , float,float,float ,
+                                              int , void * , float , int ) ;
 
 extern void MCW_cluster_to_vol( int,int,int, int,void *, MCW_cluster * ) ;
 
@@ -273,7 +280,7 @@ typedef struct EDIT_options {
         (edopt)->clip_bot      = 0.0 , \
         (edopt)->clip_top      = 0.0 , \
         (edopt)->thresh        = 0.0 , \
-        (edopt)->clust_rmm     = 0.0 , \
+        (edopt)->clust_rmm     = -1.0, \
         (edopt)->clust_vmul    = 0.0 , \
         (edopt)->edit_clust    = 0   , \
 	(edopt)->erode_pv      = 0.0 , \

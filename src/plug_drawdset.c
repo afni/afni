@@ -130,17 +130,25 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *, int,int,int ) ;
 #define MODE_FLOOD_NZ    4
 #define MODE_FLOOD_ZERO  5   /* 30 Jan 1999 */
 #define MODE_ZERO_VAL    6   /* 31 Jan 1999 */
-#define MODE_FILLED      7   /* 25 Sep 2001 */
+#define MODE_FLOOD_VZ    7   /* 30 Apr 2002 */
+#define MODE_FILLED      8   /* 25 Sep 2001 */
 
 static char * mode_strings[] = {
-  "Open Curve"   , "Closed Curve"   , "Points"      ,
-  "Flood->Value" , "Flood->Nonzero" , "Flood->Zero" , "Zero->Value" ,
-  "Filled Curve"
+  "Open Curve"      ,                  /* MODE_CURVE      */
+  "Closed Curve"    ,                  /* MODE_CLOSED     */
+  "Points"          ,                  /* MODE_POINTS     */
+  "Flood->Value"    ,                  /* MODE_FLOOD_VAL  */
+  "Flood->Nonzero"  ,                  /* MODE_FLOOD_NZ   */
+  "Flood->Zero"     ,                  /* MODE_FLOOD_ZERO */
+  "Zero->Value"     ,                  /* MODE_ZERO_VAL   */
+  "Flood->Val/Zero" ,                  /* MODE_FLOOD_VZ   */
+  "Filled Curve"                       /* MODE_FILLED     */
 } ;
 
 static int    mode_ints[] = {
   DRAWING_LINES  , DRAWING_FILL   , DRAWING_POINTS ,
   DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS ,
+  DRAWING_POINTS ,
   DRAWING_FILL
 } ;
 
@@ -156,8 +164,8 @@ static THD_3dim_dataset * dset ;     /* The dataset!    */
 static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
 static int   color_index = 1 ;               /* from color_av */
-static int   mode_ival   = MODE_CURVE ;
-static int   mode_index  = DRAWING_LINES ;   /* from mode_av  */
+static int   mode_ival   = MODE_FILLED ;
+static int   mode_index  = DRAWING_FILL ;    /* from mode_av  */
 static int   value_int   = 1 ;               /* from value_av */
 static float value_float = 1.0 ;             /* ditto         */
 
@@ -465,19 +473,22 @@ void DRAW_make_widgets(void)
                          "Use this to set the way in which\n"
                          "drawing pixels on the screen is\n"
                          "used to select dataset voxels:\n"
-                         "Open Curve     = voxels picked along lines drawn;\n"
-                         "Closed Curve   = voxels forming a closed curve\n"
-                         "Points         = only voxels at X11 notify pixels;\n"
-                         "Flood->Value   = flood fill from the chosen point\n"
-                         "                 out to points = Drawing Value\n"
-                         "Flood->Nonzero = flood fill from chosen point out\n"
-                         "                 to any nonzero point\n"
-                         "Flood->Zero    = flood fill from chosen point out\n"
-                         "                 to any zero point\n"
-                         "Zero->Value    = fill with zeros until the Drawing\n"
-                         "                 Value is hit"
-                         "Filled Curve   = fill inside of closed curve with\n"
-                         "                 Drawing Value\n"
+                         "Open Curve      = voxels picked along lines drawn;\n"
+                         "Closed Curve    = voxels forming a closed curve\n"
+                         "Points          = only voxels at X11 notify pixels;\n"
+                         "Flood->Value    = flood fill from the chosen point\n"
+                         "                   out to points = Drawing Value\n"
+                         "Flood->Nonzero  = flood fill from chosen point out\n"
+                         "                   to any nonzero point\n"
+                         "Flood->Zero     = flood fill from chosen point out\n"
+                         "                   to any zero point\n"
+                         "Zero->Value     = flood fill with zeros until the\n"
+                         "                   Drawing Value is hit\n"
+                         "Flood->Val/Zero = flood fill from the chosen point\n"
+                         "                   until the Drawing Value OR zero\n"
+                         "                   is hit\n"
+                         "Filled Curve    = fill inside of closed curve with\n"
+                         "                   Drawing Value\n"
                        ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
@@ -940,6 +951,9 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            zero voxel value is reached.\n"
   "        * 'Zero->Value' means to flood fill the slice with zeros,\n"
   "            stopping when a voxel with the drawing value is reached.\n"
+  "        * 'Flood->Val/Zero' means to flood fill the slice with the\n"
+  "            Drawing Value until voxels whose values are either zero\n"
+  "            or the Drawing Value are hit\n"
   "        * 'Filled Curve' means to draw a closed curve and then fill\n"
   "            its interior with the drawing value.  It is similar to\n"
   "            doing 'Closed Curve' followed by 'Flood->Value', but\n"
@@ -1330,6 +1344,8 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    undo_bufuse = 0 ; SENSITIZE(undo_pb,0) ;
 
+   if( ISFUNC(dset) ) AFNI_SEE_FUNC_ON(im3d) ; /* 30 Apr 2002 */
+
    return ;
 }
 
@@ -1406,6 +1422,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
               (mode_ival != MODE_FLOOD_NZ  )  &&
               (mode_ival != MODE_FLOOD_ZERO)  &&
               (mode_ival != MODE_ZERO_VAL  )  &&
+              (mode_ival != MODE_FLOOD_VZ  )  &&
               (mode_ival != MODE_FILLED    ))   ){
 
             DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
@@ -1456,6 +1473,12 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                              ixyz = base + ii*di + jj*dj ;
                              if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
                           }
+                    } else if( mode_ival == MODE_FLOOD_VZ ){  /* 30 Apr 2002 */
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val || bp[ixyz] == 0 ) pl[ii+jj*itop] = 1 ;
+                          }
                     } else {
                        for( jj=0 ; jj < jtop ; jj++ )
                           for( ii=0 ; ii < itop ; ii++ ){
@@ -1479,6 +1502,12 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                              ixyz = base + ii*di + jj*dj ;
                              if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
                           }
+                    } else if( mode_ival == MODE_FLOOD_VZ ){  /* 30 Apr 2002 */
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val || bp[ixyz] == 0 ) pl[ii+jj*itop] = 1 ;
+                          }
                     } else {
                        for( jj=0 ; jj < jtop ; jj++ )
                           for( ii=0 ; ii < itop ; ii++ ){
@@ -1501,6 +1530,12 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                           for( ii=0 ; ii < itop ; ii++ ){
                              ixyz = base + ii*di + jj*dj ;
                              if( bp[ixyz] == val ) pl[ii+jj*itop] = 1 ;
+                          }
+                    } else if( mode_ival == MODE_FLOOD_VZ ){  /* 30 Apr 2002 */
+                       for( jj=0 ; jj < jtop ; jj++ )
+                          for( ii=0 ; ii < itop ; ii++ ){
+                             ixyz = base + ii*di + jj*dj ;
+                             if( bp[ixyz] == val || bp[ixyz] == 0 ) pl[ii+jj*itop] = 1 ;
                           }
                     } else {
                        for( jj=0 ; jj < jtop ; jj++ )
