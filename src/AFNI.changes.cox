@@ -3354,4 +3354,6 @@
  * Added mri_scale_inplace() function (mri_scale.c).
 
 28 Nov 2001
- * Modified mri_read.c to also allow floatizing of Analyze .img files.
+ * Modified mri_read.c to also allow floatizing of Analyze .img files,
+      and guessing at orientation via SPM.
+

@@ -6,6 +6,8 @@ void ShowHdr(char *, struct dsr *);
 void swap_long(void *);
 void swap_short(void *);
 
+static int swapped ;
+
 int main( int argc , char * argv[] )
 {
     struct dsr hdr;
@@ -28,11 +30,17 @@ int main( int argc , char * argv[] )
        }
        fread(&hdr,1,sizeof(struct dsr),fp);
 
-       if(hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15)
-          swap_hdr(&hdr);
+       if(hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15){
+          printf("Byte swapping header %s\n",argv[nn]) ;
+          swap_hdr(&hdr); swapped = 1 ;
+       } else {
+          swapped = 0 ;
+       }
 
        ShowHdr(argv[nn], &hdr);
        fclose(fp) ;
+       if( nn < argc-1 )
+          printf("======================================================\n") ;
     }
     exit(0) ;
 }
@@ -89,6 +97,22 @@ void ShowHdr(char *fileName, struct dsr *hdr)
    strncpy(string,hdr->hist.aux_file,24);
    printf("aux_file: <%s> \n", string);
    printf("orient:   <%d> \n", (int) hdr->hist.orient);
+
+   /* 28 Nov 2001: attempt to decode originator a la SPM */
+
+   { short xyzuv[5] , xx,yy,zz ;
+     memcpy( xyzuv , hdr->hist.originator , 10 ) ;
+     if( xyzuv[3] == 0 && xyzuv[4] == 0 ){
+        xx = xyzuv[0] ; yy = xyzuv[1] ; zz = xyzuv[2] ;
+        if( swapped ){ swap_short(&xx); swap_short(&yy); swap_short(&zz); }
+        if( xx > 0 && xx < hdr->dime.dim[1] &&
+            yy > 0 && yy < hdr->dime.dim[2] &&
+            zz > 0 && zz < hdr->dime.dim[3]   ){
+
+           printf("SPM originator decodes to %d %d %d\n",xx,yy,zz) ;
+        }
+     }
+   }
 
    strncpy(string,hdr->hist.originator,10);
    printf("originator: <%s> \n", string);

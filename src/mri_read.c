@@ -1495,6 +1495,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    void      * imar ;
    float fac=0.0 ;    /* 27 Nov 2001 */
    int floatize ;     /* 28 Nov 2001 */
+   int spmorg=0 ;     /* 28 Nov 2001 */
 
    /* check & prepare filenames */
 
@@ -1517,6 +1518,20 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
    doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
    if( doswap ) swap_analyze_hdr( &hdr ) ;
+
+   /* 28 Nov 2001: attempt to decode originator a la SPM */
+
+   { short xyzuv[5] , xx,yy,zz ;
+     memcpy( xyzuv , hdr.hist.originator , 10 ) ;
+     if( xyzuv[3] == 0 && xyzuv[4] == 0 ){
+        xx = xyzuv[0] ; yy = xyzuv[1] ; zz = xyzuv[2] ;
+        if( doswap ){ swap_2(&xx); swap_2(&yy); swap_2(&zz); }
+        if( xx > 0 && xx < hdr.dime.dim[1] &&
+            yy > 0 && yy < hdr.dime.dim[2] &&
+            zz > 0 && zz < hdr.dime.dim[3]   ) spmorg = 1 ;
+     }
+   }
+   if( spmorg ) strcpy( MRILIB_orients , "LRPAIS" ) ;
 
    /* 27 Nov 2001: get a scale factor for images */
 
