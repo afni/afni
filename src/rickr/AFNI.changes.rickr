@@ -245,3 +245,9 @@
   * modified SUMA_3dSurf2Vol.[ch] -> version 1.2
       - see 3dSurfMaskDump: skip nodes outside dataset space
 
+27 July 2003:
+  * modified 3dresample.c (v1.4), file_tool.[ch] (v2.2), Imon.c (v2.9),
+    realtime.[ch] (v2.9), r_idisp.[ch] (v1.2) - added CHECK_NULL_STR() to
+    questionable strings for printing (old glibc doesn't print (nil))
+  * modified Imon.h - increase IFM_EPSILON to 0.01 and IFM_MAX_DEBUG to 4
+

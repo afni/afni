@@ -1,5 +1,4 @@
 
-#define VERSION		"2.1 - June 03, 2003"
 #define MAX_STR_LEN	1024
 
 #define MOD_STRING         0
@@ -23,6 +22,7 @@
 #define NDISP_REAL4     0x04
 #define NDISP_ALL	0xff
 
+#define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
 
 				  /* from Ifile.c ...                  */
 typedef struct		          /* stuff extracted from GE 5.x image */

@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.3 <January, 2003>"
+#define VERSION "Version 1.4 <July, 2003>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -41,6 +41,9 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 1.4  July 27, 2003
+ *   - wrap unknown printed strings in NULL check
  *
  * 1.3  January 14, 2003
  *   - clear warp information before writing to disk (fix uncommon problem)
@@ -671,7 +674,8 @@ int disp_opts_data ( char * info, options_t * opts )
 	    opts->dset, ISVALID_DSET(opts->dset) ? "valid" : "invalid",
 	    opts->mset, ISVALID_DSET(opts->mset) ? "valid" : "invalid",
 	    opts->dx, opts->dy, opts->dz,
-	    opts->orient, opts->prefix, opts->resam, opts->debug );
+	    CHECK_NULL_STR(opts->orient), CHECK_NULL_STR(opts->prefix),
+	    opts->resam, opts->debug );
 
     return 0;
 }

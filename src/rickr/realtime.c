@@ -8,6 +8,14 @@
 
 extern ART_comm  gAC;
 
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 2.9   2003 July 27
+ *   - apply CHECK_NULL_STR to questionable print statements
+ *----------------------------------------------------------------------
+*/
+
 /************************************************************************/
 /*******   This file was based on rtfeedme.c and rtread.c (with   *******/
 /*******   many thanks to R.W. Cox and R. Birn).  It is for use   *******/
@@ -578,7 +586,8 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
 	    "   ioc_name        = %s\n"
 	    "   (ioc, param)    = (0x%p, 0x%p)\n",
 	    ac, ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
-	    ac->host, ac->ioc_name, ac->ioc, ac->param );
+	    CHECK_NULL_STR(ac->host), CHECK_NULL_STR(ac->ioc_name),
+	    ac->ioc, ac->param );
 
     return 0;
 }

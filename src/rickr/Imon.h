@@ -8,7 +8,7 @@
 
 #define IFM_MAX_FLEN       200       /* maximum characters in filename   */
 #define IFM_PAD_LEN         20       /* padding for I-file expansion     */
-#define IFM_EPSILON      0.001       /* slice epsilon                    */
+#define IFM_EPSILON       0.01       /* slice epsilon                    */
 #define IFM_STAT_ALLOC      20       /* allocation blocksize - run stats */
 #define IFM_MAX_IM_ALLOC    40       /* initial limit for read_ge_files  */
 #define IFM_MAX_RUN_NAPS     3       /* maximum number of mid-run naps   */
@@ -24,7 +24,7 @@
 #define IFM_USE_VERSION      3
 
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
-#define IFM_MAX_DEBUG        3       /* maximum debug level		 */
+#define IFM_MAX_DEBUG        4       /* maximum debug level		 */
 
 #define IFM_GERT_SCRIPT "GERT_Reco2" /* output script, like GERT_Reco    */
 
