@@ -53,13 +53,13 @@ ENTRY("THD_init_session") ;
    { char * env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
      if( env != NULL ) tt = strtol(env,NULL,10) ;
      env = THD_trailname(sess->sessname,tt) ;
-     tt = 1+strlen(env) - THD_MAX_LABEL ; if( tt < 0 ) tt = 0 ;
+     tt = 1+strlen(env) - THD_MAX_NAME ; if( tt < 0 ) tt = 0 ;
      strcpy( sess->lastname , env+tt ) ;
    }
 #else
      for( iview-- ; iview >= 0 ; iview-- )
         if( sess->sessname[iview] == '/' ) break ;
-     MCW_strncpy( sess->lastname, &(sess->sessname[iview+1]), THD_MAX_LABEL ) ;
+     MCW_strncpy( sess->lastname, &(sess->sessname[iview+1]), THD_MAX_NAME ) ;
 #endif
 
    /*-- read all datablocks --*/

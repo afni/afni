@@ -1832,7 +1832,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
       for( ii=0 ; ii < num_str ; ii++ ){
          MCW_strncpy( strlist[ii] ,
                       GLOBAL_library.sslist->ssar[ii]->lastname ,
-                      THD_MAX_PREFIX ) ;
+                      THD_MAX_NAME ) ;
       }
 
       init_str = im3d->vinfo->sess_num ;
