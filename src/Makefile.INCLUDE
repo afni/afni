@@ -74,12 +74,10 @@ LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
 ### Make everything, install it too, and cleanup
 
 totality:all plugins install install_plugins install_lib clean
-	$(CP) $(INSTALLDIR)
 
 ### Make everything, install it too, but don't cleanup
 
 vastness:all plugins install install_plugins install_lib
-	$(CP) $(INSTALLDIR)
 
 ### Make many things
 
