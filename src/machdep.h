@@ -322,7 +322,7 @@ extern long   strtol() ;
 # define USE_RANDOM
 # define DONT_USE_STRPTIME
 # define NEED_XSETLOCALE
-# undef  NEED_NL_LANGINFO
+# define NEED_NL_LANGINFO
 # define DONT_USE_MCW_MALLOC
 #endif
 
