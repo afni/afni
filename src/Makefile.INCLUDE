@@ -1678,7 +1678,7 @@ aiv:aiv.o $(IMOBJS)
 #############
 #SUMA
 
-libSUMA.a:
+libSUMA.a: libmri.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
 	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
