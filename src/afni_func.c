@@ -856,6 +856,68 @@ if(aset >= 0 && PRINT_TRACING)
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+/* Hollow out the the overlay in place -- 21 Mar 2005 - RWCox.
+   An interior pixel is defined as one whose 4 nearest neighbors are
+   all nonzero.
+-------------------------------------------------------------------------*/
+
+static void mri_edgize( MRI_IMAGE *im )
+{
+   int ii , jj , nx,ny,nxy , joff ;
+
+   if( im == NULL ) return ;
+
+   nx = im->nx ; ny = im->ny ; nxy = nx * ny ;
+   if( nx < 3 || ny < 3 ) return ;  /* no interior pixels at all?! */
+
+   switch( im->kind ){
+
+     case MRI_short:{
+       short *ajj , *ajm , *ajp , *atemp , *ar ;
+       ar    = MRI_SHORT_PTR(im) ;
+       atemp = (short *)malloc(sizeof(short)*nxy); if( atemp == NULL ) return;
+       memcpy(atemp,ar,sizeof(short)*nxy) ;
+       for( jj=1 ; jj < ny-1 ; jj++ ){
+         joff = jj * nx ;      /* offset into this row */
+         ajj  = atemp + joff ; /* pointer to this row */
+         ajm  = ajj-nx ;       /* pointer to last row */
+         ajp  = ajj+nx ;       /* pointer to next row */
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( ajj[ii]   != 0 &&
+               ajm[ii]   != 0 && ajp[ii]   != 0 &&
+               ajj[ii+1] != 0 && ajj[ii-1] != 0   ) ar[ii+joff] = 0 ;
+         }
+       }
+       free((void *)atemp) ;
+     }
+     return ;
+
+     case MRI_rgb:{
+       rgbyte *ajj , *ajm , *ajp , *atemp , *ar ;
+       ar    = (rgbyte *)MRI_RGB_PTR(im) ;
+       atemp = (rgbyte *)malloc(sizeof(rgbyte)*nxy); if( atemp == NULL ) return;
+       memcpy(atemp,ar,sizeof(rgbyte)*nxy) ;
+       for( jj=1 ; jj < ny-1 ; jj++ ){
+         joff = jj * nx ;
+         ajj  = atemp + joff ;
+         ajm  = ajj-nx ;
+         ajp  = ajj+nx ;
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( !RGBZEQ(ajj[ii])   &&
+               !RGBZEQ(ajm[ii])   && !RGBZEQ(ajp[ii])   &&
+               !RGBZEQ(ajj[ii+1]) && !RGBZEQ(ajj[ii-1])   ) RGBZAS(ar[ii+joff]) ;
+         }
+       }
+       free((void *)atemp) ;
+     }
+     return ;
+
+   }
+
+   return ; /* default im->kind case ==> do nothing */
+}
+
 /*-----------------------------------------------------------------------
   Make a functional overlay -- very simple routine at present;
    n = slice index , br_fim = data structure to extract slice from.
@@ -1207,6 +1269,11 @@ STATUS("bad im_fim->kind!") ;
 CLEANUP:
    if( im_thr != NULL && im_thr != im_fim ) mri_free( im_thr ) ;
    mri_free( im_fim ) ;
+
+   /* 21 Mar 2005: Hollow out overlay? */
+
+   if( AFNI_yesenv("AFNI_EDGIZE_OVERLAY") ) mri_edgize(im_ov) ;
+
    RETURN(im_ov) ;
 }
 
