@@ -382,26 +382,6 @@ ENTRY("mri_short2mask") ;
 
    clustedit3D( nx,ny,nz , mask , (int)rint(0.02*nxyz) ) ;
 
-   /* fill in any isolated holes in mask */
-
-   if( verb ) fprintf(stderr,"++ mri_short2mask: filling in holes\n") ;
-
-#if 1
-   (void) THD_mask_fillin_once( nx,ny,nz , mask , 2 ) ;
-          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
-          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
-#else
-   for( kk=1 ; kk < nz-1 ; kk++ ){
-    for( jj=1 ; jj < ny-1 ; jj++ ){
-     for( ii=1 ; ii < nx-1 ; ii++ ){
-       if( !mask[IJK(ii,jj,kk)  ] &&
-            mask[IJK(ii+1,jj,kk)] &&  mask[IJK(ii-1,jj,kk)] &&
-            mask[IJK(ii,jj+1,kk)] &&  mask[IJK(ii,jj-1,kk)] &&
-            mask[IJK(ii,jj,kk+1)] &&  mask[IJK(ii,jj,kk-1)]   )
-         mask[IJK(ii,jj,kk)] = 1 ;
-   }}}
-#endif
-
    RETURN(mask) ;
 }
 
@@ -410,135 +390,79 @@ ENTRY("mri_short2mask") ;
 typedef struct { short i,j,k,val,basin; } shortvox ;
 
 /*--------------------------------------------------------------------------*/
+/*! Sort array of shortvox into increasing order (decreasing if dec != 0). */
 
-static void isort_shortvox( int n , shortvox *ar )
+static sort_shortvox( int n , shortvox *ar , int dec )
 {
-   register int  j , p ;    /* array indices */
-   register shortvox temp ; /* a[j] holding place */
-   register shortvox *a = ar ;
+   int ii , sbot,stop,nsv , sval ;
+   int *hsv , *csv ;
+   shortvox *tar ;
 
-   if( n < 2 ) return ;
+   if( n < 2 || ar == NULL ) return ;
 
-   for( j=1 ; j < n ; j++ ){
+   /* decreasing order desired?  flip values */
 
-     if( a[j].val > a[j-1].val ){   /* out of order */
-        p    = j ;
-        temp = a[j] ;
+   if( dec )
+     for( ii=0 ; ii < n ; ii++ ) ar[ii].val = -ar[ii].val ;
 
-        do{
-           a[p] = a[p-1] ; /* at this point, a[p-1] < temp, so move it up */
-          p-- ;
-        } while( p > 0 && temp.val > a[p-1].val ) ;
+   /* find range of values */
 
-        a[p] = temp ;       /* finally, put temp in its place */
-     }
+   sbot = stop = ar[0].val ;
+   for( ii=1 ; ii < n ; ii++ ){
+     sval = ar[ii].val ;
+          if( sval < sbot ) sbot = sval ;
+     else if( sval > stop ) stop = sval ;
    }
-}
+   nsv = stop-sbot+1 ;   /* number of distinct values */
+   if( nsv <= 1 ) return ;
 
-/********************************************************************************/
-/* qsrec : recursive part of quicksort (stack implementation)                   */
+   /* build hsv[i] = how many have value = sbot+i
+            csv[i] = how many have value < sbot+i, i=0..nsv-1 */
 
-#define QS_STACK  1024  /* stack size */
-#define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
-#define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
+   hsv = (int *)calloc(sizeof(int),nsv) ;
+   csv = (int *)calloc(sizeof(int),nsv) ;
+   for( ii=0 ; ii < n   ; ii++ ) hsv[ar[ii].val-sbot]++ ;
+   for( ii=1 ; ii < nsv ; ii++ ) csv[ii] = csv[ii-1]+hsv[ii-1] ;
+   free((void *)hsv) ;
 
-static void qsrec_doubleint( int n , shortvox *ar , int cutoff )
-{
-   int i , j ;             /* scanning indices */
-   shortvox *a = ar ;
-   shortvox temp , pivot ; /* holding places */
+   /* copy from ar into temp array tar,
+      putting each one into its place as given by csv */
 
-   int left, right, mst, stack[QS_STACK], nnew , itemp ;
+   tar = (shortvox *)calloc(sizeof(shortvox),n) ;
+   for( ii=0 ; ii < n ; ii++ ){
+     sval = ar[ii].val - sbot ;   /* sval is in 0..nsv-1 now */
+     tar[ csv[sval] ] = ar[ii] ;
+     csv[sval]++ ;
+   }
 
-   /* return if too short (insertion sort will clean up) */
+   /* copy back into ar */
 
-   if( cutoff < 3 ) cutoff = 3 ;
-   if( n < cutoff ) return ;
+   memcpy( ar , tar , sizeof(shortvox)*n ) ;
+   free((void *)tar) ; free((void *)csv) ;
 
-   /* initialize stack to start with whole array */
+   /* unflip? */
 
-   stack[0] = 0   ;
-   stack[1] = n-1 ;
-   mst      = 2   ;
+   if( dec )
+     for( ii=0 ; ii < n ; ii++ ) ar[ii].val = -ar[ii].val ;
 
-   /* loop while the stack is nonempty */
-
-   while( mst > 0 ){
-      right = stack[--mst] ;  /* work on subarray from left -> right */
-      left  = stack[--mst] ;
-
-      i = ( left + right ) / 2 ;           /* middle of subarray */
-
-      /* sort the left, middle, and right a[]'s */
-
-      if( a[left].val < a[i].val     ){ QS_SWAPF(a[left] ,a[i]    ); }
-      if( a[left].val < a[right].val ){ QS_SWAPF(a[left] ,a[right]); }
-      if( a[i].val    < a[right].val ){ QS_SWAPF(a[right],a[i]    ); }
-
-      pivot  = a[i] ;                      /* a[i] is the median-of-3 pivot! */
-      a[i]   = a[right] ;
-
-      i = left ;                           /* initialize scanning */
-      j = right ;
-
-      /*----- partition: move elements bigger than pivot up and elements
-                         smaller than pivot down, scanning in from ends -----*/
-
-      do{
-        for( ; a[++i].val > pivot.val ; ) ; /* scan i up,   until a[i] <= pivot */
-        for( ; a[--j].val < pivot.val ; ) ; /* scan j down, until a[j] >= pivot */
-
-        if( j <= i ) break ;         /* if j meets i, quit */
-
-        QS_SWAPF( a[i] , a[j] ) ;
-      } while( 1 ) ;
-
-      /*----- at this point, the array is partitioned -----*/
-
-      a[right]  = a[i] ;             /* restore the pivot */
-      a[i]      = pivot ;
-
-      /*----- push subarrays [left..i-1] and [i+1..right] onto stack, if big -----*/
-
-      nnew = 0 ;
-      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; nnew++ ; }
-      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; nnew++ ; }
-
-      /* if just added two subarrays to stack, make sure shorter one comes first */
-
-      if( nnew == 2 && stack[mst-3] - stack[mst-4] > stack[mst-1] - stack[mst-2] ){
-        QS_SWAPI( stack[mst-4] , stack[mst-2] ) ;
-        QS_SWAPI( stack[mst-3] , stack[mst-1] ) ;
-      }
-
-   }  /* end of while stack is non-empty */
-}
-
-#ifndef QS_CUTOFF
-#define QS_CUTOFF 10
-#endif
-
-static void qsort_shortvox( int n , shortvox *a )
-{
-   qsrec_doubleint( n , a , QS_CUTOFF ) ;
-   isort_doubleint( n , a ) ;
    return ;
 }
 
 /*--------------------------------------------------------------------------*/
 
 #undef  DBALL
-#define DBALL 1024
+#define DBALL 32
 
-static MRI_IMAGE * watershedize( MRI_IMAGE *sim )
+MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
 {
+   MRI_IMAGE *tim ;
    int ii,jj,kk , pp,qq , nx,ny,nz,nxy,nxyz , nvox ;
    int ip,jp,kp , im,jm,km ;
-   short *sar ;
+   short *sar , *tar ;
    shortvox *svox ;
    int *isvox ;
-   int *basin , nbasin , nball ;
-   int nb,vb,mb,m , bp[6] , vp[6] ;
+   int *basin , nball ;
+   int nb,vb,mb,m,mu,mq,mz , bp[6] , hpf ;
 
 ENTRY("watershedize") ;
 
@@ -552,79 +476,155 @@ ENTRY("watershedize") ;
    for( nvox=0,pp=0 ; pp < nxyz ; pp++ ) if( sar[pp] > 0 ) nvox++ ;
    if( nvox <= 999 ) RETURN(NULL) ;
 
+   if( verb )
+     fprintf(stderr,"++mri_watershedize: %d voxels input\n",nvox) ;
+
    /* create voxel lists */
 
    svox  = (shortvox *) malloc( sizeof(shortvox)* nvox ) ;
    isvox = (int *)      malloc( sizeof(int)     * nxyz ) ;
    for( qq=pp=0 ; pp < nxyz ; pp++ ){
-     if( sar[pp] > 0 ){
-       ii             = pp % nx ;
+     if( sar[pp] > 0 ){                  /* save this one: */
+       ii             = pp % nx ;        /* spatial indexes */
        jj             = (pp%nxy) / nx ;
        kk             = pp / nxy ;
-       isvox[pp]      = qq ;
        svox[qq].i     = ii ;
        svox[qq].j     = jj ;
        svox[qq].k     = kk ;
-       svox[qq].val   = sar[pp] ;
-       svox[qq].basin = -1 ;
+       svox[qq].val   = sar[pp] ;        /* value */
+       svox[qq].basin = -1 ;             /* which basin */
+       qq++ ;
+       isvox[pp]      = qq ;             /* where in list */
      } else {
-       isvox[pp] = -1 ;
+       isvox[pp] = -1 ;                  /* voxel not in list */
      }
    }
 
    /* sort voxel list into descending order */
 
-   qsort_shortvox( nvox , svox ) ;
+   if( verb ) fprintf(stderr,"++mri_watershedize: sorting voxels\n") ;
 
-   nbasin   = 1 ;
+   sort_shortvox( nvox , svox , 1 ) ;
+
+   /* create basin for first (deepest) voxel */
+
    nball    = DBALL ;
    basin    = (int *)malloc(sizeof(int)*nball) ;
    basin[0] = svox[0].val ;
+   hpf      = (int)rint(prefac*basin[0]) ;      /* preflood */
+   for( m=1 ; m < nball ; m++ ) basin[m] = -1 ;
+
+   /* scan voxels as they get shallower, and basinate them */
 
    for( pp=1 ; pp < nvox ; pp++ ){
-     ii = svox[pp].i; jj = svox[pp].j; kk = svox[pp].k;
-     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
+     ii = svox[pp].i; jj = svox[pp].j; kk = svox[pp].k;  /* where */
+     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;                 /* nbhrs */
      im = ii-1 ; jm = jj-1 ; km = kk-1 ;
+
+     /* macro checks if (a,b,c) voxel is in the list;
+        if so and it is already in a basin, then
+        make a list of basins encountered:
+          nb = number of unique basins encountered (0..6)
+          mb = index of deepest basin encountered (0..nb-1)
+          vb = value (depth) of deepest basin encountered
+          bp[m] = index of i-th basin encountered (m=0..nb-1) */
 
 #undef  BASECHECK
 #define BASECHECK(a,b,c)                                   \
   do{ qq = isvox[IJK(a,b,c)] ;                             \
       if( qq >= 0 && svox[qq].basin >= 0 ){                \
-        bp[nb] = svox[qq].basin ; vp[nb] = basin[bp[nb]] ; \
-        if( vp[nb] > vb ){ mb = nb ; vb = vp[nb] ; }       \
-        nb++ ;                                             \
+        qq = svox[qq].basin ;                              \
+        for( m=0 ; m < nb && bp[m] != qq ; qq++ ) ;        \
+        if( m == nb ){                                     \
+          bp[nb] = qq ;                                    \
+          if( basin[qq] > vb ){ mb = nb; vb = basin[qq]; } \
+          nb++ ;                                           \
+        }                                                  \
       }                                                    \
   } while(0)
 
-     nb = 0 ; vb = -1 ; mb = -1 ;
-     if( ip < nx ) BASECHECK(ip,jj,kk) ;
-     if( im >= 0 ) BASECHECK(im,jj,kk) ;
+     nb = 0 ; vb = -1 ; mb = -1 ;         /* initialize counters */
+     if( ip < nx ) BASECHECK(ip,jj,kk) ;  /* check each neighbor */
+     if( im >= 0 ) BASECHECK(im,jj,kk) ;  /* for basin-ositiness */
      if( jp < ny ) BASECHECK(ii,jp,kk) ;
      if( jm >= 0 ) BASECHECK(ii,jm,kk) ;
      if( kp < nz ) BASECHECK(ii,jj,kp) ;
      if( km >= 0 ) BASECHECK(ii,jj,km) ;
 
-     /* at this point, nb = # of neighbors already in basins
-                       bp[m] = list of these basins, m=0..nb-1
-                       vp[m] = peak values of these basins
-                       mb    = m with vp[m] largest ('best')
-                       vb    = value of best basin
-     */
+     if( nb == 0 ){  /*** this voxel is isolated ==> create new basin ****/
 
-     if( nb == 0 ){  /* this voxel is isolated ==> create new basin */
+       /* scan for free basin (will have depth < 0) */
 
-       if( nbasin == nball ){
-         nball += DBALL ; basin = (int *)realloc((void *)basin,nball) ;
+       for( m=1 ; m < nball && basin[m] > 0 ; m++ ) ;
+
+       /* didn't find one ==> add more basin space */
+
+       if( m == nball ){
+         mu = m; nball += DBALL; basin = (int *)realloc((void *)basin,nball);
+         for( ; m < nball ; m++ ) basin[m] = -1 ;
+         m = mu ;
        }
-       basin[nbasin] = svox[pp].val ;
-       svox[pp].basin = nbasin++ ;
+       basin[m] = svox[pp].val ;  /* depth of this basin */
+       svox[pp].basin = m ;       /* assign voxel to new basin */
 
-     } else {        /* this voxel has larger neighbors */
+       if( verb ) fprintf(stderr,"++ new basin: pp=%d m=%d depth=%d\n",pp,m,basin[m]) ;
 
-       svox[pp].basin = bp[mb] ; /* the best basin found above */
+     } else {        /*** this voxel has deeper neighbors ***/
 
+       svox[pp].basin = mq = bp[mb] ;   /* assign voxel to best basin */
+
+                       /* if have more than one neighbor, other */
+       if( nb > 1 ){   /* basins could be merged with the best  */
+         if( verb ) fprintf("++ %d basins touch at pp=%d\n",nb,pp) ;
+         mz = svox[pp].val ;          /* depth of this voxel */
+         for( m=0 ; m < nb ; m++ ){
+           if( m == mb ) continue ;        /* can't merge with itself */
+           mu = bp[m] ;
+           if( basin[mu]-mz <= hpf ){      /* basin not TOO much deeper */
+             if( verb ) fprintf(stderr,"++ merging basin %d into %d\n",mu,mq);
+             for( qq=1 ; qq < pp ; qq++ )  /* change all mu's to mq's */
+               if( svox[qq].basin == mu ) svox[qq].basin = mq ;
+             basin[m] = -1 ;          /* mark basin as unused */
+           }
+         }
+       }
      }
+   } /* end of loop over voxels */
+
+   /* at this point, all voxels in svox are assigned to a basin */
+
+   free((void *)isvox) ;
+   isvox = (int *) calloc( sizeof(int) , nball ) ;
+
+   tim = mri_new_conforming( sim , MRI_short ) ;
+   tar = MRI_SHORT_PTR(tim) ;
+
+   /* for each active basin, count how many voxels are in it */
+
+   for( m=0 ; m < nball ; m++ ){
+     if( basin[m] <= 0 ) continue ;    /* invalid ==> skip */
+     for( nb=0,pp=0 ; pp < nvox ; pp++ )
+       if( svox[pp].basin == m ) nb++ ;
+     basin[m] = nb ;                   /* now holds count instead of depth */
+     isvox[m] = m ;
    }
+
+   qsort_intint( nball , basin , isvox ) ;  /* sort into increasing order */
+
+   ii = 1 ;
+   for( m=0 ; m < nball ; m++ ){
+     if( basin[m] <= 0 ) continue ;
+     mu = isvox[m] ;               /* original basin index */
+     for( pp=0 ; pp < nvox ; pp++ ){
+       if( svox[pp].basin == mu )
+         tar[IJK(svox[pp].i,svox[pp].j,svox[pp].k)] = ii ;
+     }
+     ii++ ;
+   }
+
+   free((void *)isvox); free((void *)basin); free((void *)svox );
+
+   return tim ;
 }
 
 /*======================================================================*/
@@ -750,6 +750,12 @@ ENTRY("mri_brainormalize") ;
    mask = mri_short2mask( sim ) ;
 
    if( mask == NULL ){ mri_free(sim); RETURN(NULL); }
+
+   /* fill in any isolated holes in mask */
+
+   (void) THD_mask_fillin_once( nx,ny,nz , mask , 2 ) ;  /* thd_automask.c */
+          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
+          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
 
    kk = mask_count(nxyz,mask) ;
    if( verb )
