@@ -1147,7 +1147,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
 
                } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && sv->iState != origState);
-               /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
+               /* register a call to redisplay 
+               (you also need to copy the color data, in case the next surface is of the same family*/
                if (!list) list = SUMA_CreateList();
                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
                if (!SUMA_Engine (&list)) {

@@ -1826,6 +1826,8 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
             SUMA_RETURN(NOPE);
       }
       SUMA_LH("Adding new bias");
+      
+      #if 0
       /* Add same bias to other direction */
       switch (BiasDim) {
          case SW_CoordBias_X:
@@ -1862,6 +1864,10 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
             SUMA_SL_Err("This should not be.\nWhy, oh why ?");
             SUMA_RETURN(NOPE);
       }
+      #else 
+      /* Add same bias to other direction */
+      SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, ovr->OptScl->BiasVect);
+      #endif
    }
    
    /* Update surface geometry properties */
@@ -1931,6 +1937,7 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
    
    /* Now add the new one */
    if (NewBias) {
+      #if 0
       switch (BiasDim) {
          case SW_CoordBias_X:
             /* Add X bias */
@@ -1970,7 +1977,11 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
          default:
             SUMA_SL_Err("This should not be.\nNot at all.");
             SUMA_RETURN(NOPE); 
-      }  
+      }
+      #else
+      /* Add bias to  direction */
+      SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, NewBias);
+      #endif  
 
    } else {/* nothing to add (0 bias)*/
 
@@ -5744,6 +5755,17 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
       SUMA_RETURN (NOPE);
    }
    
+   /* make sure that overlay plane does not have bias in it */
+   if (Overlay->OptScl) {
+      if (Overlay->OptScl->BiasVect) {
+         SUMA_SL_Err("New overlay plane cannot have coordinate bias.\nNot yet at least.\n");
+         /* If you want to support this feature, you'll have to call SUMA_ADD_COORD_BIAS_VECT
+         on any surface the plane gets assigned to. That means SO and SO2 below.
+         Search for macro SUMA_ADD_COORD_BIAS_VECT in SUMA_SwitchState in file SUMA_Engine.c
+         for the example */
+         SUMA_RETURN(NOPE);
+      }
+   }
    /* make sure there's enough room for the new plane */
    if (SO->N_Overlays+1 >= SUMA_MAX_OVERLAYS) {
       SUMA_SL_Crit("Too many color overlays.");
@@ -6054,32 +6076,6 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d. Returning.\n", FuncName, OverInd);
       *PlaneInd = OverInd;
 
-      #if 0
-      SUMA_LH("Registering plane with surfaces deserving it");
-      /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
-      and make sure they have this colorplane, otherwise, create a link to it. */   
-      for (i=0; i < N_dov; ++i) {
-         if (SUMA_isSO(dov[i])) { 
-            SO2 = (SUMA_SurfaceObject *)dov[i].OP;
-            if (SUMA_isRelated(SO, SO2, 1) && SO != SO2) { /* only 1st order kinship allowed */
-               /* surfaces related and not identical, check on colorplanes */
-               if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Name, &OverInd)) {
-                  /* color plane not found, link to that of SO */
-                  SO2->Overlays[SO2->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO->Overlays[SO->N_Overlays-1]);
-                  /*setup the defaults */
-                  SO2->Overlays[SO2->N_Overlays]->Show = YUP;
-                  SO2->Overlays[SO2->N_Overlays]->GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
-                  SO2->Overlays[SO2->N_Overlays]->isBackGrnd = NOPE;
-
-                  /*increment the number of overlay planes */
-                  ++SO2->N_Overlays;
-               } else {
-                  /* colorplane found OK */
-               }
-            }
-         }
-      }
-      #endif
    SUMA_RETURN (YUP);
 
 }

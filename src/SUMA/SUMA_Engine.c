@@ -953,7 +953,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (EngineData->i >= 0 && EngineData->i < SO->N_Node) {
                SO->SelectedNode = EngineData->i;
             } else {
-               SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");
+               /* ignore -1, used in initializations */
+               if (EngineData->i != -1) { SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface"); }
                break;
             }
             SUMA_UpdateNodeField(SO);
@@ -988,7 +989,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
             if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
-               SUMA_SLP_Err("Node index < 0 || > Number of FaceSets in surface");
+               if (EngineData->i != -1) { /* ignore -1, used in initialization */
+                  SUMA_SLP_Err("Node index < 0 || > Number of FaceSets in surface");
+               } 
                break;
             }
             ND = SO->NodeDim;
@@ -1206,7 +1209,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  ++it;
                               }
                               if (!Found) {
-                                 fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will not be touched .\n", FuncName);
+                                 if (LocalHead) fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will not be touched .\n", FuncName);
                                  break;
                               } else {
                                  /* FORCE a redisplay */
@@ -2140,6 +2143,19 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
                /* plane not found, create a link to it */
                if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);
                SO_nxt->Overlays[SO_nxt->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO_prec->Overlays[j]);
+               /* it happens at times, that an overlay carries coordinate bias with it. 
+               When that happens, the bias should be added immediately */
+               if (SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl) {
+                  if (SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->BiasVect) {
+                     SUMA_LH("Adding coordbias");
+                     SUMA_ADD_COORD_BIAS_VECT(  SO_nxt,
+                                                SO_nxt->Overlays[SO_nxt->N_Overlays], 
+                                                SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->DoBias, 
+                                                SO_nxt->Overlays[SO_nxt->N_Overlays]->OptScl->BiasVect);
+                     /* Update surface geometry properties */
+                     SUMA_NewSurfaceGeometry(SO_nxt);
+                  }
+               }
                /*increment the number of overlay planes */
                ++SO_nxt->N_Overlays;
             } else {

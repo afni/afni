@@ -225,7 +225,11 @@ typedef enum { SW_CoordBias,
                SW_CoordBias_X, SW_CoordBias_Y, SW_CoordBias_Z,
                SW_CoordBias_N, 
                SW_N_CoordBias } SUMA_WIDGET_INDEX_COORDBIAS;
-               
+
+typedef enum { SW_CmapMode,
+                  SW_Interp, SW_NN, SW_Direct,
+                  SW_N_CmapMode } SUMA_WIDGET_CMAP_MODE;
+                                 
 typedef enum {
    SUMA_RDC_ERROR = -1,
    SUMA_RDC_NOT_SET = 0,
@@ -960,6 +964,7 @@ typedef struct {
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
+   Widget ShowZero_tb; /*!< Show zero values */
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
@@ -978,6 +983,7 @@ typedef struct {
    Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
    int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
    Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the switch coord bias widgets */
+   Widget CmapModeMenu[SW_N_CmapMode];
    Widget opts_rc; /*!< rowcolumn containing color map, color bar and the switch buttons */
    Widget opts_form; /*!< rowcolumn containing all options for colormapping */
    Widget rcvo; /*!< vertical rowcol for colormapping options */

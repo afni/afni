@@ -1,6 +1,44 @@
 #ifndef SUMA_COLOR_INCLUDED
 #define SUMA_COLOR_INCLUDED
 
+#define SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, BiasVect) {   \
+   int m_i, m_i3; \
+   switch (BiasDim) {   \
+      case SW_CoordBias_X: \
+         /* Add X bias */  \
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
+            m_i3 = 3*ovr->NodeDef[m_i]; \
+            SO->NodeList[m_i3] += BiasVect[m_i];   \
+         }  \
+         break;   \
+      case SW_CoordBias_Y: \
+         /* Add Y bias */  \
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
+            m_i3 = 3*ovr->NodeDef[m_i]+1;  \
+            SO->NodeList[m_i3] += BiasVect[m_i];   \
+         }  \
+         break;   \
+      case SW_CoordBias_Z: \
+         /* Add Z bias */  \
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
+            m_i3 = 3*ovr->NodeDef[m_i]+2;  \
+            SO->NodeList[m_i3] += BiasVect[m_i];   \
+         }  \
+         break;   \
+      case SW_CoordBias_N: \
+         /* Add Normal bias */   \
+         for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
+            m_i3 = 3*ovr->NodeDef[m_i]; \
+            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
+            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
+            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];          \
+         }  \
+         break;   \
+      default: \
+         SUMA_SL_Err("This should not be.\nWhy, oh why ?"); \
+   }  \
+}  \
+
 SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_Boolean SkipLast, char *Name);
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM);
 int r_ulong_size ( unsigned long l );

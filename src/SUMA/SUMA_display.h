@@ -212,6 +212,7 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy,
                                                 void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata), void *DefaultData,
                                                 void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata), void *SelectData,
                                                 void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata), void *CloseListData);
+SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Data, void *Select_Data, void *CloseList_Data); 
 void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partial, 
                                   SUMA_LIST_WIDGET *LW);
 void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
