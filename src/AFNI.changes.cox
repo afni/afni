@@ -4326,6 +4326,8 @@
      the keypad "Delete" key(s) operate like the Undo button in the drawing
      plugin.
  * Modified afni_receive.c to have a string name debug output for each
-     receive callback.
+     receive callback (and all the functions that call this).  Also fixed a
+     bug that would have functions registered for different receive cases
+     get inappropriate calls (forgot to enclose the call in {..} in an if).
  * Modified afni_suma*.c to send closest surface node ID to SUMA when viewpoint
      change callback is invoked.

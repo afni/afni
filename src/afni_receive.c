@@ -118,7 +118,7 @@ ENTRY("AFNI_receive_init") ;
    im3d->vinfo->receiver[ir]->receiver_data = cb_data ;
 
    im3d->vinfo->receiver[ir]->receiver_funcname =
-     (cbname != NULL) ? strdup(cbname) : "(unknown func)" ;
+     strdup( (cbname != NULL) ? cbname : "[unknown func]" ) ;
 
    AFNI_toggle_drawing( im3d ) ;
 
@@ -141,13 +141,16 @@ ENTRY("AFNI_receive_destroy") ;
 
       for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
 
-         if( im3d->vinfo->receiver[ir] != NULL )
+         if( im3d->vinfo->receiver[ir] != NULL ){
             im3d->vinfo->receiver[ir]->receiver_func(
                    RECEIVE_CLOSURE , 0 , NULL ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
 
-         free( im3d->vinfo->receiver[ir] ) ;
-         im3d->vinfo->receiver[ir] = NULL ;
+            if( im3d->vinfo->receiver[ir]->receiver_funcname != NULL )
+              free( im3d->vinfo->receiver[ir]->receiver_funcname ) ;
+            free( im3d->vinfo->receiver[ir] ) ;
+            im3d->vinfo->receiver[ir] = NULL ;
+         }
       }
 
       im3d->vinfo->num_receiver    = 0 ;
@@ -322,6 +325,9 @@ ENTRY("AFNI_receive_control") ;
 
    if( im3d->vinfo->receiver[key]->receiver_mask == 0 ){   /* receiving nothing at all? */
       int ir , nn=0 ;
+
+      if( im3d->vinfo->receiver[key]->receiver_funcname != NULL )
+        free( im3d->vinfo->receiver[key]->receiver_funcname ) ;
 
       free( im3d->vinfo->receiver[key] ) ;                 /* toss this one fer shur */
       im3d->vinfo->receiver[key] = NULL ;
@@ -672,11 +678,6 @@ fprintf(stderr,"Sending %d points to receiver\n",nn) ;
 
       if( im3d->vinfo->receiver[ir] != NULL &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWING_MASK) ){
-
-if(PRINT_TRACING){
-  char str[256] ; sprintf(str,"sending %d points to receiver %d",nn,ir) ;
-  STATUS(str) ;
-}
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
          im3d->vinfo->receiver[ir]->receiver_func(
