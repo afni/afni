@@ -19,7 +19,7 @@
 ** malloc.h at all.  A sad situation.  If you have compilation problems
 ** that point here, feel free to tweak or remove these declarations.
 */
-#include <malloc.h>
+/** #include <malloc.h> **/
 #if !defined(sco)  &&  !defined(sgi) && !defined(IRIX)
 extern char* malloc();
 #endif

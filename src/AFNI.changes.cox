@@ -3634,3 +3634,8 @@
 
 09 Apr 2002
  * Some minor changes to machdep.[ch] to make AFNI work on Mac OS X 10.1.3.
+
+10 Apr 2002
+ * Remove malloc.h include from mpeg_encode files for OS X compatibility.
+ * Modify thd_automask.c to only keep largest connected component.
+ * New program 3dAutomask.

@@ -47,7 +47,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
-           3dAutoTcorrelate 3dFDR rtfeedme
+           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -64,7 +64,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
-                  mayo_analyze 3dAutoTcorrelate 3dFDR
+                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -87,7 +87,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
-               3dAutoTcorrelate 3dFDR
+               3dAutoTcorrelate 3dFDR 3dAutomask
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -524,6 +524,10 @@ strblast:strblast.o
 3dClipLevel:3dClipLevel.o
 	$(RM) $@
 	$(CC) -o 3dClipLevel 3dClipLevel.o $(LFLAGS) $(LLIBS)
+
+3dAutomask:3dAutomask.o
+	$(RM) $@
+	$(CC) -o 3dAutomask 3dAutomask.o $(LFLAGS) $(LLIBS)
 
 3dWinsor:3dWinsor.o
 	$(RM) $@
@@ -1144,7 +1148,7 @@ plug_render.$(SO):mri_render.h
 
 # Stuff for plugins on CYGWIN:
 # Each plugin must be listed here and have 2 corresponding lines in fixed_plugins.h
-# 
+#
 # plug_nlfit.fixed and plug_wavelets.fixed have been removed due to difficulties
 
 PLUGIN_FIXED = plug_clust.fixed    plug_copy.fixed     plug_rename.fixed     \
@@ -1223,11 +1227,10 @@ f2c.tgz:
 #######
 # dlcompat
 
-dlcompat:
+libdl.a:dlcompat/dlfcn.h dlcompat/dlopen.c
 	( cd dlcompat ; \
-	  make libdl.a clean ; \
-	  $(CP) libdl.a dlfcn.h .. ;
-	  ranlib libdl.a ; )
+	  make libdl.a ; \
+	  $(CP) libdl.a dlfcn.h .. ; )
 
 #######
 # plotting library
