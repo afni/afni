@@ -27,6 +27,7 @@
 #define IFM_MAX_DEBUG        4       /* maximum debug level		 */
 
 #define IFM_GERT_SCRIPT "GERT_Reco2" /* output script, like GERT_Reco    */
+#define IFM_SLICE_PAT   "alt+z"
 
 /* -- define copies -- */
 
@@ -81,6 +82,7 @@ typedef struct  /* user options */
     char           * start_file;    /* user-specified starting file     */
     char           * start_dir;     /* user input starting directory    */
     char           * drive_cmd;     /* DRIVE_AFNI command to send       */
+    char           * sp;            /* slice acquisition pattern        */
     char	  ** argv;	    /* passed to the program            */
     int              argc;
     int              nt;            /* user input time points per run   */
