@@ -105,7 +105,7 @@ THD_brick_stats THD_get_brick_stats( MRI_IMAGE *im )
    void *br ;
    THD_brick_stats bst ;
 
-   bst.min = bst.max = 0 ;
+   bst.min = bst.max = 0 ;  /* got to give them something */
 
    if( im == NULL ) return bst ;
    br   = mri_data_pointer( im ) ; if( br == NULL ) return bst ;
