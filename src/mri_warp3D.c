@@ -1108,6 +1108,7 @@ ENTRY("THD_warp3D") ;
                         ADN_none ) ;
 
      THD_copy_datablock_auxdata( qset->dblk , outset->dblk ) ;  /* 08 Jun 2004 */
+     INIT_STAT_AUX( qset , MAX_STAT_AUX , outset->stat_aux ) ;
 
    } else {                          /*-- output is on new grid --*/
 
@@ -1178,6 +1179,7 @@ ENTRY("THD_warp3D") ;
                         ADN_none ) ;
 
      THD_copy_datablock_auxdata( qset->dblk , outset->dblk ) ;  /* 08 Jun 2004 */
+     INIT_STAT_AUX( qset , MAX_STAT_AUX , outset->stat_aux ) ;
 
    } /*-- end of warping to new grid --*/
 

@@ -5044,4 +5044,5 @@
  * Modified 3dvolreg.c to make -sinit turn scale init off for -twopass.
 
 08 Jun 2004
- * Added call to THD_copy_auxdata() to mri_warp3D.c.
+ * Added call to THD_copy_auxdata() to mri_warp3D.c, and -copyaux option to
+     3drefit.c
