@@ -328,7 +328,9 @@ char * DRAW_main( PLUGIN_interface * plint )
    recv_open    = 0 ;      /* receiver is not yet open */
    recv_key     = -1;      /* and has no identifier key */
 
-   vl_dtable    = NULL ;   /* 17 Oct 2003 */
+   if( vl_dtable != NULL ){   /* 20 Oct 2003 */
+     destroy_Dtable(vl_dtable) ; vl_dtable = NULL ;
+   }
 
    SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
@@ -1148,6 +1150,12 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            voxels that are chosen.\n"
   "        * Integer valued datasets can only receive integer values;\n"
   "            float datasets can take floating point values.\n"
+  "        * You can attach a label string to each drawing value.\n"
+  "            The value-label table will be saved with the dataset\n"
+  "            when you use 'Save', 'SaveAs' or 'Done'.  You can also\n"
+  "            setup a standard value-label table in a file, whose\n"
+  "            name is specified by setting environment variable\n"
+  "            AFNI_VALUE_LABEL_DTABLE -- cf. file README.environment.\n"
   "\n"
   "Step 3) Choose a drawing color.\n"
   "        * This is the color that will be shown in the image windows\n"
@@ -1614,6 +1622,13 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
      atr = THD_find_string_atr( dset->dblk , "VALUE_LABEL_DTABLE" ) ;
      if( atr != NULL && atr->nch > 5 )
        vl_dtable = Dtable_from_nimlstring( atr->ch ) ;
+     if( vl_dtable == NULL ){
+       char *str = AFNI_suck_file( getenv("AFNI_VALUE_LABEL_DTABLE") ) ;
+       if( str != NULL ){
+         vl_dtable = Dtable_from_nimlstring( str ) ;
+         free(str) ;
+       }
+     }
      DRAW_set_value_label() ;
    }
 
