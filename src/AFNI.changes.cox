@@ -3955,3 +3955,6 @@
 
 04 Sep 2002
  * More cosmetic changes to 3dDespike.c.
+
+09 Sep 2002
+ * ISHEADTYPE macro in 3ddata.h used "=" instead of "=="; this was bad.
