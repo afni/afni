@@ -32,6 +32,9 @@
   Mod:      Added functions vector_dotself() and vector_multiply_subtract() -- RWCox.
   Date:     28 Dec 2002
 
+  Mod:      Use one array instead of array of arrays for matrix -- RWCox.
+  Date:     04 Mar 2005
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -45,6 +48,7 @@ typedef struct matrix
   int      rows;
   int      cols;
   double ** elts;
+  double  * mat ;  /* 04 Mar 2005 */
 }  matrix;
 
 
