@@ -993,9 +993,9 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 				{
 				/*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
 				/* relative distance to center */
-					t0 = hdim0 - fabsf(XYZ[k][0] - S_cent[0]);	
-					t1 = hdim1 - fabsf(XYZ[k][1] - S_cent[1]);	
-					t2 = hdim2 - fabsf(XYZ[k][2] - S_cent[2]);	
+					t0 = hdim0 - fabs(XYZ[k][0] - S_cent[0]);	
+					t1 = hdim1 - fabs(XYZ[k][1] - S_cent[1]);	
+					t2 = hdim2 - fabs(XYZ[k][2] - S_cent[2]);	
 					
 					if (t0 >= 0)
 						if (t1 >= 0)
@@ -1014,9 +1014,9 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 			for (k=0; k < nr; ++k)
 				{
 					/* relative distance to center */
-					t0 = hdim0 - fabsf(XYZ[k][0] - S_cent[0]);	
-					t1 = hdim1 - fabsf(XYZ[k][1] - S_cent[1]);	
-					t2 = hdim2 - fabsf(XYZ[k][2] - S_cent[2]);	
+					t0 = hdim0 - fabs(XYZ[k][0] - S_cent[0]);	
+					t1 = hdim1 - fabs(XYZ[k][1] - S_cent[1]);	
+					t2 = hdim2 - fabs(XYZ[k][2] - S_cent[2]);	
 					
 					if (t0 > 0)
 						if (t1 > 0)

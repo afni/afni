@@ -403,6 +403,11 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
 
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont)
 {
+	#ifdef DARWIN
+		/* Set the focus manually, needed on macosx10 or when -lXm is not used */
+		XSetInputFocus(XtDisplay(w), XtWindow(w), RevertToPointerRoot, CurrentTime);
+
+	#endif
 	/*fprintf(stdout,"\nEntering Window\n");*/
 	return;
 }
