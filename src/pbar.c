@@ -5,7 +5,8 @@
 ******************************************************************************/
 
 #include "pbar.h"
-#include "xim.h"
+#include "xim.h"    /* for display of the colorscale in "big" mode */
+#include <ctype.h>
 
 static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
@@ -320,7 +321,7 @@ void PBAR_make_bigmap( char *name,
 void PBAR_read_bigmap( char *fname , MCW_DC *dc )
 {
 #define NSBUF 128
-  int ii , neq=0 , jj ;
+  int ii , neq=0 , nonum=0 ;
   char name[NSBUF], lhs[NSBUF],rhs[NSBUF],mid[NSBUF],line[2*NSBUF] , *cpt ;
   float  val[NPANE_BIG] , fr,fg,fb , top,bot,del,vv ;
   rgbyte col[NPANE_BIG] ;
@@ -346,12 +347,17 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
     lhs[0] = mid[0] = rhs[0] = '\0' ;
     sscanf(line,"%127s %127s %127s",lhs,mid,rhs) ;
     if( lhs[0]=='\0' || lhs[0]=='!' || (lhs[0]=='/' && lhs[1]=='/') ) continue;
-    val[neq] = strtod(lhs,&cpt) ;
-    if( val[neq] == 0.0 && *cpt != '\0' ){
-      fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
+    if( neq == 0 && (isalpha(lhs[0]) || lhs[0]=='#') ) nonum = 1 ;
+    if( !nonum ){
+      val[neq] = strtod(lhs,&cpt) ;
+      if( val[neq] == 0.0 && *cpt != '\0' ){
+        fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
+      }
+      cpt = (mid[0] == '=') ? rhs : mid ;  /* color is string #2 or #3 */
+    } else {
+      cpt = lhs ;                          /* no number => lhs is the color */
     }
-    cpt = (mid[0] == '=') ? rhs : mid ;
-    if( *cpt == '\0' ) continue ;
+    if( *cpt == '\0' ) continue ;          /* no color string? */
     ii = DC_parse_color( dc , cpt , &fr,&fg,&fb ) ;
     if( ii ){
       fprintf(stderr,"** %s: %s is bad colorname\n",fname,rhs); continue;
@@ -361,6 +367,11 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
     col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
   }
   fclose(fp) ;
+
+  if( nonum ){                    /* supply numbers, if missing */
+    for( ii=0 ; ii < neq ; ii++ )
+      val[ii] = neq-ii ;
+  }
 
   PBAR_make_bigmap( name , neq, val, col, dc ) ; return ;
 }
