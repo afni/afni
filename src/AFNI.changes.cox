@@ -4561,3 +4561,6 @@
  * Modified thd_initdkptr.c to have prefixes that start with '/' override any
      input directory name.
  * Modified waver to allow 'a:b' and 'a%c' durations for '-tstim' input.
+
+13 May 2003
+ * Added "-Fourier_nopad" option to 3drotate.c, plug_nudge.c, and thd_rot3d.c.
