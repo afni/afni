@@ -4006,8 +4006,12 @@ static int qhandler( Display *dpy , XErrorEvent *xev ){ xwasbad=1; return 0; }
 int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
    int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 , flash=0 ;
+   static int busy=0 ;                /* 23 Jan 2004 */
 
 ENTRY("ISQ_show_zoom") ;
+
+   if( busy ) RETURN(-1) ;            /* recursion = bad */
+   busy = 1 ;
 
    /* find the size of the image window */
 
@@ -4044,7 +4048,7 @@ ENTRY("ISQ_show_zoom") ;
         fprintf(stderr,"** Can't zoom - out of memory! **\n\a");
         AV_assign_ival( seq->zoom_val_av , 1 ) ;
         ISQ_zoom_av_CB( seq->zoom_val_av , seq ) ;
-        RETURN(-1) ;
+        busy = 0 ; RETURN(-1) ;
       }
 
       seq->zoom_pw = pw ; seq->zoom_ph = ph ;
@@ -4114,7 +4118,7 @@ ENTRY("ISQ_show_zoom") ;
     MCW_discard_events( seq->wimage , ExposureMask ) ;
 #endif
 
-   RETURN(1) ;
+   busy = 0 ; RETURN(1) ;
 }
 
 /*-----------------------------------------------------------------------
