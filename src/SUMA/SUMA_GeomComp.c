@@ -268,9 +268,11 @@ SUMA_SURF_PLANE_INTERSECT *SUMA_Surf_Plane_Intersect (SUMA_SurfaceObject *SO, fl
             i3 = 3 * k;
             n1 = 3 * SO->EL->EL[k][0];
             n2 = 3 * SO->EL->EL[k][1];
+            
             SPI->IntersNodes[i3] = SO->NodeList[n1] + u * ( SO->NodeList[n2] - SO->NodeList[n1] ); ++i3; ++n2; ++n1;
             SPI->IntersNodes[i3] = SO->NodeList[n1] + u * ( SO->NodeList[n2] - SO->NodeList[n1] ); ++i3; ++n2; ++n1;
             SPI->IntersNodes[i3] = SO->NodeList[n1] + u * ( SO->NodeList[n2] - SO->NodeList[n1] ); ++i3; ++n2; ++n1;
+            
             /* 
             fprintf (SUMA_STDERR,"%s: Edge %d, IntersNodes[%d]= [%f, %f, %f]\n", 
                FuncName, k, 3*k, SPI->IntersNodes[3*k], SPI->IntersNodes[3*k+1], SPI->IntersNodes[3*k+2]);
@@ -306,7 +308,17 @@ SUMA_SURF_PLANE_INTERSECT *SUMA_Surf_Plane_Intersect (SUMA_SurfaceObject *SO, fl
             /*  skip ahead of duplicate edge listings */
             if (SO->EL->ELps[k][2] > 0) {
                if (Hit) { /* you must mark these triangles */
+                  i3 = 3 * k;
                   for (i=1; i < SO->EL->ELps[k][2]; ++i) {
+                     SPI->isEdgeInters[k+i] = YUP;
+                     n1 = 3 * (k+i);
+                     SPI->IntersNodes[n1] = SPI->IntersNodes[i3]; ++i3; ++n1;
+                     SPI->IntersNodes[n1] = SPI->IntersNodes[i3]; ++i3; ++n1;
+                     SPI->IntersNodes[n1] = SPI->IntersNodes[i3]; ++i3; ++n1;
+                     /*
+                     fprintf (SUMA_STDERR,"%s: Edge %d, IntersNodes[%d]= [%f, %f, %f]\n", 
+                        FuncName, k+i, n1, SPI->IntersNodes[3*(k+i)], SPI->IntersNodes[3*(k+i)+1], SPI->IntersNodes[3*(k+i)+2]);
+                     */
                      if (!SPI->isTriHit[SO->EL->ELps[k+i][1]]) {
                         SPI->IntersTri[SPI->N_IntersTri] = SO->EL->ELps[k+i][1];
                         ++(SPI->N_IntersTri);
@@ -1249,6 +1261,360 @@ int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, int *
    SUMA_RETURN (ePath);   
 }   
 
+/*!
+\brief determines whether to edges are identical or not. Recall
+that an edge can be represented multiple times in SO->EL, once for
+each triangle that uses it. Two edges are the same if and only if
+EL->EL[E1][0] == EL->EL[E2][0] && EL->EL[E1][1] == EL->EL[E2][1]
+
+ans = SUMA_isSameEdge ( EL, E1, E2); 
+
+\param EL (SUMA_EDGE_LIST *) Edge List structure.
+\param E1 (int) edge index
+\param E2 (int) edge index
+\return ans (SUMA_Boolean) YUP/NOPE
+*/
+
+SUMA_Boolean SUMA_isSameEdge (SUMA_EDGE_LIST *EL, int E1, int E2) 
+{
+   static char FuncName[]={"SUMA_isSameEdge"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (EL->EL[E1][0] == EL->EL[E2][0] && EL->EL[E1][1] == EL->EL[E2][1]) {
+      SUMA_RETURN (YUP);
+   } else {
+      SUMA_RETURN (NOPE);
+   }
+   
+}
+
+/*!
+\brief This function determines the strip of triangles necessary to go from one node to another
+along intersected edges. 
+tPath = SUMA_IntersectionStrip (SO, SPI, 
+            int *nPath, int N_nPath, float *dinters, float dmax, int *N_tPath)
+\param SO (SUMA_SurfaceObject *) pointer to Surface Object structure
+\param SPI (SUMA_SURF_PLANE_INTERSECT *) pointer surface/plane intersection structure
+\param nPath (int *) series of nodes forming the Dijkstra path between nodes Nx (nPath[0] and NynPath[N_nPath-1])
+\param N_nPath (int) number of nodes in nPath. Note: Only nPath[0], nPath[1] and nPath[N_nPath-1] are used by this function
+\param dinters (float *) pointer sum of distances between intersection points on intersected edges for all triangles in tPath.
+               This distance is a better approximation for the distance along the cortical surface than the distance obtained
+               along the shortest path.
+\param dmax (float) distance beyond which to quit searching. Usually this distance is slightly larger than the distance
+                  along the path returned by SUMA_Dijkstra but dinters should always be less than the distance along the shortest path.
+\param N_tPath (int *) pointer to the number of triangle indices in tPath
+\return tPath (int*) pointer to vector containing the indices of triangles travelled from 
+         nPath[0] to nPath[N_nPath] (or vice versa if nPath[0] = SO->N_Node-1).
+
+NOTE: Although the number of elements in tPath may be small, the number of elements allocated for is SO->N_FaceSet
+Make sure you free tPath when you are done with it.
+
+NOTE: This function can be used to create a node path formed by intersection points along edges but that is not implemented yet.
+
+\sa SUMA_Surf_Plane_Intersect
+\sa SUMA_Dijkstra
+\sa SUMA_FromIntEdgeToIntEdge
+
+*/
+int * SUMA_IntersectionStrip (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI, 
+            int *nPath, int N_nPath, float *dinters, float dmax, int *N_tPath)
+{
+   static char FuncName[]={"SUMA_IntersectionStrip"};
+   int *tPath1 = NULL, *tPath2 = NULL, Incident[50], N_Incident, Nx = -1, 
+      Ny = -1, Tri = -1, Tri1 = -1, istart, n2 = -1, n3 = -1, E1, E2, cnt, N_tPath1, N_tPath2;
+   float d1, d2;
+   SUMA_Boolean *Visited = NULL, Found, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* find the edge containing the 1st 2 nodes of the Dijkstra path */
+   /* find the triangle that contains the edge formed by the 1st 2 nodes of the Dijkstra path and is intersected by the plane*/
+   Tri1 = -1;
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Looking for a triangle containing nodes [%d %d].\n", FuncName, nPath[0], nPath[1]);
+   }
+   
+   Found = SUMA_Get_Incident(nPath[0], nPath[1], SO->EL, Incident, &N_Incident);
+   if (!Found) {
+      /* no such triangle, get a triangle that contains nPath[0] and is intersected */
+      fprintf (SUMA_STDERR, "%s: No triangle contains nodes [%d %d].\n", FuncName, nPath[0], nPath[1]);
+      if (nPath[0] == SO->N_Node - 1) {
+         fprintf (SUMA_STDERR, "Warning %s: 1st node is last node of surface, traversing path backwards.\n", FuncName);
+         Nx = nPath[N_nPath - 1];
+         Ny = nPath[0];
+      }else {
+         Nx = nPath[0];
+         Ny = nPath[N_nPath - 1];
+      }
+      istart = SO->EL->ELloc[Nx];
+      /* find an edge containing the first node and belonging to an intersected triangle */
+      Found = NOPE;
+      while (SO->EL->EL[istart][0] == Nx && !Found) {
+         Tri = SO->EL->ELps[istart][1];
+         if (SPI->isTriHit[Tri]) {
+            Found = YUP;
+            Tri1 = Tri;
+         }
+         ++istart;
+      } 
+   }else {
+      Nx = nPath[0];
+      Ny = nPath[N_nPath - 1];
+      
+      /* find which of these triangles was intersected */
+      if (LocalHead) {
+         fprintf (SUMA_STDERR, "%s: Found %d triangles containing nodes [%d %d].\n", FuncName, N_Incident, nPath[0], nPath[1]);
+         for (cnt = 0; cnt < N_Incident; ++cnt) fprintf (SUMA_STDERR, "%d isHit %d\n", Incident[cnt], SPI->isTriHit[Incident[cnt]]);
+         fprintf (SUMA_STDERR, "\n"); 
+      }
+      Found = NOPE;
+      cnt = 0;
+      while (cnt < N_Incident && !Found) {
+         if (SPI->isTriHit[Incident[cnt]]) {
+            Found = YUP;
+            Tri1 = Incident[cnt];
+         }
+         ++cnt;
+      }
+   }
+   
+   if (!Found) {
+      fprintf (SUMA_STDERR, "Error %s: Starting Edge could not be found.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }else if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Starting with triangle %d.\n", FuncName, Tri1);
+   }
+
+   /* found starting triangle edge, begin with side 1 */
+   if (SO->FaceSetList[3*Tri1] == Nx) {
+      n2 = SO->FaceSetList[3*Tri1+1];
+      n3 = SO->FaceSetList[3*Tri1+2];
+   } else if (SO->FaceSetList[3*Tri1+1] == Nx) {
+      n2 = SO->FaceSetList[3*Tri1];
+      n3 = SO->FaceSetList[3*Tri1+2];
+   } else if (SO->FaceSetList[3*Tri1+2] == Nx) {
+      n2 = SO->FaceSetList[3*Tri1];
+      n3 = SO->FaceSetList[3*Tri1+1];
+   } else {
+      fprintf (SUMA_STDERR, "Error %s: Triangle %d does not contain Nx %d.\n", FuncName, Tri1, Nx);
+      SUMA_RETURN (NULL);
+   }  
+   
+   
+   
+   E1 = SUMA_FindEdgeInTri (SO->EL, Nx, n2, Tri1);
+   if (!SPI->isEdgeInters[E1]) {
+      E1 = SUMA_FindEdgeInTri (SO->EL, Nx, n3, Tri1);
+   }
+   /* now choose E2 such that E2 is also intersected */
+   if (!SUMA_isSameEdge (SO->EL, SO->EL->Tri_limb[Tri1][0], E1) && SPI->isEdgeInters[SO->EL->Tri_limb[Tri1][0]]) {
+      E2 = SO->EL->Tri_limb[Tri1][0];
+   }else if (!SUMA_isSameEdge (SO->EL, SO->EL->Tri_limb[Tri1][1], E1) && SPI->isEdgeInters[SO->EL->Tri_limb[Tri1][1]]) {
+      E2 = SO->EL->Tri_limb[Tri1][1];
+   }else if (!SUMA_isSameEdge (SO->EL, SO->EL->Tri_limb[Tri1][2], E1) && SPI->isEdgeInters[SO->EL->Tri_limb[Tri1][2]]) {
+      E2 = SO->EL->Tri_limb[Tri1][2];
+   }else {
+      fprintf (SUMA_STDERR,"Error %s: No E2 found.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+
+   Visited = (SUMA_Boolean *) SUMA_calloc (SO->N_FaceSet, sizeof(SUMA_Boolean));
+   tPath1 = (int *) SUMA_calloc (SO->N_FaceSet, sizeof(int));
+   if (!Visited || !tPath1) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
+      if (Visited) SUMA_free(Visited);
+      if (tPath2) SUMA_free(tPath1); 
+      SUMA_RETURN (NULL);
+   }
+   
+   N_tPath1 = 0;
+   if (!SUMA_FromIntEdgeToIntEdge (Tri1, E1, E2, SO->EL, SPI, Ny, Visited, &d1, dmax, tPath1, &N_tPath1)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_FromIntEdgeToIntEdge.\n", FuncName);
+      if (Visited) SUMA_free(Visited);
+      if (tPath2) SUMA_free(tPath1);      
+      SUMA_RETURN (NULL);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Found a distance of %f.\n\n\n", FuncName, d1);
+   }
+   
+   /* Now try going in the other direction, E2->E1 */
+   cnt = E2;
+   E2 = E1;
+   E1 = cnt;
+   
+   /* reset the values of Visited */
+   for (cnt=0; cnt < SO->N_FaceSet; ++cnt) if (Visited[cnt]) Visited[cnt] = NOPE;
+   
+   tPath2 = (int *) SUMA_calloc (SO->N_FaceSet, sizeof(int));
+   if (!Visited || !tPath2) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
+      if (Visited) SUMA_free(Visited);
+      if (tPath1) SUMA_free(tPath1);
+      if (tPath2) SUMA_free(tPath2);
+      SUMA_RETURN (NULL);
+   }
+
+   N_tPath2 = 0;
+   if (!SUMA_FromIntEdgeToIntEdge (Tri1, E1, E2, SO->EL, SPI, Ny, Visited, &d2, dmax, tPath2, &N_tPath2)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_FromIntEdgeToIntEdge.\n", FuncName);
+      if (Visited) SUMA_free(Visited);
+      if (tPath1) SUMA_free(tPath1);
+      if (tPath2) SUMA_free(tPath2);
+      SUMA_RETURN (NULL);
+   }
+   
+   if (Visited) SUMA_free(Visited);
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Found a distance of %f.\n", FuncName, d2);
+   }
+   
+   if (d2 < d1) {
+      *N_tPath = N_tPath2;
+      *dinters = d2;
+      if (tPath1) SUMA_free(tPath1);
+      SUMA_RETURN (tPath2);
+   } else {
+      *dinters = d1;
+      *N_tPath = N_tPath1;
+      if (tPath2) SUMA_free(tPath2);
+      SUMA_RETURN (tPath1);
+   }
+   
+}
+
+/*!
+\brief This function moves from one intersected edge to the next until a certain node is encountered or a 
+a certain distance is exceeded. By intersected edge, I mean an edge of the surface's mesh that was 
+intersected by a plane.
+
+ans = SUMA_FromIntEdgeToIntEdge (int Tri, int E1, int E2, SUMA_EDGE_LIST *EL, SPI, int Ny,
+         Visited, float *d, float dmax, int *tPath, int *N_tPath);
+
+\param Tri (int) index of triangle to start with (index into SO->FaceSetList)
+\param E1 (int) index of edge in Tri to start from
+\param E2 (int) index of edge in Tri to move in the direction of (Both E1 and E2  must be intersected edges)
+\param EL (SUMA_EDGE_LIST *) pointer to the edge list structure, typically SO->EL
+\param SPI (SUMA_SURF_PLANE_INTERSECT *) pointer to structure containing intersection of plane with surface
+\param Ny (int) node index to stop at (index into SO->NodeList)
+\param Visited (SUMA_Boolean *) pointer to vector (SO->N_FaceSet elements) that keeps track of triangles visited.
+      This vector should be all NOPE when you first call this function. 
+\param d (float *) pointer to total distance from first intersected edge E1 to the last edge that contains E2
+\param dmax (float) maximum distance to go for before reversing and going in the other direction. Typically 
+         this measure should be a bit larger than the distance of a Dijkstra path although you should never get a 
+         distance that is larger than the Dijkstra path.
+\param tPath (int *) vector of indices of triangles visited from first edge to last edge (make sure you allocate a bundle for tPath)
+\param N_tPath (int *) number of elements in tPath
+\return ans (SUMA_Boolean) YUP/NOPE, for success/failure. 
+
+         NOTE: This function is recursive.
+
+\sa SUMA_Surf_Plane_Intersect
+\sa SUMA_IntersectionStrip
+
+*/
+SUMA_Boolean SUMA_FromIntEdgeToIntEdge (int Tri, int E1, int E2, SUMA_EDGE_LIST *EL, SUMA_SURF_PLANE_INTERSECT *SPI, int Ny,
+         SUMA_Boolean *Visited, float *d, float dmax, int *tPath, int *N_tPath)
+{  static char FuncName[]={"SUMA_FromIntEdgeToIntEdge"};
+   int Tri2 = 0, cnt, Incident[5], N_Incident;
+   float dx, dy, dz;
+   SUMA_Boolean Found, LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (Tri < 0 || E1 < 0 || E2 < 0) {
+      fprintf (SUMA_STDERR, "Error %s: Tri (%d) or E1 (%d) or E2 (%d) is negative!\n", FuncName, Tri, E1, E2);
+      SUMA_RETURN (NOPE);
+   }
+   
+   
+   dx = (SPI->IntersNodes[3*E2] - SPI->IntersNodes[3*E1]);
+   dy = (SPI->IntersNodes[3*E2+1] - SPI->IntersNodes[3*E1+1]);
+   dz = (SPI->IntersNodes[3*E2+2] - SPI->IntersNodes[3*E1+2]);
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: Entered - Tri %d, E1 %d [%d %d], E2 %d [%d %d]\n\tdx = %f dy = %f dz = %f\n", 
+         FuncName, Tri, E1, EL->EL[E1][0], EL->EL[E1][1], E2, EL->EL[E2][0], EL->EL[E2][1], dx, dy, dz);
+   }
+   *d += sqrt( dx * dx + dy * dy + dz * dz);
+   
+   if (*d > dmax) {
+      /* path already longer than Dijkstra path, no need to search further in this direction, get out with this d value */
+      fprintf (SUMA_STDERR, "%s: Path longer than dmax. Returning.\n", FuncName);
+      SUMA_RETURN (YUP);
+   }
+   
+   if (EL->EL[E2][0] == Ny || EL->EL[E2][1] == Ny) {
+      fprintf (SUMA_STDERR, "%s: Found Ny, d = %f\n", FuncName, *d);
+      if (!Visited[Tri]) {
+         /* add triangle to path */
+         tPath[*N_tPath] = Tri;
+         ++*N_tPath;
+      }
+      SUMA_RETURN (YUP);
+   } else if (Visited[Tri]) {
+      fprintf (SUMA_STDERR, "Error %s: Triangle %d already visited.\n",FuncName, Tri); 
+      SUMA_RETURN (NOPE);
+   }
+     
+   /* mark triangle as visited */
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Marking triangle %d and adding %dth element to tPath.\n", FuncName, Tri, *N_tPath);
+   Visited[Tri] = YUP;
+   
+   /* add triangle to path */
+   tPath[*N_tPath] = Tri;
+   ++*N_tPath;
+   
+   /* now get the second intersected triangle, incident to E2 */
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Searching for triangles incident to E2 %d.\n", FuncName, E2);
+   if (!SUMA_Get_Incident(EL->EL[E2][0], EL->EL[E2][1], EL, Incident, &N_Incident)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to get Incident triangles.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* find Tri2 such that Tri2 != Tri and Tri2 is an intersected triangle */
+   cnt = 0;
+   Found = NOPE;
+   while (cnt < N_Incident && !Found) {
+      if (SPI->isTriHit[Incident[cnt]] && Incident[cnt] != Tri && !Visited[Incident[cnt]]) {
+         Found = YUP;
+         Tri2 = Incident[cnt];
+      }
+      ++cnt;
+   }
+   
+   if (!Found) {
+      fprintf (SUMA_STDERR,"Error %s: Could not find next triangle.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   Tri = Tri2;
+   E1 = E2;
+   
+   /* now find the new E2 */
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Finding new E2.\n", FuncName);
+   
+   if (!SUMA_isSameEdge (EL, EL->Tri_limb[Tri][0], E1) && SPI->isEdgeInters[EL->Tri_limb[Tri][0]]) {
+      E2 = EL->Tri_limb[Tri][0];
+   }else if (!SUMA_isSameEdge (EL, EL->Tri_limb[Tri][1], E1) && SPI->isEdgeInters[EL->Tri_limb[Tri][1]]) {
+      E2 = EL->Tri_limb[Tri][1];
+   }else if (!SUMA_isSameEdge (EL, EL->Tri_limb[Tri][2], E1) && SPI->isEdgeInters[EL->Tri_limb[Tri][2]]) {
+      E2 = EL->Tri_limb[Tri][2];
+   }else {
+      fprintf (SUMA_STDERR,"Error %s: No E2 found.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* call the same function again */
+   if (!SUMA_FromIntEdgeToIntEdge (Tri, E1, E2, EL, SPI, Ny, Visited, d, dmax, tPath, N_tPath)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_FromIntEdgeToIntEdge.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   SUMA_RETURN (YUP);
+}
 /*!
 \brief Converts a series of connected nodes into a series of connected triangles that were intersected by 
 the plane. 

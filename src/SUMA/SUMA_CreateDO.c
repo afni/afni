@@ -1092,6 +1092,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Cx_Inode = NULL;
       SO[i].VolPar = NULL;
       SO[i].glar_NodeList = NULL; 
+      SO[i].glar_FaceSetList = NULL; 
+      SO[i].glar_FaceNormList = NULL; 
+      SO[i].glar_NodeNormList = NULL; 
       /* create vector of pointers */
       SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
       SO[i].Overlays_Inode = (SUMA_INODE **) SUMA_malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
@@ -1102,6 +1105,14 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       }
       SO[i].N_Overlays = 0;
       SO[i].SentToAfni = NOPE;
+      
+      SO[i].MeshAxis = NULL;
+      SO[i].State = NULL;
+      SO[i].Group = NULL;
+      SO[i].FaceSetMarker = NULL;
+      
+      
+      
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

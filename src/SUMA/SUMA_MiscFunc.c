@@ -2376,7 +2376,7 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
          intersect the triangle.
          NOTE: If you do not care for iP, d and closest_vert, pass NULL, NULL, NULL as their pointers
 
-// DELETE THIS SECTION WHEN BRENNA IS DONE WITH IT
+// DELETE THIS SECTION WHEN Brenna IS DONE WITH IT
 
    // sample code for using this function to find out if P0-P1 hits a triangle. 
    // Nref is the index of the closest node on the mesh that is mapped to a sphere.
@@ -2387,9 +2387,9 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
    ivert0 = SO->FaceSetList[3T]; 
    ivert1 = SO->FaceSetList[3T+1];
    ivert2 = SO->FaceSetList[3T+2];
-   For vert0, use SO->NodeList[ivert0]
-   For vert1, use SO->NodeList[ivert1]
-   For vert2, use SO->NodeList[ivert2]
+   For vert0, use &(SO->NodeList[ivert0])
+   For vert1, use &(SO->NodeList[ivert1])
+   For vert2, use &(SO->NodeList[ivert2])
     
    
    float P0[3], P1[3], iP[3], d[3];

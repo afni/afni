@@ -35,7 +35,12 @@
 #define SUMA_MAT_EMISSION_INIT    0.0, 0.0, 0.0, 1.0 /*<! Emissive color is emanated from the object and is unaffected by light sources. It adds no light to other objects in the scene */
 
 #define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*<! keep the ambient light high */
-#define SUMA_CLEAR_COLOR         0.0, 0.0, 0.0, 0.0
+
+#define SUMA_CLEAR_COLOR_R         1.0 /*!< clear color (viewer background) Red */
+#define SUMA_CLEAR_COLOR_G         1.0 /*!< clear color (viewer background) Green */
+#define SUMA_CLEAR_COLOR_B         1.0 /*!< clear color (viewer background) Blue */
+#define SUMA_CLEAR_COLOR_A         1.0 /*!< clear color (viewer background) Alpha */
+
 
 #define SUMA_BACKFACE_CULL 0 /*<! 1/0 flag for culling backface facesets */
 #define SUMA_CHECK_WINDING 0 /*<! 1/0 flag for checking triangle winding */
@@ -491,6 +496,8 @@ typedef struct {
    GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
    GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
    
+   GLfloat clear_color[4]; /*!< viewer background color */
+   
    SUMA_Boolean Open; /*! Viewer visible to the human eye */
    int ShowEyeAxis ; /*!< ShowEyeAxis */
    int ShowMeshAxis; /*!< ShowEyeAxis */
@@ -923,8 +930,7 @@ typedef struct {
                         But that is way more than ususally needed. For this vector and others in
                         this structure, reallocation is not done to save time. Useful values for IntersEdges
                         are between IntersEdges[0]  and IntersEdges[N_IntersEdges-1]*/
-   SUMA_Boolean *isEdgeInters; /*!< Vector specifying if an edge i (index into SO->EL->EL) was intersected.
-                                 Since Edges have multiple entries in EL, only the first entry is marked. */
+   SUMA_Boolean *isEdgeInters; /*!< Vector specifying if an edge i (index into SO->EL->EL) was intersected. */
    #if 0
    /* old way, less memory usage, slower access - pre Wed Dec  4 16:57:03 EST 2002*/
    float *IntersNodes;  /*!< Vector containing XYZ coordinates of the intersection point on each 
