@@ -1825,11 +1825,11 @@ asnap:asnap.o
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
 # specifics for the nifti library files
-thd_analyzeread.o:
+thd_analyzeread.o:thd_analyzeread.c
 	$(RM) $@
 	$(CC) -c thd_analyzeread.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
 
-thd_niftiread.o:
+thd_niftiread.o:thd_niftiread.c
 	$(RM) $@
 	$(CC) -c thd_niftiread.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
 
