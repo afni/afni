@@ -506,7 +506,6 @@ int SUMA_Read_2Dfile (char *f_name, float **x,  int n_cols, int n_rows)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-
    internal_file = fopen (f_name,"r");
    if (internal_file == NULL) {
                           fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
@@ -592,53 +591,60 @@ SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb)
    i r g b (int float float float)
    
    \param f_name (char *) filename
-   \param n_rows(int) number of rows in filename
-   \return irgb (SUMA_IRGB *) with n_rows
+   \return irgb (SUMA_IRGB *) structure containing irgb data 
    
    \sa SUMA_Create_IRGB
    \sa SUMA_Free_IRGB
 */
-SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name, int n_rows)
-{/*SUMA_Read_2Dfile*/
-   int ir=0, ic=0, ex;
-   FILE*internal_file;
+SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name)
+{
+   int i=0, ncol = 0, nrow = 0;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
    SUMA_IRGB *irgb=NULL;
    static char FuncName[]={"SUMA_Read_IRGB_file"};
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   internal_file = fopen (f_name,"r");
-   if (internal_file == NULL) {
-      fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
-      SUMA_RETURN (NULL);
+   im = mri_read_1D (f_name);
+   
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
    }
    
-   if (!(irgb = SUMA_Create_IRGB(n_rows))) {
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+   
+   if (!ncol) {
+      SUMA_SL_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   if (nrow !=  4 ) {
+      SUMA_SL_Err("File must have\n"
+                  "4 columns.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NULL);
+   }
+  
+   if (!(irgb = SUMA_Create_IRGB(ncol))) {
       fprintf (SUMA_STDERR,"%s: Failed to create irgb.\n",FuncName);
       SUMA_RETURN (NULL);
    }
    
-   ir = 0;
-   while (ir < n_rows)
-   {
-      ex = fscanf (internal_file,"%d %f %f %f",
-                           &(irgb->i[ir]), &(irgb->r[ir]),
-                           &(irgb->g[ir]), &(irgb->b[ir]));   
-      if (ex == EOF)
-         {
-            fprintf(stderr,"Error %s: Premature EOF\n%d out of %d lines read.", FuncName, ir, n_rows);
-            fclose (internal_file);
-            SUMA_Free_IRGB (irgb);
-            SUMA_RETURN (NULL);
-         }
-      ++ir;
-   }
-
-   fclose (internal_file);
-
+   for (i=0; i < ncol; ++i) {
+      irgb->i[i] = (int)far[i];
+      irgb->r[i] = far[i+ncol];
+      irgb->g[i] = far[i+2*ncol];
+      irgb->b[i] = far[i+3*ncol];
+   }   
+   
+   mri_free(im); im = NULL;
+   
    SUMA_RETURN (irgb);      
       
-}/*SUMA_Read_2Dfile*/
+}
 
 /*!
  
@@ -5769,6 +5775,107 @@ int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
 
    SUMA_RETURN (xunq);
 }/*SUMA_UniqueInt*/
+
+/*!
+   \brief In addition to returning the unique set of values,
+   The function creates a vector of indices specifying
+   which values in y were retained 
+   
+   yu = SUMA_UniqueInt_ind (y, N_y, N_yu, Sorted, iu);
+   
+   \param y (int *) SORTED input vector
+   \param N_y (int) number of elements in y
+   \param N_yu (int *) to contain number of elements in yu
+   \param iu (int **) to contain pointer to vector containing
+                      indices into y of the values retained in 
+                      yu
+   
+   \sa SUMA_UniqueInt_ind
+   \sa SUMA_z_dqsort
+   
+   -Make sure y is sorted ahead of time
+   -remember to free yu and *iu after you are done with them
+*/
+int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup)
+{/*SUMA_UniqueInt*/
+   int *yu=NULL, k ,*iu=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   static char FuncName[]={"SUMA_UniqueInt_ind"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   *kunq = 0;
+
+   if (!N_y)
+    {
+      SUMA_RETURN(NULL);
+   }
+
+   if (!N_y)   /* Nothing sent ! */
+    SUMA_RETURN (NULL);
+
+   yu = (int *) SUMA_calloc(N_y,sizeof(int));
+   iu = (int *) SUMA_calloc(N_y,sizeof(int));
+   if (!yu || !iu)
+    {
+      fprintf (SUMA_STDERR,"Error %s: Could not allocate memory", FuncName);
+      SUMA_RETURN (NULL);
+   }
+
+   *kunq = 0;
+   yu[0] = ys[0];
+   iu[0] = 0;
+   for (k=1;k<N_y;++k)
+    {
+      if ((ys[k] != ys[k - 1]))
+         {
+            ++*kunq;
+            yu[*kunq] = ys[k];   
+            iu[*kunq] = k;
+         }
+   }
+   ++*kunq;
+   
+   
+   /* get rid of extra space allocated */
+   yu = (int *) SUMA_realloc(yu, *kunq*sizeof(int));
+   iu = (int *) SUMA_realloc(iu, *kunq*sizeof(int));
+
+   *iup = iu;
+   SUMA_RETURN (yu);
+}/*SUMA_UniqueInt_ind*/
+
+/*!
+   \brief creates a reordered version of a vector 
+   yr = SUMA_reorder(y, isort, N_isort);
+   
+   \param y (int *) vector
+   \param isort (int *) vector containing sorting order
+   \param N_isort (int ) number of elements in isort
+   \return yr (int *) reordered version of y where:
+                     yr[i] = y[isort[i]];
+                     
+   - you should free yr with SUMA_free(yr) when done with it
+   - obviously it's your business to ensure that
+            isort[i] cannot be larger than then number
+            of elements in y 
+*/
+int *SUMA_reorder(int *y, int *isort, int N_isort)
+{
+   static char FuncName[]={"SUMA_reorder"};
+   int i = 0, *yr = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
+   
+   yr = (int *)SUMA_calloc( N_isort, sizeof(int));
+   if (!yr) SUMA_RETURN(yr);
+   
+   for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];
+   
+   SUMA_RETURN(yr);
+}
 
 /*!
    \brief Appends newstring to string in SS->s while taking care of resizing space allocated for s

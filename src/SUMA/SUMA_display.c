@@ -5314,6 +5314,11 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
+   if (!SUMAg_N_SVv) {
+      /* no graphics here, get out */
+      SUMA_RETURNe;
+   }
+   
    /* find a decent popup message parent */
    ii=0;
    while ((SUMAg_SVv[ii].isShaded || !SUMAg_SVv[ii].X->TOPLEVEL) && (ii < SUMAg_N_SVv)) {

@@ -46,10 +46,33 @@ int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique)
 SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char *Parent_idcode_str, 
                                           char *Label, char *ColPlaneName, 
                                           float *FillColor, float *EdgeColor, int EdgeThickness , 
-                                          SUMA_DO *dov, int N_dov);
+                                          SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 
  
-
-
-
+/*!
+   NO Guarantee that certain nodes might 
+   get counted twice !
+*/
+#define SUMA_ROI_CRUDE_COUNT_NODES(m_D_ROI, m_N_max)  \
+{  \
+   DListElmt *m_NextElm = NULL;  \
+   SUMA_ROI_DATUM *m_ROId = NULL; \
+   int m_LastOfPreSeg = -1; \
+   \
+   m_N_max = 0;\
+   m_NextElm = NULL;\
+   m_LastOfPreSeg = -1;  \
+   do {  \
+      if (!m_NextElm) m_NextElm = dlist_head(m_D_ROI->ROIstrokelist);   \
+      else m_NextElm = dlist_next(m_NextElm);   \
+      m_ROId = (SUMA_ROI_DATUM *)m_NextElm->data; \
+      if (m_ROId->nPath[0] == m_LastOfPreSeg) {  \
+         m_N_max += m_ROId->N_n - 1; \
+      }  else {   \
+         m_N_max += m_ROId->N_n; \
+      }  \
+      m_LastOfPreSeg = m_ROId->nPath[m_ROId->N_n - 1];   \
+   }while (m_NextElm != dlist_tail(m_D_ROI->ROIstrokelist));   \
+   \
+}  
 #endif

@@ -281,11 +281,13 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    }
    next = strlen(ext);
    
+   #if 0
    if (nfilename < next || next < 1 || nfilename < 1) {
       ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
       ans = strcpy(ans,filename);
       SUMA_RETURN(ans);
    }
+   #endif
    
    ifile = nfilename - next;
    NoMatch = NOPE;

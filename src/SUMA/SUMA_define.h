@@ -394,23 +394,6 @@ typedef struct {
                                        niml file */
 } SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
 
-/*! 
-I do not think we can have both nodes and triangles in this struct.
-I guess I can make this be a Node Datum then create a similar struct
-for triangle Datum and add them to SUMA_NIML_DRAWN_ROI.
-If you do something like this rename:
-SUMA_NIML_ROI_DATUM to SUMA_NIML_NODE_ROI_DATUM
-Will the file niml.h no longer be in afni_src directory ?
-*/
-typedef struct {
-   int action; /*!< action taken with this datum, see same field in SUMA_ROI_DATUM */
-   int Type; /*!< describes the type of the DrawnROI datum (see SUMA_ROI_TYPE) */
-   int N_n; 
-   int *nPath;
-/* int Type;
-   int N_t;
-   int *tPath; */
-} SUMA_NIML_ROI_DATUM; /*!< a version of SUMA_ROI_DATUM struct that can be used by niml. */
 
 #define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
 #define SUMA_MAX_ROI_CTRL_NODES3 300 
@@ -447,20 +430,6 @@ typedef struct {
    SUMA_CONTOUR_EDGES *CE; /*!< a vector of edges that form the contour of the ROI */
 } SUMA_DRAWN_ROI;
 
-typedef struct {
-   int Type;         /*!< The final type of the DrawnROI, see SUMA_ROI_DRAWING_TYPE*/
-   char *idcode_str;
-   char *Parent_idcode_str;
-   char *Label;
-   char *ColPlaneName;
-   float FillColor[3];  /*!< RGB fill color */
-   float EdgeColor[3];  /*!< RGB edge color */
-   int EdgeThickness;   /*!< thickness of edge */
-   int iLabel;
-   SUMA_NIML_ROI_DATUM *ROI_datum; /*!< a vector of ROI data (a multitude of ROI datum) */
-   int N_ROI_datum;
-} SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by niml.
-                           Fields are a reflection of those in SUMA_DRAWN_ROI*/
 typedef struct {
    int Type;         /*!< The final type of the DrawnROI, see SUMA_ROI_DRAWING_TYPE*/
    char *idcode_str;

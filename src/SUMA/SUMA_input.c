@@ -689,9 +689,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      fscanf (tmp,"%f",&(SDO->n1[itmp2])); ++itmp2;
                      fscanf (tmp,"%f",&(SDO->n1[itmp2])); ++itmp2;
                   }
-                  for (itmp=0; itmp < 6* SDO->N_n; ++itmp) {
-                     
-                  }
+                  
                   fclose (tmp);   
 
                   /* addDO */
@@ -3188,11 +3186,11 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
          
          SOparent = SUMA_findSOp_inDOv(ROIA->DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
          if (!SOparent) {
-            SUMA_SLP_Err(  "Parent surface\n"
+            SUMA_SLP_Warn( "Parent surface\n"
                            "not found for ROI\n"
                            "No contour will\n"
                            "be determined." );
-            SUMA_RETURN(SAR_Fail);
+            SUMA_RETURN(SAR_Succeed);
          }else {
                
             /* calculate the contours */

@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <math.h>
-#include <GL/gl.h>
 #include "SUMA_suma.h"
 
 extern SUMA_CommonFields *SUMAg_CF; 

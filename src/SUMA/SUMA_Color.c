@@ -381,6 +381,8 @@ int main (int argc,char *argv[])
    char FuncName[]={"SUMA_MakeColorMap-main"}, *FidName = NULL, *Prfx = NULL, h[9]; 
    int Ncols = 0, N_Fid, kar, i, ifact, *Nind = NULL;
    float **Fid, **M;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
    SUMA_Boolean brk, SkipLast, AfniHex, PosMap, Usage1, Usage2, LocalHead = NOPE;
    SUMA_COLOR_MAP *SM;
       
@@ -502,11 +504,14 @@ int main (int argc,char *argv[])
    }
    
    /* read the fiducials file */
-   N_Fid = SUMA_float_file_size(FidName);
-   if (N_Fid < 1) {
-      fprintf (SUMA_STDERR,"Error %s: File %s could not be read or is badly formatted.\n", FuncName, FidName);
-      exit (1);
+   im = mri_read_1D (FidName);
+   if (!im) {
+      SUMA_S_Err("Failed to read file");
+      exit(1);
    }
+   
+   far = MRI_FLOAT_PTR(im);
+   N_Fid = im->nx * im->ny;
    
    /* allocate for fiducials */
    if (Usage1) {
@@ -521,9 +526,13 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      SUMA_Read_2Dfile (FidName, Fid, 3, N_Fid / 3);
-      /*   SUMA_disp_mat (Fid, N_Fid / 3, 3,1);*/
-   
+      for (i=0; i < im->nx; ++i) {
+         Fid[i][0] = far[i];
+         Fid[i][1] = far[i+im->nx];
+         Fid[i][2] = far[i+2*im->nx];
+      }
+      
+      mri_free(im); im = NULL; 
       /* now create the color map */
       SM = SUMA_MakeColorMap (Fid, N_Fid/3, Ncols, SkipLast, FuncName);
       if (SM == NULL) {
@@ -536,21 +545,22 @@ int main (int argc,char *argv[])
          exit (1);
       }
 
-      Fid = (float **) SUMA_allocate2D (N_Fid / 4, 4, sizeof(float));
+      Fid = (float **) SUMA_allocate2D (N_Fid / 4, 3, sizeof(float));
       Nind = (int *) SUMA_calloc (N_Fid/4, sizeof(int));
       if (Fid == NULL || !Nind) {
          fprintf (SUMA_STDERR,"Error %s: Could not allocate for Fid or Nind.\n", FuncName);
          exit(1);
       }
       
-      SUMA_Read_2Dfile (FidName, Fid, 4, N_Fid / 4);
-      /*   SUMA_disp_mat (Fid, N_Fid / 4, 4,1);*/
-      
-      /* copy fourth column to Nind */
-      for (i=0; i < N_Fid/4; ++i) {
-         Nind[i] = (int)Fid[i][3];
+      for (i=0; i < im->nx; ++i) {
+         Fid[i][0] = far[i];
+         Fid[i][1] = far[i+im->nx];
+         Fid[i][2] = far[i+2*im->nx];
+         Nind[i] = (int)far[i+3*im->nx];
       }
-   
+      
+      mri_free(im); im = NULL; 
+      
       /* now create the color map */
       SM = SUMA_MakeColorMap_v2 (Fid, N_Fid/4, Nind, SkipLast, FuncName); 
       if (SM == NULL) {
@@ -1054,9 +1064,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 #ifdef SUMA_ScaleToMap_STAND_ALONE
    void SUMA_ScaleToMap_usage ()
    {
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage: \33[0m SUMA_ScaleToMap <-v/-iv IntFile>  [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] [-msk_col R G B] [-br BrightFact] [-h/-help]\n");
+      fprintf (SUMA_STDOUT, "\n\33[1mUsage: \33[0m ScaleToMap <-v/-iv IntFile>  [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] [-msk_col R G B] [-br BrightFact] [-h/-help]\n");
       fprintf (SUMA_STDOUT, "\t -v IntFile:  Node value vector in ascii file, one node value per line. \n");
-      fprintf (SUMA_STDOUT, "\t -iv IntFile:  Node index and value Matrix in ascii file, node index and one node value per line. \n");
+      fprintf (SUMA_STDOUT, "\t -iv IntFile:  Node index and value matrix in ascii file, node index and one node value per line. \n");
       fprintf (SUMA_STDOUT, "\t -v and -iv are mutually exclusive.\n");
       fprintf (SUMA_STDOUT, "\t -cmap MapType: (optional, default RGYBR20) choose one of the standard colormaps available with SUMA.\n");
       fprintf (SUMA_STDOUT, "\t\t RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BGYR64\n");
@@ -1078,7 +1088,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 int main (int argc,char *argv[])
 {/* Main */
    char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName = NULL, *Prfx, h[9]; 
-   int N_V, N_Va, N_Int, kar, k, ii;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
+   int N_V, N_Va, N_Int, kar, k, ii, i;
    int Vminloc, Vmaxloc, *iV = NULL;
    float Vmin, Vmax, brfact;
    float *V = NULL, *Vsort = NULL,  *Va = NULL;
@@ -1250,11 +1262,15 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   N_Va =  SUMA_float_file_size(IntName);
-   if (N_Va < 1) {
-      fprintf (SUMA_STDERR,"Error %s: File %s could not be read or is badly formatted.\n", FuncName, IntName);
+   im = mri_read_1D (IntName);
+   
+   if (!im) {
+      SUMA_S_Err("Failed to read file");
       exit (1);
    }
+   
+   far = MRI_FLOAT_PTR(im);
+   N_Va = im->nx * im->ny ;
    
    if (brfact <=0 || brfact > 1) {
       fprintf (SUMA_STDERR,"Error %s: BrightFact must be > 0 and <= 1.\n", FuncName);
@@ -1278,7 +1294,10 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Va.\n", FuncName);
       exit(1);
    }
-   SUMA_Read_file (Va, IntName, N_Va);
+   
+   
+   for (i=0; i < N_Va; ++i) Va[i] = far[i];
+   mri_free(im); im = NULL;
    
    if (Vopt) {
       V = Va;
@@ -3083,7 +3102,6 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_LoadColorPlaneFile"};
    SUMA_SurfaceObject *SO = NULL;
-   int ntot;
    SUMA_OVERLAY_PLANE_DATA sopd;
    SUMA_IRGB *irgb=NULL;
    int OverInd = -1;
@@ -3100,20 +3118,12 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    }
 
    /* find out if file exists and how many values it contains */
-   ntot = SUMA_float_file_size (filename);
-   if (ntot < 0) {
-      fprintf(SUMA_STDERR,"Error %s: filename %s could not be open.\n", FuncName, filename);
+   if (!SUMA_filexists(filename)) {
+      SUMA_SLP_Err("File not found");
       SUMA_RETURNe;
    }
 
-   /* make sure it's a full matrix */
-   if ((ntot % 4)) {
-      fprintf(stderr,"Error %s: file %s contains %d values, not divisible by ncols %d.\n", FuncName, filename, ntot, 4);
-      SUMA_RETURNe;
-   }
-
-
-   irgb = SUMA_Read_IRGB_file(filename, ntot / 4);
+   irgb = SUMA_Read_IRGB_file(filename);
    if (!irgb) {
       SUMA_SLP_Err("Failed to read file.");
       SUMA_RETURNe;

@@ -870,88 +870,22 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    SUMA_RETURN(nimlROI);
 }
 
-/*!
-   \brief returns a copy of a null terminated string . 
-   s_cp = SUMA_copy_string(s1);
-   
-   - free returned pointer with: if(s_cp) SUMA_free(s_cp);
-*/
-char *SUMA_copy_string(char *buf)
-{
-   static char FuncName[]={"SUMA_copy_string"};
-   char *atr = NULL;
-   int i;
-
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-   
-   if (!buf) SUMA_RETURN(NULL);
-   
-   atr = (char *) SUMA_calloc(strlen(buf)+2, sizeof(char));
-   
-   i=0;
-   while (buf[i]) {
-      atr[i] = buf[i];
-      ++i;
-   }
-   atr[i] = '\0';
-   
-   SUMA_RETURN(atr);  
-}
-
-/*!
-   \brief appends two null terminated strings.
-   s_ap = SUMA_append_string(s1, s2);
-  
-   -free returned pointer with:  if(s_ap) SUMA_free(s_ap);
-   - None of the strings passed to the function
-   are freed.
-*/
-char * SUMA_append_string(char *s1, char *s2)
-{
-   static char FuncName[]={"SUMA_copy_string"};
-   char *atr = NULL;
-   int i,cnt, N_s2, N_s1;
-
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-   
-   if (!s1 && !s2) SUMA_RETURN(NULL);
-   if (!s1) N_s1 = 0;
-   else N_s1 = strlen(s1);
-   
-   if (!s2) N_s2 = 0;
-   else N_s2 = strlen(s2);
-   
-   atr = (char *) SUMA_calloc(N_s1+N_s2+2, sizeof(char));
-   
-   /* copy first string */
-   i=0;
-   cnt = 0;
-   while (s1[i]) {
-      atr[cnt] = s1[i];
-      ++i;
-      ++cnt;
-   }
-   
-   i=0;
-   while (s2[i]) {   
-      atr[cnt] = s2[i];
-      ++i;
-      ++cnt;
-   }
-   atr[cnt] = '\0';
-   
-   SUMA_RETURN(atr);  
-}    
 
 /*!
    \brief transfroms a SUMA_NIML_DRAWN_ROI * to a SUMA_DRAWN_ROI *
    
+   \param nimlROI (SUMA_NIML_DRAWN_ROI *) the niml ROI structure
+   \param ForDisplay (SUMA_Boolean) YUP: Action stack is created
+                                          (use when ROIs will be displayed)
+                                    NOPE: Action stack is not created
+   \return ROI (SUMA_DRAWN_ROI *) the equivalent of niml ROI structure
+                                          
    - Do not free SUMA_NIML_DRAWN_ROI manually, many of its fields are 
    pointer copies of values in SUMA_DRAWN_ROI.
    
    \sa SUMA_Free_NIMLDrawROI
 */
-SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
+SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SUMA_Boolean ForDisplay)
 {
    static char FuncName[]={"SUMA_NIMLDrawnROI_to_DrawnROI"};
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
@@ -1002,56 +936,61 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
    ROI->N_CE = -1;
    /* fill in the ROI datum stuff */
    for (i=0; i<nimlROI->N_ROI_datum; ++i) {
-      ROI_Datum = SUMA_AllocROIDatum ();
-      ROI_Datum->action = nimlROI->ROI_datum[i].action;
-      ROI_Datum->nPath = nimlROI->ROI_datum[i].nPath;
-      ROI_Datum->Type = nimlROI->ROI_datum[i].Type;
-      ROI_Datum->N_n = nimlROI->ROI_datum[i].N_n;
+         ROI_Datum = SUMA_AllocROIDatum ();
+         ROI_Datum->action = nimlROI->ROI_datum[i].action;
+         ROI_Datum->nPath = nimlROI->ROI_datum[i].nPath;
+         ROI_Datum->Type = nimlROI->ROI_datum[i].Type;
+         ROI_Datum->N_n = nimlROI->ROI_datum[i].N_n;
+      if (ForDisplay) { /* create DO/UNDO stack */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *));
+         ROIA->DrawnROI = ROI;
+         ROIA->ROId = ROI_Datum;
+         switch (ROI_Datum->action) {
+            case SUMA_BSA_AppendStroke:
+               SUMA_LH("Appending Stroke Action");
+               tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
+                  SUMA_AddToTailROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
+               break;
+            case SUMA_BSA_JoinEnds:
+               SUMA_LH("Join Ends Action");
+               tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
+                  SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
+               break;
+            case SUMA_BSA_FillArea:
+               SUMA_LH("Fill Area Action");
+               tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
+                  SUMA_AddFillROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
+               break;
+            default:
+               fprintf (SUMA_STDERR, "Error %s: Not ready to deal with this action (%d).\n", 
+                  FuncName, ROI_Datum->action);
+               break; 
 
-      ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *));
-      ROIA->DrawnROI = ROI;
-      ROIA->ROId = ROI_Datum;
-      switch (ROI_Datum->action) {
-         case SUMA_BSA_AppendStroke:
-            SUMA_LH("Appending Stroke Action");
-            tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
-               SUMA_AddToTailROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
-            break;
-         case SUMA_BSA_JoinEnds:
-            SUMA_LH("Join Ends Action");
-            tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
-               SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
-            break;
-         case SUMA_BSA_FillArea:
-            SUMA_LH("Fill Area Action");
-            tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
-               SUMA_AddFillROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
-            break;
-         default:
-            fprintf (SUMA_STDERR, "Error %s: Not ready to deal with this action (%d).\n", 
-               FuncName, ROI_Datum->action);
-            break; 
-      
+         }
+
+         if (tmpStackPos) ROI->StackPos = tmpStackPos;
+         else {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_PushActionStack.\n", FuncName);
+         }
+      } else {
+         /* ROI will not be used for display purposes, just add datum */
+         dlist_ins_next(ROI->ROIstrokelist, dlist_tail(ROI->ROIstrokelist), (void *)ROI_Datum);
       }
-
-      if (tmpStackPos) ROI->StackPos = tmpStackPos;
-      else {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_PushActionStack.\n", FuncName);
-      } 
    }
    
-   /* Saved ROIs are considered finished, put a finish action on the top of the action stack */
-   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); 
-   ROIA->DrawnROI = ROI;
-   ROIA->ROId = NULL;
-   tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
-               SUMA_FinishedROI, (void *)ROIA, SUMA_DestroyROIActionData);
-   if (tmpStackPos) ROI->StackPos = tmpStackPos;
-   else {
-      SUMA_SL_Err("Failed in SUMA_PushActionStack.\n");
-      SUMA_RETURN(NULL);
-   } 
-   
+   if (ForDisplay) {
+      /* Saved ROIs are considered finished, put a finish action on the top of the action stack */
+      ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); 
+      ROIA->DrawnROI = ROI;
+      ROIA->ROId = NULL;
+      tmpStackPos = SUMA_PushActionStack (ROI->ActionStack, ROI->StackPos, 
+                  SUMA_FinishedROI, (void *)ROIA, SUMA_DestroyROIActionData);
+      if (tmpStackPos) ROI->StackPos = tmpStackPos;
+      else {
+         SUMA_SL_Err("Failed in SUMA_PushActionStack.\n");
+         SUMA_RETURN(NULL);
+      } 
+   }   
    SUMA_RETURN(ROI);
 }
 

@@ -14,9 +14,7 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *filename, int Format); 
 SUMA_NIML_DRAWN_ROI * SUMA_Free_NIMLDrawROI (SUMA_NIML_DRAWN_ROI *nimlROI);
 SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI);
-SUMA_DRAWN_ROI * SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI);
+SUMA_DRAWN_ROI * SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SUMA_Boolean ForDisplay);
 void SUMA_FakeIt (int Solo);
-char *SUMA_copy_string(char *buf);
-char * SUMA_append_string(char *s1, char *s2);
 
 #endif
