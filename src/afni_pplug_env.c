@@ -310,6 +310,12 @@ PLUGIN_interface * ENV_init(void)
                     "Max buttons in an Option Menu" ,
                     100 , 100000 , 0 , 255 , NULL ) ;
 
+   /* 23 Oct 2003 */
+
+   ENV_add_numeric( "AFNI_STROKE_THRESHOLD" ,
+                    "Coarseness of grayscale stroking" ,
+                    8 , 99 , 0 , 32 , NULL ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;

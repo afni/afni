@@ -4347,11 +4347,22 @@ ENTRY("ISQ_drawing_EV") ;
 
          /* Button1 release: turn off zoom-pan mode, if it was on */
 
-         if( event->button == Button1 && seq->zoom_button1 ){
-           if( !AFNI_yesenv("AFNI_KEEP_PANNING") ){
+         if( event->button == Button1 ){
+
+           if( seq->zoom_button1 && !AFNI_yesenv("AFNI_KEEP_PANNING") ){
              seq->zoom_button1 = 0 ;
              POPUP_cursorize( seq->wimage ) ;
              MCW_invert_widget( seq->zoom_drag_pb ) ;
+           } else if( !seq->zoom_button1 ){           /* 23 Oct 2003 */
+             int xdif = (event->x - seq->last_bx) ;
+             if( xdif ){
+               double denom = AFNI_numenv("AFNI_STROKE_THRESHOLD") ;
+               if( denom < 1.0l ) denom = 32.0l ;
+               xdif = rint(xdif/denom) ;
+               if( xdif ){
+                 DC_gray_conbrio(seq->dc,xdif); COLORMAP_CHANGE(seq);
+               }
+             }
            }
          }
       }
@@ -4675,21 +4686,26 @@ DPR(" .. ButtonPress") ;
 
          if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
            if( event->button == Button1 ){ /* 21 Oct 2003 */
+             bx = seq->opt.free_aspect ; seq->opt.free_aspect = 0 ;
              ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
+             seq->opt.free_aspect = bx ;
            } else if( event->button == Button3 ){
              XmMenuPosition( seq->wbar_menu , event ) ; /* where */
              XtManageChild ( seq->wbar_menu ) ;         /* popup */
            }
+           else
 #if 0
-           else XUngrabPointer( event->display , CurrentTime ) ;
+             XUngrabPointer( event->display , CurrentTime ) ;
+#else
+             XBell(seq->dc->display,100) ;
 #endif
            EXRETURN ;
          }
 
          /* below here, button press was in the image */
 
-         bx  = event->x ;
-         by  = event->y ;
+         seq->last_bx = bx = event->x ;  /* 23 Oct 2003: save last button */
+         seq->last_by = by = event->y ;  /*            press (x,y) coords */
          but = event->button ;
 
          MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
@@ -4838,7 +4854,7 @@ fprintf(stderr,"ConfigureNotify: width=%d height=%d\n",event->width,event->heigh
 
                if( AFNI_yesenv("AFNI_ENFORCE_ASPECT") && !seq->opt.free_aspect ){
                  static int last_time=0 ; int now_time=NI_clock_time() ;
-                 if( now_time == 0 || now_time-last_time > 33 ) 
+                 if( now_time == 0 || now_time-last_time > 33 )
                    ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
 #if 0
 else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
@@ -5975,8 +5991,8 @@ ENTRY("ISQ_arrow_CB") ;
 
    } else if( av == seq->arrow[NARR_GAMMA]   ){
            double new_gamma = seq->dc->gamma ;
-           if( ddd > 0 ) new_gamma *= 0.98 ;
-           else          new_gamma /= 0.98 ;
+           if( ddd > 0 ) new_gamma *= 0.95 ;
+           else          new_gamma /= 0.95 ;
 
            DC_palette_restore( seq->dc , new_gamma ) ;
            COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
