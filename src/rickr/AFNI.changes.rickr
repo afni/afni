@@ -585,3 +585,8 @@
   * modifed SUMA_3dSurf2Vol.c (-> v3.6), fixed bug where a previous change
     caused the default f_steps to revert from 2 to 1 (discovered by Kuba)
 
+02 August 2004:
+  * modified SUMA_SurfMeasures.c (-> v1.9), do not require anat correct
+  * modified SUMA_glxdino.c, cast each 3rd gluTessCallback arg as _GLUfuncptr
+    (some 64-bit machines have complained)
+
