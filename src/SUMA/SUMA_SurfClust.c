@@ -58,7 +58,7 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO)
    
    if (!SO) { SUMA_RETURN(NodeAreas); }
    if (!SO->PolyArea) {
-      if (!SUMA_SurfaceMetrics (SO, "PolyArea", NULL)) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea", NULL, 0, SUMAg_CF->DsetList)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
          SUMA_RETURN(NodeAreas);
       }
@@ -275,6 +275,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    static char FuncName[]={"SUMA_Build_Cluster_From_Node_NoRec"};
    SUMA_CLUST_DATUM *Clust = NULL;
    static int ncall;
+   static int N_Orig = -1;
    int il, jl, neighb, itmp;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    DList *offlist = NULL, *candlist=NULL;
@@ -286,6 +287,9 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    
    SUMA_ENTRY;
    ++ncall;
+   /* a trick to know when to initialize */
+   if (Opt->update < 0) { N_Orig = *N_TobeAssigned; Opt->update = -Opt->update; }
+   
    if (dothisnode < 0) {
       SUMA_SL_Err("Unexpected negative index.");
       SUMA_RETURN(NULL);
@@ -335,6 +339,14 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
                      SUMA_ADD_NODE_TO_CLUST(neighb, Clust, NodeArea, ToBeAssigned);
                      /* mark it as assigned, an reduce the number of nodes left to assign*/
                      ToBeAssigned[neighb] = 0; --(*N_TobeAssigned);
+                     if (Opt->update) {
+                        if (N_Orig - *N_TobeAssigned >= Opt->update) {
+                           if (LocalHead) fprintf(SUMA_STDERR,"%s: tick (%d nodes processed)\n", FuncName, N_Orig - *N_TobeAssigned); 
+                           else fprintf(SUMA_STDERR,".");
+                           
+                           N_Orig = *N_TobeAssigned;
+                        }
+                     }
                      /* mark it as a candidate if it has not been visited as a candidate before */
                      if (!visited[neighb]) {
                         dlist_ins_next(candlist, dlist_tail(candlist), (void *)neighb);
@@ -349,7 +361,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
       }
    /* free this OffS structure  */
    if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
-   
+   if (Opt->update) fprintf(SUMA_STDERR,"\n");
    SUMA_RETURN(Clust);
 }
 
@@ -380,7 +392,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
    DListElmt *elm=NULL;
    float *ToBeAssigned=NULL;
    float mean;
-   int N_n, nc, i, kk;
+   int N_n, nc, i, kk, PureNothing=0;
    SUMA_CLUST_DATUM *Clust = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -398,11 +410,17 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
       ToBeAssigned = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
       N_n = N_ni;
       for (i=0; i<N_n; ++i) {
+         if (!nv[i]) {
+            ++PureNothing;
+         }
          ToBeAssigned[ni[i]] = nv[i];
+      }
+      if (Opt->update) {
+         fprintf(SUMA_STDERR,"%s: Have %d nodes to work with. %d nodes have 0 value.\n", FuncName, N_n, PureNothing);
       }
    }
    
-   while (N_n > 0) {
+   while (N_n - PureNothing > 0) {
       dothisnode = -1;
       for (i=0;i<SO->N_Node; ++i) { 
          if (ToBeAssigned[i]) {  
@@ -446,9 +464,14 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
             SUMA_RETURN(NULL);   
          }
          /* find the central node */
-         if (!SUMA_ClusterCenterofMass  (SO, Clust, 1)) {
-            SUMA_SL_Err("Failed to find central node");  
-            SUMA_RETURN(list);   
+         if (Opt->DoCentrality) {
+            if (Opt->update) {
+                  SUMA_SL_Note("Looking for central nodes...(use -no_cent to skip this slow step)");
+            } 
+            if (!SUMA_ClusterCenterofMass  (SO, Clust, 1)) {
+               SUMA_SL_Err("Failed to find central node");  
+               SUMA_RETURN(list);   
+            }
          }
 
          dlist_ins_next(list, dlist_tail(list), (void *)Clust); 
@@ -724,6 +747,14 @@ int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int
       SUMA_SL_Crit("Failed to allocate for CoverThisNode");
       SUMA_RETURN(NOPE);
    }
+   if (cd->N_Node == SO->N_Node) {
+      /* not much to do, return 0 */
+      SUMA_SL_Note("Cluster spans entire surface.\nNo central node.\n");
+      cd->centralnode = 0;
+      cd->weightedcentralnode = 0;
+      SUMA_RETURN(YUP);
+   }
+   
    for (i=0; i<cd->N_Node; ++i) { CoverThisNode[cd->NodeList[i]] = 1; }
    nanch = cd->NodeList[0]; /* anchor node */
    SUMA_getoffsets2 (cd->NodeList[0], SO, 0, OffS, CoverThisNode, cd->N_Node);
@@ -911,6 +942,12 @@ void usage_SUMA_SurfClust ()
                "               Distance is measured on the surface's graph (mesh).\n"
                "\n"
                "  Optional Parameters:\n"
+               "     -thresh_col tcolind: Index of thresholding column.\n"
+               "                          Default is column 0.\n "
+               "     -thresh tval: Apply thresholding prior to clustering.\n"
+               "                   A node n is considered if thresh_col[n] > tval.\n"
+               "     -athresh tval: Apply absolute thresholding prior to clustering.\n"
+               "                    A node n is considered if | thresh_col[n] | > tval.\n" 
                "     -amm2 minarea: Do not output resutls for clusters having\n"
                "                    an area less than minarea.\n"
                "     -prefix OUTPREF: Prefix for output.\n"
@@ -931,7 +968,14 @@ void usage_SUMA_SurfClust ()
                "                    in cluster.\n"
                "     -sort_area: Sorting based on area of clusters \n"
                "                 (default).\n"
-             /*  "     -sv SurfaceVolume \n"
+               "     -update perc: Pacify me when perc of the data have been\n"
+               "                   processed. perc is between 1%% and 50%%.\n"
+               "                   Default is no update.\n"
+               "     -no_cent: Do not find the central nodes.\n"
+               "               Finding the central node is a \n"
+               "               relatively slow operation. Use\n"
+               "               this option to skip it.\n"
+               /*"     -sv SurfaceVolume \n"
                "        If you supply a surface volume, the coordinates of the input surface.\n"
                "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
                "     -acpc: Apply acpc transform (which must be in acpc version of \n"
@@ -979,6 +1023,7 @@ void usage_SUMA_SurfClust ()
                "           U.. is the unit vector between two nodes\n"
                "           d.. is the distance between two nodes on the graph\n"
                "              (an approximation of the geodesic distance)\n"
+               "   If -no_cent is used, CenterNode columns are set to 0.\n"
                "\n"
                "%s"
                "\n", s);
@@ -1028,7 +1073,12 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->OutROI = NOPE;
    Opt->FullROIList = NOPE;
    Opt->WriteFile = NOPE;
+   Opt->DoThreshold = 0;
+   Opt->Thresh = 0.0;
+   Opt->tind = 0;
+   Opt->update = 0;
    Opt->SortMode = SUMA_SORT_CLUST_NOT_SET;
+   Opt->DoCentrality = 1;
    for (i=0; i<SURFCLUST_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
    BuildMethod = SUMA_OFFSETS2_NO_REC;
@@ -1042,11 +1092,15 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
+      if (!brk && (strcmp(argv[kar], "-no_cent") == 0)) {
+         Opt->DoCentrality = 0;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-O2") == 0)) {
          BuildMethod = SUMA_OFFSETS2;
          brk = YUP;
       }
-      
       if (!brk && (strcmp(argv[kar], "-O2_NR") == 0)) {
          BuildMethod = SUMA_OFFSETS2_NO_REC;
          brk = YUP;
@@ -1066,7 +1120,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			Opt->spec_file = argv[kar];
 			brk = YUP;
 		}
-
+      
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1074,6 +1128,20 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->sv_name = argv[kar];
+			brk = YUP;
+		}
+      
+       
+      if (!brk && (strcmp(argv[kar], "-update") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -update \n");
+				exit (1);
+			}
+			Opt->update = atof(argv[kar]);
+         if (Opt->update < 1 || Opt->update > 100) {
+            fprintf (SUMA_STDERR, "-update needs a parameter between 1 and 50 (I have %.1f)\n", Opt->update);
+         }
 			brk = YUP;
 		}
       
@@ -1123,6 +1191,38 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->DistLim = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-thresh") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -thresh \n");
+				exit (1);
+			}
+			Opt->DoThreshold = 1;
+         Opt->Thresh = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-athresh") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -athresh \n");
+				exit (1);
+			}
+			Opt->DoThreshold = 2;
+         Opt->Thresh = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-thresh_col") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -thresh_col \n");
+				exit (1);
+			}
+         Opt->tind = atoi(argv[kar]);
 			brk = YUP;
 		}
       
@@ -1195,8 +1295,8 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfClust"}; 
-	int kar, SO_read, *ni=NULL, N_ni;
-   float *data_old = NULL, *far = NULL, *nv=NULL;
+	int kar, SO_read, *ni=NULL, N_ni, cnt, i;
+   float *data_old = NULL, *far = NULL, *nv=NULL, *nt = NULL;
    void *SO_name = NULL;
    SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
    MRI_IMAGE *im = NULL;
@@ -1261,6 +1361,7 @@ int main (int argc,char *argv[])
    /* load the data */   
    iform = SUMA_NO_DSET_FORMAT;
    dset = SUMA_LoadDset (Opt->in_name, &iform, 0); 
+   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    if (!dset) { SUMA_S_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of the specified\n"
@@ -1270,7 +1371,6 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("Failed to assign data set to surface.");
       exit(1);
    }
-   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    /* get the node index column */
    ni = SUMA_GetNodeDef(dset);
    N_ni = SDEST_VECLEN(dset);
@@ -1282,6 +1382,42 @@ int main (int argc,char *argv[])
    if (!nv) {
       SUMA_S_Err("Failed to find node value column");
       exit(1);
+   }
+   
+   /* any thresholding ? */
+   if (Opt->DoThreshold) {
+      nt = SUMA_Col2Float(dset->nel, Opt->tind, 0);
+      if (!nt) {
+         SUMA_S_Err("Failed to find threshold column");
+         exit(1);
+      }
+      cnt = 0;
+      if (Opt->DoThreshold == 1) {
+         fprintf(SUMA_STDERR,"%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
+         for (i=0;i<N_ni; ++i) {
+            if (nt[i] >= Opt->Thresh) {
+               ni[cnt] = ni[i];
+               nv[cnt] = nv[i];
+               ++cnt;
+            }
+         }
+      } else {
+         SUMA_LH("ABS Thresholding...");
+         for (i=0;i<N_ni; ++i) {
+            if (fabs(nt[i]) >= Opt->Thresh) {
+               ni[cnt] = ni[i];
+               nv[cnt] = nv[i];
+               ++cnt;
+            }
+         }
+      }
+      N_ni = cnt;
+   }
+   if (Opt->update) {
+      Opt->update = -(N_ni * Opt->update / 100); /* make it negative before you begin a clustering operation */
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"Update parameter, once every %d nodes\n%d nodes to work with.\n", -(int)Opt->update, N_ni);
+      }    
    }
    
    /* make the call */
@@ -1333,6 +1469,7 @@ int main (int argc,char *argv[])
    if (ClustOutName) SUMA_free(ClustOutName); ClustOutName = NULL;
    if (list) dlist_destroy(list); SUMA_free(list); list = NULL;
    if (nv) SUMA_free(nv); nv = NULL;
+   if (nt) SUMA_free(nt); nt = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);
    if (dset) SUMA_FreeDset((void *)dset); dset = NULL;

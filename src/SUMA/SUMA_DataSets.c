@@ -9,6 +9,7 @@ This file might be compiled and used by AFNI
 #include <math.h>
 #include "mrilib.h"
 #include "niml.h"
+#include "../niml/niml_private.h"
 #include "xutil.h"
 
 #if defined SUMA_TEST_DATA_SETS_STAND_ALONE
@@ -171,6 +172,10 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break;
      
       case SUMA_NODE_INT:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+      
+      case SUMA_NODE_SHORT:
          NI_set_attribute ( nel, Attr, NULL);
          break;
       
@@ -626,6 +631,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_FLOAT:
          SUMA_RETURN("Generic_Float");
          break;
+      case SUMA_NODE_SHORT:
+         SUMA_RETURN("Generic_Short");
+         break;
       case SUMA_NODE_3C:
          SUMA_RETURN("XYZ_triplets");
          break;
@@ -653,7 +661,6 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_CX:
          SUMA_RETURN("Convexity");
          break;
-      
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -661,6 +668,10 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
    
 }
 
+/*!
+   For daily use, call       ctp = SUMA_TypeOfColNumb(nel, i); 
+
+*/
 SUMA_COL_TYPE SUMA_Col_Type (char *Name)
 {
    static char FuncName[]={"SUMA_Col_Type"};
@@ -670,6 +681,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Col_Type_Undefined")) SUMA_RETURN (SUMA_NO_COL_TYPE);
    if (!strcmp(Name,"Error_Col_Type")) SUMA_RETURN (SUMA_ERROR_COL_TYPE);
    if (!strcmp(Name,"Generic_Int")) SUMA_RETURN (SUMA_NODE_INT);
+   if (!strcmp(Name,"Generic_Short")) SUMA_RETURN (SUMA_NODE_SHORT);
    if (!strcmp(Name,"Node_Index")) SUMA_RETURN (SUMA_NODE_INDEX);
    if (!strcmp(Name,"Node_Index_Label")) SUMA_RETURN (SUMA_NODE_ILABEL);
    if (!strcmp(Name,"Generic_Float")) SUMA_RETURN (SUMA_NODE_FLOAT);
@@ -715,6 +727,7 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
    static char FuncName[]={"SUMA_GetColIndex"};
    int *iv=NULL, i=0;
    char stmp[500], *atr;
+   int ctp;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -728,12 +741,10 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
    
    *N_i = 0;
    for (i=0; i < nel->vec_num; ++i) {
-      sprintf(stmp,"TypeCol_%d",i);
-      atr = NI_get_attribute(nel,stmp);
-      if (SUMA_Col_Type(atr) == tp) {
+      ctp = SUMA_TypeOfColNumb(nel, i);
+      if (ctp == tp) {
          iv[*N_i] = i;
          *N_i = *N_i + 1;
-
       }
    }
    
@@ -1133,6 +1144,7 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow)
    float *dtf;
    char *s=NULL;
    SUMA_STRING *SS=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1145,6 +1157,8 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow)
    
    SS = SUMA_StringAppend(NULL, NULL);
    
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: tp=%d, SUMA_double=%d, SUMA_float=%d, SUMA_int=%d, SUMA_byte=%d, SUMA_short=%d\n", 
+                           FuncName, tp, SUMA_double, SUMA_float, SUMA_int, SUMA_byte, SUMA_short);
    switch (tp) {
       case SUMA_double:
          dtd = (double*)dt;
@@ -1271,7 +1285,7 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             sprintf (stmp,"TypeCol_%d", i);
             SS = SUMA_StringAppend_va(SS, "\tColumn %d's name: %s\n",
                                        i, NI_get_attribute(dset->nel, stmp));
-            ctp = SUMA_Col_Type(NI_get_attribute(dset->nel, stmp));
+            ctp = SUMA_TypeOfColNumb(dset->nel, i); 
             sprintf(stmp,"attrCol_%d", i);
             SS = SUMA_StringAppend_va(SS, "\tColumn %d's attribute: %s\n", 
                                        i, NI_get_attribute(dset->nel, stmp));
@@ -1554,7 +1568,7 @@ double SUMA_GetValInCol2(NI_element *nel, int ind, int ival)
    double *dv = NULL, dval = 0.0;
    float *fv=NULL;
    int *iv = NULL;
-   char stmp[51], **cv = NULL;
+   char **cv = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -1571,8 +1585,7 @@ double SUMA_GetValInCol2(NI_element *nel, int ind, int ival)
       SUMA_RETURN(0.0);
    }
 
-   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
-   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+   ctp = SUMA_TypeOfColNumb(nel, ind); 
 
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
@@ -1617,7 +1630,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
    double *dv = NULL;
    float *fv=NULL;
    int *iv = NULL;
-   char stmp[51], *str=NULL, **cv = NULL;
+   char  *str=NULL, **cv = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -1634,8 +1647,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
       SUMA_RETURN(NULL);
    }
 
-   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
-   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+   ctp = SUMA_TypeOfColNumb(nel, ind); 
 
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
@@ -1669,7 +1681,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
          str = SUMA_copy_string((char*)cv[ival]);
          break;
       default:
-         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_SL_Err("This type is not supported yet.\n");
          SUMA_RETURN(NULL);
          break;
    }
@@ -1694,7 +1706,6 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
 {
    static char FuncName[]={"SUMA_Col2Float"};
-   char stmp[51];
    int i = -1, N_read = -1, *iv = NULL;
    float *V=NULL, *fv = NULL;
    SUMA_COL_TYPE ctp;
@@ -1714,8 +1725,8 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    } else {
       N_read = nel->vec_len;
    }
-   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
-   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+   
+   ctp = SUMA_TypeOfColNumb(nel, ind); 
 
    V = (float *)SUMA_malloc(sizeof(float)*N_read);
    if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
@@ -1737,6 +1748,71 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    }
    
    SUMA_RETURN(V);
+}
+
+/*!
+   a wrapper to faciliate getting column types from 
+   both SUMA and AFNI formatted niml elements
+   \sa SUMA_Col_Type
+*/
+SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind) 
+{
+   static char FuncName[]={"SUMA_TypeOfColNumb"};
+   int *ctpv = NULL;
+   char *cnm = NULL;
+   int_array *iar = NULL;
+   SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
+   char stmp[100];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (!nel) {  
+      SUMA_SL_Err("NULL NI element");
+      SUMA_RETURN(ctp);
+   }
+   if (ind < 0 || ind > (nel->vec_num - 1)) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(ctp);
+   }
+   
+   /* try SUMA's */
+   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
+   cnm = NI_get_attribute(nel, stmp);
+   if (cnm) {
+      SUMA_RETURN(SUMA_Col_Type(cnm));
+   }
+   
+   /* try AFNI's */
+   cnm = NI_get_attribute(nel, "ni_type");
+   if (cnm) {
+      SUMA_LH(cnm);
+      iar = decode_type_string( cnm ); 
+      if (iar) {
+         ctp = iar->ar[ind];   /* this is not the same as SUMA's column type, it is just data type */
+         NI_free(iar->ar); NI_free(iar); iar = NULL;
+         switch(ctp) {
+            case SUMA_int:
+               ctp = SUMA_NODE_INT;
+               break;
+            case SUMA_float:
+               ctp = SUMA_NODE_FLOAT;
+               break;
+            case SUMA_byte:
+               ctp = SUMA_NODE_BYTE;
+               break;
+            case SUMA_short:
+               ctp = SUMA_NODE_SHORT;
+               break;
+            default:
+               SUMA_SL_Err("AFNI column type not supported at the moment.\n");
+               ctp = SUMA_ERROR_COL_TYPE;
+               break;
+         }
+         SUMA_RETURN(ctp);
+      }
+   }
+   
+   SUMA_SL_Err("Failed to determine type");
+   SUMA_RETURN(ctp);
 }
 
 /*!
@@ -1786,7 +1862,10 @@ SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb)
    if (!dset) {
       if (verb) SUMA_SL_Err("Failed to read dset");
       SUMA_RETURN(dset);   
-   }  
+   }
+   if (LocalHead) {
+      SUMA_ShowDset(dset, 0, NULL);
+   } 
    SUMA_RETURN(dset);
 }
 
@@ -2058,15 +2137,13 @@ int SUMA_OK_1Dnel(NI_element *nel)
 {
    static char FuncName[]={"SUMA_OK_1Dnel"};
    int ctp, vtp, i;
-   char stmp[50];
    
    SUMA_ENTRY;
    
    if (!nel) SUMA_RETURN(0);
    
    for (i=0; i<nel->vec_num; ++i) {
-      snprintf (stmp,50*sizeof(char),"TypeCol_%d", i);
-      ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+      ctp = SUMA_TypeOfColNumb(nel, i); 
       vtp = SUMA_ColType2TypeCast(ctp) ;
       if (vtp != SUMA_int && vtp != SUMA_float) SUMA_RETURN(0);
    }
