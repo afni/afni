@@ -3841,3 +3841,6 @@
 
 19 Jul 2002
  * New functiona mri_read_dicom() to read images from DICOM files.
+
+23 Jul 2002
+ * Modified mri_read_dicom.c to get slice orientation and offsets.
