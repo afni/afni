@@ -2699,7 +2699,10 @@ static void DRAW_2D_circle( int np, int *xd, int *yd, int *zd, int plane ,
          ixn = ix+nn[2*kk] ; jyn = jy+nn[2*kk+1] ;              /* nbhd pt 2D index */
          if( ixn >= 0 && ixn < itop && jyn >= 0 && jyn < jtop ){
            mm = base + ixn*di + jyn*dj ;                        /* 3D index */
-           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( ii > 0 )
+             for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;   /* nada */
+           else
+             qq = jj ;
            if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
          }
        }
@@ -2766,6 +2769,10 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
 
    /** add points around each input point, culling duplicates **/
 
+   /** [for large spheres, it would be better to sort the xyzn] **/
+   /** [list and then use binary search, this this duplicate  ] **/
+   /** [removal (the 'qq' loop) is by far the slowest part    ] **/
+
    for( ii=jj=0 ; ii < np ; ii++ ){
      ix = xd[ii] ; jy = yd[ii] ; kz = zd[ii] ;
      if( ix >= 0 && ix < nx && jy >= 0 && jy < ny && kz >= 0 && kz <= nz ){
@@ -2774,7 +2781,10 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
          ixn = ix+nn[3*kk] ; jyn = jy+nn[3*kk+1] ; kzn = kz+nn[3*kk+2] ;
          if( ixn >= 0 && ixn < nx && jyn >= 0 && jyn < ny && kzn >= 0 && kzn < nz ){
            mm = ixn + jyn*nx + kzn*nxy ;                        /* 3D index */
-           for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;     /* nada */
+           if( ii > 0 )
+             for( qq=0 ; qq < jj && xyzn[qq] != mm ; qq++ ) ;   /* nada */
+           else
+             qq = jj ;
            if( qq == jj ) xyzn[jj++] = mm ;                     /* save 3D index */
          }
        }

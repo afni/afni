@@ -4006,3 +4006,7 @@
 
 16 Oct 2002
  * Modified plug_drawdset.c to add '2D Circle' and '3D Sphere' drawing modes.
+
+17 Oct 2002
+ * Modified plug_drawdset.c sphere/circle insertion not to test for duplicate
+     insertions from the 1st input point - this speeds things up for large R.
