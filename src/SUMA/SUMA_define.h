@@ -121,7 +121,7 @@ typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system
                                                                   ie one that is rotated by the mouse movements */
 typedef enum {SUMA_SOLID_LINE, SUMA_DASHED_LINE} SUMA_STIPPLE;
 
-typedef enum {SUMA_Button_12_Motion, SUMA_Button_2_Shift_Motion, SUMA_Button_1_Motion, SUMA_Button_2_Motion} SUMA_MOTION_TYPES; /*!< Types of mouse motion */
+typedef enum {SUMA_Button_12_Motion, SUMA_Button_2_Shift_Motion, SUMA_Button_1_Motion, SUMA_Button_2_Motion, SUMA_Button_3_Motion} SUMA_MOTION_TYPES; /*!< Types of mouse motion */
 
 typedef enum { SE_Empty, 
                SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, 
@@ -411,6 +411,11 @@ typedef enum { SW_File,
                SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
                                                       Make sure you begin with SW_File and end
                                                       with SW_N_File */
+typedef enum { SW_Edit,
+               SW_EditDrawROI,
+               SW_N_Edit } SUMA_WIDGET_INDEX_EDIT; /*!< Indices to widgets under Edit menu. 
+                                                      Make sure you begin with SW_Edit and end
+                                                      with  SW_N_Edit*/
 typedef enum { SW_View, 
                SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, 
                SW_ViewSep1,
@@ -441,10 +446,11 @@ typedef struct {
    int REDISPLAYPENDING;
    int WIDTH, HEIGHT;
    XtWorkProcId REDISPLAYID, MOMENTUMID;
-   
+   GC gc;
    SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer controller widget structure */
    Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
    Widget FileMenu[SW_N_File]; /*!< Vector of widgets under File Menu */       
+   Widget EditMenu[SW_N_Edit]; /*!< Vector of widgets under File Menu */       
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
 }SUMA_X;
@@ -600,6 +606,14 @@ typedef struct {
    SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
 } SUMA_COLORLIST_STRUCT;
 
+typedef struct {
+   int N;   /*!< Number of points in vectors x and y */
+   int Nalloc; /*!< Number of elements allocated for in x and y */
+   int *x;  /*!< vector containing x coordinates */
+   int *y;  /*!< vector containing y coordinates */
+} SUMA_BRUSH_STROKE; /*!< Structure containing the path of the mouse in the viewer window. 
+                        See functions SUMA_CreateBrushStroke(), SUMA_AddToBrushStroke(), 
+                        SUMA_ClearBrushStroke(), SUMA_ShowBrushStroke()*/
 /*! structure defining the state of a viewer window */
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
@@ -666,6 +680,7 @@ typedef struct {
    SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
    SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function that resets the Eye Axis before display. 
                                           see functions SUMA_display and SUMA_OpenGLStateReset for more info */
+   SUMA_BRUSH_STROKE *BrushStroke; /*!< Structre containing the coordinates of a mouse sweep inside the window */   
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

@@ -1530,6 +1530,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
                if (Bev.state & ShiftMask) {
+                  
                   /* ROI drawing mode */
                   ROI_mode = YUP;     
                }else {
@@ -1543,21 +1544,26 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      for (ii=0; ii < SUMAg_N_SVv; ++ii) {
                         if (&(SUMAg_SVv[ii]) != sv) {
                            if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
-                              fprintf (SUMA_STDERR,"Error %s: You cannot select while other viewers (like #%d) are in momentum mode.\n", FuncName, ii);
+                              sprintf (s,"You cannot select while other viewers\n(like #%d) are in momentum mode.\n", ii);
+                              SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                                    s, FuncName, SMT_Error, SMA_LogAndPopup);
                               SUMA_RETURNe;
                            }
                         }
                      }
                   }  
-
-                  /* make sure all OpenGL commands are completed before proceeding 
-                  This is an attempt at reducing the picking problem when multiple
-                  viewers are open simultaneously. This may be redundant since glFinish 
-                  is also called in SUMA_handleRedisplay....*/
-                  if (0 && SUMAg_N_SVv > 1) {
-                     glFinish();
+                  
+                  /* Keep track of mouse motion in window */
+                  if (!SUMA_CreateBrushStroke (sv)) {
+                     SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                           "Failed to create BrushStroke.", FuncName, 
+                                           SMT_Error, SMA_LogAndPopup);
+                     SUMA_RETURNe;
+                                           
                   }
-
+                  SUMA_AddToBrushStroke (sv, (int)Bev.x, (int)Bev.y, YUP);
+                  
+                  
                   ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                   if (ii == 0) { /* no surfaces, break */
                      break;
@@ -1874,7 +1880,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       }
       switch (rButton) { /* switch type of button Press */
          case Button3:
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
+            /* do smething with the BrushStroke, then wipe it clean */
+            SUMA_ShowBrushStroke (sv, NULL);
+            /* SUMA_DrawBrushStroke (sv, YUP); */
+            SUMA_ClearBrushStroke (sv);
          break;
       } /* switch type of button Press */
       break;
@@ -1888,6 +1898,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             mButton = SUMA_Button_1_Motion;
          }else if(Mev.state & Button2MotionMask) { 
             mButton = SUMA_Button_2_Motion;
+         }else if(Mev.state & Button1MotionMask) { 
+            mButton = SUMA_Button_3_Motion;
          }else {
             break;
          } 
@@ -1898,7 +1910,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             mButton = SUMA_Button_1_Motion;
          }else if(Mev.state & Button2MotionMask) { 
             mButton = SUMA_Button_2_Motion;
-         } else {
+         } else if(Mev.state & Button3MotionMask) { 
+            mButton = SUMA_Button_3_Motion;
+         }else {
             break;
          }
       }
@@ -1988,7 +2002,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->GVS[sv->StdView].translateBeginY = (int)Mev.y;
                SUMA_postRedisplay(w, clientData, callData);
             }  
-            break; 
+            break;
+         
+         case SUMA_Button_3_Motion:
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: In motion, Butt3 \n", FuncName); 
+            if (!SUMA_AddToBrushStroke (sv, (int)Mev.x, (int)Mev.y, YUP)) {
+               SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                     "Failed to add to BrushStroke.", FuncName, 
+                                     SMT_Error, SMA_LogAndPopup);
+               break;
+            }
+            break;
       }
       
       
@@ -2240,3 +2264,198 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       SUMA_RETURN (0); /* no hit */
    }
 }/* determine intersection */
+
+/*!
+   \brief Show the contents of a brush stroke
+   SUMA_ShowBrushStroke (sv, Out);
+   
+*/
+void SUMA_ShowBrushStroke (SUMA_SurfaceViewer *sv, FILE *out)
+{
+   static char FuncName[]={"SUMA_ShowBrushStroke"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!out) out = SUMA_STDOUT;
+   
+   if (!sv->BrushStroke) {
+      fprintf(out, "%s: NULL sv->BrushStroke\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (!sv->BrushStroke->N) {
+      fprintf(out, "%s: Empty sv->BrushStroke. (N = 0)\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   fprintf(out, "%s: Brush stroke has %d points:\n", FuncName, sv->BrushStroke->N);
+   for (i=0; i < sv->BrushStroke->N; ++i) {
+      fprintf(out, "(%d %d)\t", sv->BrushStroke->x[i], sv->BrushStroke->y[i]);
+   }
+   fprintf(out, "\n");
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Clear the contents of sv->BrushStroke and sets it to NULL
+   SUMA_ClearBrushStroke (sv);
+   
+   
+   \sa SUMA_CreateBrushStroke
+*/
+void  SUMA_ClearBrushStroke (SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_ClearBrushStroke"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!sv->BrushStroke) SUMA_RETURNe;
+   
+   /* free the contents of BrushStroke */
+   if (sv->BrushStroke->x) SUMA_free (sv->BrushStroke->x);
+   if (sv->BrushStroke->y) SUMA_free (sv->BrushStroke->y);
+   /* free the Brush stroke structure itself */
+   SUMA_free (sv->BrushStroke);
+   sv->BrushStroke = NULL;
+   
+   SUMA_RETURNe;
+}
+/*!
+   \brief Creates the BrushStroke structure inside sv structure
+   success = SUMA_CreateBrushStroke (sv);
+   
+   \param sv (SUMA_SurfaceViewer *) Surface viewer structure
+   \return YUP/NOPE
+   
+   sv->BrushStroke must be null before this function is called. 
+   The structure and its components are then allocated for.
+   
+   \sa SUMA_ClearBrushStroke
+*/
+SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_CreateBrushStroke"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (sv->BrushStroke) { /* bad news, this should be NULL to begin with */
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Brush Stroke not NULL.", FuncName, 
+                            SMT_Critical, SMA_LogAndPopup);
+      SUMA_RETURN(NOPE); 
+   }
+   
+   sv->BrushStroke = (SUMA_BRUSH_STROKE *)SUMA_malloc(sizeof(SUMA_BRUSH_STROKE));
+   sv->BrushStroke->Nalloc = SUMA_BRUSH_BLOCK;
+   sv->BrushStroke->x = (int*) SUMA_calloc (sv->BrushStroke->Nalloc, sizeof(int));
+   sv->BrushStroke->y = (int*) SUMA_calloc (sv->BrushStroke->Nalloc, sizeof(int));
+   if (!sv->BrushStroke->x || !sv->BrushStroke->y) {
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Failed to allocate for BrushStroke vectors.", FuncName, 
+                            SMT_Critical, SMA_LogAndPopup);
+      SUMA_RETURN(NOPE); 
+   }
+   sv->BrushStroke->N = 0;
+   
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   \brief Adds, new point to the brush stroke
+   success = SUMA_AddToBrushStroke ( sv,  x,  y, Show);
+   
+   \param sv (SUMA_SurfaceViewer *) pointer to surface viewer where stroke is occuring
+   \param x (int) X coordinate of mouse
+   \param y (int) Y coordinate of mouse
+   \param Show (SUMA_Boolean) if YUP: Then trace is drawn as you move the mouse
+   \return YUP/NOPE, success indicator
+   
+*/
+SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, SUMA_Boolean Show)
+{
+   static char FuncName[]={"SUMA_AddToBrushStroke"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!sv->BrushStroke) { /* bad news, this should be NULL to begin with */
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "BrushStroke is NULL.", FuncName, 
+                            SMT_Critical, SMA_LogAndPopup);
+      SUMA_RETURN(NOPE); 
+   }
+   
+   if (sv->BrushStroke->N+1 >= sv->BrushStroke->Nalloc) {
+      sv->BrushStroke->Nalloc += SUMA_BRUSH_BLOCK;
+      sv->BrushStroke->x = (int*) SUMA_realloc ((void *)sv->BrushStroke->x, sv->BrushStroke->Nalloc * sizeof(int));
+      sv->BrushStroke->y = (int*) SUMA_realloc ((void *)sv->BrushStroke->y, sv->BrushStroke->Nalloc * sizeof(int));
+      if (!sv->BrushStroke->x || !sv->BrushStroke->y) {
+         SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                               "Failed to reallocate for BrushStroke vectors.", FuncName, 
+                               SMT_Critical, SMA_LogAndPopup);
+         SUMA_RETURN(NOPE); 
+      }
+   }
+   sv->BrushStroke->x[sv->BrushStroke->N] = x;
+   sv->BrushStroke->y[sv->BrushStroke->N] = y; 
+   ++sv->BrushStroke->N;
+   
+   /* incremental draw */
+   if (Show) SUMA_DrawBrushStroke (sv, YUP);
+   
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   Sets the foreground color of the drawing area
+*/
+void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
+{
+   static char FuncName[]={"SUMA_SetSVForegroundColor"};
+   XColor col, unused;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!XAllocNamedColor (sv->X->DPY, DefaultColormapOfScreen (XtScreen (sv->X->GLXAREA)),
+      Color, &col, &unused)) {
+      fprintf (SUMA_STDERR, "Error %s: Can't allocate for %s color.\n", FuncName, Color);
+      SUMA_RETURNe;  
+   }
+   XSetForeground (sv->X->DPY, sv->X->gc, col.pixel);
+   
+   SUMA_RETURNe;  
+}
+/*!
+   \brief Draws the brushstroke
+   
+   \param sv (SUMA_SurfaceViewer *) pointer to surface viewer structure
+   \param incremental (SUMA_Boolean) YUP: draw a line between the last two points
+                                     NOPE: draw the whole thing
+*/
+void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
+{
+   static char FuncName[]={"SUMA_DrawBrushStroke"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!sv->BrushStroke) SUMA_RETURNe;
+   
+   if (sv->BrushStroke->N < 2) SUMA_RETURNe;
+   
+   if (!incr) {   
+      for (i=1; i < sv->BrushStroke->N; ++i) {
+         XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
+                    sv->BrushStroke->x[i-1], sv->BrushStroke->y[i-1],
+                    sv->BrushStroke->x[i], sv->BrushStroke->y[i]);
+      }
+   } else {
+      XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
+                    sv->BrushStroke->x[sv->BrushStroke->N-2], sv->BrushStroke->y[sv->BrushStroke->N-2],
+                    sv->BrushStroke->x[sv->BrushStroke->N-1], sv->BrushStroke->y[sv->BrushStroke->N-1]);
+   }
+   SUMA_RETURNe;
+
+}
+

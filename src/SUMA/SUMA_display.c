@@ -819,6 +819,15 @@ SUMA_MenuItem File_menu[] = {
    {NULL},
 };
  
+SUMA_MenuItem Edit_menu[] = {
+   {  "Draw ROI", &xmPushButtonWidgetClass, \
+      'D', "Ctrl <Key>d", "Ctrl+D", \
+      SUMA_cb_EditDrawROI, (XtPointer) SW_EditDrawROI, NULL },
+   
+   {NULL},
+
+};
+ 
 SUMA_MenuItem View_menu[] = {
    {  "SUMA Controller", &xmPushButtonWidgetClass, \
       '\0', "Ctrl Shift<Key>d", "Shft+D", \
@@ -982,6 +991,11 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                  "File", 'F', YUP, File_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->FileMenu );
          
+         /* create Edit Menu */
+         SUMAg_SVv[ic].X->ViewMenu[SW_View] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+                                 "Edit", 'E', YUP, Edit_menu, \
+                                 (void *)ic, SUMAg_SVv[ic].X->EditMenu );
+         
          /* create View Menu */
          SUMAg_SVv[ic].X->ViewMenu[SW_View] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "View", 'V', YUP, View_menu, \
@@ -1068,6 +1082,16 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       /* Step 8. */
       XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
       
+      /* I will need a Graphics Context variable to draw into the window */
+      {  
+         XGCValues gcv; /* see program drawing.c in Motif Programming Manual, Ch. 10 */
+         gcv.foreground = BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
+         SUMAg_SVv[ic].X->gc = XCreateGC (XtDisplay (SUMAg_SVv[ic].X->GLXAREA),
+                                          RootWindowOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA)), 
+                                          GCForeground, &gcv);
+         SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
+
+      }
       /* keep track of count */
       SUMAg_N_SVv += 1;
      
@@ -3402,4 +3426,14 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
    }
    
    SUMA_RETURN (s);
+}
+
+void SUMA_cb_EditDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_EditDrawROI"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   fprintf (SUMA_STDERR, "%s: Nothing done yet.\n", FuncName);
+   SUMA_RETURNe;
 }

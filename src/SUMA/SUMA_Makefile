@@ -192,7 +192,7 @@ packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
 	chmod u+x ./@SUMA_CreateCompileStamp
 	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
-	$(CP) -p suma MakeColorMap libSUMA.a SUMA_bin/
+	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dSurfMaskDump SUMA_bin/
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	

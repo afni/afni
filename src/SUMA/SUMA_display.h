@@ -114,6 +114,7 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD);
 void SUMA_PopUpMessage (SUMA_MessageData *MD);
 void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_EditDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
 
 
 
