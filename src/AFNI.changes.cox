@@ -2103,3 +2103,10 @@
 14 Apr 2000
  * Added options -1Dfile to 3dvolreg.c and plug_volreg.c to save movement
      parameters to a 1D file for later ortologizing.
+
+16 Apr 2000
+ * Oops.  Added AFNI_SYSTEM_AFNIRC stuff to afni_environ.[ch] as well.
+
+18 Apr 2000
+ * Rewrote plug_nudge.c to do rotations and shifts.
+ * Added mri_copy.c.

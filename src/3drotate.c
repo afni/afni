@@ -304,16 +304,17 @@ int main( int argc , char * argv[] )
          exit(1) ;
       }
 
-#if 0
-fprintf(stderr,"ax1=%d th1=%g ax2=%d th2=%g ax3=%d th3=%g\n",ax1,th1,ax2,th2,ax3,th3);
-#endif
-
       if( ax1 < 0 || ax1 > 2 || ax2 < 0 || ax2 > 2 || ax3 < 0 || ax3 > 2 ){
          fprintf(stderr,"*** Some error occured: can't understand axes codes!\n") ;
          exit(1) ;
       }
 
       if( ihand < 0 ){ th1 = -th1 ; th2 = -th2 ; th3 = -th3 ; }
+
+#if 0
+fprintf(stderr,"ihand=%d th1=%g th2=%g th3=%g\n",ihand,th1,th2,th3);
+fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
+#endif
    }
 
    /* may need to process shift arguments as well */

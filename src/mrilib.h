@@ -362,6 +362,7 @@ extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 extern void mri_upsample( int , int , float * , float * ) ;
 extern MRI_IMAGE * mri_dup2D( int , MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * mri_copy( MRI_IMAGE * ) ;             /* 17 Apr 2000 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern int mri_write( char * , MRI_IMAGE * ) ;

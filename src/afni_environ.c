@@ -64,9 +64,15 @@ char * AFNI_suck_file( char * fname )
 
 static int afni_env_done = 0 ;
 
+void AFNI_mark_environ_done(void){ afni_env_done = 1 ; return ; }
+
 char * my_getenv( char * ename )
 {
-   if( !afni_env_done ) AFNI_process_environ(NULL) ;
+   if( !afni_env_done ){
+      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 16 Apr 2000 */
+      if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 16 Apr 2000 */
+      AFNI_process_environ(NULL) ;
+   }
    return getenv( ename ) ;
 }
 

@@ -450,7 +450,7 @@ void VL_syntax(void)
     "       N.B.: The motion parameters are those needed to bring the sub-brick\n"
     "             back into alignment with the base.  In 3drotate, it is as if\n"
     "             the following options were applied to each input sub-brick:\n"
-    "              -rotate <roll>I <pitch>R <yaw>A  -ashift <dS>S <dL]>L <dP]>P\n"
+    "              -rotate <roll>I <pitch>R <yaw>A  -ashift <dS>S <dL>L <dP>P\n"
     "\n"
     "  -1Dfile ename   Save the motion parameters ONLY in file 'ename'.\n"
     "                    The output is in 6 ASCII formatted columns:\n"

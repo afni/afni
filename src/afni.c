@@ -1010,6 +1010,8 @@ int main( int argc , char * argv[] )
        if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
 
        AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
+   } else {
+       AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
    AFNI_load_defaults( MAIN_shell ) ;
@@ -3741,7 +3743,7 @@ STATUS("setting image view to be L-R mirrored") ;
 #define PP 3
 #define SS 4
 #define II 5
-      if( NULL == my_getenv("AFNI_NO_SIDES_LABELS") ){
+      if( NULL == getenv("AFNI_NO_SIDES_LABELS") ){
          static char * ssix[6] = { "Left"     , "Right"     ,
                                    "Anterior" , "Posterior" ,
                                    "Superior" , "Inferior"   } ;
