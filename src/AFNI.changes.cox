@@ -4931,3 +4931,7 @@
 29 Jan 2004
  * Added the cute little diagonal 'AFNI' to various windows.
  * Modified rtfeedme.c to add the '-gyr' option to test GRAPH_[XY]RANGE.
+
+06 Feb 2004
+ * Added threshold locking (via environment variable AFNI_THRESH_LOCK).
+     Also, moved lock code from afni.c to new file afni_lock.c.

@@ -75,6 +75,13 @@ ENTRY("AFNI_thr_scale_CB") ;
    if( ! DOING_REALTIME_WORK )
       AFNI_redisplay_func( im3d ) ;
 
+   if( AFNI_yesenv("AFNI_THRESH_LOCK") ){  /* 06 Feb 2004 */
+     GLOBAL_library.thresh_lock = 1 ;
+     AFNI_thresh_lock_carryout(im3d) ;
+   } else {
+     GLOBAL_library.thresh_lock = 0 ;
+   }
+
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }

@@ -1887,10 +1887,9 @@ with it to see how it affects your images.
 ----------------------------
 Variable: AFNI_LOGO16 (etc.)
 ----------------------------
-If this variable is set to NO, then the 'AFNI' background logo used in
-the controller and image windows will be disabled.  Otherwise, by default,
-this logo will be used.  You can control the colors of this logo by the
-following variables:
+If this variable is set to YES, then the 'AFNI' background logo used in
+the controller and image windows will be enabled.  By default, it is off.
+You can control the colors of this logo by the following variables:
   AFNI_LOGO16_FOREGROUND_x
   AFNI_LOGO16_BACKGROUND_x
 where 'x' is 'A', 'B', 'C', etc., for the various controller labels.
@@ -1901,6 +1900,13 @@ menus (e.g., the "Xhairs Color" menu).  You can use these variables to
 make the windows for the various controllers somewhat distinct in
 appearance.  If these color variables are not set at all, then AFNI
 uses some colors of my choosing for this purpose.
+
+-------------------------------------
+Variable: AFNI_THRESH_LOCK (editable)
+-------------------------------------
+If this variable is set to YES, then AFNI controllers that are Lock-ed
+together (Datamode->Lock menu) will also have their threshold sliders
+locked together.
 
 =============================================
 | Robert W Cox, PhD                         |
