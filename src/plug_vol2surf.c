@@ -140,6 +140,12 @@ static char g_help[] =
     "     - fixed receive order of fr and mm offsets (mm was fr)\n"
     "     - verify that surface pairs have matching LDPs\n"
     "     - added PV2S_disp_afni_surfaces() to list all surfaces w/indices\n"
+    " \n"
+    "   1.4  25 October 2004 [rickr]\n"
+    "     - make sure the surface pairs are actually different\n"
+    "     - make sure surfaces have the same number of nodes\n"
+    "     - process all parameters, but only complain if 'ready'\n"
+    "     - always pass along debug/dnode\n"
 	;
 
 #define P_MAP_NAMES_NVALS      12	/* should match enum for global maps */
@@ -314,7 +320,7 @@ ENTRY("PV2S_main");
 
     g->vpo->ready = 0;
 
-    if ( PV2S_process_args(plint, g, message) != 0 )
+    if ( (PV2S_process_args(plint, g, message) != 0) && message[0] )
 	RETURN(message);
 
     RETURN(NULL);
@@ -389,9 +395,6 @@ ENTRY("PV2S_process_args");
 	    str = PLUTO_get_string(plint);
 	    val = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
 
-	    if ( val == 0 )		/* then don't test options */
-		break;
-
 	    if ( (val < 0) || (val >= P_NY_NVALS) )
 	    {
 		PV2S_BAIL_VALUE(mesg,"bad NY vals", val);
@@ -402,14 +405,14 @@ ENTRY("PV2S_process_args");
 	    /* now get map */
 	    str = PLUTO_get_string(plint);
 	    val = PLUTO_string_index(str, P_MAP_NAMES_NVALS, g->maps);
-	    if ( val == E_SMAP_INVALID )
+	    if ( ready && val == E_SMAP_INVALID )
 	    {
 		sprintf( mesg,  "--------------------------------\n"
 				"please choose a mapping function\n"
 				"--------------------------------" );
 		RETURN(1);
 	    }
-	    else if ( (val < E_SMAP_INVALID) || (val >= E_SMAP_FINAL) )
+	    else if (ready && ((val < E_SMAP_INVALID) || (val >= E_SMAP_FINAL)))
 	    {
 		PV2S_BAIL_VALUE(mesg, "illegal 'map func'", val);
 		RETURN(1);
@@ -422,7 +425,7 @@ ENTRY("PV2S_process_args");
 	    sopt->f_index = val > 0 ? 1 : 0;	/* be sure */
 
 	    val = (int)PLUTO_get_number(plint);	/* num steps */
-	    if ( (val <= 0) || (val >= V2S_STEPS_TOOOOO_BIG) )
+	    if (ready && ((val <= 0) || (val >= V2S_STEPS_TOOOOO_BIG)))
 	    {
 		PV2S_BAIL_VALUE(mesg, "steps too big", val);
 		RETURN(1);
@@ -486,7 +489,7 @@ ENTRY("PV2S_process_args");
 	    /* check for consistency */
 	    if ( sopt->f_p1_fr != 0 || sopt->f_pn_fr != 0 ) test |= 1;
 	    if ( sopt->f_p1_mm != 0 || sopt->f_pn_mm != 0 ) test |= 2;
-	    if ( test > 2 )  /* i.e. == 3 */
+	    if ( ready && test > 2 )  /* i.e. == 3 */
    	    {
 		sprintf( mesg,  "---------------------------------\n"
 				"use only one pair of f*_mm, f*_fr\n"
@@ -525,7 +528,7 @@ ENTRY("PV2S_process_args");
 	{
 	    sopt->first_node = (int)PLUTO_get_number(plint);
 	    sopt->last_node  = (int)PLUTO_get_number(plint);
-	    if ( sopt->first_node > sopt->last_node )
+	    if ( ready &&  sopt->first_node > sopt->last_node )
 	    {
 		sprintf( mesg,  "-----------------------------\n"
 				"illegal node range values:   \n"
@@ -574,10 +577,18 @@ ENTRY("PV2S_process_args");
 	disp_v2s_opts_t( "  surface options : ", sopt );
     }
 
-    /* should we just run away? */
-    if ( lvpo.use0 == 0 && lvpo.use1 == 0 )
-	ready = 0;
-    if ( ! ready )  RETURN(1);
+    /* should we just run away?  always adjust debugging first... */
+    g->vpo->sopt.debug = lvpo.sopt.debug;
+    g->vpo->sopt.dnode = lvpo.sopt.dnode;
+
+    if ( lvpo.use0 == 0 && lvpo.use1 == 0 ) ready = 0;
+
+    if ( ! ready )
+    {
+	if ( sopt->debug > 0 )
+	    PV2S_disp_afni_surfaces(plint);
+        RETURN(1);
+    }
 
     if ( ! v2s_is_good_map(sopt->map, 1) )
     {
@@ -592,12 +603,30 @@ ENTRY("PV2S_process_args");
     }
 
     /* verify surface consistency */
-    if ( lvpo.use0 &&
-	 PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
-	RETURN(1);
-    if ( lvpo.use1 &&
-	 PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
-	RETURN(1);
+    if ( lvpo.use0 )
+    {
+	if ( PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
+	    RETURN(1);
+	if ( lvpo.s0A == lvpo.s0B ) 
+	{
+	    sprintf( mesg,  "--------------------------------\n"
+			    "error: for pair 0, surfA = surfB\n"
+			    "--------------------------------" );
+	    RETURN(1);
+	}
+    }
+    if ( lvpo.use1 )
+    {
+	if ( PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
+	    RETURN(1);
+	if ( lvpo.s1A == lvpo.s1B ) 
+	{
+	    sprintf( mesg,  "--------------------------------\n"
+			    "error: for pair 1, surfA = surfB\n"
+			    "--------------------------------" );
+	    RETURN(1);
+	}
+    }
 
     /* if the user wan't normals, they can only supply one surface per pair */
     if ( sopt->use_norms && ((lvpo.use0 && lvpo.s0B >= 0) ||
@@ -658,8 +687,9 @@ ENTRY("PV2S_check_surfaces");
 	RETURN(1);
     }
 
-    if ( sb >= 0 )	/* then check that surf_A and surf_B share LDP */
+    if ( sb >= 0 )
     {
+	/* then check that surf_A and surf_B share LDP */
 	if (strncmp(ss->su_surf[sa]->idcode_ldp,ss->su_surf[sb]->idcode_ldp,32))
 	{
 	    char * la = ss->su_surf[sa]->label_ldp;
@@ -672,6 +702,20 @@ ENTRY("PV2S_check_surfaces");
 			  "LDP #%d = '%s', LDP #%d = '%s'\n"
 	                  "---------------------------------------",
 			  sa, la, sb, lb);
+	    RETURN(1);
+	}
+
+	/* and that they have the same number of nodes */
+	if ( ss->su_surf[sa]->num_ixyz != ss->su_surf[sb]->num_ixyz )
+	{
+	    sprintf(mesg, "------------------------------------------------\n"
+			  "Big problem: Surf_A and Surf_B have different\n"
+			  "    numbers of nodes!  They cannot share an LDP.\n"
+			  "    SurfA: '%s', %d nodes\n"
+			  "    SurfB: '%s', %d nodes\n"
+	                  "------------------------------------------------",
+			  ss->su_surf[sa]->label, ss->su_surf[sa]->num_ixyz,
+			  ss->su_surf[sb]->label, ss->su_surf[sb]->num_ixyz);
 	    RETURN(1);
 	}
     }
@@ -709,7 +753,8 @@ ENTRY("disp_afni_surfaces");
     if ( ss->su_surf <= 0 )
 	RETURN(0);
 
-    fprintf(stderr,"+d afni surface indices, labels and LDPs:\n");
+    fprintf(stderr,"-d --------------------------------------\n");
+    fprintf(stderr,"   afni surface indices, labels and LDPs:\n");
     for ( c = 0; c < ss->su_num; c++ )
     {
 	label = ss->su_surf[c]->label;

@@ -719,3 +719,32 @@
     - in suma2afni_surf() deal with LDP changes to SUMA_surface
     - changed write_outfile functions to v2s_* and moved them to library
 
+25 October 2004:
+  * modified afni_niml.c
+    - use vol2surf for all surfaces now
+    - so nvused is no longer computed
+    - in ldp_surf_list, added _ldp suffix to idcode and label
+    -                   added full_label_ldp for user clarity
+    - added functions int_list_posn, slist_choose_surfs,
+      slist_check_user_surfs and slist_surfs_for_ldp to
+      handle an arbitrary number of surfaces per LDP
+    - moved old debug off margin
+    - pass data/threshold pointers to AFNI_vol2surf_func_overlay()
+    - pass threshold element with rthresh
+    - prepare for sending data to suma (but must still define new NIML type)
+      can get data and global threshold from vol2surf
+    - for users, try to track actual LDP label in full_label_ldp
+  * modified plug_vol2surf.c
+    - make sure the surface pairs are actually different
+    - make sure surfaces have the same number of nodes
+    - process all parameters, but only complain if "ready"
+    - always pass along debug/dnode
+  * modified afni_vol2surf.c:AFNI_vol2surf_func_overlay():
+    - pass Rdata and Rthr pointers, to optionally return data and thresh
+  * modified afni.h
+    - updated AFNI_vol2surf_func_overlay() prototype
+  * modified vol2surf.c
+    - apply debug and dnode, even for defaults
+    - if the user sets dnode, then skip any (debug > 0) tests for it
+    - check for out of bounds, even if an endpoint is in (e.g. midpoint)
+
