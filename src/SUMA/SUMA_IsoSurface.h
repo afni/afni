@@ -47,5 +47,6 @@ typedef struct {
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);
+SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt);
 
 #endif
