@@ -8,6 +8,7 @@ int r_idisp_fd_brick         ( char * info, FD_brick         * bp );
 int r_idisp_thd_3dim_dataset ( char * info, THD_3dim_dataset * dp );
 int r_idisp_thd_datablock    ( char * info, THD_datablock    * dp );
 int r_idisp_thd_dataxes      ( char * info, THD_dataxes      * dp );
+int r_idisp_thd_diskptr      ( char * info, THD_diskptr      * dp );
 
 
 /*    --- mrilib.h ---              */
