@@ -562,9 +562,17 @@ if (Contr.do == 0),
 	Contr.ord3.tot = 0; 
 else
 
+	fprintf('\nNow coding contrasts:\n');
+	fprintf('\n\tEach term in a contrast should have %i character(s), \n', NF);
+	for (i = 1:1:NF), fprintf('\tNo. %i character corresponds to the level of factor %c (%s),\n', i, 'A'+i-1, FL(i).expr); end
+	fprintf('\n\tUse 0 if a factor is collapsed.\n');
+	fprintf('\n\tIf a factor level is smaller than 9, use its ordinal number;');
+	fprintf('\n\tIf a factor level is bigger  than 9, use a, b, c, ... (no capitals) for 10, 11, 12, ... \n');
+
 if (NF == 1),
    % 1st order contrasts
    flg = 0;
+	
    while flg == 0,
       fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
@@ -573,14 +581,20 @@ if (NF == 1),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 1 means the factor is at first level.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 1 means the factor is at first level.\n');
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
 		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
-		   fprintf('Factor index for No. %i term ', j);
-			Contr.ord1.cnt(i).code(j).str = input('is (e.g., 2): ', 's');
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 2): ', 's');
+				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
@@ -600,14 +614,20 @@ if (NF == 2),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 1 means the factor is at first level.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 1 means the factor is at first level.\n');
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
 		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
-		   fprintf('Factor index for No. %i term ', j);
-			Contr.ord1.cnt(i).code(j).str = input('is (e.g., 10): ', 's');
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 10): ', 's');
+				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
@@ -623,15 +643,21 @@ if (NF == 2),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 12 means ');
-	fprintf('\nthe 1st and 2nd factors are at their first and second level respectively.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 12 means ');
+%	fprintf('\nthe 1st and 2nd factors are at their first and second level respectively.\n');
    for (i = 1:1:Contr.ord2.tot),
 	   fprintf('\nLabel for 2nd order contrast No. %i: ', i);
 		Contr.ord2.label(i).nm = input('is: ', 's');
 		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
-		for (j = 1:1:Contr.ord2.cnt(i).NT),
-		   fprintf('Factor index for No. %i term ', j);
-			Contr.ord2.cnt(i).code(j).str = input('is (e.g., 12): ', 's');
+		for (j = 1:1:Contr.ord2.cnt(i).NT),		   
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 12): ', 's');
+				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
@@ -656,15 +682,21 @@ if (NF == 3 | NF == 4),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 0100 means the first, third ');
-	fprintf('\nand fourth factors are collapsed while 2nd factor is at first level.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 0100 means the first, third ');
+%	fprintf('\nand fourth factors are collapsed while 2nd factor is at first level.\n');
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
 		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
-		   fprintf('Factor index for No. %i term ', j);
-			Contr.ord1.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
@@ -681,15 +713,21 @@ if (NF == 3 | NF == 4),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 0120 means both the first ');
-	fprintf('\nand fourth factors are collapsed while 2nd and 3rd factors are at first and second level respectively.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 0120 means both the first ');
+%	fprintf('\nand fourth factors are collapsed while 2nd and 3rd factors are at first and second level respectively.\n');
    for (i = 1:1:Contr.ord2.tot),
 	   fprintf('\nLabel for 2nd order contrast No. %i ', i);
 		Contr.ord2.label(i).nm = input('is: ', 's');
 		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
 		for (j = 1:1:Contr.ord2.cnt(i).NT),
-		   fprintf('Factor index for No. %i term ', j);
-			Contr.ord2.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
@@ -707,15 +745,21 @@ if (NF == 3 | NF == 4),
    	else flg = 1;
 	   end
    end
-	fprintf('\nUse factor level to code each term in a contrast.  For example, 1230 means the fourth');
-	fprintf('\nfactor is collapsed while all the other 3 factors are at first, second and third level respectively.\n');
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 1230 means the fourth');
+%	fprintf('\nfactor is collapsed while all the other 3 factors are at first, second and third level respectively.\n');
    for (i = 1:1:Contr.ord3.tot),
 	   fprintf('\nLabel for 3rd order contrast No. %i ', i);
 		Contr.ord3.label(i).nm = input('is: ', 's');
 		Contr.ord3.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
 		for (j = 1:1:Contr.ord3.cnt(i).NT),
-		   fprintf('Factor index for No. %i ', j);
-			Contr.ord3.cnt(i).code(j).str = input('is (e.g., 1230): ', 's');
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord3.cnt(i).code(j).str = input('is (e.g., 1230): ', 's');
+				if (length(Contr.ord3.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 	end	
