@@ -1283,7 +1283,9 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
   - Otherwise, you can read and write data using NI_stream_read() and
     NI_stream_write().
   - Buffered input is also available using NI_stream_readbuf() to read
-    data from an internal buffer.
+    data from an internal buffer.  The advantage of buffered input is
+    that it will return the number of bytes requested (waiting, if needed),
+    rather than just the number available at that moment.
 
   Several different types of streams are available.  The first two
   ("tcp:" and "shm:") are for 2-way interprocess communication.

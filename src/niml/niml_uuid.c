@@ -2,10 +2,11 @@
 
 /*************************************************************************/
 /***************** Unique Identifier String functions ********************/
-/***** [Not directly used in NIML, but available to the application] *****/
 /*************************************************************************/
 
 #include <sys/utsname.h>  /* Need by UNIQ_ functions for uname() */
+
+static char *get_MAC_addr(void) ;  /* prototype */
 
 /*-----------------------------------------------------------------------*/
 /*! Return a globally unique string (I hope).  This can be hashed to
@@ -50,7 +51,7 @@ static char * get_UNIQ_string(void)
    nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
          +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
 
-   buf = malloc(nbuf+192) ;      /* include some extra space */
+   buf = malloc(nbuf+222) ;      /* include some extra space */
    strcpy(buf,ubuf.nodename) ;
    strcat(buf,ubuf.sysname ) ;
    strcat(buf,ubuf.release ) ;
@@ -73,6 +74,10 @@ static char * get_UNIQ_string(void)
             (int)getpid(),(int)getppid(),(int)getuid(),
             ncall ) ;
    ncall++ ;
+
+   /* 06 Jan 2003: append MAC address, if possible */
+
+   strcat(buf,get_MAC_addr()) ;
 
 #ifdef NURR
    /* 24 Jul 2002: get random bytes from /dev/urandom  */
@@ -225,4 +230,34 @@ char * UUID_idcode(void)
    /* free workspace and get outta here */
 
    free(buf) ; return idc ;
+}
+
+/************************************************************************/
+#include <sys/ioctl.h>
+#include <net/if.h>
+static char *get_MAC_addr(void)  /* 06 Jan 2003 */
+{
+  static char str[64] = "?" ;
+#if defined(LINUX) && defined(SIOCGIFHWADDR)
+  static int ncall=0 ;
+
+  if( ncall == 0 ){
+    int sd ;
+    sd = socket(AF_INET, SOCK_DGRAM, 0);
+    if( sd >= 0 ){
+      struct ifreq ifr ;
+      strcpy(ifr.ifr_name, "eth0") ;
+      if( ioctl(sd,SIOCGIFHWADDR,&ifr) >= 0 ){
+        sprintf(str ,
+                "%02x:%02x:%02x:%02x:%02x:%02x",
+         (byte)ifr.ifr_hwaddr.sa_data[0], (byte)ifr.ifr_hwaddr.sa_data[1],
+         (byte)ifr.ifr_hwaddr.sa_data[2], (byte)ifr.ifr_hwaddr.sa_data[3],
+         (byte)ifr.ifr_hwaddr.sa_data[4], (byte)ifr.ifr_hwaddr.sa_data[5] ) ;
+      }
+      close(sd) ;
+    }
+    ncall = 1 ;
+  }
+#endif
+  return str ;
 }

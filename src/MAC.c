@@ -18,9 +18,9 @@ void print_mac_addr ()
       strcpy(ifr.ifr_name, "eth0");
       if (ioctl(skfd, SIOCGIFHWADDR, &ifr) >= 0) {
          printf ("HW-Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                ifr.ifr_hwaddr.sa_data[0], ifr.ifr_hwaddr.sa_data[1],
-                ifr.ifr_hwaddr.sa_data[2], ifr.ifr_hwaddr.sa_data[3],
-                ifr.ifr_hwaddr.sa_data[4], ifr.ifr_hwaddr.sa_data[5]);
+                (unsigned char)ifr.ifr_hwaddr.sa_data[0], (unsigned char)ifr.ifr_hwaddr.sa_data[1],
+                (unsigned char)ifr.ifr_hwaddr.sa_data[2], (unsigned char)ifr.ifr_hwaddr.sa_data[3],
+                (unsigned char)ifr.ifr_hwaddr.sa_data[4], (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
       }
       close (skfd);
     }
