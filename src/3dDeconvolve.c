@@ -245,6 +245,13 @@
            for the ALLOW_EXTEND macro in this code.
   Date     22 Oct 2003 -- RWCox
 
+  Mod:     Various checks for bad matrix input:
+            * duplicate -stim_file input filenames
+            * collinear column pairs, and all zero columnns
+            * matrix condition numbers
+           Also - disable 3dDeconvolve_f (FLOATIZE)
+  Date:    14 Jul 2004 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -1447,6 +1454,21 @@ void read_input_data
       MTEST (*stimulus);
       *stim_length = (int *) malloc (sizeof(int) * num_stimts);
       MTEST (*stim_length);
+
+      /** 14 Jul 2004: check for duplicate filename - RWCox **/
+
+      { int js ;
+        for( is=0 ; is < num_stimts ; is++ ){
+          for( js=is+1 ; js < num_stimts ; js++ ){
+            if( strcmp( option_data->stim_filename[is] ,
+                        option_data->stim_filename[js]  ) == 0 )
+              fprintf(stderr,"** -stim_file ERROR: "
+                             "filename #%d '%s' identical to #%d '%s'\n" ,
+                      is+1,option_data->stim_filename[is] ,
+                      js+1,option_data->stim_filename[js]  ) ;
+          }
+        }
+      }
 
       for (is = 0;  is < num_stimts;  is++)
 	{
@@ -3030,6 +3052,42 @@ void calculate_results
 			 min_lag, max_lag, nptr, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
+  /*-- 14 Jul 2004: check matrix for bad columns - RWCox --*/
+
+  { int *iar , k ;
+    iar = matrix_check_columns( xdata , 1.e-3 ) ;
+    if( iar != NULL ){
+      fprintf(stderr,"\n** Problems with the X matrix columns:\n") ;
+      for( k=0 ; iar[2*k] >= 0 ; k++ ){
+        if( iar[2*k+1] >= 0 )
+          fprintf(stderr," * Columns %d and %d are nearly collinear!\n",
+                  iar[2*k],iar[2*k+1] ) ;
+        else
+          fprintf(stderr," * Column %d is all zeros!\n",iar[2*k] ) ;
+      }
+      fprintf(stderr,"\n") ;
+      free(iar) ;
+    }
+  }
+
+  /*-- 14 Jul 2004: calculate matrix condition number - RWCox --*/
+
+  { double *ev , emin,emax ; int i ;
+    ev = matrix_singvals( xdata ) ;
+    emin = emax = ev[0] ;
+    for( i=1 ; i < xdata.cols ; i++ ){
+       if( ev[i] < emin ) emin = ev[i] ;
+       if( ev[i] > emax ) emax = ev[i] ;
+    }
+    free((void *)ev) ;
+    if( emin <= 0.0 || emax <= 0.0 ){
+      fprintf(stderr,"** Matrix condition number undefined: "
+                     "min ev=%g  max ev=%g\n",emin,emax ) ;
+    } else {
+      double cond = sqrt(emax/emin) ;
+      fprintf(stderr,"++ Matrix condition:  %g\n",cond) ;
+    }
+  }
 
   /*----- Initialization for the regression analysis -----*/
   init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag, 
@@ -3586,13 +3644,13 @@ void write_ts_array
   
   if( ierror > 0 ){
     fprintf(stderr,
-          "*** %d errors in attempting to create output dataset!\n", ierror ) ;
+          "** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
   
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
+	    "** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
@@ -3816,7 +3874,7 @@ void write_bucket_data
   if( ierror > 0 )
     {
       fprintf(stderr, 
-	      "*** %d errors in attempting to create bucket dataset!\n", 
+	      "** %d errors in attempting to create bucket dataset!\n", 
 	      ierror);
       exit(1);
     }
@@ -3824,7 +3882,7 @@ void write_bucket_data
   if (THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       fprintf(stderr,
-	      "*** Output dataset file %s already exists--cannot continue!\n",
+	      "** Output dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
@@ -4445,6 +4503,17 @@ int main
 
   float ** fitts_vol = NULL;   /* volumes for full model fit to input data */
   float ** errts_vol = NULL;   /* volumes for residual errors */
+
+#ifdef FLOATIZE
+  fprintf(stderr,"**\n"
+                 "** 3dDeconvolve_f is now disabled.\n"
+                 "** It is too dangerous, due to roundoff problems.\n"
+                 "** Please use 3dDeconvolve from now on!\n"
+                 "** RWCox - 14 Jul 2004\n"
+                 "**\n"
+         ) ;
+  exit(0) ;
+#endif
 
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;

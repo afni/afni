@@ -1043,3 +1043,81 @@ float matrix_norm( matrix a )
    }
    return smax ;
 }
+
+/*---------------------------------------------------------------------------*/
+/*! Search a matrix for nearly identical column pairs, where "nearly identical"
+    means they are correlated closer than 1-eps.
+
+    Return is a pointer to an int array of the form
+      [ i1 j1 i2 j2 ... -1 -1 ]
+    where columns (i1,j1) are nearly the same, (i2,j2) also, etc.
+    In addition:
+     - A pair (i,-1) indicates that column #i is all zeros.
+     - The array is terminated with the pair (-1,-1).
+     - If there are no bad column pairs or all-zero columns, NULL is returned.
+     - Pairs of all-zero columns are NOT reported.
+     - The array should be free()-ed when you are done with it.
+-----------------------------------------------------------------------------*/
+
+int * matrix_check_columns( matrix a , double eps )
+{
+   int i,j,k , rows=a.rows , cols=a.cols ;
+   int *iar=NULL , nar=0 ;
+   double sumi,sumj,sumd ;
+
+   if( eps <= 0.0 ) eps = 1.e-5 ;
+
+   for( i=0 ; i < cols ; i++ ){
+     sumi = 0.0 ;
+     for( k=0 ; k < rows ; k++ ) sumi += a.elts[k][i] * a.elts[k][i] ;
+     if( sumi <= 0.0 ){
+       iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
+       iar[2*nar] = i ; iar[2*nar+1] = -1 ; nar++ ;
+       continue ;                           /* skip to next column i */
+     }
+     for( j=i+1 ; j < cols ; j++ ){
+       sumj = sumd = 0.0 ;
+       for( k=0 ; k < rows ; k++ ){
+         sumj += a.elts[k][j] * a.elts[k][j] ;
+         sumd += a.elts[k][j] * a.elts[k][i] ;
+       }
+       if( sumj > 0.0 ){
+         sumd = fabs(sumd) / sqrt(sumi*sumj) ;
+         if( sumd >= 1.0-eps ){
+           iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
+           iar[2*nar] = i ; iar[2*nar+1] = j ; nar++ ;
+         }
+       }
+     }
+   }
+
+   return iar ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return the eigenvalues of matrix X-transpose X.
+    The output points to a vector of doubles, of length X.cols.  This
+    should be free()-ed when you are done with it.
+-----------------------------------------------------------------------------*/
+
+double * matrix_singvals( matrix X )
+{
+   int i,j,k , M=X.rows , N=X.cols ;
+   double *a , *e , sum ;
+
+   a = (double *) malloc( sizeof(double)*N*N ) ;
+   e = (double *) malloc( sizeof(double)*N   ) ;
+
+   for( i=0 ; i < N ; i++ ){
+     for( j=0 ; j <= i ; j++ ){
+       sum = 0.0 ;
+       for( k=0 ; k < M ; k++ ) sum += X.elts[k][i] * X.elts[k][j] ;
+       a[j+N*i] = sum ;
+       if( j < i ) a[i+N*j] = sum ;
+     }
+   }
+
+   symeigval_double( N , a , e ) ;
+   free( (void *)a ) ;
+   return e ;
+}
