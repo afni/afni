@@ -21,9 +21,8 @@ int main( int argc , char * argv[] )
             "where each file a.1D, b.1D, etc. is an ASCII file of numbers\n"
             "arranged in rows and columns.\n"
             "The row-by-row catenation of these files is written to stdout.\n"
-            "You can use a column subvector selector list on the inputs,\n"
-            "as in\n"
-            "  1dcat 'fred.1D[0,3,7]' ethel.1D > ricky.1D\n"
+            "\n"
+            TS_HELP_STRING
            ) ;
       exit(0) ;
    }

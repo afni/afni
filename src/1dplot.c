@@ -118,7 +118,9 @@ int main( int argc , char * argv[] )
             "The colors for the line graphs cycle between black, red, green, and\n"
             "blue.  You can alter these colors by setting Unix environment\n"
             "variables of the form AFNI_1DPLOT_COLOR_xx -- cf. README.environment.\n"
+
             "\n"
+            TS_HELP_STRING
            ) ;
       exit(0) ;
    }

@@ -4525,3 +4525,10 @@
 
 29 Apr 2003
  * Modified imseq.c and machdep.h to add ENFORCE_ASPECT #define (for Mac OS X).
+
+30 Apr 2003
+ * Modified thd_intlist.c to let "{}" bound the list as well as "[]".
+ * Modifed mri_read_1D() to use intlist of the form "{..}" to do row sub-selection,
+     as well as the older "[..]" for column sub-selection.
+ * Modified most programs that used mri_read_ascii() to read timeseries files to
+     use mri_read_1D() instead, so that the "{..}" feature can be supported.
