@@ -5,6 +5,7 @@
 /*************************************************************************/
 
 #include <sys/utsname.h>  /* Need by UNIQ_ functions for uname() */
+#include <time.h>
 
 static char *get_MAC_addr(void) ;  /* prototype */
 

@@ -3,6 +3,7 @@
 	-lf2c -lm   (in that order)
 */
 
+#include <stdlib.h>
 #include "f2c.h"
 
 /* Common Block Declarations */
@@ -52,7 +53,6 @@ static integer c__1 = 1;
     /* Builtin functions */
     double r_lg10(real *);
     integer s_wsfe(cilist *), do_fio(integer *, char *, ftnlen), e_wsfe(void);
-    /* Subroutine */ int s_stop(char *, ftnlen);
 
     /* Local variables */
     static real sxmin, sxmax, symin, symax;
@@ -146,7 +146,7 @@ L9000:
     do_fio(&c__1, (char *)&(*ysub2), (ftnlen)sizeof(real));
     do_fio(&c__1, (char *)&(*ltype), (ftnlen)sizeof(integer));
     e_wsfe();
-    s_stop("", 0L);
+    exit(0) ;
     return 0;
 } /* set_ */
 

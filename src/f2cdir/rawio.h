@@ -9,6 +9,16 @@ extern FILE *fdopen();
 #define read _read
 #define write _write
 #endif
+
+#ifndef __THROW
+# if defined __cplusplus && (__GNUC__ >= 3 || __GNUC_MINOR__ >= 8) && !defined(DARWIN)
+#  define __THROW       throw ()
+# else
+#  define __THROW
+# endif
+# define KILL__THROW
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,9 +26,10 @@ extern "C" {
 #ifdef OPEN_DECL
 extern int creat(const char*,int), open(const char*,int);
 #endif
-extern int close(int);
-extern int read(int,void*,size_t), write(int,const void*,size_t);
-extern int unlink(const char*);
+extern int close(int) __THROW ;
+extern int read(int,void*,size_t) __THROW ;
+extern int write(int,const void*,size_t) __THROW ;
+extern int unlink(const char*) __THROW ;
 #ifndef _POSIX_SOURCE
 #ifndef NON_UNIX_STDIO
 extern FILE *fdopen(int, const char*);
@@ -38,4 +49,8 @@ extern char *mktemp(char*);
 #ifndef O_WRONLY
 #define O_RDONLY 0
 #define O_WRONLY 1
+#endif
+
+#ifdef KILL__THROW
+#undef __THROW
 #endif

@@ -22,9 +22,6 @@ extern struct {
     /* System generated locals */
     real r__1, r__2;
 
-    /* Builtin functions */
-    double sqrt(doublereal);
-
     /* Local variables */
     static real xleft;
     static integer id;

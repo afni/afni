@@ -37,9 +37,6 @@ extern struct {
     /* System generated locals */
     integer i__1;
 
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
     /* Local variables */
     static integer i__, nchar;
     static real width;

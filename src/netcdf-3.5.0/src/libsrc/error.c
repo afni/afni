@@ -19,12 +19,17 @@
 static char *
 strerror(int errnum)
 {
+#ifdef  __cplusplus
+    static char *noname = "**I don't know!**" ;
+    return noname ;
+#else
     extern int sys_nerr;
     extern char *sys_errlist[];
 
     if(errnum < 0 || errnum >= sys_nerr) return NULL;
     /* else */
     return sys_errlist[errnum];
+#endif
 }
 #endif /* NO_STRERROR */
 
