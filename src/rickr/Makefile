@@ -10,6 +10,8 @@ AFNI_WARP_OBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o  \
 		 ../afni_slice_float.o ../afni_slice_complex.o              \
 		 ../afni_slice_rgbyte.o
 
+WARN_OPT = 
+
 librickr.a: $(RICKR_OBJS)
 	rm -f librickr.a
 	ar q librickr.a $(RICKR_OBJS)
@@ -40,18 +42,18 @@ Imon: $(IMON_OBJS) Imon.h l_mcw_glob.h realtime.h
 
 Imon.o: Imon.c Imon.h
 	$(RM) $@
-	$(CC) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
 
 l_mcw_glob.o: l_mcw_glob.c l_mcw_glob.h
 	$(RM) $@
-	$(CC) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
 
 realtime.o: realtime.c realtime.h
 	$(RM) $@
-	$(CC) -DDONT_USE_MCW_MALLOC -c realtime.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c realtime.c -I.. $(IFLAGS)
 # -------------- end local Imon objects --------------------------------
 
 .c.o:
 	$(RM) $@
-	$(CC) -c $*.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT) -c $*.c -I.. $(IFLAGS)
 

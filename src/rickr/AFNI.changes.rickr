@@ -139,3 +139,10 @@
   * 3dSurfMaskDump rv 1.3: optionally enable more SUMA debugging
   * modified Imon.[ch] (rv 2.3): added '-start_file' option
 
+18 February 2003:
+  * modified Imon.[ch] (rv 2.4), realtime.[ch]
+      o added DRIVE_AFNI command to open a graph window (-nt points)
+      o added '-drive_afni' option, to add to the above command
+      o pass Imon command as a dataset NOTE
+  * modified rickr/Makefile - added WARN_OPT
+
