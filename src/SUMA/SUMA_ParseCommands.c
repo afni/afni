@@ -1,4 +1,4 @@
-/*#define STAND_ALONE*/
+
 #define DEBUG_3
 #ifdef DEBUG_1
 	#define DEBUG_2
@@ -9,7 +9,11 @@
    
 #include "SUMA_suma.h"
 
-extern SUMA_CommonFields *SUMAg_CF; 
+#ifdef STAND_ALONE
+	SUMA_CommonFields *SUMAg_CF;
+#else
+	extern SUMA_CommonFields *SUMAg_CF; 
+#endif
 
 /* CODE */
    
