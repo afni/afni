@@ -5077,3 +5077,4 @@
      - collinear column pairs in X matrix
      - compute matrix condition number
  * Modified matrix.[ch] and matrix_f.[ch] to support this stuff.
+ * Disabled 3dDeconvolve_f binary.
