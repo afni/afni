@@ -439,3 +439,7 @@
         display the final (scaled) motion graph
   * modified README.realtime with details on GRAPH_XRANGE and GRAPH_YRANGE
 
+10 February 2004:
+  * modified SUMA_3dSurf2Vol.c (-> v3.2) to add debug output for AnatCorrect
+  * modified SUMA_3dVol2Surf.c (-> v4.1) to add debug output for AnatCorrect
+
