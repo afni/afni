@@ -68,6 +68,9 @@ char * SUMA_help_message_Info(void)
    
    SS = SUMA_StringAppend (NULL, NULL);
 
+   s = SUMA_New_Additions (0.0, 1);
+   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   
    SS = SUMA_StringAppend (SS, 
       "\nKeyboard Controls\n");
    SS = SUMA_StringAppend (SS, 
@@ -161,15 +164,17 @@ char * SUMA_help_message_Info(void)
       "\t  Ctrl+Alt+s: Input filename with coordinates\n"
       "\t              forming a segment (6 values) on \n"
       "\t              each line.\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  S: Show all surface objects registered in DOv.\n\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Alt+s: Switch mouse buttons 1 and 3.\n\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+      "\t  S: Show all surface objects registered in DOv.\n\n");
    SS = SUMA_StringAppend (SS, 
       "\t  t: talk to AFNI, toggle.\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+t: Force a resend of \n"
       "            surfaces to AFNI.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  T: Start listening for niml connections\n\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+u: Open SUMA controller.\n\n");   
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
@@ -283,7 +288,11 @@ char * SUMA_help_message_Info(void)
       "\t http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
    SS = SUMA_StringAppend (SS, 
       "\n");
-      
+   
+   /* add latest additions */
+   SS = SUMA_StringAppend (SS, "Current Version Info:\n");
+   s = SUMA_New_Additions (0.0, 0);
+   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
 
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
@@ -320,14 +329,156 @@ void SUMA_help_message(FILE *Out)
 }
 
 /*!
+   \brief Returns a string with the new additions and version information
+   
+   \param ver (float) v (v > 0) for info on version v alone 
+                      0.0 just the latest version info
+                      -1.0 for all versions
+   \param StampOnly (SUMA_Boolean) Want version number and time stamp only ?
+                      
+   \return s (char *) the string, yall have to free it with SUMA_free
+   \sa SUMA_New_Additions_perver
+   
+   - To add a new version, you must add a case statement in SUMA_New_Additions_perver
+     AND add the version number in the beginning of verv in SUMA_New_Additions
+*/
+char * SUMA_New_Additions (float ver, SUMA_Boolean StampOnly)
+{
+   static char FuncName[]={"SUMA_New_Additions"};
+   char *s = NULL;
+   int i;
+   SUMA_STRING *SS = NULL;
+   float verv[] = {2.45, -1.0}; /* modify this dude and you must update SUMA_New_Additions_perver  
+                                       Add to the left of the vector, leave the last value of -1 untouched*/
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (ver == 0) { /* just the latest */
+      s = SUMA_New_Additions_perver( verv[0], StampOnly);
+      if (s) {
+         SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+      }
+   } else if (ver < 0) {
+      /* all history */
+      SS = SUMA_StringAppend (SS, "All Version Info:\n"); 
+      i = 0;
+      while (verv[i] > 0) {
+         s = SUMA_New_Additions_perver( verv[i], StampOnly);
+         if (s) {
+         SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+         }
+         ++i;
+      }
+      
+   } else {
+      /* just for ver */
+      s = SUMA_New_Additions_perver( ver, StampOnly);
+      if (s) {
+         SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+      }
+   }
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN(s);      
+   
+}
+/*!
+   \brief Returns a string with version information
+   \param ver (float) Version number
+   \param StampOnly (SUMA_Boolean) if YUP 
+                     then return the time stamp of the version only)
+   \return s (char *) the string, yall have to free it with SUMA_free
+   \sa SUMA_New_Additions
+   
+   - To add a new version, you must add a case statement in SUMA_New_Additions_perver
+     AND add the version number in the beginning of verv in SUMA_New_Additions
+*/
+char * SUMA_New_Additions_perver (float ver, SUMA_Boolean StampOnly)
+{
+   static char FuncName[]={"SUMA_New_Additions_perver"};
+   char *s = NULL;
+   const int ti = 10000;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   switch ((int)(ver*ti)) {
+      /* Must modify verv in SUMA_New_Additions when you touch this block */
+      /*
+      case (int)(XXX*ti):
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %.2f, DATEHERE\n", ver); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "New Programs:\n"
+            "  + \n"
+            "Modifications:\n"
+            "  + \n");
+         break; 
+      */
+      case (int)(2.45*ti):
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %.2f, Jan. 6 2004\n", ver); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "New Programs:\n"
+            "  + SurfSmooth: Smoothes surface data or geometry\n"
+            "  + inspec: Shows the contents of a spec file\n"
+            "  + quickspec: Creates a minimal spec file for one\n"
+            "             or a bunch of surfaces.\n"
+            "Modifications:\n"
+            "  + No more MappingRef field in Spec files.\n"
+            "    The field is broken up into a set of other\n"
+            "    fields for more flexibility.\n"
+            "  + Surface input to command-line programs is \n"
+            "    now done via -spec files too.\n"
+            "  + One-way communication with SUMA via niml.\n"
+            "    Only available with SurfSmooth for the moment.\n"
+            "  + Began, in good faith, to update the new version \n"
+            "    information.\n"); 
+         break;
+      
+      default:
+         SS = SUMA_StringAppend_va(SS, "++ %f? No such version, fool!\n", ver);
+         break;
+   }
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN(s);
+}
+
+/*!
 SUMA version 
 */
+
 void SUMA_Version (FILE *Out)
 {
-	if (Out == NULL) {
+   static char FuncName[]={"SUMA_Version"};
+   char *s = NULL;
+   
+   if (Out == NULL) {
 		Out = stdout;
 	}
-	fprintf (Out, "\n\tSUMA version 2.4, Dec. 16 2003\n");
+   s = SUMA_New_Additions (0.0, 0);
+	if (s) {
+      fprintf (Out, "\n   %s\n", s);
+      SUMA_free(s);
+   } else {
+      fprintf (Out, "\n");
+   }
+   
 	return;
 }
 

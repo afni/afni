@@ -4,7 +4,9 @@
 /*! functions defined in SUMA_SVmanip.c */
 SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N);
-void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out);
+void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int detail);
+char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail);
+
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV);
@@ -13,7 +15,8 @@ SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs);
 SUMA_ViewState *SUMA_Alloc_ViewState (int N);
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh);
 SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
-SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out); 
+SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail); 
+char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
 SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov);
 int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);

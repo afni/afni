@@ -270,8 +270,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-
+   
    /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
    glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
    

@@ -393,7 +393,7 @@ int main (int argc,char *argv[])
       }
       
       /* make it its own mapping reference */
-      SOv[ipart]->MapRef_idcode_str = SUMA_copy_string (SOv[ipart]->idcode_str);
+      SOv[ipart]->LocalDomainParentID = SUMA_copy_string (SOv[ipart]->idcode_str);
       
       if (SUMA_existSO (SOv[ipart]->idcode_str, SUMAg_DOv, SUMAg_N_DOv)) {
          fprintf(SUMA_STDERR,"Error %s: Surface %d is specifed more than once, multiple copies ignored.\n",

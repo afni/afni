@@ -2151,7 +2151,7 @@ int main (int argc, char *argv[])
    /**load surfaces */
 
    if (SUMA_iswordin( spec1.SurfaceType[0], "FreeSurfer") == 1) {
-      surf1file = spec1.FreeSurferSurface[0];
+      surf1file = spec1.SurfaceFile[0];
       surf1 = SUMA_Load_Surface_Object(surf1file, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
       tag1 = "FS";
    }
@@ -2168,7 +2168,7 @@ int main (int argc, char *argv[])
 
    if (SUMA_iswordin( spec2.State[0], "sphere") ==1) {
       if (SUMA_iswordin( spec2.SurfaceType[0], "FreeSurfer") == 1) {
-         surf2file = spec2.FreeSurferSurface[0];
+         surf2file = spec2.SurfaceFile[0];
          surf2 = SUMA_Load_Surface_Object(surf2file, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          tag2 = "FS";
       }
@@ -2541,7 +2541,7 @@ int main (int argc, char *argv[])
       /**reg sphere*/
       if (SUMA_iswordin( brainSpec.State[i], "sphere.reg") ==1 && !CheckSphere) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            sphrFile = brainSpec.FreeSurferSurface[i];
+            sphrFile = brainSpec.SurfaceFile[i];
             sphrSurf = SUMA_Load_Surface_Object( sphrFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {
@@ -2575,7 +2575,7 @@ int main (int argc, char *argv[])
       if ( SUMA_iswordin( brainSpec.State[i], "sphere") == 1 &&
            SUMA_iswordin( brainSpec.State[i], "sphere.reg") == 0 && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            sphrNoRegFile = brainSpec.FreeSurferSurface[i];
+            sphrNoRegFile = brainSpec.SurfaceFile[i];
             sphrNoRegSurf = SUMA_Load_Surface_Object(sphrNoRegFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {
@@ -2605,7 +2605,7 @@ int main (int argc, char *argv[])
       /**inflated*/
       if ((SUMA_iswordin( brainSpec.State[i], "inflated") ==1) && !CheckSphere && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            inflFile = brainSpec.FreeSurferSurface[i];
+            inflFile = brainSpec.SurfaceFile[i];
             inflSurf = SUMA_Load_Surface_Object( inflFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {
@@ -2622,7 +2622,7 @@ int main (int argc, char *argv[])
       /**pial*/
       if ((SUMA_iswordin( brainSpec.State[i], "pial") ==1) && !CheckSphere && !CheckSphereReg){
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            pialFile = brainSpec.FreeSurferSurface[i];
+            pialFile = brainSpec.SurfaceFile[i];
             pialSurf = SUMA_Load_Surface_Object(pialFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {
@@ -2638,7 +2638,7 @@ int main (int argc, char *argv[])
       /**smoothwm*/
       if ((SUMA_iswordin( brainSpec.State[i], "smoothwm") ==1) && !CheckSphere && !CheckSphereReg){
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            smwmFile = brainSpec.FreeSurferSurface[i];
+            smwmFile = brainSpec.SurfaceFile[i];
             smwmSurf = SUMA_Load_Surface_Object(smwmFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {
@@ -2654,7 +2654,7 @@ int main (int argc, char *argv[])
       /**white*/
       if ((SUMA_iswordin( brainSpec.State[i], "white") ==1) && !CheckSphere && !CheckSphereReg) {
          if (SUMA_iswordin( brainSpec.SurfaceType[i], "FreeSurfer") == 1) {
-            whiteFile = brainSpec.FreeSurferSurface[i];
+            whiteFile = brainSpec.SurfaceFile[i];
             whiteSurf = SUMA_Load_Surface_Object(whiteFile, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          }
          else {

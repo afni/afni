@@ -1,6 +1,7 @@
 /*! includes various include files, no muss no fuss */
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>

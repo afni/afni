@@ -13,7 +13,8 @@ typedef enum {
    SUMA_NODE_RGB,
    SUMA_NODE_RGBb,
    SUMA_NODE_RGBA,
-   SUMA_NODE_RGBAb
+   SUMA_NODE_RGBAb,
+   SUMA_NODE_XYZ
 } SUMA_DSET_TYPE; /*!<  Type of data set 
                         When you add a new element, modify functions
                         SUMA_Dset_Type_Name
@@ -40,6 +41,7 @@ typedef enum {
    SUMA_NODE_X,      /*!< Node X coordinate */
    SUMA_NODE_Y,      /*!< Node Y coordinate */
    SUMA_NODE_Z,      /*!< Node Z coordinate */
+   SUMA_NODE_3C,     /*!<  Node XYZ triplets */
    SUMA_NODE_R,      /*!< Node R color */
    SUMA_NODE_G,      /*!< Node G color */
    SUMA_NODE_B,      /*!< Node B color */

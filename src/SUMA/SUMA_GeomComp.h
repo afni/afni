@@ -32,6 +32,7 @@ SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *Off
 SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void);
+SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs);
 float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO);
 float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO);
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
@@ -43,8 +44,11 @@ SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m);
 float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                             float lambda, float mu, float *fin, 
                             int N_iter, int vpn, SUMA_INDEXING_ORDER d_order,
-                            float *fout_user);
+                            float *fout_user, SUMA_COMM_STRUCT *cs);
 NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup);
+SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action);
+NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup);
+
 
 
 
