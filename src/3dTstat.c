@@ -21,13 +21,16 @@
 
 #define METH_DW     8   /* KRH 3 Dec 2002 */
 
+#define METH_SIGMA_NOD     9   /* KRH 27 Dec 2002 */
+#define METH_CVAR_NOD     10   /* KRH 27 Dec 2002 */
+
 #define MAX_NUM_OF_METHS 20
 static int meth[MAX_NUM_OF_METHS] = {METH_MEAN};
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
-static int detrend                 = 1 ;
-static char meth_names[][20] = {"Mean","Slope","Std Dev","Coeff of Var","Median",
-	                    "Med Abs Dev", "Max", "Min", "Durbin-Watson"};
+static char meth_names[][20] = {"Mean","Slope","Std Dev","Coef of Var","Median",
+	                    "Med Abs Dev", "Max", "Min", "Durbin-Watson", "Std Dev (NOD)",
+                            "Coef Var(NOD)"};
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -87,61 +90,61 @@ int main( int argc , char * argv[] )
       /*-- methods --*/
 
       if( strcmp(argv[nopt],"-median") == 0 ){
-         meth[nbriks++] = METH_MEDIAN ; detrend = 0 ;
+         meth[nbriks++] = METH_MEDIAN ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-DW") == 0 ){
-         meth[nbriks++] = METH_DW ; detrend = 1 ;
+         meth[nbriks++] = METH_DW ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-MAD") == 0 ){
-         meth[nbriks++] = METH_MAD ; detrend = 0 ;
+         meth[nbriks++] = METH_MAD ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-mean") == 0 ){
-         meth[nbriks++] = METH_MEAN ; detrend = 1 ;
+         meth[nbriks++] = METH_MEAN ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slope") == 0 ){
-         meth[nbriks++] = METH_SLOPE ; detrend = 1 ;
+         meth[nbriks++] = METH_SLOPE ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-stdev") == 0 ||
           strcmp(argv[nopt],"-sigma") == 0   ){
 
-         meth[nbriks++] = METH_SIGMA ; detrend = 1 ;
+         meth[nbriks++] = METH_SIGMA ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
-         meth[nbriks++] = METH_CVAR ; detrend = 1 ;
+         meth[nbriks++] = METH_CVAR ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-stdevNOD") == 0 ||
           strcmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
 
-         meth[nbriks++] = METH_SIGMA ; detrend = 0 ;
+         meth[nbriks++] = METH_SIGMA_NOD ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
-         meth[nbriks++] = METH_CVAR ; detrend = 0 ;
+         meth[nbriks++] = METH_CVAR_NOD ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-min") == 0 ){
-         meth[nbriks++] = METH_MIN ; detrend = 0 ;
+         meth[nbriks++] = METH_MIN ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-max") == 0 ){
-         meth[nbriks++] = METH_MAX ; detrend = 0 ;
+         meth[nbriks++] = METH_MAX ;
          nopt++ ; continue ;
       }
 
@@ -221,7 +224,7 @@ int main( int argc , char * argv[] )
                  prefix ,               /* output prefix */
                  datum ,                /* output datum  */
                  0 ,                    /* ignore count  */
-                 detrend ,              /* detrending?   */
+                 0 ,              /* can't detrend in maker function  KRH 12/02*/
                  nbriks ,               /* number of briks */
                  STATS_tsfunc ,         /* timeseries processor */
                  NULL                   /* data for tsfunc */
@@ -253,7 +256,8 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                           void * ud, int nbriks, float * val          )
 {
    static int nvox , ncall ;
-   int meth_index ;
+   int meth_index, ii ;
+   float* ts_det;
 
    /** is this a "notification"? **/
 
@@ -272,6 +276,14 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       return ;
    }
 
+
+   /* KRH make copy and detrend it right here.  Use ts_mean and
+    * ts_slope to detrend */
+
+   ts_det = (float*)calloc(npts, sizeof(float));
+   memcpy( ts_det, ts, npts * sizeof(float));
+   for( ii = 0; ii < npts; ii++) ts_det[ii] -= (ts_mean + ts_slope * tdelta * ii) ;
+   
    /** OK, actually do some work **/
 
    for (meth_index = 0; meth_index < nbriks; meth_index++) {
@@ -282,14 +294,16 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       case METH_SLOPE: val[meth_index] = ts_slope ; break ;
 
+      case METH_CVAR_NOD:
+      case METH_SIGMA_NOD:
       case METH_CVAR:
       case METH_SIGMA:{
          register int ii ;
          register double sum ;
 
          sum = 0.0 ;
-         if( detrend ){
-           for( ii=0 ; ii < npts ; ii++ ) sum += ts[ii] * ts[ii] ;
+         if((meth[meth_index] == METH_CVAR) || (meth[meth_index] == METH_SIGMA )){
+           for( ii=0 ; ii < npts ; ii++ ) sum += ts_det[ii] * ts_det[ii] ;
          } else {
            for( ii=0 ; ii < npts ; ii++ ) sum += (ts[ii]-ts_mean)
                                                 *(ts[ii]-ts_mean) ;
@@ -297,7 +311,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
          sum = sqrt( sum/(npts-1) ) ;
 
-         if( meth[meth_index] == METH_SIGMA )  val[meth_index] = sum ;
+         if((meth[meth_index] == METH_SIGMA) || (meth[meth_index] == METH_SIGMA_NOD))  val[meth_index] = sum ;
          else if( ts_mean != 0.0 ) val[meth_index] = sum / fabs(ts_mean) ;
          else                      val[meth_index] = 0.0 ;
       }
@@ -311,6 +325,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          ts_copy = (float*)calloc(npts, sizeof(float));
          memcpy( ts_copy, ts, npts * sizeof(float));
          val[meth_index] = qmed_float( npts , ts_copy ) ;
+	 free(ts_copy);
       }
       break ;
 
@@ -323,6 +338,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          vm = qmed_float( npts , ts_copy ) ;
          for( ii=0 ; ii < npts ; ii++ ) ts_copy[ii] = fabs(ts_copy[ii]-vm) ;
          val[meth_index] = qmed_float( npts , ts_copy ) ;
+	 free(ts_copy);
       }
       break ;
 
@@ -339,9 +355,9 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          register float den=ts[0]*ts[0] ;
          register float num=0 ;
          for( ii=1 ; ii < npts ; ii++ ) {
-           num = num + (ts[ii] - ts[ii-1])
-		       *(ts[ii] - ts[ii-1]);
-           den = den + ts[ii] * ts[ii];
+           num = num + (ts_det[ii] - ts_det[ii-1])
+		       *(ts_det[ii] - ts_det[ii-1]);
+           den = den + ts_det[ii] * ts_det[ii];
          }
          val[meth_index] = num/den ;
       }
@@ -357,5 +373,6 @@ static void STATS_tsfunc( double tzero, double tdelta ,
    }
    }
 
+   free(ts_det);
    ncall++ ; return ;
 }
