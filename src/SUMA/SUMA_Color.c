@@ -6526,7 +6526,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    static char FuncName[]={"SUMA_OKassign"};
    float range[2];
    int loc[2], *iv=NULL, N_i, lnp = 0;
-   char *np = NULL;
+   char *np = NULL, stmp[201];
    SUMA_Boolean LocalHead = NOPE;
        
    SUMA_ENTRY;
@@ -6578,9 +6578,11 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
             SUMA_RETURN(YUP);
          }
       } else {
-         SUMA_SLP_Err("Number of values per column\n"
-                      "is larger than the number \n"
-                      "of nodes in the surface.");
+         snprintf(stmp, 200*sizeof(char), 
+                        "Number of values per column (%d)\n"
+                        "is larger than the number \n"
+                        "of nodes (%d) in the surface.", dset->nel->vec_len, SO->N_Node);
+         SUMA_SLP_Err(stmp);
          SUMA_RETURN(NOPE);
       }
    } else {

@@ -110,12 +110,16 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "++ SUMA version %.2f, DATEHERE\n", (float)ver/10000.0); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
-            "  + \n"
+            "  + SurfClust: Program to find clusters of activation\n"
+            "               on the surface.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    Slight modification to threshold scale.\n"
             "    Added environment variable SUMA_ThresholdScalePower.\n"
             "    Fixed a few kinks in the surface controller.\n"
+            "    Fixed ROI drawing trace on OSX.\n"
+            "    Added geodesic distance measurements in ROI drawing\n"
+            "    controller."
             "  + ConvertSurface:\n"
             "    Option -make_consistent added to make the winding\n"
             "    of the mesh consistent.  \n"
@@ -133,6 +137,9 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + ROI2dataset:\n"
             "    Option -pad_to_node and -pad_label to output datasets\n"
             "    containing full node listings.\n"
+            "  + ConvertDset:\n"
+            "    Option -o_1dp was added to write 1D file data only,\n"
+            "    without additional comments.\n"
             );
          break; 
          */
