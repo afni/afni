@@ -39,14 +39,10 @@ void THD_init_diskptr_names( THD_diskptr * dkptr ,
          for( ii=lp-1 ; ii >= 0 && prefixname[ii] != '/' ; ii-- ) ; /* find last '/' */
          if( ii >= 0 ){  /* should always be true */
             ld = strlen(dname) ; if( prefixname[0] == '/' ) ld = 0 ;
-            if( ld == 0 ){
-               memcpy(dname+ld,prefixname,ii+1) ; dname[ld+ii+1] = '\0' ;
-            } else {
-               memcpy(dname+ld,prefixname+1,ii) ; dname[ld+ii] = '\0' ;
-            }
+            memcpy(dname+ld,prefixname,ii+1) ; dname[ld+ii+1] = '\0' ;
             MCW_strncpy(pname,prefixname+ii+1,THD_MAX_PREFIX) ;
          } else {
-            MCW_strncpy(pname,prefixname,THD_MAX_PREFIX) ;
+            MCW_strncpy(pname,prefixname,THD_MAX_PREFIX) ; /* should never transpire */
          }
       } else {
          MCW_strncpy(pname,prefixname,THD_MAX_PREFIX) ;

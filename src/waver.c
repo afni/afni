@@ -156,8 +156,9 @@ static double * OUT_ts   = NULL ;
 static int      OUT_numout = -666 ;    /* 08 Apr 2002 */
 
 static int      IN_num_tstim = -666 ;  /* 16 May 2001 = #8 */
-static double * IN_tstim     = NULL ;
 static double   IN_top_tstim = 0.0  ;
+static double * IN_tstim_a   = NULL ;
+static double * IN_tstim_b   = NULL ;  /* 12 May 2003 */
 
 int main( int argc , char * argv[] )
 {
@@ -273,22 +274,62 @@ int main( int argc , char * argv[] )
       }
 
    } else if( IN_num_tstim > 0 ){  /* 16 May 2001 */
-      int ibot,itop ;
+#undef  TSTEP
+#define TSTEP 10              /* # expansion steps per WAV_dt */
+      int ibot,itop , kk ;
+      int nts ;
+      double dts = WAV_dt/TSTEP , dur , aa ;
+      double *tst , *ast ;
+
+      /* setup the output array */
 
       OUT_npts = ceil(IN_top_tstim/WAV_dt) + WAV_npts ;
       if( OUT_numout > 0 ) OUT_npts = OUT_numout ;
       OUT_ts   = (double *) malloc( sizeof(double) * OUT_npts ) ;
       for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
 
+      /* 12 May 2003: compute how many steps to expand to */
+
+      nts = 0 ;
       for( jj=0 ; jj < IN_num_tstim ; jj++ ){
-        ibot = (int) (IN_tstim[jj]/WAV_dt) ;    /* may be 1 too early */
+        dur = IN_tstim_b[jj] - IN_tstim_a[jj] ; dur = MAX(dur,0.0) ;
+        ii  = ((int)ceil(dur/dts)) + 1 ;
+        nts += ii ;
+      }
+
+      /* 12 May 2003: create expansion arrays */
+
+      tst = (double *) malloc( sizeof(double) * nts ) ;
+      ast = (double *) malloc( sizeof(double) * nts ) ;
+      nts = 0 ;
+      for( jj=0 ; jj < IN_num_tstim ; jj++ ){
+        dur = IN_tstim_b[jj] - IN_tstim_a[jj] ; dur = MAX(dur,0.0) ;
+        ii  = ((int)ceil(dur/dts)) + 1 ;
+        if( ii == 1 ){              /* instantaneous impulse */
+          tst[nts] = IN_tstim_a[jj] ; ast[nts] = 1.0 ;
+        } else {
+          aa  = dur/(WAV_dt*ii) ;   /* amplitude of each impulse */
+          dur = dur / (ii-1) ;      /* interval between impulses */
+          for( kk=0 ; kk < ii ; kk++ ){
+            tst[nts+kk] = IN_tstim_a[jj]+kk*dur ;
+            ast[nts+kk] = aa ;
+          }
+        }
+        nts += ii ;
+      }
+
+      /* Plop down copies of the waveform at each tst[] time */
+
+      for( jj=0 ; jj < nts ; jj++ ){
+        ibot = (int) (tst[jj]/WAV_dt) ;    /* may be 1 too early */
         itop = ibot + WAV_npts ;
         if( itop > OUT_npts ) itop = OUT_npts ;
         for( ii=ibot ; ii < itop ; ii++ ){
-           val = WAV_peak * waveform( WAV_dt * ii - IN_tstim[jj] ) ;
+           val = WAV_peak * ast[jj] * waveform( WAV_dt * ii - tst[jj] ) ;
            OUT_ts[ii] += val ;
         }
       }
+      free(ast); free(tst);
    }
 
    if( OUT_xy ){
@@ -339,6 +380,7 @@ void Syntax(void)
     "These options apply to all waveform types:\n"
     "  -peak #        = Sets peak value to #                        [100]\n"
     "  -dt #          = Sets time step of output AND input          [0.1]\n"
+    "  -TR #          = '-TR' is equivalent to '-dt'\n"
     "\n"
     "The default is just to output the waveform defined by the parameters\n"
     "above.  If an input file is specified by one the options below, then\n"
@@ -381,6 +423,24 @@ void Syntax(void)
     "                       -tstim `cat filename`\n"
     "                     where using the backward-single-quote operator\n"
     "                     of the usual Unix shells.\n"
+    "   ** 12 May 2003: The times after '-tstim' can now also be specified\n"
+    "                     in the format 'a:b', indicating a continuous ON\n"
+    "                     period from time 'a' to time 'b'.  For example,\n"
+    "                       -dt 2.0 -tstim 13.2:15.7 20.3:25.3\n"
+    "                     The amplitude of a response of duration equal to\n"
+    "                     'dt' is equal the the amplitude of a single impulse\n"
+    "                     response (which is the special case a=b).  N.B.: This\n"
+    "                     means that something like '5:5.01' is very different\n"
+    "                     from '5' (='5:5').  The former will have a small amplitude\n"
+    "                     because of the small duration, but the latter will have\n"
+    "                     a large amplitude because the case of an instantaneous\n"
+    "                     input is special.  It is probably best NOT to mix the\n"
+    "                     two types of input to '-tstim' for this reason.\n"
+    "                     Compare the graphs from the 2 commands below:\n"
+    "                       waver -dt 1.0 -tstim 5:5.1 | 1dplot -stdin\n"
+    "                       waver -dt 1.0 -tstim 5     | 1dplot -stdin\n"
+    "                     If you prefer, you can use the form 'a%%c' to indicate\n"
+    "                     an ON interval from time=a to time=a+c.\n"
     "\n"
     "  -when DATA     = Read time blocks when stimulus is 'on' (=1) from the\n"
     "                     command line and convolve the waveform with with\n"
@@ -465,7 +525,7 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
-      
+
       if( strncmp(argv[nopt],"-gamd",5) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          GAM_delay_time = strtod(argv[nopt+1],NULL) ;
@@ -473,7 +533,7 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
-      
+
       if( strncmp(argv[nopt],"-del",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_delay_time = strtod(argv[nopt+1],NULL) ;
@@ -519,7 +579,7 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-dt",4) == 0 ){
+      if( strncmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_dt = strtod(argv[nopt+1],NULL) ;
          if( WAV_dt <= 0.0 ) ERROR ;
@@ -555,19 +615,19 @@ void Process_Options( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-tstim") == 0 ){  /* 16 May 2001 */
         int iopt , nnn ;
-        float value ;
+        float value , valb ;
         char *cpt ;
 
         if( IN_num_tstim > 0 || IN_npts > 0 ){
-          fprintf(stderr,"Cannot input two timeseries!\n") ;
-          exit(1) ;
+          fprintf(stderr,"Cannot input two timeseries!\n"); exit(1);
         }
         if( nopt+1 >= argc ) ERROR ;
 
         iopt         = nopt+1 ;
         IN_num_tstim = 0 ;
-        IN_tstim     = (double *) malloc( sizeof(double) ) ;
-        while( iopt < argc && argv[iopt][0] != '-' ){
+        IN_tstim_a   = (double *) malloc( sizeof(double) ) ;
+        IN_tstim_b   = (double *) malloc( sizeof(double) ) ;
+        while( iopt < argc && argv[iopt][0] != '-' ){  /* loop over argv until get a '-' */
 
           if( isspace(argv[iopt][0]) ){   /* skip if starts with blank */
             fprintf(stderr,
@@ -576,17 +636,29 @@ void Process_Options( int argc , char * argv[] )
             iopt++; continue;
           }
 
-          value = strtod( argv[iopt] , &cpt ) ;
-          if( *cpt != '\0' && !isspace(*cpt) ){
+          valb = 0.0 ;
+          if( strchr(argv[iopt],'%') != NULL ){                       /* 12 May 2003 */
+            nnn = sscanf( argv[iopt] , "%f%%%f" , &value , &valb ) ;
+            if( nnn == 2 ) valb += value ;
+          } else if( strchr(argv[iopt],':') != NULL ){
+            nnn = sscanf( argv[iopt] , "%f:%f"  , &value , &valb ) ;
+          } else {
+            nnn = sscanf( argv[iopt] , "%f"     , &value ) ;
+          }
+          if( nnn < 1 || value < 0.0 ){
             fprintf(stderr,"** Weird value after -tstim: argv='%s'\n",argv[iopt]  ) ;
             fprintf(stderr,"**                  previous argv='%s'\n",argv[iopt-1]) ;
             fprintf(stderr,"** ==> Skipping this value!\n") ;
             iopt++; continue;
           }
+          if( nnn == 1 || valb < value ) valb = value ;  /* 12 May 2003 */
 
-          IN_tstim = (double *)realloc(IN_tstim,sizeof(double)*(IN_num_tstim+1));
-          IN_tstim[IN_num_tstim++] = value ;
-          if( value > IN_top_tstim ) IN_top_tstim = value ;
+          IN_tstim_a = (double *)realloc(IN_tstim_a,sizeof(double)*(IN_num_tstim+1));
+          IN_tstim_b = (double *)realloc(IN_tstim_b,sizeof(double)*(IN_num_tstim+1));
+          IN_tstim_a[IN_num_tstim] = value ;
+          IN_tstim_b[IN_num_tstim] = valb  ;
+          IN_num_tstim++ ;
+          if( valb > IN_top_tstim ) IN_top_tstim = valb ;
           iopt++ ;
         }
         nopt = iopt ; continue ;
