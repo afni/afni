@@ -115,7 +115,11 @@ ENTRY("AFNI_init_niml") ;
      ns_flags[cc]  = 0 ;
    }
 
-   sprintf(ns_name[0] , "tcp:host:%d" , SUMA_TCP_PORT ) ;
+   /* 10 Dec 2002: allow user to specify NIML port number */
+
+   cc = GLOBAL_argopt.port_niml ;
+   if( cc < 1024 || cc > 65535 ) cc = SUMA_TCP_PORT ;
+   sprintf( ns_name[0] , "tcp:host:%d" , cc ) ;
 
    /* initialize all receive keys (cf. afni_receive.c) */
 

@@ -67,6 +67,7 @@ typedef struct {
       int quiet ;             /* 25 Aug 2001 */
 
       int yes_niml ;          /* 28 Feb 2002 */
+      int port_niml ;         /* 10 Dec 2002 */
 } AF_options ;
 
 #ifdef MAIN
@@ -131,12 +132,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.51h"
+#define VERSION "2.51i"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "02 Dec 2002      "
+#define RELEASE "10 Dec 2002      "
 
 #ifdef MAIN
 #define AFNI_about \

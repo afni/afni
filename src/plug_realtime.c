@@ -29,9 +29,6 @@
 #  include "coxplot.h"
 #endif
 
-#define COMMAND_MARKER        "Et Earello Endorenna utulien.\n"
-#define COMMAND_MARKER_LENGTH 30
-
 /***********************************************************************
   Plugin to accept data from an external process and assemble
   it into a dataset.  Initial implementation for the Bruker 3T/60
@@ -101,7 +98,7 @@ typedef struct {
    float xxfov , yyfov , zzfov ;  /* field of view */
    float dxx  ,dyy  ,dzz ,        /* voxel size */
          xxorg,yyorg,zzorg ;      /* offsets */
-   int   zzdcode ;                /* direction code for z offset */
+   int   xxdcode,yydcode,zzdcode; /* direction code for x,y,z offsets */
 
    int   xcen ,ycen ,zcen  ;      /* centering of axes? */
 
@@ -176,6 +173,8 @@ typedef struct {
 
    int    num_note ;              /* 01 Oct 2002 */
    char **note ;
+
+   int    marked_for_death ;      /* 10 Dec 2002 */
 
 } RT_input ;
 
@@ -348,7 +347,7 @@ static PLUGIN_interface * plint = NULL ; /* AFNI plugin structure */
 PLUGIN_interface * PLUGIN_init( int ) ;
 char * RT_main( PLUGIN_interface * ) ;
 Boolean RT_worker( XtPointer ) ;
-RT_input * new_RT_input(void) ;
+RT_input * new_RT_input( IOCHAN * ) ;
 int RT_check_listen(void) ;
 int RT_acquire_info( char * ) ;
 int RT_process_info( int , char * , RT_input * ) ;
@@ -736,18 +735,24 @@ int RT_check_listen(void)
 /***************************************************************************/
 /**             macro to close down the realtime input stream             **/
 
-#define CLEANUP cleanup_rtinp()
+#define CLEANUP(n) cleanup_rtinp(n)
 
 /**------------ 01 Aug 1998: replace the macro with a function -----------**/
 
 #undef  FREEUP
 #define FREEUP(x) do{ if( (x) != NULL ){free((x)); (x)=NULL;} } while(0)
 
-void cleanup_rtinp(void)
+/* 10 Dec 2002: add keep_ioc_data flag,
+                so as not to close the data channel;
+                note that the pointer to it will be lost when rtinp is freed */
+
+void cleanup_rtinp( int keep_ioc_data )
 {
    int cc ;
 
-   IOCHAN_CLOSE(rtinp->ioc_data) ;         /* close any open I/O channels */
+   if( !keep_ioc_data )
+     IOCHAN_CLOSE(rtinp->ioc_data) ;       /* close open I/O channels */
+
    IOCHAN_CLOSE(rtinp->ioc_info) ;
 
    if( rtinp->child_info > 0 )             /* destroy child process */
@@ -811,7 +816,6 @@ void cleanup_rtinp(void)
 Boolean RT_worker( XtPointer elvis )
 {
    int jj ;
-
    static int first=1 ;
 
 #if 0
@@ -833,7 +837,7 @@ Boolean RT_worker( XtPointer elvis )
       }
       nerr = 0 ;                           /* reset error count */
       if( jj == 0 ) return False ;         /* try later if no connection now */
-      rtinp = new_RT_input() ;             /* try to make a new input struct */
+      rtinp = new_RT_input(NULL) ;         /* try to make a new input struct */
       IOCHAN_CLOSE( ioc_control ) ;        /* not needed any more */
       if( rtinp == NULL ) return False ;   /* try later (?) */
    }
@@ -857,7 +861,7 @@ Boolean RT_worker( XtPointer elvis )
          fprintf(stderr,"RT: data stream closed before dataset was fully defined!\a\n") ;
       }
 
-      CLEANUP ; return False ;
+      CLEANUP(0) ; return False ;
    }
 
    /**-----------------------------------------------------------------**/
@@ -881,13 +885,13 @@ Boolean RT_worker( XtPointer elvis )
          if( et > mw ){  /* don't wait any more, give up */
             fprintf(stderr,
                     "RT: no data from child after %f seconds!  Giving up.\a\n",et) ;
-            CLEANUP ; return False ;
+            CLEANUP(0) ; return False ;
          }
 
       } else if( jj < 0 ){   /** something bad happened? **/
 
          fprintf(stderr,"RT: child info stream closed prematurely!\a\n") ;
-         CLEANUP ; return False ;
+         CLEANUP(0) ; return False ;
 
       } else if( jj > 0 ){   /** something good happened? **/
 
@@ -916,7 +920,7 @@ Boolean RT_worker( XtPointer elvis )
 
          if( ninfo <= 0 ){
             fprintf(stderr,"RT: child info stream returned no data!\a\n") ;
-            CLEANUP ; return False ;
+            CLEANUP(0) ; return False ;
          }
 
          if( verbose == 2 )
@@ -931,7 +935,7 @@ Boolean RT_worker( XtPointer elvis )
 
          if( jj <= 0 ){
             fprintf(stderr,"RT: child info was badly formatted!\a\n") ;
-            CLEANUP ; return False ;
+            CLEANUP(0) ; return False ;
          }
 
          /* if we already received the first image data,
@@ -944,7 +948,7 @@ Boolean RT_worker( XtPointer elvis )
             PLUTO_popup_transient( plint , " \n"
                                            "      Heads down!\n"
                                            "Realtime header was bad!\n" ) ;
-            CLEANUP ; return FALSE ;
+            CLEANUP(0) ; return FALSE ;
          }
 
          /* if all the setup info is OK, we can create the dataset now */
@@ -1021,7 +1025,7 @@ Boolean RT_worker( XtPointer elvis )
          fprintf(stderr,"RT: data stream closed down.\n") ;
       VMCHECK ;
       if( rtinp->sbr[0] != NULL ) RT_finish_dataset( rtinp ) ;
-      CLEANUP ; return False ;
+      CLEANUP(0) ; return False ;
    }
 
    /************************************************/
@@ -1047,7 +1051,7 @@ Boolean RT_worker( XtPointer elvis )
 
       if( nb <= 0 ){
          fprintf(stderr,"\nRT: recv on data stream fails on first try!\a\n") ;
-         CLEANUP ; return False ;
+         CLEANUP(0) ; return False ;
       }
 
       /* read any more that comes available very quickly [06 Aug 2002] */
@@ -1065,8 +1069,10 @@ Boolean RT_worker( XtPointer elvis )
 
       PLUTO_beep() ;
       PLUTO_popup_transient( plint , " \n"
-                                     "       Heads Up!\n"
-                                     "Incoming realtime data!\n" ) ;
+                                     "***************************\n"
+                                     "*       Heads Up!         *\n"
+                                     "* Incoming realtime data! *\n"
+                                     "***************************\n" ) ;
 
       /** process header info in the data channel;
           note that there must be SOME header info this first time **/
@@ -1075,8 +1081,8 @@ Boolean RT_worker( XtPointer elvis )
 
       if( jj <= 0 ){                  /* header info not OK */
 
-         fprintf(stderr,"RT: initial image data is badly formatted!\a\n") ;
-         CLEANUP ; return False ;
+         fprintf(stderr,"RT: initial image metadata is badly formatted!\a\n") ;
+         CLEANUP(0) ; return False ;
 
       } else if( jj < rtinp->nbuf ){  /* data bytes left after header info */
 
@@ -1104,7 +1110,7 @@ Boolean RT_worker( XtPointer elvis )
          PLUTO_popup_transient( plint , " \n"
                                         "      Heads down!\n"
                                         "Realtime header was bad!\n" ) ;
-         CLEANUP ; return FALSE ;
+         CLEANUP(0) ; return FALSE ;
       }
    }
 
@@ -1115,9 +1121,28 @@ Boolean RT_worker( XtPointer elvis )
 
    if( jj < 0 ){
       fprintf(stderr,"RT: data stream aborted during image read!\n") ;
-      if( rtinp->sbr != NULL ) RT_finish_dataset( rtinp ) ;
-      CLEANUP ; return False ;
+      if( rtinp->sbr[0] != NULL ) RT_finish_dataset( rtinp ) ;
+      CLEANUP(0) ; return False ;
    }
+
+   /* 10 Dec 2002: if data stream marked itself for death,
+                   then close down the dataset,
+                   but don't close down the data stream itself;
+                   instead, create a new RT_input context for
+                   reading new metadata+image data from the
+                   same data stream                          */
+
+   if( rtinp->marked_for_death ){
+      RT_input *new_rtinp ;
+      fprintf(stderr,"RT: data stream says to close dataset.\n") ;
+      if( rtinp->sbr[0] != NULL ) RT_finish_dataset( rtinp ) ;
+      fprintf(stderr,"RT: starting to read from existing data stream.\n") ;
+      new_rtinp = new_RT_input( rtinp->ioc_data ) ; /* new RT_input context */
+      CLEANUP(1) ;                                 /* will delete old rtinp */
+      rtinp = new_rtinp ; return False ;
+   }
+
+   /*** continue normally! ***/
 
    rtinp->last_elapsed = PLUTO_elapsed_time() ;  /* record this time */
    return False ;
@@ -1158,115 +1183,144 @@ void RT_process_xevents( RT_input * rtin ){}  /* doesn't do much */
    Will read from the control channel, which will tell it what data
    channel to open, and if it needs to fork a child process to gather
    header info.
+
+   10 Dec 2002: new input ioc_data is a pointer to an IOCHAN that
+                should be used for data acquisition:
+                  - if this is not NULL, then the control channel is NOT used
+                  - instead, the RT_input struct is setup to read
+                     directly from ioc_data (which should already be good)
+                  - in this case, you can't use an info_command; all the
+                     metadata must come from the ioc_data channel
 ----------------------------------------------------------------------------*/
 
-RT_input * new_RT_input(void)
+RT_input * new_RT_input( IOCHAN *ioc_data )
 {
-   RT_input * rtin ;
-   int ncon , ii , cc ;
-   char * con , * ptr ;
-   Three_D_View * im3d ;
+   RT_input *rtin ;
+   int ii , cc ;
+   Three_D_View *im3d ;
 
-   /** wait until data can be read, or something terrible happens **/
+   if( ioc_data == NULL ){ /*** THE OLD WAY: get info from control channel ***/
 
-   if( iochan_readcheck(ioc_control,-1) <= 0 ){
-      fprintf(stderr,"RT: control stream fails readcheck!\a\n") ;
-      return NULL ;
-   }
+     int ncon ;
+     char *con , *ptr ;
 
-   /** make new structure **/
+     /** wait until data can be read, or something terrible happens **/
 
-   rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
-   con  = (char *)     malloc( INFO_SIZE ) ;
+     if( iochan_readcheck(ioc_control,-1) <= 0 ){
+        fprintf(stderr,"RT: control stream fails readcheck!\a\n") ;
+        return NULL ;
+     }
 
-   if( rtin == NULL || con == NULL ){
-      fprintf(stderr,"RT: malloc fails in new_RT_input!\a\n") ; EXIT(1) ;
-   }
+     /** make new structure **/
 
-   /** read all data possible from control channel **/
+     rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
+     con  = (char *)     malloc( INFO_SIZE ) ;
 
-   ncon = 0 ;  /* read all data possible from the control channel */
-   while(1){
-      ii = iochan_recv( ioc_control , con+ncon , INFO_SIZE-ncon ) ;
-      if( ii < 1 ) break ;
-      ncon += ii ;
-      if( ncon >= INFO_SIZE ){
-         fprintf(stderr,"RT: control stream buffer overflow!\a\n") ;
-         break ;
-      }
-      iochan_sleep( SHORT_DELAY ) ;
-   }
+     if( rtin == NULL || con == NULL ){
+        fprintf(stderr,"RT: malloc fails in new_RT_input!\a\n") ; EXIT(1) ;
+     }
 
-   if( ncon < 1 ){
-      fprintf(stderr,"RT: control stream sends no data!\a\n") ;
-      free(rtin) ; free(con) ; return NULL ;
-   }
+     /** read all data possible from control channel **/
 
-   /** The data we now have in 'con' should be of the form
-          image_channel_spec\n
-          info_command\n\0
-       where 'image_channel_spec' is an IOCHAN specifier saying
-         how AFNI should read the image data
-       and 'info_command' is the name of a command to run that
-         will write the dataset control info to stdout (where
-         a child of AFNI will get it using the 'popen' routine).
-         If no 'info_command' is needed (all the dataset info will
-         come thru on the image channel), then the info_command
-         should just be skipped.
-       Each string should be less than NNAME characters long!
-   **/
+     ncon = 0 ;  /* read all data possible from the control channel */
+     while(1){
+        ii = iochan_recv( ioc_control , con+ncon , INFO_SIZE-ncon ) ;
+        if( ii < 1 ) break ;
+        ncon += ii ;
+        if( ncon >= INFO_SIZE ){
+           fprintf(stderr,"RT: control stream buffer overflow!\a\n") ;
+           break ;
+        }
+        iochan_sleep( SHORT_DELAY ) ;
+     }
 
-   ncon = MIN( ncon , INFO_SIZE-2 ) ;
-   con[ncon+1] = '\0' ;               /* make sure it is NUL terminated */
+     if( ncon < 1 ){
+        fprintf(stderr,"RT: control stream sends no data!\a\n") ;
+        free(rtin) ; free(con) ; return NULL ;
+     }
 
-   /** copy first string -- this is image_channel_spec **/
+     /** The data we now have in 'con' should be of the form
+            image_channel_spec\n
+            info_command\n\0
+         where 'image_channel_spec' is an IOCHAN specifier saying
+           how AFNI should read the image data
+         and 'info_command' is the name of a command to run that
+           will write the dataset control info to stdout (where
+           a child of AFNI will get it using the 'popen' routine).
+           If no 'info_command' is needed (all the dataset info will
+           come thru on the image channel), then the info_command
+           should just be skipped.
+         Each string should be less than NNAME characters long!
+     **/
 
-   ii = 0 ;
-   for( ptr=con ; ii < NNAME && *ptr != '\0' && *ptr != '\n' ; ptr++ ){
-      rtin->name_data[ii++] = *ptr ;
-   }
-   if( ii >= NNAME ){
-      fprintf(stderr,"RT: control image_channel_spec buffer overflow!\a\n") ;
-      ii = NNAME - 1 ;
-   }
-   rtin->name_data[ii] = '\0' ;
+     ncon = MIN( ncon , INFO_SIZE-2 ) ;
+     con[ncon+1] = '\0' ;               /* make sure it is NUL terminated */
 
-   /** open data channel **/
+     /** copy first string -- this is image_channel_spec **/
 
-   rtin->ioc_data = iochan_init( rtin->name_data , "accept" ) ;
-   if( rtin->ioc_data == NULL ){
-      fprintf(stderr,"RT: failure to open data IOCHAN %s\a\n",rtin->name_data) ;
-      free(rtin) ; free(con) ; return NULL ;
-   }
+     ii = 0 ;
+     for( ptr=con ; ii < NNAME && *ptr != '\0' && *ptr != '\n' ; ptr++ ){
+        rtin->name_data[ii++] = *ptr ;
+     }
+     if( ii >= NNAME ){
+        fprintf(stderr,"RT: control image_channel_spec buffer overflow!\a\n") ;
+        ii = NNAME - 1 ;
+     }
+     rtin->name_data[ii] = '\0' ;
 
-   if( verbose == 2 )
-      fprintf(stderr,"RT: opened data stream %s\n",rtin->name_data) ;
-   VMCHECK ;
+     /** open data channel **/
 
-   /** if more follows, that is a command for a child process
-       (which will not be started until the first image data arrives) **/
+     rtin->ioc_data = iochan_init( rtin->name_data , "accept" ) ;
+     if( rtin->ioc_data == NULL ){
+        fprintf(stderr,"RT: failure to open data IOCHAN %s\a\n",rtin->name_data) ;
+        free(rtin) ; free(con) ; return NULL ;
+     }
 
-   ii = 0 ;
-   if( *ptr != '\0' ){
-      for( ptr++ ; ii < NNAME && *ptr != '\0' && *ptr != '\n' ; ptr++ ){
-         rtin->name_info[ii++] = *ptr ;
-      }
-      if( ii >= NNAME ){
-         fprintf(stderr,"RT: control info_command buffer overflow!\a\n") ;
-         ii = NNAME - 1 ;
-      }
-   }
-   rtin->name_info[ii] = '\0' ;
+     if( verbose == 2 )
+        fprintf(stderr,"RT: opened data stream %s\n",rtin->name_data) ;
+     VMCHECK ;
 
-   if( verbose == 2 ){
-      if( strlen(rtin->name_info) > 0 )
-         fprintf(stderr,"RT: info command for child will be '%s'\n",rtin->name_info) ;
-      else
-         fprintf(stderr,"RT: no info command given.\n") ;
-   }
-   VMCHECK ;
+     /** if more follows, that is a command for a child process
+         (which will not be started until the first image data arrives) **/
 
-   /** the command (if any) will be run later **/
+     ii = 0 ;
+     if( *ptr != '\0' ){
+        for( ptr++ ; ii < NNAME && *ptr != '\0' && *ptr != '\n' ; ptr++ ){
+           rtin->name_info[ii++] = *ptr ;
+        }
+        if( ii >= NNAME ){
+           fprintf(stderr,"RT: control info_command buffer overflow!\a\n") ;
+           ii = NNAME - 1 ;
+        }
+     }
+     rtin->name_info[ii] = '\0' ;
+
+     if( verbose == 2 ){
+        if( strlen(rtin->name_info) > 0 )
+           fprintf(stderr,"RT: info command for child will be '%s'\n",rtin->name_info) ;
+        else
+           fprintf(stderr,"RT: no info command given.\n") ;
+     }
+
+     free(con) ;
+     VMCHECK ;
+
+     /** the command (if any) will be run later **/
+
+   } else {  /*** THE NEW WAY: directly connect to ioc_data channel [10 DEC 2002] ***/
+
+     /** make new structure **/
+
+     rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
+     if( rtin == NULL ){
+        fprintf(stderr,"RT: malloc fails in new_RT_input!\a\n") ; EXIT(1) ;
+     }
+
+     MCW_strncpy( rtin->name_data , ioc_data->name , NNAME ) ;  /* not really needed */
+     rtin->ioc_data     = ioc_data ;
+     rtin->name_info[0] = '\0' ;                                /* no child */
+
+   } /*** end of THE NEW WAY of starting up ***/
 
    rtin->ioc_info   = NULL ;
    rtin->child_info = 0 ;
@@ -1274,7 +1328,7 @@ RT_input * new_RT_input(void)
    /** wait until the data channel is good **/
 
    if( verbose )
-      fprintf(stderr,"RT: waiting for data stream to open.\n") ;
+      fprintf(stderr,"RT: waiting for data stream to become good.\n") ;
    VMCHECK ;
 
    while(1){
@@ -1283,13 +1337,13 @@ RT_input * new_RT_input(void)
       else if( ii == 0 && verbose == 2 ) fprintf(stderr,".") ; /* not good yet */
       else {                                                   /* is bad! */
          fprintf(stderr,"RT: data stream fails to become good!\a\n") ;
-         IOCHAN_CLOSE(rtin->ioc_data) ; free(rtin) ; free(con) ;
+         IOCHAN_CLOSE(rtin->ioc_data) ; free(rtin) ;
          return NULL ;
       }
    }
 
    if( verbose == 2 )
-      fprintf(stderr,"RT: data stream is opened.\n") ;
+      fprintf(stderr,"RT: data stream is now bodaciously good.\n") ;
    VMCHECK ;
 
    /** initialize internal constants in the struct **/
@@ -1300,7 +1354,7 @@ RT_input * new_RT_input(void)
    rtin->image_handle = NULL ;
    rtin->image_space  = NULL ;
 
-#if 0
+#if 0                               /*** THE VERY OLD WAY to set things up ***/
    rtin->nxx = DEFAULT_XYMATRIX ;
    rtin->nyy = DEFAULT_XYMATRIX ;
    rtin->nzz = DEFAULT_ZNUM ;
@@ -1319,6 +1373,8 @@ RT_input * new_RT_input(void)
    rtin->xxorg = 0.5 * (rtin->nxx - 1) * rtin->dxx ; rtin->xcen = 1 ;
    rtin->yyorg = 0.5 * (rtin->nyy - 1) * rtin->dyy ; rtin->ycen = 1 ;
    rtin->zzorg = 0.5 * (rtin->nzz - 1) * rtin->dzz ; rtin->zcen = 1 ;
+   rtin->xxdcode = ILLEGAL_TYPE ;
+   rtin->yydcode = ILLEGAL_TYPE ;
    rtin->zzdcode = ILLEGAL_TYPE ;
 
    rtin->tr     = DEFAULT_TR ;
@@ -1344,8 +1400,8 @@ RT_input * new_RT_input(void)
    rtin->dyy   = 0.0 ;
    rtin->dzz   = 0.0 ;
 
-   rtin->xxorg = 0.0 ; rtin->xcen = 1 ;
-   rtin->yyorg = 0.0 ; rtin->ycen = 1 ;
+   rtin->xxorg = 0.0 ; rtin->xcen = 1 ; rtin->xxdcode = ILLEGAL_TYPE ;
+   rtin->yyorg = 0.0 ; rtin->ycen = 1 ; rtin->yydcode = ILLEGAL_TYPE ;
    rtin->zzorg = 0.0 ; rtin->zcen = 1 ; rtin->zzdcode = ILLEGAL_TYPE ;
 
    rtin->tr     = DEFAULT_TR ;
@@ -1441,7 +1497,9 @@ RT_input * new_RT_input(void)
    rtin->num_note = 0 ;      /* 01 Oct 2002: notes list */
    rtin->note     = NULL ;
 
-   free(con) ; return rtin ;
+   rtin->marked_for_death = 0 ;  /* 10 Dec 2002 */
+
+   return rtin ;
 }
 
 /*-------------------------------------------------------------------------
@@ -1734,7 +1792,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: dzz = %g\n",rtin->dzz) ;
          VMCHECK ;
 
-      } else if( STARTER("ZFIRST") ){
+      } else if( STARTER("ZFIRST") ){   /* set z origin */
          float val = 0.0 ;
          char dcode = ' ' ;
          sscanf( buf , "ZFIRST %f%c" , &val,&dcode ) ;
@@ -1743,8 +1801,26 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          rtin->zzdcode = ORCODE(dcode) ;
          if( verbose == 2 )
             fprintf(stderr,"RT: zzorg = %g%c\n" ,
-                    rtin->zzorg , (rtin->zzdcode < 0) ? ' '
-                                                      : ORIENT_first[rtin->zzdcode] ) ;
+                    rtin->zzorg ,
+                    (rtin->zzdcode < 0) ? ' ' : ORIENT_first[rtin->zzdcode] ) ;
+         VMCHECK ;
+
+      } else if( STARTER("XYZFIRST") ){  /* 10 Dec 2002: set all origins */
+         float xf=0.0,yf=0.0,zf=0.0 ;
+         char  xc=' ',yc=' ',zc=' ' ;
+         sscanf( buf , "XYZFIRST %f%c%f%c%f%c" , &xf,&xc,&yf,&yc,&zf,&zc ) ;
+         rtin->xxorg = xf ; rtin->xcen = 0 ; rtin->xxdcode = ORCODE(xc) ;
+         rtin->yyorg = yf ; rtin->ycen = 0 ; rtin->yydcode = ORCODE(yc) ;
+         rtin->zzorg = zf ; rtin->zcen = 0 ; rtin->zzdcode = ORCODE(zc) ;
+         if( verbose == 2 )
+            fprintf(stderr,"RT: xxorg=%g%c yyorg=%g%c zzorg=%g%c\n" ,
+                    rtin->xxorg ,
+                    (rtin->xxdcode < 0) ? ' ' : ORIENT_first[rtin->xxdcode] ,
+                    rtin->yyorg ,
+                    (rtin->yydcode < 0) ? ' ' : ORIENT_first[rtin->yydcode] ,
+                    rtin->zzorg ,
+                    (rtin->zzdcode < 0) ? ' ' : ORIENT_first[rtin->zzdcode]
+                   ) ;
          VMCHECK ;
 
       } else if( STARTER("XYFOV") ){
@@ -2078,12 +2154,20 @@ void RT_start_dataset( RT_input * rtin )
    if( ORIENT_sign[rtin->orcyy] == '-' ) rtin->dyy = - rtin->dyy ;
    if( ORIENT_sign[rtin->orczz] == '-' ) rtin->dzz = - rtin->dzz ;
 
+   /* 10 Dec 2002:
+      We now allow direction codes input for x and y as well,
+      so must duplicate the complicated zzorg logic for setting
+      the xxorg and yyorg signs.  This duplicated logic follows
+      the zzdcode stuff, below.                                 */
+
+#if 0
    /* if axis direction is a 'plus',
       then the origin is in a 'minus' direction,
-      so the origin offset must have its sign changed */
+      so the origin offset must have its sign changed */  /*** THE OLD WAY ***/
 
    if( ORIENT_sign[rtin->orcxx] == '+' ) rtin->xxorg = - rtin->xxorg ;
    if( ORIENT_sign[rtin->orcyy] == '+' ) rtin->yyorg = - rtin->yyorg ;
+#endif
 
    /* z-origin is complex, because the remote program might
       have given a direction code, or it might not have.
@@ -2112,6 +2196,36 @@ void RT_start_dataset( RT_input * rtin )
       } else {  /* things are OK */
 
          if( ORIENT_sign[rtin->zzdcode] == '+' ) rtin->zzorg = - rtin->zzorg ;
+      }
+   }
+
+   /* 10 Dec 2002: duplicate logic for xxorg */
+
+   if( rtin->xxdcode < 0 ){
+      if( ORIENT_sign[rtin->orcxx] == '+' ) rtin->xxorg = - rtin->xxorg ;
+   } else {
+      if( rtin->orcxx != rtin->xxdcode                 &&
+          rtin->orcxx != ORIENT_OPPOSITE(rtin->xxdcode)  ){
+         fprintf(stderr,"RT: XFIRST direction code = %c but X axis = %s!\a\n",
+                 ORIENT_first[rtin->xxdcode] , ORIENT_shortstr[rtin->orcxx] ) ;
+         if( ORIENT_sign[rtin->orcxx] == '+' ) rtin->xxorg = - rtin->xxorg ;
+      } else {  /* things are OK */
+         if( ORIENT_sign[rtin->xxdcode] == '+' ) rtin->xxorg = - rtin->xxorg ;
+      }
+   }
+
+   /* 10 Dec 2002: duplicate logic for yyorg */
+
+   if( rtin->yydcode < 0 ){
+      if( ORIENT_sign[rtin->orcyy] == '+' ) rtin->yyorg = - rtin->yyorg ;
+   } else {
+      if( rtin->orcyy != rtin->yydcode                 &&
+          rtin->orcyy != ORIENT_OPPOSITE(rtin->yydcode)  ){
+         fprintf(stderr,"RT: YFIRST direction code = %c but Y axis = %s!\a\n",
+                 ORIENT_first[rtin->yydcode] , ORIENT_shortstr[rtin->orcyy] ) ;
+         if( ORIENT_sign[rtin->orcyy] == '+' ) rtin->yyorg = - rtin->yyorg ;
+      } else {  /* things are OK */
+         if( ORIENT_sign[rtin->yydcode] == '+' ) rtin->yyorg = - rtin->yyorg ;
       }
    }
 
@@ -2356,6 +2470,9 @@ void RT_start_dataset( RT_input * rtin )
   Read one image (or volume) into the space pointed to by im.
 ----------------------------------------------------------------------*/
 
+#define COMMAND_MARKER        "Et Earello Endorenna utulien!!"
+#define COMMAND_MARKER_LENGTH 30
+
 void RT_read_image( RT_input * rtin , char * im )
 {
    int need , have , nbuffed ;
@@ -2403,6 +2520,13 @@ void RT_read_image( RT_input * rtin , char * im )
    if( need > 0 )
       iochan_recvall( rtin->ioc_data , im + nbuffed , need ) ;
 
+   /* 10 Dec 2002:
+      Check if the command string is present at the start of im.
+      If it is, then mark rtin for death.                       */
+
+   if( memcmp(im,COMMAND_MARKER,COMMAND_MARKER_LENGTH) == 0 )
+     rtin->marked_for_death = 1 ;
+
    return ;
 }
 
@@ -2431,6 +2555,9 @@ int RT_process_data( RT_input * rtin )
       if( rtin->im[0] != NULL ){  /** process data into dataset directly **/
 
          RT_read_image( rtin , rtin->im[rtin->cur_chan] ) ; /* read into dataset buffer */
+
+         if( rtin->marked_for_death ) return 0 ;            /* 10 Dec 2002 */
+
          RT_process_image( rtin ) ;                         /* process it for the dataset */
 
       } else {                 /** read data into temporary buffer space **/
@@ -2455,6 +2582,7 @@ int RT_process_data( RT_input * rtin )
          newbuf = (char *) MRI_BYTE_PTR(newim) ;           /* pointer to image data */
          ADDTO_IMARR( rtin->bufar , newim ) ;              /* add to saved image list */
          RT_read_image( rtin , newbuf ) ;                  /* read image data */
+         if( rtin->marked_for_death ) return 0 ;           /* 10 Dec 2002 */
       }
 
       RT_process_xevents( rtinp ) ;

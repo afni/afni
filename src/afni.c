@@ -159,6 +159,14 @@ void AFNI_syntax(void)
      "                  If neither is present, then AFNI will do whatever\n"
      "                  it feels like.\n"
      "\n"
+     "   -niml        If present, turns on listening for NIML-formatted\n"
+     "                  data from SUMA.  Can also be turned on by setting\n"
+     "                  environment variable AFNI_NIML_START to YES.\n"
+     "   -np port     If present, sets the NIML socket port number to 'port'.\n"
+     "                  This must be an integer between 1024 and 65535,\n"
+     "                  and must be the same as the '-np port' number given\n"
+     "                  to SUMA.  [default = 53211]\n"
+     "\n"
      " If no session_directories are given, then the program will use\n"
      "   the current working directory (i.e., './').\n"
      " The maximum number of sessions is now set to   %d.\n"
@@ -304,6 +312,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
 
    GLOBAL_argopt.yes_niml       = AFNI_yesenv("AFNI_NIML_START") ;
+   GLOBAL_argopt.port_niml      = 0 ;      /* 10 Dec 2002 */
 
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
@@ -478,6 +487,19 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*---- -np port [10 Dec 2002] ----*/
+
+      if( strcmp(argv[narg],"-np") == 0 ){
+         float val ;
+         if( narg+1 >= argc ) FatalError("need an argument after -np!");
+
+         val = strtod( argv[++narg] , NULL ) ;
+         if( val >= 1024 && val <= 65535 ) GLOBAL_argopt.port_niml = (int)val ;
+         else fprintf(stderr,
+                "\n*** WARNING: -np %s is illegal!\n", argv[narg]);
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       if( strcmp(argv[narg],"-noniml") == 0 ){
          GLOBAL_argopt.yes_niml-- ;
          if( GLOBAL_argopt.yes_niml < 0 ) GLOBAL_argopt.yes_niml = 0 ;
@@ -649,7 +671,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 0 ) GLOBAL_argopt.ignore = (int) val ;
          else fprintf(stderr,
-                "\n*** warning: -ignore value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -ignore value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -663,7 +685,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 1 ) GLOBAL_argopt.ignore = (int) (val-1.0) ;
          else fprintf(stderr,
-                "\n*** warning: -ignore value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -ignore value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -678,7 +700,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dy = val ;
          else fprintf(stderr,
-                "\n*** warning: -dy value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -dy value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -692,7 +714,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dz = val ;
          else fprintf(stderr,
-                "\n*** warning: -dz value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -dz value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -706,7 +728,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.gamma = val ;
          else fprintf(stderr,
-                "\n*** warning: -gamma value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -gamma value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -721,7 +743,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val != 0 ) GLOBAL_argopt.gsfac = val ;
          else fprintf(stderr,
-                "\n*** warning: -gsfac value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -gsfac value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -758,7 +780,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 2 ) GLOBAL_argopt.ncolor = val ;
          else fprintf(stderr,
-                "\n*** warning: -ncolor value %s illegal\n", argv[narg]);
+                "\n*** WARNING: -ncolor value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -1576,6 +1598,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
      AFNI_init_niml() ;
      XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
+   } else if( GLOBAL_argopt.port_niml > 0 ){  /* 10 Dec 2002 */
+     fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
    /* 21 Nov 2002: check the AFNI version */
