@@ -259,7 +259,7 @@ static int unescape_inplace( char *str )
    int ii,jj , nn,ll ;
 
    if( str == NULL ) return 0 ;                /* no string? */
-   ll = NI_strlen(str) ;  if( ll < 4 ) return 0 ; /* too short */
+   ll = NI_strlen(str) ;
 
    /* scan for escapes: &something; */
 
@@ -510,8 +510,9 @@ static int NI_is_name( char *str )
    ll = NI_strlen(str) ;
 
    for( ii=0 ; ii < ll ; ii++ ){
-      if( isalnum(str[ii]) || str[ii] == '_'   ||
-          str[ii] == '.'   || str[ii] == '-'     ) continue ;
+      if( isalnum(str[ii]) || str[ii] == '_' ||
+          str[ii] == '.'   || str[ii] == '-' ||
+          str[ii] == ':'                         ) continue ;
       return 0 ; /* failure */
    }
 

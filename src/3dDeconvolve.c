@@ -217,6 +217,11 @@
            the baseline model.
   Date:    02 May 2002
 
+  Mod:     Corrected problem in allocate_memory routine, which would result in
+           memory error if both -stim_base and -nobout options are used 
+           simultaneously.
+  Date:    10 October 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -224,7 +229,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "02 May 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "10 Oct 2002"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -2083,7 +2088,7 @@ void allocate_memory
 	if ((! option_data->stim_base[is]) || (! option_data->nobout))
 	  zero_fill_volume (&((*fpart_vol)[is]), nxyz);
 	else
-	  *fpart_vol[is] = NULL;
+	  (*fpart_vol)[is] = NULL;
     }
 
 
@@ -2095,7 +2100,7 @@ void allocate_memory
 	if ((! option_data->stim_base[is]) || (! option_data->nobout))
 	  zero_fill_volume (&((*rpart_vol)[is]), nxyz);
 	else
-	  *rpart_vol[is] = NULL;
+	  (*rpart_vol)[is] = NULL;
     }
 
 
