@@ -604,8 +604,6 @@ static void ENV_globalrange( char *vname )
    Three_D_View *im3d ;
    int ii , gbr=AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ;
 
-fprintf(stderr,"Enter ENV_globalrange()\n") ;
-
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
      im3d = GLOBAL_library.controllers[ii] ;
      if( ! IM3D_OPEN(im3d) ) continue ;
