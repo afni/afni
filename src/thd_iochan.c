@@ -473,12 +473,15 @@ int shm_nattach( int shmid )
    }
    return buf.shm_nattch ;
 }
-#else
-int shm_nattach( int shmid ){ return -1; }
-int shm_size( int shmid ){ return -1 ; }
-char * shm_attach( int shmid ){ return NULL ; }
-int shm_create( char * key_string , int size ){ return -1; }
-int shm_accept( char * key_string ){ return -1; }
+
+#else  /** dummy functions, if SysV IPC shared memory isn't available */
+
+int    shm_nattach( int shmid )                   { return -1 ; }
+int    shm_size   ( int shmid )                   { return -1 ; }
+char * shm_attach ( int shmid )                   { return NULL;}
+int    shm_create ( char * key_string , int size ){ return -1 ; }
+int    shm_accept ( char * key_string )           { return -1 ; }
+
 #endif /* DONT_USE_SHM */
 
 /****************************************************************
