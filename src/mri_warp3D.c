@@ -37,8 +37,8 @@ MRI_IMAGE *mri_warp3D( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
 
 /*--------------------------------------------------------------------------*/
 
-#define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]      /* input point */
-#define NAR(i,j,k) nar[(i)+(j)*nx+(k)*nxynew]   /* output point */
+#define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]         /* input point */
+#define NAR(i,j,k) nar[(i)+(j)*nxnew+(k)*nxynew]   /* output point */
 
 /* clip input image index to valid range for x,y,z directions */
 

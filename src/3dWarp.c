@@ -111,7 +111,7 @@ int main( int argc , char * argv[] )
    int nxin,nyin,nzin,nxyzin,nvals , ival ;
    int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
-   int nopt=1 , verb=0 ;
+   int nopt=1 , verb=0 , zpad=0 ;
    int use_matvec=0 ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
    int use_newgrid=0 ;
@@ -154,6 +154,10 @@ int main( int argc , char * argv[] )
             "                  * If this option is NOT given, then the\n"
             "                    new dataset is computed on the old\n"
             "                    dataset's grid.\n"
+            "\n"
+            "  -zpad N       = Tells program to pad input dataset with 'N'\n"
+            "                    planes of zeros on all sides before doing\n"
+            "                    transformation.\n"
             "---------------------\n"
             "Miscellaneous Options:\n"
             "---------------------\n"
@@ -174,12 +178,24 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[nopt],"-zpad") == 0 ){
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** Need argument after -zpad!\n"); exit(1);
+       }
+       zpad = (int) strtod( argv[nopt] , NULL ) ;
+       if( zpad < 0 ){
+         fprintf(stderr,"** Illegal negative argument after -zpad!\n"); exit(1);
+       } else if( zpad == 0 ){
+         fprintf(stderr,"++ NOTA BENE: -zpad is 0 ==> ignored\n") ;
+       }
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[nopt],"-newgrid") == 0 ){
        if( ++nopt >= argc ){
          fprintf(stderr,"** Need argument after -newgrid!\n"); exit(1);
-       }
-       if( use_newgrid ){
-         fprintf(stderr,"** Can't use two -newgrid arguments!\n"); exit(1);
        }
        ddd_newgrid = strtod( argv[nopt] , NULL ) ;
        if( ddd_newgrid <= 0.0 ){
@@ -241,8 +257,8 @@ int main( int argc , char * argv[] )
 
          case MATVEC_FOR:
            LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
-                                         matar[4],matar[5],matar[6],
-                                         matar[8],matar[9],matar[10] ) ;
+                                        matar[4],matar[5],matar[6],
+                                        matar[8],matar[9],matar[10] ) ;
            LOAD_FVEC3( dicom_in2out.vv, matar[3],matar[7],matar[11] ) ;
 
            dm = MAT_DET( dicom_in2out.mm ) ;
@@ -255,8 +271,8 @@ int main( int argc , char * argv[] )
 
          case MATVEC_BAC:
            LOAD_MAT  ( dicom_out2in.mm, matar[0],matar[1],matar[2],
-                                         matar[4],matar[5],matar[6],
-                                         matar[8],matar[9],matar[10] ) ;
+                                        matar[4],matar[5],matar[6],
+                                        matar[8],matar[9],matar[10] ) ;
            LOAD_FVEC3( dicom_out2in.vv, matar[3],matar[7],matar[11] ) ;
 
            dm = MAT_DET( dicom_out2in.mm ) ;
@@ -333,6 +349,18 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   /*-- zeropad and replace input, if desired --*/
+
+   if( zpad > 0 ){
+     THD_3dim_dataset *qset ;
+     qset = THD_zeropad( inset , zpad,zpad,zpad,zpad,zpad,zpad ,
+                         "Quetzal" , ZPAD_PURGE ) ;
+     if( qset == NULL ){
+       fprintf(stderr,"** ERROR: can't zeropad for some reason!\n"); exit(1);
+     }
+     DSET_delete(inset) ; inset = qset ;
+   }
+
    /*-- compute mapping from input dataset (i,j,k) to DICOM coords --*/
 
    { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
@@ -376,10 +404,10 @@ int main( int argc , char * argv[] )
      nzout = (int)( (ztop-zbot)/ddd_newgrid+0.999 ); if( nzout < 1 ) nzout = 1;
      nxyzout = nxout*nyout*nzout ;
 
-     xmid = 0.5*(xbot+xtop) ; ymid = 0.5*(ybot+ytop) ; zmid = 0.5*(zbot+ztop) ;
-     xbot = xmid - 0.5*nxout*ddd_newgrid ; xtop = xbot + (nxout-1)*ddd_newgrid ;
-     ybot = ymid - 0.5*nyout*ddd_newgrid ; ytop = ybot + (nyout-1)*ddd_newgrid ;
-     zbot = zmid - 0.5*nzout*ddd_newgrid ; ztop = zbot + (nzout-1)*ddd_newgrid ;
+     xmid = 0.5*(xbot+xtop); ymid = 0.5*(ybot+ytop); zmid = 0.5*(zbot+ztop);
+     xbot = xmid-0.5*(nxout-1)*ddd_newgrid; xtop = xbot+(nxout-1)*ddd_newgrid;
+     ybot = ymid-0.5*(nyout-1)*ddd_newgrid; ytop = ybot+(nyout-1)*ddd_newgrid;
+     zbot = zmid-0.5*(nzout-1)*ddd_newgrid; ztop = zbot+(nzout-1)*ddd_newgrid;
 
      if( verb )
        fprintf(stderr,"++ Transformed grid:\n"
@@ -389,7 +417,7 @@ int main( int argc , char * argv[] )
                xbot,xtop,nxout , ybot,ytop,nyout , zbot,ztop,nzout    ) ;
 
      if( nxyzout == 1 ){
-       fprintf(stderr,"** Transformed dataset is too small!\n"); exit(1);
+       fprintf(stderr,"** Transformed dataset grid is too small!\n"); exit(1);
      }
 
      nxyz.ijk[0] = nxout ; dxyz.xyz[0] = ddd_newgrid ;  /* setup axes */
@@ -431,10 +459,10 @@ int main( int argc , char * argv[] )
 
    { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
 
-     LOAD_DIAG_MAT( ijk_to_xyz.mm , outset->daxes->xxdel,
-                                    outset->daxes->yydel, outset->daxes->zzdel );
-     LOAD_FVEC3   ( ijk_to_xyz.vv , outset->daxes->xxorg,
-                                    outset->daxes->yyorg, outset->daxes->zzorg );
+     LOAD_DIAG_MAT( ijk_to_xyz.mm, outset->daxes->xxdel,
+                                   outset->daxes->yydel, outset->daxes->zzdel );
+     LOAD_FVEC3   ( ijk_to_xyz.vv, outset->daxes->xxorg,
+                                   outset->daxes->yyorg, outset->daxes->zzorg );
 
      xyz_to_dicom.mm = outset->daxes->to_dicomm ;
      LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
