@@ -728,4 +728,12 @@ typedef struct {
 	int InOut_Level; /*!< level of nested function calls */
 } SUMA_CommonFields;
 
+/*! structure containing a surface patch */
+typedef struct {
+	int N_FaceSet; /*!< Number of Facesets forming patch */
+	int **FaceSetList; /*!< Matrix (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
+	int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles in FaceSetList in the FaceSetList of the surface that the patch was taken from */
+} SUMA_PATCH;
+
+
 #endif
