@@ -77,7 +77,7 @@ ENTRY("AFNI_splashdown") ;
 #endif
                SPLASH_popup_image(handle,imspl) ;
                drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
-               if( COX_clock_time()-et > 1.1 ) break ;
+               if( COX_clock_time()-et > 2.1 ) break ;
             }
          }
       }
@@ -380,7 +380,7 @@ ENTRY("SPLASH_imseq_getim") ;
          if( do_write == 2 ){
            char *sf = AFNI_get_date_trivia() ;
            int   nn = strlen(sf) , ss=28 ;
-           if( nn > 36 ) ss = (int)(28.0*36.0/nn) ;
+           if( nn > 38 ) ss = (int)(28.0*38.0/nn) ;
            set_color_memplot(1.0,1.0,0.0) ;           /* yellow */
            plotpak_pwritf( 0.5,0.089 , "Today is:"  , 30 , 0 , 0 ) ;
            plotpak_pwritf( 0.5,0.033 , sf           , ss , 0 , 0 ) ;
