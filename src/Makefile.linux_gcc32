@@ -25,6 +25,9 @@ LFLAGS = -L. -L/usr/X11R6/lib
 
 CCSVD  = $(CCFAST)
 
+
+CCSVD  = $(CCFAST)
+
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
 PLUGIN_CC     = $(CC)
