@@ -3747,3 +3747,8 @@
     are read, rather than later - this allows the anats in the global
     session to allow a session to be used, even if there are no funcs
     in the directory.
+
+14 May 2002
+ * Modified 3dZeropad.c to have -master option.
+ * Modified thd_zeropad.c to return full copy of dataset if input add/cut
+    values are all zero (used to return NULL).

@@ -17,6 +17,8 @@
     ZPAD_PURGE = purge input dataset bricks after they are copied
     ZPAD_MM    = increments are mm instead of slice counts
                  (at least 'add_?' mm will be added/subtracted)
+
+  14 May 2002: if inputs crops are all zero, return something anyway
 ---------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * inset ,
@@ -43,12 +45,15 @@ ENTRY("THD_zeropad") ;
 
    /*-- check inputs --*/
 
-   if( !ISVALID_DSET(inset)                ||
-       (add_I==0 && add_S==0 && add_P==0 &&
-        add_A==0 && add_L==0 && add_R==0   ) ){
+   if( !ISVALID_DSET(inset) ) RETURN( NULL ) ;
 
-      fprintf(stderr,"*** THD_zeropad: all pad values are zero!\n") ;
-      RETURN( NULL );
+   if( add_I==0 && add_S==0 && add_P==0 &&
+       add_A==0 && add_L==0 && add_R==0    ){
+
+      fprintf(stderr,"++ THD_zeropad: all pad values are zero!\n") ;
+
+      outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
+      RETURN( outset );
    }
 
    if( !THD_filename_ok(prefix) ) prefix = "zeropad" ;
