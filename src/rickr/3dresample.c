@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.4 <July, 2003>"
+#define VERSION "Version 1.5 <Jan 07, 2004>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -39,28 +39,37 @@
  *----------------------------------------------------------------------
 */
 
-/*----------------------------------------------------------------------
- * history:
- *
- * 1.4  July 27, 2003
- *   - wrap unknown printed strings in NULL check
- *
- * 1.3  January 14, 2003
- *   - clear warp information before writing to disk (fix uncommon problem)
- *
- * 1.2  July 29, 2002
- *   - no change here, but updated r_new_resam_dset() for view type
- *
- * 1.1  July 2, 2002
- *   - modified to fully align new data set grid to that of the master
- *----------------------------------------------------------------------
-*/
+static char g_history[] =
+ "----------------------------------------------------------------------\n"
+ " history:\n"
+ "\n"
+ " 1.5  January 07, 2004\n"
+ "   - added suggestion of 3dfractionize to -help output\n"
+ "   - added '-hist' option\n"
+ "\n"
+ " 1.4  July 27, 2003\n"
+ "   - wrap unknown printed strings in NULL check\n"
+ "\n"
+ " 1.3  January 14, 2003\n"
+ "   - clear warp information before writing to disk (fix uncommon problem)\n"
+ "\n"
+ " 1.2  July 29, 2002\n"
+ "   - no change here, but updated r_new_resam_dset() for view type\n"
+ "\n"
+ " 1.1  July 2, 2002\n"
+ "   - modified to fully align new data set grid to that of the master\n"
+ "\n"
+ " 1.0  May 23, 2002\n"
+ "   - initial release\n"
+ "----------------------------------------------------------------------\n";
+
 
 /*--- local stuff ------------------------------------------------------*/
 
 #define USE_LONG	1
 #define USE_SHORT	2
 #define USE_VERSION	3
+#define USE_HISTORY	4
 
 #define DELTA_MIN	 0.1
 #define DELTA_MAX	99.9
@@ -127,9 +136,14 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp(argv[ac], "-help", 2) )
+	if ( ! strncmp(argv[ac], "-help", 5) )
 	{
 	    usage( argv[0], USE_LONG );
+	    return FAIL;
+	}
+	else if ( ! strncmp(argv[ac], "-hist", 5) )
+	{
+	    usage( argv[0], USE_HISTORY );
 	    return FAIL;
 	}
 	else if ( ! strncmp(argv[ac], "-version", 2) )
@@ -440,6 +454,13 @@ int usage ( char * prog, int level )
 	    "    both to match that of a master dataset (via the -master\n"
 	    "    option).\n"
 	    "\n"
+	    " ** Warning: this program is not meant to transform datasets\n"
+	    "             between view types (such as '+orig' and '+tlrc').\n"
+	    "\n"
+	    "             For that purpose, please see '3dfractionize -help'.\n"
+	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
 	    "  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
 	    "\n"
 	    "  examples:\n"
@@ -453,9 +474,13 @@ int usage ( char * prog, int level )
 	    "    Information about a dataset's voxel size and orientation\n"
 	    "    can be found in the output of program 3dinfo\n"
 	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
 	    "  options: \n"
 	    "\n"
 	    "    -help            : show this help information\n"
+	    "\n"
+	    "    -hist            : output the history of program changes\n"
 	    "\n"
 	    "    -debug LEVEL     : print debug info along the way\n"
 	    "          e.g.  -debug 1\n"
@@ -508,10 +533,17 @@ int usage ( char * prog, int level )
 	    "    -inset IN_DSET   : required input dataset to reorient\n"
 	    "          e.g.  -inset old.dset+orig\n"
 	    "\n"
+	    "------------------------------------------------------------\n"
+	    "\n"
 	    "  Author: R. Reynolds - %s\n"
 	    "\n",
 	    prog, prog, prog, prog, prog, VERSION );
 
+	return 0;
+    }
+    else if ( level == USE_HISTORY )
+    {
+	fputs( g_history, stdout );
 	return 0;
     }
     else if ( level == USE_VERSION )

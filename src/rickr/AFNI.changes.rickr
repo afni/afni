@@ -399,3 +399,7 @@
 22 December 2003
   * modified afni_graph.[ch] to add Mean and Sigma to bottom of graph window
 
+07 January 2004
+  * modified 3dresample.c
+      - added suggestion of 3dfractionize to -help output
+      - added -hist option
