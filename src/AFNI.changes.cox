@@ -5162,3 +5162,13 @@
 06 Aug 2004
  * Fixed bug in 3dDeconvolve.c where -cbucket bricks were colliding with
      -bucket bricks, vi bar[] and attach_sub_brick().
+
+10 Aug 2004
+ * Started work on 3dDeconvolve.c to add -stim_times option for direct
+     input of models to fit.
+ * Modified mri_read_ascii_ragged() to read a '*' character as a fill,
+     thus allowing lines with no entries or intermediate missing entries.
+
+11 Aug 2004
+ * Added environment variable AFNI_3dDeconvolve_nodup to 3dDeconvolve.c,
+     to stop processing if duplicate columns are discovered.
