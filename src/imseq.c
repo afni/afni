@@ -663,6 +663,8 @@ ENTRY("open_MCW_imseq") ;
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
 
+   newseq->last_dx = newseq->last_dy = 1.0 ; /* 08 Jun 2004 */
+
    fac = (newseq->last_width_mm  / newseq->horig)    /* width per pixel over */
         /(newseq->last_height_mm / newseq->vorig) ;  /* height per pixel */
 
@@ -2310,8 +2312,8 @@ ENTRY("ISQ_make_image") ;
       new_width_mm  = IM_WIDTH(im) ;
       new_height_mm = IM_HEIGHT(im) ;
 
-      seq->horig = im->nx ;
-      seq->vorig = im->ny ;
+      seq->horig = im->nx ;  seq->last_dx = fabs(im->dx) ;
+      seq->vorig = im->ny ;  seq->last_dy = fabs(im->dy) ;
 
       if( FLDIF(new_width_mm ,seq->last_width_mm ) ||
           FLDIF(new_height_mm,seq->last_height_mm)   ){
@@ -2964,6 +2966,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    char fname[256] ;
    THD_string_array *agif_list=NULL ; /* 27 Jul 2001 */
    char tsuf[8] ;                     /* 09 Dec 2002 */
+   float dx,dy ;                      /* 08 Jun 2004 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -3022,6 +3025,14 @@ ENTRY("ISQ_saver_CB") ;
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
+
+
+         if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
+           tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
+           flim = mri_squareaspect( tim ) ;
+           if( flim != NULL ){ mri_free(tim); tim = flim; }
+         }
+
          /* 23 Mar 2002: zoom out, if ordered */
 
          if( seq->zoom_fac >  1    &&
@@ -3235,11 +3246,11 @@ ENTRY("ISQ_saver_CB") ;
 
 #ifndef DONT_USE_METER
       if( meter != NULL ){
-         meter_perc = (int)(100.9 * (kf - seq->saver_from) / meter_pbase) ;
-         if( meter_perc != meter_pold ){
-            MCW_set_meter( meter , meter_perc ) ;
-            meter_pold = meter_perc ;
-         }
+        meter_perc = (int)(100.9 * (kf - seq->saver_from) / meter_pbase) ;
+        if( meter_perc != meter_pold ){
+          MCW_set_meter( meter , meter_perc ) ;
+          meter_pold = meter_perc ;
+        }
       }
 #endif
 
@@ -3277,6 +3288,12 @@ ENTRY("ISQ_saver_CB") ;
             if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
             else              { KILL_1MRI(tim) ; }
             mri_free( ovim ) ;
+         }
+
+         if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
+           flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+           tim = mri_squareaspect( flim ) ;
+           if( tim != NULL ){ mri_free(flim); flim = tim; }
          }
 
          /* if needed, convert from indices to RGB */
@@ -3480,6 +3497,12 @@ ENTRY("ISQ_saver_CB") ;
          flim = ISQ_process_mri( kf , seq , tim ) ;  /* image processing */
          if( tim != flim ) KILL_1MRI( tim ) ;
 
+         if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
+           flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+           tim = mri_squareaspect( flim ) ;
+           if( tim != NULL ){ mri_free(flim); flim = tim; }
+         }
+
          sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
          mri_write_pnm( fname , flim ) ;
 
@@ -3562,6 +3585,12 @@ ENTRY("ISQ_saver_CB") ;
                if( ovar[jj] != 0 ) flar[jj] = -ovar[jj] ;
 #endif
             mri_free( ovim ) ;
+         }
+
+         if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
+           flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+           tim = mri_squareaspect( flim ) ;
+           if( tim != NULL ){ mri_free(flim); flim = tim; }
          }
 
          /* write the output file */
@@ -8220,6 +8249,7 @@ DPRI(" Getting montage underlay",nim) ;
             seq->barbot = seq->clbot ; /* 29 Jul 2001 */
             seq->bartop = seq->cltop ;
             ISQ_set_barhint(seq,"Focus") ;
+            seq->last_dx = fabs(tim->dx) ; seq->last_dy = fabs(tim->dy) ;
          }
 
          if( tim != NULL ){

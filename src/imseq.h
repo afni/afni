@@ -498,6 +498,8 @@ typedef struct MCW_imseq {
      int dont_place_dialog ;                          /* 23 Jan 2004 */
 
      MCW_arrowval *wbar_ticnum_av, *wbar_ticsiz_av ;  /* 23 Feb 2004 */
+
+     float last_dx , last_dy ;                        /* 08 Jun 2004 */
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701
