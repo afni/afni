@@ -11,7 +11,6 @@
 
 #define FLOAT_TYPE double
 #include "vecmat.h"
-#undef FLOAT_TYPE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -558,6 +557,10 @@ static MCW_3shear rot_to_shear( int ax1 , double th1 ,
 
    q = rot_to_matrix( ax1,th1 , ax2,th2 , ax3,th3 ) ;
 
+#if 0
+   DUMP_MAT33("Rotation",q) ;
+#endif
+
    /* if trace too small, maybe we should flip a couple axes */
 
    if( MAT_TRACE(q) < 1.0 ){
@@ -1032,4 +1035,311 @@ MRI_IMAGE * THD_rota3D( MRI_IMAGE * im ,
                  ax1,th1 , ax2,th2 , ax3,th3 , dcode , dx,dy,dz ) ;
 
    return jm ;
+}
+
+/****************************************************************************
+  Alternative entries, with rotation specified via a 3x3 matrix
+  and shift as a 3-vector -- RWCox - 16 July 2000
+*****************************************************************************/
+
+/*--------------------------------------------------------------------------
+   Compute a set of shears to carry out a rotation + shift
+   (note the shift is always DELTA_AFTER in this code).
+----------------------------------------------------------------------------*/
+
+static MCW_3shear rot_to_shear_matvec( THD_mat33 rmat , THD_fvec3 tvec ,
+                                       double xdel , double ydel , double zdel )
+{
+   int flip0=-1 , flip1=-1 ;  /* no flips */
+   THD_mat33 q , p ;
+   THD_fvec3 d , c ;
+   MCW_3shear shr ;
+
+   /* compute rotation matrix */
+
+   q = rmat ;
+
+   /* if trace too small, maybe we should flip a couple axes */
+
+   if( MAT_TRACE(q) < 1.0 ){
+      double top=q.mat[0][0] ; int itop=0 , i1,i2 ;
+      if( top < q.mat[1][1] ){ top = q.mat[1][1] ; itop = 1 ; }
+      if( top < q.mat[2][2] ){ top = q.mat[2][2] ; itop = 2 ; }
+      switch(itop){
+         case 0: i1 = 1 ; i2 = 2 ; LOAD_DIAG_MAT(p, 1,-1,-1) ; break ;
+         case 1: i1 = 0 ; i2 = 2 ; LOAD_DIAG_MAT(p,-1, 1,-1) ; break ;
+         case 2: i1 = 0 ; i2 = 1 ; LOAD_DIAG_MAT(p,-1,-1, 1) ; break ;
+      }
+      if( q.mat[i1][i1] + q.mat[i2][i2] < -0.02 ){
+         q = MAT_MUL( q , p ) ;
+         flip0 = i1 ; flip1 = i2 ;  /* yes flips */
+      }
+   }
+
+   d = tvec ;
+
+   /* scale q and d by the voxel dimensions */
+
+   d.xyz[0] = d.xyz[0] / xdel ;  /* d <- inv[D] d, where D = diag[xdel,ydel,zdel] */
+   d.xyz[1] = d.xyz[1] / ydel ;
+   d.xyz[2] = d.xyz[2] / zdel ;
+
+   q.mat[0][1] *= (ydel/xdel) ;  /* q <- inv[D] q D */
+   q.mat[0][2] *= (zdel/xdel) ;
+   q.mat[1][0] *= (xdel/ydel) ;  /* q still has det[q]=1 after this */
+   q.mat[1][2] *= (zdel/ydel) ;
+   q.mat[2][0] *= (xdel/zdel) ;
+   q.mat[2][1] *= (ydel/zdel) ;
+
+   /* compute the "best" shear for this q matrix */
+
+   shr = shear_best( &q , &d ) ;
+
+   /* if cannot compute shear, try perturbing the matrix a little */
+
+   if( ! ISVALID_3SHEAR(shr) ){
+      p = rot_to_matrix( 0,1.0e-7 , 1,0.9e-7 , 2,1.1e-7 ) ;
+      q = MAT_MUL( q , p ) ;
+
+      shr = shear_best( &q , &d ) ;
+      if( ! ISVALID_3SHEAR(shr) ) return shr ;  /* give up */
+   }
+
+   shr.flip0 = flip0 ; shr.flip1 = flip1 ;
+   return shr ;
+}
+
+/*---------------------------------------------------------------------------
+  Rotate and translate a 3D volume
+-----------------------------------------------------------------------------*/
+
+#undef CLIPIT
+
+void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
+                          float xdel , float ydel , float zdel , float * vol ,
+                          THD_mat33 rmat , THD_fvec3 tvec )
+{
+   MCW_3shear shr ;
+   int dcode ;
+
+#ifdef CLIPIT
+   register float bot , top ;
+   register int   nxyz=nx*ny*nz , ii ;
+#endif
+
+   if( nx < 2 || ny < 2 || nz < 2 || vol == NULL ) return ;
+
+   if( xdel == 0.0 ) xdel = 1.0 ;
+   if( ydel == 0.0 ) ydel = 1.0 ;
+   if( zdel == 0.0 ) zdel = 1.0 ;
+
+   shr = rot_to_shear_matvec( rmat , tvec , xdel,ydel,zdel ) ;
+
+   if( ! ISVALID_3SHEAR(shr) ){
+      fprintf(stderr,"*** THD_rota_vol: can't compute shear transformation!\n") ;
+      return ;
+   }
+
+#if 0
+   DUMP_3SHEAR("Computed shear",shr) ;
+#endif
+
+#ifdef CLIPIT
+   bot = top = vol[0] ;
+   for( ii=1 ; ii < nxyz ; ii++ ){
+           if( vol[ii] < bot ) bot = vol[ii] ;
+      else if( vol[ii] > top ) top = vol[ii] ;
+   }
+   if( bot >= top ) return ;
+#endif
+
+   /************************************/
+
+   apply_3shear( shr , nx,ny,nz , vol ) ;
+
+   /************************************/
+
+#ifdef CLIPIT
+   for( ii=0 ; ii < nxyz ; ii++ ){
+           if( vol[ii] < bot ) vol[ii] = bot ;
+      else if( vol[ii] > top ) vol[ii] = top ;
+   }
+#endif
+
+   return ;
+}
+
+/*=========================================================================
+  Routines to compute the rotation+translation to best align a set
+  of 3D points to one another -- RWCox - 16 Jul 2000.
+===========================================================================*/
+
+/*---------------------------------------------------------------------
+   Compute        T
+           [inmat]  [inmat]
+-----------------------------------------------------------------------*/
+
+static THD_mat33 MAT_xt_x( THD_mat33 inmat )
+{
+   THD_mat33 tt,mm ;
+   tt = TRANSPOSE_MAT(inmat) ;
+   mm = MAT_MUL(tt,inmat) ;
+   return mm ;
+}
+
+/*--------------------------------------------------------------------
+   Compute the eigensolution of the symmetric matrix inmat; that is,
+   orthogonal [X] and diagonal [D] such that
+
+        [inmat] [X] = [X] [D]
+----------------------------------------------------------------------*/
+
+static THD_vecmat MAT_symeig( THD_mat33 inmat )
+{
+   THD_vecmat out ;
+   double a[9] , e[3] ;
+   int ii,jj ;
+
+   /* load matrix from inmat into simple array */
+
+   for( jj=0 ; jj < 3 ; jj++ )
+      for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
+
+   symeig_double( 3 , a , e ) ;     /* eigensolution of array */
+
+   /* load eigenvectors and eigenvalues into output */
+
+   for( jj=0 ; jj < 3 ; jj++ ){
+      out.vv.xyz[jj] = e[jj] ;                 /* eigenvalues */
+      for( ii=0 ; ii < 3 ; ii++ )
+         out.mm.mat[ii][jj] = a[ii+3*jj] ;     /* eigenvectors */
+   }
+
+   return out ;
+}
+
+/*---------------------------------------------------------------------
+   Compute                  pp
+            [      T       ]
+            [ inmat  inmat ]   for some power pp
+-----------------------------------------------------------------------*/
+
+static THD_mat33 MAT_pow( THD_mat33 inmat , double pp )
+{
+   THD_mat33 out , mm , dd ;
+   THD_vecmat vm ;
+   int ii ;
+
+   /* special case */
+
+   if( pp == 0.0 ){ LOAD_DIAG_MAT(out,1,1,1) ; return out ; }
+
+   mm = MAT_xt_x( inmat ) ;
+   vm = MAT_symeig( mm ) ;  /* get eigensolution [X] and [D] */
+
+   /* raise [D] to the pp power */
+
+   for( ii=0 ; ii < 3 ; ii++ )
+      vm.vv.xyz[ii] = (vm.vv.xyz[ii] <= 0.0) ? 0.0
+                                             : pow(vm.vv.xyz[ii],pp) ;
+
+   /*                  pp    T  */
+   /* result is [X] [D]   [X]   */
+
+   LOAD_DIAG_MAT( dd , vm.vv.xyz[0],vm.vv.xyz[1],vm.vv.xyz[2] ) ;
+
+   mm  = MAT_MUL( vm.mm , dd ) ;
+   dd  = TRANSPOSE_MAT( vm.mm ) ;
+   out = MAT_MUL( mm , dd ) ;
+   return out ;
+}
+
+/*---------------------------------------------------------------------
+   Compute the rotation         T
+                         [V] [U]
+   from the matrix, where                     T
+                         [inmat] = [U] [D] [V]
+   is the SVD of the input matrix.  We actually calculate it as
+
+                     -1/2
+       [     T      ]           T
+       [inmat  inmat]    [inmat]
+
+   which is the same thing (do your linear algebra, dude).
+-----------------------------------------------------------------------*/
+
+static THD_mat33 MAT_svdrot( THD_mat33 inmat )
+{
+   THD_mat33 sq , out , tt ;
+
+   sq  = MAT_pow( inmat , -0.5 ) ;
+   tt  = TRANSPOSE_MAT(inmat) ;
+   out = MAT_MUL( sq , tt ) ;
+   return out ;
+}
+
+/*---------------------------------------------------------------------
+  Compute matrix R and vector V to make
+
+     yy = [R] xx + V   (k=0..n-1)
+       k        k
+
+  true in the (weighted) least squares sense.  If ww == NULL, then
+  weights of all 1 are used.  Method follows
+    KS Arun, TS Huang, and SD Blostein, IEEE PAMI, 9:698-700, 1987
+  and uses the routines above to compute the matrix [R].
+-----------------------------------------------------------------------*/
+
+THD_vecmat LSQ_rot_trans( int n, THD_fvec3 * xx, THD_fvec3 * yy, FLOAT_TYPE * ww )
+{
+   THD_vecmat out ;
+   THD_fvec3  cx,cy , tx,ty ;
+   THD_mat33  cov ;
+   FLOAT_TYPE * wt , wsum ;
+   int ii,jj,kk ;
+
+   /*- check for bad inputs -*/
+
+   if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_MAT(out.mm); return out; }
+
+   /*- make a fake weight array, if none supplied -*/
+
+   if( ww == NULL ){
+      wt = (FLOAT_TYPE *) malloc(sizeof(FLOAT_TYPE)*n) ;
+      for( kk=0 ; kk < n ; kk++ ) wt[kk] = 1.0 ;
+   } else {
+      wt = ww ;
+   }
+
+   /*- compute centroids of each set of vectors -*/
+
+   LOAD_FVEC3(cx,0,0,0) ; LOAD_FVEC3(cy,0,0,0) ; wsum = 0.0 ;
+   for( kk=0 ; kk < n ; kk++ ){
+      cx = SCLADD_FVEC3(1,cx,wt[kk],xx[kk]) ;  /* weighted sums of vectors */
+      cy = SCLADD_FVEC3(1,cy,wt[kk],yy[kk]) ;
+      wsum += wt[kk] ;                         /* sum of weights */
+   }
+   wsum = 1.0 / wsum ;
+   cx.xyz[0] *= wsum ; cx.xyz[1] *= wsum ; cx.xyz[2] *= wsum ;  /* centroids */
+   cy.xyz[0] *= wsum ; cy.xyz[1] *= wsum ; cy.xyz[2] *= wsum ;
+
+   /*- compute covariance matrix -*/
+
+   LOAD_ZERO_MAT(cov) ;
+   for( kk=0 ; kk < n ; kk++ ){
+      tx = SUB_FVEC3( xx[kk] , cx ) ;  /* remove centroids */
+      ty = SUB_FVEC3( yy[kk] , cy ) ;
+      for( jj=0 ; jj < 3 ; jj++ )
+         for( ii=0 ; ii < 3 ; ii++ )
+            cov.mat[ii][jj] += wt[kk]*tx.xyz[ii]*ty.xyz[jj] ;
+   }
+
+   out.mm = MAT_svdrot( cov ) ;    /* compute rotation matrix [R] */
+
+   tx = MATVEC( out.mm , cx ) ;    /* compute translation vector V */
+   out.vv = SUB_FVEC3( cy , tx ) ;
+
+   if( wt != ww ) free(wt) ;       /* toss the trash, if any */
+
+   return out ;
 }

@@ -442,6 +442,7 @@ typedef struct {
 
    int never_drawn ;
    int button2_enabled ;
+   int mirror ;
 
    XtPointer parent ;
 } MCW_grapher ;
@@ -513,6 +514,8 @@ typedef struct {
 #define graDR_button2_disable 502  /* Feb 1998 */
 
 #define graDR_fim_disable     503  /* Oct 1999 */
+
+#define graDR_mirror          504  /* Jul 2000 */
 
 /***-----------------------------------------------------------------------***/
 

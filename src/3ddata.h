@@ -2339,6 +2339,13 @@ extern MRI_IMAGE * THD_rota3D( MRI_IMAGE * ,
                                int,float, int,float, int,float,
                                int,float,float,float ) ;
 
+  /* routines below added to thd_rot3d.c on 16 Jul 2000 */
+
+extern void THD_rota_vol_matvec( int, int, int, float, float, float, float *,
+                                 THD_mat33 , THD_fvec3 ) ;
+
+extern THD_vecmat LSQ_rot_trans( int, THD_fvec3 *, THD_fvec3 *, double * ww ) ;
+
   /*-- see thd_shift2.c for these routines --*/
 
 extern void SHIFT_set_method( int ) ;

@@ -14,6 +14,11 @@ typedef struct { int ijk[3] ;        }    THD_ivec3 ;
 typedef struct { FLOAT_TYPE xyz[3] ; }    THD_fvec3 ;
 typedef struct { FLOAT_TYPE mat[3][3] ; } THD_mat33 ;
 
+typedef struct {    /* 3x3 matrix + 3-vector [16 Jul 2000] */
+   THD_fvec3 vv ;
+   THD_mat33 mm ;
+} THD_vecmat ;
+
 /*-------------------------------------------------------------------*/
 /*-----       macros that operate on 3 vectors and matrices     -----*/
 

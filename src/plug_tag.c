@@ -886,7 +886,7 @@ void TAG_write_CB( Widget w, XtPointer client_data, XtPointer call_data )
       ltop = MAX( jj , ltop ) ;
    }
 
-   cpt = XtMalloc( MAX_TAG_LABEL+8 ) ;
+   cpt = XtMalloc( MAX_TAG_LABEL+256 ) ;
 
    strcpy(cpt,"# Label") ;
    for( jj=strlen(cpt) ; jj < ltop+2 ; jj++ )
@@ -1155,7 +1155,10 @@ void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    if( dset == NULL ) return ;  /* nothing to do */
 
-   if( dset->tagset == NULL ) dset->tagset = myXtNew(THD_usertaglist) ;
+   if( dset->tagset == NULL ){
+      dset->tagset = myXtNew(THD_usertaglist) ;
+      ADDTO_KILL( dset->kl , dset->tagset ) ;
+   }
 
    *(dset->tagset) = *mytagset ;  /* copy all data in one swell foop */
    *oldtagset      = *mytagset ;  /* backup copy is replaced */
@@ -1282,6 +1285,10 @@ void TAG_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      "\n"
      "'Write': Write the current set of tags to a '.tag' file, which can\n"
      "         later be read back in using the 'Read' button.\n"
+     "   N.B.: Tag coordinates are stored in Dicom order\n"
+     "              x = R-L coordinate (R < 0, L > 0)\n"
+     "              y = A-P coordinate (A < 0, P > 0)\n"
+     "              z = I-S coordinate (I < 0, S > 0)\n"
      "\n"
      "'Copy': Copy the set of tags from another dataset.\n"
      "\n"
@@ -1336,7 +1343,10 @@ void TAG_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      "The color of a dataset tag is controlled by the 'Primary Markers' color,\n"
      "which is set on the 'Define Markers' control panel in the main AFNI control\n"
      "window.  The tags are displayed as a cross within a diamond.\n"
-
+     "\n"
+     "The program 3dTagalign will read the tag coordinates from one dataset and\n"
+     "rotate/translate that dataset to match the tag coordinates from another\n"
+     "dataset (in the least squares sense).  See '3dTagalign -help' for details.\n"
      "\n"
      "============================\n"
      "AUTHOR: RW Cox, October 1998\n"

@@ -2196,3 +2196,11 @@
 
 11 Jul 2000
  * Added program 3dZeropad.c.
+
+12 Jul 2000
+ * Added Left-Right mirror option to afni_graph.[ch] and afni.c to
+     make graph pixel layout correspond to images if left-is-left.
+
+17 Jul 2000
+ * Added new program 3dTagchain.c.
+ * Fixed a bug in the "Write" callback in plug_tag.c.

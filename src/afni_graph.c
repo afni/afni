@@ -34,6 +34,7 @@ ENTRY("new_MCW_grapher") ;
 
    grapher->never_drawn = 1 ;
    grapher->button2_enabled = 0 ;  /* Feb 1998 */
+   grapher->mirror = 0 ;           /* Jul 2000 */
 
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
@@ -133,9 +134,11 @@ ENTRY("new_MCW_grapher") ;
                        "Button 1 in the central --> move time index\n"
                        "              sub-graph     to closest point\n"
                        "                            on the graph\n"
+#if 0
                        "Shift or Ctrl keys with --> single-step time\n"
                        "Button 1 in the central     index up or down\n"
                        "              sub-graph\n"
+#endif
                        "\n"
                        "The red dot in the central sub-graph shows\n"
                        "the location of the current time index.\n"
@@ -1472,7 +1475,12 @@ STATUS("starting time series graph loop") ;
          /** Compute X11 line coords from pixel heights in plot[].
              N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
 
-         ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;
+         ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;  /* x scale */
+
+         /* X11 box for graph:
+            x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
+            y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
+
          xoff  = grapher->xorigin[ix][iy] ;
          yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
 
@@ -1813,6 +1821,7 @@ ENTRY("send_newinfo") ;
 /*---------------------------
    initialize matrix stuff
 -----------------------------*/
+
 void init_mat( MCW_grapher * grapher )
 {
    int i, j ;
@@ -1820,7 +1829,6 @@ void init_mat( MCW_grapher * grapher )
 
 ENTRY("init_mat") ;
    if( !GRA_VALID(grapher) ) EXRETURN ;
-
 
    grapher->gx = grapher->gx_max / grapher->mat;
    grapher->gy = grapher->gy_max / grapher->mat;
@@ -1831,6 +1839,19 @@ ENTRY("init_mat") ;
            grapher->yorigin[i][j] = MDY1 + j * grapher->gy;
          }
    }
+
+   if( grapher->mirror && grapher->mat > 1 ){  /* Jul 2000 */
+      int mm = grapher->mat , m2 = mm/2 ;      /* swap left and right */
+
+      for( j=0 ; j < mm ; j++ ){
+         for( i=0 ; i < m2 ; i++ ){
+            gg                          = grapher->xorigin[i][j] ;
+            grapher->xorigin[i][j]      = grapher->xorigin[mm-1-i][j] ;
+            grapher->xorigin[mm-1-i][j] = gg ;
+         }
+      }
+   }
+
    grapher->xc = grapher->mat/2;
    grapher->yc = (grapher->mat-1)/2;
 
@@ -2030,15 +2051,54 @@ STATUS("button press") ;
          but = event->button ; but_state = event->state ;
          MCW_discard_events( w , ButtonPressMask ) ;
 
-         /* compute which (x,y) point the button press was at */
+         /* Button 1 in pixmap logo = toggle on or off */
+
+         if( but == Button1                               &&
+             grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP &&
+             bx < grapher->logo_width                     &&
+             grapher->fHIGH - by < grapher->logo_height     ){
+
+            show_grapher_pixmap = ! show_grapher_pixmap ;
+
+            if( XtIsManaged(grapher->option_rowcol) )     /* 04 Nov 1996 */
+               XtUnmanageChild(grapher->option_rowcol) ;
+            else
+               XtManageChild(grapher->option_rowcol) ;
+
+            redraw_graph( grapher , 0 )  ;
+            break ; /* break out of ButtonPress case */
+         }
+
+         /* compute which image (xloc,yloc) point the button press was at */
+
+         /* X11 box for graph (i,j):
+            x = xorigin[i][j]          .. xorigin[i][j]+gx    (L..R)
+            y = fHIGH-yorigin[i][j]-gy .. fHIGH-yorigin[i][j] (T..B) */
 
          gx = grapher->gx ; gy = grapher->gy ; mat = grapher->mat ;
 
+#if 0                                                    /* AJ's way */
          i  = (bx - GL_DLX + gx) * mat / grapher->gx_max ;
          j  = (by - GT_DLY + gy) * mat / grapher->gy_max ;
-
          xloc = grapher->xpoint + i - (mat + 2)/2 ;
          yloc = grapher->ypoint + j - (mat + 2)/2 ;
+#else                                                    /* new way (Jul 2000) */
+         for( i=0 ; i < mat ; i++ )
+            if( bx > grapher->xorigin[i][0]      &&
+                bx < grapher->xorigin[i][0] + gx   ) break ;  /* find in x */
+
+         if( i == mat ) break ; /* break out of ButtonPress case */
+
+         xloc = grapher->xpoint + i - grapher->xc ;
+
+         for( j=0 ; j < mat ; j++ )                           /* find in y */
+            if( by > grapher->fHIGH - grapher->yorigin[0][j] - gy &&
+                by < grapher->fHIGH - grapher->yorigin[0][j]        ) break ;
+
+         if( j == mat ) break ; /* break out of ButtonPress case */
+
+         yloc = grapher->ypoint - j + grapher->yc ;
+#endif
 
          if (xloc < 0)                    xloc += grapher->status->nx ;
          if (xloc >= grapher->status->nx) xloc -= grapher->status->nx ;
@@ -2062,7 +2122,7 @@ STATUS("button press") ;
 
          /* button 1 --> move to new square as center of matrix,
                          if it is actually a new center, that is,
-                         and if graphing is enabled, and if not off the left edge */
+                         and if graphing is enabled, and if not off left edge */
 
          if( grapher->fd_pxWind != (Pixmap) 0 &&
              but == Button1                   && (bx > GL_DLX) &&
@@ -2093,6 +2153,7 @@ STATUS("button press") ;
 
             i = 0.49 + (bx - grapher->xorigin[grapher->xc][grapher->yc]) / ftemp ;
 
+#if 0       /*   removed, 12 July 2000 */
             /*-- step forward or backward if Shift or Ctrl is pressed --*/
 
             if( but_state & (ShiftMask|ControlMask) ){
@@ -2100,7 +2161,9 @@ STATUS("button press") ;
                     if( i > grapher->time_index ) i = grapher->time_index + 1 ;
                else if( i < grapher->time_index ) i = grapher->time_index - 1 ;
 
-            } else { /*-- 09 Jan 1998: find closest pixel in central graph --*/
+            } else
+#endif
+            { /*-- 09 Jan 1998: find closest pixel in central graph --*/
 
                float dist , dmin=99999.9 ;
                int imin = 0 ;
@@ -2108,7 +2171,7 @@ STATUS("button press") ;
                for( i=0 ; i < grapher->nncen ; i++ ){
                   dist =  abs( bx - grapher->cen_line[i].x )   /* L1 distance */
                         + abs( by - grapher->cen_line[i].y ) ;
-                  if( dist < dmin ){ dmin = dist ; imin = i ; if( dmin == 0 ) break ; }
+                  if( dist < dmin ){ dmin = dist; imin = i; if(dmin == 0) break; }
                }
                i = imin ;
             }
@@ -2122,24 +2185,9 @@ STATUS("button press") ;
                   cbs.event  = ev ;
                   grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
                } else {
-                  (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer) i ) ;
+                  (void) drive_MCW_grapher( grapher,graDR_setindex,(XtPointer)i );
                }
             }
-         }
-
-         /* Button 1 in pixmap logo = toggle on or off */
-
-         if( but == Button1 && grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP &&
-             bx < grapher->logo_width && grapher->fHIGH - by < grapher->logo_height ){
-
-            show_grapher_pixmap = ! show_grapher_pixmap ;
-
-            if( XtIsManaged(grapher->option_rowcol) )     /* 04 Nov 1996 */
-               XtUnmanageChild(grapher->option_rowcol) ;
-            else
-               XtManageChild(grapher->option_rowcol) ;
-
-            redraw_graph( grapher , 0 )  ;
          }
 
          /* Button 3 --> popup statistics of this graph */
@@ -2190,7 +2238,7 @@ STATUS("button press") ;
                    free(qstr) ;
                 }
 
-                XtVaSetValues( grapher->but3_label , XmNlabelString , xstr , NULL ) ;
+                XtVaSetValues( grapher->but3_label, XmNlabelString,xstr , NULL );
                 XmStringFree( xstr ) ;
 
                 XmMenuPosition( grapher->but3_menu , event ) ; /* where */
@@ -3113,6 +3161,8 @@ OK   drive_code       drive_data should be
 
 *    graDR_fim_disable     (ignored) Turn all FIM stuff off (for good)
 
+*    graDR_mirror          (int) Turn mirroring on (==1) or off (==0)
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3134,6 +3184,18 @@ ENTRY("drive_MCW_grapher") ;
          XBell( grapher->dc->display , 100 ) ;
          RETURN( False ) ;
       }
+
+      /*------ mirroring (Jul 2000) -----*/
+
+      case graDR_mirror:{
+         int ii = (int) drive_data ;
+
+         if( ii != grapher->mirror ){
+            grapher->mirror = ii ;
+            init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
+         }
+      }
+      break ;
 
       /*------ fim disabling -----*/
 

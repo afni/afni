@@ -1285,15 +1285,6 @@ static Boolean MAIN_workprocess( XtPointer fred )
            REPORT_PROGRESS(str) ;
         }
 
-        /* 09 Oct 1998: show the image display handedness */
-
-#ifndef USE_SIDES
-        if( GLOBAL_argopt.left_is_left )
-           REPORT_PROGRESS("\n image display = Left is on the Left") ;
-        else
-           REPORT_PROGRESS("\n image display = Left is on the Right") ;
-#endif
-
         if( ALLOW_real_time > 0 )
            REPORT_PROGRESS("\nRT: realtime plugin is active") ;
 
@@ -3645,6 +3636,7 @@ void AFNI_view_xyz_CB( Widget w ,
    Widget        pboff , pb_xyz , pb_yzx , pb_zxy ;
    Widget        groff , gr_xyz , gr_yzx , gr_zxy ;
    FD_brick    * brnew ;
+   int mirror=0 ;
 
 ENTRY("AFNI_view_xyz_CB") ;
 
@@ -3697,6 +3689,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s123) ;
        brnew = im3d->b123_ulay ;
        pboff = pb_xyz ;
+       mirror= GLOBAL_argopt.left_is_left ;
 
     } else if( w == pb_yzx && syzx == NULL ){
        snew  = &(im3d->s231) ;
@@ -3707,11 +3700,13 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s312) ;
        brnew = im3d->b312_ulay ;
        pboff = pb_zxy ;
+       mirror= GLOBAL_argopt.left_is_left ;
 
     } else if( w == gr_xyz && gxyz == NULL ){
        gnew  = &(im3d->g123) ;
        brnew = im3d->b123_ulay ;
        pboff = gr_xyz ;
+       mirror= GLOBAL_argopt.left_is_left ;
 
     } else if( w == gr_yzx && gyzx == NULL ){
        gnew  = &(im3d->g231) ;
@@ -3722,6 +3717,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        gnew  = &(im3d->g312) ;
        brnew = im3d->b312_ulay ;
        pboff = gr_zxy ;
+       mirror= GLOBAL_argopt.left_is_left ;
 
     } else
        EXRETURN ;  /* something funny */
@@ -3752,27 +3748,16 @@ STATUS("realizing new image viewer") ;
 
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
-      /* 09 Oct 1998: force L-R mirroring on axial and coronal images, if desired */
-      /* 07 Aug 1998: put an informational label in those windows, too */
+      /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
 
-      if( (*snew == im3d->s123) || (*snew == im3d->s312) ){
-
-         if( GLOBAL_argopt.left_is_left ){
-            ISQ_options opt ;
+      if( mirror ){
+         ISQ_options opt ;
 
 STATUS("setting image view to be L-R mirrored") ;
 
-            ISQ_DEFAULT_OPT(opt) ;
-            opt.mirror = TRUE ;
-            drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
-#ifndef USE_SIDES
-            drive_MCW_imseq( *snew,isqDR_winfotext,(XtPointer)"[left is left]");
-#endif
-         } else {
-#ifndef USE_SIDES
-            drive_MCW_imseq( *snew,isqDR_winfotext,(XtPointer)"[left is right]");
-#endif
-         }
+         ISQ_DEFAULT_OPT(opt) ;
+         opt.mirror = TRUE ;
+         drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
       }
 
 #ifdef USE_SIDES
@@ -3840,7 +3825,10 @@ STATUS("setting image viewer 'sides'") ;
        drive_MCW_grapher( gr, graDR_setindex , (XtPointer) im3d->vinfo->time_index );
 
        if( im3d->type == AFNI_IMAGES_VIEW )
-          drive_MCW_grapher( gr , graDR_fim_disable , NULL ) ;  /* 19 Oct 1999 */
+          drive_MCW_grapher( gr , graDR_fim_disable , NULL ) ; /* 19 Oct 1999 */
+
+       if( mirror )                                            /* 12 Jul 2000 */
+          drive_MCW_grapher( gr , graDR_mirror , (XtPointer) 1 ) ;
 
 STATUS("realizing new grapher") ;
 
