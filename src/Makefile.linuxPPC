@@ -3,10 +3,13 @@
 # You may need to change the CPU type for correct optimization
 # on your system.
 
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
 CPU    = 604e	# types are 601, 603, 604, 604e, 750 (G3), 7400 (G4)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING $(USE_ZLIB)
 CC     = gcc -O2 -ffast-math -mcpu=$(CPU) -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = $(CC)
@@ -41,7 +44,7 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking - assumes you have Motif or LessTif *.so libraries
 
-LLIBS  = -lmri -lICE -lSM -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+LLIBS  = -lmri -lICE -lSM -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
 
 # for static linking, as far as possible
 

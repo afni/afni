@@ -1,8 +1,11 @@
 ## for SGI (IRIX 6.5, R10000 chip)
 ## (change gcc <-> cc to use GCC or SGI compiler, as case may be)
 
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CC     = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE $(USE_ZLIB)
 CCVOL  = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
 CCFAST = $(CC)
 CCMIN  = cc
@@ -32,7 +35,7 @@ INSTALLDIR = ./sgi10k_6.5
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=sgi10k_6.5
 
-LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
+LLIBS  = -lmri -lXm -lXt -lXext -lX11 $(LZLIB) -lm -lc
 
 
 ###############################################################

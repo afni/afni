@@ -3,8 +3,11 @@
 # Do NOT go to higher optimization levels, since the
 # compiler seems to introduce bugs in AFNI.
 
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -fast -Xa -w -DSOLARIS
+CC     = cc -fast -Xa -w -DSOLARIS $(USE_ZLIB)
 CCVOL  = cc -fast -Xa -w -DSOLARIS
 CCFAST = $(CC)
 CCMIN  = cc
@@ -37,7 +40,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./solaris
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
 
 ######################################################################
 

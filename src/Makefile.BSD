@@ -38,9 +38,12 @@
 #           source distribution.
 #
 
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
 MAKE   = gmake
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE $(USE_ZLIB)
 CC     = gcc -O2 -mcpu=i486 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -O2 -mcpu=i486 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O3 -mcpu=i486 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)
@@ -74,11 +77,11 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm
 
 # for static linking, as far as possible
 
@@ -100,7 +103,7 @@ SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I/usr/local/include -I./ -I../ -I../ni
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm 
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 $(LZLIB) -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
