@@ -5330,6 +5330,11 @@
      out the ttorg field.
 
 24 Feb 2005
- * Modified 3dmaskave to have -max option.
+ * Modified 3dmaskave.c to have -max option.
  * Modified niml/ functions to generalize NI_group elements so that any
      element name is OK, provided attribute ni_form="group" is present.
+
+25 Feb 2005
+ * Add -min option to 3dmaskave.c.
+ * Fixed memory leak in niml_dtable.c (forgot to free second copies of strings).
+ * New niml_registry.c stuff, for allocating 'registered' structs.

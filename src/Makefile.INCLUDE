@@ -1222,10 +1222,11 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
 
 UNUSED_OBSJ = thd_md5.o thd_base64.o
 
-NIML_OBJS = niml_b64.o        niml_element.o  niml_elemio.o                  niml_util.o  \
-            niml_byteorder.o  niml_header.o   niml_malloc.o  niml_rowtype.o  niml_uuid.o   \
-            niml_do.o         niml_htable.o   niml_md5.o     niml_url.o      niml_stream.o  \
-            niml_struct.o     niml_dataset.o  niml_vector.o  niml_stat.o     niml_dtable.o
+NIML_OBJS = niml_b64.o     niml_element.o   niml_elemio.o niml_registry.o \
+            niml_util.o    niml_byteorder.o niml_header.o niml_malloc.o   \
+            niml_rowtype.o niml_uuid.o      niml_do.o     niml_htable.o   \
+            niml_md5.o     niml_url.o       niml_stream.o niml_struct.o   \
+            niml_dataset.o niml_vector.o    niml_stat.o   niml_dtable.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1849,7 +1850,7 @@ nifti_stats:nifti_stats.o
 	$(RM) $@
 	$(CC) -o nifti_stats nifti_stats.o -lm
 
-nifti1_test.o:nifti/utils/nifti1_test.c 
+nifti1_test.o:nifti/utils/nifti1_test.c
 	$(RM) $@
 	$(CC) -c nifti/utils/nifti1_test.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS)
 
@@ -1857,7 +1858,7 @@ nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
-nifti_tool.o:nifti/utils/nifti_tool.c 
+nifti_tool.o:nifti/utils/nifti_tool.c
 	$(RM) $@
 	$(CC) -c nifti/utils/nifti_tool.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS)
 
