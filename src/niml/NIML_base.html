@@ -1,0 +1,2531 @@
+<HTML>
+<HEAD>
+<title>NeuroImaging Markup Language (NIML)</title>
+</HEAD>
+<BODY>
+
+<center>
+<h1>NeuroImaging Markup Language (NIML)</h1>
+<h2>Base Level Specification</h2>
+<b>Robert W Cox, PhD -- 21 Feb 2002</b><br />
+<b>**Please note that this document is a DRAFT, and <i>extremely</i> subject to revision**</b>
+</center>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>Introduction</h2>
+<p>
+The purpose of this specification is to define a flexible, extensible,
+and self-describing format for encoding structured data for neuroimaging applications.
+The largest component of such information is the image data itself,
+but the images themselves are of limited use unless some auxiliary data
+(e.g.,&nbsp;voxel dimensions, image orientation, timing information) are attached.
+</p>
+
+<p>
+Another motivation for this specification is to work towards defining a standard and
+protocol for neuroimaging applications to exchange smallish pieces of
+data.  If the community moves towards the development of interoperating
+software tools, it will be important for these applications to share
+not only the image files, but for them to be able to "talk" to each
+other interactively and to exchange small chunks of information or
+commands (e.g.,&nbsp;"jump to coordinates (32,47,-13)".
+</p>
+
+<p>
+This base level specification details how collections of disparate
+information can be packaged together.
+The body of this document describes the format for the data.
+</p>
+
+<p>
+A&nbsp;C&nbsp;API for reading, writing, and storing information using
+this standard and protocol is described in the appendices.
+At this writing, a mostly-complete (but weakly-tested)
+implementation is available.
+</p>
+
+<p>
+Individual data elements (1D or 2D tables of numbers and/or strings)
+are encoded in an XML-inspired format.
+An entire data collection consists of a number of data
+elements grouped together.
+One or more higher level documents
+will specify the structure and contents of prototypical neuroimaging data sets,
+and describe a communications standard for interoperating
+neuroimaging applications.
+</p>
+
+<blockquote>
+<i>[**&nbsp;The higher level documents are only a gleam in my mind's eye.**]</i>
+</blockquote>
+
+<blockquote><b><i>XML note</i></b>:
+The software that parses data formatted in the way specified herein
+is partly an XML processor and partly an application, in the jargon
+of the XML specification.
+For details about XML, the best place to start is the
+annotated XML specification:
+<a href="http://www.xml.com/axml/axml.html">
+http://www.xml.com/axml/axml.html</a>&nbsp;.
+The XML notes herein are intended to provide asides useful to someone
+who already knows something about XML.
+</blockquote>
+
+<blockquote><b><i>XML note</i></b>:
+Except for binary data, it will be possible to encode
+data in this format in a well-formed XML document (but not
+DTD-validated, thanks in part to the <tt>ni_typedef</tt> elements, which
+allow new NIML element types to be defined in the NIML document itself).
+Places in this specification where care must be taken to ensure XML
+well-formedness will be pointed out.
+</blockquote>
+
+<blockquote><b><i>XML note</i></b>:
+Documents formed according to this specification will not
+be fully general XML, since many features of XML
+(e.g.,&nbsp;arbitrary nesting, CDATA, general DTDs, Unicode, entities)
+will not be supported.  This is one reason why software that reads the
+type of data specified herein is only <i>partly</i> an XML processor.
+</blockquote>
+
+<blockquote><b><i>XML note</i></b>:
+Why not use a general XML processor as a front-end to this software
+(e.g.,&nbsp;<i>expat</i>, available at
+<a href="http://www.jclark.com/xml/expat.html">http://www.jclark.com/xml/expat.html</a>)?
+Mainly because I see a need for binary data to be included, since a typical
+MRI data set is 10-100 Mbytes. Expansion to a pure text form seems
+excessive just to conform to the XML specification, especially in standalone
+neuroimaging applications that otherwise don't care about XML at all.
+Nor do I think that the XML solution to binary data (reference to an
+external unparsed entity) is adequate, since that will make it imposssible
+to package up all the data for a neuroimaging data set into one file or one
+data transmission stream.
+</blockquote>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>Glossary</h2>
+<p>
+The definitions of some terms used in this specification are given
+here.  For some terms, the equivalent XML construct is given in parentheses.
+<ul>
+ <li> <b>Application</b>: The program that receives and/or transmits
+      data using this specification.
+ <li> <b>Input processor</b>: The software library that reads data in the format
+      specified by this specification and puts it into data structures
+      accessible by the application.
+ <li> <b>Output processor</b>: The software library that takes data structures
+      from the application and formats them for transmission/storage according
+      to this specification.
+ <li> <b>API</b>: Application Programming Interface; this jargon just means the
+      specification of the functions and data structures that implement a
+      particular set of operations.  In this specification,
+       a&nbsp;C&nbsp;language API
+      for NIML input and output processors is defined in the appendices.
+ <li> <b>Element</b>: A unit of input, which may contain attributes,
+       data, and/or other elements.
+       <ul>
+       <li> An element starts with the <b>element header</b>
+            (<b>XML</b>: "start tag"),
+            which may contain attributes.
+       <li> An element continues with the <b>data stream</b>
+            (<b>XML</b>: "content"), which
+            may be imported from an external file (<b>external data stream</b>),
+            may be present in the same transmission/file as the element header
+            (<b>internal data stream</b>), or may be missing (<b>empty element</b>).
+       <li> An element finishes with the <b>end of data token</b>
+            (<b>XML</b>: "end tag").
+       </ul>
+       In this specification, elements are either data
+       elements or group elements, but not both.
+ <li> <b>Data Element</b>: An element that contains attributes and/or data,
+      but does not contain other elements.  A&nbsp;data element corresponds
+      to an array of similar data structures in the application.
+      (<b>XML</b>: mixed content with only #PCDATA [parsed character data]).
+ <li> <b>Empty Element</b>: A data element that does not actually contain
+      data.  It may contain attributes.
+ <li> <b>Group Element</b>: An element that contains (optionally) attributes
+      and other elements, but does not contain any data that is not itself
+      inside a data element.  A&nbsp;group element is used to put together
+      a number of data elements (and maybe other group elements) into a
+      larger data collection.
+      (<b>XML</b>: "mixed content" with only element children).
+ <li> <b>Attribute</b>: A string of the form <tt>name=value</tt> in an
+      element header.  Attributes can be used to define the way in which
+      an element's data stream is to be interpreted (e.g.,&nbsp;into floats,
+      ints, etc.).  Attributes can also be used to pass arbitrary string
+      information to be attached to an element, in addition to the data stream.
+ <li> <b>Name</b>: when capitalized, "Name" refers to a string of characters
+      that starts with an alphabetic character and continues with a sequence
+      of alphanumeric characters, plus a few allowable special characters.
+ <li> <b>Data Structure</b>: A collection of data organized for in-memory
+      access by a computer program.  In&nbsp;C, a&nbsp;struct; in&nbsp;C++, an&nbsp;object
+      instance, etc.
+ <li> <b>Errors</b>: How an NIML input processor deals with errors in the input
+      is not specified here.  In the worst case, it is allowed to send a nasty
+      e-mail to your mother telling her how stupid you are, erase your disk drive,
+      and then crash your computer;  however, such behavior is not part
+      of this specification.
+      The documentation for a well-written processor interface will explain
+      how it deals with errors.
+</ul>
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>A Simple Example: One Data Element</h2>
+A data element consists of a header in angle
+brackets "<tt>&lt;...&gt;</tt>", a&nbsp;data stream that follows the
+"<tt>&gt;</tt>", and a token "<tt>&lt;/&gt;"</tt> that closes the data stream:
+<pre><b> &lt;vector ni_type=float ni_form=text ni_dimen=3&gt; 1.3 2.2 -3.7 &lt;/&gt; </b></pre>
+where the components of the above element are:
+<blockquote>
+<table border=1 cellpadding=3>
+<tr>
+  <td><tt>&lt;</tt>              </td>
+  <td>opens the element header</td>
+</tr>
+<tr>
+  <td>  <tt>vector</tt>      </td>
+  <td>gives the type of the data element (almost any string)</td>
+</tr>
+  <td>  <tt>ni_type=float</tt>   </td>
+  <td>says that the data stream for this element should be read into 4-byte floats</td>
+</tr>
+  <td>  <tt>ni_form=text</tt>    </td>
+  <td>says that the data stream is stored in text format (the default)</td>
+</tr>
+  <td>  <tt>ni_dimen=3</tt>      </td>
+  <td>says that there are 3 floats that follow (default is 1)</td>
+</tr>
+  <td>  <tt>&gt;</tt>            </td>
+  <td>is the end of the header; data stream starts at the next byte</td>
+</tr>
+  <td>  <tt>&nbsp;1.3 2.2 -3.7&nbsp;</tt> </td>
+  <td>is the data stream to be decoded into numerical values</td>
+</tr>
+  <td>  <tt>&lt;/&gt;</tt>          </td>
+  <td>signifies the end of the data stream for this element</td>
+</tr>
+</table>
+</blockquote>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>Data Element Format</h2>
+<p>
+Bytes before the opening "<tt>&lt;</tt>" are skipped.  The "<tt>&lt;</tt>"
+marks the start of the element header, which describes the contents
+of the data element and the data stream that will populate the data
+element.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+An XML processor should pass through whitespace that appears between
+elements.  This NIML specification says to ignore such whitespace (and
+anything else between elements, for that matter),
+which is one reason that NIML processing software is an "XML application"
+(interpreting the input) as well as an "XML processor" (making the
+input available to the application).
+</blockquote>
+
+<!---------->
+
+<p>
+<u><b>Element name</b></u>:<br />
+Immediately after the opening "<tt>&lt;</tt>" is the element
+name (e.g.,&nbsp;this could be used to mark a data structure's type
+or class name).
+Later, a&nbsp;mechanism for specifying data element subtypes is given,
+and a number of predefined subtypes is listed.
+</p>
+
+<!---------->
+
+<p>
+<u><b>Names</b></u>:<br />
+The allowable characters in an element (or attribute) Name
+are "<tt>A-Z</tt>", "<tt>a-z</tt>",
+"<tt>0-9</tt>", and the special characters underscore, period,
+and hyphen ("<tt>_</tt>",&nbsp;"<tt>.</tt>", and&nbsp;"<tt>-</tt>").
+The first character in a Name must be alphabetic.
+The first whitespace or other non-Name character found
+ends the Name.  (Whitespace is defined by XML to be the characters
+blank, newline, carriage-return, and horizontal tab.)
+The maximum legal length of a Name is 255 characters. Some examples:
+<pre><b>  Z_zzza-...         legal
+  _Ethel_            illegal (can't start with "_")
+  In:the:beginning   illegal (can't use ":" in a Name)
+</b></pre>
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+The characters that are allowed in a Name are taken from the XML
+specification, with the exception of the colon.
+The XML namespace specification
+(<a href="http://www.w3.org/TR/REC-xml-names/">http://www.w3.org/TR/REC-xml-names/</a>)
+reserves the use of the colon in Names for namespace identification.
+XML allows Names to start with underscore&nbsp;"<tt>_</tt>", but NIML does not.
+XML does not put a maximum length on a Name.
+NIML documents will be encoded strictly in 8-bit characters, with the first
+128 characters being
+<a href="http://czyborra.com/charsets/iso646.html">US-ASCII</a>
+(no <a href="http://www.unicode.org">Unicode</a>
+or
+<a href="http://www.cl.cam.ac.uk/~mgk25/unicode.html">UTF-8</a> for NIML).
+This restriction means
+that it would be legal to use one of the
+<a href="http://czyborra.com/charsets/iso8859.html">ISO-8859-*</a>
+character sets for non-English languages
+in an NIML file, but this would raise serious portability issues
+(since the values from 128..255 are interpreted differently in these
+different character sets).
+</blockquote>
+
+<!---------->
+
+<p>
+<u><b>Reserved Names</b></u>:<br />
+Element and Attribute Names
+that start with the characters "<tt>ni_</tt>" are reserved for
+expansion of this specification.  The following are the reserved
+Names currently in use:
+<blockquote><table border=1 cellpadding=3>
+<tr><td><b>Name</b></td> <td><b>Purpose</b></td></tr>
+
+<tr>
+  <td> <tt>ni_type</tt> </td>
+  <td> Attribute: specifies type of data to read </td>
+</tr>
+
+<tr>
+  <td> <tt>ni_form</tt> </td>
+  <td> Attribute: specifies format of data stream </td>
+</tr>
+
+<tr>
+  <td> <tt>ni_dimen</tt> </td>
+  <td> Attribute: specifies number of values to read </td>
+</tr>
+
+<tr>
+  <td> <tt>ni_delta</tt> </td>
+  <td> Attribute: specifies coordinate spacing between data values on a uniform grid</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_units</tt> </td>
+  <td> Attribute: specifies units used in <tt>ni_delta</tt></td>
+</tr>
+
+<tr>
+  <td> <tt>ni_origin</tt> </td>
+  <td> Attribute: specifies coordinate offsets for data values on a uniform grid</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_axes</tt> </td>
+  <td> Attribute: specifies axis orientations for data values on a uniform grid</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_url</tt> </td>
+  <td> Attribute: specifies external location of data stream for a data element</td>
+</tr>
+
+<tr></tr>
+
+<tr>
+  <td> <tt>ni_typedef</tt> </td>
+  <td> Element: defines a new data element subtype</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_name</tt> </td>
+  <td> Attribute: provides a name for an <tt>ni_typedef</tt>-ed element</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_group</tt> </td>
+  <td> Element: provides a way to group multiple elements together</td>
+</tr>
+
+<tr>
+  <td> <tt>ni_include</tt> </td>
+  <td> Element: provides a way to read an external file into an input stream </td>
+</tr>
+
+<tr>
+  <td> <tt>  </tt> </td>
+  <td> </td>
+</tr>
+
+</table></blockquote>
+</p>
+
+<!---------->
+
+<p>
+<u><b>Elements with no data</b></u> (Empty elements):<br />
+The minimal element is an element name with no attributes or
+data stream.  Such a construct could be used as a flag or command to the
+receiving application.
+For example,
+<pre><b>  &lt;close/&gt;</b></pre>
+could be used in a transmission
+as a command to indicate that the transmission's I/O channel should
+be closed.
+The fact that the
+element header closes with "<tt>/&gt;</tt>" indicates that there is
+no internal data stream (i.e.,&nbsp;this is an "empty element", in the XML jargon).
+Note that the "<tt>/</tt>" character is not a legal Name character, so
+that the element name ends with the "<tt>e</tt>" in "<tt>close</tt>".
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+The XML specification allows empty elements to also be of the form
+"<tt>&lt;name&gt;&lt;/name&gt;</tt>", and implies that this form
+is to be indistinguishable from the form "<tt>&lt;name/&gt;</tt>".
+An NIML empty element must follow the latter form, closing the element
+header with&nbsp;"<tt>/&gt;</tt>".
+</blockquote>
+
+<!---------->
+
+<p>
+<u><b>Attributes</b></u>:<br />
+Following the element name
+is a sequence of attributes in the
+general form "<tt>attname=string</tt>".
+For data elements, some of
+these attributes give information about how to interpret
+the data stream (internal or external) into data structures.
+The order of the attributes is not important for the parsing operations.
+Attributes are separated by whitespace.  As mentioned earlier,
+<tt>attname</tt>s that start with the characters "<tt>ni_</tt>"
+are reserved for expansion of this specification.
+In addition to the predefined
+attributes described below, the element header may include other
+attributes.
+These will not be interpreted by the input processor,
+but will be passed through to the application, in the order in which
+they are encountered in the element header.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+XML requires that no two attributes in the same element have the same
+<tt>attname</tt>.  NIML does not enforce this requirement, but if you
+wish to produce a well-formed XML document, then you need to be
+aware of this restriction.  XML allows whitespace to occur around
+the "<tt>=</tt>" that separates the <tt>attname</tt> from the
+<tt>string</tt>.  NIML does not allow this whitespace; the next character
+after <tt>attname</tt> must be "<tt>=</tt>", and the next character after
+that must be a Name character or a quote character.
+</blockquote>
+
+<!---------->
+
+<p>
+<u><b>Strings:</b></u><br />
+Strings that are sequences of Name characters, not necessarily
+starting with a letter, can be present
+on the right hand side (RHS) of
+an attribute (or in a data stream) without being
+enclosed in quotes.
+Strings with other characters
+must be present in a quoted form, using "double quote" or 'single quote'
+(apostrophe) characters.
+If the non-whitespace character that starts a String is <tt>"</tt>
+(or&nbsp;<tt>'</tt>), then
+the string is assumed to be in quoted form, and everything up to
+the next <tt>"</tt> (or&nbsp;<tt>'</tt>) character is included in the string.
+Whitespace characters, including newlines, are included in the String value,
+but the quoting characters are not.  In keeping with the XML specification,
+the following end-of-line character sequences will be "normalized" to the
+Unix-standard single 0x0A byte (LF character):
+<blockquote><table border=1 cellpadding=3>
+<tr>
+  <td><b>Hexadecimal</b></td> <td><b>Character Names</b></td> <td><b>Systems</b></td>
+</tr>
+<tr>
+  <td>0x0D 0x0A</td> <td>CR LF</td>   <td>Microsoft standard</td>
+</tr>
+<tr>
+  <td>0x0D</td>      <td>CR</td> <td>Macintosh standard</td>
+</tr>
+</table></blockquote>
+<b>N.B.</b>: This definition of how Strings are to be formatted
+also applies to String input in the
+data stream section of a data element.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+In XML, attributes must be in a quoted string format.  Thus, if an application
+wishes to write an NIML file to be a well-formed XML file, it should use
+attributes in the form <tt>attname="string"</tt>, even if the string contains
+no whitespace.  Also, XML specifies that the RHS of most attributes should
+be normalized by replacing all sequences of contiguous whitespace characters
+by a single blank.  NIML does not require this step; however, all predefined NIML
+attribute values contain no whitespace.
+</blockquote>
+
+<p>
+In keeping with the XML roots of this specification, the following
+escape sequences representing single characters will be recognized
+in Strings:
+<blockquote><table border=1 cellpadding=3>
+<tr> <td><b>Escape</b></td>       <td><b>Translation</b>          </td> <td><b>Note</b></td> </tr>
+<tr> <td><tt>&amp;lt;</tt></td>   <td><tt>&lt;</tt> (less than)   </td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;gt;</tt></td>   <td><tt>&gt;</tt> (greater than)</td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;quot;</tt></td> <td><tt>"</tt>    (quote)       </td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;amp;</tt></td>  <td><tt>&amp;</tt> (ampersand)  </td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;apos;</tt></td> <td><tt>'</tt>    (apostrophe)  </td> <td>Optional</td> </tr>
+</table></blockquote>
+Characters marked as Required can only be represented in a String by
+the escape sequence.  Characters marked as Optional can be represented
+by the escape or by themselves.  (Since none of these are Name characters,
+they can only be present in quoted Strings.)
+</p>
+
+<p>
+Some example attributes:
+<pre><b>  ni_type=5f.i.S
+  ni_type='5float,int,String'
+  ni_url="http://zork.bork.gork/fork/spoon/pork.ork#1024-$"
+  command="cat fred &amp;gt; 'ethel'"
+</b></pre>
+All but the first have their RHS in quoted form, since these String
+values contain non-Name characters.  In the last one, the RHS String
+value will be passed to the application as
+"<tt>cat&nbsp;fred&nbsp;&gt;&nbsp;'ethel'</tt>".
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+Other XML-defined escapes (such as "<tt>&amp;#x3A;</tt>" for insertion of
+a single character specified in hexadecimal) should not be used,
+since they are not required to be recognized by NIML processor software.
+</blockquote>
+
+<!------------------------>
+
+<p>
+<u><b>Comma-Separated Substrings as Attribute Values</b></u>:<br />
+In some specific cases, the RHS value of a pre-defined attributes
+is described as being a list of comma-separated substrings.
+An example of such a string (which must be quoted) is
+<tt>"float,int,short"</tt>.  This String can be broken into 3
+substrings <tt>"float"</tt>, <tt>"int"</tt>, and <tt>"short"</tt>.
+This construction is used to specify multiple parameters to attributes
+that are designed to process them (e.g.,&nbsp;<tt>ni_dimen</tt>).
+However, when the attribute String value is actually passed to the
+application, it will not be broken into substrings.
+</p>
+
+<!------------------------>
+
+<p>
+<u><b>External data streams and the <tt>ni_url</tt> attribute</b></u>:<br />
+Input bytes that occur between the closing "<tt>&gt;</tt>" of the element
+header and the opening "<tt>&lt</tt>" of the end token are called the
+internal data stream.  It is also possible for a data element
+to specify that its data
+stream shall be read from an external source rather than from the input bytes
+immediately following the "<tt>&gt;</tt>" that closes the element header.
+The external source is specified with the <tt>ni_url</tt> attribute, as in
+<pre><b> &lt;TheKing ni_url="http://www.elvis.com/" /&gt;</b></pre>
+This specifies that the contents of the data at the given URL be taken
+as the data stream for this data element.  If <tt>ni_url</tt> is used, then
+the data element header must end with "<tt>/&gt;</tt>", since there can
+be no internal data stream present after the header if there is an
+external data stream.
+An external data stream does not end at its first "<tt>&lt;/</tt>", but continues
+until the end of the data read from the URL.
+</p>
+
+<p>
+The types of URLs that can be specified in a <tt>ni_url</tt>
+attribute depend on the input processor.  In some processors, there
+may be not support for such inclusion (e.g.,&nbsp;in a socket
+transmission).  In the C API defined in the appendices, the
+following types of URLs are allowable:
+<blockquote><table border=1 cellpadding=3>
+<tr>
+  <td><b>Form</b></td> <td><b>Meaning</b></td>
+</tr>
+<tr>
+  <td> http://a/b </td>     <td>Absolute reference, fetched by HTTP</td>
+</tr>
+  <td> ftp://a/b </td>      <td>Absolute reference, fetched by anonymous FTP</td>
+</tr>
+<tr>
+  <td> file:/a/b </td>      <td>Absolute reference to a local file</td>
+</tr>
+</table></blockquote>
+It is also legal to append a URL fragment specifier of the form
+"<tt>#p..q</tt>" at the end of the attribute value. Here,
+"<tt>p</tt>"&nbsp;and "<tt>q</tt>"
+indicate the first and last bytes of the fetched data to include in the
+data stream.
+<tt>p</tt>&nbsp;and <tt>q</tt> may be in one of these forms:
+<ul>
+ <li> Decimal numbers, 0 being the first byte of the fetched data.
+ <ul><li>Example: "<tt>file:/home/elvis/grot.oog#1024..2047</tt>" is the second 1K of the file.</ul>
+ <li> The symbol "<tt>$</tt>" represents the last byte of the fetched data.
+ <ul><li>Example: "<tt>ftp://lucy.com/fred.zzz#1024..$</tt>" skips the first 1K of the file.</ul>
+ <li> The symbol "<tt>$-x</tt>" represents the <tt>x</tt><sup>th</sup> byte
+      previous to the last byte of the fetched data, where "<tt>x</tt>"
+      is a decimal number.
+ <ul><li>Example: "<tt>http://fred.org/zork.dat#$-4095..$</tt>" is the last 4K of the file.</ul>
+</ul>
+It is an error if
+the value of <tt>p</tt> is after the value of <tt>q</tt> in the fetched data.
+If no fragment is given, then the data stream is taken from all the fetched
+data (as if the fragment were&nbsp;<tt>#0..$</tt>).
+</p>
+
+<p>
+Use of <tt>ni_url</tt> may not be wise, especially if it involves fetching data
+files from another computer system.  Using <tt>ni_url</tt>
+makes reading the NIML data file dependent on the existence of another file.
+</p>
+
+<p>
+An external data stream will be processed
+as described in the next section.
+How much of it will be stored into the data structure transmitted
+to the application will depend on the
+<tt>ni_type</tt> and <tt>ni_dimen</tt> attributes.
+</p>
+
+<p>
+<u><b>End token</b></u>:<br />
+If the data element has an internal data stream, then
+the end of the data stream is indicated by the bytes
+"<tt>&lt;/</tt>".  (If binary data is being read, then "<tt>&lt;/</tt>"
+characters inside the specified length binary data will not indicate the end of the
+data stream.)  NIML allows the end token to be the characters
+"<tt>&lt;/&gt;</tt>" or "<tt>&lt;/elementname&gt;</tt>", where <tt>elementname</tt>
+is the name of the element that is being closed.
+</p>
+
+<p>
+If the internal data stream runs into the end of file or the transmission
+closes (e.g.,&nbsp;a&nbsp;socket shuts down), this is also taken as a
+valid end token for any elements that have not yet "closed" (including the
+current data element and any group elements enclosing it).
+This rule makes it easy to have a final data element in
+a file without closing it with proper end tokens.  In this way, an NIML
+file containing image data can conform to the informal convention that the image
+data is always the very last collection of bytes in the file, regardless
+of what header information comes before.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+XML requires that elements that have content (i.e.,&nbsp;an&nbsp;internal
+data stream)
+end with "<tt>&lt;/elementname&gt;</tt>".  Also, XML does not consider a document
+to be properly closed if the file just ends.  This means that a well-formed
+XML version of an NIML file cannot conform to the "image data is last" convention.
+</blockquote>
+
+<!---------------------------------------------------------------->
+<hr />
+<h2>Data Stream Interpretation</h2>
+<p>
+The following attributes determine how the data stream is interpreted by
+the input processor.
+</p>
+
+<!---------->
+
+<p>
+<u><b><tt>ni_type</tt> Attribute</b></u>:<br />
+This attribute
+specifies the type or types of the individual data components in the data stream.
+The following 8 types are available:
+<blockquote><table border=1 cellpadding=3>
+<tr>
+ <td><b>Name</b></td>
+ <td><tt>byte</tt></td>
+ <td><tt>short</tt></td>
+ <td><tt>int</tt></td>
+ <td><tt>float</tt></td>
+ <td><tt>double</tt></td>
+ <td><tt>complex</tt></td>
+ <td><tt>rgb</tt></td>
+ <td><tt>RGBA</tt></td>
+ <td><tt>String</tt></td>
+ <td><tt>Line</tt></td>
+</tr>
+<tr>
+ <td><b>Initial</b></td>
+ <td><tt>b</tt></td>
+ <td><tt>s</tt></td>
+ <td><tt>i</tt></td>
+ <td><tt>f</tt></td>
+ <td><tt>d</tt></td>
+ <td><tt>c</tt></td>
+ <td><tt>r</tt></td>
+ <td><tt>R</tt></td>
+ <td><tt>S</tt></td>
+ <td><tt>L</tt></td>
+</tr>
+<tr>
+ <td><b>Size (bytes)</b></td>
+ <td>1</td>
+ <td>2</td>
+ <td>4</td>
+ <td>4</td>
+ <td>8</td>
+ <td>8 (2 floats)</td>
+ <td>3 (red grn blu)</td>
+ <td>4 (r g b alpha)</td>
+ <td>arbitrary</td>
+ <td>arbitrary</td>
+</tr>
+</table></blockquote>
+</p>
+
+<p>
+An individual type is specified by its name or by the single character
+of its initial (which is why "<tt>String</tt>" starts with an uppercase letter,
+to distinguish it from "<tt>short</tt>", and why "<tt>RGBA</tt>" is capitalized
+while "<tt>rgb</tt>" is not).
+</p>
+
+<p>
+The <tt>ni_type</tt> attribute may specify a single type, as in the example at the
+very beginning of this document, or
+it may specify multiple types, separated by periods&nbsp;"<tt>.</tt>" and with an
+optional decimal numeric count prepended:
+<pre><b>  ni_type=float.int.int  <b>OR</b>  ni_type=f.i.i  <b>OR</b>  ni_type=f.2i  <b>OR</b>  ni_type=f2i</b></pre>
+which specifies that the values to be read from the data stream come
+in triples: 1 float followed by 2 ints, then 1 more float, 2 more ints, etc.
+In this example, the data stream <i>must</i> come in these units of
+3 numbers.  The last illustration above shows that when single character
+abbreviations are used for type names, they do not need to be separated
+by periods&nbsp;"<tt>.</tt>".
+</p>
+
+<blockquote><b><i>Aside</i></b>:
+<i>Maybe there are too many variations here.  Instead of allowing
+"<tt>float</tt>" <i>and</i> "<tt>f</tt>", we should only allow the
+latter?  That would make the NIML processor's job simpler.
+Since we might eventually write NIML processors in several languages,
+simplicity is an important goal.</i>
+</blockquote>
+
+<p>
+If the <tt>ni_type</tt> attribute is not present, then the data
+stream will be interpreted as if <tt>ni_type=b</tt>.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+The reason that the separator for multiple types is a period "<tt>.</tt>" is that
+this is a legal Name character, and NIML allows the RHS of an
+attribute to be unquoted if it consists entirely of Name characters.  However,
+XML requires the RHS of an attribute to be quoted.  If the type definition
+String is quoted, you can also use commas "<tt>,</tt>"
+as the type separator.
+</blockquote>
+
+<p>
+<b><u>Line Data Values</u></b>:<br />
+The <tt>Line</tt> type is a special form of <tt>String</tt>.
+A&nbsp;Line is the text between the current scanning point of
+the data stream and the next end-of-line; it does not include the
+end-of-line character.  This input type is designed to make it easy for
+an application to read and write individual lines of text without using
+quotes to enclose possible whitespace.  For example
+<pre><b>  &lt;junk ni_type=3L&gt;
+    I am the first Line
+    This is Line #2
+    And this is Line number 3  &lt;/&gt;
+</b></pre>
+The three strings that will be saved are
+"<tt>I&nbsp;am&nbsp;the&nbsp;first&nbsp;Line</tt>",
+"<tt>This&nbsp;is&nbsp;Line&nbsp;#2</tt>", and
+"<tt>And&nbsp;this&nbsp;is&nbsp;Line&nbsp;number&nbsp;3</tt>",
+since whitespace at the beginning and end of a Line will be discarded.
+It is possible (not necessarily wise)
+to include Line data on a physical line with other
+values; an example illustrates the processing that results:
+<pre><b>  &lt;data ni_type=f.L ni_dimen=2&gt;
+     3.0   Hi Bob
+     5.7
+     This is cool
+  &lt;/&gt;
+</b></pre>
+The first Line value read is the string
+"<tt>Hi&nbsp;Bob</tt>", since the
+blanks after "<tt>3.0</tt>" are discarded (being at the start
+of the Line data).
+The second Line value read is the string
+"<tt>This&nbsp;is&nbsp;cool</tt>", since the
+end-of-line after the "<tt>5.7</tt>" is also discarded.
+</p>
+
+<!----->
+
+<p>
+<u><b><tt>ni_form</tt> Attribute</b> (optional)</u>:<br />
+This attribute specifies the format of the data stream.  The
+possible values are
+<pre><b>  ni_form=text   <i>OR</i>   ni_form=binary   <i>OR</i>   ni_form=base64</b></pre>
+The first means that the data stream is in text format, the second
+that it is binary, and the third that it is base64 encoded binary
+(which allows binary data to be encoded in a pure text format, at the
+cost of a 33% expansion in size).
+If the <tt>ni_form</tt> attribute is not present,
+then <tt>ni_form=text</tt> is assumed.
+</p>
+
+<p>
+The <tt>binary</tt> and <tt>base64</tt> attributes may optionally
+have one of the two strings "<tt>.msbfirst</tt>" or "<tt>.lsbfirst</tt>"
+appended, as in "<tt>ni_form=binary.msbfirst</tt>".  This addition specifies the
+byte order of the binary data.  If the byte order is not specified (here
+or otherwise),
+then the receiving program should assume that the binary data is stored
+in MSB first order ("network order"), as on Sun-Sparc, SGI-MIPS, PowerPC,
+and HP-PA CPUs (and the opposite of Intel CPUs).  If the current CPU does not
+match the order of the data, then two byte data (i.e.,short)
+<tt>ab</tt> will be swapped to <tt>ba</tt> before being passed to the application;
+four byte data (i.e., float, int) <tt>abcd</tt> will be swapped to <tt>dcba</tt>;
+eight byte data (i.e., double) <tt>abcdefgh</tt> will be swapped to
+<tt>hgfedcba</tt>.
+</p>
+
+<!------------------------>
+
+<blockquote><b><i>XML note</i></b>:
+In XML, there is no way around the fact that "<tt>&lt;/</tt>" closes an element,
+except by using a <tt>CDATA</tt> section.  Since "<tt>]]&gt;</tt>" ends the
+<tt>CDATA</tt> section, one is still left with the difficulty of including
+an arbitrary sequence of bytes into an XML document.
+(In fact, some bytes are not legal anyplace in an XML document, since only
+valid "characters" are allowed, and not all byte sequences are valid
+Unicode characters.)
+If one wants to write
+an NIML file that is also a well-formed XML document, one must avoid the use
+of binary data.
+In general, I&nbsp;would recommend that <tt>text</tt> encoding be used for
+most data, and that <tt>binary</tt> (or <tt>base64</tt>) be used only for
+very large data elements (e.g.,&nbsp;images).
+</blockquote>
+
+<!----->
+
+<p>
+<u><b><tt>ni_dimen</tt> Attribute</b> (optional, but probably needed)</u>:<br />
+This attribute specifies how many data elements are to be read from
+the data stream.  One data element corresponds to a complete set
+of values as specified in the <tt>ni_type</tt> attribute.
+If <tt>ni_type=fii</tt> and <tt>ni_dimen=3</tt>, then the data stream
+should contain 3 floats and 6 ints
+(in order <tt>f&nbsp;i&nbsp;i&nbsp;f&nbsp;i&nbsp;i&nbsp;f&nbsp;i&nbsp;i</tt>).
+</p>
+
+<p>
+If the <tt>ni_dimen</tt> attribute is not specified, it is equivalent to
+giving <tt>ni_dimen=1</tt>.  The NIML input processor will <i>not</i> try
+to guess the number of input values from the data stream.
+</p>
+
+<p>
+To read an arbitrary series of bytes from the data stream into a
+contiguous array,
+the combination of attributes needed is
+<pre><b>  <tt>ni_type=b ni_form=binary ni_dimen=<i>num_bytes</i></tt> </b></pre>
+where <tt><i>num_bytes</i></tt> should be replaced by the number of
+bytes to be read.
+</p>
+
+<p>
+A useful way to think of the data specified by the <tt>ni_type</tt> and
+<tt>ni_dimen</tt> attributes is that the data stream defines a 2D array of
+values.  The <tt>ni_type</tt> attribute specifies the contents of each row
+in this array, and the <tt>ni_dimen</tt> attribute specifies how many rows
+will be read.  In the following example, the data element produces
+a data structure containing the array shown in the table:
+<pre><b>  &lt;data ni_type=f.i.S ni_dimen=4&gt;
+    3.72 55 "This is row 1" -0.70 444 'I'm row #2' 666.666
+    -555 OK-3  0.003 777 "The last row!" &lt;/&gt;
+</b></pre>
+<blockquote> <table border=1 cellpadding=3>
+<tr> <td><b>float</td> <td><b>int</b></td> <td><b>String</b></td> </tr>
+<tr></tr>
+<tr> <td>3.72</td> <td>55</td> <td>"This is row 1"</td> </tr>
+<tr> <td>-0.7</td> <td>444</td> <td>"I'm row #2"</td> </tr>
+<tr> <td>666.666</td> <td>-555</td> <td>"OK-3"</td> </tr>
+<tr> <td>0.003</td> <td>777</td> <td>"The last row!"</td> </tr>
+</table></blockquote>
+In the C API (see appendices), the data would end up being stored in 3 arrays,
+one for each column of this array.  The first array would be pointed to by
+a <tt>float&nbsp;*</tt>, the second by a <tt>int&nbsp;*</tt>, and the third
+by a <tt>char&nbsp;**</tt>.  All of these would be gathered together into
+one <tt>NI_element</tt> struct.
+</p>
+
+<p>
+<b>N.B.</b>:
+Although specifying "<tt>ni_type=3f&nbsp;ni_dimen=2</tt>"
+and                 "<tt>ni_type=f&nbsp;ni_dimen=6</tt>"
+mean the same thing as far as parsing
+the data stream goes (6&nbsp;floats expected),
+these do <i>not</i> mean the same thing to the application.  The first
+specification is for a 3x2 table of numbers, and the second is for
+a 1x6 table of numbers.  In the C API (see appendices),
+the data structure returned to the application
+would be stored differently for these two cases.  The first case would
+produce 3 vectors of length&nbsp;2; the second case would produce 1 vector
+of length&nbsp;6.
+</p>
+
+
+<!--------->
+<p>
+<u><b>Multi-Dimensional Arrays and Related Attributes</b></u> (optional):<br />
+For ease in dealing with multidimensional arrays (e.g.,&nbsp;images),
+it is also legal to specify the <tt>ni_dimen</tt>
+attribute's value as a string of more than one integer, separated by commas,
+as in <tt>ni_dimen="128,128,16"</tt> (i.e.,&nbsp;the attribute value is
+a list of comma-separated substrings).
+This means that 128*128*16=262144 values
+(specified by <tt>ni_type</tt>) will be read from the data stream, possibly
+representing a 3D image or a time series of 2D images.
+</p>
+
+<p>
+The following
+attributes can be used in conjunction with <tt>ni_dimen</tt> to specify
+information that lets the data be interpreted as lying on a regular grid in
+n-dimensions, where n is the number of values specified in the RHS of
+<tt>ni_dimen</tt>.  Each of these attributes should have the same number of
+comma-separated substrings in its RHS value as <tt>ni_dimen</tt> does.
+</p>
+
+<blockquote>
+<p><b><tt>ni_delta</tt></b>:
+This should be a set of floating point numbers indicating the spacing between
+the locations of data values in the grid.
+</p>
+
+<p><b><tt>ni_origin</tt></b>:
+This should be a set of floating point numbers indicating the origin of
+the locations of data values in the grid.
+</p>
+
+<p><b><tt>ni_units</tt></b>:
+This should be a set of string values that specify the units used in
+<tt>ni_delta</tt> and <tt>ni_origin</tt>.
+These strings are also not interpreted by the processor
+in any way, but are simply passed through to the application.
+</p>
+
+<p><b><tt>ni_axes</tt></b>:
+This should be a set of string values that specify the direction/orientation
+of the coordinates axes.  These strings are not interpreted by the processor
+in any way, but are simply passed through to the application.
+</p>
+</blockquote>
+
+<p>
+Example of a header for an element to hold the data for
+a 4D image (say from an FMRI experiment):
+<pre><b>  &lt;fourD ni_type=short
+         ni_dimen="64,64,16,80"
+         ni_delta="3.75,3.75,5.0,2.5"
+         ni_origin="-120.0,-120.0,-10.0,0.0"
+	 ni_axes="R-L,A-P,I-S,time"
+         ni_units="mm,mm,mm,s">
+</b></pre>
+This would correspond to an experiment with 64x64 images, 16 slices per volume,
+and 80 volumes gathered in time (5242880 values).  The voxel dimensions are
+3.75&nbsp;mm in plane, slice thickness of 5.0&nbsp;mm, and TR is 2.5 seconds.
+The first data axis is Right-to-Left, the second is Anterior-to-Posterior,
+the third is Inferior-to-Superior, and the fourth is time.
+The (i,j,k,p) voxel in this 4D array is located at the
+(i+64*j+4096*k+65536*p)<sup>th</sup> short in the data stream, and is
+located at coordinates (x,y,z,t) = (-120+3.75*i, -120+3.75*j, -10+5+k, 2.5*p),
+for i=0..63, j=0..63, k=0..15, p=0..79.
+</p>
+
+<p>
+Example of a header for an element to hold a single time series of
+128 points, with sampling interval of 1.5 seconds:
+<pre><b> &lt;oneD ni_type=float ni_dimen=128 ni_delta=1.5 ni_units=s&gt; </b></pre>
+</p>
+
+<p>
+If <tt>ni_dimen</tt> is not used, then <tt>ni_delta</tt>, <tt>ni_origin</tt>,
+<tt>ni_units</tt>, and <tt>ni_axes</tt> are not broken down by the
+NIML processor.  These attributes, if present, will still be passed to
+the application as strings.
+</p>
+
+<!----->
+
+<p>
+<u><b>Other Attributes</b> (optional)</u>:<br />
+Other attributes may be included in the element header.
+All attributes
+will be processed and passed back to the application (as strings)
+in the order in which they are encountered.
+</p>
+
+<!----->
+
+<p>
+<u><b>Data stream</b></u>:<br />
+The data stream starts at the next byte after the "<tt>&gt;</tt>" that closes
+the element header,
+unless a "<tt>/</tt>" character immediately preceeds the "<tt>&gt;</tt>",
+as in "<tt>/&gt;</tt>".
+In that case, there is no data stream present in the input, and this "<tt>&gt;</tt>"
+is the end of the data element encoding.
+
+<p>
+<b><i><u>Text data</u></i></b>:<br />
+If the data stream is in <tt>text</tt> form, then the data
+values are read from the stream as follows:
+<blockquote><table border=1 cellpadding=3>
+<tr> <td><b>Type</b></td> <td><b>C format string</b></td> </tr>
+<tr> <td>byte</td>        <td>%u (cast to unsigned char)</td> </tr>
+<tr> <td>short</td>       <td>%d (cast to signed short)</td> </tr>
+<tr> <td>int</td>         <td>%d</td> </tr>
+<tr> <td>float</td>       <td>%f</td> </tr>
+<tr> <td>double</td>      <td>%lf</td> </tr>
+<tr> <td>complex</td>     <td>%f%f (real part, imaginary part)</td> </tr>
+<tr> <td>rgb</td>         <td>%u%u%u (each cast to unsigned char)</td> </tr>
+<tr> <td>RGBA</td>        <td>%u%u%u%u (each cast to unsigned char)</td> </tr>
+<tr> <td>String</td>      <td>non-whitespace sequence (%s), or "quoted string"</td> </tr>
+<tr> <td>Line</td>        <td>data up to the next end-of-line</td></tr>
+</table></blockquote>
+Data values must be separated by at least one whitespace character.
+If a String contains whitespace, the String must be
+present in the text data stream in a quoted form.
+</p>
+
+<p>
+Recall that Line data is defined as the text from the current scanning
+point up to then next end-of-line, with leading and trailing whitespace
+eliminated.  If an entirely blank line occurs in the input, then the
+Line string corresponding would be empty (have zero length).  For example:
+<pre><b>  &lt;linestuff ni_type=L ni_dimen=3&gt;
+     Line 1
+
+     Line 3
+  &lt;/&gt;
+</b></pre>
+The second line here is the empty string.
+</p>
+
+<p>
+<b><i><u>Binary or base64 data</u></i></b>:<br />
+If the data stream is in <tt>binary</tt> or <tt>base64</tt> format
+(as specified by <tt>ni_form</tt>),
+then the data
+values are read from the stream byte-by-byte (after base64 decoding, if needed),
+with each value
+taking the number of bytes specified earlier.  String and Line data values
+are <i>not</i> allowed in these forms.  This restriction is made so
+that the number
+of bytes in the data stream can be computed from the <tt>ni_type</tt>
+and <tt>ni_dimen</tt> attributes (e.g., <tt>ni_type=f.i.s</tt> and <tt>ni_dimen=3</tt>
+would require a <tt>binary</tt> data stream to contain exactly (4+4+2)*3=30 bytes, and
+a <tt>base64</tt> data stream to contain 30 bytes after the base64 characters are decoded).
+</p>
+
+<p>
+An internal data stream ends with the bytes "<tt>&lt;/</tt>"; an external
+data stream ends with the end of the URL that was fetched.
+If the data stream is internal, the data element
+transmission ends with the next following&nbsp;"<tt>&gt;</tt>",
+which allows the
+closing sequence to be either "<tt>&lt;/&gt;</tt>" or
+"<tt>&lt;/elementname&gt;</tt>".
+After the proper <tt>ni_dimen</tt> number of data values have been read,
+any data bytes before the closing "<tt>&lt;/</tt>" will be discarded.
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+<h2>Defining Data Element Subtypes</h2>
+<p>
+If you just want to transmit/store 3 floats, say, the above format
+seems excessively complicated.  Therefore, a&nbsp;syntax is available to
+let you declare subtypes of the generic data element
+that can be used more easily.
+</p>
+
+<blockquote><b><i>XML note</i></b>:
+The idea that a <tt>ni_typedef</tt> element can influence the
+interpretation of future elements does not violate the XML specification
+(which is solely concerned with "processors"),
+but it does not fall within the XML specification either.  XML uses
+the "<tt>&lt!ELEMENT&nbsp;...&gt;</tt>" and
+           "<tt>&lt!ATTLIST&nbsp;...&gt;</tt>" constructs to
+constrain how elements and their attributes may be formed.
+Alternatively, an XML Schema can be used to provide
+control over the form/structure of XML data
+(<a href="http://www.w3.org/TR/xmlschema-1/">http://www.w3.org/TR/xmlschema-1/</a>).
+The XML-only methods are clumsy and don't suit the NIML needs well; the
+XML Schema method can specify what is allowed in great detail, but
+is quite complex and seems like too much to support for the purposes
+of the neuroimaging community.
+</blockquote>
+
+<p>
+An empty element (i.e.,&nbsp;its header ends with "<tt>/&gt;</tt>")
+with name "<tt>ni_typedef</tt>" is used to define a subtype.
+With a <tt>ni_typedef</tt> element, you specify the
+<tt>ni_type</tt> attribute and possibly the <tt>ni_dimen</tt>
+attribute that will be used when a subtype element is found.
+An example specifying both:
+<pre><b> &lt;ni_typedef ni_name=fv3 ni_type=f ni_dimen=3/&gt; </b></pre>
+This defines the new element type <tt>fv3</tt> to contain exactly 3 floats in its
+data stream.  An example of such an element:
+<pre><b> &lt;fv3&gt;2.71828 3.1416 666.0&lt;/&gt; </b></pre>
+Note that it would still be legal to add the <tt>ni_form=</tt> attribute
+to the header of the <tt>fv3</tt> element.  You <i>can't</i> specify
+<tt>ni_form</tt> in the <tt>ni_typedef</tt> element; that is, you
+can't force a subtype to be encoded in a particular format.
+</p>
+
+<p>
+If the <tt>ni_dimen</tt> attribute is missing from the subtype
+definition, then it can be supplied when the subtype is used;
+for example:
+<pre><b>  &lt;ni_typedef ni_name=xyzlist ni_type=3f/&gt;
+  &lt;xyzlist ni_dimen=4&gt;1 2 3 4 5 6 7 8 9 10 11 12&lt;/&gt;
+</b></pre>
+This subtype is intended to encode a list of 3-tuples of floats;
+the example produces a 3x4 table of floats.
+(Recall that if <tt>ni_dimen</tt> is <i>not</i> supplied, then
+<tt>ni_dimen=1</tt> is assumed.)
+</p>
+
+<p>
+<u><b>Predefined Subtypes</b></u>:<br />
+The following predefined subtypes can be used:
+<pre><b>  &lt;ni_typedef ni_name=ni_f1 ni_type=float/&gt; (1 float)
+  &lt;ni_typedef ni_name=ni_f2 ni_type=2f   /&gt; (2 floats)
+  &lt;ni_typedef ni_name=ni_f3 ni_type=3f   /&gt; (3 floats)
+  &lt;ni_typedef ni_name=ni_f4 ni_type=4f   /&gt; (4 floats)
+
+  &lt;ni_typedef ni_name=ni_i1 ni_type=int/&gt;   (1 int)
+  &lt;ni_typedef ni_name=ni_i2 ni_type=2i /&gt;   (2 ints)
+  &lt;ni_typedef ni_name=ni_i3 ni_type=3i /&gt;   (3 ints)
+  &lt;ni_typedef ni_name=ni_i4 ni_type=4i /&gt;   (4 ints)
+
+  &lt;ni_typedef ni_name=ni_irgb  ni_type=i.r/&gt; (int+color)
+  &lt;ni_typedef ni_name=ni_irgba ni_type=i.R/&gt; (int+color)
+
+  &lt;ni_typedef ni_name=ni_S ni_type=S/&gt;      (string)
+  &lt;ni_typedef ni_name=ni_L ni_type=L/&gt;      (line string)
+</b></pre>
+It is an error to redefine one of these subtypes, to define
+a new subtype that starts with "<tt>ni_</tt>", or to redefine
+a subtype that was previously defined through an explict
+<tt>ni_typedef</tt> element.  A&nbsp;user-defined subtype cannot
+be used in an element until it has been defined previously in the
+data transmission.
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>Including External Files to Define Elements</h2>
+<p>
+The <tt>ni_include</tt> data element can be used to specify
+that a given file should be included; for example:
+<pre><b> &lt;ni_include ni_url="file:/home/elvis/defs.ni"/&gt; </b></pre>
+which says to read the given file into the data transmission
+at this point.  Since this is an data element (with no data stream),
+it cannot appear inside another data element.
+If desired (why?), the <tt>#p..q</tt> fragment specification can be
+appended to the end of the URL.
+
+<p>
+One use for the <tt>ni_include</tt> element would be to read in a
+set of <tt>ni_typedef</tt>s at the start of a file that used them
+heavily.
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+
+<h2>Contents of an Entire Data Collection</h2>
+<p>
+A data file or transmission stream will often contain more than one
+data element that must be kept together to make a coherent whole.
+Data elements can be grouped together using the construction
+<pre><b>  &lt;ni_group&gt;
+    ...elements...
+  &lt/ni_group&gt;
+</b></pre>
+where "<tt>...elements...</tt>" is replaced by one or more
+data elements, formatted as described earlier.  The whitespace
+between elements will be ignored.  Groups may be nested.
+Attributes may be included in the "<tt>&lt;ni_group&nbsp;...&gt;</tt>"
+header, as with data elements.
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+<h2>Appendix A: Processor and Application Interaction</h2>
+<p>
+Most of this specification is concerned with how arbitrary data will be
+encoded in a (supposedly) self-describing format.  However, these Appendices deal with
+with one model of how the input and output processors can interact with
+the application.
+</p>
+
+<p>
+The model presented herein is batch-oriented, in that an entire unit
+of information is processed at once.  For an input processor, a free-standing
+(not in a group element)
+data element is turned into a data structure which is fully populated and
+then returned to the application;
+a&nbsp;group element is turned into a tree of data structures which
+are fully populated and the tree is returned to the application.
+For an output processor, the application must fully fill up a data
+structure, then call the output processor library to generate the
+resulting data/group elements.
+</p>
+
+<p>
+An alternative model would be stream-oriented processing.  For input
+processing, the application would register functions ("callbacks") to
+be called when certain structures (e.g.,&nbsp;attributes, individual data
+values) in the input data were encountered.
+For example, the beginning of a data element would trigger one callback,
+and the decoding of each input value from the element's data stream
+would trigger another callback.  This would allow the application to
+get a finer level of control over the handling of the input, without having to have
+it all decoded and stored before getting access to the decoded values.
+This specification does <i>not</i> address the development of a stream-oriented
+API for NIML data.
+</p>
+
+<blockquote><b><i>XML note</i></b>:<br />
+"Batch-oriented" corresponds to "DOM" in XML
+(<a href="http://www.w3.org/TR/DOM-Level-3-Core/">http://www.w3.org/TR/DOM-Level-3-Core/</a>).<br />
+"Stream-oriented" corresponds to "SAX" in XML
+(<a href="http://www.megginson.com/SAX/index.html">http://www.megginson.com/SAX/index.html</a>).
+</blockquote>
+
+<p>
+<b>Nota Bene</b>:
+The data structures and routines specified in the following appendices
+have not yet been fully implemented.  Thus, they are especially subject to
+change as experience accumulates.  See Appendix F for information on the
+current status of an implementation of this API.
+</p>
+
+<!--------------------------------------------------------------->
+<hr />
+<h2>Appendix B: Internal Representation of a Data Element in C</h2>
+<p>
+The information specified by a data element will
+be read into a C struct of type <tt>NI_element</tt> which
+has the following fields:
+<blockquote><table border=1 cellpadding=3>
+<tr>
+  <td><b>Field Name and Type</b></td>  <td><b>Meaning</b></td>
+</tr>
+<tr>
+  <td><tt>int type ;</tt></td>
+  <td>First field is always NI_ELEMENT_TYPE</td>
+</tr>
+<tr>
+  <td><tt>char *name ;</tt></td>
+  <td>Element name </td>
+</tr>
+<tr>
+  <td><tt>int attr_num;</tt></td>
+  <td>Number of attributes</td>
+</tr>
+<tr>
+  <td><tt>char **attr_lhs;</tt></td>
+  <td><tt>attr_lhs[i]</tt> points to the <tt>i</tt><sup>th</sup> attribute name</td>
+</tr>
+<tr>
+  <td><tt>char **attr_rhs;</tt></td>
+  <td><tt>attr_rhs[i]</tt> points to the <tt>i</tt><sup>th</sup> attribute String</td>
+</tr>
+<tr>
+  <td><tt>int vec_num;</tt></td>
+  <td>Number of vectors (from <tt>ni_type</tt>)</td>
+</tr>
+<tr>
+  <td><tt>int vec_len;</tt></td>
+  <td>Length of vectors (from <tt>ni_dimen</tt>)</td>
+</tr>
+<tr>
+  <td><tt>int vec_filled;</tt></td>
+  <td>How many vector rows were filled on input (&lt;=<tt>vec_len</tt>)</td>
+</tr>
+<tr>
+  <td><tt>int *vec_typ;</tt></td>
+  <td><tt>vec_typ[i]</tt> is the type of the <tt>i</tt><sup>th</sup> vector</td>
+</tr>
+<tr>
+  <td><tt>void **vec;</tt></td>
+  <td><tt>vec[i]</tt> points to the start of the <tt>i</tt><sup>th</sup> vector</td>
+</tr>
+<tr>
+  <td><tt>int vec_rank;</tt></td>
+  <td>Number of dimensions specified in <tt>ni_dimen</tt></td>
+</tr>
+<tr>
+  <td><tt>int *vec_axis_len;</tt></td>
+  <td><tt>vec_axis_len[i]</tt> is the <tt>i</tt><sup>th</sup> dimension count (from <tt>ni_dimen</tt>)</td>
+</tr>
+<tr>
+  <td><tt>float *vec_axis_delta</tt></td>
+  <td><tt>vec_axis_delta[i]</tt> is the <tt>i</tt><sup>th</sup> dimension grid spacing (from <tt>ni_delta</tt>)</td>
+</tr>
+<tr>
+  <td><tt>float *vec_axis_origin</tt></td>
+  <td><tt>vec_axis_origin[i]</tt> is the <tt>i</tt><sup>th</sup> dimension grid offset (from <tt>ni_origin</tt>)</td>
+</tr>
+<tr>
+  <td><tt>char **vec_axis_unit</tt></td>
+  <td><tt>vec_axis_unit[i]</tt> is the <tt>i</tt><sup>th</sup> dimension grid unit string (from <tt>ni_units</tt>)</td>
+</tr>
+<tr>
+  <td><tt>char **vec_axis_label</tt></td>
+  <td><tt>vec_axis_label[i]</tt> is the <tt>i</tt><sup>th</sup> dimension axis label (from <tt>ni_axes</tt>)</td>
+</tr>
+</table></blockquote>
+Further details on these fields are given below.
+</p>
+
+<p>
+<u><b><tt>type</tt></b></u>:<br />
+The first field is an <tt>int</tt> which can be used to distinguish
+the type of this element structure; the value <tt>NI_ELEMENT_TYPE</tt>
+here indicates that this is a data element.  (For group elements, the
+corresponding value would be <tt>NI_GROUP_TYPE</tt>.)
+</p>
+
+<p>
+<u><b><tt>name</tt></b></u>:<br />
+This is a standard NUL-terminated C string.  Since an element name
+must contain at least one character, this will not have zero length.
+</p>
+
+<p>
+<u><b><tt>attr_num</tt></b></u>:<br />
+This is the number of attributes read, including all the
+<tt>ni_*</tt> attributes.  This may be zero
+(e.g., for the elements "<tt>&lt;ni_f1&gt;3.2&lt;/&gt;</tt>" and
+"<tt>&lt;quit/&gt;</tt>", there are
+no attributes).
+</p>
+
+<p>
+<u><b><tt>attr_lhs</tt> and <tt>attr_rhs</tt></b></u>:<br />
+If <tt>attr_num</tt> is zero, then these pointers will be set to
+the NULL pointer.
+Otherwise, <tt>attr_lhs[i]</tt> will be a pointer to a standard NUL-terminated
+C string that is the LHS of the <tt>i</tt><sup>th</sup>
+"<tt>attname=string</tt>" attribute, and
+<tt>attr_rhs[i]</tt> will be a pointer to the <tt>i</tt><sup>th</sup>
+RHS string, for <tt>i</tt> from 0 to <tt>attr_num-1</tt>.
+Attributes will be stored in the order encountered in the data element header,
+including the attributes that start with "<tt>ni_</tt>".
+</p>
+
+<p>
+<u><b><tt>vec_num</tt></b></u>:<br />
+This is the number of types declared in the <tt>ni_type</tt> attribute;
+for example, "<tt>ni_type=f.2i</tt>" would give <tt>vec_num=3</tt>.
+<br />
+<i>Emtpy elements</i>:
+<tt>vec_num</tt> is zero if there is no data stream.
+</p>
+
+<p>
+<u><b><tt>vec_len</tt></b></u>:<br />
+This is the total number of entries from <tt>ni_dimen</tt>.
+</p>
+
+<p>
+<u><b><tt>vec_typ</tt></b></u>:<br />
+This array specifies the types of each vector of data read from the
+data stream, as specified from the <tt>ni_type</tt> attribute.
+If <tt>vec_num</tt>=0, then <tt>vec_typ</tt> will be
+the NULL pointer.  Otherwise,
+<tt>vec_typ[i]</tt> is a code indicating the data type, for
+<tt>i</tt> from 0 to <tt>vec_num-1</tt>:
+</p>
+<p>
+<table border=1 cellpadding=1>
+<tr>
+<tr>
+ <td><small><b>Name</b></small></td>
+ <td><small><tt>byte</tt></small></td>
+ <td><small><tt>short</tt></small></td>
+ <td><small><tt>int</tt></small></td>
+ <td><small><tt>float</tt></small></td>
+ <td><small><tt>double</tt></small></td>
+ <td><small><tt>complex</tt></small></td>
+ <td><small><tt>rgb</tt></small></td>
+ <td><small><tt>RGBA</tt></small></td>
+ <td><small><tt>String</tt></small></td>
+ <td><small><tt>Line</tt></small></td>
+</tr>
+<tr>
+ <td><small><b>Code</b></small></td>
+ <td><small> 0 </small></td>
+ <td><small> 1 </small></td>
+ <td><small> 2 </small></td>
+ <td><small> 3 </small></td>
+ <td><small> 4 </small></td>
+ <td><small> 5 </small></td>
+ <td><small> 6 </small></td>
+ <td><small> 7 </small></td>
+ <td><small> 8 </small></td>
+ <td><small> 9 </small></td>
+</tr>
+<tr>
+ <td><small><b>Macro</b></small></td>
+ <td><small><tt>NI_BYTE</tt></small></td>
+ <td><small><tt>NI_SHORT</tt></small></td>
+ <td><small><tt>NI_INT</tt></small></td>
+ <td><small><tt>NI_FLOAT</tt></small></td>
+ <td><small><tt>NI_DOUBLE</tt></small></td>
+ <td><small><tt>NI_COMPLEX</tt></small></td>
+ <td><small><tt>NI_RGB</tt></small></td>
+ <td><small><tt>NI_RGBA</tt></small></td>
+ <td><small><tt>NI_STRING</tt></small></td>
+ <td><small><tt>NI_LINE</tt></small></td>
+</tr>
+<tr>
+ <td><small><b><tt>vec[i]</tt></b></small></td>
+  <td><small><tt>byte *</tt></small></td>
+  <td><small><tt>short *</tt></small></td>
+  <td><small><tt>int *</tt></small></td>
+  <td><small><tt>float *</tt></small></td>
+  <td><small><tt>double *</tt></small></td>
+  <td><small><tt>complex *</tt></small></td>
+  <td><small><tt>rgb *</tt></small></td>
+  <td><small><tt>rgba *</tt></small></td>
+  <td><small><tt>char **</tt></small></td>
+  <td><small><tt>char **</tt></small></td>
+</tr>
+</table><br />
+The <tt>byte</tt>, <tt>rgb</tt>, <tt>rgba</tt>, and <tt>complex</tt> types are
+defined by
+<pre><b>  typedef unsigned char             byte ;
+  typedef struct { byte r,g,b ; }   rgb ;
+  typedef struct { byte r,g,b,a ; } rgba ;
+  typedef struct { float r,i ; }    complex ;
+</b></pre>
+<i>Empty elements</i>:
+<tt>vec_type</tt> is <tt>NULL</tt>.
+</p>
+
+<p>
+<u><b><tt>vec</tt></b></u>:<br />
+This array of arrays actually
+contains the data interpreted from the data stream, if
+<tt>vec_num</tt> is greater than zero.
+<tt>vec[i]</tt> is a pointer to an array of the type encoded
+by <tt>vec_typ[i]</tt> and of length <tt>vec_len</tt>, for
+<tt>i</tt> from 0 to <tt>vec_num-1</tt>.  For example, if
+<tt>vec_typ[2]==NI_FLOAT</tt>, then the proper use of the pointer
+<tt>vec[2]</tt> is something like
+<pre><b>  int j ;
+  float *fv = (float *) vec[2] ;
+  for( j=0 ; j < vec_len ; j++ ) do_something( fv[j] ) ;
+</b></pre>
+If <tt>vec_typ[4]==NI_STRING</tt>, then printing out the
+<tt>j</tt><sup>th</sup> string would be done like so:
+<pre><b>  char **sv = (char **) vec[4] ;
+  printf("%s\n",sv[j]) ;
+</b></pre>
+<i>Empty elements</i>:
+<tt>vec</tt> is <tt>NULL</tt>.
+</p>
+
+<p>
+<u><b><tt>vec_rank</tt></b></u>:<br />
+This value is the number of dimensions specified in <tt>ni_dimen</tt>;
+some examples:
+<pre><b>  ni_dimen=7              <b>implies</b>   vec_rank=1
+  ni_dimen="64,64"        <b>implies</b>   vec_rank=2
+  ni_dimen="64,64,16,80"  <b>implies</b>   vec_rank=4
+</b></pre>
+<i>Empty elements</i>: <tt>vec_rank</tt> is set to 0.
+</p>
+
+<p>
+<u><b><tt>vec_axis_len</tt></b></u>:<br />
+This array holds the substring values decoded from <tt>ni_dimen</tt>.
+Continuing the examples above:
+<pre><b>  vec_axis_len[0] = 7
+  vec_axis_len[0] = 64; vec_axis_len[1] = 64;
+  vec_axis_len[0] = 64; vec_axis_len[1] = 64; vec_axis_len[2] = 16; vec_axis_len[3] = 80;
+</b></pre>
+<i>Empty elements</i>: <tt>vec_axis_len</tt> is NULL.
+</p>
+
+<p>
+<u><b><tt>vec_axis_delta</tt></b></u>:<br />
+This array holds the values decoded from the <tt>ni_delta</tt>, if it
+was present.<br />
+<i>Empty elements</i> and elements without
+<tt>ni_delta</tt>: <tt>vec_axis_delta</tt> is NULL.
+</p>
+
+<p>
+<u><b><tt>vec_axis_origin</tt></b></u>:<br />
+This array holds the values decoded from the <tt>ni_origin</tt>, if it
+was present.<br />
+<i>Empty elements</i> and elements without
+<tt>ni_origin</tt>: <tt>vec_axis_origin</tt> is NULL.
+</p>
+
+<p>
+<u><b><tt>vec_axis_unit</tt></b></u>:<br />
+This array of pointers to C strings holds the values decoded from
+<tt>ni_units</tt> (i.e.,&nbsp;the substrings
+that were separated by commas).<br />
+<i>Empty elements</i> and elements without
+<tt>ni_units</tt>: <tt>vec_axis_unit</tt> is NULL.
+</p>
+
+<p>
+<u><b><tt>vec_axis_label</tt></b></u>:<br />
+This array of pointers to C strings holds the values decoded from
+<tt>ni_axes</tt> (i.e.,&nbsp;the substrings
+that were separated by commas).<br />
+<i>Empty elements</i> and elements without
+<tt>ni_axes</tt>: <tt>vec_axis_label</tt> is NULL.
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+
+<h2>Appendix C: Internal Representation of a Data Group in C</h2>
+<p>
+The information specified by a <tt>ni_group</tt> will
+be read into a C struct of type <tt>NI_group</tt> which
+has the following fields:
+<blockquote><table border=1 cellpadding=3>
+<tr>
+  <td><b>Field Name and Type</b></td>  <td><b>Meaning</b></td>
+</tr>
+<tr>
+  <td><tt>int type ;</tt></td>
+  <td>First field is always NI_GROUP_TYPE</td>
+</tr>
+<tr>
+  <td><tt>int attr_num;</tt></td>
+  <td>Number of attributes</td>
+</tr>
+<tr>
+  <td><tt>char **attr_lhs;</tt></td>
+  <td><tt>attr_lhs[i]</tt> points to the <tt>i</tt><sup>th</sup> attribute name</td>
+</tr>
+<tr>
+  <td><tt>char **attr_rhs;</tt></td>
+  <td><tt>attr_rhs[i]</tt> points to the <tt>i</tt><sup>th</sup> attribute String</td>
+</tr>
+<tr></tr>
+<tr>
+  <td><tt>int part_num;</tt></td>
+  <td>Number of parts (elements or sub-groups)</td>
+</tr>
+<tr>
+  <td><tt>int *part_typ;</tt></td>
+  <td><tt>part_typ[i]</tt> is the type of the <tt>i</tt><sup>th</sup> part</td>
+</tr>
+<tr>
+  <td><tt>void **part;</tt></td>
+  <td><tt>part[i]</tt> points to the data describing the <tt>i</tt><sup>th</sup> part</td>
+</tr>
+</table></blockquote>
+
+<p>
+<u><b><tt>part_num</tt></b></u>:<br />
+This is the number of elements or sub-groups encountered between
+the opening  "<tt>&lt;ni_group&gt;</tt>"
+and the closing "<tt>&lt;/ni_group&gt;</tt>".
+</p>
+
+<p>
+<u><b><tt>part_typ</tt></b></u>:<br />
+<tt>part_typ[i]</tt> specifies whether the <tt>i</tt><sup>th</sup> part
+is a data element (constant <tt>NI_ELEMENT_TYPE</tt>) or a group itself
+(constant <tt>NI_GROUP_TYPE</tt>), for <tt>ii=0..part_num-1</tt>.
+</p>
+
+<p>
+<u><b><tt>part</tt></b></u>:<br />
+If <tt>part_typ[i]==NI_ELEMENT_TYPE</tt>, then
+<tt>(NI_element&nbsp;*)part[i]</tt> is a pointer to a <tt>NI_element</tt>
+struct, defined above.
+If <tt>part_typ[i]==NI_GROUP_TYPE</tt>,then
+<tt>(NI_group&nbsp;*)part[i]</tt> is a pointer to a <tt>NI_group</tt> struct.
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix D: The C API for Input from NIML</h2>
+
+<p>
+<b><u>Input to the NIML Functions: <tt>NI_stream</tt></u></b>:<br />
+Data is provided to the NIML processor
+through an opaque handle of type <tt>NI_stream</tt>.
+("Opaque" means that the internal components of this type are
+not visible to the application).
+A&nbsp;<tt>NI_stream</tt> for input is a source of bytes that
+will be scanned to construct data and/or group elements.
+
+<p>
+<b><u>Opening a <tt>NI_stream</tt> for Input</u></b>:<br />
+An application opens an input stream with a function call like so:
+<pre><b>  NI_stream ns ;
+  ns = NI_stream_open( sname , "r" ) ;
+</b></pre>
+Here, <tt>sname</tt> is a C string (NUL-terminated) that specifies
+whence the stream is to derive its data.  The following formats for
+<tt>sname</tt> are supported:
+<ul>
+  <li><p>
+       <tt><b>"file:filename"</b></tt><br />
+       This form opens the file "<tt>filename</tt>" for input,
+       using the C library function <tt>fopen()</tt>.
+      </p>
+
+  <li><p>
+       <tt><b>"fd:integer"</b></tt><br />
+       This form does I/O to the pre-opened (by the application)
+       file descriptor given by <tt>integer</tt>.  For example,
+       <tt>"fd:0"</tt> can be used for input from <tt>stdin</tt>,
+       and <tt>"fd:1"</tt> can be used for output to <tt>stdout</tt>.
+       When <tt>NI_stream_close()</tt> is called, this file
+       descriptor will <i>not</i> be closed -- the application opened
+       it, so the application can close it.
+       <ul>
+        <li> If the application opened
+             a stream <tt>FILE&nbsp;*fp</tt> with <tt>fopen()</tt>
+             (or <tt>popen()</tt>, etc.),
+             it can retrieve the file descriptor
+             integer with C library function <tt>fileno()</tt>, and
+             use something like <tt>sprintf(sname,"fd:%d",fileno(fp))</tt>
+             to construct the first argument to <tt>NI_stream_open()</tt>.
+       </ul></p>
+
+  <li><p>
+      <tt><b>"http://hostname/filename"</b></tt>&nbsp;&nbsp;OR<br />
+      <tt><b>"ftp://hostname/filename"</b></tt><br />
+       These forms fetch the given URL and then reads data from it.
+       Effectively, these forms are somewhat like <tt>"str:"</tt>, where the
+       input string of bytes comes from an external resource.  The
+       entire contents of the URL will
+       be fetched during the <tt>NI_stream_open()</tt> call and
+       stored in a memory buffer inside the <tt>NI_stream</tt> structure.
+      </p>
+
+  <li><p>
+       <tt><b>"str:string"</b></tt><br />
+       This form uses a copy of the characters that follow "<tt>str:</tt>"
+       as the source of input bytes.  For example:
+<pre><b>  "str:&lt;fred ni_type=f ni_dimen=3&gt;1.1 1.2 1.3&lt;/&gt;"</b></pre>
+       It is also possible to provide the string to be decoded
+       with a pair of calls like
+<pre><b>  ns = NI_stream_open( "str:" , "r" ) ;
+  NI_stream_setbuf( ns , string ) ;
+</b></pre>
+      The call to <tt>NI_stream_setbuf()</tt> will do nothing if
+      <tt>ns</tt> was not opened as a "<tt>str:</tt>" in input
+      (<tt>"r"</tt>) mode.  Otherwise, any existing contents of
+      the internal string buffer will be discarded and replaced
+      by a copy of the contents of <tt>string</tt>.
+      </p>
+
+  <li><p>
+       <tt><b>"tcp:hostname:port"</b></tt><br />
+       This form opens a TCP/IP socket to the computer <tt>hostname</tt>
+       (which can be specified by Internet name or by IP address in
+       the standard dotted form 123.456.789.123), on the port given
+       by <tt>port</tt>.  For example,
+<pre><b>  "tcp:127.0.0.1:9999"</b></pre>
+       opens a socket to the local computer on port #9999.
+       <ul>
+        <li> When opening a socket for input <tt>"r"</tt>, the <tt>hostname</tt>
+             is actually ignored.  In this case, the socket is listening
+             for connection from any Internet host.  When opening
+             a socket for output <tt>"w"</tt>, then the socket actually
+             uses the <tt>hostname</tt> to reach out to try to attach
+             to a listening <tt>"r"</tt> socket.  After the connection
+             is established, the IP address (as a string in dotted form)
+             of the caller can be ascertained from function
+             <tt>NI_stream_name(ns)</tt>.
+        <li> Since sockets are (usually) used for communication between
+             two separate processes in realtime, it is necessary for
+             the application to wait until the socket is properly
+             attached to both processes.  At that point the application
+             can read data from the socket.
+        <li> If <tt>NI_read_element()</tt> (see below) is called with
+             a <tt>tcp:</tt> <tt>NI_stream</tt> that is not connected
+             at both ends, it will wait the specified amount of time
+             for the other process to connect.  If no connection is
+             made, or if the connection is made but no data is available,
+             <tt>NI_read_element()</tt> will return <tt>NULL</tt>.
+        <li> Alternatively, a program can check if a <tt>NI_stream</tt>
+             is "good" by using the function call
+<pre><b>  int msec=5, nn=NI_stream_goodcheck(ns,msec) ; </b></pre>
+             The input <tt>msec</tt> is the number of milliseconds to
+             wait for the stream to become good.
+             The return value <tt>nn</tt> is 1 if the stream is potentially capable
+             of reading data (socket is open; or file/string hasn't been
+             used up yet).  The return value is 0 if the stream isn't
+             yet ready, but is waiting for connection (socket isn't connected
+             yet).  The return value is -1 if an unrecoverable fatal error
+             has happened to the stream (socket connection failed or broke,
+             input file/string was exhausted) such that no more data will
+             be readable.  This function can be used in a loop to check for
+             establishment of the connection:
+<pre><b> ns = NI_stream_open( "tcp:anybody:6666" , "r" ) ;
+ if( ns == NULL ){ fprintf(stderr,"Can't open socket 6666\n"); exit(1); }
+ while(1){
+   nn = NI_stream_goodcheck(ns,1) ;
+   if( nn == 1 ) break ;  /* good! */
+   if( nn <  0 ){ fprintf(stderr,"Can't accept on socket 6666\n"); exit(1); }
+   /** could do something else here before trying again **/
+ }
+ fprintf(stderr,"Socket 6666 connected from address %s\n",NI_stream_name(ns)) ;
+</b></pre>
+        <li> Using <tt>NI_stream_goodcheck()</tt> to make the connection
+             rather than <tt>NI_read_element()</tt> offers the ability for
+             the reading process to verify the writing process's
+             IP address against a list of trusted hosts before accepting
+             any input bytes.  If you just
+             use <tt>NI_read_element()</tt> to make the connection, then
+             the first element will be read before you have a chance
+             to check the IP address with <tt>NI_stream_name()</tt>.
+
+        <li> Unlike other <tt>NI_stream</tt>s, a socket can be used
+             for bi-directional communication.  That is, an application
+             can use both <tt>NI_read_element()</tt> and
+             <tt>NI_write_element()</tt> with a <tt>tcp:</tt> stream.
+             Once the connection is made, it doesn't matter which
+             end opened the stream with <tt>"r"</tt> and which with <tt>"w"</tt>.
+
+        <li> Given an arbitrary <tt>NI_stream</tt> value <tt>ns</tt>, to determine if
+             it is potentially allowed to write or read to that stream, use the
+             function <tt>NI_stream_writeable(ns)</tt> or
+                      <tt>NI_stream_readable(ns)</tt>.  These functions
+             return 1 if <tt>ns</tt> is of a type that allows the given
+             operation, and return 0 if not.  These should not be confused
+             with <tt>NI_stream_writecheck()</tt> and
+                  <tt>NI_stream_readcheck()</tt>, which actually determine
+             if writing/reading will send/return any values at that instant.
+        <li> Note that many port numbers are in use for various semi-standard
+             Internet services.  A&nbsp;list of such ports can be found at
+             <a href="http://www.iana.org/assignments/port-numbers">http://www.iana.org/assignments/port-numbers</a>.
+             It is pretty safe to use ports from 49152 through 65535, since these
+             are all unassigned.
+       </ul>
+      </p>
+</ul>
+If an error occurs when opening the stream
+(e.g.,&nbsp;<tt>filename</tt> can't be opened,
+<tt>hostname</tt> cannot be found, <tt>port</tt> number illegal),
+<tt>NI_stream_open()</tt> returns <tt>(NI_stream)NULL</tt>.
+
+<p>
+<b><u>Closing a <tt>NI_stream</tt></u></b>:<br />
+An application closes an input (or output) stream with a call like
+<pre><b> NI_stream_close( ns ) ; </b></pre>
+where <tt>ns</tt> is a valid <tt>NI_stream</tt> value that was previously
+returned from <tt>NI_stream_open()</tt>.  <tt>NI_stream_close()</tt> has no
+return value.  After this function has been called, the memory associated
+with <tt>ns</tt> has been deallocated, and it is illegal for the application
+to refer to <tt>ns</tt> again, unless it is reassigned by another call to
+<tt>NI_stream_open()</tt>.
+</p>
+
+<p>
+<b><u>Reading Data from an NIML Input Stream</u></b>:<br />
+The next block of data can be read from an opened stream using
+a call like so:
+<pre><b>  void *nini ;
+  int msec = 1 ;
+  nini = NI_read_element( ns , msec ) ;
+</b></pre>
+where <tt>ns</tt> is a valid <tt>NI_stream</tt> value that was previously
+returned from <tt>NI_stream_open()</tt>, and <tt>msec</tt> is the number
+of milliseconds the process should wait for more data to appear in the
+input stream.  Use <tt>msec=0</tt> for an immediate return if no data
+is available.
+</p>
+
+<p>
+<tt>NULL</tt> is returned if a complete element
+could not be extracted from the input
+stream.  To check if this has failed because the connection was closed,
+use
+<pre><b>  int nn = NI_stream_readcheck(ns,0) ;
+  switch( nn ){
+     case -1:  /* stream has gone bad */
+     case  0:  /* stream is OK, just waiting for data (sockets only) */
+     case  1:  /* stream has data waiting to be read */
+  }
+</b></pre>
+If <tt>NI_read_element()</tt> returns NULL and <tt>NI_stream_readcheck()</tt>
+then returns&nbsp;-1, then the stream will deliver no more data.
+</p>
+
+<p>
+If not <tt>NULL</tt>,
+the value returned by <tt>NI_read_element()</tt>
+points to a <tt>NI_element</tt> or
+to a <tt>NI_group</tt> data structure.  The program can determine which by
+<pre><b>  int tt = NI_element_type( nini ) ;
+  if( tt == NI_ELEMENT_TYPE ){  /* data element */
+    NI_element *nel = (NI_element *) nini ;
+    /* do something here */
+  } else if( tt == NI_GROUP_TYPE ){  /* group element */
+    NI_group *ngr = (NI_group *) nini ;
+    /* do something else here, I suppose */
+  } else {
+    /* this should never occur, unless nini==NULL (tt==-1) */
+  }
+</b></pre>
+<ul>
+<li> If a free-standing (un-grouped) data element is
+     the first element encountered in the input, then this function will
+     read all its data (waiting, if needed,
+     until the data stream for this element
+     is done), and return a <tt>NI_element&nbsp;*</tt>.
+<li> If a group data element is the first element encountered  in the
+     input, then this function will read all the elements contained within
+     it (waiting, if needed, until the end token for the group), and return
+     a <tt>NI_group&nbsp;*</tt> with the appropriate number of parts.
+</ul>
+</p>
+
+<p>
+<b><u>Checking for Available Input</u></b>:<br />
+It can be useful to check if data is available to be read, in order to
+avoid calling <tt>NI_read_element()</tt> and waiting for input when
+there <i>is</i> no input.  This function call does just that:
+<pre><b>  int cod ;
+  cod = NI_stream_readcheck( ns , 1 ) ;
+</b></pre>
+The return value is positive if data can be read from the <tt>NI_stream</tt>,
+zero if no data can be read (but the stream is still good), and negative
+if the stream has failed in some way (e.g.,&nbsp;the socket was closed
+at the other end).  This function only checks if at least 1 data byte can be read
+from the I/O stream represented by <tt>ns</tt>; it does not check if valid
+NIML data is present.  For socket streams, the second argument is the number
+of milliseconds the function should wait to check if data is present.  For
+the other stream types, the function will return immediately, since there
+is no need to synchronize with another process.
+</p>
+
+<p>
+<b><u>Freeing Data from an <tt>NI_group</tt> or <tt>NI_element</tt></u></b>:<br />
+Function call <tt>NI_free_element( nini )</tt> can be used to free all the
+data from a <tt>NI_element</tt> or <tt>NI_group</tt> constructed by the
+NIML functions.
+</p>
+
+<p>
+Some application software may wish to move some or all of the data
+out of an <tt>NI_element</tt> prior to freeing the <tt>NI_element</tt>
+data structure itself.  Instead of having to copy arrays, the
+application can simply copy any pointer from the <tt>NI_element</tt> to
+its own storage, and then set the pointer in the <tt>NI_element</tt> to NULL.
+For example:
+<pre><b>  NI_element *nel ;
+  float *fp ;
+  int   nfp ;
+  nel = NI_read_element(ns,1) ;    /* read a group element      */
+  nfp = nel->vec_len ;             /* save length of data array */
+  fp  = (float *) nel->vec[0] ;    /* copy data array pointer   */
+  nel->vec[0] = NULL ;             /* clear pointer in nel       */
+  NI_free_element( nel ) ;         /* free everything else in ngr */
+</b></pre>
+This example skips all checking (e.g., if <tt>nel==NULL</tt>), and
+assumes that the data structure returned is a data element that contains
+a float vector as its first entry.  In a real application, many more cases
+would need to be allowed for.
+</p>
+
+<p>
+<b><u>Attributes within an Element</u></b>:<br />
+The application can certainly search for a given attribute name in an
+element returned by <tt>NI_read_element()</tt>; however, there is
+a utility function to do this.  For example:
+<pre><b>  char *rhs = NI_get_attribute( nel , "idcode" ) ;</b></pre>
+will return <tt>NULL</tt> if there is no attribute with left hand side
+<tt>"idcode"</tt>; otherwise it returns a pointer to the right hand side
+value of the attribute.  This pointer points into the element's data
+structure, so it should not be modified or <tt>free()</tt>-ed.  If you
+need to make a copy of it, use the <tt>strdup()</tt> library function.
+<tt>NI_get_attribute()</tt> will work with both data and group elements.
+</p>
+
+<p>
+<b><u>Error Conditions</u></b>:<br />
+The following is a discussion of how an implementation of the C API should
+handle various error conditions.
+<ul>
+<li> If the input stream aborts (e.g., premature end of file or socket close)
+     before any input element header is completed, then <tt>NI_read_element()</tt>
+     will return <tt>NULL</tt>.
+<li> <tt>NI_read_element()</tt> will skip input data bytes until it
+     finds the opening of an element header
+     (the character&nbsp;"<tt>&lt;</tt>").
+     If the header contains an error
+     (e.g.,&nbsp;an illegal name), then it will be skipped.
+     <tt>NI_read_element()</tt> will then try to find another good header
+     farther on in the input stream.
+<li> If a data stream ends prematurely (before the number of data values
+     specified by <tt>ni_dimen</tt>, <tt>ni_binary</tt>, or <tt>ni_base64</tt>),
+     then the data element will still be "full size" as specified by
+     <tt>ni_dimen</tt> (recall the default length is&nbsp;1).
+     However, the
+     component values corresponding to the missing data
+     in the <tt>NI_element</tt> data structure will be
+     set to zero values, since the <tt>vec[i]</tt> arrays will have been
+     created with <tt>calloc()</tt>.  The <tt>vec_filled</tt> field in
+     the <tt>NI_element</tt> struct will be set to the number of
+     rows of the vectors that were fully filled.  For example:
+<pre><b>  &lt;elvis ni_dimen=3 ni_type=fi&gt; 3.2 1 4.7 2 3.1 &lt;/&gt; </b></pre>
+     would result in <tt>vec_len=3</tt> but <tt>vec_filled=2</tt>, since
+     the last row would only be half filled.
+<li> If a data stream contains <i>more</i> data than needed,
+     the extra inputs are ignored.  There is no indication in the
+     <tt>NI_element</tt> structure that the data stream was too long.
+<li> If a text data stream for a data element contains input
+     that cannot be properly decoded into numbers,
+     then the data stream bytes that can't be decoded are skipped until
+     the next whitespace is found, and the corresponding output value
+     is set to zero.  For example:
+<pre><b> &lt;vector ni_type=3f&gt; 3.2 z66 7.1 &lt;/&gt; </b></pre>
+     decodes to the 3 numbers "3.2", "0.0", and "7.1".  No indication
+     of this error is made in the <tt>NI_element</tt> structure.
+<li> If a text data stream for a data element is supposed
+     to have a String value, and the String starts with a quote character
+     (<tt>"</tt>&nbsp;or&nbsp;<tt>'</tt>), then the String ends with
+     the next matching quote character or with the end token
+     (end of file/transmission, or the "<tt>&lt;</tt>" character).
+     The latter case, where the matching quote character is missing,
+     is almost surely an error, and may result in a very long String
+     value and the skipping of many other values:
+<pre><b>  &lt;junkola ni_type=f.S ni_dimen=3&gt;
+    3.2 "This is
+    4.7 Bob
+    9.3 Dole &lt;/&gt;
+</b></pre>
+   The first String value starts with the "T" in "<tt>This</tt>" and ends with
+   the blank after "<tt>Dole</tt>".  The second and third float and String values
+   will never be read.
+</ul>
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix E: The C API for Output to NIML</h2>
+
+<p>
+<b><u>Opening a <tt>NI_stream</tt> for Output</u></b>:<br />
+The string <tt>"w"</tt> is supplied as the second argument to
+<tt>NI_stream_open()</tt> when a program wants to write to the stream.
+<ul>
+ <li> For "<tt>fil:</tt>" streams, the output file will be erased,
+      if it already exists.
+
+ <li> For "<tt>str:</tt>" streams, the stream writes into an internal
+      buffer (always in text mode).  This buffer can be accessed later
+      using the function <tt>NI_stream_getbuf()</tt>:
+<pre><b>  NI_stream ns = NI_stream_open( "str:" , "w" ) ;
+  NI_element *nel ;
+  NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+  printf("%s\n",NI_stream_getbuf(ns)) ;
+</b></pre>
+      The function <tt>NI_stream_clearbuf(ns)</tt> can be used
+      to erase the contents of the <tt>"str:"</tt> output buffer,
+      so that new elements can be overwritten into that space.
+
+  <li> For a "<tt>tcp:hostname:port</tt>" stream, an outgoing call is
+       placed to the specified Internet (IPv4) host on the specified port.
+       Unless another program is already listening at that host
+       with a <tt>"r"</tt> socket on the same port number, the returned
+       <tt>NI_stream</tt> will not be ready to write to immediately.
+
+  <li> You can use a loop with <tt>NI_stream_goodcheck()</tt> to
+       detect when an outgoing <tt>NI_stream</tt> socket is properly
+       connected.
+
+  <li> If you use <tt>NI_write_element()</tt> on a socket that is
+       not yet connected, that function will attempt to connect.
+       If the connection fails, <tt>NI_write_element()</tt> will
+       return&nbsp;0 immediately. It will not wait for an an outgoing
+       connection to be established.
+</ul>
+</p>
+
+<p>
+<b><u>Writing Elements to an NIML Output Stream</u></b>:<br />
+The application
+must first assemble a data element, or a group element containing
+one or more data elements.  Then the element is written to the
+output stream with function <tt>NI_write_element()</tt>:
+<pre><b>  NI_group   *ngr ;
+  NI_element *nel ;
+  int nbe, nbg ;
+  nbe = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+  nbg = NI_write_element( ns , ngr , NI_BINARY_MODE ) ;
+  (void) NI_write_element( ns , nel , NI_BASE64_MODE ) ;
+</b></pre>
+The return value is the number of bytes written to the output stream.
+If 0 is returned, then nothing was written (this will be the case
+if the output socket isn't yet connected at the reading end).
+If -1 is returned, then nothing was written and the <tt>NI_stream</tt>
+suffered an unrecoverable error (this will be the case if the output
+socket was connected but the connection was broken: e.g.,&nbsp;if the
+reading application crashed).
+</p>
+
+<p>
+For debugging purposes, it is often useful to write an element
+to standard output (in text form, of course).
+This can be done with the following code snippet:
+<pre><b>  NI_stream nstdout ;
+  NI_element *nel ;  /* get this from somewhere */
+  nstdout = NI_stream_open( "fd:1" , "w" ) ;
+  NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
+  NI_stream_close( nstdout ) ;
+</b></pre>
+
+<p>
+Output <tt>"str:"</tt> streams are always written in text mode, regardless
+of the third parameter to <tt>NI_write_element()</tt>.  Also, data elements
+that contain String or Line components will always be written in text mode.
+</p>
+
+<p>
+The data elements written by this API will
+<ul>
+<li> Always use quoted Strings as the RHS values for attributes;
+<li> Always close an element with "<tt>&lt;/elementname&gt;</tt>" rather than
+     "<tt>&lt;/&gt;</tt>";
+<li> Always mark binary and base64 data streams with the byte order of
+     the application's CPU.
+</ul>
+</p>
+
+<p>
+<b><u>Assembling Data Elements</u></b>:<br />
+It is perfectly possible for the application to assemble its own
+data elements prior to calling one of the <tt>NI_put</tt> functions
+to write them.  However, the following routines are intended to make
+it simpler to assemble a data element from data structures and arrays
+already present in the application.
+<ul>
+<li><p>Create a data element:
+<pre><b>  NI_element *nel ;
+  nel = NI_new_data_element( "elementname" , 6 ) ;
+</b></pre>
+  Creates a data element with the given element name and with
+  <tt>ni_dimen=6</tt>; the second argument
+  specifies the length of the arrays added to the element, using
+  function <tt>NI_add_column()</tt>.
+  <ul>
+    <li> If the second argument is&nbsp;0, then this will be an empty element.
+    <li> If the second argument is negative, then instead of using
+         <tt>NI_add_column()</tt> to add fixed-length arrays to the
+         data element, you use <tt>NI_add_row()</tt> to add one row
+         at a time to the data element.  See below for details.
+    <li> You cannot mix the use of <tt>NI_add_column()</tt> and
+         <tt>NI_add_row()</tt> in a single element.  When you create
+         the element with <tt>NI_new_data_element()</tt>, you must
+         choose which method will be used to actually put data into
+         the <tt>NI_element</tt> structure.
+  </ul>
+  </p>
+
+<li><p> Add an array (column) to a data element, for data elements whose
+        column length was specified as positive in
+        <tt>NI_new_data_element()</tt>.
+<pre><b>  float *fff ;
+  NI_add_column( nel , NI_FLOAT , fff ) ;
+</b></pre>
+ This adds a float column to the data element.  The number of
+ values pointed to by <tt>fff</tt> must match the number of
+ values specified in <tt>NI_new_data_element()</tt>.  This data
+ is copied into the data structure pointed to by <tt>nel</tt>, and
+ so can be over-written or deleted by the application after this
+ function call.
+ For the data types <tt>NI_STRING</tt> and <tt>NI_LINE</tt>,
+ the third argument should be <tt>char&nbsp;**</tt>.  Each NUL-terminated
+ string from this array will be copied into the data element's internal
+ storage.
+ </p>
+
+<li><p>
+    Add a row to a data element, for data elements whose column
+    length was specified as negative in <tt>NI_new_data_element()</tt>.
+    <ul>
+    <li> Before you can add a row, you must describe the contents of
+         the row, and its mapping from some C struct.  This definition
+         is done with the function <tt>NI_define_rowmap_VA()</tt>.  For example:
+<pre><b>  typedef struct { int m,n; float f; char *s; } somestruct ;
+  somestruct sss = { 3,2,1.7,"Fourier Transform" } ;
+  nel = NI_new_data_element( "something" , -1 ) ;
+  NI_define_rowmap_VA( nel ,
+                       NI_INT   , offsetof(somestruct,m) ,
+                       NI_INT   , offsetof(somestruct,n) ,
+                       NI_FLOAT , offsetof(somestruct,f) ,
+                       NI_STRING, offsetof(somestruct,s) , -1 ) ;
+  NI_add_row( nel , &sss ) ;   /* add 1st row of data */
+</b></pre>
+         In this example, the struct type <tt>somestruct</tt> has four
+         fields.  Each field is defined to the element with a pair
+         of <tt>int</tt> arguments to <tt>NI_define_rowmap_VA()</tt>.
+         The first member of the pair is a type code, such as <tt>NI_INT</tt>.
+         The second member of the pair is an offset into the struct type
+         where the data lives.  This offset is most conveniently computed
+         using the C standard macro <tt>offsetof()</tt>.  The final
+         argument to <tt>NI_define_rowmap_VA()</tt> should be&nbsp;-1
+         (not a legal type code).
+    <li> Function
+<tt>NI_add_many_rows(&nbsp;NI_element&nbsp;*nel,&nbsp;int&nbsp;nrow,&nbsp;int&nbsp;stride,&nbsp;void&nbsp;*dat&nbsp;)</tt>
+         can be used to add <tt>nrow</tt> rows at a time.  Continuing the above example:
+<pre><b>  somestruct *ttt = malloc(sizeof(somestruct)*100) ;
+  /** fill ttt[i].stuff for i=0..99 **/
+  NI_add_row( nel , 100 , sizeof(somestruct) , ttt ) ;
+</b></pre>
+         This is more efficient than adding one row at a time, but simpler than
+         converting each field (e.g.,&nbsp;<tt>m</tt> in <tt>somestruct</tt>)
+         in an array of structs to a column vector and then using
+         <tt>NI_add_column()</tt>.
+    <li> You can also define a rowmap (in the same way) when you want
+         to extract data from an element acquired from <tt>NI_read_element()</tt>.
+         The corresponding function call (to get the data out) is
+<pre><b>  NI_get_row( nel , rr , &amp;sss ) ; </b></pre>
+         where the <tt>int</tt> input <tt>rr</tt> is the row index from
+         which the data should be extracted, and <tt>&amp;sss</tt> is the
+         pointer to the struct into which the data should be placed
+         (at the offsets previously established by a call to
+          <tt>NI_define_rowmap_VA()</tt>).  Of course, in this case,
+         you must call the <tt>NI_define_rowmap_VA()</tt> after you
+         acquire the element from <tt>NI_read_element()</tt> and
+         before you call <tt>NI_get_row()</tt>.  The number and type
+         of row components must agree with the number defined in
+         the data element header.  How your program ensures that
+         is beyond the scope of this API (e.g.,&nbsp;you could have
+         an convention for various element names to be mapped to
+         corresonding struct types).
+    <li> If you prefer not to use the variable argument list function
+         <tt>NI_define_rowmap_VA()</tt>, you can instead use
+         the function <tt>NI_define_rowmap_AR()</tt>, where the type
+         and offset values are input in arrays:
+<pre><b>  int typ[4] , off[4] ;
+  typ[0] = NI_INT    ; off[0] = offsetof(somestruct,m) ;
+  typ[1] = NI_INT    ; off[1] = offsetof(somestruct,n) ;
+  typ[2] = NI_FLOAT  ; off[2] = offsetof(somestruct,f) ;
+  typ[3] = NI_STRING ; off[3] = offsetof(somestruct,s) ;
+  NI_define_rowmap_AR( nel , 4 , typ , off ) ;
+</b></pre>
+         In fact, <tt>NI_define_rowmap_VA()</tt> just assembles type
+         and offset arrays from its inputs, then calls
+         <tt>NI_define_rowmap_AR()</tt> to do the actual rowmap setup
+         inside the data element struct.
+    </ul></p>
+
+<li><p> Specify dimensionality of element data (optional):
+<pre><b>  int    nd[2] = {    2 , 3        } ;
+  float del[2] = {  1.5 , 2.5      } ;
+  float org[2] = { -1.3 , 3.3      } ;
+  char *uni[2] = { "mm" , "parsec" } ;
+  char *axi[2] = { "x"  , "y"      } ;
+
+  NI_set_dimen ( nel , 2,nd ) ;   /* ni_dimen="2,3"       */
+  NI_set_delta ( nel , del  ) ;   /* ni_delta="1.5,2.5"   */
+  NI_set_origin( nel , org  ) ;   /* ni_origin="-1.3,3.3" */
+  NI_set_units ( nel , uni  ) ;   /* ni_units="mm,parsec" */
+  NI_set_axes  ( nel , axi  ) ;   /* ni_axes="x,y"        */
+</b></pre>
+  These functions set the indicated attributes.  The first one that
+  must be used is <tt>NI_set_dimen()</tt>, if the number of dimensions
+  is more than&nbsp;1.  In the example, this function sets the
+  size of each dimension; these values must multiply out to the same
+  length as given in <tt>NI_new_data_element()</tt>.  If <tt>NI_set_dimen()</tt>
+  is not used, then the number of dimensions is taken as&nbsp;1.
+  The number of dimensions is needed for the other functions
+  (<tt>NI_set_delta()</tt>, etc.) so that they can extract the correct
+  number of values from their input arrays (<tt>del</tt>, etc.).
+  </p>
+
+<li><p>
+     If you add data to the element using the <tt>NI_add_row()</tt> interface,
+     then you cannot specify the dimension attributes as above until
+     the last row is added.  This restriction is so that the call
+     to <tt>NI_set_dimen()</tt> can check if the supplied dimensions
+     multiply out to the column length of the element.
+   </p>
+
+<li><p> Add other attributes (optional):
+<pre><b> NI_set_attribute( nel , "attname" , "attvalue" ) ; </b></pre>
+ </p>
+</ul>
+A data element created this way can be freed by using <tt>NI_free_element()</tt>.
+</p>
+
+<p>
+<b><u>Assembling Group Elements</u></b>:<br />
+A similar set of functions can be used to assemble a group element.
+<ul>
+ <li><p> Create a new group element:
+<pre><b>  NI_group *ngr ;
+  ngr = NI_new_group_element() ;
+</b></pre>
+ </p>
+
+ <li><p> Add an element (data or group) to a group element:
+<pre><b>  NI_element *neladd ;
+  NI_add_to_group( ngr , neladd ) ;
+</b></pre>
+ </p>
+</ul>
+A group element created this way can be freed by using <tt>NI_free_element()</tt>.
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix F: Implementation Status</h2>
+
+<p>
+<b>[21 Feb 2002]</b>
+The first implementation of most of the C API exists.  It is not
+very well tested yet.
+<ul>
+<li><p> Some limitations:
+     <ul>
+     <li> <tt>http:</tt> and <tt>ftp:</tt> streams work for reading&nbsp;<tt>"r"</tt>,
+              but not for writing&nbsp;<tt>"w"</tt>.
+              (It isn't clear to me what writing to <tt>http:</tt> means anyway;
+                maybe a POST method to a CGI script?  What to do with the
+                response from the script?  That seems to be the subject
+                for a standard communications protocol between neuroimaging
+                applications, which would be one of the nonexistent "higher level
+                documents" I alluded to at the beginning.)
+     <li> The various numeric types and String fields are implemented.
+          <ul><li> Note that String data can only be written in text mode;
+                   if you try to write a data element in binary mode and
+                   the element has a String column, the data element
+                   will be written in text mode anyway.
+              <li> On output, Strings are always "quoted" and use escape sequences
+                   to represent the 5 special characters
+                   <b><tt>&amp;&nbsp;&quot;&nbsp;'&nbsp;&lt;&nbsp;&gt;&nbsp;</tt></b>.
+              <li> On input, Strings are "unescaped" and have any end-of-line
+                   characters included normalized (as described for Attributes,
+                   much earlier).
+          </ul>
+     <li> Line fields are not implemented.
+
+     <li> <tt>&lt;ni_typedef .../&gt;</tt> works.
+          <ul>
+          <li> However, its definitions are global; that is, if one input
+               streams defines a new type, then that will affect the data
+               elements coming in from another input stream in the same
+               application.
+          </ul>
+
+     <li> <tt>ni_url</tt> and <tt>ni_include</tt> are not implemented.</p>
+     </ul></p>
+
+<li><p> Miscellaneous utility functions not mentioned previously:
+     <ul>
+     <li> <tt>void NI_sleep(int msec)</tt> will put the process to
+          sleep for <tt>msec</tt> milliseconds.
+     <li> <tt>int NI_clock_time(void)</tt> will return the number
+          of milliseconds since it was first called in the application
+          (first call always returns&nbsp;0).
+     <li> <tt>long NI_filesize( char *pathname )</tt> will return the
+          length of the given file in bytes (returns -1 if file not found).
+     <li> <tt>int NI_byteorder(void)</tt> returns constant
+          <tt>NI_LSB_FIRST</tt> on LSB-first CPUs and
+          <tt>NI_MSB_FIRST</tt> on MSB-first CPUs.
+     <li> <tt>void NI_swap2( int n, void *ar )</tt> will swap <tt>n</tt> sets
+          of byte pairs in place in array <tt>ar</tt>.
+     <li> <tt>void NI_swap4( int n, void *ar )</tt> will swap <tt>n</tt> sets
+          of byte quads in place in array <tt>ar</tt>.
+     <li> <tt>void NI_swap8( int n, void *ar )</tt> will swap <tt>n</tt> sets
+          of byte octuples in place in array <tt>ar</tt>.
+     <li> <tt>void NI_typedef( char *name, char *type, char *dimen )</tt>
+          is equivalent to
+<pre>  <b>&lt;ni_typedef ni_type=<i>type</i> ni_dimen=<i>dimen</i>/&gt;</b></pre>
+          If the input string <tt>dimen</tt> is <tt>NULL</tt>, then the
+          <tt>ni_dimen</tt> attribute isn't set.
+     <li> <tt>char *NI_type_name( int tcode )</tt> returns a pointer
+          to a static string (don't <tt>free()</tt> this!) with the
+          name corresponding to an individual type code as stored in
+          a <tt>NI_element</tt> <tt>vec_typ</tt> field.
+     <li> <tt>int NI_type_size( int tcode )</tt> returns the size in bytes
+          [<tt>sizeof()</tt>] of a single value as stored in a variable
+          with the given type code (e.g.,&nbsp;<tt>NI_FLOAT</tt>).
+     <li> <tt>int NI_element_allsize( NI_element *nel )</tt>
+          returns the size in bytes of all the data stored in the
+          columns of a data element.  This will return 0 if the
+          element is a group element or is an empty data element.
+     <li> <tt>int NI_read_URL( char *url, char **data )</tt>
+          reads the remote file specified in the <tt>url</tt> string,
+          and returns the data (un-gzipped, if needed) into a newly
+          <tt>malloc()</tt>-ed space pointed to by <tt>*data</tt>.
+          The number of bytes is the return value of the function;
+          -1&nbsp;is returned if an error occurred.<br />
+          <b>N.B.</b>: FTP and/or gzipped files are staged through
+          the directory named in environment variable <tt>TMPDIR</tt>
+          (default&nbsp;<tt>/tmp</tt>).
+     </ul></p>
+
+<li> <p>Base64 utility functions:
+     <ul>
+     <li> <tt>B64_to_base64( int nbin, byte *bin , int *nb64 , byte **b64 )</tt>
+          transforms an array of binary data to a base64 encoded array.
+          The input array is <tt>bin[0..nbin-1]</tt>.  The number of bytes
+          in the newly <tt>malloc()</tt>-ed output array <tt>*b64</tt>
+          is <tt>*nb64</tt>.  There is no ASCII string at the end of this
+          array - it is not a C string.
+     <li> <tt>B64_to_binary( int nb64, byte *b64 , int *nbin , byte **bin )</tt>
+          does the reverse transformation.  It takes a base64 encoded array
+          <tt>b64[0..nb64-1]</tt> and produces a binary array of length <tt>*nbin</tt>
+          into newly <tt>malloc()</tt>-ed output array <tt>*bin</tt>.  Characters
+          that are meaningless to the base64 decoding process (e.g.,&nbsp;whitespace)
+          are skipped.
+     <li> <tt>B64_set_linelen( int n )</tt> sets the line length of the base64
+          encoding produced by <tt>B64_to_binary</tt>.  The default is 72 characters
+          per line, but this can be changed to as few as 16 or as many as 76.
+          The actual number of characters per line will be a multiple of 4, since
+          that is how base64 works.
+<!-----
+     <li> <tt>void B64_set_crlf( int nn )</tt> can be used to select which
+          character(s) are used to end a base64 output line.  By calling
+          this function with <tt>nn=1</tt>, the LF character will be used
+          to end lines (this is the default, and is the Unix standard);
+          setting <tt>nn=2</tt> will make the CR&nbsp;LF character pair
+          be used to end lines (this is the Microsoft standard).
+------->
+
+     <li> These functions aren't actually used in the NIML part of
+          the code, but are supplied for the programmer's convenience.
+     </ul></p>
+
+<li> <p>MD5 utility functions:
+     <ul>
+     <li> <tt>char * MD5_static_array( int n, char * bytes )</tt> MD5 hashes
+          the data in array <tt>bytes[0..n-1]</tt> and returns a pointer to
+          a statically allocated C string with the ASCII representation of the
+          hash code.  (Don't <tt>free()</tt> this space!  Copy it if you
+          need to save it.)  The string is 32+1 characters long.
+     <li> <tt>char * MD5_malloc_array( int n, char * bytes )</tt> does the
+          same thing, but returns the result in a <tt>malloc()</tt>-ed
+          string.
+     <li> <tt>char * MD5_static_string( char * string )</tt> does the MD5
+          hash on a C string.  <tt>MD5_malloc_string()</tt> also exists.
+     <li> <tt>char * MD5_static_file(char * filename)</tt> does the MD5 hash
+          on the contents of a file.  <tt>MD5_malloc_file()</tt> also exists.
+
+     <li> MD5 functions are used in NIML only for the <tt>UNIQ_idcode()</tt>
+          purpose.
+          They are mentioned here for the programmer's convenience.
+     </ul></p>
+
+<li> <p>
+     Function <tt>char * UNIQ_idcode(void)</tt> returns a globally unique
+     identifier
+     C string in newly <tt>malloc()</tt>-ed space.  This string will
+     fit in a 32 byte array (at most, including the NUL byte at the end).
+     No two invocations of this function should return the same string.
+     The characters in the string are alphanumeric 'a-z', 'A-Z', '0-9',
+     with '-' and&nbsp;'_' possible as well.  For example:
+     <tt>"XYZ_qXxxypkMTmm_wSMh0-dEZA"</tt>.
+     <ul><li> The purpose of this function is to make it possible for an application
+              to tag a set of elements with a unique identifier
+              that can be used later to associate the elements together.
+         <li> If the environment variable <tt>IDCODE_PREFIX</tt> is set, then
+              its first 3 characters (if alphabetic) are used to form the
+              prefix of the identifier string; otherwise, the prefix is
+              taken to be <tt>"XYZ"</tt>, as in the example.  This feature
+              makes it possible for each site to tag their identifiers
+              with some local initials (e.g.,&nbsp;<tt>"NIH"</tt>). The prefix
+              is followed with an underscore, and then the rest of the
+              identifier characters.
+         <li> The identifier is generated as follows:
+              Generate a string from the system identfier information
+              (<tt>uname()</tt>),
+              the current time of day, the process id, and the number
+              of times the function has been called. Then MD5 hash this string to a
+              128 byte code. Base64 encode this byte code to a 22 byte string;
+              replace '/' with '-' and '+' with&nbsp;'_'.
+         <li> Function <tt>char * UNIQ_hashcode(char *)</tt> can be
+              used to get the MD5+Base64 string encoded from the input
+              string.  Unlike <tt>UNIQ_idcode()</tt>, this function will
+              return the same string if called with the same input.
+              It can be used to produce an idcode string from a filename,
+              for example.
+     </ul></p>
+
+<li> <p>
+     Internet host name functions:
+     <ul>
+     <li> <tt>char * NI_hostname_to_inet(char *hostname)</tt>
+          will returned the "dotted form" of the IP address for
+          the given host name, in a C string (e.g.,&nbsp;input
+          "localhost" will return "127.0.0.1").  The returned
+          string is <tt>malloc()</tt>-ed.  If <tt>NULL</tt> is returned,
+          the host couldn't be found.
+     <li> <tt>void NI_add_trusted_host(char *hostname)</tt>
+          lets you add a host to the "trusted list".  If the trusted
+          list isn't empty, then socket connections won't be accepted
+          from hosts not on the list.  The default trusted list is
+          empty, unless you initialize it by calling this function
+          at least once.
+          <ul><li>You can call this function with input <tt>NULL</tt>
+                  to have the trusted list initialized with
+                  the built-in list, which is just
+                  <tt>"127.0.0.1"</tt> and <tt>"192.168."</tt>
+              <li> The first call to this function always puts these
+                  2 addresses on the trusted list.  It also will
+                  add to the trusted list
+                  any addresses stored in environment variables
+                  of the form <tt>NIML_TRUSTHOST_xx</tt> for
+                  <tt>xx</tt> from <tt>00</tt> to <tt>99</tt>.
+                  (If 100 addresses isn't enough for you, maybe
+                  you are too trusting?)
+              <li>The trusted list is a list of IP addresses stored
+                  in dotted form.  If input <tt>hostname</tt> isn't
+                  in dotted form, then <tt>NI_hostname_to_inet()</tt>
+                  will be used to find its primary IP address, which
+                  will then be stored in the trusted list.
+          </ul>
+     <li> <tt>int NI_trust_host(char *hostname)</tt>
+          returns 1 if <tt>hostname</tt> is on the trusted list and
+          0 if it isn't. If <tt>hostname</tt> isn't in dotted form,
+          then it will looked up with <tt>NI_hostname_to_inet()</tt>.
+          If the trusted list was not initialized at
+          all, then all hosts will be trusted (the default insecure
+          condition).
+          <ul><li> A host will be trusted if its IP address string
+                   starts with the same character sequence as
+                   any of the hosts in the trusted list.  Thus,
+                   <tt>"192.168."</tt> means to trust all addresses
+                   of the form <tt>"192.168.abc.xyz"</tt> (this is
+                   the reserved private Class B network range).
+          </ul>
+     </ul></p>
+
+<li> <p>The implementation is in two files: <tt>niml.h</tt> and <tt>niml.c</tt>.
+     The test programs <tt>nimltest.c</tt> and <tt>nisurf.c</tt>
+     can be used as samples.
+     It has only been tried on Linux as yet (and not so much, either).
+     </p>
+
+<li> <p>Many errors just fail silently.  For example, characters that
+     aren't understood on the RHS of a <tt>ni_type</tt> attribute
+     are simply ignored.
+     <ul><li>Setting a global error code
+          (e.g.,&nbsp;<tt>NI_errno</tt>) like the C library does
+          is a possible cheap solution.  (But this idea is not implemented.)
+         <li> XML doesn't specify what to do with errors, either.
+              The number of possible errors when parsing input
+              is nearly endless.  Dealing with this is especially
+              tricky if the input/output is a ongoing dialog between
+              two free-standing applications. Ugh.
+         <li> One complex error condition:<br />
+              If an input stream does not end,
+             but also does not close the data stream with "<tt>&lt/&gt;</tt>",
+             after about 10 seconds <tt>NI_read_element()</tt> will return with the
+             (probably incomplete) element anyway.  This event can only
+             happen with sockets: if the sending application hangs
+             (not crashes)
+             while sending the data stream, if the sending computer
+             itself crashes ungracefully (e.g.,&nbsp;power failure),
+             or if the network between the two programs itself
+             goes down.  It isn't clear what
+             the "right" thing to do in this case is, since there is
+             no simple way to test if a socket connection is fully
+             open or only half-open.
+     </ul></p>
+</ul>
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix G: Documentation of API Functions and Structures</h2>
+<p>
+Alas, this important section has yet to be written.
+</p>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix H: Complexity of the NIML Standard</h2>
+<p>
+As mentioned earlier in an aside, simplicity is an important
+consideration, since NIML may end up being re-implemented in
+a number of languages.  For this reason, it may be desirable
+to define a basic NIML specification which has some features
+removed.  Some candidates for simplification/elimination (NIML Lite,
+also known as the Shrubbery):
+<ul>
+  <li> Eliminate <tt>ni_url</tt> and <tt>ni_include</tt>.
+  <li> Eliminate the multi-dimensional descriptive attributes.
+  <li> Eliminate <tt>ni_typedef</tt>.
+  <li> Eliminate <tt>ni_group</tt>.
+  <li> Eliminate <tt>base64</tt> input or output.
+  <li> Eliminate <tt>Line</tt> type data
+       (maybe get rid of some other types as well).
+  <li> Delete support for unquoted Strings on the RHS of attributes or in data streams.
+  <li> Disallow long names and integer counts in <tt>ni_type</tt>; that is, only
+       allow things like <tt>ni_type="ffiii"</tt>, which is pretty
+       easy to decode (each character between the opening <tt>"</tt> and
+       the closing <tt>"</tt> defines one column of the data).
+  <li> Add API function to convert all input numeric types to
+       floats, simplifying the number of data types with which the application
+       has to deal.
+</ul>
+
+<!-------------------------------------------------------------->
+<hr />
+<h2>Appendix I: Linguistic Issues</h2>
+<p>
+"NI" or "ni" is to be pronounced as the word "knee", but with a
+high pitch and shortened.  For the defining example of this, please
+see the film <i>Monty Python and the Holy Grail</i>.
+</p>
+
+<p>
+"Niml" means "ants" in Arabic.  It is also an acronym for
+<ul>
+<li> National Institute of Modern Languages
+<li> Northern Illinois Metro League
+<li> North Insurance Management Ltd
+<li> New Iconomy Mailing List (?)
+<li> Non-Indigenous Minority Languages
+<li> Norwich Investment Management Limited
+</ul>
+These results (from 1 minute of Googling)
+clearly illustrate that all semi-pronounceable acronyms have already
+been used, over-used, re-used, abused, and used-up.
+
+<!-------------------------------------------------------------->
+</BODY>
+</HTML>
