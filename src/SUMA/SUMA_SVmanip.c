@@ -2217,7 +2217,7 @@ void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv)
 
 void SUMA_UpdateViewerTitle_old(SUMA_SurfaceViewer *sv)   
 {  
-   static char FuncName[]={"SUMA_UpdateViewerTitle"};
+   static char FuncName[]={"SUMA_UpdateViewerTitle_old"};
    int isv, i, N_SOlist, nalloc;  
    char slabel[30], sside[30], srec[10], cl='\0', cr='\0', smoment[30];   
    SUMA_SurfaceObject *SO = NULL;   
@@ -2339,6 +2339,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    if (!sv->X) SUMA_RETURNe;
    if (!sv->X->TOPLEVEL) SUMA_RETURNe;
 
+   SUMA_LH("Finding SV");
    isv = SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);   
    
    if (sv->X->Title) SUMA_free(sv->X->Title);
@@ -2346,13 +2347,17 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    
    SS = SUMA_StringAppend_va(NULL, NULL);
    
+   SUMA_LH("Number");
    if (isv >= 0) SS = SUMA_StringAppend_va(SS, "[%c] SUMA", 65+isv); 
    else SS = SUMA_StringAppend_va(SS,"[DOH] SUMA"); 
    
+   SUMA_LH("Rec");
    if (sv->Record) SS = SUMA_StringAppend_va(SS,":Rec");
    
+   SUMA_LH("Momentum");
    if (sv->GVS[sv->StdView].ApplyMomentum) SS = SUMA_StringAppend_va(SS,":M");
    
+   SUMA_LH("Surf List");
    N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);   
    
    i = 0; 
@@ -2361,6 +2366,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    RightSide = NOPE;
    RightShown = NOPE;
    while (i < N_SOlist) {   
+      SUMA_LH("   + +");
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
       if (SO->Side == SUMA_LEFT) {
          SUMA_LH("Left found");
@@ -2374,6 +2380,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
       
       ++i;   
    }
+   
    if (LeftSide && LeftShown) cl = 'L';
    else if (LeftSide && !LeftShown) cl = 'h';
    else cl = 'x';
@@ -2381,13 +2388,20 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    else if (RightSide && !RightShown) cr = 'h';
    else cr = 'x';
    
+   SUMA_LH("Sides");
    
    SS = SUMA_StringAppend_va(SS, ":%c%c:", cl, cr);
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
    
    /* add the group's name */
-   SS = SUMA_StringAppend_va(SS," %s:", sv->CurGroupName);
+   if (LocalHead) {
+      if (sv->CurGroupName) fprintf (SUMA_STDERR, "%s: Calling with sv->CurGroupName = %p\n", FuncName, sv->CurGroupName);
+      else fprintf (SUMA_STDERR, "%s: Calling with NULL sv->CurGroupName\n", FuncName);
+   }
+      
+   if (sv->CurGroupName) SS = SUMA_StringAppend_va(SS," %s:", sv->CurGroupName);
+   else SS = SUMA_StringAppend_va(SS," xx:");
    
    i = 0; 
    if (N_SOlist >= 0) {   

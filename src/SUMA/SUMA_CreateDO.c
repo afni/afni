@@ -2274,6 +2274,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
    }
    
    for (i=0; i< N; ++i) {
+      SO[i].NodeMarker = NULL;
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
@@ -2288,6 +2289,10 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Cx = NULL;
       SO[i].Cx_Inode = NULL;
       SO[i].VolPar = NULL;
+      SO[i].NodeList = NULL; 
+      SO[i].FaceSetList = NULL; 
+      SO[i].FaceNormList = NULL; 
+      SO[i].NodeNormList = NULL; 
       SO[i].glar_NodeList = NULL; 
       SO[i].glar_FaceSetList = NULL; 
       SO[i].glar_FaceNormList = NULL; 

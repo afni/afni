@@ -2143,13 +2143,13 @@ int compare_SUMA_Z_QSORT_INT (SUMA_Z_QSORT_INT *a, SUMA_Z_QSORT_INT *b )
 
 int SUMA_compare_int (int *a, int *b )
 {/*SUMA_compare_int*/
- 	if (*a < *b)
-		return (-1);
-	else if (*a == *b)
-		return (0);
-	else
-		return (1);
-	
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
 }/*SUMA_compare_int*/
    
 /*!**
@@ -3638,9 +3638,6 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList)
 {
    static char FuncName[]={"SUMA_Make_Edge_List"};
-   int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
-   float dx, dy, dz;
-   SUMA_EDGE_LIST *SEL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3906,7 +3903,10 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       }
       ++i;
    }
+   
+   if (iTri_limb) SUMA_free(iTri_limb); /* Thanks B. Argall */
    SUMA_LH("Done with storage, returning...\n");
+   
    SUMA_RETURN (SEL);
 }
 
@@ -4765,8 +4765,8 @@ SUMA_Boolean SUMA_TriNorm (float *n0, float *n1, float *n2, float *norm)
          d2[i] = n1[i] - n2[i];
    }
    norm[0] = d1[1]*d2[2] - d1[2]*d2[1];
-	norm[1] = d1[2]*d2[0] - d1[0]*d2[2];
-	norm[2] = d1[0]*d2[1] - d1[1]*d2[0];  
+   norm[1] = d1[2]*d2[0] - d1[0]*d2[2];
+   norm[2] = d1[0]*d2[1] - d1[1]*d2[0];  
    
    d = sqrt(norm[0] * norm[0] + norm[1] * norm[1] + norm[2] * norm[2]);
    
@@ -6187,6 +6187,9 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    - For this function, the formatted length of newstring should not be > than MAX_APPEND-1 
    If that occurs, the string will be trunctated and no one should get hurt
    
+   NOTE: DO NOT SEND NULL pointers in the variable argument parts or crashes will occur on SUN
+   Such NULL pointers do not result in null vararg_ptr and cause a seg fault in vsnprintf
+   
    \sa SUMA_StringAppend
 */
 
@@ -6203,19 +6206,29 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!SS) {
+      SUMA_LH("NULL SS");
       /* let the other one handle this */
       SUMA_RETURN (SUMA_StringAppend(SS,newstring));
    }
    
    if (newstring) {
+      SUMA_LH("newstring ...");
       /* form the newstring and send it to the olde SUMA_StringAppend */
       va_start( vararg_ptr ,  newstring) ;
       if (strlen(newstring) >= MAX_APPEND -1 ) {
          SUMA_SL_Err("newstring too long.\nCannot use SUMA_StringAppend_va");
          SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***string too long to add ***"));
       }
-      
+      if (LocalHead) {
+         SUMA_LH("Calling vsnprintf");
+         if (vararg_ptr) {
+            SUMA_LH("Non NULL vararg_ptr");
+         } else {
+            SUMA_LH("NULL vararg_ptr");
+         }
+      }
       nout = vsnprintf (sbuf, MAX_APPEND * sizeof(char), newstring, vararg_ptr); 
+      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Calling va_end, nout = %d\n", FuncName, nout);
       va_end(vararg_ptr);  /* cleanup */
       
       if (nout < 0) {
@@ -6227,9 +6240,10 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
          SUMA_StringAppend(SS,sbuf);
          SUMA_RETURN(SUMA_StringAppend(SS,"WARNING: ***Previous string trunctated because of its length. ***"));
       }
-      
+      SUMA_LH("Calling StringAppend");
       SUMA_RETURN (SUMA_StringAppend(SS,sbuf));
    }else {
+      SUMA_LH("NULL newstring");
       /* let the other one handle this */
       SUMA_RETURN (SUMA_StringAppend(SS,newstring));
    }
