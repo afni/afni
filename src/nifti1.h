@@ -570,9 +570,10 @@ typedef struct { long double r,i; } complex_longdouble ;
 /*! Given a nifti_1_header struct, check if it has a good magic number.
     Returns 1 if magic is good, 0 if it is not.                         */
 
-#define NIFTI_GOOD_MAGIC(h) ( (h).magic[0]=='n' && (h).magic[3]=='\0' &&
-                              (( (h).magic[1]=='1' && (h).magic[2]=='+' ) ||
-                               ( (h).magic[1]=='i' && (h).magic[2]=='1' )   ))
+#define NIFTI_GOOD_MAGIC(h)                              \
+   ( (h).magic[0]=='n' && (h).magic[3]=='\0' &&          \
+     (( (h).magic[1]=='1' && (h).magic[2]=='+' ) ||      \
+      ( (h).magic[1]=='i' && (h).magic[2]=='1' )   ))
 
 /*.................*/
 /*! Check if a nifti_1_header struct says if the data is stored in the
