@@ -181,6 +181,17 @@ extern char AFNI_abohelp[1024] ;
        (iq)->vinfo->xhairs_nup.ijk[bz]   = \
         (iq)->vinfo->xhairs_nskip.ijk[bz] = 0 ; } while(0)
 
+/* 31 Dec 1998: mask for xhairs orientations */
+
+#define ORIMASK_LR ((1<<ORI_R2L_TYPE) | (1<<ORI_L2R_TYPE))
+#define ORIMASK_AP ((1<<ORI_P2A_TYPE) | (1<<ORI_A2P_TYPE))
+#define ORIMASK_IS ((1<<ORI_I2S_TYPE) | (1<<ORI_S2I_TYPE))
+
+#define ORIMASK_LR_AP (ORIMASK_LR | ORIMASK_AP)
+#define ORIMASK_LR_IS (ORIMASK_LR | ORIMASK_IS)
+#define ORIMASK_AP_IS (ORIMASK_AP | ORIMASK_IS)
+#define ORIMASK_ALL   (ORIMASK_LR | ORIMASK_AP | ORIMASK_IS)
+
 typedef struct {
       int   i1 , j2 , k3 ;  /* integer coordinates of current point */
       float xi , yj , zk ;  /* float (mm) coordinates (take priority) */
@@ -190,6 +201,8 @@ typedef struct {
       Boolean   xhairs_show_montage , xhairs_periodic , xhairs_all ;
       THD_ivec3 xhairs_ndown , xhairs_nup , xhairs_nskip ; /* montage crosshairs */
       int       time_index , top_index ;
+
+      int xhairs_orimask ;    /* 31 Dec 1998 */
 
       int       anat_index , fim_index , thr_index ; /* 30 Nov 1997 */
 
@@ -270,6 +283,15 @@ typedef struct {
 #define AFNI_XHAIRS_OFF    0
 #define AFNI_XHAIRS_SINGLE 1
 #define AFNI_XHAIRS_MULTI  2
+
+#define AFNI_XHAIRS_LR_AP  3  /* 31 Dec 1998 */
+#define AFNI_XHAIRS_LR_IS  4
+#define AFNI_XHAIRS_AP_IS  5
+#define AFNI_XHAIRS_LR     6
+#define AFNI_XHAIRS_AP     7
+#define AFNI_XHAIRS_IS     8
+
+#define AFNI_XHAIRS_LASTOPTION 8
 
 typedef struct {
       Widget frame , rowcol ;

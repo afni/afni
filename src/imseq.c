@@ -445,6 +445,10 @@ fflush(stdout) ;
 
    newseq->imim = newseq->ovim = NULL ;    /* NULL out all images */
 
+   newseq->orim      = NULL ;              /* 30 Dec 1998 */
+   newseq->set_orim  = 0 ;
+   newseq->need_orim = 0 ;
+
    newseq->given_xim = newseq->sized_xim
                      = newseq->given_xbar
                      = newseq->sized_xbar = NULL ;
@@ -926,6 +930,10 @@ fflush(stdout) ;
    newseq->transform2D_av    = NULL ;
    newseq->transform2D_index = 0 ;
 
+   newseq->rowgraph_av  = NULL ;       /* 30 Dec 1998 */
+   newseq->rowgraph_num = 0 ;
+   newseq->rowgraph_mtd = NULL ;
+
    newseq->parent = NULL ;
    return newseq ;
 }
@@ -1120,14 +1128,16 @@ DPR("ISQ_make_image");
 
       if( tim == NULL ){
          fprintf(stderr,
-                 "\n*** ISQ_make_image: NULL image returned for display! ***\n") ;
+                 "\n*** error in ISQ_make_image: NULL image returned for display! ***\n") ;
          return ;
       }
 
       seq->last_image_type = tim->kind ;
 
+      seq->set_orim = seq->need_orim ;  /* 30 Dec 1998 */
       seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim ) ;
       KILL_1MRI(tim) ;
+      seq->set_orim = 0 ;
 
       /* fix window dimensions if image size is different from before */
 
@@ -1273,6 +1283,11 @@ DPRI("  -- complex to real code = ",seq->opt.cx_code) ;
                      seq->transform2D_func != NULL   ) ;
 
    if( ! have_transform && seq->opt.improc_code == ISQ_IMPROC_NONE ){
+
+      if( seq->set_orim ){                   /* 30 Dec 1998 */
+         KILL_1MRI(seq->orim) ;
+         seq->orim = mri_to_float( lim ) ;
+      }
 
       /*----- first, set scaling based on user desires -----*/
 
@@ -1457,6 +1472,11 @@ DPR("  -- mri_sobel:") ;
          qim = tim ;
       }
 
+      if( seq->set_orim ){                   /* 30 Dec 1998 */
+         KILL_1MRI(seq->orim) ;
+         seq->orim = mri_to_float( qim ) ;
+      }
+
       /*** scale to shorts (cf. ISQ_statify_one) ***/
 
       hbot = mri_min(qim) ; htop = mri_max(qim) ;
@@ -1508,6 +1528,14 @@ DPR("  -- mri_flippo:") ;
 
    if( newim != flipim ) KILL_1MRI(newim) ;  /* discard the trash */
    if( lim   != im     ) KILL_1MRI(lim) ;    /* (if there is any) */
+
+   if( seq->set_orim && seq->orim != NULL ){  /* 30 Dec 1998 */
+      MRI_IMAGE * qim ;
+      qim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, seq->orim ) ;
+      if( qim != seq->orim ){ KILL_1MRI(seq->orim) ; seq->orim = qim ; } ;
+      MRI_COPY_AUX( seq->orim , flipim ) ;
+      seq->set_orim = 0 ;
+   }
 
    return flipim ;
 }
@@ -1697,7 +1725,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
       tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
       if( tim == NULL ){
-         fprintf(stderr,"\n*** ISQ_saver_CB: NULL image %d returned! ***\n",kf) ;
+         fprintf(stderr,"\n*** error in ISQ_saver_CB: NULL image %d returned! ***\n",kf) ;
          continue ;  /* skip to next one */
       }
       flim = tim ;
@@ -1744,6 +1772,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
          /* process given image to make the grayscale index */
 
+         seq->set_orim = 0 ;  /* 30 Dec 1998 */
          tim  = flim ;
          flim = ISQ_process_mri( kf , seq , tim ) ;  /* will be shorts now */
          if( tim != flim ) KILL_1MRI( tim ) ;
@@ -1954,6 +1983,7 @@ DPR("ISQ_free_alldata");
 
    KILL_1MRI( seq->imim ) ;
    KILL_1MRI( seq->ovim ) ;
+   KILL_1MRI( seq->orim ) ;  /* 30 Dec 1998 */
 
    KILL_2XIM( seq->given_xim  , seq->sized_xim  ) ;
    KILL_2XIM( seq->given_xbar , seq->sized_xbar ) ;
@@ -1976,6 +2006,12 @@ DPR("ISQ_free_alldata");
    myXtFree( seq->mont_gapcolor_av ) ;
    myXtFree( seq->transform0D_av )   ; /* 30 Oct 1996 */
    myXtFree( seq->transform2D_av )   ;
+   myXtFree( seq->rowgraph_av )      ; /* 30 Dec 1998 */
+
+   if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
+      seq->rowgraph_mtd->killfunc = NULL ;
+      plotkill_topshell( seq->rowgraph_mtd ) ;
+   }
 
    return ;
 }
@@ -2096,6 +2132,7 @@ printf("imseq: ISQ_redisplay n=%d type=%d nrold=%d recur_flg=%d\n",n,type,nrold,
    if( kill_ov || kill_im ) KILL_2XIM( seq->given_xim  , seq->sized_xim  ) ;
 
    ISQ_show_image( seq ) ;
+   ISQ_rowgraph_draw( seq ) ;
 
    if( RECUR ) recur_flg = FALSE ;
 
@@ -2160,6 +2197,8 @@ DPR("ISQ_show_image");
       fprintf(stderr,"\n***seq->given_xim == NULL -- cannot display image\n") ;
       return ;
    }
+
+   if( ! MCW_widget_visible(seq->wimage) ) return ;  /* 03 Jan 1999 */
 
    if( seq->sized_xim == NULL ){
       int nx , ny ;
@@ -2243,6 +2282,8 @@ void ISQ_show_bar( MCW_imseq * seq )
 {
 
    if( ! ISQ_REALZ(seq) ) return ;
+
+   if( ! MCW_widget_visible(seq->wbar) ) return ;  /* 03 Jan 1999 */
 
 DPR("ISQ_show_bar");
 
@@ -2785,6 +2826,42 @@ DPR("ISQ_but_disp_CB");
              nav++ ;
          }
 
+         /* 30 Dec 1998: rowgraphs */
+
+         if( nav > 0 && seq->status->send_CB != NULL ){
+            (void) XtVaCreateManagedWidget(
+                     "menu" , xmSeparatorWidgetClass , rcboxes ,
+                        XmNseparatorType , XmSINGLE_LINE ,
+                        XmNinitialResourcesPersistent , False ,
+                     NULL ) ;
+
+            seq->rowgraph_av =
+               new_MCW_optmenu( rcboxes , "RowGraphs" ,
+                                0 , ROWGRAPH_MAX , seq->rowgraph_num , 0 ,
+                                ISQ_rowgraph_CB , (XtPointer) seq ,
+                                ISQ_rowgraph_label , NULL ) ;
+            AVOPT_columnize( seq->rowgraph_av , 2 ) ;
+
+            MCW_reghelp_children( seq->rowgraph_av->wrowcol ,
+                                  "Rowgraphs are plots of the underlay\n"
+                                  "(grayscale) image intensity as\n"
+                                  "x vs. y graphs.  Each graph is from\n"
+                                  "one displayed horizontal row of the\n"
+                                  "image.  The bottom rowgraph is from\n"
+                                  "the image row under the crosshairs.\n"
+                                  "Upper rowgraphs are from higher image\n"
+                                  "rows.  Note that image transformations\n"
+                                  "functions and image rotations/flips\n"
+                                  "will affect the rowgraphs as well as\n"
+                                  "the image display."
+                                 ) ;
+            MCW_reghint_children( seq->rowgraph_av->wrowcol ,
+                                  "Number of image rows to graph" ) ;
+            nav++ ;
+         }
+
+         /* final separator */
+
          if( nav ) (void) XtVaCreateManagedWidget(
                             "menu" , xmSeparatorWidgetClass , rcboxes ,
                                XmNseparatorType , XmSINGLE_LINE ,
@@ -2893,6 +2970,7 @@ void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
       myXtFree( seq->transform0D_av ) ;
       myXtFree( seq->transform2D_av ) ;
+      myXtFree( seq->rowgraph_av )    ;
    }
 
    if( new_opt )
@@ -4558,7 +4636,9 @@ DPR("ISQ_make_montage");
 
 DPRI(" Getting montage underlay",nim) ;
 
+         seq->set_orim = (seq->need_orim && nim == seq->im_nr) ;  /* 30 Dec 1998 */
          tim = ISQ_manufacture_one( nim , 0 , seq ) ;
+         seq->set_orim = 0 ;                    /* 30 Dec 1998 */
          ADDTO_IMARR(mar,tim) ;
 
          if( tim != NULL ) nxyim++ ;
@@ -4802,6 +4882,46 @@ void ISQ_flipxy( MCW_imseq * seq, int * xflip, int * yflip )
    *xflip = xim ; *yflip = yim ; return ;
 }
 
+void ISQ_unflipxy( MCW_imseq * seq, int * xflip, int * yflip )
+{
+   int fopt , xim , yim , nx,ny ;
+
+   fopt = ISQ_TO_MRI_ROT(seq->opt.rot) ;
+   if( seq->opt.mirror ) fopt += MRI_FLMADD ;
+
+   nx = seq->horig ; ny = seq->vorig ;
+
+   switch( fopt ){
+
+      default:                                    /* ROT_0, no mirror */
+      case (MRI_ROT_0):
+         xim = *xflip ; yim = *yflip ; break ;
+
+      case (MRI_ROT_90):                          /* ROT_90, no mirror */
+         yim = ny-1-*xflip ; xim = *yflip ; break ;
+
+      case (MRI_ROT_180):                         /* ROT_180, no mirror */
+         xim = nx-1-*xflip ; yim = ny-1-*yflip ; break ;
+
+      case (MRI_ROT_270):                         /* ROT_270, no mirror */
+         yim = *xflip ; xim = nx-1-*yflip ; break ;
+
+      case (MRI_ROT_0+MRI_FLMADD):                /* ROT_0, mirror */
+         xim = nx-1-*xflip ; yim = *yflip ; break ;
+
+      case (MRI_ROT_90+MRI_FLMADD):               /* ROT_90, mirror */
+         yim = ny-1-*xflip ; xim = nx-1-*yflip ; break ;
+
+      case (MRI_ROT_180+MRI_FLMADD):              /* ROT_180, mirror */
+         xim = *xflip ; yim = ny-1-*yflip ; break ;
+
+      case (MRI_ROT_270+MRI_FLMADD):              /* ROT_270, mirror */
+         xim = *yflip ; yim = *xflip ; break ;
+   }
+
+   *xflip = xim ; *yflip = yim ; return ;
+}
+
 /*-----------------------------------------------------------------------------
    Routines to handle transformations of an image.
 -------------------------------------------------------------------------------*/
@@ -4854,6 +4974,123 @@ void ISQ_transform_CB( MCW_arrowval * av , XtPointer cd )
    return ;
 }
 
+/*--------------------------------------------------------------------------
+   30 Dec 1998:  Handle the row graphs
+----------------------------------------------------------------------------*/
+
+char * ISQ_rowgraph_label( MCW_arrowval * av , XtPointer cd )
+{
+   static char buf[16] ;
+   sprintf(buf,"%2d  ",av->ival) ;
+   return buf ;
+}
+
+void ISQ_rowgraph_CB( MCW_arrowval * av , XtPointer cd )
+{
+   MCW_imseq * seq = (MCW_imseq *) cd ;
+
+   if( ! ISQ_VALID(seq) ) return ;               /* bad input */
+   if( av->ival == seq->rowgraph_num ) return ;  /* nothing changed */
+
+   seq->rowgraph_num = av->ival ;
+
+   seq->need_orim = (seq->rowgraph_num > 0) ;
+   if( ! seq->need_orim ) KILL_1MRI(seq->orim) ;
+
+   ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+   return ;
+}
+
+void ISQ_rowgraph_draw( MCW_imseq * seq )
+{
+   MEM_plotdata * mp ;
+   ISQ_cbs cbs ;
+   int jbot , nrow , jj , nx , ymask ;
+   float * yar[ROWGRAPH_MAX] ;
+
+   if( ! ISQ_REALZ(seq) ) return ;  /* error */
+
+   /* marked for no graphs? */
+
+   if( seq->rowgraph_num == 0 ){
+      if( seq->rowgraph_mtd != NULL ){
+         plotkill_topshell( seq->rowgraph_mtd ) ;
+         seq->rowgraph_mtd = NULL ;
+      }
+      return ;
+   }
+
+   if( seq->orim == NULL ){
+      fprintf(stderr,"*** error in ISQ_rowgraph_draw: orim = NULL!\n") ;
+      return ;  /* no original image data == error */
+   }
+
+   /* find current location */
+
+   cbs.reason = isqCR_getxynim ;
+   cbs.xim = cbs.yim = cbs.nim = -666 ;
+   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+   if( cbs.xim < 0 || cbs.yim < 0 ){
+      fprintf(stderr,"*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
+      return ;  /* bad result */
+   }
+   ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
+   jbot = cbs.yim ;
+
+   /* get pointers to data rows */
+
+   if( jbot < 0 || jbot >= seq->orim->ny ){
+      fprintf(stderr,"*** error in ISQ_rowgraph_draw: jbot=%d\n",jbot) ;
+      return ;  /* no data? */
+   }
+
+   nrow = MIN( seq->rowgraph_num  , jbot+1 ) ;
+   nx   = seq->orim->nx ;
+
+   for( jj=0 ; jj < nrow ; jj++ )
+      yar[jj] = MRI_FLOAT_PTR(seq->orim) + (jbot-jj)*nx ;
+
+   /* make a plot in memory */
+
+   ymask = TSP_SEPARATE_YBOX ;
+
+   mp = plot_ts_mem( nx , NULL , nrow,ymask,yar , "Column (pixels)",NULL,NULL,NULL ) ;
+   if( mp == NULL ){
+      fprintf(stderr,"*** error in ISQ_rowgraph_draw: can't make plot_ts_mem\n") ;
+      return ;  /* error */
+   }
+
+   /* if there is a plot window open, plot into it, otherwise open a new window */
+
+   if( seq->rowgraph_mtd != NULL ){
+
+      MTD_replace_plotdata( seq->rowgraph_mtd , mp ) ;
+      redraw_topshell( seq->rowgraph_mtd ) ;
+
+   } else {  /* make a new plot window */
+
+      seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_mtd_killfunc ) ;
+
+      if( seq->rowgraph_mtd == NULL ){ delete_memplot( mp ); return; }
+
+      seq->rowgraph_mtd->userdata = (void *) seq ;
+   }
+
+   return ;
+}
+
+void ISQ_mtd_killfunc( MEM_topshell_data * mp )
+{
+   MCW_imseq * seq ;
+
+   if( mp == NULL ) return ;
+   seq = (MCW_imseq *) mp->userdata ; if( ! ISQ_VALID(seq) ) return ;
+
+   seq->rowgraph_mtd = NULL ;
+   return ;
+}
+
+/************************************************************************/
 /*----------------------- Sample 2D transformations --------------------*/
 
 static float * atemp = NULL ;
@@ -4911,6 +5148,62 @@ void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
       aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
       aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
       isort_float( 9 , aa ) ; ar[nx-1+joff] = aa[4] ;
+   }
+   return ;
+}
+
+void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
+{
+   int ii , jj , nxy , joff ;
+   float aa[9] ;
+   float * ajj , * ajm , * ajp ;
+
+   if( nx < 3 || ny < 3 ) return ;
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+
+   /** process copy of input back into the input array **/
+
+   for( jj=0 ; jj < ny ; jj++ ){
+
+      joff = jj * nx ;      /* offset into this row */
+      ajj  = atemp + joff ; /* pointer to this row */
+
+      ajm  = (jj==0   ) ? ajj : ajj-nx ;  /* pointer to last row */
+      ajp  = (jj==ny-1) ? ajj : ajj+nx ;  /* pointer to next row */
+
+      /* do interior points of this row */
+
+      for( ii=1 ; ii < nx-1 ; ii++ ){
+         aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
+         aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
+         aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
+         isort_float( 9 , aa ) ;
+              if( ar[ii+joff] < aa[2] ) ar[ii+joff] = aa[2] ;
+         else if( ar[ii+joff] > aa[6] ) ar[ii+joff] = aa[6] ;
+      }
+
+      /* do leading edge point (ii=0) */
+
+      aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
+      aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
+      aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
+      isort_float( 9 , aa ) ;
+           if( ar[joff] < aa[2] ) ar[joff] = aa[2] ;
+      else if( ar[joff] > aa[6] ) ar[joff] = aa[6] ;
+
+      /* do trailing edge point (ii=nx-1) */
+
+      aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
+      aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
+      aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
+      isort_float( 9 , aa ) ;
+           if( ar[nx-1+joff] < aa[2] ) ar[nx-1+joff] = aa[2] ;
+      else if( ar[nx-1+joff] > aa[6] ) ar[nx-1+joff] = aa[6] ;
    }
    return ;
 }

@@ -30,6 +30,8 @@
 #include "xutil.h"
 #include "machdep.h"
 
+#include "coxplot.h"  /* 30 Dec 1998 */
+
 /*** typedefs ***/
 
 #ifndef HAVE_GET_PTR_TYPEDEF
@@ -232,6 +234,8 @@ typedef struct {
 #define isqCR_getstatus   403
 #define isqCR_getqimage   404
 
+#define isqCR_getxynim    411  /* 30 Dec 1998 */
+
 #define isqCR_dxplus      301  /* arrowpad reasons */
 #define isqCR_dxminus     302
 #define isqCR_dyplus      303
@@ -343,13 +347,17 @@ typedef struct {
 
      float image_frac ;  /* 25 Oct 1996 */
 
-     MCW_arrowval * transform0D_av ;
+     MCW_arrowval * transform0D_av ;      /* 30 Oct 1996 */
      generic_func * transform0D_func ;
      int            transform0D_index ;
 
      MCW_arrowval * transform2D_av ;
      generic_func * transform2D_func ;
      int            transform2D_index ;
+
+     MCW_arrowval *      rowgraph_av  ;   /* 30 Dec 1998 */
+     int                 rowgraph_num ;
+     MEM_topshell_data * rowgraph_mtd ;
 
      int never_drawn ;
 
@@ -360,6 +368,9 @@ typedef struct {
      /*--- data below here should be freed before deletion ---*/
 
      MRI_IMAGE * imim , * ovim ;  /* latest and greatest (already processed) */
+
+     int         need_orim , set_orim ; /* flag to compute orim */
+     MRI_IMAGE * orim ;                 /* input underlay image (for rowgraphs) */
 
      XImage * given_xim  , * sized_xim  ;  /* for actual displaying */
      XImage * given_xbar , * sized_xbar ;
@@ -498,8 +509,9 @@ void ISQ_statify_all( MCW_imseq * , Boolean ) ;
 
 void ISQ_perpoints( float,float , int h[] , float * , float * ) ;
 
-void ISQ_mapxy( MCW_imseq * , int,int , int *,int *,int * ) ;
-void ISQ_flipxy( MCW_imseq * , int *,int * ) ;
+void ISQ_mapxy   ( MCW_imseq * , int,int , int *,int *,int * ) ;
+void ISQ_flipxy  ( MCW_imseq * , int *,int * ) ;
+void ISQ_unflipxy( MCW_imseq * , int *,int * ) ;
 
 void ISQ_arrow_CB( MCW_arrowval * , XtPointer ) ;
 
@@ -508,7 +520,15 @@ void ISQ_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 extern void ISQ_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_transform_label( MCW_arrowval * , XtPointer ) ;
 
+#define ROWGRAPH_MAX 9
+
+extern void ISQ_rowgraph_CB     ( MCW_arrowval * , XtPointer ) ;
+extern char * ISQ_rowgraph_label( MCW_arrowval * , XtPointer ) ;
+extern void ISQ_rowgraph_draw( MCW_imseq * seq ) ;
+extern void ISQ_mtd_killfunc( MEM_topshell_data * mp ) ;
+
 extern void median9_box_func( int nx , int ny , double,double , float * ar ) ;
+extern void winsor9_box_func( int nx , int ny , double,double , float * ar ) ;
 
 /*---- temporary, I hope ----*/
 

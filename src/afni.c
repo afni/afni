@@ -908,6 +908,7 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
    AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
 
    AFNI_register_2D_function( "Median9" , median9_box_func ) ;   /* imseq.c */
+   AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;   /* imseq.c */
 
 #ifdef ALLOW_PLUGINS
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -1337,7 +1338,8 @@ ENTRY("AFNI_set_valabel") ;
 
       case MRI_complex:{
          int iblab ;
-         complex val = MRI_COMPLEX_2D(im , ib.ijk[0],ib.ijk[1]) ;
+         complex val ;
+         val = MRI_COMPLEX_2D(im , ib.ijk[0],ib.ijk[1]) ;
          AV_fval_to_char(val.r,blab) ; iblab = strlen(blab) ;
          if( val.i >= 0.0 ) blab[iblab++] = '+' ;
          AV_fval_to_char(val.i,blab+iblab) ; iblab = strlen(blab) ;
@@ -1606,7 +1608,8 @@ if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"reason=%d",cbs->reason) ; STATUS(str) ; }
 
    if( ! IM3D_VALID(im3d) ||
-       (im3d->ignore_seq_callbacks==AFNI_IGNORE_EVERYTHING) ) EXRETURN ;
+       (   im3d->ignore_seq_callbacks == AFNI_IGNORE_EVERYTHING
+        && cbs->reason                != isqCR_getxynim        ) ) EXRETURN ;
 
    switch( cbs->reason ){
 
@@ -1756,6 +1759,21 @@ if(PRINT_TRACING)
       }
       break ;
 
+      /* 30 Dec 1998: return the current focus position */
+
+      case isqCR_getxynim:{
+         THD_ivec3 ib ;
+
+         ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
+                                                   im3d->vinfo->j2 ,
+                                                   im3d->vinfo->k3  ) ) ;
+
+         cbs->xim = ib.ijk[0] ; cbs->yim = ib.ijk[1] ; cbs->nim = ib.ijk[2] ;
+      }
+      break ;  /* end of getxynim */
+
+      /* Arrowpad stuff */
+
       case isqCR_appress:{
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
             AFNI_crosshair_gap_CB( NULL , (XtPointer) im3d ) ;
@@ -1774,10 +1792,9 @@ if(PRINT_TRACING)
                xev->type == ButtonRelease ) &&
              (xev->state & (ShiftMask | ControlMask)) ) step = INIT_bigscroll ;
 
-         ib = THD_3dind_to_fdind( br ,
-                                  TEMP_IVEC3( im3d->vinfo->i1 ,
-                                              im3d->vinfo->j2 ,
-                                              im3d->vinfo->k3  ) ) ;
+         ib = THD_3dind_to_fdind( br , TEMP_IVEC3( im3d->vinfo->i1 ,
+                                                   im3d->vinfo->j2 ,
+                                                   im3d->vinfo->k3  ) ) ;
 
          switch( cbs->reason ){
             case isqCR_dxplus:   ib.ijk[0] += step ; break ;
@@ -2581,7 +2598,6 @@ ENTRY("AFNI_crosshair_visible_CB") ;
    if( av->ival == av->old_ival ) EXRETURN ;
 
    switch( av->ival ){
-      default:
       case AFNI_XHAIRS_OFF:
          im3d->vinfo->crosshair_visible   = False ;
          im3d->vinfo->xhairs_show_montage = False ;
@@ -2592,10 +2608,23 @@ ENTRY("AFNI_crosshair_visible_CB") ;
          im3d->vinfo->xhairs_show_montage = False ;
       break ;
 
-      case AFNI_XHAIRS_MULTI:
-         im3d->vinfo->crosshair_visible   = True ;
+      default:                                     /* 31 Dec 1998:  */
+      case AFNI_XHAIRS_MULTI:                      /*   new options */
+         im3d->vinfo->crosshair_visible   = True ; /*   like Multi  */
          im3d->vinfo->xhairs_show_montage = True ;
       break ;
+   }
+
+   /* 31 Dec 1998: only allow crosshairs of some orientations */
+
+   switch( av->ival ){
+      default:                im3d->vinfo->xhairs_orimask = ORIMASK_ALL  ; break;
+      case AFNI_XHAIRS_LR_AP: im3d->vinfo->xhairs_orimask = ORIMASK_LR_AP; break;
+      case AFNI_XHAIRS_LR_IS: im3d->vinfo->xhairs_orimask = ORIMASK_LR_IS; break;
+      case AFNI_XHAIRS_AP_IS: im3d->vinfo->xhairs_orimask = ORIMASK_AP_IS; break;
+      case AFNI_XHAIRS_LR:    im3d->vinfo->xhairs_orimask = ORIMASK_LR   ; break;
+      case AFNI_XHAIRS_AP:    im3d->vinfo->xhairs_orimask = ORIMASK_AP   ; break;
+      case AFNI_XHAIRS_IS:    im3d->vinfo->xhairs_orimask = ORIMASK_IS   ; break;
    }
 
    AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
@@ -3478,6 +3507,8 @@ STATUS("new overlay is created de novo") ;
                     Also, if in "Single" mode and also are graphing,
                     then only draw the grapher frame, not the crosshairs. **/
 
+      /** Dec 1998: Allow for user to turn off some directions of crosshairs **/
+
       if( n == ib.ijk[2] || im3d->vinfo->xhairs_all ){
          int jp,ip , jcen,icen , gappp ;
          int idown,iup,iskip , jdown,jup,jskip , imon,jmon ;
@@ -3487,6 +3518,14 @@ STATUS("new overlay is created de novo") ;
              ay = abs(a2) - 1       ; /* 0,1,2 for dataset x,y,z */
          int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
              az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
+
+         /* 31 Dec 1998: spatial orientations of image axes */
+
+         int ox = (ax==0) ? br->dset->daxes->xxorient :
+                  (ax==1) ? br->dset->daxes->yyorient : br->dset->daxes->zzorient ;
+
+         int oy = (ay==0) ? br->dset->daxes->xxorient :
+                  (ay==1) ? br->dset->daxes->yyorient : br->dset->daxes->zzorient ;
 
          ovc  = im3d->vinfo->crosshair_ovcolor ;
          gap  = (grapher==NULL) ? im3d->vinfo->crosshair_gap : (grapher->mat+1)/2 ;
@@ -3518,6 +3557,7 @@ if(PRINT_TRACING)
   sprintf(str,"montage xhairs: ax   =%d ay   =%d az =%d",ax,ay,az)       ; STATUS(str);
   sprintf(str,"                iskip=%d idown=%d iup=%d",iskip,idown,iup); STATUS(str);
   sprintf(str,"                jskip=%d jdown=%d jup=%d",jskip,jdown,jup); STATUS(str);
+  sprintf(str,"orimask=%d ox=%d oy=%d",im3d->vinfo->xhairs_orimask,ox,oy); STATUS(str);
 }
 
          } else {                                          /* in "Single" Mode */
@@ -3527,50 +3567,54 @@ if(PRINT_TRACING)
 
          /* draw vertical lines first */
 
-         for( imon=-idown ; imon <= iup ; imon++ ){
-            icr = icen + imon * iskip ;
+         if( (im3d->vinfo->xhairs_orimask & (1<<oy)) != 0 ){  /* 31 Dec 1998 */
+            for( imon=-idown ; imon <= iup ; imon++ ){
+               icr = icen + imon * iskip ;
 
-            if( im3d->vinfo->xhairs_periodic ){
-               while( icr < 0 )   icr += nx ;
-               while( icr >= nx ) icr -= nx ;
-            } else {
-               if( icr < 0 || icr >= nx ) continue ;
-            }
+               if( im3d->vinfo->xhairs_periodic ){
+                  while( icr < 0 )   icr += nx ;
+                  while( icr >= nx ) icr -= nx ;
+               } else {
+                  if( icr < 0 || icr >= nx ) continue ;
+               }
 
-            gappp = (abs(icr-icen) <= gap) ? gap : -1 ; /* no gap if far from center */
+               gappp = (abs(icr-icen) <= gap) ? gap : -1 ; /* no gap if far from center */
 
-            /* if lines are closely packed, only do alternate pixels */
+               /* if lines are closely packed, only do alternate pixels */
 
-            if( idown+iup > 0 && iskip == 1 && icr != icen ){
-               for( jj=(imon+idown)%2 ; jj < ny ; jj+=2 )
-                  if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
-            } else {
-               for( jj=0 ; jj < ny ; jj++ )
-                  if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
+               if( idown+iup > 0 && iskip == 1 && icr != icen ){
+                  for( jj=(imon+idown)%2 ; jj < ny ; jj+=2 )
+                     if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
+               } else {
+                  for( jj=0 ; jj < ny ; jj++ )
+                     if( abs(jj-jcen) > gappp ) oar[icr+nx*jj] = ovc ;
+               }
             }
          }
 
          /* draw horizontal lines */
 
-         for( jmon=-jdown ; jmon <= jup ; jmon++ ){
-            jcr = jcen + jmon * jskip ;
-            if( im3d->vinfo->xhairs_periodic ){
-               while( jcr < 0 )   jcr += ny ;
-               while( jcr >= ny ) jcr -= ny ;
-            } else {
-               if( jcr < 0 || jcr >= ny ) continue ;
-            }
+         if( (im3d->vinfo->xhairs_orimask & (1<<ox)) != 0 ){  /* 31 Dec 1998 */
+            for( jmon=-jdown ; jmon <= jup ; jmon++ ){
+               jcr = jcen + jmon * jskip ;
+               if( im3d->vinfo->xhairs_periodic ){
+                  while( jcr < 0 )   jcr += ny ;
+                  while( jcr >= ny ) jcr -= ny ;
+               } else {
+                  if( jcr < 0 || jcr >= ny ) continue ;
+               }
 
-            gappp = (abs(jcr-jcen) <= gap) ? gap : -1 ;  /* no gap if far from center */
+               gappp = (abs(jcr-jcen) <= gap) ? gap : -1 ;  /* no gap if far from center */
 
-            /* if lines are closely packed, only do alternate pixels */
+               /* if lines are closely packed, only do alternate pixels */
 
-            if( jdown+jup > 0 && jskip == 1 && jcr != jcen ){
-               for( ii=(jmon+jdown)%2 ; ii < nx ; ii+=2 )
-                  if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
-            } else {
-               for( ii=0 ; ii < nx ; ii++ )
-                  if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
+               if( jdown+jup > 0 && jskip == 1 && jcr != jcen ){
+                  for( ii=(jmon+jdown)%2 ; ii < nx ; ii+=2 )
+                     if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
+               } else {
+                  for( ii=0 ; ii < nx ; ii++ )
+                     if( abs(ii-icen) > gappp ) oar[ii+nx*jcr] = ovc ;
+               }
             }
          }
 

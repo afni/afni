@@ -793,6 +793,8 @@ void fd_px_store( MCW_grapher * grapher )
 {
 ENTRY("fd_px_store") ;
 
+   if( ! MCW_widget_visible(grapher->draw_fd) ) EXRETURN ;  /* 03 Jan 1999 */
+
    XtVaSetValues( grapher->draw_fd ,
                      XmNbackgroundPixmap , grapher->fd_pxWind ,
                   NULL ) ;
@@ -900,6 +902,8 @@ void GRA_redraw_overlay( MCW_grapher * grapher )
 ENTRY("GRA_redraw_overlay") ;
 
    if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL CALL") ; EXRETURN ; }
+
+   if( ! MCW_widget_visible(grapher->draw_fd) ) EXRETURN ;  /* 03 Jan 1999 */
 
    /* erase contents of window (that aren't in the pixmap) */
 

@@ -33,7 +33,11 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+
+# for static linking to Motif, dynamic to all else
+
+LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
 # for static linking, as far as possible
 

@@ -101,9 +101,11 @@ extern Boolean MCW_isitmwm( Widget ) ;
 #define METER_BOT       3
 #define METER_BOT_WIDE  4
 
-Widget MCW_popup_meter( Widget , int ) ;
-void MCW_popdown_meter( Widget ) ;
-void MCW_set_meter( Widget , int ) ;
+extern Widget MCW_popup_meter( Widget , int ) ;
+extern void MCW_popdown_meter( Widget ) ;
+extern void MCW_set_meter( Widget , int ) ;
+
+extern int MCW_widget_visible( Widget w ) ;  /* 03 Jan 1999 */
 
 /*------------------------------------------------------------------------*/
 
@@ -114,8 +116,8 @@ typedef struct {
    Widget wshell , wtop , wactar , wscroll , wtext ;
 } MCW_textwin ;
 
-MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
-void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
-void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
+extern MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
+extern void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
+extern void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 
 #endif /* _MCW_XUTIL_HEADER_ */

@@ -165,12 +165,19 @@ typedef struct {
 #define MTD_USERDATA(mpcb)        ((mpcb)->userdata)
 #define MTD_remove_killfunc(mpcb) ((mpcb)->killfunc = NULL)
 
+#define MTD_replace_plotdata(mpcb,mpnew) \
+  do{ delete_memplot((mpcb)->mp) ; (mpcb)->mp = (mpnew) ; } while(0)
+
 extern MEM_topshell_data * memplot_to_topshell(Display *,MEM_plotdata *,void_func *) ;
 extern void plotkill_topshell( MEM_topshell_data * ) ;
+extern void redraw_topshell( MEM_topshell_data * ) ;
 
 #define memplot_to_shell(d) memplot_to_topshell( (d),get_active_memplot(),1 )
 
 /*-- plot time series --*/
+
+#define TSP_SEPARATE_YBOX    1
+#define TSP_SEPARATE_YSCALE  2
 
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
@@ -183,6 +190,9 @@ extern MEM_topshell_data * plot_ts_init( Display *, float, float,
                                          char *, char *, char *, char ** ) ;
 
 extern void plot_ts_addto( MEM_topshell_data *, int,float *, int,float ** ) ;
+
+extern MEM_plotdata * plot_ts_mem( int,float *, int,int,float **,
+                                   char *,char *,char *,char ** ) ;
 
 /*-- routines in this library that will be called from PLOTPAK --*/
 
@@ -209,7 +219,7 @@ extern void ps_setwidth( float ) ;                         /* set linewidth */
 /*-- routines from PLOTPAK, after running through f2c --*/
 
 #include "f2c.h"
-#undef complexxx
+#undef complex
 
 extern int color_(integer *ncol);
 extern int curve_(real *x, real *y, integer *n);

@@ -34,7 +34,10 @@
 
 static char * AFNI_dummy_av_label[2] = { "Nothing 1" , "Nothing 2" } ;
 
-static char * AFNI_crosshair_av_label[3] = { "Off" , "Single" , "Multi" } ;
+static char * AFNI_crosshair_av_label[9] = {  /* modified 31 Dec 1998 */
+    "Off"   , "Single" , "Multi" ,
+    " LR+AP", " LR+IS" , " AP+IS",
+    "  LR"  , "  AP"   , "  IS"    } ;
 
 static char * AFNI_see_marks_bbox_label[1] = { "See Markers" } ;
 
@@ -103,7 +106,9 @@ static char * AFNI_funcmode_bbox_label[2] =
    "Off:    no display of crosshairs\n"          \
    "Single: display of single crosshairs\n"      \
    "Multi:  display of crosshairs for each\n"    \
-   "        slice in the 'montage' layouts\n\n"  \
+   "         slice in the 'montage' layouts\n"   \
+   "LR+AP:  display crosshairs only parallel\n"  \
+   "         to the L-R and A-P axes [etc.]\n\n" \
    "N.B.: When a slice has an image viewer\n"    \
    "  and a grapher open at the same time,\n"    \
    "  then a 'frame' will be drawn around\n"     \
@@ -705,6 +710,8 @@ STATUS("making imag->xhair_rowcol") ;
    else
       ii = AFNI_XHAIRS_OFF ;
 
+   im3d->vinfo->xhairs_orimask = ORIMASK_ALL ;  /* 31 Dec 1998 */
+
 STATUS("making imag->crosshair_av") ;
 
    imag->crosshair_av = new_MCW_arrowval(
@@ -712,7 +719,7 @@ STATUS("making imag->crosshair_av") ;
                           "Xhairs" ,                  /* label */
                           AVOPT_STYLE ,               /* option menu style */
                           AFNI_XHAIRS_OFF ,           /* first option */
-                          AFNI_XHAIRS_MULTI ,         /* last option */
+                          AFNI_XHAIRS_LASTOPTION ,    /* last option */
                           ii ,                        /* initial selection */
                           MCW_AV_readtext ,           /* ignored but needed */
                           0 ,                         /* ditto */
@@ -721,6 +728,9 @@ STATUS("making imag->crosshair_av") ;
                           MCW_av_substring_CB ,       /* text creation routine */
                           AFNI_crosshair_av_label     /* data for above */
                         ) ;
+
+   if( AVOPT_STYLE == MCW_AV_optmenu )
+      AVOPT_columnize( imag->crosshair_av , 3 ) ;
 
    imag->crosshair_av->parent     = (XtPointer) im3d ;
    imag->crosshair_av->allow_wrap = True ;

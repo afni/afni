@@ -1109,6 +1109,25 @@ void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data 
    return ;
 }
 
+/*-----------------------------------------------------------------------
+   03 Jan 1999: Check if a widget is potentially visible
+                -- return 0 if not, 1 if yes.
+-------------------------------------------------------------------------*/
+
+int MCW_widget_visible( Widget w )
+{
+   Window ww ;
+   XWindowAttributes wa ;
+
+   if( w == (Widget) NULL ) return 0 ;
+   ww = XtWindow(w) ;
+   if( ww == (Window) NULL ) return 0 ;
+
+   XGetWindowAttributes( XtDisplay(w) , ww , &wa ) ;
+
+   return ( (wa.map_state == IsViewable) ? 1 : 0 ) ;
+}
+
 /*----------  Fix a Linux stupidity  ------------------------------------*/
 
 #ifdef NEED_XSETLOCALE
