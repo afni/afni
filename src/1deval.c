@@ -17,6 +17,8 @@ int main( int argc , char * argv[] )
    int ii,jj , kvar , nopt , qvar , num=-1 , verbose=0 ;
    MRI_IMAGE * inim[26] ;
    float     * inar[26] ;
+   MRI_IMAGE *dindex_im = NULL;
+   float     *dindex = NULL;
    char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
 
    /*-- help? --*/
@@ -36,6 +38,10 @@ int main( int argc , char * argv[] )
              "               time series input, then -num is required.\n"
              "  -a q.1D  = Read time series file q.1D and assign it\n"
              "               to the symbol 'a' (as in 3dcalc).\n"
+             "  -index i.1D = Read index column from file i.1D and\n"
+             "                 write it out as 1st column of output.\n"
+             "                 This option is useful when working with\n"
+             "                 surface data.\n" 
              "Examples:\n"
              "  1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
              "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n"
@@ -120,6 +126,28 @@ int main( int argc , char * argv[] )
          if( verbose ) fprintf(stderr,"del set to %g\n",del) ;
          nopt++ ; continue ;
       }
+      
+      if( strcmp(argv[nopt],"-index") == 0 ){
+         nopt++ ;
+         if( nopt >= argc ){
+            fprintf(stderr,"** -index needs an argument!\n") ;
+            exit(1) ;
+         }
+         
+         dindex_im = mri_read_1D( argv[nopt] ) ;
+         if( dindex_im == NULL ){
+            fprintf(stderr,"** Can't read time series file %s\n",argv[nopt]);
+            exit(1) ;
+         }
+         if (dindex_im->ny != 1) {
+            fprintf(stderr,"** Only one column allowed for indexing.\n   Found %d columns\n", dindex_im->ny);
+            exit(1) ;
+         }
+         dindex = MRI_FLOAT_PTR(dindex_im) ;
+         nopt++ ; continue ;
+         
+      }
+
 
       if( strcmp(argv[nopt],"-num") == 0 ){
          nopt++ ;
@@ -157,6 +185,14 @@ int main( int argc , char * argv[] )
          qvar++ ;
       }
    }
+   
+   if (dindex) {
+      if ( dindex_im->nx != num) {
+         fprintf(stderr,"** Number of values in index column (%d) \n   not equal to number of values in data (%d)\n", dindex_im->nx, num );
+         exit(1) ;
+      }
+   }
+   
    if( qvar > 0 ) exit(1) ;
 
    if( pcode == NULL ){
@@ -188,7 +224,8 @@ int main( int argc , char * argv[] )
          if( inar[jj] != NULL ) atoz[jj] = inar[jj][ii] ;
       if( kvar >= 0 ) atoz[kvar] = ii * del ;
       value = PARSER_evaluate_one( pcode , atoz ) ;
-      printf(" %g\n",value) ;
+      if (dindex) printf(" %d\t%g\n", (int)dindex[ii], value) ;
+      else printf(" %g\n",value) ;
    }
    exit(0) ;
 }

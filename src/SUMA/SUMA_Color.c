@@ -675,6 +675,47 @@ int main (int argc,char *argv[])
 }   
 #endif
 
+#ifdef STOPPED_HERE
+
+SEE afni_setup.c file for reading in colormaps from files:
+color definitions are read in starting at line 93 
+      if( strcmp(str,"***COLORS") == 0 ){
+palette definitions are read in starting at line 146
+      if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
+
+
+SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_Boolean pos, SUMA_COLOR_MAP *ColMap, SUMA_SCALE_TO_MAP_OPT *Opt, SUMA_COLOR_SCALED_VECT * SV)
+{
+   static char FuncName[]={"SUMA_ScaleToMap_alaAFNI"};
+   int i;
+   float minval, maxval;
+   
+   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+
+   /* Autorange ? */
+   
+   if (range = 0.0) {
+      /* autorange, find min-max values */
+      minval = V[0]; maxval = V[0];
+      for (i=0; i < N_V; ++i) {
+         if (V[i] > maxval) maxval = V[i];
+         else if (V[i] < minval) minval = V[i];
+      }
+   } else {
+      
+   }
+   /* find the values to be masked out */
+   if (Opt->ApplyMask){
+      for (i=0; i < N_V; ++i) {
+         if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) {
+            SV->isMasked[i] = YUP;
+         } 
+      }
+   }
+   
+}
+#endif
+
 /*!
    This function maps the values in a vector to colors on a color map
    Res = SUMA_ScaleToMap (V, N_V, Vmin, Vmax, ColMap, Opt, SV); 
