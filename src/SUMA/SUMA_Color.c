@@ -19,7 +19,10 @@
    int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
    
 #else
-   extern SUMA_CommonFields *SUMAg_CF; 
+   extern SUMA_CommonFields *SUMAg_CF;
+   extern int SUMAg_N_DOv; 
+   extern SUMA_DO *SUMAg_DOv;
+   
 #endif
 
 /*! The set of functions deals with node colors
@@ -2208,3 +2211,41 @@ SUMA_Boolean SUMA_SetPlaneOrder (SUMA_OVERLAYS **Overlays, int N_Overlays, const
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }
    SUMA_RETURN (YUP);
 }   
+
+
+/*!
+   \brief ans = SUMA_MixColors (sv);
+   this functions mixes the colors for surface objects that ask for it 
+   \param sv (SUMA_SurfaceViewer *)
+   \return YUP/NOPE
+*/
+SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_MixColors"};
+   int i, dov_id;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   for (i=0; i<sv->N_ColList; ++i) {
+      if (sv->ColList[i].Remix) {
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Mixing colors (%s)...\n", FuncName, sv->ColList[i].idcode_str);
+         dov_id = SUMA_findSO_inDOv (sv->ColList[i].idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+         if (dov_id < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_findSO_inDOv.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+         SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
+         if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, sv->ColList[i].glar_ColorList, SO->N_Node, \
+            sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+         sv->ColList[i].Remix = NOPE;
+      }
+   }   
+   
+   SUMA_RETURN (YUP);
+
+}

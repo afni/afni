@@ -242,7 +242,7 @@ int main (int argc,char *argv[])
 
 	/* Allocate space (and initialize) Surface Viewer Structure */
 	SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);
-
+   
 	/* Check on initialization */
 	/*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
 
@@ -259,9 +259,6 @@ int main (int argc,char *argv[])
 		fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
 		return 1;
 	}
-	/* One Surface Viewer created and initialized */
-	SUMAg_N_SVv += 1;
-	  
 
 	/*Main loop */
 	XtAppMainLoop(SUMAg_CF->App);

@@ -3576,6 +3576,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
    int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
    static char FuncName[]={"SUMA_MakeConsistent"};
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3685,17 +3686,17 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
                continue;
             } 
             if (!ischecked[ht0] && !ischecked [ht1]) { /* a good lead that was missed on this pass */
-               /* fprintf(SUMA_STDERR,"%s: Miss = %d, MissCur = %d\n", FuncName, miss, miss_cur); */
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Miss = %d, MissCur = %d\n", FuncName, miss, miss_cur); 
                ++miss;
             }
          }
          ++i;   
       }
-      /*fprintf(SUMA_STDERR,"%s: Miss = %d, MissCur = %d\n", FuncName, miss, miss_cur);*/
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Miss = %d, MissCur = %d\n", FuncName, miss, miss_cur);
       ++N_iter;
    }
 
-   fprintf(SUMA_STDERR,"%s: %d iterations required to check the surface.\n", FuncName, N_iter);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: %d iterations required to check the surface.\n", FuncName, N_iter);
    fprintf(SUMA_STDERR,"%s: %d/%d (%f%%) triangles checked.\n", FuncName, N_checked, SEL->N_EL/3, (float)N_checked/(SEL->N_EL/3)*100.0);
    if (N_flip) {
       fprintf(SUMA_STDERR,"%s: %d triangles were flipped to make them consistent with the triangle containing the first edge in the list.\n", FuncName, N_flip);
@@ -3714,10 +3715,10 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
    #endif
       
    /* freedom */
-   fprintf(SUMA_STDERR,"%s: Free time \n", FuncName);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Free time \n", FuncName);
    if (isflip) SUMA_free(isflip);
    if (ischecked) SUMA_free(ischecked);
-   fprintf(SUMA_STDERR,"%s: returning.\n", FuncName);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: returning.\n", FuncName);
    
    SUMA_RETURN (YUP);
 }

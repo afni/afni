@@ -3,7 +3,7 @@
 set CurDir = $PWD
 
 if ("$1" == '' || "$1" == '-h' || "$1" == '-help' || "$2" == '') then
-   goto USAGE
+	goto USAGE
 endif
 
 goto PARSE_COMMAND
@@ -32,295 +32,225 @@ goto END
 
 
 PARSE_COMMAND:
-   set ExpAnatPrefix = `@GetAfniPrefix $1`
-   set ExpAnatView = `@GetAfniView $1`
-   set SurfAnatPrefix = `@GetAfniPrefix $2` 
-   set SurfAnatView = `@GetAfniView $2` 
-   set SurfAnatPath = $2:h
-   if ($SurfAnatPath == $2:t) then 
-      #no path given
-      set SurfAnatPath = .
-   endif
-   #downsample only option
-   set SetPrefix = 0
-   set DownSample = 0
-   set VolRegPrefixExt = ''
-   
-   if ($# == 3) then
-      goto NEW_USAGE
-   endif
-   
-   if ($# > 3) then
-      set cnt = 3
-      while ($cnt <= $#) 
-         switch ($argv[$cnt])
-            case -op:
-               set SetPrefix = 1
-               @ cnt ++
-               if ($# < $cnt) then
-                  goto MISSING_PARAM
-               endif
-               set VolRegPrefix = $argv[$cnt]
-               breaksw
-            case -oe:
-               @ cnt ++
-               if ($# < $cnt) then
-                  goto MISSING_PARAM
-               endif
-               set VolRegPrefixExt = $argv[$cnt]
-               breaksw
-            case -dxyz:
-               @ cnt ++
-               if ($# < $cnt) then
-                  goto MISSING_PARAM
-               endif
-               set DownSample = $argv[$cnt]
-               breaksw
-            default:
-               goto BADOPT 
-               breaksw
-         endsw
-         @ cnt ++
-      end
-   endif
-
-   goto Ret_PARSE_COMMAND
+	if ($# == 3) then
+		set DownSample = $3
+	else
+		set DownSample = 0
+	endif
+	set ExpAnatPrefix = `@GetAfniPrefix $1`
+	set ExpAnatView = `@GetAfniView $1`
+	set SurfAnatPrefix = `@GetAfniPrefix $2` 
+	set SurfAnatView = `@GetAfniView $2` 
+	set SurfAnatPath = $2:h
+	if ($SurfAnatPath == $2:t) then 
+		#no path given
+		set SurfAnatPath = .
+	endif
+	goto Ret_PARSE_COMMAND
 
 SET_VARIABLES:
-   set ExpAnat = $ExpAnatPrefix$ExpAnatView
-   set SurfAnat = $SurfAnatPrefix$SurfAnatView
-   set Resampled = 0 #flag set when resampling is done
-   if ($SetPrefix) then
-      set VolRegPrefix = $VolRegPrefix$VolRegPrefixExt
-   else
-      set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"$VolRegPrefixExt
-   endif
-   goto Ret_SET_VARIABLES
+	set ExpAnat = $ExpAnatPrefix$ExpAnatView
+	set SurfAnat = $SurfAnatPrefix$SurfAnatView
+	set Resampled = 0 #flag set when resampling is done
+	goto Ret_SET_VARIABLES
 
 DOWNSAMPLE:
-   set Skip = 0
-   if ($DownSample != 0) then
-      echo "Downsampling ..."
-      cd $SurfAnatPath
-      set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
-      if (-f $tmpPrefix$SurfAnatView.BRIK) then
-         echo ""
-         echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
-         echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-         set sel = $<
-         if ("$sel" == 'O' || "$sel" == 'o') then
-            rm -f $tmpPrefix$SurfAnatView.BRIK $tmpPrefix$SurfAnatView.HEAD
-         endif
-         if ("$sel" == 'S' || "$sel" == 's') then
-            echo "Skipping downsampling, existing data set $DownSample will be used"
-            set Skip = 1
-         endif
-         if ("$sel" == 'Q' || "$sel" == 'q') then
-            echo "Quitting ..."
-            goto END
-         endif
-         echo ""
-      endif
-      if ($Skip == 0) then
-         echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
-         adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-         if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z)) then
-            goto NO_DOWNGOOD_BADBAD
-         endif
-         
-      endif
-      set SurfAnatPrefix = $tmpPrefix
-      set SurfAnat = $SurfAnatPrefix$SurfAnatView
-      cd $CurDir
-   endif
-   goto Ret_DOWNSAMPLE
+	set Skip = 0
+	if ($DownSample != 0) then
+		echo "Downsampling ..."
+		cd $SurfAnatPath
+		set tmpPrefix = $SurfAnatPrefix"_"$DownSample"mm"
+		if (-f $tmpPrefix$SurfAnatView.BRIK) then
+			echo ""
+			echo "Warning: $tmpPrefix$SurfAnatView exists in $SurfAnatPath"
+			echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+			set sel = $<
+			if ("$sel" == 'O' || "$sel" == 'o') then
+				rm -f $tmpPrefix$SurfAnatView.BRIK $tmpPrefix$SurfAnatView.HEAD
+			endif
+			if ("$sel" == 'S' || "$sel" == 's') then
+				echo "Skipping downsampling, existing data set $DownSample will be used"
+				set Skip = 1
+			endif
+			if ("$sel" == 'Q' || "$sel" == 'q') then
+				echo "Quitting ..."
+				goto END
+			endif
+			echo ""
+		endif
+		if ($Skip == 0) then
+			echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
+			adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
+			if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z)) then
+				goto NO_DOWNGOOD_BADBAD
+			endif
+			
+		endif
+		set SurfAnatPrefix = $tmpPrefix
+		set SurfAnat = $SurfAnatPrefix$SurfAnatView
+		cd $CurDir
+	endif
+	goto Ret_DOWNSAMPLE
 
 RESAMPLE:
-   #resample Experiment volume to look like SurfAnat
-   set Skip = 0
-   cd $CurDir
-   set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"
-   set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
-   echo ""
-   echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
-   if (-f $ExpAnat_Resamp.BRIK) then
-      echo ""
-      echo "Warning: $ExpAnat_Resamp exists in $CurDir"
-      echo "Enter O/S/Q to Overwrite/Skip/Quit:"
-      set sel = $<
-      if ("$sel" == 'O' || "$sel" == 'o') then
-         rm -f $ExpAnat_Resamp.BRIK $ExpAnat_Resamp.HEAD
-      endif
-      if ("$sel" == 'S' || "$sel" == 's') then
-         echo "Skipping resampling, existing data set $ExpAnat_Resamp will be used"
-         set Skip = 1
-      endif
-      if ("$sel" == 'Q' || "$sel" == 'q') then
-         echo "Quitting ..."
-         goto END
-      endif
-      echo ""
-   endif
-   if ($Skip == 0) then
-      echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat"
-      echo ""
-      3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat
-      if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z)) then 
-         goto NO_RESAMP
-      endif
-   endif
-   set ExpAnatPrefix = $ExpAnat_ResampPrefix
-   set ExpAnat = $ExpAnat_Resamp
-   set Resampled = 1
-   goto Ret_RESAMPLE
-   
+	#resample Experiment volume to look like SurfAnat
+	set Skip = 0
+	cd $CurDir
+	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"
+	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
+	echo ""
+	echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
+	if (-f $ExpAnat_Resamp.BRIK) then
+		echo ""
+		echo "Warning: $ExpAnat_Resamp exists in $CurDir"
+		echo "Enter O/S/Q to Overwrite/Skip/Quit:"
+		set sel = $<
+		if ("$sel" == 'O' || "$sel" == 'o') then
+			rm -f $ExpAnat_Resamp.BRIK $ExpAnat_Resamp.HEAD
+		endif
+		if ("$sel" == 'S' || "$sel" == 's') then
+			echo "Skipping resampling, existing data set $ExpAnat_Resamp will be used"
+			set Skip = 1
+		endif
+		if ("$sel" == 'Q' || "$sel" == 'q') then
+			echo "Quitting ..."
+			goto END
+		endif
+		echo ""
+	endif
+	if ($Skip == 0) then
+		echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat"
+		echo ""
+		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat
+		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z)) then 
+			goto NO_RESAMP
+		endif
+	endif
+	set ExpAnatPrefix = $ExpAnat_ResampPrefix
+	set ExpAnat = $ExpAnat_Resamp
+	set Resampled = 1
+	goto Ret_RESAMPLE
+	
 REGISTER:
-   cd $CurDir
-   echo ""
-   if (-f $VolRegPrefix$SurfAnatView.BRIK) then
-      echo ""
-      echo "Warning: $VolRegPrefix$SurfAnatView exists in $CurDir"
-      echo "Enter O/Q to Overwrite/Quit:"
-      set sel = $<
-      if ("$sel" == 'O' || "$sel" == 'o') then
-         rm -f $VolRegPrefix$SurfAnatView.BRIK $VolRegPrefix$SurfAnatView.HEAD
-      endif
-      if ("$sel" == 'Q' || "$sel" == 'q') then
-         echo "Quitting ..."
-         goto END
-      endif
-      echo ""
-   endif
-   
-   echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
-   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
-   echo ""
-   3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
-   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
-      goto NO_VOLREG
-   endif
-   
-   mv $SurfAnatPath/$VolRegPrefix* ./
-   
-   #remove _resamp_
-   if ($Resampled == 1) then
-      echo "removing temporary bricks ..."
-      rm -f $ExpAnat_Resamp".HEAD"
-      rm -f $ExpAnat_Resamp".BRIK"
-   endif
-   goto Ret_REGISTER
+	cd $CurDir
+	set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
+	echo ""
+	if (-f $VolRegPrefix$SurfAnatView.BRIK) then
+		echo ""
+		echo "Warning: $VolRegPrefix$SurfAnatView exists in $CurDir"
+		echo "Enter O/Q to Overwrite/Quit:"
+		set sel = $<
+		if ("$sel" == 'O' || "$sel" == 'o') then
+			rm -f $VolRegPrefix$SurfAnatView.BRIK $VolRegPrefix$SurfAnatView.HEAD
+		endif
+		if ("$sel" == 'Q' || "$sel" == 'q') then
+			echo "Quitting ..."
+			goto END
+		endif
+		echo ""
+	endif
+	
+	echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
+	echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
+	echo ""
+	3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
+	if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+		goto NO_VOLREG
+	endif
+	
+	mv $SurfAnatPath/$VolRegPrefix* ./
+	
+	#remove _resamp_
+	if ($Resampled == 1) then
+		echo "removing temporary bricks ..."
+		rm -f $ExpAnat_Resamp".HEAD"
+		rm -f $ExpAnat_Resamp".BRIK"
+	endif
+	goto Ret_REGISTER
 
 CHECK_EXISTENCE:
-   test -f $ExpAnat.HEAD || goto NO_EXPANAT
-   if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
-      goto NO_EXPANAT
-   endif
+	test -f $ExpAnat.HEAD || goto NO_EXPANAT
+	if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
+		goto NO_EXPANAT
+	endif
 
-   test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
-   if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
-      goto NO_SURFANAT
-   endif
-   goto Ret_CHECK_EXISTENCE
+	test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
+	if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
+		goto NO_SURFANAT
+	endif
+	goto Ret_CHECK_EXISTENCE
 
 CHECK_PROGRAMS:
-    set failed_pgms = 0
+	 set failed_pgms = 0
     foreach test_command ( 3dvolreg adwarp @GetAfniView @GetAfniPrefix )
-      (which $test_command) >& /dev/null
+		(which $test_command) >& /dev/null
 
-      if ( $status ) then
-          echo "program not found in path: $test_command"
-          @ failed_pgms ++
-      endif
+		if ( $status ) then
+	   	 echo "program not found in path: $test_command"
+	   	 @ failed_pgms ++
+		endif
     end
 
     if ( $failed_pgms ) then
-      echo "$failed_pgms program(s) not found"
-      goto END
+		echo "$failed_pgms program(s) not found"
+		goto END
     endif
 
-   goto Ret_CHECK_PROGRAMS
-   
+	goto Ret_CHECK_PROGRAMS
+	
 NO_SURFANAT:
-   echo ""
-   echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
-   echo ""
-   goto END
+	echo ""
+	echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
+	echo ""
+	goto END
 
 NO_EXPANAT:
-   echo ""
-   echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
-   echo ""
-   goto END
+	echo ""
+	echo "Error: No Experiment Anatomy $ExpAnat (.HEAD or .BRIK) in current directory"
+	echo ""
+	goto END
 
 NO_DOWNGOOD_BADBAD:
-   echo ""
-   echo "Error: adwarp failed."
-   echo ""
-   goto END
+	echo ""
+	echo "Error: adwarp failed."
+	echo ""
+	goto END
 
 NO_VOLREG:
-   echo ""
-   echo "Error: 3dvolreg failed."
-   echo ""
-   goto END
+	echo ""
+	echo "Error: 3dvolreg failed."
+	echo ""
+	goto END
 NO_RESAMP:
-   echo ""
-   echo "Error: 3dresample failed."
-   echo ""
-   goto END
-
-MISSING_PARAM:
-   @ cnt --
-   echo ""
-   echo "ERROR: You must enter a parameter after $argv[$cnt] option."
-   echo "Try: `basename $0` -help "
-   echo ""
-   goto END
-
-BADOPT:
-   echo ""
-   echo "ERROR:"
-   echo "Could not understand option $argv[$cnt]."
-   echo "Try: `basename $0` -help "
-   echo ""
-   goto END
-
-NEW_USAGE:
-   echo ""
-   echo "ERROR:"
-   echo "Please check the new usage for entering optional parameters such as downsampling."
-   echo "Try: `basename $0` -help "
-   echo ""
-   goto END
-      
+	echo ""
+	echo "Error: 3dresample failed."
+	echo ""
+	goto END
+	
 USAGE:
-   echo ""
-   echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> [dxyz]"
-   echo "creates a version of Surface Anatomy that is registered to Experiment Anatomy."
-   echo ""
-   echo "<Experiment Anatomy> Name of high resolution anatomical data set in register with experimental data."
-   echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to create the surface."
-   echo "[-dxyz dxyz]: This optional parameter indicates that the anatomical volumes must be downsampled to dxyz mm"
-   echo "        voxel resolution before registration. That is only necessary if 3dvolreg runs out of memory."
-   echo "        You MUST have 3dvolreg that comes with afni distributions newer than version 2.45l. It contains"
-   echo "        an option for reducing memory usage and thus allow the registration of large data sets."
-   echo "[-op OutPrefix]: This optional parameter allows the user to specify the prefix of the aligned Surface"
-   echo "        Anatomy. The default is the prefix of the Surface Anatomy brick with the added suffix _Alnd_Exp."
-   echo "[-oe OutPrefixExt]: This optional parameter allows the user to specify an additional suffix to be"
-   echo "        appended to the default _Alnd_Exp suffix." 
-   echo ""         
-   echo ""
-   echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
-   echo ""
-   echo "Example:"
-   echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
-   echo ""
+	echo ""
+	echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> [dxyz]"
+	echo "creates a version of Surface Anatomy that is registered to Experiment Anatomy."
+	echo ""
+	echo "<Experiment Anatomy> Name of high resolution anatomical data set in register with experimental data."
+	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to create the surface."
+	echo "[dxyz]: This optional parameter indicates that the anatomical volumes must be downsampled to dxyz mm"
+	echo "        voxel resolution before registration. That is only necessary if 3dvolreg runs out of memory."
+	echo "        You MUST have 3dvolreg that comes with afni distributions newer than version 2.45l. It contains"
+	echo "        an option for reducing memory usage and thus allow the registration of large data sets."
+	echo ""         
+	echo ""
+	echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
+	echo ""
+	echo "Example:"
+	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
+	echo ""
    echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
-   echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
-   echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
-   echo ""
-   goto END
+	echo ""
+	echo "Ziad Saad (ziad@nih.gov)"
+	echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
+	echo ""
+	goto END
 
 END:
-   cd $CurDir
+	cd $CurDir

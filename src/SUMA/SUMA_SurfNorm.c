@@ -62,7 +62,26 @@ Side effects :
 	to free memory from RetStrct
 	if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);
 	if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
-   
+
+The node normals are obtained by averaging the normals of the surrounding facesets (ie facesets containing the node).
+This is an approximation and in special cases like a cube with a particular tesselation, the normals could be biased 
+in direction if the node is a member of more triangles on one side of the object than the other sides. 
+See Lab-book NIH-2, page 142 for an illustration or this miserable ascii rendition. 
+               
+            -------------------
+           *             ##    *          Here, Node I will have its normal biased towards the direction of N2 and N3
+          *          ##       * |         because node I is part of two triangles from one side and one triangle in    
+         *       ##    N1    *  |         each of the other 2 sides.
+        *    ##             *   |
+       *##              I  * N3 |
+       ------------------ *     | 
+       |##               |######|    
+       |  ##     N4      |     *
+       |     ##          | N2 *
+       |        ##       |   *
+       |           ##    |  *
+       |              ## | *
+       ------------------     
 ***/
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
