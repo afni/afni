@@ -4799,3 +4799,6 @@
 
 19 Nov 2003
  * Multiple level undo/redo in plug_drawdset.c.
+
+20 Nov 2003
+ * Fixed bug in arrowpad movement, in afni.c: must do LOAD_DSET_VIEWS(im3d).
