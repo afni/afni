@@ -1950,7 +1950,28 @@ Variable: AFNI_IMAGE_ZOOM_NN (editable)
 ----------------------------
 If this variable is set to YES, then image viewer windows will use
 nearest neighbor interpolation for zooming.  The default is linear
-interpolation, which produces smoother-looking images.
+interpolation, which produces smoother-looking images.  However, some
+people want to see the actual data values represented in the window,
+not some fancy-schmancy interpolated values designed to look good but
+in fact making a mockery of a sham of a mockery of a travesty of two
+mockeries of a sham of reality.
+
+------------------------------
+Variable: AFNI_DISABLE_CURSORS
+------------------------------
+If this variable is set to YES, then AFNI will not try to change the X11
+cursor shape.  This feature is available because it seems that sometimes
+particular X11 installations choices of cursor and AFNI's choices don't
+work together well.  If you have unpleasant cursors in AFNI (e.g., an X),
+try setting this variable to YES.
+
+-----------------------------
+Variable: AFNI_SLAVE_FUNCTIME (editable)
+-----------------------------
+When the underlay and overlay datasets both are time-dependent, switching
+the time index will change both the underlay and overlay sub-bricks.  If
+you want the time index control to change ONLY the underlay sub-brick,
+then set this variable to NO.
 
 =============================================
 | Robert W Cox, PhD                         |
