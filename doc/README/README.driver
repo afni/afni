@@ -33,6 +33,16 @@ SET_THRESHOLD [c].val [dec]
   will set the '**' (decimal) level of the slider to 2 and the slider value to
   30 (=0.3000*100).
 
+SET_THRESHNEW [c] val [flags]
+  Sets the threshold slider for controller index 'c' (default='A') to the
+  numerical value 'val', which must be in the range [0..9999].  If the
+  optional 'flags' string contains the character '*', then the slider decimal
+  offset (i.e., the '**' setting) will be changed to match the size of 'val'.
+  If 'flags' contains the character 'p', then 'val will be interepreted as
+  a p-value (and so must be between 0.0 and 1.0).  Examples:
+    SET_THRESHNEW A 9.2731
+    SET_THRESHNEW B 0.3971 *p
+
 SET_PBAR_NUMBER [c.]num
   Sets the number of panes in the color pbar to 'num' (currently must be between
   2 and 20, inclusive).  Example:
@@ -52,7 +62,7 @@ SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
   The top pane runs from 2.0-1.5 and is yellow; the second pane runs from
   1.5-1.0 and is blue, etc.  The 'color' values must be legal color labels.
 
-SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name
+SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name [options]
   Sets the color pbar for controller #c to be in "continuous" colorscale
   mode.  Again, '+' or '-' is used to specify if the colorscale should
   be positive-only or signed.  The special value of 99 panes is used
@@ -60,6 +70,13 @@ SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name
   value to go at the top of the colorscale.  The string 'colorscale_name'
   tells which colorscale to use.  For example:
     SET_PBAR_ALL A.+99 1.0 Color_circle_AJJ
+
+  The 'options' available at this time only apply when in this "continuous"
+  colorscale case.  They are
+    ROTA=n => after loading the colorscale, rotate it by 'n' steps
+    FLIP   => after loading the colorscale, flip it upside down
+  These options are part of how the AFNI_PBAR_LOCK function works, and
+  probably aren't relevant for manual use.
 
 PBAR_ROTATE [c.]{+|-}
   Rotates the color pbar in the positive ('+') or negative ('-') direction:

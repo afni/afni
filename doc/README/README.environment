@@ -241,8 +241,8 @@ Variable: AFNI_HINTS
 This is a string controlling whether or not the popup "hints" are
 displayed when AFNI starts.  If the string is "NO", then the hints
 are disabled when AFNI starts, otherwise they are enabled.  In
-either case, they can be turned off and on from the Misc menu in
-the Datamode control panel.
+either case, they can be turned off and on interactively from the
+Define Datamode->Misc menu.
 
 Hints can be permanently disabled by setting the C macro
 DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can also
@@ -328,8 +328,10 @@ deal with more files than you have swap space on your computer
 (since .BRIK files are mmap-ed in readonly mode).
 
 The moral of the story: buy more memory, it's cheap.  At the time
-I write this line (Aug 1998), I have a PC with 384 MB of RAM, and
+I write this line [Aug 1998], I have a PC with 384 MB of RAM, and
 it is great to use with AFNI.
+
+[Feb 2004] I now have a Mac G5 with 8 GB of RAM, and it is even greater!
 
 ----------------------
 Variable: AFNI_PSPRINT (editable)
@@ -364,7 +366,8 @@ Setting this YES/NO variable to YES tells afni to start up with all
 the controller windows locked together.  If you mostly use multiple
 controllers to view datasets in unison, then this will be useful.
 Notice that the Time Lock feature is not automatically enabled
-by this -- you must still actuate it manually.
+by this -- you must still actuate it manually from the Lock menu
+on the Define Datamode panel.
 
 ------------------------
 Variables: AFNI_RENDER_* (editable)
@@ -473,7 +476,9 @@ to3d must be used.
 Variable: AFNI_NOSPLASH
 -----------------------
 If this YES/NO variable is set to YES, then the AFNI splash screen
-will not be displayed when the program starts.
+will not be displayed when the program starts.  I'm not sure WHY
+you would want to disable this thing of beauty (which is a joy
+forever), but if your soul is thusly degraded, so be it.
 
 ------------------------
 Variable: AFNI_SPLASH_XY
@@ -602,7 +607,7 @@ an X11 PseudoColor visual, then you should be economical with color usage!
 
 The purpose of this feature is to let you highlight the plugins that you
 use most frequently.  The size of the of plugin menu is growing, and it
-is easy to misplace what you need in the list.
+is easy to misplace what you most use in the list.
 
 -----------------------------
 Variable: AFNI_MARKERS_NOQUAL (editable)
@@ -610,7 +615,7 @@ Variable: AFNI_MARKERS_NOQUAL (editable)
 If this YES/NO variable is set to YES, then the interactive AFNI program
 behaves as if the "-noqual" command line option had been included.  This
 feature was added at the request of Dr. Michael S. Beauchamp, who has a
-rare neurological disorder called "noqaulagnosia".
+very rare neurological disorder called "noqaulagnosia".
 
 ----------------------
 Variable: AFNI_OPTIONS
@@ -873,7 +878,11 @@ AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number
                           will be written to disk [default=37.954];
                           since this output may take several seconds,
                           you may need to adjust this if you are in
-                          fact doing imaging with a very long TR
+                          fact doing imaging with a very long TR.
+                          Note that after this wait, the plugin can
+                          still receive image data -- even if the image
+                          source program is silent for a very long time,
+                          AFNI will still be waiting patiently for data.
 
 For more information about how the realtime plugin works, read the file
 README.realtime.
@@ -1429,7 +1438,7 @@ N.B.: "YES", "NO", and "not set" have 3 different sets of behavior!
 If neither variable is set, then dz=1 mm, which is probably wrong.
 
 Sorry about this complexity, but the situation with various manufacturers
-is complicated and murky.
+is complicated, murky, and confusingly maddening.
 
 ---------------------------------------------------
 Variables: AFNI_DICOM_RESCALE and AFNI_DICOM_WINDOW
@@ -1652,8 +1661,8 @@ normally tries to read a file as a DICOM file, and as a last resort, as
 a flat binary file.  However, if a file is NOT a DICOM file, the DICOM
 reading function will print out a lot of error messages, since there is
 also no standard internal marker in all DICOM files that identify them.
-Most people don't like all these messages, even if the program then
-successfully reads their flat binary files.
+Most people don't like all these messages (perhaps hundreds per file),
+even if the program then successfully reads their flat binary files.
 
 If this YES/NO variable is set to YES, then the normal last-resort order
 of reading described above is reversed.  If to3d can't read the file any
@@ -1901,12 +1910,30 @@ make the windows for the various controllers somewhat distinct in
 appearance.  If these color variables are not set at all, then AFNI
 uses some colors of my choosing for this purpose.
 
--------------------------------------
+--------------------------
 Variable: AFNI_THRESH_LOCK (editable)
--------------------------------------
-If this variable is set to YES, then AFNI controllers that are Lock-ed
-together (Datamode->Lock menu) will also have their threshold sliders
-locked together.
+--------------------------
+This variable can be used to lock the Define Function threshold sliders
+together.  There are three possibilities:
+  NO (the default) => each controller's slider is independent
+  VALUE            => the numerical value on each slider will be the same
+  P-VALUE          => the p-value for each slider will be the same
+This locking only applies to AFNI controllers that are Lock-ed together
+(cf. AFNI_ALWAYS_LOCK and the Define Datamode->Lock menu).  If p-values
+are locked, this lock will also only apply to controllers whose current
+Threshold sub-brick has a known statistical distribution.
+
+When you drag a locked threshold slider, the other one will only change
+when you release the mouse button -- they won't slide in tandem, but will
+just jump to the final value.
+
+------------------------
+Variable: AFNI_PBAR_LOCK (editable)
+------------------------
+If this variable is set to YES, then the Define Function color bars
+(the "pbars") of AFNI controllers that are Lock-ed together will be
+coordinated.  Changes to one locked pbar will be reflected in the
+others immediately.
 
 =============================================
 | Robert W Cox, PhD                         |
