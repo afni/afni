@@ -865,4 +865,7 @@
       - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data
       - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()
   * modified Makefile.INCLUDE to deal with nifti directory
+  * renamed znzlib directory to nifti
+  * moved nifti1.h, nifti1_io.c, nifti1_io.h and nifti1_test.c under nifti
+  * modified thd_analyzeread.c and thd_niftiread.c: nifti1_io.h is under nifti
 
