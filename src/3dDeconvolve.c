@@ -5641,7 +5641,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    if( dset_coef == NULL && verb )
     fprintf(stderr,
-           "** WARNING: -xrestore recomputing coefficients from time series\n");
+           "++ -xrestore recomputing coefficients from time series\n");
 
    /*----- read new GLT matrices -----*/
 

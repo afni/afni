@@ -5128,3 +5128,4 @@
      [B] (etc.) due to anat_old check not also checking im3d_old.
  * Modified mri_read_ascii() and my_fgets() in mri_read.c to not malloc/free
      line buffer for each line read.  Also, removed the "" feature.
+ * Added mri_read_ascii_ragged() to mri_read.c.
