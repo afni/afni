@@ -7,6 +7,9 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*-------------------------------------------------------------*/
+/*!\brief Return the time at which the file was last modified. */
+
 time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 {
    static struct stat buf ; int ii ;
@@ -15,6 +18,9 @@ time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    return buf.st_mtime ;
 }
+
+/*-----------------------------------------------------------*/
+/*!\brief Determine if this is really a regular file or not. */
 
 int THD_is_file( char * pathname )
 {
@@ -25,6 +31,9 @@ int THD_is_file( char * pathname )
    ii = (buf.st_mode & S_IFREG) != 0 ; return ii ;
 }
 
+/*------------------------------------------------------------*/
+/*!\brief Determine if this is really a symbolic link or not. */
+
 int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 {
    char buf[32] ; int ii ;
@@ -32,6 +41,9 @@ int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
    ii = readlink( pathname , buf , 32 ) ;
    return (ii > 0) ;
 }
+
+/*-------------------------------------------------------*/
+/*!\brief Return the file length (-1 if file not found). */
 
 long THD_filesize( char * pathname )
 {
@@ -42,6 +54,9 @@ long THD_filesize( char * pathname )
    return buf.st_size ;
 }
 
+/*--------------------------------------------------------*/
+/*!\brief Determine if this is really a directory or not. */
+
 int THD_is_directory( char * pathname )
 {
    static struct stat buf ; int ii ;
@@ -51,6 +66,9 @@ int THD_is_directory( char * pathname )
    ii = (buf.st_mode & S_IFDIR) != 0 ; return ii ;
 }
 
+/*---------------------------------------------------------------*/
+/*!\brief Determine if this is really an executable file or not. */
+
 int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
 {
    static struct stat buf ; int ii ;
@@ -59,6 +77,9 @@ int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
    ii = (buf.st_mode & S_IXOTH) != 0 ; return ii ;
 }
+
+/*--------------------------------------------------------------*/
+/*!\brief Determine if two filenames are really the same thing. */
 
 int THD_equiv_files( char * path1 , char * path2 )
 {
@@ -72,12 +93,13 @@ int THD_equiv_files( char * path1 , char * path2 )
    return ii ;
 }
 
-/*-----------------------------------------------------------------
-   Routine to find a 'trailing name' in a pathname.  For example,
-   for fname = "/bob/cox/is/the/author/of/AFNI",
-     the lev=0 trailing name is "AFNI",
-     the lev=1 trailing name is "of/AFNI",
-     the lev=2 trailing name is "author/of/AFNI", and so on.
+/*-----------------------------------------------------------------*/
+/*!\brief Find a 'trailing name in a pathname.
+
+   For example, for fname = "/bob/cox/is/the/author/of/AFNI",
+     - the lev=0 trailing name is "AFNI",
+     - the lev=1 trailing name is "of/AFNI",
+     - the lev=2 trailing name is "author/of/AFNI", and so on.
    That is, "lev" is the number of directory names above the
    last name to keep.  The pointer returned is to some place
    in the middle of fname.
