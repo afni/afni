@@ -1318,6 +1318,8 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
            re-open it to another tcp: port or to be a shm: stream.
 
   name = "file:filename" to open a file for I/O.
+         - For this type of name ONLY, you can use "a" as the mode string to
+           indicate that you want to append to the file if it already exists.
 
   name = "str:" to read/write data from/to a string
 
@@ -1357,6 +1359,7 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
                   NI_stream_clearbuf().
            - You can't open "fd:0" (stdin) for reading
            - You can't open "http:" or "ftp:" streams for writing.
+           - "a" can be used for "file:" ONLY to append to a file.
 
   mode = "r" to open a stream for reading
            - tcp: host is ignored (but must be present);
@@ -1431,7 +1434,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( mode == NULL ) return NULL ;
 
-   do_create = (*mode == 'w') ;
+   do_create = (*mode == 'w' || *mode == 'a') ;
    do_accept = (*mode == 'r') ;
 
    if( !do_create && !do_accept ) return NULL ;
@@ -1519,6 +1522,7 @@ NI_stream NI_stream_open( char *name , char *mode )
    if( strncmp(name,"shm:",4) == 0 ){
       SHMioc *ioc ;
 
+      if( *mode == 'a' ) mode = "w" ;
       ioc = SHM_init( name , mode ) ;  /* open segment */
       if( ioc == NULL ) return NULL ;  /* this is bad bad bad */
 
@@ -1550,13 +1554,14 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( strncmp(name,"file:",5) == 0 ){
 
-      char *fname = name+5 ;
+      char *fname = name+5 , *fmode ;
       FILE *fp ;
 
       if( NI_strlen(name) > 255 || NI_strlen(fname) < 1 ) return NULL ;
 
-      fp = fopen( fname , do_create ? "wb"     /* always in binary mode */
-                                    : "rb" ) ;
+      if( *mode == 'a' ) fmode = "ab" ;
+      else               fmode = do_create ? "wb" : "rb" ;
+      fp = fopen( fname , fmode ) ;
 
       if( fp == NULL ) return NULL ;
 
