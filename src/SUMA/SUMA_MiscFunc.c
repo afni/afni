@@ -4097,6 +4097,9 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
    if (Out == NULL) Out = stdout;
    
    fprintf(Out,"\nEL contents:\n");
+   if (EL->idcode_str) fprintf(Out,"IDcode: %s\n", EL->idcode_str);
+   else fprintf(Out,"IDcode: NULL\n");
+   
    fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2] ELps[i][3]]\n");
    for (i=0; i < EL->N_EL; ++i) {
       fprintf(Out,"%d-\t[%d %d]\t[%d %d %d %d]\n", 
@@ -4133,6 +4136,7 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    if (SEL->ELloc) SUMA_free(SEL->ELloc);
    if (SEL->ELps) SUMA_free2D((char **)SEL->ELps, SEL->N_EL);
    if (SEL->Tri_limb) SUMA_free2D((char **)SEL->Tri_limb, SEL->N_EL/3);
+   if (SEL->idcode_str) SUMA_free(SEL->idcode_str);
    if (SEL) SUMA_free(SEL);
    SUMA_RETURNe;
 }
@@ -4202,7 +4206,8 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }
    /* allocate and form the List of edges */
    SEL = (SUMA_EDGE_LIST *) SUMA_malloc(sizeof(SUMA_EDGE_LIST));
-
+   SEL->idcode_str = NULL;
+   SUMA_NEW_ID(SEL->idcode_str, NULL); 
    SEL->N_links = 0;
    if (ownerid) sprintf(SEL->owner_id, "%s", ownerid);
    else SEL->owner_id[0] = '\0';
@@ -5157,6 +5162,9 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
    else FN->owner_id[0] = '\0';
    FN->LinkedPtrType = SUMA_LINKED_ND_FRST_NEI_TYPE;
    
+   FN->idcode_str = NULL;
+   SUMA_NEW_ID(FN->idcode_str, NULL);
+   
    /* allocate space for FN's matrices */
    FN->N_Node = N_Node;
    FN->N_Neighb_max = 0;
@@ -5292,6 +5300,7 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
    
    /* no more links, go for it */
    SUMA_LH("No more links, here we go");
+   if (FN->idcode_str) SUMA_free(FN->idcode_str); 
    if (FN->NodeId) SUMA_free(FN->NodeId);
    if (FN->N_Neighb) SUMA_free(FN->N_Neighb);
    if (FN->FirstNeighb) SUMA_free2D ((char **)FN->FirstNeighb, FN->N_Node);

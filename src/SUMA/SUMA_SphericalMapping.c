@@ -4670,7 +4670,7 @@ int main (int argc, char *argv[])
    SUMA_FileName file;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char colFileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   SUMA_Boolean brk, LocalHead=YUP;
+   SUMA_Boolean brk, LocalHead=NOPE;
 
    int i, j, kar, numSeg, numCol;
    int *columns=NULL, *i_locInfo=NULL;
@@ -4904,7 +4904,7 @@ int main (int argc, char *argv[])
    char fileNm[1000];
    int *numW=NULL, j;
 
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
 
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);

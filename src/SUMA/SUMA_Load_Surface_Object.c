@@ -432,7 +432,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }
-         SO->idcode_str = UNIQ_hashcode((char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
          /* change coordinates to align them with volparent data set, if possible */
          if (VolParName != NULL) {
@@ -457,7 +457,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }
-         SO->idcode_str = UNIQ_hashcode((char *)SO_FileName_vp); 
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
          /* change coordinates to align them with volparent data set, if possible */
          if (VolParName != NULL) {
@@ -503,7 +503,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             SUMA_RETURN(NULL);
          }
          SO->FaceSetDim = 3; /*This must also be automated */
-         SO->idcode_str = UNIQ_hashcode(SO_FileName); 
+         SUMA_NEW_ID(SO->idcode_str,SO_FileName); 
          break;
          
       case SUMA_FREE_SURFER:
@@ -570,7 +570,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          }
          
          /* create the IDcode */
-         SO->idcode_str = UNIQ_hashcode(SO_FileName_vp);
+         SUMA_NEW_ID(SO->idcode_str,SO_FileName_vp);
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Assigned idcode_str:%s:.\n", FuncName, SO->idcode_str);
          break;
          
@@ -715,7 +715,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          #endif
                   
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
-         SO->idcode_str = UNIQ_hashcode(stmp);
+         SUMA_NEW_ID(SO->idcode_str,stmp);
          
          /* change coordinates to align them with volparent data set, if possible */
          if (VolParName != NULL) {
@@ -809,7 +809,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          }
          
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
-         SO->idcode_str = UNIQ_hashcode(stmp);
+         SUMA_NEW_ID(SO->idcode_str, stmp);
          break;
    } /* SO_FileType*/
    
@@ -3094,6 +3094,16 @@ void usage_SUMA_SurfaceMetrics ()
                "         Col.2: Index of the second node forming the edge\n"
                "         Col.3: Number of triangles containing edge\n"
                "         Col.4: Length of edge.\n"
+               "      -node_normals: Outputs segments along node normals.\n"
+               "                     Segments begin at node and have a default\n"
+               "                     magnitude of 1. See option 'Alt+Ctrl+s' in \n"
+               "                     SUMA for visualization."
+               "      -face_normals: Outputs segments along triangle normals.\n"
+               "                     Segments begin at centroid of triangles and \n"
+               "                     have a default magnitude of 1. See option \n"
+               "                     'Alt+Ctrl+s' in SUMA for visualization."
+               "      -normals_scale SCALE: Scale the normals by SCALE (1.0 default)\n"
+               "                     For use with options -node_normals and -face_normals\n"
                "      -coords: Output coords of each node after any transformation \n"
                "         that is normally carried out by SUMA on such a surface.\n"
                "         Col. 0: Node Index\n"
@@ -3322,7 +3332,7 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
 				exit (1);
 			}
-			OutPrefix = argv[kar];
+			OutPrefix = SUMA_copy_string(argv[kar]);
 			brk = YUP;
 		}
       
@@ -3573,9 +3583,45 @@ int main (int argc,char *argv[])
       if (sph) SUMA_free(sph); sph = NULL;
    }  
    
+   if (Do_NodeNorm) {
+      float norm[3];
+      sprintf(OutName, "%s.NodeNormSeg.1D", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Node normals output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Node normals.\n");
+      fprintf (fout,"#  Segments from node along the direction of the normal (of magnitude %f)\n", NormScale);
+      fprintf (fout,"#  1st three columns are node's coordinates\n");
+      fprintf (fout,"#  2nd three columns are the coordinate of a second point along the normal\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i<SO->N_Node; ++i) {
+         norm[0] = SO->NodeNormList[3*i]; norm[1] = SO->NodeNormList[3*i+1]; norm[2] = SO->NodeNormList[3*i+2];
+         /* normal is expected to be normalized...*/
+         norm[0] *= NormScale; norm[1] *= NormScale; norm[2] *= NormScale;
+         fprintf (fout,"%f %f %f \t%f %f %f\n", 
+            SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
+            SO->NodeList[3*i]+norm[0], SO->NodeList[3*i+1]+norm[1], SO->NodeList[3*i+2]+norm[2]);            
+      }
+      
+      fclose(fout); fout = NULL;
+      
+   }
+   
    if (Do_TriNorm) {
       float tc[3], norm[3];
       int n1, n2, n3;
+      if (SO->FaceSetDim != 3) {
+         SUMA_S_Err("Triangular meshes only please.");
+         exit(1);
+      }
       sprintf(OutName, "%s.TriNormSeg.1D", OutPrefix);
       if (SUMA_filexists(OutName)) {
          SUMA_S_Err("Triangle normals output file exists.\nWill not overwrite.");
@@ -4888,7 +4934,25 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
 
 			   brk = YUP;
-		   }	
+		   }
+         	
+         if (!brk && strcmp(argv[kar], "-ah") == 0)
+		   {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+			   if (kar >= argc)  {
+		  		   SUMA_S_Err("need argument after -ah \n");
+				   exit (1);
+			   }
+			   if (strcmp(argv[kar],"localhost") != 0) {
+               ps->cs->afni_host_name = SUMA_copy_string(argv[kar]);
+            }else {
+              fprintf (SUMA_STDERR, "localhost is the default for -ah\nNo need to specify it.\n");
+            }
+
+			   brk = YUP;
+		   }
+         
          if (!brk && strcmp(argv[kar], "-refresh_rate") == 0)
 		   {
             ps->arg_checked[kar]=1;

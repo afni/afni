@@ -35,7 +35,8 @@ ENTRY("THD_nimlize_dsetatr") ;
    NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
 
    /* make a data element for each attribute ... */
-
+   THD_set_dataset_attributes( dset ) ;
+   
    for( ia=0 ; ia < blk->natr ; ia++ ){
 
      atr_any = &(blk->atr[ia]) ;

@@ -2328,7 +2328,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          
          /* what is the volume parent ? This one will act as a gridparent 
             for the functional data set*/
-         NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
+         NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
          
          nelv[i] = nel; nel = NULL;
          
@@ -3106,17 +3106,17 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    SO->glar_NodeNormList = NULL;
    SO->glar_FaceNormList = NULL;
    
-   /*fprintf (stdout, "SO->NodeList... ");*/
+   if (LocalHead) fprintf (stdout, "SO->NodeList... ");
    if (SO->NodeList)   SUMA_free(SO->NodeList);
-   /*fprintf (stdout, "SO->FaceSetList... ");*/
+   /*fprintf (stdout, "SO->FaceSetList... ");*/ 
    if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-   /*fprintf (stdout, "SO->FaceSetList... ");*/
+   /*fprintf (stdout, "SO->FaceSetList... ");*/ 
    if (SO->NodeNormList) SUMA_free(SO->NodeNormList);
-   /*fprintf (stdout, "SO->NodeNormList... ");*/
+   /*fprintf (stdout, "SO->NodeNormList... ");*/ 
    if (SO->FaceNormList) SUMA_free(SO->FaceNormList);
-   /*fprintf (stdout, "SO->FaceNormList... ");*/
+   /*fprintf (stdout, "SO->FaceNormList... ");*/ 
    if (SO->Name_NodeParent) SUMA_free(SO->Name_NodeParent);
-   /*fprintf (stdout, "SO->Name.FileName... ");*/
+   if (LocalHead) fprintf (stdout, "SO->Name.FileName... "); 
    if (SO->Name.FileName) SUMA_free(SO->Name.FileName);
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->Name.Path\n", FuncName);
@@ -3129,8 +3129,12 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->FaceSetMarker\n", FuncName);
    if (SO->FaceSetMarker) SUMA_Free_FaceSetMarker(SO->FaceSetMarker);
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->idcode_str\n", FuncName);
-   if (SO->idcode_str) free(SO->idcode_str); /* DO NOT use SUMA_free because this pointer is created by UNIQ_hashcode which uses afni's calloc 
-                                                If you do so, you'll get a nasty warning from SUMA_free*/
+   if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+   if (SO->facesetlist_idcode_str) SUMA_free(SO->facesetlist_idcode_str);
+   if (SO->nodelist_idcode_str) SUMA_free(SO->nodelist_idcode_str);
+   if (SO->facenormals_idcode_str) SUMA_free(SO->facenormals_idcode_str);
+   if (SO->nodenormals_idcode_str) SUMA_free(SO->nodenormals_idcode_str);
+   if (SO->polyarea_idcode_str) SUMA_free(SO->polyarea_idcode_str);
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->LocalDomainParentID\n", FuncName);
    if (SO->LocalDomainParentID) SUMA_free(SO->LocalDomainParentID);
    if (SO->LocalDomainParent) SUMA_free(SO->LocalDomainParent);
@@ -3146,7 +3150,11 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->SC) {
       SUMA_Free_SURFACE_CURVATURE(SO->SC);
    }
-   
+   if (SO->Group_idcode_str) SUMA_free(SO->Group_idcode_str);
+   if (SO->ModelName) SUMA_free(SO->ModelName);
+   if (SO->OriginatorLabel) SUMA_free(SO->OriginatorLabel);
+   if (SO->StandardSpace) SUMA_free(SO->StandardSpace);
+   if (SO->parent_vol_idcode_str) SUMA_free(SO->parent_vol_idcode_str);
 
    #if 0 /* no more Cx inside SO */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing Cx\n", FuncName);
@@ -3311,7 +3319,21 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       
       SS = SUMA_StringAppend_va (SS,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
 
-      SS = SUMA_StringAppend_va (SS,"IDcode: %s\n", SO->idcode_str);
+      if (!SO->idcode_str) SS = SUMA_StringAppend_va (SS,"IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"IDcode: %s\n", SO->idcode_str);
+      if (!SO->parent_vol_idcode_str) SS = SUMA_StringAppend_va (SS,"parent_vol_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"parent_vol_IDcode: %s\n", SO->parent_vol_idcode_str);
+      if (!SO->facesetlist_idcode_str) SS = SUMA_StringAppend_va (SS,"faceset_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"faceset_IDcode: %s\n", SO->facesetlist_idcode_str);
+      if (!SO->nodelist_idcode_str) SS = SUMA_StringAppend_va (SS,"nodelist_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"nodelist_IDcode: %s\n", SO->nodelist_idcode_str);
+      if (!SO->facenormals_idcode_str) SS = SUMA_StringAppend_va (SS,"facenormals_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"facenormals_IDcode: %s\n", SO->facenormals_idcode_str);
+      if (!SO->nodenormals_idcode_str) SS = SUMA_StringAppend_va (SS,"nodenormals_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"nodenormals_IDcode: %s\n", SO->nodenormals_idcode_str);
+      if (!SO->polyarea_idcode_str) SS = SUMA_StringAppend_va (SS,"polyarea_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"polyarea_IDcode: %s\n", SO->polyarea_idcode_str);
+      
       
       if (!SO->LocalDomainParent) SS = SUMA_StringAppend_va (SS,"LocalDomainParent is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"LocalDomainParent: %s\n", SO->LocalDomainParent);
@@ -3327,11 +3349,15 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
        
       if (!SO->OriginatorID) SS = SUMA_StringAppend_va (SS,"OriginatorID is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"OriginatorID: %s\n", SO->OriginatorID);
+
+      if (!SO->OriginatorLabel) SS = SUMA_StringAppend_va (SS,"OriginatorLabel is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"OriginatorLabel: %s\n", SO->OriginatorLabel);
        
       if (!SO->DomainGrandParentID) SS = SUMA_StringAppend_va (SS,"DomainGrandParentID is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"DomainGrandParentID: %s\n", SO->DomainGrandParentID);
              
-      SS = SUMA_StringAppend_va (SS,"Group: %s\tState: %s\n", SO->Group, SO->State);
+      SS = SUMA_StringAppend_va (SS,"GroupLabel: %s\tGroupID: %s\tModelName %s\tState: %s\tStandardSpace %s\n", 
+                                 SO->Group, SO->Group_idcode_str, SO->ModelName, SO->State, SO->StandardSpace);
 
       if (SUMA_ismappable(SO)) {
          if (SUMA_isLocalDomainParent(SO)) {
@@ -3725,6 +3751,11 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Group = NULL;
       SO[i].FaceSetMarker = NULL;
       SO[i].idcode_str = NULL;
+      SO[i].facesetlist_idcode_str = NULL;
+      SO[i].nodelist_idcode_str = NULL;
+      SO[i].facenormals_idcode_str = NULL;
+      SO[i].nodenormals_idcode_str = NULL;
+      SO[i].polyarea_idcode_str = NULL;
       SO[i].SpecFile.Path = NULL;
       SO[i].SpecFile.FileName = NULL;
       SO[i].Name.Path = NULL;
@@ -3748,6 +3779,12 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].LocalDomainParentID = NULL;
       SO[i].LocalCurvatureParentID = NULL;
       SO[i].PermCol = NULL;
+      
+      SO[i].Group_idcode_str = NULL;
+      SO[i].ModelName = NULL;
+      SO[i].OriginatorLabel = NULL;
+      SO[i].StandardSpace = NULL;
+      SO[i].parent_vol_idcode_str = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

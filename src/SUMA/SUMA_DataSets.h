@@ -15,6 +15,8 @@
                                        This define is stuck here so that non-SUMA DataSet manipulating programs 
                                        can use it, one hopes.
                                        Numbering is yyyymmdd */
+#define SUMA_EMPTY_ATTR "~"
+
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
 typedef enum { SUMA_notypeset = -1, 
@@ -81,8 +83,10 @@ typedef enum {
    SUMA_MESH_IJK,
    SUMA_PREP_NEW_SURFACE,
    SUMA_VIEWER_SETTING,
+   SUMA_SURFACE_VOLUME_PARENT,
+   SUMA_SURFACE_OBJECT,
    SUMA_N_DSET_TYPES
-} SUMA_DSET_TYPE; /*!<  Type of data set 
+} SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
                         SUMA_Dset_Type_Name
                         SUMA_Dset_Type */
@@ -257,7 +261,7 @@ typedef struct {
                      but in instances where you may be receiving data for a 
                      varying number of nodes, it's a pain to have to destroy 
                      and recreate dsets. The trouble is not one of allocation 
-                     but of of mutiple links and associated structures created
+                     but of multiple links and associated structures created
                      for each new dset. So, while the juice is only up to 
                      vec_filled, the allocation is for vec_len 
          NodeDef: A vector containing an explicit list of the node index
@@ -344,6 +348,12 @@ typedef struct {
 }  
 
 /*!
+   Is this attribute string empty ?
+*/
+#define SUMA_IS_EMPTY_STR_ATTR(str)  ( (!(str) || !strcmp((str),SUMA_EMPTY_ATTR)) ? 1 : 0 )
+
+
+/*!
    \brief Macros to access dataset elements 
    Almost all of them involve a function call
    so don't use them in loops where the returned
@@ -351,9 +361,9 @@ typedef struct {
 */
 #define SDSET_FILENAME(dset) NI_get_attribute(dset->nel,"filename")
 #define SDSET_LABEL(dset) NI_get_attribute(dset->nel,"label")
-#define SDSET_ID(dset) NI_get_attribute(dset->nel,"idcode") 
+#define SDSET_ID(dset) SUMA_sdset_id(dset) 
 #define SDSET_IDGDOM(dset) NI_get_attribute(dset->nel,"GeomParent_idcode") 
-#define SDSET_IDMDOM(dset) NI_get_attribute(dset->nel,"MeshParent_idcode") 
+#define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
 #define SDSET_SORTED(dset) NI_get_attribute(dset->nel,"sorted_node_def") 
 #define SDSET_TYPE_NAME(dset) dset->nel->name
 #define SDSET_TYPE(dset) SUMA_Dset_Type(dset->nel->name)
@@ -550,7 +560,8 @@ SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 char *SUMA_ColLabelCopy(NI_element *nel, int i);
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
 void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy);
-
+char* SUMA_sdset_id(SUMA_DSET *dset);
+char* SUMA_sdset_idmdom(SUMA_DSET *dset);
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED

@@ -4571,7 +4571,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
 
          if (ForDisplay) {
             /* find out if a displayable object exists with the same idcode_str */
-            nel_idcode = NI_get_attribute( nel , "idcode_str");
+            nel_idcode = NI_get_attribute( nel , "idcode_str"); /* obsolete*/
+            if (!nel_idcode) nel_idcode = NI_get_attribute( nel , "Object_ID"); 
             if (SUMA_existDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) {
                if (AlwaysReplace) {
                   AddNel = YUP; 
@@ -4628,7 +4629,10 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
             /* make sure element's parent exists */
             if (AddNel) {
                SUMA_LH("Checking for Parent surface...");
-               if ((iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_idcode_str"), SUMAg_DOv, SUMAg_N_DOv)) < 0) {
+               iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_idcode_str"), SUMAg_DOv, SUMAg_N_DOv); /* obsolete */
+               if (iDO < 0) iDO = SUMA_whichDO(NI_get_attribute( nel , "Parent_ID"), SUMAg_DOv, SUMAg_N_DOv);
+              
+               if (iDO < 0) {
                   SUMA_SLP_Err(  "ROI's parent surface\n"
                                  "is not loaded. ROI is\n"
                                  "discarded." );
@@ -4668,15 +4672,18 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
    for (inel=0; inel < N_nel; ++inel) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing nel %d/%d...\n", FuncName, inel, N_nel);
       nel = nelv[inel];
-      nel_idcode = NI_get_attribute( nel , "idcode_str");
+      nel_idcode = NI_get_attribute( nel , "idcode_str"); /* obsolete */
+      if (!nel_idcode) nel_idcode = NI_get_attribute( nel , "Object_ID"); 
 
       /* store nel in nimlROI struct */
 
       /* allocate for nimlROI */
       nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
       nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
-      nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "idcode_str"));
-      nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_idcode_str"));
+      nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "idcode_str")); /* obsolete */
+      if (!nimlROI->idcode_str) nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Object_ID"));
+      nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_idcode_str")); /* obsolete */
+      if (!nimlROI->Parent_idcode_str) nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_ID"));
       nimlROI->Label = SUMA_copy_string(NI_get_attribute( nel , "Label"));
       nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
       nimlROI->N_ROI_datum = nel->vec_len;
@@ -5704,8 +5711,8 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       NI_add_column( nel , SUMAg_CF->nimlROI_Datum_type, niml_ROI->ROI_datum );
 
       SUMA_LH("Setting attributes...");
-      NI_set_attribute (nel, "idcode_str", niml_ROI->idcode_str);
-      NI_set_attribute (nel, "Parent_idcode_str", niml_ROI->Parent_idcode_str);
+      NI_set_attribute (nel, "Object_ID", niml_ROI->idcode_str);
+      NI_set_attribute (nel, "Parent_ID", niml_ROI->Parent_idcode_str);
       NI_set_attribute (nel, "Label", niml_ROI->Label);
       sprintf(stmp,"%d", niml_ROI->iLabel);
       NI_set_attribute (nel, "iLabel", stmp);
@@ -6392,3 +6399,587 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    SUMA_RETURN(dset);      
 }
 
+/*! 
+   \brief A function to change a SurfaceObject to niml format 
+   \param SO (SUMA_SurfaceObject *)
+   \param optlist (char *) string indicating what parts of SO to put in ngr
+                           choose any combination of: NodeList, FaceSetList, 
+                           EdgeList, MemberFace, NodeNeighb, VolPar, facenormals, 
+                           NodeNormals, PolyArea, 
+   \param No_LinksExternalElements (int) 1: Do not include IDs of elements not 
+                           created inside this group, i.e. not mentioned in optlist
+                                       0: So include IDs of elements that may reside 
+                                       on disk.
+   \return ngr (NI_group *) a NI group element formed from SO. 
+                           NOTE: That element has the SAME ID as SO!
+   \sa SUMA_nimlSO2SO
+*/
+NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee) 
+{
+   static char FuncName[]={"SUMA_SO2nimlSO"};
+   NI_group *ngr = NULL;
+   NI_element *nel = NULL;
+   char stmp[500];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) { 
+      SUMA_SL_Err("Null SO"); SUMA_RETURN(ngr);
+   }
+   
+   /* create group and name it */
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "SurfaceObject");
+   
+   /** BEGIN ATTRIBUTES COMMON TO ALL OBJECTS **/ 
+   
+   /* set the object type attribute */
+   switch (SO->FaceSetDim) {
+      case 3:
+         NI_set_attribute(ngr, "Object_Type", "Triangulated_Surface");
+         break;
+      default:
+         NI_set_attribute(ngr, "Object_Type", SUMA_EMPTY_ATTR);
+         SUMA_SL_Warn("FaceSetDim not supported");
+         break;
+   }      
+   
+   /* set the object ID */
+   if (SO->idcode_str) {
+      NI_set_attribute(ngr, "Object_ID", SO->idcode_str);
+   } else {
+      NI_set_attribute(ngr, "Object_ID", SUMA_EMPTY_ATTR);
+   }  
+   
+   /* set the object Label */
+   if (SO->Label) {
+      NI_set_attribute(ngr, "Object_Label", SO->Label);
+   } else {
+      NI_set_attribute(ngr, "Object_Label", SUMA_EMPTY_ATTR);
+   }
+   
+   
+   /* set the parent ID */
+   if (SO->LocalDomainParentID) {
+      NI_set_attribute(ngr, "Parent_ID", SO->LocalDomainParentID);
+   } else {
+      NI_set_attribute(ngr, "Parent_ID", SUMA_EMPTY_ATTR);
+   }
+   
+   /* set the grand parent ID */
+   if (SO->DomainGrandParentID) {
+      NI_set_attribute(ngr, "Grand_Parent_ID", SO->DomainGrandParentID);
+   } else {
+      NI_set_attribute(ngr, "Grand_Parent_ID", SUMA_EMPTY_ATTR);
+   }
+   
+   /** END ATTRIBUTES COMMON TO ALL OBJECTS **/      
+   
+   /** BEGIN ATTRIBUTES specific to Surfaces**/
+   if (SO->Group_idcode_str) {
+      NI_set_attribute(ngr, "Subject_ID", SO->Group_idcode_str);
+   } else {
+      NI_set_attribute(ngr, "Subject_ID", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->Group) {
+      NI_set_attribute(ngr, "Subject_Label", SO->Group);
+   } else {
+      NI_set_attribute(ngr, "Subject_Label", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->OriginatorID) {
+      NI_set_attribute(ngr, "Instance_ID", SO->OriginatorID);
+   } else {
+      NI_set_attribute(ngr, "Instance_ID", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->OriginatorLabel) {
+      NI_set_attribute(ngr, "Instance_Label", SO->OriginatorLabel);
+   } else {
+      NI_set_attribute(ngr, "Instance_Label", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->ModelName) {
+      NI_set_attribute(ngr, "Model_Name", SO->ModelName);
+   } else {
+      NI_set_attribute(ngr, "Model_Name", SUMA_EMPTY_ATTR);
+   }
+   
+   switch (SO->Side) {
+      case SUMA_NO_SIDE:
+         NI_set_attribute(ngr, "Side", "none");
+         break;
+      case SUMA_LEFT:
+         NI_set_attribute(ngr, "Side", "left");
+         break;
+      case SUMA_RIGHT:
+         NI_set_attribute(ngr, "Side", "right");
+         break;
+      default:
+         NI_set_attribute(ngr, "Side", SUMA_EMPTY_ATTR);
+         break;
+   }
+   
+   if (SO->State) {
+      NI_set_attribute(ngr, "Layer_Name", SO->State);
+   } else {
+      NI_set_attribute(ngr, "Layer_Name", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->AnatCorrect) {
+      NI_set_attribute(ngr, "Anatomically_Correct", "yes");
+   } else {
+      NI_set_attribute(ngr, "Anatomically_Correct", "no");
+   }
+   
+   sprintf(stmp,"%d", SO->EmbedDim);
+   NI_set_attribute(ngr, "Embedding_Dimension", stmp);
+   
+   if (SO->FileType >=0) {
+      sprintf(stmp,"%s", SUMA_SurfaceTypeString(SO->FileType));
+      NI_set_attribute(ngr, "Surface_Creation_Software",  stmp);
+   } else {
+      NI_set_attribute(ngr, "Surface_Creation_Software", SUMA_EMPTY_ATTR);
+   }
+   
+   NI_set_attribute(ngr, "Surface_Creation_History", SUMA_EMPTY_ATTR); 
+   
+   if (SO->StandardSpace) {
+      NI_set_attribute(ngr, "Standard_Space", SO->StandardSpace);
+   } else {
+      NI_set_attribute(ngr, "Standard_Space", SUMA_EMPTY_ATTR);
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"FaceSetList")) {
+      if (SO->facesetlist_idcode_str) {
+         NI_set_attribute(ngr, "Mesh_Element_ID", SO->facesetlist_idcode_str);
+      } else {
+         if (SO->idcode_str) {
+            sprintf(stmp, "facesetlist_idcode_str_%s", SO->idcode_str);
+            SUMA_NEW_ID(SO->facesetlist_idcode_str, stmp);
+            NI_set_attribute(ngr, "Mesh_Element_ID", SO->facesetlist_idcode_str);
+         } else  {
+            NI_set_attribute(ngr, "Mesh_Element_ID", SUMA_EMPTY_ATTR);
+         }
+      }
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"NodeList")) {
+      if (SO->nodelist_idcode_str) {
+         NI_set_attribute(ngr, "NodeList_Element_ID", SO->nodelist_idcode_str);
+      } else {
+         if (SO->idcode_str) {
+            sprintf(stmp, "nodelist_idcode_str_%s", SO->idcode_str);
+            SUMA_NEW_ID(SO->nodelist_idcode_str, stmp);
+            NI_set_attribute(ngr, "NodeList_Element_ID", SO->nodelist_idcode_str);
+         } else  {
+            NI_set_attribute(ngr, "NodeList_Element_ID", SUMA_EMPTY_ATTR);
+         }
+      }
+   }
+   if (!nlee || SUMA_iswordin(optlist,"facenormals")) {
+      if (SO->facenormals_idcode_str) {
+         NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SO->facenormals_idcode_str);
+      } else {
+         if (SO->idcode_str) {
+            sprintf(stmp, "facenormals_idcode_str_%s", SO->idcode_str);
+            SUMA_NEW_ID(SO->facenormals_idcode_str, stmp);
+            NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SO->facenormals_idcode_str);
+         } else  {
+            NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SUMA_EMPTY_ATTR);
+         }
+      }
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"NodeNormals")) {
+      if (SO->nodenormals_idcode_str) {
+         NI_set_attribute(ngr, "Node_Normals_Element_ID", SO->nodenormals_idcode_str);
+      } else {
+         if (SO->idcode_str) {
+            sprintf(stmp, "nodenormals_idcode_str_%s", SO->idcode_str);
+            SUMA_NEW_ID(SO->nodenormals_idcode_str, stmp);
+            NI_set_attribute(ngr, "Node_Normals_Element_ID", SO->nodenormals_idcode_str);
+         } else  {
+            NI_set_attribute(ngr, "Node_Normals_Element_ID", SUMA_EMPTY_ATTR);
+         }
+      }
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"PolyArea")) {
+      if (SO->polyarea_idcode_str) {
+         NI_set_attribute(ngr, "Polygon_Area_Element_ID", SO->polyarea_idcode_str);
+      } else {
+         if (SO->idcode_str) {
+            sprintf(stmp, "polyarea_idcode_str_%s", SO->idcode_str);
+            SUMA_NEW_ID(SO->polyarea_idcode_str, stmp);
+            NI_set_attribute(ngr, "Polygon_Area_Element_ID", SO->polyarea_idcode_str);
+         } else  {
+            NI_set_attribute(ngr, "Polygon_Area_Element_ID", SUMA_EMPTY_ATTR);
+         }
+      }
+   }
+
+   if (!nlee || SUMA_iswordin(optlist,"EdgeList")) {
+      /* add here the edge list, the node neighbor list and the face neighbor list IDs*/
+      if (SO->EL && SO->EL->idcode_str) {
+         NI_set_attribute(ngr, "SUMA_Edge_List_Element_ID", SO->EL->idcode_str);
+      } else {
+         NI_set_attribute(ngr, "SUMA_Edge_List_Element_ID", SUMA_EMPTY_ATTR);
+      }
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"MemberFace")) {
+      if (SO->MF && SO->MF->idcode_str) {
+         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SO->MF->idcode_str);
+      } else {
+         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SUMA_EMPTY_ATTR);
+      }
+   }
+   
+   if (!nlee || SUMA_iswordin(optlist,"NodeNeighb")) {
+      if (SO->FN && SO->FN->idcode_str) {
+         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SO->FN->idcode_str);
+      } else {
+         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SUMA_EMPTY_ATTR);
+      }
+   }
+
+   if (!nlee) {
+      /* add the parent volume (SurfVol, NOT SurfVol_AlndExp) IDcode if present. 
+        That ID does not usually refer to the volume from which VolPar is created. Except in the case 
+        where you are viewing the surfaces on the orignal volume (SurfVol) then this field and
+        SurfVol (afni dset *) ->idcode.str and VolPar->vol_idcode_str should be identical */
+      if (SO->parent_vol_idcode_str) {
+         NI_set_attribute(ngr, "SUMA_Afni_Parent_Vol_ID", SO->parent_vol_idcode_str);
+      } else {
+         NI_set_attribute(ngr, "SUMA_Afni_Parent_Vol_ID", SUMA_EMPTY_ATTR);
+      }
+   }
+   
+   /** END ATTRIBUTES specific to Surfaces**/ 
+   
+   /** BEGIN Adding data elements **/
+   
+   /* add the node list */
+   if (SUMA_iswordin(optlist,"NodeList")) {
+      SUMA_LH("Adding Nodelist nel...");
+      nel = SUMA_NodeXYZ2NodeXYZ_nel (SO, SO->NodeList, 0, SUMA_NEW_NODE_XYZ);
+      if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); }
+      NI_add_to_group( ngr, nel); 
+   }
+   
+   /* add the faceset list */
+   if (SUMA_iswordin(optlist,"FaceSetList")) {
+      SUMA_LH("Adding Nodelist nel...");
+      nel = SUMA_Mesh_IJK2Mesh_IJK_nel (SO, SO->FaceSetList, 0, SUMA_NEW_MESH_IJK);
+      if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); }
+      NI_add_to_group( ngr, nel); 
+   }   
+   
+   /* add the edge list */
+   if (SUMA_iswordin(optlist,"EdgeList")) {
+      SUMA_LH("Adding EdgeList nel...");
+      SUMA_SL_Warn("Option not implemented yet.");
+      if (SO->EL) {
+         /* if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); } 
+         NI_add_to_group( ngr, nel); */
+      }
+   }
+   
+   /* add the member face list */
+   if (SUMA_iswordin(optlist,"MemberFace")) {
+      SUMA_LH("Adding Member of FaceSet nel...");
+      SUMA_SL_Warn("Option not implemented yet.");
+      if (SO->MF) {
+         /* if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); } 
+         NI_add_to_group( ngr, nel); */
+      }
+   }
+   
+   /* add the node neighbor list */
+   if (SUMA_iswordin(optlist,"NodeNeighb")) {
+      SUMA_LH("Adding node neighbors nel...");
+      SUMA_SL_Warn("Option not implemented yet.");
+      if (SO->FN) {
+         /* if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); } 
+         NI_add_to_group( ngr, nel); */
+      }
+   }
+   
+   /* add the VolPar element */
+   if (SUMA_iswordin(optlist,"VolPar")) {
+      SUMA_LH("Adding VolPar nel ...");
+      if (SO->VolPar) {
+         nel = SUMA_SOVolPar2VolPar_nel (SO, SO->VolPar, SUMA_SURFACE_VOLUME_PARENT);
+         if (!nel) { SUMA_SL_Err("Failed to create nel"); NI_free_element(ngr); SUMA_RETURN(NULL); } 
+         NI_add_to_group( ngr, nel); 
+      }
+   }
+   
+   /** END Adding data elements **/ 
+   if (1) {
+      int suc;
+      SUMA_SL_Warn("writing SO group to DISK!");
+      NEL_WRITE_TX(ngr, "file:Test_SO2NIML_write_asc_1D", suc);
+   }
+   
+   SUMA_RETURN(ngr);
+}
+
+SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr) 
+{
+   static char FuncName[]={"SUMA_nimlSO2SO"};
+   NI_element *nel = NULL;
+   char stmp[500], *tmp;
+   int ip;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) {  SUMA_SL_Err("Null ngr"); SUMA_RETURN(SO); }
+   
+   if (strcmp(ngr->name, "SurfaceObject")) {
+      fprintf (SUMA_STDERR,"Error %s: group name (%s) is not (SUMA_SurfaceObject)\nObject does not appear to be a surface.", FuncName, ngr->name);
+   }
+   
+   /* a new surface */
+   SO = SUMA_Alloc_SurfObject_Struct(1); 
+   if (!SO) { SUMA_SL_Err("Failed to create SO."); SUMA_RETURN(SO); }
+   
+   /** BEGIN ATTRIBUTES COMMON TO ALL OBJECTS **/ 
+   tmp = SUMA_copy_string(NI_get_attribute(ngr,"Object_ID"));
+   if (SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_SL_Warn("No ID in nel.\nThat's not cool yall.\n I'll be adding a new one now."); SUMA_NEW_ID(SO->idcode_str, NULL); 
+      NI_set_attribute(ngr, "Group_ID", SO->idcode_str);
+   } else SO->idcode_str = SUMA_copy_string(tmp);
+   
+   tmp = NI_get_attribute(ngr, "Object_Type");
+   if (SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_SL_Err("Missing Object Type."); SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO); }
+   if (!strcmp(tmp, "Triangulated_Surface")) SO->FaceSetDim = 3;
+   else {
+      fprintf (SUMA_STDERR,"Error %s: Object_Type %s not recognized.\n", FuncName, tmp);
+      SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO); 
+   }   
+   
+   tmp = NI_get_attribute(ngr, "Object_Label");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Label = SUMA_copy_string(tmp);  
+   
+   /* set the parent ID */
+   tmp = NI_get_attribute(ngr, "Parent_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->LocalDomainParentID = SUMA_copy_string(tmp);  
+   
+   
+   /* set the grand parent ID */
+   tmp = NI_get_attribute(ngr, "Grand_Parent_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->DomainGrandParentID = SUMA_copy_string(tmp);  
+   
+   
+   /** END ATTRIBUTES COMMON TO ALL OBJECTS **/      
+   
+   /** BEGIN ATTRIBUTES specific to Surfaces**/
+   tmp = NI_get_attribute(ngr, "Subject_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Group_idcode_str = SUMA_copy_string(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Subject_Label");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Group = SUMA_copy_string(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Instance_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->OriginatorID = SUMA_copy_string(tmp);    
+   
+   tmp = NI_get_attribute(ngr, "Instance_Label");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->OriginatorLabel = SUMA_copy_string(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Model_Name");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->ModelName = SUMA_copy_string(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Side");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
+      if (!strcmp(tmp,"none")) SO->Side = SUMA_NO_SIDE;
+      else if (!strcmp(tmp,"left")) SO->Side = SUMA_LEFT;
+      else if (!strcmp(tmp,"right")) SO->Side = SUMA_RIGHT;
+   } 
+
+   tmp = NI_get_attribute(ngr, "Layer_Name");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->State = SUMA_copy_string(tmp); 
+
+   tmp = NI_get_attribute(ngr, "Anatomically_Correct");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
+      if (!strcmp(tmp,"yes")) SO->AnatCorrect = 1; 
+      else SO->AnatCorrect = 0; 
+   }
+    
+   tmp = NI_get_attribute(ngr, "Embedding_Dimension");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->EmbedDim = atoi(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Surface_Creation_Software");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->FileType = SUMA_SurfaceTypeCode(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "Standard_Space");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->StandardSpace = SUMA_copy_string(tmp); 
+   
+   tmp = NI_get_attribute(ngr, "SUMA_Afni_Parent_Vol_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->parent_vol_idcode_str = SUMA_copy_string(tmp); 
+      
+   
+   /** END ATTRIBUTES specific to Surfaces**/ 
+   
+   /* now read the elements in this group */
+   for( ip=0 ; ip < ngr->part_num ; ip++ ){ /* do not free elements as you process them, free with group at end */
+      switch( ngr->part_typ[ip] ){
+         /*-- a sub-group ==> recursion! --*/
+         case NI_GROUP_TYPE:
+            SUMA_SL_Err("Not ready from groups inside surface group. Group ignored"); 
+            break ;
+         case NI_ELEMENT_TYPE:
+            nel = (NI_element *)ngr->part[ip] ;
+            if (LocalHead)  {
+               fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
+                        nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+            }
+
+            /*--- NodeList ---*/
+            if( strcmp(nel->name,"Node_XYZ") == 0 || strcmp(nel->name,"NewNode_XYZ") == 0) { /* Get Da NodeList */
+               if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting NodeList...\n", 
+                                             FuncName);
+               if (!SUMA_NodeXYZ_nel2NodeXYZ(SO, nel)) {
+                  SUMA_SL_Err("Failed in SUMA_NodeXYZ_nel2NodeXYZ");
+                  SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
+               }
+            } else if ( strcmp(nel->name,"Mesh_IJK") == 0 || strcmp(nel->name,"NewMesh_IJK") == 0) { /* Get Da FaceSetList */ 
+               if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting FaceSetList...\n", 
+                                             FuncName);
+               if (!SUMA_Mesh_IJK_nel2Mesh_IJK(SO, nel)) {
+                  SUMA_SL_Err("Failed in SUMA_Mesh_IJK_nel2Mesh_IJK");
+                  SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
+               }
+            } else if ( strcmp(nel->name,"SurfaceVolumeParent") == 0) { /* Get Da FaceSetList */ 
+               if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting VolPar...\n", 
+                                             FuncName);
+               if (!SUMA_VolPar_nel2SOVolPar(SO, nel)) {
+                  SUMA_SL_Err("Failed in SUMA_VolPar_nel2SOVolPar");
+                  SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
+               }
+            } else {
+               fprintf (SUMA_STDERR,"Warning %s:\n nel (%s) unknown, ignoring it.\n", FuncName, nel->name);
+            }
+            break;
+         default:
+            SUMA_SL_Err("Don't know what to make of this group element, ignoring.");
+            break;
+      }
+   }
+   
+   if (!SO->NodeList || !SO->FaceSetList) { /* perhaps you'll remove this condition in the future ...*/
+      SUMA_SL_Err("Looks like NodeList and/or FaceSetList not in group. Balking.\n");
+      SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
+   }
+   
+   /* check on all elements that need to be loaded */   
+   tmp = NI_get_attribute(ngr, "Mesh_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->FaceSetList) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for FaceSetList element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) SUMA_Mesh_IJK_nel2Mesh_IJK(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+
+   tmp = NI_get_attribute(ngr, "NodeList_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->NodeList) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for NodeList element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) SUMA_NodeXYZ_nel2NodeXYZ(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+   
+   tmp = NI_get_attribute(ngr, "facenormals_idcode_str");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->FaceNormList) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for facenormals element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+     
+   tmp = NI_get_attribute(ngr, "Node_Normals_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->NodeNormList) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for Node_Normals element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+   
+   tmp = NI_get_attribute(ngr, "Polygon_Area_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->PolyArea) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for Polygon_Area element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+   
+   tmp = NI_get_attribute(ngr, "SUMA_Edge_List_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->EL) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for Edge_List element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+
+   tmp = NI_get_attribute(ngr, "SUMA_Node_Face_Member_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->MF) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for Node_Face_Member element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+   
+   tmp = NI_get_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp))  { 
+      if (!SO->FN) { /* element was not part of this group, usually recover from other files on disk, for the moment, warning */
+         fprintf (SUMA_STDERR,"Warning %s:\n group %s called for Node_First_Neighb element_ID %s which was not found.\n", FuncName, ngr->name, tmp);  
+         /* 
+         in the future, try to load from separate file
+         nel = SUMA_Find_nel_File(tmp); (for example) xxxxxx(SO, nel) ;  NI_free_nel(nel); nel = NULL; 
+         */     
+      }
+   }
+   
+   
+   if (SO->MF && SO->MF->idcode_str) {
+      NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SO->MF->idcode_str);
+   } else {
+      NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SUMA_EMPTY_ATTR);
+   }
+   
+   if (SO->FN && SO->FN->idcode_str) {
+      NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SO->FN->idcode_str);
+   } else {
+      NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SUMA_EMPTY_ATTR);
+   }
+   
+
+    
+   SUMA_RETURN(SO);
+}

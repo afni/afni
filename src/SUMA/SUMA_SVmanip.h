@@ -21,7 +21,6 @@ char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
 SUMA_Boolean SUMA_AdoptSurfGroup(SUMA_SurfaceViewer *csv, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov);
 int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup);
-SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf);
 SUMA_CommonFields * SUMA_Create_CommonFields (void);
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf, FILE *out);
