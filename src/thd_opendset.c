@@ -73,6 +73,17 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
      return THD_open_nifti( pathname ) ;
    }
 
+   /*-- 03 Dec 2003: the MPEG way! --*/
+
+   if( STRING_HAS_SUFFIX(pathname,".mpg")  ||
+       STRING_HAS_SUFFIX(pathname,".MPG")  ||
+       STRING_HAS_SUFFIX(pathname,".MPEG") ||
+       STRING_HAS_SUFFIX(pathname,".mpeg")   ){
+
+     return THD_open_mpeg( pathname ) ;
+   }
+
+   /*-- Must be an AFNI-formatted dataset! -------------*/
    /*-- find directory and last names in the pathname --*/
 
    for( ii=plen-1 ; ii >= 0 ; ii-- ) if( pathname[ii] == '/' ) break ;
