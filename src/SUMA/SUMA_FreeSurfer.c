@@ -58,16 +58,18 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 {/*SUMA_FreeSurfer_Read*/
    char stmp[50]; 
    FILE *fs_file;
-	int ex, cnt, jnki, amax[3], maxamax, id, ND, id2, NP, ip;
+	int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
 	float jnkf, *NodeList;
 	char c;
 	static char FuncName[]={"SUMA_FreeSurfer_Read"};
 	SUMA_Boolean LocalHead = NOPE;
 	   
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	}else {
 		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
 	}
@@ -78,7 +80,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	if (fs_file == NULL)
 		{
 			SUMA_error_message (FuncName,"Could not open input file ",0);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 	sprintf(FS->name, "%s", f_name);
@@ -86,8 +88,9 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	/* read first character and check if it is a comment */
 	ex = fscanf (fs_file,"%c",&c);
 	if (c == '#') {
-		/*fprintf (SUMA_STDOUT, "Found comment\n");*/
-		/*skip till next line */
+		if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
+		
+      /*skip till next line */
 		sprintf(FS->comment,"#"); 
 		cnt = 0;
 		while (ex != EOF && c != '\n') {
@@ -97,7 +100,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 				++cnt;
 			} else {
 				fprintf(SUMA_STDERR,"Error %s: Too long a comment in FS file, increase SUMA_FS_MAX_COMMENT_LENGTH\n", FuncName);
-				return (NOPE);
+				SUMA_RETURN (NOPE);
 			}
 		}
 	}
@@ -114,25 +117,28 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	/* read in the number of nodes and the number of facesets */
 	ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
 	
-	/* allocate space for NodeList and FaceSetList */
+	if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for NodeList (%dx3) and FaceSetList(%dx3)\n", FuncName, FS->N_Node, FS->N_FaceSet);
+   
+   /* allocate space for NodeList and FaceSetList */
 	FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
 	FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
 	FS->NodeId = (int *)SUMA_calloc(FS->N_Node, sizeof(int));
 	if (FS->NodeList == NULL || FS->FaceSetList == NULL || FS->NodeId == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->NodeList &/| FS->FaceSetList &/| FS->NodeId\n", FuncName);
-		return (NOPE);
+		SUMA_RETURN (NOPE);
 	} 
 	if (FS->isPatch) {
 		FS->FaceSetIndexInParent = (int *)SUMA_calloc(FS->N_FaceSet, sizeof(int));
 		if (FS->FaceSetIndexInParent == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->FaceSetIndexInParent\n", FuncName);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 	} else {
 		FS->FaceSetIndexInParent = NULL;
 	}
 	
 	if (!FS->isPatch) {
+	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading full surface...\n", FuncName);
 		/* read in the nodes */
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_Node) {
@@ -143,7 +149,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		}
 		if (cnt != FS->N_Node) {
 			fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 
 		/* read in the facesets */
@@ -155,23 +161,26 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		}
 		if (cnt != FS->N_FaceSet) {
 			fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 	} /* read a full surface */
 	else { /* that's a patch */
+	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch ...\n", FuncName);
 		/* Node IDs are a reference to those in the parent surface */
 		cnt = 0;
-		while (ex != EOF && cnt < FS->N_Node) {
+      while (ex != EOF && cnt < FS->N_Node) {
 			ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
-			id = 3 * FS->NodeId[cnt];
-			ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
+			id = 3 * cnt;
+         /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
+			ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]),&(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
 			++cnt;
 		}
-		if (cnt != FS->N_Node) {
+      if (cnt != FS->N_Node) {
 			fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
 		/* read in the facesets */
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_FaceSet) {
@@ -182,39 +191,60 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		}
 		if (cnt != FS->N_FaceSet) {
 			fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
-			return (NOPE);
+			SUMA_RETURN (NOPE);
 		}
 		/* The FaceSet List which will be read next, uses indices into the NodeList of the parent surface
 		This means that it expects a NodeList of the size of the NodeList in the parent surface. 
 		One could read the maximum number of nodes in the parent surface and create a NodeList of that size.
 		However, that would require keeping track of the link between the patch file and the parent file.
 		Instead, I will search through the FaceSetList for the highest index and allocate a new nodelist to match it*/
-
+      
 		SUMA_MAX_VEC(FS->FaceSetList, FS->N_FaceSet * 3, maxamax); ++maxamax;
+      /* make sure that the node list does not refer to nodes of an index higher than that in NodeId */
+      SUMA_MAX_VEC(FS->NodeId, FS->N_Node, maxamax2); ++maxamax2;
+      if (maxamax2 > maxamax) {
+         fprintf(SUMA_STDERR,"Error %s: Found NodeId in the NodeList larger than Ids found in FaceSetList.\n");
+         SUMA_RETURN (NOPE);
+      }
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Copying NodeList, allocating for new nodelist %dx3 elements...\n", \
+         FuncName, maxamax);
+         
 		NodeList = (float *)SUMA_calloc(maxamax * 3, sizeof(float));
-		if (NodeList == NULL)
+		NodeId = (int *)SUMA_calloc (maxamax, sizeof(int));
+      
+      if (NodeList == NULL || NodeId == NULL)
 		{
-			fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList\n", FuncName);
-			return (NOPE);
+			fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList or NodeId\n", FuncName);
+			SUMA_RETURN (NOPE);
 		} 
 		/*Now copy pertinent nodes into NodeList */
-		for (cnt=0; cnt< FS->N_Node; ++cnt) {
-			id = FS->NodeId[cnt] * 3;
-			id2 = 3*cnt;
-			NodeList[id] = FS->NodeList[id2];
-			NodeList[id+1] = FS->NodeList[id2+1];
-			NodeList[id+2] = FS->NodeList[id2+2];
-		}
-		/* Now free FS->NodeList */
-		free(FS->NodeList);
 		
+      for (cnt=0; cnt< FS->N_Node; ++cnt) {
+			id = 3*cnt; 
+			id2 = 3*FS->NodeId[cnt];
+         /* fprintf (SUMA_STDERR, "%s: id = %d id2 = %d\n", FuncName, id, id2); */
+			NodeList[id2] = FS->NodeList[id];
+			NodeList[id2+1] = FS->NodeList[id+1];
+			NodeList[id2+2] = FS->NodeList[id+2];
+		}
+		
+      /* this is redundant here, but should be done to match what comes out of a full surface */
+      for (cnt=0; cnt< maxamax; ++cnt) {
+         NodeId[cnt] = cnt;
+      }
+      
+      /* Now free FS->NodeList & FS->NodeId */
+		free(FS->NodeList);
+		free(FS->NodeId);
+      
 		/*make FS->NodeList be NodeList */
 		FS->NodeList = NodeList;
+      FS->NodeId = NodeId;
 		FS->N_Node = maxamax;
 	} /* read a patch */
 	
 	fclose (fs_file);
-	return(YUP);
+	SUMA_RETURN (YUP);
 	
 }/* SUMA_FreeSurfer_Read*/
 
@@ -223,12 +253,16 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 */
 SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 {
+	static char FuncName[]={"SUMA_Free_FreeSurfer"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (FS->FaceSetList != NULL) free(FS->FaceSetList);
 	if (FS->NodeList != NULL) free(FS->NodeList);
 	if (FS->NodeId != NULL) free(FS->NodeId);
 	if (FS->FaceSetIndexInParent != NULL) free(FS->FaceSetIndexInParent);
 	if (FS != NULL) free (FS);
-	return (YUP);
+	SUMA_RETURN (YUP);
 }
 
 /*! 
@@ -239,6 +273,8 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 	static char FuncName[]={"SUMA_Show_FreeSurfer"};
 	int ND = 3, id, ip;
 	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
 	if (Out == NULL) Out = SUMA_STDOUT;
 	fprintf (Out, "Comment: %s\n", FS->comment);
 	fprintf (Out, "N_Node %d\n", FS->N_Node);
@@ -266,7 +302,7 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 			FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
 			FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
 	}
-	return;
+	SUMA_RETURNe;
 
 }
 
