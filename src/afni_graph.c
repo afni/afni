@@ -505,8 +505,7 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_down_pb  ,"Down [g]", "Reduce vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_up_pb    ,"Up   [G]", "Increase vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_choose_pb,"Choose"  , "Set vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pinbot_choose_pb ,"Pin Bot" , "Fix bot index of graph window" ) ;  /* 17 Mar 2004 */
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pintop_choose_pb ,"Pin Top" , "Fix top index of graph window" ) ;  /* 27 Apr 1997 */
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pin_choose_pb ,"Index Pin","Fix index range of graph window" ) ;  /* 17 Mar 2004 */
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_HorZ_pb  ,"HorZ [h]", "Horizontal line at Zero" ) ; /* 05 Jan 1999 */
 
    OPT_MENU_PULLRIGHT(opt_slice_menu,opt_slice_cbut      ,"Slice"   , "Change slice"  ) ;
@@ -3424,17 +3423,13 @@ STATUS("User pressed Done button: starting timeout") ;
       EXRETURN ;
    }
 
-   if( w == grapher->opt_pintop_choose_pb ){   /* 27 Apr 1997 */
-      MCW_choose_integer( grapher->option_rowcol , "Pin Top" ,
-                          0 , MAX_PIN , grapher->pin_top ,
-                          GRA_pintop_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
-   }
-
-   if( w == grapher->opt_pinbot_choose_pb ){   /* 27 Apr 1997 */
-      MCW_choose_integer( grapher->option_rowcol , "Pin Bot" ,
-                          0 , MAX_PIN , grapher->pin_bot ,
-                          GRA_pinbot_choose_CB , (XtPointer) grapher ) ;
+   if( w == grapher->opt_pin_choose_pb ){   /* 19 Mar 2004 */
+      char *lvec[2] = { "Bot" , "Top" } ;
+      int   ivec[2] ;
+      ivec[0] = grapher->pin_bot ; ivec[1] = grapher->pin_top ;
+      MCW_choose_vector( grapher->option_rowcol , "Graph Pins" ,
+                         2 , lvec,ivec ,
+                         GRA_pin_choose_CB , (XtPointer) grapher ) ;
       EXRETURN ;
    }
 
@@ -3654,23 +3649,25 @@ ENTRY("GRA_grid_choose_CB") ;
 
 /*-----------------------------------------------------------------------------*/
 
-void GRA_pintop_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
+void GRA_pin_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
 {
    MCW_grapher *grapher = (MCW_grapher *) cd ;
-ENTRY("GRA_pintop_choose_CB") ;
-   GRA_timer_stop( grapher ) ;
-   drive_MCW_grapher( grapher , graDR_setpintop , (XtPointer)(cbs->ival) ) ;
-   EXRETURN ;
-}
+   float *vec = (float *)(cbs->cval) ;
+   int pb=(int)vec[0] , pt=(int)vec[1] , ii ;
 
-/*-----------------------------------------------------------------------------*/
+ENTRY("GRA_pin_choose_CB") ;
 
-void GRA_pinbot_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
-{
-   MCW_grapher *grapher = (MCW_grapher *) cd ;
-ENTRY("GRA_pinbot_choose_CB") ;
    GRA_timer_stop( grapher ) ;
-   drive_MCW_grapher( grapher , graDR_setpinbot , (XtPointer)(cbs->ival) ) ;
+
+   if( pb >= grapher->status->num_series-2 ||
+       pb <  0                             ||
+       (pt > 0 && pt-pb < 2)                 ){   /* stupid user */
+
+      XBell(grapher->dc->display,100) ; EXRETURN ;
+   }
+
+   ii = 100000*pt + pb ;
+   drive_MCW_grapher( grapher , graDR_setpins , (XtPointer)(ii) ) ;
    EXRETURN ;
 }
 
@@ -3962,6 +3959,8 @@ OK   drive_code       drive_data should be
 *    graDR_setpintop       [same as newlength]
 
 *    graDR_setpinbot       (int) set the bottom index for plotting
+*    graDR_setpins         (int) set top AND bottom index for plotting;
+                             value = 100000*top + bot
 
 *    graDR_setglobalbaseline (float *) Global baseline value
 
@@ -4096,19 +4095,13 @@ ENTRY("drive_MCW_grapher") ;
       /* (same as graDR_setpinnum and graDR_setpintop) */
 
       case graDR_newlength:{
-         int newtop=(int)drive_data , newbot=-1 , ii ;
+         int newtop=(int)drive_data ;
 
          if( newtop < MIN_PIN ) newtop = 0 ;
-         if( newtop > 100000 ){                /* top and bot    */
-           newtop = newtop / 100000 ;          /* encoded as     */
-           newbot = newtop % 100000 ;          /* 100000*top+bot */
-         }
          if( newtop > MAX_PIN ) newtop = MAX_PIN ;
-         if( newbot >= newtop || newbot >= TTOP(grapher) ) newbot = 0 ;
 
          grapher->pin_top = newtop ;
-         if( newbot < 0 && NPTS(grapher) < 2 ) newbot = 0 ;
-         if( newbot >= 0 ) grapher->pin_bot = newbot ;
+         if( NPTS(grapher) < 2 ) grapher->pin_bot = 0 ;
 
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
@@ -4120,12 +4113,37 @@ ENTRY("drive_MCW_grapher") ;
       /*------ reset bottom of time series plotting [17 Mar 2004] -----*/
 
       case graDR_setpinbot:{
-         int newbot=(int)drive_data , ii ;
+         int newbot=(int)drive_data ;
 
          if( newbot < 0               ) newbot = 0 ;
          if( newbot >= TTOP(grapher)  ) newbot = 0 ;
 
          grapher->pin_bot = newbot ;
+
+#ifdef USE_OPTMENUS
+         GRA_fix_optmenus( grapher ) ;
+#endif
+         redraw_graph( grapher, 0 ) ;
+         RETURN( True ) ;
+      }
+
+      /*------ reset bot and top of time series plotting [19 Mar 2004] -----*/
+
+      case graDR_setpins:{
+         int ii=(int)drive_data , newbot,newtop ;
+
+         if( ii <= 0 ){
+           newbot = newtop = 0 ;
+         } else {
+           newbot = ii % 100000 ;
+           newtop = ii / 100000 ;
+           if( newtop < MIN_PIN ) newtop = 0 ;
+         }
+         if( newtop > 0 && newtop-newbot < 2 ) newbot = 0 ;
+         if( newbot >= TTOP(grapher)         ) newbot = 0 ;
+
+         grapher->pin_bot = newbot ;
+         grapher->pin_top = newtop ;
 
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;

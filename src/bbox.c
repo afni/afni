@@ -217,12 +217,12 @@ int MCW_val_bbox( MCW_bbox *bb )
 ---------------------------------------------------------------------------*/
 
 MCW_arrowval * new_MCW_arrowval( Widget parent ,
-                                 char * label ,
+                                 char *label ,
                                  int    direc ,
                                  int    minval , int maxval , int inival ,
                                  int    textype ,  int decim ,
-                                 gen_func * delta_value, XtPointer delta_data,
-                                 str_func * text_proc  , XtPointer text_data
+                                 gen_func *delta_value, XtPointer delta_data,
+                                 str_func *text_proc  , XtPointer text_data
                                )
 {
    MCW_arrowval * av = NULL ;
@@ -486,7 +486,7 @@ void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
 
 #define USE_FIXUP
 #ifdef  USE_FIXUP
-static void optmenu_EV_fixup( Widget ww ) ; 
+static void optmenu_EV_fixup( Widget ww ) ;
 #endif
 
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
@@ -1423,7 +1423,7 @@ void AV_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
 void MCW_destroy_chooser_CB( Widget wpop ,
                              XtPointer client_data, XtPointer call_data )
 {
-   Widget * wpointer = (Widget *) client_data ;
+   Widget *wpointer = (Widget *) client_data ;
    *wpointer = NULL ;
 }
 
@@ -1645,6 +1645,130 @@ ENTRY("MCW_choose_ovcolor") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Get a bunch of values [19 Mar 2004].
+---------------------------------------------------------------------------*/
+
+void MCW_choose_vector( Widget wpar , char *label ,
+                        int nvec , char **labvec , int *initvec ,
+                        gen_func *func , XtPointer func_data )
+{
+   static Widget wpop = NULL , wrc ;
+   static MCW_arrowval **av = NULL ;
+   static int           nav = 0 ;
+   static MCW_choose_data cd ;
+   Position xx,yy ;
+   int ib , iv ;
+
+ENTRY("MCW_choose_vector") ;
+
+   /** destructor callback **/
+
+   if( wpar == NULL || nvec <= 0 ){
+      if( wpop != NULL ){
+         XtUnmapWidget( wpop ) ;
+         XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+         XtDestroyWidget( wpop ) ;
+      }
+      wpop = NULL ; EXRETURN ;
+   }
+
+   if( ! XtIsRealized(wpar) ){  /* illegal call */
+      fprintf(stderr,"\n*** illegal call to MCW_choose_vector: %s\n",
+              XtName(wpar) ) ;
+      EXRETURN ;
+   }
+
+   /*--- if popup widget already exists, destroy it ---*/
+
+   if( wpop != NULL ){
+      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+      XtDestroyWidget( wpop ) ;
+   }
+
+   if( nav > 0 && av != NULL ){
+     for( iv=0 ; iv < nav ; iv++ ) myXtFree( av[iv] ) ;
+     myXtFree(av) ; av = NULL ; nav = 0 ;
+   }
+
+   /*--- create popup widget ---*/
+
+   wpop = XtVaCreatePopupShell(                           /* Popup Shell */
+             "menu" , xmDialogShellWidgetClass , wpar ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   if( MCW_isitmwm(wpar) ){
+      XtVaSetValues( wpop ,
+                        XmNmwmDecorations , MWM_DECOR_BORDER ,
+                        XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
+                     NULL ) ;
+   }
+
+   XtAddCallback( wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &wpop ) ;
+
+   XmAddWMProtocolCallback(
+        wpop ,
+        XmInternAtom( XtDisplay(wpop) , "WM_DELETE_WINDOW" , False ) ,
+        MCW_kill_chooser_CB , wpop ) ;
+
+   wrc  = XtVaCreateWidget(                 /* RowColumn to hold all */
+             "menu" , xmRowColumnWidgetClass , wpop ,
+                XmNpacking      , XmPACK_TIGHT ,
+                XmNorientation  , XmVERTICAL ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   if( label != NULL ){
+     (void) XtVaCreateManagedWidget(
+                  "menu" , xmLabelWidgetClass , wrc ,
+                     LABEL_ARG(label) ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+     (void) XtVaCreateManagedWidget(
+              "menu" , xmSeparatorWidgetClass , wrc ,
+                  XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                  XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+   }
+
+   av = (MCW_arrowval **) XtMalloc( sizeof(MCW_arrowval *) * nvec ) ;
+   for( iv=0 ; iv < nvec ; iv++ ){
+     av[iv] = new_MCW_arrowval( wrc ,
+                                (labvec!=NULL) ? labvec[iv] : NULL ,
+                                MCW_AV_downup ,
+                                -99999,99999,
+                                (initvec!=NULL) ? initvec[iv] : 0 ,
+                                MCW_AV_edittext , 0 ,
+                                NULL , NULL , NULL , NULL ) ;
+   }
+
+   cd.wpop    = wpop ;  /* data to be passed to pushbutton callback */
+   cd.wcaller = wpar ;
+   cd.av      = (MCW_arrowval *)av ;  /* hack hack hack */
+   cd.sel_CB  = func ;
+   cd.sel_cd  = func_data ;
+   cd.ctype   = mcwCT_vector ;
+   cd.nvec    = nvec ;
+
+   for( ib=0 ; ib < NUM_OVC_ACT ; ib++ ) OVC_act[ib].data = &cd ;
+
+   (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
+
+   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
+   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+
+   XtManageChild( wrc ) ;
+   XtPopup( wpop , XtGrabNone ) ;
+
+   RWC_visibilize_widget( wpop ) ;
+   NORMAL_cursorize( wpop ) ;
+
+   EXRETURN ;
+}
+
 /*-------------------------------------------------------------------------
    Get an integer:
      pops up a shell to let the user make the selection
@@ -1662,9 +1786,9 @@ ENTRY("MCW_choose_ovcolor") ;
    active at a time (per application).  This is a deliberate choice.
 ---------------------------------------------------------------------------*/
 
-void MCW_choose_integer( Widget wpar , char * label ,
+void MCW_choose_integer( Widget wpar , char *label ,
                          int bot , int top , int init ,
-                         gen_func * func , XtPointer func_data )
+                         gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc ;
    static MCW_arrowval *  av = NULL ;
@@ -2957,9 +3081,9 @@ ENTRY("MCW_stradd_CB") ;
 
 void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_choose_data * cd       = (MCW_choose_data *) client_data ;
-   char * wname               = XtName(w) ;
-   XmAnyCallbackStruct * icbs = (XmAnyCallbackStruct *) call_data ;
+   MCW_choose_data *cd       = (MCW_choose_data *) client_data ;
+   char *wname               = XtName(w) ;
+   XmAnyCallbackStruct *icbs = (XmAnyCallbackStruct *) call_data ;
 
    static MCW_choose_cbs cbs ;  /* to be passed back to user */
    static int list_dbclick_use = LIST_DBCLICK_UNKNOWN ;
@@ -2971,9 +3095,9 @@ ENTRY("MCW_choose_CB") ;
 
    if( list_dbclick_use == LIST_DBCLICK_UNKNOWN ){
 #if 0
-      char * xdef = XGetDefault( XtDisplay(w) , "AFNI" , "chooser_doubleclick" ) ;
+      char *xdef = XGetDefault( XtDisplay(w) , "AFNI" , "chooser_doubleclick" ) ;
 #else
-      char * xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
+      char *xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
 #endif
       if( xdef != NULL && strcmp(xdef,OVC_apply_label) == 0 )
          list_dbclick_use = LIST_DBCLICK_APPLY ;
@@ -2996,8 +3120,45 @@ ENTRY("MCW_choose_CB") ;
       default:                                   /* error! */
          XBell( XtDisplay(w) , 100 ) ;
          fprintf(stderr,
-                 "\n*** unknown choose type=%d from %s\n" , cd->ctype , wname ) ;
+                 "\n*** unknown choose type=%d from %s\n", cd->ctype, wname ) ;
          EXRETURN ;
+
+      /*.....................*/
+
+      case mcwCT_vector:{                    /* vector chooser [19 Mar 2004] */
+         Boolean done,call ;
+         int iv ; float *vec ;
+         MCW_arrowval **aav = (MCW_arrowval **)cd->av ;
+
+         done = strcmp(wname,OVC_apply_label) != 0 ;
+         call = strcmp(wname,OVC_quit_label)  != 0 ;
+
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
+
+         if( call ){
+            cbs.reason = mcwCR_vector ;  /* set structure for call to user */
+            cbs.event  = icbs->event ;
+            cbs.ival   = cd->nvec ;
+            vec        = (float *)malloc(sizeof(float)*cd->nvec) ;
+            cbs.cval   = (char *)vec ;
+            for( iv=0 ; iv < cd->nvec ; iv++ ) vec[iv] = aav[iv]->fval ;
+
+            if( !done ) MCW_invert_widget(w) ;              /* flash */
+#if 0
+            cd->sel_CB( cd->wcaller , cd->sel_cd , &cbs ) ; /* call user */
+#else
+            AFNI_CALL_VOID_3ARG( cd->sel_CB ,
+                                 Widget           , cd->wcaller ,
+                                 XtPointer        , cd->sel_cd  ,
+                                 MCW_choose_cbs * , &cbs         ) ;
+#endif
+            free((void *)vec) ; cbs.cval = NULL ;
+            if( !done ) MCW_invert_widget(w) ;              /* flash */
+         }
+         EXRETURN ;
+      }
+
+      /*.....................*/
 
       case mcwCT_ovcolor:{                       /* color chooser */
          Boolean done , call ;
@@ -3025,6 +3186,8 @@ ENTRY("MCW_choose_CB") ;
          }
          EXRETURN ;
       }
+
+      /*.....................*/
 
       case mcwCT_integer:{                       /* integer chooser */
          Boolean done , call , flash ;
@@ -3084,6 +3247,8 @@ ENTRY("MCW_choose_CB") ;
          EXRETURN ;
       }
 
+      /*.....................*/
+
       case mcwCT_string:{                 /* string chooser */
          Boolean done , call , istextf ;
 
@@ -3125,6 +3290,8 @@ ENTRY("MCW_choose_CB") ;
          }
          EXRETURN ;
       }
+
+      /*.....................*/
 
       case mcwCT_timeseries:{                       /* timeseries chooser */
          Boolean done , call , flash , any , plot ;

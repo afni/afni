@@ -4998,3 +4998,7 @@
  * Fixed plug_nth_dataset.c to right fill short time series with WAY_BIG,
      and then afni_graph.c to not plot these tails in the dplot overlay.
  * Modified afni_graph.[ch] to allow pin_bot as well as pin_top (ugh).
+
+19 Mar 2004
+ * Added vector chooser to bbox.[ch] and used in afni_graph.[ch] for choosing
+     graph pin top and bottom together.
