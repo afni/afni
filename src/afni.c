@@ -999,7 +999,8 @@ int main( int argc , char * argv[] )
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
-   if( !GLOBAL_argopt.quiet ) AFNI_start_version_check() ;  /* 21 Nov 2002 */
+   if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
+     AFNI_start_version_check() ;                    /* 21 Nov 2002 */
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
@@ -1604,7 +1605,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
-   if( !GLOBAL_argopt.quiet ) AFNI_version_check() ;
+   if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
+     AFNI_version_check() ;
 
    /* finish up getting AFNI ready to be presented to the world */
 
