@@ -168,8 +168,47 @@ switch NF
             dfterm(10) = dfterm(10) + dfterm(13) + dfterm(14) + dfterm(15);   %DF(CD(AB)) = (DF(A)+ DF(B) + DF(AB) + 1)DF(D)	
 			
             fstat = repmat(0, [1 N_Brik]);						
-      end	
-end
+      end
+		
+	case 5,
+	
+	   switch dsgn   %Order of the 2^5 - 1 = 31 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (E); 6 (AB); 7 (AC); 8 (AD); 9 (AE); 
+		                % 10 (BC); 11 (BD); 12 (BE); 13 (CD); 14 (CE); 15 (DE) 16 (ABC); 17 (ABD); 18 (ABE); 19 (ACD); 20 (ACE); 21 (ADE);
+							 % 22 (BCD); 23 (BCE); 24 (BDE); 25 (CDE); 26 (ABCD); 27 (ABCE); 28 (ABDE) 29 (ACDE); 30 (BCDE); 31 (ABCDE)
+		
+		case {1, 2,} 		
+		   fstat = repmat(0, [1 N_Brik]);   % pure cross design
+		
+		case 3,   % only 23 terms
+		   
+			ssterm(5) = ssterm(5) + ssterm(9);   %SSE(A) = SSE + SSAE
+	      dfterm(5) = dfterm(5) + dfterm(9);   %DF(E(A)) = DF(E) + DF(AE)
+			
+			ssterm(12) = ssterm(12) + ssterm(18);   %SSBE(A) = SSBE + SSABE
+	      dfterm(12) = dfterm(12) + dfterm(18);   %DF(BE(A)) = DF(BE) + DF(ABE)
+			
+			ssterm(14) = ssterm(14) + ssterm(20);   %SSCE(A) = SSCE + SSACE
+	      dfterm(14) = dfterm(14) + dfterm(20);   %DF(CE(A)) = DF(CE) + DF(ACE)
+			
+			ssterm(15) = ssterm(15) + ssterm(21);   %SSDE(A) = SSDE + SSADE
+	      dfterm(15) = dfterm(15) + dfterm(21);   %DF(DE(A)) = DF(DE) + DF(ADE)
+			
+			ssterm(23) = ssterm(23) + ssterm(27);   %SSBCE(A) = SSBCE + SSABCE
+	      dfterm(23) = dfterm(23) + dfterm(27);   %DF(BCE(A)) = DF(BCE) + DF(ABCE)
+			
+			ssterm(24) = ssterm(24) + ssterm(28);   %SSBDE(A) = SSBDE + SSABDE
+	      dfterm(24) = dfterm(24) + dfterm(28);   %DF(BDE(A)) = DF(BDE) + DF(ABDE)
+			
+			ssterm(25) = ssterm(25) + ssterm(29);   %SSCDE(A) = SSCDE + SSACDE
+	      dfterm(25) = dfterm(25) + dfterm(29);   %DF(CDE(A)) = DF(CDE) + DF(ACDE)
+			
+			ssterm(30) = ssterm(30) + ssterm(31);   %SSBCDE(A) = SSBCDE + SSABCDE
+	      dfterm(30) = dfterm(30) + dfterm(31);   %DF(BCDE(A)) = DF(BCDE) + DF(ABCDE)
+			
+			fstat = repmat(0, [1 N_Brik]); 
+		end % switch dsgn	
+			
+end  % switch NF
 
 % Compute the mean square for each term
 msterm = ssterm ./ max(1, dfterm');
@@ -229,39 +268,66 @@ switch NF
    end			
 
    case  4,
-      switch dsgn     %Order of the 15 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (AD); 8 (BC); 9 (BD); 10 (CD)
+      switch dsgn     %Order of the 2^4 - 1 = 15 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (AD); 8 (BC); 9 (BD); 10 (CD)
 	                   % 11 (ABC); 12 (ABD); 13 (ACD); 14 (BCD); 15 (ABCD)
-	 case 1,
-	    dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
-	    msdenom = repmat(mse, size(msterm)); dfdenom = repmat(dfe, size(msterm));
-	 case 2,
-	    dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;				
-	    msdenom = [msterm(7), msterm(9), msterm(10), mse, msterm(12), msterm(13), mse, msterm(14), mse, mse, msterm(15), mse, mse, mse, mse];
-	    dfdenom = [dfterm(7), dfterm(9), dfterm(10), dfe, dfterm(12), dfterm(13), dfe, dfterm(14), dfe, dfe, dfterm(15), dfe, dfe, dfe, dfe];
-	 case 3,   % only 11 terms in nesting case without AD, ABD, ACD, and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 
+	   case 1,
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
+	      msdenom = repmat(mse, size(msterm)); dfdenom = repmat(dfe, size(msterm));
+	   case 2,
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;				
+	      msdenom = [msterm(7), msterm(9), msterm(10), mse, msterm(12), msterm(13), mse, msterm(14), mse, mse, msterm(15), mse, mse, mse, mse];
+	      dfdenom = [dfterm(7), dfterm(9), dfterm(10), dfe, dfterm(12), dfterm(13), dfe, dfterm(14), dfe, dfe, dfterm(15), dfe, dfe, dfe, dfe];
+	   case 3,   % only 11 terms in nesting case without AD, ABD, ACD, and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 
 			% 7 (BC); 8 (BD); 9 (CD); 10 (ABC); 11 (BCD); 
-            msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
-	    intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
-	    dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
-	    tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-       msdenom = [msterm(4), msterm(9), msterm(10), mse, msterm(9), msterm(10), msterm(14), mse, mse, msterm(14), mse];
-	    dfdenom = [dfterm(4), dfterm(9), dfterm(10), dfe, dfterm(9), dfterm(10), dfterm(14), dfe, dfe, dfterm(14), dfe];
-	 case 4,
-	    msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
-	    intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
-	    dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
-	    tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-	    msdenom = [msterm(6), msterm(8), mse, msterm(10), msterm(11), mse, mse, msterm(14), mse, mse, mse];  % denominator MS
-   	 dfdenom = [dfterm(6), dfterm(8), dfe, dfterm(10), dfterm(11), dfe, dfe, dfterm(14), dfe, dfe, dfe];  % denominator DF
-	 case 5, % only 9 terms in nesting case without AD, BD, ABD, ACD, BCD and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (BC); 8 (CD); 9 (ABC)
-	    msterm_new = [msterm(1:6), msterm(8), msterm(10:11)];   % Throw out those four which do not exist for nesting: AD, BD, ABD, ACD, BCD and ABCD.
-	    intensity_new = [intensity(1:6), intensity(8), intensity(10:11)];    % Throw out those 6 which do not exist for nesting.
-	    dfterm_new = [dfterm(1:6)', dfterm(8), dfterm(10:11)'];
-	    tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-	    msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10),0,0,0,0,0,0];  
+         msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
+	      intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
+	      dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
+	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+         msdenom = [msterm(4), msterm(9), msterm(10), mse, msterm(9), msterm(10), msterm(14), mse, mse, msterm(14), mse];
+	      dfdenom = [dfterm(4), dfterm(9), dfterm(10), dfe, dfterm(9), dfterm(10), dfterm(14), dfe, dfe, dfterm(14), dfe];
+	   case 4,
+	      msterm_new = [msterm(1:6), msterm(8:11), msterm(14)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
+	      intensity_new = [intensity(1:6), intensity(8:11), intensity(14)];    % Throw out those four which do not exist for nesting.
+	      dfterm_new = [dfterm(1:6)', dfterm(8:11)', dfterm(14)'];
+	      tnames_new = [tnames(1:6); tnames(8:11); tnames(14)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      msdenom = [msterm(6), msterm(8), mse, msterm(10), msterm(11), mse, mse, msterm(14), mse, mse, mse];  % denominator MS
+   	   dfdenom = [dfterm(6), dfterm(8), dfe, dfterm(10), dfterm(11), dfe, dfe, dfterm(14), dfe, dfe, dfe];  % denominator DF
+	   case 5, % only 9 terms in nesting case without AD, BD, ABD, ACD, BCD and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (BC); 8 (CD); 9 (ABC)
+	      msterm_new = [msterm(1:6), msterm(8), msterm(10:11)];   % Throw out those four which do not exist for nesting: AD, BD, ABD, ACD, BCD and ABCD.
+	      intensity_new = [intensity(1:6), intensity(8), intensity(10:11)];    % Throw out those 6 which do not exist for nesting.
+	      dfterm_new = [dfterm(1:6)', dfterm(8), dfterm(10:11)'];
+	      tnames_new = [tnames(1:6); tnames(8); tnames(10:11)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+	      msdenom = [msterm(4), msterm(4), msterm(10), mse, msterm(4), msterm(10), msterm(10), mse, msterm(10),0,0,0,0,0,0];  
 	    % denominator MS: 6 extra 0's are for error-prone problem down below for contrasts
-   	 dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10),0,0,0,0,0,0];  % denominator DF				 
+   	   dfdenom = [dfterm(4), dfterm(4), dfterm(10), dfe, dfterm(4), dfterm(10), dfterm(10), dfe, dfterm(10),0,0,0,0,0,0];  % denominator DF				 
    end	% Close switch dsgn
+	
+	case  5,
+      switch dsgn     %Order of the 2^5 - 1 = 31 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (E); 6 (AB); 7 (AC); 8 (AD); 9 (AE); 
+		                % 10 (BC); 11 (BD); 12 (BE); 13 (CD); 14 (CE); 15 (DE) 16 (ABC); 17 (ABD); 18 (ABE); 19 (ACD); 20 (ACE); 21 (ADE);
+							 % 22 (BCD); 23 (BCE); 24 (BDE); 25 (CDE); 26 (ABCD); 27 (ABCE); 28 (ABDE) 29 (ACDE); 30 (BCDE); 31 (ABCDE)
+	   case 1,  % 31 terms
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
+	      msdenom = repmat(mse, size(msterm)); dfdenom = repmat(dfe, size(msterm));
+	   case 2,   % 31 terms
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;				
+	      msdenom = [msterm(9), msterm(12), msterm(14), msterm(15), mse, msterm(18), msterm(20), msterm(21), mse, msterm(23), ...
+			   msterm(24), mse, msterm(25), mse, mse, msterm(27), msterm(28), mse, msterm(29), mse, mse, msterm(30), mse, mse, mse, ...
+				msterm(31), mse, mse, mse, mse, mse];
+	      dfdenom = [dfterm(9), dfterm(12), dfterm(14), dfterm(15), dfe, dfterm(18), dfterm(20), dfterm(21), dfe, dfterm(23), ...
+			   dfterm(24), dfe, dfterm(25), dfe, dfe, dfterm(27), dfterm(28), dfe, dfterm(29), dfe, dfe, dfterm(30), dfe, dfe, dfe, ...
+				dfterm(31), dfe, dfe, dfe, dfe, dfe];
+		case 3,  % 23 terms
+		   msterm_new = [msterm(1:8), msterm(10:17), msterm(19), msterm(22:26), msterm(30)]; 
+			intensity_new = [intensity(1:8), intensity(10:17), intensity(19), intensity(22:26), intensity(30)]; 
+			dfterm_new = [dfterm(1:8)', dfterm(10:17)', dfterm(19), dfterm(22:26)', dfterm(30)];
+			tnames_new = [tnames(1:8); tnames(10:17); tnames(19); tnames(22:26); tnames(30)];
+			msdenom = [msterm(5), msterm(12), msterm(14), msterm(15), mse, msterm(12), msterm(14), msterm(15), msterm(23), msterm(24), ...
+			   mse, msterm(25), mse, mse, msterm(23), msterm(24), msterm(25), msterm(30), mse, mse, mse, msterm(30), mse];
+			dfdenom = [dfterm(5), dfterm(5), dfterm(5), dfterm(5), dfe, dfterm(12), dfterm(14), dfterm(15), dfterm(23), dfterm(24), ...
+			   dfe, dfterm(25), dfe, dfe, dfterm(23), dfterm(24), dfterm(25), dfterm(30),dfe, dfe, dfe, dfterm(30), dfe];  % denominator DF
+		end
+	
 end  % Close swtich NF
 
 
@@ -373,9 +439,9 @@ if (NF == 4),
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
          LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
-	 LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
-	 tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
-	 if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
+	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
+	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
+	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
       end
    end	
 
@@ -386,22 +452,22 @@ if (NF == 4),
          LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
 %		switch dsgn
          switch Contr.ord2.cnt(i).idx1
-	    case 1,
-	       switch Contr.ord2.cnt(i).idx2
-		  case 2, what = msdenom(5);   % MSAB
-		  case 3, what = msdenom(6);   % MSAC
-		  case 4, what = msdenom(7) * (dsgn == 1 | dsgn == 2) + msdenom(4) * (dsgn == 4);   % MSAD
-	       end	
-	    case 2,
-	       switch Contr.ord2.cnt(i).idx2
-	          case 3, what = msdenom(8) * (dsgn == 1 | dsgn == 2) + msdenom(7)* (dsgn == 3 | dsgn == 4 | dsgn == 5);  % MSBC
-	          case 4, what = msdenom(9) * (dsgn == 1 | dsgn == 2) + msdenom(8)* (dsgn == 3 | dsgn == 4);  % Less likely to occur: MSBD	
-	       end		   
-	    case 3,   % Less likely occur
-	       switch Contr.ord2.cnt(i).idx2
-		  case 4, what = msdenom(10)* (dsgn == 1 | dsgn == 2) + msdenom(9)* (dsgn == 3 | dsgn == 4) + msdenom(7)*(dsgn == 5);  % Less likely occur: MSCD		
-	       end
-	 end		
+	         case 1,
+	         switch Contr.ord2.cnt(i).idx2
+		         case 2, what = msdenom(5);   % MSAB
+		         case 3, what = msdenom(6);   % MSAC
+		         case 4, what = msdenom(7) * (dsgn == 1 | dsgn == 2) + msdenom(4) * (dsgn == 4);   % MSAD
+	         end	
+	         case 2,
+	         switch Contr.ord2.cnt(i).idx2
+	            case 3, what = msdenom(8) * (dsgn == 1 | dsgn == 2) + msdenom(7)* (dsgn == 3 | dsgn == 4 | dsgn == 5);  % MSBC
+	            case 4, what = msdenom(9) * (dsgn == 1 | dsgn == 2) + msdenom(8)* (dsgn == 3 | dsgn == 4);  % Less likely to occur: MSBD	
+	         end		   
+	         case 3,   % Less likely occur
+	         switch Contr.ord2.cnt(i).idx2
+		         case 4, what = msdenom(10)* (dsgn == 1 | dsgn == 2) + msdenom(9)* (dsgn == 3 | dsgn == 4) + msdenom(7)*(dsgn == 5);  % Less likely occur: MSCD		
+	         end
+	      end		
 %		end
 		% Can i remove the following loop by doing it in a matrix operation fashion?
 		%for (j = 1:1:Contr2.cnt(i).NT),  % each term of this contrast
@@ -410,8 +476,8 @@ if (NF == 4),
 		%end
 		
          LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
-	 tmp = what*Contr.ord2.cnt(i).scalar;
-	 if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
+	      tmp = what*Contr.ord2.cnt(i).scalar;
+	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
       end
    end	
 
@@ -420,26 +486,31 @@ if (NF == 4),
       for (i = 1:1:Contr.ord3.tot),
          LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
 %		if (dsgn == 3),
-	 switch Contr.ord3.cnt(i).idx1
-	    case 1,
-	       switch Contr.ord3.cnt(i).idx2
-		  case 2, 
-		     switch Contr.ord3.cnt(i).idx3
-			case 3, what = msdenom(11) * (dsgn == 1 | dsgn == 2) + msdenom(10) * (dsgn == 3 | dsgn == 4) + msdenom(9) * (dsgn == 5);   % MSABC
-			case 4, what = msdenom(12) * (dsgn == 1 | dsgn == 2); %  MSABD not exist for (dsgn == 3 | dsgn == 4 | dsgn == 5)
-		     end   
-		  case 3, 
-		     if (Contr.ord3.cnt(i).idx3 == 4), what = msdenom(13) * (dsgn == 1 | dsgn == 2);  % MSACD
-		     else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
-		  case 4, fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
-	       end	
-	    case 2,
-	       switch Contr.ord3.cnt(i).idx2
-		  case 3, 
-		     if (Contr.ord3.cnt(i).idx3 == 4), what = msdenom(14) * (dsgn == 1 | dsgn == 2) + msdenom(11) * (dsgn == 3 | dsgn == 4);  % MSBCD
-		     else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;end
-		  case 4, 
-		     fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	      switch Contr.ord3.cnt(i).idx1
+	         
+				case 1,
+	         switch Contr.ord3.cnt(i).idx2
+		         
+					case 2, 
+		         switch Contr.ord3.cnt(i).idx3
+			         case 3, what = msdenom(11) * (dsgn == 1 | dsgn == 2) + msdenom(10) * (dsgn == 3 | dsgn == 4) + msdenom(9) * (dsgn == 5);   % MSABC
+			         case 4, what = msdenom(12) * (dsgn == 1 | dsgn == 2); %  MSABD not exist for (dsgn == 3 | dsgn == 4 | dsgn == 5)
+		         end   
+		         
+					case 3, 
+		         if (Contr.ord3.cnt(i).idx3 == 4), what = msdenom(13) * (dsgn == 1 | dsgn == 2);  % MSACD
+		         else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+		         
+					case 4, fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	         end	
+	        
+			   case 2,
+	         switch Contr.ord3.cnt(i).idx2
+		         case 3, 
+		         if (Contr.ord3.cnt(i).idx3 == 4), what = msdenom(14) * (dsgn == 1 | dsgn == 2) + msdenom(11) * (dsgn == 3 | dsgn == 4);  % MSBCD
+		         else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;end
+		         case 4, 
+		         fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
 	       end				
 	    case 3,   % Less likely occur
 	       fprintf('\nSomething is wrong in the contrast coding!\n');
@@ -455,6 +526,223 @@ if (NF == 4),
       end
    end	
 end % if (NF == 4)
+
+
+if (NF == 5),
+% Get t values for contrast tests within each factor (1st order)
+
+% dmat(:, num_col0+1:num_col1+num_col0) is the matrix for 1st order contrasts
+   if (Contr.ord1.tot > 0),
+      for (i = 1:1:Contr.ord1.tot),
+         LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
+	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
+	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
+	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
+      end
+   end	
+
+% Get t values for contrast tests within each factor (2nd order)
+% dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
+%Order of the 2^5 - 1 = 31 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (E); 6 (AB); 7 (AC); 8 (AD); 9 (AE); 
+		                % 10 (BC); 11 (BD); 12 (BE); 13 (CD); 14 (CE); 15 (DE) 16 (ABC); 17 (ABD); 18 (ABE); 19 (ACD); 20 (ACE); 21 (ADE);
+							 % 22 (BCD); 23 (BCE); 24 (BDE); 25 (CDE); 26 (ABCD); 27 (ABCE); 28 (ABDE) 29 (ACDE); 30 (BCDE); 31 (ABCDE)
+
+   if (Contr.ord2.tot > 0),
+      for (i = 1:1:Contr.ord2.tot),
+         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+%		switch dsgn
+         switch Contr.ord2.cnt(i).idx1
+	         case 1,
+	         switch Contr.ord2.cnt(i).idx2
+		         case 2, what = msdenom(6);   % denominator for MSAB
+		         case 3, what = msdenom(7);   % MSAC
+		         case 4, what = msdenom(8);   % MSAD
+					case 5, what = msdenom(9) * (dsgn == 1 | dsgn == 2);   % MSAE
+	         end	
+	         case 2,
+	         switch Contr.ord2.cnt(i).idx2
+	            case 3, what = msdenom(10) * (dsgn == 1 | dsgn == 2) + msdenom(9) * (dsgn == 3);  % MSBC
+	            case 4, what = msdenom(11) * (dsgn == 1 | dsgn == 2) + msdenom(10) * (dsgn == 3);  % Less likely to occur: MSBD	
+					case 5, what = msdenom(12) * (dsgn == 1 | dsgn == 2) + msdenom(11) * (dsgn == 3);  % Less likely to occur: MSBE
+	         end		   
+	         case 3,   % Less likely occur
+	         switch Contr.ord2.cnt(i).idx2
+		         case 4, what = msdenom(13)* (dsgn == 1 | dsgn == 2) + msdenom(12) * (dsgn == 3);  % Less likely occur: MSCD
+					case 5, what = msdenom(14)* (dsgn == 1 | dsgn == 2) + msdenom(13) * (dsgn == 3);  % Less likely occur: MSCE	
+	         end
+				case 4,   % Less likely occur
+	         switch Contr.ord2.cnt(i).idx2
+					case 5, what = msdenom(15)* (dsgn == 1 | dsgn == 2) + msdenom(14) * (dsgn == 3);  % Less likely occur: MSDE	
+	         end
+				
+	      end		
+%		end
+		% Can i remove the following loop by doing it in a matrix operation fashion?
+		%for (j = 1:1:Contr2.cnt(i).NT),  % each term of this contrast
+		%   LC2(i).value = LC2(i).value + Contr2.cnt(i).coef(j) * dmat(:, Contr2.cnt(i).code(j).pos)' * y0;
+			%scalar = scalar  + Contr2.cnt(i).coef(j) * Contr2.cnt(i).coef(j);
+		%end
+		
+         LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
+	      tmp = what*Contr.ord2.cnt(i).scalar;
+	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
+      end
+   end	
+
+   % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
+   if (Contr.ord3.tot > 0),
+      for (i = 1:1:Contr.ord3.tot),
+         LC.t3(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+%		if (dsgn == 3),
+	      switch Contr.ord3.cnt(i).idx1
+	         
+				case 1,
+	         switch Contr.ord3.cnt(i).idx2
+		         
+					case 2, 
+		         switch Contr.ord3.cnt(i).idx3
+			         case 3, what = msdenom(16) * (dsgn == 1 | dsgn == 2) + msdenom(15) * (dsgn == 3);   % MSABC
+			         case 4, what = msdenom(17) * (dsgn == 1 | dsgn == 2) + msdenom(16) * (dsgn == 3); %  MSABD 
+						case 5, what = msdenom(18) * (dsgn == 1 | dsgn == 2); %  MSABE
+		         end   % switch Contr.ord3.cnt(i).idx3
+		         
+					case 3, 
+		         switch Contr.ord3.cnt(i).idx3
+					   case 4, what = msdenom(19) * (dsgn == 1 | dsgn == 2) + msdenom(17) * (dsgn == 3); %  MSACD 
+						case 5, what = msdenom(20) * (dsgn == 1 | dsgn == 2); %  MSACE
+		         end  % switch Contr.ord3.cnt(i).idx3 
+		         
+					case 4, 
+					if (Contr.ord3.cnt(i).idx3 == 5), what = msdenom(21) * (dsgn == 1 | dsgn == 2); % ADE
+					else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	            end	
+	         end % switch Contr.ord3.cnt(i).idx2
+			   
+				case 2,
+	         switch Contr.ord3.cnt(i).idx2
+		         case 3, 
+		         switch Contr.ord3.cnt(i).idx3
+					   case 4, what = msdenom(22) * (dsgn == 1 | dsgn == 2) + msdenom(18) * (dsgn == 3); %  MSBCD 
+						case 5, what = msdenom(23) * (dsgn == 1 | dsgn == 2) + msdenom(19) * (dsgn == 3); %  MSBCE
+					end % switch Contr.ord3.cnt(i).idx3	
+		         case 4, 
+					if (Contr.ord3.cnt(i).idx3 == 5), 
+					if (dsgn == 1 | dsgn == 2),
+					   what = msdenom(24);
+					elseif (dsgn == 3)
+					   what = msdenom(20);	
+					end	
+%					what = msdenom(24) * (dsgn == 1 | dsgn == 2) + msdenom(20) * (dsgn == 3); % BDE
+		         else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	end
+	         end		% switch Contr.ord3.cnt(i).idx2		
+	         case 3,   
+	            if (Contr.ord3.cnt(i).idx2 == 4 & Contr.ord3.cnt(i).idx3 == 5), 
+			         if (dsgn == 1 | dsgn == 2),
+						   what = msdenom(25);
+						elseif (dsgn == 3),
+						   what = msdenom(21);
+						end		
+%						what = msdenom(25) * (dsgn == 1 | dsgn == 2) + msdenom(21) * (dsgn == 3); %  MSCDE
+			      else 	 
+			         fprintf('\nSomething is wrong in the contrast coding!\n');
+	               fprintf(2,'Halted: Ctrl+c to exit'); pause;
+			      end
+	         case 4,
+	            fprintf('\nSomething is wrong in the contrast coding!\n');
+	            fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	      end  % switch Contr.ord3.cnt(i).idx1
+%		end
+	      LC.t3(i).value = Contr.ord3.cnt(i).vec * y0;   % intensity for this 3rd order contrast
+	      tmp = what*Contr.ord3.cnt(i).scalar;
+	      if (tmp > 0), LC.t3(i).t = LC.t3(i).value/sqrt(tmp); end
+      end % for (i = 1:1:Contr.ord3.tot)
+   end	% if (Contr.ord3.tot > 0)
+
+   if (Contr.ord4.tot > 0),
+      for (i = 1:1:Contr.ord4.tot),
+         LC.t4(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+	      switch Contr.ord4.cnt(i).idx1
+	         
+				case 1,
+	         switch Contr.ord4.cnt(i).idx2		         
+					case 2, 
+		         switch Contr.ord4.cnt(i).idx3
+			         case 3, 
+						switch Contr.ord4.cnt(i).idx4
+						   case 4,   
+							if (dsgn == 1 | dsgn == 2),
+							   what = msdenom(26);
+							elseif (dsgn == 3),
+							   what = msdenom(22);
+							end							
+%							what = msdenom(26) * (dsgn == 1 | dsgn == 2) + msdenom(22) * (dsgn == 3); %  MSABCD
+							case 5,   
+							if (dsgn == 1 | dsgn == 2),
+							   what = msdenom(27);
+							end							
+%							what = msdenom(27) * (dsgn == 1 | dsgn == 2); %  MSABCE
+						end % switch Contr.ord4.cnt(i).idx4	
+			         case 4, 
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   what = msdenom(28);
+						end	
+%						what = msdenom(28) * (dsgn == 1 | dsgn == 2); % ABDE
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	               end						
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	            end  % switch Contr.ord4.cnt(i).idx3
+	         
+					case 3, 
+		         switch Contr.ord4.cnt(i).idx3
+					   case 4, 
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   what = msdenom(29);
+						end						
+%						what = msdenom(29) * (dsgn == 1 | dsgn == 2); % ACDE
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	               end 
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	            end  % switch Contr.ord4.cnt(i).idx3
+		         
+					case 4, 
+					   fprintf('\nSomething is wrong in the contrast coding!\n');
+	               fprintf(2,'Halted: Ctrl+c to exit'); pause;
+	         end % switch Contr.ord4.cnt(i).idx2
+			   
+				case 2,
+	         switch Contr.ord4.cnt(i).idx2
+		         case 3, 
+		         switch Contr.ord4.cnt(i).idx3
+					   case 4, 
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   what = msdenom(30);
+						end
+%						what = msdenom(30) * (dsgn == 1 | dsgn == 2) + msdenom(23) * (dsgn == 3); % BCDE
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	               end  
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
+					end	% switch Contr.ord4.cnt(i).idx3	
+		         case 4, 
+					fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	         end		% switch Contr.ord4.cnt(i).idx2		
+	         case {3,4,5,}
+	            fprintf('\nSomething is wrong in the contrast coding!\n');
+	            fprintf(2,'Halted: Ctrl+c to exit'); pause;			      
+	      end  % switch Contr.ord4.cnt(i).idx1
+	      LC.t4(i).value = Contr.ord4.cnt(i).vec * y0;   % intensity for this 3rd order contrast
+	      tmp = what*Contr.ord4.cnt(i).scalar;
+	      if (tmp > 0), LC.t4(i).t = LC.t4(i).value/sqrt(tmp); end
+      end % for (i = 1:1:Contr.ord4.tot)
+   end	% if (Contr.ord4.tot > 0)	
+	
+end % if (NF == 5)
+
 
 end %if (Contr.do == 0)
 

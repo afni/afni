@@ -47,10 +47,10 @@ fprintf('\t   so that subbrik labels can be shown on AFNI viewer.\n');
 fprintf('\n\t3. With nesting, arrange your design in such a way that the last factor is nested within the 1st factor.\n');
 %fprintf('\n\t4. The program can only handle balanced design now. \n');
 fprintf('\n\t4. Each input file should include only one subbrik (we suggest files be \n');
-fprintf('named by reflecting the hierarchy of the experiment design.\n');
+fprintf('\t   named by reflecting the hierarchy of the experiment design.\n');
 fprintf('\n\t5. Currently all of the following terms are modeled: main effects and applicable interactions in various orders, .\n');
 fprintf('\n\t6. One covariate is currently allowed in the analysis, which should be in the format of one-column text file.\n');
-fprintf('\t      The column length has to be the same as the total number of input files.\n');
+fprintf('\t   The column length has to be the same as the total number of input files.\n');
 
 flg = 0;
 while flg == 0,
@@ -81,21 +81,30 @@ switch NF
 	fprintf('\n\t        usually called 2-way design with A and B varying within subject. Notice: It is inappropriate to');
 	fprintf('\n\t        run any constrast tests including mean estimates and differences for factor C with this design type.\n');
 	fprintf('\n\tType 3: Mixed design BXC(A)              - A and B are fixed while C (usually subject) is random and nested within A.\n');
-	fprintf('\n\tType 4: Mixed design BXC(A)              - Fixed factor C is nested within fixed factor C while B (usually subject) is random.\n');
+	fprintf('\n\tType 4: Mixed design BXC(A)              - Fixed factor C is nested within fixed factor A while B (usually subject) is random.\n');
 
    case 4,
    fprintf('\nAvailabe design types:\n');
    fprintf('\n\tType 1: Factorial (crossed) design AXBXCXD - all 4 factors are fixed.\n');
    fprintf('\n\tType 2: Factorial (crossed) design AXBXCXD - only factor D is random. If D is subject it is also');
    fprintf('\n\t        called 3-way design with all 3 factors A, B, and C varying within subject.');
-   fprintf('\n\tType 3: Mixed design BXCXD(A)- only the nested (4th) factor (usually subject) is random.');
+   fprintf('\n\tType 3: Mixed design BXCXD(A)- only the nested (4th) factor D (usually subject) is random.');
    fprintf('\n\t        Also called 3-way design with factors B and C varying within subject and factor A between subjects.');
    fprintf('\n\tType 4: Mixed design BXCXD(A)- D is nested within A, but only the 3rd factor (usually subject)');
    fprintf('\n\t        is random.');
-   fprintf('\n\tType 5: Mixed design CXD(AXB) - only the nested (4th) factor (usually subject) is random,');
+   fprintf('\n\tType 5: Mixed design CXD(AXB) - only the nested (4th) factor D (usually subject) is random,');
    fprintf('\n\t        but factor D is nested within both factors A and B. If D is subject it is also called 3-way');
    fprintf('\n\t        design with factor D varying within-subject and factors A and B between-subjects.\n');
-	fprintf('\nNotice: This is NOT an exhaustive list of design types for 4-way ANOVA. Other types might be implemented upon request.\n');
+%	fprintf('\nNotice: This is NOT an exhaustive list of design types for 4-way ANOVA. Other types might be implemented upon request.\n');
+	
+	case 5,
+   fprintf('\nAvailabe design types:\n');
+   fprintf('\n\tType 1: Factorial (crossed) design AXBXCXDXE - all 5 factors are fixed.\n');
+   fprintf('\n\tType 2: Factorial (crossed) design AXBXCXDXE - only factor E is random. If E is subject it is also');
+   fprintf('\n\t        called 4-way design with all 4 factors A, B, C and D varying within subject.\n');
+   fprintf('\n\tType 3: Mixed design BXCXDXE(A)- only the nested (5th) factor E (usually subject) is random.');
+   fprintf('\n\t        Also called 4-way design with factors B, C and D varying within subject and factor A between subjects.\n');
+	
 end
 
 flg = 0;
@@ -127,13 +136,13 @@ while flg == 0,
  	end
  	
 	if (unbalanced.yes == 1),	
-      fprintf('\nThe following two kinds of unbalanced designs are currently allowed:')
+      fprintf('\nThe following two kinds of unbalanced designs are currently allowed:\n')
 		fprintf('\n(1) All factors are fixed - ');
-		fprintf('\n\t1-way ANOVA; 2-way ANOVA type 1: AXB; and 3-way ANOVA type 1: AXBXC');
+		fprintf('\n\t 1-way ANOVA; 2-way ANOVA type 1: AXB; and 3-way ANOVA type 1: AXBXC');
 	   fprintf('\n\n(2) When a random factor (subject) is nested within another factor A,');
-   	fprintf('\n\teach level of factor A contains a unique and unequal number of subjects - ');
-	   fprintf('\n\t3-way ANOVA type 3: BXC(A); and 4-way ANOVA type 3: BXCXD(A)')
-	   if (input('\nDoes your unbalanced design belong to either of the above types? (1 - Yes; 0 - No) ') == 0);
+   	fprintf('\n\t each level of factor A contains a unique and unequal number of subjects - ');
+	   fprintf('\n\t 3-way ANOVA type 3: BXC(A); and 4-way ANOVA type 3: BXCXD(A)')
+	   if (input('\n\nDoes your unbalanced design belong to either of the above types? (1 - Yes; 0 - No) ') == 0);
 		   while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 		end	
 	end
@@ -151,6 +160,9 @@ while flg == 0,
 %    end
 end
 
+for (ii = 1:1:5)
+   FL(ii).N_level = 0;  % initialization for ContrVec.m so that their values are available for lower-way ANOVA
+end	
 
 
 %Get the number of levels for each factor and also the total number of input files
@@ -160,15 +172,73 @@ ntot = 1;
 
 if (unbalanced.yes == 1),    
 
-if ((NF == 1 | NF == 2 | NF == 3) & dsgn == 1),  % Basically for 3-way ANCOVA: This loop is the same as balanced. Maybe also for 4-way ANCOVA?
+   if ((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),  % Basically for 1,2,3,4-way ANCOVA: This loop is the same as balanced. Maybe also for 4-way ANCOVA?
+      for (i=1:1:NF),
+	      fprintf('\nLabel for No. %i ', i);
+		   FL(i).expr = input('factor: ', 's');     % Factor Label i
+         fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
+	      FL(i).N_level = input('have? ');
+	      if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
+	         flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
+	      else flg = 1; end
+	      for (j=1:1:FL(i).N_level),
+	         fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
+		      FL(i).level(j).expr = input(' is: ', 's');
+	      end
+         sz(i) = FL(i).N_level;    % number of levels of factor i
+         ntot = ntot * FL(i).N_level;  %total number of combinations
+      end
+   end
+
+   if (((NF == 3 | NF == 4) & dsgn == 3)),	
+%   if (unbalanced.type == 1),
+      for (i=1:1:(NF-1)),
+         fprintf('\nLabel for No. %i ', i);
+         FL(i).expr = input('factor: ', 's');     % Factor Label i	
+	      fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
+ 	      FL(i).N_level = input('have? ');
+ 	      if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
+ 	         flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
+ 	      else flg = 1;
+         end
+ 	      for (j=1:1:FL(i).N_level),
+ 	         fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
+ 		      FL(i).level(j).expr = input(' is: ', 's');
+ 	      end
+         sz(i) = FL(i).N_level;    % number of levels of factor i
+         ntot = ntot * FL(i).N_level;  %total number of combinations
+ 	   end  % for (i=1:1:(NF-1))
+	
+	   UL_sum = 0;		
+	   fprintf(2, '\nLabel for No. %i ', NF); 
+	   FL(NF).expr = input('factor: ', 's');     % Label this unbalanced factor
+ 	
+ 	   for (i = 1:1:FL(1).N_level),
+ 	      fprintf(2,'How many levels does factor %c (%s) corresponding to level %i (%s) of factor %c (%s) ', ...
+ 		      64+NF, FL(NF).expr, i, FL(1).level(i).expr, 64+1, FL(1).expr);
+ 		   FL(NF).UL(i).N_level = input('have? ');   % unbalanced levels for this factor
+ 		   for (j=1:1:FL(NF).UL(i).N_level),
+ 		      fprintf('Label for No. %i level of factor %c (%s) in group %i of factor %c (%s)', j, 64+4, FL(NF).expr, i, 64+1, FL(1).expr);
+ 		      FL(NF).UL(i).n(j).expr = input(' is: ', 's');
+ 		   end	
+ 		   UL_sum = UL_sum + FL(NF).UL(i).N_level;
+ 		   FL(NF).N_level = max([FL(NF).UL(:).N_level]);   % This is for positioning those contrast columns in the design matrix in PreProc.m
+ 	   end 
+ 	   ntot = ntot * UL_sum / FL(1).N_level;	
+		
+   end   % if (((NF == 3 | NF == 4) & dsgn == 3))
+
+else  % Balanced designs
+
    for (i=1:1:NF),
-	   fprintf('\nLabel for No. %i ', i);
-		FL(i).expr = input('factor: ', 's');     % Factor Label i
+      fprintf('\nLabel for No. %i ', i);
+      FL(i).expr = input('factor: ', 's');     % Factor Label i
       fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
 	   FL(i).N_level = input('have? ');
-	   if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
+  	   if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
 	      flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
-	   else flg = 1; end
+	   else flg = 1;
+      end
 	   for (j=1:1:FL(i).N_level),
 	      fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
 		   FL(i).level(j).expr = input(' is: ', 's');
@@ -176,70 +246,10 @@ if ((NF == 1 | NF == 2 | NF == 3) & dsgn == 1),  % Basically for 3-way ANCOVA: T
       sz(i) = FL(i).N_level;    % number of levels of factor i
       ntot = ntot * FL(i).N_level;  %total number of combinations
    end
-end
-
-
-if (((NF == 3 | NF == 4) & dsgn == 3)),	
-%   if (unbalanced.type == 1),
-   for (i=1:1:(NF-1)),
-      fprintf('\nLabel for No. %i ', i);
-      FL(i).expr = input('factor: ', 's');     % Factor Label i	
-	   fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
- 	   FL(i).N_level = input('have? ');
- 	   if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
- 	      flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
- 	   else flg = 1;
-      end
- 	   for (j=1:1:FL(i).N_level),
- 	      fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
- 		   FL(i).level(j).expr = input(' is: ', 's');
- 	   end
-       sz(i) = FL(i).N_level;    % number of levels of factor i
-       ntot = ntot * FL(i).N_level;  %total number of combinations
- 	end
-	
-	UL_sum = 0;		
-	fprintf(2, '\nLabel for No. %i ', NF); 
-	FL(NF).expr = input('factor: ', 's');     % Label this unbalanced factor
- 	
- 	for (i = 1:1:FL(1).N_level),
- 	   fprintf(2,'How many levels does factor %c (%s) corresponding to level %i (%s) of factor %c (%s) ', ...
- 		   64+NF, FL(NF).expr, i, FL(1).level(i).expr, 64+1, FL(1).expr);
- 		FL(NF).UL(i).N_level = input('have? ');   % unbalanced levels for this factor
- 		for (j=1:1:FL(NF).UL(i).N_level),
- 		   fprintf('Label for No. %i level of factor %c (%s) in group %i of factor %c (%s)', j, 64+4, FL(NF).expr, i, 64+1, FL(1).expr);
- 		   FL(NF).UL(i).n(j).expr = input(' is: ', 's');
- 		end	
- 		UL_sum = UL_sum + FL(NF).UL(i).N_level;
- 		FL(NF).N_level = max([FL(NF).UL(:).N_level]);   % This is for positioning those contrast columns in the design matrix in PreProc.m
- 	end 
- 	ntot = ntot * UL_sum / FL(1).N_level;	
-		
-%   end  % if (unbalanced.type == 1)
-end   %if ((NF == 4 & dsgn == 3)),
-
-else  % Balanced designs
-
-for (i=1:1:NF),
-   fprintf('\nLabel for No. %i ', i);
-   FL(i).expr = input('factor: ', 's');     % Factor Label i
-   fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
-	FL(i).N_level = input('have? ');
-	if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
-	   flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
-	else flg = 1;
-   end
-	for (j=1:1:FL(i).N_level),
-	   fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
-		FL(i).level(j).expr = input(' is: ', 's');
-	end
-   sz(i) = FL(i).N_level;    % number of levels of factor i
-   ntot = ntot * FL(i).N_level;  %total number of combinations
-end
 
 end  % if (unbalanced)
 
-if ~(NF == 3 & dsgn == 1),
+if ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),    % Mainly for ANCOVA?
 fprintf(2,'\nEnter the sample size (number of observations) per cell');
 FL(NF+1).N_level =  input(': ');  % Should it be changed to a different name instead of FL???
 ntot = ntot * FL(NF+1).N_level;    % total number of factor combinations including repeats
@@ -298,7 +308,7 @@ end
 fprintf('\nAll input files are supposed to contain only one subbrik.\n');
 file_format = 1;  % Ignore that file_format = 0 now since it leads to too much trouble
 
-if (file_format == 0),
+if (file_format == 0),   % unused now!
    flg = 0;
    file_num = input('Number of input files: ');  
 	file_SB = input('Number of subbriks for analysis in each file: ');
@@ -309,9 +319,9 @@ if (file_format == 0),
 	   fprintf(2, '\nError: The number of files and subbriks are not consistent!\n'); 
  		fprintf(2,'Halted: Ctrl+c to exit'); pause;
 	end	
-end
+end   % if (file_format == 0)
 
-if (file_format == 1 & ~(NF == 3 & dsgn == 1)),
+if (file_format == 1 & ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1)),
    fprintf(2,'\nThere should be totally %i input files. \n', ntot);	
 	corr = input('Correct? (1 - Yes; 0 - No) ');
 	if (corr == 0),
@@ -327,7 +337,7 @@ if (file_format == 1),
    
    if (unbalanced.yes == 1),    % Try 4-way design 3 first
 	
-	if ((NF == 3 & dsgn == 1)),  % Meant for 3-way ANCOVA with unequal sample size
+	if ((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),  % Meant for 1,2,3,4-way ANCOVA with unequal sample size
 	   FI = 0; % File index
 		flg = 0;
 		ntot = input('Total number of input files: ');
@@ -511,7 +521,7 @@ if (file_format == 1),
 	end % if (unbalanced.yes == 1),
 end % if (file_format == 1),
 
-if (file_format == 0),
+if (file_format == 0),   % unused now!
 
    if (unbalanced.yes == 1),    % Try 4-way design 3 first
    if ((NF == 4 & dsgn == 3)),	
@@ -659,6 +669,7 @@ if (Contr.do == 0),
    Contr.ord1.tot = 0;   % assign these for output later
 	Contr.ord2.tot = 0; 
 	Contr.ord3.tot = 0; 
+	Contr.ord4.tot = 0;
 else
 
 	fprintf('\nNow coding contrasts:\n');
@@ -699,6 +710,7 @@ if (NF == 1),
 	end	
 	Contr.ord2.tot = 0;
 	Contr.ord3.tot = 0;
+	Contr.ord4.tot = 0;
    fprintf(1,'Done with 1st order contrast information.\n');
 end
 
@@ -762,6 +774,7 @@ if (NF == 2),
 	end	
 
 	Contr.ord3.tot = 0;
+	Contr.ord4.tot = 0;
    fprintf(1,'Done with 2nd order contrast information.\n');
 end
 
@@ -791,7 +804,7 @@ if (NF == 3 | NF == 4),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
-			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 0020): ', 's');
 				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
                flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
@@ -822,7 +835,7 @@ if (NF == 3 | NF == 4),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
-			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 0120): ', 's');
+			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 0100): ', 's');
 				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
                flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
@@ -861,10 +874,144 @@ if (NF == 3 | NF == 4),
 			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-	end	
+	end
+	Contr.ord4.tot = 0;	
    fprintf(1,'Done with 3rd order contrast information.\n');
 	
 end  % if (NF == 4)
+
+if (NF == 5),   
+
+   % 1st order contrasts
+   flg = 0;
+   while flg == 0,
+      fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
+   	%fprintf('\t1. Simple mean for a factor level, such as [1 0 0];\n'); 
+	   %fprintf('\t2. Difference between two factor levels, such as [1 -1 0];\n');
+   	%fprintf('\t3. Linear combination of factor levels, such as [0.5 0.5 -1];\n');
+	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
+      Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
+      if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
+	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+   	else flg = 1;
+	   end
+   end
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 0100 means the first, third ');
+%	fprintf('\nand fourth factors are collapsed while 2nd factor is at first level.\n');
+   for (i = 1:1:Contr.ord1.tot),
+	   fprintf('\nLabel for 1st order contrast No. %i ', i);
+		Contr.ord1.label(i).nm = input('is: ', 's');
+		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		for (j = 1:1:Contr.ord1.cnt(i).NT),
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 00200): ', 's');
+				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
+			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
+		end  % for (j = 1:1:Contr.ord1.cnt(i).NT)
+	end	
+   fprintf(1,'Done with 1st order contrast information.\n');
+
+   % 2nd order contrasts
+   flg = 0;
+   while flg == 0,
+      fprintf('\n2nd order contrasts have %i factor(s) collapsed.\n', NF-2);
+	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
+      Contr.ord2.tot = input('\nHow many 2nd-order contrasts? (0 if none) ');
+      if (isnumeric(Contr.ord2.tot) == 0 | Contr.ord2.tot < 0),
+	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+   	else flg = 1;
+	   end
+   end  % while flg == 0
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 0120 means both the first ');
+%	fprintf('\nand fourth factors are collapsed while 2nd and 3rd factors are at first and second level respectively.\n');
+   for (i = 1:1:Contr.ord2.tot),
+	   fprintf('\nLabel for 2nd order contrast No. %i ', i);
+		Contr.ord2.label(i).nm = input('is: ', 's');
+		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		for (j = 1:1:Contr.ord2.cnt(i).NT),
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 01200): ', 's');
+				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end  % while flg == 0
+			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
+		end  % for (j = 1:1:Contr.ord2.cnt(i).NT)
+	end	 % for (i = 1:1:Contr.ord2.tot)
+   fprintf(1,'Done with 2nd order contrast information.\n');
+	
+	
+	% 3rd-order contrasts
+	flg = 0;
+   while flg == 0,
+      fprintf('\n3rd order contrasts have %i factor(s) collapsed.\n', NF-3);
+	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
+      Contr.ord3.tot = input('\nHow many 3rd-order contrasts? (0 if none) ');
+      if (isnumeric(Contr.ord3.tot) == 0 | Contr.ord3.tot < 0),
+	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+   	else flg = 1;
+	   end
+   end
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 1230 means the fourth');
+%	fprintf('\nfactor is collapsed while all the other 3 factors are at first, second and third level respectively.\n');
+   for (i = 1:1:Contr.ord3.tot),
+	   fprintf('\nLabel for 3rd order contrast No. %i ', i);
+		Contr.ord3.label(i).nm = input('is: ', 's');
+		Contr.ord3.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		for (j = 1:1:Contr.ord3.cnt(i).NT),
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord3.cnt(i).code(j).str = input('is (e.g., 1230): ', 's');
+				if (length(Contr.ord3.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
+			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
+		end
+	end	
+   fprintf(1,'Done with 3rd order contrast information.\n');
+	
+	% 4th-order contrasts
+	flg = 0;
+   while flg == 0,
+      fprintf('\n4th order contrasts have %i factor(s) collapsed.\n', NF-4);
+	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
+      Contr.ord4.tot = input('\nHow many 4th-order contrasts? (0 if none) ');
+      if (isnumeric(Contr.ord4.tot) == 0 | Contr.ord4.tot < 0),
+	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+   	else flg = 1;
+	   end
+   end
+%	fprintf('\nUse factor level to code each term in a contrast.  For example, 1230 means the fourth');
+%	fprintf('\nfactor is collapsed while all the other 3 factors are at first, second and third level respectively.\n');
+   for (i = 1:1:Contr.ord4.tot),
+	   fprintf('\nLabel for 4th order contrast No. %i ', i);
+		Contr.ord4.label(i).nm = input('is: ', 's');
+		Contr.ord4.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		for (j = 1:1:Contr.ord4.cnt(i).NT),
+		   flg = 0;
+         while flg == 0,
+			   fprintf('Factor index for No. %i term ', j);
+			   Contr.ord4.cnt(i).code(j).str = input('is (e.g., 01230): ', 's');
+				if (length(Contr.ord4.cnt(i).code(j).str) ~= NF),
+               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+            else flg = 1; end
+			end
+			Contr.ord4.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
+		end
+	end	
+   fprintf(1,'Done with 4th order contrast information.\n');
+	
+end  % if (NF == 5)
+
 
 end  % end of if (Contrast)
 
@@ -874,7 +1021,7 @@ end  % end of if (Contrast)
 
 cov.marker = 10000;  % temporary solution when no covariate exists in PreProc.m
      
-if (cov.do),
+if (cov.do),  % new design type after covariate is added
    switch NF
 	   case 1,
 		   NF = 2;   % 1-ay ANCOVA
@@ -931,7 +1078,7 @@ if (cov.do),         % swap the covariate with another factor for some special c
 		FL(2) = FL(3);
 		FL(3) = temp3;
 		
-		cov.marker = 2;
+		cov.marker = 2;    % now 2nd factor is covariate
 		
 	for (i = 1:1:Contr.ord1.tot),
      for (j = 1:1:Contr.ord1.cnt(i).NT),
@@ -1032,6 +1179,10 @@ switch NF
 	case 4,
       if (dsgn == 3 | dsgn == 4), N_Brik = 11; end
 		if (dsgn == 5), N_Brik = 9; end
+		
+	case 5,
+	   if (dsgn == 3), N_Brik = 23; end	
+		
 end
 
 %Voxel independent stuff
@@ -1156,7 +1307,7 @@ for (sn = 1:1:slices),
 %	else M = zeros(D1, D2, 2*(N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot));	%initialization
 %	end
 
-   M = zeros(D1, D2, 2*(N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot));	%initialization
+   M = zeros(D1, D2, 2*(N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot+Contr.ord4.tot));	%initialization
 
 % Assemble a matrix with intensity and F value sandwiched with each other
 	for (i = 1:1:D1),
@@ -1185,12 +1336,13 @@ for (sn = 1:1:slices),
 			   M(i, j, 2*(l+N_Brik+Contr.ord1.tot+Contr.ord2.tot)-1) = LC(i, j).t3(l).value*isfinite(LC(i, j).t3(l).value);
 	   		M(i, j, 2*(l+N_Brik+Contr.ord1.tot+Contr.ord2.tot)) = LC(i, j).t3(l).t*isfinite(LC(i, j).t3(l).t);
    		end
+			end
+			if (Contr.ord4.tot>0),
+			for (l = 1:1:Contr.ord4.tot),
+			   M(i, j, 2*(l+N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot)-1) = LC(i, j).t4(l).value*isfinite(LC(i, j).t4(l).value);
+	   		M(i, j, 2*(l+N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot)) = LC(i, j).t4(l).t*isfinite(LC(i, j).t4(l).t);
+   		end
 			end	
-%			if (cov.do == 1),
-%			   M(i, j, 2*(N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot+1)-1) = covout(i, j).beta*isfinite(covout(i, j).beta);
-%	   		M(i, j, 2*(N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot+1)) = covout(i, j).t*isfinite(covout(i, j).t);
-%			end			
-%end
 		end
 	end
 
@@ -1202,7 +1354,7 @@ for (sn = 1:1:slices),
       end
 	end
 
-% Get df for 2nd order  contrasts	
+% Get df for 2nd order contrasts	
 
    if ((NF == 3) & Contr.ord2.tot > 0),
    for (i = 1:1:Contr.ord2.tot),
@@ -1245,6 +1397,38 @@ for (sn = 1:1:slices),
 %		end
    end
    end	
+	
+	if ((NF == 5) & Contr.ord2.tot > 0),   % Refer SumsOfSquares.m for details
+   for (i = 1:1:Contr.ord2.tot),
+		   switch Contr.ord2.cnt(i).idx1
+		   case 1,
+			   switch Contr.ord2.cnt(i).idx2
+				   case 2, Contr.ord2.df(i) = dfdenom(6);  % MSAB
+					case 3, Contr.ord2.df(i) = dfdenom(7);  % MSAC
+					case 4, Contr.ord2.df(i) = dfdenom(8);  % MSAD
+					case 5, Contr.ord2.df(i) = dfdenom(9)*(dsgn == 1 | dsgn == 2);  % MSAD
+				end	
+			case 2,
+			   switch Contr.ord2.cnt(i).idx2
+				   case 3, Contr.ord2.df(i) = dfdenom(10) * (dsgn == 1 | dsgn == 2) + dfdenom(9) * (dsgn == 3);  % MSBC
+					case 4, Contr.ord2.df(i) = dfdenom(11) * (dsgn == 1 | dsgn == 2) + dfdenom(10) * (dsgn == 3);  % Less likely occur: MSBD
+					case 5, Contr.ord2.df(i) = dfdenom(12) * (dsgn == 1 | dsgn == 2) + dfdenom(11) * (dsgn == 3);  % Less likely occur: MSBE
+				end		   
+			case 3,   % Less likely occur
+			   switch Contr.ord2.cnt(i).idx2
+					case 4, Contr.ord2.df(i) = dfdenom(13) * (dsgn == 1 | dsgn == 2) + dfdenom(12)*(dsgn == 3); % Less likely occur: MSCD	
+					case 5, Contr.ord2.df(i) = dfdenom(14) * (dsgn == 1 | dsgn == 2) + dfdenom(13)*(dsgn == 3); % Less likely occur: MSCE		
+		      end
+			case 4,   % Less likely occur
+			   switch Contr.ord2.cnt(i).idx2
+					case 5, Contr.ord2.df(i) = dfdenom(15) * (dsgn == 1 | dsgn == 2) + dfdenom(14)*(dsgn == 3); % Less likely occur: MSDE		
+		      end	
+		   end  % switch Contr.ord2.cnt(i).idx1
+%		end
+   end
+   end	% if ((NF == 5) & Contr.ord2.tot > 0)
+	
+	
 
 % Get df for 3rd order  contrasts
 
@@ -1298,7 +1482,128 @@ for (sn = 1:1:slices),
 		   end
 %		end
    end
-   end	
+   end
+	
+	if ((NF == 5) & Contr.ord3.tot > 0),
+   for (i = 1:1:Contr.ord3.tot),
+		   switch Contr.ord3.cnt(i).idx1
+		   case 1,
+			   switch Contr.ord3.cnt(i).idx2
+				   case 2, 
+					   switch Contr.ord3.cnt(i).idx3
+						   case 3, Contr.ord3.df(i) = dfdenom(16)*(dsgn == 1 | dsgn == 2) + dfdenom(15)* (dsgn == 3);  % MSABC
+							case 4, Contr.ord3.df(i) = dfdenom(17)*(dsgn == 1 | dsgn == 2) + dfdenom(16)* (dsgn == 3);  % MSABD 
+							case 5, Contr.ord3.df(i) = dfdenom(18)*(dsgn == 1 | dsgn == 2);  % MSABE			
+						end	
+					case 3, 
+					   switch Contr.ord3.cnt(i).idx3
+						   case 4, Contr.ord3.df(i) = dfdenom(19)*(dsgn == 1 | dsgn == 2) + dfdenom(17)* (dsgn == 3);  % MSACD
+							case 5, Contr.ord3.df(i) = dfdenom(20)*(dsgn == 1 | dsgn == 2);  % MSACE
+						end
+					case 4,	
+						if (Contr.ord3.cnt(i).idx3 == 5), Contr.ord3.df(i) = dfdenom(21)*(dsgn == 1 | dsgn == 2);  % MSADE
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;
+					   end
+				end	% switch Contr.ord3.cnt(i).idx2
+			case 2,
+			   switch Contr.ord3.cnt(i).idx2
+				   case 3, 
+					   switch Contr.ord3.cnt(i).idx3
+						   case 4, Contr.ord3.df(i) = dfdenom(22)*(dsgn == 1 | dsgn == 2) + dfdenom(18)* (dsgn == 3);   % MSBCD
+						   case 5, Contr.ord3.df(i) = dfdenom(23)*(dsgn == 1 | dsgn == 2) + dfdenom(19)* (dsgn == 3);   % MSBCE
+						end
+					case 4,	
+						if (Contr.ord3.cnt(i).idx3 == 5), Contr.ord3.df(i) = dfdenom(24)*(dsgn == 1 | dsgn == 2) + dfdenom(20)* (dsgn == 3);   % MSBDE
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;end
+				   case 4, 
+					   fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+				end   % switch Contr.ord3.cnt(i).idx2
+			case 3,   
+			   if (Contr.ord3.cnt(i).idx2 == 4 & Contr.ord3.cnt(i).idx3 == 5), 
+				if (dsgn == 1 | dsgn == 2),
+				   Contr.ord3.df(i) = dfdenom(25);
+				elseif (dsgn == 3),
+				 	dfdenom(21);   % MSCDE
+				end	
+				else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;end	
+					
+			case 4,
+			   fprintf('\nSomething is wrong in the contrast coding!\n');
+		      fprintf(2,'Halted: Ctrl+c to exit'); pause;			
+		end % switch Contr.ord3.cnt(i).idx1
+   end
+   end
+	
+	if ((NF == 5) & Contr.ord4.tot > 0),		
+	   for (i = 1:1:Contr.ord4.tot),
+		   switch Contr.ord4.cnt(i).idx1
+			   case 1,
+			   switch Contr.ord4.cnt(i).idx2		         
+					case 2, 
+		         switch Contr.ord4.cnt(i).idx3
+			         case 3, 
+						switch Contr.ord4.cnt(i).idx4
+						   case 4, 
+							if (dsgn == 1 | dsgn == 2),
+							   Contr.ord4.df(i) = dfdenom(26);
+							elseif (dsgn == 3),
+							   Contr.ord4.df(i) = dfdenom(22);  % MSABCD
+							end	
+							case 5, 
+							if (dsgn == 1 | dsgn == 2),
+							   Contr.ord4.df(i) = dfdenom(27);
+							end   % MSABCE
+						end  % switch Contr.ord4.cnt(i).idx4
+						case 4, 
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   Contr.ord4.df(i) = dfdenom(28);   % MSABDE
+						end	
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	               end % if (Contr.ord4.cnt(i).idx4 == 5)
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
+					end  % switch Contr.ord4.cnt(i).idx3
+					case 3,
+					switch Contr.ord4.cnt(i).idx3
+					   case 4, 
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   Contr.ord4.df(i) = dfdenom(29);   % MSACDE 
+						end
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;
+						end
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
+					end  % switch Contr.ord4.cnt(i).idx3
+					case 4, fprintf('\nSomething is wrong in the contrast coding!\n');
+	               fprintf(2,'Halted: Ctrl+c to exit'); pause;
+	         end % switch Contr.ord4.cnt(i).idx2
+				
+				case 2,
+				switch Contr.ord4.cnt(i).idx2
+				   case 3,
+					switch Contr.ord4.cnt(i).idx3
+					   case 4,
+						if (Contr.ord4.cnt(i).idx4 == 5), 
+						if (dsgn == 1 | dsgn == 2),
+						   Contr.ord4.df(i) = dfdenom(30);   % MSBCDE
+						end	
+						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
+	               end 
+						case 5, fprintf('\nSomething is wrong in the contrast coding!\n');
+	                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
+					end % switch Contr.ord4.cnt(i).idx3
+					case 4,
+					fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;
+				end % switch Contr.ord4.cnt(i).idx2
+				case {3,4,5},
+				   fprintf('\nSomething is wrong in the contrast coding!\n');
+	            fprintf(2,'Halted: Ctrl+c to exit'); pause;
+				
+			end	% switch Contr.ord4.cnt(i).idx1			
+		end  % for (i = 1:1:Contr.ord4.tot)
+	end	% 	if ((NF == 5) & Contr.ord4.tot > 0)	
 	
 %	if (cov.do == 1), covoutdf = dfe;  end % df of MSE 
 
@@ -1315,11 +1620,11 @@ for (sn = 1:1:slices),
 %	   Info.DATASET_RANK(2) = 2*(N_Brik + Contr.ord1.tot + Contr.ord2.tot + Contr.ord3.tot +1);
 %   else Info.DATASET_RANK(2) = 2*(N_Brik + Contr.ord1.tot + Contr.ord2.tot + Contr.ord3.tot);    % Number of subbriks
 %	end
-   Info.DATASET_RANK(2) = 2*(N_Brik + Contr.ord1.tot + Contr.ord2.tot + Contr.ord3.tot);    % Number of subbriks
+   Info.DATASET_RANK(2) = 2*(N_Brik + Contr.ord1.tot + Contr.ord2.tot + Contr.ord3.tot + Contr.ord4.tot);    % Number of subbriks
 
    Info.DATASET_DIMENSIONS = [D1 D2 D3 0 0];
    Info.BRICK_STATS = [];
-   Info.BRICK_TYPES = [];
+%   Info.BRICK_TYPES = [];
    Info.BRICK_FLOAT_FACS = [];
    Info.BRICK_STATAUX = [];   %initialization
    Info.BRICK_TYPES = [];   %initialization: generate results in float with 3
@@ -1351,6 +1656,14 @@ for (sn = 1:1:slices),
    if (Contr.ord3.tot>0),
    for (i = 1:1:Contr.ord3.tot),
       Info.BRICK_STATAUX = [Info.BRICK_STATAUX 2*(i+N_Brik+Contr.ord1.tot+Contr.ord2.tot)-1 3 1 Contr.ord3.df(i)];   % 3 is for t stat defined in 3ddata.h
+   	Info.BRICK_TYPES = [Info.BRICK_TYPES 3 3];  % 3 for float; 1 for short
+   end
+	end
+	
+% For 3rd oder contrasts
+   if (Contr.ord4.tot>0),
+   for (i = 1:1:Contr.ord4.tot),
+      Info.BRICK_STATAUX = [Info.BRICK_STATAUX 2*(i+N_Brik+Contr.ord1.tot+Contr.ord2.tot+Contr.ord3.tot)-1 3 1 Contr.ord4.df(i)];   % 3 is for t stat defined in 3ddata.h
    	Info.BRICK_TYPES = [Info.BRICK_TYPES 3 3];  % 3 for float; 1 for short
    end
 	end
@@ -1391,6 +1704,14 @@ for (sn = 1:1:slices),
 	   Info.BRICK_LABS =  [Info.BRICK_LABS Contr.ord3.label(i).nm ' ' 't' '~'];   % Label for t
    end
 	end
+	
+% For 4th order contrasts
+   if (Contr.ord4.tot>0),
+   for (i = 1:1:Contr.ord4.tot),  %create labels for contrasts
+      Info.BRICK_LABS =  [Info.BRICK_LABS Contr.ord4.label(i).nm '~'];   % Label for intensity
+	   Info.BRICK_LABS =  [Info.BRICK_LABS Contr.ord4.label(i).nm ' ' 't' '~'];   % Label for t
+   end
+	end	
 	
 	% ANOCVA	
 %	if (cov.do == 1), 
