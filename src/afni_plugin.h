@@ -14,7 +14,6 @@
 #include <sys/errno.h>
 #include <sys/times.h>
 #include <limits.h>
-#include <assert.h>   /* for Ziad */
 
 struct AFNI_plugin_array ; /* incomplete definition */
 

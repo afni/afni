@@ -34,13 +34,13 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg
+           2dImReg 3dmaskave
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
-                  waver 3dnewid 3dcalc ccalc imcalc bzip2 2dImReg \
+                  waver 3dnewid 3dcalc ccalc imcalc bzip2 2dImReg 3dmaskave \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna
 
 all:libmri.a programs
@@ -172,6 +172,10 @@ dsetdup:dsetdup.o
 3dinfo:3dinfo.o
 	$(RM) $@
 	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS)
+
+3dmaskave:3dmaskave.o
+	$(RM) $@
+	$(CC) -o 3dmaskave 3dmaskave.o $(LFLAGS) $(LLIBS)
 
 3drefit:3drefit.o
 	$(RM) $@

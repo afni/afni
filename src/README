@@ -16,6 +16,7 @@ The documentation for MCW AFNI is in the following files:
   regnotes.ps     = Some notes on subject motion and image registration.
   README          = This file.
   README.changes  = Additions to the package since manuals were written.
+  README.*        = Other documentation files about specific issues.
 
 Most of these files are no longer included in the base distribution,
 afni98.tgz, but are in the file doc.tgz.  This change is due to their
@@ -192,10 +193,10 @@ need to install some patches that Sun has released for X11, Xt, and Motif.
 For Solaris 2.5, these can be found at the USA Web pages
    http://access1.sun.com/patch.recommended/2.5.html
    http://sunsolve1.sun.com/pub-cgi/us/pubpatchpage.pl
-or you can scout around on Sun's Web site to find them,
-if these link becomes void.  (Only the root user can install these patches.
-I don't know which patches are absolutely necessary -- I simply installed
-all of the OpenWindows, X11, Xt, and Motif patches I could get.  That fixed
+or you can scout around on Sun's Web site to find them, if these links
+becomes void.  (Only the root user can install these patches.  I don't
+know which patches are absolutely necessary -- I simply installed all
+of the OpenWindows, X11, Xt, and Motif patches I could get.  That fixed
 the problems with the graph window.)  I'm not sure if these patches are
 all incorporated into Solaris 2.6.
 

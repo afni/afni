@@ -1,0 +1,55 @@
+Region-of-Interests (ROIs) in AFNI 2.20
+---------------------------------------
+A few tools for selecting voxel subsets and extracting their data for
+external analysis are included with AFNI 2.20.  These tools are quite
+new and crude, and (God willing) will be improved as time goes on.
+Nonetheless, it is possible to do some useful work with them now.
+
+The ROI stuff is mostly implemented as a set of plugins.  These all have
+extensive help, so I won't give all the details here.  You may need to
+write some C programs to calculate useful results after extracting the
+data you want.
+
+Selecting an ROI: plugin "Draw Dataset" [author: R Cox]
+-------------------------------------------------------
+This plugin lets you draw values into a dataset brick.  The idea is to
+start with a dataset that is all zeros and then draw nonzero values over
+the desired regions.  An all zero dataset of a size equivalent to an
+existing dataset can be created using the "Dataset Copy" plugin.
+Another way to create a starting point for a mask dataset would be
+to use the "Edit Dataset" plugin or the "3dmerge" program (e.g., to
+pick out all voxels with a correlation coefficient above a threshold).
+
+Normally, you would create the mask dataset as type "fim".  This would
+allow it to be displayed as a functional overlay on the anatomical
+background.
+
+Mask datasets tend to be mostly zeros.  You can use the ability of AFNI to
+read/write compressed datasets to save disk space.  See the file
+"README.compression" and the plugin "BRIK compressor" for details.
+
+To be useful, a mask dataset must be created at the resolution of the
+datasets it will be used with.  This means that if you create a mask
+at the anatomical resolution, the functional datasets to which you apply
+it must be at that resolution also.
+
+Averaging Data Defined by a ROI Mask: program "3dmaskave" [author: R Cox]
+-------------------------------------------------------------------------
+This program lets you compute the average over a ROI of all voxel values
+from an input dataset.  The ROI is defined by a mask dataset.  The average
+value is computed for each sub-brick in the input, so you can use this to
+create an average time series.  The output is written to stdout -- it can
+be redirected (using '>') into a file.  For a little more information, try
+"3dmaskave -help".
+
+Making a Dump File: plugin "3D Dump98" [author: Z Saad]
+-------------------------------------------------------
+This plugin lets you write to disk a list of all voxels in a dataset with
+values in a certain range.  The ROI application is to list out the voxels
+in the mask dataset.
+
+Extracting Data Using a Dump File: plugin "3D+t Extract" [author: Z Saad]
+-------------------------------------------------------------------------
+This file lets you save all the time series from voxels listed in a mask
+file.  They are in an ASCII format, which is designed to make them easier
+to import into programs such as Matlab.

@@ -3334,7 +3334,6 @@ static vptr_func * forced_loads[] = {
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){
-  assert(1) ;
   return forced_loads[n] ;
 }
 

@@ -9,7 +9,8 @@
      values inside a dataset.  It is intended to allow the creation of
      Volume-of-Interest (VOI) mask datasets.  The only documentation is
      the 'Help' button within the plugin.  Yet to come -- tools to use
-     VOIs in conjunction with other datasets.
+     VOIs in conjunction with other datasets.  See README.roi for more
+     information.
    The new 'bucket' type of dataset allows an arbitrary number of
      sub-bricks to be attached to a 3D dataset.  AFNI allows you to
      display any given sub-brick from a bucket dataset.  The 3D dataset
@@ -19,6 +20,8 @@
    The new FIM+ option within AFNI allows computation of a bucket dataset
      output from the correlation analysis, with percent change included
      as a new sub-brick.
+   The 'plugout' facility has been extended somewhat, and a couple of
+     new sample plugout programs are included with AFNI 2.20.
 --------------------------------------------------------------------------
 11 February 1998:
    AFNI (and other programs) will now also write compressed .BRIK files.
