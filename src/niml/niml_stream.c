@@ -2266,7 +2266,8 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
 /*-----------------------------------------------------------------------*/
 /*! Close a NI_stream, but don't free the insides.
-    If flag != 0, send a message to the other end about this.
+    If (flag&1 != 0) send a "close_this" message to the other end.
+    If (flag&2 != 0) use TCP OOB data to send a SIGURG to the other end.
 -------------------------------------------------------------------------*/
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
@@ -2282,7 +2283,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 
    /*-- 20 Dec 2002: write a farewell message to the other end? --*/
 
-   if( flag                                                 &&
+   if( (flag & 1) != 0                                      &&
        (ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE) &&
        NI_stream_writecheck(ns,1) > 0                          ){
 
@@ -2314,8 +2315,10 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 
       case NI_TCP_TYPE:
         if( ns->sd >= 0 ){
-          tcp_send( ns->sd , "X" , 1 , MSG_OOB ) ;   /* 02 Jan 2004 */
-          NI_sleep(1) ;
+          if( (flag & 2) != 0 ){
+            tcp_send( ns->sd , "X" , 1 , MSG_OOB ) ;   /* 02 Jan 2004 */
+            NI_sleep(1) ;
+          }
           CLOSEDOWN(ns->sd) ;  /* close socket */
         }
       break ;
@@ -2346,6 +2349,15 @@ void NI_stream_close( NI_stream_type *ns )
 void NI_stream_closenow( NI_stream_type *ns )
 {
    NI_stream_close_keep(ns,0) ; NI_free(ns) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Close a NI_stream with a "close_this" message and also using
+   TCP OOB data (for socket streams, that is) to notify the other end. */
+
+void NI_stream_kill( NI_stream_type *ns )
+{
+   NI_stream_close_keep(ns,3) ; NI_free(ns) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
