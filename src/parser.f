@@ -30,7 +30,7 @@ C  Random local stuff
 C
       INTEGER       NLEN , NPOS , IPOS , NTOKEN , NUSED , NF , NARG ,
      X              NERR
-      CHARACTER*1000 C_LOCAL
+      CHARACTER*10000 C_LOCAL
       CHARACTER*30  C_MESSAGE
       CHARACTER*1   C_CH
       REAL*8        VAL_TOKEN , R8_TOKEN
@@ -45,7 +45,7 @@ C
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
       NLEN = LAST_NONBLANK( C_EXPR )
-      IF( NLEN .LE. 0 .OR. NLEN .GT. 999 )THEN
+      IF( NLEN .LE. 0 .OR. NLEN .GT. 9999 )THEN
 C!no input, or too much
          NUM_CODE = 0
          GOTO 8000
