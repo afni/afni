@@ -55,8 +55,13 @@ extern Visual * MCW_get_visual( Widget ) ;
 extern void MCW_set_widget_cursor( Widget,int ) ;
 extern void MCW_alter_widget_cursor( Widget,int , char * , char * ) ;
 
-#define WAIT_for_window(w)                                           \
-   while( XtWindow(w) == (Window) NULL )
+extern void RWC_sleep( int ) ;  /* 16 Aug 2002 */
+
+#define WAIT_for_window(w)                                  \
+ do{ XSync( XtDisplay(w) , False ) ;                         \
+     while( XtWindow(w) == (Window) NULL ) ; /* spin */       \
+     RWC_sleep(1) ;                                            \
+ } while(0)
 
 #define POPUP_cursorize(w)                                        \
  do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )      \
