@@ -1564,7 +1564,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    char idcode_str[50];
    NI_element *nel=NULL;
    int i, i4, i3; 
-   float ClipRange[2], *Vsort= NULL;
+   float IntRange[2], *Vsort= NULL;
    SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
@@ -1597,17 +1597,17 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
 
       /* work the options a bit */
       OptScl->ApplyClip = YUP;
-      ClipRange[0] = 0; ClipRange[1] = 100; /* percentile clipping range*/ 
-      Vsort = SUMA_PercRange (val, NULL, SO->N_Node, ClipRange, ClipRange); 
+      IntRange[0] = 0; IntRange[1] = 100; /* percentile clipping range*/ 
+      Vsort = SUMA_PercRange (val, NULL, SO->N_Node, IntRange, IntRange); 
       if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
          /* the new method */
-         if (fabs(ClipRange[0]) > ClipRange[1]) {
-            ClipRange[1] = -ClipRange[0];
+         if (fabs(IntRange[0]) > IntRange[1]) {
+            IntRange[1] = -IntRange[0];
          } else {
-            ClipRange[0] = -ClipRange[1];
+            IntRange[0] = -IntRange[1];
          }
       } 
-      OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
+      OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
       OptScl->BrightFact = 1.0;
 
       /* create structure to hold the colored values */
@@ -1633,7 +1633,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    /* map the values in val to the colormap */
 
    /* finally ! */
-   if (!SUMA_ScaleToMap (val, SO->N_Node, OptScl->ClipRange[0], OptScl->ClipRange[1], CM, OptScl, SV)) {
+   if (!SUMA_ScaleToMap (val, SO->N_Node, OptScl->IntRange[0], OptScl->IntRange[1], CM, OptScl, SV)) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
       SUMA_RETURN (NOPE);
    }             

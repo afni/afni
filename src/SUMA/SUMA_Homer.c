@@ -416,7 +416,7 @@ int main (int argc,char *argv[])
          SUMA_SCALE_TO_MAP_OPT * OptScl;
          SUMA_STANDARD_CMAP MapType;
          SUMA_COLOR_SCALED_VECT * SV;
-         float ClipRange[2], *Vsort;
+         float IntRange[2], *Vsort;
 
          /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
          CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
@@ -434,9 +434,9 @@ int main (int argc,char *argv[])
 
          /* work the options a bit */
          OptScl->ApplyClip = YUP;
-         ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
-         Vsort = SUMA_PercRange (SOv[ipart]->Cx, NULL, SOv[ipart]->N_Node, ClipRange, ClipRange); 
-         OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
+         IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
+         Vsort = SUMA_PercRange (SOv[ipart]->Cx, NULL, SOv[ipart]->N_Node, IntRange, IntRange); 
+         OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
 
          OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
 
@@ -456,7 +456,7 @@ int main (int argc,char *argv[])
 
 
          /* create an overlay plane */
-         NewColPlane = SUMA_CreateOverlayPointer (SOv[ipart]->N_Node, "Convexity");
+         NewColPlane = SUMA_CreateOverlayPointer (SOv[ipart]->N_Node, "Convexity", SOv[ipart]->idcode_str);
          if (!NewColPlane) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
             SUMA_RETURN (NOPE);

@@ -2069,6 +2069,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
             if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
                /* plane not found, create a link to it */
                if (LocalHead) fprintf (SUMA_STDERR,"Local Debug %s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);
+               #if USE_INODE
                SO_nxt->Overlays_Inode[SO_nxt->N_Overlays] = SUMA_CreateInodeLink (SO_nxt->Overlays_Inode[SO_nxt->N_Overlays], SO_prec->Overlays_Inode[j]);
                if (!SO_nxt->Overlays_Inode[SO_nxt->N_Overlays]) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
@@ -2076,6 +2077,9 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
                }
                /* now copy the actual overlay plane pointer */
                SO_nxt->Overlays[SO_nxt->N_Overlays] = SO_prec->Overlays[j];
+               #else
+               SO_nxt->Overlays[SO_nxt->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO_prec->Overlays[j]);
+               #endif
                /*increment the number of overlay planes */
                ++SO_nxt->N_Overlays;
             } else {

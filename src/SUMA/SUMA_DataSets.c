@@ -12,6 +12,7 @@ This file might be compiled and used by AFNI
 #include "xutil.h"
 #include "SUMA_Algorithms.h"
 #include "SUMA_DataSets.h"
+#include "SUMA_Macros.h"   /* This one's generic */
 
 #if defined SUMA_TEST_DATA_SETS_STAND_ALONE
 #define STAND_ALONE
@@ -99,6 +100,9 @@ This file might be compiled and used by AFNI
       fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
    }
    
+   #define SUMA_S_Crit(msg) {\
+      fprintf (SUMA_STDERR, "Critical error %s:\n %s\n", FuncName, msg);  \
+   }
     
 #endif
 
@@ -293,7 +297,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
    you have to store certain stats or parameters that go with each column.
        
 */
-int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
+int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr, int col_index)
 {
    static char FuncName[]={"SUMA_AddColAttr"};
    char Name[500], Attr[500];
@@ -301,12 +305,15 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
    SUMA_ENTRY;
    
    if (!nel) SUMA_RETURN(0);
-   
+   if (col_index < 0) col_index = nel->vec_num-1;
+   if (col_index < 0 || !nel->vec_num ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
+   if (nel->vec_num <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
+
    /* save the type of the column */
-   sprintf(Name, "TypeCol_%d", nel->vec_num-1);
+   sprintf(Name, "TypeCol_%d", col_index);
    NI_set_attribute ( nel, Name, SUMA_Col_Type_Name(ctp));
    
-   sprintf(Attr, "AttrCol_%d", nel->vec_num-1);
+   sprintf(Attr, "AttrCol_%d", col_index);
    switch (ctp) {
       case SUMA_NODE_INDEX:
          /* form the string of attributes for this column */
@@ -390,6 +397,93 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
 }
 
 /*!
+   Adds some generic attributes.
+   For the moment, the range is added for numeric columns 
+   if col_index is -1, then it is assumed that the attributes are for the latest column added (vec_num -1)
+*/
+int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index) 
+{
+   static char FuncName[]={"SUMA_AddGenColAttr"};
+   static char stmp[500], Name[500];
+   float amin = 0.0, amax = 0.0, *fv;
+   int aminloc = -1, amaxloc = -1, *iv;
+   byte *bv;
+   SUMA_ENTRY;
+   
+   if (!nel) { SUMA_SL_Err("Null Nel"); SUMA_RETURN(0); }
+   if (col_index < 0) col_index = nel->vec_num-1;
+   if (col_index < 0 || !nel->vec_num ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
+   if (nel->vec_num <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
+   
+   sprintf(Name, "RangeCol_%d", col_index);
+
+   if (!col) { 
+      /* Do not complain, that is not a bad thing.
+      People can use this to allocate for a column
+      without filling it up */
+      sprintf(stmp, "0 0 -1 -1");
+   } else {
+      switch (SUMA_ColType2TypeCast(ctp)) {
+         case SUMA_int:
+            iv = (int *)col;
+            SUMA_MIN_MAX_VEC_STRIDE(iv ,nel->vec_filled, amin, amax, aminloc, amaxloc, stride);
+            snprintf(stmp, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            break;
+         case SUMA_float:
+            fv = (float *)col;
+            SUMA_MIN_MAX_VEC_STRIDE(fv ,nel->vec_filled, amin, amax, aminloc, amaxloc, stride);
+            snprintf(stmp, 500*sizeof(char),"%f %f %d %d", amin, amax, aminloc, amaxloc);
+            break;
+         case SUMA_byte:
+            bv = (byte *)col;
+            SUMA_MIN_MAX_VEC_STRIDE(bv ,nel->vec_filled, amin, amax, aminloc, amaxloc, stride);
+            snprintf(stmp, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            break;
+         case SUMA_string:
+            NI_add_column_stride ( nel, NI_STRING, (char **)col, stride );
+            stmp[0] = '\0';
+            break;
+         default:
+            fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
+            SUMA_RETURN(0);
+            break; 
+      }
+   }
+   
+   NI_set_attribute ( nel, Name, stmp);
+   
+   SUMA_RETURN(1);  
+}
+
+/*!
+   \brief Sets the column range values
+   col_index can be -1 if you want the attributes of the last column
+*/
+int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2])
+{
+   static char FuncName[]={"SUMA_GetColRange"};
+   char *rs = NULL, Name[500];
+   float nums[4];
+   
+   if (!nel) { SUMA_SL_Err("Null Nel"); SUMA_RETURN(0); }
+   if (col_index < 0) col_index = nel->vec_num-1;
+   if (col_index < 0 || !nel->vec_num ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
+   if (nel->vec_num <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
+   
+   SUMA_ENTRY;
+   
+   sprintf(Name, "RangeCol_%d", col_index);
+   rs = NI_get_attribute(nel, Name);
+   
+   if (!rs) { SUMA_SL_Err("No range field."); SUMA_RETURN(0); }
+   if (SUMA_StringToNum(rs, nums, 4) != 4) { SUMA_SL_Err("Failed to read 4 nums from range."); SUMA_RETURN(0); }
+   range[0] = nums[0]; range[1] = nums[1]; 
+   loc[0] = (int)nums[2]; loc[1] = (int)nums[3];
+      
+   SUMA_RETURN(1);
+}
+
+/*!
    Adds a column to Nel
    The vectors added are nel->vec_len long so col should contain at least
    nel->vec_len * stride elements.
@@ -410,7 +504,6 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
                      void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddNelCol"};
-   
    SUMA_ENTRY;
    
    if (!nel) { SUMA_SL_Err("Null Nel"); SUMA_RETURN(0); }
@@ -435,13 +528,15 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
          NI_add_column_stride ( nel, NI_STRING, (char **)col, stride );
          break;
       default:
-         fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
+         fprintf (stderr,"Error %s: Bad column type.\n", FuncName);
          SUMA_RETURN(0);
          break; 
    }
    
+   /* set some generic attributes */
+   SUMA_AddGenColAttr (nel, ctp, col, stride, -1);
    /* add the attributes of that column */
-   SUMA_AddColAttr (nel, ctp, col_attr);
+   SUMA_AddColAttr (nel, ctp, col_attr, -1);
    
    SUMA_RETURN(1);
 }
@@ -493,6 +588,10 @@ int SUMA_FillNelCol (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
          SUMA_RETURN(0);
          break; 
    }
+   /* set some generic attributes */
+   SUMA_AddGenColAttr (nel, ctp, col, stride, icol);
+   /* add the attributes of that column */
+   SUMA_AddColAttr (nel, ctp, col_attr, icol);
    
    SUMA_RETURN(1);
 }
@@ -1211,7 +1310,7 @@ SUMA_DSET * SUMA_FindDset (char *idcode, DList *DsetList)
    SUMA_DSET *dset = NULL, *dsetf = NULL;
    char *dsetid;
    DListElmt *el=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1337,7 +1436,7 @@ void *SUMA_UnlinkFromPointer(void *ptr)
 SUMA_DSET *SUMA_LinkToDset(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_LinkToDset"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1349,7 +1448,7 @@ SUMA_DSET *SUMA_LinkToDset(SUMA_DSET *dset)
 SUMA_DSET *SUMA_UnlinkFromDset(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_UnlinkFromDset"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1414,7 +1513,7 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    char *Label=NULL;
    SUMA_DSET *dset=NULL;
    DListElmt *Elm = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1473,7 +1572,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET *dset, DList *DsetList)
 {
    static char FuncName[]={"SUMA_InsertDsetPointer"};
    char *s=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
@@ -1749,6 +1848,67 @@ void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer)
    else {SUMA_RETURN((void *)Cx);}
 }
 
+/*!
+   \brief Copies the contents of a NI_element column into
+   a new float vector
+   V = SUMA_Col2Float (nel,  ind,  FilledOnly);
+   
+   \param nel (NI_element *)
+   \param ind (int) index of column to be copied
+   \param FilledOnly (int) 0 = allocate for and read all of the column 
+                              (up to nel->vec_len)
+                           1 = allocate for and read the filled portion 
+                               of the column (up to nel->vec_filled)
+   \return V (float *) vector (allocated by the function) containing
+                     the column's contents.
+ */
+float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
+{
+   static char FuncName[]={"SUMA_Col2Float"};
+   char stmp[50];
+   int i = -1, N_read = -1, *iv = NULL;
+   float *V=NULL, *fv = NULL;
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   
+   if (!nel) { SUMA_RETURN(NULL); }
+   
+   if (ind < 0 || ind > nel->vec_num - 1) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (FilledOnly) {
+      N_read = nel->vec_filled;
+   } else {
+      N_read = nel->vec_len;
+   }
+   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
+   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+
+   V = (float *)SUMA_malloc(sizeof(float)*N_read);
+   if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   switch (vtp) {
+      case SUMA_int:
+         iv = (int *)nel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = (float)iv[i];
+         break;
+      case SUMA_float:
+         fv = (float *)nel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = fv[i];
+         break;
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_free(V);
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   SUMA_RETURN(V);
+}
+
+
 #ifdef SUMA_Test_DSET_IO_STANDALONE
 void usage_Test_DSET_IO ()
    
@@ -1769,7 +1929,7 @@ int main (int argc,char *argv[])
    NI_stream ns;
    int found = 0, NoStride = 0;
    SUMA_DSET * dset = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_mainENTRY;
    

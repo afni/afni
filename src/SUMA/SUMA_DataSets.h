@@ -124,7 +124,7 @@ typedef enum { SUMA_NO_PTR_TYPE,
 
 typedef struct {
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
-   int N_links;   /*!< NUmber of colorplane structures that use this dataset */
+   int N_links;   /*!< Number of links to this pointer */
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
 } SUMA_LinkedPtr;
 
@@ -147,8 +147,8 @@ typedef struct {
           SUMA_LinkedPtr structure 
    */
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
-   int N_links;   /*!< NUmber of colorplane structures that use this dataset */
-   int owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
    
    /* *** You can go crazy below */
    NI_element *nel;  /*!< The whole deal */
@@ -200,12 +200,32 @@ typedef struct {
    #endif
 } SUMA_DSET;
 
+/*!
+   Convenience function for SUMA_StringAppend cleanup
+*/
 #define SUMA_SS2S(SS, stmp)  {\
    if (SS)  {  \
       SS = SUMA_StringAppend(SS, NULL);   \
       stmp = SS->s;  \
       SUMA_free(SS); SS = NULL;   } \
 }
+/*!
+   Frees so, if not NULL
+   copies sn into so, takes care of so's allocation
+*/
+#define SUMA_STRING_REPLACE(so, sn) {  \
+   if (so) SUMA_free(so);  \
+   so = SUMA_copy_string(sn); \
+}
+
+#define SUMA_TO_LOWER(s) { \
+   int m_i; \
+   if (s) { \
+      for (m_i=0; m_i < strlen(s); ++m_i) { \
+         if (s[m_i] >= 'A' && s[m_i] <= 'Z') s[m_i] = s[m_i] + 'a' - 'A';  \
+      }   \
+   }  \
+}  
 
 /*!
    \brief Macros to access dataset elements 
@@ -228,10 +248,15 @@ typedef struct {
    DO NOT USE COLP_NODEDEF macro inside a loop where the returned
    value is not to change because it involves a function call (SLOW)
 */
+/* Pre March 29 04. 
 #define COLP_NODEDEF(cop) SUMA_GetNodeDef(cop->dset_link)
 #define COLP_N_NODEDEF(cop) cop->dset_link->nel->vec_filled
+*/
+/* Post March 29 04. You can't go frugal and use dset's fields
+NodeDef might be dynamically changed in the overlay plane */
+#define COLP_NODEDEF(cop) cop->NodeDef
+#define COLP_N_NODEDEF(cop) cop->N_NodeDef
 #define COLP_N_ALLOC(cop) cop->dset_link->nel->vec_len
-
 
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
 
@@ -329,7 +354,7 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp);
 int SUMA_ShowNel (NI_element *nel);
 int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
-int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr);
+int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr, int col_index);
 NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode, 
                           char * GeomParent_idcode, int N_el, 
                           char *name, char *thisidcode);
@@ -366,6 +391,9 @@ int * SUMA_GetNodeDef(SUMA_DSET *dset);
 int SUMA_FillNelCol (NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
+float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
+int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
+int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
 
 
 #endif

@@ -955,7 +955,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_SCALE_TO_MAP_OPT * OptScl;
                SUMA_STANDARD_CMAP MapType;
                SUMA_COLOR_SCALED_VECT * SV;
-               float ClipRange[2], *Vsort;
+               float IntRange[2], *Vsort;
                float * attr_sm;
                float *Cx = NULL;
 
@@ -996,9 +996,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                /* work the options a bit */
                OptScl->ApplyClip = YUP;
-               ClipRange[0] = 5; ClipRange[1] = 95; /* percentile clipping range*/ 
-               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, ClipRange, ClipRange); 
-               OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
+               IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
+               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange); 
+               OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
 
                OptScl->BrightFact = 0.4;
 
