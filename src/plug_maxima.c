@@ -181,6 +181,12 @@ static char        helpstring[] =
     "\n"
     "  14 Feb 2005 [rickr]\n"
     "    - added the 'Sphere Values' and 'Dicom Coords' options\n"
+    "\n"
+    "  07 Mar 2005 [rickr]\n"
+    "    - output appropriate coords via new THD_3dind_to_3dmm_no_wod()\n"
+    "    - added new debug output\n"
+    "    - changed default separation to 4 voxels\n"
+    "    - added gr_fac for printing data values in debug mode\n"
    ;
 
 
@@ -235,7 +241,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint, "Separation" , "min_dist" , FALSE ) ;
    PLUTO_add_hint( plint, "option: choose a minimum distance between extrema" );
-   PLUTO_add_number( plint, "Distance(vox)", 0, 1000, 1, 80, 1 );
+   PLUTO_add_number( plint, "Distance(vox)", 0, 1000, 1, 40, 1 );
 
    /*-- fifth line of input: out_rad option --*/
 
@@ -470,11 +476,13 @@ ENTRY("process_args");
     M->dicom_coords = dicom_coords;
     M->debug        = debug;
 
+    gr_fac          = A->factor[0];
+
     if ( M->debug > 0 )
     {
-	show_maxima_s( "plugin values applied ", M );
-	fprintf(stderr,"  using sub-brick %d, factor %f\n",
-		A->sub_brick, A->factor[0]);
+	if ( M->debug > 3 ) show_maxima_s( "plugin values applied ", M );
+	fprintf(stderr,"  using sub-brick %d, factor %f (1/%f)\n",
+		A->sub_brick, A->factor[0], 1/A->factor[0]);
     }
 
     RETURN(NULL);
@@ -496,20 +504,20 @@ ENTRY("process_data");
     if ( ! create_point_list( M ) )
         RETURN(0);
 
-    if ( M->debug > 0 )
-	show_point_list_s( "+d point list created: ", &M->P, M->debug );
-
     gr_orig_data = M->sdata;            /* global needed for sorting */
     if ( M->negatives )
         qsort( M->P.plist, M->P.used, sizeof( int ), point_comp_neg );
     else
         qsort( M->P.plist, M->P.used, sizeof( int ), point_comp_pos );
 
+    if ( M->debug > 1 )
+	show_point_list_s( "+d point list sorted: ", &M->P, M->debug );
+
     if ( ( M->min_dist > 1.0 ) && ! apply_min_dist( M ) )
         RETURN(0);
 
     if ( M->debug > 1 )
-	show_point_list_s( "+d point list sorted/cleaned: ", &M->P, M->debug );
+	show_point_list_s( "+d point list cleaned: ", &M->P, M->debug );
 
     if ( M->outfile )
         apply_fill_radius( M );
@@ -532,11 +540,11 @@ ENTRY("show_point_list_s");
     if ( mesg ) fputs( mesg, stderr );
 
     fprintf(stderr, "point_list_s @ %p, used = %d, M = %d\n",
-	    p, p->used, p->M);
+	    (void *)p, p->used, p->M);
 
     if ( debug <= 0 ) EXRETURN;		/* we're done */
 
-    fprintf(stderr,"  plist starting @ %p:", p->plist );
+    fprintf(stderr,"  plist starting @ %p:", (void *)p->plist );
 
     for ( c = 0; c < p->used; c++ )
 	fprintf(stderr,"  %d", p->plist[c] );
@@ -596,9 +604,9 @@ ENTRY("show_maxima_s");
         "debug         : %d\n"
         "------------------------------\n",
 
-        M->dset, M->sdata, M->result,
+        (void *)M->dset, (void *)M->sdata, (void *)M->result,
         M->nx, M->ny, M->nz, M->nxy, M->nvox,
-        M->P.plist, M->P.used, M->P.M,
+        (void *)M->P.plist, M->P.used, M->P.M,
         M->extrema_count,
         M->data_type, M->adn_type, M->func_type,
         M->outfile, M->sval_style,
@@ -667,6 +675,9 @@ clear_around_point( int p, maxima_s * M, point_list_s * newP )
     zmin = ( Z < radius ) ? Z : radius;
     zmax = ( Z + radius >= M->nz ) ? ( M->nz-Z-1 ) : radius;
 
+    if ( M->debug > 1 )
+        fprintf(stderr,"+d index %d, val %f\n", p, M->sdata[p]*gr_fac);
+
     for ( zc = -zmin; zc <= zmax; zc++ )
     {
         zbase = ( Z + zc ) * M->nx * M->ny;
@@ -692,8 +703,14 @@ clear_around_point( int p, maxima_s * M, point_list_s * newP )
 		    *(optr + xbase) = 0;
 						/* maybe a switch later */
 		    if ( M->ngbr_style == MAX_WEIGHTED_AVE_STYLE ) 
+                    {
 			if ( ! add_point_to_list( &P, xbase+ybase+zbase ) )
 			    return 0;
+                        if ( M->debug > 2 )
+                            fprintf(stderr,"  coords %d %d %d [%d], value %f\n",
+                                xbase, Y+yc, Z+zc, xbase+ybase+zbase,
+                                M->sdata[xbase+ybase+zbase]*gr_fac);
+                    }
 		}
         }
     }
@@ -770,6 +787,10 @@ weighted_index( point_list_s * P, maxima_s * M )
 	total_z += value * z;
     }
 
+    if ( M->debug > 1 )
+        fprintf(stderr, "-d nvals, weight, ave = %d, %f, %f\n",
+                P->used, weight*gr_fac, weight*gr_fac/P->used);
+
     if ( weight <= 0.0 )
     {
 	sprintf( grMessage, "Error: wi_10\nunexpected weight of %f", weight );
@@ -781,6 +802,10 @@ weighted_index( point_list_s * P, maxima_s * M )
     z = ( int )( total_z / weight + 0.4 );
 
     index = ( z * M->ny + y ) * M->nx + x;
+
+    if ( M->debug > 1 )
+        fprintf(stderr, "-d weighted i,j,k,  ind, val = %d, %d, %d,  %d, %f\n",
+                x, y, z, index, M->sdata[index]*gr_fac);
 
     return index;
 }
@@ -1095,7 +1120,7 @@ ENTRY("find_local_maxima");
 	}
     }
 
-    if ( M->debug > 0 ) show_maxima_s( "post find local maxima: ", M );
+    if ( M->debug > 3 ) show_maxima_s( "post find local maxima: ", M );
 
     RETURN(1);
 }
@@ -1197,7 +1222,7 @@ ENTRY("display_coords");
 	Y = (*iptr % M->nxy) / M->nx;
 	Z =  *iptr / M->nxy;
 	i3.ijk[0] = X;  i3.ijk[1] = Y;  i3.ijk[2] = Z;
-	f3 = THD_3dind_to_3dmm(M->dset, i3);
+	f3 = THD_3dind_to_3dmm_no_wod(M->dset, i3);
         if ( M->dicom_coords )
             f3 = THD_3dmm_to_dicomm(M->dset, f3);
 

@@ -133,8 +133,8 @@ int r_set_afni_s_from_dset( r_afni_s *, THD_3dim_dataset * );
 u_short r_get_max_u_short( ushort *, int );
 
 
-/* global var for comparasin function use */
+/* global var for comparison function use */
 static short *  gr_orig_data = NULL;
-
+static float    gr_fac = 1.0;
 
 
