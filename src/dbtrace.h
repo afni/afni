@@ -121,6 +121,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define MCHECK        /* nada */
 #  define MPROBE        /* nada */
 #  define PRINT_TRACING 0
+#  define DBG_trace     0          /* 09 Dec 1999 */
 
 #endif /* USE_TRACING */
 /*********************************************************************/

@@ -179,6 +179,11 @@ int main( int argc , char * argv[] )
          iopt++ ; continue ;
       }
 
+      if( strncmp(argv[iopt],"-tsshift",6) == 0 ){  /* 12 Dec 1999 */
+         THD_rota_method( MRI_TSSHIFT ) ;
+         iopt++ ; continue ;
+      }
+
       if( strncmp(argv[iopt],"-ashift",4) == 0 ){
          if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;

@@ -121,7 +121,7 @@ char * TAG_main( PLUGIN_interface * plint )
    if( editor_open ){
       XtMapWidget(shell) ;
       XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
-      return ;
+      return NULL ;
    }
 
    im3d = plint->im3d ;  /* save for local use */

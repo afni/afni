@@ -289,6 +289,7 @@ static int MRI_mm ;
 #define MRI_NN        (0)
 #define MRI_QUINTIC   (4)   /* Nov 1998 */
 #define MRI_HEPTIC    (5)
+#define MRI_TSSHIFT   (6)   /* Dec 1999 */
 
 #define SQR(x)   ((x)*(x))
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))

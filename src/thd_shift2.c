@@ -18,11 +18,13 @@ void SHIFT_set_method( int mode )
       default:          shift_method = MRI_FOURIER ;  /* fall thru */
       case MRI_FOURIER: shifter = fft_shift2   ; break ;
 
-      case MRI_NN:      shifter = nn_shift2    ; break ;
       case MRI_LINEAR:  shifter = lin_shift2   ; break ;
       case MRI_CUBIC:   shifter = cub_shift2   ; break ;
       case MRI_QUINTIC: shifter = quint_shift2 ; break ;  /* Nov 1998 */
       case MRI_HEPTIC:  shifter = hept_shift2  ; break ;  /* Nov 1998 */
+
+      case MRI_NN:      shifter = nn_shift2    ; break ;  /* experimental */
+      case MRI_TSSHIFT: shifter = ts_shift2    ; break ;  /* Dec 1999 */
    }
    return ;
 }
@@ -514,5 +516,66 @@ void nn_shift2( int n, int nup, float af, float * f, float ag, float * g )
 {
                    nn_shift( n , af , f ) ;
    if( g != NULL ) nn_shift( n , ag , g ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------
+   More experiments
+-----------------------------------------------------------------------------*/
+
+void ts_shift( int n , float af , float * f )
+{
+   int   ii , ia , ix ;
+   float  wt_00 , wt_p1 , aa ;
+#ifdef SEPARATE_FINS
+   int ibot,itop ;
+#endif
+
+   af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
+   aa = af - ia ;
+        if( aa < 0.25 ){ wt_00 = 1.0 ; wt_p1 = 0.0 ; }  /* two step weights */
+   else if( aa < 0.75 ){ wt_00 = 0.5 ; wt_p1 = 0.5 ; }
+   else                { wt_00 = 0.0 ; wt_p1 = 1.0 ; }
+
+   if( n > nlcbuf ){
+      if( lcbuf != NULL ) free(lcbuf) ;
+      lcbuf  = (float *) malloc( sizeof(float) * n ) ;
+      nlcbuf = n ;
+   }
+
+#ifdef SEPARATE_FINS
+   ibot = -ia  ;   if( ibot < 0   ) ibot = 0 ;
+   itop = n-2-ia ; if( itop > n-1 ) itop = n-1 ;
+   for( ii=ibot ; ii <= itop ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_00 * f[ix] + wt_p1 * f[ix+1] ;
+   }
+
+   for( ii=0 ; ii < ibot ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
+   }
+   for( ii=itop+1 ; ii < ibot ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
+   }
+#else
+   for( ii=0 ; ii < n ; ii++ ){
+      ix = ii + ia ;
+      if( ix >= 0 && ix < n-1 )
+         lcbuf[ii] =  wt_00 * f[ix] + wt_p1 * f[ix+1] ;
+      else
+         lcbuf[ii] =  wt_00 * FINS(ix) + wt_p1 * FINS(ix+1) ;
+   }
+#endif /* SEPARATE_FINS */
+
+   memcpy( f , lcbuf , sizeof(float)*n ) ;
+   return ;
+}
+
+void ts_shift2( int n, int nup, float af, float * f, float ag, float * g )
+{
+                   ts_shift( n , af , f ) ;
+   if( g != NULL ) ts_shift( n , ag , g ) ;
    return ;
 }

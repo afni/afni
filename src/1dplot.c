@@ -43,7 +43,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id ) ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , ii , ny , ignore=0 , use=0 ;
+   int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
    float dx=1.0 ;
    char * tsfile , * cpt ;
    char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
@@ -59,6 +59,7 @@ int main( int argc , char * argv[] )
             "Graphs the columns of a *.1D type time series file to the screen.\n"
             "\n"
             "Options:\n"
+            " -install   = Install a new X11 colormap.\n"
             " -sep       = Plot each column in a separate sub-graph.\n"
             " -one       = Plot all columns together in one big graph.\n"
             "                [default = -sep]\n"
@@ -106,13 +107,14 @@ int main( int argc , char * argv[] )
 
    cpt = my_getenv("TMPDIR") ;  /* just for fun */
 
-   dc = MCW_new_DC( shell , 16 ,
-                    DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
-                    1.0 , 0 ) ;
-
    /*-- scan arguments that X11 didn't eat --*/
 
+   iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-install") == 0 ){
+        install++ ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* skip */
         iarg++ ; continue ;
@@ -179,6 +181,10 @@ int main( int argc , char * argv[] )
    if( iarg >= argc ){
       fprintf(stderr,"** No tsfile on command line!\n") ; exit(1) ;
    }
+
+   dc = MCW_new_DC( shell , 16 ,
+                    DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
+                    1.0 , install ) ;
 
    if( nyar > 0 ) yname = ynar ;
 

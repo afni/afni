@@ -15,9 +15,9 @@ static integer c__1 = 1;
 {
     /* Initialized data */
 
-    static integer n_funcargs__[78] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[80] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
 	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,-1,
-	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1 };
+	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -601,7 +601,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*79] = "SIN                             " 
+    static char c_funcname__[32*81] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -644,7 +644,8 @@ L9000:
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
 	    "_T2Z                        " "ZTONE                           " 
-	    "DUMMY                           ";
+	    "LMODE                           " "HMODE                       "
+	    "    " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -739,7 +740,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*79] = "SIN                             " 
+    static char c_funcname__[32*81] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -782,7 +783,8 @@ L8000:
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
 	    "_T2Z                        " "ZTONE                           " 
-	    "DUMMY                           ";
+	    "LMODE                           " "HMODE                       "
+	    "    " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -936,7 +938,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 2496, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 2560, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -945,7 +947,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 78) {
+	if (ifunc <= 80) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1208,6 +1210,8 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    bell2_(doublereal *), derfc_(doublereal *);
     static integer ncode;
     static doublereal x, y;
+    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
+	    doublereal *);
     static integer neval;
     extern doublereal lmofn_(integer *, integer *, doublereal *), qginv_(
 	    doublereal *), ztone_(doublereal *), dbesi0_(doublereal *), 
@@ -1549,6 +1553,14 @@ L1000:
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = median_(&ntm, &r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "HMODE", 8L, 5L) == 0) {
+	ntm = (integer) r8_eval__[neval - 1];
+	neval -= ntm;
+	r8_eval__[neval - 1] = hmode_(&ntm, &r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "LMODE", 8L, 5L) == 0) {
+	ntm = (integer) r8_eval__[neval - 1];
+	neval -= ntm;
+	r8_eval__[neval - 1] = lmode_(&ntm, &r8_eval__[neval - 1]);
     } else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
@@ -1743,6 +1755,8 @@ L8000:
     extern doublereal derfc_(doublereal *);
     static integer ncode;
     static doublereal x, y;
+    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
+	    doublereal *);
     static integer neval;
     extern doublereal lmofn_(integer *, integer *, doublereal *);
     static integer ivbot;
@@ -2464,6 +2478,30 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = median_(&ntm, scop);
 	    }
+	} else if (s_cmp(cncode, "HMODE", 8L, 5L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+			    6) - 65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = hmode_(&ntm, scop);
+	    }
+	} else if (s_cmp(cncode, "LMODE", 8L, 5L) == 0) {
+	    ntm = (integer) r8_eval__[(neval << 6) - 64];
+	    neval -= ntm;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		i__3 = ntm;
+		for (jtm = 1; jtm <= i__3; ++jtm) {
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+			    6) - 65];
+		}
+		r8_eval__[iv - ibv + (neval << 6) - 65] = lmode_(&ntm, scop);
+	    }
 	} else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
@@ -2993,14 +3031,49 @@ doublereal land_(integer *n, doublereal *x)
 
 
 
-doublereal median_(integer *n, doublereal *x)
+/* Subroutine */ int bsort_(integer *n, doublereal *x)
 {
     /* System generated locals */
     integer i__1;
-    doublereal ret_val;
 
     /* Local variables */
     static integer i__, it;
+    static doublereal tmp;
+
+/* ------------------------------------  Bubble sort */
+    /* Parameter adjustments */
+    --x;
+
+    /* Function Body */
+L50:
+    it = 0;
+    i__1 = *n;
+    for (i__ = 2; i__ <= i__1; ++i__) {
+	if (x[i__ - 1] > x[i__]) {
+	    tmp = x[i__];
+	    x[i__] = x[i__ - 1];
+	    x[i__ - 1] = tmp;
+	    it = 1;
+	}
+/* L100: */
+    }
+    if (it != 0) {
+	goto L50;
+    }
+    return 0;
+} /* bsort_ */
+
+
+
+
+doublereal median_(integer *n, doublereal *x)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+    /* Local variables */
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
+    static integer it;
     static doublereal tmp;
 
     /* Parameter adjustments */
@@ -3028,22 +3101,8 @@ doublereal median_(integer *n, doublereal *x)
 	}
 	return ret_val;
     }
-/* ---  Bubble sort */
-L50:
-    it = 0;
-    i__1 = *n;
-    for (i__ = 2; i__ <= i__1; ++i__) {
-	if (x[i__ - 1] > x[i__]) {
-	    tmp = x[i__];
-	    x[i__] = x[i__ - 1];
-	    x[i__ - 1] = tmp;
-	    it = 1;
-	}
-/* L100: */
-    }
-    if (it != 0) {
-	goto L50;
-    }
+/* ---  sort it */
+    bsort_(n, &x[1]);
 /* ---  Even N --> average of middle 2 */
 /* ---  Odd  N --> middle 1 */
     it = *n / 2;
@@ -3054,6 +3113,112 @@ L50:
     }
     return ret_val;
 } /* median_ */
+
+
+
+
+doublereal hmode_(integer *n, doublereal *x)
+{
+    /* System generated locals */
+    integer i__1;
+    doublereal ret_val;
+
+    /* Local variables */
+    static integer i__;
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
+    static integer ib;
+    static doublereal vb;
+    static integer iv;
+    static doublereal val;
+
+
+    /* Parameter adjustments */
+    --x;
+
+    /* Function Body */
+    if (*n == 1) {
+	ret_val = x[1];
+	return ret_val;
+    }
+
+    bsort_(n, &x[1]);
+
+    val = x[1];
+    iv = 1;
+    ib = 0;
+    i__1 = *n;
+    for (i__ = 2; i__ <= i__1; ++i__) {
+	if (x[i__] != val) {
+	    if (iv >= ib) {
+		vb = val;
+		ib = iv;
+	    }
+	    val = x[i__];
+	    iv = 1;
+	} else {
+	    ++iv;
+	}
+/* L100: */
+    }
+    if (iv >= ib) {
+	vb = val;
+    }
+    ret_val = vb;
+    return ret_val;
+} /* hmode_ */
+
+
+
+
+doublereal lmode_(integer *n, doublereal *x)
+{
+    /* System generated locals */
+    integer i__1;
+    doublereal ret_val;
+
+    /* Local variables */
+    static integer i__;
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
+    static integer ib;
+    static doublereal vb;
+    static integer iv;
+    static doublereal val;
+
+
+    /* Parameter adjustments */
+    --x;
+
+    /* Function Body */
+    if (*n == 1) {
+	ret_val = x[1];
+	return ret_val;
+    }
+
+    bsort_(n, &x[1]);
+
+    val = x[1];
+    iv = 1;
+    ib = 0;
+    i__1 = *n;
+    for (i__ = 2; i__ <= i__1; ++i__) {
+	if (x[i__] != val) {
+	    if (iv > ib) {
+		vb = val;
+		ib = iv;
+	    }
+	    val = x[i__];
+	    iv = 1;
+	} else {
+	    ++iv;
+	}
+/* L100: */
+    }
+    if (iv > ib) {
+	vb = val;
+    }
+    ret_val = vb;
+    return ret_val;
+} /* lmode_ */
 
 
 
@@ -3244,10 +3409,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___89 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___101 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___89);
+    s_wsfe(&io___101);
     e_wsfe();
     return 0;
 } /* qqqerr_ */

@@ -338,6 +338,7 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 #define ADN_anat_parent          6062     /*=  THD_3dim_dataset *  =*/
 #define ADN_stat_aux             6063     /*=  float *             =*/
 #define ADN_warp                 6064     /*=  THD_warp *          =*/
+#define ADN_anatpar_idcode       6065     /*=  MCW_idcode *        =*/
 
 /* 30 Nov 1997 */
 #define ADN_ONE_STEP            100000

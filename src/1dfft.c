@@ -17,6 +17,7 @@ int main( int argc , char * argv[] )
    complex * cxar ;
    float * iar , * oar , * far ;
    int nodetrend=0 , cxop=0 ;     /* 29 Nov 1999 */
+   int hilbert=0 ;                /* 09 Dec 1999 */
 
    /*-- help? --*/
 
@@ -37,6 +38,8 @@ int main( int argc , char * argv[] )
             "  -tocx       = Save Re and Im parts of transform in 2 columns.\n"
             "  -fromcx     = Convert 2 column complex input into 1 column\n"
             "                  real output.\n"
+            "  -hilbert    = When -fromcx is used, the inverse FFT will\n"
+            "                  do the Hilbert transform instead.\n"
             "  -nodetrend  = Skip the detrending of the input.\n"
             "\n"
             "Nota Bene:\n"
@@ -59,6 +62,11 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-nodetrend",6) == 0 ){ /* 29 Nov 1999 */
          nodetrend++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-hilbert") == 0 ){      /* 09 Dec 1999 */
+         hilbert = 1 ;
          nopt++ ; continue ;
       }
 
@@ -114,6 +122,10 @@ int main( int argc , char * argv[] )
    }
    if( THD_is_file(argv[nopt+1]) ){
       fprintf(stderr,"** Output file already exists!\n"); exit(1);
+   }
+
+   if( hilbert && cxop != FROMCX ){
+      fprintf(stderr,"** -hilbert is illegal without -fromcx!\n"); exit(1);
    }
 
    /* read input file */
@@ -224,6 +236,17 @@ int main( int argc , char * argv[] )
       for( ii=1 ; ii < nby2 ; ii++ ){
          cxar[ii].r      = iar[ii] ; cxar[ii].i      =  iar[ii+nx] ;
          cxar[nfft-ii].r = iar[ii] ; cxar[nfft-ii].i = -iar[ii+nx] ;
+      }
+
+      if( hilbert ){
+         float val ;
+         cxar[0].r = cxar[0].i = cxar[nby2].r = cxar[nby2].i = 0.0 ;
+         for( ii=1 ; ii < nby2 ; ii++ ){
+            val = cxar[ii].r      ; cxar[ii].r      = -cxar[ii].i ;
+                                    cxar[ii].i      =  val ;
+            val = cxar[nfft-ii].r ; cxar[nfft-ii].r =  cxar[nfft-ii].i ;
+                                    cxar[nfft-ii].i = -val ;
+         }
       }
       csfft_cox( 1 , nfft , cxar ) ;
       for( ii=0 ; ii < nfft ; ii++ ) oar[ii] = cxar[ii].r / nfft ;

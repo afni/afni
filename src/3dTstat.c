@@ -58,13 +58,11 @@ int main( int argc , char * argv[] )
       /*-- methods --*/
 
       if( strcmp(argv[nopt],"-mean") == 0 ){
-fprintf(stderr,"mean: %s\n",argv[nopt]) ;
          meth = METH_MEAN ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slope") == 0 ){
-fprintf(stderr,"slope: %s\n",argv[nopt]) ;
          meth = METH_SLOPE ;
          nopt++ ; continue ;
       }
@@ -72,13 +70,11 @@ fprintf(stderr,"slope: %s\n",argv[nopt]) ;
       if( strcmp(argv[nopt],"-stdev") == 0 ||
           strcmp(argv[nopt],"-sigma") == 0   ){
 
-fprintf(stderr,"stdev: %s\n",argv[nopt]) ;
          meth = METH_SIGMA ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
-fprintf(stderr,"cvar: %s\n",argv[nopt]) ;
          meth = METH_CVAR ;
          nopt++ ; continue ;
       }
@@ -86,7 +82,6 @@ fprintf(stderr,"cvar: %s\n",argv[nopt]) ;
       /*-- prefix --*/
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
-fprintf(stderr,"prefix: %s %s\n",argv[nopt],argv[nopt+1]) ;
          if( ++nopt >= argc ){
             fprintf(stderr,"*** -prefix needs an argument!\n"); exit(1);
          }
@@ -100,7 +95,6 @@ fprintf(stderr,"prefix: %s %s\n",argv[nopt],argv[nopt+1]) ;
       /*-- datum --*/
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
-fprintf(stderr,"datum: %s %s\n",argv[nopt],argv[nopt+1]) ;
          if( ++nopt >= argc ){
             fprintf(stderr,"*** -datum needs an argument!\n"); exit(1);
          }

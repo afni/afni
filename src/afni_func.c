@@ -799,7 +799,7 @@ ENTRY("AFNI_force_adoption") ;
 
    /* find a "preferred" parent (one with the most number of markers set) */
 
-   for( vv=aa=0 ; aa < ss->num_anat ; aa++ ){
+   for( aa=0 ; aa < ss->num_anat ; aa++ ){
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -810,12 +810,21 @@ if(PRINT_TRACING)
       if( ISVALID_3DIM_DATASET(dset) &&     /* if a good dataset */
           dset->markers != NULL        ){   /* and has markers   */
 
-         vv++ ;                            /* count of potential parents */
-
          if( dset->markers->numset > aset ){ /* and has more markers than before */
             apref = aa ;                     /* try this as our "preferred" parent */
             aset  = dset->markers->numset ;
          }
+      }
+   }
+
+   /* count potential parents [08 Dec 1999: modified from 03 Dec 1999 code] */
+
+   vv = 0 ;
+   if( aset >= 0 ){
+      for( aa=0 ; aa < ss->num_anat ; aa++ ){
+         dset = ss->anat[aa][0] ;
+         if( ISVALID_DSET(dset)    &&
+             dset->markers != NULL && dset->markers->numset >= aset ) vv++ ;
       }
    }
 
@@ -884,7 +893,7 @@ if(aset >= 0 && PRINT_TRACING)
                }
             }
 
-            if( !quiet && dset->anat_parent != NULL ){
+            if( !quiet && dset->anat_parent != NULL && dset->anat_parent != dset ){
                if( first ){
                   first = 0 ;
                   fprintf(stderr,
@@ -4123,7 +4132,7 @@ STATUS("got func info") ;
 
       XSynchronize( im3d->dc->display, (Bool)(DBG_trace==2) ) ; /* 01 Dec 1999 */
       if( DBG_trace == 2 ) STATUS("XSynchronize enabled") ;
-      else                 STATUS("XSynchronize disabled") ; 
+      else                 STATUS("XSynchronize disabled") ;
    }
 #endif
 

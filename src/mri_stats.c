@@ -436,7 +436,7 @@ double qginv( double p )
 
    dp = (p <= 0.5) ? (p) : (1.0-p) ;   /* make between 0 and 0.5 */
 
-   if( dp <= 0.0 ){
+   if( dp <= 1.e-37 ){
       dx = 13.0 ;                      /* 13 sigma has p < 10**(-38) */
       return ( (p <= 0.5) ? (dx) : (-dx) ) ;
    }
@@ -457,6 +457,7 @@ double qginv( double p )
          dx  = dx + dq / ddq ;
       }
 
+      if( dx > 13.0 ) dx = 13.0 ;
       return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
 }
 

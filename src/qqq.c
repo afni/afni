@@ -1,54 +1,100 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-char * xxx_name_to_inet( char * host ) ;
-
-#include <X11/Xlib.h>
-
-Display         *theDisp;
+#include "mrilib.h"
 
 int main( int argc , char * argv[] )
 {
-   char * cpt ;
-   char * nam = xxx_name_to_inet(argv[1]) ;
-   printf("%s\n",nam) ; free(nam) ;
+   float * fp , * gp ;
+   short * sp , * tp ;
+   byte  * bp , * cp ;
+   int nn , ii , ityp , dtyp , krep,kk ;
+   double ct ;
 
-   theDisp=XOpenDisplay(NULL) ;
-   if( theDisp == NULL ) exit(1) ;
-   nam = DisplayString(theDisp) ; printf("%s\n",nam) ;
-   cpt = strstr(nam,":") ; *cpt = '\0' ;
-   nam = xxx_name_to_inet(nam) ;
-   printf("%s\n",nam) ; free(nam) ;
-   exit(0) ;
-}
+   if( argc < 5 ){printf("Usage: qqq N {ntl} {float,short,byte} Krep\n");exit(0);}
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <arpa/inet.h>
+   nn = strtol(argv[1],NULL,10) ;
+   if( nn < 100 ) exit(1) ;
 
-/*----------------------------------------------------------------
-   Return the Internet address (in 'dot' format, as a string)
-   given the name of the host.  If NULL is returned, some
-   error occurrrrred.  The return string is malloc-ed and should
-   be free-d someday.
-------------------------------------------------------------------*/
+   switch( argv[2][0] ){
+      default: exit(1) ;
+      case 'n': ityp = 0 ; break ;
+      case 't': ityp = 1 ; break ;
+      case 'l': ityp = 2 ; break ;
+   }
 
-char * xxx_name_to_inet( char * host )
-{
-   struct hostent * hostp ;
-   char * iname = NULL , * str ;
-   int ll ;
+   switch( argv[3][0] ){
+      default: exit(1) ;
+      case 'f': dtyp = MRI_float ; fp = (float *)malloc(sizeof(float)*nn) ;
+                                   gp = (float *)malloc(sizeof(float)*nn) ; break ;
+      case 's': dtyp = MRI_short ; sp = (short *)malloc(sizeof(short)*nn) ;
+                                   tp = (short *)malloc(sizeof(short)*nn) ; break ;
+      case 'b': dtyp = MRI_byte  ; bp = (byte  *)malloc(sizeof(byte )*nn) ;
+                                   cp = (byte  *)malloc(sizeof(byte )*nn) ; break ;
+   }
 
-   if( host == NULL || host[0] == '\0' ) return NULL ;
+   krep = strtol(argv[4],NULL,10) ;
+   if( krep < 1 ) exit(1) ;
 
-   hostp = gethostbyname(host) ; if( hostp == NULL ) return NULL ;
+   switch( dtyp ){
+      case MRI_float:
+        for( ii=0 ; ii < nn ; ii++ ) fp[ii] = ii * cos((double)ii) ;
+      break ;
 
-   str = inet_ntoa(*((struct in_addr *)(hostp->h_addr))) ;
-   if( str == NULL || str[0] == '\0' ) return NULL ;
+      case MRI_short:
+        for( ii=0 ; ii < nn ; ii++ ) sp[ii] = (short)(ii * cos((double)ii)) ;
+      break ;
 
-   ll = strlen(str) ; iname = malloc(ll+1) ; strcpy(iname,str) ;
-   return iname ;
+      case MRI_byte:
+        for( ii=0 ; ii < nn ; ii++ ) bp[ii] = (byte)(7*ii+3) ;
+      break ;
+   }
+
+   ct = COX_cpu_time() ;
+   switch( ityp ){
+      case 0:
+         for( kk=0 ; kk < krep ; kk++ ){
+            switch(dtyp){
+               case MRI_float: memcpy( gp,fp+kk , sizeof(float)*(nn-kk)) ; break ;
+               case MRI_short: memcpy( tp,sp+kk , sizeof(short)*(nn-kk)) ; break ;
+               case MRI_byte:  memcpy( cp,bp+kk , sizeof(byte )*(nn-kk)) ; break ;
+            }
+         }
+      break ;
+
+      case 1:
+         for( kk=0 ; kk < krep ; kk++ ){
+            switch(dtyp){
+               case MRI_float:
+                  for( ii=1 ; ii < nn ; ii++ ) gp[ii] = 0.5*(fp[ii-1]+fp[ii]) ;
+               break ;
+               case MRI_short:
+                  for( ii=1 ; ii < nn-2 ; ii+=2 ){
+                     tp[ii  ] = (sp[ii-1]+sp[ii  ]) >> 1 ;
+                     tp[ii+1] = (sp[ii  ]+sp[ii+1]) >> 1 ;
+                  }
+               break ;
+               case MRI_byte:
+                  for( ii=1 ; ii < nn ; ii++ ) cp[ii] = (bp[ii-1]+bp[ii]) >> 1 ;
+               break ;
+            }
+        }
+     break ;
+
+     case 2:
+         for( kk=0 ; kk < krep ; kk++ ){
+            switch(dtyp){
+               case MRI_float:
+                  for( ii=1 ; ii < nn ; ii++ ) gp[ii] = 0.387*fp[ii-1]+0.613*fp[ii] ;
+               break ;
+               case MRI_short:
+                  for( ii=1 ; ii < nn ; ii++ ) tp[ii] = (short)(0.387*sp[ii-1]+0.613*sp[ii]);
+               break ;
+               case MRI_byte:
+                  for( ii=1 ; ii < nn ; ii++ ) cp[ii] = (byte)(0.387*bp[ii-1]+0.613*bp[ii]) ;
+               break ;
+            }
+        }
+     break ;
+   }
+   ct = COX_cpu_time()-ct ;
+   printf("cpu time = %g\n",ct) ;
+   exit(0);
 }

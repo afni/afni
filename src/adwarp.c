@@ -13,6 +13,8 @@
   Mod:     Added changes for proper byte ordering on output.
   Date:    23 Nov 1999 - RW Cox
 
+  Mod:     Added -force option, and some checks related to it.
+  Date:    13 Dec 1999 - RW Cox
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -22,7 +24,7 @@
 
 #define PROGRAM_NAME "adwarp.c"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "23 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "13 December 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -100,6 +102,7 @@ typedef struct adwarp_options
   int func_resam_mode;           /*    at this time              */
 
   int verbose ;                  /* RWCox: 06 Apr 1999 */
+  int force   ;                  /* RWCox: 13 Dec 1999 */
 
 } adwarp_options;
 
@@ -136,7 +139,7 @@ void display_help_menu()
           "\n"
           "  Example: adwarp -apar anat+tlrc -dpar func+orig\n"
           "\n"
-          "  N.B.: If func+tlrc already exists, it will be overwritten!\n"
+          "  This will create dataset func+tlrc (.HEAD and .BRIK).\n"
           "\n"
           "Options (so to speak):\n"
           "----------------------\n"
@@ -153,6 +156,9 @@ void display_help_menu()
           "                'ddd' mm.  The default is 1 mm.\n"
           "\n"
           "-verbose    = Print out progress reports.\n"
+          "-force      = Write out result even if it means deleting\n"
+          "                an existing dataset.  The default is not\n"
+          "                to overwrite.\n"
           "\n"
           "-resam rrr  = Set the resampling mode to 'rrr', which must be\n"
           "                one of the following [default is %s]:\n" ,
@@ -182,6 +188,7 @@ void initialize_options (adwarp_options * option_data)
   option_data->resam_mode = 1;
 
   option_data->verbose = 0 ;  /* 06 Apr 1999 */
+  option_data->force   = 0 ;  /* 13 Dec 1999 */
 }
  
 
@@ -258,6 +265,12 @@ void get_options
          option_data->verbose = 1 ;
          nopt++ ; continue ;
       }
+
+      /*-----  -force  -----*/
+      if( strncmp(argv[nopt],"-force",5) == 0 ){  /* 06 Apr 1999 */
+         option_data->force = 1 ;
+         nopt++ ; continue ;
+      }
       
       /*-----   -dxyz ddd   -----*/
       if (strncmp(argv[nopt], "-dxyz", 5) == 0)
@@ -301,12 +314,32 @@ void get_options
   if (option_data->dset == NULL)
     AW_error ("Must specify data parent dataset");
 
+  /*-- 13 Dec 1999: check if datasets have the same view --*/
+
+  if( option_data->aset->view_type == option_data->dset->view_type ){
+      if( option_data->force ){
+         if( option_data->prefix == NULL ){
+            fprintf(stderr,
+                    "** Error: -apar & -dpar are in same +view!\n"
+                    "          This is illegal without the -prefix option!\n") ;
+            exit(1) ;
+         } else {
+            fprintf(stderr,
+                    "++ Warning: -apar & -dpar are in same +view!\n") ;
+         }
+      } else {
+         fprintf(stderr,
+                 "** Error: -apar & -dpar are in same +view!\n"
+                 "          If this is OK, use -force and -prefix options.\n" ) ;
+         exit(1) ;
+      }
+  }
+
 
   /*----- Set various resampling modes -----*/
   option_data->anat_resam_mode = option_data->resam_mode;
   option_data->thr_resam_mode  = option_data->resam_mode;
   option_data->func_resam_mode = option_data->resam_mode;
-
 
 }
 
@@ -791,6 +824,23 @@ int main( int argc , char * argv[] )
   new_dset = adwarp_follower_dataset (option_data, option_data->aset, 
 				      option_data->dset);
 
+  /*--- 13 Dec 1999: check if output dataset already exists on disk ---*/
+
+  if( THD_is_file(DSET_HEADNAME(new_dset)) ||
+      THD_is_file(DSET_BRIKNAME(new_dset))    ){
+
+      if( option_data->force ){
+         fprintf(stderr,
+                 "++ Warning: overwriting dataset %s and %s\n",
+                 DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
+      } else {
+         fprintf(stderr,
+                 "** Error: can't overwrite dataset %s and %s\n"
+                 "          unless you use the -force option!\n" ,
+                 DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
+         exit(1) ;
+      }
+   }
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( option_data->dset , new_dset ) ;
@@ -806,7 +856,7 @@ int main( int argc , char * argv[] )
   adwarp_refashion_dataset (option_data, new_dset, &new_daxes);
 
 
-  return;
+  return 0;
 }
 
 

@@ -96,7 +96,7 @@ char * MASKAVE_main( PLUGIN_interface * plint )
    THD_3dim_dataset * input_dset , * mask_dset ;
    int iv , mcount , nvox , ii , sigmait , nvals , doall , ivbot,ivtop ;
    float mask_bot=666.0 , mask_top=-666.0 ;
-   double sum=0.0 , sigma=0.0 ;
+   double sum , sigma ;
    float * sumar=NULL , * sigmar=NULL ;
    char * tag , * str , buf[64] , abuf[32],sbuf[32] ;
    byte * mmm ;
@@ -275,6 +275,7 @@ char * MASKAVE_main( PLUGIN_interface * plint )
    }
 
    for( iv=ivbot ; iv <= ivtop ; iv++ ){
+      sum = sigma = 0.0 ;                         /* 13 Dec 1999 */
       switch( DSET_BRICK_TYPE(input_dset,iv) ){
 
          default:
@@ -290,10 +291,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
             sum = sum / mcount ;
 
             if( sigmait ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
+               for( ii=0 ; ii < nvox ; ii++ )
+                  if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mcount-1) ) ;
-            } else {
-               sigma = 0.0 ;
             }
             sum = mfac * sum ;
          }
@@ -308,10 +308,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
             sum = sum / mcount ;
 
             if( sigmait ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
+               for( ii=0 ; ii < nvox ; ii++ )
+                  if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mcount-1) ) ;
-            } else {
-               sigma = 0.0 ;
             }
             sum = mfac * sum ;
          }
@@ -326,10 +325,9 @@ char * MASKAVE_main( PLUGIN_interface * plint )
             sum = sum / mcount ;
 
             if( sigmait ){
-               for( ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
+               for( ii=0 ; ii < nvox ; ii++ )
+                  if( mmm[ii] ) sigma += SQR(bar[ii]-sum) ;
                sigma = mfac * sqrt( sigma/(mcount-1) ) ;
-            } else {
-               sigma = 0.0 ;
             }
             sum = mfac * sum ;
          }

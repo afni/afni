@@ -2309,6 +2309,7 @@ extern void quint_shift2( int , int , float , float *, float , float *) ;
 extern void cub_shift2  ( int , int , float , float *, float , float *) ;
 extern void lin_shift2  ( int , int , float , float *, float , float *) ;
 extern void nn_shift2   ( int , int , float , float *, float , float *) ;
+extern void ts_shift2   ( int , int , float , float *, float , float *) ;
 
 extern void hept_shift ( int , float , float *) ;
 extern void nn_shift   ( int , float , float *) ;

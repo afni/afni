@@ -7,6 +7,8 @@
   get Green Bay to the Super Bowl.
 ----------------------------------------------------------------------------*/
 
+#define ALLOW_BYSLICE
+
 static THD_3dim_dataset * DT_dset    = NULL ;
 static MRI_IMARR *        DT_imar    = NULL ;
 static char **            DT_expr    = NULL ;
@@ -17,6 +19,8 @@ static int                DT_exnum   = 0    ;
 static int                DT_verb    = 0    ;
 static int                DT_replace = 0    ;
 static int                DT_norm    = 0    ;  /* 23 Nov 1999 */
+static int                DT_byslice = 0    ;  /* 08 Dec 1999 */
+static int                DT_nvector = 0    ;  /* 08 Dec 1999 */
 
 static float              DT_current_del = -1.0 ;
 
@@ -34,7 +38,7 @@ void DT_Syntax(void) ;
 
 void DT_read_opts( int argc , char * argv[] )
 {
-   int nopt = 1 , nvals , ii ;
+   int nopt = 1 , nvals , ii , nvcheck ;
 
    INIT_IMARR(DT_imar) ;
 
@@ -76,6 +80,15 @@ void DT_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+#ifdef ALLOW_BYSLICE
+      /**** -byslice [08 Dec 1999] ****/
+
+      if( strncmp(argv[nopt],"-byslice",5) == 0 ){
+         DT_byslice++ ;
+         nopt++ ; continue ;
+      }
+#endif
+
       /**** -normalize [23 Nov 1999] ****/
 
       if( strncmp(argv[nopt],"-normalize",5) == 0 ){
@@ -110,9 +123,6 @@ void DT_read_opts( int argc , char * argv[] )
             fprintf(stderr,"*** need argument after -del!\n"); exit(1);
          }
          DT_current_del = strtod( argv[nopt++] , NULL ) ;
-         if( DT_current_del <= 0.0 ){
-            fprintf(stderr,"*** can't use -del %s\n",argv[nopt-1]); exit(1);
-         }
          if( DT_verb )
             fprintf(stderr,"+++ Set expression stepsize = %g\n",DT_current_del) ;
          continue ;
@@ -183,9 +193,15 @@ void DT_read_opts( int argc , char * argv[] )
       fprintf(stderr,"*** No input dataset!?\n") ; exit(1) ;
    }
 
-   if( IMARR_COUNT(DT_imar) + DT_exnum == 0 ){
+   DT_nvector = IMARR_COUNT(DT_imar) ;
+   if( DT_nvector + DT_exnum == 0 ){
       fprintf(stderr,"*** No -vector or -expr options!?\n") ; exit(1) ;
    }
+#ifdef ALLOW_BYSLICE
+   if( DT_nvector == 0 && DT_byslice ){
+      fprintf(stderr,"*** No -vector option supplied with -byslice!?\n"); exit(1);
+   }
+#endif
 
    /*--- read input dataset ---*/
 
@@ -205,9 +221,12 @@ void DT_read_opts( int argc , char * argv[] )
 
    /*-- check vectors for good size --*/
 
-   nvals = DSET_NVALS(DT_dset) ;
-   for( ii=0 ; ii < IMARR_COUNT(DT_imar) ; ii++ ){
-      if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvals ){
+   nvcheck = nvals = DSET_NVALS(DT_dset) ;
+#ifdef ALLOW_BYSLICE
+   if( DT_byslice ) nvcheck *= DSET_NZ(DT_dset) ;
+#endif
+   for( ii=0 ; ii < DT_nvector ; ii++ ){
+      if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvcheck ){
          fprintf(stderr,"*** %d-th -vector is shorter than dataset!\n",ii+1) ;
          exit(1) ;
       }
@@ -264,7 +283,24 @@ void DT_Syntax(void)
     " -normalize    = Normalize each output voxel time series; that is,\n"
     "                   make the sum-of-squares equal to 1.\n"
     "           N.B.: This option is only valid if the input dataset is\n"
-    "                 stored as floats!\n"
+    "                   stored as floats!\n"
+#ifdef ALLOW_BYSLICE
+    " -byslice      = Treat each input vector (infra) as describing a set of\n"
+    "                   time series interlaced across slices.  If NZ is the\n"
+    "                   number of slices and NT is the number of time points,\n"
+    "                   then each input vector should have NZ*NT values when\n"
+    "                   this option is used (usually, they only need NT values).\n"
+    "                   The values must be arranged in slice order, then time\n"
+    "                   order, in each vector column, as shown here:\n"
+    "                       f(z=0,t=0)       // first slice, first time\n"
+    "                       f(z=1,t=0)       // second slice, first time\n"
+    "                       ...\n"
+    "                       f(z=NZ-1,t=0)    // last slice, first time\n"
+    "                       f(z=0,t=1)       // first slice, second time\n"
+    "                       f(z=1,t=1)       // second slice, second time\n"
+    "                       ...\n"
+    "                       f(z=NZ-1,t=NT-1) // last slice, last time\n"
+#endif
     "\n"
     "Component Options:\n"
     "These options determine the components that will be removed from\n"
@@ -300,6 +336,12 @@ void DT_Syntax(void)
     "                     -expr 'sin(x)' -del 2.0 -expr 'z**3'\n"
     "                   means that the stepsize in 'sin(x)' is delta-x=TR,\n"
     "                   but the stepsize in 'z**3' is delta-z = 2.\n"
+#ifdef ALLOW_BYSLICE
+    "\n"
+    " N.B.: expressions are NOT calculated on a per-slice basis when the\n"
+    "        -byslice option is used.  If you want to do this, you could\n"
+    "        compute vectors with the required time series using 1devel.\n"
+#endif
    ) ;
 
    exit(0) ;
@@ -372,50 +414,134 @@ int main( int argc , char * argv[] )
       setup to do least squares fitting of each voxel */
 
    nvec = 0 ;
-   for( ii=0 ; ii < IMARR_COUNT(DT_imar) ; ii++ )
+   for( ii=0 ; ii < IMARR_COUNT(DT_imar) ; ii++ )  /* number of detrending vectors */
       nvec += IMARR_SUBIMAGE(DT_imar,ii)->ny ;
 
    refvec = (float **) malloc( sizeof(float *)*nvec ) ;
    for( kk=ii=0 ; ii < IMARR_COUNT(DT_imar) ; ii++ ){
       fv = MRI_FLOAT_PTR( IMARR_SUBIMAGE(DT_imar,ii) ) ;
-      for( jj=0 ; jj < IMARR_SUBIMAGE(DT_imar,ii)->ny ; jj++ )
-         refvec[kk++] = fv + ( jj * IMARR_SUBIMAGE(DT_imar,ii)->nx ) ;
+      for( jj=0 ; jj < IMARR_SUBIMAGE(DT_imar,ii)->ny ; jj++ )          /* compute ptr */
+         refvec[kk++] = fv + ( jj * IMARR_SUBIMAGE(DT_imar,ii)->nx ) ;  /* to vectors  */
    }
 
-   choleski = startup_lsqfit( nvals , NULL , nvec , refvec ) ;
-   if( choleski == NULL ){
-      fprintf(stderr,"*** Linearly dependent vectors can't be used!\n") ;
-      exit(1) ;
+   fit = (float *) malloc( sizeof(float) * nvals ) ;  /* will get fit to voxel data */
+
+   /*--- do the all-voxels-together case ---*/
+
+   if( !DT_byslice ){
+      choleski = startup_lsqfit( nvals , NULL , nvec , refvec ) ;
+      if( choleski == NULL ){
+         fprintf(stderr,"*** Linearly dependent vectors can't be used!\n") ;
+         exit(1) ;
+      }
+
+      /* loop over voxels, fitting and detrending (or replacing) */
+
+      nvox = DSET_NVOX(new_dset) ;
+
+      if( DT_verb ) fprintf(stderr,"+++ Computing voxel fits\n") ;
+
+      for( kk=0 ; kk < nvox ; kk++ ){
+
+         flim = THD_extract_series( kk , new_dset , 0 ) ;              /* data */
+         fv   = MRI_FLOAT_PTR(flim) ;
+         fc   = delayed_lsqfit( nvals, fv, nvec, refvec, choleski ) ;  /* coef */
+
+         for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = 0.0 ;
+
+         for( jj=0 ; jj < nvec ; jj++ )
+            for( ii=0 ; ii < nvals ; ii++ )
+               fit[ii] += fc[jj] * refvec[jj][ii] ;                    /* fit */
+
+         if( !DT_replace )                                             /* remove */
+            for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = fv[ii] - fit[ii] ;
+
+         if( DT_norm ) THD_normalize( nvals , fit ) ;  /* 23 Nov 1999 */
+
+         THD_insert_series( kk, new_dset, nvals, MRI_float, fit, 0 ) ;
+
+         free(fc) ; mri_free(flim) ;
+      }
+
+      free(choleski) ;
+
+      /*- end of all-voxels-together case -*/
+
    }
+#ifdef ALLOW_BYSLICE
+     else {                                 /*- start of slice case [08 Dec 1999] -*/
+      int ksl , nslice , tt , nx,ny , nxy , kxy ;
+      MRI_IMAGE * vim ;
 
-   /* loop over voxels, fitting and detrending (or replacing) */
+      /* make separate space for the slice-wise detrending vectors */
 
-   nvox = DSET_NVOX(new_dset) ;
-   fit  = (float *) malloc( sizeof(float) * nvals ) ;
+      for( kk=ii=0 ; ii < DT_nvector ; ii++ ){
+         for( jj=0 ; jj < IMARR_SUBIMAGE(DT_imar,ii)->ny ; jj++ )       /* replace ptrs */
+            refvec[kk++] = (float *) malloc( sizeof(float) * nvals ) ;  /* to vectors   */
+      }
 
-   if( DT_verb ) fprintf(stderr,"+++ Computing voxel fits\n") ;
+      nslice = DSET_NZ(new_dset) ;
+      nxy    = DSET_NX(new_dset) * DSET_NY(new_dset) ;
 
-   for( kk=0 ; kk < nvox ; kk++ ){
+      /* loop over slices */
 
-      flim = THD_extract_series( kk , new_dset , 0 ) ;              /* data */
-      fv   = MRI_FLOAT_PTR(flim) ;
-      fc   = delayed_lsqfit( nvals, fv, nvec, refvec, choleski ) ;  /* coef */
+      for( ksl=0 ; ksl < nslice ; ksl++ ){
 
-      for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = 0.0 ;
+         if( DT_verb ) fprintf(stderr,"+++ Computing voxel fits for slice %d\n",ksl) ;
 
-      for( jj=0 ; jj < nvec ; jj++ )
-         for( ii=0 ; ii < nvals ; ii++ )
-            fit[ii] += fc[jj] * refvec[jj][ii] ;                    /* fit */
+         /* extract slice vectors from input interlaced vectors */
 
-      if( !DT_replace )                                             /* remove */
-         for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = fv[ii] - fit[ii] ;
+         for( kk=ii=0 ; ii < DT_nvector ; ii++ ){        /* loop over vectors */
+            vim = IMARR_SUBIMAGE(DT_imar,ii) ;           /* ii-th vector image */
+            nx = vim->nx ; ny = vim->ny ;                /* dimensions */
+            for( jj=0 ; jj < ny ; jj++ ){                /* loop over columns */
+               fv = MRI_FLOAT_PTR(vim) + (jj*nx) ;       /* ptr to column */
+               for( tt=0 ; tt < nvals ; tt++ )           /* loop over time */
+                  refvec[kk][tt] = fv[ksl+tt*nslice] ;   /* data point */
+            }
+         }
 
-      if( DT_norm ) THD_normalize( nvals , fit ) ;  /* 23 Nov 1999 */
+         /* initialize fitting for this slice */
 
-      THD_insert_series( kk, new_dset, nvals, MRI_float, fit, 0 ) ;
+         choleski = startup_lsqfit( nvals , NULL , nvec , refvec ) ;
+         if( choleski == NULL ){
+            fprintf(stderr,"*** Linearly dependent vectors found at slice %d\n",ksl) ;
+            exit(1) ;
+         }
 
-      free(fc) ; mri_free(flim) ;
-   }
+         /* loop over voxels in this slice */
+
+         for( kxy=0 ; kxy < nxy ; kxy++ ){
+
+            kk   = kxy + ksl*nxy ;                                        /* 3D index */
+            flim = THD_extract_series( kk , new_dset , 0 ) ;              /* data */
+            fv   = MRI_FLOAT_PTR(flim) ;
+            fc   = delayed_lsqfit( nvals, fv, nvec, refvec, choleski ) ;  /* coef */
+
+            for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = 0.0 ;
+
+            for( jj=0 ; jj < nvec ; jj++ )
+               for( ii=0 ; ii < nvals ; ii++ )
+                  fit[ii] += fc[jj] * refvec[jj][ii] ;                    /* fit */
+
+            if( !DT_replace )                                             /* remove */
+               for( ii=0 ; ii < nvals ; ii++ ) fit[ii] = fv[ii] - fit[ii] ;
+
+            if( DT_norm ) THD_normalize( nvals , fit ) ;  /* 23 Nov 1999 */
+
+            THD_insert_series( kk, new_dset, nvals, MRI_float, fit, 0 ) ;
+
+            free(fc) ; mri_free(flim) ;
+         }
+
+         free(choleski) ;
+
+      } /* end of loop over slices */
+
+   } /*- end of -byslice case -*/
+#endif
+
+   /*-- done done done done --*/
 
    if( DT_verb ) fprintf(stderr,"+++ Writing output dataset\n") ;
    DSET_write(new_dset) ;

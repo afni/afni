@@ -817,7 +817,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN,MEDIAN , ZTONE
+     X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE
 C
 C  External library functions
 C
@@ -1055,6 +1055,14 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = MEDIAN( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'HMODE' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = HMODE( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'LMODE' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = LMODE( NTM , R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1224,7 +1232,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN , MEDIAN , ZTONE
+     X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE
 C
 C  External library functions
 C
@@ -1689,6 +1697,24 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MEDIAN( NTM, SCOP )
 	    ENDDO
+         ELSEIF( CNCODE .EQ. 'HMODE'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = HMODE( NTM, SCOP )
+	    ENDDO
+         ELSEIF( CNCODE .EQ. 'LMODE'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = LMODE( NTM, SCOP )
+	    ENDDO
          ELSEIF( CNCODE .EQ. 'OR'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
@@ -2055,9 +2081,28 @@ C
 C
 C
 C
+      SUBROUTINE BSORT(N,X)
+      REAL *8 X(N) , TMP
+      INTEGER N , I , IT
+C------------------------------------  Bubble sort
+50    IT = 0
+      DO 100 I=2,N
+         IF( X(I-1) .GT. X(I) )THEN
+            TMP    = X(I)
+            X(I)   = X(I-1)
+            X(I-1) = TMP
+            IT     = 1
+         ENDIF
+100   CONTINUE
+      IF( IT .NE. 0 )GOTO 50
+      RETURN
+      END
+C
+C
+C
       FUNCTION MEDIAN(N,X)
       REAL *8 MEDIAN , X(N) , TMP
-      INTEGER N , I , IT
+      INTEGER N , IT
 
       IF( N .EQ. 1 )THEN
          MEDIAN = X(1)
@@ -2081,18 +2126,9 @@ C
          RETURN
       ENDIF
 
-C---  Bubble sort
+C---  sort it
 
-50    IT = 0
-      DO 100 I=2,N
-         IF( X(I-1) .GT. X(I) )THEN
-            TMP    = X(I)
-            X(I)   = X(I-1)
-            X(I-1) = TMP
-            IT     = 1
-         ENDIF
-100   CONTINUE
-      IF( IT .NE. 0 )GOTO 50
+      CALL BSORT(N,X)
 
 C---  Even N --> average of middle 2
 C---  Odd  N --> middle 1
@@ -2103,6 +2139,72 @@ C---  Odd  N --> middle 1
       ELSE
          MEDIAN = X(IT+1)
       ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION HMODE(N,X)
+      REAL *8 HMODE , VAL , VB , X(N)
+      INTEGER N , I , IV  , IB
+C
+      IF( N .EQ. 1 )THEN
+         HMODE = X(1)
+         RETURN
+      ENDIF
+C
+      CALL BSORT(N,X)
+C
+      VAL = X(1)
+      IV  = 1
+      IB  = 0
+      DO 100 I=2,N
+         IF( X(I) .NE. VAL )THEN
+            IF( IV .GE. IB )THEN
+               VB = VAL
+               IB = IV
+            ENDIF
+            VAL = X(I)
+            IV  = 1
+         ELSE
+            IV = IV+1
+         ENDIF
+100   CONTINUE
+      IF( IV .GE. IB ) VB = VAL
+      HMODE = VB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION LMODE(N,X)
+      REAL *8 LMODE , VAL , VB , X(N)
+      INTEGER N , I , IV  , IB
+C
+      IF( N .EQ. 1 )THEN
+         LMODE = X(1)
+         RETURN
+      ENDIF
+C
+      CALL BSORT(N,X)
+C
+      VAL = X(1)
+      IV  = 1
+      IB  = 0
+      DO 100 I=2,N
+         IF( X(I) .NE. VAL )THEN
+            IF( IV .GT. IB )THEN
+               VB = VAL
+               IB = IV
+            ENDIF
+            VAL = X(I)
+            IV  = 1
+         ELSE
+            IV = IV+1
+         ENDIF
+100   CONTINUE
+      IF( IV .GT. IB ) VB = VAL
+      LMODE = VB
       RETURN
       END
 C

@@ -640,6 +640,8 @@ void THD_rota_method( int mode )
    shift_method = mode ;
    switch( mode ){
       case MRI_NN:      shifter = nn_shift2    ; break ;
+      case MRI_TSSHIFT: shifter = ts_shift2    ; break ;  /* Dec 1999 */
+
       case MRI_LINEAR:  shifter = lin_shift2   ; break ;
       case MRI_FOURIER: shifter = fft_shift2   ; break ;
       default:

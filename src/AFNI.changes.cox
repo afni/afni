@@ -1894,3 +1894,31 @@
  * Added program 3drename.c, to rename dataset .HEAD and .BRIK files
      at the same time.
  * Added environment variable to control Winsor21 function in imseq.c.
+
+08 Dec 1999
+ * Oops.  Took out some debugging statements in 3dTstat.c that somehow
+     survived until now.
+ * Modified count of forced adoption potential conflicts in afni_func.c
+     to avoid some warning messages.
+ * Added "NULL" to return in plug_tag.c, where it had been forgotten.
+ * Added program 1dnorm.c.
+ * Added -byslice option to 3dDetrend.c.
+
+09 Dec 1999
+ * Added -hilbert option to 1dfft.c, and -install option to 1dplot.c
+ * Added 0 definition of DBG_trace to dbtrace.h in the case USE_TRACING
+     is not defined.
+
+13 Dec 1999
+ * Added mode functions to parser.f, parser.inc, and 3dcalc.c.
+ * Added -force option to adwarp.c; otherwise, program will not now
+     overwrite existing dataset.
+ * Modified function qginv() in mri_stats.c to never return a value
+     greater than 13, no matter how absurd the value the user enters.
+ * Modified edt_dsetitems.c, editvol.h to have a new editing item:
+     ADN_anatpar_idcode - to let a program attach an anat parent idcode
+     to a file (vs. an anat parent dataset).
+ * Modified afni_func.c to NOT print out a forced adoption message when
+     a dataset is set to be its own anatomy parent.
+ * Modified plug_maskave.c to properly initialize sum=sigma=0 for EACH
+     separate sub-brick calculation.

@@ -436,6 +436,18 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
             else EDERR("illegal new anat_parent") ;
          break ;
 
+#ifndef OMIT_DATASET_IDCODES       /* 13 Dec 1999 */
+         case ADN_anatpar_idcode:{ /* processed now */
+            MCW_idcode * idc ;
+            idc = va_arg( vararg_ptr , MCW_idcode * ) ;
+            if( idc != NULL )
+               dset->anat_parent_idcode = *idc ;
+            else
+               EDERR("illegal new anatpar_idcode") ;
+         }
+         break ;
+#endif
+
       }
 
       iarg++ ;

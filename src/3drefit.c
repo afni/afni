@@ -200,6 +200,9 @@ int main( int argc , char * argv[] )
          if( iarg+1 >= argc )
             Syntax("need 1 argument after -apar!") ;
 
+         if( aset != NULL )                                  /* 13 Dec 1999 */
+            Syntax("can't have more than one -apar option!");
+
          iarg++ ;
          aset = THD_open_one_dataset( argv[iarg] ) ;
          if( aset == NULL )
