@@ -1984,14 +1984,18 @@ STATUS(str) ; }
          XKeyEvent * event = (XKeyEvent *) ev ;
          char           buf[32] ;
          KeySym         ks ;
-         XComposeStatus status ;
+         int            nbuf ;
 
 STATUS("KeyPress event") ;
 
          if( grapher->fd_pxWind != (Pixmap) 0 ){
             buf[0] = '\0' ;
-            XLookupString( event , buf , 32 , &ks , &status ) ;
+            nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
             if( buf[0] != '\0' ) GRA_handle_keypress( grapher , buf , ev ) ;
+            else if(PRINT_TRACING){
+               char str[256] ;
+               sprintf(str,"*** KeyPress was empty!?  nbuf=%d") ;
+               STATUS(str) ; }
          }
       }
       break ;
@@ -2273,6 +2277,11 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
 ENTRY("GRA_handle_keypress") ;
 
    if( buf[0] == '\0' ) EXRETURN ;
+
+if(PRINT_TRACING){
+char str[256] ;
+sprintf(str,"buf[0]=%c (%x)",(int)buf[0],(int)buf[0]) ; 
+STATUS(str); }
 
    /*** deal with the key sequence 'N <digits> <Enter>' ***/
 
@@ -2695,7 +2704,7 @@ ENTRY("GRA_fixup_xaxis") ;
    }
    if( bot >= top ){
       mri_free(grapher->xax_tsim) ;
-      grapher->xax_tsim == NULL ;
+      grapher->xax_tsim = NULL ;
       EXRETURN ;
    }
    if( nover == 0 && fabs(top-1.0) < 0.001 && fabs(bot) < 0.001 ) EXRETURN ;

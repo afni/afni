@@ -62,7 +62,7 @@ static AFNI_friend afni_friends[] = {
   { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           ) } ,
   { "A. Jesmanowicz"   , (                      32      ) } ,
 /*{ "F.Z. Yetkin"      , (     2         | 16           ) } ,*/
-  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16           ) } ,
+  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      ) } ,
   { "M.M. Klosek"      , ( 1 | 2              | 32      ) } ,
   { "J.A. Bobholz"     , (             8 | 16 | 32      ) } ,
   { "J.A. Frost"       , (                 16           ) } ,
@@ -2588,7 +2588,7 @@ ENTRY("AFNI_read_inputs") ;
                0,0,0,0,69,124,138,131,120,168,227,194,81,0,0,0,
                0,0,0,0,0,49,69,103,131,153,141,54,0,0,0,0 } ;
 
-          static byte ** rwcox[6] = { rrr,www,ccc,ooo,xxx,bob } ;
+          static byte * rwcox[6] = { rrr,www,ccc,ooo,xxx,bob } ;
           int kk ;
 
             for( jj=0 ; jj < QQ_NT ; jj++ ){

@@ -40,10 +40,34 @@ at http://bishopw.loni.ucla.edu/AIR3/index.html).  Using Fourier
 interpolation in 3dvolreg and trilinear interpolation in AIR, 3dvolreg
 was 2-3 times faster on some typical FMRI datasets (128x128x30x80).
 Dropping to 7th order (heptic) polynomial interpolation speeds up
-3dvolreg by another factor of 2.  The two programs produce nearly
-identical estimates of the movement parameters.
+3dvolreg by another factor of 2.  The two programs (AIR and 3dvolreg)
+produce nearly identical estimates of the movement parameters.
 
 -----------------------------------
 Robert W. Cox, PhD -- November 1998
 Medical College of Wisconsin
 -----------------------------------
+
+The following words can be used as a concise description of the registration
+algorithm, if you need such a thing for a paper.  A paper on the algorithm
+has been submitted to Magnetic Resonance in Medicine; if/when it is published,
+then you could cite it -- Bob Cox, July 1999.
+-------------------------------------------------------------------------------
+The algorithm used for 3D volume registration is designed to be efficient
+at fixing motions of a few mm and rotations of a few degrees.  Using this
+limitation, the basic technique is to align each volume in a time series
+to a fiducial volume (usually an early volume from the first imaging run
+in the scanning session).  The fiducial volume is expanded in a 1st order
+Taylor series at each point in the six motion parameters (3 shifts, 3 angles).
+This expansion is used to compute an approximation to a weighted linear
+least squares fit of the target volume to the fiducial volume.  The target
+volume is then moved according to the fit, and the new target volume
+is re-fit to the fiducial.  This iteration proceeds until the movement
+is small.  Effectively, this is gradient descent in the nonlinear least
+squares estimation of the movement parameters that best make the target
+volume fit the fiducial volume.  This iteration is rapid (usually only
+2-4 iterations are needed), since the motion parameters are small.  It is
+efficient, based on a new method using a 4-way 3D shear matrix factorization
+of the rotation matrix.  It is accurate, since Fourier interpolation is used
+in the resampling process.  On the SGI and Intel workstations used for this
+project, a 64x64x16 volume can be aligned to a fiducial in less than 1 second.

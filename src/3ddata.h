@@ -2246,6 +2246,8 @@ extern THD_ivec3 THD_3dind_to_fdind( FD_brick * , THD_ivec3 ) ;
 
 extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
+extern int thd_floatscan( int , float * ) ; /* 30 Jul 1999 */
+
 /*------------------------------------------------------------------*/
 /*-- October 1998: routines for 3D volume rotation and alignment. --*/
 

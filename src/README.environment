@@ -380,6 +380,19 @@ will not have the correlation computed.  The default value is 10.0, but
 values as large as 50.0 may be useful.  This parameter may be changed
 interactively from the FIM->Edit Ideal submenu in a graph viewer.
 
+------------------------
+Variable: AFNI_FLOATSCAN
+------------------------
+If this variable is set (to any value), then floating point bricks
+are checked for illegal values (NaN and Infinity) when they are
+read into an AFNI program -- illegal values will be replaced by
+zeros.  If a dataset brick contains such illegal values that go
+undetected, AFNI programs will probably fail miserably, and have
+been known to go into nearly-infinite loops.
+
+Setting this variable implies setting AFNI_NOMMAP to YES, since
+only in-memory bricks can be altered (mmap-ed bricks are readonly).
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

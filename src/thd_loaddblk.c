@@ -3,6 +3,7 @@
 
 static int native_order = -1 ;
 static int no_mmap      = -1 ;
+static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
 /*---------------------------------------------------------------*/
 
@@ -21,6 +22,13 @@ ENTRY("THD_load_datablock") ;
       char * hh = my_getenv("AFNI_NOMMAP") ;
       if( hh == NULL ) no_mmap = 0 ;
       else             no_mmap = (strcmp(hh,"YES") == 0) ;
+   }
+
+   if( floatscan < 0 ){                         /* 30 Jul 1999 */
+      char * hh = my_getenv("AFNI_FLOATSCAN") ;
+      if( hh == NULL ) floatscan = 0 ;
+      else             floatscan = 1 ;
+      if( floatscan ) no_mmap = 1 ;
    }
 
    /*-- sanity checks --*/
@@ -247,6 +255,22 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                   break ;
                }
             }
+         }
+
+         /* 30 July 1999: check float sub-brick for errors? */
+
+         if( floatscan ){
+            int nerr=0 ;
+            for( ibr=0 ; ibr < nv ; ibr++ ){
+               if( DBLK_BRICK_TYPE(blk,ibr) == MRI_float ){
+                  nerr += thd_floatscan( DBLK_BRICK_NVOX(blk,ibr) ,
+                                         DBLK_ARRAY(blk,ibr)        ) ;
+               }
+            }
+            if( nerr > 0 )
+               fprintf(stderr ,
+                       "*** %s: found %d float errors -- see program float_scan\n" ,
+                       dkptr->brick_name , nerr ) ;
          }
 
 #if defined(THD_DEBUG)

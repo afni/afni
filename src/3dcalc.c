@@ -263,10 +263,11 @@ void CALC_read_opts( int argc , char * argv[] )
          if ( ntime[ival] == 1 ) {
             CALC_ffac[ival][0] = DSET_BRICK_FACTOR( dset , isub) ;
             if (CALC_ffac[ival][0] == 0.0 ) CALC_ffac[ival][0] = 1.0 ;
-         }
-         else for (ii = 0 ; ii < ntime[ival] ; ii ++ ) {
-            CALC_ffac[ival][ii] = DSET_BRICK_FACTOR(dset, ii) ;
-            if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
+         } else {
+             for (ii = 0 ; ii < ntime[ival] ; ii ++ ) {
+               CALC_ffac[ival][ii] = DSET_BRICK_FACTOR(dset, ii) ;
+               if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
+             }
          }
 
          /* read data from disk */
@@ -665,28 +666,31 @@ int main( int argc , char * argv[] )
 
             /* the case of a 3D dataset (i.e., only 1 sub-brick) */
 
-            else if ( ntime[ids] == 1 ) {
+            else if ( ntime[ids] == 1 && CALC_type[ids] >= 0 ) {
 	       switch( CALC_type[ids] ) {
 		  case MRI_short:
-		     for (jj =jbot ; jj < jtop ; jj ++ )
+		     for (jj =jbot ; jj < jtop ; jj ++ ){
 			atoz[ids][jj-ii] = CALC_short[ids][0][jj] * CALC_ffac[ids][0] ;
+                     }
 		  break;
 
                   case MRI_float:
-                     for (jj =jbot ; jj < jtop ; jj ++ )
+                     for (jj =jbot ; jj < jtop ; jj ++ ){
                         atoz[ids][jj-ii] = CALC_float[ids][0][jj] * CALC_ffac[ids][0] ;
+                     }
                   break;
 
                   case MRI_byte:
-                     for (jj =jbot ; jj < jtop ; jj ++ )
+                     for (jj =jbot ; jj < jtop ; jj ++ ){
                         atoz[ids][jj-ii] = CALC_byte[ids][0][jj] * CALC_ffac[ids][0] ;
+                     }
                   break;
 	      }	
 	   }
 
            /* the case of a 3D+time dataset (or a bucket, etc.) */
 
-	   else if( CALC_type[ids] > 0 ) {
+	   else if( ntime[ids] > 1 && CALC_type[ids] >= 0 ) {
 	      switch ( CALC_type[ids] ) {
 	         case MRI_short:
 		    for (jj = jbot ; jj < jtop ; jj ++ ) {
@@ -695,13 +699,15 @@ int main( int argc , char * argv[] )
 		 break;
 
                  case MRI_float:
-                    for (jj = jbot ; jj < jtop ; jj ++ )
+                    for (jj = jbot ; jj < jtop ; jj ++ ){
                        atoz[ids][jj-ii] = CALC_float[ids][kt][jj] * CALC_ffac[ids][kt];
+                    }
                  break;
 
                  case MRI_byte:
-                    for (jj = jbot ; jj < jtop ; jj ++ )
+                    for (jj = jbot ; jj < jtop ; jj ++ ){
                        atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
+                    }
                  break;
 	       }
              }

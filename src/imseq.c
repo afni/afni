@@ -2427,7 +2427,6 @@ DPRI(" .. Expose; count=",event->count) ;
          XKeyEvent * event = (XKeyEvent *) ev ;
          char           buf[32] ;
          KeySym         ks ;
-         XComposeStatus status ;
 
 DPR(" .. KeyPress") ;
 
@@ -2436,7 +2435,7 @@ DPR(" .. KeyPress") ;
          if( seq->button2_active ){ XBell(seq->dc->display,100); return; }
 
          buf[0] = '\0' ;
-         XLookupString( event , buf , 32 , &ks , &status ) ;
+         XLookupString( event , buf , 32 , &ks , NULL ) ;
 
          if( w == seq->wimage && buf[0] != '\0' &&
              seq->status->send_CB != NULL         ){
