@@ -4059,3 +4059,7 @@
 
 25 Nov 2002
  * Modified afni_friends.c to add date-based trivia (also, afni.[ch]).
+
+27 Nov 2002
+ * Modified mri_read_dicom.c to allow for stupid GE case where slice spacing is
+    incorrectly set to slice gap instead.
