@@ -1749,6 +1749,11 @@ The 'ni_dimen' attribute is the number of value-label pairs; in the
 Each value-label pair is shown on a separate line.  The values and
   labels are strings, enclosed in quote characters.  There should be
   exactly as many value-label pairs as specified in 'ni_dimen'.
+If you really want to put a double quote character " in a label,
+  you can enclose the label in single forward quotes ' instead.
+When you 'Save' a drawn dataset from the Draw Dataset plugin, the
+  .HEAD file attribute VALUE_LABEL_DTABLE will contain a table in
+  exactly this XML-based format.
 
 =============================================
 | Robert W Cox, PhD                         |
