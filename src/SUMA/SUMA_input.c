@@ -103,6 +103,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                #endif
                sv->ShowLeft = !sv->ShowLeft;
             }
+            /* do the axis setup */
+            SUMA_WorldAxisStandard (sv->WAx, sv);
             SUMA_UpdateViewerTitle(sv);   
             SUMA_postRedisplay(w, clientData, callData);
             break;
@@ -122,6 +124,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                #endif
                sv->ShowRight = !sv->ShowRight;
             }
+            /* do the axis setup */
+            SUMA_WorldAxisStandard (sv->WAx, sv);            
             SUMA_UpdateViewerTitle(sv);   
             SUMA_postRedisplay(w, clientData, callData);
             break;
@@ -1183,7 +1187,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                int *do_id, n_do_id;
                /*SUMA_SurfaceObject *ptr_tmp;*/
-               sv->ShowMeshAxis = !sv->ShowMeshAxis;
+               ++sv->ShowWorldAxis; sv->ShowWorldAxis = sv->ShowWorldAxis % SUMA_N_WAX_OPTIONS; 
+               sv->ShowMeshAxis = 0; /* used to be = !sv->ShowMeshAxis; ,  Turned off Oct 15 04 , in favor or WorldAxis */
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
                if (n_do_id) {
                   while (n_do_id) {
@@ -1625,7 +1630,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
 
 
-                  if (!SUMA_GetSelectionLine (sv, (int)Bev.x, (int)Bev.y)) {
+                  if (!SUMA_GetSelectionLine (sv, (int)Bev.x, (int)Bev.y, sv->Pick0, sv->Pick1, 0, NULL, NULL, NULL)) {
                      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_GetSelectionLine.\n", FuncName);
                      break;
                   } 
@@ -1847,7 +1852,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
 
 
-               if (!SUMA_GetSelectionLine (sv, (int)Mev.x, (int)Mev.y)) {
+               if (!SUMA_GetSelectionLine (sv, (int)Mev.x, (int)Mev.y, sv->Pick0, sv->Pick1, 0, NULL, NULL, NULL)) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in "
                                        "SUMA_GetSelectionLine.\n", FuncName);
                   break;

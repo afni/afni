@@ -1822,6 +1822,276 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
       
    SUMA_RETURN(fout);
 }
+
+
+/*!
+   \brief creates a vector of node neighbors structures such that:
+   OffS = SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim);
+   
+   \param OffS (SUMA_OFFSET_STRUCT *) SO->Node x 1 vector of structures 
+         OffS[i] is a structure containing node neighbors of node i
+         OffS[i].N_Neighb (int) number of neighbors of node i
+         OffS[i].Neighb_ind (int *) OffS[i].N_Neighb x 1 vector containing 
+                                    nodes neighboring node i
+         OffS[i].Neighb_dist (float *) OffS[i].N_Neighb x 1 vector containing 
+                                    node distances from node i. 
+                                    These are the shortes distances ON THE GRAPH.
+                                    The distances might be larger than OffsetLim
+                                    because the child function SUMA_getoffsets2
+                                    does so.
+   \param OffsetLim (float) maximal inclusive neighbor distance. In reality, some 
+                           nodes may be farther apart. But all nodes closer than 
+                           OffsetLim to each node will be included
+   - NOTE: This function will chew up a lot of memory, real quick.
+            An approximate equation for the size needed for OffS:
+               (mean_N_Neighb_per_Node * 8 + 12) * SO->N_Node Bytes
+               With OffsetLim = 10 and a FreeSurfer surface of 150'000 nodes,
+               the average number of neighbors per node is ~800. 
+               Which means 962MB for the returned structure.
+         When memory usage is this high, you should consider using SUMA_getoffsets2
+         repeatedly for each node, as is done in this function.
+         
+*/
+SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim)
+{
+   static char FuncName[]={"SUMA_FormNeighbOffset"};
+   int i, ii, il, jl, noffs, ShowNode = 4;
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   struct  timeval start_time;
+   float etime_GetOffset, mean_N_Neighb, dist, dist_norm;   
+   SUMA_OFFSET_STRUCT *OffS_out=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN");
+      SUMA_RETURN(NULL);
+   }
+   OffS_out = (SUMA_OFFSET_STRUCT *)SUMA_malloc(SO->N_Node * sizeof(SUMA_OFFSET_STRUCT));
+   
+   SUMA_etime(&start_time,0);
+   
+   OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+   mean_N_Neighb = 0;
+   dist_norm = 1.1 * OffsetLim;
+   for (i=0; i < SO->N_Node; ++i) {
+      SUMA_getoffsets2 (i, SO, OffsetLim, OffS);
+      /* Now store all the relevant info in OffS in OffS_out[i] */
+      OffS_out[i].N_Neighb = 0; 
+      for (il=1; il<OffS->N_layers; ++il) {
+         OffS_out[i].N_Neighb += OffS->layers[il].N_NodesInLayer;
+      }
+      OffS_out[i].Neighb_ind = (int *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(int));
+      OffS_out[i].Neighb_dist = (float *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float));
+      mean_N_Neighb += OffS_out[i].N_Neighb;
+      noffs = 0;
+      for (il=1; il<OffS->N_layers; ++il) {
+         for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+            OffS_out[i].Neighb_ind[noffs] = OffS->layers[il].NodesInLayer[jl]; 
+            #if 1
+            /* don't play fancy with the weights here */
+            OffS_out[i].Neighb_dist[noffs] = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
+            #else
+            dist = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
+            if (dist > OffsetLim) OffS_out[i].Neighb_dist[noffs] = 0;
+            else OffS_out[i].Neighb_dist[noffs] = (dist ); 
+            #endif
+            ++noffs;
+         }
+      }
+      
+      /* Show me the offsets for one node*/
+      if (0) {
+         if (i == ShowNode) {
+            FILE *fid=NULL;
+            char *outname=NULL;
+            outname = SUMA_Extension("SomethingOffset", ".1D", YUP);
+            outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+            fid = fopen(outname, "w"); free(outname); outname = NULL;
+            if (!fid) {
+               SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+            } else {
+               fprintf (fid,"#Column 1 = Node index\n"
+                            "#column 2 = Neighborhood layer\n"
+                            "#Column 3 = Distance from node %d\n", ShowNode);
+               for (ii=0; ii<SO->N_Node; ++ii) {
+                  if (OffS->LayerVect[ii] >= 0) {
+                     fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+                  }
+               }
+               fclose(fid);
+            }
+         }
+      }
+               
+      if (i == 99) {
+         etime_GetOffset = SUMA_etime(&start_time,1);
+         fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                              "Projected completion time: %f minutes\n"
+                              "Projected memory need for structure %f MB", 
+                              FuncName, OffsetLim, etime_GetOffset, i+1, 
+                              etime_GetOffset * SO->N_Node / 60.0 / (i+1),
+                              (mean_N_Neighb / (i+1) * 8 + 12)* SO->N_Node/1000000.0);
+      }
+      SUMA_Recycle_getoffsets (OffS);
+   }
+   SUMA_Free_getoffsets(OffS); OffS = NULL;
+   
+   etime_GetOffset = SUMA_etime(&start_time,1);
+   fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                        "Mean number of neighbors per node: %f\n",
+                        FuncName, OffsetLim, etime_GetOffset, SO->N_Node, mean_N_Neighb / SO->N_Node);
+   
+   SUMA_RETURN(OffS_out);           
+} 
+
+/*!
+   \brief frees what is created by SUMA_FormNeighbOffset
+   
+   \sa SUMA_FormNeighbOffset
+*/
+SUMA_OFFSET_STRUCT * SUMA_free_NeighbOffset (SUMA_SurfaceObject *SO, SUMA_OFFSET_STRUCT *OffS_out)
+{
+   static char FuncName[]={"SUMA_free_NeighbOffset"};
+   int i;
+   SUMA_ENTRY;
+
+   if (!SO) {
+      SUMA_S_Err("NULL SO!");
+      SUMA_RETURN(NULL);
+   }
+   if (!OffS_out) SUMA_RETURN(NULL);
+   for (i=0; i < SO->N_Node; ++i) {
+      OffS_out[i].N_Neighb = 0;
+      if (OffS_out[i].Neighb_dist) SUMA_free(OffS_out[i].Neighb_dist); OffS_out[i].Neighb_dist = NULL;
+      if (OffS_out[i].Neighb_ind) SUMA_free(OffS_out[i].Neighb_ind); OffS_out[i].Neighb_ind = NULL;
+   }
+   SUMA_free(OffS_out); 
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   \brief A filtering function that is based on brute force estimates of node neighbor distance
+   matrix. 
+   It is not finished because it makes no use of the neighbor distances to properly weigh the interpolation.
+   It ends up being too slow because of the high memory load for computing OffS_out
+*/
+float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetLim, float *fin_orig, 
+                              int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
+                              SUMA_COMM_STRUCT *cs)
+{
+   
+   static char FuncName[]= {"SUMA_Offset_GeomSmooth"};
+   float *fout_final=NULL, *fbuf=NULL, *fin_next=NULL, *fin=NULL, *fout=NULL;
+   int niter=0, i, il,jl, j, ii,  noffs;
+   struct  timeval start_time;
+   float etime_GetOffset, weight_tot;   
+   SUMA_OFFSET_STRUCT *OffS_out=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN");
+      SUMA_RETURN(NULL);
+   }   
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NULL);
+   }
+   if (vpn < 1) {
+      SUMA_SL_Err("vpn < 1\n");
+      SUMA_RETURN(NULL);
+   }  
+   
+   if (fout_final_user == fin_orig) {
+      SUMA_SL_Err("fout_final_user == fin_orig");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!fout_final_user) { /* allocate for output */
+      fout_final = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+      if (!fout_final) {
+         SUMA_SL_Crit("Failed to allocate for fout_final\n");
+         SUMA_RETURN(NULL);
+      }
+   }else {
+      fout_final = fout_final_user; /* pre-allocated */
+   }
+   
+   /* allocate for buffer */
+   fbuf = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+   if (!fbuf) {
+      SUMA_SL_Crit("Failed to allocate for fbuf\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   
+   if (cs->Send) { /* send the first monster */
+      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      }
+   }
+   SUMA_LH("Calculating OffS_out ...");
+   OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim);
+   fin_next = fin_orig;
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (niter=0; niter < N_iter; ++niter) {
+            if ( niter % 2 ) { /* odd */
+               fin = fin_next; /* input from previous output buffer */
+               fout = fout_final; /* results go into final vector */
+               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+            } else { /* even */
+               /* input data is in fin_new */
+               fin = fin_next;
+               fout = fbuf; /* results go into buffer */
+               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+            }
+            
+            SUMA_etime(&start_time,0);
+            
+            for (i=0; i < SO->N_Node; ++i) {
+               for (j=0; j < vpn; ++j) {
+                  /* do the averaging using OffS_out NO ATTENTION IS GIVEN TO PROPER WEIGHING YET!*/
+                  fout[i*vpn+j] = fin[i*vpn+j];
+                  for (il=0; il<OffS_out[i].N_Neighb; ++il) {
+                     fout[i*vpn+j] += fin[OffS_out[i].Neighb_ind[il]*vpn+j];
+                  }
+                  fout[i*vpn+j] /= (OffS_out[i].N_Neighb+1);  
+               }
+            }
+            
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Smoothing at dist %f took %f seconds for %d nodes.\n",
+                           FuncName, OffsetLim, etime_GetOffset, SO->N_Node);
+            
+            if (cs->Send) {
+               if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+               }
+            }
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         SUMA_SL_Err("Column Major not implemented");
+         SUMA_RETURN(NULL);
+         break;
+      default:
+         SUMA_SL_Err("Bad Major, very bad.\n");
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+
+   /* Have to free OffS_out */
+   OffS_out = SUMA_free_NeighbOffset (SO, OffS_out);
+      
+   SUMA_RETURN(fout);    
+}
+
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
                            SUMA_COMM_STRUCT *cs)
@@ -2703,6 +2973,9 @@ void usage_SUMA_SurfSmooth ()
               "                   Nodes on the filtered surface are repositioned such\n"
               "                   that the surface of the filtered surface equals, \n"
               "                   within tolerance tol, that of the original surface. \n"
+              "      -match_sphere rad: Project nodes of smoothed surface to a sphere\n"
+              "                   of radius rad. Projection is carried out along the \n"
+              "                   direction formed by the surface's center and the node.\n"
               "\n"
               "   Common options:\n"
               "      -Niter N: Number of smoothing iterations (default is 100)\n"
@@ -2810,6 +3083,7 @@ void usage_SUMA_SurfSmooth ()
 typedef enum { SUMA_NO_METH, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, SUMA_NN_GEOM} SUMA_SMOOTHING_METHODS;
 
 typedef struct {
+   float OffsetLim;
    float lim;
    float fwhm;
    float kpb;
@@ -2866,6 +3140,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
    kar = 1;
+   Opt->OffsetLim = 10.0;
    Opt->MatchMethod = 0;
    Opt->lim = 1000000.0;
    Opt->fwhm = -1;
@@ -2945,7 +3220,21 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 
 			brk = YUP;
 		}
-      
+      if (!brk && strcmp(argv[kar], "-dist") == 0)
+		{
+			kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -dist \n");
+				exit (1);
+			}
+			Opt->OffsetLim = atof(argv[kar]);
+         if (Opt->OffsetLim <= 0) {
+            fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", Opt->OffsetLim);
+				exit (1);
+         }
+
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
 			Opt->talk_suma = 1; 
 			brk = YUP;
@@ -3314,7 +3603,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             break;
          case SUMA_BRUTE_FORCE:
             /* form autoname  */
-            Opt->out_name = SUMA_copy_string("Bruto.1D");
+            Opt->out_name = SUMA_copy_string("NodeList_Offsetsm.1D");
             break;
          case SUMA_NN_GEOM:
             /* form autoname  */
@@ -3352,14 +3641,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
          
          break;
       case SUMA_BRUTE_FORCE:
-         if (!Opt->in_name) {
-            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
-            exit(1);
-         }
-         if (Opt->lim > 1000) {
-            fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
-            exit(1);
-         }
          
          break;
       case SUMA_LM:
@@ -3400,7 +3681,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
             exit(1);
          }
          
-         if (Opt->lim > 1000) {
+         if (0 && Opt->lim > 1000) {
             fprintf (SUMA_STDERR,"Error %s:\n-lim option not specified.\n", FuncName);
             exit(1);
          }
@@ -3529,6 +3810,12 @@ int main (int argc,char *argv[])
             cs->Send = NOPE;
             Opt->talk_suma = NOPE;
          }
+      }else if (Opt->Method == SUMA_BRUTE_FORCE) { 
+         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+            cs->Send = NOPE;
+            Opt->talk_suma = NOPE;
+         }
       }else {
          SUMA_SL_Err("Can't talk to suma with the chosen method.\n");
          Opt->talk_suma = NOPE;
@@ -3616,103 +3903,37 @@ int main (int argc,char *argv[])
                exit(1);
             }
             
-            /* Create a surface that is a descendant of SO, use the new coordinates */
-            SOnew = SUMA_CreateChildSO( SO,
-                                        dsmooth, SO->N_Node,
-                                        NULL, -1,
-                                        0); /* SOnew->NodeList is now == dsmooth */
-            
-            /* fix the shrinking ..*/
-            
-            switch (Opt->MatchMethod) {
-               case 1:
-                  if (!SUMA_EquateSurfaceSize(SOnew, SO, Opt->lim, cs)) {
-                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
-                  }
-
-                  /* send the unshrunk bunk */
-                  if (cs->Send) {
-                     SUMA_LH("Sending last fix to SUMA ...");
-                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
-                     }
-                  }
-                  
-                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-                  dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
-                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
-                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
-                  
-                  break;
-               case 2:
-                  if (!SUMA_EquateSurfaceVolumes(SOnew, SO, Opt->lim, cs)) {
-                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
-                  }
-
-                  /* send the unshrunk bunk */
-                  if (cs->Send) {
-                     SUMA_LH("Sending last fix to SUMA ...");
-                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
-                     }
-                  }
-                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-                  dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
-                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
-                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
-                  break;
-               case 3:
-                  if (!SUMA_EquateSurfaceAreas(SOnew, SO, Opt->lim, cs)) {
-                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
-                  }
-
-                  /* send the unshrunk bunk */
-                  if (cs->Send) {
-                     SUMA_LH("Sending last fix to SUMA ...");
-                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
-                     }
-                  }
-                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-                  dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
-                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
-                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
-                  break;
-               case 4:
-                  if (!SUMA_ProjectSurfaceToSphere(SOnew, SO, Opt->lim, cs)) {
-                     SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
-                  }
-
-                  /* send the unshrunk bunk */
-                  if (cs->Send) {
-                     SUMA_LH("Sending last fix to SUMA ...");
-                     if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                        SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
-                     }
-                  }
-                  
-                  /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
-                  dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
-                  SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
-                  SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
-                  break;
-               case 0:
-                  break;
-               default:
-                  SUMA_SL_Err("Huh ?");
-                  break;   
-            }
-            
-            if (LocalHead) {
-               etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                    "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
-            }
             /* writing of results is done below */
          }
          break;  
+      case SUMA_BRUTE_FORCE:
+         /* a method that will likely be dropped NOT FINISHED  */
+         {
+            if (LocalHead) SUMA_etime(&start_time,0);
+            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
+            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            d_order =  SUMA_ROW_MAJOR; 
+            
+            SUMA_etime(&start_time_all,0);
+            dsmooth = SUMA_Offset_GeomSmooth( SO, Opt->N_iter, Opt->OffsetLim, SO->NodeList,
+                                              3, d_order, NULL, cs);
+            if (0 && LocalHead) {
+               SUMA_LH("See dsmooth.1D");
+               SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
+            }
+            if (!dsmooth) {
+               SUMA_SL_Err("Failed in SUMA_Offset_Geom_Smooth");
+               exit(1);
+            }
+            
+            /* writing of results is done below */
+            
+            etime_GetOffset_all = SUMA_etime(&start_time_all,1);
+            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
+                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
+
+         }
+         break;
       case SUMA_LM:
          /* Taubin's */
          {
@@ -3736,69 +3957,112 @@ int main (int argc,char *argv[])
             /* writing of results is done below */
          }
          break;
-         
-      case SUMA_BRUTE_FORCE:
-         /* a method that will likely be dropped NOT FINISHED, no malloc cleaning*/
-            {
-            /* initialize OffS */
-            OffS = SUMA_Initialize_getoffsets (SO->N_Node);
-
-            SUMA_etime(&start_time_all,0);
-            for (i=0; i < SO->N_Node; ++i) {
-               /* show me the offset from node 0 */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Calculating offsets from node %d\n",FuncName, i);
-               if (i == 0) {
-                  SUMA_etime(&start_time,0);
-               }
-               SUMA_getoffsets2 (i, SO, Opt->lim, OffS);
-               if (i == 99) {
-                  etime_GetOffset = SUMA_etime(&start_time,1);
-                  fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
-                                       "Projected completion time: %f minutes\n", 
-                                       FuncName, Opt->lim, etime_GetOffset, i+1, 
-                                       etime_GetOffset * SO->N_Node / 60.0 / (i+1));
-               }
-
-               /* Show me the offsets for one node*/
-               if (Opt->ShowOffset_DBG) {
-                  if (i == Opt->ShowNode) {
-                     FILE *fid=NULL;
-                     char *outname=NULL;
-                     outname = SUMA_Extension(Opt->ShowOffset_DBG, ".1D", YUP);
-                     outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
-                     fid = fopen(outname, "w"); free(outname); outname = NULL;
-                     if (!fid) {
-                        SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
-                     } else {
-                        fprintf (fid,"#Column 1 = Node index\n"
-                                     "#column 2 = Neighborhood layer\n"
-                                     "#Column 3 = Distance from node %d\n", Opt->ShowNode);
-                        for (ii=0; ii<SO->N_Node; ++ii) {
-                           if (OffS->LayerVect[ii] >= 0) {
-                              fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
-                           }
-                        }
-                        fclose(fid);
-                     }
-                  }
-               }
-
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Recycling OffS\n", FuncName);
-               SUMA_Recycle_getoffsets (OffS);
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Done.\n", FuncName); 
-
-            }
-
-            etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
-                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
-
-         }
-         break;
       default:
          SUMA_SL_Err("Bad method, should not be here.");
          exit(1);
          break;
+   }
+   
+   
+   if (Opt->Method == SUMA_BRUTE_FORCE || Opt->Method == SUMA_NN_GEOM)
+   {
+      if (Opt->MatchMethod) {   
+         SUMA_LH("Fixing shrinkage...");
+         /* Create a surface that is a descendant of SO, use the new coordinates */
+         SOnew = SUMA_CreateChildSO( SO,
+                                     dsmooth, SO->N_Node,
+                                     NULL, -1,
+                                     0); /* SOnew->NodeList is now == dsmooth */
+
+         /* fix the shrinking ..*/
+
+         switch (Opt->MatchMethod) {
+            case 1:
+               if (!SUMA_EquateSurfaceSize(SOnew, SO, Opt->lim, cs)) {
+                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+               }
+
+               /* send the unshrunk bunk */
+               if (cs->Send) {
+                  SUMA_LH("Sending last fix to SUMA ...");
+                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  }
+               }
+
+               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
+               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+
+               break;
+            case 2:
+               if (!SUMA_EquateSurfaceVolumes(SOnew, SO, Opt->lim, cs)) {
+                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+               }
+
+               /* send the unshrunk bunk */
+               if (cs->Send) {
+                  SUMA_LH("Sending last fix to SUMA ...");
+                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  }
+               }
+               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
+               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+               break;
+            case 3:
+               if (!SUMA_EquateSurfaceAreas(SOnew, SO, Opt->lim, cs)) {
+                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+               }
+
+               /* send the unshrunk bunk */
+               if (cs->Send) {
+                  SUMA_LH("Sending last fix to SUMA ...");
+                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  }
+               }
+               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* coordinates have a new pointer after Equating surface volumes */
+               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+               break;
+            case 4:
+               if (!SUMA_ProjectSurfaceToSphere(SOnew, SO, Opt->lim, cs)) {
+                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+               }
+
+               /* send the unshrunk bunk */
+               if (cs->Send) {
+                  SUMA_LH("Sending last fix to SUMA ...");
+                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  }
+               }
+
+               /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
+               dsmooth = SOnew->NodeList; /* CHECK IF THAT's the case here... coordinates have a new pointer after Equating surface size */
+               SOnew->NodeList = NULL; /* new coordinates will stay alive in dsmooth */
+               SUMA_Free_Surface_Object(SOnew); SOnew=NULL;
+               break;
+            case 0:
+               break;
+            default:
+               SUMA_SL_Err("Huh ?");
+               break;   
+         }
+      }
+      if (LocalHead) {
+         etime_GetOffset = SUMA_etime(&start_time,1);
+         fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
+                              "Projected time per 100000 nodes is: %f minutes\n", 
+                                 FuncName, etime_GetOffset, SO->N_Node, 
+                                 etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+      }
+
    }
    
    /* write out the filtered geometry. Should not be executed for data smoothing */

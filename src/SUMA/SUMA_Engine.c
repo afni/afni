@@ -2043,6 +2043,10 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
    
+   /* do the axis setup */
+   SUMA_WorldAxisStandard (sv->WAx, sv);
+
+
    /* Home call baby */
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
@@ -2410,7 +2414,9 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
 
-       
+   /* do the axis setup */
+   SUMA_WorldAxisStandard (sv->WAx, sv);
+    
    /* Home call baby */
    if (!list) list = SUMA_CreateList();
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
@@ -2480,6 +2486,9 @@ SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, SUMA_SurfaceView
                sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], 
                sv->GVS[sv->StdView].ViewCamUp[2]);
    
+   /* do the axis setup */
+   SUMA_WorldAxisStandard (sv->WAx, sv);
+
    /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 
 
    SUMA_RETURN (YUP);
