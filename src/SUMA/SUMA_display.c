@@ -11,7 +11,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
-#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
+#include <GL/GLwDrawA.h>  /* Motif OpenGL drawing area. */
 
 #include "SUMA_suma.h"
 
@@ -350,8 +350,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char
 
   /* Step 6. */
   /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
+  /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
   csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
-    glwMDrawingAreaWidgetClass, csv->X->FRAME,
+    glwDrawingAreaWidgetClass, csv->X->FRAME,
     GLwNvisualInfo, csv->X->VISINFO,
     XtNcolormap, csv->X->CMAP,
     NULL);
