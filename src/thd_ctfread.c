@@ -38,6 +38,7 @@ typedef struct HeadModel_Info {
      float               defaultSphereRadius;
 } HeadModel_Info;
 
+/* this struct isn't used in AFNI */
 typedef struct Image_Info {                   /* scan and/or sequence parameters */
      short              modality;             /* 0=MRI, 1=CT, 2=PET, 3=SPECT, 4=OTHER */
      char               manufacturerName[64];
@@ -59,6 +60,7 @@ typedef struct Image_Info {                   /* scan and/or sequence parameters
      char               forFutureUse[64];
 } Image_Info;
 
+/* the header for the .mri files */
 typedef struct Version_2_Header {
      char               identifierString[32];   /* "CTF_MRI_FORMAT VER 2.x"            */
      short              imageSize;              /* always = 256                        */
@@ -130,6 +132,7 @@ static void swap_2(void *ppp)
 /*-------------------------*/
 /*! Macro for bad return. */
 
+#undef  BADBAD
 #define BADBAD(s)                                                \
   do{ fprintf(stderr,"** THD_open_ctfmri(%s): %s\n",fname,s);    \
       RETURN(NULL);                                              \
@@ -205,7 +208,7 @@ ENTRY("THD_open_ctfmri") ;
      swap_2(&hh.headModel.RightEar_Cor ) ;
      swap_2(&hh.headModel.RightEar_Axi ) ;
 
-     swap_4(&hh.transformMatrix[0][0]  ) ;
+     swap_4(&hh.transformMatrix[0][0]  ) ;   /* this stuff not used yet */
      swap_4(&hh.transformMatrix[0][1]  ) ;
      swap_4(&hh.transformMatrix[0][2]  ) ;
      swap_4(&hh.transformMatrix[0][3]  ) ;
@@ -291,7 +294,7 @@ ENTRY("THD_open_ctfmri") ;
    /*** from here, a lot of code is adapted from thd_analyzeread.c ***/
 
    datum_len = hh.dataSize ;
-   switch( datum_len ){
+   switch( datum_len ){                         /* the only 2 cases */
      case 1:  datum_type = MRI_byte ; break ;
      case 2:  datum_type = MRI_short; break ;
    }
@@ -315,7 +318,7 @@ ENTRY("THD_open_ctfmri") ;
    /* now set grid size, keeping in mind that
        A-P is positive and P-A is negative,
        R-L is positive and L-R is negative,
-       I-S is positive and S-I is negative.       */
+       I-S is positive and S-I is negative.   */
 
    switch( ori[0] ){
      case 'A':  dx =  hh.mmPerPixel_coronal ; xorg = hh.headOrigin_coronal ; break ;
@@ -396,7 +399,7 @@ ENTRY("THD_open_ctfmri") ;
    dset->dblk->diskptr->storage_mode = STORAGE_BY_CTFMRI ;
    strcpy( dset->dblk->diskptr->brick_name , fname ) ;
 
-   /*-- add a set of tags for MEG fiducial points, if present --*/
+   /*-- for fun, add a set of tags for MEG fiducial points, if present --*/
 
    if( hh.headModel.LeftEar_Sag != hh.headModel.RightEar_Sag ){
      THD_usertaglist *tagset = myXtNew(THD_usertaglist) ;
@@ -586,7 +589,8 @@ ENTRY("THD_load_ctfmri") ;
   that Voxel[0] is in the right, posterior, inferior position relative to
   the region of interest (bounding box of image).
 
-  RWCox: the data storage order then seems to be IRP
+  RWCox: the data storage order seems to be IRP, based on the above
+         comments, and on the CTF head coordinates system being PRI.
 *****************************************************************************/
 
 #define COV_VERSION      1                  /* this is version 1 -- got it? */
@@ -673,17 +677,18 @@ ENTRY("THD_open_ctfsam") ;
    fp = fopen( fname , "rb" ) ;
    if( fp == NULL )                      BADBAD("can't open input file");
 
-   /* read header */
+   /* read header [1st 8 bytes are "SAMIMAGE"] */
 
    fread( Identity , 1,8 , fp ) ; Identity[8] = '\0' ;
    fread( &hh , sizeof(hh) , 1 , fp ) ;
    fclose(fp) ;
 
-   if( hh.Version == 0 ) BADBAD("bad header Version") ;
+   if( strcmp(Identity,"SAMIMAGE") != 0 ) BADBAD("Identity != SAMIMAGE") ;
+   if( hh.Version                  == 0 ) BADBAD("bad header Version") ;
 
-   swap = (hh.Version != 1) ;
+   swap = (hh.Version != 1) ;    /* byte swapping required? */
 
-   if( swap ){                   /* swap header fields */
+   if( swap ){                   /* swap various header fields */
      swap_4( &hh.Version    ) ;
      swap_4( &hh.NumChans   ) ;
      swap_4( &hh.NumWeights ) ;
@@ -710,6 +715,8 @@ ENTRY("THD_open_ctfsam") ;
      swap_4( &hh.SAMType    ) ;
      swap_4( &hh.SAMUnit    ) ;
    }
+
+   /* simple checks on header values */
 
    if( hh.Version  != 1       ||
        hh.XStart   >= hh.XEnd ||
@@ -749,18 +756,18 @@ ENTRY("THD_open_ctfsam") ;
 #endif
 
    hh.StepSize *= 1000.0 ;   /* convert distances from m to mm */
-   hh.XStart   *= 1000.0 ;
+   hh.XStart   *= 1000.0 ;   /* (who the hell uses meters for brain imaging?) */
    hh.YStart   *= 1000.0 ;
    hh.ZStart   *= 1000.0 ;
    hh.XEnd     *= 1000.0 ;
    hh.YEnd     *= 1000.0 ;
    hh.ZEnd     *= 1000.0 ;
 
-   dx = dy = dz = hh.StepSize ;
+   dx = dy = dz = hh.StepSize ;  /* will be altered below */
 
-   nx = (int)((hh.ZEnd - hh.ZStart)/dz + 0.99); /* dataset is stored in Z,Y,X order */
-   ny = (int)((hh.YEnd - hh.YStart)/dy + 0.99); /* but AFNI calls these x,y,z       */
-   nz = (int)((hh.XEnd - hh.XStart)/dx + 0.99);
+   nx = (int)((hh.ZEnd - hh.ZStart)/dz + 0.99999); /* dataset is stored in Z,Y,X order */
+   ny = (int)((hh.YEnd - hh.YStart)/dy + 0.99999); /* but AFNI calls these x,y,z       */
+   nz = (int)((hh.XEnd - hh.XStart)/dx + 0.99999);
 
    /* determine if file is big enough to hold all data it claims */
 
@@ -769,6 +776,7 @@ ENTRY("THD_open_ctfsam") ;
      BADBAD("input file too small") ;
 
    datum_type = MRI_float ;  /* actually is double, but AFNI doesn't grok that */
+                             /* will be converted to floats when reading data */
 
    /* set orientation = IRP = xyz ordering */
 
@@ -927,19 +935,18 @@ ENTRY("THD_load_ctfsam") ;
    /*-- SAM data is stored as doubles,
         but we have to store it in AFNI as floats --*/
 
-   dbar = (double *) calloc(sizeof(double),nxyz) ;     /* work space */
+   dbar = (double *) calloc(sizeof(double),nxyz) ;     /* workspace */
    swap = ( dkptr->byte_order != mri_short_order() ) ;
 
-   for( ibr=0 ; ibr < nv ; ibr++ ){
-     fread( dbar, 1, sizeof(double)*nxyz, fp ) ;
-     ftar = DBLK_ARRAY(dblk,ibr) ;
-     for( ii=0 ; ii < nxyz ; ii++ ){
-       if( swap ) swap_8(dbar+ii) ;
-       ftar[ii] = dbar[ii] ;
+   for( ibr=0 ; ibr < nv ; ibr++ ){            /* loop over sub-bricks */
+     fread( dbar, 1, sizeof(double)*nxyz, fp ) ; /* read data to workspace */
+     ftar = DBLK_ARRAY(dblk,ibr) ;               /* float array in dataset */
+     for( ii=0 ; ii < nxyz ; ii++ ){             /* loop over voxels */
+       if( swap ) swap_8(dbar+ii) ;                /* swap it */
+       ftar[ii] = dbar[ii] ;                       /* save it as a float */
      }
    }
 
-   fclose(fp) ; free(dbar) ;
-
+   fclose(fp) ; free(dbar) ;  /* toss out the trash */
    EXRETURN ;
 }

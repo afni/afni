@@ -99,6 +99,12 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_ANALYZE:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    ANALYZE files\n") ; break ;
+
+     case STORAGE_BY_CTFMRI:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF MRI file\n") ; break ;
+
+     case STORAGE_BY_CTFSAM:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF SAM file\n") ; break ;
    }
 
    /*-- keywords --*/

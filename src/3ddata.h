@@ -2111,6 +2111,28 @@ typedef struct THD_3dim_dataset {
                               ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                               (ds)->dblk->diskptr->storage_mode == STORAGE_BY_ANALYZE )
 
+/*! Determine if datablock db is stored in a CTFMRI file on disk */
+
+#define DBLK_IS_CTFMRI(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
+                             (db)->diskptr->storage_mode == STORAGE_BY_CTFMRI )
+
+/*! Determine if dataset ds is stored in a CTFMRI file on disk */
+
+#define DSET_IS_CTFMRI(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
+                             ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
+                             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_CTFMRI )
+
+/*! Determine if datablock db is stored in a CTFSAM file on disk */
+
+#define DBLK_IS_CTFSAM(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
+                             (db)->diskptr->storage_mode == STORAGE_BY_CTFSAM )
+
+/*! Determine if dataset ds is stored in a CTFSAM file on disk */
+
+#define DSET_IS_CTFSAM(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
+                             ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
+                             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_CTFSAM )
+
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
 #define DBLK_IS_VOLUMES(db) ( ISVALID_DBLK(db) &&                                \
