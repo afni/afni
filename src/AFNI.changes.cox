@@ -1731,3 +1731,10 @@
  * Added option -apar to 3drefit.c, to allow (re)setting of the anat parent.
  * Added option -warp to 3dfractionize.c, to allow inverse warping from +tlrc
      coords back to +orig coords during the fractionation process.
+
+18 Oct 1999
+ * Added history copy to afni_func.c's creation of follower datasets.
+ * Added -preserve option to 3dfractionize.c, to allow the output dataset
+     to keep the input values, rather than create a fractional mask.
+ * Added program 3dmaskdump.c, to dump voxel values out to ASCII.
+ * Added qsort_int() to mri_percents.c.

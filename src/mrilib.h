@@ -478,6 +478,7 @@ extern float mri_quantile( MRI_IMAGE * im , float alpha ) ;
 extern void qsort_short( int , short * ) ;
 extern void qsort_float( int , float * ) ;
 extern void qsort_pair( int , float * , int * ) ;
+extern void qsort_int( int , int * ) ;
 
 extern void isort_short( int , short * ) ;
 extern void isort_float( int , float * ) ;

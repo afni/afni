@@ -587,6 +587,8 @@ if(PRINT_TRACING)
 
    PARENTIZE(new_dset,data_parent->parent) ;
 
+   tross_Copy_History( data_parent , new_dset ) ; /* 18 Oct 1999 */
+
    RETURN(new_dset) ;
 }
 

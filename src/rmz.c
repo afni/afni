@@ -1,5 +1,7 @@
 #include "mrilib.h"
 #include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define NREP 2
 #define NBUF 4096
@@ -7,22 +9,43 @@ static unsigned char buf[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg , ii , ll , jj , nw , verb=1 , ibot , irep ;
+   int iarg , ii , ll , jj , nw , verb=1 , ibot , irep,nrep=NREP ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: rmz [-q] filename ...\n"
+      printf("Usage: rmz [-q] [-#] filename ...\n"
              " -- Zeros out files before removing them\n") ;
       exit(0) ;
    }
 
    iarg = 1 ;
-   if( strcmp(argv[iarg],"-q") == 0 ){ verb = 0 ; iarg++ ; }
+   while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-q") == 0 ){
+         verb = 0 ; iarg++ ; continue ;
+      }
+
+      irep = strtol( argv[iarg] , NULL , 10 ) ;
+      if( irep < 0 ){
+         nrep = -irep ; iarg++ ; continue ;
+      } else {
+         fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+      }
+
+   }
+
+   if( iarg >= argc ){
+      fprintf(stderr,"*** No files to delete?\n") ; exit(1) ;
+   }
+
+   srand48((long)time(NULL)) ;
 
    ibot = iarg ;
-   for( irep=0 ; irep < NREP ; irep++ ){
+   for( irep=0 ; irep < nrep ; irep++ ){
 
-      for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = ((3+2*irep)*ii+irep) % 255 ;
+      jj = lrand48() % 7 ;
+
+      for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = ((3+2*irep)*ii+jj) % 255 ;
 
       for( iarg=ibot ; iarg < argc ; iarg++ ){
          ii = THD_is_directory( argv[iarg] ) ;
@@ -39,7 +62,7 @@ int main( int argc , char * argv[] )
                   nw = MIN(ll-jj,NBUF) ; fwrite( buf, 1, nw, fp ) ;
                }
                fflush(fp) ; fsync(fileno(fp)) ; fclose(fp) ;
-               if( irep == (NREP-1) ){
+               if( irep == (nrep-1) ){
                   unlink(argv[iarg]) ;
                   if( verb ) fprintf(stderr," -- Removed file %s\n",argv[iarg]) ;
                }

@@ -4,10 +4,12 @@
 
 /* prototypes for internal sorting routines:
      array of shorts
+     array of ints
      array of floats
      array of floats, with an integer array carried along in the swaps */
 
 void qsrec_short( int , short * , int ) ;
+void qsrec_int  ( int , int   * , int ) ;
 void qsrec_float( int , float * , int ) ;
 void qsrec_pair ( int , float * , int * , int ) ;
 
@@ -18,7 +20,7 @@ void qsrec_pair ( int , float * , int * , int ) ;
 static int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 
 /***************************************************************************
-     Each qsort_TYPE routine (TYPE=short, float, or pair) has two
+     Each qsort_TYPE routine (TYPE=short, int, float, or pair) has two
      pieces.  The isort_TYPE routine does an insertion sort routine,
      which is only fast for nearly sorted routines.  The qsrec_TYPE
      routine carries out the quicksort algorithm down to the level
@@ -33,7 +35,7 @@ static int stack[QS_STACK] ;  /* stack for qsort "recursion" */
      Compare the isort_short and isort_pair routines to see how
      this should be generalized to more complex objects.
 
-                                                         Robert W. Cox
+                                                      -- Robert W. Cox
 ***************************************************************************/
 
 /*------------------------------------------------------------------------------*/
@@ -133,6 +135,106 @@ void qsort_short( int n , short * a )
 {
    qsrec_short( n , a , QS_CUTOFF ) ;
    isort_short( n , a ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*------------- insertion sort : sort an array of int in-place ---------------*/
+
+void isort_int( int n , int * ar )
+{
+   register int  j , p ;  /* array indices */
+   register int temp ;    /* a[j] holding place */
+   register int * a = ar ;
+
+   if( n < 2 || ar == NULL ) return ;
+
+   for( j=1 ; j < n ; j++ ){
+
+     if( a[j] < a[j-1] ){  /* out of order */
+        p    = j ;
+        temp = a[j] ;
+        do{
+          a[p] = a[p-1] ;       /* at this point, a[p-1] > temp, so move it up */
+          p-- ;
+        } while( p > 0 && temp < a[p-1] ) ;
+        a[p] = temp ;           /* finally, put temp in its place */
+     }
+   }
+   return ;
+}
+
+/*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
+
+void qsrec_int( int n , int * ar , int cutoff )
+{
+   register int i , j ;         /* scanning indices */
+   register int temp , pivot ;  /* holding places */
+   register int * a = ar ;
+
+   int left , right , mst ;
+
+   /* return if too short (insertion sort will clean up) */
+
+   if( cutoff < 3 ) cutoff = 3 ;
+   if( n < cutoff || ar == NULL ) return ;
+
+   /* initialize stack to start with whole array */
+
+   stack[0] = 0   ;
+   stack[1] = n-1 ;
+   mst      = 2   ;
+
+   /* loop while the stack is nonempty */
+
+   while( mst > 0 ){
+      right = stack[--mst] ;  /* work on subarray from left -> right */
+      left  = stack[--mst] ;
+
+      i = ( left + right ) / 2 ;           /* middle of subarray */
+
+      /*----- sort the left, middle, and right a[]'s -----*/
+
+      if( a[left] > a[i]     ) QS_SWAP( a[left]  , a[i]     ) ;
+      if( a[left] > a[right] ) QS_SWAP( a[left]  , a[right] ) ;
+      if( a[i] > a[right]    ) QS_SWAP( a[right] , a[i]     ) ;
+
+      pivot = a[i] ;                       /* a[i] is the median-of-3 pivot! */
+      a[i]  = a[right] ;
+
+      i = left ; j = right ;               /* initialize scanning */
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; a[++i] < pivot ; ) ;  /* scan i up,   until a[i] >= pivot */
+        for( ; a[--j] > pivot ; ) ;  /* scan j down, until a[j] <= pivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit */
+
+        QS_SWAP( a[i] , a[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned -----*/
+
+      a[right] = a[i] ; a[i] = pivot ;  /* restore the pivot */
+
+      /*----- signal the subarrays that need further work -----*/
+
+      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; }
+      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; }
+
+   }  /* end of while stack is non-empty */
+   return ;
+}
+
+/* quick_sort:  sort an array partially recursively, and partially insertion */
+
+void qsort_int( int n , int * a )
+{
+   qsrec_int( n , a , QS_CUTOFF ) ;
+   isort_int( n , a ) ;
    return ;
 }
 
