@@ -169,21 +169,30 @@ extern void * NI_malloc( size_t ) ;
 extern void   NI_free( void * ) ;
 extern void * NI_realloc( void * , size_t ) ;
 extern char * NI_strncpy( char * , const char * , size_t ) ;
+extern long   NI_filesize( char * ) ;
+extern int    NI_clock_time(void) ;
+extern int    NI_byteorder(void) ;
+extern void   NI_swap2( int , void * ) ;
+extern void   NI_swap4( int , void * ) ;
+extern void   NI_swap8( int , void * ) ;
 
 extern char * NI_type_name( int ) ;
 extern int    NI_type_size( int ) ;
 
-extern void NI_free_group  ( NI_group *   ) ;
+extern int NI_element_rowsize( NI_element * ) ;
+extern int NI_element_allsize( NI_element * ) ;
+
 extern void NI_free_element( void * ) ;
-extern int NI_element_type( void * ) ;
+extern int  NI_element_type( void * ) ;
 
 extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_vector( NI_element * , int , void * ) ;
 extern void NI_set_attribute( void * , char * , char * ) ;
 
 extern NI_group * NI_new_group_element(void) ;
-extern void NI_free_element( void * ) ;
 extern void NI_add_to_group( NI_group * , void * ) ;
+
+extern void NI_swap_vector( int , int , void * ) ;
 
 /** I/O functions **/
 
@@ -196,10 +205,12 @@ extern int NI_stream_write( NI_stream_type * , char * , int ) ;
 extern int NI_stream_read( NI_stream_type * , char * , int ) ;
 extern void NI_binary_threshold( NI_stream_type * , int ) ;
 extern void NI_sleep( int ) ;
+extern char * NI_stream_buffer( NI_stream_type * ) ;
 
-extern NI_group * NI_get_group( NI_stream ) ;
-extern int NI_put_group  ( NI_stream , NI_group *   ) ;
-extern int NI_put_element( NI_stream , NI_element * ) ;
+extern void NI_binary_threshold( NI_stream_type *, int ) ;
+
+extern void * NI_read_element( NI_stream_type * , int ) ;
+extern int    NI_write_element( NI_stream_type * , void * , int ) ;
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 
