@@ -840,6 +840,78 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
+   NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
+   NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
+   SUMA_RETURN (nel);
+}
+
+/*------------------------------------------------------------------*/
+/*! Make a NIML data element for a NI surface element i nx ny nz 
+    onde index followed by node normal
+   \param SO (SUMA_SurfaceObject *) surface object to turn to NI
+   \ret  NULL if you input stupid values, NI if you input smart values
+--------------------------------------------------------------------*/
+
+NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_makeNI_SurfINORM"};
+   NI_element *nel;
+   int *ic, ii, ND, id;
+   float *xc, *yc, *zc;
+   
+   SUMA_ENTRY;
+
+   
+   if (SO == NULL) {
+      fprintf(SUMA_STDERR,"Error %s: Null SO.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   if (SO->N_Node <= 0) {
+      fprintf(SUMA_STDERR,"Error %s: No nodes in SO.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   if (!SO->NodeNormList) {
+      fprintf(SUMA_STDERR,"Error %s: No normals in SO.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   
+   /* make a new data element, to be filled by columns */
+   nel = NI_new_data_element( "SUMA_node_normals" , SO->N_Node) ;
+   
+   /* make the columns to be put in the element */
+   ic = (int *)   SUMA_malloc( sizeof(int)   * SO->N_Node ) ;
+   xc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
+   yc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
+   zc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
+
+   if (!nel || !ic || !xc || !yc || !zc) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, ic, xc, yc or zc.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   
+
+   /* load the columns from the struct array */
+   ND = SO->NodeDim;
+   for( ii=0 ; ii < SO->N_Node ; ii++ ){
+      ic[ii] = ii;
+      id = ND * ii;
+      xc[ii] = SO->NodeNormList[id];
+      yc[ii] = SO->NodeNormList[id+1];
+      zc[ii] = SO->NodeNormList[id+2];
+   }
+
+   /* put columns into element */
+
+   NI_add_column( nel , NI_INT   , ic ) ; SUMA_free(ic) ;
+   NI_add_column( nel , NI_FLOAT , xc ) ; SUMA_free(xc) ;
+   NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
+   NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
+
+   NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
+   NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
+   NI_set_attribute (nel, "surface_label", SO->Label);
+   NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
+   NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
    SUMA_RETURN (nel);
 }
 
@@ -900,6 +972,9 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
 
    NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
+   NI_set_attribute (nel, "surface_label", SO->Label);
+   NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
+   NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
 
    SUMA_RETURN (nel);
 }

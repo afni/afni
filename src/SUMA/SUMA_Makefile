@@ -28,7 +28,8 @@ endif
 CCOPT = 
 
 ifndef SUMA_INCLUDE_PATH
-SUMA_INCLUDE_PATH = -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/ -I/usr/X11R6/include -I./ -I../ -I../niml/
+#Don't prepend -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/  here since only one program needs them
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/
 endif
 ifndef SUMA_LINK_PATH
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
@@ -36,7 +37,8 @@ endif
 ifndef SUMA_LINK_LIB
 #No need for those unless you are using SUMA_MOTIF_GLXAREA
 #-lMesaGLwM lXm 
-SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm -lglib 
+#Don't append -lglib here because it is only needed in one program so far
+SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lm
 endif
 
 ifndef SUMA_BIN_ARCHIVE

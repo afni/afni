@@ -12,12 +12,13 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c	\
 		 SUMA_Homer.c SUMA_xColBar.c 
        
-SUMA_GTS_SRCS =  SUMA_gts.c
+SUMA_gts.o: SUMA_gts.c
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/ -c SUMA_gts.c 
 
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
-SUMA_GTS_OBJS = ${SUMA_GTS_SRCS:.c=.o}
+SUMA_GTS_OBJS = SUMA_gts.o
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o ../afni_fimmer.o \
@@ -63,7 +64,7 @@ SUMA_pixmap2eps:
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-suma: SUMA_suma.o 
+suma: libSUMA.a SUMA_suma.o 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
@@ -223,7 +224,7 @@ SampBias: SUMA_SampBias.c ${SUMALIB}
 	${CC} -DSUMA_COMPILED -DSUMA_SampBias_STAND_ALONE \
 		${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH}	${SUMA_LINK_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} 
 
 resolvitivity: SUMA_resolvitivity.c ${SUMALIB} 
@@ -231,7 +232,7 @@ resolvitivity: SUMA_resolvitivity.c ${SUMALIB}
 	${CC} -DSUMA_COMPILED \
 		${CCOPT} ${WARNOPT} -o $@ SUMA_resolvitivity.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMALIBLIST}  ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
 growingsphere: SUMA_growingsphere.c ${SUMALIB} 
@@ -239,7 +240,7 @@ growingsphere: SUMA_growingsphere.c ${SUMALIB}
 	${CC} -DSUMA_COMPILED \
 		${CCOPT} ${WARNOPT} -o $@ SUMA_growingsphere.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMALIBLIST}  ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
 3dfilter: SUMA_3dfilter.c ${SUMALIB} 
@@ -247,13 +248,15 @@ growingsphere: SUMA_growingsphere.c ${SUMALIB}
 	${CC} -DSUMA_COMPILED \
 		${CCOPT} ${WARNOPT} -o $@ SUMA_3dfilter.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
 SurfMesh: SUMA_coarsen.c libgts.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 		\
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c 	\
+      -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/  \
+      ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} libgts.a 
