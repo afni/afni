@@ -293,6 +293,8 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    Opt->DoSpatNorm = 1;
    Opt->WriteSpatNorm = 0;
    Opt->fillhole = -1;
+   Opt->iset = NULL;
+   Opt->SpatShift[0] = Opt->SpatShift[1] = Opt->SpatShift[2] = 0.0;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -706,7 +708,7 @@ int main (int argc,char *argv[])
    THD_3dim_dataset *dset = NULL;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
-   THD_3dim_dataset *iset = NULL, *oset = NULL;
+   THD_3dim_dataset *oset = NULL;
    MRI_IMAGE *imin=NULL, *imout=NULL ;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -751,26 +753,26 @@ int main (int argc,char *argv[])
    if (Opt->DoSpatNorm) { /* chunk taken from 3dSpatNorm.c */
       if( Opt->debug ) SUMA_SL_Note("Loading dset, performing Spatial Normalization");
       /* load the dset */
-      iset = THD_open_dataset( Opt->in_name );
-      if( !ISVALID_DSET(iset) ){
+      Opt->iset = THD_open_dataset( Opt->in_name );
+      if( !ISVALID_DSET(Opt->iset) ){
         fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
       /*--- get median brick --*/
-      imin = THD_median_brick( iset ) ;
+      imin = THD_median_brick( Opt->iset ) ;
       if( imin == NULL ){
         fprintf(stderr,"**ERROR: can't load dataset %s\n",Opt->in_name) ;
         exit(1);
       }
-      imin->dx = fabs(iset->daxes->xxdel) ;
-      imin->dy = fabs(iset->daxes->yydel) ;
-      imin->dz = fabs(iset->daxes->zzdel) ;
+      imin->dx = fabs(Opt->iset->daxes->xxdel) ;
+      imin->dy = fabs(Opt->iset->daxes->yydel) ;
+      imin->dz = fabs(Opt->iset->daxes->zzdel) ;
 
-      DSET_unload( iset ) ;  /* don't need this data no more */
+      DSET_unload( Opt->iset ) ;  /* don't need this data no more */
 
       /*-- convert image to shorts, if appropriate --*/
-      if( DSET_BRICK_TYPE(iset,0) == MRI_short ||
-          DSET_BRICK_TYPE(iset,0) == MRI_byte    ){
+      if( DSET_BRICK_TYPE(Opt->iset,0) == MRI_short ||
+          DSET_BRICK_TYPE(Opt->iset,0) == MRI_byte    ){
 
         imout = mri_to_short(1.0,imin) ;
         mri_free(imin) ; imin = imout ;
@@ -778,9 +780,9 @@ int main (int argc,char *argv[])
 
       /*--- normalize image spatially ---*/
       mri_brainormalize_verbose( Opt->debug ) ;
-      imout = mri_brainormalize( imin , iset->daxes->xxorient,
-                                        iset->daxes->yyorient,
-                                        iset->daxes->zzorient) ;
+      imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
+                                        Opt->iset->daxes->yyorient,
+                                        Opt->iset->daxes->zzorient) ;
       mri_free( imin ) ;
 
       if( imout == NULL ){
@@ -788,7 +790,7 @@ int main (int argc,char *argv[])
       }
 
       oset = EDIT_empty_copy( NULL ) ;
-      tross_Copy_History( iset , oset ) ;
+      tross_Copy_History( Opt->iset , oset ) ;
       tross_Make_History( "3dSpatNorm" , argc,argv , oset ) ;
       
       LOAD_IVEC3( nxyz   , imout->nx    , imout->ny    , imout->nz    ) ;
@@ -932,9 +934,11 @@ int main (int argc,char *argv[])
             ps->cs->talk_suma = NOPE;
          } else {
             if (!nint && SOhull) {
-               SUMA_LH("Sending Hull");
-               if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Sending HULL next"); }
-               SUMA_SendSumaNewSurface(SOhull, ps->cs);
+               if (Opt->send_hull) {
+                  SUMA_LH("Sending Hull");
+                  if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Sending HULL next"); }
+                  SUMA_SendSumaNewSurface(SOhull, ps->cs);
+               }
             }
             SUMA_LH("Sending Ico");
             if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Sending Ico next"); }
@@ -1048,7 +1052,7 @@ int main (int argc,char *argv[])
          ps->cs->kth = 1;
          dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
-                                    8, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs);    
+                                    8, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
          memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
          SUMA_RECOMPUTE_NORMALS(SO);
          if (ps->cs->Send) {
@@ -1071,7 +1075,7 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"%s: The beauty treatment smoothing.\n", FuncName);
       dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
-                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs);    
+                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
       memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
       SUMA_RECOMPUTE_NORMALS(SO);
       if (ps->cs->Send) {
@@ -1104,7 +1108,6 @@ int main (int argc,char *argv[])
    ps->cs->kth = kth_buf; 
    
    if (Opt->DoSpatNorm) {
-      float od[3];
       float ispat, jspat, kspat, iorig, jorig, korig , xrai_orig, yrai_orig, zrai_orig;
       
       SUMA_LH("Changing coords of output surface");
@@ -1112,16 +1115,16 @@ int main (int argc,char *argv[])
       /* what does the origin point (THD_BN_XORG THD_BN_YORG THD_BN_ZORG, ijk 0 0 0 )in the spat normed brain correspond to ? */
       ispat = 0; jspat = 0; kspat = 0;
       brainnormalize_coord( ispat , jspat, kspat,
-                           &iorig, &jorig, &korig , iset,
+                           &iorig, &jorig, &korig , Opt->iset,
                            &xrai_orig, &yrai_orig, &zrai_orig);
-      od[0] = xrai_orig - THD_BN_XORG; od[1] = yrai_orig - THD_BN_YORG; od[2] = zrai_orig - THD_BN_ZORG;
+      Opt->SpatShift[0] = xrai_orig - THD_BN_XORG; Opt->SpatShift[1] = yrai_orig - THD_BN_YORG; Opt->SpatShift[2] = zrai_orig - THD_BN_ZORG;
 
       /* shift the surface */
       for (i=0; i<SO->N_Node; ++i) {
          i3 = 3*i;
-         SO->NodeList[i3 + 0] += od[0];
-         SO->NodeList[i3 + 1] += od[1];
-         SO->NodeList[i3 + 2] += od[2];
+         SO->NodeList[i3 + 0] += Opt->SpatShift[0];
+         SO->NodeList[i3 + 1] += Opt->SpatShift[1];
+         SO->NodeList[i3 + 2] += Opt->SpatShift[2];
       }
    }
    
