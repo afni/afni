@@ -200,8 +200,9 @@ static char g_history[] =
     "  - library organizing: moved v2s_map_type() to vol2surf.c\n"
     "  - moved gv2s_map_names to vol2surf.c, and externs to vol2surf.h\n"
     "\n"
-    "6.2  September 14, 2004  [rickr]\n"
+    "6.2  September 16, 2004  [rickr]\n"
     "  - added -gp_index option, mostly to use in plugin interface\n"
+    "  - added -reverse_norm_dir option, for reversing the default direction\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -443,8 +444,16 @@ ENTRY("get_surf_data");
 	    RETURN(-1);
 	}
 
-	if ( ! sopt->keep_norm_dir && check_norm_dirs(sopt, p, 0) )
+	if ((sopt->norm_dir == V2S_NORM_DEFAULT) && check_norm_dirs(sopt, p, 0))
 	    RETURN(-1);
+	else if ( sopt->norm_dir == V2S_NORM_REVERSE)
+	{
+	    /* okay, reverse the direction */
+	    sopt->norm_len *= -1;
+	    if ( sopt->debug > 0 )
+		fprintf(stderr,"++ reversing normal direction\n");
+	}
+	/* else V2S_NORM_KEEP, i.e. do nothing */
     }
 
     RETURN(0);
@@ -571,7 +580,8 @@ ENTRY("check_norm_dirs");
     if ( (ncount >= 2) && (ncount <= 4) )
     {
 	fprintf(stderr, "** cannot determine directions for normals:\n"
-		"   Option '-keep_norm_dir' is required to proceed.\n"
+		"   To proceed, use one of -keep_norm_dir/-reverse_norm_dir.\n"
+		"   \n"
 		"   It is ~%d%% likely that you will want to negate the\n"
 		"   normal length in '-norm_len'\n",
 		(int)(100*ncount/6.0) );
@@ -867,10 +877,10 @@ ENTRY("set_smap_opts");
 	RETURN(1);
     }
 
-    sopt->use_norms     = opts->use_norms;
-    sopt->norm_len      = opts->norm_len;
-    sopt->keep_norm_dir = opts->keep_norm_dir;
-    sopt->f_index       = V2S_INDEX_VOXEL;	     /* default is "voxel" */
+    sopt->use_norms = opts->use_norms;
+    sopt->norm_len  = opts->norm_len;
+    sopt->norm_dir  = opts->norm_dir;
+    sopt->f_index   = V2S_INDEX_VOXEL;	     /* default is "voxel" */
 
     if ( (opts->f_index_str != NULL) &&
 	 (!strncmp(opts->f_index_str, "node", 4)) )
@@ -1273,7 +1283,7 @@ ENTRY("init_options");
 	}
 	else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
 	{
-	    opts->keep_norm_dir = 1;
+	    opts->norm_dir = V2S_NORM_KEEP;
 	}
 	else if ( ! strncmp(argv[ac], "-last_node", 11) )
 	{
@@ -1368,6 +1378,10 @@ ENTRY("init_options");
 	    }
 
             opts->outfile_niml = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-reverse_norm_dir", 8) )
+	{
+	    opts->norm_dir = V2S_NORM_REVERSE;
 	}
 	else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
 	    opts->skip_cols |= V2S_SKIP_NODES;
@@ -1500,7 +1514,7 @@ ENTRY("validate_options");
 	    RETURN(-1);
 	}
     }
-    else if ( opts->norm_len != 1.0 || opts->keep_norm_dir )
+    else if ( opts->norm_len != 1.0 || opts->norm_dir )
     {
 	fprintf(stderr,"** options for normals requires '-use_norms'\n");
 	RETURN(-1);
@@ -2236,6 +2250,8 @@ ENTRY("usage");
             "        This option will override the directional check, and\n"
             "        use the normals as they come.\n"
             "\n"
+            "        See also -reverse_norm_dir, below.\n"
+            "\n"
             "    -norm_len LENGTH       : use LENGTH for node normals\n"
             "\n"
             "        e.g.     -norm_len  3.0\n"
@@ -2253,6 +2269,18 @@ ENTRY("usage");
             "\n"
             "        The '-surf_B' option is not allowed with the use of\n"
             "        normals.\n"
+            "\n"
+            "    -reverse_norm_dir      : reverse the normal directions\n"
+            "\n"
+            "        Normal directions are verified by checking that the\n"
+            "        normals of the outermost 6 points point away from the\n"
+            "        center of mass.  If they point inward instead, then\n"
+            "        they are negated.\n"
+            "\n"
+            "        This option will override the directional check, and\n"
+            "        reverse the direction of the normals as they come.\n"
+            "\n"
+            "        See also -keep_norm_dir, above.\n"
             "\n"
             "  ------------------------------\n"
             "\n"
@@ -2625,23 +2653,22 @@ ENTRY("disp_opts_t");
 
     fprintf(stderr,
 	    "options struct at %p :\n"
-	    "    gpar_file             = %s\n"
-	    "    outfile_1D            = %s\n"
-	    "    outfile_niml          = %s\n"
-	    "    spec_file             = %s\n"
-	    "    sv_file               = %s\n"
-	    "    cmask_cmd             = %s\n"
-	    "    map_str               = %s\n"
-	    "    snames[0,1]           = %s, %s\n"
-	    "    gp_index, no_head     = %d, %d\n"
-	    "    first_node, last_node = %d, %d\n"
-	    "    use_norms, norm_len   = %d, %f\n"
-	    "    keep_norm_dir         = %d\n"
-	    "    debug, dnode          = %d, %d\n"
-	    "    f_index_str           = %s\n"
-	    "    f_steps               = %d\n"
-	    "    f_p1_fr, f_pn_fr      = %f, %f\n"
-	    "    f_p1_mm, f_pn_mm      = %f, %f\n"
+	    "    gpar_file              = %s\n"
+	    "    outfile_1D             = %s\n"
+	    "    outfile_niml           = %s\n"
+	    "    spec_file              = %s\n"
+	    "    sv_file                = %s\n"
+	    "    cmask_cmd              = %s\n"
+	    "    map_str                = %s\n"
+	    "    snames[0,1]            = %s, %s\n"
+	    "    gp_index, no_head      = %d, %d\n"
+	    "    first_node, last_node  = %d, %d\n"
+	    "    use_norms, norm_len    = %d, %f\n"
+	    "    norm_dir, debug, dnode = %d, %d, %d\n"
+	    "    f_index_str            = %s\n"
+	    "    f_steps                = %d\n"
+	    "    f_p1_fr, f_pn_fr       = %f, %f\n"
+	    "    f_p1_mm, f_pn_mm       = %f, %f\n"
 	    , opts,
 	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->outfile_1D),
 	    CHECK_NULL_STR(opts->outfile_niml),
@@ -2649,7 +2676,7 @@ ENTRY("disp_opts_t");
 	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
 	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
 	    opts->gp_index, opts->no_head, opts->first_node, opts->last_node,
-	    opts->use_norms, opts->norm_len, opts->keep_norm_dir, opts->debug,
+	    opts->use_norms, opts->norm_len, opts->norm_dir, opts->debug,
 	    opts->dnode, CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
