@@ -163,6 +163,7 @@ typedef struct {
       XtPointer parent , aux ;
 
       int save_filter ;  /* 27 Jun 2001 */
+      int save_agif   ;  /* 27 Jul 2001 */
 } ISQ_options ;
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
@@ -191,6 +192,7 @@ typedef struct {
                                  (opt).parent      = NULL ;             \
                                  (opt).aux         = NULL ;             \
                                  (opt).save_filter = -1   ;             \
+                                 (opt).save_agif   = 0    ;             \
                                } while(0)
 
 /*------------- statistics for image display scaling -------------*/
@@ -432,7 +434,8 @@ typedef struct MCW_imseq {
      struct MCW_imseq * record_imseq ;
      MRI_IMARR * record_imarr ;
 
-     MCW_bbox * save_one_bbox ;      /* 26 Jun 2001 */
+     MCW_bbox * save_one_bbox ;      /* 26 Jul 2001 */
+     MCW_bbox * save_agif_bbox ;     /* 27 Jul 2001 */
 
 } MCW_imseq ;
 

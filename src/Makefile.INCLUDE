@@ -61,7 +61,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve
 
-SCRIPTS = @4Daverage  @CommandGlobb  @GetAfniPrefix  @NoExt  @UpdateAfni  @pnmtopng
+SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -807,7 +807,7 @@ afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
-	$(CP) -r qhulldir f2cdir coxplot volpack moveup moveAFNI ./AFNI98
+	$(CP) -r gifsicledir qhulldir f2cdir coxplot volpack moveup moveAFNI ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
@@ -866,7 +866,7 @@ afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
 
 afni_vcheck.o:afni.h
 
-afni_splash.o:afni_splash.h
+afni_splash.o:afni_splash.h imseq.h
 
 afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h logo.h machdep.h
@@ -874,7 +874,7 @@ afni_warp.o:afni_warp.h 3ddata.h machdep.h
 afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
 afni_fimmer.o:afni_graph.h afni.h machdep.h
 afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h \
-              machdep.h display.h
+              machdep.h display.h imseq.h
 afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
 afni_setup.o:afni.h afni_setup.h pbar.h
 
@@ -891,8 +891,6 @@ ts.o:ts.h
 to3d.o:to3d.h
 
 3dbucket.o:3ddata.h
-
-afni_plugout.o:afni_plugout.h afni_plugin.h
 
 3dTSgen.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 3dNLfim.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
@@ -1157,6 +1155,14 @@ qhull:
 	( cd qhulldir ; \
 	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull .. ; )
+
+#######
+# 27 Jul 2001
+
+gifsicle:
+	( cd gifsicledir ; \
+	  make gifsicle clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	  $(MV) gifsicle .. ; )
 
 #######
 

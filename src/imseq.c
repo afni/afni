@@ -210,6 +210,15 @@ static char ** ppmto_suffix  = NULL ;
 static int   * ppmto_bval    = NULL ;
 static int     ppmto_num     = -1 ;
 
+static char *  ppmto_gif_filter  = NULL ;   /* 27 Jul 2001 */
+static char *  ppmto_agif_filter = NULL ;
+
+ /* the first %s will be the list of input gif filenames     */
+ /* the second %s is the single output animated gif filename */
+
+#define GIFSICLE_SUFFIX "-O2 -d 20 -k 127 -l %s > %s"
+#define WHIRLGIF_SUFFIX "-time 20 -loop %s > %s"
+
 #define ADDTO_PPMTO(pnam,suff,bbb)                                       \
   do{ ppmto_filter = (char **) realloc( ppmto_filter ,                   \
                                         sizeof(char *)*(ppmto_num+1) ) ; \
@@ -230,12 +239,16 @@ static void ISQ_setup_ppmto_filters(void)
 
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
+   /*-- the cheap way to write PPM --*/
+
    pg = THD_find_executable( "cat" ) ;
    if( pg != NULL ){
       str = malloc(strlen(pg)+32) ;
       sprintf(str,"%s > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv) ;
    }
+
+   /*-- write JPEG --*/
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg != NULL ){
@@ -244,13 +257,35 @@ static void ISQ_setup_ppmto_filters(void)
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
    }
 
+   /*-- write GIF --*/
+
    pg  = THD_find_executable( "ppmtogif" ) ;
    pg2 = THD_find_executable( "ppmquant" ) ;
    if( pg != NULL && pg2 != NULL ){
       str = malloc(strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s 255 | %s > %%s",pg2,pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv) ;
+
+      /*-- 27 Jul 2001: also try for Animated GIF --*/
+
+      ppmto_gif_filter = str ;  /* save this filter string */
+
+      pg = THD_find_executable( "gifsicle" ) ;    /* preferred */
+      if( pg != NULL ){
+         str = malloc(strlen(pg)+64) ;
+         sprintf(str,"%s %s",pg,GIFSICLE_SUFFIX) ;
+         ppmto_agif_filter = str ;
+      } else {
+         pg = THD_find_executable( "whirlgif" ) ; /* but is OK */
+         if( pg != NULL ){
+            str = malloc(strlen(pg)+64) ;
+            sprintf(str,"%s %s",pg,WHIRLGIF_SUFFIX) ;
+            ppmto_agif_filter = str ;
+         }
+      }
    }
+
+   /*-- write TIFF --*/
 
    pg = THD_find_executable( "ppm2tiff" ) ;
    if( pg != NULL ){
@@ -266,6 +301,8 @@ static void ISQ_setup_ppmto_filters(void)
       }
    }
 
+   /*-- write Windows BMP --*/
+
    pg  = THD_find_executable( "ppmtobmp" ) ;
    pg2 = THD_find_executable( "ppmquant" ) ;
    if( pg != NULL && pg2 != NULL ){
@@ -274,6 +311,8 @@ static void ISQ_setup_ppmto_filters(void)
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
    }
 
+   /*-- write Encapsulated PostScript --*/
+
    pg = THD_find_executable( "pnmtops" ) ;
    if( pg != NULL ){
       str = malloc(strlen(pg)+32) ;
@@ -281,12 +320,16 @@ static void ISQ_setup_ppmto_filters(void)
       bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
    }
 
+   /*-- write a PDF file (God only knows why) --*/
+
    pg2 = THD_find_executable( "epstopdf" ) ;
    if( pg2 != NULL ){
       str = malloc(strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
    }
+
+   /*-- Write a PNG file --*/
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg != NULL ){
@@ -360,7 +403,8 @@ static char * ISQ_save_label_all = "Save:pnm" ;
       }else{                                                              \
          sprintf(sl,"Save.%.3s",ppmto_suffix[(seq)->opt.save_filter]) ;   \
       }                                                                   \
-      if( seq->opt.save_one ) sl[3] = '1' ;                               \
+           if( (seq)->opt.save_agif ) strcpy(sl,"Sav:aGif") ;             \
+      else if( (seq)->opt.save_one  ) sl[3] = '1' ;                       \
       MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] , sl ) ; } while(0)
 
 static const ISQ_bdef ISQ_but_rig_def[NBUTTON_RIG] = {
@@ -2052,6 +2096,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    int ii , kf ;
    MRI_IMAGE * tim , * flim ;
    char fname[256] ;
+   THD_string_array *agif_list=NULL ; /* 27 Jul 2001 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -2094,7 +2139,7 @@ ENTRY("ISQ_saver_CB") ;
 
       /*-- April 1996: Save One case here --*/
 
-      if( seq->opt.save_one ){
+      if( seq->opt.save_one && !seq->opt.save_agif ){
          char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int    sll  = strlen( seq->saver_prefix ) ;
 
@@ -2238,6 +2283,8 @@ ENTRY("ISQ_saver_CB") ;
 
    /*---- loop thru, get images, save them ----*/
 
+#define DO_AGIF (seq->opt.save_agif)
+
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
       tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
@@ -2259,7 +2306,7 @@ ENTRY("ISQ_saver_CB") ;
 
       /*-- 27 Jun 2001: write through a filter? --*/
 
-      if( seq->opt.save_filter >= 0 ){
+      if( seq->opt.save_filter >= 0 || DO_AGIF ){
          char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
          MRI_IMAGE * ovim=NULL ;
          int nx , ny , npix , pc ;
@@ -2297,11 +2344,13 @@ ENTRY("ISQ_saver_CB") ;
 
          /* write the output file */
 
-         if( kf == seq->saver_from )
-            printf("writing %d x %d .%s files",nx,ny,ppmto_suffix[ff]) ;
-         else if( kf%10 == 5 )
-            printf("." ) ;
-         fflush(stdout) ;
+         if( !DO_AGIF ){   /* don't write progress for agif */
+           if( kf == seq->saver_from )
+              printf("writing %d x %d .%s files",nx,ny,ppmto_suffix[ff]) ;
+           else if( kf%10 == 5 )
+              printf("." ) ;
+           fflush(stdout) ;
+         }
 
          /* if needed, convert from indices to color */
 
@@ -2310,19 +2359,64 @@ ENTRY("ISQ_saver_CB") ;
             mri_free(flim) ; flim = tim ;
          }
 
-         sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
-         sprintf( filt , ppmto_filter[ff] , fname ) ;
+         /* start the filter */
+
+         if( !DO_AGIF ){  /* arbitrary filtering */
+           sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
+           sprintf( filt , ppmto_filter[ff] , fname ) ;
+         } else {                    /* use the gif filter */
+           sprintf( fname, "%s%04d.gif" , seq->saver_prefix, kf) ;
+           sprintf( filt , ppmto_gif_filter , fname ) ;
+           if( agif_list == NULL ) INIT_SARR(agif_list) ;
+           ADDTO_SARR(agif_list,fname) ;
+         }
          signal( SIGPIPE , SIG_IGN ) ;
          fp = popen( filt , "w" ) ;
          if( fp == NULL ){
             fprintf(stderr,"** Can't open output filter %s\n",filt) ;
-            break ;  /* exit loop over files */
+            continue ;  /* loop over files */
          }
+
+         /* write RGB image to pipe as a PPM file */
 
          fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
          fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
          pc = pclose(fp) ;
          if( pc == -1 ) perror("Error in image output pipe") ;
+
+         /* 27 Jul 2001: if doing animated GIF,
+                         and if done, then write result */
+
+         if( kf == seq->saver_to && agif_list != NULL ){
+
+            int af ;
+
+            if( agif_list->num > 0 ){
+               int alen ; char *alc , *alf , *oof ;
+
+               for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
+                  alen += strlen( agif_list->ar[af] ) ;      /* filenames  */
+
+               alen += 3*agif_list->num + 32 ;               /* all filenames */
+               alc = malloc(alen) ; alc[0] = '\0' ;          /* in one string */
+               for( alen=af=0 ; af < agif_list->num ; af++ ){
+                  strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
+               }
+
+               oof  = malloc( strlen(seq->saver_prefix)+32 ) ; /* output fname */
+               sprintf(oof,"%sgif",seq->saver_prefix) ;
+
+               alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
+               alf  = malloc(alen) ;
+               sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
+               system(alf) ;                                 /* so run it!    */
+               free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
+            }
+
+            for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
+               unlink( agif_list->ar[af] ) ;
+            DESTROY_SARR(agif_list) ;                 /* free more trash */
+         }
       }
 
       else if( flim->kind == MRI_rgb ){ /* 11 Feb 1998: write color image */
@@ -2485,7 +2579,7 @@ ENTRY("ISQ_saver_CB") ;
       }
    } /* end of loop over images */
 
-   printf(". done\n") ;
+   printf(". **DONE**\n") ;
 
    /*--- go home ---*/
 
@@ -3539,7 +3633,11 @@ ENTRY("ISQ_but_disp_CB") ;
       if( ib == NTOG_IMP ){
          int nav = 0 ;
 
-         char * save_one_label[] = { "Save One" } ;      /* 26 Jul 2001 */
+         /*---- add some check boxes for special options ----*/
+
+         char *save_one_label[]  = { "Save One" } ;      /* 26 Jul 2001 */
+         char *save_agif_label[] = { "Save Anim GIF" } ; /* 27 Jul 2001 */
+
          seq->save_one_bbox = new_MCW_bbox( rcboxes ,
                                             1 ,
                                             save_one_label ,
@@ -3560,6 +3658,28 @@ ENTRY("ISQ_but_disp_CB") ;
                              ) ;
          MCW_reghint_children( seq->save_one_bbox->wrowcol ,
                                "Save just 1 (including montage)" ) ;
+
+         if( ppmto_agif_filter != NULL ){
+           seq->save_agif_bbox = new_MCW_bbox( rcboxes ,
+                                               1 ,
+                                               save_agif_label ,
+                                               MCW_BB_check ,
+                                               MCW_BB_frame ,
+                                               ISQ_disp_act_CB, (XtPointer)seq );
+           MCW_reghelp_children( seq->save_agif_bbox->wrowcol ,
+                                 " \n"
+                                 "When pressed IN, then the 'Save' button\n"
+                                 "will save a sequence of images to an\n"
+                                 "Animated GIF file.  This takes precedence\n"
+                                 "over 'Save One', if it is also pressed IN.\n"
+                               ) ;
+           MCW_reghint_children( seq->save_agif_bbox->wrowcol ,
+                                 "Save image sequence as GIF animation" ) ;
+         } else {
+           seq->save_agif_bbox = NULL ;
+         }
+
+         /*---- OK, do the transforms now ----*/
 
          if( seq->status->transforms0D != NULL &&
              seq->status->transforms0D->num > 0  ){
@@ -3906,6 +4026,11 @@ ENTRY("ISQ_disp_options") ;
 
       seq->opt.save_one    = MCW_val_bbox(seq->save_one_bbox)   != 0 ; /* 26 Jul 2001 */
 
+      if( seq->save_agif_bbox != NULL )
+         seq->opt.save_agif = MCW_val_bbox(seq->save_agif_bbox) != 0 ; /* 27 Jul 2001 */
+      else
+         seq->opt.save_agif = 0 ;
+
       seq->opt.save_filter = -1 ;
       if( bval[NTOG_SAV] > ISQ_SAV_PNM && ppmto_num > 0 ){  /* 27 Jun 2001 */
          int ii ;
@@ -3968,6 +4093,10 @@ ENTRY("ISQ_disp_options") ;
 
       MCW_set_bbox( seq->save_one_bbox ,
                     (seq->opt.save_one) ? 1 : 0 ) ; /* 26 Jul 2001 */
+
+      if( seq->save_agif_bbox != NULL )
+         MCW_set_bbox( seq->save_agif_bbox ,
+                       (seq->opt.save_agif) ? 1 : 0 ) ; /* 27 Jul 2001 */
 
       RETURN(False) ;
    }
@@ -4502,8 +4631,9 @@ static unsigned char record_bits[] = {
 
          /* change to Save:bkg */
 
-         seq->opt.save_one = 0 ;
-         seq->opt.save_pnm = 0 ;
+         seq->opt.save_one    = 0 ;
+         seq->opt.save_agif   = 0 ;   /* 27 Jul 2001 */
+         seq->opt.save_pnm    = 0 ;
          seq->opt.save_filter = -1 ;  /* 27 Jun 2001 */
          SET_SAVE_LABEL(seq) ;
 
@@ -4610,7 +4740,8 @@ static unsigned char record_bits[] = {
          /* set Save One */
 
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
-            seq->opt.save_one = 1 ;
+            seq->opt.save_one  = 1 ;
+            seq->opt.save_agif = 0 ; /* 27 Jul 2001 */
             SET_SAVE_LABEL(seq) ;
          }
 
@@ -5696,7 +5827,8 @@ ENTRY("ISQ_montage_action_CB") ;
          /* set to "Save One" if have an actual montage going now */
 
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
-            seq->opt.save_one = 1 ;
+            seq->opt.save_one  = 1 ;
+            seq->opt.save_agif = 0 ; /* 27 Jul 2001 */
             SET_SAVE_LABEL(seq) ;
          }
       break ;
@@ -7250,7 +7382,7 @@ ENTRY("ISQ_record_kill_CB") ;
 }
 
 /*---------------------------------------------------------------------
-   Handle the Button 3 popup on the Save: button
+   Handle the user's action on the Button 3 popup on the Save: button
 -----------------------------------------------------------------------*/
 
 void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
@@ -7266,16 +7398,20 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
       XBell(XtDisplay(w),100); POPDOWN_strlist_chooser ; return ;
    }
 
-   seq->opt.save_nsize = seq->opt.save_pnm = 0 ;
+   seq->opt.save_nsize = seq->opt.save_pnm = seq->opt.save_agif = 0 ;
 
    pp = cbs->ival ;
-   if( pp == 0 || pp > ppmto_num ) seq->opt.save_filter = -1 ;
-   else                            seq->opt.save_filter = pp-1 ;
+        if( pp == 0                   ) seq->opt.save_filter=-1  ; /* Save:bkg */
+   else if( pp <= ppmto_num           ) seq->opt.save_filter=pp-1; /* Save.typ */
+   else if( ppmto_agif_filter != NULL ) seq->opt.save_agif  = 1  ; /* Sav:aGif */
 
    SET_SAVE_LABEL(seq) ; return ;
 }
 
-/*---------------------------------------------------------------------*/
+/*--------------------------------------------------------------------
+  make Button 3 popup for Save button
+  -- 27 Jul 2001: add stuff for animated GIF (ppmto_num+1 index)
+----------------------------------------------------------------------*/
 
 void ISQ_butsave_EV( Widget w , XtPointer client_data ,
                      XEvent * ev , Boolean * continue_to_dispatch )
@@ -7288,20 +7424,26 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
          if( event->button == Button3 ){
-            char **strlist ; int pp ;
+            char **strlist ; int pp , nstr ;
             if( seq->dialog_starter==NBUT_DISP ){XBell(XtDisplay(w),100); return; }
-            strlist = (char **) malloc(sizeof(char *)*(ppmto_num+1)) ;
-            strlist[0] = "Save:bkg" ;
-            for( pp=0 ; pp < ppmto_num ; pp++ ){
+            strlist = (char **) malloc(sizeof(char *)*(ppmto_num+2)) ;
+            strlist[0] = strdup("Save:bkg") ;             /* special case */
+            for( pp=0 ; pp < ppmto_num ; pp++ ){          /* filters */
                strlist[pp+1] = malloc(16) ;
                sprintf(strlist[pp+1],"Save.%.3s",ppmto_suffix[pp]) ;
             }
+            nstr = ppmto_num+1 ;
+            if( ppmto_agif_filter != NULL )
+               strlist[nstr++] = strdup("Sav:aGif") ;     /* special case */
             MCW_choose_strlist( w , "Image Save format" ,
-                                ppmto_num+1 ,
+                                nstr ,
+                                (seq->opt.save_agif && ppmto_agif_filter != NULL)
+                                 ? ppmto_num+1 :
                                 (seq->opt.save_filter < 0)
                                  ? 0 :seq->opt.save_filter+1 ,
                                 strlist ,
                                 ISQ_butsave_choice_CB , (XtPointer) seq ) ;
+            for( pp=0 ; pp < nstr ; pp++ ) free(strlist[pp]) ;
             free(strlist) ;
          } else if( event->button == Button2 ){
             MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );

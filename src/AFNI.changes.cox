@@ -2927,3 +2927,10 @@
 26 Jul 2001
  * Modified imseq.[ch] to allow 'Save One' to be independent of the
      output filter (e.g., so can save a montage into a JPEG file).
+
+27 Jul 2001
+ * Modified imseq.[ch] to add 'Sav:aGif' to save a sequence of images
+     into animated GIF format (using gifsicle or whirlgif).
+ * Included gifsicle directory into AFNI distribution, and added to
+     Makefile.INCLUDE to make gifsicle (whirlgif was already there).
+     However, neither of these program is made by default.
