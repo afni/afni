@@ -216,12 +216,14 @@ ShowCmap: SUMA_xColBar.c
 libply.a: 
 	( cd PLY ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
+	  $(RANLIB) $@ ;	\
 	  $(CP) -p $@ .. ; )
 
 libglut.a:
 	( cd GLUT/libglut ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
-	  $(CP) -p $@ ../.. ; )
+	  $(RANLIB) $@ ;	\
+     $(CP) -p $@ ../.. ; )
      
 install:
 	@echo Installing Binaries...
