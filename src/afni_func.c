@@ -4320,6 +4320,12 @@ XmString AFNI_range_label( Three_D_View *im3d )
 
 ENTRY("AFNI_range_label") ;
 
+   if( im3d != NULL && im3d->vinfo != NULL ){  /* 30 Mar 2005 */
+     im3d->vinfo->stats_anat_ok =
+      im3d->vinfo->stats_func_ok =
+       im3d->vinfo->stats_thresh_ok = 0 ;
+   }
+
    /*** anat statistics ***/
 
    if( IM3D_OPEN(im3d) ){
@@ -4342,7 +4348,6 @@ STATUS("anat_now statistics") ;
        im3d->vinfo->stats_anat_ok = 1 ;
      } else {
 STATUS("can't load anat_now bstat") ;
-       im3d->vinfo->stats_anat_ok = 0 ;
      }
    }
 
@@ -4368,7 +4373,6 @@ STATUS("fim_now statistics") ;
        im3d->vinfo->stats_func_ok = 1 ;
      } else {
 STATUS("can't load fim_now bstat") ;
-       im3d->vinfo->stats_func_ok = 0 ;
      }
 
      iv = im3d->vinfo->thr_index ;
@@ -4382,7 +4386,6 @@ STATUS("thr_now statistics") ;
       im3d->vinfo->stats_thresh_ok = 1 ;
      } else {
 STATUS("can't load thr_now bstat") ;
-      im3d->vinfo->stats_thresh_ok = 0 ;
      }
    }
 
