@@ -9246,7 +9246,7 @@ static DCMDICT PRC_dictionary[] = {
 #if 0
     {DCM_PRCPPSID, DCM_CS, "PRC PPS ID"},
 #else
-    {DCM_PRCPPSID, DCM_SH, "PRC PPS ID"},    /* RWC */
+    {DCM_PRCPPSID, DCM_SH, "PRC PPS ID"},    /* RWC correction */
 #endif
     {DCM_PRCPPSDESCRIPTION, DCM_LO, "PRC PPS Description"},
     {DCM_PRCPPTYPEDESCRIPTION, DCM_LO, "PRC Perf Procedure Type Description"},

@@ -2,6 +2,18 @@
 
 /*-----------------------------------------------------------------------------------*/
 
+#define NMOMAX 256
+typedef struct {
+  int good ;                       /* data in here is good? */
+  int mosaic_num ;                 /* how many slices in 1 'image' */
+  float slice_xyz[NMOMAX][3] ;     /* Sag, Cor, Tra coordinates */
+} Siemens_extra_info ;
+
+static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int strize ) ;
+static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
+
+/*-----------------------------------------------------------------------------------*/
+
 static int LITTLE_ENDIAN_ARCHITECTURE = -1 ;
 
 static void RWC_set_endianosity(void)
@@ -50,6 +62,9 @@ static char *elist[] = {
  "0008 0070" ,  /* ID Manufacturer */
  "0018 1310" ,  /* Acquisition Matrix */
 
+ "0029 1010" ,  /* Siemens addendum #1 */
+ "0029 1020" ,  /* Siemens addendum #2 */
+
 NULL } ;
 
 #define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
@@ -84,6 +99,9 @@ NULL } ;
 #define E_ID_MANUFACTURER            24
 #define E_ACQ_MATRIX                 25
 
+#define E_SIEMENS_1                  26    /* 31 Oct 2002 */
+#define E_SIEMENS_2                  27
+
 /*-----------------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
 -------------------------------------------------------------------------------------*/
@@ -103,10 +121,14 @@ MRI_IMARR * mri_read_dicom( char *fname )
    FILE *fp ;
    short sbot,stop ;
    int have_orients=0 ;
-   static int nzoff=0 ;
    int ior,jor,kor ;
+   static int nzoff=0 ;   /* for determining z-axis orientation/offset from multiple calls */
 
    int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
+   Siemens_extra_info sexinfo ;                           /* 31 Oct 2002 */
+   float xcen,ycen,zcen ;
+   int use_xycen=0 ;
+   float dxx,dyy,dzz ;
 
 ENTRY("mri_read_dicom") ;
 
@@ -178,7 +200,7 @@ ENTRY("mri_read_dicom") ;
 
    /* check if BITS_STORED and HIGH_BIT are aligned */
 
-#define NWMAX 3
+#define NWMAX 2
    if( epos[E_BITS_STORED] != NULL && epos[E_HIGH_BIT] != NULL ){
      int bs=0 , hb=0 ;
      ddd = strstr(epos[E_BITS_STORED],"//") ; sscanf(ddd+2,"%d",&bs) ;
@@ -225,15 +247,15 @@ ENTRY("mri_read_dicom") ;
 
    /* get image nx & ny */
 
-   ddd = strstr(epos[E_ROWS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
-   nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
-   if( nx < 2 ){ free(ppp) ; RETURN(NULL); }
+   ddd = strstr(epos[E_ROWS],"//") ;                 /* 31 Oct 2002: */
+   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }    /* Oops: ROWS is ny and */
+   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;                 /*       COLUMNS is nx! */
+   if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
    if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
-   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
-   if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
+   nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
+   if( nx < 2 ){ free(ppp) ; RETURN(NULL); }
 
    /* get number of slices */
 
@@ -257,7 +279,7 @@ ENTRY("mri_read_dicom") ;
               epos[E_ACQ_MATRIX]                 != NULL    ){
 
      ddd = strstr(epos[E_ACQ_MATRIX],"//") ;
-     if( ddd != NULL ){
+     if( ddd != NULL ){                                  /* should always happen */
        int aa=0,bb=0,cc=0,dd=0 ;
        sscanf( ddd+2 , "%d%d%d%d" , &aa,&bb,&cc,&dd ) ;  /* should be 0 nx ny 0 */
        if( bb > 1 && cc > 1 ){
@@ -284,15 +306,59 @@ ENTRY("mri_read_dicom") ;
            mosaic = 1 ;
            mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
            if( nwarn < NWMAX )
-             fprintf(stderr,"++ NOTICE: %dx%d Mosaic of %dx%d images in file %s\n",
+             fprintf(stderr,"++ NOTICE: %dx%d Siemens Mosaic of %dx%d images in file %s\n",
                     mos_ix,mos_iy,mos_nx,mos_ny,fname) ;
            nwarn++ ;
            if( nwarn == NWMAX )
-             fprintf(stderr,"++ NOTICE: no more Mosiac messages will be printed\n") ;
+             fprintf(stderr,"++ NOTICE: no more Siemens Mosiac messages will be printed\n") ;
+
+           /* 31 Oct 2002: extract extra Siemens info, if possible */
+
+           sexinfo.good = 0 ;  /* start by marking it as bad */
+
+           if( epos[E_SIEMENS_2] != NULL ){
+             int len=0 , loc=0 ;
+             sscanf(epos[E_SIEMENS_2],"%x%x%d [%d" , &aa,&bb , &len,&loc ) ;
+             if( len > 0 && loc > 0 ){
+               char *str ;
+               fp = fopen( fname , "rb" ) ;
+               if( fp == NULL ){ free(ppp) ; RETURN(NULL); }
+               str = extract_bytes_from_file( fp, (off_t)loc, (size_t)len, 1 ) ;
+               fclose(fp) ;
+               if( str != NULL ){  /* got good data, so parse it */
+                 get_siemens_extra_info( str , &sexinfo ) ;
+                 free(str) ;
+               }
+             }
+           } /* end of decoding Siemens extra info [will be used later] */
+
+         } /* end of if mosaic sizes are reasonable */
+
+         else {                        /* warn about bad mosaic sizes */
+           static int nwarn=0 ;
+           if( nwarn < NWMAX )
+             fprintf(stderr,
+                     "++ WARNING: bad SIEMENS MOSAIC parameters: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
+                     mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
+           nwarn++ ;
+           if( nwarn == NWMAX )
+             fprintf(stderr,"++ NOTICE: no more SIEMENS MOSAIC parameter messages will be printed\n");
          }
+
+       } /* end of if E_ACQ_MATRIX has good values in it */
+
+       else {                  /* warn if E_ACQ_MATRIX has bad values */
+         static int nwarn=0 ;
+         if( nwarn < NWMAX )
+           fprintf(stderr,"++ WARNING: bad SIEMENS MOSAIC Acquisition Matrix: %d %d %d %d\n",
+                   aa,bb,cc,dd ) ;
+         nwarn++ ;
+         if( nwarn == NWMAX )
+           fprintf(stderr,"++ NOTICE: no more SIEMENS MOSAIC Acquisition Matrix messages will be printed\n");
        }
-     }
-   }
+
+     } /* end of if have '//' in E_ACQ_MATRIX */
+   } /* end of if a Siemens mosaic */
 
    /* try to get dx, dy, dz, dt */
 
@@ -453,35 +519,44 @@ ENTRY("mri_read_dicom") ;
 
      /* truncate zero images out of tail of mosaic */
 
-     for( ii=mos_nz-1 ; ii >= 0 ; ii-- ){  /* loop backwards over images */
-       im = IMARR_SUBIM(imar,ii) ;
-       switch( im->kind ){
-         case MRI_short:{
-           short *ar = mri_data_pointer( im ) ;
-           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
-           if( jj < im->nvox ) last_ii = ii ;
-         }
-         break ;
+     if( sexinfo.good ){  /* the new way: use the mosaic count from Siemens extra info */
 
-         case MRI_byte:{
-           byte *ar = mri_data_pointer( im ) ;
-           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
-           if( jj < im->nvox ) last_ii = ii ;
-         }
-         break ;
+       if( sexinfo.mosaic_num < IMARR_COUNT(imar) )
+         TRUNCATE_IMARR(imar,sexinfo.mosaic_num) ;
 
-         case MRI_int:{
-           int *ar = mri_data_pointer( im ) ;
-           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
-           if( jj < im->nvox ) last_ii = ii ;
+     } else {  /* the old way: find the last image with a nonzero value inside */
+
+       for( ii=mos_nz-1 ; ii >= 0 ; ii-- ){  /* loop backwards over images */
+         im = IMARR_SUBIM(imar,ii) ;
+         switch( im->kind ){
+           case MRI_short:{
+             short *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+             if( jj < im->nvox ) last_ii = ii ;
+           }
+           break ;
+
+           case MRI_byte:{
+             byte *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+             if( jj < im->nvox ) last_ii = ii ;
+           }
+           break ;
+
+           case MRI_int:{
+             int *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+             if( jj < im->nvox ) last_ii = ii ;
+           }
+           break ;
          }
-         break ;
+         if( last_ii >= 0 ) break ;
        }
-       if( last_ii >= 0 ) break ;
-     }
 
-     if( last_ii <= 0 ) last_ii = 1 ;
-     if( last_ii+1 < IMARR_COUNT(imar) ) TRUNCATE_IMARR(imar,last_ii+1) ;
+       if( last_ii <= 0 ) last_ii = 1 ;
+       if( last_ii+1 < IMARR_COUNT(imar) ) TRUNCATE_IMARR(imar,last_ii+1) ;
+
+     } /* end of truncating off all zero images at end */
 
 #if 0
 fprintf(stderr,"\nmri_read_dicom Mosaic: mos_nx=%d mos_ny=%d mos_ix=%d mos_iy=%d slices=%d\n",
@@ -491,11 +566,13 @@ MCHECK ;
 
    } /* end of mosaic input mode */
 
-   /* store some information in MRILIB globals, too? */
+   fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
 
-   if( dt > 0.0 && MRILIB_tr <= 0.0 ) MRILIB_tr = dt ;
+   /*-- store some extra information in MRILIB globals, too? --*/
 
-   /* try to get image orientation fields (also, set ior,jor,kor) */
+   if( dt > 0.0 && MRILIB_tr <= 0.0 ) MRILIB_tr = dt ;  /* TR */
+
+   /*-- try to get image orientation fields (also, set ior,jor,kor) --*/
 
    if( epos[E_IMAGE_ORIENTATION] != NULL ){    /* direction cosines of image plane */
 
@@ -507,49 +584,59 @@ MCHECK ;
        xn = sqrt( xc1*xc1 + xc2*xc2 + xc3*xc3 ) ; /* vector norms */
        yn = sqrt( yc1*yc1 + yc2*yc2 + yc3*yc3 ) ;
        if( qq == 6 && xn > 0.0 && yn > 0.0 ){     /* both vectors OK */
+
          xc1 /= xn ; xc2 /= xn ; xc3 /= xn ;      /* normalize vectors */
          yc1 /= yn ; yc2 /= yn ; yc3 /= yn ;
 
-         MRILIB_xcos[0] = xc1 ; MRILIB_xcos[1] = xc2 ;  /* save direction */
-         MRILIB_xcos[2] = xc3 ; use_MRILIB_xcos = 1 ;   /* cosine vectors */
+         if( !use_MRILIB_xcos ){
+           MRILIB_xcos[0] = xc1 ; MRILIB_xcos[1] = xc2 ;  /* save direction */
+           MRILIB_xcos[2] = xc3 ; use_MRILIB_xcos = 1 ;   /* cosine vectors */
+         }
 
-         MRILIB_ycos[0] = yc1 ; MRILIB_ycos[1] = yc2 ;
-         MRILIB_ycos[2] = yc3 ; use_MRILIB_ycos = 1 ;
+         if( !use_MRILIB_ycos ){
+           MRILIB_ycos[0] = yc1 ; MRILIB_ycos[1] = yc2 ;
+           MRILIB_ycos[2] = yc3 ; use_MRILIB_ycos = 1 ;
+         }
 
          /* x-axis orientation */
          /* ior determines which spatial direction is x-axis  */
          /* and is the direction that has the biggest change */
 
-         dx = fabs(xc1) ; ior = 1 ;
-         dy = fabs(xc2) ; if( dy > dx ){ ior=2; dx=dy; }
-         dz = fabs(xc3) ; if( dz > dx ){ ior=3;        }
-         dx = MRILIB_xcos[ior-1] ; if( dx < 0. ) ior = -ior;
-         switch( ior ){
-           case -1: MRILIB_orients[0] = 'L'; MRILIB_orients[1] = 'R'; break;
-           case  1: MRILIB_orients[0] = 'R'; MRILIB_orients[1] = 'L'; break;
-           case -2: MRILIB_orients[0] = 'P'; MRILIB_orients[1] = 'A'; break;
-           case  2: MRILIB_orients[0] = 'A'; MRILIB_orients[1] = 'P'; break;
-           case  3: MRILIB_orients[0] = 'I'; MRILIB_orients[1] = 'S'; break;
-           case -3: MRILIB_orients[0] = 'S'; MRILIB_orients[1] = 'I'; break;
-           default: MRILIB_orients[0] ='\0'; MRILIB_orients[1] ='\0'; break;
+         dxx = fabs(xc1) ; ior = 1 ;
+         dyy = fabs(xc2) ; if( dyy > dxx ){ ior=2; dxx=dyy; }
+         dzz = fabs(xc3) ; if( dzz > dxx ){ ior=3;        }
+         dxx = MRILIB_xcos[ior-1] ; if( dxx < 0. ) ior = -ior;
+
+         if( MRILIB_orients[0] == '\0' ){
+           switch( ior ){
+             case -1: MRILIB_orients[0] = 'L'; MRILIB_orients[1] = 'R'; break;
+             case  1: MRILIB_orients[0] = 'R'; MRILIB_orients[1] = 'L'; break;
+             case -2: MRILIB_orients[0] = 'P'; MRILIB_orients[1] = 'A'; break;
+             case  2: MRILIB_orients[0] = 'A'; MRILIB_orients[1] = 'P'; break;
+             case  3: MRILIB_orients[0] = 'I'; MRILIB_orients[1] = 'S'; break;
+             case -3: MRILIB_orients[0] = 'S'; MRILIB_orients[1] = 'I'; break;
+             default: MRILIB_orients[0] ='\0'; MRILIB_orients[1] ='\0'; break;
+           }
          }
 
          /* y-axis orientation */
          /* jor determines which spatial direction is y-axis  */
          /* and is the direction that has the biggest change */
 
-         dx = fabs(yc1) ; jor = 1 ;
-         dy = fabs(yc2) ; if( dy > dx ){ jor=2; dx=dy; }
-         dz = fabs(yc3) ; if( dz > dx ){ jor=3;        }
-         dy = MRILIB_ycos[jor-1] ; if( dy < 0. ) jor = -jor;
-         switch( jor ){
-           case -1: MRILIB_orients[2] = 'L'; MRILIB_orients[3] = 'R'; break;
-           case  1: MRILIB_orients[2] = 'R'; MRILIB_orients[3] = 'L'; break;
-           case -2: MRILIB_orients[2] = 'P'; MRILIB_orients[3] = 'A'; break;
-           case  2: MRILIB_orients[2] = 'A'; MRILIB_orients[3] = 'P'; break;
-           case  3: MRILIB_orients[2] = 'I'; MRILIB_orients[3] = 'S'; break;
-           case -3: MRILIB_orients[2] = 'S'; MRILIB_orients[3] = 'I'; break;
-           default: MRILIB_orients[2] ='\0'; MRILIB_orients[3] ='\0'; break;
+         dxx = fabs(yc1) ; jor = 1 ;
+         dyy = fabs(yc2) ; if( dyy > dxx ){ jor=2; dxx=dyy; }
+         dzz = fabs(yc3) ; if( dzz > dxx ){ jor=3;        }
+         dyy = MRILIB_ycos[jor-1] ; if( dyy < 0. ) jor = -jor;
+         if( MRILIB_orients[2] == '\0' ){
+           switch( jor ){
+             case -1: MRILIB_orients[2] = 'L'; MRILIB_orients[3] = 'R'; break;
+             case  1: MRILIB_orients[2] = 'R'; MRILIB_orients[3] = 'L'; break;
+             case -2: MRILIB_orients[2] = 'P'; MRILIB_orients[3] = 'A'; break;
+             case  2: MRILIB_orients[2] = 'A'; MRILIB_orients[3] = 'P'; break;
+             case  3: MRILIB_orients[2] = 'I'; MRILIB_orients[3] = 'S'; break;
+             case -3: MRILIB_orients[2] = 'S'; MRILIB_orients[3] = 'I'; break;
+             default: MRILIB_orients[2] ='\0'; MRILIB_orients[3] ='\0'; break;
+           }
          }
 
          MRILIB_orients[6] = '\0' ;   /* terminate orientation string */
@@ -561,7 +648,7 @@ MCHECK ;
      }
 
    } else if( epos[E_PATIENT_ORIENTATION] != NULL ){  /* symbolic orientation of image */
-
+                                                      /* [not so useful, or common] */
      ddd = strstr(epos[E_PATIENT_ORIENTATION],"//") ;
      if( ddd != NULL ){
        char xc='\0' , yc='\0' ;
@@ -571,8 +658,8 @@ MCHECK ;
          case 'R': MRILIB_orients[0] = 'R'; MRILIB_orients[1] = 'L'; ior= 1; break;
          case 'P': MRILIB_orients[0] = 'P'; MRILIB_orients[1] = 'A'; ior=-2; break;
          case 'A': MRILIB_orients[0] = 'A'; MRILIB_orients[1] = 'P'; ior= 2; break;
-         case 'F': MRILIB_orients[0] = 'I'; MRILIB_orients[1] = 'S'; ior= 3; break;
-         case 'H': MRILIB_orients[0] = 'S'; MRILIB_orients[1] = 'I'; ior=-3; break;
+         case 'F': MRILIB_orients[0] = 'I'; MRILIB_orients[1] = 'S'; ior= 3; break;  /* F = foot */
+         case 'H': MRILIB_orients[0] = 'S'; MRILIB_orients[1] = 'I'; ior=-3; break;  /* H = head */
          default:  MRILIB_orients[0] ='\0'; MRILIB_orients[1] ='\0'; ior= 0; break;
        }
        switch( toupper(yc) ){
@@ -584,14 +671,50 @@ MCHECK ;
          case 'H': MRILIB_orients[2] = 'S'; MRILIB_orients[3] = 'I'; jor=-3; break;
          default:  MRILIB_orients[2] ='\0'; MRILIB_orients[3] ='\0'; jor= 0; break;
        }
-       MRILIB_orients[4] = '\0' ;      /* terminate orientation string */
+       MRILIB_orients[6] = '\0' ;      /* terminate orientation string */
        kor = 6 - abs(ior)-abs(jor) ;   /* which spatial direction is z-axis */
        have_orients = (ior != 0 && jor != 0) ;
      }
 
    }  /* end of 2D image orientation */
 
-   /* try to get image offset (position), if have orientation from above */
+   /*-- try to get image offset (position), if have orientation from above --*/
+
+   if( nzoff == 0 && have_orients && mosaic && sexinfo.good ){  /* 01 Nov 2002: use Siemens mosaic info */
+     int qq ;
+     float z0 = sexinfo.slice_xyz[0][kor-1] ;   /* kor from orients above */
+     float z1 = sexinfo.slice_xyz[1][kor-1] ;   /* z offsets of 1st 2 slices */
+
+#if 0
+     /* Save x,y center of this 1st slice */
+
+     xcen = sexinfo.slice_xyz[0][abs(ior)-1] ;
+     ycen = sexinfo.slice_xyz[0][abs(jor)-1] ; use_xycen = 1 ;
+#endif
+
+     /* finish z orientation now */
+
+     if( z1-z0 < 0.0 ) kor = -kor ;
+     if( MRILIB_orients[4] == '\0' ){
+       switch( kor ){
+         case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+         case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
+         case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+         case -2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+         case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+         case -3: MRILIB_orients[4] = 'S'; MRILIB_orients[5] = 'I'; break;
+         default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+       }
+     }
+     MRILIB_orients[6] = '\0' ;
+
+#if 0
+fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients) ;
+#endif
+
+     MRILIB_zoff = z0 ; use_MRILIB_zoff = 1 ;
+     if( kor > 0 ) MRILIB_zoff = -MRILIB_zoff ;
+   }
 
    if( nzoff < 2 && epos[E_IMAGE_POSITION] != NULL && have_orients ){
      ddd = strstr(epos[E_IMAGE_POSITION],"//") ;
@@ -605,13 +728,18 @@ MCHECK ;
          if( nzoff == 0 ){  /* 1st DICOM image */
 
            zoff = zz ;      /* save this for 2nd image calculation */
-           switch( kor ){   /* may be changed on second image */
-             case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
-             case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
-             case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
-             default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+
+           /* 01 Nov 2002: in mosaic case, may have set this already */
+
+           if( MRILIB_orients[4] == '\0' ){
+             switch( kor ){   /* may be changed on second image */
+               case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+               case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+               case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+               default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+             }
+             MRILIB_orients[6] = '\0' ;
            }
-           MRILIB_orients[6] = '\0' ;
 
            /* Save x,y offsets of this 1st slice */
 
@@ -623,7 +751,16 @@ MCHECK ;
            MRILIB_yoff = xyz[qq-1] ; use_MRILIB_yoff = 1 ;
            if( jor > 0 ) MRILIB_yoff = -MRILIB_yoff ;
 
-         } else if( nzoff == 1 ){  /* 2nd DICOM image */
+           /* 01 Nov 2002: adjust x,y offsets for mosaic */
+
+           if( mosaic ){
+             if( MRILIB_xoff < 0.0 ) MRILIB_xoff += 0.5*dx*mos_nx*(mos_ix-1) ;
+             else                    MRILIB_xoff -= 0.5*dx*mos_nx*(mos_ix-1) ;
+             if( MRILIB_yoff < 0.0 ) MRILIB_yoff += 0.5*dy*mos_ny*(mos_iy-1) ;
+             else                    MRILIB_yoff -= 0.5*dy*mos_ny*(mos_iy-1) ;
+           }
+
+         } else if( nzoff == 1 && !use_MRILIB_zoff ){  /* 2nd DICOM image */
 
            float qoff = zz - zoff ;    /* vive la difference */
            if( qoff < 0 ) kor = -kor ; /* kor determines z-axis orientation */
@@ -669,7 +806,6 @@ MCHECK ;
    }
 #endif
 
-   fclose(fp) ;     /* 10 Sep 2002: oopsie */
    RETURN( imar );
 }
 
@@ -851,4 +987,105 @@ MCHECK ;
    } /* end of if Siemens mosaic elements were present */
 
    free(ppp) ; RETURN(nz);
+}
+
+/*--------------------------------------------------------------------------------*/
+/*! Read some bytes from an open file at a given offset.  Return them in a
+    newly malloc()-ed array.  If return value is NULL, something bad happened.
+----------------------------------------------------------------------------------*/
+
+static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int strize )
+{
+   char *ar ;
+   size_t nn , ii ;
+
+   if( fp == NULL || len == 0 ) return NULL ;    /* bad inputs? */
+   ar = calloc(1,len+1) ;                        /* make space for data */
+   lseek( fileno(fp) , start , SEEK_SET ) ;      /* set file position */
+   nn = fread( ar , 1 , len , fp ) ;             /* read data */
+   if( nn == 0 ){ free(ar); return NULL; }       /* bad read? */
+
+   if( strize ){                                 /* convert to C string? */
+     for( ii=0 ; ii < nn ; ii++ )                /* scan for NULs and    */
+       if( ar[ii] == '\0' ) ar[ii] = ' ' ;       /* replace with blanks  */
+   }
+   return ar ;
+}
+
+/*--------------------------------------------------------------------------------*/
+/*! Parse the Siemens extra stuff for mosaic information.
+    Ad hoc, based on sample data and no documentation.
+----------------------------------------------------------------------------------*/
+
+static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
+{
+   char *cpt , *dpt ;
+   int nn , mm , snum , have_x,have_y,have_z , last_snum=-1 ;
+   float x,y,z , val ;
+   char name[1024] ;
+
+   /*-- check for good inputs --*/
+
+   if( mi == NULL ) return ;
+
+   mi->good = 0 ;
+   for( snum=0 ; snum < NMOMAX ; snum++ )
+     mi->slice_xyz[snum][0] = mi->slice_xyz[snum][1] = mi->slice_xyz[snum][2] = 0.0 ;
+
+   if( str == NULL || *str == '\0' ) return ;
+
+   /*-- find string that starts the slice information array --*/
+
+   cpt = strstr( str , "sSliceArray.asSlice[" ) ;
+   if( cpt == NULL ) return ;
+
+   /*-- scan for coordinates, until can't find a good string to scan --*/
+
+   have_x = have_y = have_z = 0 ;
+   while(1){
+
+     /* interepret next string into
+         snum = slice subscript (0,1,...)
+         name = variable name
+         val  = number of RHS of '=' sign
+         mm   = # of bytes used in scanning the above */
+
+     nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
+                  &snum , name , &val , &mm ) ;
+
+     if( nn   <  3                   ) break ;  /* bad conversion set */
+     if( snum <  0 || snum >= NMOMAX ) break ;  /* slice number out of range */
+
+     /* assign val based on name */
+
+          if( strcmp(name,"sPosition.dSag") == 0 ){ x = val; have_x = 1; }
+     else if( strcmp(name,"sPosition.dCor") == 0 ){ y = val; have_y = 1; }
+     else if( strcmp(name,"sPosition.dTra") == 0 ){ z = val; have_z = 1; }
+
+     /* if now have all 3 coordinates, save them */
+
+     if( have_x && have_y && have_z ){
+       mi->slice_xyz[snum][0] = x; mi->slice_xyz[snum][1] = y; mi->slice_xyz[snum][2] = z;
+       last_snum = snum ;
+       have_x = have_y = have_z = 0 ;
+     }
+
+     /* skip to next slice array assignment string (which may not be a coordinate) */
+
+     dpt = cpt + mm ;                                           /* just after 'val' */
+     cpt =  dpt ;
+     while( isspace(*cpt) ) cpt++ ;                             /* skip over whitespace */
+     if( cpt-dpt > 16 ) break ;                                 /* too much space */
+     if( strncmp(cpt,"sSliceArray.asSlice[",20) != 0 ) break ;  /* bad next line */
+
+   }
+
+   /* if got at least 1 slice info, mark data as being good */
+
+   if( last_snum >= 0 ){
+     mi->good       = 1 ;
+     mi->mosaic_num = last_snum+1 ;
+   }
+
+   return ;
 }
