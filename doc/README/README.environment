@@ -1541,6 +1541,25 @@ then set this variable to the string "NO".
 N.B.: This variable only applies if you are using AFNI with a TrueColor X11
 visual.  If you are using a PseudoColor visual, then this variable is ignored!
 
+----------------------------
+Variable: AFNI_RESCAN_METHOD
+----------------------------
+On 28 Dec 2002, I modified the way that the "Rescan" operation in AFNI works
+when re-reading datasets from sessions.  The old way would purge and replace
+all datasets; the new way just adds datasets that didn't exist before.
+There are some differences between these methods:
+  "Replace" will detect changes to a dataset, so if you add a brick using
+    3dTcat -glueto (for example), this will be reflected in AFNI.
+  "Replace" will cause troubles if you are using a dataset in a plugin;
+    the two main examples are volume rendering and the drawing plugin.
+    This problem will occur even if you didn't do anything to the dataset
+    on disk, since the internal pointer to the dataset will have been
+    changed by the rescan, but the plugins won't know that.
+  "Add" will not detect changes to a dataset on disk, but it also won't
+    affect the pointers to the existing datasets.
+You can choose to use the "Replace" method (the old style) by setting
+this environment variable to the string "REPLACE".
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
