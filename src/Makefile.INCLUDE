@@ -602,7 +602,7 @@ strblast:strblast.o
 
 3dWarp:3dWarp.o
 	$(RM) $@
-	$(CC) -o 3dWarp 3dWarp.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dWarp 3dWarp.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@

@@ -31,13 +31,13 @@ ENTRY("mri_overlay_2D") ;
    } else if( imbase->kind == MRI_byte && imover->kind == MRI_rgb ){
      imov = mri_to_byte( imover ) ;
    } else if( imbase->kind == MRI_rgb  && imover->kind == MRI_byte ){
-     imov == mri_to_rgb( imover ) ;
+     imov = mri_to_rgb( imover ) ;
    } else {
      EXRETURN ;   /* bad inputs */
    }
 
    nxba = imbase->nx ; nyba = imbase->ny ; ba = mri_data_pointer(imbase) ;
-   nxov = imover->nx ; nyov = imover->ny ; ov = mri_data_pointer(imover) ;
+   nxov = imov  ->nx ; nyov = imov  ->ny ; ov = mri_data_pointer(imov  ) ;
    psiz = imbase->pixel_size ;
 
    if( ix >= nxba || jy >= nyba ){          /* bad placement */
