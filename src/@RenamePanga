@@ -155,7 +155,8 @@ RENAMING:
 	set Nremain = `expr $Ntot - $Nimage` #remaining images
 	while ($Nremain > 0)
 		#echo "Nimage $Nimage, Nloc $Nloc, Ntot $Ntot, Nremain $Nremain"
-		set Nwhatapain = `expr $Nremain + $Nloc`  # *** Dec 23 03
+		# set Nwhatapain = `expr $Nremain + $Nloc`  # *** Dec 23 03
+	    set Nwhatapain = `expr $Nremain + $Nloc - 1`  # ** Jun 07 04 [rickr]
                                           #add first image's offset to next condition or indexing
                                           #will fail for time series containing
                                           #less than 1000 images total 
