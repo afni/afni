@@ -3,12 +3,17 @@
 
 #define PROG_NAME		"3dSurfMaskDump"
 
-#define S2V_USE_LONG      	  1
-#define S2V_USE_SHORT     	  2
-#define S2V_USE_VERSION   	  3
+#define SMD_USE_LONG      	  1
+#define SMD_USE_SHORT     	  2
+#define SMD_USE_VERSION   	  3
 
-#define S2V_DEBUG_MAX_LEV	  4
-#define S2V_DEBUG_TEST_NODE	  7
+#define SMD_DEBUG_MAX_LEV	  4
+#define SMD_DEBUG_TEST_NODE	  7
+
+#define SMD_M2_INDEX_VOXEL        0
+#define SMD_M2_INDEX_NODE         1
+
+#define SMD_M2_STEPS_DEFAULT      2
 
 /* surface to voxel mapping codes, along with command-line strings */
 typedef enum
@@ -33,6 +38,7 @@ typedef struct
     char   * map_str;			/* how to map surf(s) to dset  */
     int      no_head;			/* do not write output headers */
     int      debug;			/* level of debug output       */
+    char   * m2_index_str;		/* node or voxel index type    */
     int      m2_steps;			/* # int steps for mask2 map   */
 } opts_t;
 
@@ -41,6 +47,7 @@ typedef struct
     int      map;			/* type of mapping from surfs  */
     int      debug;			/* for printing extra output   */
     int      no_head;			/* do not write output headers */
+    int      m2_index;			/* node or voxel index type    */
     int      m2_steps;			/* # int steps for mask2 map   */
     byte   * cmask;			/* computed mask               */
 } smap_opts_t;

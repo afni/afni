@@ -1544,8 +1544,12 @@ void SUMA_FreeMessageListData(void *Hv)
       SUMA_RETURNe;
    }
    
+#if 0   /* Message and Source are never allocated and should not be freed. */
+        /*                                            2003 June 19 [rickr] */
    if (H->Message) SUMA_free(H->Message);
    if (H->Source) SUMA_free(H->Source);
+#endif
+
    if (H) SUMA_free(H);
    
    SUMA_RETURNe;
