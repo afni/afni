@@ -45,7 +45,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI \
+           3dAFNItoANALYZE
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -61,7 +62,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
-                  Vecwarp 3dMINCtoAFNI
+                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -339,6 +340,10 @@ dsetdup:dsetdup.o
 3dMINCtoAFNI:3dMINCtoAFNI.o
 	$(RM) $@
 	$(CC) -o 3dMINCtoAFNI 3dMINCtoAFNI.o $(LFLAGS) $(LLIBS)
+
+3dAFNItoANALYZE:3dAFNItoANALYZE.o
+	$(RM) $@
+	$(CC) -o 3dAFNItoANALYZE 3dAFNItoANALYZE.o $(LFLAGS) $(LLIBS)
 
 3dvolreg:3dvolreg.o
 	$(RM) $@
@@ -973,7 +978,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
            mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o          \
-           mri_get_cmass.o mri_scale.o
+           mri_get_cmass.o mri_scale.o mri_write_analyze.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
