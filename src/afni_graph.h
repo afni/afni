@@ -385,7 +385,8 @@ typedef struct {
 
    char * tuser[MAT_MAX][MAT_MAX] ;                            /* user strings */
 
-   int mat,mat_max , xpoint,ypoint,zpoint , grid_index , grid_spacing ;
+   int mat,mat_max , xpoint,ypoint,zpoint ;
+   int grid_index , grid_spacing , grid_fixed ;
    int xFD , yFD , gx,gy , xc,yc ;
    int grid_color , common_base , init_ignore , polort ;
    float fscale ;
@@ -429,6 +430,7 @@ typedef struct {
    Widget opt_grid_menu     , opt_grid_cbut   ,
           opt_grid_down_pb  , opt_grid_up_pb  ,
           opt_grid_choose_pb , opt_pin_choose_pb ;
+   Widget opt_grid_auto_pb ;                      /* 02 Apr 2004 */
    Widget opt_grid_HorZ_pb ;                      /* 05 Jan 1999 */
    Widget opt_slice_menu    , opt_slice_cbut  ,
           opt_slice_down_pb , opt_slice_up_pb ;

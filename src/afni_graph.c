@@ -506,6 +506,7 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_PULLRIGHT(opt_grid_menu,opt_grid_cbut     ,"Grid"    , "Change vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_down_pb  ,"Down [g]", "Reduce vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_up_pb    ,"Up   [G]", "Increase vertical grid spacing" ) ;
+   OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_auto_pb  ,"AutoGrid", "Set grid spacing automatically" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_choose_pb,"Choose"  , "Set vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_pin_choose_pb ,"Index Pin","Fix index range of graph window" ) ;  /* 17 Mar 2004 */
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_HorZ_pb  ,"HorZ [h]", "Horizontal line at Zero" ) ; /* 05 Jan 1999 */
@@ -850,6 +851,7 @@ if(PRINT_TRACING)
    grapher->grid_color  = GRID_COLOR(grapher) ;
 #endif
    grapher->grid_index  = -1 ;
+   grapher->grid_fixed  =  0 ;  /* 02 Apr 2004 */
    grapher->key_Nlock   =  0 ;
    grapher->xFD         =  0 ;
    grapher->yFD         =  0 ;
@@ -1469,10 +1471,12 @@ static int grid_ar[GRID_MAX] =
 static void auto_grid( MCW_grapher *grapher , int npoints )
 {
    int ii ;
+   if( npoints < 2 ) return ;            /* 02 Apr 2004 */
    for( ii=GRID_MAX-1 ; ii > 0 ; ii-- )
      if( grid_ar[ii] <= npoints/3 ) break;
-   grapher->grid_index = ii ;
+   grapher->grid_index   = ii ;
    grapher->grid_spacing = grid_ar[ii] ;
+   grapher->grid_fixed   = 0 ;           /* 02 Apr 2004 */
    return ;
 }
 
@@ -2616,6 +2620,7 @@ void grid_down( MCW_grapher * grapher )
    grapher->grid_index--;
    if (grapher->grid_index < 0) grapher->grid_index = 0;
    grapher->grid_spacing = grid_ar[grapher->grid_index] ;
+   grapher->grid_fixed   = 1 ;  /* 02 Apr 2004 */
    redraw_graph(grapher,0) ;
    return ;
 }
@@ -2631,6 +2636,7 @@ void grid_up( MCW_grapher * grapher )
    grapher->grid_index++;
    if (grapher->grid_index >= GRID_MAX) grapher->grid_index = GRID_MAX - 1;
    grapher->grid_spacing = grid_ar[grapher->grid_index] ;
+   grapher->grid_fixed   = 1 ;  /* 02 Apr 2004 */
    redraw_graph(grapher,0) ;
    return ;
 }
@@ -3368,6 +3374,12 @@ ENTRY("GRA_opt_CB") ;
       EXRETURN ;
    }
 
+   if( w == grapher->opt_grid_auto_pb ){     /* 02 Apr 2004 */
+     auto_grid( grapher , NPTS(grapher) ) ;
+     redraw_graph(grapher,0) ;
+     EXRETURN ;
+   }
+
    if( w == grapher->opt_grid_HorZ_pb ){     /* 05 Jan 1999 */
       GRA_handle_keypress( grapher , "h" , NULL ) ;
       EXRETURN ;
@@ -3434,44 +3446,44 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_scale_choose_pb ){
-      MCW_choose_integer( grapher->option_rowcol , "Scale" ,
-                          -9999 , 9999 , (int)(grapher->fscale) ,
-                          GRA_scale_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
+     MCW_choose_integer( grapher->option_rowcol , "Scale" ,
+                         -9999 , 9999 , (int)(grapher->fscale) ,
+                         GRA_scale_choose_CB , (XtPointer) grapher ) ;
+     EXRETURN ;
    }
 
 #ifndef USE_OPTMENUS
    if( w == grapher->opt_mat_choose_pb ){
-      MCW_choose_integer( grapher->option_rowcol , "Matrix" ,
-                          1 , grapher->mat_max , grapher->mat ,
-                          GRA_mat_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
+     MCW_choose_integer( grapher->option_rowcol , "Matrix" ,
+                         1 , grapher->mat_max , grapher->mat ,
+                         GRA_mat_choose_CB , (XtPointer) grapher ) ;
+     EXRETURN ;
    }
 #endif
 
    if( w == grapher->opt_grid_choose_pb ){
-      MCW_choose_integer( grapher->option_rowcol , "Grid" ,
-                          grid_ar[0] , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
-                          GRA_grid_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
+     MCW_choose_integer( grapher->option_rowcol , "Grid" ,
+                         grid_ar[0] , grid_ar[GRID_MAX-1] , grapher->grid_spacing ,
+                         GRA_grid_choose_CB , (XtPointer) grapher ) ;
+     EXRETURN ;
    }
 
    if( w == grapher->opt_pin_choose_pb ){   /* 19 Mar 2004 */
-      char *lvec[2] = { "Bot" , "Top" } ;
-      int   ivec[2] ;
-      ivec[0] = grapher->pin_bot ; ivec[1] = grapher->pin_top ;
-      MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
-                         2 , lvec,ivec ,
-                         GRA_pin_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
+     char *lvec[2] = { "Bot" , "Top" } ;
+     int   ivec[2] ;
+     ivec[0] = grapher->pin_bot ; ivec[1] = grapher->pin_top ;
+     MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
+                        2 , lvec,ivec ,
+                        GRA_pin_choose_CB , (XtPointer) grapher ) ;
+     EXRETURN ;
    }
 
 #ifndef USE_OPTMENUS
    if( w == grapher->opt_slice_choose_pb && grapher->status->nz > 1 ){
-      MCW_choose_integer( grapher->option_rowcol , "Slice" ,
-                          0 , grapher->status->nz - 1 , grapher->zpoint ,
-                          GRA_slice_choose_CB , (XtPointer) grapher ) ;
-      EXRETURN ;
+     MCW_choose_integer( grapher->option_rowcol , "Slice" ,
+                         0 , grapher->status->nz - 1 , grapher->zpoint ,
+                         GRA_slice_choose_CB , (XtPointer) grapher ) ;
+     EXRETURN ;
    }
 #endif
 
@@ -3676,6 +3688,7 @@ ENTRY("GRA_grid_choose_CB") ;
 
    if( ! GRA_VALID(grapher) ) EXRETURN ;
    grapher->grid_spacing = cbs->ival ;
+   grapher->grid_fixed   = 1 ;  /* 02 Apr 2004 */
    redraw_graph(grapher,0) ;
    EXRETURN ;
 }
@@ -4058,6 +4071,7 @@ ENTRY("drive_MCW_grapher") ;
          int mm = (int) drive_data ;
          if( mm < 2 ) RETURN( False ) ;
          grapher->grid_spacing = mm ;
+         grapher->grid_fixed   = 1 ;  /* 02 Apr 2004 */
          redraw_graph(grapher,0) ;
          RETURN( True ) ;
       }
@@ -4387,7 +4401,7 @@ STATUS("replacing ort timeseries") ;
 
          if( grapher->pin_bot >= grapher->status->num_series-1 ) grapher->pin_bot = 0 ;
 
-         if( npold < 2 || !AFNI_noenv("AFNI_GRAPH_AUTOGRID") ){ /* 22 Sep 2000 */
+         if( npold < 2 || !grapher->grid_fixed ){ /* 22 Sep 2000 */
            auto_grid( grapher , NPTS(grapher) ) ;
          }
 

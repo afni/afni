@@ -5023,3 +5023,6 @@
      Widgets, but only after the timeseries chooser is popped up.  Stupid
      solution is to only unrealize widgets if this chooser was opened by
      the user.  WTF?
+
+02 Apr 2004
+ * Mods to fix auto_grid()-ing in afni_graph.[ch].
