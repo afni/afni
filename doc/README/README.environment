@@ -1851,6 +1851,18 @@ window.  The default value is 1, which is faster than video can be
 displayed anyway.  Set this to a larger value (e.g, 100) to slow down
 the image redraw rate.
 
+----------------------------
+Variable: AFNI_IMAGE_ENTROPY (editable)
+----------------------------
+If this numeric variable is set, this is the entropy of an image below
+which the 2%-98% image scaling will be disabled, and min-to-max will
+be used instead.  The units are bits/byte; a useful threshold seems to
+be in the range (0.2,0.5).  For images that only have a few values
+different from 0, the 2%-98% scaling can produce weird artifacts.  Such
+images will also have a very low entropy.  Since this variable can be
+changed interactively from the Edit Environment controls, you can play
+with it to see how it affects your images.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

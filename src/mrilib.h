@@ -1024,4 +1024,7 @@ extern MRI_IMAGE *mri_warp3D_quintic( MRI_IMAGE *, int,int,int , /* 06 Aug 2003 
 extern MRI_IMAGE * mri_warp3D_affine( MRI_IMAGE * , THD_vecmat ) ;
 extern MRI_IMAGE * mri_warp3D_resize( MRI_IMAGE *, int,int,int ) ;
 
+extern double mri_entropy16( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
+extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
+
 #endif /* _MCW_MRILIB_HEADER_ */
