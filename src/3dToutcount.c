@@ -254,8 +254,7 @@ int main( int argc , char * argv[] )
       } else {                               /* 07 Aug 2002: detrend */
 
         float val ;
-        for( jj=0 ; jj < nref ; jj++ ) fit[jj] = 0.0 ;      /* no constraints */
-        jj = cl1_solve( nvals , nref , far , ref , fit ) ;  /* get fit */
+        jj = cl1_solve( nvals , nref , far , ref , fit,0 ); /* get fit */
         if( jj ) continue ;                                 /* bad! should not happen */
         for( iv=0 ; iv < nvals ; iv++ ){                    /* detrend */
           val = 0.0 ;

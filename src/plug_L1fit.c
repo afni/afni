@@ -324,9 +324,7 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
 
    /** find L1 fit coefficients **/
 
-   for( ii=0 ; ii < nref ; ii++ ) fit[ii] = 0.0 ;
-
-   ii = cl1_solve( nlen , nref , vec+ignore , ref , fit ) ;
+   ii = cl1_solve( nlen , nref , vec+ignore , ref , fit,0 ) ;
 
    if( ii != 0 ) return ;  /* bad fit */
 
