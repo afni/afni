@@ -2,7 +2,7 @@
 
 int main( int argc , char *argv[] )
 {
-   int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny ;
+   int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff ;
    MRI_IMAGE *tim ;
    MRI_IMARR *tar ;
    double sum , *eval , *amat , **tvec , *bmat ;
@@ -40,6 +40,7 @@ int main( int argc , char *argv[] )
 
    /* input 1D files */
 
+   ff = iarg ;
    INIT_IMARR(tar) ; if( do_one ) nvec = 1 ;
    for( ; iarg < argc ; iarg++ ){
      tim = mri_read_1D( argv[iarg] ) ;
@@ -54,6 +55,18 @@ int main( int argc , char *argv[] )
      }
      nvec += tim->ny ;
      ADDTO_IMARR(tar,tim) ;
+   }
+
+   printf("\n") ;
+   printf("++ 1ddot input vectors:\n") ;
+   jj = 0 ;
+   if( do_one ){
+     printf("00..00: all ones\n") ; jj = 1 ;
+   }
+   for( mm=0 ; mm < IMARR_COUNT(tar) ; mm++ ){
+     tim = IMARR_SUBIM(tar,mm) ;
+     printf("%02d..%02d: %s\n", jj,jj+tim->ny-1, argv[ff+mm] ) ;
+     jj += tim->ny ;
    }
 
    /* create normalized vectors from 1D files */
@@ -105,7 +118,6 @@ int main( int argc , char *argv[] )
 
    /* print matrix out */
 
-   printf("\n") ;
    printf("++ Correlation Matrix:\n   ") ;
    for( jj=0 ; jj < nvec ; jj++ ) printf("    %02d    ",jj) ;
    printf("\n   ") ;
