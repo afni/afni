@@ -1695,6 +1695,20 @@ two such warning messages possible:
   Button-3: On Solaris 2.8, Button-3 popup menus don't work quite properly.
 If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS to NO.
 
+----------------------
+Variable: AFNI_1D_TIME
+----------------------
+If this YES/NO variable is set to YES, then when a multicolumn .1D file is
+read in as an AFNI dataset, the column variable is taken to be time, and
+a time-dependent dataset is created.  The default is to create a bucket
+dataset.
+
+-------------------------
+Variable: AFNI_1D_TIME_TR
+-------------------------
+If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in
+seconds) of a .1D file read in as an AFNI dataset.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
