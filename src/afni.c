@@ -3296,9 +3296,9 @@ ENTRY("AFNI_read_inputs") ;
 
    } /** end of images input **/
 
-   else if( GLOBAL_argopt.read_sessions ){
+   /*--- sessions of 3D datasets (from to3d or other AFNI programs) ---*/
 
-   /*--- sessions of 3D datasets (from to3d or from afni itself) ---*/
+   else if( GLOBAL_argopt.read_sessions ){
 
       char str[256] ;
       Boolean good ;
@@ -3329,6 +3329,9 @@ ENTRY("AFNI_read_inputs") ;
                   PARENTIZE( gss->func[qd][vv] , NULL ) ;{
                   DSET_MARK_FOR_IMMORTALITY( gss->func[qd][vv] ) ;
                }
+         } else {
+            sprintf(str,"\n*** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
+            REPORT_PROGRESS(str) ;
          }
       }
 
@@ -3443,9 +3446,18 @@ if(PRINT_TRACING)
          if( new_ss == NULL || new_ss->num_anat <= 0 ){  /* this is bad */
 
            if( new_ss != NULL ){  /* no anats is bad */
+#if 0
              sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
              REPORT_PROGRESS(str) ;
              nskip_noanat ++ ;
+#else                                       /* 31 Jul 2002: make a w-o-d anat */
+             int vv ;
+             for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                new_ss->anat[0][vv] = EDIT_wod_copy( new_ss->func[0][vv] ) ;
+             new_ss->num_anat = 1 ;
+             sprintf(str,"\n*** session      %s has no anatomies!  Func duplicate used.",dname) ;
+             REPORT_PROGRESS(str) ;
+#endif
            } else {               /* no data at all is bad */
              STATUS("no datasets found!") ;
            }
