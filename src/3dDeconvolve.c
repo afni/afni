@@ -240,6 +240,11 @@
   Mod:     Suppress final timing output without -jobs option.
   Date:    15 August 2003 -- rickr
 
+  Mod:     In check_for_valid_inputs(), instead of failing when a stim_length
+           is too short, zeropad the time series.  To turn this off, look
+           for the ALLOW_EXTEND macro in this code.
+  Date     22 Oct 2003 -- RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -1823,6 +1828,7 @@ void check_for_valid_inputs
   int * block_list,               /* list of block (run) starting points */
   int num_blocks,                 /* number of blocks (runs) */
   int * stim_length,              /* length of stimulus time series arrays */
+  float **stimulus ,              /* 22 Oct 2003: stimulus time series arrays */
   int ** good_list                /* list of usable time points */
 )
 
@@ -1848,6 +1854,7 @@ void check_for_valid_inputs
   int num_glt;             /* number of general linear tests */
   int * glt_rows;          /* number of linear constraints in glt */
   int iglt;                /* general linear test index */
+  int nerr=0 ;             /* 22 Oct 2003 */
 
 
   /*----- Initialize local variables -----*/
@@ -1930,15 +1937,40 @@ void check_for_valid_inputs
 
 
   /*----- Check lengths of stimulus time series -----*/
+
+#define ALLOW_EXTEND
   for (is = 0;  is < num_stimts;  is++)
     {
       if (stim_length[is] < nt*nptr[is])
 	{
+#ifndef ALLOW_EXTEND
 	  sprintf (message, "Input stimulus time series file %s is too short",
 		   option_data->stim_filename[is]);
 	  DC_error (message);
+#else
+          int nlen=nt*nptr[is], qq ;
+          fprintf(stderr,
+                  "++ WARNING: input stimulus time series file %s is too short:\n"
+                  "            length = %d, but should be at least %d.\n" ,
+            option_data->stim_filename[is] , stim_length[is] , nlen ) ;
+          stimulus[is] = (float *) realloc( stimulus[is] , sizeof(float)*nlen ) ;
+          for( qq=stim_length[is] ; qq < nlen ; qq++ ) stimulus[is][qq] = 0.0 ;
+          stim_length[is] = nlen ; nerr++ ;
+#endif
 	}
     }
+#ifdef ALLOW_EXTEND
+    if( nerr > 0 ){
+      char *eee = getenv("AFNI_3dDeconvolve_extend") ;
+      if( eee != NULL && (*eee=='n' || *eee=='N') ){
+        fprintf(stderr,"** ERROR: Can't continue with too short files!\n"
+                       "          AFNI_3dDeconvolve_extend = %s\n",eee ) ;
+        exit(1) ;
+      }
+      fprintf(stderr,"++ EXTENDING short files with zero values\n"
+                     "   (to stop this behavior, setenv AFNI_3dDeconvolve_extend NO)\n") ;
+    }
+#endif
 
 
   /*----- Check whether time lags are reasonable -----*/
@@ -2518,7 +2550,7 @@ void initialize_program
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time, 
 			  *fmri_length, *censor_array, *censor_length, 
-			  *block_list, *num_blocks, *stim_length, good_list);
+			  *block_list, *num_blocks, *stim_length, *stimulus, good_list);
   
 
   /*----- Allocate memory for output volumes -----*/

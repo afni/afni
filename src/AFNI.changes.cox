@@ -4743,3 +4743,5 @@
 22 Oct 2003
  * Inten->Save Palette with colorscales now saves a colorscale file.
  * Inten->Read Palette with colorscales now reads a colorscale file.
+ * AFNI_MPEG_FRAMERATE in imseq.c.
+ * Extend short input time series in 3dDeconvolve.c.

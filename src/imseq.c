@@ -3276,7 +3276,7 @@ ENTRY("ISQ_saver_CB") ;
             /* MPEG-1 */
 
             else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
-               int alen ; char *alf , *oof , *par ;
+               int alen ; char *alf , *oof , *par , *frate ;
                char *qscale , *pattrn ;
                FILE *fpar ;
 
@@ -3290,11 +3290,12 @@ ENTRY("ISQ_saver_CB") ;
                sprintf(oof,"%smpg",seq->saver_prefix) ;
                qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
                pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
+               frate =getenv("AFNI_MPEG_FRAMERATE");if(frate==NULL)frate ="24"   ;
                fprintf(fpar,
                           "OUTPUT %s\n"             /* oof */
                           "GOP_SIZE          5\n"
                           "SLICES_PER_FRAME  1\n"
-                          "FRAME_RATE        24\n"
+                          "FRAME_RATE        %s\n"
                           "BASE_FILE_FORMAT  PPM\n"
                           "INPUT_CONVERT     *\n"
                           "INPUT_DIR         .\n"
@@ -3310,7 +3311,7 @@ ENTRY("ISQ_saver_CB") ;
                           "INPUT\n"
                           "%s%s.*.ppm [%05d-%05d]\n"
                           "END_INPUT\n"
-                       , oof , pattrn , qscale ,
+                       , oof , frate , pattrn , qscale ,
                          seq->saver_prefix,tsuf,seq->saver_from,seq->saver_to ) ;
                fclose(fpar) ;
 
