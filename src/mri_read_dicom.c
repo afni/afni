@@ -342,9 +342,8 @@ ENTRY("mri_read_dicom") ;
        int sexi_size;
 
        sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_start = sexi_start - str_sexinfo;
        sexi_tmp = calloc( 1, sexi_size );
-       memcpy(sexi_tmp,str_sexinfo+(int)sexi_start,sexi_size);
+       memcpy(sexi_tmp,sexi_start,sexi_size);
        free(str_sexinfo);
        str_sexinfo = sexi_tmp;
      }
@@ -1271,9 +1270,8 @@ ENTRY("mri_imcount_dicom") ;
        int sexi_size;
 
        sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_start = sexi_start - str_sexinfo;
        sexi_tmp = calloc( 1, sexi_size );
-       memcpy(sexi_tmp,str_sexinfo+(int)sexi_start,sexi_size);
+       memcpy(sexi_tmp,sexi_start,sexi_size);
        free(str_sexinfo);
        str_sexinfo = sexi_tmp;
      }
