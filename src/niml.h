@@ -361,6 +361,8 @@ extern int NI_malloc_tracking_enabled(void) ;
 #define NI_FREE(p) ( NI_free(p), (p)=NULL )
 
 extern char * NI_strncpy( char *, const char *, size_t ) ;
+extern char * NI_strdup( char * ) ;
+extern int    NI_strlen( char * ) ;
 extern long   NI_filesize( char * ) ;
 extern int    NI_clock_time(void) ;
 extern int    NI_byteorder(void) ;
