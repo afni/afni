@@ -10,15 +10,18 @@
 #define MATVEC_FOR 1
 #define MATVEC_BAC 2
 
-static THD_vecmat matvec_for, matvec_bac , matvec_warp ;
-static THD_vecmat ijk_to_dicom ;
+static THD_vecmat matvec_warp ;
+static THD_vecmat dicom_in2out , dicom_out2in ;
+static THD_vecmat ijk_to_dicom_in , ijk_to_dicom_out ;
 
 static void warp_func( float xi,float yi,float zi, float *xo,float *yo,float *zo )
 {
    *xo = matvec_warp.mm.mat[0][0] * xi + matvec_warp.mm.mat[0][1] * yi +
          matvec_warp.mm.mat[0][2] * zi + matvec_warp.vv.xyz[0]          ;
+
    *yo = matvec_warp.mm.mat[1][0] * xi + matvec_warp.mm.mat[1][1] * yi +
          matvec_warp.mm.mat[1][2] * zi + matvec_warp.vv.xyz[1]          ;
+
    *zo = matvec_warp.mm.mat[2][0] * xi + matvec_warp.mm.mat[2][1] * yi +
          matvec_warp.mm.mat[2][2] * zi + matvec_warp.vv.xyz[2]          ;
 }
@@ -40,56 +43,56 @@ static void warp_corners( THD_3dim_dataset *inset,
    float xx,yy,zz , xbot,ybot,zbot , xtop,ytop,ztop ;
 
    LOAD_FVEC3( corner , nx0,ny0,nz0) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = xtop = xx ;
    ybot = ytop = yy ;
    zbot = ztop = zz ;
 
    LOAD_FVEC3( corner , nx1,ny0,nz0) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx0,ny1,nz0) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx1,ny1,nz0) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx0,ny0,nz1) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx1,ny0,nz1) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx0,ny1,nz1) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
    zbot = MIN(zz,zbot); ztop = MAX(zz,ztop);
 
    LOAD_FVEC3( corner , nx1,ny1,nz1) ;
-   wcorn = VECMAT_VEC( ijk_to_dicom , corner ) ;
+   wcorn = VECMAT_VEC( ijk_to_dicom_in , corner ) ;
    warp_func( wcorn.xyz[0],wcorn.xyz[1],wcorn.xyz[2] , &xx,&yy,&zz ) ;
    xbot = MIN(xx,xbot); xtop = MAX(xx,xtop);
    ybot = MIN(yy,ybot); ytop = MAX(yy,ytop);
@@ -104,7 +107,8 @@ static void warp_corners( THD_3dim_dataset *inset,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset , *outset ;
-   int nx,ny,nz,nxyz,nval , kk ;
+   int nxin,nyin,nzin,nxyzin,nvals , kk ;
+   int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
    int nopt=1 , verb=0 ;
    int use_matvec=0 ;
@@ -121,38 +125,38 @@ int main( int argc , char * argv[] )
             "--------------------------\n"
             "Transform Defining Options: [exactly one of these must be used]\n"
             "--------------------------\n"
-            "  -matvec_for mmm  = Read a 3x4 affine transform matrix+vector\n"
-            "                      from file 'mmm':\n"
-            "                       x_out = Matrix x_in + Vector\n"
+            "  -matvec_in2out mmm  = Read a 3x4 affine transform matrix+vector\n"
+            "                         from file 'mmm':\n"
+            "                          x_out = Matrix x_in + Vector\n"
             "\n"
-            "  -matvec_inv mmm  = Read a 3x4 affine transform matrix+vector\n"
-            "                      from file 'mmm':\n"
-            "                       x_in = Matrix x_out + Vector\n"
+            "  -matvec_out2in mmm  = Read a 3x4 affine transform matrix+vector\n"
+            "                          from file 'mmm':\n"
+            "                          x_in = Matrix x_out + Vector\n"
             "\n"
-            "               N.B.: The coordinate vectors described above are\n"
-            "                     defined in 'DICOM' ('RAI') coordinate order.\n"
+            "              ** N.B.: The coordinate vectors described above are\n"
+            "                       defined in DICOM ('RAI') coordinate order.\n"
             "-----------------------\n"
             "Other Transform Options:\n"
             "-----------------------\n"
-            "  -linear        }\n"
-            "  -cubic         } = Chooses spatial interpolation method.\n"
-            "  -NN            }     [default = linear]\n"
+            "  -linear     }\n"
+            "  -cubic      } = Chooses spatial interpolation method.\n"
+            "  -NN         }     [default = linear]\n"
             "\n"
-            "  -newgrid ddd     = Tells program to compute new dataset on a\n"
-            "                       new 3D grid, with spacing of 'ddd' mmm.\n"
-            "                     * If this option is given, then the new\n"
-            "                       3D region of space covered by the grid\n"
-            "                       is computed by warping the 8 corners of\n"
-            "                       the input dataset, then laying down a\n"
-            "                       regular grid with spacing 'ddd'.\n"
-            "                     * If this option is NOT given, then the\n"
-            "                       new dataset is computed on the old\n"
-            "                       dataset's grid.\n"
+            "  -newgrid ddd  = Tells program to compute new dataset on a\n"
+            "                    new 3D grid, with spacing of 'ddd' mmm.\n"
+            "                  * If this option is given, then the new\n"
+            "                    3D region of space covered by the grid\n"
+            "                    is computed by warping the 8 corners of\n"
+            "                    the input dataset, then laying down a\n"
+            "                    regular grid with spacing 'ddd'.\n"
+            "                  * If this option is NOT given, then the\n"
+            "                    new dataset is computed on the old\n"
+            "                    dataset's grid.\n"
             "---------------------\n"
             "Miscellaneous Options:\n"
             "---------------------\n"
-            "  -verb            = Print out some information along the way.\n"
-            "  -prefix ppp      = Sets the prefix of the output dataset.\n"
+            "  -verb         = Print out some information along the way.\n"
+            "  -prefix ppp   = Sets the prefix of the output dataset.\n"
             "\n"
            ) ;
      exit(0) ;
@@ -229,36 +233,36 @@ int main( int argc , char * argv[] )
        }
 
        matar = MRI_FLOAT_PTR(matim) ;
-       use_matvec = (strstr(argv[nopt-1],"_for") != NULL) ? MATVEC_FOR : MATVEC_BAC ;
+       use_matvec = (strstr(argv[nopt-1],"_in2out") != NULL) ? MATVEC_FOR : MATVEC_BAC ;
 
        switch( use_matvec ){
 
          case MATVEC_FOR:
-           LOAD_MAT  ( matvec_for.mm, matar[0],matar[1],matar[2],
-                                      matar[4],matar[5],matar[6],
-                                      matar[8],matar[9],matar[10] ) ;
-           LOAD_FVEC3( matvec_for.vv, matar[3],matar[7],matar[11] ) ;
+           LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
+                                         matar[4],matar[5],matar[6],
+                                         matar[8],matar[9],matar[10] ) ;
+           LOAD_FVEC3( dicom_in2out.vv, matar[3],matar[7],matar[11] ) ;
 
-           dm = MAT_DET( matvec_for.mm ) ;
+           dm = MAT_DET( dicom_in2out.mm ) ;
            if( dm == 0.0 ){
              fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
            }
 
-           matvec_bac = INV_VECMAT( matvec_for ) ;
+           dicom_out2in = INV_VECMAT( dicom_in2out ) ;
          break ;
 
          case MATVEC_BAC:
-           LOAD_MAT  ( matvec_bac.mm, matar[0],matar[1],matar[2],
-                                      matar[4],matar[5],matar[6],
-                                      matar[8],matar[9],matar[10] ) ;
-           LOAD_FVEC3( matvec_bac.vv, matar[3],matar[7],matar[11] ) ;
+           LOAD_MAT  ( dicom_out2in.mm, matar[0],matar[1],matar[2],
+                                         matar[4],matar[5],matar[6],
+                                         matar[8],matar[9],matar[10] ) ;
+           LOAD_FVEC3( dicom_out2in.vv, matar[3],matar[7],matar[11] ) ;
 
-           dm = MAT_DET( matvec_bac.mm ) ;
+           dm = MAT_DET( dicom_out2in.mm ) ;
            if( dm == 0.0 ){
              fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
            }
 
-           matvec_for = INV_VECMAT( matvec_bac ) ;
+           dicom_in2out = INV_VECMAT( dicom_out2in ) ;
          break ;
        }
 
@@ -300,14 +304,17 @@ int main( int argc , char * argv[] )
 
      fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
      exit(1) ;
-   }
+
+   } /* end of loop over options */
+
+   /* check to see if we have a warp specified */
 
    if( !use_matvec ){
      fprintf(stderr,"** Don't you want to use -matvec?\n") ;
      exit(1) ;
    }
 
-   /*-- last argument should be a dataset --*/
+   /*-- 1 remaining argument should be a dataset --*/
 
    if( nopt != argc-1 ){
      fprintf(stderr,"** Command line should have exactly 1 dataset!\n"
@@ -324,7 +331,7 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   /*-- compute mapping from dataset (i,j,k) to DICOM coords --*/
+   /*-- compute mapping from input dataset (i,j,k) to DICOM coords --*/
 
    { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
 
@@ -336,21 +343,93 @@ int main( int argc , char * argv[] )
      xyz_to_dicom.mm = inset->daxes->to_dicomm ;
      LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
 
-     ijk_to_dicom = MUL_VECMAT( xyz_to_dicom , ijk_to_xyz ) ;
+     ijk_to_dicom_in = MUL_VECMAT( xyz_to_dicom , ijk_to_xyz ) ;
    }
-
-   /*-- load and warp corners of input data --*/
-
-   warp_corners( inset , &xbot,&xtop , &ybot,&ytop , &zbot,&ztop ) ;
 
    /*-- make empty output dataset --*/
 
-   nx   = DSET_NX(inset) ;
-   ny   = DSET_NY(inset) ;
-   nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
-   nval = DSET_NVALS(inset) ;
+   nxin  = DSET_NX(inset) ;
+   nyin  = DSET_NY(inset) ;
+   nzin  = DSET_NZ(inset) ; nxyzin = nxin*nyin*nzin;
+   nvals = DSET_NVALS(inset) ;
 
-   outset = EDIT_empty_copy( inset ) ;
+   if( !use_newgrid ){                   /* output is on same grid as input */
+
+     outset = EDIT_empty_copy( inset ) ;
+     nxout = nxin ; nyout = nyin ; nzout = nzin ; nxyzout = nxyzin ;
+
+   } else {                              /* output is on new grid */
+
+     float xmid,ymid,zmid ;
+     THD_ivec3 nxyz , orixyz ;
+     THD_fvec3 dxyz , orgxyz ;
+     int *datum ;
+
+     /* compute DICOM coordinates of warped corners */
+
+     matvec_warp = dicom_in2out ;
+     warp_corners( inset , &xbot,&xtop , &ybot,&ytop , &zbot,&ztop ) ;
+
+     nxout = (int)( (xtop-xbot)/ddd_newgrid+0.999 ); if( nxout < 1 ) nxout = 1;
+     nyout = (int)( (ytop-ybot)/ddd_newgrid+0.999 ); if( nyout < 1 ) nyout = 1;
+     nzout = (int)( (ztop-zbot)/ddd_newgrid+0.999 ); if( nzout < 1 ) nzout = 1;
+     nxyzout = nxout*nyout*nzout ;
+
+     xmid = 0.5*(xbot+xtop) ; ymid = 0.5*(ybot+ytop) ; zmid = 0.5*(zbot+ztop) ;
+     xbot = xmid - 0.5*nxout*ddd_newgrid ; xtop = xbot + (nxout-1)*ddd_newgrid ;
+     ybot = ymid - 0.5*nyout*ddd_newgrid ; ytop = ybot + (nyout-1)*ddd_newgrid ;
+     zbot = zmid - 0.5*nzout*ddd_newgrid ; ztop = zbot + (nzout-1)*ddd_newgrid ;
+
+     fprintf(stderr,"++ Transformed grid:\n"
+                    "++   xbot = %10.4g  xtop = %10.4g  nx = %d\n"
+                    "++   ybot = %10.4g  ytop = %10.4g  ny = %d\n"
+                    "++   zbot = %10.4g  ztop = %10.4g  nz = %d\n" ,
+             xbot,xtop,nxout , ybot,ytop,nyout , zbot,ztop,nzout    ) ;
+
+     if( nxyzout == 1 ){
+       fprintf(stderr,"** Transformed dataset is too small!\n"); exit(1);
+     }
+
+     nxyz.ijk[0] = nxout ; dxyz.xyz[0] = ddd_newgrid ;  /* setup axes */
+     nxyz.ijk[1] = nyout ; dxyz.xyz[1] = ddd_newgrid ;
+     nxyz.ijk[2] = nzout ; dxyz.xyz[2] = ddd_newgrid ;
+
+     orixyz.ijk[0] = ORI_R2L_TYPE ; orgxyz.xyz[0] = xbot ;
+     orixyz.ijk[1] = ORI_A2P_TYPE ; orgxyz.xyz[1] = ybot ;
+     orixyz.ijk[2] = ORI_I2S_TYPE ; orgxyz.xyz[2] = zbot ;
+
+     /** create dataset and mangle it into the desired shape **/
+
+     outset = EDIT_empty_copy( NULL ) ;
+
+     datum = malloc( sizeof(int) * nvals ) ;
+     for( kk=0 ; kk < nvals ; kk++ ) datum[kk] = DSET_BRICK_TYPE(inset,kk) ;
+
+     EDIT_dset_items( outset ,
+                        ADN_nxyz        , nxyz ,
+                        ADN_xyzdel      , dxyz ,
+                        ADN_xyzorg      , orgxyz ,
+                        ADN_xyzorient   , orixyz ,
+                        ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                        ADN_nvals       , nvals ,
+                        ADN_type        , inset->type ,
+                        ADN_view_type   , inset->view_type ,
+                        ADN_func_type   , inset->func_type ,
+                        ADN_datum_array , datum ,
+                      ADN_none ) ;
+     free(datum) ;
+     if( DSET_NUM_TIMES(inset) > 1 )
+       EDIT_dset_items( outset ,
+                          ADN_ntt       , nvals ,
+                          ADN_tunits    , DSET_TIMEUNITS(inset) ,
+                          ADN_ttorg     , DSET_TIMEORIGIN(inset) ,
+                          ADN_ttdel     , DSET_TR(inset) ,
+                          ADN_ttdur     , DSET_TIMEDURATION(inset) ,
+                        ADN_none ) ;
+
+   } /*-- end of warping to new grid --*/
+
+   /*-- polish up the new dataset info --*/
 
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWarp" , argc,argv , outset ) ;
