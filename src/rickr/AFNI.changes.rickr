@@ -233,3 +233,13 @@
   * modified README.realtime to provide details of the BYTEORDER command
   * modified plug_realtime.c to accept BYTEORDER for MRI_complex images
 
+21 July 2003:
+  * modified SUMA_3dSurfMaskDump.[ch] -> version 2.3
+      - fixed a problem: voxels outside gpar dataset should be skipped (or
+	get a special value, like 0)
+      - added min/max distance output (at debug level > 0)
+
+22 July 2003:
+  * modified plug_crender.c to handle bigmode color bar (version 1.8)
+      ** need to add bigmode information to widget storage
+
