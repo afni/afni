@@ -919,7 +919,7 @@
          Makefile.sparc5_2.5, Makefile.sparky, Makefile.sunultra
 
 30 Dec 2004: nifti library and start of nifti_tool
-  * modified nifti/nifti1_io.[ch] (library v 1.0 - initial release version)
+  * modified nifti/nifti1_io.[ch] (library v 1.11)
       - moved static function prototypes from header to C file
       - free extensions in nifti_image_free()
   * added nifti/nifti_tool.[ch] (v 0.1) for new program, nifti_tool
@@ -933,4 +933,15 @@
   * afni_niml.c to allow changing the nodes for a surface, made receive
     message default to the terminal window
   * added a description of AFNI_SHOW_SURF_POPUPS in README.environment
+
+07 Jan 2005: INITIAL RELEASE OF NIFTI LIBRARY (v 1.0)
+   - added function nifti_set_filenames()
+   - added function nifti_read_header()
+   - added static function nhdr_looks_good()
+   - added static function need_nhdr_swap()
+   - exported nifti_add_exten_to_list symbol
+   - fixed #bytes written in nifti_write_extensions()
+   - only modify offset if it is too small (nifti_set_iname_offset)
+   - added nifti_type 3 to nifti_makehdrname and nifti_makeimgname
+   - added function nifti_set_filenames()
 
