@@ -4889,3 +4889,5 @@
      the dataset is still marked as being MINC (say), and we can't write
      those directly.  Solution: mark the dataset as AFNI-format, after
      loading it and before changing its name.
+ * Modified Makefile.* to use a "MAKE" macro instead of the fixed "make"
+     command.
