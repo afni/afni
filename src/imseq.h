@@ -469,7 +469,7 @@ typedef struct MCW_imseq {
      int    zoom_button1 , zoom_xp,zoom_yp ; /* 15 Mar 2002 */
 
      int cropit , crop_xa,crop_xb , crop_ya,crop_yb ; /* 11 Jun 2002 */
-     int crop_nxorg , crop_nyorg ;
+     int crop_nxorg , crop_nyorg , crop_allowed ;
 
 } MCW_imseq ;
 

@@ -4359,6 +4359,7 @@ static char * AFNI_image_help =
  "Shift/Ctrl/Alt + Button 3\n"
  "will open up the Disp/Mont/Save\n"
  "control panels, respectively.\n\n"
+ "Shift+Button2: drag crop region\n\n"
  "q = close window (quit)\n"
  "z = zoom out  Z = zoom in\n"
  "p = toggle panning" ;

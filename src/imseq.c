@@ -613,7 +613,9 @@ ENTRY("open_MCW_imseq") ;
    newseq->horig = tim->nx ;  /* save original dimensions */
    newseq->vorig = tim->ny ;
 
-   newseq->cropit = 0 ;       /* 11 Jun 2002 */
+   newseq->cropit       =  0 ; /* 11 Jun 2002 */
+   newseq->crop_allowed =  1 ;
+   newseq->crop_nxorg   = -1 ;
 
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
@@ -727,7 +729,6 @@ if( PRINT_TRACING ){
 
    newseq->image_frac = IMAGE_FRAC ;  /* 25 Oct 1996 */
 
-#if 1
    /** 27 Feb 2001: set minimum size for image windows,
                     as a fraction of the overall screen area **/
 
@@ -735,34 +736,28 @@ if( PRINT_TRACING ){
    if( eee != NULL ){
       float fff=0.0 ;
       ii = sscanf(eee,"%f",&fff) ;
-      if( ii > 0 && fff >= 0.0 && fff <= 0.9 ) minfrac = fff ;
-      else                                     minfrac = DEFAULT_MINFRAC ;
-    }
-
-   if( minfrac > 0.0 ){
-      float xxx = newseq->hactual , yyy = newseq->vactual ;
-      float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
-
-      if( fff < minfrac ){
-         fff = sqrt(minfrac/fff) ; xxx *= fff ; yyy *= fff ; /* expand area */
-         fff = ggg = 1.0 ;
-         if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let */
-         if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
-         fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
-         if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
-            xxx = newseq->hactual ; yyy = newseq->vactual ; /* back to old way */
-         }
-      }
-      xwide = (int) ( 0.49 + xxx / IMAGE_FRAC ) ;
-      yhigh = (int) ( 0.49 + yyy / IMAGE_FRAC ) ;
-   } else {
-      xwide = (int) ( 0.49 + newseq->hactual / IMAGE_FRAC ) ; /* the old code */
-      yhigh = (int) ( 0.49 + newseq->vactual / IMAGE_FRAC ) ;
+      if( ii > 0 && fff > 0.0 && fff <= 0.9 ) minfrac = fff ;
+      else                                    minfrac = DEFAULT_MINFRAC ;
    }
-#else
-   xwide = (int) ( 0.49 + newseq->hactual / IMAGE_FRAC ) ;  /* size of wform */
-   yhigh = (int) ( 0.49 + newseq->vactual / IMAGE_FRAC ) ;
-#endif
+
+   { float xxx = newseq->hactual , yyy = newseq->vactual ;
+     float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
+
+     if( fff < minfrac ){
+       fff = sqrt(minfrac/fff) ; xxx *= fff ; yyy *= fff ; /* expand area */
+       fff = ggg = 1.0 ;
+       if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let */
+       if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
+       fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
+       if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
+           xxx = newseq->hactual ; yyy = newseq->vactual ; /* back to old way */
+       }
+     }
+     xwide = (int) ( 0.49 + xxx / IMAGE_FRAC ) ;
+     yhigh = (int) ( 0.49 + yyy / IMAGE_FRAC ) ;
+   }
+
+   /* toggles for widget controls on or off */
 
    newseq->onoff_num   = 0 ;
    newseq->onoff_state = 1 ;  /* initially are on */
@@ -1478,6 +1473,9 @@ void ISQ_reset_dimen( MCW_imseq * seq,  float new_width_mm, float new_height_mm 
    float scale_x , scale_y ;
    int wx,hy,xx,yy ;   /* geometry of shell */
    int xp,yp ;
+   MCW_DC *dc ;
+
+   float minfrac=DEFAULT_MINFRAC ; char *eee ; /* 12 Jun 2002 */
 
 ENTRY("ISQ_reset_dimen") ;
 
@@ -1495,6 +1493,42 @@ ENTRY("ISQ_reset_dimen") ;
    xwide = new_width_mm / scale_x + 0.5 ;  /* so scale to new # of pixels */
    yhigh = new_height_mm/ scale_y + 0.5 ;
 
+   /** 12 Jun 2002: set minimum size for image windows,
+                    as a fraction of the overall screen area **/
+
+   eee = my_getenv("AFNI_IMAGE_MINFRAC") ;
+   if( eee != NULL ){
+      float fff=0.0 ; int ii ;
+      ii = sscanf(eee,"%f",&fff) ;
+      if( ii > 0 && fff > 0.0 && fff <= 0.9 ) minfrac = fff ;
+      else                                    minfrac = DEFAULT_MINFRAC ;
+   }
+
+   dc = seq->dc ;
+
+   { float xxx = xwide , yyy = yhigh ;
+     float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
+
+     /* modify if window too small */
+
+     if( fff < minfrac ){
+       fff = sqrt(minfrac/fff) ; xxx *= fff ; yyy *= fff ; /* expand area */
+     }
+
+     /* modify if window too big */
+
+     fff = ggg = 1.0 ;
+     if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let  */
+     if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
+     fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
+     if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
+        xxx = xwide ; yyy = yhigh ;                    /* back to old way */
+     }
+
+     xwide = (int)( 0.49 + xxx ) ;
+     yhigh = (int)( 0.49 + yyy ) ;
+   }
+
 if( PRINT_TRACING ){
   char str[256] ;
   sprintf(str,"last wid=%f hei=%f  new wid=%f hei=%f",
@@ -1507,6 +1541,8 @@ if( PRINT_TRACING ){
 
    seq->last_width_mm  = new_width_mm ;
    seq->last_height_mm = new_height_mm ;
+
+   /* possibly expand to include control widgets (if they are on) */
 
    if( seq->onoff_state ){
       xwide = (int) ( 0.49 + xwide / seq->image_frac ) ;  /* new size of shell */
@@ -4151,6 +4187,8 @@ DPR(" .. ButtonPress") ;
 
          MCW_discard_events( w , ButtonPressMask ) ;
 
+         /* default processing */
+
          switch( but ){
 
             case Button3:
@@ -4214,10 +4252,58 @@ DPR(" .. ButtonPress") ;
             /* pass this event to the separate handler, if allowed */
 
             case Button2:{
-               if( seq->button2_enabled && w == seq->wimage )
-                  ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
-               else
-                  { XBell(seq->dc->display,100); EXRETURN; }
+
+              /* 12 Jun 2002: Shift+Button2 for picking crop rectangle */
+
+              if( w == seq->wimage && (event->state & ShiftMask) ){
+
+                int x1=bx,y1=by , x2,y2 ;
+                int imx1,imy1,nim1 , imx2,imy2,nim2 , tt ;
+
+                if( !seq->crop_allowed ){
+                  XBell(seq->dc->display,100); EXRETURN;
+                }
+
+                /* let the user drag a rectangle */
+
+                RWC_drag_rectangle( w , x1,y1,&x2,&y2 ) ;
+
+                /* find corners of rectangle in original image pixels */
+
+                ISQ_mapxy( seq , x1,y1 , &imx1,&imy1,&nim1 ) ;
+                ISQ_mapxy( seq , x2,y2 , &imx2,&imy2,&nim2 ) ;
+
+                /* if dragging occured across sub-images in a montage, quit */
+
+                if( nim1 != nim2 ){
+                  XBell(seq->dc->display,100); EXRETURN;
+                }
+
+                /* make sure coords of rectangle run upwards */
+
+                if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
+                if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
+
+                if( imx2-imx1 < 9 || imy2-imy1 < 9 ){       /* turn crop off */
+                   seq->cropit = 0 ; seq->crop_nxorg = -1 ;
+                } else {                                    /* set crop region */
+                   seq->cropit = 1 ; seq->crop_nxorg = -1 ;
+                   seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
+                   seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
+                }
+
+                /* force redisplay */
+
+                ISQ_redisplay( seq , -1 , isqDR_display ) ;
+                EXRETURN ;
+              }
+
+              /* drawing mode */
+
+              if( seq->button2_enabled && w == seq->wimage )
+                 ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
+              else
+                 { XBell(seq->dc->display,100); EXRETURN; }
             }
             break ;
 
@@ -4910,7 +4996,6 @@ ENTRY("ISQ_place_dialog") ;
    XtVaSetValues( seq->dialog , XmNx , xp , XmNy , yp , NULL ) ;
    EXRETURN ;
 }
-
 
 /*-----------------------------------------------------------------------
   Callback for button and toggle actions in the display dialog
@@ -5655,6 +5740,7 @@ static unsigned char record_bits[] = {
 
          if( seq->record_mode ) RETURN( False ) ;  /* already on */
          seq->record_mode = 1 ;
+         seq->cropit = seq->crop_allowed = 0 ;     /* 12 Jun 2002 */
 
          /* create background pixmap */
 
@@ -7454,6 +7540,7 @@ DPR("Destroying overlay image array") ;
     that may vary with montaging.
 
     12 Mar 2002: modified to allow for possibility of zoom
+    12 Jun 2002: allow for cropping
 -------------------------------------------------------------------------*/
 
 void ISQ_mapxy( MCW_imseq * seq, int xwin, int ywin,
@@ -7536,6 +7623,11 @@ ENTRY("ISQ_mapxy") ;
       one of the rotate or mirror buttons in the "Disp" control box */
 
    ISQ_flipxy( seq , xim , yim ) ;
+
+   if( seq->cropit ){       /* 12 Jun 2002: allow for cropping */
+     *xim += seq->crop_xa ;
+     *yim += seq->crop_ya ;
+   }
 
    EXRETURN ;
 }
@@ -8791,6 +8883,39 @@ MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
 ENTRY("ISQ_getmemplot") ;
 
    mp = (MEM_plotdata *) seq->getim( nn,isqCR_getmemplot,seq->getaux );
+
+   if( mp != NULL && seq->cropit ){  /* scale memplot for cropping region */
+     float sx,sy,tx,ty ;
+     float xa=seq->crop_xa, xb=seq->crop_xb, ya=seq->crop_ya, yb=seq->crop_yb ;
+     float nxorg=seq->crop_nxorg , nyorg=seq->crop_nyorg ;
+
+     /** Original plot has [0..1]x[0..1] mapped to [0..nxorg]x[nyorg..0].
+         Now, image will be cropped to [xa..xb]x[ya..yb], which will be
+         mapped from plot coords [0..1]x[1..0].  So we need to transform
+         plot coords so that the new
+           x_plot=0 is at x_image=xa
+           x_plot=1 is at x_image=xb
+           y_plot=0 is at y_image=yb
+           y_plot=1 is at y_image=ya
+
+         Input:   x_plot  = x_image / nxorg
+                  y_plot  = 1 - y_image / nyorg
+
+         Output:  x_plot' = sx * x_plot + tx   } This is done in
+                  y_plot' = sy * y_plot + ty   } scale_memplot function
+
+         Find sx,tx so that x_plot'[x_image=xa]=0 and x_plot'[x_image=xb]=1.
+         Find sy,ty so that y_plot'[y_image=yb]=0 and y_plot'[y_image=ya]=1. **/
+
+     sx = nxorg / (xb-xa) ;
+     tx = -sx * xa / nxorg ;
+
+     sy = nyorg / (yb-ya) ;
+     ty = -sy * (1.0 - yb / nyorg) ;
+
+     scale_memplot( sx,tx , sy,ty , 1.0 , mp ) ;
+   }
+
    RETURN(mp) ;
 }
 
@@ -8805,6 +8930,10 @@ MRI_IMAGE * ISQ_getoverlay( int nn , MCW_imseq *seq )
 ENTRY("ISQ_getoverlay") ;
 
    tim = (MRI_IMAGE *) seq->getim( nn , isqCR_getoverlay , seq->getaux ) ;
+
+   if( tim == NULL ) RETURN(NULL) ;
+
+   /* cut out cropped region */
 
    if( seq->cropit ){
      MRI_IMAGE *qim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
@@ -8831,10 +8960,25 @@ ENTRY("ISQ_getimage") ;
 
    tim = (MRI_IMAGE *) seq->getim( nn, isqCR_getimage, seq->getaux ) ;
 
+   if( tim == NULL ) RETURN(NULL) ;
+
    if( seq->cropit ){
-     MRI_IMAGE *cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
-                                       seq->crop_ya,seq->crop_yb ) ;
-     if( cim != NULL ){ mri_free(tim); tim = cim; }
+
+     if( seq->crop_nxorg < 0 ){    /* original image size not set yet */
+       seq->crop_nxorg = tim->nx ;
+       seq->crop_nyorg = tim->ny ;
+     }
+
+     if( tim->nx != seq->crop_nxorg ||    /* image changed size? */
+         tim->ny != seq->crop_nyorg   ){  /* => turn cropping off */
+
+       seq->cropit = 0 ; seq->crop_nxorg = -1 ;
+
+     } else {
+       MRI_IMAGE *cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
+                                         seq->crop_ya,seq->crop_yb ) ;
+       if( cim != NULL ){ mri_free(tim); tim = cim; }
+     }
    }
 
    /* the old way - return this slice */

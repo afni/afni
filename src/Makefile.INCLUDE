@@ -872,10 +872,10 @@ iochan_relay:iochan_relay.o
 ### Sort of clean
 
 clean:
-	$(RM) *.o
+	$(RM) `find . -name \*.o -print`
 
-cleaner:
-	$(RM) *.o *.a $(PROGRAMS)
+cleaner:clean
+	$(RM) *.a $(PROGRAMS)
 
 # CYGWIN: remove the fixed plugins as well
 

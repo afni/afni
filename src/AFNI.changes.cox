@@ -3782,3 +3782,8 @@
 10 Jun 2002
  * Modified afni.h and afni.c to incorporate RGBCYC cyclic color map from
      Ziad Saad.
+
+12 Jun 2002
+ * Modified imseq.[ch] to add image cropping facility (Shift+Button2).
+ * Added function RWC_drag_rectangle() to xutil.c.
+ * Put MRI_COPY_AUX() into mri_cut.c (oops).
