@@ -4579,6 +4579,10 @@
  * Per the request of Ziad Saad, added function NI_add_column_stride() to
      niml/niml_element.c.
 
-06 May 2003
+06 Jun 2003
  * Modified niml/niml_stream.c to disable reopen of tcp: stream as shm: if
      AFNI_NOSHM environment is set to YES.
+
+11 Jun 2003
+ * Modified afni.c NOT to call AFNI_set_thresh_top() in AFNI_setup_viewing()
+     when changing functional datasets.

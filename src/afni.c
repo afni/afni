@@ -7063,7 +7063,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
          if( ! ISFUNCBUCKET(im3d->fim_now) ){  /* 30 Nov 1997 */
 
 
-#if 1
+#if 0  /* disabled 11 Jun 2003 */
             /* set number of decimal places to shift for thr_scale */
 
 STATUS(" ---- set threshold decim OLD") ;
