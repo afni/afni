@@ -13,6 +13,7 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
 static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
 
 /*-----------------------------------------------------------------------------------*/
+/* Save the Siemens extra info string in case the caller wants to get it. */
 
 static char *str_sexinfo=NULL ;
 
@@ -296,34 +297,38 @@ ENTRY("mri_read_dicom") ;
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;    /* compute from image array size */
    if( nz == 0 ){ free(ppp) ; RETURN(NULL); }
 
-   /*-- 28 Oct 2002: Check if this is a Siemens mosaic.    --*/
+   /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
    /*-- 02 Dec 2002: Don't use Acquisition Matrix anymore;
                      instead, use the Siemens extra info
-                     in epos[E_SIEMENS_2.                  --*/
+                     in epos[E_SIEMENS_2].                     --*/
+   /*-- 24 Dec 2002: Extract str_sexinfo even if not a mosaic. --*/
 
-   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
-       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
-              epos[E_ID_MANUFACTURER]            != NULL &&
+   if(        epos[E_ID_MANUFACTURER]            != NULL &&
        strstr(epos[E_ID_MANUFACTURER],"SIEMENS") != NULL &&
               epos[E_SIEMENS_2]                  != NULL    ){
 
      int len=0,loc=0 , aa,bb ;
-
-     /* 31 Oct 2002: extract extra Siemens info from file */
-
-     sexinfo.good = 0 ;  /* start by marking it as bad */
      sscanf(epos[E_SIEMENS_2],"%x%x%d [%d" , &aa,&bb , &len,&loc ) ;
      if( len > 0 && loc > 0 ){
-       char *str ;
        fp = fopen( fname , "rb" ) ;
-       if( fp == NULL ){ free(ppp) ; RETURN(NULL); }
-       str = extract_bytes_from_file( fp, (off_t)loc, (size_t)len, 1 ) ;
-       fclose(fp) ;
-       if( str != NULL ){                       /* got good data, so parse it */
-         get_siemens_extra_info( str , &sexinfo ) ;
-         str_sexinfo = str ;                    /* 23 Dec 2002 */
+       if( fp != NULL ){
+         str_sexinfo = extract_bytes_from_file( fp, (off_t)loc, (size_t)len, 1 ) ;
+         fclose(fp) ;
        }
-     } /* end of decoding Siemens extra info */
+     }
+   }
+
+   /*-- process str_sexinfo only if this is marked as a mosaic image --*/
+
+   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
+       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
+       str_sexinfo                               != NULL   ){
+
+     /* 31 Oct 2002: extract extra Siemens info from str_sexinfo */
+
+     sexinfo.good = 0 ;  /* start by marking it as bad */
+
+     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
@@ -360,30 +365,30 @@ ENTRY("mri_read_dicom") ;
              fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosiac messages will be printed\n") ;
            nwarn++ ;
 
-         } /* end of if mosaic sizes are reasonable */
+       } /* end of if mosaic sizes are reasonable */
 
-         else {                        /* warn about bad mosaic sizes */
-           static int nwarn=0 ;
-           if( nwarn < NWMAX )
-             fprintf(stderr,
-                     "++ DICOM WARNING: bad Siemens Mosaic params: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
-                     mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
-           if( nwarn == NWMAX )
-             fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic param messages will be printed\n");
-           nwarn++ ;
-         }
-
-       } /* end of if sexinfo was good */
-
-       else {                  /* warn if sexinfo was bad */
+       else {                        /* warn about bad mosaic sizes */
          static int nwarn=0 ;
          if( nwarn < NWMAX )
-           fprintf(stderr,"++ DICOM WARNING: indecipherable Siemens Mosaic info (%s) in file %s\n",
-                   elist[E_SIEMENS_2] , fname ) ;
+           fprintf(stderr,
+                   "++ DICOM WARNING: bad Siemens Mosaic params: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
+                   mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
          if( nwarn == NWMAX )
-           fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic info messages will be printed\n");
+           fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic param messages will be printed\n");
          nwarn++ ;
        }
+
+     } /* end of if sexinfo was good */
+
+     else {                  /* warn if sexinfo was bad */
+       static int nwarn=0 ;
+       if( nwarn < NWMAX )
+         fprintf(stderr,"++ DICOM WARNING: indecipherable Siemens Mosaic info (%s) in file %s\n",
+                 elist[E_SIEMENS_2] , fname ) ;
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic info messages will be printed\n");
+       nwarn++ ;
+     }
 
    } /* end of if a Siemens mosaic */
 
@@ -1182,34 +1187,35 @@ ENTRY("mri_imcount_dicom") ;
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
 
-   /*-- 28 Oct 2002: Check if this is a Siemens mosaic.    --*/
+   /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
    /*-- 02 Dec 2002: Don't use Acquisition Matrix anymore;
                      instead, use the Siemens extra info
-                     in epos[E_SIEMENS_2.                  --*/
+                     in epos[E_SIEMENS_2].                     --*/
+   /*-- 24 Dec 2002: Extract str_sexinfo even if not a mosaic. --*/
 
-   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
-       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
-              epos[E_ID_MANUFACTURER]            != NULL &&
+   if(        epos[E_ID_MANUFACTURER]            != NULL &&
        strstr(epos[E_ID_MANUFACTURER],"SIEMENS") != NULL &&
               epos[E_SIEMENS_2]                  != NULL    ){
 
      int len=0,loc=0 , aa,bb ;
+     sscanf(epos[E_SIEMENS_2],"%x%x%d [%d" , &aa,&bb , &len,&loc ) ;
+     if( len > 0 && loc > 0 ){
+       FILE *fp = fopen( fname , "rb" ) ;
+       if( fp != NULL ){
+         str_sexinfo = extract_bytes_from_file( fp, (off_t)loc, (size_t)len, 1 ) ;
+         fclose(fp) ;
+       }
+     }
+   }
+
+   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
+       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
+       str_sexinfo                               != NULL   ){
 
      /* 31 Oct 2002: extract extra Siemens info from file */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
-     sscanf(epos[E_SIEMENS_2],"%x%x%d [%d" , &aa,&bb , &len,&loc ) ;
-     if( len > 0 && loc > 0 ){
-       char *str ; FILE *fp ;
-       fp = fopen( fname , "rb" ) ;
-       if( fp == NULL ){ free(ppp) ; RETURN(0); }
-       str = extract_bytes_from_file( fp, (off_t)loc, (size_t)len, 1 ) ;
-       fclose(fp) ;
-       if( str != NULL ){                       /* got good data, so parse it */
-         get_siemens_extra_info( str , &sexinfo ) ;
-         str_sexinfo = str ;                    /* 23 Dec 2002 */
-       }
-     } /* end of decoding Siemens extra info */
+     get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
