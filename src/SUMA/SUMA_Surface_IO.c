@@ -1742,7 +1742,7 @@ int main (int argc,char *argv[])
 void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n");
+          printf ("\n\33[1mUsage: \33[0m SUMA_ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc]\n");
           printf ("\t reads in a surface and writes it out in another format.\n");
           printf ("\t Note: This is a not a general utility conversion program. \n");
           printf ("\t Only fields pertinent to SUMA are preserved.\n");
@@ -1769,6 +1769,8 @@ void usage_SUMA_ConvertSurface ()
           printf ("\t    If you supply a surface volume, the coordinates of the input surface.\n");
           printf ("\t     are modified to SUMA's convention and aligned with SurfaceVolume.\n");
           printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
+          printf ("\t -tlrc: Apply taliairach transform (which must be in talairach version of SurfaceVolume)\n");
+          printf ("\t     to the surface vertex coordinates. This option must be used with the -sv option.\n");
           printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
           printf ("\t      transformed if -sv option is used. If you do transform surfaces, \n");
           printf ("\t      take care not to load them into SUMA with another -sv option.\n");  
@@ -1780,13 +1782,15 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_ConvertSurface"}; 
 	int kar;
-   char *if_name = NULL, *of_name = NULL, *if_name2 = NULL, *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, *OF_name = NULL, *OF_name2 = NULL;
+   char *if_name = NULL, *of_name = NULL, *if_name2 = NULL, *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, oType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
-   SUMA_Boolean brk;
+   THD_warp *warp=NULL ;
+   THD_3dim_dataset *aset=NULL;
+   SUMA_Boolean brk, Do_tlrc;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -1803,6 +1807,7 @@ int main (int argc,char *argv[])
    
    kar = 1;
 	brk = NOPE;
+   Do_tlrc = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -1924,6 +1929,10 @@ int main (int argc,char *argv[])
          oType = SUMA_PLY;
 			brk = YUP;
 		}
+      if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
+         Do_tlrc = YUP;
+         brk = YUP;
+      }
       
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
@@ -2002,6 +2011,11 @@ int main (int argc,char *argv[])
       }
    }
    
+   if (Do_tlrc && !sv_name) {
+      fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
+      exit(1);
+   }
+   
    if (vp_name) {
       if (!SUMA_filexists(vp_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, vp_name);
@@ -2059,7 +2073,6 @@ int main (int argc,char *argv[])
       }
    }
    
-   
    /* now for the real work */
    /* prepare the name of the surface object to read*/
    switch (iType) {
@@ -2103,6 +2116,40 @@ int main (int argc,char *argv[])
    if (!SO) {
       fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
+   }
+   
+   if (Do_tlrc) {
+      fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
+
+      /* form the tlrc version of the surface volume */
+      tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+strlen(SO->VolPar->prefix)+60, sizeof(char));
+      sprintf (tlrc_name, "%s%s+tlrc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
+      if (!SUMA_filexists(tlrc_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
+         exit(1);
+      }
+      
+      /* read the tlrc header */
+      aset = THD_open_dataset(tlrc_name) ;
+      if( !ISVALID_DSET(aset) ){
+         fprintf (SUMA_STDERR,"Error %s: %s is not a valid data set.\n", FuncName, tlrc_name) ;
+         exit(1);
+      }
+      if( aset->warp == NULL ){
+         fprintf (SUMA_STDERR,"Error %s: tlrc_name does not contain a talairach transform.\n", FuncName);
+         exit(1);
+      }
+      
+      warp = aset->warp ;
+      
+      /* now warp the coordinates, one node at a time */
+      if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
+         exit(1);
+      }
+
+      
+      
    }
    
    SUMA_Print_Surface_Object (SO, stderr);

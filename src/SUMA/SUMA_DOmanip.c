@@ -278,7 +278,8 @@ Add a displayable object to dov
 SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType)
 {
    static char FuncName[] = {"SUMA_AddDO"};
-
+   SUMA_Boolean Shaded=NOPE;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    /* make sure you did not exceed allocated space */
@@ -290,6 +291,15 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
    dov[*N_dov].ObjectType = DO_Type;
    dov[*N_dov].CoordType = DO_CoordType;
    *N_dov = *N_dov+1;
+   
+   /* Make some updates if needed */
+   
+   /* is the Switch ROI window open ? */
+   SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
+   if (!Shaded) {
+      SUMA_cb_DrawROI_SwitchROI (NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+   }
+   
    SUMA_RETURN(YUP);
 }
 
@@ -511,10 +521,11 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
 /*!
    ans = SUMA_findSO_inDOv(idcode, dov, N_dov);
    searches all SO_type DO objects for idcode
+   
    \param idcode (char *) idcode of SO you are searching for
    \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
-   \ret ans (int) index into dov of object with matching idcode 
+   \return ans (int) index into dov of object with matching idcode 
        -1 if not found
   \sa SUMA_findSOp_inDOv
 */
@@ -544,10 +555,11 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    
   SO = SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    searches all SO_type DO objects for idcode
+   
    \param idcode (char *) idcode of SO you are searching for
    \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
-   \ret SO (SUMA_SurfaceObject *) pointer of SO with matching idcode 
+   \return SO (SUMA_SurfaceObject *) pointer of SO with matching idcode 
        NULL if not found
    \sa SUMA_findSO_inDOv
 */
@@ -679,10 +691,186 @@ SUMA_Boolean SUMA_isSO (SUMA_DO DO)
 }
 
 /*!
+   \brief Returns a list of the ROIs loaded into dov. 
+   
+   \param dov (SUMA_DO *) pointer to vector of DOs
+   \param N_dov (int) number of DOs in dov
+   \param SortByLabel (SUMA_Boolean) if YUP then returned strings are sorted by their ROI's labels
+            (The parents must be part of dov). If Nope then strings are sorted by the labels of
+             the ROI's parent.
+   \return clist (SUMA_ASSEMBLE_LIST_STRUCT *) pointer to structure containing results
+   
+   \sa SUMA_FreeAssembleListStruct
+   \sa SUMA_CreateAssembleListStruct
+   
+*/
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel) 
+{
+   static char FuncName[]={"SUMA_AssembleAllROIList"};
+   int i=-1, N_clist=-1; 
+   DList *list=NULL, *listop = NULL;
+   DListElmt *Elm = NULL, *Elmop = NULL;
+   char Label[SUMA_MAX_NAME_LENGTH], Parent_Label[SUMA_MAX_NAME_LENGTH], *store=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   char **clist=NULL;
+   void **oplist=NULL;
+   SUMA_DRAWN_ROI *ROI=NULL;
+   SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;
+   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   list = (DList *)SUMA_malloc(sizeof(DList));
+   listop = (DList *)SUMA_malloc(sizeof(DList));
+   
+   clist = NULL;
+   N_clist = -1;
+   
+   dlist_init(list, NULL);
+   dlist_init(listop, NULL);
+   for (i=0; i < N_dov; ++i) {
+      if (dov[i].ObjectType == ROIdO_type) {
+         ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Found an ROI %s\n", FuncName, ROI->Label);
+         if (!ROI->Label) sprintf (Label,"NULL");
+         else sprintf (Label,"%s", ROI->Label);
+         if (!ROI->Parent_idcode_str) sprintf (Parent_Label,"NULL");
+         else {
+            SO = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, dov, N_dov);
+            if (!SO) sprintf (Parent_Label,"Unknown");
+            else if (!SO->Label) sprintf (Parent_Label,"Empty");
+            else sprintf (Parent_Label,"%s", SO->Label);
+         }
+         /* Now allocate space for that label */
+         store = (char *)SUMA_calloc(strlen(Label)+strlen(Parent_Label)+5, sizeof(char));
+         if (SortByLabel) {
+            sprintf(store,"%s:%s", Label, Parent_Label);
+         } else  {
+            sprintf(store,"%s:%s", Parent_Label, Label);
+         }
+         
+         /* now place it in the list by aplhpabetical order */
+         if (!list->size) {
+            dlist_ins_next(list, dlist_tail(list), (void*)store);
+            dlist_ins_next(listop, dlist_tail(listop), (void*)ROI);
+         }else { /* must sort first */
+            Elm = NULL;
+            Elmop = NULL;
+            do {
+               Found = NOPE;
+               if (!Elm) {
+                  Elm = dlist_head(list);
+                  Elmop = dlist_head(listop);
+               } else {
+                  Elm = dlist_next(Elm);
+                  Elmop = dlist_next(Elmop);
+               }
+               
+               if (strcmp(store, (char*)Elm->data) <= 0) {
+                  dlist_ins_prev(list, Elm, (void *)store);
+                  dlist_ins_prev(listop, Elmop, (void *)ROI);
+                  Found = YUP;
+               } else if (Elm == dlist_tail(list)) {
+                  /* reached the end, append */
+                  dlist_ins_next(list, Elm, (void *)store);
+                  dlist_ins_next(listop, Elmop, (void *)ROI);
+                  Found = YUP;
+               }
+            } while (!Found);
+         }
+         
+      }
+   }
+
+   if (!list->size) { /* Nothing found */
+      N_clist = 0;
+      
+   }else {
+   
+      Elm = NULL;
+      Elmop = NULL;
+      clist = (char **)SUMA_calloc(list->size, sizeof(char *));
+      oplist = (void **)SUMA_calloc(list->size, sizeof(void*));
+      for (i=0; i< list->size; ++i) {
+         if (!Elm) {
+            Elm = dlist_head(list);
+            Elmop = dlist_head(listop);
+         } else {
+            Elm = dlist_next(Elm);
+            Elmop = dlist_next(Elmop);
+         }
+         clist[i] = (char*)Elm->data;
+         oplist[i] = Elmop->data;
+      }
+
+      N_clist = list->size;
+      /* destroy list */
+      dlist_destroy(list);
+      dlist_destroy(listop);
+      SUMA_free(list);
+      SUMA_free(listop);
+   }
+   
+   clist_str = SUMA_CreateAssembleListStruct();
+   clist_str->clist = clist;
+   clist_str->oplist = oplist;
+   clist_str->N_clist = N_clist;
+   
+   /* return */
+   SUMA_RETURN (clist_str);  
+}
+
+/*!
+   \brief Creates an SUMA_ASSEMBLE_LIST_STRUCT *structure
+   \sa SUMA_FreeAssembleListStruct
+*/
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void)
+{
+   static char FuncName[]={"SUMA_CreateAssembleListStruct"};
+   SUMA_ASSEMBLE_LIST_STRUCT *str=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   str = (SUMA_ASSEMBLE_LIST_STRUCT *)SUMA_malloc(sizeof(SUMA_ASSEMBLE_LIST_STRUCT));
+   str->clist = NULL;
+   str->N_clist = -1;
+   str->oplist = NULL;
+   
+   SUMA_RETURN(str);
+}
+/*!
+   \brief frees SUMA_ASSEMBLE_LIST_STRUCT *
+   \param SUMA_ASSEMBLE_LIST_STRUCT *str
+   
+   \return NULL always
+   
+   -This function frees each string in clist. BUT NOT pointers in oplist (for obvious reasons)
+*/
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str) 
+{
+   static char FuncName[]={"SUMA_FreeAssembleListStruct"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!str) SUMA_RETURN(NULL);
+   
+   if (str->clist) {
+      for (i=0; i < str->N_clist; ++i)
+         if (str->clist[i]) SUMA_free(str->clist[i]);
+      SUMA_free(str->clist);
+   }
+   if (str->oplist) SUMA_free(str->oplist);
+   SUMA_free(str);
+   
+   SUMA_RETURN(NULL);
+}
+/*!
 \brief Returns an ROI that is related to SO and is in InCreation (being actively drawn) DrawStatus 
  There should only be one ROI in creation at any one time for a group of related surfaces. 
  
- ROI = SUMA_FetchROI_InCreation (SO,  dov,  N_dov);
+ ROI = SUMA_
+ ROI_InCreation (SO,  dov,  N_dov);
  
  \param SO (SUMA_SurfaceObject *) pointer to surface object
  \param dov (SUMA_DO *) pointer to vector of DOs (typically SUMAg_DOv)
@@ -713,7 +901,7 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov
 }
 
 /*!
-\brief Returns YUP if dROI->Parent_idcode_str is the same as SO->idcode_str or SO->MapRef_idcode_str.
+\brief Returns YUP if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
 NOPE otherwise
 
 ans = SUMA_isdROIrelated (dROI, SO);
@@ -726,11 +914,26 @@ ans = SUMA_isdROIrelated (dROI, SO);
 SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isdROIrelated"};
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_SurfaceObject *SO_ROI = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   if (  (strcmp (SO->MapRef_idcode_str, ROI->Parent_idcode_str) == 0) \
-      || (strcmp (SO->idcode_str, ROI->Parent_idcode_str) == 0)) {
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: %s SO->MapRef_idcode_str\n", FuncName, SO->MapRef_idcode_str);
+      fprintf (SUMA_STDERR, "%s: %s ROI->Parent_idcode_str\n", FuncName, ROI->Parent_idcode_str);
+      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
+   }
+   
+   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   
+   if (!SO_ROI) {
+      SUMA_SL_Err("Could not find surface of ROI->Parent_idcode_str");
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (SUMA_isRelated (SO, SO_ROI)) {
       SUMA_RETURN (YUP);
    }
 
@@ -738,7 +941,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
 }
 
 /*!
-\brief Returns YUP if ROI->Parent_idcode_str is the same as SO->idcode_str or SO->MapRef_idcode_str.
+\brief Returns YUP if if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
 NOPE otherwise
 
 ans = SUMA_isROIrelated (ROI, SO);
@@ -751,13 +954,151 @@ ans = SUMA_isROIrelated (ROI, SO);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isROIrelated"};
+   SUMA_SurfaceObject *SO_ROI = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   if (  (strcmp (SO->MapRef_idcode_str, ROI->Parent_idcode_str) == 0) \
-      || (strcmp (SO->idcode_str, ROI->Parent_idcode_str) == 0)) {
+   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   
+   if (!SO_ROI) {
+      SUMA_SL_Err("Could not find surface of ROI->Parent_idcode_str");
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (SUMA_isRelated (SO, SO_ROI)) {
       SUMA_RETURN (YUP);
    }
 
    SUMA_RETURN (NOPE);
+}
+
+/*!
+\brief Return a mask of the nodes belonging to any ROI of a certain surface
+   Mask = SUMA_Build_Mask_AllROI (dov, N_dov, SO, Mask, N_added);
+
+\param dov (SUMA_DO*) pointer to vector of displayable objects to consider
+\param N_dov (int) number of elements in dov
+\param SO (SUMA_SurfaceObject *)
+\param Mask (int *) pointer to mask vector.
+         0 if node belongs to no ROI
+         n if node belongs to n ROIs
+         Pass NULL if you're calling this function for the first time.
+\param N_added (int *)integer containing the total number of nodes added to Mask.
+      That would be the sum of the number of nodes found in all ROIs.
+      Duplicate nodes are counted twice. If you want the number of nodes without
+      the duplicates, you need to count non-zero values in Mask. 
+\return Mask (int *) pointer to modified mask vector. 
+*/
+int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO, int *Mask, int *N_added)
+{
+   static char FuncName[]={"SUMA_Build_Mask_AllROI"};
+   int Npart = 0,i;
+   SUMA_DRAWN_ROI *D_ROI=NULL;
+   SUMA_ROI *ROI = NULL;
+   SUMA_Boolean LocalHead = YUP;
+    
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   *N_added = -1;
+   
+   if (!Mask) { /* allocate for it */
+      Mask = (int *)SUMA_calloc(SO->N_Node, sizeof(int));
+      if (!Mask) {
+         SUMA_S_Err ("Failed to allocate for Mask.");
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case ROIdO_type:
+            D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            if (SUMA_isdROIrelated (D_ROI, SO)) {
+               if (LocalHead) fprintf (SUMA_STDERR, "%s: Found a drawn ROI, building mask...\n", FuncName);
+
+               Npart = SUMA_Build_Mask_DrawnROI (D_ROI, Mask);
+               if (Npart < 0) {
+                  SUMA_S_Err ("Badness in SUMA_Build_Mask_DrawnROI");
+                  if (Mask) SUMA_free(Mask);
+                  *N_added = -1;
+                  SUMA_RETURN(NULL);
+               }else {
+                  *N_added = *N_added + Npart;
+                  if (LocalHead) fprintf (SUMA_STDERR, "%s: %d nodes found in that ROI.\n", FuncName, Npart);
+               }
+            }
+            break;
+         case ROIO_type:
+            ROI = (SUMA_ROI *)dov[i].OP;
+            if (SUMA_isROIrelated (ROI, SO)) {
+               SUMA_S_Err ("Not dealing with regular ROIs yet");
+            }
+            break;
+         default:
+            /* not an ROI */
+            break;   
+      }
+   }
+   
+   SUMA_RETURN(Mask);
+}
+
+/*!
+\brief Return a mask of the nodes belonging to a drawn ROI of a certain surface
+   N_added = SUMA_Build_Mask_DrawnROI (dROI, Mask);
+   
+\param dROI (SUMA_DRAWN_ROI *) the pointer to the ROI structure
+\param Mask (int *) pointer to mask vector.
+         0 if node belongs to no ROI
+         n if node belongs to n ROIs
+      It is the calling function's responsability to make sure enough space is allocated for
+      Mask and that cleanup is properly handled.
+\return N_added (int *)integer containing the number of nodes found in dROI. 
+      This variable is set to -1 when trouble occurs.  
+*/ 
+int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask)
+{
+   static char FuncName[]={"SUMA_Build_Mask_DrawnROI"};
+   DListElmt *NextElm=NULL;
+   int ii, N_added;
+   SUMA_ROI_DATUM *ROId=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   N_added = -1;
+   
+   if (!Mask) { 
+      SUMA_S_Err ("Mask is NULL");
+      SUMA_RETURN(N_added);
+   }
+   
+   if (!D_ROI->ROIstrokelist) {
+     N_added = 0;
+     SUMA_RETURN(N_added); 
+   }
+   
+   if (!dlist_size(D_ROI->ROIstrokelist)) {
+     N_added = 0;
+     SUMA_RETURN(N_added); 
+   }
+   
+   /* start with the first element */
+   NextElm = NULL;
+   do {
+      if (!NextElm) {
+         NextElm = dlist_head(D_ROI->ROIstrokelist);
+      }else {
+         NextElm = dlist_next(NextElm);
+      }
+      ROId = (SUMA_ROI_DATUM *)NextElm->data;
+      if (ROId->N_n) {
+         for (ii = 0; ii < ROId->N_n; ++ii) {
+            ++Mask[ROId->nPath[ii]];
+            ++N_added;
+         }
+      }
+   } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+               
+   SUMA_RETURN (N_added);
 }

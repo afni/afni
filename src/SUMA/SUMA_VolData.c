@@ -688,3 +688,86 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
    SUMA_RETURN(imv) ;
 }
 
+/*!
+
+   \brief transforms XYZ coordinates by transfrom in warp.
+   ans = SUMA_AFNI_forward_warp_xyz( warp , XYZv,  N);
+   
+   \param warp (THD_warp *) afni warp structure
+   \param XYZv (float *) pointer to coordinates vector.
+   \param N (int) number of XYZ triplets in XYZv.
+      The ith X,Y, Z coordinates would be XYZv[3i], XYZv[3i+1],XYZv[3i+2]   
+   \return ans (YUP/NOPE) NOPE: NULL warp or bad warp->type
+   
+   - The following functions are adapted from afni.c & Vecwarp.c
+*/
+SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *xyzv, int N)
+{
+   static char FuncName[]={"SUMA_AFNI_forward_warp_xyz"};
+   THD_fvec3 new_fv, old_fv;
+   int i, i3;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if( warp == NULL ) {
+      fprintf (SUMA_STDERR, "Error %s: NULL warp.\n", FuncName);
+      SUMA_RETURN (NOPE) ;
+   }
+
+   switch( warp->type ){
+
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: bad warp->type\n", FuncName);
+         SUMA_RETURN (NOPE); 
+         break ;
+
+      case WARP_TALAIRACH_12_TYPE:{
+         THD_linear_mapping map ;
+         int iw ;
+
+         /* forward transform each possible case,
+            and test if result is in bot..top of defined map */
+
+         for (i=0; i < N; ++i) {
+            i3 = 3*i;
+            old_fv.xyz[0] = xyzv[i3];
+            old_fv.xyz[1] = xyzv[i3+1];
+            old_fv.xyz[2] = xyzv[i3+2];
+            
+            for( iw=0 ; iw < 12 ; iw++ ){
+               map    = warp->tal_12.warp[iw] ;
+               new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
+
+               if( new_fv.xyz[0] >= map.bot.xyz[0] &&
+                   new_fv.xyz[1] >= map.bot.xyz[1] &&
+                   new_fv.xyz[2] >= map.bot.xyz[2] &&
+                   new_fv.xyz[0] <= map.top.xyz[0] &&
+                   new_fv.xyz[1] <= map.top.xyz[1] &&
+                   new_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
+            }
+            xyzv[i3] = new_fv.xyz[0];
+            xyzv[i3+1] = new_fv.xyz[1];
+            xyzv[i3+2] = new_fv.xyz[2];
+            
+         }
+      }
+      break ;
+
+      case WARP_AFFINE_TYPE:{
+         THD_linear_mapping map = warp->rig_bod.warp ;
+         for (i=0; i < N; ++i) {
+            i3 = 3*i;
+            old_fv.xyz[0] = xyzv[i3];
+            old_fv.xyz[1] = xyzv[i3+1];
+            old_fv.xyz[2] = xyzv[i3+2];
+            new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
+            xyzv[i3] = new_fv.xyz[0];
+            xyzv[i3+1] = new_fv.xyz[1];
+            xyzv[i3+2] = new_fv.xyz[2];
+         }
+      }
+      break ;
+
+   }
+   SUMA_RETURN(YUP);
+}

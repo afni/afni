@@ -1733,6 +1733,10 @@ suma_clean:
 	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
 	if [ -f SUMA/3dSurfMaskDump ]; then $(RM) SUMA/3dSurfMaskDump; fi;
 	if [ -f 3dSurfMaskDump ]; then $(RM) 3dSurfMaskDump; fi;
+	if [ -f ScaleToMap ]; then $(RM) ScaleToMap; fi;
+	if [ -f SUMA/ScaleToMap ]; then $(RM) SUMA/ScaleToMap; fi;
+	if [ -f ConvertSurface ]; then $(RM) ; fi;
+	if [ -f SUMA/ConvertSurface ]; then $(RM) SUMA/ConvertSurface; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -1741,8 +1745,8 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a ../	;\
-	$(RM) suma MakeColorMap 3dSurfMaskDump	;\
-	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 3dSurfMaskDump \
+	$(RM) suma MakeColorMap 3dSurfMaskDump	ScaleToMap ConvertSurface;\
+	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 3dSurfMaskDump ScaleToMap ConvertSurface\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1757,7 +1761,7 @@ suma_link:
 #install suma
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/3dSurfMaskDump ${INSTALLDIR} ; \
+	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/3dSurfMaskDump SUMA/ScaleToMap SUMA/ConvertSurface ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install

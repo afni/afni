@@ -313,7 +313,7 @@ int main (int argc,char *argv[])
     }
     
     /*now try with the segment from Points[0] to Points[1] returned above. */
-    triangle = SUMA_MT_intersect_triangle(Points[0],Points[1], SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet);
+    triangle = SUMA_MT_intersect_triangle(Points[0],Points[1], SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, NULL);
     //SUMA_Show_MT_intersect_triangle(triangle, NULL);
     if (triangle->N_hits ==0) {
       distance[i] = -1;

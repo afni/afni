@@ -146,6 +146,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (SUMAg_CF->X->Log_TextShell) {
                   char *s = NULL;
                   s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
+                  SUMAg_CF->X->Log_TextShell->CursorAtBottom = YUP;
                   (void) SUMA_CreateTextShell (s, "Message Log", SUMAg_CF->X->Log_TextShell);
                   XRaiseWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->Log_TextShell->toplevel));
                   if (s) SUMA_free(s);
@@ -940,6 +941,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
             break;
             
+         case SE_RedisplayNow_AllVisible:
+            /* expects nothing in EngineData */
+            /* causes  an immediate redisplay to all visible viewers */
+            for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+                  /* you must check for both conditions because by default 
+                  all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  SUMAg_SVv[ii].ResetGLStateVariables = YUP;
+                  SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
+               }
+            }
+            break;
+         
+         case SE_RedisplayNow_AllOtherVisible:
+            /* expects nothing in EngineData, expects sv in srcp*/
+            /* causes an immediate redisplay to all visible viewers other than sv*/
+            for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+               if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL && &(SUMAg_SVv[ii]) != sv) {
+                  /* you must check for both conditions because by default 
+                  all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  SUMAg_SVv[ii].ResetGLStateVariables = YUP;
+                  SUMA_handleRedisplay((XtPointer)SUMAg_SVv[ii].X->GLXAREA);
+               }
+            }
+            break;
+
          case SE_ResetOpenGLState:
             /* reset OPEN GL's state variables */
             /* expects the surface viewer pointer in vp */

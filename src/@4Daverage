@@ -2,6 +2,16 @@
 
 
 if (("$1" =~ "-h") || ("$1" =~ "-help") || ("$1" =~ "")) then
+
+   echo ""
+   echo "**********************************"
+   echo "This script is somewhat outdated."
+   echo "I suggest you use 3dMean which is"
+   echo "faster, meaner and not limited to"
+   echo "the alphabet.   ZSS, 03/14/03"
+   echo "**********************************"
+   echo ""
+
 	echo "\012Usage : `basename $0` <average 3D+t brick prefix> <3D+t brik names...>"
 	echo "\012This script file uses 3Dcalc to compute average 3D+time bricks"
 	echo "example : @4Daverage NPt1av NPt1r1+orig NPt1r2+orig NPt1r3+orig"
@@ -22,6 +32,18 @@ if (("$1" =~ "-h") || ("$1" =~ "-help") || ("$1" =~ "")) then
 	goto END
 endif
 
+#Obsolete note
+echo ""
+echo "**********************************"
+echo "This script is somewhat outdated."
+echo "I suggest you use 3dMean which is"
+echo "faster, meaner and not limited to"
+echo "the alphabet.   ZSS, 03/14/03"
+echo "**********************************"
+echo ""
+
+# a patch for Jason Bacon
+set echo_style = both
 
 #count the total number of command line parameters
 set al = $#argv	

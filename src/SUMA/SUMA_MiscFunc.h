@@ -84,6 +84,7 @@ int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri);
 int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3);
 SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
+SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
 
 
 #endif

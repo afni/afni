@@ -132,6 +132,7 @@ typedef enum { SE_Empty,
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
+               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -147,7 +148,7 @@ typedef enum { SES_Empty,
                SES_SumaFromAfni,   /*!< command from Suma in response to a request from Afni. Srcp is still a SUMA_SurfaceViewer * but Afni, havin initiated the command should not receive the command back from Suma. Think cyclical cross hair setting... */
                SES_SumaFromAny,  /*!< Same concept as SES_SumaFromAfni but from generic program. */
                SES_Unknown} SUMA_ENGINE_SOURCE;
-               
+
 typedef enum { SEI_WTSDS,  
                SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
@@ -160,9 +161,16 @@ typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
-typedef enum { SUMA_ROI_ClosedPath} SUMA_ROI_DRAWING_TYPE;  /* an ROI created by drawing */
+typedef enum { SUMA_ROI_OpenPath, SUMA_ROI_ClosedPath, SUMA_ROI_FilledArea} SUMA_ROI_DRAWING_TYPE;  /* an ROI created by drawing */
 
-typedef enum { SUMA_ROI_NodeGroup, SUMA_ROI_EdgeGroup, SUMA_ROI_FaceGroup } SUMA_ROI_TYPE; /* a generic ROI */
+typedef enum { SUMA_BSA_Undefined, SUMA_BSA_AppendStroke, SUMA_BSA_AppendStrokeOrFill, SUMA_BSA_JoinEnds, SUMA_BSA_FillArea } SUMA_BRUSH_STROKE_ACTION; 
+
+typedef enum { SUMA_ROI_Undefined,
+               SUMA_ROI_NodeGroup, /*!< A collection of nodes */
+               SUMA_ROI_EdgeGroup, /*!< A collection of edges */
+               SUMA_ROI_FaceGroup, /*!< A collection of Faces */
+               SUMA_ROI_NodeSegment /*!< A series of connected nodes */
+             } SUMA_ROI_TYPE; /* a generic types of ROI datums*/
 
 typedef enum { SXR_default, SXR_NP, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
 
@@ -176,6 +184,28 @@ typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Stan
                                                                   Keep in sync with SUMA_N_STANDARD_VIEWS*/
 typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  SUMA_LINK_TYPES; /*!< types of viewer linking. Keep SUMA_N_Lock_Types at the end, it is used to keep track of the number of types*/
                                                                  
+typedef enum {  SWP_TOP_RIGHT, /*!< Position to the top right of reference */
+                SWP_BOTTOM_RIGHT_CORNER, 
+                SWP_TOP_LEFT,
+                SWP_POINTER /*!< Position centered to the pointer */
+             } SUMA_WINDOW_POSITION; /*!< Types of relative window positions */
+
+typedef enum {    SAR_Undefined,
+                  SAR_Fail, /*!< Failed action */
+                  SAR_Succeed,
+               }  SUMA_ACTION_RESULT;  
+
+typedef enum { SAP_Do,
+               SAP_Undo,
+               SAP_Redo,
+            } SUMA_ACTION_POLARITY;               
+
+typedef struct {
+   SUMA_ACTION_RESULT (*ActionFunction)(void *ActionData, SUMA_ACTION_POLARITY Pol); /*!< The function to call for performing the action */
+   void *ActionData; /*!< The data to be passed to the function performing the action */
+   void (*ActionDataDestructor)(void *Actiondata); /*!< The function to call that destroys ActionData */
+} SUMA_ACTION_STACK_DATA; /*!< a structure containing the data to form the element of the Action Stack element*/
+
 /*! structure to keep track of allocate memory */
 typedef struct {
    void **Pointers; /*!< vector of pointers for which memory was allocated */
@@ -233,6 +263,65 @@ typedef struct {
    int N_Node; /*!< obvious */
    SUMA_Boolean *isMasked; /*!< if isMasked[i] then node i has a mask color associated with it */ 
 } SUMA_COLOR_SCALED_VECT;
+
+
+
+
+/*! TRY TO MAKE DO WITHOUT THIS THING, IF POSSIBLE. 
+It is a pain to work with two types of ROI structues 
+structure to hold an ROI */
+typedef struct { 
+   SUMA_ROI_TYPE Type;   /*!< The type of ROI */
+   
+   char *idcode_str;    /*!< unique idcode for ROI */
+   char *Parent_idcode_str; /*!< idcode of parent surface */
+   char *Label; /*!< ascii label for ROI */
+
+   int *ElInd; /*!< pointer to vector containing indices into the parent surface (SO has Parent_idcode_str) of ROI elements.
+                           If Type is SUMA_ROI_NodeGroup then ElementIndex contains indices to SO->NodeList .
+                           If Type is SUMA_ROI_FaceGroup then ElementIndex contains indices to SO->FaceList.
+                           If Type is SUMA_ROI_EdgeGroup then ElementIndex contains indices to SO->EL->EL. */
+   int N_ElInd; /*!< Number of elements in ElementIndex */ 
+} SUMA_ROI;
+
+
+
+typedef struct {
+   SUMA_ROI_TYPE type; /*!< Type of ROI in datum */
+   int N_n; /*!< Number of elements in nPath */
+   int N_t; /*!< Number of elements in tPath */
+   int *nPath; /*!< Vector of N node indices. These nodes must be immediate (linked) neighbours of each other */
+   int *tPath; /*!< Vector of N triangle indices. These triangles must be connected to each other */
+   float tDistance; /*!< distance from the first node to the last taken along the surface (geodesic)*/
+   float nDistance; /*!< distance from the first node to the last by summing the length of segments between nodes */
+} SUMA_ROI_DATUM; /*!< elementary datum of a drawn ROI */
+
+#define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
+#define SUMA_MAX_ROI_CTRL_NODES3 300 
+#define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
+/*! structure to hold the drawing of an ROI */
+typedef struct {   
+   SUMA_ROI_DRAWING_TYPE Type;   /*!< The type of ROI drawn, that would be closed path, etc, etc, */
+
+   char *idcode_str;    /*!< unique idcode for ROI */
+   char *Parent_idcode_str; /*!< idcode of parent surface */
+   char *Label; /*!< ascii label for ROI */ 
+   int iLabel; /*!< An integer value, another way to represent a Label */
+   SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, finished, being drawn, being edited, etc. */
+
+   DList *ROIstrokelist;   /*!< a doubly linked list with the data element being a (void *)SUMA_ROI_DATUM * */
+
+   DList *ActionStack; /*!< a stack containing the various actions performed*/
+   DListElmt *StackPos; /*!< The element of ActionStack that represents the current position */
+} SUMA_DRAWN_ROI;
+
+typedef struct {
+   SUMA_ROI_DATUM *ROId;
+   SUMA_DRAWN_ROI *DrawnROI;
+} SUMA_ROI_ACTION_STRUCT;  /*!< a structure packaging data for the routines acting on drawn ROIs */
+
+
+
 
 /*! 
 Stucture to hold the contents of the specs file 
@@ -376,6 +465,7 @@ typedef struct {
    void * OpenData;  /*!< data sent along with OpenCallBack */
    void (*DestroyCallBack)(void *data);   /*!< call back performed when SUMA_DestroyTextShell is entered */
    void * DestroyData; /*!< data sent along with DestroyCallBack */
+   SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at end of text field */
 } SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets for the text shell window */
 
 
@@ -410,7 +500,6 @@ typedef struct {
    Structure containing widgets and settings of an arrow and or a text field
 */ 
 typedef struct {
-   
    Widget rc;  /*!< rowcolumn containing all the widgets of the arrow field */
    Widget textfield;  /*! text label */
    Widget up;     /*!< up arrow */
@@ -433,7 +522,44 @@ typedef struct {
    SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
 } SUMA_ARROW_TEXT_FIELD;
 
-/*! structure containing widgets for the DrawROI window*/
+typedef enum {
+   SUMA_LSP_SINGLE, SUMA_LSP_BROWSE, SUMA_LSP_MULTIPLE, SUMA_LSP_EXTENDED
+}  SUMA_ListSelectPolicy; /*!< Flags for motif list selection policy */
+
+typedef struct {
+   char ** clist; /*!< strings displayed in the Scrolled list window */
+   int N_clist; /*!< Number of strings in clist */
+   void **oplist; /*!< list of pointers to objects in the scrolled list */
+} SUMA_ASSEMBLE_LIST_STRUCT;
+
+/*!
+   Structure containing widgets and settings for a list widget 
+*/
+typedef struct {
+   Widget toplevel; /*!< top level shell for list */
+   Widget rc;  /*!< rowcolumn containing all the widgets of the scrolled list */
+   Widget list; /*!< list widget */
+   
+   Widget PosRef; /*!< Widget relative to which list is positioned */
+   SUMA_WINDOW_POSITION Pos; /*! Position of list relative to PosRef*/
+   SUMA_ListSelectPolicy SelectPolicy; /*!< Sets the XmNselectionPolicy resource:
+                          SUMA_LSP_SINGLE: XmSINGLE_SELECT, 
+                          SUMA_LSP_BROWSE: XmBROWSE_SELECT, 
+                          SUMA_LSP_MULTIPLE: XmMULTIPLE_SELECT, 
+                          SUMA_LSP_EXTENDED: XmEXTENDED_SELECT */
+   SUMA_Boolean ShowSorted; /*!< Sort the list in alphabetical order */
+   SUMA_Boolean RemoveDups; /*!< Remove duplicates in list */                        
+   void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a default selection mode is made */ 
+   void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */ 
+   void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callbak to make when a selection is made */
+   char *Label;
+   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
+   
+   SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
+                                       of the objects the list refers to*/  
+} SUMA_LIST_WIDGET;
+
+/*! structure containing widgets and data for the DrawROI window*/
 typedef struct {
    Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
    Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
@@ -442,8 +568,13 @@ typedef struct {
    Widget Undo_pb;
    Widget Save_pb;
    Widget Close_pb;
+   Widget Finish_pb;
+   Widget Join_pb;
    SUMA_ARROW_TEXT_FIELD *ROIval; /*!< pointer to arrow field */
    SUMA_ARROW_TEXT_FIELD *ROIlbl; /*!< pointer to text field */
+   SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure currently in use by window.
+                                    This is a copy of another pointer, NEVER FREE IT*/
+   SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and options for the switch ROI list */
 } SUMA_X_DrawROI;
 
 
@@ -653,9 +784,38 @@ typedef struct {
    int Nalloc; /*!< Number of elements allocated for in x and y */
    int *x;  /*!< vector containing x coordinates */
    int *y;  /*!< vector containing y coordinates */
-} SUMA_BRUSH_STROKE; /*!< Structure containing the path of the mouse in the viewer window. 
+   float *NPv; /*!< vector containing x y z triplets of near plane selection points */
+   float *FPv; /*!< vector containing x y z triplets of far plane selection points */   
+   int *SurfNodes; /*!< vector containing indices of nodes corresponding to the 
+                        intersection between line [ NPv[j] FPv[j] ] and surface object */   
+   int *SurfTri; /*!< vector containing indices of triangles corresponding to the 
+                        intersection between line [ NPv[j] FPv[j] ] and surface object */
+   int *ProjectionOf; /*!< if ProjectionOf[31] = 78; it means SurfNodes[31] 
+                           is the intersection between line [ NPv[78] FPv[78] ] and the surface object. */
+   int N_SurfNodes;  /*!< NUmber of SurfNodes in SurfNodes (always <= N) */
+   
+} SUMA_OLD_BRUSH_STROKE; /*!< Structure containing the path of the mouse in the viewer window. 
                         See functions SUMA_CreateBrushStroke(), SUMA_AddToBrushStroke(), 
                         SUMA_ClearBrushStroke(), SUMA_ShowBrushStroke()*/
+
+
+typedef struct {
+   float x; /*!< x screen coordinate. This is typically an integer value except in places of interpolation*/
+   float y; /*!< y screen coordinate. This is typically an integer value except in places of interpolation*/
+   
+   float NP[3];   /*!< x y z triplet of near plane selection point */
+   float FP[3];   /*!< x y z triplet of far plane selection point */
+   
+   int SurfNode;  /*!< index of node corresponding to the 
+                        intersection between line [NP FP] and surface object.
+                        initialized to -1 */
+   int SurfTri;   /*!< index of triangle corresponding to the 
+                        intersection between line [NP FP] and surface object.
+                        initialized to -1 */  
+   SUMA_Boolean Decimated; /*!< Flag to indicate if datum was obtained by a mouse trace (NOPE)
+                               or through decimation (YUP)*/                      
+} SUMA_BRUSH_STROKE_DATUM; /*!< Data structure for the doubly linked version of brushstroke.  */
+
 /*! structure defining the state of a viewer window */
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
@@ -722,7 +882,8 @@ typedef struct {
    SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
    SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function that resets the Eye Axis before display. 
                                           see functions SUMA_display and SUMA_OpenGLStateReset for more info */
-   SUMA_BRUSH_STROKE *BrushStroke; /*!< Structre containing the coordinates of a mouse sweep inside the window */   
+                                          
+   DList *BS; /*!< The new version of BrushStroke, in doubly linked list form */
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -860,42 +1021,6 @@ typedef struct {
    float *VOLREG_CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *VOLREG_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
 } SUMA_VOLPAR;
-
-#define SUMA_MAX_ROI_CTRL_NODES 100 /*!< Maximum number of control nodes in an ROI */
-#define SUMA_MAX_ROI_CTRL_NODES3 300 
-#define SUMA_MAX_ROI_ON_SURFACE 100 /*!< Maximum number of ROIs Drawn on a surface */
-/*! structure to hold the drawing of an ROI */
-typedef struct {   
-   SUMA_ROI_DRAWING_TYPE Type;   /*!< The type of ROI drawn, that would be closed path, etc, etc, */
-
-   char *idcode_str;    /*!< unique idcode for ROI */
-   char *Parent_idcode_str; /*!< idcode of parent surface */
-   char *Label; /*!< ascii label for ROI */ 
-   
-   float Pick0v[SUMA_MAX_ROI_CTRL_NODES3]; /*!< a vector of XYZ of picked points (equivalent of Pick0)------------ MAKE DO WITHOUT, SOON -------------*/
-   float Pick1v[SUMA_MAX_ROI_CTRL_NODES3]; /*!< a vector of XYZ of picked points (equivalent of Pick1)------------ MAKE DO WITHOUT, SOON -------------*/
-   
-   int CtrlNodev[SUMA_MAX_ROI_CTRL_NODES]; /*!< indices of control nodes */
-   int N_CtrlNodev; /*!< number of control nodes */
-   
-   SUMA_ROI_DRAWING_STATUS DrawStatus; /*!< Status of the ROI being drawn, finished, being drawn, being edited, etc. */
-
-} SUMA_DRAWN_ROI;
-
-/*! structure to hold an ROI */
-typedef struct { 
-   SUMA_ROI_TYPE Type;   /*!< The type of ROI */
-   
-   char *idcode_str;    /*!< unique idcode for ROI */
-   char *Parent_idcode_str; /*!< idcode of parent surface */
-   char *Label; /*!< ascii label for ROI */
-
-   int *ElInd; /*!< pointer to vector containing indices into the parent surface (SO has Parent_idcode_str) of ROI elements.
-                           If Type is SUMA_ROI_NodeGroup then ElementIndex contains indices to SO->NodeList .
-                           If Type is SUMA_ROI_FaceGroup then ElementIndex contains indices to SO->FaceList.
-                           If Type is SUMA_ROI_EdgeGroup then ElementIndex contains indices to SO->EL->EL. */
-   int N_ElInd; /*!< Number of elements in ElementIndex */ 
-} SUMA_ROI;
 
 
 
@@ -1106,6 +1231,7 @@ typedef struct {
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
    DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
    SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
+
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */
