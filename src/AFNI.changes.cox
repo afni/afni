@@ -5256,3 +5256,8 @@
 
 01 Dec 2004
  * Added -twopass option to 3dWarpDrive, etc.
+
+06 Dec 2004
+ * Fixed '<a..b>' dataset input without '[...]' input to not print a warning
+     message about the lack of sub-brick subscripts.
+ * Modified 3dmaskave.c to add '-mask SELF' option.

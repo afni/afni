@@ -27,6 +27,7 @@ int main( int argc , char * argv[] )
    int medianit = 0 ;                         /* 06 Jul 2003 */
    float *exar ;                              /* 06 Jul 2003 */
    char *sname = "Average" ;                  /* 06 Jul 2003 */
+   int self_mask = 0 ;                        /* 06 Dec 2004 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -39,6 +40,9 @@ int main( int argc , char * argv[] )
              "                 will be averaged from 'dataset'.  Note\n"
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
+             "               SPECIAL CASE: If 'mset' is the string 'SELF',\n"
+             "                             then the input dataset will be\n"
+             "                             used to mask itself.\n"
              "  -mindex miv  Means to use sub-brick #'miv' from the mask\n"
              "                 dataset.  If not given, miv=0.\n"
              "  -mrange a b  Means to further restrict the voxels from\n"
@@ -108,18 +112,28 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
-         if( mask_dset != NULL ){
-            fprintf(stderr,"*** Cannot have two -mask options!\n") ; exit(1) ;
+         if( mask_dset != NULL || self_mask ){
+           fprintf(stderr,"*** Cannot have two -mask options!\n") ; exit(1) ;
          }
          if( narg+1 >= argc ){
-            fprintf(stderr,"*** -mask option requires a following argument!\n") ; exit(1) ;
+           fprintf(stderr,"*** -mask option requires a following argument!\n") ;
+           exit(1) ;
          }
-         mask_dset = THD_open_dataset( argv[++narg] ) ;
-         if( mask_dset == NULL ){
-            fprintf(stderr,"*** Cannot open mask dataset!\n") ; exit(1) ;
-         }
-         if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex ){
-            fprintf(stderr,"*** Cannot deal with complex-valued mask dataset!\n") ; exit(1) ;
+         narg++ ;
+         if( strcmp(argv[narg],"SELF") == 0 ){
+           self_mask = 1 ;
+         } else {
+           mask_dset = THD_open_dataset( argv[narg] ) ;
+           if( mask_dset == NULL ){
+             fprintf(stderr,"*** Cannot open mask dataset!\n") ; exit(1) ;
+           }
+           if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex ){
+             fprintf(stderr,"*** Cannot deal with complex-valued mask dataset!\n") ;
+             exit(1) ;
+           } else if( DSET_BRICK_TYPE(mask_dset,0) == MRI_rgb ){
+             fprintf(stderr,"*** Cannot deal with rgb-valued mask dataset!\n") ;
+             exit(1) ;
+           }
          }
          narg++ ; continue ;
       }
@@ -230,45 +244,46 @@ int main( int argc , char * argv[] )
 
 #if 0
    if( dumpit && mask_dset == NULL ){
-      fprintf(stderr,"*** Can't use dump option without -mask!\n") ; exit(1) ;
+     fprintf(stderr,"*** Can't use dump option without -mask!\n") ; exit(1) ;
    }
 #endif
 
    if( miv > 0 ){                /* 06 Aug 1998 */
-      if( mask_dset == NULL ){
-         fprintf(stderr,"*** -mindex option used without -mask!\n") ; exit(1) ;
-      }
-      if( miv >= DSET_NVALS(mask_dset) ){
-         fprintf(stderr,"*** -mindex value is too large!\n") ; exit(1) ;
-      }
+     if( mask_dset == NULL ){
+       fprintf(stderr,"*** -mindex option used without -mask!\n") ; exit(1) ;
+     }
+     if( miv >= DSET_NVALS(mask_dset) ){
+       fprintf(stderr,"*** -mindex value is too large!\n") ; exit(1) ;
+     }
    }
 
    /* read input dataset */
 
    input_dset = THD_open_dataset( argv[narg] ) ;
    if( input_dset == NULL ){
-      fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
+     fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
    }
 
    if( DSET_BRICK_TYPE(input_dset,0) == MRI_complex ){
-      fprintf(stderr,"*** Cannot deal with complex-valued input dataset!\n") ; exit(1) ;
+     fprintf(stderr,"*** Cannot deal with complex-valued input dataset!\n") ; exit(1) ;
    }
 
    if( div >= DSET_NVALS(input_dset) ){
-      fprintf(stderr,"*** Not enough sub-bricks in dataset for -dindex %d!\n",div) ; exit(1) ;
+     fprintf(stderr,"*** Not enough sub-bricks in dataset for -dindex %d!\n",div) ;
+     exit(1) ;
    }
 
    if( pslice >= 0 ){
-      nxy = DSET_NX(input_dset) * DSET_NY(input_dset) ;
-      nz  = DSET_NZ(input_dset) ;
-      if( qslice >= nz ){
-         fprintf(stderr,
-                 "*** There are only %d slices in the input dataset!\n",nz) ;
-         exit(1) ;
-      }
+     nxy = DSET_NX(input_dset) * DSET_NY(input_dset) ;
+     nz  = DSET_NZ(input_dset) ;
+     if( qslice >= nz ){
+       fprintf(stderr,
+               "*** There are only %d slices in the input dataset!\n",nz) ;
+       exit(1) ;
+     }
 
-      if( pslice == 0 && qslice == nz-1 )
-         fprintf(stderr,"+++ -slice option says to use all slices!?\n") ;
+     if( pslice == 0 && qslice == nz-1 )
+       fprintf(stderr,"+++ -slice option says to use all slices!?\n") ;
    }
 
    nvox = DSET_NVOX(input_dset) ;
@@ -280,80 +295,83 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Cannot malloc workspace!\n") ; exit(1) ;
    }
 
-   if( mask_dset != NULL ){
+   if( mask_dset != NULL || self_mask ){
+      if( self_mask ) mask_dset = input_dset ;  /* 06 Dec 2004 */
+      else
       if( DSET_NVOX(mask_dset) != nvox ){
-         fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n") ; exit(1) ;
+        fprintf(stderr,"*** Input and mask datasets are not same dimensions!\n") ;
+        exit(1) ;
       }
       DSET_load(mask_dset) ;
       if( DSET_ARRAY(mask_dset,miv) == NULL ){
-         fprintf(stderr,"*** Cannot read in mask dataset BRIK!\n") ; exit(1) ;
+        fprintf(stderr,"*** Cannot read in mask dataset BRIK!\n") ; exit(1) ;
       }
 
       switch( DSET_BRICK_TYPE(mask_dset,miv) ){
-         default:
-            fprintf(stderr,"*** Cannot deal with mask dataset datum!\n") ; exit(1) ;
+        default:
+          fprintf(stderr,"*** Cannot deal with mask dataset datum!\n") ; exit(1) ;
 
-         case MRI_short:{
-            short mbot , mtop ;
-            short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = SHORTIZE(mask_bot/mfac) ;
-               mtop = SHORTIZE(mask_top/mfac) ;
-            } else {
-               mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
-               mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
-               else                                                    { mmm[ii] = 0 ; }
-         }
-         break ;
+        case MRI_short:{
+          short mbot , mtop ;
+          short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+          if( mfac == 0.0 ) mfac = 1.0 ;
+          if( mask_bot <= mask_top ){
+            mbot = SHORTIZE(mask_bot/mfac) ;
+            mtop = SHORTIZE(mask_top/mfac) ;
+          } else {
+            mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
+            mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
+          }
+          for( mcount=0,ii=0 ; ii < nvox ; ii++ )
+            if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
+            else                                                    { mmm[ii] = 0 ; }
+        }
+        break ;
 
-         case MRI_byte:{
-            byte mbot , mtop ;
-            byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = BYTEIZE(mask_bot/mfac) ;
-               mtop = BYTEIZE(mask_top/mfac) ;
-               if( mtop == 0 ){
-                  fprintf(stderr,"*** Illegal mask range for mask dataset of bytes.\n") ; exit(1) ;
-               }
-            } else {
-               mbot = 0 ;
-               mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+        case MRI_byte:{
+          byte mbot , mtop ;
+          byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+          if( mfac == 0.0 ) mfac = 1.0 ;
+          if( mask_bot <= mask_top ){
+            mbot = BYTEIZE(mask_bot/mfac) ;
+            mtop = BYTEIZE(mask_top/mfac) ;
+            if( mtop == 0 ){
+              fprintf(stderr,"*** Illegal mask range for mask dataset of bytes.\n") ; exit(1) ;
             }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
-               else                                                    { mmm[ii] = 0 ; }
-         }
-         break ;
+          } else {
+            mbot = 0 ;
+            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+          }
+          for( mcount=0,ii=0 ; ii < nvox ; ii++ )
+            if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
+            else                                                    { mmm[ii] = 0 ; }
+        }
+        break ;
 
-         case MRI_float:{
-            float mbot , mtop ;
-            float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
-            float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
-            if( mfac == 0.0 ) mfac = 1.0 ;
-            if( mask_bot <= mask_top ){
-               mbot = (float) (mask_bot/mfac) ;
-               mtop = (float) (mask_top/mfac) ;
-            } else {
-               mbot = -WAY_BIG ;
-               mtop =  WAY_BIG ;
-            }
-            for( mcount=0,ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
-               else                                                    { mmm[ii] = 0 ; }
-         }
-         break ;
+        case MRI_float:{
+          float mbot , mtop ;
+          float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+          if( mfac == 0.0 ) mfac = 1.0 ;
+          if( mask_bot <= mask_top ){
+            mbot = (float) (mask_bot/mfac) ;
+            mtop = (float) (mask_top/mfac) ;
+          } else {
+            mbot = -WAY_BIG ;
+            mtop =  WAY_BIG ;
+          }
+          for( mcount=0,ii=0 ; ii < nvox ; ii++ )
+            if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }
+            else                                                    { mmm[ii] = 0 ; }
+        }
+        break ;
       }
-      DSET_unload(mask_dset) ;
+      if( !self_mask ) DSET_unload(mask_dset) ;
 
       if( mcount == 0 ){
-         fprintf(stderr,"*** No voxels survive the masking operation\n"); exit(1);
+        fprintf(stderr,"*** No voxels survive the masking operation\n"); exit(1);
       }
 
       fprintf(stderr,"+++ %d voxels survive the mask\n",mcount) ;
