@@ -14,34 +14,53 @@
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.9a <July 2004>"
+#define PLUG_CRENDER_VERSION "Version 1.9 <July 2004>"
 
-/***********************************************************************
- * VERSION HISTORY
- *
- * 1.9   - updated calls to r_new_resam_dset, passing sublist
- *
- * 1.8   - handle bigmode color bar (see v1.8)
- *
- * 1.7   - incremental rotation is now the default
- *
- * 1.6   - draw crosshairs directly onto the rendered image
- *           o see gcr.hairs
- *       - added sneaky (shhhh...) debugging interface
- *           o access via 'dh' in opacity box
- *
- * 1.5   - aligned crosshairs to resampled grid
- *           o see RCREND_xhair_underlay/RCREND_xhair_overlay
- *           o passing mset to both RCREND_xhair_XXX functions
- *       - added ENTRY(), EXRETURN and RETURN() statements
- *
- * 1.4   - underlay data set grid need not match that of overlay
- *           o see gcr.mset and new_fset
- *
- * 1.3   - re-orient overlay and underlay to rai
- *           o see dset_or and fset_or
- ***********************************************************************
-*/
+/***********************************************************************/
+/* VERSION HISTORY						       */
+static char g_cren_hist[] =
+ "plug_crender.c version history:\n"
+ "\n"
+ " 0.0  Original version is plug_render.c, by RW Cox.\n"
+ "\n"
+ " 1.0  08 March 2002 [rickr]\n"
+ "      - initial release, plug_crender.c\n"
+ "      - replaced MREN_ library calls with CREN_ calls\n"
+ "        (from the new Cox RENder library)\n"
+ "\n"
+ " 1.3  01 July 2002 [rickr]\n"
+ "      - re-orient overlay and underlay to rai\n"
+ "           o see dset_or and fset_or\n"
+ "\n"
+ " 1.4  29 July 2002 [rickr]\n"
+ "      - underlay data set grid need not match that of overlay\n"
+ "           o see gcr.mset and new_fset\n"
+ "\n"
+ " 1.5  05 August 2002 [rickr]\n"
+ "      - aligned crosshairs to resampled grid\n"
+ "           o see RCREND_xhair_underlay/RCREND_xhair_overlay\n"
+ "           o passing mset to both RCREND_xhair_XXX functions\n"
+ "      - added ENTRY(), EXRETURN and RETURN() statements\n"
+ "\n"
+ " 1.6  26 September 2004 [rickr]\n"
+ "      - draw crosshairs directly onto the rendered image\n"
+ "           o see gcr.hairs\n"
+ "      - added sneaky (shhhh...) debugging interface\n"
+ "           o access via 'dh' in opacity box\n"
+ "\n"
+ " 1.7  23 October 2002 [rickr]\n"
+ "      - incremental rotation is now the default\n"
+ "\n"
+ " 1.8  22 July 2003 [rickr]\n"
+ "      - handle bigmode color bar (see v1.8)\n"
+ "\n"
+ " 1.9  27 July 2004 [rickr]\n"
+ "      - updated calls to r_new_resam_dset, passing sublist\n"
+ "         (now resampling is done only for displayed sub-bricks)\n"
+ "      - created printable history through debug interface\n"
+ "         (via 'dh', where 'd?' is now debug help\n"
+ "\n";
+/***********************************************************************/
 
 #include "afni.h"
 #include "cox_render.h"
@@ -2056,6 +2075,7 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 void RCREND_reload_dataset(void)
 {
    THD_3dim_dataset * local_dset;
+   int sublist[2] = {1, 0};	/* sub-brick list for resampling */
    int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone, btype ;
    float fac ;
    void * var ;
@@ -2079,6 +2099,7 @@ ENTRY( "RCREND_reload_dataset" );
    /* make sure the dataset is in memory */
    DSET_load(dset) ;
    local_dset = dset;			/* default - if we don't re-orient */
+   ival = dset_ival;			/* unless we resample, then 0      */
 
    /* make an oriented underlay, if needed            26 June 2002 - rickr */
    if ( !IS_AXIAL_RAI( dset ) )
@@ -2091,16 +2112,21 @@ ENTRY( "RCREND_reload_dataset" );
             gcr.dset_or = NULL;
 	 }
 
-         printf("++ reorienting underlay as rai..." );
+	 /* resample only sub-brick dset_ival */
+	 sublist[0] = 1;  sublist[1] = dset_ival;
+         fprintf(stderr, "++ reorienting underlay as rai...");
          gcr.dset_or = r_new_resam_dset(dset, NULL, 0,0,0, "rai",
-                                        RESAM_NN_TYPE, NULL);
-         printf(" done\n" );
+                                        RESAM_NN_TYPE, sublist);
+         fprintf(stderr, " done\n");
       }
 
       if (gcr.dset_or == NULL)
          XBell(dc->display,100);     /* an error - keep local_dset as dset */
       else
+      {
          local_dset  = gcr.dset_or;    /* woohoo!  we have our new dataset */
+	 ival = 0;
+      }
    }
 
    gcr.mset = local_dset;                  /* we have our rendering master */
@@ -2111,17 +2137,17 @@ ENTRY( "RCREND_reload_dataset" );
 
    gcr.fdm  = THD_oriented_brick( gcr.mset, "RAI" );  /* get mast FD_brick */
 
-   vim      = DSET_BRICK(local_dset,dset_ival) ;
+   vim      = DSET_BRICK(local_dset,ival) ;
    nvox     = vim->nvox ;
-   var      = DSET_ARRAY(local_dset,dset_ival) ;
-   brickfac = DSET_BRICK_FACTOR(local_dset,dset_ival) ;
+   var      = DSET_ARRAY(local_dset,ival) ;
+   brickfac = DSET_BRICK_FACTOR(local_dset,ival) ;
 
    /* find data range, clip it, convert to bytes */
 
    grim = mri_new_conforming( vim , MRI_byte ) ;  /* new image data */
    gar  = MRI_BYTE_PTR(grim) ;
 
-   btype = DSET_BRICK_TYPE(local_dset,dset_ival);
+   btype = DSET_BRICK_TYPE(local_dset,ival);
    switch( btype ){
 
       default:{
@@ -5116,6 +5142,7 @@ ENTRY( "RCREND_choose_av_CB" );
       XtVaSetValues( wfunc_range_bbox->wbut[0], XmNlabelString,xstr , NULL ) ;
       XmStringFree(xstr) ;
 
+      new_fset = 1 ;           /* flag it as new - may resample new sub-brick */
       INVALIDATE_OVERLAY ;
 
       AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Jul 2001 */
@@ -5136,6 +5163,7 @@ ENTRY( "RCREND_choose_av_CB" );
 
       RCREND_set_thr_pval() ;
 
+      new_fset = 1 ;           /* flag it as new - may resample new sub-brick */
       INVALIDATE_OVERLAY ;
    }
 
@@ -6696,6 +6724,8 @@ void RCREND_reload_func_dset(void)
 {
    THD_3dim_dataset  * local_dset;
    MRI_IMAGE * cim , * tim ;
+   int         sublist[3] = {2, 0, 1};	/* sub-brick list for resampling */
+   int         ival_func, ival_thr;
    void      * car , * tar ;
    float       cfac ,  tfac ;
    float       bbot,  btop, bdelta;
@@ -6732,6 +6762,8 @@ ENTRY( "RCREND_reload_func_dset" );
 
    DSET_load(func_dset) ;            /* make sure is in memory */
    local_dset = func_dset;
+   ival_func  = func_color_ival;     /* assign defaults, may resample to 0, 1 */
+   ival_thr   = func_thresh_ival;
 
 /* if (!IS_AXIAL_RAI(func_dset))    - no longer our test for re-orientation */
 
@@ -6739,31 +6771,47 @@ ENTRY( "RCREND_reload_func_dset" );
    {
       if ( new_fset || gcr.fset_or == NULL )          /* we need a new one */
       {
-         printf("++ resampling overlay to master grid..." );
+         fprintf(stderr, "++ resampling overlay to master grid...");
 
          if ( gcr.fset_or != NULL )                    /* lose the old one */
             THD_delete_3dim_dataset( gcr.fset_or, FALSE );
 
+         sublist[1] = func_color_ival;
+	 sublist[2] = func_thresh_ival;
+
+	 /* maybe we don't need to resample 2 sub-bricks */
+	 if ( func_color_ival == func_thresh_ival )
+	    sublist[0] = 1;
+	 else
+	    sublist[0] = 2;	/* normal case, get 2 bricks */
+
          gcr.fset_or = r_new_resam_dset(func_dset, gcr.mset, 0,0,0, NULL,
-                                        RESAM_NN_TYPE, NULL);
-         printf(" done\n" );
+                                        RESAM_NN_TYPE, sublist);
+         fprintf(stderr, " done\n");
       }
 
       if (gcr.fset_or == NULL)
          XBell(dc->display,100);  /* an error - keep local_dset as func_dset */
       else
+      {
          local_dset = gcr.fset_or;       /* woohoo!  we have our new dataset */
+	 ival_func  = 0;
+	 if ( func_color_ival == func_thresh_ival ) /* only need 1 brick?    */
+	    ival_thr = 0;
+  	 else
+ 	    ival_thr = 1;
+      }
    }
 
    /* color brick */
-   cim  = DSET_BRICK(local_dset,func_color_ival) ; nvox = cim->nvox ;
-   car  = DSET_ARRAY(local_dset,func_color_ival) ;
-   cfac = DSET_BRICK_FACTOR(local_dset,func_color_ival) ;
+   cim  = DSET_BRICK(local_dset,ival_func) ; nvox = cim->nvox ;
+   car  = DSET_ARRAY(local_dset,ival_func) ;
+   cfac = DSET_BRICK_FACTOR(local_dset,ival_func) ;
    if( cfac == 0.0 ) cfac = 1.0 ;
 
-   tim  = DSET_BRICK(local_dset,func_thresh_ival) ;         /* thresh brick */
-   tar  = DSET_ARRAY(local_dset,func_thresh_ival) ;
-   tfac = DSET_BRICK_FACTOR(local_dset,func_thresh_ival) ;
+   tim  = DSET_BRICK(local_dset,ival_thr) ;         /* thresh brick */
+   tar  = DSET_ARRAY(local_dset,ival_thr) ;
+   tfac = DSET_BRICK_FACTOR(local_dset,ival_thr) ;
    if( tfac == 0.0 ) tfac = 1.0 ;
 
    ovim = mri_new_conforming( cim , MRI_byte ) ;             /* new overlay */
@@ -9246,6 +9294,7 @@ ENTRY( "draw_image_line" );
 
 #define RD_CHOICE_NONE	        0x00
 #define RD_CHOICE_HELP	        0x01
+#define RD_CHOICE_HIST	        0x02
 #define RD_CHOICE_DISP_COLORS	0x12			           /* v1.8 */
 #define RD_CHOICE_DISP_DSET	0x13
 #define RD_CHOICE_DISP_IM	0x14
@@ -9279,6 +9328,7 @@ ENTRY( "r_debug_check" );
     switch ( choice )
     {
 	case RD_CHOICE_HELP:        rd_disp_debug_help(sp,d);            break;
+	case RD_CHOICE_HIST:        fputs(g_cren_hist, stderr);          break;
 	case RD_CHOICE_DISP_COLORS: rd_disp_color_info(sp,d,&gcr);       break;
 	case RD_CHOICE_DISP_DSET:   rd_disp_dset_info (sp,d,&gcr);       break;
 	case RD_CHOICE_DISP_IM:     rd_disp_mri_image (sp,d,renderings); break;
@@ -9330,7 +9380,7 @@ static int rd_disp_dset_info ( char * str, CR_debug * d, CR_data * crd )
     else if ( str[0] == 'm' && str[1] == 'o' ) ds = crd->mset;
     else
     {
-	printf( "error: see 'dh' for list of valid control characters\n" );
+	printf( "error: see 'd?' for list of valid control characters\n" );
 	return 0;
     }
 
@@ -9351,7 +9401,8 @@ static int rd_debug_choice( char ** str )
 {
     int rv = RD_CHOICE_NONE;
 
-    if      ( **str == 'h' ) rv = RD_CHOICE_HELP;
+    if      ( **str == '?' ) rv = RD_CHOICE_HELP;
+    else if ( **str == 'h' ) rv = RD_CHOICE_HIST;
     else if ( **str == 'c' ) rv = RD_CHOICE_DISP_COLORS;
     else if ( **str == 'd' ) rv = RD_CHOICE_DISP_DSET;
     else if ( **str == 'i' ) rv = RD_CHOICE_DISP_IM;
@@ -9370,7 +9421,8 @@ static int rd_disp_debug_help( char * str, CR_debug * d )
 	"------------------------------------------------------------------\n"
 	"debugging commands:\n"
 	"\n"
-	"    dh   - debug help           : display this menu\n"
+	"    d?   - debug help           : display this menu\n"
+	"    dh   - history              : display plugin history\n"
 	"    dcN  - display color info   : bigmode color info (with step N)\n"
 	"    di   - display image        : display last mri image strcture\n"
 	"    dlN  - debug level          : set debug level to N, {0,1,2}\n"
