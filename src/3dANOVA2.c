@@ -2918,6 +2918,8 @@ void create_bucket (anova_options * option_data)
 	    option_data->first_dataset);
     exit(1) ;
   }
+
+  if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
   
 
   /*----- make an empty copy of this dataset -----*/

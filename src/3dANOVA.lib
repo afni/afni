@@ -47,6 +47,9 @@
    Mod:     Modified routine write_afni_data so that all output subbricks 
             will now have the scaled short integer format.
    Date:    14 March 2002
+
+   Mod:     Modify add_file_name() to use .1D filenames if so ordered.
+   Date:    14 March 2003 - RWCox.
 */
 
 /*---------------------------------------------------------------------------*/
@@ -676,6 +679,10 @@ void write_afni_data (anova_options * option_data,  char * filename,
   
 }
 
+/*---------------------------------------------------------------------------*/
+
+static int use_1D_filenames = 0 ;                             /* 14 Mar 2003 */
+static void USE_1D_filenames( int uu ){ use_1D_filenames=uu; }
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -699,6 +706,11 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 
       strcat (command_str, " ");
       strcat (command_str, DSET_HEADNAME(new_dset));
+
+      if( use_1D_filenames ){            /* 14 Mar 2003 - RWCox */
+        int ll = strlen(command_str) ;
+        command_str[ll-10] = '\0' ; strcat(command_str,".1D") ;
+      }
 }
 
 
