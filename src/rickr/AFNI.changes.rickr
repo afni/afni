@@ -388,3 +388,7 @@
       - depreciated option '-kso'
       - added '-hist' option
   
+18 December 2003
+  * modified SUMA_3dSurf2Vol[ch] (-> 3dSurf2Vol v2.2)
+      - added '-surf_A' and '-surf_B' to specify surfaces from the spec file
+      - added '-hist' option
