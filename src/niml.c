@@ -4312,7 +4312,7 @@ static int tcp_connect( char *host , int port )
 
    /* but large buffers are good */
 
-#if 1
+#ifdef SOCKET_BUFSIZE
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -4391,9 +4391,11 @@ static int tcp_listen( int port )
    }
 #endif
 
+#ifdef SOCKET_BUFSIZE
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+#endif
 
    /** set port on remote computer **/
 
