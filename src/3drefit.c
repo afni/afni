@@ -594,7 +594,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"  ** can't change 3D+time dataset to new type:\n") ;
             fprintf(stderr,"     new type has more than one value per voxel!\n") ;
          } else if( dset->taxis == NULL && nvals != dset->dblk->nvals &&
-                    ((dtype==HEAD_FUNC_TYPE && ftype!=FUNC_BUCK_TYPE)|| 
+                    ((dtype==HEAD_FUNC_TYPE && ftype!=FUNC_BUCK_TYPE)||
                      (dtype==HEAD_ANAT_TYPE && ftype!=ANAT_BUCK_TYPE)  ) ){
 
             fprintf(stderr,"  ** can't change dataset to new type:\n") ;
@@ -602,6 +602,12 @@ int main( int argc , char * argv[] )
          } else {
             dset->type      = dtype ;
             dset->func_type = ftype ;
+
+            if( ISBUCKET(dset) && dset->taxis != NULL ){   /* 29 April 1998 */
+               fprintf(stderr,"  ** Warning: changing 3D+time dataset to bucket\n") ;
+               EDIT_dset_items( dset , ADN_ntt , 0 , ADN_none ) ;
+            }
+
          }
       }
 

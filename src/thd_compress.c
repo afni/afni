@@ -135,9 +135,9 @@ char * COMPRESS_filename( char * fname )
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
-   mm = COMPRESS_filecode( fname ) ;  /* find compression mode */
-   ll = strlen(fname) ;
-   buf = malloc( sizeof(char) * (strlen(fname)+16) ) ;
+   mm  = COMPRESS_filecode( fname ) ;  /* find compression mode */
+   ll  = strlen(fname) ;
+   buf = malloc( sizeof(char) * (ll+16) ) ;
 
    if( mm == COMPRESS_NOFILE || mm == COMPRESS_NONE ){
       strcpy(buf,fname) ;
@@ -145,9 +145,31 @@ char * COMPRESS_filename( char * fname )
       if( ! COMPRESS_has_suffix(fname,mm) ){
          strcpy(buf,fname) ; strcat(buf,COMPRESS_suffix[mm]) ;
       } else {
-         buf = fname ;
+         strcpy(buf,fname) ;
       }
    }
+   return buf ;
+}
+
+/*--- May 1998: a simple routine ---*/
+
+char * COMPRESS_add_suffix( char * fname , int mm )
+{
+   char * buf ;
+   int ll ;
+
+   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+
+   ll  = strlen(fname) ;
+   buf = malloc( sizeof(char) * (ll+16) ) ;
+
+   strcpy(buf,fname) ;
+   if( mm >= 0 && mm <= COMPRESS_LASTCODE &&
+       ! COMPRESS_has_suffix(fname,mm)      ){
+
+      strcat(buf,COMPRESS_suffix[mm]) ;
+   }
+
    return buf ;
 }
 

@@ -40,13 +40,13 @@ typedef struct {
 /** kill the data in a single pointer in the kill list,
     but keep the rest of the data in the list intact   **/
 
-#define SINGLE_KILL(kl,p)                                 \
-   {  char * cp = (char *) (p) ;                          \
-      int qwer ;                                          \
-      for( qwer=0 ; qwer < (kl).num ; qwer++ )            \
-         if( cp == (kl).kill[qwer] ){                     \
+#define SINGLE_KILL(kl,p)                                   \
+   {  char * cp = (char *) (p) ;                            \
+      int qwer ;                                            \
+      for( qwer=0 ; qwer < (kl).num ; qwer++ )              \
+         if( cp == (kl).kill[qwer] ){                       \
             myXtFree(cp) ; (kl).kill[qwer] = NULL ; break ; \
-         }                                                \
+         }                                                  \
    }
 
 /** remove a pointer from the kill list, without deleting its data **/
@@ -76,11 +76,11 @@ typedef struct {
 
 /** kill all the data in the kill list! **/
 
-#define KILL_KILL(kl) {                                                  \
-      int qwer ;                                                         \
+#define KILL_KILL(kl) {                                                    \
+      int qwer ;                                                           \
       for( qwer=0 ; qwer < (kl).num ; qwer++ ) myXtFree((kl).kill[qwer]) ; \
-      myXtFree( (kl).kill) ;                                       \
-      INIT_KILL(kl) ;                                                    \
+      myXtFree( (kl).kill) ;                                               \
+      INIT_KILL(kl) ;                                                      \
    }
 
 #endif /* _MCW_KILLER_H_ */

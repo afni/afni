@@ -7,6 +7,12 @@
 #define EXRETURN  return
 #define RETURN(x) return(x)
 
+#undef ROUND
+#ifndef NO_RINT
+#  define ROUND(qq)   rint((qq))
+#else
+#  define ROUND(qq)   ((int)(qq))
+#endif
 
 /*------------------------------------------------------------------------
   convert one volume to another type
@@ -62,13 +68,13 @@ ENTRY("EDIT_coerce_type") ;
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = sin[ii] ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = fin[ii] ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fin[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = bin[ii] ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = CABS(cin[ii]) ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(CABS(cin[ii])) ;
                EXRETURN ;
          }
          EXRETURN ;
@@ -197,16 +203,16 @@ ENTRY("EDIT_coerce_scale_type") ;
       case MRI_short:
          switch( itype ){
             case MRI_short:   /* inputs are shorts */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = fac*sin[ii] ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*sin[ii]) ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = fac*fin[ii] ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*fin[ii]) ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = fac*bin[ii] ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*bin[ii]) ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
-               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = fac*CABS(cin[ii]) ;
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(fac*CABS(cin[ii])) ;
                EXRETURN ;
          }
          EXRETURN ;

@@ -156,6 +156,8 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
       THD_set_char_atr( blk , ATRNAME_BRICK_LABS , nch , car ) ;
       free(car) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_BRICK_LABS ) ;
    }
 
    /** and write out brick keywords **/
@@ -186,7 +188,10 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
       THD_set_char_atr( blk , ATRNAME_BRICK_KEYWORDS , nch , car ) ;
       free(car) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_BRICK_KEYWORDS ) ;
    }
+
 
    /* and write out brick stataux parameters */
 
@@ -223,7 +228,11 @@ Boolean THD_write_datablock( THD_datablock * blk , Boolean write_brick )
 
          THD_set_float_atr( blk , ATRNAME_BRICK_STATAUX , nfl , far ) ;
          free(far) ;
+      } else {
+         THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
       }
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
    }
 
    /* 25 April 1998: deal with byte order issues */

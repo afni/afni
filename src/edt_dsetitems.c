@@ -589,13 +589,9 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
       }
 
       if( new_nvals ){
-#if 0
-fprintf(stderr,"EDIT_dset_items: about to call THD_copy_datablock_auxdata\n") ;
-#endif
-         THD_copy_datablock_auxdata( NULL , dset->dblk ) ; /* 30 Nov 1997 */
-#if 0
-fprintf(stderr,"EDIT_dset_items: about to free brick_ stuff\n") ;
-#endif
+         if( dset->dblk->nvals != nvals )
+            THD_copy_datablock_auxdata( NULL , dset->dblk ) ; /* 30 Nov 1997 */
+
          myXtFree( dset->dblk->brick_bytes ) ;
          myXtFree( dset->dblk->brick_fac   ) ;
 

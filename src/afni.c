@@ -163,6 +163,8 @@ void AFNI_syntax(void)
      "   -yesplugouts Tells the program to listen for plugouts.\n"
      "                  (Plugouts can also be enabled by setting the\n"
      "                   environment variable AFNI_YESPLUGOUTS.)\n"
+     "   -YESplugouts Makes the plugout code print out lots of messages\n"
+     "                  (useful for debugging a new plugout).\n"
      "   -noplugouts  Tells the program NOT to listen for plugouts.\n"
      "                  (This option is available to override\n"
      "                   the AFNI_YESPLUGOUTS environment variable.)\n"
@@ -443,7 +445,16 @@ ENTRY("AFNI_parse_args") ;
       /*----- -yesplugouts option -----*/
 
       if( strncmp(argv[narg],"-yesplugouts",10) == 0 ){
-         GLOBAL_argopt.noplugouts = 0 ;
+         GLOBAL_argopt.noplugouts   = 0 ;
+         GLOBAL_argopt.plugout_code = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -yesplugouts option -----*/
+
+      if( strncmp(argv[narg],"-YESplugouts",10) == 0 ){
+         GLOBAL_argopt.noplugouts   = 0 ;
+         GLOBAL_argopt.plugout_code = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 #endif

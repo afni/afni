@@ -160,6 +160,92 @@ printf("  -- string atr: %s = %s\n",aname,new_atr->ch) ; fflush(stdout) ;
 }
 
 /*-----------------------------------------------------------------------
+  29 April 1998: erase all attributes from a datablock
+-------------------------------------------------------------------------*/
+
+void THD_erase_all_atr( THD_datablock * blk )
+{
+   int ia ;
+   ATR_any * next_atr ;
+
+   if( !ISVALID_DATABLOCK(blk) || blk->natr == 0 || blk->atr == NULL ) return ;
+
+   for( ia=0 ; ia < blk->natr ; ia++ ){
+      next_atr = blk->atr + ia ;
+
+      switch( next_atr->type ){
+         case ATR_FLOAT_TYPE:{
+            ATR_float * aa = (ATR_float *) next_atr ;
+            SINGLE_KILL( blk->kl , aa->name ) ;
+            SINGLE_KILL( blk->kl , aa->fl ) ;
+         }
+         break ;
+
+         case ATR_STRING_TYPE:{
+            ATR_string * aa = (ATR_string *) next_atr ;
+            SINGLE_KILL( blk->kl , aa->name ) ;
+            SINGLE_KILL( blk->kl , aa->ch ) ;
+         }
+         break ;
+
+         case ATR_INT_TYPE:{
+            ATR_int * aa = (ATR_int *) next_atr ;
+            SINGLE_KILL( blk->kl , aa->name ) ;
+            SINGLE_KILL( blk->kl , aa->in ) ;
+         }
+         break ;
+      }
+
+      next_atr->type = ILLEGAL_TYPE ;
+   }
+
+   blk->natr = 0 ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   29 April 1998: erase a single attribute, given by name
+-------------------------------------------------------------------------*/
+
+void THD_erase_one_atr( THD_datablock * blk , char * name )
+{
+   ATR_any * next_atr ;
+
+   if( ! ISVALID_DATABLOCK(blk) || name     == NULL ||
+       blk->natr == 0           || blk->atr == NULL   ) return ;
+
+   next_atr = THD_find_atr( blk , name ) ;
+
+   if( next_atr == NULL ) return ;
+
+   switch( next_atr->type ){
+      case ATR_FLOAT_TYPE:{
+         ATR_float * aa = (ATR_float *) next_atr ;
+         SINGLE_KILL( blk->kl , aa->name ) ;
+         SINGLE_KILL( blk->kl , aa->fl ) ;
+      }
+      break ;
+
+      case ATR_STRING_TYPE:{
+         ATR_string * aa = (ATR_string *) next_atr ;
+         SINGLE_KILL( blk->kl , aa->name ) ;
+         SINGLE_KILL( blk->kl , aa->ch ) ;
+      }
+      break ;
+
+      case ATR_INT_TYPE:{
+         ATR_int * aa = (ATR_int *) next_atr ;
+         SINGLE_KILL( blk->kl , aa->name ) ;
+         SINGLE_KILL( blk->kl , aa->in ) ;
+      }
+      break ;
+   }
+
+   next_atr->type = ILLEGAL_TYPE ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------
   given a datablock and an attribute name, return the pointer to the
   attribute structure that matches (if none, return NULL)
 -------------------------------------------------------------------------*/
@@ -183,7 +269,7 @@ ATR_any * THD_find_atr( THD_datablock * blk , char * name )
 
       switch( next_atr->type ){
 
-         default: aname = NULL ; break ;  /* something bad */
+         default: aname = NULL ; break ;
 
          case ATR_FLOAT_TYPE:{
             ATR_float * aa = (ATR_float *) next_atr ;
@@ -204,9 +290,9 @@ ATR_any * THD_find_atr( THD_datablock * blk , char * name )
          break ;
       }
 
-      /* check if names match */
+      /* check if names match; if so, return the result */
 
-      if( strcmp(aname,name) == 0 ) return next_atr ;  /* found it! */
+      if( aname != NULL && strcmp(aname,name) == 0 ) return next_atr ;
 
    } /* end of loop over attributes */
 
@@ -297,18 +383,24 @@ printf("THD_set_atr: replacing atr %s\n",aname) ;
 
    } else {  /* this is a new attribute name for this datablock */
 
+      int ia ;
+
+      for( ia=0 ; ia < blk->natr ; ia++ )     /* 29 April 1998: look for an */
+         if( blk->atr[ia].type < 0 ) break ;  /* unused one before the end  */
+
 #ifdef THD_DEBUG
-printf("THD_set_atr: making new atr %s\n",aname) ;
+  if( ia == blk->natr ) printf("THD_set_atr: making new atr %s\n",aname) ;
+  else                  printf("THD_set_atr: recycling old atr into %s\n",aname) ;
 #endif
 
-      if( blk->natr == blk->natr_alloc ){
+      if( ia == blk->natr_alloc ){            /* need to extend array */
          blk->natr_alloc  += ATR_ALLINC ;
          blk->atr          = (ATR_any *)
                              XtRealloc( (char *)blk->atr,
                                         sizeof(ATR_any) * blk->natr_alloc );
       }
-      atr = &(blk->atr[blk->natr]) ;
-      (blk->natr)++ ;
+      atr = &(blk->atr[ia]) ;
+      if( ia == blk->natr ) (blk->natr)++ ;
    }
 
    /* at this point, atr points to the location to store the data;

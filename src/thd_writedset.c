@@ -5,6 +5,9 @@
 /*----------------------------------------------------------------
    this routine writes all the data from the dataset into the
    datablock attributes, then writes the datablock to disk
+
+   29 April 1998: erase attributes that are unused, so that
+                  they won't be left over from a previous life
 ------------------------------------------------------------------*/
 
 #define IFILL_DIM 100
@@ -39,7 +42,6 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
                            new_sessname , NULL , new_prefixname ,
                            dset->view_type , True ) ;
 
-
    /*----- write TYPESTRING attribute -----*/
 
    THD_set_string_atr( blk , ATRNAME_TYPESTRING ,
@@ -53,9 +55,13 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 
    if( ! ISZERO_IDCODE(dset->anat_parent_idcode) )
       THD_set_string_atr( blk , ATRNAME_IDANATPAR , dset->anat_parent_idcode.str ) ;
+   else
+      THD_erase_one_atr( blk , ATRNAME_IDANATPAR ) ;
 
    if( ! ISZERO_IDCODE(dset->warp_parent_idcode) )
       THD_set_string_atr( blk , ATRNAME_IDWARPPAR , dset->warp_parent_idcode.str ) ;
+   else
+      THD_erase_one_atr( blk , ATRNAME_IDWARPPAR ) ;
 #endif
 
    /*----- write SCENE_TYPE attribute -----*/
@@ -78,16 +84,22 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 
    if( dset->keywords != NULL )
       THD_set_string_atr( blk , ATRNAME_KEYWORDS , dset->keywords ) ;
+   else
+      THD_erase_one_atr( blk , ATRNAME_KEYWORDS ) ;
 
    /*----- write parent names, if they exist -----*/
 
    if( strlen(dset->warp_parent_name) > 0 )
       THD_set_string_atr( blk , ATRNAME_WARP_PARENT ,
                           dset->warp_parent_name ) ;
+   else
+      THD_erase_one_atr( blk , ATRNAME_WARP_PARENT ) ;
 
    if( strlen(dset->anat_parent_name) > 0 )
       THD_set_string_atr( blk , ATRNAME_ANATOMY_PARENT ,
                           dset->anat_parent_name ) ;
+   else
+      THD_erase_one_atr( blk , ATRNAME_ANATOMY_PARENT ) ;
 
    /*----- write axes orientation -----*/
 
@@ -145,6 +157,11 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
       THD_set_int_atr( blk , ATRNAME_MARKSFLAG ,
                              ATRSIZE_MARKSFLAG ,
                              &(dset->markers->aflags[0]) ) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_MARKSXYZ  ) ;
+      THD_erase_one_atr( blk , ATRNAME_MARKSLAB  ) ;
+      THD_erase_one_atr( blk , ATRNAME_MARKSHELP ) ;
+      THD_erase_one_atr( blk , ATRNAME_MARKSFLAG ) ;
    }
 
    /*----- write warp, if present -----*/
@@ -197,6 +214,12 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 
       THD_set_float_atr( blk , ATRNAME_WARP_DATA ,
                                wdata_size , ftemp ) ;
+
+   } else {  /* no warp exists */
+
+      THD_erase_one_atr( blk , ATRNAME_WARP_TYPE ) ;
+      THD_erase_one_atr( blk , ATRNAME_WARP_DATA ) ;
+
    } /* end of if warp exists */
 
    /*----- if statistics exist, write them out (modern style of floats) -----*/
@@ -214,6 +237,8 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
          THD_set_float_atr( blk, ATRNAME_BRICK_STATS, 2*dset->stats->nbstat, tfil ) ;
          free( tfil ) ;
       }
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_BRICK_STATS ) ;
    }
 
    /*----- if auxiliary statistics data exists, write them out too -----*/
@@ -224,6 +249,8 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
       ii++ ;       /* number of stat_aux values to save      */
 
       THD_set_float_atr( blk , ATRNAME_STAT_AUX , ii , dset->stat_aux ) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_STAT_AUX ) ;
    }
 
    /*----- if time-dependent data, write that stuff out too -----*/
@@ -250,6 +277,10 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
       if( dset->taxis->toff_sl != NULL )
          THD_set_float_atr( blk , ATRNAME_TAXIS_OFFSETS ,
                                   dset->taxis->nsl , dset->taxis->toff_sl ) ;
+   } else {
+      THD_erase_one_atr( blk , ATRNAME_TAXIS_NUMS    ) ;
+      THD_erase_one_atr( blk , ATRNAME_TAXIS_FLOATS  ) ;
+      THD_erase_one_atr( blk , ATRNAME_TAXIS_OFFSETS ) ;
    }
 
 #if 0

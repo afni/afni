@@ -45,4 +45,6 @@ extern FILE * COMPRESS_fopen_write( char * fname , int mm ) ;
 extern char * COMPRESS_filename( char * fname ) ; /* Feb 1998 */
 extern int COMPRESS_unlink( char * fname ) ;      /* Feb 1998 */
 
+extern char * COMPRESS_add_suffix( char * fname , int mode ) ; /* May 1998 */
+
 #endif

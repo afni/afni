@@ -16,6 +16,9 @@ static IOCHAN * ioc_control = NULL ;    /* IOCHAN for plugout control */
 static int            npout = 0 ;       /* number of plugouts allocated */
 static PLUGOUT_spec ** pout = NULL ;    /* malloc-ed array of plugouts */
 
+#undef RETRY
+static int verbose = 0 ;  /* 28 April 1998 */
+
 /*-----------------------------------------------------------------------
   Initialize plugouts: setup the work process
 -------------------------------------------------------------------------*/
@@ -25,6 +28,9 @@ void AFNI_init_plugouts( void )
 ENTRY("AFNI_init_plugouts") ;
    PLUTO_register_workproc( AFNI_plugout_workproc , NULL ) ;
    atexit( AFNI_plugout_exit ) ;
+
+   verbose = (GLOBAL_argopt.plugout_code & 1) != 0 ;
+
    EXRETURN ;
 }
 
@@ -43,8 +49,9 @@ void AFNI_plugout_exit( void )
       if( pout[jj] != NULL && pout[jj]->ioc != NULL ){
          iochan_set_cutoff( pout[jj]->ioc ) ;
          iochan_close( pout[jj]->ioc ) ;
-         fprintf(stderr,"PO: atexit closed channel from plugout %s\n",
-                       pout[jj]->po_name ) ;
+         if( verbose )
+            fprintf(stderr,"PO: atexit closed channel from plugout %s\n",
+                    pout[jj]->po_name ) ;
       }
    }
    return ;
@@ -70,24 +77,29 @@ ENTRY("AFNI_plugout_workproc") ;
 
    if( ioc_control == NULL ){
       ioc_control = iochan_init( TCP_PLUGOUT_CONTROL , "accept" ) ;
+
+#ifdef RETRY
       if( ioc_control == NULL ){
-         fprintf(stderr,"PO: waiting to listen on control channel") ;
+         if( verbose )
+            fprintf(stderr,"PO: waiting to listen on control channel") ;
          for( ii=0 ; ii < 10 ; ii++ ){
-            fprintf(stderr,".") ;
+            if( verbose ) fprintf(stderr,".") ;
             iochan_sleep(VLONG_DELAY) ;  /* wait a bit, try again */
             ioc_control = iochan_init( TCP_PLUGOUT_CONTROL , "accept" ) ;
             if( ioc_control != NULL ) break ;
          }
-         fprintf(stderr,"\n") ;
-         if( ioc_control == NULL ){
+         if( verbose ) fprintf(stderr,"\n") ;
 #if 0
+         if( ioc_control == NULL ){
             iochan_sleep(10*VLONG_DELAY) ;
             fprintf(stderr,"PO: trouble listening for control channel!\n") ;
             RETURN(False) ;
-#endif
          }
+#endif
       }
-      opcount++ ;
+#endif /* RETRY */
+
+      if( ioc_control != NULL ) opcount++ ;
    }
 
    /********************************************/
@@ -104,7 +116,8 @@ ENTRY("AFNI_plugout_workproc") ;
       fprintf(stderr,"PO: plugout connection from host %s\n",ioc_control->name) ;
 
       if( ! TRUST_host(ioc_control->name) ){
-         fprintf(stderr,"PO: untrusted host: %s\n",ioc_control->name) ;
+         fprintf(stderr,"PO: untrusted host: %s -- connection denied\n" ,
+                 ioc_control->name) ;
          IOCHAN_CLOSE(ioc_control) ;
          RETURN(False) ;
       }
@@ -158,9 +171,12 @@ ENTRY("AFNI_plugout_workproc") ;
 
    } else if( jj == -1 ){  /* something bad on the control channel! */
 
-      fprintf(stderr,"PO: failure while listening for control channel!\n") ;
+#if 0
+      if( verbose )
+         fprintf(stderr,"PO: failure while listening to control channel!\n") ;
+#endif
+
       IOCHAN_CLOSE(ioc_control) ;
-      opcount++ ;
 
    }
 
@@ -222,8 +238,18 @@ ENTRY("AFNI_process_plugout") ;
    if( ! pp->ioc_ready ){
       ii = iochan_goodcheck( pp->ioc , SHORT_DELAY ) ;
       if( ii == 0 ) RETURN( 0) ;   /* still waiting */
-      if( ii <  0 ) RETURN(-1) ;   /* something bad */
-      pp->ioc_ready = 1 ;         /* mark that it is ready */
+
+      if( ii <  0 ){               /* something bad */
+         fprintf(stderr,"PO: plugout %s IOCHAN failed to establish.\n",
+                 pp->po_name ) ;
+         RETURN(-1) ;
+      }
+
+      pp->ioc_ready = 1 ;          /* mark that it is ready */
+
+      if( verbose )
+         fprintf(stderr,"PO: plugout %s IOCHAN connection established.\n",
+                 pp->po_name ) ;
    }
 
    /***************************************************/
@@ -232,7 +258,7 @@ ENTRY("AFNI_process_plugout") ;
    jj = iochan_readcheck( pp->ioc , SHORT_DELAY ) ;
 
    if( jj < 0 ){    /* something bad happened */
-      fprintf(stderr,"PO: plugout %s closed connection!\n",pp->po_name) ;
+      fprintf(stderr,"PO: plugout %s has broken connection!\n",pp->po_name) ;
       RETURN(-1) ;
    }
 
@@ -255,6 +281,10 @@ ENTRY("AFNI_process_plugout") ;
         retval = 2 ; goto Proust ;
      }
 
+     if( verbose )
+        fprintf(stderr,"PO: plugout %s sent %d bytes of data\n",
+                pp->po_name , nend ) ;
+
      /** determine what to do with it **/
 
      if( strncmp(pobuf,"TT_XYZ_SET",10) == 0 ){
@@ -275,6 +305,9 @@ ENTRY("AFNI_process_plugout") ;
 
         } else {
 
+           if( verbose )
+              fprintf(stderr,"PO: command TT_XYZ_SET %g %g %g\n",xx,yy,zz) ;
+
            jj = AFNI_jumpto_dicom( im3d , -xx,-yy,zz ) ;
            if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
            else         PO_ACK_OK ( pp->ioc ) ;
@@ -291,6 +324,8 @@ ENTRY("AFNI_process_plugout") ;
                    pp->po_name , pobuf ) ;
            PO_ACK_BAD( pp->ioc ) ;
         } else {
+           if( verbose )
+              fprintf(stderr,"PO: command DICOM_XYZ_SET %g %g %g\n",xx,yy,zz) ;
            jj = AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
            if( jj < 0 ) PO_ACK_BAD( pp->ioc ) ;
            else         PO_ACK_OK ( pp->ioc ) ;
@@ -306,6 +341,8 @@ ENTRY("AFNI_process_plugout") ;
                    pp->po_name , pobuf ) ;
            PO_ACK_BAD( pp->ioc ) ;
         } else {
+           if( verbose )
+              fprintf(stderr,"PO: command DSET_IJK_SET %d %d %d\n",ix,jy,kz) ;
            AFNI_set_viewpoint( im3d , ix,jy,kz , REDISPLAY_ALL ) ;
            PO_ACK_OK ( pp->ioc ) ;
         }
@@ -314,11 +351,17 @@ ENTRY("AFNI_process_plugout") ;
      } else if( strncmp(pobuf,"DSET_IJK_GET",12) == 0 ){
         int ix=im3d->vinfo->i1 , jy=im3d->vinfo->j2 , kz=im3d->vinfo->k3 ;
 
+        if( verbose )
+           fprintf(stderr,"PO: command DSET_IJK_GET -> %d %d %d\n",ix,jy,kz) ;
+
         sprintf(pobuf,"DSET_IJK %d %d %d\n" , ix,jy,kz ) ;
         PO_SEND( pp->ioc , pobuf ) ;            /* send */
         jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
         if( jj == -1 ) RETURN(-1) ;             /* something bad! */
         jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
+        if( verbose )
+           fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
+                                    : "PO: did not receive acknowledgment\n" ) ;
         retval = 2 ; goto Proust ;
 
      } else {
@@ -382,10 +425,17 @@ ENTRY("AFNI_process_plugout") ;
       /** send string, if any, then wait for acknowledgement **/
 
       if( npobuf > 0 ){
+         if( verbose )
+            fprintf(stderr,"PO: sending plugout %s this string:\n    %s",
+                    pp->po_name , pobuf ) ;
+
          PO_SEND( pp->ioc , pobuf ) ;            /* send */
          jj = iochan_readcheck( pp->ioc, -1 ) ;  /* wait for return message */
          if( jj == -1 ) RETURN(-1) ;             /* something bad! */
          jj = iochan_recv( pp->ioc , pobuf , POACKSIZE ) ; /* read message */
+         if( verbose )
+           fprintf(stderr, (jj > 0) ? "PO: received acknowledgment\n"
+                                    : "PO: did not receive acknowledgment\n" ) ;
          retval = 1 ; goto Proust ;
       } else {
          retval = 0 ; goto Proust ;
@@ -447,6 +497,9 @@ ENTRY("new_PLUGOUT_spec") ;
    pp->ioc         = NULL ;
    strcpy(pp->po_name,"Old One-Eyed Dogface") ;
 
+   if( verbose )
+      fprintf(stderr,"PO: initializing new plugout -- got %d input bytes\n",nend) ;
+
    /** the input buffer should be of the form:
          IO_KEYWORD options
          IO_KEYWORD options
@@ -480,6 +533,9 @@ ENTRY("new_PLUGOUT_spec") ;
 
       /************************************/
       /*** Scan for legal input strings ***/
+
+      if( verbose )
+         fprintf(stderr,"PO: initializer command = %s\n",buf) ;
 
       if( STARTER("TT_XYZ_DELTA") ){
 
@@ -528,6 +584,7 @@ ENTRY("new_PLUGOUT_spec") ;
    /** check that something good happened **/
 
    if( pp->ioc == NULL ){
+      fprintf(stderr,"PO: no IOCHAN connection established.\n") ;
       iochan_close( pp->ioc ) ;
       free(pp) ; RETURN( NULL ) ;
    }
@@ -539,6 +596,9 @@ ENTRY("new_PLUGOUT_spec") ;
    pp->view_type  = -1 ;
    pp->sess_num   = pp->anat_num = pp->func_num = -1 ;
    pp->func_threshold = -0.98765;
+
+   if( verbose )
+      fprintf(stderr,"PO: initialization completed successfully.\n") ;
 
    RETURN( pp ) ;
 }

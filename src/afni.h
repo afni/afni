@@ -41,6 +41,7 @@ typedef struct {
       char title_name[32] ;
 #ifdef ALLOW_PLUGINS
       int noplugins , noplugouts ;
+      int plugout_code ;
 #endif
 
       int first_file_arg , recurse ;
@@ -115,7 +116,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "25 Apr 1998      "
+#define RELEASE "30 Apr 1998      "
 
 #ifdef MAIN
 #define AFNI_about \

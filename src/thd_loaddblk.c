@@ -92,7 +92,7 @@ ENTRY("THD_load_datablock") ;
       int fd ;
       fd = open( dkptr->brick_name , O_RDONLY ) ;
       if( fd < 0 ){
-         fprintf( stderr , "\n*** cannot open brick file %s\n" ,
+         fprintf( stderr , "\n*** cannot open brick file %s for mmap\n" ,
                   dkptr->brick_name ) ;
          perror("*** Unix error message") ;
          return False ;

@@ -1,10 +1,17 @@
 #include "mrilib.h"
 #include "thd.h"
 
+#if 0
+#  define DQQ(s) fprintf(stderr,"THD_copy_datablock_auxdata %s\n",(s))
+#else
+#  define DQQ(s) /* nada */
+#endif
 
 void THD_copy_datablock_auxdata( THD_datablock * old_dblk, THD_datablock * new_dblk )
 {
    int new_nvals , old_nvals , min_nvals , iv,kv , ibr ;
+
+DQQ("entry") ;
 
    if( ! ISVALID_DATABLOCK(new_dblk) ) return ;
 
@@ -33,24 +40,31 @@ void THD_copy_datablock_auxdata( THD_datablock * old_dblk, THD_datablock * new_d
    new_dblk->brick_statcode = NULL ;
    new_dblk->brick_stataux  = NULL ;
 
+DQQ("finish nulling") ;
+
    if( ! ISVALID_DATABLOCK(old_dblk) ) return ;
 
    old_nvals = old_dblk->nvals ;
    min_nvals = (old_nvals < new_nvals) ? old_nvals : new_nvals ;
 
+DQQ("starting copy") ;
+
    if( old_dblk->brick_lab != NULL ){
+DQQ("copy labels") ;
       THD_init_datablock_labels( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ )
          THD_store_datablock_label( new_dblk , iv , old_dblk->brick_lab[iv] ) ;
    }
 
    if( old_dblk->brick_keywords != NULL ){
+DQQ("copy keywords") ;
       THD_init_datablock_keywords( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ )
          THD_store_datablock_keywords( new_dblk , iv , old_dblk->brick_keywords[iv] ) ;
    }
 
    if( old_dblk->brick_statcode != NULL ){
+DQQ("copy statcode and stataux") ;
       THD_init_datablock_stataux( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ ){
          kv = old_dblk->brick_statcode[iv] ;
@@ -60,6 +74,7 @@ void THD_copy_datablock_auxdata( THD_datablock * old_dblk, THD_datablock * new_d
       }
    }
 
+DQQ("exit") ;
    return ;
 }
 

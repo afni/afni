@@ -6,6 +6,8 @@
 
 /***********************************************************************
   Simple plugin to rename a dataset from within AFNI.
+
+  May 1998: modified to work with compressed .BRIK names.
 ************************************************************************/
 
 char * RENAME_main( PLUGIN_interface * ) ;
@@ -66,7 +68,7 @@ char * RENAME_main( PLUGIN_interface * plint )
    char * old_header_name , * old_brick_name ;
    THD_slist_find find ;
    THD_session * ss ;
-   int iss , id , ivv , ierr ;
+   int iss , id , ivv , ierr , mm ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -134,8 +136,19 @@ char * RENAME_main( PLUGIN_interface * plint )
       if( THD_is_file(old_header_name) )
          ierr += rename( old_header_name , dset->dblk->diskptr->header_name ) ;
 
+      /* May 1998: fix .BRIK rename to allow for compression */
+#if 0
       if( THD_is_file(old_brick_name) )
          ierr += rename( old_brick_name , dset->dblk->diskptr->brick_name ) ;
+#else
+      mm = COMPRESS_filecode(old_brick_name) ;
+      if( mm != COMPRESS_NOFILE ){
+         char * old_name = COMPRESS_add_suffix(old_brick_name,mm) ;
+         char * new_name = COMPRESS_add_suffix(dset->dblk->diskptr->brick_name,mm) ;
+         ierr += rename( old_name , new_name ) ;
+         free(old_name) ; free(new_name) ;
+      }
+#endif
 
       XtFree(old_header_name) ; XtFree(old_brick_name) ;
    }

@@ -4,6 +4,12 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+30 April 1998:
+   3dcalc can now correctly operate on 3D bucket and other multi-brick
+     non-time-dependent datasets.
+   3drefit can convert a 3D+time dataset to a 3D bucket dataset (but
+     not vice-versa).
+--------------------------------------------------------------------------
 25 April 1998:
    AFNI now can store the byte order for short-valued datasets in the
      .HEAD file.  It will then compare that order to the CPU order,

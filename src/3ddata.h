@@ -2032,6 +2032,8 @@ extern char * THD_trailname( char * fname , int lev ) ;
 extern int THD_linecount( char * ) ;
 
 extern void THD_read_all_atr( char * , THD_datablock * ) ;
+extern void THD_erase_all_atr( THD_datablock * ) ;
+extern void THD_erase_one_atr( THD_datablock * , char * ) ;
 
 extern ATR_any    * THD_find_atr       ( THD_datablock * , char * ) ;
 extern ATR_float  * THD_find_float_atr ( THD_datablock * , char * ) ;

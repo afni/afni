@@ -13,12 +13,17 @@
   is not allowed.
 -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*---------------------------------------------------------------------------
-This program is revised for 3d+time data calculation,
+This program is revised for 3D+time data calculation,
   [Raoqiong Tong, August 1997]
 
-Added ability to use a 1D time series file as a "dataset" (see TS variables).
+Added ability to use a 1D time series file as a "dataset" -- see TS variables.
+  [RW Cox, April 1998]
+
+Added ability to operate on 3D bucket datasets -- see ALLOW_BUCKETS macro.
   [RW Cox, April 1998]
 ----------------------------------------------------------------------------*/
+
+#define ALLOW_BUCKETS
 
 #include "mrilib.h"
 #include "parser.h"
@@ -32,8 +37,8 @@ Added ability to use a 1D time series file as a "dataset" (see TS variables).
 static int                CALC_datum = ILLEGAL_TYPE ;
 static int                CALC_nvox  = -1 ;
 static PARSER_code *      CALC_code  = NULL ;
-static int 		  ntime[26] ;
-static int 		  ntime_max = 0 ;
+static int                ntime[26] ;
+static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 
 static THD_3dim_dataset *  CALC_dset[26] ;
@@ -42,6 +47,8 @@ static byte **             CALC_byte[26] ;
 static short **            CALC_short[26] ;
 static float **            CALC_float[26] ;
 static float *             CALC_ffac[26] ;
+
+static int                CALC_verbose = 0 ; /* 30 April 1998 */
 
 static char CALC_output_prefix[THD_MAX_PREFIX] = "calc" ;
 
@@ -116,6 +123,13 @@ void CALC_read_opts( int argc , char * argv[] )
             exit(1) ;
          }
          nopt++ ; continue ;  /* go to next arg */
+      }
+
+      /**** -verbose [30 April 1998] ****/
+
+      if( strncmp(argv[nopt],"-verbose",6) == 0 ){
+         CALC_verbose = 1 ;
+         nopt++ ; continue ;
       }
 
       /**** -fscale [16 Mar 1998] ****/
@@ -205,23 +219,21 @@ void CALC_read_opts( int argc , char * argv[] )
             fprintf(stderr,"can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
          }
 
-         THD_load_datablock( dset->dblk , NULL ) ;
-         ntime[ival] = DSET_NUM_TIMES(dset);
-
-	 if ( ids > 2 ) ntime[ival] = 1 ;
-	 ntime_max = MAX( ntime_max, ntime[ival] );
-
-	 for (ii=0; ii<ntime[ival]; ii++)
-            if( DSET_ARRAY(dset,ii) == NULL ){
-               fprintf(stderr,"can't read data brick for dataset %s\n",argv[nopt-1]) ;
-               exit(1) ;
-            }
-
          if( isub >= DSET_NVALS(dset) ){
             fprintf(stderr,"dataset %s only has %d sub-bricks\n",
                     argv[nopt-1],DSET_NVALS(dset)) ;
             exit(1) ;
          }
+
+         /* set some parameters based on the dataset */
+
+#ifdef ALLOW_BUCKETS
+         ntime[ival] = DSET_NVALS(dset) ;
+#else
+         ntime[ival] = DSET_NUM_TIMES(dset);
+#endif
+         if ( ids > 2 ) ntime[ival] = 1 ;
+         ntime_max = MAX( ntime_max, ntime[ival] );
 
          nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
          if( CALC_nvox < 0 ){
@@ -232,7 +244,9 @@ void CALC_read_opts( int argc , char * argv[] )
          }
 
          CALC_type[ival] = DSET_BRICK_TYPE(dset,isub) ;
-	 CALC_dset[ival] = dset ;
+         CALC_dset[ival] = dset ;
+
+         /* load floating scale factors */
 
          CALC_ffac[ival] = (float * ) malloc( sizeof(float) * ntime[ival] ) ;
          if ( ntime[ival] == 1 ) {
@@ -244,7 +258,20 @@ void CALC_read_opts( int argc , char * argv[] )
             if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
          }
 
-	 switch (CALC_type[ival]) {
+         /* read data from disk */
+
+         if( CALC_verbose )
+            fprintf(stderr,"  ++ Reading dataset %s\n",argv[nopt-1]) ;
+
+         THD_load_datablock( dset->dblk , NULL ) ;
+         if( ! DSET_LOADED(dset) ){
+            fprintf(stderr,"Can't read data brick for dataset %s\n",argv[nopt-1]) ;
+            exit(1) ;
+         }
+
+         /* set pointers for actual dataset arrays */
+
+         switch (CALC_type[ival]) {
 	    case MRI_short:
 	       CALC_short[ival] = (short **) malloc( sizeof(short *) * ntime[ival] ) ;
 	       if (ntime[ival] == 1 )
@@ -283,7 +310,8 @@ DSET_DONE: continue;
 
    }  /* end of loop over options */
 
-   /*** cleanup ***/
+   /*---------------------------------------*/
+   /*** cleanup: check for various errors ***/
 
    if( nopt < argc ){
      fprintf(stderr,"Extra command line arguments puzzle me! %s ...\n",argv[nopt]) ;
@@ -291,7 +319,6 @@ DSET_DONE: continue;
    }
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
-
    if( ids == 26 ){
       fprintf(stderr,"No input datasets given!\n") ; exit(1) ;
    }
@@ -302,7 +329,12 @@ DSET_DONE: continue;
 
    for (ids=0; ids < 26; ids ++)
       if (ntime[ids] > 1 && ntime[ids] != ntime_max ) {
-	 fprintf(stderr, "3D+time datasets don't match!\n") ; exit(1) ;
+#ifdef ALLOW_BUCKETS
+	 fprintf(stderr, "Multi-brick datasets don't match!\n") ;
+#else
+	 fprintf(stderr, "3D+time datasets don't match!\n") ;
+#endif
+         exit(1) ;
       }
 
    /* 17 Apr 1998: if all input datasets are 3D only (no time),
@@ -332,6 +364,8 @@ void CALC_Syntax(void)
    ) ;
 
    printf(
+    "  -verbose    = Makes the program print out various information as\n"
+    "                  it progresses.\n"
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
     "                  [default = datum of first input dataset]\n"
@@ -376,15 +410,24 @@ void CALC_Syntax(void)
     " When producing a 3D+time dataset, datasets in case (A) or (B) will be\n"
     " treated as if the particular brick being used has the same value at each\n"
     " point in time.\n"
+
+#ifdef ALLOW_BUCKETS
+    " Multi-brick 'bucket' datasets may also be used.  Note that if multi-brick\n"
+    " (bucket or 3D+time) datasets are used, the lowest letter dataset will\n"
+    " serve as the template for the output; that is, '-b fred+tlrc' takes\n"
+    " precedence over '-c wilma+tlrc'.  (The program 3drefit can be used to\n"
+    " alter the .HEAD parameters of the output dataset, if desired.)\n"
+#endif
+
     "\n"
     "1D Time Series:\n"
     " You can also input a '*.1D' time series file in place of a dataset.\n"
     " In this case, the value at each spatial voxel at time index n will be\n"
     " the same, and will be the n-th value from the time series file.\n"
-    " At least one true 3D or 3D+time dataset must be input.  If all the\n"
-    " input dataset are 3D (no time axis) or are single sub-bricks from\n"
-    " 3D+time datasets, then the output will be a 'manufactured' 3D+time\n"
-    " dataset.  For example, suppose that 'a3D+orig' is a 3D dataset:\n"
+    " At least one true dataset must be input.  If all the input datasets\n"
+    " are 3D (single sub-brick) or are single sub-bricks from multi-brick\n"
+    " datasets, then the output will be a 'manufactured' 3D+time dataset\n"
+    " For example, suppose that 'a3D+orig' is a 3D dataset:\n"
     "   3dcalc -a a3D+orig -b b.1D -expr \"a*b\" \n"
     " The output dataset will 3D+time with the value at (x,y,z,t) being\n"
     " computed by a3D(x,y,z)*b(t).  The TR for this dataset will be set\n"
@@ -446,7 +489,7 @@ int main( int argc , char * argv[] )
 #define VSIZE 1024
 
    double * atoz[26] ;
-   int ii , ids , jj, kk, kt, ll, jbot, jtop;
+   int ii , ids , jj, kk, kt, ll, jbot, jtop ;
    THD_3dim_dataset * new_dset=NULL ;
    float ** buf;
    double   temp[VSIZE];
@@ -458,15 +501,6 @@ int main( int argc , char * argv[] )
    for (ii=0; ii<26; ii++) ntime[ii] = 0 ;
 
    CALC_read_opts( argc , argv ) ;
-
-   buf = (float **) malloc(sizeof(float *) * ntime_max);
-   for (ii=0; ii<ntime_max; ii++){
-      buf[ii]=(float *)malloc(sizeof(float) * CALC_nvox);
-      if( buf[ii] == NULL ){
-         fprintf(stderr,"Can't malloc output dataset space!\n") ;
-         exit(1) ;
-      }
-   }
 
    /*** make output dataset ***/
 
@@ -484,8 +518,10 @@ int main( int argc , char * argv[] )
                        ADN_prefix         , CALC_output_prefix ,
                        ADN_directory_name , CALC_session ,
                        ADN_datum_all      , CALC_datum ,
-                       ADN_nvals          , ntime_max ,
                     ADN_none ) ;
+
+   if( DSET_NVALS(new_dset) != ntime_max )
+      EDIT_dset_items( new_dset , ADN_nvals , ntime_max , ADN_none ) ;
 
    /* 17 Apr 1998: if we are making up a 3D+time dataset,
                    we need to attach some time axis info to it */
@@ -500,7 +536,7 @@ int main( int argc , char * argv[] )
                        ADN_none ) ;
    }
 
-   if( ISFUNC(new_dset) )
+   if( ISFUNC(new_dset) && ! ISFUNCBUCKET(new_dset) && new_dset->taxis != NULL )
       EDIT_dset_items( new_dset , ADN_func_type , FUNC_FIM_TYPE , ADN_none ) ;
    else if( ISANATBUCKET(new_dset) ) /* 30 Nov 1997 */
       EDIT_dset_items( new_dset , ADN_func_type , ANAT_EPI_TYPE , ADN_none ) ;
@@ -519,9 +555,24 @@ int main( int argc , char * argv[] )
 	 atoz[ids][ii] = 0.0 ;
 
    /*** loop over time steps ***/
+
+   buf = (float **) malloc(sizeof(float *) * ntime_max);
+
    for ( kt = 0 ; kt < ntime_max ; kt ++ ) {
 
+      if( CALC_verbose )
+         fprintf(stderr,"  ++ Computing sub-brick %d\n",kt) ;
+
+      /* 30 April 1998: only malloc output space as it is needed */
+
+      buf[kt] = (float *) malloc(sizeof(float) * CALC_nvox);
+      if( buf[kt] == NULL ){
+         fprintf(stderr,"Can't malloc output dataset sub-brick %d!\n",kt) ;
+         exit(1) ;
+      }
+
       /*** loop over voxels ***/
+
       for ( ii = 0 ; ii < CALC_nvox ; ii += VSIZE ) {
 
 	 jbot = ii ;
@@ -543,7 +594,7 @@ int main( int argc , char * argv[] )
                }
             }
 
-            /* the case of a 3D dataset */
+            /* the case of a 3D dataset (i.e., only 1 sub-brick) */
 
             else if ( ntime[ids] == 1 ) {
 	       switch( CALC_type[ids] ) {
@@ -564,7 +615,7 @@ int main( int argc , char * argv[] )
 	      }	
 	   }
 
-           /* the case of a 3D+time dataset */
+           /* the case of a 3D+time dataset (or a bucket, etc.) */
 
 	   else {
 	      switch ( CALC_type[ids] ) {
@@ -587,13 +638,27 @@ int main( int argc , char * argv[] )
 	      } /* end of loop over data type switch */
 	    } /* end of loop over datasets */
 
+            /**** actually do the work! ****/
+
             PARSER_evaluate_vector(CALC_code, atoz, jtop-jbot, temp);
 	    for ( jj = jbot ; jj < jtop ; jj ++ )
 	       buf[kt][jj] = temp[jj-ii];
 
          } /* end of loop over space */
-      } /* end of loop over time steps */
 
+         /* 30 April 1998: purge 3D+time sub-bricks if possible */
+
+	 for( ids=0 ; ids < 26 ; ids ++ ){
+            if( CALC_dset[ids] != NULL && ntime[ids] > 1 &&
+                CALC_dset[ids]->dblk->malloc_type == DATABLOCK_MEM_MALLOC ){
+
+               void * ptr = DSET_ARRAY(CALC_dset[ids],kt) ;
+               if( ptr != NULL ) free(ptr) ;
+               mri_clear_data_pointer( DSET_BRICK(CALC_dset[ids],kt) ) ;
+            }
+         }
+
+   } /* end of loop over time steps */
 
    for( ids=0 ; ids < 26 ; ids++ ){
       if( CALC_dset[ids] != NULL ) PURGE_DSET( CALC_dset[ids] ) ;
@@ -638,25 +703,34 @@ int main( int argc , char * argv[] )
                      ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
          }
 
+         if( CALC_verbose )
+            fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
+                    MRI_TYPE_name[CALC_datum] ) ;
+
 	 dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 
 	 for (ii = 0 ; ii < ntime_max ; ii ++ ) {
 
             dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
-            if( dfim[ii] == NULL ){ fprintf(stderr,"malloc fails at output\n");exit(1) ; }
+            if( dfim[ii] == NULL ){ fprintf(stderr,"malloc fails at output\n");exit(1); }
 
 	    EDIT_coerce_scale_type( CALC_nvox , fimfac ,
                                  MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
+	    free( buf[ii] ) ;
 	    EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
 
             DSET_BRICK_FACTOR(new_dset,ii) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
-	    free( buf[ii] ) ;
 	 }
       }
       break ;
    }
 
+   if( CALC_verbose )
+      fprintf(stderr,"  ++ Computing output statistics\n") ;
    THD_load_statistics( new_dset ) ;
+
+   if( CALC_verbose )
+      fprintf(stderr,"  ++ Writing output to disk\n") ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
    exit(0) ;

@@ -86,6 +86,9 @@
                       be created during dataset output (you can probably
                       copy this from any other machine)
 
+    NO_RINT = #define this if the system you are on doesn't have the
+              "rint" (round-to-integer) math function -- I don't know
+              of any system without this function, but you never can tell.
 
   Some systems need extra header files included.  Some system header
   files don't give a prototype for alphasort.  This is a place to fix

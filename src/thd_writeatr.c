@@ -32,8 +32,8 @@ Boolean THD_write_atr( THD_datablock * blk )
       atr_any = &(blk->atr[ia]) ;
       if( atr_any == NULL ) continue ;
 
+      code = SUCCESS ;
       switch( atr_any->type ){
-         default: code = FAIL ; break ;
 
          case ATR_FLOAT_TYPE:{
             ATR_float * atr_flo = (ATR_float *) atr_any ;
@@ -119,7 +119,6 @@ fprintf(stderr,"THD_write_atr: STRING %s\n",atr_str->name);
 #ifdef THD_DEBUG
 if( code == FAIL ) fprintf(stderr," ** attribute write failure!\n") ;
 #endif
-
 
    } /* end of loop over all atr's */
 
