@@ -402,7 +402,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- next line of input: Prefix for output dataset --*/
 
    ept = getenv("AFNI_REALTIME_Root") ;        /* 09 Oct 2000 */
-   if( !THD_filename_ok(ept) ) ept = NULL ;
+   if( !THD_filename_pure(ept) ) ept = NULL ;
    if( ept != NULL ) MCW_strncpy(root,ept,THD_MAX_PREFIX) ;
 
    PLUTO_add_option( plint , "" , "Root" , FALSE ) ;
@@ -550,7 +550,7 @@ char * RT_main( PLUGIN_interface * plint )
 
       if( strcmp(tag,"Root") == 0 ){
          new_prefix = PLUTO_get_string(plint) ;
-         if( ! THD_filename_ok(new_prefix) )
+         if( ! THD_filename_pure(new_prefix) )
             return "**************************\n"
                    "RT_main:  bad root prefix\n"
                    "**************************"  ;
@@ -1500,7 +1500,7 @@ void RT_check_info( RT_input * rtin , int prt )
    /*-- below here: must construct dataset, so do all necessary checks --*/
 
    rtin->info_ok = ( rtin->dtype > 0 )                            &&
-                   ( THD_filename_ok(rtin->prefix) )              &&
+                   ( THD_filename_pure(rtin->prefix) )            &&
                    ( strlen(rtin->prefix) < THD_MAX_PREFIX )      &&
                    ( rtin->tr > 0 )                               &&
                    ( rtin->dzz > 0 || rtin->zzfov > 0 )           &&
@@ -1521,7 +1521,7 @@ void RT_check_info( RT_input * rtin , int prt )
    /* print error messages */
 
    if( !(rtin->dtype > 0)                            ) EPR("Bad acquisition type") ;
-   if( !(THD_filename_ok(rtin->prefix))              ) EPR("Bad prefix") ;
+   if( !(THD_filename_pure(rtin->prefix))            ) EPR("Bad prefix") ;
    if( !(strlen(rtin->prefix) < THD_MAX_PREFIX)      ) EPR("Overlong prefix") ;
    if( !(rtin->tr > 0)                               ) EPR("TR is not positive") ;
    if( !(rtin->dzz > 0 || rtin->zzfov > 0)           ) EPR("Slice thickness not positive") ;
@@ -1607,7 +1607,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
       } else if( STARTER("NAME") ){
          char npr[THD_MAX_PREFIX] = "\0" ;
          sscanf( buf , "NAME %31s" , npr ) ;
-         if( THD_filename_ok(npr) ) strcpy( rtin->prefix , npr ) ;
+         if( THD_filename_pure(npr) ) strcpy( rtin->prefix , npr ) ;
          else
               BADNEWS ;
 

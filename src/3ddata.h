@@ -2295,7 +2295,7 @@ extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
 #define MISMATCH_CENTER  (1<<0)  /* within 0.2 voxel */
-#define MISMATCH_DELTA   (1<<1)
+#define MISMATCH_DELTA   (1<<1)  /* within 0.001 voxel */
 #define MISMATCH_ORIENT  (1<<2)
 #define MISMATCH_DIMEN   (1<<3)
 
@@ -2499,7 +2499,8 @@ extern float THD_stat_to_pval  ( float thr , int statcode , float * stataux ) ;
 extern float THD_pval_to_stat  ( float pval, int statcode , float * stataux ) ;
 extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
 
-extern int THD_filename_ok( char * ) ; /* 24 Apr 1997 */
+extern int THD_filename_ok( char * ) ;   /* 24 Apr 1997 */
+extern int THD_filename_pure( char * ) ; /* 28 Feb 2001 */
 
 extern THD_warp * AFNI_make_voxwarp( THD_warp * , THD_3dim_dataset * ,
                                                   THD_3dim_dataset *  ) ;

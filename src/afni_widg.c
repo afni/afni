@@ -572,6 +572,8 @@ STATUS("making imag->rowcol") ;
    imag->popmenu =
       XmCreatePopupMenu( imag->topper , "menu" , NULL , 0 ) ;
 
+   SAVEUNDERIZE(XtParent(imag->popmenu)) ; /* 27 Feb 2001 */
+
    VISIBILIZE_WHEN_MAPPED(imag->popmenu) ;
 
 /***
@@ -2200,6 +2202,8 @@ STATUS("making func->rowcol") ;
 
    func->pbar_menu = XmCreatePopupMenu( func->inten_label , "menu" , NULL , 0 ) ;
 
+   SAVEUNDERIZE(XtParent(func->pbar_menu)) ; /* 27 Feb 2001 */
+
    VISIBILIZE_WHEN_MAPPED(func->pbar_menu) ;
 
    XtInsertEventHandler( func->inten_label ,      /* handle events in label */
@@ -3695,6 +3699,8 @@ STATUS("making prog->rowcol") ;
 
       prog->hidden_menu =
          XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
+
+      SAVEUNDERIZE(XtParent(prog->hidden_menu)) ; /* 27 Feb 2001 */
 
       VISIBILIZE_WHEN_MAPPED(prog->hidden_menu) ;
 

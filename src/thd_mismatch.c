@@ -20,7 +20,7 @@ ENTRY("THD_dataset_mismatch") ;
    if( !ISVALID_DSET(ds1) || !ISVALID_DSET(ds2) ) RETURN(-1) ;
 
    dax1 = ds1->daxes ;
-   dax2 = ds1->daxes ;
+   dax2 = ds2->daxes ;
    code = 0 ;           /* will be return value */
 
    /* check if the number of voxels in each direction is the same */
@@ -31,9 +31,9 @@ ENTRY("THD_dataset_mismatch") ;
 
    /* check if the grid spacings are the same */
 
-   if( dax1->xxdel != dax2->xxdel ||
-       dax1->yydel != dax2->yydel ||
-       dax1->zzdel != dax2->zzdel   ) code |= MISMATCH_DELTA ;
+   if( fabs(dax1->xxdel-dax2->xxdel) > 0.01*fabs(dax1->xxdel) ||
+       fabs(dax1->yydel-dax2->yydel) > 0.01*fabs(dax1->yydel) ||
+       fabs(dax1->zzdel-dax2->zzdel) > 0.01*fabs(dax1->zzdel)   ) code |= MISMATCH_DELTA ;
 
    /* check if the orientations are the same */
 

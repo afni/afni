@@ -115,7 +115,7 @@ part of the brain fully, they won't register well.
 
 ** Note well: 3dvolreg cannot deal with problem (F) -- if you want to **
 **            compare data on different days, be sure to use the same **
-**            image acquisition parameters!                           **
+**            image acquisition parameters! [See 3dZregrid below.]    **
 
 The AFNI solution is to register the SPGR images from session 2 to session 1,
 to use this transformation to move the EPI data (or functional datasets
@@ -222,13 +222,60 @@ BAD: rotating statistical maps (SPMs) | GOOD: EPI values are linear (about) in
      on the data                      |       perfectly reasonable
 ------------------------------------------------------------------------------
 
-[No doubt I'll think of more good/bad tradeoffs soon.]
+[No doubt I'll think of more good/bad tradeoffs someday.]
 
 An third method is to time shift all 3D+time datasets to the same origin, prior
 to registration.  This has the drawback that it deals with aliased higher
 frequency signals (e.g., the heartbeat) improperly.  It has the positive feature
 that it eliminates the annoying time-offsets as soon as possible, so you don't
 have to think about them any more.
+
+------------------------------------------------------------------------
+Dealing with Variable Slice Thicknesses in Different Sessions: 3dZregrid
+------------------------------------------------------------------------
+When comparing data from different sessions, it would be best to gather these
+data in the same fashion on each day, insofar as practicable.  The difficulty
+of getting the subject's head in the same orientation/position is what these
+notes are all about.  It isn't difficult to make sure that the slice thickness
+is the same on each day.  However, it may occasionally happen that your SPGR
+(or other anatomical) datasets will have slightly different slice thicknesses.
+3dvolreg will NOT accept base and input datasets that don't have the same
+grid spacings in all 3 dimensions.
+
+So what to do?  (Dramatic pause here.)  The answer is program 3dZregrid.
+It can resample -- interpolate -- a dataset to a new slice thickness in the
+z-direction ONLY.  For example, suppose that on day 1 the SPGR for subject
+Elvis had slice thickness 1.2 mm and on day 2 you accidentally used 1.3 mm.
+Then this command would fail:
+
+ 3dvolreg -twopass -twodup -clipit -base Elvis1+orig \
+          -prefix Elvis2reg Elvis2+orig
+
+with a rather snide message like the following:
+
+** Input Elvis3+orig.HEAD and base Elvis1+orig.HEAD don't have same grid spacing!
+   Input: dx= 0.938  dy=-0.938  dz=-1.300
+   Base:  dx= 0.938  dy=-0.938  dz=-1.200
+** FATAL ERROR: perhaps you could make your datasets match?
+
+In this case, you should do the following:
+
+  3dZregrid -dz 1.2 -prefix Elvis2ZZ Elvis2+orig
+  3dvolreg -twopass -twodup -clipit -base Elvis1+orig \
+           -prefix Elvis2reg Elvis2ZZ+orig
+
+The intermediate dataset (Elvis2ZZ+orig) will be linearly interpolated in
+the slice (z) direction to 1.2 mm.  The same number of slices will be used
+in the output dataset as are in the input dataset, which means that the output
+dataset will be slightly thinner.  In this case, that is good, since the
+Elvis1+orig dataset actually covers a smaller volume than the Elvis2+orig
+dataset.
+
+In principle, you could use 3dZregrid to help compare/combine functional
+datasets that were acquired with different slice thicknesses.  However, I
+do NOT recommend this.  There has been little or no research on this kind
+of operation, and the meaningfulness of the results would be open to
+serious question.  (Not that this will stop some people, of course.)
 
 -------------------------------
 Summary of Tools and Techniques
@@ -297,6 +344,9 @@ Summary of Tools and Techniques
     where I'm assuming datasets labeled "001" are from the master session
     and those labeled "002" are from another session.  Some points to mull:
 
+    * If necessary, use 3dZregrid to adjust all anatomical datasets to
+        have the same slice thickness as the master session, prior to
+        using 3dvolreg.
     * The -zpad option here just pads the 3D volumes with zeros (4 planes on
         all 6 sides) during the rotation process, and strips those planes
         off after rotation.  This helps minimize some artifacts from the
@@ -314,7 +364,7 @@ Summary of Tools and Techniques
         imperceptible in any single image.  Registration by itself cannot
         correct for this effect.  (Sorry, MCW and MAI.)
     * The -rotcom option prints out the rotation/translation used.  This
-        is for informational purposes only - you don't need to save this.
+        is for informational purposes only -- you don't need to save this.
         In fact, it is now saved in the header of the output dataset, and
         could be retrieved with the command
 
@@ -454,4 +504,84 @@ used to produce sub-brick #0 of dataset Xreg+orig.
 To see all these attributes, one could execute
 
   3dAttribute -all Xreg+orig | grep VOLREG
-------------------------------------------------------------------------------
+==============================================================================
+
+==============================
+EXAMPLE and NOTES by Ziad Saad
+==============================
+This is an example illustrating how to bring data sets from multiple sessions
+on the same subject in alignment with each other.  This is meant to be a
+complement to Bob Cox's notes (above) on the subject. The script @CommandGlobb
+is supplied with the AFNI distributions and is used to execute an AFNI command
+line program on multiple files automatically.
+
+The master SPGR is S1+orig and the new SPGR S2+orig.  Both should have
+the same resolution.
+
+Step #1: Align S2 to S1
+-----------------------
+    3dvolreg -clipit -twopass -twodup -zpad 8 -rotcom -verbose \
+             -base S1+orig -prefix S2_alndS1 S2+orig >>& AlignLog
+
+    # (the file AlignLog will contain all the output of 3dvolreg)
+
+
+In the next step, we will rotate the EPI data sets from the new session
+(E2_*) to bring them into alignment with an EPI data sets from the master
+session (E1_1).  All of E2_* and E1_* have the same resolution.
+
+Step #2: Inter-session registration of E1_*
+-------------------------------------------
+Because we will be combining EPI time series from different sessions, it is
+best to remove slice timing offsets from the EPI time series.  Time series
+offsets are defined on a slice by slice basis and become meaningless when
+the slices are shifted around and rotated. Time Shifting (TS) can be applied
+by 3dvolreg, however since TS occurs prior to registration, you should use a
+base with Time Shifted time series.
+
+    #create Time Shifted Base
+    3dTshift -ignore 0 -prefix E1_1-TSbase E1_1+orig
+
+    #inter-session registration of E1_*
+    @CommandGlobb -com '3dvolreg -Fourier -tshift 0 -base E1_1-TSbase+orig[100]' \
+    -newxt vr -list E1_*+orig.HEAD
+
+Note that we used the [100] sub-brick of the time-shifted E1_1-TSbase as the
+base for registration.  In our practice, this is the sub-brick that is closest
+in time to the SPGR acquisition, which we do at the end of the imaging session.
+If you do your SPGR (MP-RAGE, ...) at the start of the imaging session, it
+would make more sense to use the [4] sub-brick of the first EPI dataset as
+the EPI registration base for that session ([4] to allow for equilibration
+of the longitudinal magnetization).
+
+Step #3: Padding the master session EPI datasets
+------------------------------------------------
+Pad the master echo planar data (E1_*) to ensure that you have a large enough
+spatial coverage to encompass E2_* (and E3_* E4_* ....).  You do not have to
+do this but all of E2_*, E3_*, etc  will be cropped (or padded) to match E1_*.
+You may choose to restrict the volume analyzed to the one common to all of the
+E* data sets but that can be done using masks at a later stage. Here, we'll pad
+with 4 slices on either side of the volume.
+
+    @CommandGlobb -com '3dZeropad -z 4' -newxt _zpd4 -list E1_*vr+orig.BRIK
+
+Step #4: Register E2_* to E1_*
+------------------------------
+Note that E2_* inter-scan motion correction will be done simultaneously with
+the intra-scan registration.
+
+    #create a time shifted base echo planar data set (for inter-scan registration)
+    3dTshift -ignore 0 -prefix E2_1-TSbase E2_1+orig
+
+    #perform intra and inter - scan registration
+    #[NOTE: the '3dvolreg ...' command must all be on one line -- it ]
+    #[      is only broken up here to make printing this file simpler]
+    @CommandGlobb -com \
+     '3dvolreg -clipit -zpad 4 -verbose -tshift 0 -rotparent S2_alndS1+orig
+      -gridparent E1_1vr_zpd4+orig -base E2_1-TSbase+orig[100]' \
+      -newxt vr_alndS1 -list E2_*+orig.HEAD
+
+-----------------------------------------
+Ziad Saad, FIM/LBC/NIMH/NIH, Feb 27, 2001
+ziad@nih.gov
+-----------------------------------------

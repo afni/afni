@@ -38,58 +38,7 @@
  "  ** This software comes with no warranties of any kind whatsoever,    **\n" \
  "  ** and may not be useful for anything.  Use it at your own risk!     **\n"
 
-/* ----------------------------------- */
 #define USE_FRIENDS
-#ifdef USE_FRIENDS
-
-static char * afni_helptypes[] = {
-   "advice and help"                ,  /* mask =   1 */
-   "much encouragement"             ,  /* mask =   2 */
-   "many suggestions"               ,  /* mask =   4 */
-   "useful feedback"                ,  /* mask =   8 */
-   "`quick' questions"              ,  /* mask =  16 */
-   "inspiration"                    ,  /* mask =  32 */
-   "great efforts"                  ,  /* mask =  64 */
-   "caloric input"                  ,  /* mask = 128 */
-   "awe-inspiring beer consumption"    /* mask = 256 */
-} ;
-
-#define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
-
-typedef struct { char * name ; int helpmask ; } AFNI_friend ;
-
-static AFNI_friend afni_friends[] = {
-  { "J.R. Binder"      , ( 1 |     4 | 8 | 16                       ) } ,
-  { "E.A. DeYoe"       , ( 1 |     4 | 8                            ) } ,
-  { "J.S. Hyde"        , ( 1 | 2              | 32                  ) } ,
-  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           | 128       ) } ,
-  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128       ) } ,
-  { "A. Jesmanowicz"   , (             8 |      32                  ) } ,
-  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128       ) } ,
-  { "M.M. Klosek"      , ( 1 | 2              | 32                  ) } ,
-  { "J.A. Bobholz"     , (             8 | 16 | 32      | 128       ) } ,
-  { "J.A. Frost"       , (             8 | 16                       ) } ,
-  { "J. Kummer"        , (         4 | 8      | 32                  ) } ,
-  { "B.D. Ward"        , (         4 | 8           | 64             ) } ,
-  { "K.M. Donahue"     , (                 16                       ) } ,
-  { "P.A. Bandettini"  , (                 16                       ) } ,
-  { "A.S. Bloom"       , ( 1 | 2         | 16                       ) } ,
-  { "T. Ross"          , (         4 | 8 | 16 | 32                  ) } ,
-  { "H. Garavan"       , (         4 | 8 | 16                 | 256 ) } ,
-  { "S.J. Li"          , (     2                                    ) } ,
-  { "Z. Saad"          , (     2 | 4 | 8 | 16                       ) } ,
-  { "K. Ropella"       , (     2                                    ) } ,
-  { "B. Knutson"       , (                 16 |           128       ) } ,
-  { "B. Biswal"        , (                 16                       ) } ,
-  { "R.M. Birn"        , (             8 | 16 |           128       ) } ,
-  { "V. Roopchansingh" , (         4 | 8 | 16                       ) } ,
-  { "J. Ratke"         , (                 16                       ) }
-} ;
-
-#define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
-
-#endif /* USE_FRIENDS */
-/* ----------------------------------- */
 
 #ifdef AFNI_DEBUG
 #  define REPORT_PROGRESS(str)  /* nada */
@@ -1002,16 +951,8 @@ int main( int argc , char * argv[] )
 #endif
 
 #ifdef USE_FRIENDS
-   { char buf[256] ; int nf , nh , hmask , qq=0 ;
-     nf = lrand48() % NUM_FRIENDS ;
-     do{
-        nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-     } while( qq < 19 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
-     sprintf( buf  ,
-              " Thanks go to %s for %s.\n\n" ,
-              afni_friends[nf].name , afni_helptypes[nh] ) ;
-     REPORT_PROGRESS( buf ) ;
-
+   { char * sf = AFNI_get_friend() ;
+     REPORT_PROGRESS( sf ) ; REPORT_PROGRESS( "\n\n" ) ;
      if( argc > 1 && strcmp(argv[1],"-friend") == 0 ) exit(0) ;  /* 19 Sep 1998 */
    }
 #endif
@@ -1585,6 +1526,12 @@ STATUS("get status") ;
       stat->transforms2D = & (GLOBAL_library.registered_2D) ;
 
       RETURN( (XtPointer) stat ) ;
+   }
+
+   /*--- 26 Feb 2001: return a memplot drawing struct ---*/
+
+   if( type == isqCR_getmemplot ){
+      RETURN( (XtPointer) NULL ) ;
    }
 
    /*--- underlay image # n ---*/

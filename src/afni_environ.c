@@ -130,7 +130,7 @@ void AFNI_process_environ( char * fname )
          while(1){                          /* loop, looking for 'name = value' */
             GETEQN ;
 
-            if( !THD_filename_ok(left) ) continue ;
+            if( !THD_filename_pure(left) ) continue ;
 
             nl = strlen(left) ; nr = strlen(right) ;
             enveqn = (char *) malloc(nl+nr+4) ;

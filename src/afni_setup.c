@@ -108,7 +108,7 @@ if(PRINT_TRACING)
             /* don't allow 'none' to be redefined! */
 
             if( strcmp(left,"none")==0 || strcmp(right,"none")==0 ) continue ;
-            if( !THD_filename_ok(left) ) continue ;
+            if( !THD_filename_pure(left) ) continue ;
 
             if( mode == SETUP_INIT_MODE ){
                if( INIT_ncolovr < MAX_NCOLOVR ){
@@ -168,7 +168,7 @@ STATUS("create initial palettes") ;
 
             if( str[0] != '[' ){                     /* found a palette label */
                strcpy(label,str) ;
-               if( !THD_filename_ok(label) ){
+               if( !THD_filename_pure(label) ){
                   fprintf(stderr,"\nIn setup file %s, bad palette label: %s.\n",
                           fname,label) ;
                   free(fbuf) ; EXRETURN ;
@@ -306,7 +306,7 @@ if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"GETEQN: %s %s %s",left,middle,right) ; STATUS(str);}
 
-            if( !THD_filename_ok(left) ) continue ;
+            if( !THD_filename_pure(left) ) continue ;
 
             nl = strlen(left) ; nr = strlen(right) ;
             enveqn = (char *) malloc(nl+nr+4) ;

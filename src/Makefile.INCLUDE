@@ -17,7 +17,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             pbar.o afni_graph.o afni_plugin.o     \
             parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
-            afni_pplug_env.o afni_pplug_2dfunc.o                 \
+            afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o  \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -41,7 +41,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
-           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel
+           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -54,7 +54,9 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
                   3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+   \
-                  3dUndump cat_matvec 3dOverlap 3dClipLevel
+                  3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid
+
+SCRIPTS = @4Daverage  @CommandGlobb  @NoExt  @UpdateAfni  @pnmtopng
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -396,6 +398,10 @@ d3dmerge:3dmerge.c
 3ddot:3ddot.o
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
+
+3dZregrid:3dZregrid.o
+	$(RM) $@
+	$(CC) -o 3dZregrid 3dZregrid.o $(LFLAGS) $(LLIBS)
 
 3dOverlap:3dOverlap.o
 	$(RM) $@
@@ -741,7 +747,7 @@ backtape:
 afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
 	$(CP) -r f2cdir coxplot volpack ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
@@ -750,7 +756,7 @@ src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup README* AFNI.* \
-              dist* 3d*.lib gmovie ./SRC
+              dist* 3d*.lib gmovie $(SCRIPTS) ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
 
@@ -758,7 +764,7 @@ src.bz2:
 	$(RM) $@
 	$(MKDIR) ./SRC
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup README* AFNI.* \
-              dist* 3d*.lib ./SRC
+              dist* 3d*.lib $(SCRIPTS) ./SRC
 	$(RM) ./SRC/cdf_*.c ./SRC/eis_*.c
 	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
 	$(RM) -r ./SRC
@@ -785,9 +791,11 @@ afnidoc.tgz:
 
 install:
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
 install_noplug:
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
+	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
 install_lib:
 	$(CP) libmri.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
@@ -865,7 +873,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
            mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
-           mri_aff2d.o debugtrace.o
+           mri_aff2d.o debugtrace.o mri_zeropad.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \

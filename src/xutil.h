@@ -41,6 +41,8 @@
           XtSetSensitive(w,fred) ;               \
           if(exp) MCW_expose_widget(w) ; break ; } } while(0)
 
+#define SAVEUNDERIZE(w) XtVaSetValues((w),XmNsaveUnder,True,NULL) /* 27 Feb 2001 */
+
 extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;

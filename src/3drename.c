@@ -38,10 +38,10 @@ int main( int argc , char * argv[] )
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
-   if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) ){
+   if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_pure(old_name) ){
       fprintf(stderr,"** Illegal old dataset name!\n") ; exit(1) ;
    }
-   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) ){
+   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_pure(new_name) ){
       fprintf(stderr,"** Illegal new dataset name!\n") ; exit(1) ;
    }
 

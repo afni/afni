@@ -683,7 +683,7 @@ int main( int argc , char *argv[] )
          /* zero pad before final transformation? */
 
          if( npadd ){
-            MRI_IMAGE * qim = MRI_zeropad( 0,0,0,0,npad_neg,npad_pos , fim ) ;
+            MRI_IMAGE * qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
             if( qim == NULL ){
                fprintf(stderr,"*** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
                exit(1) ;
@@ -1634,6 +1634,55 @@ void VL_command_line(void)
       exit(1) ;
    }
 
+   /*-- 27 Feb 2001: do a better check for mismatch between base and input --*/
+#if 1
+   if( VL_bset != NULL ){
+      int mm = THD_dataset_mismatch( VL_dset , VL_bset ) , nn=0 ;
+
+      if( mm & MISMATCH_DIMEN ){
+         fprintf(stderr,
+                 "** Input %s and base %s don't have same dimensions!\n"
+                 "   Input: nx=%d  ny=%d  nz=%d\n"
+                 "   Base:  nx=%d  ny=%d  nz=%d\n",
+                 DSET_HEADNAME(VL_dset) , DSET_HEADNAME(VL_bset) ,
+                 DSET_NX(VL_dset) , DSET_NY(VL_dset) , DSET_NZ(VL_dset) ,
+                 DSET_NX(VL_bset) , DSET_NY(VL_bset) , DSET_NZ(VL_bset)  ) ;
+         nn++ ;
+      }
+
+      if( mm & MISMATCH_DELTA ){
+         fprintf(stderr,
+                 "** Input %s and base %s don't have same grid spacing!\n"
+                 "   Input: dx=%6.3f  dy=%6.3f  dz=%6.3f\n"
+                 "   Base:  dx=%6.3f  dy=%6.3f  dz=%6.3f\n",
+                 DSET_HEADNAME(VL_dset) , DSET_HEADNAME(VL_bset) ,
+                 DSET_DX(VL_dset) , DSET_DY(VL_dset) , DSET_DZ(VL_dset) ,
+                 DSET_DX(VL_bset) , DSET_DY(VL_bset) , DSET_DZ(VL_bset)  ) ;
+         nn++ ;
+      }
+
+      if( mm & MISMATCH_ORIENT ){
+         fprintf(stderr,
+                 "** Input %s and base %s don't have same orientation!\n"
+                 "   Input: %s %s %s\n"
+                 "   Base:  %s %s %s \n" ,
+                 DSET_HEADNAME(VL_dset) , DSET_HEADNAME(VL_bset) ,
+                 ORIENT_shortstr[VL_dset->daxes->xxorient] ,
+                 ORIENT_shortstr[VL_dset->daxes->yyorient] ,
+                 ORIENT_shortstr[VL_dset->daxes->zzorient] ,
+                 ORIENT_shortstr[VL_bset->daxes->xxorient] ,
+                 ORIENT_shortstr[VL_bset->daxes->yyorient] ,
+                 ORIENT_shortstr[VL_bset->daxes->zzorient]  ) ;
+         nn++ ;
+      }
+
+      if( nn > 0 ){
+         fprintf(stderr,
+                 "** FATAL ERROR: perhaps you could make your datasets match?\n") ;
+         exit(1) ;
+      }
+   }
+#else /* the old code */
    if( VL_imbase != NULL && ( VL_imbase->nx != DSET_NX(VL_dset) ||
                               VL_imbase->ny != DSET_NY(VL_dset) ||
                               VL_imbase->nz != DSET_NZ(VL_dset)   ) ){
@@ -1660,6 +1709,7 @@ void VL_command_line(void)
              fabs(DSET_DX(VL_dset)),fabs(DSET_DY(VL_dset)),fabs(DSET_DZ(VL_dset)),
              bdx,bdy,bdz ) ;
    }
+#endif /* 27 Feb 2001: end of #if-ing out old code */
 
    if( VL_imwt != NULL && ( VL_imwt->nx != DSET_NX(VL_dset) ||
                             VL_imwt->ny != DSET_NY(VL_dset) ||

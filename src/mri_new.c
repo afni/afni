@@ -149,7 +149,7 @@ WHOAMI ;
       break ;
 
       default:
-         fprintf( stderr , "mri_new: unrecognized image kind\n" ) ;
+         fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
          MRI_FATAL_ERROR ;
    }
 

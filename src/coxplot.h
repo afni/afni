@@ -1,13 +1,11 @@
+#ifndef _MCW_MEMPLOT_HEADER_
+#define _MCW_MEMPLOT_HEADER_
+
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-
-#ifndef _MCW_MEMPLOT_HEADER_
-#define _MCW_MEMPLOT_HEADER_
-
-#include "mcw_malloc.h"
 
 /*---------------- Header for in-memory adaptation of PLOTPAK ---------------*/
 
@@ -142,6 +140,11 @@ extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
 extern int            nline_active_memplot(void) ;
 
+extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
+extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
+extern void           scale_memplot( float,float,float,float,float,
+                                     MEM_plotdata * ) ;
+
 /*-- draw to a PostScript file: see also plot_ps.c --**/
 
 extern void memplot_to_postscript( char * , MEM_plotdata * ) ;
@@ -157,6 +160,8 @@ extern X11_colordef * get_X11_colordef( Display * , Window ) ;
 
 extern void memplot_to_X11_sef( Display * , Window ,
                                 MEM_plotdata * , int,int,int ) ;
+
+extern void set_memplot_X11_box( int,int,int,int ) ;  /* 26 Feb 2001 */
 
 extern void set_X11_background( Display * , Window ,
                                 unsigned char , unsigned char , unsigned char ) ;

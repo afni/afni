@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -27,6 +27,9 @@ static MRI_IMAGE * imspl = NULL ;
 static void * handle = NULL ;
 
 #define USE_FADING
+
+#define USE_WRITING     /* 26 Feb 2001 */
+static int do_write=0 ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -59,6 +62,7 @@ ENTRY("AFNI_splashdown") ;
             bspl = mri_data_pointer(imspl) ;
             nv   = (imspl->pixel_size) * (imspl->nvox) ;
             et   = COX_clock_time() ;
+            do_write = 0 ;
             for( kk=0 ; kk < 10 ; kk++ ){
 #if 0
                for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
@@ -74,7 +78,7 @@ ENTRY("AFNI_splashdown") ;
 #endif
       SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
    }
-   mri_free(imspl) ; imspl = NULL ;
+   mri_free(imspl) ; imspl = NULL ; do_write = 1 ;
    EXRETURN ;
 }
 
@@ -211,12 +215,22 @@ ENTRY("AFNI_splashup") ;
          drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
          drive_MCW_imseq( ppp->seq , isqDR_imhelptext,
                           (XtPointer)
-                            "Help me if you can, I'm feeling down,\n"
-                            "and I do appreciate you being round.\n"
-                            "Help me get my feet back on the ground,\n"
-                            "won't you please, please, help me?" ) ;
-
-
+                           " \n"
+                           " Thou art indeed just, Lord, if I contend\n"
+                           "  With thee; but, sir, so what I plead is just.\n"
+                           "  Why do sinners' ways prosper? and why must\n"
+                           "  Disappointment all I endeavour end?\n"
+                           " Wert thou my enemy, O thou my friend,\n"
+                           "  How wouldst thou worse, I wonder, than thou dost\n"
+                           "  Defeat, thwart me? Oh, the sots and thralls of lust\n"
+                           "  Do in spare hours more thrive than I that spend,\n"
+                           "  Sir, life upon thy cause. See, banks and brakes\n"
+                           "  Now, leaved how thick! laced they are again\n"
+                           "  With fretty chervil, look, and fresh wind shakes\n"
+                           "  Them; birds build -- but not I build; no, but strain,\n"
+                           "  Time's eunuch, and not breed one work that wakes.\n"
+                           " Mine, O thou lord of life, send my roots rain.\n"
+                        ) ;
 
 #if 0
         {                      /* 21 Jun 2000 -- turn sharpening on */
@@ -242,6 +256,85 @@ ENTRY("AFNI_splashup") ;
    }
 
    first = 0 ; EXRETURN ;
+}
+
+/*------------------------------------------------------------------
+   The following is adapted from PLUGIN_imseq_getim (afni_plugin.c)
+   -- 26 Feb 2001 -- RWCox
+--------------------------------------------------------------------*/
+
+static XtPointer SPLASH_imseq_getim( int n, int type, XtPointer handle )
+{
+   PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
+
+ENTRY("SPLASH_imseq_getim") ;
+
+   if( imp == NULL ) RETURN(NULL) ;
+
+   /*--- control info ---*/
+
+   if( type == isqCR_getstatus ){
+      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;
+      stat->num_total  = 1 ;
+      stat->num_series = 1 ;
+      stat->send_CB    = PLUGIN_seq_send_CB ;
+      stat->parent     = (XtPointer) imp  ;
+      stat->aux        = NULL ;
+
+      stat->transforms0D = & (GLOBAL_library.registered_0D) ;
+      stat->transforms2D = & (GLOBAL_library.registered_2D) ;
+
+      RETURN((XtPointer) stat) ;
+   }
+
+   /*--- no overlay ---*/
+
+   if( type == isqCR_getoverlay ) RETURN(NULL) ;
+
+   /*--- return a copy of the image
+         (since the imseq will delete it when it is done) ---*/
+
+   if( type == isqCR_getimage || type == isqCR_getqimage ){
+      MRI_IMAGE * im = NULL ;
+#ifndef USE_WRITING
+      if( imp->im != NULL ) im = mri_copy( imp->im ) ;
+#else
+      if( imp->im != NULL ){
+         if( do_write ) im = mri_zeropad_2D( 0,0,0,50 , imp->im ) ; /* 26 Feb 2001 */
+         else           im = mri_copy( imp->im ) ;
+      }
+#endif
+      RETURN((XtPointer) im) ;
+   }
+
+#ifdef USE_WRITING
+   /*--- 26 Feb 2001: a line plot (for some more fun!)---*/
+
+   if( do_write && type == isqCR_getmemplot ){
+      int ii ;
+      ii = create_memplot("SPLASH memplot",1.0) ;
+      if( ii == 0 ){
+         MEM_plotdata * mp = get_active_memplot() ;
+         char * sf = AFNI_get_friend() ;
+         int nn = strlen(sf) ;
+         char * mf = strstr(sf," for ") ;
+
+         set_color_memplot(1.0,1.0,1.0) ;
+         set_thick_memplot(0.0) ;
+
+         if( nn < 36 || mf == NULL ){
+            plotpak_pwritf( 0.5,0.060 , sf , 28 , 0 , 0 ) ;
+         } else {
+            *mf = '\0' ;
+            plotpak_pwritf( 0.5,0.089 , sf  , 28 , 0 , 0 ) ;
+            plotpak_pwritf( 0.5,0.033 , mf+1, 28 , 0 , 0 ) ;
+         }
+         RETURN((XtPointer)mp) ;  /* will be deleted by imseq */
+      }
+   }
+#endif
+
+   RETURN(NULL) ; /* default action = return nothing */
 }
 
 /*-----------------------------------------------------------------------
@@ -272,14 +365,14 @@ ENTRY("SPLASH_popup_image") ;
 
    /*-- input = non-null image ==> replace image --*/
 
-   mri_free( imp->im ) ;                   /* toss old copy */
-   imp->im = mri_to_mri( im->kind , im ) ; /* make new copy */
+   mri_free( imp->im ) ;      /* toss old copy */
+   imp->im = mri_copy( im ) ; /* make new copy */
 
    /*-- input = inactive popper handle ==> activate it --*/
 
    if( imp->seq == NULL )
       imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
-                                 PLUGIN_imseq_getim , (XtPointer) imp ) ;
+                                 SPLASH_imseq_getim , (XtPointer) imp ) ;
 
    /*-- unlike PLUTO_popup_image, actual popup is left to caller --*/
 

@@ -3,22 +3,22 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** NOT 7D SAFE ***/
 
 /*** functions to "warp" images -- not very efficient, but quite general ***/
 
-#ifndef MRI_DEBUG
-#ifdef HP
-#pragma INLINE  __MRI_scaler
-#pragma INLINE  mri_warp
-#pragma INLINE  mri_warp_bilinear
-#pragma INLINE  mri_warp_bicubic
-#pragma INLINE  __MRI_rotfunc
-#pragma INLINE  mri_warp_bicubic_point
-#endif
+
+#ifdef __GNUC__
+# define INLINE inline
+#else
+# define INLINE /*nada*/
+# ifdef HP
+#  pragma INLINE  __MRI_scaler
+#  pragma INLINE  __MRI_rotfunc
+# endif
 #endif
 
 #define FINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \
@@ -28,7 +28,7 @@
 
 static float sx_scale , sy_scale ;  /* global scaler data */
 
-void __MRI_scaler( float xpr, float ypr, float *xx , float *yy )
+INLINE void __MRI_scaler( float xpr, float ypr, float *xx , float *yy )
 {
    *xx = sx_scale * xpr ;
    *yy = sy_scale * ypr ;
@@ -237,7 +237,7 @@ MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
 
 static float rot_dx , rot_dy , rot_cph , rot_sph ;    /* global rotfunc data */
 
-void __MRI_rotfunc( float xpr , float ypr , float *xx , float *yy )
+INLINE void __MRI_rotfunc( float xpr , float ypr , float *xx , float *yy )
 {
    *xx =  rot_cph * xpr + rot_sph * ypr + rot_dx ;
    *yy = -rot_sph * xpr + rot_cph * ypr + rot_dy ;

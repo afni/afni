@@ -382,6 +382,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
       break ;
    }
 
+   SAVEUNDERIZE(wmsg) ;           /* 27 Feb 2001 */
    XtPopup( wmsg , XtGrabNone ) ;
 
    /* now wait until the label is exposed, and make sure it appears;

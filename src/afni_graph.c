@@ -183,6 +183,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->but3_menu =
       XmCreatePopupMenu( grapher->draw_fd , "menu" , NULL , 0 ) ;
 
+   SAVEUNDERIZE(XtParent(grapher->but3_menu)) ; /* 27 Feb 2001 */
+
    VISIBILIZE_WHEN_MAPPED(grapher->but3_menu) ;
 
    grapher->but3_label =

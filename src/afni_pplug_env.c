@@ -167,6 +167,10 @@ PLUGIN_interface * ENV_init(void)
                     "Upper limit on % Change in FIM" ,
                     10,1000,0,100 , NULL              ) ;
 
+   ENV_add_numeric( "AFNI_IMAGE_MINFRAC" ,
+                    "Minimum size of image window" ,
+                    0,10,2,2 , NULL                 ) ;
+
    ENV_add_string( "AFNI_LEFT_IS_LEFT" ,
                    "To show subject's left on image left?" ,
                    NUM_yesno_list , yesno_list , ENV_leftisleft  ) ;

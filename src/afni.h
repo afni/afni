@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.29 "
+#define VERSION "2.29a"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "14 Feb 2001      "
+#define RELEASE "28 Feb 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -817,6 +817,8 @@ extern void AFNI_initialize_controller( Three_D_View * ) ;
 extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
+
+extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
 
 #define OPEN_CONTROLLER(iq) \
  ( XtRealizeWidget((iq)->vwid->top_shell), AFNI_startup_3dview(iq), (iq)->opened = 1 )

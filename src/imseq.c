@@ -223,11 +223,15 @@ static char ** ISQ_bb_allhint[] = {
               - get_image(n,isqCR_getstatus,aux) should return a
                    "MCW_imseq_status *" (n is ignored)
 
+              - get_image(n,isqCR_getmemplot,aux) should return a
+                   "MEM_plotdata *" (see coxplot.h -- 21 Feb 2001)
+
             Thus, get_image takes as input 2 "int"s and an "XtPointer",
             and returns a "XtPointer".  Note that the MRI_IMAGEs returned
             will be mri_free-d after being used internally.  Therefore,
             if you want to keep them, you should send a copy, not the
-            original.  The same applies to the MCW_imseq_status struct.
+            original.  The same applies to the MCW_imseq_status struct,
+            and the MEM_plotdata struct.
 
     aux = XtPointer supplied by user, pointing to data to be passed
             get_image for its own internal use (similar in concept to
@@ -364,6 +368,8 @@ static char * ISQ_arrow_hint[NARROW] = {
 
 /*........................................................................*/
 
+#define DEFAULT_MINFRAC 0.02
+
 MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
                             get_ptr get_image , XtPointer aux )
 {
@@ -372,6 +378,7 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    int ii , xwide , yhigh , one_image ;
    float fac ;
    MRI_IMAGE * tim ;
+   float minfrac=DEFAULT_MINFRAC ; char * eee ; /* 27 Feb 2001 */
 
 ENTRY("open_MCW_imseq") ;
 
@@ -500,8 +507,42 @@ if( PRINT_TRACING ){
 
    newseq->image_frac = IMAGE_FRAC ;  /* 25 Oct 1996 */
 
+#if 1
+   /** 27 Feb 2001: set minimum size for image windows,
+                    as a fraction of the overall screen area **/
+
+   eee = my_getenv("AFNI_IMAGE_MINFRAC") ;
+   if( eee != NULL ){
+      float fff=0.0 ;
+      ii = sscanf(eee,"%f",&fff) ;
+      if( ii > 0 && fff >= 0.0 && fff <= 0.9 ) minfrac = fff ;
+      else                                     minfrac = DEFAULT_MINFRAC ;
+    }
+
+   if( minfrac > 0.0 ){
+      float xxx = newseq->hactual , yyy = newseq->vactual ;
+      float fff = (xxx*yyy)/(dc->width*dc->height) , ggg ;
+
+      if( fff < minfrac ){
+         fff = sqrt(minfrac/fff) ; xxx *= fff ; yyy *= fff ; /* expand area */
+         fff = ggg = 1.0 ;
+         if( xxx >= 0.9*dc->width ) fff = 0.9*dc->width / xxx ; /* don't let */
+         if( yyy >= 0.9*dc->height) ggg = 0.9*dc->height/ yyy ; /* be too big */
+         fff = MIN(fff,ggg) ; xxx *= fff ; yyy *= fff ;
+         if( xxx < 1.0 || yyy < 1.0 ){                      /* weird result?? */
+            xxx = newseq->hactual ; yyy = newseq->vactual ; /* back to old way */
+         }
+      }
+      xwide = (int) ( 0.49 + xxx / IMAGE_FRAC ) ;
+      yhigh = (int) ( 0.49 + yyy / IMAGE_FRAC ) ;
+   } else {
+      xwide = (int) ( 0.49 + newseq->hactual / IMAGE_FRAC ) ; /* the old code */
+      yhigh = (int) ( 0.49 + newseq->vactual / IMAGE_FRAC ) ;
+   }
+#else
    xwide = (int) ( 0.49 + newseq->hactual / IMAGE_FRAC ) ;  /* size of wform */
    yhigh = (int) ( 0.49 + newseq->vactual / IMAGE_FRAC ) ;
+#endif
 
    newseq->onoff_num   = 0 ;
    newseq->onoff_state = 1 ;  /* initially are on */
@@ -815,6 +856,8 @@ if( PRINT_TRACING ){
                       "a display control menu"  ) ;
 
    newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar , "menu" , NULL , 0 ) ;
+
+   SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(newseq->wbar_menu) ;
 
@@ -2298,6 +2341,20 @@ DPR("putting sized_xim to screen");
               seq->sized_xim , 0,0,0,0,
               seq->sized_xim->width , seq->sized_xim->height ) ;
 
+   /*-- 26 Feb 2001: draw some line overlay, a la coxplot? --*/
+   /*** (shouldn't be HERE, but this is just a test)       ***/
+
+   if( !seq->opt.no_overlay && seq->mont_nx == 1 || seq->mont_ny == 1 ){
+      MEM_plotdata * mp ;
+      mp = (MEM_plotdata *) seq->getim( seq->im_nr ,
+                                        isqCR_getmemplot , seq->getaux ) ;
+      if( mp != NULL ){
+         memplot_to_X11_sef( seq->dc->display ,
+                             XtWindow(seq->wimage) , mp , 0,0,1 ) ;
+         delete_memplot(mp) ;
+      }
+   }
+
    seq->never_drawn = 0 ;
 
    ISQ_draw_winfo( seq ) ;
@@ -2537,7 +2594,7 @@ DPR(" .. ButtonPress") ;
                      ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
 
                   else if( (event->state & ControlMask) ){
-                     if( seq->status->num_total > 1 ){
+                     if( seq->status->num_total > 1 && !(event->state & ShiftMask) ){
                         ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
                      } else {
                         XmMenuPosition( seq->wbar_menu , event ) ;
@@ -2863,6 +2920,8 @@ ENTRY("ISQ_but_disp_CB") ;
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
+
+   SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
 
    DC_yokify( seq->dialog , seq->dc ) ;  /* 14 Sep 1998 */
 
@@ -4609,6 +4668,8 @@ ENTRY("ISQ_montage_CB") ;
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
+
+   SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
 
    DC_yokify( seq->dialog , seq->dc ) ; /* 14 Sep 1998 */
 

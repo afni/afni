@@ -242,6 +242,8 @@ typedef struct {
 
 #define isqCR_getxynim    411  /* 30 Dec 1998 */
 
+#define isqCR_getmemplot  421  /* 21 Feb 2001 */
+
 #define isqCR_dxplus      301  /* arrowpad reasons */
 #define isqCR_dxminus     302
 #define isqCR_dyplus      303

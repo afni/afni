@@ -2581,3 +2581,40 @@
      working directory (where output files like "Save:One" go).
  * Modified 3dOverlap.c to optionally save counts to a new dataset.
  * Fixed thd_mastery.c so that <a..a> works properly (<= vs. <).
+
+26 Feb 2001
+ * Modified plot_cox.c to allow copying, rescaling, and appending of
+     vector plots, and plot_x11.c to allow setting rendering to a
+     sub-box of the window (rather than the whole window).
+ * Modified imseq.[ch] to allow fetching of a vector plot to be
+     rendered into the window.
+ * Modified afni_splash.c to draw "friends" stuff into the splash
+     screen (after the first popup).
+ * Added function mri_zeropad_2D() in mri_zeropad.c.  Changed name
+     of MRI_zeropad() to mri_zeropad_3D() in edt_volpad.c.
+
+27 Feb 2001
+ * Added macro SAVEUNDERIZE() to xutil.h, and used it to make popup
+     menus have the SaveUnder property in imseq.c, afni_graph.c,
+     afni_widg.c, and plug_render.c.
+ * Modified imseq.c to use AFNI_IMAGE_MINFRAC environment variable
+     to set minimum size for image windows.  Also added this to the
+     variables that can be controlled by afni_pplug_env.c.
+ * Added fields does_saveunders and does_backingstore to display.[hc]
+     (but don't use them anywhere - yet).
+ * Modified thd_mismatch.c to do MISMATCH_DELTA only if voxel sizes
+     differ by at least a factor of 0.001 (rather than perfect ==).
+     Also fixed a typobug where the datasets would always compare
+     as identical.
+ * Modified 3dvolreg.c to fail if stupid users try to register dataset
+     to base that doesn't match.
+
+28 Feb 2001
+ * New program 3dZregrid.c is for resampling a dataset along the slice-
+     direction to change the grid spacing, etc.  Mostly intended to
+     fixup user stupidities (e.g., not acquiring data on the same subject
+     using the same slice thickness; d'oh!).
+ * Modified thd_filestuff.c to remove '/' from THD_filename_ok() function.
+     This lets the "-prefix" option of 3d* programs put the output dataset
+     into a new directory.  New function THD_filename_pure() also checks
+     for the '/'.

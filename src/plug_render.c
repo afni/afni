@@ -4663,6 +4663,8 @@ void REND_func_widgets(void)
 
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;
 
+   SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
+
    VISIBILIZE_WHEN_MAPPED(wfunc_pbar_menu) ;
 
    XtInsertEventHandler( wfunc_color_label ,     /* handle events in label */

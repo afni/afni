@@ -65,7 +65,7 @@ WHOAMI ;
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open file %s\n" , fname ) ;
+      fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
       return NULL ;
    }
 
@@ -154,7 +154,7 @@ WHOAMI ;
          im = mri_read_ppm( fname ) ;      /* 15 Apr 1999 */
          if( im != NULL ) return im ;
 
-         fprintf( stderr , "do not recognize file %s\n" , fname );
+         fprintf( stderr , "do not recognize image file %s\n" , fname );
          fprintf( stderr , "length seen as %d\n" , length ) ;
          return NULL ;
    }
@@ -173,7 +173,7 @@ WHOAMI ;
 
    if( length != im->nvox ){
       mri_free( im ) ;
-      fprintf( stderr , "couldn't read data from file %s\n" , fname ) ;
+      fprintf( stderr , "couldn't read image data from file %s\n" , fname ) ;
       return NULL ;
    }
 
@@ -393,7 +393,7 @@ MRI_IMARR * mri_read_3D( char * tname )
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open file %s\n" , fname ) ;
+      fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
       return NULL ;
    }
 
@@ -418,7 +418,7 @@ MRI_IMARR * mri_read_3D( char * tname )
    ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
    if( length < ngood ){
       fprintf( stderr,
-        "file %s is %d bytes long but must be at least %d bytes long\n"
+        "image file %s is %d bytes long but must be at least %d bytes long\n"
         "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
         fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
       fclose( imfile ) ;
@@ -1572,7 +1572,7 @@ void mri_input_delay( MRI_IMAGE * im )
 
    imfile = fopen( im->fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open file %s\n" , im->fname ) ;
+      fprintf( stderr , "couldn't open delayed image file %s\n" , im->fname ) ;
       return ;
    }
 
@@ -1581,7 +1581,7 @@ void mri_input_delay( MRI_IMAGE * im )
    imar = (void *) malloc( im->nvox * im->pixel_size ) ;
    if( imar == NULL ){
       fprintf( stderr ,
-               "malloc fails for delay image from file %s\n" , im->fname ) ;
+               "malloc fails for delayed image from file %s\n" , im->fname ) ;
       fclose( imfile ) ;
       return ;
    }
@@ -1722,7 +1722,7 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open file %s\n" , fname ) ;
+      fprintf( stderr , "couldn't open delayed image file %s\n" , fname ) ;
       return NULL ;
    }
 

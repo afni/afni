@@ -110,6 +110,9 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 
    dc->parent_widget = wid ;  /* 06 Oct 1996 */
 
+   dc->does_backingstore = DoesBackingStore(dc->screen) ; /* 27 Feb 2001 */
+   dc->does_saveunders   = DoesSaveUnders(dc->screen) ;
+
    /** 07 Aug 1998: get more information about the visual **/
 
    { XVisualInfo vinfo , * vinfo_list ;

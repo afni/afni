@@ -161,6 +161,9 @@ typedef struct {
       XtPointer    parent , aux ;
 
       DC_colordef * cdef ;   /* 11 Feb 1999 */
+
+      int does_backingstore ; /* 27 Feb 2001 */
+      int does_saveunders ;
 } MCW_DC ;
 
 /* fonts to try if the defaults fail */

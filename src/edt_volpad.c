@@ -149,14 +149,14 @@ ENTRY("EDIT_volpad") ;
   14 Feb 2001: do the above to an image struct, just for fun
 --------------------------------------------------------------------*/
 
-MRI_IMAGE * MRI_zeropad( int nxbot , int nxtop ,
-                         int nybot , int nytop ,
-                         int nzbot , int nztop , MRI_IMAGE * im )
+MRI_IMAGE * mri_zeropad_3D( int nxbot , int nxtop ,
+                            int nybot , int nytop ,
+                            int nzbot , int nztop , MRI_IMAGE * im )
 {
    MRI_IMAGE * jm ;
    void * var ;
 
-ENTRY("MRI_zeropad") ;
+ENTRY("mri_zeropad_3D") ;
 
    if( im == NULL || !MRI_IS_3D(im) ) RETURN(NULL) ; /* bad */
 

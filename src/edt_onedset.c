@@ -735,7 +735,7 @@ STATUS("no data left after cluster edit!") ;
       if (edit_clust > ECFLAG_SAME)
          EDIT_cluster_array (clar, edit_clust, dxyz, vmul);
       if (edit_clust == ECFLAG_SIZE || edit_clust == ECFLAG_ORDER)
-         DSET_BRICK_FACTOR(dset,iv_fim) = 1.0;
+         DSET_BRICK_FACTOR(dset,iv_fim) = 0.0;
 
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ )
          if( clar->clar[iclu] != NULL && clar->clar[iclu]->num_pt > 0 ){

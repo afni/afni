@@ -929,6 +929,22 @@ If "-zpad" is used on the to3d command line, it overrides this value.
 If neither is present, no zero padding is used.  Note well that this
 padding is only in the z-direction, unlike that of AFNI_ROTA_ZPAD.
 
+----------------------------
+Variable: AFNI_IMAGE_MINFRAC
+----------------------------
+This variable sets the minimum size of an image window when it is first
+opened, in terms of a fraction of the overall screen area.  By default,
+this value is set to 0.02; you can override this by (for example)
+   setenv AFNI_IMAGE_MINFRAC 0.05
+If you set this value to 0.0, then there will be no minimum.  This is
+the old behavior, where the initial window size is always 1 screen pixel
+per data pixel, and can lead to image windows that are hard to resize or
+otherwise use (when the dataset is small).  The largest value I recommend
+for AFNI_IMAGE_MINFRAC is 0.1; however, you can set it to as large as 0.9
+if you are completely crazy, but I'm not responsible for the results --
+don't even think of complaining or commenting to me about problems that
+arise if you try this!
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
