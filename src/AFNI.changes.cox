@@ -5245,3 +5245,6 @@
 
 03 Nov 2004
  * Some changes to 3dAnhist.c for Lukas and Katie.
+
+16 Nov 2004
+ * Modified imseq.c to print warnings when it can't find Save filter programs.
