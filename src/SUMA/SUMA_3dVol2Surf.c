@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.0 (August 5, 2003)"
+#define VERSION "version 3.1 (September 17, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -51,6 +51,9 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 3.0  September 17, 2003
+ *   - fixed the help instructions for '-cmask'
+ *
  * 3.0  August 05, 2003
  *   - renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]
  *   - all output functions now go through dump_surf_3dt
@@ -101,8 +104,6 @@
 
 /*----------------------------------------------------------------------
  * todo:
- *
- * - update help
  *----------------------------------------------------------------------
 */
 
@@ -1403,7 +1404,7 @@ int usage ( char * prog, int level )
 	    "       -map_func     mask                     \\\n"
 	    "\n"
 	    "    2. Apply a single surface mask to output volume values over\n"
-	    "       each surface node.  In this case restrict output to the\n"
+	    "       each surface node.  In this case restrict input to the\n"
 	    "       mask implied by the -cmask option.  Supply additional\n"
 	    "       debug output, and more for surface node 1874\n"
 	    "\n"
@@ -1664,7 +1665,7 @@ int usage ( char * prog, int level )
 	    "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
 	    "\n"
 	    "        This option will produce a mask to be applied to the\n"
-	    "        output dataset.  Note that this mask should form a\n"
+	    "        input AFNI dataset.  Note that this mask should form a\n"
 	    "        single sub-brick.\n"
 	    "\n"
 	    "        This option follows the style of 3dmaskdump (since the\n"
