@@ -620,26 +620,47 @@ void AFNI_facedown( void *kd ){ face_phan = NULL; }
 #undef  NXY
 #define NXY 128  /* expected size of face images; trim or pad, as needed */
 
+static int gcd( int m , int n ){
+  while( m > 0 ){
+    if( n > m ){ int t=m; m=n; n=t; } /* swap */
+    m -= n;
+  }
+  return n;
+}
+
 void AFNI_faceup(void)   /* 17 Dec 2004 */
 {
    MRI_IMAGE *im , *fim ;
    int ii , nx,ny , nxdown,nxup , nydown,nyup ;
    int ctold,ctnew,mmss , ddss ;
+   int jj , j0,dj=1 ;
 
 ENTRY("AFNI_faceup") ;
 
-   if( num_face <  0 || face_phan != NULL ){ BEEPIT; EXRETURN; }
+   if( num_face <  0 ){ BEEPIT; EXRETURN; }
    if( num_face == 0 ){
      num_face = AFNI_find_jpegs( "face_" , &fname_face ) ;
      if( num_face <= 0 ){ BEEPIT; EXRETURN; }
+   }
+   if( face_phan != NULL ){
+     PLUGIN_imseq *ph = (PLUGIN_imseq *)face_phan ;
+     XMapRaised( XtDisplay(ph->seq->wtop) , XtWindow(ph->seq->wtop) ) ;
+     EXRETURN ;
    }
 
    ctold = NI_clock_time() ;
 
    ddss = 15000 / num_face ; if( ddss > 100 ) ddss = 100 ;  /* 27 Dec 2004 */
 
+   if( num_face > 4 ){
+     ii = num_face / 2 ;
+     do{ dj = 1 + lrand48() % ii ; } while( gcd(num_face,dj) > 1 ) ;
+   }
+   j0 = lrand48() % num_face ;
+
    for( ii=0 ; ii < num_face ; ii++ ){
-     im = mri_read_stuff( fname_face[ii] ) ;
+     jj = (j0 + ii*dj) % num_face ;
+     im = mri_read_stuff( fname_face[jj] ) ;
      if( im == NULL ) continue ;
      nx = im->nx ; ny = im->ny ;
 
@@ -667,6 +688,8 @@ ENTRY("AFNI_faceup") ;
        }
        ph = (PLUGIN_imseq *)face_phan ;
        XtVaSetValues( ph->seq->wtop , XmNx,sxx , XmNy,syy , NULL ) ;
+       drive_MCW_imseq( ph->seq , isqDR_record_disable , (XtPointer)0 ) ;
+       drive_MCW_imseq( ph->seq , isqDR_periodicmont   , (XtPointer)1 ) ;
 
      } else {
        PLUTO_imseq_addto( face_phan , fim ) ;
