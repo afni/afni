@@ -159,22 +159,24 @@ OPEN_WINDOW [c.]windowname [options]
     geom=PxQ+R+S or geom=PxQ or geom=+R+S
     to make the window be PxQ pixels in size and located at screen
     coordinates (R,S).
-  Another option for graph and image windows is
-    keypress=c   -> where 'c' is a single character to send as if
-                    the user pressed that key in the specified window
+  Another option for both graph and image windows is
+    keypress=c       -> where 'c' is a single character to send as if
+                        the user pressed that key in the specified window
   For image windows, other options available are:
-    ifrac=number -> set image fraction in window to number (<= 1.0)
-    mont=PxQ:R   -> montage P across, Q down, every R'th slice
-    opacity=X    -> where X is from 0..9
+    ifrac=number     -> set image fraction in window to number (<= 1.0)
+    mont=PxQ:R       -> montage P across, Q down, every R'th slice
+    opacity=X        -> where X is from 0..9
   For graph windows, other options available are:
-    matrix=number -> use number sub-graphs (<= 21)
-    pinnum=number -> pin the graph length to number time points
+    matrix=number     -> use 'number' sub-graphs (<= 21)
+    pinnum=number     -> pin the graph length to 'number' time points
+    pinbot=a pintop=b -> pin the graph time window to run from 'a..b'
   You can also open plugin windows with a windowname like so:
     A.plugin.buttonlabel
   where buttonlabel is the plugin's button label with blanks replaced
   by underscores or hyphens (e.g., Render_Dataset).  You can also use
   the geom=+R+S option with this type of window opening, to position
-  the plugin interface window.
+  the plugin interface window.  There is no way to control any other
+  settings in the plugin interface (e.g., pre-set some fields).
   If the specified image or graph window is already open, you can still
   use this command to alter some of its properties.
   ++ You can also use "ALTER_WINDOW" for the command name.
