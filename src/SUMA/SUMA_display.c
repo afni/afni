@@ -165,6 +165,13 @@ String *SUMA_get_fallbackResources ()
 
 }
 
+static SUMA_Boolean PleaseDoMakeCurrent;
+
+void SUMA_SiSi_I_Insist(void)
+{
+   PleaseDoMakeCurrent = YUP;
+}
+
 Boolean
 SUMA_handleRedisplay(XtPointer closure)
 {
@@ -186,22 +193,28 @@ SUMA_handleRedisplay(XtPointer closure)
       fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURN(NOPE);
    }
+   
    if (Last_isv >= 0) { /* first time function is called, no use for this variable yet */
       if (isv != Last_isv) {/* need to call glXMakeCurrent */
          if (!sv->Open) {
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Redisplay request for a closed window. Skipping.\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
-            /* An OpenGL rendering context is a port through which all OpenGL commands pass. */
-            /* Before rendering, a rendering context must be bound to the desired drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the current bound rendering context and one drawable. Just as a
-               program can create multiple windows, a program can create multiple OpenGL rendering contexts. But a thread can only be bound to one rendering context and drawable at a time. Once bound, OpenGL rendering can begin.
-               glXMakeCurrent can be called again to bind to a different window and/or rendering context. */
-            if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT)) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
-            }
+            PleaseDoMakeCurrent = YUP;
          }
       }
    } 
+   
+   if (PleaseDoMakeCurrent) {
+      /* An OpenGL rendering context is a port through which all OpenGL commands pass. */
+      /* Before rendering, a rendering context must be bound to the desired drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the current bound rendering context and one drawable. Just as a
+         program can create multiple windows, a program can create multiple OpenGL rendering contexts. But a thread can only be bound to one rendering context and drawable at a time. Once bound, OpenGL rendering can begin.
+         glXMakeCurrent can be called again to bind to a different window and/or rendering context. */
+      if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+      }
+      PleaseDoMakeCurrent = NOPE;
+   }
    
    Last_isv = isv; /* store last surface viewer to call display */
    /* call display for the proper surface viewer*/
@@ -952,10 +965,14 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
    The callback structure value associated with each menu widget (cv) is:
    CBp->ContID = ContID;
    CBp->callback_data = callback_data (that is passed in items);
-   where ocv is the original callback value. This allows you to create multiple versions 
+   This allows you to create multiple versions 
    of the same menu and still be able to dissociate between them.
    \param MenuWidgets (Widget *) pointer to a vector that will contain widgets created.
-    
+         MenuWidgets[0] is the menu or cascade widgets, MenuWidgets[1]..MenuWidgets[N_wid-1]
+         would contain the button and separator widgets specified in items
+   \return N_wid (int) number of widgets in MenuWidgets. Obviously you'll need
+         to know that ahead of time to allocate for MenuWidgets ... 
+
 -  This function is largely based on BuildMenu in the "Motif Programming Manual"
   Build popup, option and pulldown menus, depending on the menu_type.
   It may be XmMENU_PULLDOWN, XmMENU_OPTION or  XmMENU_POPUP.  Pulldowns
@@ -965,30 +982,48 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
   Pulldown menus are built from cascade buttons, so this function
   also builds pullright menus.  The function also adds the right
   callback for PushButton or ToggleButton menu items.
-  
+   
+ *** SIGNIFICANT CHANGE to BuildMenu ZSS Apr 23 04   
+ *** MUST CALL SUMA_BuildMenuReset BEFORE calling SUMA_BuildMenu
  */
-Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
+static int i_wid = 0;
+static int N_wid = 0;
+static int nchar = 0;
+
+void SUMA_BuildMenuReset(int n_max)
+{
+   static char FuncName[]={"SUMA_BuildMenuReset"};
+   SUMA_ENTRY;
+   i_wid = 0;
+   N_wid = 0;
+   nchar = n_max;
+   SUMA_RETURNe;
+}
+
+int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
                      char menu_mnemonic, SUMA_Boolean tear_off, SUMA_MenuItem *items, 
                      void *ContID, Widget *MenuWidgets )
 {
    static char FuncName[]={"SUMA_BuildMenu"};
+   char nlabel[300];
    Widget menu = NULL, cascade = NULL;
-   int i;
    XmString str;
+   int i;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Here.\n", FuncName);
-   
+      
    if (menu_type == XmMENU_PULLDOWN || menu_type == XmMENU_OPTION)
      menu = XmCreatePulldownMenu (parent, "_pulldown", NULL, 0);
    else if (menu_type == XmMENU_POPUP)
      menu = XmCreatePopupMenu (parent, "_popup", NULL, 0);
    else {
      XtWarning ("Invalid menu type passed to BuildMenu()");
-     SUMA_RETURN(NULL);
+     SUMA_RETURN(-1);
    }
+   
    if (tear_off)
      XtVaSetValues (menu, XmNtearOffModel, XmTEAR_OFF_ENABLED, NULL);
 
@@ -1010,6 +1045,7 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
      /* Option menus are a special case, but not hard to handle */
      Arg args[10];
      int n = 0;
+     SUMA_LH("Here");
      str = XmStringCreateLocalized (menu_title);
      XtSetArg (args[n], XmNsubMenuId, menu); n++;
      XtSetArg (args[n], XmNlabelString, str); n++;
@@ -1023,7 +1059,12 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
      cascade = XmCreateOptionMenu (parent, menu_title, args, n);
      XmStringFree (str);
    }
-
+   
+   /* hide your jewel */
+   if (menu_type == XmMENU_POPUP) {  MenuWidgets[i_wid] = menu; }
+   else { MenuWidgets[i_wid] = cascade; } 
+   ++i_wid;
+   
    /* Now add the menu items */
    for (i = 0; items[i].label != NULL; i++) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding label # %d - %s\n", FuncName, i, items[i].label);
@@ -1038,14 +1079,21 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
          } 
          else {
              if (LocalHead) fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
-             MenuWidgets[(int)items[i].callback_data] = SUMA_BuildMenu (menu, XmMENU_PULLDOWN, items[i].label, 
+             SUMA_BuildMenu (menu, XmMENU_PULLDOWN, items[i].label, 
                  items[i].mnemonic, tear_off, items[i].subitems, ContID, MenuWidgets);
          }
      else {
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating widgets MenuWidgets[%d]\n", FuncName, (int)items[i].callback_data);
-         MenuWidgets[(int)items[i].callback_data] = XtVaCreateManagedWidget (items[i].label,
-             *items[i].class, menu,
-             NULL);
+         if (nchar > 0) {
+            snprintf(nlabel, nchar*sizeof(char), "%s", items[i].label);
+            MenuWidgets[i_wid] = XtVaCreateManagedWidget (nlabel,
+                *items[i].class, menu,
+                NULL);
+         } else {
+            MenuWidgets[i_wid] = XtVaCreateManagedWidget (items[i].label,
+                *items[i].class, menu,
+                NULL);
+         }
       }
 
       
@@ -1054,7 +1102,7 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
       */
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting Mnemonic ...\n", FuncName);
       if (items[i].mnemonic)
-         XtVaSetValues (MenuWidgets[(int)items[i].callback_data], XmNmnemonic, items[i].mnemonic, NULL);
+         XtVaSetValues (MenuWidgets[i_wid], XmNmnemonic, items[i].mnemonic, NULL);
 
       /* any item can have an accelerator, except cascade menus. But,
       * we don't worry about that; we know better in our declarations.
@@ -1063,7 +1111,7 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting accelerator ...\n", FuncName);
       if (items[i].accelerator) {
          str = XmStringCreateLocalized (items[i].accel_text);
-         XtVaSetValues (MenuWidgets[(int)items[i].callback_data],
+         XtVaSetValues (MenuWidgets[i_wid],
              XmNaccelerator, items[i].accelerator,
              XmNacceleratorText, str,
              NULL);
@@ -1073,8 +1121,8 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
       if (items[i].class == &xmToggleButtonWidgetClass ||
               items[i].class == &xmToggleButtonGadgetClass) {
          Pixel fg_pix;
-         XtVaGetValues (MenuWidgets[(int)items[i].callback_data], XmNforeground, &fg_pix, NULL);
-         XtVaSetValues (MenuWidgets[(int)items[i].callback_data], XmNselectColor, fg_pix, NULL); 
+         XtVaGetValues (MenuWidgets[i_wid], XmNforeground, &fg_pix, NULL);
+         XtVaSetValues (MenuWidgets[i_wid], XmNselectColor, fg_pix, NULL); 
           
       }
      
@@ -1085,21 +1133,44 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
          /* prepare the callback pointer */
          CBp->callback_data = (XtPointer) items[i].callback_data;
          CBp->ContID = ContID;
-         XtAddCallback (MenuWidgets[(int)items[i].callback_data],
+         XtAddCallback (MenuWidgets[i_wid],
              (items[i].class == &xmToggleButtonWidgetClass ||
               items[i].class == &xmToggleButtonGadgetClass) ?
                  XmNvalueChangedCallback : /* ToggleButton class */
                  XmNactivateCallback,      /* PushButton class */
              items[i].callback, (XtPointer)CBp);
       }
+      ++i_wid;
    }
 
+   #if 0
+    {
+      SUMA_LH("Adding event handler. Crashes when dealing with File: cascade buttons ....");
+      if (menu_type == XmMENU_POPUP) {
+         SUMA_ShowMeTheChildren(menu);
+      } else {
+         SUMA_ShowMeTheChildren(cascade);
+      }
+      /* add yourself an even handler to deal with long menus a la AFNI 
+      see bbox.c */
+      if (0) {
+      SUMA_ShowMeTheChildren(menu);
+      XtInsertEventHandler(   cascade ,      /* handle events in optmenu */
+                           ButtonPressMask ,  /* button presses */
+                           FALSE ,            /* nonmaskable events? */
+                           SUMA_optmenu_EV ,  /* handler */
+                           (XtPointer) cascade ,   /* client data */
+                           XtListTail ) ;     /* last in queue */
+     } 
+
+   }
+   #endif
    /* for popup menus, just return the menu; pulldown menus, return
    * the cascade button; option menus, return the thing returned
    * from XmCreateOptionMenu().  This isn't a menu, or a cascade button!
    */
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Returning.\n", FuncName);
-   SUMA_RETURN (menu_type == XmMENU_POPUP ? menu : cascade);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Returning %d widgets created.\n", FuncName, i_wid);
+   SUMA_RETURN (i_wid);
 }
 
 Widget mainw, menubar, menupane, btn, sep, cascade, frame;
@@ -1284,7 +1355,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    int ic = 0;
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
-   SUMA_Boolean NewCreation = NOPE, Found;
+   SUMA_Boolean NewCreation = NOPE, Found, Inherit = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    char slabel[20]; 
        
@@ -1299,6 +1370,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       /* save DPY for first controller opened */
       SUMAg_CF->X->DPY_controller1 = SUMAg_SVv[ic].X->DPY;
       NewCreation = YUP;
+      Inherit = NOPE;
    } else {/* not the first call, new controller is required */
       ic = 0;
       Found = NOPE;
@@ -1323,6 +1395,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                    XmNinitialResourcesPersistent , False ,
                    NULL ) ;
          NewCreation = YUP;
+         Inherit = YUP;
       } else { /* Unopen window found, has a shell already. */
          NewCreation = NOPE;
       }
@@ -1337,20 +1410,25 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       XtAddEventHandler(SUMAg_SVv[ic].X->TOPLEVEL, LeaveWindowMask,
        False, SUMA_unSetcSV, NULL); 
 
-      /* Step 3. */
-      if (LocalHead) fprintf(stdout, "trying for cool double buffer visual\n");
-      SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), dblBuf);
-      if (SUMAg_SVv[ic].X->VISINFO == NULL) {
-      fprintf(stdout, "trying lame single buffer visual\n");
-       XtAppWarning(SUMAg_CF->X->App, "trying lame single buffer visual");
-       SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), snglBuf);
-       if (SUMAg_SVv[ic].X->VISINFO == NULL) {
-         XtAppError(SUMAg_CF->X->App, "no good visual");
-         SUMA_RETURN (NOPE);
+      /* Step 3 */
+      if (!Inherit) {
+         if (LocalHead) fprintf(stdout, "trying for cool double buffer visual\n");
+         SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), dblBuf);
+         if (SUMAg_SVv[ic].X->VISINFO == NULL) {
+         fprintf(stdout, "trying lame single buffer visual\n");
+          XtAppWarning(SUMAg_CF->X->App, "trying lame single buffer visual");
+          SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), snglBuf);
+          if (SUMAg_SVv[ic].X->VISINFO == NULL) {
+            XtAppError(SUMAg_CF->X->App, "no good visual");
+            SUMA_RETURN (NOPE);
+            }
+          SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
          }
-       SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
+      } else {
+         SUMA_SL_Note("This is new. Inheriting");
+         SUMAg_SVv[ic].X->VISINFO = SUMAg_SVv[0].X->VISINFO;
+         SUMAg_SVv[ic].X->DOUBLEBUFFER = SUMAg_SVv[0].X->DOUBLEBUFFER;
       }
-      
 		
       /* Step 3.5 Wed Dec 18 14:49:25 EST 2002 - The GUI*/
          /* see Kilgard's OpenGL Programming for the X window system */
@@ -1362,22 +1440,26 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          XtManageChild (menubar);
          
          /* create File Menu */
-         SUMAg_SVv[ic].X->FileMenu[SW_File] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+         SUMA_BuildMenuReset(0);
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "File", 'F', YUP, File_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->FileMenu );
          
          /* create View Menu */
-         SUMAg_SVv[ic].X->ViewMenu[SW_View] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+         SUMA_BuildMenuReset(0);
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "View", 'V', YUP, View_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->ViewMenu );
          
          /* create Tools Menu */
-         SUMAg_SVv[ic].X->ToolsMenu[SW_Tools] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+         SUMA_BuildMenuReset(0);
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "Tools", 'T', YUP, Tools_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->ToolsMenu );
          
          /* create Help Menu */
-         SUMAg_SVv[ic].X->HelpMenu[SW_Help] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+         SUMA_BuildMenuReset(0);
+         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "Help", 'H', YUP, Help_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->HelpMenu );
          
@@ -3078,28 +3160,44 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                NULL);
       XtManageChild (rc);
       
-      /* add a rc for the colorplane label and the ROI node value */
+      /* add a rc for the colorplane order and opacity */
       rc = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, rcv,
          XmNpacking, XmPACK_TIGHT, 
          XmNorientation , XmHORIZONTAL ,
          NULL);
    
-      SUMA_CreateArrowField ( rc, "Order:",
+      SUMA_CreateArrowField ( rc, "Ord:",
                            1, 0, 20, 1,
                            2, SUMA_int,
                            NOPE,
                            SUMA_ColPlane_NewOrder, (void *)SO,
                            SO->SurfCont->ColPlaneOrder);
                              
-      SUMA_CreateArrowField ( rc, "Opacity:",
+      SUMA_CreateArrowField ( rc, "Opa:",
                            1, 0.0, 1.0, 0.1,
                            3, SUMA_float,
                            NOPE,
                            SUMA_ColPlane_NewOpacity, (void *)SO,
                            SO->SurfCont->ColPlaneOpacity);
+      /* manage  rc */
+      XtManageChild (rc);
       
-      SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("Show", 
+      /* add a rc for the colorplane brightness factor and visibility */
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         NULL);
+   
+      SUMA_CreateArrowField ( rc, "Dim:",
+                           1, 0.1, 1, 0.1,
+                           3, SUMA_float,
+                           YUP,
+                           SUMA_ColPlane_NewDimFact, (void *)SO,
+                           SO->SurfCont->ColPlaneDimFact);
+
+      SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
             xmToggleButtonGadgetClass, rc, NULL);
       XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, YUP, NOPE);
       XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
@@ -3124,7 +3222,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
          
       /* put a push button to switch between color planes */
-      SO->SurfCont->SwitchColPlanelst = SUMA_AllocateScrolledList ("Switch Color Plane", SUMA_LSP_SINGLE, 
+      SO->SurfCont->SwitchDsetlst = SUMA_AllocateScrolledList ("Switch Dset", SUMA_LSP_SINGLE, 
                                  NOPE, NOPE, /* duplicate deletion, no sorting */ 
                                  SO->SurfCont->TopLevelShell, SWP_POINTER,
                                  SUMA_cb_SelectSwitchColPlane, (void *)SO,
@@ -3132,15 +3230,31 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                                  SUMA_cb_CloseSwitchColPlane, NULL);
 
 
-      pb = XtVaCreateWidget ("Switch Color Plane", 
+      pb = XtVaCreateWidget ("Switch Dset", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
-      MCW_register_hint(pb , "Switch between color planes." ) ;
-      MCW_register_help(pb , "Switch between color planes." ) ;
+      MCW_register_hint(pb , "Switch between datasets." ) ;
+      MCW_register_help(pb , "Switch between datasets." ) ;
       XtManageChild (pb);
       
-      pb = XtVaCreateWidget ("Load", 
+      if (SUMAg_CF->Dev) {
+         pb = XtVaCreateWidget ("Load Dset", 
+            xmPushButtonWidgetClass, rc, 
+            NULL);   
+         XtAddCallback (pb, XmNactivateCallback, SUMA_cb_Dset_Load, (XtPointer) SO);
+         MCW_register_hint(pb , "Load a new dataset." ) ;
+         MCW_register_help(pb , "Load a new dataset." ) ;
+         XtManageChild (pb);
+      }
+      
+      pb = XtVaCreateWidget ("Delete", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Delete, (XtPointer) SO);
+      /* XtManageChild (pb); */ /* Not ready for this one yet */
+
+      pb = XtVaCreateWidget ("Load Col", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Load, (XtPointer) SO);
@@ -3148,25 +3262,18 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       MCW_register_help(pb , "Load a new color plane." ) ;
       XtManageChild (pb);
       
-      pb = XtVaCreateWidget ("Delete", 
-         xmPushButtonWidgetClass, rc, 
-         NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Delete, (XtPointer) SO);
-      /* XtManageChild (pb); */ /* Not ready for this one yet */
-      
+       
       XtManageChild (rc);
       
+      if (SUMAg_CF->Dev) {
+         /* create the widgets for the colormap stuff */
+         SUMA_CreateCmapWidgets(rcv, SO);
+      }
       
       /* manage vertical row column */
       XtManageChild (rcv);
-
-      /* initialize the ColorPlane frame if possible */
-      if (SO->N_Overlays) {
-         SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
-      }
-      SUMA_LH("Here");
+      
       XtManageChild (SO->SurfCont->ColPlane_fr);
-      SUMA_LH("There");
    }
    
    { /* rendering mode and transparency level */
@@ -3193,17 +3300,18 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /* rendering menu option */
-      SO->SurfCont->RenderModeMenu[SW_SurfCont_Render] = SUMA_BuildMenu (rc, XmMENU_OPTION, 
+     SUMA_BuildMenuReset(0);
+     SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "RenderMode", '\0', YUP, RenderMode_Menu, 
                                  (void *)SO, SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
       
-      pb = XtVaCreateWidget ("Col.Plane", 
+      pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO);
-      MCW_register_hint( pb , "Show/Hide Color Plane controller" ) ;
-      MCW_register_help( pb , "Show/Hide Color Plane controller" ) ;
+      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
+      MCW_register_help( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
       XtManageChild (pb);
       
       XtManageChild (rc);
@@ -3283,6 +3391,13 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    XtRealizeWidget (SO->SurfCont->TopLevelShell);
    
    SUMA_free (slabel);
+   
+   /* initialize the ColorPlane frame if possible 
+   Do it here rather than above because scale goes crazy 
+   when parent widgets are being resized*/
+   if (SO->N_Overlays) {
+      SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
+   }
    
    SUMA_RETURNe;
 }
@@ -3390,12 +3505,14 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
 }
 
 /*!
-   \brief Initializes the widgets in the DrawROI window based on the SUMA_OVERLAYS structue
+   \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structue
 */
 SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ColPlane)
 {
    static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
+   float range[2];
+   int loc[2];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3408,6 +3525,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_SET_LABEL(SO->SurfCont->ColPlaneLabel_Parent_lb, "Label: -\nParent: -");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, "-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield,"-");
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield,"-");
    }else {
       SUMA_LH("Initializing for real");
       if (strlen(ColPlane->Label) + strlen(SO->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
@@ -3435,12 +3553,37 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       sprintf(sbuf,"%.1f", ColPlane->GlobalOpacity);
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield, sbuf);
       
+      if (ColPlane->OptScl) SO->SurfCont->ColPlaneDimFact->value = ColPlane->OptScl->BrightFact;
+      else SO->SurfCont->ColPlaneDimFact->value = ColPlane->DimFact;
+      sprintf(sbuf,"%.1f", SO->SurfCont->ColPlaneDimFact->value);
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, sbuf);
+      
    }
    
    XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, ColPlane->Show, NOPE);
 
    SO->SurfCont->curColPlane = ColPlane;
+   
+   /* set the colormap */
+   if (SO->SurfCont->cmap_context) {
+      
+      SUMA_cmap_wid_handleRedisplay((XtPointer) SO); 
 
+      /* set the widgets for dems mapping options */
+      SUMA_set_cmap_options(SO, YUP, NOPE);
+
+      /* set the menu to show the colormap used */
+      SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
+
+      /* set the values for the threshold bar */
+      if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+         SUMA_SetScaleRange(SO->SurfCont->thr_sc, range );
+      }
+   } else {
+      SUMA_SL_Note("cmap_context was NULL");
+   }
+   
+   
    SUMA_RETURN (YUP);
 }
 
@@ -3778,13 +3921,15 @@ void SUMA_CreateDrawROIWindow(void)
    XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
 
    /* Saving Mode */
-   SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode] = SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
+   SUMA_BuildMenuReset(0);
+   SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveMode_Menu, 
                                "Frm.",  SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
       
    /* Saving what ? */
-   SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat] = SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
+   SUMA_BuildMenuReset(0);
+   SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveWhat_Menu, 
                                "What",  SUMAg_CF->X->DrawROI->SaveWhatMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
@@ -3943,7 +4088,8 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
    static char FuncName[]={"SUMA_CreateScrolledList"};
    XmString  str, *strlist;
    char *text;
-   int i = -1, iclist, u_bound, l_bound = 0;
+   int i = -1, iclist, u_bound, l_bound = 0, n;
+   Arg args[20];
    SUMA_Boolean New = NOPE, LocalHead=NOPE;
    
    
@@ -3985,10 +4131,11 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
       
 
       LW->rc = XtVaCreateWidget("Tonka", xmRowColumnWidgetClass, LW->toplevel, NULL);
-      LW->list = XmCreateScrolledList (LW->rc, "Tonka", NULL, 0);
-      XtVaSetValues( LW->list, 
-                     XmNitemCount, 0,
-                     NULL);
+      n = 0;
+      XtSetArg (args[n], XmNitemCount,      0); n++;
+      XtSetArg (args[n], XmNlistSizePolicy,   XmCONSTANT   ); n++;
+      LW->list = XmCreateScrolledList (LW->rc, "Tonka", args, n);
+
       
       
       /* add the default selection callback */
@@ -4178,6 +4325,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    if (label) {
       AF->label =  XtVaCreateManagedWidget (label,
          xmLabelGadgetClass, AF->rc, 
+         XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
@@ -4188,6 +4336,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    AF->up = XtVaCreateManagedWidget ("arrow_up",
          xmArrowButtonGadgetClass, AF->rc,
          XmNarrowDirection,   XmARROW_UP,
+         XmNmarginHeight, 0,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
@@ -4198,6 +4347,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    AF->down = XtVaCreateManagedWidget ("arrow_dn",
       xmArrowButtonGadgetClass, AF->rc,
       XmNarrowDirection,   XmARROW_DOWN,
+      XmNmarginHeight, 0,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
@@ -4210,6 +4360,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
       XmNuserData, (XtPointer)AF,
       XmNvalue, "-",
       XmNcolumns, AF->cwidth,
+      XmNmarginHeight, 0,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
@@ -4540,7 +4691,7 @@ void SUMA_ColPlane_NewOrder (void *data)
    SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded);
    if (!Shaded) {
       SUMA_LH("Refreshing Col Plane List");
-      SUMA_RefreshColorPlaneList (SO);
+      SUMA_RefreshDsetList (SO);
    }
 
    if (!Decent) {
@@ -4594,6 +4745,42 @@ void SUMA_ColPlane_NewOpacity (void *data)
 }
 
 /*!
+   \brief Function to update the DimFact of a colorplane 
+   DimFact is the same as BrightFact which is not defined
+   for explicitly colored planes 
+   -expects SO in data
+*/
+void SUMA_ColPlane_NewDimFact (void *data)
+{
+   static char FuncName[]={"SUMA_ColPlane_NewDimFact"};
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+
+   /* change the value of the dimfact */
+   SO->SurfCont->curColPlane->DimFact = SO->SurfCont->ColPlaneDimFact->value; 
+   if (SO->SurfCont->curColPlane->OptScl) 
+      SO->SurfCont->curColPlane->OptScl->BrightFact = SO->SurfCont->curColPlane->DimFact;
+      
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: DimFact of %s set to %f.\n", 
+         FuncName, SO->SurfCont->curColPlane->Name, SO->SurfCont->curColPlane->DimFact);
+   
+   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+
+   /* need to colorize plane */
+   SUMA_ColorizePlane(SO->SurfCont->curColPlane);
+   
+   /* a good remix and redisplay */
+   SUMA_RemixRedisplay (SO);
+   
+   SUMA_RETURNe;
+}
+/*!
    \brief Function to set the color remix flag for surface SO and call a redisplay for relevant viewers 
 */
 SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
@@ -4642,6 +4829,8 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
 
    SO->SurfCont->curColPlane->Show = XmToggleButtonGetState (SO->SurfCont->ColPlaneShow_tb);
+   /* set the duplicate button next to int */
+   XmToggleButtonSetState (SO->SurfCont->Int_tb, SO->SurfCont->curColPlane->Show, NOPE);
    
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
@@ -4854,7 +5043,7 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data, XtPointer call_d
    SUMA_LH("Called");
    SO = (SUMA_SurfaceObject *)data;
    
-   SUMA_RefreshColorPlaneList (SO);
+   SUMA_RefreshDsetList (SO);
                                                    
    SUMA_RETURNe;
 }
@@ -5015,7 +5204,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    SUMA_ENTRY;
    
    SO = (SUMA_SurfaceObject *)data;
-   LW = SO->SurfCont->SwitchColPlanelst;
+   LW = SO->SurfCont->SwitchDsetlst;
    
    if (!LW) {
       SUMA_S_Err("NULL LW!");
@@ -5065,9 +5254,10 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    }
 
    if (CloseShop) {
-      SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchColPlanelst,  call_data);
+      SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchDsetlst,  call_data);
    }  
    
+
    SUMA_RETURNe;
 }
 
@@ -5950,9 +6140,10 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    static char FuncName[] = {"SUMA_cb_moreViewerInfo"};
    SUMA_SurfaceViewer *sv=NULL;
    void *n=NULL;
-   char *s = NULL;
+   char *s = NULL, stmp[100];
    SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
+   int isv;
    
    SUMA_ENTRY;
    
@@ -5968,6 +6159,8 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    sv = (SUMA_SurfaceViewer *)client_data;
    #endif
    
+   isv = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
+
    /* check to see if window is already open, if it is, just raise it */
    if (sv->X->ViewCont->ViewerInfo_TextShell) {
       XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(sv->X->ViewCont->ViewerInfo_TextShell->toplevel));
@@ -5985,7 +6178,8 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
          SUMA_RETURNe;
       }
-      sv->X->ViewCont->ViewerInfo_TextShell = SUMA_CreateTextShell(s, "FIXME", TextShell);
+      sprintf(stmp, "[%c] Viewer Info", 65+isv);
+      sv->X->ViewCont->ViewerInfo_TextShell = SUMA_CreateTextShell(s, stmp, TextShell);
       SUMA_free(s);
    }else {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceViewer_StructInfo.\n", FuncName);
@@ -7203,6 +7397,7 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
    ScrW = WidthOfScreen (XtScreen(New));
    ScrH = HeightOfScreen (XtScreen(New));
    
+   SUMA_LH("Getting New Positions");
    XtVaGetValues (New,           /* get the positions of New */
          XmNwidth, &NewW,
          XmNheight, &NewH,
@@ -7211,6 +7406,7 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
          NULL);
 
    if (Ref) { /* get the positions of Ref */
+      SUMA_LH("Getting Ref Positions");
       XtVaGetValues (Ref,
          XmNwidth, &RefW,
          XmNheight, &RefH,
@@ -7240,20 +7436,42 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
          break;
       case SWP_POINTER:
          {
-            Window root, child;
+            Window root, child, wind;
             int root_x, root_y, win_x, win_y;
             unsigned int keys_buttons;
-            XQueryPointer(XtDisplay(Ref), XtWindow(Ref), &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            SUMA_LH("Pointer Query 1");
+            if (!XtIsRealized(New)) {
+               SUMA_LH("Need new wind");
+               if (!XtIsRealized(SUMAg_SVv[0].X->GLXAREA)) {
+                  SUMA_SL_Err("Nothing to work with here!");
+                  SUMA_RETURNe;
+               }
+               wind = XtWindow(SUMAg_SVv[0].X->GLXAREA);
+            } else {
+               wind = XtWindow(New);
+            }
+            XQueryPointer(XtDisplay(New), wind, &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
             NewX = root_x;
             NewY = root_y;
          }
          break;
       case SWP_POINTER_OFF:
          {
-            Window root, child;
+            Window root, child, wind;
             int root_x, root_y, win_x, win_y;
             unsigned int keys_buttons;
-            XQueryPointer(XtDisplay(New), XtWindow(New), &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            SUMA_LH("Pointer Query 2");
+            if (!XtIsRealized(New)) {
+               SUMA_LH("Need new wind");
+               if (!XtIsRealized(SUMAg_SVv[0].X->GLXAREA)) {
+                  SUMA_SL_Err("Nothing to work with here!");
+                  SUMA_RETURNe;
+               }
+               wind = XtWindow(SUMAg_SVv[0].X->GLXAREA);
+            } else {
+               wind = XtWindow(New);
+            }
+            XQueryPointer(XtDisplay(New), wind, &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
             NewX = root_x - (int)NewW/2;
             NewY = root_y - (int)NewH + Dx;
          }
@@ -8275,6 +8493,49 @@ void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data)
 }
 
 /*!
+   Load Dset
+   
+   expects SO in data and a calling widget in w 
+*/
+void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_Dset_Load"};
+   SUMA_LIST_WIDGET *LW=NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_OpenDsetFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)data,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, (int *)w,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_In, NextElm)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
    Delete colorplane
    
    expects SO in data 
@@ -8291,14 +8552,17 @@ void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data)
    SUMA_LH("Called");
    SUMA_RETURNe;
    
+   #if 0
    SO = (SUMA_SurfaceObject *)data;
-
+   
+   LW is not set yet ...
+   
    /*close the list widget if open */
    if (!LW->isShaded) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch Color plane window ...\n", FuncName);
-      SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchColPlanelst,  client_data);
+      SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchDsetlst,  client_data);
    }  
-          
+   #endif       
    SUMA_RETURNe;
 }
 

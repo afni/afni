@@ -7,6 +7,298 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
+SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb)
+{
+   static char FuncName[]={"SUMA_Cmap_To_SO"};
+   SUMA_SurfaceObject *SO= NULL;
+   int i, i3, i4, in, k;
+   float dh, dw;
+   SUMA_SURF_NORM SN;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   
+   SUMA_LH("Allocating surface.");
+   SO = SUMA_Alloc_SurfObject_Struct(1);
+   if (!Cmap) { SUMA_SL_Err("No Cmap"); SUMA_RETURN(NULL); }
+   if (!Cmap->N_Col) { SUMA_SL_Err("No colours"); SUMA_RETURN(NULL); }
+   if (!SO) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }
+   
+   /* scaling factors */
+   dh = (topright[1] - orig[1]) / Cmap->N_Col;
+   dw = topright[0] - orig[0];
+   if (dh <= 0 || dw <= 0) {
+      SUMA_SL_Err("Whatchyoutalkinaboutwillis?");
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_LH("Allocating surface elements.");
+   /* allocate for the NodeList */
+   SO->FileType = SUMA_CMAP_SO;
+   SO->N_Node = 4 * (Cmap->N_Col);
+   SO->N_FaceSet = 2 * Cmap->N_Col;
+   SO->NodeDim = 3;
+   SO->EmbedDim = 2;
+   SO->FaceSetDim = 3;
+   SO->idcode_str = (char *)SUMA_malloc(SUMA_IDCODE_LENGTH * sizeof(char));
+   SO->NodeList = (float *)SUMA_malloc(SO->N_Node * 3*sizeof(float));
+   SO->FaceSetList = (int *)SUMA_malloc(SO->N_FaceSet * 3 * sizeof(int));
+   SO->PermCol = (GLfloat *)SUMA_malloc(SO->N_Node * 4*sizeof(GLfloat));
+   if (!SO->idcode_str || !SO->NodeList || !SO->FaceSetList || !SO->PermCol) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL);}
+   
+   SUMA_LH("Filling up surface id.");
+   /* fill up idcode*/
+   UNIQ_idcode_fill(SO->idcode_str);
+   
+   SUMA_LH("Filling up surface nodelist.");
+   /* fill up coordinates first */
+   i=0;     /* color index */
+   in = 0;  /* node index */
+   i3 = in * 3;
+   while (i < Cmap->N_Col) {
+      /* 4 nodes per color */
+      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = i     * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = i     * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = (i+1) * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = (i+1) * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      ++i;
+   }
+   
+   SUMA_LH("Filling up surface facesetlist.");
+   /* fill up triangles */
+   i = 0;   /* color index */
+   i4 = 4*i;
+   in = 0;  /* triangle index */
+   i3 = in *3;
+   while (i < Cmap->N_Col) {
+      /* 2 triangles per color, 4 nodes per color*/
+      SO->FaceSetList[i3] = i4; SO->FaceSetList[i3+1] = i4+1; SO->FaceSetList[i3+2] = i4+2; ++in; i3 = in *3;
+      SO->FaceSetList[i3] = i4; SO->FaceSetList[i3+1] = i4+2; SO->FaceSetList[i3+2] = i4+3; ++in; i3 = in *3;; 
+      ++i; i4 = 4*i;
+   }
+   
+   SUMA_LH("Filling up surface colors.");
+   /* fill up the color vector */
+   i=0; /* color index */
+   in = 0;  /* node index */
+   i4 = in * 4;
+   while (i < Cmap->N_Col) {
+      for (k=0; k<4; ++k) {
+         /* 4 nodes per color */
+         SO->PermCol[i4]   = Cmap->M[i][0]; SO->PermCol[i4+1] = Cmap->M[i][1]; 
+         SO->PermCol[i4+2] = Cmap->M[i][2]; SO->PermCol[i4+3] = 1.0;  ++in; i4 = in * 4;
+      }
+      ++i;
+   } 
+   
+   /* if verb, write out the results for checking */
+   if (verb > 1) {
+      char *fname;
+      FILE *fout;
+      
+      SUMA_LH("writing out surface.");
+
+      fname = SUMA_append_string(Cmap->Name, ".1D.NodeList");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_Node; ++i) fprintf (fout,"%f %f %f\n", SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write NodeList"); SUMA_RETURN(SO); }
+      
+      fname = SUMA_append_string(Cmap->Name, ".1D.FaceSetList");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_FaceSet; ++i) fprintf (fout,"%d %d %d\n", SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write FaceSetList"); SUMA_RETURN(SO); }
+      
+      fname = SUMA_append_string(Cmap->Name, ".1D.col");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_Node; ++i) fprintf (fout,"%d %f %f %f\n", i, SO->PermCol[4*i], SO->PermCol[4*i+1], SO->PermCol[4*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write Col file"); SUMA_RETURN(SO); }
+   }
+   
+   /* some more stuff */
+   SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
+   SO->NodeNormList = SN.NodeNormList;
+   SO->FaceNormList = SN.FaceNormList;
+   
+   /* the shameful pointer copies */
+   SO->glar_NodeList = (GLfloat *) SO->NodeList;
+   SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
+   SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList;
+   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList;
+   
+   SUMA_RETURN(SO);
+}
+
+/*!
+   Create a surface object for the colormap 
+   This one creates a surface where successive colors share an edge.
+   This makes the coloring annoying since you need to use flat shading 
+   and make sure you colorize the proper nodes (see p172, OpenGL programming guide and
+   NIH-3 lab-book 157. The coloring as implemented here is not correct in that 
+   it does not follow the i+2 rule (see OpenGL book ref) but I have decided to
+   create a different surface which has 4 nodes per color and no sharing of 
+   nodes/edges for successive colors.
+   
+   See SUMA_Cmap_To_SO
+*/
+SUMA_SurfaceObject *SUMA_Cmap_To_SO_old (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb)
+{
+   static char FuncName[]={"SUMA_Cmap_To_SO_old"};
+   SUMA_SurfaceObject *SO= NULL;
+   int icol, i, i3, i4;
+   float dh, dw;
+   SUMA_SURF_NORM SN;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_SL_Err("Function is obsolete.\nUse SUMA_Cmap_To_SO");
+   
+   SUMA_LH("Allocating surface.");
+   SO = SUMA_Alloc_SurfObject_Struct(1);
+   if (!Cmap) { SUMA_SL_Err("No Cmap"); SUMA_RETURN(NULL); }
+   if (!Cmap->N_Col) { SUMA_SL_Err("No colours"); SUMA_RETURN(NULL); }
+   if (!SO) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }
+   
+   /* scaling factors */
+   dh = (topright[1] - orig[1]) / Cmap->N_Col;
+   dw = topright[0] - orig[0];
+   if (dh <= 0 || dw <= 0) {
+      SUMA_SL_Err("Whatchyoutalkinaboutwillis?");
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_LH("Allocating surface elements.");
+   /* allocate for the NodeList */
+   SO->FileType = SUMA_CMAP_SO;
+   SO->N_Node = 2 * (Cmap->N_Col + 1);
+   SO->N_FaceSet = 2 * Cmap->N_Col;
+   SO->NodeDim = 3;
+   SO->EmbedDim = 2;
+   SO->FaceSetDim = 3;
+   SO->idcode_str = (char *)SUMA_malloc(SUMA_IDCODE_LENGTH * sizeof(char));
+   SO->NodeList = (float *)SUMA_malloc(SO->N_Node * 3*sizeof(float));
+   SO->FaceSetList = (int *)SUMA_malloc(SO->N_FaceSet * 3 * sizeof(int));
+   SO->PermCol = (GLfloat *)SUMA_malloc(SO->N_Node * 4*sizeof(GLfloat));
+   if (!SO->idcode_str || !SO->NodeList || !SO->FaceSetList || !SO->PermCol) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL);}
+   
+   SUMA_LH("Filling up surface id.");
+   /* fill up idcode*/
+   UNIQ_idcode_fill(SO->idcode_str);
+   
+   SUMA_LH("Filling up surface nodelist.");
+   /* fill up coordinates first */
+   /* first fill the oth and the 1st node. They don't follow the cute series */
+   SO->NodeList[0] = orig[0];    SO->NodeList[1] = orig[1];    SO->NodeList[2] = 0.0;
+   SO->NodeList[3] = dw+orig[0]; SO->NodeList[4] = orig[1];    SO->NodeList[5] = 0.0;
+   
+   i=2;
+   while (i < SO->N_Node) {
+      /* even i */
+      i3 = i * 3;
+      SO->NodeList[i3] = dw+orig[0];SO->NodeList[i3+1] = i/2 * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++i;
+      /* odd i */ 
+      i3 = i * 3;
+      SO->NodeList[i3] = orig[0];   SO->NodeList[i3+1] = i/2 * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++i;
+   }
+   
+   SUMA_LH("Filling up surface facesetlist.");
+   /* fill up triangles */
+   /* fill up the oth and 1st triangles, they don't follow the cute series */
+   SO->FaceSetList[0] = 0; SO->FaceSetList[1] = 1; SO->FaceSetList[2] = 2;
+   SO->FaceSetList[3] = 2; SO->FaceSetList[4] = 3; SO->FaceSetList[5] = 0;
+   
+   icol = 1;
+   while (icol < Cmap->N_Col) {
+      i = 2 * icol;    /* 2 triangles per color */
+      /* first triangle */
+      i3 = i * 3;
+      SO->FaceSetList[i3] = i+1; SO->FaceSetList[i3+1] = i; SO->FaceSetList[i3+2] = i+2;
+      /* second triangle */
+      i3 = (i+1) * 3;
+      SO->FaceSetList[i3] = i+2; SO->FaceSetList[i3+1] = i+3; SO->FaceSetList[i3+2] = i+1; 
+      ++icol;
+   }
+   
+   SUMA_LH("Filling up surface colors.");
+   /* fill up the color vector */
+   /* Node 0 is special */
+   SO->PermCol[0] = Cmap->M[0][0]; SO->PermCol[1] = Cmap->M[0][1]; SO->PermCol[2] = Cmap->M[0][2]; SO->PermCol[3] = 1.0;
+   /* last node is special */
+   i4 = 4 * (SO->N_Node -1);
+   SO->PermCol[i4  ] = Cmap->M[Cmap->N_Col-1][0]; 
+   SO->PermCol[i4+1] = Cmap->M[Cmap->N_Col-1][1]; 
+   SO->PermCol[i4+2] = Cmap->M[Cmap->N_Col-1][2]; 
+   SO->PermCol[i4+3] = 1.0;
+   
+   i=1;
+   icol = 0;
+   while (i < SO->N_Node -1) {
+      /* Next two get the icolth color */
+      i4 = 4*i;
+      SO->PermCol[i4] = Cmap->M[icol][0];  SO->PermCol[i4+1] = Cmap->M[icol][1]; 
+      SO->PermCol[i4+2] = Cmap->M[icol][2];SO->PermCol[i4+3] = 1.0;  ++i; 
+      i4 = 4*i;
+      SO->PermCol[i4] = Cmap->M[icol][0];  SO->PermCol[i4+1] = Cmap->M[icol][1]; 
+      SO->PermCol[i4+2] = Cmap->M[icol][2];SO->PermCol[i4+3] = 1.0;  ++i; 
+      ++icol;
+   } 
+   
+   /* if verb, write out the results for checking */
+   if (verb > 1) {
+      char *fname;
+      FILE *fout;
+      
+      SUMA_LH("writing out surface.");
+
+      fname = SUMA_append_string(Cmap->Name, ".1D.NodeList");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_Node; ++i) fprintf (fout,"%f %f %f\n", SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write NodeList"); SUMA_RETURN(SO); }
+      
+      fname = SUMA_append_string(Cmap->Name, ".1D.FaceSetList");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_FaceSet; ++i) fprintf (fout,"%d %d %d\n", SO->FaceSetList[3*i], SO->FaceSetList[3*i+1], SO->FaceSetList[3*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write FaceSetList"); SUMA_RETURN(SO); }
+      
+      fname = SUMA_append_string(Cmap->Name, ".1D.col");
+      if (!fname) { SUMA_SL_Err("Failed to create name"); SUMA_RETURN(SO); }
+      fout = fopen(fname,"w"); 
+      if (fout) {
+         for (i=0; i < SO->N_Node; ++i) fprintf (fout,"%d %f %f %f\n", i, SO->PermCol[4*i], SO->PermCol[4*i+1], SO->PermCol[4*i+2]);
+         fclose(fout); SUMA_free(fname); fname = NULL;
+      }else { SUMA_SL_Err("Failed to write Col file"); SUMA_RETURN(SO); }
+   }
+   
+   /* some more stuff */
+   SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
+   SO->NodeNormList = SN.NodeNormList;
+   SO->FaceNormList = SN.FaceNormList;
+   
+   /* the shameful pointer copies */
+   SO->glar_NodeList = (GLfloat *) SO->NodeList;
+   SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
+   SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList;
+   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList;
+   
+   SUMA_RETURN(SO);
+}
+
 /*!
  allocate for a segment DO 
    SDO = SUMA_Alloc_SegmentDO ( N_n, Label)
@@ -1067,7 +1359,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       sopd.Type = SOPT_ifff;
       sopd.Source = SES_Suma;
       sopd.GlobalOpacity = 0.3;
-      sopd.BrightMod = NOPE;
+      sopd.isBackGrnd = NOPE;
       sopd.Show = YUP;
       sopd.DimFact = 0.5;
       sopd.i = (void *)ivect;
@@ -1103,14 +1395,14 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          if (N_NewNode) {
             /* Add the index column */
             SUMA_LH("Adding index column...");
-            if (!SUMA_AddNelCol (nel, SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
+            if (!SUMA_AddNelCol (nel, "node index", SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
             }
 
             /* Add the label column */
             SUMA_LH("Adding label column...");
-            if (!SUMA_AddNelCol (nel, SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
+            if (!SUMA_AddNelCol (nel, "integer label", SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
             }
@@ -1614,13 +1906,14 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 /*! Create a tesselated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   GLfloat *colp = NULL;
    int i, ii, ND, id, ip, NP, PolyMode;
    static char FuncName[]={"SUMA_DrawMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
-
+      
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
@@ -1668,10 +1961,19 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glEnableClientState (GL_COLOR_ARRAY);
          glEnableClientState (GL_VERTEX_ARRAY);
          glEnableClientState (GL_NORMAL_ARRAY);
-         glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
+         colp = SUMA_GetColorList (sv, SurfObj->idcode_str);
+         if (!colp) { /* no color list, try  PermCol */
+            if (SurfObj->PermCol) {
+               glColorPointer (4, GL_FLOAT, 0, SurfObj->PermCol);
+            } else {
+               SUMA_SL_Err("Null Color Pointer.");
+            }
+         } else { 
+            glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
+         }
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
-         /*fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet);*/
+         /* fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); */
          switch (RENDER_METHOD) {
             case TRIANGLES:
                glDrawElements (GL_TRIANGLES, (GLsizei)SurfObj->N_FaceSet*3, GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
@@ -1682,7 +1984,68 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                than once. You are better off creating an index vector into glar_NodeList to place all the points, just once*/ 
                glDrawElements (GL_POINTS, (GLsizei)SurfObj->N_FaceSet*3, GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                break;
-            } /* switch RENDER_METHOD */
+         } /* switch RENDER_METHOD */
+
+         if (0){
+            GLboolean valid;
+            GLfloat rpos[4];
+            char  string[]= {"Yo Baby sssup? 1 2 3, 4.2 mm"};
+            int is;
+            float txcol[3] = {0.2, 0.5, 1};
+            static int width, height;
+            static unsigned char *image=NULL;
+            
+            SUMA_SL_Note(  "Doing the splat and the text thing\n"
+                           "from Kilgard's renderSplat in splatlogo.c\n"
+                           "to understand scaling operations.\n");
+            
+            if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
+               id = ND * SurfObj->SelectedNode;
+            } else { id = 0; }
+            
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+            glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
+            glRasterPos3f(SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+            glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+            glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+            printf("Raster position (%g,%g, %g) is %s\n",
+               rpos[0], rpos[1], rpos[2], valid ? "valid" : "INVALID");
+
+            /* do some text action */
+            SUMA_SL_Note(  "Some colored text\n"
+                           "Might affect la drawing\n"
+                           "color elsewhere");
+            glColor3fv(txcol); 
+            for (is=0; string[is] != '\0'; is++) {
+               glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[is]);
+            }  
+            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for text*/
+
+            if (!image) {
+               FILE *fid;
+               SUMA_SL_Note(  "Reading the image.");
+               image = SUMA_read_ppm("test.ppm", &width, &height, 1);
+               if (!image) {
+                  SUMA_SL_Err("Failed to read image.");
+               }
+               /*
+               fid = fopen("junk.img", "w");
+               SUMA_disp_vecucmat (image, width*height, 4, 1, SUMA_ROW_MAJOR, fid, NOPE);
+               fclose(fid);
+               */
+            }
+            if (image) {
+               SUMA_SL_Note(  "Drawing the image.");
+               /* NOTE. The raster position has been pushed aside by the string.
+               If you want it back, you need a new call to glRasterPos3f */
+               glRasterPos3f(SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+               glAlphaFunc(GL_GEQUAL, 0.25);/* Should do this only once, not each time you render ...*/
+               glEnable(GL_ALPHA_TEST);
+               glDrawPixels(width, height, GL_RGBA,
+                  GL_UNSIGNED_BYTE, image);
+               glDisable(GL_ALPHA_TEST);
+            }
+         }
 
          /*fprintf(stdout, "Disabling clients\n");*/
          glDisableClientState (GL_COLOR_ARRAY);   
@@ -1732,7 +2095,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
-   }
+   }   
    
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
@@ -1872,6 +2235,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
+   if (SO->PermCol) SUMA_free(SO->PermCol);
+   
    if (SO) SUMA_free(SO);
    
    if (LocalHead) fprintf (stdout, "Done\n");
@@ -1892,7 +2257,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
 {
    static char FuncName[]={"SUMA_SurfaceObject_Info"};
-   int MaxShow = 5, i,j, ND = 0, NP = 0, N_max = 10000;
+   int MaxShow = 5, i,j, ND = 0, NP = 0, N_max = 10000, eu=-1002;
    char stmp[1000], *s = NULL;
    SUMA_STRING *SS = NULL;
    
@@ -2033,9 +2398,12 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"RotationWeight: %d, ViewCenterWeight %d\n", SO->RotationWeight, SO->ViewCenterWeight);
       SS = SUMA_StringAppend (SS,stmp);
-      sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n\n", SO->N_FaceSet, SO->FaceSetDim);
+      sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n", SO->N_FaceSet, SO->FaceSetDim);
       SS = SUMA_StringAppend (SS,stmp);
-
+      
+      SUMA_EULER_SO(SO, eu);
+      SS = SUMA_StringAppend_va (SS, "Euler No. = %d\n\n", eu);
+      
       sprintf (stmp,"Center: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
       SS = SUMA_StringAppend (SS,stmp);
 
@@ -2183,8 +2551,9 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->EL->N_EL) MaxShow = SO->EL->N_EL; 
-         sprintf (stmp, "SO->EL, %d edges, max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
-               SO->EL->N_EL, SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
+         sprintf (stmp, "SO->EL, %d edges, %d unique edges.\n"
+                        "max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
+               SO->EL->N_EL, SO->EL->N_Distinct_Edges, SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
             sprintf (stmp,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d\n",\
@@ -2256,7 +2625,13 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
       sprintf (stmp,"\n");
       SS = SUMA_StringAppend (SS,stmp);
-
+      
+      if (!SO->PermCol) SUMA_StringAppend (SS,"PermCol = NULL\n");
+      else SUMA_StringAppend (SS,"PermCol is NOT NULL\n");
+      
+      if ( (SO->PermCol && SO->N_Overlays) || (SO->PermCol && SO->N_Overlays) ) {
+         SUMA_StringAppend (SS,"CONFLICT! Both PermCol and Overlays are specified!\n");
+      }
       
    } else {
       sprintf (stmp, "NULL Surface Object Pointer.");
@@ -2390,6 +2765,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].LocalCurvatureParent = NULL;
       SO[i].LocalDomainParentID = NULL;
       SO[i].LocalCurvatureParentID = NULL;
+      SO[i].PermCol = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

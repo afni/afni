@@ -32,6 +32,8 @@ void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt,
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
 void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt, 
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
 void SUMA_disp_dvect (int *v,int l);
 void SUMA_disp_vect (float *v,int l);
 SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, float *vert1, float *vert2, float *iP, float *d, int *closest_vert);

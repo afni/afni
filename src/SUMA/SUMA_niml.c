@@ -389,7 +389,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
    GLfloat *glar_ColorList = NULL;
-   SUMA_SURF_NORM SN;
    SUMA_OVERLAY_PLANE_DATA sopd;
 
    /*int it;
@@ -656,13 +655,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       for (i=0; i < nel->vec_len; ++i) SO->NodeList[i] = XYZ[i];
 
       /* must recompute normals */
-      if (SO->NodeNormList) SUMA_free(SO->NodeNormList); SO->NodeNormList = NULL;
-      if (SO->FaceNormList) SUMA_free(SO->FaceNormList); SO->FaceNormList = NULL;
-      SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
-      SO->NodeNormList = SN.NodeNormList;
-      SO->FaceNormList = SN.FaceNormList;
-      SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */
-      
+      SUMA_RECOMPUTE_NORMALS(SO);
+
       /* file a redisplay request */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
       if (!list) list = SUMA_CreateList();
@@ -728,7 +722,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       sopd.Type = SOPT_ibbb;
       sopd.Source = SES_Afni;
       sopd.GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
-      sopd.BrightMod = NOPE;
+      sopd.isBackGrnd = NOPE;
       sopd.Show = YUP;
       /* dim colors from maximum intensity to preserve surface shape highlights, 
       division by is no longer necessary.

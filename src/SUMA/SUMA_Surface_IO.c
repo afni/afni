@@ -2485,7 +2485,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    /* (the file will be called "test.ply" because the routines */
    /*  enforce the .ply filename extension) */
 
-   switch (SO->FileType) {
+   switch (SO->FileFormat) {
       case SUMA_BINARY_BE:
          ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
          break;
@@ -2501,7 +2501,11 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
       case SUMA_BINARY:
          ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
          break;
-            
+      
+      case SUMA_FF_NOT_SPECIFIED:
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_ASCII, &version);
+         break;      
+      
       default:
          fprintf (SUMA_STDERR, "Error %s: Unrecognized file type.\n", FuncName);
          SUMA_RETURN (NOPE);
@@ -2907,6 +2911,7 @@ int main (int argc,char *argv[])
 		
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
+      SUMA_TO_LOWER(argv[kar]);
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -2954,10 +2959,10 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
+      if (!brk && ( (strcmp(argv[kar], "-i_vec") == 0) || (strcmp(argv[kar], "-i_1d") == 0) ) ) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec (or -i_1D)");
 				exit (1);
 			}
 			if_name = argv[kar]; kar ++;
@@ -3023,7 +3028,7 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-o_vec") == 0)) {
+      if (!brk && ( (strcmp(argv[kar], "-o_vec") == 0) || (strcmp(argv[kar], "-o_1d") == 0) ) ) {
          kar ++;
 			if (kar+1 >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 2 argument after -o_vec");
@@ -3038,7 +3043,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_ply") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -o_ply ");
+		  		fprintf (SUMA_STDERR, "need argument after -o_ply  (or -i_1D)");
 				exit (1);
 			}
 			of_name = argv[kar];
@@ -3056,12 +3061,12 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-MNI_rai") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-mni_rai") == 0)) {
          Do_mni_RAI = YUP;
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-MNI_lpi") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-mni_lpi") == 0)) {
          Do_mni_LPI = YUP;
          brk = YUP;
       }
@@ -4262,14 +4267,14 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
 
    /* Add the index column */
    SUMA_LH("Adding index column...");
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
+   if (!SUMA_AddNelCol (nel, "node index", SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
       SUMA_SL_Err("Failed in SUMA_AddNelCol");
       SUMA_RETURN(nel);
    }
 
    /* Add the label column */
    SUMA_LH("Adding label column...");
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
+   if (!SUMA_AddNelCol (nel, "integer label", SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
       SUMA_SL_Err("Failed in SUMA_AddNelCol");
       SUMA_RETURN(nel);
    }

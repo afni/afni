@@ -98,6 +98,7 @@ void SUMA_usage ()
                   "                  version of the entire SUMA package.\n"
                   "   [-all_latest_news] Shows the history of latest news.\n"
                   "   [-progs] Lists all the programs in the SUMA package.\n"
+                  "   [-sources] Lists code sources used in parts of SUMA.\n"
                   "\n"
 			         "   For help on interacting with SUMA, press 'ctrl+h' with the mouse pointer\n"
                   "   inside SUMA's window.\n"     
@@ -209,6 +210,13 @@ int main (int argc,char *argv[])
       
       if (strcmp(argv[kar], "-version") == 0) {
 			 s = SUMA_New_Additions (0.0, 1);
+          fprintf (SUMA_STDOUT,"%s\n", s); 
+          SUMA_free(s); s = NULL;
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-sources") == 0) {
+			 s = SUMA_sources_Info();
           fprintf (SUMA_STDOUT,"%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);

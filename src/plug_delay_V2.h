@@ -22,6 +22,12 @@
 	#define NOWAYXCORCOEF 0					/* A flag value indicating that something lethal went on */
 #endif
 
+/* do not change these three*/
+#define METH_SECONDS 0
+#define METH_DEGREES 1
+#define METH_RADIANS 2
+
+
 static int Read_file (float *x,char *f_name,int n_points);
 
 static void linear_reg (float *x,float *y,int size,float *a,float *b,int *err);
@@ -1610,8 +1616,8 @@ static void hunwrap (float del, float fs, float T, float slp, int wrp, int unt, 
 									del = tmp * T / 360.0;		/* from polar to time */
 								}/* map of (0-pi) to (0-pi) and (pi-2pi) to (pi-0) */
 
- 			if (unt == 1) del = del * 360.0 / T;		/* from time to polar angle in degrees*/
-			if (unt == 2) del = del * 2 * pi / T;		/* from time to polar angle in degrees*/	
+ 			if (unt == METH_DEGREES) del = del * 360.0 / T;		/* from time to polar angle in degrees*/
+			if (unt == METH_RADIANS) del = del * 2 * pi / T;		/* from time to polar angle in degrees*/	
 	}/* Period unwrapping possible */
 	
 	*delu = del;

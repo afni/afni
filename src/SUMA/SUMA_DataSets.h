@@ -167,12 +167,6 @@ typedef struct {
       defined by a set of attributes, and a collection
       of data columns.
       nel contains the following string attributes:
-         name: A string for the type of dataset.
-               See functions:
-                  SUMA_Dset_Type_Name
-                  SUMA_Dset_Type
-               and typedef:
-                  SUMA_DSET_TYPE
          filename: The filename
          label: A short text label identifying the data set.
                 Typically, a short version of the filename                          
@@ -184,6 +178,7 @@ typedef struct {
                             (values) are in this set.
          sorted_node_def: flag indicating that nodes in NodeDef are sorted
                           see NodeDef below. 
+         LabelCol_'i': Label of column i
          RangeCol_'i': Range of values in column i. 
                        See function:
                         SUMA_GetColRange.
@@ -204,6 +199,12 @@ typedef struct {
                                              SUMA_AddGenColAttr
       
       nel structure contains the following fields:
+         name: A string for the type of dataset.
+               See functions:
+                  SUMA_Dset_Type_Name
+                  SUMA_Dset_Type
+               and typedef:
+                  SUMA_DSET_TYPE
          vec: A vector of pointers to the data columns. 
          vec_num: Number of columns in vec. So your columns
                   are vec[0] .. vec[vec_num - 1]
@@ -424,9 +425,11 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);
 SUMA_COL_TYPE SUMA_Col_Type (char *Name);
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp); 
 int SUMA_ShowNel (NI_element *nel);
-int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_AddNelCol ( NI_element *nel, char *col_label,
+                     SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
-int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr, int col_index);
+int SUMA_AddColAttr (NI_element *nel, char *col_label,
+                     SUMA_COL_TYPE ctp, void *col_attr, int col_index);
 NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode, 
                           char * GeomParent_idcode, int N_el, 
                           char *name, char *thisidcode);
@@ -453,7 +456,8 @@ SUMA_DSET *SUMA_UnlinkFromDset(SUMA_DSET *dset);
 void *SUMA_LinkToPointer(void *ptr);
 void *SUMA_UnlinkFromPointer(void *ptr);
 int * SUMA_GetNodeDef(SUMA_DSET *dset);
-int SUMA_FillNelCol (NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_FillNelCol (NI_element *nel, char *col_label,
+                     SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
@@ -469,6 +473,7 @@ SUMA_DSET * SUMA_far2dset( char *FullName, char *dset_id, char *dom_id,
                                  int ptr_cpy);
 int SUMA_OK_1Dnel(NI_element *nel);
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
+char *SUMA_ColLabelCopy(NI_element *nel, int i);
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED
@@ -507,6 +512,7 @@ void SUMA_ParseInput_basics (char *argv[], int argc);
 SUMA_FileName SUMA_StripPath (char *FileName);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName);
 char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
+SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name);
 SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 int SUMA_StringToNum (char *s, float *fv, int N);
@@ -519,6 +525,7 @@ char * SUMA_truncate_string (char *s1, int length);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);
+char *SUMA_pad_string(char *buf, char cp, int n, int add2end);
 
 /*********************** END Miscellaneous support functions **************************** */
 

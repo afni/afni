@@ -81,8 +81,8 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI);
    Shaded = YUP;  \
    if (SO) {   \
       if (SO->SurfCont) {\
-         if (SO->SurfCont->SwitchColPlanelst) {\
-            if (!SO->SurfCont->SwitchColPlanelst->isShaded) {\
+         if (SO->SurfCont->SwitchDsetlst) {\
+            if (!SO->SurfCont->SwitchDsetlst->isShaded) {\
                Shaded = NOPE;  \
             }  \
          }  \

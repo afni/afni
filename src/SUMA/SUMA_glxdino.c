@@ -103,7 +103,7 @@ void
 makeDinosaur(void)
 {
   GLfloat bodyWidth = 3.0;
-
+   
   extrudeSolidFromPolygon(body, sizeof(body), bodyWidth,
     BODY_SIDE, BODY_EDGE, BODY_WHOLE);
   extrudeSolidFromPolygon(arm, sizeof(arm), bodyWidth / 4,
@@ -234,7 +234,7 @@ contextInit(void)
                            recalc. */
 }
 
-void
+int
 main(int argc, char **argv)
 {
   XVisualInfo *vi;
@@ -247,8 +247,8 @@ main(int argc, char **argv)
   KeySym ks;
   Bool needRedraw = False, recalcModelView = True;
   char *display = NULL, *geometry = NULL;
-  int flags, x, y, width, height, lastX, i;
-
+  int flags, x, y, width, height, lastX = 0, i;
+  
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-geometry")) {
       if (++i >= argc)
@@ -391,7 +391,7 @@ main(int argc, char **argv)
 void
 redraw(void)
 {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glCallList(DINOSAUR);
   if (doubleBuffer)
     glXSwapBuffers(dpy, win);

@@ -1530,6 +1530,7 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    
    /* Add the coordinate column */
    if (!SUMA_AddNelCol (nel, /* the famed nel */ 
+                        "XYZ coords", 
                         SUMA_NODE_3C, /* the column's type (description),
                                             one of SUMA_COL_TYPE */
                         (void *)val, /* the coordinates */
@@ -1665,6 +1666,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    
    /* Add the columns */
    if (!SUMA_AddNelCol (nel, /* the famed nel */ 
+                        "node index", 
                         SUMA_NODE_INDEX, /* the column's type (description),
                                             one of SUMA_COL_TYPE */
                         (void *)node, /* the list of node indices */
@@ -1682,22 +1684,22 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
    }
 
    /* insert from multiplexed rgb vector */
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_Rb, (void *)rgba, NULL ,4 )) {
+   if (!SUMA_AddNelCol (nel, "red", SUMA_NODE_Rb, (void *)rgba, NULL ,4 )) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
 
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_Gb, (void *)(rgba+1), NULL ,4)) {
+   if (!SUMA_AddNelCol (nel, "green", SUMA_NODE_Gb, (void *)(rgba+1), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
 
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_Bb, (void *)(rgba+2), NULL ,4)) {
+   if (!SUMA_AddNelCol (nel, "blue", SUMA_NODE_Bb, (void *)(rgba+2), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
    
-   if (!SUMA_AddNelCol (nel, SUMA_NODE_Ab, (void *)(rgba+3), NULL ,4)) {
+   if (!SUMA_AddNelCol (nel, "alpha", SUMA_NODE_Ab, (void *)(rgba+3), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
@@ -2269,49 +2271,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
       SUMA_SL_Err("Obsolete method for surface specification.\nShould not have gotten here.");
       exit(1);
    }
-   
-   #if 0
-   /* obsolete usage */
-   if (Opt->insurf_method == 1 && !Opt->if_name) {
-      fprintf (SUMA_STDERR,"Error %s:\ninput surface not specified.\n", FuncName);
-      exit(1);
-   }
-
-   if (Opt->insurf_method == 1 && Opt->iType == SUMA_FT_NOT_SPECIFIED) {
-      fprintf (SUMA_STDERR,"Error %s:\ninput type not recognized.\n", FuncName);
-      exit(1);
-   }
-   
-   if (Opt->iType == SUMA_SUREFIT) {
-      if (!Opt->if_name2) {
-         fprintf (SUMA_STDERR,"Error %s:\ninput SureFit surface incorrectly specified.\n", FuncName);
-         exit(1);
-      }
-   }
-   
-   if (Opt->iType == SUMA_VEC) {
-      if (!Opt->if_name2) {
-         fprintf (SUMA_STDERR,"Error %s:\ninput vec surface incorrectly specified.\n", FuncName);
-         exit(1);
-      }
-   }
-
-   /* test for existence of input files */
-   if (Opt->insurf_method == 1) {
-      if (!SUMA_filexists(Opt->if_name)) {
-         fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name);
-         exit(1);
-      }
-
-      if (Opt->if_name2) {
-         if (!SUMA_filexists(Opt->if_name2)) {
-            fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name2);
-            exit(1);
-         }
-      }
-   }
-   #endif
-   
+      
    /* can't test for file existence here because of square brackets */
    if (0 && Opt->in_name && !SUMA_filexists(Opt->in_name)) {
       fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name);
@@ -2471,40 +2431,8 @@ int main (int argc,char *argv[])
    
    /* now for the real work */
    if (Opt->insurf_method == 1) { /* method 1 */
-      /* prepare the name of the surface object to read*/
-      switch (Opt->iType) {
-         case SUMA_SUREFIT:
-            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-            sprintf(SF_name->name_coord,"%s", Opt->if_name);
-            sprintf(SF_name->name_topo,"%s", Opt->if_name2); 
-            if (!Opt->vp_name) SF_name->name_param[0] = '\0'; 
-            else  sprintf(SF_name->name_param,"%s", Opt->vp_name);
-            SO_name = (void *)SF_name;
-            if (LocalHead) fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, Opt->sv_name);
-            break;
-         case SUMA_VEC:
-            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-            sprintf(SF_name->name_coord,"%s", Opt->if_name);
-            sprintf(SF_name->name_topo,"%s", Opt->if_name2); 
-            SO_name = (void *)SF_name;
-            if (LocalHead) fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, Opt->sv_name);
-            break;
-         case SUMA_FREE_SURFER:
-            SO_name = (void *)Opt->if_name; 
-            if (LocalHead) fprintf (SUMA_STDOUT,"Reading %s ...\n",Opt->if_name);
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, Opt->sv_name);
-            break;  
-         case SUMA_PLY:
-            SO_name = (void *)Opt->if_name; 
-            if (LocalHead) fprintf (SUMA_STDOUT,"Reading %s ...\n",Opt->if_name);
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, Opt->sv_name);
-            break;  
-         default:
-            fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-            exit(1);
-      }
+      SUMA_SL_Err("Input in this method is no longer supported.\n");
+      exit(1);
    } else { /* method 2 */
       int SO_read = -1;
       
@@ -2647,14 +2575,15 @@ int main (int argc,char *argv[])
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
                fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
+                                    "Projected time per 100000 nodes is: %f minutes\n", 
                                        FuncName, etime_GetOffset, SO->N_Node, 
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             if (Opt->surf_out) {
                SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
-               switch (Opt->iType) {
+               switch (SO->FileType) {
                   case SUMA_SUREFIT:
+                     SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
                      sprintf(SF_name->name_coord,"%s", Opt->surf_out);
                      SF_name->name_topo[0] = '\0'; 
                      SO_name = (void *)SF_name;
@@ -2664,6 +2593,7 @@ int main (int argc,char *argv[])
                      }
                      break;
                   case SUMA_VEC:
+                     SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
                      sprintf(SF_name->name_coord,"%s", Opt->surf_out);
                      SF_name->name_topo[0] = '\0';
                      SO_name = (void *)SF_name;

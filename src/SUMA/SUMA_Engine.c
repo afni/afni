@@ -372,6 +372,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Viewer Settings File", &SUMAg_CF->X->FileSelectDlg);
             break;
             
+         case SE_OpenDsetFileSelection:
+            /* opens the dataset file selection window. 
+            Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            
+            /*Load colors from file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadDsetFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        "*.dset",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadDsetFile, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        "*.dset",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Dset File", &SUMAg_CF->X->FileSelectDlg);
+            
+            break;
+         
          case SE_OpenColFileSelection:
             /* opens the color file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
