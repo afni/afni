@@ -126,4 +126,5 @@
       o modified SUMA_Makefile to make 3dSurfMaskDump
       o modified Makefile.INCLUDE, targets:
 	    suma_exec, suma_clean, suma_link, suma_install
+  * modified Makefile.solaris2[67]_gcc, defining EXTRA_LIBS_2
 
