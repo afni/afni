@@ -1368,6 +1368,12 @@ ENTRY("AFNI_finalsave_layout_CB") ;
                 RESAM_shortstr[zm3d->vinfo->func_resam_mode] ,
                 RESAM_shortstr[zm3d->vinfo->thr_resam_mode]   ) ;
 
+        if( im3d->vinfo->use_autorange )
+          fprintf(gp,"SET_FUNC_AUTORANGE %c.+\n" , abet[cc] ) ;
+        else
+          fprintf(gp,"SET_FUNC_RANGE %c.%f\n" , abet[cc] ,
+                  im3d->vwid->func->range_av->fval        ) ;
+
       } /* end of startup script stuff */
 
       /*-- loop over image viewers in this controller --*/

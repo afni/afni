@@ -4262,3 +4262,7 @@
  * Modified afni_sumafunc.c to use "big" mode colorscales.
  * Modified afni.c, pbar.c (etc.) to read in user-defined colorscales
      from files.
+
+03 Feb 2003
+ * Changes to afni_driver.c to support colorscales.
+ * Saving .afni.startup_script now also saves the Autorange/funcrange setting.
