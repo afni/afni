@@ -192,26 +192,33 @@ void CALC_read_opts( int argc , char * argv[] )
         }
         CALC_taxis_num = strtod( argv[nopt] , &cpt ) ;
         if( CALC_taxis_num < 2 ){
-          fprintf(stderr,"** value after -taxis must be bigger than 1!\n"); exit(1);
+          fprintf(stderr,"** N value after -taxis must be bigger than 1!\n"); exit(1);
         }
         if( *cpt == ':' ){
-          float dt = strtod( cpt+1 , NULL ) ;
-          if( dt != 0.0 ) TS_dt = dt ;
+          float dt = strtod( cpt+1 , &cpt ) ;
+          if( dt > 0.0 ){
+            TS_dt = dt ;
+            if( *cpt == 'm' && *(cpt+1) == 's' ) TS_dt *= 0.001 ;  /* 09 Mar 2004 */
+          } else {
+            fprintf(stderr,"++ time step value in '-taxis %s' not legal!\n",argv[nopt]);
+          }
         }
-         nopt++ ; continue ;  /* go to next arg */
+        nopt++ ; continue ;  /* go to next arg */
       }
 
       /**** -dt val [13 Aug 2001] ****/
 
-      if( strncmp(argv[nopt],"-dt",3) == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"** need an argument after -dt!\n") ; exit(1) ;
-         }
-         TS_dt = strtod( argv[nopt] , NULL ) ;
-         if( TS_dt == 0.0 ){
-            fprintf(stderr,"** Illegal value after -dt!\n"); exit(1);
-         }
-         nopt++ ; continue ;  /* go to next arg */
+      if( strncmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
+        char *cpt ;
+        if( ++nopt >= argc ){
+          fprintf(stderr,"** need an argument after -dt!\n") ; exit(1) ;
+        }
+        TS_dt = strtod( argv[nopt] , &cpt ) ;
+        if( TS_dt <= 0.0 ){
+          fprintf(stderr,"** Illegal time step value after -dt!\n"); exit(1);
+        }
+        if( *cpt == 'm' && *(cpt+1) == 's' ) TS_dt *= 0.001 ;  /* 09 Mar 2004 */
+        nopt++ ; continue ;  /* go to next arg */
       }
 
       /**** -histpar letter [22 Nov 1999] ****/
@@ -686,7 +693,7 @@ DSET_DONE: continue;
       TS_make   = 1 ;        /* flag to force manufacture of a 3D+time dataset */
       fprintf(stderr,
               "++ Calculating 3D+time[%d]"
-              " dataset from 3D datasets and time series, with dt=%g\n" ,
+              " dataset from 3D datasets and time series, with dt=%g s\n" ,
               ntime_max , TS_dt ) ;
    }
 
@@ -700,7 +707,7 @@ DSET_DONE: continue;
        TS_make   = 1 ;
        fprintf(stderr,
                "++ Calculating 3D+time[%d]"
-               " dataset from 3D datasets and -taxis with dt=%g\n" ,
+               " dataset from 3D datasets and -taxis with dt=%g s\n" ,
                ntime_max , TS_dt ) ;
      }
    }
@@ -796,7 +803,7 @@ void CALC_Syntax(void)
     "  -session dir  = Use 'dir' for the output dataset session directory.\n"
     "                    [default='./'=current working directory]\n"
     "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
-    "                    If not given, defaults to 1 second.\n"
+    "  -TR tstep         If not given, defaults to 1 second.\n"
     "\n"
     "  -taxis N      = If only 3D datasets are input (no 3D+time or .1D files),\n"
     "    *OR*        =   then normally only a 3D dataset is calculated.  With this\n"
@@ -807,11 +814,14 @@ void CALC_Syntax(void)
     "                    will be identical.  For example, '-taxis 121:0.1' will produce\n"
     "                    121 points in time, spaced with TR 0.1.\n"
     "            N.B.: You can also specify the TR using the -dt option.\n"
-    "                  You can specify 1D input datasets using the '1D:n@val,n@val'\n"
-    "                  notation to get a similar effect; for example:\n"
-    "                    -dt 0.1 -w '1D:121@0'\n"
-    "                  will have pretty much the same effect as\n"
-    "                    -tsfac 121:0.1\n"
+    "            N.B.: You can specify 1D input datasets using the '1D:n@val,n@val'\n"
+    "                   notation to get a similar effect; for example:\n"
+    "                     -dt 0.1 -w '1D:121@0'\n"
+    "                   will have pretty much the same effect as\n"
+    "                     -taxis 121:0.1\n"
+    "            N.B.: For both '-dt' and '-taxis', the 'tstep' value is in\n"
+    "                   seconds.  You can suffix it with 'ms' to specify that\n"
+    "                   the value is in milliseconds instead; e.g., '-dt 2000ms'.\n"
     "\n"
     "  -rgbfac A B C = For RGB input datasets, the 3 channels (r,g,b) are collapsed\n"
     "                    to one for the purposes of 3dcalc, using the formula\n"
