@@ -96,6 +96,114 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_SendColorMapToAfni:
+            /* expects in i the code of one of SUMA's standard colormaps */
+            {
+               SUMA_COLOR_MAP *cmap;
+               NI_element *nel=NULL;
+               NI_stream ns;
+               int i;
+               char sbuf[50], *stmp=NULL;
+               
+               if (EngineData->i_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                   FuncName, NextCom, NextComCode);
+                  break;
+               }
+               
+               /* get the CMAP */
+               if (!(cmap = SUMA_GetStandardMap (EngineData->i))) {
+                  SUMA_SLP_Err("Failed to create colormap");
+                  break;
+               }
+               
+               if (cmap->N_Col > 128) {
+                  SUMA_SLP_Err(  "Cannot send more\n"
+                                 "than 128 colors to\n"
+                                 "AFNI.");
+                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  break;
+               }
+               
+               /* send AFNI the color map */
+               nel = NI_new_data_element("ni_do", 0);
+               NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+               stmp = SUMA_append_string("DEFINE_COLORSCALE ", cmap->Name);
+               for (i=0; i < cmap->N_Col; ++i) {
+                  sprintf(sbuf,"rgbi:%f/%f/%f", 
+                           cmap->M[i][0], cmap->M[i][1], cmap->M[i][2]);
+                  stmp = SUMA_append_replace_string(stmp, sbuf, " ", 1);
+               }
+               SUMA_LH(stmp);
+               NI_set_attribute ( nel, "ni_object", stmp);
+               
+               /* SUMA_ShowNel(nel); */
+               
+               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+                  SUMA_SLP_Err("Failed to send CMAP to afni");
+                  NI_free_element(nel) ; nel = NULL;
+                  if (stmp) free(stmp);
+                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  break;
+               }
+               
+               NI_free_element(nel) ; nel = NULL;
+               if (stmp) free(stmp);
+               
+               /* Now set the colormap in AFNI */
+               nel = NI_new_data_element("ni_do", 0);
+               NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+               stmp = SUMA_append_string("SET_PBAR_ALL ", "A.+99");
+               sprintf(sbuf, " 1 %s", cmap->Name);
+               stmp = SUMA_append_replace_string(stmp, sbuf, "", 1);
+               NI_set_attribute ( nel, "ni_object", stmp);
+               
+               /* SUMA_ShowNel(nel); */
+               
+               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+                  SUMA_SLP_Err("Failed to send CMAP to afni");
+                  NI_free_element(nel) ; nel = NULL;
+                  if (stmp) free(stmp);
+                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  break;
+               }
+               
+               NI_free_element(nel) ; nel = NULL;
+               if (stmp) free(stmp);
+              
+               /* set the autorange off */
+               nel = NI_new_data_element("ni_do", 0);
+               NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+               NI_set_attribute ( nel, "ni_object", "SET_FUNC_AUTORANGE A.-");
+               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+                  SUMA_SLP_Err("Failed to send CMAP to afni");
+                  NI_free_element(nel) ; nel = NULL;
+                  if (stmp) free(stmp);
+                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  break;
+               }
+               
+               NI_free_element(nel) ; nel = NULL;
+               
+               /* set the range of the colorbar */
+               nel = NI_new_data_element("ni_do", 0);
+               NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+               sprintf(sbuf," %d", cmap->N_Col);
+               stmp = SUMA_append_string("SET_FUNC_RANGE A.", sbuf);
+               NI_set_attribute ( nel, "ni_object", stmp);
+               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+                  SUMA_SLP_Err("Failed to send CMAP to afni");
+                  NI_free_element(nel) ; nel = NULL;
+                  if (stmp) free(stmp);
+                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  break;
+               }
+               NI_free_element(nel) ; nel = NULL;
+               if (stmp) free(stmp);
+               
+               SUMA_Free_ColorMap(cmap); cmap = NULL;
+            }
+            break;
          case SE_OpenDrawnROIFileSelection:
             /* opens the open ROI file selection window. 
             Expects NULL in vp (to be used later and a position reference widget typecast to ip, the latter can be null.*/

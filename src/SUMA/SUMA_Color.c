@@ -963,6 +963,7 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
    static char FuncName[]={"SUMA_StandardMapCode"};
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
+   
    if (!Name) SUMA_RETURN(SUMA_CMAP_ERROR);
    if (!strcmp(Name, "Undefined")) SUMA_RETURN(SUMA_CMAP_UNDEFINED);
    if (!strcmp(Name, "rgybr20")) SUMA_RETURN(SUMA_CMAP_RGYBR20);

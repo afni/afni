@@ -80,7 +80,8 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
-		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c
+		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c	\
+		 SUMA_Homer.c
  
 SUMA_SRCS_MAIN = SUMA_suma.c
 
@@ -91,7 +92,7 @@ SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
 SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
 		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
-		 SUMA_DataSets.h
+		 SUMA_DataSets.h SUMA_Homer.h
 
 #library only
 ${SUMALIB} : libply.a ${SUMA_OBJS}
@@ -192,6 +193,10 @@ SUMA_TestDataSets: SUMA_DataSets.c
 ROI2dataset: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
+SUMA_Homer: SUMA_Homer.c
+	$(RM) $@
+	${CC} -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 3dSurfMaskDump: SUMA_3dSurfMaskDump.c 
 	$(RM) $@

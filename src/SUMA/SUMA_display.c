@@ -4059,6 +4059,10 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
 void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
 {
    static char FuncName[] = {"SUMA_cb_AfniLink_toggled"};
+   DList *list=NULL;
+   SUMA_STANDARD_CMAP cmap;
+   SUMA_EngineData *ED = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -4072,7 +4076,31 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
                      "No connection found.");
       XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
    }
-      
+   
+   if (SUMAg_CF->ROI2afni) {
+      if (SUMAg_CF->ROI_CM) {
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Sending cmap (%s)\n",
+            FuncName,  SUMAg_CF->ROI_CM->Name);
+            SUMA_LH("Sending colormap to afni ...");
+         /* send the color map for ROI to afni */
+         cmap = SUMA_StandardMapCode (SUMAg_CF->ROI_CM->Name);
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Sending cmap %d (%s)\n",
+            FuncName, cmap, SUMAg_CF->ROI_CM->Name);
+         list = SUMA_CreateList();
+         ED = SUMA_InitializeEngineListData (SE_SendColorMapToAfni);
+         if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_i, (void*)&cmap, 
+                                                SES_SumaWidget, NULL, NOPE, 
+                                                SEI_Head, NULL )) {
+            fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+            SUMA_RETURNe;
+         }
+         SUMA_LH("NOW!");
+         if (!SUMA_Engine (&list)) {
+            fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }   
+      }
+   }
    SUMA_RETURNe;
 
 }
@@ -4689,6 +4717,7 @@ void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callDat
       fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
       SUMA_RETURNe;
    }
+   
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
