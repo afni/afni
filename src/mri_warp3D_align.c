@@ -388,7 +388,7 @@ int mri_warp3D_align_setup( MRI_warp3D_align_basis *bas )
 {
    MRI_IMAGE *cim , *fitim ;
    int nx, ny, nz, nxy, nxyz , ii,jj,kk , nmap, *im ;
-   float *wf , *wtar , clip ;
+   float *wf , *wtar , clip , clip2 ;
    int   *ima , pp , wtproc , npar , nfree ;
    byte  *msk ;
    int ctstart ;
@@ -448,7 +448,7 @@ ENTRY("mri_warp3D_align_setup") ;
    wf = MRI_FLOAT_PTR(bas->imww) ;
    for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = fabs(wf[ii]) ;
 
-   /* clip off edges of weight */
+   /* trim off edges of weight */
 
    if( wtproc ){
      int ff ;
@@ -491,15 +491,17 @@ ENTRY("mri_warp3D_align_setup") ;
    if( wtproc ){
      float blur ;
      blur = 1.0f + MAX(2.0f,bas->twoblur) ;
-     if( bas->verb ) fprintf(stderr," [blur]") ;
+     if( bas->verb ) fprintf(stderr," [blur(%.1f)]",blur) ;
      EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
                           MRI_float , wf , blur,blur,blur  ) ;
    }
 
    /* get rid of low-weight voxels */
 
-   if( bas->verb ) fprintf(stderr," [clip]") ;
-   clip = 0.035 * mri_max(bas->imww) ;
+   clip  = 0.035 * mri_max(bas->imww) ;
+   clip2 = 0.5*THD_cliplevel(bas->imww,0.4) ;
+   if( clip2 > clip ) clip = clip2 ;
+   if( bas->verb ) fprintf(stderr," [clip(%.1f)]",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] < clip ) wf[ii] = 0.0f ;
 
    /* keep only the largest cluster of nonzero voxels */
@@ -566,6 +568,7 @@ ENTRY("mri_warp3D_align_setup") ;
 
    if( bas->verb ) fprintf(stderr,"+  Compute Derivatives of Base\n") ;
    fitim = mri_warp3D_align_fitim( bas , cim , bas->regmode , bas->delfac ) ;
+   if( bas->verb ) fprintf(stderr,"+   calculate pseudo-inverse\n") ;
    bas->imps = mri_psinv( fitim , wtar ) ;
    mri_free(fitim) ;
 
@@ -585,6 +588,7 @@ ENTRY("mri_warp3D_align_setup") ;
      EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
                           MRI_float , car, blur,blur,blur  ) ;
      fitim = mri_warp3D_align_fitim( bas , cim , MRI_LINEAR , blur*bas->delfac ) ;
+     if( bas->verb ) fprintf(stderr,"+   calculate pseudo-inverse\n") ;
      bas->imps_blur = mri_psinv( fitim , wtar ) ;
      mri_free(fitim) ;
      if( bas->imps_blur == NULL ){  /* bad */
@@ -627,6 +631,8 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
     *pma ;                        /* = map of free to total params */
    int ctstart ;
    int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 1.0f) , passnum=1 ;
+   char      *save_prefix ;
+   static int save_index=0 ;
 
 #define AITMAX  3.33
 #define NMEM    5
@@ -637,10 +643,7 @@ ENTRY("mri_warp3D_align_one") ;
 
    ctstart = NI_clock_time() ;
 
-   /* use original image if possible */
-
-   if( im->kind == MRI_float ) fim = im ;
-   else                        fim = mri_to_float( im ) ;
+   save_prefix = getenv("AFNI_WARPDRIVE_SAVER") ;
 
    pma = (int *)malloc(sizeof(int) * nfree) ;
    for( pp=ii=0 ; ii < npar ; ii++ )
@@ -686,10 +689,26 @@ ENTRY("mri_warp3D_align_one") ;
    for( pp=0 ; pp < npar ; pp++ ) tol[pp] = bas->param[pp].toler ;
 
    if( do_twopass && passnum == 1 ){
-     for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= (6.0f+bas->twoblur) ;
+     for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= (1.0f+bas->twoblur) ;
    }
 
    if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
+
+   /* setup base image for registration into fim,
+      and pseudo-inverse of base+derivative images into pmat */
+
+   if( do_twopass && passnum==1 ){    /* first pass ==> registering blurred images */
+     float *far , blur=bas->twoblur ;
+     int nx=im->nx , ny=im->ny , nz=im->nz ;
+     fim = mri_to_float( im ) ; far = MRI_FLOAT_PTR(fim) ;
+     EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
+                          MRI_float , far, blur,blur,blur  ) ;
+     pmat = MRI_FLOAT_PTR(bas->imps_blur) ;
+   } else {                           /* registering original image */
+     if( im->kind == MRI_float ) fim = im ;
+     else                        fim = mri_to_float( im ) ;
+     pmat = MRI_FLOAT_PTR(bas->imps) ;
+   }
 
    /*-- iterate fit --*/
 
@@ -779,6 +798,24 @@ ENTRY("mri_warp3D_align_one") ;
        }
      }
 
+     /* save intermediate result? */
+
+     if( save_prefix != NULL ){
+       char sname[THD_MAX_NAME] ; FILE *fp ;
+       mri_warp3D_set_womask( NULL ) ;
+       bas->vwset( npar , fit ) ;
+       tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
+       mri_warp3D_set_womask( bas->imsk ) ;
+       sprintf(sname,"%s_%04d.mmm",save_prefix,save_index++) ;
+       fprintf(stderr,"+   Saving intermediate image to binary file %s\n",sname) ;
+       fp = fopen( sname , "w" ) ;
+       if( fp != NULL ){
+         tar = MRI_FLOAT_PTR(tim) ;
+         fwrite( tar, tim->pixel_size, tim->nvox, fp ) ; fclose(fp) ;
+       }
+       mri_free( tim ) ;
+     }
+
      /* loop back for more iterations? */
 
      if( last_aitken == iter ) continue ;  /* don't test, just loop */
@@ -802,10 +839,12 @@ ENTRY("mri_warp3D_align_one") ;
    /*--- do the second pass? ---*/
 
    if( do_twopass && passnum == 1 ){
-     if( bas->verb ) fprintf(stderr,"+++++++ Loop back for next pass +++++\n");
-     passnum++ ; goto ReStart ;
+     if( bas->verb )
+       fprintf(stderr,"+++++++++++++ Loop back for next pass +++++++++++++\n");
+     mri_free(fim) ; fim = NULL ; passnum++ ; goto ReStart ;
    } else {
-     if( bas->verb ) fprintf(stderr,"+++++++ Convergence test passed +++++\n");
+     if( bas->verb )
+       fprintf(stderr,"+++++++++++++ Convergence test passed +++++++++++++\n");
    }
 
    /*--- done! ---*/
