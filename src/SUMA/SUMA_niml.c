@@ -32,6 +32,8 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    char tmpcom[100];
    SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceViewer *sv;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
    
    if (SUMA_NIML_WORKPROC_IO_NOTIFY && SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -57,8 +59,12 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream gone bad. Stream closed. \n");
        
        /* close everything */
-       sprintf(tmpcom,"CloseStream4All~");
-       SUMA_Engine (tmpcom, NULL, sv);      
+       if (!list) list = SUMA_CreateList();
+       SUMA_REGISTER_COMMAND_NO_DATA(list, SE_CloseStream4All, SES_Suma, sv);
+
+       if (!SUMA_Engine (&list)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Engine.\n\a", FuncName);
+       }      
       
        if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
          SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
@@ -119,7 +125,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    int OverInd, loc_ID, iview;
    int i, *inel, I_C = -1, iv3[3], dest_SO_ID = -1, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    NI_element *nel ;
-   SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
    char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode;
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100], ssource[100];
    static char FuncName[]={"SUMA_process_NIML_data"};
@@ -138,12 +145,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-
-   /* initialize EngineData */
-   if (!SUMA_InitializeEngineData (&EngineData)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-      SUMA_RETURN(NOPE);
-   }
 
    if( tt < 0 ) {/* should never happen */
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
@@ -235,33 +236,36 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                iv3[0] = dest_SO_ID;
             }
             iv3[1] = I_C; /* use the closest node for a link otherwise when you switch states, you'll get a wandering cross hair */
-
-            sprintf(sfield,"iv3");
-            sprintf(sdestination,"BindCrossHair");
-            if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-               SUMA_RETURN(NOPE);
-            }
-            sprintf(CommString,"BindCrossHair~");
-            if (!SUMA_Engine (CommString, &EngineData, svi)) {
-               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!list) list = SUMA_CreateList();
+            ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+            if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_iv3, (void*)iv3,
+                                                   SES_SumaFromAfni, (void *)svi, NOPE,
+                                                   SEI_Head, NULL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+               SUMA_RETURN (NOPE);
             }
 
-            
             /* send cross hair coordinates */
-            sprintf(sfield,"fv3");
-            sprintf(sdestination,"SetCrossHair");
-            sprintf(ssource,"afni");
-            if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)XYZ, sdestination, ssource, NOPE)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-               SUMA_RETURN(NOPE);
+            ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+            if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_fv3, (void*)XYZ,
+                                                   SES_SumaFromAfni, svi, NOPE,
+                                                   SEI_Head, NULL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+               SUMA_RETURN (NOPE);
             }
             
             svi->ResetGLStateVariables = YUP; 
-            sprintf(CommString,"Redisplay|SetCrossHair~");
-            if (!SUMA_Engine (CommString, &EngineData, svi)) {
-               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            
+            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaFromAfni, svi);
+            if (!SUMA_Engine (&list)) {
+               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
+            if (!list) {
+               fprintf(SUMA_STDERR, "Yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeehaw.\n");
             }  
+            
          } /* link cross hair */    
       } /* iview ... for all viewers */
       /* don't free nel, it's freed later on */
@@ -405,8 +409,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /* file a redisplay request */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
-      sprintf(CommString,"Redisplay_AllVisible~");
-      if (!SUMA_Engine (CommString, NULL, sv)) {
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
+
+      if (!SUMA_Engine (&list)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN(NOPE);
       }

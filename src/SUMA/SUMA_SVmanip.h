@@ -29,6 +29,16 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
 SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv);
 int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv);
+SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void);
+void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont);
+SUMA_X_ViewCont *SUMA_CreateViewContStruct (void);
+void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont);
+SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void);
+void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont);
+SUMA_rb_group *SUMA_CreateLock_rb (int N_rb_group, int N_but);
+void * SUMA_FreeLock_rb (SUMA_rb_group *Lock_rb);
+
+
 
 
 #endif
