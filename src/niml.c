@@ -5627,9 +5627,9 @@ fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 
          /* binary or base64 mode? */
 
-         if( strstr(nel->attr_rhs[ii],"bin") != NULL )
+         if( strstr(nel->attr_rhs[ii],"binary") != NULL )
             form = NI_BINARY_MODE ;
-         else if( strstr(nel->attr_rhs[ii],"bas") != NULL )
+         else if( strstr(nel->attr_rhs[ii],"base64") != NULL )
             form = NI_BASE64_MODE ;
 
          /* check byteorder in header vs. this CPU */
@@ -5658,9 +5658,8 @@ fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
          byte  a,b,c,w,x,y,z ;              /* base64 stuff */
          int   bb=0, bpos, num_reread=0 , bdone ;
 
-         /* Base64 encodes 3 bytes of binary in 4 bytes of
-             character coding;
-            bbuf is the binary output of the conversion
+         /* Base64 encodes 3 bytes of binary in 4 character bytes;
+            bbuf is the binary output of the conversion;
             bb is the number of bytes currently saved in bbuf */
 
          load_decode_table() ;         /* prepare for base64 decoding */
@@ -5695,7 +5694,7 @@ fprintf(stderr,"b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
 fprintf(stderr,"b64: reading extra data\n") ;
 #endif
 
-             (void) NI_stream_fillbuf( ns , bpos , 9999 ) ;
+             (void) NI_stream_fillbuf( ns , bpos , 6666 ) ;
 
              /* if still don't have a full quad of data
                 something bad has happened (end-of-file? closed socket?);
@@ -5714,25 +5713,24 @@ fprintf(stderr,"b64: reading extra data\n") ;
            do{
              bpos = ns->npos ;  /* scan forward in input buffer using bpos */
 
+             /* try to load 4 valid base64 characters into w,x,y,z;
+                we skip non-valid characters (e.g., line ends, whitespace) */
+
              /* get next valid base64 character into w;
                 if we hit the end token '<' first, quit;
                 if we hit the end of the buffer first, need more data */
-
 #if 0
 fprintf(stderr,"b64: bpos=%d bb=%d\n",bpos,bb) ;
 #endif
-
              w = ns->buf[bpos++] ;
              while( !B64_goodchar(w) && w != '<' && bpos < ns->nbuf )
                w = ns->buf[bpos++] ;
-             if( w == '<' ){ ns->npos = bpos-1; goto Base64Done; }
-             if( bpos == ns->nbuf ){ ns->npos=bpos; goto Base64Reread; }
              ns->npos = bpos-1 ;  /* if we have to reread, will start here */
-
+             if( w == '<' ){ goto Base64Done; }
+             if( bpos == ns->nbuf ){ goto Base64Reread; }
 #if 0
 fprintf(stderr,"b64: bpos=%d w=%c\n",bpos,w) ;
 #endif
-
              /* repeat to fill x */
 
              x = ns->buf[bpos++] ;
