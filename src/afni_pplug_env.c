@@ -392,6 +392,10 @@ PLUGIN_interface * ENV_init(void)
    /* 22 Mar 004 [RWCox] */
    ENV_add_yesno( "AFNI_SLAVE_FUNCTIME" , "Time Index affects functional overlay?" ) ;
 
+   ENV_add_string( "AFNI_REALTIME_MP_HOST_PORT" ,     /* 31 Mar 2004 [rickr] */
+                   "Supply host:port string for realtime motion parameters." ,
+                   0,NULL , NULL ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
