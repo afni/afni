@@ -46,7 +46,7 @@ Htable * new_Htable( int len )
    Htable *ht ;
 
         if( len   <= 7 ) len = 7 ;  /* smallest allowed */
-   else if( len%2 == 0 ) len++ ;    /* mustn't be even */
+   else if( len%2 == 0 ) len++   ;  /* mustn't be even */
 
    ht = (Htable *) calloc( 1 , sizeof(Htable) ) ;
 
@@ -276,4 +276,51 @@ void subsume_Htable( Htable *htold , Htable *htnew )
            addto_Htable( htold->ctab[jj][kk] , htold->vtab[jj][kk] , htnew ) ;
      }
    }
+}
+
+/*-----------------------------------------------------------------*/
+/*! Resize the guts of a Htable [28 Feb 2005]
+-------------------------------------------------------------------*/
+
+void resize_Htable( int newlen , Htable *ht )
+{
+   Htable *htnew ;
+   int jj , kk ;
+
+   if( ht == NULL ) return ;
+
+   /* auto-resize? */
+
+   if( newlen == 0 ){
+     if( ht->ntot <= 131 * ht->len ) return ;
+     newlen = ht->ntot / 37 ;
+   }
+
+   /* create new Htable, copy contents of this one into it */
+
+   htnew = new_Htable( newlen ) ;
+   if( htnew == NULL ) return ;
+
+   subsume_Htable( ht , htnew ) ;
+
+   /* erase contents of this one now */
+
+   for( jj=0 ; jj < ht->len ; jj++ ){
+     if( ht->vtab[jj] != NULL ) free(ht->vtab[jj]) ;
+
+     if( ht->ctab[jj] != NULL ){
+       for( kk=0 ; kk < ht->ntab[jj] ; kk++ )
+         if( ht->ctab[jj][kk] != NULL ) free(ht->ctab[jj][kk]) ;
+       free(ht->ctab[jj]) ;
+     }
+   }
+   free(ht->vtab) ; free(ht->ctab) ; free(ht->ntab) ;
+
+   /* copy guts of new Htable over the guts of this one */
+
+   *ht = *htnew ;
+
+   /* free the shell of the new Htable and exit */
+
+   free((void *)htnew) ; return ;
 }

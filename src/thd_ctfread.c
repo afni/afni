@@ -744,7 +744,7 @@ ENTRY("THD_open_ctfsam") ;
    if( strcmp(Identity,"SAMIMAGE") != 0 ) BADBAD("Identity != SAMIMAGE") ;
    if( hh.Version                  == 0 ) BADBAD("bad header Version") ;
 
-   swap = (hh.Version < 0) && (hh.Version > 3) ;    /* byte swap? */
+   swap = (hh.Version < 0) || (hh.Version > 3) ;    /* byte swap? */
 
    if( swap ){                   /* swap various header fields */
      swap_4( &hh.Version    ) ;
