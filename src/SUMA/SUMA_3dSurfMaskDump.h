@@ -56,6 +56,8 @@ typedef struct
 typedef struct
 {
     THD_3dim_dataset * gpar;		/* input dataset              */
+    THD_fvec3          f3mm_min;	/* numerical min xyz points   */
+    THD_fvec3          f3mm_max;	/* numerical max xyz points   */
     FILE             * outfp;		/* out_file FILE stream       */
     byte             * cmask;		/* computed mask              */
     int                ncmask;		/* nvox for cmask             */
@@ -100,5 +102,8 @@ int validate_surface  ( opts_t * opts, param_t * p );
 int write_output      ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 	                node_list_t * N );
 
+int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max );
+int set_3dmm_bounds   ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max);
+float dist_f3mm       ( THD_fvec3 * p1, THD_fvec3 * p2 );
 
 #endif   /* _3DSURF2VOL_H_ */
