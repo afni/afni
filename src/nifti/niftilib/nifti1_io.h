@@ -173,17 +173,21 @@ void  nifti_swap_Nbytes ( int n , int siz , void *ar ) ;
 void  swap_nifti_header ( struct nifti_1_header *h , int is_nifti ) ;
 int   nifti_get_filesize( const char *pathname ) ;
 
+/* main read/write routines */
+
 nifti_image *nifti_image_read_bricks(char *hname , int nbricks, int * blist,
                                      nifti_brick_list * NBL );
 int          nifti_image_load_bricks(nifti_image *nim , int nbricks, int *blist,
                                      nifti_brick_list * NBL );
 void         nifti_free_NBL( nifti_brick_list * NBL );
 
-/* main read/write routines */
 nifti_image *nifti_image_read    ( const char *hname , int read_data ) ;
 int          nifti_image_load    ( nifti_image *nim ) ;
 void         nifti_image_unload  ( nifti_image *nim ) ;
 void         nifti_image_free    ( nifti_image *nim ) ;
+
+int          nifti_read_collapsed_image( nifti_image * nim, int dims [8],
+                                         void ** data );
 
 void         nifti_image_write   ( nifti_image *nim ) ;
 void         nifti_image_write_bricks(nifti_image *nim, nifti_brick_list * NBL);
@@ -276,6 +280,8 @@ nifti_image           * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                                char* fname);
 
 int     nifti_hdr_looks_good(nifti_1_header * hdr);
+int     nifti_nim_is_valid(nifti_image * nim, int complain);
+int     nifti_nim_has_valid_dims(nifti_image * nim, int complain);
 void    nifti_set_iname_offset(nifti_image *nim);
 int     nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                  nifti1_extension ** list, int new_length );
