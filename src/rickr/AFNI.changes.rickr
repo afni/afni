@@ -512,4 +512,5 @@
   * modifed plug_realtime.c
       - added the ability to pass registration correction parameters over
         a tcp socket (see 'serial_helper -help')
+  * modified afni_pplug_env.c, adding AFNI_REALTIME_MP_HOST_PORT
 
