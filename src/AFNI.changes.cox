@@ -4953,3 +4953,5 @@
 
 12 Feb 2004
  * Oooops.  "\noesc" should be "\\noesc" in several places.  My bad.
+ * Modified mri_read.c to allow GE "IMGF" flag to be anywhere in 1st 4K
+     of file, if file starts with "GEMS" instead of "IMGF".
