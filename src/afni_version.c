@@ -79,7 +79,7 @@ void AFNI_start_version_check(void)
            int last_time = strtol(rhs,NULL,10) ;
            int dtime = ((int)time(NULL)) - last_time ;
            if( dtime >= 0 && dtime < VDELAY ){ /* don't check */
-             disabled = 1 ; return ;
+             NI_free_element(nel) ; disabled = 1 ; return ;
            }
          }
          rhs = NI_get_attribute(nel,"version_string") ;  /* 27 Jan 2003 */
