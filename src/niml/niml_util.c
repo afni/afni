@@ -71,7 +71,7 @@ int NI_clock_time(void)
    if( first ){
       old_tval = new_tval ;
       first    = 0 ;
-      return 0.0 ;
+      return 0 ;
    }
 
    if( old_tval.tv_usec > new_tval.tv_usec ){

@@ -1474,7 +1474,7 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
    if( rt->size == rt->psiz ){        /* fixed-size type with no padding */
                                /* ==> can read directly into data struct */
 
-     jj = NI_stream_readbuf( ns , dpt , rt->size ) ;
+     jj = NI_stream_readbuf( ns , (char *)dpt , rt->size ) ;
      return (jj == rt->size) ;
 
    } else {                                              /* derived type */

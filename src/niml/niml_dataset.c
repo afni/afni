@@ -1,6 +1,22 @@
 #include "niml_private.h"
 
 /*-----------------------------------------------------------*/
+/* This macro copies the basic elements of a struct,
+   from struct qold to struct qnew.  Of course, the new
+   struct gets a new idcode.  This macro may be used after
+   creating a new struct with NI_new(), for example.
+-------------------------------------------------------------*/
+
+#undef  COPY_BASIC_STRUCT
+#define COPY_BASIC_STRUCT(qnew,qold)               \
+ do{ (qnew)->type = (qold)->type ;                 \
+     (qnew)->nref = 1 ;                            \
+     (qnew)->idcode = UNIQ_idcode() ;              \
+     NI_register_struct( (qnew) ) ;                \
+     (qnew)->name = NI_strdup((qold)->name) ;      \
+ } while(0)
+
+/*-----------------------------------------------------------*/
 /*! Transpose a dataset, so that rows are columns and vice-
     versa.
      - Requires that all vectors (columns) have the same type
@@ -43,7 +59,7 @@ void * NI_dataset_transpose( void *ndd )
    ndnew->num_node = nd->num_node ;
    ndnew->num_val  = nd->num_val  ;
    ndnew->order    = NI_opposite_order(nd->order) ;   /* flipped */
-   ndnew->domain   = NI_pointto_struct(nd->domain) ;  /* same domain */
+   ndnew->domain   = (NI_struct *)NI_pointto_struct(nd->domain) ;  /* same domain */
 
    /* create new vectors */
 
@@ -52,7 +68,7 @@ void * NI_dataset_transpose( void *ndd )
 
    ndnew->vec = NI_malloc(NI_vector*, sizeof(NI_vector *) * nvec_new ) ;
    for( ii=0 ; ii < nvec_new ; ii++ )
-     ndnew->vec[ii] = NI_new_vector( tt , len_new ) ;
+     ndnew->vec[ii] = (NI_vector *)NI_new_vector( tt , len_new ) ;
 
    /* copy data from old vectors to new vectors */
 

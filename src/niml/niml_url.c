@@ -105,7 +105,7 @@ static NI_stream_type * open_URL_http( char *url , int msec )
 
   /* get the file name (keep leading "/") */
 
-  file = (*s == '/') ? s : "/" ;
+  file = (*s == '/') ? s : (char *)"/" ;
 
   /* do the actual work */
 
@@ -176,7 +176,7 @@ static int read_URL_http( char *url , int msec , char **data )
 
    /* read all of url */
 
-   if( !cflag ){ buf = malloc( QBUF ) ; nall = QBUF ; }
+   if( !cflag ){ buf = (char *)malloc( QBUF ) ; nall = QBUF ; }
    nuse = 0 ; first = 1 ;
 
    do{
@@ -187,7 +187,7 @@ static int read_URL_http( char *url , int msec , char **data )
       if( ii <= 0 ) break ;                  /* quit if no data */
 
       if( first ){                           /* check for "not found" */
-         if( buf == NULL ){ buf = malloc(ii) ; }
+         if( buf == NULL ){ buf = (char *)malloc(ii) ; }
          memcpy( buf , qbuf , ii ) ;
          for( jj=0 ; jj < ii ; jj++ ) buf[jj] = toupper(buf[jj]) ;
          buf[ii-1] = '\0' ;
@@ -211,7 +211,7 @@ static int read_URL_http( char *url , int msec , char **data )
       } else {                               /* save to buffer */
          if( nuse+ii > nall ){               /* enlarge buffer? */
             nall += QBUF ;
-            buf   = realloc( buf , nall ) ;
+            buf   = (char *)realloc( (void *)buf , nall ) ;
          }
          memcpy( buf+nuse , qbuf , ii ) ;    /* copy data into buffer */
       }
@@ -244,7 +244,7 @@ static int read_URL_http( char *url , int msec , char **data )
       cfile = fopen( qname , "rb" ) ;
       if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
                            unlink(qname) ; return( -1 );   }
-      buf = malloc(nuse) ;
+      buf = (char *)malloc(nuse) ;
       fread( buf , 1 , nuse , cfile ) ;             /* read file in */
       fclose(cfile) ; unlink(qname) ;
    }
@@ -374,7 +374,7 @@ static int read_URL_ftp( char *url , char **data )
 
    sp = fopen( qname , "rb" ) ;
    if( sp == NULL ){ unlink(qname) ; return( -1 ); }
-   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return( -1 ); }
+   buf = (char *)malloc(nuse); if( buf == NULL ){ unlink(qname); return( -1 ); }
 
    fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
    fclose(sp) ; unlink(qname) ;
@@ -443,7 +443,7 @@ int NI_read_URL_tmpdir( char *url , char **tname )
    /* make the output filename */
 
    setup_tmpdir() ;
-   fname = malloc(strlen(url)+strlen(tmpdir)+1) ;
+   fname = (char *)malloc(strlen(url)+strlen(tmpdir)+1) ;
    tt    = trailname(url,0) ;
    strcpy(fname,tmpdir) ; strcat(fname,tt) ; ll = strlen(fname) ;
    if( ll > 3 && strcmp(fname+(ll-3),".gz") == 0 ) fname[ll-3] = '\0' ;

@@ -189,7 +189,7 @@ static NI_mallitem * ptr_tracker( void *fred )
 
    if( fred == NULL ) return NULL ;
 
-   jj = mallkey(fred) % SLOTS ;      /* hash table location */
+   jj = mallkey((char *)fred) % SLOTS ;  /* hash table location */
 
    if( htab[jj] == NULL ) return NULL ;  /* nothing there */
 
@@ -244,8 +244,8 @@ static void add_tracker( void *fred , size_t n , char *fn , int ln )
 
    if( fred == NULL ) return ;   /* bad news */
 
-   jj = mallkey(fred) % SLOTS ;  /* which hash list to use */
-   ip = find_empty_slot(jj) ;    /* get an empty slot in this list */
+   jj = mallkey((char *)fred) % SLOTS ;  /* which hash list to use */
+   ip = find_empty_slot(jj) ;            /* get an empty slot in this list */
 
    /* now put the data into the hash table */
 
@@ -268,7 +268,7 @@ static void * malloc_track( size_t n , char *fn , int ln )
    size_t nn = n + 2*NEXTRA ;
    int ii ;
 
-   fred = malloc(nn) ;
+   fred = (char *)malloc(nn) ;
    if( fred == NULL ) return NULL ;  /* real bad news */
 
    /* mark overrun buffers */
@@ -326,11 +326,11 @@ static void * realloc_track( NI_mallitem *ip, size_t n, char *fn, int ln )
 
    if( ip == NULL ) return NULL ;  /* should not happen */
 
-   probe_track(ip) ;  /* check for integrity before reallocation */
-   cfred = ip->pmt ;  /* old address */
+   probe_track(ip) ;          /* check for integrity before reallocation */
+   cfred = (char *)ip->pmt ;  /* old address */
 
    ni_mall_used = 1 ;
-   nfred = realloc( cfred , nn ) ;
+   nfred = (char *)realloc( (void *)cfred , nn ) ;
    if( nfred == NULL ) return NULL ;  /* this is bad - real bad */
 
    memset( nfred           , MAGIC , NEXTRA ) ;

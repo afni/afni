@@ -6,6 +6,8 @@ static int           doer_num  = 0    ;
 static char        **doer_verb = NULL ;
 static NI_voidfunc **doer_func = NULL ;
 
+typedef void (*ddfun)(char *,NI_stream_type *,NI_element *) ;
+
 /*---------------------------------------------------------------------------*/
 /*! Register a callback for a "ni_do" verb.  [12 Feb 2003]
 
@@ -128,7 +130,10 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
 
    for( ii=0 ; ii < doer_num ; ii++ ){
      if( strcmp(verb,doer_verb[ii]) == 0 ){
-       if( doer_func[ii] != NULL ) doer_func[ii]( object , ns , nel ) ;
+       if( doer_func[ii] != NULL ){
+         void (*df)(char *,NI_stream_type *,NI_element *) = (ddfun)doer_func[ii] ;
+         df( object , ns , nel ) ;
+       }
        return 0 ;
      }
    }

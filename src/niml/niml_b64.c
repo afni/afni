@@ -186,7 +186,7 @@ void B64_to_base64( int nbin , byte *bin , int *nb64 , byte **b64 )
 
    /* calculate size of output (3 bytes in -> 4 bytes out, plus EOL */
 
-   nn   = (4.0*(linelen+ncrlf+1.0)/(3.0*linelen))*nbin + 256 ;
+   nn   = (int)((4.0*(linelen+ncrlf+1.0)/(3.0*linelen))*nbin + 256.0) ;
    *b64 = (byte *) malloc(sizeof(byte)*nn) ;
    if( *b64 == NULL ){ *nb64 = 0 ; return ; }  /* this is bad */
 
