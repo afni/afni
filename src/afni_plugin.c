@@ -523,6 +523,8 @@ ENTRY("new_PLUGIN_interface_1999") ;
    plint = (PLUGIN_interface *) XtMalloc(sizeof(PLUGIN_interface)) ;
    if( plint == NULL ) RETURN(NULL) ;
 
+   plint->flags = 0 ;  /* 29 Mar 2002 */
+
    MCW_strncpy( plint->label , label , PLUGIN_LABEL_SIZE ) ;
 
    if( description != NULL )
@@ -1363,10 +1365,12 @@ ENTRY("PLUG_setup_widgets") ;
       opt = plint->option[iopt] ;
       if( opt == NULL ) continue ; /* bad? */
 
-      opt->label[ opt_lwid+1 ] = '\0' ;
+#define LPAD 0   /* 29 Mar 2002: used to be 1 */
+
+      opt->label[ opt_lwid + LPAD ] = '\0' ;
       for( ib=0 ; ib < opt->subvalue_count ; ib++ ){
          sv = &(opt->subvalue[ib]) ;
-         sv->label[ sv_lwid[ib] + 1 ] = '\0' ;
+         sv->label[ sv_lwid[ib] + LPAD ] = '\0' ;
       }
    }
 
@@ -1557,6 +1561,9 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                if( !use_optmenu ) av->allow_wrap = 1 ;
                if(  use_optmenu ) toff-- ;
+
+               if( !use_optmenu && (plint->flags & SHORT_NUMBER_FLAG) )
+                  XtVaSetValues( av->wtext , XmNcolumns , 6 , NULL ) ;
             }
             break ;
 
@@ -1713,10 +1720,16 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                     NULL ) ;
                XmStringFree( xstr ) ;
 
-               xstr = XmStringCreateLtoR(
-                        (av->multi) ? "** Choose Datasets *"
-                                    : "-- Choose Dataset --" ,
-                        XmFONTLIST_DEFAULT_TAG ) ;
+               if( plint->flags & SHORT_CHOOSE_FLAG )
+                 xstr = XmStringCreateLtoR(
+                          (av->multi) ? "* Datasets *"
+                                      : "- Dataset -" ,
+                          XmFONTLIST_DEFAULT_TAG ) ;
+               else
+                 xstr = XmStringCreateLtoR(
+                          (av->multi) ? "** Choose Datasets *"
+                                      : "-- Choose Dataset --" ,
+                          XmFONTLIST_DEFAULT_TAG ) ;
 
                av->pb = XtVaCreateManagedWidget(
                            "AFNI" , xmPushButtonWidgetClass , av->rowcol ,
@@ -1774,7 +1787,10 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                     NULL ) ;
                XmStringFree( xstr ) ;
 
-               xstr = XmStringCreateLtoR( "-Choose Timeseries- ",XmFONTLIST_DEFAULT_TAG ) ;
+               if( plint->flags & SHORT_CHOOSE_FLAG )
+                 xstr = XmStringCreateLtoR( "-Timeseries-",XmFONTLIST_DEFAULT_TAG ) ;
+               else
+                 xstr = XmStringCreateLtoR( "-Choose Timeseries- ",XmFONTLIST_DEFAULT_TAG ) ;
 
                av->pb = XtVaCreateManagedWidget(
                            "AFNI" , xmPushButtonWidgetClass , av->rowcol ,

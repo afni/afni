@@ -3621,3 +3621,7 @@
 28 Mar 2002
  * Added function mri_move_guts() to mri_free.c, in preparation for multi-
      plotting in afni_graph.c.
+
+29 Mar 2002
+ * Modified afni_graph.c to accept multi-plot timeseries.
+ * Added plug_nth_dataset.c to generate multi-plot timeseries.
