@@ -5188,3 +5188,6 @@
      0 columns, and matrix_psinv() didn't like that.
  * Add basis_write_response() to 3dDeconvolve.c to actually write out the
      computed IRF for symbolic models.
+
+29 Aug 2004
+ * Added EXPR(bot,top) basis function to 3dDeconvolve.c.
