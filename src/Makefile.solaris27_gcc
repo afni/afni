@@ -1,0 +1,56 @@
+# This worked on a Sun UltraSPARC with Solaris 2.6,
+# during the brief period that I had access to one.
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = gcc -O2 -ffast-math -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CCVOL  = gcc -DSOLARIS -D_ILP32
+CCFAST = $(CC)
+CCMIN  = gcc
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
+LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
+
+# These extra libraries are for Suns
+
+EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
+# EXTRA_LIBS = /usr/openwin/lib/libXt.a /usr/openwin/lib/libXext.a \
+#              -lICE -lSM /usr/openwin/lib/libX11.a /usr/openwin/lib/libXext.a \
+#              /usr/lib/libsocket.a /usr/lib/libnsl.a /usr/lib/libgen.a -ldl
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -G
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib
+
+AR     = /usr/ccs/bin/ar
+RANLIB = /usr/bin/touch
+TAR    = /bin/tar
+GZIP   = gzip
+MKDIR  = /bin/mkdir
+LD     = /usr/ucb/ld
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./solaris27_gcc
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+# LLIBS  = -lmri -lXm $(EXTRA_LIBS) -lm -lc
+
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+SUMA_INCLUDE_PATH = -I/usr/openwin/share/include/X11 -I../ -I./
+SUMA_LINK_PATH = -L/usr/openwin/lib -R/usr/openwin/lib -L../
+SUMA_LINK_LIB = -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
+SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
+SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+######################################################################
+
+include Makefile.INCLUDE
