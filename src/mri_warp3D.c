@@ -247,7 +247,7 @@ INLINE MRI_IMAGE *mri_warp3D_linear(
    float *far , *nar ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
    int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
-   float bot,top,val ;
+   float val ;
    float nxh,nyh,nzh ;
 
    int ix_00,ix_p1 ;         /* interpolation indices */
@@ -327,14 +327,6 @@ ENTRY("mri_warp3D_linear") ;
    new = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
    nar = MRI_FLOAT_PTR( new ) ;                         /* output image data */
 
-#if 0
-   bot = top = far[0] ;                             /* find input data range */
-   for( ii=1 ; ii < imfl->nvox ; ii++ ){
-          if( far[ii] > top ) top = far[ii] ;
-     else if( far[ii] < bot ) bot = far[ii] ;
-   }
-#endif
-
    /*** loop over output points and warp to them ***/
 
    nxh = nx-0.5 ; nyh = ny-0.5 ; nzh = nz-0.5 ;
@@ -387,11 +379,6 @@ ENTRY("mri_warp3D_linear") ;
        /* interpolate to kz+fz to get output */
 
        val = (1.0-fz) * f_k00 + fz * f_kp1 ;
-
-#if 0
-            if( val > top ) val = top ;   /* clip to input data range */
-       else if( val < bot ) val = bot ;
-#endif
 
        NAR(ii,jj,kk) = val ;
      }
@@ -532,6 +519,7 @@ ENTRY("mri_warp3D_NN") ;
 /*---------------------------------------------------------------------------*/
 /*! Transform a 3D image geometrically, using quintic interpolation.
     See comments for mri_warp3D() for details about the parameters.
+     - RWCox - 06 Aug 2003
 -----------------------------------------------------------------------------*/
 
 INLINE MRI_IMAGE *mri_warp3D_quintic(
@@ -655,7 +643,10 @@ ENTRY("mri_warp3D_quinitc") ;
 
        ix = floor(xx) ;  fx = xx - ix ;   /* integer and       */
        jy = floor(yy) ;  fy = yy - jy ;   /* fractional coords */
-       kz = floor(zz) ;  fz = zz - kz ;
+       kz = floor(zz) ;  fz = zz - kz ;   /* in input image    */
+
+       /* compute indexes from which to interpolate (-2,-1,0,+1,+2,+3),
+          but clipped to lie inside input image volume                 */
 
        ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
        CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
@@ -673,7 +664,7 @@ ENTRY("mri_warp3D_quinitc") ;
        CLIP(kz_m2,nz1) ; CLIP(kz_p3,nz1) ;
 
        wt_m1 = Q_M1(fx) ; wt_00 = Q_00(fx) ;  /* interpolation weights */
-       wt_p1 = Q_P1(fx) ; wt_p2 = Q_P2(fx) ;
+       wt_p1 = Q_P1(fx) ; wt_p2 = Q_P2(fx) ;  /* in x-direction        */
        wt_m2 = Q_M2(fx) ; wt_p3 = Q_P3(fx) ;
 
 #undef  XINT
@@ -703,49 +694,40 @@ ENTRY("mri_warp3D_quinitc") ;
        f_j00_kp2 = XINT(jy_00,kz_p2) ; f_jp1_kp2 = XINT(jy_p1,kz_p2) ;
        f_jp2_kp2 = XINT(jy_p2,kz_p2) ; f_jp3_kp2 = XINT(jy_p3,kz_p2) ;
 
-       f_jm2_kp3 = XINT(jy_m2,kz_p3) ; f_jm1_kp3 = XINT(jy_m1,kz_p2) ;
+       f_jm2_kp3 = XINT(jy_m2,kz_p3) ; f_jm1_kp3 = XINT(jy_m1,kz_p3) ;
        f_j00_kp3 = XINT(jy_00,kz_p3) ; f_jp1_kp3 = XINT(jy_p1,kz_p3) ;
        f_jp2_kp3 = XINT(jy_p2,kz_p3) ; f_jp3_kp3 = XINT(jy_p3,kz_p3) ;
 
        /* interpolate to jy+fy at each kz level */
 
-       wt_m1 = Q_M1(fy) ; wt_00 = Q_00(fy) ;
-       wt_p1 = Q_P1(fy) ; wt_p2 = Q_P2(fy) ;
-       wt_m2 = Q_M2(fy) ; wt_p3 = Q_P3(fy) ;
+       wt_m1 = Q_M1(fy) ; wt_00 = Q_00(fy) ; wt_p1 = Q_P1(fy) ;
+       wt_p2 = Q_P2(fy) ; wt_m2 = Q_M2(fy) ; wt_p3 = Q_P3(fy) ;
 
-       f_km2 =  wt_m2 * f_jm2_km2 + wt_m1 * f_jm1_km2
-              + wt_00 * f_j00_km2 + wt_p1 * f_jp1_km2
-              + wt_p2 * f_jp2_km2 + wt_p3 * f_jp3_km2 ;
+       f_km2 =  wt_m2 * f_jm2_km2 + wt_m1 * f_jm1_km2 + wt_00 * f_j00_km2
+              + wt_p1 * f_jp1_km2 + wt_p2 * f_jp2_km2 + wt_p3 * f_jp3_km2 ;
 
-       f_km1 =  wt_m2 * f_jm2_km1 + wt_m1 * f_jm1_km1
-              + wt_00 * f_j00_km1 + wt_p1 * f_jp1_km1
-              + wt_p2 * f_jp2_km1 + wt_p3 * f_jp3_km1 ;
+       f_km1 =  wt_m2 * f_jm2_km1 + wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
+              + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 + wt_p3 * f_jp3_km1 ;
 
-       f_k00 =  wt_m2 * f_jm2_k00 + wt_m1 * f_jm1_k00
-              + wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00
-              + wt_p2 * f_jp2_k00 + wt_p3 * f_jp3_k00 ;
+       f_k00 =  wt_m2 * f_jm2_k00 + wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
+              + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 + wt_p3 * f_jp3_k00 ;
 
-       f_kp1 =  wt_m2 * f_jm2_kp1 + wt_m1 * f_jm1_kp1
-              + wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1
-              + wt_p2 * f_jp2_kp1 + wt_p3 * f_jp3_kp1 ;
+       f_kp1 =  wt_m2 * f_jm2_kp1 + wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
+              + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 + wt_p3 * f_jp3_kp1 ;
 
-       f_kp2 =  wt_m2 * f_jm2_kp2 + wt_m1 * f_jm1_kp2
-              + wt_00 * f_j00_kp2 + wt_p1 * f_jp1_kp2
-              + wt_p2 * f_jp2_kp2 + wt_p3 * f_jp3_kp2 ;
+       f_kp2 =  wt_m2 * f_jm2_kp2 + wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
+              + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 + wt_p3 * f_jp3_kp2 ;
 
-       f_kp3 =  wt_m2 * f_jm2_kp3 + wt_m1 * f_jm1_kp3
-              + wt_00 * f_j00_kp3 + wt_p1 * f_jp1_kp3
-              + wt_p2 * f_jp2_kp3 + wt_p3 * f_jp3_kp3 ;
+       f_kp3 =  wt_m2 * f_jm2_kp3 + wt_m1 * f_jm1_kp3 + wt_00 * f_j00_kp3
+              + wt_p1 * f_jp1_kp3 + wt_p2 * f_jp2_kp3 + wt_p3 * f_jp3_kp3 ;
 
        /* interpolate to kz+fz to get output */
 
-       wt_m1 = Q_M1(fz) ; wt_00 = Q_00(fz) ;
-       wt_p1 = Q_P1(fz) ; wt_p2 = Q_P2(fz) ;
-       wt_m2 = Q_M2(fz) ; wt_p3 = Q_P3(fz) ;
+       wt_m1 = Q_M1(fz) ; wt_00 = Q_00(fz) ; wt_p1 = Q_P1(fz) ;
+       wt_p2 = Q_P2(fz) ; wt_m2 = Q_M2(fz) ; wt_p3 = Q_P3(fz) ;
 
-       val =  wt_m2 * f_km2 + wt_m1 * f_km1
-            + wt_00 * f_k00 + wt_p1 * f_kp1
-            + wt_p2 * f_kp2 + wt_p3 * f_kp3 ;
+       val =  wt_m2 * f_km2 + wt_m1 * f_km1 + wt_00 * f_k00
+            + wt_p1 * f_kp1 + wt_p2 * f_kp2 + wt_p3 * f_kp3 ;
 
             if( val > top ) val = top ;   /* clip to input data range */
        else if( val < bot ) val = bot ;
@@ -782,16 +764,16 @@ INLINE MRI_IMAGE *mri_warp3D(
 
      default:
      case MRI_CUBIC:
-        return mri_warp3D_cubic  ( im , nxnew,nynew,nznew , wf ) ;
+       return mri_warp3D_cubic  ( im , nxnew,nynew,nznew , wf ) ;
 
      case MRI_LINEAR:
-        return mri_warp3D_linear ( im , nxnew,nynew,nznew , wf ) ;
+       return mri_warp3D_linear ( im , nxnew,nynew,nznew , wf ) ;
 
      case MRI_NN:
-        return mri_warp3D_NN     ( im , nxnew,nynew,nznew , wf ) ;
+       return mri_warp3D_NN     ( im , nxnew,nynew,nznew , wf ) ;
 
      case MRI_QUINTIC:  /* 06 Aug 2003 */
-        return mri_warp3D_quintic( im , nxnew,nynew,nznew , wf ) ;
+       return mri_warp3D_quintic( im , nxnew,nynew,nznew , wf ) ;
    }
    return NULL ;  /* unreachable */
 }
