@@ -3326,6 +3326,183 @@ int main (int argc,char *argv[])
 #endif   
 
 /*!
+   \brief handles savinf SO to ascii filename
+   
+   \param filename (char *)
+   \param data(void *) pointer to SUMA_SAVESO_STRUCT containing sv and SO be saved
+   
+   - This function frees the SUMA_SAVESO_STRUCT before returning
+*/
+void SUMA_SaveSOascii (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_SaveSOascii"};
+   char *newname = NULL, *newprefix = NULL, *tmp1= NULL, *tmp2= NULL;
+   FILE *Fout = NULL;
+   static int answer;
+   int ND=-1, NP=-1, ii=-1, id=-1,ip=-1; 
+   GLfloat *glar_ColorList = NULL;
+   SUMA_SAVESO_STRUCT *SaveSO_data = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_LH("Called");   
+      
+   if (!data) {
+      SUMA_SLP_Err("NULL data");
+      SUMA_RETURNe;
+   }
+   
+   SaveSO_data = (SUMA_SAVESO_STRUCT *)data;
+   if (!SaveSO_data->SO || !SaveSO_data->sv) {
+      SUMA_SLP_Err("Null SO or Null sv");
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+   }
+   
+   /* remove any of the extensions to be used */
+   tmp1 = SUMA_Extension(filename, ".xyz", YUP);
+   tmp2 = SUMA_Extension(tmp1, ".tri", YUP);
+   newprefix = SUMA_Extension(tmp2, ".col", YUP);
+   if (tmp1) SUMA_free(tmp1); tmp1 = NULL;
+   if (tmp2) SUMA_free(tmp2); tmp2 = NULL;
+   
+   /* add a .xyz extension */
+   if (newname) SUMA_free(newname); newname = NULL;
+   newname = SUMA_Extension(newprefix, ".xyz", NOPE); 
+   if (!newname) {
+      SUMA_SL_Err("Invalid filename");
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+   }
+   SUMA_LH(newname);
+   /* check for filename existence */
+   if (SUMA_filexists (newname)) {
+      answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                                    "Prefix exists, overwrite?", 
+                                    SUMA_NO);
+      if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
+         if (newname) SUMA_free(newname); newname = NULL;
+         if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+         SUMA_RETURNe; 
+      }
+   } 
+
+   /* add a .tri extension */
+   if (answer != SUMA_YES_ALL && answer != SUMA_YES) {
+      if (newname) SUMA_free(newname);newname = NULL;
+      newname = SUMA_Extension(newprefix, ".tri", NOPE); 
+      if (!newname) {
+         SUMA_SL_Err("Invalid filename");
+         if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+         SUMA_RETURNe;
+      }
+      SUMA_LH(newname);
+      /* check for filename existence */
+      if (SUMA_filexists (newname)) {
+         answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                                       "Prefix exists, overwrite?", 
+                                       SUMA_NO);
+         if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
+            if (newname) SUMA_free(newname);newname = NULL;
+            if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+            SUMA_RETURNe; 
+         }
+      } 
+   }
+   
+   /* add a .col extension */
+   if (answer != SUMA_YES_ALL  && answer != SUMA_YES) {
+      if (newname) SUMA_free(newname); newname = NULL;
+      newname = SUMA_Extension(newprefix, ".col", NOPE); 
+      if (!newname) {
+         SUMA_SL_Err("Invalid filename");
+         if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+         SUMA_RETURNe;
+      }
+      SUMA_LH(newname);
+      /* check for filename existence */
+      if (SUMA_filexists (newname)) {
+         answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                                       "Prefix exists, overwrite?", 
+                                       SUMA_NO);
+         if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
+            if (newname) SUMA_free(newname);newname = NULL;
+            if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+            SUMA_RETURNe; 
+         }
+      } 
+   }
+   
+   /* OK, names are acceptable, proceed */
+   ND = SaveSO_data->SO->NodeDim;
+   NP = SaveSO_data->SO->FaceSetDim;
+
+   if (newname) SUMA_free(newname);newname = NULL;
+   newname = SUMA_Extension(newprefix, ".xyz", NOPE);  
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write .xyz %s.\n", FuncName, newname); 
+   Fout = fopen(newname, "w");
+   if (Fout == NULL) {
+      fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, newname);
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+   }
+
+   for (ii=0; ii < SaveSO_data->SO->N_Node; ++ii) {
+      id = ND * ii;
+      fprintf(Fout, "%f\t%f\t%f\n", \
+         SaveSO_data->SO->NodeList[id], SaveSO_data->SO->NodeList[id+1],SaveSO_data->SO->NodeList[id+2]);
+   }
+   fclose (Fout);
+
+   if (newname) SUMA_free(newname);newname = NULL;
+   newname = SUMA_Extension(newprefix, ".tri", NOPE);  
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write .tri %s.\n", FuncName, newname); 
+   Fout = fopen(newname, "w");
+   if (Fout == NULL) {
+      fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, newname);
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+   }
+   for (ii=0; ii < SaveSO_data->SO->N_FaceSet; ++ii) {
+      ip = NP * ii;
+      fprintf(Fout, "%d\t%d\t%d\n", \
+         SaveSO_data->SO->FaceSetList[ip], SaveSO_data->SO->FaceSetList[ip+1],SaveSO_data->SO->FaceSetList[ip+2]);
+   }
+   fclose (Fout);
+
+   if (newname) SUMA_free(newname);newname = NULL;
+   newname = SUMA_Extension(newprefix, ".col", NOPE);  
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write .col %s.\n", FuncName, newname); 
+   Fout = fopen(newname, "w");
+   if (Fout == NULL) {
+      fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, newname);
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+   }
+    glar_ColorList = SUMA_GetColorList (SaveSO_data->sv, SaveSO_data->SO->idcode_str);
+    if (!glar_ColorList) {
+      fprintf(SUMA_STDERR, "Error %s: NULL glar_ColorList. BAD.\n", FuncName);
+      if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+      SUMA_RETURNe;
+    }
+   for (ii=0; ii < SaveSO_data->SO->N_Node; ++ii) {
+      ip = 4 * ii;
+      fprintf(Fout, "%d\t%f\t%f\t%f\n", \
+         ii, glar_ColorList[ip], glar_ColorList[ip+1], glar_ColorList[ip+2]);
+   }
+   fclose (Fout);
+
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: Wrote files to disk.\n", 
+      FuncName);
+
+   if (newname) SUMA_free(newname);newname = NULL;
+   if (SaveSO_data) SUMA_free(SaveSO_data); SaveSO_data = NULL;
+   if (newprefix) SUMA_free(newprefix); 
+   SUMA_RETURNe;
+}
+
+/*!
    \brief handles saving ROI to filename.
    
    \param filename (char *)

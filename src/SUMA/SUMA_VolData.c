@@ -45,6 +45,7 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
 	if (VP->VOLREG_CENTER_OLD != NULL) SUMA_free(VP->VOLREG_CENTER_OLD);
 	if (VP->VOLREG_CENTER_BASE != NULL) SUMA_free(VP->VOLREG_CENTER_BASE);
 	if (VP->VOLREG_MATVEC != NULL) SUMA_free(VP->VOLREG_MATVEC);
+   if (VP->TAGALIGN_MATVEC != NULL) SUMA_free(VP->TAGALIGN_MATVEC);
 	if (VP != NULL) SUMA_free(VP);
 	SUMA_RETURN (YUP);
 }
@@ -109,7 +110,24 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	VP->yyorient = dset->daxes->yyorient;
 	VP->zzorient = dset->daxes->zzorient;
 
-	/* Get the volreg matrix if possible*/
+	/* Get the tagalign matrix if possible*/
+   atr = THD_find_float_atr( dset->dblk , "TAGALIGN_MATVEC" ) ;
+	if (atr == NULL) {
+		VP->TAGALIGN_MATVEC = NULL;
+	}else {
+		VP->TAGALIGN_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
+		if (VP->TAGALIGN_MATVEC != NULL) {
+			if (atr->nfl == 12) {
+				for (ii=0; ii<12; ++ii) VP->TAGALIGN_MATVEC[ii] = atr->fl[ii];
+			} else {	
+				fprintf(SUMA_STDERR,"Error %s: TAGALIGN_MATVEC does not have 12 elements.\n", FuncName);
+			}
+		} else {
+			fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->TAGALIGN_MATVEC\n", FuncName);
+		}
+	}
+   
+   /* Get the volreg matrix if possible*/
 	atr = THD_find_float_atr( dset->dblk , "VOLREG_MATVEC_000000" ) ;
 	if (atr == NULL) {
 		VP->VOLREG_MATVEC = NULL;
@@ -206,7 +224,24 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
 		   VP->nx, VP->ny, VP->nz);
       SS = SUMA_StringAppend (SS, stmp);
 
-	   if (VP->VOLREG_MATVEC != NULL) {
+	   if (VP->TAGALIGN_MATVEC != NULL) {
+         sprintf (stmp,"VP->TAGALIGN_MATVEC = \n\tMrot\tDelta\n");
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->TAGALIGN_MATVEC[0], VP->TAGALIGN_MATVEC[1], VP->TAGALIGN_MATVEC[2], VP->TAGALIGN_MATVEC[3]); 
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->TAGALIGN_MATVEC[4], VP->TAGALIGN_MATVEC[5], VP->TAGALIGN_MATVEC[6], VP->TAGALIGN_MATVEC[7]);
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->TAGALIGN_MATVEC[8], VP->TAGALIGN_MATVEC[9], VP->TAGALIGN_MATVEC[10], VP->TAGALIGN_MATVEC[11]);
+         SS = SUMA_StringAppend (SS, stmp);
+	   } else {
+         sprintf (stmp,"VP->TAGALIGN_MATVEC = NULL\n");
+         SS = SUMA_StringAppend (SS, stmp);
+      }      
+      
+      if (VP->VOLREG_MATVEC != NULL) {
 		   sprintf (stmp,"VP->VOLREG_MATVEC = \n\tMrot\tDelta\n");
          SS = SUMA_StringAppend (SS, stmp);
 		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
@@ -376,7 +411,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 {
 	static char FuncName[]={"SUMA_Apply_VolReg_Trans"};
    int i, ND, id;
-   SUMA_Boolean Bad=YUP;
+   SUMA_Boolean UseVolreg, UseTagAlign, Bad=YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -387,26 +422,88 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 
 	ND = SO->NodeDim;
    
+   
+	UseVolreg = NOPE;
+   UseTagAlign = NOPE;
    /* perform the rotation needed to align the surface with the current experiment's data */
-	if (SO->VolPar->VOLREG_MATVEC != NULL || SO->VolPar->VOLREG_CENTER_OLD != NULL || SO->VolPar->VOLREG_CENTER_BASE != NULL) {
+   if (SO->VolPar->VOLREG_MATVEC != NULL || SO->VolPar->VOLREG_CENTER_OLD != NULL || SO->VolPar->VOLREG_CENTER_BASE != NULL) {
 		Bad = NOPE;
 		if (SO->VolPar->VOLREG_MATVEC == NULL) {
-			fprintf(SUMA_STDERR,"Error %s: VP->VOLREG_MATVEC = NULL. Cannot perform alignment.\n", FuncName);
+			fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_MATVEC = NULL. Cannot perform alignment.\n", FuncName);
 			Bad = YUP;
 		}
 		if (SO->VolPar->VOLREG_CENTER_OLD == NULL) {
-			fprintf(SUMA_STDERR,"Error %s: VP->VOLREG_CENTER_OLD = NULL. Cannot perform alignment.\n", FuncName);
+			fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_CENTER_OLD = NULL. Cannot perform alignment.\n", FuncName);
 			Bad = YUP;
 		}
 		if (SO->VolPar->VOLREG_CENTER_BASE == NULL) {
-			fprintf(SUMA_STDERR,"Error %s: VP->VOLREG_CENTER_BASE = NULL. Cannot perform alignment.\n", FuncName);
+			fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_CENTER_BASE = NULL. Cannot perform alignment.\n", FuncName);
 			Bad = YUP;
 		}
+      if (!Bad) UseVolreg = YUP;
 	}
+   
+   /* Check for Tagalign field */
+   if (SO->VolPar->TAGALIGN_MATVEC) UseTagAlign = YUP;
 
-	if (!Bad && SO->VolPar->VOLREG_MATVEC != NULL) {
+   if (UseTagAlign && UseVolreg) {
+      SUMA_SL_Note("Found both Volreg and TagAlign fields.\n"
+                   "Using Volreg fields for alignment.");
+      UseTagAlign = NOPE;
+   }
+   
+   if (UseTagAlign) {
 		float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
+      
+		/* fillerup*/
+		Mrot[0][0] = SO->VolPar->TAGALIGN_MATVEC[0];
+		Mrot[0][1] = SO->VolPar->TAGALIGN_MATVEC[1];
+		Mrot[0][2] = SO->VolPar->TAGALIGN_MATVEC[2];
+		Delta[0]   = SO->VolPar->TAGALIGN_MATVEC[3];
+		Mrot[1][0] = SO->VolPar->TAGALIGN_MATVEC[4];
+		Mrot[1][1] = SO->VolPar->TAGALIGN_MATVEC[5];
+		Mrot[1][2] = SO->VolPar->TAGALIGN_MATVEC[6];
+		Delta[1]   = SO->VolPar->TAGALIGN_MATVEC[7];	
+		Mrot[2][0] = SO->VolPar->TAGALIGN_MATVEC[8];
+		Mrot[2][1] = SO->VolPar->TAGALIGN_MATVEC[9];
+		Mrot[2][2] = SO->VolPar->TAGALIGN_MATVEC[10];
+		Delta[2]   = SO->VolPar->TAGALIGN_MATVEC[11];
 		
+		NetShift[0] = Delta[0];
+		NetShift[1] = Delta[1];
+		NetShift[2] = Delta[2];
+		
+		/*
+		fprintf (SUMA_STDERR,"%s: Applying Rotation.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
+					Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
+					Delta[0], Delta[1], Delta[2]);
+		
+		*/
+		
+		for (i=0; i < SO->N_Node; ++i) {
+			id = ND * i;
+			/* zero the center */ 
+			x = SO->NodeList[id] ;
+			y = SO->NodeList[id+1] ;
+			z = SO->NodeList[id+2] ;
+			
+			/* Apply the rotation matrix XYZn = Mrot x XYZ*/
+			SO->NodeList[id] = Mrot[0][0] * x + Mrot[0][1] * y + Mrot[0][2] * z;
+			SO->NodeList[id+1] = Mrot[1][0] * x + Mrot[1][1] * y + Mrot[1][2] * z;
+			SO->NodeList[id+2] = Mrot[2][0] * x + Mrot[2][1] * y + Mrot[2][2] * z;
+			
+			/*apply netshift*/
+			SO->NodeList[id] += NetShift[0];
+			SO->NodeList[id+1] += NetShift[1];
+			SO->NodeList[id+2] += NetShift[2];
+		}
+		SO->TAGALIGN_APPLIED = YUP;	
+	} else
+		SO->TAGALIGN_APPLIED = NOPE;
+		   
+	if (UseVolreg) {
+		float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
+      
 		/* fillerup*/
 		Mrot[0][0] = SO->VolPar->VOLREG_MATVEC[0];
 		Mrot[0][1] = SO->VolPar->VOLREG_MATVEC[1];
@@ -454,6 +551,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 		SO->VOLREG_APPLIED = YUP;	
 	} else
 		SO->VOLREG_APPLIED = NOPE;
+   
       
 	SUMA_RETURN (YUP);
 }

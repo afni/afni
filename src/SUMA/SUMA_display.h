@@ -243,7 +243,7 @@ char * SUMA_ClassOf(int c);
 char * SUMA_Format(int n, int w);
 void SUMA_ShowAllVisuals (void); 
 int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead);
-
+int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
 
 
 

@@ -7107,13 +7107,13 @@ void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data)
 }
 
 /*!
-   \brief create a forced answer dialog for replacing ROIs
-   
+   \brief create a forced answer dialog for replacing files
    \return SUMA_YES SUMA_NO SUMA_YES_ALL or SUMA_NO_ALL
+   
 */
-int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
+int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
 {
-    static char FuncName[]={"SUMA_AskUser_ROI_replace"};
+    static char FuncName[]={"SUMA_AskUser_File_replace"};
     static Widget dialog; /* static to avoid multiple creation */
     Widget YesWid, NoWid, HelpWid;
     XmString text, yes, no;
@@ -7183,6 +7183,76 @@ int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
 
    /* unmanage the Help button because I am not using it here */
    XtUnmanageChild(HelpWid);
+   
+   XtManageChild (dialog);
+   XtPopup (XtParent (dialog), XtGrabNone);
+
+   while (answer == SUMA_NO_ANSWER)
+     XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
+
+   XtPopdown (XtParent (dialog));
+   /* make sure the dialog goes away before returning. Sync with server
+   * and update the display.
+   */
+   XSync (XtDisplay (dialog), 0);
+   XmUpdateDisplay (parent);
+
+   SUMA_RETURN(answer);
+}
+
+/*!
+   \brief create a forced answer dialog for replacing ROIs
+   
+   \return SUMA_YES SUMA_NO 
+*/
+int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
+{
+    static char FuncName[]={"SUMA_AskUser_ROI_replace"};
+    static Widget dialog; /* static to avoid multiple creation */
+    Widget YesWid, NoWid, HelpWid;
+    XmString text, yes, no;
+    static int answer;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!dialog) {
+     dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
+     XtVaSetValues (dialog,
+         XmNdialogStyle,        XmDIALOG_FULL_APPLICATION_MODAL,
+         NULL);
+     XtSetSensitive (
+         XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON),
+         False);
+     XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer);
+     XtAddCallback (dialog, XmNcancelCallback, SUMA_response, &answer);
+
+    }
+   answer = SUMA_NO_ANSWER;
+   text = XmStringCreateLocalized (question);
+   yes = XmStringCreateLocalized ("Yes");
+   no = XmStringCreateLocalized ("No");
+   XtVaSetValues (dialog,
+     XmNmessageString,      text,
+     XmNokLabelString,      yes,
+     XmNcancelLabelString,  no,
+     XmNdefaultButtonType,  default_ans == SUMA_YES ?
+         XmDIALOG_OK_BUTTON : XmDIALOG_CANCEL_BUTTON,
+     NULL);
+   XmStringFree (text);
+   XmStringFree (yes);
+   XmStringFree (no);
+
+   /* set the values of the standrard buttons */
+   YesWid = XmMessageBoxGetChild(dialog, XmDIALOG_OK_BUTTON);
+   XtVaSetValues(YesWid, XmNuserData, SUMA_YES, NULL);
+   NoWid = XmMessageBoxGetChild(dialog, XmDIALOG_CANCEL_BUTTON);
+   XtVaSetValues(NoWid, XmNuserData, SUMA_NO_ALL, NULL);
+   HelpWid = XmMessageBoxGetChild(dialog, XmDIALOG_HELP_BUTTON);
+   XtVaSetValues(HelpWid, XmNuserData, SUMA_HELP, NULL);
+
+   /* unmanage the buttons I am not using it here */
+   XtUnmanageChild(HelpWid);
+   
    
    XtManageChild (dialog);
    XtPopup (XtParent (dialog), XtGrabNone);
