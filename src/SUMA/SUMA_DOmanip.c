@@ -541,16 +541,16 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
    searches all SO_type DO objects for idcode
    YUP if found, NOPE if not
 */
-SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov)
 {
-   static char FuncName[]={"SUMA_existDO"};
+   static char FuncName[]={"SUMA_existSO"};
    SUMA_SurfaceObject *SO;
    int i;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (idcode == NULL) {
-      fprintf(SUMA_STDERR,"Warning SUMA_existDO: NULL idcode.\n");
+      fprintf(SUMA_STDERR,"Warning SUMA_existSO: NULL idcode.\n");
       SUMA_RETURN (NOPE);
    }
    for (i=0; i< N_dov; ++i) {
@@ -559,6 +559,67 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
          if (strcmp(idcode, SO->idcode_str)== 0) {
             SUMA_RETURN (YUP);
          }
+      }
+   }
+   SUMA_RETURN(NOPE);
+}
+
+/*!
+   searches all DO objects with an idcode_str for idcode
+   
+   YUP if found, NOPE if not
+*/
+SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_existDO"};
+   int i;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_DRAWN_ROI *dROI = NULL;
+   SUMA_ROI *ROI = NULL;
+   SUMA_SegmentDO *sdo = NULL;
+   SUMA_Axis *sax = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (idcode == NULL) {
+      fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   for (i=0; i< N_dov; ++i) {
+      switch (dov[i].ObjectType) {
+         case (SO_type):
+            SO = (SUMA_SurfaceObject *)dov[i].OP;
+            if (strcmp(idcode, SO->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case (ROIdO_type):
+            dROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            if (strcmp(idcode, dROI->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case (ROIO_type):
+            ROI = (SUMA_ROI *)dov[i].OP;
+            if (strcmp(idcode, ROI->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case (AO_type):
+            sax = (SUMA_Axis *)dov[i].OP;
+            if (strcmp(idcode, sax->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case (LS_type):
+            sdo = (SUMA_SegmentDO *)dov[i].OP;
+            if (strcmp(idcode, sdo->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         default:
+            fprintf(SUMA_STDERR,"Warning %s: Object type %d not checked.\n", FuncName, dov[i].ObjectType);
+            break;
       }
    }
    SUMA_RETURN(NOPE);
@@ -961,8 +1022,8 @@ ans = SUMA_isdROIrelated (dROI, SO);
 SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isdROIrelated"};
-   SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO_ROI = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    

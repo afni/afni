@@ -1582,7 +1582,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    static char FuncName[]={"SUMA_Fetch_OverlayPointer"};
    int i;
    SUMA_OVERLAYS *ptr= NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
@@ -2007,132 +2007,6 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
       SUMA_RETURN (YUP);
    }
    
-   SUMA_RETURN (YUP);
-}
-/*!
-   This is the first incarnation: NOW OBSOLETE
-   
-   function to turn color overlay planes into GL color array
-   
-   ans = SUMA_Overlays_2_GLCOLAR4_old(Overlays, N_Overlays, glar_ColorList, N_Node);
-   
-   Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes structure pointers
-   N_Overlays (int) number of overlay plane structures
-   glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
-   N_Node (int) total number of nodes in Surface NOT in color overlay plane
-   
-*/
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overlays, GLfloat *glcolar, int N_Node)
-{
-   static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4_old"};
-   int ShowOverLays[SUMA_MAX_OVERLAYS], iloc[SUMA_MAX_OVERLAYS];
-   int i, j, NshowOverlays;
-   SUMA_Boolean Fill, Full, Glob, Locl, add;
-   SUMA_Boolean *isColored;
-   
-   if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
-
-   fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
-   SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); 
-   
-
-   /* get the indices into the color structure vector of overlays to be shown */
-   NshowOverlays = 0;
-   for (j=0; j < N_Overlays; ++j) {
-      if (Overlays[j]->Show) {
-         ShowOverLays[NshowOverlays] = j; ++ NshowOverlays;
-      }
-   }
-
-   isColored = (SUMA_Boolean *) SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
-   if (!isColored) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }
-   
-   if (!NshowOverlays) { /* nothing to see here */
-      SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
-      SUMA_free(isColored);
-      SUMA_RETURN (YUP);
-   }
-   
-   /* start building the node colors */
-   Full = YUP;
-   Glob = YUP;
-   Locl = YUP;
-   Fill = YUP; 
-   for (j=0; j<NshowOverlays; ++j) {
-      if (j==0) { add = NOPE; }
-      else { add = YUP; }
-      
-      i = ShowOverLays[j];
-      
-      /* is this a full listing */
-      fprintf (SUMA_STDOUT, "%s: %d\n", FuncName, Overlays[i]->NodeDef[0]);
-      if (Overlays[i]->NodeDef[0] < 0) {         Fill = NOPE;   /* Full list, no need to fill up unvisited nodes at the end */   } 
-      else {         Full = NOPE; /* Not a full list */      }
-      
-      /* is this a Global Factor */
-      if (Overlays[i]->GlobalOpacity < 0) {         Glob = NOPE;      }
-      
-      /* is this a Local Factor */
-      if (Overlays[i]->LocalOpacity[0] < 0) {         Locl = NOPE;      }
-      
-      /*
-      fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d, Locl=%d, add=%d, Fill=%d\n", \
-         FuncName, j, i, Overlays[i]->Name, (int)Full, (int)Glob, (int)Locl, (int)add, (int)Fill);
-       */
-         
-      /* call the appropriate macro to add the overlay */
-      if (Full && Glob && Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_FullGlobLoc2_GLCOLAR4 ...\n", FuncName);*/
-         SUMA_RGBmat_FullGlobLoc2_GLCOLAR4(Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, add);         
-      }
-      
-      if (!Full && Glob && Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartGlobLoc2_GLCOLAR4 ...\n", FuncName);*/
-         SUMA_RGBmat_PartGlobLoc2_GLCOLAR4(Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, add, N_Node);
-      }
-      
-      if (Full && !Glob && Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4...\n", FuncName);*/
-         SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4(Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->LocalOpacity, add);         
-      }
-      
-      if (!Full && !Glob && Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4 ...\n", FuncName);*/
-         SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4(Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->LocalOpacity, add, N_Node);
-      }
-      
-      if (Full && !Glob && !Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4 ...\n", FuncName);*/
-         SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4(Overlays[i]->ColMat, glcolar, N_Node, add);         
-      }
-      
-      if (!Full && !Glob && !Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4 ...\n", FuncName); */
-         SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4(Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, add, N_Node);
-      }
-      
-      if (Full && Glob && !Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4...\n", FuncName);*/
-         SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4(Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity,  add);
-      }
-       
-      if (!Full && Glob && !Locl) {
-         /*fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4...\n", FuncName);*/
-         SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4(Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity,  add, N_Node);
-      }
-   }
-   
-   if (Fill) { /* nothing to see here */
-      /*fprintf (SUMA_STDOUT,"%s: Some nodes received no colors from any of the overplanes, filling them with background color ...\n", FuncName);*/
-      SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
-      SUMA_RETURN (YUP);
-   }
-
-   SUMA_free(isColored);
-
    SUMA_RETURN (YUP);
 }
 
@@ -2742,7 +2616,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_MixColors"};
    int i, dov_id;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2777,8 +2651,8 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 */ 
 SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, int *PlaneInd, SUMA_DO *dov, int N_dov) 
 {
-   static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"};
-   int i, OverInd = -1;
+   static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"}, stmp[500];
+   int i, OverInd = -1, i_max, wrn_cnt = 0;
    SUMA_SurfaceObject *SO2 = NULL;
    SUMA_OVERLAYS *Overlay=NULL;
    SUMA_INODE *Overlay_Inode = NULL;
@@ -2829,8 +2703,21 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
          
       }
       
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d, Loading colors to Overlay Plane...\n", FuncName, OverInd);
+      if (sopd->N > SO->N_Node) {
+         sprintf(stmp,"Number of nodes in colorplane (%d)\n" \
+                      "is larger than number of nodes in surface (%d)\n" \
+                      "Proceed if you know what you're doing.\n" \
+                      "Data from high node indices will be ignored.",  
+                  sopd->N, SO->N_Node);
+         SUMA_SLP_Warn(stmp);
+         i_max = SO->N_Node;
+      } else {
+         i_max = sopd->N;
+      }
+      
       /* Now put the colors in the overlay plane */
-      SO->Overlays[OverInd]->N_NodeDef = sopd->N;
+      SO->Overlays[OverInd]->N_NodeDef = i_max;
       if (SO->Overlays[OverInd]->N_NodeDef) {
          switch (sopd->Type) {
             case SOPT_ibbb:
@@ -2842,12 +2729,21 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
                   r = (byte *)sopd->r;
                   g = (byte *)sopd->g;
                   b = (byte *)sopd->b;
-                  for (i=0; i < sopd->N; ++i) {
+                  
+                  for (i=0; i < i_max; ++i) {
                      /*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
-                     SO->Overlays[OverInd]->NodeDef[i] = inel[i];
-                     SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
-                     SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
-                     SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                     if (SO->N_Node > inel[i]) {
+                        SO->Overlays[OverInd]->NodeDef[i] = inel[i];
+                        SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
+                        SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
+                        SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                     } else {
+                        if (!wrn_cnt) {
+                           SUMA_SLP_Warn("Color plane includes node indices\n"   \
+                                         "that are >= number of nodes in surface.\n");
+                        }
+                        ++wrn_cnt;  
+                     }
                   }
                }
                break;
@@ -2860,12 +2756,20 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
                   r = (float *)sopd->r;
                   g = (float *)sopd->g;
                   b = (float *)sopd->b;
-                  for (i=0; i < sopd->N; ++i) {
+                  for (i=0; i < i_max; ++i) {
                      /*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
-                     SO->Overlays[OverInd]->NodeDef[i] = inel[i];
-                     SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
-                     SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
-                     SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                     if (SO->N_Node > inel[i]) {
+                        SO->Overlays[OverInd]->NodeDef[i] = inel[i];
+                        SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
+                        SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
+                        SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                     } else {
+                        if (!wrn_cnt) {
+                           SUMA_SLP_Warn("Color plane includes node indices\n"   \
+                                         "that are >= number of nodes in surface.\n");
+                        }
+                        ++wrn_cnt;              
+                     }
                   }
                }
                break;
@@ -2875,7 +2779,12 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
                break;
          }
       }
-       
+      
+      /* store overlay plane index here, OverInd will get mango-ed further down */
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d. Returning.\n", FuncName, OverInd);
+      *PlaneInd = OverInd;
+
+      SUMA_LH("Registering plane with surfaces deserving it");
       /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
       and make sure they have this colorplane, otherwise, create a link to it. */   
       for (i=0; i < N_dov; ++i) {
@@ -2908,8 +2817,6 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
          }
       }
 
-
-   *PlaneInd = OverInd;
    SUMA_RETURN (YUP);
 
 }
@@ -3178,13 +3085,14 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
       SUMA_RETURNe;
    }
   
-               
+   SUMA_LH("Refreshing color plane list");            
    /*update the list widget if open */
    LW = SO->SurfCont->SwitchColPlanelst;
    if (LW) {
       if (!LW->isShaded) SUMA_RefreshColorPlaneList (SO);  
    }  
    
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Updating color plane frame, OverInd=%d\n", FuncName, OverInd);
    /* update the color plane frame */
    if (OverInd >= 0)        
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);

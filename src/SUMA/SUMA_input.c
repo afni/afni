@@ -2287,8 +2287,6 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
 /*!
    \brief Processes the brushstroke sent from a viewer
    
-   Higlights of actions:
-   Finds ROI in cre
 */
 SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STROKE_ACTION BsA)
 {
@@ -2303,7 +2301,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
    char *sbuf;
    SUMA_ROI_ACTION_STRUCT *ROIA;
    DListElmt *tmpStackPos=NULL;
-   SUMA_Boolean Shaded = NOPE, LocalHead = YUP;
+   SUMA_Boolean Shaded = NOPE, LocalHead = NOPE;
 
       
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
@@ -2332,14 +2330,18 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
       }else {
          if (LocalHead) fprintf (SUMA_STDERR,"%s: No match between currDrawnROI and SO.\n", FuncName);
+         DrawnROI = NULL;
       }
-   }else if ((DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv, SUMAg_N_DOv))){
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: using ROI in creation.\n", FuncName);
-      /* There is an ROI being created on this surface, initialize DrawROI window*/
-      SUMA_InitializeDrawROIWindow(DrawnROI);
-   } else {
-      /* wait till later */
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: will create a new ROI.\n", FuncName);
+   }
+   if (!DrawnROI) { /* try some more */
+      if ((DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv, SUMAg_N_DOv))){
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: using ROI in creation.\n", FuncName);
+         /* There is an ROI being created on this surface, initialize DrawROI window*/
+         SUMA_InitializeDrawROIWindow(DrawnROI);
+      } else {
+         /* wait till later */
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: will create a new ROI.\n", FuncName);
+      }
    }
    
    if (!DrawnROI && BsA == SUMA_BSA_JoinEnds) {
@@ -2531,6 +2533,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
    
    switch (BsA) {
       case SUMA_BSA_AppendStroke:
+         /* store the action */
+         ROIstroke->action = SUMA_BSA_AppendStroke;
          /*now add the ROIdatum to the list of ROIs */
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding ROIStroke to DrawnROI->ROIstrokelist\n", FuncName);
          ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
@@ -2544,6 +2548,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          } 
          break;
       case SUMA_BSA_JoinEnds:
+         /* store the action */
+         ROIstroke->action = SUMA_BSA_JoinEnds;
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing path.\n", FuncName);
          ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
@@ -2556,6 +2562,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          }
          break;
       case SUMA_BSA_FillArea:
+         /* store the action */
+         ROIfill->action = SUMA_BSA_FillArea;
          /* Now add ROIdatum to stack */
          ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT *)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
@@ -3140,22 +3148,21 @@ DListElmt * SUMA_RedoAction (DList *ActionStack, DListElmt *StackPos)
    static char FuncName[]={"SUMA_RedoAction"};
    SUMA_ACTION_STACK_DATA *AS_data=NULL;
    SUMA_ACTION_RESULT ActionResult = SAR_Undefined;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!StackPos) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: At bottom of stack. Working up.\n", FuncName);
       StackPos = dlist_head(ActionStack);
-   }
-   
-   if (StackPos == dlist_tail(ActionStack)) {
+   } else if (StackPos == dlist_tail(ActionStack)) {
       SUMA_SLP_Err("At top of stack, nothing to do.");
       SUMA_RETURN(StackPos);
+   } else {
+      StackPos = dlist_next(StackPos);
    }
    
    /* execute action above StackPos again */
-   StackPos = dlist_next(StackPos);
    AS_data = (SUMA_ACTION_STACK_DATA *)StackPos->data;
    ActionResult = AS_data->ActionFunction (AS_data->ActionData, SAP_Redo);
    switch (ActionResult) {
@@ -3187,7 +3194,7 @@ DListElmt * SUMA_UndoAction (DList *ActionStack, DListElmt *StackPos)
    static char FuncName[]={"SUMA_UndoAction"};
    SUMA_ACTION_STACK_DATA *AS_data=NULL;
    SUMA_ACTION_RESULT ActionResult = SAR_Undefined;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -3265,7 +3272,7 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
 SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 {
    static char FuncName[]={"SUMA_AddFillROIDatum"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
    void *eldata=NULL;
    DListElmt *tail_elm=NULL;

@@ -191,7 +191,7 @@ void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data);
-SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_SELECTION_DIALOG_STRUCT *dlg);
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_SELECTION_DIALOG_STRUCT **dlg);
 SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
                                                                   void (*SelectCallback)(char *filename, void *data), void *SelectData,
                                                                   void (*CancelCallback)(void *data), void *CancelData,
@@ -228,7 +228,13 @@ void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_
 void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO);
+void SUMA_cb_SetDrawROI_SaveMode(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_SetDrawROI_SaveWhat(Widget w, XtPointer data, XtPointer call_data);
+void response(Widget widget, XtPointer client_data, XtPointer call_data);
+int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_ans);
+
 
 
 

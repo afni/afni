@@ -30,6 +30,7 @@ SUMA_INODE *SUMA_CreateInode (void *data, char *ID);
 SUMA_INODE *SUMA_CreateInodeLink (SUMA_INODE * FromIN, SUMA_INODE *ToIN);
 SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
 SUMA_INODE * SUMA_BreakInodeLink (SUMA_INODE *IN, const char *HolderIDcode);
+SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);

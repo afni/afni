@@ -96,6 +96,57 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_OpenDrawnROIFileSelection:
+            /* opens the open ROI file selection window. 
+            Expects NULL in vp (to be used later and a position reference widget typecast to ip, the latter can be null.*/
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            /* open the ROI file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI File to Open", &SUMAg_CF->X->FileSelectDlg);
+            break;
+            
+         case SE_SaveDrawnROIFileSelection:
+            /* opens the save roi  file selection window. 
+            Expects NULL in vp (to be used later and a position reference widget typecast to ip, the latter can be null.*/
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            
+            /* save ROI to file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
+                                                        SUMA_SaveDrawnROI, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
+                                                        SUMA_SaveDrawnROI, (void *)EngineData->vp,
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI File to Save", &SUMAg_CF->X->FileSelectDlg);
+            
+            break;
+
          case SE_OpenColFileSelection:
             /* opens the color file selection window. 
             Expect SO in vp and a position reference widget typecast to ip, the latter can be null.*/
@@ -120,7 +171,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Node Color File", SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Node Color File", &SUMAg_CF->X->FileSelectDlg);
             
             break;
             
