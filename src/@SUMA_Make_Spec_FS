@@ -463,7 +463,7 @@ L_CREATE_SPEC:
 
 	if ( $status ) then
 	    set endstr = ( "failure: no permissions to create spec file" \
-			 "'$surf_dir/$spec_file'" )
+			 "'$suma_dir/$spec_file'" )
 	    goto L_BAD_END
 	endif
 
