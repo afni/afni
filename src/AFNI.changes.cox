@@ -3217,6 +3217,8 @@
        - afni_setup.c for Inten menu
        - afni_func.c for Hidden menu (in logo square)
        - plug_render.c for Inten menu and Xhair menu (latter is Button 2)
+     However, these changes don't seem to work - the mouse events aren't
+     received.  Ugh.
 
 19 Oct 2001
  * Fixed bug in imseq.c: if pnmtops was NOT found but epstopdf WAS found,
@@ -3252,3 +3254,9 @@
      at .mnc files.
  * Added program 3dMINCtoAFNI.c to re-write a MINC file into an AFNI
      dataset; 3drefit may be useful afterwards.
+
+01 Nov 2001
+ * Modified thd_mincread.c to allow :step attribute of dimensions
+     to be missing (default=1), and even to allow the dimension
+     variables to be missing.
+ * Modified mri_new.c to use calloc() instead of malloc().

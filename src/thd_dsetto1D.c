@@ -107,26 +107,33 @@ ENTRY("THD_extract_series") ;
       mri_free(im) ; im = qim ;
    }
 
-fprintf(stderr,"a") ;
+#if 0
+#  define DDD(x) fprintf(stderr,x)
+   { static int nc=0 ; fprintf(stderr,"THD_extract_series %d:",++nc) ; }
+#else
+#  define DDD(x) /* nada */
+#endif
+
+DDD("a") ;
 
    if( !raw && im->kind != MRI_float ){
       MRI_IMAGE * qim ;
-fprintf(stderr,"b") ;
+DDD("b") ;
       qim = mri_to_float( im ) ;
-fprintf(stderr,"x") ;
+DDD("x") ;
       mri_free(im) ; im = qim ;
-fprintf(stderr,"c") ;
+DDD("c") ;
    }
-fprintf(stderr,"d") ;
+DDD("d") ;
 
    if( dset->taxis != NULL ){  /* 21 Oct 1996 */
       float zz , tt ;
       int kz = ind / ( dset->daxes->nxx * dset->daxes->nyy ) ;
 
-fprintf(stderr,"e") ;
+DDD("e") ;
       zz = dset->daxes->zzorg + kz * dset->daxes->zzdel ;
       tt = THD_timeof( 0 , zz , dset->taxis ) ;
-fprintf(stderr,"f") ;
+DDD("f") ;
 
       im->xo = tt ; im->dx = dset->taxis->ttdel ;   /* origin and delta */
 
@@ -136,7 +143,7 @@ fprintf(stderr,"f") ;
    } else {
       im->xo = 0.0 ; im->dx = 1.0 ;  /* 08 Nov 1996 */
    }
-fprintf(stderr,"\n");
+DDD("\n");
 
    RETURN( im );
 }

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
@@ -45,9 +45,9 @@ MRI_IMAGE *mri_new_7D_generic(
    MRI_IMAGE *newim ;
    int npix ;
 
-WHOAMI ;
+ENTRY("mri_new_7D_generic") ;
 
-   newim = (MRI_IMAGE *)malloc( sizeof(MRI_IMAGE) ) ;
+   newim = (MRI_IMAGE *)calloc( 1, sizeof(MRI_IMAGE) ) ;
 
    if( newim == NULL ){
       fprintf( stderr , "malloc failure for new image pointer\n" ) ;
@@ -65,12 +65,12 @@ WHOAMI ;
    newim->kind = kind ;
    newim->name = NULL ;
 
-   newim->dx = newim->dy = newim->dz = 
+   newim->dx = newim->dy = newim->dz =
    newim->dt = newim->du = newim->dv = 1.0 ;  /* default dimensions */
 
    newim->dw = -666.0 ;  /* 05 Feb 2001 - flag that dimensions aren't set */
 
-   newim->xo = newim->yo = newim->zo = 
+   newim->xo = newim->yo = newim->zo =
    newim->to = newim->uo = newim->vo = newim->wo = 0.0 ;  /* default offsets */
 
 #ifdef USE_MRI_LABELS
@@ -94,7 +94,7 @@ WHOAMI ;
 
       case MRI_byte:
          if( make_space )
-            newim->im.byte_data = (byte *)malloc( sizeof(byte) * npix ) ;
+            newim->im.byte_data = (byte *)calloc( npix,sizeof(byte) ) ;
          else
             newim->im.byte_data = NULL ;
          newim->pixel_size = sizeof(byte) ;
@@ -102,7 +102,7 @@ WHOAMI ;
 
       case MRI_short:
          if( make_space )
-            newim->im.short_data = (short *)malloc( sizeof(short) * npix ) ;
+            newim->im.short_data = (short *)calloc( npix,sizeof(short) ) ;
          else
             newim->im.short_data = NULL ;
          newim->pixel_size = sizeof(short) ;
@@ -110,7 +110,7 @@ WHOAMI ;
 
       case MRI_int:
          if( make_space )
-            newim->im.int_data = (int *)malloc( sizeof(int) * npix ) ;
+            newim->im.int_data = (int *)calloc( npix,sizeof(int) ) ;
          else
             newim->im.int_data = NULL ;
          newim->pixel_size = sizeof(int) ;
@@ -118,7 +118,7 @@ WHOAMI ;
 
       case MRI_float:
          if( make_space )
-            newim->im.float_data = (float *)malloc( sizeof(float) * npix ) ;
+            newim->im.float_data = (float *)calloc( npix,sizeof(float) ) ;
          else
             newim->im.float_data = NULL ;
          newim->pixel_size = sizeof(float) ;
@@ -126,7 +126,7 @@ WHOAMI ;
 
       case MRI_double:
          if( make_space )
-            newim->im.double_data = (double *)malloc( sizeof(double) * npix ) ;
+            newim->im.double_data = (double *)calloc( npix,sizeof(double) ) ;
          else
             newim->im.double_data = NULL ;
          newim->pixel_size = sizeof(double) ;
@@ -134,7 +134,7 @@ WHOAMI ;
 
       case MRI_complex:
          if( make_space )
-            newim->im.complex_data = (complex *)malloc( sizeof(complex) * npix ) ;
+            newim->im.complex_data = (complex *)calloc( npix,sizeof(complex) ) ;
          else
             newim->im.complex_data = NULL ;
          newim->pixel_size = sizeof(complex) ;
@@ -142,7 +142,7 @@ WHOAMI ;
 
       case MRI_rgb:
          if( make_space )
-            newim->im.rgb_data = (byte *)malloc( sizeof(byte) * npix * 3 ) ;
+            newim->im.rgb_data = (byte *)calloc( 3*npix,sizeof(byte) ) ;
          else
             newim->im.rgb_data = NULL ;
          newim->pixel_size = 3 * sizeof(byte) ;
@@ -158,5 +158,5 @@ WHOAMI ;
       MRI_FATAL_ERROR ;
    }
 
-   return newim ;
+   RETURN(newim) ;
 }

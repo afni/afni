@@ -34,6 +34,10 @@ static mincdim read_mincdim( int ncid , char *dname )
 
    ddd.good = 0 ;  /* flag for bad result */
 
+   ddd.step  = 1.0 ;                       /* defaults */
+   ddd.xcos  = ddd.ycos = ddd.zcos = 0.0 ;
+   ddd.spacetype[0] = '\0' ;
+
    lll = strlen(fname_err) + strlen(dname) + 4 ;
    ename = realloc( ename , lll) ;
    sprintf(ename,"%s:%s",fname_err,dname) ;
@@ -51,16 +55,23 @@ static mincdim read_mincdim( int ncid , char *dname )
    /* get ID of corresponding variable */
 
    code = nc_inq_varid( ncid , dname , &ddd.varid ) ;
-   if( code != NC_NOERR ){ EPR(code,ename,"varid"); return ddd; }
+   if( code != NC_NOERR ){   /* this is bad: try to fake it */
+      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+      fprintf(stderr,"** MINC warning: %s variable missing\n",ename);
+      ddd.start = -0.5*ddd.step*ddd.len ;
+      ddd.good = 1 ; return ddd ;
+   }
 
    /* get step attribute of this variable */
 
    code = nc_get_att_float( ncid , ddd.varid , "step" , &ddd.step ) ;
-   if( code != NC_NOERR ){ EPR(code,ename,"step"); return ddd; }
-   if( ddd.step == 0.0 ){
+   if( code != NC_NOERR ){
       if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC error: %s:step=0\n",ename);
-      return ddd ;
+      fprintf(stderr,"** MINC warning: %s:step missing\n",ename);
+   } else if( ddd.step == 0.0 ){
+      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+      fprintf(stderr,"** MINC warning: %s:step=0\n",ename);
+      ddd.step = 1.0 ;
    }
 
    /* get start attribute of this variable */
@@ -68,29 +79,27 @@ static mincdim read_mincdim( int ncid , char *dname )
    code = nc_get_att_float( ncid , ddd.varid , "start" , &ddd.start ) ;
    if( code != NC_NOERR ){
       if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC warning: can't read %s:start attribute\n",ename) ;
+      fprintf(stderr,"** MINC warning: %s:start missing\n",ename) ;
       ddd.start = -0.5*ddd.step*ddd.len ;
    }
 
-   /* get direction_cosines attribute of this variable [not used] */
+   /* get direction_cosines attribute of this variable [not used yet] */
 
-   code = nc_get_att_float( ncid , ddd.varid , "direction_cosines" , ccc ) ;
+   code = nc_get_att_float( ncid,ddd.varid , "direction_cosines" , ccc ) ;
    if( code == NC_NOERR ){
       ddd.xcos = ccc[0] ; ddd.ycos = ccc[1] ; ddd.zcos = ccc[2] ;
-   } else {
-      ddd.xcos = ddd.ycos = ddd.zcos = 0.0 ;
    }
 
    /* get spacetype attribute of this variable [Talairach or not?] */
 
-   ddd.spacetype[0] = '\0' ; lll = 0 ;
+   lll = 0 ;
    code = nc_inq_attlen( ncid , ddd.varid , "spacetype" , &lll ) ;
    if( code == NC_NOERR && lll > 0 && lll < 32 ){
       code = nc_get_att_text( ncid,ddd.varid , "spacetype" , ddd.spacetype ) ;
       if( code == NC_NOERR ){
-         ddd.spacetype[lll] = '\0' ;
+         ddd.spacetype[lll] = '\0' ;  /* make sure ends in NUL */
       } else {
-         ddd.spacetype[0] = '\0' ;
+         ddd.spacetype[0] = '\0' ;    /* make sure is empty */
       }
    }
 

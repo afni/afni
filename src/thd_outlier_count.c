@@ -26,13 +26,13 @@ ENTRY("THD_outlier_count") ;
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ *count = NULL ; *ctop = 0 ; EXRETURN ; }
 
-   /*-- find clip level --*/
+   /*-- find clip level [will ignore voxels below this value] --*/
 
    flim = THD_median_brick( dset ) ;
    clip_val = THD_cliplevel( flim , 0.5 ) ;
    mri_free(flim) ;
 
-   /*-- setup to count --*/
+   /*-- setup to count outliers --*/
 
    alph   = qginv(qthr/nvals) * sqrt(0.5*PI) ;
    *count = ccc = (int *) calloc( sizeof(int) , nvals ) ;
