@@ -4489,11 +4489,17 @@ int main
 
   if (proc_use_jobs == 1){       /* output requested - 2003.08.15 [rickr] */
     fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time());
-#ifndef FLOATIZE
-    if( proc_numjob == 1 )
-      fprintf(stderr,"++ Flops=%g\n",get_matrix_flops()) ;
-#endif
   }
+#ifndef FLOATIZE
+  if( proc_numjob == 1 ){              /* 16 Jan 2004: print operation count */
+    double fv = get_matrix_flops() ;
+    if( proc_use_jobs == 1 )
+      fprintf(stderr,"++ Flops=%g\n",fv) ;
+    else if( fv > 1000.0 )
+      fprintf(stderr,"++ About %s arithmetic operations carried out\n",
+              approximate_number_string(fv) );
+  }
+#endif
 
   exit(0);
 }
