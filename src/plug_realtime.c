@@ -35,6 +35,8 @@
   system at the Medical College of Wisconsin.
 ************************************************************************/
 
+/*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls ***/
+
 /**************************************************************************/
 /*********************** struct for reading data **************************/
 
@@ -1508,7 +1510,7 @@ void RT_check_info( RT_input * rtin , int prt )
                    ( rtin->yyfov > 0 )                            &&
                    ( rtin->nxx > 1 )                              &&
                    ( rtin->nyy > 1 )                              &&
-                   ( rtin->nzz > 1 )                              &&
+                   ( rtin->nzz >= 1 )                             &&
                    ( AFNI_GOOD_DTYPE(rtin->datum) )               &&
                    ( rtin->zorder > 0 )                           &&
                    ( rtin->orcxx >= 0 )                           &&
@@ -1529,7 +1531,7 @@ void RT_check_info( RT_input * rtin , int prt )
    if( !(rtin->yyfov > 0)                            ) EPR("y-FOV not positive") ;
    if( !(rtin->nxx > 1)                              ) EPR("Image x-dimen not > 1") ;
    if( !(rtin->nyy > 1)                              ) EPR("Image y-dimen not > 1") ;
-   if( !(rtin->nzz > 1)                              ) EPR("Slice count (z-dimen) not > 1") ;
+   if( !(rtin->nzz >= 1)                             ) EPR("Slice count (z-dimen) not >= 1") ;
    if( !(AFNI_GOOD_DTYPE(rtin->datum))               ) EPR("Bad datum") ;
    if( !(rtin->zorder > 0)                           ) EPR("Slice ordering illegal") ;
    if( !(rtin->orcxx >= 0)                           ) EPR("x-orientation illegal") ;
@@ -1664,12 +1666,12 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
       } else if( STARTER("XYMATRIX") ){
          int xval = 0 , yval = 0 , zval = 0 ;
          sscanf( buf , "XYMATRIX %d %d %d" , &xval , &yval , &zval ) ;
-         if( xval > 0 ){
+         if( xval > 1 ){
             rtin->nxx = xval ;
-            rtin->nyy = (yval > 0) ? yval : xval ;
+            rtin->nyy = (yval > 1) ? yval : xval ;
             if( zval > 0 ){
                rtin->nzz = zval ;
-               if( rtin->nzz < 2 ) fprintf(stderr,"RT: # slices = 1!\a\n") ;
+               if( rtin->nzz < 1 ) fprintf(stderr,"RT: # slices = %d!\a\n",zval) ;
             }
          } else
                 BADNEWS ;
@@ -1682,11 +1684,11 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          sscanf( buf , "ZNUM %d" , &zval ) ;
          if( zval > 0 ){
              rtin->nzz = zval ;
-             if( rtin->nzz < 2 ) fprintf(stderr,"RT: # slices = 1!\a\n") ;
+             if( rtin->nzz < 1 ) fprintf(stderr,"RT: # slices = %d!\a\n",zval) ;
          }
          else
               BADNEWS ;
-         if( verbose == 2 && rtin->nzz > 1 )
+         if( verbose == 2 && rtin->nzz >= 1 )
             fprintf(stderr,"RT: # slices = %d\n",rtin->nzz) ;
          VMCHECK ;
 
@@ -1763,6 +1765,14 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    /** now, determine if enough information exists to create a dataset **/
 
    if( rtin->image_mode ) rtin->nzz = 1 ;  /* 28 Apr 2000 */
+
+   if( rtin->nzz == 1 ){                   /* 24 Jun 2002: 1 slice only? */
+     rtin->zorder = ZORDER_SEQ ;
+     if( REG_IS_3D(rtin->reg_mode) ){
+       rtin->reg_mode = REGMODE_NONE ;
+       fprintf(stderr,"RT: can't do 3D registration on 2D dataset!\n") ;
+     }
+   }
 
    RT_check_info( rtin , 0 ) ;
 
@@ -1914,7 +1924,8 @@ void RT_start_dataset( RT_input * rtin )
    /******************************************/
    /** add time axis information, if needed **/
 
-   if( rtin->dtype == DTYPE_3DT ){  /* all slices simultaneous */
+   if( rtin->dtype == DTYPE_3DT ||                      /* all slices   */
+      (rtin->dtype == DTYPE_2DZT && rtin->nzz == 1) ){  /* simultaneous */
 
       EDIT_dset_items( rtin->dset ,
                           ADN_ntt      , 1 ,

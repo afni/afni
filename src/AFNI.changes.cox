@@ -3815,3 +3815,4 @@
      factor into dv MRI_IMAGE header field, for use in 3dANALYZEtoAFNI.c.
  * Modified thd_writedset.c to allow re-writing of a VOLUMES dataset
      .HEAD file.
+ * Modified plug_realtime.c to allow single slice dataset input (nzz=1).
