@@ -34,7 +34,7 @@
 # define IS_FINITE(x) finite(x)
 #endif
 
-#define FSET(nf) do{ fseek(fp,sizeof(float)*nf,SEEK_SET); fpos=nf; } while(0)
+#define FSET(nf) do{ fseek(fp,sizeof(float)*(nf),SEEK_SET); fpos=(nf); } while(0)
 
 #define NBUF 1024
 
