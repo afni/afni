@@ -675,9 +675,13 @@
         o  save THD_dicomm_to_3dmm() until the end
 
 06 October 2004:
-  * modified anfi.h: added AFNI_vol2surf_func_overlay() prototype
+  * modified afni.h: added AFNI_vol2surf_func_overlay() prototype
   * modified afni_niml.c:AFNI_process_niml_data()
     - added case for name "SUMA_node_normals" via SUMA_add_norms_xyz()
   * modified afni_suma.h: added SUMA_add_norms_xyz() prototype
   * modified afni_suma.c: added SUMA_add_norms_xyz() function
+  * modified SUMA_SurfMeasures.c (->v1.11): to mention 'SurfPatch -vol'
+
+07 October 2004:
+  * modified afni_plugin.h: fixed extern name PLUTO_set_v2s_addrs()
 
