@@ -146,8 +146,17 @@ NUM_CHAN nc
 DRIVE_AFNI command
   You can also pass commands to control AFNI (e.g., open windows) in the
   image prolog.  See README.driver for the list of command strings.
+  More than one DRIVE_AFNI command can be used in the realtime prolog.
  * This command is optional.
 
+NOTE text to attach to dataset
+  This command lets you attach text notes to the dataset(s) being created
+  by the realtime plugin.  All the text after "NOTE ", up to (not including)
+  the next '\n', will be attached as a text note.  More than one NOTE can
+  be given.  If you want to send a multiline note, then you have to convert
+  the '\n' characters in the note text to '\a' or '\f' characters (ASCII
+  7 and 12 (decimal), respectively).  Any '\a' or '\f' characters in the
+  text will be converted to '\n' characters before the note is processed.
 
 ==============================================
 How AFNI reads realtime command and image data
