@@ -72,8 +72,17 @@ ENTRY("AFNI_thr_scale_CB") ;
                                            : REDISPLAY_OPTIONAL ;
    AFNI_set_thr_pval( im3d ) ;
 
+   if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
+     char pstr[32] ;
+     sprintf( pstr , "nominal p=%.5e" , im3d->vinfo->func_pval ) ;
+     MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
+   } else {
+     MCW_register_hint( im3d->vwid->func->thr_pval_label ,
+                        "Nominal p-value per voxel"       ) ;
+   }
+
    if( ! DOING_REALTIME_WORK )
-      AFNI_redisplay_func( im3d ) ;
+     AFNI_redisplay_func( im3d ) ;
 
    if( AFNI_yesenv("AFNI_THRESH_LOCK") ){  /* 06 Feb 2004 */
      GLOBAL_library.thresh_lock = 1 ;
@@ -162,9 +171,9 @@ char * AFNI_thresh_tlabel_CB( MCW_arrowval * av , XtPointer junk )
   Take action when the user changes the threshold top chooser.
 -------------------------------------------------------------------------*/
 
-void AFNI_thresh_top_CB( MCW_arrowval * av , XtPointer cd )
+void AFNI_thresh_top_CB( MCW_arrowval *av , XtPointer cd )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
                             100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
 
@@ -172,10 +181,16 @@ ENTRY("AFNI_thresh_top_CB") ;
 
    if( IM3D_OPEN(im3d) && im3d->vinfo->func_thresh_top != tval[av->ival] ){
 
-      AFNI_set_thresh_top( im3d , tval[av->ival] ) ;
+     AFNI_set_thresh_top( im3d , tval[av->ival] ) ;
 
-      if( im3d->vinfo->func_visible )
-         AFNI_redisplay_func( im3d ) ;
+     if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
+
+     if( AFNI_yesenv("AFNI_THRESH_LOCK") ){  /* 06 Feb 2004 */
+       GLOBAL_library.thresh_lock = 1 ;
+       AFNI_thresh_lock_carryout(im3d) ;
+     } else {
+       GLOBAL_library.thresh_lock = 0 ;
+     }
    }
 
    EXRETURN ;
@@ -206,6 +221,8 @@ ENTRY("AFNI_set_thr_pval") ;
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
 
+   im3d->vinfo->func_pval = pval ;  /* 06 Feb 2004 */
+
 if(PRINT_TRACING)
 { char buf[128] ;
   sprintf( buf, "thresh=%g  top=%g  pval=%g",
@@ -225,8 +242,8 @@ if(PRINT_TRACING)
       } else {
          int dec = (int)(0.999 - log10(pval)) ;
          pval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
-         if( dec < 10 ) sprintf( buf , "%3.1f-%1d" ,      pval, dec ) ;
-         else           sprintf( buf , "%1d.-%2d"  , (int)pval, dec ) ;
+         if( dec < 10 ) sprintf( buf , "%3.1f-%1d" ,           pval , dec ) ;
+         else           sprintf( buf , "%1d.-%2d"  , (int)rint(pval), dec ) ;
       }
    }
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;

@@ -268,6 +268,8 @@ typedef struct {
 
       int view_setter ;  /* 20 Feb 2003 */
 
+      float func_pval ;  /* 06 Feb 2004 */
+
 } AFNI_view_info ;
 
 #define AXIAL    1       /* 20 Feb 2003: view_setter codes */
@@ -456,6 +458,7 @@ typedef struct {
 
 #define THR_TOP_EXPON  4         /* 30 Nov 1997 */
 #define THR_FACTOR     0.0001    /* pow(10,-THR_TOP_EXPON) */
+#define THR_TOP_VALUE  9999.0    /* pow(10,THR_TOP_EXPON)-1 */
 
 #undef USE_FUNC_FIM              /* 09 Dec 1997 */
 
