@@ -2546,6 +2546,7 @@ ENTRY("mri_read_analyze75") ;
       case ANDT_FLOAT:         datum_type = MRI_float  ; floatize = 0; break;
       case ANDT_COMPLEX:       datum_type = MRI_complex; floatize = 0; break;
       case ANDT_RGB:           datum_type = MRI_rgb    ; floatize = 0; break;
+      case ANDT_DOUBLE:        datum_type = MRI_double ; floatize = 0; break;
    }
 
    datum_len = mri_datum_size(datum_type) ;
