@@ -804,3 +804,8 @@
     - if debug, print header and image filenames before changing them
     - added -nifti_hist and -nifti_ver options
 
+06 December 2004:
+  * modified mrilib.h (and so vol2surf.c)
+    - added value and pointer list types for float, int, short and void
+      (see float_list, for example)
+
