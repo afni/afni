@@ -374,8 +374,12 @@ ENTRY("mri_short2mask") ;
     for( jj=0 ; jj < ny ; jj++ ){
      for( ii=0 ; ii < nx ; ii++,ijk++ ){
        bval = pointclip( ii,jj,kk , &bvec ) ; /* cliplevel here */
+#if 0
        tval = pointclip( ii,jj,kk , &tvec ) ; /* cliplevel here */
        mask[ijk] = (sar[ijk] >= bval && sar[ijk] <= tval) ; /* binarize */
+#else
+       mask[ijk] = (sar[ijk] >= bval) ; /* binarize */
+#endif
    }}}
 
    if( verb ) fprintf(stderr," + mri_short2mask: %d voxels survive clip\n",
@@ -732,8 +736,9 @@ ENTRY("watershedize") ;
 static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 {
    int nxy=nx*ny,nxyz=nxy*nz , ii,jj,kk , ijk , bot,top , pd=pdepth ;
-   int num=0 , dnum , nite ;
    byte *ppp ;
+
+   if( mmm == NULL || pdepth <= 1 ) return NULL ;
 
    ppp = (byte *)calloc(sizeof(byte),nxyz) ;
 
@@ -742,7 +747,10 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
       ijk = jj*nx + kk*nxy ;
       for( bot=0 ; bot < nx && !mmm[bot+ijk]; bot++ ) ;
       top = bot+pd ; if( top >= nx ) continue ;
-      for( ii=bot ; ii <= top && mmm[ii+ijk] ; ii++ ) ppp[ii+ijk] = 1 ;
+      for( ii=bot+1 ; ii <= top && mmm[ii+ijk] ; ii++ ) ;
+      if( ii <= top ){
+        top = ii; for( ii=bot ; ii <= top ; ii++ ) ppp[ii+ijk] = 1;
+      }
    }}
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -750,7 +758,10 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
       ijk = jj*nx + kk*nxy ;
       for( top=nx-1 ; top >= 0 && !mmm[top+ijk]; top-- ) ;
       bot = top-pd ; if( bot < 0 ) continue ;
-      for( ii=top ; ii >= bot && mmm[ii+ijk] ; ii-- ) ppp[ii+ijk] = 1 ;
+      for( ii=top-1 ; ii >= bot && mmm[ii+ijk] ; ii-- ) ;
+      if( ii >= bot ){
+        bot = ii; for( ii=top ; ii >= bot ; ii-- ) ppp[ii+ijk] = 1;
+      }
    }}
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -759,7 +770,10 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
       for( bot=0 ; bot < ny && !mmm[bot*nx+ijk] ; bot++ ) ;
       top = bot+pd ;
       if( top >= ny ) continue ;
-      for( jj=bot ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ppp[jj*nx+ijk] = 1 ;
+      for( jj=bot+1 ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ;
+      if( jj <= top ){
+        top = jj; for( jj=bot ; jj <= top ; jj++ ) ppp[jj*nx+ijk] = 1;
+      }
    }}
 
    for( kk=0 ; kk < nz ; kk++ ){
@@ -767,7 +781,10 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
       ijk = ii + kk*nxy ;
       for( top=ny-1 ; top >= 0 && !mmm[top*nx+ijk] ; top-- ) ;
       bot = top-pd ; if( bot < 0 ) continue ;
-      for( jj=top ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ppp[jj*nx+ijk] = 1 ;
+      for( jj=top-1 ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ;
+      if( jj >= bot ){
+        bot = jj; for( jj=top ; jj >= bot ; jj-- ) ppp[jj*nx+ijk] = 1;
+      }
    }}
 
 #if 1
@@ -776,7 +793,10 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
        ijk = ii + jj*nx ;
        for( top=nz-1 ; top >= 0 && !mmm[top*nxy+ijk] ; top-- ) ;
        bot = top-pd ; if( bot < 0 ) continue ;
-       for( kk=top ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ppp[kk*nxy+ijk] = 1 ;
+       for( kk=top-1 ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ;
+       if( kk >= bot ){
+         bot = kk; for( kk=top ; kk >= bot ; kk-- ) ppp[kk*nxy+ijk] = 1;
+       }
     }}
 #endif
 
@@ -787,9 +807,45 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
    THD_mask_clust( nx,ny,nz, ppp ) ;
    kk = mask_count(nxyz,ppp) ;
    if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
-   if( verb ) fprintf(stderr," + Clustered peel mask has %d voxels\n",kk ) ;
+   if( verb ) fprintf(stderr," + Final   peel mask has %d voxels\n",kk ) ;
 
    return ppp ;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void zedit_mask( int nx, int ny, int nz, byte *mmm, int zdepth, int zbot )
+{
+   int nxy=nx*ny,nxyz=nxy*nz , ii,jj,kk , ijk , bot,top ;
+   int zd=zdepth , zb=zbot , zt , zslab , zz ;
+   byte *ppp , *zzz ;
+
+   if( mmm == NULL ) return ;
+
+   if( zd < 1  ) zd = 1  ;
+   if( zb < zd ) zb = zd ;
+   zslab = 2*zd+1 ;
+ 
+   for( kk=nz-1 ; kk >= zb ; kk-- ){
+     jj = mask_count( nxy , mmm+kk*nxy ) ;
+     if( jj > 0.005*nxy ) break ;
+   }
+   zt = kk-zd ; if( zt < zb ) return ;
+
+   ppp = (byte *)calloc(sizeof(byte),nxyz) ;
+   zzz = (byte *)calloc(sizeof(byte),nxy*zslab) ;
+
+   for( zz=zb ; zz <= zt ; zz++ ){
+     memcpy( zzz , mmm+(zz-zd)*nxy , nxy*zslab ) ;
+     THD_mask_erode( nx,ny,zslab, zzz ) ;
+     THD_mask_clust( nx,ny,zslab, zzz ) ;
+     memcpy( ppp+zz*nxy , zzz+zd*nxy , nxy ) ;
+   }
+   free((void *)zzz) ;
+   memcpy( mmm+zb*nxy , ppp+zb*nxy , (zt-zb+1)*nxy ) ;
+   free((void *)ppp) ;
+   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_clust( nx,ny,nz, mmm ) ;
 }
 
 /*======================================================================*/
@@ -812,6 +868,8 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 #define NY   212
 #define NZ   175
 #define DXYZ   1.0
+
+#define ZHEIGHT 170.0   /* height of box, from top slice */
 
 /*----------------------------------------------------------------------*/
 /*! Index warping function for mri_warp3D() call. */
@@ -968,9 +1026,9 @@ ENTRY("mri_brainormalize") ;
      memset( mask+(ktop+1)*nxy , 0 , nxy*(nz-1-ktop)*sizeof(byte) ) ;
    }
 
-   /* find slice index 165 mm below that slice */
+   /* find slice index ZHEIGHT mm below that top slice */
 
-   jj = (int)rint( ktop-165.0/dz ) ;
+   jj = (int)( ktop-ZHEIGHT/dz ) ;
    if( jj >= 0 ){
      if( verb )
        fprintf(stderr,"++mri_brainormalize: bot clip below slice %d\n",jj) ;
@@ -1035,15 +1093,26 @@ ENTRY("mri_brainormalize") ;
      mask = mri_short2mask( tim ) ;
 #if 1
      { byte *ppp ; int pd ;
-       pd = (int)AFNI_numenv("PEELDEPTH") ; if( pd < 1 ) pd = 3 ;
+       pd = (int)AFNI_numenv("PEELDEPTH") ; if( pd < 2 ) pd = 3 ;
        ppp = make_peel_mask( nx,ny,nz , mask , pd ) ;
-       if( ppp != NULL )
+       if( ppp != NULL ){
          for( ii=0 ; ii < nxyz ; ii++ ) if( ppp[ii] ) mask[ii] = 0 ;
-       free((void *)ppp) ;
+         free((void *)ppp) ;
+       }
      }
 #endif
-     THD_mask_erode( nx,ny,nz, mask ) ;
-     THD_mask_clust( nx,ny,nz, mask ) ;
+
+#if 1
+     { int zd = (int)AFNI_numenv("ZDEPTH") ;
+       if( zd > 0 ){
+         zedit_mask( nx,ny,nz,mask,zd, (int)(-(ZORG/DXYZ)) ) ;
+       } else {
+         THD_mask_erode( nx,ny,nz, mask ) ;
+         THD_mask_clust( nx,ny,nz, mask ) ;
+       }
+     }
+#endif
+
 #if 0
      (void) THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
      (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
