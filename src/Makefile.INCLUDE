@@ -536,7 +536,7 @@ d3dmerge:3dmerge.c
 
 whereami:whereami.o
 	$(RM) $@
-	$(CC) -o whereami whereami.c $(LFLAGS) -lmri $(LLIBS)
+	$(CC) -o whereami whereami.c $(IFLAGS) $(LFLAGS) -lmri $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
