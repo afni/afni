@@ -4651,3 +4651,8 @@
  * More expansion in parser.f, etc.
  * Modified coxplot/plot_ts.c and 1dplot.c to let user control x- and y-axes
      in more detail.
+
+23 Jul 2003
+ * Changes to thd_info.c to print more than 8000 characters from the History.
+ * Changes to thd_notes.c to make Addto_History work right.
+ * Changes to 3dcalc.c to use Addto_History correctly.
