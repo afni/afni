@@ -4038,3 +4038,8 @@
 13 Nov 2002
  * Modified afni_splash.[ch] to allow color top overlays.  Incorporated SSCC group
      picture.
+
+18 Nov 2002
+ * Modified niml.[ch] to make the NI_malloc() package use tracking functions,
+     which I stole from mcw_malloc.c - of course, I wrote that, too, so "stole"
+     may be too strong a verb.
