@@ -202,8 +202,12 @@ ENTRY("THD_dataset_info") ;
            "Number of values stored at each pixel = %d\n" , nval_per ) ;
    }
 
+#if 0
    if( verbose && ntimes > 1 ) nval_per = dset->dblk->nvals ;
    else                        nval_per = 1 ;                 /* 12 Feb 2002 */
+#else
+   nval_per = dset->dblk->nvals ;
+#endif
 
    for( ival=0 ; ival < nval_per ; ival++ ){
 

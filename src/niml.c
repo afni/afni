@@ -3044,6 +3044,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
 
    if( veclen == 0 ){              /* empty element */
      nel->vec_len      = 0 ;
+     nel->vec_filled   = 0 ;
      nel->vec_rank     = 0 ;
      nel->vec_axis_len = NULL ;
      nel->rowmap_num   = 0    ;
@@ -3052,6 +3053,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
      nel->rowmap_siz   = NULL ;
    } else if( veclen > 0 ){        /* element with data to come in columns */
      nel->vec_len         = veclen ;
+     nel->vec_filled      = veclen ;
      nel->vec_rank        = 1 ;
      nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
      nel->vec_axis_len[0] = veclen ;
@@ -3061,6 +3063,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
      nel->rowmap_siz      = NULL ;
    } else {                        /* element with data to come in rows */
      nel->vec_len         = 0 ;
+     nel->vec_filled      = 0 ;
      nel->vec_rank        = 1 ;
      nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
      nel->vec_axis_len[0] = 0 ;
@@ -3268,7 +3271,7 @@ fprintf(stderr,"           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
 
    }
 
-   nel->vec_len = nel->vec_axis_len[0] = rr+1 ;  /* vectors now longer */
+   nel->vec_len = nel->vec_filled = nel->vec_axis_len[0] = rr+1 ;
    return ;
 }
 
@@ -3486,7 +3489,7 @@ void NI_add_many_rows( NI_element *nel, int nrow, int stride, void *datin )
 
    } /* end of loop over columns */
 
-   nel->vec_len = nel->vec_axis_len[0] = rrnew ;  /* vectors now longer */
+   nel->vec_len = nel->vec_filled = nel->vec_axis_len[0] = rrnew ;
    return ;
 }
 
@@ -4398,7 +4401,15 @@ int NI_trust_host( char *hostid )
    int ii ;
    char *hh = hostid ;
 
-   if( host_num == 0 ) return 1 ;  /* complete trust */
+   /* if the trusted list is empty,
+      see if we want to be completely trusting;
+      if not, then initialize the trusted list and then check */
+
+   if( host_num == 0 ){
+      char *eee = getenv("NIML_COMPLETE_TRUST") ;
+      if( eee != NULL && toupper(*eee) == 'Y' ) return 1 ; /* complete trust */
+      init_trusted_list() ;
+   }
 
    if( hostid == NULL || hostid[0] == '\0' ) return 0 ;
 
