@@ -594,4 +594,6 @@
   * modified f2cdir/rawio.h, hiding read/write declarations for 64-bit machines
   * added Makefile.solaris9_suncc_64
   * added Makefile.linux_gcc33_64 (for Fedora Core 2, x86-64)
+  * modified SUMA_glxdino.c, SUMA_pixmap2eps.c to cast gluTessCallback()'s
+    3rd argument only in the case of the LINUX2 define
 

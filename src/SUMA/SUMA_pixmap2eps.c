@@ -46,6 +46,14 @@ fatalError(char *message)
   exit(1);
 }
 
+/* it seems that some compilers have a new type for the third argument */
+/* 03 Aug 2004 [rickr] */
+#ifdef LINUX2
+#define CAST_GLU_FUNCPTR (_GLUfuncptr)
+#else
+#define CAST_GLU_FUNCPTR
+#endif
+
 void
 extrudeSolidFromPolygon(GLfloat data[][2], unsigned int dataSize,
   GLdouble thickness, GLuint side, GLuint edge, GLuint whole)
@@ -58,10 +66,10 @@ extrudeSolidFromPolygon(GLfloat data[][2], unsigned int dataSize,
   if (tobj == NULL) {
     tobj = gluNewTess();  /* create and initialize a GLU
                              polygon * tesselation object */
-    gluTessCallback(tobj, GLU_BEGIN, glBegin);
-    gluTessCallback(tobj, GLU_VERTEX, glVertex2fv);  /* semi-tricky
-                                                      */
-    gluTessCallback(tobj, GLU_END, glEnd);
+    gluTessCallback(tobj, GLU_BEGIN, CAST_GLU_FUNCPTR glBegin);
+    gluTessCallback(tobj, GLU_VERTEX, CAST_GLU_FUNCPTR glVertex2fv);
+                                                            /* semi-tricky */
+    gluTessCallback(tobj, GLU_END, CAST_GLU_FUNCPTR glEnd);
   }
   glNewList(side, GL_COMPILE);
   glShadeModel(GL_SMOOTH);  /* smooth minimizes seeing
