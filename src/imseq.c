@@ -3417,6 +3417,8 @@ ENTRY("ISQ_but_done_CB") ;
       seq->glstat->worker = 0 ;
    }
 
+   if( seq->dialog != NULL ) XtDestroyWidget( seq->dialog ) ;  /* 13 Aug 2002 */
+
    ISQ_free_alldata( seq ) ;
    XtDestroyWidget( seq->wtop ) ;
    seq->valid = 0 ;     /* WE do not deallocate the data structure! */
@@ -4656,7 +4658,6 @@ ENTRY("ISQ_button2_EV") ;
      change the way the image is displayed (flip, rotate, ...),
      by popping up a dialog
 -----------------------------------------------------------------------*/
-
 
 void ISQ_but_disp_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
