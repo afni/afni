@@ -33,9 +33,9 @@ SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 
-void usage_SUMA_getPatch ()
+void usage_SUMA_coarsen ()
 {
-   static char FuncName[]={"usage_SUMA_getPatch"};
+   static char FuncName[]={"usage_SUMA_coarsen"};
    char * s = NULL;
    s = SUMA_help_basics();
    printf ( "\nUsage:\n"
@@ -79,14 +79,14 @@ typedef struct {
 
    \param argv (char *)
    \param argc (int)
-   \return Opt (SUMA_GETPATCH_OPTIONS *) options structure.
+   \return Opt (SUMA_coarsen_OPTIONS *) options structure.
                To free it, use
                SUMA_free(Opt->out_prefix);
                SUMA_free(Opt);
 */
-SUMA_KUBATEST_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
+SUMA_KUBATEST_OPTIONS *SUMA_coarsen_ParseInput (char *argv[], int argc)
 {
-   static char FuncName[]={"SUMA_GetPatch_ParseInput"};
+   static char FuncName[]={"SUMA_coarsen_ParseInput"};
    SUMA_KUBATEST_OPTIONS *Opt=NULL;
    int kar, i, ind;
    char *outprefix;
@@ -118,7 +118,7 @@ SUMA_KUBATEST_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0)
       {
-         usage_SUMA_getPatch();
+         usage_SUMA_coarsen();
          exit (0);
       }
 
@@ -231,11 +231,11 @@ int main (int argc,char *argv[])
 
    if (argc < 4)
    {
-      usage_SUMA_getPatch();
+      usage_SUMA_coarsen();
       exit (1);
    }
 
-   Opt = SUMA_GetPatch_ParseInput (argv, argc);
+   Opt = SUMA_coarsen_ParseInput (argv, argc);
 
    /* read all surfaces */
    if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
@@ -265,21 +265,14 @@ int main (int argc,char *argv[])
                               FuncName, Opt->surf_names[0]);
          exit(1);
       }
-        //SUMA_SurfaceMetrics(SO, "Convexity, EdgeList, MemberFace", NULL);
 
-
-      //try to simplify mesh
+      /* try to simplify mesh */
       GtsSurface* s  = SumaToGts(SO);
-      //FILE *f = NULL;
-      //f = fopen("gts_test.gts", "w");
+      
       if (Opt->edges < 1)
          coarsen(s, SO->EL->N_Distinct_Edges * Opt->edges);
       else
          refine(s, SO->EL->N_Distinct_Edges * Opt->edges);
-      // gts_surface_print_stats(s, f);
-
-      //gts_surface_write(s, f);
-      // fclose(f);
 
       SUMA_SurfaceObject* S2 = GtsToSuma(s);
       
@@ -298,7 +291,6 @@ int main (int argc,char *argv[])
          S2->FaceSetList[i+2]);
       fclose(out);
       SUMA_free (S2);
-      //SUMA_Free_Surface_Object (S2);
       gts_object_destroy((GtsObject*)s);
 
    SUMA_LH("clean up");
