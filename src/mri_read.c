@@ -128,12 +128,13 @@ WHOAMI ;
        fread( &cflag, 4,1, imfile ) ;
 
        if( nx < 0 || nx > 8192 ){      /* maybe have to byte swap 5 ints */
-         swap = 1 ;
-         swap_4(&skip); swap_4(&nx); swap_4(&ny); swap_4(&bpp); swap_4(&cflag);
-         if( nx < 0 || nx > 8192 || ny < 0 || ny > 8192 ) goto The_Old_Way ;
+         swap = 1 ;                    /* flag that we are swapping data */
+         swap_4(&skip); swap_4(&nx) ;
+         swap_4(&ny)  ; swap_4(&bpp); swap_4(&cflag);
        }
-       if( skip < 0  || skip  >= length )                 goto The_Old_Way ;
-       if( bpp != 16 || cflag != 1      )                 goto The_Old_Way ;
+       if( nx < 0 || nx > 8192 || ny < 0 || ny > 8192 ) goto The_Old_Way ;
+       if( skip < 0  || skip  >= length )               goto The_Old_Way ;
+       if( bpp != 16 || cflag != 1      )               goto The_Old_Way ;
 
        /* make image space */
 

@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 
+/*****    Program to print info from a GE image header      ******/
+
 /*****    Compilation:  cc -o ge_header ge_header.c -lm     ******/
+
+/*****    RWCox - 04 Dec 2001                               ******/
 
 /*---------------------------------------------------------------*/
 

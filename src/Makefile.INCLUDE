@@ -29,24 +29,24 @@ MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib gmovie*
 ## and must be "made" separately.  This list is the core AFNI
 ## package -- other programs are experimental and/or outsiders.
 
-PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
-           sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals \
+PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
+           sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
-           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
-           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
-           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk \
-           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
+           p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta  \
+           waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket       \
+           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk    \
+           3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna      \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
-           3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam \
-           3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
+           3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam        \
+           3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose     \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
-           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
+           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot  \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
-           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
+           3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid    \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
-           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI \
-           3dAFNItoANALYZE
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
+           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -62,7 +62,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
-                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE
+                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
+                  mayo_analyze
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -785,6 +786,10 @@ siemens_vision:siemens_vision.o
 ge_header:ge_header.o
 	$(RM) $@
 	$(CC) -o ge_header ge_header.o $(LFLAGS) $(LLIBS)
+
+mayo_analyze:mayo_analyze.o
+	$(RM) $@
+	$(CC) -o mayo_analyze mayo_analyze.o $(LFLAGS) $(LLIBS)
 
 sfim:sfim.o
 	$(RM) $@
