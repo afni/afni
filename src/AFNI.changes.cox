@@ -4073,3 +4073,10 @@
 30 Nov 2002
  * Modified mcw_graf.[ch] to draw a coordinate label during drag of graf
      handle with Button 3.
+ * Modified mri_read_dicom.c to deal with GE's incorrect use of Slice Spacing
+     as gap, rather than center-to-center distance.  Ugh.
+
+02 Dec 2002
+ * Modified plug_crender.c to use mcw_graf.c stuff of 30 Nov 2002.
+ * Modified mri_read_dicom.c to deal with Siemens Mosaic differently, to
+     accomodate variations from NYU's Allegra scanner (vs. NIDA's).
