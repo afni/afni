@@ -6,21 +6,25 @@
 
 #include "mrilib.h"
 #include "thd.h"
+#include "thd_niftiwrite.h"
 
-static int use_3D_format = 0 ;
+static int use_3D_format    = 0 ;  /* 21 Mar 2003 */
+static int use_NIFTI_format = 0 ;  /* 06 Apr 2005 */
 
-void THD_use_3D_format( int uu ){ use_3D_format = uu; }
+void THD_use_3D_format   ( int uu ){ use_3D_format    = uu; }
+void THD_use_NIFTI_format( int uu ){ use_NIFTI_format = uu; }
 
 /*----------------------------------------------------------------*/
 /*! This routine writes all the header data in the struct to
-    the datablock attributes, then writes the dataset to
-    disk.
+    the datablock attributes, then writes the dataset to disk.
 
    29 Apr 1998: erase attributes that are unused, so that
                   they won't be left over from a previous life
 
-   09 May 2005: attributes are now set in function
+   09 Mar 2005: attributes are now set in function
                 THD_set_dataset_attributes() rather than here
+
+   06 Apr 2005: might go all NIFTI on you
 ------------------------------------------------------------------*/
 
 Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
@@ -28,6 +32,7 @@ Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
 {
    THD_datablock *blk ;
    int ii ;
+   char *ppp ;  /* 06 Apr 2005 */
 
 ENTRY("THD_write_3dim_dataset") ;
 
@@ -65,11 +70,30 @@ ENTRY("THD_write_3dim_dataset") ;
                            new_sessname , NULL , new_prefixname ,
                            dset->view_type , True ) ;
 
-   /*----- 09 May 2005: set attribute structs in the datablock -----*/
+   /*----- 09 Mar 2005: set attribute structs in the datablock -----*/
 
    THD_set_dataset_attributes( dset ) ;
 
-   if( DSET_IS_3D(dset) || use_3D_format ){                   /* 21 Mar 2003 */
+   /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
+
+   ppp = DSET_PREFIX(dset) ;
+   if( DSET_IS_NIFTI(dset) || STRING_HAS_SUFFIX(ppp,".nii") ){
+     niftiwr_opts_t options ;
+     ii = strlen(DSET_DIRNAME(dset)) + strlen(ppp) + 16 ;
+     options.infile_name = calloc(1,ii) ;
+     strcpy(options.infile_name,DSET_DIRNAME(dset)) ;
+     strcat(options.infile_name,ppp) ;
+     if( !STRING_HAS_SUFFIX(options.infile_name,".nii") )
+       strcat(options.infile_name,".nii") ;
+     options.debug_level = 0 ;
+     ii = THD_write_nifti(dset,options) ;
+     free((void *)options.infile_name) ;
+     RETURN( (Boolean)ii ) ;
+   }
+
+   /*------ 21 Mar 2003: the .3D format? -----*/
+
+   if( DSET_IS_3D(dset) || use_3D_format ){
      THD_write_3D( NULL, NULL, dset ) ; RETURN(True) ;
    }
 

@@ -5422,3 +5422,7 @@
 
 04 Apr 2005
  * Added 'Pleg' function to parser and thence to 3dcalc, etc.
+
+06 Apr 2004
+ * Added '.nii' output feature to THD_writedset() function, and did
+     a few other similar things hither and yon.
