@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-extern char *MRI_dicom_header( char * ) ;
+extern char *mri_dicom_header( char * ) ;
 
 int main(int argc, char **argv)
 {
@@ -11,7 +11,7 @@ int main(int argc, char **argv)
      printf("Usage: mri_dicom fname\n"); exit(0);
    }
 
-   ppp = MRI_dicom_header( argv[1] ) ;
+   ppp = mri_dicom_header( argv[1] ) ;
    if( ppp != NULL ) printf("%s",ppp) ;
    exit(0) ;
 }

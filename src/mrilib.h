@@ -537,6 +537,8 @@ extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 
+extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
+
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
 #define mri_clear_data_pointer(iq) mri_fix_data_pointer(NULL,(iq))
