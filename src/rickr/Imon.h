@@ -132,6 +132,9 @@ static int idisp_ge_header_info ( char * info, ge_header_info * I );
 
 static int usage                ( char * prog, int level );
 
+/* local copy of afni function */
+unsigned long l_THD_filesize    ( char * pathname );
+
 /*----------------------------------------------------------------------*/
 /* macros */
 
