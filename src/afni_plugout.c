@@ -445,12 +445,10 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
                                       : "PO: did not receive acknowledgment\n" ) ;
         }
 
-#ifdef ALLOW_AGNI
-
       /* set surface node ID */
 
       } else if( strncmp(str[ss],"SURFID",6) == 0 ){
-        if( AGNI_ENABLED && im3d->anat_now->ag_surf != NULL ){
+        if( SUMA_ENABLED && im3d->anat_now->su_surf != NULL ){
            int id ;
 
            ii = sscanf( str[ss] , "SURFID %d" , &id ) ;
@@ -464,20 +462,19 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
               if( verbose )
                  fprintf(stderr,"PO: command SURFID %d\n",id) ;
 
-              ii = AGNI_find_node_id( im3d->anat_now->ag_surf , id ) ;
+              ii = SUMA_find_node_id( im3d->anat_now->su_surf , id ) ;
               if( ii < 0 ){
                  fprintf(stderr,"PO: unknown SURFID node number %d\n",id) ;
                  if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
               } else {
                  AFNI_jumpto_dicom( im3d ,
-                                    im3d->anat_now->ag_surf->nod[ii].x ,
-                                    im3d->anat_now->ag_surf->nod[ii].y ,
-                                    im3d->anat_now->ag_surf->nod[ii].z  ) ;
+                                    im3d->anat_now->su_surf->nod[ii].x ,
+                                    im3d->anat_now->su_surf->nod[ii].y ,
+                                    im3d->anat_now->su_surf->nod[ii].z  ) ;
                  if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
               }
            }
         }
-#endif
 
       /*-- 07 Nov 2001: drive various AFNI user interface widgets --*/
 
@@ -580,7 +577,6 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
             }
             break ;
 
-#ifdef ALLOW_AGNI
             case POMODE_SURFID_DELTA:{          /* 05 Sep 2001 */
                int ix , jy , kz , new_xyz ;
                ix = im3d->vinfo->i1 ;
@@ -589,26 +585,26 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
                new_xyz = (ix != pp->ix || jy != pp->jy || kz != pp->kz) ;
 
                if( new_xyz                         &&
-                   AGNI_ENABLED                    &&
-                   im3d->anat_now->ag_surf != NULL &&
-                   im3d->anat_now->ag_vmap != NULL   ){
+                   SUMA_ENABLED                    &&
+                   im3d->anat_now->su_surf != NULL &&
+                   im3d->anat_now->su_vmap != NULL   ){
 
                    int nx = DSET_NX(im3d->anat_now) ;
                    int ny = DSET_NY(im3d->anat_now) ;
-                   int qq = im3d->anat_now->ag_vmap[ix + jy*nx + kz*nx*ny] ;
+                   int qq = im3d->anat_now->su_vmap[ix + jy*nx + kz*nx*ny] ;
 
                    if( qq > 0 ){
-                     qq = AGNI_VMAP_UNMASK(qq) ;
+                     qq = SUMA_VMAP_UNMASK(qq) ;
                      if( qq != pp->surfindex ){
                        sprintf( pobuf + npobuf , "SURFID %d\n" ,
-                                im3d->anat_now->ag_surf->nod[qq].id ) ;
+                                im3d->anat_now->su_surf->nod[qq].id ) ;
                        pp->surfindex = qq ;
                      }
                    }
                }
             }
             break ;
-#endif
+
          } /* end of switch on modes */
 
          npobuf = strlen( pobuf ) ;

@@ -48,12 +48,9 @@
 
 struct THD_3dim_dataset ;  /* incomplete definition */
 
-#define ALLOW_AGNI   /* 29 Aug 2001 */
-#ifdef ALLOW_AGNI
-# include "agni.h"
-#endif
+#include "afni_suma.h"     /* SUrface MApper */
 
-/*~ \brief Enables compilation of the MINC dataset code. */
+/*! \brief Enables compilation of the MINC dataset code. */
 
 #define ALLOW_MINC   /* 29 Oct 2001 */
 
@@ -1972,24 +1969,17 @@ typedef struct THD_3dim_dataset {
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
       XtPointer parent ;          /*!< Somebody that "owns" this dataset */
 
-#ifdef ALLOW_AGNI
-      AGNI_surface * ag_surf ;  /*!< 29 Aug 2001: surface data (experimental) */
-      char * ag_sname ;
-      int * ag_vmap ;
-#endif
+      SUMA_surface * su_surf ;  /*!< 29 Aug 2001: surface data (experimental) */
+      char * su_sname ;
+      int * su_vmap ;
 
 } THD_3dim_dataset ;
 
-#ifdef ALLOW_AGNI
-  /*! \brief Determine if dataset ds has AGNI surface data attached. */
-# define DSET_HAS_AGNI(ds)   ( (ds)->ag_sname != NULL && (ds)->ag_surf != NULL )
-  /*! \brief Clear out the AFNI surface data pointers in dataset ds. */
-# define DSET_NULL_AGNI(ds)  ((ds)->ag_sname=NULL, (ds)->ag_surf=NULL, (ds)->ag_vmap=NULL)
-#else
-# define DSET_HAS_AGNI(ds)   0
-# define DSET_NULL_AGNI(ds)  /* nada */
-# define AGNI_unload(ds)     /* nada */
-#endif
+/*! \brief Determine if dataset ds has SUMA surface data attached. */
+#define DSET_HAS_SUMA(ds)   ( (ds)->su_sname != NULL && (ds)->su_surf != NULL )
+
+/*! \brief Clear out the AFNI surface data pointers in dataset ds. */
+# define DSET_NULL_SUMA(ds)  ((ds)->su_sname=NULL, (ds)->su_surf=NULL, (ds)->su_vmap=NULL)
 
 /*! \brief A marker that defines a dataset that is about to be killed. */
 
@@ -2103,7 +2093,7 @@ typedef struct THD_3dim_dataset {
 # define PURGE_DSET(ds)                                                 \
   do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )                 \
          (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; \
-      AGNI_unload(ds) ;                                                 \
+      SUMA_unload(ds) ;                                                 \
   } while(0)
 
 /*! \brief Determine if dataset ds is loadable into memory */

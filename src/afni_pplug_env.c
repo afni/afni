@@ -245,8 +245,8 @@ PLUGIN_interface * ENV_init(void)
                     "Size of setback for image overlay labels" ,
                     0 , 40 , 3 , 3 , NULL ) ;
 
-   if( AGNI_ENABLED )
-     ENV_add_string( "AGNI_OVERLAY_COLOR" ,
+   if( SUMA_ENABLED )
+     ENV_add_string( "SUMA_OVERLAY_COLOR" ,
                      "Name of color for surface overlays" ,   /* 21 Sep 2001 */
                      0,NULL , NULL ) ;
 

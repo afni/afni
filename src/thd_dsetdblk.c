@@ -703,9 +703,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    }
 #endif
 
-#ifdef ALLOW_AGNI
-   AGNI_get_sname(dset) ;
-#endif
+   SUMA_get_sname(dset) ;
 
    RETURN( dset );
 }

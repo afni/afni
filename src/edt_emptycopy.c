@@ -196,9 +196,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dset->taxis = NULL ;
    }
 
-#ifdef ALLOW_AGNI
-   DSET_NULL_AGNI(new_dset) ;  /* 29 Aug 2001 */
-#endif
+   DSET_NULL_SUMA(new_dset) ;  /* 29 Aug 2001 */
 
    RETURN( new_dset );
 }

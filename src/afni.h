@@ -62,9 +62,7 @@ typedef struct {
 
       char * layout_fname ;   /* 23 Sep 2000 */
 
-#ifdef ALLOW_AGNI
-      int enable_agni ;       /* 29 Aug 2001 */
-#endif
+      int enable_suma ;       /* 29 Aug 2001 */
 
       int quiet ;             /* 25 Aug 2001 */
 } AF_options ;
@@ -966,11 +964,7 @@ typedef struct {
 #define SESSTRAIL       GLOBAL_library.sesstrail
 #define AFNI_VERBOSE    (!GLOBAL_argopt.quiet)  /* 25 Oct 2001 */
 
-#ifdef ALLOW_AGNI                               /* 29 Aug 2001 */
-# define AGNI_ENABLED GLOBAL_argopt.enable_agni
-#else
-# define AGNI_ENABLED 0
-#endif
+# define SUMA_ENABLED   GLOBAL_argopt.enable_suma
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
 
