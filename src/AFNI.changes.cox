@@ -5002,3 +5002,6 @@
 19 Mar 2004
  * Added vector chooser to bbox.[ch] and used in afni_graph.[ch] for choosing
      graph pin top and bottom together.
+
+21 Mar 2004
+ * AFNI_DISABLE_CURSORS in xutil.c.
