@@ -1909,6 +1909,9 @@ void T3D_initialize_user_data(void)
 
       /********** April 1996: new options for setting dimensions **********/
 
+/** 21 Nov 1997: alter the way dimensions are decoded **/
+#undef USE_OLD_DCODE
+
       /*--- -xFOV or -xSLAB ---*/
 
       if( strncmp(Argv[nopt],"-xFOV",5)==0 || strncmp(Argv[nopt],"-xSLAB",5)==0 ||
@@ -1930,6 +1933,7 @@ void T3D_initialize_user_data(void)
 
             Step 1: get the first <number>   */
 
+#ifdef USE_OLD_DCODE
          val = strtod( Argv[nopt] , &ptr ) ;
          if( val < 0.0 || (val == 0.0 && ptr == Argv[nopt]) )
             WarningError("a nonegative number should follow -xFOV/-xSLAB!") ;
@@ -1938,16 +1942,29 @@ void T3D_initialize_user_data(void)
 
          /* Step 2: get the first <dircode> */
 
-         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ;
+         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ; ptr++ ;
          if( dcod1 < 0 )
             WarningError("orientation code should follow first dimension in -xFOV/-xSLAB!") ;
+#else
+         { int nused ;
+           nused = decode_location( Argv[nopt] , &xin_bot , &dcod1 ) ;
+           if( xin_bot < 0.0 || xin_bot == WAY_BIG )
+             WarningError("a nonegative number should follow -xFOV/-xSLAB!") ;
+           if( dcod1 < 0 )
+             WarningError("1st orientation code illegal after -xFOV/-xSLAB!") ;
+           ptr = Argv[nopt] + nused ;
+         }
+#endif
+
 
          /* Step 3: get the separator */
 
-         ptr++ ;
          if( *ptr != ':' && *ptr != '-' )
+#ifdef USE_OLD_DCODE
             WarningError(": or - should follow orientation code in -xFOV/-xSLAB!") ;
-
+#else
+            WarningError(": or - should follow 1st dimension in -xFOV/-xSLAB!") ;
+#endif
          ptr++ ;
          if( *ptr == '\0' )
             WarningError("orientation code or dimension should follow : or - in -xFOV/-xSLAB!") ;
@@ -1957,6 +1974,7 @@ void T3D_initialize_user_data(void)
                     If the second <dircode> works, however, then the second
                     <number> is defined to be equal to the first <number>.   */
 
+#ifdef USE_OLD_DCODE
          acod = toupper( *ptr ) ; dcod2 = ORCODE(acod) ;
          if( dcod2 < 0 ){
             val = strtod( ptr , &ptr2 ) ;
@@ -1970,6 +1988,16 @@ void T3D_initialize_user_data(void)
          } else {
             xin_top = xin_bot ;
          }
+#else
+         { int nused ;
+           nused = decode_location( ptr , &xin_top , &dcod2 ) ;
+           if( dcod2 < 0 )
+             WarningError("need 2nd orientation code in -xFOV/-xSLAB!") ;
+           if( xin_top < 0.0 )
+             WarningError("need nonegative 2nd dimension in -xFOV/-xSLAB!") ;
+           if( xin_top == WAY_BIG ) xin_top = xin_bot ;
+         }
+#endif
 
          /* Now, check for consistency:
               Direction codes should be in the same or opposite directions;
@@ -2008,6 +2036,9 @@ void T3D_initialize_user_data(void)
          user_inputs.xin_bot = xin_bot ;
          user_inputs.xin_top = xin_top ;
 
+printf("decoded %s to give xincode=%d bot=%f top=%f\n",Argv[nopt],
+       user_inputs.xincode, user_inputs.xin_bot, user_inputs.xin_top ) ;
+
          nopt++ ; continue ;
       }
 
@@ -2033,6 +2064,7 @@ void T3D_initialize_user_data(void)
 
             Step 1: get the first <number>   */
 
+#ifdef USE_OLD_DCODE
          val = strtod( Argv[nopt] , &ptr ) ;
          if( val < 0.0 || (val == 0.0 && ptr == Argv[nopt]) )
             WarningError("a nonegative number should follow -yFOV/-ySLAB!") ;
@@ -2041,15 +2073,28 @@ void T3D_initialize_user_data(void)
 
          /* Step 2: get the first <dircode> */
 
-         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ;
+         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ; ptr++ ;
          if( dcod1 < 0 )
             WarningError("orientation code should follow first dimension in -yFOV/-ySLAB!") ;
+#else
+         { int nused ;
+           nused = decode_location( Argv[nopt] , &yin_bot , &dcod1 ) ;
+           if( yin_bot < 0.0 || yin_bot == WAY_BIG )
+             WarningError("a nonegative number should follow -yFOV/-ySLAB!") ;
+           if( dcod1 < 0 )
+             WarningError("1st orientation code illegal after -yFOV/-ySLAB!") ;
+           ptr = Argv[nopt] + nused ;
+         }
+#endif
 
          /* Step 3: get the separator */
 
-         ptr++ ;
          if( *ptr != ':' && *ptr != '-' )
+#ifdef USE_OLD_DCODE
             WarningError(": or - should follow orientation code in -yFOV/-ySLAB!") ;
+#else
+            WarningError(": or - should follow 1st dimension in -yFOV/-ySLAB!") ;
+#endif
 
          ptr++ ;
          if( *ptr == '\0' )
@@ -2060,6 +2105,7 @@ void T3D_initialize_user_data(void)
                     If the second <dircode> works, however, then the second
                     <number> is defined to be equal to the first <number>.   */
 
+#ifdef USE_OLD_DCODE
          acod = toupper( *ptr ) ; dcod2 = ORCODE(acod) ;
          if( dcod2 < 0 ){
             val = strtod( ptr , &ptr2 ) ;
@@ -2073,6 +2119,16 @@ void T3D_initialize_user_data(void)
          } else {
             yin_top = yin_bot ;
          }
+#else
+         { int nused ;
+           nused = decode_location( ptr , &yin_top , &dcod2 ) ;
+           if( dcod2 < 0 )
+             WarningError("need 2nd orientation code in -yFOV/-ySLAB!") ;
+           if( yin_top < 0.0 )
+             WarningError("need nonegative 2nd dimension in -yFOV/-ySLAB!") ;
+           if( yin_top == WAY_BIG ) yin_top = yin_bot ;
+         }
+#endif
 
          /* Now, check for consistency:
               Direction codes should be in the same or opposite directions;
@@ -2111,6 +2167,9 @@ void T3D_initialize_user_data(void)
          user_inputs.yin_bot = yin_bot ;
          user_inputs.yin_top = yin_top ;
 
+printf("decoded %s to give yincode=%d bot=%f top=%f\n",Argv[nopt],
+       user_inputs.yincode, user_inputs.yin_bot, user_inputs.yin_top ) ;
+
          nopt++ ; continue ;
       }
 
@@ -2136,6 +2195,7 @@ void T3D_initialize_user_data(void)
 
             Step 1: get the first <number>   */
 
+#ifdef USE_OLD_DCODE
          val = strtod( Argv[nopt] , &ptr ) ;
          if( val < 0.0 || (val == 0.0 && ptr == Argv[nopt]) )
             WarningError("a nonegative number should follow -zFOV/-zSLAB!") ;
@@ -2144,15 +2204,28 @@ void T3D_initialize_user_data(void)
 
          /* Step 2: get the first <dircode> */
 
-         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ;
+         acod = toupper( *ptr ) ; dcod1 = ORCODE(acod) ; ptr++ ;
          if( dcod1 < 0 )
             WarningError("orientation code should follow first dimension in -zFOV/-zSLAB!") ;
+#else
+         { int nused ;
+           nused = decode_location( Argv[nopt] , &zin_bot , &dcod1 ) ;
+           if( zin_bot < 0.0 || zin_bot == WAY_BIG )
+             WarningError("a nonegative number should follow -yFOV/-ySLAB!") ;
+           if( dcod1 < 0 )
+             WarningError("1st orientation code illegal after -yFOV/-ySLAB!") ;
+           ptr = Argv[nopt] + nused ;
+         }
+#endif
 
          /* Step 3: get the separator */
 
-         ptr++ ;
          if( *ptr != ':' && *ptr != '-' )
+#ifdef USE_OLD_DCODE
             WarningError(": or - should follow orientation code in -zFOV/-zSLAB!") ;
+#else
+            WarningError(": or - should follow 1st dimension in -zFOV/-zSLAB!") ;
+#endif
 
          ptr++ ;
          if( *ptr == '\0' )
@@ -2163,6 +2236,7 @@ void T3D_initialize_user_data(void)
                     If the second <dircode> works, however, then the second
                     <number> is defined to be equal to the first <number>.   */
 
+#ifdef USE_OLD_DCODE
          acod = toupper( *ptr ) ; dcod2 = ORCODE(acod) ;
          if( dcod2 < 0 ){
             val = strtod( ptr , &ptr2 ) ;
@@ -2176,6 +2250,16 @@ void T3D_initialize_user_data(void)
          } else {
             zin_top = zin_bot ;
          }
+#else
+         { int nused ;
+           nused = decode_location( ptr , &zin_top , &dcod2 ) ;
+           if( dcod2 < 0 )
+             WarningError("need 2nd orientation code in -zFOV/-zSLAB!") ;
+           if( zin_top < 0.0 )
+             WarningError("need nonegative 2nd dimension in -zFOV/-zSLAB!") ;
+           if( zin_top == WAY_BIG ) zin_top = zin_bot ;
+         }
+#endif
 
          /* Now, check for consistency:
               Direction codes should be in the same or opposite directions;
@@ -2213,6 +2297,9 @@ void T3D_initialize_user_data(void)
          user_inputs.zincode = zincode + dcod1 ;
          user_inputs.zin_bot = zin_bot ;
          user_inputs.zin_top = zin_top ;
+
+printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
+       user_inputs.zincode, user_inputs.zin_bot, user_inputs.zin_top ) ;
 
          nopt++ ; continue ;
       }
@@ -4873,3 +4960,49 @@ void T3D_setup_stat_aux(void)
 
    return ;
 }
+
+#ifndef USE_OLD_DCODE
+/***----------------------------------------------------------
+ 21 Nov 1997 [RWCox]:
+   Decode a location string in one of the forms
+     <number><dircode>
+     <dircode><number>
+     <dircode>
+     <number>
+   val will be WAY_BIG if the number isn't given, otherwise
+     it will be the number;
+   dcode will be < 0 if the dircode isn't given, otherwise
+     it will be the direction code.
+   The return value is the number of characters used from
+     the input string.
+--------------------------------------------------------------***/
+
+int decode_location( char * str , float * val , int * dcode )
+{
+   char acod , * ptr , * sstr = str ;
+
+   *val   = WAY_BIG ;
+   *dcode = ILLEGAL_TYPE ;
+   if( sstr == NULL || sstr[0] == '\0' ) return 0 ;
+
+   /** see if we get a legal direction code here **/
+
+   acod = toupper(sstr[0]) ; *dcode = ORCODE(acod) ;
+   if( *dcode >= 0 ) sstr++ ;
+
+   if( sstr[0] == '\0' ) return ((*dcode < 0) ? 0 : 1) ;
+
+   /** get number here **/
+
+   *val = strtod( sstr , &ptr ) ;
+   if( *val == 0.0 && ptr == sstr ) return ((*dcode < 0) ? 0 : 1) ;
+   sstr = ptr ;
+
+   if( *dcode >= 0 || sstr[0] == '\0' ) return (sstr-str) ;
+
+   acod = toupper(sstr[0]) ; *dcode = ORCODE(acod) ;
+   if( *dcode >= 0 ) sstr++ ;
+
+   return (sstr-str) ;
+}
+#endif /* USE_OLD_DCODE */

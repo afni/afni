@@ -197,6 +197,8 @@ void Syntax() ;
 
 void AFNI_load_defaults( Widget ) ;
 
+int decode_location( char * str , float * val , int * dcode ) ;
+
 static int   INIT_ngray ;
 static float INIT_gamma ;
 static float INIT_fov ;

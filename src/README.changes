@@ -278,7 +278,7 @@
 30 October 1997:
    Added popup "hints" to AFNI controls.  See the file README.environment
      for information on how to turn them on and off.  These may also
-     be attached to plugins.
+     be attached to plugins -- see plug_stats.c for an example.
 --------------------------------------------------------------------------
 06 November 1997:
    Added program 3dRegAna to perform linear regression analysis on
@@ -286,4 +286,10 @@
      trends in activation data with some stimulus parameter, for example.
      See the file 3dRegAna.ps (in doc.tgz) for more information.
    [By BD Ward of MCW.]
+--------------------------------------------------------------------------
+21 November 1997:
+   In to3d, added the ability to specify brick dimensions on the command
+     line using either form "120A" or "A120".  This is to make to3d
+     consistent with the way that some scanners print slice locations
+     on film.
 --------------------------------------------------------------------------
