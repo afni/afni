@@ -33,7 +33,7 @@ file_tool: file_tool.o file_tool.h
 
 Imon: $(IMON_OBJS) Imon.h l_mcw_glob.h realtime.h
 	$(RM) $@
-	$(CC) -o Imon $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS)
+	$(CC) -o Imon $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
 # ----------------------------------------------------------------------
 # local Imon objects need mcw_glob, but without MCW_MALLOC
