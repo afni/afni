@@ -3661,7 +3661,7 @@ typedef struct {
    float scale_init , scale_out ;
    float delfac ;
 
-   int regmode , verb , max_iter , num_iter  ;
+   int regmode , verb , max_iter , num_iter , wtproc ;
    int xedge , yedge , zedge ;
 
    MRI_IMAGE *imbase , *imwt ;
@@ -3675,8 +3675,13 @@ typedef struct {
    MRI_IMAGE *imww ;
    MRI_IMAGE *imap ;
    MRI_IMAGE *imps ;
+   MRI_IMAGE *imsk ;
 
 } MRI_warp3D_align_basis ;
+
+extern int         mri_warp3D_align_setup  ( MRI_warp3D_align_basis * ) ;
+extern MRI_IMAGE * mri_warp3d_align_one    ( MRI_warp3D_align_basis *, MRI_IMAGE * );
+extern void        mri_warp3D_align_cleanup( MRI_warp3D_align_basis * ) ;
 
 /*---------------------------------------------------------------------*/
 
