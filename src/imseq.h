@@ -479,6 +479,8 @@ typedef struct MCW_imseq {
      int cursor_state ;                               /* 10 Mar 2003 */
 
      MCW_bbox *pen_bbox ;                             /* 18 Jul 2003 */
+
+     int last_bx , last_by ;                          /* 23 Oct 2003 */
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;

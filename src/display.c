@@ -476,7 +476,7 @@ rgbyte DC_spectrum_ZSS( double an , double gamm )
 
    color.r = r ; color.g = g ; color.b = b ; return color ;
 }
-  
+
 /*----------------------------------------------------------------------*/
 /*! Return a color from the spectrum.  Input "an" is between 0 and 360.
     Adapted from Andrzej Jesmanowicz. -- 30 Jan 2003 - RWCox.
@@ -850,7 +850,6 @@ void DC_color_squeeze( MCW_DC * dc , int dlev )
    return ;  /* not implemented */
 }
 
-
 /*------------------------------------------------------------------------*/
 
 void DC_gray_contrast( MCW_DC * dc , int dlev )
@@ -868,6 +867,29 @@ void DC_gray_contrast( MCW_DC * dc , int dlev )
       xc[i].red = xc[i].green = xc[i].blue = CLIP_INTEN(k) ;
    }
    DC_set_image_colors( dc ) ;  /* 22 Aug 1998 */
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void DC_gray_conbrio( MCW_DC *dc , int dlev )  /* 23 Oct 2003 */
+{
+   register int i, k, bdelta,cdelta ;
+   int      nc = dc->ncol_im ;
+   XColor * xc = dc->xgry_im ;
+   int    * in = dc->xint_im ;
+
+   if( dc->use_xcol_im ) return ;
+
+   bdelta = dlev *  abs(in[nc-1] - in[0])       / nc ;
+   cdelta = dlev * (abs(in[nc-1] - in[0]) >> 6) / nc ;
+   if( cdelta == 0 ) cdelta = dlev ;
+
+   for( i=0 ; i < nc ; i++ ){
+     k = in[i] += i * cdelta - bdelta ;
+     xc[i].red = xc[i].green = xc[i].blue = CLIP_INTEN(k) ;
+   }
+   DC_set_image_colors( dc ) ;
    return ;
 }
 

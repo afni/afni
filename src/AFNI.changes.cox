@@ -4739,9 +4739,17 @@
  * Added label popup menu to Draw Dataset plugin.
  * Added Button1 click in intensity bar to re-aspect image window.
      Also, skip attempt to reconfigure if happened before within last 33 ms.
+     This is to avoid getting into fights with the window manager.
 
 22 Oct 2003
  * Inten->Save Palette with colorscales now saves a colorscale file.
  * Inten->Read Palette with colorscales now reads a colorscale file.
  * AFNI_MPEG_FRAMERATE in imseq.c.
  * Extend short input time series in 3dDeconvolve.c.
+
+23 Oct 2003
+ * Modified Button1 in intensity bar to always do re-aspect, even if free
+     aspect is on.
+ * Added Button1 stroke right/left in image window to change contrast and
+     brightness together; changes to imseq.[ch], display.[ch], and
+     afni_pplug_env.c.

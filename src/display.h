@@ -233,6 +233,8 @@ extern void DC_color_bright( MCW_DC * , int ) ;
 extern void DC_gray_contrast( MCW_DC * , int ) ;
 extern void DC_color_squeeze( MCW_DC * , int ) ;
 
+extern void DC_gray_conbrio( MCW_DC * , int ) ;  /* 23 Oct 2003 */
+
 extern void DC_palette_setgray( MCW_DC * ) ;
 extern void DC_palette_setcolor( MCW_DC * ) ;
 
