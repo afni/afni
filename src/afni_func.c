@@ -894,11 +894,20 @@ ENTRY("AFNI_func_overlay") ;
 
    /* get the threshold image? */
 
-   if( need_thr ) im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
-   else           im_thr = NULL ;
+   if( need_thr ){
+STATUS("fetch im_thr") ;
+     im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
+   } else{
+STATUS("don't need im_thr") ;
+     im_thr = NULL ;
+   }
 
+#if 1
+   scale_thr = 1.0f ;   /* FD_warp_to_mri() already scales this */
+#else
    scale_thr = DSET_BRICK_FACTOR(br_fim->dset,ival) ;
    if( scale_thr == 0.0f ) scale_thr = 1.0f ;
+#endif
 
    /* get function image */
 
@@ -908,10 +917,13 @@ ENTRY("AFNI_func_overlay") ;
      if( ind >= DSET_NVALS(br_fim->dset) )
        ind = DSET_NVALS(br_fim->dset) - 1 ;
 
-     if( im_thr != NULL && ind == ival )    /* 06 Feb 2003: allow for */
+     if( im_thr != NULL && ind == ival ){   /* 06 Feb 2003: allow for */
+STATUS("copy im_thr to im_fim") ;
        im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
-     else
+     } else {
+STATUS("fetch im_fim") ;
        im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
+     }
      scale_factor = im3d->vinfo->fim_range ;
      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
      if( scale_factor == 0.0 ) scale_factor = 1.0 ;
@@ -927,6 +939,7 @@ ENTRY("AFNI_func_overlay") ;
                            im_thr->kind == MRI_byte    ) ){
 
      MRI_IMAGE *qim = mri_to_float(im_thr) ;
+STATUS("scaled im_thr to floats") ;
      mri_free(im_thr) ; im_thr = qim ; scale_thr = 1.0f ;
    }
 
@@ -956,6 +969,7 @@ STATUS("couldn't get Func image!") ;
 
    if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ){   /* should never happen! */
      MRI_IMAGE *qim = mri_to_float(im_fim) ;     /* (but fix it if it does) */
+STATUS("had to convert im_fim to floats?????") ;
      mri_free(im_fim) ; im_fim = qim ;
    }
 
@@ -963,6 +977,7 @@ STATUS("couldn't get Func image!") ;
 
    if( im3d->vwid->func->pbar_transform0D_func != NULL ){
      MRI_IMAGE *tim = mri_to_float(im_fim) ;
+     STATUS("transform0D of im_fim") ;
 #if 0
      im3d->vwid->func->pbar_transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
 #else
@@ -975,6 +990,7 @@ STATUS("couldn't get Func image!") ;
 
    if( im3d->vwid->func->pbar_transform2D_func != NULL ){
      MRI_IMAGE *tim = mri_to_float(im_fim) ;
+     STATUS("transform2D of im_fim") ;
 #if 0
      im3d->vwid->func->pbar_transform2D_func( tim->nx, tim->ny,
                                               tim->dx, tim->dy,
@@ -997,6 +1013,18 @@ STATUS("couldn't get Func image!") ;
      float thresh ;
      thresh =  im3d->vinfo->func_threshold
              * im3d->vinfo->func_thresh_top / scale_thr ;
+
+if( PRINT_TRACING && im_thr != NULL )
+{ char str[256] ; float tmax ;
+  sprintf(str,"im_thr: nx=%d ny=%d kind=%s",
+          im_thr->nx,im_thr->ny,MRI_TYPE_name[im_thr->kind]) ; STATUS(str) ;
+  tmax = (float)mri_maxabs(im_thr) ;
+  sprintf(str,"maxabs(im_thr)=%g scale_thr=%g thresh=%g",tmax,scale_thr,thresh);
+  STATUS(str) ;
+  sprintf(str,"func_threshold=%g func_thresh_top=%g",
+          im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top); STATUS(str);
+}
+
      im_ov = AFNI_newfunc_overlay( im_thr , thresh ,
                                    im_fim ,
                                    scale_factor*pbar->bigbot ,
