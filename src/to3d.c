@@ -194,6 +194,16 @@ QQQ("main1");
 
 QQQ("main2");
 
+   { char * hh = getenv("AFNI_HINTS") ;
+     if( hh != NULL && ( strncmp(hh,"NO"  ,2)==0 ||
+                         strncmp(hh,"no"  ,2)==0 ||
+                         strncmp(hh,"No"  ,2)==0 ||
+                         strncmp(hh,"KILL",4)==0 ||
+                         strncmp(hh,"Kill",4)==0 ||
+                         strncmp(hh,"kill",4)==0   ) )
+        MCW_hint_toggle() ;
+   }
+
    /* let the user do the rest */
 
    (void) XtAppAddTimeOut( app , 1000 , AFNI_startup_timeout_CB , NULL ) ;
@@ -324,18 +334,24 @@ void T3D_create_widgets(void)
       "which fits the images when displayed\n"
       "in their ORIGINAL orientation:\n"
       "left->right, across the screen" ) ;
+   MCW_reghint_children( wset.xorient_av->wrowcol ,
+                         "Anatomical orientation across screen" ) ;
 
    MCW_reghelp_children( wset.yorient_av->wrowcol ,
       "Choose the anatomical orientation\n"
       "which fits the images when displayed\n"
       "in their ORIGINAL orientation:\n"
       "top->bottom, down the screen" ) ;
+   MCW_reghint_children( wset.yorient_av->wrowcol ,
+                         "Anatomical orientation down screen" ) ;
 
    MCW_reghelp_children( wset.zorient_av->wrowcol ,
       "Choose the anatomical orientation\n"
       "which fits the images when displayed\n"
       "in their ORIGINAL orientation:\n"
       "slice order, `thru' the screen" ) ;
+   MCW_reghint_children( wset.zorient_av->wrowcol ,
+                         "Anatomical orientation in slice direction" ) ;
 
 QQQ("orientations setup") ;
    printf(".");fflush(stdout);
@@ -508,16 +524,22 @@ QQQ("orientations setup") ;
     "If in-slice voxel dimensions are\n"
     "not square, use this to set the\n"
     "x axis (across screen) dimension" ) ;
+   MCW_reghint_children( wset.xsize_av->wrowcol ,
+                         "Across screen voxel size" ) ;
 
    MCW_reghelp_children( wset.ysize_av->wrowcol ,
     "If in-slice voxel dimensions are\n"
     "not square, use this to set the\n"
     "y axis (down screen) dimension" ) ;
+   MCW_reghint_children( wset.ysize_av->wrowcol ,
+                         "Down screen voxel size" ) ;
 
    MCW_reghelp_children( wset.zsize_av->wrowcol ,
     "If voxels are not cubical,\n"
     "use this to set the z axis\n"
     "(slice direction) thickness" ) ;
+   MCW_reghint_children( wset.ysize_av->wrowcol ,
+                         "Slice direction voxel size" ) ;
 
 #ifdef ALLOW_NONCONTIG
    MCW_reghelp_children( wset.zspacing_av->wrowcol ,
@@ -533,6 +555,8 @@ QQQ("orientations setup") ;
     "to specify the sizes by giving\n"
     "the Field-Of-View dimension\n"
     "(the width across screen of images)" ) ;
+   MCW_reghint_children( wset.fov_av->wrowcol ,
+                         "In-slice width of entire image" ) ;
 
    MCW_reghelp_children( wset.voxshape_bbox->wrowcol ,
                          "Choose one button to\n"
@@ -541,6 +565,8 @@ QQQ("orientations setup") ;
                          " square   = x & y dimensions\n"
                          "            equal, z different\n"
                          " irregular= all dimensions unequal" ) ;
+   MCW_reghint_children( wset.voxshape_bbox->wrowcol ,
+                         "Specify voxel shape" ) ;
 
 #ifdef ALLOW_NONCONTIG
    MCW_reghelp_children( wset.voxcontig_bbox->wrowcol ,
@@ -596,6 +622,8 @@ QQQ("voxshapes setup") ;
          "for time-dependent datasets.\n"
          "These CANNOT be changed interactively.\n"
          "They can only be set on the command line." ) ;
+
+      MCW_register_hint( wset.TR_label , "3D+time parameters" ) ;
 
      if( user_inputs.ntt < 2 )
         XtUnmanageChild( wset.TR_label ) ;
@@ -739,36 +767,50 @@ QQQ("voxshapes setup") ;
     "in the gradient coil fields:\n"
     "Pressed IN means centered\n"
     "Pressed OUT means not centered" ) ;
+   MCW_reghint_children( wset.centered_bbox->wrowcol ,
+                         "Is data domain centered around 0?" ) ;
 
    MCW_reghelp_children( wset.xorigin_av->wrowcol ,
       "Use the arrows (or type) to enter\n"
       "the x-axis distance from the center of\n"
       "the first voxel to the\n"
       "gradient coil (0,0,0) point" ) ;
+   MCW_reghint_children( wset.xorigin_av->wrowcol ,
+                         "X-axis distance to 1st voxel center" ) ;
 
    MCW_reghelp_children( wset.yorigin_av->wrowcol ,
       "Use the arrows (or type) to enter\n"
       "the y-axis distance from the center of\n"
       "the first voxel to the\n"
       "gradient coil (0,0,0) point" ) ;
+   MCW_reghint_children( wset.yorigin_av->wrowcol ,
+                         "Y-axis distance to 1st voxel center" ) ;
 
    MCW_reghelp_children( wset.zorigin_av->wrowcol ,
       "Use the arrows (or type) to enter\n"
       "the z-axis distance from the center of\n"
       "the first voxel to the\n"
       "gradient coil (0,0,0) point" ) ;
+   MCW_reghint_children( wset.zorigin_av->wrowcol ,
+                         "Z-axis distance to 1st voxel center" ) ;
 
    MCW_register_help( wset.xorigin_label ,
                       "Shows the direction that the\n"
                       "x origin distance applies" ) ;
+   MCW_register_hint( wset.xorigin_label ,
+                      "Direction of x origin distance" ) ;
 
    MCW_register_help( wset.yorigin_label ,
                       "Shows the direction that the\n"
                       "y origin distance applies" ) ;
+   MCW_register_hint( wset.yorigin_label ,
+                      "Direction of y origin distance" ) ;
 
    MCW_register_help( wset.zorigin_label ,
                       "Shows the direction that the\n"
                       "z origin distance applies" ) ;
+   MCW_register_hint( wset.zorigin_label ,
+                      "Direction of z origin distance" ) ;
 
 QQQ("origins setup") ;
    printf(".");fflush(stdout);
@@ -863,6 +905,7 @@ QQQ("origins setup") ;
      "You can only alter this by exiting\n"
      "the program and using the -datum\n"
      "option when you run to3d again." ) ;
+   MCW_register_hint( wset.datum_label , "Type of data stored in images" ) ;
 
    /*----- textfield widgets below the bar -----*/
 
@@ -1017,12 +1060,16 @@ QQQ("origins setup") ;
     "has the same geometry (voxel sizes,\n"
     "etc.), enter its header filename\n"
     "and press the Enter key" ) ;
+   MCW_register_hint( wset.geometry_parent_label ,
+                      "Use the geometry of another dataset" ) ;
 
    MCW_register_help( wset.geometry_parent_textfield ,
     "If a previously created 3D dataset\n"
     "has the same geometry (voxel sizes,\n"
     "etc.), enter its header filename name\n"
     "here and press the Enter key" ) ;
+   MCW_register_hint( wset.geometry_parent_textfield ,
+                      "Use the geometry of another dataset" ) ;
 
    wset.anatomy_parent_label =
       XtVaCreateManagedWidget(
@@ -1267,6 +1314,8 @@ QQQ("name fields setup") ;
                           "in the image files.\n"
                           "N.B.: 3D+time datasets\n"
                           " must be anatomical."     ) ;
+   MCW_reghint_children( wset.dataset_type_av->wrowcol ,
+                         "Type of data you acquired" ) ;
 
    if( user_inputs.ntt > 0 )
       AV_SENSITIZE( wset.dataset_type_av , False ) ;
@@ -1311,6 +1360,8 @@ QQQ("name fields setup") ;
     "Use the arrows to specify\n"
     "the type of functional data\n"
     "stored in the image files" ) ;
+   MCW_reghint_children( wset.function_type_av->wrowcol ,
+                         "Type of functional data" ) ;
 
    wset.anatomy_type_av =
       new_MCW_arrowval(
@@ -1352,6 +1403,8 @@ QQQ("name fields setup") ;
     "Use the arrows to specify\n"
     "the type of anatomical data\n"
     "stored in the image files" ) ;
+   MCW_reghint_children( wset.anatomy_type_av->wrowcol ,
+                         "Type of anatomical data" ) ;
 
    /*----- stat_aux data fields -----*/
 
@@ -1410,6 +1463,9 @@ QQQ("name fields setup") ;
       " Inten+Ttest requires the number of\n"
       "   degrees-of-freedom in the t-test."
     ) ;
+
+    MCW_register_hint( wset.stat_aux_label , "Extra statistical parameters" ) ;
+    MCW_register_hint( wset.stat_aux_textfield , "Extra statistical parameters" ) ;
 
    /** The stuff below is commented out,
        since the textfield is scanned only at the write-out time **/
@@ -1485,6 +1541,11 @@ QQQ("name fields setup") ;
     " form prefix+orig.suff, where suff =\n"
     " " DATASET_HEADER_SUFFIX " and " DATASET_BRICK_SUFFIX "]" ) ;
 
+   MCW_register_hint( wset.output_file_label ,
+                      "New dataset's 'prefix' for filenames" ) ;
+   MCW_register_hint( wset.output_file_textfield ,
+                      "New dataset's 'prefix' for filenames" ) ;
+
    wset.session_file_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , wset.topform ,
@@ -1533,6 +1594,9 @@ QQQ("name fields setup") ;
     "3D dataset, and in which to look\n"
     "for the 'parent' datasets" ) ;
 
+   MCW_register_hint( wset.session_file_label , "New dataset's directory" ) ;
+   MCW_register_hint( wset.session_file_textfield , "New dataset's directory" ) ;
+
 QQQ("types and files setup") ;
    printf(".");fflush(stdout);
 
@@ -1565,6 +1629,7 @@ QQQ("types and files setup") ;
                   MCW_click_help_CB , NULL ) ;
    MCW_register_help( wset.button_help_pb ,
      "Click the hand\non any button to get\na little help" ) ;
+   MCW_register_hint( wset.button_help_pb , "Get more help" ) ;
 
    wset.open_view_pb =
       XtVaCreateManagedWidget(
@@ -1581,6 +1646,7 @@ QQQ("types and files setup") ;
     "      above refer to the images in their ORIGINAL\n"
     "      orientation on the screen, NOT in the rotated\n"
     "      and/or mirrored orientation you will be viewing." ) ;
+   MCW_register_hint( wset.open_view_pb , "See the input images" ) ;
 
    wset.save_file_pb =
       XtVaCreateManagedWidget(
@@ -1593,6 +1659,7 @@ QQQ("types and files setup") ;
     "Use this to save the volume data\n"
     "into 3D dataset files when you\n"
     "have set all the control data." ) ;
+   MCW_register_hint( wset.save_file_pb , "Write new dataset to disk" ) ;
 
    wset.quit_pb =
       XtVaCreateManagedWidget(
@@ -1604,6 +1671,7 @@ QQQ("types and files setup") ;
                   T3D_quit_CB , NULL ) ;
    MCW_register_help( wset.quit_pb ,
     "Press this button TWICE\nto exit the program" ) ;
+   MCW_register_hint( wset.quit_pb , "Press twice to exit program" ) ;
 
    if( redcolor == NULL ){ HOTCOLOR(wset.quit_pb,redcolor) ; }
    MCW_set_widget_bg( wset.quit_pb , redcolor , 0 ) ;
