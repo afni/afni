@@ -5048,3 +5048,8 @@
      3drefit.c
  * Added AFNI_IMAGE_SAVESQUARE environment variable to imseq.c; added
      functions to mri_warp.c to implement re-aspectizationing.
+
+21 Jun 2004
+ * Modified 3dclust -help to print out info about coordinate systems.
+ * Modified afni_func.c to add environment variable AFNI_BUCKET_LABELSIZE
+     to modify bucket label sizes.

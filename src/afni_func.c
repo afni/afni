@@ -4530,35 +4530,61 @@ ENTRY("AFNI_bucket_CB") ;
    EXRETURN ;
 }
 
-char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
+/*--------------------------------------------------------------------------*/
+/*! Prepare a bucket label for a menu.
+    21 Jun 2004: modified to allow label length to be different from 14.
+----------------------------------------------------------------------------*/
+
+char * AFNI_bucket_label_CB( MCW_arrowval *av , XtPointer cd )
 {
-   static char blab[32] ;
-   THD_3dim_dataset * dset = (THD_3dim_dataset *) cd ;
-   static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
-   static char * rfmt[3] = { "%-14.14s #%1d" , "%-14.14s #%2d" , "%-14.14s #%3d"  } ;
+   THD_3dim_dataset *dset = (THD_3dim_dataset *) cd ;
+   static char *fmt[3]={NULL,NULL,NULL} , sfmt[16] , blab[48] ;
+   int nlab ;
+   static int nlab_old = 0 ;
 
 ENTRY("AFNI_bucket_label_CB") ;
+
+   nlab = (int)AFNI_numenv("AFNI_BUCKET_LABELSIZE") ;
+        if( nlab <= 0 ) nlab = 14 ;
+   else if( nlab <  4 ) nlab =  4 ;
+   else if( nlab > 32 ) nlab = 32 ;
+   if( nlab != nlab_old ){
+     nlab_old = nlab ;
+     sprintf(sfmt,"%%-%d.%ds",nlab,nlab) ;
+     if( fmt[0] == NULL ){
+       fmt[0] = malloc(32); fmt[1] = malloc(32); fmt[2] = malloc(32);
+     }
+#ifdef USE_RIGHT_BUCK_LABELS
+     sprintf(fmt[0],"%s #%%1d",sfmt) ;
+     sprintf(fmt[1],"%s #%%2d",sfmt) ;
+     sprintf(fmt[2],"%s #%%3d",sfmt) ;
+#else
+     sprintf(fmt[0],"#%%1d %s",sfmt) ;
+     sprintf(fmt[1],"#%%2d %s",sfmt) ;
+     sprintf(fmt[2],"#%%3d %s",sfmt) ;
+#endif
+   }
 
    if( ISVALID_3DIM_DATASET(dset) ){
 
 #ifdef USE_RIGHT_BUCK_LABELS
-      if( DSET_NVALS(dset) < 10 )
-        sprintf(blab, rfmt[0] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
-      else if( DSET_NVALS(dset) < 100 )
-        sprintf(blab, rfmt[1] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
-      else
-        sprintf(blab, rfmt[2] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+     if( DSET_NVALS(dset) < 10 )
+       sprintf(blab, fmt[0] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+     else if( DSET_NVALS(dset) < 100 )
+       sprintf(blab, fmt[1] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+     else
+       sprintf(blab, fmt[2] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
 #else
-      if( DSET_NVALS(dset) < 10 )
-        sprintf(blab, lfmt[0] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
-      else if( DSET_NVALS(dset) < 100 )
-        sprintf(blab, lfmt[1] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
-      else
-        sprintf(blab, lfmt[2] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+     if( DSET_NVALS(dset) < 10 )
+       sprintf(blab, fmt[0] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+     else if( DSET_NVALS(dset) < 100 )
+       sprintf(blab, fmt[1] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+     else
+       sprintf(blab, fmt[2] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
 #endif
    }
    else
-      sprintf(blab," #%d ",av->ival) ;
+     sprintf(blab," #%d ",av->ival) ;
 
    RETURN(blab) ;
 }
