@@ -3,17 +3,22 @@
 
 /*****************************************************************************
       ** This file defines the "NIFTI-1" header format.               **
-      ** It is derived from a meeting at the NIH (31 Mar 2003)        **
-      ** of the Data Format Working Group (DFWG), chartered by the    **
-      ** NIfTI (Neuroimaging Informatics Technology Initiative)       **
-      ** at the National Institutes of Health (NIH).                  **
-      **                                                              **
+      ** It is derived from 2 meetings at the NIH (31 Mar 2003 and    **
+      ** 02 Sep 2003) of the Data Format Working Group (DFWG),        **
+      ** chartered by the NIfTI (Neuroimaging Informatics Technology  **
+      ** Initiative) at the National Institutes of Health (NIH).      **
+      **--------------------------------------------------------------**
       ** Neither the National Institutes of Health (NIH), the DFWG,   **
       ** nor any of the members or employees of these institutions    **
       ** imply any warranty of usefulness of this material for any    **
       ** purpose, and do not assume any liability for damages,        **
       ** incidental or otherwise, caused by any use of this document. **
       ** If these conditions are not acceptable, do not use this!     **
+      **--------------------------------------------------------------**
+      ** Author:   Robert W Cox (NIMH, Bethesda)                      **
+      ** Advisors: John Ashburner (FIL, London),                      **
+      **           Steven Smith (FMRIB, Oxford),                      **
+      **           Mark Jenkinson (FMRIB, Oxford)                     **
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -21,21 +26,18 @@
          (c) Copyright 1986-1995
          Biomedical Imaging Resource
          Mayo Foundation
-
    Incorporation of components of dbh.h are by permission of the
    Mayo Foundation.
 
-   !!!!!!! Of course, I hope we do get this permission - RWCox !!!!!!!
-   !!!!!!! Otherwise, I'll have to modifiy the comments        !!!!!!!
-
-   The changes from the ANALYZE 7.5 file header in this file are released
-   to the public domain, including the comments.
+   Changes from the ANALYZE 7.5 file header in this file are released to the
+   public domain, including the functional comments and any amusing asides.
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
 /*! INTRODUCTION TO NIFTI-1:
    ------------------------
-   The twin goals of this modified ANALYZE 7.5 format are:
+   The twin (and somewhat conflicting) goals of this modified ANALYZE 7.5
+   format are:
     (a) To add information to the header that will be useful for functional
         neuroimaging data analysis and display.  These additions include:
         - More basic data types.
@@ -87,7 +89,14 @@
    should take care to check if an input dataset conforms to the program's
    needs and expectations (e.g., check datatype, intent_code, etc.).  If the
    input dataset can't be handled by the program, the program should fail
-   gracefully.
+   gracefully (e.g., print a useful warning; not crash).
+
+   SAMPLE CODES:
+   ------------
+   The associated files nifti1_io.h and nifti1_io.c provide a sample
+   implementation in C of a set of functions to read, write, and manipulate
+   NIFTI-1 files.  The file nifti1_test.c is a sample program that uses
+   the nifti1_io.c functions.
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -922,7 +931,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      d = 0.25 * (R21-R12) / a       => quatern_d
 
    If a=0 (a 180 degree rotation), alternative formulas are needed.
-   See the nifti1.c function mat44_to_quatern() for an implementation
+   See the nifti1_io.c function mat44_to_quatern() for an implementation
    of the various cases in converting R to [a,b,c,d].
 
    Note that R-transpose (= R-inverse) would lead to the quaternion
@@ -956,12 +965,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The negations are because DICOM's x- and y-axes are reversed relative
    to NIFTI's.  The third column of the R matrix gives the direction of
    displacement (relative to the subject) along the slice-wise direction.
-   This orientation is not simply encoded in the DICOM standard, which is
-   mostly concerned with 2D images.  The third column of R will be either
-   the cross-product of the first 2 columns or its negative.  It is possible
-   to infer the sign of the 3rd column by examining the z-coordinate of
-   DICOM attribute (0020,0032) "Image Position (Patient)" for successive
-   slices.
+   This orientation is not encoded in the DICOM standard in a simple way;
+   DICOM is mostly concerned with 2D images.  The third column of R will be
+   either the cross-product of the first 2 columns or its negative.  It is
+   possible to infer the sign of the 3rd column by examining the coordinates
+   in DICOM attribute (0020,0032) "Image Position (Patient)" for successive
+   slices.  However, this method occasionally fails for reasons that I
+   (RW Cox) do not understand.
 -----------------------------------------------------------------------------*/
 
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
@@ -990,8 +1000,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_XFORM_MNI_152      4
 
 /*---------------------------------------------------------------------------*/
-/* SPATIAL AND TEMPORAL DIMENSIONS:
-   -------------------------------
+/* UNITS OF SPATIAL AND TEMPORAL DIMENSIONS:
+   ----------------------------------------
    The codes below can be used in xyzt_units to indicate the units of pixdim.
    As noted earlier, dimensions 1,2,3 are for x,y,z; dimension 4 is for
    time (t).
@@ -1001,11 +1011,21 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
       - dim[1] = dim[2] = dim[3] = 1
       - dim[4] = number of time points
       - pixdim[4] = time step
-      - time_units indicates units of pixdim[4]
+      - xyzt_units indicates units of pixdim[4]
       - dim[5] = number of values stored at each time point
 
    Bits 0..2 of xyzt_units specify the units of pixdim[1..3]
-   bits 3..5 of xyzt_units specify the units of pixdim[4].
+    (e.g., spatial units are values 1..7).
+   Bits 3..5 of xyzt_units specify the units of pixdim[4]
+    (e.g., temporal units are multiples of 8).
+
+   This compression of 2 distinct concepts into 1 byte is due to the
+   limited space available in the 348 byte ANALYZE 7.5 header.  The
+   macros XYZT_TO_SPACE and XYZT_TO_TIME can be used to mask off the
+   undesired bits from the xyzt_units fields, leaving "pure" space
+   and time codes.  Inversely, the macro SPACE_TIME_TO_XYZT can be
+   used to assemble a space code (0,1,2,...,7) with a time code
+   (0,8,16,32,...,56) into the combined value for xyzt_units.
 
    Note that codes are provided to indicate the "time" axis units are
    actually frequency in Hertz (_HZ) or in part-per-million (_PPM).
@@ -1046,8 +1066,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define XYZT_TO_TIME(xyzt)        ( (xyzt) & 0x38 )
 
 #undef  SPACE_TIME_TO_XYZT
-#define SPACE_TIME_TO_XYZT(ss,tt) (   (((char)(ss)) & 0x07)         \
-                                   | ((((char)(tt)) & 0x07) << 3) )
+#define SPACE_TIME_TO_XYZT(ss,tt) (  (((char)(ss)) & 0x07)   \
+                                   | (((char)(tt)) & 0x38) )
 
 /*---------------------------------------------------------------------------*/
 /* MRI-SPECIFIC SPATIAL AND TEMPORAL INFORMATION:
