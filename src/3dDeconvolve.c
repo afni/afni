@@ -280,14 +280,14 @@
 /*---------------------------------------------------------------------------*/
 
 #ifndef FLOATIZE
-# define PROGRAM_NAME   "3dDeconvolve"               /* name of this program */
+# define PROGRAM_NAME   "3dDeconvolve"            /* name of this program */
 #else
-# define PROGRAM_NAME   "3dDeconvolve_f"             /* name of this program */
+# define PROGRAM_NAME   "3dDeconvolve_f"          /* name of this program */
 #endif
 
-#define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
-#define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "02 March 2005"      /* latest program revision date*/
+#define PROGRAM_AUTHOR  "B. Douglas Ward, et al." /* program author */
+#define PROGRAM_INITIAL "02 September 1998"       /* initial program release date*/
+#define PROGRAM_LATEST  "04 March 2005 - RWCox"   /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
