@@ -34,7 +34,11 @@ int AFNI_version_check(void){ return 0; }
 #else /********************************************************************/
 
 #define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
+#if 0
 #define SHM_CHILD   "shm:afni_vcheck:1K"
+#else
+#define SHM_CHILD   "tcp:localhost:20279"
+#endif
 #define AFNI_HOST   "http://afni.nimh.nih.gov/afni/"
 #define VSIZE       1024
 
