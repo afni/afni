@@ -4,6 +4,11 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+15 June 1998:
+   3dmerge now has an option (-1clust_order) to assign distinct index
+     values to each cluster.  This can be used to create masks, or simply
+     to be able to visually distinguish separate clusters.
+--------------------------------------------------------------------------
 30 April 1998:
    3dcalc can now correctly operate on 3D bucket and other multi-brick
      non-time-dependent datasets.

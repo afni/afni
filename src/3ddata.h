@@ -1763,6 +1763,8 @@ static char tmp_dblab[8] ;
 #define DSET_load(ds)   THD_load_datablock( (ds)->dblk , NULL )
 #define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
 
+#define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
+
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
@@ -2089,6 +2091,7 @@ extern int TRUST_host(char *) ;
 
 extern Boolean THD_load_datablock ( THD_datablock * , generic_func * ) ;
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
+extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * dblk ) ;
 

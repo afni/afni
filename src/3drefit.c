@@ -69,6 +69,8 @@ void Syntax(char * str)
     "\n"
     "  -newid          Changes the ID code of this dataset as well.\n"
     "\n"
+    "  -nowarp         Removes all warping information from dataset.\n"
+    "\n"
     "  -statpar v ...  Changes the statistical parameters stored in this\n"
     "                  dataset.  See 'to3d -help' for more details.\n"
     "\n"
@@ -158,6 +160,7 @@ int main( int argc , char * argv[] )
    int new_TR     = 0 ; float TR ;
    int new_tunits = 0 ; int tunits ;
    int new_idcode = 0 ;
+   int new_nowarp = 0 ;
    int new_stataux= 0 ; float stataux[MAX_STAT_AUX] ;
    int new_type   = 0 ; int dtype , ftype , nvals ;
    int new_markers= 0 ;
@@ -426,6 +429,13 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -nowarp **/
+
+      if( strncmp(argv[iarg],"-nowarp",6) == 0 ){
+         new_nowarp = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -statpar x x x **/
 
       if( strncmp(argv[iarg],"-statpar",4) == 0 ){
@@ -588,6 +598,12 @@ int main( int argc , char * argv[] )
       }
 
       if( new_idcode ) dset->idcode = MCW_new_idcode() ;
+
+      if( new_nowarp ){
+         ZERO_IDCODE( dset->warp_parent_idcode ) ;
+         dset->warp_parent_name[0] = '\0' ;
+         dset->warp = NULL ;
+      }
 
       if( new_type ){
          if( nvals > 1 && dset->taxis != NULL ){

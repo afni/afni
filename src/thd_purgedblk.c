@@ -44,3 +44,24 @@ if( nfreed ) printf("  -- munmap-ed sub-bricks starting at address %p\n",ptr) ;
 
    return False ;  /* shouldn't be reached */
 }
+
+/*----------------------------------------------------------
+   04 May 1998: purge just one sub-brick, if possible
+------------------------------------------------------------*/
+
+Boolean THD_purge_one_brick( THD_datablock * blk , int iv )
+{
+   void * ptr ;
+
+   /* sanity checks */
+
+   if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) return False ;
+   if( DBLK_LOCKED(blk) )                               return False ;
+   if( iv < 0 || iv >= blk->nvals )                     return False ;
+   if( blk->malloc_type != DATABLOCK_MEM_MALLOC )       return False ;
+
+   ptr = DBLK_ARRAY(blk,iv) ;
+   if( ptr != NULL ) free(ptr) ;
+   mri_clear_data_pointer( DBLK_BRICK(blk,iv) ) ;
+   return True ;
+}

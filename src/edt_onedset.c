@@ -618,19 +618,33 @@ STATUS("abs applied to meaningless type: will be ignored") ;
        vmul > (dx*dy*dz)                     &&
        AFNI_GOOD_FUNC_DTYPE(fim_type) ){          /* data type OK? */
 
+      MCW_cluster_array * clbig ;
+      MCW_cluster * cl ;
+
 STATUS("clustering") ;
 
       ptmin = vmul / dxyz + 0.99 ;
       clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , fim_type,vfim , rmm ) ;
       nclu  = 0 ;
+
       if( clar != NULL ){
+         INIT_CLARR(clbig) ;
          for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
-            if( clar->clar[iclu] != NULL && clar->clar[iclu]->num_pt < ptmin ){
-               KILL_CLUSTER(clar->clar[iclu]) ;
-            } else if( clar->clar[iclu] != NULL ){
+            cl = clar->clar[iclu] ;
+            if( cl->num_pt >= ptmin ){ /* big enough */
+               ADDTO_CLARR(clbig,cl) ;    /* copy pointer */
+               clar->clar[iclu] = NULL ;  /* null out original */
                nclu++ ;
             }
          }
+         DESTROY_CLARR(clar) ;
+         clar = clbig ;
+         if( nclu == 0 || clar == NULL || clar->num_clu == 0 ){
+            printf("*** NO CLUSTERS FOUND ***\n") ;
+            if( clar != NULL ) DESTROY_CLARR(clar) ;
+            EXRETURN ;
+         }
+         SORT_CLARR(clar) ;
       }
 
       if( nclu == 0 ){  /* no data left */
@@ -647,7 +661,7 @@ STATUS("no data left after cluster edit!") ;
       /*----- edit clusters? -----*/   /* 10 Sept 1996 */
       if (edit_clust > ECFLAG_SAME)
          EDIT_cluster_array (clar, edit_clust, dxyz, vmul);
-      if (edit_clust == ECFLAG_SIZE)
+      if (edit_clust == ECFLAG_SIZE || edit_clust == ECFLAG_ORDER)
          DSET_BRICK_FACTOR(dset,iv_fim) = 1.0;
 
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ )

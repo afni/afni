@@ -61,13 +61,13 @@ double chfit( double mu )
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset ;
-   double mu , ccc , mbest,cbest , perc , snr=2.5 ;
-   int ii , narg=1 , blast=0 , iv , ncut , nnn , nvox ;
+   double mu , ccc , mbest,cbest , perc , snr=2.5 , nlxx ;
+   int ii , narg=1 , blast=0 , iv , ncut , nnn , nvox , nl=0 ;
    int vmax ;
    short * bar ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dnoise [-blast] [-snr fac] datasets ...\n"
+      printf("Usage: 3dnoise [-blast] [-snr fac] [-nl x ] datasets ...\n"
              "Estimates noise level in 3D datasets, and optionally\n"
              "set voxels below the noise threshold to zero.\n"
              "This only works on datasets that are stored as shorts,\n"
@@ -82,6 +82,8 @@ int main( int argc , char * argv[] )
              "               use for this depends strongly on your MRI\n"
              "               system -- I often use 5, but our true SNR\n"
              "               is about 100 for EPI.\n"
+             "  -nl x    = Set the noise level to 'x', skipping the\n"
+             "               estimation procedure.\n"
              "Author -- RW Cox\n"
             ) ;
       exit(0) ;
@@ -97,6 +99,13 @@ int main( int argc , char * argv[] )
          narg++ ;
          snr = strtod( argv[narg] , NULL ) ;
          if( snr <= 0.0 ){fprintf(stderr,"Illegal snr value!\n");exit(1);}
+         narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-nl") == 0 ){
+         narg++ ; nl = 1 ;
+         nlxx = strtod( argv[narg] , NULL ) ;
+         if( nlxx <= 0.0 ){fprintf(stderr,"Illegal nl value!\n");exit(1);}
          narg++ ; continue ;
       }
 
@@ -116,9 +125,9 @@ int main( int argc , char * argv[] )
       init_histo() ;
       if( blast )
          THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
+      nvox = DSET_NVOX(dset) ;
 
       vmax = 0 ;
-      nvox = DSET_NVOX(dset) ;
       for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
          ii = load_histo(dset,iv) ;
          if( ii <= 0 ){ printf(": Can't load data, or illegal data!\n"); break; }
@@ -131,15 +140,18 @@ int main( int argc , char * argv[] )
       printf(":") ; fflush(stdout) ;
 
 #define DMU 0.5
-      mu = 1.0 ; mbest = mu ; cbest = chfit(mu) ; ii = 0 ;
-      do {
-         mu += DMU ; ccc = chfit(mu) ;
-         if( ccc > cbest ) break ;
-         cbest = ccc ; mbest = mu ; ii++ ;
-         if( mu > 0.05 * vmax ){ ii=0 ; break; }
-      } while( 1 ) ;
-
-      if( ii <= 0 ){ printf(" Didn't fit noise model!\n"); continue; }
+      if( !nl ){
+         mu = 1.0 ; mbest = mu ; cbest = chfit(mu) ; ii = 0 ;
+         do {
+            mu += DMU ; ccc = chfit(mu) ;
+            if( ccc > cbest ) break ;
+            cbest = ccc ; mbest = mu ; ii++ ;
+            if( mu > 0.05 * vmax ){ ii=0 ; break; }
+         } while( 1 ) ;
+         if( ii <= 0 ){ printf(" Didn't fit noise model!\n"); continue; }
+      } else {
+         mbest = nlxx ;
+      }
 
       ncut = (int) (snr * mbest) ;
       nnn  = 0 ;

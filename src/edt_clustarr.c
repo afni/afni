@@ -20,6 +20,8 @@
 
    Author :  B. D. Ward
    Date   :  10 September 1996
+
+   Modified 09 June 1998 by RWCox to add ECFLAG_ORDER option.
 -----------------------------------------------------------------------------*/
 
 void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
@@ -37,6 +39,9 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
       mean,        /* mean of voxel intensities */
       size;        /* size of cluster (multiples of vmul) */
 
+   if( edit_clust == ECFLAG_ORDER ){
+      SORT_CLARR(clar) ;
+   }
 
    nclu = 0;
    for (iclu = 0; iclu < clar->num_clu; iclu++)
@@ -85,6 +90,7 @@ void EDIT_cluster_array (MCW_cluster_array * clar, int edit_clust,
                case ECFLAG_AMAX :  clar->clar[iclu]->mag[ii] = amax;  break;
                case ECFLAG_SMAX :  clar->clar[iclu]->mag[ii] = smax;  break;
                case ECFLAG_SIZE :  clar->clar[iclu]->mag[ii] = size;  break;
+               case ECFLAG_ORDER:  clar->clar[iclu]->mag[ii] = nclu;  break;
                default          :                                     break;
             }
          }

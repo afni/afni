@@ -34,7 +34,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt bzip2 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-           2dImReg 3dmaskave 3dbuc2fim byteorder
+           2dImReg 3dmaskave 3dbuc2fim byteorder rmz
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -100,6 +100,9 @@ imaver:imaver.o
 
 impsd:impsd.o
 	$(CC) -o impsd impsd.o $(LFLAGS) $(LLIBS)
+
+rmz:rmz.o
+	$(CC) -o rmz rmz.o $(LFLAGS) $(LLIBS)
 
 imdump:imdump.o
 	$(CC) -o imdump imdump.o $(LFLAGS) $(LLIBS)
@@ -507,16 +510,11 @@ src.tgz:
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
 
-src.bz2:
-	$(RM) $@
-	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm moveup README* AFNI.* \
-              dist* 3d*.lib ./SRC
-	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
-	$(RM) -r ./SRC
-
 epv.tgz:
-	$(TAR) cf - ./epv | $(GZIP) -9v > src.tgz
+	$(TAR) cf - ./epv | $(GZIP) -9v > epv.tgz
+
+TLv.tgz:
+	$(TAR) cf - ./TLv | $(GZIP) -9v > TLv.tgz
 
 mydoc.tgz:
 	$(RM) $@
@@ -644,7 +642,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO) \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
-        model_null.$(SO) model_diffusion.$(SO) \
+        model_null.$(SO) model_diffusion.$(SO) model_beta.$(SO) \
         model_sinewave_ap.$(SO) model_sinewave_apf.$(SO) \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO) \
         model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO) \

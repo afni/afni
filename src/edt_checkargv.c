@@ -216,6 +216,24 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
       CHECK_DONE ;
    }
 
+   /**** -1clust_order rmm vmul ****/   /* 09 June 1998 */
+
+   if( strncmp(argv[nopt],"-1clust_order",12) == 0 ){
+      nopt++ ;
+      if( nopt+1 >= argc ){
+         fprintf(stderr,"need 2 arguments after -1clust_order!\n") ;
+         exit(1) ;
+      }
+      edopt->edit_clust = ECFLAG_ORDER;
+      edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
+      edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
+      if( edopt->clust_rmm <= 0 || edopt->clust_vmul <= 0 ){
+         fprintf(stderr,"illegal value after -1clust_order\n") ;
+         exit(1) ;
+      }
+      CHECK_DONE ;
+   }
+
    /**** -1filter_mean rmm ****/   /* 11 Sept 1996 */
 
    if( strncmp(argv[nopt],"-1filter_mean",15) == 0 ){

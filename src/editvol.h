@@ -190,6 +190,7 @@ typedef struct EDIT_options {
 #define ECFLAG_AMAX   4
 #define ECFLAG_SMAX   5
 #define ECFLAG_SIZE   6
+#define ECFLAG_ORDER  7         /* 09 June 1998 */
 
 /*--- filtering options ---*/   /* 11 Sept 1996 */
 #define FCFLAG_NONE   0

@@ -602,9 +602,29 @@ ENTRY("AFNI_follower_dataset") ;
   datasets may spawn further possible offspring (e.g., if they themselves
   are anatomical images that fill in slots that will become anat_parents).
                                               -- RWCox, November, 1994 A.D.
+
+  3 June 1998:
+    The original version of this is renamed to be AFNI_make_descendants_old,
+    and is modified to do a sweep starting at the "vbase" view.  Then
+    we sweep twice, once from +orig and once again from +acpc.  This is
+    to allow for creation of descendants from +acpc that do not have
+    ancestors at +orig.
 ---------------------------------------------------------------------------*/
 
+void AFNI_make_descendants_old( THD_sessionlist * , int ) ; /* proto */
+
 void AFNI_make_descendants( THD_sessionlist * ssl )
+{
+   AFNI_make_descendants_old( ssl , VIEW_ORIGINAL_TYPE ) ;
+#if 0
+   AFNI_make_descendants_old( ssl , VIEW_ACPCALIGNED_TYPE ) ;
+#endif
+   return ;
+}
+
+/** In this routine, each occurence of vbase was originally VIEW_ORIGINAL_TYPE **/
+
+void AFNI_make_descendants_old( THD_sessionlist * ssl , int vbase )
 {
    int iss , jdd , kvv , num_made=0 ;
    THD_session * ss ;
@@ -612,7 +632,7 @@ void AFNI_make_descendants( THD_sessionlist * ssl )
    THD_slist_find     find ;
    THD_3dim_dataset ** anat_parent_row , ** orig_row ;
 
-ENTRY("AFNI_make_descendants") ;
+ENTRY("AFNI_make_descendants_old") ;
 
    if( ! ISVALID_SESSIONLIST(ssl) ) EXRETURN ;
 
@@ -625,7 +645,7 @@ ENTRY("AFNI_make_descendants") ;
       /* loop over anats in this session */
 
       for( jdd=0 ; jdd < ss->num_anat ; jdd++ ){
-         orig_dset = ss->anat[jdd][VIEW_ORIGINAL_TYPE] ;
+         orig_dset = ss->anat[jdd][vbase] ;                   /* 3 Jun 98 */
          if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
              orig_dset->anat_parent == NULL   ||              /* no parent */
              orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
@@ -651,7 +671,7 @@ ENTRY("AFNI_make_descendants") ;
 
          if( find.dset       == NULL ||
              find.func_index >= 0    ||  /* anat parent can't be a func! */
-             find.view_index != VIEW_ORIGINAL_TYPE ) continue ;
+             find.view_index != vbase  ) continue ;
 
          /* make a pointer to the row of datasets of the anat
             parent (this is like the SPGR row in the picture above) */
@@ -659,13 +679,16 @@ ENTRY("AFNI_make_descendants") ;
          anat_parent_row =
            &(ssl->ssar[find.sess_index]->anat[find.anat_index][0]) ;
 
+         /* pointer to row of datasets being operated on now
+            (like the FIM row in the picture above)          */
+
          orig_row = &(ss->anat[jdd][0]) ;
 
          /* loop over downstream dataset positions (from orig_dset);
             those that don't exist yet, but have entries in the
             anat_parent_row can be brought into being now */
 
-         for( kvv=VIEW_ORIGINAL_TYPE+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
+         for( kvv=vbase+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
             if( orig_row[kvv]        != NULL ) continue ;
             if( anat_parent_row[kvv] == NULL ) continue ;
 
@@ -678,7 +701,7 @@ ENTRY("AFNI_make_descendants") ;
       /* do the same for funcs */
 
       for( jdd=0 ; jdd < ss->num_func ; jdd++ ){
-         orig_dset = ss->func[jdd][VIEW_ORIGINAL_TYPE] ;
+         orig_dset = ss->func[jdd][vbase] ;
          if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
              orig_dset->anat_parent == NULL   ||              /* no parent */
              orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
@@ -704,7 +727,7 @@ ENTRY("AFNI_make_descendants") ;
 
          if( find.dset       == NULL ||
              find.func_index >= 0    ||  /* no funcs for anat parents! */
-             find.view_index != VIEW_ORIGINAL_TYPE ) continue ;
+             find.view_index != vbase  ) continue ;
 
          /* make a pointer to the row of datasets of the anat
             parent (this is like the SPGR row in the picture above) */
@@ -718,7 +741,7 @@ ENTRY("AFNI_make_descendants") ;
             those that don't exist yet, but have entries in the
             anat_parent_row can be brought into being now */
 
-         for( kvv=VIEW_ORIGINAL_TYPE+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
+         for( kvv=vbase+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
             if( orig_row[kvv]        != NULL ) continue ;
             if( anat_parent_row[kvv] == NULL ) continue ;
 
