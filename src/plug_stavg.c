@@ -21,7 +21,7 @@
 /*--------------------- string to 'help' the user --------------------*/
 
 static char helpstring[] =
-  "Purpose: Averagin epochs of single trial data\n"
+  "Purpose: Averaging epochs of single trial data\n"
   "\n"
   "Input items to this plugin are:\n"
   "   Datasets:   Input  = 3D+time dataset to process\n"
@@ -29,6 +29,7 @@ static char helpstring[] =
   "               Output = Prefix for new dataset\n"
   "   Additional Parameters\n"
   "               delta     = shift timeseries by delta before splitting and averaging\n"
+  "               method    = type of statistic to calculate\n"
   "               maxlength = maximum avg ts length\n"
   "               no1?      = images w/ only one img in avg ignored\n"
   "Author -- RM Birn"
@@ -37,13 +38,19 @@ static char helpstring[] =
 /*------------- strings for output format -------------*/
 
 static char * yes_no_strings[] = { "No" , "Yes" } ;
+static char * method_strings[] = { "Mean" , "Sigma" } ;
+
+#define _STAVG_NUM_METHODS (sizeof(method_strings)/sizeof(char *))
+#define _STAVG_METH_MEAN 0
+#define _STAVG_METH_SIGMA 1
 
 /*--------------- prototypes for internal routines ---------------*/
 
 char * STAVG_main( PLUGIN_interface * ) ;  /* the entry point */
 
 float ** avg_epochs( THD_3dim_dataset * dset, float * ref, 
-                    int user_maxlength, int no1, PLUGIN_interface *plint );
+                    int user_maxlength, int no1, int meth,
+		    PLUGIN_interface *plint );
 
 MRI_IMARR * dset_to_mri(THD_3dim_dataset * dset);
 
@@ -134,9 +141,24 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                    ) ;
    PLUTO_add_hint( plint , "Shift data timecourse by delta before splitting and averaging" ) ;
 
-   
+   /*---------- 3rd line: computation ----------*/
 
-   /*---------- 3rd line --------*/
+   PLUTO_add_option( plint ,
+                     "Compute" ,  /* label at left of input line */
+                     "Compute" ,  /* tag to return to plugin */
+                     TRUE         /* is this mandatory? */
+                   ) ;
+
+   PLUTO_add_string( plint ,
+                     "Method" ,           /* label next to chooser button */
+                     _STAVG_NUM_METHODS,  /* number of strings in list */
+                     method_strings ,     /* list of strings to choose among */
+                     _STAVG_METH_MEAN     /* index of default string */
+                   ) ;
+
+   PLUTO_add_hint( plint , "Choose statistic to compute" ) ;
+
+   /*---------- 4th line --------*/
 
    PLUTO_add_option( plint ,
                      "Parameters" ,  /* label at left of input line */
@@ -193,6 +215,7 @@ char * STAVG_main( PLUGIN_interface * plint )
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    char * new_prefix , * str , * str2;         /* strings from user */
+   int   meth;                                 /* chosen computation method */
    int   new_datum ,                           /* control parameters */
          old_datum , ntime ;
 
@@ -292,7 +315,16 @@ char * STAVG_main( PLUGIN_interface * plint )
    user_maxlength = ntime;
    no1 = 0;
 
-   /*--------- see if the 3rd option line is present --------*/
+   /*--------- go to next input line ---------*/
+
+   PLUTO_next_option(plint);
+
+   str  = PLUTO_get_string(plint) ;      /* get string item (the method) */
+   meth = PLUTO_string_index( str ,      /* find it in list it is from */
+                              _STAVG_NUM_METHODS ,
+                              method_strings ) ;
+
+   /*--------- see if the 4th option line is present --------*/
 
    str = PLUTO_get_optiontag( plint ) ;
    if( str != NULL ){
@@ -311,7 +343,7 @@ char * STAVG_main( PLUGIN_interface * plint )
 
    /*________________[ Main Code ]_________________________*/
   
-   fout = avg_epochs( old_dset, stimar, user_maxlength, 1, plint );
+   fout = avg_epochs( old_dset, stimar, user_maxlength, 1, meth, plint );
    if( fout == NULL ) return " \nError in avg_epochs() function!\n " ;
    
    if( RMB_DEBUG ) fprintf(stderr, "Done with avg_epochs\n");
@@ -443,7 +475,8 @@ char * STAVG_main( PLUGIN_interface * plint )
 
 /*---------------------------------------------------------------*/
 float ** avg_epochs( THD_3dim_dataset * dset, float * ref, 
-                    int user_maxlength, int no1, PLUGIN_interface * plint )
+                    int user_maxlength, int no1, int meth,
+		    PLUGIN_interface * plint )
 /*---------------------------------------------------------------*/
 {
 
@@ -453,8 +486,11 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    int     ii, kk;
    int     maxlength, minlength;
    int     datum;
+   float   fac;       /* scaling factor for current subbrick */
+   double  scaledval; /* temp var for scaled value to be used repeatedly */
    float ** fxar;
    float ** outar;    /* output averaged time-series */
+   float * sumsq = NULL; /* sum of squared voxel values */
    float * pNumAvg;  /* array for number of pts to avg at each time*/
    int   * pTimeIndex; /* array of time markers (1st img of each epoch) */
    int   * pEpochLength; /* array of epoch lengths */
@@ -532,29 +568,80 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    outar = (float **) malloc( sizeof(float *) * maxlength);
    for( te=0; te < maxlength; te++){
       outar[te] = (float *) malloc( sizeof(float) * nvox);
-   }
-
-   for( te=0; te < maxlength; te++){
       for( ii=0; ii<nvox; ii++){
          outar[te][ii] = 0.0;
       }
    }
+   if (meth == _STAVG_METH_SIGMA) {
+       sumsq = (float *) malloc( sizeof(float) * nvox);
+   }
    if( RMB_DEBUG ) fprintf(stderr, "done\n");
+
    if( RMB_DEBUG ) fprintf(stderr, "Start averaging...");
    for( te=0; te < maxlength; te++){
       pNumAvg[te] = 0.0;   
+
+     switch(meth) {
+     default: case _STAVG_METH_MEAN:
+
       for( ne=0; ne < (numepochs-1); ne++){
          tinc = pTimeIndex[ne] + te;
          if( te < pEpochLength[ne+1] ){
-            for( ii=0; ii<nvox; ii++){
-               outar[te][ii] += fxar[tinc][ii];
-            }
+            fac = DSET_BRICK_FACTOR(dset, tinc);
+	    if (fac == 0.0 || fac == 1.0) {
+		for( ii=0; ii<nvox; ii++){
+		    outar[te][ii] += fxar[tinc][ii];
+		}
+	    } else {
+		for( ii=0; ii<nvox; ii++){
+		    outar[te][ii] += fxar[tinc][ii] * fac;
+		}
+	    }
             pNumAvg[te]++;
          }
       }
       for( ii=0; ii<nvox; ii++){
-         outar[te][ii] = outar[te][ii]/pNumAvg[te];
+	 outar[te][ii] = outar[te][ii]/pNumAvg[te];
       }
+      break;
+
+     case _STAVG_METH_SIGMA:
+
+      /* sigma statistic is actually the unbiased standard deviation
+	 calculated with this computational formula:
+	   sqrt( (sum(x^2) - sum(x)^2 / n) / (n-1) )  */
+      for( ii=0; ii<nvox; ii++){
+	  sumsq[ii] = 0.0;
+      }
+      for( ne=0; ne < (numepochs-1); ne++){
+         tinc = pTimeIndex[ne] + te;
+         if( te < pEpochLength[ne+1] ){
+            fac = DSET_BRICK_FACTOR(dset, tinc);
+	    if (fac == 0.0 || fac == 1.0) {
+		for( ii=0; ii<nvox; ii++){
+		    outar[te][ii] += fxar[tinc][ii];
+		    sumsq[ii] += fxar[tinc][ii] * fxar[tinc][ii];
+		}
+	    } else {
+		for( ii=0; ii<nvox; ii++){
+		    scaledval = fxar[tinc][ii] * fac;
+		    outar[te][ii] += scaledval;
+		    sumsq[ii] += scaledval * scaledval;
+		}
+	    }
+            pNumAvg[te]++;
+         }
+      }
+      for( ii=0; ii<nvox; ii++){
+	  outar[te][ii] = sqrt( (sumsq[ii] -
+				 outar[te][ii] * outar[te][ii] /
+				 pNumAvg[te]) /
+				(pNumAvg[te] - 1) );
+      }
+      break;
+
+     }
+
       if( pNumAvg[te] > 1) nia ++;
       PLUTO_set_meter(plint, (100*(te+1))/maxlength ) ;
    }
@@ -584,6 +671,7 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    /* toss arrays */
    if( RMB_DEBUG ) fprintf(stderr, "free mem...");
    FREE_IMARR( inimar );
+   if (meth == _STAVG_METH_SIGMA) free(sumsq);
    free( outar );
    free( pNumAvg );
    free( pTimeIndex );
