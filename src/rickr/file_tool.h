@@ -32,10 +32,11 @@ typedef struct
     int     mod_type;   /* a string or repeated value    */
     long    offset;	/* location to display or modify */
     int     length;     /* length to display or modify   */
+    int     quiet;      /* do not display header info    */
     char  * mod_data;	/* new data                      */
 } param_t;
 
-#define VERSION		"1.0 - 2002.09.11"
+#define VERSION		"1.1 - 2003.02.26"
 #define MAX_STR_LEN	1024
 
 #define MOD_STRING         0

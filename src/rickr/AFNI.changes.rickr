@@ -152,3 +152,6 @@
       o separate multiple DRIVE_AFNI commands
       o minor modifications to error messages
 
+28 February 2003:
+  * modified rickr/file_tool.[ch]: added '-quiet' option
+
