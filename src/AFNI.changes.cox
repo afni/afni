@@ -5053,3 +5053,9 @@
  * Modified 3dclust -help to print out info about coordinate systems.
  * Modified afni_func.c to add environment variable AFNI_BUCKET_LABELSIZE
      to modify bucket label sizes.
+
+22 Jun 2004
+ * Modified afni.c to set various environment variables to new defaults:
+    - crosshair lines are on instead of off
+    - controllers are locked instead of unlocked
+    - save square is on instead of off
