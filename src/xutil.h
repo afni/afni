@@ -20,6 +20,7 @@
 #include "machdep.h"
 
 #include "mcw_malloc.h"
+#include "afni_environ.h"
 
 #ifndef MAX
 #   define MAX(a,b) (((a)<(b)) ? (b) : (a))
