@@ -2595,13 +2595,28 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
          default:               /* scale on individual image statistics */
          case ISQ_SCL_AUTO:{
-            ISQ_indiv_statistics * st = &( seq->imstat[nn] ) ;
+            ISQ_indiv_statistics *st = &( seq->imstat[nn] ) ;
+            int scrang = seq->opt.scale_range ;
 
             if( must_rescale ) st->one_done = False ;
 
             if( ! st->one_done ) ISQ_statify_one( seq , nn , lim ) ;
 
-            switch( seq->opt.scale_range ){
+            /* 09 Jan 2004: adjust scaling method for image entropy */
+
+            if( scrang == ISQ_RNG_02TO98 ){
+              double ent_th=AFNI_numenv("AFNI_IMAGE_ENTROPY") , ent ;
+              if( ent_th > 0.0 ){
+                switch( lim->kind ){
+                  default:        ent = mri_entropy8(lim) ; break ;
+                  case MRI_short:
+                  case MRI_float: ent = 0.5l * mri_entropy16(lim); break ;
+                }
+                if( ent < ent_th ) scrang = ISQ_RNG_MINTOMAX ;
+              }
+            }
+
+            switch( scrang ){
 
                default:
                case ISQ_RNG_MINTOMAX:
