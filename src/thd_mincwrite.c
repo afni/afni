@@ -130,7 +130,7 @@ ENTRY("THD_write_minc") ;
 
    /*-- start to create command --*/
 
-   cmd = malloc(65500) ;
+   cmd = malloc(65500) ; /* long enough?  */
    strcpy(cmd,pg) ;      /* basic command */
 
    /* axes orientation */
@@ -170,10 +170,18 @@ ENTRY("THD_write_minc") ;
      sprintf(cmd+strlen(cmd)," -sattribute zspace:spacetype=talairach_") ;
    }
 
-   /*-- integer datasets need to be scanned --*/
+   /*-- integer datasets need to be scanned    --*/
+   /*-- and have valid_range set (stupid MINC) --*/
 
    if( !floatize ){
      sprintf(cmd+strlen(cmd)," -scan_range") ;
+     switch( datum ){
+        case MRI_short:
+          sprintf(cmd+strlen(cmd)," -range 0 32767") ; break ;
+
+        case MRI_byte:
+          sprintf(cmd+strlen(cmd)," -range 0 255")   ; break ;
+     }
    }
 
    /*-- add output file name --*/

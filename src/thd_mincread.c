@@ -410,7 +410,9 @@ ENTRY("THD_load_minc") ;
 
    (void) nc_inq_vartype( ncid , im_varid , &im_type ) ;
 
-   do_scale = (im_type==NC_BYTE || im_type==NC_SHORT || im_type==NC_INT ) ;
+   /* N.B.: we don't scale if input data is stored as floats */
+
+   do_scale = (im_type==NC_BYTE || im_type==NC_SHORT || im_type==NC_INT) ;
 
    code = nc_get_att_float( ncid,im_varid , "valid_range" , im_valid_range ) ;
 
@@ -433,13 +435,15 @@ ENTRY("THD_load_minc") ;
    intop = im_valid_range[1] ;
    denom = intop - inbot  ;  /* always positive */
 
-   /** get range of image to which valid_range will be scaled **/
+   /** Get range of image (per 2D slice) to which valid_range will be scaled **/
+   /** Scaling will only be done if we get both image-min and image-max      **/
 
    if( do_scale ){
      code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
      if( code == NC_NOERR ){
        im_min = (float *) calloc(sizeof(float),nslice) ;
        code = nc_get_var_float( ncid , im_min_varid , im_min ) ;
+       if( code != NC_NOERR ){ free(im_min); im_min = NULL; }
      }
 
      if( im_min != NULL ){
@@ -448,8 +452,7 @@ ENTRY("THD_load_minc") ;
          im_max = (float *) malloc(sizeof(float)*nslice) ;
          code = nc_get_var_float( ncid , im_max_varid , im_max ) ;
          if( code != NC_NOERR ){
-           free(im_min) ; im_min = NULL ;
-           free(im_max) ; im_max = NULL ;
+           free(im_min); im_min = NULL; free(im_max); im_max = NULL;
          }
        }
      }
@@ -501,7 +504,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ; outbot += 0.499 ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (byte) (fac*br[ii+qq] + outbot) ;
+                   br[ii+qq] = (byte) (fac*(br[ii+qq]-inbot) + outbot) ;
              }
            }
          }
@@ -537,7 +540,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ; outbot += 0.499 ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (short) (fac*br[ii+qq] + outbot) ;
+                   br[ii+qq] = (short) (fac*(br[ii+qq]-inbot) + outbot) ;
              }
            }
          }
@@ -581,7 +584,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (fac*br[ii+qq] + outbot) ;
+                   br[ii+qq] = (fac*(br[ii+qq]-intop) + outbot) ;
              }
            }
          }
