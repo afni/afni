@@ -5,7 +5,8 @@
 
 F2C = ./f2c -A
 
-DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox
+DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
+           rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett
 MINDOCS  = AFNI.changes.cox
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
