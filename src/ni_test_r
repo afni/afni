@@ -1,0 +1,7 @@
+#!/bin/csh
+
+echo "First test of reading: tcp"
+nicat -r tcp:junk:53211
+
+echo "Second test of reading: shm"
+nicat -r shm:junk:53211
