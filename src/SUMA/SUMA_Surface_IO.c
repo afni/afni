@@ -2995,7 +2995,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
          break;      
       
       default:
-         fprintf (SUMA_STDERR, "Error %s: Unrecognized file format.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: %d Unrecognized file format.\n", FuncName, SO->FileFormat);
          SUMA_RETURN (NOPE);
          break;  
    }

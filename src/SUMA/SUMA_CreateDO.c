@@ -3655,6 +3655,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
    }
    
    for (i=0; i< N; ++i) {
+      SO[i].FileType = SUMA_FT_NOT_SPECIFIED;
+      SO[i].FileFormat = SUMA_FF_NOT_SPECIFIED;
       SO[i].NodeMarker = NULL;
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;

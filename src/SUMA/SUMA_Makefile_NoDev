@@ -10,7 +10,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
 		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c	\
-		 SUMA_Homer.c SUMA_xColBar.c SUMA_SurfClust.c SUMA_IsoSurface.c 
+		 SUMA_Homer.c SUMA_xColBar.c SUMA_SurfClust.c SUMA_IsoSurface.c SUMA_ConvexHull.c 
        
 SUMA_gts.o: SUMA_gts.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/ -c SUMA_gts.c 
@@ -182,6 +182,12 @@ IsoSurface: SUMA_IsoSurface.c MarchingCubes.o
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+ConvexHull: SUMA_ConvexHull.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED -DSUMA_ConvexHull_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvexHull.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+      
 3dVol2Surf: SUMA_3dVol2Surf.c 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ SUMA_3dVol2Surf.c ${SUMA_INCLUDE_PATH}	${SUMA_LINK_PATH} 	\
@@ -300,7 +306,7 @@ AddGTS: ${SUMA_GTS_OBJS}
 
 libglut.a:
 	( cd GLUT/libglut ;	\
-	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
+	  make clean $@ 'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
 	  $(RANLIB) $@ ;	\
      $(CP) -p $@ ../.. ; )
      

@@ -40,6 +40,10 @@ typedef struct {
    SUMA_ISO_XFORMS xform;
    SUMA_SO_File_Format SurfFileFormat;
    SUMA_SO_File_Type SurfFileType;
+   /* following fields are intended for use in ConvexHull only */
+   char *in_1D;  /* name of 1D file containing XYZ coords */
+   float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates. This vector should be freed at the end*/
+   int N_XYZ;  /* number of points in XYZ */
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);
