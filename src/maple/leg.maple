@@ -1,6 +1,8 @@
 with(orthopoly) :
 assume(x>0,y>0,z>0) :
 
+# Modified Legendre polynomial
+
 pnm := proc(n, m, x)
           local f, y;
           if m = 0 then RETURN(P(n, x)) end if;
@@ -9,21 +11,30 @@ pnm := proc(n, m, x)
           RETURN(f)
 end proc :
 
+# (n,m)-th spherical harmonic - cosine
+
 QQ := (n,m) -> simplify( sqrt(x**2+y**2+z**2)^n
                          * pnm(n,m,z/sqrt(x**2+y**2+z**2))
                          * T(m,x/sqrt(x**2+y**2))) :
+
+# (n,m)-th Bz function - cosine
 
 qq := (n,m) -> factor(diff(simplify( sqrt(x**2+y**2+z**2)^n
                                      * pnm(n,m,z/sqrt(x**2+y**2+z**2))
                                      * T(m,x/sqrt(x**2+y**2))),z)) :
 
+# (n,m)-th spherical harmonic - sine
+
 WW := (n,m) -> simplify( sqrt(x**2+y**2+z**2)^n
                          * pnm(n,m,z/sqrt(x**2+y**2+z**2))
                          * y/sqrt(x*x+y*y)*U(m-1,x/sqrt(x**2+y**2))) :
+
+# (n,m)-th Bz function - sine
 
 ww := (n,m) -> factor(diff(simplify( sqrt(x**2+y**2+z**2)^n
                                      * pnm(n,m,z/sqrt(x**2+y**2+z**2))
                                      * y/sqrt(x*x+y*y)*U(m-1,x/sqrt(x**2+y**2))),z)) :
 
-lap := ff -> diff(f,x,x) + diff(f,y,y) + diff(f,z,z) :
+# Laplacian operator (for checking)
 
+lap := ff -> diff(f,x,x) + diff(f,y,y) + diff(f,z,z) :
