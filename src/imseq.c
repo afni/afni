@@ -5042,6 +5042,7 @@ DPR(" .. ButtonPress") ;
 
 #if 0
          /* 04 Nov 2003: don't do anything while mouse is down */
+         /* [doesn't work well - usually prevents anything at all] */
 
          { Window rW,cW ; int rx,ry,x,y ; unsigned int mask ;
            XQueryPointer(XtDisplay(w),XtWindow(w),&rW,&cW,&rx,&ry,&x,&y,&mask) ;
@@ -6379,6 +6380,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_icon       (Pixmap) sets the icon for this window
 
+*    isqDR_bgicon     (Pixmap) sets the background for this window
+
 *    isqDR_sendmontage (ignored) tells the MCW_imseq to send the
                          montage information back via isqCR_newmontage
 
@@ -7003,8 +7006,18 @@ static unsigned char record_bits[] = {
       /*------ set icon -----*/
 
       case isqDR_icon:{
-         XtVaSetValues( seq->wtop , XmNiconPixmap , (Pixmap) drive_data , NULL ) ;
+         XtVaSetValues( seq->wtop, XmNiconPixmap,(Pixmap)drive_data , NULL ) ;
          RETURN( True );
+      }
+      break ;
+
+      /*------ set background icon [28 Jan 2004] -------*/
+
+      case isqDR_bgicon:{
+        XtVaSetValues( seq->wform,
+                         XmNbackgroundPixmap, (Pixmap)drive_data ,
+                       NULL ) ;
+        RETURN( True );
       }
       break ;
 

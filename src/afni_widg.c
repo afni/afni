@@ -4,13 +4,40 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include "afni.h"
+#include "afni_plugout.h"
+
+/*---------------------------------------------------------------*/
+/*------------ Stuff for logos and pixmap definitions -----------*/
 #undef MAIN
 #define WANT_LOGO_BITMAP
 #define WANT_AFNI_BITMAP
 #undef  USE_IMPIX
 
-#include "afni.h"
-#include "afni_plugout.h"
+#include "logo.h"              /* declares global pixmap variables */
+
+#ifdef WANT_AFNI_BITMAP        /* used for various icons          */
+#  include "afni48.xbm"        /* iconified controller window     */
+#  include "afni48cor.xbm"     /* iconified coronal image window  */
+#  include "afni48axi.xbm"     /* iconified axial image window    */
+#  include "afni48sag.xbm"     /* iconified sagittal image window */
+#  include "afni48gra.xbm"     /* no longer used                  */
+#  include "afni48gracor.xbm"  /* iconified coronal graph window  */
+#  include "afni48grasag.xbm"  /* iconified sagittal graph window */
+#  include "afni48graaxi.xbm"  /* iconified axial graph window    */
+#  include "afni16.xbm"        /* used for 'AFNI' form background */
+#endif /* WANT_AFNI_BITMAP */
+
+#ifdef WANT_LOGO_BITMAP        /* now only used for PseudoColor */
+#ifdef USE_MCWLOGO             /* for TrueColor, the color logo */
+#  include "mcw.xbm"           /* in "lll.h" is used instead.   */
+#elif defined(USE_RWCLOGO)
+#  include "rwc.xbm"
+#else
+#  include "nih.xbm"
+#endif
+#endif /* WANT_LOGO_BITMAP */
+/*---------------------------------------------------------------*/
 
 /** if USE_OPTMENUS is defined, then option menus will
     be used in place of MCW_arrowvals wherever possible **/
@@ -319,10 +346,10 @@ STATUS("creating top_form") ;
       Pixel bot_pix , top_pix ;  /* colors: from image windows  */
 
 #ifdef USE_IMPIX              /** which colors to use for program icons **/
-#  define ICON_bg bot_pix
+#  define ICON_bg bot_pix     /* use image display pixels */
 #  define ICON_fg top_pix
 #else
-#  define ICON_bg bg_pix
+#  define ICON_bg bg_pix      /* use widget pixels (e.g., FALLback in afni.h) */
 #  define ICON_fg fg_pix
 #endif
 
@@ -434,15 +461,24 @@ STATUS("WANT_AFNI_BITMAP") ;
                          ICON_fg , ICON_bg ,
                          DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
 
+      /* 28 Jan 2004: just for fun, background pixmaps for top forms */
+
       if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && !AFNI_noenv("AFNI_LOGO16") ){
-#include "afni16.xbm"
-        Pixel fg16=ICON_bg , bg16=ICON_fg ; int ic ; char ename[32] ;
+        Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
+        char *fgn[7] = { "yellow", "red", "blue-cyan", "green", "violet", "gray70", "orange" };
+
         sprintf(ename,"AFNI_LOGO16_FOREGROUND_%c" , 'A'+num_entry-1 ) ;
-        ic = DC_find_closest_overlay_color( im3d->dc , getenv(ename) ) ;
+                     ic = DC_find_closest_overlay_color(im3d->dc, getenv(ename) ) ;
+        if( ic < 0 ) ic = DC_find_closest_overlay_color(im3d->dc, getenv("AFNI_LOGO16_FOREGROUND")) ;
+        if( ic < 0 ) ic = DC_find_closest_overlay_color(im3d->dc, fgn[(num_entry-1)%7] ) ;
         if( ic >= 0 ) fg16 = im3d->dc->ovc->pix_ov[ic] ;
+
         sprintf(ename,"AFNI_LOGO16_BACKGROUND_%c" , 'A'+num_entry-1 ) ;
-        ic = DC_find_closest_overlay_color( im3d->dc , getenv(ename) ) ;
+                     ic = DC_find_closest_overlay_color(im3d->dc, getenv(ename) ) ;
+        if( ic < 0 ) ic = DC_find_closest_overlay_color(im3d->dc, getenv("AFNI_LOGO16_BACKGROUND")) ;
+        if( ic < 0 ) ic = im3d->dc->ovc->ov_darkest ;
         if( ic >= 0 ) bg16 = im3d->dc->ovc->pix_ov[ic] ;
+
         afni16_pixmap[num_entry-1] = XCreatePixmapFromBitmapData(
                                       XtDisplay(vwid->top_shell) ,
                                       RootWindowOfScreen(XtScreen(vwid->top_shell)) ,

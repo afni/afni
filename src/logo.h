@@ -33,7 +33,8 @@ Pixmap afni48gra_pixmap    = XmUNSPECIFIED_PIXMAP ;
 Pixmap afni48gracor_pixmap = XmUNSPECIFIED_PIXMAP ;
 Pixmap afni48grasag_pixmap = XmUNSPECIFIED_PIXMAP ;
 Pixmap afni48graaxi_pixmap = XmUNSPECIFIED_PIXMAP ;
-Pixmap afni16_pixmap[26]   = {
+
+Pixmap afni16_pixmap[26]   = {     /* 28 Jan 2004 */
     XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP ,
     XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP ,
     XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP ,
@@ -44,31 +45,10 @@ Pixmap afni16_pixmap[26]   = {
     XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP ,
     XmUNSPECIFIED_PIXMAP , XmUNSPECIFIED_PIXMAP
 } ;
-#endif
+#endif  /* MAIN */
 
 #undef  USE_MCWLOGO
-#define USE_RWCLOGO
+#define USE_RWCLOGO    /* chooses the logo to use */
 #undef  USE_NIHLOGO
-
-#ifdef WANT_LOGO_BITMAP
-#ifdef USE_MCWLOGO
-#  include "mcw.xbm"
-#elif defined(USE_RWCLOGO)
-#  include "rwc.xbm"
-#else
-#  include "nih.xbm"
-#endif
-#endif /* WANT_LOGO_BITMAP */
-
-#ifdef WANT_AFNI_BITMAP
-#  include "afni48.xbm"
-#  include "afni48cor.xbm"
-#  include "afni48axi.xbm"
-#  include "afni48sag.xbm"
-#  include "afni48gra.xbm"
-#  include "afni48gracor.xbm"
-#  include "afni48grasag.xbm"
-#  include "afni48graaxi.xbm"
-#endif /* WANT_AFNI_BITMAP */
 
 #endif /* _AFNI_LOGO_HEADER_ */

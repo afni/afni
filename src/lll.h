@@ -1,3 +1,6 @@
+
+/** AFNI Sunburst logo image **/
+
 #define lll_width 90
 #define lll_height 90
 static unsigned char lll_rgb[] = {
