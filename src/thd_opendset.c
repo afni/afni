@@ -131,23 +131,20 @@ int THD_is_dataset( char * sname , char * pname , int vt ) /* 17 Mar 2000 */
    EDIT_dset_items( dset , ADN_prefix , pname , ADN_none ) ;
 
    if( sname != NULL )
-      EDIT_dset_items( dset , ADN_directory_name , sname , ADN_none ) ;
+     EDIT_dset_items( dset , ADN_directory_name , sname , ADN_none ) ;
 
    if( vt >= FIRST_VIEW_TYPE && vt <= LAST_VIEW_TYPE ){
-      EDIT_dset_items( dset , ADN_view_type , vt , ADN_none ) ;
-      ii = THD_is_file(dset->dblk->diskptr->header_name);
-      THD_delete_3dim_dataset( dset , False ) ;
-      if( ii ) return vt ;
-      return -1 ;
+     EDIT_dset_items( dset , ADN_view_type , vt , ADN_none ) ;
+     ii = THD_is_file(dset->dblk->diskptr->header_name);
+     THD_delete_3dim_dataset(dset,False) ;
+     if( ii ) return vt ;
+     return -1 ;
    }
 
    for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-      EDIT_dset_items( dset , ADN_view_type , vv , ADN_none ) ;
-      ii = THD_is_file(dset->dblk->diskptr->header_name);
-      if( ii ){
-         THD_delete_3dim_dataset( dset , False ) ;
-         return vv ;
-      }
+     EDIT_dset_items( dset , ADN_view_type , vv , ADN_none ) ;
+     ii = THD_is_file(dset->dblk->diskptr->header_name);
+     if( ii ){ THD_delete_3dim_dataset(dset,False); return vv; }
    }
 
    THD_delete_3dim_dataset( dset , False ) ;
