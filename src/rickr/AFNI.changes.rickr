@@ -896,3 +896,16 @@
   * altered some debug output
   * nifti_write_all_data() now returns an int
 
+29 Dec 2004: nifti library update (v 0.10)
+  * renamed nifti_valid_extension() to nifti_check_extension()
+  * added functions nifti_makehdrname() and nifti_makeimgname()
+  * added function valid_nifti_extensions()
+  * in nifti_write_extensions(), check for validity before writing
+  * rewrote nifti_image_write_hdr_img2():
+      - set write_data and leave_open flags from write_opts
+      - add debug print statements
+      - use nifti_write_ascii_image() for the ascii case
+      - rewrote the logic of all cases to be easier to follow
+  * broke out code as nifti_write_ascii_image() function
+  * added debug to top-level write functions, and free the znzFile
+
