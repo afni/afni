@@ -1864,7 +1864,11 @@ void AFNI_speak( char *string , int nofork )
    /* user says "don't talk" ==> quit */
 
    buf = getenv("AFNI_SPEECH") ;
+#if 1
+   if( buf == NULL || toupper(*buf) != 'Y' ) return ;   /* 02 Apr 2004 */
+#else
    if( buf != NULL && toupper(*buf) == 'N' ) return ;
+#endif
 
    /* don't have "say" program ==> quit */
 
