@@ -24,6 +24,8 @@
 /*     sophisticated user of AFNI that I've met, and who has found    */
 /*     many bugs or gotchas in this code.                             */
 /*   + Doug Ward of MCW has contributed much to the overall package.  */
+/*   + Ziad Saad of NIH has also contributed many useful suggestions. */
+/*   + Peter Bandettini of NIH has asked many many "quick" questions. */
 /**********************************************************************/
 
 #define MAIN
@@ -31,12 +33,14 @@
 #include "afni.h"
 
 #define ANNOUNCEMENT                                                           \
- " GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"   \
- " This is Version " VERSION " of " RELEASE"\n"                                \
- "  ** This software was designed to be used only for research purposes. **\n" \
- "  ** Clinical uses are not recommended, and have never been evaluated. **\n" \
- "  ** This software comes with no warranties of any kind whatsoever,    **\n" \
- "  ** and may not be useful for anything.  Use it at your own risk!     **\n\n"
+ "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "This is Version " VERSION " of " RELEASE"\n"                                 \
+ " ** This software was designed to be used only for research purposes. **\n"  \
+ " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
+ " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
+ " ** and may not be useful for anything.  Use it at your own risk!     **\n"  \
+ " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
+ " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"
 
 #define USE_FRIENDS
 
