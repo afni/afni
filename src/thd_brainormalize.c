@@ -405,6 +405,228 @@ ENTRY("mri_short2mask") ;
    RETURN(mask) ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+typedef struct { short i,j,k,val,basin; } shortvox ;
+
+/*--------------------------------------------------------------------------*/
+
+static void isort_shortvox( int n , shortvox *ar )
+{
+   register int  j , p ;    /* array indices */
+   register shortvox temp ; /* a[j] holding place */
+   register shortvox *a = ar ;
+
+   if( n < 2 ) return ;
+
+   for( j=1 ; j < n ; j++ ){
+
+     if( a[j].val > a[j-1].val ){   /* out of order */
+        p    = j ;
+        temp = a[j] ;
+
+        do{
+           a[p] = a[p-1] ; /* at this point, a[p-1] < temp, so move it up */
+          p-- ;
+        } while( p > 0 && temp.val > a[p-1].val ) ;
+
+        a[p] = temp ;       /* finally, put temp in its place */
+     }
+   }
+}
+
+/********************************************************************************/
+/* qsrec : recursive part of quicksort (stack implementation)                   */
+
+#define QS_STACK  1024  /* stack size */
+#define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
+#define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
+
+static void qsrec_doubleint( int n , shortvox *ar , int cutoff )
+{
+   int i , j ;             /* scanning indices */
+   shortvox *a = ar ;
+   shortvox temp , pivot ; /* holding places */
+
+   int left, right, mst, stack[QS_STACK], nnew , itemp ;
+
+   /* return if too short (insertion sort will clean up) */
+
+   if( cutoff < 3 ) cutoff = 3 ;
+   if( n < cutoff ) return ;
+
+   /* initialize stack to start with whole array */
+
+   stack[0] = 0   ;
+   stack[1] = n-1 ;
+   mst      = 2   ;
+
+   /* loop while the stack is nonempty */
+
+   while( mst > 0 ){
+      right = stack[--mst] ;  /* work on subarray from left -> right */
+      left  = stack[--mst] ;
+
+      i = ( left + right ) / 2 ;           /* middle of subarray */
+
+      /* sort the left, middle, and right a[]'s */
+
+      if( a[left].val < a[i].val     ){ QS_SWAPF(a[left] ,a[i]    ); }
+      if( a[left].val < a[right].val ){ QS_SWAPF(a[left] ,a[right]); }
+      if( a[i].val    < a[right].val ){ QS_SWAPF(a[right],a[i]    ); }
+
+      pivot  = a[i] ;                      /* a[i] is the median-of-3 pivot! */
+      a[i]   = a[right] ;
+
+      i = left ;                           /* initialize scanning */
+      j = right ;
+
+      /*----- partition: move elements bigger than pivot up and elements
+                         smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; a[++i].val > pivot.val ; ) ; /* scan i up,   until a[i] <= pivot */
+        for( ; a[--j].val < pivot.val ; ) ; /* scan j down, until a[j] >= pivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit */
+
+        QS_SWAPF( a[i] , a[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned -----*/
+
+      a[right]  = a[i] ;             /* restore the pivot */
+      a[i]      = pivot ;
+
+      /*----- push subarrays [left..i-1] and [i+1..right] onto stack, if big -----*/
+
+      nnew = 0 ;
+      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; nnew++ ; }
+      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; nnew++ ; }
+
+      /* if just added two subarrays to stack, make sure shorter one comes first */
+
+      if( nnew == 2 && stack[mst-3] - stack[mst-4] > stack[mst-1] - stack[mst-2] ){
+        QS_SWAPI( stack[mst-4] , stack[mst-2] ) ;
+        QS_SWAPI( stack[mst-3] , stack[mst-1] ) ;
+      }
+
+   }  /* end of while stack is non-empty */
+}
+
+#ifndef QS_CUTOFF
+#define QS_CUTOFF 10
+#endif
+
+static void qsort_shortvox( int n , shortvox *a )
+{
+   qsrec_doubleint( n , a , QS_CUTOFF ) ;
+   isort_doubleint( n , a ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#undef  DBALL
+#define DBALL 1024
+
+static MRI_IMAGE * watershedize( MRI_IMAGE *sim )
+{
+   int ii,jj,kk , pp,qq , nx,ny,nz,nxy,nxyz , nvox ;
+   int ip,jp,kp , im,jm,km ;
+   short *sar ;
+   shortvox *svox ;
+   int *isvox ;
+   int *basin , nbasin , nball ;
+   int nb,vb,mb,m , bp[6] , vp[6] ;
+
+ENTRY("watershedize") ;
+
+   if( sim == NULL || sim->kind != MRI_short ) RETURN(NULL) ;
+   sar = MRI_SHORT_PTR(sim) ; if( sar == NULL ) RETURN(NULL) ;
+
+   nx = sim->nx; ny = sim->ny; nz = sim->nz; nxy = nx*ny; nxyz = nxy*nz;
+
+   /* count number of voxels > 0 */
+
+   for( nvox=0,pp=0 ; pp < nxyz ; pp++ ) if( sar[pp] > 0 ) nvox++ ;
+   if( nvox <= 999 ) RETURN(NULL) ;
+
+   /* create voxel lists */
+
+   svox  = (shortvox *) malloc( sizeof(shortvox)* nvox ) ;
+   isvox = (int *)      malloc( sizeof(int)     * nxyz ) ;
+   for( qq=pp=0 ; pp < nxyz ; pp++ ){
+     if( sar[pp] > 0 ){
+       ii             = pp % nx ;
+       jj             = (pp%nxy) / nx ;
+       kk             = pp / nxy ;
+       isvox[pp]      = qq ;
+       svox[qq].i     = ii ;
+       svox[qq].j     = jj ;
+       svox[qq].k     = kk ;
+       svox[qq].val   = sar[pp] ;
+       svox[qq].basin = -1 ;
+     } else {
+       isvox[pp] = -1 ;
+     }
+   }
+
+   /* sort voxel list into descending order */
+
+   qsort_shortvox( nvox , svox ) ;
+
+   nbasin   = 1 ;
+   nball    = DBALL ;
+   basin    = (int *)malloc(sizeof(int)*nball) ;
+   basin[0] = svox[0].val ;
+
+   for( pp=1 ; pp < nvox ; pp++ ){
+     ii = svox[pp].i; jj = svox[pp].j; kk = svox[pp].k;
+     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
+     im = ii-1 ; jm = jj-1 ; km = kk-1 ;
+
+#undef  BASECHECK
+#define BASECHECK(a,b,c)                                   \
+  do{ qq = isvox[IJK(a,b,c)] ;                             \
+      if( qq >= 0 && svox[qq].basin >= 0 ){                \
+        bp[nb] = svox[qq].basin ; vp[nb] = basin[bp[nb]] ; \
+        if( vp[nb] > vb ){ mb = nb ; vb = vp[nb] ; }       \
+        nb++ ;                                             \
+      }                                                    \
+  } while(0)
+
+     nb = 0 ; vb = -1 ; mb = -1 ;
+     if( ip < nx ) BASECHECK(ip,jj,kk) ;
+     if( im >= 0 ) BASECHECK(im,jj,kk) ;
+     if( jp < ny ) BASECHECK(ii,jp,kk) ;
+     if( jm >= 0 ) BASECHECK(ii,jm,kk) ;
+     if( kp < nz ) BASECHECK(ii,jj,kp) ;
+     if( km >= 0 ) BASECHECK(ii,jj,km) ;
+
+     /* at this point, nb = # of neighbors already in basins
+                       bp[m] = list of these basins, m=0..nb-1
+                       vp[m] = peak values of these basins
+                       mb    = m with vp[m] largest ('best')
+                       vb    = value of best basin
+     */
+
+     if( nb == 0 ){  /* this voxel is isolated ==> create new basin */
+
+       if( nbasin == nball ){
+         nball += DBALL ; basin = (int *)realloc((void *)basin,nball) ;
+       }
+       basin[nbasin] = svox[pp].val ;
+       svox[pp].basin = nbasin++ ;
+
+     } else {        /* this voxel has larger neighbors */
+
+       svox[pp].basin = bp[mb] ; /* the best basin found above */
+
+     }
+   }
+}
+
 /*======================================================================*/
 
 #define CMTOP
