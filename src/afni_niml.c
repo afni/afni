@@ -77,6 +77,20 @@ fprintf(stderr,"AFNI_init_niml\n") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Debug printout of a NIML element.
+-------------------------------------------------------------------------*/
+
+static void NIML_to_stderr( void *nini )
+{
+   NI_stream ns_err ;
+   ns_err = NI_stream_open( "fd:2" , "w" ) ;
+   if( ns_err != NULL ){
+     NI_write_element( ns_err , nel , NI_TEXT_MODE ) ;
+     NI_stream_close( ns_err ) ;
+   }
+}
+
+/*-----------------------------------------------------------------------*/
 /*! NIML workprocess.
     - Listen for new incoming connections on any non-open connections.
     - Read and process any new data from open connections.
@@ -89,7 +103,6 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 {
    int cc , nn ;
    void *nini ;
-   NI_stream ns_err ;
 
    /** loop over input NIML streams **/
 
@@ -127,22 +140,16 @@ fprintf(stderr,"AFNI_niml_workproc: opening %s\n",ns_name[cc]) ;
 
          case NI_ELEMENT_TYPE:{                  /* data element */
            NI_element *nel = (NI_element *) nini ;
-           ns_err = NI_stream_open( "fd:2" , "w" ) ;
-           if( ns_err != NULL ){
-             NI_write_element( ns_err , nel , NI_TEXT_MODE ) ;
-             NI_stream_close( ns_err ) ;
-           }
+
+           NIML_to_stderr( nel ) ;
            NI_free_element( nel ) ;
          }
          break ;
 
          case NI_GROUP_TYPE:{                   /* group element */
            NI_element *ngr = (NI_element *) nini ;
-           ns_err = NI_stream_open( "fd:2" , "w" ) ;
-           if( ns_err != NULL ){
-             NI_write_element( ns_err , ngr , NI_TEXT_MODE ) ;
-             NI_stream_close( ns_err ) ;
-           }
+
+           NIML_to_stderr( ngr ) ;
            NI_free_element( ngr ) ;
          }
          break ;
