@@ -12,6 +12,8 @@
          above the operator specified threshold value.
 
   Mod:   5 Dec 2000, by Vinai Roopchansingh, to include -mask option
+
+  Mod:   16 Feb 2005, RWCox: remove threshold stuff, and add -doall.
 */
 
 #include <stdio.h>
@@ -22,18 +24,17 @@
 
 static EDIT_options HI_edopt ;
 
-#define NBIN_SPECIAL 44444
+#define NBIN_SPECIAL 65536
 
 static int   HI_nopt ;
 static int   HI_nbin = 100 ;
 static int   HI_log  = 0 ;
-static float HI_thr = 0.0;
 
 static int     HI_dind  = -1 ;   /* 23 Sep 1998 */
-static int     HI_tind  = -1 ;
 static int     HI_nomit = 0 ;
 static float * HI_omit  = NULL ;
 static int     HI_notit = 0 ;
+static int     HI_doall = 0 ;    /* 16 Feb 2005 */
 
 static byte  * HI_mask      = NULL ;
 static int     HI_mask_nvox = 0 ;
@@ -44,13 +45,13 @@ static int     HI_mask_hits = 0 ;
 
 void HI_read_opts( int , char ** ) ;
 #define HI_syntax(str) \
-  do{ fprintf(stderr,"\n*** %s\a\n",str) ; exit(1) ; } while(1)
+  do{ fprintf(stderr,"\n** ERROR: %s\a\n",str) ; exit(1) ; } while(0)
 
 /*---------------------------------------------------------------------------------*/
 
-int HI_keep(float x)
+int HI_keep(float x)  /* check if value x is in the omitted list */
 {
-   int ii ;
+   register int ii ;
    for( ii=0 ; ii < HI_nomit ; ii++ ) if( x == HI_omit[ii] ) return 0 ;
    return 1 ;
 }
@@ -60,41 +61,50 @@ int HI_keep(float x)
 int main( int argc , char * argv[] )
 {
    int iarg ;
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
 
    int nx,ny,nz , nxyz , ii , kk , nopt , nbin ;
    float fbot , ftop ;
-   int * fbin , * tbin;
+   int *fbin=NULL , *tbin=NULL ;
    float df , dfi ;
 
-   int iv_thr, thr_type;
-   float thrfac, fimfac;
+   float fimfac;
    int iv_fim, fim_type;
-   byte    * bfim = NULL , * bthr = NULL ;
-   short   * sfim = NULL , * sthr = NULL ;
-   float   * ffim = NULL , * fthr = NULL ;
-   void    * vfim = NULL , * vthr = NULL ;
+   byte    *bfim = NULL ;
+   short   *sfim = NULL ;
+   float   *ffim = NULL ;
+   void    *vfim = NULL ;
    long cumfbin, cumtbin;
+   int iv_bot , iv_top ;
+   float vbot , vtop ;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
       printf("Compute histogram of 3D Dataset\n"
              "Usage: 3dhistog [editing options] [histogram options] dataset\n"
              "\n"
-             "The editing options are the same as in 3dmerge.\n"
+             "The editing options are the same as in 3dmerge\n"
+             " (i.e., the options starting with '-1').\n"
+             "\n"
              "The histogram options are:\n"
-             "  -nbin #   Means to use '#' bins (default = 100)\n"
+             "  -nbin #   Means to use '#' bins [default=100]\n"
              "            Special Case: for short or byte dataset bricks,\n"
              "                          set '#' to zero to have the number\n"
              "                          of bins set by the brick range.\n"
-             "  -thr  r   Means to count only voxels with the statistics threshold above 'r'\n"
-             "  -dind i   Means to take data from sub-brick 'i'\n"
-             "  -tind j   Means to take threshold from sub-brick 'j'\n"
-             "  -omit x   Means to omit the value 'x' from the count.\n"
+             "  -dind i   Means to take data from sub-brick #i, rather than #0\n"
+             "  -omit x   Means to omit the value 'x' from the count;\n"
+             "              -omit can be used more than once to skip multiple values.\n"
+             "  -mask m   Means to use dataset 'm' to determine which voxels to use\n"
+             "  -doall    Means to include all sub-bricks in the calculation;\n"
+             "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
              "  -notit    Means to leave the title line off the output.\n"
-             "  -mask m   Means to use the dataset 'm' to determine which voxels in the test\n"
-	     "            dataset to include for the histogram\n"
+             "  -log10    Output log10() of the counts, instead of the count values.\n"
              "\n"
-             "The histogram is written to stdout.\n"
+             "The histogram is written to stdout.  Use redirection '>' if you\n"
+             "want to save it to a file.  The format is a title line, then\n"
+             "three numbers printed per line:\n"
+             "  bottom-of-interval  count-in-interval  cumulative-count\n"
+             "\n"
+             "-- by RW Cox (V Roopchansingh added the -mask option)\n"
          ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -107,408 +117,155 @@ int main( int argc , char * argv[] )
 
    if( nopt >=  argc ) HI_syntax("no dset argument?") ;
 
-   fbin = (int *) malloc( sizeof(int) * HI_nbin ) ;
-   if( fbin == 0 ) HI_syntax("can't allocate histogram array!") ;
+   fbin = (int *) calloc( sizeof(int) , HI_nbin ) ;
+   if( fbin == NULL ) HI_syntax("can't allocate histogram array!") ;
 
-   if (HI_thr > 0.0)
-     {
-       tbin = (int *) malloc( sizeof(int) * HI_nbin ) ;
-       if( tbin == 0 ) HI_syntax("can't allocate histogram array!") ;
+   iarg = nopt ;
+   dset = THD_open_dataset( argv[iarg] ) ;
+   if( dset == NULL ){
+     fprintf(stderr,"** ERROR: Can't open dataset %s\n",argv[iarg]) ;
+     exit(1) ;
+   }
+
+   if( (HI_mask_nvox > 0) && (HI_mask_nvox != DSET_NVOX(dset)) )
+     HI_syntax("mask and input dataset bricks don't match in size!") ;
+
+   DSET_mallocize( dset ) ;
+   DSET_load( dset ) ;
+   if( !DSET_LOADED(dset) ){
+     fprintf(stderr,"** ERROR: can't load dataset %s\n",argv[iarg]) ;
+     exit(1) ;
+   }
+   EDIT_one_dataset( dset , &HI_edopt ) ;  /* edit value in memory */
+
+   nx = dset->daxes->nxx ;
+   ny = dset->daxes->nyy ;
+   nz = dset->daxes->nzz ; nxyz = nx * ny * nz ;
+
+   if( HI_doall ){
+     iv_bot = 0 ; iv_top = DSET_NVALS(dset)-1 ;
+     if( !THD_datum_constant(dset->dblk) ){
+       fprintf(stderr,
+         "** ERROR: Dataset %s doesn't have same datum type in all sub-bricks!\n",
+         argv[iarg]) ;
+       exit(1) ;
      }
+   } else {
+     iv_bot = (HI_dind >= 0) ? HI_dind
+                             : DSET_IS_MASTERED(dset) ? 0
+                                                      : DSET_PRINCIPAL_VALUE(dset) ;
+     iv_top = iv_bot ;
+     if( iv_bot < 0 || iv_bot >= DSET_NVALS(dset) ){
+       fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
+               iv_bot , argv[iarg] ) ;
+       exit(1) ;
+     }
+   }
+   fim_type = DSET_BRICK_TYPE(dset,iv_bot) ;
 
-   dset = NULL ;
-   for( iarg=nopt ; iarg < argc ; iarg++ ){
-      if( dset != NULL ) THD_delete_3dim_dataset( dset , False ) ;
-      dset = THD_open_dataset( argv[iarg] ) ;
-      if( dset == NULL ){
-         fprintf(stderr,"*** Can't open dataset %s -- skipping\n",argv[iarg]) ;
-         continue ;
-      }
+   /* find global min and max of data in all used bricks */
 
-      if ( (HI_mask_nvox > 0) && (HI_mask_nvox != DSET_NVOX(dset)) )
-         HI_syntax("mask and input dataset bricks don't match in size!") ;
+   fbot = 9.999e+37 ; ftop = -fbot ;
+   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
+     vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
+     vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; if (fimfac == 0.0)  fimfac = 1.0;
+     vbot *= fimfac ; vtop *= fimfac ;
+     if( vbot < fbot ) fbot = vbot;
+     if( vtop > ftop ) ftop = vtop;
+   }
+   if( fbot >= ftop ){
+     fprintf(stderr,"** ERROR: all values in dataset are = %f!\n",fbot) ;
+     exit(1) ;
+   }
+   switch( fim_type ){
+      default:
+        fprintf(stderr,"** ERROR: can't process data of this type!\n") ;
+      exit(1) ;
 
-      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
-      THD_load_datablock( dset->dblk ) ;
-      EDIT_one_dataset( dset , &HI_edopt ) ;
+      case MRI_byte:
+      case MRI_short:
+        nbin = (int)(ftop-fbot+1.0) ;
+        if( nbin > HI_nbin ) nbin = HI_nbin ;
+        if( nbin < 2       ) nbin = 2 ;
+      break ;
 
-      iv_fim = (HI_dind >= 0) ? HI_dind
-                              : DSET_IS_MASTERED(dset) ? 0
-                                                       : DSET_PRINCIPAL_VALUE(dset) ;
+      case MRI_float:
+        nbin = (HI_nbin==NBIN_SPECIAL) ? 100 : HI_nbin ;
+      break ;
+   }
+   df  = (ftop-fbot) / (nbin-1) ;
+   dfi = 1.0 / df ;
 
-      if( iv_fim >= DSET_NVALS(dset) ){
-         fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
-                 iv_fim , argv[iarg] ) ;
-         continue ;
-      }
-      fimfac   = DSET_BRICK_FACTOR(dset,iv_fim) ;
-      if (fimfac == 0.0)  fimfac = 1.0;
-      vfim  = DSET_ARRAY(dset,iv_fim) ;                             /* ptr to data */
-      if( vfim == NULL ){
-         fprintf(stderr,"*** Cannot access data in dataset %s\n",argv[iarg]) ;
-         continue ;
-      }
+   /* loop over all bricks and accumulate histogram */
 
-      iv_thr = (HI_tind >= 0) ? HI_tind
-                              : FUNC_ival_thr[dset->func_type] ;
+   for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
+     fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
+     if (fimfac == 0.0)  fimfac = 1.0;
+     vfim = DSET_ARRAY(dset,iv_fim) ;
 
-      if( HI_thr > 0.0 && iv_thr >= DSET_NVALS(dset) ){
-         fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
-                 iv_thr , argv[iarg] ) ;
-         continue ;
-      }
+     switch( fim_type ){
 
-      if( HI_thr == 0.0 || iv_thr < 0 )
-	{
-	  thr_type = ILLEGAL_TYPE ;
-	  thrfac   = 0.0 ;
-	}
-      else
-	{
-	  thr_type = DSET_BRICK_TYPE(dset,iv_thr) ;
-	  thrfac   = DSET_BRICK_FACTOR(dset,iv_thr) ;
-	  if( thrfac == 0.0 && !ISBUCKET(dset) )
-	    {
-	      switch( thr_type )
-		{
-                default: thrfac = 1.0 ; break ;
-		case MRI_short:
-		  thrfac = 1.0/FUNC_scale_short[dset->func_type];
-		  break;
-		case MRI_byte :
-		  thrfac = 1.0/FUNC_scale_byte [dset->func_type];
-		  break;
-		}
-	    } else if( thrfac == 0.0 ) thrfac = 1.0 ;
-	}
-
-
-      /** load the pointers to the sub-bricks **/
-
-      vfim = DSET_ARRAY(dset,iv_fim) ;
-      fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
-
-      switch( fim_type )
-	{
-	default:
-	  fprintf(stderr,"\n*** Illegal data type in dataset %s\a\n",
-		  dset->dblk->diskptr->brick_name ) ;
-	  exit(1) ;
-
-	case MRI_short:   sfim = (short *)   vfim ; break ;
-	case MRI_float:   ffim = (float *)   vfim ; break ;
-	case MRI_byte:    bfim = (byte *)    vfim ; break ;
-	}
-
-      if( HI_thr > 0.0 && iv_thr >= 0 )
-	{
-	  vthr = DSET_ARRAY(dset,iv_thr) ;
-	  switch( thr_type )
-	    {
-	    default:
-	      fprintf (stderr,
-		       "\n*** Illegal thresh data type in dataset %s\a\n",
-		       dset->dblk->diskptr->brick_name ) ;
-	      exit(1) ;
-
-	    case MRI_short:   sthr = (short *) vthr ; break ;
-	    case MRI_float:   fthr = (float *) vthr ; break ;
-	    case MRI_byte:    bthr = (byte *)  vthr ; break ;
-	    }
-	}
-
-      nx = dset->daxes->nxx ;
-      ny = dset->daxes->nyy ;
-      nz = dset->daxes->nzz ; nxyz = nx * ny * nz ;
-
-      for( kk=0 ; kk < HI_nbin ; kk++ ) fbin[kk] = 0 ;
-
-      fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
-      switch( fim_type ){
-
-         default:
-            fprintf(stderr,
-                    "*** data of type %s in dataset %s -- not yet implemented!\n" ,
-                    MRI_TYPE_name[fim_type] , argv[iarg] ) ;
-            fbot = 1.0 ; ftop = 0.0 ;
-         break ;
-
-         case MRI_short:{
-            short * fim = (short *) vfim ;
-
-            fbot = ftop = fim[0] ;
-            for( ii=1 ; ii < nxyz ; ii++ ){
-                    if( fim[ii] < fbot ) fbot = fim[ii] ;
-               else if( fim[ii] > ftop ) ftop = fim[ii] ;
-            }
-            if( fbot == ftop ) break ;
-            nbin = ftop-fbot+1 ;
-            if( nbin > HI_nbin ) nbin = HI_nbin ;
-            if( nbin < 2       ) nbin = 2 ;
-            df  = (ftop-fbot) / ((float)(nbin-1)) ;
-            dfi = 1.0 / df ;
-            for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-                  kk = (int)( (fim[ii]-fbot)*dfi ) ;
-                  fbin[kk]++ ;
-               }
-            }
+       case MRI_short:{
+         short *fim = (short *)vfim ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+             fbin[kk]++ ;
+           }
          }
-         break ;
-
-         case MRI_byte:{
-            byte * fim = (byte *) vfim ;
-
-            fbot = ftop = fim[0] ;
-            for( ii=1 ; ii < nxyz ; ii++ ){
-                    if( fim[ii] < fbot ) fbot = fim[ii] ;
-               else if( fim[ii] > ftop ) ftop = fim[ii] ;
-            }
-            if( fbot == ftop ) break ;
-            nbin = ftop-fbot+1 ;
-            if( nbin > HI_nbin ) nbin = HI_nbin ;
-            if( nbin < 2       ) nbin = 2 ;
-            df  = (ftop-fbot) / ((float)(nbin-1)) ;
-            dfi = 1.0 / df ;
-            for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-                  kk = (int)( (fim[ii]-fbot)*dfi ) ;
-                  fbin[kk]++ ;
-               }
-            }
-         }
-         break ;
-
-         case MRI_float:{
-            float * fim = (float *) vfim ;
-
-            fbot = ftop = fim[0] ;
-            for( ii=1 ; ii < nxyz ; ii++ ){
-                    if( fim[ii] < fbot ) fbot = fim[ii] ;
-               else if( fim[ii] > ftop ) ftop = fim[ii] ;
-            }
-            if( fbot == ftop ) break ;
-            nbin = (HI_nbin==NBIN_SPECIAL) ? 100 : HI_nbin ;
-            df  = (ftop-fbot) / ((float)(nbin-1)) ;
-            dfi = 1.0 / df ;
-            for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-                     kk = (int)( (fim[ii]-fbot)*dfi ) ;
-                     fbin[kk]++ ;
-               }
-            }
-         }
-         break ;
-
-      }  /* end of switch on data brick type */
-
-
-
-      /*----- start of logic for histogram of thresholded values -----*/
-
-      /*----- apply threshold? -----*/
-      if( HI_thr > 0.0 && iv_thr >= 0 )
-	{
-	  for (kk=0;  kk < HI_nbin;  kk++)  tbin[kk] = 0;
-	
-	  switch( thr_type )
-	    {
-
-	    /*--- threshold datum is shorts ---*/
-	    case MRI_short:
-	      {
-		short thrplu , thrmin ;
-		float fplu = HI_thr / thrfac ;
-		if( fplu > 32767.0 ){
-		  fprintf(stderr,"\n*** -thr out of range: reset to %g\n",
-			  32767.0 * thrfac ) ;
-		  fplu = 32767.0 ;
-		}
-		thrplu = (short) fplu ;
-		thrmin = -thrplu ;
-		
-		switch( fim_type )
-		  {
-		  case MRI_short:   /* fim datum is shorts */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(sfim[ii]*fimfac) && (sthr[ii] > thrplu || sthr[ii] < thrmin) )
-			{
-			  kk = (int)( (sfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-
-		  case MRI_byte:    /* fim datum is bytes */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(bfim[ii]*fimfac) && (sthr[ii] > thrplu || sthr[ii] < thrmin) )
-			{
-			  kk = (int)( (bfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-
-		  case MRI_float:   /* fim datum is floats */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(ffim[ii]*fimfac) && (sthr[ii] > thrplu || sthr[ii] < thrmin) )
-			{
- 			  kk = (int)( (ffim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-		  }
-	      }
-	      break ;
-
-	    /** threshold datum is bytes **/
-	    case MRI_byte:
-	      {
-		byte thrplu ;
-		float fplu = HI_thr / thrfac ;
-		if( fplu > 255.0 )
-		  {
-		    fprintf(stderr,
-			    "\n*** -thr out of range: reset to %g\n",
-			    255.0 * thrfac ) ;
-		    fplu = 255.0 ;
-		  }
-		thrplu = (byte) fplu ;
-		
-		switch( fim_type )
-		  {
-		  case MRI_short:   /* fim datum is shorts */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(sfim[ii]*fimfac) && bthr[ii] > thrplu )
-			{
-			  kk = (int)( (sfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-
-		  case MRI_byte:    /* fim datum is bytes */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(bfim[ii]*fimfac) && bthr[ii] > thrplu )
-			{
-			  kk = (int)( (bfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-
-		  case MRI_float:   /* fim datum is floats */
-		    for( ii=0 ; ii < nxyz ; ii++ )
-		      if( KEEP(ffim[ii]*fimfac) && bthr[ii] > thrplu )
-			{
-			  kk = (int)( (ffim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-			}
-		    break ;
-		  }
-	      }
-	      break ;
-
-	    /** threshold datum is floats **/
-	    case MRI_float:
-	      {
-		float thrplu , thrmin ;
-		thrplu = HI_thr ;
-		if( thrfac > 0.0 ) thrplu /= thrfac ;
-		thrmin = -thrplu ;
-		
-		switch( fim_type ){
-		case MRI_short:   /* fim datum is shorts */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-		    if( KEEP(sfim[ii]*fimfac) && (fthr[ii] > thrplu || fthr[ii] < thrmin) )
-		      {
-			  kk = (int)( (sfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-		      }
-		  break ;
-
-		case MRI_byte:    /* fim datum is bytes */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-		    if( KEEP(bfim[ii]*fimfac) && (fthr[ii] > thrplu || fthr[ii] < thrmin) )
-		      {
-			  kk = (int)( (bfim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-		      }
-		  break ;
-
-		case MRI_float:   /* fim datum is floats */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-		    if( KEEP(ffim[ii]*fimfac) && (fthr[ii] > thrplu || fthr[ii] < thrmin) )
-		      {
-			  kk = (int)( (ffim[ii]-fbot)*dfi ) ;
-			  tbin[kk]++ ;
-		      }
-		  break ;
-		}
-	      }
-	      break ;
-	    }
-	}
-
-
-      /*** print something, maybe ***/
-
-      if( fbot > ftop ) continue ;   /* something bad happened */
-      if( fbot == ftop ){
-         fprintf(stderr,"*** all data = %f in dataset %s\n",
-                 fbot , argv[iarg] ) ;
-         continue ;
       }
+      break ;
 
-      cumfbin = 0;
-      cumtbin = 0;
+       case MRI_byte:{
+         byte *fim = (byte *)vfim ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+             fbin[kk]++ ;
+           }
+         }
+       }
+       break ;
 
-      if( HI_log )
-	{
-          if( ! HI_notit ){
-	     printf ("%12s %13s %13s ",
-		     "#Magnitude", "Log_Freq", "Log_Cum_Freq");
-	     if (HI_thr > 0.0)
-	       printf ("%13s %13s\n",  "Log_Thr_Freq", "Log_Cum_Thr_Frq");
-	     else
-	       printf (" \n");
-          }
+       case MRI_float:{
+         float *fim = (float *)vfim ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+             fbin[kk]++ ;
+           }
+         }
+       }
+       break ;
+     }  /* end of switch on data brick type */
 
-         for( kk=0 ; kk < nbin ; kk++ )
-	   {
-	     cumfbin += fbin[kk];
-	     printf ("%12.6f %13.6f %13.6f ", (fbot+kk*df)*fimfac,
-		     log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
-	     if (HI_thr > 0.0)
-	       {
-		 cumtbin += tbin[kk];
-		 printf ("%13.6f %13.6f \n", log10((double)tbin[kk]+1.0),
-			 log10((double)cumtbin+1.0));
-	       }
-	     else
-	       printf (" \n");
-	   }
-	} else
-	{
-          if( ! HI_notit ){
-	     printf ("%12s %13s %13s ",  "#Magnitude", "Freq", "Cum_Freq");
-	     if (HI_thr > 0.0)
-	       printf ("%13s %13s \n",  "Thr_Freq", "Cum_Thr_Freq");
-	     else
-	       printf (" \n");
-          }
+     DSET_unload_one(dset,iv_fim) ;
+   }
 
-	  for( kk=0 ; kk < nbin ; kk++ )
-	    {
-	      cumfbin += fbin[kk];
-	      printf ("%12.6f %13d %13ld ", (fbot+kk*df)*fimfac,
-		     fbin[kk], cumfbin);
-	      if (HI_thr > 0.0)
-		{
-		  cumtbin += tbin[kk];
-		  printf ("%13d %13ld \n", tbin[kk], cumtbin);
-		}
-	      else
-		printf (" \n");
+   /*** print something ***/
 
-	    }
-	}
+   cumfbin = 0;
+
+   if( HI_log ){
+     if( ! HI_notit )
+       printf ("%12s %13s %13s\n", "#Magnitude", "Log_Freq", "Log_Cum_Freq");
+
+     for( kk=0 ; kk < nbin ; kk++ ){
+       cumfbin += fbin[kk];
+       printf ("%12.6f %13.6f %13.6f\n",
+               (fbot+kk*df)*fimfac,
+               log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
+     }
+   } else {
+     if( ! HI_notit )
+       printf ("%12s %13s %13s\n",  "#Magnitude", "Freq", "Cum_Freq");
+
+     for( kk=0 ; kk < nbin ; kk++ ){
+       cumfbin += fbin[kk];
+       printf ("%12.6f %13d %13ld\n",
+               (fbot+kk*df)*fimfac, fbin[kk], cumfbin);
+     }
    }
    exit(0) ;
 }
@@ -541,10 +298,7 @@ void HI_read_opts( int argc , char * argv[] )
       /**** check for editing options ****/
 
       ival = EDIT_check_argv( argc , argv , nopt , &HI_edopt ) ;
-      if( ival > 0 ){
-         nopt += ival ;
-         continue ;
-      }
+      if( ival > 0 ){ nopt += ival ; continue ; }
 
       if( strncmp(argv[nopt],"-nbin",5) == 0 ){
         HI_nbin = strtol( argv[++nopt] , NULL , 10 ) ;
@@ -554,13 +308,18 @@ void HI_read_opts( int argc , char * argv[] )
       }
 
       if( strncmp(argv[nopt],"-dind",5) == 0 ){
-         HI_dind = strtol( argv[++nopt] , NULL , 10 ) ;
-         if( HI_dind < 0 ) HI_syntax("illegal value of -dind!") ;
+        HI_dind = strtol( argv[++nopt] , NULL , 10 ) ;
+        if( HI_dind < 0 ) HI_syntax("illegal value of -dind!") ;
+        nopt++ ; continue ;
+      }
+
+      if( strncmp(argv[nopt],"-doall",6) == 0 ){
+        HI_doall = 1 ;
         nopt++ ; continue ;
       }
 
       if( strncmp(argv[nopt],"-omit",5) == 0 ){
-         char * cpt ; float val ;
+         char *cpt ; float val ;
          val = strtod( argv[++nopt] , &cpt ) ;
          if( cpt != NULL && *cpt != '\0' ) HI_syntax("illegal value of -omit!") ;
          HI_nomit++ ;
@@ -569,12 +328,6 @@ void HI_read_opts( int argc , char * argv[] )
          else
             HI_omit = (float *) realloc( HI_omit , sizeof(float)*HI_nomit ) ;
          HI_omit[HI_nomit-1] = val ;
-        nopt++ ; continue ;
-      }
-
-      if( strncmp(argv[nopt],"-tind",5) == 0 ){
-         HI_tind = strtol( argv[++nopt] , NULL , 10 ) ;
-         if( HI_tind < 0 ) HI_syntax("illegal value of -tind!") ;
         nopt++ ; continue ;
       }
 
@@ -588,45 +341,32 @@ void HI_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      /*-----   -thr   -----*/
-      if (strncmp(argv[nopt], "-thr", 4) == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  HI_syntax ("need argument after -thr ");
-	  sscanf (argv[nopt], "%f", &val);
-	  if (val < 0.0)
-	    HI_syntax ("illegal argument after -thr ");
-	  HI_thr = val;
-	  nopt++;
-	  continue;
-	}
+      /* ----- -mask ----- */
 
-	/* ----- -mask ----- */
+      if( strncmp(argv[nopt],"-mask",5) == 0 )
+      {
+          THD_3dim_dataset * mset ; int ii,mc ;
+          nopt++ ;
 
-	if( strncmp(argv[nopt],"-mask",5) == 0 )
-	{
-	    THD_3dim_dataset * mset ; int ii,mc ;
-	    nopt++ ;
+          if( nopt >= argc ) HI_syntax("need argument after -mask!") ;
 
-	    if( nopt >= argc ) HI_syntax("need argument after -mask!") ;
+          mset = THD_open_dataset( argv[nopt] ) ;
+          if( mset == NULL ) HI_syntax("can't open -mask dataset!") ;
+          HI_mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+          if( HI_mask == NULL ) HI_syntax("can't use -mask dataset!") ;
 
-	    mset = THD_open_dataset( argv[nopt] ) ;
-	    if( mset == NULL ) HI_syntax("can't open -mask dataset!") ;
-	    HI_mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
-	    if( HI_mask == NULL ) HI_syntax("can't use -mask dataset!") ;
+          HI_mask_nvox = DSET_NVOX(mset) ;
+          DSET_delete(mset) ;
 
-	    HI_mask_nvox = DSET_NVOX(mset) ;
-	    DSET_delete(mset) ;
+          for( ii=mc=0 ; ii < HI_mask_nvox ; ii++ ) if( HI_mask[ii] ) mc++ ;
 
-	    for( ii=mc=0 ; ii < HI_mask_nvox ; ii++ ) if( HI_mask[ii] ) mc++ ;
+          if( mc == 0 ) HI_syntax("mask is all zeros!") ;
 
-	    if( mc == 0 ) HI_syntax("mask is all zeros!") ;
+          fprintf(stderr,"++ %d voxels in mask\n",mc) ;
+          HI_mask_hits = mc ;
+          nopt++ ; continue ;
 
-	    fprintf(stderr,"++ %d voxels in mask\n",mc) ;
-	    HI_mask_hits = mc ;
-	    nopt++ ; continue ;
-
-	}
+      }
 
       /**** unknown switch ****/
 
@@ -638,6 +378,13 @@ void HI_read_opts( int argc , char * argv[] )
 #ifdef HIDEBUG
 printf("*** finished with options\n") ;
 #endif
+
+   if( HI_doall ){
+     if( HI_dind >= 0 ){
+       fprintf(stderr,"** WARNING: -dind ignored with -doall!\n") ;
+       HI_dind = -1 ;
+     }
+   }
 
    HI_nopt = nopt ;
    return ;
