@@ -1859,8 +1859,18 @@ ENTRY("AFNI_choose_dataset_CB") ;
             if( DSET_COMPRESSED(im3d->ss_now->anat[ii][vv]) )
                strcat( strlist[ii] , "z" ) ;
 
+            /* 20 Dec 2001: mark if this is a global dataset */
+
+            { THD_slist_find find ;
+              find = THD_dset_in_session( FIND_IDCODE ,
+                                          &(im3d->ss_now->anat[ii][vv]->idcode) ,
+                                          GLOBAL_library.session ) ;
+
+              if( find.dset != NULL ) strcat( strlist[ii] , "G" ) ;
+            }
+
          } else
-            MCW_strncpy( strlist[ii] , "?????????" , THD_MAX_PREFIX ) ;
+            MCW_strncpy( strlist[ii] , "??*BAD*??" , THD_MAX_PREFIX ) ;
       }
 
       init_str = im3d->vinfo->anat_num ;
@@ -1910,11 +1920,21 @@ ENTRY("AFNI_choose_dataset_CB") ;
                strcat( strlist[ii] , "]" ) ;
             }
 
-            if( DSET_COMPRESSED(im3d->ss_now->anat[ii][vv]) )
+            if( DSET_COMPRESSED(im3d->ss_now->func[ii][vv]) )
                strcat( strlist[ii] , "z" ) ;
 
+            /* 20 Dec 2001: mark if this is a global dataset */
+
+            { THD_slist_find find ;
+              find = THD_dset_in_session( FIND_IDCODE ,
+                                          &(im3d->ss_now->func[ii][vv]->idcode) ,
+                                          GLOBAL_library.session ) ;
+
+              if( find.dset != NULL ) strcat( strlist[ii] , "G" ) ;
+            }
+
          } else
-            MCW_strncpy( strlist[ii] , "*********" , THD_MAX_PREFIX ) ;
+            MCW_strncpy( strlist[ii] , "**?BAD?**" , THD_MAX_PREFIX ) ;
 
       }
 
@@ -2305,6 +2325,36 @@ ENTRY("AFNI_read_sess_CB") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------*/
+/*! Append datasets in THD_session ssb to those in ssa.
+    \date 20 Dec 2001
+*/
+
+void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
+{
+   int qs, qd, vv ;
+
+ENTRY("AFNI_append_sessions") ;
+
+   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
+   if( THD_equiv_files(ssa->sessname,ssb->sessname)   ) EXRETURN ;
+
+   qs = ssa->num_anat ;
+   for( qd=0; qd < ssb->num_anat && qd+qs < THD_MAX_SESSION_ANAT ; qd++ )
+      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+         ssa->anat[qd+qs][vv] = ssb->anat[qd][vv] ;
+   ssa->num_anat += qd ;
+
+   qs = ssa->num_func ;
+   for( qd=0; qd < ssb->num_func && qd+qs < THD_MAX_SESSION_FUNC ; qd++ )
+      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+         ssa->func[qd+qs][vv] = ssb->func[qd][vv] ;
+   ssa->num_func += qd ;
+
+   EXRETURN ;
+}
+
+
 /*---------------------------------------------------------------------
    Got a button press from the file selection dialog,
    so process it (maybe read in a new session!)
@@ -2436,6 +2486,10 @@ STATUS("processing new session") ;
                   for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
                      PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
 
+               /* 20 Dec 2001: if have global datasets, put them in here */
+
+               AFNI_append_sessions( new_ss , GLOBAL_library.session ) ;
+
                /* if we were living with a dummy, fix that */
 
                if( GLOBAL_library.have_dummy_dataset ) UNDUMMYIZE ;
@@ -2443,8 +2497,7 @@ STATUS("processing new session") ;
                /* put the new session into place in the list of sessions */
 
 STATUS("adding new session to list") ;
-               GLOBAL_library.sslist->ssar[GLOBAL_library.sslist->num_sess]
-                 = new_ss ;
+               GLOBAL_library.sslist->ssar[GLOBAL_library.sslist->num_sess] = new_ss ;
                (GLOBAL_library.sslist->num_sess)++ ;
                THD_reconcile_parents( GLOBAL_library.sslist ) ;
 
@@ -2795,7 +2848,8 @@ ENTRY("AFNI_rescan_all_CB") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------
+/*----------------------------------------------------------------------*/
+/*!
   Re-read the session indexed by "sss".
   Much of this code is taken from AFNI_read_inputs.
   WARNING: this will do bad things if the user deletes the
@@ -2907,6 +2961,10 @@ STATUS("PARENTIZE-ing datasets in new session") ;
    /* put the new session into place in the list of sessions */
 
    GLOBAL_library.sslist->ssar[sss] = new_ss ;
+
+   /* 20 Dec 2001: add the global datasets back in, if any */
+
+   AFNI_append_sessions( new_ss , GLOBAL_library.session ) ;
 
    /* assign the warp and anatomy parent pointers;
       then, make any datasets that don't exist but logically

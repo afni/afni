@@ -941,6 +941,8 @@ typedef struct {
 
    int ijk_lock ;                                 /* 11 Sep 2000 */
 
+   THD_session *session ;                         /* 20 Dec 2001 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -1119,6 +1121,7 @@ extern void AFNI_rescan_timeseries_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_read_sess_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_sess_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 extern void AFNI_make_file_dialog( Three_D_View * ) ;
 extern void AFNI_close_file_dialog_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;

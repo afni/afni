@@ -65,7 +65,7 @@ void THD_check_idcodes( THD_sessionlist * ssl )
    for( iss=idd=0 ; idd < dsnum-1 ; idd++ ){
       nd = 0 ;
       for( jdd=idd+1 ; jdd < dsnum ; jdd++ ){
-         if( EQUIV_IDCODES( dsl[idd]->idcode , dsl[jdd]->idcode ) ){
+         if( DUPLICATE_DSETS(dsl[idd],dsl[jdd]) ){ /* 20 Dec 2001: change EQUIV_IDCODES() to DUPLICATE_DSETS() */
             fprintf(stderr,
                     "\n*** WARNING: Identical ID codes in %s and %s",
                     DSET_HEADNAME(dsl[idd]) , DSET_HEADNAME(dsl[jdd]) ) ;
