@@ -661,6 +661,24 @@ STATUS("making imag->rowcol") ;
       imag->pop_jumpto_ijk_pb = NULL ;
    }
 
+   /*--- sumato button in menu ---*/
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      imag->pop_sumato_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("SUMA to (node)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+      XtAddCallback( imag->pop_sumato_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+   } else {
+      imag->pop_sumato_pb = NULL ;
+   }
+
    /*--- Talairach To button in menu ---*/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){

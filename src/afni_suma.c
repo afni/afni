@@ -692,6 +692,7 @@ SUMA_vnlist * SUMA_make_vnlist( SUMA_surface *ag , THD_3dim_dataset *dset )
    float xv,yv,zv , xp,yp,zp ;
    int *vlist , *nlist , wodsave ;
    SUMA_vnlist *vnlist ;
+   float xbot,xtop , ybot,ytop , zbot,ztop ;
 
 ENTRY("SUMA_make_vnlist") ;
 
@@ -713,15 +714,28 @@ ENTRY("SUMA_make_vnlist") ;
 
    wodsave = dset->wod_flag ; dset->wod_flag = 0 ;
 
-   for( pp=0 ; pp < nnode ; pp++ ){
+   xbot = DSET_XXMIN(dset) ; xtop = DSET_XXMAX(dset) ;
+   ybot = DSET_YYMIN(dset) ; ytop = DSET_YYMAX(dset) ;
+   zbot = DSET_ZZMIN(dset) ; ztop = DSET_ZZMAX(dset) ;
+
+   for( nn=pp=0 ; pp < nnode ; pp++ ){
       LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
       fv = THD_dicomm_to_3dmm( dset , fv ) ; /* convert Dicom coords */
+
+      if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
+      if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
+      if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
+
       iv = THD_3dmm_to_3dind( dset , fv ) ;  /*   in surface to     */
       UNLOAD_IVEC3( iv , ii,jj,kk ) ;        /*   dataset indexes  */
 
-      nlist[pp] = pp ;                       /* list of nodes */
-      vlist[pp] = ii + jj*nx + kk*nxy ;      /* list of voxels */
+      nlist[nn] = pp ;                       /* list of nodes */
+      vlist[nn] = ii + jj*nx + kk*nxy ;      /* list of voxels */
+      nn++ ;
    }
+
+   nnode = nn ; /* number of nodes inside dataset volume */
+   if( nnode == 0 ){ free(nlist); free(vlist); RETURN(NULL); }
 
    dset->wod_flag = wodsave ;
 
@@ -734,15 +748,15 @@ ENTRY("SUMA_make_vnlist") ;
 
    nvox = 1 ; ii = vlist[0] ;
    for( pp=1 ; pp < nnode ; pp++ ){
-      if( vlist[pp] != ii ){ nvox++ ; ii = vlist[pp] ; }
+      if( vlist[pp] != ii ){ nvox++; ii = vlist[pp]; }
    }
 
    /* now create the output vnlist */
 
    vnlist         = (SUMA_vnlist *) malloc( sizeof(SUMA_vnlist) ) ;
    vnlist->nvox   = nvox ;
-   vnlist->voxijk = (int *) malloc(sizeof(int)*nvox) ;
-   vnlist->numnod = (int *) calloc(sizeof(int),nvox) ;
+   vnlist->voxijk = (int *) malloc(sizeof(int) *nvox) ;
+   vnlist->numnod = (int *) calloc(sizeof(int) ,nvox) ;
    vnlist->nlist  = (int **)malloc(sizeof(int*)*nvox);
    vnlist->dset   = dset ;
 
@@ -766,22 +780,6 @@ ENTRY("SUMA_make_vnlist") ;
    vnlist->numnod[nn] = jj = pp-qq ;
    vnlist->nlist[nn]  = (int *) malloc(sizeof(int)*jj) ;
    memcpy( vnlist->nlist[nn] , nlist+qq , sizeof(int)*jj ) ;
-
-#if 0
-{ FILE *fp = fopen("vnlist.out","w") ;
-  fprintf(fp,"--i--  --nlist--  ---id--- --vlist--\n") ;
-  for( pp=0 ; pp < nnode ; pp++ )
-    fprintf(fp,"%5d  %9d  %8d  %9d\n",pp,nlist[pp],ag->ixyz[nlist[pp]].id,vlist[pp]) ;
-  fprintf(fp,"\nNumber of voxels=%d voxijk=%p numnod=%p\n",vnlist->nvox,vnlist->voxijk,vnlist->numnod) ;
-  for( ii=0 ; ii < vnlist->nvox ; ii++ ){
-    fprintf(fp,"voxijk=%7d numnod=%4d:",vnlist->voxijk[ii],vnlist->numnod[ii]) ;
-    for( pp=0 ; pp < vnlist->numnod[ii] ; pp++ )
-      fprintf(fp," %7d",vnlist->nlist[ii][pp]) ;
-    fprintf(fp,"\n") ;
-  }
-  fclose(fp) ;
-}
-#endif
 
    /* and we're done! */
 

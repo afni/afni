@@ -24,7 +24,7 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d , SUMA_irgba **map )
    short fim_ovc[NPANE_MAX+1] ;
    byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1] ;
    int ii,jj,nn , lp , num_lp , function_type , fdset_type , ival ;
-   float scale_factor , scale_thr=1.0 ;
+   float scale_factor , scale_thr=1.0 , scale_fim=1.0 ;
    MCW_pbar * pbar ;
    Boolean have_thr ;
    int     simult_thr , need_thr ;
@@ -93,10 +93,14 @@ ENTRY("AFNI_vnlist_func_overlay") ;
       scale_factor = im3d->vinfo->fim_range ;
       if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
 
+      scale_fim = DSET_BRICK_FACTOR(fdset,ind) ;
+      if( scale_fim == 0.0 ) scale_fim = 1.0 ;
+
    } else {
       im_fim = im_thr ;
       scale_factor = im3d->vinfo->fim_range ;
       if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+      scale_fim = scale_thr ;
    }
 
    /* if component images not good, quit now */
@@ -231,10 +235,6 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
       ovc_b[lp] = DCOV_BLUEBYTE (im3d->dc,fim_ovc[lp]) ;
    }
 
-#if 0
-fprintf(stderr,"overlay\n") ;
-#endif
-
    /** process im_fim into overlay, depending on data type **/
 
    switch( im_fim->kind ){
@@ -246,8 +246,16 @@ fprintf(stderr,"overlay\n") ;
          float fim_thr[NPANE_MAX] ;
          byte r,g,b ;
 
+#if 0
+fprintf(stderr,"scale_factor=%f\n",scale_factor) ;
+#endif
+
          for( lp=0 ; lp < num_lp ; lp++ ) /* thresholds for each pane */
-           fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+           fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+#if 0
+for(lp=0;lp<num_lp;lp++)
+fprintf(stderr,"  fim_thr[%d]=%f\n",lp,fim_thr[lp]) ;
+#endif
 
          nout = 0 ;                                   /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
@@ -261,6 +269,10 @@ fprintf(stderr,"overlay\n") ;
                mmm[nout].id = ixyz[nlist[nn]].id ;
                mmm[nout].r  = r ; mmm[nout].g = g ;
                mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
+#if 0
+fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
+        jj,ii,ixyz[nlist[nn]].id,r,g,b,r,g,b ) ;
+#endif
             }
          }
       }
@@ -275,7 +287,7 @@ fprintf(stderr,"overlay\n") ;
            if( pbar->pval[lp+1] <= 0.0 )
              fim_thr[lp] = 0 ;
            else
-             fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+             fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
          nout = 0 ;                                   /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
@@ -300,7 +312,7 @@ fprintf(stderr,"overlay\n") ;
          byte r,g,b ;
 
          for( lp=0 ; lp < num_lp ; lp++ )
-            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
          nout = 0 ;                                   /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){

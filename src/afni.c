@@ -6398,6 +6398,15 @@ STATUS(" -- processing points in this dataset") ;
             THD_3dmm_to_3dind( im3d->anat_now , im3d->anat_now->pts->xyz[ii] ) ;
    }
 
+   /*------ 06 Mar 2002: turn "SUMA to" on image popup on or off ------*/
+
+   if( im3d->vwid->imag->pop_sumato_pb != NULL ){
+     if( im3d->anat_now->su_surf == NULL )
+        XtSetSensitive( im3d->vwid->imag->pop_sumato_pb , False ) ;
+     else
+        XtSetSensitive( im3d->vwid->imag->pop_sumato_pb , True  ) ;
+   }
+
    /*-------------------------------------------------------------------*/
    /*--- Sep 1995: turn Talairach to button on image popup on or off ---*/
 
@@ -6993,6 +7002,21 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
+   /*-- 06 Mar 2002: jump to a node in a surface --*/
+
+   if( w == im3d->vwid->imag->pop_sumato_pb &&
+       im3d->anat_now->su_surf != NULL      &&
+       im3d->type == AFNI_3DDATA_VIEW         ){
+
+      MCW_imseq * seq ;
+
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+      if( ISQ_REALZ(seq) ){
+         MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , NULL ,
+                            AFNI_sumato_CB , (XtPointer) im3d ) ;
+      }
+   }
+
    /*-- jump to a predetermined Talairach anatomical reference point --*/
 
    if( w == im3d->vwid->imag->pop_talto_pb &&
@@ -7347,6 +7371,35 @@ ENTRY("AFNI_jumpto_CB") ;
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------
+   called when the sumato chooser is set
+-----------------------------------------------------------------------*/
+
+void AFNI_sumato_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   int nn , ii ;
+
+ENTRY("AFNI_sumato_CB") ;
+
+   if( !IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+   if( im3d->anat_now->su_surf == NULL ) EXRETURN ;
+
+   nn = -1 ;
+   sscanf( cbs->cval , "%d" , &nn ) ;
+   ii = SUMA_find_node_id( im3d->anat_now->su_surf , nn ) ;
+   if( ii < 0 ){ XBell(im3d->dc->display,100); EXRETURN; }
+
+   (void) AFNI_jumpto_dicom( im3d ,
+                             im3d->anat_now->su_surf->ixyz[ii].x ,
+                             im3d->anat_now->su_surf->ixyz[ii].y ,
+                             im3d->anat_now->su_surf->ixyz[ii].z  ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
