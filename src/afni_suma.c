@@ -405,7 +405,7 @@ ENTRY("SUMA_read_surface") ;
             SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
-#if 0
+#if 1
          do_nod = 0 ;  /* from now on, triangles */
          continue ;    /* skip to next line */
 #else
@@ -810,36 +810,46 @@ void SUMA_destroy_vnlist( SUMA_vnlist *vnlist )
 
 void SUMA_load( THD_3dim_dataset *dset )
 {
+   int ks ;  /* 14 Aug 2002: surface index */
 
 ENTRY("SUMA_load") ;
 
-   if( !ISVALID_DSET(dset)    ||
-       dset->su_sname == NULL || dset->su_surf != NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset)   ||
+       dset->su_num   == 0   ||
+       dset->su_sname == NULL  ) EXRETURN ;
 
-   if( strcmp(dset->su_sname,"++LOCK++") == 0 ) EXRETURN ;
-
-   dset->su_surf = SUMA_read_surface( dset->su_sname , dset ) ;
+   /* 1st time in: allocate arrays to hold surface data */
 
    if( dset->su_surf == NULL ){
-      free(dset->su_sname) ; dset->su_sname = NULL ; EXRETURN ;
+     dset->su_surf   = (SUMA_surface **) calloc(dset->su_num,sizeof(SUMA_surface *));
+     dset->su_vmap   = (int **)          calloc(dset->su_num,sizeof(int *)         );
+     dset->su_vnlist = (SUMA_vnlist **)  calloc(dset->su_num,sizeof(SUMA_vnlist *) );
    }
 
-   if( dset->su_vmap != NULL ) free(dset->su_vmap) ;
+   for( ks=0 ; ks < dset->su_num ; ks++ ){       /* loop over surfaces */
 
+     if( dset->su_surf[ks] != NULL ) continue ;  /* already loaded */
+
+     dset->su_surf[ks] = SUMA_read_surface( dset->su_sname[ks] , dset ) ;
+
+     if( dset->su_surf[ks] == NULL ) continue ;
+
+     if( dset->su_vmap[ks] != NULL ) free(dset->su_vmap[ks]) ;
 #if 0
-   dset->su_vmap = SUMA_map_dset_to_surf( dset->su_surf , dset ) ;
+     dset->su_vmap[ks] = SUMA_map_dset_to_surf( dset->su_surf , dset ) ;
 #else
-   dset->su_vmap = NULL ;
+     dset->su_vmap[ks] = NULL ;
 #endif
 
-   if( dset->su_vnlist != NULL ){
-      SUMA_destroy_vnlist( dset->su_vnlist ) ;
-      dset->su_vnlist = NULL ;
-   }
-
+     if( dset->su_vnlist[ks] != NULL ){
+        SUMA_destroy_vnlist( dset->su_vnlist[ks] ) ;
+        dset->su_vnlist[ks] = NULL ;
+     }
 #if 0
-   dset->su_vnlist = SUMA_make_vnlist( dset->su_surf , dset ) ;
+     dset->su_vnlist[ks] = SUMA_make_vnlist( dset->su_surf[ks] , dset ) ;
 #endif
+
+   }
 
    EXRETURN ;
 }
@@ -850,19 +860,32 @@ ENTRY("SUMA_load") ;
 
 void SUMA_unload( THD_3dim_dataset *dset )
 {
+   int ks ;  /* 14 Aug 2002: surface index */
 
 ENTRY("SUMA_unload") ;
 
-   if( !ISVALID_DSET(dset) || dset->su_sname == NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset)    ||
+       dset->su_num   == 0    ||
+       dset->su_sname == NULL ||
+       dset->su_surf  == NULL   ) EXRETURN ;
 
-   if( strcmp(dset->su_sname,"++LOCK++") == 0 ) EXRETURN ;
+   for( ks=0 ; ks < dset->su_num ; ks++ ){
 
-   if( dset->su_surf != NULL ){
-      SUMA_destroy_surface( dset->su_surf ) ; dset->su_surf = NULL ;
-   }
+     if( dset->su_sname[ks] == NULL                   ||
+         strstr(dset->su_sname[ks],"++LOCK++") != NULL  ) continue ;
 
-   if( dset->su_vmap != NULL ){
-      free( dset->su_vmap ) ; dset->su_vmap = NULL ;
+     if( dset->su_surf[ks] != NULL ){
+        SUMA_destroy_surface( dset->su_surf[ks] ) ; dset->su_surf[ks] = NULL ;
+     }
+
+     if( dset->su_vmap[ks] != NULL ){
+       free( dset->su_vmap[ks] ) ; dset->su_vmap[ks] = NULL ;
+     }
+
+     if( dset->su_vnlist[ks] != NULL ){
+       SUMA_destroy_vnlist( dset->su_vnlist[ks] ) ; dset->su_vnlist[ks] = NULL ;
+     }
+
    }
 
    EXRETURN ;
@@ -1051,17 +1074,22 @@ ENTRY("SUMA_import_surefit") ;
 void SUMA_get_surfname( THD_3dim_dataset *dset )
 {
    char *snam ;
-   int ii ;
+   int ii , ks ;
 
 ENTRY("THD_get_surfname") ;
 
-   if( !ISVALID_DSET(dset) || dset->su_sname != NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset) || dset->su_num > 0 ) EXRETURN ;
 
    snam = strdup( DSET_HEADNAME(dset) ) ;
    ii = strlen(snam) ;
    if( ii > 5 ){
       strcpy(snam+ii-4,"SURF") ;
-      if( THD_is_file(snam) ){ dset->su_sname = snam; EXRETURN; }
+      if( THD_is_file(snam) ){
+        dset->su_num      = 1 ;
+        dset->su_sname    = (char **) malloc(sizeof(char *)) ;
+        dset->su_sname[0] = snam;
+        EXRETURN;
+      }
    }
-   free(snam) ; EXRETURN ;  /* bad */
+   free(snam) ; EXRETURN ;  /* .SURF file does not exist */
 }

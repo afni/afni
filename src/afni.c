@@ -26,6 +26,7 @@
 /*   + Doug Ward of MCW has contributed much to the overall package.  */
 /*   + Ziad Saad of NIH has also contributed many useful suggestions. */
 /*   + Peter Bandettini of NIH has asked many many "quick" questions. */
+/*   + Sean and Alex Bellgowan have contributed in their own way.     */
 /**********************************************************************/
 
 #define MAIN
@@ -1660,23 +1661,25 @@ STATUS("get status") ;
 #define RX 0.25
    if( type == isqCR_getmemplot ){
      Three_D_View * im3d = (Three_D_View *) br->parent ;
-     int do_surf=(SUMA_ENABLED                   && (br->dset->su_surf != NULL)) ;
-     int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES")) ;
+     int do_surf=(SUMA_ENABLED                   && DSET_HAS_SUMA(br->dset)            );
+     int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
      MEM_plotdata * mp ;
 
-     if( !do_surf && !do_xhar ) RETURN(NULL) ;
+     if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
      /* get ready to plot */
 
-     create_memplot_surely( "AGNI_plot" , 1.0 ) ;
+     create_memplot_surely( "SUMA_plot" , 1.0 ) ;
      mp = get_active_memplot() ;
 
      /* plot surface stuff, if any */
 
-     if( do_surf ){
-      SUMA_surface *ag = br->dset->su_surf ;
-      int nn=ag->num_ixyz , ii,jj ;
-      SUMA_ixyz *nod = ag->ixyz ;
+    if( do_surf ){
+     int ks ;
+     for( ks=0 ; ks < br->dset->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
+      SUMA_surface *ag = br->dset->su_surf[ks] ;
+      int nn , ii,jj ;
+      SUMA_ixyz *nod ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
@@ -1686,7 +1689,9 @@ STATUS("get status") ;
       float xyz=0 , rxm,rxp ;
       int skip_boxes=0 , skip_lines=0 ;
 
-      if( nn < 1 || nod == NULL ) RETURN(NULL) ;  /* nothing to do */
+      if( ag == NULL ) continue ;          /* skip this one */
+      nn = ag->num_ixyz ; nod = ag->ixyz ;
+      if( nn < 1 || nod == NULL ) continue ;  /* nothing to do */
 
       /* define overlay color for node boxes */
 
@@ -1704,7 +1709,7 @@ STATUS("get status") ;
       if( eee != NULL &&
          (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) ) skip_lines = 1 ;
 
-      if( skip_boxes && skip_lines ) RETURN(NULL) ; /* nothing to do? */
+      if( skip_boxes && skip_lines ) continue ; /* nothing to do? */
 
       eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */
       if( eee != NULL ){
@@ -1899,7 +1904,8 @@ STATUS("get status") ;
 
         } /* end of loop over triangles */
       } /* end of if over doing lines */
-     } /* end of plotting surface stuff */
+     } /* end of loop over surface index ks */
+    } /* end of plotting surface stuff */
 
      /*----- put crosshairs on with lines, if desired -----*/
      /****** 22 Mar 2002: adapted from pixel overlay  ******/
@@ -5126,22 +5132,25 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
+#if 0
    if( new_xyz                         &&
        SUMA_ENABLED                    &&
-       im3d->anat_now->su_surf != NULL &&
-       im3d->anat_now->su_vmap != NULL &&
+       DSET_HAS_SUMA(im3d->anat_now)   &&
+       im3d->anat_now->su_surf[0] != NULL &&
+       im3d->anat_now->su_vmap[0] != NULL &&
       !im3d->anat_wod_flag               ){
 
-      int pp = im3d->anat_now->su_vmap[ i1 + j2*dim1 + k3*dim1*dim2 ] ;
+      int pp = im3d->anat_now->su_vmap[0][ i1 + j2*dim1 + k3*dim1*dim2 ] ;
 
       if( pp >= 0 ){
         int ll = SUMA_VMAP_LEVEL(pp) ;
         pp = SUMA_VMAP_UNMASK(pp) ;
-        pp = im3d->anat_now->su_surf->ixyz[pp].id ;
+        pp = im3d->anat_now->su_surf[0]->ixyz[pp].id ;
 
-        fprintf(stderr,"surface node ID = %d (level %d)\n" , pp,ll ) ;
+        fprintf(stderr,"surface[0] node ID = %d (level %d)\n" , pp,ll ) ;
       }
    }
+#endif
 
    EXRETURN ;
 }
@@ -6857,7 +6866,7 @@ STATUS(" -- processing points in this dataset") ;
    /*------ 06 Mar 2002: turn "SUMA to" on image popup on or off ------*/
 
    if( im3d->vwid->imag->pop_sumato_pb != NULL ){
-     if( im3d->anat_now->su_surf != NULL )
+     if( DSET_HAS_SUMA(im3d->anat_now) )
         XtManageChild( im3d->vwid->imag->pop_sumato_pb ) ;
      else
         XtUnmanageChild( im3d->vwid->imag->pop_sumato_pb ) ;
@@ -7486,7 +7495,7 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*-- 06 Mar 2002: jump to a node in a surface --*/
 
    if( w == im3d->vwid->imag->pop_sumato_pb &&
-       im3d->anat_now->su_surf != NULL      &&
+       DSET_HAS_SUMA(im3d->anat_now)        &&
        im3d->type == AFNI_3DDATA_VIEW         ){
 
       MCW_imseq * seq ;
@@ -7917,17 +7926,17 @@ ENTRY("AFNI_sumato_CB") ;
 
    if( !IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
-   if( im3d->anat_now->su_surf == NULL ) EXRETURN ;
+   if( !DSET_HAS_SUMA(im3d->anat_now) ) EXRETURN ;
 
    nn = -1 ;
    sscanf( cbs->cval , "%d" , &nn ) ;
-   ii = SUMA_find_node_id( im3d->anat_now->su_surf , nn ) ;
+   ii = SUMA_find_node_id( im3d->anat_now->su_surf[0] , nn ) ;
    if( ii < 0 ){ XBell(im3d->dc->display,100); EXRETURN; }
 
    (void) AFNI_jumpto_dicom( im3d ,
-                             im3d->anat_now->su_surf->ixyz[ii].x ,
-                             im3d->anat_now->su_surf->ixyz[ii].y ,
-                             im3d->anat_now->su_surf->ixyz[ii].z  ) ;
+                             im3d->anat_now->su_surf[0]->ixyz[ii].x ,
+                             im3d->anat_now->su_surf[0]->ixyz[ii].y ,
+                             im3d->anat_now->su_surf[0]->ixyz[ii].z  ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

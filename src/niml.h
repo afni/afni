@@ -137,6 +137,10 @@ typedef struct {
   Stuff for shared memory transport between processes
 -------------------------------------------------------------------*/
 
+#ifdef CYGWIN
+# define DONT_USE_SHM
+#endif
+
 #ifndef DONT_USE_SHM
 # include <sys/ipc.h>
 # include <sys/shm.h>

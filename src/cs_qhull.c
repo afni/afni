@@ -34,7 +34,7 @@ int qhull_wrap( int npt , float * xyz , int ** ijk )
    int fd ; FILE *fp ;
    char qbuf[128] ;
 
-#ifndef DONT_USE_MSKTEMP
+#ifndef DONT_USE_MKSTEMP
    char fname[] = "/tmp/afniXXXXXX" ;
 #else
    char *fname ;
@@ -45,7 +45,7 @@ int qhull_wrap( int npt , float * xyz , int ** ijk )
       return 0 ;
    }
 
-#ifndef DONT_USE_MSKTEMP
+#ifndef DONT_USE_MKSTEMP
    fd = mkstemp( fname ) ;
    if( fd == -1 ){ fprintf(stderr,"qhull_wrap: mkstemp fails\n"); return 0; }
    fp = fdopen( fd , "w" ) ;
