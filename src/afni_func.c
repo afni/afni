@@ -325,6 +325,7 @@ ENTRY("AFNI_hintize_pbar") ;
 
    if( pbar->bigmode ){
      MCW_unregister_hint( pbar->panes[0] ) ;   /* 30 Jan 2003 */
+     pbar->bigfac = fac ;                      /* 11 Feb 2003 */
    } else {
      np = pbar->num_panes ;
      for( ip=0 ; ip < np ; ip++ ){

@@ -79,6 +79,9 @@ typedef struct {
   rgbyte bigcolor[NPANE_BIG] ;
   XImage * bigxim ;
   int    bigmap_index ;         /* 31 Jan 2003 */
+  float  bigfac ;               /* 11 Feb 2003 */
+
+  Widget big_menu , big_label , big_choose_pb ;
 } MCW_pbar ;
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
