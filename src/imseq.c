@@ -2660,12 +2660,25 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
       /* 11/30/94 fix: mri_to_short_sclip has problems with short overflow */
 
+#if 0
       if( lim->kind == MRI_short && clbot < cltop ){
 
          int npix = lim->nx * lim->ny , ii ;
          short * ar = lim->im.short_data ;
 
-DPRI("clipping # pixels = ",npix) ;
+         if( seq->rng_ztop == 0 ){
+            for( ii=0 ; ii < npix ; ii++ )
+                    if( ar[ii] < clbot ) ar[ii] = clbot ;
+               else if( ar[ii] > cltop ) ar[ii] = cltop ;
+         } else {
+            for( ii=0 ; ii < npix ; ii++ )
+                    if( ar[ii] < clbot || ar[ii] > cltop ) ar[ii] = clbot ;
+         }
+
+      } else if( lim->kind == MRI_byte && clbot < cltop ){
+
+         int npix = lim->nx * lim->ny , ii ;
+         byte *ar = lim->im.byte_data ;
 
          if( seq->rng_ztop == 0 ){
             for( ii=0 ; ii < npix ; ii++ )
@@ -2676,6 +2689,7 @@ DPRI("clipping # pixels = ",npix) ;
                     if( ar[ii] < clbot || ar[ii] > cltop ) ar[ii] = clbot ;
          }
       }
+#endif
 
       /*----- next, scale image as defined above -----*/
 

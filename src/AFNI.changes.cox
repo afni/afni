@@ -4899,3 +4899,5 @@
      from the C code, since they cause the g++ compilation to fail to link.
      Also, in coxplot/*.c functions, must manually change the COMMON struct
      definitions to extern.
+ * Added SHORTIZE() and BYTEIZE() to mri_to_short.c and mri_to_byte.c to
+     avoid integer overflow problems when scaling and/or changing data types.
