@@ -124,7 +124,7 @@ int tcp_readcheck( int sd , int msec )
    /** STATUS("tcp_readcheck: call select") ; **/
 
    ii = select(sd+1, &rfds, NULL, NULL, tvp) ;  /* check it */
-   if( ii == -1 ) PERROR( "Has socket gone bad? tcp_readcheck select" ) ;
+   if( ii == -1 ) PERROR( "Socket gone bad? tcp_readcheck[select]" ) ;
    return ii ;
 }
 
@@ -149,7 +149,7 @@ int tcp_writecheck( int sd , int msec )
    /** STATUS("tcp_writecheck: call select") ; **/
 
    ii = select(sd+1, NULL , &wfds, NULL, tvp) ;  /* check it */
-   if( ii == -1 ) PERROR( "Has socket gone bad? tcp_writecheck select" ) ;
+   if( ii == -1 ) PERROR( "Socket gone bad? tcp_writecheck[select]" ) ;
    return ii ;
 }
 
@@ -210,7 +210,7 @@ int tcp_alivecheck( sd )
    errno = 0 ;
    ii = tcp_recv( sd , bbb , 1 , MSG_PEEK ) ; /* try to read one byte */
    if( ii == 1 ) return 1 ;                   /* if we get it, good   */
-   if( errno ) PERROR("Has socket gone bad? tcp_alivecheck") ;
+   if( errno ) PERROR("Socket gone bad? tcp_alivecheck") ;
    return 0 ;                                 /* no data ==> death!   */
 }
 
@@ -230,7 +230,7 @@ int tcp_connect( char * host , int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("Can't create? tcp_connect socket"); return -1; }
+   if( sd == -1 ){ PERROR("Can't create? tcp_connect[socket]"); return -1; }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -252,12 +252,12 @@ int tcp_connect( char * host , int port )
 
    hostp = gethostbyname(host) ;
    if( hostp == NULL ){
-      PERROR("Can't lookup? tcp_connect gethostbyname"); CLOSEDOWN(sd); return -1;
+      PERROR("Can't lookup? tcp_connect[gethostbyname]"); CLOSEDOWN(sd); return -1;
    }
    sin.sin_addr.s_addr = ((struct in_addr *)(hostp->h_addr))->s_addr ;
 
    if( connect(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("Can't connect socket? tcp_connect connect") ; CLOSEDOWN(sd); return -1;
+      PERROR("Can't connect? tcp_connect[connect]") ; CLOSEDOWN(sd); return -1;
    }
 
    return sd ;
@@ -282,7 +282,7 @@ int tcp_listen( int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("Can't create? tcp_listen socket"); return -1; }
+   if( sd == -1 ){ PERROR("Can't create? tcp_listen[socket]"); return -1; }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -302,11 +302,11 @@ int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("Can't bind socket? tcp_listen bind"); CLOSEDOWN(sd); return -1;
+      PERROR("Can't bind? tcp_listen[bind]"); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-      PERROR("Can't listen to socket? tcp_listen listen"); CLOSEDOWN(sd); return -1;
+      PERROR("Can't listen? tcp_listen[listen]"); CLOSEDOWN(sd); return -1;
    }
 
    return sd ;
@@ -347,7 +347,7 @@ int tcp_accept( int sd , char ** hostname , char ** hostaddr )
 
    addrlen = sizeof(pin) ;
    sd_new = accept( sd , (struct sockaddr *)&pin , &addrlen ) ;
-   if( sd_new == -1 ){ PERROR("Can't accept socket? tcp_accept"); return -1; }
+   if( sd_new == -1 ){ PERROR("Can't accept? tcp_accept"); return -1; }
 
    /** get name of connector **/
 
@@ -429,7 +429,7 @@ int shm_create( char * key_string , int size )
    key   = string_to_key( key_string ) ;
    shmid = shmget( key , size , 0777 | IPC_CREAT ) ;
    if( shmid < 0 ){
-     PERROR("Can't create shared memory? shm_create") ;
+     PERROR("Can't create? shm_create") ;
      if( pron ) fprintf(stderr,"key_string=%s key=%d size=%d\n",
                         key_string , (int)key , size ) ;
    }
@@ -447,7 +447,7 @@ char * shm_attach( int shmid )
    char * adr ;
    adr = (char *) shmat( shmid , NULL , 0 ) ;
    if( adr == (char *) -1 ){
-     adr = NULL ; PERROR("Can't attach shared memory? shm_attach") ;
+     adr = NULL ; PERROR("Can't attach? shm_attach") ;
    }
    return adr ;
 }
@@ -464,7 +464,7 @@ int shm_size( int shmid )
 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
-   if( ii < 0 ){ PERROR("Can't check shared memory? shm_size");  return -1; }
+   if( ii < 0 ){ PERROR("Can't check? shm_size");  return -1; }
    return buf.shm_segsz ;
 }
 
@@ -1209,7 +1209,7 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
 
       if( ioc->sendsize <= 0 || nbytes <= ioc->sendsize ){
          int nsent = send( ioc->id , buffer , nbytes , 0 ) ;
-         if( nsent == -1 ) PERROR("Can't use socket? tcp send") ;
+         if( nsent == -1 ) PERROR("Can't use socket? tcp[send]") ;
          if( nsent < 0 ) error_string = "iochan_send: tcp send fails" ;
          return nsent ;
       } else {
@@ -1218,7 +1218,7 @@ int iochan_send( IOCHAN * ioc , char * buffer , int nbytes )
             while( tcp_writecheck(ioc->id,1) == 0 ) ;      /* spin */
             ntosend = MIN( ioc->sendsize , nbytes-ntot ) ;
             nsent   = send( ioc->id , buffer+ntot , ntosend , 0 ) ;
-            if( nsent == -1 ) PERROR("Can't use socket? tcp send") ;
+            if( nsent == -1 ) PERROR("Can't use socket? tcp[send]") ;
             if( nsent <= 0 ){
                error_string = "iochan_send: tcp send fails" ;
                return ((ntot>0) ? ntot : nsent) ;
@@ -1335,7 +1335,7 @@ int iochan_recv( IOCHAN * ioc , char * buffer , int nbytes )
    if( ioc->type == TCP_IOCHAN ){
       int ii = tcp_recv( ioc->id , buffer , nbytes , 0 ) ;
       if( ii == -1 ){
-         PERROR("Can't read from socket? tcp recv") ;
+         PERROR("Can't read from socket? tcp[recv]") ;
          error_string = "iochan_recv: tcp recv fails" ;
       }
       return ii ;
