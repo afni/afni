@@ -51,6 +51,7 @@
 #define XCOL_REDNESS(xc)    (0.299*(xc).red   - MAX(0.587*(xc).green,0.114*(xc).blue ))
 #define XCOL_GREENNESS(xc)  (0.587*(xc).green - MAX(0.299*(xc).red  ,0.114*(xc).blue ))
 #define XCOL_BLUENESS(xc)   (0.114*(xc).blue  - MAX(0.299*(xc).red  ,0.587*(xc).green))
+#define XCOL_YELLOWNESS(xc) (0.299*(xc).red+0.587*(xc).green-0.114*(xc).blue)
 
 /* given x in [0..wx-1], map proportionally to [0..wn-1] */
 
@@ -107,8 +108,8 @@ typedef struct {
    char * name_ov[MAX_COLORS] ;  /* names of overlay colors */
    char * label_ov[MAX_COLORS] ; /* labels for overlay colors */
 
-   Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest;
-   int    ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
+   Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest,pixov_yellowest;
+   int    ov_brightest   ,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest,   ov_yellowest;
 
    float  bright_ov[MAX_COLORS] ; /* brightness of overlay colors [20 Dec 1999] */
 

@@ -1062,6 +1062,8 @@ void OVC_mostest( MCW_DCOV * ovc )
 {
    float bright_inten , dark_inten , red_inten , green_inten , blue_inten , inten ;
    int   bright_ii    , dark_ii    , red_ii    , green_ii    , blue_ii ;
+   float yellow_inten ;
+   int   yellow_ii    ;
    int   ii ;
 
    if( ovc == NULL || ovc->ncol_ov < 2 ) return ;
@@ -1073,6 +1075,9 @@ void OVC_mostest( MCW_DCOV * ovc )
    green_inten = XCOL_GREENNESS( ovc->xcol_ov[1] ) ;
    blue_inten  = XCOL_BLUENESS ( ovc->xcol_ov[1] ) ;
    red_ii = green_ii = blue_ii = 1 ;
+
+   yellow_ii = 1 ;
+   yellow_inten = XCOL_YELLOWNESS( ovc->xcol_ov[1] ) ;  /* 28 Jan 2004 */
 
    for( ii=2 ; ii < ovc->ncol_ov ; ii++ ){
       inten = XCOL_BRIGHTNESS( ovc->xcol_ov[ii] ) ;
@@ -1096,12 +1101,18 @@ void OVC_mostest( MCW_DCOV * ovc )
       if( inten > blue_inten ){
          blue_inten = inten ; blue_ii = ii ;
       }
+
+      inten = XCOL_YELLOWNESS( ovc->xcol_ov[ii] ) ;
+      if( inten > yellow_inten ){
+         yellow_inten = inten ; yellow_ii = ii ;
+      }
    }
    ovc->ov_brightest = bright_ii ; ovc->pixov_brightest = ovc->pix_ov[bright_ii] ;
    ovc->ov_darkest   = dark_ii   ; ovc->pixov_darkest   = ovc->pix_ov[dark_ii] ;
    ovc->ov_reddest   = red_ii    ; ovc->pixov_reddest   = ovc->pix_ov[red_ii] ;
    ovc->ov_greenest  = green_ii  ; ovc->pixov_greenest  = ovc->pix_ov[green_ii] ;
    ovc->ov_bluest    = blue_ii   ; ovc->pixov_bluest    = ovc->pix_ov[blue_ii] ;
+   ovc->ov_yellowest = yellow_ii ; ovc->pixov_yellowest = ovc->pix_ov[yellow_ii] ;
 }
 
 /*-------------------------------------------------------------------------------
