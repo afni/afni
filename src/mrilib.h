@@ -1051,6 +1051,8 @@ extern MRI_IMAGE *mri_warp3D       ( MRI_IMAGE *, int,int,int ,
 extern void mri_warp3D_method( int ) ;
 extern void mri_warp3D_zerout( int ) ;
 
+extern void mri_warp3D_set_womask( MRI_IMAGE * ) ;  /* 19 Nov 2004 */
+
 extern MRI_IMAGE *mri_warp3D_quintic( MRI_IMAGE *, int,int,int , /* 06 Aug 2003 */
                                       void func( float,float,float,
                                                  float *,float *,float *) ) ;
