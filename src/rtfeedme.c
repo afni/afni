@@ -6,7 +6,7 @@
 
 #include "mrilib.h"
 
-#define MAX_CHAN 32  /* 02 Aut 2002: cf. plug_realtime.c */
+#define MAX_CHAN 32  /* 02 Aug 2002: cf. plug_realtime.c */
 
 static THD_3dim_dataset * RT_dset[MAX_CHAN] ;
 static float              RT_dt             = 0.0 ;
