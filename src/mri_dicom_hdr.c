@@ -9288,7 +9288,7 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_PRCREPORTINGPRIORITY, DCM_SH, "PRC  Reporting Priority"},
     {DCM_PRCNAMESINTENDEDRECIPIENTSRESULTS, DCM_PN, "PRC Names of Intended Recipients of Results"},
     {DCM_PRCREQUESTEDPROCCOMMENTS, DCM_LT, "PRC Requested Procedure Comments"},
-    {DCM_PRCREASONFORIMAGINGSERVICEREQ, DCM_LO, "PRC Reason for teh Imaging Service Request"},
+    {DCM_PRCREASONFORIMAGINGSERVICEREQ, DCM_LO, "PRC Reason for the Imaging Service Request"},
     {DCM_PRCISSUEDATEIMAGINGSERVICEREQ, DCM_DA, "PRC Issue Date of Imaging Service Request"},
     {DCM_PRCISSUETIMEIMAGINGSERVICEREQ, DCM_TM, "PRC Issue Time of Imaging Service Request"},
     {DCM_PRCPLACERORDERNUMBERIMAGINGSRVREQ, DCM_SH, "PRC Placer Order Number/Imaging Service Request"},

@@ -49,3 +49,16 @@ ccc      ENDIF
 C
       RETURN
       END
+C
+C
+C
+      SUBROUTINE FCOLOR( CR,CG,CB )
+C
+C  Set the color of subsequent lines
+C.......................................................................
+      INCLUDE 'plotpak.inc'
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+      IF( NPLOTR .EQ. 7 ) CALL ZZMPCO( CR,CG,CB )
+      RETURN
+      END

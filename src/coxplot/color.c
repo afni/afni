@@ -90,3 +90,25 @@ extern struct {
     return 0;
 } /* color_ */
 
+
+
+
+/* Subroutine */ int fcolor_(real *cr, real *cg, real *cb)
+{
+    extern /* Subroutine */ int zzmpco_(real *, real *, real *);
+
+
+/*  Set the color of subsequent lines */
+/* .......................................................................
+ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+/*  Internal Data for PLOTPAK */
+
+    if (zzpltr_1.nplotr == 7) {
+	zzmpco_(cr, cg, cb);
+    }
+    return 0;
+} /* fcolor_ */
+
