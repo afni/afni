@@ -729,69 +729,67 @@ ENTRY("watershedize") ;
 
 /*------------------------------------------------------------------------*/
 
-static void peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
+static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 {
-   int nxy=nx*ny , ii,jj,kk , ijk , bot,top , pd=pdepth ;
-   int nxp=nx-pd , nyp=ny-pd , nzp=nz-pd ;
+   int nxy=nx*ny,nxyz=nxy*nz , ii,jj,kk , ijk , bot,top , pd=pdepth ;
    int num=0 , dnum , nite ;
+   byte *ppp ;
 
-   for( nite=0 ; nite < pd ; nite++ ){
-    dnum = 0 ;
+   ppp = (byte *)calloc(sizeof(byte),nxyz) ;
 
-    for( kk=0 ; kk < nz ; kk++ ){
-     for( jj=0 ; jj < ny ; jj++ ){
-       ijk = jj*nx + kk*nxy ;
-       for( bot=0 ; bot < nx && !mmm[bot+ijk]; bot++ ) ;
-       top = bot+pd ; if( top >= nx ) continue ;
-       for( ii=bot+1 ; ii <= top && mmm[ii+ijk] ; ii++ ) ;
-       if( ii <= top ){ mmm[bot+ijk] = 0; dnum++; }
-    }}
+   for( kk=0 ; kk < nz ; kk++ ){
+    for( jj=0 ; jj < ny ; jj++ ){
+      ijk = jj*nx + kk*nxy ;
+      for( bot=0 ; bot < nx && !mmm[bot+ijk]; bot++ ) ;
+      top = bot+pd ; if( top >= nx ) continue ;
+      for( ii=bot ; ii <= top && mmm[ii+ijk] ; ii++ ) ppp[ii+ijk] = 1 ;
+   }}
 
-    for( kk=0 ; kk < nz ; kk++ ){
-     for( jj=0 ; jj < ny ; jj++ ){
-       ijk = jj*nx + kk*nxy ;
-       for( top=nx-1 ; top >= 0 && !mmm[top+ijk]; top-- ) ;
-       bot = top-pd ; if( bot < 0 ) continue ;
-       for( ii=top-1 ; ii >= bot && mmm[ii+ijk] ; ii-- ) ;
-       if( ii >= bot ){ mmm[top+ijk] = 0; dnum++; }
-    }}
+   for( kk=0 ; kk < nz ; kk++ ){
+    for( jj=0 ; jj < ny ; jj++ ){
+      ijk = jj*nx + kk*nxy ;
+      for( top=nx-1 ; top >= 0 && !mmm[top+ijk]; top-- ) ;
+      bot = top-pd ; if( bot < 0 ) continue ;
+      for( ii=top ; ii >= bot && mmm[ii+ijk] ; ii-- ) ppp[ii+ijk] = 1 ;
+   }}
 
-    for( kk=0 ; kk < nz ; kk++ ){
-     for( ii=0 ; ii < nx ; ii++ ){
-       ijk = ii + kk*nxy ;
-       for( bot=0 ; bot < ny && !mmm[bot*nx+ijk] ; bot++ ) ;
-       top = bot+pd ;
-       if( top >= ny ) continue ;
-       for( jj=bot+1 ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ;
-       if( jj <= top ){ mmm[bot*nx+ijk] = 0; dnum++; }
-    }}
+   for( kk=0 ; kk < nz ; kk++ ){
+    for( ii=0 ; ii < nx ; ii++ ){
+      ijk = ii + kk*nxy ;
+      for( bot=0 ; bot < ny && !mmm[bot*nx+ijk] ; bot++ ) ;
+      top = bot+pd ;
+      if( top >= ny ) continue ;
+      for( jj=bot ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ppp[jj*nx+ijk] = 1 ;
+   }}
 
-    for( kk=0 ; kk < nz ; kk++ ){
-     for( ii=0 ; ii < nx ; ii++ ){
-       ijk = ii + kk*nxy ;
-       for( top=ny-1 ; top >= 0 && !mmm[top*nx+ijk] ; top-- ) ;
-       bot = top-pd ; if( bot < 0 ) continue ;
-       for( jj=top-1 ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ;
-       if( jj >= bot ){ mmm[top*nx+ijk] = 0; dnum++; }
-    }}
+   for( kk=0 ; kk < nz ; kk++ ){
+    for( ii=0 ; ii < nx ; ii++ ){
+      ijk = ii + kk*nxy ;
+      for( top=ny-1 ; top >= 0 && !mmm[top*nx+ijk] ; top-- ) ;
+      bot = top-pd ; if( bot < 0 ) continue ;
+      for( jj=top ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ppp[jj*nx+ijk] = 1 ;
+   }}
 
-#if 0
+#if 1
     for( jj=0 ; jj < ny ; jj++ ){
      for( ii=0 ; ii < nx ; ii++ ){
        ijk = ii + jj*nx ;
        for( top=nz-1 ; top >= 0 && !mmm[top*nxy+ijk] ; top-- ) ;
        bot = top-pd ; if( bot < 0 ) continue ;
-       for( kk=top-1 ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ;
-       if( kk >= bot ){ mmm[top*nxy+ijk] = 0; dnum++; }
+       for( kk=top ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ppp[kk*nxy+ijk] = 1 ;
     }}
 #endif
 
-    num += dnum ;
-    if( dnum == 0 ) break ;
-   }
+   kk = mask_count(nxyz,ppp) ;
+   if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
+   if( verb ) fprintf(stderr," + Initial peel mask has %d voxels\n",kk ) ;
+   THD_mask_erode( nx,ny,nz, ppp ) ;
+   THD_mask_clust( nx,ny,nz, ppp ) ;
+   kk = mask_count(nxyz,ppp) ;
+   if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
+   if( verb ) fprintf(stderr," + Clustered peel mask has %d voxels\n",kk ) ;
 
-   if( verb ) fprintf(stderr," + Peeled %d voxels from surface\n",num) ;
-   return ;
+   return ppp ;
 }
 
 /*======================================================================*/
@@ -1035,15 +1033,21 @@ ENTRY("mri_brainormalize") ;
      THD_automask_verbose(verb) ;
 
      mask = mri_short2mask( tim ) ;
-     THD_mask_clust( nx,ny,nz, mask ) ;
+#if 1
+     { byte *ppp ; int pd ;
+       pd = (int)AFNI_numenv("PEELDEPTH") ; if( pd < 1 ) pd = 3 ;
+       ppp = make_peel_mask( nx,ny,nz , mask , pd ) ;
+       if( ppp != NULL )
+         for( ii=0 ; ii < nxyz ; ii++ ) if( ppp[ii] ) mask[ii] = 0 ;
+       free((void *)ppp) ;
+     }
+#endif
      THD_mask_erode( nx,ny,nz, mask ) ;
      THD_mask_clust( nx,ny,nz, mask ) ;
-     (void) THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
-     peel_mask( nx,ny,nz , mask , 7 ) ;
-     THD_mask_erode( nx,ny,nz, mask ) ;
-     THD_mask_clust( nx,ny,nz, mask ) ;
-     (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
 #if 0
+     (void) THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
+     (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
+#else
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
@@ -1058,10 +1062,12 @@ ENTRY("mri_brainormalize") ;
    hist = (int *) calloc(sizeof(int),32768) ;
    for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
    for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
-   kk = (int)(0.01*kk) ;
-   for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ) jj += hist[ii] ;
+   kk = (int)(0.01*kk) ; ktop = 0 ;
+   for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ){
+     jj += hist[ii] ; if( hist[ii] > 0 && ktop == 0 ) ktop = ii ;
+   }
    jj = ii ;
-   if( verb ) fprintf(stderr," + 99%% clipping at %d\n",jj) ;
+   if( verb ) fprintf(stderr," + 99%% clipping at %d (from %d)\n",jj,ktop) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
 
    free((void *)hist) ;
