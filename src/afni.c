@@ -9643,6 +9643,7 @@ ENTRY("AFNI_load_defaults") ;
    NAME2INT("graph_ggap"        ,INIT_GR_ggap        ,0,19);         /* 27 May 1999 */
    NAME2INT("fim_polort"        ,INIT_fim_polort     ,0,MAX_POLORT); /* 30 May 1999 */
    NAME2INT("graph_matrix"      ,INIT_GR_gmat        ,1,MAT_MAX);    /* 10 Feb 2003 */
+   NAME2INT("graph_gthick"      ,INIT_GR_gthick      ,2,10);         /* 06 Oct 2004 */
 
    /** initialize other junk **/
 
