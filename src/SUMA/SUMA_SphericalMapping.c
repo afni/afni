@@ -1157,6 +1157,7 @@ float intersection_map(float a, float b, float c, float d, float val) {
 }
 
 
+
 /*!
   MI = MapSurface (surf1, surf2);
 
@@ -1184,23 +1185,19 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    float *nodeList_2=NULL, *ctrNodeList_2=NULL;
    int *faceList_2=NULL;
 
-   int i=0, j=0, k=0, m=0;
+   int i=0, j=0, k=0, m=0, j_srtd;
    float *weight=NULL;
    int *clsNodes=NULL;
    SUMA_MorphInfo *MI;
-   float ctr1[3], ctr2[3], zero[3];
-   float a=0, b=0, c=0, r1=0, r2=0, dist_tmp;
-   float  *justX_2=NULL, *justX_1=NULL;
-   int *i_SrtdX_2=NULL, *i_SrtdX_1=NULL;
+   float ctr1[3], ctr2[3], zero[3], r2, dist_tmp;
+   float  *justX_2=NULL, *justX_1=NULL, *srtdX_ctrNodeList_2=NULL;
+   int *i_SrtdX_2=NULL;
    int N_outliers;
    float currNode[3], ptHit[3], currDist=0, avgDist=0.0, pi=3.14159265359;
-   int seg[2];
+   int seg[2], i_node[3];
+   float min_dist[3], curr_restr;
 
-   char poo_file[1000];
-
-   float d0=100, d1=100, d2=100, tempD=100;
    SUMA_Boolean found=NOPE;
-   int i_node0=0, i_node1=0, i_node2=0, nodes[3];
    float *triNode0, *triNode1, *triNode2, weight_tot;
    SUMA_SO_map *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1234,7 +1231,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       SUMA_RETURN (NULL);
    }
 
-   /**center surf1 to surf2 , that will make it easier to debug in SUMA*/
+
+   /**center surf1 to surf2 (that will make it easier to debug in SUMA)*/
 
    /*first find centers of each surface*/
    ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
@@ -1292,7 +1290,6 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       ctrNodeList_2[j+1] = nodeList_2[j+1] - ctr2[1] + zero[1];
       ctrNodeList_2[j+2] = nodeList_2[j+2] - ctr2[2] + zero[2];
    }
-
 
    /*find radius of surf2*/
    /*(in theory should be able to just take distance first node -> center, but freesurfer surfs are not perfectly spherical)*/
@@ -1360,14 +1357,17 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
       SUMA_RETURN (NULL);
    }
-   
-   justX_1 = (float *) SUMA_calloc( numNodes_1, sizeof(float) );
-   for (i=0; i<numNodes_1; ++i) {
+
+   /*create sorted ctrNodeList_2 based upon i_SrtdX_2*/
+   srtdX_ctrNodeList_2 = SUMA_calloc( 3*numNodes_2, sizeof(float));
+   for (i=0; i<numNodes_2; ++i) {
       j = 3*i;
-      justX_1[i] = ctrNodeList_1[j];
+      j_srtd = 3*i_SrtdX_2[i];
+      srtdX_ctrNodeList_2[j]   = ctrNodeList_2[j_srtd];
+      srtdX_ctrNodeList_2[j+1] = ctrNodeList_2[j_srtd+1];
+      srtdX_ctrNodeList_2[j+2] = ctrNodeList_2[j_srtd+2];
    }
-   i_SrtdX_1 = SUMA_z_qsort( justX_1, numNodes_1 ); /*i_SrtdX_2 is array of indices of justX_2 corresponding to sorting*/
- 
+
 
 
    /** mapping surf1 to surf2 */
@@ -1384,7 +1384,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       currNode[2]=ctrNodeList_1[j+2];
       currDist = sqrt( pow( currNode[0]-zero[0], 2) + pow( currNode[1]-zero[1], 2) + pow( currNode[2]-zero[2], 2) );
 
-      /**compute inflation of node onto sphere by adjusting surf1 node so that its distance from zero[0],[1],[2]
+      /*compute inflation of node onto sphere by adjusting surf1 node so that its distance from zero[0],[1],[2]
          exactly equals the radius of the spherical surf2 (r2)*/
       ptHit[0] = (r2/currDist)*currNode[0];
       ptHit[1] = (r2/currDist)*currNode[1];
@@ -1392,13 +1392,20 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
 
       /**find 3 nodes in ctrNodeList_2 closest to ptHit*/
-      /*see LNB p?? for determination of distance restrictions*/
+      
+      /*initialize variables*/
+      found = NOPE;
+      for (k=0; k<3; ++k) { 
+         min_dist[k] = 2*r2;
+         i_node[k] = -1;
+      }
+      curr_restr = (float)12.0*avgDist;  /*12.0 chosen by trial/error for best timing compromise between 
+                                           using expanded search vs brute force for trouble nodes*/
 
-      d0=30*avgDist;  d1=30*avgDist;  d2=30*avgDist; tempD=30*avgDist; 
-      i_node0=-1; i_node1=-1, i_node2=-1;  
+      /*find placement of ptHit[0] in justX_2*/
       seg[0] = 0; 
       seg[1] = numNodes_2-1;
-    
+
       if ( ptHit[0] < justX_2[seg[0]] )        /*note ptHit will be within r2/10 of either of these values, so assignment is ok*/
          seg[1] = seg[0];                      /*(since ctrNodeList2 was adjusted to have each distance within )*/
       else if ( ptHit[0] > justX_2[seg[1]] )   /*(r2/10 of r2, which was used to scale ctrNodeList1, from which)*/
@@ -1412,74 +1419,75 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
             if (weight) SUMA_free(weight);
             if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
             if (justX_2) SUMA_free(justX_2);
+            if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
             SUMA_RETURN (NULL);
          }
       }
 
-      k = seg[0];
-      while ( ptHit[0] - ctrNodeList_2[3*i_SrtdX_2[k]] < 10*avgDist && k>0) { --k; }
-      seg[0] = k+1;
-      k = seg[1];
-      while (ctrNodeList_2[3*i_SrtdX_2[k]] - ptHit[0] < 10*avgDist && k<numNodes_2-1) { ++k; }
-      seg[1] = k-1;
-    
-      /*make certain there are at least 3 nodes in the segment*/
-      if (seg[1]-seg[0]<3) {
-         if (seg[1]>numNodes_2-5) {
-            seg[0] = seg[0]-6;
-         }
-         else if (seg[0]<4) {
-            seg[1] = seg[1]+6;
-         }
-         else {
-            seg[0] = seg[0]-3;
-            seg[1] = seg[1]+3;
-         }
+      /*expand search segment*/
+      while ( (ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]]) < curr_restr && seg[0]>0) { 
+         if ( seg[0]>10 ) seg[0] = seg[0]-10; 
+         else --seg[0];
       }
-    
-      for (k=seg[0]; k<=seg[1]; ++k) {
-         m = 3*i_SrtdX_2[k];
-         if (ptHit[1]-ctrNodeList_2[m+1] < 10*avgDist) {
-            if (ptHit[1]-ctrNodeList_2[m+1] > -10*avgDist) {
-               if (ptHit[2]-ctrNodeList_2[m+2] < 10*avgDist) {
-                  if (ptHit[2]-ctrNodeList_2[m+2] > -10*avgDist) {
-      
-                     tempD = sqrt( pow(ptHit[0]-ctrNodeList_2[m],2) + pow(ptHit[1]-ctrNodeList_2[m+1],2) + 
-                                   pow(ptHit[2]-ctrNodeList_2[m+2],2) );
+      while ( (srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0]) < curr_restr && seg[1]<(numNodes_2-1) ) { 
+         if ( seg[1]<(numNodes_2-11) ) seg[1] = seg[1]+10;
+         else ++seg[1]; 
+      }
+
+      /*search for 3 minimum distances to ptHit*/
+      while ( !found && seg[1]-seg[0]<numNodes_2 && curr_restr<3*r2 ) { 
+         /*3 min distances have not yet been found*/
+
+         SUMA_Search_Min_Dist( ptHit, srtdX_ctrNodeList_2, seg, curr_restr, min_dist, i_node );
          
-                     if (tempD < d2) {
-                        if (tempD < d1) {
-                           if (tempD < d0) {
-                              d2 = d1;    i_node2 = i_node1;  
-                              d1 = d0;    i_node1 = i_node0; 
-                              d0 = tempD;  i_node0 = i_SrtdX_2[k]; 
-                           } else {
-                              d2 = d1;    i_node2 = i_node1;
-                              d1 = tempD;  i_node1 = i_SrtdX_2[k];
-                           }
-                        } else {
-                           d2 = tempD;  i_node2 = i_SrtdX_2[k];
-                        }
-                     }
-                  }
-               }
+         if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
+            /*sufficient (3) min_dist were not found -> repeat and expand search of segment with more relaxed measures*/
+            curr_restr = (float) 1.5*curr_restr;
+            found = NOPE;
+            while ( ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]] < curr_restr && seg[0]>0) { 
+               if (seg[0]>10) seg[0] = seg[0]-10; 
+               else --seg[0];
+            }
+            while ( srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0] < curr_restr && seg[1]<numNodes_2-1) { 
+               if (k<numNodes_2-11) seg[1] = seg[1]+10;
+               else ++seg[1]; 
             }
          }
+         else found = YUP;
       }
+
+
+      if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
+         /*unable to acquire 3 closest nodes (???) -> exit*/
+         fprintf(SUMA_STDERR, "Error %s: Unable to acquire 3 closest nodes ?!?\n\n", FuncName);
+         if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
+         if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
+         if (clsNodes) SUMA_free(clsNodes);
+         if (weight) SUMA_free(weight);
+         if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
+         if (justX_2) SUMA_free(justX_2);
+         if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+         SUMA_RETURN (NULL);
+      }
+
+      /*translate back into unsorted ordering of ctrNodeList_2*/
+      i_node[0] = i_SrtdX_2[i_node[0]];
+      i_node[1] = i_SrtdX_2[i_node[1]];
+      i_node[2] = i_SrtdX_2[i_node[2]];
 
       if (LocalHead) {
          fprintf(SUMA_STDERR,"----------------------------------------\n");
          fprintf(SUMA_STDERR, "%s: PtHit: [%f, %f, %f].\n", FuncName, ptHit[0], ptHit[1], ptHit[2]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node0, ctrNodeList_2[3*i_node0], ctrNodeList_2[3*i_node0+1], ctrNodeList_2[3*i_node0+2], d0);
+                 FuncName, i_node[0], ctrNodeList_2[3*i_node[0]], ctrNodeList_2[3*i_node[0]+1], ctrNodeList_2[3*i_node[0]+2], min_dist[0]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node1, ctrNodeList_2[3*i_node1], ctrNodeList_2[3*i_node1+1], ctrNodeList_2[3*i_node1+2], d1);
+                 FuncName, i_node[1], ctrNodeList_2[3*i_node[1]], ctrNodeList_2[3*i_node[1]+1], ctrNodeList_2[3*i_node[1]+2], min_dist[1]);
          fprintf(SUMA_STDERR, "%s: Node %d [%f, %f, %f], distances %f.\n", 
-                 FuncName, i_node2, ctrNodeList_2[3*i_node2], ctrNodeList_2[3*i_node2+1], ctrNodeList_2[3*i_node2+2], d2);
+                 FuncName, i_node[2], ctrNodeList_2[3*i_node[2]], ctrNodeList_2[3*i_node[2]+1], ctrNodeList_2[3*i_node[2]+2], min_dist[2]);
          fprintf(SUMA_STDERR, "%s: orig ptHit (%f, %f, %f)\n", FuncName, ptHit[0], ptHit[1], ptHit[2]);
-         fprintf(SUMA_STDERR, "%s: Trying 1- node %d\n", FuncName, i_node0);
+         fprintf(SUMA_STDERR, "%s: Trying 1- node %d\n", FuncName, i_node[0]);
       }  
-
+      
 
       /**find nodes of intersected triangle*/
 
@@ -1491,39 +1499,39 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
          if (weight) SUMA_free(weight);
          if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
          if (justX_2) SUMA_free(justX_2);
+         if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
          SUMA_RETURN (NULL);
       }
 
       /* search neighborhoods of closest 3 nodes */
-      nodes[0] = i_node0;  nodes[1] = i_node1;  nodes[2] = i_node2;
-      found = SUMA_inNodeNeighb( surf2, ctrNodeList_2, nodes, zero, ptHit);
+      found = SUMA_inNodeNeighb( surf2, ctrNodeList_2, i_node, zero, ptHit);
 
       if (!found) {
          /* try brute force */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Trying Brute force.\n", FuncName);
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Trying Brute force. (%d)\n", FuncName, i);
          {
             SUMA_MT_INTERSECT_TRIANGLE *MTI;
          
             MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, numNodes_2, faceList_2, numFace_2, NULL);
             if (MTI) {
                if (MTI->N_hits) {
-                  if (LocalHead)fprintf(SUMA_STDERR, "%s: Brute force-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
+                  if (LocalHead) fprintf(SUMA_STDERR, "%s: Brute force-Triangle %d [%d, %d, %d] is intersected at (%f, %f, %f)\n", 
                                         FuncName, MTI->ifacemin, surf2->FaceSetList[3*MTI->ifacemin], surf2->FaceSetList[3*MTI->ifacemin+1],
                                         surf2->FaceSetList[3*MTI->ifacemin+2], MTI->P[0], MTI->P[1], MTI->P[2]);  
                   found = YUP;
                   ptHit[0] = MTI->P[0];
                   ptHit[1] = MTI->P[1];
                   ptHit[2] = MTI->P[2];
+                  i_node[0] = surf2->FaceSetList[3*MTI->ifacemin];
+                  i_node[1] = surf2->FaceSetList[3*MTI->ifacemin+1];
+                  i_node[2] = surf2->FaceSetList[3*MTI->ifacemin+2];
                }
-
                MTI = SUMA_Free_MT_intersect_triangle(MTI);
             } 
-
          }
       }
    
       if (!found) {
-         nodes[0] = i_node0;  nodes[1] = i_node1;  nodes[2] = i_node2;
          fprintf(SUMA_STDERR, "Error %s: !!!!!!!!!! intersected triangle not found.\n", FuncName);
          if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
          if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
@@ -1531,18 +1539,19 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
          if (weight) SUMA_free(weight);
          if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
          if (justX_2) SUMA_free(justX_2);
+         if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
          SUMA_RETURN (NULL);
       } 
     
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: (%d : %d : %d)\n  ptHit(%f, %f, %f)\n", FuncName, nodes[0], nodes[1], nodes[2], ptHit[0], ptHit[1], ptHit[2]);
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: (%d : %d : %d)\n  ptHit(%f, %f, %f)\n", FuncName, i_node[0], i_node[1], i_node[2], ptHit[0], ptHit[1], ptHit[2]);
 
       /**node indices of triangle intersected by ptHit*/
-      clsNodes[j] = nodes[0];  clsNodes[j+1] = nodes[1];  clsNodes[j+2] = nodes[2];
-    
+      clsNodes[j] = i_node[0];  clsNodes[j+1] = i_node[1];  clsNodes[j+2] = i_node[2];
+
       /** pointers to x,y,z of each node of intersected triangle*/
-      triNode0 = &(ctrNodeList_2[ 3*nodes[0] ]);
-      triNode1 = &(ctrNodeList_2[ 3*nodes[1] ]);
-      triNode2 = &(ctrNodeList_2[ 3*nodes[2] ]);
+      triNode0 = &(ctrNodeList_2[ 3*i_node[0] ]);
+      triNode1 = &(ctrNodeList_2[ 3*i_node[1] ]);
+      triNode2 = &(ctrNodeList_2[ 3*i_node[2] ]);
     
       /**determine weights which are the barycetric corrdinates of the intersection node*/
       SUMA_TRI_AREA( ptHit, triNode1, triNode2, weight[j]); 
@@ -1559,6 +1568,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       }else { /* some triangles have zero area in FreeSurfer surfaces */
          weight[j] = weight[j+1] = weight[j+2] = 1.0/3.0;
       }
+
    }
 
    MI->N_Node = numNodes_1;
@@ -1574,6 +1584,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       if (weight) SUMA_free(weight);
       if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
       if (justX_2) SUMA_free(justX_2);
+      if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
       SUMA_RETURN (NULL);
    }
    for (i=0; i<numFace_1; ++i) {
@@ -1587,13 +1598,77 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
    if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
    if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
    if (justX_2) SUMA_free(justX_2);
-   if (i_SrtdX_1) SUMA_free(i_SrtdX_1);
-   if (justX_1) SUMA_free(justX_1);
-  
+   if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
 
    SUMA_RETURN (MI);
 } 
+
  
+/*!
+  SUMA_Search_Min_dist( seg, pt, nodeList, restr, dist, i_dist)
+
+  Function to search for three minimum distances between a given point and nodes within a given segment.
+  \param pt (float *) Point to which distances are calculated (length is 3: x y z).
+  \param nodeList (float *) Array (1D) of x,y,z values of nodes.
+  \param seg (int *) Contains beginning and ending indices of search segment of nodeList.
+  \param restr (float) Restriction distance for searching within each (x,y,z) dimension.
+  \param dist (float *) Returned containing 3 minimum distances; may be passed already containing distances to be updated or as empty (but allocated for). If empty, default initializes to 3*pow(restr,2).
+  \param i_dist (int *) Indices of nodes within nodeList from which distances contained in dist were calculated.
+  \ret void
+*/
+
+void SUMA_Search_Min_Dist(  float* pt, float* nodeList, int* seg, float restr, float *dist, int *i_dist ) {
+
+   static char FuncName[]={"SUMA_Search_Min_Dist"};
+   float tempD;
+   int j, k;
+
+   if ( !dist[0] || !dist[1] || !dist[2] ) {
+      tempD = 3*pow(restr,2); 
+      dist[0] = tempD;  dist[1] = tempD;  dist[2] = tempD;
+      i_dist[0] = -1;   i_dist[1] = -1;   i_dist[2] = -1;
+   }
+   else tempD = dist[2]+1;
+
+   for (k=seg[0]; k<=seg[1]; ++k) {
+      j = 3*k;
+      if (pt[0]-nodeList[j] < restr) {
+         if (pt[0]-nodeList[j] > -restr) {
+            if (pt[1]-nodeList[j+1] < restr) {
+               if (pt[1]-nodeList[j+1] > -restr) {
+                  if (pt[2]-nodeList[j+2] < restr) {
+                     if (pt[2]-nodeList[j+2] > -restr) {
+                        
+                        tempD = sqrt( pow(pt[0]-nodeList[j],2) + pow(pt[1]-nodeList[j+1],2) + 
+                                      pow(pt[2]-nodeList[j+2],2) );
+                        
+                        if (tempD < dist[2]) {
+                           if (tempD < dist[1]) {
+                              if (tempD < dist[0]) {
+                                 dist[2] = dist[1];    i_dist[2] = i_dist[1];  
+                                 dist[1] = dist[0];    i_dist[1] = i_dist[0]; 
+                                 dist[0] = tempD;      i_dist[0] = k; 
+                              }       
+                              else {
+                                 dist[2] = dist[1];    i_dist[2] = i_dist[1];
+                                 dist[1] = tempD;      i_dist[1] = k;
+                              }
+                           } 
+                           else {
+                              dist[2] = tempD;  i_dist[2] = k;
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   SUMA_RETURNe;
+}
+
 
 
 /*!
@@ -2126,6 +2201,10 @@ void SUMA_CreateIcosahedron_usage ()
             "       Ntri  = 20 * linDepth^2\n"
             "       Nedge = 30 * linDepth^2\n"
             "\n"
+            "   -nums: output the number of nodes (vertices), triangles and edges then quit\n"
+            "\n"
+            "   -nums_quiet: same as -nums but less verbose. For the machine in you.\n"
+            "\n"
             "   -ctr ctr: coordinates of center of icosahedron. \n"
             "       (optional, default 0,0,0)\n"
             "\n"
@@ -2151,7 +2230,9 @@ int main (int argc, char *argv[])
    int kar, depth, i, j;
    float r, ctr[3];
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean brk, LocalHead = NOPE;
+   SUMA_Boolean brk;
+   int NumOnly;
+   SUMA_Boolean LocalHead = NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char surfFileNm[1000], outSpecFileNm[1000];
@@ -2174,6 +2255,7 @@ int main (int argc, char *argv[])
    ctr[0] = 0; ctr[1] = 0; ctr[2] = 0;
    sprintf (fout, "%s", "CreateIco");
    sprintf (bin, "%s", "y");
+   NumOnly = 0;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command line options */
@@ -2215,6 +2297,17 @@ int main (int argc, char *argv[])
             sprintf (bin, "n");
             brk = YUP;
          }      
+      
+      if (!brk && (strcmp(argv[kar], "-nums") == 0 ))
+         {
+            NumOnly = 1;
+            brk = YUP;
+         }      
+      if (!brk && (strcmp(argv[kar], "-nums_quiet") == 0 ))
+         {
+            NumOnly = 2;
+            brk = YUP;
+         }   
       if (!brk && strcmp(argv[kar], "-ctr") == 0)
          {
             kar ++;
@@ -2253,6 +2346,23 @@ int main (int argc, char *argv[])
 
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Recursion depth %d, Size %f.\n", FuncName, depth, r);
 
+   if (NumOnly) {
+      /* output counts and quit */
+      int Ntri, Nedge, Nvert;
+      if (strcmp(bin, "y") == 0) {
+         Nvert = (int)(pow(2, (2*depth)))*10 + 2;
+         Ntri = (int)(pow(2, (2*depth)))*20;
+         Nedge = (int)(pow(2, (2*depth)))*30;
+      } else {
+         Nvert = 2 + (10 * depth * depth);
+         Ntri = 20 * depth * depth;
+         Nedge = 30 * depth * depth; 
+      }
+      if (NumOnly == 1) fprintf (SUMA_STDOUT,"#Nvert\t\tNtri\t\tNedge\n %d\t\t%d\t\t%d\n", Nvert, Ntri, Nedge);
+      else fprintf (SUMA_STDOUT," %d\t\t%d\t\t%d\n", Nvert, Ntri, Nedge);
+      
+      exit(0);
+   }
    /**assign output file names */
    sprintf (surfFileNm, "%s_surf.asc", fout);
    sprintf (outSpecFileNm, "%s.spec", fout);   

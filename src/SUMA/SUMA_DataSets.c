@@ -91,6 +91,42 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
 }
 
 /*!
+   \brief Returns A COPY of the label of a column in a NI_element
+   NULL in case of error 
+   YOU SHOULD FREE THIS POINTER when you're done with it
+   
+*/
+char *SUMA_ColLabelCopy(NI_element *nel, int i)
+{
+   static char FuncName[]={"SUMA_ColLabel"};
+   char Name[500], *lbl;
+   
+   SUMA_ENTRY;
+   
+   if (i < 0) { SUMA_RETURN(NULL); }
+   if (!nel) { SUMA_RETURN(NULL); }
+   
+   sprintf(Name, "LabelCol_%d", i);
+   lbl = NI_get_attribute(nel, Name);
+   sprintf(Name, "%d: ", i);
+   if (lbl) SUMA_RETURN(SUMA_append_string(Name, lbl));
+   
+   /* no label, try the name of the nel */
+   lbl = NI_get_attribute(nel, "label");
+   if (lbl) SUMA_RETURN(SUMA_append_string(Name, lbl));
+   
+   lbl = NI_get_attribute(nel, "filename");
+   if (lbl) SUMA_RETURN(SUMA_append_string(Name, lbl));
+   
+   if (nel->name) {
+      SUMA_RETURN(SUMA_append_string(Name, nel->name)); 
+   }
+   
+   /* give me a bone */
+   SUMA_RETURN(SUMA_append_string(Name, "bone"));
+}
+
+/*!
    
    Adds an attribute to nel for that explains the last added column's 
    contents. You should call this function after each SUMA_AddNelCol call 
@@ -100,7 +136,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
    you have to store certain stats or parameters that go with each column.
        
 */
-int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr, int col_index)
+int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *col_attr, int col_index)
 {
    static char FuncName[]={"SUMA_AddColAttr"};
    char Name[500], Attr[500];
@@ -111,7 +147,12 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr, int col
    if (col_index < 0) col_index = nel->vec_num-1;
    if (col_index < 0 || !nel->vec_num ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
    if (nel->vec_num <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
-
+   
+   /* if a label is specified, set it */
+   if (col_label) {
+      sprintf(Name, "LabelCol_%d", col_index);
+      NI_set_attribute ( nel, Name, col_label);
+   }
    /* save the type of the column */
    sprintf(Name, "TypeCol_%d", col_index);
    NI_set_attribute ( nel, Name, SUMA_Col_Type_Name(ctp));
@@ -302,7 +343,7 @@ int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2])
    then pass NULL for col
 */
 
-int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddNelCol"};
@@ -338,7 +379,7 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
    /* set some generic attributes */
    SUMA_AddGenColAttr (nel, ctp, col, stride, -1);
    /* add the attributes of that column */
-   SUMA_AddColAttr (nel, ctp, col_attr, -1);
+   SUMA_AddColAttr (nel, col_label, ctp, col_attr, -1);
    
    SUMA_RETURN(1);
 }
@@ -350,7 +391,7 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
    up to vec_filled.
    vec_filled must be set BEFORE YOU CALL THIS FUNCTION
 */
-int SUMA_FillNelCol (NI_element *nel, SUMA_COL_TYPE ctp, void *col, 
+int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride) 
 {  
    static char FuncName[]={"SUMA_FillNelCol"};
@@ -393,7 +434,7 @@ int SUMA_FillNelCol (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
    /* set some generic attributes */
    SUMA_AddGenColAttr (nel, ctp, col, stride, icol);
    /* add the attributes of that column */
-   SUMA_AddColAttr (nel, ctp, col_attr, icol);
+   SUMA_AddColAttr (nel, col_label, ctp, col_attr, icol);
    
    SUMA_RETURN(1);
 }
@@ -690,6 +731,7 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
       }
    }
    
+   if (!*N_i) { SUMA_free(iv); iv = NULL; }
    SUMA_RETURN(iv);
 }
 
@@ -982,13 +1024,13 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    Label = SUMA_truncate_string(filename, 20); 
    NI_set_attribute(dset->nel, "label", Label); SUMA_free(Label); Label = NULL;
    
-   NI_set_attribute(dset->nel, "sorted_node_def", "Yes");
+   NI_set_attribute(dset->nel, "sorted_node_def", "No");
    
    #if 0
    /* add the NodeDef column */
    if (NodeDef) {
       SUMA_LH("Adding NodeDef");
-      if (!SUMA_AddNelCol(dset->nel, SUMA_NODE_INDEX, (void *)(NodeDef), NULL, 1)) {
+      if (!SUMA_AddNelCol(dset->nel, "LaNodeDefinition", SUMA_NODE_INDEX, (void *)(NodeDef), NULL, 1)) {
          SUMA_SL_Err("Failed to add column.\n");
          SUMA_free(dset); dset = NULL;
          SUMA_RETURN(NULL);
@@ -1373,6 +1415,7 @@ SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb)
 {  
    static char FuncName[]={"SUMA_LoadDset"};
    SUMA_DSET *dset = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1382,14 +1425,16 @@ SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb)
       case SUMA_NIML:
       case SUMA_ASCII_NIML:
       case SUMA_BINARY_NIML:
+         SUMA_LH("Loading NIML Dset");
          dset = SUMA_LoadNimlDset(Name, verb);
          break;
       case SUMA_1D:
+         SUMA_LH("Loading 1D Dset");
          dset = SUMA_Load1DDset(Name, verb);
          break;
       case SUMA_NO_DSET_FORMAT:
-         if (!dset) { dset = SUMA_LoadNimlDset(Name, 0); *form = SUMA_NIML; }
-         if (!dset) { dset = SUMA_Load1DDset(Name, 0); *form = SUMA_1D; }
+         if (!dset) { SUMA_LH("Trying NIML Dset"); dset = SUMA_LoadNimlDset(Name, 0); *form = SUMA_NIML; }
+         if (!dset) { SUMA_LH("Trying 1D Dset"); dset = SUMA_Load1DDset(Name, 0); *form = SUMA_1D; }
          break;
       default:
          if (verb) SUMA_SLP_Err("Bad format specification");
@@ -1480,6 +1525,24 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
 }
 
 /*!
+   \brief Guess file format from extension
+   \param Name (char *) name 
+   \return form SUMA_DSET_FORMAT
+*/
+SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name)
+{
+   static char FuncName[]={"SUMA_GuessFormatFromExtension"};
+   SUMA_DSET_FORMAT form = SUMA_NO_DSET_FORMAT;
+     
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(form); }
+   if (SUMA_isExtension(Name, ".niml.dset")) form = SUMA_NIML;
+   if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
+    
+   SUMA_RETURN(form);
+}
+/*!
    \brief Removes the standard extension from a dataset filename
    \param Name (char *) name 
    \param form SUMA_DSET_FORMAT
@@ -1494,7 +1557,7 @@ char *SUMA_RemoveDsetExtension (char*Name, SUMA_DSET_FORMAT form)
    SUMA_ENTRY;
    
    if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(NULL); }
-   
+  
    switch (form) {
       case SUMA_NIML:
       case SUMA_ASCII_NIML:
@@ -1616,7 +1679,7 @@ SUMA_DSET *SUMA_far2dset( char *FullName, char *dset_id, char *dom_id,
 
    /* now add the columns */
    for (i=0; i<vec_num; ++i) {
-      if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_FLOAT, (void *)(&(far[i*vec_len])), NULL ,1)) {
+      if (!SUMA_AddNelCol (dset->nel, "leFloat", SUMA_NODE_FLOAT, (void *)(&(far[i*vec_len])), NULL ,1)) {
          SUMA_SL_Crit("Failed in SUMA_AddNelCol");
          SUMA_FreeDset((void*)dset); dset = NULL;
          SUMA_RETURN(dset);
@@ -2005,6 +2068,7 @@ int main (int argc,char *argv[])
 	/* form the dataset */
    SUMA_LH("Adding NodeDef column ...");
    if (!SUMA_AddNelCol (   dset->nel, /* the famed nel */ 
+                           "le Node Def", 
                            SUMA_NODE_INDEX, /* the column's type (description),
                                                one of SUMA_COL_TYPE */
                            (void *)NodeDef, /* column pointer p, here it is
@@ -2026,33 +2090,33 @@ int main (int argc,char *argv[])
       NoStride = 0;
       if (NoStride) {
          /* insert separate r, g and b column */
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_R, (void *)r, NULL ,1)) {
+         if (!SUMA_AddNelCol (dset->nel, "Le R", SUMA_NODE_R, (void *)r, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_G, (void *)g, NULL ,1)) {
+         if (!SUMA_AddNelCol (dset->nel, "Le G", SUMA_NODE_G, (void *)g, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_B, (void *)b, NULL ,1)) {
+         if (!SUMA_AddNelCol (dset->nel, "Le B", SUMA_NODE_B, (void *)b, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
       } else {
          /* insert from multiplexed rgb vector */
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_R, (void *)rgb, NULL ,3 )) {
+         if (!SUMA_AddNelCol (dset->nel, "le R", SUMA_NODE_R, (void *)rgb, NULL ,3 )) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_G, (void *)(rgb+1), NULL ,3)) {
+         if (!SUMA_AddNelCol (dset->nel, "Le G", SUMA_NODE_G, (void *)(rgb+1), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_B, (void *)(rgb+2), NULL ,3)) {
+         if (!SUMA_AddNelCol (dset->nel, "Le B", SUMA_NODE_B, (void *)(rgb+2), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
@@ -2081,7 +2145,7 @@ int main (int argc,char *argv[])
       }
       
       /* add a string column, just for kicks ..*/
-      if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_STRING, (void *)s, NULL, 1)) {
+      if (!SUMA_AddNelCol (dset->nel, "la string", SUMA_NODE_STRING, (void *)s, NULL, 1)) {
          fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
          exit(1);  
       }
@@ -2314,6 +2378,7 @@ int main (int argc,char *argv[])
       
       /* Add the columns */
       if (!SUMA_AddNelCol (nel, /* the famed nel */ 
+                           "le index", 
                            SUMA_NODE_INDEX, /* the column's type (description),
                                                one of SUMA_COL_TYPE */
                            (void *)node, /* the list of node indices */
@@ -2333,40 +2398,40 @@ int main (int argc,char *argv[])
       NoStride = 0;
       if (NoStride) {
          /* insert separate r, g and b column */
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_R, (void *)r, NULL ,1)) {
+         if (!SUMA_AddNelCol (nel, "le R", SUMA_NODE_R, (void *)r, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_G, (void *)g, NULL ,1)) {
+         if (!SUMA_AddNelCol (nel, "le G", SUMA_NODE_G, (void *)g, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_B, (void *)b, NULL ,1)) {
+         if (!SUMA_AddNelCol (nel, "le B", SUMA_NODE_B, (void *)b, NULL ,1)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
       } else {
          /* insert from multiplexed rgb vector */
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_R, (void *)rgb, NULL ,3 )) {
+         if (!SUMA_AddNelCol (nel, "le R", SUMA_NODE_R, (void *)rgb, NULL ,3 )) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_G, (void *)(rgb+1), NULL ,3)) {
+         if (!SUMA_AddNelCol (nel, "le G", SUMA_NODE_G, (void *)(rgb+1), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_B, (void *)(rgb+2), NULL ,3)) {
+         if (!SUMA_AddNelCol (nel, "le B", SUMA_NODE_B, (void *)(rgb+2), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
       }
       
       /* add a string column, just for kicks ..*/
-      if (!SUMA_AddNelCol (nel, SUMA_NODE_STRING, (void *)s, NULL, 1)) {
+      if (!SUMA_AddNelCol (nel, "la string", SUMA_NODE_STRING, (void *)s, NULL, 1)) {
          fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
          exit(1);  
       }
@@ -3067,7 +3132,7 @@ int SUMA_isNumString (char *s, void *p)
    \param fv (float*) vector where values will be stored
    \param N (int) This is the number of values desired
    \return int: This is the number of values read. 
-      The function will register in fv more that N values 
+      The function will not register in fv more than N values 
       (to keep from running over preallocated space), but it
       will return the full number of values found.
       
@@ -3126,6 +3191,59 @@ int SUMA_StringToNum (char *s, float *fv, int N)
    SUMA_RETURN(nd);
    
 }   
+
+/*!
+   \brief padds a string to a certain length.
+   You can use this function to crop a string to 
+   the specified number of characters n
+   Padding is done with character cp
+   The original string is not modified.
+    
+   s_tr = SUMA_pad_string(s1, cp, n, add2end);
+   
+   \sa SUMA_pad_str
+   \sa SUMA_truncate_string
+   - free returned pointer with: if(s_tr) SUMA_free(s_tr);
+*/
+char *SUMA_pad_string(char *buf, char cp, int n, int add2end)
+{
+   static char FuncName[]={"SUMA_pad_string"};
+   char *atr = NULL;
+   int i, ib, nb;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!buf) SUMA_RETURN(NULL);
+   
+   atr = (char *) SUMA_calloc(n+2, sizeof(char));
+   nb = strlen(buf);
+   
+   if (add2end) { /* add to end */
+      i=0;
+      while (i < n) {
+         if (i<nb) atr[i] = buf[i];
+         else atr[i] = cp;
+         ++i;
+      }
+      atr[i] = '\0';
+   } else {
+      atr[n] = '\0';
+      i = n -1; 
+      ib = nb - 1;
+      while (i >= 0) {
+         if (ib >=0) atr[i] = buf[ib];
+         else atr[i] = cp;
+         --i; --ib;
+      }
+      
+   }
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\nin\t:%s:\nout\t:%s:\n", FuncName, buf, atr);
+   }
+   SUMA_RETURN(atr);  
+}
 
 /*!
    \brief truncates a string to a certain length.

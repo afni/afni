@@ -1,6 +1,5 @@
 #ifndef SUMA_CREATEDO_INCLUDED
-#define SUMA_CREAREDO_INCLUDED
-
+#define SUMA_CREATEDO_INCLUDED
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name);
 void SUMA_Free_Axis (SUMA_Axis *Ax);
 SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax);
@@ -53,6 +52,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
                                           float *FillColor, float *EdgeColor, int EdgeThickness , 
                                           SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s);
+SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb);
 
  
 /*!
@@ -81,4 +81,6 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s);
    }while (m_NextElm != dlist_tail(m_D_ROI->ROIstrokelist));   \
    \
 }  
+
 #endif
+

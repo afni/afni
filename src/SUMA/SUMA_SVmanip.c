@@ -689,7 +689,8 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    SUMA_SurfaceViewer *sv;
    SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
    int i, k, kk, dov_id;   
-   SUMA_Boolean Found = NOPE, LocalHead = NOPE;
+   SUMA_Boolean Found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1552,6 +1553,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          }
       } else cf->X->WarnClose = YUP;
    }
+   cf->X->SwitchCmapLst = NULL;
    
    cf->MessageList = SUMA_CreateMessageList ();
    #ifdef USE_SUMA_MALLOC
@@ -1785,15 +1787,48 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void)
    SurfCont->SurfInfo_TextShell = NULL;
    SurfCont->ColPlaneOrder = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneOpacity = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneDimFact = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->SetRangeTable = SUMA_AllocTableField();
+   SurfCont->RangeTable = SUMA_AllocTableField();
    SurfCont->ColPlaneShow_tb = NULL;
-   SurfCont->SwitchColPlanelst = NULL;
+   SurfCont->SwitchDsetlst = NULL;
    SurfCont->ColPlaneLabel_Parent_lb = NULL;
    SurfCont->curColPlane = NULL;
    SurfCont->PosRef = NULL;
-   
-   return (SurfCont);
+   SurfCont->cmap_wid = NULL;
+   SurfCont->cmap_context = NULL;
+   SurfCont->thr_sc = NULL;
+   SurfCont->brt_sc = NULL;
+   SurfCont->thr_lb = NULL;
+   SurfCont->thrstat_lb = NULL;
+   SurfCont->cmaptit_lb = NULL;
+   SurfCont->cmapswtch_pb = NULL;
+   SurfCont->SwitchIntMenu = NULL;
+   SurfCont->SwitchBrtMenu = NULL;
+   SurfCont->SwitchThrMenu = NULL;
+   SurfCont->SwitchCmapMenu = NULL;
+   SurfCont->N_CmapMenu = -1;
+   SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
+   SurfCont->opts_rc = NULL;
+   SurfCont->rcvo = NULL;
+   SurfCont->rcsw = NULL;
+   SurfCont->rcsw_v1 = NULL;
+   SurfCont->rcsw_v2 = NULL;
+   SurfCont->rcswr = NULL;
+   SurfCont->rccm = NULL;
+   SurfCont->rccm_swcmap = NULL;
+   SurfCont->IntRange_lb = NULL;
+   SurfCont->Int_tb = NULL;
+   SurfCont->Thr_tb = NULL;
+   SurfCont->Brt_tb = NULL;
+   SurfCont->AutoIntRange = 1;
+   SurfCont->AutoBrtRange = 1;
+   /*SurfCont-> = NULL;
+   SurfCont-> = NULL;
+   SurfCont-> = NULL;*/
+  return (SurfCont);
 }
-
+ 
 /*!
    \brief frees structure SUMA_X_SurfCont, returns null
    
@@ -1807,8 +1842,15 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    
    if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
    if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
-   if (SurfCont->SwitchColPlanelst) SUMA_FreeScrolledList (SurfCont->SwitchColPlanelst);
+   if (SurfCont->ColPlaneDimFact) free (SurfCont->ColPlaneDimFact);
+   if (SurfCont->SetRangeTable) SUMA_FreeTableField (SurfCont->SetRangeTable);
+   if (SurfCont->RangeTable) SUMA_FreeTableField (SurfCont->RangeTable);
+   if (SurfCont->SwitchDsetlst) SUMA_FreeScrolledList (SurfCont->SwitchDsetlst);
    if (SurfCont->SurfInfo_TextShell) { SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
+   if (SurfCont->SwitchIntMenu) { XtDestroyWidget(SurfCont->SwitchIntMenu[0]); SUMA_free(SurfCont->SwitchIntMenu); }
+   if (SurfCont->SwitchThrMenu) { XtDestroyWidget(SurfCont->SwitchThrMenu[0]); SUMA_free(SurfCont->SwitchThrMenu); }
+   if (SurfCont->SwitchBrtMenu) { XtDestroyWidget(SurfCont->SwitchBrtMenu[0]); SUMA_free(SurfCont->SwitchBrtMenu); }
+   if (SurfCont->SwitchCmapMenu) { XtDestroyWidget(SurfCont->SwitchCmapMenu[0]); SUMA_free(SurfCont->SwitchCmapMenu); }
    if (SurfCont) free(SurfCont);
    return (NULL);
 }
@@ -1832,6 +1874,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont); cf->X->SumaCont = NULL;
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI); cf->X->DrawROI = NULL;
    if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt); cf->X->N_ForeSmooth_prmpt = NULL;
+   if (cf->X->SwitchCmapLst) SUMA_FreeScrolledList (cf->X->SwitchCmapLst);
    if (cf->X) free(cf->X); cf->X = NULL;
    if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList); cf->MessageList = NULL;
    if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm); cf->scm = NULL;

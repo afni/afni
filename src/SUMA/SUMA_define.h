@@ -109,6 +109,7 @@
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.141592653589 
 #define SUMA_EPSILON 0.000001
+#define SUMA_SCL_POW_BIAS 2   /*!< Bias for power (decimal points) of scale */
 /*!
    Debugging flags
 */
@@ -120,7 +121,7 @@
 typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
 
-typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
+typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC, SUMA_CMAP_SO } SUMA_SO_File_Type;
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
@@ -145,6 +146,7 @@ typedef enum { SE_Empty,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
+               SE_OpenDsetFileSelection,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -211,6 +213,11 @@ typedef enum { SW_DrawROI_SaveWhat,
                                                                            SavingWhat */
 typedef enum { SUMA_NO_ORDER, SUMA_ROW_MAJOR, SUMA_COLUMN_MAJOR }  SUMA_INDEXING_ORDER;
 
+typedef enum { SW_CoordBias,
+               SW_CoordBias_None,
+               SW_CoordBias_X, SW_CoordBias_Y, SW_CoordBias_Z, 
+               SW_N_CoordBias } SUMA_WIDGET_INDEX_COORDBIAS;
+               
 typedef enum {
    SUMA_RDC_ERROR = -1,
    SUMA_RDC_NOT_SET = 0,
@@ -224,7 +231,6 @@ typedef enum {
    SUMA_RDC_NEW_DATA,  
 } SUMA_REDISPLAY_CAUSE; /*!< reasons for requesting a redisplay */
                                                                            
-
 typedef struct {
    int *i;  /*!< node index */
    float *r; /*!< node red */
@@ -245,12 +251,12 @@ typedef struct {
    float DimFact; /*!< global factor applied to each color */
    SUMA_Boolean Show; /*!< show plane ?*/
    float GlobalOpacity; /*!< Global opacity factor */
-   SUMA_Boolean BrightMod; /*!< Brightness modulation */
+   SUMA_Boolean isBackGrnd; /*!< Brightness modulation */
 }  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure meant to carry data required to fill a color plane. 
                                  \sa SUMA_OVERLAYS*/
 
 typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, /* Begin adding colormaps next: */
-               SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, SUMA_CMAP_GRAY02,
+               SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, SUMA_CMAP_GRAY02, SUMA_CMAP_flpGRAY02, 
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
                SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128,
                SUMA_CMAP_N_MAPS /* Don't add after this one */
@@ -329,23 +335,6 @@ typedef struct {
    char ParentIDcode[SUMA_IDCODE_LENGTH]; /* IDcode of the creator of data */
 } SUMA_INODE;
 
-/*! Structure containing a color map */
-typedef struct {
-   float ** M; /*!< N_Col x 3 matrix of R G B values (0..1) */
-   char **cname; /*!< N_Col pointers to strings containing name of 
-                       each color. This can be NULL when no names are 
-                       assigned*/
-   int N_Col; /*!< number of colors in the color map */
-   float *frac; /*!< N_col x 1 vector containing the fraction of scale 
-                     assigned to each color, these are
-                     the values shown on the right of the colorbar in 
-                     AFNI.
-                     This field is NULL if the map is linear*/
-   int Sgn; /*!         +1  colormap is positive ranging (a la afni)  
-                         0  field is not set
-                         -1 colormap is negative ranging (a la afni)*/
-   char *Name; /*!< Name of colormap */
-} SUMA_COLOR_MAP;
 
 /*! structure containing an ROI Plane's infor */ 
 typedef struct {
@@ -376,7 +365,8 @@ typedef struct {
    
    /* fields used in the _Interactive scale to map mode */
    float BrightFact; /*!< a brightness factor to apply to the color map. 
-                           This factor is applied to the colors in the colormap and the mask colors*/
+                           This factor is applied to the colors in the colormap and the mask colors
+                           This overrides DimFact in SUMA_OVERLAYS*/
    SUMA_Boolean MaskZero; /*!< values equal to zero will be masked no matter what */
    float ThreshRange[2]; /*!< Thresholding range. Only first value will be used */
    float IntRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, 
@@ -388,8 +378,11 @@ typedef struct {
    int find;   /*!< index of function sub-brick */
    int tind;   /*!< index of thresholf sub-brick */
    int bind;   /*!< index of attenuation sub-brick */
-   
-
+   SUMA_Boolean UseThr; /*!< use or ignore tind */
+   SUMA_Boolean UseBrt; /*!< use or ignore bind */
+   SUMA_WIDGET_INDEX_COORDBIAS DoBias;  /*!< use coordinate bias */
+   float CoordBiasRange[2]; /*!< Same as IntRange but for brightness modulating column */
+   float *BiasVect; /*!< A vector of values to add to the coordinates of the mesh */
 } SUMA_SCALE_TO_MAP_OPT;
 
 /*! Structure containing one color overlay */
@@ -422,11 +415,13 @@ typedef struct {
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to each individual node color */
    int PlaneOrder; /*!< Order of the overlay plane, 1st plane is 0 and is farthest away from the top */  
-   SUMA_Boolean BrightMod; /*!< if YUP then colors overlaid on top of this plane have their 
+   SUMA_Boolean isBackGrnd; /*!< if YUP then colors overlaid on top of this plane have their 
                               brightness modulated by the average intensity of the colors in that 
                               plane see the function SUMA_Overlays_2_GLCOLAR4 for details. 
                               In other obscure words, if YUP then plane is part of background.*/ 
-   float DimFact;    /*!< a scaling factor applied to the colors in ColVec */
+   float DimFact;    /*!< a scaling factor applied to the colors in ColVec 
+                           This is overriden by BrightFact in OptScl which is
+                           defined for non-explicitly colored planes*/
    /* New additions, Fri Feb 20 13:21:28 EST 2004 */
    SUMA_DSET *dset_link; /*!< A COPY OF THE POINTER to the dataset this plane is 
                               attached to. DO NOT FREE THIS POINTER MANUALLY.
@@ -451,6 +446,7 @@ typedef enum { SUMA_BAD_MODE=-1,
 /*! structure containing the color mapping of a vector */
 typedef struct {
    /* float **cM; Prior to Mar 17 03*//*!< N_Node x 3 matrix containing the colors at each node*/
+   float *BiasCoordVec; /*!< A vector of coordinate bias */
    float *cV; /*!< N_Node x 3 vector containing the colors at each node*/
    int N_Node; /*!< obvious */
    SUMA_Boolean *isMasked; /*!< if isMasked[i] then node i has a mask color associated with it */ 
@@ -695,6 +691,7 @@ typedef struct {
                      first column of EL */
                      
    int N_EL; /*!< Number of segments = 3 * N_Facesets */
+   int N_Distinct_Edges; /*! Number of distinct edges (no multiple counts as in N_EL) */
    int max_N_Hosts; /*!< Maximum number of triangle hosts any one edge has (max ( ELps(:,2) != -1 ) )*/
    int  min_N_Hosts; /*!< Minimum version of max_N_Hosts */
    
@@ -883,6 +880,27 @@ typedef struct {
    SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
 } SUMA_ARROW_TEXT_FIELD; 
 
+typedef enum { SUMA_ERROR_CELL, SUMA_ROW_TIT_CELL, SUMA_COL_TIT_CELL, SUMA_ENTRY_CELL } SUMA_CELL_VARIETY;
+
+typedef struct{
+   Widget rc;
+   Widget *cells; /* table cells, Ncol x Nrow total */
+   SUMA_Boolean HasColTit; /*!< YUP = table's 1st row is titles */
+   SUMA_Boolean HasRowTit; /*!< YUP = table's 1st col is titles */
+   int Ni;   /*!< Number of rows = Number of elements PER COLUMN (1st dim)*/
+   int Nj;   /*!< Number of columns = Number of elements PER ROW (2nd dim)*/
+   int cwidth; /*!< charcter spaces to save for widget */
+   float value; /*!< when type is numerical, this holds the value of the cell */
+   SUMA_Boolean editable;
+   SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
+   void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
+   void *NewValueCallbackData;
+   void (*TitLabelCallback)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd); 
+   void *TitLabelCallbackData; 
+   int cell_modified; /*!< set to 1D index (column major) of cell_value edited, 
+                           i = cell_modified % Ni, j = cell_modified / Ni 
+                           cell_modified = j * Ni + i */
+} SUMA_TABLE_FIELD;
 
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
@@ -895,10 +913,41 @@ typedef struct {
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
    SUMA_ARROW_TEXT_FIELD *ColPlaneOrder; /*!< structure for arrow/text field widget controlling color plane order */
    SUMA_ARROW_TEXT_FIELD *ColPlaneOpacity; /*!< structure for arrow/text field widget controlling color plane opacity */
+   SUMA_ARROW_TEXT_FIELD *ColPlaneDimFact; /*!< structure for arrow/text field widget controlling color plane DimFact */
+   SUMA_TABLE_FIELD *SetRangeTable; /*!< structure for range setting table */
+   SUMA_TABLE_FIELD *RangeTable; /*!< structure for range  table */
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
-   SUMA_LIST_WIDGET *SwitchColPlanelst; /*!< a structure containing widgets and options for the switch color plane list */
+   SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    Widget ColPlaneLabel_Parent_lb;
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
+   Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
+   GLXContext cmap_context;   /* graphic context for cmap */
+   Widget thr_sc;   /*! scale for threshold data */
+   Widget brt_sc;   /*! scale for brightness data */
+   Widget thr_lb;   /*! threshold title */
+   Widget thrstat_lb;  /*! pvalue associated with threshold */
+   Widget cmaptit_lb;  /*! title of cmap */
+   Widget cmapswtch_pb; /*! button for switching color map */
+   Widget *SwitchIntMenu; /* vector of widgets controlling the switch intensity widgets */
+   Widget *SwitchThrMenu; /* vector of widgets controlling the switch brightness widgets */
+   Widget *SwitchBrtMenu; /* vector of widgets controlling the switch brightness widgets */
+   Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
+   int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
+   Widget CoordBiasMenu[SW_N_CoordBias]; /* vector of widgets controlling the switch coord bias widgets */
+   Widget opts_rc; /*!< rowcolumn containing all options for colormapping */
+   Widget rcvo; /*!< vertical rowcol for colormapping options */
+   Widget rcsw;   /*!<  rowcol for switching intensity, threshold and brightness */
+   Widget rcsw_v1;   /*!< rowcol containing Menu for Int. Thr. and Brt. */
+   Widget rcsw_v2;   /*!< rowcol containing toggle buttons for Int. Thr. and Brt. */
+   Widget rcswr;   /*!< horizontal rowcol for Intensity column range label */
+   Widget rccm;   /*!< rowcol containing colormap selectors and ranging options */
+   Widget rccm_swcmap;
+   Widget IntRange_lb; /*!< label widget containing range values */
+   Widget Int_tb; /* Toggle buttons for intensity, threshold and brightness toys */
+   Widget Thr_tb;
+   Widget Brt_tb;
+   int AutoIntRange;
+   int AutoBrtRange;
 }SUMA_X_SurfCont;
 
 typedef struct {
@@ -995,6 +1044,7 @@ typedef struct {
                                  by environment variable SUMA_NumForeSmoothing which 
                                  is set to 0 (No smoothing). */
    SUMA_Boolean WarnClose; /*!< Pops up a window to double check before SUMA quits */
+   SUMA_LIST_WIDGET *SwitchCmapLst; /*!< list widget for switching colormaps */
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -1464,6 +1514,8 @@ typedef struct {
    Node color assignment is not a property of the surface alone, it also depends on the settings of the viewer. */
    GLfloat *glar_ColorList;       /*!< pointer to the 1D ColorList array*/
    #endif
+   GLfloat *PermCol; /*!< pointer to a 1D ColorList array. If this vector is not null then it specifies the colors
+                           of the nodes on the surface. It is illegal to have this if Overlays != NULL */ 
    GLfloat *glar_NodeNormList;    /*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
    
    SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
@@ -1496,7 +1548,27 @@ typedef struct {
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
-               */      
+               */  
+                   
+/*! Structure containing a color map */
+typedef struct {
+   float ** M; /*!< N_Col x 3 matrix of R G B values (0..1) */
+   char **cname; /*!< N_Col pointers to strings containing name of 
+                       each color. This can be NULL when no names are 
+                       assigned*/
+   int N_Col; /*!< number of colors in the color map */
+   float *frac; /*!< N_col x 1 vector containing the fraction of scale 
+                     assigned to each color, these are
+                     the values shown on the right of the colorbar in 
+                     AFNI.
+                     This field is NULL if the map is linear*/
+   int Sgn; /*!         +1  colormap is positive ranging (a la afni)  
+                         0  field is not set
+                         -1 colormap is negative ranging (a la afni)*/
+   char *Name; /*!< Name of colormap */
+   
+   SUMA_SurfaceObject *SO;    /*!< Surface object used to represent map */
+} SUMA_COLOR_MAP;
 
 /*! structure containing a mapping of one surface to another*/
 typedef struct {
@@ -1844,6 +1916,7 @@ typedef struct {
 
    SUMA_AFNI_COLORS *scm;  /*!< a structure containing all the colormaps available to SUMA */
    DList *DsetList;  /*!< List containing datasets */
+   
 } SUMA_CommonFields;
  
 #endif

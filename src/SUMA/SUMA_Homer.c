@@ -466,7 +466,7 @@ int main (int argc,char *argv[])
          NewColPlane->N_NodeDef = SOv[ipart]->N_Node;
          NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
          NewColPlane->Show = YUP;
-         NewColPlane->BrightMod = YUP;
+         NewColPlane->isBackGrnd = YUP;
 
          /* Add this plane to SOv[ipart]->Overlays */
          if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane)) {

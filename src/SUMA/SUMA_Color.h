@@ -37,9 +37,10 @@ void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out);
 SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop); 
 SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name);
 SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name);
+void SUMA_LoadDsetFile (char *filename, void *data);
 void SUMA_LoadColorPlaneFile (char *filename, void *data);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO); 
-void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO);
+void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
 SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name);
 char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col);
@@ -67,7 +68,11 @@ SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void);
 char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail);
 SUMA_Boolean SUMA_ShowScaleToMapOpt(SUMA_SCALE_TO_MAP_OPT *OptScl, FILE *Out, int detail);
 SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetList);
-
+SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover );
+SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
+SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr);
+SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
+SUMA_Boolean SUMA_RemoveCoordBias(SUMA_OVERLAYS *ovr); 
 
 
 

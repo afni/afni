@@ -21,10 +21,11 @@
 #include <Xm/CascadeB.h>
 #include <Xm/Frame.h>
 #include <math.h>
+#include <signal.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
-#include <signal.h>
+#include <GLUT/GL/glut.h>
 
 /* from Fri Aug  9 17:54:03 EDT 2002 and on SUMA will need motif headers */
 
@@ -46,6 +47,9 @@
 #include "mrilib.h"
 #include "niml.h"
 #include "xutil.h"
+#include "display.h"
+#include "xim.h"
+
 
 
 /* SUMA's generic includes */
@@ -170,6 +174,7 @@
    #include "SUMA_Load_Surface_Object.h"
    #include "SUMA_Surface_IO.h"
    #include "SUMA_SphericalMapping.h"
+   #include "SUMA_xColBar.h"
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr

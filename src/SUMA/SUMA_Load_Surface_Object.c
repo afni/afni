@@ -246,6 +246,11 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
    
    /* proceed for reading */
    switch (SO_FT) {
+      case SUMA_CMAP_SO:
+         /* nothing to do here */
+         SUMA_SL_Err("Don't know how to read those from disk:");
+         SUMA_RETURN(NULL);
+      
       case SUMA_FT_NOT_SPECIFIED:
          fprintf (SUMA_STDERR,"Error %s: No File Type specified.\n", FuncName);
          SUMA_RETURN(NULL);
@@ -687,6 +692,9 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
 
    /*create the structures for GL rendering */
    /*The data is being duplicated at the moment and perhaps I should just stick with the 1D stuf */
+   if (sizeof(GLfloat) != sizeof(float)) { SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); SUMA_RETURN(NULL); }
+   if (sizeof(GLint) != sizeof(int)) { SUMA_SL_Crit("GLint and int have differing sizes!\n"); SUMA_RETURN(NULL); }
+   
    SO->glar_NodeList = (GLfloat *) SO->NodeList; /* just copy the pointer, not the data */
    SO->glar_FaceSetList = (GLint *) SO->FaceSetList; /* just copy the pointer, not the data */
    SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; /* just copy the pointer, not the data */
@@ -2414,7 +2422,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
             SUMA_SL_Err("Failed to insert dset into list");
             SUMA_RETURN(NOPE);
          }
-         if (!SUMA_AddNelCol (dset->nel, SUMA_NODE_CX, (void *)Cx, NULL ,1)) {
+         if (!SUMA_AddNelCol (dset->nel, "convexity", SUMA_NODE_CX, (void *)Cx, NULL ,1)) {
             SUMA_SL_Err("Failed in SUMA_AddNelCol");
             SUMA_RETURN(NOPE);
          }
@@ -3561,6 +3569,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
          break;
       case SUMA_FT_NOT_SPECIFIED:
+      case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
          break;
       case SUMA_PLY:
@@ -3608,6 +3617,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
          }
          break;
       case SUMA_FT_NOT_SPECIFIED:
+      case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
          break;
    } 
@@ -3650,6 +3660,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
                }
          break;
       case SUMA_FT_NOT_SPECIFIED:
+      case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
          break;
       case SUMA_PLY:

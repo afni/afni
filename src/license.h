@@ -92,6 +92,29 @@ static char * license[] = {
    "  Whoever says that copyright is NECESSARY to ensure artistic and/or\n" ,
    "  intellectual creativity should explain this historical fact.\n" ,
    "\n" ,
+   "  Parts of SUMA use functions from various sources.\n"
+   "  run 'suma -sources' for detail.\n"
+   "  Library sources:\n"
+   "  ----------------\n"
+   "     GLUT: Mark. J. Kilgard's code from the book 'Programming OpenGL for \n"
+   "           the X Window System' (ISBN:0-201-48359-9) published by \n"
+   "           Addison-Wesley.\n"
+   "     PLY: A set of functions for reading/writing PLY polygon files by\n"
+   "          Greg Turk.\n"
+   "     SimpEnvelopes: A set of functions for simplifying triangular meshes by\n"
+   "                    Jonathan Cohen (cohenj@cs.unc.edu) and Amitabh Varshney\n"
+   "                    (varshney@cs.sunysb.edu).\n"
+   "  Sample code sources:\n"
+   "  --------------------\n"
+   "     'Mastering Algorithms with C': a book by Kyle Loudon,  \n"
+   "                                    published by O'Reilly & Associates. \n"
+   "     'C Language Algorithms for Digital Signal Processing': a book by \n"
+   "                   Bruce Kimball, Paul Embree and Bruce Kimble\n"
+   "                   published by Prentice Hall, 1991.\n"
+   "     'Motif Programming Manual': a book by Dan Heller and Paula Ferguson\n"  
+   "                                 published by O'Reilly & Associates, Inc. 1994\n" 
+   "     'http://astronomy.swin.edu.au/~pbourke': Paul Bourke's personal pages\n"
+   "                                              on gemoetry and rendering .\n" 
    "  ============================================================================\n" ,
    "\n" ,
    "                         GNU GENERAL PUBLIC LICENSE\n" ,

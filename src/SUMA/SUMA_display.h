@@ -132,7 +132,7 @@ void SUMA_set_Lock_arb (SUMA_rb_group * Lock_rbg);
 void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_XHalock_toggled (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_set_LockView_atb (void);
-Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_mnemonic, \
+int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_mnemonic, \
                      SUMA_Boolean tear_off, SUMA_MenuItem *items, void *ContID, 
                      Widget *MenuWidgets);
 void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
@@ -249,9 +249,11 @@ void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_ColPlane_NewOrder (void *data);
 void SUMA_ColPlane_NewOpacity (void *data);
+void SUMA_ColPlane_NewDimFact (void *data);
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
@@ -276,7 +278,8 @@ void SUMA_WidgetResize (Widget New, int width, int height);
 void SUMA_LoadVisualState(char *fname, void *csvp);
 void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
-
+void SUMA_SiSi_I_Insist(void);
+void SUMA_BuildMenuReset(int nchar);
 
 
 

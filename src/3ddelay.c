@@ -27,7 +27,7 @@
 
 
 /*--------------------- strings for output format --------------------*/
-
+/* do not change the order in this string*/
 static char * method_strings[] = { "Seconds" , "Degrees" , "Radians"} ;
 static char * yn_strings[] = { "n" , "y" }; 
 
@@ -41,9 +41,10 @@ static char * yn_strings[] = { "n" , "y" };
 #define NUM_METHOD_STRINGS (sizeof(method_strings)/sizeof(char *))
 #define NUM_YN_STRINGS (sizeof(yn_strings)/sizeof(char *))
 
+/* do not change these three*/
 #define METH_SECONDS 0
-#define METH_RADIANS 1
-#define METH_DEGREES 2
+#define METH_DEGREES 1
+#define METH_RADIANS 2
 
 #undef  DELAY
 #define DELAY    0

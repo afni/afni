@@ -65,6 +65,19 @@
             }  \
    }         
 
+/*!
+   A macro to calculate a surface object's normals 
+*/
+#define SUMA_RECOMPUTE_NORMALS(SO){ \
+   SUMA_SURF_NORM m_SN;   \
+   if (SO->NodeNormList) SUMA_free(SO->NodeNormList); SO->NodeNormList = NULL;   \
+   if (SO->FaceNormList) SUMA_free(SO->FaceNormList); SO->FaceNormList = NULL;   \
+   m_SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );  \
+   SO->NodeNormList = m_SN.NodeNormList; \
+   SO->FaceNormList = m_SN.FaceNormList; \
+   SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */\
+}
+
 /*! 
    A macro version of SUMA_FindEdge
    Use function for robust error checking.
@@ -143,13 +156,17 @@
 
 /*!
    \brief SUMA_EULER_SO (SO, eu)
-   computes the euler number = N  + E + F
-   eu = SO->N_Node + SO->FaceSetDim * SO->N_FaceSet + SO->N_FaceSet
-   eu = 2 for closed surfaces 
+   computes the euler number = N  - E + F
+   eu = SO->N_Node - SO->EL->N_Distinct_Edges + SO->N_FaceSet
+   eu = 2 for closed surfaces
+   -1000 --> NULL SO
+   -1001 --> NULL SO->EL 
 */
 
 #define SUMA_EULER_SO(SO, eu) { \
-   eu = SO->N_Node + SO->FaceSetDim * SO->N_FaceSet + SO->N_FaceSet; \
+   if (!SO) { eu = -1000; }   \
+   else if (!SO->EL) { eu = -1001; }   \
+   else eu = SO->N_Node - SO->EL->N_Distinct_Edges + SO->N_FaceSet; \
 }
    
 /*!

@@ -1265,7 +1265,7 @@ Purpose :
  
  
 Usage : 
-       SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt, d_order, Out )
+       SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt, d_order, Out,  AddRowInd)
  
  
 Input paramters : 
@@ -1279,11 +1279,11 @@ Input paramters :
                         SUMA_COLUMN_MAJOR: The data in fin is stored in *** Column Major *** order.
                         The ith (start at 0) value for node n is at index fin[n+SO->N_Node*i]; 
                         etc...
-   AddRowInd (SUMA_Boolean) YUP  = add the row index in the first column
    Out (FILE *) pointer to output file. If NULL then output is to stdout.
+   AddRowInd (SUMA_Boolean) YUP  = add the row index in the first column
    
  
- 
+   \sa SUMA_disp_vecucmat 
 */ 
 void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt, 
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd)
@@ -1327,6 +1327,52 @@ void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt,
          break;
    }
 }/*SUMA_disp_vecdmat*/
+
+/*!
+   \brief same as SUMA_disp_vecdmat, except with unsigned char * instead of int *
+*/
+void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd)
+{/*SUMA_disp_vecucmat*/
+   char spc [40]; 
+   int i,j;
+   FILE *foutp;
+   static char FuncName[]={"SUMA_disp_vecucmat"};
+      
+   SUMA_ENTRY;
+
+   if (!fout) foutp = stdout;
+   else foutp = fout;
+   
+   if (!SpcOpt)
+      sprintf(spc," ");
+   else if (SpcOpt == 1)
+      sprintf(spc,"\t");
+   else
+      sprintf(spc," , ");
+   
+   if (!fout) fprintf (SUMA_STDOUT,"\n"); /* a blank 1st line when writing to screen */
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i*nc+j],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i+j*nr],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      default:
+         SUMA_SL_Err("Bad order.\n");
+         SUMA_RETURNe;
+         break;
+   }
+}/*SUMA_disp_vecucmat*/
 
 /*!
 File : SUMA_MiscFunc.c from disp_vect.c
@@ -3851,13 +3897,14 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    
    /* do a search for some funky stuff */
    SUMA_LH("Searching SEL for funky stuff");
+   SEL->N_Distinct_Edges = 0;
    i=0;
    while (i < SEL->N_EL) {
       /* store the location of this edge for the triangle hosting it */
       ht = SEL->ELps[i][1]; /* host triangle index */
       SEL->Tri_limb[ht][iTri_limb[ht]] = i;
       iTri_limb[ht] += 1;
-      
+      SEL->N_Distinct_Edges += 1; /* a new edge */ 
       SEL->ELps[i][2] = 1; /* number of triangles hosting edge */
       lu = 1; 
       while (i+lu < SEL->N_EL) {
@@ -5507,7 +5554,7 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    sum of the signed distance of all the neighboring nodes to the tangent plane. The sign if C[i] 
    indicates the convexity.
    
-   C[i] = Sum(dj/dij) over all neighbors j of i
+   C[i] = -Sum(dj/dij) over all neighbors j of i (the - sign was added May 06 04 )
    dj is the distance of neighboring node j to the tangent plane at i
    dij is the length of the segment ij
    
@@ -5519,6 +5566,9 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
    Aug 14 03
    This function actually calls SUMA_Convexity_Engine with NULL for DetailFile parameter.
    See SUMA_Convexity_Engine
+   May 06 04:
+   This function was modified to return +ve values for convex regions and negative 
+   for concave ones. It used to be the opposite.
 */
 
 float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN) 
@@ -5551,6 +5601,10 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *
                                  Make sure changes made to this file are reflected in
                                  that function.
                               NOTE: Pre-existing files will get overwritten.
+   MAY 06 04: The values are +ve for concave areas (i.e. fundus of sulcus) and 
+   negative for convex areas. This is counter to the name of the function and the
+   user's expectation (want fundus to have lower value --> dark color). 
+   So to fix this injustice I changed the sign of C
 */             
 float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile)
 {
@@ -5605,7 +5659,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
          /* as a measure of curvature, compute the sum of signed distances of negihbors to tangent plane at i.
          use distances normalized by length of segment ij to account for differences in segment length */
           
-         C[i] += d/dij;
+         C[i] -= d/dij; /* used to be C[i] += d/dij; prior to May 06 04 */
          
          if (DetailFile) fprintf(fid,"%f\t%f\t%f\t", d, dij, d/dij);
          
@@ -5666,7 +5720,7 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
     lo = (int)strlen(str);
 
    buf1 = (char *)SUMA_calloc (pad_ln-lo+2,sizeof (char));
-    strp = (char *)SUMA_calloc (pad_ln+lo+2,sizeof (char));
+   strp = (char *)SUMA_calloc (pad_ln+lo+2,sizeof (char));
 
    for (i=0;i<pad_ln-lo;++i)
        {
