@@ -5,11 +5,12 @@ typedef struct {      /* a location in space */
   float x,y,z ;
 } AGNI_nod ;
 
-NI_element * AGNI_nod_to_NIML( int num_nod , AGNI_nod *nod ) ;
+NI_element * AGNI_nod_to_NIML_col( int num_nod , AGNI_nod *nod ) ;
+NI_element * AGNI_nod_to_NIML_row( int num_nod , AGNI_nod *nod ) ;
 
 int main( int argc , char *argv[] )
 {
-   int ii , nn ;
+   int ii , nn , ct , nb ;
    AGNI_nod *nod ;
    NI_element *nel ;
    NI_stream ns ;
@@ -29,25 +30,45 @@ int main( int argc , char *argv[] )
       nod[ii].z  = 3.3*ii ;
    }
 
-   (void) NI_clock_time() ;  /* start timer */
-
    /* put nodes into a NIML data element */
 
-   nel = AGNI_nod_to_NIML( nn , nod ) ;
+   ct = NI_clock_time() ;  /* start timer */
+
+   nel = AGNI_nod_to_NIML_row( nn , nod ) ;
 
    /* how long did that take */
 
-   printf("Clock time for %d nodes = %d ms\n",nn,NI_clock_time()) ;
+   printf("Clock time for %d nodes by rows = %d ms\n",nn,NI_clock_time()-ct) ;
 
    /* print out element, if not too big */
 
-   if( nn < 20 ){
+   if( nn < 10 ){
      ns = NI_stream_open( "fd:1" , "w" ) ;
-     if( ns == NULL ){ printf("Can't open fd:0\n"); exit(1); }
-     NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-     NI_stream_close(ns) ;
+     if( ns == NULL ){ printf("Can't open fd:1\n"); exit(1); }
+     nb = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     fprintf(stderr,"num bytes=%d\n",nb) ;
    }
-   printf("*** That's all folks ***\n") ;
+   NI_free_element(nel) ;
+
+   /* put nodes into a NIML data element */
+
+   ct = NI_clock_time() ;  /* start timer */
+
+   nel = AGNI_nod_to_NIML_col( nn , nod ) ;
+
+   /* how long did that take */
+
+   printf("Clock time for %d nodes by cols = %d ms\n",nn,NI_clock_time()-ct) ;
+
+   /* print out element, if not too big */
+
+   if( nn < 10 ){
+     nb = NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     fprintf(stderr,"num bytes=%d\n",nb) ;
+   }
+   NI_free_element(nel) ;
+
+   printf("\n*** That's all folks ***\n") ;
    exit(0) ;
 }
 
@@ -56,7 +77,7 @@ int main( int argc , char *argv[] )
     Return value is NULL if you input stupid values.
 --------------------------------------------------------------------*/
 
-NI_element * AGNI_nod_to_NIML( int num_nod , AGNI_nod *nod )
+NI_element * AGNI_nod_to_NIML_row( int num_nod , AGNI_nod *nod )
 {
    NI_element *nel ;
    int ii ;
@@ -85,7 +106,50 @@ NI_element * AGNI_nod_to_NIML( int num_nod , AGNI_nod *nod )
 
    return nel ;
 }
-
+
+/*------------------------------------------------------------------*/
+/*! Make a NIML data element from an array of AGNI_nod structs.
+    Return value is NULL if you input stupid values.
+--------------------------------------------------------------------*/
+
+NI_element * AGNI_nod_to_NIML_col( int num_nod , AGNI_nod *nod )
+{
+   NI_element *nel ;
+   int ii ;
+   int *ic ; float *xc,*yc,*zc ;
+
+   /* check inputs for sanity */
+
+   if( num_nod < 1 || nod == NULL ) return NULL ;
+
+   /* make a new data element, to be filled by columns */
+
+   nel = NI_new_data_element( "surfixyz" , num_nod ) ;
+
+   /* make the columns to be put in the element */
+
+   ic = (int *)   malloc( sizeof(int)   * num_nod ) ;
+   xc = (float *) malloc( sizeof(float) * num_nod ) ;
+   yc = (float *) malloc( sizeof(float) * num_nod ) ;
+   zc = (float *) malloc( sizeof(float) * num_nod ) ;
+
+   /* load the columns */
+
+   for( ii=0 ; ii < num_nod ; ii++ ){
+      ic[ii] = nod[ii].id ;
+      xc[ii] = nod[ii].x ;
+      yc[ii] = nod[ii].y ;
+      zc[ii] = nod[ii].z ;
+   }
+
+   NI_add_column( nel , NI_INT   , ic ) ; free(ic) ;
+   NI_add_column( nel , NI_FLOAT , xc ) ; free(xc) ;
+   NI_add_column( nel , NI_FLOAT , yc ) ; free(yc) ;
+   NI_add_column( nel , NI_FLOAT , zc ) ; free(zc) ;
+
+   return nel ;
+}
+
 /*------------------------------------------------------------------*/
 /*! Unload a <surfixyz> NI_element into an array of newly
     malloc()-ed AGNI_nod.

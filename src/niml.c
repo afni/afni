@@ -3370,7 +3370,7 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 
    if( nel == NULL || nel->vec_len == 0 || arr == NULL ) return ;
 
-   if( nel->rowmap_num >= 0 ) return ;  /* needs NI_add_row() */
+   if( nel->rowmap_cod >= 0 ) return ;  /* needs NI_add_row() */
 
    if( typ < 0 || typ >= NI_NUM_TYPES ) return ;
 
