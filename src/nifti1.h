@@ -250,13 +250,6 @@ typedef struct nifti_1_header nifti_1_header ;
    contents of the dataset file between the end of the header and the
    start of the data.
 
-   N.B.: A negative vox_offset means that the image data offset should
-         be computed from the length of the file minus the length of the
-         image data.  That is, if the file length is FF bytes, and the
-         data length is DD bytes (DD = number of voxels * bitpix / 8),
-         then the offset into the file should be taken as FF-DD when
-         vox_offset < 0.0.
-
    FILES:
    -----
    If the magic field is "ni1", then the voxel data is stored in the
