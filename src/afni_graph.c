@@ -588,6 +588,32 @@ ENTRY("new_MCW_grapher") ;
                               "Common     [b]" ,
                               "Global     [b]" } ;
      XmString xstr ;
+     char gbuf[32] ;  /* 08 Mar 2002 */
+
+     /* 08 Mar 2002: set baseline parameters from environment variables */
+
+     cpt = getenv( "AFNI_GRAPH_GLOBALBASE" ) ;
+     if( cpt != NULL )
+       grapher->global_base = strtod( cpt , NULL ) ;
+     else
+       grapher->global_base = 0.0 ;
+
+     cpt = getenv( "AFNI_GRAPH_BASELINE" ) ;
+     if( cpt != NULL ){
+       switch( *cpt ){
+         default:  grapher->common_base = BASELINE_INDIVIDUAL ; break ;
+
+         case 'C':
+         case 'c': grapher->common_base = BASELINE_COMMON     ; break ;
+
+         case 'G':
+         case 'g': grapher->common_base = BASELINE_GLOBAL     ; break ;
+       }
+     } else {
+       grapher->common_base = BASELINE_INDIVIDUAL ;
+     }
+
+     /* now create menu items */
 
      OPT_MENU_PULLRIGHT(opt_baseline_menu,opt_baseline_cbut,
                         "Baseline","Change sub-graphs baseline");
@@ -596,7 +622,7 @@ ENTRY("new_MCW_grapher") ;
          new_MCW_bbox( grapher->opt_baseline_menu ,
                        3 , bbox_label , MCW_BB_radio_one , MCW_BB_noframe ,
                        GRA_baseline_CB , (XtPointer)grapher ) ;
-     MCW_set_bbox( grapher->opt_baseline_bbox , BASELINE_INDIVIDUAL ) ;
+     MCW_set_bbox( grapher->opt_baseline_bbox , grapher->common_base ) ;
 
      MCW_reghint_children( grapher->opt_baseline_bbox->wrowcol ,
                           "Graph baseline methods" ) ;
@@ -608,7 +634,9 @@ ENTRY("new_MCW_grapher") ;
 
      MENU_SLINE( opt_baseline_menu ) ;
 
-     xstr = XmStringCreateLtoR( "Global: 0        ",XmFONTLIST_DEFAULT_TAG ) ;
+     strcpy(gbuf,"Global:") ;
+     AV_fval_to_char(grapher->global_base,gbuf+7) ;
+     xstr = XmStringCreateLtoR(gbuf,XmFONTLIST_DEFAULT_TAG) ;
      grapher->opt_baseline_global_label =
         XtVaCreateManagedWidget(
                  "dialog" , xmLabelWidgetClass , grapher->opt_baseline_menu ,
@@ -770,8 +798,6 @@ if(PRINT_TRACING)
    grapher->key_Nlock   =  0 ;
    grapher->xFD         =  0 ;
    grapher->yFD         =  0 ;
-   grapher->common_base =  BASELINE_INDIVIDUAL ; /* 07 Aug 2001 */
-   grapher->global_base =  0 ;
    grapher->time_index  =  0 ;
    grapher->pin_num     =  0 ;  /* 27 Apr 1997 */
    grapher->ggap        =  INIT_GR_ggap ;  /* 12 Jan 1998 + 27 May 1999 */
@@ -3889,6 +3915,7 @@ STATUS("replacing ort timeseries") ;
 #ifdef USE_OPTMENUS
             GRA_fix_optmenus( grapher ) ;
 #endif
+            AFNI_sleep(1) ;  /* 08 Mar 2002: for good luck */
          }
          RETURN( True ) ;
       }
