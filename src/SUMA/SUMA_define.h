@@ -534,10 +534,10 @@ typedef struct {
 /*! structure that contains the output of SurfNorm function */
 #define SUMA_SurfNorm_struct
 typedef struct {
-	int N_Node; /*!< Number of nodes, 1st dim of Node_NormList*/
-	int N_Face;/*!< Number of facesets, 1st dim of Face_NormList*/
-	float **Face_NormList ; /*!< N_Face x 3 matrix containing normalized normal vectors for each triangular faceset*/ 
-	float **Node_NormList ; /*!< N_Node x 3 matrix containing normalized normal vectors for each node*/
+	int N_Node; /*!< Number of nodes, 1st dim of NodeNormList*/
+	int N_Face;/*!< Number of facesets, 1st dim of FaceNormList*/
+	float *FaceNormList ; /*!< N_Face x 3 vector (was matrix prior to SUMA 1.2) containing normalized normal vectors for each triangular faceset*/ 
+	float *NodeNormList ; /*!< N_Node x 3 vector (was matrix prior to SUMA 1.2) containing normalized normal vectors for each node*/
 } SUMA_SURF_NORM; /*!< structure that contains the output of SurfNorm function */
 
 /*! structure that contains the output of SUMA_MemberFaceSets function */
@@ -601,19 +601,21 @@ typedef struct {
 	int N_Node; /*!< Number of nodes in the SO */
 	int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
 	int EmbedDim; /*!< Embedding dimension of the surface, 2 for flat surfaces 3 for ones with non zero curvature other. */ 
-	float **NodeList; /*!< N_Node x 3 matrix containing the XYZ node coordinates. 
-								If NodeDim is 2 then the third column is all zeros*/
+	float *NodeList; /*!< N_Node x 1 vector containing the XYZ node coordinates. 
+								If NodeDim is 2 then the third column is all zeros
+								Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
 	char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
 	                              if equal to idcode_str then surface surface is Mappable, 
 											otherwise it specifies the idcode of the Mapping reference surface */
 	
 	int N_FaceSet; /*!< Number of polygons defining the surface  */
 	int FaceSetDim; /*!< Number of sides on the polygon */
-	int **FaceSetList; /*!< N_FaceSetList x FaceSetDim matrix describing the polygon set that makes up the SO.
-							Each row contains the indices (into NodeList) of the nodes that make up a polygon */
+	int *FaceSetList; /*!< N_FaceSetList x FaceSetDim vector describing the polygon set that makes up the SO.
+							Each row contains the indices (into NodeList) of the nodes that make up a polygon 
+							Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
 	
-	float **NodeNormList ; /*!< N_Node x 3 matrix containing normalized normal vectors for each node*/
-	float **FaceNormList ; /*!< N_FaceSet x 3 matrix containing normalized normal vectors for each polygon*/ 
+	float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each node*/
+	float *FaceNormList ; /*!< N_FaceSet x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each polygon*/ 
 	
 	float Center[3]; 		/*!< The centroid of the surface */
 	float MaxDims[3];		/*!< The maximum along each of the XYZ dimensions */
@@ -629,11 +631,11 @@ typedef struct {
 	
 	char *Name_NodeParent; /*!< Node parent of the SO.	Node Indices of SO are into NodeList matrix of the NodeParent SO*/					
 
-	GLfloat *glar_NodeList;			/*!< pointer to the 1D NodeList array*/
-	GLuint  *glar_FaceSetList;		/*!< pointer to the 1D FaceSetList array*/
-	GLfloat *glar_FaceNormList;	 /*!< pointer to the 1D glar_FaceNormList array*/
+	GLfloat *glar_NodeList;			/*!< pointer to the 1D NodeList array - DO NOT FREE IT, it is a pointer copy of NodeList*/
+	GLint  *glar_FaceSetList;		/*!< pointer to the 1D FaceSetList array - DO NOT FREE IT, it is a pointer copy of FaceSetList*/
+	GLfloat *glar_FaceNormList;	 /*!< pointer to the 1D FaceNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
 	GLfloat *glar_ColorList; 		/*!< pointer to the 1D ColorList array*/
-	GLfloat *glar_NodeNormList; 	/*!< pointer to the 1D NodeNormList array*/
+	GLfloat *glar_NodeNormList; 	/*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
 	
 	SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
 	SUMA_Axis *MeshAxis;	/*!< pointer to XYZ axis centered on the surface's centroid */
@@ -681,7 +683,7 @@ typedef struct {
 	/* coord files */
 	char name_coord[SUMA_MAX_NAME_LENGTH];
 	int N_Node; /*!< Number of nodes */
-	float **NodeList; /*!< N_Node x 3 matrix containing node coordinates */
+	float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
 	int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 but since it's in .coord file, I keep it anyway */
 	char encoding_coord[100];
 	char configuration_id[100];
@@ -695,7 +697,7 @@ typedef struct {
 	int **Specs_mat; /*!< Node Specs matrix. Columns appear to be arraged as such NodeId #Neighbors ? ? NodeId ? */
 	SUMA_NODE_FIRST_NEIGHB FN; /*!< First order neighbor structure */
 	int N_FaceSet; /*!< Number of polygons making up surface */
-	int **FaceSetList; /*!< definition of polygons */
+	int *FaceSetList; /*!< definition of polygons. Became a vector in SUMA 1.2*/
 	/* Param Files */
 	char name_param[SUMA_MAX_NAME_LENGTH];
 	float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) of Anterior Comissure of whole volume */
@@ -707,10 +709,11 @@ typedef struct {
 	char name[SUMA_MAX_NAME_LENGTH];
 	int N_Node; /*!< Number of nodes */
 	int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 unless the surface is a patch of another surface see FaceSetIndexInParent*/
-	float **NodeList; /*!< N_Node x 3 matrix containing node coordinates */
+	float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
 	int N_FaceSet; /*!< Number of polygons making up surface */
-	int **FaceSetList; /*!< definition of polygons. For a complete surface, these are indices into NodeList's rows
-	                        For a patch, these are indices into NodeList of the parent surface*/
+	int *FaceSetList; /*!< definition of polygons. For a complete surface, these are indices into NodeList's rows
+	                        For a patch, these are indices into NodeList of the parent surface.
+								Became a vector in SUMA 1.2*/
 	char comment[SUMA_MAX_STRING_LENGTH]; /*!< comment at beginning of patch or surface */
 	SUMA_Boolean isPatch; /*!< is the surface a patch of another ? */
 	int *FaceSetIndexInParent; /*!< for a FaceSet in patch, this represents its index in FaceSetList of the parent surface.
@@ -739,7 +742,7 @@ typedef struct {
 /*! structure containing a surface patch */
 typedef struct {
 	int N_FaceSet; /*!< Number of Facesets forming patch */
-	int **FaceSetList; /*!< Matrix (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
+	int *FaceSetList; /*!< vector (was a matrix prior to SUMA 1.2) (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
 	int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles in FaceSetList in the FaceSetList of the surface that the patch was taken from */
 } SUMA_PATCH;
 

@@ -691,6 +691,101 @@ void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt)
 		}
 }/*SUMA_disp_mat*/
 
+/*!**
+ 
+File : SUMA_MiscFunc.c
+Author : Ziad Saad
+Date : Tue Nov 17 13:19:26 CST 1998, modified Tue Aug 20 11:11:29 EDT 2002
+ 
+Purpose : 
+	Displays on the terminal a 2D float matrix stored in a vector
+ 
+ 
+Usage : 
+		 SUMA_disp_vecmat (float *v,int nr, int nc, int SpcOpt )
+ 
+ 
+Input paramters : 
+ 	v (float *) (nr x nc) vector containing the 2D matrix to display
+	nr (int) the number of rows in v
+	nc (int) the number of columns
+	SpcOpt (int) : spacing option (0 for space, 1 for tab and 2 for comma)
+	
+ 
+ 
+*/ 
+void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt)
+{/*SUMA_disp_vecmat*/
+   char spc [40]; 
+ 	int i,j;
+	static char FuncName[]={"SUMA_disp_vecmat"};
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (!SpcOpt)
+		sprintf(spc," ");
+	else if (SpcOpt == 1)
+		sprintf(spc,"\t");
+	else
+		sprintf(spc," , ");
+	
+	fprintf (SUMA_STDOUT,"\n");
+   for (i=0; i < nr; ++i)
+		{
+			for (j=0; j < nc; ++j)
+					fprintf (SUMA_STDOUT, "%4.2f%s",v[i*nc+j],spc);
+			fprintf (SUMA_STDOUT,"\n");
+		}
+}/*SUMA_disp_vecmat*/
+
+
+/*!**
+ 
+File : SUMA_MiscFunc.c
+Author : Ziad Saad
+Date : Tue Nov 17 13:19:26 CST 1998, modified Tue Aug 20 11:11:29 EDT 2002
+ 
+Purpose : 
+	Displays on the terminal a 2D int matrix stored in a 1D vector 
+ 
+ 
+Usage : 
+		 SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt )
+ 
+ 
+Input paramters : 
+ 	v (int *) (nr x nc) vector containing the 2D matrix to display
+	nr (int) the number of rows in v
+	nc (int) the number of columns
+	SpcOpt (int) : spacing option (0 for space, 1 for tab and 2 for comma)
+	
+ 
+ 
+*/ 
+void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt)
+{/*SUMA_disp_vecdmat*/
+   char spc [40]; 
+ 	int i,j;
+	static char FuncName[]={"SUMA_disp_vectdmat"};
+		
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	if (!SpcOpt)
+		sprintf(spc," ");
+	else if (SpcOpt == 1)
+		sprintf(spc,"\t");
+	else
+		sprintf(spc," , ");
+	
+	fprintf (SUMA_STDOUT,"\n");
+   for (i=0; i < nr; ++i)
+		{
+			for (j=0; j < nc; ++j)
+					fprintf (SUMA_STDOUT, "%d%s",v[i*nc+j],spc);
+			fprintf (SUMA_STDOUT,"\n");
+		}
+}/*SUMA_disp_vecdmat*/
+
 /*!
 File : SUMA_MiscFunc.c from disp_vect.c
 Author : Ziad Saad
@@ -846,12 +941,12 @@ Purpose :
    
    
 Usage : 
-		Ret =  SUMA_isinsphere (XYZ, nr, S_cent , S_rad , BoundIn)
+		Ret =  SUMA_isinsphere (NodeList, nr, S_cent , S_rad , BoundIn)
    
 Input paramters : 
-	XYZ (float ** ) : Nx3 matrix containing the XYZ of the nodes to consider
+	NodeList (float * ) : Nx3 vector containing the NodeList of the nodes to consider
 	nr  (int )	: that's N, the number of nodes
-	S_cent (float *) : a 3x1 vector containing the XYZ coordinates of the center of the sphere
+	S_cent (float *) : a 3x1 vector containing the NodeList coordinates of the center of the sphere
 	S_rad  (float ) : the radius of the sphere
 	BoundIn (int) : 0/1 set to 0 for exclusive boundary  
    
@@ -859,7 +954,7 @@ Input paramters :
 Returns : 
 	a structure of the type SUMA_ISINSPHERE with the following fields
 	
-	.IsIn    (int *) : a pointer to an [nIsIn x 1] vector will contain the indices into the rows of XYZ that 
+	.IsIn    (int *) : a pointer to an [nIsIn x 1] vector will contain the indices into the rows of NodeList that 
 	                  locates the nodes inside the sphere. 
 	.nIsIn   (int) : the number of nodes in the sphere
    .d (float *) : a pointer to an [nIsIn x 1]  vector containing the distance of those nodes inside the sphere to the center.
@@ -875,15 +970,16 @@ Side effects :
    
    
 ***/
-SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_rad , int BoundIn )
+SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn )
 {/*SUMA_isinsphere*/
    static char FuncName[]={"SUMA_isinsphere"}; 
    float *t, t0, t1, t2, ta;
-	int k, *IsIn;
+	int k, *IsIn, id, ND;
 	SUMA_ISINSPHERE IsIn_strct;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	ND = 3;
 	IsIn_strct.nIsIn = 0;
 		
 	t = (float *) calloc (nr, sizeof(float));
@@ -900,10 +996,11 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 		{
 			for (k=0; k < nr; ++k)
 				{
+					id = ND * k;
 					/* Net distance to center */
-					t0 = XYZ[k][0] - S_cent[0];	
-					t1 = XYZ[k][1] - S_cent[1];	
-					t2 = XYZ[k][2] - S_cent[2];	
+					t0 = NodeList[id] - S_cent[0];	
+					t1 = NodeList[id+1] - S_cent[1];	
+					t2 = NodeList[id+2] - S_cent[2];	
 
 					ta = sqrt (t0 * t0 + t1 * t1 + t2 * t2);
 					
@@ -919,10 +1016,11 @@ SUMA_ISINSPHERE SUMA_isinsphere (float ** XYZ, int nr, float *S_cent , float S_r
 		{
 			for (k=0; k < nr; ++k)
 				{
+					id = ND * k;
 					/* Net distance to center */
-					t0 = XYZ[k][0] - S_cent[0];	
-					t1 = XYZ[k][1] - S_cent[1];	
-					t2 = XYZ[k][2] - S_cent[2];	
+					t0 = NodeList[id] - S_cent[0];	
+					t1 = NodeList[id+1] - S_cent[1];	
+					t2 = NodeList[id+2] - S_cent[2];	
 
 					ta = sqrt (t0 * t0 + t1 * t1 + t2 * t2);
 					
@@ -968,11 +1066,11 @@ Purpose :
    
    
 Usage : 
-	Ret = SUMA_isinbox (float ** XYZ, int nr, S_cent , S_dim ,  BoundIn)
+	Ret = SUMA_isinbox (float * XYZ, int nr, S_cent , S_dim ,  BoundIn)
    
    
 Input paramters : 
- 	XYZ (float ** ) : Nx3 matrix containing the XYZ of the nodes to consider
+ 	XYZ (float * ) : Nx3 vector containing the XYZ of the nodes to consider
 	nr  (int )	: that's N, the number of nodes
 	S_cent (float *) : a 3x1 vector containing the XYZ coordinates of the center of the box
 	S_dim  (float *) : a 3x1 containing the size of the box from side 
@@ -998,19 +1096,20 @@ Side effects :
    
    
 ***/
-SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , int BoundIn )
+SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , int BoundIn )
 {/*SUMA_isinbox*/
    
 	static char FuncName[]={"SUMA_isinbox"}; 
    float t0, t1, t2, hdim0, hdim1, hdim2, *d;
-	int k , *IsIn;
+	int k , *IsIn, id, ND;
 	SUMA_ISINBOX IsIn_strct;
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+	
+	ND = 3;
    /*
 	fprintf(SUMA_STDOUT,"%f %f %f, %f %f %f, %d, %f, %f, %f\n",\
-		S_cent[0], S_cent[1], S_cent[2], S_dim[0], S_dim[1], S_dim[2], nr, XYZ[0][0], XYZ[0][1], XYZ[0][2]);
+		S_cent[0], S_cent[1], S_cent[2], S_dim[0], S_dim[1], S_dim[2], nr, XYZ[0], XYZ[1], XYZ[2]);
 	*/
 		
 	IsIn_strct.nIsIn = 0;	
@@ -1035,9 +1134,10 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 				{
 				/*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
 				/* relative distance to center */
-					t0 = hdim0 - fabs(XYZ[k][0] - S_cent[0]);	
-					t1 = hdim1 - fabs(XYZ[k][1] - S_cent[1]);	
-					t2 = hdim2 - fabs(XYZ[k][2] - S_cent[2]);	
+					id = ND * k;
+					t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);	
+					t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);	
+					t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);	
 					
 					if (t0 >= 0)
 						if (t1 >= 0)
@@ -1056,9 +1156,10 @@ SUMA_ISINBOX SUMA_isinbox (float ** XYZ, int nr, float *S_cent , float *S_dim , 
 			for (k=0; k < nr; ++k)
 				{
 					/* relative distance to center */
-					t0 = hdim0 - fabs(XYZ[k][0] - S_cent[0]);	
-					t1 = hdim1 - fabs(XYZ[k][1] - S_cent[1]);	
-					t2 = hdim2 - fabs(XYZ[k][2] - S_cent[2]);	
+					id = ND * k;
+					t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);	
+					t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);	
+					t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);	
 					
 					if (t0 > 0)
 						if (t1 > 0)
@@ -1282,19 +1383,19 @@ SUMA_RETURN (P2);
 
 Function: SUMA_Point_To_Line_Distance
 Usage : 
-Ret = SUMA_Point_To_Line_Distance (float **Points, int N_nodes, float *P1, float *P2, float *d2, float *d2min, int *i2min)
+Ret = SUMA_Point_To_Line_Distance (float *NodeList, int N_nodes, float *P1, float *P2, float *d2, float *d2min, int *i2min)
 	
-Calculates the squared distance between the points in Points and the line formed by P1-P2  
+Calculates the squared distance between the points in NodeList and the line formed by P1-P2  
 	
 Input paramters : 
-\param Points (float **) N_nodes x 3 matrix containing XYZ of N_nodes nodes 
-\param N_nodes (int) Number of nodes in Points     
+\param NodeList (float *) N_nodes x 3 vector containing XYZ of N_nodes nodes 
+\param N_nodes (int) Number of nodes in NodeList     
 \param P1 (float *) 3x1 vector containing the XYZ of P1
 \param P2 (float *) 3x1 vector containing the XYZ of P2
-\param d2 (float *) N_nodes x 1 vector containing the squared distance of each node in Points to the line P1-P2
+\param d2 (float *) N_nodes x 1 vector containing the squared distance of each node in NodeList to the line P1-P2
        d2 must be pointing to a pre-allocated space
 \param d2min (float *) pointer to the smallest squared distance
-\param i2min (int *) pointer to the index (into Points) of the node with the shortest distance
+\param i2min (int *) pointer to the index (into NodeList) of the node with the shortest distance
 
 The squared distance is returned to save on a square root operation which may not be necessary to compute for all nodes
    
@@ -1304,14 +1405,15 @@ Returns :
 \sa labbook NIH-2, p 37 
  
 */
-SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min)
+SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min)
 {
 	static char FuncName[]={"SUMA_Point_To_Line_Distance"};
 	float U[3], Un, xn, yn, zn, dx, dy, dz;
-	int i;
+	int i, id, ND;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
+	ND = 3;
 	if (N_points < 1) {
 		fprintf(SUMA_STDERR,"Error %s: N_points is 0.\n",FuncName);
 		SUMA_RETURN (NOPE);
@@ -1345,9 +1447,9 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 	
 	/* do the first point to initialize d2min without an extra if statement */
 	 i = 0;
-	 xn = Points[i][0] - P1[0];
-	 yn = Points[i][1] - P1[1];
-	 zn = Points[i][2] - P1[2];
+	 xn = NodeList[0] - P1[0];
+	 yn = NodeList[1] - P1[1];
+	 zn = NodeList[2] - P1[2];
 	 
 	 dx = (U[1]*zn - yn*U[2]);
 	 dy = (U[0]*zn - xn*U[2]);
@@ -1358,9 +1460,10 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 	 *i2min = i;
 	 /* Now do the rest */
 	for (i=1; i < N_points; ++i) {
-		xn = Points[i][0] - P1[0];
-		yn = Points[i][1] - P1[1];
-		zn = Points[i][2] - P1[2];
+		id = ND * i;
+		xn = NodeList[id] - P1[0];
+		yn = NodeList[id+1] - P1[1];
+		zn = NodeList[id+2] - P1[2];
 
 		dx = (U[1]*zn - yn*U[2]);
 		dy = (U[0]*zn - xn*U[2]);
@@ -1379,18 +1482,18 @@ SUMA_Boolean SUMA_Point_To_Line_Distance (float **Points, int N_points, float *P
 
 Function: SUMA_Point_To_Point_Distance
 Usage : 
-Ret = SUMA_Point_To_Point_Distance (float **Points, int N_nodes, float *P1, float *d2, float *d2min, int *i2min)
+Ret = SUMA_Point_To_Point_Distance (float *NodeList, int N_nodes, float *P1, float *d2, float *d2min, int *i2min)
 	
-Calculates the squared distance between the points in Points and  P1-P2  
+Calculates the squared distance between the points in NodeList and  P1-P2  
 	
 Input paramters : 
-\param Points (float **) N_nodes x 3 matrix containing XYZ of N_nodes nodes 
-\param N_nodes (int) Number of nodes in Points     
+\param NodeList (float *) N_nodes x 3 vector containing XYZ of N_nodes nodes 
+\param N_nodes (int) Number of nodes in NodeList     
 \param P1 (float *) 3x1 vector containing the XYZ of P1
-\param d2 (float *) N_nodes x 1 vector containing the squared distance of each node in Points to P1
+\param d2 (float *) N_nodes x 1 vector containing the squared distance of each node in NodeList to P1
        d2 must be pointing to a pre-allocated space
 \param d2min (float *) pointer to the smallest squared distance
-\param i2min (int *) pointer to the index (into Points) of the node with the shortest distance
+\param i2min (int *) pointer to the index (into NodeList) of the node with the shortest distance
 
 The squared distance is returned to save on a square root operation which may not be necessary to compute for all nodes
    
@@ -1398,14 +1501,15 @@ Returns :
 \return  Ret (SUMA_Boolean) YUP/NOPE for success/failure
  
 */
-SUMA_Boolean SUMA_Point_To_Point_Distance (float **Points, int N_points, float *P1, float *d2, float *d2min, int *i2min)
+SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float *P1, float *d2, float *d2min, int *i2min)
 {
 	static char FuncName[]={"SUMA_Point_To_Point_Distance"};
 	float xn, yn, zn;
-	int i;
+	int i, id, ND;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	ND = 3;
 	if (N_points < 1) {
 		fprintf(SUMA_STDERR,"Error %s: N_points is 0.\n",FuncName);
 		SUMA_RETURN (NOPE);
@@ -1422,18 +1526,19 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float **Points, int N_points, float *
 	
 	/* do the first point to initialize d2min without an extra if statement */
 	 i = 0;
-	 xn = Points[i][0] - P1[0];
-	 yn = Points[i][1] - P1[1];
-	 zn = Points[i][2] - P1[2];
+	 xn = NodeList[0] - P1[0];
+	 yn = NodeList[1] - P1[1];
+	 zn = NodeList[2] - P1[2];
 	 
 	 d2[i] = xn*xn + yn*yn + zn*zn; /* save the sqrt for speed */
 	 *d2min = d2[i];
 	 *i2min = i;
 	 /* Now do the rest */
 	for (i=1; i < N_points; ++i) {
-		xn = Points[i][0] - P1[0];
-		yn = Points[i][1] - P1[1];
-		zn = Points[i][2] - P1[2];
+		id = ND * i;
+		xn = NodeList[id] - P1[0];
+		yn = NodeList[id+1] - P1[1];
+		zn = NodeList[id+2] - P1[2];
 
 
 	 	d2[i] = xn*xn + yn*yn + zn*zn; /* save the sqrt for speed */
@@ -1811,13 +1916,13 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 /*!
 
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet)
+SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet)
 
 \param	P0 (float *) 3x1 containing XYZ of point 0
 \param	P1 (float *) 3x1 containing XYZ of point 1
-\param	NodeList (float **) N_Node x 3 containing the XYZ of nodes making up FaceSetList
+\param	NodeList (float *) N_Node x 3 vector containing the XYZ of nodes making up FaceSetList
 \param	N_Node (int) number of nodes in NodeList
-\param	FaceSetList (int **) N_FaceSet x 3 with each row representing a triangle. Triangles are defined
+\param	FaceSetList (int *) N_FaceSet x 3 with each triplet representing a triangle. Triangles are defined
       	by their indices into NodeList 
 \param	N_FaceSet (int) number of triangles in FaceSetList
 
@@ -1833,12 +1938,12 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 */ 
  
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet)
+SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet)
 {
    static char FuncName[]={"SUMA_MT_intersect_triangle"};
 	double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
    double det,inv_det;
-	int iface;
+	int iface, ND, id, NP, ip;
 	double vert0[3],vert1[3], vert2[3], dir[3], dirn, orig[3];
 	float tmin, tmax, dii;
 	SUMA_MT_INTERSECT_TRIANGLE *MTI;
@@ -1881,19 +1986,25 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 		SUMA_RETURN (MTI);
 	}
 	MTI->N_hits = 0;
+	ND = 3;
+	NP = 3;
 	for (iface= 0; iface < N_FaceSet; ++iface) {/* iface */
-   	/* set up the coordinates in a humane nomenclature */
-		vert0[0] = (double)NodeList[FaceSetList[iface][0]][0];
-    	vert0[1] = (double)NodeList[FaceSetList[iface][0]][1];
-   	vert0[2] = (double)NodeList[FaceSetList[iface][0]][2];
+		/* set up the coordinates in a humane nomenclature */
+   	ip = NP * iface;
+		id = ND * FaceSetList[ip];
+		vert0[0] = (double)NodeList[id];
+    	vert0[1] = (double)NodeList[id+1];
+   	vert0[2] = (double)NodeList[id+2];
 		
-   	vert1[0] = (double)NodeList[FaceSetList[iface][1]][0];
-    	vert1[1] = (double)NodeList[FaceSetList[iface][1]][1];
-   	vert1[2] = (double)NodeList[FaceSetList[iface][1]][2];
+   	id = ND * FaceSetList[ip+1];
+   	vert1[0] = (double)NodeList[id];
+    	vert1[1] = (double)NodeList[id+1];
+   	vert1[2] = (double)NodeList[id+2];
 		
-   	vert2[0] = (double)NodeList[FaceSetList[iface][2]][0];
-    	vert2[1] = (double)NodeList[FaceSetList[iface][2]][1];
-   	vert2[2] = (double)NodeList[FaceSetList[iface][2]][2];
+   	id = ND * FaceSetList[ip+2];
+   	vert2[0] = (double)NodeList[id];
+    	vert2[1] = (double)NodeList[id+1];
+   	vert2[2] = (double)NodeList[id+2];
 		
 		/* find vectors for two edges sharing vert0 */
    	SUMA_MT_SUB(edge1, vert1, vert0);
@@ -2011,7 +2122,8 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float **NodeList, int N_Node, i
 							MTI->inodeminlocal = 2;
 						}
 						MTI->d = (float)sqrt((double)MTI->d);
-						MTI->inodemin = FaceSetList[iface][MTI->inodeminlocal];
+						ip = NP * iface + MTI->inodeminlocal;
+						MTI->inodemin = FaceSetList[ip];
 					}
 					if (MTI->t[iface] > tmax) {
 						tmax = MTI->t[iface];
@@ -2548,14 +2660,14 @@ int SUMA_Next_Best_Seed (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int * visited, in
 	\sa SUMA_Next_Best_Seed
 	\sa SUMA_isConsistent 
 */
-SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *visited, int *N_visited, int *Consistent, int **FL, int N_FL, int seed)
+SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *visited, int *N_visited, int *Consistent, int *FL, int N_FL, int seed)
 {
 	static char FuncName[]={"SUMA_Take_A_Hike"};
-	int NotFound, itry, curface, nxtface;
+	int NotFound, itry, curface, nxtface, ipcur, ipnxt, NP;
 	static int entry=0;
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+	NP = 3;
 	curface = seed;
 	if (!visited[curface]) { /* a new visit this should only happen on the first call */
 		if (!entry) {
@@ -2587,13 +2699,13 @@ SUMA_TAKE_A_HIKE SUMA_Take_A_Hike (SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN, int *vi
 					/* that's a loner, do it and continue with the neighbors */
 					/*fprintf (SUMA_STDERR, "%s: LONER!\n", FuncName);*/
 					visited[nxtface] = 1;
-					Consistent[nxtface] = SUMA_isConsistent (FL[curface], FL[nxtface]);
+					Consistent[nxtface] = SUMA_isConsistent (&(FL[curface*NP]), &(FL[nxtface*NP]));
 					/*fprintf (SUMA_STDERR, "%s: visited %d\n", FuncName, nxtface);*/
 					*N_visited = *N_visited+1;
 					++itry;
 				} else {
 					/* that's a good one to follow */
-					Consistent[nxtface] = SUMA_isConsistent (FL[curface], FL[nxtface]);
+					Consistent[nxtface] = SUMA_isConsistent (&(FL[curface*NP]), &(FL[nxtface*NP]));
 					visited[nxtface] = 1;
 					curface = nxtface;
 					/*fprintf (SUMA_STDERR, "%s: visited %d\n", FuncName, curface);*/
@@ -2637,7 +2749,7 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 	ans = SUMA_Make_Edge_List (FL, N_FL, N_Node);
 	
 	This function creates a list of all the edges making up the FaceSets
-	\param FL (int **) FaceSetList matrix ( N_FL x 3)
+	\param FL (int *) FaceSetList vector (was matrix, prior to SUMA 1.2 ( N_FL x 3)
 	\param N_FL (int) number of facesets (triangles) in FL
 	\param N_Node (int) number of nodes forming the mesh
 	
@@ -2649,10 +2761,10 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
 		
 	to free 	ans, use SUMA_free_Edge_List 					
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List (int **FL, int N_FL, int N_Node)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node)
 {
 	static char FuncName[]={"SUMA_Make_Edge_List"};
-	int i, ie, *isort_EL, **ELp, lu, ht, *iTri_limb, icur;
+	int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur;
 	SUMA_EDGE_LIST *SEL;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2684,48 +2796,49 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int **FL, int N_FL, int N_Node)
 	for (i=0; i< N_FL; ++i) {/* begin, form edge list */
 		/* first edge, 0->1*/
 		ie = 3*i;
-		if (FL[i][0] > FL[i][1]) {
+		ip = 3*i;
+		if (FL[ip] > FL[ip+1]) {
 			/* flip it, to make sorting easier */
-			SEL->EL[ie][0] = FL[i][1];
-			SEL->EL[ie][1] = FL[i][0];
+			SEL->EL[ie][0] = FL[ip+1];
+			SEL->EL[ie][1] = FL[ip];
 			/* store parameters */
 			ELp[ie][0] = 1; /* flip happened */
 		} else { 
 			/* no flip necessary */
-			SEL->EL[ie][0] = FL[i][0];
-			SEL->EL[ie][1] = FL[i][1];
+			SEL->EL[ie][0] = FL[ip];
+			SEL->EL[ie][1] = FL[ip+1];
 			ELp[ie][0] = -1; /* NO flip happened */
 		}
 		ELp[ie][1] = i; /* FaceSetMember */
 		
 		/* second edge, 1->2*/
 		ie += 1;
-		if (FL[i][1] > FL[i][2]) {
+		if (FL[ip+1] > FL[ip+2]) {
 			/* flip it, to make sorting easier */
-			SEL->EL[ie][0] = FL[i][2];
-			SEL->EL[ie][1] = FL[i][1];
+			SEL->EL[ie][0] = FL[ip+2];
+			SEL->EL[ie][1] = FL[ip+1];
 			/* store parameters */
 			ELp[ie][0] = 1; /* flip happened */
 		} else { 
 			/* no flip necessary */
-			SEL->EL[ie][0] = FL[i][1];
-			SEL->EL[ie][1] = FL[i][2];
+			SEL->EL[ie][0] = FL[ip+1];
+			SEL->EL[ie][1] = FL[ip+2];
 			ELp[ie][0] = -1; /* NO flip happened */
 		}
 		ELp[ie][1] = i; /* FaceSetMember */
 		
 		/* third edge, 2->0*/
 		ie += 1;
-		if (FL[i][2] > FL[i][0]) {
+		if (FL[ip+2] > FL[ip]) {
 			/* flip it, to make sorting easier */
-			SEL->EL[ie][0] = FL[i][0];
-			SEL->EL[ie][1] = FL[i][2];
+			SEL->EL[ie][0] = FL[ip];
+			SEL->EL[ie][1] = FL[ip+2];
 			/* store parameters */
 			ELp[ie][0] = 1; /* flip happened */
 		} else { 
 			/* no flip necessary */
-			SEL->EL[ie][0] = FL[i][2];
-			SEL->EL[ie][1] = FL[i][0];
+			SEL->EL[ie][0] = FL[ip+2];
+			SEL->EL[ie][1] = FL[ip];
 			ELp[ie][0] = -1; /* NO flip happened */
 		}
 		ELp[ie][1] = i; /* FaceSetMember */
@@ -3018,7 +3131,7 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 	
 	ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL) 
 	
-	\param FaceSetList (int **) N_FaceSet x 3 matrix containing triangle definition
+	\param FaceSetList (int *) N_FaceSet x 3 vector (was matrix prior to SUMA 1.2) containing triangle definition
 	\param N_FaceSet int
 	\param SEL (SUMA_EDGE_LIST *) pointer Edgelist structure as output by SUMA_Make_Edge_List
 	
@@ -3027,15 +3140,16 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 	\sa SUMA_Make_Edge_List
 	  
 */
-SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL) 
+SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL) 
 {
 	/* see for more documentation labbook NIH-2 test mesh  p61 */
-	int i, it,  N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
+	int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
 	static char FuncName[]={"SUMA_MakeConsistent"};
 	SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	NP = 3;
 	isflip = (int *)calloc(SEL->N_EL/3, sizeof(int));
 	ischecked = (int *)calloc(SEL->N_EL/3, sizeof(int));
 	
@@ -3093,9 +3207,10 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 					} else {
 						/* triangles hosting these edges are NOT consistent */
 						/* flip the next triangle */
-						it = FL[ht1][0];
-						FL[ht1][0] = FL[ht1][2];
-						FL[ht1][2] = it;
+						ip = NP * ht1;
+						it = FL[ip];
+						FL[ip] = FL[ip+2];
+						FL[ip+2] = it;
 						/* Now make sure the flip is reflected in ELps */
 						it = SEL->Tri_limb[ht1][0]; SEL->ELps[it][0] *= -1;
 						it = SEL->Tri_limb[ht1][1]; SEL->ELps[it][0] *= -1;
@@ -3123,9 +3238,10 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 					} else {
 						/* triangles hosting these edges are NOT consistent */
 						/* flip the 1st triangle */
-						it = FL[ht0][0];
-						FL[ht0][0] = FL[ht0][2];
-						FL[ht0][2] = it;
+						ip = NP * ht0;
+						it = FL[ip];
+						FL[ip] = FL[ip+2];
+						FL[ip+2] = it;
 						/* Now make sure the flip is reflected in ELps */
 						it = SEL->Tri_limb[ht0][0]; SEL->ELps[it][0] *= -1;
 						it = SEL->Tri_limb[ht0][1]; SEL->ELps[it][0] *= -1;
@@ -3161,8 +3277,9 @@ SUMA_Boolean SUMA_MakeConsistent (int **FL, int N_FL, SUMA_EDGE_LIST *SEL)
 		/* now show the fixed mesh list */
 		fprintf (SUMA_STDERR,"%s: %d triangles were flipped \n", FuncName, N_flip);
 		for (i=0; i < SEL->N_EL/3; ++i) {
-			if (isflip[i]) fprintf (SUMA_STDERR,"\t%d %d %d\t(%d)\t*\n", FL[i][0], FL[i][1], FL[i][2], ischecked[i]);
-				else fprintf (SUMA_STDERR,"\t%d %d %d\t(%d)\n", FL[i][0], FL[i][1], FL[i][2], ischecked[i]);
+			ip = NP * i;
+			if (isflip[i]) fprintf (SUMA_STDERR,"\t%d %d %d\t(%d)\t*\n", FL[ip], FL[ip+1], FL[ip+2], ischecked[i]);
+				else fprintf (SUMA_STDERR,"\t%d %d %d\t(%d)\n", FL[ip], FL[ip+1], FL[ip+2], ischecked[i]);
 		}
 	#endif
 		
@@ -3190,7 +3307,7 @@ void usage ()
 int main (int argc,char *argv[])
 {/* Main */
    char FuncName[100]; 
-   int **FL, N_FL, i;
+   int *FL, N_FL, i, ip;
 	SUMA_EDGE_LIST *SEL;
 	
    /* initialize Main function name for verbose output */
@@ -3206,9 +3323,9 @@ int main (int argc,char *argv[])
 	N_FL = SUMA_float_file_size(argv[1]);
 	
 	N_FL = N_FL / 3;
-	FL = (int **)SUMA_allocate2D(N_FL, 3, sizeof(int));
+	FL = (int *)calloc(N_FL * 3, sizeof(int));
 	
-	SUMA_Read_2Ddfile (argv[1], FL,  N_FL, 3);
+	SUMA_Read_dfile (argv[1], FL,  N_FL * 3);
 	
 	
 	/* make the edge list */
@@ -3226,9 +3343,10 @@ int main (int argc,char *argv[])
 	}
 	
 		fprintf(SUMA_STDERR,"%s REARRANGED TRIANGLES:\n", FuncName);
-	for (i=0; i<N_FL; ++i)
-		fprintf(SUMA_STDERR," %d %d %d\n", FL[i][0], FL[i][1], FL[i][2]); 
-	
+	for (i=0; i<N_FL; ++i) {
+		ip = 3 * i;
+		fprintf(SUMA_STDERR," %d %d %d\n", FL[ip], FL[ip+1], FL[ip+2]); 
+	}
 	SUMA_free_Edge_List(SEL);
 
 	return (0);
@@ -3431,25 +3549,27 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
 
 /*!
 	Calculate the area of polygons
-	A = SUMA_PolySurf3 (NodeXYZ, int N_Node, int **FaceSets, int N_FaceSet, int PolyDim, float **FN)
-	\param NodeXYZ (float **) matrix (N_Node x 3) containing XYZ of each node
-	\param N_Node number of nodes in NodeXYZ
-	\param FaceSets (int **) matrix (N_FaceSet x PolyDim) defining the polygons by their indices into NodeXYZ
+	A = SUMA_PolySurf3 (NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList)
+	\param NodeList (float *)  (N_Node x 3) vector containing XYZ of each node
+	\param N_Node number of nodes in NodeList
+	\param FaceSets (int *) vector (matrix, prior to SUMA 1.2) (N_FaceSet x PolyDim) defining the polygons by their indices into NodeList
 	\param N_FaceSet (int) number of polygons
 	\param PolyDim (int) dimension of polygons (3 triangles)
-	\param FN (float **) N_FaceSet x 3 Normal vector to polygons
+	\param FaceNormList (float *) N_FaceSet x 3 vector of normals to polygons
 	\ret A (float *) vector containing the area of each polygon in FaceSets
 	
 	Algorithm by Dan Sunday http://geometryalgorithms.com
 */
-float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceSet, int PolyDim, float **FN)
+float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList)
 {
 	static char FuncName[]={"SUMA_PolySurf3"};
 	float **V, *A, ax, ay, az, an;
-	int i, ii, coord, kk, jj;
+	int i, ii, coord, kk, jj, id, ND, ip, NP;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	ND = 3;
+	NP = PolyDim;
 	A = (float *) calloc (N_FaceSet, sizeof(float));
 	V = (float **) SUMA_allocate2D(PolyDim+2, 3, sizeof(float));
 	
@@ -3459,14 +3579,15 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 	}
 
 	for (i=0; i < N_FaceSet; ++i) {
-		if (FN[i][0] > 0) ax = FN[i][0];
-			else ax = -FN[i][0];
+		ip = NP * i;
+		if (FaceNormList[ip] > 0) ax = FaceNormList[ip];
+			else ax = -FaceNormList[ip];
 		
-		if (FN[i][1] > 0) ay = FN[i][1];
-			else ay = -FN[i][1];
+		if (FaceNormList[ip+1] > 0) ay = FaceNormList[ip+1];
+			else ay = -FaceNormList[ip+1];
 		
-		if (FN[i][2] > 0) az = FN[i][2];
-			else az = -FN[i][2];
+		if (FaceNormList[ip+2] > 0) az = FaceNormList[ip+2];
+			else az = -FaceNormList[ip+2];
 	
 	
 		coord = 3;
@@ -3477,9 +3598,11 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 		}
 	
 		for (ii=0; ii< PolyDim; ++ii) {
-			V[ii][0] = NodeXYZ[FaceSets[i][ii]][0];
-			V[ii][1] = NodeXYZ[FaceSets[i][ii]][1];
-			V[ii][2] = NodeXYZ[FaceSets[i][ii]][2];
+			ip = NP * i;
+			id = ND * FaceSets[ip+ii];
+			V[ii][0] = NodeList[id];
+			V[ii][1] = NodeList[id+1];
+			V[ii][2] = NodeList[id+2];
 		}
 		ii = PolyDim;
 		V[ii][0] = V[0][0]; V[ii][1] = V[0][1]; V[ii][2] = V[0][2];
@@ -3541,9 +3664,9 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 /*! function to calculate the curvature tensor at each node 
 	SC = SUMA_Surface_Curvature (NodeList, N_Node, NodeNormList, A, N_FaceSet, FN, SUMA_EDGE_LIST *SEL)
 	
-	\param NodeList (float **) N_Node x 3 matrix containing the XYZ coordinates of the nodes
+	\param NodeList (float *) N_Node x 3 vector containing the XYZ coordinates of the nodes
 	\param N_Node (int)  number of nodes in NodeList
-	\param NodeNormList (float **) N_Node x 3 matrix containing the normal vector at each node
+	\param NodeNormList (float *) N_Node x 3 vector (was matrix prior to SUMA 1.2) containing the normal vector at each node
 	\param A (float *) N_FaceSet x 1 vector containing the area of each triangle making up the mesh
 	\param N_FaceSet (int) number of triangles making up the mesh
 	\param FN (SUMA_NODE_FIRST_NEIGHB *) structure containing Node Neighbors
@@ -3560,10 +3683,10 @@ float * SUMA_PolySurf3 (float **NodeXYZ, int N_Node, int **FaceSets, int N_FaceS
 */
 
 
-SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, float **NodeNormList, float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL)
+SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, float *NodeNormList, float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL)
 { 
 	static char FuncName[] = {"SUMA_Surface_Curvature"};
-	int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, kk, ii; 
+	int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, kk, ii, id, ND; 
 	float  Ntmp[3],  vi[3], vj[3], *Num, NumNorm, num, denum, sWij, T1e[3], T2e[3], mg, c, s;
 	float **fa33, **fb33, **fc33, **Ni, **Nit, *Wij, *Kij, **Tij, **I, **Mi, **Q, **Qt, **fa22, **mMi, **mMir;
 	SUMA_Boolean *SkipNode;
@@ -3630,6 +3753,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 	
 	fprintf (SUMA_STDERR, "%s: Beginning curvature computations:\n", FuncName);
 	
+	ND = 3;
 	SC->N_SkipNode = 0;
 	for (i=0; i < N_Node; ++i) { /* for i */
 		#ifdef DBG_1
@@ -3640,9 +3764,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 		SkipNode[i] = NOPE;
 		/* sanity copies */
 		N_Neighb = FN->N_Neighb[i];
-		Ni[0][0] = NodeNormList[i][0]; Ni[1][0] = NodeNormList[i][1]; Ni[2][0] = NodeNormList[i][2]; /* Normal vector at i*/
-		Nit[0][0] = NodeNormList[i][0]; Nit[0][1] = NodeNormList[i][1]; Nit[0][2] = NodeNormList[i][2]; /* transpose of Ni */ 
-		vi[0] = NodeList[i][0]; vi[1] = NodeList[i][1]; vi[2] = NodeList[i][2];  /* node coordinate vector */ 
+		id = ND * i;
+		Ni[0][0] = NodeNormList[id]; Ni[1][0] = NodeNormList[id+1]; Ni[2][0] = NodeNormList[id+2]; /* Normal vector at i*/
+		Nit[0][0] = NodeNormList[id]; Nit[0][1] = NodeNormList[id+1]; Nit[0][2] = NodeNormList[id+2]; /* transpose of Ni */ 
+		vi[0] = NodeList[id]; vi[1] = NodeList[id+1]; vi[2] = NodeList[id+2];  /* node coordinate vector */ 
 		#ifdef DBG_2
 			fprintf (SUMA_STDERR, "%s: Looping over neighbors, i = %d\n", FuncName, i);
 		#endif
@@ -3650,7 +3775,8 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float **NodeList, int N_Node, f
 		sWij = 0.0;
 		while (j < N_Neighb) {
 			ji = FN->FirstNeighb[i][j]; /* index of the jth first neighbor of i */
-			vj[0] = NodeList[ji][0]; vj[1] = NodeList[ji][1]; vj[2] = NodeList[ji][2];  /* node coordinate vector at jth neighbor */
+			id = ND * ji;
+			vj[0] = NodeList[id]; vj[1] = NodeList[id+1]; vj[2] = NodeList[id+2];  /* node coordinate vector at jth neighbor */
 			
 			/* calculate Tij */
 			#ifdef DBG_2
@@ -3999,9 +4125,9 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 /*! 
 	C = SUMA_Convexity (NodeList, N_Node, NodeNormList, FN)
 
-	\param NodeList (float **) N_Node x 3 matrix containing the coordinates for each node
+	\param NodeList (float *) N_Node x 3 vector containing the coordinates for each node
 	\param N_Node (int) number of nodes
-	\param NodeNormList (float **) N_Node x 3 matrix containing the unit normals at each node
+	\param NodeNormList (float *) N_Node x 3 vector (was matrix prior to SUMA 1.2) containing the unit normals at each node
 	\param FN (SUMA_NODE_FIRST_NEIGHB *) first order node neighbor structure
 	\ret C (float *) N_Node x 1 vector containing the curvature at each node. The curvature is the 
 	sum of the signed distance of all the neighboring nodes to the tangent plane. The sign if C[i] 
@@ -4016,11 +4142,11 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 	  
 	The Normals are assumed to be unit vectors
 */
-float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB *FN)
+float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN)
 {
 	static char FuncName[]={"SUMA_Convexity"};
 	float *C, d, D, dij;
-	int i, j, in;
+	int i, j, in, id, ind, ND;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -4034,11 +4160,14 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 		SUMA_RETURN (C);
 	}
 	
+	ND = 3;
+	
 	for (i=0; i < N_N; ++i) {
-		/* the plane at node i, having normal NNL(i,:) has the equation A X + B Y + C Z + D = 0
-		NNL[i][0] NL[i][0]  + NNL[i][1] NNL[i][1]  + NNL[i][2] NL[i][2] + D = 0 */
+		id = ND * i;
+		/* the plane at node i, having normal [NNL(id), NNL(id+1), NNL(id+2)] (id = 3*i) has the equation A X + B Y + C Z + D = 0
+		NNL[id] NL[id]  + NNL[id+1] NNL[id+1]  + NNL[id+2] NL[id+2] + D = 0 */
 		
-		D = -NNL[i][0] * NL[i][0] - NNL[i][1] * NL[i][1] - NNL[i][2] * NL[i][2];
+		D = -NNL[id] * NL[id] - NNL[id+1] * NL[id+1] - NNL[id+2] * NL[id+2];
 		
 		for (j=0; j < FN->N_Neighb[i]; ++j) {
 			/* find the distance between the neighboring node j and the tangent plane at i 
@@ -4046,10 +4175,11 @@ float * SUMA_Convexity (float **NL, int N_N, float **NNL, SUMA_NODE_FIRST_NEIGHB
 			denominator is norm of Normals which should be 1
 			*/
 			in = FN->FirstNeighb[i][j];
-			d = NNL[i][0] * NL[in][0] + NNL[i][1] * NL[in][1] + NNL[i][2] * NL[in][2] + D ;
+			ind = in * ND;
+			d = NNL[id] * NL[ind] + NNL[id+1] * NL[ind+1] + NNL[id+2] * NL[ind+2] + D ;
 			
 			/* calculate the distance between node i and it's neighbor */
-			dij = sqrt( (NL[in][0] - NL[i][0]) * (NL[in][0] - NL[i][0]) + (NL[in][1] - NL[i][1]) * (NL[in][1] - NL[i][1]) + (NL[in][2] - NL[i][2]) * (NL[in][2] - NL[i][2]));
+			dij = sqrt( (NL[ind] - NL[id]) * (NL[ind] - NL[id]) + (NL[ind+1] - NL[id+1]) * (NL[ind+1] - NL[id+1]) + (NL[ind+2] - NL[id+2]) * (NL[ind+2] - NL[id+2]));
 			
 			/* assuming normals are normalized d is the cosine of the angle between the two vectors */
 			/* if d > 0, then angle is > 0..90 degrees */

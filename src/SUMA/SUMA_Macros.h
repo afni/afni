@@ -467,6 +467,35 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 						}\
 					}
 
+/*! \def SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum)
+\brief  SUMA_MIN_MAX_SUM_VECMAT_COL macro for minimum, maximum and sum of each column in a matrix stored in vector format
+	matrix 	1 2 3 
+				4 5 6 
+	is stored as 1 2 3 4 5 6 ...
+	
+	a pointer to vector containing rwos x cols elements
+	rows number of rows
+	cols number of cols
+	amin minimum of each column in a (make sure types of a and amin match)
+	amax maximum of each column in a (make sure types of a and amin match)
+	asum sum of each column in a (the mean is not computed because the / operation would then depend on the type of a)
+
+*/
+#define SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum) { \
+						int m_IX, m_JX, m_id;	\
+						for (m_IX = 0; m_IX < cols ; m_IX++) {	\
+							amax[m_IX]=a[m_IX];	\
+							amin[m_IX]=a[m_IX];	\
+							asum[m_IX]=a[m_IX];	\
+							for (m_JX = 1 ; m_JX < rows ; m_JX++) { \
+								m_id = cols * m_JX + m_IX;	\
+								if (a[m_id] > amax[m_IX]) amax[m_IX] = a[m_id];\
+								if (a[m_id] < amin[m_IX]) amin[m_IX] = a[m_id];\
+								asum[m_IX] += a[m_id];	\
+							}	\
+						}	\
+					}
+
 /*!
 SUMA_MAT_TO_VEC MACRO rearranges a matrix into a vector
 one row after the other:

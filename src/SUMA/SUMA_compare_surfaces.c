@@ -4,6 +4,11 @@
    
 #include "SUMA_suma.h"
 
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 
 /* function declarations */
@@ -13,7 +18,7 @@ void cmp_surf_usage ();
 
 /*
 File : SUMA_compare_surfaces.c
-author : Shruti Japee
+authors : Shruti Japee and Ziad Saad
 Date : Thu August 1 10:24:01 EST 2002
 Purpose : Two determine the min distance between nodes on one surface to faces on another.
 */
@@ -23,18 +28,18 @@ int main (int argc,char *argv[])
   static char FuncName[]={"SUMA_compare_surfaces"}; 
   SUMA_SurfSpecFile Spec;
   char *specfilename = NULL;
-  int kar;
+  int kar, id;
   SUMA_Boolean brk;
   SUMA_Boolean SurfIn = NOPE;
 
   SUMA_SurfaceObject *Surf1 = NULL, *Surf2=NULL;
-  char *Surf1_FileName;
-  char *Surf2_FileName;
+  char *Surf1_FileName=NULL;
+  char *Surf2_FileName=NULL;
   char *Vol1Parent_FileName=NULL;
   char *Vol2Parent_FileName=NULL;
   
   /* for SureFit surface */
-  SUMA_SFname *Surf1_SFName, *Surf2_SFName;
+  SUMA_SFname *Surf1_SFName=NULL, *Surf2_SFName=NULL;
    
   /* other variables */
   int i;
@@ -46,7 +51,6 @@ int main (int argc,char *argv[])
   float N0[3];
   float maxdistance, mindistance;
   float *distance;
-  float **node_list;
   float **Points;
   SUMA_COLOR_MAP *MyColMap;
   SUMA_SCALE_TO_MAP_OPT *MyOpt;
@@ -70,7 +74,7 @@ int main (int argc,char *argv[])
   SUMA_PATCH *Patch=NULL;
   SUMA_Boolean TryFull = NOPE, FullOnly;
   SUMA_MEMBER_FACE_SETS *Memb = NULL;
-  int **FaceSet_tmp;
+  int *FaceSet_tmp;
   int N_FaceSet_tmp;
   char *fout = NULL;
 
@@ -143,10 +147,10 @@ int main (int argc,char *argv[])
       brk = YUP;
     }
     
-	 if (!brk && (strcmp(argv[kar], "-box")) == 0) {
+    if (!brk && (strcmp(argv[kar], "-box")) == 0) {
       kar ++;
       if (kar+2 >= argc) {
-	fprintf (SUMA_STDERR, "need 3 argument after -box");
+	fprintf (SUMA_STDERR, "need 3 arguments after -box");
 	exit (1);
       }
       B_dim[0] = atof(argv[kar]); kar ++;
@@ -167,19 +171,6 @@ int main (int argc,char *argv[])
     }
   }/* loop across command line options */
   
-	/* check on the output filename */
-	if (fout == NULL) { /* form default name */
-  	  sprintf(distancefilename, "dist_%s_%s_%s_%s_%s.txt",hemi,tag1,state1,tag2,state2);
-	  sprintf(colorfilename, "dist_%s_%s_%s_%s_%s.col",hemi,tag1,state1,tag2,state2);
-	}else {
-		sprintf (colorfilename, "%s.col", fout);
-		sprintf (distancefilename, "%s.txt", fout);
-	}
-  
-  	if (SUMA_filexists(colorfilename) || SUMA_filexists(distancefilename)) {
-		fprintf (SUMA_STDERR,"Error %s: One or both of output files %s, %s exists.\nWill not overwrite.\n", \
-			FuncName, distancefilename, colorfilename);
-	}
 	
   if (specfilename == NULL) {
     fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
@@ -204,7 +195,7 @@ int main (int argc,char *argv[])
       strcpy(Surf1_SFName->name_coord,Spec.SureFitCoord[0]);
       strcpy(Surf1_SFName->name_topo, Spec.SureFitTopo[0]);
       strcpy(Surf1_SFName->name_param, Spec.SureFitVolParam[0]);
-      Surf1 = SUMA_Load_Surface_Object(Surf1_SFName, SUMA_SUREFIT, SUMA_ASCII,Vol2Parent_FileName);
+      Surf1 = SUMA_Load_Surface_Object(Surf1_SFName, SUMA_SUREFIT, SUMA_ASCII,Vol1Parent_FileName);
       tag1 =  "SF";
     }
   state1 = Spec.State[0];
@@ -226,7 +217,22 @@ int main (int argc,char *argv[])
       tag2 =  "SF";
     }
   state2 = Spec.State[1];
+
+  /* check on the output filename */
+  if (fout == NULL) { /* form default name */
+    sprintf(distancefilename, "%s_%s_%s_%s_%s.dist",hemi,tag1,state1,tag2,state2);
+    sprintf(colorfilename, "%s_%s_%s_%s_%s.col",hemi,tag1,state1,tag2,state2);
+  }else {
+    sprintf (colorfilename, "%s.col", fout);
+    sprintf (distancefilename, "%s.dist", fout);
+  }
   
+  if (SUMA_filexists(colorfilename) || SUMA_filexists(distancefilename)) {
+    fprintf (SUMA_STDERR,"Error %s: One or both of output files %s, %s exists.\nWill not overwrite.\n", \
+	     FuncName, distancefilename, colorfilename);
+    exit(1);
+  }
+	 
   /***********************************************************************************************/
 
   SO1 = Surf1;
@@ -252,7 +258,7 @@ int main (int argc,char *argv[])
 		}
 	}
 
-  /* Take each node in the SO1-> Nodelist and its corresponding SN1->Node_NormList.  This is the normalized normal vector to the node on the first surface.
+  /* Take each node in the SO1-> Nodelist and its corresponding SN1->NodeNormList.  This is the normalized normal vector to the node on the first surface.
      So each node is P0.  P1 is computed as some point along the normal vector to that node.  Lets say P0 is P1 + 20 mm along the normal. 
      Now feed P0 and P1 into the intersect triangle routine and feed the node and face list of surface 2 */
   
@@ -261,18 +267,18 @@ int main (int argc,char *argv[])
   /* for each node on the first surface do the following */
   SUMA_etime (&tt, 0);
   for (i = 0; i < num_nodes1; i++) {
-    P0[0] = SO1->NodeList[i][0];
-    P0[1] = SO1->NodeList[i][1];
-    P0[2] = SO1->NodeList[i][2];
-    N0[0] = SN1.Node_NormList[i][0];
-    N0[1] = SN1.Node_NormList[i][1];
-    N0[2] = SN1.Node_NormList[i][2];
+    id = SO1->NodeDim * i;
+	 P0[0] = SO1->NodeList[id];
+    P0[1] = SO1->NodeList[id+1];
+    P0[2] = SO1->NodeList[id+2];
+    N0[0] = SN1.NodeNormList[id];
+    N0[1] = SN1.NodeNormList[id+1];
+    N0[2] = SN1.NodeNormList[id+2];
     Points = SUMA_Point_At_Distance(N0, P0, 1000);
     P1[0] = Points[0][0];
     P1[1] = Points[0][1];
     P1[2] = Points[0][2];
-    //fprintf(SUMA_STDERR,"P0 values: %f\t%f\t%f, P1 values: %f\t%f\t%f\n", P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-
+    
 	if (!FullOnly) { /* trying to speed up intersection computations by restricting it to nodes within a box */
 		TryFull = NOPE;
 		/* search for nodes on surface 2 within xxmm of P0 */
@@ -363,7 +369,7 @@ int main (int argc,char *argv[])
 
 void cmp_surf_usage ()
 {
-  printf ("\n\33[1mUsage: \33[0m SUMA_compare_surfaces \n\t-spec <Spec file>\n\t-hemi <L or R>\n\t-sv1 <volparentaligned1.BRIK>\n\t-sv2 <volparentaligned2.BRIK>\n\n");
+  printf ("\n\33[1mUsage: \33[0m SUMA_compare_surfaces \n\t-spec <Spec file>\n\t-hemi <L or R>\n\t-sv1 <volparentaligned1.BRIK>\n\t-sv2 <volparentaligned2.BRIK> \n\t[-box <wX wY wZ>] \n\t[-prefix <fileprefix>]\n\n");
   printf ("\n\t-spec <Spec file>: File containing surface specification. This file is typically \n");
   printf ("\t                   generated by @SUMA_Make_Spec_FS (for FreeSurfer surfaces) or \n");
   printf ("\t                   @SUMA_Make_Spec_SF (for SureFit surfaces). The Spec file should \n");
@@ -378,7 +384,7 @@ void cmp_surf_usage ()
   printf ("\t        up sometimes if the box dimension needs not be large.\n");
   printf ("\t        This option is pretty much useless.\n"); 
   /*
-    printf ("\n\t[-dev]: This option will give access to options that are not well polished for consuption.\n");
+    printf ("\n\t[-dev]: This option will give access to options that are not well polished for consumption.\n");
     printf ("\n\t        \n");
   */
   printf ("\n\n\tFor more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");

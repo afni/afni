@@ -223,7 +223,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	char  orcode[3];
 	float xx, yy, zz;
 	THD_coorder * cord_surf, *cord_RAI;
-	int i;
+	int i, ND, id;
 	SUMA_SureFit_struct *SF;
 	SUMA_FreeSurfer_struct *FS;
 	SUMA_Boolean Bad=YUP;
@@ -240,7 +240,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	
 	/* do the dance to get cord for RAI */
 	THD_coorder_fill( NULL, cord_RAI);
-	
+	ND = SO->NodeDim;
 	switch (SO->FileType) {
 		case SUMA_INVENTOR_GENERIC:
 			/* Do nothing */
@@ -252,7 +252,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 			THD_coorder_fill(orcode , cord_surf); 
 			/*loop over XYZs and change them to dicom*/
 			for (i=0; i < SO->N_Node; ++i) {
-				THD_coorder_to_dicom (cord_surf, &(SO->NodeList[i][0]), &(SO->NodeList[i][1]), &(SO->NodeList[i][2])); 
+				id = i * ND;
+				THD_coorder_to_dicom (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
 			}
 			break;
 		case SUMA_SUREFIT:
@@ -264,17 +265,18 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 				for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
 				/* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
 				for (i=0; i < SO->N_Node; ++i) {
+					id = i * ND;
 					/* change float indices to mm coords */
-					iv.xyz[0] = SO->NodeList[i][0] + D[0];
-					iv.xyz[1] = SO->NodeList[i][1] + D[1];
-					iv.xyz[2] = SO->NodeList[i][2] + D[2];
+					iv.xyz[0] = SO->NodeList[id] + D[0];
+					iv.xyz[1] = SO->NodeList[id+1] + D[1];
+					iv.xyz[2] = SO->NodeList[id+2] + D[2];
 					fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
 					
 					/* change mm to RAI coords */
 					iv = SUMA_THD_3dmm_to_dicomm( SO , fv );
-					SO->NodeList[i][0] = iv.xyz[0];
-					SO->NodeList[i][1] = iv.xyz[1];
-					SO->NodeList[i][2] = iv.xyz[2];
+					SO->NodeList[id] = iv.xyz[0];
+					SO->NodeList[id+1] = iv.xyz[1];
+					SO->NodeList[id+2] = iv.xyz[2];
 				}
 			}
 			break;
@@ -332,20 +334,21 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 		*/
 		
 		for (i=0; i < SO->N_Node; ++i) {
+			id = ND * i;
 			/* zero the center */ 
-			x = SO->NodeList[i][0] - SO->VolPar->VOLREG_CENTER_OLD[0];
-			y = SO->NodeList[i][1] - SO->VolPar->VOLREG_CENTER_OLD[1];
-			z = SO->NodeList[i][2] - SO->VolPar->VOLREG_CENTER_OLD[2];
+			x = SO->NodeList[id] - SO->VolPar->VOLREG_CENTER_OLD[0];
+			y = SO->NodeList[id+1] - SO->VolPar->VOLREG_CENTER_OLD[1];
+			z = SO->NodeList[id+2] - SO->VolPar->VOLREG_CENTER_OLD[2];
 			
 			/* Apply the rotation matrix XYZn = Mrot x XYZ*/
-			SO->NodeList[i][0] = Mrot[0][0] * x + Mrot[0][1] * y + Mrot[0][2] * z;
-			SO->NodeList[i][1] = Mrot[1][0] * x + Mrot[1][1] * y + Mrot[1][2] * z;
-			SO->NodeList[i][2] = Mrot[2][0] * x + Mrot[2][1] * y + Mrot[2][2] * z;
+			SO->NodeList[id] = Mrot[0][0] * x + Mrot[0][1] * y + Mrot[0][2] * z;
+			SO->NodeList[id+1] = Mrot[1][0] * x + Mrot[1][1] * y + Mrot[1][2] * z;
+			SO->NodeList[id+2] = Mrot[2][0] * x + Mrot[2][1] * y + Mrot[2][2] * z;
 			
 			/*apply netshift*/
-			SO->NodeList[i][0] += NetShift[0];
-			SO->NodeList[i][1] += NetShift[1];
-			SO->NodeList[i][2] += NetShift[2];
+			SO->NodeList[id] += NetShift[0];
+			SO->NodeList[id+1] += NetShift[1];
+			SO->NodeList[id+2] += NetShift[2];
 		}
 		SO->VOLREG_APPLIED = YUP;	
 	} else

@@ -29,19 +29,19 @@ Usage :
    
    
 Input paramters : 
-\param  NodeList (float **): [N_NodeList x 3] matrix containing the XYZ coordinates of each node
-\param  N_NodeList (int): 1st dimension of NodeList
-\param  FaceSetList (int **): [N_FaceSetList x 3] matrix of node indices forming each triangular facet (FaceSets). 
+\param  NodeList (float *): N_NodeList x 3 vector containing the XYZ coordinates of each node
+\param  N_NodeList (int): number of nodes in NodeList
+\param  FaceSetList (int *): [N_FaceSetList x 3] vector (matrix prior to SUMA 1.2) of node indices forming each triangular facet (FaceSets). 
                               The indices must be relative to NodeList
 \param  N_FaceSetList (int): 1st dimension of FaceSetList
 
    
 Returns : 
 \return   RetStrct, a structure of the type SUMA_SURF_NORM with the following fields
-	N_Node (int) Number of nodes, 1st dim of Node_NormList
-	N_Face (int) Number of facesets, 1st dim of Face_NormList
-	Face_NormList (float **) N_Face x 3 matrix containing normalized normal vectors for each triangular faceset 
-	Node_NormList (float **) N_Node x 3 matrix containing normalized normal vectors for each node
+	N_Node (int) Number of nodes, 1st dim of NodeNormList
+	N_Face (int) Number of facesets, 1st dim of FaceNormList
+	FaceNormList (float *) N_Face x 3 vector (was matrix prior to SUMA 1.2) containing normalized normal vectors for each triangular faceset 
+	NodeNormList (float *) N_Node x 3 vector (was matrix prior to SUMA 1.2) containing normalized normal vectors for each node
    
 Support : 
 \sa SUMA_MemberFaceSets  
@@ -49,28 +49,30 @@ Support :
    
 Side effects : 
 	to free memory from RetStrct
-	if (RetStrct.Face_NormList) SUMA_free2D((char **)RetStrct.Face_NormList, RetStrct.N_Face);
-	if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, RetStrct.N_Node);
+	if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
+	if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
    
 ***/
-SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetList, int N_FaceSetList )
+SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
    static char FuncName[]={"SUMA_SurfNorm"}; 
 	float d1[3], d2[3], d, nrm;
 	SUMA_SURF_NORM RetStrct;
-	int *Index, *N_Memb, i, j, maxind, NotMember;
+	int *Index, *N_Memb, i, j, maxind, NotMember, id, id2, ND, ip, NP;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+	
+	ND = 3;
+	NP = 3;
 	RetStrct.N_Node = N_NodeList; /* redundant, but practical for clean up outside the function */
 	RetStrct.N_Face = N_FaceSetList;
 
 	/* allocate space */
- 	RetStrct.Face_NormList = (float **)SUMA_allocate2D (N_FaceSetList, 3, sizeof(float));
-	RetStrct.Node_NormList = (float **)SUMA_allocate2D (N_NodeList, 3, sizeof(float));
+ 	RetStrct.FaceNormList = (float *)calloc (N_FaceSetList * NP, sizeof(float));
+	RetStrct.NodeNormList = (float *)calloc (N_NodeList * ND, sizeof(float));
 	Index = (int *)calloc (N_NodeList, sizeof(int));
 	N_Memb = (int *)calloc (N_NodeList, sizeof(int));
-	if (!RetStrct.Face_NormList || !RetStrct.Node_NormList || !Index || !N_Memb)
+	if (!RetStrct.FaceNormList || !RetStrct.NodeNormList || !Index || !N_Memb)
 		{
 			SUMA_alloc_problem (FuncName);
 			SUMA_RETURN (RetStrct);
@@ -79,69 +81,75 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 	/* calculate and normalize triangle normals */
 	maxind = N_NodeList -1;
 	for (i=0; i < N_FaceSetList; i++) {
+		ip = NP * i;
 		for (j=0; j < 3; j++) {
-			d1[j] = NodeList[FaceSetList[i][0]][j] - NodeList[FaceSetList[i][1]][j];
-			d2[j] = NodeList[FaceSetList[i][1]][j] - NodeList[FaceSetList[i][2]][j];
+			d1[j] = NodeList[(ND*FaceSetList[ip])+j] - NodeList[(ND*FaceSetList[ip+1])+j];
+			d2[j] = NodeList[(ND*FaceSetList[ip+1])+j] - NodeList[(ND*FaceSetList[ip+2])+j];
 		}
-		RetStrct.Face_NormList[i][0] = d1[1]*d2[2] - d1[2]*d2[1];
-		RetStrct.Face_NormList[i][1] = d1[2]*d2[0] - d1[0]*d2[2];
-		RetStrct.Face_NormList[i][2] = d1[0]*d2[1] - d1[1]*d2[0];
-		d = sqrt(RetStrct.Face_NormList[i][0]*RetStrct.Face_NormList[i][0]+RetStrct.Face_NormList[i][1]*RetStrct.Face_NormList[i][1]+RetStrct.Face_NormList[i][2]*RetStrct.Face_NormList[i][2]);
+		RetStrct.FaceNormList[ip] = d1[1]*d2[2] - d1[2]*d2[1];
+		RetStrct.FaceNormList[ip+1] = d1[2]*d2[0] - d1[0]*d2[2];
+		RetStrct.FaceNormList[ip+2] = d1[0]*d2[1] - d1[1]*d2[0];
+		d = sqrt(RetStrct.FaceNormList[ip]*RetStrct.FaceNormList[ip]+RetStrct.FaceNormList[ip+1]*RetStrct.FaceNormList[ip+1]+RetStrct.FaceNormList[ip+2]*RetStrct.FaceNormList[ip+2]);
 		if (d == 0.0) {
 			/* I used to return here with a nasty message, but it seems that FreeSurfer surfaces contain such conditions 
 			So, now I just set the normal to 1.0 in that case */
 			/*SUMA_error_message (FuncName,"Zero length vector, returning",1);
-			if (RetStrct.Face_NormList) SUMA_free2D((char **)RetStrct.Face_NormList, N_FaceSetList);
-			if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, N_NodeList);
+			if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
+			if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
 			if (Index) free(Index);
 			if (N_Memb) free(N_Memb);
 			SUMA_RETURN (RetStrct);*/
-		RetStrct.Face_NormList[i][0] = 1.0;
-		RetStrct.Face_NormList[i][1] = 1.0;
-		RetStrct.Face_NormList[i][2] = 1.0;
+			RetStrct.FaceNormList[ip] = 1.0;
+			RetStrct.FaceNormList[ip+1] = 1.0;
+			RetStrct.FaceNormList[ip+2] = 1.0;
 			
 		} else {
-			RetStrct.Face_NormList[i][0] /= d;
-			RetStrct.Face_NormList[i][1] /= d;
-			RetStrct.Face_NormList[i][2] /= d;
+			RetStrct.FaceNormList[ip] /= d;
+			RetStrct.FaceNormList[ip+1] /= d;
+			RetStrct.FaceNormList[ip+2] /= d;
 		}
 			/*each node making up the FaceSet will get its normal vector updated*/
-			if (FaceSetList[i][0] > maxind || FaceSetList[i][1] > maxind || FaceSetList[i][2] > maxind) {
+			if (FaceSetList[ip] > maxind || FaceSetList[ip+1] > maxind || FaceSetList[ip+2] > maxind) {
 				SUMA_error_message (FuncName,"FaceSetList contains indices >= N_NodeList",1);
-				if (RetStrct.Face_NormList) SUMA_free2D((char **)RetStrct.Face_NormList, N_FaceSetList);
-				if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, N_NodeList);
+				if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
+				if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
 				if (Index) free(Index);
 				if (N_Memb) free(N_Memb);
 				SUMA_RETURN (RetStrct);
 			}
 
-			RetStrct.Node_NormList[FaceSetList[i][0]][0] += RetStrct.Face_NormList[i][0];
-			RetStrct.Node_NormList[FaceSetList[i][0]][1] += RetStrct.Face_NormList[i][1];
-			RetStrct.Node_NormList[FaceSetList[i][0]][2] += RetStrct.Face_NormList[i][2];
-			++N_Memb[FaceSetList[i][0]];
-			RetStrct.Node_NormList[FaceSetList[i][1]][0] += RetStrct.Face_NormList[i][0];
-			RetStrct.Node_NormList[FaceSetList[i][1]][1] += RetStrct.Face_NormList[i][1];
-			RetStrct.Node_NormList[FaceSetList[i][1]][2] += RetStrct.Face_NormList[i][2];
-			++N_Memb[FaceSetList[i][1]];
-			RetStrct.Node_NormList[FaceSetList[i][2]][0] += RetStrct.Face_NormList[i][0];
-			RetStrct.Node_NormList[FaceSetList[i][2]][1] += RetStrct.Face_NormList[i][1];
-			RetStrct.Node_NormList[FaceSetList[i][2]][2] += RetStrct.Face_NormList[i][2];
-			++N_Memb[FaceSetList[i][2]];
+			
+			id2 = ND * FaceSetList[ip];
+			RetStrct.NodeNormList[id2] += RetStrct.FaceNormList[ip];
+			RetStrct.NodeNormList[id2+1] += RetStrct.FaceNormList[ip+1];
+			RetStrct.NodeNormList[id2+2] += RetStrct.FaceNormList[ip+2];
+			++N_Memb[FaceSetList[ip]];
+			id2 = ND * FaceSetList[ip+1];
+			RetStrct.NodeNormList[id2] += RetStrct.FaceNormList[ip];
+			RetStrct.NodeNormList[id2+1] += RetStrct.FaceNormList[ip+1];
+			RetStrct.NodeNormList[id2+2] += RetStrct.FaceNormList[ip+2];
+			++N_Memb[FaceSetList[ip+1]];
+			id2 = ND * FaceSetList[ip+2];
+			RetStrct.NodeNormList[id2] += RetStrct.FaceNormList[ip];
+			RetStrct.NodeNormList[id2+1] += RetStrct.FaceNormList[ip+1];
+			RetStrct.NodeNormList[id2+2] += RetStrct.FaceNormList[ip+2];
+			++N_Memb[FaceSetList[ip+2]];
 	}
-		/*Now normalize Node_NormList*/
+		/*Now normalize NodeNormList*/
 		NotMember = 0;
 		for (i=0; i<N_NodeList; ++i)
 			{
+				id = ND * i;
 				if (N_Memb[i])
 				{
-					RetStrct.Node_NormList[i][0] /= N_Memb[i];
-					RetStrct.Node_NormList[i][1] /= N_Memb[i];
-					RetStrct.Node_NormList[i][2] /= N_Memb[i];
+					RetStrct.NodeNormList[id] /= N_Memb[i];
+					RetStrct.NodeNormList[id+1] /= N_Memb[i];
+					RetStrct.NodeNormList[id+2] /= N_Memb[i];
 					/* normalize */
-					nrm = sqrt(RetStrct.Node_NormList[i][0]*RetStrct.Node_NormList[i][0] + RetStrct.Node_NormList[i][1]*RetStrct.Node_NormList[i][1] + RetStrct.Node_NormList[i][2]*RetStrct.Node_NormList[i][2]); 
-					RetStrct.Node_NormList[i][0] /= nrm;
-					RetStrct.Node_NormList[i][1] /= nrm;
-					RetStrct.Node_NormList[i][2] /= nrm;
+					nrm = sqrt(RetStrct.NodeNormList[id]*RetStrct.NodeNormList[id] + RetStrct.NodeNormList[id+1]*RetStrct.NodeNormList[id+1] + RetStrct.NodeNormList[id+2]*RetStrct.NodeNormList[id+2]); 
+					RetStrct.NodeNormList[id] /= nrm;
+					RetStrct.NodeNormList[id+1] /= nrm;
+					RetStrct.NodeNormList[id+2] /= nrm;
 					
 				}
 				else
@@ -152,7 +160,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float **NodeList, int N_NodeList, int **FaceSetLis
 					/*
 					fprintf(stdout,"\n%s Warning: Node %d is not a member of any FaceSets, returning unit vector as normal.\n", FuncName, i); 
 					*/
-					RetStrct.Node_NormList[i][0] = RetStrct.Node_NormList[i][1] = RetStrct.Node_NormList[i][2] = 1.0;
+					RetStrct.NodeNormList[id] = RetStrct.NodeNormList[id+1] = RetStrct.NodeNormList[id+2] = 1.0;
 				}
 			}
 		if (NotMember) {
@@ -176,11 +184,11 @@ Purpose :
    Determines for each Node Index, from 0 to Nind-1 the indices of the FaceSets to which the node belongs.
    
 Usage : 
-	RetStruct = SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nFace, int FaceSetDim);
+	RetStruct = SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFace, int FaceSetDim);
 	
 Input paramters : 
 \param  Nind (int) : Total number of nodes in Index. ( No value (node index) in FaceSetList can be > Nind-1 )
-\param  FaceSetList (int **) : The FaceSetList matrix, [nFace x FaceSetDim] 
+\param  FaceSetList (int *) : The FaceSetList vector (used to be matrix, prior to SUMA 1.2), [nFace x FaceSetDim] 
 \param  nFace (int) : number of FaceSets in FaceSetList 
 \param FaceSetDim (int): column (2nd) dimension of FaceSetList (usually 3 or 4)
 
@@ -232,15 +240,16 @@ Side effects :
    
    
 ***/
-SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nFr , int FaceDim)
+SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFr , int FaceDim)
 {/*SUMA_MemberFaceSets*/
    static char FuncName[]={"SUMA_MemberFaceSets"}; 
    SUMA_MEMBER_FACE_SETS *RetStrct;
 	int **tmpMember;
-	int i, inode, iface;
+	int i, inode, iface, ip , NP;
    
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	NP = FaceDim;
 	RetStrct = (SUMA_MEMBER_FACE_SETS *)malloc(sizeof(SUMA_MEMBER_FACE_SETS));
 	
 	RetStrct->N_Memb_max = RetStrct->Nnode = 0;
@@ -260,8 +269,9 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int ** FaceSetList, int nF
 	/* loop through all facesets and tag nodes that make up FaceSets*/
 	for (iface=0; iface<nFr; ++iface) {/*iface*/
 		i = 0;
+		ip = NP * iface;
 		do {
-			inode = FaceSetList[iface][i];
+			inode = FaceSetList[ip + i];
 			if (inode > Nind) {
 				fprintf (SUMA_STDERR,"Error %s: FaceSetList contains node indices >= Nind\n", FuncName);
 				SUMA_RETURN (RetStrct);
@@ -384,8 +394,8 @@ int main (int argc,char *argv[])
    char FuncName[100]; 
    SUMA_SURF_NORM RetStrct;
 	int nface, nnode;
-	int **FaceSetList;
-	float **NodeList;
+	int *FaceSetList;
+	float *NodeList;
 	
    /* initialize Main function name for verbose output */
    sprintf (FuncName,"SUMA_SurfNorm-Main-");
@@ -402,8 +412,8 @@ int main (int argc,char *argv[])
 	nface = SUMA_float_file_size(argv[2]);
 	nface /= 3;
 
-	FaceSetList = (int **) SUMA_allocate2D (nface, 3, sizeof(int));
-	NodeList = (float **) SUMA_allocate2D (nnode, 3, sizeof(float)); 
+	FaceSetList = (int *) calloc (nface * 3, sizeof(int));
+	NodeList = (float *) calloc (nnode * 3, sizeof(float)); 
 	
 	if (!FaceSetList || !NodeList)
 		{
@@ -411,26 +421,26 @@ int main (int argc,char *argv[])
 			exit (0);
 		}
 	
-	SUMA_Read_2Ddfile (FaceSetList, argv[2], nface, 3);
+	SUMA_Read_dfile (FaceSetList, argv[2], nface * 3);
 	printf ("\nFaceSets (%d):\n", nface);
-	SUMA_disp_dmat (FaceSetList, nface, 3, 1);
+	SUMA_disp_vecdmat (FaceSetList, nface, 3, 1);
 	
-	SUMA_Read_2Dfile (NodeList, argv[1], nnode, 3);
+	SUMA_Read_file (NodeList, argv[1], 3*nnode);
 	
 	printf ("\nNodes : (%d)\n", nnode);
-	SUMA_disp_mat (NodeList, nnode, 3, 1);
+	SUMA_disp_vecmat (NodeList, nnode, 3, 1);
 	
 	RetStrct = SUMA_SurfNorm(NodeList,  nnode, FaceSetList, nface );
 	printf ("\nNode Norms:\n");
-	SUMA_disp_mat (RetStrct.Node_NormList, RetStrct.N_Node, 3, 1);
+	SUMA_disp_vecmat (RetStrct.NodeNormList, RetStrct.N_Node, 3, 1);
 	printf ("\nFaceSet Norms:\n");
-	SUMA_disp_mat (RetStrct.Face_NormList, RetStrct.N_Face, 3, 1);
+	SUMA_disp_vecmat (RetStrct.FaceNormList, RetStrct.N_Face, 3, 1);
 	
 	
-	if (RetStrct.Face_NormList) SUMA_free2D((char **)RetStrct.Face_NormList, RetStrct.N_Face);
-	if (RetStrct.Node_NormList) SUMA_free2D((char **)RetStrct.Node_NormList, RetStrct.N_Node);
-	if (FaceSetList) SUMA_free2D((char **)FaceSetList, nface);
-	if (NodeList) SUMA_free2D((char **)NodeList, nnode);
+	if (RetStrct.FaceNormList) free(RetStrct.FaceNormList);
+	if (RetStrct.NodeNormList) free(RetStrct.NodeNormList);
+	if (FaceSetList) free(FaceSetList);
+	if (NodeList) free(NodeList);
 	SUMA_RETURN (0);
 }/* Main */
 #endif

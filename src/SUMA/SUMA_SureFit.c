@@ -46,11 +46,13 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Coord*/
    static char FuncName[]={"SUMA_SureFit_Read_Coord"}; 
    FILE *sf_file;
-	int ex, EndHead, FoundHead, evl, cnt, skp;
+	int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+	
+	ND = 3;
+	
 	/* check for existence */
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
@@ -129,7 +131,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	/*fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);*/
 	
 	/* allocate space */
-	SF->NodeList = (float **)SUMA_allocate2D (SF->N_Node, 3, sizeof(float));
+	SF->NodeList = (float *)calloc(SF->N_Node * ND, sizeof(float));
 	SF->NodeId = (int *)calloc (SF->N_Node, sizeof(int));
 	
 	if (SF->NodeList == NULL || SF->NodeId == NULL) {
@@ -140,8 +142,9 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	/* Now read the nodes until the end of the file */
 		cnt = 0;
 		while (ex != EOF && cnt < SF->N_Node)	{
+			id = cnt * ND;
 			ex = fscanf (sf_file,"%d %f %f %f",&(SF->NodeId[cnt]), \
-					&(SF->NodeList[cnt][0]), &(SF->NodeList[cnt][1]), &(SF->NodeList[cnt][2]));
+					&(SF->NodeList[id]), &(SF->NodeList[id+1]), &(SF->NodeList[id+2]));
 			++cnt;
 		}
 	if (cnt != SF->N_Node) {
@@ -156,7 +159,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
 	static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
    FILE *sf_file;
-	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i;
+	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -284,7 +287,8 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	ex = fscanf (sf_file,"%d", &(SF->N_FaceSet));
 	/*fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);*/
 	
-	SF->FaceSetList = (int **) SUMA_allocate2D(SF->N_FaceSet, 3, sizeof(int));
+	NP = 3;
+	SF->FaceSetList = (int *) calloc(SF->N_FaceSet * 3, sizeof(int));
 	if (SF->FaceSetList == NULL){
 		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->FaceSetList.\n", FuncName);
 		SUMA_RETURN (NOPE);
@@ -293,8 +297,9 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	/*fprintf (stdout,"About to read FaceSets\n");*/
 	cnt = 0;
 	while (ex != EOF && cnt < SF->N_FaceSet)	{
-		ex = fscanf (sf_file,"%d %d %d ",&(SF->FaceSetList[cnt][0]), &(SF->FaceSetList[cnt][1]), \
-				&(SF->FaceSetList[cnt][2]));
+		ip = NP * cnt;
+		ex = fscanf (sf_file,"%d %d %d ",&(SF->FaceSetList[ip]), &(SF->FaceSetList[ip+1]), \
+				&(SF->FaceSetList[ip+2]));
 		++cnt;
 	}
 	if (cnt != SF->N_FaceSet) {
@@ -310,31 +315,33 @@ SUMA_RETURN (YUP);
 Show data structure containing SureFit surface object
 */
 void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
-{	int cnt;
+{	int cnt, id, ND, NP;
 	static char FuncName[]={"SUMA_Show_SureFit"};
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	ND = 3;
+	NP = 3;
 	if (Out == NULL) Out = SUMA_STDOUT;
 	fprintf (Out, "\n%s: Coord Info\n", SF->name_coord);
 	fprintf (Out, "N_Node %d\n", SF->N_Node);
 	fprintf (Out, "encoding_coord: %s\nconfiguration id: %s, coordframe_id: %s\n", SF->encoding_coord,SF->configuration_id, SF->coordframe_id);
 	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		SF->NodeId[0], SF->NodeList[0][0], SF->NodeList[0][1], SF->NodeList[0][2],
-		SF->NodeId[1], SF->NodeList[1][0], SF->NodeList[1][1], SF->NodeList[1][2]);
+		SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
+		SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
 	fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		SF->NodeId[SF->N_Node-2], SF->NodeList[SF->N_Node-2][0], SF->NodeList[SF->N_Node-2][1], SF->NodeList[SF->N_Node-2][2],
-		SF->NodeId[SF->N_Node-1], SF->NodeList[SF->N_Node-1][0], SF->NodeList[SF->N_Node-1][1], SF->NodeList[SF->N_Node-1][2]);
+		SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
+		SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
 	fprintf (Out, "\n%s: Topo Info\n", SF->name_topo);
 	fprintf (Out, "N_Node_Specs %d\n", SF->N_Node_Specs);
 	fprintf (Out, "ecnoding_topo: %s, date %s\n",  SF->encoding_topo, SF->date);
 	fprintf (Out, "N_FaceSet %d\n", SF->N_FaceSet);
 	fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-		SF->FaceSetList[0][0], SF->FaceSetList[0][1], SF->FaceSetList[0][2],
-		SF->FaceSetList[1][0], SF->FaceSetList[1][1], SF->FaceSetList[1][2]);
+		SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
+		SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
 	fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-		SF->FaceSetList[SF->N_FaceSet-2][0], SF->FaceSetList[SF->N_FaceSet-2][1], SF->FaceSetList[SF->N_FaceSet-2][2],
-		SF->FaceSetList[SF->N_FaceSet-1][0], SF->FaceSetList[SF->N_FaceSet-1][1], SF->FaceSetList[SF->N_FaceSet-1][2]);
+		SF->FaceSetList[NP*(SF->N_FaceSet-2)], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
+		SF->FaceSetList[NP*(SF->N_FaceSet-1)], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
 	fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
 	fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", \
 	SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
@@ -364,13 +371,13 @@ SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	if (SF->NodeList != NULL) SUMA_free2D ((char **)SF->NodeList, SF->N_Node);
+	if (SF->NodeList != NULL) free (SF->NodeList);
 	if (SF->NodeId != NULL) free(SF->NodeId);
 	if (SF->Specs_mat != NULL) SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
 	if (SF->FN.FirstNeighb != NULL) SUMA_free2D((char **)SF->FN.FirstNeighb, SF->FN.N_Node);
 	if (SF->FN.N_Neighb != NULL) free (SF->FN.N_Neighb);
 	if (SF->FN.NodeId != NULL) free (SF->FN.NodeId);
-	if (SF->FaceSetList != NULL) SUMA_free2D((char **)SF->FaceSetList, SF->N_FaceSet);
+	if (SF->FaceSetList != NULL) free(SF->FaceSetList);
 	if (SF!= NULL) free(SF);
 	
 	SUMA_RETURN (YUP);
@@ -518,6 +525,12 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 #ifdef SUMA_SureFit_STAND_ALONE
 
 SUMA_CommonFields *SUMAg_CF;
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+
 
 void usage ()
    

@@ -58,8 +58,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 {/*SUMA_FreeSurfer_Read*/
    char stmp[50]; 
    FILE *fs_file;
-	int ex, cnt, jnki, amax[3], maxamax;
-	float jnkf, **NodeList;
+	int ex, cnt, jnki, amax[3], maxamax, id, ND, id2, NP, ip;
+	float jnkf, *NodeList;
 	char c;
 	static char FuncName[]={"SUMA_FreeSurfer_Read"};
 	SUMA_Boolean LocalHead = NOPE;
@@ -115,8 +115,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
 	
 	/* allocate space for NodeList and FaceSetList */
-	FS->NodeList = (float **)SUMA_allocate2D(FS->N_Node, 3, sizeof(float));
-	FS->FaceSetList = (int **)SUMA_allocate2D(FS->N_FaceSet, 3, sizeof(int));
+	FS->NodeList = (float *)calloc(FS->N_Node * 3, sizeof(float));
+	FS->FaceSetList = (int *)calloc(FS->N_FaceSet * 3, sizeof(int));
 	FS->NodeId = (int *)calloc(FS->N_Node, sizeof(int));
 	if (FS->NodeList == NULL || FS->FaceSetList == NULL || FS->NodeId == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->NodeList &/| FS->FaceSetList &/| FS->NodeId\n", FuncName);
@@ -137,7 +137,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_Node) {
 			FS->NodeId[cnt] = cnt;
-			ex = fscanf(fs_file, "%f %f %f %f", &(FS->NodeList[cnt][0]), &(FS->NodeList[cnt][1]),&(FS->NodeList[cnt][2]), &jnkf);
+			id = 3 * cnt;
+			ex = fscanf(fs_file, "%f %f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]), &jnkf);
 			++cnt;
 		}
 		if (cnt != FS->N_Node) {
@@ -148,7 +149,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		/* read in the facesets */
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_FaceSet) {
-			ex = fscanf(fs_file, "%d %d %d %d", &(FS->FaceSetList[cnt][0]), &(FS->FaceSetList[cnt][1]),&(FS->FaceSetList[cnt][2]), &jnki);
+			ip = 3 * cnt;
+			ex = fscanf(fs_file, "%d %d %d %d", &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]), &jnki);
 			++cnt;
 		}
 		if (cnt != FS->N_FaceSet) {
@@ -161,7 +163,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_Node) {
 			ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
-			ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[cnt][0]), &(FS->NodeList[cnt][1]),&(FS->NodeList[cnt][2]));
+			id = 3 * FS->NodeId[cnt];
+			ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
 			++cnt;
 		}
 		if (cnt != FS->N_Node) {
@@ -173,7 +176,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		cnt = 0;
 		while (ex != EOF && cnt < FS->N_FaceSet) {
 			ex = fscanf(fs_file, "%d", &(FS->FaceSetIndexInParent[cnt]));
-			ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[cnt][0]), &(FS->FaceSetList[cnt][1]),&(FS->FaceSetList[cnt][2]));
+			ip = 3 * cnt;
+			ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]));
 			++cnt;
 		}
 		if (cnt != FS->N_FaceSet) {
@@ -186,9 +190,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		However, that would require keeping track of the link between the patch file and the parent file.
 		Instead, I will search through the FaceSetList for the highest index and allocate a new nodelist to match it*/
 
-		SUMA_MAX_MAT_COL(FS->FaceSetList, FS->N_FaceSet, 3, amax);
-		SUMA_MAX_VEC(amax,3,maxamax); ++maxamax;
-		NodeList = (float **)SUMA_allocate2D(maxamax, 3, sizeof(float));
+		SUMA_MAX_VEC(FS->FaceSetList, FS->N_FaceSet * 3, maxamax); ++maxamax;
+		NodeList = (float *)calloc(maxamax * 3, sizeof(float));
 		if (NodeList == NULL)
 		{
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList\n", FuncName);
@@ -196,12 +199,15 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 		} 
 		/*Now copy pertinent nodes into NodeList */
 		for (cnt=0; cnt< FS->N_Node; ++cnt) {
-			NodeList[FS->NodeId[cnt]][0] = FS->NodeList[cnt][0];
-			NodeList[FS->NodeId[cnt]][1] = FS->NodeList[cnt][1];
-			NodeList[FS->NodeId[cnt]][2] = FS->NodeList[cnt][2];
+			id = FS->NodeId[cnt] * 3;
+			id2 = 3*cnt;
+			NodeList[id] = FS->NodeList[id2];
+			NodeList[id+1] = FS->NodeList[id2+1];
+			NodeList[id+2] = FS->NodeList[id2+2];
 		}
 		/* Now free FS->NodeList */
-		SUMA_free2D((char **)FS->NodeList, FS->N_Node);
+		free(FS->NodeList);
+		
 		/*make FS->NodeList be NodeList */
 		FS->NodeList = NodeList;
 		FS->N_Node = maxamax;
@@ -217,8 +223,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 */
 SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 {
-	if (FS->FaceSetList != NULL) SUMA_free2D((char **)FS->FaceSetList, FS->N_FaceSet);
-	if (FS->NodeList != NULL) SUMA_free2D((char **)FS->NodeList, FS->N_Node);
+	if (FS->FaceSetList != NULL) free(FS->FaceSetList);
+	if (FS->NodeList != NULL) free(FS->NodeList);
 	if (FS->NodeId != NULL) free(FS->NodeId);
 	if (FS->FaceSetIndexInParent != NULL) free(FS->FaceSetIndexInParent);
 	if (FS != NULL) free (FS);
@@ -230,30 +236,35 @@ SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 */
 void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 {	
+	static char FuncName[]={"SUMA_Show_FreeSurfer"};
+	int ND = 3, id, ip;
+	
 	if (Out == NULL) Out = SUMA_STDOUT;
 	fprintf (Out, "Comment: %s\n", FS->comment);
 	fprintf (Out, "N_Node %d\n", FS->N_Node);
 	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		FS->NodeId[0], FS->NodeList[0][0], FS->NodeList[0][1], FS->NodeList[0][2],
-		FS->NodeId[1], FS->NodeList[1][0], FS->NodeList[1][1], FS->NodeList[1][2]);
+		FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
+		FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
 	fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		FS->NodeId[FS->N_Node-2], FS->NodeList[FS->N_Node-2][0], FS->NodeList[FS->N_Node-2][1], FS->NodeList[FS->N_Node-2][2],
-		FS->NodeId[FS->N_Node-1], FS->NodeList[FS->N_Node-1][0], FS->NodeList[FS->N_Node-1][1], FS->NodeList[FS->N_Node-1][2]);
+		FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+		FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
 	fprintf (Out, "N_FaceSet %d\n", FS->N_FaceSet);
 	if (!FS->isPatch) {
 		fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-			FS->FaceSetList[0][0], FS->FaceSetList[0][1], FS->FaceSetList[0][2],
-			FS->FaceSetList[1][0], FS->FaceSetList[1][1], FS->FaceSetList[1][2]);
+			FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
+			FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
 		fprintf (Out, "Last 2 polygons:\n%d %d %d\n%d %d %d\n", \
-			FS->FaceSetList[FS->N_FaceSet-2][0], FS->FaceSetList[FS->N_FaceSet-2][1], FS->FaceSetList[FS->N_FaceSet-2][2],
-			FS->FaceSetList[FS->N_FaceSet-1][0], FS->FaceSetList[FS->N_FaceSet-1][1], FS->FaceSetList[FS->N_FaceSet-1][2]);
+			FS->FaceSetList[3 * (FS->N_FaceSet-2)], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2],
+			FS->FaceSetList[3 * (FS->N_FaceSet-1)], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
 	} else {
 		fprintf (Out, "First 2 polygons:\n\t[parent ID:%d] %d %d %d\n\t[parent ID:%d] %d %d %d\n", \
-			FS->FaceSetIndexInParent[0], FS->FaceSetList[0][0], FS->FaceSetList[0][1], FS->FaceSetList[0][2],
-			FS->FaceSetIndexInParent[1], FS->FaceSetList[1][0], FS->FaceSetList[1][1], FS->FaceSetList[1][2]);
+			FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
+			FS->FaceSetIndexInParent[1], FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
 		fprintf (Out, "Last 2 polygons:\n\t[parent ID:%d]%d %d %d\n\t[parent ID:%d]%d %d %d\n", \
-			FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[FS->N_FaceSet-2][0], FS->FaceSetList[FS->N_FaceSet-2][1], FS->FaceSetList[FS->N_FaceSet-2][2],
-			FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[FS->N_FaceSet-1][0], FS->FaceSetList[FS->N_FaceSet-1][1], FS->FaceSetList[FS->N_FaceSet-1][2]);
+			FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[3 * (FS->N_FaceSet-2)], \
+			FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2], \
+			FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
+			FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
 	}
 	return;
 
@@ -261,6 +272,11 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 
 #ifdef SUMA_FreeSurfer_STAND_ALONE
 
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF;
 
 void usage ()

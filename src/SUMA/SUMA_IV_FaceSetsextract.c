@@ -42,7 +42,7 @@ Usage :
  
 Returns : 
  
- 	FaceSetList (int **) the facesetlist in the inventor file, an  Mx3 integer matrix
+ 	FaceSetList (int *) the facesetlist in the inventor file, an  Mx3 integer vector (used to be a matrix before SUMA 1.2)
  		
  
 Support : 
@@ -56,11 +56,12 @@ Side effects :
 ***/
  
 
-int **SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
+int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 {/* SUMA_IV_FaceSetsextract */
 	char s[500],serr[500];
 	char seq_strt[5][30], seq_end[5][30];
-	int i, f, ex, si, si_exit, evl, se, se_exit, cnt, nospacing, MaxAlloc = 100, *linv, **FaceSetList;
+	int i, f, ex, si, si_exit, evl, se, se_exit;
+	int ip, NP, cnt, nospacing, MaxAlloc = 100, *linv, *FaceSetList;
 	div_t cnt4;
 	FILE*iv_file;
 
@@ -242,19 +243,22 @@ int **SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	*N_FaceSetList = cnt4.quot ;
 	
 	/* Now allocate space for SUMA_IV_FaceSetsextract and fill it up */
-	FaceSetList = (int **) SUMA_allocate2D (*N_FaceSetList, 3, sizeof(int));
+	NP = 3;
+	FaceSetList = (int *) calloc (*N_FaceSetList * NP, sizeof(int));
 	if (!FaceSetList)
 		{
 			SUMA_alloc_problem("IV_FaceSetextract : Could not allocate");
 			return(NULL);
 		}
 	
-	for (i=0; i< cnt; ++i)
-		{
-			cnt4 = div (i,4);
-			if (cnt4.rem < 3)
-				FaceSetList[cnt4.quot][cnt4.rem] = linv[i];
-		}
+	i = 0;
+	ip = 0;
+	while (i < cnt) {
+		FaceSetList[ip] = linv[i]; ++ip; ++i;
+		FaceSetList[ip] = linv[i]; ++ip; ++i;
+		FaceSetList[ip] = linv[i]; ++ip; ++i;
+		++i; /* skip the 4th value */
+	}
 	
 	fclose (iv_file);
 	
@@ -298,7 +302,7 @@ void usage ()
 main (int argc,char *argv[])
 {/* Main */
 char outfile[300];
-int N_FaceSetList, **FaceSetList ,writeout,CountOnly,paramnum;
+int N_FaceSetList, *FaceSetList ,writeout,CountOnly,paramnum;
  
 if (argc < 2)
     {
@@ -342,12 +346,41 @@ FaceSetList = SUMA_IV_FaceSetsextract (argv[1], &N_FaceSetList);
 if (CountOnly)
 	printf ("%d FaceSets sets read\n",N_FaceSetList);
 	
-if (writeout == 1)
-	write_2DInt(FaceSetList, outfile, N_FaceSetList, 3, 1);
-else if (!CountOnly)
-	SUMA_disp_dmat(FaceSetList, N_FaceSetList, 3, 1);
+if (writeout == 1) {
+		FILE *outfid; 
 	
-SUMA_free2D ((char **)FaceSetList,N_FaceSetList);
+	outfid = fopen (outfile, "w");
+	if (outfid == NULL) {
+		fprintf (SUMA_STDERR, "Error %s: Could not open %s for writing.\n", FuncName, outfile);
+	}else {
+		i = 0;
+		cntlim = N_FaceSetList*3;
+		while (i < cntlim) {
+			j = 0;
+			while (j < 3) {
+				fprintf (outfid, "%d\t", FaceSetList[i]);
+				++i;
+				++j;
+			}
+			fprintf (outfid, "\n");
+		}
+		fclose (outfid);
+	}
+} else if (!CountOnly) {
+	i = 0;
+	cntlim = N_FaceSetList*3;
+	while (i < cntlim) {
+		j = 0;
+		while (j < 3) {
+			fprintf (SUMA_STDOUT, "%d\t", FaceSetList[i]);
+			++i;
+			++j;
+		}
+		fprintf (SUMA_STDOUT, "\n");
+	}
+}
+	
+free (FaceSetList);
 	
 }/* Main */
 #endif
