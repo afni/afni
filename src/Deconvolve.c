@@ -127,6 +127,16 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 }
 
 /*---------------------------------------------------------------------------*/
+
+#ifdef USE_BASIS
+# define IBOT(ss) ((basis_stim[ss]!=NULL) ? 0                       : min_lag[ss])
+# define ITOP(ss) ((basis_stim[ss]!=NULL) ? basis_stim[ss]->nfunc-1 : max_lag[ss])
+#else
+# define IBOT(ss) min_lag[ss]
+# define ITOP(ss) max_lag[ss]
+#endif
+
+/*---------------------------------------------------------------------------*/
 /*
    Initialize independent variable X matrix
 */
@@ -165,6 +175,7 @@ int init_indep_var_matrix
   matrix x;                 /* X matrix */
 
   int mold ;                /* 12 Aug 2004 */
+  int ibot,itop ;
 
 
   /*----- Initialize X matrix -----*/
@@ -218,7 +229,13 @@ int init_indep_var_matrix
   m = qp;
   for (is = 0;  is < num_stimts;  is++){
 #ifdef USE_BASIS
-    if( basis_stim[is] != NULL ){
+    if( basis_vect[is] != NULL ){                 /* 16 Aug 2004 */
+      float *bv=MRI_FLOAT_PTR(basis_vect[is]) ;
+      int nf=basis_vect[is]->ny , jj ;
+      for( jj=0 ; jj < nf ; jj++ ){
+        for( n=0 ; n < nt ; n++ ) x.elts[n][m] = bv[n+jj*nt] ;
+        m++ ;
+      }
     }
     else {
 #endif
@@ -228,7 +245,8 @@ int init_indep_var_matrix
 	  return (0);
 	}
       stim_array = stimulus[is]; mold = m ;
-      for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
+      ibot = IBOT(is) ; itop = ITOP(is) ;
+      for( ilag=ibot ; ilag <= itop ; ilag++ )
 	{
 	  for (n = 0;  n < nt;  n++)
 	    {
@@ -298,6 +316,7 @@ int init_regression_analysis
   int im, jm;                 /* lag index */
   int ok;                     /* flag for successful matrix calculation */
   matrix xtxinv_temp;         /* intermediate results */
+  int ibot,itop ;
 
 
   /*----- Initialize matrix -----*/
@@ -311,7 +330,8 @@ int init_regression_analysis
   it = ip = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
-      for (im = min_lag[is];  im <= max_lag[is];  im++)
+      ibot = IBOT(is) ; itop = ITOP(is) ;
+      for (im = ibot;  im <= itop;  im++)
 	{
 	  if (baseline[is])
 	    {
@@ -337,7 +357,8 @@ int init_regression_analysis
 
       for (js = 0;  js < num_stimts;  js++)
 	{
-	  for (jm = min_lag[js];  jm <= max_lag[js];  jm++)
+          ibot = IBOT(js) ; itop = ITOP(js) ;
+	  for (jm = ibot;  jm <= itop;  jm++)
 	    {
 	      if (is != js)
 		{
@@ -348,7 +369,8 @@ int init_regression_analysis
 	    }
 	}
 
-      ok = calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1),
+      ibot = IBOT(is) ; itop = ITOP(is) ;
+      ok = calc_matrices (xdata, p-(itop-ibot+1),
 		     plist, &(x_rdcd[is]), &xtxinv_temp, &(xtxinvxt_rdcd[is]));
       if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
     }
@@ -442,6 +464,7 @@ void regression_analysis
   float sse_rdcd;           /* error sum of squares, reduced model */
   float sse_full;           /* error sum of squares, full model */
   vector coef_temp;         /* intermediate results */
+  int ibot,itop ;
 
 
   /*----- Initialization -----*/
@@ -512,8 +535,8 @@ void regression_analysis
 
 
       /*----- Calculate partial F-stat for significance of the stimulus -----*/
-      fpart[is] = calc_freg (N, p, p-(max_lag[is]-min_lag[is]+1),
-			     sse_full, sse_rdcd);
+      ibot = IBOT(is) ; itop = ITOP(is) ;
+      fpart[is] = calc_freg (N, p, p-(itop-ibot+1), sse_full, sse_rdcd);
 
 
       /*----- Calculate partial R^2 for this stimulus -----*/
@@ -667,7 +690,7 @@ static double fstat_t2p( double ff , double dofnum , double dofden )
 /*---------------------------------------------------------------------------*/
 
 static char lbuf[65536];  /* character string containing statistical summary */
-static char sbuf[256];
+static char sbuf[512];
 
 
 void report_results
@@ -716,6 +739,7 @@ void report_results
   int ib;                   /* block (run) index */
   int mfirst, mlast;        /* column boundaries of baseline parameters
 			       for a block (run) */
+  int ibot,itop ;
 
 
   lbuf[0] = '\0' ;   /* make this a 0 length string to start */
@@ -727,16 +751,16 @@ void report_results
   if (num_blocks == 1)
     {
       sprintf (sbuf, "\nBaseline: \n");
-      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
+      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;
       for (m=0;  m < qp;  m++)
 	{
 	  sprintf (sbuf, "%s%d   coef = %10.4f    ", SPOL,m, coef.elts[m]);
-	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	  sprintf (sbuf, "%s%d   t-st = %10.4f    ", SPOL,m, tcoef.elts[m]);
-	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	}
     }
   else
@@ -744,7 +768,7 @@ void report_results
       for (ib = 0;  ib < num_blocks;  ib++)
 	{
 	  sprintf (sbuf, "\nBaseline for Run #%d: \n", ib+1);
-	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;
 	
 	  mfirst = ib * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
@@ -752,13 +776,13 @@ void report_results
 	    {
 	      sprintf (sbuf, "%s%d   coef = %10.4f    ",
 		       SPOL,m - mfirst, coef.elts[m]);
-	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	      sprintf (sbuf, "%s%d   t-st = %10.4f    ",
 		       SPOL,m - mfirst, tcoef.elts[m]);
-	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	      pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
-	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	    }
 	}
     }
@@ -772,45 +796,46 @@ void report_results
 	sprintf (sbuf, "\nBaseline: %s \n", stim_label[is]);	
       else
 	sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
-      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
-      for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
+      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;
+      ibot = IBOT(is) ; itop = ITOP(is) ;
+      for (ilag = ibot;  ilag <= itop;  ilag++)
 	{
 	  sprintf (sbuf,"h[%2d] coef = %10.4f    ", ilag, coef.elts[m]);
-	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	  sprintf  (sbuf,"h[%2d] t-st = %10.4f    ", ilag, tcoef.elts[m]);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	  m++;
 	}
 
       sprintf (sbuf, "       R^2 = %10.4f    ", rpart[is]);
-      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-      r = p - (max_lag[is]-min_lag[is]+1);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
+      r = p - (itop-ibot+1);
       sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fpart[is]);
-      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
       pvalue = fstat_t2p ((double)fpart[is], (double)(p-r), (double)(N-p));
       sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
-      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
     }
 
 
   /*----- Statistical results for full model -----*/
   sprintf (sbuf, "\nFull Model: \n");
-  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 
   sprintf (sbuf, "       MSE = %10.4f \n", mse);
-  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 
   sprintf (sbuf, "       R^2 = %10.4f    ", rfull);
-  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 
   sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-q, N-p, ffull);
-  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
   pvalue = fstat_t2p ((double)ffull, (double)(p-q), (double)(N-p));
   sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
-  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 
 
   /*----- Statistical results for general linear test -----*/
@@ -819,44 +844,38 @@ void report_results
       for (iglt = 0;  iglt < glt_num;  iglt++)
 	{
 	  sprintf (sbuf, "\nGeneral Linear Test: %s \n", glt_label[iglt]);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf); else goto finisher ;
 	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	    {
 	      sprintf (sbuf, "LC[%d] coef = %10.4f    ",
 		       ilc, glt_coef[iglt].elts[ilc]);
-	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf); else goto finisher ;
 	      sprintf (sbuf, "LC[%d] t-st = %10.4f    ",
 		       ilc, glt_tcoef[iglt].elts[ilc]);
-	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf); else goto finisher ;
 	      pvalue = student_t2p ((double)glt_tcoef[iglt].elts[ilc],
 				    (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
-	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	    }
 
 	  sprintf (sbuf, "       R^2 = %10.4f    ", rglt[iglt]);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf); else goto finisher ;
 
 	  r = p - glt_rows[iglt];
 	  sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fglt[iglt]);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	  pvalue = fstat_t2p ((double)fglt[iglt],
 			      (double)(p-r), (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
-	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	}
     }
 
+finisher:
   if (strlen(lbuf) >= MAXBUF)
     strcat (lbuf, "\n\nWarning:  Screen output buffer is full. \n");
 
   *label = lbuf ;  /* send address of lbuf back in what label points to */
 
 }
-
-
-/*---------------------------------------------------------------------------*/
-
-
-
-
