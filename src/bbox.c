@@ -450,6 +450,19 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
    return av ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+int AV_colsize()                      /* 11 Dec 2001 */
+{
+   int cc=20 ; char *ee ;
+   ee = getenv("AFNI_MENU_COLSIZE") ;
+   if( ee != NULL ){
+      cc = (int) strtol(ee,NULL,10) ;
+      if( cc < 9 ) cc = 10 ;
+   }
+   return cc ;
+}
+
 /*-----------------------------------------------------------------------
   This can be used as a "drop in" replacement for a arrowval with a
   small fixed number of elements.  The textype argument is missing because
@@ -458,7 +471,9 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
   been made.
 -------------------------------------------------------------------------*/
 
-#define COLSIZE 20
+#define COLSIZE AV_colsize()  /* 11 Dec 2001: redefined from a constant */
+
+static void optmenu_EV( Widget,XtPointer,XEvent *,Boolean *) ; /* prototype */
 
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char * label ,
@@ -589,6 +604,15 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    av->parent = av->aux = NULL ;
    av->fstep = 0.0 ;  /* 16 Feb 1999 */
 
+   /* 11 Dec 2001: allow user to choose via Button-3 popup */
+
+   XtInsertEventHandler( av->wrowcol ,      /* handle events in optmenu */
+                         ButtonPressMask ,  /* button presses */
+                         FALSE ,            /* nonmaskable events? */
+                         optmenu_EV ,       /* handler */
+                         (XtPointer) av ,   /* client data */
+                         XtListTail ) ;     /* last in queue */
+
    return av ;
 }
 
@@ -611,6 +635,8 @@ printf("Enter refit_MCW_optmenu: %d..%d init %d\n",minval,maxval,inival) ;
 #endif
 
    /** sanity check **/
+
+   POPDOWN_strlist_chooser ;  /* 11 Dec 2001 */
 
    if( av == NULL || av->wmenu == NULL ) return ;
    wmenu = av->wmenu ;
@@ -760,6 +786,84 @@ printf(" -- performing initial assignment\n") ;
 #ifdef AFNI_DEBUG
 printf("Exit refit_MCW_optmenu\n") ;
 #endif
+   return ;
+}
+
+/*--------------------------------------------------------------------------
+  11 Dec 2001:
+  Provide a Button 3 list to choose from for an optmenu
+----------------------------------------------------------------------------*/
+
+static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
+{
+   MCW_arrowval *av = (MCW_arrowval *) cd ;
+   int ival ;
+
+   if( av == NULL || av->wmenu == NULL ) return ;
+
+   ival = cbs->ival + av->imin ;
+   AV_assign_ival( av , ival ) ;
+
+   /* call user callback, if present */
+
+   if( av->dval_CB != NULL && av->fval != av->old_fval )
+      av->dval_CB( av , av->dval_data ) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static void optmenu_EV( Widget w , XtPointer cd ,
+                        XEvent *ev , Boolean *continue_to_dispatch )
+{
+   MCW_arrowval *av = (MCW_arrowval *) cd ;
+   int  ic , ival , sval , nstr ;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   Dimension lw ;
+   static char **strlist=NULL ;
+   char *slab=NULL ;
+   XmString xstr ;
+
+   /** sanity checks **/
+
+   if( bev->button != Button3 ) return ;
+
+   if( w == NULL || av == NULL || av->wmenu == NULL ) return ;
+
+   XtVaGetValues( av->wlabel , XmNwidth,&lw , NULL ) ;
+   if( bev->x > lw ) return ;
+
+   /** get ready to popup a new list chooser **/
+
+   POPDOWN_strlist_chooser ;
+
+   av->block_assign_actions = 1 ;         /* temporarily block actions */
+   sval = av->ival ;
+
+   /** make a list of strings **/
+
+   nstr = av->imax - av->imin + 1 ;
+   strlist = (char **) realloc( strlist , sizeof(char *)*nstr ) ;
+
+   for( ival=av->imin ; ival <= av->imax ; ival++ ){
+      AV_assign_ival( av , ival ) ;       /* just to create label */
+      ic = ival - av->imin ;              /* index into widget list */
+      strlist[ic] = strdup( av->sval ) ;  /* copy label */
+   }
+
+   AV_assign_ival( av , sval ) ;
+   av->block_assign_actions = 0 ;         /* back to normal */
+
+   /** actually choose something **/
+
+   XtVaGetValues( av->wlabel , XmNlabelString , &xstr , NULL ) ;
+   XmStringGetLtoR( xstr , XmFONTLIST_DEFAULT_TAG , &slab ) ;
+   XmStringFree(xstr) ;
+
+   MCW_choose_strlist( w , slab , nstr ,
+                       sval - av->imin , strlist ,
+                       optmenu_finalize , cd      ) ;
    return ;
 }
 
@@ -1854,8 +1958,9 @@ static void MCW_set_listmax( Widget wpar )
 #else
       char * xdef = RWC_getname( XtDisplay(wpar) , "chooser_listmax" ) ;
 #endif
-      if( xdef != NULL ) list_max = strtol( xdef , NULL , 10 ) ;
-      if( list_max <= 1 ) list_max = LIST_MAX ;
+      if( xdef == NULL ) xdef = getenv("AFNI_MENU_COLSIZE") ;  /* 11 Dec 2001 */
+      if( xdef != NULL )  list_max = strtol( xdef , NULL , 10 ) ;
+      if( list_max <= 4 ) list_max = LIST_MAX ;
       list_maxmax = list_max + 5 ;
    }
    return ;
@@ -1968,7 +2073,7 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
-   if( label != NULL ){
+   if( label != NULL && label[0] != '\0' ){
       lbuf = XtMalloc( strlen(label) + 32 ) ;
       sprintf( lbuf , "----Choose %s----\n%s" ,
                (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;

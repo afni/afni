@@ -18,7 +18,7 @@
 #define DPRI(st,ijk) \
   if(PRINT_TRACING){ char str[256]; sprintf(str,"%s %d",st,ijk); STATUS(str); }
 
-#define COLSIZE 20  /* for optmenus */
+#define COLSIZE AV_colsize()  /* for optmenus -- 11 Dec 2001 */
 
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog

@@ -3388,3 +3388,7 @@
       to more places, so that most AFNI windows should now be properly
       cursorized.
  * Fixed bug in to3d.c - 1 slice with TR=0 on command line would crash.
+ * Modified bbox.[ch] to allow user to set menu column length via
+      environment variable AFNI_MENU_COLSIZE.
+ * Modified bbox.c to allow user to use Button-3 to popup a list chooser
+      for optmenus.

@@ -14,6 +14,8 @@
 
 #define EMPTY_STRING "\0"
 
+#define COLSIZE AV_colsize()
+
 /***************************************************************************
    Routines to open and initialize plugins.  These should only
    be called at the very end of AFNI initialization, since they
@@ -1445,8 +1447,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                        NULL , NULL , NULL , NULL
                      ) ;
 
-               if( use_optmenu && num_choice > OP_OPTMENU_COLSIZE )
-                  AVOPT_columnize(av, 1+(num_choice-1)/OP_OPTMENU_COLSIZE) ;
+               if( use_optmenu && num_choice > COLSIZE )
+                  AVOPT_columnize(av, 1+(num_choice-1)/COLSIZE) ;
 
                ow->chooser[ib] = (void *) av ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
@@ -1500,8 +1502,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                                      NULL ) ;
                   }
 
-                  if( use_optmenu && num_choice > OP_OPTMENU_COLSIZE )
-                     AVOPT_columnize(av, 1+(num_choice-1)/OP_OPTMENU_COLSIZE) ;
+                  if( use_optmenu && num_choice > COLSIZE )
+                     AVOPT_columnize(av, 1+(num_choice-1)/COLSIZE) ;
 
                   ow->chooser[ib] = (void *) av ;
                   ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
@@ -3378,7 +3380,6 @@ ENTRY("AFNI_plugin_button") ;
 
    free(plintar) ;  /* don't need no more */
 
-#define COLSIZE 20
    if( nbut > COLSIZE ){
       int ncol = (nbut-2)/COLSIZE + 1 ;
       XtDestroyWidget(sep) ;

@@ -140,6 +140,8 @@ typedef struct {
         XtVaSetValues( (av)->wmenu, XmNpacking,XmPACK_COLUMN , \
                         XmNnumColumns,(nc), NULL ) ; } while(0)
 
+extern int AV_colsize() ;  /* 11 Dec 2001 */
+
 extern MCW_arrowval * new_MCW_optmenu( Widget , char * ,
                                        int,int,int,int,
                                        gen_func * , XtPointer ,

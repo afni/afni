@@ -19,7 +19,7 @@
 #    define USE_OPTMENUS
 #  endif
 #endif
-#define COLSIZE 20
+#define COLSIZE AV_colsize()
 
 #ifdef USE_OPTMENUS
 #  define AVOPT_STYLE MCW_AV_optmenu

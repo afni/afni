@@ -642,7 +642,7 @@ ENTRY("new_MCW_grapher") ;
    /*--- Arrowval to list 0D transformations ---*/
    /*-------------------------------------------*/
 
-#define COLSIZE 20
+#define COLSIZE AV_colsize()
 
    if( grapher->status->transforms0D != NULL &&
        grapher->status->transforms0D->num > 0  ){  /* 22 Oct 1996 */

@@ -1060,6 +1060,21 @@ default starting dataset (the first alphabetical) is huge, you won't
 see anything while the program reads all of into memory before displaying
 the first image.
 
+---------------------------
+Variable: AFNI_MENU_COLSIZE
+---------------------------
+This numerical variable sets the maximum number of entries in a popup
+menu column (e.g., like the sub-brick menus for bucket datasets).  The
+default value is 20, but you may want to make this larger (say 40).  When
+you have a menu with a huge number of entries, the menu can become so
+wide that it doesn't fit on the screen.  Letting the columns be longer
+will make the menus be narrower across the screen.
+
+Another way to get a handle on such huge menus is to Button-3 (right)
+click on the label to the left of the menu.  This will popup a one-
+column scrollable list chooser that is equivalent to the menu.  In this
+way, it is still possible to use menus that have hundreds of entries.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

@@ -498,7 +498,7 @@ void REND_clusters_av_CB  ( MCW_arrowval * , XtPointer ) ;
 void REND_color_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 void REND_set_thr_pval(void) ;
 
-#define COLSIZE 20  /* to modify optmenus */
+#define COLSIZE AV_colsize()  /* to modify optmenus -- 11 Dec 2001 */
 
 #undef FIX_SCALE_SIZE
 #undef HIDE_SCALE
