@@ -145,10 +145,10 @@ extern void MCW_message_alter( Widget , char * ) ;  /* 10 Jul 2001 */
 
 extern int MCW_filetype( char * ) ;
 
-#ifndef DONT_CHECK_FOR_MWM
+#if 0
 extern Boolean MCW_isitmwm( Widget ) ;
 #else
-#define MCW_isitmwm(ww) True
+#define MCW_isitmwm(ww) (!AFNI_noenv("AFNI_X11_REDECORATE"))
 #endif
 
 #define METER_TOP       1

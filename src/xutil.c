@@ -918,7 +918,7 @@ int MCW_filetype( char * fname )
 
 /*-------------------------------------------------------------------*/
 
-#ifndef DONT_CHECK_FOR_MWM
+#if 0
 Boolean MCW_isitmwm( Widget w )
 {
    Widget wsh ;
@@ -942,7 +942,7 @@ Boolean MCW_isitmwm( Widget w )
    }
 #endif
 }
-#endif /* DONT_CHECK_FOR_MWM */
+#endif
 
 /*------------------------------------------------------------------
    Popup a scale that will serve as a progress meter.
