@@ -1818,6 +1818,15 @@ viewers.  If you set this in the "Edit Environment" control, it will
 apply to all open image viewers immediately, as well as to any image
 viewers opened later.
 
+----------------------------
+Variable: AFNI_DRAW_UNDOSIZE
+----------------------------
+This variable sets the size (in units of Megabytes) of the Undo/Redo
+buffer in the Draw Dataset plugin.  The default value is 6.  If you
+are short on memory, you could set this to 1.  If you are running out
+of undo levels, you could set this to a larger value; however, this
+seems like an unlikely scenario to me.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
