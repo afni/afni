@@ -56,6 +56,7 @@ typedef struct { float r,i ; } complex ;
 /*****---------------------------------------------------*****/
 
 /***** Macros for data type codes. *****/
+/*---- The first 8 match mrilib.h. ----*/
 
 #define NI_BYTE        0
 #define NI_SHORT       1
@@ -73,7 +74,13 @@ typedef struct { float r,i ; } complex ;
 
 /*! One more than the last NI_ data type code defined above. */
 
-#define NI_NUM_TYPES   10
+#define NI_NUM_TYPES       10
+
+/*! Number of types of fixed size.
+    Note that if this changes,
+    the NI_rowtype stuff in niml.c must be altered accordingly. */
+
+#define NI_NUM_FIXED_TYPES  8
 
 /*! Valid data type character codes. */
 
@@ -82,7 +89,35 @@ typedef struct { float r,i ; } complex ;
                            (c) == 'r' || (c) == 'S' || (c) == 'L' ||  \
                            (c) == 'R'                               )
 
-/*****---------------------------------------------------*****/
+/*--------------------------------------------------------------------------*/
+/*! This type stores the information about user-defined types. 09 Dec 2002. */
+
+typedef struct {
+  int   code ;             /*!< unique integer code for this type */
+  int   size ;             /*!< number of bytes for this type */
+  char *name ;             /*!< unique string name for this type */
+  char *userdef ;          /*!< definition user gave for this type */
+  int   part_num ;         /*!< number of parts */
+  int  *part_typ ;         /*!< integer codes of the parts (fixed types) */
+  int  *part_off ;         /*!< byte offsets of the parts */
+} NI_rowtype ;
+
+/*! Macro to delete a rowtype struct.  Only used when an
+    error happens when creating one, since new types last forever. */
+
+#define delete_rowtype(rr)                 \
+ do{ NI_free((rr)->name)     ;             \
+     NI_free((rr)->userdef)  ;             \
+     NI_free((rr)->part_typ) ;             \
+     NI_free((rr)->part_off) ;             \
+     NI_free(rr)             ; } while(0)
+
+extern int          NI_rowtype_define      ( char *, char * ) ;
+extern NI_rowtype * NI_rowtype_find_name   ( char * ) ;
+extern NI_rowtype * NI_rowtype_find_code   ( int ) ;
+extern int          NI_rowtype_name_to_code( char * ) ;
+
+/*****------------------------------------------------------------------*****/
 
 #define NI_ELEMENT_TYPE  17
 #define NI_GROUP_TYPE    18
@@ -299,6 +334,8 @@ extern void     removefrom_Htable( char *, Htable * ) ;
 extern void     profile_Htable( char *, Htable * ) ;
 extern void     subsume_Htable( Htable *, Htable * ) ;
 
+#define         sizeof_Htable(ht) ((ht)->ntot)
+
 /*****------------------- DIME stuff [04 Nov 2002] ------------------*****/
 
 #ifndef TYPEDEF_DIME_part
@@ -359,6 +396,10 @@ extern int NI_malloc_tracking_enabled(void) ;
 
 /*! Free and set pointer to NULL. */
 #define NI_FREE(p) ( NI_free(p), (p)=NULL )
+
+/*! Make a new block of a given type. */
+
+#define NI_new(typ) ( (typ *)NI_malloc(sizeof(typ)) )   /* 09 Dec 2002 */
 
 extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern char * NI_strdup( char * ) ;
