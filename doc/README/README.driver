@@ -141,6 +141,10 @@ SETENV name value
 REDISPLAY
   Forces all images and graphs to be redrawn.
 
+SLEEP ms
+  Causes AFNI to sleep for "ms" milliseconds.  The main use would be in
+  a script file to provide a pause between some effects.
+
 
 ============
 ** GRAPHS **
