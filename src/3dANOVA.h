@@ -93,7 +93,7 @@ static char * commandline = NULL ;         /* command line for history notes */
 #define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
 #define MAX_MEANS 20             /* max. number of user requested means */
 #define MAX_DIFFS 20             /* max. number of user requested diffs. */
-#define MAX_CONTR 20             /* max. number of user requested contrasts */
+#define MAX_CONTR 40             /* max. number of user requested contrasts */
 #define MAX_NAME_LENGTH THD_MAX_NAME  /* max. string length for file names */
 
 
