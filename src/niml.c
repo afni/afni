@@ -4593,14 +4593,16 @@ static int SHM_fill_accept( SHMioc *ioc )
       NI_sleep(10) ;                                 /* wait a bit,   */
       if( SHM_nattach(ioc->id) != 2 ){               /* and try again */
         shmctl( ioc->id , IPC_RMID , NULL ) ;        /* this is bad!  */
-        shmdt( bbb ) ; return -1 ;
+        shmdt( bbb ) ;
+        ioc->bad = SHM_IS_DEAD ; return -1 ;
       }
    }
 
    jj = SHM_size(ioc->id) ;                          /* shmbuf size   */
    if( jj <= SHM_HSIZE ){                            /* too small?    */
       shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
-      shmdt( bbb ) ; return -1 ;
+      shmdt( bbb ) ;
+      ioc->bad = SHM_IS_DEAD ; return -1 ;
    }
 
    ioc->shmbuf   = bbb ;                             /* buffer */
@@ -4618,7 +4620,8 @@ static int SHM_fill_accept( SHMioc *ioc )
 
    if( jj < SHM_HSIZE+ioc->bufsize1+ioc->bufsize2 ){ /* too small?    */
       shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
-      shmdt( bbb ) ; return -1 ;
+      shmdt( bbb ) ;
+      ioc->bad = SHM_IS_DEAD ; return -1 ;
    }
 
    ioc->bad = 0 ; return 1 ;                         /** DONE **/
@@ -4812,13 +4815,17 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
 
    /** check inputs for OK-osity **/
 
-   if( ioc == NULL ) return -1 ;
+   if( ioc == NULL || ioc->bad == SHM_IS_DEAD ) return -1 ;
 
    /** if it was good before, then check if it is still good **/
 
    if( ioc->bad == 0 ){
      ii = SHM_alivecheck(ioc->id) ;
-     return (ii == 0) ? -1 : 1 ;
+     if( ii <= 0 ){                            /* has died */
+        shmctl( ioc->id , IPC_RMID , NULL ) ;
+        shmdt( ioc->shmbuf ) ; ioc->bad = SHM_IS_DEAD ; return -1 ;
+     }
+     return 1 ;
    }
 
    /** wasn't good before, so check if that condition has changed **/
@@ -4871,7 +4878,7 @@ static void SHM_close( SHMioc *ioc )
 {
    if( ioc == NULL ) return ;
 
-   if( ioc->id >= 0 ){
+   if( ioc->id >= 0 && ioc->bad != SHM_IS_DEAD ){
       shmctl( ioc->id , IPC_RMID , NULL ) ;
       shmdt( ioc->shmbuf ) ;
    }
@@ -4900,7 +4907,7 @@ static int SHM_readcheck( SHMioc *ioc , int msec )
    if( ii == -1 ) return -1 ;            /* some error */
    if( ii == 0  ){                       /* not good yet */
       ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
-      if( ii != 1 ) return 0 ;           /* if still not good, exit */
+      if( ii <= 0 ) return ii ;          /* if still not good, exit */
    }
 
    /** choose buffer from which to read **/
@@ -4960,7 +4967,7 @@ static int SHM_writecheck( SHMioc *ioc , int msec )
    if( ii == -1 ) return -1 ;         /* some error */
    if( ii == 0  ){                    /* not good yet */
       ii = SHM_goodcheck(ioc,msec) ;  /* so wait for it to get good */
-      if( ii != 1 ) return ii ;       /* if still not good, exit */
+      if( ii <= 0 ) return ii ;       /* if still not good, exit */
    }
 
    /** choose buffer to which to write **/
@@ -5113,7 +5120,7 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
 {
    int *bstart, *bend , bsize ;  /* for the chosen buffer */
    char *buf ;
-   int nread, sbot,stop ;
+   int nread, sbot,stop , ii ;
 
    /** check for reasonable inputs **/
 
@@ -5122,7 +5129,8 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;
 
-   if( SHM_goodcheck(ioc,1) != 1 ) return -1 ;
+   ii = SHM_goodcheck(ioc,1) ;
+   if( ii <= 0 ) return ii ;
 
    /** choose buffer from which to read **/
 
