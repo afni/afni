@@ -1,6 +1,7 @@
 #ifndef SUMA_DISPLAY_INCLUDED
 #define SUMA_DISPLAY_INCLUDED
 
+Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);

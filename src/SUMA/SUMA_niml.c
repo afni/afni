@@ -618,37 +618,34 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 }
 
 /*!
-   ans = SUMA_CanTalkToAfni (sv, dov);
-   determines if Surface Viewer is allowed to talk to afni
-   \param sv (SUMA_SurfaceViewer *) the surface viewer structure
-   \param dov (SUMA_DO *) the Displayable Objects vector (accessible to sv)
-   \ret ans (SUMA_Boolean) NOPE if any SO shown in the viewer has either 
-      MapRef_idcode_str == NULL || VolPar == NULL
+   ans = SUMA_CanTalkToAfni (dov, N_dov);
+   determines if any of the Surface Viewers is allowed to talk to afni
+   \param dov (SUMA_DO *) the Displayable Objects vector (ususally SUMAg_DOv)
+   \param N_dov (int) the number of elements in dov (usually SUMAg_N_DOv)
+   \ret ans (SUMA_Boolean) NOPE if none of the SOs shown in the viewer has both 
+      MapRef_idcode_str != NULL && VolPar != NULL
       
-   This function is now obsolete. 
-   Decisions to talk to afni no longer depend on idividual viewers.
+   This function is much different from the one prior to Tue Nov 19 11:44:24 EST 2002
 */
 
-SUMA_Boolean SUMA_CanTalkToAfni (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
+SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_CanTalkToAfni"};
    int i;
    SUMA_SurfaceObject *SO;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
-   fprintf(SUMA_STDERR,"WARNING %s: This function is obsolete. \nDecisions to talk to afni no longer depend on idividual viewers.\n", FuncName);
    
-   for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO(dov[sv->ShowDO[i]])) {
-         SO = (SUMA_SurfaceObject *)(dov[sv->ShowDO[i]].OP);
-         if (SO->MapRef_idcode_str == NULL || SO->VolPar == NULL) {
-            SUMA_RETURN (NOPE);
+   for (i=0; i< N_dov; ++i) {
+      if (SUMA_isSO(dov[i])) {
+         SO = (SUMA_SurfaceObject *)(dov[i].OP);
+         if (SO->MapRef_idcode_str != NULL && SO->VolPar != NULL) {
+            SUMA_RETURN (YUP);
          }
       } 
    }
    
-   SUMA_RETURN (YUP);
+   SUMA_RETURN (NOPE);
 }
 
 
