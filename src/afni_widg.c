@@ -3340,9 +3340,9 @@ STATUS("making dmode->rowcol") ;
    dmode->thr_resam_av = new_MCW_arrowval(
                              dmode->rowcol ,
 #ifdef USE_OPTMENUS
-                             "Thr  resam mode" ,
+                             "Stat resam mode" ,
 #else
-                             "Thr mode  " ,
+                             "Stat mode " ,
 #endif
                              AVOPT_STYLE ,
                              FIRST_RESAM_TYPE ,

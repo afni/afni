@@ -6684,6 +6684,10 @@ STATUS("setting anatmode_bbox back to 'View Anat Data Brick'") ;
      im3d->b231_anat->resam_code =
        im3d->b312_anat->resam_code = im3d->vinfo->anat_resam_mode ;
 
+   im3d->b123_anat->thr_resam_code =     /* 30 Jul 2003 */
+     im3d->b231_anat->thr_resam_code =
+       im3d->b312_anat->thr_resam_code = im3d->vinfo->anat_resam_mode ;
+
    /* 30 Nov 1997: don't go past end of dataset */
 
    if( im3d->vinfo->anat_index >= DSET_NVALS(im3d->anat_now) )
