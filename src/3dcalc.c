@@ -251,6 +251,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          CALC_verbose = 1 ;
+         PARSER_set_printout(1) ;  /* 21 Jul 2003 */
          nopt++ ; continue ;
       }
 
