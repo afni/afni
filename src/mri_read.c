@@ -1843,13 +1843,16 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 }
 
 /*--------------------------------------------------------------*/
+static float lbfill = 0.0 ;  /* 10 Aug 2004 */
+
+/*--------------------------------------------------------------*/
 /*! Decode a line buffer into an array of floats.               */
 
-floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
+static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    floatvec *fv=NULL ;
    int blen, bpos, ncol, ii, count ;
-   char sep, vbuf[64] ;
+   char sep, vbuf[64] , *cpt ;
    float val ;
 
    if( buf == NULL || *buf == '\0' ) return fv ;
@@ -1874,9 +1877,12 @@ floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      sscanf( buf+bpos , "%63s" , vbuf ) ;
 
      val = 0.0 ; count = 1 ;
-     if( strchr(vbuf,'@') != NULL || strchr(vbuf,'*') != NULL ){
+     if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
+       val = lbfill ;
+     } else if( (cpt=strchr(vbuf,'@')) != NULL ){
        sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;
        if( count < 1 ) count = 1 ;
+       if( *(cpt+1) == '*' ) val = lbfill ;  /* 10 Aug 2004 */
      } else {
        sscanf( vbuf , "%f" , &val ) ;
      }
@@ -1952,6 +1958,8 @@ ENTRY("mri_read_ascii") ;
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
    ptr = my_fgets( buf , LBUF , fts ) ;
    if( ptr==NULL || *ptr=='\0' ){ FRB(buf); fclose(fts); RETURN(NULL); }  /* bad read? */
+
+   lbfill = 0.0f ;                          /* 10 Aug 2004 */
 
    fvec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
    if( fvec == NULL || fvec->nar == 0 ){
@@ -2144,6 +2152,8 @@ ENTRY("mri_read_ascii_ragged") ;
    /** step 1: read in ALL lines, see how many numbers are in each,
                in order to get the maximum row length and # of rows **/
 
+   lbfill = filler ; /* 10 Aug 2004 */
+
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset */
    ncol = nrow = 0 ;
    while(1){
@@ -2153,7 +2163,7 @@ ENTRY("mri_read_ascii_ragged") ;
      if( fvec != NULL && fvec->nar > 0 ){ nrow++; ncol = MAX(ncol,fvec->nar); }
      if( fvec != NULL ) KILL_floatvec(fvec) ; else break ;
    }
-   if( nrow == 0 || ncol == 0 ){ fclose(fts); FRB(buf); RETURN(NULL); }
+   if( nrow == 0 || ncol == 0 ){ fclose(fts); FRB(buf); lbfill=0.0f; RETURN(NULL); }
 
    /** At this point, ncol is the number of floats to be read from each line **/
 
@@ -2184,7 +2194,7 @@ ENTRY("mri_read_ascii_ragged") ;
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset */
 
    mri_add_name( fname , outim ) ;
-   FRB(buf) ; RETURN(outim) ;
+   FRB(buf) ; lbfill = 0.0f ; RETURN(outim) ;
 }
 
 /*---------------------------------------------------------------------------
