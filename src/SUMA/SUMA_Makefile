@@ -30,9 +30,7 @@ MKDIR = /bin/mkdir
 endif
 
 CCOPT = 
-ifndef WARNOPT
-WARNOPT = -Wall 
-endif
+
 SUMALIB = libSUMA.a
 AFNILIB = -lmri -lrickr
 MAINCODE = SUMA
@@ -46,7 +44,7 @@ endif
 ifndef SUMA_LINK_LIB
 #No need for those unless you are using SUMA_MOTIF_GLXAREA
 #-lMesaGLwM lXm 
-SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 -lcurses -lm 
+SUMA_LINK_LIB = -lMesaGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lcurses -lm 
 endif
 
 #that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 
