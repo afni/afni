@@ -173,6 +173,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"Help")) SUMA_RETURN(SE_Help);
    if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
+   if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -270,6 +271,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("UpdateLog"); 
       case SE_Log:
          SUMA_RETURN("Log");
+      case SE_SetRenderMode:
+         SUMA_RETURN("SetRenderMode");
       /*case SE_:
          SUMA_RETURN("");      */
       default:        

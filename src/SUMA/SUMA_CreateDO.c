@@ -702,13 +702,19 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 /*! Create a tesselated mesh */
 void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, ii, ND, id, ip, NP;
+   int i, ii, ND, id, ip, NP, PolyMode;
    static char FuncName[]={"SUMA_CreateMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   /* check on rendering mode */
+   if (SurfObj->PolyMode != SRM_ViewerDefault) {
+     /* not the default, do the deed */
+     SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
+   }
+   
    ND = SurfObj->NodeDim;
    NP = SurfObj->FaceSetDim;
    switch (DRAW_METHOD) { 
@@ -805,6 +811,13 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          break;
 
    } /* switch DRAW_METHOD */
+   
+   /* reset viewer default rendering modes */
+   if (SurfObj->PolyMode != SRM_ViewerDefault) {
+     /* not the default, do the deed */
+     SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
+   }
+   
    SUMA_RETURNe;
 } /* SUMA_CreateMesh */
 
@@ -1096,7 +1109,10 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
          sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Undefined\n", SO->ShowMeshAxis);
          SS = SUMA_StringAppend (SS,stmp);
       }  
-
+      
+      sprintf (stmp,"RenderMode: %d\n", SO->PolyMode);
+      SS = SUMA_StringAppend (SS,stmp);
+      
       sprintf (stmp,"N_Node: %d\t NodeDim: %d, EmbedDim: %d\n", \
          SO->N_Node, SO->NodeDim, SO->EmbedDim);
       SS = SUMA_StringAppend (SS,stmp);
@@ -1426,6 +1442,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].SUMA_VolPar_Aligned = NOPE;
       SO[i].VOLREG_APPLIED = NOPE;
       SO[i].SurfCont = SUMA_CreateSurfContStruct();
+      SO[i].PolyMode = SRM_ViewerDefault;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

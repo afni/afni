@@ -9,6 +9,26 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+#define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
+   {  \
+      switch (m_PolyMode) {   \
+               case SRM_Fill: \
+                  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   \
+                  break;   \
+               case SRM_Line:  \
+                  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);   \
+                  break;   \
+               case SRM_Points:  \
+                  glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);  \
+                  break;   \
+               case SRM_ViewerDefault: \
+                  break;   \
+               default: \
+                  fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
+                  break;   \
+            }  \
+   }         
+
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
           m_MTCR_dest[0]=m_MTCR_v1[1]*m_MTCR_v2[2]-m_MTCR_v1[2]*m_MTCR_v2[1]; \
