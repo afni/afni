@@ -4410,6 +4410,9 @@
  * Modified imseq.[ch] to make F2 button have Button1 operate as Button2,
      and to show cursor as a pencil shape for drawing when this mode is on.
 
+11 Mar 2003
+ * Modified tagset.h to increase number of allowed tags.
+
 12 Mar 2003
  * Changes to 3dAnhist to regress histogram and plot it.
  * Changes to coxplot/plot_ts.c to have it avoid "pushing" data limits out.
