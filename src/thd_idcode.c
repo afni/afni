@@ -93,6 +93,8 @@ MCW_idcode MCW_new_idcode(void)
 /*---------------------------------------------------------------------*/
 #else  /* use new code */
 
+#include <time.h>
+
 MCW_idcode MCW_new_idcode(void)
 {
    MCW_idcode newid ;

@@ -199,8 +199,10 @@ typedef struct {
     reformed by this macro.
 */
 
+#ifndef MCW_strncpy
 #define MCW_strncpy(dest,src,n) \
    ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
+#endif
 
 /*********************** dynamic array of XtPointers **********************/
 
