@@ -1471,14 +1471,17 @@ C.......................................................................
                ENDDO
             ELSEIF( C2CODE .EQ. '/' )THEN
                NCODE = NCODE + 2
-               DO IV=IVBOT,IVTOP
-                  IF( R8_VAL .NE. 0.D+00 )THEN
+               IF( R8_VAL .NE. 0.D+00 )THEN
+                  R8_VAL = 1.D+00 / R8_VAL
+                  DO IV=IVBOT,IVTOP
                      R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
-     X                                      / R8_VAL
-                  ELSE
-                     R8_EVAL(IV-IBV,NEVAL) = 0.D+00
-                  ENDIF
-               ENDDO
+     X                                      * R8_VAL
+                  ENDDO
+               ELSE
+                  DO IV=IVBOT,IVTOP
+                     R8_EVAL(IV-IBV,NEVAL) =  0.D+00
+                  ENDDO
+               ENDIF
             ELSE
                NCODE  = NCODE + 1
                NEVAL  = NEVAL + 1

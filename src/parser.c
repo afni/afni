@@ -2171,11 +2171,15 @@ L1000:
 		}
 	    } else if (s_cmp(c2code, "/", 8L, 1L) == 0) {
 		ncode += 2;
-		i__2 = ivtop;
-		for (iv = ivbot; iv <= i__2; ++iv) {
-		    if (*r8_val__ != 0.) {
-			r8_eval__[iv - ibv + (neval << 6) - 65] /= *r8_val__;
-		    } else {
+		if (*r8_val__ != 0.) {
+		    *r8_val__ = 1. / *r8_val__;
+		    i__2 = ivtop;
+		    for (iv = ivbot; iv <= i__2; ++iv) {
+			r8_eval__[iv - ibv + (neval << 6) - 65] *= *r8_val__;
+		    }
+		} else {
+		    i__2 = ivtop;
+		    for (iv = ivbot; iv <= i__2; ++iv) {
 			r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
 		    }
 		}

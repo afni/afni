@@ -93,6 +93,7 @@ static byte **             CALC_byte[26] ;
 static short **            CALC_short[26] ;
 static float **            CALC_float[26] ;
 static float *             CALC_ffac[26] ;
+static int                 CALC_noffac[26] ;  /* 14 Nov 2003 */
 
 static int                 CALC_verbose = 0 ; /* 30 April 1998 */
 
@@ -161,6 +162,8 @@ void CALC_read_opts( int argc , char * argv[] )
 
       CALC_dshift[ids]      = -1 ;                        /* 22 Nov 1999 */
       CALC_dshift_mode[ids] = CALC_dshift_mode_current ;
+
+      CALC_noffac[ids] = 1 ;   /* 14 Nov 2003 */
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -554,15 +557,19 @@ void CALC_read_opts( int argc , char * argv[] )
          CALC_dset[ival] = dset ;
 
          /* load floating scale factors */
+         /* 14 Nov 2003: CALC_noffac[ival] signals there is no scale factor
+                         (so can avoid the multiplication when loading values) */
 
          CALC_ffac[ival] = (float *) malloc( sizeof(float) * ntime[ival] ) ;
          if ( ntime[ival] == 1 ) {
             CALC_ffac[ival][0] = DSET_BRICK_FACTOR( dset , isub) ;
             if (CALC_ffac[ival][0] == 0.0 ) CALC_ffac[ival][0] = 1.0 ;
+            if( CALC_ffac[ival][0] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
          } else {
              for (ii = 0 ; ii < ntime[ival] ; ii ++ ) {
                CALC_ffac[ival][ii] = DSET_BRICK_FACTOR(dset, ii) ;
                if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
+               if( CALC_ffac[ival][ii] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
              }
          }
 
@@ -1346,30 +1353,38 @@ int main( int argc , char * argv[] )
 
             else if ( ntime[ids] == 1 && CALC_type[ids] >= 0 ) {
                switch( CALC_type[ids] ) {
-                    case MRI_short:
-                       for (jj =jbot ; jj < jtop ; jj ++ ){
-                           atoz[ids][jj-ii] = CALC_short[ids][0][jj] * CALC_ffac[ids][0] ;
-                     }
-                    break;
+                  case MRI_short:
+                     if( CALC_noffac[ids] )                      /* 14 Nov 2003 */
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_short[ids][0][jj] ;
+                     else
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_short[ids][0][jj] * CALC_ffac[ids][0] ;
+                  break;
 
                   case MRI_float:
-                     for (jj =jbot ; jj < jtop ; jj ++ ){
-                        atoz[ids][jj-ii] = CALC_float[ids][0][jj] * CALC_ffac[ids][0] ;
-                     }
+                     if( CALC_noffac[ids] )                      /* 14 Nov 2003 */
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_float[ids][0][jj] ;
+                     else
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_float[ids][0][jj] * CALC_ffac[ids][0] ;
                   break;
 
                   case MRI_byte:
-                     for (jj =jbot ; jj < jtop ; jj ++ ){
-                        atoz[ids][jj-ii] = CALC_byte[ids][0][jj] * CALC_ffac[ids][0] ;
-                     }
+                     if( CALC_noffac[ids] )                      /* 14 Nov 2003 */
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_byte[ids][0][jj] ;
+                     else
+                       for (jj =jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_byte[ids][0][jj] * CALC_ffac[ids][0] ;
                   break;
 
                   case MRI_rgb:
-                     for (jj =jbot ; jj < jtop ; jj ++ ){
+                     for (jj =jbot ; jj < jtop ; jj ++ )
                         atoz[ids][jj-ii] = Rfac*CALC_byte[ids][0][3*jj  ]
                                           +Gfac*CALC_byte[ids][0][3*jj+1]
                                           +Bfac*CALC_byte[ids][0][3*jj+2] ;
-                     }
                   break;
                }
             }
@@ -1379,31 +1394,39 @@ int main( int argc , char * argv[] )
             else if( ntime[ids] > 1 && CALC_type[ids] >= 0 ) {
                switch ( CALC_type[ids] ) {
                   case MRI_short:
-                      for (jj = jbot ; jj < jtop ; jj ++ ) {
+                    if( CALC_noffac[ids] )
+                      for (jj = jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_short[ids][kt][jj] ;
+                    else
+                      for (jj = jbot ; jj < jtop ; jj ++ )
                          atoz[ids][jj-ii] = CALC_short[ids][kt][jj] * CALC_ffac[ids][kt];
-                      }
                    break;
 
                  case MRI_float:
-                    for (jj = jbot ; jj < jtop ; jj ++ ){
-                       atoz[ids][jj-ii] = CALC_float[ids][kt][jj] * CALC_ffac[ids][kt];
-                    }
+                    if( CALC_noffac[ids] )
+                      for (jj = jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_float[ids][kt][jj] ;
+                    else
+                      for (jj = jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_float[ids][kt][jj] * CALC_ffac[ids][kt];
                  break;
 
                  case MRI_byte:
-                    for (jj = jbot ; jj < jtop ; jj ++ ){
-                       atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
-                    }
+                    if( CALC_noffac[ids] )
+                      for (jj = jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] ;
+                    else
+                      for (jj = jbot ; jj < jtop ; jj ++ )
+                         atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
                  break;
 
                  case MRI_rgb:
-                    for (jj =jbot ; jj < jtop ; jj ++ ){
+                    for (jj =jbot ; jj < jtop ; jj ++ )
                        atoz[ids][jj-ii] = Rfac*CALC_byte[ids][kt][3*jj  ]
                                          +Gfac*CALC_byte[ids][kt][3*jj+1]
                                          +Bfac*CALC_byte[ids][kt][3*jj+2] ;
-                    }
                  break;
-                }
+               }
              }
 
            /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
@@ -1466,7 +1489,7 @@ int main( int argc , char * argv[] )
               } /* end of choice over data type (if-else cascade) */
              } /* end of loop over datasets/symbols */
 
-            /**** actually do the work! ****/
+            /**** actually do the calculation work! ****/
 
             PARSER_evaluate_vector(CALC_code, atoz, jtop-jbot, temp);
              for ( jj = jbot ; jj < jtop ; jj ++ )
