@@ -8,6 +8,7 @@
 #include "coxplot.h"
 #include "display.h"
 
+/*-------------------------------------------------------------------*/
 /*---- quickie program to look at some graphs - RWCox - Feb 1999 ----*/
 
 #define DEFAULT_NCOLOVR 20
@@ -40,6 +41,8 @@ static char * ynar[128] ;
 static char ** yname = NULL ;
 
 void startup_timeout_CB( XtPointer client_data , XtIntervalId * id ) ;
+
+/*-----------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -330,7 +333,7 @@ int main( int argc , char * argv[] )
 
    if( !out_ps ){
      (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
-     XtAppMainLoop(app) ;
+     XtAppMainLoop(app) ;   /* never returns */
    }
 
    /* 29 Nov 2002: if here, output PostScript to stdout */
