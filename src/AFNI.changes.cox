@@ -4767,3 +4767,6 @@
 
 29 Oct 2003
  * Allow "# " as a comment in .afnirc -- changes to afni_setup.c GETSTR macro.
+
+30 Oct 2003
+ * Some changes (f2cdir/ and afni_plugin.c) for Mac OS X 10.3 compilation.
