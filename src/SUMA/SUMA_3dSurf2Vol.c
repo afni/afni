@@ -1,5 +1,5 @@
 
-#define VERSION "version  3.2 (February 10, 2004)"
+#define VERSION "version  3.3 (March 26, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -110,6 +110,9 @@ static char g_history[] =
  "\n"
  "3.2  February 10, 2004\n"
  "  - output a little more debug info for !AnatCorrect case\n"
+ "\n"
+ "3.3  March 26, 2004  [ziad]\n"
+ "  - DsetList added to SUMA_LoadSpec_eng() call\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -1672,7 +1675,8 @@ ENTRY("fill_SUMA_structs");
 	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
-    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug, SUMAg_CF->DsetList) == 0)
+    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug,
+	     SUMAg_CF->DsetList) == 0)     /* DsetList - 26 Mar 2004 [ziad] */
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
 	RETURN(-1);

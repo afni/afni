@@ -1,5 +1,5 @@
 
-#define VERSION "version  4.3 (February 19, 2004)"
+#define VERSION "version  4.4 (March 26, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -164,6 +164,9 @@ static char g_history[] =
     "4.3  February 19, 2004  [rickr]\n"
     "  - track 1dindex sources for new sorting filters (median, mode)\n"
     "    i.e. idindex is accurate, not just defaulting to first node\n"
+    "\n"
+    "4.4  March 26, 2004  [ziad]\n"
+    "  - DsetList added to SUMA_LoadSpec_eng() call\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -1177,7 +1180,8 @@ ENTRY("read_surf_files");
 	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
-    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug, SUMAg_CF->DsetList) == 0)
+    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug,
+	     SUMAg_CF->DsetList) == 0)     /* DsetList   26 Mar 2004 [ziad] */
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
 	RETURN(-1);
