@@ -70,8 +70,8 @@ int main( int argc , char * argv[] )
          fgets(expr,900,stdin) ;
       }
       
-      if( strlen(expr) == 0) continue ;
-      if( strcmp(expr,"quit") == 0 ) exit(0) ;
+      if( strlen(expr) == 0 ) continue ;
+      if( strstr(expr,"quit") != NULL ) exit(0) ;
 
       if( strstr(expr,"=") != NULL ){
          kvar = toupper(expr[0]) - 'A' ;
