@@ -4317,6 +4317,23 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
+#if !defined(NO_FRIVOLITIES)
+      prog->hidden_faces_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("AFNI Faces") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_faces_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+#else
+      prog->hidden_faces_pb = NULL ;
+#endif
+
+      /*----------*/
+
 #if !defined(NO_FRIVOLITIES) && defined(DARWIN)
       (void) XtVaCreateManagedWidget(
                "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,

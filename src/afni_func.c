@@ -5123,6 +5123,13 @@ ENTRY("AFNI_hidden_CB") ;
      free( poem ) ;
    }
 
+   /*------ Faces!  [17 Dec 2004] -----*/
+
+   else if( w == im3d->vwid->prog->hidden_faces_pb && w != NULL ){
+
+     AFNI_faceup() ;
+   }
+
    /*------- random speaking --------*/
 
    else if( w == im3d->vwid->prog->hidden_speech_pb && w != NULL ){
