@@ -9,20 +9,24 @@ int main( int argc , char *argv[] )
    NI_group *ngr ;
    NI_stream ns_out ;
    int iarg=1 , dodata=0 ;
+   char strname[256] = "stdout:" ;
 
    /*-- help me if you can --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dAFNItoNIML [options] dset\n"
-             " Dumps AFNI dataset header information to stdout in NIML format.\n"
-             " Mostly for debugging and testing purposes!\n"
-             "\n"
-             " OPTIONS:\n"
-             "  -data  == Also put the data into the output (will be huge!).\n"
-             "\n"
-             "-- RWCox - 09 Mar 2005\n"
-      ) ;
-      exit(0) ;
+     printf(
+      "Usage: 3dAFNItoNIML [options] dset\n"
+      " Dumps AFNI dataset header information to stdout in NIML format.\n"
+      " Mostly for debugging and testing purposes!\n"
+      "\n"
+      " OPTIONS:\n"
+      "  -data          == Also put the data into the output (will be huge).\n"
+      "  -tcp:host:port == Instead of stdout, send the dataset to a socket.\n"
+      "                    (implies '-dodata' as well)\n"
+      "\n"
+      "-- RWCox - Mar 2005\n"
+     ) ;
+     exit(0) ;
    }
 
    mainENTRY("3dAFNItoNIML main"); machdep();
@@ -34,6 +38,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-data") == 0 ){
        dodata = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-tcp:",5) == 0 ){
+       strcpy(strname,argv[iarg]+1) ; dodata = 1 ; iarg++ ; continue ;
      }
 
      fprintf(stderr,"** Illegal option: %s\n",argv[iarg]); exit(1);
@@ -68,9 +76,21 @@ int main( int argc , char *argv[] )
 
    /*-- open stream to stdout, write element, close stream --*/
 
-   ns_out = NI_stream_open( "stdout:" , "w" ) ;
+   ns_out = NI_stream_open( strname , "w" ) ;
    if( ns_out == NULL ){
      fprintf(stderr,"** Can't create NIML stream!?\n"); exit(1);
+   }
+
+   if( strcmp(strname,"stdout:") != 0 ){
+     int nn , nchk ;
+     for( nchk=0 ; nchk < 99 ; nchk++ ){
+       nn = NI_stream_writecheck( ns_out , 777 ) ;
+       if( nn == 1 ){ if(nchk>0)fprintf(stderr,"\n"); break; }
+       if( nn <  0 ){ fprintf(stderr,"** NIML stream failure!?\n"); exit(1); }
+       fprintf(stderr,".") ;
+     }
+     nn = NI_stream_writecheck( ns_out , 1 ) ;
+     if( nn <= 0 ){ fprintf(stderr,"** Can't connect!?\n"); exit(1); }
    }
 
    NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
