@@ -2221,6 +2221,7 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
                        ? ((ds)->dblk->diskptr->prefix) : "\0" )
 
 extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2001 */
+extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2002 */
 
 /*! Return a pointer to the filecode of dataset ds (prefix+view) */
 
