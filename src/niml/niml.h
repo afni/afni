@@ -1111,6 +1111,20 @@ typedef struct { int num; char **str;} NI_str_array ;
 
 extern NI_str_array * NI_decode_string_list( char *ss , char *sep ) ;
 #define NI_decode_str_array NI_decode_string_list
+
+/*-------------------------------------------------------------------------*/
+/* Registry stuff -- niml_registry.c [25 Feb 2005] */
+
+extern void * NI_registry_malloc( char *idcode, char *name, size_t len ) ;
+extern void * NI_registry_realloc( void *vpt, size_t newlen ) ;
+extern void   NI_registry_free( void *vpt ) ;
+extern void * NI_registry_idcode_to_ptr( char *idcode ) ;
+extern char * NI_registry_idcode_to_name( char *idcode ) ;
+extern char * NI_registry_ptr_to_idcode( void *vpt ) ;
+extern char * NI_registry_ptr_to_name( void *vpt ) ;
+extern void   NI_registry_idcode_altername( char *idcode, char *newname ) ;
+extern void   NI_registry_ptr_altername( void *vpt, char *newname ) ;
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* _NIML_HEADER_FILE */
