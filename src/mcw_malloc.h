@@ -78,9 +78,9 @@ extern int    mcw_malloc_enabled(void) ;
 #undef XtCalloc
 
 #define XtMalloc(a)     mcw_XtMalloc((a),__FILE__,__LINE__)
-#define XtRealloc(a,b)  mcw_XtRealloc((a),(b),__FILE__,__LINE__)
+#define XtRealloc(a,b)  mcw_XtRealloc((char *)(a),(b),__FILE__,__LINE__)
 #define XtCalloc(a,b)   mcw_XtCalloc((a),(b),__FILE__,__LINE__)
-#define XtFree          mcw_XtFree
+#define XtFree(a)       mcw_XtFree((char *)(a))
 
 extern char * mcw_XtMalloc( Cardinal , char * ,  int ) ;
 extern char * mcw_XtRealloc( char * , Cardinal , char * ,  int ) ;

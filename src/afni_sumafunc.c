@@ -381,3 +381,300 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
 
    RETURN(nout) ;
 }
+
+/*---------------------------------------------------------------------------*/
+/*-------- Stuff below here is for surface control panel [19 Aug 2002] ------*/
+
+static void AFNI_surf_done_CB( Widget,XtPointer,XtPointer ) ;
+static void AFNI_surf_color_CB( MCW_arrowval *,XtPointer ) ;
+static AFNI_make_surface_widgets( Three_D_View *, int ) ;
+
+/*---------------------------------------------------------------------------*/
+/*! Make the widgets for one row of the surface control panel.
+    The row itself will not be managed at this time; that comes later. */
+
+#define MAKE_SURF_ROW(ii)                                          \
+ do{ Widget rc ; char str[32] ; XmString xstr ;                    \
+     rc = swid->surf_rc[ii] =                                      \
+         XtVaCreateWidget(                                         \
+           "dialog" , xmRowColumnWidgetClass , swid->rowcol ,      \
+              XmNpacking      , XmPACK_TIGHT ,                     \
+              XmNorientation  , XmHORIZONTAL   ,                   \
+              XmNtraversalOn , False ,                             \
+           NULL ) ;                                                \
+     sprintf(str,"%-14.14s: ","Junque") ;                          \
+     xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;   \
+     swid->surf_lab[ii] = XtVaCreateManagedWidget(                 \
+                             "dialog" , xmLabelWidgetClass , rc ,  \
+                                XmNrecomputeSize , False ,         \
+                                XmNlabelString , xstr ,            \
+                                XmNtraversalOn , False ,           \
+                             NULL ) ;                              \
+     XmStringFree(xstr) ;                                          \
+     swid->surf_node_av[ii] = new_MCW_colormenu( rc ,              \
+                               "Nodes" , im3d->dc ,                \
+                               0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
+                               AFNI_surf_color_CB , im3d ) ;       \
+     swid->surf_line_av[ii] = new_MCW_colormenu( rc ,              \
+                               "Lines" , im3d->dc ,                \
+                               0 , im3d->dc->ovc->ncol_ov-1 , 1 ,  \
+                               AFNI_surf_color_CB , im3d ) ;       \
+  } while(0)
+
+/*------------------------------------------------------------------------*/
+/*! Make surface widgets for an AFNI controller [19 Aug 2002].
+--------------------------------------------------------------------------*/
+
+static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
+{
+   AFNI_surface_widgets *swid ;
+   Widget ww , rc ;
+   XmString xstr ;
+   char str[32] ;
+   int ii ;
+
+   im3d->vwid->view->swid = swid = myXtNew( AFNI_surface_widgets ) ;
+
+   /* shell to hold it all */
+
+   sprintf(str,"AFNI Surface Controls %s",AFNI_controller_label(im3d)) ;
+
+   swid->wtop = XtVaAppCreateShell(
+                  "AFNI" , "AFNI" ,
+                   topLevelShellWidgetClass , im3d->dc->display ,
+                   XmNallowShellResize   , True ,
+                   XmNtitle              , str ,
+                   XmNmappedWhenManaged  , False ,              /* manage manually */
+                   XmNdeleteResponse     , XmDO_NOTHING ,       /* deletion handled below */
+                NULL ) ;
+   DC_yokify( swid->wtop , im3d->dc ) ;
+
+   XtVaSetValues( swid->wtop ,
+                     XmNmwmDecorations , MWM_DECOR_ALL | MWM_DECOR_MAXIMIZE ,
+                  NULL ) ;
+
+   XmAddWMProtocolCallback(           /* make "Close" window menu work */
+           swid->wtop ,
+           XmInternAtom( im3d->dc->display , "WM_DELETE_WINDOW" , False ) ,
+           AFNI_surf_done_CB , im3d ) ;
+
+   /* vertical rowcol to hold it all */
+
+   swid->rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , swid->wtop ,
+            XmNpacking      , XmPACK_TIGHT ,
+            XmNorientation  , XmVERTICAL   ,
+            XmNtraversalOn , False ,
+         NULL ) ;
+
+   /* horiz rowcol for top label and done button */
+
+   rc = XtVaCreateWidget(
+          "dialog" , xmRowColumnWidgetClass , swid->rowcol ,
+             XmNpacking      , XmPACK_TIGHT ,
+             XmNorientation  , XmHORIZONTAL   ,
+             XmNtraversalOn , False ,
+          NULL ) ;
+
+   /* label to look nice */
+
+   sprintf(str,"Surface Controls %s  ",AFNI_controller_label(im3d)) ;
+   xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
+   ww = XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , rc ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+
+   /* Done button */
+
+   xstr = XmStringCreateLtoR( "Done" , XmFONTLIST_DEFAULT_TAG ) ;
+   swid->done_pb =
+     XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , rc ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( swid->done_pb , XmNactivateCallback ,
+                  AFNI_surf_done_CB , im3d ) ;
+   MCW_set_widget_bg( swid->done_pb, MCW_hotcolor(swid->done_pb), 0 ) ;
+
+   XtManageChild(rc) ;
+
+   /* Separator from other widgets */
+
+   ww = XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, swid->rowcol,
+                                    XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                                 NULL ) ;
+
+   /* Now create rows of widgets to control the surfaces */
+
+   swid->nall = num ;
+   swid->nrow = 0 ;     /* none are managed at this time */
+
+   swid->surf_rc      = (Widget *)        XtCalloc( num , sizeof(Widget)         ) ;
+   swid->surf_lab     = (Widget *)        XtCalloc( num , sizeof(Widget)         ) ;
+   swid->surf_node_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
+   swid->surf_line_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+      MAKE_SURF_ROW(ii) ;
+   }
+
+   XtManageChild(swid->rowcol) ;
+   XtRealizeWidget(swid->wtop) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Update surface widgets */
+
+void AFNI_update_surface_widgets( Three_D_View *im3d )
+{
+   AFNI_surface_widgets *swid ;
+   int num , ii , nwid,nall ;
+   char str[32] ;
+
+ENTRY("AFNI_update_surface_widgets") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   num  = im3d->anat_now->su_num ;  /* # of surfaces */
+   swid = im3d->vwid->view->swid ;
+
+   if( swid == NULL ) EXRETURN ;
+
+   /* make more widget rows? (1 per surface is needed) */
+
+   if( swid->nall < num ){
+     swid->surf_rc      = (Widget *)        XtRealloc( swid->surf_rc     ,num*sizeof(Widget)         );
+     swid->surf_lab     = (Widget *)        XtRealloc( swid->surf_lab    ,num*sizeof(Widget)         );
+     swid->surf_node_av = (MCW_arrowval **) XtRealloc( swid->surf_node_av,num*sizeof(MCW_arrowval *) );
+     swid->surf_line_av = (MCW_arrowval **) XtRealloc( swid->surf_line_av,num*sizeof(MCW_arrowval *) );
+     for( ii=swid->nall ; ii < num ; ii++ ){
+       MAKE_SURF_ROW(ii) ;
+     }
+     swid->nall = num ;
+   }
+
+   /* map or unmap widget rows? (1 per surface is needed) */
+
+   if( swid->nrow < num ){
+     for( ii=swid->nrow ; ii < num ; ii++ )
+       XtManageChild( swid->surf_rc[ii] ) ;
+   } else if( swid->nrow > num ){
+      for( ii=num ; ii < swid->nrow ; ii++ )
+       XtUnmanageChild( swid->surf_rc[ii] ) ;
+   }
+   swid->nrow = num ;  /* # of managed rows */
+
+   /* change labels for each row */
+
+   for( ii=0 ; ii < swid->nrow ; ii++ ){
+     sprintf(str,"%-14.14s: ",im3d->anat_now->su_surf[ii]->label) ;
+     MCW_set_widget_label( swid->surf_lab[ii] , str ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Update all surface widgets everywhere that touch this dataset. */
+
+void AFNI_update_all_surface_widgets( THD_3dim_dataset *dset )
+{
+   int ii ;
+   Three_D_View *im3d ;
+ENTRY("AFNI_update_all_surface_widgets") ;
+   if( !ISVALID_DSET(dset) ) EXRETURN ;
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     im3d = GLOBAL_library.controllers[ii] ;
+     if( IM3D_OPEN(im3d) && im3d->anat_now == dset )
+       AFNI_update_surface_widgets( im3d ) ;
+   }
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Callback for Switch Surface pushbutton [19 Aug 2002].
+--------------------------------------------------------------------------*/
+
+void AFNI_choose_surface_CB( Widget w , XtPointer cd, XtPointer cbs )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   AFNI_surface_widgets *swid ;
+   int num , ii , nwid,nall ;
+
+ENTRY("AFNI_choose_surface_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   num  = im3d->anat_now->su_num ;
+   swid = im3d->vwid->view->swid ;
+
+   /* no surfaces ==> nothing to do */
+
+   if( num == 0 ) EXRETURN ;
+
+   /* make widgets? */
+
+   if( swid == NULL ){
+     AFNI_make_surface_widgets(im3d,num) ;
+     swid = im3d->vwid->view->swid ;
+   }
+
+   /* make control panel visible, if it isn't already */
+
+   XtMapWidget( swid->wtop ) ;
+
+   /* put proper labels on widgets, etc. */
+
+   AFNI_update_surface_widgets(im3d) ;
+
+   /* wait for user to press some button */
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void AFNI_surf_done_CB( Widget w , XtPointer cd, XtPointer cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   AFNI_surface_widgets *swid ;
+
+ENTRY("AFNI_surf_done_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   swid = im3d->vwid->view->swid ;
+   if( swid != NULL ) XtUnmapWidget( swid->wtop ) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void AFNI_surf_color_CB( MCW_arrowval * av , XtPointer cd )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   AFNI_surface_widgets *swid ;
+   int ii ;
+
+ENTRY("AFNI_surf_color_CB") ;
+
+   if( im3d == NULL ) EXRETURN ;
+   swid = im3d->vwid->view->swid ;
+   if( swid == NULL ) EXRETURN ;  /* should be impossible */
+
+   if( !IM3D_OPEN(im3d) ){
+     XtUnmapWidget( swid->wtop ) ;
+     EXRETURN ;
+   }
+
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+
+   EXRETURN ;
+}

@@ -1664,6 +1664,7 @@ STATUS("get status") ;
      int do_surf=(SUMA_ENABLED                   && DSET_HAS_SUMA(br->dset)            );
      int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
      MEM_plotdata * mp ;
+     AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
 
      if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
@@ -1682,7 +1683,9 @@ STATUS("get status") ;
       SUMA_ixyz *nod ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
-      float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
+      float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
+      float rr_box=1.0,gg_box=0.8,bb_box=0.8 ;
+      float rr_lin=1.0,gg_lin=0.9,bb_lin=0.0 ;
       char str[32] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
@@ -1693,21 +1696,47 @@ STATUS("get status") ;
       nn = ag->num_ixyz ; nod = ag->ixyz ;
       if( nn < 1 || nod == NULL ) continue ;  /* nothing to do */
 
-      /* define overlay color for node boxes */
+      /* define overlay color for node boxes and triangle lines */
 
-      eee = getenv("AFNI_SUMA_BOXCOLOR") ;
-      if( eee == NULL )
-        eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
-      if( eee != NULL ){
-         if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 )
+      if( swid != NULL ){                        /* 19 Aug 2002: the new way */
+        int cc ;                                 /*            to set colors */
+        cc = swid->surf_node_av[ks]->ival ;      /* from the surface widgets */
+        skip_boxes = (cc == 0) ;
+        if( !skip_boxes ){
+          rr_box = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
+          gg_box = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
+          bb_box = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+        }
+        cc = swid->surf_line_av[ks]->ival ;
+        skip_lines = (cc == 0) ;
+        if( !skip_lines ){
+          rr_lin = DCOV_REDBYTE(im3d->dc,cc)   / 255.0 ;
+          gg_lin = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
+          bb_lin = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
+        }
+
+      } else {                                   /* the old way    */
+                                                 /* to set colors   */
+        eee = getenv("AFNI_SUMA_BOXCOLOR") ;     /* from environment */
+        if( eee == NULL )
+          eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
+        if( eee != NULL ){
+          if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 )
             skip_boxes = 1 ;                  /* don't do boxes */
-         else
-            DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
-      }
+          else
+            DC_parse_color( im3d->dc , eee , &rr_box,&gg_box,&bb_box ) ;
+        }
 
-      eee = getenv("AFNI_SUMA_LINECOLOR") ;   /* don't do lines? */
-      if( eee != NULL &&
-         (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) ) skip_lines = 1 ;
+        eee = getenv("AFNI_SUMA_LINECOLOR") ;
+        if( eee == NULL )
+          eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
+        if( eee != NULL ){
+          if( (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) )
+            skip_lines = 1 ;
+          else
+            DC_parse_color( im3d->dc , eee , &rr_lin,&gg_lin,&bb_lin ) ;
+        }
+      }
 
       if( skip_boxes && skip_lines ) continue ; /* nothing to do? */
 
@@ -1752,7 +1781,7 @@ STATUS("get status") ;
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
 
-      set_color_memplot(rr,gg,bb) ;
+      set_color_memplot(rr_box,gg_box,bb_box) ;
 
       /* find nodes inside this slice */
 
@@ -1824,12 +1853,7 @@ STATUS("get status") ;
         THD_fvec3 fvijk[3] ;
         float ci,cj,ck ;
 
-        eee = getenv("AFNI_SUMA_LINECOLOR") ;    /* define overlay color */
-        if( eee != NULL )
-           DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
-        else
-           rr = gg = bb = 1.0 ;                  /* default is white */
-        set_color_memplot(rr,gg,bb) ;
+        set_color_memplot(rr_lin,gg_lin,bb_lin) ;
 
         /* loop over triangles */
 
@@ -4063,6 +4087,11 @@ ENTRY("AFNI_closedown_3dview") ;
    im3d->anat_now = im3d->fim_now = NULL ;
 
    AFNI_purge_unused_dsets() ;
+
+   /* 19 Aug 2002: close surface widgets, too */
+
+   if( im3d->vwid->view->swid != NULL )
+     XtUnmapWidget( im3d->vwid->view->swid->wtop ) ;
 
    MPROBE ;
    EXRETURN ;
@@ -6943,6 +6972,16 @@ STATUS(" -- turning time index control off") ;
       im3d->fimdata->fimdset = im3d->anat_now ;
 
    ALLOW_COMPUTE_FIM(im3d) ;
+
+   /*----------------------------------------------------------*/
+   /*--- 19 Aug 2002: enable/disable surface chooser button ---*/
+
+   if( im3d->anat_now->su_num > 0 ){
+      SENSITIZE( im3d->vwid->view->choose_surf_pb , True ) ;
+      AFNI_update_surface_widgets( im3d ) ;
+   } else {
+      SENSITIZE( im3d->vwid->view->choose_surf_pb , False ) ;
+   }
 
    /*------------------------------------------*/
    /*--- attach to viewing windows (if any) ---*/

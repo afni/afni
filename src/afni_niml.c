@@ -359,10 +359,21 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
 
      if( idc == NULL ){
-       idc = UNIQ_idcode(); MCW_strncpy(ag->idcode,idc,32); free(idc);
+       idc = UNIQ_idcode(); NI_strncpy(ag->idcode,idc,32); free(idc);
      } else {
-       MCW_strncpy(ag->idcode,idc,32);
+       NI_strncpy(ag->idcode,idc,32);
      }
+
+     /*-- 19 Aug 2002: get surface label (or make it up) --*/
+
+     idc = NI_get_attribute( nel , "surface_label" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "SUMA_label" ) ;
+
+     if( idc != NULL )
+       NI_strncpy(ag->label,idc,32) ;
+     else
+       sprintf(ag->label,"Surf#%d",num+1) ;
 
      /*-- set surface filename now --*/
 
@@ -372,7 +383,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- set IDCODEs of surface and of its dataset --*/
 
-     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+     NI_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
 
      /*-- pointers to the data columns in the NI_element --*/
 
@@ -401,10 +412,11 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ixyz surface received:\n"
+                 "  %-14.14s\n"
                  " %d nodes attached to dataset\n"
                  "  %.222s\n"
                  " This is surface #%d for this dataset \n" ,
-                 nel->vec_filled , DSET_FILECODE(dset), num+1 ) ;
+                 ag->label, nel->vec_filled , DSET_FILECODE(dset), num+1 ) ;
 
      if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
                                               "I/O time  =%4d ms\n"
@@ -412,6 +424,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                               ct_read , ct_tot-ct_read ) ;
 
      AFNI_popup_message( msg ) ;
+
+     AFNI_update_all_surface_widgets( dset ) ;  /* 19 Aug 2002 */
 
 #if 1
      dont_tell_suma = 1 ;
@@ -531,9 +545,11 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ijk triangles received:\n"
-                 "  %d triangles attached to dataset \n"
+                 "  %d triangles attached to surface\n"
+                 "  %-14.14s\n"
+                 " in dataset \n"
                  "  %.222s\n" ,
-                 nel->vec_filled , DSET_FILECODE(dset) ) ;
+                 nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
 
      if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
                                               "I/O time  =%4d ms\n"
