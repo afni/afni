@@ -3995,6 +3995,16 @@ ENTRY("AFNI_misc_CB") ;
    }
 #endif
 
+#ifdef USING_MCW_MALLOC   /* 07 Mar 1999 */
+   else if( MCW_MALLOC_enabled && w == im3d->vwid->dmode->misc_showmalloc_pb ){
+      MCHECK ;
+   }
+
+   else if( MCW_MALLOC_enabled && w == im3d->vwid->dmode->misc_dumpmalloc_pb ){
+      mcw_malloc_dump() ;
+   }
+#endif
+
    /****----- Get Outta Here -----****/
 
    EXRETURN ;

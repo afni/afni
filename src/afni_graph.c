@@ -688,25 +688,25 @@ ENTRY("end_fd_graph_CB") ;
 
 #ifdef USE_OPTMENUS
 STATUS("destroying optmenus") ;
-   myXtFree(grapher->opt_mat_choose_av) ;
-   myXtFree(grapher->opt_slice_choose_av) ;
-   myXtFree(grapher->fmenu->fim_ignore_choose_av) ;
+   FREE_AV(grapher->opt_mat_choose_av) ;
+   FREE_AV(grapher->opt_slice_choose_av) ;
+   FREE_AV(grapher->fmenu->fim_ignore_choose_av) ;
 #endif
 
 STATUS("destroying arrowvals") ;
-   myXtFree( grapher->setshift_right_av)    ;
-   myXtFree( grapher->setshift_left_av)     ;
-   myXtFree( grapher->setshift_inc_av)      ;
+   FREE_AV( grapher->setshift_right_av)    ;
+   FREE_AV( grapher->setshift_left_av)     ;
+   FREE_AV( grapher->setshift_inc_av)      ;
    myXtFree( grapher->fmenu->fim_opt_bbox ) ;  /* Jan 1998 */
    myXtFree( grapher->fmenu->fimp_opt_bbox );  /* Jan 1998 */
    myXtFree( grapher->fmenu )               ;
    myXtFree( grapher->cen_line )            ;
-   myXtFree( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
-   myXtFree( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
-   myXtFree( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
+   FREE_AV( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
+   FREE_AV( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
+   FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )   /* 16 Jun 1997 */
-      myXtFree( grapher->opt_color_av[ii] ) ;
+      FREE_AV( grapher->opt_color_av[ii] ) ;
 
 STATUS("destroying bboxes") ;
    myXtFree( grapher->transform1D_dplot_bbox ) ;  /* 08 Nov 1996 */
@@ -735,7 +735,7 @@ STATUS("calling AFNI") ;
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    } else {
 STATUS("freeing grapher") ;
-      myXtFree( grapher) ;    /* otherwise, we will free the data */
+      myXtFree( grapher ) ;    /* otherwise, we will free the data */
    }
 
    EXRETURN ;
@@ -3686,9 +3686,9 @@ ENTRY("GRA_setshift_action_CB") ;
    if( close_window ){                          /* close the window */
       XtDestroyWidget( grapher->dialog ) ;
       grapher->dialog = NULL ;
-      myXtFree( grapher->setshift_right_av); grapher->setshift_right_av = NULL;
-      myXtFree( grapher->setshift_left_av) ; grapher->setshift_left_av  = NULL;
-      myXtFree( grapher->setshift_inc_av)  ; grapher->setshift_inc_av   = NULL;
+      FREE_AV( grapher->setshift_right_av ) ;
+      FREE_AV( grapher->setshift_left_av )  ;
+      FREE_AV( grapher->setshift_inc_av )   ;
    }
 
    EXRETURN ;

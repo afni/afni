@@ -1,6 +1,8 @@
 #ifndef _MCW_MEMPLOT_HEADER_
 #define _MCW_MEMPLOT_HEADER_
 
+#include "mcw_malloc.h"
+
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.

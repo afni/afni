@@ -34,9 +34,6 @@
 #define MAIN
 #define MEGA  1048576  /* 2^20 */
 
-#undef USE_GNU_MALLOC
-#undef MALLOC_TRACE
-
 #ifndef myXtFree
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif

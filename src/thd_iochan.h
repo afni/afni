@@ -7,6 +7,8 @@
 #undef _POSIX_SOURCE
 #endif
 
+#include "mcw_malloc.h"
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>

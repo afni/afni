@@ -48,12 +48,6 @@
                   threshold will have a "box" (Frame widget) drawn
                   around it.  some people think this looks nicer, some don't.
 
-    USE_GNU_MALLOC = if this is set, then the AFNI program will use the
-                     GNU malloc/free library in place of the system
-                     defined library.  GNU's library seems to be more
-                     robust against programming flaws (shockingly, there
-                     are flaws in AFNI).
-
     NO_FRIVOLITIES = if this is set, then the hidden "fun" parts of
                      AFNI are disabled.  What these are is a secret.
 
@@ -69,6 +63,12 @@
                        compiling on some systems [see file csfft.c].
                        The program fftest.c can be used to test the
                        speed of FFTs.
+
+    DONT_USE_MCW_MALLOC = if this is set, then the malloc wrappers
+                          defined in mcw_malloc.[ch] will not be
+                          be used.  (These functions provide some
+                          ability to track and debug the use of
+                          malloc-ed memory space.)
 
   Exactly one of the following flags must be set for AFNI plugins
   to work:

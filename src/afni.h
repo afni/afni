@@ -6,13 +6,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
+#include "mrilib.h"
 #include "imseq.h"
 #include "xutil.h"
 #include "pbar.h"
 #include "afni_graph.h"
 #include "afni_pcor.h"
-#include "mrilib.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -503,7 +502,8 @@ typedef struct {
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
-      Widget         misc_newstuff_pb , misc_purge_pb , misc_tracing_pb ;
+      Widget         misc_newstuff_pb, misc_purge_pb, misc_tracing_pb,
+                     misc_showmalloc_pb , misc_dumpmalloc_pb ;
 
       MCW_bbox     * time_lock_bbox ;  /* 03 Nov 1998 */
 } AFNI_datamode_widgets ;

@@ -629,7 +629,8 @@ printf(" -- found %d old children\n",num_children) ;
    av->decimals  = decim ;
    av->fmin      = av->imin = minval ; AV_SHIFT_VAL(decim,av->fmin) ;
    av->fmax      = av->imax = maxval ; AV_SHIFT_VAL(decim,av->fmax) ;
-   av->sval      = av->old_sval = NULL ;
+
+   myXtFree(av->sval) ; myXtFree(av->old_sval) ;  /* 09 Mar 1999 */
 
    av->block_assign_actions = 1 ;    /* temporarily block these actions */
 

@@ -36,4 +36,6 @@
 
 #define FSWAP(x,y) (tf=(x),(x)=(y),(y)=tf)
 
+#include "mcw_malloc.h"
+
 #endif

@@ -16,6 +16,8 @@
 
 #include <X11/Intrinsic.h>
 
+#include "mcw_malloc.h"
+
 #include "killer.h"
 #include "vecmat.h"
 #include "machdep.h"

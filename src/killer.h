@@ -7,11 +7,9 @@
     The pointers should be from XtMalloc, not malloc.
 *******/
 
-/** to get XtMalloc stuff **/
+/** to get mcw_malloc stuff **/
 
-#ifndef USE_GNU_MALLOC
-#  include <X11/Intrinsic.h>
-#endif
+#include "mcw_malloc.h"
 
 /** structure to hold kill list **/
 

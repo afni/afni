@@ -47,7 +47,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
-             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h
+             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h
 
 all:libmri.a libcoxplot.a libvolpack.a programs
 
@@ -372,7 +372,7 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
       pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
       afni_pcor.c afni_pcor_update.c afni_plugin.c afni_receive.c \
       parser.c parser_int.c afni_plugout.c afni_plugout.c newstuff.hhh
-	$(CCD) -o dafni $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE \
+	$(CCD) -o dafni $(IFLAGS) \
                 afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
                 dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
                 dafni_slice_byte.o  dafni_slice_complex.o afni_fimmer.c \
@@ -435,42 +435,42 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 dafni_slice_short.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CCD) -c -DDTYPE=short afni_slice.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=short afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o dafni_slice_short.o
 
 dafni_slice_float.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CCD) -c -DDTYPE=float afni_slice.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=float afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o dafni_slice_float.o
 
 dafni_slice_byte.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CCD) -c -DDTYPE=byte afni_slice.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=byte afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o dafni_slice_byte.o
 
 dafni_slice_int.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CCD) -c -DDTYPE=int afni_slice.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=int afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o dafni_slice_int.o
 
 dafni_slice_complex.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CCD) -c -DDTYPE=complex afni_slice.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=complex afni_slice.c $(IFLAGS)
 	$(MV) afni_slice.o dafni_slice_complex.o
 
 dafni_pcor_byte.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CCD) -c -DDTYPE=byte afni_pcor_update.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=byte afni_pcor_update.c $(IFLAGS)
 	$(MV) afni_pcor_update.o dafni_pcor_byte.o
 
 dafni_pcor_float.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CCD) -c -DDTYPE=float afni_pcor_update.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=float afni_pcor_update.c $(IFLAGS)
 	$(MV) afni_pcor_update.o dafni_pcor_float.o
 
 dafni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CCD) -c -DDTYPE=short afni_pcor_update.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(CCD) -c -DDTYPE=short afni_pcor_update.c $(IFLAGS)
 	$(MV) afni_pcor_update.o dafni_pcor_short.o
 
 ### End of reslicing routines
@@ -640,7 +640,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
-           mri_3dalign.o mri_render.o mri_to_rgb.o
+           mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -706,6 +706,7 @@ libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS)
 thd_compress.o:thd_compress.h
 mcw_glob.o:mcw_glob.h
 thd_iochan.o:thd_iochan.h
+mcw_malloc.o:mcw_malloc.h
 
 ###################################################################
 # Plugin stuff
@@ -763,7 +764,7 @@ plug_realtime.$(SO):plug_realtime.c
 
 plug_drealtime.$(SO):plug_realtime.c
 	$(RM) $@
-	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
+	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
 
 plug_render.$(SO):mri_render.h

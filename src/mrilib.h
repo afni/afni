@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "mcw_malloc.h"  /* 06 Mar 1999 addition */
+
 #ifndef PI
 #  define PI 3.14159265358979323846
 #endif

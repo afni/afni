@@ -1,6 +1,8 @@
 #ifndef _AFNI_SETUP_HEADER_
 #define _AFNI_SETUP_HEADER
 
+#include "mcw_malloc.h"
+
 #define PAL_FIGNORE -9753.0
 #define PAL_IIGNORE -1
 #define MAX_PALABEL 16

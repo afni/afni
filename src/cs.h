@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "mcw_malloc.h"
+
 /***** Quicksort routines in various flavonoids *****/
 
 extern void qsort_floatint ( int , float *  , int * ) ;

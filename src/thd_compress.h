@@ -12,6 +12,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#include "mcw_malloc.h"
+
 #define COMPRESS_NOFILE    -666
 #define COMPRESS_NONE      -1
 #define COMPRESS_GZIP       0

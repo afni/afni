@@ -73,4 +73,6 @@ void globfree (glob_t *);
 
 #include <string.h>
 
+#include "mcw_malloc.h"
+
 #endif /* !_MCW_GLOB_H_ */

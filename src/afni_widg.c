@@ -4511,6 +4511,14 @@ ENTRY("AFNI_misc_button") ;
    MCW_register_hint( dmode->misc_newstuff_pb , "Purge unused datasets" ) ;
 
    /*--- pushbutton to toggle routine tracing ---*/
+
+#if defined(USE_TRACING) || defined(USING_MCW_MALLOC)
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+#endif
+
 #ifdef USE_TRACING
    dmode->misc_tracing_pb =
          XtVaCreateManagedWidget(
@@ -4522,9 +4530,43 @@ ENTRY("AFNI_misc_button") ;
             NULL ) ;
    XtAddCallback( dmode->misc_tracing_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_tracing_pb , "Toggle Debug printing" ) ;
+   MCW_register_hint( dmode->misc_tracing_pb , "A Debugging Option" ) ;
 #else
    dmode->misc_tracing_pb = NULL ;
+#endif
+
+   /*--- pushbutton to query malloc table ---*/
+#ifdef USING_MCW_MALLOC
+   if( MCW_MALLOC_enabled ){                         /* 06 Mar 1999 */
+      dmode->misc_showmalloc_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , menu ,
+                  LABEL_ARG("Malloc Summary") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( dmode->misc_showmalloc_pb , XmNactivateCallback ,
+                     AFNI_misc_CB , im3d ) ;
+
+      dmode->misc_dumpmalloc_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , menu ,
+                  LABEL_ARG("Dump Malloc Table") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( dmode->misc_dumpmalloc_pb , XmNactivateCallback ,
+                     AFNI_misc_CB , im3d ) ;
+
+      MCW_register_hint( dmode->misc_showmalloc_pb , "A Debugging Option" ) ;
+      MCW_register_hint( dmode->misc_dumpmalloc_pb , "A Debugging Option" ) ;
+   } else {
+      dmode->misc_showmalloc_pb = dmode->misc_dumpmalloc_pb = NULL ;
+   }
+#else
+   dmode->misc_showmalloc_pb = dmode->misc_dumpmalloc_pb = NULL ;
 #endif
 
    /*--- done ---*/

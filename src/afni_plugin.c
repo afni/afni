@@ -156,9 +156,9 @@ if(PRINT_TRACING)
    plin->interface       = NULL ;
 
 #ifdef AFNI_DEBUG
-#ifdef MALLOC_TRACE
-   check_malloc() ;
-#endif
+   MCHECK ;
+#else
+   MPROBE ;
 #endif
 
    do {
@@ -1587,6 +1587,8 @@ ENTRY("PLUG_action_CB") ;
 
       PLUTO_popdown_meter( plint ) ;  /* if the user forgets */
 
+      MPROBE ;
+
       /********************************/
 
       badrun = (mesg != NULL) ;
@@ -2875,6 +2877,8 @@ STATUS("calling plugin") ;
       SHOW_AFNI_PAUSE ;
       mesg = plint->call_func( plint ) ;
       SHOW_AFNI_READY ;
+
+      MPROBE ;
 
       if( mesg != NULL ){
          if( w != NULL ){

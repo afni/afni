@@ -3,6 +3,7 @@
 #include "mcw_graf.h"
 #include "parser.h"
 #include <ctype.h>
+#include "dbtrace.h"
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
@@ -427,7 +428,7 @@ char * REND_main( PLUGIN_interface * plint )
    if( renderer_open ){
       XtMapWidget(shell) ;
       XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
-      return ;
+      return NULL ;
    }
 
    im3d = plint->im3d ;  /* save for local use */
@@ -518,6 +519,7 @@ char * REND_main( PLUGIN_interface * plint )
 
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ;
 
+   MPROBE ;
    return NULL ;
 }
 
@@ -1500,6 +1502,7 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    FREE_VOLUMES ; INVALIDATE_OVERLAY ;
+   MPROBE ;
    return ;
 }
 

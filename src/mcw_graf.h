@@ -5,6 +5,8 @@
 
 #include "bbox.h"       /* MCW stuff for buttons, etc. */
 
+#include "mcw_malloc.h"
+
 #define MAX_GHANDS 16   /* maximum # of handles */
 
 #define GRAF_SIZE 128

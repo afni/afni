@@ -2060,15 +2060,15 @@ DPR("ISQ_free_alldata");
    for( ib=0 ; ib < NARROW ; ib++ ) myXtFree( seq->arrow[ib] ) ;
 
    myXtFree( seq->arrowpad )           ;
-   myXtFree( seq->mont_across_av )     ;
-   myXtFree( seq->mont_down_av )       ;
-   myXtFree( seq->mont_skip_av )       ;
-   myXtFree( seq->mont_gap_av )        ;
-   myXtFree( seq->mont_gapcolor_av )   ;
-   myXtFree( seq->transform0D_av )     ; /* 30 Oct 1996 */
-   myXtFree( seq->transform2D_av )     ;
-   myXtFree( seq->rowgraph_av )        ; /* 30 Dec 1998 */
-   myXtFree( seq->surfgraph_av )       ; /* 21 Jan 1999 */
+   FREE_AV( seq->mont_across_av )     ;
+   FREE_AV( seq->mont_down_av )       ;
+   FREE_AV( seq->mont_skip_av )       ;
+   FREE_AV( seq->mont_gap_av )        ;
+   FREE_AV( seq->mont_gapcolor_av )   ;
+   FREE_AV( seq->transform0D_av )     ; /* 30 Oct 1996 */
+   FREE_AV( seq->transform2D_av )     ;
+   FREE_AV( seq->rowgraph_av )        ; /* 30 Dec 1998 */
+   FREE_AV( seq->surfgraph_av )       ; /* 21 Jan 1999 */
    myXtFree( seq->surfgraph_arrowpad ) ;
 
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
@@ -3108,10 +3108,10 @@ void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
       seq->num_bbox = 0 ;
       seq->dialog_starter = -1 ;
 
-      myXtFree( seq->transform0D_av ) ;
-      myXtFree( seq->transform2D_av ) ;
-      myXtFree( seq->rowgraph_av )    ;
-      myXtFree( seq->surfgraph_av )   ;  /* 21 Jan 1999 */
+      FREE_AV( seq->transform0D_av ) ;
+      FREE_AV( seq->transform2D_av ) ;
+      FREE_AV( seq->rowgraph_av )    ;
+      FREE_AV( seq->surfgraph_av )   ;  /* 21 Jan 1999 */
    }
 
    if( new_opt )
@@ -4651,11 +4651,11 @@ void ISQ_montage_action_CB( Widget w , XtPointer client_data , XtPointer call_da
          if( ISQ_but_bot_dial[ib] == True )         /* that also want to   */
             SENSITIZE( seq->wbut_bot[ib] , True ) ; /* use seq->dialog    */
 
-      myXtFree( seq->mont_across_av ) ;
-      myXtFree( seq->mont_down_av ) ;
-      myXtFree( seq->mont_skip_av ) ;
-      myXtFree( seq->mont_gap_av ) ;
-      myXtFree( seq->mont_gapcolor_av ) ;
+      FREE_AV( seq->mont_across_av ) ;
+      FREE_AV( seq->mont_down_av ) ;
+      FREE_AV( seq->mont_skip_av ) ;
+      FREE_AV( seq->mont_gap_av ) ;
+      FREE_AV( seq->mont_gapcolor_av ) ;
 
       seq->mont_across_av   = NULL ;
       seq->mont_down_av     = NULL ;

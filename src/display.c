@@ -364,6 +364,7 @@ double mypow( double x , double y )  /* replaces the math library pow */
 {
    double b ;
    if( x <= 0.0 ) return 0.0 ;
+   if( y == 1.0 ) return x ;
    b = log(x) ; b = exp( y*b ) ;
    return b ;
 }

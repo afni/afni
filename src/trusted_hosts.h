@@ -7,6 +7,8 @@
 
 /** list of strings with beginning components of IP addresses **/
 
+#include "mcw_malloc.h"
+
 static char * trusted_hosts[] = {
     "141.106.106.2" ,                 /* MCW Biophysics computers */
     "127.0.0.1"     ,                 /* localhost */

@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include "machdep.h"
 
+#include "mcw_malloc.h"
+
 #ifndef MAX
 #   define MAX(a,b) (((a)<(b)) ? (b) : (a))
 #   define MIN(a,b) (((a)>(b)) ? (b) : (a))

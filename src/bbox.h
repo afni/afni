@@ -106,6 +106,14 @@ typedef struct {
       float fstep ;  /* 16 Feb 1999 */
 } MCW_arrowval ;
 
+/* 08 Mar 1999: this macro is defined
+                because I forget to free the string values (sval) */
+
+#define FREE_AV(av) do{ if( (av) != NULL ){                              \
+                           XtFree((av)->sval) ; XtFree((av)->old_sval) ; \
+                           XtFree((char*)(av)) ; (av) = NULL ;           \
+                        }} while(0)
+
 #define MCW_AV_downup    1
 #define MCW_AV_leftright 2
 #define MCW_AV_optmenu   3

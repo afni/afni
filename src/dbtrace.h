@@ -7,46 +7,35 @@
 ******************************************************************************/
 
 /** inputs:
-     USE_TRACING   ==> if set, include tracing information in AFNI
-     MALLOC_TRACE  ==> if also set, enables GNU malloc and malloc debugging **/
+     USE_TRACING ==> if set, include tracing information in AFNI **/
 
 /*** Modified 23 Aug 1998 to eliminate PRINT_TRACING.
      Now, if DBG_trace > 1, will print STATUS messages. ***/
 
+/*** Modified 06 Mar 1999 to eliminate GNU malloc stuff,
+     and replace it with mcw_malloc stuff.              ***/
+
 /*********************************************************************/
 #ifdef USE_TRACING
 
-#define DEBUG_MAX_DEPTH 1024  /* way too big, but who cares? */
+#define DEBUG_MAX_DEPTH 256  /* way too big, but who cares? */
 
 /*---------------------------------------------------------------*/
-#if defined(MALLOC_TRACE) && !defined(USE_GNU_MALLOC)
-#  define USE_GNU_MALLOC
-#endif
-/*---------------------------------------------------------------*/
 
-/*---------------------------------------------------------------*/
-#ifdef MALLOC_TRACE
-#  define malloc  malloc_track
-#  define realloc realloc_track
-#  define calloc  calloc_track
-#  define free    free_track
-#  define TRMOUT  printf("check_malloc: %s\n",check_malloc())
-#  define TRMNOT  check_malloc()
-#  define MCHECK  TRMOUT
+#ifdef DONT_USE_MCW_MALLOC
 
-  extern int    ptr_tracker( void * fred ) ;
-  extern int    nul_tracker(void) ;
-  extern void   add_tracker( void * fred , size_t n ) ;
-  extern void * malloc_track( size_t n ) ;
-  extern void * realloc_track( void * fred , size_t n ) ;
-  extern void * calloc_track( size_t n , size_t m ) ;
-  extern void   free_track( void * fred ) ;
-  extern char * check_malloc(void) ;
+# define MCHECK /* nada */
+# define MPROBE /* nada */
+
 #else
-#  define TRMOUT 0
-#  define TRMNOT 0
-#endif /* MALLOC_TRACE */
-/*---------------------------------------------------------------*/
+
+# define MCHECK                           \
+   do{ char * mc = mcw_malloc_status() ;  \
+        if( mc != NULL ) printf("** Memory usage: %s\n",mc) ; } while(0)
+
+# define MPROBE do{ if( !DBG_trace ) mcw_malloc_status() ; } while(0)
+
+#endif
 
 /*---------------------------------------------------------------*/
 #ifdef MAIN
@@ -60,7 +49,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    char * sname ; int ii ;
    switch(sig){
       default:      sname = "unknown" ; break ;
-      case -1:      sname = "malloc"  ; break ;
+/*    case -1:      sname = "malloc"  ; break ; */
       case SIGPIPE: sname = "SIGPIPE" ; break ;
       case SIGSEGV: sname = "SIGSEGV" ; break ;
       case SIGBUS:  sname = "SIGBUS"  ; break ;
@@ -98,7 +87,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                           printf("%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",     \
                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,    \
                                  __FILE__ , __LINE__ ) ;                      \
-                          TRMOUT ; fflush(stdout) ; } } while(0)
+                          MCHECK ; fflush(stdout) ; } } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
 
@@ -106,7 +95,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                           printf("%*.*s%s [%d]: EXIT (file=%s line=%d)\n",     \
                                  DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
                                  __FILE__ , __LINE__ );                        \
-                          TRMOUT ; fflush(stdout) ; }                         \
+                          MCHECK ; fflush(stdout) ; }                         \
                         DBG_num = (DBG_num>1) ? DBG_num-1 : 1 ; } while(0)
 
 #define PRINT_TRACING (DBG_trace > 1)
@@ -119,13 +108,13 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 /*********************************************************************/
 #else /* don't USE_TRACING */
 
-#  define ENTRY(rout)
-#  define DBEXIT
-#  define DBROUT
-#  define STATUS(str)
-#  define DBG_SIGNALS
-#  define TRMOUT
-#  define TRMNOT
+#  define ENTRY(rout)   /* nada */
+#  define DBEXIT        /* nada */
+#  define DBROUT        /* nada */
+#  define STATUS(str)   /* nada */
+#  define DBG_SIGNALS   /* nada */
+#  define MCHECK        /* nada */
+#  define MPROBE        /* nada */
 #  define PRINT_TRACING 0
 
 #endif /* USE_TRACING */
@@ -135,20 +124,10 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define EXRETURN    do{ DBEXIT ; return ; } while(0)
 
 /*---------------------------------------------------------------*/
-#ifdef USE_GNU_MALLOC
-#  undef XtMalloc
-#  undef XtRealloc
-#  undef XtCalloc
-#  undef XtFree
-
-#  define XtMalloc  malloc
-#  define XtRealloc realloc
-#  define XtCalloc  calloc
-#  define XtFree    free
-#endif
 
 #ifndef MCHECK
-#define MCHECK /* nada */
+# define MCHECK /* nada */
+# define MPROBE /* nada */
 #endif
 /*---------------------------------------------------------------*/
 

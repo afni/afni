@@ -10,6 +10,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "mcw_malloc.h"
+
 #include "display.h"
 #include "bbox.h"
 #include "xutil.h"

@@ -5,19 +5,8 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
 #include "dbtrace.h"
-
-#if defined(USE_TRACING) && defined(MALLOC_TRACE)
-# define VMCHECK                                                \
-  do{ if(verbose){                                              \
-         fprintf(stderr,"RT check_malloc: ") ; fflush(stderr) ; \
-         fprintf(stderr,"%s\n",check_malloc()) ; } } while(0)
-#else
-# define VMCHECK /* nada */
-#endif
+#define VMCHECK do{ if(verbose == 2) MCHECK; } while(0)
 
 #define TCP_CONTROL "tcp:*:7954"      /* control channel specification */
 #define INFO_SIZE  (16*1024)          /* change this ==> change SHM_CHILD below */
