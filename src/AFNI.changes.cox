@@ -5319,3 +5319,8 @@
 18 Feb 2005
  * Modified afni_driver.c, imseq.c, and afni_graph.c to add "keypress="
      modifiers to the OPEN_WINDOW commands for driving AFNI.
+
+22 Feb 2005
+ * Modified 3dTshift.c and to3d.c to have new 'alt+z2' option.
+ * New program 3dMedianFilter.
+ * Added I:*.1D stuff to 3dcalc.c.

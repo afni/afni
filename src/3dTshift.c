@@ -90,7 +90,9 @@ void TS_syntax(char * str)
           "                  go in the 'tpattern' input to to3d, described below:\n"
           "\n"
           "   alt+z = altplus   = alternating in the plus direction\n"
+          "   alt+z2            = alternating, starting at slice #1 instead of #0\n"
           "   alt-z = altminus  = alternating in the minus direction\n"
+          "   alt-z2            = alternating, starting at slice #nz-2 instead of #nz-1\n"
           "   seq+z = seqplus   = sequential in the plus direction\n"
           "   seq-z = seqminus  = sequential in the minus direction\n"
           "   @filename         = read temporal offsets from 'filename'\n"
@@ -103,7 +105,9 @@ void TS_syntax(char * str)
           "   tpattern    0   1   2   3   4   Comment\n"
           "   --------- --- --- --- --- ---   -------------------------------\n"
           "   altplus     0 600 200 800 400   Alternating in the +z direction\n"
+          "   alt+z2    400   0 600 200 800   Alternating, but starting at #1\n"
           "   altminus  400 800 200 600   0   Alternating in the -z direction\n"
+          "   alt-z2    800 200 600   0 400   Alternating, starting at #nz-2 \n"
           "   seqplus     0 200 400 600 800   Sequential  in the -z direction\n"
           "   seqplus   800 600 400 200   0   Sequential  in the -z direction\n"
           "\n"
@@ -181,6 +185,18 @@ float * TS_parse_tpattern( int nzz , float TR , char * tpattern )
          tpat[ii] = tsl ; tsl += tframe ;
       }
 
+   } else if( nzz > 1 && strcmp(tpattern,"alt+z2")==0 ){  /* 22 Feb 2005 */
+
+      /*--- set up alternating in the +z direction ---*/
+
+      tsl = 0.0 ;
+      for( ii=1 ; ii < nzz ; ii+=2 ){
+         tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=0 ; ii < nzz ; ii+=2 ){
+         tpat[ii] = tsl ; tsl += tframe ;
+      }
+
    } else if( nzz > 1 &&
              (strcmp(tpattern,"alt-z")==0 || strcmp(tpattern,"altminus")==0) ){
 
@@ -191,6 +207,18 @@ float * TS_parse_tpattern( int nzz , float TR , char * tpattern )
          tpat[ii] = tsl ; tsl += tframe ;
       }
       for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
+         tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( nzz > 1 && strcmp(tpattern,"alt-z2") == 0 ){  /* 22 Feb 2005 */
+
+      /*--- set up alternating in the -z direction ---*/
+
+      tsl = 0.0 ;
+      for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
+         tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=nzz-1 ; ii >=0 ; ii-=2 ){
          tpat[ii] = tsl ; tsl += tframe ;
       }
 
