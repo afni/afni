@@ -7,11 +7,22 @@
 int main( int argc , char *argv[] )
 {
    nifti_image *nim ;
-   int iarg=1 , outmode=-1 , ll ;
+   int iarg=1 , outmode=1 , ll ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: nifti1_test [-n2|-n1|-a2] infile [outfile]\n") ;
-     printf("sizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
+     printf("Usage: nifti1_test [-n2|-n1|-na|-a2] infile [prefix]\n"
+            "\n"
+            " If prefix is given, then the options mean:\n"
+            "  -n2 ==> write a NIFTI-1 file pair: prefix.hdr/prefix.img\n"
+            "  -n1 ==> write a NIFTI-1 single file: prefix.nii\n"
+            "  -na ==> write a NIFTI-1 ASCII+binary file: prefix.nii\n"
+            "  -a2 ==> write an ANALYZE 7.5 file pair: prefix.hdr/prefix.img\n"
+            " The default is '-n1'.\n"
+            "\n"
+            " If prefix is not given, then the header info from infile\n"
+            " file is printed to stdout.\n"
+           ) ;
+     printf("\nsizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
      exit(0) ;
    }
 
@@ -19,17 +30,25 @@ int main( int argc , char *argv[] )
      if( argv[1][1] == 'a' ){
        outmode = 0 ;
      } else if( argv[1][1] == 'n' ){
-       outmode = (argv[1][2] == '1') ? 1 : 2 ;
+       switch( argv[1][2] ){
+         default:  outmode = 2 ; break ;
+         case 1:   outmode = 1 ; break ;
+         case 'a': outmode = 3 ; break ;
+       }
      }
      iarg++ ;
    }
 
+   if( iarg >= argc ){
+     fprintf(stderr,"** ERROR: no input file on command line!?\n"); exit(1);
+   }
+
    nim = nifti_image_read( argv[iarg++] , 1 ) ;
    if( nim == NULL ) exit(1) ;
-   nifti_image_infodump( nim ) ;
-   if( iarg >= argc ) exit(0) ;
 
-   if( outmode >= 0 ) nim->nifti_type = outmode ;
+   if( iarg >= argc ){ nifti_image_infodump(nim); exit(0); }
+
+   nim->nifti_type = outmode ;
    if( nim->fname != NULL ) free(nim->fname) ;
    if( nim->iname != NULL ) free(nim->iname) ;
 
@@ -38,7 +57,7 @@ int main( int argc , char *argv[] )
    nim->iname = calloc(1,ll+6) ;
    strcpy(nim->fname,argv[iarg]) ;
    strcpy(nim->iname,argv[iarg]) ;
-   if( nim->nifti_type == 1 ){
+   if( nim->nifti_type == 1 || nim->nifti_type == 3 ){
      strcat(nim->fname,".nii") ;
      strcat(nim->iname,".nii") ;
    } else {
