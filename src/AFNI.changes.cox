@@ -4270,3 +4270,6 @@
 04 Feb 2003
  * Moved user-defined colorscale setup to pbar.c from afni.c.
  * In afni_widg.c, use AFNI_COLORSCALE_DEFAULT to setup initial colorscale.
+
+05 Feb 2003
+ * Added "OPEN_PANEL" command to afni_driver.c, and to afni_splash.c.
