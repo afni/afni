@@ -13,8 +13,7 @@ PREPSTRINGS:
 	echo $Date_s
 	set Param_s = `grep SUMA ../Makefile`
 	
-	echo -n '#!' > $StampFile
-	echo '/bin/csh -f' >> $StampFile
+	echo '#\!/bin/csh -f' > $StampFile
 	echo '#Script created by:'$0 $1 >> $StampFile
 	echo '' >> $StampFile
 	echo 'echo ""' >> $StampFile
