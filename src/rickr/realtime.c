@@ -409,11 +409,24 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 	else
 	    sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s", graph_win );
 
-	if ( ac->param->opts.drive_cmd != NULL )
-	{
-	    strcat( tbuf, " " );
-	    strcat( tbuf, ac->param->opts.drive_cmd );
-	}
+	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
+    /* pass along any user specified drive command(s) */
+    if ( ac->param->opts.drive_cmd != NULL )
+    {
+	char * cp;
+
+	sprintf( tbuf, "DRIVE_AFNI %s", ac->param->opts.drive_cmd );
+
+	/* sneaky... change any "\n" pairs to '\n' */
+	for ( cp = tbuf; cp < (tbuf + strlen(tbuf) - 1); cp++ )
+	    if ( cp[0] == '\\' && cp[1] == 'n' )
+	    {
+		cp[0] = ' ';
+		cp[1] = '\n';
+		cp++;
+	    }
 
 	ART_ADD_TO_BUF( ac->buf, tbuf );
     }

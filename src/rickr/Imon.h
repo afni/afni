@@ -144,10 +144,10 @@ typedef struct
 	    fprintf( stderr, "\007\n"					\
 		    "***********************************************\n" \
 		    "Error: %s\n"					\
-		    "       file              : %s\n"			\
+		    "       current file      : %s\n"			\
 		    "       expected z-offset : %.4f\n"      		\
 		    "       actual z-offset   : %.4f\n"      		\
-		    "       run               : %d\n"                   \
+		    "       current run       : %d\n"                   \
 		    "       slice number      : %d (of %d)\n"           \
 		    "***********************************************\n",\
 		I_str, I_file, I_ez, I_az, I_run, I_s1, I_sn );         \
