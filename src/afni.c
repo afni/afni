@@ -1653,8 +1653,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
 
+   /* 21 Jul 2003: Check if this is a stupid system. */
+
 #ifdef BAD_BUTTON3_POPUPS
-    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+    (void) MCW_popup_message( MAIN_im3d->vwid->imag->topper,
                               " \n"
                               "*** WARNING:                  ***\n"
                               "*** This computer system has  ***\n"

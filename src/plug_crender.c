@@ -5356,7 +5356,7 @@ ENTRY( "RCREND_func_widgets" );
 
    /**-- Popup menu to control some facets of the pbar --**/
 
-#ifdef BAD_BUTTON3_POPUPS
+#ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_rowcol, "menu" , NULL , 0 ) ;
 #else
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;

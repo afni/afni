@@ -181,9 +181,9 @@ ENTRY("new_MCW_grapher") ;
    /*--- Button 3 popup menu ---*/
    /*---------------------------*/
 
-#ifdef BAD_BUTTON3_POPUPS
+#ifdef BAD_BUTTON3_POPUPS    /* 21 Jul 2003 */
    grapher->but3_menu =
-      XmCreatePopupMenu( grapher->form_tmp, "menu" , NULL , 0 ) ;
+      XmCreatePopupMenu(          form_tmp, "menu" , NULL , 0 ) ;
 #else
    grapher->but3_menu =
       XmCreatePopupMenu( grapher->draw_fd , "menu" , NULL , 0 ) ;
@@ -2725,15 +2725,11 @@ STATUS("button press") ;
                 /* 07 Mar 2002: if string is too long, popup textwin,
                                 otherwise just open a popup window    */
 
-#ifdef BAD_BUTTON3_POPUPS
-                nltop = 0 ;  /* 21 Jul 2003: fix for Solaris stupidity */
-#else
                 eee = getenv( "AFNI_GRAPH_TEXTLIMIT" ) ;
                 if( eee != NULL ){
                    nlin = strtol( eee , NULL , 10 ) ;
                    if( nlin > 0 ) nltop = nlin ;
                 }
-#endif
 
                 for( nlin=1,eee=qstr ; *eee != '\0' ; eee++ )
                    if( *eee == '\n' ) nlin++ ;
