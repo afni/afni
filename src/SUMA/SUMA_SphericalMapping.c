@@ -20,6 +20,7 @@ void SUMA_tesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int rec
   float x12, y12, z12;
   float x23, y23, z23;
   float x31, y31, z31;
+  static float EPSILON = 0.0001;
   int currIndex, index1, index2, index3;
   int i, j;
   static char FuncName[]={"SUMA_tesselate"};
@@ -46,15 +47,21 @@ void SUMA_tesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int rec
   i=0; j=0;
   for (i=0; i<=currIndex; ++i) {
     j = 3*i;
-    if (nodeList[j]==x12 && nodeList[j+1]==y12 && nodeList[j+2]==z12) {
+    if ( fabs(nodeList[j] - x12) < EPSILON && \
+         fabs(nodeList[j+1] - y12) < EPSILON  && \
+         fabs(nodeList[j+2] - z12) < EPSILON ) {
       index1 = i;
-      //      fprintf(SUMA_STDERR, " n12 exists ");
+        //    fprintf(SUMA_STDERR, " n12 exists ");
     }
-    if (nodeList[j]==x23 && nodeList[j+1]==y23 && nodeList[j+2]==z23) {
+    if ( fabs(nodeList[j] - x23) < EPSILON  && \
+         fabs(nodeList[j+1] - y23) < EPSILON  && \
+         fabs(nodeList[j+2] - z23) < EPSILON ) {
       index2 = i;
-      // fprintf(SUMA_STDERR, " n23 exists ");
+       //fprintf(SUMA_STDERR, " n23 exists ");
     }
-    if (nodeList[j]==x31 && nodeList[j+1]==y31 && nodeList[j+2]==z31) {
+    if ( fabs(nodeList[j] - x31) < EPSILON && \
+         fabs(nodeList[j+1] - y31) < EPSILON && \
+         fabs(nodeList[j+2] - z31) < EPSILON ) {
       index3 = i;
       //fprintf(SUMA_STDERR, " n31 exists ");
     }

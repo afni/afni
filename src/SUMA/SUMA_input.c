@@ -397,16 +397,55 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case XK_m:
-         		sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
-					if (sv->GVS[sv->StdView].ApplyMomentum) {
-	         		 sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->App, 1, SUMA_momentum, (XtPointer) w);
-						 /* wait till user initiates turning */
-						sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
-						sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
-					}
-       			else {
-						if (sv->X->MOMENTUMID)  XtRemoveTimeOut(sv->X->MOMENTUMID);
-     			 	}
+         		if (Kev.state & ControlMask){
+                  if (SUMAg_CF->Dev) {
+                     SUMA_SurfaceObject *SO;
+                     
+                     fprintf(SUMA_STDOUT, "%s: Enter mm distance [RAI] to move center of all mappable surfaces in DOv by.\n", FuncName);
+                     it = SUMA_ReadNumStdin (fv3, 3);
+                     if (it > 0 && it < 3) {
+							   fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+							   SUMA_RETURNe;
+						   }else if (it < 0) {
+							   fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+							   SUMA_RETURNe;
+						   }else if (it == 0) {
+							   fprintf(SUMA_STDERR,"%s: Nothing read.\n", FuncName);
+                        SUMA_RETURNe;
+						   }
+                     
+                     for (it = 0; it < SUMAg_N_DOv; ++it) {
+                        if (SUMA_isSO (SUMAg_DOv[it])) {
+                           SO = (SUMA_SurfaceObject *)SUMAg_DOv[it].OP;
+                           if (SUMA_isINHmappable(SO)) {
+                              int imax;
+                              /* add the shift */
+                              fprintf (SUMA_STDERR,"%s: Shifting %s by %f %f %f mm RAI.\n", FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
+                              ii = 0;
+                              imax = 3 * SO->N_Node;
+                              while (ii < imax) {
+                                 SO->NodeList[ii] += fv3[0]; ++ii;
+                                 SO->NodeList[ii] += fv3[1]; ++ii;
+                                 SO->NodeList[ii] += fv3[2]; ++ii;
+                              }
+                           }
+                        }
+                     }
+                     
+                     SUMA_postRedisplay(w, clientData, callData);
+                  }
+               } else {
+                  sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
+					   if (sv->GVS[sv->StdView].ApplyMomentum) {
+	         		    sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->App, 1, SUMA_momentum, (XtPointer) w);
+						    /* wait till user initiates turning */
+						   sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
+						   sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
+					   }
+       			   else {
+						   if (sv->X->MOMENTUMID)  XtRemoveTimeOut(sv->X->MOMENTUMID);
+     			 	   }
+               }
 				 break;
 
 			case XK_n:
