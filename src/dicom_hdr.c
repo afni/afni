@@ -24,7 +24,13 @@ int main(int argc, char **argv)
 
      ppp = mri_dicom_header( argv[ii] ) ;
      if( ppp != NULL ){
+       off_t poff ; unsigned int plen ;
        printf("%s",ppp) ; free(ppp) ;
+       mri_dicom_pxlarr( &poff , &plen ) ;
+       if( plen > 0 )
+         printf("Pixel array offset = %u (bytes)\n"
+                "Pixel array length = %u (bytes)\n" ,
+                (unsigned int)poff , plen ) ;
      } else {
        printf("***\n*** ERROR: can't open %s as a DICOM file!\n***\n",argv[ii]) ;
      }
