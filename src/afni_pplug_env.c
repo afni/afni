@@ -349,6 +349,8 @@ PLUGIN_interface * ENV_init(void)
                     "Entropy threshold: below this, 2%-98% is off." ,
                     0,10,1,0 , NULL ) ;
 
+   ENV_add_yesno( "AFNI_THRESH_LOCK" , "Enable threshold lock" ) ; /* 06 Feb 2004 */
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
