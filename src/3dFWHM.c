@@ -22,6 +22,9 @@
 
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Output NO_VALUE when results cannot be computed.
+  Date:    08 March 2004  [rickr]
 */
 
 
@@ -31,7 +34,7 @@
 #define PROGRAM_NAME "3dFWHM"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "20 February 1997"/* date of initial program release */
-#define PROGRAM_LATEST  "02 December 2002"/* date of latest program revision */
+#define PROGRAM_LATEST  "08 March 2004"/* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -463,35 +466,60 @@ void estimate_gfw (input_options * option_data, float * fim, float * fmask,
   else
     varzz = (dfdzsq - (dfdzsum * dfdzsum)/countz) / (countz-1);
 
-
   /*----- now estimate the equivalent Gaussian filter width -----*/
-  arg = 1.0 - 0.5*(varxx/var);
-  if ( (arg <= 0.0) || (varxx == 0.0) )
-    *sx = 0.0;
+  if ( var == 0.0 )
+  {
+    *sx = *sy = *sz = 0.0;    /* do not compute         08 Mar 2004 [rickr] */
+  }
   else
-    *sx = sqrt( -1.0 / (4.0*log(arg)) ) * dx;
+  {
+    arg = 1.0 - 0.5*(varxx/var);
+    if ( (arg <= 0.0) || (varxx == 0.0) )
+      *sx = -1.0;              /* flag value */
+    else
+      *sx = sqrt( -1.0 / (4.0*log(arg)) ) * dx;
 
-  arg = 1.0 - 0.5*(varyy/var);
-  if ( (arg <= 0.0) || (varyy == 0.0) )
-    *sy = 0.0;
-  else
-    *sy = sqrt( -1.0 / (4.0*log(arg)) ) * dy;
+    arg = 1.0 - 0.5*(varyy/var);
+    if ( (arg <= 0.0) || (varyy == 0.0) )
+      *sy = -1.0;              /* flag value */
+    else
+      *sy = sqrt( -1.0 / (4.0*log(arg)) ) * dy;
 
-  arg = 1.0 - 0.5*(varzz/var);
-  if ( (arg <= 0.0) || (varzz == 0.0) )
-    *sz = 0.0;
-  else
-    *sz = sqrt( -1.0 / (4.0*log(arg)) ) * dz;
-
+    arg = 1.0 - 0.5*(varzz/var);
+    if ( (arg <= 0.0) || (varzz == 0.0) )
+      *sz = -1.0;              /* flag value */
+    else
+      *sz = sqrt( -1.0 / (4.0*log(arg)) ) * dz;
+  }
 
   if (!(option_data->quiet))  
     {
       printf ("count=%d \n", count);
       printf ("var  =%f \n", var);
       printf ("varxx=%f varyy=%f varzz=%f \n", varxx, varyy, varzz);
-      printf ("   sx=%f    sy=%f    sz=%f \n", *sx, *sy, *sz);
+
+      /* check flags instead...                      08 March 2004  [rickr]
+       * printf ("   sx=%f    sy=%f    sz=%f \n", *sx, *sy, *sz);
+       */
+
+      if ( *sx >= 0 ) printf("   sx=%f ", *sx);
+      else            printf("   sx=NO_VALUE ");
+      if ( *sy >= 0 ) printf("   sy=%f ", *sy);
+      else            printf("   sy=NO_VALUE ");
+      if ( *sz >= 0 ) printf("   sz=%f ", *sz);
+      else            printf("   sz=NO_VALUE ");
+      putchar('\n');
     }
 }
+
+/* 						     08 March 2004  [rickr] */
+#define DISP_SIG_RESULTS(c,val) 					     \
+    do { if ( val >= 0.0 ) 						     \
+	   fprintf (fout, "sigma%c = %5.2f   FWHM%c = %5.2f \n", 	     \
+  	            c, val, c, val * 2.0*sqrt(2.0*log(2.0)));		     \
+	 else								     \
+	   fprintf (fout, "sigma%c = NO_VALUE   FWHM%c = NO_VALUE\n",c,c);   \
+    } while (0)
 
 
 /*---------------------------------------------------------------------------*/
@@ -531,13 +559,28 @@ void output_results (input_options * option_data, float sx, float sy, float sz)
   /*----- print out the results -----*/
   fprintf (fout, "\n\n");
   fprintf (fout, "Gaussian filter widths: \n");
+
+#if 0 
   fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
-	   sx, sx * 2.0*sqrt(2.0*log(2.0)));
+  	   sx, sx * 2.0*sqrt(2.0*log(2.0)));
   fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n", 
 	   sy, sy * 2.0*sqrt(2.0*log(2.0)));
   fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n", 
 	   sz, sz * 2.0*sqrt(2.0*log(2.0)));
+#endif
+
+  /* check for flag value of -1.0                      08 Mar 2004 [rickr] */
+  DISP_SIG_RESULTS('x', sx);
+  DISP_SIG_RESULTS('y', sy);
+  DISP_SIG_RESULTS('z', sz);
   
+  /* report any failures */
+  if ( sx < 0.0 || sy < 0.0 || sz < 0.0 )
+    fprintf(stderr,
+	"\n"
+	"** failure: some filter widths were not able to be estimated with\n"
+        "            this tool, such results were reported as 'NO_VALUE'\n");
+
   fclose(fout);
 
 }
