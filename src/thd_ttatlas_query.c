@@ -239,15 +239,27 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
 
    if( nfind == 0 ){
       char xlab[24], ylab[24] , zlab[24] ;
-      sprintf(xlab,"%.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
-      sprintf(ylab,"%.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
-      sprintf(zlab,"%.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
-      rbuf = malloc(256) ;
+      THD_fvec3 tv , mv ;
+      float mx,my,mz ;
+      char mxlab[24], mylab[24] , mzlab[24] ;
+
+      sprintf(xlab,"%4.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
+      sprintf(ylab,"%4.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
+      sprintf(zlab,"%4.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
+
+      LOAD_FVEC3(tv,xx,yy,zz);
+      mv = THD_tta_to_mni(tv); UNLOAD_FVEC3(mv,mx,my,mz);
+      sprintf(mxlab,"%4.0f mm [%c]",mx,(mx>=0.0)?'R':'L') ;
+      sprintf(mylab,"%4.0f mm [%c]",my,(my>=0.0)?'A':'P') ;
+      sprintf(mzlab,"%4.0f mm [%c]",mz,(mz< 0.0)?'I':'S') ;
+
+      rbuf = malloc(500) ;
       sprintf(rbuf,"%s\n"
-                   "Focus point= %s, %s, %s\n"
+                   "Focus point=%s,%s,%s {T-T Atlas}\n"
+                   "           =%s,%s,%s {MNI Brain}\n"
                    "\n"
                    "***** Not near any region stored in database *****\n" ,
-              WAMI_HEAD , xlab,ylab,zlab ) ;
+              WAMI_HEAD , xlab,ylab,zlab , mxlab,mylab,mzlab ) ;
       RETURN(rbuf) ;
    }
 
@@ -275,10 +287,24 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    /* 04 Apr 2002: print coordinates (LPI) as well (the HH-PB addition) */
 
    { char lbuf[128], xlab[24], ylab[24] , zlab[24] ;
-     sprintf(xlab,"%.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
-     sprintf(ylab,"%.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
-     sprintf(zlab,"%.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
-     sprintf(lbuf,"Focus point= %s, %s, %s\n",xlab,ylab,zlab) ;
+     sprintf(xlab,"%4.0f mm [%c]",-xx,(xx<0.0)?'R':'L') ;
+     sprintf(ylab,"%4.0f mm [%c]",-yy,(yy<0.0)?'A':'P') ;
+     sprintf(zlab,"%4.0f mm [%c]", zz,(zz<0.0)?'I':'S') ;
+     sprintf(lbuf,"Focus point=%s,%s,%s {T-T Atlas}",xlab,ylab,zlab) ;
+     ADDTO_SARR(sar,lbuf) ;
+   }
+
+   /* 29 Apr 2002: print MNI coords as well */
+
+   { THD_fvec3 tv , mv ;
+     float mx,my,mz ;
+     char mxlab[24], mylab[24] , mzlab[24] , lbuf[128] ;
+     LOAD_FVEC3(tv,xx,yy,zz);
+     mv = THD_tta_to_mni(tv); UNLOAD_FVEC3(mv,mx,my,mz);
+     sprintf(mxlab,"%4.0f mm [%c]",mx,(mx>=0.0)?'R':'L') ;
+     sprintf(mylab,"%4.0f mm [%c]",my,(my>=0.0)?'A':'P') ;
+     sprintf(mzlab,"%4.0f mm [%c]",mz,(mz< 0.0)?'I':'S') ;
+     sprintf(lbuf,"Focus point=%s,%s,%s {MNI Brain}\n",mxlab,mylab,mzlab) ;
      ADDTO_SARR(sar,lbuf) ;
    }
 

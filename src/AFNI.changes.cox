@@ -3692,3 +3692,8 @@
 
 28 Apr 2002
  * Added the orientation changes to plug_render.c as well.
+
+29 Apr 2002
+ * New functions in thd_mnicoords.c to translate TT atlas coords to/from
+     MNI template coords.
+ * Used above in thd_ttatlas_query.c.
