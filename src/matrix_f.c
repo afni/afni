@@ -1091,6 +1091,11 @@ int * matrix_check_columns( matrix a , double eps )
      }
    }
 
+   if( iar != NULL ){
+     iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
+     iar[2*nar] = iar[2*nar+1] = -1 ;
+   }
+
    return iar ;
 }
 
