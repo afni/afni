@@ -44,7 +44,7 @@
  *
  * 1.3  January 14, 2003
  *   - clear warp information before writing to disk (fix uncommon problem)
- *   - use RESAM_shortstr for comparison in resam_str2mode
+ *   - also use RESAM_shortstr for comparison in resam_str2mode
  *
  * 1.2  July 29, 2002
  *   - no change here, but updated r_new_resam_dset() for view type
@@ -531,6 +531,8 @@ int resam_str2mode ( char * modestr )
     for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
     {
 	if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
+	    return mode;
+	if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
 	    return mode;
     }
 
