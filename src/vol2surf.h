@@ -129,7 +129,7 @@ int v2s_write_outfile_niml( v2s_opts_t * sopt, v2s_results * sd, int free_vals);
 
 /* special thd function - might be moved from vol2surf.[ch] */
 int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
-			byte ** mask);
+			byte ** mask, int absolute);
 
 /* ---- define globals for everyone but vol2surf.c ---- */
 #ifndef _VOL2SURF_C_

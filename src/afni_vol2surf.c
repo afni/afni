@@ -17,6 +17,7 @@
  * 25 Oct 2004 [rickr]:
  *   - accept Rdata and Rthr pointers, for optionally returning the data
  *     and global threshold
+ *   - make threshold masks absolute
  *----------------------------------------------------------------------
  */
 
@@ -150,7 +151,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 	    if ( debug > 1 )
 		fprintf(stderr,"++ mask from index %d and thresh %f\n",
 			tind,thresh);
-	    nset = thd_mask_from_brick(oset, tind, thresh, &cmask);
+	    nset = thd_mask_from_brick(oset, tind, thresh, &cmask, 1);
 	    if ( debug > 1 )
 	    {
 		if ( ! cmask )
