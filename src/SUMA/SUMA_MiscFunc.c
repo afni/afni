@@ -1648,6 +1648,25 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float
    SUMA_RETURN (IsIn_strct);
    
 }/*SUMA_isinsphere*/
+/*!
+free SUMA_ISINSPHERE structure contents. 
+Structure pointer is not freed
+*/
+SUMA_Boolean SUMA_Free_IsInSphere (SUMA_ISINSPHERE *IB)
+{
+   static char FuncName[]={"SUMA_Free_IsInSphere"};
+   
+   SUMA_ENTRY;
+
+   if (IB == NULL) {
+      fprintf (SUMA_STDERR,"Error SUMA_Free_IsInSphere: pointer to null cannot be freed\n");
+      SUMA_RETURN (NOPE);
+   }
+   if (IB->IsIn != NULL) SUMA_free(IB->IsIn);
+   if (IB->d != NULL) SUMA_free(IB->d);
+   IB->nIsIn = 0;
+   SUMA_RETURN (YUP);   
+}
 
 /*!**
    
@@ -2334,11 +2353,28 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    } SUMA_Z_QSORT_FLOAT;
 
    typedef struct {
+      double x;
+      int Index;
+   } SUMA_Z_QSORT_DOUBLE;
+
+   typedef struct {
       int x;
       int Index;
    } SUMA_Z_QSORT_INT;
 
 int compare_SUMA_Z_QSORT_FLOAT (SUMA_Z_QSORT_FLOAT *a, SUMA_Z_QSORT_FLOAT *b )
+   {
+      if (a->x < b->x)
+         return (-1);
+      else if (a->x == b->x)
+         return (0);
+      else if (a->x > b->x)
+         return (1);
+      /* this will never be reached but it will shut the compiler up */
+      return (0);
+   }
+
+int compare_SUMA_Z_QSORT_DOUBLE (SUMA_Z_QSORT_DOUBLE *a, SUMA_Z_QSORT_DOUBLE *b )
    {
       if (a->x < b->x)
          return (-1);
@@ -2456,6 +2492,48 @@ int *SUMA_z_qsort (float *x , int nx )
 
 }/*SUMA_z_qsort*/
 
+int *SUMA_z_doubqsort (double *x , int nx )
+{/*SUMA_z_qsort*/
+   static char FuncName[]={"SUMA_z_qsort"}; 
+   int *I, k;
+   SUMA_Z_QSORT_DOUBLE *Z_Q_doubStrct;
+   
+   SUMA_ENTRY;
+
+   /* allocate for the structure */
+   Z_Q_doubStrct = (SUMA_Z_QSORT_DOUBLE *) SUMA_calloc(nx, sizeof (SUMA_Z_QSORT_DOUBLE));
+   I = (int *) SUMA_calloc (nx, sizeof(int));
+
+   if (!Z_Q_doubStrct || !I)
+      {
+         fprintf(SUMA_STDERR,"Error %s: Allocation problem.\n",FuncName);
+         SUMA_RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_doubStrct[k].x = x[k];
+         Z_Q_doubStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_doubStrct, nx, sizeof(SUMA_Z_QSORT_DOUBLE), (int(*) (const void *, const void *)) compare_SUMA_Z_QSORT_DOUBLE);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_doubStrct[k].x;
+         I[k] = Z_Q_doubStrct[k].Index;
+      }
+
+   /* free the structure */
+   SUMA_free(Z_Q_doubStrct);
+
+   /* return */
+   SUMA_RETURN (I);
+
+
+}/*SUMA_z_doubqsort*/
 
 int *SUMA_z_dqsort (int *x , int nx )
 {/*SUMA_z_dqsort*/

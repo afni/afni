@@ -3061,7 +3061,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
       OptScl->ApplyClip = NOPE;
       OptScl->MaskZero = NOPE;
       IntRange[0] = 0; IntRange[1] = 100; /* percentile clipping range*/ 
-      Vsort = SUMA_PercRange (val, NULL, SO->N_Node, IntRange, IntRange); 
+      Vsort = SUMA_PercRange (val, NULL, SO->N_Node, IntRange, IntRange, NULL); 
       if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
          /* the new method */
          if (fabs(IntRange[0]) > IntRange[1]) {

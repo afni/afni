@@ -4288,7 +4288,7 @@ int main (int argc,char *argv[])
    if (ApplyPercClip) {
       
       fprintf (SUMA_STDERR,"%s: Percentile range [%f..%f] is equivalent to ", FuncName, IntRange[0], IntRange[1]);
-      Vsort = SUMA_PercRange (V, NULL, N_V, IntRange, IntRange);
+      Vsort = SUMA_PercRange (V, NULL, N_V, IntRange, IntRange, NULL);
       fprintf (SUMA_STDERR,"[%f..%f]\n", IntRange[0], IntRange[1]);
       ApplyClip = YUP;
       
@@ -4440,7 +4440,7 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
 /*! 
    A function to compute the percentile range.
    
-   Vsort = SUMA_PercRange (V, Vsort, N_V, PercRange, PercRangeVal)
+   Vsort = SUMA_PercRange (V, Vsort, N_V, PercRange, PercRangeVal, iPercRangeVal)
    
    \param V (float *) pointer to vector containing N_V values
    \param Vsort (float *) pointer to sorted version of V. 
@@ -4449,12 +4449,18 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
    \param N_V (int) number of values in V
    \param PercRange (float *) 2x1 vector with percentile range desired (values between 0 and 100)
    \param PercRangeVal (float *) 2x1 vector with values in V corresponding the percentile range
+   \param iPercRangeVal (int *) 2 x 1 vector containing indices into Vsort of PercRangeVal.
+                                i.e.   PercRangeVal[0] = Vsort[iPercRangeVal[0]];
+                                       PercRangeVal[1] = Vsort[iPercRangeVal[1]];
+                                pass NULL if you do not care for it.                            
    \ret Vsort, pointer to the sorted version of V. NULL in case of error.
       NOTE: Before a NULL is returned, Vsort is freed.
    
-   This function only allocates space for Vsort if a null is passed for Vsort in the function call   
+   This function only allocates space for Vsort if a null is passed for Vsort in the function call
+   
+   \sa SUMA_dPercRange
 */
-float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal)
+float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal, int *iPercRangeVal)
 {
    static char FuncName[] = {"SUMA_PercRange"};
    int *isort, il, ih;
@@ -4486,10 +4492,53 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
    ih = (int)rint((N_V-1)*PercRange[1]/100.0);
    PercRangeVal[0] = Vsort[il];
    PercRangeVal[1] = Vsort[ih];
-   
+   if (iPercRangeVal) { 
+      iPercRangeVal[0] = il; iPercRangeVal[1] = ih;
+   }
    SUMA_RETURN (Vsort);
 }
+/*!
+   Vsort = SUMA_dPercRange (V, Vsort, N_V, PercRange, PercRangeVal, iPercRangeVal)
+   the double version of SUMA_PercRange, working with double instead of float data
+   \sa SUMA_PercRange
+*/
+double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, double *PercRangeVal, int *iPercRangeVal)
+{
+   static char FuncName[] = {"SUMA_dPercRange"};
+   int *isort, il, ih;
+   
+   SUMA_ENTRY;
 
+   if (PercRange[0] < 0 || PercRange[0] > 100 || PercRange[1] < 0 || PercRange[1] > 100) {
+      fprintf (SUMA_STDERR, "Error %s: Values in PercRange must be between 0 and 100.\nVsort will be freed.\n", FuncName);
+      if (Vsort) SUMA_free(Vsort);
+      SUMA_RETURN (NULL);
+   }
+    
+   if (!Vsort) {
+      /* need to create my own sorted version */
+        Vsort = (double *)SUMA_calloc (N_V, sizeof(double));
+      if (!Vsort) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Vsort.\n", FuncName);
+         SUMA_RETURN (NULL);
+      }
+      /* copy V to Vsort */
+      SUMA_COPY_VEC (V, Vsort, N_V, double, double);
+      
+      /* sort Vsort */
+      isort = SUMA_z_doubqsort (Vsort  , N_V ); SUMA_free(isort);
+   } 
+   
+   /* choose the index for the lower range */
+   il = (int)rint((N_V-1)*PercRange[0]/100.0);
+   ih = (int)rint((N_V-1)*PercRange[1]/100.0);
+   PercRangeVal[0] = Vsort[il];
+   PercRangeVal[1] = Vsort[ih];
+   if (iPercRangeVal) { 
+      iPercRangeVal[0] = il; iPercRangeVal[1] = ih;
+   }
+   SUMA_RETURN (Vsort);
+}
 
 /*!
    Function to allocate and initialize an Overlays pointer
@@ -7349,7 +7398,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
    Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
    if (!Cx) { SUMA_SL_Err("Failed to find Cx\n"); SUMA_RETURN (NOPE);  }
-   Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange); 
+   Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange, NULL); 
    if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
       /* the new method */
       if (fabs(IntRange[0]) > IntRange[1]) {
