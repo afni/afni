@@ -447,7 +447,7 @@ ENTRY("AFNI_drive_open_window") ;
 
    cpt = strstr(cmd,"geom=") ;
    if( cpt != NULL )
-      AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
+     AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
 
    /*--- opened an image viewer: maybe modify it ---*/
 
@@ -506,31 +506,41 @@ ENTRY("AFNI_drive_open_window") ;
 
    /*--- opened a graph viewer: maybe modify it ---*/
 
-   } else if ( gra != NULL ){
+   } else if( gra != NULL ){
 
       /* geometry */
 
       if( gxx >= 0 && gyy >= 0 )
-         XtVaSetValues( gra->fdw_graph, XmNx, gxx, XmNy, gyy, NULL ) ;
+        XtVaSetValues( gra->fdw_graph, XmNx, gxx, XmNy, gyy, NULL ) ;
       if( gww > 0 && ghh > 0 )
-         XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ;
+        XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ;
 
       /* matrix */
 
       cpt = strstr(cmd,"matrix=") ;
       if( cpt != NULL ){
-         int mat = (int) strtod( cpt+7 , NULL ) ;
-         if( mat > 0 )
-            drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer) mat ) ;
+        int mat = (int) strtod( cpt+7 , NULL ) ;
+        if( mat > 0 )
+          drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer) mat ) ;
       }
 
-      /* pinnum */
+      /* pinnum OR pintop */
 
       cpt = strstr(cmd,"pinnum=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"pintop=") ;
       if( cpt != NULL ){
-         int pn = (int) strtod( cpt+7 , NULL ) ;
-         if( pn > 1 )
-            drive_MCW_grapher( gra , graDR_setpinnum , (XtPointer) pn ) ;
+        int pn = (int) strtod( cpt+7 , NULL ) ;
+        if( pn >= MIN_PIN )
+          drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer) pn ) ;
+      }
+
+      /* pinbot [19 Mar 2004] */
+
+      cpt = strstr(cmd,"pinbot=") ;
+      if( cpt != NULL ){
+        int pn = (int) strtod( cpt+7 , NULL ) ;
+        if( pn > 0 )
+          drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer) pn ) ;
       }
 
       /* iconify [06 Aug 2002] */
@@ -550,7 +560,7 @@ ENTRY("AFNI_drive_open_window") ;
       /* geometry */
 
       if( gxx >= 0 && gyy >= 0 )
-         XtVaSetValues( im3d->vwid->top_shell, XmNx, gxx, XmNy, gyy, NULL ) ;
+        XtVaSetValues( im3d->vwid->top_shell, XmNx, gxx, XmNy, gyy, NULL ) ;
 
       /* iconify [06 Aug 2002] */
 
