@@ -38,7 +38,7 @@ int main( int argc , char *argv[] )
              "                for data/information that has been pre-processed.\n"
              "\n"
              "  -autoclip = Clip off low-intensity regions in the dataset,\n"
-             "               so that the correlation is only computed between\n"
+             "  -automask =  so that the correlation is only computed between\n"
              "               high-intensity (presumably brain) voxels.  The\n"
              "               intensity level is determined the same way that\n"
              "               3dClipLevel works.\n"
@@ -74,7 +74,9 @@ int main( int argc , char *argv[] )
          abuc = 0 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-autoclip") == 0 ){
+      if( strcmp(argv[nopt],"-autoclip") == 0 ||
+          strcmp(argv[nopt],"-automask") == 0   ){
+
          do_autoclip = 1 ; nopt++ ; continue ;
       }
 
@@ -134,7 +136,7 @@ int main( int argc , char *argv[] )
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
 
    if( do_autoclip ){
-      mmm = THD_automask( xset ) ;
+      mmm   = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mmm ) ;
       fprintf(stderr,"++ %d voxels survive -autoclip\n",nmask) ;
       if( nmask < 2 ) exit(1) ;

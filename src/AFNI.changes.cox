@@ -3639,3 +3639,5 @@
  * Remove malloc.h include from mpeg_encode files for OS X compatibility.
  * Modify thd_automask.c to only keep largest connected component.
  * New program 3dAutomask.
+ * Modified a few programs to use -automask as a synonym for -autoclip:
+     3dAutoTcorrelate.c, 3dTcorrelate.c, 3dToutcount.c, and 3dTqual.c.

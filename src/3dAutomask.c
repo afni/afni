@@ -12,11 +12,12 @@ int main( int argc , char * argv[] )
              "Input dataset is EPI 3D+time.\n"
              "Output dataset is a brain-only mask dataset.\n"
              "Method:\n"
-             " Uses 3dClipLevel algorithm to find clipping level.\n"
-             " Keeps only the largest connected component of the\n"
-             " supra-threshold voxels.\n"
+             " + Uses 3dClipLevel algorithm to find clipping level.\n"
+             " + Keeps only the largest connected component of the\n"
+             "   supra-threshold voxels.\n"
              "Option:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
+             "                 [default='automask']\n"
             ) ;
       exit(0) ;
    }
@@ -51,7 +52,7 @@ int main( int argc , char * argv[] )
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
 
-   mask = THD_automask( dset ) ;
+   mask = THD_automask( dset ) ;  /* all the work */
 
    if( mask == NULL ){ fprintf(stderr,"** Can't make mask!\n"); exit(1); }
 
