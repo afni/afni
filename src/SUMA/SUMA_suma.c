@@ -135,7 +135,7 @@ int main (int argc,char *argv[])
 		}
 		
       if (strcmp(argv[kar], "-visuals") == 0) {
-			 SUMA_ShowVisuals ();
+			 SUMA_ShowAllVisuals ();
           exit (0);
 		}
       
