@@ -3287,3 +3287,13 @@
      enable_mcw_malloc() return immediately if it is already enabled.
  * Modified qmedmad_float() in cs_qmed.c to free workspace array when
      done with it (oopsie).
+
+07 Nov 2001
+ * Modified afni_plugout.c to call AFNI_driver() function in response
+     to "DRIVE_AFNI" commands.
+ * Added afni_driver.c and AFNI_driver() function to carry out some
+     user interface functionality from a plugout:
+       - open windows
+       - switch sessions, datasets
+       - rescan this
+       - quit

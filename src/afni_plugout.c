@@ -401,6 +401,28 @@ ENTRY("AFNI_process_plugout") ;
         }
 #endif
 
+     /*-- 07 Nov 2001: drive various AFNI user interface widgets --*/
+
+     } else if( strncmp(pobuf,"DRIVE_AFNI",10) == 0 ){
+        char cmd[256]="\0" ;
+
+        if( strlen(pobuf) < 11 ){
+           fprintf(stderr,"PO: DRIVE_AFNI from plugout %s lacks command\n",
+                          pp->po_name ) ;
+           if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
+        } else {
+           MCW_strncpy(cmd,pobuf+11,256) ;
+           if( verbose )
+              fprintf(stderr,"PO: command DRIVE_AFNI %s\n",cmd) ;
+           ii = AFNI_driver( cmd ) ;
+           if( pp->do_ack ){
+              if( ii < 0 ) PO_ACK_BAD( pp->ioc ) ;
+              else         PO_ACK_OK ( pp->ioc ) ;
+           }
+        }
+
+     /*-- this is not good: drop a daisy cutter on them --*/
+
      } else {
         fprintf(stderr,"PO: plugout %s sent unknown command string: %s\n",
                 pp->po_name , pobuf ) ;

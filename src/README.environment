@@ -56,7 +56,7 @@ For example, the gap (in pixels) between sub-graphs is set by the
 X11 resource "AFNI*graph_ggap", and can now be set by the environment
 variables "AFNI_graph_ggap" or "AFNI_GRAPH_GGAP", as in
 
-  AFNI_graph_ggap = 6
+  AFNI_graph_ggap = 6   // this is a comment
 
 If an X11 resource is actually set, it will take priority over the
 environment variable.  Some of the variables that can be set in this
@@ -87,7 +87,7 @@ Some other such variables are described in file AFNI.Xdefaults.  Note that
 values that actually affect the way the X11/Motif interface appears, such as
 AFNI*troughColor, must be set via the X11 mechanism and cannot be set using
 Unix environment variables.  This is because they are interpreted by the
-Motif graphics library and not by any actual AFNI code that I've written.
+Motif graphics library when it starts and not by any actual AFNI code.
 
 The following example is my own .afnirc file on the Linux system on which
 I do most of the AFNI development.  The first ones (in lower case) are
