@@ -5356,3 +5356,7 @@
 04 Mar 2005
  * Further matrix.c changes: store as one array, not an array-of-arrays,
      except on Solaris, where the array-of-array approach is faster(!?).
+
+07 Mar 2005
+ * Ooops.  Have to '#include <machdep.h>' into matrix_f.h to make sure
+     DONT_USE_MATRIX_MAT is defined.
