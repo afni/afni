@@ -1610,7 +1610,7 @@ NI_dpr("[jj=%d]",jj);
                  nwbuf += nadd ;
                  wbuf = NI_realloc(wbuf,nwbuf+128) ;  /* extend wbuf size */
               }
-              sprintf(wbuf+jj," %s",str); free(str);  /* write output */
+              sprintf(wbuf+jj," %s",str); NI_free(str);  /* write output */
             }
             break ;
 
