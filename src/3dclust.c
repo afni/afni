@@ -71,6 +71,8 @@ static int CL_noabs = 0;   /* BDW  19 Jan 1999 */
 
 static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 
+static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
+
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
 
@@ -95,8 +97,8 @@ int main( int argc , char * argv[] )
        iclu , ptmin , ipt , ii,jj,kk , ndet , nopt,noneg=0 ;
    float dx,dy,dz , xx,yy,zz,mm , xxsum,yysum,zzsum,mmsum , volsum , fimfac ,
                                   xxmax,yymax,zzmax,mmmax , ms, mssum , msmax ,
-   		RLmax, RLmin, APmax, APmin, ISmax, ISmin;
-   double mean, sem, sqsum, glmmsum, glsqsum, glmssum, glmean;
+         RLmax, RLmin, APmax, APmin, ISmax, ISmin;
+   double mean, sem, sqsum, glmmsum, glsqsum, glmssum, glmean, glxxsum, glyysum, glzzsum;
    MCW_cluster_array * clar , * clbig ;
    MCW_cluster       * cl ;
    THD_fvec3 fv ;
@@ -104,20 +106,16 @@ int main( int argc , char * argv[] )
    float vol_total ;
    char buf1[16],buf2[16],buf3[16] ;
 
-
-  /*----- Identify software -----*/
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
-  printf ("\n");
-
-
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
+      printf ("\n\n");
+      printf ("Program: %s \n", PROGRAM_NAME);
+      printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+      printf ("Date:    %s \n", PROGRAM_DATE);
+      printf ("\n");
       fprintf(stderr,
-	  "Copyright 1994-9 Medical College of Wisconsin\n\n"
+          "Copyright 1994-9 Medical College of Wisconsin\n\n"
           "Simple-minded Cluster Detection in 3D Datasets\n"
-          "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ... \n"
+          "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ...\n"
           "  where rmm  = cluster connection radius (mm);\n"
           "        vmul = minimum cluster volume (micro-liters)\n"
           "               (both rmm and vmul must be positive);\n"
@@ -130,10 +128,11 @@ int main( int argc , char * argv[] )
           "     nonzero voxel count and volume for each dataset.\n"
           "  The -verbose option prints out a progress report (to stderr)\n"
           "     as the computations proceed.\n"
+          "  The -quiet option suppresses all non-essential output. \n"
           "  The editing options are as in 3dmerge\n"
           "     (including use of the -1dindex and -1tindex options).\n"
           "  The program does not work on complex-valued datasets!\n"
-          "  Using the -1noneg option is strongly recommended!	\n "
+          "  Using the -1noneg option is strongly recommended!\n "
           "  SEM values are not realistic for interpolated data sets! \n"
           "  A ROUGH correction is to multiply the SEM of the interpolated\n"
           "     data set by the square root of the number of interpolated \n"
@@ -144,6 +143,15 @@ int main( int argc , char * argv[] )
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord ) ; /* July 1997 */
    CL_read_opts( argc , argv ) ;
    nopt = CL_nopt ;
+
+ /*----- Identify software -----*/
+  if( !CL_quiet ){
+     printf ("\n\n");
+     printf ("Program: %s \n", PROGRAM_NAME);
+     printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+     printf ("Date:    %s \n", PROGRAM_DATE);
+     printf ("\n");
+  }
 
    if( nopt+3 >  argc ){
       fprintf(stderr,"\n*** No rmm or vmul arguments?\a\n") ;
@@ -223,6 +231,7 @@ int main( int argc , char * argv[] )
 #endif
 
       /*-- print report header --*/
+  if( !CL_quiet ){
 
       if( !CL_summarize ){
          printf( "\n"
@@ -243,13 +252,13 @@ int main( int argc , char * argv[] )
            MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
            dx,dy,dz );
 
-	 if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-	   printf ("Mean and SEM based on Signed voxel intensities: \n\n");
-	 else
-	   printf ("Mean and SEM based on Absolute Value "
-		   "of voxel intensities: \n\n");
+         if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+           printf ("Mean and SEM based on Signed voxel intensities: \n\n");
+         else
+           printf ("Mean and SEM based on Absolute Value "
+                   "of voxel intensities: \n\n");
 
-	 printf (
+         printf (
 "Volume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
 "------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
 
@@ -265,14 +274,18 @@ int main( int argc , char * argv[] )
           ) ;
 
        } else {
-	 if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-	   printf ("Mean and SEM based on Signed voxel intensities: \n");
-	 else
-	   printf ("Mean and SEM based on Absolute Value "
-		   "of voxel intensities: \n");
-	 printf("Cluster summary for file %s\n# Vox  Volume      Mean    SEM    \n",argv[iarg]) ;
-       }
+         if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+           printf ("Mean and SEM based on Signed voxel intensities: \n");
+         else
+           printf ("Mean and SEM based on Absolute Value "
+                   "of voxel intensities: \n");
+         printf("Cluster summary for file %s\n",argv[iarg]);
+         printf("Volume  CM %s  CM %s  CM %s  Mean    SEM    \n",ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
 
+
+
+       }
+   }
       clar = MCW_find_clusters( nx,ny,nz , dx,dy,dz ,
                                 DSET_BRICK_TYPE(dset,ivfim) , vfim , rmm ) ;
       PURGE_DSET( dset ) ;
@@ -318,8 +331,8 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
       ndet = 0 ;
 
       vol_total = nvox_total = 0 ;
-      glmmsum = glmssum = glsqsum = 0;
-      	
+      glmmsum = glmssum = glsqsum = glxxsum = glyysum = glzzsum = 0;
+
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
          cl = clar->clar[iclu] ;
          if( cl == NULL || cl->num_pt < ptmin ) continue ;  /* no good */
@@ -346,8 +359,8 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
             xx = fv.xyz[0] ; yy = fv.xyz[1] ; zz = fv.xyz[2] ;
             THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz ) ;  /* July 1997 */
 
-	    ms = cl->mag[ipt];                         /* BDW  18 Jan 1999 */
-	    mm = fabs(ms);
+            ms = cl->mag[ipt];                         /* BDW  18 Jan 1999 */
+            mm = fabs(ms);
 
 	    mssum += ms;
 	    mmsum += mm;
@@ -378,7 +391,10 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
 	 glmssum += mssum;
 	 glmmsum += mmsum;
 	 glsqsum += sqsum ;
-
+	 glxxsum += xxsum;
+	 glyysum += yysum;
+	 glzzsum += zzsum;
+	 
          ndet++ ;
          xxsum /= mmsum ; yysum /= mmsum ; zzsum /= mmsum ;
 
@@ -435,17 +451,22 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
       else
 	sem = 0.0;
 
+     glxxsum /= glmmsum ; glyysum /= glmmsum ; glzzsum /= glmmsum ;
+
       /* MSB 11/1/96 Modified so that mean and SEM would print in correct column */
       if( CL_summarize )
-         printf( "----- --------- -------- -------- \n"
-                 "%5d %9.1f %8.1f %6.3f\n" , nvox_total , vol_total, glmean, sem ) ;
-      else if( ndet > 1  )
+	 {   if( !CL_quiet )
+	         printf( "------  -----  -----  ----- -------- -------- \n");
+		printf("%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n" , vol_total, glxxsum, glyysum, glzzsum, glmean, sem ) ;
+      }
+	 else if( ndet > 1  )
 	{
           MCW_fc7(glmean ,buf1) ;
           MCW_fc7(sem    ,buf3) ;
-	  printf ("------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n");
-	   printf("%6.0f                                                                 %7s  %7s                             \n",
-		  vol_total, buf1, buf3 ) ;
+	  if( !CL_quiet )
+	  	printf ("------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n");
+	     printf ("%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
+		  vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
 	}
 
    }
@@ -518,6 +539,14 @@ void CL_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          CL_verbose = CL_edopt.verbose = 1 ;
          nopt++ ;
+         continue ;
+      }
+
+      /**** -quiet ****/
+
+      if( strncmp(argv[nopt],"-quiet",5) == 0 ){
+         CL_quiet = 1 ;
+	    nopt++ ;
          continue ;
       }
 

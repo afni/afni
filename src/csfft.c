@@ -1,38 +1,48 @@
-#undef STANDALONE
+#undef STANDALONE  /* Define this if you want to use this code */
+                   /* outside of the AFNI package (libmri.a).  */
 
 #ifdef STANDALONE
-#  include <stdlib.h>   /* for use by itself (not in the AFNI package) */
+#  include <stdlib.h>   /* include standard system headers */
 #  include <stddef.h>
 #  include <stdio.h>
 #  include <math.h>
-   typedef struct complex { float r , i ; } complex ;
+   typedef struct complex { float r,i ; } complex ;  /* need this! */
 #else
-#  include "mrilib.h"   /* for use in AFNI package */
+#  include "mrilib.h"   /* AFNI package library header */
 #endif
 
-/*** Prototypes for externally callable functions:                       ***
- ***    Complex-to-complex FFT in place:                                 ***
- ***      mode = -1 or +1 (NO SCALING ON INVERSE!)                       ***
- ***      idim = dimension (power of 2)                                  ***
- ***      xc   = input/output array                                      ***
- ***    Re-initializes itself only when idim changes from previous call. ***/
+/***=====================================================================**
+ *** Prototypes for externally callable functions:                       **
+ ***    Complex-to-complex FFT in place:                                 **
+ ***      mode = -1 or +1 (for inverse scaling, cf. csfft_scale_inverse  **
+ ***      idim = dimension (power of 2, maybe with factors of 3 and 5)   **
+ ***      xc   = input/output array                                      **
+ ***    Re-initializes itself only when idim changes from previous call. **
+ ***=====================================================================**/
 
 void csfft_cox( int mode , int idim , complex * xc ) ;
 int  csfft_nextup( int idim ) ;
-void csfft_scale_inverse( int scl ) ;  /* scl=1 ==> force 1/N for mode=+1 */
-                                       /* scl=0 ==> no 1/N scaling        */
+int  csfft_nextup_one35( int idim ) ;
+void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
+                                      /* scl=0 ==> no 1/N scaling        **/
 
-/*** Aug 1999:                                                           ***
- ***   idim can now contain factors of 3 and/or 5, up to and including   ***
- ***   3^3 * 5^3.  Some examples:                                        ***
- ***       135 144 150 160 180 192 200 216 225 240 250                   ***
- ***   The routine csfft_nextup(n) returns the smallest size FFT         ***
- ***    >= n that csfft_cox() knows how to do.                           ***
- ***   Note that efficiency of the different lengths can be quite        ***
- ***   different.  In general, powers of 2 are fastest, but a            ***
- ***   single factor of 3 and/or 5 doesn't cause too much slowdown.      ***/
+/*** Aug 1999:                                                           **
+ ***   idim can now contain factors of 3 and/or 5, up to and including   **
+ ***   3^3 * 5^3.  Some examples:                                        **
+ ***       135 144 150 160 180 192 200 216 225 240 250                   **
+ ***   The routine csfft_nextup(n) returns the smallest size FFT         **
+ ***    >= n that csfft_cox() knows how to do.                           **
+ ***   Note that efficiency of the different lengths can be quite        **
+ ***   different.  In general, powers of 2 are fastest, but a            **
+ ***   single factor of 3 and/or 5 doesn't cause too much slowdown.      **
+ ***   The routine csfft_nextup_one35(n) returns the smallest size FFT   **
+ ***    >= n that contains at most one power of 3, at most one power     **
+ ***   of 5, and least one power of 2.  In trials, these are the most    **
+ ***   time efficient.                                                   **/
 
-static void fft_3dec( int , int , complex * ) ;  /* Aug 1999  */
+/*-- Aug 1999: routines to do FFTs by decimation by 3 or 5 --*/
+
+static void fft_3dec( int , int , complex * ) ;
 static void fft_5dec( int , int , complex * ) ;
 
 #undef  RMAX
@@ -43,7 +53,7 @@ static void fft_5dec( int , int , complex * ) ;
   See the file README.Copyright for details.
 ******************************************************************************/
 
-#undef PI
+#undef  PI
 #define PI (3.141592653589793238462643)
 
 /*-------------- To order the 1/N scaling on inversion: Aug 1999 ------------*/
@@ -55,18 +65,21 @@ void csfft_scale_inverse( int scl ){ sclinv = scl ; return ; }
 /*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
 #ifndef DONT_UNROLL_FFTS
-   static void fft8  ( int mode , complex * xc ) ;
-   static void fft16 ( int mode , complex * xc ) ;
-   static void fft32 ( int mode , complex * xc ) ;  /* prototypes   */
-   static void fft64 ( int mode , complex * xc ) ;  /* for internal */
-   static void fft128( int mode , complex * xc ) ;  /* functions    */
-   static void fft256( int mode , complex * xc ) ;
-   static void fft512( int mode , complex * xc ) ;
+   static void fft8  ( int mode , complex * xc ) ; /* completely */
+   static void fft16 ( int mode , complex * xc ) ; /* unrolled   */
+   static void fft32 ( int mode , complex * xc ) ; /* routines   */
 
-   static void fft_4dec( int , int , complex * ) ;
+   static void fft64 ( int mode , complex * xc ) ; /* internal 2dec ->  32 */
+   static void fft128( int mode , complex * xc ) ; /* internal 4dec ->  32 */
+   static void fft256( int mode , complex * xc ) ; /* internal 4dec ->  64 */
+   static void fft512( int mode , complex * xc ) ; /* internal 4dec -> 128 */
 
-#  define fft1024(m,x) fft_4dec(m,1024,x)
-#  define fft2048(m,x) fft_4dec(m,2048,x)
+   static void fft_4dec( int , int , complex * ) ; /* general 4dec */
+
+#  define fft1024(m,x) fft_4dec(m,1024,x)          /* 4dec -> 256 */
+#  define fft2048(m,x) fft_4dec(m,2048,x)          /* 4dec -> 512 */
+
+/*-- do FFTs of size 2 and 4 with macros --*/
 
 #  define fft2(m,x) do{ float a,b,c,d ;                             \
                         a = x[0].r + x[1].r ; b = x[0].i + x[1].i ; \
@@ -76,7 +89,7 @@ void csfft_scale_inverse( int scl ){ sclinv = scl ; return ; }
 
 # define USE_FFT4_MACRO
 # ifndef USE_FFT4_MACRO
-   static void fft4( int mode , complex * xc ) ;
+   static void fft4( int mode , complex * xc ) ; /* unrolled routine */
 # else
 #  define fft4(m,x) do{ float acpr,acmr,bdpr,bdmr, acpi,acmi,bdpi,bdmi; \
                         acpr = x[0].r + x[2].r; acmr = x[0].r - x[2].r; \
@@ -174,6 +187,11 @@ static void csfft_trigconsts( int idim )  /* internal function */
    previous call.  By AJ (Andrzej Jesmanowicz), modified by RWCox.
 ----------------------------------------------------------------------*/
 
+/*- Macro to do 1/N scaling on inverse:
+      if it is ordered by the user, and
+      if mode is positive, and
+      if this is not a recursive call.  -*/
+
 #define SCLINV                                                 \
  if( sclinv && mode > 0 && rec == 0 ){                         \
    register int qq ; register float ff = 1.0 / (float) idim ;  \
@@ -204,10 +222,10 @@ void csfft_cox( int mode , int idim , complex * xc )
       case 1024: fft1024(mode,xc); SCLINV; return;
       case 2048: fft2048(mode,xc); SCLINV; return;
 
-      case  4096: fft_4dec(mode, 4096,xc); SCLINV; return;
-      case  8192: fft_4dec(mode, 8192,xc); SCLINV; return;
-      case 16384: fft_4dec(mode,16384,xc); SCLINV; return;
-      case 32768: fft_4dec(mode,32768,xc); SCLINV; return;
+      case  4096: fft_4dec(mode, 4096,xc); SCLINV; return; /* 4dec -> 1024 */
+      case  8192: fft_4dec(mode, 8192,xc); SCLINV; return; /* 4dec -> 2048 */
+      case 16384: fft_4dec(mode,16384,xc); SCLINV; return; /* 4dec -> 4096 */
+      case 32768: fft_4dec(mode,32768,xc); SCLINV; return; /* 4dec -> 8192 */
    }
 #endif  /* end of unrollificationizing */
 
@@ -1661,7 +1679,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
    if( M != mold ){
       double th = (2.0*PI/N) ;
       if( M > mold ){
-         if( rcs != NULL ){
+         if( rcs[rec] != NULL ){
             free(rcs[rec]);free(raa[rec]);
             free(rbb[rec]);free(rcc[rec]);free(rdd[rec]);
          }
@@ -1679,7 +1697,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
       rmold[rec] = M ;
    }
 
-   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ; cc = rcc[rec] ; dd = rdd[rec] ;
+   cs = rcs[rec]; aa = raa[rec]; bb = rbb[rec]; cc = rcc[rec]; dd = rdd[rec];
 
    /*-- load subarrays, and FFT each one --*/
 
@@ -1870,17 +1888,17 @@ static void fft_3dec( int mode , int idim , complex * xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1  - ti*t2  ; bbi = tr*t2  + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1  - ti*t2  ; bbi = tr*t2  + ti*t1 ; /* b[k]*exp(+2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1  - ti*t2  ; cci = tr*t2  + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1  - ti*t2  ; cci = tr*t2  + ti*t1 ; /* c[k]*exp(+4*Pi*k/N) */
 
          t4 = bbr+ccr      ; t1 = t4*CC3       ;
          t8 = bbi+cci      ; t6 = t8*CC3       ;
          t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
 
-         aar = aa[k].r; aai = aa[k].i;                    /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                   /* a[k] */
 
          xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
          xc[k+M ].r = aar+t1-t2 ; xc[k+M ].i = aai+t6+t5 ;
@@ -1890,17 +1908,17 @@ static void fft_3dec( int mode , int idim , complex * xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1  + ti*t2  ; bbi = tr*t2  - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1  + ti*t2  ; bbi = tr*t2  - ti*t1 ; /* b[k]*exp(-2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1  + ti*t2  ; cci = tr*t2  - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1  + ti*t2  ; cci = tr*t2  - ti*t1 ; /* c[k]*exp(-4*Pi*k/N) */
 
          t4 = bbr+ccr      ; t1 = t4*CC3       ;
          t8 = bbi+cci      ; t6 = t8*CC3       ;
          t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
 
-         aar = aa[k].r; aai = aa[k].i;                    /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
 
          xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
          xc[k+M ].r = aar+t1+t2 ; xc[k+M ].i = aai+t6-t5 ;
@@ -2056,7 +2074,7 @@ static void fft_5dec( int mode , int idim , complex * xc )
 
       aar = aa[k].r ; aai = aa[k].i ;               /* a[k] */
 
-      /* the code below is adapted from fftn.c */
+      /* the code below is (heavily) adapted from fftn.c */
 
       akp = bbr + eer ; akm = bbr - eer ;
       bkp = bbi + eei ; bkm = bbi - eei ;

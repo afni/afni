@@ -114,6 +114,9 @@ static int            MAIN_argc ;
 static char **        MAIN_argv ;
 static Boolean        MAIN_workprocess( XtPointer ) ;
 
+#define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
+                   /* labels with "sides" labels         */
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -1223,16 +1226,18 @@ static Boolean MAIN_workprocess( XtPointer fred )
         ii = THD_enviro_write_compression() ;
         if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
            char str[64] ;
-           sprintf(str,"\n compression   = %s", COMPRESS_enviro[ii]) ;
+           sprintf(str,"\n write compress= %s", COMPRESS_enviro[ii]) ;
            REPORT_PROGRESS(str) ;
         }
 
         /* 09 Oct 1998: show the image display handedness */
 
+#ifndef USE_SIDES
         if( GLOBAL_argopt.left_is_left )
            REPORT_PROGRESS("\n image display = Left is on the Left") ;
         else
            REPORT_PROGRESS("\n image display = Left is on the Right") ;
+#endif
 
         if( ALLOW_real_time > 0 )
            REPORT_PROGRESS("\nRT: realtime plugin is active") ;
@@ -3474,17 +3479,20 @@ ENTRY("AFNI_view_xyz_CB") ;
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)(int) im3d->vinfo->xhairs_periodic );
 
+STATUS("realizing new image viewer") ;
+
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images, if desired */
       /* 07 Aug 1998: put an informational label in those windows, too */
 
-#define USE_SIDES  /* 01 Dec 1999: replace "left is" labels with sides labels */
-
       if( (*snew == im3d->s123) || (*snew == im3d->s312) ){
 
          if( GLOBAL_argopt.left_is_left ){
             ISQ_options opt ;
+
+STATUS("setting image view to be L-R mirrored") ;
+
             ISQ_DEFAULT_OPT(opt) ;
             opt.mirror = TRUE ;
             drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
@@ -3505,28 +3513,33 @@ ENTRY("AFNI_view_xyz_CB") ;
 #define PP 3
 #define SS 4
 #define II 5
-      { static char * ssix[6] = { "Left"     , "Right"     ,
-                                  "Anterior" , "Posterior" ,
-                                  "Superior" , "Inferior"   } ;
-        char * ws[4] ;
+      if( NULL == my_getenv("AFNI_NO_SIDES_LABELS") ){
+         static char * ssix[6] = { "Left"     , "Right"     ,
+                                   "Anterior" , "Posterior" ,
+                                   "Superior" , "Inferior"   } ;
+         char * ws[4] ;
 
-        if( *snew == im3d->s123 ){
-          ws[0] = ssix[RR]; ws[1] = ssix[AA]; ws[2] = ssix[LL]; ws[3] = ssix[PP];
-        } else if( *snew == im3d->s231 ){
-          ws[0] = ssix[AA]; ws[1] = ssix[SS]; ws[2] = ssix[PP]; ws[3] = ssix[II];
-        } else if( *snew == im3d->s312 ){
-          ws[0] = ssix[RR]; ws[1] = ssix[SS]; ws[2] = ssix[LL]; ws[3] = ssix[II];
-        } else {
-          ws[0] = ws[1] = ws[2] = ws[3] = NULL ;
-        }
-        drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
+         if( *snew == im3d->s123 ){
+           ws[0] = ssix[RR]; ws[1] = ssix[AA]; ws[2] = ssix[LL]; ws[3] = ssix[PP];
+         } else if( *snew == im3d->s231 ){
+           ws[0] = ssix[AA]; ws[1] = ssix[SS]; ws[2] = ssix[PP]; ws[3] = ssix[II];
+         } else if( *snew == im3d->s312 ){
+           ws[0] = ssix[RR]; ws[1] = ssix[SS]; ws[2] = ssix[LL]; ws[3] = ssix[II];
+         } else {
+           ws[0] = ws[1] = ws[2] = ws[3] = NULL ;
+         }
+
+STATUS("setting image viewer 'sides'") ;
+
+         drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
+
       }
-#undef LL 
+#undef LL
 #undef RR
 #undef AA
 #undef PP
 #undef SS
-#undef II 
+#undef II
 #endif
 
       AFNI_toggle_drawing( im3d ) ;
@@ -3559,6 +3572,8 @@ ENTRY("AFNI_view_xyz_CB") ;
 
        if( im3d->type == AFNI_IMAGES_VIEW )
           drive_MCW_grapher( gr , graDR_fim_disable , NULL ) ;  /* 19 Oct 1999 */
+
+STATUS("realizing new grapher") ;
 
        drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 

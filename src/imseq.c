@@ -3782,7 +3782,7 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
                   seq->winfo_sides[iw][0] = '\0' ;
                } else {
                   strncpy( seq->winfo_sides[iw] , ws[iw] , 15 ) ;
-                  ws[iw][15] = '\0' ;
+                  seq->winfo_sides[iw][15] = '\0' ;
                }
             }
          }

@@ -4010,6 +4010,12 @@ void T3D_open_view_CB( Widget w ,
    drive_MCW_imseq( wset.seq , isqDR_getimnr , (XtPointer) &nim ) ;
    drive_MCW_imseq( wset.seq , isqDR_title   , (XtPointer) imnames->ar[nim] ) ;
 
+   /* 01 Dec 1999: add "sides" markers for image viewer */
+
+   { static char * ws[4] = { "-x" , "-y" , "+x" , "+y" } ;
+     drive_MCW_imseq( wset.seq, isqDR_winfosides, (XtPointer)ws ) ;
+   }
+
    MCW_invert_widget( wset.open_view_pb ) ;
 
 QQQ("open_view");

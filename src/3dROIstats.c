@@ -26,7 +26,7 @@ int main (int argc, char * argv[]) {
 	
    THD_3dim_dataset * mask_dset=NULL , * input_dset=NULL ;
    int mask_subbrik = 0;
-   int sigma = 0, nzmean = 0, nzcount = 0, debug=0;
+   int sigma = 0, nzmean = 0, nzcount = 0, debug=0, quiet=0;
    short * mask_data;
    int nvox, i, brik;
    int num_ROI, ROI;
@@ -56,7 +56,8 @@ int main (int argc, char * argv[]) {
              "                 must be BYTE or SHORT.\n"
              "\n"
              "   -debug        Print out debugging information\n"
-             "\n"
+             "   -quiet        Do not print out labels for columns or rows\n"
+		   "\n"
              "The following options specify what stats are computed.  By default\n"
              "the mean is always computed.\n"
              "\n"
@@ -130,6 +131,12 @@ int main (int argc, char * argv[]) {
          narg++ ; continue ;
       }
 
+     if( strncmp(argv[narg],"-quiet",5) == 0 ){
+         quiet = 1 ;
+         narg++ ; continue ;
+      }
+
+
       if( strncmp(argv[narg],"-nzvoxels",5) == 0 ){
          nzcount = 1 ;
          narg++ ; continue ;
@@ -185,13 +192,13 @@ int main (int argc, char * argv[]) {
     } /* switch */
 
    /* Print the header line, while we set up the index array */  
-   fprintf(stdout, "File\tSub-brick");
+   if ( !quiet ) fprintf(stdout, "File\tSub-brick");
  
    for (i=0, num_ROI=0; i<65536; i++)
       if (non_zero[i]) {
          non_zero[i] = num_ROI;
          num_ROI++;
-
+         if ( !quiet ) {
          fprintf(stdout, "\tMean_%d", i-32768);
          if (nzmean)             
             fprintf(stdout, "\tNZMean_%d", i-32768);
@@ -199,10 +206,10 @@ int main (int argc, char * argv[]) {
             fprintf(stdout, "\tNZcount_%d", i-32768 );
          if (sigma)
             fprintf(stdout, "\tSigma_%d", i-32768);
-
+         }   
       }
 
-   fprintf(stdout,"\n");
+   if ( !quiet ) fprintf(stdout,"\n");
 
    if (debug) fprintf(stderr, "Total Number of ROIs are %d\n", num_ROI);
 
@@ -315,7 +322,7 @@ int main (int argc, char * argv[]) {
           }
           
           /* print the next line of results */
-          fprintf(stdout, "%s\t%d", argv[narg], brik);
+          if ( !quiet ) fprintf(stdout, "%s\t%d", argv[narg], brik);
           for (i=0; i<num_ROI; i++) {
              fprintf(stdout, "\t%f", (float)( sum[i]/(double)voxels[i] )  );
              if (nzmean)             

@@ -783,12 +783,15 @@ if(PRINT_TRACING)
     of this will be kept.)
 
    06 Aug 1996: force adoption of anats as well if "do_anats" is True.
+   03 Dec 1999: print messages about forced adoptions
 -------------------------------------------------------------------------*/
 
 void AFNI_force_adoption( THD_session * ss , Boolean do_anats )
 {
    int aa , ff , vv , apref=0 , aset=-1 ;
    THD_3dim_dataset * dset ;
+   int quiet = (NULL != my_getenv("AFNI_NO_ADOPTION_WARNING")) ; /* 03 Dec 1999 */
+   int first = 1 ;
 
 ENTRY("AFNI_force_adoption") ;
 
@@ -796,7 +799,7 @@ ENTRY("AFNI_force_adoption") ;
 
    /* find a "preferred" parent (one with the most number of markers set) */
 
-   for( aa=0 ; aa < ss->num_anat ; aa++ ){
+   for( vv=aa=0 ; aa < ss->num_anat ; aa++ ){
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -805,13 +808,18 @@ if(PRINT_TRACING)
       dset = ss->anat[aa][0] ;              /* original view */
 
       if( ISVALID_3DIM_DATASET(dset) &&     /* if a good dataset */
-          dset->markers != NULL      &&     /* and has markers   */
-          dset->markers->numset > aset ){   /* and has more markers than before */
+          dset->markers != NULL        ){   /* and has markers   */
 
-         apref = aa ;                       /* try this as our "preferred" parent */
-         aset  = dset->markers->numset ;
+         vv++ ;                            /* count of potential parents */
+
+         if( dset->markers->numset > aset ){ /* and has more markers than before */
+            apref = aa ;                     /* try this as our "preferred" parent */
+            aset  = dset->markers->numset ;
+         }
       }
    }
+
+   quiet = ( quiet || vv <= 1 ) ; /* be quiet if ordered, or if no alternatives */
 
 if(aset >= 0 && PRINT_TRACING)
 { char str[256] ;
@@ -839,11 +847,18 @@ if(aset >= 0 && PRINT_TRACING)
             }
          }
 
-if( PRINT_TRACING && dset->anat_parent != NULL )
-{ char str[256] ;
-  sprintf(str,"dset %s gets parent %s",DSET_HEADNAME(dset),DSET_HEADNAME(dset->anat_parent));
-  STATUS(str);}
-
+         if( !quiet && dset->anat_parent != NULL ){
+            if( first ){
+               first = 0 ;
+               fprintf(stderr,
+                       "\n"
+                       "Datasets with a 'forced adoption' of anat parent:\n") ;
+            }
+            fprintf(stderr,
+                    " %s gets parent %s\n",
+                    DSET_HEADNAME(dset) ,
+                    DSET_HEADNAME(dset->anat_parent) ) ;
+         }
       }
    }
 
@@ -869,10 +884,18 @@ if( PRINT_TRACING && dset->anat_parent != NULL )
                }
             }
 
-if( PRINT_TRACING && dset->anat_parent != NULL )
-{ char str[256] ;
-  sprintf(str,"dset %s gets parent %s",DSET_HEADNAME(dset),DSET_HEADNAME(dset->anat_parent));
-  STATUS(str);}
+            if( !quiet && dset->anat_parent != NULL ){
+               if( first ){
+                  first = 0 ;
+                  fprintf(stderr,
+                          "\n"
+                          "Datasets with a 'forced adoption' of anat parent:\n") ;
+               }
+               fprintf(stderr,
+                       " %s gets parent %s\n",
+                       DSET_HEADNAME(dset) ,
+                       DSET_HEADNAME(dset->anat_parent) ) ;
+            }
 
          }
       }

@@ -1880,3 +1880,10 @@
  * Modified imseq.[ch] and afni.c to set "sides" strings for an image,
      so that "left=SIDE" can be displayed correctly in any orientation
      of the image flipping process.
+
+03 Dec 1999
+ * Print a warning message in afni_func.c when a forced adoption takes
+     place.
+ * Disable "sides" labels if an environment variable is present.
+ * Incorporate "-quiet" options in 3dclust.c and 3dROIstats.c from
+     Mike Beauchamp.

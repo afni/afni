@@ -573,6 +573,28 @@ placed in quotes.  For example
 Note that the AFNI command line option "-nomall" cannot be specified this
 way (cf. the discussion under variable AFNI_NO_MCW_MALLOC).
 
+------------------------------
+Variable: AFNI_NO_SIDES_LABELS
+------------------------------
+As of 01 Dec 1999, the interactive AFNI program now displays a label
+beneath each image window showing which side of the image is on the left
+edge of the window.  This label is based on the anatomical directions
+encoded in the anatomical dataset .HEAD file, usually when to3d was used
+to create the file.  If you do NOT want these labels displayed (why not?),
+set this environment variable (to anything).
+
+----------------------------------
+Variable: AFNI_NO_ADOPTION_WARNING
+----------------------------------
+AFNI now prints a warning when it forces a dataset to have an anatomy
+parent dataset (the "forced adoption" function).  This happens when
+there a dataset does not have an anatomy parent encoded into its .HEAD
+file (either via to3d or 3drefit), and there is more than one anatomical
+dataset in the directory that has Talairach transformation markers
+attached.  If you wish to disable this warning, set this environment
+variable (to anything).  For more information on this subject, please
+see http://varda.biophysics.mcw.edu/~cox/afni_faq.html#AnatParent .
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |
