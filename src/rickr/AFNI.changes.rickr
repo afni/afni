@@ -509,7 +509,7 @@
 31 March 2004:
   * added rickr/serial_helper.c (-> v1.0)
       - this tcp server passes registration correction params to a serial port
-  * modifed plug_realtime.c
+  * modified plug_realtime.c
       - added the ability to pass registration correction parameters over
         a tcp socket (see 'serial_helper -help')
   * modified afni_pplug_env.c, adding AFNI_REALTIME_MP_HOST_PORT
@@ -530,4 +530,7 @@
 
 07 April 2004:
   * modified SUMA_3dVol2Surf.c (-> v4.5) to fix default direction of normals
+  * modified serial_helper.c (-> v1.4) to #include sys/file.h for Solaris
+  * modified Makefile.INCLUDE to pass EXTRA_LIBS_2 for serial_helper build
+  * modified rickr/Makefile to apply EXTRA_LIBS_2 for Solaris build
 
