@@ -520,8 +520,8 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
              DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index) > 0 ){
 
            tval = THD_pval_to_stat( pval ,
-                    DSET_BRICK_STATCODE(qq3d->fim_now,im3d->vinfo->thr_index),
-                    DSET_BRICK_STATAUX (qq3d->fim_now,im3d->vinfo->thr_index) );
+                    DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index),
+                    DSET_BRICK_STATAUX (qq3d->fim_now,qq3d->vinfo->thr_index) );
            ival = rint( tval/(THR_FACTOR*qq3d->vinfo->func_thresh_top) ) ;
            if( ival < 0 ) ival = 0 ; else if( ival > stop ) ival = stop ;
 
