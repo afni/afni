@@ -40,3 +40,5 @@
 29 July 2002:
   * modified plug_crender.c to allow arbitrary orientation and grid spacing
       of functional overlay (no longer needs to match underlay)
+  * modified r_new_resam_dset.c to set view type to that of the master
+  * updated VERSION of 3dresample to 1.2 (to note change to r_new_resam_dset)

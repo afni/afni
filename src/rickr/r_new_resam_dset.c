@@ -8,6 +8,14 @@
  *----------------------------------------------------------------------
 */
 
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 2002.07.29
+ *   - if we master, be sure output has same view type
+ *----------------------------------------------------------------------
+*/
+
 #include "mrilib.h"
 #include "r_misc.h"
 #include "r_new_resam_dset.h"
@@ -83,7 +91,19 @@ THD_3dim_dataset * r_new_resam_dset
     /* give junk name */
     EDIT_dset_items(dout, ADN_prefix, "junk_resample", ADN_none );
 
-    if ( work & LR_RESAM_IN_REORIENT )	    /* then re-orient the brick */
+    /* possibly update view type to that of the master */
+    if ( min                                  &&
+         (dout->view_type != min->view_type)  &&
+	 (dout->dblk && dout->dblk->diskptr) )
+    {
+	dout->view_type = min->view_type;
+	THD_init_diskptr_names( dout->dblk->diskptr, NULL, NULL, NULL,
+                                min->view_type, True );
+    }
+
+
+    /* re-orient the brick? */
+    if ( work & LR_RESAM_IN_REORIENT )
     {
 	if ( ( fdb = THD_oriented_brick( dout, l_orient ) ) == NULL )
 	{
@@ -102,7 +122,8 @@ THD_3dim_dataset * r_new_resam_dset
 
     new_daxes = *dout->daxes;		     /* in case we don't resample */
 
-    if ( work & LR_RESAM_IN_RESAM )	     /* do we resample the brick? */
+    /* resample the brick? */
+    if ( work & LR_RESAM_IN_RESAM )
     {
 	/*-- given dx, dy and dz, create a new THD_dataxes structure ---- */
 	new_daxes.type = DATAXES_TYPE;
