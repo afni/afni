@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.0 (June 6, 2003)"
+#define VERSION "version 2.1 (June 17, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -47,6 +47,9 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.1  June 10, 2003
+ *   - added ave map function (see dump_ave_map)
  *
  * 2.0  June 06, 2003
  *   - re-wrote program according to 3dSurf2Vol (which was written
@@ -115,16 +118,17 @@ int main( int argc , char * argv[] )
 	return ret_val;
 
     /* read surface files */
-    ret_val = read_surf_files(&opts, &params, &spec);
+    if ( (ret_val = read_surf_files(&opts, &params, &spec)) != 0 )
+	return ret_val;
 
     /*  get node list from surfaces (multiple points per node)
      *  need merge function
      */
-    if ( ret_val == 0 )
-	ret_val = create_node_list( &sopt, &node_list );
+    if ( (ret_val = create_node_list( &sopt, &node_list )) != 0 )
+	return ret_val;
 
-    if ( ret_val == 0 )
-	ret_val = write_output( &sopt, &opts, &params, &node_list );
+    if ( (ret_val = write_output( &sopt, &opts, &params, &node_list )) != 0 )
+	return ret_val;
 
     /* free memory */
     final_clean_up(&opts, &params, &spec, &node_list);
@@ -150,6 +154,11 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
     switch (sopt->map)
     {
 	case E_SMAP_AVE:
+	{
+	    dump_ave_map( sopt, p, N );
+	    break;
+	}
+
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
@@ -162,13 +171,13 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 
 	case E_SMAP_MIDPT:
 	{
-	    dump_midpt_mask( sopt, p, N );
+	    dump_midpt_map( sopt, p, N );
 	    break;
 	}
 
 	case E_SMAP_MASK:
 	{
-	    dump_single_mask( sopt, p, N );
+	    dump_single_map( sopt, p, N );
 	    break;
 	}
 
@@ -182,11 +191,198 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 
 
 /*----------------------------------------------------------------------
- * dump_midpt_mask - for each node pair, dump dataset values derived
- *                   from their midpoint
+ * dump_ave_map - for each node pair, dump the average voxel value
+ *                along the connecting line segment
  *----------------------------------------------------------------------
 */
-int dump_midpt_mask ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+{
+    THD_fvec3   f3mm0, f3mmn, f3mm;
+    THD_ivec3   i3ind;
+    MRI_IMAGE * im;
+    double    * bdata;		/* brick data, and for sums */
+    double    * bptr, * bave;   /* temp pointers into bdata */
+    float     * fser;
+    float       rat0, ratn;
+    int         node, sub, subs;
+    int         vindex, sindex, prev_ind;
+    int		scount, bcount;		    /* step and sub-brick counters */
+    int         dcount;
+    int		steps;
+    int         nx, ny, nz;
+
+    if ( sopt == NULL || p == NULL || N == NULL )
+    {
+	fprintf( stderr, "** smd_dsm : bad params (%p,%p,%p)\n", sopt, p, N );
+	return -1;
+    }
+
+    nx   = DSET_NX(p->gpar);
+    ny   = DSET_NY(p->gpar);
+    nz   = DSET_NZ(p->gpar);
+    subs = DSET_NVALS(p->gpar);
+
+    /* one last precaution */
+    if ( N->depth < 2 || N->nnodes <= 0 || sopt->m2_steps < 2 )
+    {
+	fprintf( stderr, "** bad setup for ave mapping (%d,%d,%d)\n",
+		 N->depth, N->nnodes, sopt->m2_steps );
+	return -1;
+    }
+
+    if ( sopt->debug > 1 )
+	fprintf( stderr, "++ output (depth, nnodes, subs, nvox) = "
+		                   "(%d, %d, %d, %d)\n",
+		 	 N->depth, N->nnodes, subs, nx*ny*nz );
+
+    /* store info for each step (in case of debug), plus one for sum */
+    bdata = (double *)malloc(subs * (sopt->m2_steps+1) * sizeof(double));
+    if ( bdata == NULL )
+    {
+	fprintf(stderr, "** can't allocate %d doubles\n", subs*sopt->m2_steps);
+	return -1;
+    }
+
+    if ( ! sopt->no_head )
+    {
+	fprintf( p->outfp,
+                 "# --------------------------------------------------\n" );
+	fprintf( p->outfp, "# surface '%s', '%s' :\n",
+		 N->labels[0], g_smap_names[sopt->map] );
+	fprintf( p->outfp, "#\n" );
+
+	/* output column headers */
+	fprintf( p->outfp, "#    node     1dindex    i    j    k     "
+		           "nvox" );
+	for ( sub = 0; sub < subs; sub++ )
+	    fprintf( p->outfp, "       v%-2d  ", sub );
+	fputc( '\n', p->outfp );
+
+	/* underline the column headers */
+	fprintf( p->outfp, "#   ------    -------   ---  ---  ---    ----   " );
+	for ( sub = 0; sub < subs; sub++ )
+	    fprintf( p->outfp, " --------   " );
+	fputc( '\n', p->outfp );
+    }
+
+    steps  = sopt->m2_steps;
+    dcount = 2;
+
+    /* note, NodeList elements are in dicomm mm orientation */
+
+    for ( node = 0; node < N->nnodes; node++ )
+    {
+	/* note the endpoints */
+	f3mm0 = THD_dicomm_to_3dmm(p->gpar, N->nodes[node]);
+	f3mmn = THD_dicomm_to_3dmm(p->gpar, N->nodes[node+N->nnodes]);
+
+	/* init values for average */
+	scount   = 0;		/* for count of used voxels            */
+	prev_ind = -1;		/* want only new indices along segment */
+	vindex   = -1;		/* basically useless                   */
+
+	/* compute the dataset average along this node pair segment */
+	for ( sindex = 0; sindex < steps; sindex++ )
+	{
+	    /* set ratios for current point */
+	    ratn = (float)sindex / (steps - 1);
+	    rat0 = 1.0 - ratn;
+
+	    f3mm.xyz[0] = rat0 * f3mm0.xyz[0] + ratn * f3mmn.xyz[0];
+	    f3mm.xyz[1] = rat0 * f3mm0.xyz[1] + ratn * f3mmn.xyz[1];
+	    f3mm.xyz[2] = rat0 * f3mm0.xyz[2] + ratn * f3mmn.xyz[2];
+
+	    i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm );
+	    vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
+
+	    /* if we don't want this index, skip it */
+	    if ( p->cmask && !p->cmask[vindex] )
+		continue;
+
+	    /* okay, so is this a different voxel than last time? */
+	    if ( vindex == prev_ind )
+		continue;
+
+	    /* woohoo! a new voxel to add to our bdata matrix */
+	    
+	    im   = THD_extract_series( vindex, p->gpar, 0 );
+	    fser = MRI_FLOAT_PTR( im ); /* get series, as float array    */
+
+	    /* store the information */
+	    bptr = bdata + scount * subs;	/* don't repeat calc.    */
+	    for ( bcount = 0; bcount < subs; bcount++ )
+		bptr[bcount] = fser[bcount];
+
+	    prev_ind = vindex;		/* so we don't repeat this one   */
+	    scount++;			/* count the voxel               */
+
+	    free(im);			/* free the image for this voxel */
+	}
+
+	if ( scount == 0 )		/* any good voxels in the bunch? */
+	    continue;
+
+	/* compute sums of and using bdata */
+	bave = bdata + sopt->m2_steps * subs;	/* point to our extra array */
+	for (bcount = 0; bcount < subs; bcount++ )	/* init to zero     */
+	    bave[bcount] = 0.0;
+	for ( sindex = 0; sindex < scount; sindex++ )
+	{
+	    bptr = bdata + sindex * subs;
+	    for (bcount = 0; bcount < subs; bcount++ )	/* compute the sums */
+		bave[bcount] += bptr[bcount];
+	}
+	for (bcount = 0; bcount < subs; bcount++ )	/* and take average */
+	    bave[bcount] /= scount;
+
+	/* debug display if first node with step index greater than 1 */
+	if ( sopt->debug > 1 && scount > dcount )
+	{
+	    dcount++;
+	    fprintf( stderr, "++ (node, vindex, scount) = "
+		     "(%d, %d, %d)\n",
+		     node, vindex, scount );
+	    fprintf( stderr, "++ data :\n" );
+
+	    /* data is in row major order, so just walk through it */
+	    bptr = bdata;
+	    for ( sindex = 0; sindex < scount; sindex++ )
+	    {
+		fprintf( stderr, "   step %3d : ", sindex );
+		for (bcount = 0; bcount < subs; bcount++ )
+		    fprintf( stderr, "%10s ", MV_format_fval(*bptr) );
+		bptr++;
+		fputc( '\n', stderr );
+	    }
+	    fprintf( stderr, "++ ave      : " );
+	    for (bcount = 0; bcount < subs; bcount++ )
+		fprintf( stderr, "%10s ", MV_format_fval(bave[bcount]) );
+	    fputc( '\n', stderr );
+	}
+
+	/* output surface, volume, ijk indices and nvoxels*/
+	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d     %3d",
+	     node, vindex, i3ind.ijk[0], i3ind.ijk[1], i3ind.ijk[2], scount );
+
+	/* hey, these numbers are why I'm writing the program, woohoo! */
+	for ( sub = 0; sub < subs; sub++ )
+	    fprintf( p->outfp, "  %10s", MV_format_fval(bave[sub]) );
+	fputc( '\n', p->outfp );
+
+    }
+
+    free(bdata);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * dump_midpt_map - for each node pair, dump dataset values derived
+ *                  from their midpoint
+ *----------------------------------------------------------------------
+*/
+int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 {
     THD_fvec3   f3mma, f3da;
     THD_fvec3 * f3p0, * f3p1;
@@ -224,7 +420,8 @@ int dump_midpt_mask ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     {
 	fprintf( p->outfp,
                  "# --------------------------------------------------\n" );
-	fprintf( p->outfp, "# surface '%s' :\n", N->labels[0] );
+	fprintf( p->outfp, "# surface '%s', '%s' :\n",
+		 N->labels[0], g_smap_names[sopt->map] );
 	fprintf( p->outfp, "#\n" );
 
 	/* output column headers */
@@ -294,10 +491,10 @@ int dump_midpt_mask ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
 
 /*----------------------------------------------------------------------
- * dump_single_mask - for each node, dump dataset value for each sub-brick
+ * dump_single_map - for each node, dump dataset value for each sub-brick
  *----------------------------------------------------------------------
 */
-int dump_single_mask ( smap_opts_t * sopt, param_t * p, node_list_t * N )
+int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 {
     THD_fvec3   f3mm;
     THD_ivec3   i3ind;
@@ -325,7 +522,8 @@ int dump_single_mask ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     {
 	fprintf( p->outfp,
                  "# --------------------------------------------------\n" );
-	fprintf( p->outfp, "# surface '%s' :\n", N->labels[0] );
+	fprintf( p->outfp, "# surface '%s', '%s' :\n",
+		 N->labels[0], g_smap_names[sopt->map] );
 	fprintf( p->outfp, "#\n" );
 
 	/* output column headers */
@@ -390,13 +588,13 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 
     switch (sopt->map)
     {
-	case E_SMAP_AVE:
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[sopt->map] );
+	    return -1;
 	    break;
 
 	case E_SMAP_MASK:
@@ -404,6 +602,7 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 		return -1;
 	    break;
 
+	case E_SMAP_AVE:
 	case E_SMAP_MIDPT:
 	    if ( alloc_node_list( sopt, N, 2 ) )
 		return -1;
@@ -581,12 +780,18 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
     {
 	default:
 
-	case E_SMAP_AVE:
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK:
 	case E_SMAP_MIDPT:
+	    break;
+
+	case E_SMAP_AVE:
+	    if ( opts->m2_steps <= 2 )
+		sopt->m2_steps = 2;
+	    else
+		sopt->m2_steps = opts->m2_steps;
 	    break;
 
 	case E_SMAP_MASK2:
@@ -760,7 +965,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	{
 	    if ( (ac+1) >= argc )
 	    {
-		fputs( "option usage: -m2_steps INT_STEPS\n\n", stderr );
+		fputs( "option usage: -m2_steps NUM_STEPS\n\n", stderr );
 		usage( PROG_NAME, S2V_USE_SHORT );
 		return -1;
 	    }
@@ -928,6 +1133,27 @@ int check_map_func ( char * map_str )
 
     map = smd_map_type( map_str );
 
+    switch ( map )
+    {
+	default:
+	    map = E_SMAP_INVALID;
+	    break;
+
+	case E_SMAP_COUNT:
+	case E_SMAP_MAX:
+	case E_SMAP_MIN:
+	case E_SMAP_MASK2:
+	case E_SMAP_MIDPT:
+	    fprintf( stderr, "** function '%s' coming soon ...\n",
+		     g_smap_names[map] );
+	    return E_SMAP_INVALID;
+	    break;
+
+	case E_SMAP_MASK:
+	case E_SMAP_AVE:
+	    break;
+    }
+
     if ( map == E_SMAP_INVALID )
     {
 	fprintf( stderr, "** invalid map string '%s'\n", map_str );
@@ -1091,9 +1317,12 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "The current mapping functions are:\n"
 	    "\n"
-	    "    mask      : each node in the surface is mapped to a voxel\n"
-	    "    midpoint  : output is based on the layer centered between\n"
-	    "                the 2 input surfaces (in xyz space)\n"
+	    "    ave       : for each node pair (from 2 surfaces), output the\n"
+	    "                average of all voxel values along that line\n"
+	    "                segment\n"
+	    "    mask      : each node in the surface is mapped to one voxel\n"
+	    "    midpoint  : for each node pair (from 2 surfaces), output the\n"
+	    "                dataset value at their midpoint (in xyz space)\n"
 	    "\n"
 	    "  usage: %s [options] -spec SPEC_FILE -sv SURF_VOL \\\n"
 	    "                    -grid_parent AFNI_DSET -map_func MAP_FUNC\n"
@@ -1119,11 +1348,10 @@ int usage ( char * prog, int level )
 	    "       -spec         fred.spec                               \\\n"
 	    "       -sv           fred_anat+orig                          \\\n"
 	    "       -grid_parent  fred_anat+orig                          \\\n"
-	    "       -map_func     mask2                                   \\\n"
-	    "       -m2_steps     20                                      \\\n"
-	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)'\\\n"
-	    "       -debug        2                                       \\\n"
-	    "       -prefix       fred_surf_mask2\n"
+	    "       -map_func     ave                                     \\\n"
+	    "       -m2_steps     10                                      \\\n"
+	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+	    "       -output       fred_surf_ave.txt\n"
 	    "\n"
 	    "\n"
 	    "  REQUIRED COMMAND ARGUMENTS:\n"
@@ -1155,6 +1383,7 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "    -map_func MAP_FUNC     : surface to dataset function\n"
 	    "\n"
+	    "        e.g. -map_func ave\n"
 	    "        e.g. -map_func mask\n"
 	    "        e.g. -map_func midpoint\n"
 	    "\n"
@@ -1165,14 +1394,23 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "        The current mapping functions are:\n"
 	    "\n"
+	    "          ave      : Given 2 related surfaces, for each node\n"
+	    "                     pair, output the average of the dataset\n"
+	    "                     values located along the segment joining\n"
+	    "                     those nodes.\n"
+	    "\n"
+	    "                     The -m2_steps option may be added here, to\n"
+	    "                     specify the number of points to use in the\n"
+	    "                     average.  The default is 5, minimum is 2.\n"
+	    "\n"
+	    "                     e.g.  -map_func ave -m2_steps 10\n"
+	    "\n"
 	    "          mask     : For each surface xyz location, output the\n"
 	    "                     dataset values of each sub-brick.\n"
 	    "\n"
-	    "          midpoint : Given 2 surfaces with the same geometry\n"
-	    "                   (i.e. which are just different views of the\n"
-	    "                   same surface), the dataset output corrdinates\n"
-	    "                   are based on the pair-wise midpoints of the\n"
-	    "                   nodes.\n"
+	    "          midpoint : Given 2 related surfaces, for each node\n"
+	    "                     pair, output the dataset value with xyz\n"
+	    "                     coordinates at the midpoint of the nodes.\n"
 	    "\n"
 	    "  options:\n"
 	    "\n"
