@@ -987,8 +987,10 @@ typedef struct {
 
 #ifdef MAIN
    AFNI_library_type GLOBAL_library ;
+   int GLOBAL_num_dsets = 0 ;
 #else
    extern AFNI_library_type GLOBAL_library ;
+   extern GLOBAL_num_dsets ;
 #endif
 
 #define FIM_THR          (0.01*GLOBAL_library.fim_bkthr_perc)  /* 02 Jun 1999 */

@@ -1,11 +1,21 @@
 #include "niml.h"
 
+#undef  AFNI_SERVER
+#undef  AFNI_REQUEST
+
+/*! Stream name to connect to AFNI server. */
+
 #define AFNI_SERVER  "tcp:afni.nimh.nih.gov:80"
-#define AFNI_REQUEST "HEAD /AFNIlogpath HTTP/1.0\r\n"
+
+/*! Format for AFNI logging request. */
+
+#define AFNI_REQUEST "HEAD /AFNIlogpath HTTP/1.0\r\n"  \
                      "User-Agent: %s\r\n\r\n"
 
 /*------------------------------------------------------------------------*/
-/*! Log the input string to the AFNI server.
+/*! Log the input string to the AFNI server.  Sends an HTTP request with
+    the input string as the 'user agent', which will be saved in the
+    Web server logs.
 --------------------------------------------------------------------------*/
 
 void AFNI_serverlog( char *str )
