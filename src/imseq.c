@@ -9760,7 +9760,7 @@ static void SNAP_warnhandler(char * msg){ return ; }
 /*----------------------------------------------------------------------*/
 
 static MCW_imseq *snap_isq  = NULL ;
-static MCW_DC    *snap_dc   = NULL ;
+static MCW_DC    *snap_dc   = NULL ;  /* cf. SNAP_make_dc() */
 static MRI_IMARR *snap_imar = NULL ;
 
 static void SNAP_imseq_send_CB( MCW_imseq *, XtPointer, ISQ_cbs * ) ;
@@ -9830,12 +9830,32 @@ static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
    }
    return ;
 }
+/*------------------------------------------------------------------------*/
+/*! Create display context if we don't have one.  [03 Jul 2003] */
+
+static void SNAP_make_dc( Widget w )
+{
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else{
+       if( w == (Widget) NULL ){
+         fprintf(stderr,"** Can't snapshot/save with NULL widget!\n") ;
+         return ;
+       }
+       (void ) XtAppSetWarningHandler( XtWidgetToApplicationContext(w),
+                                       SNAP_warnhandler ) ;
+       snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
+     }
+   }
+   return ;
+}
 
 /*-------------------------------------------------------------------------*/
+/*! Save image into a viewer, which should be opened near the widget w. */
 
 static void SNAP_store_image( MRI_IMAGE *tim , Widget w )
 {
-ENTRY("ISQ_store_image") ;
+ENTRY("SNAP_store_image") ;
 
    if( tim == NULL ) EXRETURN ;
 
@@ -9858,6 +9878,8 @@ ENTRY("ISQ_store_image") ;
      int xr,yr , wx,hy , xx,yy ;
      Position xroot,yroot ;
      Widget wpar ;
+
+     SNAP_make_dc( w ) ; if( snap_dc == NULL ) EXRETURN ;
 
      snap_isq = open_MCW_imseq( snap_dc, SNAP_imseq_getim, NULL ) ;
 
@@ -9927,18 +9949,9 @@ ENTRY("ISQ_snapshot") ;
    if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
    win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
 
-   /* create display context if we don't have one */
-
-   if( snap_dc == NULL ){
-     if( first_dc != NULL ) snap_dc = first_dc ;
-     else{
-       (void ) XtAppSetWarningHandler( XtWidgetToApplicationContext(w),
-                                       SNAP_warnhandler ) ;
-       snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
-     }
-   }
-
    /* try to get image */
+
+   SNAP_make_dc( w ) ; if( snap_dc == NULL ) EXRETURN ;
 
    tim = SNAP_grab_image( w , snap_dc ) ;
    if( tim == NULL )                         EXRETURN ;
@@ -9946,28 +9959,41 @@ ENTRY("ISQ_snapshot") ;
    /* got image; save it and display it */
 
    SNAP_store_image( tim , w ) ;
-
    EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Called to add an image to the snapshot save sequence.  [03 Jul 2003]
+/*! Called to add an image directly to the snapshot save sequence.
      - ww, hh = width and height of image
+     - if(hh < 0) ==> flip image vertically (e.g., from glReadPixels)
      - pix = pointer to 3*ww*hh bytes of RGB data
-     - w = if not NULL, Widget that this data came from
+     - w = Widget that the view should popup next to (can't be NULL)
+     - RWCox - 03 Jul 2003
 ------------------------------------------------------------------------------*/
 
 void ISQ_snapsave( int ww , int hh , byte *pix , Widget w )
 {
    MRI_IMAGE *tim ;
    byte *qix ;
+   int ii , jj , flip=0 ;
 
 ENTRY("ISQ_snapsave") ;
 
-   if( ww < 2 || hh < 2 || pix == NULL ) EXRETURN ;
+   if( ww < 2 || pix == NULL ) EXRETURN ;
+   if( hh < 0 ){ hh = -hh ; flip = 1 ; }
+   if( hh < 2 ) EXRETURN ;
 
-   tim = mri_new( ww,hh, MRI_rgb );
-   qix = MRI_RGB_PTR(tim) ; memcpy( qix , pix , 3*ww*hh ) ;
+   SNAP_make_dc( w ) ; if( snap_dc == NULL ) EXRETURN ;
+
+   tim = mri_new( ww,hh, MRI_rgb ) ; qix = MRI_RGB_PTR(tim) ;
+
+   if( flip ){                    /* flipper, flipper, faster than lightning */
+     for( jj=0 ; jj < hh ; jj++ )
+       memcpy( qix+3*ww*(hh-jj-1) , pix+3*ww*jj , 3*ww ) ;
+   } else {                                                   /* simple copy */
+     memcpy( qix , pix , 3*ww*hh ) ;
+   }
+
    SNAP_store_image( tim , w ) ;
    EXRETURN ;
 }
