@@ -1619,7 +1619,8 @@ STATUS("-KeyPress event") ;
             if ( key_event->state & ControlMask ) fff = 2.3;
             nn = act_undo + 1;
             act_undo += ar_size;
-            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
+	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
+			      (act_undo+1)*sizeof(struct _undo_buf) ); 
             if ( undo_buf != NULL ) {
                for ( i=0, j=nn; i < ar_size; j++, i++) {
                   undo_buf[j].im  = Im_Nr;
@@ -1648,8 +1649,8 @@ STATUS("-KeyPress event") ;
 
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-               undo_ref =
-                    realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
+	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
+			         (ref_undo+1)*sizeof(struct _undo_buf) ); 
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -1684,7 +1685,8 @@ STATUS("-KeyPress event") ;
             if ( key_event->state & ControlMask ) fff = 1./2.3;
             nn = act_undo + 1;
             act_undo += ar_size;
-            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
+	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
+		              (act_undo+1)*sizeof(struct _undo_buf) ); 
             if ( undo_buf != NULL ) {
                for ( i=0, j=nn; i < ar_size; j++, i++) {
                   undo_buf[j].im  = Im_Nr;
@@ -1713,8 +1715,8 @@ STATUS("-KeyPress event") ;
 
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-               undo_ref =
-                  realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
+	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
+		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -1757,8 +1759,8 @@ STATUS("-KeyPress event") ;
                   if ( f3 > 32767. ) f3 = 32767.;
                   RWC_ideal->ts[k] = f3;
                   ref_undo -= 1;
-                  undo_ref = 
-                     realloc(undo_ref,(ref_undo+1)*sizeof(struct _undo_buf));
+	          undo_ref = AFREALL(undo_ref, struct _undo_buf,
+		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
                   if ( undo_ref == NULL ) {
                      ref_undo = -1;
                      fprintf(stderr, "\n*** cannot realloc undo_ref\a\n") ;
@@ -1782,7 +1784,8 @@ STATUS("-KeyPress event") ;
                }
 
                act_undo -= ar_size;
-               undo_buf=realloc(undo_buf,(act_undo+1)*sizeof(struct _undo_buf));
+	       undo_buf = AFREALL(undo_buf, struct _undo_buf,
+		              (act_undo+1)*sizeof(struct _undo_buf) ); 
 
                if ( undo_buf != NULL ) {
                   redraw_graph() ;
@@ -5235,7 +5238,8 @@ STATUS("   finished drawing T_name") ;
             }
             mm = act_undo + 1;
             act_undo += (z_imL - z_im1) * ar_size;
-            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
+	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
+		              (act_undo+1)*sizeof(struct _undo_buf) ); 
             if ( undo_buf != NULL ) {
                for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) { 
                   for ( i=0, j=nn; i < ar_size; j++, i++) {
@@ -5256,8 +5260,8 @@ STATUS("   finished drawing T_name") ;
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                mm = ref_undo + 1;
                ref_undo += (z_imL - z_im1);
-               undo_ref =
-                      realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
+	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
+		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
                if ( undo_ref != NULL ) {
                   for ( k=z_im1, j=mm; k < z_imL; k++, j++) { 
                      undo_ref[j].im  = k;
@@ -5388,11 +5392,12 @@ STATUS("   finished drawing T_name") ;
          else if ( FT1_pressed == 1 ) {
             nn = act_undo + 1;
             act_undo += ar_size;
-            undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
+	    undo_buf = AFREALL(undo_buf, struct _undo_buf,
+		              (act_undo+1)*sizeof(struct _undo_buf) ); 
             if ( RWC_ideal != NULL  && RWC_ideal->len >= npoints ) {
                ref_undo += 1;
-               undo_ref =
-                      realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
+	       undo_ref = AFREALL(undo_ref, struct _undo_buf,
+		              (ref_undo+1)*sizeof(struct _undo_buf) ); 
                if ( undo_ref != NULL ) {
                   j = ref_undo;
                   undo_ref[j].im  = Im_Nr;
@@ -7251,7 +7256,7 @@ void add_extra_image(newim)
 {
    if( N_im >= dim_allim ){
       dim_allim += INC_ALLIM ;
-      allim      = realloc( allim , sizeof(MRI_IMAGE *) * dim_allim ) ;
+      allim = AFREALL( allim, MRI_IMAGE*, sizeof(MRI_IMAGE *) * dim_allim ); 
       if( allim == NULL ){
          fprintf(stderr,"\n*** cannot allocate space for new image!\a\n") ;
          exit(-1) ;

@@ -115,7 +115,7 @@ PLUGIN_interface * F2D_init(void)
       func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
       for( ii=0 ; ii < num0D ; ii++ ){
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = malloc(ll+8) ;
+         funcname[ii+numfunc] = AFMALL(char,ll+8) ;
          strcpy(funcname[ii+numfunc],"0D: ") ;
          strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
 
@@ -131,7 +131,7 @@ PLUGIN_interface * F2D_init(void)
       func2D   = (generic_func **) malloc( sizeof(generic_func *)*num2D ) ;
       for( ii=0 ; ii < num2D ; ii++ ){
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = malloc(ll+8) ;
+         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
          strcpy(funcname[ii+numfunc],"2D: ") ;
          strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
 

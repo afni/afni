@@ -1770,7 +1770,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
 
       if( first_call ){
         for( ii=0 ; ii < THD_MAX_SESSION_SIZE ; ii++ )
-          strlist[ii] = XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
+          strlist[ii] = (char*)XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
         first_call = 0 ;
       }
 

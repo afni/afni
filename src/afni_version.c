@@ -222,7 +222,7 @@ int AFNI_version_check(void)
    /* if here, have data ready to read from child! */
 
    nbuf = 0 ;
-   vbuf = calloc(1,VSIZE) ;
+   vbuf = AFMALL( char, VSIZE) ;
    while(1){
      jj = iochan_recv( vc_ioc , vbuf+nbuf , VSIZE-nbuf ) ;
      if( jj < 1 ) break ;

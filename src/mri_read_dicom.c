@@ -342,7 +342,7 @@ ENTRY("mri_read_dicom") ;
        int sexi_size;
 
        sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_tmp = calloc( 1, sexi_size );
+       sexi_tmp = AFMALL( char, sexi_size );
        memcpy(sexi_tmp,sexi_start,sexi_size);
        free(str_sexinfo);
        str_sexinfo = sexi_tmp;
@@ -590,7 +590,7 @@ ENTRY("mri_read_dicom") ;
      int last_ii=-1 , nvox , yy,xx,nxx ;
 
      nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
-     dar  = calloc(bpp,nvox) ;            /* make space for super-image */
+     dar  = (char*)calloc(bpp,nvox) ;            /* make space for super-image */
      fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
      if( swap ){                        /* swap bytes? */
        switch( bpp ){
@@ -1270,7 +1270,7 @@ ENTRY("mri_imcount_dicom") ;
        int sexi_size;
 
        sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_tmp = calloc( 1, sexi_size );
+       sexi_tmp = AFMALL( char,  sexi_size );
        memcpy(sexi_tmp,sexi_start,sexi_size);
        free(str_sexinfo);
        str_sexinfo = sexi_tmp;
@@ -1312,7 +1312,7 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
    size_t nn , ii ;
 
    if( fp == NULL || len == 0 ) return NULL ;    /* bad inputs? */
-   ar = calloc(1,len+1) ;                        /* make space for data */
+   ar = AFMALL(char, len+1) ;                   /* make space for data */
    lseek( fileno(fp) , start , SEEK_SET ) ;      /* set file position */
    nn = fread( ar , 1 , len , fp ) ;             /* read data */
    if( nn == 0 ){ free(ar); return NULL; }       /* bad read? */

@@ -373,7 +373,7 @@ ENTRY("AFNI_parse_args") ;
         char * eh = getenv("HOME") , * ff ;
         int ll = strlen(lf) + 8 ;
         if( eh != NULL ) ll += strlen(eh) ;
-        ff = malloc(ll) ;
+        ff = AFMALL(char, ll) ;
         if( eh != NULL && lf[0] != '/' ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
         else                            { ff[0] = '\0' ; }
         strcat(ff,lf) ;
@@ -390,7 +390,7 @@ ENTRY("AFNI_parse_args") ;
        int ll = strlen(lf) + 8 ;
        if( !THD_is_file(lf) && lf[0] != '/' ) eh = getenv("HOME") ;
        if( eh != NULL ) ll += strlen(eh) ;
-       ff = malloc(ll) ;
+       ff = AFMALL(char, ll) ;
        if( eh != NULL ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
        else            { ff[0] = '\0' ; }
        strcat(ff,lf) ;
@@ -8726,14 +8726,14 @@ DUMP_LMAP(awarp->warp) ;
 #define ADD_ERROR(str)                                \
    { int ll = strlen(str) + strlen(error_list) + 16 ; \
      STATUS(str) ;                                    \
-     error_list = XtRealloc( error_list , ll ) ;      \
+     error_list = (char*) XtRealloc( error_list , ll ) ;      \
      strcat( error_list , "*** ERROR:  ") ;           \
      strcat( error_list , str ) ; num_error++ ; }
 
 #define ADD_REPORT(str)                               \
    { int ll = strlen(str) + strlen(error_list) + 16 ; \
      STATUS(str) ;                                    \
-     error_list = XtRealloc( error_list , ll ) ;      \
+     error_list = (char*)XtRealloc( error_list , ll ) ;      \
      strcat( error_list , str ) ; num_report++ ; }
 
 Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View * im3d )
@@ -9758,7 +9758,7 @@ ENTRY("AFNI_load_defaults") ;
          if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
       }
       if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
-      myXtFree(cpt) ;
+      (char*)myXtFree(cpt) ;
    }
 
    cpt = NULL ;

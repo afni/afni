@@ -230,7 +230,7 @@ void csfft_cox( int mode , int idim , complex * xc )
            if( nw > 0 ){
               int fd = open( env , O_RDONLY ) ;
               if( fd >= 0 ){
-                 char * w = malloc(nw+4) ;
+                 char * w = AFMALL( char, nw+4 ) ;
                  int ii = read( fd , w , nw ) ;
                  close(fd) ;
                  if( ii > 0 ){

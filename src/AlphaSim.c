@@ -567,7 +567,7 @@ void get_options (int argc, char ** argv,
 	{
 	  nopt++;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -out ");
-	  *outfilename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  *outfilename = AFMALL( char, sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (*outfilename, argv[nopt]);
 	  nopt++;
 	  continue;

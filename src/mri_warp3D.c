@@ -51,7 +51,7 @@ INLINE MRI_IMAGE *mri_warp3D_cubic(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
    int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
@@ -98,11 +98,11 @@ ENTRY("mri_warp3D_cubic") ;
 
      default:{                                    /* floatize input */
        imfl = mri_to_float(im) ;
-       new  = mri_warp3D_cubic( imfl , nxnew,nynew,nznew , wf ) ;
+       newImg  = mri_warp3D_cubic( imfl , nxnew,nynew,nznew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(im->kind,new) ;
-       if( imfl != NULL ){ mri_free(new); new = imfl; }
-       RETURN(new) ;
+       imfl = mri_to_mri(im->kind,newImg) ;
+       if( imfl != NULL ){ mri_free(newImg); newImg = imfl; }
+       RETURN(newImg) ;
      }
 
      case MRI_rgb:{                                /* break into 3 pieces */
@@ -115,8 +115,8 @@ ENTRY("mri_warp3D_cubic") ;
        bim = mri_warp3D_cubic( IMARR_SUBIM(imar,2), nxnew,nynew,nznew, wf ) ;
                      mri_free( IMARR_SUBIM(imar,2) ) ;
        FREE_IMARR(imar) ;
-       new = mri_3to_rgb( rim,gim,bim ) ;
-       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(new);
+       newImg = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(newImg);
      }
 
      case MRI_complex:{                             /* break into 2 pieces */
@@ -127,8 +127,8 @@ ENTRY("mri_warp3D_cubic") ;
        iim = mri_warp3D_cubic( IMARR_SUBIM(imar,1), nxnew,nynew,nznew, wf ) ;
                      mri_free( IMARR_SUBIM(imar,1) ) ;
        FREE_IMARR(imar) ;
-       new = mri_pair_to_complex( rim , iim ) ;
-       mri_free(rim); mri_free(iim); RETURN(new);
+       newImg = mri_pair_to_complex( rim , iim ) ;
+       mri_free(rim); mri_free(iim); RETURN(newImg);
      }
 
    } /* end of special cases of input datum */
@@ -137,8 +137,8 @@ ENTRY("mri_warp3D_cubic") ;
 
    far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
 
-   new = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( new ) ;                         /* output image data */
+   newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
+   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
 
    bot = top = far[0] ;                             /* find input data range */
    for( ii=1 ; ii < imfl->nvox ; ii++ ){
@@ -231,7 +231,7 @@ ENTRY("mri_warp3D_cubic") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   RETURN(new);
+   RETURN(newImg);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -243,7 +243,7 @@ INLINE MRI_IMAGE *mri_warp3D_linear(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
    int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
@@ -285,11 +285,11 @@ ENTRY("mri_warp3D_linear") ;
 
      default:{                              /* floatize-input */
        imfl = mri_to_float(im) ;
-       new  = mri_warp3D_linear( imfl , nxnew,nynew,nznew , wf ) ;
+       newImg  = mri_warp3D_linear( imfl , nxnew,nynew,nznew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(im->kind,new) ;
-       if( imfl != NULL ){ mri_free(new); new = imfl; }
-       RETURN(new) ;
+       imfl = mri_to_mri(im->kind,newImg) ;
+       if( imfl != NULL ){ mri_free(newImg); newImg = imfl; }
+       RETURN(newImg) ;
      }
 
      case MRI_rgb:{
@@ -302,8 +302,8 @@ ENTRY("mri_warp3D_linear") ;
        bim = mri_warp3D_linear( IMARR_SUBIM(imar,2), nxnew,nynew,nznew, wf ) ;
                       mri_free( IMARR_SUBIM(imar,2) ) ;
        FREE_IMARR(imar) ;
-       new = mri_3to_rgb( rim,gim,bim ) ;
-       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(new);
+       newImg = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(newImg);
      }
 
      case MRI_complex:{
@@ -314,8 +314,8 @@ ENTRY("mri_warp3D_linear") ;
        iim = mri_warp3D_linear( IMARR_SUBIM(imar,1), nxnew,nynew,nznew, wf ) ;
                       mri_free( IMARR_SUBIM(imar,1) ) ;
        FREE_IMARR(imar) ;
-       new = mri_pair_to_complex( rim , iim ) ;
-       mri_free(rim); mri_free(iim); RETURN(new);
+       newImg = mri_pair_to_complex( rim , iim ) ;
+       mri_free(rim); mri_free(iim); RETURN(newImg);
      }
 
    } /* end of special cases of input datum */
@@ -324,8 +324,8 @@ ENTRY("mri_warp3D_linear") ;
 
    far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
 
-   new = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( new ) ;                         /* output image data */
+   newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
+   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -388,7 +388,7 @@ ENTRY("mri_warp3D_linear") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   RETURN(new);
+   RETURN(newImg);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -400,7 +400,7 @@ INLINE MRI_IMAGE *mri_warp3D_NN(
              MRI_IMAGE *im, int nxnew, int nynew, int nznew,
              void wf(float,float,float,float *,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
    int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
@@ -433,11 +433,11 @@ ENTRY("mri_warp3D_NN") ;
 
      default:{                              /* floatize-input */
        imfl = mri_to_float(im) ;
-       new  = mri_warp3D_NN( imfl , nxnew,nynew,nznew , wf ) ;
+       newImg  = mri_warp3D_NN( imfl , nxnew,nynew,nznew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(im->kind,new) ;
-       if( imfl != NULL ){ mri_free(new); new = imfl; }
-       RETURN(new) ;
+       imfl = mri_to_mri(im->kind,newImg) ;
+       if( imfl != NULL ){ mri_free(newImg); newImg = imfl; }
+       RETURN(newImg) ;
      }
 
      case MRI_rgb:{
@@ -450,8 +450,8 @@ ENTRY("mri_warp3D_NN") ;
        bim = mri_warp3D_NN( IMARR_SUBIM(imar,2), nxnew,nynew,nznew, wf ) ;
                   mri_free( IMARR_SUBIM(imar,2) ) ;
        FREE_IMARR(imar) ;
-       new = mri_3to_rgb( rim,gim,bim ) ;
-       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(new);
+       newImg = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(newImg);
      }
 
      case MRI_complex:{
@@ -462,8 +462,8 @@ ENTRY("mri_warp3D_NN") ;
        iim = mri_warp3D_NN( IMARR_SUBIM(imar,1), nxnew,nynew,nznew, wf ) ;
                   mri_free( IMARR_SUBIM(imar,1) ) ;
        FREE_IMARR(imar) ;
-       new = mri_pair_to_complex( rim , iim ) ;
-       mri_free(rim); mri_free(iim); RETURN(new);
+       newImg = mri_pair_to_complex( rim , iim ) ;
+       mri_free(rim); mri_free(iim); RETURN(newImg);
      }
 
    } /* end of special cases of input datum */
@@ -472,8 +472,8 @@ ENTRY("mri_warp3D_NN") ;
 
    far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
 
-   new = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( new ) ;                         /* output image data */
+   newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
+   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -504,7 +504,7 @@ ENTRY("mri_warp3D_NN") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   RETURN(new);
+   RETURN(newImg);
 }
 
 /* define quintic interpolation polynomials (Lagrange) */
@@ -526,7 +526,7 @@ INLINE MRI_IMAGE *mri_warp3D_quintic(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
    int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
@@ -575,11 +575,11 @@ ENTRY("mri_warp3D_quinitc") ;
 
      default:{                                    /* floatize input */
        imfl = mri_to_float(im) ;
-       new  = mri_warp3D_quintic( imfl , nxnew,nynew,nznew , wf ) ;
+       newImg  = mri_warp3D_quintic( imfl , nxnew,nynew,nznew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(im->kind,new) ;
-       if( imfl != NULL ){ mri_free(new); new = imfl; }
-       RETURN(new) ;
+       imfl = mri_to_mri(im->kind,newImg) ;
+       if( imfl != NULL ){ mri_free(newImg); newImg = imfl; }
+       RETURN(newImg) ;
      }
 
      case MRI_rgb:{                                /* break into 3 pieces */
@@ -592,8 +592,8 @@ ENTRY("mri_warp3D_quinitc") ;
        bim = mri_warp3D_quintic( IMARR_SUBIM(imar,2), nxnew,nynew,nznew, wf ) ;
                      mri_free( IMARR_SUBIM(imar,2) ) ;
        FREE_IMARR(imar) ;
-       new = mri_3to_rgb( rim,gim,bim ) ;
-       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(new);
+       newImg = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); RETURN(newImg);
      }
 
      case MRI_complex:{                             /* break into 2 pieces */
@@ -604,8 +604,8 @@ ENTRY("mri_warp3D_quinitc") ;
        iim = mri_warp3D_quintic( IMARR_SUBIM(imar,1), nxnew,nynew,nznew, wf ) ;
                      mri_free( IMARR_SUBIM(imar,1) ) ;
        FREE_IMARR(imar) ;
-       new = mri_pair_to_complex( rim , iim ) ;
-       mri_free(rim); mri_free(iim); RETURN(new);
+       newImg = mri_pair_to_complex( rim , iim ) ;
+       mri_free(rim); mri_free(iim); RETURN(newImg);
      }
 
    } /* end of special cases of input datum */
@@ -614,8 +614,8 @@ ENTRY("mri_warp3D_quinitc") ;
 
    far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
 
-   new = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( new ) ;                         /* output image data */
+   newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
+   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
 
    bot = top = far[0] ;                             /* find input data range */
    for( ii=1 ; ii < imfl->nvox ; ii++ ){
@@ -740,7 +740,7 @@ ENTRY("mri_warp3D_quinitc") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   RETURN(new);
+   RETURN(newImg);
 }
 
 /*--------------------------------------------------------------------------*/

@@ -51,7 +51,7 @@ int NI_malloc_replace( void *(*um)(size_t)        ,
 /*! Allocate memory (actually uses calloc); calls exit() if it fails.
 ----------------------------------------------------------------------------*/
 
-void * NI_malloc( size_t len )
+void * old_NI_malloc( size_t len )
 {
    void *p ;
    if( use_userfunc ){
@@ -60,7 +60,7 @@ void * NI_malloc( size_t len )
      p = calloc(1,len) ;
    }
    if( p == NULL ){
-     fprintf(stderr,"** ERROR: NI_malloc() fails. Aauugghh!\n") ;
+     fprintf(stderr,"** ERROR: old_NI_malloc() fails. Aauugghh!\n") ;
      NI_sleep(333); exit(1);
    }
    ni_mall_used = 1 ; return p ;
@@ -83,14 +83,14 @@ void NI_free( void *p )
 /*! Reallocate memory; calls exit() if it fails.
 ----------------------------------------------------------------------------*/
 
-void * NI_realloc( void *p , size_t len )
+void * old_NI_realloc( void *p , size_t len )
 {
    void *q ;
 
    if( use_userfunc ) q = user_realloc( p , len ) ;
    else               q = realloc( p , len ) ;
    if( q == NULL && len > 0 ){
-     fprintf(stderr,"** ERROR: NI_realloc() fails. Ooooogg!\n");
+     fprintf(stderr,"** ERROR: old_NI_realloc() fails. Ooooogg!\n");
      NI_sleep(333); exit(1);
    }
    ni_mall_used = 1 ; return q ;

@@ -34,7 +34,7 @@ int main( int argc, char *argv[] )
 
    /* make up some fake nodes */
 
-   nod = NI_malloc( sizeof(AGNI_nod)*nn ) ;
+   nod = NI_malloc(AGNI_nod, sizeof(AGNI_nod)*nn ) ;
    for( ii=0 ; ii < nn ; ii++ ){
       nod[ii].id = ii     ;
       nod[ii].x  = 1.1*ii ;

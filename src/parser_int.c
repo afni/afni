@@ -6,6 +6,7 @@
 
 #define  NEED_PARSER_INTERNALS
 #include "parser.h"
+#include "Amalloc.h"
 
 /***** C routines to interface to the f2c generated parser code *****/
 
@@ -34,7 +35,7 @@ PARSER_code * PARSER_generate_code( char * expression )
 
    /* 22 Jul 2003: copy into local string, tossing bad stuff */
 
-   exp = malloc(nexp+4) ;
+   exp = AFMALL(char, nexp+4) ;
    for( ii=jj=0 ; ii < nexp ; ii++ ){
      cc = expression[ii] ;
      if( !isspace(cc) && !iscntrl(cc) ) exp[jj++] = cc ;

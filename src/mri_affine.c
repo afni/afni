@@ -32,7 +32,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
                                float xshift , float yshift )
 {
    float rot_dx , rot_dy , rot_cph , rot_sph , top,bot,val ;
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    MRI_IMARR *impair ;
    float *far , *nar ;
    float xx,yy , fx,fy ;
@@ -61,10 +61,10 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
       tim = mri_affine_bicubic( iim , a11,a12,a21,a22,xshift,yshift);
       mri_free(iim) ; iim = tim ;
 
-      new = mri_pair_to_complex( rim , iim ) ;
+      newImg = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
-      MRI_COPY_AUX(new,im) ;
-      return new ;
+      MRI_COPY_AUX(newImg,im) ;
+      return newImg ;
    }
 
    /** movement params **/
@@ -92,8 +92,8 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
    else                        imfl = mri_to_float( im ) ;
 
    far = MRI_FLOAT_PTR(imfl) ;              /* access to float data */
-   new = mri_new( nx , nx , MRI_float ) ;   /* output image */
-   nar = MRI_FLOAT_PTR(new) ;               /* output image data */
+   newImg = mri_new( nx , nx , MRI_float ) ;   /* output image */
+   nar = MRI_FLOAT_PTR(newImg) ;               /* output image data */
 
    bot = top = far[0] ;
    for( ii=0 ; ii < nx*ny ; ii++ )
@@ -176,8 +176,8 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   MRI_COPY_AUX(new,im) ;
-   return new ;
+   MRI_COPY_AUX(newImg,im) ;
+   return newImg ;
 }
 
 /**-------------------------------------------------------------------
@@ -193,7 +193,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
 MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
 {
    float rot_dx , rot_dy , rot_cph , rot_sph ;
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    MRI_IMARR *impair ;
    float *far , *nar ;
    float xx,yy , fx,fy ;
@@ -217,10 +217,10 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
       iim = IMAGE_IN_IMARR(impair,1) ;  FREE_IMARR(impair) ;
       tim = mri_rota_bilinear( rim , aa,bb,phi ) ; mri_free( rim ) ; rim = tim ;
       tim = mri_rota_bilinear( iim , aa,bb,phi ) ; mri_free( iim ) ; iim = tim ;
-      new = mri_pair_to_complex( rim , iim ) ;
+      newImg = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
-      MRI_COPY_AUX(new,im) ;
-      return new ;
+      MRI_COPY_AUX(newImg,im) ;
+      return newImg ;
    }
 
    /** rotation params **/
@@ -242,8 +242,8 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
    else                        imfl = mri_to_float( im ) ;
 
    far = MRI_FLOAT_PTR(imfl) ;              /* access to float data */
-   new = mri_new( nx , nx , MRI_float ) ;   /* output image */
-   nar = MRI_FLOAT_PTR(new) ;               /* output image data */
+   newImg = mri_new( nx , nx , MRI_float ) ;   /* output image */
+   nar = MRI_FLOAT_PTR(newImg) ;               /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -281,8 +281,8 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   MRI_COPY_AUX(new,im) ;
-   return new ;
+   MRI_COPY_AUX(newImg,im) ;
+   return newImg ;
 }
 
 /*--------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "thd_iochan.h"
+#include "Amalloc.h"
 #include <errno.h>
 
 static char *error_string=NULL ; /* 21 Nov 2001 */
@@ -1619,7 +1620,7 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
 
    fprintf(stderr,"forked process fully connected\n") ;
 
-   buf = malloc(MBUF) ; /* workspace for transfers */
+   buf = AFMALL(char, MBUF) ; /* workspace for transfers */
    if( buf == NULL ){
       fprintf(stderr,"forked process can't malloc I/O buffer") ;
       iochan_close(ioc_in) ; iochan_close(ioc_out) ; _exit(1) ;

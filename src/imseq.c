@@ -263,7 +263,7 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "cat" ) ;   /* should always find this! */
    if( pg != NULL ){
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv) ;
 
@@ -273,7 +273,7 @@ static void ISQ_setup_ppmto_filters(void)
 
       pg = THD_find_executable( "mpeg_encode" ) ;
       if( pg != NULL ){
-         str = malloc(strlen(pg)+64) ;
+         str = AFMALL( char, strlen(pg)+64) ;
          sprintf(str,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
          ppmto_mpeg_filter = str ;
       }
@@ -283,13 +283,13 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg != NULL ){
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -quality 95 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
 
       /* lower quality JPEGs */
 
-      ppmto_jpg75_filter = malloc(strlen(pg)+32) ;
+      ppmto_jpg75_filter = AFMALL( char, strlen(pg)+32);
       sprintf(ppmto_jpg75_filter,"%s -quality 80 > %%s",pg) ;
    }
 
@@ -300,7 +300,7 @@ static void ISQ_setup_ppmto_filters(void)
    if( pg != NULL && pg2 != NULL ){
       int adel=20 ; char asuff[64] ;               /* 16 Jan 2003 */
 
-      str = malloc(strlen(pg)+strlen(pg2)+32) ;
+      str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s 255 | %s > %%s",pg2,pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv) ;
 
@@ -316,14 +316,14 @@ static void ISQ_setup_ppmto_filters(void)
       pg = THD_find_executable( "gifsicle" ) ;    /* preferred */
       if( pg != NULL ){
          sprintf(asuff,GIFSICLE_SUFFIX,adel) ;    /* 16 Jan 2003 */
-         str = malloc(strlen(pg)+64) ;
+         str = AFMALL( char, strlen(pg)+64) ;
          sprintf(str,"%s %s",pg,asuff) ;
          ppmto_agif_filter = str ;
       } else {
          pg = THD_find_executable( "whirlgif" ) ; /* but is OK */
          if( pg != NULL ){
             sprintf(asuff,WHIRLGIF_SUFFIX,adel) ; /* 16 Jan 2003 */
-            str = malloc(strlen(pg)+64) ;
+            str = AFMALL( char, strlen(pg)+64) ;
             sprintf(str,"%s %s",pg,asuff) ;
             ppmto_agif_filter = str ;
          }
@@ -334,13 +334,13 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "ppm2tiff" ) ;
    if( pg != NULL ){
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -c none %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
    } else {                                     /* 03 Jul 2001:      */
       pg = THD_find_executable( "pnmtotiff" ) ; /* must use ppm2tiff */
       if( pg != NULL ){                         /* and pnmtotiff     */
-         str = malloc(strlen(pg)+32) ;          /* differently       */
+         str = AFMALL( char, strlen(pg)+32) ;          /* differently       */
          sprintf(str,"%s > %%s",pg) ;
          bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
       }
@@ -353,12 +353,12 @@ static void ISQ_setup_ppmto_filters(void)
    if( AFNI_yesenv("AFNI_OLD_PPMTOBMP") ){    /* the old way: quantize */
      pg2 = THD_find_executable( "ppmquant" ) ;
      if( pg != NULL && pg2 != NULL ){
-        str = malloc(strlen(pg)+strlen(pg2)+32) ;
+        str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
         sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
         bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
      }
    } else if( pg != NULL ){                   /* 21 Feb 2003: don't quantize */
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -bpp 24 -windows > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
    }
@@ -367,7 +367,7 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "pnmtops" ) ;
    if( pg != NULL ){
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -noturn > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
    }
@@ -376,7 +376,7 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg2 = THD_find_executable( "epstopdf" ) ;   /* 19 Oct 2001:  */
    if( pg != NULL && pg2 != NULL ){            /* check pg!=NULL */
-      str = malloc(strlen(pg)+strlen(pg2)+32) ;
+      str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
    }
@@ -385,7 +385,7 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg != NULL ){
-      str = malloc(strlen(pg)+32) ;
+      str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -compression 9 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"png",bv) ;
    }
@@ -605,7 +605,7 @@ ENTRY("open_MCW_imseq") ;
          for( qq=0 ; qq < nbut_old ; qq++ )
             ISQ_dispbb[NTOG_SAV].lbut[qq] = lbut_old[qq] ;
          for( pp=0 ; pp < ppmto_num ; pp++,qq++ ){
-            ISQ_dispbb[NTOG_SAV].lbut[qq] = malloc(32) ;
+            ISQ_dispbb[NTOG_SAV].lbut[qq] = AFMALL( char, 32) ;
             sprintf(ISQ_dispbb[NTOG_SAV].lbut[qq] ,
                     "Save to .%.3s(s)" , ppmto_suffix[pp] ) ;
          }
@@ -2886,7 +2886,7 @@ ENTRY("ISQ_saver_CB") ;
          XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
       }
 
-      seq->saver_prefix = XtMalloc( sizeof(char) * (ll+8) ) ;
+      seq->saver_prefix = (char*)XtMalloc( sizeof(char) * (ll+8) ) ;
       strcpy( seq->saver_prefix , cbs->cval ) ;
 
       if( seq->saver_prefix[ll-1] != '.' ){  /* add a . at the end */
@@ -3289,16 +3289,16 @@ ENTRY("ISQ_saver_CB") ;
                   alen += strlen( agif_list->ar[af] ) ;      /* filenames  */
 
                alen += 3*agif_list->num + 32 ;               /* all filenames */
-               alc = malloc(alen) ; alc[0] = '\0' ;          /* in one string */
+               alc = AFMALL ( char, alen) ; alc[0] = '\0' ;          /* in one string */
                for( alen=af=0 ; af < agif_list->num ; af++ ){
                   strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
                }
 
-               oof  = malloc( strlen(seq->saver_prefix)+32 ) ; /* output fname */
+               oof  = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
                sprintf(oof,"%sgif",seq->saver_prefix) ;
 
                alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
-               alf  = malloc(alen) ;
+               alf  = AFMALL( char, alen) ;
                sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
                fprintf(stderr,"Running '%s'\n",alf) ;
                system(alf) ;                                 /* so run it!    */
@@ -3314,11 +3314,11 @@ ENTRY("ISQ_saver_CB") ;
 
                /* write mpeg_encode parameter file */
 
-               par = malloc( strlen(seq->saver_prefix)+32 ) ; /* param fname */
+               par = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* param fname */
                sprintf(par,"%s%s.PARAM",seq->saver_prefix,tsuf) ;
                fpar = fopen( par , "w" ) ;
                if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
-               oof = malloc( strlen(seq->saver_prefix)+32 ) ; /* output fname */
+               oof = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
                sprintf(oof,"%smpg",seq->saver_prefix) ;
                qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
                pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
@@ -3350,7 +3350,7 @@ ENTRY("ISQ_saver_CB") ;
                /* make command to run */
 
                alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
-               alf  = malloc(alen) ;
+               alf  = AFMALL( char, alen) ;
                sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
                fprintf(stderr,"Running '%s' to produce %s\n",alf,oof) ;
                system(alf) ;                            /* so run it!    */
@@ -9740,7 +9740,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
             strlist = (char **) malloc(sizeof(char *)*(ppmto_num+3)) ;
             strlist[0] = strdup("Save:bkg") ;             /* special case */
             for( pp=0 ; pp < ppmto_num ; pp++ ){          /* filters */
-               strlist[pp+1] = malloc(16) ;
+               strlist[pp+1] = AFMALL( char, 16) ;
                sprintf(strlist[pp+1],"Save.%.3s",ppmto_suffix[pp]) ;
             }
             nstr = ppmto_num+1 ;

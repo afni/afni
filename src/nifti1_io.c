@@ -1,4 +1,5 @@
 #include "nifti1_io.h"   /*** typedefs, prototypes, macros, etc. ***/
+#include "Amalloc.h"
 
 /*****===================================================================*****/
 /*****     Sample functions to deal with NIFTI-1 and ANALYZE files       *****/
@@ -1133,7 +1134,7 @@ nifti_image *nifti_image_read( char *hname , int read_data )
      int slen = get_filesize( hname ) ;
      char  *sbuf ;
      if( slen > 65530 ) slen = 65530 ;
-     sbuf = calloc(1,slen+1) ;
+     sbuf = AFMALL(char, slen+1) ;
      fread( sbuf , 1 , slen , fp ) ; fclose( fp ) ;
      nim = nifti_image_from_ascii( sbuf ) ; free( sbuf ) ;
      if( nim == NULL )                   ERREX("bad ASCII header read") ;
@@ -1415,7 +1416,7 @@ void nifti_image_load( nifti_image *nim )
 
    if( nim->data != NULL ) free(nim->data) ;
 
-   nim->data = malloc( ntot ) ;
+   nim->data = AFMALL(void, ntot ) ;
    if( nim->data == NULL ) ERREX("can't malloc array space") ;
 
    ii = fread( nim->data , 1 , ntot , fp ) ;             /*** data input! ***/
@@ -1543,7 +1544,7 @@ void nifti_image_write( nifti_image *nim )
        }
        if( nim->iname == NULL ){
          int ll = strlen(nim->fname) ;
-         nim->iname = calloc(1,ll+5) ;
+         nim->iname = AFMALL( char, ll+5) ;
          strcpy(nim->iname,nim->fname) ;
          if( ll > 4 ) strcpy(nim->iname+ll-4,".img") ; /* create .img filename */
          else         strcat(nim->iname     ,".img") ;
@@ -1836,7 +1837,7 @@ char *escapize_string( char *str )
        default: lout++ ; break ;      /* copy all other chars */
      }
    }
-   out = malloc(lout) ;               /* allocate output string */
+   out = AFMALL(char, lout) ;         /* allocate output string */
    out[0] = '\'' ;                    /* opening quote mark */
    for( ii=0,jj=1 ; ii < lstr ; ii++ ){
       switch( str[ii] ){
@@ -1873,7 +1874,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
 
    if( nim == NULL ) return NULL ;   /* stupid caller */
 
-   buf = malloc(65530) ; nbuf = 0 ;  /* longer than needed, to be safe */
+   buf = AFMALL(char, 65530) ; nbuf = 0 ;  /* longer than needed, to be safe */
 
    sprintf( buf , "<nifti_image\n" ) ;   /* XML-ish opener */
 
@@ -2087,7 +2088,7 @@ char *nifti_image_to_ascii( nifti_image *nim )
    sprintf( buf+strlen(buf) , "/>\n" ) ;   /* XML-ish closer */
 
    nbuf = strlen(buf) ;
-   buf = realloc( buf , nbuf+1 ) ;   /* cut back to proper length */
+   buf = AFREALL(buf ,char, nbuf+1 ) ;   /* cut back to proper length */
    return buf ;
 }
 

@@ -68,6 +68,7 @@
 #include "mri_dicom_hdr.h"
 
 #include "mcw_malloc.h"
+#include "Amalloc.h"
 #include "debugtrace.h"    /* 10 Sep 2002 */
 
 /****************************************************************/
@@ -122,7 +123,7 @@ static int RWC_printf( char *fmt , ... )
 
    va_start( vararg_ptr , fmt ) ;
 
-   if( sbuf == NULL ) sbuf = malloc(NPBUF) ;  /* 1st time in */
+   if( sbuf == NULL ) sbuf = AFMALL( char, NPBUF) ;  /* 1st time in */
 
    sbuf[0] = '\0' ;
    nn = vsprintf( sbuf , fmt , vararg_ptr ) ;
@@ -131,12 +132,12 @@ static int RWC_printf( char *fmt , ... )
    if( nsbuf == 0 ) return(0);
 
    if( npbuf == 0 ){
-     pbuf = malloc(NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
+     pbuf = AFMALL(char,NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
    }
 
    lpbuf = strlen(pbuf) ;
    if( lpbuf+nsbuf+8 > npbuf ){
-     npbuf += NPBUF; pbuf = realloc(pbuf,npbuf);
+     npbuf += NPBUF; pbuf = AFREALL( pbuf, char, npbuf);
    }
 
    strcat(pbuf,sbuf) ;
@@ -1781,7 +1782,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
   }
 
   if (DCM_IsString(e.representation)) {
-    s = malloc(e.length + 1);
+    s = AFMALL( char, e.length + 1);
     e.d.string = s;
     cond = DCM_ParseObject(callerObject, &e, 1, 0, 0, 0);
     if (cond != DCM_NORMAL) {
@@ -7703,7 +7704,7 @@ copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e)
 	DCM_SEQUENCE_ITEM *copyItem;
 
 	DCM_CopyObject(&sqItem->object, &copy);
-	copyItem = malloc(sizeof(*copyItem));
+	copyItem = AFMALL( DCM_SEQUENCE_ITEM, sizeof(*copyItem));
 	copyItem->object = copy;
 	(void) LST_Enqueue(&lst, (void *)copyItem);
 
@@ -11839,7 +11840,7 @@ UTL_GetTimeStamp()
 {
     UTL_TIMESTRUCTURE *t;
 
-    t = calloc(1, sizeof(*t));
+    t = AFMALL( UTL_TIMESTRUCTURE, sizeof(*t));
     if (t == NULL)
 	return NULL;
 

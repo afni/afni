@@ -71,7 +71,7 @@ SER_vector * SER_new_vector( char *fname , char *typelist )
 
    if( !SERTYPE_initialized ) SER_setup_stuff() ;
 
-   sv = malloc(sizeof(SER_vector)) ;
+   sv = AFMALL( SER_vector, sizeof(SER_vector)) ;
 
    /*-- set fieldname --*/
 

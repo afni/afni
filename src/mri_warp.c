@@ -101,7 +101,7 @@ MRI_IMAGE *mri_resize( MRI_IMAGE *im , int nxnew , int nynew )
 MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
                                      void wf( float,float,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr , xx,yy , fx,fy ;
    int ii,jj, nx,ny , ix,jy ;
@@ -124,18 +124,18 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
 
      case MRI_short:{
        imfl = mri_to_float(im) ;
-       new  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
+       newImg  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(MRI_short,new) ;
-       mri_free(new) ; return imfl ;
+       imfl = mri_to_mri(MRI_short,newImg) ;
+       mri_free(newImg) ; return imfl ;
      }
 
      case MRI_byte:{
        imfl = mri_to_float(im) ;
-       new  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
+       newImg  = mri_warp_bicubic( imfl , nxnew,nynew , wf ) ;
        mri_free(imfl) ;
-       imfl = mri_to_mri(MRI_byte,new) ;
-       mri_free(new) ; return imfl ;
+       imfl = mri_to_mri(MRI_byte,newImg) ;
+       mri_free(newImg) ; return imfl ;
      }
 
      case MRI_rgb:{
@@ -145,8 +145,8 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
        gim = mri_warp_bicubic( IMARR_SUBIM(imar,1), nxnew,nynew, wf ) ;
        bim = mri_warp_bicubic( IMARR_SUBIM(imar,2), nxnew,nynew, wf ) ;
        DESTROY_IMARR(imar) ;
-       new = mri_3to_rgb( rim,gim,bim ) ;
-       mri_free(rim); mri_free(gim); mri_free(bim); return new;
+       newImg = mri_3to_rgb( rim,gim,bim ) ;
+       mri_free(rim); mri_free(gim); mri_free(bim); return newImg;
      }
 
    }
@@ -155,8 +155,8 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
 
    far = mri_data_pointer( imfl ) ;  /* easy access to float data */
 
-   new = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
-   nar = mri_data_pointer( new ) ;                /* output image data */
+   newImg = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
+   nar = mri_data_pointer( newImg ) ;                /* output image data */
 
    bot = top = far[0] ;                        /* 29 Mar 2003: */
    for( ii=1 ; ii < imfl->nvox ; ii++ ){       /* clip output data range */
@@ -220,7 +220,7 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   return new ;
+   return newImg ;
 }
 
 /*************************************************************************/
@@ -228,7 +228,7 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
 MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
                                   void wf( float,float,float *,float *) )
 {
-   MRI_IMAGE *imfl , *new ;
+   MRI_IMAGE *imfl , *newImg ;
    float *far , *nar ;
    float xpr,ypr , xx,yy , fx,fx1,fy,fy1 , f00,f10,f01,f11 ;
    int ii,jj, nx,ny , ix,jy ;
@@ -246,8 +246,8 @@ MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
    }
    far = mri_data_pointer( imfl ) ;  /* easy access to float data */
 
-   new = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
-   nar = mri_data_pointer( new ) ;                /* output image data */
+   newImg = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
+   nar = mri_data_pointer( newImg ) ;                /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -274,7 +274,7 @@ MRI_IMAGE *mri_warp_bilinear( MRI_IMAGE *im , int nxnew , int nynew ,
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-   return new ;
+   return newImg ;
 }
 
 /**********************************************************************/
@@ -366,7 +366,7 @@ MRI_IMAGE *mri_rotate_bilinear( MRI_IMAGE *im, float aa, float bb, float phi, fl
 float mri_warp_bicubic_point( MRI_IMAGE *im , int ii , int jj ,
                                 void wf( float,float,float *,float *) )
 {
-   float xx,yy , fx,fy , new ;
+   float xx,yy , fx,fy , newPt ;
    int nx,ny , ix,jy , kk ;
    float f_jm1,f_j00,f_jp1,f_jp2 , wt_m1,wt_00,wt_p1,wt_p2 ;
 
@@ -406,10 +406,10 @@ float mri_warp_bicubic_point( MRI_IMAGE *im , int ii , int jj ,
 
    /* interpolate between y-levels to jy+fy */
 
-   new = (  P_M1(fy) * f_jm1 + P_00(fy) * f_j00
+   newPt = (  P_M1(fy) * f_jm1 + P_00(fy) * f_j00
           + P_P1(fy) * f_jp1 + P_P2(fy) * f_jp2 ) / 36.0 ;
 
-   return new ;
+   return newPt ;
 }
 
 /*--------------------------------------------------------------------

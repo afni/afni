@@ -74,6 +74,7 @@ static int         rowtype_num    = 0    ;
      addto_Htable( (rr)->name , (rr) , rowtype_table ) ;   \
      nn = rowtype_num + 1 ;                                \
      rowtype_array = NI_realloc( rowtype_array ,           \
+                                 NI_rowtype*,              \
                                 sizeof(NI_rowtype *)*nn ); \
      rowtype_array[nn-1] = rr ;  rowtype_num = nn ;        \
  } while(0)
@@ -133,21 +134,21 @@ static void setup_basic_types(void)
      rt->flag        = 0 ;
 
      rt->comp_num    = 1 ;                      /* basic types have */
-     rt->comp_typ    = NI_malloc(sizeof(int)) ; /* only one component */
+     rt->comp_typ    = NI_malloc(int, sizeof(int)) ; /* only one component */
      rt->comp_typ[0] = ii ;
-     rt->comp_dim    = NI_malloc(sizeof(int)) ;
+     rt->comp_dim    = NI_malloc(int, sizeof(int)) ;
      rt->comp_dim[0] = -1 ;                     /* fixed dim component */
 
      rt->part_num    = 1 ;                      /* basic types have */
-     rt->part_typ    = NI_malloc(sizeof(int)) ; /* only one part */
+     rt->part_typ    = NI_malloc(int, sizeof(int)) ; /* only one part */
      rt->part_typ[0] = ii ;
-     rt->part_off    = NI_malloc(sizeof(int)) ;
+     rt->part_off    = NI_malloc(int, sizeof(int)) ;
      rt->part_off[0] = 0 ;
-     rt->part_siz    = NI_malloc(sizeof(int)) ;
+     rt->part_siz    = NI_malloc(int, sizeof(int)) ;
      rt->part_siz[0] = type_size[ii] ;
-     rt->part_dim    = NI_malloc(sizeof(int)) ;
+     rt->part_dim    = NI_malloc(int, sizeof(int)) ;
      rt->part_dim[0] = -1 ;                     /* fixed dim part */
-     rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
+     rt->part_rtp    = NI_malloc(NI_rowtype*, sizeof(NI_rowtype *)) ;
      rt->part_rtp[0] = rt ;
 
      ROWTYPE_register( rt ) ;                   /* put in the Htable */
@@ -173,22 +174,22 @@ static void setup_basic_types(void)
    rt->flag        = ROWTYPE_VARSIZE_MASK ;    /* variable dim */
 
    rt->comp_num    = 1 ;
-   rt->comp_typ    = NI_malloc(sizeof(int)) ;
+   rt->comp_typ    = NI_malloc(int, sizeof(int)) ;
    rt->comp_typ[0] = NI_STRING ;
-   rt->comp_dim    = NI_malloc(sizeof(int)) ;
+   rt->comp_dim    = NI_malloc(int, sizeof(int)) ;
    rt->comp_dim[0] = -1 ;
 
    rt->part_num    = 1 ;
-   rt->part_typ    = NI_malloc(sizeof(int)) ;
+   rt->part_typ    = NI_malloc(int, sizeof(int)) ;
    rt->part_typ[0] = NI_STRING ;
-   rt->part_off    = NI_malloc(sizeof(int)) ;
+   rt->part_off    = NI_malloc(int, sizeof(int)) ;
    rt->part_off[0] = 0 ;
-   rt->part_siz    = NI_malloc(sizeof(int)) ;
+   rt->part_siz    = NI_malloc(int, sizeof(int)) ;
    rt->part_siz[0] = pointer_size ;
-   rt->part_dim    = NI_malloc(sizeof(int)) ;
+   rt->part_dim    = NI_malloc(int, sizeof(int)) ;
    rt->part_dim[0] = -1 ;
 
-   rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
+   rt->part_rtp    = NI_malloc(NI_rowtype*, sizeof(NI_rowtype *)) ;
    rt->part_rtp[0] = rt ;
 
    ROWTYPE_register( rt ) ;
@@ -377,8 +378,8 @@ int NI_rowtype_define( char *tname , char *tdef )
 
      if( !isdim ){  /*** fixed count: add jd copies of this component type ***/
 
-       rt->comp_typ = NI_realloc( rt->comp_typ, sizeof(int)*(rt->comp_num+jd) );
-       rt->comp_dim = NI_realloc( rt->comp_dim, sizeof(int)*(rt->comp_num+jd) );
+       rt->comp_typ = NI_realloc( rt->comp_typ, int, sizeof(int)*(rt->comp_num+jd) );
+       rt->comp_dim = NI_realloc( rt->comp_dim, int, sizeof(int)*(rt->comp_num+jd) );
 
        for( jj=0 ; jj < jd ; jj++ ){
          rt->comp_typ[rt->comp_num + jj] = qt->code ;
@@ -402,8 +403,8 @@ int NI_rowtype_define( char *tname , char *tdef )
          ERREX("variable dim array must have fixed dim type");
        }
 
-       rt->comp_typ = NI_realloc( rt->comp_typ, sizeof(int)*(rt->comp_num+1) );
-       rt->comp_dim = NI_realloc( rt->comp_dim, sizeof(int)*(rt->comp_num+1) );
+       rt->comp_typ = NI_realloc( rt->comp_typ, int, sizeof(int)*(rt->comp_num+1) );
+       rt->comp_dim = NI_realloc( rt->comp_dim, int, sizeof(int)*(rt->comp_num+1) );
 
        rt->comp_typ[rt->comp_num] = qt->code ;  /* type this points to */
        rt->comp_dim[rt->comp_num] = jd-1 ;      /* which component has */
@@ -424,11 +425,11 @@ int NI_rowtype_define( char *tname , char *tdef )
    /*** now loop over components, breaking them down into their parts,
         storing the part types and their offsets into the C struct    ***/
 
-   rt->part_off = NI_malloc( sizeof(int)          * rt->part_num ) ;
-   rt->part_typ = NI_malloc( sizeof(int)          * rt->part_num ) ;
-   rt->part_dim = NI_malloc( sizeof(int)          * rt->part_num ) ;
-   rt->part_siz = NI_malloc( sizeof(int)          * rt->part_num ) ;
-   rt->part_rtp = NI_malloc( sizeof(NI_rowtype *) * rt->part_num ) ;
+   rt->part_off = NI_malloc(int, sizeof(int)          * rt->part_num ) ;
+   rt->part_typ = NI_malloc(int, sizeof(int)          * rt->part_num ) ;
+   rt->part_dim = NI_malloc(int, sizeof(int)          * rt->part_num ) ;
+   rt->part_siz = NI_malloc(int, sizeof(int)          * rt->part_num ) ;
+   rt->part_rtp = NI_malloc(NI_rowtype*, sizeof(NI_rowtype *) * rt->part_num ) ;
 
    almax = 1 ;  /* will be largest type_alignment of any part */
    cbase = 0 ;  /* base offset into struct for next component */
@@ -1048,9 +1049,9 @@ int NI_write_columns( NI_stream_type *ns,
 
    /* create array of NI_rowtype for columns, etc. */
 
-   rt   = NI_malloc( sizeof(NI_rowtype *) * col_num ) ;
-   vsiz = NI_malloc( sizeof(int)          * col_num ) ;
-   fsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   rt   = NI_malloc(NI_rowtype*, sizeof(NI_rowtype *) * col_num ) ;
+   vsiz = NI_malloc(int,  sizeof(int)          * col_num ) ;
+   fsiz = NI_malloc(int,  sizeof(int)          * col_num ) ;
    for( col=0 ; col < col_num ; col++ ){
 
      /* convert column type code to rowtype pointer */
@@ -1089,13 +1090,13 @@ int NI_write_columns( NI_stream_type *ns,
      case NI_BASE64_MODE:
      case NI_BINARY_MODE: nwbuf =   fsiz_tot ; break ;
    }
-   wbuf = NI_malloc(nwbuf+128) ;  /* 128 for the hell of it */
+   wbuf = NI_malloc(char, nwbuf+128) ;  /* 128 for the hell of it */
 
    /* create buffers for Base64 output, if needed */
 
    if( tmode == NI_BASE64_MODE ){
-     bbuf = NI_malloc(  nwbuf+128) ; bb = 0 ;  /* binary buffer */
-     cbuf = NI_malloc(2*nwbuf+128) ; cc = 0 ;  /* base64 buffer */
+     bbuf = NI_malloc(char,  nwbuf+128) ; bb = 0 ;  /* binary buffer */
+     cbuf = NI_malloc(char, 2*nwbuf+128) ; cc = 0 ;  /* base64 buffer */
      load_encode_table() ;
    }
 
@@ -1127,10 +1128,10 @@ int NI_write_columns( NI_stream_type *ns,
        if( tmode == NI_TEXT_MODE ) jj *= 6 ;
        if( jj > nwbuf ){                     /* did it get bigger? */
          nwbuf = jj ;
-         wbuf  = NI_realloc(wbuf,nwbuf+128) ;
+         wbuf  = NI_realloc(wbuf, char,nwbuf+128) ;
          if( tmode == NI_BASE64_MODE ){          /* expand Base64 stuff, too */
-           bbuf = NI_realloc(bbuf,  nwbuf+128) ;
-           cbuf = NI_realloc(cbuf,2*nwbuf+128) ;
+           bbuf = NI_realloc(bbuf, char,  nwbuf+128) ;
+           cbuf = NI_realloc(cbuf, char,2*nwbuf+128) ;
          }
        }
      }
@@ -1350,9 +1351,9 @@ int NI_read_columns( NI_stream_type *ns,
 
    /* create array of NI_rowtype for columns, etc. */
 
-   rt   = NI_malloc( sizeof(NI_rowtype *) * col_num ) ;
-   vsiz = NI_malloc( sizeof(int)          * col_num ) ;
-   fsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   rt   = NI_malloc(NI_rowtype*,  sizeof(NI_rowtype *) * col_num ) ;
+   vsiz = NI_malloc(int,  sizeof(int)          * col_num ) ;
+   fsiz = NI_malloc(int,  sizeof(int)          * col_num ) ;
    if( open_ended ) col_len = 1 ;
    for( col=0 ; col < col_num ; col++ ){
 
@@ -1368,7 +1369,7 @@ int NI_read_columns( NI_stream_type *ns,
      /* setup data array for this column */
 
      if( col_dat[col] == NULL ){
-       col_dat[col] = NI_malloc( fsiz[col]*col_len ) ; /* make space */
+       col_dat[col] = NI_malloc(char,  fsiz[col]*col_len ) ; /* make space */
      } else {
        if( open_ended ){ FREEUP; return -1; }
        memset( col_dat[col], 0 , fsiz[col]*col_len ) ; /* set space to 0 */
@@ -1412,7 +1413,7 @@ int NI_read_columns( NI_stream_type *ns,
      if( open_ended && row >= col_len ){
        jj = (int)(1.2*col_len+32) ;
        for( col=0 ; col < col_num ; col++ ){
-         col_dat[col] = NI_realloc( col_dat[col] , fsiz[col]*jj ) ;
+         col_dat[col] = NI_realloc( col_dat[col] , char, fsiz[col]*jj ) ;
          memset( col_dat[col]+fsiz[col]*col_len, 0 , fsiz[col]*(jj-col_len) ) ;
        }
        col_len = jj ;
@@ -1439,7 +1440,7 @@ int NI_read_columns( NI_stream_type *ns,
 
    if( open_ended && nin < col_len ){                   /* truncate columns */
      for( col=0 ; col < col_num ; col++ )
-       col_dat[col] = NI_realloc( col_dat[col] , fsiz[col]*nin ) ;
+       col_dat[col] = NI_realloc( col_dat[col] , char, fsiz[col]*nin ) ;
    }
 
    /*-- Have read all data; byte swap if needed, then get outta here --*/
@@ -1485,7 +1486,7 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
        for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
          if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
        if( naaa > 0 )
-         aaa = NI_malloc(sizeof(char *)*naaa) ;  /* save their addresses */
+         aaa = NI_malloc(char*, sizeof(char *)*naaa) ;  /* save their addresses */
      }                                    /* for possible deletion later */
 
      /* loop over parts and load them;
@@ -1508,7 +1509,7 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
                                             /* just read in a moment ago */
 
          if( dim > 0 ){                         /* need to get some data */
-           *apt = NI_malloc( siz * dim );                  /* make array */
+           *apt = NI_malloc(char,  siz * dim );                  /* make array */
 
            if( siz != rt->part_rtp[ii]->psiz ){     /* padded values ==> */
             for( jj=0 ; jj < dim ; jj++ ){       /* read 1 val at a time */
@@ -1567,7 +1568,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
          for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
            if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
          if( naaa > 0 )
-           aaa = NI_malloc(sizeof(char *)*naaa) ;  /* save their addresses */
+           aaa = NI_malloc(char*, sizeof(char *)*naaa) ;  /* save their addresses */
        }                                    /* for possible deletion later */
 
        /* loop over parts and load them */
@@ -1586,7 +1587,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
            int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
            int siz = rt->part_rtp[ii]->size ;   /* size of one part struct */
            if( dim > 0 ){
-             *apt = NI_malloc( siz * dim );                  /* make array */
+             *apt = NI_malloc(char, siz * dim );                  /* make array */
              for( jj=0 ; jj < dim ; jj++ ){        /* get values for array */
                nn = NI_text_to_val( ns, rt->part_rtp[ii],
                                     *apt + siz * jj , ltend ) ;
@@ -1835,7 +1836,7 @@ void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
 
    /* make a quick (surface) copy */
 
-   ndat = NI_malloc( rt->size * col_len ) ;
+   ndat = NI_malloc(char,  rt->size * col_len ) ;
    memcpy( ndat , dat , rt->size * col_len ) ;
 
    /* copy any var dim arrays inside */
@@ -1852,7 +1853,7 @@ void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
            char **apt = (char **)(nptr+rt->part_off[jj]) ;   /* *apt => data */
            if( *apt != NULL ){
              kk  = ROWTYPE_part_dimen(rt,nptr,jj) * rt->part_rtp[jj]->size ;
-             qpt = NI_malloc(kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
+             qpt = NI_malloc(char, kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
            }
          }
        }

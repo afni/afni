@@ -173,11 +173,11 @@ ENTRY("THD_init_session") ;
 
      STATUS("looking for ANALYZE files") ;
 
-     ename[0] = malloc(THD_MAX_NAME) ;
+     ename[0] = AFMALL(char, THD_MAX_NAME) ;
      strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.hdr") ;
      nee = 1 ;
 #ifdef ALLOW_FSL_FEAT
-     ename[1] = malloc(THD_MAX_NAME) ;
+     ename[1] = AFMALL(char, THD_MAX_NAME) ;
      strcpy(ename[1],sess->sessname) ; strcat(ename[1],"stats/*stat*.hdr") ;
      nee++ ;
 #endif
@@ -500,8 +500,8 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
      STATUS("looking for CTF files") ;
 
-     ename[0] = malloc(THD_MAX_NAME) ;
-     ename[1] = malloc(THD_MAX_NAME) ;
+     ename[0] = AFMALL(char, THD_MAX_NAME) ;
+     ename[1] = AFMALL(char, THD_MAX_NAME) ;
      strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.mri") ;
      strcpy(ename[1],sess->sessname) ; strcat(ename[1],"*.svl") ;
      MCW_file_expand( 2,ename , &num_ctf,&fn_ctf ) ;  /* find files */

@@ -1,6 +1,6 @@
 #include "mrilib.h"
 
-int THD_copy_file( char *old , char *new ) ; /* prototype */
+int THD_copy_file( char *old , char *newFile ) ; /* prototype */
 
 /*---------------------------------------------------------------------*/
 
@@ -315,19 +315,19 @@ int main( int argc , char * argv[] )
 #undef NBUF
 #define NBUF 1048576  /* 2^20 */
 
-int THD_copy_file( char *old , char *new )
+int THD_copy_file( char *old , char *newFile )
 {
    FILE *fold , *fnew ;
    char *buf ;
    int ii,jj ;
 
    if( old == NULL || old[0] == '\0' ||
-       new == NULL || new[0] == '\0'   ) return 1 ;
+       newFile == NULL || newFile[0] == '\0'   ) return 1 ;
 
    fold = fopen( old , "rb" ) ;
    if( fold == NULL ){ perror("Old open fails"); return 1; }
 
-   fnew = fopen( new , "wb" ) ;
+   fnew = fopen( newFile , "wb" ) ;
    if( fnew == NULL ){ perror("New open fails"); fclose(fold); return 1; }
 
    buf = malloc(NBUF) ;

@@ -107,11 +107,11 @@ ENTRY("AFNI_receive_init") ;
       if( im3d->vinfo->receiver[ir] == NULL ) break ;
 
    if( ir == im3d->vinfo->num_receiver ){
-      im3d->vinfo->receiver = realloc( im3d->vinfo->receiver ,
-                                       (ir+1) * sizeof(AFNI_receiver *) ) ;
+      im3d->vinfo->receiver = AFREALL( im3d->vinfo->receiver, AFNI_receiver *,
+				       ir+1 ); 
       im3d->vinfo->num_receiver ++ ;
    }
-   im3d->vinfo->receiver[ir] = malloc(sizeof(AFNI_receiver)) ;
+   im3d->vinfo->receiver[ir] = AFMALL( AFNI_receiver, sizeof(AFNI_receiver)) ;
 
    im3d->vinfo->receiver[ir]->receiver_func = cb ;
    im3d->vinfo->receiver[ir]->receiver_mask = rmask ;

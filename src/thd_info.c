@@ -343,7 +343,7 @@ ENTRY("THD_dataset_info") ;
            if( chn != NULL ){
               j = strlen(chn) ; if( j > mmm ) chn[mmm] = '\0' ;
               chd = tross_Get_Notedate(dset,i) ;
-              if( chd == NULL ){ chd = malloc(16) ; strcpy(chd,"no date") ; }
+              if( chd == NULL ){ chd = AFMALL(char,16) ; strcpy(chd,"no date") ; }
               outbuf = THD_zzprintf(outbuf,"\n----- NOTE %d [%s] -----\n%s\n",i,chd,chn) ;
               free(chn) ; free(chd) ;
            }
@@ -365,7 +365,7 @@ char * THD_zzprintf( char * sss , char * fmt , ... )
 
    va_start( vararg_ptr , fmt ) ;
 
-   if( sbuf == NULL ) sbuf = malloc( ZMAX+90 ) ;
+   if( sbuf == NULL ) sbuf = AFMALL(char, ZMAX+90) ;
 
    sbuf[0] = '\0' ;
    vsprintf( sbuf , fmt , vararg_ptr ) ;

@@ -1781,7 +1781,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    if( first_call ){
       for( ii=0 ; ii < THD_MAX_CHOICES ; ii++ )
-         strlist[ii] = XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
+         strlist[ii] = (char*)XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
       first_call = 0 ;
    }
 
@@ -5102,7 +5102,7 @@ ENTRY("AFNI_find_poem_files") ;
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
-   elocal = malloc( sizeof(char) * (ll+2) ) ;
+   elocal = AFMALL( char,  sizeof(char) * (ll+2) ) ;
 
    /*----- put a blank at the end -----*/
 

@@ -74,7 +74,7 @@ ENTRY("THD_get_dset_row") ;
 
    kind  = DSET_BRICK_TYPE(dset,ival) ;
    brick = DSET_ARRAY(dset,ival) ;
-   row   = malloc( mri_datum_size((MRI_TYPE)kind) * nrow ) ;
+   row   = AFMALL(void, mri_datum_size((MRI_TYPE)kind) * nrow ) ;
 
    /*-- extract row, based on kind of data in sub-brick --*/
 

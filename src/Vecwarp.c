@@ -325,7 +325,7 @@ int main( int argc , char *argv[] )
 
       /* ERROR */
 
-      { char *str = malloc(strlen(argv[iarg])+32) ;
+      { char *str = AFMALL(char, strlen(argv[iarg])+32) ;
         sprintf(str,"Unknown option: %s",argv[iarg]) ;
         errex(str) ;
       }

@@ -155,7 +155,7 @@ ENTRY("mri_write_analyze") ;
 
    /*-- write header --*/
 
-   fff = malloc( strlen(fname)+16 ) ;
+   fff = AFMALL(char, strlen(fname)+16 ) ;
 
    sprintf(fff,"%s.hdr",fname) ;
    fp = fopen( fff , "wb" ) ;

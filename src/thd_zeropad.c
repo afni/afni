@@ -242,7 +242,8 @@ STATUS("padding") ;
 
       oldim = DSET_BRICK(inset,iv) ;  /* image structure of old brick */
 
-      vnew  = calloc( nxnew*nynew*nznew , oldim->pixel_size ) ; /* new brick */
+      vnew  = (void*)calloc( nxnew*nynew*nznew , 
+			     oldim->pixel_size ) ; /* new brick */
       if( vnew == NULL ){
          fprintf(stderr,
                  "*** THD_zeropad: Can't malloc space for new sub-brick %d\n",

@@ -43,6 +43,7 @@ extern float MRILIB_zcos[3] ;
 
 #include "mcw_malloc.h"  /* 06 Mar 1999 addition */
 #include "debugtrace.h"  /* 26 Jan 2001 addition */
+#include "Amalloc.h"     /* 09 Dec 2003 addition */
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -370,7 +371,7 @@ typedef struct MRI_IMARR {
    do{ int nn , iq ;                                                                    \
        if( (name)->num == (name)->nall ){                                               \
           nn = (name)->nall = 1.1*(name)->nall + INC_IMARR ;                            \
-          (name)->imarr = realloc( (name)->imarr,sizeof(MRI_IMAGE *)*nn );              \
+          (name)->imarr = (MRI_IMAGE **)realloc( (name)->imarr,sizeof(MRI_IMAGE *)*nn );              \
           for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->imarr[iq] = NULL ; } \
        nn = (name)->num ; ((name)->num)++ ;                                             \
        (name)->imarr[nn] = (imm) ; break ; } while(0)

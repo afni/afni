@@ -292,7 +292,7 @@ NI_dpr("NI_read_element: returning empty element\n") ;
 
       if( nel->vec_len == 0 ){
         if( nel->vec_axis_len == NULL )
-          nel->vec_axis_len = NI_malloc(sizeof(int)) ;
+          nel->vec_axis_len = NI_malloc(int, sizeof(int)) ;
 
         nel->vec_axis_len[0] = nel->vec_len  = nel->vec_filled ;
         nel->vec_rank = 1 ;
@@ -584,7 +584,7 @@ Restart:
    /*-- if here, data bytes sp.i .. sp.j-1 are the string --*/
 
    nn = sp.j - sp.i ;                       /* length of string */
-   *str = NI_malloc(nn+1) ;                 /* make the string */
+   *str = NI_malloc(char, nn+1) ;           /* make the string */
    memcpy( *str , ns->buf+sp.i , nn ) ;     /* copy data to string */
    (*str)[nn] = '\0' ;                      /* terminate string */
 
@@ -917,7 +917,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       /* space to hold attribute strings */
 
       att_len = 8192 + 64*nel->vec_num + 128*nel->vec_rank ;
-      att     = NI_malloc( att_len ) ;
+      att     = NI_malloc(char, att_len ) ;
 
 #undef  AF
 #define AF NI_free(att)  /* free att if we have to quit early now */
@@ -1072,7 +1072,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
          if( jj+kk+128 > att_len ){                 /* 13 Jun 2003 */
            att_len = jj+kk+128 ;
-           att     = NI_realloc( att , att_len ) ;
+           att     = NI_realloc( att , char, att_len ) ;
          }
 
          strcpy(att,att_prefix) ;

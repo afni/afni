@@ -45,7 +45,7 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    float bxx,bxy,byx,byy , xbase,ybase , xx,yy , fx,fy ;
    float f_j00,f_jp1 , wt_00,wt_p1 ;
    int ii,jj , nx,ny , ix,jy ;
-   MRI_IMAGE *new ;
+   MRI_IMAGE *newImg ;
    byte *far , *nar ;
 
    if( im == NULL || !MRI_IS_2D(im) || im->kind != MRI_byte ){
@@ -68,8 +68,8 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    ybase = 0.5*ny*(1.0-byy) - 0.5*nx*byx ;
 
    far = MRI_BYTE_PTR(im) ;                /* input image data */
-   new = mri_new( nx , nx , MRI_byte ) ;   /* output image */
-   nar = MRI_BYTE_PTR(new) ;               /* output image data */
+   newImg = mri_new( nx , nx , MRI_byte ) ;   /* output image */
+   nar = MRI_BYTE_PTR(newImg) ;               /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -104,8 +104,8 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
       }
    }
 
-   MRI_COPY_AUX(new,im) ;
-   return new ;
+   MRI_COPY_AUX(newImg,im) ;
+   return newImg ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -135,7 +135,7 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
    float bxx,bxy,byx,byy , xbase,ybase , xx,yy , fx,fy ;
    float f_j00r,f_jp1r , f_j00g,f_jp1g , f_j00b,f_jp1b , wt_00,wt_p1 ;
    int jj , nx,ny , ix,jy ;
-   MRI_IMAGE *new ;
+   MRI_IMAGE *newImg ;
    byte *far , *nar ;
    register int ii ;
 
@@ -159,8 +159,8 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
    ybase = 0.5*ny*(1.0-byy) - 0.5*nx*byx ;
 
    far = MRI_RGB_PTR(im) ;                /* input image data */
-   new = mri_new( nx , nx , MRI_rgb ) ;   /* output image */
-   nar = MRI_RGB_PTR(new) ;               /* output image data */
+   newImg = mri_new( nx , nx , MRI_rgb ) ;   /* output image */
+   nar = MRI_RGB_PTR(newImg) ;               /* output image data */
 
    /*** loop over output points and warp to them ***/
 
@@ -208,6 +208,6 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
       }
    }
 
-   MRI_COPY_AUX(new,im) ;
-   return new ;
+   MRI_COPY_AUX(newImg,im) ;
+   return newImg ;
 }

@@ -281,7 +281,7 @@ float * FWT_1d_pass_filter
 float calc_sse 
 (
   int NPTS,         /* number of usable data points from input data */
-  float * true,     /* actual time series data */
+  float * trueData,     /* actual time series data */
   float * est       /* estimated time series data */
 )
 
@@ -293,7 +293,7 @@ float calc_sse
   sse = 0.0;
   for (ipt = 0;  ipt < NPTS;  ipt++)
     {
-      diff = true[ipt] - est[ipt];
+      diff = trueData[ipt] - est[ipt];
       sse += diff * diff;
     }
   

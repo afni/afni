@@ -92,7 +92,7 @@ ENTRY("THD_extract_array") ;
    /* will extract nb bytes of raw data into array tar */
 
    nb = mri_datum_size(typ) * (nv+1) ;
-   if( nb > ntar ){ tar = realloc(tar,nb) ; ntar = nb ; }
+   if( nb > ntar ){ tar = AFREALL(tar,void,nb) ; ntar = nb ; }
    memset(tar,0,nb) ;
 
    if( !raw ) far = (float *) uar ;  /* non-raw output */

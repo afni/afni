@@ -26,7 +26,7 @@ ENTRY("THD_open_3D") ;
 
    if( pathname == NULL || *pathname == '\0' ) RETURN(NULL) ;
 
-   ppp = calloc( sizeof(char) , strlen(pathname)+16 ) ;
+   ppp = (char*)calloc( sizeof(char) , strlen(pathname)+16 ) ;
 
    strcpy(ppp,"file:") ; strcat(ppp,pathname) ;
    ns = NI_stream_open( ppp , "r" ) ; free(ppp) ;
@@ -247,7 +247,7 @@ ENTRY("THD_load_3D") ;
 
    if( nxyz*nv > 1000000 ) fprintf(stderr,"++ Reading %s\n",dkptr->brick_name) ;
 
-   ppp = calloc( sizeof(char) , strlen(dkptr->brick_name)+16 ) ;
+   ppp = (char*)calloc( sizeof(char) , strlen(dkptr->brick_name)+16 ) ;
 
    strcpy(ppp,"file:") ; strcat(ppp,dkptr->brick_name) ;
    ns = NI_stream_open( ppp , "r" ) ; free(ppp) ;
@@ -272,7 +272,7 @@ ENTRY("THD_load_3D") ;
 
    for( iv=0 ; iv < nv ; iv++ ){
      if( DBLK_ARRAY(dblk,iv) == NULL ){                    /* needs data */
-       ppp = malloc( DBLK_BRICK_BYTES(dblk,iv) ) ;         /* make space */
+       ppp = AFMALL(char, DBLK_BRICK_BYTES(dblk,iv) );     /* make space */
        if( ppp == NULL ) break ;                           /* bad bad bad */
        mri_fix_data_pointer( ppp, DBLK_BRICK(dblk,iv) ) ;
        memcpy( ppp, nel->vec[iv], DBLK_BRICK_BYTES(dblk,iv) ) ;

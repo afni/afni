@@ -2712,9 +2712,9 @@ STATUS("button press") ;
                AV_fval_to_char( grapher->tmad[ix][iy]  , bmad ) ;
 
                if( grapher->tuser[ix][iy] == NULL )
-                  qstr = malloc(512) ;
+                  qstr = AFMALL(char, 512) ;
                else
-                  qstr = malloc(512+strlen(grapher->tuser[ix][iy])) ;
+                  qstr = AFMALL(char, 512+strlen(grapher->tuser[ix][iy])) ;
 
                sprintf( qstr, "Ignored = %d\n"
                               "x voxel = %d\n"

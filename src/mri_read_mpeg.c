@@ -22,14 +22,14 @@ static void mpeg_setup(void)
    if( pg == NULL || *pg == '\0' ) pg = getenv( "TEMPDIR" ) ;
    if( pg == NULL || *pg == '\0' ) pg = "/tmp" ;
    if( !THD_is_directory(pg) )     pg = "." ;
-   tmpdir = malloc(strlen(pg)+16) ;
+   tmpdir = AFMALL( char, strlen(pg)+16) ;
    sprintf( tmpdir , "%s/%s" , pg , TDIR ) ;
 
    /* find the mpegtoppm executable */
 
    pg = THD_find_executable( "mpegtoppm" ) ;
    if( pg != NULL ){
-     mpeg_filter = malloc(strlen(pg)+strlen(tmpdir)+64 ) ;
+     mpeg_filter = AFMALL( char, strlen(pg)+strlen(tmpdir)+64 ) ;
      sprintf( mpeg_filter , "%s -prefix %s %%s" , pg , tmpdir ) ;
    }
 }
@@ -56,7 +56,7 @@ MRI_IMARR * mri_read_mpeg( char *fname )
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
-   pg = malloc(strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
+   pg = AFMALL(char, strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
    sprintf( pg , mpeg_filter , fname ) ;
    THD_mkdir( tmpdir ) ;                    /* create the temp directory */
    if( !THD_is_directory(tmpdir) ){ free(pg); return NULL; }  /* can't?  */
@@ -115,8 +115,8 @@ int mri_imcount_mpeg( char *fname )
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
-   pg = malloc(strlen(fname)+strlen(mpeg_filter)+64) ;  /* string to hold filter */
-   fn = malloc(strlen(fname)+32) ;
+   pg = AFMALL( char, strlen(fname)+strlen(mpeg_filter)+64) ;  /* string to hold filter */
+   fn = AFMALL( char, strlen(fname)+32) ;
    sprintf(fn,"-count %s",fname) ;
    sprintf( pg , mpeg_filter , fn ) ;
    free(fn) ;

@@ -475,8 +475,8 @@ static void add_trusted_host( char *hnam )
       hh = hnam ;                     /* store dotted number */
    }
 
-   host_list = (char **) NI_realloc(host_list,sizeof(char *)*(host_num+1)) ;
-   host_list[host_num] = (char *) NI_malloc(HSIZE) ;
+   host_list = NI_realloc(host_list, char*,sizeof(char *)*(host_num+1)) ;
+   host_list[host_num] = NI_malloc(char, HSIZE) ;
    strcpy( host_list[host_num] , hh ) ; host_num++ ;
 
    if( hh != hnam ) NI_free(hh) ;
@@ -493,9 +493,9 @@ static void init_trusted_list(void)
 
    if( host_num == 0 ){
       host_num = INIT_NHO ;
-      host_list = (char **) NI_malloc( sizeof(char *) * INIT_NHO ) ;
+      host_list = NI_malloc(char*, sizeof(char *) * INIT_NHO ) ;
       for( ii=0 ; ii < INIT_NHO ; ii++ ){
-         host_list[ii] = (char *) NI_malloc(HSIZE) ;
+         host_list[ii] = NI_malloc(char, HSIZE) ;
          strcpy( host_list[ii] , init_hosts[ii] ) ;
       }
 
@@ -791,7 +791,7 @@ static SHMioc * SHM_init( char * name , char * mode )
 
    /** initialize SHMioc **/
 
-   ioc = (SHMioc *) NI_malloc( sizeof(SHMioc) ) ;
+   ioc = NI_malloc(SHMioc, sizeof(SHMioc) ) ;
 
    strcpy( ioc->name , key ) ;  /* save the key name  */
 
@@ -1465,14 +1465,14 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       /** initialize NI_stream_type output struct **/
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type = NI_TCP_TYPE;   /* what kind is this? */
       ns->port = port ;         /* save the port #    */
       ns->nbuf = 0 ;            /* buffer is empty    */
       ns->npos = 0 ;            /* scan starts at 0   */
 
-      ns->buf     = NI_malloc(NI_BUFSIZE) ;
+      ns->buf     = NI_malloc(char, NI_BUFSIZE) ;
       ns->bufsize = NI_BUFSIZE ;
       ns->name[0] = '\0' ;
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
@@ -1530,7 +1530,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       /** initialize NI_stream_type output **/
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type     = NI_SHM_TYPE;    /* what kind is this? */
       ns->nbuf     = 0 ;             /* buffer is empty    */
@@ -1540,7 +1540,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
       ns->shmioc   = ioc ;
 
-      ns->buf      = NI_malloc(NI_BUFSIZE) ;
+      ns->buf      = NI_malloc(char, NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
 
       NI_strncpy( ns->name , name , 256 ) ;
@@ -1569,7 +1569,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       /** initialize NI_stream_type output **/
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type     = NI_FILE_TYPE;   /* what kind is this? */
       ns->nbuf     = 0 ;             /* buffer is empty    */
@@ -1580,7 +1580,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
 
       ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
-      ns->buf      = NI_malloc(ns->bufsize) ;
+      ns->buf      = NI_malloc(char, ns->bufsize) ;
 
       NI_strncpy( ns->name , fname , 256 ) ;
 
@@ -1631,7 +1631,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       /** initialize NI_stream_type output **/
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type     = NI_FD_TYPE;     /* what kind is this? */
       ns->nbuf     = 0 ;             /* buffer is empty    */
@@ -1642,7 +1642,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
 
       ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
-      ns->buf      = NI_malloc(ns->bufsize) ;
+      ns->buf      = NI_malloc(char, ns->bufsize) ;
 
       NI_strncpy( ns->name , name , 256 ) ;
 
@@ -1660,7 +1660,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 
       int nn = NI_strlen(name+4) ;  /* may be 0 */
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type     = NI_STRING_TYPE; /* what kind is this? */
       ns->io_mode  = do_create ? NI_OUTPUT_MODE
@@ -1676,12 +1676,12 @@ NI_stream NI_stream_open( char *name , char *mode )
       if( do_accept ){               /* read from stuff after str: */
          ns->nbuf    = nn ;
          ns->bufsize = nn+1 ;
-         ns->buf     = NI_malloc(nn+1) ;
+         ns->buf     = NI_malloc(char, nn+1) ;
          strcpy(ns->buf,name+4) ;
       } else {                       /* write to a string */
          ns->nbuf    = 0 ;
          ns->bufsize = 1 ;
-         ns->buf     = NI_malloc(1) ; /* 1 byte set to zero */
+         ns->buf     = NI_malloc(char, 1) ; /* 1 byte set to zero */
       }
 
       strcpy( ns->name , "ElvisHasLeftTheBuilding" ) ;
@@ -1706,7 +1706,7 @@ NI_stream NI_stream_open( char *name , char *mode )
          NI_free(data); return NULL;
       }
 
-      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+      ns = NI_malloc(NI_stream_type, sizeof(NI_stream_type) ) ;
 
       ns->type     = NI_REMOTE_TYPE; /* what kind is this? */
       ns->io_mode  = NI_INPUT_MODE  ;
@@ -1938,7 +1938,7 @@ int NI_stream_setbufsize( NI_stream_type *ns , int bs )   /* 03 Jan 2003 */
           (ns->type == NI_FD_TYPE   && ns->io_mode == NI_INPUT_MODE)   ) )
     return -1 ;
 
-   qbuf = NI_realloc( ns->buf , bs ) ;
+   qbuf = NI_realloc( ns->buf , char , bs ) ;
    if( qbuf == NULL ) return -1 ;         /* this is bad */
    ns->buf     = qbuf ;
    ns->bufsize = bs ;
@@ -1986,7 +1986,7 @@ void NI_stream_clearbuf( NI_stream_type *ns )
    NI_free(ns->buf) ;
    ns->nbuf    = 0 ;
    ns->bufsize = 1 ;
-   ns->buf     = NI_malloc(1) ; /* 1 byte set to zero */
+   ns->buf     = NI_malloc(char, 1) ; /* 1 byte set to zero */
 }
 
 /*-----------------------------------------------------------------------*/
@@ -2011,7 +2011,7 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
    ns->nbuf    = nn ;               /* set num char in new buffer */
    ns->npos    = 0  ;               /* reset scan position */
    ns->bufsize = nn+1 ;             /* allow space for NUL byte */
-   ns->buf     = NI_malloc(nn+1) ;  /* and make the buffer */
+   ns->buf     = NI_malloc(char, nn+1) ;  /* and make the buffer */
    strcpy(ns->buf,str) ;            /* and set its contents */
    return ;
 }
@@ -2459,7 +2459,7 @@ NI_dpr("  file: actually wrote %d bytes\n",nsent) ;
 #ifdef NIML_DEBUG
 NI_dpr("NI_stream_write str: input=%s\n",ns->buf) ;
 #endif
-        ns->buf = NI_realloc( ns->buf , ns->bufsize+nbytes ) ;
+        ns->buf = NI_realloc( ns->buf , char , ns->bufsize+nbytes ) ;
         memcpy( ns->buf+ns->nbuf , buffer , nbytes ) ;
         ns->nbuf    += nbytes ; ns->buf[ns->nbuf] = '\0' ;
         ns->bufsize += nbytes ;

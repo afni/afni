@@ -87,7 +87,7 @@ ENTRY("THD_get_all_filenames") ;
    if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) RETURN( NULL );
    if( ! THD_is_directory(dirname) )                    RETURN( NULL );
 
-   total_dirname = XtMalloc( dlen+4 ) ;
+   total_dirname = (char*)XtMalloc( dlen+4 ) ;
    strcpy( total_dirname , dirname ) ;
    if( total_dirname[dlen-1] != '/' ){
       total_dirname[dlen]   = '/' ;     /* add a slash */
@@ -123,7 +123,7 @@ if(PRINT_TRACING){
 
 #ifndef DONT_USE_SCANDIR
    max_fname   = dlen+64 ;
-   total_fname = XtMalloc( max_fname ) ;
+   total_fname = (char*)XtMalloc( max_fname ) ;
 #endif
 
    for( ii=0 ; ii < nfiles ; ii++ ){
@@ -132,7 +132,7 @@ if(PRINT_TRACING){
 #else
       n_fname = dlen + strlen( dplist[ii]->d_name ) + 4 ;
       if( n_fname > max_fname ){
-         total_fname = XtRealloc( total_fname , n_fname ) ;
+         total_fname = AFREALL(total_fname, char, n_fname ) ;
          max_fname   = n_fname ;
       }
       strcpy( total_fname , total_dirname ) ;
@@ -165,7 +165,7 @@ THD_string_array * THD_get_all_subdirs( int lev , char * dirname )
 
    if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) return NULL ;
 
-   total_dirname = XtMalloc( dlen+2 ) ;
+   total_dirname = (char*)XtMalloc( dlen+2 ) ;
    strcpy( total_dirname , dirname ) ;
    if( total_dirname[dlen-1] != '/' ){
       total_dirname[dlen]   = '/' ;

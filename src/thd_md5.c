@@ -402,7 +402,7 @@ char * MD5_static_string( char * string )
 char * MD5_malloc_string( char * string )
 {
    if( string == NULL ) return NULL ;
-   return MD5_malloc_array( strlen(string) , string ) ;
+   return (char*)MD5_malloc_array( strlen(string) , string ) ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -538,14 +538,14 @@ char * UNIQ_idcode(void)
    nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
          +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
 
-   buf = malloc(nbuf+64) ;      /* include some extra space */
+   buf = AFMALL(char, nbuf+64) ;      /* include some extra space */
    strcpy(buf,ubuf.nodename) ;
    strcat(buf,ubuf.sysname ) ;
    strcat(buf,ubuf.release ) ;
    strcat(buf,ubuf.version ) ;
    strcat(buf,ubuf.machine ) ;
 
-   idc = calloc(1,32) ;         /* will be output string */
+   idc = AFMALL(char, 32) ;         /* will be output string */
 
    /* get time and store into buf */
 

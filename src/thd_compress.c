@@ -5,6 +5,7 @@
 ******************************************************************************/
    
 #include "thd_compress.h"
+#include "Amalloc.h"
 
 /*** check if the file exists on disk
      -- returns 1 if it does, 0 if it does not ***/
@@ -61,7 +62,7 @@ int COMPRESS_filecode( char * fname )
 
    /** add the suffixes to the name, and check again **/
 
-   buf = malloc( sizeof(char) * (strlen(fname)+16) ) ;
+   buf = AFMALL(char, sizeof(char) * (strlen(fname)+16) ) ;
    for( ii=0 ; ii <= COMPRESS_LASTCODE ; ii++ ){
       strcpy(buf,fname) ; strcat(buf,COMPRESS_suffix[ii]) ;
       if( COMPRESS_is_file(buf) ){ free(buf) ; return ii ; }
@@ -145,7 +146,7 @@ char * COMPRESS_filename( char * fname )
    if( mm == COMPRESS_NOFILE ) return NULL ;
 
    ll  = strlen(fname) ;
-   buf = malloc( sizeof(char) * (ll+16) ) ;  /* worst case */
+   buf = AFMALL(char, sizeof(char) * (ll+16) ) ;  /* worst case */
 
    if( mm == COMPRESS_NONE ){
       strcpy(buf,fname) ;
@@ -169,7 +170,7 @@ char * COMPRESS_add_suffix( char * fname , int mm )
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
    ll  = strlen(fname) ;
-   buf = malloc( sizeof(char) * (ll+16) ) ;
+   buf = AFMALL(char, sizeof(char) * (ll+16) ) ;
 
    strcpy(buf,fname) ;
    if( mm >= 0 && mm <= COMPRESS_LASTCODE &&
@@ -205,7 +206,7 @@ FILE * COMPRESS_fopen_read( char * fname )
 
 #if 1
    if( ! COMPRESS_has_suffix(fname,mm) ){
-      buf = malloc( sizeof(char) * (strlen(fname)+16) ) ;
+      buf = AFMALL(char, sizeof(char) * (strlen(fname)+16) ) ;
       strcpy(buf,fname) ; strcat(buf,COMPRESS_suffix[mm]) ;
    } else {
       buf = fname ;
@@ -214,7 +215,7 @@ FILE * COMPRESS_fopen_read( char * fname )
    buf = fname ;
 #endif
 
-   cmd = malloc( sizeof(char) * (strlen(buf)+32) ) ;
+   cmd = AFMALL(char, sizeof(char) * (strlen(buf)+32) ) ;
    sprintf(cmd,COMPRESS_unprogram[mm],buf) ;
 
    fp = popen(cmd,"r") ;    /* open a pipe to read the file */
@@ -248,7 +249,7 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
 
 #if 1
    if( ! COMPRESS_has_suffix(fname,mm) ){
-      buf = malloc( sizeof(char) * (strlen(fname)+16) ) ;
+      buf = AFMALL(char, sizeof(char) * (strlen(fname)+16) ) ;
       strcpy(buf,fname) ; strcat(buf,COMPRESS_suffix[mm]) ;
    } else {
       buf = fname ;
@@ -257,7 +258,7 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
    buf = fname ;
 #endif
 
-   cmd = malloc( sizeof(char) * (strlen(buf)+32) ) ;
+   cmd = AFMALL(char,  sizeof(char) * (strlen(buf)+32) ) ;
    sprintf(cmd,COMPRESS_program[mm],buf) ;
 
    fp = popen(cmd,"w") ;    /* open a pipe to write the file */

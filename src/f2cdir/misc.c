@@ -90,7 +90,7 @@ Alloc(int n)
 	char errbuf[32];
 	register char *rv;
 
-	rv = malloc(n);
+	rv = (char*) malloc(n);
 	if (!rv) {
 		sprintf(errbuf, "malloc(%d) failure!", n);
 		Fatal(errbuf);
@@ -654,10 +654,10 @@ add_extern_to_list(Addrp addr, chainp *list_store)
     memno = addr -> memno;
 
     for (;list; last = list, list = list -> nextp) {
-	Addrp this = (Addrp) (list -> datap);
+	Addrp thisAddr = (Addrp) (list -> datap);
 
-	if (this -> tag == TADDR && this -> uname_tag == UNAM_EXTERN &&
-		this -> memno == memno)
+	if (thisAddr -> tag == TADDR && thisAddr -> uname_tag == UNAM_EXTERN &&
+		thisAddr -> memno == memno)
 	    return;
     } /* for */
 

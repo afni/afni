@@ -29,14 +29,14 @@ int setup_mri_write_angif( void )
      if( pwg == NULL ){ setup = 0; return setup; }
    }
 
-   gfilt = malloc(strlen(pg)+strlen(pq)+32) ;
+   gfilt = AFMALL(char, strlen(pg)+strlen(pq)+32) ;
    sprintf( gfilt , "%s 127 | %s > %%s" , pq,pg ) ;
 
    if( pgs != NULL ){
-      ganim = malloc(strlen(pgs)+64) ;
+      ganim = AFMALL(char, strlen(pgs)+64) ;
       sprintf(ganim,"%s -d 10 -l -O1 -k 127 --method median-cut",pgs) ;
    } else {
-      ganim = malloc(strlen(pwg)+64) ;
+      ganim = AFMALL(char, strlen(pwg)+64) ;
       sprintf(ganim,"%s -loop -time 10",pwg) ;
    }
 

@@ -19,7 +19,7 @@ ENTRY("THD_fetch_dset") ;
 
    /*** do we have to add .HEAD? ***/
 
-   hp = malloc(sizeof(char)*(strlen(url)+32)) ; strcpy(hp,url) ;
+   hp = AFMALL(char, sizeof(char)*(strlen(url)+32)) ; strcpy(hp,url) ;
    cp = strstr(hp,".HEAD") ;
    if( cp == NULL                       &&
        !STRING_HAS_SUFFIX(hp,".nii")    &&  /* 28 Aug 2003 */

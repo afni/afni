@@ -31,16 +31,16 @@ char * tross_commandline( char * pname , int argc , char ** argv )
 
    if( pname == NULL ) pname = argv[0] ;
 
-   ii = strlen(pname) ; ch = malloc(ii+4) ; strcpy(ch,pname) ;
+   ii = strlen(pname) ; ch = AFMALL(char, ii+4) ; strcpy(ch,pname) ;
 
    for( ii=1 ; ii < argc ; ii++ ){
       if( argv[ii] == NULL || argv[ii][0] == '\0' ) continue ; /* skip */
 
       ll = strlen(argv[ii]) ;
-      ch = realloc( ch , strlen(ch)+ll+4 ) ;  /* expand output array */
+      ch = AFREALL(ch ,char, strlen(ch)+ll+4 ) ;  /* expand output array */
 
       if( !THD_filename_ok(argv[ii]) ){       /* bad characters? */
-         int jj ; char * aa = malloc(ll+1) ;
+         int jj ; char * aa = AFMALL(char, ll+1) ;
 
          strcpy(aa,argv[ii]) ;        /* edit out bad characters */
          for( jj=0 ; jj < ll ; jj++ )
@@ -65,7 +65,8 @@ char * tross_datetime(void)
 {
    time_t tnow = time(NULL) ; int i ; char * qh , * ch ;
 
-   ch=ctime(&tnow); i=strlen(ch); qh=malloc(i+2); strcpy(qh,ch); qh[i-1]='\0';
+   ch=ctime(&tnow); i=strlen(ch); qh=AFMALL(char, i+2); 
+   strcpy(qh,ch); qh[i-1]='\0';
    return qh ;
 }
 
@@ -75,7 +76,7 @@ char * tross_datetime(void)
 #define NNAME 1025
 static char * tross_hostname(void)  /* 19 Sep 1999 */
 {
-   char * cn = malloc(NNAME) ;
+   char * cn = AFMALL(char, NNAME) ;
    gethostname( cn , NNAME ) ;
    return cn ;
 }
@@ -88,7 +89,7 @@ static char * tross_username(void)  /* 20 Sep 1999 */
 {
    uid_t uu = getuid() ;
    struct passwd * pwd = getpwuid(uu) ;
-   char * cn = malloc(NNAME) ;
+   char * cn = AFMALL(char, NNAME) ;
 
    if( pwd == NULL ) strcpy(cn,"nobody") ;
    else              strcpy(cn,pwd->pw_name) ;
@@ -339,7 +340,8 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    if( hist != NULL ){
 
       chold = tross_Expand_String(hist->ch) ; if( chold == NULL ) return ;
-      chold = realloc( chold , strlen(chold)+idate+iuser+iname+strlen(cn)+12 ) ;
+      chold = AFREALL( chold, char, 
+		       strlen(chold)+idate+iuser+iname+strlen(cn)+12 ) ;
 
       strcat(chold,"\n") ;
       strcat(chold,"[") ; strcat(chold,cuser) ; strcat(chold,"@") ;
@@ -354,7 +356,7 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    /*- create the history -*/
 
    } else {
-      chold = malloc( idate+iuser+iname+strlen(cn)+12 ) ;
+      chold = AFMALL(char, idate+iuser+iname+strlen(cn)+12 ) ;
       sprintf(chold,"[%s@%s: %s] %s",cuser,cname,cdate,cn) ;
       ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
       THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
@@ -382,11 +384,11 @@ void tross_multi_Append_History( THD_3dim_dataset *dset, ... )
 
    va_start( vararg_ptr , dset ) ;
 
-   str = malloc(4) ; nstr = 0 ; str[0] = '\0' ;
+   str = AFMALL(char, 4) ; nstr = 0 ; str[0] = '\0' ;
    while(1){
       cpt = va_arg( vararg_ptr , char * ) ; if( cpt == NULL ) break ;
       nc = strlen(cpt) ;                    if( nc  == 0    ) continue ;
-      nstr += nc ; str = realloc( str , nstr+8 ) ;
+      nstr += nc ; str = AFREALL(str, char, nstr+8 ) ;
       if( !first ) strcat(str," ; ") ;
       strcat(str,cpt) ; first = 0 ;
    }
@@ -470,7 +472,7 @@ char * tross_breakup_string( char * str , int lbot , int ltop )
 
    if( str == NULL || str[0] == '\0' || lbot > ltop || lbot < 4 ) return NULL ;
 
-   slen = strlen(str) ; sout = malloc(slen+4) ;
+   slen = strlen(str) ; sout = AFMALL(char, slen+4) ;
 
    while( slen > lbot && isspace(str[slen-1]) ) slen-- ;  /* trim blanks off end */
 
