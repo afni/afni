@@ -109,6 +109,12 @@ ENTRY("THD_open_tcat") ;
    free((void *)dset_in) ;
    NI_delete_str_array(sar) ;
 
+#if 0
+fprintf(stderr,"THD_open_tcat('%s'):",dset_out->tcat_list);
+for(dd=0;dd<ndset_in;dd++)fprintf(stderr," %d",dset_out->tcat_len[dd]);
+fprintf(stderr,"\n");
+#endif
+
    RETURN(dset_out) ;
 }
 
@@ -129,18 +135,18 @@ ENTRY("THD_load_tcat") ;
    if( !ISVALID_DSET(dset_out) ) EXRETURN ;
    sar = NI_decode_string_list( dset_out->tcat_list , "~" ) ;
    if( sar == NULL ) EXRETURN ;
-   if( sar->num != dset_out->tcat_num ){ NI_delete_str_array(sar); EXRETURN; } 
+   if( sar->num != dset_out->tcat_num ){ NI_delete_str_array(sar); EXRETURN; }
 
    ivout = 0 ;
    for( dd=0 ; dd < sar->num ; dd++ ){
      dset_in = THD_open_dataset( sar->str[dd] ) ;
      if( dset_in == NULL ){
-       NI_delete_str_array(sar) ; DSET_purge(dset_out) ;
+       NI_delete_str_array(sar) ; DSET_unload(dset_out) ;
        EXRETURN ;
      }
      DSET_mallocize(dset_in) ; DSET_load(dset_in) ;
      if( !DSET_LOADED(dset_in) ){
-       NI_delete_str_array(sar) ; DSET_purge(dset_out) ; DSET_delete(dset_in) ;
+       NI_delete_str_array(sar) ; DSET_unload(dset_out) ; DSET_delete(dset_in) ;
        EXRETURN ;
      }
 

@@ -601,7 +601,6 @@ ENTRY("adwarp_follower_dataset") ;
   
   INIT_STAT_AUX( new_dset , MAX_STAT_AUX , data_parent->stat_aux ) ;
   
-  new_dset->merger_list = NULL ;  /* not a merger */
   new_dset->markers     = NULL ;  /* no markers */
   new_dset->death_mark  = 0 ;     /* don't kill me! */
 #ifdef ALLOW_DATASET_VLIST
@@ -609,6 +608,10 @@ ENTRY("adwarp_follower_dataset") ;
 #endif
   
   PARENTIZE(new_dset,data_parent->parent) ;
+
+  new_dset->tcat_list   = NULL ;  /* 03 Aug 2004 */
+  new_dset->tcat_num    = 0 ;
+  new_dset->tcat_len    = NULL ;
   
   RETURN(new_dset) ;
 }

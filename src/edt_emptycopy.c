@@ -89,8 +89,10 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    MCW_strncpy( new_dset->label1    , DUMMY_NAME , THD_MAX_LABEL ) ;
    MCW_strncpy( new_dset->label2    , DUMMY_NAME , THD_MAX_LABEL ) ;
 
-   new_dset->merger_list = NULL ;
    new_dset->death_mark  = 0 ;
+   new_dset->tcat_list   = NULL ;
+   new_dset->tcat_num    = 0 ;
+   new_dset->tcat_len    = NULL ;
 #ifdef ALLOW_DATASET_VLIST
    new_dset->pts         = NULL ;
 #endif

@@ -304,9 +304,11 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
       new_dset->stats = NULL ;
    }
 
-   new_dset->merger_list = NULL ;  /* not a merger */
    new_dset->markers     = NULL ;  /* no markers */
    new_dset->death_mark  = 0 ;     /* don't kill me! */
+   new_dset->tcat_list   = 0 ;
+   new_dset->tcat_num    = 0 ;
+   new_dset->tcat_len    = NULL ;
 
    return(new_dset) ;
 }

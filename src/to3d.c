@@ -4380,6 +4380,9 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dset->pts         = NULL ;
 #endif
    dset->death_mark  = 0 ;
+   dset->tcat_list   = NULL ;
+   dset->tcat_num    = 0 ;
+   dset->tcat_len    = NULL ;
 
    ZERO_STAT_AUX( dset ) ;
 

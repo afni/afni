@@ -13,7 +13,7 @@
    [allow for .HEAD, .BRIK, or just prefix+viewcode filenames]
 ------------------------------------------------------------------*/
 
-THD_3dim_dataset * THD_open_one_dataset( char * pathname )
+THD_3dim_dataset * THD_open_one_dataset( char *pathname )
 {
    int ii , plen ;
    char dirname[THD_MAX_NAME] , fullname[THD_MAX_NAME] ;

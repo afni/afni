@@ -602,9 +602,11 @@ if(PRINT_TRACING)
 
    INIT_STAT_AUX( new_dset , MAX_STAT_AUX , data_parent->stat_aux ) ;
 
-   new_dset->merger_list = NULL ;  /* not a merger */
    new_dset->markers     = NULL ;  /* no markers */
    new_dset->death_mark  = 0 ;     /* don't kill me! */
+   new_dset->tcat_list   = 0 ;
+   new_dset->tcat_num    = 0 ;
+   new_dset->tcat_len    = NULL ;
 
 #ifdef ALLOW_DATASET_VLIST
    new_dset->pts         = NULL ;
