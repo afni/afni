@@ -73,7 +73,7 @@ static char **        MAIN_argv ;
 static Boolean        MAIN_workprocess( XtPointer ) ;
 
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
-                   /* labels with "sides" labels         */
+                   /* labels with "sides" labels.        */
 
 /********************************************************************
    Print out some help information and then quit quit quit
