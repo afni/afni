@@ -871,7 +871,7 @@ ENTRY("mri_read_3D") ;
 
 MRI_IMARR * mri_read_file( char * fname )
 {
-   MRI_IMARR * newar ;
+   MRI_IMARR * newar=NULL ;
    MRI_IMAGE * newim ;
    char * new_fname ;
 
@@ -899,9 +899,11 @@ ENTRY("mri_read_file") ;
 
       newar = mri_read_siemens( new_fname ) ;
 
-   } else {
+   }
 
-      /* 19 Jul 2002: see if it is a DICOM file */
+   /* failed?  try DICOM format */
+
+   if( newar == NULL ){
 
       newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
 
@@ -2769,7 +2771,7 @@ fprintf(stderr,"delayed input from file %s at offset %d\n",im->fname,im->foffset
 
 MRI_IMARR * mri_read_file_delay( char * fname )
 {
-   MRI_IMARR * newar ;
+   MRI_IMARR * newar=NULL ;
    MRI_IMAGE * newim ;
    char * new_fname ;
 
@@ -2795,7 +2797,16 @@ MRI_IMARR * mri_read_file_delay( char * fname )
 
       newar = mri_read_siemens( new_fname ) ;
 
-   } else {
+   }
+
+   /* failed thus far?  try DICOM */
+
+   if( newar == NULL )
+      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+
+   /* failed again?  try mri_read() for 1 image */
+
+   if( newar == NULL ){
       newim = mri_read( new_fname ) ;      /* read from a 2D file */
       if( newim == NULL ){ free(new_fname) ; return NULL ; }
       INIT_IMARR(newar) ;
