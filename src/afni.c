@@ -1862,9 +1862,9 @@ STATUS("get status") ;
 
           /* get indexes of triangle's nodes (from their id's) */
 
-          id = SUMA_find_node_id(ag,tr[ii].id); if( id <0 ) continue;
-          jd = SUMA_find_node_id(ag,tr[ii].jd); if( jd <0 ) continue;
-          kd = SUMA_find_node_id(ag,tr[ii].kd); if( kd <0 ) continue;
+          id = SUMA_find_node_id(ag,tr[ii].id); if( id < 0 ) continue;
+          jd = SUMA_find_node_id(ag,tr[ii].jd); if( jd < 0 ) continue;
+          kd = SUMA_find_node_id(ag,tr[ii].kd); if( kd < 0 ) continue;
 
           /* load DICOM coords of triangle's nodes */
 
@@ -2645,7 +2645,7 @@ ENTRY("AFNI_read_images") ;
      acod = toupper(GLOBAL_argopt.orient_code[1]) ; yy = ORCODE(acod) ;
      acod = toupper(GLOBAL_argopt.orient_code[2]) ; zz = ORCODE(acod) ;
 
-     if( xx<0 || yy<0 || zz<0 || ! OR3OK(xx,yy,zz) )
+     if( xx < 0 || yy < 0 || zz < 0 || ! OR3OK(xx,yy,zz) )
         FatalError("Unusable -orient code!") ;
 
      dset->daxes->xxorient = xx ;
