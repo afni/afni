@@ -10,7 +10,7 @@
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
-   char expr[200] , * cexp ;
+   char expr[900] , * cexp ;
    double atoz[26] , value ;
    int ii , kvar, kar, brk ;
    int DoOnce;
@@ -67,7 +67,7 @@ int main( int argc , char * argv[] )
    do{
       if (!DoOnce){
          printf("calc> ") ; fflush(stdout) ;
-         gets(expr) ;
+         fgets(expr,900,stdin) ;
       }
       
       if( strlen(expr) == 0) continue ;
