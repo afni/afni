@@ -1332,12 +1332,23 @@ STATUS("creating image window") ;
    CMap      = DefaultColormap(theDisp, theScreen);
    Planes    = DisplayPlanes(theDisp, theScreen);
 
+#if defined(__cplusplus) || defined(c_plusplus)
+
+   if ( (theVisual->c_class != PseudoColor) &&
+        (theVisual->c_class != TrueColor) &&
+        (theVisual->c_class != DirectColor) )
+      FatalError("This program requires PseudoColor or TrueColor or DirectColor modes only. AJ");
+
+   if ( theVisual->c_class != PseudoColor ) AJ_PseudoColor = 0;
+#else
+
    if ( (theVisual->class != PseudoColor) &&
         (theVisual->class != TrueColor) &&
         (theVisual->class != DirectColor) )
       FatalError("This program requires PseudoColor or TrueColor or DirectColor modes only. AJ");
 
    if ( theVisual->class != PseudoColor ) AJ_PseudoColor = 0;
+#endif
 
    if (!(XAllocNamedColor(theDisp, CMap, "black", &any_col, &rgb_col)))
       FatalError ("XAllocNamedColor problem. AJ");
@@ -2607,7 +2618,7 @@ STATUS("ENTER Allow_smaller_im") ;
    char *argv[];
 /* ---------------------------------- */
 {
-   XClassHint           class;
+   XClassHint           classKRH;
    XSetWindowAttributes attr;
    unsigned int         attrmask;
    XSizeHints           hints;
@@ -2637,8 +2648,8 @@ STATUS("ENTER CreateMainWindow") ;
    if (mask & YValue && mask & YNegative)
         y = XDisplayHeight(theDisp, theScreen)-eHIGH-abs(y);
 
-   class.res_name  = "ImageX";
-   class.res_class = "ImageX";
+   classKRH.res_name  = "ImageX";
+   classKRH.res_class = "ImageX";
 
    hints.min_aspect.x = IM_HEIGHT + BELT_W;
    hints.max_aspect.x = IM_HEIGHT + BELT_W;
@@ -2664,7 +2675,7 @@ STATUS("ENTER CreateMainWindow") ;
    if (!theWindow)
       FatalError("Can't open window (are X11 windows running ?). AJ");
 
-   XSetClassHint(theDisp, theWindow, &class);
+   XSetClassHint(theDisp, theWindow, &classKRH);
    XSetStandardProperties(theDisp, theWindow, T_name, T_name, None,
                           argv, argc, &hints);
 }
@@ -5716,15 +5727,15 @@ STATUS("   finished drawing T_name") ;
    char *argv[];
 /* ----------------------------------- */
 {
-   XClassHint		class;
+   XClassHint		classKRH;
    XSetWindowAttributes attr;
    unsigned int		attrmask;
    XSizeHints		hints;
    int 			x = 0, y = 0;
 
 
-   class.res_name  = "Graph";
-   class.res_class = "Graph";
+   classKRH.res_name  = "Graph";
+   classKRH.res_class = "Graph";
 
    hints.width = iWIDE;         hints.height = iHIGH;
    hints.max_width = iWIDE;     hints.max_height = iHIGH;
@@ -5743,7 +5754,7 @@ STATUS("   finished drawing T_name") ;
    if (!GWindow)
       FatalError("Can't open window (are X11 windows running ?). AJ");
 
-   XSetClassHint(theDisp, GWindow, &class);
+   XSetClassHint(theDisp, GWindow, &classKRH);
    XSetStandardProperties(theDisp, GWindow, G_name, I_name, None,
 			  argv, argc, &hints);
 }

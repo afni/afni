@@ -496,14 +496,14 @@ p1_binary(struct Exprblock *e)
 
  void
 #ifdef KR_headers
-p1_head(class, name)
-	int class;
+p1_head(classKRH, name)
+	int classKRH;
 	char *name;
 #else
-p1_head(int class, char *name)
+p1_head(int classKRH, char *name)
 #endif
 {
-    p1putds (P1_HEAD, class, name ? name : "");
+    p1putds (P1_HEAD, classKRH, name ? name : "");
 } /* p1_head */
 
 

@@ -35,7 +35,7 @@
 /*********************************/
 
 typedef struct { /* returned from 'plug_reorder_parseMap' */
-	char class;  /* the class (i.e., [a-zA-Z]) of a time-course segment */
+	char classKRH;  /* the class (i.e., [a-zA-Z]) of a time-course segment */
 	int length;  /* the length of the class in time points */
 	} ClassInfo;
 
@@ -130,10 +130,10 @@ int compare_class(const void *i, const void *j)
 ClassInfo *iTmp = (ClassInfo *)i;
 ClassInfo *jTmp = (ClassInfo *)j;
 
-if(iTmp->class == jTmp->class) {
+if(iTmp->classKRH == jTmp->classKRH) {
 	return(0);
 	}
-else if(iTmp->class < jTmp->class) {
+else if(iTmp->classKRH < jTmp->classKRH) {
 	return(-1);
 	}
 else {
@@ -237,7 +237,7 @@ return plint;
 #define FREEUP(thing) if((thing) != NULL) {free((thing)); (thing) = NULL;}
 
 #define FREE_WORKSPACE do{ FREEUP(bPtr); FREEUP(sPtr); FREEUP(fPtr); \
-						   FREEUP(map); FREEUP(class); } while(0)
+						   FREEUP(map); FREEUP(classKRH); } while(0)
 
 /*****************************************************************
 *  Main routine for this plugin (will be called from AFNI).
@@ -251,7 +251,7 @@ MCW_idcode *idc;            /* input dataset idcode */
 THD_3dim_dataset *old_dset; /* input dataset  */
 THD_3dim_dataset *new_dset; /* output dataset */
 
-ClassInfo *class;           /* array of ClassInfo structures, returned by reference from 'parseMap' */
+ClassInfo *classKRH;           /* array of ClassInfo structures, returned by reference from 'parseMap' */
 
 char *new_prefix;           /* pointer to the output dataset prefix */
 char *mapFile;              /* pointer to the name of map file to open */
@@ -365,7 +365,7 @@ printf("[Reorder] %d time points [subBRIK].\n", ninp);
 mapLength = ninp; /* initialize with the expected length for mapFile entries */
 if(NULL == (map = REORDER_parseMap(mapFile
 								, &mapLength
-								, &class
+								, &classKRH
 								, &classCount))) {
 	return "*******************************\n"
 	 	   "Critical error parsing map file\n"
@@ -380,18 +380,18 @@ for(ii = 0; ii < mapLength; ii++) {
 
 printf("\n[Reorder] Meta-sequence of epoch classes is:\n");
 for(ii = 0; ii < classCount; ii++) {
-	printf("[%d] Class %c [Width %d TRs]\n", ii, class[ii].class, class[ii].length);
+	printf("[%d] Class %c [Width %d TRs]\n", ii, classKRH[ii].classKRH, classKRH[ii].length);
 	}
 #endif
 
 /* Sort 'class' to reflect the final order
    to aid in any epoch averaging required */
-qsort((void *)class, classCount, sizeof(ClassInfo), compare_class);
+qsort((void *)classKRH, classCount, sizeof(ClassInfo), compare_class);
 
 #ifdef DEBUG_PLUGIN_REORDER
 printf("\n[Reorder] Sorted meta-sequence of epoch classes is:\n");
 for(ii = 0; ii < classCount; ii++) {
-	printf("[%d] Class %c [Width %d TRs]\n", ii, class[ii].class, class[ii].length);
+	printf("[%d] Class %c [Width %d TRs]\n", ii, classKRH[ii].classKRH, classKRH[ii].length);
 	}
 #endif
 
@@ -605,8 +605,8 @@ switch(old_datum) {
 			error = 0; /* start with no error */
 			for(ii = 0; ii < classCount; ii++) {
 				for(kk = 1; kk < (classCount-1); kk++) {
-					if(class[ii].class == class[kk].class) {
-						if(class[ii].length != class[kk].length) {
+					if(classKRH[ii].classKRH == classKRH[kk].classKRH) {
+						if(classKRH[ii].length != classKRH[kk].length) {
 							error = 1; /* lengths differ! */
 							break;
 							}
@@ -641,18 +641,18 @@ switch(old_datum) {
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("[Reorder] Processing instances of class %c...\n"
-							, class[ii].class);
+							, classKRH[ii].classKRH);
 						#endif
 			
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
-							if(class[ii].class != class[jj].class) {
+							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
 			
 						#ifdef DEBUG_PLUGIN_REORDER
-						printf("	%d instances of class %c...\n", instances, class[ii].class);
+						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
 			
 						if(instances > 1) {
@@ -663,22 +663,22 @@ switch(old_datum) {
 							divisor = (double)instances;
 		
 							/* For each time point in the duplicated classes: */
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
 								for(kk = 0; kk < nvox; kk++) {
 									/* Average the duplicate time-points for the current voxel */
 									for(mm = 0, sum = 0.0; mm < instances; mm++) {
-										sum = sum + (double)bData[jj+(mm*class[ii].length)][kk];
+										sum = sum + (double)bData[jj+(mm*classKRH[ii].length)][kk];
 										}
 									bData[timePoint][kk] = (byte)((sum / divisor) + 0.5);
 									}
 								}
 		
 							/* Update final length of time-course */
-							newLength = newLength - (class[ii].length * (instances - 1));
+							newLength = newLength - (classKRH[ii].length * (instances - 1));
 		
 							/* Jump over the indices of all instances of the current class */
-							startIndex = startIndex + (instances *class[ii].length);
+							startIndex = startIndex + (instances *classKRH[ii].length);
 		
 							/* Go to the next class to process */
 							ii += instances;
@@ -688,14 +688,14 @@ switch(old_datum) {
 							printf("	Copying single epoch...\n");
 							#endif
 		
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									bData[timePoint][kk] = bData[jj][kk];
 									}
 								}
 		
 							/* Jump to the index of the next class in the time-course */
-							startIndex = startIndex + class[ii].length;
+							startIndex = startIndex + classKRH[ii].length;
 		
 							/* eat up another class */
 							++ii;
@@ -790,8 +790,8 @@ switch(old_datum) {
 			error = 0; /* start with no error */
 			for(ii = 0; ii < classCount; ii++) {
 				for(kk = 1; kk < (classCount-1); kk++) {
-					if(class[ii].class == class[kk].class) {
-						if(class[ii].length != class[kk].length) {
+					if(classKRH[ii].classKRH == classKRH[kk].classKRH) {
+						if(classKRH[ii].length != classKRH[kk].length) {
 							error = 1; /* lengths differ! */
 							break;
 							}
@@ -826,18 +826,18 @@ switch(old_datum) {
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("[Reorder] Processing instances of class %c...\n"
-							, class[ii].class);
+							, classKRH[ii].classKRH);
 						#endif
 			
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
-							if(class[ii].class != class[jj].class) {
+							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
 			
 						#ifdef DEBUG_PLUGIN_REORDER
-						printf("	%d instances of class %c...\n", instances, class[ii].class);
+						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
 			
 						if(instances > 1) {
@@ -848,22 +848,22 @@ switch(old_datum) {
 							divisor = (double)instances;
 		
 							/* For each time point in the duplicated classes: */
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
 								for(kk = 0; kk < nvox; kk++) {
 									/* Average the duplicate time-points for the current voxel */
 									for(mm = 0, sum = 0.0; mm < instances; mm++) {
-										sum = sum + (double)sData[jj+(mm*class[ii].length)][kk];
+										sum = sum + (double)sData[jj+(mm*classKRH[ii].length)][kk];
 										}
 									sData[timePoint][kk] = (short)((sum / divisor) + 0.5);
 									}
 								}
 		
 							/* Update final length of time-course */
-							newLength = newLength - (class[ii].length * (instances - 1));
+							newLength = newLength - (classKRH[ii].length * (instances - 1));
 		
 							/* Jump over the indices of all instances of the current class */
-							startIndex = startIndex + (instances *class[ii].length);
+							startIndex = startIndex + (instances *classKRH[ii].length);
 		
 							/* Go to the next class to process */
 							ii += instances;
@@ -873,14 +873,14 @@ switch(old_datum) {
 							printf("	Copying single epoch...\n");
 							#endif
 		
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									sData[timePoint][kk] = sData[jj][kk];
 									}
 								}
 		
 							/* Jump to the index of the next class in the time-course */
-							startIndex = startIndex + class[ii].length;
+							startIndex = startIndex + classKRH[ii].length;
 		
 							/* eat up another class */
 							++ii;
@@ -975,8 +975,8 @@ switch(old_datum) {
 			error = 0; /* start with no error */
 			for(ii = 0; ii < classCount; ii++) {
 				for(kk = 1; kk < (classCount-1); kk++) {
-					if(class[ii].class == class[kk].class) {
-						if(class[ii].length != class[kk].length) {
+					if(classKRH[ii].classKRH == classKRH[kk].classKRH) {
+						if(classKRH[ii].length != classKRH[kk].length) {
 							error = 1; /* lengths differ! */
 							break;
 							}
@@ -1011,18 +1011,18 @@ switch(old_datum) {
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("[Reorder] Processing instances of class %c...\n"
-							, class[ii].class);
+							, classKRH[ii].classKRH);
 						#endif
 			
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
-							if(class[ii].class != class[jj].class) {
+							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
 			
 						#ifdef DEBUG_PLUGIN_REORDER
-						printf("	%d instances of class %c...\n", instances, class[ii].class);
+						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
 			
 						if(instances > 1) {
@@ -1033,22 +1033,22 @@ switch(old_datum) {
 							divisor = (double)instances;
 		
 							/* For each time point in the duplicated classes: */
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
 								for(kk = 0; kk < nvox; kk++) {
 									/* Average the duplicate time-points for the current voxel */
 									for(mm = 0, sum = 0.0; mm < instances; mm++) {
-										sum = sum + (double)fData[jj+(mm*class[ii].length)][kk];
+										sum = sum + (double)fData[jj+(mm*classKRH[ii].length)][kk];
 										}
 									fData[timePoint][kk] = (float)((sum / divisor) + 0.5);
 									}
 								}
 		
 							/* Update final length of time-course */
-							newLength = newLength - (class[ii].length * (instances - 1));
+							newLength = newLength - (classKRH[ii].length * (instances - 1));
 		
 							/* Jump over the indices of all instances of the current class */
-							startIndex = startIndex + (instances *class[ii].length);
+							startIndex = startIndex + (instances *classKRH[ii].length);
 		
 							/* Go to the next class to process */
 							ii += instances;
@@ -1058,14 +1058,14 @@ switch(old_datum) {
 							printf("	Copying single epoch...\n");
 							#endif
 		
-							for(jj = startIndex; jj < (class[ii].length+startIndex); jj++, timePoint++) {
+							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									fData[timePoint][kk] = fData[jj][kk];
 									}
 								}
 		
 							/* Jump to the index of the next class in the time-course */
-							startIndex = startIndex + class[ii].length;
+							startIndex = startIndex + classKRH[ii].length;
 		
 							/* eat up another class */
 							++ii;

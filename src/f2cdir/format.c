@@ -942,10 +942,10 @@ do_p1_head(FILE *infile, FILE *outfile)
 {
     int status;
     int add_n_;
-    long class;
+    long classKRH;
     char storage[256];
 
-    status = p1getd (infile, &class);
+    status = p1getd (infile, &classKRH);
     if (status == EOF)
 	err ("do_p1_head:  missing header class at end of file");
     else if (status == 0)
@@ -956,16 +956,16 @@ do_p1_head(FILE *infile, FILE *outfile)
 	    storage[0] = '\0';
     } /* else */
 
-    if (class == CLPROC || class == CLMAIN) {
+    if (classKRH == CLPROC || classKRH == CLMAIN) {
 	chainp lengths;
 
 	add_n_ = nentry > 1;
 	lengths = length_comp(entries, add_n_);
 
-	if (!add_n_ && protofile && class != CLMAIN)
+	if (!add_n_ && protofile && classKRH != CLMAIN)
 		protowrite(protofile, proctype, storage, entries, lengths);
 
-	if (class == CLMAIN)
+	if (classKRH == CLMAIN)
 	    nice_printf (outfile, "/* Main program */ ");
 	else
 	    nice_printf(outfile, "%s ", multitype ? "VOID"
@@ -983,10 +983,10 @@ do_p1_head(FILE *infile, FILE *outfile)
 	strcpy(this_proc_name, storage);
 	list_decls (outfile);
 
-    } else if (class == CLBLOCK)
+    } else if (classKRH == CLBLOCK)
         next_tab (outfile);
     else
-	errl("do_p1_head: got class %ld", class);
+	errl("do_p1_head: got class %ld", classKRH);
 
     return NULL;
 } /* do_p1_head */
@@ -1227,24 +1227,24 @@ list_arg_types(FILE *outfile, struct Entrypoint *entryp, chainp lengths, int add
    exception is character lengths, which are passed by value. */
 
 	if (arg) {
-	    int type = arg -> vtype, class = arg -> vclass;
+	    int type = arg -> vtype, classKRH = arg -> vclass;
 
-	    if (class == CLPROC)
+	    if (classKRH == CLPROC)
 		if (arg->vimpltype)
 			type = Castargs ? TYUNKNOWN : TYSUBR;
 		else if (type == TYREAL && forcedouble && !Castargs)
 			type = TYDREAL;
 
-	    if (type == last_type && class == last_class && did_one)
+	    if (type == last_type && classKRH == last_class && did_one)
 		nice_printf (outfile, ", ");
 	    else
-		if ((is_ext = class == CLPROC) && Castargs)
+		if ((is_ext = classKRH == CLPROC) && Castargs)
 			nice_printf(outfile, "%s%s ", sep,
 				usedcasts[type] = casttypes[type]);
 		else
 			nice_printf(outfile, "%s%s ", sep,
 				c_type_decl(type, is_ext));
-	    if (class == CLPROC)
+	    if (classKRH == CLPROC)
 		if (Castargs)
 			out_name(outfile, arg);
 		else {
@@ -1258,7 +1258,7 @@ list_arg_types(FILE *outfile, struct Entrypoint *entryp, chainp lengths, int add
 		}
 
 	    last_type = type;
-	    last_class = class;
+	    last_class = classKRH;
 	    did_one = done_one;
 	    sep = sep1;
 	} /* if (arg) */
@@ -1789,7 +1789,7 @@ list_decls(FILE *outfile)
 	    int procclass = var -> vprocclass;
 	    char *comment = NULL;
 	    int stg = var -> vstg;
-	    int class = var -> vclass;
+	    int classKRH = var -> vclass;
 	    type = var -> vtype;
 
 	    if (var->vrefused)
@@ -1805,7 +1805,7 @@ list_decls(FILE *outfile)
 	    if (useauto1 && stg == STGBSS && !var->vsave)
 		stg = STGAUTO;
 
-	    switch (class) {
+	    switch (classKRH) {
 	        case CLVAR:
 		    break;
 		case CLPROC:
@@ -1844,7 +1844,7 @@ list_decls(FILE *outfile)
 			continue;
 		default:
 		    erri("list_decls:  can't handle class '%d' yet",
-			    class);
+			    classKRH);
 		    Fatal(var->fvarname);
 		    continue;
 	    } /* switch */
@@ -1871,7 +1871,7 @@ list_decls(FILE *outfile)
 		def_start(outfile, var->cvarname, CNULL, "(");
 		goto Alias1;
 		}
-	    else if (type == last_type && class == last_class &&
+	    else if (type == last_type && classKRH == last_class &&
 		    stg == last_stg && !write_header)
 		nice_printf (outfile, ", ");
 	    else {
@@ -1907,7 +1907,7 @@ list_decls(FILE *outfile)
 			continue;
 		} /* switch */
 
-		if (type == TYCHAR && halign && class != CLPROC
+		if (type == TYCHAR && halign && classKRH != CLPROC
 		&& ISICON(var->vleng)) {
 			nice_printf(outfile, "struct { %s fill; char val",
 				halign);
@@ -1924,19 +1924,19 @@ list_decls(FILE *outfile)
 			continue;
 			}
 		nice_printf(outfile, "%s ",
-			c_type_decl(type, class == CLPROC));
+			c_type_decl(type, classKRH == CLPROC));
 	    } /* else */
 
 /* Character type is really a string type.  Put out a '*' for variable
    length strings, and also for equivalences */
 
-	    if (type == TYCHAR && class != CLPROC
+	    if (type == TYCHAR && classKRH != CLPROC
 		    && (!var->vleng || !ISICON (var -> vleng))
 	    || oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON)))
 		nice_printf (outfile, "*%s", var->cvarname);
 	    else {
 		nice_printf (outfile, "%s", var->cvarname);
-		if (class == CLPROC) {
+		if (classKRH == CLPROC) {
 			Argtypes *at;
 			if (!(at = var->arginfo)
 			 && var->vprocclass == PEXTERNAL)
@@ -2044,7 +2044,7 @@ list_decls(FILE *outfile)
 		}
 	    write_header = 0;
 	    last_type = type;
-	    last_class = class;
+	    last_class = classKRH;
 	    last_stg = stg;
 	} /* if (var) */
     } /* for (entry = hashtab */

@@ -132,7 +132,7 @@ typedef struct {
 /*----- stuff for plotting into an X11 window -----*/
 
 typedef struct {
-   int class ;    /* type of colormap: PseudoColor and TrueColor are OK */
+   int classKRH ;    /* type of colormap: PseudoColor and TrueColor are OK */
    int depth ;
 
    int ncolors ;  /* This stuff for PseudoColor */

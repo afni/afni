@@ -57,17 +57,17 @@ extern int krparens;
 
  void
 #ifdef KR_headers
-puthead(s, class)
+puthead(s, classKRH)
 	char *s;
-	int class;
+	int classKRH;
 #else
-puthead(char *s, int class)
+puthead(char *s, int classKRH)
 #endif
 {
 	if (headerdone == NO) {
-		if (class == CLMAIN)
+		if (classKRH == CLMAIN)
 			s = "MAIN__";
-		p1_head (class, s);
+		p1_head (classKRH, s);
 		headerdone = YES;
 		}
 }

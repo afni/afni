@@ -212,7 +212,11 @@ XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im )
 
    /* check inputs */
 
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin==NULL || vin->c_class!=TrueColor || im==NULL || im->kind!=MRI_rgb ){
+#else
    if( vin==NULL || vin->class!=TrueColor || im==NULL || im->kind!=MRI_rgb ){
+#endif
       fprintf(stderr,"\a\n*** ILLEGAL input to rgb_to_XImage\n") ;
       sleep(1) ; exit(1) ;
    }

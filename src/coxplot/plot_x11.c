@@ -385,7 +385,7 @@ unsigned long rgb_to_pixel( unsigned char rr , unsigned char gg ,
 {
    /*--- TrueColor case: make color by appropriate bit twiddling ---*/
 
-   if( cd->class == TrueColor ){
+   if( cd->classKRH == TrueColor ){
       unsigned long r , g , b , rgb ;
 
       r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
@@ -409,7 +409,7 @@ unsigned long rgb_to_pixel( unsigned char rr , unsigned char gg ,
 #define GW 4
 #define BW 1
 
-   if( cd->class == PseudoColor ){
+   if( cd->classKRH == PseudoColor ){
       int ii , rdif,gdif,bdif,dif , ibest,dbest ;
 
       rdif = cd->rr[0] - rr ;
@@ -490,14 +490,17 @@ X11_colordef * get_X11_colordef( Display * display , Window w )
    if( count == 0 || vin == NULL ) return NULL ;
 
    /*--- PseudoColor case ---*/
-
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin->c_class == PseudoColor ){
+#else
    if( vin->class == PseudoColor ){
+#endif
       int iz ;
 
       /* create output */
 
       cd = (X11_colordef *) malloc( sizeof(X11_colordef) ) ;
-      cd->class = PseudoColor ;
+      cd->classKRH = PseudoColor ;
       cd->depth = vin->depth ;
 
       /* get all the colors in the colormap */
@@ -544,13 +547,16 @@ X11_colordef * get_X11_colordef( Display * display , Window w )
    }
 
    /*--- TrueColor case ---*/
-
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin->c_class == TrueColor ){
+#else
    if( vin->class == TrueColor ){
+#endif
 
       /* create output */
 
       cd = (X11_colordef *) malloc( sizeof(X11_colordef) ) ;
-      cd->class = TrueColor ;
+      cd->classKRH = TrueColor ;
       cd->depth = vin->depth ;
 
       cd->rrmask  = vin->red_mask ;            /* bit masks for color  */
