@@ -103,6 +103,8 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Cannot initialize X11!\n") ; exit(1) ;
    }
 
+   cpt = my_getenv("TMPDIR") ;  /* just for fun */
+
    dc = MCW_new_DC( shell , 16 ,
                     DEFAULT_NCOLOVR , INIT_colovr , INIT_labovr ,
                     1.0 , 0 ) ;

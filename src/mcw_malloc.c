@@ -108,7 +108,7 @@ static void probe_track( int ip )
       if( fred[ii] != MAGIC ){
          fprintf(stderr,"*** malloc pre-corruption!  "
                         "chunk=%d size=%d source=%s line#=%d\n",
-                        ii,psz[ii],pfn[ii],pln[ii] ) ;
+                        ip,psz[ip],pfn[ip],pln[ip] ) ;
          break ;
       }
 
@@ -116,7 +116,7 @@ static void probe_track( int ip )
       if( fred[n+NEXTRA+ii] != MAGIC ){
          fprintf(stderr,"*** malloc post-corruption!  "
                         "chunk=%d size=%d source=%s line#=%d\n",
-                        ii,psz[ii],pfn[ii],pln[ii] ) ;
+                        ip,psz[ip],pfn[ip],pln[ip] ) ;
          break ;
       }
 

@@ -590,6 +590,6 @@ extern void set_PLUGIN_strval( PLUGIN_strval * , char * ) ;
 extern char * get_PLUGIN_strval( PLUGIN_strval * ) ;
 
 extern void PLUTO_histoplot( int, float, float, int *,
-                             char *, char *, char * , int * ) ;
+                             char *, char *, char * , int,int ** ) ;
 
 #endif /* _AFNI_PLUGIN_HEADER_ */

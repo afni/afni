@@ -87,7 +87,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Mask" , "Mask" , FALSE ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                                     ANAT_ALL_MASK , FUNC_ALL_MASK ,
-                                    DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
+                                    DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ;
 
    /*-- fifth line of input --*/
@@ -423,14 +423,16 @@ char * HISTO_main( PLUGIN_interface * plint )
 
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
    sprintf(buf,"%s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount) ;
-   PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , NULL ) ;
+   PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
 
    /*-- go home to mama --*/
 
    free(hbin) ; free(mmm) ; mri_free(flim) ; return NULL ;
 }
 
-/********************************************************************************/
+/******************************************************************************/
+
+#define FIT_FISHER
 
 static char c_helpstring[] =
  "Purpose: Plot a histogram of correlation coefficient of a 3D+time\n"
@@ -455,8 +457,11 @@ static char c_helpstring[] =
  "The array of correlation coefficients is then put into 100 bins, ranging\n"
  "from -1.0 to 1.0, and the histogram graph is popped up to the display.\n"
  "\n"
- "[Overlaid on the histogram is another graph, which is a histogram of a]\n"
- "[normal fit to the Fisher z-transform of the correlation coefficient. ]\n"
+ "Overlaid on the histogram are two other graphs:\n"
+ " * The first [red] is a normal fit to the Fisher z-transform of the\n"
+ "     correlation coefficient.\n"
+ " * The second [green] is the nominal fit to the number of degrees of\n"
+ "     freedom, assuming the data time series are normal white noise.\n"
  "\n"
  "-- Bob Cox - October 1999\n"
 ;
@@ -512,7 +517,7 @@ PLUGIN_interface * CORREL_init(void)
    PLUTO_add_option( plint , "Mask" , "Mask" , FALSE ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                                     ANAT_ALL_MASK , FUNC_ALL_MASK ,
-                                    DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
+                                    DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ;
 
    /*-- (optional) fourth line of input --*/
@@ -526,6 +531,16 @@ PLUGIN_interface * CORREL_init(void)
 }
 
 /*-----------------------------------------------------------------------------*/
+
+static float ww(float x)
+{
+   float y ;
+   if( x <= 1.0 ) return 0.0 ;
+   y = log(x) ; y = y*y ;
+   return y/(1.0+0.1*y) ;
+}
+
+#define phizero(z,u,s) erfc(fabs((z-u)/(1.4142136*s)))
 
 char *  CORREL_main( PLUGIN_interface * plint )
 {
@@ -543,8 +558,8 @@ char *  CORREL_main( PLUGIN_interface * plint )
    PCOR_voxel_corr * pc_vc ;
    int fim_nref ;
    float * ref_vec , * vval , * zval ;
-   int   * hbin , * jbin ;
-   float sum , sumq , dbin , gval,rval , sqp , zmid,zmed,zsig ;
+   int   * hbin , * jbin , * kbin , *jist[2] ;
+   float sum , sumq , dbin , gval,rval,gg , sqp , zmid,zmed,zsig ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -815,7 +830,7 @@ char *  CORREL_main( PLUGIN_interface * plint )
       sumq += (vval[ii]-sum)*(vval[ii]-sum) ;
    sumq = sqrt(sumq/mcount) ;
 
-   /*-- get statistics of Fisher z-transform --*/
+   /*-- get robust statistics of Fisher z-transform --*/
 
    zval = (float *) malloc( sizeof(float) * mcount ) ;
    for( ii=0 ; ii < mcount ; ii++ ) zval[ii] = atanh(vval[ii]) ;
@@ -827,12 +842,18 @@ char *  CORREL_main( PLUGIN_interface * plint )
 
    for( ii=0 ; ii < mcount ; ii++ ) zval[ii] = fabs(zval[ii]-zmid) ;
    qsort_float( mcount , zval ) ;
-   if( mcount%2 == 1 )              /* MAD */
+   if( mcount%2 == 1 )              /* MAD = median absolute deviation */
       zmed = zval[mcount/2] ;
    else
       zmed = 0.5 * ( zval[mcount/2] + zval[mcount/2-1] ) ;
    zsig = 1.4826 * zmed ;           /* estimate st.dev. */
+                                    /* 1/1.4826 = sqrt(2)*erfinv(0.5) */
 
+   gg = 0.0 ; sqp = 2.0/mcount ;
+   for( ii=0 ; ii < mcount ; ii++ ){
+      gval = phizero( zval[ii] , zmid , zsig ) ;
+      if( gval > 0.0 ) gg += ww( sqp/gval ) ;
+   }
    free(zval) ;
 
    /*-- do histogram --*/
@@ -842,7 +863,7 @@ char *  CORREL_main( PLUGIN_interface * plint )
    hbin = (int *) calloc((nbin+1),sizeof(int)) ;
    jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* 04 Oct 1999 */
 
-#if 0
+#ifndef FIT_FISHER
    sqp = 1.0/(sqrt(2.0*PI)*sumq) ;                /* Gaussian fit */
    for( ii=0 ; ii < nbin ; ii++ ){                /* to rho data  */
       gval = hbot + (ii+0.5)*dbin - sum ;
@@ -857,20 +878,32 @@ char *  CORREL_main( PLUGIN_interface * plint )
       gval = sqp * exp( -0.5*gval*gval/(zsig*zsig) )/sqrt(1.0-rval*rval) ;
       jbin[ii] = (int)( mcount * dbin * gval + 0.5 ) ;
    }
+   sum  = tanh(zmid) ;
+   sumq = 0.5*( tanh(zmid+zmed) - tanh(zmid-zmed) ) ;
 #endif
+
+   kbin = (int *) calloc((nbin+1),sizeof(int)) ;
+   for( ii=0 ; ii < nbin ; ii++ ){
+      gval = correl_t2p( fabs(hbot+ii*dbin) ,
+                         (double)nupdt , (double)1 , (double)(polort+1) ) ;
+      sqp = correl_t2p( fabs(hbot+(ii+1)*dbin) ,
+                        (double)nupdt , (double)1 , (double)(polort+1) ) ;
+      kbin[ii] = (int)( 0.5*mcount*fabs(gval-sqp) ) ;
+   }
+   jist[0] = jbin ; jist[1] = kbin ;
 
    flim = mri_new_vol_empty( mcount,1,1 , MRI_float ) ;
    mri_fix_data_pointer( vval , flim ) ;
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
-   sprintf(buf,"%s(%d)^.%s: \\rho=%4.2f \\sigma=%4.2f",
+   sprintf(buf,"%s(%d)^.%s:\\rho_{mid}=%4.2f\\pm%4.2f,g:%4.1f",
                DSET_FILECODE(input_dset),
                mcount,
                (tsim->name != NULL) ? THD_trailname(tsim->name,0) : " " ,
-               sum,sumq ) ;
+               sum,sumq , gg ) ;
    PLUTO_histoplot( nbin,hbot,htop,hbin ,
-                    "Correlation Coefficient",NULL,buf , jbin ) ;
+                    "Correlation Coefficient",NULL,buf , 2,jist ) ;
 
    mri_clear_data_pointer(flim) ; mri_free(flim) ;
-   free(vval) ; free(hbin) ; free(jbin) ;
+   free(vval) ; free(hbin) ; free(jbin) ; free(kbin) ;
    return NULL ;
 }

@@ -1695,3 +1695,17 @@
 30 Sep 1999
  * Added plug_histog.c (histogram plugin) and a histogram
      plotting routine to afni_plugin.c.
+
+04 Oct 1999
+ * Added histogram of correlation coefficient to plug_histog.c.
+
+05 Oct 1999
+ * Fixed bug in mcw_malloc.c, where it printed out the wrong
+     info when it found an overwrite error in a malloc()-ed
+     block of memory.
+
+06 Oct 1999
+ * Modified plug_histog.c and afni_plugin.[ch] to plot extra curves
+     in histograms.
+ * Modified coxplot/plot_motif.c to look harder for the HOTCOLOR before
+     it gives up and uses the default.

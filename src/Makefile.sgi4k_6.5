@@ -1,0 +1,37 @@
+## for SGI (IRIX 6.5)
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -w -O2 -n32 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CCVOL  = cc -w -O2 -n32 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CCFAST = $(CC)
+CCMIN  = cc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I.
+LFLAGS = -s -L.
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -n32
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -n32
+
+AR     = /usr/bin/ar
+RANLIB = /sbin/touch
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+LD     = /bin/ld
+GZIP   = /usr/local/bin/gzip
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./sgi4k_6.5
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
+
+###############################################################
+
+include Makefile.INCLUDE

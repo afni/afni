@@ -68,8 +68,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Mask" , "Mask" , TRUE ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
-                                    ANAT_ALL_MASK , FUNC_ALL_MASK ,
-                                    DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
+                                 ANAT_ALL_MASK , FUNC_ALL_MASK ,
+                                 DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ;  /* 06 Aug 1998 */
 
    /*-- third line of input --*/
