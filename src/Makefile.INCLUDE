@@ -624,10 +624,10 @@ SO = $(PLUGIN_SUFFIX)
 plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO) \
         plug_3ddot.$(SO)    plug_power.$(SO)    plug_stats.$(SO)  \
         plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)   \
-        plug_nlfit.$(SO)    plug_realtime.$(SO) plug_delay.$(SO)  \
-        plug_coorder.$(SO)  plug_3Ddump.$(SO)   plug_4Ddump.$(SO) \
-        plug_compress.$(SO) plug_drawdset.$(SO)                   \
-        models
+        plug_nlfit.$(SO)    plug_realtime.$(SO)                   \
+        plug_coorder.$(SO)  plug_compress.$(SO)                   \
+        plug_drawdset.$(SO)                                       \
+        models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
         model_null.$(SO) \
@@ -635,6 +635,10 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO) \
         model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO) \
         model_diffexp.$(SO) model_gammavar.$(SO)
+
+# Contributed plugins go last, since they might not compile well
+
+contrib_plugins: plug_3Ddump.$(SO) plug_4Ddump.$(SO) plug_delay.$(SO)
 
 install_plugins:
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)

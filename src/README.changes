@@ -15,7 +15,7 @@
    AFNI (and other programs) will now also write compressed .BRIK files.
      This is controlled by the environment variable AFNI_COMPRESSOR.
      The output compression mode can also be set using the new
-     "BRIK Compression" plugin. See README.compression for the details.
+     "BRIK Compressor" plugin. See README.compression for the details.
 --------------------------------------------------------------------------
 04 February 1998:
    AFNI will now select a scale for graphs when it first opens a graph
