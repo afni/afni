@@ -1730,6 +1730,25 @@ it impossible to view the later data volumes.  If this problem arises,
 you can try setting this environment variable to a larger limit (e.g.,
 99999 would take care of all currently imaginable cases).
 
+---------------------------------
+Variable: AFNI_VALUE_LABEL_DTABLE
+---------------------------------
+This variable sets a filename that holds a default value-label table
+for the Draw Dataset plugin.  A sample file is shown below:
+
+   <VALUE_LABEL_DTABLE
+     ni_type="2*String"
+     ni_dimen="3" >
+    "1" "elvis"
+    "2" "presley"
+    "3" "memphis"
+   </VALUE_LABEL_DTABLE>
+
+The 'ni_dimen' attribute is the number of value-label pairs; in the
+  above example it is 3.
+Each value-label pair is shown on a separate line.  The values and
+  labels are strings, enclosed in quote characters.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
