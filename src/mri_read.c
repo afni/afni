@@ -1012,7 +1012,7 @@ ENTRY("mri_read_file") ;
 
    } else if( check_dicom_magic_num( new_fname ) ) { /* 10 Aug 2004 */
 
-     mri_read_dicom( new_fname );
+     newar = mri_read_dicom( new_fname );
 
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
