@@ -1060,8 +1060,12 @@ int main( int argc , char * argv[] )
       /*-- 08 Jun 2004: copyaux? --*/
 
       if( copyaux ){
-        if( auxset != NULL ) THD_copy_datablock_auxdata( auxset->dblk , dset->dblk );
-        else                 THD_copy_datablock_auxdata( NULL         , dset->dblk );
+        if( auxset != NULL ){
+          THD_copy_datablock_auxdata( auxset->dblk , dset->dblk );
+          INIT_STAT_AUX( dset , MAX_STAT_AUX , auxset->stat_aux ) ;
+        } else {
+          THD_copy_datablock_auxdata( NULL , dset->dblk );
+        }
       }
 
       /*-- new aux data? --*/
