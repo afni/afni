@@ -21,16 +21,23 @@ WARNOPT = -Wall -Wno-unused-variable
 SUMALIB = libSUMA.a
 AFNILIB = -lmri -lrickr
 MAINCODE = SUMA
-INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
-LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
-LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
+
+ifndef SUMA_INCLUDE_PATH
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
+endif
+ifndef SUMA_LINK_PATH
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
+endif
+ifndef SUMA_LINK_LIB
+SUMA_LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
+endif
 
 #that one was tried for static linking. Bad idea. Requires libGL.a which crashes with nvidia driver 
 #for static linking to work (forget about running the program) you need to build Mesa with the 
 #options --enable-static --without-glide with the ./configure script
 # ./configure --prefix=/usr --enable-static --without-glide
 #CCOPT = -static
-#LINK_LIB = -lGLU -lGL -lpthread -lXmu -lXm -lXp -lXext -lXt -lSM -lICE -lX11 -lm 
+#SUMA_LINK_LIB = -lGLU -lGL -lpthread -lXmu -lXm -lXp -lXext -lXt -lSM -lICE -lX11 -lm 
  
 F1 = SUMA_trackball.c
 F2 = SUMA_SVmanip.c
@@ -73,112 +80,112 @@ all : ${SUMALIB} ${MAINCODE}
 clean : CLEANUP
 	
 ${F1:.c=.o} : ${F1}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F1} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F1} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F1:.c=.o}
 
 ${F2:.c=.o} : ${F2}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F2} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F2} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F2:.c=.o}
 
 ${F3:.c=.o} : ${F3}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F3} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F3} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F3:.c=.o}
 
 ${F4:.c=.o} : ${F4}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F4} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F4} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F4:.c=.o}
 
 ${F5:.c=.o} : ${F5}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F5} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F5} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F5:.c=.o}
 
 ${F6:.c=.o} : ${F6}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F6} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F6} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F6:.c=.o}
 
 ${F7:.c=.o} : ${F7}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F7} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F7} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F7:.c=.o}
 
 ${F8:.c=.o} : ${F8}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F8} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F8} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F8:.c=.o}
 
 ${F9:.c=.o} : ${F9}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F9} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F9} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F9:.c=.o}
 
 ${F10:.c=.o} : ${F10}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F10} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F10} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F10:.c=.o}
 
 ${F11:.c=.o} : ${F11}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F11} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F11} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F11:.c=.o}
 
 ${F12:.c=.o} : ${F12}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F12} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F12} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F12:.c=.o}
 
 ${F13:.c=.o} : ${F13}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F13} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F13} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F13:.c=.o}
 
 ${F14:.c=.o} : ${F14}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F14} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F14} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F14:.c=.o}
 
 ${F15:.c=.o} : ${F15}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F15} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F15} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F15:.c=.o}
 
 ${F16:.c=.o} : ${F16}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F16} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F16} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F16:.c=.o}
 
 ${F17:.c=.o} : ${F17}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F17} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F17} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F17:.c=.o}
 
 ${F18:.c=.o} : ${F18}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F18} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F18} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F18:.c=.o}
 
 ${F19:.c=.o} : ${F19}
-	${CC} ${CCOPT} ${INCLUDE_PATH} -c ${F19} 
+	${CC} ${CCOPT} ${SUMA_INCLUDE_PATH} -c ${F19} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F19:.c=.o}
 
 ${F20:.c=.o} : ${F20}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F20} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F20} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F20:.c=.o}
 
 ${F21:.c=.o} : ${F21}
-	${CC} ${CCOPT} ${WARNOPT} ${INCLUDE_PATH} -c ${F21} 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c ${F21} 
 	echo "Inserting object into library..."
 	ar rvs ${SUMALIB} ${F21:.c=.o}
 
 ${M1:.c=} : ${M1}
-	${CC} ${CCOPT} ${WARNOPT} -o ${M1o} ${M1} ${SUMALIB} ${AFNILIB} ${ZLIB} ${INCLUDE_PATH} ${LINK_PATH} ${LINK_LIB}
+	${CC} ${CCOPT} ${WARNOPT} -o ${M1o} ${M1} ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 	mv ${M1o} ${INSTALLDIR}
 	
 CLEANUP : 
