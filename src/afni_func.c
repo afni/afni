@@ -4248,7 +4248,10 @@ ENTRY("AFNI_range_label") ;
 
    /*** anat statistics ***/
 
-   if( IM3D_OPEN(im3d) ){ RELOAD_STATS(im3d->anat_now) ; }
+   if( IM3D_OPEN(im3d) ){
+STATUS("RELOAD_STATS(anat_now)") ;
+     RELOAD_STATS(im3d->anat_now) ;
+   }
 
    if( IM3D_OPEN(im3d) &&
        ISVALID_3DIM_DATASET(im3d->anat_now) &&
@@ -4257,18 +4260,22 @@ ENTRY("AFNI_range_label") ;
       iv = im3d->vinfo->anat_index ;
 
       if( DSET_VALID_BSTAT(im3d->anat_now,iv) ){
+STATUS("anat_now statistics") ;
          AV_fval_to_char( im3d->anat_now->stats->bstat[iv].min , qbuf ) ;
          sprintf( anat_minch , "%9.9s" , qbuf ) ;
          AV_fval_to_char( im3d->anat_now->stats->bstat[iv].max , qbuf ) ;
          sprintf( anat_maxch , "%9.9s" , qbuf ) ;
       } else {
-STATUS("can't load anat bstat") ;
+STATUS("can't load anat_now bstat") ;
       }
    }
 
    /*** func statistics ***/
 
-   if( IM3D_OPEN(im3d) ){ RELOAD_STATS(im3d->fim_now) ; }
+   if( IM3D_OPEN(im3d) ){
+STATUS("RELOAD_STATS(fim_now)") ;
+     RELOAD_STATS(im3d->fim_now) ;
+   }
 
    if( IM3D_OPEN(im3d) &&
        ISVALID_3DIM_DATASET(im3d->fim_now) &&
@@ -4277,27 +4284,31 @@ STATUS("can't load anat bstat") ;
       iv = im3d->vinfo->fim_index ;
 
       if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
+STATUS("fim_now statistics") ;
          AV_fval_to_char( im3d->fim_now->stats->bstat[iv].min , qbuf ) ;
          sprintf( fim_minch , "%9.9s" , qbuf ) ;
          AV_fval_to_char( im3d->fim_now->stats->bstat[iv].max , qbuf ) ;
          sprintf( fim_maxch , "%9.9s" , qbuf ) ;
       } else {
-STATUS("can't load func bstat") ;
+STATUS("can't load fim_now bstat") ;
       }
 
       iv = im3d->vinfo->thr_index ;
 
       if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
+STATUS("thr_now statistics") ;
         AV_fval_to_char( im3d->fim_now->stats->bstat[iv].min , qbuf ) ;
         sprintf( thr_minch , "%9.9s" , qbuf ) ;
         AV_fval_to_char( im3d->fim_now->stats->bstat[iv].max , qbuf ) ;
         sprintf( thr_maxch , "%9.9s" , qbuf ) ;
       } else {
-STATUS("can't load thresh bstat") ;
+STATUS("can't load thr_now bstat") ;
       }
    }
 
    /*** make label ***/
+
+STATUS("make buf label") ;
 
    sprintf( buf , "ULay %s:%s\nOLay %s:%s\nThr  %s:%s" ,
             anat_minch,anat_maxch, fim_minch,fim_maxch, thr_minch,thr_maxch ) ;

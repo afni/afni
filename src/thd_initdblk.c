@@ -52,7 +52,13 @@ ENTRY("THD_init_one_datablock") ;
      }
    }
 
-   /*-- create output datablock --*/
+#if 1
+
+   dblk  = EDIT_empty_datablock() ;    /* 11 Mar 2005 -- the new way */
+   dkptr = dblk->diskptr ;
+
+#else
+   /*-- create output datablock (the old way) --*/
 
    dblk              = myXtNew( THD_datablock ) ;
    dblk->type        = DATABLOCK_TYPE ;
@@ -92,6 +98,8 @@ ENTRY("THD_init_one_datablock") ;
 
    ADDTO_KILL(dblk->kl,dkptr) ;
 
+#endif  /* end of initializing empty datablock and diskptr */
+
    /*-- read attributes from disk, store in the datablock --*/
 
    THD_read_all_atr( headname , dblk ) ;
@@ -105,6 +113,7 @@ ENTRY("THD_init_one_datablock") ;
       RETURN( NULL ) ;
    }
 
+#if 0
    if( PRINT_TRACING ){
      char str[256] ;
      sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d",
@@ -112,6 +121,7 @@ ENTRY("THD_init_one_datablock") ;
              dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] ) ;
      STATUS(str) ;
    }
+#endif
 
    RETURN( dblk ) ;
 }
@@ -179,6 +189,7 @@ ENTRY("THD_datablock_from_atr") ;
      nvox               *= dkptr->dimsizes[ii] ;
    }
 
+#if 0
    if( PRINT_TRACING ){
      char str[256] ;
      sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d nvox=%d",
@@ -186,6 +197,7 @@ ENTRY("THD_datablock_from_atr") ;
              dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] , nvox ) ;
      STATUS(str) ;
    }
+#endif
 
    if( !ok || nvals < 1 ||
        dkptr->rank < THD_MIN_RANK || dkptr->rank > THD_MAX_RANK ){
@@ -382,6 +394,7 @@ ENTRY("THD_datablock_from_atr") ;
      }
    }
 
+#if 0
    if( PRINT_TRACING ){
      char str[256] ;
      sprintf(str,"rank=%d nvals=%d dim[0]=%d dim[1]=%d dim[2]=%d",
@@ -389,6 +402,7 @@ ENTRY("THD_datablock_from_atr") ;
              dkptr->dimsizes[0] , dkptr->dimsizes[1] , dkptr->dimsizes[2] ) ;
      STATUS(str) ;
    }
+#endif
 
    RETURN(1) ;
 }

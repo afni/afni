@@ -64,6 +64,7 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"** Can't create NIML element!?\n"); exit(1);
    }
    NI_rename_group( ngr , "AFNI_dataset" ) ;
+   NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
 
    /*-- open stream to stdout, write element, close stream --*/
 

@@ -15,18 +15,18 @@ void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
    given a datablock, make it into a 3D dataset if possible
 ---------------------------------------------------------------------*/
 
-THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
+THD_3dim_dataset * THD_3dim_from_block( THD_datablock *blk )
 {
-   THD_3dim_dataset * dset ;
-   THD_diskptr      * dkptr ;
-   THD_dataxes      * daxes ;
+   THD_3dim_dataset *dset ;
+   THD_diskptr      *dkptr ;
+   THD_dataxes      *daxes ;
 
    Boolean dset_ok = True ;
    int iq ;
 
-   ATR_int    * atr_int ;
-   ATR_string * atr_str ;
-   ATR_float  * atr_flo ;
+   ATR_int    *atr_int ;
+   ATR_string *atr_str ;
+   ATR_float  *atr_flo ;
 
    int new_idcode = 0 ;
 
@@ -464,7 +464,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
             default: DSET_ERR("illegal WARP_TYPE warp code") ; break;
 
             case WARP_AFFINE_TYPE:{
-               THD_affine_warp * ww = (THD_affine_warp *) dset->warp ;
+               THD_affine_warp *ww = (THD_affine_warp *) dset->warp ;
                ww->type       = wtype ;
                ww->resam_type = rtype ;
                ww->warp.type  = MAPPING_LINEAR_TYPE ;
@@ -478,7 +478,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
             break ;  /* end affine warp */
 
             case WARP_TALAIRACH_12_TYPE:{
-               THD_talairach_12_warp * ww =
+               THD_talairach_12_warp *ww =
                   (THD_talairach_12_warp *) dset->warp ;
                int iw , ioff ;
                ww->type       = wtype ;
