@@ -1449,7 +1449,7 @@ gifsicle:
 
 mpeg_encode:
 	( cd mpeg_encodedir ; \
-	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS) 'LLIBS=$(LLIBS) -lm' ; \
+	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; \
 	  $(MV) mpeg_encode .. ; )
 
 #######
@@ -1642,7 +1642,7 @@ niccc:niccc.o
 #############
 #SUMA
 
-libSUMA.a:  
+libSUMA.a:
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
 	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
@@ -1669,7 +1669,7 @@ suma_exec:libSUMA.a libmri.a librickr.a
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
-	 
+
 suma_clean:
 	$(RM) SUMA/libSUMA.a libSUMA.a	
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
