@@ -1651,6 +1651,19 @@ However, if you have a DICOM file that is exactly 131072 bytes long
 of shorts, instead of whatever it really is.  So only set this variable
 to YES if necessary!
 
+-----------------------------
+Variable: AFNI_THRESH_BIGSTEP
+-----------------------------
+The AFNI threshold sliders (in the Define Function control panels and the
+Render Dataset plugins) are divided into 10000 steps from bottom to top.
+If you click in the trough or use the PageUp/PageDown keys, the default
+action is to move the slider 10 of the steps at once.  (The up and down
+arrow keys move 1 step at a time.)  You can change this big step from the
+default of 10 to any value between 1 and 1000 by setting this environment
+variable; for example
+  setenv AFNI_THRESH_BIGSTEP 100
+will move the slider 1% of its height per PageUp/PageDown key or mouse click.
+
 =========================================
 | Robert W Cox, PhD                     |
 | National Institute of Mental Health   |
