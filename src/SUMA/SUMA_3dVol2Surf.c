@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.2 (September 21, 2003)"
+#define VERSION "version 3.3 (September 23, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -50,6 +50,9 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 3.3  September 23, 2003
+ *   - added help for -no_headers option
  *
  * 3.2  September 20, 2003
  *   - added max_abs mapping function
@@ -1742,6 +1745,12 @@ int usage ( char * prog, int level )
 	    "    -help                  : show this help\n"
 	    "\n"
 	    "        If you can't get help here, please get help somewhere.\n"
+	    "\n"
+	    "    -no_headers            : do not output column headers\n"
+	    "\n"
+	    "        Column header lines all begin with the '#' character.\n"
+	    "        With the '-no_headers' option, these lines will not be\n"
+	    "        output.\n"
 	    "\n"
 	    "    -oob_index INDEX_NUM   : specify default index for oob nodes\n"
 	    "\n"

@@ -302,3 +302,6 @@
       - added '-oob_index' and '-oob_value' options
       - added CHECK_NULL_STR macro
 
+23 September 2003:
+  * modifited SUMA_3dVol2Surf.c: added help for -no_header option
+
