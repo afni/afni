@@ -3459,3 +3459,8 @@
      The old way caused problems when /usr/bin/ was ahead of /bin/,
      for example.
  * Similar changes to NLfit_model.c, afni_plugin.c, and thd_get1D.c.
+ * Removed the NULLIFY_ON_DESTROY() call for the whereami textwin in
+     afni.c, since the kill function for this window does the same
+     thing.  This may be the cause of the bug that Jill Weisberg
+     reported (that the whereami function stops working and then
+     crashes AFNI when the user presses the Quit button).

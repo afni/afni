@@ -7029,10 +7029,12 @@ ENTRY("AFNI_imag_pop_CB") ;
            new_MCW_textwin_2001( seq->wbar , tlab , TEXT_READONLY ,
                                  AFNI_pop_whereami_kill , im3d     ) ;
 
+#if 0
          /* 31 Jul 2001: NULL out the pointer when the window is destroyed */
 
          NULLIFY_ON_DESTROY( im3d->vwid->imag->pop_whereami_twin ,
                              im3d->vwid->imag->pop_whereami_twin->wshell ) ;
+#endif
 
          XtVaSetValues( im3d->vwid->imag->pop_whereami_twin->wtext ,
                           XmNresizeHeight , True ,
