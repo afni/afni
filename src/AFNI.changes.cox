@@ -3761,3 +3761,6 @@
  * Modified 3dAutomask.c to remove -fillin option.
  * Modifed thd_automask.c to make fillin = brick size/60, and to make
      final mask = complement of largest component of zeros.
+
+31 May 2002
+ * Adapted shm stuff from thd_iochan.c to niml.c.

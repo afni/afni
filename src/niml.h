@@ -141,6 +141,7 @@ typedef struct {
 
 # define SHM_WAIT_CREATE   9
 # define SHM_WAIT_ACCEPT  10
+# define SHM_IS_DEAD      99
 
 # define SHM_CREATOR      33
 # define SHM_ACCEPTOR     44
