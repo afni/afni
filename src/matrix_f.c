@@ -634,13 +634,9 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
 
   mir = matrix_inverse( atmp , ainv ) ;   /* invert */
 
-#if 0
-  for( i=0 ; i < n ; i++ ) diag[i] = 1.0/diag[i] ;
-#endif
-
   for( i=0 ; i < n ; i++ )                /* scale inverse */
    for( j=0 ; j < n ; j++ )
-     ainv->elts[i][j] *= diag[i]*diag[j] ;
+    ainv->elts[i][j] *= diag[i]*diag[j] ;
 
   matrix_destroy (&atmp); free((void *)diag) ;
   return (mir);

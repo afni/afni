@@ -5086,3 +5086,8 @@
      to use diagonal scaling before/after the matrix inversion.  Modified
      RegAna.c to use this function, to avoid stupid scaling issues.
      Also modified condition number calculation to take this into account.
+
+16 Jul 2004
+ * Modified Deconvolve.c to use correctly normalized Legendre polynomials,
+     for potential ease-of-use for people who want to know what the
+     baseline functions are.

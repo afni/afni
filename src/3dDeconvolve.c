@@ -266,7 +266,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "04 May 2003"         /* latest program revision date*/
+#define PROGRAM_LATEST  "16 July 2004"         /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -771,7 +771,9 @@ void get_options
       /*-----   -nocond           ------*/
 
       if( strcmp(argv[nopt],"-nocond") == 0 ){  /* 15 Jul 2004 */
+#ifndef FLOATIZE
         option_data->nocond = 1 ;
+#endif
         nopt++ ; continue ;
       }
 
@@ -1505,6 +1507,17 @@ void read_input_data
 		       option_data->stim_filename[is]);
 	      DC_error (message);
 	    }
+
+#if 0
+          /* 16 Jul 2004: if in the baseline, remove the mean */
+          if( option_data->polort >= 0 && option_data->stim_base[is] ){
+            float *vec=(*stimulus)[is], sum=0.0 ; int qq, nn=(*stim_length)[is] ;
+            for( qq=0 ; qq < nn ; qq++ ) sum += vec[qq] ;
+            sum /= nn ;
+            for( qq=0 ; qq < nn ; qq++ ) vec[qq] -= sum ;
+          }
+#endif
+
 	}
     }
 
@@ -3105,11 +3118,17 @@ void calculate_results
     }
     free((void *)ev) ;
     if( emin <= 0.0 || emax <= 0.0 ){
-      fprintf(stderr,"** Matrix condition number undefined: "
-                     "min ev=%g  max ev=%g\n",emin,emax ) ;
+      fprintf(stderr,"** Matrix condition:  UNDEFINED: "
+                     "min ev=%g  max ev=%g  ** VERY BAD **\n",emin,emax ) ;
     } else {
       double cond = sqrt(emax/emin) ;
-      fprintf(stderr,"++ Matrix condition:  %g\n",cond) ;
+      fprintf(stderr,"++ Matrix condition:  %g",cond) ;
+#ifdef FLOATIZE
+      if( cond > 100.0 ) fprintf(stderr,"  ** BEWARE **") ;
+#else
+      if( cond > 1.e7  ) fprintf(stderr,"  ** BEWARE **") ;
+#endif
+      fprintf(stderr,"\n") ;
     }
   }
 
@@ -4539,8 +4558,8 @@ int main
                    "**\n"
                    "** HOWEVER, if you insist on using 3dDeconvolve_f, then:\n"
                    "**        + Use '-OK' as the first command line option.\n"
-                   "**        + Check the matrix condition number; if it is\n"
-                   "**            greater than 1000, beware!\n"
+                   "**        + Check the matrix condition number;\n"
+                   "**            if it is greater than 100, beware!\n"
                    "**\n"
                    "** RWCox - 14 Jul 2004\n"
                    "**\n"
