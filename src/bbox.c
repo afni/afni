@@ -484,7 +484,10 @@ static int allow_optmenu_EV = 1 ;
 
 void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
 
+#define USE_FIXUP
+#ifdef  USE_FIXUP
 static void optmenu_EV_fixup( Widget ww ) ; 
+#endif
 
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char * label ,
@@ -626,7 +629,7 @@ ENTRY("new_MCW_optmenu") ;
                            optmenu_EV ,       /* handler */
                            (XtPointer) av ,   /* client data */
                            XtListTail ) ;     /* last in queue */
-#if 1
+#ifdef USE_FIXUP
      optmenu_EV_fixup( av->wrowcol ) ;
 #endif
    }
@@ -805,9 +808,13 @@ ENTRY("optmenu_finalize") ;
 }
 
 /*--------------------------------------------------------------------------*/
-#if 1
+/* 15 Mar 2004: fix the cursors on the optmenus with popups */
+
+#ifdef USE_FIXUP
 static int    nwid = 0    ;
 static Widget *wid = NULL ;
+
+/*- called if an optmenu is destroyed, to remove it from the fixup list -*/
 
 static void optmenu_EV_fixup_CB( Widget ww , XtPointer xp, XtPointer cd )
 {
@@ -817,6 +824,8 @@ ENTRY("optmenu_EV_fixup_CB") ;
      if( wid[ii] == ww ) wid[ii] = (Widget)NULL ;
    EXRETURN ; ;
 }
+
+/*- called occasionally to see if anyone can be fixed yet -*/
 
 static XtIntervalId timer_id = (XtIntervalId)0 ;
 static XtAppContext timer_cx = (XtAppContext)NULL ;
@@ -828,6 +837,9 @@ ENTRY("optmenu_EV_fixup_timer_CB") ;
    timer_id = XtAppAddTimeOut( timer_cx, 3033, optmenu_EV_fixup_timer_CB, NULL ) ;
    EXRETURN ;
 }
+
+/*- called with NULL to fix anything on the current list;
+    called with a Widget to put it on the to-be-fixed-up list -*/
 
 static void optmenu_EV_fixup( Widget ww )   /* 15 Mar 2004 - RWCox */
 {
@@ -873,7 +885,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str," now have %d to fix",nwid); STATU
    }
    EXRETURN ;
 }
-#endif
+#endif  /* USE_FIXUP */
 
 /*--------------------------------------------------------------------------*/
 
