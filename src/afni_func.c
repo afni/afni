@@ -2414,7 +2414,7 @@ STATUS("wasn't a directory") ;
 
             /** OK, was a directory and we tried to read it **/
 
-            if( new_ss == NULL || new_ss->num_dsset ){  /** failed to read anything useful **/
+            if( new_ss == NULL || new_ss->num_dsset == 0 ){ /** failed to read anything **/
 
 STATUS("failed to read new session") ;
                XBell(im3d->dc->display,100) ;

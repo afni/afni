@@ -4681,3 +4681,8 @@
      rather than a bucket, if AFNI_1D_TIME is set to YES.
  * Modified mri_write_ascii() to write the stdout if the filename is "-".
  * Modified various *.c files to avoid warning messages on OS X compiles.
+
+06 Aug 2003
+ * Somehow, a bug crept into the Read Session function (in afni_func.c) that
+     rejected new sessions with # datasets > 0 rather than # datasets == 0.
+ * Added quintic interpolation to mri_warp3D.c.

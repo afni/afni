@@ -1010,6 +1010,10 @@ extern MRI_IMAGE *mri_warp3D       ( MRI_IMAGE *, int,int,int ,
 extern void mri_warp3D_method( int ) ;
 extern void mri_warp3D_zerout( int ) ;
 
+extern MRI_IMAGE *mri_warp3D_quintic( MRI_IMAGE *, int,int,int , /* 06 Aug 2003 */
+                                      void func( float,float,float,
+                                                 float *,float *,float *) ) ;
+
 extern MRI_IMAGE * mri_warp3D_affine( MRI_IMAGE * , THD_vecmat ) ;
 extern MRI_IMAGE * mri_warp3D_resize( MRI_IMAGE *, int,int,int ) ;
 
