@@ -2093,7 +2093,8 @@ void proc_sigfunc(int sig)
    if( proc_shmid > 0 ){
      shmctl( proc_shmid , IPC_RMID , NULL ) ; proc_shmid = 0 ;
    }
-   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
+   fprintf(stderr,"Fatal Signal %d (%s) received in job #%d\n",
+           sig,sname,proc_ind) ;
    exit(1) ;
 }
 
@@ -2111,7 +2112,7 @@ void proc_finalize_shm_volumes(void)
 {
    char kstr[32] ; int ii ;
 
-   if( proc_shm_arnum == 0 ) return ;  /* should never happen */
+   if( proc_shm_arnum == 0 ) return ;   /* should never happen */
 
    proc_shmsize = 0 ;                       /* add up sizes of */
    for( ii=0 ; ii < proc_shm_arnum ; ii++ ) /* all arrays for */
@@ -2130,7 +2131,7 @@ void proc_finalize_shm_volumes(void)
 
      /** if failed, print out some advice on how to tune SHMMAX **/
 
-#ifdef LINUX
+#if defined(LINUX)
      { FILE *fp = fopen( "/proc/sys/kernel/shmmax" , "r" ) ;
        if( fp != NULL ){
          unsigned int smax=0 ;
@@ -2141,23 +2142,22 @@ void proc_finalize_shm_volumes(void)
                    "** LINUX ADVICE:\n"
                    "** Current max shared memory size = %u bytes\n"
                    "** You can increase the maximum allowed size\n"
-                   "** by using a command like so as root:\n"
+                   "** by using a command like so (as root user):\n"
                    "**   echo VAL > /proc/sys/kernel/shmmax\n"
                    "** where VAL is a number (must be >= 33554432).\n"
                    "** This should probably be done at bootup,\n"
                    "** for example in the /etc/rc.d/rc.local file.\n"
                    "** N.B.: This advice may or may not be appropriate\n"
                    "**       for your version of Linux.  Please check\n"
-                   "**       with a Linux system administrator for\n"
+                   "**       with your Linux system administrator for\n"
                    "**       authoritative help on reconfiguring the\n"
                    "**       operating system!\n"
                    , smax ) ;
          }
        }
      }
-#endif
 
-#ifdef SOLARIS
+#elif defined(SOLARIS)
      { FILE *fp = popen( "/usr/sbin/sysdef | grep SHMMAX" , "r" ) ;
        if( fp != NULL ){
          unsigned int smax=0 ;
@@ -2171,21 +2171,20 @@ void proc_finalize_shm_volumes(void)
                    "** by having root edit file /etc/system and\n"
                    "** adding a line like so\n"
                    "**   set shmsys:shminfo_shmmax = VAL\n"
-                   "** where VAL is a number, and then rebooting.\n"
+                   "** where VAL is a large number, and then rebooting.\n"
                    "** N.B.: Be very careful with /etc/system, and\n"
                    "**       make a backup copy before editing it!\n"
                    "** N.B.: This advice may or may not be appropriate\n"
                    "**       for your version of Solaris.  Please check\n"
-                   "**       with a Solaris system administrator for\n"
+                   "**       with your Solaris system administrator for\n"
                    "**       authoritative help on reconfiguring the\n"
                    "**       operating system!\n"
                    , smax ) ;
          }
        }
      }
-#endif
 
-#ifdef DARWIN
+#elif defined(DARWIN)
      { FILE *fp = popen( "sysctl -n kern.sysv.shmmax" , "r" ) ;
        if( fp != NULL ){
          unsigned int smax=0 ; char str[128] ;
@@ -2198,19 +2197,30 @@ void proc_finalize_shm_volumes(void)
                    "** You can increase the maximum allowed size\n"
                    "** by having a superuser issue a command like\n"
                    "**   sysctl -w kern.sysv.shmmax=VAL\n"
-                   "** where VAL is a number.\n"
+                   "** where VAL is a large-ish number.\n"
                    "** You can also change this parameter in the file\n"
                    "** /System/Library/StartupItems/SystemTuning/SystemTuning\n"
-                   "** so that the change will last past a reboot.\n"
+                   "** so that the change will happen at system bootup.\n"
                    "** N.B.: This advice may or may not be appropriate\n"
                    "**       for your version of Darwin.  Please check\n"
-                   "**       with a Darwin system administrator for\n"
+                   "**       with your Darwin system administrator for\n"
                    "**       authoritative help on reconfiguring the\n"
                    "**       operating system!\n"
                    , smax ) ;
          }
        }
      }
+
+#else
+     fprintf(stderr,
+             "\n"
+             "** Don't know how to advise you to modify your\n"
+             "** system to allow larger shared memory segments.\n"
+             "** I suggest you search the Web for the name\n"
+             "** of your operating system and the word 'shmmax'.\n"
+             "** And/or contact a skilled system administrator\n"
+             "** for your type of computer.\n"
+            ) ;
 #endif
 
      exit(1) ;
@@ -2224,7 +2234,7 @@ void proc_finalize_shm_volumes(void)
    signal(SIGBUS ,proc_sigfunc) ; signal(SIGHUP ,proc_sigfunc) ;
    signal(SIGTERM,proc_sigfunc) ; signal(SIGILL ,proc_sigfunc) ;
    signal(SIGKILL,proc_sigfunc) ; signal(SIGPIPE,proc_sigfunc) ;
-   atexit(proc_atexit) ;
+   atexit(proc_atexit) ;   /* or when the program exits */
 
    fprintf(stderr , "++ Shared memory: %d bytes at id=%d\n" ,
            proc_shmsize , proc_shmid ) ;
@@ -2239,7 +2249,7 @@ void proc_finalize_shm_volumes(void)
      exit(1) ;
    }
 
-   /* clear the allocated memory */
+   /* clear all shared memory */
 
    memset( proc_shmptr , 0 , proc_shmsize ) ;
 
@@ -3088,6 +3098,7 @@ void calculate_results
         pid_t newpid ;
 
         /* count number of voxels to compute with into nvox */
+
         if( mask_vol != NULL ){
           for( vv=nvox=0 ; vv < nxyz ; vv++ )
             if( mask_vol[vv] != 0 ) nvox++ ;
@@ -3124,7 +3135,7 @@ void calculate_results
 
           /* make sure dataset is in memory before forks */
 
-          DSET_load(dset) ;
+          DSET_load(dset) ;  /* so dataset will be common */
 
           /* start processes */
 
@@ -3134,9 +3145,9 @@ void calculate_results
           fprintf(stderr,"++ Voxels per job:    %d\n",nper) ;
 
           for( pp=1 ; pp < proc_numjob ; pp++ ){
-            ixyz_bot = proc_vox_bot[pp] ;
-            ixyz_top = proc_vox_top[pp] ;
-            proc_ind = pp ;
+            ixyz_bot = proc_vox_bot[pp] ;   /* these 3 variables   */
+            ixyz_top = proc_vox_top[pp] ;   /* are for the process */
+            proc_ind = pp ;                 /* we're about to fork */
             newpid   = fork() ;
             if( newpid == -1 ){
               fprintf(stderr,"** Can't fork job #%d! Error exit!\n",pp);
@@ -3146,10 +3157,10 @@ void calculate_results
             proc_pid[pp] = newpid ;     /* I'm the parent */
             iochan_sleep(10) ;
           }
-          if( pp == proc_numjob ){      /* only in the parent */
-            proc_ind = 0 ;
-            ixyz_bot = proc_vox_bot[0] ;
-            ixyz_top = proc_vox_top[0] ;
+          if( pp == proc_numjob ){       /* only in the parent */
+            ixyz_bot = proc_vox_bot[0] ; /* set the 3 control */
+            ixyz_top = proc_vox_top[0] ; /* variables needed */
+            proc_ind = 0 ;               /* below           */
           }
           fprintf(stderr,"++ Job #%d: processing voxels %d to %d\n",
                   proc_ind,ixyz_bot,ixyz_top-1) ;
@@ -3262,6 +3273,7 @@ void calculate_results
             fprintf(stderr,"++ Job #0 waiting for children to finish.\n") ;
             for( pp=1 ; pp < proc_numjob ; pp++ )
               waitpid( proc_pid[pp] , NULL , 0 ) ;
+            fprintf(stderr,"++ Job #0 now finishing up.\n") ;
           }
 
           /* when get to here, only parent process is left alive,
