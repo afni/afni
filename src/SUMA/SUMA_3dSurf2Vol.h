@@ -160,7 +160,7 @@ int set_node_list_data( node_list_t *N, param_t *p, s2v_opts_t *sopt, int col);
 int set_smap_opts     ( opts_t * opts, param_t * p, s2v_opts_t * sopt );
 int surf_to_node_list ( s2v_opts_t * sopt, node_list_t * N, int nsurf);
 int sxyz_1D_to_nlist  ( opts_t * opts, s2v_opts_t * sopt, param_t * p,
-			node_list_t *N, int nsurf);
+			node_list_t *N, int * nsurf);
 int usage             ( char * prog, int level );
 int validate_datasets ( opts_t * opts, param_t * p );
 int validate_options  ( opts_t * opts, param_t * p );

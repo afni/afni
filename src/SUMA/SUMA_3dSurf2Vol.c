@@ -1,5 +1,5 @@
 
-#define VERSION "version  3.3 (March 26, 2004)"
+#define VERSION "version  3.4 (June 21, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -72,18 +72,18 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  "history:\n"
  "\n"
- "1.0  May 29, 2003\n"
+ "1.0  May 29, 2003 [rickr]\n"
  "  - initial release\n"
  "\n"
- "1.1  June 11, 2003\n"
+ "1.1  June 11, 2003 [rickr]\n"
  "  - small reorg of s2v_fill_mask2() (should have no effect)\n"
  "  - improve description of -f_steps option\n"
  "\n"
- "1.2  July 21, 2003\n"
+ "1.2  July 21, 2003 [rickr]\n"
  "  - make sure input points fit in output dataset\n"
  "  - add min/max distance output, along with out-of-bounds count\n"
  "\n"
- "2.0  October 2, 2003\n"
+ "2.0  October 2, 2003 [rickr]\n"
  "  - Major changes accepting surface data, surface coordinates, output data\n"
  "    type, debug options, multiple sub-brick output, and node pair segment\n"
  "    alterations.\n"
@@ -91,28 +91,31 @@ static char g_history[] =
  "                         -dnode, -dvoxel, -f_index, -f_p1_fr, -f_pn_fr,\n"
  "                         -f_p1_mm, -f_pn_mm\n"
  "\n"
- "2.1  October 20, 2003\n"
+ "2.1  October 20, 2003 [rickr]\n"
  "  - call the new engine function, SUMA_LoadSpec_eng()\n"
  "    (this will restrict the debug output from SUMA_LoadSpec())\n"
  "\n"
- "2.2  December 15, 2003\n"
+ "2.2  December 15, 2003 [rickr]\n"
  "  - added program arguments '-surf_A' and '-surf_B' (-surf_A is required)\n"
  "  - added option '-hist' (for program history)\n"
  "  - explicit pointer init to NULL (a.o.t. memset() to 0)\n"
  "\n"
- "3.0  December 18, 2003\n"
+ "3.0  December 18, 2003 [rickr]\n"
  "  - removed requirement of 2 surfaces for most functions\n"
  "    (so now all functions work with either 1 or 2 input surfaces)\n"
  "\n"
- "3.1  January 23, 2004\n"
+ "3.1  January 23, 2004 [rickr]\n"
  "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
  "  - reversed order of output for '-hist' option\n"
  "\n"
- "3.2  February 10, 2004\n"
+ "3.2  February 10, 2004 [rickr]\n"
  "  - output a little more debug info for !AnatCorrect case\n"
  "\n"
  "3.3  March 26, 2004  [ziad]\n"
  "  - DsetList added to SUMA_LoadSpec_eng() call\n"
+ "\n"
+ "3.4  June 21, 2004  [rickr]\n"
+ "  - Fixed -surf_xyz_1D option (broken in v3.0 on nsurf test).\n"
  "----------------------------------------------------------------------\n";
  
 
@@ -906,10 +909,10 @@ ENTRY("init_node_list");
     memset(N,0,sizeof(*N));	/* first, clear it out - have care w/pointers */
     N->nodes = NULL;  N->fdata = NULL;  N->ilist = NULL;
 
-    nsurf = SUMAg_N_DOv;				/* [v3.0] */
-    if ( (nsurf < 1) || (nsurf > S2V_MAX_SURFS) )
+    nsurf = SUMAg_N_DOv;	/* verify, as long as there is no sxyz_im */
+    if ( !p->sxyz_im && ((nsurf < 1) || (nsurf > S2V_MAX_SURFS)) )
     {
-	fprintf(stderr,"** inl: SUMAg_N_DOv has invalid valud of %d\n", nsurf);
+	fprintf(stderr,"** inl: SUMAg_N_DOv has invalid value of %d\n", nsurf);
 	RETURN(-1);
     }
 
@@ -932,7 +935,7 @@ ENTRY("init_node_list");
 #endif
 
     if ( p->sxyz_im )
-	rv = sxyz_1D_to_nlist( opts, sopt, p, N, nsurf );
+	rv = sxyz_1D_to_nlist( opts, sopt, p, N, &nsurf );
     else
 	rv = surf_to_node_list( sopt, N, nsurf );
 
@@ -949,7 +952,7 @@ ENTRY("init_node_list");
  *----------------------------------------------------------------------
 */
 int sxyz_1D_to_nlist(opts_t * opts, s2v_opts_t * sopt, param_t * p,
-	             node_list_t * N, int nsurf)
+	             node_list_t * N, int * nsurf)
 {
     THD_fvec3 * fvp;
     float     * fp;
@@ -957,9 +960,9 @@ int sxyz_1D_to_nlist(opts_t * opts, s2v_opts_t * sopt, param_t * p,
 
 ENTRY("sxyz_1D_to_nlist");
 
-    if ( !sopt || !p || !N || nsurf < 0 || nsurf > 2 )
+    if ( !sopt || !p || !N )
     {
-	fprintf(stderr,"** sxyz2nl: bad params (%p,%p,%p,%d)\n",sopt,p,N,nsurf);
+	fprintf(stderr,"** sxyz2nl: bad params (%p,%p,%p)\n",sopt,p,N);
 	RETURN(-1);
     }
 
@@ -969,11 +972,13 @@ ENTRY("sxyz_1D_to_nlist");
 		opts->surf_xyz_1D_file);
 	RETURN(-1);
     }
-    else if ( p->sxyz_im->nx != 3*nsurf )
+
+    *nsurf = p->sxyz_im->nx / 3;
+
+    if ( p->sxyz_im->nx != 3 * *nsurf )
     {
-	fprintf(stderr,"** sxyz surf '%s' has %d columns, but %d are\n"
-		       "   required for mapping function '%s'\n",
-		opts->surf_xyz_1D_file, p->sxyz_im->nx, 3*nsurf, opts->map_str);
+	fprintf(stderr,"** sxyz surf '%s' has %d columns (%d expected)\n",
+		opts->surf_xyz_1D_file, p->sxyz_im->nx, 3**nsurf);
 	RETURN(-1);
     }
     else if ( p->sxyz_im->ny <= 0 )
@@ -983,7 +988,7 @@ ENTRY("sxyz_1D_to_nlist");
 	RETURN(-1);
     }
 
-    N->depth = nsurf;
+    N->depth = *nsurf;
     N->nnodes = p->sxyz_im->ny;
 
     N->nodes = (THD_fvec3 *)malloc(N->depth*N->nnodes*sizeof(THD_fvec3));
@@ -995,7 +1000,7 @@ ENTRY("sxyz_1D_to_nlist");
     }
 
     fvp = N->nodes;
-    for ( sc = 0; sc < nsurf; sc++ )
+    for ( sc = 0; sc < *nsurf; sc++ )
     {
 	fp = MRI_FLOAT_PTR( p->sxyz_im ) + sc * 3;	/* offset for surf */
 	for ( c = 0; c < N->nnodes; c++ )
@@ -1016,7 +1021,7 @@ ENTRY("sxyz_1D_to_nlist");
 	if ( sopt->dnode >= 0 && sopt->dnode <= p->sxyz_im->ny )
 	{
 	    fprintf(stderr,"   debug node (%d) loc", sopt->dnode);
-	    for ( sc = 0; sc < nsurf; sc++ )
+	    for ( sc = 0; sc < *nsurf; sc++ )
 		fprintf(stderr," : (%f, %f, %f)",
 		    N->nodes[sopt->dnode + sc*N->nnodes].xyz[0],
 		    N->nodes[sopt->dnode + sc*N->nnodes].xyz[1],
