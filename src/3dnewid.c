@@ -65,7 +65,7 @@ int main( int argc , char * argv[] )
         for( ii=0 ; ii < nid ; ii++ ){
           idc = MCW_new_idcode() ; printf("%s\n",idc.str) ;
         }
-      } else {
+      } else {                                /* 20 Aug 2002: test of niml.c */
         for( ii=0 ; ii < nid ; ii++ ){
           eee = UUID_idcode(); printf("%s\n",eee); free(eee);
         }
