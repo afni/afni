@@ -926,6 +926,9 @@ void get_options
 	  option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->xjpeg_filename);
 	  strcpy (option_data->xjpeg_filename, argv[nopt]);
+          if( strstr(option_data->xjpeg_filename,".jpg") == NULL &&
+              strstr(option_data->xjpeg_filename,".JPG") == NULL   )
+            strcat( option_data->xjpeg_filename , ".jpg" ) ;
 	  nopt++; continue;
 	}
 
@@ -3721,6 +3724,41 @@ void calculate_results
   if ((option_data->xout) || nodata)
       matrix_sprint ("(X'X) inverse matrix:", xtxinv_full);
 
+  /*-- 19 Aug 2004: plot matrix pseudoinverse as well, and test for quality --*/
+  if( option_data->xjpeg_filename != NULL ){
+    char *jpt , *jsuf=".jpg" ;
+    char *fn = calloc( sizeof(char) , strlen(option_data->xjpeg_filename)+16 ) ;
+    matrix xpsinv ;
+
+    matrix_initialize( &xpsinv ) ;
+    matrix_transpose( xtxinvxt_full , &xpsinv ) ;
+
+    strcpy(fn,option_data->xjpeg_filename) ;
+                       jpt = strstr(fn,".jpg") ;
+    if( jpt == NULL ){ jpt = strstr(fn,".JPG") ; jsuf = ".JPG" ; }
+    if( jpt == NULL )  jpt = fn + strlen(fn) ;
+    strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
+
+    JPEG_matrix_gray( xpsinv , fn ) ;
+    free((void *)fn) ; matrix_destroy( &xpsinv ) ;
+  }
+
+  /*--- Compute abs sum of matrix [xtxinvxt][xdata]-I ---*/
+
+  { double esum , sum ;
+    int nn=xdata.rows , mm=xdata.cols , ii,jj,kk ;
+    esum = 0.0l ;
+    for( ii=0 ; ii < mm ; ii++ ){
+      for( jj=0 ; jj < mm ; jj++ ){
+        sum = (ii==jj) ? -1.0l : 0.0l ;
+        for( kk=0 ; kk < nn ; kk++ )
+          sum += xtxinvxt_full.elts[ii][kk]*xdata.elts[kk][jj] ;
+        esum += fabs(sum) ;
+      }
+    }
+    esum /= (mm*mm) ;
+    fprintf(stderr,"++ Matrix inverse average error = %g\n",esum) ;
+  }
 
   /*----- Initialization for the general linear test analysis -----*/
   if (num_glt > 0)
