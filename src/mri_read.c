@@ -1842,17 +1842,6 @@ static char * my_fgets( char *buf , int size , FILE *fts )
    return NULL ;                    /* signal of failure get data  */
 }
 
-/*---------------------------------------------------------------*/
-typedef struct {
-  int   nar ;
-  float *ar ;
-} floatvec ;
-
-#define KILL_floatvec(fv)                      \
-  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
-      free(fv);                                \
-  } while(0)
-
 /*--------------------------------------------------------------*/
 /*! Decode a line buffer into an array of floats.               */
 
