@@ -17,3 +17,7 @@
   * modified afni_plugin.c, NLfit_model.c and thd_get1D.c to
       validate directories
   * added rickr/AFNI.changes.rickr
+
+01 July 2002:
+  * added rai orientation to plug_crender.c
+  * added plug_crender.so target to Makefile.INCLUDE for use of librickr.a

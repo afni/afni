@@ -6,14 +6,6 @@
 
 /*----------------------------------------------------------------------
   $Id$
-
-  $Log$
-  Revision 1.2  2002/04/26 20:53:42  rwcox
-  Crm
-
-  Revision 1.1  2002/03/08 16:46:39  rickr
-  Cadd
-
   ----------------------------------------------------------------------
 */
 
@@ -22,6 +14,11 @@
 #include "mcw_graf.h"
 #include "parser.h"
 #include <ctype.h>
+
+#include "rickr/r_new_resam_dset.h"
+#include "rickr/r_idisp.h"
+
+#define PLUG_CRENDER_VERSION "Version 1.3 <June 2002>"
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
@@ -117,7 +114,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    char * env ;
    float  val ;
-   int    ii  ;
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
@@ -211,14 +207,15 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
 /*----------------------------------------------------------------*/
 
-#define FPRINTF fprintf
-
 /* rickr - new cox rendering data */
 
 typedef struct
 {
     void  * rh;			/* render handle */
     float   omap[GRAF_SIZE];
+
+    THD_3dim_dataset * dset_or; /* re-oriented dataset      */
+    THD_3dim_dataset * fset_or; /* re-oriented func dataset */
 } CR_data;
 
 CR_data gcr;
@@ -227,18 +224,16 @@ static int grcr_hist_low[256];
 static int grcr_hist_high[256];
 
 /* rickr - temp routines */
-int  rcr_check_for_color_24( unsigned char * im, int nvox );
 void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 );
-void rcr_disp_MRI_IMAGE( MRI_IMAGE * im );
-void rcr_verify_rgb( MRI_IMAGE * im );
 
 /* Other data */
 
 static MCW_DC * dc ;                   /* display context */
 static Three_D_View * im3d ;           /* AFNI controller */
-static THD_3dim_dataset * dset ;       /* The dataset!    */
+static THD_3dim_dataset * dset ;       /* rai orient dset */
 static MCW_idcode         dset_idc ;   /* 31 Mar 1999     */
 static int new_dset = 0 ;              /* Is it new?      */
+static int new_fset = 0 ;              /* Is func new?  28 June 2002 - rickr */
 static int dset_ival = 0 ;             /* Sub-brick index */
 static char dset_title[THD_MAX_NAME] ; /* Title string */
 
@@ -248,11 +243,20 @@ static MRI_IMAGE * grim_showthru=NULL ;      /* 07 Jan 2000 */
 
 #define FREEIM(x) if( (x) != NULL ){ mri_free(x); (x)=NULL; }
 
+/* this is when we will remove any re-oriented dataset	26 June 2002 - rickr */
 #define FREE_VOLUMES                                  \
   do{ FREEIM(grim) ;                                  \
       FREEIM(grim_showthru); } while(0) ;
 
 #define NEED_VOLUMES (grim == NULL)
+
+/* moved for more 'global' access       26 June 2002 - rickr */
+# define IS_AXIAL_RAI(ds) ( ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
+                            ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
+                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+# define IS_AXIAL_LPI(ds) ( ( (ds)->daxes->xxorient == ORI_L2R_TYPE ) && \
+                            ( (ds)->daxes->yyorient == ORI_P2A_TYPE ) && \
+                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
 
 static int   dynamic_flag   = 0      ;
 static int   accum_flag     = 0      ;
@@ -812,6 +816,8 @@ char * RCREND_main( PLUGIN_interface * plint )
    grim          = NULL ;   /* don't have volumes to render yet */
 
    gcr.rh        = NULL;    /* no render handle yet */
+   gcr.dset_or   = NULL;    /* no reoriented underlay dataset yet */
+   gcr.fset_or   = NULL;    /* no reoriented overlay dataset yet */
 
    ovim          = NULL ;   /* no overlay volume yet */
    func_dset     = NULL ;   /* no functional dataset yet */
@@ -882,11 +888,8 @@ static MCW_action_item RCREND_actor[NACT] = {
 void RCREND_make_widgets(void)
 {
    XmString xstr ;
-   char      str[64] ;
    Widget hrc , vrc ;
    int ii ;
-   char * env ;
-   float val ;
 
    /***=============================================================*/
 
@@ -1889,7 +1892,8 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 ---------------------------------------------------------------------*/
 void RCREND_reload_dataset(void)
 {
-   int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone ;
+   THD_3dim_dataset * local_dset;
+   int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone, btype ;
    float fac ;
    void * var ;
    byte * gar ;
@@ -1908,17 +1912,49 @@ void RCREND_reload_dataset(void)
    FREE_VOLUMES ;
 
    /* make sure the dataset is in memory */
-
    DSET_load(dset) ;
-   vim = DSET_BRICK(dset,dset_ival) ; nvox = vim->nvox ;
-   var = DSET_ARRAY(dset,dset_ival) ; brickfac = DSET_BRICK_FACTOR(dset,dset_ival) ;
+   local_dset = dset;			/* default - if we don't re-orient */
+
+   /* make an oriented underlay, if needed            26 June 2002 - rickr */
+   if ( !IS_AXIAL_RAI( dset ) )
+   {
+      if ( new_dset || gcr.dset_or == NULL )          /* we need a new one */
+      {
+         if ( gcr.dset_or != NULL )                    /* lose the old one */
+	 {
+	    THD_delete_3dim_dataset( gcr.dset_or, FALSE );
+            gcr.dset_or = NULL;
+	 }
+
+         printf("++ reorienting underlay as rai..." );
+         gcr.dset_or = r_new_resam_dset(dset, 0,0,0, "rai", RESAM_NN_TYPE);
+         printf(" done\n" );
+      }
+
+      if (gcr.dset_or == NULL)
+         XBell(dc->display,100);     /* an error - keep local_dset as dset */
+      else
+         local_dset  = gcr.dset_or;    /* woohoo!  we have our new dataset */
+   }
+
+   vim      = DSET_BRICK(local_dset,dset_ival) ;
+   nvox     = vim->nvox ;
+   var      = DSET_ARRAY(local_dset,dset_ival) ;
+   brickfac = DSET_BRICK_FACTOR(local_dset,dset_ival) ;
 
    /* find data range, clip it, convert to bytes */
 
    grim = mri_new_conforming( vim , MRI_byte ) ;  /* new image data */
    gar  = MRI_BYTE_PTR(grim) ;
 
-   switch( DSET_BRICK_TYPE(dset,dset_ival) ){
+   btype = DSET_BRICK_TYPE(local_dset,dset_ival);
+   switch( btype ){
+
+      default:{
+	 fprintf( stderr, "RCREND_reload_dataset: invalid brick type %d\n",
+		  btype );
+	 return;
+      }
 
       case MRI_short:{
          short * sar = (short *) var ;
@@ -1932,7 +1968,7 @@ void RCREND_reload_dataset(void)
 
 #ifdef HISTOGRAMATE
          if( vmax > vmin && vmin >= 0 && new_dset ){  /* 25 Jul 2001: find 'good' upper value */
-           int hist[NHIST] , nhist,nh,hh ;
+           int hist[NHIST] , nhist,nh;
            nhist = (vmax-vmin > NHIST) ? NHIST : (vmax-vmin) ;
            mri_histogram( vim , vmin,vmax , 1,nhist , hist ) ;
            for( nh=ii=0 ; ii < nvox ; ii++ ) if( sar[ii] ) nh++ ;  /* count nonzeros  */
@@ -1975,7 +2011,7 @@ void RCREND_reload_dataset(void)
 
 #ifdef HISTOGRAMATE
          if( vmax > vmin && new_dset ){        /* 25 Jul 2001: find 'good' upper value */
-           int hist[256] , nhist=256,nh,hh ;
+           int hist[256] , nhist=256,nh;
            mri_histobyte( vim , hist ) ;
            for( nh=0,ii=1 ; ii < nhist ; ii++ ) nh += hist[ii] ; /* count nonzeros    */
            nh *= 0.005 ;                                         /* find 99.5% point   */
@@ -2163,6 +2199,7 @@ void RCREND_reload_dataset(void)
          RCREND_cutout_blobs(grim_showthru) ;
    }
 
+   /* rcr - xhair update */
    if( xhair_flag )
    {
       if ( ! func_computed )
@@ -2207,13 +2244,23 @@ void RCREND_reload_renderer(void)
 
    if( func_computed && func_showthru && func_showthru_pass )
    {
-      CREN_dset_axes(gcr.rh, func_dset );
+      /* if we have a reoriented dataset, use it	27 June 2002 - rickr */
+      if ( gcr.fset_or != NULL )
+         CREN_dset_axes(gcr.rh, gcr.fset_or );
+      else
+         CREN_dset_axes(gcr.rh, func_dset );
+
       CREN_set_databytes(gcr.rh, grim_showthru->nx, grim_showthru->ny,
                          grim_showthru->nz, MRI_BYTE_PTR(grim_showthru));
    }
    else
    {
-      CREN_dset_axes(gcr.rh, dset );
+      /* if we have re-oriented the dataset, give that to the library */
+      if ( gcr.dset_or != NULL )
+	  CREN_dset_axes(gcr.rh, gcr.dset_or );
+      else
+	  CREN_dset_axes(gcr.rh, dset );
+
       CREN_set_databytes(gcr.rh, grim->nx, grim->ny, grim->nz,
                          MRI_BYTE_PTR(grim));
    }
@@ -2450,11 +2497,11 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     Anterior-to-Posterior, and z axis is Inferior-to-Posterior).\n"
        "     This orientation is how datasets are written out in the +acpc\n"
        "     and +tlrc coordinates -- with axial slices.\n"
-#ifdef ONLY_AXIAL
-       "   N.B.: Combining the 3ddup and 3daxialize programs makes it\n"
+/* #ifdef ONLY_AXIAL   25 June, 2002 */
+       "   N.B.: Combining the 3ddup and 3dresample programs makes it\n"
        "         possible to create an cubical-voxel axially-oriented\n"
        "         copy of any dataset.\n"
-#else
+#ifndef ONLY_AXIAL
        "   N.B.: The requirement that the dataset be stored in axial slices\n"
        "         has been removed; however, the cutouts will not work\n"
        "         properly.  For example, a 'Superior to' cutout will remove\n"
@@ -2462,6 +2509,9 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         up of sagittal slices, this will result in a 'Left of' or\n"
        "         a 'Right of' type of cutting.\n"
 #endif
+       "\n"
+       " * The program 3dIntracranial can be used to remove extra-cranial\n"
+       "     matter from an anatomical dataset.\n"
        "\n"
        " * Use the Draw button to render an image after making changes\n"
        "     to the drawing parameters or after closing the image window.\n"
@@ -2479,7 +2529,6 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "      Twostep  = if close to a neighbor, use its value.\n"
        "                 Otherwise, use the average of both neighbors.\n"
        "      Linear   = use a distance-weighted average of neighbors.\n"
-/* rcr - change AFNI_RENDER_PRECALC_MODE to AFNI_RENDER_INTERP_MODE ? */
        "\n"
        " * If you depress 'See Xhairs', a 3D set of crosshairs\n"
        "     corresponding to the AFNI focus position will be drawn.\n"
@@ -2931,7 +2980,8 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "RW Cox, Milwaukee - February 1999 [first version]\n"
        "                  - July 1999     [Scripts]\n"
        "                  - April 2000    [Scripts can change datasets]\n"
-       "                  - " __DATE__ "   [Current]\n"
+       "\n"
+       "RC Reynolds, NIH  - " PLUG_CRENDER_VERSION "\n"
 
     , TEXT_READONLY ) ;
    return ;
@@ -2949,12 +2999,6 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 /*-- 26 Apr 1999: relax requirement that dataset be axial --*/
 
 #ifdef ONLY_AXIAL
-# define IS_AXIAL_RAI(ds) ( ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
-                            ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
-                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
-# define IS_AXIAL_LPI(ds) ( ( (ds)->daxes->xxorient == ORI_L2R_TYPE ) && \
-                            ( (ds)->daxes->yyorient == ORI_P2A_TYPE ) && \
-                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
 # define IS_AXIAL(ds) ( IS_AXIAL_RAI(ds) || IS_AXIAL_LPI(ds) )
 #else
 # define IS_AXIAL(ds) (1)
@@ -2963,11 +3007,11 @@ void RCREND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 #define USEFUL_DSET(ds)                                    \
     (( ISVALID_DSET(ds)                      )          && \
      ( DSET_INMEMORY(ds)                     )          && \
-/* rcr ignore:    ( DSET_CUBICAL(ds) ) &&   */             \
+/* 11 Jan 2002:    ignore:    ( DSET_CUBICAL(ds) ) &&   */ \
      ( DSET_BRICK_TYPE(ds,0) == MRI_short ||               \
        DSET_BRICK_TYPE(ds,0) == MRI_byte  ||               \
       (DSET_BRICK_TYPE(ds,0) == MRI_float && float_ok))    \
-/* rcr ignore:               && IS_AXIAL(ds) */            )
+/* 11 Jan 2002:    ignore:     && IS_AXIAL(ds) */            )
 
 static int                  ndsl = 0 ;
 static PLUGIN_dataset_link * dsl = NULL ;
@@ -3158,8 +3202,6 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    if( qset == NULL ){ XBell(dc->display,100) ; return ; }
 
-/* rcr  if( ! DSET_CUBICAL(qset) ){ XBell(dc->display,100) ; return ; } */
-
    /* if there was an existing renderer, kill it off */
 
    if( gcr.rh != NULL ){
@@ -3171,6 +3213,7 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /* accept this dataset */
 
    dset = qset ;
+
    dset_idc = qset->idcode ;  /* 31 Mar 1999 */
 
    npixels = 256 ;                             /* size of image to render */
@@ -3209,7 +3252,7 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
 
-   /* if the existing overlay dataset doesn't match this one, kill the overlay */
+   /* if the existing overlay dataset doesn't match dset, kill the overlay */
 
    if( func_dset != NULL && ( DSET_NX(dset) != DSET_NX(func_dset) ||
                               DSET_NY(dset) != DSET_NY(func_dset) ||
@@ -3230,7 +3273,6 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    }
 
    /* read the new data */
-
    new_dset = 1 ;           /* flag it as new */
    RCREND_reload_dataset() ;  /* load the data */
 
@@ -3327,10 +3369,8 @@ void RCREND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    /* read the new data */
 
-#if 0
-   new_dset = 1 ;           /* flag it as new */
-   RCREND_reload_dataset() ;  /* load the data */
-#endif
+   new_fset = 1 ;             /* flag it as new */
+   RCREND_reload_dataset() ;  /* load the data  */
 
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Jul 2001 */
 
@@ -3559,6 +3599,9 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
       case RECEIVE_DRAWNOTICE:{   /* 30 Mar 1999 */
          int doit=0 ;
 
+         new_dset = 1;  /* we may need a reoriented underlay 28 June 2002 */
+         new_fset = 1;  /* we may need a reoriented overlay  28 June 2002 */
+
          if( EQUIV_DSETS(im3d->anat_now,dset) ||    /* can't tell if user */
              EQUIV_DSETS(im3d->fim_now,dset)    ){  /* is drawing on anat */
 
@@ -3592,6 +3635,9 @@ void RCREND_xhair_recv( int why , int np , int * ijk , void * junk )
       /*-- dataset pointers have changed --*/
 
       case RECEIVE_DSETCHANGE:{   /* 31 Mar 1999 */
+
+         new_dset = 1;  /* we may need a reoriented underlay 28 June 2002 */
+         new_fset = 1;  /* we may need a reoriented overlay  28 June 2002 */
 
          if( dset != NULL )
             dset = PLUTO_find_dset( &dset_idc ) ;
@@ -3650,8 +3696,8 @@ void RCREND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 void RCREND_xhair_underlay(void)
 {
    int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
-   byte * gar , * oar ;
-   byte   gxh ,   oxh=OXH ;
+   byte * gar;
+   byte   gxh;
 
    if( grim == NULL ) return ;  /* error */
 
@@ -3756,7 +3802,6 @@ void RCREND_cutout_type_CB( MCW_arrowval * av , XtPointer cd )
 {
    int iv , val ;
    XmString xstr ;
-   Boolean sens ;
 
    for( iv=0 ; iv < num_cutouts ; iv++ )
       if( av == cutouts[iv]->type_av ) break ;
@@ -3783,10 +3828,13 @@ void RCREND_cutout_type_CB( MCW_arrowval * av , XtPointer cd )
 
 #undef DESENS
 #ifdef DESENS
+{
+   Boolean sens ;
       sens = (val != CUT_EXPRESSION) ;                    /* deactivate */
       XtSetSensitive(cutouts[iv]->param_av->wup  ,sens) ; /* if is an   */
       XtSetSensitive(cutouts[iv]->param_av->wdown,sens) ; /* Expr > 0   */
       XtSetSensitive(cutouts[iv]->set_pb         ,sens) ; /* cutout     */
+}
 #else
       if( val == CUT_EXPRESSION ){                        /* if Expr > 0 */
          XtUnmanageChild( cutouts[iv]->param_av->wup   ); /* expand the  */
@@ -3921,7 +3969,6 @@ void RCREND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data 
 {
    int iv , typ ;
    float val ;
-   char str[16] ;
 
    for( iv=0 ; iv < num_cutouts ; iv++ )
       if( w == cutouts[iv]->set_pb ) break ;
@@ -3988,12 +4035,19 @@ void RCREND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data 
 ----------------------------------------------------------------------*/
 void RCREND_cutout_blobs( MRI_IMAGE * oppim )
 {
-   int ii,jj,kk , nx,ny,nz,nxy,nxyz , cc , typ , ncc,logic,nmust,nand,mus ;
+   THD_3dim_dataset * local_dset;
+   int ii,jj,kk , nx,ny,nz,nxy,nxyz , cc , typ , ncc,logic,nmust,mus ;
    int ibot,itop , jbot,jtop , kbot,ktop ;
    float par ;
    float dx,dy,dz , xorg,yorg,zorg , xx,yy,zz ;
    byte * oar , * gar ;
    byte ncdone = 0 ;
+
+   /* if we have a reoriented dataset, use it    26 June 2002 - rickr */
+   if ( gcr.dset_or != NULL )
+      local_dset = gcr.dset_or;
+   else
+      local_dset = dset;
 
    ncc   = current_cutout_state.num ;
    logic = current_cutout_state.logic ;
@@ -4021,8 +4075,13 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
       memset( gar , 0 , sizeof(byte) * nxyz ) ;
    }
 
-   dx   = dset->daxes->xxdel; dy   = dset->daxes->yydel; dz   = dset->daxes->zzdel;
-   xorg = dset->daxes->xxorg; yorg = dset->daxes->yyorg; zorg = dset->daxes->zzorg;
+   /* now use the local_dset              26 June 2002 - rickr */
+   dx   = local_dset->daxes->xxdel;
+   dy   = local_dset->daxes->yydel;
+   dz   = local_dset->daxes->zzdel;
+   xorg = local_dset->daxes->xxorg;
+   yorg = local_dset->daxes->yyorg;
+   zorg = local_dset->daxes->zzorg;
 
    for( cc=0 ; cc < ncc ; cc++ ){              /* loop over cutouts */
       typ = current_cutout_state.type[cc] ;
@@ -4677,7 +4736,7 @@ void RCREND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
    XmString xstr ;
    char str[2*THD_MAX_NAME] ;
 
-   /*--- selection of a underlay sub-brick ---*/
+   /*--- selection of an underlay sub-brick ---*/
 
    if( av == choose_av && dset != NULL && av->ival < DSET_NVALS(dset) ){
 
@@ -4694,7 +4753,6 @@ void RCREND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
       XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
       XmStringFree(xstr) ;
 
-      dset_ival = av->ival ;   /* read this sub-brick    */
       new_dset = 1 ;           /* flag it as new         */
       FREE_VOLUMES ;           /* free the internal data */
       RCREND_reload_dataset() ;  /* load the data          */
@@ -5693,7 +5751,6 @@ XmString RCREND_autorange_label(void)
 void RCREND_set_thr_pval(void)
 {
    float thresh , pval ;
-   int   dec ;
    char  buf[16] ;
 
    if( !ISVALID_DSET(func_dset) ) return ;
@@ -6197,6 +6254,7 @@ void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * c
 
 void RCREND_reload_func_dset(void)
 {
+   THD_3dim_dataset  * local_dset;
    MRI_IMAGE * cim , * tim ;
    void      * car , * tar ;
    float      cfac ,  tfac ;
@@ -6208,12 +6266,11 @@ void RCREND_reload_func_dset(void)
 
    INVALIDATE_OVERLAY ;              /* toss old overlay, if any */
 
-   if( !func_see_overlay || func_dset == NULL ){ /* 24 Jul 2001: if not seeing */
-                                                 /* function, make empty ovim  */
-
-      ovim = mri_new_conforming( DSET_BRICK(dset,dset_ival) , MRI_byte ) ;
+   /* 24 Jul 2001: if not seeing function, make empty ovim  */
+   if( !func_see_overlay || func_dset == NULL ){
+      ovim = mri_new_conforming( DSET_BRICK(func_dset,dset_ival) , MRI_byte ) ;
       ovar = MRI_BYTE_PTR(ovim) ;
-      memset( ovar , 0 , DSET_NVOX(dset) ) ;
+      memset( ovar , 0 , DSET_NVOX(func_dset) ) ;
       goto EndOfFuncOverlay ;                 /* AHA! */
    }
 
@@ -6221,15 +6278,39 @@ void RCREND_reload_func_dset(void)
                     (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
 
    DSET_load(func_dset) ;            /* make sure is in memory */
+   local_dset = func_dset;
 
-   cim  = DSET_BRICK(func_dset,func_color_ival) ; nvox = cim->nvox ; /* color brick */
-   car  = DSET_ARRAY(func_dset,func_color_ival) ;
-   cfac = DSET_BRICK_FACTOR(func_dset,func_color_ival) ;
+   /* make an oriented overlay, if needed             26 June 2002 - rickr */
+   if ( !IS_AXIAL_RAI( func_dset ) )
+   {
+      if ( new_fset || gcr.fset_or == NULL )          /* we need a new one */
+      {
+         if ( gcr.fset_or != NULL )                    /* lose the old one */
+         {
+            THD_delete_3dim_dataset( gcr.fset_or, FALSE );
+            gcr.fset_or = NULL;
+         }
+
+         printf("++ reorienting overlay as rai..." );
+         gcr.fset_or = r_new_resam_dset(func_dset, 0,0,0, "rai", RESAM_NN_TYPE);
+         printf(" done\n" );
+      }
+
+      if (gcr.fset_or == NULL)
+         XBell(dc->display,100);  /* an error - keep local_dset as func_dset */
+      else
+         local_dset = gcr.fset_or;       /* woohoo!  we have our new dataset */
+   }
+
+
+   cim  = DSET_BRICK(local_dset,func_color_ival) ; nvox = cim->nvox ; /* color brick */
+   car  = DSET_ARRAY(local_dset,func_color_ival) ;
+   cfac = DSET_BRICK_FACTOR(local_dset,func_color_ival) ;
    if( cfac == 0.0 ) cfac = 1.0 ;
 
-   tim  = DSET_BRICK(func_dset,func_thresh_ival) ;                   /* thresh brick */
-   tar  = DSET_ARRAY(func_dset,func_thresh_ival) ;
-   tfac = DSET_BRICK_FACTOR(func_dset,func_thresh_ival) ;
+   tim  = DSET_BRICK(local_dset,func_thresh_ival) ;                   /* thresh brick */
+   tar  = DSET_ARRAY(local_dset,func_thresh_ival) ;
+   tfac = DSET_BRICK_FACTOR(local_dset,func_thresh_ival) ;
    if( tfac == 0.0 ) tfac = 1.0 ;
 
    ovim = mri_new_conforming( cim , MRI_byte ) ;                     /* new overlay */
@@ -6248,6 +6329,12 @@ void RCREND_reload_func_dset(void)
    if( thresh < 1.0 || !func_use_thresh ){  /*--- no thresholding needed ---*/
 
       switch( cim->kind ){
+
+	 default: {
+	    fprintf( stderr, "RCREND_reload_func_dset: image kind %d is not"
+		     "supported here\n", cim->kind );
+	    return;
+	 }
 
          case MRI_short:{
             short * sar = (short *) car ;
@@ -6307,6 +6394,12 @@ void RCREND_reload_func_dset(void)
    } else {         /*--- start of thresholding ---*/
 
       switch( cim->kind ){
+
+	 default: {
+	    fprintf( stderr, "RCREND_reload_func_dset (2): image kind %d is not"
+		     "supported here\n", cim->kind );
+	    return;
+	 }
 
          case MRI_short:{
             short * sar = (short *) car ;
@@ -6374,9 +6467,9 @@ void RCREND_reload_func_dset(void)
 
    if( func_kill_clusters ){
       int nx=ovim->nx , ny=ovim->ny , nz=ovim->nz , ptmin,iclu ;
-      float dx = fabs(func_dset->daxes->xxdel) ,
-            dy = fabs(func_dset->daxes->yydel) ,
-            dz = fabs(func_dset->daxes->zzdel)  ;
+      float dx = fabs(local_dset->daxes->xxdel) ,
+            dy = fabs(local_dset->daxes->yydel) ,
+            dz = fabs(local_dset->daxes->zzdel)  ;
       float rmm  = wfunc_clusters_rmm_av->fval ,
             vmul = wfunc_clusters_vmul_av->fval ;
       MCW_cluster_array * clar ;
@@ -6401,6 +6494,8 @@ void RCREND_reload_func_dset(void)
 EndOfFuncOverlay:
 
    if( func_see_ttatlas ) RCREND_overlay_ttatlas() ;  /* 12 July 2001 */
+
+   new_fset = 0;				      /* 28 June 2002 */
 
    return ;
 }
@@ -6902,10 +6997,9 @@ void RCREND_save_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 void RCREND_read_this_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    int ll ;
-   char * fname , buf[256] , * sbuf ;
+   char * fname , buf[256] ;
    RENDER_state rs ;
    RENDER_state_array * rsa ;
-   FILE * fp ;
 
    if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
 
@@ -7045,10 +7139,9 @@ void RCREND_save_many_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    int ll , it , ntime ;
-   char * fname , buf[256] , * sbuf ;
+   char * fname , buf[256] ;
    RENDER_state rs ;
    RENDER_state_array * rsa ;
-   FILE * fp ;
    float scl ;
    Widget autometer ;
 
@@ -7163,7 +7256,7 @@ void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
 RENDER_state_array * RCREND_read_states( char * fname , RENDER_state * rsbase )
 {
-   int    nbuf , nused , ii ;
+   int    nbuf , nused ;
    char * fbuf , * fptr ;
    char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
    int ival ; float fval ;
@@ -8064,7 +8157,7 @@ void RCREND_environ_CB( char * ename )
    /*---*/
 
    if( strcmp(ename,"AFNI_RENDER_ANGLE_DELTA") == 0 ){
-      float val = strtod(ept,NULL) ;
+      val = strtod(ept,NULL) ;
       if( val > 0.0 && val < 100.0 ){
          angle_fstep = val ;
          if( shell != NULL )
@@ -8075,7 +8168,7 @@ void RCREND_environ_CB( char * ename )
    /*---*/
 
    else if( strcmp(ename,"AFNI_RENDER_CUTOUT_DELTA") == 0 ){
-      float val = strtod(ept,NULL) ;
+      val = strtod(ept,NULL) ;
       if( val > 0.0 && val < 100.0 ){
          int ii ;
          cutout_fstep = val ;
@@ -8095,7 +8188,7 @@ void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
 {
     unsigned char * tmpi = im;
     unsigned char   max = 0;
-    int             c1, c2, s1, s2, cur;
+    int             c1, s1, s2, cur;
 
     if ( ( b1 > 256 ) || ( b2 > 256 ) || ( im == NULL ) )
     {
@@ -8143,62 +8236,6 @@ void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 )
     }
 }
 
-void rcr_disp_MRI_IMAGE( MRI_IMAGE * im )
-{
-    fprintf( stderr, "nx   = %d\n", im->nx );
-    fprintf( stderr, "ny   = %d\n", im->ny );
-    fprintf( stderr, "nz   = %d\n", im->nz );
-    fprintf( stderr, "nvox = %d\n\n", im->nvox );
-    fprintf( stderr, "pixel_size = %d\n", im->pixel_size );
-    fprintf( stderr, "kind       = %d\n", im->kind );
-}
-
-int rcr_check_for_color_24( unsigned char * im, int nvox )
-{
-    unsigned char * cp;
-    int    c, diff = 0;
-
-    for ( c = 0, cp = im; c < nvox; c++, cp += 3 )
-    {
- 	if ( ( *cp != *(cp+1) ) || ( *cp != *(cp+2) ) )
-	{
-	    diff = 1;
-            fprintf( stderr, "** mismatch colors at location %d\n"
-                             "   values are (%d,%d,%d)\n",
-		     c, *cp, *(cp+1), *(cp+2) );
-	    break;
-	}
-    }
-
-    if (!diff)
-	fprintf( stderr, "-- rcr_check_for_color_24: all gray...\n" );
-}
-
-void rcr_verify_rgb( MRI_IMAGE * im )
-{
-    unsigned char * ucp;
-    int             c, max = 0;
-
-    if ( im->kind != MRI_rgb )
-    {
-	fprintf(stderr, "** improper image type passed to rcr_verify_rgb()\n");
-        return;
-    }
-
-    ucp = (unsigned char *)MRI_RGB_PTR(im);
-    for ( c = 0; c < im->nvox; c++ )
-    {
-	if ( ( *ucp == *(ucp+1) ) && ( *ucp == *(ucp+2) ) )
-        {
-	    if ( *ucp > max )
-		max = *ucp;
-        }
-
-	ucp += 3;
-    }
-
-    printf( "-- rcr_verify_rgb: max gray is %d\n", max );
-}
 
 /*==========================================================================*/
 #ifdef ALLOW_INCROT   /* 26 Apr 2002 - RWCox */
@@ -8257,7 +8294,7 @@ static void RCREND_rotmatrix_to_angles( THD_dmat33 q,
                                         double *yaw, double *pitch, double *roll )
 {
    double a,b,c ;
-   double sb,cb , sa,ca , sc,cc ;
+   double sb,cb , sc,cc ;
 
    sb = -q.mat[2][1] ; b = PI-asin(sb) ; cb = cos(b) ;
 
