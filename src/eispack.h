@@ -68,8 +68,7 @@ extern int rsm_(integer *nm, integer *n, doublereal *a, doublereal *w, integer *
 extern int rsp_(integer *nm, integer *n, integer *nv, doublereal *a, doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, doublereal *fv2, integer *ierr);
 extern int rst_(integer *nm, integer *n, doublereal *w, doublereal *e, integer *matz, doublereal *z__, integer *ierr);
 extern int rt_(integer *nm, integer *n, doublereal *a, doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, integer *ierr);
-extern int svd_(integer *nm, integer *m, integer *n, doublereal *a, doublereal *w, logical *matu, doublereal *u, logical *matv, doublereal *v, integer *ierr, doublereal *rv1);
-extern int tinvit_(integer *nm, integer *n, doublereal *d__, doublereal *e, doublereal *e2, integer *m, doublereal *w, integer *ind, doublereal *z__, integer *ierr, doublereal *rv1, doublereal *rv2, doublereal *rv3, doublereal *rv4, doublereal *rv6);
+extern int svd_(integer *m, integer *n, integer *lda, doublereal *a, doublereal *w, logical *matu, integer *ldu, doublereal *u, logical * matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1);
 extern int tql1_(integer *n, doublereal *d__, doublereal *e, integer *ierr);
 extern int tql2_(integer *nm, integer *n, doublereal *d__, doublereal *e, doublereal *z__, integer *ierr);
 extern int tqlrat_(integer *n, doublereal *d__, doublereal *e2, integer *ierr);
