@@ -4645,3 +4645,4 @@
  * Modified afni_graph.c, imseq.c, afni.c, plug_nth_dataset.c, etc., to have
      the Dataset#N, Dataset#2, and Expr0D plugin windows open when these
      transformations are selected from menus.
+ * Modified the parser to take longer expressions.
