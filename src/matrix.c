@@ -55,6 +55,10 @@
 
 */
 
+
+static double flops=0.0l ;
+double get_matrix_flops(void){ return flops; }
+
 /*---------------------------------------------------------------------------*/
 /*!
   Routine to print and error message and stop.
@@ -436,6 +440,8 @@ void matrix_add (matrix a, matrix b, matrix * c)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = a.elts[i][j] + b.elts[i][j];
+
+  flops += rows*cols ;
 }
 
 
@@ -460,6 +466,8 @@ void matrix_subtract (matrix a, matrix b, matrix * c)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = a.elts[i][j] - b.elts[i][j];
+
+  flops += rows*cols ;
 }
 
 
@@ -490,6 +498,8 @@ void matrix_multiply (matrix a, matrix b, matrix * c)
 	  sum += a.elts[i][k] * b.elts[k][j];
         c->elts[i][j] = sum;
       }
+
+  flops += 2.0l*rows*cols*cols ;
 }
 
 
@@ -511,6 +521,8 @@ void matrix_scale (double k, matrix a, matrix * c)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = k * a.elts[i][j];
+
+  flops += rows*cols ;
 }
 
 
@@ -603,6 +615,7 @@ matrix_sprint("matrix_inverse:",a) ;
 	
     }
   matrix_destroy (&tmp);
+  flops += 3.0l*n*n*n ;
   return (1);
 }
 
@@ -863,6 +876,8 @@ void vector_add (vector a, vector b, vector * c)
 
   for (i = 0;  i < dim;  i++)
     c->elts[i] = a.elts[i] + b.elts[i];
+
+  flops += dim ;
 }
 
 
@@ -890,6 +905,8 @@ void vector_subtract (vector a, vector b, vector * c)
 #else
     cc[i] = aa[i] - bb[i] ;
 #endif
+
+  flops += dim ;
 }
 
 #undef VM_DEBUG        /* RWCox */
@@ -976,6 +993,8 @@ void vector_multiply (matrix a, vector b, vector * c)
         c->elts[i] = sum ;
     }
 #endif
+
+    flops += 2.0l*rows*cols ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1042,6 +1061,9 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
     d->elts[i] = sum ; qsum += sum*sum ;
   }
 #endif
+
+  flops += 2.0l*rows*(cols+1) ;
+
   return qsum ;  /* 26 Feb 2003 */
 }
 
@@ -1070,6 +1092,7 @@ double vector_dot (vector a, vector b)
     sum += aa[i] * bb[i] ;
 #endif
 
+  flops += 2.0l*dim ;
   return (sum);
 }
 
@@ -1094,6 +1117,7 @@ double vector_dotself( vector a )
     sum += aa[i] * aa[i] ;
 #endif
 
+  flops += 2.0l*dim ;
   return (sum);
 }
 
@@ -1112,5 +1136,6 @@ double matrix_norm( matrix a )
      for (j = 0;  j < cols;  j++) sum += fabs(a.elts[i][j]) ;
      if( sum > smax ) smax = sum ;
    }
+   flops += 2.0l*rows*cols ;
    return smax ;
 }
