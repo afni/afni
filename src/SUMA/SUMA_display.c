@@ -431,7 +431,13 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   /* Avoid indirect rendering latency from queuing. */
   if (!glXIsDirect(csv->X->DPY, csv->X->GLXCONTEXT))
     glFinish();
-   
+  
+  /* if recording, take a snap */
+  if (csv->Record) {
+   glFinish();
+   glXWaitX();
+   ISQ_snapshot ( csv->X->GLXAREA );
+  }
    SUMA_RETURNe;
 }
 

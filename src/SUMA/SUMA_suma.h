@@ -39,6 +39,7 @@
    #endif
 #endif
 
+#include "imseq.h"
 #include "mrilib.h"
 #include "niml.h"
 #include "xutil.h"

@@ -1015,6 +1015,7 @@ typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
    int *RegisteredDO;    /*!< RegisteredDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
    
+   SUMA_Boolean Record; /*!< Set record mode */
    SUMA_Boolean ShowLeft; /*!< Show left side surfaces */
    SUMA_Boolean ShowRight; /*!< Show right side surfaces */
    

@@ -657,7 +657,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
             SUMA_postRedisplay(w, clientData, callData);
             break;
-
+         
+         case XK_R:
+            sv->Record = !sv->Record;
+            if (sv->Record) { SUMA_SLP_Note ("Recording ON"); }
+            else { SUMA_SLP_Note ("Recording OFF"); }
+            break;
+            
          case XK_S:
             if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
