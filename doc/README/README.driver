@@ -1,6 +1,6 @@
-=================================
-** Driving AFNI from a Plugout **
-=================================
+=====================================================
+** Driving AFNI from a Plugout or a Startup Script **
+=====================================================
 A plugout can control some aspects of AFNI.  This is done by passing a
 command line of the form
 
@@ -11,14 +11,73 @@ available are described below.  The sample plugout plugout_drive.c can
 be used to test how things work (highly recommended before you start
 writing your own code).
 
+A startup script (file ${HOME}/.afni.startup_script) can also give a
+sequence of commands to be run immediately after AFNI starts up.
+The file consists of a sequence of command lines (without the "DRIVE_AFNI"
+prefix).
+
+ADD_OVERLAY_COLOR colordef colorlab
+  Adds the color defined by the string "colordef" to the list of overlay
+  colors.  It will appear in the menus with the label "colordef".  Example:
+    ADD_OVERLAY_COLOR #ff5599 pinkish
+
+SET_THRESHOLD [c].val [dec]
+  Sets the threshold slider for controller index 'c' (default='A') to level
+  ".val" (a number between .0000 and .9999, inclusive).  If the optional
+  'dec' parameter is set, this is a number between 0 and 4 (inclusive) setting
+  the power-of-ten factor for the slider.  Example:
+    SET_THRESHOLD A.3000 2
+  will set the '**' (decimal) level of the slider to 2 and the slider value to
+  30 (=0.3000*100).
+
+SET_PBAR_NUMBER [c.]num
+  Sets the number of panes in the color pbar to 'num' (currently must be between
+  2 and 20, inclusive).  Example:
+    SET_PBAR_NUMBER A.10
+
+SET_PBAR_SIGN [c.]+ or [c.]-
+  Sets the color pbar to be positive-only (+) or signed (-).  Example:
+    SET_PBAR_SIGN A.+
+
+SET_PBAR_ALL [c.]{+|-}num val=color val=color ...
+  Sets all color pbar parameters at once;
+  The initial string specifies the controller ('A', 'B', etc.), the sign
+  condition of the pbar ('+' or '-') and the number of panes to setup.
+  'num' equations of the form 'val=color' follow the initial string;
+  these set up the top levels and colors of each pane.  Example:
+    SET_PBAR_ALL A.+5 2.0=yellow 1.5=green 1.0=blue 0.5=red 0.2=none
+  The top pane runs from 2.0-1.5 and is yellow; the second pane runs from
+  1.5-1.0 and is blue, etc.  The 'color' values must be legal color labels.
+
+PBAR_ROTATE [c.]{+|-}
+  Rotates the color pbar in the positive ('+') or negative ('-') direction:
+    PBAR_ROTATE A.+
+
+SET_FUNC_AUTORANGE [c.]{+|-}
+  Sets the function "autoRange" toggle to be on ('+') or off ('-'):
+    SET_FUNC_AUTORANGE A.+
+
+SET_FUNC_RANGE [c.]value
+  Sets the functional range to 'value'.  If value is 0, this turns autoRange
+  on; if value is positive, this turns autoRange off:
+    SET_FUNC_RANGE A.0.3333
+
+SET_FUNC_VISIBLE [c.]{+|-}
+  Turns the "See Function" toggle on or off:
+    SET_FUNC_VISIBLE A.+
+
+SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
+  Sets the functional resampling mode:
+    SET_FUNC_RESAM A.Li.Li
+  sets the func and threshold resampling modes both to Linear interpolation.
+
 SYSTEM command string
   Executes "command string" using the system() library function; for
   example, "SYSTEM mkdir aaa".
 
-
 CHDIR newdirectory
-  Changes the current directory; for example, "CHDIR aaa".
-
+  Changes the current directory; for example, "CHDIR aaa".  This is the
+  directory into which saved files (e.g., images) will be written.
 
 RESCAN_THIS [c]
   rescans the current session directory for controller 'c', where 'c'
@@ -27,13 +86,11 @@ RESCAN_THIS [c]
   is not open, the acknowledgement from AFNI will be "BAD", otherwise
   it will be "good".
 
-
 SET_SESSION [c.]directoryname
   Switches controller 'c' to be looking at the named directory.  The
   match on directory names is done by a sub-string match - that is,
   directoryname = "fred" will match an AFNI session directory named
   "wilhelm/frederick/von/guttenstein".
-
 
 SET_ANATOMY [c.]prefix
   Switches controller 'c' to be looking at the anatomical dataset with
@@ -43,7 +100,6 @@ SET_ANATOMY [c.]prefix
 
 SET_FUNCTION [c.]prefix
   Same, but for the functional dataset in controller 'c'.
-
 
 OPEN_WINDOW [c.]windowname [options]
   Opens a window from controller 'c'.  The window name can be one of
@@ -59,6 +115,7 @@ OPEN_WINDOW [c.]windowname [options]
   For image windows, other options available are:
     ifrac=number -> set image fraction in window to number (<= 1.0)
     mont=PxQ:R   -> montage P across, Q down, every R'th slice
+    opacity=X    -> where X is from 0..9
   For graph windows, other options available are:
     matrix=number -> use number sub-graphs (<= 21)
     pinnum=number -> pin the graph length to number time points
@@ -68,12 +125,12 @@ OPEN_WINDOW [c.]windowname [options]
   by underscores or hyphens (e.g., Render_Dataset).  You can also use
   the geom=+R+S option with this type of window opening, to position
   the plugin interface window.
-
+  If the specified image or graph window is already open, you can still
+  use this command to alter some of its properties.
 
 CLOSE_WINDOW [c].windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
-
 
 QUIT
   AFNI will exit immediately.
