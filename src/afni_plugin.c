@@ -4036,8 +4036,8 @@ ENTRY("PLUGIN_seq_send_CB") ;
 #define NBIRN 10
          static int nold=0 ;
          static char * birn[NBIRN] = { " \n** Don't DO That! **\n "                        ,
-                                       " \n** Do NOT read this message! **\n "             ,
                                        " \n** Stop it, Rasmus! **\n "                      ,
+                                       " \n** Do NOT read this message! **\n "             ,
                                        " \n** Having fun yet? **\n "                       ,
                                        " \n** What do you want NOW? **\n "                 ,
                                        " \n** Too much time on your hands? **\n "          ,
@@ -4106,17 +4106,19 @@ ENTRY("PLUGIN_seq_send_CB") ;
 
          if( xev == NULL || xev->button == Button1 ){
            if( !NO_frivolities && nold < NBIRN ){
+             if( strstr(birn[nold],"Rasmus") != NULL )
+               AFNI_speak("Stop it, Rasmus", 0 ) ;
              MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
            } else {
              PLUTO_beep() ;
-             AFNI_speak("Stop it",0) ;
+             if( nold == NBIRN ){ AFNI_speak("Stop it",0); nold++; }
            }
          } else if( xev->button == Button3 ){
            if( !NO_frivolities && nkl < NKLING ){
              MCW_popup_message( seq->wimage , kling[nkl++] , MCW_USER_KILL ) ;
            } else {
              PLUTO_beep() ;
-             AFNI_speak("Deesist at once",0) ;
+             if( nkl == NKLING ){ AFNI_speak("Deesist at once",0); nkl++; }
            }
          }
       }
