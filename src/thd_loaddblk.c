@@ -151,7 +151,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    /* the following code is due to Mike Beauchamp's idiocy */
 
-   if( !THD_datum_constant(blk) ){
+   if( !THD_datum_constant(blk) && blk->malloc_type != DATABLOCK_MEM_MALLOC ){
      fprintf(stderr,"++ WARNING: dataset %s: non-uniform sub-brick types\n",
              blk->diskptr->filecode) ;
      blk->malloc_type = DATABLOCK_MEM_MALLOC ;

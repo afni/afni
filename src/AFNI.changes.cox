@@ -4576,3 +4576,5 @@
      stored as floats.
  * Modified 3dcalc.c to floatize datasets that don't have constant sub-brick
      datum.
+ * Per the request of Ziad Saad, added function NI_add_column_stride() to
+     niml/niml_element.c.
