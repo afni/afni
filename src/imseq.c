@@ -216,6 +216,8 @@ static char *  ppmto_agif_filter = NULL ;
 static char *  ppmto_mpeg_filter = NULL ;   /* 02 Aug 2001 */
 static char *  ppmto_ppm_filter  = NULL ;
 
+static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
+
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
 
@@ -247,7 +249,8 @@ static void ISQ_setup_ppmto_filters(void)
 
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
-   /*-- the cheap way to write PPM --*/
+   /*-- the cheap way to write PPM  --*/
+   /*-- [this must always be first] --*/
 
    pg = THD_find_executable( "cat" ) ;   /* should always find this! */
    if( pg != NULL ){
@@ -274,6 +277,11 @@ static void ISQ_setup_ppmto_filters(void)
       str = malloc(strlen(pg)+32) ;
       sprintf(str,"%s -quality 95 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
+
+      /* lower quality JPEGs */
+
+      ppmto_jpg75_filter = malloc(strlen(pg)+32) ;
+      sprintf(ppmto_jpg75_filter,"%s -quality 80 > %%s",pg) ;
    }
 
    /*-- write GIF --*/
@@ -2546,6 +2554,8 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
 ENTRY("ISQ_saver_CB") ;
 
+   /*---------------*/
+
    if( seq->saver_prefix == NULL ){  /* just got a string */
       int ll , ii ;
 
@@ -2700,6 +2710,7 @@ ENTRY("ISQ_saver_CB") ;
          EXRETURN ;
       }
 
+      /*-- Not doing Save:One, so    --*/
       /*-- move on to the From value --*/
 
       POPDOWN_string_chooser ;
@@ -2712,7 +2723,7 @@ ENTRY("ISQ_saver_CB") ;
       EXRETURN ;
    }
 
-   /*--- got from ---*/
+   /*--- got 'From' value ---*/
 
    if( seq->saver_from == -1 ){  /* just got an integer */
 
@@ -2735,7 +2746,7 @@ ENTRY("ISQ_saver_CB") ;
       EXRETURN ;
    }
 
-   /*--- go to: last call ---*/
+   /*--- go 'To' value ==> last call ---*/
 
    if( cbs->reason != mcwCR_integer ){  /* error */
       XBell( XtDisplay(w) , 100 ) ;
@@ -2746,6 +2757,8 @@ ENTRY("ISQ_saver_CB") ;
    POPDOWN_integer_chooser ;
 
    seq->saver_to = cbs->ival ;
+
+   /* check if all inputs are good */
 
    if( seq->saver_prefix == NULL ||
        seq->saver_from < 0       ||
@@ -2758,7 +2771,7 @@ ENTRY("ISQ_saver_CB") ;
       EXRETURN ;
    }
 
-   if( seq->saver_from > seq->saver_to ){
+   if( seq->saver_from > seq->saver_to ){  /* inverted order? */
       ii              = seq->saver_from ;
       seq->saver_from = seq->saver_to ;
       seq->saver_to   = ii ;
@@ -2778,7 +2791,12 @@ ENTRY("ISQ_saver_CB") ;
 
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
+      /* get the underlay image */
+
       tim = ISQ_getimage( kf , seq ) ;
+
+      /* if we failed to get the image? */
+
       if( tim == NULL ){
          if( kf == seq->saver_to && agif_list != NULL ){ /* 19 Sep 2001 */
             fprintf(stderr,
@@ -2787,7 +2805,10 @@ ENTRY("ISQ_saver_CB") ;
          }
          continue ;  /* skip to next one */
       }
-      flim = tim ;   /* image to save is flim */
+
+      /* image to save will be in flim */
+
+      flim = tim ;
 
 #ifndef DONT_USE_METER
       if( meter != NULL ){
@@ -2799,14 +2820,14 @@ ENTRY("ISQ_saver_CB") ;
       }
 #endif
 
-      /*-- 27 Jun 2001: write through a filter? --*/
+      /*-- 27 Jun 2001: write image through a filter? --*/
 
       if( seq->opt.save_filter >= 0 || DO_ANIM(seq) ){
          char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
          MRI_IMAGE * ovim=NULL ;
          int nx , ny , npix , pc ;
 
-         /* process given image to make the grayscale index */
+         /* process image to make the grayscale index */
 
          seq->set_orim = 0 ;
          tim  = flim ;
@@ -2825,7 +2846,7 @@ ENTRY("ISQ_saver_CB") ;
             if( tim != ovim ) KILL_1MRI(tim) ;
          }
 
-         /* perform overlay onto flim */
+         /* and perform overlay onto flim */
 
          if( ovim != NULL ){
             tim = flim ;
@@ -2835,7 +2856,7 @@ ENTRY("ISQ_saver_CB") ;
             mri_free( ovim ) ;
          }
 
-         /* if needed, convert from indices to color */
+         /* if needed, convert from indices to RGB */
 
          if( flim->kind == MRI_short ){
             tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
@@ -2877,7 +2898,7 @@ ENTRY("ISQ_saver_CB") ;
            if( tim != NULL ){ mri_free(flim); flim = tim; }
          }
 #endif
-         /* image dimensions */
+         /* image dimensions we are saving */
 
          nx = flim->nx ; ny = flim->ny ; npix = nx*ny ;
 
@@ -2891,9 +2912,9 @@ ENTRY("ISQ_saver_CB") ;
            fflush(stdout) ;
          }
 
-         /* start the filter */
+         /* create the filter command into string 'filt' */
 
-         if( !DO_ANIM(seq) ){  /* arbitrary filtering */
+         if( !DO_ANIM(seq) ){                          /* arbitrary filtering */
            sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
            sprintf( filt , ppmto_filter[ff] , fname ) ;
          } else if( DO_AGIF(seq) ){                    /* use the gif filter */
@@ -2907,8 +2928,8 @@ ENTRY("ISQ_saver_CB") ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          }
-         signal( SIGPIPE , SIG_IGN ) ;
-         fp = popen( filt , "w" ) ;
+         signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+         fp = popen( filt , "w" ) ;                    /* open pipe to filter */
          if( fp == NULL ){
             fprintf(stderr,"** Can't open output filter %s\n",filt) ;
             continue ;  /* loop over files */
@@ -2921,10 +2942,12 @@ ENTRY("ISQ_saver_CB") ;
          pc = pclose(fp) ;
          if( pc == -1 ) perror("Error in image output pipe") ;
 
-         mri_free(flim) ; flim = NULL ; /* done with this image */
+         /* done with this image */
 
-         /* 27 Jul 2001: if doing animated GIF,
-                         and if done, then write result */
+         mri_free(flim) ; flim = NULL ;
+
+         /* 27 Jul 2001: if doing animation,
+                         and if at last image, then create result */
 
          if( kf == seq->saver_to && agif_list != NULL ){
 
@@ -2934,6 +2957,8 @@ ENTRY("ISQ_saver_CB") ;
                fprintf(stderr,"** Can't save animation: no images in list!\n");
                goto AnimationCleanup ;
             }
+
+            /* animated GIF */
 
             if( DO_AGIF(seq) ){
                int alen ; char *alc , *alf , *oof ;
@@ -2957,6 +2982,8 @@ ENTRY("ISQ_saver_CB") ;
                system(alf) ;                                 /* so run it!    */
                free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
             }
+
+            /* MPEG-1 */
 
             else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
                int alen ; char *alf , *oof , *par ;
@@ -3007,13 +3034,17 @@ ENTRY("ISQ_saver_CB") ;
                unlink(par); free(alf); free(oof); free(par); /* free trash   */
             }
 
+            /* animation is done, for good or for ill */
+
             for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
                unlink( agif_list->ar[af] ) ;
 
-         AnimationCleanup:
+          AnimationCleanup:
             DESTROY_SARR(agif_list) ;                 /* free more trash */
          }
       }
+
+      /*---------------*/
 
       else if( flim->kind == MRI_rgb ){ /* 11 Feb 1998: write color image */
                                         /*              directly as PPM   */
@@ -3032,6 +3063,8 @@ ENTRY("ISQ_saver_CB") ;
          mri_write_pnm( fname , flim ) ;
 
          mri_free(flim) ; flim = NULL ; /* done with this image */
+
+      /*---------------*/
 
       } else if( ! seq->opt.save_pnm ){ /** write background only **/
 
@@ -3057,6 +3090,8 @@ ENTRY("ISQ_saver_CB") ;
             sprintf( fname , "%s%04d" , seq->saver_prefix , kf ) ;
             mri_write( fname , flim ) ; mri_free( flim ) ; flim = NULL ;
          }
+
+      /*---------------*/
 
       } else { /** write color overlay and everything **/
 
@@ -3177,7 +3212,7 @@ ENTRY("ISQ_saver_CB") ;
       }
    } /* end of loop over images */
 
-   printf(". **DONE**\n") ;
+   printf(". **DONE**\n") ; fflush(stdout) ; 
 
    /*--- go home ---*/
 
@@ -3190,6 +3225,7 @@ ENTRY("ISQ_saver_CB") ;
 }
 
 /*----------------------------------------------------------------------*/
+/*! Called from the 'Save' button; starts the save image dialog. */
 
 void ISQ_but_save_CB( Widget w , XtPointer client_data ,
                                  XtPointer call_data    )
@@ -6151,11 +6187,20 @@ static unsigned char record_bits[] = {
 
       case isqDR_options:{
          ISQ_options * newopt = (ISQ_options *) drive_data ;
+         int sf ;
 
-         if( newopt != NULL ) seq->opt = * newopt ;
+         if( ppmto_num > 0 )           /* 27 Mar 2002: keep the old */
+           sf = seq->opt.save_filter ; /*              save filter  */
+
+         if( newopt != NULL ) seq->opt = *newopt ;
+
+         if( ppmto_num > 0 )
+           seq->opt.save_filter = sf ;
+
          seq->opt.parent = (XtPointer) seq ;
          SET_SAVE_LABEL(seq) ;
          AV_SENSITIZE(seq->ov_opacity_av,!seq->opt.no_overlay) ; /* 09 Mar 2001 */
+
 
          seq->im_label[0] = '\0' ;  /* will force redraw */
          ISQ_redisplay( seq , -1 , isqDR_display ) ;

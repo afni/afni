@@ -3611,3 +3611,8 @@
  * Modified imseq.c to save zoomed images in filtered Save many code as well
      (including animations).  Also set "Save to .ppm" as the default save mode,
      if possible.
+
+27 Mar 2002
+ * Modified 3dinfo.c, thd_info.c to have a -short option.
+ * Modified imseq.c to have isqDR_options save the output filter, rather than
+     reset it. (Otherwise, Left-is-Left loses the new default "Save to .ppm".)
