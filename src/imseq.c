@@ -2547,9 +2547,11 @@ DPR("mri_edit_image:") ;
 DPR("mri_sobel:") ;
          tim  = mri_sobel( 0 , 2 , qim ) ;            /* edge detect */
 
+#if 0
          npix = tim->nx * tim->ny ;                   /* take square root */
          tar  = mri_data_pointer(tim) ;
          for( ii=0 ; ii < npix ; ii++ ) tar[ii] = sqrt(tar[ii]) ;
+#endif
 
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;

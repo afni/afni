@@ -516,6 +516,10 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
 
+3dPaxes:3dPaxes.o
+	$(RM) $@
+	$(CC) -o 3dPaxes 3dPaxes.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dRowFillin:3dRowFillin.o
 	$(RM) $@
 	$(CC) -o 3dRowFillin 3dRowFillin.o $(LFLAGS) $(LLIBS)
