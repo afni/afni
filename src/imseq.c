@@ -460,7 +460,7 @@ static char * ISQ_but_bot_help[NBUTTON_BOT] = {
    "to control the image display\n"
    "and how the Save button works"   ,
 
-   "Will popup control panels to let you save slices from this window.\n"
+   "Will popup control panels to let you save images from this window.\n"
    "The type of save operation is indicated on the button label, and\n"
    "is selected from the 'Disp' button options window.\n"
    " :bkg = Will save only the background image data values\n"
@@ -2700,7 +2700,7 @@ ENTRY("ISQ_saver_CB") ;
 
       POPDOWN_string_chooser ;
 
-      MCW_choose_integer( w , "Slice from" ,
+      MCW_choose_integer( w , "Image from" ,
                           0 , seq->status->num_total-1 , 0 ,
                           ISQ_saver_CB , (XtPointer) seq ) ;
 
@@ -2723,7 +2723,7 @@ ENTRY("ISQ_saver_CB") ;
       POPDOWN_integer_chooser ;
 
       MCW_choose_integer(
-          w , "Slice to" ,
+          w , "Image to" ,
           0 , seq->status->num_total-1 , seq->status->num_total-1 ,
           ISQ_saver_CB , (XtPointer) seq ) ;
 
@@ -4641,7 +4641,7 @@ ENTRY("ISQ_but_disp_CB") ;
              MCW_reghelp_children( seq->slice_proj_av->wrowcol ,
                                    "Choose a projection function\n"
                                    "to apply to plus-or-minus\n"
-                                   "'Slab' slices from each pixel.\n"
+                                   "'Slab' images from each pixel.\n"
                                    "Built-in projections:\n"
                                    " Minimum = smallest value in slab\n"
                                    " Maximum = largest value in slab\n"
@@ -4650,7 +4650,7 @@ ENTRY("ISQ_but_disp_CB") ;
                                    " Extreme = value farthest from median" ) ;
 
              MCW_reghint_children( seq->slice_proj_av->wrowcol ,
-                                   "Slice projection function"  ) ;
+                                   "Image projection function"  ) ;
 
              seq->slice_proj_range_av =
                 new_MCW_optmenu( rcboxes , "Slab +-" ,
@@ -4661,7 +4661,7 @@ ENTRY("ISQ_but_disp_CB") ;
                                    "Choose thickness of Project slice\n"
                                    "package (in each direction from\n"
                                    "central slice).  For example:\n"
-                                   " 2 ==> slab is 5 slices thick\n"
+                                   " 2 ==> slab is 5 images thick\n"
                                    "       (2 before, 2 after, central)" ) ;
              MCW_reghint_children( seq->slice_proj_range_av->wrowcol ,
                                    "Slab half-thickness"              ) ;
@@ -6838,7 +6838,7 @@ ENTRY("ISQ_montage_CB") ;
       "top to bottom)."
    ) ;
    MCW_reghint_children( seq->mont_skip_av->wrowcol ,
-                         "Spacing between slices" ) ;
+                         "Spacing between images" ) ;
 
    MCW_reghelp_children( seq->mont_gap_av->wrowcol ,
       "This controls the number\n"

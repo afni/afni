@@ -8,12 +8,12 @@ CCFAST = cc -O3 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
-LFLAGS = -L. -L/usr/X11R6/lib
+LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
 PLUGIN_CC     = $(CC) -dynamic -fno-common
-PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib
+PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
