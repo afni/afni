@@ -1765,6 +1765,17 @@ nifti1_test:nifti1_test.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o -lm
 
+tsdsim:tsdsim.o
+	$(RM) $@
+	$(CC) -o tsdsim tsdsim.o $(LFLAGS) $(LLIBS) -lmx
+
+tsdsolve:tsdsolve.c
+	$(CC) -c tsdsolve.c -I.
+	$(CC) -o tsdsolve tsdsolve.o $(LFLAGS)            \
+	      -llapack_panther -lblas_panther -lF77 -lI77 \
+	      $(LLIBS)
+
+
 #-------------------------------------------------------------------------------
 
 #############
