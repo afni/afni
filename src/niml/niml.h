@@ -99,7 +99,9 @@ typedef struct { float r,i ; } complex ;
 
 typedef struct {
   int   code ;             /*!< unique integer code for this type */
-  int   size ;             /*!< number of bytes for this type */
+  int   size ;             /*!< number of bytes for this type (w/padding) */
+  int   psiz ;             /*!< sum of sizes of the parts (no padding)
+                                - will be zero if has variable type arrays */
   int   algn ;             /*!< byte alignment for this type */
   int   flag ;             /*!< various bit flags */
   char *name ;             /*!< unique string name for this type */
