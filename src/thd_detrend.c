@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*-------------------------------------------------------------------------*/
@@ -109,7 +109,7 @@ void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
           -18.0*(-1.0+2.0*N)        * x1
           +30.0                     * x2 ) / (N*(N+2.0)*(N+1.0)) ;
 
-   *f1 = ( -18.0*(-1.0+2.0*N)              * x0 
+   *f1 = ( -18.0*(-1.0+2.0*N)              * x0
            +12.0*(-1.0+2.0*N)*(8.0*N-11.0) * x1 /((N-1.0)*(N-2.0))
            -180.0                          * x2 /(N-2.0)          )
         / (N*(N+2.0)*(N+1.0)) ;
@@ -210,4 +210,78 @@ void THD_normalize( int npt , float * far )
    fac = 1.0 / sqrt(fac) ;
    for( ii=0 ; ii < npt ; ii++ ) far[ii] /= fac ;
    return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Detrend a vector with a given polort level, plus some others.
+-------------------------------------------------------------------------*/
+
+void THD_generic_detrend( int npt, float *far ,
+                          int polort, int nort, float **ort )
+{
+   int ii,jj , nref ;
+   float **ref , *fit , xmid , xfac , val ;
+
+   /* check inputs */
+
+   if( npt <= 1 || far == NULL ) return ;
+   if( nort > 0 ){
+     if( ort == NULL ) return ;
+     for( jj=0 ; jj < nort ; jj++ ) if( ort[jj] == NULL ) return ;
+   }
+   if( polort <  0 ) polort = -1 ;
+   if( nort   <  0 ) nort   =  0 ;
+
+   nref = polort+1+nref ;
+   if( nref == 0 || nref >= npt-1 ) return ;
+
+   ref  = (float **) malloc( sizeof(float *) * nref ) ;
+   xmid = 0.5*(npt-1) ; xfac = 1.0 / xmid ;
+   for( jj=0 ; jj <= polort ; jj++ ){
+     ref[jj] = (float *) malloc( sizeof(float) * npt ) ;
+     switch( jj ){
+       case 0:
+         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = 1.0 ;
+       break ;
+
+       case 1:
+         for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = xfac*(ii-xmid) ;
+       break ;
+
+       case 2:
+         for( ii=0 ; ii < npt ; ii++ ){
+           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val ;
+         }
+       break ;
+
+       case 3:
+         for( ii=0 ; ii < npt ; ii++ ){
+           val = xfac*(ii-xmid) ; ref[jj][ii] = val*val*val ;
+         }
+       break ;
+
+       default:
+         for( ii=0 ; ii < npt ; ii++ ){
+           val = xfac*(ii-xmid) ; ref[jj][ii] = pow(val,(double)(jj)) ;
+         }
+       break ;
+     }
+   }
+   for( jj=0 ; jj < nort ; jj++ )   /* user supplied refs */
+     ref[polort+1+jj] = ort[jj] ;
+
+   fit = lsqfit( npt , far , NULL , nref , ref ) ;
+
+   if( fit != NULL ){                                   /* good */
+     for( ii=0 ; ii < npt ; ii++ ){
+       val = far[ii] ;
+       for( jj=0 ; jj < nref ; jj++ )
+         val -= fit[jj] * ref[jj][ii] ;
+       far[ii] = val ;
+     }
+     free(fit) ;
+   }
+
+   for( jj=0 ; jj <= polort ; jj++ ) free(ref[jj]) ;
+   free(ref) ; return ;
 }

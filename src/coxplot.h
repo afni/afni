@@ -245,6 +245,8 @@ extern void redraw_topshell( MEM_topshell_data * ) ;
 #define TSP_SEPARATE_YBOX    1
 #define TSP_SEPARATE_YSCALE  2
 
+extern void plot_ts_xypush( int , int ) ;
+
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
                          char *,char *,char *,char ** , void_func * ) ;

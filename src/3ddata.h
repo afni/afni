@@ -3300,6 +3300,8 @@ extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
 
 extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
 
+extern void THD_generic_detrend( int, float *, int, int, float ** ) ;
+
 #define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
 #define DETREND_cubic(n,f)     THD_cubic_detrend(n,f)

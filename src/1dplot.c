@@ -47,7 +47,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id ) ;
 int main( int argc , char * argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
-   float dx=1.0 ;
+   float dx=1.0 , xzero=0.0 ;
    char *cpt ;
    MRI_IMAGE * inim , * flim ;
    float * far ;
@@ -55,6 +55,7 @@ int main( int argc , char * argv[] )
    Widget shell ;
    int use_stdin=0 ; /* 01 Aug 2001 */
    int out_ps   =0 ; /* 29 Nov 2002 */
+   int nopush   =0 ;
 
    /*-- help? --*/
 
@@ -69,6 +70,8 @@ int main( int argc , char * argv[] )
             "                [default = -sep]\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
             "                [default = 1]\n"
+            " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
+            " -nopush    = Don't 'push' axes ranges outwards.\n"
             " -ignore nn = Skip first 'nn' rows in the input file\n"
             "                [default = 0]\n"
             " -use mm    = Plot 'mm' points [default = all of them]\n"
@@ -140,6 +143,11 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-nopush") == 0 ){  /* 12 Mar 2003 */
+       plot_ts_xypush( 0 , 0 ) ;
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-ps") == 0 ){   /* 29 Nov 2002: already handled above */
         iarg++ ; continue ;
      }
@@ -200,6 +208,11 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[iarg],"-dx") == 0 ){
         dx = strtod( argv[++iarg] , NULL ) ;
         if( dx <= 0.0 ){fprintf(stderr,"** Illegal -dx value!\n");exit(1);}
+        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-xzero") == 0 ){
+        xzero = strtod( argv[++iarg] , NULL ) ;
         iarg++ ; continue ;
      }
 
@@ -307,7 +320,7 @@ int main( int argc , char * argv[] )
    /* make x axis */
 
    xar = (float *) malloc( sizeof(float) * nx ) ;
-   for( ii=0 ; ii < nx ; ii++ ) xar[ii] = dx * ii ;
+   for( ii=0 ; ii < nx ; ii++ ) xar[ii] = xzero + dx*ii ;
 
    /* select data to plot */
 

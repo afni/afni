@@ -26,6 +26,10 @@ static float ccc[NCLR][3] = {
 #define THIK 0.003
 #define SY   0.07
 
+static int xpush=1 , ypush=1 ;
+
+void plot_ts_xypush( int a , int b ){ xpush=a; ypush=b; }  /* 12 Mar 2003 */
+
 /*-----------------------------------------------------------------------
   Plot some timeseries data into an in-memory plot structure, which
   must be displayed later in some fashion.
@@ -74,7 +78,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && xpush ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -131,7 +135,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- push range of y outwards --*/
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && ypush ){
       np = (ytop-ybot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -310,7 +314,6 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    return mp ;
 }
 
-
 /*-----------------------------------------------------------------------
   Plot some timeseries data into window (linear-linear scales).
   If array x[] is NULL, then routine will make an x-axis up.
@@ -375,7 +378,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && xpush ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -398,7 +401,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    yall = (ny > 0) ; if( !yall ) ny = -ny ;
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 ){
+   if( ptop != 0.0 && ypush ){
       np = (ytop-ybot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;

@@ -60,17 +60,22 @@ int main( int argc , char * argv[] )
    short *sar , *mar ;
    float pval[128] , wval[128] ;
    int npk , verb=1 , win=0 , his=0 ;
-   char *dname ;
+   char *dname , cmd[2222] ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAnhist [options] dataset\n"
              "Input dataset is a T1-weighted high-res of the brain (shorts only).\n"
-             "Output is a list of peaks in the histogram.\n"
+             "Output is a list of peaks in the histogram, to stdout, in the form\n"
+             "  ( datasetname #peaks peak1 peak2 ... )\n"
+             "In the C-shell, for example, you could do\n"
+             "  set anhist = `3dAnhist -q -w1 dset+orig`\n"
+             "Then the number of peaks found is in the shell variable $anhist[2].\n"
+             "\n"
              "Options:\n"
              "  -q  = be quiet (don't print progress reports)\n"
-             "  -h  = dump histogram to file Anhist.1D\n"
-             "  -w  = apply a Winsorizing filter\n"
-             "        (or -w7 to Winsorize 7 times, etc.)\n"
+             "  -h  = dump histogram data to Anhist.1D and plot to Anhist.ps\n"
+             "  -w  = apply a Winsorizing filter prior to histogram scan\n"
+             "         (or -w7 to Winsorize 7 times, etc.)\n"
             ) ;
       exit(0) ;
    }
@@ -321,6 +326,7 @@ int main( int argc , char * argv[] )
            ws += wt[nwid-jj+ii] * hist[ii] ;
          gist[jj] = rint(ws) ;
        }
+       free(wt) ;
      }
 
      if( verb ) fprintf(stderr,"++ Scanning histogram for peaks:" ) ;
@@ -385,17 +391,24 @@ int main( int argc , char * argv[] )
          nregtry = 0 ;
    RegTry:
          switch(nvec){
-           case 1: nw =  50000 ; break ;
-           case 2: nw = 500000 ; break ;
-          default: nw = 900000 ; break ;
+           case 1: nw =   50000 ; break ;
+           case 2: nw =  700000 ; break ;
+          default: nw = 1700000 ; break ;
          }
          if( nregtry > 0 ){
-           pplm *= 0.7 ; aplm *= 0.7 ; wplm *= 0.7 ; nw /= 2 ;
+           pplm *= 0.5 ; aplm *= 0.5 ; wplm *= 0.5 ; nw /= 2 ;
            memcpy(aplast,apbest,sizeof(float)*nvec) ;
            memcpy(pklast,pkbest,sizeof(float)*nvec) ;
            memcpy(wwlast,wwbest,sizeof(float)*nvec) ;
+         } else {
+           for( jj=0 ; jj < nvec ; jj++ ){
+             wwlast[jj] = 0.5*cbot ;
+             aplast[jj] = 0.0 ;
+             pklast[jj] = pval[jj] ;
+           }
          }
          for( iw=0 ; iw < nw ; iw++ ){
+#if 1
            if( nregtry == 0 ){
              for( jj=0 ; jj < nvec ; jj++ ){               /* random search! */
                ww[jj] = wbot+drand48()*(wtop-wbot) ;
@@ -403,6 +416,7 @@ int main( int argc , char * argv[] )
                ap[jj] = (2.*drand48()-1.)*aplm ;
              }
            } else {
+#endif
              for( jj=0 ; jj < nvec ; jj++ ){
                ww[jj] = wwlast[jj] + (2.*drand48()-1.)*wplm ;
                pk[jj] = pklast[jj] + (2.*drand48()-1.)*pplm ;
@@ -412,7 +426,9 @@ int main( int argc , char * argv[] )
                     if( ww[jj] < cbot ) ww[jj] = cbot ;
                else if( ww[jj] > ctop ) ww[jj] = ctop ;
              }
+#if 1
            }
+#endif
            sum = 0.0 ;
            for( ii=0 ; ii < ndim ; ii++ ){
             wt[ii] = 0.01/ndim ;
@@ -429,7 +445,7 @@ int main( int argc , char * argv[] )
              Hvec[ii] = gist[cbot+ii] * wt[ii] ;
              for( jj=0 ; jj < nvec ; jj++ ) Gmat[jj][ii] *= wt[ii] ;
            }
-           for( jj=0 ; jj < nvec ; jj++ ) lam[jj] = 1.0 ;
+           for( jj=0 ; jj < nvec ; jj++ ) lam[jj] = 1.0 ;  /* constraints */
            for( ii=0 ; ii < ndim ; ii++ ) rez[ii] = 1.0 ;
            sum = cl1_solve_res( ndim,nvec , Hvec,Gmat , lam,1 , rez,1 ) ;
            if( sum >= 0.0 ){
@@ -445,46 +461,56 @@ int main( int argc , char * argv[] )
                memcpy( pkbest , pk , sizeof(float)*nvec ) ;
                memcpy( wwbest , ww , sizeof(float)*nvec ) ;
                memcpy( lambest, lam, sizeof(float)*nvec ) ;
+               if( verb ) fprintf(stderr,"+") ;
              }
            }
          }
          if( verb ) fprintf(stderr,".") ;
-         if( nregtry < 5 ){ nregtry++ ; goto RegTry ; }
+         if( nregtry < 6 ){ nregtry++ ; goto RegTry ; }
          if( verb ) fprintf(stderr,"\n") ;
        }
 
        hf = fopen( "Anhist.1D" , "w" ) ;
        if( hf == NULL ){
-         fprintf(stderr,"** Can't open Anhist.1D!\n"); exit(1);
-       }
-       fprintf(hf,"# 3dAnhist") ;
-       for( ii=1 ; ii < argc ; ii++ ) fprintf(hf," %s",argv[ii]) ;
-       fprintf(hf,"\n") ;
-       for( jj=0 ; jj < npk ; jj++ ){
-         fprintf(hf,"# Peak %d: location=%.1f\n",jj+1,pval[jj]) ;
-       }
-       if( npos > 0 ){
-         for( jj=0 ; jj < npk ; jj++ ){
-           fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
-                   jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
-         }
-         fprintf(hf,"#\n") ;
-         fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
-         fprintf(hf,"# --- ------ ------ ------\n") ;
-         for( ii=cbot ; ii <= ctop ; ii++ )
-           fprintf(hf,"%5d %6d %6d %6d\n",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
-
-         for( jj=0; jj < npk ; jj++ ) free(Gmat[jj]);
-         free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
-         free(apbest);free(wwbest);free(pkbest);free(lambest);
-         free(aplast);free(wwlast);free(pklast);
+         fprintf(stderr,"** Can't open Anhist.1D!\n") ;
        } else {
-         fprintf(hf,"# Val Histog\n") ;
-         fprintf(hf,"# --- ------\n") ;
-         for( ii=cbot ; ii <= ctop ; ii++ )
-           fprintf(hf,"%5d %6d\n",ii,gist[ii]) ;
+         fprintf(hf,"# 3dAnhist") ;
+         for( ii=1 ; ii < argc ; ii++ ) fprintf(hf," %s",argv[ii]) ;
+         fprintf(hf,"\n") ;
+         for( jj=0 ; jj < npk ; jj++ ){
+           fprintf(hf,"# Peak %d: location=%.1f\n",jj+1,pval[jj]) ;
+         }
+         if( npos > 0 ){
+           for( jj=0 ; jj < npk ; jj++ ){
+             fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
+                     jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
+           }
+           fprintf(hf,"#\n") ;
+           fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
+           fprintf(hf,"# --- ------ ------ ------\n") ;
+           for( ii=cbot ; ii <= ctop ; ii++ )
+             fprintf(hf,"%5d %6d %6d %6d\n",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
+
+           for( jj=0; jj < npk ; jj++ ) free(Gmat[jj]);
+           free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
+           free(apbest);free(wwbest);free(pkbest);free(lambest);
+           free(aplast);free(wwlast);free(pklast);
+           sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel %s 'Anhist.1D[1..3]' > Anhist.ps" ,
+                   cbot , dname ) ;
+         } else {
+           fprintf(hf,"# Val Histog\n") ;
+           fprintf(hf,"# --- ------\n") ;
+           for( ii=cbot ; ii <= ctop ; ii++ )
+             fprintf(hf,"%5d %6d\n",ii,gist[ii]) ;
+           sprintf(cmd,"1dplot -ps -nopush -xzero %d -xlabel %s 'Anhist.1D[1]' > Anhist.ps",cbot,dname) ;
+         }
+         fclose(hf) ;
+         if( verb ){
+           fprintf(stderr,"++ %s\n",cmd) ;
+           fprintf(stderr,"++ To view: gv -landscape Anhist.ps\n") ;
+         }
+         system( cmd ) ;
        }
-       fclose(hf) ;
      }
 
      print_results( dname,npk , pval , wval ) ;
