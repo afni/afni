@@ -35,10 +35,21 @@
   system at the Medical College of Wisconsin.
 ************************************************************************/
 
-/*** 30 Oct 2003: if possible, compute function on registered data              [rickr] ***/
-/*** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER              [rickr] ***/
-/*** 27 Jun 2003: added BYTEORDER command for automatic byte swapping           [rickr] ***/
-/*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls                               ***/
+/** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls                     **/
+/** 27 Jun 2003: added BYTEORDER command for automatic byte swapping [rickr] **/
+/** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER    [rickr] **/
+/** 30 Oct 2003: if possible, compute function on registered data    [rickr] **/
+/** 29 Jan 2004: allow 100 chars in root_prefix via PREFIX (from 31) [rickr]
+               * x-axis of 3-D motion graphs changed from time to reps
+	       * plot_ts_... functions now use reg_rep for x-axis values
+	       * reg_graph_xr is no longer scaled by TR
+               * added (float *)reg_rep, for graphing with x == rep num
+	       * added RT_set_grapher_pinnums(), to call more than once
+	       * added GRAPH_XRANGE and GRAPH_YRANGE command strings for
+	       *     control over the scales of the motion graph
+	       * if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed,
+	       *     do not display the final (scaled) motion graph          **/
+
 
 /**************************************************************************/
 /*********************** struct for reading data **************************/
@@ -167,12 +178,13 @@ typedef struct {
 
    /*--  Oct 1998: more stuff for 3D registration --*/
 
-   float * reg_dz , * reg_theta , * reg_psi ;
+   float * reg_dz , * reg_theta , * reg_psi , * reg_rep ;
    MRI_3dalign_basis * reg_3dbasis ;
    int iha , ax1,hax1 , ax2,hax2 , ax3,hax3 ;
    MEM_topshell_data * mp ;
 
-   int reg_resam , reg_final_resam ;
+   int   reg_resam , reg_final_resam ;
+   int   reg_graph_xnew, reg_graph_ynew ;
    float reg_graph_xr , reg_graph_yr ;
 #endif
 
@@ -385,6 +397,8 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_registration_3D_close( RT_input * rtin ) ;
   void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
   void RT_registration_3D_realtime( RT_input * rtin ) ;
+
+  void RT_set_grapher_pinnums( int pinnum );
 #endif
 
 #define TELL_NORMAL  0
@@ -643,17 +657,8 @@ char * RT_main( PLUGIN_interface * plint )
 
          /* 12 Oct 2000: set pin_num on all graphs now open */
 
-         if( reg_nr >= MIN_PIN && reg_nr <= MAX_PIN && IM3D_OPEN(plint->im3d) ){
-
-            drive_MCW_grapher( plint->im3d->g123 ,
-                               graDR_setpinnum , (XtPointer) reg_nr ) ;
-
-            drive_MCW_grapher( plint->im3d->g231 ,
-                               graDR_setpinnum , (XtPointer) reg_nr ) ;
-
-            drive_MCW_grapher( plint->im3d->g312 ,
-                               graDR_setpinnum , (XtPointer) reg_nr ) ;
-         }
+         if( reg_nr >= MIN_PIN && reg_nr <= MAX_PIN && IM3D_OPEN(plint->im3d) )
+	     RT_set_grapher_pinnums(reg_nr);
 
          continue ;
       }
@@ -792,7 +797,7 @@ void cleanup_rtinp( int keep_ioc_data )
    FREEUP( rtinp->reg_tim   ) ; FREEUP( rtinp->reg_dx    ) ;
    FREEUP( rtinp->reg_dy    ) ; FREEUP( rtinp->reg_dz    ) ;
    FREEUP( rtinp->reg_phi   ) ; FREEUP( rtinp->reg_psi   ) ;
-   FREEUP( rtinp->reg_theta ) ;
+   FREEUP( rtinp->reg_theta ) ; FREEUP( rtinp->reg_rep ) ;
 #endif
 
    if( rtinp->image_handle != NULL )
@@ -1491,9 +1496,12 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->reg_dz       = (float *) malloc( sizeof(float) ) ;
    rtin->reg_theta    = (float *) malloc( sizeof(float) ) ;
    rtin->reg_psi      = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_rep      = (float *) malloc( sizeof(float) ) ;
    rtin->reg_3dbasis  = NULL ;
    rtin->mp           = NULL ;    /* no plot yet */
 
+   rtin->reg_graph_xnew = 0 ;     /* did the user update reg_graph_xr */
+   rtin->reg_graph_ynew = 0 ;     /* did the user update reg_graph_yr */
    rtin->reg_graph_xr = reg_nr ;  /* will scale by TR when we know it */
    rtin->reg_graph_yr = reg_yr ;
 
@@ -1761,16 +1769,45 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          else
               BADNEWS ;
 
+#ifdef ALLOW_REGISTRATION
+
+      /* Some troublesome physicist, let's just call him "Tom" (possibly
+       * named by his mother, Mrs. Ross), wants control over the ranges
+       * in the motion correction graph window.
+       *                                                29 Jan 2004 [rickr] */
+
+      } else if( STARTER("GRAPH_XRANGE") ){
+         float fval = 0.0 ;
+         sscanf( buf , "GRAPH_XRANGE %f" , &fval ) ;
+         if( fval >= MIN_PIN && fval <= MAX_PIN ) {
+	     rtin->reg_graph_xnew = 1;
+	     rtin->reg_graph_xr   = fval;
+	     if ( IM3D_OPEN(plint->im3d) )   /* copy width for open graphs */
+		 RT_set_grapher_pinnums((int)(fval+0.5));
+	 } else
+              BADNEWS ;
+
+      } else if( STARTER("GRAPH_YRANGE") ){
+         float fval = 0.0 ;
+         sscanf( buf , "GRAPH_YRANGE %f" , &fval ) ;
+         if( fval > 0.0 ) {
+	    rtin->reg_graph_ynew = 1;
+	    rtin->reg_graph_yr   = fval ;
+	 } else
+            BADNEWS ;
+
+#endif
+
       } else if( STARTER("NAME") ){
          char npr[THD_MAX_PREFIX] = "\0" ;
-         sscanf( buf , "NAME %31s" , npr ) ;
+         sscanf( buf , "NAME %100s" , npr ) ; /* 31->100  29 Jan 2004 [rickr] */
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
               BADNEWS ;
 
       } else if( STARTER("PREFIX") ){           /* 01 Aug 2002 */
          char npr[THD_MAX_PREFIX] = "\0" ;
-         sscanf( buf , "PREFIX %31s" , npr ) ;
+         sscanf( buf , "PREFIX %100s" , npr ) ;
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
               BADNEWS ;
@@ -2424,7 +2461,12 @@ void RT_start_dataset( RT_input * rtin )
 
    rtin->reg_status    = 0 ;
    rtin->reg_nvol      = 0 ;
-   rtin->reg_graph_xr *= rtin->tr ;  /* scale to time units */
+
+   /* No longer scale to time units as x-axis is now in terms of reps.
+    *                                      *** 29 Jan 2004 [rickr] ***
+    *  rtin->reg_graph_xr *= rtin->tr ;    *** scale to time units ***
+    */
+
 #endif
 
    /***********************************************/
@@ -3328,8 +3370,10 @@ void RT_finish_dataset( RT_input * rtin )
    }
 
    /*--- Oct 1998: do 3D graphing ---*/
+   /*--- Jan 2004: if both reg_graph_xnew and reg_graph_ynew, don't plot */
 
-   if( rtin->reg_graph && rtin->reg_nest > 1 && REG_IS_3D(rtin->reg_mode) ){
+   if( rtin->reg_graph && rtin->reg_nest > 1 && REG_IS_3D(rtin->reg_mode) &&
+       ( rtin->reg_graph_xnew == 0 || rtin->reg_graph_ynew == 0 ) ){
       float * yar[7] ;
       int nn = rtin->reg_nest ;
       static char * nar[6] = {
@@ -3346,7 +3390,7 @@ void RT_finish_dataset( RT_input * rtin )
 
       /* arrays are already sorted by time */
 
-      yar[0] = rtin->reg_tim   ;  /* time  */
+      yar[0] = rtin->reg_rep   ;  /* repetition numbers */
       yar[1] = rtin->reg_dx    ;  /* dx    */
       yar[2] = rtin->reg_dy    ;  /* dy    */
       yar[3] = rtin->reg_dz    ;  /* dz    */
@@ -3356,7 +3400,7 @@ void RT_finish_dataset( RT_input * rtin )
 
       plot_ts_lab( THE_DISPLAY ,
                    nn , yar[0] , -6 , yar+1 ,
-                   "time" , NULL , ttl , nar , NULL ) ;
+                   "reps" , NULL , ttl , nar , NULL ) ;
 
       free(ttl) ;
    }
@@ -3373,6 +3417,24 @@ void RT_finish_dataset( RT_input * rtin )
 /*****************************************************************************
   The collection of functions for handling slice registration in this plugin.
 ******************************************************************************/
+
+/*---------------------------------------------------------------------------
+  Set the sizes of any open graph windows.
+
+  Moved Bob's code to its own function.                  2004 Jan 28  [rickr]
+-----------------------------------------------------------------------------*/
+
+void RT_set_grapher_pinnums( int pinnum )
+{
+    /* 12 Oct 2000: set pin_num on all graphs now open */
+
+    if( pinnum < MIN_PIN || pinnum > MAX_PIN || !IM3D_OPEN(plint->im3d) )
+	return;
+
+    drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer) pinnum );
+    drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer) pinnum );
+    drive_MCW_grapher( plint->im3d->g312, graDR_setpinnum, (XtPointer) pinnum );
+}
 
 /*---------------------------------------------------------------------------
   Do pieces of 2D registration during realtime.
@@ -3735,7 +3797,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr ,
                                   -6 , -rtin->reg_graph_yr,rtin->reg_graph_yr ,
-                                  "time", NULL, ttl, nar , NULL ) ;
+                                  "reps", NULL, ttl, nar , NULL ) ;
 
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
 
@@ -3751,11 +3813,11 @@ void RT_registration_3D_realtime( RT_input * rtin )
       RT_registration_3D_onevol( rtin , tt ) ;
 
    if( rtin->mp != NULL && ntt > ttbot ){
-      float * yar[7] ;
+      float        * yar[7] ;
 
       if( ttbot > 0 ) ttbot-- ;
-
-      yar[0] = rtin->reg_tim   + ttbot ;
+      
+      yar[0] = rtin->reg_rep   + ttbot ;
       yar[1] = rtin->reg_dx    + ttbot ;
       yar[2] = rtin->reg_dy    + ttbot ;
       yar[3] = rtin->reg_dz    + ttbot ;
@@ -3989,6 +4051,8 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
                                       sizeof(float) * (nest+1) ) ;
    rtin->reg_theta = (float *) realloc( (void *) rtin->reg_theta ,
                                       sizeof(float) * (nest+1) ) ;
+   rtin->reg_rep = (float *) realloc( (void *) rtin->reg_rep ,
+                                      sizeof(float) * (nest+1) ) ;
 
    rtin->reg_tim[nest]   = THD_timeof_vox( tt , 0 , rtin->dset[0] ) ;
    rtin->reg_dx [nest]   = ddx   ;
@@ -3997,6 +4061,7 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
    rtin->reg_phi[nest]   = roll  ;
    rtin->reg_psi[nest]   = pitch ;
    rtin->reg_theta[nest] = yaw   ; rtin->reg_nest ++ ; rtin->reg_nvol = tt+1 ;
+   rtin->reg_rep[nest]   = tt    ;
 
    /*-- convert output image to desired type;
         set qar to point to data in the converted registered image --*/
