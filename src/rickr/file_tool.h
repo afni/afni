@@ -1,13 +1,23 @@
 
 #define MAX_STR_LEN	1024
 
-#define MOD_STRING         0
-#define MOD_SINGLE         1
+#define MOD_INVALID       -1
+#define MOD_STR            0
+#define MOD_CHAR           1		/* char mods */
+#define MOD_U1            21		/* int mods  */
+#define MOD_S1            22
+#define MOD_U2            23
+#define MOD_S2            24
+#define MOD_U4            25
+#define MOD_S4            26
+#define MOD_F4            30		/* real mods */
+#define MOD_F8            31
 
 #define USE_SHORT	   0
 #define USE_LONG           1
 #define USE_VERSION        2
 #define USE_GE             3
+#define USE_HISTORY        4
 
 /* GE diplay bit values */
 #define GE_NONE		   0
@@ -15,6 +25,7 @@
 #define GE_HEADER	0x01
 #define GE_EXTRAS	0x02
 #define GE_UV17		0x10
+#define GE_OFF		0x20
 
 #define NDISP_NONE	   0
 #define NDISP_INT2	0x01
@@ -52,7 +63,7 @@ typedef struct
     int     data_len;      /* bytes of data in mod_data          */
     int     ge_disp;      /* do we display ge_values            */
     int     ge4_disp;    /* option bits for GEMS 4.x type      */
-    int     ndisp;     /* option bits for numeric display    */
+    int     ndisp;      /* option bits for numeric display    */
 
     int     swap;	      /* do we need to swap bytes   */
     int     modify;	     /* do we modify the data?     */
@@ -63,13 +74,25 @@ typedef struct
     char  * mod_data;	/* new data                   */
 } param_t;
 
+typedef struct			  /* file offsets for various fields   */
+{
+    int nx, ny;
+    int uv17;
+    int dx, dy, dz;
+    int tr, te;
+    int xyz;			  /* 3x3 float matrix from extras      */
+} ge_off;
+
 /* local protos */
 int  attack_files      ( param_t * p );
+int  check_mod_type    ( char * name );
 int  check_usage       ( int argc, char * argv[] );
 int  disp_numeric_data ( char * data, param_t * p, FILE * fp );
 int  disp_param_data   ( param_t * p );
+int  mtype_size        ( int type );
 
-int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E );
+int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
+       			 ge_off * off );
 int  process_file      ( char * pathname, param_t * p );
 int  process_ge        ( char * pathname, param_t * p );
 int  process_ge4       ( char * pathname, param_t * p );
@@ -78,9 +101,11 @@ int  set_params        ( param_t * p, int argc, char * argv[] );
 int  help_full         ( char * prog );
 int  help_ge_structs   ( char * prog );
 int  usage             ( char * prog, int level );
+int  write_data_to_file( FILE * fp, char * filename, param_t * p );
 
 unsigned long THD_filesize  ( char * pathname );
 
+int  disp_ge_offsets        ( char * info, ge_off         * D );
 int  r_idisp_ge_extras      ( char * info, ge_extras      * E );
 int  r_idisp_ge_header_info ( char * info, ge_header_info * I );
 

@@ -1,38 +1,8 @@
 
-#define VERSION         "2.2 - July 27, 2003"
+#define VERSION         "3.0 (March 17, 2004)"
 
 /*----------------------------------------------------------------------
- * file_tool history:
- *
- * 2.2  July 27, 2003
- *   - wrap unknown printed strings in NULL check
- *
- * 2.1  June 02, 2003
- *   - changed format of call to ge4_read_header()
- *   - made swap_[24]() static
- *
- * 2.0  May 29, 2003
- *   - added information for ge4 study header
- *   - added option -ge4_study
- *
- * 1.2  May 06, 2003  (will go to 2.0 after more changes are made)
- *   - added interface for reading GEMS 4.x formatted image files
- *   - added corresponding options -ge4_all, -ge4_image, -ge4_series
- *   - added options to display raw numeric data:
- *       disp_int2, disp_int4, disp_real4
- *   - changed local version of l_THD_filesize to THD_filesize, as
- *     the ge4_ functions may get that from mrilib.
- *
- * 1.1  February 26, 2003
- *   - added -quiet option
- *   - use dynamic allocation for data to read
- *
- * 1.0  September 11, 2002
- *   - initial release
- *----------------------------------------------------------------------
-*/
-/*----------------------------------------------------------------------
- * file_tool.c	- display or modify (binary?) info from files
+ * file_tool.c	- display or modify (binary?) info in files
  *
  * This is a pretty generic file processing tool, originally designed
  * to display and modify data at random places in files, and also to
@@ -45,6 +15,7 @@
  *
  *        -help                display help
  *        -help_ge             display help on GE info structures
+ *        -hist                display history
  *        -debug    LEVEL      show extra info  (0, 1 or 2)
  *        -version             show version information
  *
@@ -59,6 +30,7 @@
  *        -ge_extras           display extra GE image info
  *        -ge_uv17             diplay the value of the uv17 variable
  *        -ge_run              diplay the run number - same as uv17
+ *        -ge_off              diplay file offsets for various fields
  *
  *     GEMS 4.x options
  *
@@ -95,6 +67,44 @@
  *              -length 21 -infiles I.*
  *----------------------------------------------------------------------
 */
+
+static char g_history[] = 
+ "----------------------------------------------------------------------\n"
+ " file_tool history:\n"
+ "\n"
+ " 1.0  September 11, 2002\n"
+ "   - initial release\n"
+ "\n"
+ " 1.1  February 26, 2003\n"
+ "   - added -quiet option\n"
+ "   - use dynamic allocation for data to read\n"
+ "\n"
+ " 1.2  May 06, 2003  (will go to 2.0 after more changes are made)\n"
+ "   - added interface for reading GEMS 4.x formatted image files\n"
+ "   - added corresponding options -ge4_all, -ge4_image, -ge4_series\n"
+ "   - added options to display raw numeric data:\n"
+ "       disp_int2, disp_int4, disp_real4\n"
+ "   - changed local version of l_THD_filesize to THD_filesize, as\n"
+ "     the ge4_ functions may get that from mrilib.\n"
+ "\n"
+ " 2.0  May 29, 2003\n"
+ "   - added information for ge4 study header\n"
+ "   - added option -ge4_study\n"
+ "\n"
+ " 2.1  June 02, 2003\n"
+ "   - changed format of call to ge4_read_header()\n"
+ "   - made swap_[24]() static\n"
+ "\n"
+ " 2.2  July 27, 2003\n"
+ "   - wrap unknown printed strings in NULL check\n"
+ "\n"
+ " 3.0  March 17, 2004\n"
+ "   - added binary editing (gee, that's why I wrote it 18 monsh ago...)\n"
+ "     (see -mod_type s/uint1, s/uint2, s/uint4, float4, float8\n"
+ "   - added '-ge_off' option, to display file offsets for some GEMS fields\n"
+ "   - added '-hist' option, to display this history\n"
+ "----------------------------------------------------------------------\n";
+
 
 /* ----------------------------------------------------------------------
  * todo:
@@ -217,9 +227,10 @@ process_ge( char * filename, param_t * p )
 {
     ge_header_info H;
     ge_extras      E;
+    ge_off         off;
     int            rv;
 
-    rv = read_ge_header( filename, &H, &E );
+    rv = read_ge_header( filename, &H, &E, &off );
 
     if ( rv != 0 )
     {
@@ -237,6 +248,9 @@ process_ge( char * filename, param_t * p )
 
     if ( (p->debug > 1) || (p->ge_disp & GE_EXTRAS ) )
 	r_idisp_ge_extras( filename, &E );
+
+    if ( p->ge_disp & GE_OFF )
+	disp_ge_offsets( filename, &off );
 
     if ( p->ge_disp & GE_UV17 )
 	printf( "%s : run # %d\n", filename, H.uv17 );
@@ -261,7 +275,7 @@ process_file( char * filename, param_t * p )
 {
     FILE        * fp;
     static char * fdata = NULL;
-    int           nbytes, remaining;
+    int           nbytes;
 
     if ( (fp = fopen( filename, "r+" )) == NULL )
     {
@@ -332,16 +346,11 @@ process_file( char * filename, param_t * p )
 	    return -1;
 	}
 
-	if ( strlen(p->mod_data) > p->length )
-	    remaining = p->length;
-
-	if ( (nbytes = fwrite( p->mod_data, 1, p->length, fp )) != p->length )
-        {
-            fprintf( stderr, "\nfailure: wrote only %d of %d bytes to '%s'\n",
-                     nbytes, p->length, filename );
-            fclose( fp );
-            return -1;
-        }
+	if ( (nbytes = write_data_to_file( fp, filename, p ) ) < 0 )
+	{
+	    fclose( fp );
+	    return -1;
+	}
 
 	if ( p->debug > 0 )
 	{
@@ -355,6 +364,140 @@ process_file( char * filename, param_t * p )
     return 0;
 }
 
+
+/*------------------------------------------------------------
+ *  Actually write data into the file stream.
+ *
+ *  return bytes written : on success
+ *                    -1 : on error
+ *------------------------------------------------------------
+*/
+int write_data_to_file( FILE * fp, char * filename, param_t * p )
+{
+    double   dval;
+    char   * outp, * inp, * endp;
+    int      dsize, c, nbytes;
+
+    if ( (dsize = mtype_size( p->mod_type )) < 1 )
+    {
+	fprintf(stderr,"** bad size %d for mod_type %d\n", dsize, p->mod_type);
+	return -1;
+    }
+
+    if ( p->debug > 1 )
+	fprintf(stderr,"-- dsize = %d\n", dsize);
+
+    /* deal with characters separately */
+    if ( p->mod_type == MOD_STR || p->mod_type == MOD_CHAR )
+    {
+	int remaining = p->length - p->data_len; /* note remainder (if any) */
+
+	if ( (nbytes=fwrite(p->mod_data, 1, p->data_len, fp)) != p->data_len )
+        {
+            fprintf( stderr, "\nfailure: wrote only %d of %d bytes to '%s'\n",
+                     nbytes, p->data_len, filename );
+            fclose( fp );
+            return -1;
+        }
+
+	/* and fill with 0 */
+	for ( c = 0; c < remaining; c++ )
+	    fputc( '\0', fp );
+
+	return p->length;
+    }
+
+    if ( p->debug > 1 ) fprintf(stderr,"++ values: ");
+
+    /* now write numerical values into g_rep_output_data */
+    outp = g_rep_output_data;
+    inp  = p->mod_data;
+    memset(outp, 0, p->length);
+    for ( c = 0; (c+dsize) <= p->length; c += dsize, outp += dsize )
+    {
+	dval = strtod( inp, &endp );
+
+	if ( endp && inp != endp )   /* then we read something in */
+	{
+	    switch (p->mod_type)
+	    {
+		default:
+		    fprintf(stderr,"** wdtf: bad type %d\n", p->mod_type);
+		    return -1;
+		case MOD_U1:
+		    *(unsigned char *)outp = (unsigned char)dval;
+		    break;
+		case MOD_S1:
+		    *(char *)outp = (char)dval;
+		    break;
+		case MOD_U2:
+		    *(unsigned short *)outp = (unsigned short)dval;
+		    break;
+		case MOD_S2:
+		    *(short *)outp = (short)dval;
+		    break;
+		case MOD_U4:
+		    *(unsigned long *)outp = (unsigned long)dval;
+		    break;
+		case MOD_S4:
+		    *(long *)outp = (long)dval;
+		    break;
+		case MOD_F4:
+		    *(float *)outp = (float)dval;
+		    break;
+		case MOD_F8:
+		    *(double *)outp = dval;
+		    break;
+	    }
+
+	    if ( p->swap )
+	    {
+		if ( dsize == 2 )
+		    swap_2( (void *)outp );
+		else if ( dsize == 4 )
+		    swap_4( (void *)outp );
+	    }
+
+	    if ( p->debug > 1 ) fprintf(stderr," %f", dval);
+	}
+	else
+	    break;	/* done */
+
+	inp = endp;     /* prepare to go after a new number */
+    }
+
+    if ( p->debug > 1 ) fputc('\n', stderr);
+
+    /* now just write the data out */
+    nbytes = fwrite(g_rep_output_data, 1, p->length, fp);
+    if ( nbytes != p->length )
+    {
+	fprintf(stderr,"** wrote only %d of %d bytes of binary data\n",
+		nbytes, p->length);
+	return nbytes;
+    }
+
+    return p->length;
+}
+
+int mtype_size( int type )
+{
+    if ( type == MOD_STR  ) return 1;
+    if ( type == MOD_CHAR ) return 1;
+    if ( type == MOD_U1   ) return 1;
+    if ( type == MOD_S1   ) return 1;
+
+    if ( type == MOD_U2   ) return 2;
+    if ( type == MOD_S2   ) return 2;
+
+    if ( type == MOD_U4   ) return 4;
+    if ( type == MOD_S4   ) return 4;
+
+    if ( type == MOD_F4   ) return 4;
+    if ( type == MOD_F8   ) return 8;
+
+    return -1;
+}
 
 /*------------------------------------------------------------
  *  Read user arguments, and fill param_t struct.
@@ -392,9 +535,14 @@ set_params( param_t * p, int argc, char * argv[] )
 	    usage( argv[0], USE_GE );
 	    return -1;
 	}
-	else if ( ! strncmp(argv[ac], "-help", 2 ) )
+	else if ( ! strncmp(argv[ac], "-help", 3 ) )
   	{
 	    usage( argv[0], USE_LONG );
+	    return -1;
+	}
+	else if ( ! strncmp(argv[ac], "-hist", 3 ) )
+  	{
+	    usage( argv[0], USE_HISTORY );
 	    return -1;
 	}
 	else if ( ! strncmp(argv[ac], "-debug", 6 ) )
@@ -433,7 +581,7 @@ set_params( param_t * p, int argc, char * argv[] )
 	    {
 		fputs( "missing option parameter: DATA\n"
                        "option usage: -mod_data DATA\n"
-                       "    where DATA is the replacement string\n",
+                       "    where DATA is the replacement string or numbers\n",
                        stderr );
                 return -1; 
 	    }
@@ -452,11 +600,8 @@ set_params( param_t * p, int argc, char * argv[] )
 		return -1;
 	    }
 
-	    if ( ! strncmp(argv[++ac], "str", 1) )
-		p->mod_type = MOD_STRING;	/* this is default anyway */
-	    else if ( ! strncmp(argv[ac], "val", 1) )
-		p->mod_type = MOD_SINGLE;	/* replace with string */
-	    else
+	    ac++;
+	    if ( (p->mod_type = check_mod_type(argv[ac])) == MOD_INVALID )
 	    {
 		fputs( "option usage: -mod_type TYPE\n", stderr );
 		fputs( "              where TYPE is 'str' or 'val'\n", stderr );
@@ -496,6 +641,11 @@ set_params( param_t * p, int argc, char * argv[] )
 	    if ( p->length < 0 )
 	    {
 		fprintf( stderr, "bad LENGTH <%d>\n", p->length );
+		return -1;
+	    }
+	    else if ( p->length >= MAX_STR_LEN )
+	    {
+		fprintf(stderr, "the length cannot exceed %d\n", MAX_STR_LEN);
 		return -1;
 	    }
 	}
@@ -540,6 +690,10 @@ set_params( param_t * p, int argc, char * argv[] )
 	else if ( ! strncmp(argv[ac], "-ge_extras", 7 ) )
   	{
 	    p->ge_disp |= GE_EXTRAS;
+	}
+	else if ( ! strncmp(argv[ac], "-ge_off", 7 ) )
+  	{
+	    p->ge_disp |= GE_OFF;
 	}
 	/* allow both forms - uv17 means the run number */
 	else if ( ! strncmp(argv[ac], "-ge_uv17", 7 ) ||
@@ -610,22 +764,60 @@ set_params( param_t * p, int argc, char * argv[] )
 	    return -1;
 	}
 
-	if ( p->mod_type == MOD_SINGLE )
+	if ( p->mod_type == MOD_CHAR )
 	{
 	    /* we are writing one char length times */
 	    memset( g_rep_output_data, *p->mod_data, p->length );
 	    p->mod_data = g_rep_output_data;
+	    p->data_len = p->length;
 	}
-	else if ( p->length > p->data_len ) /* only with MOD_STRING */
+	else if ( p->length < p->data_len ) /* only with MOD_STR */
 	{
-	    fprintf( stderr, "failure: length <%d> exceeds data length <%d>\n",
-		 p->length, p->data_len );
+	    fprintf( stderr, "failure: data length <%d> exceeds length <%d>\n",
+		     p->data_len, p->length );
 	    return -1;
 	}
     }
 
     return 0;
 }
+
+
+/*------------------------------------------------------------
+ *  return appropriate MOD_ value, if one exists
+ *------------------------------------------------------------
+*/
+int check_mod_type( char * name )
+{
+    /* character mods */
+    if ( ! strncmp(name, "str", 3) )
+	return MOD_STR;	/* this is default */
+    if ( ! strncmp(name, "val",  3) || ! strncmp(name, "char", 4) )
+	return MOD_CHAR;
+
+    /* integral mods */
+    if ( ! strncmp(name, "uint1", 5) )
+	return MOD_U1;
+    if ( ! strncmp(name, "sint1", 5) )
+	return MOD_S1;
+    if ( ! strncmp(name, "uint2", 5) )
+	return MOD_U2;
+    if ( ! strncmp(name, "sint2", 5) )
+	return MOD_S2;
+    if ( ! strncmp(name, "uint4", 5) )
+	return MOD_U4;
+    if ( ! strncmp(name, "sint4", 5) )
+	return MOD_S4;
+
+    /* real mods */
+    if ( ! strncmp(name, "float4", 6) )
+	return MOD_F4;
+    if ( ! strncmp(name, "float8", 6) )
+	return MOD_F8;
+
+    return MOD_INVALID;
+}
+
 
 /*------------------------------------------------------------
  *  Display usage information, depending on usage level:
@@ -647,8 +839,13 @@ int usage( char * prog, int level )
     }
     else if ( level == USE_VERSION )
     {
-	printf( "%s, version <%s>, compiled <%s>\n",
+	printf( "%s, version %s, compiled: %s\n",
 		prog, VERSION, __DATE__ );
+	return 0;
+    }
+    else if ( level == USE_HISTORY )
+    {
+	fputs( g_history, stdout );
 	return 0;
     }
     else if ( level == USE_GE )
@@ -731,44 +928,73 @@ help_full( char * prog )
 	"\n"
 	"  examples:\n"
 	"\n"
-	"    o get detailed help:\n"
+	"   ----- help examples -----\n"
+	"\n"
+	"   1. get detailed help:\n"
 	"\n"
 	"      %s -help\n"
 	"\n"
-	"    o get descriptions of GE struct elements:\n"
+	"   2. get descriptions of GE struct elements:\n"
 	"\n"
 	"      %s -help_ge\n"
 	"\n"
-	"    o display GE header and extras info for file I.100:\n"
+	"   ----- GEMS 4.x and 5.x display examples -----\n"
+	"\n"
+	"   3. display GE header and extras info for file I.100:\n"
 	"\n"
 	"      %s -ge_all -infiles I.100\n"
 	"\n"
-	"    o display GEMS 4.x series and image headers for file I.100:\n"
+	"   4. display GEMS 4.x series and image headers for file I.100:\n"
 	"\n"
 	"      %s -ge4_all -infiles I.100\n"
 	"\n"
-	"    o display run numbers for every 100th I-file in this directory\n"
+	"   5. display run numbers for every 100th I-file in this directory\n"
 	"\n"
 	"      %s -ge_uv17 -infiles I.?42\n"
 	"      %s -ge_run  -infiles I.?42\n"
 	"\n"
-	"    o display the 32 characters located 100 bytes into each file:\n"
+	"   ----- general value display examples -----\n"
+	"\n"
+	"   6. display the 32 characters located 100 bytes into each file:\n"
 	"\n"
 	"      %s -offset 100 -length 32 -infiles file1 file2\n"
 	"\n"
-	"    o display the 8 4-byte reals located 100 bytes into each file:\n"
+	"   7. display the 8 4-byte reals located 100 bytes into each file:\n"
 	"\n"
 	"      %s -disp_real4 -offset 100 -length 32 -infiles file1 file2\n"
 	"\n"
-	"    o in each file, change the 8 characters at 2515 to 'hi there':\n"
+	"   ----- character modification examples -----\n"
+	"\n"
+	"   8. in each file, change the 8 characters at 2515 to 'hi there':\n"
 	"\n"
 	"      %s -mod_data \"hi there\" -offset 2515 -length 8 -infiles I.*\n"
 	"\n"
-	"    o in each file, change the 21 characters at 2515 to all 'x's\n"
+	"   9. in each file, change the 21 characters at 2515 to all 'x's\n"
         "      (and print out extra debug info)\n"
 	"\n"
 	"      %s -debug 1 -mod_data x -mod_type val -offset 2515 \\\n"
         "                -length 21 -infiles I.*\n"
+	"\n"
+	"   ----- raw number modification examples -----\n"
+	"\n"
+	"  10. in each file, change the 3 short integers starting at position\n"
+	"      2508 to '2 -419 17'\n"
+	"\n"
+	"      %s -mod_data '2 -419 17' -mod_type sint2 -offset 2508 \\\n"
+        "                -length 6 -infiles I.*\n"
+	"\n"
+	"  11. in each file, change the 3 binary floats starting at position\n"
+	"      2508 to '-83.4 2 17' (and set the next 8 bytes to zero by\n"
+	"      setting the length to 20, instead of just 12).\n"
+	"\n"
+	"      %s -mod_data '-83.4 2 17' -mod_type float4 -offset 2508 \\\n"
+        "                -length 20 -infiles I.*\n"
+	"\n"
+	"  12. in each file, change the 3 binary floats starting at position\n"
+	"      2508 to '-83.4 2 17', and apply byte swapping\n"
+	"\n"
+	"      %s -mod_data '-83.4 2 17' -mod_type float4 -offset 2508 \\\n"
+        "                -length 12 -swap_bytes -infiles I.*\n"
 	"\n"
 	"  notes:\n"
 	"\n"
@@ -784,6 +1010,8 @@ help_full( char * prog )
 	"\n"
 	"    -version           : show version information\n"
 	"                       : e.g. -version\n"
+	"\n"
+	"    -hist              : show the program's modification history\n"
 	"\n"
 	"    -debug LEVEL       : print extra info along the way\n"
 	"                       : e.g. -debug 1\n"
@@ -805,6 +1033,7 @@ help_full( char * prog )
 	"      -ge_extras       : display extra GE image info\n"
 	"      -ge_uv17         : display the value of uv17 (the run #)\n"
 	"      -ge_run          : (same as -ge_uv17)\n"
+	"      -ge_off          : display file offsets for various fields\n"
 	"\n"
 	"  GEMS 4.x info options:\n"
 	"\n"
@@ -818,25 +1047,63 @@ help_full( char * prog )
 	"    -length LENGTH     : specify the number of bytes to print/modify\n"
 	"                       : e.g. -length 17\n"
 	"\n"
+	"          This includes numbers after the conversion to binary.  So\n"
+	"          if -mod_data is '2 -63 186', and -mod_type is 'sint2' (or\n"
+	"          signed shorts), then 6 bytes will be written (2 bytes for\n"
+	"          each of 3 short integers).\n"
+	"\n"
+	"       ** Note that if the -length argument is MORE than what is\n"
+	"          needed to write the numbers out, the remaind of the length\n"
+	"          bytes will be written with zeros.  If '17' is given for\n"
+	"          the length, and 3 short integers are given as data, there \n"
+	"          will be 11 bytes of 0 written after the 6 bytes of data.\n"
+	"\n"
 	"    -mod_data DATA     : specify a string to change the data to\n"
 	"                       : e.g. -mod_data hello\n"
+	"                       : e.g. -mod_data '2 -17.4 649'\n"
 	"                       : e.g. -mod_data \"change to this string\"\n"
 	"\n"
-	"          Instead of printing LENGTH bytes starting at OFFSET bytes\n"
-	"          into each file, write LENGTH bytes of DATA there.\n"
+	"          This is the data that will be writting into the modified\n"
+	"          file.  If the -mod_type is 'str' or 'char', then the\n"
+	"          output data will be those characters.  If the -mod_type\n"
+	"          is any other (i.e. a binary numerical format), then the\n"
+	"          output will be the -mod_data, converted from numerical\n"
+	"          text to binary.\n"
 	"\n"
-	"          See the '-mod_type' option for addtional choices\n"
+	"       ** Note that a list of numbers must be contained in quotes,\n"
+	"          so that it will be processed as a single parameter.\n"
 	"\n"
-	"    -mod_type TYPE     : write a single value or an entire string\n"
-	"                       : e.g. -mod_type val\n"
+	"    -mod_type TYPE     : specify the data type to write to the file\n"
+	"                       : e.g. -mod_type string\n"
+	"                       : e.g. -mod_type sint2\n"
+	"                       : e.g. -mod_type float4\n"
 	"                       : default is 'str'\n"
 	"\n"
-	"          Possible values are 'str' and 'val'.  If 'str' is used,\n"
-	"          which is the default action, the data is replaced by the\n"
-	"          contents of the string DATA (see '-mod_data').\n"
+	"        TYPE can be one of:\n"
 	"\n"
-	"          If 'val' is used, then LENGTH bytes are replaced by the\n"
+	"          str       : perform a string substitution\n"
+	"          char, val : perform a (repeated?) character substitution\n"
+	"          uint1     : single byte unsigned int   (binary write)\n"
+	"          sint1     : single byte   signed int   (binary write)\n"
+	"          uint2     : two    byte unsigned int   (binary write)\n"
+	"          sint2     : two    byte   signed int   (binary write)\n"
+	"          uint4     : four   byte unsigned int   (binary write)\n"
+	"          sint4     : four   byte   signed int   (binary write)\n"
+	"          float4    : four   byte floating point (binary write)\n"
+	"          float8    : eight  byte floating point (binary write)\n"
+	"\n"
+	"          If 'str' is used, which is the default action, the data is\n"
+        "          replaced by the contents of the string DATA (from the\n"
+	"          '-mod_data' option).\n"
+	"\n"
+	"          If 'char' is used, then LENGTH bytes are replaced by the\n"
 	"          first character of DATA, repeated LENGTH times.\n"
+	"\n"
+	"          For any of the others, the list of numbers found in the\n"
+	"          -mod_data option will be written in the supplied binary\n"
+	"          format.  LENGTH must be large enough to accomodate this\n"
+	"          list.  And if LENGTH is higher, the output will be padded\n"
+	"          with zeros, to fill to the requesed length.\n"
 	"\n"
 	"    -offset OFFSET     : use this offset into each file\n"
 	"                       : e.g. -offset 100\n"
@@ -867,7 +1134,8 @@ help_full( char * prog )
 	"  - R Reynolds, version: %s, compiled: %s\n"
 	"\n",
 	prog, prog,
-	prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+	prog, prog, prog, prog, prog, prog, prog, prog, prog,
+	prog, prog, prog, prog,
         VERSION, __DATE__
         );
 
@@ -909,7 +1177,7 @@ swap_2( void * ptr )		/* destructive */
 /* stolen from Ifile.c and modified ... */
 
 int
-read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
+read_ge_header( char *pathname , ge_header_info *hi, ge_extras *E, ge_off *off )
 {
    FILE *imfile ;
    int  length , skip , swap=0 ;
@@ -958,6 +1226,9 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
    hi->nx = nx ;
    hi->ny = ny ;
 
+   off->nx =  8;
+   off->ny = 12;
+
    if( skip+2*nx*ny >  length ||               /* file is too short */
        skip         <= 0      ||               /* bizarre  */
        cflag        != 1      ||               /* data is compressed */
@@ -983,6 +1254,10 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
        fread( &dx , 4,1 , imfile ) ;
        fread( &dy , 4,1 , imfile ) ;
 
+       off->dx = hdroff+50;
+       off->dy = hdroff+54;
+       off->dz = hdroff+26;
+
        if( swap ){ swap_4(&dx); swap_4(&dy); swap_4(&dz); }
 
        hi->dx = dx ; hi->dy = dy ; hi->dz = dz ;
@@ -993,6 +1268,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
        /*   xyz[6..8] = bottom right hand corner of image (BRHC)   */
        /* GEMS coordinate orientation here is LPI                  */
 
+       off->xyz = hdroff+154;
        fseek( imfile , hdroff+154 , SEEK_SET ) ;  /* another magic number */
        fread( xyz , 4,9 , imfile ) ;
        if( swap ){
@@ -1052,6 +1328,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
 
        /*-- get TR in seconds --*/
 
+       off->tr = hdroff+194;
        fseek( imfile , hdroff+194 , SEEK_SET ) ;
        fread( &itr , 4,1 , imfile ) ; /* note itr is an int */
        if( swap ) swap_4(&itr) ;
@@ -1059,6 +1336,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
 
        /*-- get TE in milliseconds --*/
 
+       off->te = hdroff+202;
        fseek( imfile , hdroff+202 , SEEK_SET ) ;
        fread( &itr , 4,1 , imfile ) ; /* itr is an int, in microsec */
        if( swap ) swap_4(&itr) ;
@@ -1069,6 +1347,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras * E )
         * GE_readHeaderImage.m
         */
 
+        off->uv17 = hdroff+272+202;
 	/* printf ("\nuv17 = \n"); */
 	fseek ( imfile , hdroff+272+202, SEEK_SET ) ;
 	fread( &uv17 , 4, 1 , imfile ) ;
@@ -1276,6 +1555,35 @@ r_idisp_ge_header_info( char * info, ge_header_info * I )
 	    I, I->good, I->nx, I->ny, I->uv17,
 	    I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
 	    CHECK_NULL_STR(I->orients)
+	  );
+
+    return 0;
+}
+
+
+/*------------------------------------------------------------
+ *  Display the contents of the ge_header_info struct.
+ *------------------------------------------------------------
+*/
+int
+disp_ge_offsets( char * info, ge_off * D )
+{
+    if ( info )
+        fputs( info, stdout );
+
+    if ( D == NULL )
+    {
+        printf( "disp_ge_offsets: D == NULL" );
+        return -1;
+    }
+
+    printf( " ge_off at %p :\n"
+	    "    nx, ny, uv17 = %d, %d, %d\n"
+	    "    dx, dy, dz   = %d, %d, %d\n"
+	    "    tr, te, xyz  = %d, %d, %d\n",
+	    D, D->nx, D->ny, D->uv17,
+	    D->dx, D->dy, D->dz,
+	    D->tr, D->te, D->xyz
 	  );
 
     return 0;
