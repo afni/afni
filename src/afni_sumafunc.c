@@ -8,6 +8,10 @@
     -  0 return ==> no overlay
     - -1 return ==> some error (e.g., no surface nodes on this dataset)
     - *map is set to a newly malloc()-ed array (if return > 0)
+    - *nvused is set to the number of functional dataset voxels used to
+        make the map (e.g., those that got some color)
+    - im3d->anat_now->su_vnlist->nvox will have the total number of
+       functional dataset voxels that intersected the surface
 
     Sample usage:
     - SUMA_irgba *map ;
@@ -15,10 +19,10 @@
     - nmap = AFNI_vnlist_func_overlay( im3d , &map ) ;
     -      if( nmap <  0 ){ ** error ** }
     - else if( nmap == 0 ){ ** nothing to show ** }
-    - else                { ** something to show ** }
+    - else                { ** show map[0..nmap-1] ** }
 -------------------------------------------------------------------------*/
 
-int AFNI_vnlist_func_overlay( Three_D_View *im3d , SUMA_irgba **map )
+int AFNI_vnlist_func_overlay( Three_D_View *im3d, SUMA_irgba **map, int *nvused )
 {
    MRI_IMAGE *im_thr , *im_fim ;
    short fim_ovc[NPANE_MAX+1] ;
@@ -33,12 +37,15 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d , SUMA_irgba **map )
    SUMA_ixyz  *ixyz ;
    int nvox,nnod,nout , *numnod , *voxijk , *nlist ;
    int *vlist ;
+   int nvout ;   /* 13 Mar 2002 */
 
 ENTRY("AFNI_vnlist_func_overlay") ;
 
    /* check inputs for goodness */
 
    if( map == NULL || !IM3D_VALID(im3d) ) RETURN(-1) ; /* that was easy */
+
+   if( nvused != NULL ) *nvused = 0 ;      /* default return value here */
 
    /* check datasets for goodness */
 
@@ -239,7 +246,7 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
 
    switch( im_fim->kind ){
 
-      default: nout = 0 ; break ;   /* should never happen */
+      default: nvout = nout = 0 ; break ;   /* should never happen */
 
       case MRI_short:{
          short * ar_fim = MRI_SHORT_PTR(im_fim) ;
@@ -257,7 +264,7 @@ for(lp=0;lp<num_lp;lp++)
 fprintf(stderr,"  fim_thr[%d]=%f\n",lp,fim_thr[lp]) ;
 #endif
 
-         nout = 0 ;                                   /* num output nodes */
+         nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
             /* find pane this voxel is in */
@@ -274,6 +281,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
         jj,ii,ixyz[nlist[nn]].id,r,g,b,r,g,b ) ;
 #endif
             }
+            nvout++ ;                           /* number of voxels used */
          }
       }
       break ;
@@ -289,7 +297,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
            else
              fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
-         nout = 0 ;                                   /* num output nodes */
+         nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
             /* find pane this voxel is in */
@@ -302,6 +310,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
                mmm[nout].r  = r ; mmm[nout].g = g ;
                mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
             }
+            nvout++ ;                           /* number of voxels used */
          }
       }
       break ;
@@ -314,7 +323,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
          for( lp=0 ; lp < num_lp ; lp++ )
             fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
 
-         nout = 0 ;                                   /* num output nodes */
+         nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
             /* find pane this voxel is in */
@@ -327,6 +336,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
                mmm[nout].r  = r ; mmm[nout].g = g ;
                mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
             }
+            nvout++ ;                           /* number of voxels used */
          }
       }
       break ;
@@ -339,5 +349,8 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
    if( nout == 0 ){ free(mmm); RETURN(0); }  /* no overlay? */
 
    *map = (SUMA_irgba *) realloc( mmm , sizeof(SUMA_irgba)*nout ) ;
+
+   if( nvused != NULL ) *nvused = nvout ;    /* 13 Mar 2002 */
+
    RETURN(nout) ;
 }
