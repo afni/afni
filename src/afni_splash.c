@@ -314,8 +314,9 @@ ENTRY("SPLASH_imseq_getim") ;
       stat->parent     = (XtPointer) imp  ;
       stat->aux        = NULL ;
 
-      stat->transforms0D = & (GLOBAL_library.registered_0D) ;
-      stat->transforms2D = & (GLOBAL_library.registered_2D) ;
+      stat->transforms0D = NULL ;  /* 31 Jan 2002: remove all functions */
+      stat->transforms2D = NULL ;
+      stat->slice_proj   = NULL ;
 
       RETURN((XtPointer) stat) ;
    }

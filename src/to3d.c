@@ -4443,6 +4443,7 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
 
       stat->transforms0D = NULL ;
       stat->transforms2D = NULL ;
+      stat->slice_proj   = NULL ;
 
       return (XtPointer) stat ;
    }

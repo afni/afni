@@ -1246,6 +1246,12 @@ STATUS("creation: widgets created") ;
    newseq->transform2D_av    = NULL ;
    newseq->transform2D_index = 0 ;
 
+   newseq->slice_proj_av       = NULL ;  /* 31 Jan 2002 */
+   newseq->slice_proj_func     = NULL ;
+   newseq->slice_proj_index    = 0    ;
+   newseq->slice_proj_range_av = NULL ;
+   newseq->slice_proj_range    = 0    ;
+
    newseq->rowgraph_av  = NULL ;       /* 30 Dec 1998 */
    newseq->rowgraph_num = 0 ;
    newseq->rowgraph_mtd = NULL ;
@@ -1686,7 +1692,7 @@ ENTRY("ISQ_make_image") ;
    if( im == NULL ){
       float new_width_mm , new_height_mm ;
 
-      tim = (MRI_IMAGE *) seq->getim( seq->im_nr , isqCR_getimage , seq->getaux ) ;
+      tim = ISQ_getimage( seq->im_nr , seq ) ;
 
       if( tim == NULL ){
 #if 0
@@ -1926,7 +1932,7 @@ MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq * seq , MRI_IMAGE * im )
    MRI_IMAGE * newim , * flipim , * lim ;
    int  scl_grp ;
    short clbot=0 , cltop=0 ;
-   int must_rescale = 0 ;
+   int must_rescale = 1 ;     /* 31 Jan 2002: always turn this on */
    int have_transform ;
 
 ENTRY("ISQ_process_mri") ;
@@ -2013,6 +2019,8 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
          KILL_1MRI(seq->orim) ;
          seq->orim = mri_to_float( lim ) ;
       }
+
+      if( !must_rescale && ISQ_DOING_SLICE_PROJ(seq) ) must_rescale = 1 ;
 
       /*----- first, set scaling based on user desires -----*/
 
@@ -2324,7 +2332,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
    Widget meter = NULL ;
-   int meter_perc , meter_pold , meter_pbase ;
+   int meter_perc , meter_pold=0 , meter_pbase ;
 #endif
 
 ENTRY("ISQ_saver_CB") ;
@@ -2512,7 +2520,7 @@ ENTRY("ISQ_saver_CB") ;
 
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
-      tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
+      tim = ISQ_getimage( kf , seq ) ;
       if( tim == NULL ){
          if( kf == seq->saver_to && agif_list != NULL ){ /* 19 Sep 2001 */
             fprintf(stderr,
@@ -3008,6 +3016,9 @@ ENTRY("ISQ_free_alldata") ;
    FREE_AV( seq->ov_opacity_av )      ; /* 07 Mar 2001 */
    FREE_AV( seq->wbar_label_av )      ; /* 20 Sep 2001 */
    myXtFree( seq->wbar_plots_bbox )   ;
+
+   FREE_AV( seq->slice_proj_av )       ; /* 31 Jan 2002 */
+   FREE_AV( seq->slice_proj_range_av ) ;
 
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
       seq->rowgraph_mtd->killfunc = NULL ;
@@ -3987,7 +3998,7 @@ ENTRY("ISQ_but_disp_CB") ;
       if( ib == NTOG_IMP ){
          int nav = 0 ;
 
-         /*---- add some check boxes for special options ----*/
+         /*---- FIRST, add some check boxes for special options ----*/
 
          char *save_one_label[] = { "Save One" }  ; /* 26 Jul 2001 */
          char *save_agif_label  = "Save Anim GIF" ; /* 27 Jul 2001 */
@@ -4041,7 +4052,51 @@ ENTRY("ISQ_but_disp_CB") ;
            seq->save_agif_bbox = NULL ;
          }
 
-         /*---- OK, do the transforms now ----*/
+         /*---- OK, do the transforms NOW ----*/
+
+         if( seq->status->slice_proj != NULL &&
+             seq->status->slice_proj->num > 0  ){  /* 31 Jan 2002 */
+
+             (void) XtVaCreateManagedWidget(
+                      "menu" , xmSeparatorWidgetClass , rcboxes ,
+                         XmNseparatorType , XmSINGLE_LINE ,
+                         XmNinitialResourcesPersistent , False ,
+                      NULL ) ;
+
+             seq->slice_proj_av =
+                new_MCW_optmenu( rcboxes , "Project" ,
+                                 0 , seq->status->slice_proj->num ,
+                                 seq->slice_proj_index , 0 ,
+                                 ISQ_slice_proj_CB , (XtPointer) seq ,
+                                 ISQ_transform_label ,
+                                 (XtPointer) seq->status->slice_proj ) ;
+
+             if( seq->status->slice_proj->num >= COLSIZE )
+                AVOPT_columnize( seq->slice_proj_av ,
+                                 (seq->status->slice_proj->num/COLSIZE)+1 ) ;
+
+             MCW_reghelp_children( seq->slice_proj_av->wrowcol ,
+                                   "Choose a projection function\n"
+                                   "to apply to plus-or-minus\n"
+                                   "'Slab' slices."                  ) ;
+             MCW_reghint_children( seq->slice_proj_av->wrowcol ,
+                                   "Slice projection function"       ) ;
+
+             seq->slice_proj_range_av =
+                new_MCW_optmenu( rcboxes , "Slab +-" ,
+                                 0 , 19 , seq->slice_proj_range , 0 ,
+                                 ISQ_slice_proj_CB , (XtPointer) seq ,
+                                 NULL , NULL ) ;
+             MCW_reghelp_children( seq->slice_proj_range_av->wrowcol ,
+                                   "Choose thickness of Project slice\n"
+                                   "package (in each direction from\n"
+                                   "central slice)."                    ) ;
+             MCW_reghint_children( seq->slice_proj_range_av->wrowcol ,
+                                   "Slice projection slab size"         ) ;
+             nav++ ;
+         }
+
+         /* 0D transforms */
 
          if( seq->status->transforms0D != NULL &&
              seq->status->transforms0D->num > 0  ){
@@ -4071,6 +4126,8 @@ ENTRY("ISQ_but_disp_CB") ;
                                    "Pointwise transformations" ) ;
              nav++ ;
          }
+
+         /* 2D transforms */
 
          if( seq->status->transforms2D != NULL &&
              seq->status->transforms2D->num > 0  ){
@@ -6350,7 +6407,7 @@ ENTRY("ISQ_manufacture_one") ;
    /** Not an overlay image **/
 
    if( ! overlay ){
-      tim = (MRI_IMAGE *) seq->getim( nim , isqCR_getimage , seq->getaux ) ;
+      tim = ISQ_getimage( nim , seq ) ;
       if( tim == NULL ) RETURN( NULL );
       im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
       RETURN( im );
@@ -6988,6 +7045,37 @@ ENTRY("ISQ_transform_CB") ;
          seq->transform2D_index = av->ival ;
       }
    }
+
+   ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void ISQ_slice_proj_CB( MCW_arrowval * av , XtPointer cd )
+{
+   MCW_imseq * seq = (MCW_imseq *) cd ;
+
+ENTRY("ISQ_slice_proj_CB") ;
+
+   if( ! ISQ_VALID(seq) ) EXRETURN ;
+
+   /** set the slice_proj function pointer **/
+
+   if( av != NULL && av == seq->slice_proj_av ){
+      if( seq->status->slice_proj == NULL || av->ival <= 0 ||
+          av->ival > seq->status->slice_proj->num            ){
+
+         seq->slice_proj_func  = NULL ;  /* no slice_proj */
+         seq->slice_proj_index = 0 ;
+      } else {
+         seq->slice_proj_func  = (float_func *)
+                                 seq->status->slice_proj->funcs[av->ival - 1] ;
+         seq->slice_proj_index = av->ival ;
+      }
+   }
+
+   seq->slice_proj_range = seq->slice_proj_range_av->ival ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
@@ -8038,371 +8126,98 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
    return ;
 }
 
-/*======================================================================*/
-/*----------------------- Sample 2D transformations --------------------*/
-/*======================================================================*/
+/*--------------------------------------------------------------------------*/
+/*! Get the image for display.  Maybe use projections. [31 Jan 2002] */
 
-static float * atemp = NULL ;
-static int    natemp = -666 ;
-
-#define MAKE_ATEMP(nvox)                     \
-  do{ if( natemp < (nvox) ){                 \
-         if( atemp != NULL ) free(atemp) ;   \
-         natemp = (nvox) ;                   \
-         atemp  = (float *) malloc( sizeof(float) * natemp ) ; } } while(0)
-
-#define AT(i,j) atemp[(i)+(j)*nx]
-
-/*------------------------------------------------------------------------*/
-
-void median9_box_func( int nx , int ny , double dx, double dy, float * ar )
+MRI_IMAGE * ISQ_getimage( int nn , MCW_imseq *seq )
 {
-   int ii , jj , nxy , joff ;
-   float aa[9] ;
-   float * ajj , * ajm , * ajp ;
+   int ii , rr , jj , ns , npix , ktim ;
+   MRI_IMAGE *tim , *qim , *fim ;
+   MRI_IMARR *imar ;
+   float *far , val , *qar , **iar ;
 
-   if( nx < 3 || ny < 3 ) return ;
+ENTRY("ISQ_getimage") ;
 
-   /** make space and copy input into it **/
+   /* get the commanded slice */
 
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+   tim = (MRI_IMAGE *) seq->getim( nn, isqCR_getimage, seq->getaux ) ;
 
-   /** process copy of input back into the input array **/
+   /* the old way - return this slice */
 
-   for( jj=0 ; jj < ny ; jj++ ){
+   if( !ISQ_DOING_SLICE_PROJ(seq) ) RETURN(tim) ;
 
-      joff = jj * nx ;      /* offset into this row */
-      ajj  = atemp + joff ; /* pointer to this row */
+   ns = seq->status->num_series ;
+   rr = seq->slice_proj_range   ; if( rr > ns/2 ) rr = ns/2 ;
 
-      ajm  = (jj==0   ) ? ajj : ajj-nx ;  /* pointer to last row */
-      ajp  = (jj==ny-1) ? ajj : ajj+nx ;  /* pointer to next row */
+   if( rr                    == 0           ||
+       seq->slice_proj_index == 0           ||
+       seq->slice_proj_func  == NULL        ||
+       tim                   == NULL        ||
+       tim->kind             == MRI_rgb     ||
+       tim->kind             == MRI_complex   ){
 
-      /* do interior points of this row */
+      RETURN(tim) ;
+   }
 
-      for( ii=1 ; ii < nx-1 ; ii++ ){
-         aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
-         aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
-         aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
-#if 0
-         isort_float( 9 , aa ) ; ar[ii+joff] = aa[4] ;
-#else
-         ar[ii+joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
-#endif
+   /* the new way - return the projection of a bunch of images */
+
+   INIT_IMARR(imar) ;
+
+   ktim = tim->kind ;  /* save for later use */
+
+   /* get the images into imar */
+
+   for( ii=-rr ; ii <= rr ; ii++ ){
+
+      if( ii == 0 ){                /* at the middle, just put a   */
+         fim = mri_to_float(tim) ;  /* copy of the commanded slice */
+         ADDTO_IMARR(imar,fim) ;
+         continue ;
       }
 
-      /* do leading edge point (ii=0) */
+      jj = nn+ii ;                    /* offset slice */
+           if( jj < 0   ) jj = 0    ; /* but not past the edges */
+      else if( jj >= ns ) jj = ns-1 ;
 
-      aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
-      aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
-      aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
-#if 0
-      isort_float( 9 , aa ) ; ar[joff] = aa[4] ;
-#else
-      ar[joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
-#endif
+      qim = (MRI_IMAGE *) seq->getim( jj, isqCR_getimage, seq->getaux ) ;
+      if( qim == NULL )
+         fim = mri_to_float(tim) ;                 /* need something */
+      else if( qim->kind != MRI_float ){
+         fim = mri_to_float(qim) ; mri_free(qim) ; /* convert it */
+      } else
+         fim = qim ;                               /* just put it here */
 
-      /* do trailing edge point (ii=nx-1) */
-
-      aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
-      aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
-      aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
-#if 0
-      isort_float( 9 , aa ) ; ar[nx-1+joff] = aa[4] ;
-#else
-      ar[nx-1+joff] = qmed_float(9,aa) ;  /* 25 Oct 2000 */
-#endif
-   }
-   return ;
-}
-
-/*------------------------------------------------------------------------*/
-
-void winsor9_box_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   int ii , jj , nxy , joff ;
-   float aa[9] ;
-   float * ajj , * ajm , * ajp ;
-
-   if( nx < 3 || ny < 3 ) return ;
-
-   /** make space and copy input into it **/
-
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-
-   /** process copy of input back into the input array **/
-
-   for( jj=0 ; jj < ny ; jj++ ){
-
-      joff = jj * nx ;      /* offset into this row */
-      ajj  = atemp + joff ; /* pointer to this row */
-
-      ajm  = (jj==0   ) ? ajj : ajj-nx ;  /* pointer to last row */
-      ajp  = (jj==ny-1) ? ajj : ajj+nx ;  /* pointer to next row */
-
-      /* do interior points of this row */
-
-      for( ii=1 ; ii < nx-1 ; ii++ ){
-         aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
-         aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
-         aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
-         isort_float( 9 , aa ) ;
-              if( ar[ii+joff] < aa[2] ) ar[ii+joff] = aa[2] ;
-         else if( ar[ii+joff] > aa[6] ) ar[ii+joff] = aa[6] ;
-      }
-
-      /* do leading edge point (ii=0) */
-
-      aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
-      aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
-      aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
-      isort_float( 9 , aa ) ;
-           if( ar[joff] < aa[2] ) ar[joff] = aa[2] ;
-      else if( ar[joff] > aa[6] ) ar[joff] = aa[6] ;
-
-      /* do trailing edge point (ii=nx-1) */
-
-      aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
-      aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
-      aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
-      isort_float( 9 , aa ) ;
-           if( ar[nx-1+joff] < aa[2] ) ar[nx-1+joff] = aa[2] ;
-      else if( ar[nx-1+joff] > aa[6] ) ar[nx-1+joff] = aa[6] ;
-   }
-   return ;
-}
-
-/*------------------------------------------------------------------------*/
-
-void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   int ii , jj , nxy , joff ;
-   float aa[9] ;
-   float * ajj , * ajm , * ajp ;
-
-   if( nx < 3 || ny < 3 ) return ;
-
-   /** make space and copy input into it **/
-
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-
-   /** process copy of input back into the input array **/
-
-   for( jj=0 ; jj < ny ; jj++ ){
-
-      joff = jj * nx ;      /* offset into this row */
-      ajj  = atemp + joff ; /* pointer to this row */
-
-      ajm  = (jj==0   ) ? ajj : ajj-nx ;  /* pointer to last row */
-      ajp  = (jj==ny-1) ? ajj : ajj+nx ;  /* pointer to next row */
-
-      /* do interior points of this row */
-
-#undef  OSUM
-#define OSUM(a,b,c,d,e) ( 0.1*((a)+(e)) + 0.2*((b)+(d)) + 0.4*(c) )
-
-      for( ii=1 ; ii < nx-1 ; ii++ ){
-         aa[0] = ajm[ii-1] ; aa[1] = ajm[ii] ; aa[2] = ajm[ii+1] ;
-         aa[3] = ajj[ii-1] ; aa[4] = ajj[ii] ; aa[5] = ajj[ii+1] ;
-         aa[6] = ajp[ii-1] ; aa[7] = ajp[ii] ; aa[8] = ajp[ii+1] ;
-         isort_float( 9 , aa ) ;
-         ar[ii+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
-      }
-
-      /* do leading edge point (ii=0) */
-
-      aa[0] = ajm[0] ; aa[1] = ajm[0] ; aa[2] = ajm[1] ;
-      aa[3] = ajj[0] ; aa[4] = ajj[0] ; aa[5] = ajj[1] ;
-      aa[6] = ajp[0] ; aa[7] = ajp[0] ; aa[8] = ajp[1] ;
-      isort_float( 9 , aa ) ;
-      ar[joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
-
-      /* do trailing edge point (ii=nx-1) */
-
-      aa[0] = ajm[nx-2] ; aa[1] = ajm[nx-1] ; aa[2] = ajm[nx-1] ;
-      aa[3] = ajj[nx-2] ; aa[4] = ajj[nx-1] ; aa[5] = ajj[nx-1] ;
-      aa[6] = ajp[nx-2] ; aa[7] = ajp[nx-1] ; aa[8] = ajp[nx-1] ;
-      isort_float( 9 , aa ) ;
-      ar[nx-1+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
-   }
-   return ;
-}
-
-/*------------------------------------------------------------------------*/
-
-void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   int ii , jj , nxy , joff ;
-   float aa[21] ;
-   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
-
-   if( nx < 5 || ny < 5 ) return ;
-
-   /** make space and copy input into it **/
-
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-#if 0
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-#else
-   memcpy( atemp , ar , sizeof(float)*nxy ) ;
-#endif
-
-   /** process copy of input back into the input array **/
-
-   for( jj=1 ; jj < ny-1 ; jj++ ){
-
-      joff = jj * nx ;      /* offset into this row */
-      ajj  = atemp + joff ; /* pointer to this row */
-
-      ajm  = ajj-nx ;  /* pointer to last row */
-      ajp  = ajj+nx ;  /* pointer to next row */
-
-      ajmm = (jj == 1  ) ? ajm : ajm-nx ;  /* to last last row */
-      ajpp = (jj ==ny-2) ? ajp : ajp+nx ;  /* to next next row */
-
-      /* do interior points of this row */
-
-      for( ii=2 ; ii < nx-2 ; ii++ ){
-         aa[0]=ajmm[ii-1]; aa[1]=ajmm[ii]; aa[2]=ajmm[ii+1];
-
-         aa[ 3]=ajm[ii-2]; aa[ 4]=ajm[ii-1]; aa[ 5]=ajm[ii]; aa[ 6]=ajm[ii+1]; aa[ 7]=ajm[ii+2];
-         aa[ 8]=ajj[ii-2]; aa[ 9]=ajj[ii-1]; aa[10]=ajj[ii]; aa[11]=ajj[ii+1]; aa[12]=ajj[ii+2];
-         aa[13]=ajp[ii-2]; aa[14]=ajp[ii-1]; aa[15]=ajp[ii]; aa[16]=ajp[ii+1]; aa[17]=ajp[ii+2];
-
-         aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
-
-#if 0
-         isort_float( 21 , aa ) ; ar[ii+joff] = aa[10] ;
-#else
-         ar[ii+joff] = qmed_float(21,aa) ; /* 25 Oct 2000 */
-#endif
-      }
-
-   }
-   return ;
-}
-
-/*------------------------------------------------------------------------*/
-
-void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   int ii , jj , nxy , joff ;
-   float aa[21] ;
-   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
-
-   static int kbot=-1 , ktop ;
-
-   if( nx < 5 || ny < 5 ) return ;
-
-   /** initialize cutoffs [07 Dec 1999] **/
-
-   if( kbot < 0 ){
-      char * ee = my_getenv("AFNI_WINSOR21_CUTOFF") ;
-      kbot = 6 ;   /* default */
-      if( ee != NULL ){
-         ii = strtol( ee , NULL , 10 ) ;
-         if( ii > 0 && ii < 10 ) kbot = ii ;
-      }
-      ktop = 20 - kbot ;
+      ADDTO_IMARR(imar,fim) ;
    }
 
-   /** make space and copy input into it **/
+   /* project images, put results into qim */
 
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-#if 0
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-#else
-   memcpy( atemp , ar , sizeof(float)*nxy ) ;
-#endif
+   qim = mri_new_conforming( tim , MRI_float ) ;
+   qar = MRI_FLOAT_PTR(qim) ; MRI_COPY_AUX(qim,tim) ;
+   mri_free(tim) ;
 
-   /** process copy of input back into the input array **/
+   npix = qim->nvox ;
+   rr   = 2*rr+1 ;
+   far  = (float * ) malloc( sizeof(float  ) * rr ) ;
+   iar  = (float **) malloc( sizeof(float *) * rr ) ;
 
-   for( jj=1 ; jj < ny-1 ; jj++ ){
+   for( ii=0 ; ii < rr ; ii++ )
+      iar[ii] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,ii)) ;
 
-      joff = jj * nx ;      /* offset into this row */
-      ajj  = atemp + joff ; /* pointer to this row */
+   for( jj=0 ; jj < npix ; jj++ ){
 
-      ajm  = ajj-nx ;  /* pointer to last row */
-      ajp  = ajj+nx ;  /* pointer to next row */
+      for( ii=0 ; ii < rr ; ii++ ) far[ii] = iar[ii][jj] ;
 
-      ajmm = (jj == 1  ) ? ajm : ajm-nx ;  /* to last last row */
-      ajpp = (jj ==ny-2) ? ajp : ajp+nx ;  /* to next next row */
+      val = seq->slice_proj_func( rr , far ) ;
 
-      /* do interior points of this row */
-
-      for( ii=2 ; ii < nx-2 ; ii++ ){
-         aa[0]=ajmm[ii-1]; aa[1]=ajmm[ii]; aa[2]=ajmm[ii+1];
-
-         aa[ 3]=ajm[ii-2]; aa[ 4]=ajm[ii-1]; aa[ 5]=ajm[ii]; aa[ 6]=ajm[ii+1]; aa[ 7]=ajm[ii+2];
-         aa[ 8]=ajj[ii-2]; aa[ 9]=ajj[ii-1]; aa[10]=ajj[ii]; aa[11]=ajj[ii+1]; aa[12]=ajj[ii+2];
-         aa[13]=ajp[ii-2]; aa[14]=ajp[ii-1]; aa[15]=ajp[ii]; aa[16]=ajp[ii+1]; aa[17]=ajp[ii+2];
-
-         aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
-
-         isort_float( 21 , aa ) ;
-
-              if( ar[ii+joff] < aa[kbot] ) ar[ii+joff] = aa[kbot] ;
-         else if( ar[ii+joff] > aa[ktop] ) ar[ii+joff] = aa[ktop] ;
-      }
-
-   }
-   return ;
-}
-
-/*------- [30 Jun 2000: abs(2D FFT) function] ----------------------------*/
-
-void fft2D_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   complex * cxar , *cpt ;
-   int nxup,nyup , ii,jj ;
-   float fi,fj , *fpt ;
-
-   if( nx < 5 || ny < 5 ) return ;
-
-   nxup = csfft_nextup_one35(nx) ;  /* get FFT size */
-   nyup = csfft_nextup_one35(ny) ;
-
-   cxar = (complex *) malloc(sizeof(complex)*nxup*nyup) ;
-
-   /* copy input to output, sign-alternating and zero-padding along the way */
-
-   cpt = cxar ;
-   fpt = ar   ;
-   fj  = 1.0  ;
-   for( jj=0 ; jj < ny ; jj++ ){
-      fi = fj ; fj = -fj ;
-      for(ii=0; ii<nx  ; ii++){cpt->r=*fpt*fi; cpt->i=0.0; cpt++;fpt++;fi=-fi;}
-      for(    ; ii<nxup; ii++){cpt->r=cpt->i=0.0; cpt++;}
-   }
-   for( ; jj < nyup ; jj++ ){cpt->r=cpt->i=0.0; cpt++;}
-
-   /* row FFTs */
-
-   for( jj=0 ; jj < ny ; jj++ )
-      csfft_cox( -1 , nxup , cxar+jj*nxup ) ;
-
-   /* column FFTs */
-
-   cpt = (complex *) malloc(sizeof(complex)*nyup) ;
-
-   for( ii=0 ; ii < nxup ; ii++ ){
-      for( jj=0 ; jj < nyup ; jj++ ) cpt[jj] = cxar[ii+jj*nxup] ;
-      csfft_cox( -1 , nyup , cpt ) ;
-      for( jj=0 ; jj < nyup ; jj++ ) cxar[ii+jj*nxup] = cpt[jj] ;
+      qar[jj] = val ;
    }
 
-   /* copy to output */
+   free(iar) ; free(far) ; DESTROY_IMARR(imar) ;
 
-   for( jj=0 ; jj < ny ; jj++ )
-      for( ii=0 ; ii < nx ; ii++ )
-         ar[ii+jj*nx] = CABS(cxar[ii+jj*nxup]) ;
+   if( ktim != MRI_float ){
+      tim = mri_to_mri(ktim,qim); mri_free(qim); qim = tim;
+   }
 
-   free(cxar) ; free(cpt) ; return ;
+   RETURN(qim) ;
 }

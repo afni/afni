@@ -943,6 +943,8 @@ typedef struct {
 
    THD_session *session ;                         /* 20 Dec 2001 */
 
+   MCW_function_list registered_slice_proj ;      /* 31 Jan 2002 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -1681,18 +1683,40 @@ extern int AFNI_controller_code_to_index( char *code ) ;
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/
 
-extern void log10_func  ( int , float * ) ;  /* a sample 0D function */
-extern void ssqrt_func  ( int , float * ) ;  /* another */
+/* sample 0D transform functions */
 
-extern void osfilt3_func( int , double,double , float * ) ;  /* a sample 1D function */
-extern void median3_func( int , double,double , float * ) ;  /* another */
-extern void absfft_func ( int , double,double , float * ) ;  /* another */
+extern void log10_func( int, float * ) ;
+extern void ssqrt_func( int, float * ) ;
 
-extern void AFNI_register_nD_function( int , char * , generic_func * , int ) ;
+/* sample 1D transform functions */
+
+extern void osfilt3_func( int, double,double, float * ) ;
+extern void median3_func( int, double,double, float * ) ;
+extern void absfft_func ( int, double,double, float * ) ;
+
+/* 31 Jan 2002: sample slice_proj transform functions */
+
+extern float max_proj ( int, float * ) ;
+extern float min_proj ( int, float * ) ;
+extern float mean_proj( int, float * ) ;
+
+/* sample 2D transform functions */
+
+extern void median9_box_func ( int, int, double,double, float * ) ;
+extern void winsor9_box_func ( int, int, double,double, float * ) ;
+extern void osfilt9_box_func ( int, int, double,double, float * ) ;
+extern void fft2D_func       ( int, int, double,double, float * ) ;
+extern void median21_box_func( int, int, double,double, float * ) ;
+extern void winsor21_box_func( int, int, double,double, float * ) ;
+
+extern void AFNI_register_nD_function( int, char *, generic_func *, int ) ;
 
 #define AFNI_register_0D_function(cc,ff) AFNI_register_nD_function(0,(cc),(ff),0)
 #define AFNI_register_1D_function(cc,ff) AFNI_register_nD_function(1,(cc),(ff),0)
 #define AFNI_register_2D_function(cc,ff) AFNI_register_nD_function(2,(cc),(ff),0)
+
+#define AFNI_register_slice_proj(cc,ff)  \
+   AFNI_register_nD_function(-1,(cc),(generic_func *)(ff),0)   /* 31 Jan 2002 */
 
 #define AFNI_register_1D_funcstr(cc,ff)  \
    AFNI_register_nD_function(1,(cc),(ff),RETURNS_STRING)
