@@ -94,6 +94,8 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
                         : (nnax < 6) ? 5 : 2 ;
    } else {
       nnax = 1 ; mmax = 10 ;
+      ii = (int)rint(xtop-xbot) ;
+      if( fabs(xtop-xbot-ii) < 0.01 && ii <= 200 ) mmax = ii ;
    }
 
    /*-- find range of y --*/
@@ -394,6 +396,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
                         : (nnax < 6) ? 5 : 2 ;
    } else {
       nnax = 1 ; mmax = 10 ;
+      ii = (int)rint(xtop-xbot) ;
+      if( fabs(xtop-xbot-ii) < 0.01 && ii <= 200 ) mmax = ii ;
    }
 
    /*-- push range of y outwards --*/
