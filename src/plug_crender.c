@@ -1927,7 +1927,8 @@ void RCREND_reload_dataset(void)
 	 }
 
          printf("++ reorienting underlay as rai..." );
-         gcr.dset_or = r_new_resam_dset(dset, 0,0,0, "rai", RESAM_NN_TYPE);
+         gcr.dset_or = r_new_resam_dset(dset, NULL, 0,0,0, "rai",
+                                        RESAM_NN_TYPE);
          printf(" done\n" );
       }
 
@@ -6292,7 +6293,8 @@ void RCREND_reload_func_dset(void)
          }
 
          printf("++ reorienting overlay as rai..." );
-         gcr.fset_or = r_new_resam_dset(func_dset, 0,0,0, "rai", RESAM_NN_TYPE);
+         gcr.fset_or = r_new_resam_dset(func_dset, NULL, 0,0,0, "rai",
+                                        RESAM_NN_TYPE);
          printf(" done\n" );
       }
 
