@@ -427,27 +427,33 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
          SUMA_RETURN(list);
       }   
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Cluster %p is finished, %d nodes\n", FuncName, Clust, Clust->N_Node); 
-      mean = Clust->totalvalue/((float)Clust->N_Node);
-      for (kk=0; kk < Clust->N_Node; ++kk) {
-         Clust->varvalue += (Clust->ValueList[kk] - mean) * (Clust->ValueList[kk] - mean);   
-      }
-      if (Clust->N_Node > 1) Clust->varvalue /= (Clust->N_Node - 1);
-      else Clust->varvalue = 0.0;
-      /* reallocate to save space */
-      Clust->NodeList = (int *)SUMA_realloc(Clust->NodeList, sizeof(int)*Clust->N_Node);
-      Clust->ValueList = (float *)SUMA_realloc(Clust->ValueList, sizeof(float)*Clust->N_Node);
-      if (!Clust->NodeList || !Clust->ValueList) { 
-         SUMA_SL_Crit("Failed to reallocate for NodeList or ValueList");  
-         SUMA_RETURN(NULL);   
-      }
-      /* find the central node */
-      if (!SUMA_ClusterCenterofMass  (SO, Clust, 1)) {
-         SUMA_SL_Err("Failed to find central node");  
-         SUMA_RETURN(list);   
-      }
+      
+      if (Opt->AreaLim > 0 && Clust->totalarea < Opt->AreaLim) {
+         SUMA_LH("Cluster less than area limit");
+         SUMA_FreeClustDatum((void *)Clust); Clust = NULL;
+      } else {
+         mean = Clust->totalvalue/((float)Clust->N_Node);
+         for (kk=0; kk < Clust->N_Node; ++kk) {
+            Clust->varvalue += (Clust->ValueList[kk] - mean) * (Clust->ValueList[kk] - mean);   
+         }
+         if (Clust->N_Node > 1) Clust->varvalue /= (Clust->N_Node - 1);
+         else Clust->varvalue = 0.0;
+         /* reallocate to save space */
+         Clust->NodeList = (int *)SUMA_realloc(Clust->NodeList, sizeof(int)*Clust->N_Node);
+         Clust->ValueList = (float *)SUMA_realloc(Clust->ValueList, sizeof(float)*Clust->N_Node);
+         if (!Clust->NodeList || !Clust->ValueList) { 
+            SUMA_SL_Crit("Failed to reallocate for NodeList or ValueList");  
+            SUMA_RETURN(NULL);   
+         }
+         /* find the central node */
+         if (!SUMA_ClusterCenterofMass  (SO, Clust, 1)) {
+            SUMA_SL_Err("Failed to find central node");  
+            SUMA_RETURN(list);   
+         }
 
-      dlist_ins_next(list, dlist_tail(list), (void *)Clust); 
-      ++nc;
+         dlist_ins_next(list, dlist_tail(list), (void *)Clust); 
+         ++nc;
+      }
    }   
   
    if (N_n == 0) {
@@ -681,10 +687,12 @@ SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, DList *list, SUMA_
    
    \param SO (SUMA_SurfaceObject *)
    \param cd (SUMA_CLUST_DATUM *) basically the output of SUMA_SUMA_Build_Cluster_From_Node or 
-                                    an element of the list returned by SUMA_FindClusters
+                                  an element of the list returned by SUMA_FindClusters
+                                  Function will fill centralnode and weightedcentralnode
    \param UseSurfDist (int) 0: use distances along the surface (approximated by distances on the graph)
                             1: use Euclidian distances. 
    \return ans (int) : NOPE failed, YUP succeeded.
+                       
 */
 int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDist)
 {
@@ -880,29 +888,97 @@ void usage_SUMA_SurfClust ()
       char * s = NULL;
       s = SUMA_help_basics();
       printf ( "\nUsage: A program to check the quality of surfaces.\n"
-               "  SurfClust <-spec SpecFile> [<-sv sv_name>]\n"
-               "            <-surf_A insurf> [<-surf_B insurf>] \n"
+               "  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
+               "            <-surf_A insurf> \n"
                "            <-input inData.1D dcol_index> \n"
                "            <-rmm rad>\n"
-               "            <-amm2>\n"
+               "            [-amm2 minarea]\n"
                "            [-prefix OUTPREF]  \n"
+               "            [-out_roidset] [-out_fulllist]\n"
+               "            [-sort_none | -sort_n_nodes | -sort_area]\n"
                "\n"
                "  Mandatory parameters:\n"
+               "     -spec SpecFile: The surface spec file.\n"
+               "     -surf_A insurf: The input surface name.\n"
+               "     -input inData.1D dcol_index: The input 1D dataset\n"
+               "                                  and the index of the\n"
+               "                                  datacolumn to use\n"
+               "                                  (index 0 for 1st column).\n"
+               "                                  Values of 0 indicate \n"
+               "                                  inactive nodes.\n"
+               "     -rmm rad: Maximum distance between an activated node\n"
+               "               and the cluster to which it belongs.\n"
+               "               Distance is measured on the surface's graph (mesh).\n"
                "\n"
                "  Optional Parameters:\n"
+               "     -amm2 minarea: Do not output resutls for clusters having\n"
+               "                    an area less than minarea.\n"
                "     -prefix OUTPREF: Prefix for output.\n"
                "                      Default is the prefix of \n"
                "                      the input dataset.\n"
-               "     -out_roidset: Output an ROI dataset.\n"
-               "                   The ROI dataset's prefix has\n"
-               "                   _ClstMsk affixed to the OUTPREF.\n"
-               "     -out_fulllist: Force an output for all\n"
+               "     -out_roidset: Output an ROI dataset with the value\n"
+               "                   at each node being the rank of its\n"
+               "                   cluster. The ROI dataset's prefix has\n"
+               "                   _ClstMsk_rXX_aXX affixed to the OUTPREF\n"
+               "                   where XX represent the values for the\n"
+               "                   the -rmm and -amm2 options respectively.\n"
+               "                   The program will not overwrite pre-existing\n"
+               "                   dsets.\n"
+               "     -out_fulllist: Output a value for all nodes of insurf\n"
                "                    nodes of insurf.\n"
                "     -sort_none: No sorting of ROI clusters.\n"
                "     -sort_n_nodes: Sorting based on number of nodes\n"
                "                    in cluster.\n"
                "     -sort_area: Sorting based on area of clusters \n"
                "                 (default).\n"
+             /*  "     -sv SurfaceVolume \n"
+               "        If you supply a surface volume, the coordinates of the input surface.\n"
+               "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
+               "     -acpc: Apply acpc transform (which must be in acpc version of \n"
+               "        SurfaceVolume) to the surface vertex coordinates. \n"
+               "        This option must be used with the -sv option.\n"
+               "     -tlrc: Apply Talairach transform (which must be a talairach version of \n"
+               "        SurfaceVolume) to the surface vertex coordinates. \n"
+               "        This option must be used with the -sv option.\n"
+               "     -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
+               "        AFNI tlrc coordinates (RAI) into MNI coord space \n"
+               "        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
+               "        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
+               "        to test it on. Verify alignment with AFNI and please report\n"
+               "        any bugs.\n" 
+               "        This option can be used without the -tlrc option.\n"
+               "        But that assumes that surface nodes are already in\n"
+               "        AFNI RAI tlrc coordinates .\n"    
+               "\n" */
+               "\n"
+               "  The cluster output:\n"
+               "  A table where ach row shows results from one cluster.\n"
+               "  Each row contains 13 columns:   \n"
+               "     Col. 0  Rank of cluster (sorting order).\n"
+               "     Col. 1  Number of nodes in cluster.\n"
+               "     Col. 2  Total area of cluster. Units are the \n"
+               "             the surface coordinates' units^2.\n"
+               "     Col. 3  Mean data value in cluster.\n"
+               "     Col. 4  Mean of absolute data value in cluster.\n"
+               "     Col. 5  Central node of cluster (see below).\n"
+               "     Col. 6  Weighted central node (see below).\n"
+               "     Col. 7  Minimum value in cluster.\n"
+               "     Col. 8  Node where minimum value occurred.\n"
+               "     Col. 9  Maximum value in cluster.\n"
+               "     Col. 10 Node where maximum value occurred.\n"
+               "     Col. 11 Variance of values in cluster.\n"
+               "     Col. 12 Standard error of the mean ( sqrt(variance / number of nodes) ).\n"
+               "   The CenterNode n is such that: \n"
+               "   ( sum (Uia * dia * wi) ) - ( Uca * dca * sum (wi) ) is minimal\n" 
+               "     where i is a node in the cluster\n"
+               "           a is an anchor node on the surface\n"
+               "           sum is carried over all nodes i in a cluster\n"
+               "           w. is the weight of a node \n"
+               "              = 1.0 for central node \n"
+               "              = value at node for the weighted central node\n"
+               "           U.. is the unit vector between two nodes\n"
+               "           d.. is the distance between two nodes on the graph\n"
+               "              (an approximation of the geodesic distance)\n"
                "\n"
                "%s"
                "\n", s);
@@ -1131,7 +1207,7 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL;
    float *NodeArea = NULL;
    FILE *clustout=NULL;
-   char *ClustOutName = NULL, *params=NULL;
+   char *ClustOutName = NULL, *params=NULL, stmp[200];
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -1150,7 +1226,9 @@ int main (int argc,char *argv[])
    Opt = SUMA_SurfClust_ParseInput (argv, argc);
 
    if (Opt->WriteFile) {
-      ClustOutName = SUMA_append_string(Opt->out_prefix, "_Clst.1D");   
+      if (Opt->AreaLim < 0) sprintf(stmp,"_Clst_r%.1f.1D", Opt->DistLim);
+      else sprintf(stmp,"_Clst_r%.1f_a%.1f.1D", Opt->DistLim, Opt->AreaLim);
+      ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
       if (SUMA_filexists(ClustOutName)) {
          fprintf (SUMA_STDERR,"Error %s:\nOutput file %s exists, will not overwrite.\n", FuncName, ClustOutName);
          exit(1);
@@ -1232,7 +1310,9 @@ int main (int argc,char *argv[])
       SUMA_DSET *dset_roi = NULL;
       char *ROIprefix = NULL;
       char *NameOut = NULL;
-      ROIprefix = SUMA_append_string(Opt->out_prefix, "_ClstMsk");
+      if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_r%.1f", Opt->DistLim);
+      else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      ROIprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk then cleanup */
       if (Opt->FullROIList) {
          dset_roi = SUMA_SurfClust_list_2_Dset(SO, list, YUP, ROIprefix);

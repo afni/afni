@@ -3251,7 +3251,7 @@ void usage_SUMA_ConvertSurface ()
                   "    -acpc: Apply acpc transform (which must be in acpc version of \n"
                   "        SurfaceVolume) to the surface vertex coordinates. \n"
                   "        This option must be used with the -sv option.\n"
-                  "    -tlrc: Apply Talairach transform (which must be in talairach version of \n"
+                  "    -tlrc: Apply Talairach transform (which must be a talairach version of \n"
                   "        SurfaceVolume) to the surface vertex coordinates. \n"
                   "        This option must be used with the -sv option.\n"
                   "    -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
