@@ -117,6 +117,7 @@ void matrix_initialize (matrix * m)
   m->rows = 0;
   m->cols = 0;
   m->elts = NULL;
+  m->mat  = NULL ;  /* 04 Mar 2005 */
 }
 
 
@@ -127,18 +128,8 @@ void matrix_initialize (matrix * m)
 
 void matrix_destroy (matrix * m)
 {
-  int i, rows;
-
-
-  if (m->elts != NULL)
-    {
-      rows = m->rows;
-      for (i = 0;  i < rows;  i++)
-	if (m->elts[i] != NULL)
-	  {  free (m->elts[i]);   m->elts[i] = NULL; }
-      free (m->elts);
-    }
-
+  if (m->elts != NULL) free (m->elts) ;
+  if( m->mat  != NULL) free (m->mat ) ;
   matrix_initialize (m);
 }
 
@@ -165,16 +156,12 @@ void matrix_create (int rows, int cols, matrix * m)
   if (m->elts == NULL)
     matrix_error ("Memory allocation error");
 
-  for (i = 0;  i < rows;  i++)
-    {
-      m->elts[i] = (double *) malloc (sizeof(double) * cols);
-      if (m->elts[i] == NULL)
-	matrix_error ("Memory allocation error");
-    }
+  m->mat  = (double *) calloc( sizeof(double) , rows*cols ) ;
+  if( m->mat == NULL )
+    matrix_error ("Memory allocation error");
 
   for (i = 0;  i < rows;  i++)
-    for (j = 0;  j < cols;  j++)
-      m->elts[i][j] = 0.0;
+     m->elts[i] = m->mat + (i*cols) ;   /* 04 Mar 2005: offsets into mat */
 }
 
 
@@ -829,16 +816,10 @@ void vector_create (int dim, vector * v)
   v->dim = dim;
   if (dim < 1)  return;
 
-  v->elts = (double *) malloc (sizeof(double) * dim);
+  v->elts = (double *) calloc (sizeof(double) , dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
 
-#if 0
-  for (i = 0;  i < dim;  i++)
-     v->elts[i] = 0.0;
-#else
-  memset( v->elts , 0 , sizeof(double)*dim ) ;
-#endif
 }
 
 /*---------------------------------------------------------------------------*/

@@ -35,6 +35,9 @@
   Mod:      Used "register" pointers in some places for speed -- RWCox.
   Date:     27 Feb 2003
 
+  Mod:      Use one array instead of array of arrays for matrix -- RWCox.
+  Date:     04 Mar 2005
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -48,6 +51,7 @@ typedef struct matrix
   int      rows;
   int      cols;
   float  ** elts;
+  float   * mat ;  /* 04 Mar 2005 */
 }  matrix;
 
 
