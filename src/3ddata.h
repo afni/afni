@@ -3556,6 +3556,7 @@ extern void   tross_Delete_Note(THD_3dim_dataset *, int   ) ;
 
 extern char * tross_Expand_String( char * ) ;
 extern char * tross_Encode_String( char * ) ;
+extern void tross_Dont_Encode_Slash( int ) ;  /* 13 Mar 2003 */
 
 extern void   tross_Store_Note   ( THD_3dim_dataset * , int , char * ) ;
 extern char * tross_Get_Note     ( THD_3dim_dataset * , int ) ;
