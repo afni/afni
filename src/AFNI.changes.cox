@@ -5386,3 +5386,4 @@
      order given, rather than the reverse order.
  * Fix REDISPLAY in afni_driver.c (oopsie).
  * Added '<MRI_IMAGE ...>' input to afni_niml.c, to store as .1D files.
+ * Added '-Dname=val' option to afni.c (set environment variables).
