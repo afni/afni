@@ -4029,3 +4029,5 @@
 05 Nov 2002
  * Added program rotcom.c, to print out matrix+vector from '-rotate ... -ashift ...'
      options that would be input to 3drotate.
+ * Fixed mri_read.c, mri_read_dicom.c, mri_dicom_hdr.c to stop annoying printout of
+     messages about bad DICOM files when trying to read GE I.* files.
