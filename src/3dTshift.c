@@ -256,7 +256,7 @@ int main( int argc , char *argv[] )
    float ffmin,ffmax , ggmin,ggmax ;
    MRI_IMAGE * flim , * glim ;
    float * far , * gar ;
-   int ignore=0 ;
+   int ignore=0 , BAD=0 ;
 
    /*- scan command line -*/
 
@@ -267,6 +267,10 @@ int main( int argc , char *argv[] )
    SHIFT_set_method( MRI_FOURIER ) ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-BAD") == 0 ){
+        BAD = 1 ; nopt++ ; continue ;
+      }
 
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          TS_verbose++ ;
@@ -465,7 +469,7 @@ int main( int argc , char *argv[] )
 
       tshift = (TS_tzero - TS_tpat[kk]) / TS_TR ;    /* rightward fractional shift */
 #if 1
-      tshift = -tshift ;   /* 24 Apr 2003 -- OOG */
+      if( !BAD ) tshift = -tshift ;   /* 24 Apr 2003 -- OOG */
 #endif
 
       if( TS_verbose )
