@@ -512,6 +512,7 @@ ENTRY("mri_read_dicom") ;
    }
 #endif
 
+   fclose(fp) ;     /* 10 Sep 2002: oopsie */
    RETURN( imar );
 }
 

@@ -3965,3 +3965,5 @@
      each type.
  * Modified to3d.c to open X11 immediately when -nosave is used.  Also added
      a bunch of ENTRY/RETURNs to ferret out a bug (it's still hidden).
+ * Oops.  Forgot to fclose() the fopen()-ed file in mri_read_dicom.c.  This
+     was causing the problems in to3d mentioned above.
