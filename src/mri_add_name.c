@@ -12,7 +12,7 @@
 /*** Copy a string into the image structure;
      The usual use is to remember the input filename ***/
 
-void mri_add_name( char * str , MRI_IMAGE * im )
+void mri_add_name( char *str , MRI_IMAGE *im )
 {
    int ll ;
 
@@ -25,13 +25,13 @@ ENTRY("mri_add_name") ;
 
    ll = strlen(str) ; if( ll <= 0 ) EXRETURN ;
 
-   im->name = (char * ) malloc( ll+1 ) ;
+   im->name = (char *) malloc( ll+1 ) ;
    strcpy( im->name , str ) ;
    EXRETURN ;
 }
 
 #ifdef USE_MRI_DELAY
-void mri_add_fname_delay( char * str , MRI_IMAGE * im )
+void mri_add_fname_delay( char *str , MRI_IMAGE *im )
 {
    int ll ;
 
@@ -45,7 +45,7 @@ ENTRY("mri_add_fname_delay") ;
 
    ll = strlen(str) ; if( ll <= 0 ) EXRETURN ;
 
-   im->fname = (char * ) malloc( ll+1 ) ;
+   im->fname = (char *) malloc( ll+1 ) ;
    strcpy( im->fname , str ) ;
    EXRETURN ;
 }

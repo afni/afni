@@ -26,8 +26,8 @@ static MRI_IMAGE * SPLASH_decode26( int , int , int , char ** ) ;
 static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
                                     byte *, byte *, byte * , char ** ) ;
 
-static MRI_IMAGE * imspl = NULL ;
-static void * handle = NULL ;
+static MRI_IMAGE *imspl = NULL ;
+static void *handle = NULL ;
 
 #define USE_FADING
 
@@ -40,7 +40,7 @@ static int AFNI_find_jpegs( char *, char ***) ;  /* 26 Nov 2003 */
 
 void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
 {
-   PLUGIN_impopper * ppp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *) handle ;
 
    if( ppp != NULL && ISQ_REALZ(ppp->seq) )
       XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
@@ -52,18 +52,18 @@ void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
 
 void AFNI_splashdown(void)
 {
-   PLUGIN_impopper * ppp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *) handle ;
 
 ENTRY("AFNI_splashdown") ;
 
    if( handle != NULL ){
 #ifdef USE_FADING
       float max_splash = 3.0 ;
-      char * hh = getenv("AFNI_SPLASHTIME") ;
+      char *hh = getenv("AFNI_SPLASHTIME") ;
       if( hh != NULL ) max_splash = strtod(hh,NULL) ;
       if( max_splash > 0.0 ){
          if( imspl != NULL ){  /* fade gently away */
-            byte * bspl ; int ii , nv , kk ; double et ;
+            byte *bspl ; int ii , nv , kk ; double et ;
             bspl = mri_data_pointer(imspl) ;
             nv   = (imspl->pixel_size) * (imspl->nvox) ;
             et   = COX_clock_time() ;
@@ -99,13 +99,13 @@ static char **fname_face   = NULL ;
 
 void AFNI_splashup(void)
 {
-   PLUGIN_impopper * ppp ;
-   MRI_IMAGE * imov ;
+   PLUGIN_impopper *ppp ;
+   MRI_IMAGE *imov ;
    int    dd,ee ;
    char   bb ;
-   byte * bspl ;
+   byte *bspl ;
    int   sxx,syy ;
-   char * sen ;
+   char *sen ;
    static int ncall=0 , nov , dnov , nm=-1 ;
 
 ENTRY("AFNI_splashup") ;
@@ -327,7 +327,7 @@ ENTRY("AFNI_splashup") ;
 
 static XtPointer SPLASH_imseq_getim( int n, int type, XtPointer handle )
 {
-   PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *imp = (PLUGIN_impopper *) handle ;
 
 ENTRY("SPLASH_imseq_getim") ;
 
@@ -336,7 +336,7 @@ ENTRY("SPLASH_imseq_getim") ;
    /*--- control info ---*/
 
    if( type == isqCR_getstatus ){
-      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;
+      MCW_imseq_status *stat = myXtNew( MCW_imseq_status ) ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
       stat->send_CB    = PLUGIN_seq_send_CB ;
@@ -358,7 +358,7 @@ ENTRY("SPLASH_imseq_getim") ;
          (since the imseq will delete it when it is done) ---*/
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
-      MRI_IMAGE * im = NULL ;
+      MRI_IMAGE *im = NULL ;
 #ifndef USE_WRITING
       if( imp->im != NULL ) im = mri_copy( imp->im ) ;
 #else
@@ -377,7 +377,7 @@ ENTRY("SPLASH_imseq_getim") ;
       int ii ;
       ii = create_memplot_surely("SPLASH memplot",1.0) ;
       if( ii == 0 ){
-         MEM_plotdata * mp = get_active_memplot() ;
+         MEM_plotdata *mp = get_active_memplot() ;
 
          set_thick_memplot(0.003) ;    /* slightly thick lines */
 
@@ -390,8 +390,8 @@ ENTRY("SPLASH_imseq_getim") ;
            set_color_memplot(1.0,1.0,0.1) ;           /* yellow */
            plotpak_pwritf( 0.5,0.033 , sf           , ss , 0 , 0 ) ;
          } else {
-           char * sf = AFNI_get_friend() ;
-           char * mf = strstr(sf," for ") ;
+           char *sf = AFNI_get_friend() ;
+           char *mf = strstr(sf," for ") ;
            int    nn = strlen(sf) ;
            set_color_memplot(1.0,1.0,0.5) ;         /* orangish */
            if( nn < 36 || mf == NULL ){
@@ -415,9 +415,9 @@ ENTRY("SPLASH_imseq_getim") ;
   The following is adapted from PLUTO_popup_image() in afni_plugin.c
 -------------------------------------------------------------------------*/
 
-static void * SPLASH_popup_image( void * handle , MRI_IMAGE * im )
+static void * SPLASH_popup_image( void *handle , MRI_IMAGE *im )
 {
-   PLUGIN_impopper * imp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *imp = (PLUGIN_impopper *) handle ;
 
 ENTRY("SPLASH_popup_image") ;
 
@@ -725,9 +725,9 @@ ENTRY("AFNI_faceup") ;
 /*---------------------------------------------------------------------------*/
 
 #define NLBUF 4096
-static char * linbuf ;  /* must be malloc()-ed before use */
+static char *linbuf ;  /* must be malloc()-ed before use */
 
-static int get_linbuf( char * str )
+static int get_linbuf( char *str )
 {
    int ii=0 , jj ;
 
@@ -759,7 +759,7 @@ static int get_linbuf( char * str )
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
+void AFNI_decode_geom( char *geom , int *ww, int *hh , int *xx, int *yy )
 {
    int has_x , has_plus ;
 
@@ -793,11 +793,11 @@ void AFNI_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
 
 #define NWBUF 128
 
-void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId * id )
+void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId *id )
 {
-   char * fname = (char *) client_data ;
-   int    nbuf , ii , goslow ;
-   char * fbuf , * fptr ;
+   char *fname = (char *) client_data ;
+   int   nbuf , ii , goslow ;
+   char *fbuf , *fptr ;
    char lword[NWBUF] ;
 
    int  controller_mask[MAX_CONTROLLERS]           ;
@@ -814,14 +814,14 @@ void AFNI_startup_layout_CB( XtPointer client_data , XtIntervalId * id )
    int  graph_pinnum   [MAX_CONTROLLERS][3]        ;
 
    int cc,ww , gww,ghh,gxx,gyy ;
-   char * e_asp ;
+   char *e_asp ;
    int    e_turnoff=0 ;
 
-   int *   plugin_cont = NULL ;
-   char ** plugin_geom = NULL ;
+   int *  plugin_cont = NULL ;
+   char **plugin_geom = NULL ;
    int ipl ;
 
-   Three_D_View * im3d         = GLOBAL_library.controllers[0] ; /* already open */
+   Three_D_View *im3d         = GLOBAL_library.controllers[0] ; /* already open */
 
 #ifdef ALLOW_PLUGINS
    int      npbut              = im3d->vwid->nplugbut ;      /* how many plugins */
@@ -1001,7 +1001,7 @@ STATUS("no ***LAYOUT found") ;
       } else if( strncmp(linbuf+1,".plugin.",8) == 0 ){
 
 #ifdef ALLOW_PLUGINS
-         char * pname = linbuf+9 ;
+         char *pname = linbuf+9 ;
          int pl,ll,qq , jj,nn ;
 
          /* check name after .plugin. to match a plugin
@@ -1083,9 +1083,9 @@ STATUS("no ***LAYOUT found") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){  /* loop over controllers */
 
-      MCW_imseq   * isq ;
-      MCW_grapher * gra ;
-      int           singleton=0 ;
+      MCW_imseq   *isq ;
+      MCW_grapher *gra ;
+      int          singleton=0 ;
 
       /*-- determine if this controller is to be active --*/
 
@@ -1315,7 +1315,7 @@ STATUS("no ***LAYOUT found") ;
 
 void AFNI_save_layout_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_save_layout_CB") ;
 
@@ -1327,24 +1327,24 @@ ENTRY("AFNI_save_layout_CB") ;
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int cc,ww , gww,ghh,gxx,gyy ;
-   FILE * fp , * gp ;
-   MCW_imseq   * isq ;
-   MCW_grapher * gra ;
+   FILE *fp , *gp ;
+   MCW_imseq   *isq ;
+   MCW_grapher *gra ;
    float ifrac ;
    char mont[128] ;
    int matrix , pinnum ;
 
-   char * abet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
-   char * wnam[3] = { "axial" , "sagittal" , "coronal" } ;
+   char *abet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+   char *wnam[3] = { "axial" , "sagittal" , "coronal" } ;
 
    int ipl , qq , ll ;
-   char * plab ;
+   char *plab ;
 
-   Three_D_View * qm3d         = GLOBAL_library.controllers[0]; /* already open */
+   Three_D_View *qm3d         = GLOBAL_library.controllers[0]; /* already open */
 
 #ifdef ALLOW_PLUGINS
    int      npbut              = qm3d->vwid->nplugbut;      /* how many plugins */
@@ -1352,11 +1352,10 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    PLUGIN_interface ** plugint = qm3d->vwid->plugint;       /* their interfaces */
 #endif
 
-   MCW_DCOV     * ovc          = GLOBAL_library.dc->ovc ;   /* 22 Jan 2003 */
-   Three_D_View * zm3d ;
+   MCW_DCOV     *ovc          = GLOBAL_library.dc->ovc ;   /* 22 Jan 2003 */
+   Three_D_View *zm3d ;
 
 ENTRY("AFNI_finalsave_layout_CB") ;
-
 
    if( strcmp(cbs->cval,".afnirc") == 0 ){ BEEPIT; EXRETURN; } /* 12 Oct 2000 */
 
@@ -1582,7 +1581,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
 /*--------------------------------------------------------------------------*/
 /*! Run the startup script [21 Jan 2003]. */
 
-void AFNI_startup_script_CB( XtPointer client_data , XtIntervalId * id )
+void AFNI_startup_script_CB( XtPointer client_data , XtIntervalId *id )
 {
    char *fname = (char *)client_data ;
    char *fbuf , *fptr ;
@@ -1619,7 +1618,7 @@ ENTRY("AFNI_startup_script_CB") ;
 
 void AFNI_run_script_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_run_script_CB") ;
 
@@ -1631,9 +1630,9 @@ ENTRY("AFNI_run_script_CB") ;
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_finalrun_script_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_finalrun_script_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_finalrun_script_CB") ;
 

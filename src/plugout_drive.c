@@ -42,6 +42,7 @@ static int  afni_port      = 8099 ;
 static int  afni_verbose   = 0 ;  /* print out debug info? */
 static int  DontWait = 0;
 static int  N_com = 0;
+static int  I_com = 0;    /* 22 Mar 2005 - RWCox */
 static char *com[1024];
 /***** Prototype *****/
 
@@ -89,11 +90,13 @@ int main( int argc , char * argv[] )
              "         The default is for the program to wait for more\n"
              "          commands to be typed at the terminal's prompt.\n"
              "\n"
-             "NOTE: You will need to turn plugouts on in AFNI using \n"
-             " one of the following methods: \n"
-             " 1- including the -yesplugouts as an option on AFNI's command line\n"
-             " 2- from AFNI: Define Datamode --> Misc --> Start Plugouts\n"
-             " 3- set the environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+             "NOTE:\n"
+             "You will need to turn plugouts on in AFNI using one of the\n"
+             "following methods: \n"
+             " 1. Including '-yesplugouts' as an option on AFNI's command line\n"
+             " 2. From AFNI: Define Datamode->Misc->Start Plugouts\n"
+             " 3. Set environment variable AFNI_YESPLUGOUTS to YES in .afnirc\n"
+             "Otherwise, AFNI won't be listening for a plugout connection.\n"
              "\n"
             ) ;
       exit(0) ;
@@ -405,10 +408,10 @@ int afni_io(void)
    if( afni_mode == AFNI_CONTINUE_MODE ){
       char cmd_buf[COM_LENGTH] , afni_buf[COM_LENGTH+56];
 
-      if (N_com) {
-         --N_com;
+      if( I_com < N_com ){                   /* send the I_com'th command */
          strcpy(afni_buf, "DRIVE_AFNI ") ;
-         strcat(afni_buf, com[N_com]); 
+         strcat(afni_buf, com[I_com]   ) ; 
+         I_com++ ;
       } else {
          if (DontWait) exit(0);
          /* get user input */
