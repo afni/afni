@@ -170,26 +170,36 @@ MRI_IMARR * mri_read_dicom( char *fname )
      int bs=0 , hb=0 ;
      ddd = strstr(epos[E_BITS_STORED],"//") ; sscanf(ddd+2,"%d",&bs) ;
      ddd = strstr(epos[E_HIGH_BIT],"//")    ; sscanf(ddd+2,"%d",&hb) ;
-     if( bs != hb+1 )
-       fprintf(stderr,
-               "++ WARNING: DICOM file %s has Bits_Stored=%d and High_Bit=%d\n",
-               fname,bs,hb) ;
+     if( bs != hb+1 ){
+       static int nwarn=0 ;
+       if( nwarn < 9 )
+         fprintf(stderr,
+                 "++ WARNING: DICOM file %s has Bits_Stored=%d and High_Bit=%d\n",
+                 fname,bs,hb) ;
+       nwarn++ ;
+     }
    }
 
    /* check if Rescale is ordered */
 
    if( epos[E_RESCALE_INTERCEPT] != NULL ){
-      fprintf(stderr,
-              "++ WARNING: DICOM file %s has Rescale tags - not implemented here\n",
-              fname ) ;
+      static int nwarn=0 ;
+      if( nwarn < 9 )
+        fprintf(stderr,
+                "++ WARNING: DICOM file %s has Rescale tags - not implemented here\n",
+                fname ) ;
+      nwarn++ ;
    }
 
    /* check if Window is ordered */
 
    if( epos[E_WINDOW_CENTER] != NULL ){
-      fprintf(stderr,
-              "++ WARNING: DICOM file %s has Window tags  - not implemented here\n",
-              fname ) ;
+      static int nwarn=0 ;
+      if( nwarn < 9 )
+        fprintf(stderr,
+                "++ WARNING: DICOM file %s has Window tags  - not implemented here\n",
+                fname ) ;
+      nwarn++ ;
    }
 
    /*** extract attributes of the image(s) to be read in ***/
