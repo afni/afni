@@ -4292,3 +4292,4 @@
 10 Feb 2003
  * Modified afni_graph.[ch] and afni.c to allow initializing graph matrix size
      to value other than 3, through AFNI_graph_matrix environment variable.
+ * Modified 3dcalc.c to allow RGB dataset input.
