@@ -5419,3 +5419,6 @@
  * Modified thd_opendset.c to NOT print an error message when trying to
      open a non-existent file -- now just prints a message if the file
      exists but has no data.
+
+04 Apr 2005
+ * Added 'Pleg' function to parser and thence to 3dcalc, etc.
