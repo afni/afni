@@ -33,6 +33,10 @@ int main( int argc , char * argv[] )
        "Usage 2: 3dcopy old_prefix+view new_prefix\n"
        "  Will copy only the dataset with the given view (orig, acpc, tlrc).\n"
        "\n"
+       "Usage 3: 3dcopy old_dataset new_prefix\n"
+       "  Will copy the non-AFNI formatted dataset (e.g., MINC, ANALYZE, CTF)\n"
+       "  to the AFNI formatted dataset with the given new prefix.\n"
+       "\n"
        "Notes:\n"
        "* The new datasets have new ID codes.  If you are renaming\n"
        "   multiple datasets (as in Usage 1), then if the old +orig\n"
@@ -71,21 +75,6 @@ int main( int argc , char * argv[] )
    }
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) ){
       fprintf(stderr,"** Illegal new dataset name! - EXIT\n") ; exit(1) ;
-   }
-
-   /* disallow operations on MINC or ANALYZE format datasets */
-
-   if( STRING_HAS_SUFFIX(old_name,".mnc") ){
-      fprintf(stderr,"** Old dataset name can't be a MINC file\n"); exit(1);
-   }
-   if( STRING_HAS_SUFFIX(new_name,".mnc") ){
-      fprintf(stderr,"** New dataset name can't be a MINC file\n"); exit(1);
-   }
-   if( STRING_HAS_SUFFIX(old_name,".hdr") ){
-      fprintf(stderr,"** Old dataset name can't be an ANALYZE file\n"); exit(1);
-   }
-   if( STRING_HAS_SUFFIX(new_name,".hdr") ){
-      fprintf(stderr,"** New dataset name can't be an ANALYZE file\n"); exit(1);
    }
 
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
@@ -132,6 +121,71 @@ int main( int argc , char * argv[] )
       } else {
          new_prefix[ (qq-new_name)-1 ] = '\0' ;  /* truncate prefix */
       }
+   }
+   if( !THD_filename_ok( new_prefix ) ){  /* 28 Jan 2003 */
+     fprintf(stderr,"** Illegal new prefix: %s\n",new_prefix) ;
+     exit(1) ;
+   }
+
+   /* 28 Jan 2003:
+      to allow for non-AFNI datasets input,
+      we now check if we can read the input dataset without a view */
+
+   if( old_view == ILLEGAL_TYPE ){
+     THD_3dim_dataset *qset , *cset ;
+     qset = THD_open_one_dataset( old_prefix ) ;
+     if( qset != NULL ){
+       fprintf(stderr,"++ Opened dataset %s\n",old_prefix) ;
+       cset = EDIT_empty_copy( qset ) ;
+       if( new_view < 0 ) new_view = qset->view_type ;
+       EDIT_dset_items( cset ,
+                          ADN_prefix    , new_prefix ,
+                          ADN_view_type , new_view   ,
+                        ADN_none ) ;
+       tross_Make_History( "3dcopy" , argc,argv , cset ) ;
+       DSET_mallocize(qset); DSET_load(qset);
+       if( !DSET_LOADED(qset) ){
+         fprintf(stderr,"** Can't load dataset %s\n",old_prefix) ;
+         exit(1) ;
+       }
+       for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ )
+         EDIT_substitute_brick( cset , ii ,
+                                DSET_BRICK_TYPE(qset,ii) ,
+                                DSET_BRICK_ARRAY(qset,ii) ) ;
+       fprintf(stderr,"++ Writing %s and %s\n",
+               DSET_HEADNAME(cset) , DSET_BRIKNAME(cset) ) ;
+
+       if( cset->type      == HEAD_ANAT_TYPE     &&
+           cset->view_type == VIEW_ORIGINAL_TYPE &&
+           DSET_NUM_TIMES(cset) == 1               ){  /* add markers? */
+
+         THD_marker_set * markers ;
+         int ii , jj ;
+
+         markers = cset->markers = myXtNew( THD_marker_set ) ;
+         markers->numdef = 0 ;
+
+         for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */
+           markers->valid[ii] = 0 ;
+           for( jj=0 ; jj < MARKS_MAXLAB  ; jj++ )
+             markers->label[ii][jj] = '\0';
+           for( jj=0 ; jj < MARKS_MAXHELP ; jj++ )
+             markers->help[ii][jj]  = '\0';
+         }
+
+         for( ii=0 ; ii < NMARK_ALIGN ; ii++ ){       /* copy strings in */
+           MCW_strncpy( &(markers->label[ii][0]) ,
+                        THD_align_label[ii] , MARKS_MAXLAB ) ;
+           MCW_strncpy( &(markers->help[ii][0]) ,
+                        THD_align_help[ii] , MARKS_MAXHELP ) ;
+         }
+
+         for( ii=0 ; ii < MARKS_MAXFLAG ; ii++ )     /* copy flags in */
+           markers->aflags[ii] = THD_align_aflags[ii] ;
+       }
+
+       DSET_write(cset) ; exit(0) ;
+     }
    }
 
    /* of course, we don't actually use the +view suffix on the output */

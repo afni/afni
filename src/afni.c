@@ -2455,7 +2455,7 @@ THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] )
    THD_3dim_dataset * dset ;
    int datum = GLOBAL_argopt.datum , dsize ;
 
-   int nvals , nzz , nzin ;  /* 19 Oct 1999 */
+   int nvals , nzz , nzin=0 ;  /* 19 Oct 1999 */
    float dx=0.0, dy=0.0 , dz=0.0 ;  /* 29 Jul 2002 */
 
 ENTRY("AFNI_read_images") ;
@@ -3455,7 +3455,7 @@ ENTRY("AFNI_read_inputs") ;
 
       char str[256] ;
       Boolean good ;
-      int num_ss , qd , qs , vv , no_args , jj , nskip_noanat=0 ;
+      int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
       THD_string_array * flist , * dlist=NULL ;
       char * dname , *eee ;
       THD_session * new_ss ;
@@ -4497,7 +4497,10 @@ ENTRY("AFNI_time_lock_carryout") ;
       if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
          qq_index = qq3d->vinfo->time_index ;           /* old index */
-         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;    /* range allowed */
+         qq_top   = qq3d->vinfo->top_index ;            /* max allowed */
+#if 0
+         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;
+#endif
 
          if( qq_top > 1 && qq_index != new_index ){
             tav = qq3d->vwid->imag->time_index_av ;
@@ -4505,7 +4508,6 @@ ENTRY("AFNI_time_lock_carryout") ;
             if( tav->ival != qq_index )
                AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
          }
-
       }
    }
 
