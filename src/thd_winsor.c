@@ -13,17 +13,18 @@ void qsort_sh( int n , short * a ) ;  /* at end of file */
 
 /*-------- 06 Jul 2000 - RWCox ----------------------------------------*/
 
-THD_3dim_dataset * WINsorize( THD_3dim_dataset * inset ,
+THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
                               int nrep , int cbot , int ctop ,
-                              float irad , char * prefix ,
-                              int keep_zero , int clipval )
+                              float irad , char *prefix ,
+                              int keep_zero , int clipval , byte *mask )
 {
-   THD_3dim_dataset * outset ;
+   THD_3dim_dataset *outset ;
    short *shin , *shout , *di,*dj,*dk , *tmp , val,nval ;
-   MCW_cluster * cl ;
-   int ii,jj,kk , krep,kdiff, nx,ny,nz,nxy,nxyz , nd,dd ;
+   MCW_cluster *cl ;
+   int jj,kk , krep,kdiff, nx,ny,nz,nxy,nxyz , nd,dd ;
    int ip,jp,kp , nx1,ny1,nz1 ;
    int nrep_until ;
+   register int ii,ijk ;
 
    /*- check inputs -*/
 
@@ -85,12 +86,15 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset * inset ,
 
       for( kk=0 ; kk < nz ; kk++ ){        /* loops over 3D voxel indices */
          for( jj=0 ; jj < ny ; jj++ ){
-            for( ii=0 ; ii < nx ; ii++ ){
+            ijk = jj*nx+kk*nxy ;
+            for( ii=0 ; ii < nx ; ii++,ijk++ ){
 
-               val = shin[ii+jj*nx+kk*nxy] ;            /* current voxel */
+               if( mask != NULL && !mask[ijk] ){ shout[ijk]=shin[ijk]; continue; }
+
+               val = shin[ijk] ;                        /* current voxel */
 
                if( clipval > 0 && val <= clipval )      /* 19 Oct 2001 */
-                  val = shout[ii+jj*nx+kk*nxy] = 0 ;
+                  val = shout[ijk] = 0 ;
 
                if( keep_zero && val == 0 ) continue ;   /* don't filter 0 */
 
@@ -103,7 +107,7 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset * inset ,
 
                qsort_sh( nd , tmp ) ;
 
-               shout[ii+jj*nx+kk*nxy] = nval = LIM(val,tmp[cbot],tmp[ctop]) ;
+               shout[ijk] = nval = LIM(val,tmp[cbot],tmp[ctop]) ;
 
                if( nval != val ) kdiff++ ;
             }

@@ -4395,3 +4395,10 @@
  * Incorporated fix of mri_read_dicom.c from Rich Hammett, to skip false
      targets in the Siemens extra info.  (Will no one rid me of this
      troublesome mosaic format?)
+ * Modified 1dplot.c to accept multiple timeseries file inputs.
+ * Modified thd_automask.c to have a mri_automask() function as well.
+ * Modified 3dAutomask.c to do fillin and exterior-clipping if -dilate
+     option is used.
+
+06 Mar 2003
+ * Modified 3dWinsor.c to use -mask option.

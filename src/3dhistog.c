@@ -77,8 +77,7 @@ int main( int argc , char * argv[] )
    long cumfbin, cumtbin;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
-      fprintf(stderr,
-             "Compute histogram of 3D Dataset\n"
+      printf("Compute histogram of 3D Dataset\n"
              "Usage: 3dhistog [editing options] [histogram options] dataset\n"
              "\n"
              "The editing options are the same as in 3dmerge.\n"
@@ -452,8 +451,8 @@ int main( int argc , char * argv[] )
 
       if( fbot > ftop ) continue ;   /* something bad happened */
       if( fbot == ftop ){
-         printf("*** all data = %f in dataset %s\n",
-                fbot , argv[iarg] ) ;
+         fprintf(stderr,"*** all data = %f in dataset %s\n",
+                 fbot , argv[iarg] ) ;
          continue ;
       }
 
@@ -623,7 +622,7 @@ void HI_read_opts( int argc , char * argv[] )
 
 	    if( mc == 0 ) HI_syntax("mask is all zeros!") ;
 
-	    printf("--- %d voxels in mask\n",mc) ;
+	    fprintf(stderr,"++ %d voxels in mask\n",mc) ;
 	    HI_mask_hits = mc ;
 	    nopt++ ; continue ;
 
