@@ -10,9 +10,9 @@
 GCC    = /usr/bin/gcc
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE
-CC     = $(GCC) -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = $(GCC) -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = $(GCC) -O3 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC     = $(GCC) -O2 -march=i686 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = $(GCC) -O2 -march=i686 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = $(GCC) -O3 -march=i686 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCMIN  = $(GCC)
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include

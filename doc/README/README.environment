@@ -994,6 +994,16 @@ if you are completely crazy, but I'm not responsible for the results --
 don't even think of complaining or commenting to me about problems that
 arise if you try this!
 
+----------------------------
+Variable: AFNI_IMAGE_MAXFRAC
+----------------------------
+This variable sets the maximum size of an image window, as a fraction of
+the width and height of the screen.  The default value is 0.9.  This lets
+you prevent image windows from auto-resizing to be too big when you
+change datasets.  Note that if you have turned on AFNI_ENFORCE_ASPECT, then
+this feature will prevent you from resizing a window to be larger than
+the AFNI_IMAGE_MAXFRAC fraction of the screen dimensions.
+
 -----------------------
 Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR) (editable)
 -----------------------
