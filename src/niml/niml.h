@@ -69,7 +69,8 @@ typedef struct { float r,i ; } complex ;
 #define NI_COMPLEX     NI_COMPLEX64
 #define NI_RGB         6               /* == MRI_rgb     */
 #define NI_RGBA        7               /* == MRI_rgba    */
-#define NI_STRING      8
+
+#define NI_STRING      8               /* after "basic" types */
 
 /*! One more than the last NI_ data type code defined above. */
 
@@ -112,6 +113,7 @@ typedef struct {
   int   part_num ;         /*!< number of parts (parts are basic types) */
   int  *part_typ ;         /*!< integer codes of the parts */
   int  *part_off ;         /*!< byte offsets of the parts */
+  int  *part_siz ;         /*!< byte sizes of the parts */
   int  *part_dim ;         /*!< if >=0, index of dimension of this part */
 } NI_rowtype ;
 
@@ -141,6 +143,11 @@ extern int          NI_rowtype_name_to_code( char * ) ;
 extern char *       NI_rowtype_code_to_name( int ) ;
 extern int          NI_rowtype_name_to_size( char * ) ;
 extern int          NI_rowtype_code_to_size( int ) ;
+extern int          NI_rowtype_vsize       ( NI_rowtype *, void * ) ;
+extern void         NI_val_to_text         ( int, char *, char * ) ;
+extern int          NI_val_to_binary       ( int, char *, char * ) ;
+extern void         NI_multival_to_text    ( int, int, char *, char * ) ;
+extern int          NI_multival_to_binary  ( int, int, char *, char * ) ;
 
 extern void NI_rowtype_debug( int ) ;
 
@@ -503,8 +510,11 @@ extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
-extern void * NI_read_element( NI_stream_type *, int ) ;
+extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
+
+extern int    NI_write_rowtype( NI_stream_type *,
+                                NI_rowtype *, int, void *, int ) ;
 
 /* prototypes for Web data fetchers */
 
