@@ -266,9 +266,21 @@ extern int INIT_GR_gmat ;
 #define IGNORE_COLOR(gr) ((gr)->color_index[7])
 #define DPLOT_COLOR(gr)  ((gr)->color_index[8])
 
-static char * gr_color_label[NUM_COLOR_ITEMS] = {
+static char *gr_color_label[NUM_COLOR_ITEMS] = {
   "Boxes " , "BackG " , "Grid  " , "Text  " ,
   "Data  " , "Ideal " , "Ort   " , "Ignore" , "Dplot "
+} ;
+
+static char *gr_color_hint[NUM_COLOR_ITEMS] = {
+  "Color for boxes around graphs" ,
+  "Background color"              ,
+  "Vertical Grid color"           ,
+  "Color for Text"                ,
+  "Color for Data graphs"         ,
+  "Color for Ideal overplot graph",
+  "Color for Ort overplot graph"  ,
+  "Color for Ignored timepoints"  ,
+  "Color for Dplot overlay"
 } ;
 
 static int gr_setup_default = 1 ;
