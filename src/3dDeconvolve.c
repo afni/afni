@@ -391,6 +391,7 @@ typedef struct {
 
 typedef struct {
   int nfunc ;
+  float tbot,ttop ;
   basis_func *bfunc ;
 } basis_expansion ;
 
@@ -405,6 +406,7 @@ static basis_expansion **basis_stim  = NULL ; /* equations for response model */
 static MRI_IMAGE       **basis_times = NULL ; /* times for each response      */
 static MRI_IMAGE       **basis_vect  = NULL ; /* vectors generated from above */
 static float             basis_TR    = 1.0f ; /* time step in seconds */
+static int               basis_count = 0    ; /* any -stim_times inputs? */
 
 #define basis_filler 3.e+33 /* filler in basis_times for missing entries */
 
@@ -546,6 +548,9 @@ void display_help_menu()
     "[-legendre]          use Legendre polynomials for null hypothesis      \n"
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
     "                       (default is -legendre)                          \n"
+    "[-nodmbase]          don't de-mean baseline time series                \n"
+    "                       (i.e., polort>1 and -stim_base inputs)          \n"
+    "[-dmbase]            de-mean baseline time series (default if polort>0)\n"
     "[-nocond]            don't calculate matrix condition number           \n"
     "[-svd]               Use SVD instead of Gaussian elimination (default) \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
@@ -1065,6 +1070,13 @@ void get_options
         nopt++ ; continue ;
       }
 
+      /*----- -nodmbase [12 Aug 2004] -----*/
+
+      if( strstr(argv[nopt],"dmbase") != NULL ){
+        demean_base = (strncmp(argv[nopt],"-dmb",4) == 0) ;
+        nopt++ ; continue ;
+      }
+
       /*----- -noxsave [25 Jul 2004] -----*/
 
       if( strstr(argv[nopt],"xsave") != NULL ){
@@ -1181,6 +1193,7 @@ void get_options
                   "** ERROR: '-stim_times %d %s' can't parse '%s'\n",
                   ival , argv[nopt-1] , argv[nopt] ) ;
         }
+        basis_count++ ;
         nopt++ ; continue ;
       }
 
@@ -1615,6 +1628,8 @@ void get_options
 
   /**--- Test various combinations for legality [11 Aug 2004] ---**/
 
+  if( option_data->polort < 0 ) demean_base = 0 ;  /* 12 Aug 2004 */
+
   nerr = 0 ;
   for( k=0 ; k < option_data->num_stimts ; k++ ){
 
@@ -1761,9 +1776,9 @@ void read_input_data
   /*----- Initialize local variables -----*/
   num_stimts = option_data->num_stimts;
   num_glt    = option_data->num_glt;
-  baseline = option_data->stim_base;
-  min_lag  = option_data->stim_minlag;
-  max_lag  = option_data->stim_maxlag;
+  baseline   = option_data->stim_base;
+  min_lag    = option_data->stim_minlag;
+  max_lag    = option_data->stim_maxlag;
 
 
   /*----- Read the input stimulus time series -----*/
@@ -1771,22 +1786,20 @@ void read_input_data
     {
       int nerr=0 ;
 
-      *stimulus = (float **) malloc (sizeof(float *) * num_stimts);
+      *stimulus = (float **) calloc (sizeof(float *) , num_stimts);
       MTEST (*stimulus);
-      *stim_length = (int *) malloc (sizeof(int) * num_stimts);
+      *stim_length = (int *) calloc (sizeof(int)     , num_stimts);
       MTEST (*stim_length);
 
       /** 14 Jul 2004: check for duplicate filename - RWCox **/
 
       { int js ;
         for( is=0 ; is < num_stimts ; is++ ){
-          if( basis_stim[is] != NULL ) continue ;  /* 11 Aug 2004 */
           for( js=is+1 ; js < num_stimts ; js++ ){
-            if( basis_stim[js] != NULL ) continue ;  /* 11 Aug 2004 */
             if( strcmp( option_data->stim_filename[is] ,
                         option_data->stim_filename[js]  ) == 0 )
-              fprintf(stderr,"** WARNING: -stim_file "
-                             "#%d '%s' same as #%d '%s'\n" ,
+              fprintf(stderr,"** WARNING: stimulus filename "
+                             "#%d:'%s' same as #%d:'%s'\n" ,
                       is+1,option_data->stim_filename[is] ,
                       js+1,option_data->stim_filename[js]  ) ; nerr++ ;
           }
@@ -1800,7 +1813,8 @@ void read_input_data
 
       for (is = 0;  is < num_stimts;  is++)
 	{
-          if( basis_stim[is] ) continue ;  /* 11 Aug 2004 */
+          if( basis_stim[is] ) continue ;  /* 11 Aug 2004: skip this one */
+
 	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
 					      &((*stim_length)[is]));
 	
@@ -1823,6 +1837,8 @@ void read_input_data
       /*----- No input data -----*/
       if (num_stimts <= 0)
 	DC_error ("Must have num_stimts > 0 for -nodata option");
+      if( basis_count > 0 )
+	DC_error ("Can't use -stim_times with -nodata option") ;
 
       *dset_time = NULL;
       nt = (*stim_length)[0] / option_data->stim_nptr[0];
@@ -1957,46 +1973,96 @@ void read_input_data
 
   /*-- Create timing for each -stim_times input [11 Aug 2004] --*/
 
-  { MRI_IMAGE *tim , *qim ;
-    float     *tar , *qar , toff ;
-    int ii,jj , kk , ngood , nx,ny ;
+  if( basis_count > 0 ){
+    MRI_IMAGE *tim , *qim ;
+    float     *tar , *qar , toff , tmax,tt ;
+    int ii,jj , kk , ngood , nx,ny , nf,dd ;
+    int nbl=*num_blocks , *bst=*block_list ;
+    basis_expansion *be ;
+
     if( basis_TR <= 0.0f ) basis_TR = 1.0f ;
+
     for( is=0 ; is < num_stimts ; is++ ){
-      if( basis_stim[is] == NULL ) continue ;   /* old style -stim_file */
+      be = basis_stim[is] ;
+      if( be == NULL ) continue ;   /* old style -stim_file */
+
+      /* convert entries to global time indexes */
+
       tim = basis_times[is] ; nx = tim->nx ; ny = tim->ny ;
       ngood = 0 ; tar = MRI_FLOAT_PTR(tim) ;
-      for( ii=0 ; ii < tim->nvox ; ii++ ) if( tar[ii] < WAY_BIG ) ngood++ ;
-      if( ngood == 0 ){
-        fprintf(stderr,
-                "** WARNING: '-stim_times %d' file '%s' has no entries\n",
-                is+1 , option_data->stim_filename[is] ) ;
-        qim = NULL ; goto finish_qim ;
-      }
+      qar   = (float *)calloc(sizeof(float),nx*ny) ;
 
-      qim = mri_new(ngood,1,MRI_float) ; qar = MRI_FLOAT_PTR(qim) ;
-
-      if( nx == 1 ){                       /* unified times */
-        for( ii=kk=0 ; ii < ny ; ii++ ){
-          if( tar[ii] < WAY_BIG ) qar[kk++] = tar[ii] / basis_TR ;
+      if( nx == 1 ){                     /* 1 column = global times */
+        tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
+        for( ii=0 ; ii < tim->nvox ; ii++ ){
+          tt = tar[ii] ;
+          if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR ;
         }
-      } else {                             /* 1 row per block */
-        if( ny != *num_blocks ){
+      } else {                           /* multicol => 1 row per block */
+        if( ny != nbl ){                 /* times are relative to block */
           fprintf(stderr,
                   "** WARNING: '-stim_times %d' file '%s' has %d rows,"
                              " but data has %d time blocks\n" ,
-                  is+1 , option_data->stim_filename[is] , ny,*num_blocks ) ;
-          if( ny > *num_blocks ) ny = *num_blocks ;
+                  is+1 , option_data->stim_filename[is] , ny,nbl ) ;
+          if( ny > nbl ) ny = nbl ;
         }
-        for( jj=kk=0 ; jj < ny ; jj++ ){
-          toff = (*block_list)[jj] ;
+        for( jj=0 ; jj < ny ; jj++ ){   /* jj=row index=block index */
+          if( jj < nbl-1 ) tmax = (bst[jj+1]-1-bst[jj])*basis_TR ;
+          else             tmax = (nt       -1-bst[jj])*basis_TR ;
           for( ii=0 ; ii < nx ; ii++ ){
-            if( tar[ii+jj*nx] < WAY_BIG )
-              qar[kk++] = tar[ii+jj*nx] / basis_TR + toff ;
+            tt = tar[ii+jj*nx] ;
+            if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR+bst[jj] ;
           }
         }
       }
-finish_qim:
+
+      if( ngood == 0 ){
+        fprintf(stderr,
+                "** WARNING: '-stim_times %d' file '%s' has no good entries\n",
+                is+1 , option_data->stim_filename[is] ) ;
+        free((void *)qar) ; qim = NULL ;
+      } else {
+        qim = mri_new_vol_empty(ngood,1,1,MRI_float) ;
+        qar = (float *)realloc((void *)qar,sizeof(float)*ngood) ;
+        mri_fix_data_pointer( qar , qim ) ;
+      }
+
       mri_free(tim) ; basis_times[is] = qim ;
+
+      /* create basis vectors for this model now */
+
+      nf = basis_stim[is]->nfunc ;
+      basis_vect[is] = mri_new( nt , nf , MRI_float ) ;  /* all zeros */
+      if( qim != NULL ){
+        int imin,imax , ibot,itop ;
+        float *bv = MRI_FLOAT_PTR(basis_vect[is]) , dbot,dtop ;
+
+        dbot = be->tbot / basis_TR ; /* range of indexes about each stim time */
+        dtop = be->ttop / basis_TR ;
+        imin = 0 ; imax = nt-1 ;     /* for the case of nbl=1 */
+
+        for( kk=0 ; kk < ngood ; kk++ ){   /* for the kk-th stim time */
+          tt = qar[kk] ; if( tt < 0.0f || tt >= (float)nt ) continue ;
+
+          if( nbl > 1 ){
+            for( jj=1 ; jj < nbl ; jj++ ) if( tt < bst[jj] ) break ;
+            jj-- ;                          /* time index tt is in block #jj */
+                             imin = bst[jj] ;       /* first index in block */
+            if( jj < nbl-1 ) imax = bst[jj+1] - 1 ; /* last index in block */
+            else             imax = nt - 1 ;
+          }
+
+          /* range of indexes to load with the response model */
+
+          ibot = (int)ceil ( tt + dbot ) ; if( ibot < imin ) ibot = imin ;
+          itop = (int)floor( tt + dtop ) ; if( itop > imax ) itop = imax ;
+
+          for( ii=ibot ; ii <= itop ; ii++ ){   /* loop over active interval */
+            for( jj=0 ; jj < nf ; jj++ )
+              bv[ii+jj*nt] = basis_funceval( be->bfunc[jj] , basis_TR*(ii-tt) );
+          }
+        }
+      }
     }
   }
 
@@ -2007,7 +2073,7 @@ finish_qim:
   p = qp;   /* number of total parameters */
   for (is = 0;  is < num_stimts;  is++){
     if( basis_stim[is] != NULL ){           /* 11 Aug 2004 */
-      p += basis_stim[is]->nfunc ;
+      p += basis_stim[is]->nfunc ;          /* number of parameters in model */
     } else {
       if (max_lag[is] < min_lag[is])
 	DC_error ("Require min lag <= max lag for all stimuli");
@@ -2055,10 +2121,15 @@ finish_qim:
   it = qp ;
   for( is=0 ; is < num_stimts ; is++ ){
     MCW_strncpy( SymStim[is].name , option_data->stim_label[is] , 64 ) ;
-    SymStim[is].nbot = min_lag[is] ;
-    SymStim[is].ntop = max_lag[is] ;
+    if( basis_stim[is] ){
+      SymStim[is].nbot = 0 ;
+      SymStim[is].ntop = basis_stim[is]->nfunc-1 ;
+    } else {
+      SymStim[is].nbot = min_lag[is] ;
+      SymStim[is].ntop = max_lag[is] ;
+    }
     SymStim[is].gbot = it ;
-    it += max_lag[is] - min_lag[is] + 1 ;
+    it += SymStim[is].ntop - SymStim[is].nbot + 1 ;
     if( strchr(SymStim[is].name,' ') != NULL ||
         strchr(SymStim[is].name,'*') != NULL ||
         strchr(SymStim[is].name,';') != NULL   ){
@@ -2133,6 +2204,8 @@ void remove_zero_stimfns
   is = 0;
   while (is < num_stimts)
     {
+      if( basis_stim[is] != NULL ){ is++ ; continue ; }  /* 12 Aug 2004 */
+
       /*----- Check whether stim function consists of all zeros -----*/
       all_zero = TRUE;
       for (it = 0;  it < stim_length[is];  it++)
@@ -2146,11 +2219,14 @@ void remove_zero_stimfns
 
       if (all_zero)  /*----- Remove this stimulus function -----*/
 	{
-	  printf ("** WARNING!  Stimulus function %s consists of all zeros! \n",
+	  printf("** WARNING!  -stim_file function %s comprises all zeros!\n",
 		 option_data->stim_filename[is]);
 	  if (option_data->num_glt > 0)
 	    DC_error
-	      ("Cannot process -glt option when stim function is all zero");
+            ("Cannot process -glt option(s) when -stim_file function is all zero");
+          if( basis_count > 0 )
+	    DC_error
+            ("Cannot process -basis_stim option(s) when -stim_file function is all zero");
 
 	  option_data->p -=
 	    option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
@@ -2410,6 +2486,8 @@ void check_for_valid_inputs
 #define ALLOW_EXTEND
   for (is = 0;  is < num_stimts;  is++)
     {
+      if( basis_stim[is] != NULL ) continue ;  /* 12 Aug 2004 */
+
       if (stim_length[is] < nt*nptr[is])
 	{
 #ifndef ALLOW_EXTEND
@@ -2445,6 +2523,7 @@ void check_for_valid_inputs
   /*----- Check whether time lags are reasonable -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
+      if( basis_stim[is] != NULL ) continue ; /* 12 Aug 2004 */
 
       m = max_lag[is] - min_lag[is] + 1;
       if (m < 2)
@@ -3512,7 +3591,7 @@ void calculate_results
   /*----- Initialize the independent variable matrix -----*/
   init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list,
 			 num_blocks, num_stimts, stimulus, stim_length,
-			 min_lag, max_lag, nptr, &xdata);
+			 min_lag, max_lag, nptr, option_data->stim_base , &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
   if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
@@ -6593,6 +6672,7 @@ basis_expansion * basis_parser( char *sym )
        be->bfunc[0].b = top ;
        be->bfunc[0].c = bot*top + 4.0f*sqrt(bot)*top ;  /* long enough */
      }
+     be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
 
    /*--- TENT(bot,top,order) ---*/
 
@@ -6609,6 +6689,7 @@ basis_expansion * basis_parser( char *sym )
        free((void *)be->bfunc); free((void *)be); return NULL ;
      }
      be->nfunc = nord ;
+     be->tbot  = bot  ; be->ttop = top ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      dx        = (top-bot) / (nord-1) ;
 
@@ -6641,6 +6722,7 @@ basis_expansion * basis_parser( char *sym )
        free((void *)be->bfunc); free((void *)be); return NULL ;
      }
      be->nfunc = nord ;
+     be->tbot  = bot  ; be->ttop = top ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
 
      be->bfunc[0].f = basis_one ;
@@ -6673,6 +6755,7 @@ basis_expansion * basis_parser( char *sym )
        free((void *)be->bfunc); free((void *)be); return NULL ;
      }
      be->nfunc = nord ;
+     be->tbot  = bot  ; be->ttop = top ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
 
      for( nn=0 ; nn < nord ; nn++ ){
@@ -6696,6 +6779,7 @@ basis_expansion * basis_parser( char *sym )
        free((void *)be->bfunc); free((void *)be); return NULL ;
      }
      be->nfunc = nord ;
+     be->tbot  = bot  ; be->ttop = top ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = basis_one ;
      be->bfunc[0].a = bot ;
@@ -6713,6 +6797,7 @@ basis_expansion * basis_parser( char *sym )
    } else if( strcmp(scp,"SPMG") == 0 ){
 
      be->nfunc = 2 ;
+     be->tbot  = 0.0 ; be->ttop = 25.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = basis_spmg1 ;
      be->bfunc[0].a = 0.0f ;

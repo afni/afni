@@ -1102,9 +1102,10 @@ static int calculate_results
   else
     {
       /*----- Initialize the independent variable matrix -----*/
+      demean_base = (plug_polort >= 0) ;
       ok = init_indep_var_matrix (p, qp, plug_polort, nt, N, good_list, 
 				  block_list, num_blocks, num_stimts, stimulus,
-				  stim_length, min_lag, max_lag, nptr, &xdata);
+				  stim_length, min_lag, max_lag, nptr, stim_base, &xdata);
 
       
       /*----- Initialization for the regression analysis -----*/
