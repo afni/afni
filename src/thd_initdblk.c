@@ -202,7 +202,15 @@ printf("  -- atr_rank=%p  atr_dimen=%p  atr_scene=%p\n",
          fprintf(stderr,"*** Unknown %s found in dataset %s\n",
                  ATRNAME_BYTEORDER , headname ) ;
 
-   } else if( !no_ordwarn ){  /* 20 Sep 1999 */
+   } else if( !no_ordwarn &&
+              DBLK_BRICK_TYPE(dblk,0) != MRI_byte ){ /* 20 Sep 1999 */
+
+      static int first=1 ;
+      if( first ){
+         fprintf(stderr,
+           "\n*** The situation below can be rectified with program '3drefit -byteorder':\n");
+         first = 0 ;
+      }
       fprintf(stderr,"*** Dataset %s: assuming byteorder %s\n",
               headname , BYTE_ORDER_STRING(dkptr->byte_order)  ) ;
    }

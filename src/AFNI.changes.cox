@@ -1677,3 +1677,7 @@
  * thd_initdblk.c: print out a warning if byte order is unspecified when
      creating a dataset.
  * thd_notes.c: add the username to the History Note stamp.
+
+21 Sep 1999
+ * added message about 3drefit to thd_initdblk.c.
+ * modified MEDIAN function in parser.f to handle N=3 case separately.

@@ -2974,6 +2974,20 @@ doublereal median_(integer *n, doublereal *x)
     } else if (*n == 2) {
 	ret_val = (x[1] + x[2]) * .5;
 	return ret_val;
+    } else if (*n == 3) {
+	if (x[1] > x[2]) {
+	    tmp = x[2];
+	    x[2] = x[1];
+	    x[1] = tmp;
+	}
+	if (x[1] > x[3]) {
+	    ret_val = x[1];
+	} else if (x[2] > x[3]) {
+	    ret_val = x[3];
+	} else {
+	    ret_val = x[2];
+	}
+	return ret_val;
     }
 /* ---  Bubble sort */
 L50:

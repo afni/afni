@@ -2042,6 +2042,20 @@ C
       ELSEIF( N .EQ. 2 )THEN
          MEDIAN = 0.5D+00 * (X(1)+X(2))
          RETURN
+      ELSEIF( N .EQ. 3 )THEN
+         IF( X(1) .GT. X(2) )THEN
+            TMP  = X(2)
+            X(2) = X(1)
+            X(1) = TMP
+         ENDIF
+         IF( X(1) .GT. X(3) )THEN
+            MEDIAN = X(1)
+         ELSEIF( X(2) .GT. X(3) )THEN
+            MEDIAN = X(3)
+         ELSE
+            MEDIAN = X(2)
+         ENDIF
+         RETURN
       ENDIF
 
 C---  Bubble sort
