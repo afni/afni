@@ -4689,7 +4689,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                seq->timer_func  = ISQ_TIMERFUNC_BOUNCE ;
                seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
                if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
-               seq->timer_param = (buf[0] == 'b') ? 1 : -1 ;
+               seq->timer_param = (buf[0] == 'r') ? 1 : -1 ;
                seq->timer_id    =
                  XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
                                   seq->timer_delay , ISQ_timer_CB , seq ) ;

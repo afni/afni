@@ -3025,7 +3025,7 @@ STATUS(str); }
           grapher->timer_func  = GRA_TIMERFUNC_BOUNCE ;
           grapher->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
           if( grapher->timer_delay <= 0 ) grapher->timer_delay = 1 ;
-          grapher->timer_param = (buf[0] == 'b') ? 1 : -1 ;
+          grapher->timer_param = (buf[0] == 'r') ? 1 : -1 ;
           grapher->timer_id    =
           XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
                            grapher->timer_delay , GRA_timer_CB , grapher ) ;
