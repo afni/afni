@@ -87,6 +87,8 @@
 
 #define SUMA_MAX_N_SURFACE_SPEC 20/*!< Maximum number of surfaces allowed in a spec file */
 
+#define SUMA_PI 3.14159 
+
 typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
 typedef enum { SUMA_ASCII, SUMA_BINARY } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;
