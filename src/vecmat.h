@@ -33,8 +33,8 @@ typedef struct { float mat[3][3] ; } THD_mat33 ;
 /*! 3x3 matrix and a 3-vector (basically an affine transform). */
 
 typedef struct {
-   THD_fvec3 vv ; /*< the vector */
-   THD_mat33 mm ; /*< the matrix */
+   THD_fvec3 vv ; /*!< the vector */
+   THD_mat33 mm ; /*!< the matrix */
 } THD_vecmat ;
 
 /*-------------------------------------------------------------------*/

@@ -492,10 +492,10 @@ static char * MAPPING_typestr[] = {
 /*! Structure to hold a linear mapping between coordinate systems. */
 
 typedef struct {
-      int type ;            /*< type code: only type now is MAPPING_LINEAR_TYPE */
+      int type ;            /*!< type code: only type now is MAPPING_LINEAR_TYPE */
 
-      THD_mat33 mfor ;      /*< x_map = [mfor] * x_in  - bvec  */
-      THD_mat33 mbac ;      /*< x_in  = [mbac] * x_map - svec  */
+      THD_mat33 mfor ;      /*!< x_map = [mfor] * x_in  - bvec  */
+      THD_mat33 mbac ;      /*!< x_in  = [mbac] * x_map - svec  */
 
       THD_fvec3 bvec;       /* x_map = [mfor] * x_in  - bvec  */
       THD_fvec3 svec;       /* svec = - [mbac] * bvec */
@@ -555,23 +555,23 @@ typedef struct {
 /*! Structure for user placed markers. */
 
 typedef struct {
-     int numdef ;                             /*< Number of markers defined */
-     int numset ;                             /*< Number of markers now set */
+     int numdef ;                             /*!< Number of markers defined */
+     int numset ;                             /*!< Number of markers now set */
 
-     char label[MARKS_MAXNUM][MARKS_MAXLAB] ; /*< Names for these marks */
+     char label[MARKS_MAXNUM][MARKS_MAXLAB] ; /*!< Names for these marks */
 
-     char help[MARKS_MAXNUM][MARKS_MAXHELP] ; /*< Help for these marks */
+     char help[MARKS_MAXNUM][MARKS_MAXHELP] ; /*!< Help for these marks */
 
-     int ovcolor[MARKS_MAXNUM] ;              /*< Overlay color index; -1 --> use defaults */
+     int ovcolor[MARKS_MAXNUM] ;              /*!< Overlay color index; -1 --> use defaults */
 
-     Boolean valid[MARKS_MAXNUM] ;            /*< True if actually set */
+     Boolean valid[MARKS_MAXNUM] ;            /*!< True if actually set */
 
-     float xyz[MARKS_MAXNUM][3] ;             /*< Coordinates (3dmm, not Dicom) */
+     float xyz[MARKS_MAXNUM][3] ;             /*!< Coordinates (3dmm, not Dicom) */
 
-     int aflags[MARKS_MAXFLAG] ;              /*< Action flags */
+     int aflags[MARKS_MAXFLAG] ;              /*!< Action flags */
 
-     int type ;                               /*< Type of markers (same as aflags[0]) */
-     char name[MARKS_MAXLAB] ;                /*< Name of this type of markers */
+     int type ;                               /*!< Type of markers (same as aflags[0]) */
+     char name[MARKS_MAXLAB] ;                /*!< Name of this type of markers */
 } THD_marker_set ;
 
 #define MARKS_FSIZE  (MARKS_MAXNUM*3)
@@ -772,8 +772,8 @@ static char * RESAM_shortstr[] = { "NN" , "Li" , "Cu" , "Bk" } ;
 /*! 12-piece Warp struct for orig/acpc -> tlrc coordinates. */
 
 typedef struct {
-      int type ;       /*< type code: WARP_TALAIRACH_12_TYPE */
-      int resam_type ; /*< Resampling method */
+      int type ;       /*!< type code: WARP_TALAIRACH_12_TYPE */
+      int resam_type ; /*!< Resampling method */
 
       THD_linear_mapping warp[12] ; /* The 12 pieces of the transformation */
 } THD_talairach_12_warp ;
@@ -813,10 +813,10 @@ typedef struct {
 /*! Struct to hold a simple affine warp (orig -> acpc). */
 
 typedef struct {
-      int type ;         /*< type code: WARP_AFFINE_TYPE */
-      int resam_type ;   /*< Resampling method */
+      int type ;         /*!< type code: WARP_AFFINE_TYPE */
+      int resam_type ;   /*!< Resampling method */
 
-      THD_linear_mapping warp ; /*< The single affine mapping */
+      THD_linear_mapping warp ; /*!< The single affine mapping */
 } THD_affine_warp ;
 
 #define WARP_AFFINE_SIZE (MAPPING_LINEAR_FSIZE)
@@ -824,7 +824,7 @@ typedef struct {
 /*! Union type to hold all possible warp types. */
 
 typedef union {
-      int type ;                      /*< WARP_AFFINE_TYPE or WARP_TALAIRACH_12_TYPE */
+      int type ;                      /*!< WARP_AFFINE_TYPE or WARP_TALAIRACH_12_TYPE */
       THD_affine_warp       rig_bod ;
       THD_talairach_12_warp tal_12 ;
 } THD_warp ;
@@ -1152,9 +1152,9 @@ extern int  THD_string_has( char * , char * ) ;
 /*! A dynamic array type for datablocks - used when assembling datasets. */
 
 typedef struct {
-      int num ;                /*< Number of datablocks stored */
-      int nall ;               /*< Number of datablocks space allocated for */
-      THD_datablock ** ar ;    /*< Array of datablocks */
+      int num ;                /*!< Number of datablocks stored */
+      int nall ;               /*!< Number of datablocks space allocated for */
+      THD_datablock ** ar ;    /*!< Array of datablocks */
 } THD_datablock_array ;
 
 #define INC_DBARR 8
@@ -1256,36 +1256,36 @@ static int  ORIENT_xyzint[] = { 1,1 , 2,2 , 3,3 , 666 } ;
 */
 
 typedef struct {
-      int type ;     /*< type code: DATAXES_TYPE */
+      int type ;     /*!< type code: DATAXES_TYPE */
 
-      int nxx ;      /*< Number of points in grid in x direction */
-      int nyy ;      /*< Number of points in grid in y direction */
-      int nzz ;      /*< Number of points in grid in z direction */
+      int nxx ;      /*!< Number of points in grid in x direction */
+      int nyy ;      /*!< Number of points in grid in y direction */
+      int nzz ;      /*!< Number of points in grid in z direction */
 
-      float xxorg ;  /*< Center of (0,0,0) voxel */
-      float yyorg ;  /*< Center of (0,0,0) voxel */
-      float zzorg ;  /*< center of (0,0,0) voxel */
-      float xxdel ;  /*< Spacings between voxel centers (mm) - may be negative */
-      float yydel ;  /*< Spacings between voxel centers (mm) - may be negative */
-      float zzdel ;  /*< Spacings between voxel centers (mm) - may be negative */
+      float xxorg ;  /*!< Center of (0,0,0) voxel */
+      float yyorg ;  /*!< Center of (0,0,0) voxel */
+      float zzorg ;  /*!< center of (0,0,0) voxel */
+      float xxdel ;  /*!< Spacings between voxel centers (mm) - may be negative */
+      float yydel ;  /*!< Spacings between voxel centers (mm) - may be negative */
+      float zzdel ;  /*!< Spacings between voxel centers (mm) - may be negative */
 
-      float xxmin ;  /*< Bounding box for grid */
-      float xxmax ;  /*< Bounding box for grid */
-      float yymin ;  /*< Bounding box for grid */
-      float yymax ;  /*< Bounding box for grid */
-      float zzmin ;  /*< Bounding box for grid */
-      float zzmax ;  /*< Bounding box for grid */
+      float xxmin ;  /*!< Bounding box for grid */
+      float xxmax ;  /*!< Bounding box for grid */
+      float yymin ;  /*!< Bounding box for grid */
+      float yymax ;  /*!< Bounding box for grid */
+      float zzmin ;  /*!< Bounding box for grid */
+      float zzmax ;  /*!< Bounding box for grid */
 
-      int xxorient ;  /*< Orientation code */
-      int yyorient ;  /*< Orientation code */
-      int zzorient ;  /*< Orientation code */
+      int xxorient ;  /*!< Orientation code */
+      int yyorient ;  /*!< Orientation code */
+      int zzorient ;  /*!< Orientation code */
 
-      THD_mat33 to_dicomm ; /*< Orthogonal matrix transforming from
+      THD_mat33 to_dicomm ; /*!< Orthogonal matrix transforming from
                                 dataset coordinates to Dicom coordinates */
 
    /* pointers to other stuff */
 
-      XtPointer parent ;    /*< Dataset that "owns" this struct */
+      XtPointer parent ;    /*!< Dataset that "owns" this struct */
 } THD_dataxes ;
 
 /*! Center of grid in x-direction. */
@@ -1383,18 +1383,18 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
 */
 
 typedef struct {
-   int   type ;     /*< TIMEAXIS_TYPE */
-   int   ntt ;      /*< Number of time points */
-   float ttorg ;    /*< Time origin (usually 0) */
-   float ttdel ;    /*< Fondly known as TR */
-   float ttdur ;    /*< Duration of image acquisition (usually not known) */
+   int   type ;     /*!< TIMEAXIS_TYPE */
+   int   ntt ;      /*!< Number of time points */
+   float ttorg ;    /*!< Time origin (usually 0) */
+   float ttdel ;    /*!< Fondly known as TR */
+   float ttdur ;    /*!< Duration of image acquisition (usually not known) */
 
-   int units_type ;  /*< one of the UNITS_ codes */
+   int units_type ;  /*!< one of the UNITS_ codes */
 
-   int     nsl ;      /*< Number of slice-dependent time offsets */
-   float * toff_sl ;  /*< toff_sl[i] is time offset for slice #1 */
-   float   zorg_sl ;  /*< z-coordinate origin for slice offsets */
-   float   dz_sl ;    /*< z-coordinate spacing for slice offsets */
+   int     nsl ;      /*!< Number of slice-dependent time offsets */
+   float * toff_sl ;  /*!< toff_sl[i] is time offset for slice #1 */
+   float   zorg_sl ;  /*!< z-coordinate origin for slice offsets */
+   float   dz_sl ;    /*!< z-coordinate spacing for slice offsets */
 } THD_timeaxis ;
 
 /*! Check if tax points to a valid THD_timeaxis struct. */
@@ -1411,17 +1411,17 @@ typedef struct {
 */
 
 typedef struct {
-   float min ;      /*< Smallest value in sub-brick */
-   float max ;      /*< Largest value in sub-brick */
+   float min ;      /*!< Smallest value in sub-brick */
+   float max ;      /*!< Largest value in sub-brick */
 } THD_brick_stats ;
 
 /*! Collection of statistics about all sub-bricks. */
 
 typedef struct {
-   int type ;                     /*< STATISTICS_TYPE */
-   int              nbstat ;      /*< Number of entries below */
-   THD_brick_stats * bstat ;      /*< Array of entries for all sub-bricks */
-   XtPointer parent ;             /*< Owner of this object */
+   int type ;                     /*!< STATISTICS_TYPE */
+   int              nbstat ;      /*!< Number of entries below */
+   THD_brick_stats * bstat ;      /*!< Array of entries for all sub-bricks */
+   XtPointer parent ;             /*!< Owner of this object */
 } THD_statistics ;
 
 /*! Check if st is a valid THD_statistics struct. */
@@ -1460,8 +1460,8 @@ typedef struct {
 /*! Struct to hold ID code for a dataset. */
 
 typedef struct {
-  char str[MCW_IDSIZE] ;    /*< Unique ID code string */
-  char date[MCW_IDDATE] ;   /*< Date string was generated */
+  char str[MCW_IDSIZE] ;    /*!< Unique ID code string */
+  char date[MCW_IDDATE] ;   /*!< Date string was generated */
  } MCW_idcode ;
 
 extern MCW_idcode MCW_new_idcode(void) ;
@@ -3370,31 +3370,31 @@ extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
 typedef struct FD_brick {
 
-   THD_ivec3 nxyz ;     /*< actual dimensions as read in */
-   THD_ivec3 sxyz ;     /*< starting indices in each dataset dimen */
-   THD_ivec3 a123 ;     /*< axis codes as supplied in THD_3dim_dataset_to_brick */
+   THD_ivec3 nxyz ;     /*!< actual dimensions as read in */
+   THD_ivec3 sxyz ;     /*!< starting indices in each dataset dimen */
+   THD_ivec3 a123 ;     /*!< axis codes as supplied in THD_3dim_dataset_to_brick */
 
-   int n1 ;             /*< ni = length in direction i */
-   int d1 ;             /*< di = stride in direction i */
-   int e1 ;             /*< ei = last index in direc i */
-   int n2 ;             /*< ni = length in direction i */
-   int d2 ;             /*< di = stride in direction i */
-   int e2 ;             /*< ei = last index in direc i */
-   int n3 ;             /*< ni = length in direction i */
-   int d3 ;             /*< di = stride in direction i */
-   int start ;          /*< start = offset of 1st elem */
+   int n1 ;             /*!< ni = length in direction i */
+   int d1 ;             /*!< di = stride in direction i */
+   int e1 ;             /*!< ei = last index in direc i */
+   int n2 ;             /*!< ni = length in direction i */
+   int d2 ;             /*!< di = stride in direction i */
+   int e2 ;             /*!< ei = last index in direc i */
+   int n3 ;             /*!< ni = length in direction i */
+   int d3 ;             /*!< di = stride in direction i */
+   int start ;          /*!< start = offset of 1st elem */
 
-   float del1 ;         /*< voxel dimensions */
-   float del2 ;         /*< voxel dimensions */
-   float del3 ;         /*< voxel dimensions */
+   float del1 ;         /*!< voxel dimensions */
+   float del2 ;         /*!< voxel dimensions */
+   float del3 ;         /*!< voxel dimensions */
 
-   THD_3dim_dataset * dset ;    /*< pointer to parent dataset */
-   int resam_code ;             /*< how to resample normal sub-bricks */
-   int thr_resam_code ;         /*< how to resample statistical sub-bricks */
+   THD_3dim_dataset * dset ;    /*!< pointer to parent dataset */
+   int resam_code ;             /*!< how to resample normal sub-bricks */
+   int thr_resam_code ;         /*!< how to resample statistical sub-bricks */
 
-   char namecode[32] ;          /*< June 1997 */
+   char namecode[32] ;          /*!< June 1997 */
 
-   XtPointer parent ;           /*< struct owner */
+   XtPointer parent ;           /*!< struct owner */
 } FD_brick ;
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */

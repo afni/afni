@@ -50,11 +50,11 @@
 */
 
 typedef struct {
-   int num_pt  ;    /*< Number of points in cluster */
-   int num_all ;    /*< Number of points allocated for cluster */
-   short * i;       /*< x index */
-   short * j;       /*< y index */
-   short * k;       /*< z index */
+   int num_pt  ;    /*!< Number of points in cluster */
+   int num_all ;    /*!< Number of points allocated for cluster */
+   short * i;       /*!< x index */
+   short * j;       /*!< y index */
+   short * k;       /*!< z index */
    float * mag ;    /* stores value at each voxel in cluster */
 } MCW_cluster ;
 
@@ -193,57 +193,57 @@ char * EDIT_options_help(void) ;  /* was a string, now a prototype */
 */
 
 typedef struct EDIT_options {
-   int thtoin ;                   /*< copy thresh data over intensity data */
-   int noneg ;                    /*< throw away negative intensities      */
-   int abss ;                     /*< take absolute values of intensities  */
+   int thtoin ;                   /*!< copy thresh data over intensity data */
+   int noneg ;                    /*!< throw away negative intensities      */
+   int abss ;                     /*!< take absolute values of intensities  */
 
-   float clip_bot ;               /*< zero out voxels with value in clip_bot..clip_top */
-   float clip_top ;               /*< zero out voxels with value in clip_bot..clip_top */
-   int   clip_unscaled ;          /*< clip without scaling? [09 Aug 1996]  */
+   float clip_bot ;               /*!< zero out voxels with value in clip_bot..clip_top */
+   float clip_top ;               /*!< zero out voxels with value in clip_bot..clip_top */
+   int   clip_unscaled ;          /*!< clip without scaling? [09 Aug 1996]  */
 
-   float thresh ;                 /*< zero out if threshold < thresh     */
-   float clust_rmm ;              /*< cluster data with rmm radius       */
-   float clust_vmul ;             /*< remove clusters smaller than vmul  */
-   float blur ;                   /*< Gaussian blur data with sigma = blur */
-   float thrblur ;                /*< Gaussian blur threshold data,
+   float thresh ;                 /*!< zero out if threshold < thresh     */
+   float clust_rmm ;              /*!< cluster data with rmm radius       */
+   float clust_vmul ;             /*!< remove clusters smaller than vmul  */
+   float blur ;                   /*!< Gaussian blur data with sigma = blur */
+   float thrblur ;                /*!< Gaussian blur threshold data,
                                       with sigma = thrblur (4 Oct 1996)    */
 
-   float erode_pv;                /*< erosion percentage   (16 June 1998)  */
-   int dilate;                    /*< dilation option      (16 June 1998)  */
+   float erode_pv;                /*!< erosion percentage   (16 June 1998)  */
+   int dilate;                    /*!< dilation option      (16 June 1998)  */
 
 
-   int edit_clust;                /*< edit cluster option  (10 Sept 1996)  */
+   int edit_clust;                /*!< edit cluster option  (10 Sept 1996)  */
 
-   float filter_rmm;              /*< filter radius        (11 Sept 1996)  */
-   int   filter_opt;              /*< filter option        (11 Sept 1996)  */
+   float filter_rmm;              /*!< filter radius        (11 Sept 1996)  */
+   int   filter_opt;              /*!< filter option        (11 Sept 1996)  */
 
-   float thrfilter_rmm;           /*< threshold filter radius (1 Oct 1996) */
-   int   thrfilter_opt;           /*< threshold filter option (1 Oct 1996) */
+   float thrfilter_rmm;           /*!< threshold filter radius (1 Oct 1996) */
+   int   thrfilter_opt;           /*!< threshold filter option (1 Oct 1996) */
 
-   int   scale ;                  /*< linearly scale data so max = 10000   */
+   int   scale ;                  /*!< linearly scale data so max = 10000   */
 
-   float mult ;                   /*< multiply all voxels by this          */
+   float mult ;                   /*!< multiply all voxels by this          */
 
-   int   do_zvol ;                /*< zero out a 3D sub-volume             */
-   float zv_x1 ;                  /*< dimensions of sub-volume to massacre */
-   float zv_x2 ;                  /*< dimensions of sub-volume to massacre */
-   float zv_y1 ;                  /*< dimensions of sub-volume to massacre */
-   float zv_y2 ;                  /*< dimensions of sub-volume to massacre */
-   float zv_z1 ;                  /*< dimensions of sub-volume to massacre */
-   float zv_z2 ;                  /*< dimensions of sub-volume to massacre */
+   int   do_zvol ;                /*!< zero out a 3D sub-volume             */
+   float zv_x1 ;                  /*!< dimensions of sub-volume to massacre */
+   float zv_x2 ;                  /*!< dimensions of sub-volume to massacre */
+   float zv_y1 ;                  /*!< dimensions of sub-volume to massacre */
+   float zv_y2 ;                  /*!< dimensions of sub-volume to massacre */
+   float zv_z1 ;                  /*!< dimensions of sub-volume to massacre */
+   float zv_z2 ;                  /*!< dimensions of sub-volume to massacre */
 
-   int   iv_fim ;                 /*< use this sub-brick for voxel values */
-   int   iv_thr ;                 /*< use this sub-brick for threshold    */
+   int   iv_fim ;                 /*!< use this sub-brick for voxel values */
+   int   iv_thr ;                 /*!< use this sub-brick for threshold    */
 
-   int   zscore ;                 /*< 17 Sep 1998 --> convert statistic to Z   */
+   int   zscore ;                 /*!< 17 Sep 1998 --> convert statistic to Z   */
 
-   int   verbose ;                /*< 01 Nov 1999 --> verbose output during editing */
+   int   verbose ;                /*!< 01 Nov 1999 --> verbose output during editing */
 
-   int   nfmask ;                 /*< 09 Aug 2000 --> filter mask */
+   int   nfmask ;                 /*!< 09 Aug 2000 --> filter mask */
    byte * fmask ;
-   char * fexpr ;                 /*< 09 Aug 2000 --> filter expression */
+   char * fexpr ;                 /*!< 09 Aug 2000 --> filter expression */
 
-   int fake_dxyz ;                /*< 11 Sep 2000 -> use dx=dy=dz=1.0? */
+   int fake_dxyz ;                /*!< 11 Sep 2000 -> use dx=dy=dz=1.0? */
 
 } EDIT_options ;
 

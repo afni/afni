@@ -4857,35 +4857,35 @@ ENTRY("AFNI_view_xyz_CB") ;
 
     m2m = AFNI_yesenv("AFNI_IMAGE_MINTOMAX") ;
 
-    if( w == pb_xyz && sxyz == NULL ){
+    if( w == pb_xyz && sxyz == NULL ){         /* axial image */
        snew  = &(im3d->s123) ;
        brnew = im3d->b123_ulay ;
        pboff = pb_xyz ;
        mirror= GLOBAL_argopt.left_is_left ;
 
-    } else if( w == pb_yzx && syzx == NULL ){
+    } else if( w == pb_yzx && syzx == NULL ){  /* sagittal image */
        snew  = &(im3d->s231) ;
        brnew = im3d->b231_ulay ;
        pboff = pb_yzx ;
 
-    } else if( w == pb_zxy && szxy == NULL ){
+    } else if( w == pb_zxy && szxy == NULL ){  /* coronal image */
        snew  = &(im3d->s312) ;
        brnew = im3d->b312_ulay ;
        pboff = pb_zxy ;
        mirror= GLOBAL_argopt.left_is_left ;
 
-    } else if( w == gr_xyz && gxyz == NULL ){
+    } else if( w == gr_xyz && gxyz == NULL ){  /* axial graph */
        gnew  = &(im3d->g123) ;
        brnew = im3d->b123_ulay ;
        pboff = gr_xyz ;
        mirror= GLOBAL_argopt.left_is_left ;
 
-    } else if( w == gr_yzx && gyzx == NULL ){
+    } else if( w == gr_yzx && gyzx == NULL ){  /* sagittal graph */
        gnew  = &(im3d->g231) ;
        brnew = im3d->b231_ulay ;
        pboff = gr_yzx ;
 
-    } else if( w == gr_zxy && gzxy == NULL ){
+    } else if( w == gr_zxy && gzxy == NULL ){  /* coronal graph */
        gnew  = &(im3d->g312) ;
        brnew = im3d->b312_ulay ;
        pboff = gr_zxy ;
