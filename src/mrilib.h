@@ -602,6 +602,8 @@ extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 
+extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
+
 extern int setup_mri_write_angif( void ) ;               /* 28 Jun 2001 */
 extern int mri_write_angif( char *, MRI_IMARR * ) ;
 

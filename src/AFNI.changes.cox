@@ -4518,3 +4518,7 @@
 24 Apr 2003
  * Modified 3dTshift.c and thd_tshift.c to negate time shift, since it seems have
      been wrong all these years.
+
+28 Apr 2003
+ * Modified 3dcalc to add -taxis option.
+ * Added mri_fromstring.c, to input 1D data in the form '1D:5@0,10@1,5@0', etc.

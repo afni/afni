@@ -1713,6 +1713,13 @@ ENTRY("mri_read_ascii") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
+   if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
+     MRI_IMAGE *qim = mri_1D_fromstring( fname+3 ) ;
+     if( qim != NULL ){
+       outim = mri_transpose(qim); mri_free(qim); RETURN(outim);
+     }
+   }
+
    fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
 
    if( buf == NULL ) buf = malloc(LBUF) ;  /* 20 Jun 2002: 1st time in */
@@ -1818,6 +1825,10 @@ MRI_IMAGE * mri_read_1D( char * fname )
 ENTRY("mri_read_1D") ;
 
    if( fname == NULL || fname[0] == '\0' || strlen(fname) > 255 ) RETURN(NULL) ;
+
+   if( strncmp(fname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
+     return mri_1D_fromstring( fname+3 ) ;
+   }
 
    /*-- split filename and subvector list --*/
 
