@@ -4320,3 +4320,8 @@
  * Modified afni_sumafunc.c (afni.h, etc.) to change "Control Surface"
      label for each surface into a toggle button, to make it easier to
      turn surface on and off quickly.
+
+20 Feb 2003
+ * Changes to imseq.c, afni.[ch], afni_receive.c, and plug_drawdset.c to make
+     the keypad "Delete" key(s) operate like the Undo button in the drawing
+     plugin.

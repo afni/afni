@@ -267,6 +267,7 @@ typedef struct {
 #define isqCR_appress     309
 
 #define isqCR_button2_points 501  /* Feb 1998 */
+#define isqCR_button2_key    502  /* 20 Feb 2003 */
 
 #define isqCR_force_redisplay 601 /* 22 Aug 1998 */
 

@@ -590,7 +590,7 @@ ENTRY("AFNI_process_funcdisplay") ;
                                       window with zz fixed
               - THREED_MODE      ==> points are in 3D (not planar)
                                       (not currently possible)
-             *** at this moment, this mode flag isn't used anywhere
+              - UNDO_MODE        ==> undo last drawing action
 
     - xd[i] = x index of point i, for i=0..npts-1
     - yd[i] = y index of point i, for i=0..npts-1
@@ -599,11 +599,11 @@ ENTRY("AFNI_process_funcdisplay") ;
    These indices are with respect to the dataset brick axes.
 ---------------------------------------------------------------------*/
 
-void AFNI_process_drawing( Three_D_View * im3d , int mode ,
-                           int npts , int * xd , int * yd , int * zd )
+void AFNI_process_drawing( Three_D_View *im3d , int mode ,
+                           int npts , int *xd , int *yd , int *zd )
 {
    int ii , nn , ir , nsent ;
-   int * vp[4] , * xn , * yn , * zn ;
+   int *vp[4] , *xn=NULL , *yn=NULL , *zn=NULL ;
 
 ENTRY("AFNI_process_drawing") ;
 
@@ -619,7 +619,7 @@ if(PRINT_TRACING){
         just flag input data to be set to receiver --*/
 
    if( im3d->vinfo->drawing_mode == DRAWING_POINTS ||
-       im3d->vinfo->drawing_mode == DRAWING_NODRAW || npts == 1 ){
+       im3d->vinfo->drawing_mode == DRAWING_NODRAW || npts <= 1 ){
 
       xn = xd ; yn = yd ; zn = zd ; nn = npts ;
    }
