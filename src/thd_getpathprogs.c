@@ -10,7 +10,7 @@ static THD_string_array *elist = NULL ;
     is returned (i.e., don't free() this pointer!).
 ------------------------------------------------------------------------------*/
 
-char * THD_find_executable( char * ename )
+char * THD_find_executable( char *ename )
 {
    char *etr , *str ;
    int ii ;
@@ -70,7 +70,7 @@ ENTRY("THD_getpathprogs") ;
 
    if( epath != NULL ){
       int epos =0 , ll = strlen(epath) ;
-      char * elocal ;
+      char *elocal ;
       char ename[THD_MAX_NAME] ;
 
       /* copy path list into local memory */
@@ -125,11 +125,11 @@ ENTRY("THD_getpathprogs") ;
 /*--------------------------------------------------*/
 /*! Read all executable filenames from a directory. */
 
-THD_string_array * THD_get_all_executables( char * dname )
+THD_string_array * THD_get_all_executables( char *dname )
 {
    int ir , ll , ii ;
-   char * fname , * tname ;
-   float * far ;
+   char *fname , *tname ;
+   float *far ;
    THD_string_array *outar, *alist, *rlist ;
 
 ENTRY("THD_get_all_executables") ;

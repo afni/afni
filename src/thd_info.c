@@ -20,11 +20,11 @@
 #define ZMAX  8000
 #define SZMAX "%.8000s"   /* same as ZMAX */
 
-char * THD_zzprintf( char * sss , char * fmt , ... ) ;
+char * THD_zzprintf( char *sss , char *fmt , ... ) ;
 
-char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
+char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
-   THD_dataxes      * daxes ;
+   THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
    THD_ivec3 iv ;
    int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
@@ -33,11 +33,11 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    static char * RR="[R]" , * LL="[L]" ,
                * PP="[P]" , * AA="[A]" ,
                * SS="[S]" , * II="[I]" , * ZZ="   " ;
-   char * xlbot , * xltop , * ylbot , * yltop , * zlbot , * zltop , * cpt ;
+   char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
    char str[256] ;
    int nstr ;
 
-   char * outbuf = NULL ;
+   char *outbuf = NULL ;
 
 ENTRY("THD_dataset_info") ;
 
@@ -360,8 +360,8 @@ ENTRY("THD_dataset_info") ;
 
 char * THD_zzprintf( char * sss , char * fmt , ... )
 {
-   static char * sbuf = NULL ;
-   char * zz ;
+   static char *sbuf = NULL ;
+   char *zz ;
    int   nzz , nsbuf ;
    va_list vararg_ptr ;
 
