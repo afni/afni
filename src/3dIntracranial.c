@@ -29,6 +29,7 @@
 #include "mrilib.h"
 #include "Intracranial.h"
 
+static char * commandline = NULL ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -451,6 +452,9 @@ void write_afni_data
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
 
+  tross_Copy_History( dset , new_dset ) ;
+  if( commandline != NULL )
+     tross_Append_History( new_dset , commandline ) ;
 
   
   /*----- deallocate memory -----*/   
@@ -593,6 +597,7 @@ int main
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
+  commandline = tross_commandline( "3dIntracranial" , argc,argv ) ;
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv);

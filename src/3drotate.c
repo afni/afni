@@ -362,6 +362,10 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
       exit(1) ;
    }
 
+   /* old history is already in the dataset */
+
+   tross_Make_History( "3drotate" , argc,argv , dset ) ;
+
    nvox = DSET_NVOX(dset) ;
    fvol = (float *) malloc( sizeof(float) * nvox ) ;
 

@@ -2324,6 +2324,7 @@ extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
 /*--- Stuff for Tom Ross's NOTES ---*/
 
 #define MAX_DSET_NOTES 999
+#define MAX_NOTE_SIZE  4000
 
 extern void   tross_Add_Note   (THD_3dim_dataset *, char *) ;
 extern void   tross_Delete_Note(THD_3dim_dataset *, int   ) ;
@@ -2331,8 +2332,19 @@ extern void   tross_Delete_Note(THD_3dim_dataset *, int   ) ;
 extern char * tross_Expand_String( char * ) ;
 extern char * tross_Encode_String( char * ) ;
 
-extern void   tross_Store_Note  ( THD_3dim_dataset * , int , char * ) ;
-extern char * tross_Get_Note    ( THD_3dim_dataset * , int ) ;
-extern char * tross_Get_Notedate( THD_3dim_dataset * , int ) ;
+extern void   tross_Store_Note   ( THD_3dim_dataset * , int , char * ) ;
+extern char * tross_Get_Note     ( THD_3dim_dataset * , int ) ;
+extern char * tross_Get_Notedate ( THD_3dim_dataset * , int ) ;
+extern int    tross_Get_Notecount( THD_3dim_dataset * ) ;
+
+extern char * tross_datetime(void) ;
+extern char * tross_commandline( char * , int , char ** ) ;
+
+extern void   tross_Append_History( THD_3dim_dataset * , char * ) ;
+extern char * tross_Get_History   ( THD_3dim_dataset * ) ;
+extern void   tross_Make_History  ( char *, int, char **, THD_3dim_dataset * ) ;
+extern void   tross_Copy_History  ( THD_3dim_dataset *, THD_3dim_dataset * ) ;
+
+#define tross_Erase_History(ds) THD_erase_one_atr((ds)->dblk,"HISTORY_NOTE")
 
 #endif /* _MCW_3DDATASET_ */

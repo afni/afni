@@ -9,6 +9,54 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <ctype.h>
+
+/*---------------------------------------------------------------------------
+   Assemble a sort-of command line string from the arguments;
+   free() this when done.
+-----------------------------------------------------------------------------*/
+
+char * tross_commandline( char * pname , int argc , char ** argv )
+{
+   char * ch ;
+   int ii , ll ;
+
+   if( argc < 2 || argv == NULL ) return NULL ;
+
+   if( pname == NULL ) pname = argv[0] ;
+
+   ii = strlen(pname) ; ch = malloc(ii+4) ; strcpy(ch,pname) ;
+
+   for( ii=1 ; ii < argc ; ii++ ){
+      ll = strlen(argv[ii]) ;
+      ch = realloc( ch , strlen(ch)+ll+4 ) ;
+      if( !THD_filename_ok(argv[ii]) ){
+         int jj ; char * aa = malloc(ll+1) ;
+
+         strcpy(aa,argv[ii]) ;        /* edit out bad characters */
+         for( jj=0 ; jj < ll ; jj++ )
+            if( iscntrl(aa[jj]) || isspace(aa[jj]) || aa[jj] > 127 ) aa[jj] = ' ' ;
+
+         strcat(ch," '") ; strcat(ch,aa) ; strcat(ch,"'") ; free(aa) ;
+      } else {
+         strcat(ch," ")  ; strcat(ch,argv[ii]) ;
+      }
+   }
+
+   return ch ;
+}
+
+/*---------------------------------------------------------------------------
+  Get the current date/time string;  free() this when done.
+-----------------------------------------------------------------------------*/
+
+char * tross_datetime(void)
+{
+   time_t tnow = time(NULL) ; int i ; char * qh , * ch ;
+
+   ch=ctime(&tnow); i=strlen(ch); qh=malloc(i+2); strcpy(qh,ch); qh[i-1]='\0';
+   return qh ;
+}
 
 /*---------------------------------------------------------------------------
    Add a note after the last current note
@@ -40,11 +88,10 @@ void tross_Add_Note( THD_3dim_dataset *dset, char *cn )
    THD_set_string_atr(dset->dblk, note_name, ch);
    free(ch) ;
 
-   { time_t tnow = time(NULL) ; int i ; char * qh ;
-     ch=ctime(&tnow); i=strlen(ch); qh=malloc(i+4); strcpy(qh,ch); qh[i-1]='\0';
-     sprintf(note_name, "NOTE_DATE_%03d", num_notes) ;
-     THD_set_string_atr(dset->dblk, note_name, qh); free(qh);
-   }
+   ch = tross_datetime() ;
+   sprintf(note_name, "NOTE_DATE_%03d", num_notes) ;
+   THD_set_string_atr(dset->dblk, note_name, ch);
+   free(ch);
 
    return ;
 }
@@ -108,6 +155,19 @@ void tross_Delete_Note(THD_3dim_dataset *dset, int inote)
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+int tross_Get_Notecount( THD_3dim_dataset * dset )
+{
+   ATR_int *notecount;
+
+   if( !ISVALID_DSET(dset) ) return -1 ;
+
+   notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
+   if (notecount == NULL) return 0 ;
+   return notecount->in[0];
+}
+
 /*---------------------------------------------------------------------------
   free() this string when done with it - it is a copy
 -----------------------------------------------------------------------------*/
@@ -153,6 +213,97 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
    return tross_Expand_String( note->ch ) ;
 }
 
+/*---------------------------------------------------------------------------
+   Let's make HISTORY!
+-----------------------------------------------------------------------------*/
+
+void tross_Make_History( char * pname, int argc, char ** argv, THD_3dim_dataset *dset )
+{
+   char * ch ;
+
+   if( argc < 2 || argv == NULL || !ISVALID_DSET(dset) ) return ;
+
+   ch = tross_commandline( pname , argc , argv ) ; if( ch == NULL ) return ;
+   tross_Append_History( dset , ch ) ;
+   free(ch) ; return ;
+}
+
+/*---------------------------------------------------------------------------
+   Replace the History in new_dset with that from old_dset
+-----------------------------------------------------------------------------*/
+
+void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_dset )
+{
+   char * ch , * cn ;
+
+   if( !ISVALID_DSET(old_dset) || !ISVALID_DSET(new_dset) ) return ;
+
+   ch = tross_Get_History( old_dset ) ;      if( ch == NULL ) return ;
+   cn = tross_Encode_String(ch) ; free(ch) ; if( cn == NULL ) return;
+   THD_set_string_atr(new_dset->dblk, "HISTORY_NOTE", cn);
+
+   free(cn) ; return ;
+}
+
+/*---------------------------------------------------------------------------
+   Append a string to the dataset history (create the history if need be).
+-----------------------------------------------------------------------------*/
+
+void tross_Append_History( THD_3dim_dataset *dset, char *cn )
+{
+   ATR_string * hist ;
+   char * ch , * chold , * cdate ;
+   int ii , idate ;
+
+   if( !ISVALID_DSET(dset) || cn == NULL || cn[0] == '\0' ) return ;
+
+   hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
+   cdate = tross_datetime() ; idate = strlen(cdate) ;
+
+   /*- add to the history -*/
+
+   if( hist != NULL ){
+
+      chold = tross_Expand_String(hist->ch) ; if( chold == NULL ) return ;
+      ii = strlen(chold) ; chold = realloc( chold , ii+idate+strlen(cn)+8 ) ;
+      strcat(chold,"\n") ;
+      strcat(chold,"[") ; strcat(chold,cdate) ; strcat(chold,"] ") ;
+      strcat(chold,cn) ;
+      ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
+      THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
+      free(ch) ; free(chold) ;
+
+   /*- create the history -*/
+
+   } else {
+      chold = malloc( idate+strlen(cn)+8 ) ;
+      sprintf(chold,"[%s] %s",cdate,cn) ;
+      ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); return; }
+      THD_set_string_atr(dset->dblk, "HISTORY_NOTE", ch);
+      free(ch) ; free(chold) ;
+   }
+
+   free(cdate) ; return ;
+}
+
+/*----------------------------------------------------------------------------
+  Get the history string; free() this when done.  If NULL is returned,
+  there is no history (cf. Santayana).
+------------------------------------------------------------------------------*/
+
+char * tross_Get_History( THD_3dim_dataset *dset )
+{
+   ATR_string * hist ;
+   char * ch ;
+
+   if( !ISVALID_DSET(dset) ) return NULL ;
+
+   hist = THD_find_string_atr(dset->dblk,"HISTORY_NOTE") ;
+   if( hist == NULL ) return NULL ;
+
+   ch = tross_Expand_String(hist->ch) ; return ch ;
+}
+
 /*-----------------------------------------------------------------------------
    Store string at location inote;
    if inote > number of notes now present, gets added at the end of the list;
@@ -166,7 +317,8 @@ void tross_Store_Note( THD_3dim_dataset * dset , int inote , char * cn )
    ATR_string *note ;
    char note_name[20], *ch ;
 
-   if( !ISVALID_DSET(dset) || inote <= 0 || inote > MAX_DSET_NOTES ) return ;
+   if( !ISVALID_DSET(dset) || inote <= 0 || inote > MAX_DSET_NOTES ||
+                              cn == NULL || cn[0] == '\0'            ) return ;
 
    notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
    if (notecount == NULL){ tross_Add_Note( dset , cn ) ; return ; }
@@ -178,11 +330,10 @@ void tross_Store_Note( THD_3dim_dataset * dset , int inote , char * cn )
    THD_set_string_atr(dset->dblk, note_name, ch);
    free(ch) ;
 
-   { time_t tnow = time(NULL) ; int i ; char * qh ;
-     ch=ctime(&tnow); i=strlen(ch); qh=malloc(i+4); strcpy(qh,ch); qh[i-1]='\0';
-     sprintf(note_name, "NOTE_DATE_%03d", inote) ;
-     THD_set_string_atr(dset->dblk, note_name, qh); free(qh);
-   }
+   ch = tross_datetime() ;
+   sprintf(note_name, "NOTE_DATE_%03d", inote) ;
+   THD_set_string_atr(dset->dblk, note_name, ch);
+   free(ch);
 
    return ;
 }

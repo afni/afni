@@ -1628,3 +1628,12 @@
 30 Aug 1999:
  * Modified afni_fimmer.c to accept an upper limit on the computable
      percent change.
+
+31 Aug 1999:
+ * Added a History Note feature to thd_notes.c.
+ * Added a routine to afni_plugin.c to produce a command string
+     summary of the inputs to a plugin.
+ * Modified many programs and plugins to write to the History Note.
+
+01 Sep 1999:
+ * Wrote a Notes viewing/editing plugin.

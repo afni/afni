@@ -182,6 +182,10 @@ int main( int argc , char * argv[] )
             }
          }
          printf("--blasted %d voxels",nkilled) ; fflush(stdout) ;
+         { char str[128] ;
+           sprintf(str,"3dnoise -- blasted %d voxels",nkilled) ;
+           tross_Append_History( dset , str ) ;
+         }
          DSET_write(dset) ;
       }
 

@@ -17,26 +17,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-
-*/
-
-
-/*---------------------------------------------------------------------------*/
-
 #define PROGRAM_NAME "3dbuc2fim"                     /* name of this program */
 #define LAST_MOD_DATE "18 March 1998"            /* date of last program mod */
 
@@ -377,6 +357,8 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( DSUB(0) ) ;
 
+   if( ninp == 1 ) tross_Copy_History( DSUB(0) , new_dset ) ;
+   tross_Make_History( "3dbuc2fim" , argc,argv , new_dset ) ;
 
    /*-----  Set default value for function type. This will be changed later,
             if the second sub-brick has a statistic type.  -----*/

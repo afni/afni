@@ -464,6 +464,9 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( DSUB(0) ) ;
 
+   if( ninp == 1 ) tross_Copy_History( DSUB(0) , new_dset ) ;
+   tross_Make_History( "3dbucket" , argc,argv , new_dset ) ;
+
    EDIT_dset_items( new_dset ,
                       ADN_prefix        , BUCK_output_prefix ,
                       ADN_directory_name, BUCK_session ,

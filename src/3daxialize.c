@@ -82,6 +82,9 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( old_dset ) ;
 
+   tross_Copy_History( old_dset , new_dset ) ;
+   tross_Make_History( "3daxialize" , argc,argv , new_dset ) ;
+
    LOAD_IVEC3( iv_nxyz      , brax->n1    , brax->n2    , brax->n3     ) ;
    LOAD_IVEC3( iv_xyzorient , ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE ) ;
 

@@ -22,25 +22,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
-
-/*---------------------------------------------------------------------------*/
-
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -870,6 +851,11 @@ char * EDIT_main( PLUGIN_interface * plint )
 		   ADN_directory_name , PE_output_session ,
 		   ADN_none ) ;
   strcat( new_dset->self_name , "(PE)" ) ;
+
+  { char * his = PLUTO_commandstring(plint) ;
+    tross_Copy_History( dset , new_dset ) ;
+    tross_Append_History( new_dset, his ) ; free(his) ;
+  }
   
   if( ! PE_keepthr && new_dset->dblk->nvals > 1 )
     EDIT_dset_items( new_dset ,

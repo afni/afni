@@ -541,6 +541,9 @@ int main( int argc , char * argv[] )
    dset = PC_dset[0] ;
    new_dset = EDIT_empty_copy( dset ) ;
 
+   if( PC_dsnum == 1 ) tross_Copy_History( dset , new_dset ) ;
+   tross_Make_History( "3dpc" , argc,argv , new_dset ) ;
+
    EDIT_dset_items( new_dset,
                        ADN_prefix    , PC_prefix ,
                        ADN_nvals     , PC_lprin_save ,

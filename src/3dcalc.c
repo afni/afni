@@ -581,6 +581,12 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
 
+   for( iii=jjj=0 ; iii < 26 ; iii++ )
+      if( CALC_dset[iii] != NULL ) jjj++ ;
+
+   if( jjj == 1 ) tross_Copy_History( CALC_dset[ids] , new_dset ) ;
+   tross_Make_History( "3dcalc" , argc,argv , new_dset ) ;
+
    EDIT_dset_items( new_dset ,
                        ADN_prefix         , CALC_output_prefix ,
                        ADN_directory_name , CALC_session ,

@@ -538,6 +538,11 @@ switch(old_datum) { /* pointer type depends on input datum type */
 new_dset /* start with copy of old one */
 	= EDIT_empty_copy(old_dset);
 
+      { char * his = PLUTO_commandstring(plint) ;
+        tross_Copy_History(old_dset,new_dset) ;
+        tross_Append_History(new_dset,his) ; free(his);
+      }
+
 /*-- edit some of its internal parameters --*/
 
 ii = EDIT_dset_items(

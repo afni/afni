@@ -521,6 +521,8 @@ int main( int argc , char * argv[] )
       }
       fprintf(stderr,"Processing dataset %s\n",argv[iarg]) ;
 
+      tross_Make_History( "3drefit" , argc,argv, dset ) ;
+
       /* 25 April 1998 */
 
       if( new_byte_order > 0 )

@@ -1265,6 +1265,20 @@ ENTRY("AFNI_fimmer_execute") ;
    AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
    AFNI_SEE_FUNC_ON(im3d) ;
 
+   { char his[512] ; int hh ;
+     tross_Copy_History( dset_time , new_dset ) ;
+     sprintf(his,"afni FIM: 3D+time=%s ignore=%d polort=%d",
+             DSET_HEADNAME(dset_time) ,
+             im3d->fimdata->init_ignore , im3d->fimdata->polort ) ;
+     if( ref_ts->name != NULL ){
+        hh = strlen(his) ; sprintf(his+hh," ref=%s",ref_ts->name) ;
+     }
+     if( ort_ts != NULL && ort_ts->name != NULL ){
+        hh = strlen(his) ; sprintf(his+hh," ort=%s",ort_ts->name) ;
+     }
+     tross_Append_History( new_dset , his ) ;
+   }
+
    (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
    /*** At this point, FIM is computed and written to disk ***/

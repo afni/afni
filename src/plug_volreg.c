@@ -424,6 +424,11 @@ char * VOLREG_main( PLUGIN_interface * plint )
    new_dset = EDIT_empty_copy( VL_dset ) ;
    EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
 
+   { char * his = PLUTO_commandstring(plint) ;
+     tross_Copy_History( VL_dset , new_dset ) ;
+     tross_Append_History( new_dset , his ) ; free(his) ;
+   }
+
    albase = mri_3dalign_setup( VL_imbase , NULL ) ;
 
    /*-- loop over sub-bricks and register them --*/

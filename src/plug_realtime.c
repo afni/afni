@@ -1521,6 +1521,7 @@ void RT_start_dataset( RT_input * rtin )
    /** Let there be dataset! **/
 
    rtin->dset = EDIT_empty_copy(NULL) ;
+   tross_Append_History( rtin->dset , "plug_realtime: creation" ) ;
 
    /********************************/
    /** make a good dataset prefix **/
@@ -1670,6 +1671,7 @@ void RT_start_dataset( RT_input * rtin )
        ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
 
       rtin->reg_dset = EDIT_empty_copy( rtin->dset ) ;
+      tross_Append_History( rtin->reg_dset , "plug_realtime: registration" ) ;
 
            if( REG_IS_2D(rtin->reg_mode) ) strcat(npr,"%reg2D") ;
       else if( REG_IS_3D(rtin->reg_mode) ) strcat(npr,"%reg3D") ;
@@ -3563,6 +3565,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          fprintf(stderr,"RTfim: can't create empty dataset!\a\n") ;
          exit(1) ;
       }
+      tross_Append_History( new_dset , "plug_realtime: FIM" ) ;
 
       it = EDIT_dset_items( new_dset ,
                                ADN_prefix      , new_prefix ,

@@ -125,6 +125,9 @@ int main( int argc , char * argv[] )
                       ADN_self_name      , DUP_prefix ,
                     ADN_none ) ;
 
+   tross_Copy_History( dset_in , dset_out ) ;
+   tross_Make_History( "3ddup" , argc , argv , dset_out ) ;
+
    /*** change of type? ***/
 
    if( dataset_type>=FIRST_3DIM_TYPE && dataset_type<=LAST_3DIM_TYPE ){

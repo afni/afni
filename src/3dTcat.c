@@ -486,6 +486,8 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( dset ) ; /* make a copy of its header */
 
+   tross_Make_History( "3dTcat" , argc,argv , new_dset ) ;
+
    /* modify its header */
 
    EDIT_dset_items( new_dset ,

@@ -454,6 +454,8 @@ printf("*** making empty dataset\n") ;
 
    new_dset = EDIT_empty_copy( dset ) ;
 
+   tross_Make_History( "3dttest" , argc,argv , new_dset ) ;
+
    strcpy( cbuf , dset->self_name ) ; strcat( cbuf , "+TT" ) ;
 
    iv = DSET_PRINCIPAL_VALUE(dset) ;

@@ -443,6 +443,11 @@ char * POWER_main( PLUGIN_interface * plint )
 
    new_dset = EDIT_empty_copy( old_dset ) ; /* start with copy of old one */
 
+   { char * his = PLUTO_commandstring(plint) ;
+     tross_Copy_History( old_dset , new_dset ) ;
+     tross_Append_History( new_dset , his ) ; free(his) ;
+   }
+
    /*-- edit some of its internal parameters --*/
 
    ii = EDIT_dset_items(

@@ -87,6 +87,8 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 
 /*-----------------------------------------------------------------------*/
 
+static char * commandline = NULL ;
+
 int main( int argc , char * argv[] )
 {
    XtAppContext   app ;
@@ -94,6 +96,8 @@ int main( int argc , char * argv[] )
    Boolean        all_good ;
 
    /* read the user data from the command line, if any */
+
+   commandline = tross_commandline( "to3d" , argc , argv ) ;
 
    wset.topshell = NULL ;  /* flag that X has yet to start */
 
@@ -3907,6 +3911,8 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    }
 
    dset->taxis = NULL ;  /* will be patched later, if necessary */
+
+   if( commandline != NULL ) tross_Append_History( dset , commandline ) ;
 
    /*********** DONE **********/
 

@@ -162,6 +162,9 @@ int main( int argc , char *argv[] )
       exit(1) ;
    }
 
+   tross_Copy_History( VL_dset , new_dset ) ;
+   tross_Make_History( "3dvolreg" , argc,argv , new_dset ) ;
+
    /*-- read the input dataset --*/
 
    if( VL_verbose )

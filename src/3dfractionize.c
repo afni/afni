@@ -136,6 +136,9 @@ int main( int argc , char * argv[] )
    /*-- start to create output dataset --*/
 
    dset = EDIT_empty_copy( tset ) ;
+
+   tross_Make_History( "3dfractionize" , argc,argv , dset ) ;
+
    EDIT_dset_items( dset ,
                        ADN_prefix    , prefix ,
                        ADN_nvals     , 1 ,
@@ -145,6 +148,7 @@ int main( int argc , char * argv[] )
                     ADN_none ) ;
 
    if( ISFUNC(dset) ) EDIT_dset_items( dset , ADN_func_type,FUNC_FIM_TYPE , ADN_none ) ;
+
 
    if( THD_is_file(dset->dblk->diskptr->header_name) ){
       fprintf(stderr,

@@ -728,6 +728,9 @@ int main( int argc , char * argv[] )
 
       new_dset = EDIT_empty_copy( dset ) ;
 
+      tross_Copy_History( dset , new_dset ) ;
+      tross_Make_History( "3dmerge" , argc , argv , new_dset ) ;
+
       EDIT_dset_items( new_dset ,
                           ADN_prefix , MRG_output_prefix ,
                           ADN_label1 , MRG_output_prefix ,
@@ -1430,6 +1433,7 @@ int main( int argc , char * argv[] )
              new_dset->dblk->diskptr->header_name ,
              new_dset->dblk->diskptr->brick_name    ) ;
 
+   tross_Make_History( "3dmerge" , argc , argv , new_dset ) ;
    THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    exit(0) ;

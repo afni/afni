@@ -1985,6 +1985,127 @@ ENTRY("get_optiontag_from_PLUGIN_interface") ;
    RETURN(NULL) ;
 }
 
+/*-----------------------------------------------------------------------
+   Return a string encaspulating information about how the plugin
+   was called.  This string is created with malloc() and should be
+   free()-ed when it is used up.  If NULL is returned, an error
+   occurred (and you should be ashamed of yourself).
+   -- 31 Aug 1999 -- RWCox
+-------------------------------------------------------------------------*/
+
+#include <stdarg.h>
+
+static void blanktrim( char * ch )
+{
+   int ii , ll ;
+   if( ch == NULL ) return ;
+   ll = strlen(ch) ; if( ll < 2 ) return ;
+   for( ii=ll-1 ; ii > 0 ; ii-- )
+      if( isspace(ch[ii]) ) ch[ii] = '\0' ; else break ;
+   return ;
+}
+
+#undef BUFIT
+#define BUFIT(s) do{ strcpy(buf,s); blanktrim(buf); } while(0)
+
+char * PLUTO_commandstring( PLUGIN_interface * plint )
+{
+   char * outbuf = NULL ;
+   PLUGIN_option * opt ;
+   PLUGIN_subvalue * sv ;
+   int iopt , jsv ;
+   char buf[256] ;
+
+ENTRY("PLUTO_commandstring") ;
+
+   if( plint == NULL ) RETURN(outbuf) ;
+
+   BUFIT(plint->label) ;
+   outbuf = THD_zzprintf( outbuf , "%s " , buf ) ;  /* start with name */
+
+   if( plint->call_method != PLUGIN_CALL_VIA_MENU ||
+       plint->option_count == 0                   ||
+       plint->option == NULL                        ) RETURN(outbuf) ;
+
+   /* loop over each option for the plugin */
+
+   for( iopt=0 ; iopt < plint->option_count ; iopt++ ){
+      opt = plint->option[iopt] ;
+      if( opt == NULL ) continue ;   /* bad? */
+      if( ! opt->chosen ) continue ; /* not used this time */
+
+      BUFIT(opt->label) ;
+      outbuf = THD_zzprintf( outbuf , "{%s: " , buf ) ;
+
+      /* if this option is used, put a list of its subvalues in the string */
+
+      for( jsv=0 ; jsv < opt->subvalue_count ; jsv++ ){
+         sv = &(opt->subvalue[jsv]) ;
+         BUFIT(sv->label) ;
+         outbuf = THD_zzprintf( outbuf , "%s=" , buf ) ;
+         switch( sv->data_type ){
+
+            default:
+               outbuf = THD_zzprintf( outbuf,"?" ) ; break ;
+
+            case PLUGIN_NUMBER_TYPE:{
+               float * val = (float *) opt->callvalue[jsv] ;
+               if( val != NULL ) outbuf = THD_zzprintf( outbuf,"%g",*val) ;
+               else              outbuf = THD_zzprintf( outbuf,"?" ) ;
+            }
+            break ;
+
+            case PLUGIN_STRING_TYPE:{
+                char * val = (char *) opt->callvalue[jsv] ;
+                if( val != NULL ){ BUFIT(val); outbuf = THD_zzprintf( outbuf,"%s",buf); }
+                else                           outbuf = THD_zzprintf( outbuf,"?" ) ;
+            }
+            break ;
+
+            case PLUGIN_DATASET_LIST_TYPE:{
+               MCW_idclist ** llist = (MCW_idclist **) opt->callvalue[jsv] ;
+               int nd = PLUTO_idclist_count(*llist) ;
+               outbuf = THD_zzprintf( outbuf , "[%d dsets]" , nd ) ;
+            }
+            break ;
+
+            case PLUGIN_DATASET_TYPE:{
+               MCW_idcode * idc = (MCW_idcode *) opt->callvalue[jsv] ;
+               THD_3dim_dataset * dset ;
+
+               dset = PLUTO_find_dset( idc ) ;
+               if( dset != NULL ){
+                  char * qb = THD_trailname(DSET_HEADNAME(dset),SESSTRAIL) ;
+                  outbuf = THD_zzprintf( outbuf,"%s",qb) ;
+               } else
+                  outbuf = THD_zzprintf( outbuf,"?" ) ;
+            }
+            break ;
+
+            case PLUGIN_TIMESERIES_TYPE:{
+               MRI_IMAGE ** imp = (MRI_IMAGE **) opt->callvalue[jsv] ;
+
+               if( imp != NULL && *imp != NULL && (*imp)->name != NULL )
+                  outbuf = THD_zzprintf( outbuf,"%s",(*imp)->name ) ;
+               else
+                  outbuf = THD_zzprintf( outbuf,"?" ) ;
+            }
+            break ;
+
+         } /* end of switch on subvalue type */
+
+         if( jsv < opt->subvalue_count - 1 )
+            outbuf = THD_zzprintf( outbuf,"; ") ;
+
+      } /* end of loop on subvalues */
+
+      outbuf = THD_zzprintf( outbuf , "} " ) ;  /* end of this option */
+
+   } /* end of loop on options */
+
+   RETURN(outbuf) ;
+}
+
 /*-------------------------------------------------------------------------
    Find out what the next chosen option is, without actually retrieving it.
 ---------------------------------------------------------------------------*/

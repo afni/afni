@@ -97,7 +97,7 @@ static char        helpstring[] =
     "No Text Out  - do not display the extrma points as text\n"
     "\n"
     "\n"
-    "Author: R Reynolds\n"
+    "Author: (the lamented) R Reynolds\n"
    ;
 
 
@@ -942,6 +942,11 @@ write_results( r_afni_s * A, maxima_s * M, PLUGIN_interface * plint )
     {
 	rERROR( "Error: wr_00\n" "Failed to copy dataset." );
 	return 0;
+    }
+
+    { char * his = PLUTO_commandstring(plint) ;
+      tross_Copy_History( M->dset , newdset ) ;
+      tross_Append_History( newdset , his ) ; free(his) ;
     }
 
     EDIT_dset_items( newdset,

@@ -3375,6 +3375,7 @@ STATUS("have new image") ;
 
    STATUS("rewriting header") ;
 
+   tross_Append_History( dset , "afni: resampled and rewritten" ) ;
    (void) THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
 
    STATUS("purging datablock") ;

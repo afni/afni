@@ -209,6 +209,9 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( old_dset ) ;
 
+   tross_Copy_History( old_dset , new_dset ) ;
+   tross_Make_History( "3dTsmooth" , argc,argv , new_dset ) ;
+
    /*-- edit some of its internal parameters --*/
 
    EDIT_dset_items( new_dset ,

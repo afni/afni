@@ -72,7 +72,7 @@ static AFNI_friend afni_friends[] = {
   { "K.M. Donahue"     , (                 16           ) } ,
   { "P.A. Bandettini"  , (                 16           ) } ,
   { "A.S. Bloom"       , ( 1 | 2         | 16           ) } ,
-  { "T. Ross"          , (         4 | 8                ) } ,
+  { "T. Ross"          , (         4 | 8      | 32      ) } ,
   { "H. Garavan"       , (         4 | 8                ) } ,
   { "R. Reynolds"      , (                           64 ) } ,
   { "S.-J. Li"         , (     2                        ) } ,
@@ -4356,6 +4356,8 @@ ENTRY("AFNI_marks_action_CB") ;
                    "Saved changed markers\nto dataset disk file." ,
                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
+
+         tross_Append_History( im3d->anat_now , "afni: markers were edited" ) ;
          (void) THD_write_3dim_dataset( NULL,NULL , im3d->anat_now , False ) ;
       }
 
@@ -6059,6 +6061,12 @@ ENTRY("AFNI_marks_transform_CB") ;
    resam_size = im3d->vinfo->resam_vox ;
    new_dset   = AFNI_init_warp( im3d , im3d->anat_now , warp , resam_size ) ;
    if( new_dset == NULL ) BEEP_AND_RETURN ;
+
+   { char his[128] ;
+     tross_Copy_History( im3d->anat_now , new_dset ) ;
+     sprintf(his,"afni: transformed to %s",VIEW_typestr[vnew]) ;
+     tross_Append_History( new_dset , his ) ;
+   }
 
    /*----- This new dataset may replace a current dataset,
            and if so, THAT dataset may have a warp child,

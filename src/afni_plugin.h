@@ -333,6 +333,8 @@ extern void add_timeseries_to_PLUGIN_interface( PLUGIN_interface *, char * ) ;
 extern void PLUG_fillin_values( PLUGIN_interface * plint ) ;
 extern void PLUG_freeup_values( PLUGIN_interface * plint ) ;
 
+extern char * PLUTO_commandstring( PLUGIN_interface * plint ) ;
+
 #define PLUTO_get_label        get_label_from_PLUGIN_interface
 #define PLUTO_get_descripton   get_description_from_PLUGIN_interface
 #define PLUTO_get_optiontag    get_optiontag_from_PLUGIN_interface

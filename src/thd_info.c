@@ -8,6 +8,9 @@
 
 #include <stdarg.h>
 
+#undef ZMAX
+#define ZMAX 4000
+
 char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 
 char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
@@ -229,6 +232,17 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
       outbuf = THD_zzprintf(outbuf,"\n") ;
    }
 
+   /** If present, print out History **/
+
+   { char * chn ; int j ;
+     chn = tross_Get_History(dset) ;
+     if( chn != NULL ){
+        j = strlen(chn) ; if( j > ZMAX ) chn[ZMAX] = '\0' ;
+        outbuf = THD_zzprintf(outbuf,"\n----- HISTORY -----\n%s\n",chn) ;
+        free(chn) ;
+     }
+   }
+
    /** If present, print out Notes **/
 
    { ATR_int *notecount;
@@ -240,7 +254,7 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
      if( notecount != NULL ){
         num_notes = notecount->in[0] ;
         if( !verbose && num_notes > 5 ) num_notes = 5 ;
-        mmm = (verbose) ? 4000 : 400 ;
+        mmm = (verbose) ? ZMAX : 400 ;
         for (i=1; i<= num_notes; i++) {
            chn = tross_Get_Note( dset , i ) ;
            if( chn != NULL ){
@@ -259,12 +273,15 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
 
 char * THD_zzprintf( char * sss , char * fmt , ... )
 {
-   static char sbuf[4096] ;
+   static char * sbuf = NULL ;
    char * zz ;
    int   nzz , nsbuf ;
    va_list vararg_ptr ;
 
    va_start( vararg_ptr , fmt ) ;
+
+   if( sbuf == NULL ) sbuf = malloc( ZMAX+90 ) ;
+
    sbuf[0] = '\0' ;
    vsprintf( sbuf , fmt , vararg_ptr ) ;
    nsbuf = strlen(sbuf) ;
