@@ -170,7 +170,7 @@ extern int NI_stream_writestring( NI_stream_type *ns , char *str ) ;
 extern int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec ) ;
 
 extern void NI_reset_buffer( NI_stream_type * ) ;
-extern int  NI_decode_one_double( NI_stream_type *, double * ) ;
-extern int  NI_decode_one_string( NI_stream_type *, char ** ) ;
+extern int  NI_decode_one_double( NI_stream_type *, double *, int ) ;
+extern int  NI_decode_one_string( NI_stream_type *, char ** , int ) ;
 
 #endif

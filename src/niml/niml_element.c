@@ -563,19 +563,6 @@ void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Define a rowmap in a NI_element from a NI_rowtype expression
-    of a C struct.
-    - nam = string name for the NI_rowtype
-    - RWCox - 10 Dec 2002
--------------------------------------------------------------------------*/
-
-void NI_define_rowmap_from_rowtype_name( NI_element *nel, char *nam )
-{
-   NI_define_rowmap_from_rowtype_code( nel ,
-                                       NI_rowtype_name_to_code(nam) ) ;
-}
-
-/*-----------------------------------------------------------------------*/
 /*! Define the rowmap for inserting/retrieving a struct from a
     data element, using VAriable argument list as input, as in
     NI_define_rowmap_VA(nel,typ1,off1,typ2,off2,-1);
