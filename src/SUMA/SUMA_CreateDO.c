@@ -708,7 +708,7 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    float MinDims[3], MaxDims[3];
    int i, j, Nvis, *Vis_IDs=NULL;
    SUMA_SurfaceObject *cso=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
