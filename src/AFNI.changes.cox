@@ -2622,3 +2622,15 @@
 29 Feb 2001
  * Modified thd_initdkptr.c to properly treat directory components stored
      in prefixname.  [Ugh]
+
+01 Mar 2001
+ * Added "Max Count" input to plug_histog.c.
+ * Fixed incorrect error message for "-nrep" option in 3dWinsor.c.
+ * Added -blackman and -hamming options to 3dTsmooth.c [per MSB].
+
+02 Mar 2001
+ * Added thd_entropy16.c to compute entropy (bits/short) of a dataset.
+ * Used entropy to force gzip of highly redundant datasets in
+     thd_writedblk.c -- if AFNI_AUTOGZIP is on.
+ * Modified afni_environ.c so that yesenv() and noenv() use my_getenv().
+ * Modified afni_pplug_env.c to include AFNI_AUTOGZIP.

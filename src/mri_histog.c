@@ -37,24 +37,24 @@ void mri_histogram( MRI_IMAGE * im , float hbot,float htop ,
    switch( lim->kind ){
 
       case MRI_short:{
-	 register short * shar = mri_data_pointer(lim) ;
+         register short * shar = mri_data_pointer(lim) ;
 
          for( ii=0 ; ii < npix ; ii++ ){
             ih = sbin * (shar[ii]-hbot) ;
             if( ih >=0 && ih < nbin ) hist[ih]++ ;
          }
-	 break ;
       }
+      break ;
 
       case MRI_float:{
-	 register float * flar = mri_data_pointer(lim) ;
+         register float * flar = mri_data_pointer(lim) ;
 
          for( ii=0 ; ii < npix ; ii++ ){
             ih = sbin * (flar[ii]-hbot) ;
             if( ih >=0 && ih < nbin ) hist[ih]++ ;
          }
-	 break ;
       }
+      break ;
    }
 
    if( lim != im ) mri_free( lim ) ;  /* toss temporary array */

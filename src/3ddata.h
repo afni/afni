@@ -2523,6 +2523,15 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int , char * , int ) ;
 
+/*-- 02 Mar 2001: thd_entropy16.c --*/
+
+extern void   ENTROPY_setup     (void) ;
+extern void   ENTROPY_setdown   (void) ;
+extern void   ENTROPY_accumulate(int , void *) ;
+extern double ENTROPY_compute   (void) ;
+extern double ENTROPY_dataset   (THD_3dim_dataset *) ;
+extern double ENTROPY_datablock (THD_datablock *) ;
+
 /*--------------------------------------------------------------------------*/
 
 /*--- Stuff for Tom Ross's NOTES ---*/

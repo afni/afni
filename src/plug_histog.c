@@ -13,6 +13,7 @@
 /***********************************************************************
   Plugin to plot a histogram of a sub-brick.
   [Interface is adapted from plug_maskave.c - RWCox - 30 Sep 1999]
+  01 Mar 2001 -- Modified to include Max Count -- RWCox
 ************************************************************************/
 
 char * HISTO_main( PLUGIN_interface * ) ;
@@ -26,7 +27,8 @@ static char helpstring[] =
    "          Sub-brick = which one to use\n\n"
    " Values:  Bottom    = minimum value from dataset to include\n"
    "          Top       = maximum value from dataset to include\n\n"
-   " Bins:    Number    = number of bins to use\n\n"
+   " Bins:    Number    = number of bins to use\n"
+   "          Max Count = maximum count per bin\n\n"
    " Mask:    Dataset   = masking dataset\n"
    "          Sub-brick = which one to use\n\n"
    " Range:   Bottom    = min value from mask dataset to use\n"
@@ -82,6 +84,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Bins" , "Bins" , FALSE ) ;
    PLUTO_add_number( plint , "Number" , 10,512,0, 100,1 ) ;
+   PLUTO_add_number( plint , "Max Count" , 0,999999999,0 , 0,1 ) ;
 
    /*-- fourth line of input --*/
 
@@ -119,6 +122,8 @@ char * HISTO_main( PLUGIN_interface * plint )
 
    char * cname=NULL ;  /* 06 Aug 1998 */
    int miv=0 ;
+
+   int maxcount=0 ; /* 01 Mar 2001 */
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -168,6 +173,7 @@ char * HISTO_main( PLUGIN_interface * plint )
 
       if( strcmp(tag,"Bins") == 0 ){
          nbin = PLUTO_get_number(plint) ;
+         maxcount = PLUTO_get_number(plint) ;
          continue ;
       }
 
@@ -364,6 +370,9 @@ char * HISTO_main( PLUGIN_interface * plint )
    hbin = (int *) calloc((nbin+1),sizeof(int)) ;
 
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+   if( maxcount > 0 ){
+      for( ii=0 ; ii <= nbin ; ii++ ) hbin[ii] = MIN( hbin[ii] , maxcount ) ;
+   }
    sprintf(buf,"%s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount) ;
    PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
 

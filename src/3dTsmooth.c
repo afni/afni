@@ -10,6 +10,10 @@ void osfilt3_func( int num , float * vec ) ;
 void median3_func( int num , float * vec ) ;
 void linear3_func( int num , float * vec ) ;
 
+void linear_filter_extend( int , float * , int , float * ) ;
+float * hamming_window( int ) ;
+float * blackman_window( int ) ;
+
 static float af=0.15 , bf=0.70 , cf=0.15 ;
 
 int main( int argc , char * argv[] )
@@ -33,6 +37,9 @@ int main( int argc , char * argv[] )
    float * fxar = NULL ;  /* array loaded from input dataset */
    float * fac  = NULL ;  /* array of brick scaling factors */
    float * faci = NULL ;
+
+   int do_hamming=0 , do_blackman=0 , ntap=0 ;  /* 01 Mar 2001 */
+   float *ftap=NULL ;
 
    /* start of code */
 
@@ -62,6 +69,13 @@ int main( int argc , char * argv[] )
              "\n"
              "  -3lin m = 3 point linear filter: 0.5*(1-m)*a + m*b + 0.5*(1-m)*c\n"
              "              Here, 'm' is a number strictly between 0 and 1.\n"
+             "\n"
+             "  -hamming N  = Use N point Hamming or Blackman windows.\n"
+             "  -blackman N     (N must be odd and bigger than 1.)\n"
+             "    WARNING: If you use long filters, you do NOT want to include the\n"
+             "             large early images in the program.  Do something like\n"
+             "                3dTsmooth -hamming 13 'fred+orig[4..$]'\n"
+             "             to eliminate the first 4 images (say).\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       exit(0) ;
@@ -72,6 +86,22 @@ int main( int argc , char * argv[] )
    nopt = 1 ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-hamming") == 0 ){
+         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
+         ntap = (int) strtod(argv[nopt],NULL) ;
+         if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
+         do_hamming = 1 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-blackman") == 0 ){
+         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
+         ntap = (int) strtod(argv[nopt],NULL) ;
+         if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
+         do_blackman = 1 ;
+         nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -prefix!\n");exit(1);}
@@ -256,6 +286,9 @@ int main( int argc , char * argv[] )
       }
    }
 
+        if( do_hamming  ) ftap = hamming_window ( ntap ) ;
+   else if( do_blackman ) ftap = blackman_window( ntap ) ;
+
    /*----------------------------------------------------*/
    /*----- Setup has ended.  Now do some real work. -----*/
 
@@ -282,7 +315,12 @@ int main( int argc , char * argv[] )
       if( use_fac )
          for( kk=0 ; kk < ntime ; kk++ ) fxar[kk] *= fac[kk] ;
 
-      smth( ntime , fxar ) ;  /* call actual smoother */
+      /* do smoothing */
+
+      if( ftap != NULL )
+         linear_filter_extend( ntap,ftap , ntime,fxar ) ;  /* 01 Mar 2001 */
+      else
+         smth( ntime , fxar ) ;                       /* 3 point smoother */
 
       /*** put data into output dataset ***/
 
@@ -366,4 +404,77 @@ void linear3_func( int num , float * vec )
    vec[num-1] = LSUM(bb,cc,cc) ;
 
    return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void linear_filter_extend( int ntap , float *wt , int npt , float *x )
+{
+   int ii , nt2=(ntap-1)/2 , jj ;
+   float sum ;
+   static int nfar=0 ;
+   static float *far=NULL ;
+
+   if( npt > nfar ){
+      if(far != NULL) free(far) ;
+      far = (float *)malloc(sizeof(float)*npt) ; nfar = npt ;
+   }
+
+#undef XX
+#define XX(i) ( ((i)<0) ? far[0] : ((i)>npt-1) ? far[npt-1] : far[i] )
+
+   memcpy( far , x , sizeof(float)*npt ) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+      for( sum=0.0,jj=0 ; jj < ntap ; jj++ ) sum += wt[jj] * XX(ii-nt2+jj) ;
+      x[ii] = sum ;
+   }
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+float * hamming_window( int ntap )
+{
+   float * wt , tau , t , sum ;
+   int ii , nt2=(ntap-1)/2 ;
+
+   if( ntap < 3 ) return NULL ;
+
+   wt = (float *) calloc(sizeof(float),ntap) ;
+   tau = nt2 + 1.0 ;
+
+   for( sum=0.0,ii=0 ; ii <= 2*nt2 ; ii++ ){
+      t = PI*(ii-nt2)/tau ;
+      wt[ii] = 0.54 + 0.46*cos(t) ;
+      sum += wt[ii] ;
+   }
+   sum = 1.0 / sum ;
+   for( ii=0 ; ii < ntap ; ii++ ) wt[ii] *= sum ;
+
+   return wt ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+float * blackman_window( int ntap )
+{
+   float * wt , tau , t , sum ;
+   int ii , nt2=(ntap-1)/2 ;
+
+   if( ntap < 3 ) return NULL ;
+
+   wt = (float *) calloc(sizeof(float),ntap) ;
+   tau = nt2 + 1.0 ;
+
+   for( sum=0.0,ii=0 ; ii <= 2*nt2 ; ii++ ){
+      t = PI*(ii-nt2)/tau ;
+      wt[ii] = 0.42 + 0.5*cos(t) + 0.08*cos(2*t) ;
+      sum += wt[ii] ;
+   }
+   sum = 1.0 / sum ;
+   for( ii=0 ; ii < ntap ; ii++ ) wt[ii] *= sum ;
+
+   return wt ;
 }

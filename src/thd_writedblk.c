@@ -307,6 +307,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
       case STORAGE_BY_BRICK:{
          FILE * far ;
          Boolean purge_when_done = False , ok ;
+         int force_gzip=0 , csave ;
 
          /** if we have a mmap-ed file, copy into RAM **/
 
@@ -356,6 +357,23 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 
          if( compress_mode == COMPRESS_NOFILE ) THD_enviro_write_compression() ;
 
+#ifdef COMPRESS_GZIP
+         /*-- 02 Mar 2001: check if we will force gzip --*/
+
+         if( compress_mode == COMPRESS_NONE && AFNI_yesenv("AFNI_AUTOGZIP") ){
+            double entrop = ENTROPY_datablock(blk) ;
+            force_gzip = (entrop < 2.7) ;
+#if 0
+fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_name) ;
+#endif
+         } else {
+            force_gzip = 0 ;
+         }
+         if( force_gzip ){
+            csave = compress_mode ; compress_mode = COMPRESS_GZIP ;
+         }
+#endif
+
          far = COMPRESS_fopen_write( dkptr->brick_name , compress_mode ) ;
          if( far == NULL )
            WRITE_ERR("cannot open output brick file - do you have write permission?") ;
@@ -400,6 +418,8 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
          if( compress_mode >= 0 || save_order != native_order ){
             blk->malloc_type = DATABLOCK_MEM_MALLOC ;
          }
+
+         if( force_gzip ) compress_mode = csave ; /* 02 Mar 2001 */
 
          if( id != blk->total_bytes )
             WRITE_ERR("write error in brick file - is disk full?") ;

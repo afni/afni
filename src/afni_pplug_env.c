@@ -199,6 +199,10 @@ PLUGIN_interface * ENV_init(void)
                    "Output BRIK compression method" ,
                    NUM_COMPRESS_elist,COMPRESS_elist , ENV_compressor ) ;
 
+   ENV_add_string( "AFNI_AUTOGZIP" ,
+                   "Use gzip on output if BRIK seems highly compressible" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
 #if 0
    ENV_add_string( "AFNI_BYTEORDER" ,
                    "Byte ordering for output BRIKs" ,

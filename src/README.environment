@@ -945,6 +945,17 @@ if you are completely crazy, but I'm not responsible for the results --
 don't even think of complaining or commenting to me about problems that
 arise if you try this!
 
+-----------------------
+Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR)
+-----------------------
+If this YES/NO variable is set to YES, then when AFNI programs write a
+dataset .BRIK file to disk, they will test to see if the data is easily
+compressible (say, at least 80%).  If so, then the GZIP compression will
+be used.  (For this to work, the gzip program must be in your path.)
+This can be useful if you are dealing with mask datasets, which are
+usually highly compressible, but don't want the overhead of trying to
+compress arbitrary datasets.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

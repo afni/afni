@@ -82,7 +82,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-nrep") == 0 ){
          nrep = strtod( argv[++iarg] , NULL ) ;
          if( nrep == 0 ){
-            fprintf(stderr,"*** Illegal value after -ctop!\n"); exit(1);
+            fprintf(stderr,"*** Illegal value after -nrep!\n"); exit(1);
          }
          iarg++ ; continue ;
       }
