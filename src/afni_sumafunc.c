@@ -43,6 +43,10 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
    int *vlist ;
    int nvout ;   /* 13 Mar 2002 */
 
+   int bm , zbot=0 , kk ;        /* 02 Feb 2003: colorscale stuff */
+   float fbot=0.0,ftop=0.0,ffac=0.0 , val ;
+   rgbyte *cmap=NULL ;
+
 ENTRY("AFNI_vnlist_func_overlay") ;
 
    /* check inputs for goodness */
@@ -243,20 +247,30 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
 
    pbar   = im3d->vwid->func->inten_pbar ;
    num_lp = pbar->num_panes ;
+   bm     = pbar->bigmode ;              /* 02 Feb 2003 */
 
-   for( lp=0 ; lp < num_lp ; lp++ )      /* overlay color indexes */
-     fim_ovc[lp] = pbar->ov_index[lp] ;  /* run from top of pbar down */
+   if( !bm ){                              /* indexed colors */
+     for( lp=0 ; lp < num_lp ; lp++ )      /* overlay color indexes */
+       fim_ovc[lp] = pbar->ov_index[lp] ;  /* run from top of pbar down */
 
-   /* overlay color index for values below bottom of pbar */
+     /* overlay color index for values below bottom of pbar */
 
-   fim_ovc[num_lp] = (im3d->vinfo->use_posfunc) ? (0) : (fim_ovc[num_lp-1]) ;
+     fim_ovc[num_lp] = (im3d->vinfo->use_posfunc) ? (0) : (fim_ovc[num_lp-1]) ;
 
-   /* get the actual RGB colors of each pane on the pbar */
+     /* get the actual RGB colors of each pane on the pbar */
 
-   for( lp=0 ; lp <= num_lp ; lp++ ){
-     ovc_r[lp] = DCOV_REDBYTE  (im3d->dc,fim_ovc[lp]) ;
-     ovc_g[lp] = DCOV_GREENBYTE(im3d->dc,fim_ovc[lp]) ;
-     ovc_b[lp] = DCOV_BLUEBYTE (im3d->dc,fim_ovc[lp]) ;
+     for( lp=0 ; lp <= num_lp ; lp++ ){
+       ovc_r[lp] = DCOV_REDBYTE  (im3d->dc,fim_ovc[lp]) ;
+       ovc_g[lp] = DCOV_GREENBYTE(im3d->dc,fim_ovc[lp]) ;
+       ovc_b[lp] = DCOV_BLUEBYTE (im3d->dc,fim_ovc[lp]) ;
+     }
+
+   } else {                                /* colorscale colors - 02 Feb 2003 */
+     fbot = (scale_factor/scale_fim)*pbar->bigbot ;
+     ftop = (scale_factor/scale_fim)*pbar->bigtop ;
+     ffac = NPANE_BIG / (ftop-fbot) ;
+     cmap = pbar->bigcolor ;
+     zbot = (fbot == 0.0) ;
    }
 
    /** process im_fim into overlay, depending on data type **/
@@ -266,7 +280,7 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
       default: nvout = nout = 0 ; break ;   /* should never happen! */
 
       case MRI_rgb:{                        /* 17 Apr 2002 */
-        byte *ar_fim = MRI_RGB_PTR(im_fim) ;
+        byte *ar_fim = MRI_RGB_PTR(im_fim); /* colors direct from fim */
         byte r,g,b ;
 
         nvout = nout = 0 ;                  /* num output nodes & voxels */
@@ -290,17 +304,27 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
         float fim_thr[NPANE_MAX] ;
         byte r,g,b ;
 
-        for( lp=0 ; lp < num_lp ; lp++ ) /* thresholds for each pane */
-          fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        if( !bm ){                         /* indexed colors from panes */
+          for( lp=0 ; lp < num_lp ; lp++ ) /* thresholds for each pane */
+            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        }
 
         nvout = nout = 0 ;                   /* num output nodes & voxels */
         for( ii=0 ; ii < nvox ; ii++ ){
           jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
           if( ar_fim[jj] == 0 )         continue ;  /* no func? */
-          /* find pane this voxel is in */
-          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          if( !bm ){              /* find pane this voxel is in */
+            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          } else {                /* colorscale - 02 Feb 2003 */
+            if( zbot && ar_fim[jj] < 0 ) continue ;
+            val = ffac*(ftop-ar_fim[jj]) ;
+            if( val < 0.0 ) val = 0.0;
+            kk = (int)(val+0.49); if( kk >= NPANE_BIG ) kk = NPANE_BIG-1;
+            r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
+            if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
+          }
           nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
@@ -317,20 +341,29 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
         float fim_thr[NPANE_MAX] ;
         byte r,g,b ;
 
-        for( lp=0 ; lp < num_lp ; lp++ )
-          if( pbar->pval[lp+1] <= 0.0 )
-            fim_thr[lp] = 0 ;
-          else
-            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        if( !bm ){                         /* indexed colors from panes */
+          for( lp=0 ; lp < num_lp ; lp++ )
+            if( pbar->pval[lp+1] <= 0.0 )
+              fim_thr[lp] = 0 ;
+            else
+              fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        }
 
         nvout = nout = 0 ;                          /* num output nodes */
         for( ii=0 ; ii < nvox ; ii++ ){
           jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
           if( ar_fim[jj] == 0 )         continue ;  /* no func? */
-          /* find pane this voxel is in */
-          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          if( !bm ){              /* find pane this voxel is in */
+            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          } else {                /* colorscale - 02 Feb 2003 */
+            val = ffac*(ftop-ar_fim[jj]) ;
+            if( val < 0.0 ) val = 0.0;
+            kk = (int)(val+0.49); if( kk >= NPANE_BIG ) kk = NPANE_BIG-1;
+            r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
+            if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
+          }
           nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
@@ -347,17 +380,27 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
         float fim_thr[NPANE_MAX] ;
         byte r,g,b ;
 
-        for( lp=0 ; lp < num_lp ; lp++ )
-          fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        if( !bm ){                         /* indexed colors from panes */
+          for( lp=0 ; lp < num_lp ; lp++ )
+            fim_thr[lp] = (scale_factor/scale_fim) * pbar->pval[lp+1] ;
+        }
 
         nvout = nout = 0 ;                          /* num output nodes */
         for( ii=0 ; ii < nvox ; ii++ ){
           jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
           if( ar_fim[jj] == 0.0 )       continue ;  /* no func? */
-          /* find pane this voxel is in */
-          for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
-          if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
-          r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          if( !bm ){              /* find pane this voxel is in */
+            for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
+            if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
+            r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
+          } else {                /* colorscale - 02 Feb 2003 */
+            if( zbot && ar_fim[jj] < 0.0 ) continue ;
+            val = ffac*(ftop-ar_fim[jj]) ;
+            if( val < 0.0 ) val = 0.0;
+            kk = (int)(val+0.49); if( kk >= NPANE_BIG ) kk = NPANE_BIG-1;
+            r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
+            if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
+          }
           nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
