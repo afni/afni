@@ -95,6 +95,7 @@ ENTRY("THD_getpathprogs") ;
          if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
+	 if( !THD_is_directory(ename) ) continue ;    /* 25 Feb 2002 */
 
          /* 04 Feb 2002: check if we already searched this directory */
 
@@ -105,9 +106,8 @@ ENTRY("THD_getpathprogs") ;
 
          tlist = THD_get_all_executables( ename ) ; /* read this directory */
          if( tlist != NULL ){
-            for( ii=0 ; ii < tlist->num ; ii++ )   /* move images to output array */
+            for( ii=0 ; ii < tlist->num ; ii++ )    /* move names to output */
                ADDTO_SARR( elist , tlist->ar[ii] ) ;
-
             DESTROY_SARR(tlist) ;
          }
 
@@ -142,6 +142,7 @@ ENTRY("THD_get_all_executables") ;
    /*----- find all regular files -----*/
 
    alist = THD_get_all_filenames( dname ) ;
+
    if( alist == NULL ) RETURN(NULL) ;
    rlist = THD_extract_regular_files( alist ) ;
    DESTROY_SARR( alist ) ;
