@@ -2648,7 +2648,7 @@ static void DRAW_undo_butlab( Widget w , int n )
    XmString xstr ;
    char label[32] ;
    int nfmt ;
-   static char *fmt[3] = { "%s[%d]" , "%s:%d" , "%s%d" } ;
+   static char *fmt[3] = { "%s[%d]" , "%s:%d" , "%s%03d" } ;
 
    if( w == (Widget)NULL ) return ;  /* oom-possible? */
 
@@ -2656,7 +2656,7 @@ static void DRAW_undo_butlab( Widget w , int n )
    else if( n < 100  ) nfmt = 1 ;     /* on number of digits */
    else                nfmt = 2 ;
 
-   sprintf( label, fmt[nfmt], (w==undo_pb) ? "Undo" : "Redo" , n ) ;
+   sprintf( label, fmt[nfmt], (w==undo_pb) ? "Undo" : "Redo" , n%1000 ) ;
 
    xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
