@@ -380,7 +380,7 @@ typedef struct {
    MRI_IMAGE * cen_tsim ;
    MRI_IMAGE * xax_tsim ;  /* 09 Jan 1998 */
 
-   int xx_text_1 , xx_text_2 ;
+   int xx_text_1 , xx_text_2 , xx_text_3 ;   /* 19 Dec 2003  [rickr] */
 
    /* external time-series stuff */
 
