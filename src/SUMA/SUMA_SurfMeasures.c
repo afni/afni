@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.10 (August 11, 2004)"
+#define VERSION "version 1.11 (October 6, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -88,6 +88,9 @@ static char g_history[] =
     "\n"
     "1.10 August 11, 2004  [rickr]\n"
     "  - Add comment about volume being too large.\n"
+    "\n"
+    "1.11 October 12, 2004  [rickr]\n"
+    "  - More volume comments: suggest 'SurfPatch -vol'\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -543,7 +546,7 @@ ENTRY("print_column_headers");
 */
 int verify_surf_t( opts_t * opts, param_t * p )
 {
-    int c, rv;
+    int c;
 
 ENTRY("verify_surf_t");
 
@@ -1888,7 +1891,7 @@ ENTRY("usage");
 	    "\n"
 	    "         Additionally, display total surface areas, minimum and\n"
 	    "         maximum thicknesses, and the total volume for the\n"
-	    "         cortical ribbon.\n"
+	    "         cortical ribbon (the sum of node volumes).\n"
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
@@ -2071,6 +2074,8 @@ ENTRY("usage");
 	    "          Basically, expect the total volume to be around 10%%\n"
 	    "          too large.\n"
 	    "\n"
+	    "          ** for more accuracy, try 'SurfPatch -vol' **\n"
+	    "\n"
 	    "    -help                 : show this help menu\n"
 	    "\n"
 	    "    -hist                 : display program revision history\n"
@@ -2107,6 +2112,10 @@ ENTRY("usage");
 	    "    -info_vol             : display info about the volume\n"
 	    "\n"
 	    "        For 2 surfaces, display the total computed volume.\n"
+	    "        Note that this node-wise volume computation is an\n"
+            "        approximation, and tends to run ~10 %% high.\n"
+	    "\n"
+	    "        ** for more accuracy, try 'SurfPatch -vol' **\n"
 	    "\n"
 	    "    -nodes_1D NODELIST.1D : request output for only these nodes\n"
 	    "\n"
@@ -2341,8 +2350,6 @@ int disp_surf_t( char * info, surf_t * d )
 */
 int disp_func_t( char * info, func_t * d )
 {
-    int c;
-
     if ( info )
 	fputs( info, stderr );
 
