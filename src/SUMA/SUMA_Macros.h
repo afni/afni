@@ -9,6 +9,19 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+/* definitions for SUMA_MT_intersect */
+#define SUMA_MT_EPSILON 0.000001
+#define SUMA_MT_CROSS(dest,v1,v2) \
+          dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
+          dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
+          dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
+#define SUMA_MT_DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
+#define SUMA_MT_SUB(dest,v1,v2) \
+          dest[0]=v1[0]-v2[0]; \
+          dest[1]=v1[1]-v2[1]; \
+          dest[2]=v1[2]-v2[2]; 
+
+
 /*!
    \brief SUMA_EULER_SO (SO, eu)
    computes the euler number = N  + E + F
@@ -16,19 +29,19 @@
    eu = 2 for closed surfaces 
 */
 
-#define SUMA_EULER_SO (SO, eu) { \
+#define SUMA_EULER_SO(SO, eu) { \
    eu = SO->N_Node + SO->FaceSetDim * SO->N_FaceSet + SO->N_FaceSet; \
 }
    
 /*!
 
-   \brief   SUMA_IS_IN_VEC (vec, nel, val, loc);
+   \brief   SUMA_IS_IN_VEC(vec, nel, val, loc);
    \param vec pointer to vector of at least nel elements
    \param nel (int) number of elements to check in vec
    \param val value to look for in vec
    \param loc (int) index in vec where val was found. -1 if nothing was found
 */
-#define SUMA_IS_IN_VEC (m_vec, m_nel, m_val, m_loc) { \
+#define SUMA_IS_IN_VEC(m_vec, m_nel, m_val, m_loc) { \
    int m_i=0;\
    m_loc = -1;\
    while (m_i < m_nel) {   \

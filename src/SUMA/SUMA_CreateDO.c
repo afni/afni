@@ -832,10 +832,11 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 {   
    static char FuncName[]={"SUMA_Free_Surface_Object"};
    int i;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   /*fprintf (stdout, "freeing:\n");*/
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: freeing SO\n", FuncName);
    /* Start with the big ones and down*/
    /* From SUMA 1.2 and on, some glar_ pointers are copies of others and should not be freed */ 
    SO->glar_FaceSetList = NULL;
@@ -845,7 +846,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    
    /*fprintf (stdout, "SO->NodeList... ");*/
    if (SO->NodeList)   SUMA_free(SO->NodeList);
-   /*fprintf (stdout, "SO->NodeList... ");*/
+   /*fprintf (stdout, "SO->FaceSetList... ");*/
    if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
    /*fprintf (stdout, "SO->FaceSetList... ");*/
    if (SO->NodeNormList) SUMA_free(SO->NodeNormList);
@@ -855,7 +856,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->Name_NodeParent) SUMA_free(SO->Name_NodeParent);
    /*fprintf (stdout, "SO->Name.FileName... ");*/
    if (SO->Name.FileName) SUMA_free(SO->Name.FileName);
-   /*fprintf (stdout, "SO->Name.Path... ");*/
+   
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: freeing SO->Name.Path\n", FuncName);
    if (SO->Name.Path) SUMA_free(SO->Name.Path);
    if (SO->MeshAxis) SUMA_Free_Axis (SO->MeshAxis);
    if (SO->MF) {
@@ -865,7 +867,6 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    if (SO->NodeMarker) SUMA_Free_SphereMarker (SO->NodeMarker);
    if (SO->FaceSetMarker) SUMA_Free_FaceSetMarker(SO->FaceSetMarker);
-   /*fprintf (stdout, "SO... ");*/
    if (SO->idcode_str) SUMA_free(SO->idcode_str);
    if (SO->MapRef_idcode_str) SUMA_free(SO->MapRef_idcode_str);
    if (SO->Group) SUMA_free(SO->Group);
@@ -875,6 +876,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SUMA_Free_SURFACE_CURVATURE(SO->SC);
    }
    
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: freeing Cx\n", FuncName);
+
    /* freeing Cx,  make sure that there are no links to Cx*/
    if (SO->Cx || SO->Cx_Inode) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
       if (SUMA_ReleaseLink(SO->Cx_Inode)) { 
@@ -887,6 +890,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SO->Cx = NULL;
       SO->Cx_Inode = NULL;
    } 
+   
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: freeing overlays\n", FuncName);
    
    /* freeing overlays */
    if (SO->N_Overlays) {
@@ -911,6 +916,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    SUMA_free(SO->Overlays);
    SUMA_free(SO->Overlays_Inode);
    
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: freeing FN\n", FuncName);
+
    /* freeing FN,  make sure that there are no links to FN*/
    if (SO->FN_Inode || SO->FN) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
       if (SUMA_ReleaseLink(SO->FN_Inode)) { 
@@ -944,7 +951,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    SO->EL_Inode = NULL;
    
    if (SO) SUMA_free(SO);
-   /*fprintf (stdout, "Done\n");*/
+   
+   if (LocalHead) fprintf (stdout, "Done\n");
    SUMA_RETURN (YUP);
 }   
 
@@ -1239,8 +1247,14 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].State = NULL;
       SO[i].Group = NULL;
       SO[i].FaceSetMarker = NULL;
-      
-      
+      SO[i].idcode_str = NULL;
+      SO[i].MapRef_idcode_str = NULL;
+      SO[i].Name.Path = NULL;
+      SO[i].Name.FileName = NULL;
+      SO[i].Name_coord.Path = NULL;
+      SO[i].Name_coord.FileName = NULL;
+      SO[i].Name_topo.Path = NULL;
+      SO[i].Name_topo.FileName = NULL;
       
      }
    SUMA_RETURN(SO);

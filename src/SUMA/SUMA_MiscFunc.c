@@ -2027,7 +2027,7 @@ int *SUMA_z_qsort (float *x , int nx )
 
    /* allocate for the structure */
    Z_Q_fStrct = (SUMA_Z_QSORT_FLOAT *) SUMA_calloc(nx, sizeof (SUMA_Z_QSORT_FLOAT));
-   I = (int *) SUMA_calloc (nx,sizeof(int));
+   I = (int *) SUMA_calloc (nx, sizeof(int));
 
    if (!Z_Q_fStrct || !I)
       {
@@ -2334,19 +2334,6 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 
 /*--------------------- Matrix Sorting functions END ------------------------*/
    
-
-/* definitions for SUMA_MT_intersect */
-#define SUMA_MT_EPSILON 0.000001
-#define SUMA_MT_CROSS(dest,v1,v2) \
-          dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
-          dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
-          dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
-#define SUMA_MT_DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
-#define SUMA_MT_SUB(dest,v1,v2) \
-          dest[0]=v1[0]-v2[0]; \
-          dest[1]=v1[1]-v2[1]; \
-          dest[2]=v1[2]-v2[2]; 
-
 /*
 \brief This function is a stripped down version of SUMA_MT_intersect_triangle. It is meant to
 work faster when few triangles are to be tested. 
@@ -2368,66 +2355,6 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
          intersect the triangle.
          NOTE: If you do not care for iP, d and closest_vert, pass NULL, NULL, NULL as their pointers
 
-// DELETE THIS SECTION WHEN Brenna IS DONE WITH IT
-
-   // sample code for using this function to find out if P0-P1 hits a triangle. 
-   // Nref is the index of the closest node on the mesh that is mapped to a sphere.
-
-   If you are using the SUMA_SurfaceObject structure, follow this example:
-   Say you want to test if triangle (T) is intersected by the line passing through P0 and P1:
-   The vertices of T are indexed: 
-   ivert0 = SO->FaceSetList[3T]; 
-   ivert1 = SO->FaceSetList[3T+1];
-   ivert2 = SO->FaceSetList[3T+2];
-   For vert0, use &(SO->NodeList[ivert0])
-   For vert1, use &(SO->NodeList[ivert1])
-   For vert2, use &(SO->NodeList[ivert2])
-    
-   
-   float P0[3], P1[3], iP[3], d[3];
-   int closest_vert, ivert1, ivert2, ivert0, Nref, jj, jj3, Incident[100], N_Incident, Checked[100], N_Checked;  
-   SUMA_Boolean Found;
-   int cnt;
-   
-   Found = NOPE; // flag for exiting when a triangle has been intersected
-   cnt = 0;
-   cntmax = SO->FN->N_Neighb[Nref];
-   // NOTE: This assumes that FN->NodeId is monotonically increasing from 0 to N_Node -1
-   N_Checked = 0;
-   while (!Found && cnt < cntmax) {
-      // find the triangles touching the edge Nref-FirstNeighb[Nref][cnt], usually there are two 
-      if (!SUMA_Get_Incident(Nref, SO->FN->FirstNeighb[Nref][cnt], SO->EL, Indident, &N_Incident) {
-         TROUBLE, SHOULD NEVER HAPPEN
-      }
-      
-      for (jj=0; jj < N_Incident; ++jj) {
-         // found some triangle, make sure that we have not examined it yet
-         SUMA_IS_IN_VEC (Checked, N_Checked, Incident[jj], ichecked);
-         if (ichecked < 0) {
-            // Not found, add it 
-            Checked[N_Checked] = Incident[jj]; ++N_Checked;
-            // test it
-            jj3 = 3 * Incident[jj];
-            ivert0 = 3*SO->FaceSetList[jj3];
-            ivert1 = 3*SO->FaceSetList[jj3+1];
-            ivert2 = 3*SO->FaceSetList[jj3+2];
-            if (SUMA_MT_isIntersect_Triangle (P0, P1, SO->NodeList[ivert0], SO->NodeList[ivert1], SO->NodeList[ivert2], iP, d, &closest_vert)) Found = YUP;
-         }
-      }
-      ++cnt;
-   }
-   if (!Found) {
-      fprintf (SUMA_STDERR, "Error %s: No triangle containing node %d was intersected by P0-P1.\n", 
-         FuncName, Nref);
-   }else {
-      fprintf (SUMA_STDERR, "%s: P0-P1 intersects the triangle formed by nodes indexed (%d %d %d) at location iP (%f %f %f)\n", 
-         FuncName, ivert0/3, ivert1/3, ivert2/3, iP[0], iP[1], iP[2]);
-      fprintf (SUMA_STDERR, "%s: The distance from iP to each of the nodes is: (%f %f %f).iP is closest to vert%d\n", 
-         FuncName, d[0], d[1], d[2], closest_vert);
-   }
-   
-   
-   
    
    \sa SUMA_MT_intersect_triangle
 */
@@ -2468,6 +2395,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
    
       if (det > -SUMA_MT_EPSILON && det < SUMA_MT_EPSILON) {
          /* no hit, will return below */
+         hit = NOPE;
       } else {
          inv_det = 1.0 / det;
 
@@ -2478,6 +2406,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
          u = SUMA_MT_DOT(tvec, pvec) * inv_det;
          if (u < 0.0 || u > 1.0) {
             /* no hit, will return below */
+            hit = NOPE;
          } else {
             /* prepare to test V parameter */
             SUMA_MT_CROSS(qvec, tvec, edge1);
@@ -2486,6 +2415,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
             v = SUMA_MT_DOT(dir, qvec) * inv_det;
             if (v < 0.0 || u + v > 1.0) {
                 /* no hit, will return below */
+                hit = NOPE;
             } else {
                hit = YUP;
                
