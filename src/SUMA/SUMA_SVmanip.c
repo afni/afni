@@ -273,6 +273,8 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N
          Ret = Ret * SUMA_Free_SurfaceViewer_Struct (&SVv[i]);
       }
    }
+   
+   if (SVv) SUMA_free(SVv);
    SUMA_RETURN(Ret);
 }
 
