@@ -1377,6 +1377,25 @@ If this YES/NO variable is set to NO, then AFNI will not try to check if its
 version is up-to-date when it starts.  Otherwise, it will try to check the
 program version with the AFNI web server.
 
+-----------------------------------
+Variable: AFNI_SLICE_SPACING_IS_GAP
+-----------------------------------
+This YES/NO variable is designed to patch a flaw in some DICOM files, where
+the "Spacing Between Slices" attribute is erroneously set to the gap between
+the slices, rather than the center-to-center slice distance specified in
+the DICOM standard.  If this variable is set to YES, then the "Slice Thickness"
+attribute will be added to "Spacing Between Slices" to get the z voxel size.
+
+To check if a DICOM file has this problem, you can read it into to3d with
+the command "to3d suspect_file_name".  A warning will be printed if attribute
+"Spacing Between Slices" is less than attribute "Slice Thickness".  Another
+way to check is with a command like so
+
+  dicom_hdr suspect_file_name | grep "Slice"
+
+then check if the "Spacing Between Slices" and "Slice Thickness" values are
+correct for the given acquisition.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
