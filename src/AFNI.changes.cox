@@ -4257,3 +4257,8 @@
      being adjusted slightly incorrectly, for reasonse I don't understand.
  * Modified pbar.c to give choice of colormaps for "big" mode.  Programmed
      a startup set of 4 colormaps.
+
+02 Feb 2003
+ * Modified afni_sumafunc.c to use "big" mode colorscales.
+ * Modified afni.c, pbar.c (etc.) to read in user-defined colorscales
+     from files.
