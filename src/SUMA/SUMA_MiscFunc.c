@@ -2495,20 +2495,23 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
                   iP[0] = vert0[0] + u * (vert1[0] - vert0[0] ) + v * (vert2[0] - vert0[0] );
                   iP[1] = vert0[1] + u * (vert1[1] - vert0[1] ) + v * (vert2[1] - vert0[1] );
                   iP[2] = vert0[2] + u * (vert1[2] - vert0[2] ) + v * (vert2[2] - vert0[2] );
-                  /* find out which node is closest to P */
-                  d[0] = (vert0[0] - iP[0])*(vert0[0] - iP[0]) + (vert0[1] - iP[1])*(vert0[1] - iP[1]) + (vert0[2] - iP[2])*(vert0[2] - iP[2]);
-                  *closest_vert = 0;
-                  d[1] = (vert1[0] - iP[0])*(vert1[0] - iP[0]) + (vert1[1] - iP[1])*(vert1[1] - iP[1]) + (vert1[2] - iP[2])*(vert1[2] - iP[2]);
-                  if (d[1] < d[*closest_vert]) {
-                     *closest_vert = 1;
+                  
+                  if (d) {
+                     /* find out which node is closest to P */
+                     d[0] = (vert0[0] - iP[0])*(vert0[0] - iP[0]) + (vert0[1] - iP[1])*(vert0[1] - iP[1]) + (vert0[2] - iP[2])*(vert0[2] - iP[2]);
+                     *closest_vert = 0;
+                     d[1] = (vert1[0] - iP[0])*(vert1[0] - iP[0]) + (vert1[1] - iP[1])*(vert1[1] - iP[1]) + (vert1[2] - iP[2])*(vert1[2] - iP[2]);
+                     if (d[1] < d[*closest_vert]) {
+                        *closest_vert = 1;
+                     }
+                     d[2] = (vert2[0] - iP[0])*(vert2[0] - iP[0]) + (vert2[1] - iP[1])*(vert2[1] - iP[1]) + (vert2[2] - iP[2])*(vert2[2] - iP[2]);
+                     if (d[2] < d[*closest_vert]) {
+                        *closest_vert = 2;
+                     }
+                     d[0] = (float)sqrt((double)d[0]);
+                     d[1] = (float)sqrt((double)d[1]);
+                     d[2] = (float)sqrt((double)d[2]);
                   }
-                  d[2] = (vert2[0] - iP[0])*(vert2[0] - iP[0]) + (vert2[1] - iP[1])*(vert2[1] - iP[1]) + (vert2[2] - iP[2])*(vert2[2] - iP[2]);
-                  if (d[2] < d[*closest_vert]) {
-                     *closest_vert = 2;
-                  }
-                  d[0] = (float)sqrt((double)d[0]);
-                  d[1] = (float)sqrt((double)d[1]);
-                  d[2] = (float)sqrt((double)d[2]);
                }
 
             }

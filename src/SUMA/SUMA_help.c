@@ -20,8 +20,10 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  f: functional overlay, toggle.\n");
 	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  j: Set the cross hair to a certain node on SO in Focus.\nDoes not update in other viewers\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t  J: Set the selected FaceSet on SO in Focus.\nDoes not update in other viewers.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  j: Set the cross hair to a certain node on SO in Focus.\n\t    Does not update in other viewers\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t   ctrl+j: Set the cross hair's XYZ location. \n\t    Does not update in other viewers\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t   alt+j: Set the Focus node. Cross hair's XYZ remain unchanged.\n\t    Does not update in other viewers\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t  J: Set the selected FaceSet on SO in Focus.\n\t    Does not update in other viewers.\n");
     fprintf (Out, "\t  h: help message\n");
 	 fprintf (Out, "\t   Ctrl+h: Debug flags\n");
 	 fprintf (Out, "\t  l: look at point\n");

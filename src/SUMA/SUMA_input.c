@@ -385,43 +385,89 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_j:
             if (SUMAg_CF->Dev) {
-               fprintf(stdout,"Enter index of node to send the cross hair to (nothing to cancel):\n");
-               it = SUMA_ReadNumStdin (fv3, 1);
-               if (it < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                  SUMA_RETURNe;
-               }else if (it == 0) {
-                  SUMA_RETURNe;
-               }
-               /* Set the Nodeselection  */
-               it = (int) fv3[0];
-               sprintf(sfield,"i");
-               sprintf(sdestination,"SetSelectedNode");
-               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-                  SUMA_RETURNe;
-               }
-               sprintf(CommString,"SetSelectedNode~");
-               if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-                  SUMA_RETURNe;
-               }
-
-               /* Now set the cross hair position at the selected node*/
-               {
-                  SUMA_SurfaceObject *SO= NULL;
-                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-                  sprintf(sfield,"fv3");
-                  sprintf(sdestination,"SetCrossHair");
-                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)&(SO->NodeList[3*it]), sdestination, ssource,NOPE)) {
+               if (Kev.state & ControlMask){     
+                  fprintf(stdout,"Enter XYZ location to center cross hair at (nothing to cancel):\n");
+                  it = SUMA_ReadNumStdin (fv3, 3);
+                  if (it < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                     SUMA_RETURNe;
+                  }else if (it == 0) {
+                     SUMA_RETURNe;
+                  }
+                  /* Now set the cross hair position */
+                     sprintf(sfield,"fv3");
+                     sprintf(sdestination,"SetCrossHair");
+                     if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv3, sdestination, ssource,NOPE)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                        SUMA_RETURNe;
+                     }
+                     sprintf(CommString,"SetCrossHair~");
+                     if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                        SUMA_RETURNe;
+                     }
+               } else if (Kev.state & Mod1Mask){     
+                  fprintf(stdout,"Enter index of focus node, cross hair's XYZ will not be affected (nothing to cancel):\n");
+                  it = SUMA_ReadNumStdin (fv3, 1);
+                  if (it < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                     SUMA_RETURNe;
+                  }else if (it == 0) {
+                     SUMA_RETURNe;
+                  }
+                  /* Set the Nodeselection  */
+                  it = (int) fv3[0];
+                  sprintf(sfield,"i");
+                  sprintf(sdestination,"SetSelectedNode");
+                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
                      fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
                      SUMA_RETURNe;
                   }
-                  sprintf(CommString,"SetCrossHair~");
+                  sprintf(CommString,"SetSelectedNode~");
                   if (!SUMA_Engine (CommString, &EngineData, sv)) {
-                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
                      SUMA_RETURNe;
                   }
+               } else {
+                  fprintf(stdout,"Enter index of node to send the cross hair to (nothing to cancel):\n");
+                  it = SUMA_ReadNumStdin (fv3, 1);
+                  if (it < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                     SUMA_RETURNe;
+                  }else if (it == 0) {
+                     SUMA_RETURNe;
+                  }
+                  /* Set the Nodeselection  */
+                  it = (int) fv3[0];
+                  sprintf(sfield,"i");
+                  sprintf(sdestination,"SetSelectedNode");
+                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                     SUMA_RETURNe;
+                  }
+                  sprintf(CommString,"SetSelectedNode~");
+                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                     fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                     SUMA_RETURNe;
+                  }
+
+                  /* Now set the cross hair position at the selected node*/
+                  {
+                     SUMA_SurfaceObject *SO= NULL;
+                     SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+                     sprintf(sfield,"fv3");
+                     sprintf(sdestination,"SetCrossHair");
+                     if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)&(SO->NodeList[3*it]), sdestination, ssource,NOPE)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                        SUMA_RETURNe;
+                     }
+                     sprintf(CommString,"SetCrossHair~");
+                     if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                        SUMA_RETURNe;
+                     }
+                  }
+
                }
 
                /* redisplay curent only*/

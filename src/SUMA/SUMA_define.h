@@ -36,10 +36,10 @@
 
 #define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*<! keep the ambient light high */
 
-#define SUMA_CLEAR_COLOR_R         1.0 /*!< clear color (viewer background) Red */
-#define SUMA_CLEAR_COLOR_G         1.0 /*!< clear color (viewer background) Green */
-#define SUMA_CLEAR_COLOR_B         1.0 /*!< clear color (viewer background) Blue */
-#define SUMA_CLEAR_COLOR_A         1.0 /*!< clear color (viewer background) Alpha */
+#define SUMA_CLEAR_COLOR_R         0.0 /*!< clear color (viewer background) Red */
+#define SUMA_CLEAR_COLOR_G         0.0 /*!< clear color (viewer background) Green */
+#define SUMA_CLEAR_COLOR_B         0.0 /*!< clear color (viewer background) Blue */
+#define SUMA_CLEAR_COLOR_A         0.0 /*!< clear color (viewer background) Alpha */
 
 
 #define SUMA_BACKFACE_CULL 0 /*<! 1/0 flag for culling backface facesets */
