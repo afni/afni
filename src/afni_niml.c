@@ -62,6 +62,7 @@ static int dont_hear_suma = 0 ;
 /*! If 1, send data; if 0, debug print it instead */
 
 static int sendit=1 ;
+static int serrit=0 ;  /* print to stderr? */
 
 /*-----------------------------------------------*/
 /*! Flag to tell if NIML things are initialized. */
@@ -142,6 +143,7 @@ ENTRY("AFNI_init_niml") ;
    /* determine if we actually want to send data */
 
    sendit = !AFNI_yesenv("AFNI_NIML_DONTSEND") ;
+   serrit = !sendit || AFNI_yesenv("AFNI_NIML_STDERR") ;
 
    /* and we're off to see the wizard */
 
@@ -628,7 +630,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
-   else
+   if( serrit )
      NIML_to_stderr(nel) ;
 
    if( GLOBAL_argopt.yes_niml > 1 )
@@ -680,7 +682,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
-   else
+   if( serrit )
      NIML_to_stderr(nel) ;
 
    NI_free_element(nel) ;
