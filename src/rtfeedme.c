@@ -62,6 +62,8 @@ void RT_exit(void)                   /* Function to be called to make sure */
 
 /*-----------------------------------------------------------------------------*/
 
+#include <signal.h>
+
 void RT_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
    char * sname ;
