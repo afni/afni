@@ -4130,3 +4130,7 @@
      shared memory IOCHAN when the program exit()'s.
  * Modified rtfeedme.c to add a signal handler to close the data IOCHAN
      if the program crashes.
+
+16 Dec 2002
+ * Moved niml.[ch] into niml/ subdirectory, and modified Makefile.INCLUDE
+     accordingly.
