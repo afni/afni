@@ -918,7 +918,7 @@ void usage_SUMA_SurfClust ()
       static char FuncName[]={"usage_SUMA_SurfClust"};
       char * s = NULL;
       s = SUMA_help_basics();
-      printf ( "\nUsage: A program to check the quality of surfaces.\n"
+      printf ( "\nUsage: A program to perform clustering on surfaces.\n"
                "  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
                "            <-surf_A insurf> \n"
                "            <-input inData.1D dcol_index> \n"
@@ -1163,7 +1163,9 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			}
 			ind = argv[kar][6] - 'A';
          if (ind < 0 || ind >= SURFCLUST_MAX_SURF) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n");
+            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n"
+                                    "Only %d surfaces are allowed. \n"
+                                    "Must start with surf_A for first surface.\n", SURFCLUST_MAX_SURF);
 				exit (1);
          }
          kar ++;
@@ -1324,7 +1326,7 @@ int main (int argc,char *argv[])
        }
    
    Opt = SUMA_SurfClust_ParseInput (argv, argc);
-
+   
    if (Opt->WriteFile) {
       if (Opt->AreaLim < 0) sprintf(stmp,"_Clst_r%.1f.1D", Opt->DistLim);
       else sprintf(stmp,"_Clst_r%.1f_a%.1f.1D", Opt->DistLim, Opt->AreaLim);
