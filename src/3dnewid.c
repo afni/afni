@@ -58,10 +58,17 @@ int main( int argc , char * argv[] )
 
    if( strcmp(argv[1],"-fun") == 0 ){         /* 22 May 2000: for fun */
       int nid=0 , ii ;
+      char *eee = getenv("UUID") ;
       if( argc > 2 ) nid = strtol(argv[2],NULL,10) ;
       if( nid <= 0 ) nid = 1 ;
-      for( ii=0 ; ii < nid ; ii++ ){
-        idc = MCW_new_idcode() ; printf("%s\n",idc.str) ;
+      if( eee == NULL ){
+        for( ii=0 ; ii < nid ; ii++ ){
+          idc = MCW_new_idcode() ; printf("%s\n",idc.str) ;
+        }
+      } else {
+        for( ii=0 ; ii < nid ; ii++ ){
+          eee = UUID_idcode(); printf("%s\n",eee); free(eee);
+        }
       }
       exit(0) ;
    }
