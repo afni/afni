@@ -95,9 +95,9 @@ static int g_show_as_popup = 0 ;     /* 04 Jan 2005 [rickr] */
 
 /*! Show a string as popup or just to stderr. [10 May 2005] */
 
-#define SHOW_MESSAGE(mmm)                            \
- do{ if( g_show_as_popup ) AFNI_popup_message(mmm) ; \
-     else                  fputs(mmm,stderr) ;      } while(0)
+#define SHOW_MESSAGE(mmm)                                      \
+ do{      if( g_show_as_popup == 1 ) AFNI_popup_message(mmm);  \
+     else if( g_show_as_popup == 0 ) fputs(mmm,stderr) ;      } while(0)
 
 /*-------------------------*/
 
@@ -273,7 +273,8 @@ ENTRY("AFNI_init_niml") ;
 
    /* 04 Jan 2005 [rickr]: check for AFNI_SHOW_SURF_POPUPS */
 
-   if( AFNI_yesenv("AFNI_SHOW_SURF_POPUPS") ) g_show_as_popup = 1 ;
+        if( AFNI_yesenv("AFNI_SHOW_SURF_POPUPS") ) g_show_as_popup =  1 ;
+   else if( AFNI_yesenv("AFNI_KILL_SURF_POPUPS") ) g_show_as_popup = -1 ;
 
    /* and we're off to see the wizard */
 
@@ -1561,8 +1562,7 @@ ENTRY("process_NIML_SUMA_ijk");
                             "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
 
-   if( g_show_as_popup ) AFNI_popup_message( msg ) ;
-   else                  fputs(msg, stderr) ;
+   SHOW_MESSAGE(msg) ;
 
    dont_tell_suma = 1 ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
