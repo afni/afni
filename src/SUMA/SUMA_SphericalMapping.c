@@ -1,7 +1,10 @@
 
 #include "SUMA_suma.h"
 #include "SUMA_Macros.h"
-#include "malloc.h"
+#if 0
+   /* does not work on the MAC, check with Brenna about that inclusion */
+   #include "malloc.h"
+#endif 
 
 #undef STAND_ALONE
 
