@@ -3488,3 +3488,6 @@
 27 Feb 2002
  * Modified various files to replace "AGNI" with "SUMA" (SUrface MApper).
      For example, we now have afni_suma.[ch] instead of agni.[ch].
+
+28 Feb 2002
+ * Fixed a small problem with thd_info.c (damn you, Jim Haxby).
