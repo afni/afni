@@ -1,7 +1,7 @@
 # This Makefile works on my personal Linux machine - RWCox
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE -pipe -Wuninitialized
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -pipe -Wuninitialized
 CC     = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O3 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)

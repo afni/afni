@@ -1,6 +1,6 @@
 # This Makefile is for CYGWIN (www.cygwin.com) - to run AFNI under Windows!
 
-CEXTRA = -fomit-frame-pointer -DHAVE_XDBE
+CEXTRA = -DHAVE_XDBE
 CC     = gcc -O2 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCVOL  = gcc -O2 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCFAST = gcc -O3 -ffast-math -DCYGWIN -DNO_GAMMA $(CEXTRA) -UUSE_TRACING -DDONT_USE_MCW_MALLOC

@@ -1,7 +1,7 @@
 # This Makefile works on Linux 1.2.13
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING
 CC     = gcc -O2 -m486 -ffast-math -DLINUX -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -DLINUX -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O3 -m486 -ffast-math -DLINUX -DNO_GAMMA $(CEXTRA)
