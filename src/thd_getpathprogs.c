@@ -141,9 +141,13 @@ ENTRY("THD_get_all_executables") ;
 
    /*----- find all regular files -----*/
 
+if(PRINT_TRACING){
+char str[256];sprintf(str,"call THD_get_all_filenames(%s)",dname); STATUS(str);
+}
    alist = THD_get_all_filenames( dname ) ;
 
    if( alist == NULL ) RETURN(NULL) ;
+status("call THD_extract_regular_files") ;
    rlist = THD_extract_regular_files( alist ) ;
    DESTROY_SARR( alist ) ;
    if( rlist == NULL ) RETURN(NULL) ;

@@ -82,8 +82,10 @@ THD_string_array * THD_get_all_filenames( char * dirname )
    char * total_dirname , * total_fname ;
    char ** gname=NULL ;
 
-   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) return NULL ;
-   if( ! THD_is_directory(dirname) )                    return NULL ;
+ENTRY("THD_get_all_filenames") ;
+
+   if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) RETURN( NULL );
+   if( ! THD_is_directory(dirname) )                    RETURN( NULL );
 
    total_dirname = XtMalloc( dlen+4 ) ;
    strcpy( total_dirname , dirname ) ;
@@ -96,6 +98,9 @@ THD_string_array * THD_get_all_filenames( char * dirname )
    total_dirname[dlen]   = '*' ;                            /* add wildcard */
    total_dirname[++dlen] = '\0' ;
    MCW_warn_expand(0) ;
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"MCW_file_expand(%s)",total_dirname); STATUS(str);
+}
    MCW_file_expand( 1, &total_dirname, &nfiles, &gname ) ;  /* find files */
 #else
    nfiles = scandir( dirname ,
@@ -111,7 +116,7 @@ THD_string_array * THD_get_all_filenames( char * dirname )
 #else
        if( dplist != NULL ) free(dplist) ;
 #endif
-       return NULL ;
+       RETURN( NULL );
    }
 
    INIT_SARR( star ) ;
@@ -144,7 +149,7 @@ THD_string_array * THD_get_all_filenames( char * dirname )
    myXtFree( total_fname ) ;
    free( dplist ) ;
 #endif
-   return star ;
+   RETURN( star );
 }
 
 /*------------------------------------------------------------------
