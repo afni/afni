@@ -66,6 +66,20 @@ typedef struct
     void           * x_im;          /* extra image for afni comm        */
 } im_store_t;
 
+typedef struct  /* user options */
+{
+    char           * start_file;    /* user-specified starting file     */
+    char           * start_dir;     /* user input starting directory    */
+    int              nt;            /* user input time points per run   */
+    int              nice;          /* nice offset (must be >= 0)       */
+    int              debug;         /* debug level                      */
+
+    /* realtime options */
+    int              rt;            /* run in real-time afni mode       */
+    int              swap;          /* swap bytes when sending data     */
+    char           * host;          /* pointer to hostname              */
+} opts_t;
+
 typedef struct
 {
     int              nused;         /* number of elements assigned      */
@@ -73,13 +87,11 @@ typedef struct
     finfo_t        * flist;         /* array of finfo structures        */
     im_store_t       im_store;      /* structure to hold actual images  */
 
-    char           * start_dir;     /* user input starting directory    */
     char           * glob_dir;      /* wildcard format to search for    */
     int              nfiles;        /* number of files in list          */
     char          ** fnames;        /* corresponding file names         */
 
-    int              nice;          /* nice offset (must be >= 0)       */
-    int              nt;            /* user input time points per run   */
+    opts_t           opts;          /* user specified options           */
 } param_t;
 
 typedef struct			    /* used for the stats_t struct      */
