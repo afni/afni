@@ -1322,6 +1322,17 @@ STATUS("call 0") ;
       break ;
 
       case 1:
+
+#ifndef NO_FRIVOLITIES
+#ifdef DARWIN                 /* 24 Nov 2003 */
+      { char *eee = getenv("AFNI_SPEECH") ;
+        if( eee == NULL || toupper(*eee) != 'N' )
+         system("say -vCellos "
+                "'[[rate +30]]Welcome to [[inpt PHON; emph +; rate -30]]1AEfnIY'");
+      }
+#endif
+#endif
+
       case 2:
       case 3:
       case 4:
