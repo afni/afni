@@ -5085,3 +5085,4 @@
  * Modified matrix.c and matrix_f.c to have matrix_inverse_dsc() function,
      to use diagonal scaling before/after the matrix inversion.  Modified
      RegAna.c to use this function, to avoid stupid scaling issues.
+     Also modified condition number calculation to take this into account.
