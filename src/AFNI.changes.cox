@@ -3981,3 +3981,5 @@
  * Modified imseq.c to allow use of Shift+Button1 for drawing as well as
      Button2.  Changes also to afni_graph.c and plug_drawdset.c (the
      latter just to change the help text).
+ * Modified 3dTcat.c to use last '+' as marker for '+orig' (etc.)
+     rather than 1st.
