@@ -1077,6 +1077,23 @@ int main( int argc , char * argv[] )
      exit(0) ;
    }
 
+   /** just print the SHOWOFF string [26 Oct 2004] **/
+
+   if( check_string("-show",argc,argv) || check_string("--show",argc,argv) ){
+#ifdef SHOWOFF
+#undef SHSH
+#undef SHSHSH
+#define SHSH(x)   #x
+#define SHSHSH(x) SHSH(x)
+      printf(SHSHSH(SHOWOFF) "\n" ) ;
+#undef SHSH
+#undef SHSHSH
+#else
+      printf("UNKNOWN\n") ;
+#endif /* SHOWOFF */
+      exit(0) ;
+   }
+
    /** debug stuff **/
 
 #ifdef USING_MCW_MALLOC
