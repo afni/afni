@@ -502,44 +502,46 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 
 /* Drive Reasons for the next routine */
 
-#define isqDR_imhelptext   101
-#define isqDR_options      102
-#define isqDR_numtotal     103
-#define isqDR_cursor       104
-#define isqDR_unrealize    105
-#define isqDR_realize      106
-#define isqDR_display      107
-#define isqDR_overlay      108
-#define isqDR_arrowpadon   109
-#define isqDR_reimage      110
-#define isqDR_reshow       111
-#define isqDR_newseq       112
-#define isqDR_arrowpadoff  113
-#define isqDR_title        114
-#define isqDR_clearstat    115
-#define isqDR_onoffwid     116
-#define isqDR_getimnr      117
-#define isqDR_icon         118
-#define isqDR_sendmontage  119
-#define isqDR_periodicmont 120
-#define isqDR_setmontage   121
-#define isqDR_setifrac     130
+#define isqDR_imhelptext    101
+#define isqDR_options       102
+#define isqDR_numtotal      103
+#define isqDR_cursor        104
+#define isqDR_unrealize     105
+#define isqDR_realize       106
+#define isqDR_display       107
+#define isqDR_overlay       108
+#define isqDR_arrowpadon    109
+#define isqDR_reimage       110
+#define isqDR_reshow        111
+#define isqDR_newseq        112
+#define isqDR_arrowpadoff   113
+#define isqDR_title         114
+#define isqDR_clearstat     115
+#define isqDR_onoffwid      116
+#define isqDR_getimnr       117
+#define isqDR_icon          118
+#define isqDR_sendmontage   119
+#define isqDR_periodicmont  120
+#define isqDR_setmontage    121
+#define isqDR_setifrac      130
 
-#define isqDR_arrowpadhint 201
-#define isqDR_winfotext    202
-#define isqDR_getoptions   203
-#define isqDR_winfosides   204
+#define isqDR_arrowpadhint  201
+#define isqDR_winfotext     202
+#define isqDR_getoptions    203
+#define isqDR_winfosides    204
 
-#define isqDR_destroy      666
+#define isqDR_destroy       666
 
-#define isqDR_offwid         0
-#define isqDR_onwid          1
-#define isqDR_togwid         2
+#define isqDR_offwid          0
+#define isqDR_onwid           1
+#define isqDR_togwid          2
 
 #define isqDR_button2_enable  501
 #define isqDR_button2_disable 502
 #define isqDR_button2_pixel   503
 #define isqDR_button2_mode    504
+
+#define isqDR_ignore_redraws  521
 
 #define BUTTON2_OPENPOLY        0
 #define BUTTON2_CLOSEDPOLY      1

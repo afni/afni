@@ -4544,15 +4544,13 @@ STATUS("opening an image window") ;
 
       drive_MCW_imseq( *snew, isqDR_imhelptext, (XtPointer) AFNI_image_help ) ;
       drive_MCW_imseq( *snew, isqDR_arrowpadon, (XtPointer) AFNI_arrowpad_help ) ;
-      drive_MCW_imseq( *snew, isqDR_arrowpadhint , (XtPointer) AFNI_arrowpad_hint ) ;
+      drive_MCW_imseq( *snew, isqDR_arrowpadhint , (XtPointer) AFNI_arrowpad_hint );
+STATUS("realizing new image viewer") ;
+      drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 1 ) ; /* 16 Aug 2002 */
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)(int) im3d->vinfo->xhairs_periodic );
-
-STATUS("realizing new image viewer") ;
-
-      drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
 
@@ -4615,7 +4613,9 @@ STATUS("setting image viewer 'sides'") ;
          drive_MCW_imseq( *snew,isqDR_icon , (XtPointer) pm ) ;
       }
 #endif
-    }
+
+      drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 0 ) ; /* 16 Aug 2002 */
+    } /* end of creating a new image viewer */
 
     /** Don't forget to send information like the reference timeseries ... **/
 
@@ -4671,11 +4671,11 @@ STATUS("realizing new grapher") ;
          drive_MCW_grapher( gr , graDR_icon , (XtPointer) pm ) ;
       }
 #endif
-    }
+    } /* end of creating a new graph viewer */
 
    /*-- force a jump to the viewpoint of the current location --*/
 
-   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
 
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
