@@ -1,24 +1,8 @@
-
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994,1995 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #include "mrilib.h"
 #include "string.h"
@@ -32,7 +16,6 @@ int main( int argc , char * argv[] )
 
    if( argc < 3 || strncmp(argv[1],"-help",2) == 0 ){
       printf(
-        "Copyright 1994,1995 Medical College of Wisconsin\n\n"
         "Usage: nsize image_in image_out\n"
         "  Zero pads 'image_in' to NxN, N=64,128,256,512, or 1024, \n"
         "  whichever is the closest size larger than 'image_in'.\n"

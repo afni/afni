@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -14,7 +20,7 @@ static char helpstring[] =
    " Purpose: Creating a copy of a dataset.\n"
    " Inputs:\n"
    " Dataset = A dataset in the current session that exists in memory\n"
-   "             (not warp-on-demand).\n"
+   "               (not warp-on-demand).\n"
    " Prefix  = Filename prefix to be used for the output dataset.\n"
    " Fill    = How to fill voxel data in new dataset:\n"
    "             Data [All] = copy all sub-bricks from input\n"
@@ -25,11 +31,20 @@ static char helpstring[] =
    "                          'Draw Dataset' plugin.\n"
    " Type    = Lets you change the 'type' of the output dataset, for\n"
    "             example from anat to func.\n"
+   " Datum   = Lets you set the data type of the new brick.  This will\n"
+   "             only work when using \"Zero [All]\" or \"Zero [One]\"\n"
+   "             Fill modes.\n"
    "Author -- RWCox"
 ;
 
 #define NFILL 3
 static char * fill_options[NFILL] = { "Data [All]" , "Zero [All]" , "Zero [One]" } ;
+
+#define NDTYPE 4
+static char * dtype_options[NDTYPE] = {
+  "byte" , "short" , "float" , "complex" } ;
+static int    dtype_kinds[NDTYPE] = {
+  MRI_byte , MRI_short , MRI_float , MRI_complex } ;
 
 /***********************************************************************
    Set up the interface to the user
@@ -72,6 +87,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Dataset" , "Dataset" , FALSE ) ;
    PLUTO_add_string( plint , "Type" , NUM_DSET_TYPES,DSET_prefixstr , 0 ) ;
 
+   /*-- fifth line of input: Datum option --*/
+
+   PLUTO_add_option( plint , "Datum" , "Datum" , FALSE ) ;
+   PLUTO_add_string( plint , "Datum" , NDTYPE,dtype_options, 2 ) ;
+
    return plint ;
 }
 
@@ -84,7 +104,7 @@ char * COPY_main( PLUGIN_interface * plint )
    char * tag , * new_prefix , * cpt ;
    MCW_idcode * idc ;
    THD_3dim_dataset * dset , * new_dset ;
-   int ival , zfill=0 , ftyp=-1 , dtyp=-1 ;
+   int ival , zfill=0 , ftyp=-1 , dtyp=-1, type_index=-1, data_type=-1 ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -133,6 +153,13 @@ char * COPY_main( PLUGIN_interface * plint )
          }
       }
 
+      else if( strcmp(tag, "Datum") == 0 ){
+         cpt  = PLUTO_get_string(plint) ;
+	 type_index = PLUTO_string_index( cpt, NDTYPE, dtype_options ) ;
+	 if ( (type_index >= 0) && (type_index < NDTYPE) )
+	    data_type = dtype_kinds[type_index] ;
+      }
+
       tag = PLUTO_get_optiontag(plint) ;
    }
 
@@ -141,12 +168,13 @@ char * COPY_main( PLUGIN_interface * plint )
 
    /*-- make a new dataset --*/
 
-   if( zfill <= 1 ){
+   if( zfill == 0 ){
       new_dset = PLUTO_copy_dset( dset , new_prefix ) ;
    } else {
       new_dset = EDIT_empty_copy( dset ) ;
 
-      if( ISFUNCTYPE(dtyp) ) ftyp = FUNC_FIM_TYPE ;  /* 14 Jul 1998 */
+      if( ISFUNCTYPE(dtyp) && ( zfill == 2 ) )
+         ftyp = FUNC_FIM_TYPE ;  /* 14 Jul 1998 */
    }
 
    if( new_dset == NULL )
@@ -163,31 +191,50 @@ char * COPY_main( PLUGIN_interface * plint )
                                        ADN_func_type , ftyp ,
                                     ADN_none ) ;
 
-   /* if 'Zero [One]', make a brick */
+   /*--- change type of data stored ---*/
 
-   if( zfill == 2 ){
-      int ityp , nbytes ;
-      void * new_brick ;
+   if ( (data_type >= 0) )
+   {
+      if ( zfill )
+         EDIT_dset_items( new_dset ,
+                             ADN_datum_all, data_type,
+                          ADN_none ) ;
+      else{
+         DSET_delete(new_dset) ;
+
+         return  "****************************************************\n"
+                 "COPY_main:  Cannot change type of non-zeroed dataset\n"
+                 "****************************************************"  ;
+      }
+   }
+
+   /* if 'Zero [All]' or 'Zero [One]' */
+
+   if( zfill ) {
+      int ityp , nbytes , nvals , ival ;
+      void * new_brick , * bp ;
 
       EDIT_dset_items( new_dset ,
                           ADN_prefix , new_prefix ,
                           ADN_label1 , new_prefix ,
-                          ADN_nvals  , 1 ,
-                          ADN_ntt    , 0 ,
                        ADN_none ) ;
 
-      ityp      = DSET_BRICK_TYPE(new_dset,0) ;
-      nbytes    = DSET_BRICK_BYTES(new_dset,0) ;
-      new_brick = malloc( nbytes ) ;
-      EDIT_substitute_brick( new_dset , 0 , ityp , new_brick ) ;
-   }
+      if ( zfill == 2 ) { /* for 'Zero [One]' case - just make one brick */
+         EDIT_dset_items( new_dset ,
+                             ADN_nvals  , 1 ,
+                             ADN_ntt    , 0 ,
+                          ADN_none ) ;
+      }
 
-   if( zfill ){
-      int nvals = DSET_NVALS(new_dset) , ival , nbytes ;
-      void * bp ;
+      nvals = DSET_NVALS(new_dset) ;
 
-      for( ival=0 ; ival < nvals ; ival++ ){
-         nbytes = DSET_BRICK_BYTES(new_dset,ival) ;  /* how much data */
+      for ( ival = 0 ; ival < nvals ; ival++)        /* get memory for bricks */
+      {                                              /* and zero fill */
+         ityp      = DSET_BRICK_TYPE(new_dset,ival) ;
+         nbytes    = DSET_BRICK_BYTES(new_dset,ival) ;   /* how much data */
+         new_brick = malloc( nbytes ) ;
+         EDIT_substitute_brick( new_dset , ival , ityp , new_brick ) ;
+
          bp     = DSET_BRICK_ARRAY(new_dset,ival) ;  /* brick pointer */
          EDIT_BRICK_FACTOR(new_dset,ival,0.0) ;      /* brick factor  */
          memset( bp , 0 , nbytes ) ;

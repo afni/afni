@@ -23,6 +23,7 @@
  **********************************************************************/
 
 /*======= Modified by RWCox for inclusion in the AFNI package ========*/
+/*------- These changes are released to the public domain     --------*/
 
 #include <stdio.h>
 #include <string.h>

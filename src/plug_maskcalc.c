@@ -1,8 +1,17 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 /***********************************************************************
  *
  * plug_maskcalc.c		- plugin to do mask-based computations
  *
  * $Log$
+ * Revision 1.2  2000/12/11 19:20:02  cox
+ * AFNI
+ *
  * Revision 1.1  1999/08/06 19:10:48  cox
  * AFNI
  *

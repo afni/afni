@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #ifndef _MCW_3DDATASET_
 #define _MCW_3DDATASET_
 
@@ -1074,7 +1080,7 @@ typedef struct {
 #ifndef OMIT_DATASET_IDCODES
 
 #ifndef IDCODE_PREFIX
-#  define MCW_IDPREFIX "MCW_"
+#  define MCW_IDPREFIX "GPL_"
 #else
 #  define MCW_IDPREFIX IDCODE_PREFIX
 #endif
@@ -2414,6 +2420,10 @@ typedef struct {
    double * chol_fitim ;
 } MRI_3dalign_basis ;
 
+extern void mri_3dalign_edging( int , int , int ) ;
+extern void mri_3dalign_edging_default( int , int , int ) ;
+extern void mri_3dalign_force_edging( int ) ;
+
 extern void mri_3dalign_params( int , float , float , float ,
                                 int , int , int , int ) ;
 
@@ -2482,10 +2492,11 @@ extern int    tross_Get_Notecount( THD_3dim_dataset * ) ;
 extern char * tross_datetime(void) ;
 extern char * tross_commandline( char * , int , char ** ) ;
 
-extern void   tross_Append_History( THD_3dim_dataset * , char * ) ;
-extern char * tross_Get_History   ( THD_3dim_dataset * ) ;
-extern void   tross_Make_History  ( char *, int, char **, THD_3dim_dataset * ) ;
-extern void   tross_Copy_History  ( THD_3dim_dataset *, THD_3dim_dataset * ) ;
+extern void   tross_Append_History ( THD_3dim_dataset * , char * ) ;
+extern char * tross_Get_History    ( THD_3dim_dataset * ) ;
+extern void   tross_Make_History   ( char *, int, char **, THD_3dim_dataset * ) ;
+extern void   tross_Copy_History   ( THD_3dim_dataset *, THD_3dim_dataset * ) ;
+extern void   tross_Replace_History( THD_3dim_dataset * , char * ) ;
 
 #define tross_Erase_History(ds) THD_erase_one_atr((ds)->dblk,"HISTORY_NOTE")
 

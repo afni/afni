@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #ifndef _COX_RENDER_HEADER_
 #define _COX_RENDER_HEADER_
 
@@ -37,15 +43,15 @@ typedef struct {
    int   nx,ny,nz ;
    float dx,dy,dz ;
 
-   byte * vox , * voxrot ;
+   byte * vox ;
    Tmask * vtm ;
 
    int nrgb ;
    byte rmap[128] , gmap[128] , bmap[128] , imap[128] ;
    float opamap[128] , opargb , min_opacity ;
 
-   int   ax1,ax2,ax3 ;
-   float th1,th2,th3 ;
+   int   ax1,ax2,ax3 ; /* to be compatible with plug_render.c: */
+   float th1,th2,th3 ; /* ax1=A ax2=R ax3=I, th1=yaw th2=pitch th3=roll */
 
    int newvox , newopa , newangles ;
    int renmode ;

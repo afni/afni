@@ -1,10 +1,16 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 /***
      header file for recursive partial correlation calculations
      -- RWCox, Feb 1994
      -- March 1995: this work is the basis for the paper
          "Real-Time Functional Magnetic Resonance Imaging"
-         by R.W. Cox, A. Jesmanowicz, and J.S. Hyde,
-         Magn. Res. Med. 33:230-236.
+         by RW Cox, A Jesmanowicz, and JS Hyde,
+         Magnetic Resonance in Medicine, 33:230-236.
      -- June 1995: added get_variance and some comments
 ***/
 

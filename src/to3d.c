@@ -1,6 +1,7 @@
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "to3d.h"
@@ -155,7 +156,7 @@ int main( int argc , char * argv[] )
 
    /* read the inputs */
 
-   printf("to3d: 2D slices into 3D datasets for MCW AFNI, by R.W. Cox, 1996.\n") ;
+   printf("to3d: 2D slices into 3D datasets for AFNI, by RW Cox\n") ;
 
    Argc = argc ;
    Argv = argv ;
@@ -2657,7 +2658,6 @@ void Syntax()
    int ii ;
 
    printf(
-    "Copyright 1994-6 Medical College of Wisconsin\n\n"
     "Usage: to3d [options] image_files ...\n"
     "       Creates 3D datasets for use with AFNI from 2D image files\n"
     "\n"
@@ -2759,7 +2759,7 @@ void Syntax()
     "\n"
     "    Notes:\n"
     "      * Time-dependent functional datasets are not yet supported by\n"
-    "          to3d or any other MCW AFNI package software.  For many users,\n"
+    "          to3d or any other GPL AFNI package software.  For many users,\n"
     "          the proper dataset type for these datasets is '-epan'.\n"
     "      * Time-dependent datasets with more than one value per time point\n"
     "          (e.g., 'fith', 'fico', 'fitt') are also not allowed by to3d.\n"
@@ -2767,7 +2767,7 @@ void Syntax()
     "          subdivide the data slices, you will have to use the @filename\n"
     "          form for tpattern, unless 'simult' or 'zero' is acceptable.\n"
     "      * At this time, the value of 'tpattern' is not actually used in\n"
-    "          any MCW AFNI program.  The values are stored in the dataset\n"
+    "          any GPL AFNI program.  The values are stored in the dataset\n"
     "          .HEAD files, and will be used in the future.\n"
     "      * The values set on the command line can't be altered interactively.\n"
     "      * The units of TR can be specified by the command line options below:\n"
@@ -2857,7 +2857,7 @@ void Syntax()
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
     "  Notes:\n"
-    "   * Not all MCW AFNI programs support all datum types.  Shorts and\n"
+    "   * Not all GPL AFNI programs support all datum types.  Shorts and\n"
     "       floats are safest. (See the '-datum' option below.)\n"
     "   * If '-datum short' is used or implied, then int, float, and complex\n"
     "       data will be scaled to fit into a 16 bit integer.  If the '-gsfac'\n"

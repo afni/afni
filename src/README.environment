@@ -872,6 +872,21 @@ be alphabetized on the menu.  Otherwise, they will appear in the
 order which AFNI chooses.  Alphabetizing is done without regard to
 case (using the C library routine strcasecmp).
 
+----------------------------
+Variable: AFNI_VOLREG_EDGING
+----------------------------
+This variable affects the operation of 3dvolreg, the volume registration
+plugin, and the 3D registration code in the realtime acquisition plugin.
+It determines the size of the region around the edges of the base volume
+where the default weight will be set to zero.  Call the value of this
+variable 'ee'.  If 'ee' is a plain number (e.g., 5), then it is a voxel
+count, giving the thickness along each face of the 3D brick.  If 'ee' is
+of the form '5%', then it is a fraction of of each brick size.  For
+example, '5%' of a 256x256x124 volume means that 13 voxels on each side
+of the xy-axes will get zero weight, and 6 along the z-axis.  '5%' is
+the default value used by the 3D registration routines (in mri_3dalign.c)
+if no other value is specified.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

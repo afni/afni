@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifndef _MCW_DISPLAY_HEADER_
 #define _MCW_DISPLAY_HEADER_
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #include <math.h>
 #include <stdio.h>

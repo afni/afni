@@ -1,13 +1,15 @@
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifndef _MCW_MRILIB_HEADER_
 #define _MCW_MRILIB_HEADER_
 
 #define MRILIB_7D
+
+#define COXEMAIL "rwcox@mcw.edu"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -478,6 +480,8 @@ extern MRI_IMAGE *mri_rota         ( MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_rota_shear   ( MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_rota_variable( int, MRI_IMAGE * , float,float,float ) ;
+
+extern MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *,int,float,float,float,float) ;
 
 extern void ft_shift2( int, int, float, float *, float, float * ) ;
 

@@ -1,22 +1,9 @@
-
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1995 by
-         Medical College of Wisconsin
-         8701 Watertown Plank Road
-         Milwaukee, WI 53226
- License is granted to use this program for nonprofit research purposes only.
- It is specifically against the license to use this program for any clinical
- application. The Medical College of Wisconsin makes no warranty of usefulness
- of this program for any particular purpose.  The redistribution of this
- program for a fee, or the derivation of for-profit works from this program
- is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,8 +48,7 @@ int main( int argc , char * argv[] )
    float     * bar , * bav ;
 
    printf(
-    "MCW SFIM: Stepwise Functional IMages, by R.W. Cox\n"
-    "          Copyright 1995, Medical College of Wisconsin.\n" ) ;
+    "MCW SFIM: Stepwise Functional IMages, by RW Cox\n") ;
 
    if( argc < 2 ) SFIM_syntax("type sfim -help for usage details") ;
    else if( strcmp(argv[1],"-help") == 0 ) SFIM_syntax(NULL) ;

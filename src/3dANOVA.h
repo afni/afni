@@ -1,3 +1,10 @@
+
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
    This is the header file for the 3dANOVA.lib library routines.
 
@@ -37,13 +44,6 @@
    Date:    31 January 2000
 
 */
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
 
 #include "mrilib.h"
 

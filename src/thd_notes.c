@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #include "mrilib.h"
                          /**************************
                           * 3dNotes - T. Ross 8/99 *
@@ -272,7 +278,21 @@ void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_ds
    ch = tross_Get_History( old_dset ) ;      if( ch == NULL ) return ;
    cn = tross_Encode_String(ch) ; free(ch) ; if( cn == NULL ) return;
    THD_set_string_atr(new_dset->dblk, "HISTORY_NOTE", cn);
+   free(cn) ; return ;
+}
 
+/*---------------------------------------------------------------------------
+   09 Dec 2000 - use this wisely
+-----------------------------------------------------------------------------*/
+
+void tross_Replace_History( THD_3dim_dataset * dset , char * ch )
+{
+   char * cn ;
+
+   if( !ISVALID_DSET(dset) || ch == NULL ) return ;
+
+   cn = tross_Encode_String(ch) ; if( cn == NULL ) return ;
+   THD_set_string_atr(dset->dblk, "HISTORY_NOTE", cn);
    free(cn) ; return ;
 }
 

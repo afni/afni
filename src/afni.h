@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifndef _AFNI_HEADER_
 #define _AFNI_HEADER_
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #include "mrilib.h"
 #include "imseq.h"
@@ -22,7 +23,7 @@
 #include <Xm/Display.h>
 #include <Xm/CascadeB.h>
 
-#include "mcw.h"
+#include "logo.h"
 
 #define WARP_4D
 
@@ -124,24 +125,28 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.27c"
+#define VERSION "2.28 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "13 Oct 2000      "
+#define RELEASE "01 Dec 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
      "************************************************\n"  \
-     "* MCW AFNI: Analysis of Functional NeuroImages *\n"  \
+     "* GPL AFNI: Analysis of Functional NeuroImages *\n"  \
      "*           Version " VERSION " -- " RELEASE " *\n"  \
      "*                                              *\n"  \
-     "* Copyright:     Medical College of Wisconsin  *\n"  \
-     "*   1994-2000    Milwaukee, WI 53226-0509      *\n"  \
+     "* Major portions are Copyright 1994-2000,      *\n"  \
+     "*   Medical College of Wisconsin               *\n"  \
+     "*   Milwaukee, WI 53226-0509                   *\n"  \
+     "* See file README.copyright for information.   *\n"  \
      "*                                              *\n"  \
-     "* Author:  Robert W. Cox, Ph.D.                *\n"  \
-     "* E-mail:  rwcox@mcw.edu                       *\n"  \
+     "* Released to the public under the GNU General *\n"  \
+     "* Public License (version 2), Dec 2000.        *\n"  \
+     "*                                              *\n"  \
+     "* Author:  Robert W Cox, PhD                   *\n"  \
      "************************************************"
 
 char AFNI_tophelp[TOPSIZE] = AFNI_about ;
@@ -548,6 +553,7 @@ typedef struct {
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
 
       Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
+      Widget         misc_license_pb ;    /* 03 Dec 2000 */
 
 } AFNI_datamode_widgets ;
 
@@ -640,10 +646,15 @@ typedef struct {
 #  define PICTURE_ON(im)  XtSetSensitive( (im)->vwid->picture , False )
 #  define PICTURE_OFF(im) XtSetSensitive( (im)->vwid->picture , True )
 #else
-#  define PICTURE_ON(im)  \
-       XtVaSetValues( (im)->vwid->picture, XmNlabelPixmap,mcw_pixmap, NULL )
-#  define PICTURE_OFF(im) \
-       XtVaSetValues( (im)->vwid->picture, XmNlabelPixmap,XmUNSPECIFIED_PIXMAP, NULL )
+#  define PICTURE_ON(im)                                                      \
+     do{ if( (im)->type == AFNI_3DDATA_VIEW )                                 \
+          XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,logo_pixmap,NULL); \
+       } while(0)
+
+#  define PICTURE_OFF(im)                                                               \
+     do{ if( (im)->type == AFNI_3DDATA_VIEW )                                           \
+          XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,XmUNSPECIFIED_PIXMAP,NULL ); \
+       } while(0)
 #endif
 
 /*-----------------------------*/

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -6,7 +12,7 @@
 
 /***********************************************************************
   Simple plugin to cluster data and return new dataset
-  Author:   R.W. Cox
+  Author:   RW Cox
 
   Mod:      Added Erode/Dilate option to sever narrow connecting path 
             between clusters, by first eroding the outer layer of voxels, 

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #define MAIN
 
 #include <X11/Intrinsic.h>
@@ -19,8 +25,8 @@ static int      xim_hh = 0 ;
 
 #define USE_PIXMAP
 #ifdef  USE_PIXMAP
-# define WANT_MCW_BITMAP
-# include "mcw.h"
+# define WANT_LOGO_BITMAP
+# include "logo.h"
 #endif
 
 XImage * rgb_to_XImage( Display * dis , XVisualInfo * vin , MRI_IMAGE * im ) ;
@@ -62,11 +68,11 @@ void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
    ii = 0 ;
    do{ jj = 0 ;
        do{
-          XCopyArea( XtDisplay(w),mcw_pixmap , XtWindow(w),myGC ,
-                     0,0,mcw_width,mcw_height , ii,jj ) ;
-         jj += mcw_height + 4 ;
+          XCopyArea( XtDisplay(w),logo_pixmap , XtWindow(w),myGC ,
+                     0,0,logo_width,logo_height , ii,jj ) ;
+         jj += logo_height + 4 ;
       } while( jj < ny ) ;
-      ii += mcw_width ;
+      ii += logo_width ;
    } while( ii < nx ) ;
 # endif /* USE_PIXMAP */
 #endif /* USE_TRUECOLOR */
@@ -168,14 +174,14 @@ int main( int argc , char * argv[] )
                        XmNbackground , &fg_pix ,
                      NULL ) ;
 
-      mcw_pixmap = XCreatePixmapFromBitmapData(
+      logo_pixmap = XCreatePixmapFromBitmapData(
                         XtDisplay(top) ,
                         RootWindowOfScreen(XtScreen(top)) ,
-                        mcw_bits , mcw_width , mcw_height ,
+                        logo_bits , logo_width , logo_height ,
                         fg_pix , bg_pix ,
                         DefaultDepthOfScreen(XtScreen(top)) ) ;
 
-      XtVaSetValues( top , XmNiconPixmap , mcw_pixmap , NULL ) ;
+      XtVaSetValues( top , XmNiconPixmap , logo_pixmap , NULL ) ;
    }
 #endif
 

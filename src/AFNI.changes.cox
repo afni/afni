@@ -2384,3 +2384,27 @@
      have plugin buttons sorted alphabetically.
  * Fixed bug in plug_nudge.c where the interpolation mode was
      set improperly.
+
+01 Dec 2000
+ * Included Vinai Roopchansingh's modified plug_copy.c; this version
+     allows the user to change the datum type, when doing a zero fill.
+ * Added the "License Info" button to the Datamode->Misc menu.
+
+05 Dec 2000
+ * Included Vinai Roopchansingh's modified 3dhistog.c; this version
+     adds the "-mask" option.
+ * Fixed a bug in the PICTURE_ON/OFF macro (afni.h) so that it is
+     only meaningful for dataset viewing (not for the -im case).
+
+06 Dec 2000
+ * Modified afni_pcor.c routine PCOR_get_perc to zero out the results
+     if the last reference has no range (previously, it only zeroed
+     out the coef[] array, not bline[]).
+ * Added GPL/MCW Copyright notices to many many *.[ch] files.
+
+09 Dec 2000
+ * Modified 3dNotes.c and thd_notes.c to allow user to replace the History
+     note, rather than just append to it.
+ * Modified 3dvolreg.c to make the -twopass feature more robust for
+     registering SPGR images.  Changes included a coarse grid search for
+     an initial shift, and fading out the weights along the edges.

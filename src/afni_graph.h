@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #ifndef _AFNI_HEADER_GRAPH_
 #define _AFNI_HEADER_GRAPH_
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 /*------------------------------------------------------------------------
    This code is adapted from FD2, which was taken from FD.  It is
@@ -20,7 +21,7 @@
 
 #define WANT_AFNI_BITMAP
 #ifdef WANT_AFNI_BITMAP
-# include "mcw.h"
+# include "logo.h"
 #endif
 
 #if 0
@@ -389,8 +390,8 @@ typedef struct {
    Pixmap  fd_pxWind ;   /* graphs are drawn into this for speed's sake */
    Widget  fdw_graph ;   /* top level widget */
    Widget  draw_fd ;     /* drawing area */
-   Pixmap  logo_pixmap ; /* for the corner */
-   int     logo_width , logo_height ;
+   Pixmap  glogo_pixmap ; /* for the corner */
+   int     glogo_width , glogo_height ;
 
    Widget option_rowcol ;  /* 29 Sep 2000: removed option_mbar */
 

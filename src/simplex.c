@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
    This file implements the Simplex algorithm for non-linear optimization.
    Some routines are adapted from:  A Jump Start Course in C++ Programming
@@ -9,12 +15,6 @@
   Mod:      Changed random number generator function from rand to drand48.
             29 August 1997
 */
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 
 /*---------------------------------------------------------------------------*/

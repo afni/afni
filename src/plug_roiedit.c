@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 /***********************************************************************
  *
  * plug_roiedit.c               - a region of interest editor (afni plugin)
@@ -4730,7 +4736,7 @@ static void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "  * Edit at your own risk!  Be careful out there.\n"
   "\n"
   "SUGGESTIONS?\n"
-  "  * Please send them to rwcox@mcw.edu\n"
+  "  * Please send them to " COXEMAIL "\n"
   "  * Even better than suggestions are implementations.\n"
 
 
