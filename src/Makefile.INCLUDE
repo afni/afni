@@ -441,6 +441,7 @@ cleaner:
 	$(RM) $(PROGRAMS)
 
 backup:
+	rsh manwe chmod -R u+w /usr2/cox/AFNI96
 	rcp -prv * manwe:/usr2/cox/AFNI96
 
 backtape:
