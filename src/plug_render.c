@@ -1524,7 +1524,7 @@ void REND_make_widgets(void)
 #endif  /* ALLOW_INCROT */
 
   /** N.B.: removed trailing space from "Roll", "Pitch", "Yaw" labels
-   *             for arrowvals below, to make space for the bbox created above **/
+            for arrowvals below, to make space for the bbox created above **/
 /*==========================================================================*/
 
    /***  arrowvals to choose rotation angles  ***/
@@ -3418,7 +3418,7 @@ void REND_incrot_CB( Widget w , XtPointer cld , XtPointer cad )
    }
 
    /* if incrot is on, then force arrowvals back to numerical
-    *       values in case they are now encoded as Automate expressions */
+      values in case they are now encoded as Automate expressions */
 
    if( MCW_val_bbox(incrot_bbox) ){
       REND_textact_CB( roll_av ->wtext , (XtPointer)roll_av  , NULL ) ;
