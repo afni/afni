@@ -1397,7 +1397,11 @@ if( PRINT_TRACING ){
                       "Use Button 3 to popup\n"
                       "a display control menu"  ) ;
 
-   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar , "imseq" , NULL , 0 ) ;
+#ifdef BAD_BUTTON3_POPUPS
+   newseq->wbar_menu = XmCreatePopupMenu( newseq->wimage, "imseq",NULL,0 ) ;
+#else
+   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar  , "imseq",NULL,0 ) ;
+#endif
 
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 

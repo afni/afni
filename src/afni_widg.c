@@ -11,6 +11,15 @@
 
 #include "afni.h"
 
+/** 21 Jul 2003:
+    Fix Solaris problem with Button-3 popup menus. **/
+
+#ifdef BAD_BUTTON3_POPUPS
+# define POPPAR(w) imag->topper
+#else
+# define POPPAR(w) w
+#endif
+
 /** if USE_OPTMENUS is defined, then option menus will
     be used in place of MCW_arrowvals wherever possible **/
 
@@ -2341,7 +2350,8 @@ STATUS("making func->rowcol") ;
 
    /**-- 17 Dec 1997: pbar menu hidden on the inten_label --**/
 
-   func->pbar_menu = XmCreatePopupMenu( func->inten_label , "menu" , NULL , 0 ) ;
+   func->pbar_menu = XmCreatePopupMenu( POPPAR(func->inten_label) ,
+                                        "menu" , NULL , 0 ) ;
 
    SAVEUNDERIZE(XtParent(func->pbar_menu)) ; /* 27 Feb 2001 */
 
@@ -3945,7 +3955,8 @@ STATUS("making prog->rowcol") ;
       /** popup on picture widget (right of Quit button) **/
 
       prog->hidden_menu =
-         XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
+         XmCreatePopupMenu( POPPAR(vwid->picture) ,
+                            "menu" , NULL , 0 ) ;
 
       SAVEUNDERIZE(XtParent(prog->hidden_menu)) ; /* 27 Feb 2001 */
 

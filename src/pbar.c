@@ -226,7 +226,11 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    /* 11 Feb 2003: create a popup menu for doing stuff */
 
    pbar->bigfac  = 0.0 ;
+#ifdef BAD_BUTTON3_POPUPS
+   pbar->big_menu = XmCreatePopupMenu( pbar->top      , "help" , NULL , 0 ) ;
+#else
    pbar->big_menu = XmCreatePopupMenu( pbar->panes[0] , "help" , NULL , 0 ) ;
+#endif
 
    SAVEUNDERIZE(XtParent(pbar->big_menu)) ;
    VISIBILIZE_WHEN_MAPPED(pbar->big_menu) ;
