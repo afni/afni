@@ -1,13 +1,17 @@
 #include "afni_warp.h"
 
+#define NPER 10
+
+static int nper = NPER ;
+
 int_triple THD_orient_guess( MRI_IMAGE *imm )
 {
-   int nvox , ii , nx,ny,nxy,nz , ix,jy,kz , icm,jcm,kcm ;
+   int nvox , ii , nx,ny,nxy,nz , ix,jy,kz , icm,jcm,kcm , nbar ;
    byte *bar , bp,bm ;
    float xcm , ycm , zcm , ff , dx,dy,dz ;
    float xx,yy,zz ;
    int ni,nj,nk , itop,jtop,ktop , im,ip , jm,jp , km,kp ;
-   float axx,ayy,azz , clip  , qx,qy,qz ;
+   float axx,ayy,azz , clip  , qx,qy,qz , arr[3] ;
    int d_LR , d_AP , d_IS ;
 
    int_triple it = {-1,-1,-1} ;
@@ -22,11 +26,13 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
    dy = fabs(imm->dy) ; if( dy == 0.0 ) dy = 1.0 ;
    dz = fabs(imm->dz) ; if( dz == 0.0 ) dz = 1.0 ;
 
-   /*-- make binary mask --*/
+   /*-- make mask of NPER levels --*/
 
+   bar  = (byte *) malloc( sizeof(byte) * nvox ) ;
    clip = THD_cliplevel( imm , 0.5 ) ;
 
-   bar = (byte *) malloc( sizeof(byte) * nvox ) ;
+   /* start with a binary mask */
+
    switch( imm->kind ){
      case MRI_float:{
        float *ar = MRI_FLOAT_PTR(imm) ;
@@ -45,23 +51,91 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
      break ;
    }
 
-   ii = THD_countmask(nvox,bar) ;
-   if( ii == 0 ){ free(bar); return it; }
+   nbar = THD_countmask(nvox,bar) ;
+   printf("%d voxels in initial binary mask\n",nbar) ;
+   if( nbar == 0 ){ free(bar); return it; }  /* bad */
 
-   THD_mask_clust( nx,ny,nz , bar ) ;
-   THD_mask_fillin_once( nx,ny,nz , bar , 1 ) ;
+   THD_mask_clust( nx,ny,nz , bar ) ;      /* take biggest cluster */
+
+   nbar = THD_countmask(nvox,bar) ;
+   printf("%d voxels in final binary mask\n",nbar) ;
+
+#ifdef NPER
+ if( nper > 1 ){
+   float per[NPER+1] ; MRI_IMAGE *qim ; int jj ;
+   qim = mri_new( nbar , 1 , imm->kind ) ;
+   switch(imm->kind){
+     case MRI_float:{
+      float *ar=MRI_FLOAT_PTR(imm) , *qar=MRI_FLOAT_PTR(qim) ;
+      for( jj=ii=0 ; ii < nvox ; ii++ ) if( bar[ii] ) qar[jj++] = ar[ii] ;
+     }
+     break ;
+     case MRI_short:{
+      short *ar=MRI_SHORT_PTR(imm) , *qar=MRI_SHORT_PTR(qim) ;
+      for( jj=ii=0 ; ii < nvox ; ii++ ) if( bar[ii] ) qar[jj++] = ar[ii] ;
+     }
+     break ;
+     case MRI_byte:{
+      byte *ar=MRI_BYTE_PTR(imm) , *qar=MRI_BYTE_PTR(qim) ;
+      for( jj=ii=0 ; ii < nvox ; ii++ ) if( bar[ii] ) qar[jj++] = ar[ii] ;
+     }
+     break ;
+   }
+   printf("call mri_percents\n") ;
+   mri_percents( qim , nper , per ) ;  /* compute nper break points */
+   mri_free(qim) ;
+   printf("per:") ;
+   for( ii=0 ; ii <= nper ; ii++ ) printf(" %g",per[ii]) ;
+   printf("\n") ;
+   switch( imm->kind ){
+     case MRI_float:{
+       float *ar = MRI_FLOAT_PTR(imm) , val ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( bar[ii] ){
+           val = ar[ii] ;
+           for( jj=1 ; jj <= nper && val >= per[jj] ; jj++ ) ; /*spin*/
+           bar[ii] = jj ;
+         }
+       }
+     }
+     break ;
+     case MRI_short:{
+       short *ar = MRI_SHORT_PTR(imm) , val ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( bar[ii] ){
+           val = ar[ii] ;
+           for( jj=1 ; jj <= nper && val >= per[jj] ; jj++ ) ; /*spin*/
+           bar[ii] = jj ;
+         }
+       }
+     }
+     break ;
+     case MRI_byte:{
+       byte *ar = MRI_BYTE_PTR(imm) , val ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( bar[ii] ){
+           val = ar[ii] ;
+           for( jj=1 ; jj <= nper && val >= per[jj] ; jj++ ) ; /*spin*/
+           bar[ii] = jj ;
+         }
+       }
+     }
+     break ;
+   }
+  }
+#endif  /* NPER */
 
    /* find center of mass of mask */
 
-   xcm = ycm = zcm = 0.0 ;
+   xcm = ycm = zcm = ff = 0.0 ;
    for( ii=0 ; ii < nvox ; ii++ ){
      if( bar[ii] ){
-       ix = (ii % nx)      ; xx = ix*dx ; xcm += xx ;
-       jy = (ii / nx) % ny ; yy = jy*dy ; ycm += yy ;
-       kz = (ii /nxy)      ; zz = kz*dz ; zcm += zz ;
+       ix = (ii % nx)      ; xx = ix*dx ; xcm += xx*bar[ii] ;
+       jy = (ii / nx) % ny ; yy = jy*dy ; ycm += yy*bar[ii] ;
+       kz = (ii /nxy)      ; zz = kz*dz ; zcm += zz*bar[ii] ;
+       ff += bar[ii] ;
      }
    }
-   ff = THD_countmask(nvox,bar) ;
    xcm /= ff ; ycm /= ff ; zcm /= ff ;
 
    icm = rint(xcm/dx) ;
@@ -90,7 +164,7 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
      im = icm-ix ; ip = icm+ix ;
      for( kz=0 ; kz < nz ; kz++ ){
        for( jy=0 ; jy < ny ; jy++ )
-         if( BAR(im,jy,kz) != BAR(ip,jy,kz) ) axx++ ;
+         axx += abs(BAR(ip,jy,kz) - BAR(im,jy,kz)) ;
      }
    }
    axx /= (itop*ny*nz) ; printf("axx = %g\n",axx) ;
@@ -100,7 +174,7 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
      jm = jcm-jy ; jp = jcm+jy ;
      for( kz=0 ; kz < nz ; kz++ ){
        for( ix=0 ; ix < nx ; ix++ )
-         if( BAR(ix,jm,kz) != BAR(ix,jp,kz) ) ayy++ ;
+         ayy += abs(BAR(ix,jp,kz) - BAR(ix,jm,kz)) ;
      }
    }
    ayy /= (jtop*nx*nz) ; printf("ayy = %g\n",ayy) ;
@@ -110,7 +184,7 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
      km = kcm-kz ; kp = kcm+kz ;
      for( jy=0 ; jy < ny ; jy++ ){
        for( ix=0 ; ix < nx ; ix++ )
-         if( BAR(ix,jy,km) != BAR(ix,jy,kp) ) azz++ ;
+         azz += abs(BAR(ix,jy,kp) - BAR(ix,jy,km)) ;
      }
    }
    azz /= (ktop*nx*ny) ; printf("azz = %g\n",azz) ;
@@ -124,27 +198,11 @@ int_triple THD_orient_guess( MRI_IMAGE *imm )
    }
    printf("axis %d is L-R\n",d_LR) ;
 
-   qx = qy = qz = 0.0 ;
-   for( ii=0 ; ii < nvox ; ii++ ){
-     if( bar[ii] ){
-       ix = (ii % nx)      ; xx = ix*dx-xcm ; qx += xx*xx ;
-       jy = (ii / nx) % ny ; yy = jy*dy-ycm ; qy += yy*yy ;
-       kz = (ii /nxy)      ; zz = kz*dz-zcm ; qz += zz*zz ;
-     }
-   }
-
-   switch( d_LR ){
-     case 1: if( qy < qz ) d_AP = 3 ;
-             else          d_AP = 2 ;
-     break ;
-     case 2: if( qx < qz ) d_AP = 3 ;
-             else          d_AP = 1 ;
-     break ;
-     case 3: if( qx < qy ) d_AP = 2 ;
-             else          d_AP = 1 ;
-     break ;
-   }
-   printf("axis %d is A-P\n",d_AP) ;
+   arr[0] = axx ; arr[1] = ayy ; arr[2] = azz ; ff = arr[d_LR-1] ;
+   arr[0] /= ff ;
+   arr[1] /= ff ;
+   arr[2] /= ff ;
+   printf("a ratios = %g  %g  %g\n",arr[0],arr[1],arr[2]) ;
 
    return it ;
 }
@@ -153,14 +211,33 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    MRI_IMAGE *im ;
+   int iarg=1 ;
 
-   dset = THD_open_dataset(argv[1]) ;
-   if( dset == NULL ) exit(1) ;
-   DSET_load(dset) ;
-   im = DSET_BRICK(dset,0) ;
-   im->dx = DSET_DX(dset) ;
-   im->dy = DSET_DY(dset) ;
-   im->dz = DSET_DZ(dset) ;
-   (void) THD_orient_guess( im ) ;
+   if( strcmp(argv[1],"-nper") == 0 ){
+      nper = strtol( argv[2] , NULL , 10 ) ;
+      iarg = 3 ;
+   }
+
+   for( ; iarg < argc ; iarg++ ){
+     printf("======= dataset %s  nper=%d ========\n",argv[iarg],nper) ;
+     dset = THD_open_dataset(argv[iarg]) ;
+     if( dset == NULL ) continue ;
+     DSET_load(dset) ;
+     im = DSET_BRICK(dset,0) ;
+     im->dx = DSET_DX(dset) ;
+     im->dy = DSET_DY(dset) ;
+     im->dz = DSET_DZ(dset) ;
+     (void) THD_orient_guess( im ) ;
+
+     printf( "Data Axes Orientation:\n"
+             "  first  (x) = %s\n"
+             "  second (y) = %s\n"
+             "  third  (z) = %s\n" ,
+        ORIENT_typestr[dset->daxes->xxorient] ,
+        ORIENT_typestr[dset->daxes->yyorient] ,
+        ORIENT_typestr[dset->daxes->zzorient]  ) ;
+     DSET_delete(dset) ;
+   }
+
    exit(0) ;
 }

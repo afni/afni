@@ -456,9 +456,10 @@ void qsort_pair( int n , float * a , int * ia )
 }
 
 /*******************************************************************************
-  Compute the percentage points of the histogram of an image.
+  Compute the "percentage points" of the histogram of an image.
   "per" should be a pre-allocated array of "nper+1" floats; per[i] will be set
-  to the image intensity below which i% of the pixels fall, for i=0..nper.
+  to the image intensity below which fraction i/nper of the pixels fall,
+  for i=0..nper.
   N.B.:  per[0] = image minimum and per[nper] = maximum.
         "per" is float, no matter what the input image type is.
 ********************************************************************************/
@@ -497,7 +498,7 @@ void mri_percents( MRI_IMAGE * im , int nper , float per[] )
             fi = frac * pp ; ii = fi ; fi = fi - ii ;
             per[pp] = (1.0-fi) * far[ii] + fi * far[ii+1] ;
          }
-         per[nper] = far[nvox] ;
+         per[nper] = far[nvox-1] ;
          mri_free( inim ) ;
       }
       break ;
@@ -519,7 +520,7 @@ void mri_percents( MRI_IMAGE * im , int nper , float per[] )
             fi = frac * pp ; ii = fi ; fi = fi - ii ;
             per[pp] = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
          }
-         per[nper] = sar[nvox] ;
+         per[nper] = sar[nvox-1] ;
          mri_free( inim ) ;
       }
    }
