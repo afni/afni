@@ -3146,3 +3146,6 @@
 
 21 Sep 2001
  * Modified imseq.[ch] to adjust the way labels are drawn.
+ * Fixed ISQ_saver_CB() bug in imseq.c: when Save:one was active and images
+     were sent to an output filter, they needed to be forced into RGB mode
+     even if they were grayscale.

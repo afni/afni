@@ -2336,10 +2336,14 @@ ENTRY("ISQ_saver_CB") ;
          char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int    sll  = strlen( seq->saver_prefix ) ;
 
+         int    mcod = X2M_USE_CMAP ;                             /* 21 Sep 2001: */
+         if( seq->opt.save_filter >= 0 ) mcod |= X2M_FORCE_RGB ;  /* compute mcod rather than */
+                                                                  /* use fixed X2M_USE_CMAP   */
          /* undump XImage to MRI_IMAGE (rgb format) */
 
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
-         tim = XImage_to_mri( seq->dc , seq->given_xim , X2M_USE_CMAP ) ;
+         tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
+                                                                  /* X2M_USE_CMAP -> mcod */
 
          if( tim != NULL ){                  /* actually got image */
             static int warned=0 ;
