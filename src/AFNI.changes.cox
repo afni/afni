@@ -3952,3 +3952,6 @@
  * Modify 3dDespike.c to allow float datasets, print nicer messages, etc.
  * Fix my_tanh() bug in 3dDespike.c, which was returning NaN for very
      large inputs.
+
+04 Sep 2002
+ * More cosmetic changes to 3dDespike.c.
