@@ -5109,7 +5109,10 @@
 21 Jul 2004
  * Modifed MCM_get_intlist() to print error messages when the user inputs
      values off the top end of the range, instead of silently turning them
-     into the top.
+     into the top (stupid users).
  * Modified afni_fimmer.c to correctly use scaling factors if present in
-     the time series data.
+     the time series data (oops, for about 8 years).
  * Added printout of pseudo-inverse to 1dsvd.c.
+ * Added -svd option to 3dDeconvolve.  If SVD is on, then DON'T remove
+     all zero stimuli from the list.
+ * Added -xjpeg option to 3dDeconvolve: grayplot of X matrix.
