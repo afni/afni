@@ -102,7 +102,7 @@ int main( int argc , char *argv[] )
    }
 
    if( AFNI_yesenv("WATERSHED") ){
-     imin = mri_watershedize( imout , 0.125 ) ;
+     imin = mri_watershedize( imout , 0.25 ) ;
      if( imin != NULL ){ mri_free(imout); imout = imin; }
    }
 

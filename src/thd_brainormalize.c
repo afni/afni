@@ -450,8 +450,45 @@ static sort_shortvox( int n , shortvox *ar , int dec )
 
 /*--------------------------------------------------------------------------*/
 
+typedef struct { int num, nall, depth, *ivox; } basin ;
+
+#define BDEP(i) (baslist[i]->depth)
+
+#define INIT_BASIN(bb,iv)                                    \
+ { (bb) = (basin *) malloc(sizeof(basin)) ;                  \
+   (bb)->num     = 1 ;                                       \
+   (bb)->nall    = 1 ;                                       \
+   (bb)->depth   = svox[iv].val ;                            \
+   (bb)->ivox    = (int *)malloc(sizeof(int)) ;              \
+   (bb)->ivox[0] = (iv) ; }
+
+#define KILL_BASIN(bb)                                       \
+ { free((void *)(bb)->ivox);free((void *)(bb));(bb) = NULL; }
+
+#define ADDTO_BASIN(bb,iv)                                   \
+ { if( (bb)->num == (bb)->nall ){                            \
+     (bb)->nall = (int)(1.5*(bb)->nall)+32 ;                 \
+fprintf(stderr," [realloc in ADDTO_BASIN(%d): %d->%d",iv,(bb)->num,(bb)->nall); \
+     (bb)->ivox = (int *)realloc( (void *)(bb)->ivox ,       \
+                                  sizeof(int)*(bb)->nall ) ; \
+fprintf(stderr,"]") ; \
+   }                                                         \
+   (bb)->ivox[(bb)->num++] = (iv) ; }
+
+#define MERGE_BASIN(bb,cc)                                   \
+ { int zz = (bb)->num + (cc)->num ;                          \
+   if( (bb)->nall < zz ){                                    \
+     (bb)->nall = zz ;                                       \
+fprintf(stderr,"++realloc in MERGE_BASIN"); \
+     (bb)->ivox = (int *)realloc( (void *)(bb)->ivox ,       \
+                                  sizeof(int)*(bb)->nall ) ; \
+   }                                                         \
+   memcpy( (bb)->ivox + (bb)->num ,                          \
+           (cc)->ivox , sizeof(int) * (cc)->num ) ;          \
+   (bb)->num = zz ; }
+
 #undef  DBALL
-#define DBALL 4096
+#define DBALL 55000
 
 MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
 {
@@ -461,8 +498,10 @@ MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
    short *sar , *tar ;
    shortvox *svox ;
    int *isvox , *bcount,*bname ;
-   int *basin , nball , nbtop ;
    int nb,vb,mb,m,mu,mq,mz , bp[6] , hpf ;
+
+   basin **baslist ;
+   int nball , nbtop ;
 
 ENTRY("watershedize") ;
 
@@ -476,8 +515,7 @@ ENTRY("watershedize") ;
    for( nvox=0,pp=0 ; pp < nxyz ; pp++ ) if( sar[pp] > 0 ) nvox++ ;
    if( nvox <= 999 ) RETURN(NULL) ;
 
-   if( verb )
-     fprintf(stderr,"++mri_watershedize: %d voxels input\n",nvox) ;
+   if( verb ) fprintf(stderr,"++mri_watershedize: %d voxels input\n",nvox) ;
 
    /* create voxel lists */
 
@@ -510,16 +548,25 @@ ENTRY("watershedize") ;
 
    nball    = DBALL ;
    nbtop    = 1 ;
-   basin    = (int *)malloc(sizeof(int)*nball) ;
-   basin[0] = svox[0].val ;
-   hpf      = (int)rint(prefac*basin[0]) ;      /* preflood */
+   baslist  = (basin **) calloc(sizeof(basin *),nball) ;
+
+   INIT_BASIN( baslist[0] , 0 ) ;
+   svox[0].basin = 0 ;
+
+   hpf      = (int)rint(prefac*svox[0].val) ;      /* preflood */
 
    /* scan voxels as they get shallower, and basinate them */
 
+   if( verb ) fprintf(stderr,"++mri_watershedize: basinating voxels") ;
+
    for( pp=1 ; pp < nvox ; pp++ ){
+
+fprintf(stderr,"++ pp=%d",pp) ;
      ii = svox[pp].i; jj = svox[pp].j; kk = svox[pp].k;  /* where */
      ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;                 /* nbhrs */
      im = ii-1 ; jm = jj-1 ; km = kk-1 ;
+
+     if( verb && pp%10000 == 0 ) fprintf(stderr,".") ;
 
      /* macro checks if (a,b,c) voxel is in the list;
         if so and it is already in a basin, then
@@ -527,20 +574,23 @@ ENTRY("watershedize") ;
           nb = number of unique basins encountered (0..6)
           mb = index of deepest basin encountered (0..nb-1)
           vb = value (depth) of deepest basin encountered
-          bp[m] = index of i-th basin encountered (m=0..nb-1) */
+          bp[m] = index of m-th basin encountered (m=0..nb-1) */
 
 #undef  BASECHECK
 #define BASECHECK(a,b,c)                                   \
     { qq = isvox[IJK(a,b,c)] ;                             \
+fprintf(stderr," BASECHECK(%d,%d,%d)",a,b,c) ; \
       if( qq >= 0 && svox[qq].basin >= 0 ){                \
         qq = svox[qq].basin ;                              \
+fprintf(stderr,":baslist[%d]=%p",qq,(void *)baslist[qq]) ; \
         for( m=0 ; m < nb && bp[m] != qq ; m++ ) ;         \
         if( m == nb ){                                     \
           bp[nb] = qq ;                                    \
-          if( basin[qq] > vb ){ mb = nb; vb = basin[qq]; } \
+          if( BDEP(qq) > vb ){ mb = nb; vb = BDEP(qq); }   \
           nb++ ;                                           \
         }                                                  \
       }                                                    \
+fprintf(stderr,".") ; \
     }
 
      nb = 0 ; vb = -1 ; mb = -1 ;         /* initialize counters */
@@ -555,20 +605,26 @@ ENTRY("watershedize") ;
 
        m = nbtop ;
 
+fprintf(stderr," new basin at m=%d",m) ;
+
        if( m == nball ){
-         nball = (int)(1.1*nball)+DBALL ;
-         basin = (int *)realloc((void *)basin,sizeof(int)*nball) ;
+fprintf(stderr," [realloc baslist]") ;
+         mz = nball+DBALL ;
+         baslist = (basin **)realloc((void *)baslist,sizeof(basin *)*mz) ;
+         for( mq=nball ; mq < mz ; mq++ ) baslist[mq] = NULL ;
+         nball = mz ;
        }
-       basin[m] = svox[pp].val ;  /* depth of this basin */
+fprintf(stderr," INIT_BASIN") ;
+       INIT_BASIN(baslist[m],pp) ;
        svox[pp].basin = m ;       /* assign voxel to new basin */
        nbtop++ ;
+fprintf(stderr,"\n") ;
 
      } else {        /*** this voxel has deeper neighbors ***/
 
-       if( verb && nb > 1 )
-         fprintf(stderr,"++ neighbors=%d pp=%d:\n",nb,pp) ;
-
        svox[pp].basin = mq = bp[mb] ;   /* assign voxel to best basin */
+fprintf(stderr," ADDTO_BASIN(%d)",mq) ;
+       ADDTO_BASIN( baslist[mq] , pp ) ;
 
                        /* if have more than one neighbor, other */
        if( nb > 1 ){   /* basins could be merged with the best  */
@@ -576,14 +632,18 @@ ENTRY("watershedize") ;
          for( m=0 ; m < nb ; m++ ){
            if( m == mb ) continue ;        /* can't merge with itself */
            mu = bp[m] ;
-           if( basin[mu]-mz <= hpf ){      /* basin not TOO much deeper */
-             if( verb ) fprintf(stderr,"   - merging basin %d into %d\n",mu,mq);
-             for( qq=1 ; qq < pp ; qq++ )  /* change all mu's to mq's */
-               if( svox[qq].basin == mu ) svox[qq].basin = mq ;
-             basin[mu] = -1 ;              /* mark basin as unused */
+           if( BDEP(mu)-mz <= hpf ){       /* basin not TOO much deeper */
+fprintf(stderr," [merge %d with %d]",mu,mq);
+             MERGE_BASIN(baslist[mq],baslist[mu]) ;
+             for( qq=0 ; qq < baslist[mu]->num ; qq++ )
+               svox[ baslist[mu]->ivox[qq] ].basin = mq ;
+             KILL_BASIN(baslist[mu]) ;
            }
+else fprintf(stderr," [don't merge %d with %d]",mu,mq) ;
          }
        }
+else fprintf(stderr,".") ;
+fprintf(stderr,"\n") ;
      }
    } /* end of loop over voxels */
 
@@ -591,32 +651,54 @@ ENTRY("watershedize") ;
 
    free((void *)isvox) ;
 
-   for( mu=m=0 ; m < nbtop ; m++ ) if( basin[m] > 0 ) mu++ ;
+   /* count number of basines left */
 
-   bcount = (int *) calloc(sizeof(int),mu) ;
+   for( mu=m=0 ; m < nbtop ; m++ ){
+     if( baslist[m] != NULL ){
+       mu++ ;
+       KILL_BASIN(baslist[m]) ;
+     }
+   }
+   free((void *)baslist) ;
+
+   if( verb ) fprintf(stderr,"\n++ %d active basins left\n",mu) ;
+
+   bcount = (int *) calloc(sizeof(int),mu) ;     /* number in each basin */
    bname  = (int *) calloc(sizeof(int),mu) ;
-   isvox  = (int *) calloc(sizeof(int),nbtop) ;
+   isvox  = (int *) calloc(sizeof(int),nbtop) ;  /* new index */
 
    for( m=ii=0 ; m < nbtop ; m++ )
-     if( basin[m] > 0 ){ isvox[m] = ii; bname[ii] = m; ii++; }
-
-   if( verb ) fprintf(stderr,"++ %d active basins left\n",mu) ;
+     if( baslist[m] != NULL ){ isvox[m] = ii; bname[ii] = ii; ii++; }
 
    for( pp=0 ; pp < nvox ; pp++ ){
-     m = svox[pp].basin ; ii = isvox[m] ; bcount[ii]++ ;
+     m  = svox[pp].basin ;           /* old basin name for this voxel */
+     ii = isvox[m] ;                 /* new basin name for this voxel */
+     svox[pp].basin = ii ;           /* reassign name in this voxel */
+     bcount[ii]++ ;                  /* count number in this basin */
    }
 
-   tim = mri_new_conforming( sim , MRI_short ) ;
+   tim = mri_new_conforming( sim , MRI_short ) ;  /* output image */
+   MRI_COPY_AUX(tim,sim) ;
    tar = MRI_SHORT_PTR(tim) ;
 
-   qsort_intint( mu , bcount , isvox ) ;  /* sort into increasing order */
+   for( ii=0 ; ii < mu ; ii++ ) bcount[ii] = -bcount[ii] ;
+   qsort_intint( mu , bcount , bname ) ;  /* sort into decreasing order */
+   for( ii=0 ; ii < mu ; ii++ ) bcount[ii] = -bcount[ii] ;
 
-   jj = 1 ;
+   if( verb )
+     fprintf(stderr,"++ top 9 basin counts: %d %d %d %d %d %d %d %d %d\n",
+             bcount[0] , bcount[1] , bcount[2] , bcount[3] ,
+             bcount[4] , bcount[5] , bcount[6] , bcount[7] , bcount[8] ) ;
+
+   for( ii=0 ; ii < mu ; ii++ ) isvox[ii] = ii ;
+   qsort_intint( mu , bname , isvox ) ;
+
    for( pp=0 ; pp < nvox ; pp++ ){
-     m = svox[pp].basin ; ii = isvox[m] ;
+     m = svox[pp].basin ; jj = isvox[m]+1 ; if( jj > 32767 ) jj = 32767 ;
+     tar[IJK(svox[pp].i,svox[pp].j,svox[pp].k)] = jj ;
    }
 
-   free((void *)isvox); free((void *)basin); free((void *)svox );
+   free((void *)isvox) ; free((void *)svox );
    free((void *)bcount); free((void *)bname);
 
    return tim ;
