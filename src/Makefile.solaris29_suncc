@@ -34,6 +34,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 
 SHOWOFF = -DSHOWOFF=solaris29_suncc
 
+INSTALL_PREREQ = suma
 INSTALLDIR = ./solaris29_suncc
 LIBDIR = $(INSTALLDIR)
 
