@@ -4901,3 +4901,6 @@
      definitions to extern.
  * Added SHORTIZE() and BYTEIZE() to mri_to_short.c and mri_to_byte.c to
      avoid integer overflow problems when scaling and/or changing data types.
+
+16 Jan 2004
+ * Modified 3dFDR.c to produce some output when -input1D option is used!
