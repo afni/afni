@@ -717,6 +717,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     stored in the otherwise unused pixdim[0].  If pixdim[0]==0.0 (which
     should not occur), we take pfac=1.
 
+   N.B.: The units of (x,y,z) can be specified using the xyz_units code.
+
    METHOD 1 (the "old" way, used only when qform_code == 0):
    --------------------------------------------------------
    The coordinate mapping from (i,j,k) to (x,y,z) is the ANALYZE
