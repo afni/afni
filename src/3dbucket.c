@@ -22,12 +22,17 @@
            first input dataset to the output bucket dataset.
   Date:    14 March 2002
 
+  Mod:     When verifying view type extension for -glueto dataset, scan
+           from the end (in case there are extra '+' characters).
+  Author:  R. C. Reynolds
+  Date:    30 October 2003
+
 */
 /*---------------------------------------------------------------------------*/
 
 
 #define PROGRAM_NAME "3dbucket"                      /* name of this program */
-#define LAST_MOD_DATE "14 March 2002"            /* date of last program mod */
+#define LAST_MOD_DATE "30 October 2003"          /* date of last program mod */
 
 #include "mrilib.h"
 
@@ -153,12 +158,24 @@ void BUCK_read_opts( int argc , char * argv[] )
 
 	 if (ok)
 	   {
+#if 0                              /* old code - scan from end, instead */
+
 	     for (ilen = 0;  ilen < nlen;  ilen++)
 	       {
 		 str = argv[nopt] + ilen;
 		 if (str[0] == '+') break;
 	       }
 	     if (ilen == nlen)  ok = 0;
+#endif
+
+	     /* scan from end for view type extension, require one char */
+	     /*                                     30 Oct 2003 [rickr] */
+	     for (ilen = nlen - 1; ilen > 0; ilen--)
+	       {
+		 str = argv[nopt] + ilen;
+		 if (str[0] == '+') break;
+	       }
+	     if (ilen == 0)  ok = 0;
 	   }
 
 	 if (ok)

@@ -341,3 +341,7 @@
   * modified SUMA_3dVol2Surf.c to complete the -f_keep_surf_order option
     (-> v3.6)
 
+30 October 2003:
+  * modifited 3dbucket.c to search for trailing view type extension from end
+    (under -glueto option processing)
+
