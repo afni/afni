@@ -3092,9 +3092,9 @@ short check_dicom_magic_num( char * fname )
   fread( test_string , 1 , 4 , fp ) ; test_string[4] = '\0' ;
   fclose( fp ) ;
   if( strcmp(test_string,"DICM") == 0 ) {
-    return 0 ;
-  } else {
     return 1 ;
+  } else {
+    return 0 ;
   }
 }
 
