@@ -123,39 +123,39 @@ typedef enum {SUMA_SOLID_LINE, SUMA_DASHED_LINE} SUMA_STIPPLE;
 
 typedef enum {SUMA_Button_12_Motion, SUMA_Button_2_Shift_Motion, SUMA_Button_1_Motion, SUMA_Button_2_Motion} SUMA_MOTION_TYPES; /*!< Types of mouse motion */
 
-typedef enum { SE_Empty, \
-               SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, \
-               SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, \
-               SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,\
-               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, \
-               SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
-               SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,\
-               SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, \
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog,\
+typedef enum { SE_Empty, 
+               SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, 
+               SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, 
+               SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,
+               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, 
+               SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
+               SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
+               SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
-typedef enum { SEF_Empty, \
-               SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, \
-               SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, \
-               SEF_cp, SEF_fp, SEF_ip, \
+typedef enum { SEF_Empty, 
+               SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, 
+               SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, 
+               SEF_cp, SEF_fp, SEF_ip, 
                SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
                
-typedef enum { SES_Empty,\
-               SES_Afni,\  /*!< command from Afni directly which practically means that Srcp in EngineData is not SUMA_SurfaceViewer * . In the future, some Afni related pointer might get passed here. */
-               SES_Suma,\  /*!< command from Suma, which means that Srcp is a SUMA_SurfaceViewer * to the viewer making the command. */
-               SES_SumaWidget, \ /*!< command from a widget in Suma. Usually means, do not try to update widget ... */
-               SES_SumaFromAfni, \  /*!< command from Suma in response to a request from Afni. Srcp is still a SUMA_SurfaceViewer * but Afni, havin initiated the command should not receive the command back from Suma. Think cyclical cross hair setting... */
-               SES_SumaFromAny, \ /*!< Same concept as SES_SumaFromAfni but from generic program. */
+typedef enum { SES_Empty,
+               SES_Afni,  /*!< command from Afni directly which practically means that Srcp in EngineData is not SUMA_SurfaceViewer * . In the future, some Afni related pointer might get passed here. */
+               SES_Suma,  /*!< command from Suma, which means that Srcp is a SUMA_SurfaceViewer * to the viewer making the command. */
+               SES_SumaWidget,  /*!< command from a widget in Suma. Usually means, do not try to update widget ... */
+               SES_SumaFromAfni,   /*!< command from Suma in response to a request from Afni. Srcp is still a SUMA_SurfaceViewer * but Afni, havin initiated the command should not receive the command back from Suma. Think cyclical cross hair setting... */
+               SES_SumaFromAny,  /*!< Same concept as SES_SumaFromAfni but from generic program. */
                SES_Unknown} SUMA_ENGINE_SOURCE;
                
-typedef enum { SEI_WTSDS,  \
-               SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,\
+typedef enum { SEI_WTSDS,  
+               SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
                
 typedef enum { SUMA_int, SUMA_float } SUMA_VARTYPE;
 
-typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,\
-               SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, \
+typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
+               SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
                SUMA_CMAP_MATLAB_DEF_BGYR64} SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
@@ -168,7 +168,7 @@ typedef enum { SXR_default, SXR_NP, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /
 
 
 #define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
-typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states \
+typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states 
                                                                   SUMA_2D_Z0 2D views, with Z = 0 good for flat surfaces
                                                                   SUMA_3D standard 3D view
                                                                   SUMA_Dunno used to flag errors leave this at the end 
@@ -404,21 +404,21 @@ typedef struct {
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */
 }SUMA_X_SumaCont;
 
-typedef enum { SW_File, \
-               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, \
+typedef enum { SW_File, 
+               SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, 
                SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
                                                       Make sure you begin with SW_File and end
                                                       with SW_N_File */
-typedef enum { SW_View, \
-               SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, \
-               SW_ViewSep1,\
-               SW_ViewCrossHair, SW_ViewNodeInFocus, SW_ViewSelectedFaceset,\
+typedef enum { SW_View, 
+               SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, 
+               SW_ViewSep1,
+               SW_ViewCrossHair, SW_ViewNodeInFocus, SW_ViewSelectedFaceset,
                SW_N_View } SUMA_WIDGET_INDEX_VIEW; /*!< Indices to widgets under View menu. 
                                                       Make sure you begin with SW_View and end
                                                       with SW_N_View */
-typedef enum { SW_Help, \
+typedef enum { SW_Help, 
                SW_HelpViewer,  SW_HelpMessageLog, SW_HelpSep1, SW_HelpIONotify,
-               SW_HelpMemTrace,  \
+               SW_HelpMemTrace,  
                SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
                                                          Make sure you begin with SW_View and end
                                                          with SW_N_View */                                                   
@@ -988,12 +988,12 @@ typedef struct {
    char name_param[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
 } SUMA_SFname;
 
-typedef enum {    SMT_Nothing, \
-                  SMT_Notice, SMT_Warning, SMT_Error, SMT_Critical,  \
+typedef enum {    SMT_Nothing, 
+                  SMT_Notice, SMT_Warning, SMT_Error, SMT_Critical,  
                   SMT_N }  SUMA_MESSAGE_TYPES; /*!< different types of messages */
 
-typedef enum {    SMA_Nothing, \
-                  SMA_Log, SMA_LogAndPopup,  \
+typedef enum {    SMA_Nothing, 
+                  SMA_Log, SMA_LogAndPopup,  
                   SMA_N }  SUMA_MESSAGE_ACTION; /*!< different actions to perform with messages */
 
  
