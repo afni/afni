@@ -419,7 +419,7 @@ void BUCK_Syntax(void)
     "WARNING: using this program, it is possible to create a dataset that\n"
     "         has different basic datum types for different sub-bricks\n"
     "         (e.g., shorts for brick 0, floats for brick 1).\n"
-    "         Do NOT do this!  Very few AFNI program will work correctly\n"
+    "         Do NOT do this!  Very few AFNI programs will work correctly\n"
     "         with such datasets!\n"
    ) ;
 
