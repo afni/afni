@@ -2010,3 +2010,13 @@
 28 Jan 2000
  * Modified coxplot/plot_x11.c to skip use of XDBE if AFNI_NO_XDBE
      environment variable is set.
+
+01 Feb 2000
+ * Added file afni_fimfunc.c, which lets the "user" add a function to
+     the FIM+ menu.  The Spearman rank correlation is included as a
+     sample.  Also included small changes to afni.[ch], afni_graph.[ch],
+     and a large-ish addition to afni_fimmer.c.
+ * Removed useless "break" statements in afni_graph.c that produced
+     those annoying "unreachable code" compilation warnings.
+     Also modified bbox.c bbox and arrowval routines to check if the
+     input items are NULL before accessing them.

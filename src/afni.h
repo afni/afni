@@ -120,7 +120,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.25d"
+#define VERSION "2.25e"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
@@ -852,6 +852,8 @@ typedef struct {
 
    float fim_bkthr_perc ;                         /* 02 Jun 1999 */
 
+   MCW_function_list registered_fim ;             /* 30 Jan 2000 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -986,6 +988,21 @@ extern void AFNI_fimmer_dset_choose_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 # endif
 #endif
 
+/*------------------------------------------------------------------
+   31 Jan 2000 - this stuff for user-defined fimfuncs
+--------------------------------------------------------------------*/
+
+typedef struct {
+   MRI_IMAGE * ref_ts , * ort_ts ;
+   int nvox , ignore , polort ;
+} FIMdata ;
+
+extern void AFNI_register_fimfunc( char *, int, generic_func *, void * );
+extern void spearman_fimfunc( int, float *, void *, int, void * );
+extern void quadrant_fimfunc( int, float *, void *, int, void * );
+
+/*-------------------------------------------------------------------*/
+
 extern void AFNI_fimmer_setref( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setort( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setignore( Three_D_View * , int ) ;
@@ -1002,7 +1019,7 @@ extern void AFNI_close_file_dialog_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
-extern void AFNI_fimmer_execute( Three_D_View * , int ) ;
+extern void AFNI_fimmer_execute( Three_D_View * , int,int ) ;
 
 extern void AFNI_process_interrupts( Widget ) ;
 extern void AFNI_add_interruptable( Widget ) ;
@@ -1011,7 +1028,8 @@ extern int AFNI_ts_in_library( MRI_IMAGE * tsim ) ;
 
 extern THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * ,
                                                THD_3dim_dataset * , MRI_IMAGE *,
-                                               MRI_IMAGE *, THD_session *, int ) ;
+                                               MRI_IMAGE *, THD_session *,
+                                               int,int ) ;
 
 extern void AFNI_fimmer_redisplay( int , Three_D_View * , THD_3dim_dataset * ) ;
 

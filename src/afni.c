@@ -1157,6 +1157,8 @@ static Boolean MAIN_workprocess( XtPointer fred )
         GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
         GLOBAL_library.registered_2D.num = 0 ;               /* initialize registry */
 
+        GLOBAL_library.registered_fim.num = 0 ;              /* 30 Jan 2000 */
+
         AFNI_register_0D_function( "Log10" , log10_func ) ;  /* afni.c */
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;  /* afni.c */
 
@@ -1169,6 +1171,11 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         AFNI_register_2D_function( "Median21" , median21_box_func ) ;   /* imseq.c */
         AFNI_register_2D_function( "Winsor21" , winsor21_box_func ) ;   /* imseq.c */
+
+        /* 01 Feb 2000: see afni_fimfunc.c */
+
+        AFNI_register_fimfunc("Spearman CC",1,spearman_fimfunc,NULL);
+        AFNI_register_fimfunc("Quadrant CC",1,quadrant_fimfunc,NULL);
 
 #ifdef HUBERIZE
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
@@ -2506,7 +2513,7 @@ STATUS("graCR_pickort") ;
       /*** User asks to do fim! ***/
 
       case graCR_dofim:{
-         AFNI_fimmer_execute( im3d , cbs->key ) ;
+         AFNI_fimmer_execute( im3d , cbs->key , cbs->mat ) ;
       }
       break ; /* end of dofim */
 
@@ -7995,7 +8002,8 @@ void AFNI_register_nD_function( int nd, char * name,
 
    num = rlist->num ;
 
-   if( num == 0 ){ rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL; }
+   if( num == 0 ){ rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL;
+                   rlist->func_data=NULL; rlist->func_code=NULL;             }
 
    rlist->flags = (int *) XtRealloc( (char *)rlist->flags, sizeof(int)*(num+1) ) ;
 
@@ -8005,9 +8013,17 @@ void AFNI_register_nD_function( int nd, char * name,
    rlist->funcs = (generic_func **) XtRealloc( (char *)rlist->funcs ,
                                                sizeof(generic_func *)*(num+1) ) ;
 
+   rlist->func_data = (void **) XtRealloc( (char *)rlist->func_data ,
+                                           sizeof(void *)*(num+1) ) ;
+
+   rlist->func_code = (int *) XtRealloc( (char *)rlist->func_code, sizeof(int)*(num+1) ) ;
+
    rlist->flags[num]  = flags ;
    rlist->labels[num] = XtNewString(name) ;
    rlist->funcs[num]  = func ;
+
+   rlist->func_data[num] = NULL ;
+   rlist->func_code[num] = nd ;
 
    rlist->num = num+1 ;
    return ;

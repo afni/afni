@@ -709,6 +709,7 @@ STATUS("destroying arrowvals") ;
    FREE_AV( grapher->setshift_inc_av)      ;
    myXtFree( grapher->fmenu->fim_opt_bbox ) ;  /* Jan 1998 */
    myXtFree( grapher->fmenu->fimp_opt_bbox );  /* Jan 1998 */
+   myXtFree( grapher->fmenu->fimp_user_bbox);  /* Feb 2000 */
    myXtFree( grapher->fmenu )               ;
    myXtFree( grapher->cen_line )            ;
    FREE_AV( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
@@ -3118,7 +3119,6 @@ ENTRY("drive_MCW_grapher") ;
          XBell( grapher->dc->display , 100 ) ;
          RETURN( False ) ;
       }
-      break ;
 
       /*------ fim disabling -----*/
 
@@ -3137,6 +3137,7 @@ ENTRY("drive_MCW_grapher") ;
             }
          }
       }
+      break ;
 
       /*------ button2 stuff -----*/
 
@@ -3164,7 +3165,6 @@ ENTRY("drive_MCW_grapher") ;
          }
          RETURN( True ) ;
       }
-      break ;
 
       /*------ reset length of time series -----*/
       /*------ (all else remains the same) -----*/
@@ -3182,7 +3182,6 @@ ENTRY("drive_MCW_grapher") ;
          redraw_graph( grapher , 0 ) ;
          RETURN( True ) ;
       }
-      break ;
 
 
       /*------ set ignore count -----*/
@@ -3201,7 +3200,6 @@ ENTRY("drive_MCW_grapher") ;
             RETURN( False ) ;
          }
       }
-      break ;
 
       /*------- set polort [27 May 1999] --------*/
 
@@ -3216,7 +3214,6 @@ ENTRY("drive_MCW_grapher") ;
          }
          RETURN( True ) ;
       }
-      break ;
 
       /*----- set reference time series (currently limited to one) -----*/
 
@@ -3292,7 +3289,6 @@ STATUS("replacing ort timeseries") ;
          }
          RETURN( True ) ;
       }
-      break ;
 
       /*------- title --------*/
 
@@ -3304,7 +3300,6 @@ STATUS("replacing ort timeseries") ;
          XtVaSetValues( grapher->fdw_graph , XmNtitle , title , NULL ) ;
          RETURN( True ) ;
       }
-      break ;
 
       /*------- death! -------*/
 
@@ -3312,7 +3307,6 @@ STATUS("replacing ort timeseries") ;
          end_fd_graph_CB( NULL , (XtPointer) grapher , NULL ) ;
          RETURN( True ) ;
       }
-      break ;
 
       /*------- unrealize! -------*/
 
@@ -3324,7 +3318,6 @@ STATUS("replacing ort timeseries") ;
             XFreePixmap( grapher->dc->display , grapher->fd_pxWind ) ;
          RETURN( True ) ;
       }
-      break ;
 
       /*------- realize! -------*/
 
@@ -3347,7 +3340,6 @@ STATUS("replacing ort timeseries") ;
          }
          RETURN( True ) ;
       }
-      break ;
 
       /*------- new cursor for image -------*/
 
@@ -3357,7 +3349,6 @@ STATUS("replacing ort timeseries") ;
          MCW_alter_widget_cursor( grapher->fdw_graph , cur , "yellow" , "blue" ) ;
          RETURN( True ) ;
       }
-      break ;
 
       /*------- new data sequence!!! -------*/
 
@@ -3371,7 +3362,6 @@ STATUS("replacing ort timeseries") ;
 #endif
          RETURN( True ) ;
       }
-      break ;
 
       /*------- redraw -------*/
 
@@ -3517,12 +3507,14 @@ ENTRY("GRA_fim_CB") ;
          case 4:   cbs.key = FIM_PAVE_MASK  | FIM_CORR_MASK ; break ;
          case 3:   cbs.key = FIM_PTOP_MASK  | FIM_CORR_MASK ; break ;
       }
+      cbs.mat = 0 ; /* Feb 2000 */
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
 
    else if( w == grapher->fmenu->fim_execfimp_pb ){
       cbs.reason = graCR_dofim ;
       cbs.key    = MCW_val_bbox(grapher->fmenu->fimp_opt_bbox) ;
+      cbs.mat    = MCW_val_bbox(grapher->fmenu->fimp_user_bbox) ; /* Feb 2000 */
       if( cbs.key > 0 )
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
       else
@@ -4206,6 +4198,30 @@ ENTRY("AFNI_new_fim_menu") ;
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setall_pb ,
                   XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+
+   /* 01 Feb 2000: add user-contributed options (if any) */
+
+   fmenu->fimp_user_bbox = NULL ; /* default = no menu */
+
+   if( GLOBAL_library.registered_fim.num > 0 ){
+
+      (void) XtVaCreateManagedWidget(
+              "dialog" , xmSeparatorWidgetClass , qbut_menu ,
+               XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmLabelWidgetClass , qbut_menu ,
+                  LABEL_ARG("--Extra Funcs--") ,
+                  XmNrecomputeSize , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+
+      fmenu->fimp_user_bbox = new_MCW_bbox( qbut_menu,
+                                            GLOBAL_library.registered_fim.num ,
+                                            GLOBAL_library.registered_fim.labels ,
+                                            MCW_BB_check , MCW_BB_noframe ,
+                                            NULL , NULL ) ;
+   }
 
    RETURN(fmenu) ;
 }

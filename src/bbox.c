@@ -146,6 +146,8 @@ void MCW_set_bbox( MCW_bbox * bb , int val )
    int     ib ;
    Boolean set ;
 
+   if( bb == NULL ) return ;  /* 01 Feb 2000 */
+
    bb->value = val ;
 
    for( ib=0 ; ib < bb->nbut ; ib++ ){
@@ -161,6 +163,8 @@ int MCW_val_bbox( MCW_bbox * bb )
 {
    int ib , val ;
    Boolean set ;
+
+   if( bb == NULL ) return 0 ;  /* 01 Feb 2000 */
 
    val = 0 ;
 
@@ -920,6 +924,8 @@ void AV_assign_ival( MCW_arrowval * av , int nval )
    int newival = nval ;
    char * cval ;
 
+   if( av == NULL ) return ;  /* 01 Feb 2000 */
+
    if( newival > av->imax ) newival = av->imax ;
    if( newival < av->imin ) newival = av->imin ;
 
@@ -976,7 +982,8 @@ char * AV_default_text_CB( MCW_arrowval * av , XtPointer junk )
 {
    static char buf[32] ;
 
-   AV_fval_to_char( av->fval , buf ) ;
+   if( av == NULL ) buf[0] = '\0' ;
+   else             AV_fval_to_char( av->fval , buf ) ;
    return &(buf[0]) ;
 }
 
@@ -1063,6 +1070,8 @@ void AV_assign_fval( MCW_arrowval * av , float qval )
 {
    double newfval = qval ;
    char * cval ;
+
+   if( av == NULL ) return ; /* 01 Feb 2000 */
 
    if( newfval > av->fmax ) newfval = av->fmax ;
    if( newfval < av->fmin ) newfval = av->fmin ;

@@ -1,8 +1,13 @@
-# Makefile for Linux/PowerPC
+# Makefile for Linux/PowerPC [courtesy of Vinai Roopchansingh]
+
+# You may need to change the CPU type for correct optimization
+# on your system.
+
+CPU    = 604		# types are 601, 603, 604, 604e, 750 (G3)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -Wpointer-arith -DUSE_TRACING
-CC     = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC     = gcc -O2 -ffast-math -mcpu=$(CPU) -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = $(CC)
 CCMIN  = gcc -s
@@ -29,10 +34,12 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = /home/vinai/AFNI/
+# you will probably want to change the INSTALLDIR directory!
+
+INSTALLDIR = /usr/bin/AFNI/
 LIBDIR = $(INSTALLDIR)
 
-# for dynamic linking
+# for dynamic linking - assumes you have Motif or LessTif *.so libraries
 
 LLIBS  = -lmri -lICE -lSM -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 

@@ -16,9 +16,10 @@
 
 /***** Quicksort routines in various flavonoids *****/
 
-extern void qsort_floatint ( int , float *  , int * ) ;
-extern void qsort_doubleint( int , double * , int * ) ;
-extern void qsort_intint   ( int , int *    , int * ) ;
+extern void qsort_floatint  ( int , float *  , int * ) ;
+extern void qsort_doubleint ( int , double * , int * ) ;
+extern void qsort_intint    ( int , int *    , int * ) ;
+extern void qsort_floatfloat( int , float *  , float * ) ;  /* 30 Jan 2000 */
 
 /***** Quicksort-ish median *****/
 

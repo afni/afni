@@ -15,7 +15,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_byte.o  afni_slice_complex.o \
             afni_pcor.o afni_pcor_float.o          \
             pbar.o afni_graph.o afni_plugin.o     \
-            parser.o parser_int.o afni_plugout.o   \
+            parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
             $(IMOBJS)
 
@@ -817,7 +817,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
            edt_fullcopy.o
 
-CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o \
+CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \

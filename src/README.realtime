@@ -1,0 +1,254 @@
+
+================================================
+Realtime AFNI control information: What it needs
+================================================
+AFNI needs some information about the acquisition in order to properly
+construct a dataset from the images.  This information is sent to AFNI
+as a series of command strings.  A sample set of command strings is
+given below:
+
+   ACQUISITION_TYPE 2d+zt
+   TR 5.0
+   XYFOV 240.0 240.0 112.0
+   ZNUM 16
+   XYZAXES S-I A-P L-R
+   DATUM short
+   XYMATRIX 64 64
+
+The commands can be given in any order.  Each command takes up a single
+line of input (i.e., commands are separated by the '\n' character in the
+input buffer, and the whole set of commands is terminated by the usual '\0').
+Each command line has one or more arguments.  The full list of possible
+command strings and their arguments is:
+
+ACQUISITION_TYPE arg
+  This command tells AFNI how the image data will be formatted:
+    arg = 2d+z   -> a single 3D volume, one slice at a time
+          2D+zt  -> multiple 3D volumes, one slice at a time [the default]
+          3D     -> a single 3D volume, all at once
+          3D+t   -> multiple 3D volumes, one full volume at a time
+ *This command is not required, since there is a default.
+
+NAME arg
+  This command tells AFNI what name to use for the new dataset.
+ *It is not required, since AFNI will generate a name if none is given.
+
+TR arg
+  This command tells AFNI what the imaging TR is, in seconds. The default
+  value, if this command is not given, is 1.0.
+ *It is strongly recommended that this command be used, so that the
+  dataset has the correct header information.
+
+ZDELTA dz
+  This command tells AFNI the slice thickness, in mm.
+ *This command, or the next one, MUST be used, so that the correct
+  size of the dataset along the z-axis size known.
+
+XYFOV xx yy [zz]
+  This command tells AFNI the size of the images, in mm.  The first
+  value ('xx') is the x-axis dimension, and the second value ('yy') is
+  the y-axis dimension.  If the third value ('zz') is present, then it
+  is the z-axis dimension (slab thickness of all slices).
+ *This command MUST be used to at least to give the sizes of the dataset
+  along the x- and y-axes.  If 'zz' is not given, then the ZDELTA command
+  is also required.
+
+ZFIRST zz[d]
+  Specifies the location of the first slice, along the z-axis, in mm.
+  The value 'zz' gives the offset.  The optional code 'd' gives the
+  direction that distance 'zz' applies.  The values allowed for the
+  single character 'd' are
+    I = inferior
+    S = superior
+    A = anterior
+    P = posterior
+    R = right
+    L = left
+ *This command is optional - if not given, then the volume will be
+  centered about z=0 (which is what always happens for the x- and
+  y-axes).  If the direction code 'd' is given, then it must agree
+  with the sense of the z-axis given in the XYZAXES command.
+  When more than one dataset is being acquired in a scanning session,
+  then getting ZFIRST correct is important so that the AFNI datasets
+  will be properly positioned relative to each other (e.g., so you
+  can overlay SPGR and EPI data correctly).
+
+XYMATRIX nx ny [nz]
+  Specifies the size of the images to come, in pixels:
+    nx = number of pixels along x-axis
+    ny = number of pixels along y-axis
+    nz = number of pixels along z-axis (optional here)
+ *This command is required.  If 'nz' is not given here, then it must
+  be given using the ZNUM command.
+
+ZNUM nz
+  Specifies the number of pixels along the z-axis (slice direction).
+ *This value must be given, either with XYMATRIX or ZNUM.
+  Note that AFNI cannot handle single-slice datasets!
+
+DATUM typ
+  Specifies the type of data in the images:
+    typ = short   -> 16 bit signed integers [the default]
+          float   -> 32 bit IEEE floats
+          byte    -> 8 bit unsigned integers
+          complex -> 64 bit IEEE complex values (real/imag pairs)
+ *This command is not required, as long as the data are really shorts.
+  The amount of data read for each image will be determined by this
+  command, the XYMATRIX dimensions, and the ACQUISITION_TYPE (whether
+  2D or 3D data is being sent).
+
+ZORDER arg
+  Specifies the order in which the slices will be read.
+    arg = alt -> alternating order (e.g., slices are presented
+                   to AFNI in order 1 3 5 7 9 2 4 6 8, when nz=9).
+        = seq -> sequential order (e.g., slices are presented
+                   to AFNI in order 1 2 3 4 5 6 7 8 9, when nz=9).
+ *This command is not required, since 'alt' is the default.  It will
+  be ignored if a 3D ACQUISITION_TYPE is used.
+
+XYZAXES xcode ycode zcode
+  Specifies the orientation of the 3D volume data being sent to AFNI.
+  Each of the 3 codes specifies one axis orientation, along which the
+  corresponding pixel coordinate increases.  The possible codes are:
+    I-S (or IS) -> inferior-to-superior
+    S-I (or SI) -> superior-to-inferior
+    A-P (or AP) -> anterior-to-posterior
+    P-A (or PA) -> posterior-to-anterior
+    R-L (or RL) -> right-to-left
+    L-R (or LR) -> left-to-right
+  For example, "XYZAXES S-I A-P L-R" specifies a sagittal set of slices,
+  with the slice acquisition order being left-to-right.  (In this example,
+  if ZFIRST is used, the 'd' code in that command must be either 'L' or 'R'.)
+  The 3 different axes codes must point in different spatial directions
+  (e.g., you can't say "XYZAXES S-I A-P I-S").
+ *This command is required, so that AFNI knows the orientation of the
+  slices in space.
+
+==============================================
+How AFNI reads realtime command and image data
+==============================================
+This stuff is all carried out in the image source program (e.g., Rx_xpi).
+Most of the current source code is in file ep_afni.c.
+
+Step 1: The image source program opens a TCP/IP socket to the system
+        running AFNI, on port 7954 - the realtime AFNI plugin is listening
+        there.  AFNI checks if the host that opened the connection is on
+        its "trust list".  When this socket is ready then ...
+
+Step 2: The image source program tells AFNI from where it should really
+        get its data.  A control string is written to the 7954 socket.
+        The first line of this control string specifies whether to use
+        a TCP/IP socket for the data channel, or to use shared memory.
+
+        If there is a second line on the control string, then it is the
+        name of an "info program" that AFNI should run to get the command
+        information described above.  At the Bruker 3 Tesla scanner,
+        these commands are generated by the program 3T_toafni.c, which
+        runs a script on the 3T60 console computer to get values from
+        ParaVision, and then takes that information and formats most of
+        the control commands for realtime AFNI.  In the ep_afni.c
+        routines, the name of the info program is stored in string variable
+        AFNI_infocom, which is initialized in ep_afni.h to be "3T_toafni".
+
+        When AFNI reads the control string from the 7954 socket, it then
+        closes down the 7954 socket and opens the data channel (TCP/IP or
+        shared memory) that the first line of the control string specified.
+        If the second line of the control string specified an info program
+        to get the command strings, this program will not be run until the
+        first image data arrives at AFNI.
+
+        There are 2 reasons for separating the data channel from the control
+        socket.  First, if the image source program is one the same system
+        as AFNI, then shared memory can be used for the data channel.
+        However, I wanted AFNI to be able to be on a separate system from
+        the image source program, so I also wanted to allow for transport of
+        image data via a socket.  At the beginning, AFNI doesn't know where
+        it will get the data from, so the initial connection must be via a
+        socket, but later it might want to switch to shared memory.  Second,
+        in principal AFNI could acquire data from more than one image source
+        at a time.  This is not yet implemented, but keeping the initial
+        control socket separated from the actual data stream makes this a
+        possibility.  (The control socket is only used briefly, since only
+        a few bytes are transmitted along it.)
+
+Step 3: Once the data channel to AFNI is open, the image source program
+        can send image data to AFNI (this is done in AFNI_send_image()
+        in ep_afni.c).  Before the first image is sent, there must be
+        at least one AFNI command string sent along the data channel.
+        In the way I've set up ep_afni.c for the Bruker, two commands
+        are actually sent here just before the first image:
+           DATUM short
+           XYMATRIX nx ny
+        All the rest of the commands come from 3T_toafni.  The reason
+        for this separation is that 3T_toafni doesn't actually know how
+        the user chose to reconstruct the images (e.g., 64x64 acquisition
+        could be reconstructed to 128x128 image).  The information given
+        here is the minimal amount needed for AFNI to compute how many
+        bytes in the data channel go with each image.  This MUST be
+        present here so that AFNI can read and buffer image data from
+        the data channel.
+
+        If the image source program knows ALL the information that AFNI
+        needs, then there is no need for the info program.  In such a
+        case, all the command strings for AFNI can be collected into
+        one big string (with '\n' line separators and the usual '\0'
+        terminator) and sent to AFNI just before the first image data.
+
+        This "Do it all at once" approach (much simpler than using an
+        info program to get the command strings) would require some
+        small changes to routine AFNI_send_image() in ep_afni.c.
+
+        "Do it all at once" is the approach taken by the realtime
+        simulation program rtfeedme.c, which will take an AFNI dataset
+        apart and transmit it to the realtime plugin.
+
+        If the "Do it all at once" option is not practical, then an
+        alternative info program to 3T_toafni must be developed for each
+        new scanner+computer setup.  Note that the info program writes its
+        output command strings to stdout, which will be captured by AFNI.
+
+        After the initial command information is sent down the data
+        channel, everthing that follows down the data channel must be
+        raw image information - no more commands and no headers.  For
+        example, if you have 64x64 images of shorts, then each set of
+        8192 bytes (after the terminal '\0' of the initial command
+        string) is taken as an image.
+
+        If an info program was specified on the 7954 socket, then
+        it will be run by AFNI (in a forked sub-process) at this time.
+        Until it completes, AFNI will just buffer the image data it
+        receives, since it doesn't know how to assemble the images into
+        3D volumes (e.g., it doesn't know the number of slices).
+
+        When the data channel connection is closed (usually because the
+        image source program exits), then AFNI will write the new dataset
+        to disk.  This is why there is no command to AFNI to tell it how
+        many volumes to acquire - it will just add them to the dataset
+        until there is no more data. AFNI will then start to listen on the
+        TCP/IP 7954 port for another control connection, so it can acquire
+        another dataset.
+
+======================
+Hosts that AFNI trusts
+======================
+AFNI checks the incoming IP address of socket connections to see if the
+host is on the "trust list".  The default trust list is
+
+    141.106.106  = any MCW Biophysics computer (we're very trustworthy)
+    127.0.0.1    = localhost
+    192.168.0    = private class B networks
+
+You can add to this list by defining the environment variable as in the
+example below (before starting AFNI):
+
+    setenv AFNI_TRUSTHOST 123.45.67
+
+This means that any IP address starting with the above string will be
+acceptable.  If you want to add more than one possibility, then you can
+also use environment variables AFNI_TRUSTHOST_1, AFNI_TRUSTHOST_2, up to
+AFNI_TRUSTHOST_99.  (That should be enough - how trusting do you really
+want to be?)
+
+You cannot use hostnames for this purpose - only actual IP addresses in
+the dotted form, as shown above.  (What I'll do when IPv6 becomes widely
+used, I don't know.  Yet.)

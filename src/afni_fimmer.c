@@ -262,11 +262,12 @@ ENTRY("AFNI_fimmer_setpolort") ;
 /** 30 May 1999: allow polort to be variable (formerly fixed at 1) **/
 /** 08 Sep 1999: added PAVE and AVER options                       **/
 /** 03 Jan 2000: added PTOP, TOPL, and SIGM options                **/
+/** 01 Feb 2000: added ucode, for user written functions           **/
 
 THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         THD_3dim_dataset * dset_time ,
                                         MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
-                                        THD_session * sess , int code )
+                                        THD_session * sess , int code, int ucode )
 {
    THD_3dim_dataset * new_dset ;
    char new_prefix[THD_MAX_PREFIX] ;
@@ -625,7 +626,7 @@ if(PRINT_TRACING)
 
    new_dset = EDIT_empty_copy( dset_time ) ;
 
-   if( nbrik == 1 ){                         /* 1 brick out --> a 'fim' dataset */
+   if( nbrik == 1 && ucode == 0 ){           /* 1 brick out --> a 'fim' dataset */
       it = EDIT_dset_items( new_dset ,
                                ADN_prefix      , new_prefix ,
                                ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
@@ -636,8 +637,8 @@ if(PRINT_TRACING)
                                ADN_datum_all   , MRI_short ,
                                ADN_ntt         , 0 ,
                             ADN_none ) ;
-
-   } else if( nbrik == 2 && ibr_corr == 1 ){ /* 2 bricks, 2nd corr --> 'fico' */
+                                             /* 2 bricks, 2nd corr --> 'fico' */
+   } else if( nbrik == 2 && ibr_corr == 1 && ucode == 0 ){
       it = EDIT_dset_items( new_dset ,
                                ADN_prefix      , new_prefix ,
                                ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
@@ -862,6 +863,16 @@ if(PRINT_TRACING)
       EDIT_BRICK_TO_FICO( new_dset, ibr_corr, stataux[0],stataux[1],stataux[2] ) ;
    }
 
+#ifndef DONT_USE_METER
+# define METERIZE(ib) do { meter_perc = (int) ( 100.0 * (ib) / nbrik ) ; \
+                           if( meter_perc != meter_pold ){               \
+                              MCW_set_meter( meter , meter_perc ) ;      \
+                              meter_pold = meter_perc ;                  \
+                           } } while(0)
+#else
+# define METERIZE(ib) /*nada*/
+#endif
+
    /*** Compute brick arrays for new dataset ***/
    /*  [load scale factors into stataux, too]  */
 
@@ -891,6 +902,8 @@ STATUS("getting 1 ref alpha") ;
          } else {
             stataux[ibr_fim] = 0.0 ;
          }
+
+         METERIZE(ibr_fim) ;
       }
 
       if( ibr_corr >= 0 ){
@@ -906,6 +919,8 @@ STATUS("getting 1 ref pcor") ;
             bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * vval[iv] + 0.499) ;
 
          stataux[ibr_corr] = 1.0 / FUNC_COR_SCALE_SHORT ;
+
+         METERIZE(ibr_corr) ;
       }
 
       if( ibr_perc >= 0 ){
@@ -932,6 +947,8 @@ STATUS("getting 1 ref perc") ;
          } else {
             stataux[ibr_perc] = 0.0 ;
          }
+
+         METERIZE(ibr_perc) ;
       }
 
       if( ibr_pave >= 0 ){  /* 08 Sep 1999 */
@@ -958,6 +975,8 @@ STATUS("getting 1 ref pave") ;
          } else {
             stataux[ibr_pave] = 0.0 ;
          }
+
+         METERIZE(ibr_pave) ;
       }
 
       if( ibr_ptop >= 0 ){  /* 03 Jan 2000 */
@@ -984,6 +1003,8 @@ STATUS("getting 1 ref ptop") ;
          } else {
             stataux[ibr_ptop] = 0.0 ;
          }
+
+         METERIZE(ibr_ptop) ;
       }
 
       if( ibr_base >= 0 ){
@@ -1008,6 +1029,8 @@ STATUS("getting 1 ref base") ;
          } else {
             stataux[ibr_base] = 0.0 ;
          }
+
+         METERIZE(ibr_base) ;
       }
 
       if( ibr_aver >= 0 ){  /* 08 Sep 1999 */
@@ -1032,6 +1055,8 @@ STATUS("getting 1 ref aver") ;
          } else {
             stataux[ibr_aver] = 0.0 ;
          }
+
+         METERIZE(ibr_aver) ;
       }
 
       if( ibr_topl >= 0 ){  /* 03 Jan 2000 */
@@ -1056,6 +1081,8 @@ STATUS("getting 1 ref topl") ;
          } else {
             stataux[ibr_topl] = 0.0 ;
          }
+
+         METERIZE(ibr_topl) ;
       }
 
       if( ibr_sigm >= 0 ){  /* 03 Jan 2000 */
@@ -1080,6 +1107,8 @@ STATUS("getting 1 ref sigm") ;
          } else {
             stataux[ibr_sigm] = 0.0 ;
          }
+
+         METERIZE(ibr_sigm) ;
       }
 
    } else {
@@ -1158,6 +1187,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_fim] = 0.0 ;
          }
+
+         METERIZE(ibr_fim) ;
       }
 
       /** threshold brick **/
@@ -1174,6 +1205,8 @@ if(PRINT_TRACING)
             bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * rbest[iv] + 0.499) ;
 
          stataux[ibr_corr] = 1.0 / FUNC_COR_SCALE_SHORT ;
+
+         METERIZE(ibr_corr) ;
       }
 
       /** best index brick (15 Dec 1997) */
@@ -1187,6 +1220,8 @@ if(PRINT_TRACING)
          memset( bar , 0 , sizeof(short)*nxyz ) ;
          for( iv=0 ; iv < nvox ; iv++ ) bar[indx[iv]] = ibest[iv] ;
          stataux[ibr_best] = 0.0 ;  /* no scaling */
+
+         METERIZE(ibr_best) ;
       }
 
       /** perc brick */
@@ -1214,6 +1249,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_perc] = 0.0 ;
          }
+
+         METERIZE(ibr_perc) ;
       }
 
       /** pave brick [08 Sep 1999] */
@@ -1241,6 +1278,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_pave] = 0.0 ;
          }
+
+         METERIZE(ibr_pave) ;
       }
 
       /** ptop brick [03 Jan 2000] */
@@ -1268,6 +1307,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_ptop] = 0.0 ;
          }
+
+         METERIZE(ibr_ptop) ;
       }
 
       /** base brick */
@@ -1293,6 +1334,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_base] = 0.0 ;
          }
+
+         METERIZE(ibr_base) ;
       }
 
       /** aver brick [08 Sep 1999] */
@@ -1318,6 +1361,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_aver] = 0.0 ;
          }
+
+         METERIZE(ibr_aver) ;
       }
 
       /** topl brick [03 Jan 2000] */
@@ -1343,6 +1388,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_topl] = 0.0 ;
          }
+
+         METERIZE(ibr_topl) ;
       }
 
       /** sigm brick [03 Jan 2000]**/
@@ -1368,6 +1415,8 @@ if(PRINT_TRACING)
          } else {
             stataux[ibr_sigm] = 0.0 ;
          }
+
+         METERIZE(ibr_sigm) ;
       }
 
    }  /* end of multiple reference case */
@@ -1389,7 +1438,7 @@ STATUS("setting brick_fac") ;
       free_PCOR_references(pc_ref[ivec]) ;
       free_PCOR_voxel_corr(pc_vc[ivec]) ;
    }
-   free(vval) ; free(indx) ; free(pc_ref) ; free(pc_vc) ;
+   free(pc_ref) ; free(pc_vc) ;
    if( aval  != NULL ) free(aval) ;
    if( rbest != NULL ) free(rbest) ;
    if( abest != NULL ) free(abest) ;
@@ -1408,6 +1457,124 @@ STATUS("setting brick_fac") ;
    if( ptbest!= NULL ) free(ptbest);  /* 03 Jan 2000 */
    if( tlbest!= NULL ) free(tlbest);  /* 03 Jan 2000 */
    if( sgbest!= NULL ) free(sgbest);  /* 03 Jan 2000 */
+
+   /*--- 01 Feb 2000: execute user specified functions ---*/
+
+#define MAXUFUN 64  /* should be at least sizeof(int) */
+
+   if( ucode != 0 ){
+      MCW_function_list * rlist = &(GLOBAL_library.registered_fim) ;
+      int uuse[MAXUFUN] , nbrik[MAXUFUN] , brik1[MAXUFUN] ;
+      void * udata[MAXUFUN] ;
+      generic_func * ufunc[MAXUFUN] ;
+      int nuse , uu , newbrik , oldbrik=DSET_NVALS(new_dset) ;
+      FIMdata fd ;
+      MRI_IMAGE * tsim ;
+      float     * tsar , * val , ** vbr ;
+      short     * sar ;
+
+      /* mark which ones to execute */
+
+      for( newbrik=nuse=uu=0 ; uu < rlist->num ; uu++ ){
+         if( (ucode & (1<<uu)) != 0 ){
+            uuse [nuse] = uu ;
+            ufunc[nuse] = rlist->funcs[uu] ;     /* user_func for this func */
+            nbrik[nuse] = rlist->flags[uu] ;     /* new bricks for this func */
+            udata[nuse] = rlist->func_data[uu] ; /* user_data for this func */
+            brik1[nuse] = newbrik ;              /* index of 1st brick */
+            newbrik    += nbrik[nuse] ;          /* total number of new bricks */
+            nuse++ ;
+         }
+      }
+
+      if( nuse == 0 ) goto final_exit ; /* shouldn't happen */
+
+      /* do the initialization calls to the user_func functions */
+
+      fd.ref_ts = ref_ts ;
+      fd.ort_ts = ort_ts ;
+      fd.nvox   = nvox   ;
+      fd.ignore = im3d->fimdata->init_ignore ;
+      fd.polort = polort ;
+
+#ifndef DONT_USE_METER
+      MCW_set_meter( meter , 0 ) ; meter_pold = 0.0 ;
+#endif
+
+      for( uu=0 ; uu < nuse ; uu++ )
+         ufunc[uu]( ntime , NULL , udata[uu] , nbrik[uu] , (void *)(&fd) ) ;
+
+      /* loop over voxels,
+         assemble time series,
+         call functions to put results in val[],
+         store float outputs in vbr[][]          */
+
+      vbr = (float **) malloc(sizeof(float *)*newbrik) ;
+      for( iv=0 ; iv < newbrik ; iv++ )
+         vbr[iv] = (float *) malloc(sizeof(float)*nvox) ;
+
+      val = (float *) malloc(sizeof(float)*newbrik) ;
+
+      for( iv=0 ; iv < nvox ; iv++ ){
+         tsim = THD_extract_series( indx[iv] , dset_time , 0 ) ;  /* data */
+         tsar = MRI_FLOAT_PTR(tsim) ;
+
+         for( uu=0 ; uu < nuse ; uu++ ){
+            ufunc[uu]( ntime , tsar ,                             /* func */
+                       udata[uu] , nbrik[uu] , (void *) val ) ;
+
+            for( it=0 ; it < nbrik[uu] ; it++ )                /* storage */
+               vbr[it+brik1[uu]][iv] = val[it] ;
+         }
+
+         mri_free(tsim) ;                             /* garbage disposal */
+
+#ifndef DONT_USE_METER
+         meter_perc = (int) ( 100.0 * iv / nvox ) ;
+         if( meter_perc != meter_pold ){
+            MCW_set_meter( meter , meter_perc ) ;
+            meter_pold = meter_perc ;
+         }
+#endif
+      }
+      free(val) ;  /* no longer needed */
+
+      /* for each output brick:
+           make short space for it,
+           scale and stored floats into this space ,
+           attach it to the output dataset as a new brick */
+
+      for( iv=0 ; iv < newbrik ; iv++ ){
+         tsar   = vbr[iv] ;              /* float data */
+         topval = 0.0 ;                  /* find range of data */
+         for( it=0 ; it < nvox ; it++ )
+            if( fabs(tsar[it]) > topval ) topval = fabs(tsar[it]) ;
+
+         sar = (short *) calloc(sizeof(short),nxyz) ;  /* new brick */
+
+         if( topval > 0.0 ){                           /* scale to shorts */
+            topval = MRI_TYPE_maxval[MRI_short] / topval ;
+            for( it=0 ; it < nvox ; it++ )
+               sar[indx[it]] = (short)(topval * tsar[it] + 0.499) ;
+
+            topval = 1.0/topval ;  /* scale factor */
+         }
+
+         free(tsar) ;
+         EDIT_add_brick( new_dset , MRI_short , topval , sar ) ;
+      }
+      free(vbr) ;
+
+      /* do the ending calls to user_func */
+
+      for( uu=0 ; uu < nuse ; uu++ )
+         ufunc[uu]( -(brik1[uu]+oldbrik) , NULL ,
+                    udata[uu] , nbrik[uu] , (void *) new_dset ) ;
+
+   } /* 01 Feb 2000: end of user_func addition to FIMming */
+
+final_exit:
+   free(vval) ; free(indx) ;  /* can finally free these */
 
    /*--- Return new dataset ---*/
 
@@ -1467,7 +1634,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
    /*** execute FIM ***/
 
    else if( w == fmenu->fim_execute_pb ){
-      AFNI_fimmer_execute( im3d , 0 ) ;
+      AFNI_fimmer_execute( im3d , 0 , 0 ) ;
    }
 
    /*** Ignore stuff ***/
@@ -1619,7 +1786,7 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_fimmer_execute( Three_D_View * im3d , int code )
+void AFNI_fimmer_execute( Three_D_View * im3d , int code, int ucode )
 {
    THD_3dim_dataset * new_dset , * dset_time ;
    MRI_IMAGE * ref_ts , * ort_ts ;
@@ -1652,7 +1819,8 @@ ENTRY("AFNI_fimmer_execute") ;
 
    /*--- Start lots of CPU time ---*/
 
-   new_dset = AFNI_fimmer_compute( im3d, dset_time, ref_ts, ort_ts, sess, code ) ;
+   new_dset = AFNI_fimmer_compute( im3d, dset_time, ref_ts, ort_ts,
+                                              sess, code,ucode ) ;
 
    /*--- End lots of CPU time ---*/
 

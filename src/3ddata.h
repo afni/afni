@@ -63,15 +63,26 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 /***************  generic function with no return value  **********************/
 
 typedef void generic_func() ;
+typedef float float_func() ; /* generic function returning float */
 
 typedef struct {                 /* for "registered" functions */
    int num ;
    int * flags ;
    char ** labels ;
    generic_func ** funcs ;
+
+   void ** func_data ;           /* 30 Jan 2000 */
+   int *   func_code ;
 } MCW_function_list ;
 
 #define RETURNS_STRING   1
+
+#define FUNC_0D   0   /* possible values of func_code */
+#define FUNC_1D   1
+#define FUNC_2D   2
+#define FUNC_3D   3
+
+#define FUNC_FIM  71
 
 /******************************** macros ******************************/
 
