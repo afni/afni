@@ -261,6 +261,7 @@ extern void DC_rgb_to_ovrgb( MCW_DC *, int,int *,int,byte *, byte *, byte *) ;
 
 extern int DC_parse_color( MCW_DC *, char *, float *,float *,float *) ; /* 21 Sep 2001 */
 
-extern rgbyte DC_spectrum( MCW_DC *, double ) ;
+extern rgbyte DC_spectrum_AJJ( double, double ) ;
+extern rgbyte DC_spectrum_ZSS( double, double ) ;
 
 #endif /* _MCW_DISPLAY_HEADER_ */

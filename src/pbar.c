@@ -196,17 +196,24 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
 
+#define NBIGMAP_INIT 4
    if( bigmap_num == 0 ){
-     bigmap_num     = 2 ;
-     bigmap_name    = (char **) malloc(sizeof(char *)*2) ;
-     bigmap_name[0] = strdup("Spectrum: red-to-blue") ;
-     bigmap_name[1] = strdup("Color cycle 360") ;
-     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*2) ;
+     bigmap_num     = NBIGMAP_INIT ;
+     bigmap_name    = (char **) malloc(sizeof(char *)*NBIGMAP_INIT) ;
+     bigmap_name[0] = strdup("Spectrum:red_to_blue") ;
+     bigmap_name[1] = strdup("Spectrum:yellow_to_red") ;
+     bigmap_name[2] = strdup("Color_circle_AJJ") ;
+     bigmap_name[3] = strdup("Color_circle_ZSS") ;
+     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*NBIGMAP_INIT) ;
      bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
      for( i=0 ; i < NPANE_BIG ; i++ ){
-       bigmap[0][i] = DC_spectrum( dc , i*(250.0/(NPANE_BIG-1))-5.0) ;
-       bigmap[1][i] = DC_spectrum( dc , i*(360.0/(NPANE_BIG-1)) ) ;
+       bigmap[0][i] = DC_spectrum_AJJ(      i*(250.0/(NPANE_BIG-1))-5.0, 0.8 );
+       bigmap[1][i] = DC_spectrum_AJJ( 60.0-i*( 60.0/(NPANE_BIG-1))    , 0.7 );
+       bigmap[2][i] = DC_spectrum_AJJ(      i*(360.0/(NPANE_BIG-1))    , 0.8 );
+       bigmap[3][i] = DC_spectrum_ZSS(360.0-i*(360.0/(NPANE_BIG-1))    , 1.0 );
      }
    }
 
