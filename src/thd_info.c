@@ -82,6 +82,22 @@ ENTRY("THD_dataset_info") ;
       break ;
    }
 
+   /*-- 21 Jun 2002: print storage mode --*/
+
+   switch( dset->dblk->diskptr->storage_mode ){
+     default: 
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
+
+     case STORAGE_BY_BRICK:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    BRIK file\n") ; break ;
+
+     case STORAGE_BY_MINC:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    MINC file\n") ; break ;
+
+     case STORAGE_BY_VOLUMES:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    Volume file(s)\n") ; break ;
+   }
+
    /*-- keywords --*/
 
    if( verbose >= 0 ){
