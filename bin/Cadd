@@ -1,0 +1,27 @@
+#!/bin/tcsh
+
+if ( $#argv < 1 || "$1" == "-help" ) then
+  echo "Usage: Cadd file [file ...]"
+  echo "Adds the files named to CVS, and commits the changes."
+  echo "* A filename can be a directory, but cannot contain any slashes."
+  echo "* To add a directory and all its contents, do this:"
+  echo "    Cadd dname"
+  echo "    cd dname"
+  echo "    Cadd *"
+  exit 0
+endif
+
+# check for / in filenames
+
+foreach fred ( $argv )
+  set zzz = `basename $fred`
+  if ( $zzz != $fred ) then
+      echo "** Cadd ERROR: filename $fred contains a /"
+      exit 1
+  endif
+end
+
+# add and commit
+
+cvs add              $argv
+cvs commit -m "Cadd" $argv

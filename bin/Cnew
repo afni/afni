@@ -1,0 +1,11 @@
+#!/bin/tcsh
+
+if( "$1" == "-help" )then
+   echo "Usage: Cnew"
+   echo "Find files that are not up-to-date with CVS."
+   echo "Only looks in the working directory -- does not"
+   echo "work recursively."
+   exit 0
+endif
+
+cvs -Q status `find . -type f -maxdepth 1` | grep ^File: | grep -v Up-to-date

@@ -1,0 +1,10 @@
+#!/bin/tcsh
+
+if ( $#argv < 1 || "$1" == "-help" ) then
+  echo "Usage: Crm file [file ...]"
+  echo "Removes the files from CVS, and commits the changes."
+  exit 0
+endif
+
+cvs remove -f $argv
+cvs commit -m "Crm"

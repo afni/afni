@@ -1,0 +1,12 @@
+#!/bin/tcsh
+
+if( $#argv > 0 )then
+  echo "Usage: Cget"
+  echo "Copies latest version from CVS repository into current directory."
+  echo "If there are file conflicts (e.g., you have edited a file but not"
+  echo "put it back into the repository), then the command will fail and"
+  echo "you will have to fix the problem."
+  exit 0
+endif
+
+cvs update -d -P
