@@ -3692,6 +3692,11 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
+      SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;
+      SO[i].MaxDims[0] = SO[i].MaxDims[1] = SO[i].MaxDims[2] = 0.0;       
+      SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;       
+      SO[i].aMinDims = 0.0;     
+      SO[i].aMaxDims = 0.0;
       SO[i].MF = NULL;
       SO[i].FN = NULL;
       SO[i].EL = NULL;
