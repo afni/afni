@@ -1023,149 +1023,82 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 		}
 	}
 
-	#ifdef OLD_METH
-		/* update colors of the nodes on the new surfaces using the latest map*/
-		/*fprintf(SUMA_STDERR,"%s: Carrying node settings ...\n", FuncName);*/
-		for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
-			/* next surface being checked */
-			SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
+	/* if no coloroverlay exists, link to MapReference surface, if possible */
+	for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
+		/* next surface being checked */
+		SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
 
-			/* find out surface to borrow from in the previous state */
-			prec_ID = SUMA_MapRefRelative (sv->VSv[nxtstateID].MembSOs[i], sv->VSv[curstateID].MembSOs, sv->VSv[curstateID].N_MembSOs, dov);
-
-			if (prec_ID < 0) {
-				/* no precursors found, notify used */
-				fprintf(SUMA_STDERR, "Warning %s: No precursors found for surface %d. Colors will not be current.\n",\
-				 FuncName, sv->VSv[nxtstateID].MembSOs[i]);
-			} else {
-				SO_prec = (SUMA_SurfaceObject *)(dov[prec_ID].OP);
-
-				/* check for risk of node inconsistencies */
-				if (SO_prec->N_Node == SO_nxt->N_Node) {
-					/* copy the colors to the new nodes */
-					/*fprintf(SUMA_STDERR, "%s: Copying colors ...", FuncName);*/
-					jmax = SO_nxt->N_Node * 4;
-					for (j=0; j<jmax; ++j) {
-						SO_nxt->glar_ColorList[j] = SO_prec->glar_ColorList[j];
-					}			
-				} else {
-					if (SO_prec->N_Node > SO_nxt->N_Node) {
-						fprintf(SUMA_STDERR, "\aWarning %s: Mismatch (%d) in node numers. More nodes in precursor surface.\n", \
-							FuncName, SO_prec->N_Node-SO_nxt->N_Node);
-						jmax = SO_nxt->N_Node * 4;
-						for (j=0; j<jmax; ++j) {
-							SO_nxt->glar_ColorList[j] = SO_prec->glar_ColorList[j];
-						}		
-					} else {
-						fprintf(SUMA_STDERR, "\aWarning %s: Mismatch (%d) in node numers. Less nodes in precursor surface. Some nodes may get no assignment\n", \
-							FuncName, SO_nxt->N_Node-SO_prec->N_Node);
-						jmax = SO_prec->N_Node * 4;
-						for (j=0; j<jmax; ++j) {
-							SO_nxt->glar_ColorList[j] = SO_prec->glar_ColorList[j];
-						}	
-					}	
-				}
-			}
+		/* Get the Mapping Reference surface, that's the precursor*/
+		if (!SO_nxt->MapRef_idcode_str) {
+		 prec_ID = -1;
+		}else {
+			prec_ID = SUMA_findDO(SO_nxt->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
 		}
-	#else 
-		/* if no coloroverlay exists, link to MapReference surface, if possible */
-		for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
-			/* next surface being checked */
-			SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
+		if (prec_ID < -1) {
+			/* no precursors found, notify used */
+			fprintf(SUMA_STDERR, "\n\aWarning %s: No precursors found for surface %d.\nColors, selected nodes and facesets will not be reflect those in previous state.\n.",\
+			 FuncName, sv->VSv[nxtstateID].MembSOs[i]);
+			continue;
+		}
 
-			/* Get the Mapping Reference surface, that's the precursor*/
-			{
-				if (!SO_nxt->MapRef_idcode_str) {
-				 prec_ID = -1;
-				}else {
-					prec_ID = SUMA_findDO(SO_nxt->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+		SO_prec = (SUMA_SurfaceObject *)(dov[prec_ID].OP);
+
+		/* check for risk of node inconsistencies */
+
+		if (SO_prec->N_Node >= SO_nxt->N_Node ) {/* > or equal number of nodes*/
+			/* matching number of nodes */
+			/* Create a link to each overlay plane in the precursor unless such a plane exists already  */
+			for (j=0; j < SO_prec->N_Overlays; ++j) {
+				if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
+					/* plane not found, create a link to it */
+					/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);*/
+					SO_nxt->Overlays_Inode[SO_nxt->N_Overlays] = SUMA_CreateInodeLink (SO_nxt->Overlays_Inode[SO_nxt->N_Overlays], SO_prec->Overlays_Inode[j]);
+					if (!SO_nxt->Overlays_Inode[SO_nxt->N_Overlays]) {
+						fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
+						return (NOPE);
+					}
+					/* now copy the actual overlay plane pointer */
+					SO_nxt->Overlays[SO_nxt->N_Overlays] = SO_prec->Overlays[j];
+					/*increment the number of overlay planes */
+					++SO_nxt->N_Overlays;
+				} else {
+					/* plane found, do nothing */
+					/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s found. Index#%d\n.", FuncName, SO_prec->Overlays[j]->Name, OverInd);*/
 				}
-			}	
-			if (prec_ID < -1) {
-				/* no precursors found, notify used */
-				fprintf(SUMA_STDERR, "Warning %s: No precursors found for surface %d. Colors will not be current.\n",\
-				 FuncName, sv->VSv[nxtstateID].MembSOs[i]);
-				continue;
 			}
-			
-			SO_prec = (SUMA_SurfaceObject *)(dov[prec_ID].OP);
 
+
+			if (SO_prec->N_Node > SO_nxt->N_Node) {/* More in prec */
+				/* just warn */
+				fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in precursor surface. \n Assuming upcoming surface is a subset of precursor.\nAssuming Proceeding ...\n", FuncName, SO_prec->N_Node - SO_nxt->N_Node);
+			}/* More in prec */ 
+
+			/* link the selected nodes and facesets, if possible */
+			/*fprintf(SUMA_STDERR, "%s: Linking selected nodes  ...\n", FuncName);*/
 			/* check for risk of node inconsistencies */
-			
-			if (SO_prec->N_Node >= SO_nxt->N_Node ) {/* > or equal number of nodes*/
-				/* matching number of nodes */
-				/* Create a link to each overlay plane in the precursor unless such a plane exists already  */
-				for (j=0; j < SO_prec->N_Overlays; ++j) {
-					if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
-						/* plane not found, create a link to it */
-						/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s not found, creating the link.\n", FuncName, SO_prec->Overlays[j]->Name);*/
-						SO_nxt->Overlays_Inode[SO_nxt->N_Overlays] = SUMA_CreateInodeLink (SO_nxt->Overlays_Inode[SO_nxt->N_Overlays], SO_prec->Overlays_Inode[j]);
-						if (!SO_nxt->Overlays_Inode[SO_nxt->N_Overlays]) {
-							fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
-							return (NOPE);
-						}
-						/* now copy the actual overlay plane pointer */
-						SO_nxt->Overlays[SO_nxt->N_Overlays] = SO_prec->Overlays[j];
-						/*increment the number of overlay planes */
-						++SO_nxt->N_Overlays;
-					} else {
-						/* plane found, do nothing */
-						/*fprintf (SUMA_STDOUT,"%s: Overlay plane %s found. Index#%d\n.", FuncName, SO_prec->Overlays[j]->Name, OverInd);*/
+			if (SO_prec->N_Node == SO_nxt->N_Node) {
+				SO_nxt->SelectedNode = SO_prec->SelectedNode;
+				} else { /* more nodes in precursor, make sure selected node is OK */
+				if (SO_prec->SelectedNode < SO_nxt->N_Node) {
+					SO_nxt->SelectedNode = SO_prec->SelectedNode;
+					} else { /* this node does not exist in the upcoming thing */
+					fprintf(SUMA_STDERR, "\n\aWarning %s: Slected node in precursor state does not exist in current state.\n Selected Node is left at previous setting in this view state.\n", FuncName);
 					}
 				}
-				
-				#if 0
-				/* just copy colors, no need to remix */
-					jmax = SO_nxt->N_Node * 4;
-					for (j=0; j< jmax; ++j) {
-						SO_nxt->glar_ColorList[j] = SO_prec->glar_ColorList[j];
-					}
-				#endif
-				
-				if (SO_prec->N_Node > SO_nxt->N_Node) {/* More in prec */
-					/* just warn */
-					fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in precursor surface. \nProceeding ...\n", FuncName, SO_prec->N_Node - SO_nxt->N_Node);
-				}/* More in prec */ 
-								
+
 			} /* > or equal number of nodes */ else { /* less in prec */
-				fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in next surface. Colors ware not carried through.\n", FuncName, SO_nxt->N_Node - SO_prec->N_Node);
+				fprintf(SUMA_STDERR, "\n\aWarning %s: More nodes (%d) in upcoming surface. Colors, selected nodes and facesets are not carried through from precursor.\n", FuncName, SO_nxt->N_Node - SO_prec->N_Node);
 			}
-			
+
 			/* Here you need to remix the colors */
 			if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SO_nxt->glar_ColorList, SO_nxt->N_Node, SO_nxt->Back_Modfact)) {
 				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 				return (NOPE);
 			}
-				
+			
 		}
-	#endif	
 	
-	/* link the selected nodes and facesets, if possible */
-	/*fprintf(SUMA_STDERR, "%s: Linking selected nodes  ...\n", FuncName);*/
-	for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
-		/* next surface being checked */
-		SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
 		
-		/* find out surface to borrow from in the previous state */
-		prec_ID = SUMA_MapRefRelative (sv->VSv[nxtstateID].MembSOs[i], sv->VSv[curstateID].MembSOs, sv->VSv[curstateID].N_MembSOs, dov);
-		
-		/* DO NOT LINK SELECTED FACESETS SINCE THOSE MAY CHANGE FROM ONE SURF TO THE NEXT */
-		if (prec_ID < -1) {
-			/* no precursors found, notify used */
-			fprintf(SUMA_STDERR, "Warning %s: No precursors found for surface %d. Selected node will not be current.\n",\
-			 FuncName, sv->VSv[nxtstateID].MembSOs[i]);
-		} else {
-			/* check for risk of node inconsistencies */
-			if (SO_prec->N_Node == SO_nxt->N_Node) {
-				SO_prec = (SUMA_SurfaceObject *)(dov[prec_ID].OP);
-				SO_nxt->SelectedNode = SO_prec->SelectedNode;
-			} else {
-				/* Not equiped to deal with this option yet */
-				fprintf(SUMA_STDERR, "Warning %s: Mismatch in node numers, not ready to deal with this yet.\n", FuncName);
-			}
-		}
-	}
-	
 	/* Bind the cross hair to a reasonable surface, if possible */
 	if (sv->Ch->SurfaceID >= 0) {
 		
