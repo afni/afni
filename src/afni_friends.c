@@ -732,8 +732,10 @@ char * AFNI_get_date_trivia(void)
    if( ntar == 1 ){
      return tar[0] ;
    } else if( ntar > 1 ){
+     static int iold=-1 ;
      ii = (lrand48()>>8) % ntar ;
-     return tar[ii] ;
+     if( ii == iold ) ii = (ii+1)%ntar ;
+     iold = ii ; return tar[ii] ;
    }
 
    /* default trivia */
