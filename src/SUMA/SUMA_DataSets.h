@@ -437,6 +437,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
                           char *name, char *thisidcode);
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name);
 char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
+char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset (char *idcode_str, DList *DsetList);
