@@ -422,7 +422,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_j:
-            if (SUMAg_CF->Dev) {
                if (Kev.state & ControlMask){     
                  sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                       "Enter XYZ to send the cross hair to:", 
@@ -466,11 +465,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpIndex_prmpt);
                }
 
-            }
             break;
          
          case XK_J:
-            if (SUMAg_CF->Dev) {
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                    "Enter index of FaceSet\nto highlight:", 
                                                    "",
@@ -484,7 +481,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusFace_prmpt);
                
-            }
             break; 
               
          case XK_l:
@@ -521,7 +517,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_L:
-            if (SUMAg_CF->Dev) {
                prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates of light0:", 
                                                       "",
                                                       sv->X->TOPLEVEL, NOPE,
@@ -534,7 +529,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
                
-            }
             break;
 
          case XK_M:

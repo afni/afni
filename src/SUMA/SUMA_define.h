@@ -255,7 +255,7 @@ typedef enum { SUMA_ROI_Undefined,
                SUMA_ROI_NodeSegment /*!< A series of connected nodes */
              } SUMA_ROI_TYPE; /* a generic types of ROI datums*/
 
-typedef enum { SXR_default, SXR_NP, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
+typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
 
 typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
 

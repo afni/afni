@@ -2719,49 +2719,49 @@ int main (int argc, char *argv[])
 
    /* free variables */
    SUMA_Free_MorphInfo (MI);
-   fprintf(SUMA_STDERR, "poo1\n");
+   /* fprintf(SUMA_STDERR, "poo1\n"); */
    SUMA_free(surfaces);
-   fprintf(SUMA_STDERR, "poo2\n");
+   /* fprintf(SUMA_STDERR, "poo2\n"); */
    SUMA_free(mapSphrList);
-   fprintf(SUMA_STDERR, "poo3\n");
+   /* fprintf(SUMA_STDERR, "poo3\n"); */
    if (verb)   SUMA_free(ctrSphrList);
-   fprintf(SUMA_STDERR, "poo4\n");
+   /* fprintf(SUMA_STDERR, "poo4\n"); */
    SUMA_Free_Surface_Object (icoSurf);
-   fprintf(SUMA_STDERR, "poo5\n");
+   /* fprintf(SUMA_STDERR, "poo5\n"); */
    SUMA_Free_Surface_Object (sphrSurf);
-   fprintf(SUMA_STDERR, "poo6\n");
+   /* fprintf(SUMA_STDERR, "poo6\n"); */
    if (smooth) SUMA_free(smweight);
-   fprintf(SUMA_STDERR, "poo7\n");
+   /* fprintf(SUMA_STDERR, "poo7\n"); */
 
    if (color) {
       SUMA_free(mapCol);
    }
-   fprintf(SUMA_STDERR, "poo8\n");
+   /* fprintf(SUMA_STDERR, "poo8\n"); */
    if (inflSurf!=NULL) {
       SUMA_free(mapInflNodeList);
       SUMA_Free_Surface_Object (inflSurf);
    }
-   fprintf(SUMA_STDERR, "poo9\n");
+   /* fprintf(SUMA_STDERR, "poo9\n"); */
    if (pialSurf!=NULL) {
       SUMA_free(mapPialNodeList);
       SUMA_Free_Surface_Object (pialSurf);
    }
-   fprintf(SUMA_STDERR, "poo10\n");
+   /* fprintf(SUMA_STDERR, "poo10\n"); */
    if (smwmSurf!=NULL) {
       SUMA_free(mapSmWmNodeList);
       SUMA_Free_Surface_Object (smwmSurf);
    }
-   fprintf(SUMA_STDERR, "poo11\n");
+   /* fprintf(SUMA_STDERR, "poo11\n"); */
    if (whiteSurf!=NULL) {
       SUMA_free(mapWhiteNodeList);
       SUMA_Free_Surface_Object (whiteSurf);
    }
-   fprintf(SUMA_STDERR, "poo12\n");
+   /* fprintf(SUMA_STDERR, "poo12\n"); */
    if (sphrNoRegSurf!=NULL) {
       SUMA_free(mapSphrNoRegNodeList);
       SUMA_Free_Surface_Object (sphrNoRegSurf);
    }
-   fprintf(SUMA_STDERR, "poo13\n");
+   /* fprintf(SUMA_STDERR, "poo13\n"); */
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
@@ -3574,7 +3574,7 @@ int main (int argc, char *argv[])
    }
    if (!div) SUMA_free(colsv);
    if (sgmap) SUMA_free(sgArray);
-   fprintf(SUMA_STDERR, "freepoo4\n");
+   /* fprintf(SUMA_STDERR, "freepoo4\n");*/
 
    exit(0);
   

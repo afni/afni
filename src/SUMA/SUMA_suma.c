@@ -98,6 +98,7 @@ int main (int argc,char *argv[])
    DList *list = NULL;
    DListElmt *Element= NULL;
    int iv15[15], N_iv15;
+   struct stat stbuf;
    SUMA_Boolean LocalHead = NOPE;
    
     
@@ -110,6 +111,19 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
+   /* load the environment variables */
+   homeenv = getenv("HOME");
+   if (!homeenv) sumarc = SUMA_copy_string(".sumarc");
+   else sumarc = SUMA_append_string (homeenv, "/.sumarc");
+   
+   if (stat(sumarc, &stbuf) != -1) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      AFNI_process_environ(sumarc); 
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
+   }
+   if (sumarc) free(sumarc);
+   
    SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
@@ -117,19 +131,6 @@ int main (int argc,char *argv[])
 	}
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
-   /* load the environment variables */
-   homeenv = getenv("HOME");
-   if (!homeenv) sumarc = SUMA_copy_string(".sumarc");
-   else sumarc = SUMA_append_string (homeenv, "/.sumarc");
-   
-   if (SUMA_filexists(sumarc)) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
-      AFNI_process_environ(sumarc); 
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
-   }
-   if (sumarc) SUMA_free(sumarc);
-   
    /* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
 	AfniHostName = NULL; 

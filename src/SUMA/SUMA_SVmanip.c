@@ -1126,7 +1126,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
    int i;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    /* This is the function that creates the debugging flags, do not use them here */
    cf = NULL;
@@ -1163,7 +1163,27 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DrawROI = SUMA_CreateDrawROIStruct();
    cf->X->DPY_controller1 = NULL;
-   cf->X->X_Resources = SXR_NP;
+   {
+         char *eee = getenv("SUMA_ColorPattern");
+         if (eee) {
+            if (strcmp (eee, "AFNI") == 0) {
+               cf->X->X_Resources = SXR_Afni;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Afni resources\n", FuncName);
+            } else if (strcmp (eee, "EURO") == 0) {
+               cf->X->X_Resources = SXR_Euro;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Euro resources\n", FuncName);
+            } else if (strcmp (eee, "BONAIRE") == 0) {
+               cf->X->X_Resources = SXR_Bonaire;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Bonaire resources\n", FuncName);
+            } else {
+               cf->X->X_Resources = SXR_default;
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Unrecognized option. Using default\n", FuncName);
+            }
+         } else {
+            cf->X->X_Resources = SXR_default;
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
+         }
+   }
    cf->X->Help_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
