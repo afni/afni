@@ -53,7 +53,7 @@ LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -l
 #        /usr/X11R6/lib/libX11.a  \
 #        /usr/lib/libm.a          \
 #        /usr/lib/libc.a
-
+ 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
