@@ -448,6 +448,13 @@ void CALC_Syntax(void)
     " Another method to set up the correct timing would be to input an\n"
     " unused 3D+time dataset -- 3dcalc will then copy that dataset's time\n"
     " information, but simply do not use that dataset's letter in -expr.\n"
+
+    "\n"
+    "COORDINATES:\n"
+    " If you don't use '-x', '-y', or '-z' for a dataset, then the voxel\n"
+    " spatial coordinates will be loaded into those variables.  For example,\n"
+    " the expression 'a*step(x*x+y*y+z*z-100)' will zero out all the voxels\n"
+    " inside a 10 mm radius of the origin.\n"
     "\n"
     "PROBLEMS:\n"
     " ** Complex-valued datasets cannot be processed.\n"
@@ -462,12 +469,14 @@ void CALC_Syntax(void)
     "   sinh , cosh , tanh , asinh , acosh , atanh , exp  ,\n"
     "   log  , log10, abs  , int   , sqrt  , max   , min  ,\n"
     "   J0   , J1   , Y0   , Y1    , erf   , erfc  , qginv, qg ,\n"
-    "   rect , step , astep, bool  , and   , or    , mofn  ,\n"
+    "   rect , step , astep, bool  , and   , or    , mofn ,\n"
+    "   sind , cosd , tand ,\n"
     " where qg(x)    = reversed cdf of a standard normal distribution\n"
     "       qginv(x) = inverse function to qg,\n"
     "       min, max, atan2 each take 2 arguments,\n"
     "       J0, J1, Y0, Y1 are Bessel functions (see Watson),\n"
-    "       erf, erfc are the error and complementary error functions.\n"
+    "       erf, erfc are the error and complementary error functions,\n"
+    "       sind, cosd, tand take arguments in degrees (vs. radians).\n"
     "\n"
     " The following functions are designed to help implement logical\n"
     " functions, such as masking of 3D volumes against some criterion:\n"
@@ -506,6 +515,12 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * new_dset=NULL ;
    float ** buf;
    double   temp[VSIZE];
+
+   THD_ivec3 iv ;       /* 05 Feb 1999:                */
+   THD_fvec3 fv ;       /* stuff for computing (x,y,z) */
+   float xxx,yyy,zzz ;  /* coords for each voxel       */
+   int   iii,jjj,kkk , nx,nxy ;
+   THD_dataxes * daxes ;
 
    /*** read input options ***/
 
@@ -569,6 +584,9 @@ int main( int argc , char * argv[] )
 
    /*** loop over time steps ***/
 
+   nx  =      DSET_NX(new_dset) ;
+   nxy = nx * DSET_NY(new_dset) ; daxes = new_dset->daxes ;
+
    buf = (float **) malloc(sizeof(float *) * ntime_max);
 
    for ( kt = 0 ; kt < ntime_max ; kt ++ ) {
@@ -630,7 +648,7 @@ int main( int argc , char * argv[] )
 
            /* the case of a 3D+time dataset (or a bucket, etc.) */
 
-	   else {
+	   else if( CALC_type[ids] > 0 ) {
 	      switch ( CALC_type[ids] ) {
 	         case MRI_short:
 		    for (jj = jbot ; jj < jtop ; jj ++ ) {
@@ -648,7 +666,29 @@ int main( int argc , char * argv[] )
                        atoz[ids][jj-ii] = CALC_byte[ids][kt][jj] * CALC_ffac[ids][kt];
                  break;
 	       }
-	      } /* end of loop over data type switch */
+             }
+
+           /* the case of a voxel (x,y,z) coordinate */
+
+           else if( ids >= 23 ){
+
+              switch( ids ){
+                 case 23:     /* x */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = daxes->xxorg + (jj%nx) * daxes->xxdel ;
+                 break ;
+
+                 case 24:     /* y */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = daxes->yyorg + ((jj%nxy)/nx) * daxes->yydel ;
+                 break ;
+
+                 case 25:     /* z */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = daxes->zzorg + (jj/nxy) * daxes->zzdel ;
+                 break ;
+               }
+	     } /* end of choice over data type switch */
 	    } /* end of loop over datasets */
 
             /**** actually do the work! ****/

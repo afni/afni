@@ -2,6 +2,7 @@
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = gcc -ansi -O -DSGI
+CCVOL  = gcc -ansi -DSGI
 CCFAST = $(CC)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)

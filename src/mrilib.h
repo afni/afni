@@ -67,6 +67,18 @@ static float MRI_TYPE_maxval[7] =
 
 typedef struct complex { float r , i ; } complex ;
 
+/*-------*/
+typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
+
+static rgbyte tEMp_rgbyte_aAa ;
+
+#define RGBYTE_TO_INT(rgb) ( (rgb).r << 16 | (rgb).g << 8 | (rgb).b )
+
+#define INT_TO_RGB(q) ( tEMp_rgbyte_aAa.r = ((q) >> 16) & 0xff , \
+                        tEMp_rgbyte_aAa.g = ((q) >>  8) & 0xff , \
+                        tEMp_rgbyte_aAa.b = (q)         & 0xff , tEMp_rgbyte_aAa )
+/*-------*/
+
 typedef union MRI_DATA {
          byte     *byte_data ;
          short    *short_data ;
@@ -383,6 +395,12 @@ extern MRI_IMAGE *mri_to_short_sclip( double,double , int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
+
+extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
+extern MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE *mri_pair_to_complex( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR *mri_complex_to_pair( MRI_IMAGE * ) ;

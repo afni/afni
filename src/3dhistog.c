@@ -20,6 +20,8 @@
 
 static EDIT_options HI_edopt ;
 
+#define NBIN_SPECIAL 44444
+
 static int   HI_nopt ;
 static int   HI_nbin = 100 ;
 static int   HI_log  = 0 ;
@@ -76,6 +78,9 @@ int main( int argc , char * argv[] )
              "The editing options are the same as in 3dmerge.\n"
              "The histogram options are:\n"
              "  -nbin #   Means to use '#' bins (default = 100)\n"
+             "            Special Case: for short or byte dataset bricks,\n"
+             "                          set '#' to zero to have the number\n"
+             "                          of bins set by the brick range.\n"
              "  -thr  r   Means to count only voxels with the statistics threshold above 'r'\n"
              "  -dind i   Means to take data from sub-brick 'i'\n"
              "  -tind j   Means to take threshold from sub-brick 'j'\n"
@@ -104,9 +109,9 @@ int main( int argc , char * argv[] )
    dset = NULL ;
    for( iarg=nopt ; iarg < argc ; iarg++ ){
       if( dset != NULL ) THD_delete_3dim_dataset( dset , False ) ;
-      dset = THD_open_one_dataset( argv[iarg] ) ;
+      dset = THD_open_dataset( argv[iarg] ) ;
       if( dset == NULL ){
-         fprintf(stderr,"*** Can't open dataset %s\n",argv[iarg]) ;
+         fprintf(stderr,"*** Can't open dataset %s -- skipping\n",argv[iarg]) ;
          continue ;
       }
 
@@ -115,7 +120,8 @@ int main( int argc , char * argv[] )
       EDIT_one_dataset( dset , &HI_edopt ) ;
 
       iv_fim = (HI_dind >= 0) ? HI_dind
-                              : DSET_PRINCIPAL_VALUE(dset) ;        /* useful data */
+                              : DSET_IS_MASTERED(dset) ? 0
+                                                       : DSET_PRINCIPAL_VALUE(dset) ;
 
       if( iv_fim >= DSET_NVALS(dset) ){
          fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
@@ -269,7 +275,7 @@ int main( int argc , char * argv[] )
                else if( fim[ii] > ftop ) ftop = fim[ii] ;
             }
             if( fbot == ftop ) break ;
-            nbin = HI_nbin ;
+            nbin = (HI_nbin==NBIN_SPECIAL) ? 100 : HI_nbin ;
             df  = (ftop-fbot) / ((float)(nbin-1)) ;
             dfi = 1.0 / df ;
             for( ii=0 ; ii < nxyz ; ii++ ){
@@ -529,7 +535,8 @@ void HI_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-nbin",5) == 0 ){
         HI_nbin = strtol( argv[++nopt] , NULL , 10 ) ;
-        if( HI_nbin < 10 ) HI_syntax("illegal value of -nbin!") ;
+        if( HI_nbin < 10 && HI_nbin != 0 ) HI_syntax("illegal value of -nbin!") ;
+        if( HI_nbin == 0 ) HI_nbin = NBIN_SPECIAL ;
         nopt++ ; continue ;
       }
 

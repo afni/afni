@@ -5,7 +5,7 @@
             8701 Watertown Plank Road
             Milwaukee, WI 53226
 
-  License is granted to use this program for research purposes only.
+  License is granted to use these programs for research purposes only.
   Ownership of and all rights to this software are retained by the Medical
   College of Wisconsin.
 
@@ -17,8 +17,8 @@
   purpose, and do not assume any liability for damages, incidental or
   otherwise, caused by the installation or use of this software.
 
-  The redistribution of this program for a fee, or the derivation of for-profit
-  works from this program is not allowed.
+  The redistribution of this program for a fee, or the derivation of for-
+  profit works from this program is not allowed.
 
   If you are using the pre-compiled Linux binaries, the Motif library object
   code is copyrighted by Red Hat Software, Inc.
@@ -36,4 +36,10 @@
   distribution.
 
   The popup hint functions in "LiteClue.c" are from Computer Generation, Inc.
-*******************************************************************************/
+
+  The volume rendering library "volpack" is by Phil Lacroute, and is copy-
+  righted by The Board of Trustees of The Leland Stanford Junior University.
+
+  The Fortran routines in the "parser" and "coxplot" functions are by RW Cox,
+  and are not part of the MCW copyright.
+******************************************************************************/

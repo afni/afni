@@ -2,6 +2,7 @@
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -woff all -O2 -n32 -DSGI -DUSE_TRACING
+CCVOL  = cc -woff all -O2 -n32 -DSGI -DUSE_TRACING
 CCFAST = $(CC)
 CCMIN  = cc -s -n32
 CCD    = $(CC) $(CCDEBS)

@@ -9,6 +9,13 @@
   Mod:     Restructured matrix calculations to improve execution speed.
   Date:    16 December 1998
 
+  Mod:     Report mean square error from full model.
+  Date:    04 January 1999
+
+  Mod:     Earlier termination if unable to invert X matrix.
+           (Avoids redundant error messages.)
+  Date:    06 January 1999
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -119,7 +126,8 @@ int init_regression_analysis
   /*----- Initialize matrices for the baseline model -----*/
   for (ip = 0;  ip < q;  ip++)
     plist[ip] = ip;
-  calc_matrices (xdata, q, plist, x_base, &xtxinv_temp, xtxinvxt_base);
+  ok = calc_matrices (xdata, q, plist, x_base, &xtxinv_temp, xtxinvxt_base);
+  if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
 
 
   /*----- Initialize matrices for stimulus functions -----*/
@@ -145,8 +153,9 @@ int init_regression_analysis
 	    }
 	}
 
-      calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1), 
+      ok = calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1), 
 		     plist, &(x_rdcd[is]), &xtxinv_temp, &(xtxinvxt_rdcd[is]));
+      if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
     }
 
 
@@ -154,13 +163,14 @@ int init_regression_analysis
   for (ip = 0;  ip < p;  ip++)
     plist[ip] = ip;
   ok = calc_matrices (xdata, p, plist, x_full, xtxinv_full, xtxinvxt_full);
+  if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
 
 
   /*----- Destroy matrix -----*/
   matrix_destroy (&xtxinv_temp);
 
 
-  return (ok);
+  return (1);
 }
 
 
@@ -186,6 +196,7 @@ void regression_analysis
   matrix * xtxinvxt_rdcd,   /* matrix:  (1/(X'X))X'  for reduced models */
   vector y,                 /* vector of measured data */
   float rms_min,            /* minimum variation in data to fit full model */
+  float * mse,              /* mean square error from full model */
   vector * coef_full,       /* regression parameters */
   vector * scoef_full,      /* std. devs. for regression parameters */
   vector * tcoef_full,      /* t-statistics for regression parameters */
@@ -222,6 +233,7 @@ void regression_analysis
       vector_create (p, tcoef_full);
       for (is = 0;  is < num_stimts;  is++)
 	fpart[is] = 0.0; 
+      *mse = 0.0;
       *rsqr = 0.0;
       *freg = 0.0;
       vector_destroy (&coef_temp);
@@ -235,6 +247,7 @@ void regression_analysis
 
   /*----- Calculate the error sum of squares for the full model -----*/ 
   sse_full = calc_sse (x_full, *coef_full, y);
+  *mse = sse_full / (N-p);
 
 
   /*----- Calculate t-statistics for the regression coefficients -----*/

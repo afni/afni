@@ -477,9 +477,9 @@ STATUS("creating control panels") ;
          "dialog" , xmFrameWidgetClass , vwid->top_form ,
             XmNleftAttachment   , XmATTACH_WIDGET ,
             XmNleftWidget       , view->frame ,
-            XmNbottomAttachment , XmATTACH_FORM ,     /* bottom! */
+            XmNtopAttachment    , XmATTACH_FORM ,
             XmNleftOffset       , AFNI_FORM_SPACING ,
-            XmNbottomOffset     , AFNI_FORM_SPACING ,
+            XmNtopOffset        , AFNI_FORM_SPACING ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
             XmNshadowThickness , 5 ,
             XmNtraversalOn , False ,

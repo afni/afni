@@ -8,6 +8,8 @@
 /*********************************************************************/
 /***** 22 Aug 1998: modified to allow for 3 and 4 byte visuals,  *****/
 /*****              and for either possible byte order -- RW Cox *****/
+/*****                                                           *****/
+/***** 11 Feb 1999: added ability to deal with MRI_rgb images    *****/
 /*********************************************************************/
 
 /*------------------------------------------------------------------------*/
@@ -41,9 +43,11 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
    register Pixel * ppix , * npix ;
    register unsigned char * ptr;
 
+   if( im->kind == MRI_rgb ) return rgb_to_XImage( dc , im ) ;  /* 11 Feb 1999 */
+
    if( im->kind != MRI_short ){
-      fprintf(stderr,"\a\n*** ILLEGAL image input to mri_to_XImage\n") ;
-      sleep(1) ; exit(1) ;
+      fprintf(stderr,"\n*** ILLEGAL image input to mri_to_XImage\n") ;
+      exit(1) ;
    }
    sar  = MRI_SHORT_PTR(im) ;
    ppix = dc->pix_im ;       /* array for positive pixels */
@@ -60,8 +64,8 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
                           ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
 
    if( ximage == NULL ){
-      fprintf(stderr,"\a\n*** CANNOT create new XImage for display\n") ;
-      sleep(1) ; exit(1) ;
+      fprintf(stderr,"\n*** CANNOT create new XImage for display\n") ;
+      exit(1) ;
    }
 
    border = ximage->byte_order ;          /* 22 Aug 1998 */
@@ -72,7 +76,7 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 
    switch( dc->byper ){
 
-      case 1:                             /* 1 byte data goes into Image. */
+      case 1:                             /* 1 byte data goes into Image */
          for( i=0 ; i < hw ; i++ ){
             sk = sar[k++] ;
             *ptr++ = (sk >= 0) ? (ppix[sk]  & 0xff)
@@ -80,7 +84,7 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
          }
       break ;
 
-      case 2:                             /* 2 byte data goes into Image. */
+      case 2:                             /* 2 byte data goes into Image */
          if( border == MSBFirst ){        /* 22 Aug 1998 */
             for( i=0 ; i < hw ; i++ ){
                sk = sar[k++] ;
@@ -172,9 +176,9 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 
       default:
          fprintf(stderr,
-                 "\a\n*** ILLEGAL value of display bytes/pix=%d in mri_to_XImage\n",
+                 "\n*** ILLEGAL value of display bytes/pix=%d in mri_to_XImage\n",
                  dc->byper);
-         sleep(1) ; exit(1) ;
+         exit(1) ;
    }
 
    return ximage;
@@ -203,9 +207,9 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
 
    if( new_width <= 0 || new_height <= 0 ){
       fprintf(stderr ,
-              "\a\n***ILLEGAL new width %d or height %d in resize\n",
+              "\n***ILLEGAL new width %d or height %d in resize\n",
               new_width , new_height ) ;
-      sleep(1) ; exit(1) ;
+      exit(1) ;
    }
 
    /*** data about input image ***/
@@ -223,16 +227,16 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
    ximag = (char *) XtMalloc( (size_t) (w2 * new_height) );
 
    if( ximag == NULL ){
-      fprintf(stderr,"\a\n***CANNOT allocate memory for resizing XImage\n") ;
-      sleep(1) ; exit(1) ;
+      fprintf(stderr,"\n***CANNOT allocate memory for resizing XImage\n") ;
+      exit(1) ;
    }
 
    emage = XCreateImage( dc->display , dc->visual , dc->depth ,
                          ZPixmap, 0, ximag, new_width,new_height, 8, w2 ) ;
 
    if( emage == NULL ){
-      fprintf(stderr,"\a\n*** CANNOT create new XImage for resizing\n") ;
-      sleep(1) ; exit(1) ;
+      fprintf(stderr,"\n*** CANNOT create new XImage for resizing\n") ;
+      exit(1) ;
    }
 
    /*** make lookup table for xnew -> xold ***/
@@ -315,8 +319,8 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
       break ;
 
       default:
-         fprintf(stderr,"\a\n***ILLEGAL bytes/pix=%d for resizing\n",dc->byper) ;
-         sleep(1) ; exit(1) ;
+         fprintf(stderr,"\n***ILLEGAL bytes/pix=%d for resizing\n",dc->byper) ;
+         exit(1) ;
    }
 
    return emage ;
@@ -324,10 +328,12 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
 
 /*---------------------------------------------------------------------------
    Input = XImage (with pixels from dc)
+           use_cmap == 0 ==> use only the Pixels in dc [the old way]
+                    != 0 ==> use the entire colormap   [11 Feb 1999]
    Ouput = RGB or Grayscale image
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage )
+MRI_IMAGE * XImage_to_mri(  MCW_DC * dc , XImage * ximage , int use_cmap )
 {
    int nx , ny , npix , ii,jj , kk , allgray , lsize ;
    Pixel pp ;
@@ -359,7 +365,7 @@ fprintf(stderr,
    rgb = (byte *) malloc( sizeof(byte) * 3*npix ) ;
    if( rgb == NULL ){
       fprintf(stderr,"\n*** malloc failure in XImage_to_mri\n") ;
-      sleep(1) ; exit(1) ;
+      exit(1) ;
    }
 
    border = ximage->byte_order ;           /* 22 Aug 1998 */
@@ -370,8 +376,8 @@ fprintf(stderr,
          kk = 0 ; allgray = 1 ;
          for( jj=0 ; jj < ny ; jj++ ){
             for( ii=0 ; ii < nx ; ii++ ){
-               pp = ptr[ii+jj*lsize] ;                     /* pixel value */
-               xc = DCpix_to_XColor( dc , pp ) ;           /* XColor */
+               pp = ptr[ii+jj*lsize] ;                       /* pixel value */
+               xc = DCpix_to_XColor( dc , pp , use_cmap ) ;  /* XColor */
                rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
                gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
                bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
@@ -389,7 +395,7 @@ fprintf(stderr,
                else
                   pp = (ptr[2*ii+jj*lsize+1] << 8) | ptr[2*ii+jj*lsize] ;
 
-               xc = DCpix_to_XColor( dc , pp ) ;
+               xc = DCpix_to_XColor( dc , pp , use_cmap ) ;
                rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
                gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
                bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
@@ -409,7 +415,7 @@ fprintf(stderr,
                   pp = (ptr[3*ii+jj*lsize+2] << 16) |
                        (ptr[3*ii+jj*lsize+1] <<  8) | ptr[3*ii+jj*lsize] ;
 
-               xc = DCpix_to_XColor( dc , pp ) ;
+               xc = DCpix_to_XColor( dc , pp , use_cmap ) ;
                rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
                gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
                bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
@@ -429,7 +435,7 @@ fprintf(stderr,
                   pp = (ptr[4*ii+jj*lsize+3] << 24) | (ptr[4*ii+jj*lsize+2] << 16) |
                        (ptr[4*ii+jj*lsize+1] <<  8) |  ptr[4*ii+jj*lsize] ;
 
-               xc = DCpix_to_XColor( dc , pp ) ;
+               xc = DCpix_to_XColor( dc , pp , use_cmap ) ;
                rr = rgb[kk++] = INTEN_TO_BYTE( xc->red ) ;
                gg = rgb[kk++] = INTEN_TO_BYTE( xc->green ) ;
                bb = rgb[kk++] = INTEN_TO_BYTE( xc->blue ) ;
@@ -442,7 +448,7 @@ fprintf(stderr,
          fprintf(stderr,
                  "\n*** ILLEGAL value of bytes/pix=%d in XImage_to_mri\n",
                  dc->byper);
-         sleep(1) ; exit(1) ;
+         exit(1) ;
    }
 
    /*** if all pixels are gray, return a grayscale image ***/
@@ -452,7 +458,7 @@ fprintf(stderr,
       gray = (byte *) malloc( sizeof(byte) * npix ) ;
       if( gray == NULL ){
          fprintf(stderr,"\n*** malloc failure in XImage_to_mri\n") ;
-         sleep(1) ; exit(1) ;
+         exit(1) ;
       }
       for( ii=0 , kk=0 ; ii < npix ; ii++ , kk+=3) gray[ii] = rgb[kk] ;
       free(rgb) ;
@@ -469,3 +475,183 @@ fprintf(stderr,
 
    return outim ;
 }
+
+/*-----------------------------------------------------------------------
+   Convert an array of X11 Pixel values to an XImage for display.
+   Adapted from mri_to_XImage by RWCox -- 11 Feb 1999
+-------------------------------------------------------------------------*/
+
+extern XImage * pixar_to_XImage( MCW_DC * dc, int nx, int ny, Pixel * par )
+{
+   int  w2, width, height , border ;
+   unsigned char * Image ;
+   XImage        * ximage ;
+   register int i , hw  ;
+   register unsigned char * ptr;
+
+   /*-- sanity checks --*/
+
+   if( dc == NULL || nx < 1 || ny < 1 || par == NULL ) return NULL ;
+
+   width = nx ; height = ny ;
+
+   w2 = width * dc->byper ;  /* rowlength in bytes */
+
+   Image = (unsigned char *) XtMalloc( (size_t) (w2*height) );
+   if( Image == NULL ) return NULL ;
+
+   ximage = XCreateImage( dc->display , dc->visual , dc->depth ,
+                          ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
+   if( ximage == NULL ){ XtFree((char *)Image) ; return NULL ; }
+
+   border = ximage->byte_order ;  /* byte order */
+
+   ptr = Image ;                  /* pointer to image bytes */
+   hw  = height * width ;         /* total number of pixels */
+
+   switch( dc->byper ){           /* load data into Image */
+
+      case 1:                             /* 1 byte data goes into Image */
+         for( i=0 ; i < hw ; i++ ){
+            *ptr++ = par[i] & 0xff ;
+         }
+      break ;
+
+      case 2:                             /* 2 byte data goes into Image */
+         if( border == MSBFirst ){
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i] >> 8) & 0xff ;  /* MSB */
+               *ptr++ = (par[i]     ) & 0xff ;  /* LSB */
+            }
+         } else {                          /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i]     ) & 0xff ;  /* LSB */
+               *ptr++ = (par[i] >> 8) & 0xff ;  /* MSB */
+            }
+         }
+      break ;
+
+      case 3:                            /* 3 byte data */
+         if( border == MSBFirst ){
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i] >> 16) & 0xff ;  /* MSB */
+               *ptr++ = (par[i] >>  8) & 0xff ;
+               *ptr++ = (par[i]      ) & 0xff ;  /* LSB */
+            }
+         } else {                           /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i]      ) & 0xff ;  /* LSB */
+               *ptr++ = (par[i] >>  8) & 0xff ;
+               *ptr++ = (par[i] >> 16) & 0xff ;  /* MSB */
+            }
+         }
+      break ;
+
+      case 4:                            /* 4 byte data */
+         if( border == MSBFirst ){
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i] >> 24) & 0xff ;  /* MSB */
+               *ptr++ = (par[i] >> 16) & 0xff ;
+               *ptr++ = (par[i] >>  8) & 0xff ;
+               *ptr++ = (par[i]      ) & 0xff ;  /* LSB */
+            }
+         } else {                           /* LSBFirst */
+            for( i=0 ; i < hw ; i++ ){
+               *ptr++ = (par[i]      ) & 0xff ;  /* LSB */
+               *ptr++ = (par[i] >>  8) & 0xff ;
+               *ptr++ = (par[i] >> 16) & 0xff ;
+               *ptr++ = (par[i] >> 24) & 0xff ;  /* MSB */
+            }
+         }
+      break ;
+
+      default:
+         fprintf(stderr,
+                 "\n*** ILLEGAL value of display bytes/pix=%d in pixar_to_XImage\n",
+                 dc->byper);
+         exit(1) ;
+   }
+
+   return ximage;
+}
+
+/*----------------------------------------------------------------------------
+   Convert an MRI_IMAGE of rgb bytes to an XImage
+------------------------------------------------------------------------------*/
+
+#undef BRUTE_FORCE
+#ifdef BRUTE_FORCE
+XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+{
+   int nxy , ii ;
+   byte * rgb ;
+   Pixel * par ;
+   XImage * xim ;
+
+   /*-- sanity check --*/
+
+   if( dc == NULL || im == NULL || im->kind != MRI_rgb ) return NULL ;
+
+   nxy = im->nx * im->ny ;
+   rgb = MRI_RGB_PTR(im) ;
+
+   par = (Pixel *) malloc( sizeof(Pixel) * nxy ) ; if( par == NULL ) return NULL ;
+
+   for( ii=0 ; ii < nxy ; ii++ )
+      par[ii] = DC_rgb_to_pixel( dc , rgb[3*ii], rgb[3*ii+1], rgb[3*ii+2] ) ;
+
+   xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
+
+   free(par) ; return xim ;
+}
+
+#else /* not BRUTE_FORCE */
+
+XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+{
+   int nxy , ii , c ;
+   byte * rgb , r,g,b ;
+   Pixel * par , p ;
+   XImage * xim ;
+   int * col_ar , * ii_ar ;
+
+   /*-- sanity check --*/
+
+   if( dc == NULL || im == NULL || im->kind != MRI_rgb ) return NULL ;
+
+   nxy = im->nx * im->ny ;
+   rgb = MRI_RGB_PTR(im) ;
+
+   col_ar = (int *)  malloc( sizeof(int)   * nxy ) ;
+   ii_ar  = (int *)  malloc( sizeof(int)   * nxy ) ;
+   par    = (Pixel *)malloc( sizeof(Pixel) * nxy ) ;
+
+   if( col_ar == NULL )                             return NULL ;
+   if( ii_ar  == NULL ){ free(col_ar);              return NULL; }
+   if( par    == NULL ){ free(col_ar); free(ii_ar); return NULL; }
+
+   for( ii=0 ; ii < nxy ; ii++ ){  /* convert RGB triples to ints */
+      ii_ar[ii]  = ii ;            /* and save original location  */
+      col_ar[ii] = rgb[3*ii] << 16 | rgb[3*ii+1] << 8 | rgb[3*ii+2] ;
+   }
+
+   qsort_intint( nxy , col_ar , ii_ar ) ; /* sort to bring like colors together */
+
+   c = -1 ; /* a color that can't occur */
+
+   for( ii=0 ; ii < nxy ; ii++ ){
+      if( col_ar[ii] != c ){         /* have a new color, so compute its pixel */
+         c = col_ar[ii] ;
+         r = (c >> 16) & 0xff ; g = (c >> 8) & 0xff ; b = c & 0xff ;
+         p = DC_rgb_to_pixel( dc , r,g,b ) ;
+      }
+      par[ii_ar[ii]] = p ;           /* store it where it came from */
+   }
+
+   free(col_ar) ; free(ii_ar) ;      /* toss some trash */
+
+   xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
+
+   free(par) ; return xim ;
+}
+#endif /* BRUTE_FORCE */

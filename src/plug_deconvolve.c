@@ -19,6 +19,16 @@
   Mod:     Minor correction to stim_label option.
   Date:    17 December 1998
 
+  Mod:     Removed restriction on length of input time series.
+  Date:    31 December 1998
+
+  Mod:     Accept mean square error from full model.
+  Date:    04 January 1999
+
+  Mod:     Earlier termination if unable to invert X matrix.
+           (Avoids redundant error messages.)
+  Date:    06 January 1999
+
 */
 
 
@@ -26,10 +36,9 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "17 December 1998"          /* date of last program mod */
+#define PROGRAM_DATE "06 January 1999"           /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
-#define MAX_ARRAY_SIZE 1000        /* max. number of time series data points */
 #define MAX_XVARS 200                           /* max. number of parameters */
 #define MAX_STIMTS 10                 /* max. number of stimulus time series */
 
@@ -320,6 +329,7 @@ int calculate_results
   float fpart[MAX_STIMTS];    /* partial F-statistics for the stimuli */
   float freg;                 /* regression F-statistic */
   float rsqr;                 /* coeff. of multiple determination R^2  */
+  float mse;                  /* mean square error from full model */
 
   vector y;                   /* vector of measured data */       
 
@@ -390,7 +400,7 @@ int calculate_results
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
 			   x_full, xtxinv_full, xtxinvxt_full, x_base,
 			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
-			   &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
+			   &mse, &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
       
       
       /*----- Save the fit parameters -----*/
@@ -419,7 +429,9 @@ int calculate_results
   vector_destroy (&scoef);
   vector_destroy (&coef);
 
-  return (1);
+
+  if (ok)  return (1);
+  else     return (0);
 }
 
 

@@ -10,8 +10,8 @@ extensive help, so I won't give all the details here.  You may need to
 write some C programs to calculate useful results after extracting the
 data you want.
 
-Selecting an ROI: plugin "Draw Dataset" [author: R Cox]
--------------------------------------------------------
+Selecting an ROI: plugin "Draw Dataset" [author: RW Cox]
+--------------------------------------------------------
 This plugin lets you draw values into a dataset brick.  The idea is to
 start with a dataset that is all zeros and then draw nonzero values over
 the desired regions.  An all zero dataset of a size equivalent to an
@@ -33,8 +33,8 @@ datasets it will be used with.  This means that if you create a mask
 at the anatomical resolution, the functional datasets to which you apply
 it must be at that resolution also.
 
-Averaging Data Defined by a ROI Mask: program "3dmaskave" [author: R Cox]
--------------------------------------------------------------------------
+Averaging Data Defined by a ROI Mask: program "3dmaskave" [author: RW Cox]
+--------------------------------------------------------------------------
 This program lets you compute the average over a ROI of all voxel values
 from an input dataset.  The ROI is defined by a mask dataset.  The average
 value is computed for each sub-brick in the input, so you can use this to
@@ -56,6 +56,15 @@ This file lets you save all the time series from voxels listed in a mask
 file.  They are in an ASCII format, which is designed to make them easier
 to import into programs such as Matlab.
 
+Converting a Mask File to a Different Resolution [author: RW Cox]
+-----------------------------------------------------------------
+It is most convenient to draw the ROI as a functional overlay on the same
+grid as a high resolution anatomical dataset.  Applying this to a low
+resolution functional dataset can be problematic.  One solution is given
+below.  Another solution is to use the new (07 Feb 1999) program
+"3dfractionize".  This will resample an input mask dataset created at high
+resolution to the same resolution as another dataset (the "template").
+See the output of "3dfractionize -help" for usage details.
 
 =========================================================================
 ** The following documentation is by Michael S. Beauchamp of the NIMH. **

@@ -208,8 +208,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
          case ADN_brick_fac:  /* processed later */
             brick_fac = va_arg( vararg_ptr , float * ) ;
-            if( brick_fac != NULL ) new_brick_fac = 1 ;
-            else EDERR("illegal new brick_fac") ;
+            new_brick_fac = 1 ;
          break ;
 
          case ADN_datum_all:  /* processed later */
@@ -610,8 +609,13 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
    /**---------- Need to add new brick_fac values? ----------**/
 
    if( new_brick_fac ){
-      for( ii=0 ; ii < dset->dblk->nvals ; ii++ )
-         dset->dblk->brick_fac[ii] = brick_fac[ii] ;
+      if( brick_fac != NULL ){
+         for( ii=0 ; ii < dset->dblk->nvals ; ii++ )
+            dset->dblk->brick_fac[ii] = brick_fac[ii] ;
+      } else {
+         for( ii=0 ; ii < dset->dblk->nvals ; ii++ )
+            dset->dblk->brick_fac[ii] = 0.0 ;
+      }
    }
 
    /** 30 Nov 1997: do just one brick_fac value **/

@@ -3,6 +3,7 @@
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = ep_cc -O -DSPARKY -D_POSIX_SOURCE
+CCVOL  = ep_cc -O -DSPARKY -D_POSIX_SOURCE
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/home/sparky/ESE/ESEsun4/psdtools/ccsparclib.sun4/gcc-include \
          -I/home/X11R5/include -I/home/Motif1.2.4/include

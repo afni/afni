@@ -1953,6 +1953,8 @@ STATUS(str) ; }
              06 Jan 1999: check event count
          **/
 
+         XSync( XtDisplay(w) , False ) ;  /* 05 Feb 1999 */
+
          if( event->count == 0 ){
             if( grapher->fd_pxWind == (Pixmap) 0 ){
                int width , height ;
@@ -4297,7 +4299,7 @@ ENTRY("GRA_file_pixmap") ;
                     gcv.plane_mask , ZPixmap ) ;
    if( xim == NULL ) EXRETURN ;
 
-   tim = XImage_to_mri( grapher->dc , xim ) ;
+   tim = XImage_to_mri( grapher->dc , xim , 0 ) ;
    if( tim == NULL ){ MCW_kill_XImage( xim ) ; EXRETURN ; }
 
    mri_write_pnm( fname , tim ) ;

@@ -99,7 +99,9 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    dc->planes     = PlanesOfScreen(          dc->screen ) ;
    dc->depth      = DefaultDepthOfScreen(    dc->screen ) ;
 
-   setup_byper(dc) ;  /* 23 Aug 1998 */
+   dc->cdef       = NULL ;  /* 11 Feb 1999: will be loaded later */
+
+   setup_byper(dc) ;        /* 23 Aug 1998 */
 
    dc->default_colormap = DefaultColormapOfScreen( dc->screen ) ; /* 01 Sep 1998 */
 
@@ -166,10 +168,10 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    }
 
 #if 0
-{  long reqmax ;
-   reqmax = XMaxRequestSize(dc->display) ;
-   printf("max X11 request size = %d\n",reqmax) ;
-}
+ {  long reqmax ;
+    reqmax = XMaxRequestSize(dc->display) ;
+    printf("max X11 request size = %d\n",reqmax) ;
+ }
 #endif
 
 #define DEPTH_BOT  4
@@ -308,6 +310,12 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 
 #ifdef DISPLAY_DEBUG
    printf("\n") ;
+#endif
+
+#if 0
+   reload_DC_colordef( dc ) ;  /* 11 Feb 1999 */
+#else
+   dc->cdef = NULL ;
 #endif
 
    return dc ;
@@ -537,6 +545,9 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    dc->ovc->name_ov[ii]  = XtNewString(name) ;
    dc->ovc->label_ov[ii] = XtNewString(label) ;
 
+   if( dc->visual_class == PseudoColor )  /* 11 Feb 1999: */
+      FREE_DC_colordef(dc->cdef) ;        /* will need to be recomputed */
+
    return ii ;
 }
 
@@ -759,12 +770,25 @@ Boolean MCW_check_iconsize( int width , int height , MCW_DC * dc )
 
 /*---------------------------------------------------------------------------
    Given a pixel index, return a pointer to its color (not very efficiently).
+   11 Feb 1999: if use_cmap != 0, use the colormap instead of
+                the internal dc color arrays
 -----------------------------------------------------------------------------*/
 
-XColor * DCpix_to_XColor( MCW_DC * dc , Pixel pp )
+XColor * DCpix_to_XColor( MCW_DC * dc , Pixel pp , int use_cmap )
 {
    XColor * ulc , * ovc ;
    int ii ;
+
+   if( use_cmap ){              /* 11 Feb 1999 */
+      static XColor xc ;
+      byte rr,gg,bb ;
+
+      DC_pixel_to_rgb( dc , pp , &rr,&gg,&bb ) ;
+      xc.red   = BYTE_TO_INTEN(rr) ;
+      xc.green = BYTE_TO_INTEN(gg) ;
+      xc.blue  = BYTE_TO_INTEN(bb) ;
+      return &xc ;
+   }
 
    ulc = (dc->use_xcol_im) ? dc->xcol_im : dc->xgry_im ;
    ovc = dc->ovc->xcol_ov ;
@@ -902,6 +926,12 @@ void DC_set_image_colors( MCW_DC * dc )
 
       XStoreColors( dc->display , dc->colormap , xc , nc ) ;
 
+#if 0
+      if( dc->cdef != NULL ) reload_DC_colordef( dc ) ;  /* 11 Feb 1999 */
+#else
+      /* FREE_DC_colordef(dc->cdef) ; */
+#endif
+
    } else if( dc->visual_class == TrueColor ){  /* change internal pixel array */
 
       for( ii=0 ; ii < nc ; ii++ ){
@@ -934,5 +964,272 @@ void DC_yokify( Widget w , MCW_DC * dc )
                      XmNbackground  , 0 ,
                      XmNborderColor , 0 ,
                   NULL ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------
+   Load the colordef structure in the DC -- 11 Feb 1999
+-----------------------------------------------------------------------*/
+
+void reload_DC_colordef( MCW_DC * dc )
+{
+   XVisualInfo * vin ;
+   DC_colordef * cd ;   /* will be the output */
+
+   /*--- sanity check ---*/
+
+   if( dc == NULL || dc->visual_info == NULL ){
+      fprintf(stderr,"reload_DC_colordef: entry values are NULL\n") ;
+      return ;
+   }
+
+   vin = dc->visual_info ;
+
+   /*--- PseudoColor case ---*/
+
+   if( vin->class == PseudoColor ){
+      int iz , count , ii ;
+      XColor * xcol ;
+
+      /* create output */
+
+      cd = (DC_colordef *) malloc( sizeof(DC_colordef) ) ;
+      cd->class = PseudoColor ;
+      cd->depth = vin->depth ;
+
+      /* get all the colors in the colormap */
+
+      count = vin->colormap_size ;
+      xcol  = (XColor *) malloc( sizeof(XColor) * count ) ;
+      for( ii=0 ; ii < count ; ii++ ) xcol[ii].pixel = ii ;
+
+      XQueryColors( dc->display , dc->colormap , xcol , count ) ;
+
+      /* store them in the output, truncated to 8 bit resolution */
+
+      cd->ncolors = count ;
+      cd->rr      = (byte *) malloc( count ) ;
+      cd->gg      = (byte *) malloc( count ) ;
+      cd->bb      = (byte *) malloc( count ) ;
+
+      for( ii=0 ; ii < count ; ii++ ){
+         cd->rr[ii] = xcol[ii].red   >> 8 ;
+         cd->gg[ii] = xcol[ii].green >> 8 ;
+         cd->bb[ii] = xcol[ii].blue  >> 8 ;
+      }
+
+      /* find a pure white color, if any */
+
+      for( iz=0 ; iz < count ; iz++ )
+         if( cd->rr[iz] == 255 && cd->gg[iz] == 255 && cd->bb[iz] == 255 ) break ;
+
+      cd->nwhite = (iz < count) ? iz : -1 ;
+
+      /* find first all zero color; discard others at end of colormap */
+
+      for( iz=0 ; iz < count ; iz++ )
+         if( cd->rr[iz] == 0 && cd->gg[iz] == 0 && cd->bb[iz] == 0 ) break ;
+
+      cd->nblack = (iz < count) ? iz : -1 ;
+
+      if( iz < count-1 ){  /* if found one before the end */
+
+         for( ii=count-1 ; ii > iz ; ii-- )  /* scan backwards */
+            if( cd->rr[ii] != 0 || cd->gg[ii] != 0 || cd->bb[ii] != 0 ) break ;
+
+         count = ii+1 ;  /* number of colors left */
+
+         if( count == 1 ){ /* colormap is all black?! */
+            free(xcol) ; FREE_DC_colordef(cd) ;
+            fprintf(stderr,"reload_DC_colordef: colormap is all black?\n") ;
+            return ;
+         }
+
+         cd->ncolors = count ;
+      }
+
+      FREE_DC_colordef(dc->cdef) ;  /* if already present, kill it */
+
+      free(xcol) ; dc->cdef = cd ; return ;
+   }
+
+   /*--- TrueColor case ---*/
+
+   if( vin->class == TrueColor ){
+      unsigned long r , g , b ;
+      byte          rr, gg, bb ;
+
+      /* create output */
+
+      cd = (DC_colordef *) malloc( sizeof(DC_colordef) ) ;
+      cd->class = TrueColor ;
+      cd->depth = vin->depth ;
+
+      cd->rrmask  = vin->red_mask ;            /* bit masks for color  */
+      cd->ggmask  = vin->green_mask ;          /* storage inside pixel */
+      cd->bbmask  = vin->blue_mask ;
+      cd->rrshift = 7 - highbit(cd->rrmask) ;  /* shift puts high bit of  */
+      cd->ggshift = 7 - highbit(cd->ggmask) ;  /* a color byte into place */
+      cd->bbshift = 7 - highbit(cd->bbmask) ;  /* +shift == >> ; - == <<  */
+
+      /* compute the all white pixel as a common case */
+
+      rr = gg = bb = 255 ;
+
+      r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
+                          : (rr>>cd->rrshift)   ; r = r & cd->rrmask ;
+
+      g = (cd->ggshift<0) ? (gg<<(-cd->ggshift))
+                          : (gg>>cd->ggshift)   ; g = g & cd->ggmask ;
+
+      b = (cd->bbshift<0) ? (bb<<(-cd->bbshift))
+                          : (bb>>cd->bbshift)   ; b = b & cd->bbmask ;
+
+      cd->whpix = r | g | b ;
+
+      cd->rr = cd->gg = cd->bb = NULL ;        /* not used */
+
+      FREE_DC_colordef(dc->cdef) ;  /* if already present, kill it */
+
+      dc->cdef = cd ; return ;
+   }
+
+   /*--- Illegal Visual class! [do nothing]---*/
+
+   fprintf(stderr,"reload_DC_colordef: illegal Visual class %s\n",
+                  x11_vcl[vin->class] ) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------
+   Compute the Pixel that is closest to the given (r,g,b) color
+-----------------------------------------------------------------------*/
+
+Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
+{
+   DC_colordef * cd = dc->cdef ;
+
+   if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
+
+   switch( cd->class ){
+
+      /*--- TrueColor case: make color by appropriate bit twiddling ---*/
+
+      case TrueColor:{
+         static unsigned long pold=0 ;
+         static byte rold=0 , gold=0 , bold=0 ;
+         unsigned long r , g , b ;
+
+         if( rr == 0   && gg == 0   && bb == 0   ) return 0 ;          /* common */
+         if( rr == 255 && gg == 255 && bb == 255 ) return cd->whpix ;  /* cases  */
+
+         if( rr == rold && gg == gold && bb == bold ) /* Remembrance of Things Past? */
+            return (Pixel) pold ;
+
+         rold = rr ; gold = gg ; bold = bb ;          /* OK, remember for next time */
+
+         r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
+                             : (rr>>cd->rrshift)   ; r = r & cd->rrmask ;
+
+         g = (cd->ggshift<0) ? (gg<<(-cd->ggshift))
+                             : (gg>>cd->ggshift)   ; g = g & cd->ggmask ;
+
+         b = (cd->bbshift<0) ? (bb<<(-cd->bbshift))
+                             : (bb>>cd->bbshift)   ; b = b & cd->bbmask ;
+
+         pold = r | g | b ;  /* assemble color from components */
+         return (Pixel) pold ;
+      }
+
+      /*--- PseudoColor case: find closest match in colormap.
+            Red, green, and blue are weighted according
+            to their importance to the human visual system. ---*/
+
+      case PseudoColor:{
+
+#define RW 2  /* the weights alluded to above */
+#define GW 4
+#define BW 1
+#define RGBSUM 7  /* sum of the weights */
+
+         static int iold=0 , rold=0,gold=0,bold=0 ;
+         int ii , rdif,gdif,bdif,dif , ibest,dbest ;
+
+         if( cd->nblack >= 0 && rr == 0 && gg == 0 && bb == 0 )       /* deal with  */
+            return (Pixel) cd->nblack ;                               /* 2 special  */
+                                                                      /* and common */
+         if( cd->nwhite >= 0 && rr == 255 && gg == 255 && bb == 255 ) /* cases      */
+            return (Pixel) cd->nwhite ;
+
+         rdif = rold - rr ;
+         gdif = gold - gg ;
+         bdif = bold - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+         if( dif <= RGBSUM ) return (Pixel) iold ;   /* Remembrance of Things Past? */
+
+         rold = rr ; gold = gg ; bold = bb ;         /* No? Remember for next time. */
+
+         rdif = cd->rr[0] - rr ;
+         gdif = cd->gg[0] - gg ;
+         bdif = cd->bb[0] - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+         if( dif <= RGBSUM ){ iold = 0 ; return 0 ; }
+
+         ibest = 0 ; dbest = dif ;
+         for( ii=1 ; ii < cd->ncolors ; ii++ ){
+            rdif = cd->rr[ii] - rr ;
+            gdif = cd->gg[ii] - gg ;
+            bdif = cd->bb[ii] - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+            if( dif <= RGBSUM ){ iold  = ii ; return (Pixel) ii ; }
+            if( dif < dbest   ){ ibest = ii ; dbest = dif ; }
+         }
+         iold = ibest ; return (Pixel) ibest ;
+      }
+   }
+
+   /*--- Illegal case! ---*/
+
+   return 0 ;  /* always valid (but useless) */
+}
+
+/*---------------------------------------------------------------------
+   Compute the (r,g,b) color corresponding to a given Pixel
+-----------------------------------------------------------------------*/
+
+void DC_pixel_to_rgb( MCW_DC * dc , Pixel ppp ,
+                      byte * rr , byte * gg , byte * bb )
+{
+   DC_colordef * cd = dc->cdef ;
+
+   if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
+
+   switch( cd->class ){
+
+      /*--- TrueColor case: unmake color by appropriate bit twiddling ---*/
+
+      case TrueColor:{
+         unsigned long r , g , b ;
+
+         if( ppp == 0         ){ *rr = *bb = *gg = 0   ; return ; }  /* common cases */
+         if( ppp == cd->whpix ){ *rr = *bb = *gg = 255 ; return ; }
+
+         r   = ppp & cd->rrmask ;
+         *rr = (cd->rrshift<0) ? (r>>(-cd->rrshift)) : (r<<cd->rrshift) ;
+
+         g   = ppp & cd->ggmask ;
+         *gg = (cd->ggshift<0) ? (g>>(-cd->ggshift)) : (g<<cd->ggshift) ;
+
+         b   = ppp & cd->bbmask ;
+         *bb = (cd->bbshift<0) ? (b>>(-cd->bbshift)) : (b<<cd->bbshift) ;
+
+         return ;
+      }
+
+      /*--- PseudoColor case: extract from colormap ---*/
+
+      case PseudoColor:{
+         int ii = (int) ppp ;
+         *rr = cd->rr[ii] ; *gg = cd->gg[ii] ; *bb = cd->bb[ii] ; return ;
+      }
+   }
+
    return ;
 }

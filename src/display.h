@@ -50,7 +50,7 @@
 #define XCOL_GREENNESS(xc)  (0.587*(xc).green - MAX(0.299*(xc).red  ,0.114*(xc).blue ))
 #define XCOL_BLUENESS(xc)   (0.114*(xc).blue  - MAX(0.299*(xc).red  ,0.587*(xc).green))
 
-/* given x in [0..wx-1], map propotionally to [0..wn-1] */
+/* given x in [0..wx-1], map proportionally to [0..wn-1] */
 
 #define MAP_XY(x,wx,wn) (((wn)*(x))/(wx))
 
@@ -72,7 +72,27 @@
       ? ((b)<<(-(dc)->visual_blueshift) )                            \
       : ((b)>>  (dc)->visual_blueshift) ) & (dc)->visual_bluemask ) )
 
-/*** typedefs ***/
+/*--- 11 Feb 1999: stuff for mapping colors to pixels ------------------*/
+
+typedef struct {
+   int class ;    /* type of colormap: PseudoColor and TrueColor are OK */
+   int depth ;
+
+   int ncolors , nblack,nwhite ;  /* This stuff for PseudoColor */
+   byte * rr , * gg , * bb ;
+
+   unsigned long rrmask , ggmask , bbmask ;   /* This stuff for TrueColor */
+   int           rrshift, ggshift, bbshift;
+   Pixel         whpix ;
+} DC_colordef ;
+
+#define FREE_DC_colordef(cd)                                     \
+  do{ if( (cd) != NULL ){                                        \
+         if( (cd)->rr != NULL ){                                 \
+            free((cd)->rr) ; free((cd)->gg) ; free((cd)->bb) ; } \
+         free((cd)) ; (cd) = NULL ; } } while(0)
+
+/***---------------------------- typedefs ----------------------------***/
 
 #define MAX_COLORS 256
 
@@ -88,6 +108,11 @@ typedef struct {
    Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest;
    int    ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
 } MCW_DCOV ;
+
+#define DCOV_REDBYTE(dc,i)   INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].red)
+#define DCOV_GREENBYTE(dc,i) INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].green)
+#define DCOV_BLUEBYTE(dc,i)  INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].blue)
+#define DC_GRAYBYTE(dc,i)    INTEN_TO_BYTE((dc)->xgry_im[i].red)
 
 typedef struct {
       XtAppContext appcontext ;    /* X and Xt stuff */
@@ -128,6 +153,8 @@ typedef struct {
       Widget       parent_widget ;
 
       XtPointer    parent , aux ;
+
+      DC_colordef * cdef ;   /* 11 Feb 1999 */
 } MCW_DC ;
 
 /* fonts to try if the defaults fail */
@@ -182,7 +209,7 @@ extern void DC_palette_setcolor( MCW_DC * ) ;
 
 extern Boolean MCW_check_iconsize( int,int,MCW_DC * ) ;
 
-extern XColor * DCpix_to_XColor( MCW_DC * , Pixel ) ;
+extern XColor * DCpix_to_XColor( MCW_DC * , Pixel , int ) ;
 
 extern void DC_fg_color( MCW_DC * , int ) ;
 extern void DC_bg_color( MCW_DC * , int ) ;
@@ -197,5 +224,9 @@ extern void DC_linestyle( MCW_DC * , int ) ;
 extern void OVC_mostest( MCW_DCOV * ) ;
 
 extern void DC_set_image_colors( MCW_DC * ) ;  /* 22 Aug 1998 */
+
+extern void reload_DC_colordef( MCW_DC * ) ;   /* 11 Feb 1999 */
+extern Pixel DC_rgb_to_pixel( MCW_DC *, byte,byte,byte ) ;
+extern void DC_pixel_to_rgb( MCW_DC *, Pixel, byte *,byte *,byte * ) ;
 
 #endif /* _MCW_DISPLAY_HEADER_ */

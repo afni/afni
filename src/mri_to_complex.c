@@ -16,6 +16,8 @@ MRI_IMAGE *mri_to_complex( MRI_IMAGE *oldim )
 
 WHOAMI ; IMHEADER(oldim) ;
 
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
    newim = mri_new_conforming( oldim , MRI_complex ) ;
    npix  = oldim->nvox ;
 
@@ -84,9 +86,11 @@ MRI_IMAGE *mri_to_complex_ext( MRI_IMAGE *oldim, int xnew, int ynew, int altern 
 
 WHOAMI ; IMHEADER(oldim) ;
 
-   if( oldim==NULL || ! MRI_IS_2D(oldim) ){
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
+   if( ! MRI_IS_2D(oldim) ){
       fprintf(stderr,"\n*** mri_to_complex_ext only works on 2D images\n") ;
-      exit(1) ;
+      return NULL ;
    }
 
    oldx = oldim->nx ;

@@ -16,6 +16,7 @@
 
 extern void qsort_floatint ( int , float *  , int * ) ;
 extern void qsort_doubleint( int , double * , int * ) ;
+extern void qsort_intint   ( int , int *    , int * ) ;
 
 /***** Eigensolutions *****/
 

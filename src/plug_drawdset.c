@@ -69,12 +69,16 @@ static MCW_arrowval * value_av , * color_av , * mode_av ;
 #define MODE_POINTS      2
 #define MODE_FLOOD_VAL   3
 #define MODE_FLOOD_NZ    4
+#define MODE_FLOOD_ZERO  5   /* 30 Jan 1999 */
+#define MODE_ZERO_VAL    6   /* 31 Jan 1999 */
 
 static char * mode_strings[] = {
-  "Open Curve" , "Closed Curve" , "Points" , "Flood->Value" , "Flood->Nonzero" } ;
+  "Open Curve"   , "Closed Curve"   , "Points"      ,
+  "Flood->Value" , "Flood->Nonzero" , "Flood->Zero" , "Zero->Value" } ;
 
 static int    mode_ints[] = {
-  DRAWING_LINES , DRAWING_FILL , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS } ;
+  DRAWING_LINES  , DRAWING_FILL   , DRAWING_POINTS ,
+  DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS } ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
 
@@ -109,7 +113,8 @@ char * DRAW_main( PLUGIN_interface * plint )
    if( ! IM3D_OPEN(plint->im3d) ) return "AFNI Controller\nnot opened?!" ;
 
    if( editor_open ){
-      XMapRaised( XtDisplay(shell) , XtWindow(shell) ) ;
+      XtMapWidget(shell) ;
+      XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
       return ;
    }
 
@@ -145,6 +150,7 @@ char * DRAW_main( PLUGIN_interface * plint )
    /*-- pop the widget up --*/
 
    XtMapWidget(shell) ;
+   PLUTO_cursorize(shell) ;
 
    /*-- misc initialization --*/
 
@@ -321,7 +327,11 @@ void DRAW_make_widgets(void)
                          "Flood->Value   = flood fill from the chosen point\n"
                          "                 out to points = Drawing Value\n"
                          "Flood->Nonzero = flood fill from chosen point out\n"
-                         "                 to any nonzero point"
+                         "                 to any nonzero point\n"
+                         "Flood->Zero    = flood fill from chosen point out\n"
+                         "                 to any zero point\n"
+                         "Zero->Value    = fill with zeros until the Drawing\n"
+                         "                 Value is hit"
                        ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
@@ -501,6 +511,10 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            an entire region in a plane.\n"
   "        * 'Flood->Nonzero' means to flood fill, but stopping when any\n"
   "            nonzero voxel value is reached.\n"
+  "        * 'Flood->Zero' means to flood fill, but stopping when any\n"
+  "            zero voxel value is reached.\n"
+  "        * 'Zero->Value' means to flood fill the slice with zeros,\n"
+  "            stopping when a voxel with the drawing value is reached.\n"
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
@@ -872,7 +886,10 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
          /* anything but flood mode --> just draw given points */
 
          if( plane == 0 ||
-             ((mode_ival != MODE_FLOOD_VAL) && (mode_ival != MODE_FLOOD_NZ)) ){
+             ((mode_ival != MODE_FLOOD_VAL )  &&
+              (mode_ival != MODE_FLOOD_NZ  )  &&
+              (mode_ival != MODE_FLOOD_ZERO)  &&
+              (mode_ival != MODE_ZERO_VAL  ))   ){
 
             DRAW_into_dataset( np , xd,yd,zd , NULL ) ;
 
@@ -911,7 +928,10 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                   short * bp  = (short *) DSET_BRICK_ARRAY(dset,0) ;
                   short   val = (short)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
+                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+
+                  if( mode_ival == MODE_FLOOD_VAL  ||
+                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
                      for( jj=0 ; jj < jtop ; jj++ )
                         for( ii=0 ; ii < itop ; ii++ ){
                            ixyz = base + ii*di + jj*dj ;
@@ -931,7 +951,10 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                   byte * bp  = (byte *) DSET_BRICK_ARRAY(dset,0) ;
                   byte   val = (byte)   (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
+                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+
+                  if( mode_ival == MODE_FLOOD_VAL  ||
+                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
                      for( jj=0 ; jj < jtop ; jj++ )
                         for( ii=0 ; ii < itop ; ii++ ){
                            ixyz = base + ii*di + jj*dj ;
@@ -951,7 +974,10 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                   float * bp  = (float *) DSET_BRICK_ARRAY(dset,0) ;
                   float   val = (value_float/bfac) ;
 
-                  if( mode_ival == MODE_FLOOD_VAL ){
+                  if( mode_ival == MODE_FLOOD_ZERO ) val = 0 ;
+
+                  if( mode_ival == MODE_FLOOD_VAL  ||
+                      mode_ival == MODE_FLOOD_ZERO || mode_ival == MODE_ZERO_VAL ){
                      for( jj=0 ; jj < jtop ; jj++ )
                         for( ii=0 ; ii < itop ; ii++ ){
                            ixyz = base + ii*di + jj*dj ;
@@ -1002,7 +1028,13 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
             }
 
             free(pl) ;
+
+            if( mode_ival == MODE_ZERO_VAL ){ bfac = value_float; value_float = 0.0; }
+
             DRAW_into_dataset( nfill , xyzf,NULL,NULL , NULL ) ;
+
+            if( mode_ival == MODE_ZERO_VAL ) value_float = bfac ;
+
             free(xyzf) ;
 
          } /* end of flooding */
@@ -1060,7 +1092,6 @@ void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * var )
    float bfac = DSET_BRICK_FACTOR(dset,0) ;
    int nx=DSET_NX(dset) , ny=DSET_NY(dset) , nz=DSET_NZ(dset) ,
        nxy = nx*ny , nxyz = nxy*nz , ii , ixyz ;
-   float vload = 0.0 ;
    int nbytes ;
 
    /* sanity check */
@@ -1093,7 +1124,6 @@ void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * var )
    /* actually copy data, based on type */
 
    if( bfac == 0.0 ) bfac = 1.0 ;
-   vload = value_float ;
 
    switch( ityp ){
 

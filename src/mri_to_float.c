@@ -9,6 +9,8 @@ MRI_IMAGE *mri_to_float( MRI_IMAGE *oldim )
 
 WHOAMI ; IMHEADER(oldim) ;
 
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
 
@@ -17,37 +19,42 @@ WHOAMI ; IMHEADER(oldim) ;
       case MRI_byte:
          for( ii=0 ; ii < npix ; ii++ )
             newim->im.float_data[ii] = oldim->im.byte_data[ii] ;
-         break ;
+      break ;
 
       case MRI_short:
          for( ii=0 ; ii < npix ; ii++ )
             newim->im.float_data[ii] = oldim->im.short_data[ii] ;
-         break ;
+      break ;
 
       case MRI_int:
          for( ii=0 ; ii < npix ; ii++ )
             newim->im.float_data[ii] = oldim->im.int_data[ii] ;
-         break ;
+      break ;
 
       case MRI_float:
-#ifdef DONT_USE_MEMCPY
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = oldim->im.float_data[ii] ;
-#else
          (void) memcpy( newim->im.float_data ,
                         oldim->im.float_data , sizeof(float) * npix ) ;
-#endif
-         break ;
+      break ;
 
       case MRI_double:
          for( ii=0 ; ii < npix ; ii++ )
             newim->im.float_data[ii] = oldim->im.double_data[ii] ;
-         break ;
+      break ;
 
       case MRI_complex:
          for( ii=0 ; ii < npix ; ii++ )
             newim->im.float_data[ii] = CABS(oldim->im.complex_data[ii]) ;
-         break ;
+      break ;
+
+      case MRI_rgb:{                          /* 11 Feb 1999 */
+         byte  * rgb = MRI_RGB_PTR(oldim) ;
+         float * far = MRI_FLOAT_PTR(newim) ;
+         for( ii=0 ; ii < npix ; ii++ )       /* scale to brightness */
+            far[ii] =  0.299 * rgb[3*ii]      /* between 0 and 255     */
+                     + 0.587 * rgb[3*ii+1]
+                     + 0.114 * rgb[3*ii+2] ;
+      }
+      break ;
 
       default:
          fprintf( stderr , "mri_to_float:  unrecognized image kind\n" ) ;
@@ -65,6 +72,8 @@ MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )
    register float fac ;
 
 WHOAMI ; IMHEADER(oldim) ;
+
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
 
    fac   = scl ;
    newim = mri_new_conforming( oldim , MRI_float ) ;

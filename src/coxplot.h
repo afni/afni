@@ -199,13 +199,13 @@ extern void redraw_topshell( MEM_topshell_data * ) ;
 
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
-                         char *,char *,char *,char ** ) ;
+                         char *,char *,char *,char ** , void_func * ) ;
 
-#define plot_ts(a,b,c,d,e) plot_ts_lab((a),(b),(c),(d),(e),NULL,NULL,NULL,NULL)
+#define plot_ts(a,b,c,d,e) plot_ts_lab((a),(b),(c),(d),(e),NULL,NULL,NULL,NULL,NULL)
 
 extern MEM_topshell_data * plot_ts_init( Display *, float, float,
                                          int, float, float,
-                                         char *, char *, char *, char ** ) ;
+                                         char *, char *, char *, char ** , void_func * ) ;
 
 extern void plot_ts_addto( MEM_topshell_data *, int,float *, int,float ** ) ;
 

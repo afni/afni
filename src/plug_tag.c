@@ -117,7 +117,8 @@ char * TAG_main( PLUGIN_interface * plint )
    if( ! IM3D_OPEN(plint->im3d) ) return "AFNI Controller\nnot opened?!" ;
 
    if( editor_open ){
-      XMapRaised( XtDisplay(shell) , XtWindow(shell) ) ;
+      XtMapWidget(shell) ;
+      XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
       return ;
    }
 
@@ -160,6 +161,7 @@ char * TAG_main( PLUGIN_interface * plint )
    TAG_reset_widgets() ;
 
    XtMapWidget(shell) ;
+   PLUTO_cursorize(shell) ;
 
    /*-- misc initialization --*/
 

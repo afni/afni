@@ -456,7 +456,7 @@ ENTRY("dump_PBAR_palette_table") ;
 
 /*------------------------------------------------------------------------------*/
 
-void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par )
+void load_PBAR_palette_array( MCW_pbar * pbar , PBAR_palette_array * par , int fixim )
 {
    int ii , jj , jm , nn ;
    PBAR_palette * pp ;
@@ -500,9 +500,9 @@ ENTRY("load_PBAR_palette_array") ;
 
    if( nn > 0 ){
       Three_D_View * im3d = (Three_D_View *) pbar->parent ;
-      HIDE_SCALE(im3d) ;
+      if( fixim ){ HIDE_SCALE(im3d) ; }
       alter_MCW_pbar( pbar , 0 , NULL ) ;
-      FIX_SCALE_SIZE(im3d) ;
+      if( fixim ){ FIX_SCALE_SIZE(im3d) ; }
    }
    EXRETURN ;
 }
@@ -645,7 +645,7 @@ ENTRY("AFNI_palette_av_CB") ;
    if( av->ival < 0 || av->ival >= PALTAB_NUM(GPT) ) EXRETURN ;
 
    load_PBAR_palette_array( im3d->vwid->func->inten_pbar ,
-                            PALTAB_ARR(GPT,av->ival)      ) ;
+                            PALTAB_ARR(GPT,av->ival) , 1  ) ;
 
    if( im3d->vinfo->func_visible )
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */

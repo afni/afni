@@ -27,8 +27,10 @@ ENTRY("AFNI_see_func_CB") ;
 
    if( old_val != new_val ){
       im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
-      if( ! ISVALID_3DIM_DATASET(im3d->fim_now) )             /* 29 Apr 1997 */
+      if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){             /* 29 Apr 1997 */
          im3d->vinfo->func_visible = False ;
+         MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
+      }
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;  /* redraw */
    }
 

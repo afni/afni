@@ -97,12 +97,13 @@ typedef struct {
       XtPointer  text_data ;
 
       int incr , delay , fastdelay  ;  /* for the timer callback */
-
       int allow_wrap ;
 
       XEvent xev ;                     /* copy of event in callback */
 
       XtPointer parent , aux ;
+
+      float fstep ;  /* 16 Feb 1999 */
 } MCW_arrowval ;
 
 #define MCW_AV_downup    1
@@ -112,9 +113,13 @@ typedef struct {
 #define MCW_AV_editext   12
 #define MCW_AV_edittext  12
 #define MCW_AV_readtext  13
+#define MCW_AV_noactext  14     /* Feb 1999 */
 
 #define MCW_AV_longdelay  1000
 #define MCW_AV_shortdelay 111
+
+#define AV_NCOL           9     /* # columns visible */
+#define AV_MAXLEN         120   /* Feb 1999 */
 
 #define AVOPT_columnize(av,nc)                                 \
   do{ if( (av)!= NULL && (av)->wmenu != NULL && (nc) > 0 )     \

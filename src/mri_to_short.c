@@ -15,6 +15,8 @@ MRI_IMAGE *mri_to_short( double scl , MRI_IMAGE *oldim )
 
 WHOAMI ; IMHEADER(oldim) ;
 
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
    newim = mri_new_conforming( oldim , MRI_short ) ;
    npix  = oldim->nvox ;
 
@@ -123,6 +125,8 @@ MRI_IMAGE *mri_to_short_sclip( double scl , double lev ,
    register short * ar ;
 
 WHOAMI ; IMHEADER(oldim) ;
+
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_short ) ;
    npix  = oldim->nvox ;

@@ -21,9 +21,17 @@ typedef struct { FLOAT_TYPE mat[3][3] ; } THD_mat33 ;
                                (iv).ijk[1]=(j), \
                                (iv).ijk[2]=(k)    )
 
+#define UNLOAD_IVEC3(iv,i,j,k) ( (i)=(iv).ijk[0], \
+                                 (j)=(iv).ijk[1], \
+                                 (k)=(iv).ijk[2]   )
+
 #define LOAD_FVEC3(fv,x,y,z) ( (fv).xyz[0]=(x), \
                                (fv).xyz[1]=(y), \
                                (fv).xyz[2]=(z)   )
+
+#define UNLOAD_FVEC3(fv,x,y,z) ( (x)=(fv).xyz[0], \
+                                 (y)=(fv).xyz[1], \
+                                 (z)=(fv).xyz[2]   )
 
 static THD_ivec3 tempA_ivec3 , tempB_ivec3 ;  /* temps for macros below */
 static THD_fvec3 tempA_fvec3 , tempB_fvec3 ;

@@ -15,8 +15,8 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_byte.o  afni_slice_complex.o \
             afni_pcor.o afni_pcor_float.o          \
             pbar.o afni_graph.o afni_plugin.o     \
-            parser.o parser_int.o afni_plugout.o \
-            afni_setup.o afni_receive.o         \
+            parser.o parser_int.o afni_plugout.o   \
+            afni_setup.o afni_receive.o mcw_graf.o  \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -35,7 +35,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
-           3drotate 3dvolreg 3dpc
+           3drotate 3dvolreg 3dpc 3dstrip 3dfractionize 1dplot
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -43,13 +43,13 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
-                  imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg
+                  imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
-             thd_compress.h afni_warp.h coxplot.h f2c.h
+             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h
 
-all:libmri.a libcoxplot.a programs
+all:libmri.a libcoxplot.a libvolpack.a programs
 
 itall:all plugins install install_plugins
 
@@ -65,6 +65,8 @@ programs:$(PROGRAMS)
 
 programs_noplug:$(PROGRAMS_NOPLUG)
 
+libraries:libmri.a libcoxplot.a libvolpack.a libf2c.a
+
 quotize:quotize.o
 	$(CC) -o quotize quotize.o $(LFLAGS) $(LLIBS)
 
@@ -74,6 +76,9 @@ newstuff.hhh:quotize README.changes
 
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
+
+3dstrip:3dstrip.o
+	$(CC) -o 3dstrip 3dstrip.o $(LFLAGS) $(LLIBS)
 
 byteorder:byteorder.o
 	$(CC) -o byteorder byteorder.o $(LFLAGS) $(LLIBS)
@@ -200,6 +205,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3drefit 3drefit.o $(LFLAGS) $(LLIBS)
 
+3dfractionize:3dfractionize.o
+	$(RM) $@
+	$(CC) -o 3dfractionize 3dfractionize.o $(LFLAGS) $(LLIBS)
+
 3dbucket:3dbucket.o
 	$(RM) $@
 	$(CC) -o 3dbucket 3dbucket.o $(LFLAGS) $(LLIBS)
@@ -251,6 +260,10 @@ nsize:nsize.o
 3dhistog:3dhistog.o
 	$(RM) $@
 	$(CC) -o 3dhistog 3dhistog.o $(LFLAGS) $(LLIBS)
+
+3dhclip:3dhclip.o
+	$(RM) $@
+	$(CC) -o 3dhclip 3dhclip.o $(LFLAGS) $(LLIBS)
 
 3dmerge:3dmerge.o
 	$(RM) $@
@@ -462,17 +475,21 @@ dafni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 ### End of reslicing routines
 
-afni:$(AFOBJS) libcoxplot.a
+afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
 
-pafni:$(AFOBJS) libcoxplot.a
-	$(RM) $@
-	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+# pafni:$(AFOBJS) libcoxplot.a
+# 	$(RM) $@
+# 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+
+1dplot:libcoxplot.a 1dplot.o display.o
+	$(RM) $@
+	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 abut:abut.o
 	$(RM) $@
@@ -519,7 +536,7 @@ afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
-	$(CP) -r f2cdir coxplot ./AFNI98
+	$(CP) -r f2cdir coxplot volpack ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
@@ -566,7 +583,7 @@ install_noplug:
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 
 install_lib:
-	$(CP) libmri.a libf2c.a libcoxplot.a $(LIBHEADERS) $(LIBDIR)
+	$(CP) libmri.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
 ###################################################################
 # some dependencies (not complete)
 
@@ -602,6 +619,8 @@ afni_plugout.o:afni_plugout.h afni_plugin.h
 3dTSgen.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 3dNLfim.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 
+mcw_graf.o:mcw_graf.h
+
 ###################################################################
 # make the mri library
 
@@ -621,7 +640,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
-           mri_3dalign.o
+           mri_3dalign.o mri_render.o mri_to_rgb.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -649,7 +668,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetinsess.o  thd_idcode.o thd_opendset.o thd_zblock.o  \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
-           thd_trusthost.o thd_rot3d.o thd_mastery.o
+           thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -657,7 +676,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
            edt_fullcopy.o
 
-CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o
+CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -700,6 +719,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
         plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
+        plug_render.$(SO)                                              \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
@@ -744,6 +764,8 @@ plug_drealtime.$(SO):plug_realtime.c
 	$(RM) $@
 	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS) -DUSE_GNU_MALLOC -DMALLOC_TRACE
 	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
+
+plug_render.$(SO):mri_render.h
 
 epsim:epsim.o
 	$(RM) $@
@@ -795,6 +817,20 @@ coxplot.h:
 
 coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
+
+#######
+
+libvolpack.a:
+	( cd volpack ; \
+	  make libvolpack.a clean 'RM=$(RM)' 'CC=$(CCVOL)' 'AR=$(AR)' \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	  $(MV) libvolpack.a .. ; )
+
+volpack.h:
+	$(CP) volpack/volpack.h ./
+
+volpack.tgz:
+	$(TAR) cf - ./volpack | $(GZIP) -9v > volpack.tgz
 
 #######
 

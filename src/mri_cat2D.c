@@ -37,8 +37,8 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
    nx   = imin->nx ;
    ny   = imin->ny ;
 
-   if( mx==1 && my==1 ){
-      imout = mri_to_mri( kind , imin ) ;
+   if( mx==1 && my==1 ){                    /* 1x1 case (shouldn't happen) */
+      imout = mri_to_mri( kind , imin ) ;   /* Just copy input to output   */
       return imout ;
    }
 
@@ -68,42 +68,41 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
                case MRI_byte:{
                   byte * pout = ((byte *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ ) pout[iout+ijoff] = 0 ;
-#else
                      (void) memset( pout+ijoff , 0 , sizeof(byte)*nx ) ;
-#endif
                } break ;
+
+               case MRI_rgb:{                       /* 11 Feb 1999 */
+                  byte * pout = ((byte *) vout);
+                  for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
+                     (void) memset( pout+(3*ijoff) , 0 , sizeof(byte)*(3*nx) ) ;
+               } break ;
+
                case MRI_short:{
                   short * pout = ((short *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ ) pout[iout+ijoff] = 0 ;
-#else
                      (void) memset( pout+ijoff , 0 , sizeof(short)*nx ) ;
-#endif
                } break ;
+
                case MRI_int:{
                   int * pout = ((int *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ ) pout[iout+ijoff] = 0 ;
-#else
                      (void) memset( pout+ijoff , 0 , sizeof(int)*nx ) ;
-#endif
                } break ;
+
                case MRI_float:{
                   float * pout = ((float *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      for( iout=0 ; iout < nx ; iout++ )
                         pout[iout+ijoff] = 0 ;
                } break ;
+
                case MRI_double:{
                   double * pout = ((double *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      for( iout=0 ; iout < nx ; iout++ )
                         pout[iout+ijoff] = 0 ;
                } break ;
+
                case MRI_complex:{
                   complex * pout = ((complex *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
@@ -120,67 +119,49 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
                   byte * pout = ((byte *) vout) ,
                        * pin  =  (byte *) MRI_BYTE_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(byte)*nx ) , pin += nx ;
-#endif
                } break ;
+
+               case MRI_rgb:{                               /* 11 Feb 1999 */
+                  byte * pout = ((byte *) vout) ,
+                       * pin  =  (byte *) MRI_RGB_PTR(imin) ;
+                  for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
+                     memcpy( pout+(3*ijoff) , pin , sizeof(byte)*(3*nx) ) , pin += 3*nx ;
+               } break ;
+
                case MRI_short:{
                   short * pout = ((short *) vout) ,
                         * pin  =  (short *) MRI_SHORT_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(short)*nx ) , pin += nx ;
-#endif
                } break ;
+
                case MRI_int:{
                   int * pout = ((int *) vout) ,
                       * pin  =  (int *) MRI_INT_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(int)*nx ) , pin += nx ;
-#endif
                } break ;
+
                case MRI_float:{
                   float * pout = ((float *) vout) ,
                         * pin  =  (float *) MRI_FLOAT_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(float)*nx ) , pin += nx ;
-#endif
                } break ;
+
                case MRI_double:{
                   double * pout = ((double *) vout) ,
                          * pin  =  (double *) MRI_DOUBLE_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(double)*nx ) , pin += nx ;
-#endif
                } break ;
+
                case MRI_complex:{
                   complex * pout = ((complex *) vout) ,
                           * pin  =  (complex *) MRI_COMPLEX_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-#ifdef DONT_USE_MEMCPY
-                     for( iout=0 ; iout < nx ; iout++ , pin++ )
-                        pout[iout+ijoff] = *pin ;
-#else
                      memcpy( pout+ijoff , pin , sizeof(complex)*nx ) , pin += nx ;
-#endif
                } break ;
             }
          }
@@ -201,22 +182,39 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
                byte gval = *((byte *)gapval) , * pout = ((byte *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
+
+            case MRI_rgb:{       /* 11 Feb 1999 */
+               byte rval = *(((byte *)gapval)  ) ,
+                    gval = *(((byte *)gapval)+1) ,
+                    bval = *(((byte *)gapval)+2) , * pout = ((byte *) vout) ;
+
+               for( ij=0 ; ij < ii ; ij++ ){
+                  pout[3*(ij+ijoff)  ] = rval ;
+                  pout[3*(ij+ijoff)+1] = gval ;
+                  pout[3*(ij+ijoff)+2] = bval ;
+               }
+            } break ;
+
             case MRI_short:{
                short gval = *((short *)gapval) , * pout = ((short *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
+
             case MRI_float:{
                float gval = *((float *)gapval) , * pout = ((float *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
+
             case MRI_int:{
                int gval = *((int *)gapval) , * pout = ((int *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
+
             case MRI_double:{
                double gval = *((double *)gapval) , * pout = ((double *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
+
             case MRI_complex:{
                complex gval = *((complex *)gapval) , * pout = ((complex *) vout) ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
@@ -234,26 +232,44 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
+
+            case MRI_rgb:{              /* 11 Feb 1999 */
+               byte rval = *(((byte *)gapval)  ) ,
+                    gval = *(((byte *)gapval)+1) ,
+                    bval = *(((byte *)gapval)+2) , * pout = ((byte *) vout) ;
+
+               for( ij=0 ; ij < gap ; ij++ , ijoff++ )
+                  for( jj=0 ; jj < nyout ; jj++ ){
+                     pout[3*(jj*nxout+ijoff)  ] = rval ;
+                     pout[3*(jj*nxout+ijoff)+1] = gval ;
+                     pout[3*(jj*nxout+ijoff)+2] = bval ;
+                  }
+            } break ;
+
             case MRI_short:{
                short gval = *((short *)gapval) , * pout = ((short *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
+
             case MRI_float:{
                float gval = *((float *)gapval) , * pout = ((float *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
+
             case MRI_int:{
                int gval = *((int *)gapval) , * pout = ((int *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
+
             case MRI_double:{
                double gval = *((double *)gapval) , * pout = ((double *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
+
             case MRI_complex:{
                complex gval = *((complex *)gapval) , * pout = ((complex *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )

@@ -795,6 +795,10 @@ C
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
      X       DERF,DERFC
+C
+      REAL*8 R2D , D2R
+      PARAMETER ( R2D = 57.29577951308232D+00 ,
+     X            D2R =  0.01745329251994D+00  )
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
       IF( NUM_CODE .LE. 0 )THEN
@@ -852,11 +856,20 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'SIN' )THEN
             R8_EVAL(NEVAL) = SIN( R8_EVAL(NEVAL) )
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'SIND' )THEN
+            R8_EVAL(NEVAL) = SIN( D2R*R8_EVAL(NEVAL) )
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'COS' )THEN
             R8_EVAL(NEVAL) = COS( R8_EVAL(NEVAL) )
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'COSD' )THEN
+            R8_EVAL(NEVAL) = COS( D2R*R8_EVAL(NEVAL) )
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'TAN' )THEN
             R8_EVAL(NEVAL) = TAN( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'TAND' )THEN
+            R8_EVAL(NEVAL) = TAN( D2R*R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SQRT' )THEN
             R8_EVAL(NEVAL) = SQRT(ABS(R8_EVAL(NEVAL)))
@@ -1066,6 +1079,10 @@ C
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
      X       DERF,DERFC
+C
+      REAL*8 R2D , D2R
+      PARAMETER ( R2D = 57.29577951308232D+00 ,
+     X            D2R =  0.01745329251994D+00  )
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
       IF( NUM_CODE.LE.0 .OR. LVEC.LE.0 )GOTO 8000
@@ -1247,14 +1264,29 @@ C.......................................................................
                R8_EVAL(IV-IBV,NEVAL) = SIN( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'SIND' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = SIN( D2R*R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'COS' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = COS( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'COSD' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = COS( D2R*R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'TAN' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = TAN( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'TAND' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = TAN( D2R*R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SQRT' )THEN

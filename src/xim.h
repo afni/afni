@@ -14,6 +14,9 @@
 extern void MCW_kill_XImage( XImage * ) ;
 extern XImage * mri_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 extern XImage * resize_XImage( MCW_DC * , XImage * , int , int ) ;
-extern MRI_IMAGE * XImage_to_mri( MCW_DC * , XImage * ) ;
+extern MRI_IMAGE * XImage_to_mri( MCW_DC * , XImage * , int ) ;
+
+extern XImage * pixar_to_XImage( MCW_DC * , int,int , Pixel * ) ;
+extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 
 #endif /* _MCW_XIM_HEADER_ */

@@ -621,7 +621,7 @@ char * VOLREG_main( PLUGIN_interface * plint )
 
       plot_ts_lab( GLOBAL_library.dc->display ,
                    nn , yar[0] , -6 , yar+1 ,
-                   "time" , NULL , DSET_FILECODE(VL_dset) , nar ) ;
+                   "time" , NULL , DSET_FILECODE(VL_dset) , nar , NULL ) ;
 
       free(yar[0]) ;
    }

@@ -2385,7 +2385,7 @@ void RT_finish_dataset( RT_input * rtin )
 
       plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
                    nn , yar[0] , -3 , yar+1 ,
-                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar ) ;
+                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar , NULL ) ;
 
       free(iar) ; free(yar[0]) ; free(yar[1]) ; free(yar[2]) ; free(yar[3]) ;
    }
@@ -2414,7 +2414,7 @@ void RT_finish_dataset( RT_input * rtin )
 
       plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
                    nn , yar[0] , -6 , yar+1 ,
-                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar ) ;
+                   "time" , NULL , DSET_FILECODE(rtin->dset) , nar , NULL ) ;
    }
 #endif
 
@@ -2786,7 +2786,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr ,
                                   -6 , -rtin->reg_graph_yr,rtin->reg_graph_yr ,
-                                  "time", NULL, DSET_FILECODE(rtin->dset), nar ) ;
+                                  "time", NULL, DSET_FILECODE(rtin->dset), nar , NULL ) ;
 
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
       }

@@ -10,6 +10,8 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
 {
    MRI_IMAGE * newim ;
 
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
    switch( datum ){
       default:
          fprintf(stderr,
@@ -31,7 +33,7 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
       case MRI_float:
          newim = mri_to_float( oldim ) ;
       break ;
-      
+
       case MRI_byte:{
          float immin , immax ;
 
@@ -46,11 +48,15 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
         }
       }
       break ;
-      
+
       case MRI_complex:
          newim = mri_to_complex( oldim ) ;
       break ;
-  } 
+
+      case MRI_rgb:
+         newim = mri_to_rgb( oldim ) ; /* 11 Feb 1999 */
+      break ;
+  }
   return newim ;
 }
 
@@ -62,6 +68,8 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
 MRI_IMAGE * mri_to_mri_scl( int datum , double factor , MRI_IMAGE * oldim )
 {
    MRI_IMAGE * newim ;
+
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
 
    switch( datum ){
       default:
@@ -77,11 +85,11 @@ MRI_IMAGE * mri_to_mri_scl( int datum , double factor , MRI_IMAGE * oldim )
       case MRI_float:
          newim = mri_scale_to_float( factor , oldim ) ;
       break ;
-      
+
       case MRI_byte:
          newim = mri_to_byte_scl( factor , 0.0 , oldim ) ;
       break ;
-      
+
       case MRI_complex:{
          complex * cxar ; int ii , nvox ;
          newim = mri_to_complex( oldim ) ;
@@ -92,6 +100,6 @@ MRI_IMAGE * mri_to_mri_scl( int datum , double factor , MRI_IMAGE * oldim )
          }
       }
       break ;
-  } 
+  }
   return newim ;
 }

@@ -16,6 +16,12 @@ You don't NEED to set any of these variables -- AFNI will still work
 correctly.  But they are an easy way to set up certain defaults to
 make AFNI a little easier on your neocortex.
 
+N.B.: Changes to environment variables AFTER you start a program will
+      not be seen by that program, since each running program gets
+      a private copy of the entire set of environment variables when
+      it starts.  This is a standard Unix feature, and is not specific
+      to AFNI.
+
 ---------------------
 Variable: AFNI_ORIENT
 ---------------------
@@ -242,6 +248,26 @@ the controller windows locked together.  If you mostly use multiple
 controllers to view datasets in unison, then this will be useful.
 Notice that the Time Lock feature is not automatically enabled
 by this -- you must still actuate it manually.
+
+-------------------------
+Variables: AFNI_RENDER_*
+-------------------------
+These variables set some defaults in the "Render Dataset" (volume
+rendering) plugin.  The first two variables are
+
+  AFNI_RENDER_ANGLE_DELTA  = stepsize for viewing angles, in degrees
+  AFNI_RENDER_CUTOUT_DELTA = stepsize for cutout dimensions, in mm
+
+These stepsizes control how much the control parameters change when
+one of their up- or down-arrows is pressed.  Both of these stepsize
+values default to 5.0.
+
+The third variable is
+
+  AFNI_RENDER_PRECALC_MODE = "Low", "Medium", or "High"
+
+This is used to set the initial precalculation mode for the renderer
+(this mode can be altered interactively, unlike the stepsizes).
 
 =================================
 | Robert W. Cox, PhD            |

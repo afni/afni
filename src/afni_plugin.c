@@ -2910,6 +2910,8 @@ STATUS("calling plugin") ;
                        XmNtitle     , ttl , /* top of window */
                        XmNiconName  , ttl , /* label on icon */
                     NULL ) ;
+
+     PLUTO_cursorize( plint->wid->shell ) ;
    }
 
    /*-- if possible, find where this popup should go --*/
@@ -3574,6 +3576,9 @@ void PLUTO_report( PLUGIN_interface * plint , char * str )
 
 /** put library routines here that must be loaded **/
 
+#include "mri_render.h"
+#include "mcw_graf.h"
+
 static vptr_func * forced_loads[] = {
    (vptr_func *) startup_lsqfit ,
    (vptr_func *) delayed_lsqfit ,
@@ -3584,6 +3589,8 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) mri_3dalign_setup ,
    (vptr_func *) qsort_floatint ,
    (vptr_func *) symeig_double ,
+   (vptr_func *) MREN_render ,
+   (vptr_func *) new_MCW_graf ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

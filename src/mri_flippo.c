@@ -5,7 +5,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 /*** NOT 7D SAFE ***/
 
 /*-------------------------------------------------------------------
@@ -102,6 +101,18 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
          register byte * flar = MRI_BYTE_PTR(flim) ;
          for( i2=s2 ; i2 != e2 ; i2 += d2 )
             for( i1=s1 ; i1 != e1 ; i1 += d1 ) flar[jb++] = inar[i2+i1] ;
+      }
+      break ;
+
+      case MRI_rgb:{                                     /* 11 Feb 1999 */
+         register byte * inar = MRI_RGB_PTR(im) ;
+         register byte * flar = MRI_RGB_PTR(flim) ;
+         for( i2=s2 ; i2 != e2 ; i2 += d2 )
+            for( i1=s1 ; i1 != e1 ; i1 += d1 ){
+               flar[jb++] = inar[3*(i2+i1)  ] ;
+               flar[jb++] = inar[3*(i2+i1)+1] ;
+               flar[jb++] = inar[3*(i2+i1)+2] ;
+            }
       }
       break ;
 

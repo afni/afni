@@ -23,6 +23,14 @@
   Mod:     Minor correction to -stim_label option.
   Date:    17 December 1998
 
+  Mod:     Allow fitting of baseline alone (i.e., no input stimulus functions
+           are required).  Also, removed restriction on length of input time
+           series.
+  Date:    31 December 1998
+
+  Mod:     Accept mean square error from full model.
+  Date:    04 January 1999
+
 */
 
 
@@ -47,10 +55,9 @@
 
 #define PROGRAM_NAME "3dDeconvolve"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "17 December 1998"          /* date of last program mod */
+#define PROGRAM_DATE "06 January 1999"           /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
-#define MAX_ARRAY_SIZE 1000        /* max. number of time series data points */
 #define MAX_XVARS 200                           /* max. number of parameters */
 #define MAX_STIMTS 10                 /* max. number of stimulus time series */
 
@@ -141,7 +148,7 @@ void display_help_menu()
     "                       whose F-statistic is > fval                     \n"
     "                                                                       \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
-    "                       (1 <= num <= %d)                                \n"
+    "                       (0 <= num <= %d)                                \n"
     "-stim_file k sname   sname = filename of kth time series input stimulus\n"
     "-stim_label k slabel slabel = label for kth time series input stimulus \n"
     "[-stim_minlag k m]   m = minimum time lag for kth input stimulus       \n"
@@ -326,9 +333,9 @@ void get_options
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -num_stimts ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > MAX_STIMTS))
+	  if ((ival < 0) || (ival > MAX_STIMTS))
 	    {
-	      sprintf (message,  "-num_stimts num   Require: 1 <= num <= %d", 
+	      sprintf (message,  "-num_stimts num   Require: 0 <= num <= %d", 
 		       MAX_STIMTS);
 	      DC_error (message);
 	    }
@@ -681,9 +688,9 @@ void check_for_valid_inputs
 
   
   /*----- Check number of stimulus time series -----*/
-  if ((num_stimts < 1) || (num_stimts > MAX_STIMTS))
+  if ((num_stimts < 0) || (num_stimts > MAX_STIMTS))
     {
-      sprintf (message,  "Require: 1 <= num_stimts <= %d",  MAX_STIMTS);
+      sprintf (message,  "Require: 0 <= num_stimts <= %d",  MAX_STIMTS);
       DC_error (message);
     }
 
@@ -961,7 +968,7 @@ void calculate_results
 )
   
 {
-  float ts_array[MAX_ARRAY_SIZE];   /* array of measured data for one voxel */
+  float * ts_array = NULL;    /* array of measured data for one voxel */
 
   int p;                      /* number of parameters in the full model */
   int q;                      /* number of parameters in the baseline model */
@@ -974,6 +981,7 @@ void calculate_results
   float fpart[MAX_STIMTS];    /* partial F-statistics for the stimuli */
   float freg;                 /* regression F-statistic */
   float rsqr;                 /* coeff. of multiple determination R^2  */
+  float mse;                  /* mean square error from full model */
 
   matrix xdata;               /* independent variable matrix */
   matrix x_full;              /* extracted X matrix    for full model */
@@ -1047,6 +1055,9 @@ void calculate_results
   N = NLast - NFirst + 1;
 
 
+  ts_array = (float *) malloc (sizeof(float) * nt);   MTEST (ts_array);
+
+
   /*----- Initialize the independent variable matrix -----*/
   init_indep_var_matrix (p, q, NFirst, N, num_stimts,
 			 stimulus, min_lag, max_lag, &xdata);
@@ -1085,7 +1096,7 @@ void calculate_results
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
 			   x_full, xtxinv_full, xtxinvxt_full, x_base,
 			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
-			   &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
+			   &mse, &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
 
 
       /*----- Save results for this voxel -----*/
@@ -1106,7 +1117,7 @@ void calculate_results
     }  /*----- Loop over voxels -----*/
   
 
-  /*----- Dispose of matrices -----*/
+  /*----- Dispose of matrices and vectors -----*/
   vector_destroy (&y);
   vector_destroy (&tcoef);
   vector_destroy (&scoef);
@@ -1122,6 +1133,8 @@ void calculate_results
   matrix_destroy (&xtxinv_full); 
   matrix_destroy (&x_full); 
   matrix_destroy (&xdata);
+
+  free (ts_array);  ts_array = NULL;
 }
 
 

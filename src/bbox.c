@@ -183,8 +183,10 @@ int MCW_val_bbox( MCW_bbox * bb )
     minval  = smallest value allowed } value is like in Scales:
     maxval  = largest  value allowed }   an integer
     inival  = initial  value         }
-    textype = MCW_AV_notext  to turn display of value off
-              MCW_AV_editext to allow user to edit the text
+    textype = MCW_AV_notext   to turn display of value off
+              MCW_AV_editext  to allow user to edit the text
+              MCW_AV_noactext like above, but no "activation" when the
+                              cursor leaves the window
               MCW_AV_readtext to make the text display readonly
     decim   = # of decimals to shift to left for display of value
               (like Scales)
@@ -312,7 +314,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
          av->text_data = NULL ;
       break ;
 
-      /* note hardwire of 9 columns of text, here and in AV_fval_to_char;
+      /* Note hardwire of 9 columns of text, here and in AV_fval_to_char;
          this CANNOT be changed just by changing AV_NCOL below, you must
          also edit the sprintf formats in AV_fval_to_char.
 
@@ -321,7 +323,9 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
          is that the default text_proc is hardwired to 9 characters wide.
       */
 
+#ifndef AV_NCOL
 #define AV_NCOL 9
+#endif
 
       case MCW_AV_readtext:
          av->wtext = XtVaCreateManagedWidget(
@@ -349,13 +353,29 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
          av->text_data = text_data ;
       break ;
 
-      case MCW_AV_editext:
+      case MCW_AV_noactext:                   /* noactext added 08 Feb 1999 */
+      case MCW_AV_editext:{
+         Widget wf ; int maxlen ;
+
+         if( textype == MCW_AV_noactext ){
+            wf = XtVaCreateWidget( "dialog" , xmFrameWidgetClass , av->wrowcol ,
+                                      XmNshadowType , XmSHADOW_OUT ,
+                                      XmNshadowThickness , 1 ,
+                                      XmNtraversalOn , False ,
+                                      XmNinitialResourcesPersistent , False ,
+                                   NULL ) ;
+            maxlen = AV_MAXLEN ;
+         } else {
+            wf     = av->wrowcol ;
+            maxlen = AV_NCOL ;
+         }
+
          av->wtext = XtVaCreateManagedWidget(
-                       "dialog" , TEXT_CLASS , av->wrowcol ,
+                       "dialog" , TEXT_CLASS , wf ,
 
                           XmNcolumns         , AV_NCOL ,
                           XmNeditable        , True ,
-                          XmNmaxLength       , AV_NCOL ,
+                          XmNmaxLength       , maxlen ,
                           XmNresizeWidth     , False ,
 
                           XmNmarginHeight    , 1 ,
@@ -369,21 +389,26 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
                           XmNtraversalOn , False ,
                        NULL ) ;
 
-         XtAddCallback( av->wtext , XmNactivateCallback    ,
-                                    AV_textact_CB , av ) ; /* return key */
+         if( textype == MCW_AV_noactext ) XtManageChild(wf) ;
 
-         XtAddCallback( av->wtext , XmNlosingFocusCallback ,
-                                    AV_textact_CB , av ) ; /* tab key */
+         if( textype == MCW_AV_editext ){
+            XtAddCallback( av->wtext , XmNactivateCallback    ,
+                                       AV_textact_CB , av ) ; /* return key */
 
-         XtInsertEventHandler( av->wtext ,        /* notify when */
-                               LeaveWindowMask ,  /* pointer leaves */
-                               FALSE ,            /* this window */
-                               AV_leave_EV ,
-                               (XtPointer) av ,
-                               XtListTail ) ;     /* last in queue */
+            XtAddCallback( av->wtext , XmNlosingFocusCallback ,
+                                       AV_textact_CB , av ) ; /* tab key */
+
+            XtInsertEventHandler( av->wtext ,        /* notify when */
+                                  LeaveWindowMask ,  /* pointer leaves */
+                                  FALSE ,            /* this window */
+                                  AV_leave_EV ,
+                                  (XtPointer) av ,
+                                  XtListTail ) ;     /* last in queue */
+         }
 
          av->text_CB   = AV_default_text_CB ;
          av->text_data = NULL ;
+      }
       break ;
 
    }
@@ -416,6 +441,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
    av->allow_wrap = 0 ;
 
    av->parent = av->aux = NULL ;
+   av->fstep = 0.0 ;  /* 16 Feb 1999 */
    return av ;
 }
 
@@ -552,6 +578,7 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    av->allow_wrap = 0 ;
 
    av->parent = av->aux = NULL ;
+   av->fstep = 0.0 ;  /* 16 Feb 1999 */
 
    return av ;
 }
@@ -828,25 +855,42 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId * id )
    int newval ;
    double sval ;
 
-   sval = av->fval ;  AV_SHIFT_VAL( -av->decimals , sval ) ;
+   if( av->fstep == 0.0 ){   /* 16 Feb 1999: this is the old way */
 
-   if( av->incr < 0 ){
-      newval = (int) floor( 0.99 + sval + av->incr ) ;
-   } else {
-      newval = (int)  ceil(-0.99 + sval + av->incr ) ;
+      sval = av->fval ;  AV_SHIFT_VAL( -av->decimals , sval ) ;
+
+      if( av->incr < 0 ){
+         newval = (int) floor( 0.99 + sval + av->incr ) ;
+      } else {
+         newval = (int)  ceil(-0.99 + sval + av->incr ) ;
+      }
+
+      if( newval > av->imax && av->allow_wrap ){            /* out of range? wrap. */
+         newval = av->imin ;
+      } else if( newval < av->imin && av->allow_wrap ){
+         newval = av->imax ;
+
+      } else if( newval > av->imax || newval < av->imin ){  /* out of range? stop. */
+         av->timer_id = 0 ;
+         return ;
+      }
+
+      AV_assign_ival( av , newval ) ;  /* assign */
+
+   } else {  /* 16 Feb 1999: this is the new way, if user sets fstep */
+
+      if( av->incr > 0 )
+         sval = av->fval + av->fstep ;
+      else
+         sval = av->fval - av->fstep ;
+
+      if( sval > av->fmax || sval < av->fmin ){  /* out of range? stop. */
+         av->timer_id = 0 ;
+         return ;
+      }
+
+      AV_assign_fval( av , sval ) ;
    }
-
-   if( newval > av->imax && av->allow_wrap ){            /* out of range? wrap. */
-      newval = av->imin ;
-   } else if( newval < av->imin && av->allow_wrap ){
-      newval = av->imax ;
-
-   } else if( newval > av->imax || newval < av->imin ){  /* out of range? stop. */
-      av->timer_id = 0 ;
-      return ;
-   }
-
-   AV_assign_ival( av , newval ) ;  /* assign */
 
    /* call user callback, if present */
 
@@ -2502,7 +2546,7 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
 #endif
                   plot_ts_lab( XtDisplay(w) ,
                                fim->nx , NULL , fim->ny , yar ,
-                               "index" , NULL , fim->name , nar ) ;
+                               "index" , NULL , fim->name , nar , NULL ) ;
 
                   if( nar != NULL ){
                      for( jj=0 ; jj < fim->ny ; jj++ ) free(nar[jj]) ;

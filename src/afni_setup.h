@@ -71,7 +71,7 @@ extern void AFNI_pbar_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern char * AFNI_palette_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_palette_av_CB( MCW_arrowval * , XtPointer ) ;
-extern void load_PBAR_palette_array( MCW_pbar * , PBAR_palette_array * ) ;
+extern void load_PBAR_palette_array( MCW_pbar * , PBAR_palette_array * , int ) ;
 extern void AFNI_finalize_read_palette_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_set_pbar_top_CB( Widget, XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_finalize_write_palette_CB( Widget, XtPointer , MCW_choose_cbs * ) ;

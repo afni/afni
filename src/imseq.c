@@ -7,7 +7,6 @@
 ******************************************************************************/
 
 #include "mrilib.h"
-
 #include "imseq.h"
 #include "xutil.h"
 #include "xim.h"
@@ -229,7 +228,9 @@ static char ** ISQ_bb_allhint[] = {
 
             Thus, get_image takes as input 2 "int"s and an "XtPointer",
             and returns a "XtPointer".  Note that the MRI_IMAGEs returned
-            will be mri_free-d after being used internally.
+            will be mri_free-d after being used internally.  Therefore,
+            if you want to keep them, you should send a copy, not the
+            original.
 
     aux = XtPointer supplied by user, pointing to data to be passed
             get_image for its own internal use (similar in concept to
@@ -1193,19 +1194,32 @@ DPR("  ISQ_make_image -- making given_xim");
 
    /* overlay, if needed */
 
-   if( ovim == NULL || seq->opt.no_overlay ){
+   if( ovim == NULL || seq->opt.no_overlay ){              /* nothing to do */
       tim = im ;
-   } else {
+
+   } else if( im->kind == MRI_short ){                     /* the old case */
       register short * tar , * oar , * iar ;
       register int ii , npix = im->nx * im->ny ;
 
 DPR("  ISQ_make_image -- overlaying onto 'im'") ;
       tim = mri_new( im->nx , im->ny , MRI_short ) ;
-      tar = mri_data_pointer( tim ) ;
-      oar = mri_data_pointer( ovim ) ;
-      iar = mri_data_pointer( im ) ;
+      tar = MRI_SHORT_PTR( tim ) ;                      /* merger   */
+      oar = MRI_SHORT_PTR( ovim ) ;                     /* overlay  */
+      iar = MRI_SHORT_PTR( im ) ;                       /* underlay */
       for( ii=0 ; ii < npix ; ii++ )
          tar[ii] = (oar[ii] == 0) ? iar[ii] : -oar[ii] ;
+
+   } else if( im->kind == MRI_rgb ){                       /* 11 Feb 1999 */
+      register int ii , npix = im->nx * im->ny ;
+      register short * oar = MRI_SHORT_PTR(ovim) ;
+      register byte * tar , * iar = MRI_RGB_PTR(im) ;
+      register Pixel * negpix = seq->dc->ovc->pix_ov ;
+
+      tim = mri_to_rgb( im ) ; tar = MRI_RGB_PTR(tim) ;
+
+      for( ii=0 ; ii < npix ; ii++ )
+         if( oar[ii] > 0 )
+            DC_pixel_to_rgb( seq->dc, negpix[oar[ii]], tar+(3*ii),tar+(3*ii+1),tar+(3*ii+2) ) ;
    }
 
    /* convert result to XImage for display */
@@ -1272,12 +1286,41 @@ DPRI("  -- complex to real code = ",seq->opt.cx_code) ;
       }
    }
 
-   /****** process image in normal fashion if no IMPROC code given ******/
-
    have_transform = (seq->transform0D_func != NULL ||
                      seq->transform2D_func != NULL   ) ;
 
-   if( ! have_transform && seq->opt.improc_code == ISQ_IMPROC_NONE ){
+   /****** 11 Feb 1999: if input RGB image, do limited processing *****/
+
+   if( lim->kind == MRI_rgb ){
+      MRI_IMAGE * tim , * qim ;
+
+      qim = lim ;
+      if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
+         tim = mri_flatten_rgb( qim ) ;
+         if( qim != lim ) mri_free(qim) ;
+         qim = tim ;
+      }
+
+      if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
+         tim = mri_sharpen_rgb( seq->sharp_fac , qim ) ;
+         if( qim != lim ) mri_free(qim) ;
+         qim = tim ;
+      }
+
+      if( qim == lim )
+         newim = mri_to_rgb( lim ) ;   /* just copy it */
+      else
+         newim = qim ;                 /* is already what we want */
+
+      if( seq->set_orim ){                    /* for graphs */
+         KILL_1MRI(seq->orim) ;
+         seq->orim = mri_to_float(newim) ;    /* intensity image */
+      }
+   }
+
+   /****** process image in normal fashion if no IMPROC code given ******/
+
+   else if( ! have_transform && seq->opt.improc_code == ISQ_IMPROC_NONE ){
 
       if( seq->set_orim ){                   /* 30 Dec 1998 */
          KILL_1MRI(seq->orim) ;
@@ -1500,9 +1543,11 @@ DPR("  -- ISQ_perpoints:") ;
       if( qim != lim ) mri_free(qim) ;
    }
 
+   /**** at this point, the processed image is in "newim" ****/
+
    /** Aug 31, 1995: put zer_color in at bottom, if nonzero **/
 
-   if( seq->zer_color > 0 ){
+   if( newim->kind == MRI_short && seq->zer_color > 0 ){
       short zz = -seq->zer_color ;
       short * ar = MRI_SHORT_PTR(newim) ;
       int npix = newim->nx * newim->ny , ii ;
@@ -1512,7 +1557,7 @@ DPRI("  -- loading zero color index = ",zz) ;
          if( ar[ii] == seq->bot ) ar[ii] = zz ;
    }
 
-   /* copy sizes (fixup for mrilib) */
+   /* copy sizes (fixup for mrilib to be happy) */
 
    MRI_COPY_AUX( newim , lim ) ;
 
@@ -1626,7 +1671,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
          else
             strcat(seq->saver_prefix,"pnm") ;
 
-         tim = XImage_to_mri( seq->dc , seq->given_xim ) ;
+         tim = XImage_to_mri( seq->dc , seq->given_xim , 1 ) ;
          if( tim != NULL ){
             printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;
             mri_write_pnm( seq->saver_prefix , tim ) ;
@@ -1713,7 +1758,6 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    }
 #endif
 
-
    /*---- loop thru, get images, save them ----*/
 
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
@@ -1735,7 +1779,24 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
       }
 #endif
 
-      if( ! seq->opt.save_pnm ){ /** write background only **/
+      if( flim->kind == MRI_rgb ){      /* 11 Feb 1998: write color image */
+                                        /*              directly as PPM   */
+         if( kf == seq->saver_from )
+            printf("writing %d x %d RGB images",flim->nx,flim->ny) ;
+         else if( kf%10 == 5 )
+            printf("." ) ;
+         fflush(stdout) ;
+
+         seq->set_orim = 0 ;  /* 30 Dec 1998 */
+         tim  = flim ;
+         flim = ISQ_process_mri( kf , seq , tim ) ;  /* image processing */
+         if( tim != flim ) KILL_1MRI( tim ) ;
+
+         sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
+         mri_write_pnm( fname , flim ) ;
+         nppm++ ;
+
+      } else if( ! seq->opt.save_pnm ){ /** write background only **/
 
          if( seq->opt.save_nsize ){
             tim = mri_nsize( flim ) ;
@@ -1752,8 +1813,14 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
             printf("." ) ;
          fflush(stdout) ;
 
-         sprintf( fname , "%s%04d" , seq->saver_prefix , kf ) ;
-         mri_write( fname , flim ) ; mri_free( flim ) ;
+         if( flim->kind == MRI_byte ){  /* 17 Feb 1999 */
+            sprintf( fname , "%s%04d.pnm" , seq->saver_prefix , kf ) ;
+            mri_write_pnm( fname , flim ) ; mri_free( flim ) ;
+            npgm++ ;
+         } else {
+            sprintf( fname , "%s%04d" , seq->saver_prefix , kf ) ;
+            mri_write( fname , flim ) ; mri_free( flim ) ;
+         }
 
       } else { /** write color overlay and everything **/
 
@@ -2419,10 +2486,17 @@ DPR(" .. ButtonPress") ;
                   if( (event->state & ShiftMask) )
                      ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
 
-                  else if( seq->status->num_total > 1 && (event->state & ControlMask) )
-                     ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
+                  else if( (event->state & ControlMask) ){
+                     if( seq->status->num_total > 1 ){
+                        ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
+                     } else {
+                        XmMenuPosition( seq->wbar_menu , event ) ;
+                        XtManageChild ( seq->wbar_menu ) ;
+                     }
+                  }
 
-                  else if( seq->status->num_total > 1 && (event->state & Mod1Mask) )
+                  else if( (seq->opt.save_one || seq->status->num_total > 1)
+                           && (event->state & Mod1Mask) )
                      ISQ_but_save_CB( seq->wbut_bot[NBUT_SAVE] , seq , NULL ) ;
 
                   else
@@ -3340,6 +3414,8 @@ void ISQ_statify_one( MCW_imseq * seq , int n , MRI_IMAGE * im )
    st = &( seq->imstat[n] ) ;
    gl = seq->glstat ;
 
+   if( im->kind == MRI_rgb ) return ;  /* 11 Feb 1999 */
+
    if( ! st->one_done ){  /* must do individual statistics */
 
       st->min = mri_min( im ) ;
@@ -3877,6 +3953,7 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
 
          if( newopt != NULL ) seq->opt = * newopt ;
          seq->opt.parent = (XtPointer) seq ;
+         SET_SAVE_LABEL(seq) ;
 
          ISQ_redisplay( seq , -1 , isqDR_display ) ;
          return True ;
@@ -4080,7 +4157,7 @@ Boolean ISQ_setup_new( MCW_imseq * seq , XtPointer newaux )
    if( !ISQ_VALID(seq) ) return False ;
 
    imstatus = (MCW_imseq_status *) seq->getim(0,isqCR_getstatus,newaux);
-   if( imstatus->num_total < 2 ) return False ;
+   if( imstatus->num_total < 1 ) return False ;  /* 09 Feb 1999: allow 1 */
 
 #if 0
    tim = (MRI_IMAGE *) seq->getim(0,isqCR_getqimage,newaux) ; /* 1st image */
@@ -4092,6 +4169,7 @@ Boolean ISQ_setup_new( MCW_imseq * seq , XtPointer newaux )
 
    KILL_1MRI(seq->imim) ;  /* NULL out all internally stored images */
    KILL_1MRI(seq->ovim) ;
+   KILL_1MRI(seq->orim) ;  /* 09 Feb 1999 */
 
    KILL_2XIM( seq->given_xim  , seq->sized_xim  ) ;
    KILL_2XIM( seq->given_xbar , seq->sized_xbar ) ;
@@ -4143,11 +4221,17 @@ Boolean ISQ_setup_new( MCW_imseq * seq , XtPointer newaux )
 
    /* OOPS!  I forgot to reset the scale max value! */
 
+   ii = seq->status->num_total - 1 ; if( ii < 0 ) ii = 0 ;  /* 09 Feb 1999 */
+
    XtVaSetValues( seq->wscale ,
-                     XmNmaximum , seq->status->num_total - 1 ,
+                     XmNmaximum , ii ,
                      XmNvalue   , seq->im_nr ,
                   NULL ) ;
 
+#if 0
+   if( seq->status->num_total == 1 )
+      drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
+#endif
 
 #ifdef IMSEQ_DEBUG
 printf("ISQ_setup_new: hbase=%d vbase=%d nim=%d lev=%g\n",
@@ -4169,28 +4253,28 @@ void ISQ_wbar_menu_CB( Widget w , XtPointer client_data ,
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
 
-   if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) return ;
+   if( ! ISQ_REALZ(seq) ) return ;
 
    /*** User range toggle ***/
 
    if( w == seq->wbar_rng_but ){
-      MCW_choose_string( seq->wbar , "Display range: bot top [ztop]" ,
+      MCW_choose_string( seq->wimage , "Display range: bot top [ztop]" ,
                          NULL , ISQ_set_rng_CB , seq ) ;
    }
 
    if( w == seq->wbar_zer_but ){
-      MCW_choose_ovcolor( seq->wbar , seq->dc , seq->zer_color ,
+      MCW_choose_ovcolor( seq->wimage , seq->dc , seq->zer_color ,
                           ISQ_set_zcol_CB , seq ) ;
    }
 
    if( w == seq->wbar_flat_but ){
-      MCW_choose_string( seq->wbar , "Flatten range: bot top" ,
+      MCW_choose_string( seq->wimage , "Flatten range: bot top" ,
                          NULL , ISQ_set_flat_CB , seq ) ;
    }
 
    if( w == seq->wbar_sharp_but ){
-      MCW_choose_integer( seq->wbar , "Sharpen Percentage" ,
-                          1 , 99 , (int)(100*seq->sharp_fac) ,
+      MCW_choose_integer( seq->wimage , "Sharpen Factor" ,
+                          1 , 9 , (int)(10*seq->sharp_fac) ,
                           ISQ_set_sharp_CB , seq ) ;
    }
 
@@ -4249,7 +4333,7 @@ void ISQ_set_sharp_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) return ;
 
-   seq->sharp_fac = 0.01 * cbs->ival ;
+   seq->sharp_fac = 0.1 * cbs->ival ;
 
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    return ;
@@ -4654,6 +4738,10 @@ void ISQ_make_montage( MCW_imseq * seq )
    float fac , wmm , hmm ;
    short gap_ov ;
 
+   byte  gap_rgb[3] ;  /* 11 Feb 1999 */
+   void  * gapval ;
+   int   isrgb ;
+
    if( ! ISQ_VALID(seq) ) return ;
 
 DPR("ISQ_make_montage");
@@ -4692,6 +4780,7 @@ DPR("ISQ_make_montage");
                 must be changed in a number of other places,
                 including the AFNI multiple crosshairs code! **/
 
+      isrgb = 0 ;
       ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ;
       for( ij=0 ; ij < nmont ; ij++ ){
          nim = seq->im_nr + (seq->mont_skip + 1)* (ij - ijcen) ;
@@ -4700,7 +4789,7 @@ DPRI(" Getting montage underlay",nim) ;
 
          seq->set_orim = (seq->need_orim != 0 && nim == seq->im_nr) ;  /* 30 Dec 1998 */
          tim = ISQ_manufacture_one( nim , 0 , seq ) ;
-         seq->set_orim = 0 ;                    /* 30 Dec 1998 */
+         seq->set_orim = 0 ;                                           /* 30 Dec 1998 */
          ADDTO_IMARR(mar,tim) ;
 
          if( tim != NULL ) nxyim++ ;
@@ -4710,14 +4799,40 @@ DPRI(" Getting montage underlay",nim) ;
             new_height_mm = IM_HEIGHT(tim) ; nyim = tim->ny ;
             seq->last_image_type = tim->kind ;
          }
+
+         isrgb = isrgb || (tim != NULL && tim->kind == MRI_rgb) ;
       }
 
 DPRI(" Making underlay cat2D from",nxyim) ;
 
-      gap_ov = -(seq->mont_gapcolor) ;  /* negative ==> overlay */
+      if( isrgb ){                       /* 11 Feb 1999 */
+         if( seq->mont_gapcolor > 0 )
+            DC_pixel_to_rgb( seq->dc , seq->dc->ovc->pix_ov[seq->mont_gapcolor],
+                             gap_rgb , gap_rgb+1 , gap_rgb+2 ) ;
+         else
+            gap_rgb[0] = gap_rgb[1] = gap_rgb[2] = 0 ;
 
-      seq->imim = im = mri_cat2D( seq->mont_nx , seq->mont_ny ,      /* save this */
-                                  seq->mont_gap , &gap_ov , mar ) ;  /* underlay  */
+         gapval = (void *) gap_rgb ;
+      } else {
+         gap_ov = -(seq->mont_gapcolor) ;  /* negative ==> overlay palette */
+         gapval = (void *) &gap_ov ;
+      }
+
+      /* 17 Feb 1999: if any are rgb, must convert all to that format */
+
+      if( isrgb ){
+         for( ij=0 ; ij < nmont ; ij++ ){
+            tim = IMARR_SUBIMAGE(mar,ij) ;
+            if( tim != NULL && tim->kind != MRI_rgb ){
+               MRI_IMAGE * qim = mri_to_rgb( tim ) ;
+               mri_free(tim) ;
+               IMARR_SUBIMAGE(mar,ij) = qim ;
+            }
+         }
+      }
+
+      seq->imim = im = mri_cat2D( seq->mont_nx , seq->mont_ny ,     /* save this */
+                                  seq->mont_gap , gapval , mar ) ;  /* underlay  */
 
 DPR("Destroying underlay image array") ;
 
@@ -4779,7 +4894,8 @@ DPRI(" Making overlay cat2D from",nov) ;
             ovim = seq->ovim =                                /* save this */
                mri_cat2D( seq->mont_nx , seq->mont_ny ,       /* overlay   */
                           seq->mont_gap , &gap_ov ,  mar ) ;
-         } else ovim = seq->ovim = NULL ;                     /* nothing */
+         } else
+            ovim = seq->ovim = NULL ;                         /* nothing */
 
 DPR("Destroying overlay image array") ;
 
@@ -4801,7 +4917,8 @@ DPR("Destroying overlay image array") ;
 
    if( ovim == NULL || seq->opt.no_overlay ){     /* no processing of overlay */
       tim = im ;
-   } else {                                       /* process overlay */
+   } else if( im->kind == MRI_short ){            /* process overlay onto shorts */
+
       register short * tar , * oar , * iar ;
       register int ii , npix = im->nx * im->ny ;
 
@@ -4809,14 +4926,22 @@ DPR("Destroying overlay image array") ;
       tar = MRI_SHORT_PTR( tim ) ;
       oar = MRI_SHORT_PTR( ovim ) ;
       iar = MRI_SHORT_PTR( im ) ;
-#ifdef DONT_USE_MEMCPY
-      for( ii=0 ; ii < npix ; ii++ )
-         tar[ii] = (oar[ii] == 0) ? iar[ii] : -oar[ii] ;
-#else
       (void) memcpy( tar , iar , sizeof(short)*npix ) ; /* this code assumes   */
       for( ii=0 ; ii < npix ; ii++ )                    /* that relatively few */
          if( oar[ii] > 0 ) tar[ii] = -oar[ii] ;         /* pixels are overlaid */
-#endif
+
+   } else if( im->kind == MRI_rgb ){                       /* 11 Feb 1999 */
+
+      register int ii , npix = im->nx * im->ny ;
+      register short * oar = MRI_SHORT_PTR(ovim) ;
+      register byte * tar , * iar = MRI_RGB_PTR(im) ;
+      register Pixel * negpix = seq->dc->ovc->pix_ov ;
+
+      tim = mri_to_rgb( im ) ; tar = MRI_RGB_PTR(tim) ;
+
+      for( ii=0 ; ii < npix ; ii++ )
+         if( oar[ii] > 0 )
+            DC_pixel_to_rgb( seq->dc, negpix[oar[ii]], tar+(3*ii),tar+(3*ii+1),tar+(3*ii+2) ) ;
    }
 
    /* convert result to XImage for display */
@@ -5083,10 +5208,7 @@ void ISQ_rowgraph_draw( MCW_imseq * seq )
       return ;
    }
 
-   if( seq->orim == NULL ){
-      fprintf(stderr,"*** error in ISQ_rowgraph_draw: orim = NULL!\n") ;
-      return ;  /* no original image data == error */
-   }
+   if( seq->orim == NULL ) return ;
 
    /* find current location */
 
@@ -5244,10 +5366,7 @@ void ISQ_surfgraph_draw( MCW_imseq * seq )
       return ;
    }
 
-   if( seq->orim == NULL ){
-      fprintf(stderr,"*** error in ISQ_surfgraph_draw: orim = NULL!\n") ;
-      return ;  /* no original image data == error */
-   }
+   if( seq->orim == NULL ) return ;
 
    /* find current location */
 
@@ -5643,80 +5762,5 @@ void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
       isort_float( 9 , aa ) ;
       ar[nx-1+joff] = OSUM( aa[2],aa[3],aa[4],aa[5],aa[6] ) ;
    }
-   return ;
-}
-
-void lacy9_box_func( int nx , int ny , double dx, double dy, float * ar )
-{
-   int ii , jj , nxy , isp , nnn , qqq , imid,jmid ;
-   float val ;
-
-   if( nx < 3 || ny < 3 ) return ;
-
-   osfilt9_box_func( nx,ny,dx,dy,ar ) ;  /* smooth */
-
-   /** make space and copy input into it **/
-
-   nxy = nx * ny ;
-   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
-   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-
-   /** process copy of input back into the input array **/
-
-#undef Z
-#undef ZZ
-#define Z(x,y)    ( ((x)>(y)) ? 0 : ((x)==(y)) ? 1 : 2 )
-#define ZZ(a,b,c) ( Z((a),(b))+Z((c),(b)) >= 3 )
-
-   for( ii=0 ; ii < nxy ; ii++ ) ar[ii] = 0.0 ;
-
-   imid = nx/2 ; jmid = ny/2 ;
-
-   for( jj=1 ; jj < ny-1 ; jj++ ){       /* find local peaks */
-     for( ii=1 ; ii < nx-1 ; ii++ ){     /* in each 3x3 cell */
-
-       val = AT(ii,jj) ;
-
-#if 0
-       isp =    ZZ( AT(ii-1,jj  ) , val , AT(ii+1,jj  ) )
-             || ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
-             || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) )
-             || ZZ( AT(ii  ,jj+1) , val , AT(ii  ,jj-1) ) ;
-#else
-       if( abs(ii-imid) <= abs(jj-jmid) ){
-          isp =    ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
-                || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) )
-                || ZZ( AT(ii  ,jj+1) , val , AT(ii  ,jj-1) ) ;
-       } else {
-          isp =    ZZ( AT(ii-1,jj  ) , val , AT(ii+1,jj  ) )
-                || ZZ( AT(ii-1,jj-1) , val , AT(ii+1,jj+1) )
-                || ZZ( AT(ii-1,jj+1) , val , AT(ii+1,jj-1) ) ;
-       }
-#endif
-
-       if( isp ) ar[ii+jj*nx] = val ;
-     }
-   }
-
-   qqq = 0 ;
-   do {
-      nnn = 0 ;
-      for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
-      for( jj=1 ; jj < ny-1 ; jj++ ){     /* clip off those that */
-        for( ii=1 ; ii < nx-1 ; ii++ ){   /* are too isolated    */
-
-           if( AT(ii,jj) != 0.0 ){
-              isp =  (AT(ii-1,jj  ) != 0.0) + (AT(ii+1,jj  ) != 0.0)
-                   + (AT(ii-1,jj+1) != 0.0) + (AT(ii+1,jj+1) != 0.0)
-                   + (AT(ii-1,jj-1) != 0.0) + (AT(ii+1,jj-1) != 0.0)
-                   + (AT(ii  ,jj-1) != 0.0) + (AT(ii  ,jj-1) != 0.0) ;
-
-              if( isp < 2 ){ ar[ii+jj*nx] = 0.0 ; nnn++ ; }
-           }
-        }
-      }
-      qqq++ ;
-   } while( qqq < 9 && nnn > 0 ) ;
-
    return ;
 }

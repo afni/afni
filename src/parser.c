@@ -15,8 +15,8 @@ static integer c__1 = 1;
 {
     /* Initialized data */
 
-    static integer n_funcargs__[46] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
-	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2 };
+    static integer n_funcargs__[49] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
+	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -600,7 +600,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*47] = "SIN                             " 
+    static char c_funcname__[32*50] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -625,8 +625,9 @@ L9000:
 	    "                " "STEP                            " "BOOL      "
 	    "                      " "AND                             " "OR  "
 	    "                            " "MOFN                            " 
-	    "ASTEP                           " "DUMMY                       "
-	    "    ";
+	    "ASTEP                           " "SIND                        "
+	    "    " "COSD                            " "TAND                  "
+	    "          " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -721,7 +722,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*47] = "SIN                             " 
+    static char c_funcname__[32*50] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -746,8 +747,9 @@ L8000:
 	    "                " "STEP                            " "BOOL      "
 	    "                      " "AND                             " "OR  "
 	    "                            " "MOFN                            " 
-	    "ASTEP                           " "DUMMY                       "
-	    "    ";
+	    "ASTEP                           " "SIND                        "
+	    "    " "COSD                            " "TAND                  "
+	    "          " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -901,7 +903,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 1472, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 1568, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -910,7 +912,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 46) {
+	if (ifunc <= 49) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1153,6 +1155,7 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 
 /*  External library functions */
 
+
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
@@ -1229,12 +1232,24 @@ L1000:
 	r8_eval__[neval - 1] = sin(r8_eval__[neval - 1]);
 /* ...................................................................
 .... */
+    } else if (s_cmp(cncode, "SIND", 8L, 4L) == 0) {
+	r8_eval__[neval - 1] = sin(r8_eval__[neval - 1] * .01745329251994);
+/* ...................................................................
+.... */
     } else if (s_cmp(cncode, "COS", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = cos(r8_eval__[neval - 1]);
 /* ...................................................................
 .... */
+    } else if (s_cmp(cncode, "COSD", 8L, 4L) == 0) {
+	r8_eval__[neval - 1] = cos(r8_eval__[neval - 1] * .01745329251994);
+/* ...................................................................
+.... */
     } else if (s_cmp(cncode, "TAN", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = tan(r8_eval__[neval - 1]);
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "TAND", 8L, 4L) == 0) {
+	r8_eval__[neval - 1] = tan(r8_eval__[neval - 1] * .01745329251994);
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "SQRT", 8L, 4L) == 0) {
@@ -1534,6 +1549,7 @@ L8000:
 
 /*  External library functions */
 
+
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
@@ -1783,6 +1799,14 @@ L1000:
 	    }
 /* ...............................................................
 ........ */
+	} else if (s_cmp(cncode, "SIND", 8L, 4L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv - 
+			ibv + (neval << 6) - 65] * .01745329251994);
+	    }
+/* ...............................................................
+........ */
 	} else if (s_cmp(cncode, "COS", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -1791,11 +1815,27 @@ L1000:
 	    }
 /* ...............................................................
 ........ */
+	} else if (s_cmp(cncode, "COSD", 8L, 4L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv - 
+			ibv + (neval << 6) - 65] * .01745329251994);
+	    }
+/* ...............................................................
+........ */
 	} else if (s_cmp(cncode, "TAN", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "TAND", 8L, 4L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
+			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
 /* ...............................................................
 ........ */

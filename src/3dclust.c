@@ -1,28 +1,29 @@
-
+/*---------------------------------------------------------------------------*/
+/*
+  This program performs cluster detection in 3D datasets.
+*/
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994-7 by
+/*---------------------------------------------------------------------------*/
 
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
+#define PROGRAM_NAME "3dclust"                       /* name of this program */
+#define PROGRAM_AUTHOR "R. W. Cox et al."                  /* program author */
+#define PROGRAM_DATE "19 January 1999"           /* date of last program mod */
 
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-/* Modified 1/24/97 by BDW to combine the previous modifications */
+/*---------------------------------------------------------------------------*/
+
+/* Modified 1/19/99 by BDW to allow use of signed intensities in calculation
+     of cluster averages, etc. (-noabs option), as requested by H. Garavan */
+/* Modified 1/24/97 by BDW to combine the previous modifications  */
+/* Modified 12/27/96 by BDW  Corrections to the SEM calculations. */
 /* Modified 4/19/96 by MSB to give cluster intensity and extent information */
-/* Modified 11/1/96 by MSB to give cluster intensity standard error of the mean (SEM)
-and average intensity and SEM for all voxels (globally)
+/* Modified 11/1/96 by MSB to give cluster intensity standard error of the mean
+   (SEM) and average intensity and SEM for all voxels (globally)  
+
 Modified source files were
 3dclust.c
 Modified variables were:
@@ -51,10 +52,8 @@ of the interpolated data set by the square root of the number of interpolated
 voxels per original voxel
 
 */
-/*----------------------------------------------------------------------------
-  Modified 12/27/96 by BDW
-  Corrections to the SEM calculations.
-----------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -65,6 +64,8 @@ static EDIT_options CL_edopt ;
 static int CL_nopt ;
 
 static int CL_summarize = 0 ;
+
+static int CL_noabs = 0;   /* BDW  19 Jan 1999 */
 
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
@@ -78,6 +79,8 @@ void CL_read_opts( int , char ** ) ;
 
 void MCW_fc7( float qval , char * buf ) ;
 
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char * argv[] )
 {
    float rmm , vmul ;
@@ -87,9 +90,9 @@ int main( int argc , char * argv[] )
    int nx,ny,nz , nxy,nxyz , ivfim ,
        iclu , ptmin , ipt , ii,jj,kk , ndet , nopt,noneg=0 ;
    float dx,dy,dz , xx,yy,zz,mm , xxsum,yysum,zzsum,mmsum , volsum , fimfac ,
-                                  xxmax,yymax,zzmax,mmmax , mssum,msmax ,
+                                  xxmax,yymax,zzmax,mmmax , ms, mssum , msmax ,
    		RLmax, RLmin, APmax, APmin, ISmax, ISmin;
-   double sem, sqsum, glmmsum, glsqsum;
+   double mean, sem, sqsum, glmmsum, glsqsum, glmssum, glmean;
    MCW_cluster_array * clar , * clbig ;
    MCW_cluster       * cl ;
    THD_fvec3 fv ;
@@ -97,25 +100,37 @@ int main( int argc , char * argv[] )
    float vol_total ;
    char buf1[16],buf2[16],buf3[16] ;
 
+
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
+
+
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       fprintf(stderr,
-             "Copyright 1994-7 Medical College of Wisconsin\n\n"
-             "Simple-minded Cluster Detection in 3D Datasets\n"
-             "Usage: 3dclust [editing options] [-summarize] rmm vmul dset ... \n"
-             "  where rmm  = cluster connection radius (mm);\n"
-             "        vmul = minimum cluster volume (micro-liters)\n"
-             "               (both rmm and vmul must be positive);\n"
-             "        dset = input dataset (more than one allowed).\n"
-             "  The report is sent to stdout.\n"
-             "  N.B.: The -summarize option will write out only the total\n"
-             "        nonzero voxel count and volume for each dataset.\n"
-             "  N.B.: The editing options are as in 3dmerge.\n"
-             "  N.B.: The program does not work on complex-valued datasets!\n"
-             "  N.B.: Using the -1noneg option is strongly recommended!	\n "
-             " N.B.: SEM values are not realistic for interpolated data sets! \n"
-             "       a ROUGH correction is to multiply the SEM of the interpolated \n"
-             "       data set by the square root of the number of interpolated \n"
-	     "       voxels per original voxel. \n" ) ;
+	  "Copyright 1994-9 Medical College of Wisconsin\n\n"
+          "Simple-minded Cluster Detection in 3D Datasets\n"
+          "Usage: 3dclust [editing options] [-summarize] rmm vmul dset ... \n"
+          "  where rmm  = cluster connection radius (mm);\n"
+          "        vmul = minimum cluster volume (micro-liters)\n"
+          "               (both rmm and vmul must be positive);\n"
+          "        dset = input dataset (more than one allowed).\n"
+          "  The report is sent to stdout.\n"
+          "  "
+          "  The -noabs option uses the signed voxel intensities (not the \n"
+          "     abs. value) for calculation of the mean and SEM \n"
+          "  The -summarize option will write out only the total\n"
+          "     nonzero voxel count and volume for each dataset.\n"
+          "  The editing options are as in 3dmerge.\n"
+          "  The program does not work on complex-valued datasets!\n"
+          "  Using the -1noneg option is strongly recommended!	\n "
+          "  SEM values are not realistic for interpolated data sets! \n"
+          "  A ROUGH correction is to multiply the SEM of the interpolated\n"
+          "     data set by the square root of the number of interpolated \n"
+          "     voxels per original voxel. \n" ) ;
       exit(0) ;
    }
 
@@ -190,16 +205,25 @@ int main( int argc , char * argv[] )
           "[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
           "[Single voxel volume = %.1f (microliters) ]\n"
           "[Voxel datum type    = %s ]\n"
-          "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
-"Volume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s  Mean|*|    SEM    Max Int  MI %s  MI %s  MI %s\n"
-"------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
+          "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n",
            argv[iarg] ,
 #if 0
            dset->self_name , dset->label1 ,
 #endif
            rmm , vmul , dx*dy*dz ,
            MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
-           dx,dy,dz ,
+           dx,dy,dz );
+
+	 if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+	   printf ("Mean and SEM based on Signed voxel intensities: \n\n");
+	 else
+	   printf ("Mean and SEM based on Absolute Value "
+		   "of voxel intensities: \n\n");
+
+	 printf (
+"Volume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
+"------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
+
            ORIENT_tinystr[ CL_cord.xxor ] ,
            ORIENT_tinystr[ CL_cord.yyor ] ,
            ORIENT_tinystr[ CL_cord.zzor ] ,
@@ -212,7 +236,12 @@ int main( int argc , char * argv[] )
           ) ;
 
        } else {
-          printf("\nCluster summary for file %s\n# Vox  Volume    Mean |*|  SEM     \n",argv[iarg]) ;
+	 if (CL_noabs)                                   /* BDW  19 Jan 1999 */
+	   printf ("Mean and SEM based on Signed voxel intensities: \n");
+	 else
+	   printf ("Mean and SEM based on Absolute Value "
+		   "of voxel intensities: \n");
+	 printf("Cluster summary for file %s\n# Vox  Volume      Mean    SEM    \n",argv[iarg]) ;
        }
 
       clar = MCW_find_clusters( nx,ny,nz , dx,dy,dz ,
@@ -260,7 +289,7 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
       ndet = 0 ;
 
       vol_total = nvox_total = 0 ;
-      glmmsum = glsqsum = 0;
+      glmmsum = glmssum = glsqsum = 0;
       	
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
          cl = clar->clar[iclu] ;
@@ -287,12 +316,17 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
             fv = THD_3dmm_to_dicomm( dset , fv ) ;
             xx = fv.xyz[0] ; yy = fv.xyz[1] ; zz = fv.xyz[2] ;
             THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz ) ;  /* July 1997 */
-            mm = fabs(cl->mag[ipt]) ; mmsum += mm ; mssum += cl->mag[ipt] ;
+
+	    ms = cl->mag[ipt];                         /* BDW  18 Jan 1999 */
+	    mm = fabs(ms);
+
+	    mssum += ms;
+	    mmsum += mm;
             sqsum += mm * mm;
             xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
             if( mm > mmmax ){
                xxmax = xx ; yymax = yy ; zzmax = zz ;
-               mmmax = mm ; msmax = cl->mag[ipt] ;
+               mmmax = mm ; msmax = ms ;
             }
 
 	    /* Dimensions: */
@@ -312,27 +346,34 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
          }
          if( mmsum == 0.0 ) continue ;
 
+	 glmssum += mssum;
 	 glmmsum += mmsum;
 	 glsqsum += sqsum ;
 
          ndet++ ;
          xxsum /= mmsum ; yysum /= mmsum ; zzsum /= mmsum ;
-         mssum /= cl->num_pt ; mmsum /= cl->num_pt ;
-         if( fimfac != 0.0 ){ mssum *= fimfac ; mmsum *= fimfac ; msmax *= fimfac ; }
 
-	 /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N, where s^2 = (SUM Y^2)/N - (Ymean)^2
-	 where sqsum = (SUM Y^2 )*/
+	 if (CL_noabs)   mean = mssum / cl->num_pt;     /* BDW  19 Jan 1999 */ 
+         else            mean = mmsum / cl->num_pt; 
 
-	 /* BDW 12/27/96 */
-	 if( fimfac != 0.0 ){ sqsum *= fimfac*fimfac ; }
+         if( fimfac != 0.0 )
+	   { mean  *= fimfac;  msmax *= fimfac; 
+	     sqsum *= fimfac*fimfac; }                      /* BDW 12/27/96 */
+
+	 /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N, 
+	    where s^2 = (SUM Y^2)/N - (Ymean)^2
+	    where sqsum = (SUM Y^2 ) */
+
 	 if (cl->num_pt > 1)
-	   sem = (sqsum - (cl->num_pt * mmsum * mmsum)) / (cl->num_pt - 1);
+	   {
+	     sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
+	     if (sem > 0.0) sem = sqrt( sem / cl->num_pt );  else sem = 0.0;
+	   }
 	 else
 	   sem = 0.0;
-	 sem = sqrt( sem / cl->num_pt );
 
          if( !CL_summarize ){
-           MCW_fc7(mmsum,buf1) ;
+           MCW_fc7(mean, buf1) ;
            MCW_fc7(msmax,buf2) ;
            MCW_fc7(sem  ,buf3) ;
 
@@ -349,24 +390,29 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
       if( ndet == 0 )
          printf("*** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n") ;
 
-      /* MSB 11/1/96  Calculate global SEM */
-      glmmsum /= nvox_total;
+
+      /* MSB 11/1/96  Calculate global SEM */      
+
+      if (CL_noabs)   glmean = glmssum / nvox_total;    /* BDW  19 Jan 1999 */
+      else            glmean = glmmsum / nvox_total; 
 
       /* BDW 12/27/96 */
-      if( fimfac != 0.0 ){ glsqsum *= fimfac*fimfac ; glmmsum *= fimfac ; }
+      if( fimfac != 0.0 ){ glsqsum *= fimfac*fimfac ; glmean *= fimfac ; }
       if (nvox_total > 1)
-	sem = (glsqsum - (nvox_total * glmmsum * glmmsum)) / (nvox_total - 1);
+	{
+	  sem = (glsqsum - (nvox_total*glmean*glmean)) / (nvox_total - 1);
+	  if (sem > 0.0) sem = sqrt( sem / nvox_total );  else sem = 0.0;
+	}
       else
 	sem = 0.0;
-      sem = sqrt( sem / nvox_total );
 
       /* MSB 11/1/96 Modified so that mean and SEM would print in correct column */
       if( CL_summarize )
          printf( "----- --------- -------- -------- \n"
-                 "%5d %9.1f %8.1f %6.3f\n" , nvox_total , vol_total, glmmsum, sem ) ;
+                 "%5d %9.1f %8.1f %6.3f\n" , nvox_total , vol_total, glmean, sem ) ;
       else if( ndet > 1  )
 	{
-          MCW_fc7(glmmsum,buf1) ;
+          MCW_fc7(glmean ,buf1) ;
           MCW_fc7(sem    ,buf3) ;
 	  printf ("------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n");
 	   printf("%6.0f                                                                 %7s  %7s                             \n",
@@ -378,9 +424,11 @@ for( iclu=0 ; iclu < clar->num_clu ; iclu++)
    exit(0) ;
 }
 
-/*--------------------------------------------------------------------
+
+/*---------------------------------------------------------------------------*/
+/*
    read the arguments, and load the global variables
-----------------------------------------------------------------------*/
+*/
 
 #ifdef CLDEBUG
 #  define DUMP1 fprintf(stderr,"ARG: %s\n",argv[nopt])
@@ -425,6 +473,14 @@ void CL_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /**** -noabs ****/                                /* BDW  19 Jan 1999 */
+
+      if( strncmp(argv[nopt],"-noabs",6) == 0 ){
+         CL_noabs = 1 ;
+         nopt++ ;
+         continue ;
+      }
+
       /**** unknown switch ****/
 
       fprintf(stderr,"*** unrecognized option %s\a\n",argv[nopt]) ;
@@ -440,7 +496,7 @@ printf("*** finished with options\n") ;
    return ;
 }
 
-/*-----------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
 void MCW_fc7( float qval , char * buf )
 {
@@ -496,3 +552,4 @@ void MCW_fc7( float qval , char * buf )
    strcpy(buf,lbuf) ;
    return ;
 }
+/*---------------------------------------------------------------------------*/

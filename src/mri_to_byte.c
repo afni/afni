@@ -16,6 +16,8 @@ MRI_IMAGE *mri_to_byte( MRI_IMAGE *oldim )
 
 WHOAMI ; IMHEADER(oldim) ;
 
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+
    newim = mri_new_conforming( oldim , MRI_byte ) ;
    npix  = oldim->nvox ;
 
@@ -100,6 +102,8 @@ MRI_IMAGE *mri_to_byte_scl( double scl , double lev , MRI_IMAGE *oldim )
    register byte *ar ;
 
 WHOAMI ; IMHEADER(oldim) ;
+
+   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_byte ) ;
    npix  = oldim->nvox ;

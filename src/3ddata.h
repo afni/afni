@@ -45,9 +45,9 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-#define THD_MAX_SESSION_ANAT  128
-#define THD_MAX_SESSION_FUNC  128
-#define THD_MAX_NUM_SESSION    32
+#define THD_MAX_SESSION_ANAT  192
+#define THD_MAX_SESSION_FUNC  192
+#define THD_MAX_NUM_SESSION    64
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_FUNC  /* largest of the above! */
 
@@ -1678,6 +1678,9 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 #define DSET_DY(ds) ((ds)->daxes->yydel)
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
+#define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
+                           fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->zzdel)   )
+
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
                              DSET_ONDISK(ds) )
@@ -2096,6 +2099,8 @@ extern THD_session * THD_init_session( char * ) ;
 
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
+
+extern int * MCW_get_intlist( int , char * ) ;
 
 #define MASTER_HELP_STRING                                                    \
     " An input dataset is specified using one of these forms:\n"              \

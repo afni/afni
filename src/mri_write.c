@@ -19,6 +19,8 @@ WHOAMI ; IMHEADER(im) ;
       return mri_write_7D( fname , im ) ;
    }
 
+   if( im->kind == MRI_rgb ){ return mri_write_pnm( fname , im ) ; }
+
    imfile = fopen( fname , "r" ) ;
    if( imfile != NULL ){
       fclose( imfile ) ;
