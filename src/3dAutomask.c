@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *dset , *mset ;
    char *prefix = "automask" ;
    byte *mask ;
-   int iarg=1 , fillin=0 , nmask,nfill ;
+   int iarg=1 , fillin=0 , nmask,nfill , dilate=0 , dd ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
@@ -21,6 +21,7 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [default='automask']\n"
+             "  -dilate nd  = Dilate the mask outwards 'nd' times.\n"
 #ifdef ALLOW_FILLIN
              "  -fillin nnn = Fill in holes inside the mask of width up\n"
              "                 to 'nnn' voxels. [default=0=no fillin]\n"
@@ -57,6 +58,14 @@ int main( int argc , char * argv[] )
       }
 #endif
 
+      if( strcmp(argv[iarg],"-dilate") == 0 ){
+         dilate = strtol( argv[++iarg] , NULL , 10 ) ;
+         if( dilate < 0 ){
+           fprintf(stderr,"** -dilate %s is illegal!\n",argv[iarg]); exit(1);
+         }
+         iarg++ ; continue ;
+      }
+
       fprintf(stderr,"** ILLEGAL option: %s\n",argv[iarg]) ; exit(1) ;
    }
 
@@ -75,6 +84,11 @@ int main( int argc , char * argv[] )
    /*** do all the real work now ***/
 
    mask = THD_automask( dset ) ;
+
+   /* 30 Aug 2002 */
+
+   for( dd=0 ; dd < dilate ; dd++ )
+     THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
 
    if( mask == NULL ){ fprintf(stderr,"** Can't make mask!\n"); exit(1); }
 

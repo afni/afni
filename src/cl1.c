@@ -69,22 +69,22 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
    n2d   = n+2 ;
 
    kode  = (cony != 0) ; /* enforce implicit constraints on x[] */
-   iter  = 10*klmd ;
+   iter  = 11*klmd ;
 
    toler = 0.0001 ;
    error = 0.0 ;
 
    /* input/output matrices & vectors */
 
-   q     = (real *) malloc( sizeof(real) * klm2d*n2d ) ;
-   x     = (real *) malloc( sizeof(real) * n2d ) ;
-   res   = (real *) malloc( sizeof(real) * klmd ) ;
+   q     = (real *) calloc( 1, sizeof(real) * klm2d*n2d ) ;
+   x     = (real *) calloc( 1, sizeof(real) * n2d ) ;
+   res   = (real *) calloc( 1, sizeof(real) * klmd ) ;
 
    /* workspaces */
 
-   cu    = (real *) malloc( sizeof(real) * 2*nklmd ) ;
-   iu    = (integer *) malloc( sizeof(integer) * 2*nklmd ) ;
-   s     = (integer *) malloc( sizeof(integer) * klmd ) ;
+   cu    = (real *)    calloc( 1, sizeof(real) * 2*nklmd ) ;
+   iu    = (integer *) calloc( 1, sizeof(integer) * 2*nklmd ) ;
+   s     = (integer *) calloc( 1, sizeof(integer) * klmd ) ;
 
    /* load matrices & vectors */
 
@@ -96,12 +96,12 @@ int cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
       q[ii+nvec*klm2d] = z[ii] ;        /* vector */
 
    if( cony ){
-     for( jj=0 ; jj < nvec ; jj++ )       /* constraints on solution */
+     for( jj=0 ; jj < nvec ; jj++ )     /* constraints on solution */
        x[jj] = (y[jj] < 0.0) ? -1.0
               :(y[jj] > 0.0) ?  1.0 : 0.0 ;
    }
 
-   for( ii=0 ; ii < ndim ; ii++ )       /* no constraints on resids */
+   for( ii=0 ; ii < klmd ; ii++ )       /* no constraints on resids */
       res[ii] = 0.0 ;
 
    /*-- do the work --*/

@@ -22,7 +22,7 @@ void THD_load_datablock_verbose( int v ){ verbose = v; }
 /*! Check if all sub-bricks have the same datum type. [14 Mar 2002]
 -------------------------------------------------------------------*/
 
-static int THD_datum_constant( THD_datablock *blk )
+int THD_datum_constant( THD_datablock *blk )
 {
    int ibr , dzero , nv=blk->nvals ;
    if( nv == 1 ) return 1 ;                /* of course */
