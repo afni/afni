@@ -3161,18 +3161,12 @@ int main (int argc,char *argv[])
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind;
    SUMA_Boolean LocalHead = NOPE;
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+	SUMA_mainENTRY;
+   SUMA_STANDALONE_INIT;
 	
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
-   /* sets the debuging flags, if any */
-   SUMA_ParseInput_basics(argv, argc);
 
    if (argc < 4)
        {
@@ -4376,12 +4370,12 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
       /* allocate for nimlROI */
       nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
       nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
-      nimlROI->idcode_str = NI_get_attribute( nel , "idcode_str");
-      nimlROI->Parent_idcode_str = NI_get_attribute( nel , "Parent_idcode_str");
-      nimlROI->Label = NI_get_attribute( nel , "Label");
+      nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "idcode_str"));
+      nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_idcode_str"));
+      nimlROI->Label = SUMA_copy_string(NI_get_attribute( nel , "Label"));
       nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
       nimlROI->N_ROI_datum = nel->vec_len;
-      nimlROI->ColPlaneName = NI_get_attribute( nel , "ColPlaneName");
+      nimlROI->ColPlaneName = SUMA_copy_string(NI_get_attribute( nel , "ColPlaneName"));
       if (SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
                            nimlROI->FillColor, 3) < 0) {
          SUMA_SLP_Err("Failed in reading FillColor.");
@@ -4454,17 +4448,17 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
       if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[inel]->Parent_idcode_str);
 
       /* manually free nimlROI fields that received copies of allocated space as opposed to pointer copies */
-      SUMA_free(nimlROI->idcode_str);
-      SUMA_free(nimlROI->Parent_idcode_str); 
-      SUMA_free(nimlROI->Label);
-      SUMA_free(nimlROI->ColPlaneName);
+      if (nimlROI->idcode_str) SUMA_free(nimlROI->idcode_str);
+      if (nimlROI->Parent_idcode_str) SUMA_free(nimlROI->Parent_idcode_str); 
+      if (nimlROI->Label) SUMA_free(nimlROI->Label);
+      if (nimlROI->ColPlaneName) SUMA_free(nimlROI->ColPlaneName);
 
 
       /* free nimlROI */
       nimlROI = SUMA_Free_NIMLDrawROI(nimlROI);
 
       /* free nel and get it ready for the next load */
-      NI_free_element(nel) ; nel = NULL;
+      NI_free_element(nel) ; nel = NULL; 
             
    }
    
@@ -4724,14 +4718,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_mainENTRY;
-   
-   /* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	
-   if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+   SUMA_STANDALONE_INIT;
 	
    if (argc < 4) {
       usage_ROI2dataset_Main ();

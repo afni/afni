@@ -56,7 +56,6 @@
    #include "SUMA_Algorithms.h"
    #include "SUMA_DataSets.h"
    #include "SUMA_Macros.h"  
-
    #define SUMA_ENTRY ENTRY(FuncName)
    #define SUMA_RETURN RETURN
    #define SUMA_RETURNe EXRETURN
@@ -175,6 +174,8 @@
    #include "SUMA_Surface_IO.h"
    #include "SUMA_SphericalMapping.h"
    #include "SUMA_xColBar.h"
+   #include "SUMA_SurfClust.h"
+
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr
