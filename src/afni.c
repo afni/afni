@@ -2040,6 +2040,7 @@ STATUS("get status") ;
                                          TEMP_IVEC3( im3d->vinfo->i1 ,
                                                      im3d->vinfo->j2 ,
                                                      im3d->vinfo->k3  ) ) ;
+      set_thick_memplot(0.0) ;
 
       if( n == ib.ijk[2] || im3d->vinfo->xhairs_all ){
          int jp,ip , jcen,icen , gappp , jj,ii ;
@@ -4703,6 +4704,23 @@ STATUS("setting image view to be L-R mirrored") ;
          drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
       }
 
+#if 0
+      /* 23 Jan 2003: set opacity? */
+
+      { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
+        if( eee != NULL ){
+          int opval = (int) strtod( eee , NULL ) ;
+          if( opval > 0 && opval <= 9 )
+            drive_MCW_imseq( *snew , isqDR_setopacity , (XtPointer)opval ) ;
+        }
+      }
+
+      /* 23 Jan 2003: set default save? */
+
+      drive_MCW_imseq( *snew , isqDR_setimsave ,
+                       (XtPointer)getenv("AFNI_DEFAULT_IMSAVE") ) ;
+#endif
+
 #ifdef USE_SIDES
 #define LL 0
 #define RR 1
@@ -4729,23 +4747,6 @@ STATUS("setting image view to be L-R mirrored") ;
 STATUS("setting image viewer 'sides'") ;
 
          drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
-
-         /* 23 Jan 2003: set opacity? */
-
-         { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
-           if( eee != NULL ){
-             int opval = (int) strtod( eee , NULL ) ;
-             if( opval > 0 && opval <= 9 )
-               drive_MCW_imseq( *snew , isqDR_setopacity , (XtPointer)opval ) ;
-           }
-         }
-
-         /* 23 Jan 2003: set default save? */
-
-         { char *eee = getenv("AFNI_DEFAULT_IMSAVE") ;
-           drive_MCW_imseq( *snew , isqDR_setimsave , (XtPointer)eee ) ;
-         }
-
       }
 #undef LL
 #undef RR

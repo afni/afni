@@ -1744,14 +1744,15 @@ static int AFNI_sleeper( char *cmd )
 
 static int AFNI_setenv( char *cmd )
 {
-   char nam[256]="\0" , val[1024]="\0" , eqn[1280] ;
+   char nam[256]="\0" , val[1024]="\0" , eqn[1280] , *eee ;
 
    if( cmd == NULL || strlen(cmd) < 3 ) RETURN(-1) ;
 
    sscanf( cmd , "%255s %1023s" , nam , val ) ;
    if( nam[0] == '\0' || val[0] == '\0' ) RETURN(-1) ;
 
-   sprintf(eqn,"%s=%s",nam,val) ; putenv(eqn) ;
+   sprintf(eqn,"%s=%s",nam,val) ;
+   eee = strdup(eqn) ; putenv(eee) ;
    RETURN(0) ;
 }
 

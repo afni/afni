@@ -1546,6 +1546,21 @@ STATUS("creation: widgets created") ;
 
    } /* end of plots & labels stuff */
 
+   /* 23 Jan 2003: set default save? */
+
+   drive_MCW_imseq( newseq , isqDR_setimsave ,
+                    (XtPointer)getenv("AFNI_DEFAULT_IMSAVE") ) ;
+
+   /* 23 Jan 2003: set opacity? */
+
+   { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
+     if( eee != NULL ){
+       int opval = (int) strtod( eee , NULL ) ;
+       if( opval > 0 && opval <= 9 )
+         drive_MCW_imseq( newseq , isqDR_setopacity , (XtPointer)opval ) ;
+     }
+   }
+
    newseq->parent = NULL ;
    RETURN(newseq) ;
 }
@@ -3960,6 +3975,7 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
          plotpak_line( 0.99,0.01 , 0.99,0.99 ) ;
          plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
          plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
+         set_thick_memplot(0.0) ;
       }
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
       memplot_to_X11_sef( seq->dc->display ,
@@ -6042,6 +6058,8 @@ static unsigned char record_bits[] = {
          seq->opt.save_pnm    = 0 ;
          seq->opt.save_filter = -1 ;  /* 27 Jun 2001 */
          SET_SAVE_LABEL(seq) ;
+         drive_MCW_imseq( seq , isqDR_setimsave ,
+                          (XtPointer)getenv("AFNI_DEFAULT_IMSAVE") ) ;
 
          /* 27 Jun 2001: change help on Save: */
 

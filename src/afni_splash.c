@@ -397,6 +397,7 @@ ENTRY("SPLASH_imseq_getim") ;
               plotpak_pwritf( 0.5,0.033 , mf+1, 28 , 0 , 0 ) ;
            }
          }
+         set_thick_memplot(0.0) ;
          RETURN((XtPointer)mp) ;  /* will be deleted by imseq */
       }
    }

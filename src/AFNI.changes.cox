@@ -4224,6 +4224,8 @@
      if no filename is entered.
 
 23 Jan 2003
- * Added AFNI_DEFAULT_OPACITY environment variable.
  * Made AFNI_VALUE_LABEL default be YES instead of NO.
- * Added AFNI_DEFAULT_IMSAVE environment variable.
+ * Added AFNI_DEFAULT_OPACITY environment variable, for image overlay opacity.
+ * Added AFNI_DEFAULT_IMSAVE environment variable, for .jpg, .tif, etc.
+ * Fixed bug in afni_driver.c SETENV function - space used for putenv() must
+     be permanent memory, not temporary!
