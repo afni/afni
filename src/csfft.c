@@ -14,6 +14,7 @@
 #  include <math.h>
    typedef struct complex { float r,i ; } complex ;  /* need this! */
 #  undef USE_FFTW
+#  define EXIT exit
 #else
 #  include "mrilib.h"   /* AFNI package library header */
 

@@ -381,12 +381,13 @@ PLUGIN_interface * ENV_init(void)
                    NUM_threshlock_list , threshlock_list , NULL  ) ;
 
    ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
+   ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock Func Ranges together?" ) ; /* 23 Feb 2004 */
 
    ENV_add_yesno( "AFNI_DISP_SCROLLBARS" , "Image Disp menu get scrollbars?" ) ;
 
    /* 23 Feb 2004 [rickr] */
    ENV_add_yesno( "AFNI_IMAGE_ZOOM_NN" ,
-	           "Use nearest neighbor interpolation for image zoom?" ) ;
+	           "Use Nearest Neighbor interpolation for image Zoom?" ) ;
 
    /*---------------- compute helpstring -----------------------*/
 

@@ -4326,6 +4326,8 @@ ENTRY("AFNI_range_bbox_CB") ;
       AV_SENSITIZE( im3d->vwid->func->range_av , ! new_auto ) ;
 
       AFNI_redisplay_func( im3d ) ;
+
+      AFNI_range_lock_carryout(im3d) ;  /* 23 Feb 2004 */
    }
 
    EXRETURN ;
@@ -4345,6 +4347,8 @@ ENTRY("AFNI_range_av_CB") ;
 
    im3d->vinfo->fim_range = av->fval ;
    AFNI_redisplay_func( im3d ) ;
+
+   AFNI_range_lock_carryout(im3d) ;  /* 23 Feb 2004 */
 
    AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
                       (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range

@@ -541,3 +541,60 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
    busy = 0 ;  /* OK, let this routine be activated again */
    EXRETURN ;
 }
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_range_lock_carryout( Three_D_View *im3d )
+{
+   Three_D_View *qq3d ;
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+   int glock , cc,ii ;
+   float val ;
+   char cmd[64] , *eee ;
+
+ENTRY("AFNI_range_lock_carryout") ;
+
+   /* first, determine if there is anything to do */
+
+   glock = GLOBAL_library.controller_lock ;     /* not a handgun */
+
+   if( busy )                         EXRETURN;  /* routine already busy */
+   if( glock == 0 )                   EXRETURN;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
+   if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
+
+   eee = getenv( "AFNI_RANGE_LOCK" );            /* determine how to lock */
+   if( eee == NULL )                  EXRETURN;
+   if( *eee != 'Y' && *eee != 'y' )   EXRETURN;
+
+   ii = AFNI_controller_index(im3d);             /* which one am I? */
+
+   if( ii < 0 )                       EXRETURN;  /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 )       EXRETURN;  /* input not locked */
+
+   /* get range of this controller */
+
+   val = im3d->vinfo->fim_range ;
+   if( val <= 0.0 )                   EXRETURN;  /* shouldn't happen */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   /* loop through other controllers:
+        for those that ARE open, and ARE locked, set the new range */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+      if( IM3D_OPEN(qq3d) && ((1<<cc) & glock) != 0 ){
+        if( qq3d == im3d && MCW_val_bbox(im3d->vwid->func->range_bbox) == 0 ) continue;
+        sprintf( cmd , "SET_FUNC_RANGE %c.%.6f" , 'A'+cc , val ) ;
+        AFNI_driver( cmd ) ;
+      }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
