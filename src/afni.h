@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.51b"
+#define VERSION "2.51c"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "03 Oct 2002      "
+#define RELEASE "08 Oct 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1351,6 +1351,7 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define DRAWING_X11PIXEL        12
 #define DRAWING_STARTUP         18
 #define DRAWING_SHUTDOWN        19
+#define DRAWING_LINEWIDTH       13   /* 08 Oct 2002 */
 
 #define VIEWPOINT_STARTUP       28
 #define VIEWPOINT_SHUTDOWN      29

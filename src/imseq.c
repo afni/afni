@@ -695,6 +695,7 @@ if( PRINT_TRACING ){
    newseq->button2_active   = 0 ;
    newseq->button2_pixel    = dc->ovc->pixov_greenest ;
    newseq->button2_drawmode = BUTTON2_OPENPOLY ;
+   newseq->button2_width    =  0 ;  /* 08 Oct 2002 */
    newseq->wimage_width     = -1 ;
    newseq->wimage_height    = -1 ;
 
@@ -4614,12 +4615,16 @@ ENTRY("ISQ_button2_EV") ;
 
          if( bx != bxsav[nsav-1] || by != bysav[nsav-1] ){
 
-            if( seq->button2_drawmode == BUTTON2_POINTS )
+            if( seq->button2_drawmode == BUTTON2_POINTS ){
                XDrawPoint( seq->dc->display , XtWindow(seq->wimage) ,
                            seq->dc->myGC , bx,by ) ;
-            else if( seq->button2_drawmode != BUTTON2_NODRAW )
+            } else if( seq->button2_drawmode != BUTTON2_NODRAW ){
+               if( seq->button2_width > 0 )                     /* 08 Oct 2002 */
+                 DC_linewidth( seq->dc , seq->button2_width ) ;
                XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
                           seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1],bx,by ) ;
+               if( seq->button2_width > 0 ) DC_linewidth( seq->dc , 0 ) ;
+            }
 
             bxsav[nsav] = bx ; bysav[nsav] = by ;
             if( nsav < NPTS_MAX ) nsav++ ;
@@ -4629,9 +4634,12 @@ ENTRY("ISQ_button2_EV") ;
             if we are drawing closed polygon, then close it now */
 
          if( seq->button2_drawmode == BUTTON2_CLOSEDPOLY && nsav > 2 ){
+            if( seq->button2_width > 0 )                     /* 08 Oct 2002 */
+              DC_linewidth( seq->dc , seq->button2_width ) ;
             XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
                        seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1] ,
                                        bxsav[0]     ,bysav[0]       ) ;
+            if( seq->button2_width > 0 ) DC_linewidth( seq->dc , 0 ) ;
 
             /* and add the 1st point to the list again */
 
@@ -4690,12 +4698,16 @@ ENTRY("ISQ_button2_EV") ;
 
          /* draw point or line to point */
 
-         if( seq->button2_drawmode == BUTTON2_POINTS )
+         if( seq->button2_drawmode == BUTTON2_POINTS ){
             XDrawPoint( seq->dc->display , XtWindow(seq->wimage) ,
                         seq->dc->myGC , bx,by ) ;
-         else if( seq->button2_drawmode != BUTTON2_NODRAW )
+         } else if( seq->button2_drawmode != BUTTON2_NODRAW ){
+            if( seq->button2_width > 0 )                     /* 08 Oct 2002 */
+              DC_linewidth( seq->dc , seq->button2_width ) ;
             XDrawLine( seq->dc->display , XtWindow(seq->wimage) ,
                        seq->dc->myGC , bxsav[nsav-1],bysav[nsav-1],bx,by ) ;
+            if( seq->button2_width > 0 ) DC_linewidth( seq->dc , 0 ) ;
+         }
 
          /* save it */
 
@@ -5757,6 +5769,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
                               BUTTON2_CLOSEDPOLY == closed polygon
                               BUTTON2_POINTS     == only draw points
                               BUTTON2_NODRAW     == don't draw anything
+*    isqDR_button2_width   (int) tells width of lines to draw in button2 mode
 
 *    isqDR_rebar           (ignored) erase the color bar and show it again
 
@@ -6191,6 +6204,11 @@ static unsigned char record_bits[] = {
 
       case isqDR_button2_mode:{
          seq->button2_drawmode = (int) drive_data ;
+         RETURN( True );
+      }
+
+      case isqDR_button2_width:{                  /* 08 Oct 2002 */
+         seq->button2_width = (int) drive_data ;
          RETURN( True );
       }
 

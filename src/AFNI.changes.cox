@@ -3994,3 +3994,8 @@
 07 Oct 2002
  * Modified plug_drawdset.c to add "2D Nbhd" and "3D Nbhd" drawing modes.
  * Also rearranged the Copy and Choose Dataset buttons.
+
+08 Oct 2002
+ * Modified plug_drawdset.c (and imseq.[ch], afni_receive.c, afni.h) to make
+     button2 drawing overlay have thicker lines, closer to what will actually
+     be filled.  Also added 1 larger "3D Nbhd" stencil.
