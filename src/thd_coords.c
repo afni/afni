@@ -109,6 +109,33 @@ THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * dset ,
    return iv ;
 }
 
+/*--------------------------------------------------------------------*/
+
+/* this version is without using wod dataxes     28 Sep 2004 [rickr] */
+THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * dset ,
+                                    THD_fvec3 fv )
+{
+   THD_dataxes * daxes ;
+   THD_ivec3     iv ;
+
+   daxes = dset->daxes ;
+
+   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.499 ;
+   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.499 ;
+   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.499 ;
+
+        if( iv.ijk[0] < 0            ) iv.ijk[0] = 0 ;
+   else if( iv.ijk[0] > daxes->nxx-1 ) iv.ijk[0] = daxes->nxx-1 ;
+
+        if( iv.ijk[1] < 0            ) iv.ijk[1] = 0 ;
+   else if( iv.ijk[1] > daxes->nyy-1 ) iv.ijk[1] = daxes->nyy-1 ;
+
+        if( iv.ijk[2] < 0            ) iv.ijk[2] = 0 ;
+   else if( iv.ijk[2] > daxes->nzz-1 ) iv.ijk[2] = daxes->nzz-1 ;
+
+   return iv ;
+}
+
 /*---------------------------------------------------------------------
    convert from input image oriented x,y,z to Dicom x,y,z
      (x axis = R->L , y axis = A->P , z axis = I->S)
