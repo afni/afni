@@ -3100,11 +3100,14 @@ void calculate_results
             ixyz_top = proc_vox_top[0] ; /* variables needed */
             proc_ind = 0 ;               /* below           */
           }
-          fprintf(stderr,"++ Job #%d: processing voxels %d to %d\n",
-                  proc_ind,ixyz_bot,ixyz_top-1) ;
+          fprintf(stderr,"++ Job #%d: processing voxels %d to %d; elapsed time=%.3f\n",
+                  proc_ind,ixyz_bot,ixyz_top-1,COX_clock_time()) ;
         }
       }
 #endif /* PROC_MAX */
+
+      if( proc_numjob == 1 )
+        fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",COX_clock_time()) ;
 
       /*----- Loop over all voxels -----*/
       for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
@@ -3203,21 +3206,23 @@ void calculate_results
 #ifdef PROC_MAX
         if( proc_numjob > 1 ){
           if( proc_ind > 0 ){                          /* death of child */
-            fprintf(stderr,"++ Job #%d finished.\n",proc_ind) ;
+            fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",proc_ind,COX_clock_time()) ;
             _exit(0) ;
 
           } else {                      /* parent waits for children */
             int pp ;
-            fprintf(stderr,"++ Job #0 waiting for children to finish.\n") ;
+            fprintf(stderr,"++ Job #0 waiting for children to finish; elapsed time=%.3f\n",COX_clock_time()) ;
             for( pp=1 ; pp < proc_numjob ; pp++ )
               waitpid( proc_pid[pp] , NULL , 0 ) ;
-            fprintf(stderr,"++ Job #0 now finishing up.\n") ;
+            fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",COX_clock_time()) ;
           }
 
           /* when get to here, only parent process is left alive,
              and all the results are in the shared memory segment arrays */
         }
 #endif
+        if( proc_numjob == 1 )
+          fprintf(stderr,"++ Calculations finished; elapsed time=%.3f\n",COX_clock_time()) ;
 
         if( option_data->input1D_filename == NULL)  /* don't need data anymore */
           DSET_unload(dset) ;
@@ -3589,7 +3594,7 @@ void write_ts_array
 
   /*----- write afni data set -----*/
   if (!  option_data->quiet)
-    printf ("--- Writing 3d+time dataset into %s\n",
+    printf ("++ Writing 3d+time dataset into %s\n",
 	    new_dset->dblk->diskptr->header_name);
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -4003,7 +4008,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
   if (! option_data->quiet)
-    printf("Writing `bucket' dataset into %s\n",  DSET_HEADNAME(new_dset));
+    printf("++ Writing `bucket' dataset into %s\n",  DSET_HEADNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
@@ -4403,6 +4408,8 @@ int main
   float ** fitts_vol = NULL;   /* volumes for full model fit to input data */
   float ** errts_vol = NULL;   /* volumes for residual errors */
 
+  /*----- start the elapsed time counter -----*/
+  (void) COX_clock_time() ;
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_vol, 
@@ -4442,6 +4449,7 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
+ fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
   exit(0);
 }
 
