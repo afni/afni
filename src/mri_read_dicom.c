@@ -5,6 +5,9 @@
 #define NMOMAX 256
 typedef struct {
   int good ;                       /* data in here is good? */
+  int have_data[3] ;               /* do we have slices 0 and 1 in           *
+				    * each dimension to determine z-spacing? *
+				    * added 25 Feb 2003 KRH                  */
   int mosaic_num ;                 /* how many slices in 1 'image' */
   float slice_xyz[NMOMAX][3] ;     /* Sag, Cor, Tra coordinates */
 } Siemens_extra_info ;
@@ -327,6 +330,7 @@ ENTRY("mri_read_dicom") ;
      /* 31 Oct 2002: extract extra Siemens info from str_sexinfo */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
+     for(ii = 0; ii < 3; ii++) sexinfo.have_data[ii] = 0; /* 25 Feb 03 Initialize new member KRH */
 
      get_siemens_extra_info( str_sexinfo , &sexinfo ) ;
 
@@ -890,8 +894,22 @@ fprintf(stderr,"MRILIB_orients=%s (from IMAGE_ORIENTATION)\n",MRILIB_orients) ;
 
    if( nzoff == 0 && have_orients && mosaic && sexinfo.good ){  /* 01 Nov 2002: use Siemens mosaic info */
      int qq ;
-     float z0 = sexinfo.slice_xyz[0][kor-1] ;   /* kor from orients above */
-     float z1 = sexinfo.slice_xyz[1][kor-1] ;   /* z offsets of 1st 2 slices */
+     float z0, z1 ;
+     /* 25 Feb 2003 changing error checking for mosaics missing one or more *
+      * dimension of slice coordinates                                 KRH  */
+     if (sexinfo.have_data[kor-1]) {
+       z0 = sexinfo.slice_xyz[0][kor-1] ;   /* kor from orients above */
+       z1 = sexinfo.slice_xyz[1][kor-1] ;   /* z offsets of 1st 2 slices */
+     } else {                  /* warn if sexinfo was bad */
+       static int nwarn=0 ;
+       if( nwarn < NWMAX )
+         fprintf(stderr,"++ DICOM WARNING: Unusable coord. in Siemens Mosaic info (%s) in file %s\n",
+                 elist[E_SIEMENS_2] , fname ) ;
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic info messages will be printed\n");
+       nwarn++ ;
+     }
+
 
 #if 0
      /* Save x,y center of this 1st slice */
@@ -1269,7 +1287,10 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
 static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 {
    char *cpt , *dpt ;
-   int nn , mm , snum , have_x,have_y,have_z , last_snum=-1 ;
+   int nn , mm , snum , last_snum=-1 ;
+   int have_x[2] = {0,0},
+       have_y[2] = {0,0},
+       have_z[2] = {0,0};
    float x,y,z , val ;
    char name[1024] ;
 
@@ -1290,7 +1311,11 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
    /*-- scan for coordinates, until can't find a good string to scan --*/
 
+#if 0
+   /* 25 Feb 2003 Changed logic here KRH */
    have_x = have_y = have_z = 0 ;
+#endif
+
    while(1){
 
      /* interepret next string into
@@ -1305,6 +1330,9 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
      if( nn   <  3                   ) break ;  /* bad conversion set */
      if( snum <  0 || snum >= NMOMAX ) break ;  /* slice number out of range */
 
+/* 21 Feb 2003 rework this section to allow for missing coordinates in
+ * some mosaic files                                        --KRH  */
+#if 0
      /* assign val based on name */
 
           if( strcmp(name,"sPosition.dSag") == 0 ){ x = val; have_x = 1; }
@@ -1317,6 +1345,21 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
        mi->slice_xyz[snum][0] = x; mi->slice_xyz[snum][1] = y; mi->slice_xyz[snum][2] = z;
        last_snum = snum ;
        have_x = have_y = have_z = 0 ;
+     }
+#endif
+
+     if( strcmp(name,"sPosition.dSag") == 0 ){ 
+       mi->slice_xyz[snum][0] = val;
+       if (snum < 2) have_x[snum] = 1;
+       last_snum = snum;
+     } else if( strcmp(name,"sPosition.dCor") == 0 ){ 
+       mi->slice_xyz[snum][1] = val;
+       if (snum < 2) have_y[snum] = 1;
+       last_snum = snum;
+     } else if( strcmp(name,"sPosition.dTra") == 0 ){ 
+       mi->slice_xyz[snum][2] = val;
+       if (snum < 2) have_z[snum] = 1;
+       last_snum = snum;
      }
 
      /* skip to next slice array assignment string (which may not be a coordinate) */
@@ -1333,6 +1376,9 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
    if( last_snum >= 0 ){
      mi->good       = 1 ;
+     if (have_x[0] && have_x[1]) mi->have_data[0] = 1;
+     if (have_y[0] && have_y[1]) mi->have_data[1] = 1;
+     if (have_z[0] && have_z[1]) mi->have_data[2] = 1;
      mi->mosaic_num = last_snum+1 ;
    }
 
