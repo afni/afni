@@ -351,7 +351,7 @@ ENTRY("SUMA_read_surface") ;
 
    strcpy( ag->idcode_dset , dset->idcode.str ) ;
 
-   NI_strncpy( ag->label, THD_trailname(fname,0), 32 ) ;  /* 19 Aug 2002 */
+   MCW_strncpy( ag->label, THD_trailname(fname,0), 32 ) ;  /* 19 Aug 2002 */
 
    /*-- read data --*/
 

@@ -377,7 +377,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      dset->su_surf[num] = ag = SUMA_create_empty_surface() ;
 
-     NI_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
+     MCW_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
 
      /*-- 19 Aug 2002: get surface label (or make it up) --*/
 
@@ -386,7 +386,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        idc = NI_get_attribute( nel , "SUMA_label" ) ;
 
      if( idc != NULL )
-       NI_strncpy(ag->label,idc,32) ;
+       MCW_strncpy(ag->label,idc,32) ;
      else
        sprintf(ag->label,"Surf#%d",num+1) ;
 
@@ -398,7 +398,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- set IDCODEs of surface and of its dataset --*/
 
-     NI_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
 
      /*-- pointers to the data columns in the NI_element --*/
 
@@ -542,6 +542,17 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      }
 
      ag = dset->su_surf[ii] ; /* set surface to run with */
+
+     if( ag->num_ijk > 0 ){
+        sprintf(msg, "***ERROR:\n\n"
+                     " SUMA_ijk surface input surface idcode\n"
+                     "  %s\n"
+                     " already has %d triangles in it, and\n"
+                     " SUMA is trying to add %d more!\n" ,
+                idc, ag->num_ijk , nel->vec_filled ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
 
      /*-- pointers to the data columns in the NI_element --*/
 

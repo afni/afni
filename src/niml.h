@@ -334,9 +334,32 @@ void           DIME_destroy_message( DIME_message * ) ;
 
 /*****------------------------- prototypes -------------------------*****/
 
-extern void * NI_malloc( size_t ) ;
-extern void   NI_free( void * ) ;
-extern void * NI_realloc( void *, size_t ) ;
+/** 18 Nov 2002: replace old malloc functions with new ones **/
+
+#undef NIML_OLD_MALLOC
+#if defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)
+  extern void * NI_malloc( size_t ) ;
+  extern void   NI_free( void * ) ;
+  extern void * NI_realloc( void *, size_t ) ;
+#else
+#  define NI_malloc(a)     hidden_NI_malloc((a),__FILE__,__LINE__)
+#  define NI_calloc(a,b)   hidden_NI_malloc((a)*(b),__FILE__,__LINE__)
+#  define NI_realloc(a,b)  hidden_NI_realloc((a),(b),__FILE__,__LINE__)
+#  define NI_free(a)       hidden_NI_free((a),__FILE__,__LINE__)
+
+  extern void * hidden_NI_malloc( size_t , char * , int ) ;
+  extern void * hidden_NI_realloc( void * , size_t , char * , int ) ;
+  extern void   hidden_NI_free( void * , char * , int ) ;
+#endif
+
+extern char * NI_malloc_status(void) ;
+extern void NI_malloc_dump(void) ;
+extern void NI_malloc_enable_tracking(void) ;
+extern int NI_malloc_tracking_enabled(void) ;
+
+/*! Free and set pointer to NULL. */
+#define NI_FREE(p) ( NI_free(p), (p)=NULL )
+
 extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern long   NI_filesize( char * ) ;
 extern int    NI_clock_time(void) ;
