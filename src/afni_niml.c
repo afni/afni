@@ -346,14 +346,14 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      if( idc == NULL )
        idc = NI_get_attribute( nel , "dataset_idcode" ) ;
      if( idc == NULL ){
-        AFNI_popup_message( "***ERROR:\n "
+        AFNI_popup_message( "*** ERROR:\n "
                             " SUMA_ixyz surface input\n"
                             " does not identify dataset! \n " ) ;
         EXRETURN ;
      }
      dset = PLUTO_find_dset_idc( idc ) ;
      if( dset == NULL ){
-        sprintf(msg, "***ERROR:\n\n"
+        sprintf(msg, "*** ERROR:\n\n"
                      " SUMA_ixyz volume dataset idcode is \n"
                      "   %s\n"
                      " Can't find this in AFNI\n", idc ) ;
@@ -381,7 +381,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        if( strstr(dset->su_sname[ii],idc) != NULL ) break ;
 
      if( ii < num ){       /* found it, which is bad */
-        sprintf(msg, "***ERROR:\n\n"
+        sprintf(msg, "+++ WARNING:\n\n"
                      " SUMA_ixyz volume surface idcode is\n"
                      "  %s\n"
                      " which is already stored inside dataset \n"
@@ -468,7 +468,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      if( ct_start >= 0 )                     /* keep track of how */
        ct_tot = NI_clock_time() - ct_start ; /* long this took   */
 
-     sprintf(msg,"+++NOTICE:\n\n"                     /* and tell  */
+     sprintf(msg,"+++ NOTICE:\n\n"                    /* and tell  */
                  " SUMA_ixyz surface received:\n"     /* the user  */
                  "  %-14.14s\n"                       /* some info */
                  " %d nodes attached to dataset\n"
@@ -532,14 +532,14 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      if( idc == NULL )
        idc = NI_get_attribute( nel , "dataset_idcode" ) ;
      if( idc == NULL ){
-        AFNI_popup_message( "***ERROR:\n "
+        AFNI_popup_message( "*** ERROR:\n "
                             " SUMA_ijk surface input\n"
                             " does not identify dataset! \n" ) ;
         EXRETURN ;
      }
      dset = PLUTO_find_dset_idc( idc ) ;
      if( dset == NULL ){
-        sprintf(msg, "***ERROR:\n\n"
+        sprintf(msg, "*** ERROR:\n\n"
                      " SUMA_ijk surface dataset idcode is \n"
                      "   %s\n"
                      " Can't find this in AFNI\n", idc ) ;
@@ -551,7 +551,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      num = dset->su_num ;
      if( num == 0 ){
-        sprintf(msg,"***ERROR:\n\n"
+        sprintf(msg,"*** ERROR:\n\n"
                     " SUMA_ijk surface data\n"
                     " received for dataset\n"
                     "  %.222s\n"
@@ -565,7 +565,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      if( idc == NULL )
        idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
      if( idc == NULL ){
-        AFNI_popup_message( "***ERROR:\n\n"
+        AFNI_popup_message( "*** ERROR:\n\n"
                             " SUMA_ijk surface input\n"
                             " does not have surface idcode! \n" ) ;
         EXRETURN ;
@@ -577,7 +577,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        if( strstr(dset->su_sname[ii],idc) != NULL ) break ;
 
      if( ii == num ){
-        sprintf(msg, "***ERROR:\n\n"
+        sprintf(msg, "*** ERROR:\n\n"
                      " SUMA_ijk surface input surface idcode\n"
                      "  %s\n"
                      " does not match any surface on dataset \n"
@@ -590,7 +590,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      ag = dset->su_surf[ii] ; /* set surface to run with */
 
      if( ag->num_ijk > 0 ){
-        sprintf(msg, "***ERROR:\n\n"
+        sprintf(msg, "*** WARNING:\n\n"
                      " SUMA_ijk surface input surface idcode\n"
                      "  %s\n"
                      " already has %d triangles in it, and\n"
@@ -618,7 +618,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
 
      if( nold == 0 )
-       sprintf(msg,"+++NOTICE:\n\n"                        /* let the   */
+       sprintf(msg,"+++ NOTICE:\n\n"                       /* let the   */
                    " SUMA_ijk triangles received:\n"       /* pitiful   */
                    " %d triangles attached to surface \n"  /* user see  */
                    "  %-14.14s\n"                          /* what just */
@@ -626,7 +626,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                    "  %.222s\n" ,
                    nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
      else
-       sprintf(msg,"+++NOTICE:\n\n"
+       sprintf(msg,"+++ NOTICE:\n\n"
                    " SUMA_ijk triangles received:\n"
                    " %d NEW triangles attached to surface\n"
                    "  %-14.14s\n"
@@ -662,7 +662,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
          nel->vec_num    <  1        ||
          nel->vec_typ[0] != NI_FLOAT   ){
 
-       AFNI_popup_message( "***ERROR:\n\n"
+       AFNI_popup_message( "+++ WARNING:\n\n"
                            " SUMA_crosshair_xyz input \n"
                            " is badly formatted!\n" );
        EXRETURN ;
@@ -677,7 +677,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
    /*** If here, then name of element didn't match anything ***/
 
-   sprintf(msg,"***ERROR:\n\n"
+   sprintf(msg,"*** ERROR:\n\n"
                " Unknown NIML input: \n"
                " %.900s \n",nel->name) ;
    AFNI_popup_message(msg) ;
