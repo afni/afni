@@ -5,7 +5,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *dset , *mset ;
    char *prefix = "automask" ;
    byte *mask ;
-   int iarg=1 ;
+   int iarg=1 , fillin=0 , nmask,nfill ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
@@ -14,10 +14,13 @@ int main( int argc , char * argv[] )
              "Method:\n"
              " + Uses 3dClipLevel algorithm to find clipping level.\n"
              " + Keeps only the largest connected component of the\n"
-             "   supra-threshold voxels.\n"
-             "Option:\n"
+             "   supra-threshold voxels, after an erosion/dilation step.\n"
+             " + Writes result as a 'fim' type of functional dataset.\n"
+             "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [default='automask']\n"
+             "  -fillin nnn = Fill in holes inside the mask of width up\n"
+             "                 to 'nnn' voxels. [default=1]\n"
             ) ;
       exit(0) ;
    }
@@ -34,6 +37,16 @@ int main( int argc , char * argv[] )
            fprintf(stderr,"** -prefix %s is illegal!\n",prefix) ;
            exit(1) ;
          }
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-fillin") == 0 ){
+         fillin = strtol( argv[++iarg] , NULL , 10 ) ;
+         if( fillin <= 0 ){
+           fprintf(stderr,"** -fillin %s is illegal!\n",argv[iarg]) ;
+           exit(1) ;
+         }
+         fillin = (fillin+2) / 2 ;
          iarg++ ; continue ;
       }
 
@@ -56,7 +69,26 @@ int main( int argc , char * argv[] )
 
    if( mask == NULL ){ fprintf(stderr,"** Can't make mask!\n"); exit(1); }
 
-   DSET_unload( dset ) ;
+   DSET_unload( dset ) ;  /* don't need data any more */
+
+   /* 18 Apr 2002: print voxel count */
+
+   nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
+   fprintf(stderr,"++ %d voxels in the mask\n",nmask) ;
+   if( nmask == 0 ){
+      fprintf(stderr,"** Quitting without saving mask\n"); exit(1);
+   }
+
+   /* 18 Apr 2002: maybe fill in voxels */
+
+   if( fillin > 0 ){
+     nfill = THD_mask_fillin_completely(
+                 DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset), mask, fillin ) ;
+     fprintf(stderr,"++ %d voxels filled in; %d voxels total\n",
+             nfill,nfill+nmask ) ;
+   }
+
+   /* create output dataset */
 
    mset = EDIT_empty_copy( dset ) ;
    EDIT_dset_items( mset ,
@@ -64,6 +96,8 @@ int main( int argc , char * argv[] )
                       ADN_datum_all  , MRI_byte ,
                       ADN_nvals      , 1        ,
                       ADN_ntt        , 0        ,
+                      ADN_type       , HEAD_FUNC_TYPE ,
+                      ADN_func_type  , FUNC_FIM_TYPE ,
                     ADN_none ) ;
    EDIT_substitute_brick( mset , 0 , MRI_byte , mask ) ;
 
