@@ -333,51 +333,60 @@ int r_ulong_size ( unsigned long l )
 #ifdef SUMA_MakeColorMap_STAND_ALONE
 void SUMA_MakeColorMap_usage ()
    {
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage1: \33[0m MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n");
+      fprintf (SUMA_STDOUT,   "\n\33[1mUsage1: \33[0m\n");
+      fprintf (SUMA_STDOUT, "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n");
       fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
-      fprintf (SUMA_STDOUT, "\t -fn Fiducials_Ncol: Fiducial colors and their indices in the color map are listed in file Fiducials_Ncol.\n");
+      fprintf (SUMA_STDOUT, "\t -fn Fiducials_Ncol: Fiducial colors and their indices in the color\n"
+                            "\t                     map are listed in file Fiducials_Ncol.\n");
       fprintf (SUMA_STDOUT, "\t\t Each row contains 4 tab delimited values:\n");
       fprintf (SUMA_STDOUT, "\t\t R G B i\n");
-      fprintf (SUMA_STDOUT, "\t\t R G B values are between 0 and 1 and represent the i-th color in the colormap.\n");
-      fprintf (SUMA_STDOUT, "\t\t i should be between 0 and N-1, N being the total number of colors in the colormap.\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage2: \33[0m MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n");
+      fprintf (SUMA_STDOUT, "\t\t R G B values are between 0 and 1 and represent the \n"
+                            "\t\t i-th color in the colormap. i should be between 0 and\n");
+      fprintf (SUMA_STDOUT, "\t\t N-1, N being the total number of colors in the colormap.\n");
+      fprintf (SUMA_STDOUT, "\n\33[1mUsage2: \33[0m\n");
+      fprintf (SUMA_STDOUT, "MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n");
       fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
       fprintf (SUMA_STDOUT, "\t -f Fiducials:  Fiducial colors are listed in an ascii file Fiducials. \n");
       fprintf (SUMA_STDOUT, "\t\t Each row contains 3 tab delimited R G B values between 0 and 1.\n");
       fprintf (SUMA_STDOUT, "\t -nc N: Total number of colors in the color map.\n");
-      fprintf (SUMA_STDOUT, "\t -sl: (optional, default is NO) if used, the last color in the Fiducial list is omitted.\n");
-      fprintf (SUMA_STDOUT, "\t\t This is useful in creating cyclical color maps.\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage3: \33[0m MakeColorMap <-std MapName>\n");
+      fprintf (SUMA_STDOUT, "\t -sl: (optional, default is NO) if used, the last color in the Fiducial \n");
+      fprintf (SUMA_STDOUT, "\t\t list is omitted. This is useful in creating cyclical color maps.\n");
+      fprintf (SUMA_STDOUT, "\n\33[1mUsage3: \33[0m\n");
+      fprintf (SUMA_STDOUT, "MakeColorMap <-std MapName>\n");
       fprintf (SUMA_STDOUT, "\t Returns one of SUMA's standard colormaps. Choose from:\n");
       fprintf (SUMA_STDOUT, "\t rgybr20, ngray20, gray20, bw20, bgyr19, \n");
       fprintf (SUMA_STDOUT, "\t matlab_default_bgyr64, roi128, roi64\n");
       fprintf (SUMA_STDOUT, "\n\33[1mCommon options to all usages:\33[0m\n");
       fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, Afni Hex format.\n");
       fprintf (SUMA_STDOUT, "\t              default is RGB values in decimal form)\n");
-      fprintf (SUMA_STDOUT, "\t\t use this option if you want a color map formatted to fit in AFNI's .afnirc file.\n");
-      fprintf (SUMA_STDOUT, "\t\t the colormap is written out as \n\t\tprefix_01 = #xxxxxxx \n\t\tprefix_02 = #xxxxxxx\n\t\t etc...\n"); 
+      fprintf (SUMA_STDOUT,   "\t\t use this option if you want a color map formatted to fit \n"
+                              "\t\t in AFNI's .afnirc file. The colormap is written out as \n");
+      fprintf (SUMA_STDOUT,   "\t\tprefix_01 = #xxxxxxx \n\t\tprefix_02 = #xxxxxxx\n\t\t etc...\n"); 
       /* that's not a useful option, both versions will be written out */
       /*fprintf (SUMA_STDOUT, "\t -pos: (optional, default is NO) create a positive only color map. \n");
       fprintf (SUMA_STDOUT, "\t\t This option is meaningful when combined with -ah option.\n"); */
       fprintf (SUMA_STDOUT, "\t -h or -help: displays this help message.\n");
       fprintf (SUMA_STDOUT, "\n");
-      fprintf (SUMA_STDOUT, "Example Usage 1: Creating a colormap of 20 colors that goes from Red to Green to Blue to Yellow to Red.\n");
-      fprintf (SUMA_STDOUT, "\n\tThe file FidCol_Nind contains the following:\n");
-      fprintf (SUMA_STDOUT, "\t1 0 0 0\n\t0 1 0 5\n\t0 0 1 10\n\t1 1 0 15\n\t1 0 0 19\n\n");
-      fprintf (SUMA_STDOUT, "\tThe following command will generate the RGB colormap in decimal form:\n");
-      fprintf (SUMA_STDOUT, "\tMakeColorMap -fn FidCol_Nind \n\n");
-      fprintf (SUMA_STDOUT, "\tThe following command will generate the colormap and write it as an AFNI color palette file:\n");
-      fprintf (SUMA_STDOUT, "\tMakeColorMap -fn FidCol_Nind -ah TestPalette > TestPalette.pal\n\n");
-      fprintf (SUMA_STDOUT, "Example Usage 2: Creating a cyclical version of the colormap in usage 1:\n");
-      fprintf (SUMA_STDOUT, "\n\tThe file FidCol contains the following:\n");
-      fprintf (SUMA_STDOUT, "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
-      fprintf (SUMA_STDOUT, "\tThe following command will generate the RGB colormap in decimal form:\n");
-      fprintf (SUMA_STDOUT, "\tMakeColorMap -f FidCol -sl -nc 20 \n\n");
-      fprintf (SUMA_STDOUT, "Example Usage 3: MakeColorMap -std ngray20 \n\n");
-      fprintf (SUMA_STDOUT, "To read in a new colormap into AFNI, either paste the contents of TestPalette.pal\n");
-      fprintf (SUMA_STDOUT, "in your .afnirc file or read the .pal file using AFNI as follows:\n");
-      fprintf (SUMA_STDOUT, "1- run afni\n2- Define Function --> right click on Inten (over colorbar) --> Read in palette (choose TestPalette.pal)\n");
-      fprintf (SUMA_STDOUT, "3- set the #colors chooser (below colorbar) to 20 (the number of colors in TestPalette.pal).\n");
+      fprintf (SUMA_STDOUT,   "Example Usage 1: Creating a colormap of 20 colors that goes from \n"
+                              "Red to Green to Blue to Yellow to Red.\n");
+      fprintf (SUMA_STDOUT,   "\n\tThe file FidCol_Nind contains the following:\n");
+      fprintf (SUMA_STDOUT,   "\t1 0 0 0\n\t0 1 0 5\n\t0 0 1 10\n\t1 1 0 15\n\t1 0 0 19\n\n");
+      fprintf (SUMA_STDOUT,   "\tThe following command will generate the RGB colormap in decimal form:\n");
+      fprintf (SUMA_STDOUT,   "\tMakeColorMap -fn FidCol_Nind \n\n");
+      fprintf (SUMA_STDOUT,   "\tThe following command will generate the colormap and write it as \n"
+                              "\tan AFNI color palette file:\n");
+      fprintf (SUMA_STDOUT,   "\tMakeColorMap -fn FidCol_Nind -ah TestPalette > TestPalette.pal\n\n");
+      fprintf (SUMA_STDOUT,   "Example Usage 2: Creating a cyclical version of the colormap in usage 1:\n");
+      fprintf (SUMA_STDOUT,   "\n\tThe file FidCol contains the following:\n");
+      fprintf (SUMA_STDOUT,   "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
+      fprintf (SUMA_STDOUT,   "\tThe following command will generate the RGB colormap in decimal form:\n");
+      fprintf (SUMA_STDOUT,   "\tMakeColorMap -f FidCol -sl -nc 20 \n\n");
+      fprintf (SUMA_STDOUT,   "Example Usage 3: MakeColorMap -std ngray20 \n\n");
+      fprintf (SUMA_STDOUT,   "To read in a new colormap into AFNI, either paste the contents of TestPalette.pal\n");
+      fprintf (SUMA_STDOUT,   "in your .afnirc file or read the .pal file using AFNI as follows:\n");
+      fprintf (SUMA_STDOUT,   "1- run afni\n2- Define Function --> right click on Inten (over colorbar) \n"
+                              "\t--> Read in palette (choose TestPalette.pal)\n");
+      fprintf (SUMA_STDOUT,   "3- set the #colors chooser (below colorbar) to 20 (the number of colors in TestPalette.pal).\n");
       /*fprintf (SUMA_STDOUT, "\t To Compile:\ngcc  -DSUMA_MakeColorMap_STAND_ALONE -Wall -Wno-unused-variable -o SUMA_MakeColorMap SUMA_Color.c SUMA_lib.a libmri.a  -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lm\n");*/
       fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov \tTue Apr 23 14:14:48 EDT 2002\n\n");
    }
@@ -1336,6 +1345,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
       fprintf (SUMA_STDOUT,   "\t    between [msk0 msk1] are masked by the masking color.\n");
       fprintf (SUMA_STDOUT,   "\t -msk_col R G B: (optional, default is 0.3 0.3 0.3) \n"
                               "\t    Sets the color of masked voxels.\n");
+      fprintf (SUMA_STDOUT,   "\t -nomsk_col: do not output nodes that got masked.\n"
+                              "\t    It does not make sense to use this option with\n"
+                              "\t    -msk_col.\n");
       fprintf (SUMA_STDOUT,   "\t -br BrightFact: (optional, default is 1) \n"
                               "\t    Applies a brightness factor to the colors \n"
                               "\t    of the colormap and the mask color.\n");
@@ -1348,7 +1360,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
 
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName = NULL, *Prfx, h[9]; 
+   char FuncName[]={"ScaleToMap"}, *IntName = NULL, *Prfx, h[9]; 
    MRI_IMAGE *im = NULL;
    float *far=NULL;
    int N_V, N_Int, kar, k, ii, i, icol=-1, vcol=-1;
@@ -1356,7 +1368,7 @@ int main (int argc,char *argv[])
    float Vmin, Vmax, brfact;
    float *V = NULL, *Vsort = NULL;
    float ClipRange[2], MaskColor[3], MaskRange[2];
-   SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt, iVopt, inopt;
+   SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt, iVopt, inopt, NoMaskCol;
    SUMA_Boolean brk;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -1383,6 +1395,7 @@ int main (int argc,char *argv[])
    ApplyClip = NOPE;
    ApplyPercClip = NOPE;
    ApplyMask = NOPE;
+   NoMaskCol = NOPE;
    setMaskCol = NOPE;
    Vopt = NOPE;
    iVopt = NOPE;
@@ -1479,6 +1492,12 @@ int main (int argc,char *argv[])
          ApplyMask = YUP;
          MaskRange[0] = atof(argv[kar]); kar ++;
          MaskRange[1] = atof(argv[kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-nomsk_col") == 0)) {
+         kar ++;
+         NoMaskCol = YUP;
          brk = YUP;
       }
       
@@ -1676,8 +1695,14 @@ int main (int argc,char *argv[])
 
    /* Now write the colored vector back to disk */
    
-   for (k=0; k < N_V; ++k) {
-      fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+   if (NoMaskCol) {
+      for (k=0; k < N_V; ++k) {
+         if (!SV->isMasked[k]) fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+      }
+   } else {
+      for (k=0; k < N_V; ++k) {
+         fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
+      }
    }
    
    /* freeing time */

@@ -703,12 +703,12 @@ int main (int argc,char *argv[])
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_G, (void *)rgb+1, NULL ,3)) {
+         if (!SUMA_AddNelCol (nel, SUMA_NODE_G, (void *)(rgb+1), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
 
-         if (!SUMA_AddNelCol (nel, SUMA_NODE_B, (void *)rgb+2, NULL ,3)) {
+         if (!SUMA_AddNelCol (nel, SUMA_NODE_B, (void *)(rgb+2), NULL ,3)) {
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
