@@ -108,8 +108,8 @@
                                          you'll get many reports from the function making it difficult to see other messages. */
 #define SUMA_WORKPROC_IO_NOTIFY 0  /*!< Same as above but for SUMA_workprocess */
                                     
-typedef enum  { SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC } SUMA_SO_File_Type;
-typedef enum { SUMA_ASCII, SUMA_BINARY } SUMA_SO_File_Format;
+typedef enum  { SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
+typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;
 typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
@@ -365,6 +365,14 @@ typedef struct {
    char *Path;
    char *FileName;
 }SUMA_FileName;
+
+/*! filename, extension and path */
+typedef struct {
+   char *Path;
+   char *FileName;
+   char *FileName_NoExt;
+   char *Ext;
+}SUMA_PARSED_NAME;
 
 
 /*! structure defining a cross hair */
