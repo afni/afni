@@ -483,27 +483,53 @@ void THD_autobbox( THD_3dim_dataset *dset ,
 {
    MRI_IMAGE *medim ;
    float clip_val , *mar ;
-   byte *mmm = NULL ;
-   int nvox , ii,jj,kk , nmm , nx,ny,nz,nxy ;
+   int nvox , ii ;
 
 ENTRY("THD_autobbox") ;
 
-   /* find largest component as in first part of THD_automask() */
-
    medim = THD_median_brick(dset) ; if( medim == NULL ) EXRETURN ;
 
-   clip_val = THD_cliplevel(medim,0.5) ;
-
-   nvox = medim->nvox ;
    mar  = MRI_FLOAT_PTR(medim) ;
+   nvox = medim->nvox ;
+   for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = fabs(mar[ii]) ;
+
+   clip_val = THD_cliplevel(medim,0.5) ;
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
+
+   MRI_autobbox( medim , xm,xp , ym,yp , zm,zp ) ;
+
+   mri_free(medim) ; EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void MRI_autobbox( MRI_IMAGE *qim ,
+                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
+{
+   MRI_IMAGE *fim ;
+   float *mar ;
+   byte *mmm = NULL ;
+   int nvox , ii,jj,kk , nmm , nx,ny,nz,nxy ;
+
+ENTRY("MRI_autobbox") ;
+
+   /* find largest component as in first part of THD_automask() */
+
+   if( qim->kind != MRI_float ) fim = mri_to_float(qim) ;
+   else                         fim = qim ;
+
+   nvox = fim->nvox ;
+   mar  = MRI_FLOAT_PTR(fim) ;
    mmm  = (byte *) calloc( sizeof(byte) , nvox ) ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
-     if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
+     if( mar[ii] != 0.0 ){ mmm[ii] = 1; nmm++; }
 
-   mri_free(medim) ;
+   if( fim != qim ) mri_free(fim) ;
+
    if( nmm == 0 ){ free(mmm); EXRETURN; }
 
-   nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxy = nx*ny;
+   nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny;
 
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm ) ;
