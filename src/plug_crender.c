@@ -9,6 +9,19 @@
   ----------------------------------------------------------------------
 */
 
+#define PLUG_CRENDER_VERSION "Version 1.4 <July 2002>"
+
+/***********************************************************************
+ * VERSION HISTORY
+ *
+ * 1.3   - re-orient overlay and underlay to rai
+ *           o see dset_or and fset_or
+ *
+ * 1.4   - underlay data set grid need not match that of overlay
+ *           o see gcr.mset and new_fset
+ ***********************************************************************
+*/
+
 #include "afni.h"
 #include "cox_render.h"
 #include "mcw_graf.h"
@@ -18,14 +31,13 @@
 #include "rickr/r_new_resam_dset.h"
 #include "rickr/r_idisp.h"
 
-#define PLUG_CRENDER_VERSION "Version 1.3 <June 2002>"
-
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
 #undef RCREND_DEBUG
 /* #define ONLY_AXIAL      rickr - 1/10/02 */
+
 
 /***********************************************************************
   Plugin to render a volume dataset.  Makes a custom interface.
@@ -207,7 +219,7 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
 /*----------------------------------------------------------------*/
 
-/* rickr - new cox rendering data */
+/* rickr - cox rendering data */
 
 typedef struct
 {
@@ -216,6 +228,7 @@ typedef struct
 
     THD_3dim_dataset * dset_or; /* re-oriented dataset      */
     THD_3dim_dataset * fset_or; /* re-oriented func dataset */
+    THD_3dim_dataset * mset;    /* master for producing fset_or */
 } CR_data;
 
 CR_data gcr;
@@ -243,7 +256,6 @@ static MRI_IMAGE * grim_showthru=NULL ;      /* 07 Jan 2000 */
 
 #define FREEIM(x) if( (x) != NULL ){ mri_free(x); (x)=NULL; }
 
-/* this is when we will remove any re-oriented dataset	26 June 2002 - rickr */
 #define FREE_VOLUMES                                  \
   do{ FREEIM(grim) ;                                  \
       FREEIM(grim_showthru); } while(0) ;
@@ -817,7 +829,8 @@ char * RCREND_main( PLUGIN_interface * plint )
 
    gcr.rh        = NULL;    /* no render handle yet */
    gcr.dset_or   = NULL;    /* no reoriented underlay dataset yet */
-   gcr.fset_or   = NULL;    /* no reoriented overlay dataset yet */
+   gcr.fset_or   = NULL;    /* no reoriented overlay dataset yet  */
+   gcr.mset      = NULL;    /* no reorientation master dset yet   */
 
    ovim          = NULL ;   /* no overlay volume yet */
    func_dset     = NULL ;   /* no functional dataset yet */
@@ -1877,6 +1890,20 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( dset      != NULL ) dset      = NULL ;
    if( func_dset != NULL ) func_dset = NULL ;
 
+   if( gcr.dset_or != NULL )			/* delete re-oriented copy */
+   {
+      THD_delete_3dim_dataset( gcr.dset_or, FALSE );
+      gcr.dset_or = NULL;
+   }
+
+   if( gcr.fset_or != NULL )
+   {
+      THD_delete_3dim_dataset( gcr.fset_or, FALSE );
+      gcr.fset_or = NULL;
+   }
+
+   if( gcr.mset != NULL ) gcr.mset = NULL;    /* there is no new data here */
+
    if( gcr.rh != NULL ){
       destroy_CREN_renderer(gcr.rh) ;
       gcr.rh = NULL ; func_cmap_set = 0 ;
@@ -1937,6 +1964,8 @@ void RCREND_reload_dataset(void)
       else
          local_dset  = gcr.dset_or;    /* woohoo!  we have our new dataset */
    }
+
+   gcr.mset = local_dset;                  /* we have our rendering master */
 
    vim      = DSET_BRICK(local_dset,dset_ival) ;
    nvox     = vim->nvox ;
@@ -3039,15 +3068,17 @@ void RCREND_load_dsl( THD_3dim_dataset * mset , int float_ok )
 
       if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
 
+#if 0   /* overlay grid no longer needs to match underlay  rickr 2002.07.18 */
       if( nx > 0 && DSET_NX(qset) != nx ) continue ;  /* must match */
       if( ny > 0 && DSET_NY(qset) != ny ) continue ;  /* brick size */
       if( nz > 0 && DSET_NZ(qset) != nz ) continue ;
+#endif
 
       ndsl++ ;
       dsl = (PLUGIN_dataset_link *)
               XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
 
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;  /* cf. afni_plugin.c */
+      make_PLUGIN_dataset_link(qset, dsl + (ndsl-1)) ;  /* cf. afni_plugin.c */
    }
 
    /* scan funcs */
@@ -3057,9 +3088,11 @@ void RCREND_load_dsl( THD_3dim_dataset * mset , int float_ok )
 
       if( ! USEFUL_DSET(qset) ) continue ;    /* skip this one */
 
+#if 0   /* overlay grid no longer needs to match underlay  rickr 2002.07.18 */
       if( nx > 0 && DSET_NX(qset) != nx ) continue ;
       if( ny > 0 && DSET_NY(qset) != ny ) continue ;
       if( nz > 0 && DSET_NZ(qset) != nz ) continue ;
+#endif
 
       ndsl++ ;
       dsl = (PLUGIN_dataset_link *)
@@ -3253,28 +3286,33 @@ void RCREND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
 
-   /* if the existing overlay dataset doesn't match dset, kill the overlay */
+   /* if the existing overlay dataset doesn't match dset, warn the user */
 
    if( func_dset != NULL && ( DSET_NX(dset) != DSET_NX(func_dset) ||
                               DSET_NY(dset) != DSET_NY(func_dset) ||
                               DSET_NZ(dset) != DSET_NZ(func_dset)   ) ){
 
+#if 0  /* don't need to invalidate, just warn user      rickr - 2002.07.18 */
       INVALIDATE_OVERLAY ;
       func_dset = NULL ;
-
       TURNOFF_OVERLAY_WIDGETS ;
+#endif
 
-      (void) MCW_popup_message( choose_pb ,
+      /* just warn user                                   rickr 2002.07.18 */
+      (void) MCW_popup_message( choose_pb , 
                                    " \n"
-                                   "** New underlay dataset did  **\n"
+                                   "** Warning:                  **\n"
+                                   "** new underlay dataset does **\n"
                                    "** not match dimensions of   **\n"
-                                   "** existing overlay dataset, **\n"
-                                   "** so the latter was removed **\n" ,
+                                   "** existing overlay dataset. **\n",
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
+   if ( func_dset != NULL )   /* we may need to resample functional overlay */
+      new_fset = 1;
+
    /* read the new data */
-   new_dset = 1 ;           /* flag it as new */
+   new_dset = 1;              /* flag it as new */
    RCREND_reload_dataset() ;  /* load the data */
 
    return ;
@@ -5546,7 +5584,8 @@ void RCREND_func_widgets(void)
                              wqqq , "Rota" ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
-                             AFNI_range_rotate_av_CB , (XtPointer) wfunc_color_pbar ,
+                             AFNI_range_rotate_av_CB ,
+                             (XtPointer) wfunc_color_pbar ,
                              NULL,NULL ) ;
 
    XtManageChild( wqqq ) ;
@@ -6281,19 +6320,23 @@ void RCREND_reload_func_dset(void)
    DSET_load(func_dset) ;            /* make sure is in memory */
    local_dset = func_dset;
 
-   /* make an oriented overlay, if needed             26 June 2002 - rickr */
-   if ( !IS_AXIAL_RAI( func_dset ) )
+/* if (!IS_AXIAL_RAI(func_dset))    - no longer our test for re-orientation */
+
+   if ( ! ISVALID_DSET( gcr.mset ) ) /* just continue with given func_dset  */
+   {
+      fprintf( stderr, "failure: no master for functional re-orientation" );
+      XBell( dc->display, 100 );
+   }
+   else if ( ! EQUIV_DATAXES( gcr.mset->daxes, func_dset->daxes ) )
    {
       if ( new_fset || gcr.fset_or == NULL )          /* we need a new one */
       {
-         if ( gcr.fset_or != NULL )                    /* lose the old one */
-         {
-            THD_delete_3dim_dataset( gcr.fset_or, FALSE );
-            gcr.fset_or = NULL;
-         }
+         printf("++ resampling overlay to master grid..." );
 
-         printf("++ reorienting overlay as rai..." );
-         gcr.fset_or = r_new_resam_dset(func_dset, NULL, 0,0,0, "rai",
+         if ( gcr.fset_or != NULL )                    /* lose the old one */
+            THD_delete_3dim_dataset( gcr.fset_or, FALSE );
+
+         gcr.fset_or = r_new_resam_dset(func_dset, gcr.mset, 0,0,0, NULL,
                                         RESAM_NN_TYPE);
          printf(" done\n" );
       }
