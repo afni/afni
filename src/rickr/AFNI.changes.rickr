@@ -506,3 +506,10 @@
   * made history notes of ziad's added argument to SUMA_LoadSpec_eng()
       - 3dSurf2Vol (v3.3), 3dVol2Surf (v4.4), SurfMeasures (v1.8)
 
+31 March 2004:
+  * added rickr/serial_helper.c (-> v1.0)
+      - this tcp server passes registration correction params to a serial port
+  * modifed plug_realtime.c
+      - added the ability to pass registration correction parameters over
+        a tcp socket (see 'serial_helper -help')
+
