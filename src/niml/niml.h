@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -157,13 +158,13 @@ extern int          NI_val_to_binary       ( NI_rowtype *, char *, char * ) ;
 extern void         NI_multival_to_text    ( NI_rowtype *, int, char *, char * );
 extern int          NI_multival_to_binary  ( NI_rowtype *, int, char *, char * );
 extern int          NI_has_String          ( NI_rowtype * ) ;
-extern void         NI_swap_rowtype        ( NI_rowtype * , int , char * ) ;
+extern void         NI_swap_column         ( NI_rowtype * , int , char * ) ;
 
 extern void NI_rowtype_debug( int ) ;
 
 /*! Used to test if a rowtype code is a basic type. */
 
-#define ROWTYPE_is_basic_code(nn) ( (nn) < NI_NUM_BASIC_TYPES )
+#define ROWTYPE_is_basic_code  NI_is_basic_type
 
 /*****------------------------------------------------------------------*****/
 
@@ -489,9 +490,6 @@ extern void NI_swap_vector( int, int, void * ) ;
 extern void NI_define_rowmap_AR( NI_element *, int,int *,int *) ;
 extern void NI_define_rowmap_VA( NI_element *, ... ) ;
 
-extern void NI_define_rowmap_from_rowtype_code( NI_element *, int    ) ;
-extern void NI_define_rowmap_from_rowtype_name( NI_element *, char * ) ;
-
 extern void NI_add_row( NI_element *, void * ) ;
 extern void NI_get_row( NI_element *, int, void * ) ;
 
@@ -532,6 +530,9 @@ extern int    NI_write_columns( NI_stream_type * ,
                                 int , int * , int , void ** , int ) ;
 extern int    NI_write_rowtype( NI_stream_type * ,
                                 NI_rowtype * , int , void * , int ) ;
+extern int    NI_read_columns ( NI_stream_type *,
+                                int, int *, int, void **, int,int ) ;
+extern void   NI_free_column  ( NI_rowtype * , int , void * ) ;
 
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)
