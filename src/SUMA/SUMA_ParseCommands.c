@@ -191,6 +191,24 @@ int SUMA_CommandCode(char *Scom)
      
 }
 
+const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode)
+{
+   static char FuncName[]={"SUMA_ColMixModeString"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   switch (mode) {
+      case SUMA_BAD_MODE:
+         SUMA_RETURN("BadMode");
+      case SUMA_ORIG_MIX_MODE:
+         SUMA_RETURN("ORIG");
+      case SUMA_4AML:
+         SUMA_RETURN("MOD1");
+      default:
+         SUMA_RETURN("VeryBadMode");
+   }
+   
+}
 /*!
    \brief Transforms a command code into a string for human consumption
    const char *SUMA_CommandString (SUMA_ENGINE_CODE code);

@@ -239,6 +239,8 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  F6: Viewer background color, toggle.\n");
    SS = SUMA_StringAppend (SS, 
+      "\t  F7: Switch between color mixing modes.\n");
+   SS = SUMA_StringAppend (SS, 
       "\t  F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
       "\t  HOME: reset view to startup\n\n");

@@ -21,6 +21,16 @@
       if (v > max) v = max;   \
       else if (v < min) v = min; \
    }
+
+#define SUMA_CLIP_UB(v, max)   \
+   {  \
+      if (v > max) v = max;   \
+   }
+
+#define SUMA_CLIP_LB(v, min)   \
+   {  \
+      if (v < min) v = min; \
+   }
    
 #define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
    {  \
@@ -1005,6 +1015,10 @@ WARNING: The input data vectors are not cast to the type of s.
       opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
+      
+      *** Dec 04 03: 
+      Variant SUMA_RGB_FGnL_AR4op2
+      removed opacity scaling of RGBmat[m_I] and added clipping to 1.0 
    */
    
    #define SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, nrgb, opacity, isColored) {\
@@ -1025,7 +1039,24 @@ WARNING: The input data vectors are not cast to the type of s.
             ++m_I4;\
          }\
    }
-   
+   #define SUMA_RGB_FGnL_AR4op2(RGBmat, glcolar, nrgb, opacity, isColored) {\
+      int m_I, m_I4 = 0; \
+      float m_of;\
+      m_of = 1-opacity;\
+         for (m_I=0; m_I < nrgb; ++m_I) {\
+            if (isColored[m_I]) {   \
+               glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][2]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+            } else { /* not yet colored */\
+               glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+               glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+               glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+               isColored[m_I] = YUP;\
+            }  \
+            ++m_I4;\
+         }\
+   }   
    /*!
     This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
          but name was too long for some compilers 
@@ -1043,6 +1074,10 @@ WARNING: The input data vectors are not cast to the type of s.
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
       locgain (float *) a N x 1 vector of gains applied to their respective nodes 
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
+   
+      *** Dec 04 03: 
+      Variant SUMA_RGB_FGL_AR4op2
+      removed opacity from m_of and added clipping to 1.0 
    */
    
    #define SUMA_RGB_FGL_AR4op(RGBmat, glcolar, nrgb, opacity, locgain, isColored) {\
@@ -1050,7 +1085,7 @@ WARNING: The input data vectors are not cast to the type of s.
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
             if (isColored[m_I]) {   \
-               m_of = locgain[m_I] * opacity; \
+               m_of = locgain[m_I] * opacity; /* Dec 04 03 changed from locgain[m_I] * opacity; */\
                m_of2 = (1-opacity);\
                glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
                glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
@@ -1064,7 +1099,25 @@ WARNING: The input data vectors are not cast to the type of s.
             ++m_I4;\
          }\
    }
-   
+   #define SUMA_RGB_FGL_AR4op2(RGBmat, glcolar, nrgb, opacity, locgain, isColored) {\
+      int m_I, m_I4 = 0; \
+      float m_of, m_of2;\
+         for (m_I=0; m_I < nrgb; ++m_I) {\
+            if (isColored[m_I]) {   \
+               m_of = locgain[m_I]; /* Dec 04 03 changed from locgain[m_I] * opacity; */\
+               m_of2 = (1-opacity);\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+            }  else { /* not yet colored */\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               isColored[m_I] = YUP;\
+            }  \
+            ++m_I4;\
+         }\
+   }   
    /*!
       This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity 
 
@@ -1138,12 +1191,18 @@ WARNING: The input data vectors are not cast to the type of s.
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
       opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
+      
+      *** Dec. 04 03: 
+      Variant SUMA_RGB_PGnL_AR4op2
+         Instead of mixing like this: Col_new = (1 -  opacity)*Col_1 + opacity *Col_2;
+         I am using Col_new = (1 -  opacity)*Col_1 +  Col_2; if (Col_new > 1) Col_new = 1
+   
    */
    
    #define SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, N_Node) {\
       int m_I, m_I4 = 0, m_II; \
       float m_of;\
-      m_of = 1 - opacity;\
+         m_of = (1 - opacity); \
          for (m_I=0; m_I < nrgb; ++m_I) {\
             if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                if (NodeId[m_I] < N_Node) {\
@@ -1156,14 +1215,37 @@ WARNING: The input data vectors are not cast to the type of s.
             }else {/* mixing to be done */\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][0]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][1]; ++m_I4;\
-                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][2]; ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][0];  ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][1];  ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][2];  ++m_I4;\
                }\
             }\
          }\
    }
    
+   #define SUMA_RGB_PGnL_AR4op2(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, N_Node) {\
+      int m_I, m_I4 = 0, m_II; \
+      float m_of;\
+         m_of = (1 - opacity); \
+         for (m_I=0; m_I < nrgb; ++m_I) {\
+            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
+               if (NodeId[m_I] < N_Node) {\
+                  m_I4 = 4*NodeId[m_I]; \
+                  glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
+                  glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
+                  glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
+                  isColored[NodeId[m_I]] = YUP;\
+               }\
+            }else {/* mixing to be done */\
+               if (NodeId[m_I] < N_Node) {\
+                  m_I4 = 4*NodeId[m_I]; \
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+                  glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][2]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+               }\
+            }\
+         }\
+   }
    /*!
       This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity
       
@@ -1182,6 +1264,12 @@ WARNING: The input data vectors are not cast to the type of s.
       opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
       locgain (float *)  N x 1 vector of gains applied to their respective nodes 
+      
+      *** Dec. 04 03: 
+      Variant SUMA_RGB_PGL_AR4op2
+         Instead of mixing like this: Col_new = (1 -  opacity) *Col_1 + opacity * locgain *Col_2;
+         I am using Col_new = (1 -  opacity)*Col_1 +  locgain * Col_2; if (Col_new > 1) Col_new = 1
+   
    */
    
    #define SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, locgain, N_Node) {\
@@ -1199,11 +1287,36 @@ WARNING: The input data vectors are not cast to the type of s.
             }else { /* mixing to be done */\
                if (NodeId[m_I] < N_Node) {\
                   m_I4 = 4*NodeId[m_I]; \
-                  m_of = (locgain[m_I] * opacity);\
+                  m_of = (locgain[m_I]  * opacity); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
                   m_of2 = (1 - opacity);\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; ++m_I4;\
+               }\
+            }\
+         }\
+   }
+
+   #define SUMA_RGB_PGL_AR4op2(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, locgain, N_Node) {\
+      int m_I, m_I4 = 0; \
+      float m_of, m_of2;\
+         for (m_I=0; m_I < nrgb; ++m_I) {\
+            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
+               if (NodeId[m_I] < N_Node) {\
+                  m_I4 = 4*NodeId[m_I]; \
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
+                  glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
+                  isColored[NodeId[m_I]] = YUP;\
+               }\
+            }else { /* mixing to be done */\
+               if (NodeId[m_I] < N_Node) {\
+                  m_I4 = 4*NodeId[m_I]; \
+                  m_of = (locgain[m_I]); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
+                  m_of2 = (1 - opacity);\
+                  glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+                  glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
+                  glcolar[m_I4] = m_of2 * glcolar[m_I4] + m_of * RGBmat[m_I][2]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
                }\
             }\
          }\
@@ -1226,7 +1339,6 @@ WARNING: The input data vectors are not cast to the type of s.
       locgain (float *)  N x 1 vector of gains applied to their respective nodes 
       
    */
-   
    #define SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored,  locgain, N_Node) {\
       int m_I, m_I4 = 0; \
       float m_of;\

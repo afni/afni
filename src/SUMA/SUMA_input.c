@@ -1183,7 +1183,27 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
             break; 
+         
+         case XK_F7: /*F7 */
+            ++SUMAg_CF->ColMixMode;
+            if (SUMAg_CF->ColMixMode >= SUMA_MAX_MODES) {
+               SUMAg_CF->ColMixMode = SUMA_ORIG_MIX_MODE;
+            }
+            {
+               char stmp[200];
+               sprintf(stmp,"Using %s color mixing mode.", SUMA_ColMixModeString(SUMAg_CF->ColMixMode)); 
+               SUMA_SLP_Note(stmp);
+            }
             
+            SUMA_SetAllRemixFlag (SUMAg_SVv, SUMAg_N_SVv);
+            
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+            if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
+            break; 
+              
          case XK_F12: /* F12 */
             /* time display speed */
             {

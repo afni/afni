@@ -28,6 +28,7 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr);
 SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, int N_SVv);
 SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv);
 int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv);
 SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void);
 void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont);

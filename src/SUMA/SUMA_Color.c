@@ -2,7 +2,7 @@
 #define MAIN     /* need this to read in color info from afni.h */
 #include "../afni.h"
 #undef MAIN
-
+  
 #ifdef SUMA_MakeColorMap_STAND_ALONE
    /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
    SUMA_CommonFields *SUMAg_CF;
@@ -3992,19 +3992,30 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
          
       /* call the appropriate macro to add the overlay */
       if (Full && Glob && Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op ...\n", FuncName);
-         
-         /* This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
-         but name was too long for some compilers */
-         SUMA_RGB_FGL_AR4op(\
-         Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);         
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op ...\n", FuncName);
+            /* This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
+            but name was too long for some compilers */
+            SUMA_RGB_FGL_AR4op(\
+            Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);         
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_FGL_AR4op2 ...\n", FuncName);
+            SUMA_RGB_FGL_AR4op2(\
+            Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored); 
+         }
       }
       
       if (!Full && Glob && Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op ...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
-         SUMA_RGB_PGL_AR4op(\
-         Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op ...\n", FuncName);
+            /* This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
+            SUMA_RGB_PGL_AR4op(\
+            Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
+          } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {  
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGB_PGL_AR4op2 ...\n", FuncName);
+            SUMA_RGB_PGL_AR4op2(\
+            Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
+         }
       }
       
       if (Full && !Glob && Locl) {
@@ -4036,18 +4047,32 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
       }
       
       if (Full && Glob && !Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
-         SUMA_RGB_FGnL_AR4op(\
-         Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op...\n", FuncName);
+            /* This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGB_FGnL_AR4op(\
+            Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_FGnL_AR4op2...\n", FuncName);
+            SUMA_RGB_FGnL_AR4op2(\
+            Overlays[i]->ColMat, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
+         }
+         
       }
        
       if (!Full && Glob && !Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
-         SUMA_RGB_PGnL_AR4op(\
-         Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
+         if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op...\n", FuncName);
+            /* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGB_PGnL_AR4op(\
+            Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
+         } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGB_PGnL_AR4op2...\n", FuncName);
+            SUMA_RGB_PGnL_AR4op2(\
+            Overlays[i]->ColMat, Overlays[i]->NodeDef, glcolar, Overlays[i]->N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
+         }
       }
+         
    }
    
    if (FILL && Fill) { /* nothing to see here */

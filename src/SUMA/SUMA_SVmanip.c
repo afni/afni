@@ -695,6 +695,38 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    
    SUMA_RETURN (YUP);
 }
+
+/*!
+   \brief sets remix flags for all color lists in viewers specified in SVv
+   Use this function whenever global color changes occur
+   
+   \sa SUMA_SetRemixFlag for detailed help
+
+*/
+SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
+{
+   static char FuncName[]={"SUMA_SetAllRemixFlag"};
+   SUMA_SurfaceViewer *sv;
+   int i, kk;   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SVv) {
+      fprintf (SUMA_STDERR,"Error %s: NULL SVv . BAD\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* search all viewers */
+   for (i=0; i < N_SVv; ++i) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
+      sv = &(SVv[i]);
+      for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk].Remix = YUP;
+   }
+   
+   SUMA_RETURN (YUP);
+}
+
 /*!
 Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
@@ -1161,6 +1193,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
    int i;
+   char *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    /* This is the function that creates the debugging flags, do not use them here */
@@ -1188,15 +1221,14 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->ViewLocked[i] = NOPE;
    }
    
-   {
-      char *eee = getenv("SUMA_SwapButtons_1_3");
-      if (eee) {
-         if (strcmp (eee, "YES") == 0) cf->SwapButtons_1_3 = YUP;
-         else cf->SwapButtons_1_3 = NOPE;
-      } else {
-         cf->SwapButtons_1_3 = NOPE;
-      }
+   eee = getenv("SUMA_SwapButtons_1_3");
+   if (eee) {
+      if (strcmp (eee, "YES") == 0) cf->SwapButtons_1_3 = YUP;
+      else cf->SwapButtons_1_3 = NOPE;
+   } else {
+      cf->SwapButtons_1_3 = NOPE;
    }
+
    cf->X = (SUMA_X_AllView *)malloc(sizeof(SUMA_X_AllView));
    if (!cf->X) {
      fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
@@ -1205,30 +1237,30 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DrawROI = SUMA_CreateDrawROIStruct();
    cf->X->DPY_controller1 = NULL;
-   {
-         char *eee = getenv("SUMA_ColorPattern");
-         if (eee) {
-            if (strcmp (eee, "AFNI") == 0) {
-               cf->X->X_Resources = SXR_Afni;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Afni resources\n", FuncName);
-            } else if (strcmp (eee, "EURO") == 0) {
-               cf->X->X_Resources = SXR_Euro;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Euro resources\n", FuncName);
-            } else if (strcmp (eee, "BONAIRE") == 0) {
-               cf->X->X_Resources = SXR_Bonaire;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Bonaire resources\n", FuncName);
-            } else if (strcmp (eee, "DEFAULT") == 0) {
-               cf->X->X_Resources = SXR_default;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: default resources\n", FuncName);
-            } else {
-               cf->X->X_Resources = SXR_Euro;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Unrecognized option. Using default\n", FuncName);
-            }
-         } else {
-            cf->X->X_Resources = SXR_Euro;
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
-         }
+   
+   eee = getenv("SUMA_ColorPattern");
+   if (eee) {
+      if (strcmp (eee, "AFNI") == 0) {
+         cf->X->X_Resources = SXR_Afni;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Afni resources\n", FuncName);
+      } else if (strcmp (eee, "EURO") == 0) {
+         cf->X->X_Resources = SXR_Euro;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Euro resources\n", FuncName);
+      } else if (strcmp (eee, "BONAIRE") == 0) {
+         cf->X->X_Resources = SXR_Bonaire;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Bonaire resources\n", FuncName);
+      } else if (strcmp (eee, "DEFAULT") == 0) {
+         cf->X->X_Resources = SXR_default;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: default resources\n", FuncName);
+      } else {
+         cf->X->X_Resources = SXR_Euro;
+         fprintf(SUMA_STDERR,"%s:\nUnrecognized option %s for SUMA_ColorPattern.\nUsing default = EURO\n", FuncName, eee);
+      }
+   } else {
+      cf->X->X_Resources = SXR_Euro;
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
    }
+   
    cf->X->Help_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
@@ -1247,6 +1279,21 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->ROI_CM = NULL;
    cf->ROI_FillMode = SUMA_ROI_FILL_TO_THISROI;
    cf->ROI2afni = NOPE;
+   
+   eee = getenv("SUMA_ColorMixingMode");
+   if (eee) {
+      if (strcmp (eee, "ORIG") == 0) {
+         cf->ColMixMode = SUMA_ORIG_MIX_MODE;
+      } else if (strcmp (eee, "MOD1") == 0) {
+         cf->ColMixMode = SUMA_4AML;
+      } else {
+         cf->ColMixMode = SUMA_ORIG_MIX_MODE;
+         fprintf(SUMA_STDERR,"%s:\nUnrecognized option %s for SUMA_ColorMixingMode.\nUsing default = ORIG\n", FuncName, eee);
+      } 
+   } else {
+      cf->ColMixMode = SUMA_ORIG_MIX_MODE;
+   }
+   
    return (cf);
 
 }

@@ -35,6 +35,7 @@ void SUMA_FreeActionStackData(void *asdata);
 DList *SUMA_CreateActionStack (void);
 void SUMA_ReleaseActionStackData (void *asdata);
 DList *SUMA_EmptyDestroyActionStack (DList *AS);
+const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode);
 
 
 

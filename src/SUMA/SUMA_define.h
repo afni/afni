@@ -365,6 +365,16 @@ typedef enum { SUMA_UNDEFINED_MODE,
                SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
             } SUMA_COLORMAP_INTERP_MODE;
 
+typedef enum { SUMA_BAD_MODE=-1, 
+               SUMA_ORIG_MIX_MODE,  /*!< The original mode for color overlaying: 
+                                 if (Col1) Col = (1-opacity) Col1 + opacity Col2 */
+               SUMA_4AML,  /*!< A modified mixing mode to keep colors from getting dimmed 
+                              (as with opacity of 0.5 on Col1 = 0.3 0 0 and Col2 = 0 0.3 0)
+                              resultant is a very dim yellow 0.15 0.15 0 
+                              Named after the eminent A. M. L.*/
+               SUMA_MAX_MODES /*!< The limit, used for cycling */
+               } SUMA_COL_MIX_MODE;
+               
 /*! a structure holding the options for the function SUMA_ScaleToMap 
 \sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
 to free this structure use the free function
@@ -1478,10 +1488,11 @@ typedef struct {
    SUMA_Boolean Pen_mode;  /*!< Flag specifying that a pen is being used for drawing */
    SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
    SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
+   SUMA_COL_MIX_MODE ColMixMode; /*!< controls the way colors from multiple planes are mixed together */
    SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
    int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
 } SUMA_CommonFields;
-
+               
 /*! structure containing a surface patch */
 typedef struct {
    int N_FaceSet; /*!< Number of Facesets forming patch */

@@ -612,7 +612,7 @@ SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Ou
    FILE *Outp = NULL;
    int i, imax = 100;
    float fk, k;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -665,7 +665,7 @@ SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m)
    int i;
    float ls[2], delta;
    SUMA_Boolean Done = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -932,7 +932,7 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
    int n , k, j, niter, vnk, os; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1993,7 +1993,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
    if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
-      SEL = SUMA_Make_Edge_List (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList);
+      SEL = SUMA_Make_Edge_List_eng (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList, 0);
    
       /* SUMA_Show_Edge_List (SEL, NULL); */
       /* allocate for maximum */
