@@ -464,7 +464,7 @@ int main( int argc , char * argv[] )
 	{
           if( ! HI_notit ){
 	     printf ("%12s %13s %13s ",
-		     "Magnitude", "Log_Freq", "Log_Cum_Freq");
+		     "#Magnitude", "Log_Freq", "Log_Cum_Freq");
 	     if (HI_thr > 0.0)
 	       printf ("%13s %13s\n",  "Log_Thr_Freq", "Log_Cum_Thr_Frq");
 	     else
@@ -488,7 +488,7 @@ int main( int argc , char * argv[] )
 	} else
 	{
           if( ! HI_notit ){
-	     printf ("%12s %13s %13s ",  "Magnitude", "Freq", "Cum_Freq");
+	     printf ("%12s %13s %13s ",  "#Magnitude", "Freq", "Cum_Freq");
 	     if (HI_thr > 0.0)
 	       printf ("%13s %13s \n",  "Thr_Freq", "Cum_Thr_Freq");
 	     else
