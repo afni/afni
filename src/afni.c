@@ -1500,6 +1500,16 @@ STATUS("call 14") ;
           }
         }
 
+        /* 01 Feb 2003: read pbar bigmaps ordered by environment */
+
+        { char nnn[32] ;
+          PBAR_read_bigmap( getenv("AFNI_COLORFIELD") , MAIN_dc ) ;
+          for( ii=1 ; ii < 99 ; ii++ ){
+            sprintf(nnn,"AFNI_COLORFIELD_%02d",ii) ;
+            PBAR_read_bigmap( getenv(nnn) , MAIN_dc ) ;
+          }
+        }
+
         REPORT_PROGRESS("\n") ;
       }
       break ;

@@ -196,26 +196,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
 
-#define NBIGMAP_INIT 4
-   if( bigmap_num == 0 ){
-     bigmap_num     = NBIGMAP_INIT ;
-     bigmap_name    = (char **) malloc(sizeof(char *)*NBIGMAP_INIT) ;
-     bigmap_name[0] = strdup("Spectrum:red_to_blue") ;
-     bigmap_name[1] = strdup("Spectrum:yellow_to_red") ;
-     bigmap_name[2] = strdup("Color_circle_AJJ") ;
-     bigmap_name[3] = strdup("Color_circle_ZSS") ;
-     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*NBIGMAP_INIT) ;
-     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
-     for( i=0 ; i < NPANE_BIG ; i++ ){
-       bigmap[0][i] = DC_spectrum_AJJ(      i*(250.0/(NPANE_BIG-1))-5.0, 0.8 );
-       bigmap[1][i] = DC_spectrum_AJJ( 60.0-i*( 60.0/(NPANE_BIG-1))    , 0.7 );
-       bigmap[2][i] = DC_spectrum_AJJ(      i*(360.0/(NPANE_BIG-1))    , 0.8 );
-       bigmap[3][i] = DC_spectrum_ZSS(360.0-i*(360.0/(NPANE_BIG-1))    , 1.0 );
-     }
-   }
+   PBAR_add_bigmap(NULL,NULL) ;
 
    /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
 
@@ -250,6 +231,29 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 {
    int ii , nn , kk ;
 
+   /* if needed, setup initial color field tables */
+
+#define NBIGMAP_INIT 4
+   if( bigmap_num == 0 ){
+     bigmap_num     = NBIGMAP_INIT ;
+     bigmap_name    = (char **) malloc(sizeof(char *)*NBIGMAP_INIT) ;
+     bigmap_name[0] = strdup("Spectrum:red_to_blue") ;
+     bigmap_name[1] = strdup("Spectrum:yellow_to_red") ;
+     bigmap_name[2] = strdup("Color_circle_AJJ") ;
+     bigmap_name[3] = strdup("Color_circle_ZSS") ;
+     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*NBIGMAP_INIT) ;
+     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     for( ii=0 ; ii < NPANE_BIG ; ii++ ){
+       bigmap[0][ii] = DC_spectrum_AJJ(      ii*(250.0/(NPANE_BIG-1))-5.0,0.8);
+       bigmap[1][ii] = DC_spectrum_AJJ( 60.0-ii*( 60.0/(NPANE_BIG-1))    ,0.7);
+       bigmap[2][ii] = DC_spectrum_AJJ(      ii*(360.0/(NPANE_BIG-1))    ,0.8);
+       bigmap[3][ii] = DC_spectrum_ZSS(360.0-ii*(360.0/(NPANE_BIG-1))    ,1.0);
+     }
+   }
+
    if( name == NULL || *name == '\0' || cmap == NULL ) return ;
 
    nn = bigmap_num ; kk = nn+1 ;
@@ -263,6 +267,87 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
    for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
 
    POPDOWN_strlist_chooser ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void PBAR_read_bigmap( char *fname , MCW_DC *dc )
+{
+#define NSBUF 128
+  int ii , neq=0 , jj ;
+  char name[NSBUF], lhs[NSBUF],rhs[NSBUF], line[2*NSBUF] , *cpt ;
+  float  val[NPANE_BIG] , fr,fg,fb , top,bot,del,vv ;
+  rgbyte col[NPANE_BIG] , map[NPANE_BIG] ;
+  FILE *fp ;
+
+  if( fname == NULL || *fname == '\0' || dc == NULL ) return ;
+  fp = fopen(fname,"r"); if( fp == NULL ) return;
+
+  /* get name */
+
+  do{
+    cpt = fgets( line , 2*NSBUF , fp ) ;
+    if( cpt == NULL ){ fclose(fp); return; }
+    name[0] = '\0' ;
+    sscanf(line,"%127s",name) ;
+  } while( name[0]=='\0' || name[0]=='!' || (name[0]=='/' && name[1]=='/') ) ;
+
+  /* get lines of form "value = colordef" */
+
+  while( neq < NPANE_BIG ){
+    cpt = fgets( line , 2*NSBUF , fp ) ;
+    if( cpt == NULL ) break ;              /* exit loop */
+    lhs[0] = rhs[0] = '\0' ;
+    sscanf(line,"%127s = %127s",lhs,rhs) ;
+    if( lhs[0] == '\0' || rhs[0] == '\0' ) continue ;
+    if( lhs[0] == '!'  || (lhs[0]=='/' && lhs[1]=='/') ) continue ;
+    val[neq] = strtod(lhs,&cpt) ;
+    if( val[neq] == 0.0 && *cpt != '\0' ){
+      fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
+    }
+    ii = DC_parse_color( dc , rhs , &fr,&fg,&fb ) ;
+    if( ii ){
+      fprintf(stderr,"** %s: %s is bad colorname\n",fname,rhs); continue;
+    }
+    col[neq].r = (byte)(255.0*fr+0.5) ;
+    col[neq].g = (byte)(255.0*fg+0.5) ;
+    col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
+  }
+  fclose(fp) ; if( neq < 2 ) return ;
+
+  /* bubble sort val,col pairs */
+
+  do{
+   for( jj=ii=0 ; ii < neq-1 ; ii++ ){
+    if( val[ii+1] > val[ii] ){
+      fr     = val[ii] ; val[ii] = val[ii+1] ; val[ii+1] = fr     ;
+      map[0] = col[ii] ; col[ii] = col[ii+1] ; col[ii+1] = map[0] ;
+      jj = 1 ;
+    }
+   }
+  } while(jj) ;
+
+  top = val[0] ; bot = val[neq-1] ; if( bot >= top ) return ;
+  del = (top-bot)/(NPANE_BIG-1) ;
+
+  for( jj=ii=0 ; ii < NPANE_BIG ; ii++ ){
+    vv = top - ii*del ;
+    for( ; jj < neq-1 ; jj++ )
+      if( vv <= val[jj] && vv >= val[jj+1] ) break ;
+    if( vv >= val[jj] ){
+      map[ii] = col[jj] ;
+    } else if( vv <= val[jj+1] ){
+      map[ii] = col[jj+1] ;
+    } else {
+      fr = (vv-val[jj+1])/(val[jj]-val[jj+1]) ;
+      fg = 1.0-fr ;
+      map[ii].r = (byte)(fr*col[jj].r + fg*col[jj+1].r + 0.5) ;
+      map[ii].g = (byte)(fr*col[jj].g + fg*col[jj+1].g + 0.5) ;
+      map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5) ;
+    }
+  }
+
+  PBAR_add_bigmap( name, map ) ; return ;
 }
 
 /*-----------------------------------------------------------------------*/
