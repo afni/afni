@@ -1747,7 +1747,8 @@ for the Draw Dataset plugin.  A sample file is shown below:
 The 'ni_dimen' attribute is the number of value-label pairs; in the
   above example it is 3.
 Each value-label pair is shown on a separate line.  The values and
-  labels are strings, enclosed in quote characters.
+  labels are strings, enclosed in quote characters.  There should be
+  exactly as many value-label pairs as specified in 'ni_dimen'.
 
 =============================================
 | Robert W Cox, PhD                         |
