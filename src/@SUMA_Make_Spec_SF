@@ -6,7 +6,6 @@
 #
 # options:  -sid	subject_id	: specify subject ID
 #	    -sfpath	SureFit_path : specify path to SureFit files
-#	    -neuro			       : use neurological orientation
 #      -debug      level	: display extra output
 #
 
@@ -89,7 +88,6 @@ L_PARSE_COMMAND:
 
     set sf_dir		= "."
     set subj_id		= ""
-    set neuro_ori	= 0
 
     set args     = $#argv
     set count    = 1
@@ -136,14 +134,6 @@ L_PARSE_COMMAND:
 		    set endstr = "failure: directory not found - '$sf_dir'"
 		    goto L_BAD_END
 		endif
-
-	    breaksw
-
-	    # ----------------------------------------------------------
-	    # usage : -neuro
-	    case "-neuro":
-
-		set neuro_ori = 1
 
 	    breaksw
 
@@ -204,13 +194,14 @@ goto L_PARSE_COMMAND_DONE
 L_VERIFY_PROGRAMS:
 
     set failed_pgms = 0
-    foreach test_command ( afni to3d suma )
+    foreach test_command ( afni suma )
 
 	(which $test_command) >& /dev/null
 
 	if ( $status ) then
-	    echo "program not found in path: $test_command"
-	    @ failed_pgms ++
+	    echo "Warning: program not found in path: $test_command"
+	    #these programs are not necessary
+		 #@ failed_pgms ++
 	endif
     end
 
@@ -673,12 +664,9 @@ L_HELP_END:
     echo "$prog_name - prepare for surface viewing in SUMA"
     echo ""
     echo "    This script goes through the following steps:"
-    echo "      - verify existence of necessary programs "
-    echo "        (afni, to3d, suma, mris_conver)"
-    echo "      - determine the location of surface and COR files"
-    echo "      - creation of ascii surface files via 'mris_convert'"
+    echo "      - determine the location of surfaces and "
+	 echo "        then AFNI volume data sets used to create them."
     echo "      - creation of left and right hemisphere SUMA spec files"
-    echo "      - creation of an AFNI dataset from the COR files via 'to3d'"
     echo ""
     echo "      - all created files are stored in SURFACES directory"
     echo ""
@@ -689,7 +677,6 @@ L_HELP_END:
     echo "    $prog_name -sid subject1"
     echo "    $prog_name -help"
     echo "    $prog_name -sfpath subject1/surface_stuff -sid subject1"
-    echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
     echo ""
     echo "  options:"
     echo ""
@@ -699,35 +686,35 @@ L_HELP_END:
     echo "          e.g. -debug 1"
     echo "          the default level is 0, max is 2"
     echo ""
-    echo "    -sfpath PATH    : path to 'surf' and 'orig' directories"
-    echo "          e.g. -sfpath subject1/surface_info"
+    echo "    -sfpath PATH    : path to directory containing 'SURFACES'"
+	 echo "                      and AFNI volume used in creating the surfaces."
+    echo "          e.g. -sfpath subject1/surface_models"
     echo "          the default PATH value is './', the current directory"
     echo ""
-    echo "          This is generally the location of the 'surf' directory,"
-    echo "          though having PATH end in surf is OK.  The mri/orig"
-    echo "          directory should also be located here."
+    echo "          This is generally the location of the 'SURFACES' directory,"
+    echo "          though having PATH end in SURFACES is OK.  "
     echo ""
     echo "          Note: when this option is provided, all file/path"
     echo "          messages will be with respect to this directory."
     echo ""
-    echo "    -neuro          : use neurological orientation"
-    echo "          e.g. -neuro"
-    echo "          the default is radiological orientation"
-    echo ""
-    echo "          In the default radiological orientation, the subject's"
-    echo "          right is on the left side of the image.  In the"
-    echo "          neurological orientation, left is really left."
     echo ""
     echo "    -sid SUBJECT_ID : required subject ID for file naming"
     echo ""
     echo ""
     echo "  notes:"
     echo ""
-    echo "    0. More help may be found at http://someplace.TBD"
-    echo "    1. Surface file names should look like 'lh.smoothwm'."
-    echo "    2. Patches of surfaces need the word patch in their name, in"
-    echo "       order to use the correct option for 'mris_convert'."
-    echo "    3. Flat surfaces must have .flat in their name."
+    echo "    0. More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+    echo "    1. Surface file names should look like the standard names used by SureFit:"
+	 echo "       rw_1mmLPI.L.full.segment_vent_corr.fiducial.58064.coord"
+	 echo "       Otherwise the script cannot detect them. You will need to decide which"
+	 echo "       surface is the most recent (the best) and the script helps you by listing"
+	 echo "       the available surfaces with the most recent one first."
+	 echo "       This sorting ususally works except when the time stamps on the surface files"
+	 echo "       are messed up. In such a case you just need to know which one to use."
+	 echo "       Once the fiducial surface is chosen, it's complimentary surfaces are selected"
+	 echo "       using the node number in the file name."
+    echo "    3. You can tailor the script to your needs. Just make sure you rename it or risk"
+	 echo "       having your modifications overwritten with the next SUMA version you install."
 	 echo ""
     echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
     echo ""

@@ -12,40 +12,47 @@ void SUMA_help_message(FILE *Out)
 	}
     fprintf (Out, "\nKeyboard Controls\n");
 	 fprintf (Out, "\t  a: attenuation by background, toggle.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  B: Backface culling toggle.\n");
-	 fprintf (Out, "\t  b: background color toggle.\n");
-	 fprintf (Out, "\t  c: input a node color file.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  B: Backface culling, toggle.\n");
+	 fprintf (Out, "\t  b: background color, toggle.\n");
+	 fprintf (Out, "\t  c: node color file.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  d: Show all DO objects in DOv.\n");
-	 fprintf (Out, "\t  f: functional overlay toggle.\n");
+	 fprintf (Out, "\t  f: functional overlay, toggle.\n");
 	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
 	 fprintf (Out, "\t  h: help message\n");
 	 fprintf (Out, "\t  l: look at point\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  L: look from point\n");
-	 fprintf (Out, "\t  m: toggle momentum\n");
+	 fprintf (Out, "\t  m: momentum, toggle\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  n: bring a node to direct view\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
-	 fprintf (Out, "\t  t: toggle TalkToAfni\n");
+	 fprintf (Out, "\t  t: talk to AFNI, toggle.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");
-	 fprintf (Out, "\t  w: Write the rendered scene an image file on disk (suma_img*.eps).\n");
+	 fprintf (Out, "\t  w: Write the rendered scene to an image file on disk (suma_img*.eps).\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  W: Write ascii files containing the NodeList and the FaceSetList of the surface in focus.\n");
-	 fprintf (Out, "\t  Z/z: zoom in/out\n");
+	 fprintf (Out, "\t  Z/z: Zoom in/out\n");
+	 
 	 fprintf (Out, "\t  *: Smooth node colors by averaging with neighbors.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  @: Compute curvatures along principal directions on the surface, results written to disk.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  (: Compute convexity of surface, results written to disk.\n");
 	 fprintf (Out, "\t  ,/. (think </>): Switch to next/previous view state.\n");
 	 fprintf (Out, "\t  SPACE: Toggle between Mapping Reference and Current view state.\n");
+	 
 	 fprintf (Out, "\t  L-R arrows: rotate about screen's Y axis\n");
 	 fprintf (Out, "\t  U-D arrows: rotate about screen's X axis\n");
 	 fprintf (Out, "\t  Shift+L-R arrows: translate about screen's Y axis\n");
 	 fprintf (Out, "\t  Shift+U-D arrows: translate about screen's X axis\n");
-	 fprintf (Out, "\t  F1: toggle object axis (X-Red, Y-Green, Z-Blue)\n");
-	 fprintf (Out, "\t  F2: toggle screen axis (X-Red, Y-Green)\n");
-	 fprintf (Out, "\t  F3: toggle cross hair\n");
-	 fprintf (Out, "\t  F4: toggle node selection highlight\n");
-	 fprintf (Out, "\t  F5: toggle FaceSet selection highlight\n");
+	 fprintf (Out, "\t  Ctrl+L-R arrows: LR cardinal views\n");
+	 fprintf (Out, "\t  Ctrl+U-D arrows: IS cardinal views\n");
+	 fprintf (Out, "\t  Ctrl+Shift+U-D arrows: AP cardinal views\n");
+
+	 fprintf (Out, "\t  F1: object axis (X-Red, Y-Green, Z-Blue), toggle. \n");
+	 fprintf (Out, "\t  F2: screen axis (X-Red, Y-Green), toggle. \n");
+	 fprintf (Out, "\t  F3: cross hair, toggle. \n");
+	 fprintf (Out, "\t  F4: node selection highlight, toggle. \n");
+	 fprintf (Out, "\t  F5: FaceSet selection highlight, toggle.\n");
 	 fprintf (Out, "\t  HOME: reset view to startup\n");
+	 
 	 fprintf (Out, "\t  Mouse Controls:\n");
 	 fprintf (Out, "\t  Button 1-Motion: rotation as if you were using a trackball.\n");
 	 fprintf (Out, "\t    Pure vertical motion is equivalent to using the up/down arrow keys.\n");
@@ -53,8 +60,8 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t    Of course, the advantage to using the mouse is a continuous range of rotation \n");
 	 fprintf (Out, "\t    angles and simultaneous rotations about the screen's X & Y axis.\n");
 	 fprintf (Out, "\t    This mode of rotation is similar to SGI's ivview interface.\n");
-	 fprintf (Out, "\t  Button 1+2-Motion: Zoom in/out\n");
 	 fprintf (Out, "\t  Button 2-Motion: translation\n"); 
+	 fprintf (Out, "\t  Button 1+2-Motion OR Shift+Button2-Motion: Zoom in/out\n");
 	 fprintf (Out, "\t  Button 3-Press: picking \n");
 	 fprintf (Out, "\n");
 	 fprintf (Out, "More help at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
@@ -70,7 +77,7 @@ void SUMA_Version (FILE *Out)
 	if (Out == NULL) {
 		Out = stdout;
 	}
-	fprintf (Out, "\n\tSUMA version 1.0, Fri Jun 7 2002\n");
+	fprintf (Out, "\n\tSUMA version 1.0, Fri Jun 21 2002\n");
 	return;
 }
 

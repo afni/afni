@@ -19,9 +19,17 @@
 #ifdef SUMA_MOTIF_GLXAREA
 	#include <Xm/Form.h>    /* Motif Form widget. */
 	#include <Xm/Frame.h>   /* Motif Frame widget. */
-	#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
+	#ifdef SOLARIS
+		#include <GLw/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
+	#else
+		#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
+	#endif
 #else
-	#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+	#ifdef SOLARIS
+		#include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
+	#else
+		#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+	#endif
 #endif
 
 
