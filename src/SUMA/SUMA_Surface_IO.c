@@ -348,20 +348,27 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
 		SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
 		SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
-	fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
-		SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
-	fprintf (Out, "\n%s: Topo Info\n", SF->name_topo);
+	if (SF->N_Node > 2) {
+      fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		   SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
+		   SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
+	}
+   fprintf (Out, "\n%s: Topo Info\n", SF->name_topo);
 	fprintf (Out, "N_Node_Specs %d\n", SF->N_Node_Specs);
 	fprintf (Out, "ecnoding_topo: %s, date %s\n",  SF->encoding_topo, SF->date);
 	fprintf (Out, "N_FaceSet %d\n", SF->N_FaceSet);
-	fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-		SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
-		SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
-	fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-		SF->FaceSetList[NP*(SF->N_FaceSet-2)], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
-		SF->FaceSetList[NP*(SF->N_FaceSet-1)], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
-	fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
+	if (SF->N_FaceSet > 2) {
+	   fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
+		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
+		   SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
+      fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
+		   SF->FaceSetList[NP*(SF->N_FaceSet-2)], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
+		   SF->FaceSetList[NP*(SF->N_FaceSet-1)], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
+	} else {
+      fprintf (Out, "First polygon:\n\t%d %d %d\n", \
+		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2] );
+   }
+   fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
 	fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", \
 	SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
 	cnt = 0;
@@ -380,7 +387,7 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 
 	SUMA_RETURNe;
 }
-
+  
 /*!
 free data structure containing SureFit surface object
 */
@@ -881,26 +888,38 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
 		FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
 		FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
-	fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
-		FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+	if (FS->N_Node > 2) {
+      fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		   FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+		   FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+   }
 	fprintf (Out, "N_FaceSet %d\n", FS->N_FaceSet);
 	if (!FS->isPatch) {
-		fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
+		if (FS->N_FaceSet > 2) {
+        fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
 			FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
 			FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
-		fprintf (Out, "Last 2 polygons:\n%d %d %d\n%d %d %d\n", \
-			FS->FaceSetList[3 * (FS->N_FaceSet-2)], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2],
-			FS->FaceSetList[3 * (FS->N_FaceSet-1)], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+        fprintf (Out, "Last 2 polygons:\n%d %d %d\n%d %d %d\n", \
+	   		FS->FaceSetList[3 * (FS->N_FaceSet-2)], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2],
+		   	FS->FaceSetList[3 * (FS->N_FaceSet-1)], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+      }else {
+         fprintf (Out, "First polygon:\n\t%d %d %d\n", \
+			FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
+      }
 	} else {
-		fprintf (Out, "First 2 polygons:\n\t[parent ID:%d] %d %d %d\n\t[parent ID:%d] %d %d %d\n", \
-			FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
-			FS->FaceSetIndexInParent[1], FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
-		fprintf (Out, "Last 2 polygons:\n\t[parent ID:%d]%d %d %d\n\t[parent ID:%d]%d %d %d\n", \
-			FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[3 * (FS->N_FaceSet-2)], \
-			FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2], \
-			FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
-			FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+		if (FS->N_FaceSet > 2) {
+         fprintf (Out, "First 2 polygons:\n\t[parent ID:%d] %d %d %d\n\t[parent ID:%d] %d %d %d\n", \
+		   	FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
+		   	FS->FaceSetIndexInParent[1], FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
+		   fprintf (Out, "Last 2 polygons:\n\t[parent ID:%d]%d %d %d\n\t[parent ID:%d]%d %d %d\n", \
+		   	FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[3 * (FS->N_FaceSet-2)], \
+		   	FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2], \
+		   	FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
+		   	FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+      } else {
+         fprintf (Out, "First polygon:\n\t[parent ID:%d] %d %d %d\n", \
+		   	FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
+      }
 	}
 	SUMA_RETURNe;
 
@@ -1822,10 +1841,6 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: input SureFit surface incorrectly specified.\n", FuncName);
          exit(1);
       }
-      if (!of_name2) {
-       fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
-       exit(1);
-      }
       if (sv_name && !vp_name) {
          fprintf (SUMA_STDERR,"Error %s: VolParent must specified with -sv potion for SureFit surfaces. \n", FuncName);
          exit(1);
@@ -1836,12 +1851,21 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: input vec surface incorrectly specified.\n", FuncName);
          exit(1);
       }
+   }
+
+   if (oType == SUMA_SUREFIT) {
+      if (!of_name2) {
+       fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
+       exit(1);
+      }
+   }
+   
+   if (oType == SUMA_VEC) {
       if (!of_name2) {
        fprintf (SUMA_STDERR,"Error %s: output vec surface incorrectly specified. \n", FuncName);
        exit(1);
       }
    }
-
 
    /* test for existence of input files */
    if (!SUMA_filexists(if_name)) {
@@ -1907,7 +1931,7 @@ int main (int argc,char *argv[])
       sprintf (OF_name, "%s",of_name);
       if (of_name2) sprintf(OF_name2, "%s",of_name2);
    }
-   
+    
    if (SUMA_filexists(OF_name)) {
       fprintf (SUMA_STDERR,"Error %s: %s exists already.\n", FuncName, OF_name);
       exit(1);
@@ -1920,7 +1944,6 @@ int main (int argc,char *argv[])
       }
    }
    
-   fprintf (SUMA_STDOUT,"Reading surface...\n");
    
    /* now for the real work */
    /* prepare the name of the surface object to read*/
@@ -1936,6 +1959,7 @@ int main (int argc,char *argv[])
             sprintf(SF_name->name_param,"%s", vp_name);
          }
          SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, vp_name);
          break;
       case SUMA_VEC:
@@ -1943,14 +1967,17 @@ int main (int argc,char *argv[])
          sprintf(SF_name->name_coord,"%s", if_name);
          sprintf(SF_name->name_topo,"%s", if_name2); 
          SO_name = (void *)SF_name;
+         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, NULL);
          break;
       case SUMA_FREE_SURFER:
          SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          break;  
       case SUMA_PLY:
          SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
          break;  
       default:

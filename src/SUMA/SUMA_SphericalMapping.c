@@ -4,7 +4,6 @@
 #undef STAND_ALONE
 
 #if defined SUMA_CreateIcosahedron_STAND_ALONE 
-
 #define STAND_ALONE 
 #elif defined SUMA_MapIcosahedron_STAND_ALONE
 #define STAND_ALONE 

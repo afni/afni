@@ -76,10 +76,14 @@ SUMA_FileName SUMA_StripPath (char *FileName)
 			for (j=0; j<=i+1; ++j) {
 				NewName.Path[j] = FileName[j];
 			}
+         NewName.Path[j] = '\0';
+         
 			/*fprintf(stdout,"jbegin=%d/%d\n", i+2, N_FileName);*/
 			for (j=i+2; j < N_FileName; ++j) NewName.FileName[j-i-2] = FileName[j];
-			/*fprintf(stdout,"All Path (%d chars)/%d: %s\n", (i+2),  strlen(NewName.Path), NewName.Path);
-			fprintf(stdout,"All FileName (%d chars)/%d: %s\n", (N_FileName-i-2), strlen(NewName.FileName), NewName.FileName);*/
+         NewName.FileName[j-i-2] = '\0';
+         
+			/* fprintf(stdout,"All Path (%d chars)/%d: %s\n", (i+2),  strlen(NewName.Path), NewName.Path);
+			fprintf(stdout,"All FileName (%d chars)/%d: %s\n", (N_FileName-i-2), strlen(NewName.FileName), NewName.FileName); */
 		}
 		else {
 			NewName.Path = (char *)SUMA_malloc(sizeof(char)*(N_FileName+1));
@@ -157,6 +161,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
       if (FoundPath) {
          NewName->Path = (char *)SUMA_malloc(sizeof(char)*(iPath+2));
          for (i=0; i<= iPath; ++i) NewName->Path[i] = FileName[i];
+         NewName->Path[i] = '\0';
       }else {
          NewName->Path = (char *)SUMA_malloc(sizeof(char)*(3));
          sprintf(NewName->Path, "./");
@@ -165,6 +170,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
       if (FoundFile) {
          NewName->FileName = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iFile + 2));
          for (i=iFile; i< N_FileName; ++i) NewName->FileName[i-iFile] = FileName[i];
+         NewName->FileName[i-iFile] = '\0';
       }else {
          NewName->FileName = (char *)SUMA_malloc(sizeof(char));
          NewName->FileName[0] = '\0';
@@ -174,7 +180,9 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
 		   NewName->FileName_NoExt = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iFile +2));
          NewName->Ext = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iExt+2));
          for (i=iFile; i< iExt; ++i) NewName->FileName_NoExt[i-iFile] = FileName[i];
+         NewName->FileName_NoExt[i-iFile] = '\0';
          for (i=iExt; i < N_FileName; ++i) NewName->Ext[i-iExt] = FileName[i];
+         NewName->Ext[i-iExt] = '\0';
       } else {
          NewName->FileName_NoExt = (char *)SUMA_malloc(sizeof(char));
          NewName->Ext = (char *)SUMA_malloc(sizeof(char));
