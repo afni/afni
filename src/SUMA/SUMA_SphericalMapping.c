@@ -1160,9 +1160,13 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
                                                    Of course, you must first compute PolyArea with SUMA_SurfaceMetrics*/
 
     weight_tot = weight[j] + weight[j+1] + weight[j+2];
-    weight[j] /= weight_tot;
-    weight[j+1] /= weight_tot;
-    weight[j+2] /= weight_tot;
+    if (weight_tot) {
+      weight[j] /= weight_tot;
+      weight[j+1] /= weight_tot;
+      weight[j+2] /= weight_tot;
+    }else { /* some triangles have zero area in FreeSurfer surfaces */
+      weight[j] = weight[j+1] = weight[j+2] = 1.0/3.0;
+    }
      
 
   }
