@@ -5105,3 +5105,10 @@
      value duplication.  Also modified my_fgets() to return a duplicate
      of the previous line if the first two nonblank characters on the line
      are "".
+
+21 Jul 2004
+ * Modifed MCM_get_intlist() to print error messages when the user inputs
+     values off the top end of the range, instead of silently turning them
+     into the top.
+ * Modified afni_fimmer.c to correctly use scaling factors if present in
+     the time series data.
