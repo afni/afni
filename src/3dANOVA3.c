@@ -40,6 +40,9 @@
 
    Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
    Date:    02 December 2002
+
+   Mod:     In get_options(), calloc and free n (stack space is limited).
+   Date:    19 July 2004 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -47,7 +50,7 @@
 #define PROGRAM_NAME    "3dANOVA3"                   /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "29 Jan 1997"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "19 Jul 2004"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -149,6 +152,8 @@ void display_help_menu()
   exit(0);
 }
 
+/* define index into n[MAX_LEVELS][MAX_LEVELS][MAX_LEVELS] 19 Jul 2004 [rickr]*/
+#define N_INDEX(i,j,k) n[(k) + MAX_LEVELS * ((j) + MAX_LEVELS * (i))]
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -164,7 +169,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   float fval;                    /* float input */
   THD_3dim_dataset * dset=NULL;             /* test whether data set exists */
   char message[MAX_NAME_LENGTH];            /* error message */
-  int n[MAX_LEVELS][MAX_LEVELS][MAX_LEVELS];         /* data file counters */
+  /* int n[MAX_LEVELS][MAX_LEVELS][MAX_LEVELS];    data file counters       */
+  int * n;                       /* save stack space    19 Jul 2004 [rickr] */
 
     
   /*----- does user request help menu? -----*/
@@ -177,10 +183,20 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   initialize_options (option_data);
   
   /*----- initialize data file counters -----*/
+  n = (int *)calloc(MAX_LEVELS*MAX_LEVELS*MAX_LEVELS, sizeof(int));
+  if ( !n )
+  {
+    sprintf(message, "failed to allocate %d bytes for file counters\n",
+            MAX_LEVELS*MAX_LEVELS*MAX_LEVELS * sizeof(int));
+    ANOVA_error(message);
+  }
+
+#if 0  /* replaced array and init with pointer and calloc() */
   for (i = 0;  i < MAX_LEVELS;  i++)
     for (j = 0;  j < MAX_LEVELS;  j++)
       for (k = 0;  k < MAX_LEVELS;  k++)
 	n[i][j][k] = 0;
+#endif
   
 
   /*----- main loop over input options -----*/
@@ -335,8 +351,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if ((kval <= 0) || (kval > option_data->c))
 	    ANOVA_error ("illegal argument after -dset ");
 
-	  n[ival-1][jval-1][kval-1] += 1;
-	  nijk = n[ival-1][jval-1][kval-1];
+	  N_INDEX(ival-1, jval-1, kval-1) += 1;
+	  nijk = N_INDEX(ival-1, jval-1, kval-1);
 	  if (nijk > MAX_OBSERVATIONS)
 	    ANOVA_error ("too many data files");
 	  
@@ -810,12 +826,14 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
   
   /*----- check that all treatment sample sizes are equal -----*/
-  option_data->n = n[0][0][0];
+  option_data->n = N_INDEX(0, 0, 0);
   for (i = 0;  i < option_data->a;  i++)
     for (j = 0;  j < option_data->b;  j++)
       for (k = 0;  k < option_data->c;  k++)
-	if (n[i][j][k] != option_data->n)
+	if (N_INDEX(i, j, k) != option_data->n)
 	  ANOVA_error ("must have equal sample sizes for 3dANOVA3");
+
+  free(n);
 }
 
 
