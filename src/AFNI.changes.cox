@@ -4434,3 +4434,4 @@
  * Added mri_flip3D.c to flip 3D images around.
  * Added thd_getorient.c to get axis direction in a dataset for
      a given orientation code.
+ * Modified mri_copy.c to work if input image doesn't have data array.
