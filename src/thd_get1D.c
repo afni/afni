@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -17,6 +17,9 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
    MRI_IMARR * outar , * tmpar ;
    char * epath , * eee ;
    char   efake[] = "./" ;
+   THD_string_array *qlist ; /* 02 Feb 2002 */
+
+ENTRY("THD_get_many_timeseries") ;
 
    /*----- sanity check and initialize -----*/
 
@@ -26,13 +29,16 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
 
    ndir = (dlist != NULL) ? dlist->num : 0 ;
 
-   if( ndir == 0 && epath == NULL ) return NULL ;
+   if( ndir == 0 && epath == NULL ) RETURN( NULL ) ;
 
    INIT_IMARR( outar ) ;
+   INIT_SARR( qlist ) ;
 
    /*----- for each input directory, find all *.1D files -----*/
 
    for( id=0 ; id < ndir ; id++ ){
+
+      ADDTO_SARR(qlist,dlist->ar[id]) ;
 
       tmpar = THD_get_all_timeseries( dlist->ar[id] ) ;
       if( tmpar == NULL ) continue ;
@@ -78,20 +84,12 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
 
-         ii = SARR_find_string( dlist , ename ) ;  /* skip this directory */
-         if( ii >= 0 ) continue ;                  /* if already was scanned */
+         /* 02 Feb 2002: check if scanned this directory before */
 
-         /* 09 Sep 1998: check for file equivalence as well */
-
-         if( dlist != NULL ){
-            for( ii=0 ; ii < dlist->num ; ii++ )
-               if( THD_equiv_files(dlist->ar[ii],ename) ) break ;
-
-            if( ii < dlist->num ) continue ;  /* skip to end of do loop */
-         }
-
-         eee = strstr( elocal , ename ) ;
-         if( eee != NULL && (eee-elocal) < epos-id ) continue ;
+         for( ii=0 ; ii < qlist->num ; ii++ )
+            if( THD_equiv_files(qlist->ar[ii],ename) ) break ;
+         if( ii < qlist->num ) continue ;  /* skip to end of do loop */
+         ADDTO_SARR(qlist,ename) ;
 
          tmpar = THD_get_all_timeseries( ename ) ; /* read this directory */
          if( tmpar != NULL ){
@@ -107,7 +105,8 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
 
    if( IMARR_COUNT(outar) == 0 ) DESTROY_IMARR(outar) ;
 
-   return outar ;
+   DESTROY_SARR(qlist) ;
+   RETURN( outar ) ;
 }
 
 /*---------------------------------------------------*/

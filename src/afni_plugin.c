@@ -250,9 +250,10 @@ if(PRINT_TRACING)
 AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 {
    char * epath , * elocal , * eee ;
-   char ename[THD_MAX_NAME] , efake[]="./" ;
+   char ename[THD_MAX_NAME] , efake[]="./:/usr/local/bin" ;
    AFNI_plugin_array * outar , * tmpar ;
    int epos , ll , ii , id ;
+   THD_string_array *qlist ; /* 02 Feb 2002 */
 
    /*----- sanity checks -----*/
 
@@ -280,6 +281,8 @@ ENTRY("PLUG_get_many_plugins") ;
 
    if( epath == NULL ) epath = efake ;     /* put in a fake path instead? */
 
+   INIT_SARR(qlist) ; /* 02 Feb 2002: list of checked directories */
+
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
@@ -306,14 +309,15 @@ if(PRINT_TRACING)
 
    do{
       ii = sscanf( elocal+epos , "%s%n" , ename , &id ) ; /* next substring */
-      if( ii < 1 ) break ;                                /* none --> end of work */
-
-      /** check if ename occurs earlier in elocal **/
-
-      eee = strstr( elocal , ename ) ;
-      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
-
+      if( ii < 1 || id < 1 ) break ;                      /* none --> end of work */
       epos += id ;                                        /* char after last scanned */
+
+      /* 02 Feb 2002: did we check this one already? */
+
+      for( ii=0 ; ii < qlist->num ; ii++ )
+         if( THD_equiv_files(qlist->ar[ii],ename) ) break ;
+      if( ii < qlist->num ) continue ;
+      ADDTO_SARR(qlist,ename) ;
 
       ii = strlen(ename) ;                                /* make sure name has */
       if( ename[ii-1] != '/' ){                           /* a trailing '/' on it */
@@ -335,6 +339,7 @@ if(PRINT_TRACING)
 { char str[256] ; sprintf(str,"found %d plugins",outar->num) ; STATUS(str) ; }
 
    if( outar->num == 0 ) DESTROY_PLUGIN_ARRAY(outar) ;
+   DESTROY_SARR(qlist) ; /* 02 Feb 2002 */
    RETURN(outar) ;
 }
 

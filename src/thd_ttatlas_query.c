@@ -92,11 +92,6 @@ ENTRY("TT_load_atlas") ;
       ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
       if( ii < 1 ) break ;                               /* none -> done   */
 
-      /** check if ename occurs earlier in elocal **/
-
-      eee = strstr( elocal , ename ) ;
-      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
-
       epos += id ;                                 /* char after last scanned */
 
       ii = strlen(ename) ;                         /* make sure name has   */
