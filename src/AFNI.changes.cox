@@ -4831,3 +4831,7 @@
 
 07 Dec 2003
  * Modified ts.c to allow '#' comments in RWC_read_time_series().
+
+16 Dec 2003
+ * Changes to niml/ functions to make them g++ compatible.
+ * Added 'b/B' to imseq.[ch].
