@@ -7147,5 +7147,46 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    SUMA_RETURN(YUP);
 }
 
+/*!
+   \brief j = SUMA_GetNodeOverInd(Sover, node);
+   returns the index, into Sover->NodeDef such
+   that Sover->NodeDef[j] = node;
+   \sa SUMA_GetNodeColIndex
+*/
+int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
+{
+   static char FuncName[]={"SUMA_GetNodeOverInd"};
+   int Found, i;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* Now look for the node's location in the color overlay plane.
+   Nodes that are not colored will be absent ... */
+   Found = -1;
+   if (Sover->dset_link->nel->vec_filled > node) { /* try the straight shot */
+      if (Sover->NodeDef[node] == node) {
+         SUMA_LH("Good, found it easily");
+         /* make sure node is not outside number of defined nodes */
+         if (node >= Sover->N_NodeDef) {
+            /* this one's masked but it was left over from the previous pass */
+            SUMA_RETURN(-1);
+         } else {
+            SUMA_RETURN(node);
+         }
+      }
+   }
+   if (Found < 0) {
+      SUMA_LH("The hard way");
+      i=0; 
+      while (Found <0 && i<Sover->N_NodeDef) {
+         if (Sover->NodeDef[i] == node) Found = i;
+         ++i;
+      }      
+   }   
+
+   SUMA_RETURN(Found);
+}
+
 /*-----------------------------------------------------------------*/
 

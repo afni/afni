@@ -956,6 +956,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");
                break;
             }
+            SUMA_UpdateNodeField(SO);
             break;
             
          case SE_ToggleShowSelectedFaceSet:
@@ -1010,6 +1011,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[ip+2];
             
             SO->SelectedFaceSet = EngineData->i;
+            SUMA_UpdateTriField(SO);
             break;
             
          case SE_ToggleCrossHair:
@@ -1025,7 +1027,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                break;
             }
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", FuncName, EngineData->fv3[0], EngineData->fv3[1],EngineData-> fv3[2]);
             sv->Ch->c[0] = EngineData->fv3[0]; sv->Ch->c[1]= EngineData->fv3[1]; sv->Ch->c[2]= EngineData->fv3[2];
+            /* Attempt to update crosshair corrdinates in open surface controllers */
+            SUMA_UpdateXhairField(sv); 
             break;
          
          case SE_BindCrossHair:
@@ -1707,6 +1712,8 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
          send NULL if you do not care for it and all you'll get is ans
    \ret ans (int) the number of SOs shown in SV
    Still confused ? read the code for the function, it is shorter than the documentation.
+   
+   \sa SUMA_isVisibleSO
 */
 int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 {
@@ -1739,6 +1746,39 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+/*!
+   \brief YUP if surface is visible in a viewer
+   \sa SUMA_VisibleSOs 
+*/
+SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, SUMA_DO *dov, SUMA_SurfaceObject *curSO)
+{
+   static char FuncName[]={"SUMA_isVisibleSO"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, k = 0;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i< sv->N_DO; ++i) {
+      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+         if (curSO == SO) {
+            if (SO->Show) {
+               if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
+                  SUMA_RETURN(YUP);
+                  ++k;
+               } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                            (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+                  SUMA_RETURN(YUP);
+                  ++k;
+               }
+            }
+         }
+      }
+   }
+   
+   SUMA_RETURN(NOPE);
+   
+}
 /*! 
    nxtState = SUMA_NextState(sv);
 
@@ -2184,7 +2224,9 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
          }
          
          /* if the surface controller is open, update it */
-         if (SO_nxt->SurfCont->TopLevelShell)   SUMA_Init_SurfCont_SurfParam(SO_nxt);
+         if (SO_nxt->SurfCont->TopLevelShell)   { 
+            SUMA_Init_SurfCont_SurfParam(SO_nxt);
+         }
 
       } else {
          fprintf(SUMA_STDERR, "%s: No relatives between states. CrossHair location will not correspond between states\n", FuncName); 
@@ -2202,10 +2244,19 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    /* set the focus ID to the first surface in the next view */
    sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
    
+   /* Now update the cross hair info if needed for the surface in focus */
+   if (sv->Ch->SurfaceID >= 0)   { 
+      SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
+      if (SOtmp->SurfCont->TopLevelShell) {
+         SUMA_Init_SurfCont_CrossHair(SOtmp);
+      }
+   }
+
    if (LocalHead) {
       SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
       fprintf(SUMA_STDERR,"%s: Setting new Focus ID to surface %s\n", FuncName, SOtmp->Label);
    }
+   
    /* decide what the best state is */
    sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
    if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);

@@ -1996,6 +1996,10 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       SO = (SUMA_SurfaceObject *)dov[imin].OP;
       NP = SO->FaceSetDim;
       ip = NP * MTI->ifacemin;
+
+      /* if the surface controller is open, update it */
+      if (SO->SurfCont->TopLevelShell)   SUMA_Init_SurfCont_SurfParam(SO);
+
       /* print nodes about the closets faceset*/
       fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
       fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d). FaceSet %d, Closest Node %d\n", 
@@ -2092,9 +2096,6 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          SUMA_RETURN (-1);
       }
       
-      /* if the surface controller is open, update it */
-      if (SO->SurfCont->TopLevelShell)   SUMA_Init_SurfCont_SurfParam(SO);
-
 
    } 
    /* clear MTI */

@@ -1789,7 +1789,9 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->N_links = 0;
    SurfCont->LinkedPtrType = SUMA_LINKED_SURFCONT_TYPE;
    
+   SurfCont->DsetMap_fr = NULL;
    SurfCont->ColPlane_fr = NULL;
+   SurfCont->Xhair_fr = NULL;
    SurfCont->TopLevelShell = NULL;
    SurfCont->SurfInfo_pb = NULL;
    SurfCont->SurfInfo_label = NULL;
@@ -1797,11 +1799,16 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->ColPlaneOrder = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneOpacity = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneDimFact = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->XhairTable = SUMA_AllocTableField();
    SurfCont->SetRangeTable = SUMA_AllocTableField();
    SurfCont->RangeTable = SUMA_AllocTableField();
+   SurfCont->NodeTable = SUMA_AllocTableField();
+   SurfCont->FaceTable = SUMA_AllocTableField();
+   SurfCont->DataTable = SUMA_AllocTableField();
+   SurfCont->LabelTable = SUMA_AllocTableField();
    SurfCont->ColPlaneShow_tb = NULL;
    SurfCont->SwitchDsetlst = NULL;
-   SurfCont->ColPlaneLabel_Parent_lb = NULL;
+   SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
    SurfCont->curColPlane = NULL;
    SurfCont->curSOp = (void **)malloc(sizeof(void*));
    SurfCont->PosRef = NULL;
@@ -1820,6 +1827,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->N_CmapMenu = -1;
    SurfCont->CoordBiasMenu[SW_CoordBias] = NULL;
    SurfCont->opts_rc = NULL;
+   SurfCont->opts_form = NULL;
    SurfCont->rcvo = NULL;
    SurfCont->rcsw = NULL;
    SurfCont->rcsw_v1 = NULL;
@@ -1861,6 +1869,12 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->ColPlaneDimFact) free (SurfCont->ColPlaneDimFact);
    if (SurfCont->SetRangeTable) SUMA_FreeTableField (SurfCont->SetRangeTable);
    if (SurfCont->RangeTable) SUMA_FreeTableField (SurfCont->RangeTable);
+   if (SurfCont->XhairTable) SUMA_FreeTableField (SurfCont->XhairTable);
+   if (SurfCont->NodeTable) SUMA_FreeTableField (SurfCont->NodeTable);
+   if (SurfCont->FaceTable) SUMA_FreeTableField (SurfCont->FaceTable);
+   if (SurfCont->DataTable) SUMA_FreeTableField (SurfCont->DataTable);
+   if (SurfCont->LabelTable) SUMA_FreeTableField (SurfCont->LabelTable); 
+   if (SurfCont->ColPlaneLabelTable) SUMA_FreeTableField (SurfCont->ColPlaneLabelTable); 
    if (SurfCont->SwitchDsetlst) SUMA_FreeScrolledList (SurfCont->SwitchDsetlst);
    if (SurfCont->SurfInfo_TextShell) { SUMA_SL_Warn("SurfCont->SurfInfo_TextShell is not being freed") };
    if (SurfCont->SwitchIntMenu) { XtDestroyWidget(SurfCont->SwitchIntMenu[0]); SUMA_free(SurfCont->SwitchIntMenu); }

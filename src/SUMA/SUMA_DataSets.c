@@ -1336,6 +1336,136 @@ void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer)
 }
 
 /*!
+   \brief j = SUMA_GetNodeColIndex( nel, i);
+   Returns the row index of a node in the columns
+   of a data set. In other terms, node i's data are in 
+   row j of the columns in nel 
+*/
+int SUMA_GetNodeColIndex(NI_element *nel, int node)
+{
+   static char FuncName[]={"SUMA_GetNodeColIndex"};
+   int Found = -1, *iv, N_i, icol;
+   double dval=0.0;
+   char *str=NULL;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (node >= nel->vec_len) {
+      SUMA_SL_Err("Node index >= vec_len");
+      SUMA_RETURN(Found);
+   }
+   
+   SUMA_LH("Trying the fast one");
+   if (nel->vec_len == nel->vec_filled) {
+      SUMA_RETURN(node);
+   }
+   
+   SUMA_LH("Trying the slow mo");
+   /* does this dset have a column index ? */
+   iv = SUMA_GetColIndex (nel, SUMA_NODE_INDEX, &N_i);
+   icol = -1;
+   if (iv) {
+      SUMA_LH("Col. Index found");
+      if (N_i > 1) {
+         SUMA_SL_Warn("Multiple Node Index columns found.\nUsing first.\n");
+         icol = iv[0];
+      }
+      SUMA_free(iv); iv = NULL;
+   } else {
+      SUMA_LH("No Col. Index found");
+      icol = -1;
+   }
+   
+   if (icol >= 0) {
+      str = SUMA_GetValInCol(nel, icol, node, &dval);
+      if (str) {
+         SUMA_free(str); str = NULL;
+         SUMA_RETURN((int)dval);
+      }
+   }
+   /* bad news lews */ 
+   SUMA_RETURN(Found);
+}
+
+/*!
+   \brief Returns the value from column ind, row ival
+   The value is stored in a double variable and a string
+   version is returned. NULL in case of error. You are to free
+   the returned string.
+
+*/
+char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval) 
+{
+   static char FuncName[]={"SUMA_GetValInCol"};
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   byte *bv = NULL;
+   double *dv = NULL;
+   float *fv=NULL;
+   int *iv = NULL;
+   char stmp[51], *str=NULL, **cv = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!nel || !dval) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
+
+   if (ind < 0 || ind > nel->vec_num - 1) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(NULL);
+   }
+
+   if (ival >= nel->vec_len) {
+      SUMA_SL_Err("ival too large");
+      SUMA_RETURN(NULL);
+   }
+
+   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
+   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   switch (vtp) {
+      case SUMA_byte:
+         str = (char *)SUMA_malloc(50*sizeof(char));
+         bv = (byte *)nel->vec[ind];
+         sprintf(str,"%d",bv[ival]);
+         *dval = (double)bv[ival];
+         break;
+      case SUMA_int:
+         str = (char *)SUMA_malloc(50*sizeof(char));
+         iv = (int *)nel->vec[ind];
+         sprintf(str,"%d",iv[ival]);
+         *dval = (double)iv[ival];
+         break;
+      case SUMA_float:
+         str = (char *)SUMA_malloc(50*sizeof(char));
+         fv = (float *)nel->vec[ind];
+         sprintf(str,"%f",fv[ival]);
+         *dval = (double)fv[ival];
+         break;
+      case SUMA_double:
+         str = (char *)SUMA_malloc(50*sizeof(char));
+         dv = (double *)nel->vec[ind];
+         sprintf(str,"%f",dv[ival]);
+         *dval = (double)dv[ival];
+         break;
+      case SUMA_string:
+         cv = (char **)nel->vec[ind];
+         *dval = 0.0;
+         str = SUMA_copy_string((char*)cv[ival]);
+         break;
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_RETURN(NULL);
+         break;
+   }
+
+   SUMA_LH(str);
+   SUMA_RETURN(str);
+}
+/*!
    \brief Copies the contents of a NI_element column into
    a new float vector
    V = SUMA_Col2Float (nel,  ind,  FilledOnly);
@@ -1352,7 +1482,7 @@ void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer)
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
 {
    static char FuncName[]={"SUMA_Col2Float"};
-   char stmp[50];
+   char stmp[51];
    int i = -1, N_read = -1, *iv = NULL;
    float *V=NULL, *fv = NULL;
    SUMA_COL_TYPE ctp;
@@ -3113,6 +3243,11 @@ int SUMA_isNumString (char *s, void *p)
       } else {
          strtp = endp;
          ++nd;
+         if (nd > N && nd > 1000) {
+            SUMA_SL_Err("Fishy fish");
+            fprintf (stderr, "%s: >>>%s<<<", FuncName, s);
+            SUMA_RETURN(0);
+         }
       }
    }
    
@@ -3151,7 +3286,7 @@ int SUMA_StringToNum (char *s, float *fv, int N)
    SUMA_ENTRY;
    
    if (!s) SUMA_RETURN(0); 
-      
+     
    /* clean s by removing trailing junk then replacing non characters by space*/
    FoundTip = 0;
    for (nd=strlen(s)-1; nd >=0; --nd) {
@@ -3183,6 +3318,11 @@ int SUMA_StringToNum (char *s, float *fv, int N)
          if (nd < N) fv[nd] = (float)d;
          strtp = endp;
          ++nd;
+         if (nd > N && nd >1000) {
+            SUMA_SL_Err("Something's fishy");
+            fprintf (stderr, "s = >>>%s<<<\nnd = %d\n", s, nd);
+            SUMA_RETURN(-1);
+         }
       }
    }
    
