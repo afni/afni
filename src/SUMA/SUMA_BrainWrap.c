@@ -24,6 +24,7 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
 
+
 /* 
    volume returned is negative if failed to read volume. 
    Volume units are in mm3
@@ -127,6 +128,9 @@ float SUMA_LoadPrepInVol (SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_SurfaceObject **SOh
    
    /* find the radius */
    Opt->r = pow(vol*3.0/(3.14159*4.0), 1/3.0);
+   if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: Volume %f, radius %f\n", FuncName, vol, Opt->r);
+   }
    
    /* form a vector of values inside the sphere */
    if (Opt->tm < 0) {
@@ -593,7 +597,8 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
       MaxExp = 0.0; /* maximum expansion of any node */
       for (it=it0; it < nit; ++it) {
          SUMA_MEAN_SEGMENT_LENGTH(SO, l);
-         if (LocalHead && !(it % 50)) fprintf (SUMA_STDERR,"%s: Iteration %d, l = %f . SO->Center = %f, %f, %f...\n", FuncName, it, l, SO->Center[0], SO->Center[1], SO->Center[2]);
+         if (LocalHead && !(it % 50)) fprintf (SUMA_STDERR,"%s: Iteration %d, l = %f . SO->Center = %f, %f, %f...\n", 
+            FuncName, it, l, SO->Center[0], SO->Center[1], SO->Center[2]);
          if (Opt->var_lzt) {
             if (it <= Opt->N_it) lztfac = SUMA_MAX_PAIR(0.2, (1.2* (float)it / (float)Opt->N_it));  /* make things expand quickly in the beginning, to help escape large sections of csf close to outer surface, then tighten grip towards the end*/
             else lztfac = 1.2;
@@ -1092,8 +1097,9 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
                /* what side of the plane is this voxel on ? */
                p[0] = (float)voxelsijk[nt3]; p[1] = (float)voxelsijk[nt3+1]; p[2] = (float)voxelsijk[nt3+2]; 
                SUMA_DIST_FROM_PLANE(p1, p2, p3, p, dist);
+               
                if (dist) {
-                  if (SUMA_IS_NEG(dist)) isin[nijk] = SUMA_IN_TRIBOX_INSIDE; 
+                  if (SUMA_IS_NEG(VolPar->Hand * dist)) isin[nijk] = SUMA_IN_TRIBOX_INSIDE;  /* ZSS Added handedness factor. who would have thought? Be damned 3D coord systems! */
                   else isin[nijk] = SUMA_IN_TRIBOX_OUTSIDE; 
                }
                ++(*N_inp);    

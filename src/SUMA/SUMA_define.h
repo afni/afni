@@ -1552,6 +1552,7 @@ typedef struct {
    float *VOLREG_CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *VOLREG_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *TAGALIGN_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
+   int Hand; /*!< Handedness of axis 1 RH, -1 LH*/
 } SUMA_VOLPAR;
 
 typedef struct {

@@ -3,6 +3,56 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
+/*! a copy of THD_handedness from ../thd_rotangles.c
+Dunno why the original was giving me pain linking ... */
+int SUMA_THD_handedness( THD_3dim_dataset * dset )
+{
+   THD_dataxes * dax ;
+   THD_mat33 q ;
+   int col ;
+   float val ;
+
+
+   if( !ISVALID_DSET(dset) ) SUMA_RETURN(1) ;
+
+   LOAD_ZERO_MAT(q) ;
+   dax = dset->daxes ;
+
+   col = 0 ;
+   switch( dax->xxorient ){
+      case 0: q.mat[0][col] =  1.0 ; break ;
+      case 1: q.mat[0][col] = -1.0 ; break ;
+      case 2: q.mat[1][col] = -1.0 ; break ;
+      case 3: q.mat[1][col] =  1.0 ; break ;
+      case 4: q.mat[2][col] =  1.0 ; break ;
+      case 5: q.mat[2][col] = -1.0 ; break ;
+   }
+
+   col = 1 ;
+   switch( dax->yyorient ){
+      case 0: q.mat[0][col] =  1.0 ; break ;
+      case 1: q.mat[0][col] = -1.0 ; break ;
+      case 2: q.mat[1][col] = -1.0 ; break ;
+      case 3: q.mat[1][col] =  1.0 ; break ;
+      case 4: q.mat[2][col] =  1.0 ; break ;
+      case 5: q.mat[2][col] = -1.0 ; break ;
+   }
+
+   col = 2 ;
+   switch( dax->zzorient ){
+      case 0: q.mat[0][col] =  1.0 ; break ;
+      case 1: q.mat[0][col] = -1.0 ; break ;
+      case 2: q.mat[1][col] = -1.0 ; break ;
+      case 3: q.mat[1][col] =  1.0 ; break ;
+      case 4: q.mat[2][col] =  1.0 ; break ;
+      case 5: q.mat[2][col] = -1.0 ; break ;
+   }
+
+   val = MAT_DET(q) ;
+   if( val > 0.0 ) SUMA_RETURN( 1) ;  /* right handed */
+   else            SUMA_RETURN(-1) ;  /* left handed */
+}
+
 /*!
    \brief Return AFNI's prefix, also checks for its validity
    \param name (char *) dset name
@@ -293,6 +343,9 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
       }
    }
 
+   /* handedness */
+   VP->Hand = SUMA_THD_handedness( dset );
+   
    SUMA_RETURN (VP);
 }
 
@@ -356,6 +409,10 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
       SS = SUMA_StringAppend (SS, stmp);
       sprintf (stmp,"Orientation: %d %d %d\n", \
          VP->xxorient, VP->yyorient, VP->zzorient);
+      if (VP->Hand == 1) SS = SUMA_StringAppend (SS, "Right Hand Coordinate System.\n");
+      else if (VP->Hand == -1) SS = SUMA_StringAppend (SS, "Left Hand Coordinate System.\n");
+      else SS = SUMA_StringAppend (SS, "No hand coordinate system!\n");
+      
       SS = SUMA_StringAppend (SS, stmp);
       sprintf (stmp,"Origin: %f %f %f\n", \
          VP->xorg, VP->yorg, VP->zorg);
@@ -1119,7 +1176,6 @@ SUMA_Boolean SUMA_vec_3dmm_to_dicomm (float *NodeList, int N_Node, SUMA_VOLPAR *
 
    for (i=0; i < SO.N_Node; ++i) {
       id = i * SO.NodeDim;
-      /* change float indices to mm coords */
       iv.xyz[0] = SO.NodeList[id] ;
       iv.xyz[1] = SO.NodeList[id+1] ;
       iv.xyz[2] = SO.NodeList[id+2] ;
@@ -1149,7 +1205,7 @@ SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *
 
    for (i=0; i < SO.N_Node; ++i) {
       id = i * SO.NodeDim;
-      /* change float indices to mm coords */
+
       iv.xyz[0] = SO.NodeList[id] ;
       iv.xyz[1] = SO.NodeList[id+1] ;
       iv.xyz[2] = SO.NodeList[id+2] ;

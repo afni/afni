@@ -19,6 +19,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name);
 SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset);
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP);
 SUMA_VOLPAR *SUMA_Alloc_VolPar (void);
+int SUMA_THD_handedness( THD_3dim_dataset * dset );
 char *SUMA_AfniPrefix(char *name, char *view);
 byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_skin);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
