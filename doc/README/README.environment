@@ -1674,6 +1674,17 @@ variable; for example
   setenv AFNI_THRESH_BIGSTEP 100
 will move the slider 1% of its height per PageUp/PageDown key or mouse click.
 
+------------------------------
+Variable: AFNI_SNAPFILE_PREFIX
+------------------------------
+Image files saved with the "snapfile" (or "record to file") by default have
+filenames of the form "S_000001.ppm".  The prefix "S" can be altered by
+setting this environment variable; for example,
+  setenv AFNI_SNAPFILE_PREFIX Elvis
+will save snapfiles with names like "Elvis_000666.ppm".  You can view snapfiles
+with the "aiv" ("AFNI Image Viewer") utility, the "xv" program, or many other
+Unix utilities.
+
 =========================================
 | Robert W Cox, PhD                     |
 | National Institute of Mental Health   |

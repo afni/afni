@@ -10,6 +10,8 @@
 static char * x11_vcl[] =  { "StaticGray"  , "GrayScale" , "StaticColor" ,
                              "PseudoColor" , "TrueColor" , "DirectColor"  } ;
 
+MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
+
 /*------------------------------------------------------------------------
   Returns position of highest set bit in 'ul' as an integer (0-31),
   or returns -1 if no bit is set.
@@ -332,6 +334,8 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 #else
    dc->cdef = NULL ;
 #endif
+
+   if( first_dc == NULL ) first_dc = dc ;  /* 26 Jun 2003 */
 
    return dc ;
 }
