@@ -47,6 +47,10 @@ restore:
 
 RCSFILES = *.c *.h *.f *.xbm Makefile.* README* *.tex AFNI.Xdef*
 
+checkin:
+	chmod u+w $(RCSFILES)
+	ci -q -l -"AFNI" -m"AFNI" $(RCSFILES)
+
 putaway:
 	chmod u+w $(RCSFILES)
 	rcsclean -q

@@ -217,6 +217,8 @@ static char * EDIT_options_help =
     "                          of the voxels within a radius of rmm. \n"
     "  -1filter_smax rmm   = Set each voxel to the maximum signed intensity \n"
     "                          of the voxels within a radius of rmm. \n"
+    "  -1filter_aver rmm   = Same idea as '_mean', but implemented using a\n"
+    "                          new code that should be faster.\n"
     " \n"
     "  The following threshold filter options are mutually exclusive: \n"
     "  -t1filter_mean rmm   = Set each correlation or threshold voxel to the \n"
@@ -232,6 +234,8 @@ static char * EDIT_options_help =
     "  -t1filter_smax rmm   = Set each correlation or threshold voxel to the \n"
     "                          maximum signed intensity of the voxels \n"
     "                          within a radius of rmm. \n"
+    "  -t1filter_aver rmm   = Same idea as '_mean', but implemented using a\n"
+    "                          new code that should be faster.\n"
     " \n"
 
 
@@ -307,6 +311,8 @@ typedef struct EDIT_options {
 #define FCFLAG_AMAX   4
 #define FCFLAG_SMAX   5
 
+#define FCFLAG_AVER   66        /* 7 Jan 1998 */
+
 #define INIT_EDOPT(edopt)              \
       ( (edopt)->thtoin        = 0   , \
         (edopt)->noneg         = 0   , \
@@ -344,6 +350,9 @@ extern int EDIT_check_argv( int , char * argv[] , int , EDIT_options * ) ;
 extern void EDIT_coerce_type      ( int , int,void * , int,void * ) ;
 extern void EDIT_coerce_scale_type( int , float , int,void * , int,void * ) ;
 extern float EDIT_coerce_autoscale( int , int,void * , int,void * ) ;
+
+extern void EDIT_aver_fvol( int, int, int,
+                            float, float, float, float *, float) ;
 
 /********************* New routines for AFNI-96 ****************************/
 
