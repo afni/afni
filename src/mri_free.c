@@ -21,6 +21,8 @@ void *mri_data_pointer( MRI_IMAGE *im )
       mri_input_delay( im ) ;
 #endif
 
+   if( im == NULL ) return NULL ;  /* 27 Jul 2004 */
+
    switch( im->kind ){
       case MRI_byte:   data = im->im.byte_data   ; break ;
       case MRI_short:  data = im->im.short_data  ; break ;

@@ -962,9 +962,9 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 
 /*! Extract the prefix from a filecode (prefix+view).
 
-    - If there is no '+', puts an empty string into fc
+    - If there is no '+', puts an empty string into pr
     - Otherwise, scans backward from end to find last '+'; everything before that is the prefix
-    - Space for fc must be allocated beforehand
+    - Space for pr must be allocated beforehand
 */
 
 #define FILECODE_TO_PREFIX(fc,pr)                                     \
