@@ -3412,3 +3412,8 @@
 21 Dec 2001
  * Fixed up some rescan session problems with AFNI_GLOBAL_SESSION datasets.
       (We don't want to let them be destroyed or descendant-ized.)
+
+28 Dec 2001
+ * Modified matrix.[ch] and RegAna.c to speed up some of Doug Ward's
+      matrix-vector calculations, to make 3dDeconvolve faster.  Makes
+      it about 22% faster on an Athlon/Linux box.

@@ -563,6 +563,9 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) $(LLIBS)
 
+3dDeconvolve.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h
+	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS)
+
 3dDeconvolve:3dDeconvolve.o
 	$(RM) $@
 	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) $(LLIBS)

@@ -27,6 +27,11 @@
            GLT linear constraints).
   Date:    11 August 2000
 
+  Mod:     Modified use of vector_multiply() followed by vector_subtract()
+           to use new function vector_multiply_subtract(), and to use
+           new function vector_dotself() when possible -- RWCox.
+  Date:    28 Dec 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -170,9 +175,14 @@ float  calc_sse
 
 
   /*----- calculate the error sum of squares -----*/
+#if 0
   vector_multiply (x, b, &yhat);
   vector_subtract (y, yhat, &e);
   sse = vector_dot (e, e);
+#else
+  vector_multiply_subtract( x , b , y , &e ) ;
+  sse = vector_dotself( e ) ;
+#endif
 
 
   /*----- dispose of vectors -----*/
@@ -209,9 +219,14 @@ float  calc_resids
 
 
   /*----- calculate the error sum of squares -----*/
+#if 0
   vector_multiply (x, b, &yhat);
   vector_subtract (y, yhat, e);
   sse = vector_dot (*e, *e);
+#else
+  vector_multiply_subtract( x , b , y , e ) ;
+  sse = vector_dotself( *e ) ;
+#endif
 
 
   /*----- dispose of vectors -----*/
@@ -254,8 +269,7 @@ float  calc_sse_fit
   /*----- calculate the error sum of squares -----*/
   vector_multiply (x, b, &yhat);
   vector_subtract (y, yhat, &e);
-  sse = vector_dot (e, e);
-
+  sse = vector_dotself( e );
 
   /*----- save the fitted time series and residual errors -----*/
   for (it = 0;  it < x.rows;  it++)
