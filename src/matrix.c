@@ -88,8 +88,13 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
-static double flops=0.0l ;
+static double flops=0.0 ;
 double get_matrix_flops(void){ return flops; }
+
+static double dotnum=0.0 , dotsum=0.0 ;
+double get_matrix_dotlen(void){ return (dotnum > 0.0) ? dotsum/dotnum : 0.0 ; }
+
+#undef ENABLE_FLOPS
 /*---------------------------------------------------------------------------*/
 /*!
   Routine to print and error message and stop.
@@ -484,7 +489,9 @@ void matrix_add (matrix a, matrix b, matrix * c)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = a.elts[i][j] + b.elts[i][j];
 
+#ifdef ENABLE_FLOPS
   flops += rows*cols ;
+#endif
 }
 
 
@@ -510,7 +517,9 @@ void matrix_subtract (matrix a, matrix b, matrix * c)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = a.elts[i][j] - b.elts[i][j];
 
+#ifdef ENABLE_FLOPS
   flops += rows*cols ;
+#endif
 }
 
 
@@ -542,7 +551,9 @@ void matrix_multiply (matrix a, matrix b, matrix * c)
         c->elts[i][j] = sum;
       }
 
+#ifdef ENABLE_FLOPS
   flops += 2.0l*rows*cols*cols ;
+#endif
 }
 
 
@@ -565,7 +576,9 @@ void matrix_scale (double k, matrix a, matrix * c)
     for (j = 0;  j < cols;  j++)
       c->elts[i][j] = k * a.elts[i][j];
 
+#ifdef ENABLE_FLOPS
   flops += rows*cols ;
+#endif
 }
 
 
@@ -658,7 +671,9 @@ matrix_sprint("matrix_inverse:",a) ;
 	
     }
   matrix_destroy (&tmp);
+#ifdef ENABLE_FLOPS
   flops += 3.0l*n*n*n ;
+#endif
   return (1);
 }
 
@@ -701,7 +716,9 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
     ainv->elts[i][j] *= diag[i]*diag[j] ;
 
   matrix_destroy (&atmp); free((void *)diag) ;
+#ifdef ENABLE_FLOPS
   flops += 4.0l*n*n + 4.0l*n ;
+#endif
   return (mir);
 }
 
@@ -962,7 +979,9 @@ void vector_add (vector a, vector b, vector * c)
   for (i = 0;  i < dim;  i++)
     c->elts[i] = a.elts[i] + b.elts[i];
 
+#ifdef ENABLE_FLOPS
   flops += dim ;
+#endif
 }
 
 
@@ -991,8 +1010,12 @@ void vector_subtract (vector a, vector b, vector * c)
     cc[i] = aa[i] - bb[i] ;
 #endif
 
+#ifdef ENABLE_FLOPS
   flops += dim ;
+#endif
 }
+
+/*** for vector-matrix multiply routines below ***/
 
 #define UNROLL_VECMUL  /* RWCox */
 
@@ -1033,7 +1056,7 @@ void vector_multiply (matrix a, vector b, vector * c)
 
   bb = b.elts ;
 
-#ifdef DOTP
+#ifdef DOTP                        /* vectorized */
   aa = a.elts ; cc = c->elts ;
   i = rows%2 ;
   if( i == 1 ) DOTP(cols,aa[0],bb,cc) ;
@@ -1069,7 +1092,11 @@ void vector_multiply (matrix a, vector b, vector * c)
 
 #endif /* DOTP */
 
+#ifdef ENABLE_FLOPS
     flops += 2.0l*rows*cols ;
+    dotsum += rows*cols ; dotnum += rows ;
+#endif
+    return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1109,7 +1136,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
   qsum = 0.0 ; bb = b.elts ;
 
-#ifdef DOTP
+#ifdef DOTP                                      /* vectorized */
   aa = a.elts ; dd = d->elts ; cc = c.elts ;
   ee = (double *)malloc(sizeof(double)*rows) ;
   i  = rows%2 ;
@@ -1149,7 +1176,10 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
 #endif /* DOTP */
 
+#ifdef ENABLE_FLOPS
   flops += 2.0l*rows*(cols+1) ;
+  dotsum += rows*cols ; dotnum += rows ;
+#endif
 
   return qsum ;  /* 26 Feb 2003 */
 }
@@ -1179,7 +1209,9 @@ double vector_dot (vector a, vector b)
     sum += aa[i] * bb[i] ;
 #endif
 
+#ifdef ENABLE_FLOPS
   flops += 2.0l*dim ;
+#endif
   return (sum);
 }
 
@@ -1204,7 +1236,9 @@ double vector_dotself( vector a )
     sum += aa[i] * aa[i] ;
 #endif
 
+#ifdef ENABLE_FLOPS
   flops += 2.0l*dim ;
+#endif
   return (sum);
 }
 
@@ -1223,7 +1257,9 @@ double matrix_norm( matrix a )
      for (j = 0;  j < cols;  j++) sum += fabs(a.elts[i][j]) ;
      if( sum > smax ) smax = sum ;
    }
+#ifdef ENABLE_FLOPS
    flops += 2.0l*rows*cols ;
+#endif
    return smax ;
 }
 
@@ -1315,7 +1351,9 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
 
    symeigval_double( N , a , e ) ;
    free( (void *)a ) ;
+#ifdef ENABLE_FLOPS
    flops += (M+N+2.0l)*N*N ;
+#endif
    return e ;
 }
 
@@ -1422,7 +1460,9 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      }
    }
 
+#ifdef ENABLE_FLOPS
    flops += n*n*(n+2.0l*m+2.0l) ;
+#endif
    free((void *)xfac); free((void *)sval);
    free((void *)vmat); free((void *)umat); return;
 }
