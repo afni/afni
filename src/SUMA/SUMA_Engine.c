@@ -906,7 +906,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             for (ii=0; ii<SUMAg_N_DOv; ++ii) {
                if (SUMA_isSO(SUMAg_DOv[ii])) {
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
-                  #if 0 
+                  #if 1 
                   /* Jan. 08 04 this is the right thing to do but 
                   AFNI is not ready to deal with this
                   and things can get confusing. See 
@@ -957,6 +957,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   #endif
 
                   NI_free_element(nel);
+                  nel = NULL;
+                  
+                  /* send node normals       ZSS Oct 05 04 */
+                  nel = SUMA_makeNI_SurfINORM (SO);
+                  if (!nel) {
+                     fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfINORM failed\n", FuncName);
+                     break;
+                  }
+                  /* send surface nel */
+                  fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
+                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+
+                  if( nn < 0 ){
+                       fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
+                  }
+                  NI_free_element(nel);
+                  nel = NULL;
 
                   /* send triangles */
                   nel = SUMA_makeNI_SurfIJK (SO);
@@ -1298,7 +1315,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* form nel */
             nel = SUMA_makeNI_CrossHair (sv);
             if (!nel) {
-               fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
+               fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_CrossHair failed\n", FuncName);
                break;
                }
             /*send it to afni */
