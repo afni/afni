@@ -456,6 +456,9 @@ void identify_software ()
   printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+#ifdef USE_ALTIVEC
+  printf ("Compiled with Altivec acceleration for Mac OS X\n") ;
+#endif
   printf ("\n");
 }
 
