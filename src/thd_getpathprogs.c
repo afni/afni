@@ -1,14 +1,14 @@
 #include "mrilib.h"
 #include "thd.h"
 
-/*-----------------------------------------------------------------------------
-   Find an executable in the PATH by its name, if it exists.
-   If not, NULL is returned.  If it exists, a pointer to static storage
-   is returned (i.e., don't free() this pointer!).
--------------------------------------------------------------------------------*/
-
 static int               einit = 0 ;
 static THD_string_array *elist = NULL ;
+
+/*----------------------------------------------------------------------------*/
+/*! Find an executable in the PATH by its name, if it exists.
+    If not, NULL is returned.  If it exists, a pointer to static storage
+    is returned (i.e., don't free() this pointer!).
+------------------------------------------------------------------------------*/
 
 char * THD_find_executable( char * ename )
 {
@@ -30,15 +30,14 @@ ENTRY("THD_find_executable") ;
    RETURN(NULL) ;
 }
 
-/*=============================================================================*/
-
-/*** Return a list of all executable files in the PATH and the dlist ***/
+/*===========================================================================*/
+/*! Return a list of all executable files in the PATH and the dlist. */
 
 THD_string_array * THD_getpathprogs( THD_string_array *dlist )
 {
    int id , ii , ndir ;
    char *epath , *eee ;
-   THD_string_array *elist , *tlist ;
+   THD_string_array *elist , *tlist , *qlist ;
 
 ENTRY("THD_getpathprogs") ;
 
@@ -50,6 +49,7 @@ ENTRY("THD_getpathprogs") ;
    if( ndir == 0 && epath == NULL ) RETURN(NULL) ;
 
    INIT_SARR(elist) ;
+   INIT_SARR(qlist) ;  /* 04 Feb 2002: list of searched directories */
 
    /*----- for each input directory, find all executable files -----*/
 
@@ -60,6 +60,8 @@ ENTRY("THD_getpathprogs") ;
 
       for( ii=0 ; ii < tlist->num ; ii++ )  /* copy names to output array */
          ADDTO_SARR( elist , tlist->ar[ii] ) ;
+
+      ADDTO_SARR(qlist,dlist->ar[id]) ;     /* 04 Feb 2002 */
 
       DESTROY_SARR(tlist) ;
    }
@@ -94,18 +96,12 @@ ENTRY("THD_getpathprogs") ;
             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
 
-         ii = SARR_find_string( dlist , ename ) ;  /* skip this directory */
-         if( ii >= 0 ) continue ;                  /* if already was scanned */
+         /* 04 Feb 2002: check if we already searched this directory */
 
-         if( dlist != NULL ){
-            for( ii=0 ; ii < dlist->num ; ii++ )
-               if( THD_equiv_files(dlist->ar[ii],ename) ) break ;
-
-            if( ii < dlist->num ) continue ;  /* skip to end of do loop */
-         }
-
-         eee = strstr( elocal , ename ) ;
-         if( eee != NULL && (eee-elocal) < epos-id ) continue ;
+         for( ii=0 ; ii < qlist->num ; ii++ )
+            if( THD_equiv_files(qlist->ar[ii],ename) ) break ;
+         if( ii < qlist->num ) continue ;  /* skip this directory */
+         ADDTO_SARR(qlist,ename) ;
 
          tlist = THD_get_all_executables( ename ) ; /* read this directory */
          if( tlist != NULL ){
@@ -114,6 +110,7 @@ ENTRY("THD_getpathprogs") ;
 
             DESTROY_SARR(tlist) ;
          }
+
       } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
       free(elocal) ;
@@ -121,12 +118,12 @@ ENTRY("THD_getpathprogs") ;
 
    if( SARR_NUM(elist) == 0 ) DESTROY_SARR(elist) ;
 
+   DESTROY_SARR(qlist) ;  /* 04 Feb 2002 */
    RETURN(elist) ;
 }
 
-/*-------------------------------------------------*/
-/*  Read all executable filenames from a directory */
-/*-------------------------------------------------*/
+/*--------------------------------------------------*/
+/*! Read all executable filenames from a directory. */
 
 THD_string_array * THD_get_all_executables( char * dname )
 {
@@ -150,9 +147,13 @@ ENTRY("THD_get_all_executables") ;
    DESTROY_SARR( alist ) ;
    if( rlist == NULL ) RETURN(NULL) ;
 
+   /* 04 Feb 2002: don't include .so libraries, etc. */
+
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ;
-      if( THD_is_executable(fname) ) ADDTO_SARR(outar,fname) ;
+      if( THD_is_executable(fname) &&
+          !strstr(fname,".so")     &&
+          !strstr(fname,".la")       ) ADDTO_SARR(outar,fname) ;
    }
 
    DESTROY_SARR(rlist) ;

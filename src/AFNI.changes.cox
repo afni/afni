@@ -3452,3 +3452,9 @@
 
 02 Feb 2002
  * Added extreme_proj() to afni_transforms.c.
+
+04 Feb 2002
+ * Modified thd_getpathprogs.c to correctly skip searching the same
+     directory twice, rather than the cheap (strstr) way done before.
+     The old way caused problems when /usr/bin/ was ahead of /bin/,
+     for example.
