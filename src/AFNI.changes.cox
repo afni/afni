@@ -5154,3 +5154,7 @@
      and so forth.
  * Modified 3dDeconvolve.c to use this feature to allow input catenation
      (if the input_filename field has blanks in it).
+
+05 Aug 2004
+ * Polished up the 3dDeconvolve.c changes.
+ * Added "README.environment" text to Datamode->Misc menu in AFNI.
