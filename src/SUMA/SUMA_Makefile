@@ -1,13 +1,12 @@
 #
 
-CC = gcc
+#CC = gcc
 
 CCOPT = 
 WARNOPT = -Wall -Wno-unused-variable
-SUMALIB = SUMA_lib.a
+SUMALIB = libSUMA.a
 AFNILIB = ../libmri.a
 MAINCODE = SUMA
-INSTALLDIR = /home/ziad/abin
 INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../
 LINK_PATH = -L/usr/lib -L/usr/X11R6/lib 
 LINK_LIB = -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lcurses -lm 
@@ -37,7 +36,7 @@ F15 = SUMA_Engine.c
 F16 = SUMA_SureFit.c
 F17 = SUMA_FreeSurfer.c
 F18 = SUMA_VolData.c
-F19 = niml.c
+F19 = 
 F20 = SUMA_niml.c
 F21 = SUMA_Color.c
 
