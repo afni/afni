@@ -1600,14 +1600,16 @@ the environment variable must be in the form "rgbi:rf/gf/bf", where each
 color intensity (rf, gf, bf) is a number between 0.0 and 1.0.  For example,
 "rgbi:1.0/1.0/0.0" is yellow.  By default, the first 4 colors are defined
 as the equivalents of
-  setenv AFNI_1DPLOT_COLOR_01 rgbi:0.0/0.0/0.0         BLACK
-  setenv AFNI_1DPLOT_COLOR_02 rgbi:0.9/0.0/0.0         RED
-  setenv AFNI_1DPLOT_COLOR_03 rgbi:0.0/0.7/0.0         GREEN
-  setenv AFNI_1DPLOT_COLOR_04 rgbi:0.0/0.0/0.9         BLUE
-You can alter these colors.  The largest color number you define will be
-the last color index used; if more line colors are needed, they will cycle
-back to color 01.  If you leave a gap (e.g., you define color 06 but not 05),
-then the undefined colors are black.
+  setenv AFNI_1DPLOT_COLOR_01 rgbi:0.0/0.0/0.0
+  setenv AFNI_1DPLOT_COLOR_02 rgbi:0.9/0.0/0.0
+  setenv AFNI_1DPLOT_COLOR_03 rgbi:0.0/0.7/0.0
+  setenv AFNI_1DPLOT_COLOR_04 rgbi:0.0/0.0/0.9
+which are black, red, green, and blue, respectively.  You can alter these
+colors, or leave them unchanged and start defining colors at 05.  The largest
+color number you define will be the last color index used; if more line colors
+are needed, they will cycle back to color 01.  If you leave a gap in the
+numbering (e.g., you define color 07 but not 05 or 06), then the undefined
+colors will be black.
 
 =========================================
 | Robert W Cox, PhD                     |
