@@ -14,6 +14,10 @@
   Date:    28 January 2000
 */
 
+#ifndef USE_QUIET
+# define quiet 0
+#endif
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -189,18 +193,20 @@ void PDF_print (pdf p)
   int ibin;
 
 
-  printf ("Number of bins = %d \n", p.nbin);
-  printf ("Lower bound    = %f \n", p.lower_bnd);
-  printf ("Upper bound    = %f \n", p.upper_bnd);
-  printf ("Bin width      = %f \n", p.width);
+  if( !quiet ){
+   printf ("Number of bins = %d \n", p.nbin);
+   printf ("Lower bound    = %f \n", p.lower_bnd);
+   printf ("Upper bound    = %f \n", p.upper_bnd);
+   printf ("Bin width      = %f \n", p.width);
   
-  /*
-  printf ("%3s   %10.6s   %10.6s \n", "i", "x[i]", "p[i]");
-
-  for (ibin = 0;  ibin < p.nbin;  ibin++)
-    printf ("%3d   %10.6f   %10.6f \n", 
-	    ibin, PDF_ibin_to_xvalue(p, ibin), p.prob[ibin]);
-  */
+   /*
+   printf ("%3s   %10.6s   %10.6s \n", "i", "x[i]", "p[i]");
+ 
+   for (ibin = 0;  ibin < p.nbin;  ibin++)
+     printf ("%3d   %10.6f   %10.6f \n", 
+	     ibin, PDF_ibin_to_xvalue(p, ibin), p.prob[ibin]);
+   */
+  }
 
   return;
 }
@@ -213,7 +219,7 @@ void PDF_print (pdf p)
 
 void PDF_sprint (char * str, pdf p)
 {
-
+  if( quiet ) return ;
   printf ("%s \n", str);
 
   PDF_print (p);  
@@ -544,22 +550,24 @@ void PDF_find_extrema (pdf p, int * num_min, int * pdf_min,
 	}
     }
 
-  printf ("\nExtrema of PDF: \n");
-  printf ("\nNum Local Min = %d \n", *num_min);
-  for (i = 0;  i < *num_min;  i++)
-    {
-      ibin = pdf_min[i]; 
-      printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
-	      ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
-    }
+  if( !quiet ){
+   printf ("\nExtrema of PDF: \n");
+   printf ("\nNum Local Min = %d \n", *num_min);
+   for (i = 0;  i < *num_min;  i++)
+     {
+       ibin = pdf_min[i]; 
+       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
+	       ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
+     }
 
-  printf ("\nNum Local Max = %d \n", *num_max);
-  for (i = 0;  i < *num_max;  i++)
-    {
-      ibin = pdf_max[i]; 
-      printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
-	      ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
-    }
+   printf ("\nNum Local Max = %d \n", *num_max);
+   for (i = 0;  i < *num_max;  i++)
+     {
+       ibin = pdf_max[i]; 
+       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
+	       ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
+     }
+  }
 
 }
 
