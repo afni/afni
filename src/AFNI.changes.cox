@@ -5211,3 +5211,10 @@
 09 Sep 2004
  * Modified afni_version.c to use TCP/IP to communicate with version
      sub-process rather than shared memory.
+
+15 Sep 2004
+ * New function THD_get_voxel() in thd_loaddblk.c, returns a float for a
+     single voxel (not very efficient to use this in mass).
+ * Used the above in thd_fdto1D.c to deal with returning time series from
+     datasets with mismatched sub-brick types.
+ * Also, print a warning for such datasets in thd_initdblk.c.

@@ -3410,6 +3410,8 @@ extern FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * ,
 extern MRI_IMAGE * FD_brick_to_mri( int,int , FD_brick * br ) ;
 extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 
+extern float THD_get_voxel( THD_3dim_dataset *dset , int ijk , int ival ) ;
+
 extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 extern MRI_IMARR * THD_extract_many_series( int, int *, THD_3dim_dataset * );
 
