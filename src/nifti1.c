@@ -10,6 +10,8 @@ int main( int argc , char *argv[] )
    printf("%d\n",sizeof(h)) ; exit(0) ;
 }
 
+#if 0
+
 /*****===================================================================*****/
 /*****      Sample functions to deal with NIFTI-1 and ANALYZE files      *****/
 /*****...................................................................*****/
@@ -875,3 +877,4 @@ void nifti_image_infodump( nifti_image *nim )
    else                    printf("  data loaded at address %p\n",nim->data) ;
 
 }
+#endif

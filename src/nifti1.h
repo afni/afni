@@ -39,7 +39,7 @@
     (a) To add information to the header that will be useful for functional
         neuroimaging data analysis and display.  These additions include:
         - More basic data types.
-        - Two affine transformations to specify voxel coordinates.
+        - Two separate affine transformations to specify voxel coordinates.
         - "Intent" codes and parameters to describe the meaning of the data.
         - Affine scaling of the stored data values to their "true" values.
         - Optional storage of the header and image data in one file (.nii).
@@ -63,8 +63,8 @@
    (in any future version of this format, the '1' will be upgraded to '2',
    etc.).  Normally, such a "magic number" or flag goes at the start of the
    file, but trying to avoid clobbering widely-used ANALYZE 7.5 fields led to
-   putting this marker last.  However, recall that "the last shall be first"
-   (Matthew 20:16).
+   putting this marker in the middle (taking the space of the ANALYZE 7.5
+   "compressed" field).
 
    If a NIFTI-aware program reads a header file that is NOT marked with a
    NIFTI magic string, then it should treat the header as an ANALYZE 7.5
@@ -138,18 +138,19 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  short intent_code ;  /*!< NIFTI_INTENT_* code.  */  /* short unused14;      */
  short datatype;      /*!< Defines data type!    */  /* short datatype;      */
  short bitpix;        /*!< Number bits/voxel.    */  /* short bitpix;        */
- short dim_un0;       /*!< ++UNUSED++            */  /* short dim_un0;       */
+ char  xyz_units ;    /*!< Units of spatial axes */  /* short dim_un0;       */
+ char  time_units ;   /*!< Units of time axis.   */
  float pixdim[8];     /*!< Grid spacings.        */  /* float pixdim[8];     */
  float vox_offset;    /*!< Offset into .nii file */  /* float vox_offset;    */
  float scl_slope ;    /*!< Data scaling: slope.  */  /* float funused1;      */
  float scl_inter ;    /*!< Data scaling: offset. */  /* float funused2;      */
- char  xyz_units ;    /*!< Units of spatial axes */  /* float funused3;      */
- char  time_units ;   /*!< Units of time axis.   */
- char  cunused1 ;     /*!< ++UNUSED++            */
- char  cunused2 ;     /*!< ++UNUSED++            */
+ char  qform_code ;   /*!< NIFTI_XFORM_* code.   */  /* float funused3;      */
+ char  sform_code ;   /*!< NIFTI_XFORM_* code.   */
+ char  cunused1 ;     /*!< ++UNUSED++ */
+ char  cunused2 ;     /*!< ++UNUSED++ */
  float cal_max;       /*!< Max display intensity */  /* float cal_max;       */
  float cal_min;       /*!< Min display intensity */  /* float cal_min;       */
- float compressed;    /*!< ++UNUSED++            */  /* float compressed;    */
+ char  magic[4] ;     /*!< "ni1\0" or "n+1\0".   */  /* float compressed;    */
  float toffset;       /*!< Time axis shift.      */  /* float verified;      */
  int   glmax;         /*!< ++UNUSED++            */  /* int glmax;           */
  int   glmin;         /*!< ++UNUSED++            */  /* int glmin;           */
@@ -158,25 +159,15 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  char  descrip[80];   /*!< any text you like.    */  /* char descrip[80];    */
  char  aux_file[24];  /*!< auxiliary filename.   */  /* char aux_file[24];   */
 
- short qform_code ;   /*!< NIFTI_XFORM_* code.   */  /*-- all ANALYZE 7.5 ---*/
- short sform_code ;   /*!< NIFTI_XFORM_* code.   */  /*   fields below here  */
-                                                     /*   are replaced       */
- float quatern_b ;    /*!< Quaternion b param.   */
- float quatern_c ;    /*!< Quaternion c param.   */
- float quatern_d ;    /*!< Quaternion d param.   */
- float qoffset_x ;    /*!< Quaternion x shift.   */
- float qoffset_y ;    /*!< Quaternion y shift.   */
- float qoffset_z ;    /*!< Quaternion z shift.   */
+ float qrow_x[4] ;    /*!< 1st row affine matrix */  /*-- all ANALYZE 7.5 ---*/
+ float qrow_y[4] ;    /*!< 2nd row affine matrix */  /*   fields below here  */
+ float qrow_z[4] ;    /*!< 3rd row affine matrix */  /*   are replaced       */
 
- float srow_x[4] ;    /*!< 1st row affine transform.   */
- float srow_y[4] ;    /*!< 2nd row affine transform.   */
- float srow_z[4] ;    /*!< 3rd row affine transform.   */
+ float srow_x[4] ;    /*!< 1st row affine matrix */
+ float srow_y[4] ;    /*!< 2nd row affine matrix */
+ float srow_z[4] ;    /*!< 3rd row affine matrix */
 
- char intent_name[16];/*!< 'name' or meaning of data.  */
-
- char magic[4] ;      /*!< MUST be "ni1\0" or "n+1\0". */
-
-} ;                   /**** 348 bytes total ****/
+} ;                   /***** 348 bytes total *****/
 
 typedef struct nifti_1_header nifti_1_header ;
 
@@ -203,8 +194,8 @@ typedef struct nifti_1_header nifti_1_header ;
      dim[1] * ... * dim[dim[0]] * bitpix / 8
 
    In NIFTI-1 files, dimensions 1,2,3 are for space, dimension 4 is for time,
-   and dimension 5 is for storing multiple values at each spatiotemporal
-   voxel.  Some examples:
+   and dimension 5 (or more) is for storing multiple values at each
+   spatiotemporal voxel.  Some examples:
      - A typical whole-brain FMRI experiment's time series:
         - dim[0] = 4
         - dim[1] = 64   pixdim[1] = 3.75 xyz_units = NIFTI_UNITS_MM
@@ -718,7 +709,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
    ---------------------------------------------------
-   There are 3 different methods by which continuous coordinates can
+   There are 2 different methods by which continuous coordinates can
    attached to voxels.  The discussion below emphasizes 3D volumes, and
    the continuous coordinates are referred to as (x,y,z).  The voxel
    index coordinates (i.e., the array indexes) are referred to as (i,j,k),
@@ -729,10 +720,11 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The (x,y,z) coordinates refer to the CENTER of a voxel.  In methods
    2 and 3, the (x,y,z) axes refer to a subject-based coordinate system,
    with
-     +x = Right  +y = Anterior  +z = Superior.
+     -x = Left   -y = Posterior  -z = Inferior
+     +x = Right  +y = Anterior   +z = Superior.
    This is a right-handed coordinate system.  However, the exact direction
    these axes point with respect to the subject depends on qform_code
-   (Method 2) and sform_code (Method 3).
+   and sform_code.
 
    N.B.: The i index varies most rapidly, j index next, k index slowest.
     Thus, voxel (i,j,k) is stored starting at location
@@ -745,24 +737,19 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     too difficult to tolerate, so this NIFTI-1 standard specifies the
     coordinate order which is most common in functional neuroimaging.
 
-   N.B.: The 3 methods below all give the locations of the voxel centers
+   N.B.: The 2 methods below all give the locations of the voxel centers
     in the (x,y,z) coordinate system.  In many cases, programs will wish
     to display image data on some other grid.  In such a case, the program
     will need to convert its desired (x,y,z) values into (i,j,k) values
     in order to extract (or interpolate) the image data.  This operation
     would be done with the inverse transformation to those described below.
 
-   N.B.: Method 2 uses a factor 'pfac' which is either -1 or 1; pfac is
-    stored in the otherwise unused pixdim[0].  If pixdim[0]=0.0 (which
-    should not occur), we take pfac=1.  Of course, pixdim[0] is only used
-    when reading a NIFTI-1 header, not when reading an ANALYZE 7.5 header.
-
    N.B.: The units of (x,y,z) can be specified using the xyz_units code.
 
-   METHOD 1 (the "old" way, used only when qform_code = 0):
-   -------------------------------------------------------
-   The coordinate mapping from (i,j,k) to (x,y,z) is the ANALYZE
-   7.5 way.  This is a simple scaling relationship:
+   METHOD 1 (the "old" way, used only when qform_code=0 and sform_code=0):
+   ----------------------------------------------------------------------
+   The coordinate mapping from (i,j,k) to (x,y,z) is the ANALYZE 7.5 way.
+   This is a simple scaling relationship:
 
      x = pixdim[1] * i
      y = pixdim[2] * j
@@ -770,174 +757,53 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
    No particular spatial orientation is attached to these (x,y,z)
    coordinates.  (NIFTI-1 does not have the ANALYZE 7.5 orient field,
-   which is not general and is often not set properly.)  This method
+   which is not general and is seldom set properly.)  This method
    is not recommended, and is present mainly for compatibility with
    ANALYZE 7.5 files.
 
-   METHOD 2 (used when qform_code > 0, which should be the "normal case):
-   ---------------------------------------------------------------------
-   The (x,y,z) coordinates are given by the pixdim[] scales, a rotation
-   matrix, and a shift.  This method is intended to represent
-   "scanner-anatomical" coordinates, which are often embedded in the
-   image header (e.g., DICOM fields 0020/0032, 0020/0037, 0028/0030, and
-   0018/0050), and represent the nominal orientation and location of
-   the data.  This method can also be used to represent "aligned"
-   coordinates, which would typically result from some post-acquisition
-   alignment of the volume to a standard orientation (e.g., the same
-   subject on another day, or a rigid rotation to true anatomical
-   orientation from the tilted position of the subject in the scanner).
-   The formula for (x,y,z) in terms of header parameters and (i,j,k) is:
+   METHOD 2 (used when [qs]form_code > 0, which should be the "normal case):
+   ------------------------------------------------------------------------
+   The (x,y,z) coordinates are given by a general affine transformation of
+   the (i,j,k) indexes:
 
-     [ x ]   [ R11 R12 R13 ] [ pfac * pixdim[1] * i ]   [ qoffset_x ]
-     [ y ] = [ R21 R22 R23 ] [        pixdim[2] * j ] + [ qoffset_y ]
-     [ z ]   [ R31 R32 R33 ] [        pixdim[3] * k ]   [ qoffset_z ]
+     x = Arow_x[0] * i + Arow_x[1] * j + Arow_x[2] * j + Arow_x[3]
+     y = Arow_y[0] * i + Arow_y[1] * j + Arow_y[2] * j + Arow_y[3]
+     z = Arow_z[0] * i + Arow_z[1] * j + Arow_z[2] * j + Arow_z[3]
 
-   The qoffset_* shifts are in the NIFTI-1 header.  Note that the center
-   of the (i,j,k)=(0,0,0) voxel (first value in the dataset array) is
-   just (x,y,z)=(qoffset_x,qoffset_y,qoffset_z).
+   where the later 'A' in the above names is either 'q' or 's'.
 
-   The rotation matrix R is calculated from the quatern_* parameters.
-   This calculation is described below.
-
-   The scaling factor pfac is either 1 or -1.  The rotation matrix R
-   defined by the quaternion parameters is "proper" (has determinant 1).
-   This may not fit the needs of the data; for example, if the image
-   grid is
-     i increases from Left-to-Right
-     j increases form Anterior-to-Posterior
-     k increases from Inferior-to-Superior
-   Then (i,j,k) is a left-handed triple.  In this example, if pfac=1,
-   the R matrix would have to be
-
-     [  1   0   0 ]
-     [  0  -1   0 ]  which is "improper" (determinant = 1).
-     [  0   0   1 ]
-
-   If we set pfac=-1, then the R matrix would be
-
-     [ -1   0   0 ]
-     [  0  -1   0 ]  which is proper.
-     [  0   0   1 ]
-
-   This R matrix is represented by quaternion [a,b,c,d] = [0,0,0,1]
-
-   METHOD 3 (used when sform_code > 0):
-   -----------------------------------
-   The (x,y,z) coordinates are given by a general affine transformation
-   of the (i,j,k) indexes:
-
-     x = srow_x[0] * i + srow_x[1] * j + srow_x[2] * j + srow_x[3]
-     y = srow_y[0] * i + srow_y[1] * j + srow_y[2] * j + srow_y[3]
-     z = srow_z[0] * i + srow_z[1] * j + srow_z[2] * j + srow_z[3]
-
-   The srow_* vectors are in the NIFTI_1 header.  Note that no use is
+   The Arow_* vectors are in the NIFTI_1 header, and are valid if
+   Aform_code > 0 (for 'A' = 'q' and 's').  Note that no use is
    made of pixdim[] in this method.
 
-   WHY 3 METHODS?
-   --------------
-   Method 1 is provided only for backwards compatibility.  The intention
-   is that Method 2 (qform_code > 0) represents the nominal voxel locations
-   as reported by the scanner, or as rotated to some fiducial orientation and
-   location.  Method 3, if present (sform_code > 0), is to be used to give
-   the location of the voxels in some standard space.  The sform_code
-   indicates which standard space is present.  Both methods 2 and 3 can be
-   present, and be useful in different contexts (method 2 for displaying the
-   data on its original grid; method 3 for displaying it on a standard grid).
+   WHY 2 AFFINE TRANSFORMATIONS?
+   ----------------------------
+   Method 1 is provided only for backwards compatibility or for very
+   simple cases where the orientation of the dataset is unimportant.
+
+   The intention is that the qrow_* transformation represents the nominal
+   voxel locations as reported by the scanner, or as rotated to some
+   fiducial orientation and location.
+
+   The srow_* transformation is to be used to give the location of the
+   voxels in some standard space.  The sform_code indicates which standard
+   space is present.  Both qrow_* and srow_* can be present and be useful
+   in different contexts: qrow_* for displaying the data on its original
+   grid and srow_* for displaying it on a standard grid.
 
    In this scheme, a dataset would originally be set up so that the
-   Method 2 coordinates represent what the scanner reported.  Later,
+   qrow_* coordinates represent what the scanner reported.  Later,
    a registration to some standard space can be computed and inserted
    in the header.  Image display software can use either transform,
    depending on its purposes and needs.
 
-   In Method 2, the origin of coordinates would generally be whatever
+   For qrow_*, the origin of coordinates would generally be whatever
    the scanner origin is; for example, in MRI, (0,0,0) is the center
    of the gradient coil.
 
-   In Method 3, the origin of coordinates would depend on the value
+   For srow_*, the origin of coordinates would depend on the value
    of sform_code; for example, for the Talairach coordinate system,
    (0,0,0) corresponds to the Anterior Commissure.
-
-   QUATERNION REPRESENATION OF ROTATION MATRIX (METHOD 2)
-   ------------------------------------------------------
-   The orientation of the (x,y,z) axes relative to the (i,j,k) axes
-   in 3D space is specified using a unit quaternion [a,b,c,d], where
-   a*a+b*b+c*c+d*d=1.  The (b,c,d) values are all that is needed, since
-   we require that a = sqrt(1.0-b*b+c*c+d*d) be nonnegative.  The (b,c,d)
-   values are stored in the (quatern_b,quatern_c,quatern_d) fields.
-
-   The quaternion representation is chosen for its compactness in
-   representing rotations. The (proper) 3x3 rotation matrix that
-   corresponds to [a,b,c,d] is
-
-         [ a*a+b*b-c*c-d*d   2*b*c-2*a*d       2*b*d+2*a*c     ]
-     R = [ 2*b*c+2*a*d       a*a+c*c-b*b-d*d   2*c*d-2*a*b     ]
-         [ 2*b*d-2*a*c       2*c*d+2*a*b       a*a+d*d-c*c-b*b ]
-
-         [ R11               R12               R13             ]
-       = [ R21               R22               R23             ]
-         [ R31               R32               R33             ]
-
-   If (p,q,r) is a unit 3-vector, then rotation of angle h about that
-   direction is represented by the quaternion
-
-     [a,b,c,d] = [cos(h/2), p*sin(h/2), q*sin(h/2), r*sin(h/2)].
-
-   Requiring a >= 0 is equivalent to requiring -Pi <= h <= Pi.  (Note that
-   [-a,-b,-c,-d] represents the same rotation as [a,b,c,d]; there are 2
-   quaternions that can be used to represent a given rotation matrix R.)
-   To rotate a 3-vector (x,y,z) using quaternions, we compute the
-   quaternion product
-
-     [0,x',y',z'] = [a,b,c,d] * [0,x,y,z] * [a,-b,-c,-d]
-
-   which is equivalent to the matrix-vector multiply
-
-     [ x' ]     [ x ]
-     [ y' ] = R [ y ]   (equivalence depends on a*a+b*b+c*c+d*d=1)
-     [ z' ]     [ z ]
-
-   Multiplication of 2 quaternions is defined by the following:
-
-     [a,b,c,d] = a*1 + b*I + c*J + d*K
-     where
-       I*I = J*J = K*K = -1 (I,J,K are square roots of -1)
-       I*J =  K  J*K =  I  K*I =  J
-       J*I = -K  K*J = -I  I*K = -J  (not commutative!)
-     For example
-       [a,b,0,0] * [0,0,0,1] = [0,-b,0,a]
-     since this expands to
-       (a+b*I)*(K) = (a*K+b*I*K) = (a*K-b*J).
-
-   The above formula shows how to go from quaternion (b,c,d) to
-   rotation matrix and direction cosines.  Conversely, given R,
-   we can compute the fields for the NIFTI-1 header by
-
-     a = 0.5  * sqrt(1+R11+R22+R33)    (not stored)
-     b = 0.25 * (R32-R23) / a       => quatern_b
-     c = 0.25 * (R13-R31) / a       => quatern_c
-     d = 0.25 * (R21-R12) / a       => quatern_d
-
-   [If a=0 (a 180 degree rotation), alternative formulas are needed.]
-
-   Note that R-transpose (= R-inverse) would lead to the quaternion
-   [a,-b,-c,-d].
-
-   The choice to specify the qoffset_x (etc.) values in the final
-   coordinate system is partly to make it easy to convert DICOM images to
-   this format.  The DICOM attribute "Image Position (Patient)" 0020/0032
-   stores the (Xd,Yd,Zd) coordinates of the center of the first voxel.
-   Here, (Xd,Yd,Zd) refer to DICOM coordinates, and Xd=-x, Yd=-y, Zd=z,
-   where (x,y,z) refers to the NIFTI coordinate system discussed above.
-   (i.e., DICOM +Xd is Left, +Yd is Posterior, +Zd is Superior,
-        whereas +x is Right, +y is Anterior  , +z is Superior. )
-   Thus, if the 0020/0032 DICOM attribute is extracted into (px,py,pz), then
-     qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
-   is a reasonable setting for qform_code=NIFTI_XFORM_SCANNER_ANAT.
-
-   That is, DICOM's coordinate system is 180 degrees rotated about the z-axis
-   from the neuroscience/NIFTI coordinate system.  To transform between DICOM
-   and NIFTI, you just have to negate the x- and y-coordinates.
 -----------------------------------------------------------------------------*/
 
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
