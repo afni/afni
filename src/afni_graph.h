@@ -237,7 +237,7 @@ int INIT_GR_boxes_thick  = 0 ,
     INIT_GR_dplot_thick  = 0  ;
 
 int INIT_GR_ggap         = 0 ;  /* 27 May 1999 */
-
+int INIT_GR_gthick       = 2 ;  /* 06 Oct 2004 */
 int INIT_GR_gmat         = 3 ;  /* 10 Feb 2003 */
 #else
 extern int INIT_GR_boxes_color  ,
@@ -258,6 +258,7 @@ extern int INIT_GR_boxes_thick ,
            INIT_GR_dplot_thick  ;
 
 extern int INIT_GR_ggap ;
+extern int INIT_GR_gthick ;  /* 06 Oct 2004 */
 extern int INIT_GR_gmat ;
 #endif /* MAIN */
 
@@ -314,17 +315,15 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
     :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest) \
     :(cd) )
 
-#define THICKKK  2
-
-#define FG_THICK(gr)     ((gr)->thick_index[0] * THICKKK)
-#define BG_THICK(gr)     ((gr)->thick_index[1] * THICKKK)
-#define GRID_THICK(gr)   ((gr)->thick_index[2] * THICKKK)
-#define TEXT_THICK(gr)   ((gr)->thick_index[3] * THICKKK)
-#define DATA_THICK(gr)   ((gr)->thick_index[4] * THICKKK)
-#define IDEAL_THICK(gr)  ((gr)->thick_index[5] * THICKKK)
-#define ORT_THICK(gr)    ((gr)->thick_index[6] * THICKKK)
-#define IGNORE_THICK(gr) ((gr)->thick_index[7] * THICKKK)
-#define DPLOT_THICK(gr)  ((gr)->thick_index[8] * THICKKK)
+#define FG_THICK(gr)     ((gr)->thick_index[0] * (gr)->gthick)
+#define BG_THICK(gr)     ((gr)->thick_index[1] * (gr)->gthick)
+#define GRID_THICK(gr)   ((gr)->thick_index[2] * (gr)->gthick)
+#define TEXT_THICK(gr)   ((gr)->thick_index[3] * (gr)->gthick)
+#define DATA_THICK(gr)   ((gr)->thick_index[4] * (gr)->gthick)
+#define IDEAL_THICK(gr)  ((gr)->thick_index[5] * (gr)->gthick)
+#define ORT_THICK(gr)    ((gr)->thick_index[6] * (gr)->gthick)
+#define IGNORE_THICK(gr) ((gr)->thick_index[7] * (gr)->gthick)
+#define DPLOT_THICK(gr)  ((gr)->thick_index[8] * (gr)->gthick)
 
 #define FG_IS_THICK(gr)     ((gr)->thick_index[0] != 0)
 #define BG_IS_THICK(gr)     ((gr)->thick_index[1] != 0)
@@ -443,8 +442,10 @@ typedef struct {
    int thick_index[NUM_COLOR_ITEMS] ;
    int points_index[NUM_COLOR_ITEMS] ;
 
-   MCW_arrowval * opt_ggap_av ; /* 12 Jan 1998 */
+   MCW_arrowval *opt_ggap_av ; /* 12 Jan 1998 */
    int ggap ;
+   MCW_arrowval *opt_gthick_av ; /* 06 Oct 2004 */
+   int gthick ;
 
    Widget opt_color_up_pb   , opt_save_pb ,
           opt_write_center_pb , opt_write_suffix_pb ;
@@ -671,6 +672,7 @@ extern void GRA_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * GRA_transform_label( MCW_arrowval * , XtPointer ) ;
 
 extern void GRA_ggap_CB( MCW_arrowval * , XtPointer ) ;
+extern void GRA_gthick_CB( MCW_arrowval * , XtPointer ) ;  /* 06 Oct 2004 */
 
 extern FIM_menu * AFNI_new_fim_menu( Widget , XtCallbackProc , int ) ;
 
