@@ -4215,9 +4215,8 @@ static int tcp_listen( int port )
 
    /** set socket options (no delays, large buffers) **/
 
-#if 0
-   /* actually, delays (the Nagle algorithm) are OK here,
-      so we won't turn on the TCP_NODELAY option after all */
+#if 1
+   /** disable the Nagle algorithm **/
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
 #endif
