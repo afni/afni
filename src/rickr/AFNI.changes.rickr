@@ -293,3 +293,6 @@
 11 September 2003:
   * modified 3dfim+.c: read_one_time_series() was still using old 'filename'
 
+17 September 2003:
+  * modified SUMA_3dVol2Surf.c: fixed help info for '-cmask option'
+
