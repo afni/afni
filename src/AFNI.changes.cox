@@ -1877,3 +1877,6 @@
  * Fixed bug in afni_func.c AFNI_force_adoption() routine: the
      PRINT_TRACING output after the dataset scan would crash if no
      dataset was found.
+ * Modified imseq.[ch] and afni.c to set "sides" strings for an image,
+     so that "left=SIDE" can be displayed correctly in any orientation
+     of the image flipping process.

@@ -888,16 +888,18 @@ int main( int argc , char * argv[] )
 #undef SHSHSH
 #define SHSH(x)   #x
 #define SHSHSH(x) SHSH(x)
-   if( strcmp("NO",SHSHSH(SHOWOFF)) != 0 ){  /* 29 Nov 1999 */
-      REPORT_PROGRESS( "[[Precompiled binary "
-                       SHSHSH(SHOWOFF)
-                       ": "
-                       __DATE__
-                       "]]\n" ) ;
-   } else {
-      REPORT_PROGRESS( "[[Compilation date: "
-                       __DATE__
-                       "]]\n" ) ;
+   if( DBG_trace ){                             /* 01 Dec 1999 */
+      if( strcmp("NO",SHSHSH(SHOWOFF)) != 0 ){  /* 29 Nov 1999 */
+         REPORT_PROGRESS( "[[Precompiled binary "
+                          SHSHSH(SHOWOFF)
+                          ": "
+                          __DATE__
+                          "]]\n" ) ;
+      } else {
+         REPORT_PROGRESS( "[[Compilation date: "
+                          __DATE__
+                          "]]\n" ) ;
+      }
    }
 #undef SHSH
 #undef SHSHSH
@@ -3477,18 +3479,55 @@ ENTRY("AFNI_view_xyz_CB") ;
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images, if desired */
       /* 07 Aug 1998: put an informational label in those windows, too */
 
+#define USE_SIDES  /* 01 Dec 1999: replace "left is" labels with sides labels */
+
       if( (*snew == im3d->s123) || (*snew == im3d->s312) ){
 
          if( GLOBAL_argopt.left_is_left ){
             ISQ_options opt ;
             ISQ_DEFAULT_OPT(opt) ;
             opt.mirror = TRUE ;
-            drive_MCW_imseq( *snew, isqDR_options   , (XtPointer) &opt ) ;
-            drive_MCW_imseq( *snew, isqDR_winfotext , (XtPointer) "[left is left]" ) ;
+            drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
+#ifndef USE_SIDES
+            drive_MCW_imseq( *snew,isqDR_winfotext,(XtPointer)"[left is left]");
+#endif
          } else {
-            drive_MCW_imseq( *snew, isqDR_winfotext , (XtPointer) "[left is right]" ) ;
+#ifndef USE_SIDES
+            drive_MCW_imseq( *snew,isqDR_winfotext,(XtPointer)"[left is right]");
+#endif
          }
       }
+
+#ifdef USE_SIDES
+#define LL 0
+#define RR 1
+#define AA 2
+#define PP 3
+#define SS 4
+#define II 5
+      { static char * ssix[6] = { "Left"     , "Right"     ,
+                                  "Anterior" , "Posterior" ,
+                                  "Superior" , "Inferior"   } ;
+        char * ws[4] ;
+
+        if( *snew == im3d->s123 ){
+          ws[0] = ssix[RR]; ws[1] = ssix[AA]; ws[2] = ssix[LL]; ws[3] = ssix[PP];
+        } else if( *snew == im3d->s231 ){
+          ws[0] = ssix[AA]; ws[1] = ssix[SS]; ws[2] = ssix[PP]; ws[3] = ssix[II];
+        } else if( *snew == im3d->s312 ){
+          ws[0] = ssix[RR]; ws[1] = ssix[SS]; ws[2] = ssix[LL]; ws[3] = ssix[II];
+        } else {
+          ws[0] = ws[1] = ws[2] = ws[3] = NULL ;
+        }
+        drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
+      }
+#undef LL 
+#undef RR
+#undef AA
+#undef PP
+#undef SS
+#undef II 
+#endif
 
       AFNI_toggle_drawing( im3d ) ;
 

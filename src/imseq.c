@@ -886,6 +886,11 @@ fflush(stdout) ;
                      NULL ) ;
    newseq->winfo_extra[0] = '\0' ;  /* 07 Aug 1999 */
 
+   newseq->winfo_sides[0][0] =
+    newseq->winfo_sides[1][0] =
+     newseq->winfo_sides[2][0] =
+      newseq->winfo_sides[3][0] = '\0' ; /* 01 Dec 1999 */
+
    /***---------- all widgets now created ------------***/
 
    newseq->mont_across_av   = NULL ;
@@ -2337,9 +2342,28 @@ void ISQ_draw_winfo( MCW_imseq * seq )
 
    if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
       if( seq->winfo_extra[0] == '\0' ){
-         MCW_set_widget_label( seq->winfo , buf ) ;
-      } else {                                        /* this winfo_extra stuff */
-         char qbuf[128] ;                             /* is from 07 Aug 1999    */
+
+         int iw=0 ;                                   /* winfo_sides stuff */
+         switch( seq->opt.rot ){                      /* from 01 Dec 1999  */
+            case ISQ_ROT_0  : iw=0 ; break ;
+            case ISQ_ROT_90 : iw=1 ; break ;
+            case ISQ_ROT_180: iw=2 ; break ;
+            case ISQ_ROT_270: iw=3 ; break ;
+         }
+         if( seq->opt.mirror ) iw = (iw+2)%4 ;
+
+         if( seq->winfo_sides[iw][0] != '\0' ){
+            char qbuf[128] ;
+            strcpy(qbuf,"left=") ;
+            strcat(qbuf,seq->winfo_sides[iw]) ;
+            strcat(qbuf," ") ; strcat(qbuf,buf) ;
+            MCW_set_widget_label( seq->winfo , qbuf ) ;
+         } else {
+            MCW_set_widget_label( seq->winfo , buf ) ;   /* default label! */
+         }
+
+      } else {                                        /* winfo_extra stuff */
+         char qbuf[128] ;                             /* from 07 Aug 1999  */
          strcpy(qbuf,seq->winfo_extra) ;
          strcat(qbuf," ") ; strcat(qbuf,buf) ;
          MCW_set_widget_label( seq->winfo , qbuf ) ;
@@ -3139,8 +3163,16 @@ void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
       FREE_AV( seq->surfgraph_av )   ;  /* 21 Jan 1999 */
    }
 
-   if( new_opt )
+   if( new_opt ){
       ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+
+      /* 01 Dec 1999: perhaps redraw winfo label */
+
+      if( ISQ_USE_SIDES(seq) ){
+         seq->im_label[0] = '\0' ;  /* will force redraw */
+         ISQ_draw_winfo( seq ) ;
+      }
+   }
 
 #ifdef FLASH_TOGGLE
    if( flasher ) MCW_invert_widget( w ) ;  /* flash togglebutton */
@@ -3708,6 +3740,8 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 *    isqDR_winfotext       (char *) sets the winfo extra text
 
+*    isqDR_winfosides      (char **) sets the winfo sides text
+
 *    isqDR_getoptions      (ISQ_options *) to get the current options
 
 The Boolean return value is True for success, False for failure.
@@ -3729,6 +3763,33 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          return False ;
       }
       break ;
+
+      /*------- winfo sides text [01 Dec 1999] -------*/
+
+      case isqDR_winfosides:{
+         char ** ws = (char **) drive_data ;
+         int iw ;
+
+         if( ws == NULL ){                   /* remove the label data */
+            seq->winfo_sides[0][0] =
+             seq->winfo_sides[1][0] =
+              seq->winfo_sides[2][0] =
+               seq->winfo_sides[3][0] = '\0' ;
+
+         } else {                           /* change the label data */
+            for( iw=0 ; iw < 4 ; iw++ ){
+               if( ws[iw] == NULL || ws[iw][0] == '\0' ){
+                  seq->winfo_sides[iw][0] = '\0' ;
+               } else {
+                  strncpy( seq->winfo_sides[iw] , ws[iw] , 15 ) ;
+                  ws[iw][15] = '\0' ;
+               }
+            }
+         }
+         seq->im_label[0] = '\0' ;  /* will force redraw */
+         ISQ_draw_winfo( seq ) ;
+         return True ;
+      }
 
       /*------- winfo extra text [07 Aug 1999] -------*/
 
@@ -4000,6 +4061,7 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          seq->opt.parent = (XtPointer) seq ;
          SET_SAVE_LABEL(seq) ;
 
+         seq->im_label[0] = '\0' ;  /* will force redraw */
          ISQ_redisplay( seq , -1 , isqDR_display ) ;
          return True ;
       }

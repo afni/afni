@@ -397,7 +397,16 @@ typedef struct {
 
      char winfo_extra[64] ;
 
+     /* text for sides of window in default orientation [01 Dec 1999] */
+
+     char winfo_sides[4][16] ;
+
 } MCW_imseq ;
+
+#define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
+                             (isq)->winfo_sides[1][0] != '\0' || \
+                             (isq)->winfo_sides[2][0] != '\0' || \
+                             (isq)->winfo_sides[3][0] != '\0'      )
 
 /***---------- prototypes: user callable ----------***/
 
@@ -429,6 +438,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_arrowpadhint 201
 #define isqDR_winfotext    202
 #define isqDR_getoptions   203
+#define isqDR_winfosides   204
 
 #define isqDR_destroy      666
 
