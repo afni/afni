@@ -597,6 +597,7 @@ extern void mri_move_guts( MRI_IMAGE *, MRI_IMAGE * ) ;  /* 28 Mar 2002 */
 extern MRI_IMAGE * mri_copy( MRI_IMAGE * ) ;             /* 17 Apr 2000 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
+extern MRI_IMAGE *mri_read_ge4( char * ) ;               /* 03 Jun 2003 */
 extern int mri_write( char * , MRI_IMAGE * ) ;
 extern int mri_write_pnm( char * , MRI_IMAGE * ) ;
 extern int mri_write_7D( char * , MRI_IMAGE * ) ;

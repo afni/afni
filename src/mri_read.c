@@ -26,6 +26,7 @@
 #endif
 
 #include "mrilib.h"
+#include "ge4_header.h"
 
 /*! Global variable to signal image orientation, if possible. */
 
@@ -519,6 +520,72 @@ Ready_To_Roll:
    RETURN( im );
 }
 
+
+/******************************************************************/
+
+/* GEMS 4.x image reading   - rickr  03 Jun 2003 */
+
+/*! Read a single 2D GEMS 4.x image.
+
+    \param  filename is the name of the file to try to read
+    \return NULL if an image could not be read, otherwise
+            the address of a new MRI_IMAGE structure
+*/
+
+MRI_IMAGE * mri_read_ge4( char * filename )
+{
+    MRI_IMAGE * im;
+    ge4_header  H;
+
+ENTRY( "mri_read_ge4" );
+
+    if ( filename == NULL )
+    {
+	fprintf( stderr, "** mri_read_ge4 - missing filename\n" );
+	RETURN( NULL );
+    }
+
+    /* try to read image file - return with image */
+    if ( ge4_read_header( &H, filename, True ) != 0 )
+	RETURN( NULL );
+
+    /* these dimensions are fixed */
+    if ( (im = mri_new(256, 256, MRI_short)) == NULL )
+    {
+	free(H.image);
+	RETURN( NULL );
+    }
+
+    /* fill im struct with data from H */
+    im->zo = H.im_h.im_loc;		     /* this may well be incorrect */
+    im->dt = H.im_h.tr;
+    im->was_swapped = H.swap;
+
+    if ( ( H.ser_h.fov >    1.0      ) &&
+	 ( H.ser_h.fov < 1000.0      ) &&
+	 ( H.ser_h.scan_mat_x >    0 ) &&
+	 ( H.ser_h.scan_mat_x < 1000 ) &&
+	 ( H.ser_h.scan_mat_y >    0 ) &&
+	 ( H.ser_h.scan_mat_y < 1000 ) )
+    {
+	/* attempt to set dx, dy and dz from these */
+
+	im->dx = 2 * H.ser_h.fov / H.ser_h.scan_mat_x;
+	im->dy = im->dx;
+	im->dz = 2 * H.ser_h.fov / H.ser_h.scan_mat_y;
+	im->dw = 1;
+    }
+
+    memcpy( mri_data_pointer(im), H.image, H.im_bytes );
+
+    mri_add_name( filename, im );
+
+    free(H.image);	           /* your services are no longer required */
+
+    RETURN( im );
+}
+
+
 /*********************************************************************/
 
 #if 0
@@ -931,6 +998,20 @@ ENTRY("mri_read_file") ;
               strstr(new_fname,".PGM")  != NULL   ){ /* 05 Nov 2002 */
 
       newim = mri_read( new_fname ) ;      /* read from a 2D file with 1 slice */
+
+      if ( newim == NULL )                 /* GEMS 4.x - 03 Jun 2003 [rickr] */
+	  newim = mri_read_ge4( new_fname ) ;
+
+      if( newim != NULL ){
+        INIT_IMARR(newar) ;
+        ADDTO_IMARR(newar,newim) ;
+      }
+
+   } else if( strncmp(new_fname,"i.",2) == 0    ||  /* GEMS 4.x i.* files  */
+              strstr(new_fname,"/i.")   != NULL ){  /* 03 Jun 2003 [rickr] */
+
+      newim = mri_read_ge4( new_fname ) ;          /* 2D file with 1 slice */
+
       if( newim != NULL ){
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
