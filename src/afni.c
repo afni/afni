@@ -5905,6 +5905,10 @@ void AFNI_setup_viewing( Three_D_View * im3d , Boolean rescaled )
             anat_brick_possible , func_brick_possible ;
    int      val , top ;
 
+   static THD_3dim_dataset *old_fim  = NULL ; /* 12 Dec 2001 */
+   static Three_D_View     *old_im3d = NULL ; /* 29 Jan 2002 */
+   static THD_3dim_dataset *old_anat = NULL ; /* 12 Dec 2001 */
+
 ENTRY("AFNI_setup_viewing") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
@@ -6253,8 +6257,6 @@ STATUS(" ---- set threshold decim NEW") ;
       /* 12 Dec 2001: only refit menus if dataset has changed */
 
       if( ISFUNCBUCKET(im3d->fim_now) ){
-         static THD_3dim_dataset *old_fim = NULL ;  /* 12 Dec 2001 */
-         static Three_D_View     *old_im3d = NULL ; /* 29 Jan 2002 */
          if( im3d->fim_now != old_fim || im3d != old_im3d ){
 STATUS(" ---- func bucket widgets ON") ;
           XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
@@ -6276,8 +6278,6 @@ STATUS(" ---- func bucket widgets ON") ;
                            ) ;
           XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
           XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
-          old_fim  = im3d->fim_now ;
-          old_im3d = im3d ;
          }
          do_buck = 1 ;
       } else {
@@ -6288,7 +6288,6 @@ STATUS(" ---- func bucket widgets OFF") ;
       }
 
       if( ISANATBUCKET(im3d->anat_now) ){
-         static THD_3dim_dataset *old_anat = NULL ;  /* 12 Dec 2001 */
          if( im3d->anat_now != old_anat ){
 STATUS(" ---- anat bucket widgets ON") ;
           refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
@@ -6300,7 +6299,6 @@ STATUS(" ---- anat bucket widgets ON") ;
                              im3d->anat_now                  /* text data */
                            ) ;
           XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
-          old_anat = im3d->anat_now ;
          }
          do_buck = 1 ;
       } else {
@@ -6453,6 +6451,11 @@ STATUS(" -- turning time index control off") ;
    AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
 
    im3d->vinfo->tempflag = 0 ;
+
+   old_im3d = im3d ;
+   old_fim  = im3d->fim_now ;   /* remembrance */
+   old_anat = im3d->anat_now ;
+
    EXRETURN ;
 }
 
