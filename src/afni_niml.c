@@ -889,13 +889,13 @@ void AFNI_get_xhair_node( void *qq3d , int *kkbest , int *iibest )
      fv = THD_3dmm_to_dicomm(im3d->anat_now,fv) ;
      switch( im3d->vinfo->view_setter ){
        case AXIAL:
-         dd = 0.5*fabs(fv.xyz[2]) ; zbot = xyz[2]-dd ; ztop = xyz[2]+dd ;
+         dd = 0.499*fabs(fv.xyz[2]) ; zbot = xyz[2]-dd ; ztop = xyz[2]+dd ;
        break ;
        case SAGITTAL:
-         dd = 0.5*fabs(fv.xyz[0]) ; xbot = xyz[0]-dd ; xtop = xyz[0]+dd ;
+         dd = 0.499*fabs(fv.xyz[0]) ; xbot = xyz[0]-dd ; xtop = xyz[0]+dd ;
        break ;
        case CORONAL:
-         dd = 0.5*fabs(fv.xyz[1]) ; ybot = xyz[1]-dd ; ytop = xyz[1]+dd ;
+         dd = 0.499*fabs(fv.xyz[1]) ; ybot = xyz[1]-dd ; ytop = xyz[1]+dd ;
        break ;
      }
 #if 0
