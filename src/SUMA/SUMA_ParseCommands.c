@@ -132,6 +132,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"ToggleForeground")) SUMA_RETURN (SE_ToggleForeground);
    if (!strcmp(Scom,"ToggleBackground")) SUMA_RETURN (SE_ToggleBackground);
    if (!strcmp(Scom,"FOVreset")) SUMA_RETURN (SE_FOVreset);
+   if (!strcmp(Scom,"ResetOpenGLState")) SUMA_RETURN (SE_ResetOpenGLState);
+   if (!strcmp(Scom,"LockCrossHair")) SUMA_RETURN(SE_LockCrossHair);
    if (!strcmp(Scom,"Home")) SUMA_RETURN (SE_Home);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
@@ -241,6 +243,7 @@ int SUMA_EngineFieldCode(char *Scom)
    if (!strcmp(Scom,"i")) SUMA_RETURN(SEF_i);
    if (!strcmp(Scom,"f")) SUMA_RETURN (SEF_f);
    if (!strcmp(Scom,"s")) SUMA_RETURN (SEF_s);
+   if (!strcmp(Scom,"vp")) SUMA_RETURN (SEF_vp); /* void pointer */
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SEF_);*/
    
    /* Last one is Bad Code */
@@ -532,7 +535,18 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void 
          MTI->s_Source = Src;
          SUMA_RETURN (YUP);   
          break;
-         
+      
+      case SEF_vp:
+         if (MTI->vp_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, MTI->vp_Dest);
+            SUMA_RETURN (NOPE);
+         }
+         MTI->vp = (void *)FldValp;
+         MTI->vp_Dest = Dest;
+         MTI->vp_Source = Src;
+         SUMA_RETURN (YUP);   
+         break;
+            
       default:
          fprintf(SUMA_STDERR, "Error %s: Not setup for field %s yet.\n", FuncName, Fldname);
          SUMA_RETURN (NOPE);
@@ -579,11 +593,13 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI)
    }
    sprintf(MTI->s,"NOTHING");
    
+   MTI->vp = NULL;
+   
    MTI->fm_Dest = MTI->im_Dest = MTI->i_Dest = MTI->f_Dest = MTI->iv3_Dest = MTI->fv3_Dest = \
-   MTI->fv15_Dest = MTI->iv15_Dest = MTI->s_Dest = SE_Empty;
+   MTI->fv15_Dest = MTI->iv15_Dest = MTI->s_Dest = MTI->vp_Dest = SE_Empty;
    
    MTI->fm_Source = MTI->im_Source = MTI->i_Source = MTI->f_Source = MTI->iv3_Source = MTI->fv3_Source = \
-   MTI->fv15_Source = MTI->iv15_Source = MTI->s_Source = SES_Empty;
+   MTI->fv15_Source = MTI->iv15_Source = MTI->s_Source = MTI->vp_Source = SES_Empty;
 
    SUMA_RETURN (YUP);
 }
@@ -784,6 +800,11 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *MTI, char *Location)
       MTI->s_Source = SES_Empty;
    }
 
+   /* vp */
+   if (MTI->vp_Dest == Loc) {
+      MTI->vp_Dest = SE_Empty;
+      MTI->vp_Source = SES_Empty;
+   }
    /* SUMA_RETURN, tout va bien */
    SUMA_RETURN (YUP);
 }

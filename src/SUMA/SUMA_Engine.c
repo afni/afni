@@ -106,6 +106,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                  /* find out if the stream has been established already */
                   if (SUMAg_CF->ns) { /* stream is open, nothing to do */
                      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
+                     fprintf(SUMA_STDOUT,"%s: Connected to AFNI.\n", FuncName);
                   }else {   /* must open stream */              
                      /* contact afni */
                         fprintf(SUMA_STDOUT,"%s: Contacting afni ...\n", FuncName);
@@ -153,7 +154,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                   SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);/* form surface nel */
                   break;
                } else {
-                  fprintf(SUMA_STDOUT,"Disconnecting from afni.\n");
+                  fprintf(SUMA_STDOUT,"%s: Disconnecting from afni.\n", FuncName);
                   /* remove the listening workprocess) */
                   SUMA_remove_workproc( SUMA_niml_workproc );
                    
@@ -356,34 +357,6 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                break;
             } 
             sv->Ch->c[0] = EngineData->fv3[0]; sv->Ch->c[1]= EngineData->fv3[1]; sv->Ch->c[2]= EngineData->fv3[2];
-            
-            /* check to see if AFNI needs to be notified */
-            if (SUMAg_CF->Connected && sv->LinkAfniCrossHair && EngineData->fv3_Source != SES_Afni) {
-               /*fprintf(SUMA_STDERR,"Notifying Afni of CrossHair XYZ\n");*/
-               /* register a call to SetAfniCrossHair */
-               sprintf(tmpcom,"SetAfniCrossHair");
-               SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
-            } 
-            
-            #if 0
-            /* check to see if other viewers need to share the fate */
-            ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
-            if (ii < 0) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
-               break;
-            }
-            if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which other viewers are locked to this one */
-               for (i=0; i < SUMAg_N_SVv; ++i) {
-                  if (i != ii && SUMAg_CF->Locked[ii]) {
-                     SUMAg_SVv[i].Ch->c[0] = sv->Ch->c[0];
-                     SUMAg_SVv[i].Ch->c[1] = sv->Ch->c[1];
-                     SUMAg_SVv[i].Ch->c[2] = sv->Ch->c[2];
-                  }
-               }
-            }else{
-               /* not locked to anything */
-            }
-            #endif
             break;
          
          case SE_BindCrossHair:
@@ -438,7 +411,93 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             }
             #endif
             break;
-                     
+         
+         case SE_LockCrossHair:
+            /* calls other viewers and determine if the cross hair needs to be locked to the calling sv */
+
+            /* check to see if other viewers need to share the fate */
+            ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
+            if (ii < 0) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
+               break;
+            }
+            if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which other viewers are locked to this one */
+               for (i=0; i < SUMAg_N_SVv; ++i) {
+                  svi = &SUMAg_SVv[i];
+                  if (i != ii) {
+                     switch (SUMAg_CF->Locked[ii]) { 
+                        case SUMA_No_Lock:
+                           break;
+                        case SUMA_XYZ_Lock:
+                           /* just set the XYZ, and free the binding to the surfaces */
+                           svi->Ch->c[0] = sv->Ch->c[0];
+                           svi->Ch->c[1] = sv->Ch->c[1];
+                           svi->Ch->c[2] = sv->Ch->c[2];
+                           svi->Ch->NodeID = -1;
+                           svi->Ch->SurfaceID = -1;
+                           /* register a redisplay */
+                           svi->ResetGLStateVariables = YUP;
+                           SUMA_postRedisplay(svi->X->GLXAREA, NULL, NULL);                           
+                           break;
+                        case SUMA_I_Lock: 
+                           {
+                              SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
+                              
+                              /* determine the list of shown surfaces */
+                              N_SOlist = SUMA_ShownSOs(svi, SUMAg_DOv, SOlist);
+
+                              /* first find the surface that the cross hair is bound to */
+                              if (sv->Ch->SurfaceID < 0) {
+                                 fprintf (SUMA_STDERR, "%s: Cannot link from this viewer's cross hair. No bound surface.\n", FuncName);
+                                 break;
+                              }
+                              if (sv->Ch->NodeID < 0) {
+                                 fprintf (SUMA_STDERR, "%s: Cannot link from this viewer's cross hair. No NodeID.\n", FuncName);
+                                 break;
+                              }
+                              SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Ch->SurfaceID].OP;
+                              Found = NOPE;
+                              it = 0;
+                              while (it < N_SOlist && !Found) {
+                                 SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[it]].OP;
+                                 if (SUMA_isRelated (SO1, SO2)) {
+                                    svi->Ch->SurfaceID = SOlist[it];
+                                    if (sv->Ch->NodeID > SO2->N_Node) {
+                                       fprintf (SUMA_STDERR,"Error %s: NodeID is larger than N_Node. Setting NodeID to 0.\n", FuncName);
+                                       svi->Ch->NodeID = 0;
+                                    }else{
+                                       svi->Ch->NodeID = sv->Ch->NodeID;
+                                    }
+                                    /* set the XYZ */
+                                    svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID];
+                                    svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+1];
+                                    svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+2];
+                                    Found = YUP;
+                                 }
+                                 ++it;
+                              }
+                              if (!Found) {
+                                 fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will not be touched .\n", FuncName);
+                                 break;
+                              } else {
+                                 /* register a redisplay */
+                                 svi->ResetGLStateVariables = YUP;
+                                 SUMA_postRedisplay(svi->X->GLXAREA, NULL, NULL);
+                              }
+                              
+                           }
+                           break;
+                        default:
+                           fprintf(SUMA_STDERR,"Error %s: Lock type (%d) undefined.\n", FuncName, SUMAg_CF->Locked[ii]);
+                           break;
+                     }
+                  }
+               }
+            }else{
+               /* not locked to anything */
+            }
+            break;
+                        
          case SE_SetAfniCrossHair:
             /* sends the current cross hair to afni */
             /* form nel */
@@ -523,6 +582,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                   /* you must check for both conditions because by default 
                   all viewers are initialized to isShaded = NOPE, even before they are ever opened */
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  SUMAg_SVv[ii].ResetGLStateVariables = YUP;
                   SUMA_postRedisplay(SUMAg_SVv[ii].X->GLXAREA, NULL, NULL);
                }
             }
@@ -530,11 +590,25 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             
          case SE_Redisplay:
             /*post a redisplay to one specific viewer*/
-            /*fprintf (SUMA_STDOUT,"%s: Redisplay ...", FuncName);*/
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplay ...", FuncName);
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
-            /*fprintf (SUMA_STDOUT,"%s: OK\n", FuncName);*/
+            if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
             break;
          
+         case SE_ResetOpenGLState:
+            /* reset OPEN GL's state variables */
+            /* expects the surface viewer pointer in vp */
+            if (EngineData->vp_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            } 
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Resetting OpenGL state variables.\n", FuncName);
+            
+            /* No need to call SUMA_OpenGLStateReset, that is now done in SUMA_display */
+            svi = (SUMA_SurfaceViewer *)EngineData->vp;
+            svi->ResetGLStateVariables = YUP;
+            break;
+            
          case SE_ToggleForeground:
             /* Show/hide the foreground */
             sv->ShowForeground = !sv->ShowForeground;
@@ -1248,7 +1322,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
    SUMA_EngineData ED;
    int  i, j, jmax, prec_ID;
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
    
@@ -1277,6 +1351,15 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
       EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
+   
+
+   #if 0
+   /* force an axis drawing to set the projection matrix correctly */
+   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
+   glMatrixMode (GL_PROJECTION);
+   glLoadIdentity ();
+   gluPerspective((GLdouble)sv->FOV[sv->iState], sv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   #endif
    
    /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 
 

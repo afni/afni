@@ -285,7 +285,22 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
-
+         case XK_e:
+            if (SUMAg_CF->Dev) {
+               if (Kev.state & Mod1Mask){ /* alt + e */
+                  int error, cnt = 0;
+                  fprintf (SUMA_STDERR, "%s: Looking for OpenGL errors ...\n", FuncName);
+                  while ((error = glGetError()) != GL_NO_ERROR) {
+                     ++cnt;
+                    fprintf (SUMA_STDERR, "GL error %d: %s\n", cnt, gluErrorString(error)); 
+                  }
+                  if (!cnt) {
+                     fprintf (SUMA_STDERR, "%s: No errors found.\n", FuncName);
+                  }
+               }
+            }
+            break;
+            
          case XK_F:
             sprintf(CommString,"Redisplay|FlipLight0Pos~");
             if (!SUMA_Engine (CommString, &EngineData, sv)) {
@@ -1198,6 +1213,17 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
+               #if 0
+               /* a miserable attempt to fix the cross hair linkage problem for repeated selections */
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+               if (!SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv)) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_OpenGLStateReset.\n", FuncName);
+                  break;
+               }
+               SUMA_postRedisplay(w, NULL, NULL);
+               glXWaitGL();
+               #endif
+               
                ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
                   break;
@@ -1215,6 +1241,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MarkLineSurfaceIntersect.\n", FuncName);
                   break;
                }
+               
             
             break;
       } /* switch type of button Press */
@@ -1225,6 +1252,8 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       switch (Bev.button) { /* switch type of button Press */
          case Button3:
                if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
+               sv->ResetGLStateVariables = YUP;
+               SUMA_postRedisplay(w, NULL, NULL);
          break;
       } /* switch type of button Press */
       break;
@@ -1343,7 +1372,6 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
 SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 {/* determine intersection */
    float P0f[3], P1f[3];
-   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
    int NP; 
    SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL, *MTIi = NULL;
@@ -1354,6 +1382,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
    static char ssource[]={"suma"};
    SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead = YUP;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1440,6 +1469,23 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       }
       fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 
+      /* check to see if AFNI needs to be notified */
+      if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+         /* register a call to SetAfniCrossHair */
+         sprintf(CommString,"SetAfniCrossHair~");
+         if (!SUMA_Engine (CommString, &EngineData, sv)) {
+            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         #if 0
+         /* Wait for X to be done. An attempt at solving the selection problem when talking to afni */
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Waiting for X...\n", FuncName);
+         glXWaitX ();
+         #endif
+      }else {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+      }
+
       /* Set the Nodeselection at the closest node */
       it = MTI->inodemin;
       sprintf(sfield,"i");
@@ -1454,6 +1500,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
          SUMA_RETURN (NOPE);
       }
 
+
       /* Set the FaceSetselection */
       it = MTI->ifacemin;
       sprintf(sfield,"i");
@@ -1464,7 +1511,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       }
       sprintf(CommString,"SetSelectedFaceSet~");
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
       /* Now set the cross hair position at the intersection*/
@@ -1476,7 +1523,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       }
       sprintf(CommString,"SetCrossHair~");
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
       }
 
       /* attach the cross hair to the selected surface */
@@ -1488,12 +1535,12 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
          fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
          SUMA_RETURN (NOPE);
       }
-      sprintf(CommString,"Redisplay|BindCrossHair~");
+      sprintf(CommString,"LockCrossHair|BindCrossHair~"); /* Redisplay of current viewer is now done at button release */
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
-         fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
-
+      
    } 
    /* clear MTI */
    if (MTI) {

@@ -78,6 +78,7 @@ SUMA_postRedisplay(Widget w,
    static XtPointer elvis;
    int isv;
    SUMA_SurfaceViewer *sv;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -86,6 +87,8 @@ SUMA_postRedisplay(Widget w,
    if (isv < 0) {
       fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Redisplay Pending registered for viewer %d.\n", FuncName, isv);
    }
 
    if(!sv->X->REDISPLAYPENDING) {
@@ -103,10 +106,22 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    int i;
    GLfloat rotationMatrix[4][4];
    static char FuncName[]={"SUMA_display"};
-   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
+   SUMA_Boolean LocalHead = YUP; /* local headline debugging messages */   
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   
+   /* You cannot just rely on csv->ResetGLStateVariables because it is hard to set 
+   for all conditions. For example, if you have multiple viewers open and you have surfaces 
+   moving on momentum in all viewers, then you will have to call SUMA_OpenGLStateReset before
+   each display otherwise the openGL settings for one of them will affect the others.
+   At any rate, that function is not costly to run so there's no harm in running it anytime
+   you have a display call and more than one viewer open */ 
+   if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
+      if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+      SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
+      csv->ResetGLStateVariables = NOPE;
+   }
    
    /* decide on color mixing needs */
    if (!SUMA_MixColors (csv)) {
@@ -402,8 +417,8 @@ SUMA_expose(Widget w,
    }
    
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
-   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);
-   SUMA_postRedisplay(w, clientData, call);
+   sv->ResetGLStateVariables = YUP;
+   SUMA_postRedisplay(w, NULL, NULL);
 
 }
 
@@ -426,7 +441,7 @@ SUMA_mapStateChanged(Widget w, XtPointer clientData,
    }
 
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
-   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);
+   sv->ResetGLStateVariables = YUP;
 
   /*fprintf(stdout, "widget window being mapped/unmapped\n");*/
   switch (event->type) {
@@ -758,7 +773,7 @@ void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont
    }
 
    if (LocalHead) fprintf (SUMA_STDERR, "%s: in Surface Viewer #%d.\n", FuncName, isv);
-   SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv);  
+   sv->ResetGLStateVariables = YUP;  
 
    SUMA_postRedisplay(w, clientData, NULL);
 
