@@ -312,10 +312,13 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
    /******** Surface nodes for a dataset *********/
 
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
+     THD_slist_find find ;
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
      int *ic ; float *xc,*yc,*zc ; char *idc , idstr[32] ;
      int num , ii ;
+     Three_D_View *im3d = AFNI_find_open_controller() ;
+     MCW_choose_cbs cbs ;
 
      if( dont_hear_suma ) EXRETURN ;
 
@@ -351,7 +354,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                             " does not identify dataset! \n " ) ;
         EXRETURN ;
      }
-     dset = PLUTO_find_dset_idc( idc ) ;
+     find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
      if( dset == NULL ){
         sprintf(msg, "*** ERROR:\n\n"
                      " SUMA_ixyz volume dataset idcode is \n"
@@ -481,6 +484,19 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                                               "Processing=%4d ms\n" ,
                               ct_read , ct_tot-ct_read ) ;
 
+     /* 16 Jun 2003: if need be, switch sessions and anatomy */
+
+     if( find.sess_index != im3d->vinfo->sess_num ){
+       cbs.ival = find.sess_index ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+     if( find.anat_index >= 0 && find.anat_index != im3d->vinfo->anat_num ){
+       cbs.ival = find.anat_index ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+
      AFNI_popup_message( msg ) ;
 
      /* need to make the "Control Surface"
@@ -494,8 +510,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      dont_tell_suma = 0 ;
 #endif
 
-     XtSetSensitive( GLOBAL_library.controllers[0]->vwid->imag->pop_sumato_pb,
-                     True  ) ;
+     XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True  ) ;
      EXRETURN ;
    }
 
@@ -670,8 +685,295 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      xyz = (float *) nel->vec[0] ;
      dont_tell_suma = 1 ;
-     AFNI_jumpto_dicom( GLOBAL_library.controllers[0], xyz[0],xyz[1],xyz[2] );
+     AFNI_jumpto_dicom( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2] );
      dont_tell_suma = 0 ;
+     EXRETURN ;
+   }
+
+   /*********** ROI drawing from SUMA **********/
+
+   if( strcmp(nel->name,"Node_ROI") == 0 ){
+     int *nlist , *nval , num_list , num,ii,jj,pp,ks ;
+     char *surf_idc , *roi_prefix , *dset_idc ;
+     THD_slist_find find ;
+     THD_3dim_dataset *dset_anat , *dset_func ;
+     SUMA_surface *ag ;
+     Three_D_View *im3d = AFNI_find_open_controller() ;
+     MCW_choose_cbs cbs ;
+     THD_session *sess ;
+     THD_fvec3 fv ; THD_ivec3 iv ;
+     short *funcar ;
+     float xbot,ybot,zbot , xtop,ytop,ztop ;
+     int wodsave , nx,ny,nxy ;
+
+     if( dont_hear_suma ) EXRETURN ;
+
+     if( nel->vec_len    <  1        ||
+         nel->vec_filled <  1        ||
+         nel->vec_num    <  2        ||
+         nel->vec_typ[0] != NI_INT   ||
+         nel->vec_typ[1] != NI_INT     ){
+
+       AFNI_popup_message( "+++ WARNING:\n\n"
+                           " Node_ROI input \n"
+                           " is badly formatted!\n" );
+       EXRETURN ;
+     }
+
+     nlist    = (int *) nel->vec[0] ;  /* node list */
+     nval     = (int *) nel->vec[1] ;  /* value list */
+     num_list = nel->vec_filled ;      /* number of nodes */
+
+     /** get ID codes of surface and anat parents **/
+
+     surf_idc = NI_get_attribute( nel , "DomParent_idcode" ) ;
+     if( surf_idc == NULL )
+       surf_idc = NI_get_attribute( nel , "surface_idcode" ) ;
+     if( surf_idc == NULL )
+       surf_idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+
+     dset_idc = NI_get_attribute( nel , "volume_idcode" ) ;
+     if( dset_idc == NULL )
+       dset_idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+
+     /** get name of dataset this goes into **/
+
+     roi_prefix = NI_get_attribute( nel , "target_volume" ) ;
+     if( roi_prefix == NULL )
+       roi_prefix = NI_get_attribute( nel , "ROI_prefix" ) ;
+
+     /** check for errors [there are lots of possibilities] **/
+
+     if( surf_idc == NULL ){
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " Node_ROI input doesn't\n"
+                           " set 'DomParent_idcode'!\n" ) ;
+       EXRETURN ;
+     }
+     if( dset_idc == NULL ){
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " Node_ROI input doesn't\n"
+                           " set 'volume_idcode'!\n" ) ;
+       EXRETURN ;
+     }
+     if( roi_prefix == NULL ){
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " Node_ROI input doesn't\n"
+                           " set 'target_volume'!\n" ) ;
+       EXRETURN ;
+     }
+     if( !THD_filename_pure(roi_prefix) ){
+       sprintf(msg, "*** ERROR:\n\n"
+                    " Node_ROI 'target_volume' prefix \n"
+                    "   %s\n"
+                    " contains illegal characters!\n" , roi_prefix ) ;
+       AFNI_popup_message( msg ) ;
+       EXRETURN ;
+     }
+
+     /** find parent volume for this ROI (from its ID code) **/
+
+     find = PLUTO_dset_finder( dset_idc ) ; dset_anat = find.dset ;
+     if( dset_anat == NULL ){
+       sprintf(msg, "*** ERROR:\n\n"
+                    " Node_ROI volume dataset idcode is \n"
+                    "   %s\n"
+                    " Can't find this in AFNI\n", dset_idc ) ;
+       AFNI_popup_message( msg ) ;
+       EXRETURN ;
+     }
+
+     /** find the surface within this dataset (from its ID code) **/
+
+     num = dset_anat->su_num ;
+     if( num == 0 ){
+       sprintf(msg,"*** ERROR:\n\n"
+                   " Node_ROI data received for dataset\n"
+                   "  %.222s\n"
+                   " before any surfaces are attached! \n" ,
+               DSET_FILECODE(dset_anat) ) ;
+       AFNI_popup_message( msg ) ;
+       EXRETURN ;
+     }
+
+     for( ks=0 ; ks < num ; ks++ )
+       if( strstr(dset_anat->su_sname[ks],surf_idc) != NULL ) break ;
+
+     if( ks == num ){
+       sprintf(msg, "*** ERROR:\n\n"
+                    " Node_ROI surface idcode\n"
+                    "  %s\n"
+                    " does not match any surface on dataset \n"
+                    "  %.222s\n" ,
+               surf_idc, DSET_FILECODE(dset_anat) ) ;
+       AFNI_popup_message( msg ) ;
+       EXRETURN ;
+     }
+
+     ag = dset_anat->su_surf[ks] ; /* set surface to run with */
+
+#if 0
+     if( dset_anat->su_vnlist[ks] == NULL ){
+       dset_anat->su_vnlist[ks] = SUMA_make_vnlist( ag , dset_anat ) ;
+       if( dset_anat->su_vnlist[ks] == NULL ){
+         sprintf(msg, "*** INTERNAL AFNI ERROR:\n\n"
+                      " Node_ROI dataset is\n"
+                      "  %.222s\n"
+                      " but can't make vnlist for surface?!\n" ,
+                 DSET_FILECODE(dset_anat) ) ;
+         AFNI_popup_message( msg ) ;
+         EXRETURN ;
+       }
+     }
+#endif
+
+     /** switch session and anat dataset, if need be **/
+
+     if( find.sess_index != im3d->vinfo->sess_num ){
+       cbs.ival = find.sess_index ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+     if( find.anat_index >= 0 && find.anat_index != im3d->vinfo->anat_num ){
+       cbs.ival = find.anat_index ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+     }
+     sess = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;
+
+     AFNI_update_all_surface_widgets( dset_anat ) ;
+     XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True ) ;
+
+     /* see if ROI dataset already exists */
+
+     find = THD_dset_in_session( FIND_PREFIX , roi_prefix , sess ) ;
+     dset_func = find.dset ;
+
+     /* func dataset already exists?  Check if for goodness. */
+
+     if( dset_func != NULL ){
+       if( !EQUIV_DATAXES(dset_anat->daxes,dset_func->daxes) ){
+         sprintf(msg, "*** ERROR:\n\n"
+                      " Node_ROI functional dataset\n"
+                      "  %.222s\n"
+                      " exists, but doesn't match geometry of anat dataset\n"
+                      "  %.222s\n" ,
+                 roi_prefix , DSET_FILECODE(dset_anat) ) ;
+         AFNI_popup_message( msg ) ;
+         EXRETURN ;
+       }
+       if( !DSET_LOADED(dset_func) ){
+         DSET_load(dset_func) ;
+         if( !DSET_LOADED(dset_func) ){
+           sprintf(msg, "*** ERROR:\n\n"
+                        " Node_ROI functional dataset\n"
+                        "  %.222s\n"
+                        " exists, but doesn't have data!\n" ,
+                   roi_prefix ) ;
+           AFNI_popup_message( msg ) ;
+           EXRETURN ;
+         }
+         DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+         sprintf(msg,"+++ NOTICE:\n\n"
+                     " Node_ROI command is using existing dataset\n"
+                     "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
+         AFNI_popup_message( msg ) ;
+       }
+       if( find.func_index >= 0 && find.func_index != im3d->vinfo->func_num ){
+         cbs.ival = find.func_index ;
+         AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                                   (XtPointer) im3d ,  &cbs          ) ;
+       }
+
+     } else { /*** no pre-existing func?  create a dataset now ***/
+
+       ii = sess->num_func ;
+       if( ii >= THD_MAX_SESSION_FUNC ){
+         sprintf(msg, "*** ERROR:\n\n"
+                      " Can't create Node_ROI dataset\n"
+                      "  %.222s\n"
+                      " because of AFNI array overflow!\n" ,
+                 roi_prefix ) ;
+         AFNI_popup_message( msg ) ;
+         EXRETURN ;
+       }
+
+       dset_func = EDIT_empty_copy( dset_anat ) ;
+       EDIT_dset_items( dset_func ,
+                          ADN_prefix    , roi_prefix     ,
+                          ADN_type      , HEAD_FUNC_TYPE ,
+                          ADN_func_type , FUNC_BUCK_TYPE ,
+                          ADN_nvals     , 1              ,
+                          ADN_ntt       , 0              ,
+                          ADN_brick_fac , NULL           ,
+                        ADN_none ) ;
+       EDIT_BRICK_TO_NOSTAT( dset_func , 0 ) ;
+       EDIT_substitute_brick( dset_func , 0 , MRI_short , NULL ) ;
+
+       sess->func[ii][dset_func->view_type] = dset_func ;
+       sess->num_func ++ ;
+       cbs.ival = ii ;
+       AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
+                                 (XtPointer) im3d ,  &cbs          ) ;
+
+       sprintf(msg,"+++ NOTICE:\n\n"
+                   " Node_ROI command is creating dataset\n"
+                   "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
+       AFNI_popup_message( msg ) ;
+
+       DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+     }
+     DSET_lock(dset_func) ;  /* lock into memory (no purge allowed) */
+
+     funcar = (short *) DSET_BRICK_ARRAY(dset_func,0) ;  /* array to draw */
+
+     /** now, see if there is an old voxel value list
+              attached to the surface ; if so zero out those voxels **/
+
+     if( ag->vv != NULL ){
+       for( ii=0 ; ii < ag->vv->nvox ; ii++ ) funcar[ ag->vv->voxijk[ii] ] = 0;
+       DESTROY_VVLIST(ag->vv) ; ag->vv = NULL ;
+     }
+
+     /** now put values from SUMA into dataset array **/
+
+     ag->vv = (SUMA_vvlist *) malloc( sizeof(SUMA_vvlist) ) ;
+     ag->vv->nvox = 0 ;
+     ag->vv->voxijk = (int *)   malloc( sizeof(int)  *num_list ) ;
+     ag->vv->voxval = (float *) malloc( sizeof(float)*num_list ) ;
+
+     wodsave = dset_func->wod_flag ; dset_func->wod_flag = 0 ;
+
+     xbot = DSET_XXMIN(dset_func) ; xtop = DSET_XXMAX(dset_func) ;
+     ybot = DSET_YYMIN(dset_func) ; ytop = DSET_YYMAX(dset_func) ;
+     zbot = DSET_ZZMIN(dset_func) ; ztop = DSET_ZZMAX(dset_func) ;
+     nx = DSET_NX(dset_func); ny = DSET_NY(dset_func); nxy = nx*ny ;
+
+     for( ii=0 ; ii < num_list ; ii++ ){
+       pp = SUMA_find_node_id( ag , nlist[ii] ) ;
+       if( pp >= 0 ){
+         LOAD_FVEC3( fv , ag->ixyz[pp].x, ag->ixyz[pp].y, ag->ixyz[pp].z ) ;
+         fv = THD_dicomm_to_3dmm( dset_func , fv ) ;
+         if( fv.xyz[0] < xbot || fv.xyz[0] > xtop ) continue ;
+         if( fv.xyz[1] < ybot || fv.xyz[1] > ytop ) continue ;
+         if( fv.xyz[2] < zbot || fv.xyz[2] > ztop ) continue ;
+         iv = THD_3dmm_to_3dind( dset_func , fv ) ;
+         jj = iv.ijk[0] + iv.ijk[1]*nx + iv.ijk[2]*nxy ;
+         funcar[jj] = nval[ii] ;
+         ag->vv->voxijk[ii] = jj ; ag->vv->voxval[ii] = nval[ii] ;
+       }
+     }
+     DSET_write( dset_func ) ;  /* save to disk */
+
+#if 1
+     dont_tell_suma = 1 ;
+     MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
+     im3d->vinfo->func_visible = 1 ;
+     PLUTO_dset_redisplay( dset_func ) ;  /* redisplay windows with this dataset */
+     AFNI_process_drawnotice( im3d ) ;
+     dont_tell_suma = 0 ;
+#endif
+
      EXRETURN ;
    }
 
@@ -679,7 +981,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
    sprintf(msg,"*** ERROR:\n\n"
                " Unknown NIML input: \n"
-               " %.900s \n",nel->name) ;
+               "  %.222s \n"
+               " Ignoring it, and hoping it goes away.\n" ,
+               nel->name) ;
    AFNI_popup_message(msg) ;
    EXRETURN ;
 }

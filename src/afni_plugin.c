@@ -4724,6 +4724,21 @@ ENTRY("PLUTO_find_dset") ;
    RETURN(find.dset) ;
 }
 
+/*-----------------------------------------------------------------*/
+
+THD_slist_find PLUTO_dset_finder( char *idc )
+{
+   MCW_idcode idcode ;
+   THD_slist_find find ;
+
+   BADFIND(find) ;
+   if( idc == NULL ) return find ;
+   MCW_strncpy( idcode.str , idc , MCW_IDSIZE ) ;
+   find = THD_dset_in_sessionlist( FIND_IDCODE , &idcode ,
+                                   GLOBAL_library.sslist , -1 ) ;
+   return find ;
+}
+
 /*-----------------------------------------------------------------
    Plot a histogram; input might be from mri_histogram():
      nbin = # of bins in hist[]
