@@ -31,7 +31,11 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#define ALLOW_REGISTRATION  /* not fully implemented yet */
+#define ALLOW_REGISTRATION
+
+#ifdef ALLOW_REGISTRATION
+#  include "coxplot.h"
+#endif
 
 /***********************************************************************
   Plugin to accept data from an external process and assemble
@@ -133,6 +137,10 @@ typedef struct {
    int reg_mode ;                     /* how to register? */
    int reg_status ;                   /* does AFNI know about this dataset yet? */
    int reg_nvol ;                     /* number of volumes registered so far */
+   int reg_graph ;                    /* 17 Aug 1998: to graph, or not to graph */
+   int reg_nest ;                     /* number of estimated parameters */
+   float * reg_tim , * reg_dx  ,
+         * reg_dy  , * reg_phi  ;     /* estimated motion parameters */
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -170,6 +178,8 @@ static char helpstring[] =
    "                  Root#001 and the aligned dataset Root#001%reg.\n"
    " Base Image   = The value sets the time index to which the alignment\n"
    "                  will take place.\n"
+   " Graph        = If set to Yes, will display a graph of the estimated\n"
+   "                  motion parameters at the end of the run.\n"
 #endif
 ;
 
@@ -198,8 +208,9 @@ static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
 
 #ifdef ALLOW_REGISTRATION
-  static int regtime = 3 ;  /* index of base time for registration */
-  static int regmode = 0 ;  /* index into REG_strings */
+  static int regtime  = 3 ;  /* index of base time for registration */
+  static int regmode  = 0 ;  /* index into REG_strings */
+  static int reggraph = 0 ;  /* graphing? */
 
 # define NREG 3
   static char * REG_strings[NREG] = { "None" , "2D: realtime" , "2D: at end" } ;
@@ -295,6 +306,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
    PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
    PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
+   PLUTO_add_string( plint , "Graph" , 2 , VERB_strings , reggraph ) ;  /* 17 Aug 1998 */
 #endif
 
    /***** Register a work process *****/
@@ -358,9 +370,12 @@ char * RT_main( PLUGIN_interface * plint )
 
 #ifdef ALLOW_REGISTRATION
       if( strcmp(tag,"Registration") == 0 ){
-         str     = PLUTO_get_string(plint) ;
-         regmode = PLUTO_string_index( str , NREG , REG_strings ) ;
-         regtime = PLUTO_get_number(plint) ;
+         str      = PLUTO_get_string(plint) ;
+         regmode  = PLUTO_string_index( str , NREG , REG_strings ) ;
+         regtime  = PLUTO_get_number(plint) ;
+
+         str      = PLUTO_get_string(plint) ;                     /* 17 Aug 1998 */
+         reggraph = PLUTO_string_index( str , 2 , VERB_strings ) ;
          continue ;
       }
 #endif
@@ -476,6 +491,11 @@ void cleanup_rtinp(void)
       for( kk=0 ; kk < rtinp->nzz ; kk++ )
          mri_2dalign_cleanup( rtinp->reg_2dbasis[kk] ) ;
       free( rtinp->reg_2dbasis ) ;
+
+      if( rtinp->reg_tim!= NULL ) free( rtinp->reg_tim ) ;
+      if( rtinp->reg_dx != NULL ) free( rtinp->reg_dx  ) ;
+      if( rtinp->reg_dy != NULL ) free( rtinp->reg_dy  ) ;
+      if( rtinp->reg_phi!= NULL ) free( rtinp->reg_phi ) ;
    }
 #endif
 
@@ -989,6 +1009,13 @@ RT_input * new_RT_input(void)
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
+
+   rtin->reg_graph = reggraph ;
+   rtin->reg_nest  = 0 ;
+   rtin->reg_tim   = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_dx    = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_dy    = (float *) malloc( sizeof(float) ) ;
+   rtin->reg_phi   = (float *) malloc( sizeof(float) ) ;
 #endif
 
    /** record the times for later reportage **/
@@ -2177,6 +2204,43 @@ void RT_finish_dataset( RT_input * rtin )
 
    if( rtin->reg_mode == REGMODE_2D_ATEND )
       RT_registration_2D_atend( rtin ) ;
+
+   /*--- 17 Aug 1998: Graph the motion parameters, if desired ---*/
+
+   if( rtin->reg_graph && rtin->reg_nest > 1 ){
+      float * yar[4] ;  /* not Tasha */
+      int * iar , ii , nn = rtin->reg_nest ;
+      static char * nar[3] = { "\\Delta x [mm]" , "\\Delta y [mm]" , "\\phi   [\\degree]" } ;
+
+      if( verbose == 2 )
+         fprintf(stderr,"RT: graphing estimated motion parameters\n") ;
+
+      /* sort the arrays by time */
+
+      iar    = (int *)   malloc( sizeof(int)   * nn ) ;  /* index */
+      yar[0] = (float *) malloc( sizeof(float) * nn ) ;  /* time  */
+      yar[1] = (float *) malloc( sizeof(float) * nn ) ;  /* dx    */
+      yar[2] = (float *) malloc( sizeof(float) * nn ) ;  /* dy    */
+      yar[3] = (float *) malloc( sizeof(float) * nn ) ;  /* phi   */
+
+      for( ii=0 ; ii < nn ; ii++ ){
+         iar[ii] = ii ; yar[0][ii] = rtin->reg_tim[ii] ;
+      }
+
+      qsort_floatint( nn , yar[0] , iar ) ;     /* sort by time, carry index */
+
+      for( ii=0 ; ii < nn ; ii++ ){             /* use index to reorder params */
+         yar[1][ii] = rtin->reg_dx [ iar[ii] ] ;
+         yar[2][ii] = rtin->reg_dy [ iar[ii] ] ;
+         yar[3][ii] = rtin->reg_phi[ iar[ii] ] ;
+      }
+
+      plot_ts_lab( XtDisplay(rtin->im3d->vwid->top_shell) ,
+                   nn , yar[0] , 3 , yar+1 ,
+                   "time" , "movement" , NULL , nar ) ;
+
+      free(iar) ; free(yar[0]) ; free(yar[1]) ; free(yar[2]) ; free(yar[3]) ;
+   }
 #endif
 
    /** tell afni about it one last time **/
@@ -2187,6 +2251,10 @@ void RT_finish_dataset( RT_input * rtin )
 }
 
 #ifdef ALLOW_REGISTRATION
+/*****************************************************************************
+  The collection of functions for handling image registration in this plugin.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------
   Do pieces of 2D registration during realtime.
 -----------------------------------------------------------------------------*/
@@ -2333,18 +2401,23 @@ void RT_registration_2D_close( RT_input * rtin )
    Carry out the 2D registration for each slice in the tt-th sub-brick
 -------------------------------------------------------------------------*/
 
+#define D2RFAC (PI/180.0)
+#define R2DFAC (180.0/PI)
+
 void RT_registration_2D_onevol( RT_input * rtin , int tt )
 {
    int kk , nx,ny,nz , kind , nbar ;
    MRI_IMAGE * im , * rim , * qim ;
    char * bar , * rar , * qar ;
+   float dx,dy,phi ;        /* 17 Aug 1998 */
+   int   nest , nxy ;
 
    /*-- sanity check --*/
 
    if( rtin->dset == NULL || rtin->reg_dset == NULL ) return ;
 
    nx   = DSET_NX( rtin->dset ) ;
-   ny   = DSET_NY( rtin->dset ) ;
+   ny   = DSET_NY( rtin->dset ) ; nxy = nx * ny ;
    nz   = DSET_NZ( rtin->dset ) ;
    kind = DSET_BRICK_TYPE( rtin->dset , 0 ) ;
 
@@ -2376,7 +2449,24 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
 
       /* registration! */
 
-      rim = mri_2dalign_one( rtin->reg_2dbasis[kk] , im , NULL,NULL,NULL ) ;
+      rim = mri_2dalign_one( rtin->reg_2dbasis[kk] , im , &dx , &dy , &phi ) ;
+
+      /* 17 Aug 1998: save estimated motion parameters */
+
+      nest = rtin->reg_nest ;
+      rtin->reg_tim = (float *) realloc( (void *) rtin->reg_tim ,
+                                         sizeof(float) * (nest+1) ) ;
+      rtin->reg_dx  = (float *) realloc( (void *) rtin->reg_dx  ,
+                                         sizeof(float) * (nest+1) ) ;
+      rtin->reg_dy  = (float *) realloc( (void *) rtin->reg_dy  ,
+                                         sizeof(float) * (nest+1) ) ;
+      rtin->reg_phi = (float *) realloc( (void *) rtin->reg_phi ,
+                                         sizeof(float) * (nest+1) ) ;
+
+      rtin->reg_tim[nest] = THD_timeof_vox( tt , kk*nxy , rtin->dset ) ;
+      rtin->reg_dx [nest] = dx * DSET_DX(rtin->dset) ;
+      rtin->reg_dy [nest] = dy * DSET_DY(rtin->dset) ;
+      rtin->reg_phi[nest] = phi * R2DFAC             ; rtin->reg_nest ++ ;
 
       /* convert output image to desired type;
          set qar to point to data in the converted registered image */

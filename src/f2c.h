@@ -7,7 +7,8 @@
 #ifndef F2C_INCLUDE
 #define F2C_INCLUDE
 
-#define NON_UNIX_STDIO  /* RWCox */
+#define NON_UNIX_STDIO     /* RWCox */
+#define complex complexxx  /* RWCox */
 
 typedef long int integer;
 typedef unsigned long uinteger;

@@ -1660,6 +1660,10 @@ typedef struct THD_3dim_dataset {
 #define DSET_NY(ds) ((ds)->daxes->nyy)
 #define DSET_NZ(ds) ((ds)->daxes->nzz)
 
+#define DSET_DX(ds) ((ds)->daxes->xxdel)  /* added 17 Aug 1998 */
+#define DSET_DY(ds) ((ds)->daxes->yydel)
+#define DSET_DZ(ds) ((ds)->daxes->zzdel)
+
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
                              DSET_ONDISK(ds) )

@@ -1,0 +1,262 @@
+#ifndef _MCW_MEMPLOT_HEADER_
+#define _MCW_MEMPLOT_HEADER_
+
+/*---------------- Header for in-memory adaptation of PLOTPAK ---------------*/
+
+#include <X11/Intrinsic.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+
+/*****************************************************************************
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+******************************************************************************/
+
+#ifndef MAX
+#  define MAX(a,b) (((a)<(b)) ? (b) : (a))
+#endif
+
+#ifndef MIN
+#  define MIN(a,b) (((a)>(b)) ? (b) : (a))
+#endif
+
+/*----- data structure to hold a plot -----*/
+
+typedef struct {
+   int nxyline , nxyline_all ;
+   float aspect ;
+   float * xyline ;
+   char ident[256] ;
+} MEM_plotdata ;
+
+/* macros to manipulate a plot */
+
+#define INC_MEMPLOT 64
+#define EXP_MEMPLOT 1.1
+#define NXY_MEMPLOT 6
+
+#define INIT_MEMPLOT(name,id)                                                    \
+  do{ (name) = (MEM_plotdata *) malloc(sizeof(MEM_plotdata)) ;                   \
+      (name)->nxyline = 0 ;                                                      \
+      (name)->nxyline_all = INC_MEMPLOT ;                                        \
+      (name)->xyline = (float *) malloc(sizeof(float)*NXY_MEMPLOT*INC_MEMPLOT) ; \
+      strncpy( (name)->ident, (id), 255 ) ; (name)->ident[255] = '\0' ;          \
+      (name)->aspect = 1.3 ;                                                     \
+  } while(0)
+
+#define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                                \
+  do{ int nn ;                                                                                \
+      if( (name)->nxyline == (name)->nxyline_all ){                                           \
+        nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;          \
+        (name)->xyline = (float *) realloc( (name)->xyline , sizeof(float)*NXY_MEMPLOT*nn ) ; \
+      }                                                                                       \
+      nn = NXY_MEMPLOT * (name)->nxyline ;                                                    \
+      (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                             \
+      (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                             \
+      (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;        \
+  } while(0)
+
+#define DESTROY_MEMPLOT(name)                                  \
+  do{ if( (name) != NULL ){                                    \
+         if( (name)->xyline != NULL ) free( (name)->xyline ) ; \
+         free( (name) ) ; (name) = NULL ; }                    \
+  } while(0)
+
+#define MEMPLOT_X1(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii])    /* from x */
+#define MEMPLOT_Y1(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+1])  /* from y */
+#define MEMPLOT_X2(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+2])  /* to x   */
+#define MEMPLOT_Y2(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+3])  /* to y    */
+#define MEMPLOT_COL(name,ii) ((name)->xyline[NXY_MEMPLOT*ii+4])  /* color    */
+#define MEMPLOT_TH(name,ii)  ((name)->xyline[NXY_MEMPLOT*ii+5])  /* thickness */
+
+#define MEMPLOT_NLINE(name)  ((name)->nxyline)                /* number of lines */
+#define MEMPLOT_IDENT(name)  ((name)->ident)                  /* identifier string */
+#define MEMPLOT_NAME         MEMPLOT_IDENT
+#define MEMPLOT_ASPECT(name) ((name)->aspect)                 /* aspect ratio */
+
+/* convert (r,g,b) in [0,1]**3 into a single number, and vice-versa */
+/* acronyms: ZO == Zero-to-One;  TFS == initials of 256 spelled out */
+
+#define ZO_TO_TFS(x) ((int)(255.99*(x)))    /* produces a number from 0 .. 255   */
+#define TFS_TO_ZO(y) ((y)/255.0f)           /* produces a number from 0.0 .. 1.0 */
+
+#define RGB_TO_COL(r,g,b) ( (ZO_TO_TFS(r)<<16) | (ZO_TO_TFS(g)<<8) | (ZO_TO_TFS(b)) )
+
+#define COL_TO_RRR(cc) TFS_TO_ZO( (((int)(cc)) & 0xff0000) >> 16 )
+#define COL_TO_GGG(cc) TFS_TO_ZO( (((int)(cc)) & 0x00ff00) >>  8 )
+#define COL_TO_BBB(cc) TFS_TO_ZO( (((int)(cc)) & 0x0000ff)       )
+
+/*----- stuff for plotting into an X11 window -----*/
+
+typedef struct {
+   int class ;    /* type of colormap: PseudoColor and TrueColor are OK */
+   int depth ;
+
+   int ncolors ;  /* This stuff for PseudoColor */
+   unsigned char * rr , * gg , * bb ;
+
+   unsigned long rrmask , ggmask , bbmask ;   /* This stuff for TrueColor */
+   int           rrshift, ggshift, bbshift;
+} X11_colordef ;
+
+#define FREE_X11_colordef(cd)                                    \
+  do{ if( (cd) != NULL ){                                        \
+         if( (cd)->rr != NULL ){                                 \
+            free((cd)->rr) ; free((cd)->gg) ; free((cd)->bb) ; } \
+         free((cd)) ; (cd) = NULL ; } } while(0)
+
+/*----- prototypes -----*/
+
+extern MEM_plotdata * find_memplot( char * ) ;
+extern int            create_memplot( char * , float ) ;
+extern int            set_active_memplot( char * ) ;
+extern MEM_plotdata * get_active_memplot(void) ;
+extern void           delete_active_memplot(void) ;
+extern void           delete_memplot( MEM_plotdata * ) ;
+extern void           plotline_memplot( float , float , float , float ) ;
+extern void           set_color_memplot( float , float , float ) ;
+extern void           set_thick_memplot( float ) ;
+extern float          get_thick_memplot(void) ;
+extern int            nline_active_memplot(void) ;
+
+/*-- draw to a PostScript file: see also plot_ps.c --**/
+
+extern void memplot_to_postscript( char * , MEM_plotdata * ) ;
+
+#define memplot_to_ps(fn) memplot_to_postscript( (fn) , get_active_memplot() ) ;
+
+/*-- draw to an X11 window --*/
+
+extern unsigned long rgb_to_pixel( unsigned char , unsigned char ,
+                                   unsigned char , X11_colordef * ) ;
+
+extern X11_colordef * get_X11_colordef( Display * , Window ) ;
+
+extern void memplot_to_X11_sef( Display * , Window ,
+                                MEM_plotdata * , int,int,int ) ;
+
+extern void set_X11_background( Display * , Window ,
+                                unsigned char , unsigned char , unsigned char ) ;
+
+#define memplot_to_X11(d,w) \
+   memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,0 )
+
+#define memplot_to_X11_free(d,w) \
+   memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,1 )
+
+extern Widget memplot_to_topshell( Display * , MEM_plotdata * , int ) ;
+
+#define memplot_to_shell(d) memplot_to_topshell( (d) , get_active_memplot() , 1 )
+
+/*-- plot time series --*/
+
+extern void plot_ts_lab( Display *,
+                         int,float *, int,float **,
+                         char *,char *,char *,char ** ) ;
+
+#define plot_ts(a,b,c,d,e) plot_ts_lab((a),(b),(c),(d),(e),NULL,NULL,NULL,NULL)
+
+/*-- routines in this library that will be called from PLOTPAK --*/
+
+extern void zzmpco_( float * , float * , float * ) ;
+extern void zzmpli_( float * , float * , float * , float * ) ;
+
+/*-- ps_plot.c routines --*/
+
+extern void ps_move( int , int ) ;               /* move current position     */
+extern void ps_line( int , int , int , int ) ;   /* draw a line from a to b   */
+extern void ps_cont( int , int ) ;               /* draw a line from current  */
+extern void ps_point( int , int ) ;              /* draw a point              */
+extern void ps_label( char * ) ;                 /* draw a string (Courier)   */
+extern void ps_arc( int , int , int , int , int , int ) ;  /* draw an arc     */
+extern void ps_circle( int , int , int ) ;                 /* draw a circle   */
+extern void ps_erase( void ) ;                             /* new page        */
+extern void ps_linemod( char * ) ;                         /* line styles     */
+extern void ps_space( int , int , int , int ) ;            /* set plot space  */
+extern void ps_openpl( char * ) ;                          /* open plot file  */
+extern void ps_closepl( void ) ;                           /* close plot file */
+extern void ps_setrgb( float , float , float ) ;           /* set color */
+extern void ps_setwidth( float ) ;                         /* set linewidth */
+
+/*-- routines from PLOTPAK, after running through f2c --*/
+
+#include "f2c.h"
+#undef complexxx
+
+extern int color_(integer *ncol);
+extern int curve_(real *x, real *y, integer *n);
+extern int frame_(void);
+extern int frstpt_(real *x, real *y);
+extern int labmod_(integer *ifmtx, integer *ifmty, integer *numx, integer *numy, integer *jsizx, integer *jsizy, integer *ixdec, integer *iydec, integer *ixor);
+extern int line_(real *x1, real *y1, real *x2, real *y2);
+extern int memplt_(real *aspect);
+extern int perim_(integer *mbx, integer *mlx, integer *mby, integer *mly);
+extern int periml_(integer *mbx, integer *mlx, integer *mby, integer *mly);
+extern int phdot_(real *x1, real *y1);
+extern int phline_(real *x1, real *y1, real *x2, real *y2);
+extern int point_(real *x, real *y);
+extern int points_(real *x, real *y, integer *n, integer *ichar, integer *ipen);
+extern int pwrit_(real *x, real *y, char *ch, integer *nch, integer *isiz, integer *ior, integer *icent, ftnlen ch_len);
+extern int pwritf_(real *x, real *y, char *ch, integer *nch, integer *isiz, integer *ior, integer *icent, ftnlen ch_len);
+extern integer lastnb_(char *cline, ftnlen cline_len);
+extern int zzstro_(char *ch, integer *nch, integer *nstr, real *xstr, real *ystr, logical *lbstr, ftnlen ch_len);
+extern int zzconv_(char *chin, integer *nchin, char *chout, integer *nchout, ftnlen chin_len, ftnlen chout_len);
+extern int set_(real *xobj1, real *xobj2, real *yobj1, real *yobj2, real *xsub1, real *xsub2, real *ysub1, real *ysub2, integer *ltype);
+extern int setdsh_(integer *nd, real *xld);
+extern int setfrm_(real *xobj1, real *xobj2, real *yobj1, real *yobj2);
+extern int setlin_(integer *ntype);
+extern int setw_(real *x1, real *y1, real *x2, real *y2);
+extern int srface_(real *x, real *y, real *z__, integer *m, integer *mx, integer *nx, integer *ny, real *s, real *stereo);
+extern int srfpl_(integer *n, real *px, real *py);
+extern int clset_(real *z__, integer *mx, integer *nx, integer *ny, real *chi, real *clo, real *cinc, integer *nla, integer *nlm, real *cl, integer *ncl, integer *icnst, integer *ioffp, real *spval, real *bigest);
+extern int ctcell_(real *z__, integer *mx, integer *nx, integer *ny, integer *m, integer *i0, integer *j0);
+extern int draws_(integer *mx1, integer *my1, integer *mx2, integer *my2, integer *idraw, integer *imark);
+extern int setr_(real *xmin, real *xmax, real *ymin, real *ymax, real *zmin, real *zmax, real *r0);
+extern int trn32s_(real *x, real *y, real *z__, real *xt, real *yt, real *zt, integer *iflag);
+extern int srfabd_(void);
+extern int tick4_(integer *lmajx, integer *lminx, integer *lmajy, integer *lminy);
+extern int vector_(real *x, real *y);
+extern int zzaxxx_(real *x1, real *x2, real *y, integer *iside, integer *ilab);
+extern int zzaxyy_(real *x, real *y1, real *y2, integer *iside, integer *ilab);
+extern int zzchar_(char *ch, real *xp, real *yp, real *ct, real *st, ftnlen ch_len);
+extern int zzclip_(real *x1in, real *y1in, real *x2in, real *y2in);
+extern int zzlabl_(real *val, char *cout, integer *nchar, ftnlen cout_len);
+extern int zzlgin_(real *xt, real *pwrten, integer *nlog);
+extern int zzline_(real *x1, real *y1, real *x2, real *y2);
+extern int zzlinx_(real *x1, real *x2, real *y, integer *majrx, real *tmaj, integer *minrx, real *tmin);
+extern int zzliny_(real *x, real *y1, real *y2, integer *majry, real *tmaj, integer *minry, real *tmin);
+extern int zzlogx_(real *x1, real *x2, real *y, integer *ndec, real *tmaj, real *tmin);
+extern int zzlogy_(real *x, real *y1, real *y2, integer *ndec, real *tmaj, real *tmin);
+extern int zzperi_(integer *ilab);
+extern int zzphph_(real *x1, real *y1, real *x2, real *y2);
+extern int zzphys_(real *x, real *y);
+
+/*-- Versions that are easier to call from C: --*/
+
+extern void plotpak_curve( float * x , float * y , int n ) ;
+extern void plotpak_frame(void) ;
+extern void plotpak_frstpt( float x , float y ) ;
+extern void plotpak_labmod( int jsizx , int jsizy ) ;
+extern void plotpak_line( float x1 , float y1 , float x2 , float y2 ) ;
+extern void plotpak_perim( int mbx , int mlx , int mby , int mly ) ;
+extern void plotpak_periml( int mbx , int mlx , int mby , int mly ) ;
+extern void plotpak_phdot( float x1 , float y1 ) ;
+extern void plotpak_phline( float x1 , float y1 , float x2 , float y2 ) ;
+extern void plotpak_point( float x1 , float y1 ) ;
+extern void plotpak_points( float *x , float *y , int n , int ipen ) ;
+extern void plotpak_pwrit( float x , float y , char * ch , int isiz , int ior , int icent ) ;
+extern void plotpak_pwritf( float x , float y , char * ch , int isiz , int ior , int icent ) ;
+extern void plotpak_set( float xo1,float xo2 , float yo1,float yo2 ,
+                         float xs1,float xs2 , float ys1,float ys2 , int code ) ;
+extern void plotpak_setdsh( int nd , float * xd ) ;
+extern void plotpak_setfrm( float xo1,float xo2 , float yo1,float yo2 ) ;
+extern void plotpak_setlin( int code ) ;
+extern void plotpak_setw( float xo1,float xo2 , float yo1,float yo2 ) ;
+extern void plotpak_tick4( int mx, int lx , int my , int ly ) ;
+extern void plotpak_vector( float x , float y ) ;
+
+extern void plotpak_srface( float *, float *, float *, int,int, float,float ) ;
+
+#endif

@@ -4,6 +4,11 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+17 Aug 1998:
+   The 'Plot' feature in the timeseries chooser has finally been
+     implemented (after a wait of about 2 years).  Break out the
+     pumpernickel bagels!
+--------------------------------------------------------------------------
 08 Aug 1998:
    Added ability to plot Points+Lines together in the graphing windows.
    Modified 3dmaskave and plug_maskave to allow user to choose a sub-brick

@@ -9,11 +9,12 @@ variable named "FRED" to the string "Elvis":
    bash or ksh:  FRED=Elvis ; export FRED
 
 Normally, these commands would go in your .cshrc or .profile files,
-so that they would be invoked when you login.
+so that they would be invoked when you login.  If in doubt, consult
+your local Unix guru.  If you don't have one, well....
 
-You don't need to set any of these variables -- AFNI will still work
+You don't NEED to set any of these variables -- AFNI will still work
 correctly.  But they are an easy way to set up certain defaults to
-make AFNI a little easier on your brain.
+make AFNI a little easier on your neocortex.
 
 ---------------------
 Variable: AFNI_ORIENT
@@ -59,8 +60,8 @@ can be separated by colons, as in
 If this variable is not set, then AFNI will use the PATH variable
 instead.  This will waste time, since most directories in the PATH
 will not have plugins.  On some systems, using the PATH has been
-known to cause problems when AFNI starts.  I believe this is due
-to bugs in the system library routines (e.g., dlopen) used to manage
+known to cause problems when AFNI starts.  I believe this is due to
+bugs in the system library routines (e.g., dlopen) used to manage
 dynamically loaded shared objects.
 
 ------------------------
@@ -202,6 +203,25 @@ it will be loaded into RAM.  With mmap, the Unix operating system will
 decide how much of the file to load.  In this way, it is possible to
 deal with more files than you have swap space on your computer
 (since .BRIK files are mmap-ed in readonly mode).
+
+The moral of the story: buy more memory, it's cheap.  At the time
+I write this line (Aug 1998), I have a PC with 384 MB of RAM, and
+it is great to use with AFNI.
+
+----------------------
+Variable: AFNI_PSPRINT
+----------------------
+This variable is used to define a command that will print the
+standard input (stdin) to a PostScript printer.  If it is defined,
+the "->printer" button on the timeseries "Plot" windows will work.
+For some Unix systems, the following should work:
+  setenv AFNI_PSPRINT "lp -"
+For others, this may work
+  setenv AFNI_PSPRINT "lpr -"
+It all depends on the printer software setup you have.
+
+In the future, I may add the ability to print to a PostScript file
+or printer to other windows (e.g., image and graph displays).
 
 =================================
 | Robert W. Cox, PhD            |

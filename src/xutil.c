@@ -212,9 +212,9 @@ Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
       if( action[ii].hint_text != NULL )
          MCW_register_hint( ww , action[ii].hint_text ) ;
 
-      if( action[ii].make_red > 0 )
+      if( action[ii].make_red > 0 )                  /* for some fun */
          MCW_set_widget_bg( ww , redcolor , 0 ) ;
-      else if( action[ii].make_red < 0 )
+      else if( action[ii].make_red < 0 )             /* for no fun at all */
          XtSetSensitive( ww , False ) ;
 
    }

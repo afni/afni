@@ -2005,12 +2005,24 @@ void MCW_list_mode_CB( MCW_arrowval * av , XtPointer cd )
 
 #define NUM_TSC_ACT 4
 
+#undef DONT_USE_COXPLOT  /* for the long-delayed Plot option */
+
+#undef PCODE
+#ifdef DONT_USE_COXPLOT
+# define PCODE -1
+#else
+# define PCODE  0
+# include "coxplot.h"
+#endif
+
 static MCW_action_item TSC_act[] = {
- { TSC_quit_label , MCW_choose_CB, NULL, TSC_quit_help ,"Close window"                 , 0 } ,
- { TSC_plot_label , MCW_choose_CB, NULL, TSC_plot_help ,"Plot data"                    ,-1 } ,
- { TSC_apply_label, MCW_choose_CB, NULL, TSC_apply_help,"Apply choice and keep window" , 0 } ,
- { TSC_done_label , MCW_choose_CB, NULL, TSC_done_help ,"Apply choice and close window", 1 }
+ { TSC_quit_label , MCW_choose_CB, NULL, TSC_quit_help ,"Close window"              , 0 },
+ { TSC_plot_label , MCW_choose_CB, NULL, TSC_plot_help ,"Plot data"                 , PCODE },
+ { TSC_apply_label, MCW_choose_CB, NULL, TSC_apply_help,"Apply choice, keep window" , 0 },
+ { TSC_done_label , MCW_choose_CB, NULL, TSC_done_help ,"Apply choice, close window", 1 }
 } ;
+
+#undef PCODE
 
 /*-------------------------------------------------------------------------
    Get a time series (1D MRI_IMAGE *) from an array of such things:
@@ -2428,8 +2440,9 @@ printf("MCW_choose_CB: queryed list for choice\n") ;
                 first = pos_list[0] - 1 ;                 /* XmList index starts at 1 */
                 fim   = IMARR_SUBIMAGE(cd->tsarr,first) ;
                 myXtFree(pos_list) ;
-            } else {
-                return ;  /* no choice made --> nothing to do! */
+            } else {  /* no choice made --> nothing to do! */
+                if( plot ) XBell( XtDisplay(w) , 100 ) ;
+                return ;
             }
 
 #ifdef BBOX_DEBUG
@@ -2457,8 +2470,48 @@ printf("MCW_choose_CB: calling user supplied routine\n") ;
 #ifdef BBOX_DEBUG
 printf("MCW_choose_CB: plotting selected timeseries\n") ;
 #endif
+
+            /*-- 17 Aug 1998: plotting code (at last!) --*/
+
+#ifdef DONT_USE_COXPLOT
                (void) MCW_popup_message( w , "Plot not yet\nimplemented." ,
                                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
+               return ;
+#else
+               if( fim->kind != MRI_float ){
+                  (void) MCW_popup_message( w , "Can't plot\nnon-float data!" ,
+                                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                  return ;
+               } else {
+                  float ** yar , * far = MRI_FLOAT_PTR(fim) ;
+                  char ** nar=NULL ;
+                  int jj ;
+
+#undef USE_NAR  /* use labels for each column?  (just to test the code) */
+
+                  yar = (float **) malloc( sizeof(float *) * fim->ny ) ;
+                  for( jj=0 ; jj < fim->ny ; jj++ )
+                     yar[jj] = far + jj * fim->nx ;
+
+#ifdef USE_NAR
+                  nar = (char **)  malloc( sizeof(char * ) * fim->ny ) ;
+                  for( jj=0 ; jj < fim->ny ; jj++ ){
+                     nar[jj] = (char *) malloc( sizeof(char) * 32 ) ;
+                     sprintf(nar[jj],"column %d",jj+1) ;
+                  }
+#endif
+                  plot_ts_lab( XtDisplay(w) ,
+                               fim->nx , NULL , fim->ny , yar ,
+                               "index" , NULL , fim->name , nar ) ;
+
+                  if( nar != NULL ){
+                     for( jj=0 ; jj < fim->ny ; jj++ ) free(nar[jj]) ;
+                     free(nar) ;
+                  }
+                  free(yar) ;
+                  return ;
+               }
+#endif /* DONT_USE_COXPLOT */
             }
 
          }

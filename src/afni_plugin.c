@@ -3338,6 +3338,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) EDIT_one_dataset ,
    (vptr_func *) EDIT_add_brick ,
    (vptr_func *) mri_2dalign_setup ,
+   (vptr_func *) qsort_floatint ,
 NULL } ;
 
 vptr_func * MCW_onen_i_estel_edain(int n){

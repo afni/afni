@@ -21,7 +21,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
 
 T3OBJS  = to3d.o $(IMOBJS)
 
-MISC    = afni.montage AFNI.Xdefaults mF64 mF128 gmovie 3d*.lib
+MISC    = afni.montage AFNI.Xdefaults mF64 mF128 3d*.lib
 
 ## Some programs (like whirlgif) are not included in this list,
 ## and must be "made" separately.  This list is the core AFNI
@@ -44,7 +44,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
                   imstack byteorder
 
-all:libmri.a programs
+all:libmri.a libcoxplot.a programs
 
 itall:all plugins install install_plugins
 
@@ -101,12 +101,6 @@ imaver:imaver.o
 
 impsd:impsd.o
 	$(CC) -o impsd impsd.o $(LFLAGS) $(LLIBS)
-
-rmz:rmz.o
-	$(CC) -o rmz rmz.o $(LFLAGS) $(LLIBS)
-
-uncomment:uncomment.o
-	$(CC) -o uncomment uncomment.o $(LFLAGS) $(LLIBS)
 
 imdump:imdump.o
 	$(CC) -o imdump imdump.o $(LFLAGS) $(LLIBS)
@@ -445,13 +439,13 @@ dafni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 ### End of reslicing routines
 
-afni:$(AFOBJS)
+afni:$(AFOBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lf2c $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lf2c $(LLIBS)
 
-to3d:to3d.h $(T3OBJS)
+to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o to3d $(T3OBJS) $(LFLAGS) $(LLIBS)
+	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lcoxplot -lf2c $(LLIBS)
 
 abut:abut.o
 	$(RM) $@
@@ -494,19 +488,11 @@ backup:
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
 
-afni96.tgz:
-	$(RM) $@
-	$(MKDIR) AFNI96
-	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI96
-	$(CP) -r f2cdir ./AFNI96
-	$(TAR) cf - AFNI96 | $(GZIP) -9v > afni96.tgz
-	$(RM) -r AFNI96
-
 afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
-	$(CP) -r f2cdir ./AFNI98
+	$(CP) -r f2cdir coxplot ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
@@ -553,7 +539,7 @@ install_noplug:
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 
 install_lib:
-	$(CP) libmri.a mrilib.h cdflib.h libf2c.a f2c.h $(LIBDIR)
+	$(CP) libmri.a mrilib.h libf2c.a f2c.h libcoxplot.a coxplot.h $(LIBDIR)
 ###################################################################
 # some dependencies (not complete)
 
@@ -573,7 +559,7 @@ afni_setup.o:afni.h afni_setup.h pbar.h
 3dclust.o:3ddata.h
 3dmerge.o:3ddata.h
 pbar.o:pbar.h machdep.h
-bbox.o:bbox.h xutil.h
+bbox.o:bbox.h xutil.h coxplot.h
 xutil.o:xutil.h
 imseq.o:imseq.h display.h bbox.h xutil.h mrilib.h
 display.o:display.h mrilib.h
@@ -592,13 +578,13 @@ afni_plugout.o:afni_plugout.h afni_plugin.h
 ###################################################################
 # make the mri library
 
-MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o \
-           mri_max.o mri_new.o mri_read.o mri_swapbytes.o \
-           mri_to_byte.o mri_to_complex.o mri_to_float.o mri_to_short.o \
+MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
+           mri_max.o mri_new.o mri_read.o mri_swapbytes.o                  \
+           mri_to_byte.o mri_to_complex.o mri_to_float.o mri_to_short.o     \
            mri_warp.o mri_write.o mri_float_func.o mri_edit.o mri_stat_seq.o \
-           mri_add_name.o mri_histog.o mri_nsize.o mri_lsqfit.o mri_sobel.o \
-           csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o \
-           mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o \
+           mri_add_name.o mri_histog.o mri_nsize.o mri_lsqfit.o mri_sobel.o  \
+           csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
+           mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
@@ -634,9 +620,11 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
            edt_scl2max.o edt_substbrick.o edt_volamax.o
 
-libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS)
+CS_OBJS  = cs_sort_fi.o
+
+libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS)
 	$(RANLIB) libmri.a
 
 ### Dependencies for above
@@ -740,6 +728,22 @@ f2c.h:
 f2c.tgz:
 	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
 
+#######
+
+libcoxplot.a:
+	( cd coxplot ; \
+	  make libcoxplot.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	  $(MV) libcoxplot.a .. ; )
+
+coxplot.h:
+	$(CP) coxplot/coxplot.h ./
+
+coxplot.tgz:
+	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
+
+#######
+
 libclam.a:
 	( cd clamdir ; \
 	  make libclam.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' \
@@ -755,6 +759,7 @@ clamsrc.tgz:
 clamdir.tgz:
 	$(TAR) cf - ./clamdir | $(GZIP) -9v > clamdir.tgz
 
+#######
 ## The following only needs to be used if parser.f
 ## is edited, since AFNI ships with parser.c already made.
 
@@ -782,8 +787,17 @@ colcalc:parser.o colcalc.o
 imcalc:imcalc.o parser.o parser_int.o
 	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lf2c $(LLIBS)
 
+###########################################################################
+# Miscellaneous programs
+
 myget:myget.o
 	$(CC) -o myget myget.o $(LFLAGS) $(LLIBS)
+
+rmz:rmz.o
+	$(CC) -o rmz rmz.o $(LFLAGS) $(LLIBS)
+
+uncomment:uncomment.o
+	$(CC) -o uncomment uncomment.o $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

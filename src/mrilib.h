@@ -589,6 +589,8 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 #include "thd_maker.h"
 #include "thd_iochan.h"
 #include "editvol.h"
+
+#include "cs.h"          /* 17 Aug 1998 addition */
 /*------------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */
