@@ -370,6 +370,8 @@ static SYM_irange *SymStim = NULL ;
 void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat ) ;
 static void vstep_print(void) ;
 
+static int show_singvals = 0 ;
+
 /*---------- Typedefs for basis function expansions of the IRF ----------*/
 
 /** Search for 'basis_' to find all stuff related to this **/
@@ -907,6 +909,11 @@ void get_options
 #else
         fprintf(stderr,"** WARNING: -nocond is ignored in 3dDeconvolve_f!\n") ;
 #endif
+        nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-singvals") == 0 ){  /* 13 Aug 2004 */
+        show_singvals = 1 ; option_data->nocond = 0 ;
         nopt++ ; continue ;
       }
 
@@ -3629,10 +3636,13 @@ void calculate_results
     double *ev , emin,emax ; int i ;
     ev = matrix_singvals( xdata ) ;
     emin = 1.e+38 ; emax = 1.e-38 ;
+    if( show_singvals ) fprintf(stderr,"++ Matrix singular values:") ;
     for( i=0 ; i < xdata.cols ; i++ ){
+      if( show_singvals ) fprintf(stderr," %g",ev[i]) ;
       if( ev[i] > 0.0 && ev[i] < emin ) emin = ev[i] ;
       if(                ev[i] > emax ) emax = ev[i] ;
     }
+    if( show_singvals ) fprintf(stderr,"\n") ;
     free((void *)ev) ;
     if( emin <= 0.0 || emax <= 0.0 ){
       fprintf(stderr,"** Matrix condition:  UNDEFINED: "
