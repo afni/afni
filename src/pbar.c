@@ -10,6 +10,7 @@
 
 static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
+static void PBAR_big_menu_CB( Widget , XtPointer , XtPointer ) ;
 
 static int      bigmap_num=0 ;    /* 31 Jan 2003 */
 static char   **bigmap_name ;
@@ -221,6 +222,32 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
                          PBAR_button_EV ,       /* event handler */
                          (XtPointer) pbar ,     /* client data */
                          XtListTail ) ;         /* last in queue */
+
+   /* 11 Feb 2003: create a popup menu for doing stuff */
+
+   pbar->bigfac  = 0.0 ;
+   pbar->big_menu = XmCreatePopupMenu( pbar->panes[0] , "help" , NULL , 0 ) ;
+
+   SAVEUNDERIZE(XtParent(pbar->big_menu)) ;
+   VISIBILIZE_WHEN_MAPPED(pbar->big_menu) ;
+
+   pbar->big_label = XtVaCreateManagedWidget(
+                     "help" , xmLabelWidgetClass , pbar->big_menu ,
+                        XmNinitialResourcesPersistent , False ,
+                     NULL ) ;
+
+   (void) XtVaCreateManagedWidget( "help",
+                                    xmSeparatorWidgetClass, pbar->big_menu ,
+                                       XmNseparatorType , XmSINGLE_LINE ,
+                                    NULL ) ;
+
+   pbar->big_choose_pb = XtVaCreateManagedWidget(
+                           "help" , xmPushButtonWidgetClass , pbar->big_menu ,
+                             LABEL_ARG("Choose Colorscale") ,
+                             XmNtraversalOn , False ,
+                             XmNinitialResourcesPersistent , False ,
+                          NULL ) ;
+   XtAddCallback( pbar->big_choose_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
 
    /*-- go home --*/
 
@@ -507,6 +534,8 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    XButtonEvent *bev = (XButtonEvent *) ev ;
+   int hh , ii , rr,gg,bb ;
+   float yy ;
 
 #if 0
    if( bev->button == Button2 )
@@ -515,18 +544,34 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
 
    if( pbar == NULL || !pbar->bigmode ) return ;
 
+   /* get current position, value, and color */
+
+   MCW_widget_geom( pbar->panes[0] , NULL,&hh , NULL,NULL ) ;
+   ii = (int)( ((NPANE_BIG-1.0)*bev->y)/(hh-1) + 0.5 ) ;      /* color index */
+   rr = (int)pbar->bigcolor[ii].r ;                           /* color */
+   gg = (int)pbar->bigcolor[ii].g ;
+   bb = (int)pbar->bigcolor[ii].b ;
+
+   yy = ii/(NPANE_BIG-1.0) ;
+   yy = (yy * pbar->bigbot + (1.0-yy) * pbar->bigtop) ;
+   if( pbar->bigfac != 0.0 ) yy *= pbar->bigfac ;             /* value */
+
    switch( bev->button ){
-     case Button3:
-       MCW_choose_strlist( w , "Choose Colorscale" ,
-                           bigmap_num ,
-                           pbar->bigmap_index ,
-                           bigmap_name ,
-                           PBAR_bigmap_finalize , cd ) ;
+
+     case Button3:{                  /* 11 Feb 2003: popup a menu */
+       char str[256] ;               /* but first, put informative label on it */
+       sprintf(str,
+               "value = %s\nRGB=(%03d,%03d,%03d)" ,
+               AV_uformat_fval(yy) , rr,gg,bb      ) ;
+       MCW_set_widget_label( pbar->big_label , str ) ;
+
+       XmMenuPosition( pbar->big_menu , bev ) ; /* where */
+       XtManageChild ( pbar->big_menu ) ;       /* popup */
+     }
      break ;
 
+#if 0
      case Button2:{
-       int hh , ii ;
-       MCW_widget_geom( pbar->panes[0] , NULL,&hh , NULL,NULL ) ;
        ii = (int)( ((NPANE_BIG-1.0)*bev->y)/(hh-1) + 0.5 ) ;
        fprintf(stderr,"Color[%03d]: R=%03d G=%03d B=%03d #%02x%02x%02x\n",
                ii , (int)pbar->bigcolor[ii].r          ,
@@ -537,7 +582,28 @@ static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
                     (unsigned int)pbar->bigcolor[ii].b  ) ;
      }
      break ;
+#endif
+
    }
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
+{
+   MCW_pbar *pbar = (MCW_pbar *) cd ;
+
+   if( pbar == NULL || !pbar->bigmode ) return ;
+
+   if( w == pbar->big_choose_pb ){
+     MCW_choose_strlist( w , "Choose Colorscale" ,
+                         bigmap_num ,
+                         pbar->bigmap_index ,
+                         bigmap_name ,
+                         PBAR_bigmap_finalize , cd ) ;
+   }
+
    return ;
 }
 

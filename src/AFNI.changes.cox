@@ -4293,3 +4293,9 @@
  * Modified afni_graph.[ch] and afni.c to allow initializing graph matrix size
      to value other than 3, through AFNI_graph_matrix environment variable.
  * Modified 3dcalc.c to allow RGB dataset input.
+
+11 Feb 2003
+ * Modified 3dfractionize.c to set default clip value to a very tiny positive
+     value, rather than 0.
+ * Modified pbar.[ch] to use a popup menu to deal with Button-3 events, rather
+     than directly do stuff.  Included a value+color label on this menu.
