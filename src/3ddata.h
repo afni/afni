@@ -2972,10 +2972,13 @@ int breakup_string( char *sin , char ***stok ) ;
 extern THD_string_array * THD_get_all_filenames( char * ) ;
 extern THD_string_array * THD_extract_regular_files( THD_string_array * ) ;
 extern THD_string_array * THD_extract_directories( THD_string_array * ) ;
-extern int THD_is_file( char * pathname ) ;
-extern int THD_is_symlink( char * pathname ) ;  /* 03 Mar 1999 */
-extern int THD_is_directory( char * pathname ) ;
-extern int THD_equiv_files( char * , char * ) ;
+extern int THD_is_file     ( char * ) ;
+extern int THD_is_symlink  ( char * ) ;  /* 03 Mar 1999 */
+extern int THD_is_directory( char * ) ;
+extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
+extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
+extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
+extern int THD_equiv_files ( char * , char * ) ;
 extern unsigned long THD_filesize( char * pathname ) ;
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;

@@ -15,6 +15,9 @@ static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
 
+static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
+static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
+
 #ifdef ALLOW_PLUGINS
 static int AFNI_drive_open_plugin( char *cmd ) ;    /* 13 Nov 2001 */
 #endif
@@ -68,28 +71,39 @@ static AFNI_driver_pair dpair[] = {
 
  { "QUIT"             , AFNI_drive_quit              } ,
 
+ { "SYSTEM"           , AFNI_drive_system            } ,
+ { "CHDIR"            , AFNI_drive_chdir             } ,
+
  { NULL , NULL } } ;
 
 /*----------------------------------------------------------------------*/
 
-int AFNI_driver( char *cmd )
+int AFNI_driver( char *cmdd )
 {
    int clen , rval , ii , dd , dlen ;
+   char *cmd , *dmd ;
 
 ENTRY("AFNI_driver") ;
 
-   if( cmd == NULL || *cmd == '\0' ) RETURN(-1) ;  /* bad */
+   if( cmdd == NULL || *cmdd == '\0' ) RETURN(-1) ;  /* bad */
 
-   clen = strlen(cmd) ;
+   dmd = cmd = strdup(cmdd) ; clen = strlen(cmd) ;
 
-   /* skip blanks */
+   /* skip leading blanks */
 
    for( ii=0 ; ii < clen ; ii++ )
       if( !isspace(cmd[ii]) ) break ;
 
-   if( ii == clen ) RETURN(-1) ;  /* all blanks? */
+   if( ii == clen ){ free(dmd); RETURN(-1); }  /* all blanks? */
 
    cmd += ii ; clen = strlen(cmd) ;
+
+   /* 19 Dec 2002: trim trailing blanks */
+
+   for( ii=clen-1 ; ii > 0 && isspace(cmd[ii]) ; ii-- )
+     cmd[ii] = '\0' ;
+
+   clen = strlen(cmd) ;
 
    /* scan dpair list for command */
 
@@ -103,11 +117,27 @@ ENTRY("AFNI_driver") ;
             if( !isspace(cmd[ii]) ) break ;     /* after command name */
 
          rval = dpair[dd].fun( cmd+ii ) ;       /* execute command */
-         RETURN(rval) ;
+         free(dmd) ; RETURN(rval) ;
       }
    }
 
-   RETURN(-1) ;  /* not in the list */
+   free(dmd) ; RETURN(-1) ;  /* not in the list */
+}
+
+/*---------------------------------------------------------------*/
+/*! Run a system() command. */
+
+int AFNI_drive_system( char *cmd )  /* 19 Dec 2002 */
+{
+   return system( cmd ) ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Change working directory. */
+
+int AFNI_drive_chdir( char *cmd )   /* 19 Dec 2002 */
+{
+   return chdir( cmd ) ;
 }
 
 /*-----------------------------------------------------------------

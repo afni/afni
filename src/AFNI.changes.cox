@@ -4142,3 +4142,10 @@
      sizeof(char *)*num.  Not good in the long run.
  * Modified niml/niml_rowtype.c to allow rowtypes to have 1D variable dimension
      arrays.
+
+19 Dec 2002
+ * Added THD_mkdir(), THD_is_ondisk(), THD_cwd() to thd_filestuff.c.
+ * Modified afni_driver.c to add commands SYSTEM and CHDIR, which call
+     system() and chdir() [pretty clever names, huh?].  Also modified
+     afni_driver.c to trim trailing blanks from the input command
+     before passing it to the handler functions.
