@@ -22,8 +22,8 @@ typedef struct {
 SUMA_MorphInfo * SUMA_Create_MorphInfo (void);
 SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI);
 
-float* SUMA_morphToStd (float *nodeList, SUMA_MorphInfo *MI);
-float *  SUMA_readColor (int numNodes, char* colFileNm);
+float *SUMA_morphToStd (float *nodeList, SUMA_MorphInfo *MI);
+float *SUMA_readColor (int numNodes, char* colFileNm);
 void SUMA_writeColorFile (float *array, int numNode, char fileNm[]);
 void SUMA_writeFSfile (float *nodeList, int *faceList, int numNode, int numFace, char firstLine[], char fileNm[]);
 void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[]);

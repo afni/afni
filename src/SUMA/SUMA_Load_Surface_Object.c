@@ -1458,10 +1458,42 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    /* the computations */
    if (DoArea) {
       /* create the triangle Area  */
-      fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); 
-      SO->PolyArea = SUMA_PolySurf3 (SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->NodeDim, SO->FaceNormList);
+      if (SO->NodeDim == 3) {
+         fprintf(SUMA_STDOUT, "%s: Calculating triangle areas ...\n", FuncName); 
+         SO->PolyArea = SUMA_TriSurf3v (SO->NodeList, SO->FaceSetList, SO->N_FaceSet);
+      } else {
+         fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); 
+         SO->PolyArea = SUMA_PolySurf3 (SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->NodeDim, SO->FaceNormList, NOPE);
+         #if 0
+            /* a test of the functions for calculating areas */
+            {
+               int ji, in0, in1, in2;
+               float *n0, *n1, *n2, A;
+               for (ji=0; ji<SO->N_FaceSet; ++ji) {
+                  in0 = SO->FaceSetList[3*ji];
+                  in1 = SO->FaceSetList[3*ji+1];
+                  in2 = SO->FaceSetList[3*ji+2];
+                  n0 = &(SO->NodeList[3*in0]);
+                  n1 = &(SO->NodeList[3*in1]);
+                  n2 = &(SO->NodeList[3*in2]);
+                  A = SUMA_TriSurf3 (n0, n1, n2);
+                  if (abs(A - SO->PolyArea[ji]) > 0.00001) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed comparing SUMA_TriSurf3 to SUMA_PolySurf3. A = %f vs %f.\nTri = [ %f, %f, %f; %f, %f, %f; %f, %f, %f]\n", 
+                        FuncName, A, SO->PolyArea[ji], n0[0], n0[1], n0[2], n1[0], n1[1], n1[2], n2[0], n2[1], n2[2]);
+                  }else fprintf (SUMA_STDERR, "-");
+
+                  SUMA_TRI_AREA (n0, n1, n2, A);
+                  if (abs(A - SO->PolyArea[ji]) > 0.00001) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed comparing SUMA_TRI_AREA to SUMA_PolySurf3. %f vs %f Exiting.\n", 
+                        FuncName, A, SO->PolyArea[ji]);
+                  }else fprintf (SUMA_STDERR, ".");
+               }  
+            }
+         #endif
+
+      }
       if (SO->PolyArea == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_PolySurf3\n", FuncName);
+         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_PolySurf3 or SUMA_TriSurf3v\n", FuncName);
       }
    }
    

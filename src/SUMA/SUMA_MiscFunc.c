@@ -4312,20 +4312,127 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
    SUMA_RETURN (YUP);
 }
 
+/*! calculate the normal to a triangle 
+   A = SUMA_TriNorm (n1, n2, n3, normal)
+   \param n1 (float *)pointer to vector containing XYZ of node 1
+   \param n2 (float *)pointer to vector containing XYZ of node 2
+   \param n3 (float *)pointer to vector containing XYZ of node 3
+   \param normal (float *)pointer to vector to contain normal of triangle. 
+   \return A (SUMA_Boolean) NOPE if the norm of the normal = 0. In that case, occuring with FreeSurfer surfaces, normal is 1.0 1.0 1.0 
+   \sa SUMA_SurfNorm
+   
+*/
+SUMA_Boolean SUMA_TriNorm (float *n0, float *n1, float *n2, float *norm)
+{
+   static char FuncName[]={"SUMA_TriNorm"};
+   int i;
+   float d1[3], d2[3], d;
+   
+   for (i=0; i<3; ++i) {
+         d1[i] = n0[i] - n1[i];
+         d2[i] = n1[i] - n2[i];
+   }
+   norm[0] = d1[1]*d2[2] - d1[2]*d2[1];
+	norm[1] = d1[2]*d2[0] - d1[0]*d2[2];
+	norm[2] = d1[0]*d2[1] - d1[1]*d2[0];  
+   
+   d = sqrt(norm[0] * norm[0] + norm[1] * norm[1] + norm[2] * norm[2]);
+   
+   if (d==0.0) {
+      norm[0] = norm[1] = norm[2] = 1.0;
+      SUMA_RETURN (NOPE);
+   }else {
+      for (i=0; i<3; ++i) norm[i] /= d;
+      SUMA_RETURN (YUP);
+   }
+}
+
+/*! calculate the area of a triangle
+   A = SUMA_TriSurf3 (n1, n2, n3, normal)
+   \param n1 (float *)pointer to vector containing XYZ of node 1
+   \param n2 (float *)pointer to vector containing XYZ of node 2
+   \param n3 (float *)pointer to vector containing XYZ of node 3
+   \param normal (float *)pointer to vector containing normal of triangle. 
+   \return A (float) area of triangle  
+   \sa SUMA_PolySurf3
+   \sa SUMA_TriNorm
+   \sa SUMA_TRI_AREA for macro version
+*/
+
+float SUMA_TriSurf3 (float *n0, float *n1, float *n2)
+{
+   static char FuncName[]={"SUMA_TriSurf3"};
+   float dv[3], dw[3], cross[3], A; 
+   int i, ii, coord, kk, jj;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_MT_SUB (dv, n1, n0);
+   SUMA_MT_SUB (dw, n2, n0);
+   SUMA_MT_CROSS(cross,dv,dw);
+   SUMA_NORM(A, cross);
+   A *= 0.5;
+   
+   SUMA_RETURN (A); 
+}
+
+/*! calculate the area of a triangle
+   A = SUMA_TriSurf3v (NodeList, FaceSets, N_FaceSet, )
+   \param NodeList (float *)pointer to vector containing XYZ of nodes  (typically SO->NodeList)
+   \param FaceSets (int *) pointer to vector (3*N_FaceSet long) containing triangle indices  (typically SO->FaceSetList)
+   \param N_FaceSet (int) number of triangles, (typically SO->N_FaceSet)
+   \return A (float *) vector of triangle areas (N_FaceSet elements long) 
+
+   \sa SUMA_PolySurf3
+   \sa SUMA_TriNorm
+   \sa SUMA_TRI_AREA for macro version
+*/
+
+float * SUMA_TriSurf3v (float *NodeList, int *FaceSets, int N_FaceSet)
+{
+   static char FuncName[]={"SUMA_TriSurf3v"};
+   float *A = NULL, *n0, *n1, *n2, a;
+   int i, i3;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   A = (float *) SUMA_calloc (N_FaceSet, sizeof(float));
+   if (A == NULL ) {
+      fprintf(SUMA_STDERR,"Error %s; Failed to allocate for A \n", FuncName);
+      SUMA_RETURN (NULL);
+   }  
+   
+   for (i=0;  i<N_FaceSet; ++i) {
+      i3 = 3*i;
+      n0 = &(NodeList[3*FaceSets[i3]]);
+      n1 = &(NodeList[3*FaceSets[i3+1]]);
+      n2 = &(NodeList[3*FaceSets[i3+2]]);
+      SUMA_TRI_AREA( n0, n1, n2, A[i]); 
+      /* A[i] = SUMA_TriSurf3 (n0, n1, n2); */
+   }
+   
+   SUMA_RETURN (A);
+}
+
 /*!
-   Calculate the area of polygons
-   A = SUMA_PolySurf3 (NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList)
+   Calculate the area of planar polygons
+   A = SUMA_PolySurf3 (NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList, SUMA_Boolean SignedArea)
    \param NodeList (float *)  (N_Node x 3) vector containing XYZ of each node
    \param N_Node number of nodes in NodeList
    \param FaceSets (int *) vector (matrix, prior to SUMA 1.2) (N_FaceSet x PolyDim) defining the polygons by their indices into NodeList
    \param N_FaceSet (int) number of polygons
    \param PolyDim (int) dimension of polygons (3 triangles)
    \param FaceNormList (float *) N_FaceSet x 3 vector of normals to polygons
-   \ret A (float *) vector containing the area of each polygon in FaceSets
+   \param SignedArea (SUMA_Boolean) signed or unsigned areas
+      positive means the vertices are oriented counterclockwise around the polygon when viewed from the side of the plane poited to by the normal 
+   \return A (float *) vector containing the area of each polygon in FaceSets
+  
+
+   \sa SUMA_TriSurf3
    
    Algorithm by Dan Sunday http://geometryalgorithms.com
 */
-float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList)
+float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSet, int PolyDim, float *FaceNormList, SUMA_Boolean SignedArea)
 {
    static char FuncName[]={"SUMA_PolySurf3"};
    float **V, *A, ax, ay, az, an;
@@ -4409,6 +4516,9 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
             break;
       }
       
+      if (!SignedArea) {
+         if (A[i] < 0) A[i] = -A[i];
+      }
    } /* for i*/
    
    SUMA_free2D((char **)V, PolyDim+2);
