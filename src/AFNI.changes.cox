@@ -4950,3 +4950,6 @@
 11 Feb 2004
  * Fixed bug in afni_graph.c about average time series, when graph is
      too short.  I think.  [cf. 27 Jan 2004]
+
+12 Feb 2004
+ * Oooops.  "\noesc" should be "\\noesc" in several places.  My bad.
