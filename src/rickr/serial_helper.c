@@ -1,4 +1,4 @@
-#define VERSION "1.0 (March 31, 2004)"
+#define VERSION "1.1 (April 1, 2004)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -30,6 +30,9 @@ static char g_history[] =
  "\n"
  " 1.0  March 31, 2004  [rickr]\n"
  "    - initial full release\n"
+ "\n"
+ " 1.1  April 1, 2004  [rickr]\n"
+ "    - added a little more to the -help section\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -408,7 +411,11 @@ int usage( char * prog, int level )
 	    "------------------------------------------------------------\n"
 	    "%s - pass motion parameters from socket to serial port\n"
 	    "\n"
-	    "    This program is meant to run as a tcp server.  It listens\n"
+	    "    This program is meant to receive registration (motion?)\n"
+	    "    correction parameters from afni's realtime plugin, and to\n"
+	    "    pass that data on to a serial port.\n"
+	    "\n"
+	    "    The program is meant to run as a tcp server.  It listens\n"
 	    "    for a connection, then processes data until a termination\n"
 	    "    flag is received (sending data from the tcp socket to the\n"
 	    "    serial port), closes the new connection, and goes back\n"
@@ -481,6 +488,44 @@ int usage( char * prog, int level )
 	    "       communication, and printing all the incoming data\n"
 	    "\n"
 	    "        %s -no_serial -debug 3\n"
+	    "\n"
+	    "    8. same as 4, but use debug level 3 to see the parameters\n"
+	    "       that will be passed on, and duplicate all output to the\n"
+	    "       file, helper.output\n"
+	    "\n"
+	    "       note: this command is for the t-shell, and will not work\n"
+	    "             under bash (for bash do the 2>&1 thingy...)\n"
+	    "\n"
+	    "        %s -serial_port /dev/ttyS0 -debug 3 |& tee helper.out\n"
+	    "------------------------------------------------------------\n"
+	    "  program setup:\n"
+	    "\n"
+	    "    1. Start '%s' on the computer with the serial port that\n"
+	    "       the motion parameters should be written to.  Example 3\n"
+	    "       is the most likely case, though it might be useful to\n"
+	    "       use example 8.\n"
+	    "\n"
+	    "    2. On the computer which will be used to run 'afni -rt',\n"
+	    "       set the environment variable AFNI_REALTIME_MP_HOST_PORT\n"
+	    "       to the appropriate host:port pair.  See the '-sock_num'\n"
+	    "       option below for more details.\n"
+	    "\n"
+	    "       This variable can also be set in the ~/.cshrc file, or\n"
+	    "       as part of the AFNI environment via the ~/.afnirc file.\n"
+	    "\n"
+	    "    3. Start 'afni -rt'.  Be sure to request 'realtime' graphing\n"
+	    "       of the '3D: realtime' Registration parameters.\n"
+	    "\n"
+	    "    4. Start receiving data (sending it to the realtime plugin).\n"
+	    "\n"
+	    "       Note that for testing purposes, I may work well to get a\n"
+	    "       set of I-files (say, in directories 003, 023, etc.), and\n"
+	    "       to use Imon to send not-so-real-time data to afni.  An\n"
+	    "       example of Imon for this purpose might be:\n"
+	    "\n"
+	    "           Imon -start_dir 003 -quit -rt -host localhost\n"
+	    "\n"
+	    "       See 'Imon -help' for more information.\n"
 	    "------------------------------------------------------------\n"
 	    "  'required' parameter:\n"
 	    "\n"
@@ -526,7 +571,7 @@ int usage( char * prog, int level )
 	    "                     : default is -12.8\n"
 	    "\n"
 	    "        If any incoming data is less than this value, it will\n"
-	    "        be set to this value.  The default of -12.7 is used to\n"
+	    "        be set to this value.  The default of -12.8 is used to\n"
 	    "        scale incoming floats to signed bytes.\n"
 	    "\n"
 	    "    -sock_num SOCK   : specify socket number to serve\n"
@@ -542,10 +587,11 @@ int usage( char * prog, int level )
 	    "        variable should have the form HOST:PORT, where a basic\n"
 	    "        example might be localhost:53214.\n"
 	    "------------------------------------------------------------\n"
-	    "  Authors: T. Ross, R. Reynolds  (March, 2004)\n"
+	    "  Authors: R. Reynolds, T. Ross  (March, 2004)\n"
 	    "------------------------------------------------------------\n",
 	    prog, prog,
-	    prog, prog, prog, prog, prog, prog, prog
+	    prog, prog, prog, prog, prog, prog, prog, prog,
+	    prog
 	    );
     }
     else
