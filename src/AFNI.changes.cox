@@ -4471,3 +4471,6 @@
       routines vector_multiply and vector_multiply_subtract would produce a 
       segmentation fault for certain input matrices (e.g., null baseline model).  
       This has now been corrected (hopefully).
+
+23 Mar 2003
+ * Added -xyz option to 3dmaskdump.c.
