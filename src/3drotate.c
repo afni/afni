@@ -987,7 +987,7 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
               ndar_over++ ;
            }
 
-           sprintf(rotcom,"-rotate %.2fI %.2fR %.2fA -ashift %.2fS %.2fL %.2fP",
+           sprintf(rotcom,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP",
                    dar[0+6*jj] , dar[1+6*jj] , dar[2+6*jj] ,
                    dar[3+6*jj] , dar[4+6*jj] , dar[5+6*jj]  ) ;
 
@@ -1001,6 +1001,17 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
 
            skipit = (dar[0+6*jj]==0.0 && dar[1+6*jj]==0.0 && dar[2+6*jj]==0.0 &&
                      dar[3+6*jj]==0.0 && dar[4+6*jj]==0.0 && dar[5+6*jj]==0.0  );
+
+           if( !skipit ){
+             skipit = ( fabs(rmat.mat[0][0]-1.0) < 0.00001 ) &&
+                      ( fabs(rmat.mat[1][1]-1.0) < 0.00001 ) &&
+                      ( fabs(rmat.mat[2][2]-1.0) < 0.00001 ) &&
+                      ( fabs(tvec.xyz[0])        < 0.001   ) &&
+                      ( fabs(tvec.xyz[1])        < 0.001   ) &&
+                      ( fabs(tvec.xyz[2])        < 0.001   )    ;
+           }
+
+           if( verb && skipit ) fprintf(stderr,"[skip]");
         }
 
         if( !skipit ){

@@ -4443,3 +4443,6 @@
      Also, use calloc() on im_min and im_max arrays to avoid problems
      when those arrays in the MINC file are incomplete.
  * Modified 3drefit.c, and thd_delete.c to skip CTF and 1D files.
+ * Modified 3drotate.c to skip rotation if rotation matrix is identity.
+     Also modified 3dvolreg.c and 3drotate.c to use "%.4f" format when
+     writing command string to THD_rotcom_to_matvec().

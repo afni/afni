@@ -700,7 +700,7 @@ int main( int argc , char *argv[] )
 
          vm2.mm = rmat ; vm2.vv = tvec ;  /* second transform */
 
-         sprintf(sbuf,"-rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP" ,
+         sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP" ,
                  roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
          vm1 = THD_rotcom_to_matvec( new_dset , sbuf ) ;
 
@@ -852,7 +852,7 @@ int main( int argc , char *argv[] )
       else            str = THD_zzprintf( str , " -noclip" ) ;
       if( VL_zpad )   str = THD_zzprintf( str , " -zpad %d" , VL_zpad ) ;
       str = THD_zzprintf(str,
-                      " -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
+                      " -rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP\n" ,
                       roll[0],pitch[0],yaw[0], dx[0],dy[0],dz[0]  ) ;
       tross_Append_History( new_dset , str ) ;
       free(str) ;
@@ -904,7 +904,7 @@ int main( int argc , char *argv[] )
 
      for( kim=0 ; kim < imcount ; kim++ ){
         sprintf(anam,"VOLREG_ROTCOM_%06d",kim) ;
-        sprintf(sbuf,"-rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP" ,
+        sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP" ,
                 roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
         THD_set_string_atr( new_dset->dblk , anam , sbuf ) ;
 
@@ -959,7 +959,7 @@ int main( int argc , char *argv[] )
 
       fp = fopen( VL_dfile , "w" ) ;
       for( kim=0 ; kim < imcount ; kim++ )
-         fprintf(fp , "%4d %7.3f %7.3f %7.3f %7.3f %7.3f %7.3f  %11.4g %11.4g\n" ,
+         fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
                  kim , roll[kim], pitch[kim], yaw[kim],
                        dx[kim], dy[kim], dz[kim],
                        rmsold[kim] , rmsnew[kim]  ) ;
@@ -974,7 +974,7 @@ int main( int argc , char *argv[] )
 
       fp = fopen( VL_1Dfile , "w" ) ;
       for( kim=0 ; kim < imcount ; kim++ )
-         fprintf(fp , "%7.3f %7.3f %7.3f %7.3f %7.3f %7.3f\n" ,
+         fprintf(fp , "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n" ,
                  roll[kim], pitch[kim], yaw[kim],
                  dx[kim]  , dy[kim]   , dz[kim]  ) ;
       fclose(fp) ;
@@ -988,7 +988,7 @@ int main( int argc , char *argv[] )
          if( VL_clipit ) printf(" -clipit" ) ;
          else            printf(" -noclip" ) ;
          if( VL_zpad )   printf(" -zpad %d" , VL_zpad ) ;
-         printf(" -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
+         printf(" -rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP\n" ,
                  roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
       }
       printf("\n") ;  /* 11 Dec 2000 */
