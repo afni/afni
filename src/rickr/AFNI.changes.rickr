@@ -854,3 +854,14 @@
   * in nifti_image_read(), check for failed load only if read_data is set
   * broke most of nifti_image_load() into nifti_image_load_prep()
 
+15 Dec 2004: (v 0.6) added writing a brick list to nifti library, and
+             and nifti library files under a new nifti directory
+  * modified nifti1_io.[ch]:
+      - nifti_read_extensions(): print no offset warning for nifti_type 3
+      - nifti_write_all_data():
+          o pass nifti_brick_list * NBL, for optional writing
+          o if NBL, write each sub-brick, sequentially
+      - nifti_set_iname_offset(): case 1 must have sizeof() cast to int
+      - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data
+      - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()
+
