@@ -4532,3 +4532,7 @@
      as well as the older "[..]" for column sub-selection.
  * Modified most programs that used mri_read_ascii() to read timeseries files to
      use mri_read_1D() instead, so that the "{..}" feature can be supported.
+
+01 May 2003
+ * Modified NLfit.c and plug_nlfit.c to have NLfit_error() be able to use longjmp()
+     to deal with errors, rather than exit().
