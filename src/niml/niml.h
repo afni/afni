@@ -98,23 +98,28 @@ typedef struct { float r,i ; } complex ;
 /*--------------------------------------------------------------------------*/
 /*! This type stores the information about user-defined types. 09 Dec 2002. */
 
-typedef struct {
-  int   code ;             /*!< unique integer code for this type */
-  int   size ;             /*!< number of bytes for this type (w/padding) */
-  int   psiz ;             /*!< sum of sizes of the parts (no padding)
-                                - will be zero if has variable type arrays */
-  int   algn ;             /*!< byte alignment for this type */
-  int   flag ;             /*!< various bit flags */
-  char *name ;             /*!< unique string name for this type */
-  char *userdef ;          /*!< definition user gave for this type */
-  int   comp_num ;         /*!< number of components (components may be rowtypes) */
-  int  *comp_typ ;         /*!< integer codes of the components */
-  int  *comp_dim ;         /*!< if >=0, index of dimension of this component */
-  int   part_num ;         /*!< number of parts (parts are basic types) */
-  int  *part_typ ;         /*!< integer codes of the parts */
-  int  *part_off ;         /*!< byte offsets of the parts */
-  int  *part_siz ;         /*!< byte sizes of the parts */
-  int  *part_dim ;         /*!< if >=0, index of dimension of this part */
+struct NI_rowtype ;  /* incomplete definition */
+
+typedef struct NI_rowtype {
+  int   code ;         /*!< unique integer code for this type */
+  int   size ;         /*!< number of bytes for this type (w/padding) */
+  int   psiz ;         /*!< sum of sizes of the parts (no padding)
+                            - will be zero if has variable type arrays */
+  int   algn ;         /*!< byte alignment for this type */
+  int   flag ;         /*!< various bit flags */
+  char *name ;         /*!< unique string name for this type */
+  char *userdef ;      /*!< definition user gave for this type */
+  int   comp_num ;     /*!< number of components (components may be rowtypes) */
+  int  *comp_typ ;     /*!< integer codes of the components */
+  int  *comp_dim ;     /*!< if >=0, index of dimension of this component */
+  int   part_num ;     /*!< number of parts (parts are basic types) */
+  int  *part_typ ;     /*!< integer codes of the parts */
+  int  *part_off ;     /*!< byte offsets of the parts */
+  int  *part_siz ;     /*!< byte sizes of the parts */
+  int  *part_dim ;     /*!< if >=0, index of dimension of this part */
+
+  struct NI_rowtype **part_rtp; /*!< rowtype ptr for each part;
+                                     N.B.: builtin types point to themselves! */
 } NI_rowtype ;
 
 /*! NI_rowtype bit flag for variable size data. */
@@ -144,10 +149,10 @@ extern char *       NI_rowtype_code_to_name( int ) ;
 extern int          NI_rowtype_name_to_size( char * ) ;
 extern int          NI_rowtype_code_to_size( int ) ;
 extern int          NI_rowtype_vsize       ( NI_rowtype *, void * ) ;
-extern void         NI_val_to_text         ( int, char *, char * ) ;
-extern int          NI_val_to_binary       ( int, char *, char * ) ;
-extern void         NI_multival_to_text    ( int, int, char *, char * ) ;
-extern int          NI_multival_to_binary  ( int, int, char *, char * ) ;
+extern void         NI_val_to_text         ( NI_rowtype *, char *, char * ) ;
+extern int          NI_val_to_binary       ( NI_rowtype *, char *, char * ) ;
+extern void         NI_multival_to_text    ( NI_rowtype *, int, char *, char * );
+extern int          NI_multival_to_binary  ( NI_rowtype *, int, char *, char * );
 
 extern void NI_rowtype_debug( int ) ;
 
