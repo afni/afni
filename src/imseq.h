@@ -164,6 +164,7 @@ typedef struct {
 
       int save_filter ;  /* 27 Jun 2001 */
       int save_agif   ;  /* 27 Jul 2001 */
+      int save_mpeg   ;  /* 02 Jul 2001 */
 } ISQ_options ;
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
@@ -193,6 +194,7 @@ typedef struct {
                                  (opt).aux         = NULL ;             \
                                  (opt).save_filter = -1   ;             \
                                  (opt).save_agif   = 0    ;             \
+                                 (opt).save_mpeg   = 0    ;             \
                                } while(0)
 
 /*------------- statistics for image display scaling -------------*/
@@ -437,6 +439,8 @@ typedef struct MCW_imseq {
      MCW_bbox * save_one_bbox ;      /* 26 Jul 2001 */
      MCW_bbox * save_agif_bbox ;     /* 27 Jul 2001 */
 
+     float clbot,cltop , barbot,bartop ; /* 29 Jul 2001 */
+
 } MCW_imseq ;
 
 #define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
@@ -559,6 +563,7 @@ extern void ISQ_make_montage( MCW_imseq * ) ;
 
 extern void ISQ_make_bar( MCW_imseq * ) ;
 extern void ISQ_show_bar( MCW_imseq * ) ;
+extern void ISQ_set_barhint( MCW_imseq * , char * ) ; /* 29 Jul 2001 */
 
 extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * ) ;
 

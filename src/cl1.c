@@ -11,6 +11,100 @@ static int cl1_(integer *k, integer *l, integer *m, integer *n,
                 real *res, real * error, real *cu, integer *iu, integer *s) ;
 
 /*---------------------------------------------------------------------
+  Approximately (L1) solve equations
+
+             j=nvec-1
+    z[i] = SUM        A[j][i] * y[j]   (i=0..ndim-1)
+             j=0
+
+  for y[j] (j=0..nvec-1), subject to constraints (based on y[j] input)
+
+    input y[j] =  0 ==> unconstrained
+               =  1 ==> y[j] must be non-negative on output
+               = -1 ==> y[j] must be non-positive on output
+
+  The return value of the function is 0 if everything worked, and
+  nonzero if an error occured.
+-----------------------------------------------------------------------*/
+
+int cl1_solve( int ndim , int nvec , float *z , float **A , float *y )
+{
+   /* internal variables */
+
+   int jj , ii ;
+
+   /* variables for CL1 */
+
+   integer k,l,m,n,klmd,klm2d,nklmd,n2d , kode,iter , *iu,*s ;
+   real *q , toler , *x , *res , error , *cu ;
+
+   /*-- check inputs --*/
+
+   if( ndim < 1 || nvec < 1 )                         return 4 ;
+   if( A == NULL || y == NULL || z == NULL )          return 4 ;
+   for( jj=0 ; jj < nvec ; jj++ ) if( A[jj] == NULL ) return 4 ;
+
+   /*-- setup call to CL1 --*/
+
+   k     = ndim ;
+   l     = 0 ;     /* no linear equality constraints */
+   m     = 0 ;     /* no linear inequality constraints */
+   n     = nvec ;
+
+   klmd  = k+l+m ;
+   klm2d = k+l+m+2 ;
+   nklmd = n+k+l+m ;
+   n2d   = n+2 ;
+
+   kode  = 1 ;       /* enforce implicit constraints on x[] */
+   iter  = 10*klmd ;
+
+   toler = 0.0001 ;
+   error = 0.0 ;
+
+   /* input/output matrices & vectors */
+
+   q     = (real *) malloc( sizeof(real) * klm2d*n2d ) ;
+   x     = (real *) malloc( sizeof(real) * n2d ) ;
+   res   = (real *) malloc( sizeof(real) * klmd ) ;
+
+   /* workspaces */
+
+   cu    = (real *) malloc( sizeof(real) * 2*nklmd ) ;
+   iu    = (integer *) malloc( sizeof(integer) * 2*nklmd ) ;
+   s     = (integer *) malloc( sizeof(integer) * klmd ) ;
+
+   /* load matrices & vectors */
+
+   for( jj=0 ; jj < nvec ; jj++ )
+      for( ii=0 ; ii < ndim ; ii++ )
+         q[ii+jj*klm2d] = A[jj][ii] ;
+
+   for( ii=0 ; ii < ndim ; ii++ )
+      q[ii+nvec*klm2d] = z[ii] ;
+
+   for( jj=0 ; jj < nvec ; jj++ ) y[jj] = x[jj] ;
+
+   for( ii=0 ; ii < ndim ; ii++ ) res[ii] = 0.0 ;
+
+   /*-- do the work --*/
+
+   cl1_( &k, &l, &m, &n,
+         &klmd, &klm2d, &nklmd, &n2d,
+         q, &kode, &toler, &iter, x, res, &error, cu, iu, s) ;
+
+   free(q) ; free(res) ; free(cu) ; free(iu) ; free(s) ;
+
+   if( kode != 0 ){ free(x) ; return (int)kode ; }
+
+   /*-- copy results into output --*/
+
+   for( jj=0 ; jj < nvec ; jj++ ) y[jj] = (float) x[jj] ;
+
+   free(x) ; return 0 ;
+}
+
+/*---------------------------------------------------------------------
   Find a set of coefficients ec[] so that
 
                               j=nvec-1 {                         }
@@ -32,8 +126,11 @@ static int cl1_(integer *k, integer *l, integer *m, integer *n,
 
   Method: uses the CL1 subroutine from the TOMS library;
           the f2c translation appears at the end of this file
+
+  N.B.: NOT TESTED
 -----------------------------------------------------------------------*/
 
+#if 0
 int cl1_pos_sum( int ndim , int nvec ,
                  float * base_vec , float ** extra_vec , float * ec )
 {
@@ -111,6 +208,7 @@ int cl1_pos_sum( int ndim , int nvec ,
 
    free(x) ; return 0 ;
 }
+#endif
 
 /*======================================================================
    Translated from the TOMS library CL1 algorithm

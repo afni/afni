@@ -348,7 +348,11 @@ ENTRY("new_MCW_grapher") ;
                       "                 the timeseries as a whole\n"
                       "Double Plot --> If 'Tran 1D' is active, then\n"
                       "                 plot the data timeseries AND\n"
-                      "                 the transformed timeseries\n"
+                      "                 the transformed timeseries;\n"
+                      "                Plus/Minus -> transformed data\n"
+                      "                 is added/subtracted from real\n"
+                      "                 data timeseries (use this with\n"
+                      "                 Dataset#2 to plot error bands)\n"
                       "Done        --> Close this graphing window\n"
                       "\n"
                       "The keystrokes indicated in the menus will\n"
@@ -574,15 +578,42 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_BUT(opt_color_up_pb     ,"Grid Color   [r]" , "Rotate grid color" ) ;
 #endif
 
-   { static char * bbox_label[1] = { "Baseline   [b]" } ;
+   /*-- 07 Aug 2001: Baseline sub-menu creation --*/
 
-    grapher->opt_baseline_bbox =
-         new_MCW_bbox( grapher->opt_menu ,
-                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
+   { char * bbox_label[3] = { "Individual [b]" ,
+                              "Common     [b]" ,
+                              "Global     [b]" } ;
+     XmString xstr ;
+
+     OPT_MENU_PULLRIGHT(opt_baseline_menu,opt_baseline_cbut,
+                        "Baseline","Change sub-graphs baseline");
+
+     grapher->opt_baseline_bbox =
+         new_MCW_bbox( grapher->opt_baseline_menu ,
+                       3 , bbox_label , MCW_BB_radio_one , MCW_BB_noframe ,
                        GRA_baseline_CB , (XtPointer)grapher ) ;
+     MCW_set_bbox( grapher->opt_baseline_bbox , BASELINE_INDIVIDUAL ) ;
 
-    MCW_reghint_children( grapher->opt_baseline_bbox->wrowcol ,
-                          "Common graph baseline?" ) ;
+     MCW_reghint_children( grapher->opt_baseline_bbox->wrowcol ,
+                          "Graph baseline methods" ) ;
+
+     MENU_SLINE( opt_baseline_menu ) ;
+
+     OPT_MENU_PULL_BUT( opt_baseline_menu,opt_baseline_setglobal_pb ,
+                        "Set Global" , "Global baseline level" ) ;
+
+     MENU_SLINE( opt_baseline_menu ) ;
+
+     xstr = XmStringCreateLtoR( "Global: 0        ",XmFONTLIST_DEFAULT_TAG ) ;
+     grapher->opt_baseline_global_label =
+        XtVaCreateManagedWidget(
+                 "dialog" , xmLabelWidgetClass , grapher->opt_baseline_menu ,
+                    XmNlabelString , xstr ,
+                    XmNrecomputeSize , False ,
+                    XmNtraversalOn , False ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+     XmStringFree( xstr ) ;
    }
 
    /* 22 Sep 2000: Text toggle */
@@ -645,8 +676,6 @@ ENTRY("new_MCW_grapher") ;
    if( grapher->status->transforms1D != NULL &&
        grapher->status->transforms1D->num > 0  ){  /* 03 Nov 1996 */
 
-      static char * bbox_label[1] = { "Double Plot" } ;
-
       MENU_DLINE(opt_menu) ;
 
       grapher->transform1D_av =
@@ -664,18 +693,28 @@ ENTRY("new_MCW_grapher") ;
                             "Time series transformations" ) ;
 
       /* 08 Nov 1996: dplot = double plot */
+      /* 07 Aug 2001: rewrite of dplot to make it have 3 states, not two */
 
-      grapher->transform1D_dplot_bbox =
-         new_MCW_bbox( grapher->opt_menu ,
-                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
-                       GRA_dplot_change_CB , (XtPointer)grapher ) ;
+      { char * bbox_label[3] = { "DPlot Off" ,
+                                 "Overlay"   ,
+                                 "Plus/Minus" } ;
 
-      MCW_reghint_children( grapher->transform1D_dplot_bbox->wrowcol ,
-                            "Plot data AND transform?" ) ;
+        OPT_MENU_PULLRIGHT(opt_dplot_menu,opt_dplot_cbut,
+                           "Double Plot","Graph Dataset and Tran 1D?");
+
+        grapher->opt_dplot_bbox =
+            new_MCW_bbox( grapher->opt_dplot_menu ,
+                          3 , bbox_label , MCW_BB_radio_one , MCW_BB_noframe ,
+                          GRA_dplot_change_CB , (XtPointer)grapher ) ;
+        MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+
+        MCW_reghint_children( grapher->opt_dplot_bbox->wrowcol ,
+                              "How to show 2 curves" ) ;
+      }
 
    } else {
       grapher->transform1D_av = NULL ;
-      grapher->transform1D_dplot_bbox = NULL ;
+      grapher->opt_dplot_bbox = NULL ;
    }
    grapher->transform1D_func  = NULL ;  /* no function to start with */
    grapher->transform1D_index = 0 ;
@@ -723,7 +762,8 @@ if(PRINT_TRACING)
    grapher->key_Nlock   =  0 ;
    grapher->xFD         =  0 ;
    grapher->yFD         =  0 ;
-   grapher->common_base =  0 ;
+   grapher->common_base =  BASELINE_INDIVIDUAL ; /* 07 Aug 2001 */
+   grapher->global_base =  0 ;
    grapher->time_index  =  0 ;
    grapher->pin_num     =  0 ;  /* 27 Apr 1997 */
    grapher->ggap        =  INIT_GR_ggap ;  /* 12 Jan 1998 + 27 May 1999 */
@@ -832,12 +872,15 @@ STATUS("destroying arrowvals") ;
       FREE_AV( grapher->opt_color_av[ii] ) ;
 
 STATUS("destroying bboxes") ;
-   myXtFree( grapher->transform1D_dplot_bbox ) ;  /* 08 Nov 1996 */
+   myXtFree( grapher->opt_dplot_bbox ) ;          /* 08 Nov 1996 */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
       myXtFree( grapher->opt_thick_bbox[ii] ) ;   /* 16 Jun 1997 */
       myXtFree( grapher->opt_points_bbox[ii] ) ;  /* 09 Jan 1998 */
-  }
+   }
+
+   myXtFree( grapher->opt_baseline_bbox ) ;       /* 07 Aug 2001 */
+   myXtFree( grapher->opt_textgraph_bbox ) ;
 
 STATUS("freeing cen_tsim") ;
    mri_free( grapher->cen_tsim ) ;
@@ -1206,10 +1249,17 @@ ENTRY("redraw_graph") ;
       sprintf(strp, "Num: %5d [%d]" , npoints,grapher->pin_num) ;
 
    if( !grapher->textgraph ){
-      if( grapher->common_base )            /* 08 Jan 1998 */
-         strcat(strp,"  Base: common") ;
-      else
-         strcat(strp,"  Base: separate") ;
+      switch( grapher->common_base ){
+         default:
+         case BASELINE_INDIVIDUAL:
+            strcat(strp,"  Base: separate") ; break ;
+
+         case BASELINE_COMMON:
+            strcat(strp,"  Base: common") ; break ;
+
+         case BASELINE_GLOBAL:
+            strcat(strp,"  Base: global") ; break ;
+      }
    }
 
    fd_txt( grapher , xxx ,  7, strp ) ;
@@ -1398,6 +1448,9 @@ void plot_graphs( MCW_grapher * grapher , int code )
    int   set_scale = ( (code & PLOTCODE_AUTOSCALE) != 0 ||
                        grapher->never_drawn ) ;
 
+   MRI_IMAGE * dsim ; /* 07 Aug 2001: for double plot */
+   float     * dsar ;
+
 ENTRY("plot_graphs") ;
 
 #ifdef GRAPHER_ALLOW_ONE                       /* 22 Sep 2000 */
@@ -1441,12 +1494,13 @@ ENTRY("plot_graphs") ;
    INIT_IMARR(tsimar) ;
 
    /** 08 Nov 1996: initialize second array for double plotting **/
+   /** 07 Aug 2001: modify to allow for multiple dplot cases    **/
 
    if( grapher->transform1D_func != NULL &&
-       MCW_val_bbox(grapher->transform1D_dplot_bbox) ){
+       MCW_val_bbox(grapher->opt_dplot_bbox) != DPLOT_OFF ){
 
       INIT_IMARR(dplot_imar) ;
-      dplot = 1 ;
+      dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
    }
 
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -1606,10 +1660,22 @@ STATUS("finding statistics of time series") ;
 
    if( set_scale && nd_bot < nd_top && nd_dif > 0.0 ){
 
-      if( grapher->common_base ){
-         grapher->fscale = 0.9 * grapher->gy / (nd_top-nd_bot) ; /* global range */
-      } else {
-         grapher->fscale = 0.9 * grapher->gy / nd_dif ;          /* biggest range */
+      switch( grapher->common_base ){
+         default:
+         case BASELINE_INDIVIDUAL:
+            grapher->fscale = 0.9 * grapher->gy / nd_dif ;          /* biggest range */
+         break ;
+
+         case BASELINE_COMMON:
+            grapher->fscale = 0.9 * grapher->gy / (nd_top-nd_bot) ; /* global range */
+         break ;
+
+         case BASELINE_GLOBAL:{
+            float vbot = (nd_top > grapher->global_base)
+                        ? grapher->global_base : nd_bot ;
+            grapher->fscale = 0.9 * grapher->gy / (nd_top-vbot) ;
+         }
+         break ;
       }
 
       if( grapher->fscale > 0.0 && grapher->fscale < 1.0 )       /* switcheroo */
@@ -1630,7 +1696,7 @@ STATUS("finding statistics of time series") ;
 
    /** find the smallest element in all the time series, if needed **/
 
-   if( grapher->common_base ){
+   if( grapher->common_base == BASELINE_COMMON ){
       int first = 1 ;
 
 STATUS("finding common base") ;
@@ -1644,6 +1710,8 @@ STATUS("finding common base") ;
          if( first && ibot < itop ){ tsbot = tsar[ibot] ; first = 0 ; }
          for( i=ibot ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
       }
+   } else if( grapher->common_base == BASELINE_GLOBAL ){ /* 07 Aug 2001 */
+      tsbot = grapher->global_base ;
    }
 
    /** loop over matrix of graphs and plot them all to the pixmap **/
@@ -1661,7 +1729,7 @@ STATUS("starting time series graph loop") ;
 
          /** find bottom of this graph, if needed **/
 
-         if( ! grapher->common_base && ibot < itop ){
+         if( grapher->common_base == BASELINE_INDIVIDUAL && ibot < itop ){
             tsbot = tsar[ibot] ;
             for( i=ibot+1 ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
          }
@@ -1747,24 +1815,38 @@ STATUS("starting time series graph loop") ;
          }
 
          /* 08 Nov 1996: double plot?  Duplicate the above drawing code! */
+         /* 07 Aug 2001: old method was DPLOT_OVERLAY,
+                         new method is  DPLOT_PLUSMINUS */
 
          if( dplot ){
-            tsim = IMARR_SUBIMAGE(dplot_imar,its) ;
-            if( tsim == NULL || tsim->nx < 2 ) continue ;  /* skip */
-            tsar = MRI_FLOAT_PTR(tsim) ;
+            dsim = IMARR_SUBIMAGE(dplot_imar,its) ;
+            if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip */
+            dsar = MRI_FLOAT_PTR(dsim) ;
             itop = NPTS(grapher) ;
-            itop = npoints = MIN( itop , tsim->nx ) ;
+            itop = npoints = MIN( itop , dsim->nx ) ;
 
             ftemp = grapher->fscale ;
                  if( ftemp == 0.0 ) ftemp =  1.0 ;
             else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
 
-            for( i=0 ; i < MIN(ibot,itop) ; i++ )
-               plot[i] = (tsar[ibot] - tsbot) * ftemp ;
-            for( i=ibot ; i < itop ; i++ )
-               plot[i] = (tsar[i] - tsbot) * ftemp ;
+            switch( dplot ){
+               default:
+               case DPLOT_OVERLAY:                       /* plot curve */
+                  for( i=0 ; i < MIN(ibot,itop) ; i++ )
+                     plot[i] = (dsar[ibot] - tsbot) * ftemp ;
+                  for( i=ibot ; i < itop ; i++ )
+                     plot[i] = (dsar[i] - tsbot) * ftemp ;
+               break ;
 
-            ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;
+               case DPLOT_PLUSMINUS:                     /* plus side */
+                  for( i=0 ; i < MIN(ibot,itop) ; i++ )
+                     plot[i] = (tsar[ibot]+dsar[ibot] - tsbot) * ftemp ;
+                  for( i=ibot ; i < itop ; i++ )
+                     plot[i] = (tsar[i]   +dsar[i]    - tsbot) * ftemp ;
+               break ;
+            }
+
+            ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ; /* cf XPIX */
             xoff  = grapher->xorigin[ix][iy] ;
             yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
 
@@ -1786,9 +1868,37 @@ STATUS("starting time series graph loop") ;
                            a_line , npoints ,  CoordModeOrigin ) ;
             }
 
+            /* plot minus side of plus/minus curve? */
+
+            if( dplot == DPLOT_PLUSMINUS ){  /* lots of duplicate code :-( */
+              ftemp = grapher->fscale ;
+                   if( ftemp == 0.0 ) ftemp =  1.0 ;
+              else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+              for( i=0 ; i < MIN(ibot,itop) ; i++ )
+                plot[i] = (tsar[ibot]-dsar[ibot] - tsbot) * ftemp ;
+              for( i=ibot ; i < itop ; i++ )
+                plot[i] = (tsar[i]   -dsar[i]    - tsbot) * ftemp ;
+              ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;
+              for( i=0 ; i < itop ; i++ ){
+                a_line[i].x = xoff + XPIX(i) ;
+                a_line[i].y = yoff - plot[i] ;
+              }
+              if( DPLOT_POINTS(grapher) ){
+                for( i=0 ; i < itop ; i++ )
+                  GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher) ) ;
+              }
+              if( DPLOT_LINES(grapher) ) {
+                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
+                XDrawLines( grapher->dc->display ,
+                            grapher->fd_pxWind , grapher->dc->myGC ,
+                            a_line , npoints ,  CoordModeOrigin ) ;
+              }
+            }
+
             DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
             DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
-         }
+
+         } /* end of dplot */
 
          /* 05 Jan 1999: plot horizontal line through zero, if desired and needed */
 
@@ -2667,8 +2777,11 @@ STATUS(str); }
          end_fd_graph_CB( NULL , (XtPointer) grapher , NULL ) ;
       break ;
 
+      /* modified 07 Aug 2001 to account for more complex baseline scenario */
+
       case 'b':{
-         int bbb = ! grapher->common_base ;
+         int bbb = grapher->common_base << 1 ;
+         if( bbb > BASELINE_GLOBAL ) bbb = BASELINE_INDIVIDUAL ;
          MCW_set_bbox( grapher->opt_baseline_bbox , bbb ) ;
          grapher->common_base = bbb ;
          redraw_graph( grapher , 0 ) ;
@@ -2981,6 +3094,16 @@ STATUS("User pressed Done button: starting timeout") ;
       } else {
          XBell(XtDisplay(w),100) ;
       }
+      EXRETURN ;
+   }
+
+   /** 07 Aug 2001: Set Global baseline **/
+
+   if( w == grapher->opt_baseline_setglobal_pb ){
+      MCW_choose_integer( grapher->option_rowcol , "Global Baseline" ,
+                          -29999 , 29999 , (int)(grapher->global_base) ,
+                          GRA_finalize_global_baseline_CB ,
+                          (XtPointer) grapher ) ;
       EXRETURN ;
    }
 
@@ -3418,6 +3541,8 @@ OK   drive_code       drive_data should be
 *    graDR_setgrid               parameters to the drive parameter.
 *    graDR_setpinnum             [same as newlength]
 
+*    graDR_setglobalbaseline (float *) Global baseline value
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3438,6 +3563,19 @@ ENTRY("drive_MCW_grapher") ;
                  drive_code) ;
          XBell( grapher->dc->display , 100 ) ;
          RETURN( False ) ;
+      }
+
+      /*------ setglobalbaseline [07 Aug 2001] -----*/
+
+      case graDR_setglobalbaseline:{
+         float *vvv = (float *) drive_data ;   /* get value   */
+         int ii = thd_floatscan( 1 , vvv ) ;   /* check value */
+         MCW_choose_cbs cb ;
+         if( ii != 0 ) RETURN( False ) ;       /* this is bad */
+         cb.reason = mcwCR_integer ;
+         cb.fval   = *vvv ;
+         GRA_finalize_global_baseline_CB(NULL,(XtPointer)grapher,&cb) ;
+         RETURN( True ) ;
       }
 
       /*------ setmatrix [22 Sep 2000] -----*/
@@ -4732,6 +4870,34 @@ ENTRY("GRA_baseline_CB") ;
 }
 
 /*----------------------------------------------------------------------------
+   Set the global baseline value
+------------------------------------------------------------------------------*/
+
+void GRA_finalize_global_baseline_CB( Widget w,
+                                      XtPointer cd , MCW_choose_cbs *cbs )
+{
+   MCW_grapher * grapher = (MCW_grapher *) cd ;
+   XmString xstr ;
+   char str[32] ;
+
+ENTRY("GRA_finalize_global_baseline_CB") ;
+
+   if( !GRA_VALID(grapher) ) EXRETURN ;
+
+   grapher->global_base = cbs->fval ;
+   if( grapher->common_base == BASELINE_GLOBAL ) redraw_graph(grapher,0) ;
+
+   strcpy(str,"Global:") ;
+   AV_fval_to_char(grapher->global_base,str+7) ;
+   xstr = XmStringCreateLtoR( str,XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( grapher->opt_baseline_global_label ,
+                     XmNlabelString,xstr ,
+                  NULL ) ;
+   XmStringFree(xstr) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------
    08 Nov 1996: for "double plots" -- just redraw everything
 ------------------------------------------------------------------------------*/
 
@@ -4741,7 +4907,7 @@ void GRA_dplot_change_CB( Widget w , XtPointer client_data , XtPointer call_data
 
 ENTRY("GRA_dplot_change_CB") ;
 
-   if( ! GRA_VALID(grapher) ) EXRETURN ;
+   if( ! GRA_REALZ(grapher) ) EXRETURN ;
    redraw_graph( grapher , 0 ) ;
    EXRETURN ;
 }

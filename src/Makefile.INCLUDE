@@ -18,7 +18,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             parser.o parser_int.o afni_plugout.o afni_fimfunc.o  \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o  \
-            afni_ttren.o                                         \
+            afni_ttren.o afni_pplug_1dfunc.o                     \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -550,9 +550,9 @@ adwarp:adwarp.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 	$(RM) $@
 	$(CC) -o 2dImReg 2dImReg.o $(LFLAGS) $(LLIBS)
 
-waver:waver.o
+waver:waver.o parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o waver waver.o $(LFLAGS) $(LLIBS)
+	$(CC) -o waver waver.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dnewid:3dnewid.o
 	$(RM) $@
@@ -807,7 +807,7 @@ afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
-	$(CP) -r gifsicledir qhulldir f2cdir coxplot volpack moveup moveAFNI ./AFNI98
+	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir coxplot volpack moveup moveAFNI ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
@@ -1165,6 +1165,14 @@ gifsicle:
 	  $(MV) gifsicle .. ; )
 
 #######
+# 02 Aug 2001
+
+mpeg_encode:
+	( cd mpeg_encodedir ; \
+	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS) $(LLIBS)' ; \
+	  $(MV) mpeg_encode .. ; )
+
+#######
 
 libfftw.a:
 	( cd fftw ; \
@@ -1312,4 +1320,3 @@ testcox:testcox.o
 	$(CC) -o testcox testcox.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 #-------------------------------------------------------------------------------
-#include Makefile.DEPENDS

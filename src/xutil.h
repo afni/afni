@@ -161,7 +161,13 @@ extern void RWC_visibilize_CB( Widget , XtPointer , XtPointer ) ; /* 27 Sep 2000
 #define VISIBILIZE_WHEN_MAPPED(w) \
   XtAddCallback(w,XmNmapCallback,RWC_visibilize_CB,NULL)
 
-extern void MCW_manage_widgets  ( Widget * war , int nar ) ; /* 24 Apr 2001 */
-extern void MCW_unmanage_widgets( Widget * war , int nar ) ;
+extern void MCW_manage_widgets  ( Widget * , int ) ; /* 24 Apr 2001 */
+extern void MCW_unmanage_widgets( Widget * , int ) ;
+
+void RWC_destroy_nullify       ( Widget, void ** ) ; /* 31 Jul 2001 */
+void RWC_destroy_nullify_cancel( Widget, void ** ) ;
+
+#define NULLIFY_ON_DESTROY(pp,ww)        RWC_destroy_nullify((ww),(void **)&(pp))
+#define CANCEL_NULLIFY_ON_DESTROY(pp,ww) RWC_destroy_nullify_cancel((ww),(void **)&(pp))
 
 #endif /* _MCW_XUTIL_HEADER_ */

@@ -3,6 +3,7 @@
 
 static int           have_dseTT = -1   ;
 static THD_3dim_dataset * dseTT = NULL ;
+static THD_3dim_dataset * dseTT_big = NULL ; /* 01 Aug 2001 */
 
 #define MAX_FIND 9                    /* max number to find within WAMIRAD  */
 #define WAMIRAD  7.5                  /* search radius: must not exceed 9.5 */
@@ -14,6 +15,18 @@ THD_3dim_dataset * TT_retrieve_atlas(void)
 {
    if( have_dseTT < 0 ) TT_load_atlas() ;
    return dseTT ;                         /* might be NULL */
+}
+
+/*-----------------------------------------------------------------------*/
+
+THD_3dim_dataset * TT_retrieve_atlas_big(void) /* 01 Aug 2001 */
+{
+   if( dseTT_big != NULL ) return dseTT_big ;
+   if( have_dseTT < 0    ) TT_load_atlas() ;
+   if( dseTT == NULL     ) return NULL ;
+   dseTT_big = THD_zeropad( dseTT , 10,0,0,0,0,0 , "TTatlas_big" , 0 ) ;
+   DSET_unload( dseTT ) ; /* probably won't need again */
+   return dseTT_big ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -92,6 +105,12 @@ void TT_purge_atlas(void)
   PURGE_DSET(dseTT) ; return ;
 }
 
+void TT_purge_atlas_big(void)
+{
+   if( dseTT_big != NULL ){ DSET_delete(dseTT_big) ; dseTT_big = NULL ; }
+   return ;
+}
+
 /*----------------------------------------------------------------------
    Return a multi-line string of TT atlas labels near the given point
    (xx,yy,zz are in Dicom order coordinates).
@@ -111,6 +130,8 @@ char * TT_whereami( float xx , float yy , float zz )
    char lbuf[256] , *rbuf ;
    int nfind, b2_find[MAX_FIND], b4_find[MAX_FIND], rr_find[MAX_FIND] ;
 
+   THD_3dim_dataset * dset ; /* 01 Aug 2001 */
+
 ENTRY("TT_whereami") ;
 
    /*-- setup stuff: load atlas dataset, prepare search mask --*/
@@ -118,9 +139,19 @@ ENTRY("TT_whereami") ;
    if( dseTT == NULL ){
       ii = TT_load_atlas() ; if( ii == 0 ) RETURN(NULL) ;
    }
-   DSET_load(dseTT) ;
-   b2 = DSET_BRICK_ARRAY(dseTT,0) ; if( b2 == NULL ) RETURN(NULL) ;
-   b4 = DSET_BRICK_ARRAY(dseTT,1) ; if( b4 == NULL ) RETURN(NULL) ;
+
+   /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
+
+   dset = (dseTT_big != NULL) ? dseTT_big : dseTT ;
+
+#if 0
+if( dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
+else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
+#endif
+
+   DSET_load(dset) ;
+   b2 = DSET_BRICK_ARRAY(dset,0) ; if( b2 == NULL ) RETURN(NULL) ;
+   b4 = DSET_BRICK_ARRAY(dset,1) ; if( b4 == NULL ) RETURN(NULL) ;
 
    if( wamiclust == NULL ){
       wamiclust = MCW_build_mask( 0,0,0 , 1.0,1.0,1.0 , WAMIRAD ) ;
@@ -137,12 +168,12 @@ ENTRY("TT_whereami") ;
 
    /*-- find locations near the given one that are in the Atlas --*/
 
-   ijk = THD_3dmm_to_3dind( dseTT , TEMP_FVEC3(xx,yy,zz) ) ;  /* get indexes */
+   ijk = THD_3dmm_to_3dind( dset , TEMP_FVEC3(xx,yy,zz) ) ;  /* get indexes */
    UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
 
-   nx = DSET_NX(dseTT) ;               /* size of TT atlas dataset axes */
-   ny = DSET_NY(dseTT) ;
-   nz = DSET_NZ(dseTT) ; nxy = nx*ny ;
+   nx = DSET_NX(dset) ;               /* size of TT atlas dataset axes */
+   ny = DSET_NY(dset) ;
+   nz = DSET_NZ(dset) ; nxy = nx*ny ;
 
    nfind = 0 ;
 

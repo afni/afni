@@ -2967,11 +2967,6 @@ STATUS("making func->rowcol") ;
      MCW_reghint_children( func->see_ttatlas_bbox->wrowcol ,
                            "Use 'Atlas Colors' from image popup menu" ) ;
 
-#if 0
-     if( TT_retrieve_atlas() == NULL )
-         XtSetSensitive( func->see_ttatlas_bbox->wrowcol , False ) ;
-#endif
-
      ADDTO_KILL(im3d->kl,func->see_ttatlas_bbox) ;
    }
 
@@ -4831,6 +4826,19 @@ ENTRY("AFNI_misc_button") ;
    XtAddCallback( dmode->misc_environ_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_environ_pb , "Control environment variables" ) ;
+
+   dmode->misc_1dchain_pb =                              /* 03 Jul 2000 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Edit 1DChain") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_1dchain_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_1dchain_pb , "Control 1DChain function" ) ;
+   AFNI_misc_CB( dmode->misc_1dchain_pb , im3d , NULL ) ;
 
    dmode->misc_2dchain_pb =                              /* 03 Jul 2000 */
          XtVaCreateManagedWidget(

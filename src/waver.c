@@ -4,6 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include "parser.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,8 @@ double waveform_GAM( double t ) ;
 double waveform_WAV( double t ) ;
 void Process_Options( int c , char * a[] ) ;
 void Syntax(void) ;
+
+double waveform_EXPR( double t ) ;  /* 01 Aug 2001 */
 
 /*----------------------------------------------------------------
   Function that transitions from 0 to 1 over input x in [0,1].
@@ -44,8 +47,9 @@ double ztone( double x )
   Given t in seconds, return the impulse response waveform
 -------------------------------------------------------------------*/
 
-#define WAV_TYPE 1
-#define GAM_TYPE 2
+#define WAV_TYPE  1
+#define GAM_TYPE  2
+#define EXPR_TYPE 3  /* 01 Aug 2001 */
 
 static int    waveform_type    = WAV_TYPE ;
 
@@ -64,16 +68,38 @@ static double GAM_power        = 8.6 ;
 static double GAM_time         = 0.547 ;
 static double GAM_ampl         = 0.0 ;
 
+static PARSER_code * EXPR_pcode = NULL ;  /* 01 Aug 2001 */
+static double        EXPR_fac   = 1.0  ;
+
 double waveform( double t )
 {
    switch( waveform_type ){
 
       default:
-      case WAV_TYPE: return waveform_WAV(t) ;
+      case WAV_TYPE:  return waveform_WAV(t) ;
 
-      case GAM_TYPE: return waveform_GAM(t) ;
+      case GAM_TYPE:  return waveform_GAM(t) ;
+
+      case EXPR_TYPE: return waveform_EXPR(t);  /* 01 Aug 2001 */
    }
    return 0.0 ;  /* unreachable */
+}
+
+#define TT 19
+double waveform_EXPR( double t )  /* 01 Aug 2001 */
+{
+   static int first=1 ;
+   static double atoz[26] ;
+
+   if( t < 0.0 ) return 0.0 ;     /* 02 Aug 2001: oops */
+
+   if( first ){
+      int ii ;
+      for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;
+      first =0 ;
+   }
+   atoz[TT] = t ;
+   return (EXPR_fac * PARSER_evaluate_one(EXPR_pcode,atoz) ) ;
 }
 
 double waveform_GAM( double t )
@@ -163,6 +189,39 @@ int main( int argc , char * argv[] )
          WAV_duration = al * GAM_power * GAM_time ;
       }
       break ;
+
+      /* 01 Aug 2001: yet more complicated for the EXPR type */
+
+#define FPASS 500
+#define SPASS 10000
+#define STHR  5
+      case EXPR_TYPE:{
+         double val , vtop=0.0 , vthr ;
+         int itop=-1 , icount ;
+         for( ii=0 ; ii < FPASS ; ii++ ){
+            val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
+            if( val > vtop ){ vtop = val ; itop = ii ; }
+         }
+         if( itop < 0 ){
+            fprintf(stderr,"** -EXPR is 0 for 1st %d points!\n",FPASS);
+            exit(1) ;
+         }
+         vthr = 0.01 * vtop ;
+         for( icount=0,ii=itop+1 ; ii < SPASS && icount < STHR ; ii++ ){
+            val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
+            if( val <= vthr ) icount++ ;
+            else              icount=0 ;
+         }
+         if( ii == SPASS && icount < STHR ){
+            fprintf(stderr,"** -EXPR doesn't decay away in %d points!\n",SPASS);
+            exit(1) ;
+         }
+         WAV_duration = WAV_dt * ii ;
+
+         if( WAV_peak != 0.0 ) EXPR_fac = WAV_peak / vtop ;
+         WAV_peak = 1.0 ;
+      }
+      break ;
    }
 
    /*---- compute sampled waveform ----*/
@@ -213,7 +272,7 @@ int main( int argc , char * argv[] )
       for( ii=0 ; ii < OUT_npts ; ii++ ) OUT_ts[ii] = 0.0 ;
 
       for( jj=0 ; jj < IN_num_tstim ; jj++ ){
-        ibot = (int) (IN_tstim[jj]/WAV_dt) ;
+        ibot = (int) (IN_tstim[jj]/WAV_dt) ;    /* may be 1 too early */
         itop = ibot + WAV_npts ;
         if( itop > OUT_npts ) itop = OUT_npts ; /* shouldn't happen */
         for( ii=ibot ; ii < itop ; ii++ ){
@@ -242,10 +301,19 @@ void Syntax(void)
     "The output goes to stdout, and normally would be redirected to a file.\n"
     "\n"
     "Options: (# refers to a number; [xx] is the default value)\n"
-    "  -WAV           = Sets waveform to Cox special          [default]\n"
-    "  -GAM           = Sets waveform to form t^b * exp(-t/c)\n"
-    "                   (waveforms will also be chosen if\n"
-    "                    one of the options below is used)\n"
+    "  -WAV = Sets waveform to Cox special                    [default]\n"
+    "           (cf. AFNI FAQ list for formulas)\n"
+    "  -GAM = Sets waveform to form t^b * exp(-t/c)\n"
+    "           (cf. Mark Cohen)\n"
+    "\n"
+    "  -EXPR \"expression\" = Sets waveform to the expression given,\n"
+    "                         which should depend on the variable 't'.\n"
+    "     e.g.: -EXPR \"step(t-2)*step(12-t)*(t-2)*(12-t)\"\n"
+    "     N.B.: The peak value of the expression on the '-dt' grid will\n"
+    "           be scaled to the value given by '-peak'; if this is not\n"
+    "           desired, set '-peak 0', and the 'natural' peak value of\n"
+    "           the expression will be used.\n"
+    "\n"
     "These options set parameters for the -WAV waveform.\n"
     "  -delaytime #   = Sets delay time to # seconds                [2]\n"
     "  -risetime #    = Sets rise time to # seconds                 [4]\n"
@@ -253,10 +321,12 @@ void Syntax(void)
     "  -undershoot #  = Sets undershoot to # times the peak         [0.2]\n"
     "                     (this should be a nonnegative factor)\n"
     "  -restoretime # = Sets time to restore from undershoot        [2]\n"
+    "\n"
     "These options set parameters for the -GAM waveform:\n"
     "  -gamb #        = Sets the parameter 'b' to #                 [8.6]\n"
     "  -gamc #        = Sets the parameter 'c' to #                 [0.547]\n"
-    "These options apply to any waveform type:\n"
+    "\n"
+    "These options apply to all waveform types:\n"
     "  -peak #        = Sets peak value to #                        [100]\n"
     "  -dt #          = Sets time step of output AND input          [0.1]\n"
     "\n"
@@ -308,6 +378,8 @@ void Syntax(void)
     "If you have the 'xmgr' graphing program, then a useful way to preview the\n"
     "results of this program is through a command pipe like\n"
     "   waver -dt 0.25 -xyout -inline 16@1 40@0 16@1 40@0 | xmgr -source stdin\n"
+    "Using the cruder AFNI package program 1dplot, you can do something like:\n"
+    "   waver -GAM -tstim 0 7.7 | 1dplot -stdin\n"
     "\n"
     "If a square wave is desired, see the 'sqwave' program.\n"
    ) ;
@@ -330,6 +402,28 @@ void Process_Options( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-WAV",4) == 0 ){
          waveform_type = WAV_TYPE ;
+         nopt++ ; continue ;
+      }
+
+      if( strncmp(argv[nopt],"-EXPR",4) == 0 ){  /* 01 Aug 2001 */
+         waveform_type = EXPR_TYPE ;
+         if( EXPR_pcode != NULL ){
+            fprintf(stderr,"** Can't have 2 -EXPR options!\n") ;
+            exit(1) ;
+         }
+         nopt++ ;
+         if( nopt >= argc ){
+            fprintf(stderr,"** -EXPR needs an argument!\n") ; exit(1) ;
+         }
+         EXPR_pcode = PARSER_generate_code( argv[nopt] ) ;  /* compile */
+         if( EXPR_pcode == NULL ){
+            fprintf(stderr,"** Illegal -EXPR expression!\n") ;
+            exit(1) ;
+         }
+         if( !PARSER_has_symbol("T",EXPR_pcode) ){
+            fprintf(stderr,"** -EXPR expression doesn't use variable 't'!\n");
+            exit(1) ;
+         }
          nopt++ ; continue ;
       }
 
@@ -383,7 +477,6 @@ void Process_Options( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-pea",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_peak = strtod(argv[nopt+1],NULL) ;
-         if( WAV_peak == 0.0 ) ERROR ;
          nopt++ ; nopt++ ; continue ;
       }
 
@@ -504,6 +597,11 @@ void Process_Options( int argc , char * argv[] )
       }
 
       ERROR ;
+   }
+
+   if( WAV_peak == 0.0 && waveform_type != EXPR_TYPE ){
+      fprintf(stderr,"** Illegal -peak 0 for non-EXPR waveform type!\n") ;
+      exit(1) ;
    }
 
    return ;

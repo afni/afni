@@ -1605,6 +1605,31 @@ ENTRY("RWC_xineramize") ;
    *xn = xx ; *yn = yy ; EXRETURN ;
 }
 
+/*----------------------------------------------------------------------
+  NULL out a pointer when a widget is destroyed -- 31 Jul 2001 - RWCox
+------------------------------------------------------------------------*/
+
+void RWC_destroy_nullify_CB( Widget w, XtPointer xp, XtPointer cd )
+{
+   void ** p = (void **) xp ;
+   if( p != NULL ) *p = NULL ;
+   return ;
+}
+
+void RWC_destroy_nullify( Widget w, void **p )
+{
+   if( p != NULL && w != NULL )
+     XtAddCallback( w, XmNdestroyCallback, RWC_destroy_nullify_CB, p ) ;
+   return ;
+}
+
+void RWC_destroy_nullify_cancel( Widget w, void **p )
+{
+   if( w != NULL )
+     XtRemoveCallback( w, XmNdestroyCallback, RWC_destroy_nullify_CB, p ) ;
+   return ;
+}
+
 /*----------  Fix a Linux stupidity  ------------------------------------*/
 
 #ifdef NEED_XSETLOCALE

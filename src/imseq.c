@@ -213,11 +213,19 @@ static int     ppmto_num     = -1 ;
 static char *  ppmto_gif_filter  = NULL ;   /* 27 Jul 2001 */
 static char *  ppmto_agif_filter = NULL ;
 
+static char *  ppmto_mpeg_filter = NULL ;   /* 02 Aug 2001 */
+static char *  ppmto_ppm_filter  = NULL ;
+
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
 
-#define GIFSICLE_SUFFIX "-O2 -d 20 -k 127 -l %s > %s"
-#define WHIRLGIF_SUFFIX "-time 20 -loop %s > %s"
+#define GIFSICLE_SUFFIX    "-O2 -d 20 -k 127 -l %s > %s"
+#define WHIRLGIF_SUFFIX    "-time 20 -loop %s > %s"
+#define MPEG_ENCODE_SUFFIX "-realquiet %s"
+
+#define DO_AGIF(sq) ((sq)->opt.save_agif)
+#define DO_MPEG(sq) ((sq)->opt.save_mpeg)
+#define DO_ANIM(sq) (DO_AGIF(sq) || DO_MPEG(sq))
 
 #define ADDTO_PPMTO(pnam,suff,bbb)                                       \
   do{ ppmto_filter = (char **) realloc( ppmto_filter ,                   \
@@ -246,6 +254,17 @@ static void ISQ_setup_ppmto_filters(void)
       str = malloc(strlen(pg)+32) ;
       sprintf(str,"%s > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv) ;
+
+      /* 02 Aug 2001: also try for mpeg */
+
+      ppmto_ppm_filter = str ;  /* save this filter string */
+
+      pg = THD_find_executable( "mpeg_encode" ) ;
+      if( pg != NULL ){
+         str = malloc(strlen(pg)+64) ;
+         sprintf(str,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
+         ppmto_mpeg_filter = str ;
+      }
    }
 
    /*-- write JPEG --*/
@@ -404,6 +423,7 @@ static char * ISQ_save_label_all = "Save:pnm" ;
          sprintf(sl,"Save.%.3s",ppmto_suffix[(seq)->opt.save_filter]) ;   \
       }                                                                   \
            if( (seq)->opt.save_agif ) strcpy(sl,"Sav:aGif") ;             \
+      else if( (seq)->opt.save_mpeg ) strcpy(sl,"Sav:mpeg") ;             \
       else if( (seq)->opt.save_one  ) sl[3] = '1' ;                       \
       MCW_set_widget_label( (seq)->wbut_bot[NBUT_SAVE] , sl ) ; } while(0)
 
@@ -612,6 +632,9 @@ if( PRINT_TRACING ){
    newseq->lev    = dc->ncol_im-1 ;            /* to range 0..ncol_im-1 */
    newseq->bot    = 0 ;
    newseq->top    = dc->ncol_im-1 ;
+
+   newseq->clbot  = newseq->cltop  = 0.0 ;     /* 29 Jul 2001 */
+   newseq->barbot = newseq->bartop = 0.0 ;
 
    strcpy( newseq->im_label , "hi bob" ) ;
 
@@ -1595,6 +1618,10 @@ ENTRY("ISQ_make_image") ;
       KILL_1MRI(tim) ;
       seq->set_orim = 0 ;
 
+      seq->barbot = seq->clbot ; /* 29 Jul 2001 */
+      seq->bartop = seq->cltop ;
+      ISQ_set_barhint(seq,NULL) ;
+
       /* fix window dimensions if image size is different from before */
 
       new_width_mm  = IM_WIDTH(im) ;
@@ -1717,6 +1744,8 @@ MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq * seq , MRI_IMAGE * im )
 
 ENTRY("ISQ_process_mri") ;
 
+   seq->clbot = seq->cltop = 0.0 ; /* 29 Jul 2001 */
+
    if( ! ISQ_VALID(seq) || im == NULL ) RETURN(NULL) ;
 
    /*** Feb 7, 1996: deal with complex-valued images ***/
@@ -1788,6 +1817,7 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
       }
    }
 
+   /****** Not RGB ==>                                             ******/
    /****** process image in normal fashion if no IMPROC code given ******/
 
    else if( ! have_transform && seq->opt.improc_code == ISQ_IMPROC_NONE ){
@@ -1812,8 +1842,8 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
          case ISQ_SCL_USER:{    /* scale from user input ranges */
             ISQ_SCLEV( seq->rng_bot,seq->rng_top ,
                        seq->dc->ncol_im , seq->scl,seq->lev ) ;
-            clbot = seq->rng_bot ;
-            cltop = seq->rng_top ;
+            clbot = seq->clbot = seq->rng_bot ;
+            cltop = seq->cltop = seq->rng_top ;
          }
          break ; /* end of user input range scaling */
 
@@ -1831,14 +1861,15 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
                case ISQ_RNG_MINTOMAX:
                   seq->scl = st->scl_mm ;
                   seq->lev = st->lev_mm ;
+                  seq->clbot = st->min ;   /* 29 Jul 2001 */
+                  seq->cltop = st->max ;
                break ;
 
                case ISQ_RNG_02TO98:
                   seq->scl = st->scl_per ;
                   seq->lev = st->lev_per ;
-
-                  clbot = st->per02 ;
-                  cltop = st->per98 ;
+                  clbot = seq->clbot = st->per02 ;
+                  cltop = seq->cltop = st->per98 ;
                break ;
             }
          }
@@ -1854,15 +1885,16 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
                   if( ! gl->mm_done ) ISQ_statify_all( seq , True ) ;
                   seq->scl = gl->scl_mm ;
                   seq->lev = gl->lev_mm ;
+                  seq->clbot = gl->min ;   /* 29 Jul 2001 */
+                  seq->cltop = gl->max ;
                break ;
 
                case ISQ_RNG_02TO98:
                   if( ! gl->per_done ) ISQ_statify_all( seq , False ) ;
                   seq->scl = gl->scl_per ;
                   seq->lev = gl->lev_per ;
-
-                  clbot = gl->per02 ;
-                  cltop = gl->per98 ;
+                  clbot = seq->clbot = gl->per02 ;
+                  cltop = seq->cltop = gl->per98 ;
                break ;
             }
          }
@@ -1994,6 +2026,8 @@ DPR("scale to shorts") ;
          default:
          case ISQ_RNG_MINTOMAX:
             ISQ_SCLEV( hbot,htop , seq->dc->ncol_im , scl,lev ) ;
+            seq->clbot = hbot ;  /* 29 Jul 2001 */
+            seq->cltop = htop ;
          break ;
 
          case ISQ_RNG_02TO98:{
@@ -2005,6 +2039,8 @@ DPR("mri_histogram:") ;
 DPR("ISQ_perpoints:") ;
             ISQ_perpoints( hbot,htop , hist , &h02 , &h98 ) ;
             ISQ_SCLEV( h02,h98 , seq->dc->ncol_im , scl,lev ) ;
+            seq->clbot = h02 ;  /* 29 Jul 2001 */
+            seq->cltop = h98 ;
          }
          break ;
       }
@@ -2139,7 +2175,7 @@ ENTRY("ISQ_saver_CB") ;
 
       /*-- April 1996: Save One case here --*/
 
-      if( seq->opt.save_one && !seq->opt.save_agif ){
+      if( seq->opt.save_one && !DO_ANIM(seq) ){
          char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int    sll  = strlen( seq->saver_prefix ) ;
 
@@ -2283,8 +2319,6 @@ ENTRY("ISQ_saver_CB") ;
 
    /*---- loop thru, get images, save them ----*/
 
-#define DO_AGIF (seq->opt.save_agif)
-
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
       tim = (MRI_IMAGE *) seq->getim( kf , isqCR_getimage , seq->getaux ) ;
@@ -2306,7 +2340,7 @@ ENTRY("ISQ_saver_CB") ;
 
       /*-- 27 Jun 2001: write through a filter? --*/
 
-      if( seq->opt.save_filter >= 0 || DO_AGIF ){
+      if( seq->opt.save_filter >= 0 || DO_ANIM(seq) ){
          char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
          MRI_IMAGE * ovim=NULL ;
          int nx , ny , npix , pc ;
@@ -2344,7 +2378,7 @@ ENTRY("ISQ_saver_CB") ;
 
          /* write the output file */
 
-         if( !DO_AGIF ){   /* don't write progress for agif */
+         if( !DO_ANIM(seq) ){   /* don't write progress for animation */
            if( kf == seq->saver_from )
               printf("writing %d x %d .%s files",nx,ny,ppmto_suffix[ff]) ;
            else if( kf%10 == 5 )
@@ -2361,12 +2395,17 @@ ENTRY("ISQ_saver_CB") ;
 
          /* start the filter */
 
-         if( !DO_AGIF ){  /* arbitrary filtering */
+         if( !DO_ANIM(seq) ){  /* arbitrary filtering */
            sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
            sprintf( filt , ppmto_filter[ff] , fname ) ;
-         } else {                    /* use the gif filter */
+         } else if( DO_AGIF(seq) ){                    /* use the gif filter */
            sprintf( fname, "%s%04d.gif" , seq->saver_prefix, kf) ;
            sprintf( filt , ppmto_gif_filter , fname ) ;
+           if( agif_list == NULL ) INIT_SARR(agif_list) ;
+           ADDTO_SARR(agif_list,fname) ;
+         } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
+           sprintf( fname, "%s%04d.ppm" , seq->saver_prefix, kf) ;
+           sprintf( filt , ppmto_ppm_filter , fname ) ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          }
@@ -2391,7 +2430,9 @@ ENTRY("ISQ_saver_CB") ;
 
             int af ;
 
-            if( agif_list->num > 0 ){
+            if( agif_list->num == 0 ) goto AnimationCleanup ;
+
+            if( DO_AGIF(seq) ){
                int alen ; char *alc , *alf , *oof ;
 
                for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
@@ -2409,12 +2450,64 @@ ENTRY("ISQ_saver_CB") ;
                alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
                alf  = malloc(alen) ;
                sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
+               fprintf(stderr,"Running '%s'\n",alf) ;
                system(alf) ;                                 /* so run it!    */
                free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
             }
 
+            else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
+               int alen ; char *alf , *oof , *par ;
+               char *qscale , *pattrn ;
+               FILE *fpar ;
+
+               /* write mpeg_encode parameter file */
+
+               par = malloc( strlen(seq->saver_prefix)+32 ) ; /* param fname */
+               sprintf(par,"%sPARAM",seq->saver_prefix) ;
+               fpar = fopen( par , "w" ) ;
+               if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
+               oof = malloc( strlen(seq->saver_prefix)+32 ) ; /* output fname */
+               sprintf(oof,"%smpg",seq->saver_prefix) ;
+               qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
+               pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
+               fprintf(fpar,
+                          "OUTPUT %s\n"             /* oof */
+                          "GOP_SIZE          5\n"
+                          "SLICES_PER_FRAME  1\n"
+                          "FRAME_RATE        24\n"
+                          "BASE_FILE_FORMAT  PPM\n"
+                          "INPUT_CONVERT     *\n"
+                          "INPUT_DIR         .\n"
+                          "PATTERN           %s\n"  /* pattrn */
+                          "IQSCALE           %s\n"  /* qscale */
+                          "PQSCALE           10\n"
+                          "BQSCALE           25\n"
+                          "PIXEL             HALF\n"
+                          "RANGE             10 4\n"
+                          "PSEARCH_ALG       LOGARITHMIC\n"
+                          "BSEARCH_ALG       SIMPLE\n"
+                          "REFERENCE_FRAME   ORIGINAL\n"
+                          "INPUT\n"
+                          "%s*.ppm [%04d-%04d]\n"
+                          "END_INPUT\n"
+                       , oof , pattrn , qscale ,
+                         seq->saver_prefix,seq->saver_from,seq->saver_to ) ;
+               fclose(fpar) ;
+
+               /* make command to run */
+
+               alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+               alf  = malloc(alen) ;
+               sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+               fprintf(stderr,"Running '%s' to produce %s\n",alf,oof) ;
+               system(alf) ;                            /* so run it!    */
+               unlink(par); free(alf); free(oof); free(par); /* free trash   */
+            }
+
             for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
                unlink( agif_list->ar[af] ) ;
+
+         AnimationCleanup:
             DESTROY_SARR(agif_list) ;                 /* free more trash */
          }
       }
@@ -3093,6 +3186,35 @@ ENTRY("ISQ_draw_winfo") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------
+  Put a range hint on the color bar, if possible -- 29 Jul 2001
+-------------------------------------------------------------------------*/
+
+void ISQ_set_barhint( MCW_imseq * seq , char * lab )
+{
+   char sbot[16],stop[16] , hint[64] , *sb,*st ;
+
+ENTRY("ISQ_set_barhint") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;            /* bad news */
+
+   if( seq->barbot < seq->bartop ){            /* can make a hint */
+      AV_fval_to_char( seq->barbot , sbot ) ;  /* convert to nice strings */
+      AV_fval_to_char( seq->bartop , stop ) ;
+      sb = (sbot[0] == ' ') ? sbot+1 : sbot ;  /* skip leading blanks */
+      st = (stop[0] == ' ') ? stop+1 : stop ;
+      if( lab != NULL && strlen(lab) < 32 )    /* create hint */
+         sprintf(hint,"%s: %s .. %s",lab,sb,st) ;
+      else
+         sprintf(hint,"%s .. %s",sb,st) ;
+      MCW_register_hint( seq->wbar , hint ) ;  /* send to hint system */
+   } else {
+      MCW_unregister_hint( seq->wbar ) ;       /* don't have a hint */
+   }
+
+   EXRETURN ;
+}
+
 /*-------------------------------------------------------------------
   actually put the color bar into its window
 ---------------------------------------------------------------------*/
@@ -3635,8 +3757,10 @@ ENTRY("ISQ_but_disp_CB") ;
 
          /*---- add some check boxes for special options ----*/
 
-         char *save_one_label[]  = { "Save One" } ;      /* 26 Jul 2001 */
-         char *save_agif_label[] = { "Save Anim GIF" } ; /* 27 Jul 2001 */
+         char *save_one_label[] = { "Save One" }  ; /* 26 Jul 2001 */
+         char *save_agif_label  = "Save Anim GIF" ; /* 27 Jul 2001 */
+         char *save_mpeg_label  = "Save Anim MPG" ; /* 02 Aug 2001 */
+         char *save_anim_label[2] ;
 
          seq->save_one_bbox = new_MCW_bbox( rcboxes ,
                                             1 ,
@@ -3648,7 +3772,7 @@ ENTRY("ISQ_but_disp_CB") ;
                                " \n"
                                "When pressed IN, then the 'Save' button\n"
                                "will only save a snapshot of the current\n"
-                               "display.  This is the only way to save\n"
+                               "display.  This is the ONLY way to save\n"
                                "a montage.\n"
                                "\n"
                                "When pressed OUT, then the 'Save' button\n"
@@ -3659,22 +3783,28 @@ ENTRY("ISQ_but_disp_CB") ;
          MCW_reghint_children( seq->save_one_bbox->wrowcol ,
                                "Save just 1 (including montage)" ) ;
 
-         if( ppmto_agif_filter != NULL ){
+         if( ppmto_agif_filter != NULL || ppmto_mpeg_filter != NULL ){
+           int nb = 0 ;
+           if( ppmto_agif_filter != NULL ) save_anim_label[nb++]=save_agif_label;
+           if( ppmto_mpeg_filter != NULL ) save_anim_label[nb++]=save_mpeg_label;
            seq->save_agif_bbox = new_MCW_bbox( rcboxes ,
-                                               1 ,
-                                               save_agif_label ,
-                                               MCW_BB_check ,
+                                               nb ,
+                                               save_anim_label ,
+                                               MCW_BB_radio_zero ,
                                                MCW_BB_frame ,
                                                ISQ_disp_act_CB, (XtPointer)seq );
            MCW_reghelp_children( seq->save_agif_bbox->wrowcol ,
                                  " \n"
-                                 "When pressed IN, then the 'Save' button\n"
-                                 "will save a sequence of images to an\n"
-                                 "Animated GIF file.  This takes precedence\n"
-                                 "over 'Save One', if it is also pressed IN.\n"
+                                 "Controls if image sequence is saved to\n"
+                                 "an animation file, rather than a bunch\n"
+                                 "of separate image files.\n"
+                                 "* This takes precedence over 'Save One',\n"
+                                 "    if it is also turned on.\n"
+                                 "* GIF animations require gifsicle.\n"
+                                 "* MPEG-1 animations require mpeg_encode.\n"
                                ) ;
            MCW_reghint_children( seq->save_agif_bbox->wrowcol ,
-                                 "Save image sequence as GIF animation" ) ;
+                                 "Save image sequence to animation" ) ;
          } else {
            seq->save_agif_bbox = NULL ;
          }
@@ -4026,10 +4156,14 @@ ENTRY("ISQ_disp_options") ;
 
       seq->opt.save_one    = MCW_val_bbox(seq->save_one_bbox)   != 0 ; /* 26 Jul 2001 */
 
-      if( seq->save_agif_bbox != NULL )
-         seq->opt.save_agif = MCW_val_bbox(seq->save_agif_bbox) != 0 ; /* 27 Jul 2001 */
-      else
+      if( seq->save_agif_bbox != NULL ){
+         int bv = MCW_val_bbox(seq->save_agif_bbox) ;
+         seq->opt.save_agif = (bv == 1) ;
+         seq->opt.save_mpeg = (bv == 2) ;
+      } else {
          seq->opt.save_agif = 0 ;
+         seq->opt.save_mpeg = 0 ;
+      }
 
       seq->opt.save_filter = -1 ;
       if( bval[NTOG_SAV] > ISQ_SAV_PNM && ppmto_num > 0 ){  /* 27 Jun 2001 */
@@ -4094,9 +4228,10 @@ ENTRY("ISQ_disp_options") ;
       MCW_set_bbox( seq->save_one_bbox ,
                     (seq->opt.save_one) ? 1 : 0 ) ; /* 26 Jul 2001 */
 
-      if( seq->save_agif_bbox != NULL )
-         MCW_set_bbox( seq->save_agif_bbox ,
-                       (seq->opt.save_agif) ? 1 : 0 ) ; /* 27 Jul 2001 */
+      if( seq->save_agif_bbox != NULL ){
+         int bv = (seq->opt.save_agif) + (seq->opt.save_mpeg)*2 ;
+         MCW_set_bbox( seq->save_agif_bbox , bv ) ;
+      }
 
       RETURN(False) ;
    }
@@ -4633,6 +4768,7 @@ static unsigned char record_bits[] = {
 
          seq->opt.save_one    = 0 ;
          seq->opt.save_agif   = 0 ;   /* 27 Jul 2001 */
+         seq->opt.save_mpeg   = 0 ;
          seq->opt.save_pnm    = 0 ;
          seq->opt.save_filter = -1 ;  /* 27 Jun 2001 */
          SET_SAVE_LABEL(seq) ;
@@ -4742,6 +4878,7 @@ static unsigned char record_bits[] = {
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
             seq->opt.save_one  = 1 ;
             seq->opt.save_agif = 0 ; /* 27 Jul 2001 */
+            seq->opt.save_mpeg = 0 ;
             SET_SAVE_LABEL(seq) ;
          }
 
@@ -5829,6 +5966,7 @@ ENTRY("ISQ_montage_action_CB") ;
          if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
             seq->opt.save_one  = 1 ;
             seq->opt.save_agif = 0 ; /* 27 Jul 2001 */
+            seq->opt.save_mpeg = 0 ;
             SET_SAVE_LABEL(seq) ;
          }
       break ;
@@ -5989,6 +6127,9 @@ DPRI(" Getting montage underlay",nim) ;
             new_width_mm  = IM_WIDTH(tim)  ; nxim = tim->nx ;
             new_height_mm = IM_HEIGHT(tim) ; nyim = tim->ny ;
             seq->last_image_type = tim->kind ;
+            seq->barbot = seq->clbot ; /* 29 Jul 2001 */
+            seq->bartop = seq->cltop ;
+            ISQ_set_barhint(seq,"Focus") ;
          }
 
          if( tim != NULL ){
@@ -7389,7 +7530,7 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
                                        MCW_choose_cbs * cbs   )
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
-   int pp ;
+   int pp , agif_ind=0 , mpeg_ind=0 , nstr ;
 
    if( !ISQ_REALZ(seq)               ||
        cbs->reason != mcwCR_integer  ||
@@ -7398,12 +7539,18 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
       XBell(XtDisplay(w),100); POPDOWN_strlist_chooser ; return ;
    }
 
-   seq->opt.save_nsize = seq->opt.save_pnm = seq->opt.save_agif = 0 ;
+   nstr = ppmto_num+1 ;
+   if( ppmto_agif_filter != NULL ) agif_ind = nstr++ ;
+   if( ppmto_mpeg_filter != NULL ) mpeg_ind = nstr++ ;
+
+   seq->opt.save_nsize = seq->opt.save_pnm
+                       = seq->opt.save_agif = seq->opt.save_mpeg = 0 ;
 
    pp = cbs->ival ;
-        if( pp == 0                   ) seq->opt.save_filter=-1  ; /* Save:bkg */
-   else if( pp <= ppmto_num           ) seq->opt.save_filter=pp-1; /* Save.typ */
-   else if( ppmto_agif_filter != NULL ) seq->opt.save_agif  = 1  ; /* Sav:aGif */
+        if( pp == 0         ) seq->opt.save_filter=-1  ; /* Save:bkg */
+   else if( pp <= ppmto_num ) seq->opt.save_filter=pp-1; /* Save.typ */
+   else if( pp == agif_ind  ) seq->opt.save_agif  = 1  ; /* Sav:aGif */
+   else if( pp == mpeg_ind  ) seq->opt.save_mpeg  = 1  ; /* Sav:mpeg */
 
    SET_SAVE_LABEL(seq) ; return ;
 }
@@ -7424,24 +7571,29 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
          if( event->button == Button3 ){
-            char **strlist ; int pp , nstr ;
+            char **strlist ; int pp , nstr , agif_ind=0 , mpeg_ind=0 ;
             if( seq->dialog_starter==NBUT_DISP ){XBell(XtDisplay(w),100); return; }
-            strlist = (char **) malloc(sizeof(char *)*(ppmto_num+2)) ;
+            strlist = (char **) malloc(sizeof(char *)*(ppmto_num+3)) ;
             strlist[0] = strdup("Save:bkg") ;             /* special case */
             for( pp=0 ; pp < ppmto_num ; pp++ ){          /* filters */
                strlist[pp+1] = malloc(16) ;
                sprintf(strlist[pp+1],"Save.%.3s",ppmto_suffix[pp]) ;
             }
             nstr = ppmto_num+1 ;
-            if( ppmto_agif_filter != NULL )
+            if( ppmto_agif_filter != NULL ){
+               agif_ind = nstr ;
                strlist[nstr++] = strdup("Sav:aGif") ;     /* special case */
+            }
+            if( ppmto_mpeg_filter != NULL ){
+               mpeg_ind = nstr ;
+               strlist[nstr++] = strdup("Sav:mpeg") ;     /* special case */
+            }
+                 if(seq->opt.save_agif && agif_ind > 0 ) pp=agif_ind ;
+            else if(seq->opt.save_mpeg && mpeg_ind > 0 ) pp=mpeg_ind ;
+            else if(seq->opt.save_filter < 0)            pp=0        ;
+            else                                     pp=seq->opt.save_filter+1 ;
             MCW_choose_strlist( w , "Image Save format" ,
-                                nstr ,
-                                (seq->opt.save_agif && ppmto_agif_filter != NULL)
-                                 ? ppmto_num+1 :
-                                (seq->opt.save_filter < 0)
-                                 ? 0 :seq->opt.save_filter+1 ,
-                                strlist ,
+                                nstr , pp , strlist ,
                                 ISQ_butsave_choice_CB , (XtPointer) seq ) ;
             for( pp=0 ; pp < nstr ; pp++ ) free(strlist[pp]) ;
             free(strlist) ;

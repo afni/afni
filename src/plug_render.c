@@ -449,6 +449,9 @@ static float func_range         = DEFAULT_FUNC_RANGE ;
 static float func_autorange     = DEFAULT_FUNC_RANGE ;
 static int   func_computed      = 0 ;
 
+#define FUNC_RANGE  \
+  ((func_range==0.0 || func_use_autorange ) ? func_autorange : func_range)
+
 static int   func_showthru      = 0 ;  /* 07 Jan 2000 */
 static int   func_showthru_pass = 0 ;
 
@@ -3242,6 +3245,8 @@ void REND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    REND_reload_dataset() ;  /* load the data */
 #endif
 
+   AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Jul 2001 */
+
    return ;
 }
 
@@ -4550,6 +4555,8 @@ void REND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
 
       INVALIDATE_OVERLAY ;
 
+      AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Jul 2001 */
+
    /*--- selection of overlay threshold sub-brick ---*/
 
    } else if( av == wfunc_thresh_av && func_dset != NULL && av->ival < DSET_NVALS(func_dset) ){
@@ -5566,14 +5573,13 @@ void REND_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
    func_range = (newauto) ? (func_autorange)
                           : (wfunc_range_av->fval) ;
 
-   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
+   AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
 
    AV_SENSITIZE( wfunc_range_av , ! newauto ) ;
 
    INVALIDATE_OVERLAY ;
    return ;
 }
-
 
 /*------------------------------------------------------------------------------
   Called when the user changes the function range
@@ -5583,7 +5589,7 @@ void REND_range_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    func_range = av->fval ;
 
-   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
+   AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
 
    INVALIDATE_OVERLAY ;
    return ;
@@ -5623,7 +5629,7 @@ void REND_color_pbar_CB( MCW_pbar * pbar , XtPointer cd , int reason )
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
 
-   AFNI_hintize_pbar( wfunc_color_pbar , func_range ) ; /* 30 Mar 2001 */
+   AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
    return ;
 }
 
@@ -5970,9 +5976,7 @@ void REND_reload_func_dset(void)
    ovim = mri_new_conforming( cim , MRI_byte ) ;                     /* new overlay */
    ovar = MRI_BYTE_PTR(ovim) ;
 
-   scale_factor = func_range ;                                       /* for map from */
-   if( scale_factor == 0.0 || func_use_autorange )                   /* pbar to data */
-      scale_factor = func_autorange ;                                /* value range  */
+   scale_factor = FUNC_RANGE ;  /* for map from pbar to data value range  */
 
    num_lp = pbar->num_panes ;
    for( lp=0 ; lp < num_lp ; lp++ ) fim_ovc[lp] = pbar->ov_index[lp] ; /* top to bottom */
@@ -6172,7 +6176,14 @@ void REND_overlay_ttatlas(void)
 # define RET(s) return
 #endif
 
+   /* 01 Aug 2001: retrieve Atlas dataset depending on size of brick */
+#if 1
+   dseTT = TT_retrieve_atlas_nz(ovim->nz) ;
+                                 if( dseTT == NULL ) RET("no dataset\n") ;
+#else
    dseTT = TT_retrieve_atlas() ; if( dseTT == NULL ) RET("no dataset\n") ;
+#endif
+
    if( DSET_NVOX(dseTT) != nvox )                    RET("dataset mismatch\n");
    ttp   = TTRR_get_params()   ; if( ttp   == NULL ) RET("no ttp\n") ;
 

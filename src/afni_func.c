@@ -306,7 +306,7 @@ if(PRINT_TRACING)
 }
 
 /*---------------------------------------------------------------------------
-   30 Mar 2001: add range hints to the pbar
+   30 Mar 2001: add range hints to a pbar
 -----------------------------------------------------------------------------*/
 
 void AFNI_hintize_pbar( MCW_pbar * pbar ,  float fac )
@@ -1299,19 +1299,31 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View * im3d ,
    byte *b0 , *b1 , *brik, *val, *ovc , g_ov,a_ov,final_ov ;
    short *ovar ;
    MRI_IMAGE *ovim=NULL , *b0im , *b1im ;
-   int gwin , fwin , nreg , ii,jj ;
+   int gwin , fwin , nreg , ii,jj , nov ;
 
 ENTRY("AFNI_ttatlas_overlay") ;
 
    /* setup and sanity checks */
 
+STATUS("checking if have Atlas dataset") ;
+
+   /* 01 Aug 2001: retrieve atlas based on z-axis size of underlay dataset */
+#if 1
+   dseTT = TT_retrieve_atlas_nz( DSET_NZ(im3d->anat_now) ) ;
+                                 if( dseTT == NULL )      RETURN(NULL) ;
+#else
    dseTT = TT_retrieve_atlas() ; if( dseTT == NULL )      RETURN(NULL) ;
+#endif
 
    /* make sure Atlas and current dataset match in size */
+
+STATUS("checking if Atlas and anat dataset match") ;
 
    if( DSET_NVOX(dseTT) != DSET_NVOX(im3d->anat_now) )    RETURN(NULL) ;
 
    /* make sure we are actually drawing something */
+
+STATUS("checking if Atlas Colors is on") ;
 
    ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
 
@@ -1327,6 +1339,8 @@ ENTRY("AFNI_ttatlas_overlay") ;
 
    /* get slices from TTatlas dataset */
 
+STATUS("loading Atlas bricks") ;
+
    DSET_load(dseTT) ;
    b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
    if( b0im == NULL )                                     RETURN(NULL) ;
@@ -1337,10 +1351,12 @@ ENTRY("AFNI_ttatlas_overlay") ;
    /* make a new overlay image, or just operate on the old one */
 
    if( fov == NULL ){
+STATUS("making new overlay for Atlas") ;
       ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
       ovar = MRI_SHORT_PTR(ovim) ;
       memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
    } else{
+STATUS("re-using old overlay for Atlas") ;
       ovim = fov ;                                      /* old overlay */
       ovar = MRI_SHORT_PTR(ovim) ;
       if( ovim->nvox != b0im->nvox ){                     /* shouldn't */
@@ -1363,7 +1379,9 @@ ENTRY("AFNI_ttatlas_overlay") ;
 
    /* loop over image voxels, find overlays from Atlas */
 
-   for( ii=0 ; ii < ovim->nvox ; ii++ ){
+STATUS("doing Atlas overlay") ;
+
+   for( nov=ii=0 ; ii < ovim->nvox ; ii++ ){
 
       if( ovar[ii] && fwin ) continue ; /* function wins */
 
@@ -1383,9 +1401,13 @@ ENTRY("AFNI_ttatlas_overlay") ;
       else                            final_ov = a_ov ;
 
       ovar[ii] = final_ov ;  /* and the winner is ... */
+      nov++ ;
    }
 
    mri_free(b0im) ; mri_free(b1im) ;  /* free at last */
+
+if(PRINT_TRACING)
+{ char str[256]; sprintf(str,"Atlas overlaid %d pixels",nov); STATUS(str); }
 
    RETURN(ovim) ;
 }
@@ -4567,6 +4589,57 @@ STATUS("got func info") ;
 
       if( cbs != NULL && cbs->event != NULL
                       && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
+   }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_1dchain_pb ){ /* 07 Aug 2001 */
+      static PLUGIN_interface * plint=NULL ;
+      Widget wpop ;
+
+      /* first time in: create interface like a plugin */
+
+      if( plint == NULL ){
+         plint = F1D_init() ;
+         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+      }
+
+      if( cbs == NULL ) EXRETURN ;  /* only for a setup call */
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint->im3d = im3d ;
+      XtVaSetValues( plint->wid->shell ,
+                      XmNtitle     , "AFNI 1DChain Function", /* top of window */
+                      XmNiconName  , "1DChain"              , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint->wid->shell ;
+
+      if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
 
          XButtonEvent * xev = (XButtonEvent *) cbs->event ;
          int xx = (int) xev->x_root , yy = (int) xev->y_root ;

@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.31a"
+#define VERSION "2.31c"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "26 Jul 2001      "
+#define RELEASE "07 Aug 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -557,6 +557,7 @@ typedef struct {
 #ifdef ALLOW_PLUGINS
       Widget         misc_environ_pb ;  /* 20 Jun 2000 */
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
+      Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
 #endif
 
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */

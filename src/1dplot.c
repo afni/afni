@@ -51,6 +51,7 @@ int main( int argc , char * argv[] )
    float * far ;
    XtAppContext app ;
    Widget shell ;
+   int use_stdin=0 ; /* 01 Aug 2001 */
 
    /*-- help? --*/
 
@@ -72,6 +73,9 @@ int main( int argc , char * argv[] )
             "                [default = no axis label]\n"
             " -ylabel aa = Put string 'aa' to the left of the y-axis\n"
             "                [default = no axis label]\n"
+            "\n"
+            " -stdin     = Don't read from tsfile; instead, read a single\n"
+            "              column from stdin and plot it.\n"
             "\n"
             " -ynames aa bb ... = Use the strings 'aa', 'bb', etc., as\n"
             "                     labels to the right of the graphs,\n"
@@ -114,6 +118,10 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-install") == 0 ){
         install++ ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-stdin") == 0 ){  /* 01 Aug 2001 */
+        use_stdin++ ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* skip */
@@ -178,7 +186,7 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
    }
 
-   if( iarg >= argc ){
+   if( iarg >= argc && !use_stdin ){
       fprintf(stderr,"** No tsfile on command line!\n") ; exit(1) ;
    }
 
@@ -188,29 +196,51 @@ int main( int argc , char * argv[] )
 
    if( nyar > 0 ) yname = ynar ;
 
-   /* check input filename for index strings */
+   /*-- 01 Aug 2001: read from stdin instead of a file --*/
 
-   tsfile = argv[iarg] ;
-   cpt    = strstr(tsfile,"[") ;
+   if( use_stdin ){
+     float val ;
 
-   if( cpt == NULL ){
-      strcpy( dname , tsfile ) ;
-      subv[0] = '\0' ;
-   } else if( cpt == tsfile ){
-      fprintf(stderr,"** Illegal filename on command line!\n");exit(1);
-   } else {
-      ii = cpt - tsfile ;
-      memcpy(dname,tsfile,ii) ; dname[ii] = '\0' ;
-      strcpy(subv,cpt) ;
-   }
+     subv[0] = '\0' ; nx = 1 ; ny = 0 ;
+     far = (float *) malloc(sizeof(float)) ;
+     while(1){  /* read from stdin */
+        ii = fscanf(stdin,"%f",&val) ;
+        if( ii < 1 ) break ;
+        far = (float *) realloc( far , sizeof(float)*(ny+1) ) ;
+        far[ny++] = val ;
+     }
+     if( ny < 2 ){
+        fprintf(stderr,"** Can't read data from stdin\n"); exit(1);
+     }
+     inim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
+     mri_fix_data_pointer( far , inim ) ;
 
-   /* read input file */
+   } else {  /*-- old code: read from a file --*/
 
-   inim = mri_read_ascii( dname ) ;
-   if( inim == NULL ){
-      fprintf(stderr,"** Can't read input file %s\n",dname) ;
-      exit(1);
-   }
+     /* check input filename for index strings */
+
+     tsfile = argv[iarg] ;
+     cpt    = strstr(tsfile,"[") ;
+
+     if( cpt == NULL ){
+        strcpy( dname , tsfile ) ;
+        subv[0] = '\0' ;
+     } else if( cpt == tsfile ){
+        fprintf(stderr,"** Illegal filename on command line!\n");exit(1);
+     } else {
+        ii = cpt - tsfile ;
+        memcpy(dname,tsfile,ii) ; dname[ii] = '\0' ;
+        strcpy(subv,cpt) ;
+     }
+
+     /* read input file */
+
+     inim = mri_read_ascii( dname ) ;
+     if( inim == NULL ){
+        fprintf(stderr,"** Can't read input file %s\n",dname) ;
+        exit(1);
+     }
+   } /* end of file input */
 
    if( inim->kind != MRI_float ){  /* should not happen */
       flim = mri_to_float(inim) ; mri_free(inim) ; inim = flim ;

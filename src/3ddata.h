@@ -2629,9 +2629,20 @@ extern char * MD5_B64_file  (char * ) ;
 /*------------------------------------------------------------------------*/
 
 extern char * TT_whereami( float , float , float ) ;
-extern int TT_load_atlas(void) ;
+extern int  TT_load_atlas (void);
 extern void TT_purge_atlas(void);
 extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
+
+extern THD_3dim_dataset * TT_retrieve_atlas_big(void) ; /* 01 Aug 2001 */
+extern void TT_purge_atlas_big(void);
+
+#define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
+#define TT_ATLAS_NZ_BIG   151
+
+#define TT_retrieve_atlas_nz(nz)                                \
+ ( ((nz)==TT_ATLAS_NZ_SMALL)                                    \
+    ? TT_retrieve_atlas()                                       \
+    : ((nz)==TT_ATLAS_NZ_BIG) ? TT_retrieve_atlas_big() : NULL )
 
 /*------------------------------------------------------------------------*/
 

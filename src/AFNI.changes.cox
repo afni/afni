@@ -2934,3 +2934,52 @@
  * Included gifsicle directory into AFNI distribution, and added to
      Makefile.INCLUDE to make gifsicle (whirlgif was already there).
      However, neither of these program is made by default.
+
+29 Jul 2001
+ * Modified imseq.[ch] to add a range hint to the intensity bar.
+
+30 Jul 2001
+ * Fixed color pbar hintize alterations when user changes sub-bricks,
+     in plug_render.c.
+
+31 Jul 2001
+ * Modified xutil.[ch] to add a routine to NULL out an arbitrary pointer
+     when a widget is destroyed.
+ * Used the above in afni.c to NULL out the pointer to the "Where Am I?"
+     text window when the text window is destroyed because the user
+     destroyed its parent imseq.
+
+01 Aug 2001
+ * Realized that the TT atlas overlay was setup for the small Talairach
+     box, and most people now have large Talairach box datasets.  To make
+     the system work, modified thd_ttatlas_query.c to allow programs to
+     load an atlas with 141 I-S slices (the one on disk), or an atlas
+     with 151 I-S slices (created via zero-padding).  Then modified places
+     that retrieved the atlas dataset: afni_func.c, plug_render.c.  Ugh.
+ * Also modified afni.c so that the "Atlas Colors" popup button is only
+     enabled in +tlrc view.
+ * Modified waver.c to add to -EXPR option.
+ * Added -stdin option to 1dplot.c.
+
+02 Aug 2001
+ * Fixed bug in waver.c -EXPR option, so that if waveform_EXPR(t) is
+     called with t < 0, it returns 0.
+ * Included mpeg_encode directory into AFNI distribution, and added to
+     Makefile.INCLUDE to make mpeg_encode.
+     However, neither of these program is made by default.
+ * Added Sav:mpeg to imseq.[ch].
+
+06 Aug 2001
+ * Modified coxplot/plot_motif.c to have plotting window close when
+     user presses 'Q' or 'q' keystroke in the drawing area.
+
+07 Aug 2001
+ * Modified afni_graph.[ch] and afni.c to extend graph baseline concept
+     to have a global baseline for all graphs (that doesn't change when
+     the user moves around).
+ * Modified afni_graph.[ch] to add a new Double Plot mode Plus/Minus to
+     make the transformed function be added/subtracted from the dataset's
+     time series, so we can see error bars from 3dDeconvolve's
+     -iresp/-sresp outputs!
+ * Added afni_pplug_1dfunc.c to make 1DChain pseudoplugin (also affected
+     afni_func.c and afni_widg.c).

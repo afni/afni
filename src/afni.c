@@ -3948,6 +3948,18 @@ STATUS("realizing new grapher") ;
 
        drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 
+       /* 07 Aug 2001: set global baseline level, if possible */
+
+       if( ISVALID_STATISTIC(brnew->dset->stats) ){
+          float vbot=WAY_BIG ; int ii ;
+          for( ii=0 ; ii < brnew->dset->stats->nbstat ; ii++ )
+             if( ISVALID_BSTAT(brnew->dset->stats->bstat[ii]) )
+                vbot = MIN( vbot , brnew->dset->stats->bstat[ii].min ) ;
+
+          if( vbot < WAY_BIG )
+            drive_MCW_grapher( gr, graDR_setglobalbaseline, (XtPointer)&vbot );
+       }
+
        *gnew = gr ;
        (*gnew)->parent = (XtPointer) im3d ;
 
@@ -6103,7 +6115,8 @@ STATUS(" -- managing talairach_to button") ;
          if( im3d->vwid->imag->pop_whereami_pb != NULL )
           XtSetSensitive( im3d->vwid->imag->pop_whereami_pb , True ); /* 10 Jul 2001 */
          if( im3d->vwid->imag->pop_ttren_pb != NULL )
-          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , True ); /* 12 Jul 2001 */
+          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb ,              /* 12 Jul 2001 */
+                          im3d->vinfo->view_type==VIEW_TALAIRACH_TYPE); /* 01 Aug 2001 */
       } else {
          XtSetSensitive( im3d->vwid->imag->pop_talto_pb, False ) ;
          if( im3d->vwid->imag->pop_whereami_pb != NULL )
@@ -6686,7 +6699,7 @@ ENTRY("AFNI_imag_pop_CB") ;
                              AFNI_talto_CB , (XtPointer) im3d ) ;
    }
 
-   /*---- 10 Jul 2001 ----*/
+   /*---- 10 Jul 2001: Talairach "Where Am I?" ----*/
 
    else if( w == im3d->vwid->imag->pop_whereami_pb &&
             w != NULL                              &&
@@ -6715,6 +6728,11 @@ ENTRY("AFNI_imag_pop_CB") ;
          im3d->vwid->imag->pop_whereami_twin =
            new_MCW_textwin_2001( seq->wbar , tlab , TEXT_READONLY ,
                                  AFNI_pop_whereami_kill , im3d     ) ;
+
+         /* 31 Jul 2001: NULL out the pointer when the window is destroyed */
+
+         NULLIFY_ON_DESTROY( im3d->vwid->imag->pop_whereami_twin ,
+                             im3d->vwid->imag->pop_whereami_twin->wshell ) ;
 
          XtVaSetValues( im3d->vwid->imag->pop_whereami_twin->wtext ,
                           XmNresizeHeight , True ,
@@ -6764,10 +6782,11 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*---- 12 Jul 2001 ----*/
 
-   else if( w == im3d->vwid->imag->pop_ttren_pb &&
-            w != NULL                           &&
-            im3d->type == AFNI_3DDATA_VIEW      &&
-            CAN_TALTO(im3d)                          ){
+   else if( w == im3d->vwid->imag->pop_ttren_pb           &&
+            w != NULL                                     &&
+            im3d->type == AFNI_3DDATA_VIEW                &&
+            im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE && /* 01 Aug 2001 */
+            CAN_TALTO(im3d)                                 ){
 
       TTRR_popup( im3d ) ;
    }

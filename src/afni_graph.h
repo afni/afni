@@ -325,7 +325,7 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define IGNORE_POINTS(gr) ((gr)->points_index[7] != 0)
 #define DPLOT_POINTS(gr)  ((gr)->points_index[8] != 0)
 
-#define FG_LINES(gr)     ((gr)->points_index[0] != 1) 
+#define FG_LINES(gr)     ((gr)->points_index[0] != 1)
 #define BG_LINES(gr)     ((gr)->points_index[1] != 1)
 #define GRID_LINES(gr)   ((gr)->points_index[2] != 1)
 #define TEXT_LINES(gr)   ((gr)->points_index[3] != 1)
@@ -427,6 +427,11 @@ typedef struct {
           opt_xaxis_pick_pb , opt_xaxis_center_pb ,
           opt_xaxis_clear_pb ;
 
+   Widget opt_baseline_menu , opt_baseline_cbut ,   /* 07 Aug 2001 */
+          opt_baseline_setglobal_pb ,
+          opt_baseline_global_label  ;
+   float global_base ;
+
    MCW_bbox * opt_textgraph_bbox , * opt_baseline_bbox ;    /* 22 Sep 2000 */
    int textgraph ;
 
@@ -443,7 +448,9 @@ typedef struct {
    MCW_arrowval * transform1D_av ;
    generic_func * transform1D_func ;
    int            transform1D_index , transform1D_flags ;
-   MCW_bbox     * transform1D_dplot_bbox ;
+
+   Widget opt_dplot_menu , opt_dplot_cbut ;   /* 07 Aug 2001 */
+   MCW_bbox  * opt_dplot_bbox ;
 
    FIM_menu * fmenu ;
 
@@ -464,6 +471,14 @@ typedef struct {
 
    float tmed[MAT_MAX][MAT_MAX] , tmad[MAT_MAX][MAT_MAX] ;    /* 08 Mar 2001 */
 } MCW_grapher ;
+
+#define BASELINE_INDIVIDUAL  1  /* 07 Aug 2001 */
+#define BASELINE_COMMON      2
+#define BASELINE_GLOBAL      4
+
+#define DPLOT_OFF            1  /* 07 Aug 2001 */
+#define DPLOT_OVERLAY        2
+#define DPLOT_PLUSMINUS      4
 
 static int fd_x    = 0 ;
 static int fd_y[8] = {100, 130, 160, 190, 220, 250, 280, 310};
@@ -538,6 +553,8 @@ typedef struct {
 #define graDR_fim_disable     503  /* Oct 1999 */
 
 #define graDR_mirror          504  /* Jul 2000 */
+
+#define graDR_setglobalbaseline 505 /* 07 Aug 2001 */
 
 /***-----------------------------------------------------------------------***/
 
@@ -624,6 +641,10 @@ extern void GRA_mapmenu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void GRA_textgraph_CB( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
 extern void GRA_baseline_CB ( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
+
+ /* 07 Aug 2001 */
+extern void GRA_finalize_global_baseline_CB( Widget,
+                                             XtPointer, MCW_choose_cbs * );
 
 /***-----------------------------------------------------------------------***/
 #endif
