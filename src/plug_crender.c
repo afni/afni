@@ -4,15 +4,22 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/* rcr todo:
+ *
+ * - reload bigmode widgets
+ */
+
 /*----------------------------------------------------------------------
   $Id$
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.7 <October 2002>"
+#define PLUG_CRENDER_VERSION "Version 1.8 <July 2003>"
 
 /***********************************************************************
  * VERSION HISTORY
+ *
+ * 1.8   - handle bigmode color bar (see v1.8)
  *
  * 1.7   - incremental rotation is now the default
  *
@@ -232,6 +239,13 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 /*----------------------------------------------------------------*/
 /* rickr - cox rendering data */
 
+typedef struct			/* bigstuff                 v1.8 [rickr] */
+{
+    byte r[NPANE_BIG];		/* for ease of calling CREN_set_rgbmap() */
+    byte g[NPANE_BIG];
+    byte b[NPANE_BIG];
+} CR_bigstuff;
+
 typedef struct
 {
     THD_fvec3 xp[2][2];		/* 12 points for the 6 xhair segments */
@@ -251,9 +265,15 @@ typedef struct
 
     THD_mat33          rotm;    /* current rotation matrix       */
     CR_xhairs          xhseg;   /* 12 dicom crosshair   segments */
+    CR_bigstuff        bigstuff;/* for bigmode functional overlay*/
 } CR_data;
 
 CR_data gcr;
+
+#define CRBM_IS_BLACK_INDEX( index ) \
+  ( ( wfunc_color_pbar->bigcolor[index].r == 0 ) && \
+    ( wfunc_color_pbar->bigcolor[index].g == 0 ) && \
+    ( wfunc_color_pbar->bigcolor[index].b == 0 ) )
 
 /*----------------------------------------------------------------*/
 /* debug stuff   - rickr  2002.09.04 */
@@ -633,6 +653,8 @@ void RCREND_clusters_av_CB  ( MCW_arrowval * , XtPointer ) ;
 
 void RCREND_color_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 void RCREND_set_thr_pval(void) ;
+
+static int reset_bigcolors( rgbyte * bcs );	/* v1.8 [rickr] */
 
 #define COLSIZE 20  /* to modify optmenus */
 
@@ -2353,7 +2375,7 @@ ENTRY( "RCREND_reload_dataset" );
          RCREND_cutout_blobs(grim_showthru) ;
    }
 
-#if 0 	/* rcr - do not render corsshairs with data (for the moment) */
+#if 0 	/* rcr - do not render crosshairs with data (for the moment) */
         /* 2002.08.29 */
 
    /* fill crosshair data into image volumes */
@@ -2430,8 +2452,12 @@ ENTRY( "RCREND_reload_renderer" );
    }
 
    if( func_computed && !func_cmap_set ){
-      CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
-                       (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
+       if ( wfunc_color_pbar->bigmode )
+	   CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
+			    gcr.bigstuff.g,    gcr.bigstuff.b );
+       else
+	  CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
+			   (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
       func_cmap_set = 1 ; /* do we need to reset the colormap? */
    }
 
@@ -4794,7 +4820,6 @@ ENTRY( "RCREND_open_imseq" );
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
-      drive_MCW_imseq( imseq , isqDR_penbbox    , (XtPointer) 0 ) ; /* 18 Jul 2003 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
@@ -4851,7 +4876,6 @@ ENTRY( "RCREND_update_imseq" );
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
-      drive_MCW_imseq( imseq , isqDR_penbbox    , (XtPointer) 0 ) ; /* 18 Jul 2003 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)(ntot-1) ) ;
@@ -5356,11 +5380,7 @@ ENTRY( "RCREND_func_widgets" );
 
    /**-- Popup menu to control some facets of the pbar --**/
 
-#ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
-   wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_rowcol, "menu" , NULL , 0 ) ;
-#else
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;
-#endif
 
    SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
 
@@ -5487,9 +5507,10 @@ ENTRY( "RCREND_func_widgets" );
    /**-- Color pbar to control intensity-to-color mapping --**/
 
  { float pmin=-1.0 , pmax=1.0 ;
-   int npane = INIT_panes_sgn ;  /* from afni.h */
+   int npane = INIT_panes_sgn ;       /* from afni.h */
 
-   sel_height -= 22 ;            /* a little shorter than the scale */
+   				 /* 22->15      v1.8 [rickr]        */
+   sel_height -= 15 ;            /* a little shorter than the scale */
 
    wfunc_color_pbar = new_MCW_pbar(
                         wfunc_color_rowcol ,        /* parent */
@@ -5502,6 +5523,7 @@ ENTRY( "RCREND_func_widgets" );
 
    wfunc_color_pbar->parent       = NULL ;
    wfunc_color_pbar->mode         = 0 ;
+   wfunc_color_pbar->bigmode      = 1 ;		     /* v1.8 [rickr] */
    wfunc_color_pbar->npan_save[0] = INIT_panes_sgn ;  /* from afni.h */
    wfunc_color_pbar->npan_save[1] = INIT_panes_pos ;
    wfunc_color_pbar->hide_changes = INIT_panes_hide ;
@@ -5517,10 +5539,13 @@ ENTRY( "RCREND_func_widgets" );
                        wfunc_color_rowcol ,
                         "#" ,
                         MCW_AV_optmenu ,
-                        NPANE_MIN , NPANE_MAX , npane ,
+                        NPANE_MIN , NPANE_MAX+1 ,
+			wfunc_color_pbar->bigmode ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
                         RCREND_colornum_av_CB , NULL ,
-                        NULL,NULL ) ;
+                        AFNI_inten_av_texter,NULL ) ;
+
+   PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;   /* v1.8 [rickr] */
 
    if( NPANE_MAX >= COLSIZE )
       AVOPT_columnize( wfunc_colornum_av , 1+(NPANE_MAX+1)/COLSIZE ) ;
@@ -5902,8 +5927,14 @@ void RCREND_init_cmap(void)
 {
 ENTRY( "RCREND_init_cmap" );
 
-   CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
-                    (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
+   reset_bigcolors( wfunc_color_pbar->bigcolor );   /* bigmode  v1.8 [rickr] */
+
+   if ( wfunc_color_pbar->bigmode )
+       CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
+	                gcr.bigstuff.g,    gcr.bigstuff.b );
+   else
+       CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
+			(dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
    EXRETURN ;
 }
 
@@ -5979,6 +6010,8 @@ void RCREND_setup_color_pbar(void)
   int np , i , jm , lcol ;
 
 ENTRY( "RCREND_setup_color_pbar" );
+
+  reset_bigcolors( pbar->bigcolor );
 
   jm   = pbar->mode ;
   lcol = dc->ovc->ncol_ov - 1 ;
@@ -6267,6 +6300,9 @@ ENTRY( "RCREND_color_pbar_CB" );
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
 
+   /* to be sure 					  v1.8 [rickr] */
+   reset_bigcolors( wfunc_color_pbar->bigcolor );
+
    AFNI_hintize_pbar( wfunc_color_pbar , FUNC_RANGE ) ; /* 30 Mar 2001 */
    EXRETURN ;
 }
@@ -6280,7 +6316,18 @@ void RCREND_colornum_av_CB( MCW_arrowval * av , XtPointer cd )
 ENTRY( "RCREND_colornum_av_CB" );
 
    HIDE_SCALE ;
-   alter_MCW_pbar( wfunc_color_pbar , av->ival , NULL ) ;
+
+   if( av->ival > NPANE_MAX ){
+      int   npane=wfunc_color_pbar->num_panes , jm=wfunc_color_pbar->mode ;
+      float pmax=wfunc_color_pbar->pval_save[npane][0][jm] ,
+	    pmin=wfunc_color_pbar->pval_save[npane][npane][jm] ;
+
+      PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;
+      RCREND_color_pbar_CB( wfunc_color_pbar, im3d, 0 ) ;
+   } else {
+      wfunc_color_pbar->bigmode = 0 ;
+      alter_MCW_pbar( wfunc_color_pbar , av->ival , NULL ) ;
+   }
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
    EXRETURN ;
@@ -6302,12 +6349,27 @@ ENTRY( "RCREND_color_bbox_CB" );
    jm = wfunc_color_pbar->mode = (newpos) ? 1 : 0 ;  /* pbar mode */
 
    HIDE_SCALE ;
+
+   if( wfunc_color_pbar->bigmode ){               /* 30 Jan 2003 */
+      int npane=wfunc_color_pbar->num_panes ;
+      float pmax=wfunc_color_pbar->pval_save[npane][0][jm] ,
+            pmin=wfunc_color_pbar->pval_save[npane][npane][jm] ;
+      wfunc_color_pbar->bigset = 0 ;
+      PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;
+      AFNI_inten_pbar_CB( wfunc_color_pbar , im3d , 0 ) ;
+
+   } else {
+
    alter_MCW_pbar( wfunc_color_pbar , wfunc_color_pbar->npan_save[jm] , NULL ) ;
+   }
    FIX_SCALE_SIZE ;
 
-   /* set the count on the pbar control arrowval to match */
+   /* set the count on the wfunc_color_pbar control arrowval to match */
 
-   AV_assign_ival( wfunc_colornum_av , wfunc_color_pbar->npan_save[jm] ) ;
+   if ( wfunc_color_pbar->bigmode )
+      AV_assign_ival( wfunc_colornum_av , NPANE_MAX+1 ) ;
+   else
+      AV_assign_ival( wfunc_colornum_av , wfunc_color_pbar->npan_save[jm] ) ;
 
    INVALIDATE_OVERLAY ;
    EXRETURN ;
@@ -6649,10 +6711,11 @@ void RCREND_reload_func_dset(void)
    THD_3dim_dataset  * local_dset;
    MRI_IMAGE * cim , * tim ;
    void      * car , * tar ;
-   float      cfac ,  tfac ;
-   int ii , nvox , num_lp , lp ;
-   byte * ovar ;
-   MCW_pbar * pbar = wfunc_color_pbar ;
+   float       cfac ,  tfac ;
+   float       bbot,  btop, bdelta;
+   int         ii , nvox , num_lp , lp , bindex ;
+   byte     *  ovar ;
+   MCW_pbar *  pbar = wfunc_color_pbar ;
    byte fim_ovc[NPANE_MAX+1] ;
    float fim_thr[NPANE_MAX] , scale_factor , thresh ;
 
@@ -6674,8 +6737,12 @@ ENTRY( "RCREND_reload_func_dset" );
       goto EndOfFuncOverlay ;                 /* AHA! */
    }
 
-   CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
-                    (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
+   if ( pbar->bigmode )		/* v1.8 [rickr] */
+       CREN_set_rgbmap( gcr.rh, NPANE_BIG, gcr.bigstuff.r,
+	                gcr.bigstuff.g,    gcr.bigstuff.b );
+   else
+       CREN_set_rgbmap( gcr.rh, MIN( dc->ovc->ncol_ov, GRAF_SIZE ),
+                        (dc)->ovc->r_ov, (dc)->ovc->g_ov, (dc)->ovc->b_ov );
 
    DSET_load(func_dset) ;            /* make sure is in memory */
    local_dset = func_dset;
@@ -6702,32 +6769,47 @@ ENTRY( "RCREND_reload_func_dset" );
          local_dset = gcr.fset_or;       /* woohoo!  we have our new dataset */
    }
 
-
-   cim  = DSET_BRICK(local_dset,func_color_ival) ; nvox = cim->nvox ; /* color brick */
+   /* color brick */
+   cim  = DSET_BRICK(local_dset,func_color_ival) ; nvox = cim->nvox ;
    car  = DSET_ARRAY(local_dset,func_color_ival) ;
    cfac = DSET_BRICK_FACTOR(local_dset,func_color_ival) ;
    if( cfac == 0.0 ) cfac = 1.0 ;
 
-   tim  = DSET_BRICK(local_dset,func_thresh_ival) ;                   /* thresh brick */
+   tim  = DSET_BRICK(local_dset,func_thresh_ival) ;         /* thresh brick */
    tar  = DSET_ARRAY(local_dset,func_thresh_ival) ;
    tfac = DSET_BRICK_FACTOR(local_dset,func_thresh_ival) ;
    if( tfac == 0.0 ) tfac = 1.0 ;
 
-   ovim = mri_new_conforming( cim , MRI_byte ) ;                     /* new overlay */
+   ovim = mri_new_conforming( cim , MRI_byte ) ;             /* new overlay */
    ovar = MRI_BYTE_PTR(ovim) ;
 
    scale_factor = FUNC_RANGE ;  /* for map from pbar to data value range  */
 
-   num_lp = pbar->num_panes ;
-   for( lp=0 ; lp < num_lp ; lp++ ) fim_ovc[lp] = pbar->ov_index[lp] ; /* top to bottom */
-   fim_ovc[num_lp] = (func_posfunc) ? (0) : (fim_ovc[num_lp-1]) ;      /* off the bottom */
+   num_lp = pbar->num_panes ;   /* top to bottom */
+   for( lp=0 ; lp < num_lp ; lp++ ) fim_ovc[lp] = pbar->ov_index[lp] ;
 
-   thresh = func_threshold * func_thresh_top / tfac ;  /* threshold in tar[] scale */
+   /* off the bottom */
+   fim_ovc[num_lp] = (func_posfunc) ? (0) : (fim_ovc[num_lp-1]) ;
+
+   /* threshold in tar[] scale */
+   thresh = func_threshold * func_thresh_top / tfac ;
 
    /*--- Load the overlay image with the color overlay index ---*/
 
-   if( thresh < 1.0 || !func_use_thresh ){  /*--- no thresholding needed ---*/
+   /* bigmode stuff - for computing color index             [v1.8 rickr] */
+   if ( pbar->bigmode )
+   {
+	btop   = scale_factor / cfac;
+	bbot   = (func_posfunc) ? (0) : -btop;
+	bdelta = (btop - bbot) / NPANE_BIG;
+   }
+   else
+   {
+       for( lp=0 ; lp < num_lp ; lp++ )
+	  fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
+   }
 
+   if( thresh < 1.0 || !func_use_thresh ){  /*--- no thresholding needed ---*/
       switch( cim->kind ){
 
 	 default: {
@@ -6739,14 +6821,20 @@ ENTRY( "RCREND_reload_func_dset" );
          case MRI_short:{
             short * sar = (short *) car ;
 
-            for( lp=0 ; lp < num_lp ; lp++ )                          /* pbar in     */
-               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ; /* car[] scale */
-
             for( ii=0 ; ii < nvox ; ii++ ){
                if( sar[ii] == 0 ){
                   ovar[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
+	       } else {
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6756,14 +6844,20 @@ ENTRY( "RCREND_reload_func_dset" );
          case MRI_float:{
             float * sar = (float *) car ;
 
-            for( lp=0 ; lp < num_lp ; lp++ )
-               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
-
             for( ii=0 ; ii < nvox ; ii++ ){
                if( sar[ii] == 0.0 ){
                   ovar[ii] = 0 ;
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
                } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6776,14 +6870,21 @@ ENTRY( "RCREND_reload_func_dset" );
             for( lp=0 ; lp < num_lp ; lp++ )
                if( pbar->pval[lp+1] <= 0.0 )
                   fim_thr[lp] = 0 ;
-               else
-                  fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
 
             for( ii=0 ; ii < nvox ; ii++ ){
                if( sar[ii] == 0 ){
                   ovar[ii] = 0 ;
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
                } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6806,14 +6907,20 @@ ENTRY( "RCREND_reload_func_dset" );
             short * qar = (short *) tar ;
             int     thr = (int) thresh  ;
 
-            for( lp=0 ; lp < num_lp ; lp++ )
-               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
-
             for( ii=0 ; ii < nvox ; ii++ ){
                if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0.0 ){
                   ovar[ii] = 0 ;
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
                } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6825,14 +6932,20 @@ ENTRY( "RCREND_reload_func_dset" );
             float * qar = (float *) tar ;
             float   thr = thresh        ;
 
-            for( lp=0 ; lp < num_lp ; lp++ )
-               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
-
             for( ii=0 ; ii < nvox ; ii++ ){
                if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0 ){
                   ovar[ii] = 0 ;
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
                } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -6847,14 +6960,21 @@ ENTRY( "RCREND_reload_func_dset" );
             for( lp=0 ; lp < num_lp ; lp++ )
                if( pbar->pval[lp+1] <= 0.0 )
                   fim_thr[lp] = 0 ;
-               else
-                  fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
 
             for( ii=0 ; ii < nvox ; ii++ ){
                if( qar[ii] < thr || sar[ii] == 0 ){
                   ovar[ii] = 0 ;
+               } else if ( pbar->bigmode ) {
+		   /* since 0 is considered blank, use 1 through 127 */
+		   bindex = (int)( (btop - sar[ii])/bdelta + 1);
+		   RANGE(bindex,1,(NPANE_BIG-1));
+		   if ( CRBM_IS_BLACK_INDEX(bindex) )
+		       ovar[ii] = 0;
+		   else
+		       ovar[ii] = bindex;
                } else {
-                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ )
+		      ; /*nada*/
                   ovar[ii] = fim_ovc[lp] ;
                }
             }
@@ -9138,17 +9258,19 @@ ENTRY( "draw_image_line" );
 }
 
 #define RD_CHOICE_NONE	        0x00
-#define RD_CHOICE_DISP_DSET	0x01
-#define RD_CHOICE_HELP	        0x02
-#define RD_CHOICE_DISP_IM	0x03
-#define RD_CHOICE_SET_LEVEL	0x04
-#define RD_CHOICE_DISP_XHAIRS	0x05
+#define RD_CHOICE_HELP	        0x01
+#define RD_CHOICE_DISP_COLORS	0x12			           /* v1.8 */
+#define RD_CHOICE_DISP_DSET	0x13
+#define RD_CHOICE_DISP_IM	0x14
+#define RD_CHOICE_DISP_XHAIRS	0x15
+#define RD_CHOICE_SET_LEVEL	0x20
 
 static int rd_debug_choice   ( char ** str );
 static int rd_disp_debug_help( char *  str, CR_debug * d );
+static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd );
 static int rd_disp_dset_info ( char *  str, CR_debug * d, CR_data * crd );
-static int rd_disp_xhairs    ( char *  str, CR_debug * d );
 static int rd_disp_mri_image ( char *  str, CR_debug * d, MRI_IMARR * r );
+static int rd_disp_xhairs    ( char *  str, CR_debug * d );
 static int rd_set_debug_level( char *  str, CR_debug * d );
 
 /* this is the current interface for setting debug parameters */
@@ -9170,6 +9292,7 @@ ENTRY( "r_debug_check" );
     switch ( choice )
     {
 	case RD_CHOICE_HELP:        rd_disp_debug_help(sp,d);            break;
+	case RD_CHOICE_DISP_COLORS: rd_disp_color_info(sp,d,&gcr);       break;
 	case RD_CHOICE_DISP_DSET:   rd_disp_dset_info (sp,d,&gcr);       break;
 	case RD_CHOICE_DISP_IM:     rd_disp_mri_image (sp,d,renderings); break;
 	case RD_CHOICE_SET_LEVEL:   rd_set_debug_level(sp,d);            break;
@@ -9182,6 +9305,31 @@ ENTRY( "r_debug_check" );
     fflush(stdout);
 
     RETURN(1);	/* we did something */
+}
+
+static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd )
+{
+    MCW_pbar * fcb = wfunc_color_pbar;
+    int        c, incr;
+
+    if ( str && isdigit(*str) )
+	incr = abs(atoi(str));
+    else
+	incr = 8;	/* default increment for color value display */
+
+    fprintf(stderr,"-- debug color increment: %d\n", incr );
+    fprintf(stderr,"-- bigstuff:   r    g    b   +64  r    g    b\n"
+	           "              ---  ---  ---      ---  ---  ---\n");
+    for ( c = 0; c < NPANE_BIG/2; c += incr )
+	fprintf(stderr, "   %3d/%3d:   %3d  %3d  %3d      %3d  %3d  %3d\n",
+	  c, c+64,
+	  crd->bigstuff.r[c   ], crd->bigstuff.g[c   ], crd->bigstuff.b[c   ],
+	  crd->bigstuff.r[c+64], crd->bigstuff.g[c+64], crd->bigstuff.b[c+64]);
+
+    fprintf(stderr,"-- fcb: mode, bigmode, num_panes = %d,%d,%d\n",
+	    fcb->mode, fcb->bigmode, fcb->num_panes );
+
+    return 0;
 }
 
 static int rd_disp_dset_info ( char * str, CR_debug * d, CR_data * crd )
@@ -9216,11 +9364,12 @@ static int rd_debug_choice( char ** str )
 {
     int rv = RD_CHOICE_NONE;
 
-    if ( **str == 'd' ) rv = RD_CHOICE_DISP_DSET;
-    if ( **str == 'h' ) rv = RD_CHOICE_HELP;
-    if ( **str == 'i' ) rv = RD_CHOICE_DISP_IM;
-    if ( **str == 'l' ) rv = RD_CHOICE_SET_LEVEL;
-    if ( **str == 'x' ) rv = RD_CHOICE_DISP_XHAIRS;
+    if      ( **str == 'h' ) rv = RD_CHOICE_HELP;
+    else if ( **str == 'c' ) rv = RD_CHOICE_DISP_COLORS;
+    else if ( **str == 'd' ) rv = RD_CHOICE_DISP_DSET;
+    else if ( **str == 'i' ) rv = RD_CHOICE_DISP_IM;
+    else if ( **str == 'l' ) rv = RD_CHOICE_SET_LEVEL;
+    else if ( **str == 'x' ) rv = RD_CHOICE_DISP_XHAIRS;
 
     (*str)++;     /* all cases currently move past one 'choice' character */
 
@@ -9235,6 +9384,7 @@ static int rd_disp_debug_help( char * str, CR_debug * d )
 	"debugging commands:\n"
 	"\n"
 	"    dh   - debug help           : display this menu\n"
+	"    dcN  - display color info   : bigmode color info (with step N)\n"
 	"    di   - display image        : display last mri image strcture\n"
 	"    dlN  - debug level          : set debug level to N, {0,1,2}\n"
 	"    ddX  - display dataset info : display dataset info for \n"
@@ -9305,5 +9455,23 @@ static int ovc_to_rgb_bytes( int ovc, byte * rgb, MCW_DCOV * ov )
 	printf( "-- rgb vals are %d, %d, %d\n", rgb[0], rgb[1], rgb[2] );
 
     return 1;
+}
+
+/* set color arrays to handle "bigmode" case                 [v1.8 rickr] */
+static int reset_bigcolors( rgbyte * bcs )
+{
+    int  i;
+
+    if ( gcr_debug.level > 0 )
+	fprintf(stderr,"-- reset_bigcolors()\n");
+
+    for ( i = 0; i < NPANE_BIG; i++ )
+    {
+	gcr.bigstuff.r[i] = bcs[i].r;
+	gcr.bigstuff.g[i] = bcs[i].g;
+	gcr.bigstuff.b[i] = bcs[i].b;
+    }
+
+    return 0;
 }
 
