@@ -243,6 +243,7 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    return(Mem);
 }
 
+
 void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out) 
 {
    static char FuncName[]={"SUMA_ShowMemTrace"};
@@ -5472,4 +5473,67 @@ int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
 
    SUMA_RETURN (xunq);
 }/*SUMA_UniqueInt*/
+
+/*!
+   \brief Appends newstring to string in SS->s while taking care of resizing space allocated for s
+   
+   \param SS (SUMA_STRING *) pointer to string structure
+   \param newstring (char *) pointer to string to add to SS
+   \return SS (SUMA_STRING *) pointer to string structure with SS->s now containing newstring
+   - When SS is null, 1000 characters are allocated for s (initialization) and s[0] = '\0';
+   - When newstring is NULL, space allocated for SS->s is resized to the correct dimension and 
+   a null character is placed at the end.
+*/
+SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
+{
+   static char FuncName[]={"SUMA_StringAppend"};
+   int N_inc = 0, N_cur = 0;
+   int N_chunk = 1000;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SS) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Allocating for SS.\n", FuncName);
+      SS = (SUMA_STRING *) SUMA_malloc (sizeof(SUMA_STRING));
+      SS->s = (char *) SUMA_calloc (N_chunk, sizeof(char));
+      SS->s[0] = '\0';
+      SS->N_alloc = N_chunk;
+      SUMA_RETURN (SS);
+   }
+   
+   if (newstring) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Appending to SS->s.\n", FuncName);
+      N_inc = strlen (newstring);
+      N_cur = strlen (SS->s);
+      if (SS->N_alloc < N_cur+N_inc+1) { /* must reallocate */
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Must reallocate for SS->s.\n", FuncName);
+         SS->N_alloc = N_cur+N_inc+N_chunk+1;
+         SS->s = SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
+         if (!SS->s) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
+            SUMA_RETURN (NULL);
+         }
+      }
+      /* append */
+      sprintf (SS->s, "%s%s", SS->s, newstring);
+   }else {
+      /* shrink SS->s to small size */
+      N_cur = strlen (SS->s);
+      if (SS->N_alloc > N_cur+1) {
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Shrink realloc for SS->s.\n", FuncName);
+         SS->N_alloc = N_cur+1;
+         SS->s = SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
+         if (!SS->s) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
+            SUMA_RETURN (NULL);
+         }
+         /*put a null at the end */
+         SS->s[SS->N_alloc-1] = '\0';
+      }
+   }
+   
+   SUMA_RETURN (SS);
+
+}
 

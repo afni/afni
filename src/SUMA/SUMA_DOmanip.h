@@ -19,6 +19,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name);
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP);
 SUMA_VOLPAR *SUMA_Alloc_VolPar (void);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
+char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);
 SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF);

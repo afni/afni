@@ -93,11 +93,11 @@ static String fallbackResources_NP[] = {
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            black"               ,
-   "*menu*background:       gray30"               ,
-   "*borderColor:           gray30"               ,
+   "*menu*background:       gray70"               ,
+   "*borderColor:           gray70"               ,
    "*foreground:            white"               ,
    "*borderWidth:           0"                    ,
-   "*troughColor:           green"                ,
+   "*troughColor:           white"                ,
    "*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
    "*help*background:       black"                ,
    "*help*foreground:       yellow"               ,
@@ -142,7 +142,7 @@ static String fallbackResources_Bonaire[] = {
 - use matlab script readXcol to choose different color settings
 */
 
-static String *SUMA_get_fallbackResources ()
+String *SUMA_get_fallbackResources ()
 {
    static char FuncName[]={"SUMA_get_fallbackResources"};
    
@@ -770,6 +770,13 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_
          XmStringFree (str);
       }
 
+      if (items[i].class == &xmToggleButtonWidgetClass ||
+              items[i].class == &xmToggleButtonGadgetClass) {
+         Pixel fg_pix;
+         XtVaGetValues (MenuWidgets[(int)items[i].callback_data], XmNforeground, &fg_pix, NULL);
+         XtVaSetValues (MenuWidgets[(int)items[i].callback_data], XmNselectColor, fg_pix, NULL); 
+          
+      }
      
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
       if (items[i].callback) {
@@ -853,6 +860,26 @@ SUMA_MenuItem View_menu[] = {
       
    {NULL},
 };
+
+SUMA_MenuItem Help_menu[] = {
+   {  "Viewer Usage", &xmPushButtonWidgetClass, \
+      'V', "Ctrl <key>h", "Ctrl+h", \
+      SUMA_cb_helpViewer, (XtPointer) SW_HelpViewer, NULL},
+      
+   {  "Separator 1", &xmSeparatorWidgetClass, \
+      '\0', NULL, NULL, \
+      NULL, (XtPointer) SW_HelpSep1, NULL }, 
+      
+   {  "InOut Notify", &xmToggleButtonWidgetClass, \
+      'I', NULL, NULL, \
+      SUMA_cb_helpIO_notify, (XtPointer) SW_HelpIONotify, NULL},
+      
+   {  "MemTrace", &xmToggleButtonWidgetClass, \
+      'M', NULL, NULL, \
+      SUMA_cb_helpMemTrace, (XtPointer) SW_HelpMemTrace, NULL},
+   {NULL},
+};
+
 
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
@@ -947,10 +974,23 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                  "View", 'V', YUP, View_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->ViewMenu );
          
+         /* create Help Menu */
+         SUMAg_SVv[ic].X->HelpMenu[SW_Help] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+                                 "Help", 'H', YUP, Help_menu, \
+                                 (void *)ic, SUMAg_SVv[ic].X->HelpMenu );
+         
+         /*STOPPED HERE */
+         XtVaSetValues (menubar, XmNmenuHelpWidget, SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
+                                 
          /* set states of the some view menu widgets */
          XmToggleButtonSetState (SUMAg_SVv[ic].X->ViewMenu[SW_ViewCrossHair], 
             SUMAg_SVv[ic].ShowCrossHair, NOPE);
-
+         
+         XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpMemTrace], 
+            SUMAg_CF->MemTrace, NOPE);
+         XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
+            SUMAg_CF->InOut_Notify, NOPE);
+         
 
          
       #ifdef SUMA_MOTIF_GLXAREA
@@ -1625,6 +1665,83 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y)
 
 
 /*!
+   \brief A call back to open the help window 
+   No input parameters needed
+*/
+void SUMA_cb_helpViewer (Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpViewer"};
+   DList *list = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+
+}
+
+/*!
+ function to toggle the IOnotify debugging flag
+ - expects nothing
+*/  
+void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpIO_notify"};
+   int ii;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMAg_CF->InOut_Notify = !SUMAg_CF->InOut_Notify;
+
+   /* must update the state of toggle buttons in otherviewers */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         /* you must check for both conditions because by default 
+         all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify]) {
+            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpIONotify], 
+               SUMAg_CF->InOut_Notify, NOPE);
+         }
+      }
+   }
+   
+   
+   SUMA_RETURNe; 
+}
+
+/*!
+ function to toggle the Memtrace debugging flag
+ - expects nothing
+*/  
+void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpIO_notify"};
+   int ii;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMAg_CF->MemTrace = !SUMAg_CF->MemTrace;
+   
+   /* must update the state of toggle buttons in otherviewers */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         /* you must check for both conditions because by default 
+         all viewers are initialized to isShaded = NOPE, even before they are ever opened */
+         if (w != SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace]) {
+            XmToggleButtonSetState (SUMAg_SVv[ii].X->HelpMenu[SW_HelpMemTrace], 
+               SUMAg_CF->MemTrace, NOPE);
+         }
+      }
+   }
+   
+   SUMA_RETURNe; 
+}
+
+/*!
    \brief callback to open SUMA 's Controller
    No input parameters needed
 */
@@ -1724,7 +1841,9 @@ void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
 }
 
 
-/* the function expects the index of widget into sv->X->ViewMenu in data */
+
+/*!<
+ the function expects the index of widget into sv->X->ViewMenu in data */
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_toggle_crosshair"};
@@ -1912,7 +2031,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
 */
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, rc, pb, form, DispFrame, pb_close, pb_bhelp;
+   Widget tl, pb, form, DispFrame, SurfFrame;
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel; 
@@ -1965,58 +2084,114 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XmNshadowThickness, 2,
       XmNshadowType, XmSHADOW_ETCHED_IN,
       NULL); 
+   
+   {/*s surface label and info */ 
+      Widget rc, label;
+     
+      /* put a frame */
+      SurfFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, form,
+         XmNleftAttachment , XmATTACH_FORM ,
+         XmNtopAttachment  , XmATTACH_FORM ,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /*put a label containing the surface name, number of nodes and number of facesets */
+      sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+      label = XtVaCreateManagedWidget (slabel, 
+               xmLabelWidgetClass, rc,
+               NULL);
+
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc, 
+                                 XmNorientation, XmVERTICAL,NULL);
+
+      SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, NULL);
+      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO, NULL); /* store the surface object SO in userData
+                                                                  I think it is more convenient than as data
+                                                                  in the call back structure. This way it will
+                                                                  be easy to change the SO that this same button
+                                                                  might refer to. 
+                                                                  This is only for testing purposes, the pb_close
+                                                                  button still expects SO in clientData*/
+      MCW_register_hint( SO->SurfCont->SurfInfo_pb , "More info on Surface" ) ;
+      MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_moreSurfInfo_help ) ;
+      XtManageChild (SO->SurfCont->SurfInfo_pb); 
+
+      XtManageChild (rc);
+      XtManageChild (SurfFrame);
+   }  
+   
+   { /*s close and help buttons */
+      Widget rc, pb_close, pb_bhelp;
       
-   /* put up a frame to group the display controls */
-   DispFrame = XtVaCreateWidget ("dialog",
-      xmFrameWidgetClass, form,
-      XmNleftAttachment , XmATTACH_FORM ,
-      XmNtopAttachment  , XmATTACH_FORM ,
-      XmNshadowType , XmSHADOW_ETCHED_IN ,
-      XmNshadowThickness , 5 ,
-      XmNtraversalOn , False ,
-      NULL); 
-   
-   #ifndef MOTIF_1_2
-      XtVaCreateManagedWidget ("Disp. Cont.",
-         xmLabelGadgetClass, DispFrame, 
-         XmNchildType, XmFRAME_TITLE_CHILD,
-         XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      /* put up a frame to group the display controls */
+      DispFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, form,
+         XmNleftAttachment , XmATTACH_FORM ,
+         XmNtopAttachment  , XmATTACH_WIDGET ,
+         XmNtopWidget, SurfFrame,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+
+      #ifndef MOTIF_1_2
+         XtVaCreateManagedWidget ("Disp. Cont.",
+            xmLabelGadgetClass, DispFrame, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+      #endif   
+
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, DispFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      pb_close = XtVaCreateWidget ("Close", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb_close, XmNactivateCallback, SUMA_cb_closeSurfaceCont, (XtPointer) SO);
+      MCW_register_hint( pb_close , "Close Surface controller" ) ;
+      MCW_register_help( pb_close , SUMA_closeSurfaceCont_help ) ;
+      XtManageChild (pb_close); 
+
+      pb_bhelp = XtVaCreateWidget ("BHelp", 
+         xmPushButtonWidgetClass, rc, 
          NULL);
-   #endif   
-   
-   /* row column Lock rowcolumns */
-   rc = XtVaCreateWidget ("rowcolumn",
-         xmRowColumnWidgetClass, DispFrame,
-         XmNpacking, XmPACK_TIGHT, 
-         XmNorientation , XmHORIZONTAL ,
-         XmNmarginHeight, SUMA_MARGIN ,
-         XmNmarginWidth , SUMA_MARGIN ,
-         NULL);
-   
-   pb_close = XtVaCreateWidget ("Close", 
-      xmPushButtonWidgetClass, rc, 
-      NULL);   
-   XtAddCallback (pb_close, XmNactivateCallback, SUMA_cb_closeSurfaceCont, (XtPointer) SO);
-   MCW_register_hint( pb_close , "Close Surface controller" ) ;
-   MCW_register_help( pb_close , SUMA_closeSurfaceCont_help ) ;
-   XtManageChild (pb_close); 
-   
-   pb_bhelp = XtVaCreateWidget ("BHelp", 
-      xmPushButtonWidgetClass, rc, 
-      NULL);
-   XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
-   MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-   MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
-   
-   XtManageChild (pb_bhelp); 
+      XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
+      MCW_register_help(pb_bhelp , SUMA_help_help ) ;
+      MCW_register_hint(pb_bhelp  , "Coddles the weak." ) ;
+
+      XtManageChild (pb_bhelp); 
 
 
-   
-   /* now start managing the row column widget */
-   XtManageChild (rc);
-   
-   /* manage the frame and the form */
-   XtManageChild (DispFrame);
+
+      /* now start managing the row column widget */
+      XtManageChild (rc);
+
+      /* manage the frame and the fslabelorm */
+      XtManageChild (DispFrame);
+   }
    XtManageChild (form);
    
    #if SUMA_CONTROLLER_AS_DIALOG    
@@ -2195,7 +2370,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       /* initialize radio button created */
       SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, i, SUMAg_CF->Locked[i]);
       
-      XtVaCreateManagedWidget ("sep", xmSeparatorGadgetClass, rc_m, NULL);
+      XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_m, NULL);
       
       SUMAg_CF->X->SumaCont->LockView_tbg[i] = XtVaCreateManagedWidget("v", 
          xmToggleButtonGadgetClass, rc_m, NULL);
@@ -2500,6 +2675,8 @@ void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_newSumaCont"};
    SUMA_Boolean LocalHead = YUP;
    
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
    fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
    /* open a new controller */
    if (!SUMA_X_SurfaceViewer_Create ()) {
@@ -2644,4 +2821,425 @@ void SUMA_set_LockView_atb (void)
    }
    
    SUMA_RETURNe;   
+}
+
+/*! 
+   \brief opens a text window with information about the surface object in focus 
+   -expects SO pointer in userdata
+*/
+void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_moreSurfInfo"};
+   SUMA_SurfaceObject *SO=NULL;
+   void *n=NULL;
+   char *s = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   XtVaGetValues (w,
+                  XmNuserData, &n,
+                  NULL);
+                  
+   SO = (SUMA_SurfaceObject *)n;
+   
+   /* check to see if window is already open, if it is, just raise it */
+   if (SO->SurfCont->SurfInfo_TextShell->toplevel) {
+      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->SurfInfo_TextShell->toplevel));
+      SUMA_RETURNe;
+   }
+   
+   /* for the string of the surface info */
+   s = SUMA_SurfaceObject_Info (SO);
+   
+   if (s) {
+      TextShell =  SUMA_CreateTestShellStruct (SUMA_SurfInfo_open, (void *)SO, 
+                                               SUMA_SurfInfo_destroyed, (void *)SO);
+      if (!TextShell) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+         SUMA_RETURNe;
+      }
+      SO->SurfCont->SurfInfo_TextShell = SUMA_CreateTextShell(s, SO->Label, TextShell);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
+   }   
+
+    
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Function called when Surface Info window is open
+*/
+void SUMA_SurfInfo_open (void *p) 
+{
+   static char FuncName[] = {"SUMA_SurfInfo_open"};
+   SUMA_SurfaceObject *SO= NULL;
+  
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SO = (SUMA_SurfaceObject *)p;
+   MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
+   
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Function called when Surface Info window is destroyed
+*/
+void SUMA_SurfInfo_destroyed (void *p) 
+{
+   static char FuncName[] = {"SUMA_SurfInfo_destroyed"};
+   SUMA_SurfaceObject *SO= NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SO = (SUMA_SurfaceObject *)p;
+   MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
+   
+   SO->SurfCont->SurfInfo_TextShell = NULL;
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief calls XtDestroyWidget on to top level shell of w and frees the TextShell pointer in clientdata. 
+*/
+void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd) 
+{
+   static char FuncName[] = {"SUMA_DestroyTextShell"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
+   
+   if (TextShell->DestroyCallBack) {
+      /* call destroy callback */
+      TextShell->DestroyCallBack(TextShell->DestroyData);
+   }
+   if (TextShell) SUMA_free(TextShell);
+   
+   XtDestroyWidget(SUMA_GetTopShell(w));
+
+   SUMA_RETURNe;
+}
+
+
+/*!
+   \brief Creates the structure used to pass widget and options back and forth from SUMA_CreateTextShell
+   TextShellStruct = SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+                                                            void (*closecallback)(void*data), void *closedata);
+                                                            
+   - callbacks and their data are stored in their respective fields in TextShellStruct
+   - All widgets are set to NULL
+   
+*/
+
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+                                                            void (*closecallback)(void*data), void *closedata)
+{
+   static char FuncName[] = {"SUMA_CreateTestShellStruct"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *) SUMA_malloc (sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
+   if (!TextShell) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate for TextShell.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   TextShell->text_w =  TextShell->search_w = TextShell->text_output = TextShell->toplevel = NULL;
+   TextShell->case_sensitive = YUP;
+   TextShell->allow_edit = NOPE;
+   TextShell->OpenCallBack = opencallback;
+   TextShell->OpenData = opendata;
+   TextShell->DestroyCallBack = closecallback;
+   TextShell->DestroyData = closedata;
+   
+   SUMA_RETURN (TextShell);
+}  
+
+/*!
+   \brief Opens a window with text information in it. 
+   
+   \param s (char *) string to display, must be null terminated.
+   \param title (char *) title of window
+   \param TextShell (SUMA_CreateTextShell *) containing options for SUMA_CreateTextShell
+      if TextShell->toplevel then only the log message is updated, otherwise the window is created.
+   \return TextShell (SUMA_CreateTextShell *) same structure sent to function but with widgets fields filled. 
+   
+   \sa SUMA_CreateTestShellStruct
+   
+   - based on example SUMA_search_text from "Motif Programming Manual"
+   see copyright notice in beginning of SUMA_display.c
+*/   
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell)
+{
+   static char FuncName[] = {"SUMA_CreateTextShell"};
+   Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
+   int n;
+   SUMA_Boolean LocalHead = YUP;
+   Pixel fg_pix;
+   Arg args[20];
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (TextShell->OpenCallBack) { /* do the opening callback */
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Calling OpenCallBack.\n", FuncName);
+      TextShell->OpenCallBack(TextShell->OpenData);
+   }
+   
+   if (!TextShell->toplevel) { /* need to create window */
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new text shell window.\n", FuncName);
+      TextShell->toplevel = XtVaAppCreateShell (title, "Suma",
+         topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
+         XmNdeleteResponse, XmDO_NOTHING,
+         NULL);  
+
+      XmAddWMProtocolCallback(/* make "Close" window menu work */
+         TextShell->toplevel,
+         XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
+         SUMA_DestroyTextShell, TextShell) ;
+
+      form = XtVaCreateWidget ("textoutput",
+        xmFormWidgetClass, TextShell->toplevel, NULL);
+
+
+      rowcol_v = XtVaCreateWidget ("rowcol_v",
+        xmRowColumnWidgetClass, form, NULL);
+
+      rowcol_h = XtVaCreateWidget ("rowcol_h",
+        xmRowColumnWidgetClass, rowcol_v,
+        XmNorientation,  XmHORIZONTAL,
+        NULL);
+      XtVaCreateManagedWidget ("Search Pattern:",
+        xmLabelGadgetClass, rowcol_h, NULL);
+
+      TextShell->search_w = XtVaCreateManagedWidget ("SUMA_search_text",
+        xmTextFieldWidgetClass, rowcol_h, NULL);
+
+      XtVaGetValues (TextShell->search_w, XmNforeground, &fg_pix, NULL);
+      toggle_case_w = XtVaCreateManagedWidget ("Case Sensitive",
+         xmToggleButtonWidgetClass, rowcol_h,
+         XmNset, TextShell->case_sensitive,
+         XmNselectColor, fg_pix, 
+         NULL);
+      XtAddCallback (toggle_case_w, XmNvalueChangedCallback,SUMA_cb_ToggleCaseSearch, TextShell);
+
+      close_w = XtVaCreateManagedWidget ("Close", 
+         xmPushButtonWidgetClass, rowcol_h, NULL);
+      XtAddCallback (close_w, XmNactivateCallback, SUMA_DestroyTextShell, TextShell);    
+
+      XtManageChild (rowcol_h);
+
+      TextShell->text_output = XtVaCreateManagedWidget ("text_output",
+        xmTextWidgetClass, rowcol_v,
+        XmNeditable,              False,
+        XmNcursorPositionVisible, False,
+        XmNshadowThickness,       0,
+        XmNhighlightThickness,    0,
+        NULL);
+
+      XtManageChild (rowcol_v);
+
+      n = 0;
+      XtSetArg (args[n], XmNrows,      10); n++;
+      XtSetArg (args[n], XmNcolumns,   80); n++;
+      XtSetArg (args[n], XmNeditMode,  XmMULTI_LINE_EDIT); n++;
+      XtSetArg (args[n], XmNeditable, TextShell->allow_edit); n++;
+      XtSetArg (args[n], XmNscrollHorizontal,  False); n++;
+      XtSetArg (args[n], XmNwordWrap,  True); n++;
+      XtSetArg (args[n], XmNbottomAttachment, XmATTACH_FORM); n++;
+      XtSetArg (args[n], XmNrightAttachment, XmATTACH_FORM); n++;
+      XtSetArg (args[n], XmNleftAttachment, XmATTACH_FORM); n++;
+      XtSetArg (args[n], XmNtopAttachment, XmATTACH_WIDGET); n++;
+      XtSetArg (args[n], XmNtopWidget, rowcol_v); n++;
+
+      TextShell->text_w = XmCreateScrolledText (form, "text_w", args, n);
+      XmTextSetString (TextShell->text_w, s);
+      XtManageChild (TextShell->text_w);
+
+      XtAddCallback (TextShell->search_w, XmNactivateCallback, SUMA_cb_search_text, TextShell);
+
+      XtManageChild (form);
+
+      /* pop it up if it is a topLevelShellWidgetClass */
+      XtPopup(TextShell->toplevel, XtGrabNone);   
+
+      XtRealizeWidget (TextShell->toplevel);
+   } else { /* already created, just replace text and perhaps title (in the future)*/
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting string in previously created text shell window.\n", FuncName);
+      XmTextSetString (TextShell->text_w, s);
+   }
+   SUMA_RETURN(TextShell);
+}
+
+/*! \brief toggles case sensitive search 
+   - Expects a SUMA_CREATE_TEXT_SHELL_STRUCT pointer in clientdata:
+*/
+
+void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_ToggleCaseSearch"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)client_data;
+   TextShell->case_sensitive = !TextShell->case_sensitive;
+   
+   SUMA_RETURNe;   
+}
+/*!
+    \brief searches text in a text widget for a string specified in a textfield widget and
+    writes the results in a text_output text widget.
+
+   - Expects a structure SUMA_CREATE_TEXT_SHELL_STRUCT pointer in clientdata:
+      text_w (Widget)
+      search_w (Widget)
+      text_output (Widget)
+      
+   - Based on search_text() from "Motif Programming Manual"
+*/
+void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_data)
+{
+   char *search_pat, *p, *string, buf[32];
+   XmTextPosition pos;
+   int len, i;
+   Boolean found = False;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
+   static char FuncName[]={"SUMA_search_text"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)client_data;
+   
+   /* get the text that is about to be searched */
+   if (!(string = XmTextGetString (TextShell->text_w)) || !*string) {
+     XmTextSetString (TextShell->text_output, "No text to search.");
+     XtFree (string); /* may have been ""; free it */
+     return;
+   }
+   len = strlen(string);
+   if (!TextShell->case_sensitive) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Case insensitive search.\n", FuncName);
+      /* turn string to lowercase */
+      for (i=0; i < len; ++i) string[i] = tolower(string[i]);   
+   }
+   
+   /* get the pattern we're going to search for in the text. */
+   if (!(search_pat = XmTextGetString (TextShell->search_w)) || !*search_pat) {
+     XmTextSetString (TextShell->text_output, "Specify a search pattern.");
+     XtFree (string); /* this we know is a string; free it */
+     XtFree (search_pat); /* this may be "", XtFree() checks.. */
+     return;
+   }
+   len = strlen (search_pat);
+   
+   if (!TextShell->case_sensitive) {
+      /* turn search_pat to lowercase */
+      for (i=0; i < len; ++i) search_pat[i] = tolower(search_pat[i]);  
+   }
+   /* start searching at current cursor position + 1 to find
+   * the -next- occurrance of string.  we may be sitting on it.
+   */
+   pos = XmTextGetCursorPosition (TextShell->text_w);
+   for (p = &string[pos+1]; (p = index (p, *search_pat)); p++)
+     if (!strncmp (p, search_pat, len)) {
+         found = True;
+         break;
+     }
+   if (!found) { /* didn't find pattern? */
+     /* search from beginning till we've passed "pos" */
+     for (p = string;
+             (p = index (p, *search_pat)) && p - string <= pos; p++)
+         if (!strncmp (p, search_pat, len)) {
+             found = True;
+             break;
+         }
+   }
+   if (!found)
+     XmTextSetString (TextShell->text_output, "Pattern not found.");
+   else {
+     pos = (XmTextPosition)(p - string);
+     sprintf (buf, "Pattern found at position %ld.", pos);
+     XmTextSetString (TextShell->text_output, buf);
+     XmTextSetInsertionPosition (TextShell->text_w, pos);
+   }
+   XtFree (string);
+   XtFree (search_pat);
+}
+
+/*!
+   \brief pops a SUMA message
+*/
+void SUMA_PopUpMessage (SUMA_MessageData *MD)
+{
+   static char FuncName[]={"SUMA_PopUpMessage"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   
+   if (MD->Action ==  SMA_LogAndPopup) {
+      switch (MD->Type) {
+         case SMT_Notice:
+            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            break;
+         case SMT_Warning:
+            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            break;
+         case SMT_Error:
+            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL);
+            break;
+         case SMT_Critical:
+            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
+            break;
+         default:
+            break;
+      }
+   }
+   
+   SUMA_RETURNe;   
+
+}
+
+/*!
+   \brief forms the message string.
+*/
+char * SUMA_FormatMessage (SUMA_MessageData *MD) 
+{
+   static char FuncName[]={"SUMA_FormatMessage"};
+   char *s=NULL;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   s = (char *)SUMA_calloc (strlen(MD->Message)+strlen(MD->Source)+100, sizeof(char));
+   if (!s) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   switch (MD->Type) {
+      case SMT_Notice:
+         sprintf(s,"Notice %s -------------:\n%s\n", MD->Source, MD->Message);
+         break;
+      case SMT_Warning:
+         sprintf(s,"Warning %s -------------:\n%s\n", MD->Source, MD->Message);
+         break;
+      case SMT_Error:
+         sprintf(s,"Error %s -------------:\n%s\n", MD->Source, MD->Message);
+         break;
+      case SMT_Critical:
+         sprintf(s,"Critical Error %s -------------:\n%s\n", MD->Source, MD->Message);
+         break;
+      default:
+         sprintf(s,"BAD MESSAGE.\n");
+         break;
+   }
+   
+   SUMA_RETURN (s);
 }

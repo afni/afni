@@ -163,53 +163,115 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 }
 
 /*!
+   \brief Form a string containing the info of the volume parent
+   
+   \param VP (SUMA_VOLPAR *) Volume parent structure.
+   \return s (char *) pointer to NULL terminated string containing surface info.
+   It is your responsability to free it.
+   
+   \sa SUMA_Show_VolPar
+*/
+
+char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
+{
+   static char FuncName[]={"SUMA_VolPar_Info"};
+   char stmp[1000], *s=NULL;
+   SUMA_STRING *SS = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (VP) { 
+	   sprintf (stmp,"\nVP contents:\n");
+      SS = SUMA_StringAppend (SS, stmp);
+	   sprintf (stmp,"prefix: %s\tfilecode: %s\tdirname: %s\nId code str:%s\tID code date: %s\n", \
+		   VP->prefix, VP->filecode, VP->dirname, VP->idcode_str, VP->idcode_date);
+      SS = SUMA_StringAppend (SS, stmp);
+	   sprintf (stmp,"isanat: %d\n", VP->isanat);
+      SS = SUMA_StringAppend (SS, stmp);
+	   sprintf (stmp,"Orientation: %d %d %d\n", \
+		   VP->xxorient, VP->yyorient, VP->zzorient);
+      SS = SUMA_StringAppend (SS, stmp);
+	   sprintf (stmp,"Origin: %f %f %f\n", \
+		   VP->xorg, VP->yorg, VP->zorg);
+	   SS = SUMA_StringAppend (SS, stmp);
+      sprintf (stmp,"Delta: %f %f %f\n", \
+		   VP->dx, VP->dy, VP->dz);
+      SS = SUMA_StringAppend (SS, stmp);
+	   sprintf (stmp,"N: %d %d %d\n",\
+		   VP->nx, VP->ny, VP->nz);
+      SS = SUMA_StringAppend (SS, stmp);
+
+	   if (VP->VOLREG_MATVEC != NULL) {
+		   sprintf (stmp,"VP->VOLREG_MATVEC = \n\tMrot\tDelta\n");
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->VOLREG_MATVEC[0], VP->VOLREG_MATVEC[1], VP->VOLREG_MATVEC[2], VP->VOLREG_MATVEC[3]); 
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->VOLREG_MATVEC[4], VP->VOLREG_MATVEC[5], VP->VOLREG_MATVEC[6], VP->VOLREG_MATVEC[7]);
+         SS = SUMA_StringAppend (SS, stmp);
+		   sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+		   VP->VOLREG_MATVEC[8], VP->VOLREG_MATVEC[9], VP->VOLREG_MATVEC[10], VP->VOLREG_MATVEC[11]);
+         SS = SUMA_StringAppend (SS, stmp);
+	   } else {
+         sprintf (stmp,"VP->VOLREG_MATVEC = NULL\n");
+         SS = SUMA_StringAppend (SS, stmp);
+      }
+
+	   if (VP->VOLREG_CENTER_OLD != NULL) {
+		   sprintf (stmp,"VP->VOLREG_CENTER_OLD = %f, %f, %f\n", \
+		     VP->VOLREG_CENTER_OLD[0], VP->VOLREG_CENTER_OLD[1], VP->VOLREG_CENTER_OLD[2]); 
+         SS = SUMA_StringAppend (SS, stmp);
+	   }else {
+         sprintf (stmp,"VP->VOLREG_CENTER_OLD = NULL\n");
+         SS = SUMA_StringAppend (SS, stmp);
+      }
+
+	   if (VP->VOLREG_CENTER_BASE != NULL) {
+		   sprintf (stmp,"VP->VOLREG_CENTER_BASE = %f, %f, %f\n", \
+   		   VP->VOLREG_CENTER_BASE[0], VP->VOLREG_CENTER_BASE[1], VP->VOLREG_CENTER_BASE[2]); 
+         SS = SUMA_StringAppend (SS, stmp);
+	   } else {
+         sprintf (stmp,"VP->VOLREG_CENTER_BASE = NULL\n");
+         SS = SUMA_StringAppend (SS, stmp);
+      }
+   }else{
+      sprintf (stmp, "NULL Volume Parent Pointer.\n");
+      SS = SUMA_StringAppend (SS, stmp);
+   }
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+}
+/*!
 	Show the contents of SUMA_VOLPAR structure 
+   \sa SUMA_VolPar_Info 
 */
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out)
 {
 	static char FuncName[]={"SUMA_Show_VolPar"};
-	
+	char *s;
+   
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	if (Out == NULL) Out = SUMA_STDOUT;
-	if (VP == NULL) { 
-		fprintf(Out,"\nVP is NULL\n");
-		SUMA_RETURNe;
-	} 
 	
-	fprintf(Out,"\nVP contents:\n");
-	fprintf(Out,"prefix: %s\tfilecode: %s\tdirname: %s\nId code str:%s\tID code date: %s\n", \
-		VP->prefix, VP->filecode, VP->dirname, VP->idcode_str, VP->idcode_date);
-	fprintf(Out,"isanat: %d\n", VP->isanat);
-	fprintf(Out,"Orientation: %d %d %d\n", \
-		VP->xxorient, VP->yyorient, VP->zzorient);
-	fprintf(Out,"Origin: %f %f %f\n", \
-		VP->xorg, VP->yorg, VP->zorg);
-	fprintf(Out,"Delta: %f %f %f\n", \
-		VP->dx, VP->dy, VP->dz);
-	fprintf(Out,"N: %d %d %d\n",\
-		VP->nx, VP->ny, VP->nz);
-	
-	if (VP->VOLREG_MATVEC != NULL) {
-		fprintf(Out,"VP->VOLREG_MATVEC = \n\tMrot\tDelta\n");
-		fprintf(Out,"|%f\t%f\t%f|\t|%f|\n", \
-		VP->VOLREG_MATVEC[0], VP->VOLREG_MATVEC[1], VP->VOLREG_MATVEC[2], VP->VOLREG_MATVEC[3]); 
-		fprintf(Out,"|%f\t%f\t%f|\t|%f|\n", \
-		VP->VOLREG_MATVEC[4], VP->VOLREG_MATVEC[5], VP->VOLREG_MATVEC[6], VP->VOLREG_MATVEC[7]);
-		fprintf(Out,"|%f\t%f\t%f|\t|%f|\n", \
-		VP->VOLREG_MATVEC[8], VP->VOLREG_MATVEC[9], VP->VOLREG_MATVEC[10], VP->VOLREG_MATVEC[11]);
-	} else fprintf(Out,"VP->VOLREG_MATVEC = NULL\n");
-
-	if (VP->VOLREG_CENTER_OLD != NULL)
-		fprintf(Out,"VP->VOLREG_CENTER_OLD = %f, %f, %f\n", \
-		VP->VOLREG_CENTER_OLD[0], VP->VOLREG_CENTER_OLD[1], VP->VOLREG_CENTER_OLD[2]); 
-	else fprintf(Out,"VP->VOLREG_CENTER_OLD = NULL\n");
-	
-	if (VP->VOLREG_CENTER_BASE != NULL)
-		fprintf(Out,"VP->VOLREG_CENTER_BASE = %f, %f, %f\n", \
-		VP->VOLREG_CENTER_BASE[0], VP->VOLREG_CENTER_BASE[1], VP->VOLREG_CENTER_BASE[2]); 
-	else fprintf(Out,"VP->VOLREG_CENTER_BASE = NULL\n");
-	
+   s =  SUMA_VolPar_Info(VP);
+   
+   if (s) {
+      fprintf (Out, "%s", s);
+      SUMA_free(s);
+   }else {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_VolPar_Info.\n", FuncName);
+   }   
+   
 	SUMA_RETURNe;
 		
 }

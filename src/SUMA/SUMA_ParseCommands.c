@@ -170,6 +170,9 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"ToggleLockView")) SUMA_RETURN(SE_ToggleLockView);
    if (!strcmp(Scom,"ToggleLockAllViews")) SUMA_RETURN(SE_ToggleLockAllViews);
    if (!strcmp(Scom,"Load_Group")) SUMA_RETURN(SE_Load_Group);
+   if (!strcmp(Scom,"Help")) SUMA_RETURN(SE_Help);
+   if (!strcmp(Scom,"ShowLog")) SUMA_RETURN(SE_ShowLog);
+   if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -261,6 +264,12 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("ToggleLockAllViews");   
       case SE_Load_Group:
          SUMA_RETURN("Load_Group"); 
+      case SE_Help:
+         SUMA_RETURN("Help");
+      case SE_ShowLog:
+         SUMA_RETURN("ShowLog"); 
+      case SE_Log:
+         SUMA_RETURN("Log");
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -427,6 +436,130 @@ void SUMA_EngineSourceString (char *Scom, int i)
    SUMA_RETURNe;
 }
 
+/*! 
+\brief Appends a new message to the list of SUMA messages, making sure
+the number of messages does not exceed SUMA_MAX_MESSAGES
+Ans = SUMA_RegisterMessage (  list, Message, Source, Type, Action );
+
+\param list (DList *) pointer to doubly linked list of messages
+\param Message (char *) null terminated message
+\param Source (char *) null terminated source of message
+\param Type (SUMA_MESSAGE_TYPES) Type of message to spit out
+\param Action (SUMA_MESSAGE_ACTION) Action to perform with message
+\return  YUP/NOPE, success/failure
+
+*/
+SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SUMA_MESSAGE_TYPES Type, SUMA_MESSAGE_ACTION Action)
+{
+   static char FuncName[]={"SUMA_RegisterMessage"};
+   SUMA_MessageData *MD = NULL;
+   SUMA_Boolean TryLogWindow = NOPE;
+   int i=0, TrimTheFat=0;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!list) {
+      fprintf (SUMA_STDERR, "Error %s: list has not been initialized.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* allocate and initialize element */
+   MD = (SUMA_MessageData *) SUMA_malloc(sizeof(SUMA_MessageData));
+   if (!MD) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   MD->Message = Message;
+   MD->Source = Source;
+   MD->Type = Type;
+   MD->Action = Action;
+   
+   /* add element at end */
+   if (dlist_ins_next (list, dlist_tail(list), (void *)MD) < 0) {
+       fprintf (SUMA_STDERR, "Error %s: Failed to insert element in list.\n", FuncName);
+       SUMA_RETURN(NOPE);
+   }
+   
+   /* make sure size of list is < SUMA_MAX_MESSAGES */
+   TrimTheFat = list->size - SUMA_MAX_MESSAGES;
+   if ( TrimTheFat > 0) {
+      for (i=0; i < TrimTheFat; ++i) {
+         /* remove the head */
+         if (!SUMA_ReleaseMessageListElement (list, dlist_head(list))) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_ReleaseMessageListElement.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         } 
+      }
+   }
+   
+   /* Decide on what to do with new element */
+   switch (MD->Action) {
+      case SMA_Nothing:
+         break;
+      case SMA_Log:
+         TryLogWindow = YUP;
+         break;
+      case SMA_LogAndPopup:
+         SUMA_PopUpMessage (MD);
+         break;
+      default:
+         break;
+   
+   }
+   
+   if (TryLogWindow) {
+      DList *Elist=NULL;
+      SUMA_EngineData *ED=NULL;
+
+      Elist = SUMA_CreateList();
+      SUMA_REGISTER_COMMAND_NO_DATA(Elist, SE_ShowLog, SES_Suma, NULL);
+
+      if (!SUMA_Engine (&list)) {
+         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (NOPE);
+      }
+   }
+
+   
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   \brief forms a string out of all the messages in the Message list
+   
+*/
+char *SUMA_BuildMessageLog (DList *ML)
+{
+   static char FuncName[]={"SUMA_BuildMessageLog"};
+   char *s=NULL;
+   SUMA_STRING *SS = NULL;
+   DListElmt *CurElmt=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (!ML->size) { /* Nothing */
+      SUMA_RETURN (NULL);
+   }
+   
+   CurElmt = dlist_head(ML);
+   SS = SUMA_StringAppend (SS, SUMA_FormatMessage ((SUMA_MessageData *)CurElmt->data)); 
+   do {
+      CurElmt = dlist_next(CurElmt);
+      SS = SUMA_StringAppend (SS, SUMA_FormatMessage ((SUMA_MessageData *)CurElmt->data)); 
+   } while (!dlist_is_tail(CurElmt));
+   
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+   
+}
 /*!
 \brief Adds a new element to the list of commands for SUMA_Engine.
 NewElement = SUMA_RegisterEngineListCommand (   list,  EngineData,  
@@ -1240,9 +1373,37 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *ED)
 }
 
 /*!
+   \brief free a message structure and any allocated space in its fields
+   
+   \param Hv (void *) pointer to Message structure. 
+            It is type cast to void* to suit the standard list manipulation routines.
+*/
+void SUMA_FreeMessageListData(void *Hv)
+{
+   static char FuncName[]={"SUMA_FreeMessageListData"};
+   SUMA_MessageData *H = NULL;
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   H = (SUMA_MessageData *)Hv;
+   
+   if (H) {
+      fprintf(SUMA_STDERR,"Warning %s: ED is null, nothing to do!\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (H->Message) SUMA_free(H->Message);
+   if (H->Source) SUMA_free(H->Source);
+   if (H) SUMA_free(H);
+   
+   SUMA_RETURNe;
+}
+
+/*!
    \brief free an engine data structure and any allocated space in its fields
-   SUMA_FreeEngineListData (ED);
-   \param ED (void *) pointer to EngineData structure. It is type cast to void* to suit the standard list manipulation routines.
+   SUMA_FreeEngineListData (EDv);
+   
+   \param EDv (void *) pointer to EngineData structure. 
+            It is type cast to void* to suit the standard list manipulation routines.
 
 if space for im or fm has been dynamically allocated in SUMA_RegisterEngineListCommand()
 it is released. 
@@ -1361,7 +1522,8 @@ SUMA_Boolean SUMA_FreeEngineData (SUMA_EngineData *ED)
    \param element (DListElmt *)
    \return (YUP/NOPE), success, failure
    
-   NOTE: The list is not destroyed if no elements remain in it, you should check for that after this function returns.
+   - The list is not destroyed if no elements remain in it, 
+   you should check for that after this function returns.
 */
 SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element) 
 {
@@ -1380,6 +1542,35 @@ SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element)
    
    SUMA_RETURN (YUP);
 }
+
+/*!
+   \brief removes an element from the list, frees the data structure associated with the removed element
+   ans = SUMA_ReleaseMessageListElement (list, element) 
+   \param list (DList *)
+   \param element (DListElmt *)
+   \return (YUP/NOPE), success, failure
+   
+   - The list is not destroyed if no elements remain in it, 
+   you should check for that after this function returns.
+*/
+SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element) 
+{
+   static char FuncName[]={"SUMA_ReleaseMessageListElement"};
+   void *H=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (dlist_remove (list, element, &H) < 0) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   if (!H) {
+      SUMA_FreeMessageListData((SUMA_MessageData *)H);
+   }
+   
+   SUMA_RETURN (YUP);
+}
+
 
 /*!
    \brief destroys a list
@@ -1401,6 +1592,31 @@ DList * SUMA_DestroyList (DList *list)
    dlist_destroy(list);
    SUMA_RETURN (NULL);   
 } 
+
+/*!
+   \brief creates a list for the message list
+   list = SUMA_CreateMessageList ();
+   \return list (DList *) pointer to doubly linked list
+            NULL if function fails
+            
+            DO not use common field variables here.
+*/
+DList *SUMA_CreateMessageList (void)
+{
+   static char FuncName[]={"SUMA_CreateMessageList"};
+   DList *list=NULL;
+   
+   
+   list = (DList *)malloc (sizeof(DList));
+   if (!list) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate for list.\n", FuncName);
+      return (NULL);
+   }
+   
+   dlist_init(list, SUMA_FreeMessageListData);
+   
+   return (list);
+}
 
 /*!
    \brief creates a list for SUMA_Engine

@@ -85,6 +85,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
+AFNI_OBJS = ../xutil.o ../LiteClue.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
 SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
@@ -108,7 +109,7 @@ clean:
 
 suma: SUMA_suma.o 
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o suma ../xutil.o ../LiteClue.o SUMA_suma.o ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 MakeColorMap: SUMA_Color.c
 	$(RM) $@
@@ -116,7 +117,7 @@ MakeColorMap: SUMA_Color.c
 
 SUMA_ScaleToMap: SUMA_Color.c
 	$(RM) $@
-	${CC} -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@  $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_FreeSurfer: SUMA_Surface_IO.c
 	$(RM) $@
@@ -124,11 +125,11 @@ SUMA_FreeSurfer: SUMA_Surface_IO.c
 
 SUMA_Read_SpecFile: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_Read_SpecFile_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_Read_SpecFile_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_Load_Surface_Object: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_Load_Surface_Object_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_Load_Surface_Object_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS}  $< ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_SureFit: SUMA_Surface_IO.c
 	$(RM) $@

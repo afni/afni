@@ -3,86 +3,148 @@
 extern SUMA_CommonFields *SUMAg_CF; 
 
 /*!
+   \brief function called when help window is open
+*/
+void SUMA_Help_open (void *p)
+{
+   static char FuncName[]={"SUMA_Help_open"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   /* nothing to do here */
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief function called when help window is destroyed
+*/
+void SUMA_Help_destroyed (void *p)
+{
+   static char FuncName[]={"SUMA_Help_destroyed"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMAg_CF->X->Help_TextShell = NULL;
+   
+   SUMA_RETURNe;
+}
+
+char * SUMA_help_message_Info(void)
+{
+   static char FuncName[]={"SUMA_help_message_Info"};
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   SS = SUMA_StringAppend (SS, "\nKeyboard Controls\n");
+   SS = SUMA_StringAppend (SS, "\t  a: attenuation by background, toggle.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  B: Backface culling, toggle.\n");
+   SS = SUMA_StringAppend (SS, "\t  b: background color, toggle.\n");
+   SS = SUMA_StringAppend (SS, "\t  c: node color file.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  d: Show all DO objects in DOv.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Alt+e: Look for OpenGL errors.\n"); 
+   SS = SUMA_StringAppend (SS, "\t  f: functional overlay, toggle.\n");
+   SS = SUMA_StringAppend (SS, "\t  F: Flip light position between +z and -z.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  H: Highlight nodes inside a specified box.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  j: Set the cross hair to a certain node on SO in Focus.\n\t    Does not update in other viewers\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   ctrl+j: Set the cross hair's XYZ location. \n\t    Does not update in other viewers\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   alt+j: Set the Focus node. Cross hair's XYZ remain unchanged.\n\t    Does not update in other viewers\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  J: Set the selected FaceSet on SO in Focus.\n\t    Does not update in other viewers.\n");
+   SS = SUMA_StringAppend (SS, "\t  h: NO LONGER USED\n");
+   SS = SUMA_StringAppend (SS, "\t   Ctrl+h: help message\n");
+   SS = SUMA_StringAppend (SS, "\t  l: look at point\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   ctrl+l: Switch locking mode for all viewers between:\n No Lock, Index Lock and XYZ Lock.\nThe switching is order is based on the lock of the first viewer.");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  L: look from point\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+M: Show memory trace if Debug flag MemTrace is on. \n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t           (requires compilation with SUMA_MEMTRACE_FLAG 1).\n");
+   SS = SUMA_StringAppend (SS, "\t  m: momentum, toggle\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  n: bring a node to direct view (does not work yet)\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+n: Open a new surface viewer window.\n");
+   SS = SUMA_StringAppend (SS, "\t  p: rendering mode (Fill, Line, Points), switch.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  s: NO LONGER IN USE.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+Alt+s: Input filename with coordinates forming a segment (6 values) on each line.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  S: Show all surface objects registered in DOv.\n");
+   SS = SUMA_StringAppend (SS, "\t  t: talk to AFNI, toggle.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+t: Force a resend of surfaces to AFNI.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  v: Show current surface viewer structure (cSV).\n");
+   SS = SUMA_StringAppend (SS, "\t  w: Write the rendered scene to an image file on disk (Surface_Label*.eps or suma_img*.eps).\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  W: Write ascii files containing the NodeList, the FaceSetList and the nodecolors of the surface in focus.\n");
+   SS = SUMA_StringAppend (SS, "\t  Z/z: Zoom in/out\n");
+
+   SS = SUMA_StringAppend (SS, "\t  *: Smooth node colors by averaging with neighbors.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  @: Compute curvatures along principal directions on the surface, results written to disk.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  (: Compute convexity of surface, results written to disk.\n");
+   SS = SUMA_StringAppend (SS, "\t  ,/. (think </>): Switch to next/previous view state.\n");
+   SS = SUMA_StringAppend (SS, "\t  SPACE: Toggle between Mapping Reference and Current view state.\n");
+
+   SS = SUMA_StringAppend (SS, "\t  L-R arrows: rotate about screen's Y axis\n");
+   SS = SUMA_StringAppend (SS, "\t  U-D arrows: rotate about screen's X axis\n");
+   SS = SUMA_StringAppend (SS, "\t  Shift+L-R arrows: translate about screen's Y axis\n");
+   SS = SUMA_StringAppend (SS, "\t  Shift+U-D arrows: translate about screen's X axis\n");
+   SS = SUMA_StringAppend (SS, "\t  Ctrl+L-R arrows: LR cardinal views\n");
+   SS = SUMA_StringAppend (SS, "\t  Ctrl+U-D arrows: IS cardinal views\n");
+   SS = SUMA_StringAppend (SS, "\t  Ctrl+Shift+U-D arrows: AP cardinal views\n");
+
+   SS = SUMA_StringAppend (SS, "\t  F1: object axis (X-Red, Y-Green, Z-Blue), toggle. \n");
+   SS = SUMA_StringAppend (SS, "\t  F2: screen axis (X-Red, Y-Green), toggle. \n");
+   SS = SUMA_StringAppend (SS, "\t  F3: cross hair, toggle. \n");
+   SS = SUMA_StringAppend (SS, "\t  F4: node selection highlight, toggle. \n");
+   SS = SUMA_StringAppend (SS, "\t  F5: FaceSet selection highlight, toggle.\n");
+   SS = SUMA_StringAppend (SS, "\t  F6: Viewer background color, toggle.\n");
+   SS = SUMA_StringAppend (SS, "\t  F12: Time 20 scene renderings.\n");
+   SS = SUMA_StringAppend (SS, "\t  HOME: reset view to startup\n");
+   SS = SUMA_StringAppend (SS, "\t  ESCAPE: close the surface viewer window.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Shft+ESCAPE: close all surface viewer windows.\n");
+   SS = SUMA_StringAppend (SS, "\t  Mouse Controls:\n");
+   SS = SUMA_StringAppend (SS, "\t  Button 1-Motion: rotation as if you were using a trackball.\n");
+   SS = SUMA_StringAppend (SS, "\t    Pure vertical motion is equivalent to using the up/down arrow keys.\n");
+   SS = SUMA_StringAppend (SS, "\t    Pure horizontal motion is equivalent to using the left/right arrow keys.\n");
+   SS = SUMA_StringAppend (SS, "\t    Of course, the advantage to using the mouse is a continuous range of rotation \n");
+   SS = SUMA_StringAppend (SS, "\t    angles and simultaneous rotations about the screen's X & Y axis.\n");
+   SS = SUMA_StringAppend (SS, "\t    This mode of rotation is similar to SGI's ivview interface.\n");
+   SS = SUMA_StringAppend (SS, "\t  Button 2-Motion: translation\n"); 
+   SS = SUMA_StringAppend (SS, "\t  Button 1+2-Motion OR Shift+Button2-Motion: Zoom in/out\n");
+   SS = SUMA_StringAppend (SS, "\t  Button 3-Press: picking \n");
+   SS = SUMA_StringAppend (SS, "\n");
+   SS = SUMA_StringAppend (SS, "More help at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
+   SS = SUMA_StringAppend (SS, "\n");
+      
+
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+
+}
+/*!
 Controls help message
 */
 void SUMA_help_message(FILE *Out)
 {
-	if (Out == NULL) {
+	char *s=NULL;
+   static char FuncName[]={"SUMA_help_message"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (Out == NULL) {
 		Out = stdout;
 	}
-    fprintf (Out, "\nKeyboard Controls\n");
-	 fprintf (Out, "\t  a: attenuation by background, toggle.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  B: Backface culling, toggle.\n");
-	 fprintf (Out, "\t  b: background color, toggle.\n");
-	 fprintf (Out, "\t  c: node color file.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  d: Show all DO objects in DOv.\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   Alt+e: Look for OpenGL errors.\n"); 
-	 fprintf (Out, "\t  f: functional overlay, toggle.\n");
-	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  j: Set the cross hair to a certain node on SO in Focus.\n\t    Does not update in other viewers\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   ctrl+j: Set the cross hair's XYZ location. \n\t    Does not update in other viewers\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   alt+j: Set the Focus node. Cross hair's XYZ remain unchanged.\n\t    Does not update in other viewers\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t  J: Set the selected FaceSet on SO in Focus.\n\t    Does not update in other viewers.\n");
-    fprintf (Out, "\t  h: help message\n");
-	 fprintf (Out, "\t   Ctrl+h: Debug flags\n");
-	 fprintf (Out, "\t  l: look at point\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   ctrl+l: Switch locking mode for all viewers between:\n No Lock, Index Lock and XYZ Lock.\nThe switching is order is based on the lock of the first viewer.");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  L: look from point\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+M: Show memory trace if Debug flag MemTrace is on. \n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t           (requires compilation with SUMA_MEMTRACE_FLAG 1).\n");
-    fprintf (Out, "\t  m: momentum, toggle\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  n: bring a node to direct view (does not work yet)\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+n: Open a new surface viewer window.\n");
-	 fprintf (Out, "\t  p: rendering mode (Fill, Line, Points), switch.\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+Alt+s: Input filename with coordinates forming a segment (6 values) on each line.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
-	 fprintf (Out, "\t  t: talk to AFNI, toggle.\n");
-    if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+t: Force a resend of surfaces to AFNI.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");
-	 fprintf (Out, "\t  w: Write the rendered scene to an image file on disk (Surface_Label*.eps or suma_img*.eps).\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  W: Write ascii files containing the NodeList, the FaceSetList and the nodecolors of the surface in focus.\n");
-	 fprintf (Out, "\t  Z/z: Zoom in/out\n");
-	 
-	 fprintf (Out, "\t  *: Smooth node colors by averaging with neighbors.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  @: Compute curvatures along principal directions on the surface, results written to disk.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t  (: Compute convexity of surface, results written to disk.\n");
-	 fprintf (Out, "\t  ,/. (think </>): Switch to next/previous view state.\n");
-	 fprintf (Out, "\t  SPACE: Toggle between Mapping Reference and Current view state.\n");
-	 
-	 fprintf (Out, "\t  L-R arrows: rotate about screen's Y axis\n");
-	 fprintf (Out, "\t  U-D arrows: rotate about screen's X axis\n");
-	 fprintf (Out, "\t  Shift+L-R arrows: translate about screen's Y axis\n");
-	 fprintf (Out, "\t  Shift+U-D arrows: translate about screen's X axis\n");
-	 fprintf (Out, "\t  Ctrl+L-R arrows: LR cardinal views\n");
-	 fprintf (Out, "\t  Ctrl+U-D arrows: IS cardinal views\n");
-	 fprintf (Out, "\t  Ctrl+Shift+U-D arrows: AP cardinal views\n");
-
-	 fprintf (Out, "\t  F1: object axis (X-Red, Y-Green, Z-Blue), toggle. \n");
-	 fprintf (Out, "\t  F2: screen axis (X-Red, Y-Green), toggle. \n");
-	 fprintf (Out, "\t  F3: cross hair, toggle. \n");
-	 fprintf (Out, "\t  F4: node selection highlight, toggle. \n");
-	 fprintf (Out, "\t  F5: FaceSet selection highlight, toggle.\n");
-    fprintf (Out, "\t  F6: Viewer background color, toggle.\n");
-	 fprintf (Out, "\t  F12: Time 20 scene renderings.\n");
-	 fprintf (Out, "\t  HOME: reset view to startup\n");
-	 fprintf (Out, "\t  ESCAPE: close the surface viewer window.\n");
-	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Shft+ESCAPE: close all surface viewer windows.\n");
-	 fprintf (Out, "\t  Mouse Controls:\n");
-	 fprintf (Out, "\t  Button 1-Motion: rotation as if you were using a trackball.\n");
-	 fprintf (Out, "\t    Pure vertical motion is equivalent to using the up/down arrow keys.\n");
-	 fprintf (Out, "\t    Pure horizontal motion is equivalent to using the left/right arrow keys.\n");
-	 fprintf (Out, "\t    Of course, the advantage to using the mouse is a continuous range of rotation \n");
-	 fprintf (Out, "\t    angles and simultaneous rotations about the screen's X & Y axis.\n");
-	 fprintf (Out, "\t    This mode of rotation is similar to SGI's ivview interface.\n");
-	 fprintf (Out, "\t  Button 2-Motion: translation\n"); 
-	 fprintf (Out, "\t  Button 1+2-Motion OR Shift+Button2-Motion: Zoom in/out\n");
-	 fprintf (Out, "\t  Button 3-Press: picking \n");
-	 fprintf (Out, "\n");
-	 fprintf (Out, "More help at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
-	 fprintf (Out, "\n");
-	 return;
+   
+   s = SUMA_help_message_Info();
+   if (!s) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_message_Info.\n", FuncName);
+   }else {
+      fprintf (Out, "%s\n", s);
+      SUMA_free(s);
+   }
+	
+   SUMA_RETURNe;
 }
 
 /*!
