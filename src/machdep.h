@@ -268,7 +268,7 @@ extern long   strtol() ;
 # endif
 #endif
 
-#if defined(LINUX) || defined(FreeBSD)
+#if defined(LINUX) || defined(FreeBSD) || defined(NetBSD) || defined(OpenBSD)
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)

@@ -3564,8 +3564,9 @@ ENTRY("AFNI_read_inputs") ;
       THD_string_array * flist , * dlist=NULL ;
       char * dname , *eee ;
       THD_session * new_ss ;
-      int num_dsets=0 ;      /* 04 Jan 2000 */
-      THD_session * gss=NULL ; /* 11 May 2002: global session */
+      int num_dsets=0 ;       /* 04 Jan 2000 */
+      THD_session *gss=NULL ; /* 11 May 2002: global session */
+      THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
 
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
@@ -3587,6 +3588,16 @@ ENTRY("AFNI_read_inputs") ;
            REPORT_PROGRESS(str) ;
          }
       }
+
+      /* 28 Aug 2003:
+         set up session for datasets from command line (vs. directories) */
+
+      dss         = myXtNew( THD_session ) ;
+      dss->type   = SESSION_TYPE ;
+      dss->parent = NULL ;
+      BLANK_SESSION(dss) ;
+      MCW_strncpy( dss->sessname , "from CLI" , THD_MAX_NAME ) ;
+      MCW_strncpy( dss->lastname , "from CLI" , THD_MAX_NAME ) ;
 
       /* now get the list of strings to read as directories */
 
@@ -3651,6 +3662,20 @@ if(PRINT_TRACING)
 
          REFRESH ;
 
+         if( new_ss == NULL ){ /* 28 Aug 2003 */
+           qd = dss->num_dsset ;
+           if( qd < THD_MAX_SESSION_SIZE ){
+fprintf(stderr,"trying to read %s as dataset\n",dname) ;
+             THD_3dim_dataset *dset = THD_open_dataset( dname ) ;
+             if( dset != NULL ){
+fprintf(stderr,"  -- it worked!\n") ;
+               dss->dsset[qd][dset->view_type] = dset ;
+               dss->num_dsset ++ ;
+             }
+else fprintf(stderr,"  -- it failed!\n") ;
+           }
+         }
+
          if( new_ss != NULL && new_ss->num_dsset > 0 ){ /* got something? */
 
             /* set parent pointers */
@@ -3699,6 +3724,19 @@ if(PRINT_TRACING)
          }
 
       }  /* end of id loop (over input directory names) */
+
+      /* 28 Aug 2003: if have dataset in session dss, use it */
+
+      if( dss->num_dsset > 0 ){
+        if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION )
+          GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
+        else {
+          fprintf(stderr,"\n** Can't use command line datasets: session overflow!\n") ;
+          free(dss) ;
+        }
+      } else {
+        free(dss) ;
+      }
 
       /* 11 May 2002: if have global session but no others, use it */
 

@@ -26,6 +26,7 @@ Boolean THD_write_atr( THD_datablock * blk )
 
    if( DBLK_IS_MINC(blk)    ) return False ; /* 29 Oct 2001 */
    if( DBLK_IS_ANALYZE(blk) ) return False ; /* 27 Aug 2002 */
+   if( DBLK_IS_NIFTI(blk)   ) return False ; /* 28 Aug 2003 */
 
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){

@@ -47,6 +47,7 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
    if( DSET_IS_MINC(dset)     ) return False ;  /* 29 Oct 2001 */
    if( DSET_IS_MASTERED(dset) ) return False ;  /* 11 Jan 1999 */
    if( DSET_IS_ANALYZE(dset)  ) return False ;  /* 27 Aug 2002 */
+   if( DSET_IS_NIFTI(dset)    ) return False ;  /* 28 Aug 2003 */
    if( DSET_IS_CTFMRI(dset)   ) return False ;  /* 05 Dec 2002 */
    if( DSET_IS_CTFSAM(dset)   ) return False ;  /* 05 Dec 2002 */
 

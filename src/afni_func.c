@@ -3137,7 +3137,7 @@ STATUS(old_ss->sessname) ;
       descend from the warp and anatomy parents just assigned */
 
    THD_reconcile_parents( GLOBAL_library.sslist ) ;
-   AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
+   AFNI_force_adoption( old_ss , GLOBAL_argopt.warp_4D ) ;
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
 
    /* 28 Aug 2002: deal with warptables */
@@ -3149,6 +3149,7 @@ STATUS(old_ss->sessname) ;
      destroy_Htable( new_ss->warptable ) ;
      new_ss->warptable = NULL ;
    }
+   free(new_ss) ;
 
    RETURN(na_new) ;
 }
@@ -3609,7 +3610,9 @@ ENTRY("AFNI_write_dataset_CB") ;
          !DSET_IS_ANALYZE(dset)          &&      /* 27 Aug 2002 */
          !DSET_IS_CTFSAM(dset)           &&
          !DSET_IS_CTFMRI(dset)           &&
-         !DSET_IS_1D(dset)                  ;
+         !DSET_IS_1D(dset)               &&
+         !DSET_IS_NIFTI(dset)                   /* 28 Aug 2003 */
+       ;
 
    destroy = !DSET_WRITEABLE(dset) ;      /* check for destruction */
 

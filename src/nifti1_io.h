@@ -6,7 +6,11 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include "nifti1.h"
+
+#ifndef DONT_INCLUDE_ANALYZE_STRUCT
+#define DONT_INCLUDE_ANALYZE_STRUCT  /*** not needed herein ***/
+#endif
+#include "nifti1.h"                  /*** NIFTI-1 header specification ***/
 
 /*****===================================================================*****/
 /*****         File nifti1_io.h == Declarations for nifti1_io.c          *****/

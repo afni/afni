@@ -914,8 +914,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_CTFSAM  7
 #define STORAGE_BY_1D      8  /* 04 Mar 2003 */
 #define STORAGE_BY_3D      9  /* 21 Mar 2003 */
+#define STORAGE_BY_NIFTI  10  /* 28 Aug 2003 */
 
-#define LAST_STORAGE_MODE  9
+#define LAST_STORAGE_MODE 10
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2174,6 +2175,11 @@ typedef struct THD_3dim_dataset {
 #define DBLK_IS_3D(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&     \
                          (db)->diskptr->storage_mode == STORAGE_BY_3D )
 
+/*! Determine if datablock db is stored in a NIFTI file on disk */
+
+#define DBLK_IS_NIFTI(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&  \
+                           (db)->diskptr->storage_mode == STORAGE_BY_NIFTI )
+
 /*! Determine if dataset ds is stored in a 1D file on disk */
 
 #define DSET_IS_1D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
@@ -2185,6 +2191,12 @@ typedef struct THD_3dim_dataset {
 #define DSET_IS_3D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
                          ISVALID_DISKPTR((ds)->dblk->diskptr) &&                   \
                          (ds)->dblk->diskptr->storage_mode == STORAGE_BY_3D )
+
+/*! Determine if dataset ds is stored in a NIFTI file on disk */
+
+#define DSET_IS_NIFTI(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&        \
+                            ISVALID_DISKPTR((ds)->dblk->diskptr) &&                \
+                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI )
 
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
@@ -2217,7 +2229,7 @@ typedef struct THD_3dim_dataset {
 
 /*! Purge the data of dataset ds from memory (you can reload it later) */
 
-# define PURGE_DSET(ds)                                                 \
+#define PURGE_DSET(ds)                                                  \
   do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )                 \
          (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; \
       SUMA_unload(ds) ;                                                 \
@@ -3107,6 +3119,7 @@ extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_1D( char * ) ;           /* 04 Mar 2003 */
 extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
+extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
@@ -3272,6 +3285,7 @@ extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
+extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)

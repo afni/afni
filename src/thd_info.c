@@ -45,7 +45,10 @@ ENTRY("THD_dataset_info") ;
 
    daxes = dset->daxes ;
 
-   outbuf = THD_zzprintf(outbuf,"Dataset File:    %s\n" , DSET_FILECODE(dset) ) ;
+   if( DSET_IS_BRIK(dset) )
+     outbuf = THD_zzprintf(outbuf,"Dataset File:    %s\n" , DSET_FILECODE(dset) ) ;
+   else
+     outbuf = THD_zzprintf(outbuf,"Dataset File:    %s\n" , DSET_BRIKNAME(dset) ) ;
 
    outbuf = THD_zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
              dset->idcode.str , dset->idcode.date ) ;
@@ -111,6 +114,9 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_3D:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .3D file\n") ; break ;
+
+     case STORAGE_BY_NIFTI:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIFTI file\n") ; break ;
    }
 
    /*-- keywords --*/

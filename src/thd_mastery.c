@@ -16,12 +16,12 @@ static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
    21 Feb 2001: Allow for <a..b> sub-ranging as well.
 -------------------------------------------------------------------*/
 
-THD_3dim_dataset * THD_open_dataset( char * pathname )
+THD_3dim_dataset * THD_open_dataset( char *pathname )
 {
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
    char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
-   char * cpt , * bpt ;
-   int  * ivlist=NULL ;
+   char *cpt , *bpt ;
+   int  *ivlist=NULL ;
    int    ii , jj , kk ;
    float  bot=1.0 , top=0.0 ;
 
@@ -43,16 +43,16 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
    /*-- 17 Mar 2000: check if this is a 3dcalc() run --*/
 
    if( strncmp(pathname,"3dcalc(",7)  == 0 ){
-      dset = THD_open_3dcalc( pathname ) ;
-      return dset ;
+     dset = THD_open_3dcalc( pathname ) ;
+     return dset ;
    }
 
    /*-- 04 Mar 2003: allow input of .1D files   --*/
    /*--              which deals with [] itself --*/
 
    if( strstr(pathname,".1D") != NULL ){
-      dset = THD_open_1D( pathname ) ;
-      if( dset != NULL ) return dset ;
+     dset = THD_open_1D( pathname ) ;
+     if( dset != NULL ) return dset ;
    }
 
    /*-- find the opening "[" and/or "<" --*/
@@ -60,9 +60,9 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
    cpt = strstr(pathname,"[") ;
    bpt = strstr(pathname,"<") ;  /* 21 Feb 2001 */
 
-   if( cpt == NULL && bpt == NULL ){             /* no "[" or "<"  */
-      dset = THD_open_one_dataset( pathname ) ;  /* ==> open      */
-      return dset ;                              /*     normally */
+   if( cpt == NULL && bpt == NULL ){            /* no "[" or "<"  */
+     dset = THD_open_one_dataset( pathname ) ;  /* ==> open      */
+     return dset ;                              /*     normally */
    }
 
    if( cpt == pathname || bpt == pathname ) return NULL ;  /* error */
@@ -74,13 +74,15 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
    kk = MIN(ii,jj) ;
    memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
-   if( kk > 4 && strcmp(pathname+kk-4,".mnc") == 0 ){
-      fprintf(stderr,"** Can't use selectors on MINC dataset: %s\n",pathname) ;
-      return NULL ;
-   }
-   if( kk > 4 && strcmp(pathname+kk-4,".hdr") == 0 ){
-      fprintf(stderr,"** Can't use selectors on ANALYZE dataset: %s\n",pathname) ;
-      return NULL ;
+   if( STRING_HAS_SUFFIX(dname,".mnc") ||
+       STRING_HAS_SUFFIX(dname,".hdr") ||
+       STRING_HAS_SUFFIX(dname,".nia") ||
+       STRING_HAS_SUFFIX(dname,".nii") ||
+       STRING_HAS_SUFFIX(dname,".mri") ||
+       STRING_HAS_SUFFIX(dname,".svl")   ){
+       
+     fprintf(stderr,"** Can't use selectors on dataset: %s\n",pathname) ;
+     return NULL ;
    }
 
    /* open the dataset */

@@ -92,51 +92,59 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*-- 29 Oct 2001: MINC input (etc.) --*/
 
    if( dkptr->storage_mode == STORAGE_BY_MINC ){
-      THD_load_minc( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read MINC file?!") ;
-      RETURN( False ) ;
+     THD_load_minc( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read MINC file?!") ;
+     RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_ANALYZE ){
-      THD_load_analyze( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read ANALYZE file?!") ;
-      RETURN( False ) ;
+     THD_load_analyze( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read ANALYZE file?!") ;
+     RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_CTFMRI ){  /* 04 Dec 2002 */
-      THD_load_ctfmri( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read CTF MRI file?!") ;
-      RETURN( False ) ;
+     THD_load_ctfmri( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read CTF MRI file?!") ;
+     RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_CTFSAM ){  /* 04 Dec 2002 */
-      THD_load_ctfsam( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read CTF SAM file?!") ;
-      RETURN( False ) ;
+     THD_load_ctfsam( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read CTF SAM file?!") ;
+     RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_1D ){      /* 04 Mar 2003 */
-      THD_load_1D( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read 1D dataset file?!") ;
-      RETURN( False ) ;
+     THD_load_1D( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read 1D dataset file?!") ;
+     RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_3D ){      /* 21 Mar 2003 */
-      THD_load_3D( blk ) ;
-      ii = THD_count_databricks( blk ) ;
-      if( ii == blk->nvals ) RETURN( True ) ;
-      STATUS("can't read 1D dataset file?!") ;
-      RETURN( False ) ;
+     THD_load_3D( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read 3D dataset file?!") ;
+     RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_NIFTI ){   /* 28 Aug 2003 */
+     THD_load_nifti( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ) RETURN( True ) ;
+     STATUS("can't read NIFTI dataset file?!") ;
+     RETURN( False ) ;
    }
 
    /*-- allocate data space --*/

@@ -1203,7 +1203,7 @@ void nifti_image_load( nifti_image *nim )
 
    /** byte swap array if needed **/
 
-   if( nim->swapsize > 0 && nim->byteorder != short_order() )
+   if( nim->swapsize > 1 && nim->byteorder != short_order() )
      swap_Nbytes( ntot / nim->swapsize , nim->swapsize , nim->data ) ;
 
 #ifdef isfinite
