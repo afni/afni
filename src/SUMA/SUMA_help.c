@@ -736,7 +736,10 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + 3dVol2Surf can output NIML formatted datasets.\n"
             "    Options -first_node and -last_node can be used\n"
             "    to restrict the mapping to a subset of the nodes.\n"
-            "    That is useful if your output file size exceeds 2GB.\n"  
+            "    That is useful if your output file size exceeds 2GB.\n"
+            "Bug Fix:\n"
+            "  + Fixed bug on Mac OS-X that cause all viewers to close\n"
+            "    after pressing 'Yes' on the 'Close this viewer' prompt.\n"  
             );
          break;
          
