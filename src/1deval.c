@@ -1,17 +1,18 @@
 #include "parser.h"
 #include <ctype.h>
+#include <stdlib.h>
 
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode = NULL ;
    char sym[4] ;
    double atoz[26] , value , del=1.0 ;
-   int ii , kvar , nopt , qvar , num=100 ;
+   int ii , kvar , nopt , qvar , num=100 , verbose=0 ;
 
    /*-- help? --*/
 
    if( argc < 3 ){
-      printf("Usage: 1dcalc -expr 'expression' [-del d] [-num n]\n"
+      printf("Usage: 1deval -expr 'expression' [-del d] [-num n] [-v]\n"
              "Evaluates the expression at 'n' points, spaced 'd'\n"
              "apart, and writes the result to stdout.\n" ) ;
       exit(0) ;
@@ -25,6 +26,11 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+      if( strcmp(argv[nopt],"-v") == 0 ){
+         verbose++ ;
+         nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-expr") == 0 ){
          if( pcode != NULL ){
@@ -47,6 +53,7 @@ int main( int argc , char * argv[] )
             sym[0] = 'A' + ii ; sym[1] = '\0' ;
             if( PARSER_has_symbol(sym,pcode) ){
                qvar++ ; if( kvar < 0 ) kvar = ii ;
+               if( verbose ) fprintf(stderr,"+++ Found symbol %s\n",sym) ;
             }
          }
          if( qvar != 1 ){
@@ -68,6 +75,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"*** -del value must not be zero!\n") ;
             exit(1) ;
          }
+         if( verbose ) fprintf(stderr,"del set to %g\n",del) ;
          nopt++ ; continue ;
       }
 
@@ -85,7 +93,7 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      fprintf(stderr,"*** %s = unknown command line option!\n") ;
+      fprintf(stderr,"*** %s = unknown command line option!\n",argv[nopt]) ;
       exit(1) ;
    }
 
@@ -97,6 +105,7 @@ int main( int argc , char * argv[] )
 
    for( ii=0 ; ii < num ; ii++ ){
       atoz[kvar] = ii * del ;
+      if( verbose ) fprintf(stderr,"variable = %g\n",atoz[kvar]) ;
       value = PARSER_evaluate_one( pcode , atoz ) ;
       printf(" %g\n",value) ;
    }

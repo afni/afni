@@ -374,6 +374,7 @@ char * HISTO_main( PLUGIN_interface * plint )
 /******************************************************************************/
 
 #define FIT_FISHER
+#undef  DO_GREEN
 
 static char c_helpstring[] =
  "Purpose: Plot a histogram of correlation coefficient of a 3D+time\n"
@@ -398,11 +399,13 @@ static char c_helpstring[] =
  "The array of correlation coefficients is then put into 100 bins, ranging\n"
  "from -1.0 to 1.0, and the histogram graph is popped up to the display.\n"
  "\n"
- "Overlaid on the histogram are two other graphs:\n"
+ "Overlaid on the histogram are other graphs:\n"
  " * The first [red] is a normal fit to the Fisher z-transform of the\n"
  "     correlation coefficient.\n"
+#ifdef DO_GREEN
  " * The second [green] is the nominal fit to the number of degrees of\n"
  "     freedom, assuming the data time series are normal white noise.\n"
+#endif
  "\n"
  "-- Bob Cox - October 1999\n"
 ;
@@ -473,15 +476,7 @@ PLUGIN_interface * CORREL_init(void)
 
 /*-----------------------------------------------------------------------------*/
 
-static float ww(float x)
-{
-   float y ;
-   if( x <= 1.0 ) return 0.0 ;
-   y = log(x) ; y = y*y ;
-   return y/(1.0+0.1*y) ;
-}
-
-#define phizero(z,u,s) erfc(fabs((z-u)/(1.4142136*s)))
+#include "uuu.c"
 
 char *  CORREL_main( PLUGIN_interface * plint )
 {
@@ -731,32 +726,6 @@ char *  CORREL_main( PLUGIN_interface * plint )
    zsig = 1.4826 * zmed ;           /* estimate st.dev. */
                                     /* 1/1.4826 = sqrt(2)*erfinv(0.5) */
    free(aval) ;
-
-   /* compute unusuality (plus and minus) */
-
-   pstar  = 10.0 / mcount ;
-   zstar  = qginv(0.5*pstar) ;
-   zplus  = zmid + zsig * zstar ;
-   zminus = zmid - zsig * zstar ;
-   psum = msum = 0.0 ;
-   for( ii=0 ; ii < mcount ; ii++ ){
-      if( zval[ii] > zplus ){
-         gval = phizero( zval[ii] , zmid , zsig ) ;
-         if( gval > 0.0 ) psum += ww( pstar/gval ) ;
-      } else if( zval[ii] < zminus ){
-         gval = phizero( zval[ii] , zmid , zsig ) ;
-         if( gval > 0.0 ) msum += ww( pstar/gval ) ;
-      }
-   }
-   gg = psum - msum ;
-
-#if 0
-   gg = 0.0 ; sqp = 2.0/mcount ;
-   for( ii=0 ; ii < mcount ; ii++ ){
-      gval = phizero( zval[ii] , zmid , zsig ) ;
-      if( gval > 0.0 ) gg += ww( sqp/gval ) ;
-   }
-#endif
    free(zval) ;
 
    /*-- do histogram --*/
@@ -798,13 +767,29 @@ char *  CORREL_main( PLUGIN_interface * plint )
    flim = mri_new_vol_empty( mcount,1,1 , MRI_float ) ;
    mri_fix_data_pointer( vval , flim ) ;
    mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
-   sprintf(buf,"%s(%d)^.%s:\\rho_{mid}=%.2f\\pm%.2f,u=%.1f",
+
+   { char * ps = my_getenv("PTAIL") ;
+     float pp=0.0 ;
+     if( ps != NULL ) pp = strtod(ps,NULL) ;
+     set_unusuality_tail(pp) ;
+   }
+
+   for( ii=0 ; ii < mcount ; ii++ ) vval[ii] = -vval[ii] ;
+   msum = unusuality( mcount , vval ) ;
+   for( ii=0 ; ii < mcount ; ii++ ) vval[ii] = -vval[ii] ;
+   psum = unusuality( mcount , vval ) ;
+
+   sprintf(buf,"%s^.%s:\\rho_{mid}=%.2f\\pm%.2f,u=%.1f,%.1f",
                DSET_FILECODE(input_dset),
-               mcount,
                (tsim->name != NULL) ? THD_trailname(tsim->name,0) : " " ,
-               sum,sumq , gg ) ;
+               sum,sumq , psum,msum ) ;
+#ifdef DO_GREEN
    PLUTO_histoplot( nbin,hbot,htop,hbin ,
                     "Correlation Coefficient",NULL,buf , 2,jist ) ;
+#else
+   PLUTO_histoplot( nbin,hbot,htop,hbin ,
+                    "Correlation Coefficient",NULL,buf , 1,jist ) ;
+#endif
 
    mri_clear_data_pointer(flim) ; mri_free(flim) ;
    free(vval) ; free(hbin) ; free(jbin) ; free(kbin) ;

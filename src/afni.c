@@ -41,13 +41,14 @@
 #ifdef USE_FRIENDS
 
 static char * afni_helptypes[] = {
-   "advice and help"     ,             /* mask =  1 */
-   "much encouragement"  ,             /* mask =  2 */
-   "many suggestions"    ,             /* mask =  4 */
-   "useful feedback"     ,             /* mask =  8 */
-   "`quick' questions"   ,             /* mask = 16 */
-   "inspiration"         ,             /* mask = 32 */
-   "great efforts"                     /* mask = 64 */
+   "advice and help"     ,             /* mask =   1 */
+   "much encouragement"  ,             /* mask =   2 */
+   "many suggestions"    ,             /* mask =   4 */
+   "useful feedback"     ,             /* mask =   8 */
+   "`quick' questions"   ,             /* mask =  16 */
+   "inspiration"         ,             /* mask =  32 */
+   "great efforts"       ,             /* mask =  64 */
+   "caloric input"                     /* mask = 128 */
 } ;
 
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
@@ -55,31 +56,30 @@ static char * afni_helptypes[] = {
 typedef struct { char * name ; int helpmask ; } AFNI_friend ;
 
 static AFNI_friend afni_friends[] = {
-  { "J.R. Binder"      , ( 1 |     4 | 8 | 16           ) } ,
-  { "E.A. DeYoe"       , ( 1 |     4 | 8                ) } ,
-  { "J.S. Hyde"        , ( 1 | 2              | 32      ) } ,
-  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           ) } ,
-  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           ) } ,
-  { "A. Jesmanowicz"   , (                      32      ) } ,
-/*{ "F.Z. Yetkin"      , (     2         | 16           ) } ,*/
-  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      ) } ,
-  { "M.M. Klosek"      , ( 1 | 2              | 32      ) } ,
-  { "J.A. Bobholz"     , (             8 | 16 | 32      ) } ,
-  { "J.A. Frost"       , (                 16           ) } ,
-  { "J. Kummer"        , (         4 | 8      | 32      ) } ,
-  { "B.D. Ward"        , (         4 | 8           | 64 ) } ,
-/*{ "S.A. Fuller"      , (                 16           ) } ,*/
-  { "K.M. Donahue"     , (                 16           ) } ,
-  { "P.A. Bandettini"  , (                 16           ) } ,
-  { "A.S. Bloom"       , ( 1 | 2         | 16           ) } ,
-  { "T. Ross"          , (         4 | 8      | 32      ) } ,
-  { "H. Garavan"       , (         4 | 8                ) } ,
-  { "R. Reynolds"      , (                           64 ) } ,
-  { "S.-J. Li"         , (     2                        ) } ,
-  { "Z. Saad"          , (     2 | 4 | 8 | 16           ) } ,
-  { "K. Ropella"       , (     2                        ) } ,
-  { "B. Knutson"       , (                      32      ) } ,
-  { "B. Biswal"        , (                 16           ) }
+  { "J.R. Binder"      , ( 1 |     4 | 8 | 16                 ) } ,
+  { "E.A. DeYoe"       , ( 1 |     4 | 8                      ) } ,
+  { "J.S. Hyde"        , ( 1 | 2              | 32            ) } ,
+  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           | 128 ) } ,
+  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128 ) } ,
+  { "A. Jesmanowicz"   , (             8 |      32            ) } ,
+  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32            ) } ,
+  { "M.M. Klosek"      , ( 1 | 2              | 32            ) } ,
+  { "J.A. Bobholz"     , (             8 | 16 | 32      | 128 ) } ,
+  { "J.A. Frost"       , (             8 | 16                 ) } ,
+  { "J. Kummer"        , (         4 | 8      | 32            ) } ,
+  { "B.D. Ward"        , (         4 | 8           | 64       ) } ,
+  { "K.M. Donahue"     , (                 16                 ) } ,
+  { "P.A. Bandettini"  , (                 16                 ) } ,
+  { "A.S. Bloom"       , ( 1 | 2         | 16                 ) } ,
+  { "T. Ross"          , (         4 | 8 | 16 | 32            ) } ,
+  { "H. Garavan"       , (         4 | 8 | 16                 ) } ,
+  { "R. Reynolds"      , (                           64       ) } ,
+  { "S.J. Li"          , (     2                              ) } ,
+  { "Z. Saad"          , (     2 | 4 | 8 | 16                 ) } ,
+  { "K. Ropella"       , (     2                              ) } ,
+  { "B. Knutson"       , (                 16 |           128 ) } ,
+  { "B. Biswal"        , (                 16                 ) } ,
+  { "R.M. Birn"        , (             8 | 16 |           128 ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -865,7 +865,7 @@ int main( int argc , char * argv[] )
      nf = lrand48() % NUM_FRIENDS ;
      do{
         nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-     } while( qq < 11 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+     } while( qq < 19 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
      sprintf( buf  ,
               "Thanks go to %s for %s.\n" ,
               afni_friends[nf].name , afni_helptypes[nh] ) ;

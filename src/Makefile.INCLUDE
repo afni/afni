@@ -326,6 +326,14 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CC) -o 3duca 3duca.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3duuu:3duuu.o uuu.c
+	$(RM) $@
+	$(CC) -o 3duuu 3duuu.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3duuu2:3duuu2.o uuu2.c
+	$(RM) $@
+	$(CC) -o 3duuu2 3duuu2.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3ddot:3ddot.o
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
@@ -633,6 +641,7 @@ src.bz2:
 	$(MKDIR) ./SRC
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup README* AFNI.* \
               dist* 3d*.lib ./SRC
+	$(RM) ./SRC/cdf_*.c ./SRC/eis_*.c
 	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
 	$(RM) -r ./SRC
 

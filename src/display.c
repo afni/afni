@@ -139,7 +139,8 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
            dc->visual_class = PseudoColor ;  /* let the program fail later */
         }
 
-        if( dc->visual_class == TrueColor ){
+#if 0
+        if( dc->visual_class == TrueColor ){  /* removed 28 Oct 1999 */ 
            static int done = 0 ;
            if( !done )
               fprintf(stderr,
@@ -150,6 +151,7 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
                  dc->depth ) ;
            done = 1 ;
         }
+#endif
 
 #if 0
         fprintf(stderr,"\n"

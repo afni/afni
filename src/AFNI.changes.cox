@@ -1749,3 +1749,9 @@
 20 Oct 1999
  * Modified -tim in afni.c to allow for 3D inputs (space-then-time=-zim,
      or time-then-space=-tim).
+
+21 Oct 1999
+ * Fixed a couple small bugs in 1deval.c.
+
+28 Oct 1999
+ * Removed "experimental" message for TrueColor visuals in display.c.

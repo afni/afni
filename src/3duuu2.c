@@ -3,20 +3,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
 /*-------------------------- global data --------------------------*/
 
 /** inputs **/
 
 static THD_3dim_dataset * UC_dset = NULL ; /* dataset */
 
-static MRI_IMAGE * UC_ref = NULL ;         /* vector */
-
-static char UC_prefix[THD_MAX_PREFIX] = "uc" ;
+static char UC_prefix[THD_MAX_PREFIX] = "uuu2" ;
 
 static int UC_be_quiet = 1 ;
 
@@ -24,13 +17,23 @@ static byte * UC_mask = NULL ;
 static int    UC_mask_nvox = 0 ;
 static int    UC_mask_hits = 0 ;
 
-static int    UC_nvec = 0 ;
-static int    UC_vdim = 0 ;
+static int    UC_nvec = 0 ;      /* # of vectors to use from dataset */
+static int    UC_vdim = 0 ;      /* length of each vector            */
 
 static float ** UC_vec = NULL ;  /* UC_vec[k][i] is the i-th component  */
                                  /* of the k-th vector 0 <= i < UC_vdim */
                                  /*                    0 <= k < UC_nvec */
+
+static int    * UC_iv  = NULL ;  /* UC_vec[k] comes from voxel # UC_iv[k] */
+
+static float UC_ptail = 0.0001 ;
+static int   UC_mtail = 2 ;
+
 void UC_syntax(char * msg) ;
+
+#include "uuu2.c"
+
+#include "graph_compon.c"
 
 /*-------------------------------------------------------------------
      detrend: routine to remove unwanted components from time series
@@ -111,23 +114,6 @@ void UC_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      /**** -ref file.1D ****/
-
-      if( strncmp(argv[nopt],"-ref",4) == 0 ){
-         MRI_IMAGE * im ;
-         nopt++ ;
-         if( nopt >= argc ) UC_syntax("-ref needs an argument!") ;
-         im = mri_read( argv[nopt] ) ;
-         if( im == NULL ) UC_syntax("Can't read -ref file!") ;
-         if( im->kind == MRI_float ){
-            UC_ref = im ;
-         } else {
-            UC_ref = mri_to_float(im) ; mri_free(im) ;
-         }
-         im = mri_transpose(UC_ref) ; mri_free(UC_ref) ; UC_ref = im ;
-         nopt++ ; continue ;
-      }
-
       /**** -prefix prefix ****/
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
@@ -140,7 +126,7 @@ void UC_read_opts( int argc , char * argv[] )
       /**** -mask mset ****/
 
       if( strncmp(argv[nopt],"-mask",5) == 0 ){
-         THD_3dim_dataset * mset ; int ii ;
+         THD_3dim_dataset * mset ; int ii,nn ;
          nopt++ ;
          if( nopt >= argc ) UC_syntax("need arguments after -mask!") ;
          mset = THD_open_dataset( argv[nopt] ) ;
@@ -152,6 +138,29 @@ void UC_read_opts( int argc , char * argv[] )
          UC_mask_hits = THD_countmask( UC_mask_nvox , UC_mask ) ;
          if( UC_mask_hits == 0 ) UC_syntax("mask is all zeros!") ;
          if( !UC_be_quiet ) printf("--- %d voxels in mask\n",UC_mask_hits) ;
+
+         UC_iv = (int *) malloc( sizeof(int) * UC_mask_hits ) ;
+         for( nn=ii=0 ; ii < UC_mask_nvox ; ii++ )
+            if( UC_mask[ii] ) UC_iv[nn++] = ii ;
+
+         nopt++ ; continue ;
+      }
+
+      /**** -ptail p ****/
+
+      if( strcmp(argv[nopt],"-ptail") == 0 ){
+         if( ++nopt >= argc ) UC_syntax("-ptail needs an argument!") ;
+         UC_ptail = strtod( argv[nopt] , NULL ) ;
+         if( UC_ptail <= 0.0 || UC_ptail >= 0.499 )
+            UC_syntax("value after -ptail is illegal!") ;
+         nopt++ ; continue ;
+      }
+
+      /**** -mtail m ****/
+
+      if( strcmp(argv[nopt],"-mtail") == 0 ){
+         if( ++nopt >= argc ) UC_syntax("-mtail needs an argument!") ;
+         UC_mtail = strtod( argv[nopt] , NULL ) ;
          nopt++ ; continue ;
       }
 
@@ -185,14 +194,11 @@ void UC_read_opts( int argc , char * argv[] )
    if( UC_vdim < 4 )
       UC_syntax("input dataset needs at least 4 sub-bricks!") ;
 
-   if( UC_ref == NULL || UC_ref->nx < UC_vdim )
-      UC_syntax("input ref not long enough for input dataset!") ;
-
    vv     = (float *) malloc( sizeof(float) * UC_nvec * UC_vdim ) ;
    UC_vec = (float **) malloc( sizeof(float *) * UC_nvec ) ;
    for( kk=0 ; kk < UC_nvec ; kk++ ) UC_vec[kk] = vv + (kk*UC_vdim) ;
 
-   if( !UC_be_quiet ) printf("--- reading dataset\n") ;
+   if( !UC_be_quiet ) printf("--- reading input dataset\n") ;
    DSET_load(UC_dset) ;
    if( ! DSET_LOADED(UC_dset) )
       UC_syntax("Can't load input dataset bricks!") ;
@@ -204,8 +210,8 @@ void UC_read_opts( int argc , char * argv[] )
    bb = (float *) malloc( sizeof(float) * nxyz ) ;
    for( mm=0 ; mm < UC_vdim ; mm++ ){
 
-      EDIT_coerce_type( nxyz , DSET_BRICK_TYPE(UC_dset,mm) ,
-                               DSET_ARRAY(UC_dset,mm) ,
+      EDIT_coerce_type( nxyz ,
+                        DSET_BRICK_TYPE(UC_dset,mm) , DSET_ARRAY(UC_dset,mm) ,
                         MRI_float , bb ) ;
 
       DSET_unload_one( UC_dset , mm ) ;
@@ -226,40 +232,34 @@ void UC_read_opts( int argc , char * argv[] )
    for( kk=0 ; kk < UC_nvec ; kk++ )
       normalize( UC_vdim , UC_vec[kk] ) ;
 
-   for( kk=0 ; kk < UC_ref->ny ; kk++ )
-      normalize( UC_vdim , MRI_FLOAT_PTR(UC_ref) + kk*UC_ref->nx ) ;
-
    return ;
 }
-
-#include "uuu.c"
 
 /*-----------------------------------------------------------------------
   Compute the unusuality index of a reference vector in a set of vectors
 -------------------------------------------------------------------------*/
 
-float UC_unusuality( int ndim , float * ref , int nvec , float ** vec )
+static int * UC_ihi = NULL ;  /* cheap, but it works */
+
+int UC_unusuality( int ndim , float * ref , int nvec , float ** vec )
 {
    register int ii , kk ;
-   float psum,msum , * vv , val ;
-   float zmid , zmed , zsig , zplus,zminus , uval ;
+   register float psum , * vv ;
+   int nhi ;
 
-   static int     nvold=-1   ;
-   static float * zval =NULL , *aval=NULL ;
-   static float   pstar , zstar ;
+   static int     nvold = -1   ;
+   static float * zval  = NULL ;
 
-   if( ndim < 4 || nvec < 4 || ref == NULL || vec == NULL ) return 0.0 ;
+   if( ndim < 4 || nvec < 4 || ref == NULL || vec == NULL ) return 0 ;
 
    /* initialize if number of vectors has changed */
 
    if( nvold != nvec ){
       if( zval != NULL ) free(zval) ;
-      if( aval != NULL ) free(aval) ;
+      if( UC_ihi  != NULL ) free(UC_ihi) ;
       zval = (float *) malloc(sizeof(float)*nvec) ;
-      aval = (float *) malloc(sizeof(float)*nvec) ;
+      UC_ihi  = (int *)   malloc(sizeof(int)  *nvec) ;
       nvold = nvec ;
-      pstar = 10.0 / nvec ;
-      zstar = qginv(0.5*pstar) ;
    }
 
    /* compute dot products */
@@ -270,23 +270,9 @@ float UC_unusuality( int ndim , float * ref , int nvec , float ** vec )
       zval[kk] = psum ;
    }
 
-   { char * ps = getenv("PTAIL") ;
-     float pp=0.0 ;
-     if( ps != NULL ) pp = strtod(ps,NULL) ;
-     set_unusuality_tail(pp) ;
-   }
+   find_unusual_correlations( nvec , zval , &nhi , UC_ihi ) ;
 
-   psum = unusuality( nvec, zval ) ;
-
-   for( kk=0 ; kk < nvec ; kk++ ) zval[kk] = -zval[kk] ;
-
-   msum = unusuality( nvec, zval ) ;
-
-   uval = psum - msum ;
-
-   printf("psum=%.1f  msum=%.1f  total=%.1f  uval=%.1f\n",
-          psum,msum,psum+msum,uval) ;
-   return (psum+msum) ;
+   return (short) nhi ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -296,8 +282,7 @@ void UC_syntax(char * msg)
    if( msg != NULL ){ fprintf(stderr,"\n*** %s\n",msg) ; exit(1) ; }
 
    printf(
-    "Unusual Component Analysis of 3D Datasets\n"
-    "Usage: 3duca [options] dataset ...\n"
+    "Usage: 3duuu2 [options] dataset ...\n"
     "\n"
     "The input dataset may have a sub-brick selector list.\n"
     "Otherwise, all sub-bricks from a dataset will be used.\n"
@@ -305,8 +290,9 @@ void UC_syntax(char * msg)
     "OPTIONS:\n"
     "  -prefix pname \n"
     "  -verbose\n"
-    "  -mask mset \n"
-    "  -ref file.1D\n"
+    "  -mask mset\n"
+    "  -ptail p\n"
+    "  -mtail m\n"
    ) ;
 
    exit(0) ;
@@ -316,7 +302,10 @@ void UC_syntax(char * msg)
 
 int main( int argc , char * argv[] )
 {
-   int kk ;
+   int kk , nvox , ii , jj , uval,ncom , aa ;
+   THD_3dim_dataset * oset ;
+   short * sar ;
+   int ** gmat , ** cmat ;
 
    /*-- read command line arguments --*/
 
@@ -325,10 +314,97 @@ int main( int argc , char * argv[] )
    (void) my_getenv("junk") ;
 
    UC_read_opts( argc , argv ) ;
+   set_unusuality_tail( UC_ptail ) ;
 
-   for( kk=0 ; kk < UC_ref->ny ; kk++ )
-      (void) UC_unusuality( UC_vdim,
-                            MRI_FLOAT_PTR(UC_ref) + kk*UC_ref->nx,
-                            UC_nvec, UC_vec ) ;
+   oset = EDIT_empty_copy( UC_dset ) ;
+   EDIT_dset_items( oset ,
+                       ADN_prefix      , UC_prefix ,
+                       ADN_ntt         , 0 ,
+                       ADN_nvals       , 1 ,
+                       ADN_func_type   , ANAT_BUCK_TYPE ,
+                       ADN_datum_all   , MRI_short ,
+                       ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                    ADN_none ) ;
+
+   nvox = DSET_NVOX(oset) ;
+   sar = (short *) calloc( nvox , sizeof(short) ) ;
+   EDIT_substitute_brick( oset , 0 , MRI_short , sar ) ;
+
+   gmat = (int **) malloc( sizeof(int *) * UC_nvec ) ;
+
+   if( !UC_be_quiet ){ printf("--- computing u") ; fflush(stdout) ; }
+
+   for( kk=0 ; kk < UC_nvec ; kk++ ){
+      ii = (UC_iv == NULL) ? kk : UC_iv[kk] ;
+      uval = UC_unusuality( UC_vdim, UC_vec[kk], UC_nvec, UC_vec ) ;
+
+      if( uval < UC_mtail ) uval = 0 ;
+
+      sar[ii] = uval ;
+
+      /* make graph data */
+
+      gmat[kk]    = (int *) malloc( sizeof(int) * (uval+1) ) ;
+      gmat[kk][0] = uval ;
+      for( jj=0 ; jj < uval ; jj++ ) gmat[kk][jj+1] = UC_ihi[jj] ;
+
+      if( !UC_be_quiet && kk%1000==999 ){
+         printf("%d",(kk/1000)%10);fflush(stdout);
+      }
+   }
+   if( !UC_be_quiet ) printf("\n") ;
+
+   if( !UC_be_quiet ) printf("--- fixing graph\n") ;
+
+#undef ADDTHEM
+
+   for( kk=0 ; kk < UC_nvec ; kk++ ){   /* loop over pts */
+      uval = gmat[kk][0] ;              /* # pts connected to kk */
+      for( jj=0 ; jj < uval ; jj++ ){   /* loop over pts connected to kk */
+         ii = gmat[kk][jj+1] ;          /* jj-th pt connected to kk */
+
+         for( aa=1 ; aa <= gmat[ii][0] ; aa++ )  /* see if kk is in ii's list */
+            if( gmat[ii][aa] == kk ) break ;
+
+         if( aa > gmat[ii][0] ){        /* wasn't in list */
+#ifdef ADDTHEM
+           /* add kk to ii's list */
+
+            gmat[ii] = (int *) realloc( sizeof(int)*(gmat[ii][0]+2) ) ;
+            gmat[ii][++(gmat[ii][0])] = kk ;
+#else
+           /* remove ii from kk's list */
+
+           gmat[kk][jj+1] = -1 ;  /* flag as a bad connection */
+#endif
+         }
+
+      } /* end of loop over pts connected to kk */
+   } /* end of loop over pts */
+
+   if( !UC_be_quiet ) printf("--- finding components\n") ;
+
+   GRAPH_find_components( UC_nvec , gmat , &ncom , &cmat ) ;
+
+   if( !UC_be_quiet ) printf("--- found %d components\n",ncom) ;
+
+   sar = (short *) calloc( nvox , sizeof(short) ) ;
+   EDIT_add_brick( oset , MRI_short , 0.0 , sar ) ;
+
+   for( kk=0 ; kk < ncom ; kk++ ){
+      if( !UC_be_quiet )
+         printf("--- component %d has %d voxels\n",kk,cmat[kk][0]) ;
+
+      if( cmat[kk][0] < 2 ) break ;
+
+      for( ii=1 ; ii <= cmat[kk][0] ; ii++ ){
+         jj = (UC_iv == NULL) ? cmat[kk][ii] : UC_iv[cmat[kk][ii]] ;
+         sar[jj] = (kk+1) ;
+      }
+   }
+
+   if( !UC_be_quiet ) printf("--- writing output\n") ;
+
+   DSET_write(oset) ;
    exit(0) ;
 }
