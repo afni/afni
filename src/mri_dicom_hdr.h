@@ -259,13 +259,6 @@ extern "C" {
 #define STANDARD_VERSION VERSION_JUN1995
 #endif
 
-#ifdef MALLOC_TEST
-
-#define malloc(a) (void *)COND_Malloc((a), __FILE__, __LINE__)
-#define free(a) (void)COND_Free((a), __FILE__, __LINE__)
-
-#endif
-
 #define CTN_MALLOC(a) malloc((a))
 #define CTN_FREE(a)   free((a))
 
