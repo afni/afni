@@ -51,6 +51,7 @@ typedef enum {
    SUMA_ERROR_DSET_TYPE = -1,
    SUMA_NO_DSET_TYPE,
    SUMA_NODE_BUCKET,
+   SUMA_AFNI_NODE_BUCKET,
    SUMA_NODE_ROI, /*!< Col0: Node ID, Col1: ROI label (int) */
    SUMA_NODE_RGB,
    SUMA_NODE_RGBb,
@@ -99,7 +100,8 @@ typedef enum {
    SUMA_NODE_Bb,      /*!< Node B color in bytes*/
    SUMA_NODE_Ab,      /*!< Node A value in bytes*/ 
    SUMA_NODE_STRING,   /*!< Generic String */
-   SUMA_NODE_SHORT      /*!< Generic short */
+   SUMA_NODE_SHORT,      /*!< Generic short */
+   SUMA_NODE_DOUBLE     /*!< Generic double */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
@@ -405,7 +407,7 @@ NodeDef might be dynamically changed in the overlay plane */
 #define NEL_WRITE_1D(nel, frm, suc) { \
    NI_stream m_ns = NULL;  \
    suc = 1; \
-   if (!SUMA_OK_1Dnel(nel)) { \
+   if (!SUMA_is_AllNumeric_nel(nel)) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
       suc = 0; \
    } else {   \
@@ -428,7 +430,7 @@ NodeDef might be dynamically changed in the overlay plane */
    FILE *m_fid = NULL;  \
    int m_ind, m_ival;   \
    suc = 1; \
-   if (!SUMA_OK_1Dnel(nel)) { \
+   if (!SUMA_is_AllNumeric_nel(nel)) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
       suc = 0; \
    } else {   \
@@ -521,9 +523,12 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
 SUMA_DSET * SUMA_far2dset( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
-int SUMA_OK_1Dnel(NI_element *nel);
+int SUMA_is_AllNumeric_nel(NI_element *nel);
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 char *SUMA_ColLabelCopy(NI_element *nel, int i);
+SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
+void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy);
+
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED

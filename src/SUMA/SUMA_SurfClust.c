@@ -606,11 +606,77 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params)
    SUMA_RETURN (s);
 }
 
-
-/*! Turn the clusters to a cluster dataset mask*/
-SUMA_DSET *SUMA_SurfClust_list_2_Dset(SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName) 
+/*! Masks a data set by a clustering list*/
+SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName) 
 {
-   static char FuncName[]={"SUMA_SurfClust_list_2_Dset"};
+   static char FuncName[]={"SUMA_MaskDsetByClustList"};
+   int i, j;
+   DListElmt *elmt=NULL;
+   SUMA_DSET *dset = NULL;
+   int *ni=NULL, N_ni, cnt;
+   SUMA_CLUST_DATUM *cd=NULL;
+   byte *ismask=NULL, *rowmask=NULL, *colmask = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!list) {
+      SUMA_SL_Err("NULL list");
+      SUMA_RETURN(dset);  
+   }
+   /* which nodes in mask ? */
+   ismask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte)); /* you need to allocate for SO->N_Node, to be safe, otherwise you will need
+                                                            to search for the highest node index.. */
+   elmt = NULL; cnt = 0;
+   do {
+      if (!elmt) elmt = dlist_head(list);
+      else elmt = elmt->next;
+      cd = (SUMA_CLUST_DATUM *)elmt->data; 
+      for (j=0; j<cd->N_Node; ++j) {
+            if(LocalHead) fprintf (SUMA_STDERR,"nic=%d\t", cd->NodeList[j]);
+            ismask[cd->NodeList[j]] = 1;
+            ++cnt;
+      }
+   } while (elmt != dlist_tail(list));
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d nodes in cluster list.\n", FuncName, cnt);
+   
+   /* now form a rowmask vector to parallel rows in idset */
+   rowmask = (byte *)SUMA_calloc(idset->nel->vec_len, sizeof(byte));
+   colmask = (byte *)SUMA_calloc(idset->nel->vec_num, sizeof(byte));
+   
+   /* get the node index column in idset */
+   ni = SUMA_GetNodeDef(idset);
+   N_ni = SDEST_VECLEN(idset);
+   if (!ni) {
+      SUMA_SL_Err("Failed to find node index column");
+      SUMA_RETURN(NULL);
+   }
+   /* now, fill rowmask */
+   for (i=0; i<idset->nel->vec_len; ++i) { if (ismask[ni[i]]) { rowmask[i]=1; if(LocalHead) fprintf (SUMA_STDERR,"%d,%d\t", ni[i], i); } }
+   /* fill colmask*/
+   for (i=0; i<idset->nel->vec_num; ++i) { 
+      if (SUMA_isColumn_inferred(idset->nel, i)) {
+         colmask[i]=0;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Column %d will not be written because it is inferred.\n", FuncName, i);
+      } else colmask[i]=1;
+   }
+   
+   dset = SUMA_MaskedCopyofDset(idset, rowmask, colmask, !FullList, 1);
+   if (!dset) {
+      SUMA_SL_Err("Failed to create masked copy of input");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (rowmask) SUMA_free(rowmask); rowmask = NULL;
+   if (colmask) SUMA_free(colmask); colmask = NULL;
+   if (ismask) SUMA_free(ismask); ismask = NULL;
+   
+   SUMA_RETURN (dset);
+}
+/*! Turn the clusters to a cluster dataset mask*/
+SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, DList *list, SUMA_Boolean FullList, char *leName) 
+{
+   static char FuncName[]={"SUMA_SurfClust_list_2_DsetMask"};
    int i, ic, max, j, rank;
    DListElmt *elmt=NULL;
    SUMA_DSET *dset = NULL;
@@ -918,15 +984,20 @@ void usage_SUMA_SurfClust ()
       static char FuncName[]={"usage_SUMA_SurfClust"};
       char * s = NULL;
       s = SUMA_help_basics();
-      printf ( "\nUsage: A program to perform clustering on surfaces.\n"
+      printf ( "\nUsage: A program to perform clustering analysis surfaces.\n"
                "  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
                "            <-surf_A insurf> \n"
                "            <-input inData.1D dcol_index> \n"
                "            <-rmm rad>\n"
                "            [-amm2 minarea]\n"
                "            [-prefix OUTPREF]  \n"
-               "            [-out_roidset] [-out_fulllist]\n"
+               "            [-out_clusterdset] [-out_roidset] \n"
+               "            [-out_fulllist]\n"
                "            [-sort_none | -sort_n_nodes | -sort_area]\n"
+               "\n"
+               "  The program can outputs a table of the clusters on the surface,\n"
+               "  a mask dataset formed by the different clusters and a clustered\n"
+               "  version of the input dataset.\n"
                "\n"
                "  Mandatory parameters:\n"
                "     -spec SpecFile: The surface spec file.\n"
@@ -953,6 +1024,16 @@ void usage_SUMA_SurfClust ()
                "     -prefix OUTPREF: Prefix for output.\n"
                "                      Default is the prefix of \n"
                "                      the input dataset.\n"
+               "                      If this option is used, the\n"
+               "                      cluster table is written to a file called\n"
+               "                      OUTPREF_ClstTable_rXX_aXX.1D. Otherwise the\n"
+               "                      table is written to stdout. \n"
+               "     -out_clusterdset: Output a clustered version of inData.1D \n"
+               "                       preserving only the values of nodes that \n"
+               "                       belong to clusters that passed the rmm and amm2\n" 
+               "                       conditions above.\n"
+               "                       The clustered dset's prefix has\n"
+               "                       _Clustered_rXX_aXX affixed to the OUTPREF\n"
                "     -out_roidset: Output an ROI dataset with the value\n"
                "                   at each node being the rank of its\n"
                "                   cluster. The ROI dataset's prefix has\n"
@@ -961,8 +1042,14 @@ void usage_SUMA_SurfClust ()
                "                   the -rmm and -amm2 options respectively.\n"
                "                   The program will not overwrite pre-existing\n"
                "                   dsets.\n"
-               "     -out_fulllist: Output a value for all nodes of insurf\n"
-               "                    nodes of insurf.\n"
+               "     -out_fulllist: Output a value for all nodes of insurf.\n"
+               "                    This option must be used in conjuction with\n"
+               "                    -out_roidset and/or out_clusterdset.\n"
+               "                    With this option, the output files might\n"
+               "                    be mostly 0, if you have small clusters.\n"
+               "                    However, you should use it if you are to \n"
+               "                    maintain the same row-to-node correspondence\n"
+               "                    across multiple datasets.\n"  
                "     -sort_none: No sorting of ROI clusters.\n"
                "     -sort_n_nodes: Sorting based on number of nodes\n"
                "                    in cluster.\n"
@@ -995,7 +1082,7 @@ void usage_SUMA_SurfClust ()
                "        AFNI RAI tlrc coordinates .\n"    
                "\n" */
                "\n"
-               "  The cluster output:\n"
+               "  The cluster table output:\n"
                "  A table where ach row shows results from one cluster.\n"
                "  Each row contains 13 columns:   \n"
                "     Col. 0  Rank of cluster (sorting order).\n"
@@ -1071,6 +1158,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->nodecol = -1;
    Opt->labelcol = -1;
    Opt->OutROI = NOPE;
+   Opt->OutClustDset = NOPE;
    Opt->FullROIList = NOPE;
    Opt->WriteFile = NOPE;
    Opt->DoThreshold = 0;
@@ -1243,6 +1331,11 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 			brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-out_clusterdset") == 0)) {
+         Opt->OutClustDset = YUP;
+			brk = YUP;
+      }
+
       if (!brk && (strcmp(argv[kar], "-out_fulllist") == 0)) {
          Opt->FullROIList = YUP;
 			brk = YUP;
@@ -1290,14 +1383,18 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       SUMA_SL_Err("Bad BuildMethod");
       exit(1);
    } 
-   
+
+   if (Opt->FullROIList && !(Opt->OutROI || Opt->OutClustDset)) {
+      SUMA_SL_Err("-out_fulllist must be used in conjunction with -out_ROIdset or -out_clusterdset");
+      exit(1);
+   }   
    SUMA_RETURN(Opt);
 }
 
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfClust"}; 
-	int kar, SO_read, *ni=NULL, N_ni, cnt, i;
+	int kar, SO_read, *ni=NULL, N_ni, cnt, i, *nip=NULL;
    float *data_old = NULL, *far = NULL, *nv=NULL, *nt = NULL;
    void *SO_name = NULL;
    SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
@@ -1328,8 +1425,8 @@ int main (int argc,char *argv[])
    Opt = SUMA_SurfClust_ParseInput (argv, argc);
    
    if (Opt->WriteFile) {
-      if (Opt->AreaLim < 0) sprintf(stmp,"_Clst_r%.1f.1D", Opt->DistLim);
-      else sprintf(stmp,"_Clst_r%.1f_a%.1f.1D", Opt->DistLim, Opt->AreaLim);
+      if (Opt->AreaLim < 0) sprintf(stmp,"_ClstTable_r%.1f.1D", Opt->DistLim);
+      else sprintf(stmp,"_ClstTable_r%.1f_a%.1f.1D", Opt->DistLim, Opt->AreaLim);
       ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
       if (SUMA_filexists(ClustOutName)) {
          fprintf (SUMA_STDERR,"Error %s:\nOutput file %s exists, will not overwrite.\n", FuncName, ClustOutName);
@@ -1374,12 +1471,15 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* get the node index column */
-   ni = SUMA_GetNodeDef(dset);
+   nip = SUMA_GetNodeDef(dset);
    N_ni = SDEST_VECLEN(dset);
-   if (!ni) {
+   if (!nip) {
       SUMA_S_Err("Failed to find node index column");
       exit(1);
    }
+   /* copy nip's contents because you will be modifying in the thresholding below */
+   ni = (int *)SUMA_malloc(N_ni*sizeof(int));
+   memcpy (ni, nip, N_ni*sizeof(int));
    nv = SUMA_Col2Float(dset->nel, Opt->labelcol, 0);
    if (!nv) {
       SUMA_S_Err("Failed to find node value column");
@@ -1395,7 +1495,7 @@ int main (int argc,char *argv[])
       }
       cnt = 0;
       if (Opt->DoThreshold == 1) {
-         fprintf(SUMA_STDERR,"%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
+         if (Opt->update) fprintf(SUMA_STDERR,"%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
          for (i=0;i<N_ni; ++i) {
             if (nt[i] >= Opt->Thresh) {
                ni[cnt] = ni[i];
@@ -1452,11 +1552,8 @@ int main (int argc,char *argv[])
       else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
       ROIprefix = SUMA_append_string(Opt->out_prefix, stmp);
       /* Call this function, write out the resultant dset to disk then cleanup */
-      if (Opt->FullROIList) {
-         dset_roi = SUMA_SurfClust_list_2_Dset(SO, list, YUP, ROIprefix);
-      } else {
-         dset_roi = SUMA_SurfClust_list_2_Dset(SO, list, NOPE, ROIprefix);
-      }
+      dset_roi = SUMA_SurfClust_list_2_DsetMask(SO, list, Opt->FullROIList, ROIprefix);
+      
       if (!dset_roi) {
          SUMA_S_Err("NULL dset_roi");
          exit(1);
@@ -1468,8 +1565,30 @@ int main (int argc,char *argv[])
       if (ROIprefix) SUMA_free(ROIprefix); ROIprefix = NULL; 
    }
    
+   if (Opt->OutClustDset) {
+      SUMA_DSET *dset_clust = NULL;
+      char *Clustprefix = NULL;
+      char *NameOut = NULL;
+      if (Opt->AreaLim < 0) sprintf(stmp,"_Clustered_r%.1f", Opt->DistLim);
+      else sprintf(stmp,"_Clustered_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
+      Clustprefix = SUMA_append_string(Opt->out_prefix, stmp);
+      /* Call this function, write out the resultant dset to disk then cleanup */
+      
+      dset_clust = SUMA_MaskDsetByClustList(dset, SO, list, Opt->FullROIList, Clustprefix);
+      if (!dset_clust) {
+         SUMA_S_Err("NULL dset_clust");
+         exit(1);
+      }
+      NameOut = SUMA_WriteDset (Clustprefix, dset_clust, SUMA_ASCII_NIML, 0, 0);
+      if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
+      SUMA_FreeDset((void *)dset_clust); dset_clust = NULL; 
+      if (NameOut) SUMA_free(NameOut); NameOut = NULL;
+      if (Clustprefix) SUMA_free(Clustprefix); Clustprefix = NULL; 
+   }
+   
    if (ClustOutName) SUMA_free(ClustOutName); ClustOutName = NULL;
    if (list) dlist_destroy(list); SUMA_free(list); list = NULL;
+   if (ni) SUMA_free(ni); ni = NULL;
    if (nv) SUMA_free(nv); nv = NULL;
    if (nt) SUMA_free(nt); nt = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;

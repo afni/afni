@@ -166,6 +166,14 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    
    sprintf(Attr, "AttrCol_%d", col_index);
    switch (ctp) {
+      case SUMA_NODE_BYTE:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+         
+      case SUMA_NODE_DOUBLE:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+         
       case SUMA_NODE_INDEX:
          /* form the string of attributes for this column */
          NI_set_attribute ( nel, Attr, NULL);
@@ -378,6 +386,9 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
       case SUMA_byte:
          NI_add_column_stride ( nel, NI_BYTE, (byte *)col, stride );      
          break;
+      case SUMA_double:
+         NI_add_column_stride ( nel, NI_DOUBLE, (double *)col, stride );      
+         break;
       case SUMA_string:
          NI_add_column_stride ( nel, NI_STRING, (char **)col, stride );
          break;
@@ -395,6 +406,200 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    SUMA_RETURN(1);
 }
 
+/*! 
+   \brief creates a new dataset that has a copy of each row in odset 
+   wherever rowmask[irow] is not zero. 
+   \param odset (SUMA_DSET *) input dataset
+   \param rowmask (int *) [nel->vec_len x 1] vector specifying which rows to preserve
+                                             If rowmask[irow] is 1 then this row is copied
+                                             into ndset. 
+                                             If rowmask[irow] = 0 then the row is either
+                                             skipped (see masked_only) or set to 0 in its entirety 
+                                             (see keep_node_index for exception).
+                                             If rowmask == NULL then all rows are copied
+   \param colmask (int *) [nel->vec_num x 1] vector specifying which volumns to operate on.
+                                             If colmask[icol] is 1 then values in this column 
+                                             are copied. 
+                                             If colmask == NULL then all columns are copied
+   \param masked_only (int)   If 1 then the output dataset is only to contain
+                              those rows where rowmask[irow] = 1
+                              If 0 then all rows are output but with column entries set to 0
+                              for all rows where rowmask[irow] = 0. One column might be
+                              exempt from nulling if it meets the requirements on Schedule B form suma654.233 
+                              or if it is of the type SUMA_NODE_INDEX and keep_node_index is set to 1. 
+                              
+   \param keep_node_index (int) If 1, then preserves the node index column (SUMA_NODE_INDEX) from being masked.
+                                Makes sense to use it when masked_only == 0. 
+   \param ndset (SUMA_DSET *) Copy of dataset with masking applied.
+   
+   - You might want to have a version that replaces columns in odset with the masked data
+   as opposed to copying them. I think I do something like this with the drawn ROI dataset...
+   
+   \sa SUMA_Copy_Part_Column
+*/  
+SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index)
+{
+   static char FuncName[]={"SUMA_MaskedCopyofDset"};
+   int n_incopy = -1, i;
+   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH], *lblcp;
+   NI_element *nel=NULL;
+   SUMA_DSET *ndset=NULL;
+   NI_rowtype *rt=NULL;
+   SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
+   void *ncol=NULL;
+   int DoThisCol=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
+   if (!odset->nel) { SUMA_SL_Err("Null nel"); SUMA_RETURN(NULL); }
+   nel = odset->nel;
+   if (!SUMA_is_AllNumeric_nel(nel)) {
+      SUMA_SL_Err("Function does not deal withdata sets containing non-numeric columns");
+      SUMA_RETURN(NULL);
+   }
+   if (0 && LocalHead) {
+      SUMA_ShowNel(nel);
+   }
+   for (i=0; i < nel->vec_num; ++i) {
+      if (!colmask) DoThisCol = 1;
+      else DoThisCol = colmask[i];
+      if (DoThisCol) {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s:\nProcessing column %d\n", FuncName, i);
+         ctp = SUMA_TypeOfColNumb(nel, i); 
+         rt = NI_rowtype_find_code(SUMA_ColType2TypeCast(ctp)) ; 
+         if( rt == NULL || ROWTYPE_is_varsize(rt)) {
+            SUMA_SL_Err("Could not recognize rowtype, or rowtype is of variable size."); SUMA_RETURN(NULL);
+         }
+         if (ctp == SUMA_NODE_INDEX && keep_node_index && !masked_only) {
+            /* preserve all indices */
+            ncol = SUMA_Copy_Part_Column(nel->vec[i], rt, nel->vec_len, NULL, masked_only, &n_incopy);
+         } else {
+            ncol = SUMA_Copy_Part_Column(nel->vec[i], rt, nel->vec_len, rowmask, masked_only, &n_incopy);  
+         }
+         if (!ncol) {
+            SUMA_SL_Err("No data got copied.");
+            SUMA_RETURN(ndset);
+         }
+         if (!ndset) {
+            new_name = SUMA_append_string(NI_get_attribute(nel,"filename"),"copy");
+            UNIQ_idcode_fill(idcode); 
+            ndset =  SUMA_CreateDsetPointer( new_name, SUMA_Dset_Type(nel->name), idcode, NI_get_attribute(nel,"MeshParent_idcode"),  n_incopy ); 
+            SUMA_free(new_name); new_name = NULL;
+         }
+         /* add the column */
+         lblcp = SUMA_ColLabelCopy(nel, i);
+         if (!SUMA_AddNelCol (ndset->nel, lblcp, ctp, ncol, NULL ,1)) {
+            SUMA_SL_Crit("Failed in SUMA_AddNelCol");
+            SUMA_FreeDset((void*)ndset); ndset = NULL;
+            SUMA_RETURN(ndset);
+         } 
+         if (lblcp) SUMA_free(lblcp); lblcp = NULL;
+      } else {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s:\nSkipping column %d\n", FuncName, i);
+      }
+   }
+   
+   SUMA_RETURN(ndset);
+}
+
+/*!
+   see help for SUMA_MaskedCopyofDset
+      
+*/
+void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy)
+{
+   static char FuncName[]={"SUMA_Copy_Part_Column"};
+   int n_alloc = -1, i, j, cnt;
+   char *ndat = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+    
+   *n_incopy = -1;
+   n_alloc = 0;
+   if (masked_only) {
+      if (rowmask) {
+         for (i=0; i<N_col; ++i) {
+            if (rowmask[i]) ++n_alloc;
+         }
+      } else { /* copy entire column ... */
+         n_alloc = N_col;
+      }
+   } else {
+      n_alloc = N_col;
+   }  
+   
+   if (!n_alloc) {
+      SUMA_SL_Err("No values to go in column...");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* allocate for result */
+         ndat = (char *)SUMA_malloc(sizeof(char) *  rt->size * n_alloc ) ;
+         if (!ndat) { SUMA_SL_Crit("Failed to allocate for ndat"); SUMA_RETURN(NULL); }
+         /* Now to copy the proper values */
+         if (!masked_only) {
+            SUMA_LH("All copy");
+            memcpy( ndat , (char *)col , rt->size * n_alloc ) ;
+            /* reset values that are not in mask */
+            if (rowmask) {
+               switch(rt->code) {
+                  case NI_BYTE:
+                     for (j=0; j<N_col; ++j) if (!rowmask[j]) {SUMA_ASSIGN_VALUE_IN_VEC (ndat, j, byte, 0);}
+                     break;
+                  case NI_SHORT:
+                     for (j=0; j<N_col; ++j) if (!rowmask[j]) {SUMA_ASSIGN_VALUE_IN_VEC (ndat, j, short, 0);}
+                     break;
+                  case NI_INT:
+                     for (j=0; j<N_col; ++j) if (!rowmask[j]) {SUMA_ASSIGN_VALUE_IN_VEC (ndat, j, int, 0);}
+                     break;
+                  case NI_FLOAT:
+                     for (j=0; j<N_col; ++j) if (!rowmask[j]) {SUMA_ASSIGN_VALUE_IN_VEC (ndat, j, float, 0);}
+                     break;
+                  case NI_DOUBLE:
+                     for (j=0; j<N_col; ++j) if (!rowmask[j]) {SUMA_ASSIGN_VALUE_IN_VEC (ndat, j, double, 0);}
+                     break;
+                  default:
+                     SUMA_SL_Warn("Type not allowed for masking operation, skipping.");
+                     break;
+               }
+            } 
+         } else {
+            if (rowmask) {
+               /* copy good values, one at a time */
+               SUMA_LH("Masked only copy");
+               cnt = 0;
+               switch(rt->code) {
+                  case NI_BYTE:
+                     for (j=0; j<N_col; ++j) if (rowmask[j]) {SUMA_COPY_VALUE_IN_VEC(col, ndat, j, cnt, byte, byte); ++cnt;}
+                     break;
+                  case NI_SHORT:
+                     for (j=0; j<N_col; ++j) if (rowmask[j]) {SUMA_COPY_VALUE_IN_VEC(col, ndat, j, cnt, short, short); ++cnt;}
+                     break;
+                  case NI_INT:
+                     for (j=0; j<N_col; ++j) if (rowmask[j]) {SUMA_COPY_VALUE_IN_VEC(col, ndat, j, cnt, int, int); ++cnt;}
+                     break;
+                  case NI_FLOAT:
+                     for (j=0; j<N_col; ++j) if (rowmask[j]) {SUMA_COPY_VALUE_IN_VEC(col, ndat, j, cnt, float, float); ++cnt;}
+                     break;
+                  case NI_DOUBLE:
+                     for (j=0; j<N_col; ++j) if (rowmask[j]) {SUMA_COPY_VALUE_IN_VEC(col, ndat, j, cnt, double, double); ++cnt;}
+                     break;
+                  default:
+                     SUMA_SL_Warn("Type not allowed for masking operation, skipping.");
+                     break;
+               }
+            } else {
+               /* wants a copy of everything */
+               memcpy( ndat , (char *)col , rt->size * n_alloc ) ;
+            } 
+            
+         }
+   *n_incopy = n_alloc;
+   SUMA_LH("Returning");
+   SUMA_RETURN((void *)ndat);
+}
 /*!
    \brief Function to fill the contents of a pre-existing column 
    created with SUMA_AddNelCol.  
@@ -436,6 +641,9 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break;
       case SUMA_string:
          NI_fill_column_stride ( nel, NI_STRING, (char **)col, icol, stride );
+         break;
+      case SUMA_double:
+         NI_fill_column_stride ( nel, NI_DOUBLE, (double **)col, icol, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
@@ -555,6 +763,9 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_NODE_BUCKET:
          SUMA_RETURN("Node_Bucket");
          break;
+      case SUMA_AFNI_NODE_BUCKET:
+         SUMA_RETURN("AFNI_3D_dataset");
+         break;
       case SUMA_NODE_ROI:
          SUMA_RETURN("Node_ROI");
          break;
@@ -590,7 +801,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    static char FuncName[]={"SUMA_Dset_Type"};
    
    SUMA_ENTRY;
-   
+   if (!Name) { SUMA_S_Err("Null Name"); SUMA_RETURN(SUMA_NO_DSET_TYPE); }
    if (!strcmp(Name,"Dset_Type_Undefined")) SUMA_RETURN (SUMA_NO_DSET_TYPE);
    if (!strcmp(Name,"Error_Dset_Type")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
    if (!strcmp(Name,"Node_Bucket")) SUMA_RETURN (SUMA_NODE_BUCKET);
@@ -603,6 +814,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"Viewer_Visual_Setting")) SUMA_RETURN (SUMA_VIEWER_SETTING);
    if (!strcmp(Name,"Cowabonga")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
    if (!strcmp(Name,"Node_Convexity")) SUMA_RETURN (SUMA_NODE_CONVEXITY);
+   if (!strcmp(Name,"AFNI_3D_dataset")) SUMA_RETURN (SUMA_AFNI_NODE_BUCKET);
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
 
@@ -661,6 +873,12 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_CX:
          SUMA_RETURN("Convexity");
          break;
+      case SUMA_NODE_BYTE:
+         SUMA_RETURN("Generic_Byte");
+         break;
+      case SUMA_NODE_DOUBLE:
+         SUMA_RETURN("Generic_Double");
+         break;
       default:
          SUMA_RETURN("Cowabonga-Jo");
          break;
@@ -693,6 +911,8 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"G_col")) SUMA_RETURN (SUMA_NODE_G);
    if (!strcmp(Name,"B_col")) SUMA_RETURN (SUMA_NODE_B);
    if (!strcmp(Name,"Generic_String")) SUMA_RETURN (SUMA_NODE_STRING);
+   if (!strcmp(Name,"Generic_Byte")) SUMA_RETURN (SUMA_NODE_BYTE);
+   if (!strcmp(Name,"Generic_Double")) SUMA_RETURN (SUMA_NODE_DOUBLE);
    if (!strcmp(Name,"Convexity")) SUMA_RETURN (SUMA_NODE_CX);
    /* if (!strcmp(Name,"")) SUMA_RETURN (); */
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
@@ -1909,6 +2129,7 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
             exists = 1;
          } else {
             strmname = SUMA_append_string("file:",NameOut);
+            NI_set_attribute(dset->nel,"filename", NameOut);
             if (form == SUMA_ASCII_NIML) { 
               SUMA_LH("Writing NIML, ASCII..."); SUMA_LH(strmname);  NEL_WRITE_TX (dset->nel, strmname, flg);  SUMA_LH("DONE.");
             } else { 
@@ -1921,6 +2142,7 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
          if (!overwrite &&  SUMA_filexists(NameOut)) {
             exists = 1;
          } else {
+            NI_set_attribute(dset->nel,"filename", NameOut);
             strmname = SUMA_append_string("file:",NameOut);
 	         SUMA_LH("Writing 1D..."); SUMA_LH(strmname); 
             NEL_WRITE_1D (dset->nel, strmname, flg);
@@ -1936,6 +2158,7 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
          if (!overwrite &&  SUMA_filexists(NameOut)) {
             exists = 1;
          } else {
+            NI_set_attribute(dset->nel,"filename", NameOut);
             strmname = SUMA_copy_string(NameOut);
 	         SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
             NEL_WRITE_1D_PURE (dset->nel, strmname, flg);
@@ -2137,9 +2360,9 @@ SUMA_DSET *SUMA_far2dset( char *FullName, char *dset_id, char *dom_id,
    SUMA_RETURN(dset);
 }
 
-int SUMA_OK_1Dnel(NI_element *nel) 
+int SUMA_is_AllNumeric_nel(NI_element *nel) 
 {
-   static char FuncName[]={"SUMA_OK_1Dnel"};
+   static char FuncName[]={"SUMA_is_AllNumeric_nel"};
    int ctp, vtp, i;
    
    SUMA_ENTRY;
@@ -2149,11 +2372,12 @@ int SUMA_OK_1Dnel(NI_element *nel)
    for (i=0; i<nel->vec_num; ++i) {
       ctp = SUMA_TypeOfColNumb(nel, i); 
       vtp = SUMA_ColType2TypeCast(ctp) ;
-      if (vtp != SUMA_int && vtp != SUMA_float) SUMA_RETURN(0);
+      if (vtp < SUMA_byte || vtp > SUMA_double) SUMA_RETURN(0);
    }
    
    SUMA_RETURN(1);
 }
+
 /*!
 
    \brief Load a surface-based data set of the 1D format
@@ -2465,13 +2689,15 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_TestDsetIO"}; 
    int *NodeDef=NULL;
+   byte *maskrow, *maskcol;
    int i, i3, N_NodeDef, N_Alloc, flg;
    float *r=NULL, *g=NULL, *b=NULL, *rgb=NULL;
    char stmp[500], idcode[50], **s, *si, *OutName = NULL;
    NI_element *nel=NULL;
    NI_stream ns;
    int found = 0, NoStride = 0;
-   SUMA_DSET * dset = NULL;
+   byte *bt=NULL;
+   SUMA_DSET * dset = NULL, *ndset=NULL;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_mainENTRY;
@@ -2487,15 +2713,20 @@ int main (int argc,char *argv[])
       r = (float *)SUMA_malloc(N_Alloc * sizeof(float));
       g = (float *)SUMA_malloc(N_Alloc * sizeof(float));
       b = (float *)SUMA_malloc(N_Alloc * sizeof(float));
+      bt = (byte *)SUMA_malloc(N_Alloc * sizeof(byte));
       s = (char **)SUMA_malloc(N_Alloc * sizeof(char *));
+      maskrow = (byte *)SUMA_malloc(N_Alloc * sizeof(byte));
+      maskcol = (byte *)SUMA_malloc(10*sizeof(byte)); for (i=0; i<10; ++i) { if (i==1 || i == 3) maskcol[i]=0; else maskcol[i] = 1; }
       N_NodeDef = N_Alloc;
       for (i=0; i<N_NodeDef; ++i) {
          NodeDef[i] = i;
          r[i] = sin((float)i/N_NodeDef*5);
          g[i] = sin((float)i/N_NodeDef*10);
          b[i] = cos((float)i/N_NodeDef*7);
+         bt[i] = (byte)(4*b[i]);
          sprintf(stmp,"teststr_%d", i);
          s[i] = SUMA_copy_string(stmp);
+         if (i==3 || i== 7 || i==33) maskrow[i] = 1; else maskrow[i]=0;
       }
       /* what if you had a vector of say, triplets */
       rgb = (float *)SUMA_malloc(3 * N_Alloc * sizeof(float));
@@ -2578,6 +2809,11 @@ int main (int argc,char *argv[])
             exit(1);
          }
       }
+      /* add the byte column, just to check multi type nightmares */
+      if (!SUMA_AddNelCol (dset->nel, "Le byte moi", SUMA_NODE_BYTE, (void *)bt, NULL ,1)) {
+            fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+            exit(1);
+      }
       
       /* before adding a string column ... */
       OutName = SUMA_WriteDset ("Test_write_all_num", dset, SUMA_1D, 1, 1); 
@@ -2601,12 +2837,43 @@ int main (int argc,char *argv[])
          SUMA_free(OutName); OutName = NULL;
       }
       
+      /* zero out some columns and test operations */
+      
+      ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 1, 0); 
+      /* try also:
+         ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 0, 1);
+         ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 0, 0);
+         ndset = SUMA_MaskedCopyofDset(dset, maskrow, NULL, 1, 0); 
+         ndset = SUMA_MaskedCopyofDset(dset, NULL, NULL, 1, 0); 
+         ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 1, 0); 
+      */
+      if (!ndset) {
+         SUMA_SL_Err("Failed in SUMA_MaskedCopyofDset");
+      } else {
+         OutName = SUMA_WriteDset ("Test_writeas_MaskedCopy_num", ndset, SUMA_ASCII_NIML, 1, 1); 
+         if (!OutName) {
+            SUMA_SL_Err("Write Failed.");
+         } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
+            SUMA_free(OutName); OutName = NULL;
+         }
+         SUMA_free(ndset); ndset = NULL;
+      }
+      
       /* add a string column, just for kicks ..*/
       if (!SUMA_AddNelCol (dset->nel, "la string", SUMA_NODE_STRING, (void *)s, NULL, 1)) {
          fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
          exit(1);  
       }
       
+      /* now try to create a masked copy, this should fail */
+      fprintf (stderr,"%s: Attempting to mask a not all numeric dset, this should fail\n", FuncName);
+      ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 1, 0); 
+      if (ndset) {
+         fprintf (stderr,"Error  %s:\nWhat the hell? This should not be supported.", FuncName);
+         exit(1);
+      }else{
+         fprintf (stderr,"%s: Good, failed.\n", FuncName);
+      }  
       /* after adding a string column ... */
       SUMA_LH("Writing datasets ...");
       OutName = SUMA_WriteDset ("Test_writeas", dset, SUMA_ASCII_NIML, 1, 1); 
@@ -2649,7 +2916,7 @@ int main (int argc,char *argv[])
       SUMA_LH("Fresh dataset ...");
       dset = SUMA_NewDsetPointer();
       SUMA_LH("Reading dataset ...");
-      NEL_READ(dset->nel, "file:Test_write_bin.niml"); if (!dset->nel) exit(1);
+      NEL_READ(dset->nel, "file:Test_writebi.niml.dset"); if (!dset->nel) exit(1);
       /* insert the baby into the list */
       
       #ifdef SUMA_COMPILED
@@ -2711,6 +2978,8 @@ int main (int argc,char *argv[])
    if (g) SUMA_free(g); g = NULL;
    if (b) SUMA_free(b); b = NULL;
    if (rgb) SUMA_free(rgb); rgb = NULL;
+   if (maskrow) SUMA_free(maskrow); maskrow = NULL;
+   if (maskcol) SUMA_free(maskcol); maskcol = NULL;
    if (NodeDef) SUMA_free(NodeDef); NodeDef = NULL;  
    if (s) {
       for (i=0; i<N_NodeDef; ++i) {
@@ -3852,19 +4121,22 @@ char * SUMA_append_string(char *s1, char *s2)
    atr = (char *) SUMA_calloc(N_s1+N_s2+2, sizeof(char));
    
    /* copy first string */
-   i=0;
    cnt = 0;
-   while (s1[i]) {
-      atr[cnt] = s1[i];
-      ++i;
-      ++cnt;
-   }
-   
-   i=0;
-   while (s2[i]) {   
-      atr[cnt] = s2[i];
-      ++i;
-      ++cnt;
+   if (N_s1){
+      i=0;
+      while (s1[i]) {
+         atr[cnt] = s1[i];
+         ++i;
+         ++cnt;
+      }
+   }   
+   if (N_s2) {
+      i=0;
+      while (s2[i]) {   
+         atr[cnt] = s2[i];
+         ++i;
+         ++cnt;
+      }
    }
    atr[cnt] = '\0';
    

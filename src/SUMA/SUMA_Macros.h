@@ -889,6 +889,17 @@ SUMA_COPY_VEC(a,b,len,typea,typeb)
       a[m_i] = (typea)val; \
 }
 
+#define SUMA_COPY_VALUE_IN_VEC(a, b, ia, ib, typea, typeb) { \
+         typea *_PTA = (typea *)a;  \
+         typeb *_PTB = (typeb *)b;  \
+         _PTB[ib] = (typeb)_PTA[ia]; \
+}
+
+#define SUMA_ASSIGN_VALUE_IN_VEC(a, ia, typea, val) { \
+         typea *_PTA = (typea *)a;  \
+         _PTA[ia] = (typea)val; \
+}
+ 
 /*!
 SUMA_DOTP_VEC macro:
 

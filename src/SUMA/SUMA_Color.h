@@ -115,6 +115,7 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
 SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim);
 SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO);
 int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node);
+SUMA_Boolean SUMA_isColumn_inferred(NI_element *nel, int icol);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO); 
 SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
 
