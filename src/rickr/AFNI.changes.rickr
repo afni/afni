@@ -673,3 +673,11 @@
     - in init_seg_endpoints()
         o  get rid of p1 and pn
         o  save THD_dicomm_to_3dmm() until the end
+
+06 October 2004:
+  * modified anfi.h: added AFNI_vol2surf_func_overlay() prototype
+  * modified afni_niml.c:AFNI_process_niml_data()
+    - added case for name "SUMA_node_normals" via SUMA_add_norms_xyz()
+  * modified afni_suma.h: added SUMA_add_norms_xyz() prototype
+  * modified afni_suma.c: added SUMA_add_norms_xyz() function
+

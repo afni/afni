@@ -1025,6 +1025,8 @@ typedef struct {
 /*------------------------ prototypes -----------------------*/
 
 extern int AFNI_vnlist_func_overlay( Three_D_View *,int, SUMA_irgba **,int * ) ;
+extern int AFNI_vol2surf_func_overlay( Three_D_View *, SUMA_irgba ** ) ;
+                                                     /* 06 Oct 2004 [rickr] */
 
 extern void AFNI_parse_args( int argc , char * argv[] );
 extern void FatalError(char * str);
