@@ -4803,3 +4803,6 @@
 20 Nov 2003
  * Fixed bug in arrowpad movement, in afni.c: must do LOAD_DSET_VIEWS(im3d).
  * Modified afni.c and afni_version.c to write UPDATER script, if possible.
+
+21 Nov 2003
+ * Added ability to undo Linear Fillin to plug_drawdset.c.

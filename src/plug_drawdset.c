@@ -1366,7 +1366,7 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            and then use Fill in the A-P direction with a maximum\n"
   "            gap setting of 3 to fill in the slices you didn't draw.\n"
   "            (Then you could manually fix up the intermediate slices.)\n"
-  "           N.B.: Linear Fillin cannot be undone!!!\n"
+  "        ** N.B.: Linear Fillin can now be undone [as of 21 Nov 2003]!\n"
   "        * TT Atlas Regions can be loaded into the edited volume.  The\n"
   "            chosen region+hemisphere(s) will be loaded with the current\n"
   "            Value.  'OverWrite' loading means that all voxels from\n"
@@ -2717,6 +2717,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    int dcode=-1 , maxgap , nftot ;
    char dir ;
+   MRI_IMAGE *bim , *tbim ; /* 21 Nov 2003: to allow undo of fillin */
 
    /* check for errors */
 
@@ -2738,6 +2739,9 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
    maxgap = fillin_gap_av->ival ;
    if( maxgap < 1 ){ XBell(dc->display,100) ; return ; } /* should not happen! */
 
+   bim  = DSET_BRICK(dset,0) ;  /* 21 Nov 2003: for undo */
+   tbim = mri_copy( bim ) ;     /* copy brick before the change */
+
    nftot = THD_dataset_rowfillin( dset , 0 , dcode , maxgap ) ;
    if( nftot > 0 ){
      fprintf(stderr,"++ Fillin filled %d voxels\n",nftot) ;
@@ -2745,6 +2749,52 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
      if( recv_open ) AFNI_process_drawnotice( im3d ) ;
+    
+     { void *bar , *tbar ;     /* 21 Nov 2003: compute the undo stuff */
+       int ityp=bim->kind, ii,jj, nvox=bim->nvox, ndel=0 ;
+       dobuf *sb=NULL ;
+       switch( ityp ){
+         case MRI_short:{
+           short *bar = MRI_SHORT_PTR(bim), *tbar = MRI_SHORT_PTR(tbim), *up ;
+           for( ii=0 ; ii < nvox ; ii++ ) if( bar[ii] != tbar[ii] ) ndel++ ;
+           if( ndel > 0 ){
+             CREATE_DOBUF(sb,ndel,MRI_short) ; up = (short *)sb->buf ;
+             for( ii=jj=0 ; ii < nvox ; ii++ )
+               if( bar[ii] != tbar[ii] ){ sb->xyz[jj]=ii; up[jj++]=tbar[ii]; }
+           }
+         }
+         break ;
+         case MRI_float:{
+           float *bar = MRI_FLOAT_PTR(bim), *tbar = MRI_FLOAT_PTR(tbim), *up ;
+           for( ii=0 ; ii < nvox ; ii++ ) if( bar[ii] != tbar[ii] ) ndel++ ;
+           if( ndel > 0 ){
+             CREATE_DOBUF(sb,ndel,MRI_float) ; up = (float *)sb->buf ;
+             for( ii=jj=0 ; ii < nvox ; ii++ )
+               if( bar[ii] != tbar[ii] ){ sb->xyz[jj]=ii; up[jj++]=tbar[ii]; }
+           }
+         }
+         break ;
+         case MRI_byte:{
+           byte *bar = MRI_BYTE_PTR(bim), *tbar = MRI_BYTE_PTR(tbim), *up ;
+           for( ii=0 ; ii < nvox ; ii++ ) if( bar[ii] != tbar[ii] ) ndel++ ;
+           if( ndel > 0 ){
+             CREATE_DOBUF(sb,ndel,MRI_byte) ; up = (byte *)sb->buf ;
+             for( ii=jj=0 ; ii < nvox ; ii++ )
+               if( bar[ii] != tbar[ii] ){ sb->xyz[jj]=ii; up[jj++]=tbar[ii]; }
+           }
+         }
+         break ;
+       } /* end of switch on brick type */
+
+       if( sb != NULL ){  /* if we created an undo buffer, push onto stack */
+         undo_stack = realloc( (void *)undo_stack, sizeof(dobuf *)*(undo_num+1) );
+         undo_stack[undo_num++] = sb ;
+         UNDO_button_labelize ;
+         DRAW_undo_sizecheck() ;
+         CLEAR_REDOBUF ;         /* can't redo after a drawing */
+       }
+     } /* 21 Nov 2003: end of allowing for undo stuff */
+
    } else if( nftot < 0 ) {
       fprintf(stderr,"** Fillin failed for some reason!\n") ;
       XBell(dc->display,100) ;
@@ -2752,6 +2802,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
       fprintf(stderr,"++ No Fillin voxels found\n") ;
    }
 
+   mri_free(tbim) ; /* 21 Nov 2003: toss old copy */
    return ;
 }
 
