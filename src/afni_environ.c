@@ -85,23 +85,24 @@ char * my_getenv( char * ename )
 
 void AFNI_process_environ( char * fname )
 {
-   int    nbuf , nused , ii ;
-   char * fbuf , * fptr ;
+   int   nbuf , nused , ii ;
+   char *fbuf , *fptr ;
    char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
 
+ENTRY("AFNI_process_environ") ;
    if( fname != NULL ){
       strcpy(str,fname) ;
    } else {
-      char * home ;
-      if( afni_env_done ) return ;
+      char *home ;
+      if( afni_env_done ) EXRETURN ;
       home = getenv("HOME") ;
       if( home != NULL ){ strcpy(str,home) ; strcat(str,"/.afnirc") ; }
       else              { strcpy(str,".afnirc") ; }
       afni_env_done = 1 ;
    }
 
-   fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) return ;
-   nbuf = strlen(fbuf) ;          if( nbuf == 0    ) return ;
+   fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) EXRETURN ;
+   nbuf = strlen(fbuf) ;          if( nbuf == 0    ) EXRETURN ;
 
    fptr = fbuf ; nused = 0 ;
 
@@ -144,7 +145,7 @@ void AFNI_process_environ( char * fname )
 
    }  /* end of while loop */
 
-   free(fbuf) ; return ;
+   free(fbuf) ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------*/

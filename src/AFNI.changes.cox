@@ -4891,3 +4891,9 @@
      loading it and before changing its name.
  * Modified Makefile.* to use a "MAKE" macro instead of the fixed "make"
      command.
+
+15 Jan 2004
+ * Modified afni.c so that -skip_afnirc option works again (was being screwed
+     up in machdep() function).  Also added a couple friends.
+ * When re-f2c-ing a .f file, must remove declarations of built-in functions
+     from the C code, since they cause the g++ compilation to fail to link.

@@ -23,15 +23,16 @@ static char * afni_helptypes[] = {
 
 #define YOU_KNOW_WHAT 10
 #define INSPIRATION    5
-#define KLOSEK         7   /* person index below */
+#define KLOSEK         0   /* person index below */
 
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
 
-typedef struct { char * name ; int helpmask ; } AFNI_friend ;
+typedef struct { char *name ; int helpmask ; } AFNI_friend ;
 
 /*! Who we might thank. */
 
 static AFNI_friend afni_friends[] = {
+  { "MM Klosek"      , ( 1 | 2              | 32                 | 1024 ) } ,
   { "JR Binder"      , ( 1 |     4 | 8 | 16                             ) } ,
   { "EA DeYoe"       , ( 1 |     4 | 8                                  ) } ,
   { "JS Hyde"        , ( 1 | 2              | 32                        ) } ,
@@ -39,17 +40,19 @@ static AFNI_friend afni_friends[] = {
   { "EA Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128             ) } ,
   { "A Jesmanowicz"  , (             8 |      32                        ) } ,
   { "MS Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128             ) } ,
-  { "MM Klosek"      , ( 1 | 2              | 32                 | 1024 ) } ,
   { "JA Bobholz"     , (             8 | 16 | 32      | 128             ) } ,
   { "JA Frost"       , (             8 | 16                             ) } ,
   { "J Kummer"       , (         4 | 8      | 32                        ) } ,
   { "BD Ward"        , (         4 | 8           | 64       | 512       ) } ,
-  { "KM Donahue"     , (                 16                             ) } ,
+  { "S Marrett"      , (             8 | 16                             ) } ,
+  { "T Holroyd"      , (             8 | 16                             ) } ,
+  { "KM Donahue"     , (             8 | 16                             ) } ,
   { "PA Bandettini"  , (                 16                 | 512       ) } ,
   { "AS Bloom"       , ( 1 | 2         | 16                             ) } ,
   { "T Ross"         , (         4 | 8 | 16 | 32                        ) } ,
   { "H Garavan"      , (         4 | 8 | 16                 | 256       ) } ,
   { "SJ Li"          , (     2                                          ) } ,
+  { "M Huerta"       , (     2                                          ) } ,
   { "ZS Saad"        , (     2 | 4 | 8 | 16      | 64 | 128             ) } ,
   { "K Ropella"      , (     2                                          ) } ,
   { "B Knutson"      , (                 16 |           128             ) } ,
@@ -60,15 +63,18 @@ static AFNI_friend afni_friends[] = {
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
   { "S Durgerian"    , (             8 | 16                             ) } ,
   { "M Belmonte"     , (             8 |           64                   ) } ,
-  { "K Bove-Bettis"  , (                 16 |           128             ) } ,
+  { "K Bove-Bettis"  , (             8 | 16 |           128             ) } ,
   { "E Kapler"       , (                                128             ) } ,
   { "R Doucette"     , (                           64 | 128             ) } ,
+  { "K Kuhns"        , (                           64 | 128             ) } ,
   { "RC Reynolds"    , (                           64 | 128 | 512       ) } ,
   { "PP Christidis"  , (                           64 | 128 | 512       ) } ,
   { "G Fong"         , (                 16 |           128             ) } ,
   { "LR Frank"       , (             8 | 16                             ) } ,
   { "R Desimone"     , (     2                                          ) } ,
+  { "L Ungerleider"  , (     2                                          ) } ,
   { "KR Hammett"     , (             8 |           64                   ) } ,
+  { "A Clark"        , (                           64 |       512       ) } ,
   { "DS Cohen"       , ( 1 | 2                                          ) } ,
   { "DA Jacobson"    , ( 1 | 2              | 32                        ) }
 } ;
@@ -83,7 +89,7 @@ char * AFNI_get_friend(void)
    static char buf[256] ; int nf , nh , hmask , qq=0 ;
    nf = lrand48() % NUM_FRIENDS ;
    do{
-      nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
+     nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
    } while( qq < 73 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
 
    if( nh == YOU_KNOW_WHAT && nf != KLOSEK ) nh = INSPIRATION; /* only Gosia */

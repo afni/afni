@@ -341,7 +341,6 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.dy       = 1.0 ;
    GLOBAL_argopt.ignore   = INIT_ignore ;
    GLOBAL_argopt.elide_quality  = 0 ;      /* Dec 1997 */
-   GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
@@ -1007,6 +1006,20 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 }
 #endif
 
+/*-------------------------------------------------------------------------*/
+/*! Check if a particular option is present; 1=yes, 0=no.  [15 Jan 2004]
+---------------------------------------------------------------------------*/
+
+static int check_string( char *targ , int ns , char *ss[] )
+{
+   int ii , lt ;
+   if( targ == NULL || *targ == '\0' || ns <= 0 || ss == NULL ) return 0 ;
+   lt = strlen(targ) ;
+   for( ii=0 ; ii < ns ; ii++ )
+     if( ss[ii] != NULL && strncmp(ss[ii],targ,lt) == 0 ) return 1 ;
+   return 0 ;
+}
+
 /*=========================================================================
   The new AFNI main program.
     02 Aug 1999: Have moved much of the startup into a work process.
@@ -1015,6 +1028,17 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 int main( int argc , char * argv[] )
 {
    int ii ;
+
+   /*--- help the pitiful user? ---*/
+
+   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
+
+   /** 15 Jan 2004: check for -skip_afnirc right away **/
+
+   GLOBAL_argopt.skip_afnirc = check_string("-skip_afnirc",argc,argv) ;
+   if( GLOBAL_argopt.skip_afnirc ) AFNI_mark_environ_done() ;
+
+   /*--- Initialize some stuff ---*/
 
    machdep() ;                      /* RWCox: 20 Apr 2001 */
    THD_load_datablock_verbose(1) ;  /* 21 Aug 2002 */
@@ -1026,11 +1050,10 @@ int main( int argc , char * argv[] )
    signal(SIGTERM,AFNI_sigfunc) ;
 #endif
 
-   /** -version [15 Aug 2003] **/
+   /** Check for -version [15 Aug 2003] **/
 
-   for( ii=1 ; ii < argc ; ii++ ){
-     if( strncmp(argv[ii],"-ver",4) == 0 || strncmp(argv[ii],"--ver",5) == 0 ){
-       printf("AFNI. Version " VERSION " of " RELEASE "\n") ;
+   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
+     printf("AFNI. Version " VERSION " of " RELEASE "\n") ;
 #ifdef SHOWOFF
 #undef SHSH
 #undef SHSHSH
@@ -1040,22 +1063,19 @@ int main( int argc , char * argv[] )
 #undef SHSH
 #undef SHSHSH
 #endif /* SHOWOFF */
-       exit(0) ;
-     }
+     exit(0) ;
    }
 
    /** debug stuff **/
 
 #ifdef USING_MCW_MALLOC
-   for( ii=1 ; ii < argc ; ii++ )
-      if( strncmp(argv[ii],"-nomall",5) == 0 || strncmp(argv[ii],"-rt",3) == 0 ) break ;
-
-   if( ii == argc ) enable_mcw_malloc() ; /* 06 Mar 1999 */
+   if( !check_string("-nomall",argc,argv) && !check_string("-rt",argc,argv) )
+     enable_mcw_malloc() ;
 #endif
 
 #ifdef USE_TRACING
-   if( argc > 1 && strncmp(argv[1],"-trace",5) == 0 ) DBG_trace = 1 ;
-   if( argc > 1 && strncmp(argv[1],"-TRACE",5) == 0 ) DBG_trace = 2 ; /* 23 Aug 1998 */
+   if( check_string("-trace",argc,argv) ) DBG_trace = 1 ;
+   if( check_string("-TRACE",argc,argv) ) DBG_trace = 2 ;
 #endif
 
 #if 0
@@ -1067,25 +1087,21 @@ int main( int argc , char * argv[] )
    /** 25 Oct 2001: check for -q (quiet) option right away **/
 
    GLOBAL_argopt.quiet = AFNI_yesenv("AFNI_QUIET") ;
-   if( AFNI_VERBOSE ){
-     for( ii=1 ; ii < argc ; ii++ )
-       if( strcmp(argv[ii],"-q") == 0 ){ GLOBAL_argopt.quiet = 1 ; break ; }
-   }
+   if( AFNI_VERBOSE && check_string("-q",argc,argv) ) GLOBAL_argopt.quiet = 1;
 
-   /*--- help? ---*/
+   /** 12 Dec 2002: scan for "-rt" now,
+                    to see if we want to start the version check **/
 
-   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
-
-   /* 12 Dec 2002: scan for "-rt" now,
-                   to see if we want to start the version check */
-
-   for( ii=1 ; ii < argc ; ii++ )
-     if( strcmp(argv[ii],"-rt") == 0 ){ GLOBAL_argopt.allow_rt = 1; break; }
+   GLOBAL_argopt.allow_rt = check_string("-rt",argc,argv) ;
 
    if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
+   /** Start the debug traceback stuff **/
+
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
+
+   /** set the function to call if run out of memory when creating datasets **/
 
    THD_set_freeup( AFNI_purge_unused_dsets ) ;  /* 18 Oct 2001 */
 
@@ -1093,14 +1109,12 @@ int main( int argc , char * argv[] )
    if( argc > 1 ) AFNI_logger("afni",argc,argv) ; /* 14 Aug 2001 */
 #endif
 
-   /*--- with a little help from my FRIENDS --*/
-
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
    REPORT_PROGRESS( "\n" ) ;         /* 02 Dec 2000 */
    REPORT_PROGRESS( ANNOUNCEMENT ) ;
 
-   /*------------ 29 Nov 1999: print out precompiled version -----------*/
+   /*------- 29 Nov 1999: print out precompiled version, if defined --------*/
 #ifdef SHOWOFF
 #undef SHSH
 #undef SHSHSH
@@ -1115,17 +1129,13 @@ int main( int argc , char * argv[] )
 #undef SHSHSH
 #endif /* SHOWOFF */
 
+   /*-- Be friendly --*/
+
 #ifdef USE_FRIENDS
    { char * sf = AFNI_get_friend() ;
      REPORT_PROGRESS( sf ) ;
-#if 0
-     sf = AFNI_get_date_trivia() ;   /* 25 Nov 2002 */
-     if( sf != NULL ){
-       REPORT_PROGRESS("\nToday is: ") ; REPORT_PROGRESS(sf) ;
-     }
-#endif
      REPORT_PROGRESS( "\n\n" ) ;
-     if( argc > 1 && strcmp(argv[1],"-friend") == 0 ) exit(0) ;  /* 19 Sep 1998 */
+     if( check_string("-friend",argc,argv) ) exit(0) ;
    }
 #endif
 
@@ -1133,7 +1143,7 @@ int main( int argc , char * argv[] )
    /*------------ initialize the controllers list ----------------*/
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-      GLOBAL_library.controllers[ii] = NULL ;
+     GLOBAL_library.controllers[ii] = NULL ;
    GLOBAL_library.dc = NULL ;
 
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
@@ -1159,11 +1169,11 @@ int main( int argc , char * argv[] )
                                    &argc , argv , FALLback , NULL ) ;
 
    if( MAIN_shell == NULL ){
-      fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
+     fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
    }
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
-      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
-      STATUS("XSynchronize is enabled") ;
+     XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
+     STATUS("XSynchronize is enabled") ;
    }
 
    MAIN_argc = argc ; MAIN_argv = argv ;  /* what's left after XtVaAppInit */
@@ -1172,16 +1182,13 @@ int main( int argc , char * argv[] )
 
    /*-- 04 Jun 1999: modify order of loading arguments and defaults --*/
 
-   for( ii=1 ; ii < argc ; ii++ )
-      if( strncmp(argv[ii],"-skip_afnirc",12) == 0 ){ GLOBAL_argopt.skip_afnirc = 1; break; }
-
    if( ! GLOBAL_argopt.skip_afnirc ){
-       char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
-       if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
+      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
+      if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
 
-       AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
+      AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
    } else {
-       AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
+      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
    AFNI_load_defaults( MAIN_shell ) ;
@@ -1222,16 +1229,16 @@ int main( int argc , char * argv[] )
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){
-        float bk = strtod(lenv,NULL) ;
-        if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
+       float bk = strtod(lenv,NULL) ;
+       if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
      }
    }
 
    /* locking? */
 
    if( AFNI_yesenv("AFNI_ALWAYS_LOCK") ){
-      for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-         GLOBAL_library.controller_lock |= (1<<ii) ;
+     for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+       GLOBAL_library.controller_lock |= (1<<ii) ;
    }
 
    /*-- now create first display context: MAIN_dc --*/
@@ -1242,8 +1249,8 @@ int main( int argc , char * argv[] )
                     GLOBAL_argopt.gamma , GLOBAL_argopt.install_cmap ) ;
 
    if( MAIN_dc->depth < 9 && MAIN_dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
-      GLOBAL_argopt.unique_dcs = False ;
-      REPORT_PROGRESS("[-unique off]") ;
+     GLOBAL_argopt.unique_dcs = False ;
+     REPORT_PROGRESS("[-unique off]") ;
    }
 
    /*------------------------------------*/
@@ -1271,6 +1278,7 @@ STATUS("start XtAppMainLoop") ;
 
 /*---------------------------------------------------------------------------------
    Xt work process to do most of the initialization stuff.
+   (So we can so a splash screen to pacify and amuse the user.)
 -----------------------------------------------------------------------------------*/
 
 #define REFRESH XmUpdateDisplay(MAIN_im3d->vwid->top_shell)
@@ -1314,13 +1322,15 @@ STATUS("call 0") ;
         nosplash = AFNI_yesenv("AFNI_NOSPLASH") ;
 #endif
         if( !nosplash ){
-           char * hh ;
-           AFNI_splashup() ; eltime = COX_clock_time() ;
-           hh = getenv("AFNI_SPLASHTIME") ;
-           if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+          char * hh ;
+          AFNI_splashup() ; eltime = COX_clock_time() ;
+          hh = getenv("AFNI_SPLASHTIME") ;
+          if( hh != NULL ) max_splash = strtod(hh,NULL) ;
         }
       }
       break ;
+
+      /*** For the Mac users! ***/
 
       case 1:
         AFNI_speak("[[volm 0.65; inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
