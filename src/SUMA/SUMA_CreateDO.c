@@ -2754,7 +2754,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].SUMA_VolPar_Aligned = NOPE;
       SO[i].VOLREG_APPLIED = NOPE;
       SO[i].TAGALIGN_APPLIED = NOPE;
-      SO[i].SurfCont = SUMA_CreateSurfContStruct();
+      SO[i].SurfCont = NULL; /* This is now handled in SUMA_LoadSpec_eng (used to be SUMA_CreateSurfContStruct();) */
       SO[i].PolyMode = SRM_ViewerDefault;
       SO[i].Show = YUP;
       SO[i].Side = SUMA_NO_SIDE;

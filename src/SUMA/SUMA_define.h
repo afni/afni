@@ -2,6 +2,13 @@
 #define SUMA_DEFINE_INCLUDED
 
 #define SUMA_SUMA_NIML_DEBUG 0
+#define SUMA_SEPARATE_SURF_CONTROLLERS 0 /*!< 0 if you want surfaces sharing the same LocalDomainParent 
+                                                to use the same controller. 
+                                                If you choose 1, then the controllers will not be linked
+                                                and there will be no parameter update for that colorplane
+                                                in the other controllers. The problem is that every little
+                                                callback will have to make a call to SUMA_UpdateColPlaneShellAsNeeded
+                                                and that's a pain, to say the least.*/
 
 #define ARRAY 1
 #define STRAIGHT 2
@@ -904,10 +911,22 @@ typedef struct{
 
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
+   /* *** DO NOT ADD ANYTHING BEFORE THESE FIELDS
+          DO NOT CHANGE THE ORDER OF THESE FIELDS
+          These fields are use for tracking copies
+          (links) to a pointer.
+          ANY CHANGES HERE SHOULD BE REFLECTED IN 
+          SUMA_LinkedPtr structure 
+   */
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
+   
    Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
    Widget PosRef; /*!< reference position widget */
    Widget Mainform; /*!< main form, child of TopLevelShell */
    Widget SurfInfo_pb; /*!< More info push button */
+   Widget SurfInfo_label; /*!< Le label */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
    Widget RenderModeMenu[SW_N_SurfCont_Render]; /*!< vector of widgets controlling the rendering mode menu */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */

@@ -501,10 +501,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }else { /* create it */
                   s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Message string:\n%s\n", FuncName, s);
-                  LogShell =  SUMA_CreateTestShellStruct (SUMA_Message_open, NULL, 
+                  LogShell =  SUMA_CreateTextShellStruct (SUMA_Message_open, NULL, 
                                                           SUMA_Message_destroyed, NULL);
                   if (!LogShell) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
                      break;
                   }
                   SUMAg_CF->X->Log_TextShell = SUMA_CreateTextShell(s, "SUMA log", LogShell);
@@ -527,10 +527,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_message_Info.\n", FuncName);
                   break;
                }else {
-                  TextShell =  SUMA_CreateTestShellStruct (SUMA_Help_open, NULL, 
+                  TextShell =  SUMA_CreateTextShellStruct (SUMA_Help_open, NULL, 
                                                            SUMA_Help_destroyed, NULL);
                   if (!TextShell) {
-                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
                      break;
                   }
                   SUMAg_CF->X->Help_TextShell = SUMA_CreateTextShell(s, "SUMA help", TextShell);

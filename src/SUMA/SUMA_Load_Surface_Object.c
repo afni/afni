@@ -1942,13 +1942,16 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
+            
             #if SUMA_CHECK_WINDING
             if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, debug)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             #endif
-   
+            
+            /* create the surface controller */
+            SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
 
             {
                SUMA_DSET *dset=NULL;/* create the color plane for Convexity*/
@@ -2117,7 +2120,22 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                      SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
                   }
                } else SOinh = NULL;
-         
+               
+               /* deal with surface controller */
+               if (SOinh) {
+                  SUMA_SL_Note("Decide what to do here ...");
+                  #if SUMA_SEPARATE_SURF_CONTROLLERS
+                  /* leave controllers separate */ 
+                  SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str); 
+                  #else
+                  /* create a link to the surface controller pointer */
+                  SO->SurfCont = (SUMA_X_SurfCont*)SUMA_LinkToPointer((void *)SOinh->SurfCont);
+                  #endif
+               } else {
+                  /* brand new one */
+                  SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+               }
+
                
                if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace", SOinh, debug, DsetList)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);

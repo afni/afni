@@ -147,7 +147,7 @@ void SUMA_ViewerInfo_destroyed (void *p);
 void SUMA_ViewerInfo_open (void *p);
 void SUMA_SumaInfo_destroyed (void *p);
 void SUMA_SumaInfo_open (void *p);
-SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTestShellStruct (void (*opencallback)(void *data), void *opendata, 
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (void (*opencallback)(void *data), void *opendata, 
                                                             void (*closecallback)(void*data), void *closedata);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShellStruct);
 void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_data);
@@ -280,6 +280,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
 
 
 
