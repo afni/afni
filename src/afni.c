@@ -1814,13 +1814,20 @@ ENTRY("AFNI_startup_timeout_CB") ;
        cpt = THD_trailname(sname,0) ;
        fprintf(stderr,
                "\n"
-               "****************************************************\n"
+               "*===================================================\n"
                "* A script to update AFNI binaries has been created.\n"
                "* To use it, quit AFNI now, then try the commands\n"
                "cd %s\n"
                "source %s\n"
-               "****************************************************\n" ,
+               "*===================================================\n" ,
                ddd , cpt ) ;
+     } else {
+       fprintf(stderr,
+               "\n"
+               "*======================================\n"
+               "* Can't create script for updating AFNI\n"
+               "* binaries in your AFNI directory.\n"
+               "*======================================\n" ) ;
      }
    }
 #endif
