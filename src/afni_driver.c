@@ -49,6 +49,7 @@ static int AFNI_sleeper                ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_setenv                 ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
 static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
+static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -72,6 +73,7 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_DIRECTORY" , AFNI_drive_switch_session    } ,
  { "SWITCH_UNDERLAY"  , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_OVERLAY"   , AFNI_drive_switch_function   } ,
+ { "PURGE_MEMORY"     , AFNI_drive_purge_memory      } ,
 
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
  { "ALTER_WINDOW"     , AFNI_drive_open_window       } ,
@@ -160,6 +162,42 @@ ENTRY("AFNI_driver") ;
    }
 
    free(dmd) ; RETURN(-1) ;  /* not in the list */
+}
+
+/*---------------------------------------------------------------*/
+/*! Purge named dataset or all datasets from memory. */
+
+int AFNI_drive_purge_memory( char *cmd )  /* 09 Dec 2004 */
+{
+   char dname[THD_MAX_NAME] ;
+   THD_slist_find slf ;
+   int ic ;
+
+ENTRY("AFNI_drive_purge_memory") ;
+
+   if( *cmd == '\0' ){ AFNI_purge_dsets(1); RETURN(0); }
+
+   /* get dataset name, truncate trailing blanks */
+
+   MCW_strncpy( dname , cmd , THD_MAX_NAME ) ;
+   for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
+     if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
+     else break ;
+
+   if( strlen(dname) == 0 ) RETURN(-1) ;
+
+   /* find this dataset in current session of this controller */
+
+   slf = THD_dset_in_sessionlist( FIND_PREFIX, dname, GLOBAL_library.sslist,-1 );
+
+   if( slf.sess_index >= 0 && slf.dset_index >= 0 ){
+     THD_3dim_dataset **dss =
+       GLOBAL_library.sslist->ssar[slf.sess_index]->dsset[slf.dset_index] ;
+     for( ic=0 ; ic <= LAST_VIEW_TYPE ; ic++ ) PURGE_DSET( dss[ic] ) ;
+     RETURN(0) ;
+   }
+
+   RETURN(-1) ;
 }
 
 /*---------------------------------------------------------------*/
@@ -299,8 +337,8 @@ ENTRY("AFNI_switch_anatomy") ;
 
    MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
-      if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
-      else break ;
+     if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
+     else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
 
