@@ -98,8 +98,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          break;
       case SUMA_FREE_SURFER:
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
-            SUMA_RETURN (NOPE);
+            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
          }
          if (!SUMA_FS_Write ((char *)F_name, SO, "#Output of SUMA_SurfaceConvert")) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
@@ -108,8 +107,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          break;
       case SUMA_FREE_SURFER_PATCH:
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for Free Surfer surface patches.\n", FuncName);
-            SUMA_RETURN (NOPE);
+            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surface patches.\n", FuncName);
          }
          if (!SUMA_FreeSurfer_WritePatch ((char *)F_name, SO, NULL, (SUMA_SurfaceObject *)someparam)) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
@@ -118,8 +116,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          break;
       case SUMA_SUREFIT:
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
-            SUMA_RETURN (NOPE);
+            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
          }
          if (!SUMA_SureFit_Write ((SUMA_SFname *)F_name, SO)) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write SureFit surface.\n", FuncName);
@@ -128,8 +125,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          break;
       case SUMA_VEC:
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for vec surfaces.\n", FuncName);
-            SUMA_RETURN (NOPE);
+            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for vec surfaces.\n", FuncName);
          }
          if (!SUMA_VEC_Write ((SUMA_SFname *)F_name, SO)) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write vec surface.\n", FuncName);
@@ -5205,6 +5201,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER);
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             ++ps->o_N_surfnames;    
 			   brk = YUP;
 		   }
@@ -5223,6 +5220,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   
 			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER_PATCH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER_PATCH;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_BINARY;
 			   ++ps->o_N_surfnames;   
             brk = YUP;
 		   }
@@ -5240,6 +5238,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
             ps->o_FT[ps->o_N_surfnames] = SUMA_SUREFIT;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             /* is there another argument ?*/
             if (kar+1 < argc)  {
 		  		   if (argv[kar+1][0] == '-') {
@@ -5269,6 +5268,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
             ps->o_FT[ps->o_N_surfnames] = SUMA_VEC;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   /* is there another argument ?*/
             if (kar+1 < argc)  {
 		  		   if (argv[kar+1][0] == '-') {
@@ -5296,6 +5296,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
 			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_PLY;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }
