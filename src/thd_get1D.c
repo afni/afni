@@ -172,13 +172,8 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
           strcmp(fname+ll,"1Dx")==0 ||
           strcmp(fname+ll,"1Dv")==0   ){
 
-         outim = mri_read_ascii( fname ) ;
-         if( outim != NULL ){
-            if( outim->kind != MRI_float ){
-               flim = mri_to_float(outim) ;
-               mri_free(outim) ; outim = flim ;
-            }
-            flim = mri_transpose(outim) ; mri_free(outim) ;
+         flim = mri_read_1D( fname ) ;
+         if( flim != NULL ){
             far = MRI_FLOAT_PTR(flim) ;
             for( ii=0 ; ii < flim->nvox ; ii++ )
                if( fabs(far[ii]) >= 33333.0 ) far[ii] = WAY_BIG ;
@@ -186,7 +181,6 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
             tname = THD_trailname(fname,1) ;
             mri_add_name( tname , flim ) ;
             ADDTO_IMARR( outar , flim ) ;
-
          }
       }
    }

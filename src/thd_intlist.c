@@ -13,12 +13,28 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    allow_negative = iii ; return ;
 }
 
-/*-----------------------------------------------------------------
-   Get an integer list in the range 0..(nvals-1), from the
+#define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='\0' )
+
+/*-----------------------------------------------------------------*/
+/*! Get an integer list in the range 0..(nvals-1), from the
    character string str.  If we call the output pointer fred,
    then fred[0] = number of integers in the list (> 0), and
         fred[i] = i-th integer in the list for i=1..fred[0].
    If fred == NULL or fred[0] == 0, then something is wrong.
+
+   Syntax of input string:
+     - initial '{' or '[' is skipped, if present
+     - ends when '}' or ']' or end of string is found
+     - contains entries separated by commas
+     - entries have one of these forms:
+       - a single number
+       - a dollar sign '$', which means nvals-1
+       - a sequence of consecutive numbers in the form "a..b" or
+         "a-b", where "a" and "b" are single numbers (or '$')
+       - a sequence of evenly spaced numbers in the form
+         "a..b(c)" or "a-b(c)", where "c" encodes the step
+     - Example:  "[2,7..4,3..9(2)]" decodes to the list
+         2 7 6 5 4 3 5 7 9
 -------------------------------------------------------------------*/
 
 int * MCW_get_intlist( int nvals , char *str )
@@ -42,15 +58,15 @@ int * MCW_get_intlist( int nvals , char *str )
    subv[0] = nout = 0 ;
 
    ipos = 0 ;
-   if( str[ipos] == '[' ) ipos++ ;
+   if( str[ipos] == '[' || str[ipos] == '{' ) ipos++ ;
 
    /*** loop through each sub-selector until end of input ***/
 
    slen = strlen(str) ;
-   while( ipos < slen && str[ipos] != ']' ){
+   while( ipos < slen && !ISEND(str[ipos]) ){
 
-      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
-      if( str[ipos] == ']' || str[ipos] == '\0' ) break ;
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
+      if( ISEND(str[ipos]) ) break ;         /* done */
 
       /** get starting value **/
 
@@ -65,11 +81,11 @@ int * MCW_get_intlist( int nvals , char *str )
          ipos += nused ;
       }
 
-      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
 
       /** if that's it for this sub-selector, add one value to list **/
 
-      if( str[ipos] == ',' || str[ipos] == '\0' || str[ipos] == ']' ){
+      if( str[ipos] == ',' || ISEND(str[ipos]) ){
          nout++ ;
          subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
          subv[0]    = nout ;
@@ -104,7 +120,7 @@ int * MCW_get_intlist( int nvals , char *str )
 
       istep = (ibot <= itop) ? 1 : -1 ;
 
-      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
 
       /** check if we have a non-default loop step **/
 
@@ -128,11 +144,12 @@ int * MCW_get_intlist( int nvals , char *str )
 
       /** check if we have a comma to skip over **/
 
-      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
 
       if( str[ipos] == ',' ) ipos++ ;
 
    }  /* end of loop through selector string */
 
+   if( subv[0] == 0 ){ free(subv); subv = NULL; }
    return subv ;
 }

@@ -1817,14 +1817,14 @@ ENTRY("mri_read_ascii") ;
 
 MRI_IMAGE * mri_read_1D( char * fname )
 {
-   MRI_IMAGE * inim , * outim , * flim ;
-   char dname[256] , subv[256] , *cpt ;
-   int ii,nx,ny,nts , *ivlist , *ivl ;
-   float * far , * oar ;
+   MRI_IMAGE *inim , *outim , *flim ;
+   char dname[512] , *cpt , *dpt ;
+   int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
+   float *far , *oar ;
 
 ENTRY("mri_read_1D") ;
 
-   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 255 ) RETURN(NULL) ;
+   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
 
    if( strncmp(fname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
      return mri_1D_fromstring( fname+3 ) ;
@@ -1833,17 +1833,15 @@ ENTRY("mri_read_1D") ;
    /*-- split filename and subvector list --*/
 
    cpt = strstr(fname,"[") ;
+   dpt = strstr(fname,"{") ;            /* 30 Apr 2003: subsampling list */
 
-   if( cpt == NULL ){                   /* no subvector list */
-      strcpy( dname , fname ) ;
-      subv[0] = '\0' ;
-   } else if( cpt == fname ){           /* can't be at start of filename! */
+   if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
       fprintf(stderr,"*** Illegal filename in mri_read_1D: %s\n",fname) ;
       RETURN(NULL) ;
    } else {                             /* got a subvector list */
-      ii = cpt - fname ;
-      memcpy(dname,fname,ii) ; dname[ii] = '\0' ;
-      strcpy(subv,cpt) ;
+      strcpy( dname , fname ) ;
+      if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
+      if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
    }
 
    /*-- read file in --*/
@@ -1851,38 +1849,62 @@ ENTRY("mri_read_1D") ;
    inim = mri_read_ascii(dname) ;
    if( inim == NULL ) RETURN(NULL) ;
    flim = mri_transpose(inim) ; mri_free(inim) ;
-   if( subv[0] == '\0' ) RETURN(flim) ;             /* no subvector => am done */
 
-   /*-- get the subvector list --*/
+   /*-- get the subvector and subsampling lists, if any --*/
 
-   nx = flim->nx ;
-   ny = flim->ny ;
+   nx = flim->nx ; ny = flim->ny ;
 
-   ivlist = MCW_get_intlist( ny , subv ) ;         /* in thd_intlist.c */
-   if( ivlist == NULL || ivlist[0] < 1 ){
-      fprintf(stderr,"*** Illegal subvector list in mri_read_1D: %s\n",fname) ;
-      if( ivlist != NULL ) free(ivlist) ;
-      mri_free(flim) ; RETURN(NULL) ;
-   }
+   ivlist = MCW_get_intlist( ny , cpt ) ;   /* subvector list */
+   sslist = MCW_get_intlist( nx , dpt ) ;   /* subsampling list */
 
-   nts = ivlist[0] ;                          /* number of subvectors */
-   ivl = ivlist + 1 ;                         /* start of array of subvectors */
+   /* if have subvector list, extract those rows into a new image */
 
-   for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
-      if( ivl[ii] < 0 || ivl[ii] >= ny ){
-         fprintf(stderr,"*** Out-of-range subvector list in mri_read_1D: %s\n",fname) ;
+   if( ivlist != NULL && ivlist[0] > 0 ){
+     nts = ivlist[0] ;                         /* number of subvectors */
+     ivl = ivlist + 1 ;                        /* start of array of subvectors */
+
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= ny ){
+         fprintf(stderr,"*** Out-of-range subvector [list] in mri_read_1D: %s\n",fname) ;
          mri_free(flim) ; free(ivlist) ; RETURN(NULL) ;
-      }
+       }
+     }
+
+     outim = mri_new( nx , nts , MRI_float ) ; /* make output image */
+     far   = MRI_FLOAT_PTR( flim ) ;
+     oar   = MRI_FLOAT_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired rows */
+       memcpy( oar + ii*nx , far + ivl[ii]*nx , sizeof(float)*nx ) ;
+
+     mri_free(flim); free(ivlist); flim = outim; ny = nts;
    }
 
-   outim = mri_new( nx , nts , MRI_float ) ;   /* make output image */
-   far   = MRI_FLOAT_PTR( flim ) ;
-   oar   = MRI_FLOAT_PTR( outim ) ;
+   /* if have subsampling list, extract those columns into a new image */
 
-   for( ii=0 ; ii < nts ; ii++ )               /* copy desired rows */
-      memcpy( oar + ii*nx , far + ivl[ii]*nx , sizeof(float)*nx ) ;
+   if( sslist != NULL && sslist[0] > 0 ){
+     nts = sslist[0] ;                         /* number of columns to get */
+     ivl = sslist + 1 ;                        /* start of array of column indexes */
 
-   mri_free(flim) ; free(ivlist) ; RETURN(outim) ;
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= nx ){
+         fprintf(stderr,"*** Out-of-range subsampling {list} in mri_read_1D: %s\n",fname) ;
+         mri_free(flim) ; free(sslist) ; RETURN(NULL) ;
+       }
+     }
+
+     outim = mri_new( nts , ny , MRI_float ) ; /* make output image */
+     far   = MRI_FLOAT_PTR( flim ) ;
+     oar   = MRI_FLOAT_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
+       for( jj=0 ; jj < ny ; jj++ )
+         oar[ii+jj*nts] = far[ivl[ii]+jj*nx] ;
+
+     mri_free(flim); free(sslist); flim = outim;
+   }
+
+   RETURN(flim) ;
 }
 
 /*---------------------------------------------------------------------------
