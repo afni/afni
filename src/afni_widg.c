@@ -4321,7 +4321,7 @@ STATUS("making prog->rowcol") ;
       prog->hidden_faces_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("AFNI Faces") ,
+                  LABEL_ARG("All AFNI Faces") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
