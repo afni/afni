@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
    if( !THD_filename_ok(argv[nopt+1]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
-   if( THD_is_file(argv[nopt+1]) ){
+   if( strcmp(argv[nopt+1],"-") != 0 && THD_is_file(argv[nopt+1]) ){
       fprintf(stderr,"** Output file already exists!\n"); exit(1);
    }
 

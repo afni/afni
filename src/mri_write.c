@@ -235,18 +235,20 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
    if( fname == NULL || strlen(fname) == 0 ||
        im == NULL    || im->nz > 1           ) return 0 ;
 
-   imfile = fopen( fname , "r" ) ;
-   if( imfile != NULL ){
-      fclose( imfile ) ;
-      fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      return 0 ;
-   }
-
-   imfile = fopen( fname , "w" ) ;
-
-   if( imfile == NULL ){
-      fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      return 0 ;
+   if( strcmp(fname,"-") == 0 ){
+     imfile = stdout ;
+   } else {
+     imfile = fopen( fname , "r" ) ;
+     if( imfile != NULL ){
+       fclose( imfile ) ;
+       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       return 0 ;
+     }
+     imfile = fopen( fname , "w" ) ;
+     if( imfile == NULL ){
+       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
+       return 0 ;
+     }
    }
 
    nx = im->nx ; ny = im->ny ;
@@ -287,7 +289,7 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
       fprintf(imfile,"\n") ;
    }
 
-   fclose(imfile) ;
+   if( imfile != stdout ) fclose(imfile) ;
    return 1 ;
 }
 

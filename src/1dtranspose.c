@@ -19,8 +19,9 @@ int main( int argc , char * argv[] )
             "You can use a column subvector selector list on infile, as in\n"
             "  1dtranspose 'fred.1D[0,3,7]' ethel.1D\n"
             "\n"
-            "N.B.: This program may produce files with lines longer than a\n"
-            "      text editor can handle.\n"
+            "* This program may produce files with lines longer than a\n"
+            "   text editor can handle.\n"
+            "* If 'outfile' is '-', the output is written to stdout.\n"
            ) ;
       exit(0) ;
    }
@@ -30,7 +31,7 @@ int main( int argc , char * argv[] )
    if( !THD_filename_ok(argv[2]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
-   if( THD_is_file(argv[2]) ){
+   if( strcmp(argv[2],"-") != 0 && THD_is_file(argv[2]) ){
       fprintf(stderr,"** Output file already exists!\n"); exit(1);
    }
 

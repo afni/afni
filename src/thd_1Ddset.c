@@ -96,17 +96,20 @@ ENTRY("THD_open_1D") ;
                       ADN_func_type   , ANAT_BUCK_TYPE ,
                     ADN_none ) ;
 
-#if 0
-   if( nvals > 9 )              /* pretend it is 3D+time */
-      EDIT_dset_items( dset ,
-                         ADN_func_type, ANAT_EPI_TYPE ,
-                         ADN_ntt      , nvals ,
-                         ADN_ttorg    , 0.0 ,
-                         ADN_ttdel    , 1.0 ,
-                         ADN_ttdur    , 0.0 ,
-                         ADN_tunits   , UNITS_SEC_TYPE ,
-                       ADN_none ) ;
-#endif
+   if( nvals > 1 && AFNI_yesenv("AFNI_1D_TIME") ){ /* pretend it is 3D+time */
+     char *eee = getenv("AFNI_1D_TIME_TR") ;
+     float dt = 0.0 ;
+     if( eee != NULL ) dt = strtod(eee,NULL) ;
+     if( dt <= 0.0   ) dt = 1.0 ;
+     EDIT_dset_items( dset ,
+                        ADN_func_type, ANAT_EPI_TYPE ,
+                        ADN_ntt      , nvals ,
+                        ADN_ttorg    , 0.0 ,
+                        ADN_ttdel    , dt ,    /* TR */
+                        ADN_ttdur    , 0.0 ,
+                        ADN_tunits   , UNITS_SEC_TYPE ,
+                      ADN_none ) ;
+   }
 
    dset->dblk->diskptr->storage_mode = STORAGE_BY_1D ;
    strcpy( dset->dblk->diskptr->brick_name , pathname ) ;
