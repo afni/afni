@@ -1,6 +1,9 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*-------------------------------------------------------------------*/
+/* Macros for filling arrays of floats and ints. */
+
 #undef  IFILL_DIM
 #undef  FFILL_DIM
 #undef  IFILL

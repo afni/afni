@@ -8,22 +8,34 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset ;
    NI_group *ngr ;
    NI_stream ns_out ;
-   int iarg=1 ;
+   int iarg=1 , dodata=0 ;
 
    /*-- help me if you can --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dAFNItoNIML dset\n"
+      printf("Usage: 3dAFNItoNIML [options] dset\n"
              " Dumps AFNI dataset header information to stdout in NIML format.\n"
              " Mostly for debugging and testing purposes!\n"
+             "\n"
+             " OPTIONS:\n"
+             "  -data  == Also put the data into the output (will be huge!).\n"
+             "\n"
              "-- RWCox - 09 Mar 2005\n"
       ) ;
       exit(0) ;
    }
 
+   mainENTRY("3dAFNItoNIML main"); machdep();
+   if( PRINT_TRACING ) enable_mcw_malloc() ;
+
    /*-- read command line options --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-data") == 0 ){
+       dodata = 1 ; iarg++ ; continue ;
+     }
+
      fprintf(stderr,"** Illegal option: %s\n",argv[iarg]); exit(1);
    }
 
@@ -41,7 +53,13 @@ int main( int argc , char *argv[] )
 
    /*-- convert attributes to NIML --*/
 
-   ngr = THD_nimlize_dsetatr( dset ) ;
+   if( dodata ){
+     DSET_load(dset) ;
+     ngr = THD_dataset_to_niml( dset ) ;
+     DSET_unload(dset) ;
+   } else {
+     ngr = THD_nimlize_dsetatr( dset ) ;
+   }
    if( ngr == NULL ){
      fprintf(stderr,"** Can't create NIML element!?\n"); exit(1);
    }

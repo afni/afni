@@ -15,13 +15,13 @@
                  datasets are in one array (no anat/func distinction).
 -----------------------------------------------------------------------*/
 
-THD_session * THD_init_session( char * sessname )
+THD_session * THD_init_session( char *sessname )
 {
-   THD_session            * sess ;
-   XtPointer_array        * dblk_arrarr ;
-   THD_datablock_array    * dblk_arr ;
-   THD_3dim_dataset       * dset ;
-   THD_3dim_dataset_array * dset_arr ;
+   THD_session            *sess ;
+   XtPointer_array        *dblk_arrarr ;
+   THD_datablock_array    *dblk_arr ;
+   THD_3dim_dataset       *dset ;
+   THD_3dim_dataset_array *dset_arr ;
 
    int ibar , idset , iview  , nds ;
 
@@ -52,7 +52,7 @@ ENTRY("THD_init_session") ;
 
    /* save last name from sessname */
 #if 1
-   { char * env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
+   { char *env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
      if( env != NULL ) tt = strtol(env,NULL,10) ;
      env = THD_trailname(sess->sessname,tt) ;
      tt = 1+strlen(env) - THD_MAX_NAME ; if( tt < 0 ) tt = 0 ;
