@@ -1397,11 +1397,12 @@ ENTRY("validate_options");
 
 /* so I don't have to repeat this all over (and can do it per function)... */
 
-#define SM_2SURF_TEST(code)						\
-	    do{ if (p->S.nsurf<2)					\
-		fprintf(stderr,"** function %s requires 2 surfaces\n",	\
-			g_sm_names[fcodes[code]]);			\
-		errs++;							\
+#define SM_2SURF_TEST(code)						    \
+	    do{ if (p->S.nsurf<2){					    \
+		    fprintf(stderr,"** function %s requires 2 surfaces\n",  \
+			    g_sm_names[fcodes[code]]);			    \
+		    errs++;						    \
+		}							    \
 	    } while (0);
 
 /*----------------------------------------------------------------------
