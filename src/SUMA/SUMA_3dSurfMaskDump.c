@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.0 (February, 2003)"
+#define VERSION "version 1.1 (February 11, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -44,6 +44,10 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 1.1  February 11, 2003
+ *   - handle no arguments as with -help
+ *   - minor updates to -help
  *
  * 1.0  February 10, 2003
  *   - initial release
@@ -315,6 +319,12 @@ int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 int init_options ( opts_t * opts, param_t * p, int argc, char * argv [] )
 {
     int ac;
+
+    if ( argc < 2 )
+    {
+	usage( PROG_NAME, SMD_USE_LONG );
+	return -1;
+    }
 
     /* clear out the options and parameter structures */
     memset( opts, 0, sizeof( opts_t) );
@@ -758,9 +768,12 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "    -version               : show version information\n"
 	    "\n"
-	    "        Answers the question: so who can I blame for this?\n"
+	    "        Show version and compile date.\n"
+	    "\n"
 	    "\n"
 	    "  Author: R. Reynolds  - %s\n"
+	    "\n"
+	    "                (many thanks to Z. Saad and R.W. Cox)\n"
 	    "\n",
 	    prog, prog,
 	    prog, prog, prog,
