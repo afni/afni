@@ -4248,7 +4248,7 @@ ENTRY("ISQ_draw_winfo") ;
            sprintf( buf+ibuf , " 2%%=%g 98%%=%g", st->per02 , st->per98 ) ;
       else
 #endif
-           sprintf( buf+ibuf , " %g..%g ent=%.2f" ,
+           sprintf( buf+ibuf , "=%g..%g ent=%.2f" ,
                     st->min , st->max , st->entropy ) ;
    }
 
