@@ -103,6 +103,7 @@ typedef struct {
    char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
    int    vec_num ;    /*!< Number of vectors (may be 0). */
    int    vec_len ;    /*!< Length of each vector. */
+   int    vec_filled ; /*!< Length that each one was filled up. */
    int   *vec_typ ;    /*!< Type code for each vector. */
    void **vec ;        /*!< Pointer to each vector. */
 } NI_element ;
@@ -134,6 +135,7 @@ typedef struct {
    int sd ;          /*!< TCP only: socket descriptor */
 
    FILE *fp ;        /*!< FILE only: pointer to open file */
+   int fsize ;       /*!< FILE only: length of file for input */
 
    char name[128] ;  /*!< Hostname or filename */
 
