@@ -2592,6 +2592,20 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
          KILL_1MRI(seq->orim) ;
          seq->orim = mri_to_float(newim) ;    /* intensity image */
       }
+
+      /** 11 May 2004: zero color? **/
+
+      if( seq->zer_color > 0 ){
+        register int npix = newim->nx * newim->ny , ii ;
+        register byte rz,gz,bz , *ar = MRI_RGB_PTR(newim) ;
+        rz = DCOV_REDBYTE  (seq->dc,seq->zer_color) ;
+        gz = DCOV_GREENBYTE(seq->dc,seq->zer_color) ;
+        bz = DCOV_BLUEBYTE (seq->dc,seq->zer_color) ;
+        for( ii=0 ; ii < npix ; ii++ )
+          if( ar[3*ii] == 0 && ar[3*ii+1] == 0 && ar[3*ii+2] == 0 ){
+            ar[3*ii] = rz ; ar[3*ii+1] = gz ; ar[3*ii+2] = bz ;
+          }
+      }
    }
 
    /****** Not RGB ==>                                             ******/
@@ -2871,13 +2885,12 @@ DPR("ISQ_perpoints:") ;
    /** Aug 31, 1995: put zer_color in at bottom, if nonzero **/
 
    if( newim->kind == MRI_short && seq->zer_color > 0 ){
-      short zz = -seq->zer_color ;
-      short * ar = MRI_SHORT_PTR(newim) ;
-      int npix = newim->nx * newim->ny , ii ;
+     short zz = -seq->zer_color ;
+     short * ar = MRI_SHORT_PTR(newim) ;
+     int npix = newim->nx * newim->ny , ii ;
 
-DPRI("loading zero color index = ",zz) ;
-      for( ii=0 ; ii < npix ; ii++ )
-         if( ar[ii] == seq->bot ) ar[ii] = zz ;
+     for( ii=0 ; ii < npix ; ii++ )
+       if( ar[ii] == seq->bot ) ar[ii] = zz ;
    }
 
    /* copy sizes (fixup for mrilib to be happy) */
