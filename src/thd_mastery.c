@@ -84,7 +84,7 @@ ENTRY("THD_open_dataset") ;
        STRING_HAS_SUFFIX(dname,".nii") ||
        STRING_HAS_SUFFIX(dname,".mri") ||
        STRING_HAS_SUFFIX(dname,".svl")   ){
-       
+
      fprintf(stderr,"** Can't use selectors on dataset: %s\n",pathname) ;
      RETURN(NULL) ;
    }
@@ -146,18 +146,18 @@ fprintf(stderr,"dpt=%s\n",dpt) ;
    a subset of sub-bricks from the master .BRIK file.
 -------------------------------------------------------------------*/
 
-static int THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
+static int THD_setup_mastery( THD_3dim_dataset *dset , int *ivlist )
 {
    int ibr , old_nvals , new_nvals ;
-   THD_datablock * dblk ;
-   int * btype , * ivl ;
+   THD_datablock *dblk ;
+   int *btype , *ivl ;
 
-   float *  old_brick_fac  ;
-   int *    old_brick_bytes ;
-   char **  old_brick_lab  ;
-   char **  old_brick_keywords ;
-   int *    old_brick_statcode ;
-   float ** old_brick_stataux ;
+   float * old_brick_fac  ;
+   int *   old_brick_bytes ;
+   char ** old_brick_lab  ;
+   char ** old_brick_keywords ;
+   int *   old_brick_statcode ;
+   float **old_brick_stataux ;
 
 ENTRY("THD_setup_mastery") ;
 
@@ -458,6 +458,7 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
    Copy a list of sub-bricks from a dataset.    26 Jul 2004 [rickr]
    The first element of dlist is the number of sub-bricks to copy.
 -------------------------------------------------------------------*/
+
 THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * din, int * dlist )
 {
     THD_3dim_dataset * dout;
@@ -531,4 +532,3 @@ ENTRY("THD_copy_dset_subs");
 
     RETURN(dout);
 }
-
