@@ -35,6 +35,9 @@ void DRAW_fillin_CB( Widget , XtPointer , XtPointer ) ; /* 19 Mar 2001 */
 
 void DRAW_ttatlas_CB( Widget , XtPointer , XtPointer ) ; /* 22 Aug 2001 */
 
+void DRAW_label_CB( Widget , XtPointer , XtPointer ) ; /* 15 Oct 2003 */
+void DRAW_label_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+
 void DRAW_receiver( int , int , void * , void * ) ;
 int  DRAW_into_dataset( int , int * , int * , int * , void * ) ;
 void DRAW_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
@@ -56,6 +59,9 @@ static void DRAW_collapsar( int * , int * ) ;                                 /*
 static PLUGIN_interface * plint = NULL ;
 
 static int infill_mode = 0 ;
+
+void DRAW_set_value_label(void) ;
+char * DRAW_value_string( float val ) ;
 
 /***********************************************************************
    Set up the interface to the user.  Note that we bypass the
@@ -89,6 +95,7 @@ static Widget shell=NULL , rowcol , info_lab , choose_pb ;
 static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb , saveas_pb ;
 static MCW_arrowval * value_av , * color_av , * mode_av ;
 static MCW_arrowval * rad_av ;                         /* 16 Oct 2002 */
+static Widget label_textf , label_label ;              /* 15 Oct 2003 */
 
 #if 0
 # define ENABLE_rad_av \
@@ -241,6 +248,8 @@ static Three_D_View * im3d ;         /* AFNI controller */
 static THD_3dim_dataset * dset ;     /* The dataset!    */
 static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
+static Dtable *vl_dtable=NULL ;      /* 17 Oct 2003     */
+
 static int   color_index = 1 ;               /* from color_av */
 static int   mode_ival   = MODE_FILLED ;
 static int   mode_index  = DRAWING_FILL ;    /* from mode_av  */
@@ -317,6 +326,8 @@ char * DRAW_main( PLUGIN_interface * plint )
    editor_open  = 1 ;      /* editor is now open for business */
    recv_open    = 0 ;      /* receiver is not yet open */
    recv_key     = -1;      /* and has no identifier key */
+
+   vl_dtable    = NULL ;   /* 17 Oct 2003 */
 
    SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
@@ -525,21 +536,81 @@ void DRAW_make_widgets(void)
 
    /***  arrowval to choose value that is drawn into dataset voxels  ***/
 
-   value_av = new_MCW_arrowval( rowcol , "Drawing Value " ,
-                                MCW_AV_downup , -32767,32767,value_int ,
-                                MCW_AV_editext , 0 ,
-                                DRAW_value_CB , NULL , NULL,NULL ) ;
+   { Widget rc ;
 
-   MCW_reghelp_children( value_av->wrowcol ,
-                         "Use this to set the value that\n"
-                         "will be drawn into the dataset\n"
-                         "using mouse button 2."
-                       ) ;
-   MCW_reghint_children( value_av->wrowcol , "Goes into dataset voxels" ) ;
+     rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , rowcol ,
+                       XmNpacking      , XmPACK_TIGHT ,
+                       XmNorientation  , XmHORIZONTAL ,
+                       XmNmarginHeight , 0 ,
+                       XmNmarginWidth  , 0 ,
+                       XmNspacing      , 0 ,
+                       XmNinitialResourcesPersistent , False ,
+                       XmNtraversalOn , False ,
+                    NULL ) ;
+
+     value_av = new_MCW_arrowval( rc , "Value " ,
+                                  MCW_AV_downup , -32767,32767,value_int ,
+                                  MCW_AV_editext , 0 ,
+                                  DRAW_value_CB , NULL , NULL,NULL ) ;
+
+     MCW_reghelp_children( value_av->wrowcol ,
+                           "Use this to set the value that\n"
+                           "will be drawn into the dataset\n"
+                           "using mouse button 2."
+                         ) ;
+     MCW_reghint_children( value_av->wrowcol , "Goes into dataset voxels" ) ;
+
+     /*-- 15 Oct 2003: Label for the value --*/
+
+     xstr = XmStringCreateLtoR( " Label" , XmFONTLIST_DEFAULT_TAG ) ;
+     label_label = XtVaCreateManagedWidget(
+                     "dialog" , xmLabelWidgetClass , rc ,
+                       XmNlabelString   , xstr  ,
+                       XmNrecomputeSize , False ,
+                       XmNmarginWidth   , 0     ,
+                       XmNinitialResourcesPersistent , False ,
+                     NULL ) ;
+     XmStringFree(xstr) ;
+
+     label_textf = XtVaCreateManagedWidget(
+                       "dialog" , xmTextFieldWidgetClass , rc ,
+                           XmNcolumns      , 19 ,
+                           XmNeditable     , True ,
+                           XmNmaxLength    , 128 ,
+                           XmNresizeWidth  , False ,
+                           XmNmarginHeight , 1 ,
+                           XmNmarginWidth  , 1 ,
+                           XmNcursorPositionVisible , True ,
+                           XmNblinkRate , 0 ,
+                           XmNautoShowCursorPosition , True ,
+                           XmNtraversalOn , False ,
+                           XmNinitialResourcesPersistent , False ,
+                        NULL ) ;
+     XtSetSensitive( label_label , (Boolean)(value_int != 0) ) ;
+     XtSetSensitive( label_textf , (Boolean)(value_int != 0) ) ;
+
+     XtAddCallback( label_textf, XmNactivateCallback    ,
+                                 DRAW_label_CB , NULL ) ; /* return key */
+
+     XtAddCallback( label_textf, XmNlosingFocusCallback ,
+                                 DRAW_label_CB , NULL ) ; /* tab key */
+
+     XtInsertEventHandler( label_textf ,      /* notify when */
+                           LeaveWindowMask ,  /* pointer leaves */
+                           FALSE ,            /* this window */
+                           DRAW_label_EV ,
+                           (XtPointer) NULL ,
+                           XtListTail ) ;     /* last in queue */
+
+     XtUnmanageChild( label_label ) ;
+     XtUnmanageChild( label_textf ) ;
+
+     XtManageChild(rc) ;
+   }
 
    /*** option menu to choose drawing color ***/
 
-   color_av = new_MCW_colormenu( rowcol , "Drawing Color " , dc ,
+   color_av = new_MCW_colormenu( rowcol , "Color " , dc ,
                                  1 , dc->ovc->ncol_ov - 1 , color_index ,
                                  DRAW_color_CB , NULL ) ;
 
@@ -570,7 +641,7 @@ void DRAW_make_widgets(void)
                        XmNtraversalOn , False ,
                     NULL ) ;
 
-     mode_av = new_MCW_optmenu( rc , "Drawing Mode  " ,
+     mode_av = new_MCW_optmenu( rc , "Mode  " ,
                               0 , NUM_modes-1 , mode_ival,0 ,
                               DRAW_mode_CB , NULL ,
                               MCW_av_substring_CB , mode_strings ) ;
@@ -585,18 +656,17 @@ void DRAW_make_widgets(void)
                            "Closed Curve    = voxels forming a closed curve\n"
                            "Points          = only voxels at X11 notify pixels;\n"
                            "Flood->Value    = flood fill from the chosen point\n"
-                           "                   out to points = Drawing Value\n"
+                           "                   out to points = Value\n"
                            "Flood->Nonzero  = flood fill from chosen point out\n"
                            "                   to any nonzero point\n"
                            "Flood->Zero     = flood fill from chosen point out\n"
                            "                   to any zero point\n"
                            "Zero->Value     = flood fill with zeros until the\n"
-                           "                   Drawing Value is hit\n"
+                           "                   Value is hit\n"
                            "Flood->Val/Zero = flood fill from the chosen point\n"
-                           "                   until the Drawing Value OR zero\n"
-                           "                   is hit\n"
+                           "                   until the Value OR zero is hit\n"
                            "Filled Curve    = fill inside of closed curve with\n"
-                           "                   Drawing Value\n"
+                           "                   Value\n"
                            "\n"
                            "2D Nbhd         = like Open Curve, but fills in around\n"
                            "                   the in-plane neighborhood of each\n"
@@ -671,11 +741,11 @@ void DRAW_make_widgets(void)
                                       NULL , NULL ,
                                       MCW_av_substring_CB , fillin_dir_strings ) ;
 
-     fillin_gap_av = new_MCW_optmenu( rc , "Gap" ,
+     fillin_gap_av = new_MCW_optmenu( rc , " Gap" ,
                                       1 , NFILLIN_GAP , 4 , 0 ,
                                       NULL,NULL,NULL,NULL ) ;
 
-     xstr = XmStringCreateLtoR( "Fill" , XmFONTLIST_DEFAULT_TAG ) ;
+     xstr = XmStringCreateLtoR( "*Do the Fill*" , XmFONTLIST_DEFAULT_TAG ) ;
      fillin_doit_pb = XtVaCreateManagedWidget( "AFNI" , xmPushButtonWidgetClass , rc ,
                                                 XmNlabelString , xstr ,
                                                 XmNtraversalOn , False ,
@@ -1104,8 +1174,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * 'Zero->Value' means to flood fill the slice with zeros,\n"
   "            stopping when a voxel with the drawing value is reached.\n"
   "        * 'Flood->Val/Zero' means to flood fill the slice with the\n"
-  "            Drawing Value until voxels whose values are either zero\n"
-  "            or the Drawing Value are hit\n"
+  "            Value until voxels whose values are either zero or the\n"
+  "            Value are hit\n"
   "        * 'Filled Curve' means to draw a closed curve and then fill\n"
   "            its interior with the drawing value.  It is similar to\n"
   "            doing 'Closed Curve' followed by 'Flood->Value', but\n"
@@ -1173,10 +1243,10 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "           N.B.: Linear Fillin cannot be undone!!!\n"
   "        * TT Atlas Regions can be loaded into the edited volume.  The\n"
   "            chosen region+hemisphere(s) will be loaded with the current\n"
-  "            Drawing Value.  'OverWrite' loading means that all voxels\n"
-  "            from the TT region will be replaced with the Drawing Value.\n"
+  "            Value.  'OverWrite' loading means that all voxels from\n"
+  "            the TT region will be replaced with the Value.\n"
   "            'InFill' loading means that only voxels that are currently\n"
-  "            zero in the TT region will be replaced with the Drawing Value.\n"
+  "            zero in the TT region will be replaced with the Value.\n"
   "           N.B.: TT Atlas regions may not be good representations of\n"
   "                   any given subject's anatomy.  You will probably\n"
   "                   want to edit the mask after doing the loading.\n"
@@ -1585,7 +1655,84 @@ void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
 {
    value_int   = av->ival ;
    value_float = av->fval ;
+
+   if( value_float != 0.0 ){
+     XtSetSensitive( label_label , True ) ;
+     XtSetSensitive( label_textf , True ) ;
+   } else {
+     XtSetSensitive( label_label , False ) ;
+     XtSetSensitive( label_textf , False ) ;
+   }
+   DRAW_set_value_label() ;
    return ;
+}
+
+/*-------------------------------------------------------------------
+  Callbacks and functions for value label [15 Oct 2003]
+---------------------------------------------------------------------*/
+
+static void dump_vallab(void)
+{
+#if 0
+   int nn,ii ; char **la,**lb ;
+   if( vl_dtable == NULL ) return ;
+   nn = listize_Dtable( vl_dtable, &la,&lb ) ; if( nn <= 0 ) return ;
+   printf("\nValue label Dtable:\n") ;
+   for( ii=0 ; ii < nn ; ii++ ) printf(" %s <-> %s\n",la[ii],lb[ii]) ;
+   return ;
+#endif
+}
+
+char * DRAW_value_string( float val )
+{
+   static char str[32] ;
+   sprintf(str,"%.5g",val) ;
+   return str ;
+}
+
+void DRAW_set_value_label(void)
+{
+   if( vl_dtable == NULL || value_float == 0.0 ){
+     XmTextFieldSetString( label_textf , "" ) ;
+   } else {
+     char *str_val = DRAW_value_string( value_float ) ;
+     char *str_lab = findin_Dtable_a( str_val , vl_dtable ) ;
+     XmTextFieldSetString( label_textf ,
+                           (str_lab != NULL) ? str_lab : "" ) ;
+   }
+   return ;
+}
+
+void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
+{
+   char *str_val , *str_lab ;
+   int ll , ii ;
+
+   str_lab = XmTextFieldGetString( label_textf ) ;
+   if( str_lab == NULL ) return ;
+   ll = strlen(str_lab) ;
+   for( ii=0 ; ii < ll && isspace(str_lab[ii]) ; ii++ ) ; /* nada */
+   if( ii == ll ) return ;
+
+   if( vl_dtable == NULL ) vl_dtable = new_Dtable(13) ;
+   str_val = DRAW_value_string( value_float ) ;
+   addto_Dtable( str_val , str_lab , vl_dtable ) ;
+   free(str_lab) ;
+
+   dump_vallab() ;
+   return ;
+}
+
+void DRAW_label_EV( Widget wtex , XtPointer cld ,
+                    XEvent *ev , Boolean *continue_to_dispatch )
+{
+   XLeaveWindowEvent *lev = (XLeaveWindowEvent *) ev ;
+   XmAnyCallbackStruct cbs ;
+
+   if( lev->type != LeaveNotify ) return ;
+
+   cbs.reason = XmCR_ACTIVATE ;  /* simulate a return press */
+   DRAW_label_CB( wtex , NULL , &cbs ) ;
 }
 
 /*******************************************************************

@@ -81,6 +81,9 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dset->vox_warp       = myXtNew( THD_warp ) ;  /* create a voxel warp */
    new_dset->vox_warp->type = ILLEGAL_TYPE ;         /* but don't put anything in it */
    new_dset->self_warp      = NULL ;                 /* 26 Aug 2002 */
+#if 0
+   new_dset->vallab_dtable  = NULL ;                 /* 17 Oct 2003 */
+#endif
 
    new_dset->warp_parent_name[0] = '\0' ;
    new_dset->anat_parent_name[0] = '\0' ;

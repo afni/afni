@@ -408,6 +408,22 @@ extern void     subsume_Htable( Htable *, Htable * ) ;
 
 #define         sizeof_Htable(ht) ((ht)->ntot)
 
+/*--- double Htable (string-string pairs) [15 Oct 2003] ---*/
+
+#ifndef TYPEDEF_Dtable
+#define TYPEDEF_Dtable
+typedef struct { Htable *hta, *htb ; } Dtable ;
+#endif
+
+extern Dtable * new_Dtable( int ) ;
+extern void     destroy_Dtable( Dtable * ) ;
+extern void     addto_Dtable( char *, char *, Dtable * ) ;
+extern char *   findin_Dtable_a( char *, Dtable * ) ;
+extern char *   findin_Dtable_b( char *, Dtable * ) ;
+extern void     removefrom_Dtable_a( char *, Dtable * ) ;
+extern void     removefrom_Dtable_b( char *, Dtable * ) ;
+extern int      listize_Dtable( Dtable *, char ***, char *** ) ;
+
 /*****------------------- DIME stuff [04 Nov 2002] ------------------*****/
 
 #ifndef TYPEDEF_DIME_part
