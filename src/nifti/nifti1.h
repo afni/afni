@@ -1,3 +1,7 @@
+/** \file nifti1.h
+    \brief Official definition of the nifti1 header.  Written by Bob Cox, SSCC, NIMH.
+ */
+
 #ifndef _NIFTI_HEADER_
 #define _NIFTI_HEADER_
 
@@ -123,6 +127,12 @@
 extern "C" {
 #endif
 /*=================*/
+
+/*! \struct nifti_1_header
+    \brief Data structure defining the fields in the nifti1 header.
+           This binary header should be found at the beginning of a valid
+           NIFTI-1 header file.
+ */
                         /*************************/  /************************/
 struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
                         /*************************/  /************************/
@@ -260,9 +270,19 @@ typedef struct nifti_1_header nifti_1_header ;
    straight to the image data using vox_offset.
 -----------------------------------------------------------------------------*/
    
+/*! \struct nifti1_extender
+    \brief This structure represents a 4-byte string that should follow the
+           binary nifti_1_header data in a NIFTI-1 header file.  If the char
+           values are {1,0,0,0}, the file is expected to contain extensions,
+           values of {0,0,0,0} imply the file does not contain extensions.
+           Other sequences of values are not currently defined.
+ */
 struct nifti1_extender { char extension[4] ; } ;
 typedef struct nifti1_extender nifti1_extender ;
 
+/*! \struct nifti1_extension
+    \brief Data structure defining the fields of a header extension.
+ */
 struct nifti1_extension {
    int esize , ecode ;
    char *edata ;
@@ -448,6 +468,10 @@ typedef struct nifti1_extension nifti1_extension ;
 
 #undef DT_UNKNOWN  /* defined in dirent.h on some Unix systems */
 
+/*! \defgroup NIFTI1_DATATYPES
+    \brief nifti1 datatype codes
+    @{
+ */
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0
 #define DT_UNKNOWN                 0     /* what it says, dude           */
@@ -479,9 +503,15 @@ typedef struct nifti1_extension nifti1_extension ;
 #define DT_FLOAT128             1536     /* long double (128 bits)       */
 #define DT_COMPLEX128           1792     /* double pair (128 bits)       */
 #define DT_COMPLEX256           2048     /* long double pair (256 bits)  */
+/* @} */
+
 
                             /*------- aliases for all the above codes ---*/
 
+/*! \defgroup NIFTI1_DATATYPE_ALIASES
+    \brief aliases for the nifti1 datatype codes
+    @{
+ */
                                        /*! unsigned char. */
 #define NIFTI_TYPE_UINT8           2
                                        /*! signed short. */
@@ -512,6 +542,7 @@ typedef struct nifti1_extension nifti1_extension ;
 #define NIFTI_TYPE_COMPLEX128   1792
                                        /*! 256 bit complex = 2 128 bit floats */
 #define NIFTI_TYPE_COMPLEX256   2048
+/* @} */
 
                      /*-------- sample typedefs for complicated types ---*/
 #if 0
@@ -639,6 +670,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        p1 = degrees of freedom
        R/sqrt(1-R*R) is t-distributed with p1 DOF. */
 
+/*! \defgroup NIFTI1_INTENT_CODES
+    \brief nifti1 intent codes, to describe intended meaning of dataset contents
+    @{
+ */
 #define NIFTI_INTENT_CORREL      2
 
   /*! [C2, chap 28] Student t statistic (1 param): p1 = DOF. */
@@ -861,6 +896,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      the name of the parameter may be stored in intent_name.     */
 
 #define NIFTI_INTENT_DIMLESS    1011
+/* @} */
 
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
@@ -1113,6 +1149,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
    /*-----------------------*/      /*---------------------------------------*/
 
+/*! \defgroup NIFTI1_XFORM_CODES
+    \brief nifti1 xform codes to describe the "standard" coordinate system
+    @{
+ */
                                     /*! Arbitrary coordinates (Method 1). */
 
 #define NIFTI_XFORM_UNKNOWN      0
@@ -1134,6 +1174,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                     /*! MNI 152 normalized coordinates. */
 
 #define NIFTI_XFORM_MNI_152      4
+/* @} */
 
 /*---------------------------------------------------------------------------*/
 /* UNITS OF SPATIAL AND TEMPORAL DIMENSIONS:
@@ -1164,13 +1205,19 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    (0,8,16,32,...,56) into the combined value for xyzt_units.
 
    Note that codes are provided to indicate the "time" axis units are
-   actually frequency in Hertz (_HZ) or in part-per-million (_PPM).
+   actually frequency in Hertz (_HZ), in part-per-million (_PPM)
+   or in radians-per-second (_RADS).
 
    The toffset field can be used to indicate a nonzero start point for
    the time axis.  That is, time point #m is at t=toffset+m*pixdim[4]
    for m=0..dim[4]-1.
 -----------------------------------------------------------------------------*/
 
+/*! \defgroup NIFTI1_UNITS
+    \brief nifti1 units codes to describe the unit of measurement for
+           each dimension of the dataset
+    @{
+ */
                                /*! NIFTI code for unspecified units. */
 #define NIFTI_UNITS_UNKNOWN 0
 
@@ -1195,8 +1242,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_UNITS_HZ     32
                                /*! NIFTI code for ppm. */
 #define NIFTI_UNITS_PPM    40
-                               /*! NIFTI code for radians. */
+                               /*! NIFTI code for radians per second. */
 #define NIFTI_UNITS_RADS   48
+/* @} */
 
 #undef  XYZT_TO_SPACE
 #undef  XYZT_TO_TIME
@@ -1292,11 +1340,17 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                       ( ( ((char)(pd)) & 0x03) << 2 ) |  \
                                       ( ( ((char)(sd)) & 0x03) << 4 )  )
 
+/*! \defgroup NIFTI1_SLICE_ORDER
+    \brief nifti1 slice order codes, describing the acquisition order
+           of the slices
+    @{
+ */
 #define NIFTI_SLICE_UNKNOWN  0
 #define NIFTI_SLICE_SEQ_INC  1
 #define NIFTI_SLICE_SEQ_DEC  2
 #define NIFTI_SLICE_ALT_INC  3
 #define NIFTI_SLICE_ALT_DEC  4
+/* @} */
 
 /*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:
