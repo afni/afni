@@ -1030,3 +1030,6 @@
       - rickr/r_misc.[ch] rickr/r_new_resam_dset.[ch] rickr/serial_helper.c
       - SUMA/SUMA_3dSurf2Vol.[ch] SUMA/SUMA_3dVol2Surf.[ch]
 
+24 March 2005:
+  * modified strblast.c: added -help, -new_char, -new_string, -unescape options
+
