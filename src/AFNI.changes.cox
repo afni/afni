@@ -2046,3 +2046,6 @@
 10 Feb 2000
  * Added 3A.: image formats to allow input of unstructured ASCII files
      into AFNI programs.  Routines changed in mri_read.c and mcw_glob.c.
+
+14 Feb 2000
+ * Added -median and -MAD options to 3dTstat.c (but not to plug_stats.c).

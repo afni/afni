@@ -7,10 +7,13 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-#define METH_MEAN  0
-#define METH_SLOPE 1
-#define METH_SIGMA 2
-#define METH_CVAR  3
+#define METH_MEAN   0
+#define METH_SLOPE  1
+#define METH_SIGMA  2
+#define METH_CVAR   3
+
+#define METH_MEDIAN 4   /* 14 Feb 2000 */
+#define METH_MAD    5
 
 static int meth                    = METH_MEAN ;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
@@ -23,7 +26,7 @@ static void STATS_tsfunc( double tzero , double tdelta ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt ;
+   int nopt , detrend=1 ;
 
    /*----- Read command line -----*/
 
@@ -39,6 +42,10 @@ int main( int argc , char * argv[] )
              "             [      the slope has been removed]\n"
              " -cvar   = compute coefficient of variation of input\n"
              "             voxels = stdev/fabs(mean)\n"
+             " -median = compute median of input voxels\n"
+             " -MAD    = compute MAD (median absolute deviation) of\n"
+             "             input voxels = median(|voxel-median(voxel)|)\n"
+             "             [N.B.: the slope is NOT removed for this]\n"
              "\n"
              " -prefix p = use string 'p' for the prefix of the\n"
              "               output dataset [DEFAULT = 'stat']\n"
@@ -57,25 +64,35 @@ int main( int argc , char * argv[] )
 
       /*-- methods --*/
 
+      if( strcmp(argv[nopt],"-median") == 0 ){
+         meth = METH_MEDIAN ; detrend = 0 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-MAD") == 0 ){
+         meth = METH_MAD ; detrend = 0 ;
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-mean") == 0 ){
-         meth = METH_MEAN ;
+         meth = METH_MEAN ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slope") == 0 ){
-         meth = METH_SLOPE ;
+         meth = METH_SLOPE ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-stdev") == 0 ||
           strcmp(argv[nopt],"-sigma") == 0   ){
 
-         meth = METH_SIGMA ;
+         meth = METH_SIGMA ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
-         meth = METH_CVAR ;
+         meth = METH_CVAR ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
@@ -151,7 +168,7 @@ int main( int argc , char * argv[] )
                  prefix ,               /* output prefix */
                  datum ,                /* output datum  */
                  0 ,                    /* ignore count  */
-                 1 ,                    /* detrend = ON  */
+                 detrend ,              /* detrending?   */
                  STATS_tsfunc ,         /* timeseries processor */
                  NULL                   /* data for tsfunc */
               ) ;
@@ -219,6 +236,22 @@ static void STATS_tsfunc( double tzero , double tdelta ,
          else if( ts_mean != 0.0 ) *val = sum / fabs(ts_mean) ;
          else                      *val = 0.0 ;
       }
+      break ;
+
+      /* 14 Feb 2000: these 2 new methods disturb the array ts[] */
+
+      case METH_MEDIAN:
+         *val = qmed_float( npts , ts ) ;
+      break ;
+
+      case METH_MAD:{
+         register int ii ;
+         register float vm ;
+         vm = qmed_float( npts , ts ) ;
+         for( ii=0 ; ii < npts ; ii++ ) ts[ii] = fabs(ts[ii]-vm) ;
+         *val = qmed_float( npts , ts ) ;
+      }
+      break ;
    }
 
    ncall++ ; return ;

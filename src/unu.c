@@ -746,8 +746,8 @@ int main( int argc , char * argv[] )
       fnew = fabs(BVARR_SUB(bvar,0)->ubest) ;
       if( fnew <= fold ){
          neq++ ;
-         if( neq == 8 && promo_ok ) break ;
-         if( neq == 4 ){ promo_ok = 1 ; neq = 0 ; }
+         if( neq == 8 &&  promo_ok ) break ;
+         if( neq == 8 && !promo_ok ){ promo_ok = 1 ; neq = 0 ; }
       } else {
          neq  = 0 ;
          fold = fnew ;
