@@ -363,4 +363,7 @@
 
 01 December 2003:
   * finally!!  SurfMeasures is ready for release (v1.0)
+      - checked in v1.0 of SUMA/SUMA_SurfMeasures.[ch]
+  * modified Makefile.INCLUDE for SurfMeasures
+  * modified SUMA/SUMA_Makefile_NoDev for SurfMeasures
 
