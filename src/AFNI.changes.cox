@@ -1807,7 +1807,7 @@
  * Modified 1dtranspose.c, 3dcalc.c, waver.c, afni_graph.c, and
      model_convgamma*.c to use mri_read_1D().
  * Modified afni_graph.c to use mri_write_1D().
- * Added program 3dDetrend.c - remove time series trends.
+ * Added program 3dDetrend.c: remove time series trends.
  * Added predefined 't' and 'l' to 3dcalc.c.
 
 17 Nov 1999
@@ -1817,7 +1817,7 @@
  * Added environment variable AFNI_MARKERS_NOQUAL to afni.c.
  * Fixed bug in 3dDetrend when -expr string had no variable symbols.
  * Modified thd_iochan.c to use SO_REUSEADDR to help close down
-     sockets quickly.
+     sockets quickly.  (But later commented this code out.)
 
 18 Nov 1999
  * Modified cs_addto_args.c to make the mangling of the arglist
