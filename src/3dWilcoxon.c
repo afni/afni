@@ -24,6 +24,9 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Modified routine write_afni_fizt of NPstats.c so that all output 
+           subbricks will now have the scaled short integer format.
+  Date:    14 March 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -31,7 +34,7 @@
 #define PROGRAM_NAME "3dWilcoxon"                    /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "23 July 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "14 March 2002"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
