@@ -56,14 +56,33 @@
   Mod:      'ipr' added to matrix_print() function.
   Date:     03 Aug 2004 - RWCox
 
-  Mod:      Added USE_SCSLBLAS stuff for SGI Altix.
+  Mod:      Added USE_SCSLBLAS stuff for SGI Altix, and USE_SUNPERF for Solaris.
   Date:     01 Mar 2005
 */
 
+/*---------------------------------------------------------------------*/
+/** Vectorization macros:
+   - DOTP(n,x,y,z) computes the n-long dot product of vectors
+       x and y and puts the result into the place pointed to by z.
+   - VSUB(n,x,y,z) computes vector x-y into vector z.
+   - These are intended to be the fast method for doing these things. **/
+/*---------------------------------------------------------------------*/
+
+#undef SETUP_BLAS  /* define this to use BLAS-1 functions */             
 #undef DOTP
 #undef VSUB
-#if defined(USE_SCSLBLAS)                            /** SGI **/
-# include <scsl_blas.h>
+
+#if defined(USE_SCSLBLAS)                            /** SGI Altix **/
+#  include <scsl_blas.h>
+#  define SETUP_BLAS
+#elif defined(USE_SUNPERF)                           /** Sun Solaris **/
+#  include <sunperf.h>
+#  define SETUP_BLAS
+#endif
+
+/* double precision BLAS-1 functions */
+
+#ifdef SETUP_BLAS
 # define DOTP(n,x,y,z) *(z)=ddot(n,x,1,y,1)
 # define VSUB(n,x,y,z) (memcpy(z,x,sizeof(double)*n),daxpy(n,-1.0,y,1,z,1))
 #endif
@@ -71,7 +90,6 @@
 /*---------------------------------------------------------------------------*/
 static double flops=0.0l ;
 double get_matrix_flops(void){ return flops; }
-
 /*---------------------------------------------------------------------------*/
 /*!
   Routine to print and error message and stop.

@@ -49,6 +49,10 @@ typedef struct { byte r,g,b ; } rgb ;
 typedef struct { byte r,g,b,a ; } rgba ;
 #endif
 
+#ifdef _SUNPERF_COMPLEX
+# define TYPEDEF_complex
+#endif
+
 #ifndef TYPEDEF_complex
 #define TYPEDEF_complex
 typedef struct { float r,i ; } complex ;

@@ -60,6 +60,10 @@ typedef enum MRI_TYPE {
 
 /*! I suppose that the next C makes this pleonastic. */
 
+#ifdef _SUNPERF_COMPLEX
+# define TYPEDEF_complex
+#endif
+
 #ifndef TYPEDEF_complex
 #define TYPEDEF_complex
 typedef struct complex { float r , i ; } complex ;

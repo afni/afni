@@ -1,12 +1,12 @@
 # This works on a Sun/Solaris 9 with Sun's cc
 
-# USE_ZLIB = -DHAVE_ZLIB
-# LZLIB    = -lz
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -xO4 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCVOL  = cc -xO2 -Xa -w -DSOLARIS
-CCFAST = $(CC)
+CCFAST = $(CC) -DUSE_SUNPERF -dalign -xlic_lib=sunperf
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include

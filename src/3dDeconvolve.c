@@ -4,6 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#ifdef USE_SUNPERF       /** for Solaris **/
+# include <sunperf.h>
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*
   Program to calculate the deconvolution of a measurement 3d+time dataset
