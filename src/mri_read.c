@@ -27,23 +27,23 @@
 
 #include "mrilib.h"
 
-/*! Global variable to signal image orientation, if possible. */
+/*!\brief Global variable to signal image orientation, if possible. */
 
 char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
 
-/*! Global variable to signal image slice offset, if possible. */
+/*!\brief Global variable to signal image slice offset, if possible. */
 
 float MRILIB_zoff      = 0.0 ;
 
-/*! Global variable to signal image TR, if possible. */
+/*!\brief Global variable to signal image TR, if possible. */
 
 float MRILIB_tr        = 0.0 ;   /* 03 Dec 2001 */
 
-/*! Global variable to signal image x offset, if possible. */
+/*!\brief Global variable to signal image x offset, if possible. */
 
 float MRILIB_xoff      = 0.0 ;   /* 07 Dec 2001 */
 
-/*! Global variable to signal image y offset, if possible. */
+/*!\brief Global variable to signal image y offset, if possible. */
 
 float MRILIB_yoff      = 0.0 ;
 
@@ -1011,7 +1011,6 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
 
     \date 16 May 1995
 */
------------------------------------------------------------------*/
 
 MRI_IMARR * mri_read_ppm3( char * fname )
 {
@@ -1350,9 +1349,14 @@ ENTRY("mri_read_ppm_header") ;
    fclose(imfile) ; *nx = nxx ; *ny = nyy ; EXRETURN ;
 }
 
-/*---------------------------------------------------------------
-  May 13, 1996: reads a raw PPM file into 1 image
------------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+
+/*!\brief Reads a raw PPM file into 1 2D MRI_rgb-valued image.
+
+   \param fname = Image filename
+   \return An MRI_IMAGE if things worked OK; NULL if not
+   \date 13 May 1996
+*/
 
 MRI_IMAGE * mri_read_ppm( char * fname )
 {
@@ -1405,10 +1409,26 @@ WHOAMI ;
    return rgbim ;
 }
 
-/*---------------------------------------------------------------
-  June 1996: read a 1D or 2D file formatted in ASCII;
-             will always return in MRI_float format.
------------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+
+/*!\brief Read an array of ASCII numbers into a 1D or 2D image.
+
+  \param fname = input filename
+  \return Pointer to MRI_IMAGE (in MRI_float) format if things
+          are cool; NULL if not.
+  \date Jun 1996
+
+  Example input:
+     - Line 1:  3 4 6
+     - Line 2:  2 2 2
+     - Line 3:  7 2 1
+     - Line 4:  9 9 6
+  This produces an image with nx=3 and ny=4.  The first row
+  is read to determine nx; all subsequent rows must have nx
+  values.  A line whose very first character is a '#' will
+  be skipped as a comment.  A line with no characters (just
+  the '\n') will also be skipped.
+*/
 
 #define INC_TSARSIZE 128
 #define LBUF         32768
@@ -1508,10 +1528,18 @@ MRI_IMAGE * mri_read_ascii( char * fname )
    return outim ;
 }
 
-/*---------------------------------------------------------------------------
-  16 Nov 1999: read an ASCII file as columns, transpose to rows,
-               and allow column selectors.
------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+
+/*!\brief Read an ASCII file as columns, transpose to rows, allow column selectors.
+
+  \param fname = Input filename (max of 255 characters)
+  \return Pointer to MRI_IMAGE if all went well; NULL if not.
+  \date 16 Nov 1999
+
+  This function builds on mri_read_ascii() in two ways:
+    - the input is transposed to rows (so that a 1x100 file becomes a 100x1 image)
+    - column selectors are allowed in fname
+*/
 
 MRI_IMAGE * mri_read_1D( char * fname )
 {
@@ -1753,6 +1781,7 @@ MRI_IMARR * mri_read_3A( char * tname )
 #include "mayo_analyze.h"
 
 /*---------------------------------------------------------------*/
+/*!\brief Byte swap ANALYZE file header in various places */
 
 static void swap_analyze_hdr( struct dsr *pntr )
 {
@@ -1794,6 +1823,10 @@ static void swap_analyze_hdr( struct dsr *pntr )
 }
 
 /*---------------------------------------------------------------*/
+/*!\brief Count how many 2D slices are in an ANALYZE file.
+
+   \param hname = the "hdr" file of the hdr/img file pair.
+*/
 
 static int mri_imcount_analyze75( char * hname )
 {
@@ -1824,6 +1857,10 @@ static int mri_imcount_analyze75( char * hname )
 }
 
 /*---------------------------------------------------------------*/
+/*!\brief Read an ANALYZE file into an ARRAY of 2D images.
+
+   \param hname = the "hdr" file for the hdr/img pair
+*/
 
 MRI_IMARR * mri_read_analyze75( char * hname )
 {
@@ -2002,6 +2039,14 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
 #include "siemens_vision.h"
 
+/*!\brief Count the number of 2D images in a Siemens Vision .ima file.
+
+   Unfortunately, this requires reading the image data and checking
+   for all-zero images.  This is because Siemens stores their data
+   in a fixed size file, and so just fills out the empty space with
+   blank images if need be.
+*/
+
 static int mri_imcount_siemens( char * hname )
 {
    struct Siemens_vision_header head ;
@@ -2079,6 +2124,11 @@ static int mri_imcount_siemens( char * hname )
 }
 
 /*---------------------------------------------------------------------------*/
+/*!\brief Read an array of 2D images from Siemens Vision .ima file.
+
+   The images are stored in a 2D array, which requires untangling the
+   data rows to put them into separate MRI_IMAGE structs.
+*/
 
 MRI_IMARR * mri_read_siemens( char * hname )
 {
