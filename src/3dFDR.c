@@ -925,7 +925,14 @@ void process_1ddata ()
 
   /*----- Calculate FDR z-scores for all input p-values  -----*/
   process_volume (ffim, -1, NULL);
- 
+
+  if( FDR_output_prefix != NULL && ffim != NULL ){
+    MRI_IMAGE *im = mri_new_vol_empty( FDR_nxyz,1,1 , MRI_float ) ;
+    mri_fix_data_pointer( ffim , im ) ;
+    mri_write_1D( FDR_output_prefix , im ) ;
+    mri_fix_data_pointer( NULL , im ) ;
+    mri_free( im ) ;
+  }
 
   /*----- Deallocate memory -----*/
   if (ffim != NULL) { free (ffim);   ffim = NULL; }
