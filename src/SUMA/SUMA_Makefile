@@ -68,13 +68,11 @@ ${SUMALIB} : ${SUMA_OBJS}
 	echo "library Rebuilt ..."
 	#$(RANLIB) ${SUMALIB} 
 
-${SUMA_OBJS} : ${SUMA_HDRS} ${SUMA_SRCS}
 
 clean:
 	$(RM) *.o
 
 .c.o:
-	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c $*.c 
 	
 suma: SUMA.o
@@ -91,3 +89,5 @@ install:
 	mv MakeColorMap ${INSTALLDIR_SUMA} 
 	
 all: libSUMA.a suma MakeColorMap install
+
+anew: clean libSUMA.a suma MakeColorMap install

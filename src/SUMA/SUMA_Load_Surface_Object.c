@@ -1777,6 +1777,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 {
 	static char FuncName[]={"SUMA_SurfaceMetrics"};
 	SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind;
+	int i = 0;
 	
 	DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
 	
@@ -1907,8 +1908,15 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 		if (SO->Cx == NULL) {
 			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Convexity\n", FuncName);
 			SO->Cx_Inode = NULL;
-		}			
-
+		}	
+				
+		/* flip sign of convexity if it's a SureFit Surface */
+		if (SO->FileType == SUMA_SUREFIT) {
+			for (i=0; i < SO->N_Node; ++i) {
+				SO->Cx[i] = -SO->Cx[i];
+			}
+		}
+		
 		{
 			float *attr_sm;
 			/* smooth estimate twice */
@@ -1921,7 +1929,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
 			}
 		}
 		if (SO->Cx == NULL) {
-			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Convexity\n", FuncName);
+			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
 			SO->Cx_Inode = NULL;
 		} else {
 			/* create Cx_Inode */
