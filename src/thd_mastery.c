@@ -8,12 +8,14 @@
 
 /* prototypes */
 
-static void THD_setup_mastery( THD_3dim_dataset * , int * ) ;
+static int THD_setup_mastery( THD_3dim_dataset * , int * ) ;
 static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
 
 /*-----------------------------------------------------------------
    11 Jan 1999: Open a dataset, allowing for possible mastering.
    21 Feb 2001: Allow for <a..b> sub-ranging as well.
+   26 Jul 2004: Change THD_setup_mastery to return int.    [rickr]
+                Add THD_copy_dset_subs() function.
 -------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_open_dataset( char *pathname )
@@ -144,7 +146,7 @@ fprintf(stderr,"dpt=%s\n",dpt) ;
    a subset of sub-bricks from the master .BRIK file.
 -------------------------------------------------------------------*/
 
-static void THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
+static int THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
 {
    int ibr , old_nvals , new_nvals ;
    THD_datablock * dblk ;
@@ -161,17 +163,17 @@ ENTRY("THD_setup_mastery") ;
 
    /** sanity checks **/
 
-   if( ! ISVALID_DSET(dset) || ivlist == NULL || ivlist[0] <= 0 ) EXRETURN ;
+   if( ! ISVALID_DSET(dset) || ivlist == NULL || ivlist[0] <= 0 ) RETURN(1) ;
 
    new_nvals = ivlist[0] ;
    ivl       = ivlist + 1 ;
    dblk      = dset->dblk ;
    old_nvals = dblk->nvals ;
 
-   ibr = THD_count_databricks(dblk) ; if( ibr > 0 ) EXRETURN ;
+   ibr = THD_count_databricks(dblk) ; if( ibr > 0 ) RETURN(2) ;
 
    for( ibr=0 ; ibr < new_nvals ; ibr++ )
-      if( ivl[ibr] < 0 || ivl[ibr] >= old_nvals ) EXRETURN ;
+      if( ivl[ibr] < 0 || ivl[ibr] >= old_nvals ) RETURN(3) ;
 
    /** save pointers to old datablock stuff **/
 
@@ -312,7 +314,7 @@ ENTRY("THD_setup_mastery") ;
       }
    }
 
-   EXRETURN ;
+   RETURN(0) ;
 }
 
 /*----------------------------------------------------------------------
@@ -451,3 +453,82 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
 
    RETURN(dset) ;
 }
+
+/*-----------------------------------------------------------------
+   Copy a list of sub-bricks from a dataset.    26 Jul 2004 [rickr]
+   The first element of dlist is the number of sub-bricks to copy.
+-------------------------------------------------------------------*/
+THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * din, int * dlist )
+{
+    THD_3dim_dataset * dout;
+    MRI_TYPE           kind;
+    char             * newdata;
+    int                sub, subs;
+    int                dsize, nxyz, rv;
+
+ENTRY("THD_copy_dset_subs");
+
+    /* validate inputs */
+    if ( !din || !dlist )
+    {
+	fprintf(stderr, "** THD_copy_dset_subs: bad input (%p,%p)\n",
+		din,dlist);
+	RETURN(NULL);
+    }
+
+    if ( dlist[0] <= 0 )
+    {
+	fprintf(stderr,"** THD_copy_dset_subs: invalid dlist length %d\n",
+		dlist[0]);
+	RETURN(NULL);
+    }
+
+    dout = EDIT_empty_copy(din);
+    rv = THD_setup_mastery(dout, dlist);
+    if ( rv != 0 )
+    {
+	fprintf(stderr, "** failure: THD_setup_mastery() returned %d\n", rv);
+	RETURN(NULL);
+    }
+
+    /* be sure that we have some data to copy */
+    DSET_load(din);
+    if ( ! DSET_LOADED(din) )
+    {
+	fprintf(stderr,"** THD_copy_dset_subs: cannot load input dataset\n");
+	RETURN(NULL);
+    }
+
+    /* a basic warp is needed if header is written out - PLUTO_add_dset() */
+    dout->warp  = myXtNew( THD_warp );
+    *dout->warp = IDENTITY_WARP;
+    ADDTO_KILL( dout->kl, dout->warp );
+
+    dout->dblk->diskptr->byte_order   = mri_short_order();
+    dout->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
+
+    /* now copy all of the sub-bricks */
+    nxyz = dout->daxes->nxx * dout->daxes->nyy * dout->daxes->nzz;
+    subs = dlist[0];
+    for ( sub = 0; sub < subs; sub++ )
+    {
+	kind = DSET_BRICK_TYPE(dout, sub);
+	dsize = mri_datum_size( kind );
+	if ( (newdata = (char *)malloc( nxyz * dsize )) == NULL )
+        {
+            fprintf( stderr, "r frdb: alloc failure: %d bytes!\n",
+                     nxyz * dsize );
+	    DSET_delete(dout);
+            RETURN(NULL);
+        }
+
+	memcpy(newdata,DSET_ARRAY(din,dlist[sub+1]), nxyz*dsize);
+	EDIT_substitute_brick(dout, sub, kind, (void *)newdata);
+    }
+
+    dout->dblk->malloc_type = DATABLOCK_MEM_MALLOC;
+    dout->wod_flag = False;             /* since data is now in memory */
+
+    RETURN(dout);
+}
+
