@@ -261,6 +261,12 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_DONT_MOVE_MENUS" ,
                   "Move popup menus to enhance visibility?" ) ;
 
+   /* 07 Mar 2002 */
+
+   ENV_add_numeric( "AFNI_GRAPH_TEXTLIMIT" ,
+                    "Max rows in Graph Button-3 popup" ,
+                    1 , 99 , 0 , 40 , NULL ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;

@@ -248,6 +248,8 @@ typedef struct MRI_IMAGE {
          int foffset ;   /*< offset into fname of image data */
          int fondisk ;   /*< flag to indicate if is on disk (?) */
 #endif
+
+         int was_swapped ; /* 07 Mar 2002 */
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS

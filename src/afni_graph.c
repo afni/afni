@@ -2550,8 +2550,10 @@ STATUS("button press") ;
 
             if( ix >= 0 && ix < grapher->mat && iy >= 0 && iy < grapher->mat ){
                XmString xstr ;
-               char str[256] , bmin[16],bmax[16],bmean[16],bstd[16] ;
+               char bmin[16],bmax[16],bmean[16],bstd[16] ;
                char bmed[16] , bmad[16] ; /* 08 Mar 2001 */
+               char *qstr , *eee ;        /* 07 Mar 2002 */
+               int nlin , nltop=40 ;      /* 07 Mar 2002 */
 
                AV_fval_to_char( grapher->tbot[ix][iy]  , bmin ) ;
                AV_fval_to_char( grapher->ttop[ix][iy]  , bmax ) ;
@@ -2561,7 +2563,12 @@ STATUS("button press") ;
                AV_fval_to_char( grapher->tmed[ix][iy]  , bmed ) ; /* 08 Mar 2001 */
                AV_fval_to_char( grapher->tmad[ix][iy]  , bmad ) ;
 
-               sprintf( str , "Ignored = %d\n"
+               if( grapher->tuser[ix][iy] == NULL )
+                  qstr = malloc(512) ;
+               else
+                  qstr = malloc(512+strlen(grapher->tuser[ix][iy])) ;
+
+               sprintf( qstr, "Ignored = %d\n"
                               "x voxel = %d\n"
                               "y voxel = %d\n"
                               "z voxel = %d\n"
@@ -2576,24 +2583,34 @@ STATUS("button press") ;
 
                 /** 22 Apr 1997: incorporate user string for this voxel **/
 
-                if( grapher->tuser[ix][iy] == NULL ){
-                   xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
-                } else {
-                   char * qstr ; int ll ;
-                   ll   = strlen(str) + strlen(grapher->tuser[ix][iy]) + 8 ;
-                   qstr = (char *) malloc( sizeof(char) * ll ) ;
-                   strcpy( qstr , str ) ;
-                   strcat( qstr , "\n\n" ) ;
+                if( grapher->tuser[ix][iy] != NULL ){
+                   strcat( qstr , "\n------------------\n" ) ;
                    strcat( qstr , grapher->tuser[ix][iy] ) ;
-                   xstr = XmStringCreateLtoR( qstr , XmFONTLIST_DEFAULT_TAG ) ;
-                   free(qstr) ;
                 }
 
-                XtVaSetValues( grapher->but3_label, XmNlabelString,xstr , NULL );
-                XmStringFree( xstr ) ;
+                /* 07 Mar 2002: if string is too long, popup textwin,
+                                otherwise just open a popup window    */
 
-                XmMenuPosition( grapher->but3_menu , event ) ; /* where */
-                XtManageChild ( grapher->but3_menu ) ;         /* popup */
+                eee = getenv( "AFNI_GRAPH_TEXTLIMIT" ) ;
+                if( eee != NULL ){
+                   nlin = strtol( eee , NULL , 10 ) ;
+                   if( nlin > 0 ) nltop = nlin ;
+                }
+
+                for( nlin=1,eee=qstr ; *eee != '\0' ; eee++ )
+                   if( *eee == '\n' ) nlin++ ;
+
+                if( nlin < nltop ){
+                  xstr = XmStringCreateLtoR( qstr, XmFONTLIST_DEFAULT_TAG ) ;
+                  XtVaSetValues( grapher->but3_label,XmNlabelString,xstr,NULL );
+                  XmStringFree( xstr ) ;
+                  XmMenuPosition( grapher->but3_menu , event ) ; /* where */
+                  XtManageChild ( grapher->but3_menu ) ;         /* popup */
+                } else {
+                  (void) new_MCW_textwin(grapher->fdw_graph,qstr,TEXT_READONLY);
+                }
+                free(qstr) ;
+
             } else {
                redraw_graph(grapher,0) ;  /* 11 Nov 1996 */
             }

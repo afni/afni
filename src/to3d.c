@@ -210,9 +210,9 @@ int main( int argc , char * argv[] )
    if( negative_shorts ){
       float perc = (100.0*negative_shorts)/nvox_total ;
       fprintf(stderr,
-             "to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
-             "              It is possible the input images need byte-swapping.\n",
-             negative_shorts , perc ) ;
+       "to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
+       "              It is possible the input images need byte-swapping.\n",
+       negative_shorts , perc ) ;
    }
 
 QQQ("main1");
@@ -1802,7 +1802,7 @@ QQQ("types and files setup") ;
             XmNpacking     , XmPACK_TIGHT ,
          NULL ) ;
 
-   /* 14 Sep 1998: add a button to swap bytes in the images */
+   /* 14 Sep 1998: add a button to swap bytes in the image data */
 
    { int    dd = mri_datum_size((MRI_TYPE)argopt.datum_all) ;
      char * tt = "Byte Swap[2]" ;
@@ -3116,14 +3116,14 @@ void Syntax()
     "  assume their order is '0 2 4 6 1 3 5' (here, the number refers\n"
     "  to the slice location in space).\n"
     "\n"
-    "* GE I.* (IMGF) 16-bit files can now be read.  The program will detect\n"
+    "* GEMS I.* (IMGF) 16-bit files can now be read. The program will detect\n"
     "  if byte-swapping is needed on these images, and can also set voxel\n"
     "  grid sizes and orientations.  It can also detect the TR in the\n"
     "  image header.  If you wish to rely on this TR, you can set TR=0\n"
     "  in the -time:zt or -time:tz option.\n"
     "* If you use the image header's TR and also use @filename for the\n"
     "  tpattern, then the values in the tpattern file should be fractions\n"
-    "  of the true TR; they will be  multiplied by the true TR once it is\n"
+    "  of the true TR; they will be multiplied by the true TR once it is\n"
     "  read from the image header.\n"
     "\n"
     " NOTES:\n"
@@ -3176,6 +3176,12 @@ void Syntax()
     "  -4swap\n"
     "     This option will force all input 4 byte images to be byte-swapped\n"
     "     after they are read in.\n"
+    "  BUT PLEASE NOTE:\n"
+    "     Input images that are auto-detected to need byte-swapping\n"
+    "     (GEMS I.*, Siemens *.ima, ANALYZE *.img, and 3Ds: files)\n"
+    "     will NOT be swapped again by one of the above options.\n"
+    "     If you want to swap them again for some bizarre reason,\n"
+    "     you'll have to use the 'Byte Swap' button on the GUI.\n"
     "\n"
     "  -zpad N   OR\n"
     "  -zpad Nmm \n"
@@ -3954,11 +3960,42 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 #endif
 
          /* 14 Sep 1998: swap bytes if ordered */
+         /* 07 Mar 2002: but only if it wasn't already swapped */
 
          if( im->pixel_size == 2 && argopt.swap_two ){
-            swap_twobytes( im->nvox , mri_data_pointer(im) ) ;
+            if( im->was_swapped ){  /* don't swap me */
+              static int first=1 ;
+              if( first ){          /* but print a message */
+                fprintf(stderr,"++ Ignoring -2swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "." : im->fname ) ;
+                first = 0 ;
+              }
+            } else {                /* swap me */
+              static int first=1 ;
+              if( first ){          /* and print a message */
+                fprintf(stderr,"++ Executing -2swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "." : im->fname ) ;
+                first = 0 ;
+              }
+              swap_twobytes( im->nvox , mri_data_pointer(im) ) ;
+            }
          } else if( im->pixel_size == 4 && argopt.swap_two ){
-            swap_fourbytes( im->nvox , mri_data_pointer(im) ) ;
+            if( im->was_swapped ){  /* don't swap me again */
+              static int first=1 ;
+              if( first ){          /* but print a missive */
+                fprintf(stderr,"++ Ignoring -4swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "" : im->fname ) ;
+                first = 0 ;
+              }
+            } else {                /* swap me, swap me */
+              static int first=1 ;
+              if( first ){          /* and print a message */
+                fprintf(stderr,"++ Executing -4swap on input image [%s...]\n",
+                        (im->fname == NULL) ? "." : im->fname ) ;
+                first = 0 ;
+              }
+              swap_fourbytes( im->nvox , mri_data_pointer(im) ) ;
+            }
          }
 
          /* 14 Sep 1999: check float inputs for errors */
