@@ -697,6 +697,8 @@ extern MRI_IMAGE *mri_scale_to_float( float , MRI_IMAGE * ) ;
 extern void mri_threshold( double , double , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_mult_to_float( float * , MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * mri_scalize( MRI_IMAGE *, int, float * ) ; /* 20 Oct 2003 */
+
 extern MRI_IMAGE *mri_multiply_complex( int , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_complex_phase( MRI_IMAGE * ) ;
 

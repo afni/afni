@@ -2029,12 +2029,6 @@ typedef struct THD_3dim_dataset {
 
       THD_warp *self_warp ;
 
-#if 0
-   /* 17 Oct 2003: value-label double hash table */
-
-      Dtable *vallab_dtable ;
-#endif
-
 } THD_3dim_dataset ;
 
 /*! Determine if dataset ds has SUMA surface data attached. */

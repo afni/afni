@@ -24,10 +24,10 @@ Dtable * new_Dtable( int len )
 void destroy_Dtable( Dtable *dt )
 {
    if( dt == NULL ) return ;
-   vtkill = 1 ;
+   Htable_set_vtkill(1) ;
    destroy_Htable( dt->hta ) ;
    destroy_Htable( dt->htb ) ;
-   vtkill = 0 ;
+   Htable_set_vtkill(0) ; ;
    return ;
 }
 
@@ -144,6 +144,9 @@ char * Dtable_to_nimlstring( Dtable *dt , char *name )
    NI_free_element( nel ) ;
    stout = strdup( NI_stream_getbuf(ns) ) ;
    NI_stream_close( ns ) ;
+   nn = strlen(stout) ;
+   for( ii=nn-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
+   stout[ii+1] = '\0' ;
    return stout ;
 }
 

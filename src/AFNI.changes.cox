@@ -4727,3 +4727,10 @@
 15 Oct 2003
  * Added poetry.
  * Removed 'points'.
+ * Added Dtables to niml.
+
+20 Oct 2003
+ * Fixed scaling bug in mri_warp3D.c -- datasets with scaling factors were
+     being scaled before warp, but not unscaled after warp, so that the
+     surviving scale factor would be applied twice.
+ * Added labelizing to Draw Dataset plugin.

@@ -1208,7 +1208,7 @@ ENTRY("THD_warp3D") ;
    for( ival=0 ; ival < nvals ; ival++ ){
      inim  = DSET_BRICK(qset,ival) ;
      fac   = DSET_BRICK_FACTOR(qset,ival) ;
-     if( fac > 0.0 && fac != 0.0 ) wim = mri_scale_to_float( fac , inim ) ;
+     if( fac > 0.0 && fac != 1.0 ) wim = mri_scale_to_float( fac , inim ) ;
      else                          wim = inim ;
      outim = mri_warp3D( wim , nxout,nyout,nzout , w3d_warp_func ) ;
      if( outim == NULL ){
@@ -1217,7 +1217,23 @@ ENTRY("THD_warp3D") ;
        if( qset != inset ) DSET_delete(qset) ; else DSET_unload(qset) ;
        RETURN(NULL) ;
      }
-     if( wim != inim ) mri_free(wim) ;
+
+     if( wim != inim ){  /* if we scaled input */
+       float gtop , fimfac ;
+       mri_free(wim) ;
+
+       /* 20 Oct 2003: rescale if input was an integer type */
+
+       if( outim->kind == MRI_float && MRI_IS_INT_TYPE(inim->kind) ){
+         fimfac = fac ;
+         wim = mri_scalize( outim , inim->kind , &fimfac ) ;
+         EDIT_BRICK_FACTOR( outset , ival , fimfac ) ;
+         mri_free(outim) ; outim = wim ;
+       } else {                                     /* input not an integer: */
+         EDIT_BRICK_FACTOR( outset , ival , 0.0 ) ; /* output=unscaled float */
+       }
+
+     }
      EDIT_substitute_brick( outset, ival,outim->kind,mri_data_pointer(outim) );
      DSET_unload_one( qset , ival ) ;
    }

@@ -81,9 +81,6 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dset->vox_warp       = myXtNew( THD_warp ) ;  /* create a voxel warp */
    new_dset->vox_warp->type = ILLEGAL_TYPE ;         /* but don't put anything in it */
    new_dset->self_warp      = NULL ;                 /* 26 Aug 2002 */
-#if 0
-   new_dset->vallab_dtable  = NULL ;                 /* 17 Oct 2003 */
-#endif
 
    new_dset->warp_parent_name[0] = '\0' ;
    new_dset->anat_parent_name[0] = '\0' ;
@@ -154,24 +151,24 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dblk->master_bytes = NULL ;
 
    if( old_good )
-      *new_daxes  = *(old_dset->daxes) ;    /* copy all contents */
+     *new_daxes  = *(old_dset->daxes) ;    /* copy all contents */
    else {
-      new_daxes->type = DATAXES_TYPE ;      /* make up contents */
+     new_daxes->type = DATAXES_TYPE ;      /* make up contents */
 
-      new_daxes->nxx = new_dkptr->dimsizes[0] ;
-      new_daxes->nyy = new_dkptr->dimsizes[1] ;
-      new_daxes->nzz = new_dkptr->dimsizes[2] ;
+     new_daxes->nxx = new_dkptr->dimsizes[0] ;
+     new_daxes->nyy = new_dkptr->dimsizes[1] ;
+     new_daxes->nzz = new_dkptr->dimsizes[2] ;
 
-      new_daxes->xxorg = new_daxes->yyorg = new_daxes->zzorg = -0.5 ;
-      new_daxes->xxdel = new_daxes->yydel = new_daxes->zzdel =  1.0 ;
+     new_daxes->xxorg = new_daxes->yyorg = new_daxes->zzorg = -0.5 ;
+     new_daxes->xxdel = new_daxes->yydel = new_daxes->zzdel =  1.0 ;
 
-      new_daxes->xxorient = ORI_R2L_TYPE ;
-      new_daxes->yyorient = ORI_A2P_TYPE ;
-      new_daxes->zzorient = ORI_I2S_TYPE ;
-      LOAD_DIAG_MAT(new_daxes->to_dicomm,1,1,1) ;
+     new_daxes->xxorient = ORI_R2L_TYPE ;
+     new_daxes->yyorient = ORI_A2P_TYPE ;
+     new_daxes->zzorient = ORI_I2S_TYPE ;
+     LOAD_DIAG_MAT(new_daxes->to_dicomm,1,1,1) ;
 
-      new_daxes->xxmin = new_daxes->yymin = new_daxes->zzmin = -0.5 ;
-      new_daxes->xxmax = new_daxes->yymax = new_daxes->zzmax =  0.5 ;
+     new_daxes->xxmin = new_daxes->yymin = new_daxes->zzmin = -0.5 ;
+     new_daxes->xxmax = new_daxes->yymax = new_daxes->zzmax =  0.5 ;
    }
    new_daxes->parent = (XtPointer) new_dset ;
 
@@ -179,25 +176,25 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dset->parent  = NULL ;
 
    if( old_good )
-      INIT_STAT_AUX( new_dset , MAX_STAT_AUX , old_dset->stat_aux ) ;
+     INIT_STAT_AUX( new_dset , MAX_STAT_AUX , old_dset->stat_aux ) ;
    else
-      ZERO_STAT_AUX( new_dset ) ;
+     ZERO_STAT_AUX( new_dset ) ;
 
    if( old_good && ISVALID_TIMEAXIS(old_dset->taxis) ){
-      new_taxis = new_dset->taxis = myXtNew( THD_timeaxis ) ;
+     new_taxis = new_dset->taxis = myXtNew( THD_timeaxis ) ;
 
-      *new_taxis = *old_dset->taxis ;  /* copy contents */
+     *new_taxis = *old_dset->taxis ;  /* copy contents */
 
-      if( new_taxis->nsl > 0 ){        /* copy toff_sl array, if present */
-         int isl ;
-         new_taxis->toff_sl = (float *) XtMalloc( sizeof(float) * new_taxis->nsl ) ;
-         for( isl = 0 ; isl < new_taxis->nsl ; isl++ )
-            new_taxis->toff_sl[isl] = old_dset->taxis->toff_sl[isl] ;
-      } else {
-         new_taxis->toff_sl = NULL ;
-      }
+     if( new_taxis->nsl > 0 ){        /* copy toff_sl array, if present */
+       int isl ;
+       new_taxis->toff_sl = (float *) XtMalloc( sizeof(float) * new_taxis->nsl ) ;
+       for( isl = 0 ; isl < new_taxis->nsl ; isl++ )
+         new_taxis->toff_sl[isl] = old_dset->taxis->toff_sl[isl] ;
+     } else {
+       new_taxis->toff_sl = NULL ;
+     }
    } else {
-      new_dset->taxis = NULL ;
+     new_dset->taxis = NULL ;
    }
 
    DSET_NULL_SUMA(new_dset) ;  /* 29 Aug 2001 */
