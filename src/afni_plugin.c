@@ -4044,25 +4044,59 @@ ENTRY("PLUGIN_seq_send_CB") ;
 
 #ifndef NO_FRIVOLITIES
       case isqCR_buttonpress:{
-#define NBIRN 9
-         static int nnew=-1 , nold=0 ;
+#define NBIRN 10
+         static int nold=0 ;
          static char * birn[NBIRN] = { " \n** Don't DO That! **\n "                        ,
+                                       " \n** Do NOT read this message! **\n "             ,
                                        " \n** Stop it, Rasmus! **\n "                      ,
                                        " \n** Having fun yet? **\n "                       ,
                                        " \n** What do you want NOW? **\n "                 ,
                                        " \n** Too much time on your hands? **\n "          ,
-                                       " \n** Do NOT read this message! **\n "             ,
                                        " \n** Why are you bothering me? **\n "             ,
                                        " \n** Danger! Danger, Will Robinson! **\n "        ,
-                                       " \n** WARNING: Planetary meltdown imminent! **\n "
-                                     } ;
+                                       " \n** WARNING: Planetary meltdown imminent! **\n " ,
 
-         if( !NO_frivolities && nnew != nold ){
-            if( nnew < 0 ) nnew = nold = lrand48()%NBIRN ;
-            MCW_popup_message( seq->wimage , birn[nnew] , MCW_USER_KILL ) ;
-            nnew = (nnew+1)%NBIRN ;
+                                 " \n"
+                                 " God of our fathers, known of old,\n"
+                                 " Lord of our far-flung battle-line,\n"
+                                 " Beneath whose awful hand we hold\n"
+                                 " Dominion over palm and pine -\n"
+                                 " Lord God of Hosts, be with us yet,\n"
+                                 " Lest we forget - lest we forget!\n"
+                                 " \n"
+                                 " The tumult and the shouting dies;\n"
+                                 " The captains and the kings depart:\n"
+                                 " Still stands Thine ancient sacrifice,\n"
+                                 " An humble and a contrite heart.\n"
+                                 " Lord God of Hosts, be with us yet,\n"
+                                 " Lest we forget - lest we forget!\n"
+                                 " \n"
+                                 " Far-called, our navies melt away;\n"
+                                 " On dune and headland sinks the fire:\n"
+                                 " Lo, all our pomp of yesterday\n"
+                                 " Is one with Nineveh and Tyre!\n"
+                                 " Judge of the Nations, spare us yet.\n"
+                                 " Lest we forget - lest we forget!\n"
+                                 " \n"
+                                 " If, drunk with sight of power, we loose\n"
+                                 " Wild tongues that have not Thee in awe,\n"
+                                 " Such boastings as the Gentiles use,\n"
+                                 " Or lesser breeds without the Law -\n"
+                                 " Lord God of Hosts, be with us yet,\n"
+                                 " Lest we forget - lest we forget!\n"
+                                 " \n"
+                                 " For heathen heart that puts her trust\n"
+                                 " In reeking tube and iron shard,\n"
+                                 " All valiant dust that builds on dust,\n"
+                                 " And, guarding, calls not Thee to guard,\n"
+                                 " For frantic boast and foolish word -\n"
+                                 " The Mercy on Thy People, Lord!\n"
+                               } ;
+
+         if( !NO_frivolities && nold < NBIRN ){
+           MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
          } else {
-            PLUTO_beep() ;
+           PLUTO_beep() ;
          }
       }
       break ;
