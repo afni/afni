@@ -722,7 +722,9 @@ extern MRI_IMAGE *mri_rota_variable( int, MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *,int,float,float,float,float) ;
 extern MRI_IMAGE *mri_aff2d_rgb ( MRI_IMAGE *,int,float,float,float,float) ;
 
-extern void mri_scale_inplace( float , MRI_IMAGE * ) ; /* 27 Nov 2001 */
+/** 27 Nov 2001: mri_scale.c **/
+
+extern void mri_scale_inplace( float , MRI_IMAGE * ) ;
 
 extern void ft_shift2( int, int, float, float *, float, float * ) ;
 
@@ -975,5 +977,22 @@ typedef struct { int i,j,k; } int_triple ;
 
 extern MRI_IMAGE * THD_average_timeseries( MCW_cluster_array *, THD_3dim_dataset *) ;
 extern MRI_IMAGE * THD_average_one_timeseries( MCW_cluster *, THD_3dim_dataset *) ;
+
+/** mri_warp3D.c functions: 14 Apr 2003 */
+
+extern MRI_IMAGE *mri_warp3D_cubic ( MRI_IMAGE *, int,int,int ,
+                                     void func( float,float,float,
+                                                float *,float *,float *) ) ;
+extern MRI_IMAGE *mri_warp3D_linear( MRI_IMAGE *, int,int,int ,
+                                     void func( float,float,float,
+                                                float *,float *,float *) ) ;
+extern MRI_IMAGE *mri_warp3D_NN    ( MRI_IMAGE *, int,int,int ,
+                                     void func( float,float,float,
+                                                float *,float *,float *) ) ;
+extern void mri_warp3D_method( int ) ;
+extern void mri_warp3D_zerout( int ) ;
+
+extern MRI_IMAGE *mri_warp3D_affine ( MRI_IMAGE * , THD_vecmat ) ;
+extern MRI_IMAGE * mri_warp3D_resize( MRI_IMAGE *, int,int,int ) ;
 
 #endif /* _MCW_MRILIB_HEADER_ */

@@ -1,9 +1,28 @@
 /*------------------------------------------------------------------------
-  This program does something, but nobody is sure what.
-  14 Apr 2003 - RWCox.
+     ***  This program does something, but nobody is sure what.  ***
+     ***  14 Apr 2003 - RWCox.                                   ***
 --------------------------------------------------------------------------*/
 
 #include "mrilib.h"
+
+/*--------------------------------------------------------------------------*/
+
+#define MATVEC_FOR 1
+#define MATVEC_BAC 2
+
+static THD_vecmat matvec_for, matvec_bac , matvec_warp ;
+
+static void warp_func( float xi,float yi,float zi, float *xo,float *yo,float *zo )
+{
+   *xo = matvec_warp.mm.mat[0][0] * xi + matvec_warp.mm.mat[0][1] * yi +
+         matvec_warp.mm.mat[0][2] * zi + matvec_warp.vv.xyz[0]          ;
+   *yo = matvec_warp.mm.mat[1][0] * xi + matvec_warp.mm.mat[1][1] * yi +
+         matvec_warp.mm.mat[1][2] * zi + matvec_warp.vv.xyz[1]          ;
+   *zo = matvec_warp.mm.mat[2][0] * xi + matvec_warp.mm.mat[2][1] * yi +
+         matvec_warp.mm.mat[2][2] * zi + matvec_warp.vv.xyz[2]          ;
+}
+
+/*--------------------------------------------------------------------------*/
 
 int main( int argc , char * argv[] )
 {
@@ -11,9 +30,7 @@ int main( int argc , char * argv[] )
    int nx,ny,nz,nxyz,nval , kk ;
    char * prefix = "warped" ;
    int nopt=1 , verb=0 ;
-   int use_matvec=0 , use_scale=0 ;
-   THD_vecmat matvec ;
-   float scale_a, scale_b, scale_c ;
+   int use_matvec=0 ;
 
    /*-- help? --*/
 
@@ -22,16 +39,19 @@ int main( int argc , char * argv[] )
              "Warp (spatially transform) a 3D dataset.\n"
              "\n"
              "Options\n"
-             "  -verb        = Print out some information along the way.\n"
-             "  -prefix ppp  = Sets the prefix of the output dataset.\n"
-             "  -scale a b c = Scale dataset size by factors 'a', 'b', 'c'\n"
-             "                  along the x-, y-, and z-axes.\n"
-             "  -matvec mmm  = Read a 3x4 affine transform matrix+vector\n"
-             "                  from file 'mmm'.\n"
+             "  -matvec_for mmm  = Read a 3x4 affine transform matrix+vector\n"
+             "                      from file 'mmm'.\n"
+             "                       x_out = Matrix x_in + Vector\n"
+             "  -matvec_inv mmm  = Read a 3x4 affine transform matrix+vector\n"
+             "                      from file 'mmm'.\n"
+             "                       x_in = Matrix x_out + Vector\n"
              "\n"
              "  -linear    } \n"
              "  -cubic     }=> Chooses spatial interpolation method.\n"
              "  -NN        } \n"
+             "\n"
+             "  -verb        = Print out some information along the way.\n"
+             "  -prefix ppp  = Sets the prefix of the output dataset.\n"
             ) ;
       exit(0) ;
    }
@@ -44,83 +64,133 @@ int main( int argc , char * argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      /*-----*/
+     /*-----*/
 
-      if( strcmp(argv[nopt],"-prefix") == 0 ){
-        if( ++nopt >= argc ){
-          fprintf(stderr,"** ERROR: need an argument after -prefix!\n"); exit(1);
-        }
-        prefix = argv[nopt] ; nopt++ ; continue ;
-      }
+     if( strcmp(argv[nopt],"-NN")     == 0 ){
+       mri_warp3D_method( MRI_NN )     ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-linear") == 0 ){
+       mri_warp3D_method( MRI_LINEAR ) ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-cubic")  == 0 ){
+       mri_warp3D_method( MRI_CUBIC )  ; nopt++ ; continue ;
+     }
 
-      /*-----*/
+     /*-----*/
 
-      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
-         verb++ ; nopt++ ; continue ;
-      }
+     if( strcmp(argv[nopt],"-prefix") == 0 ){
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** ERROR: need an argument after -prefix!\n"); exit(1);
+       }
+       prefix = argv[nopt] ; nopt++ ; continue ;
+     }
 
-      /*-----*/
+     /*-----*/
 
-      if( strncmp(argv[nopt],"-matvec",7) == 0 ){
-        MRI_IMAGE *matim ; float *matar ;
+     if( strncmp(argv[nopt],"-verbose",5) == 0 ){
+       verb++ ; nopt++ ; continue ;
+     }
 
-        if( use_matvec ){
-          fprintf(stderr,"** Can't have two -matvec options!\n"); exit(0);
-        }
-        if( use_scale ){
-          fprintf(stderr,"** Can't have -matvec AND -scale options!\n"); exit(0);
-        }
-        if( ++nopt >= argc ){
-           fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
-        }
-        matim = mri_read_ascii( argv[nopt] ) ;
-        if( matim == NULL ){
-          fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
-        }
-        if( matim->nx != 4 || matim->ny != 3 ){
-          fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
-        }
-        matar = MRI_FLOAT_PTR(matim) ;
-        LOAD_MAT  ( matvec.mm, matar[0],matar[1],matar[2],
-                               matar[4],matar[5],matar[6],
-                               matar[8],matar[9],matar[10] ) ;
-        LOAD_FVEC3( matvec.vv, matar[3],matar[7],matar[11] ) ;
-        use_matvec = 1 ; nopt++ ; continue ;
-      }
+     /*-----*/
 
-      /*-----*/
+     if( strncmp(argv[nopt],"-matvec_",8) == 0 ){
+       MRI_IMAGE *matim ; float *matar , dm ;
 
-      if( strncmp(argv[nopt],"-scale",6) == 0 ){
-        if( use_scale ){
-          fprintf(stderr,"** Can't have two -scale options!\n"); exit(0);
-        }
-        if( use_matvec ){
-          fprintf(stderr,"** Can't have -scale AND -matvec options!\n"); exit(0);
-        }
-        if( nopt+3 >= argc ){
-          fprintf(stderr,"** Need 3 arguments after -scale!\n"); exit(0);
-        }
-        scale_a = strtod( argv[++nopt] , NULL ) ;
-        scale_b = strtod( argv[++nopt] , NULL ) ;
-        scale_c = strtod( argv[++nopt] , NULL ) ;
-        if( scale_a <= 0.0 ){
-          fprintf(stderr,"** First argument after -scale is illegal!\n");
-        }
-        if( scale_b <= 0.0 ){
-          fprintf(stderr,"** Second argument after -scale is illegal!\n");
-        }
-        if( scale_c <= 0.0 ){
-          fprintf(stderr,"** Third argument after -scale is illegal!\n");
-        }
-        if( scale_a <= 0.0 || scale_b <= 0.0 || scale_c <= 0.0 ) exit(1) ;
-        if( scale_a == 1.0 && scale_b == 1.0 && scale_c == 1.0 ){
-          fprintf(stderr,"** Can't have all scale factors = 1!\n"); exit(1);
-        }
-        use_scale = 1 ; nopt++ ; continue ;
-      }
+       if( use_matvec ){
+         fprintf(stderr,"** Can't have two -matvec options!\n"); exit(0);
+       }
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
+       }
+       matim = mri_read_ascii( argv[nopt] ) ;
+       if( matim == NULL ){
+         fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
+       }
+       if( matim->nx != 4 || matim->ny != 3 ){
+         fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
+       }
 
-      fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
-      exit(1) ;
+       matar = MRI_FLOAT_PTR(matim) ;
+       use_matvec = (strstr(argv[nopt-1],"_for") != NULL) ? MATVEC_FOR : MATVEC_BAC ;
+
+       switch( use_matvec ){
+
+         case MATVEC_FOR:
+           LOAD_MAT  ( matvec_for.mm, matar[0],matar[1],matar[2],
+                                      matar[4],matar[5],matar[6],
+                                      matar[8],matar[9],matar[10] ) ;
+           LOAD_FVEC3( matvec_for.vv, matar[3],matar[7],matar[11] ) ;
+
+           dm = MAT_DET( matvec_for.mm ) ;
+           if( dm == 0.0 ){
+             fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
+           }
+
+           matvec_bac.mm = MAT_INV( matvec_for.mm ) ;
+           matvec_bac.vv = MATVEC( matvec_bac.mm , matvec_for.vv ) ;
+           NEGATE_FVEC3( matvec_bac.vv ) ;
+         break ;
+
+         case MATVEC_BAC:
+           LOAD_MAT  ( matvec_bac.mm, matar[0],matar[1],matar[2],
+                                      matar[4],matar[5],matar[6],
+                                      matar[8],matar[9],matar[10] ) ;
+           LOAD_FVEC3( matvec_bac.vv, matar[3],matar[7],matar[11] ) ;
+
+           dm = MAT_DET( matvec_bac.mm ) ;
+           if( dm == 0.0 ){
+             fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
+           }
+
+           matvec_for.mm = MAT_INV( matvec_bac.mm ) ;
+           matvec_for.vv = MATVEC( matvec_for.mm , matvec_bac.vv ) ;
+           NEGATE_FVEC3( matvec_for.vv ) ;
+         break ;
+       }
+
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+#if 0
+     if( strncmp(argv[nopt],"-scale",6) == 0 ){
+       if( use_scale ){
+         fprintf(stderr,"** Can't have two -scale options!\n"); exit(0);
+       }
+       if( use_matvec ){
+         fprintf(stderr,"** Can't have -scale AND -matvec options!\n"); exit(0);
+       }
+       if( nopt+3 >= argc ){
+         fprintf(stderr,"** Need 3 arguments after -scale!\n"); exit(0);
+       }
+       scale_a = strtod( argv[++nopt] , NULL ) ;
+       scale_b = strtod( argv[++nopt] , NULL ) ;
+       scale_c = strtod( argv[++nopt] , NULL ) ;
+       if( scale_a <= 0.0 ){
+         fprintf(stderr,"** First argument after -scale is illegal!\n");
+       }
+       if( scale_b <= 0.0 ){
+         fprintf(stderr,"** Second argument after -scale is illegal!\n");
+       }
+       if( scale_c <= 0.0 ){
+         fprintf(stderr,"** Third argument after -scale is illegal!\n");
+       }
+       if( scale_a <= 0.0 || scale_b <= 0.0 || scale_c <= 0.0 ) exit(1) ;
+       if( scale_a == 1.0 && scale_b == 1.0 && scale_c == 1.0 ){
+         fprintf(stderr,"** Can't have all scale factors = 1!\n"); exit(1);
+       }
+       use_scale = 1 ; nopt++ ; continue ;
+     }
+#endif
+
+     fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
+     exit(1) ;
+   }
+
+   if( !use_matvec ){
+     fprintf(stderr,"** Don't you want to use -matvec?\n") ;
+     exit(1) ;
    }
 
    /*-- last argument should be a dataset --*/
@@ -139,6 +209,9 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]) ;
       exit(1) ;
    }
+
+   /*-- load corners of input data --*/
+
 
    /*-- make empty output dataset --*/
 

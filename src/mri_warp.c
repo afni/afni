@@ -10,7 +10,6 @@
 
 /*** functions to "warp" images -- not very efficient, but quite general ***/
 
-
 #ifdef __GNUC__
 # define INLINE inline
 #else
@@ -159,8 +158,8 @@ MRI_IMAGE *mri_warp_bicubic( MRI_IMAGE *im , int nxnew , int nynew ,
    new = mri_new( nxnew , nynew , MRI_float ) ;   /* output image */
    nar = mri_data_pointer( new ) ;                /* output image data */
 
-   bot = top = far[0] ;                       /* 29 Mar 2003: */
-   for( ii=1 ; ii < new->nvox ; ii++ ){       /* clip output data range */
+   bot = top = far[0] ;                        /* 29 Mar 2003: */
+   for( ii=1 ; ii < imfl->nvox ; ii++ ){       /* clip output data range */
           if( far[ii] > top ) top = far[ii] ;
      else if( far[ii] < bot ) bot = far[ii] ;
    }
