@@ -794,7 +794,7 @@ if(off_x && off_y) {
 	return;
 	}
 if(debug_flag>1) fprintf(stderr,"Couldn't parse offset values.\n");
-exit();
+exit(0);
 }
 
 big_Usage()
