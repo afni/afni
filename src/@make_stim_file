@@ -1,0 +1,550 @@
+#!/bin/tcsh -f
+
+#
+# usage @m -outfile OUTFILE -maxreps REPS
+#
+# options:  -outfile    OUTFILE         : filename for 'binary' output
+#           -maxreps	REPS		: the maximum number of repetitions
+#           -no_headers			: do not include headers
+#
+#           -debug      LEVEL           : specify level of debug output
+#           -help			: get information about the program
+
+#----------------------------------------------------------------------
+
+####################################################################
+# variable initialization
+
+set prog_name = $0:t
+set endstr    = "$prog_name ... finished"
+set debug     = 0
+set start_dir = $cwd
+set temp_dir  = tempdir.ref.$$
+set temp_out  = tmp.outfile	# not matching f_prefix
+set f_prefix  = temp.
+
+
+####################################################################
+# check for no options
+
+if ( $#argv == 0 ) then
+    echo "usage: $prog_name [options] -outfile OUTFILE"
+    echo "usage: $prog_name -help"
+    set endstr = ""
+    goto L_GOOD_END
+endif
+
+####################################################################
+# parse the command line
+
+# init command line arg values
+
+set i_maxreps 	= 0
+set i_outfile	= ""
+set i_headers 	= 1	# default is to include them
+
+# check for options
+
+set args     = $#argv
+set count    = 1
+
+while ( $count <= $args )
+    switch ( "$argv[$count]" )
+
+	# ----------------------------------------------------------
+	# usage: -outfile OUTFILE
+	case "-outfile":
+
+	    if ( $count >= $args ) then
+		set endstr = "arg usage: -outfile OUTFILE"
+		goto L_BAD_END
+	    endif
+
+	    @ count ++
+	    set i_outfile  = $argv[$count]
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -maxreps
+	case "-maxreps"
+
+	    if ( $count >= $args ) then
+		set endstr = "arg usage: -maxreps REPS"
+		goto L_BAD_END
+	    endif
+
+	    @ count ++
+	    set i_maxreps  = $argv[$count]
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -no_headers
+	case "-no_headers"
+
+	    set i_headers  = 0
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -debug DEBUG_LEVEL
+	case "-debug":
+
+	    if ( $count >= $args ) then
+		set endstr = "arg usage: -debug DEBUG_LEVEL"
+		goto L_BAD_END
+	    endif
+
+	    @ count ++
+
+	    set debug = $argv[$count]
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage: -help
+	case "-h":
+	case "-help":
+
+	    goto L_HELP_END		# and don't ya' come back, neither
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# bad argument
+	default:
+
+	    set endstr = "invalid option: '$argv[$count]'"
+	    goto L_BAD_END
+
+	breaksw
+    endsw
+
+    @ count ++
+end
+
+if ( $debug ) then
+    echo "-- prog   : '$prog_name'"
+    echo "-- outfile: '$i_outfile'"
+    echo "-- maxreps: '$i_maxreps'"
+    echo "-- headers: '$i_headers'"
+    echo ""
+    echo "-- startdir: '$start_dir'"
+    echo "-- tempdir : '$temp_dir'"
+    echo "-- tempout : '$temp_out'"
+    echo "-- f_prefix: '$f_prefix'"
+    echo "-- debug   : '$debug'"
+
+    if ( $debug >= 2 ) set echo
+endif
+
+####################################################################
+# verify programs, options and permissions
+
+# verify 1dcat
+`which 1dcat` >& /dev/null
+if ( $status ) then
+    set endstr = "failure: you need the program '1dcat' for this script"
+    goto L_BAD_END
+endif
+
+### verify options ###
+
+# outfile
+if ( "$i_outfile" == "" ) then
+    echo "error: output file is required"
+    set endstr = "try '$prog_name -help' for more information"
+else if ( -e $i_outfile ) then
+    echo "failure: output file '$i_outfile' already exists"
+    set endstr = "please remove output file before restarting"
+    goto L_BAD_END
+endif
+
+# maxreps
+if ( $i_maxreps < 0 || $i_maxreps > 1000000 ) then
+    set endstr = "error: maxreps value '$i_maxreps' is outside [0,1000000]"
+    goto L_BAD_END
+endif
+
+# help    has nothing to check
+
+####################################################################
+# create and temp work directory and output file
+
+# prepare to clean up after ourselves (if only cats would do that...)
+#                                     (clean up after us, I mean...)
+onintr L_CLEAN_FILES
+
+if ( -e $temp_dir ) then
+    echo "failure: temporary directory '$temp_dir' exists"
+    set endstr = "please remove temporary directory before restarting"
+    goto L_BAD_END
+endif
+
+mkdir $temp_dir
+
+if ( $status ) then
+    echo "failure: cannot create temporary directory '$temp_dir'"
+
+    if ( ! -w . ) then
+	set endstr = "no write permissions for present directory"
+    else
+	set endstr = ""
+    endif
+
+    goto L_BAD_END
+endif
+
+if ( $debug ) echo "++ created temp dir '$temp_dir'"
+
+cd $temp_dir
+
+####################################################################
+# hmmm, I guess we could actually start doing something...
+#
+# I know, let's get some data to play with!
+
+#-------------------------------------------------------------------
+# get headers
+
+echo "Please enter your list of column headers, all on one line:"
+echo "   e.g. -> Blue Green"
+echo ""
+echo -n " headers -> "
+
+set header_list = ( $< )
+echo ""
+
+if ( $#header_list < 1 ) then
+    set endstr = "failure: did not find any headers"
+    goto L_BAD_END
+endif
+
+if ( $debug ) echo "-- using header list: $header_list"
+
+#-------------------------------------------------------------------
+# for each header, create a temp file
+
+# init file list to empty
+set temp_flist = ""
+
+foreach header ( $header_list )
+    set temp_file = "$f_prefix$header"
+
+    if ( -f $temp_file ) then
+	# should not happen since we're using a temp directory, but hey...
+        echo "failure: $temp_file already exists, please remove it"
+        goto L_BAD_END
+    endif
+
+    touch $temp_file
+
+    if ( $status ) then
+	if ( ! -w . ) then
+	     echo "failure: temp directory '$temp_dir' is not writable"
+	     echo "     --> perhaps you need to fix your 'umask'"
+	endif
+
+        set endstr = "failure: cannot create temp file '$temp_file'"
+        goto L_BAD_END
+    endif
+
+    if ( $debug ) echo "++ temp file '$temp_file' created"
+
+    set temp_flist = ( $temp_flist $temp_file )
+end
+
+if ( $debug ) echo "temp file list is '$temp_flist'"
+
+#-------------------------------------------------------------------
+# for each header, fill the temp file
+
+# compute local maxreps from input lists
+set l_maxreps = 0
+
+foreach header ( $header_list )
+    echo "Please enter stimuli times for header '$header', all on one line:"
+    echo "e.g.  '$header' -> 1 4 6 11 15"
+    echo ""
+    echo -n " '$header' -> "
+
+    set stim_times = ( $< )
+    echo ""
+
+    if ( $#stim_times < 1 ) then
+        set endstr = "failure: no stimuli times for header '$header'"
+        goto L_BAD_END
+    endif
+
+    set cur = 1
+    foreach stime ( $stim_times )
+
+        # a zero value means list termination
+	if ( $stime == 0 ) then		# we are done
+	    if ( $debug ) echo "-- early finish for '$header', last is '$cur'"
+
+	    if ( $cur == 1 ) then
+		set endstr = "failure: '$header' list has no entries!"
+		goto L_BAD_END
+	    endif
+
+	    # early termination okay, revert to previous value
+	    @ stime = $cur - 1
+	    break
+	endif
+
+        if ( $cur > $stime ) then
+            echo "error: ascending mismatch for '$header', value '$stime'"
+            goto L_BAD_END
+        endif
+
+        while ($cur < $stime )
+            echo "0"               >> $f_prefix$header
+            @ cur ++
+        end
+
+        echo "1"                   >> $f_prefix$header
+        @ cur ++
+    end
+
+    # track the overall max
+    if ( $stime > $l_maxreps) set l_maxreps = $stime
+
+    if ( $debug ) echo "++ file '$f_prefix$header' filled with '$stime' entries"
+end
+
+#-------------------------------------------------------------------
+# get total reps from user - i_maxreps will hold final value
+
+# if we need input
+if ( $i_maxreps == 0 ) then
+    echo "Please enter the total number of reps you want to use."
+    echo "Use 0 if you want to use the maximum from previous inputs."
+    echo -n " maxreps -> "
+    set i_maxreps = $<
+endif
+if ( $i_maxreps <= 0 ) set i_maxreps = $l_maxreps
+
+# verify input against calculation
+if ( $i_maxreps < $l_maxreps ) then
+    set endstr = ( "failure: entered reps '$i_maxreps' is less than computed" \
+    		   "reps '$l_maxreps'" )
+    goto L_BAD_END
+endif
+
+if ( $debug ) echo "-- using max reps of '$i_maxreps'"
+
+#-------------------------------------------------------------------
+# pad files with trailing zeros
+
+foreach header ( $header_list )
+    @ count = $i_maxreps - `wc -l $f_prefix$header | awk '{print $1}'`
+
+    if ( $debug && $count ) then
+	 echo "-- '$count' trailing 0s appended to '$f_prefix$header'"
+    endif
+
+    while ( $count > 0 )
+        echo "0"                   >> $f_prefix$header
+        @ count --
+    end
+end
+
+#-------------------------------------------------------------------
+# put it all together
+
+1dcat $temp_flist > $temp_out
+
+if ( $status ) then
+    set endstr = "failure: 1dcat failed or we cannot write to '$temp_out'"
+    goto L_BAD_END
+endif
+
+# write headers to outfile (the space is to match the output of 1dcat)
+if ( $i_headers ) then
+    echo "# $header_list" 	>  $i_outfile
+else
+    touch $i_outfile
+endif
+
+# add data to outfile
+cat $temp_out		>> $i_outfile
+
+if ( $status ) then
+    set endstr = "failure: cannot append to output file '$i_outfile'"
+    goto L_BAD_END
+endif
+
+# saved for last, actually create the final output file
+mv $i_outfile $start_dir
+
+if ( $status ) then
+    set endstr = "failure: cannot write output file '$i_outfile'"
+    goto L_BAD_END
+endif
+
+# finished, continue to L_GOOD_END
+
+set endstr = "$prog_name finished, output file is '$i_outfile'"
+goto L_GOOD_END
+
+####################################################################
+# if you can't get help here, please get help somewhere...
+
+L_HELP_END:
+
+echo ""
+echo "$prog_name - create a time series file, suitable for 3dDeconvolve"
+echo ""
+echo "    This script reads in column headers and stimulus times for"
+echo "    each header (integers), and computes a 'binary' file (all"
+echo "    0s and 1s) with column headers, suitable for use as input to"
+echo "    3dDeconvolve."
+echo ""
+echo "    The user must specify an output file on the command line (using"
+echo "    -outfile), and may specify a maximum repetition number for rows"
+echo "    of output (using -maxreps)."
+echo "------------------------------"
+echo "  Usage: $prog_name [options] -outfile OUTFILE"
+echo ""
+echo "  examples:"
+echo ""
+echo "    $prog_name -outfile green_n_gold"
+echo "    $prog_name -outfile green_n_gold < my_input_file"
+echo "    $prog_name -maxreps 200 -outfile green_n_gold -headers"
+echo "    $prog_name -help"
+echo "    $prog_name -maxreps 200 -outfile green_n_gold -debug 1"
+echo "------------------------------"
+echo "  options:"
+echo ""
+echo "    -help            : show this help information"
+echo ""
+echo "    -debug LEVEL     : print debug information along the way"
+echo "          e.g. -debug 1"
+echo "          the default is 0, max is 2"
+echo ""
+echo "    -outfile OUTFILE : (required) results are sent to this output file"
+echo "          e.g. -outfile green.n.gold.out"
+echo ""
+echo "    -maxreps REPS    : use REPS as the maximum repeptition time"
+echo "          e.g. -maxreps 200"
+echo "          the default is to use the maximum rep time from the input"
+echo ""
+echo "          This option basically pads the output columns with 0s,"
+echo "          so that each column has REPS rows (of 1s and 0s)."
+echo ""
+echo "    -no_headers      : do not include headers in output file"
+echo "          e.g. -no_headers"
+echo "          the default is print column headers (# commented out)"
+echo "------------------------------"
+echo "  Notes:"
+echo ""
+echo "    1. It is probably easiest to use redirection from an input file"
+echo "       for execution of the program.  That way, mistakes can be more"
+echo "       easily fixed and retried.  See 'Sample execution 2'."
+echo ""
+echo "    2. Since most people start off with stimulus data in colums, and"
+echo "       since this program requires input in rows for each header, it"
+echo "       may be easiest to go through a few initial steps:"
+echo "           - make sure all data is in integer form"
+echo "           - make sure all blank spaces are filled with 0"
+echo "           - save the file to an ascii data file (without headers)"
+echo "           - use AFNI program '1dtranspose' to convert column data"
+echo "             to row format"
+echo "           - add the column headers back to the top of the ascii file"
+echo ""
+echo "    3. The -maxreps option is recommended when using redirection, so"
+echo "       that the user does not have to add the value to the bottom of"
+echo "       the file."
+echo "------------------------------"
+echo "  Sample execution 1: (typing input on command line)"
+echo ""
+echo "    a. executing the following command:"
+echo ""
+echo "       $prog_name -outfile red_blue_out"
+echo ""
+echo "    b. and providing input data as follows:"
+echo ""
+echo "       headers -> red blue"
+echo "       'red' -> 2 4"
+echo "       'blue' -> 2 3 5"
+echo "       maxreps -> 6"
+echo ""
+echo "    c. will produce 'red_blue_out', containing:"
+echo ""
+echo "       red blue"
+echo "       0 0"
+echo "       1 1"
+echo "       0 1"
+echo "       1 0"
+echo "       0 1"
+echo "       0 0"
+echo "------------------------------"
+echo "  Sample execution 2: (using redirection)"
+echo ""
+echo "    a. given input file 'my_input_file': (a text file with input data)"
+echo ""
+echo "       red blue"
+echo "       2 4"
+echo "       2 3 5"
+echo "       6"
+echo ""
+echo "    b. run the script using redirection with -maxreps option"
+echo ""
+echo "      $prog_name -maxreps 6 -outfile red_blue_out < my_input_file"
+echo ""
+echo "    c. now there exists output file 'red_blue_out':"
+echo ""
+echo "       red blue"
+echo "       0 0"
+echo "       1 1"
+echo "       0 1"
+echo "       1 0"
+echo "       0 1"
+echo "       0 0"
+echo "------------------------------"
+echo "  R. Reynolds"
+echo "------------------------------"
+
+exit	# we are outta' here...
+
+####################################################################
+# finished!
+
+L_GOOD_END:
+
+if ( $debug > 1 ) unset echo
+
+echo ""
+if ( "$endstr" != "" ) then
+    echo "$endstr"
+    echo ""
+endif
+
+goto L_CLEAN_FILES
+
+####################################################################
+# failure!
+
+L_BAD_END:
+
+echo ""
+if ( "$endstr" != "" ) echo "$endstr"
+echo program failure: exiting...
+echo ""
+
+goto L_CLEAN_FILES
+
+####################################################################
+# remove temporary files - all in temp_dir
+
+L_CLEAN_FILES:
+
+cd $start_dir
+
+# die! die! die!
+if ( -d $temp_dir ) \rm -rf $temp_dir
+
+exit 	# just for the taste of it, Diet Coke
+
