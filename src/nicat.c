@@ -7,17 +7,22 @@
 int main( int argc , char *argv[] )
 {
    NI_stream ns ;
-   char lbuf[NBUF] ;
-   int nn , nl=0 , jj , ntot=0 , ct , ech ;
+   char lbuf[NBUF] , *reop=NULL ;
+   int nn , nl=0 , jj , ntot=0 , ct , ech , iarg=1 ;
 
    if( argc < 2 ){
-      fprintf(stderr,"Usage: nicat [-rR] streamspec\n");exit(0);
+      fprintf(stderr,"Usage: nicat [-reopen rr] [-rR] streamspec\n");exit(0);
+   }
+
+   if( strcmp(argv[iarg],"-reopen") == 0 ){
+     reop = argv[++iarg] ;
+     iarg++ ;
    }
 
    /** write stdin to the stream **/
 
-   if( toupper(argv[1][1]) != 'R' ){
-     ns = NI_stream_open( argv[1] , "w" ) ;
+   if( toupper(argv[iarg][1]) != 'R' ){
+     ns = NI_stream_open( argv[iarg] , "w" ) ;
      if( ns == NULL ){
         fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
      }
@@ -26,6 +31,13 @@ int main( int argc , char *argv[] )
        if( nn == 1 ){ fprintf(stderr,"!\n") ; break ; }
        if( nn <  0 ){ fprintf(stderr,"BAD\n"); exit(1) ; }
        fprintf(stderr,"-") ;
+     }
+     if( reop ){                                 /* 23 Aug 2002 */
+       fprintf(stderr,"reopening") ;
+       nn = NI_stream_reopen( ns , reop ) ;
+       if( nn == 0 ) fprintf(stderr,".BAD") ;
+       else          fprintf(stderr,".GOOD") ;
+       fprintf(stderr,"\n") ;
      }
      ct = NI_clock_time() ;
      while(1){
@@ -46,11 +58,11 @@ int main( int argc , char *argv[] )
 
    /** write the stream to stdout */
 
-   if( argc < 3 ){ fprintf(stderr,"%s needs argv[2]\n",argv[1]); exit(1); }
+   if( argc < iarg+2 ){ fprintf(stderr,"%s needs argv[%d]\n",argv[1],iarg+1); exit(1); }
 
-   ech = (argv[1][1] == 'r') ;
+   ech = (argv[iarg][1] == 'r') ;
 
-   ns = NI_stream_open( argv[2], (argv[1][2]=='\0') ? "r" : "w" ) ;
+   ns = NI_stream_open( argv[iarg+1], (argv[iarg][2]=='\0') ? "r" : "w" ) ;
    if( ns == NULL ){
       fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
    }
@@ -59,6 +71,13 @@ int main( int argc , char *argv[] )
      if( nn == 1 ){ fprintf(stderr,"!\n") ; break ; }
      if( nn <  0 ){ fprintf(stderr,"BAD\n"); exit(1) ; }
      fprintf(stderr,"+") ;
+   }
+   if( reop ){                                 /* 23 Aug 2002 */
+     fprintf(stderr,"reopening") ;
+     nn = NI_stream_reopen( ns , reop ) ;
+     if( nn == 0 ) fprintf(stderr,".BAD") ;
+     else          fprintf(stderr,".GOOD") ;
+     fprintf(stderr,"\n") ;
    }
    ct = NI_clock_time() ;
    while(1){

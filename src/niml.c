@@ -51,6 +51,12 @@ typedef struct { int num; int *ar; } int_array ;
 typedef struct { int num; char **str;} str_array ;
 
 /****************************************************************************/
+
+/* Prototypes for internal functions. */
+
+static void NI_stream_close_keep( NI_stream_type * ) ;
+
+/****************************************************************************/
 /*********************** NIML Utility functions *****************************/
 /****************************************************************************/
 
@@ -4643,14 +4649,19 @@ int NI_trust_host( char *hostid )
 static key_t SHM_string_to_key( char * key_string )
 {
    int ii , sum ;
+   key_t kk ;
 
-   sum = 666 ;
+   sum = 987654321 ;
    if( key_string == NULL ) return (key_t) sum ;
 
    for( ii=0 ; key_string[ii] != '\0' ; ii++ )
       sum += ((int)key_string[ii]) << ((ii%3)*8) ;
 
-   return (key_t) sum ;
+   kk = (key_t) sum ;
+#ifdef IPC_PRIVATE
+   if( kk == IPC_PRIVATE ) kk = 666 ;
+#endif
+   return kk ;
 }
 
 /*---------------------------------------------------------------
@@ -4797,6 +4808,7 @@ static int SHM_fill_accept( SHMioc *ioc )
          - The size strings can end in 'K' to multiply by 1024,
             or end in 'M' to multiply by 1024*1024.
          - If neither size is given, a default value is used.
+         - If only size1 is given, size2=size1.
 
   mode = "w" to open a new shared memory channel
        = "r" to log into a channel created by someone else
@@ -4839,6 +4851,7 @@ static SHMioc * SHM_init( char * name , char * mode )
             if( *kend == 'K' || *kend == 'k' ){ size1 *= 1024     ; kend++; }
        else if( *kend == 'M' || *kend == 'm' ){ size1 *= 1024*1024; kend++; }
      }
+     size2 = size1 ;  /* 23 Aug 2002 */
 
      /** get size2, if we stopped at a + **/
 
@@ -5484,6 +5497,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->buf     = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize = NI_BUFSIZE ;
       ns->name[0] = '\0' ;
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       ns->bin_thresh = -1 ;     /* write in text mode */
 
@@ -5493,7 +5507,7 @@ NI_stream NI_stream_open( char *name , char *mode )
          ns->io_mode = NI_INPUT_MODE ;
          ns->sd = tcp_listen( port ) ;                   /* set up to listen  */
          if( ns->sd < 0 ){                               /* error? must die!  */
-            NI_free(ns) ; return NULL ;
+            NI_free(ns->buf); NI_free(ns); return NULL;
          }
          ns->bad = TCP_WAIT_ACCEPT ;                     /* not connected yet */
          ii = tcp_readcheck(ns->sd,1) ;                  /* see if ready      */
@@ -5501,7 +5515,7 @@ NI_stream NI_stream_open( char *name , char *mode )
             jj = tcp_accept( ns->sd , NULL,&hend ) ;     /* accept connection */
             if( jj >= 0 ){                               /* if accept worked  */
                CLOSEDOWN( ns->sd ) ;                     /* close old socket  */
-               NI_strncpy(ns->name,hend,255) ;           /* put IP into name  */
+               NI_strncpy(ns->name,hend,256) ;           /* put IP into name  */
                NI_free(hend); ns->bad = 0; ns->sd = jj;  /* and ready to go!  */
             }
          }
@@ -5515,11 +5529,11 @@ NI_stream NI_stream_open( char *name , char *mode )
          ns->io_mode = NI_OUTPUT_MODE ;
          hostp = gethostbyname(host) ;                   /* lookup host on net */
          if( hostp == NULL ){                            /* fails? must die!   */
-             NI_free(ns) ; return NULL ;
+             NI_free(ns->buf); NI_free(ns); return NULL;
          }
          ns->sd  = tcp_connect( host , port ) ;          /* connect to host    */
          ns->bad = (ns->sd < 0) ? TCP_WAIT_CONNECT : 0 ; /* fails? must wait   */
-         NI_strncpy(ns->name,host,255) ;                 /* save the host name */
+         NI_strncpy(ns->name,host,256) ;                 /* save the host name */
          return ns ;
       }
       return NULL ;  /* should never be reached */
@@ -5549,7 +5563,9 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->buf      = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
 
-      NI_strncpy( ns->name , name , 255 ) ;
+      NI_strncpy( ns->name , name , 256 ) ;
+
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       return ns ;
    }
@@ -5584,7 +5600,9 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->buf      = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
 
-      NI_strncpy( ns->name , fname , 255 ) ;
+      NI_strncpy( ns->name , fname , 256 ) ;
+
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       if( ns->io_mode == NI_INPUT_MODE )     /* save the file size */
          ns->fsize = NI_filesize( fname ) ;  /* if we are reading  */
@@ -5639,7 +5657,10 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->buf      = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
 
-      NI_strncpy( ns->name , name , 255 ) ;
+      NI_strncpy( ns->name , name , 256 ) ;
+
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
+
       ns->fsize = -1 ;
 
       return ns ;
@@ -5676,6 +5697,9 @@ NI_stream NI_stream_open( char *name , char *mode )
       }
 
       strcpy( ns->name , "ElvisHasLeftTheBuilding" ) ;
+
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
+
       return ns ;
    }
 
@@ -5703,11 +5727,130 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bufsize  = nn ;
       ns->buf      = data ;
 
-      NI_strncpy( ns->name , name , 255 ) ;
+      NI_strncpy( ns->name , name , 256 ) ;
+
+      NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
+
       return ns ;
    }
 
    return NULL ;  /* should never be reached */
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Re-open a NI_stream on a different channel.  This is only valid
+    if the input stream (ns) is tcp: type.
+     - The new stream (nname) can be of the form "tcp::port",
+       which will reopen the stream to the same host on the new port.
+     - Or the new stream can be of the form "shm:key:size1+size2",
+       but only if the existing stream was opened to localhost.
+
+    If necessary, this function will wait until the connection to the
+    other program is ready.  Then it will exchange the information with
+    the other program about changing things, and will again wait until
+    the new connection is established.  Assuming all goes well, then
+    when this function returns, the input stream (ns) will be modified
+    so that it now refers to the new connection.
+
+    Return value is 1 if things are OK, 0 if not.  Failure can occur
+    because:
+     - Input ns or nname was badly formed.
+     - You tried to open shm: when the input tcp: stream was not to localhost.
+     - The input tcp: stream can't become connected within 10 seconds.
+-----------------------------------------------------------------------------*/
+
+int NI_stream_reopen( NI_stream_type *ns , char *nname )
+{
+   NI_stream_type *nsnew ;
+   int typ_new=0 , port_new , jj,kk ;
+   char msg[1024] ;
+
+   /* check inputs for sanity */
+
+   if( ns == NULL || ns->type != NI_TCP_TYPE ) return 0 ;   /* bad input stream */
+
+   if( nname == NULL || nname[0] == '\0' ) return 0 ;       /* bad new name */
+
+   if( strncmp(nname,"tcp::",5) == 0 ){
+      typ_new = NI_TCP_TYPE ;
+      port_new = strtol(nname+5,NULL,10) ;
+      if( port_new <= 0        ) return 0 ;                 /* bad new port */
+      if( port_new == ns->port ) return 1 ;                 /* same port as before? */
+#ifndef DONT_USE_SHM
+   } else if( strncmp(nname,"shm:" ,4) == 0 ){
+      if( strstr(ns->orig_name,":localhost:") == NULL )     /* can't do shm: to */
+        return 0 ;                                          /* anyone but localhost */
+#endif
+   } else {
+     return 0 ;                                             /* bad new name */
+   }
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_reopen: waiting for original connection to be good\n") ;
+#endif
+
+   /* wait for existing stream to be connected */
+
+   jj = NI_stream_goodcheck( ns , 10000 ) ;   /* wait 10 sec */
+   if( jj <= 0 ) return 0 ;                   /* bad :-( */
+
+   /* open new stream as the writer */
+
+   if( strncmp(nname,"tcp::",5) == 0 ){
+     sprintf(msg,"tcp:%s:%d",ns->name,port_new) ;  /* old hostname */
+   }
+#ifndef DONT_USE_SHM
+   else if( strncmp(nname,"shm:" ,4) == 0 ){
+     NI_strncpy(msg,nname,1024) ;
+   }
+#endif
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_reopen: opening new stream %s\n",msg) ;
+#endif
+
+   nsnew = NI_stream_open( msg, "w" ) ;
+   if( nsnew == NULL ) return 0 ;             /* bad :-( */
+
+   /* send message on old stream to other
+      program, telling it to open the new stream */
+
+   sprintf(msg,"<ni_do ni_verb='reopen' ni_object='%s' />\n",nname) ;
+   kk = strlen(msg) ;
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_reopen: sending message %s",msg) ;
+#endif
+
+   jj = NI_stream_write( ns , msg , kk ) ;
+   if( jj < kk ){
+     NI_stream_close(nsnew) ; return 0 ;  /* bad write! */
+   }
+
+   /* now wait for other program to open the new stream */
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_reopen: waiting for new stream to be good\n") ;
+#endif
+
+   jj = NI_stream_goodcheck( nsnew , 5000 ) ;  /* wait 5 sec */
+   if( jj <= 0 ){
+     NI_stream_close(nsnew) ; return 0 ;  /* never got good */
+   }
+
+   /* if here, new stream is ready:
+      close the old stream and replace its
+      contents with the contents of the new stream */
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_stream_reopen: closing old stream\n") ;
+#endif
+
+   NI_stream_close_keep(ns) ;
+
+   *ns = *nsnew ; NI_free(nsnew) ;
+
+   return 1 ; /* :-) */
 }
 
 /*-----------------------------------------------------------------------*/
@@ -5816,10 +5959,10 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
      - ns was connected to a socket, and now has become disconnected
      - ns is passed in as NULL (bad user, bad bad bad)
      - ns is reading a file or a string, and we are already at its end
-   The only case in which 0 is returned is if the NI_stream is a
-   socket (tcp:) and the socket is waiting for a connection from
-   the other end.  This is also the only case in which input parameter
-   msec is actually used.
+   The only cases in which 0 is returned is if the NI_stream is
+   tcp: or shm: and the stream is waiting for a connection from
+   the other program.  These are also the only cases in which input
+   parameter msec is actually used.
 -------------------------------------------------------------------------*/
 
 int NI_stream_goodcheck( NI_stream_type *ns , int msec )
@@ -5888,7 +6031,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
               jj = tcp_accept( ns->sd , NULL,&bbb ) ;    /* accept connection */
               if( jj >= 0 ){                             /* if accept worked  */
                  CLOSEDOWN( ns->sd ) ;                   /* close old socket  */
-                 NI_strncpy(ns->name,bbb,255) ;          /* put IP into name  */
+                 NI_strncpy(ns->name,bbb,256) ;          /* put IP into name  */
                  NI_free(bbb); ns->bad = 0; ns->sd = jj; /* and ready to go!  */
               }
            }
@@ -5920,13 +6063,10 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Close a NI_stream.  Note that this will also free what ns points to.
-
-    Use the NI_STREAM_CLOSE macro to call this function and then
-    also set the pointer "ns" to NULL.
+/*! Close a NI_stream, but don't free the insides. [23 Aug 2002]
 -------------------------------------------------------------------------*/
 
-void NI_stream_close( NI_stream_type *ns )
+static void NI_stream_close_keep( NI_stream_type *ns )
 {
    if( ns == NULL ) return ;
 
@@ -5952,7 +6092,21 @@ void NI_stream_close( NI_stream_type *ns )
       break ;
    }
 
-   NI_free(ns->buf); NI_free(ns); return;
+   NI_free(ns->buf); return;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Close a NI_stream.  Note that this will also free what ns points to.
+
+    Use the NI_STREAM_CLOSE macro to call this function and then
+    also set the pointer "ns" to NULL.
+-------------------------------------------------------------------------*/
+
+void NI_stream_close( NI_stream_type *ns )
+{
+   if( ns == NULL ) return ;
+
+   NI_stream_close_keep(ns) ; NI_free(ns) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -5964,8 +6118,8 @@ int NI_stream_hasinput( NI_stream_type *ns , int msec )
 {
    int ii ;
 
-   if( ns->npos < ns->nbuf ) return 1 ;
-   return NI_stream_readcheck( ns , msec ) ;
+   if( ns->npos < ns->nbuf ) return 1 ;      /* check if has data in buffer */
+   return NI_stream_readcheck( ns , msec ) ; /* see if any data can be read */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -6416,6 +6570,11 @@ static void reset_buffer( NI_stream_type * ) ;
    case, use NI_stream_readcheck().
 
    This code does not yet grok Line input.
+
+   If a "<ni_do ... />" element is encountered, it will not be
+   returned to the caller.  Instead, the actions it orders will
+   be carried out in function NI_do(), and NULL will be returned
+   to the caller.
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns , int msec )
@@ -6579,7 +6738,7 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
       nel = make_empty_data_element( hs ) ;
       destroy_header_stuff( hs ) ;
 
-      /* check if this is a ni_typedef element */
+      /*-- check if this is a ni_typedef element --*/
 
       if( strcmp(nel->name,"ni_typedef") == 0 ){
          int nn , nt , nd ;
@@ -6599,7 +6758,7 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
          goto HeadRestart ;
       }
 
-      /* check if this is an empty element */
+      /*-- check if this is an empty element --*/
 
       if( nel == NULL          ||     /* nel == NULL should never happen. */
           nel->vec_len == 0    ||     /* These other cases are indication */
@@ -6611,7 +6770,15 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 NI_dpr("NI_read_element: returning empty element\n") ;
 #endif
 
-        return nel ;
+        /*-- 23 Aug 2002: do something? --*/
+
+        if( strcmp(nel->name,"ni_do") == 0 ){
+           NI_do( ns , nel ) ;
+           NI_free_element( nel ) ;
+           return NULL ;
+        }
+
+        return nel ;   /* default: return element */
       }
 
       /*-- If here, must read data from the buffer into nel->vec --*/
@@ -7060,6 +7227,14 @@ NI_dpr("NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
 #ifdef NIML_DEBUG
 NI_dpr("NI_read_element: returning filled data element\n") ;
 #endif
+
+      /*-- 23 Aug 2002: do something? --*/
+
+      if( strcmp(nel->name,"ni_do") == 0 ){
+         NI_do( ns , nel ) ;
+         NI_free_element( nel ) ;
+         return NULL ;
+      }
 
       return nel ;
 
@@ -8126,4 +8301,69 @@ NI_dpr("NI_write_element: adding %d blanks\n",nn) ;
    } /* end of write data element */
 
    return -1 ; /* should never be reachable */
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Carry out an action ordered by a "ni_do" element.
+     - ni_verb='reopen' => open the stream anew and replace it [23 Aug 2002]
+
+    Return value is -1 if an error occurs.
+-----------------------------------------------------------------------------*/
+
+int NI_do( NI_stream_type *ns , NI_element *nel )
+{
+   char *verb , *object ;
+
+   /* check inputs for OK-ositiness */
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_do: enter\n") ;
+#endif
+
+   if( ns == NULL || nel == NULL || nel->type != NI_ELEMENT_TYPE ) return -1 ;
+
+   if( strcmp(nel->name,"ni_do") != 0 ) return -1 ;
+
+   verb   = NI_get_attribute( nel , "ni_verb"   ) ;
+   object = NI_get_attribute( nel , "ni_object" ) ;
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_do: got verb and object\n") ;
+#endif
+
+   if( verb == NULL || verb[0] == '\0' ) return -1 ;
+
+#ifdef NIML_DEBUG
+NI_dpr("verb=%s\n",verb) ;
+#endif
+
+   /*- check for various verbs -*/
+
+   if( strcmp(verb,"reopen") == 0 ){  /* reopen stream */
+
+     NI_stream_type *nsnew ;
+
+#ifdef NIML_DEBUG
+NI_dpr("object=%s\n",object) ;
+#endif
+
+     if( object == NULL || object[0] == '\0' ) return -1 ;  /* bad */
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_do: reopen %s\n",object) ;
+#endif
+
+     nsnew = NI_stream_open( object , "r" ) ;
+     if( nsnew == NULL ) return -1 ;                        /* bad */
+
+#ifdef NIML_DEBUG
+NI_dpr("NI_do: closing old stream\n") ;
+#endif
+
+     NI_stream_close_keep(ns) ;
+     *ns = *nsnew ; NI_free(nsnew) ; return 0 ;
+
+   } /* end reopen */
+
+   return -1 ;  /* shouldn't get here */
 }

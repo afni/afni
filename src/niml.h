@@ -211,7 +211,7 @@ typedef struct {
 #ifndef TYPEDEF_NI_stream_type
 #define TYPEDEF_NI_stream_type
 typedef struct {
-   int type ;        /*!< NI_TCP_TYPE or NI_FILE_TYPE */
+   int type ;        /*!< NI_TCP_TYPE, NI_FILE_TYPE, etc. */
    int bad ;         /*!< Tells whether I/O is OK for this yet */
 
    int port ;        /*!< TCP only: port number */
@@ -233,6 +233,8 @@ typedef struct {
    char *buf ;             /*!< I/O buffer (may be NULL). */
 
    SHMioc *shmioc ;        /*!< for NI_SHM_TYPE only */
+
+   char orig_name[256] ;   /*!< original (input) name when opened */
 } NI_stream_type ;
 #endif
 
@@ -329,6 +331,8 @@ extern char * NI_stream_name( NI_stream_type * ) ;
 extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
 extern int NI_stream_hasinput( NI_stream_type * , int ) ;
+
+extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
