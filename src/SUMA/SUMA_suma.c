@@ -91,6 +91,7 @@ int main (int argc,char *argv[])
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
 	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
+   char *homeenv=NULL, *sumarc=NULL;
 	SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
    SUMA_EngineData *ED= NULL;
@@ -116,6 +117,19 @@ int main (int argc,char *argv[])
 	}
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
+   /* load the environment variables */
+   homeenv = getenv("HOME");
+   if (!homeenv) sumarc = SUMA_copy_string(".sumarc");
+   else sumarc = SUMA_append_string (homeenv, "/.sumarc");
+   
+   if (SUMA_filexists(sumarc)) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      AFNI_process_environ(sumarc); 
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
+   }
+   if (sumarc) SUMA_free(sumarc);
+   
    /* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
 	AfniHostName = NULL; 
