@@ -3483,4 +3483,8 @@
 
 26 Feb 2002
  * Modified afni.c to fix up the bucket widgets in AFNI_setup_viewing() again
-   (cf. 29 Jan 2002)
+     (cf. 29 Jan 2002)
+
+27 Feb 2002
+ * Modified various files to replace "AGNI" with "SUMA" (SUrface MApper).
+     For example, we now have afni_suma.[ch] instead of agni.[ch].
