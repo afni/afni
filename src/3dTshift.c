@@ -481,8 +481,10 @@ int main( int argc , char *argv[] )
                        ADN_ttdel  , TS_TR     ,  /* may have changed */
                        ADN_tunits , TS_tunits ,  /* may have changed */
                        ADN_nsl    , 0         ,  /* will have no offsets when done */
+#if 0
                        ADN_ttorg  , 0.0       ,  /* in case not already set */
                        ADN_ttdur  , 0.0       ,  /* in case not already set */
+#endif
                     ADN_none ) ;
 
    /*---- do the temporal shifting! ----*/

@@ -5324,3 +5324,6 @@
  * Modified 3dTshift.c and to3d.c to have new 'alt+z2' option.
  * New program 3dMedianFilter.
  * Added I:*.1D stuff to 3dcalc.c.
+
+23 Feb 2005
+ * Modified to3d.c to accept -Torg option.
