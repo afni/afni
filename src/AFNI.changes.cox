@@ -3447,5 +3447,8 @@
 
 01 Feb 2002
  * Put most transform functions from afni.c and imseq.c into new file
-       afni_transform.c.
+       afni_transforms.c.
  * Added 3dFDR.c from Doug Ward, and some changes to 3dDeconvolve.
+
+02 Feb 2002
+ * Added extreme_proj() to afni_transforms.c.

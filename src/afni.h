@@ -1700,6 +1700,8 @@ extern float max_proj ( int, float * ) ;
 extern float min_proj ( int, float * ) ;
 extern float mean_proj( int, float * ) ;
 
+extern float extreme_proj( int, float * ) ;  /* 02 Feb 2002 */
+
 /* sample 2D transform functions */
 
 extern void median9_box_func ( int, int, double,double, float * ) ;
