@@ -319,7 +319,7 @@ ENTRY("mri_3dalign_setup") ;
        if( trat < 90.0 ){
          basis->xa = xa ; basis->xb = xb ;
          basis->ya = ya ; basis->yb = yb ;
-         basis->za = za ; basis->zb = yb ;
+         basis->za = za ; basis->zb = zb ;
 
          TRIM(imww) ;
        } else if( verbose ){

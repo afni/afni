@@ -1210,6 +1210,8 @@ void VL_syntax(void)
     "                                  volume).  The purpose of this is to save\n"
     "                                  memory.  The use of '-verbose -verbose'\n"
     "                                  will report on the trimming usage.\n"
+    "                             N.B.: At some point in the future, -wtrim will\n"
+    "                                   become the default.\n"
     "              -wtinp          = Use sub-brick[0] of the input dataset as the\n"
     "                                  weight brick in the final registration pass.\n"
     "\n"

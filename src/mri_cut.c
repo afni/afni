@@ -19,15 +19,17 @@ MRI_IMAGE * mri_cut_2D( MRI_IMAGE * im , int xa, int xb, int ya, int yb )
    MRI_IMAGE * qim ;
    int qx,qy , ps , xx,yy , nx, xps ;
 
+ENTRY("mri_cut_2D") ;
+
    /*-- sanity checks --*/
 
    if( im == NULL || xa < 0 || xb >= im->nx || xb < xa ||
-                     ya < 0 || yb >= im->ny || yb < ya   ) return NULL ;
+                     ya < 0 || yb >= im->ny || yb < ya   ) RETURN(NULL) ;
 
    /*-- pointer to input data --*/
 
    par = (char *) mri_data_pointer( im ) ;
-   if( par == NULL ) return NULL ;          /* sanity check */
+   if( par == NULL ) RETURN(NULL) ;          /* sanity check */
 
    /*-- make output image --*/
 
@@ -45,7 +47,7 @@ MRI_IMAGE * mri_cut_2D( MRI_IMAGE * im , int xa, int xb, int ya, int yb )
    }
 
    MRI_COPY_AUX(qim,im) ;
-   return qim ;
+   RETURN(qim) ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -60,16 +62,18 @@ MRI_IMAGE * mri_cut_3D( MRI_IMAGE * im ,
    MRI_IMAGE * qim ;
    int qx,qy,qz, ps , xx,yy,zz , nx,nxy , xps ;
 
+ENTRY("mri_cut_3D") ;
+
    /*-- sanity checks --*/
 
    if( im == NULL || xa < 0 || xb >= im->nx || xb < xa ||
                      ya < 0 || yb >= im->ny || yb < ya ||
-                     za < 0 || zb >= im->nz || zb < za   ) return NULL ;
+                     za < 0 || zb >= im->nz || zb < za   ) RETURN(NULL) ;
 
    /*-- pointer to input data --*/
 
    par = (char *) mri_data_pointer( im ) ;
-   if( par == NULL ) return NULL ;          /* sanity check */
+   if( par == NULL ) RETURN(NULL) ;          /* sanity check */
 
    /*-- make output image --*/
 
@@ -89,5 +93,5 @@ MRI_IMAGE * mri_cut_3D( MRI_IMAGE * im ,
    }
 
    MRI_COPY_AUX(qim,im) ;
-   return qim ;
+   RETURN(qim) ;
 }
