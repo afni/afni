@@ -173,6 +173,7 @@ ENTRY("THD_open_nifti") ;
    if( ntt < 2 ){
      EDIT_dset_items( dset ,
                         ADN_nvals     , nbuc ,
+                        ADN_datum_all , datum ,
                         ADN_func_type , (statcode != 0) ? FUNC_BUCK_TYPE
                                                         : ANAT_BUCK_TYPE ,
                       ADN_none ) ;
@@ -182,12 +183,13 @@ ENTRY("THD_open_nifti") ;
           if( nim->time_units == NIFTI_UNITS_MSEC ) nim->dt *= 0.001 ;
      else if( nim->time_units == NIFTI_UNITS_USEC ) nim->dt *= 1.e-6 ;
      EDIT_dset_items( dset ,
-                        ADN_nvals    , ntt ,
-                        ADN_ntt      , ntt ,
-                        ADN_ttorg    , 0.0 ,
-                        ADN_ttdel    , nim->dt ,
-                        ADN_ttdur    , 0.0 ,
-                        ADN_tunits   , UNITS_SEC_TYPE ,
+                        ADN_nvals     , ntt ,
+                        ADN_ntt       , ntt ,
+                        ADN_datum_all , datum ,
+                        ADN_ttorg     , 0.0 ,
+                        ADN_ttdel     , nim->dt ,
+                        ADN_ttdur     , 0.0 ,
+                        ADN_tunits    , UNITS_SEC_TYPE ,
                         ADN_func_type , (statcode != 0) ? FUNC_FIM_TYPE
                                                         : ANAT_EPI_TYPE ,
                       ADN_none ) ;

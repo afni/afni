@@ -1045,3 +1045,9 @@
   * modified nifti/niftilib/Makefile: added nifti1_io.o target, for USEZLIB
   * modified nifti/znzlib/Makefile: removed USEZLIB defn.
   * modified nifti/utils/nifti_tool.c: (v 1.5) cannot mod_hdr on gzipped file(s)
+
+06 April 2005:
+  * modified thd_niftiread.c to set ADN_datum with any ADN_ntt or ADN_nvals
+  * modified edt_dsetitems.c to init new brick types to that of sub-brick 0,
+    in the case where a type array is not provided
+
