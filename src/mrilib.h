@@ -965,9 +965,9 @@ typedef struct { int i,j,k; } int_triple ;
 /*-----------------  02 Feb 1998:
                      incoroporation of 3ddata, 3dmaker, iochan -----------*/
 
+#include "thd_iochan.h"
 #include "3ddata.h"
 #include "thd_maker.h"
-#include "thd_iochan.h"
 #include "editvol.h"
 
 #include "cs.h"            /* 17 Aug 1998 addition */

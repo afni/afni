@@ -9,8 +9,8 @@
 
 /***** Header for TCP/IP and shared memory "I/O channels" *****/
 
-#ifdef CYGWIN
-#define DONT_USE_SHM
+#if defined(CYGWIN) && !defined(DONT_USE_SHM)
+# define DONT_USE_SHM
 #endif
 
 #include <sys/types.h>

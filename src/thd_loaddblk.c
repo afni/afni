@@ -65,8 +65,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*-- sanity checks --*/
 
    if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ){
-     STATUS("Illegal inputs") ;
-     RETURN( False );
+     STATUS("Illegal inputs"); RETURN( False );
    }
 
    ii = THD_count_databricks( blk ) ;
@@ -77,15 +76,15 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
    }
 
+   /* these next 2 conditions should never happen */
+
    dkptr = blk->diskptr ;
    if( ! ISVALID_DISKPTR(dkptr) || dkptr->storage_mode == STORAGE_UNDEFINED ){
-      STATUS("invalid dkptr") ;
-      RETURN( False );
+     STATUS("invalid dkptr"); RETURN( False );
    }
 
    if( dkptr->rank != 3 ){
-      fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n") ;
-      RETURN( False );
+     fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n"); RETURN(False);
    }
 
    if( dkptr->storage_mode == STORAGE_BY_VOLUMES ) no_mmap = 1 ;  /* 20 Jun 2002 */
@@ -147,12 +146,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    nz = dkptr->dimsizes[2] ;  nxyz  = nxy * nz  ;
    nv = dkptr->nvals       ;  nxyzv = nxyz * nv ; ntot = blk->total_bytes ;
 
-   if( DBLK_IS_MASTERED(blk) )                  /* 11 Jan 1999 */
+   if( DBLK_IS_MASTERED(blk) && blk->malloc_type == DATABLOCK_MEM_MMAP ) /* 11 Jan 1999 */
       blk->malloc_type = DATABLOCK_MEM_MALLOC ;
 
    /* the following code is due to Mike Beauchamp's idiocy */
 
-   if( !THD_datum_constant(blk) ){              /* 14 Mar 2002 */
+   if( !THD_datum_constant(blk) && blk->malloc_type == DATABLOCK_MEM_MMAP ){ /* 14 Mar 2002 */
      fprintf(stderr,"++ WARNING: dataset %s: non-uniform sub-brick types\n",
              blk->diskptr->filecode) ;
      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
@@ -175,104 +174,26 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    /* under some circumstances, we must force use of malloc() */
 
-   if( dkptr->byte_order != native_order || no_mmap )
-      blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+   if( dkptr->byte_order != native_order || no_mmap ){
+     if( blk->malloc_type == DATABLOCK_MEM_MMAP )
+       blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+   }
 
    /** set up space for bricks via malloc, if so ordered **/
 
-   if( blk->malloc_type == DATABLOCK_MEM_MALLOC ){
+   if( blk->malloc_type == DATABLOCK_MEM_MALLOC ||
+       blk->malloc_type == DATABLOCK_MEM_SHARED   ){
 
-      /** malloc space for each brick separately **/
+     ii = THD_alloc_datablock( blk ) ;   /* 02 May 2003 */
+     if( ii == 0 ) RETURN(False) ;
 
-      for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
-         if( DBLK_ARRAY(blk,ibr) == NULL ){
-            ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
-            mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
-            if( ptr == NULL ) nbad++ ;
-         }
-      }
-
-      /* at least one malloc() failed, so possibly try to free some space */
-
-      if( nbad > 0 ){
-         fprintf(stderr,
-                "\n*** failed to malloc %d dataset bricks out of %d - is memory exhausted?\n",
-                nbad,nv ) ;
-#ifdef USING_MCW_MALLOC
-         { char * str = MCW_MALLOC_status ;
-           if( str != NULL )
-             fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
-         }
-#endif
-
-         /* space freeing is done by caller-supplied function freeup() */
-
-         if( freeup != NULL ){
-            fprintf(stderr,"*** trying to free some memory\n") ; /* 18 Oct 2001 */
-
-            freeup() ;                          /* cf. AFNI_purge_unused_dsets() */
-
-            /* now try to malloc() those that failed before */
-
-            for( ibr=0 ; ibr < nv ; ibr++ ){
-               if( DBLK_ARRAY(blk,ibr) == NULL ){
-                  ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
-                  mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
-               }
-            }
-
-            /* if it still failed, then free everything and go away */
-
-            if( THD_count_databricks(blk) < nv ){
-               fprintf(stderr,"*** cannot free up enough memory\n") ;
-#ifdef USING_MCW_MALLOC
-               { char * str = MCW_MALLOC_status ;
-                 if( str != NULL )
-                   fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
-               }
-#endif
-               for( ibr=0 ; ibr < nv ; ibr++ ){  /* 18 Oct 2001 */
-                 if( DBLK_ARRAY(blk,ibr) != NULL ){
-                    free(DBLK_ARRAY(blk,ibr)) ;
-                    mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
-                 }
-               }
-
-               STATUS("freeup failed") ;
-               RETURN( False );  /* go away */
-
-            /* malloc() didn't fail this time! */
-
-            } else {
-               fprintf(stderr,"*** was able to free up enough memory\n") ;
-#ifdef USING_MCW_MALLOC
-               { char * str = MCW_MALLOC_status ;
-                 if( str != NULL )
-                   fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
-               }
-#endif
-            }
-
-         /* don't have a freeup() function, so just go away */
-
-         } else {
-            for( ibr=0 ; ibr < nv ; ibr++ ){
-              if( DBLK_ARRAY(blk,ibr) != NULL ){
-                 free(DBLK_ARRAY(blk,ibr)) ;
-                 mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
-              }
-            }
-            STATUS("malloc failed") ;
-            RETURN( False );  /* go away */
-         }
-      }
-
-   /** mmap the whole file at once (makes space and reads it all at once) **/
-   /** [if this route is followed, then we will finish here] **/
+   /** mmap whole file (makes space and reads it all at once) **/
+   /** [if this route is followed, then we will finish here]  **/
 
    } else if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
+
       int fd , fsize ;
-      fd = open( dkptr->brick_name , O_RDONLY ) ;
+      fd = open( dkptr->brick_name , O_RDONLY ) ;  /* N.B.: readonly mode */
       if( fd < 0 ){
          fprintf( stderr , "\n*** cannot open brick file %s for mmap\n"
                            "   - do you have permission? does file exist?\n" ,
@@ -300,7 +221,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       ptr = (char *) mmap( 0 , blk->total_bytes ,
                                PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
 
-      /* if that fails, maybe try again (freeup again) */
+      /* if that fails, maybe try again (via freeup) */
 
       if( ptr == (char *)(-1) ){
          fprintf(stderr ,
@@ -315,15 +236,13 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
             if( ptr == (char *)(-1) ){
                fprintf(stderr,"*** cannot fix problem!\n") ;
                close(fd) ;
-               STATUS("freeup failed") ;
-               RETURN( False );
+               STATUS("freeup failed") ; RETURN( False );
             } else {
                fprintf(stderr,"*** was able to fix problem!\n") ;
             }
-         } else {
+         } else {       /* no freeup function to try */
             close(fd) ;
-            STATUS("mmap failed") ;
-            RETURN( False );
+            STATUS("mmap failed") ; RETURN( False );
          }
       }
 
@@ -339,10 +258,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
       STATUS("mmap succeeded") ;
       RETURN( True );  /* finito */
+
+   } else {
+      STATUS("unknown malloc_type code?!") ;
+      RETURN( False ) ;  /* should never happen */
    }
 
    /*** Below here, space for brick images was malloc()-ed,
-        and now we have to read data into them             ***/
+        and now we have to read data into them, somehow    ***/
 
    ptr = getenv("AFNI_LOAD_PRINTSIZE") ;   /* 23 Aug 2002 */
    if( verb && ptr != NULL ){
@@ -353,7 +276,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
        else if( *ept == 'M' || *ept == 'm' ) id *= 1024*1024 ;
        print_size = id ;
      } else {
-       print_size = 2100000000 ;  /* 2 GB */
+       print_size = 1100000000 ;  /* 1 GB */
      }
    }
 
@@ -379,10 +302,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          far = COMPRESS_fopen_read( dkptr->brick_name ) ;
 
          if( far == NULL ){
-            for( ibr=0 ; ibr < nv ; ibr++ ){
-               free( DBLK_ARRAY(blk,ibr) ) ;
-               mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-            }
+            THD_purge_datablock( blk , blk->malloc_type ) ;
             fprintf(stderr,
                     "\n*** failure while opening brick file %s "
                     "- do you have permission?\n" ,
@@ -406,20 +326,22 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          } else {  /* 11 Jan 1999: read brick from master, put into place(s) */
 
             int nfilled = 0 , nbuf=0 , jbr, nbr ;
-            char * buf=NULL ;
+            char * buf=NULL ;  /* temp buffer for master sub-brick */
 
             /* loop over master sub-bricks until dataset is filled */
+            /* [because dataset might be compressed, must read them in
+                sequence, even if some intermediate ones aren't used. ] */
 
             for( ibr=0 ; nfilled < nv && ibr < blk->master_nvals ; ibr++ ){
 
                if( nbuf < blk->master_bytes[ibr] ){  /* make more space for it */
-                  if( buf != NULL ) free(buf) ;
-                  nbuf = blk->master_bytes[ibr] ;
-                  buf  = malloc( sizeof(char) * nbuf ) ;
-                  if( buf == NULL ) break ;
+                 if( buf != NULL ) free(buf) ;
+                 nbuf = blk->master_bytes[ibr] ;
+                 buf  = malloc( sizeof(char) * nbuf ) ;
+                 if( buf == NULL ) break ;
                }
 
-               /* read the master sub-brick */
+               /* read the master sub-brick #ibr */
 
                nbr = fread( buf , 1 , blk->master_bytes[ibr] , far ) ;
                if( verb && ibr%PRINT_STEP == 0 ) fprintf(stderr,".") ;
@@ -428,15 +350,15 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                /* find all the dataset sub-bricks that are copies of this */
 
                for( jbr=0 ; jbr < nv ; jbr++ ){
-                  if( blk->master_ival[jbr] == ibr ){  /* copy it in */
-                     memcpy( DBLK_ARRAY(blk,jbr) , buf , blk->master_bytes[ibr] ) ;
-                     nfilled++ ;  /* number of bricks filled */
-                     id += nbr ;  /* number of bytes read into dataset */
-                  }
+                 if( blk->master_ival[jbr] == ibr ){  /* copy it in */
+                   memcpy( DBLK_ARRAY(blk,jbr) , buf , blk->master_bytes[ibr] ) ;
+                   nfilled++ ;  /* number of bricks filled */
+                   id += nbr ;  /* number of bytes read into dataset */
+                 }
                }
             }  /* end of loop over master sub-bricks */
 
-            if( buf != NULL ) free(buf) ;
+            if( buf != NULL ) free(buf) ;  /* free temp sub-brick */
          }
 
          /* close input file */
@@ -446,10 +368,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          /* check if total amount of data read is correct */
 
          if( id != blk->total_bytes ){
-            for( ibr=0 ; ibr < nv ; ibr++ ){
-               free( DBLK_ARRAY(blk,ibr) ) ;
-               mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-            }
+            THD_purge_datablock( blk , blk->malloc_type ) ;
             fprintf(stderr ,
                     "\n*** failure while reading from brick file %s\n"
                       "*** desired %d bytes but only got %d\n" ,
@@ -476,13 +395,10 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
         /* the following should never happen */
 
         if( atr == NULL || atr->nch < 2*nv ){
+          THD_purge_datablock( blk , blk->malloc_type ) ;
           fprintf(stderr,
                   "Dataset %s does not have legal VOLUME_FILENAMES attribute!\n",
                   blk->diskptr->filecode) ;
-          for( ibr=0 ; ibr < nv ; ibr++ ){
-            free( DBLK_ARRAY(blk,ibr) ) ;
-            mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-          }
           RETURN( False );
         }
 
@@ -558,11 +474,8 @@ fprintf(stderr,"VOL[%d]: opening %s\n",ibr,fnam[ibr]) ;
                       "- do you have permission?\n" ,
                     fnam[ibr] ) ;
               perror("*** Unix error message") ;
-              for( ii=0 ; ii < nv ; ii++ ){
-                free( DBLK_ARRAY(blk,ii) ) ;
-                mri_clear_data_pointer( DBLK_BRICK(blk,ii) ) ;
-                free(fnam[ii]) ;
-              }
+              THD_purge_datablock( blk , blk->malloc_type ) ;
+              for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
             }
 
@@ -582,11 +495,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
               fprintf(stderr,
                       "\n*** Volume file %s only gave %d out of %d bytes needed!\n",
                      fnam[ibr] , id , DBLK_BRICK_BYTES(blk,ibr) ) ;
-              for( ii=0 ; ii < nv ; ii++ ){
-                free( DBLK_ARRAY(blk,ii) ) ;
-                mri_clear_data_pointer( DBLK_BRICK(blk,ii) ) ;
-                free(fnam[ii]) ;
-              }
+              THD_purge_datablock( blk , blk->malloc_type ) ;
+              for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
             }
 
@@ -608,11 +518,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
                       "- do you have permission?\n" ,
                     fnam[ibr] ) ;
               perror("*** Unix error message") ;
-              for( ii=0 ; ii < nv ; ii++ ){
-                free( DBLK_ARRAY(blk,ii) ) ;
-                mri_clear_data_pointer( DBLK_BRICK(blk,ii) ) ;
-                free(fnam[ii]) ;
-              }
+              THD_purge_datablock( blk , blk->malloc_type ) ;
+              for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
             }
 
@@ -628,11 +535,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
               fprintf(stderr,
                       "\n*** Volume file %s only gave %d out of %d bytes needed!\n",
                      fnam[ibr] , id , DBLK_BRICK_BYTES(blk,jbr) ) ;
-              for( ii=0 ; ii < nv ; ii++ ){
-                free( DBLK_ARRAY(blk,ii) ) ;
-                mri_clear_data_pointer( DBLK_BRICK(blk,ii) ) ;
-                free(fnam[ii]) ;
-              }
+              THD_purge_datablock( blk , blk->malloc_type ) ;
+              for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
             }
 
@@ -790,4 +694,139 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
    if( verb ) fprintf(stderr,".done\n") ;
 
    RETURN( True ) ;  /* things are now cool */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Allocate memory for the volumes in a datablock -- 02 May 2003.
+    Return value is 1 if OK, 0 if not.
+------------------------------------------------------------------------------*/
+
+int THD_alloc_datablock( THD_datablock *blk )
+{
+   int ii,nbad,ibr, nv  ;
+   char *ptr ;
+
+ENTRY("THD_alloc_datablock") ;
+
+   /*-- sanity checks --*/
+
+   if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ){
+     STATUS("Illegal inputs"); RETURN(0);
+   }
+
+   nv = blk->nvals ;
+   ii = THD_count_databricks( blk ) ;
+   if( ii == nv ) RETURN(1);   /* already loaded! */
+
+   switch( blk->malloc_type ){
+
+     default: RETURN(0) ;         /* stupid datablock */
+
+     /*-------------------------------------------*/
+     /* malloc separate arrays for each sub-brick */
+     /*-------------------------------------------*/
+
+     case DATABLOCK_MEM_MALLOC:{
+
+      /** malloc space for each brick separately **/
+
+      STATUS("trying to malloc sub-bricks") ;
+      for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
+        if( DBLK_ARRAY(blk,ibr) == NULL ){
+          ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
+          mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
+          if( ptr == NULL ) nbad++ ;
+        }
+      }
+      if( nbad == 0 ) RETURN(1) ;   /* things are cool */
+
+      /* at least one malloc() failed, so possibly try to free some space */
+
+       fprintf(stderr,
+               "\n** failed to malloc %d dataset bricks out of %d - is memory exhausted?\n",
+               nbad,nv ) ;
+#ifdef USING_MCW_MALLOC
+       { char * str = MCW_MALLOC_status ;
+         if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
+#endif
+
+       if( freeup == NULL ){                     /* don't have a freeup() function? */
+         for( ibr=0 ; ibr < nv ; ibr++ ){        /* then toss all data bricks and scram */
+           if( DBLK_ARRAY(blk,ibr) != NULL ){
+             free(DBLK_ARRAY(blk,ibr)) ;
+             mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
+           }
+         }
+         STATUS("malloc failed, no freeup"); RETURN(0);  /* go away */
+       }
+
+       /* space freeing is done by caller-supplied function freeup() */
+
+       fprintf(stderr,"** trying to free some memory\n") ;   /* 18 Oct 2001 */
+       freeup() ;                          /* cf. AFNI_purge_unused_dsets() */
+
+       /* now try to malloc() those that failed before */
+
+       for( ibr=0 ; ibr < nv ; ibr++ ){
+         if( DBLK_ARRAY(blk,ibr) == NULL ){
+           ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
+           mri_fix_data_pointer( ptr ,  DBLK_BRICK(blk,ibr) ) ;
+         }
+       }
+
+       /* if it still failed, then free everything and go away */
+
+       if( THD_count_databricks(blk) < nv ){
+         fprintf(stderr,"** cannot free up enough memory\n") ;
+#ifdef USING_MCW_MALLOC
+         { char * str = MCW_MALLOC_status ;
+           if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
+#endif
+         for( ibr=0 ; ibr < nv ; ibr++ ){  /* 18 Oct 2001 */
+           if( DBLK_ARRAY(blk,ibr) != NULL ){
+             free(DBLK_ARRAY(blk,ibr)) ;
+             mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
+           }
+         }
+         STATUS("malloc failed; freeup failed"); RETURN(0);  /* go away */
+       }
+
+       /* malloc() didn't fail this time! */
+
+       STATUS("malloc failed; freeup worked") ;
+       fprintf(stderr,"*** was able to free up enough memory\n") ;
+#ifdef USING_MCW_MALLOC
+       { char * str = MCW_MALLOC_status ;
+         if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
+#endif
+     }
+     RETURN(1) ;   /* get to here is good */
+
+     /*-------------------------------------------------------------------*/
+     /* create a shared memory segment, then setup sub-bricks inside that */
+     /*-------------------------------------------------------------------*/
+
+     case DATABLOCK_MEM_SHARED:{
+       unsigned int offset ;
+       if( blk->shm_idcode[0] == '\0' ){   /* new segment */
+         UNIQ_idcode_fill( blk->shm_idcode ) ;
+         blk->shm_idint = shm_create( blk->shm_idcode , blk->total_bytes ) ;
+         if( blk->shm_idint < 0 ){ blk->shm_idcode[0] = '\0'; RETURN(0); }
+         ptr = shm_attach( blk->shm_idint ) ;
+         if( ptr == NULL ){
+           shmctl( blk->shm_idint , IPC_RMID , NULL ) ;
+           blk->shm_idint = -1; blk->shm_idcode[0] = '\0'; RETURN(0);
+         }
+         offset = 0 ;
+         for( ibr=0 ; ibr < nv ; ibr++ ){
+           mri_fix_data_pointer( ptr , DBLK_BRICK(blk,ibr) ) ;
+           ptr += DBLK_BRICK_BYTES(blk,ibr) ;
+         }
+       }
+     }
+     RETURN(1) ;
+
+   }
+
+   RETURN(0) ; /* should never get to here */
 }

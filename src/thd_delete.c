@@ -31,10 +31,12 @@ ENTRY("THD_delete_datablock") ;
    /** free the actual brick data (method depends on how it is stored) **/
 
    if( dblk->brick != NULL ){
+      dblk->locked = 0 ;
+
       switch( dblk->malloc_type ){
 
          default:
-STATUS("count bricks") ;
+            STATUS("count bricks") ;
             ibr = THD_count_databricks( dblk ) ;
             if( ibr > 0 )
                fprintf(stderr,
@@ -44,19 +46,13 @@ STATUS("count bricks") ;
          break ;
 
          case DATABLOCK_MEM_MALLOC:
-STATUS("destroy imarr") ;
+         case DATABLOCK_MEM_MMAP:
+            THD_purge_datablock( dblk , dblk->malloc_type ) ;
             DESTROY_IMARR( dblk->brick ) ;
          break ;
 
-         case DATABLOCK_MEM_MMAP:
-STATUS("unmap memory") ;
-            if( DBLK_ARRAY(dblk,0) != NULL )
-               munmap( DBLK_ARRAY(dblk,0) , dblk->total_bytes ) ;
-STATUS("clear imarr pointers") ;
-            for( ibr=0 ; ibr < dblk->brick->num ; ibr++ )
-               mri_clear_data_pointer( DBLK_BRICK(dblk,ibr) ) ;
-STATUS("destroy imarr") ;
-            DESTROY_IMARR( dblk->brick ) ;
+         case DATABLOCK_MEM_SHARED:   /* 02 May 2003 */
+           /* ??? */
          break ;
       }
    }

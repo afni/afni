@@ -1000,18 +1000,18 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 #define DATABLOCK_MEM_MALLOC     2
 #define DATABLOCK_MEM_MMAP       4
 #define DATABLOCK_MEM_ANY        (DATABLOCK_MEM_MALLOC | DATABLOCK_MEM_MMAP)
+#define DATABLOCK_MEM_SHARED     8    /* 02 May 2003 */
 
 /*! Determine if mm is a valid memory allocation code. */
 
 #define ISVALID_MEM_CODE(mm) \
   ( (mm) == DATABLOCK_MEM_MALLOC || (mm) == DATABLOCK_MEM_MMAP \
-                                 || (mm) == DATABLOCK_MEM_ANY )
-
-
+                                 || (mm) == DATABLOCK_MEM_ANY  \
+                                 || (mm) == DATABLOCK_MEM_SHARED )
 
 #ifndef MMAP_THRESHOLD           /* if not previously defined in machdep.h */
 /*! A brick file should have this many bytes before we try to use mmap */
-#  define MMAP_THRESHOLD 99999
+#  define MMAP_THRESHOLD 999999
 #endif
 
 /*!  All subvolumes are stored in an array of MRI_IMAGE (the "brick").
@@ -1063,6 +1063,9 @@ typedef struct {
 
       KILL_list kl ;          /*!< Stuff to delete if this struct is deleted */
       XtPointer parent ;      /*!< Somebody who "owns" me */
+
+      char shm_idcode[32] ;   /*!< Idcode for shared memory buffer, if any [02 May 2003]. */
+      int  shm_idint ;        /*!< Integer id for shared memory buffer. */
 } THD_datablock ;
 
 /*! Force bricks to be allocated with malloc(). */
@@ -1084,6 +1087,14 @@ typedef struct {
 /*! Test if brick is set to be mmap()-ed. */
 
 #define DBLK_IS_MMAP(db)    ((db)->malloc_type == DATABLOCK_MEM_MMAP)
+
+/*! Test if brick is set to be shared. */
+
+#define DBLK_IS_SHARED(db)  ((db)->malloc_type == DATABLOCK_MEM_SHARED)
+
+/*! Force bricks to be allocated in shared memory.  */
+
+#define DBLK_shareize(db) THD_force_malloc_type((db),DATABLOCK_MEM_SHARED)
 
 /*! Lock bricks in memory. */
 
@@ -2674,6 +2685,12 @@ static char tmp_dblab[8] ;
 */
 #define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
 
+/*! Force this dataset to be loaded into shared memory.
+    You cannot alter any sub-brick data, since is done in
+    readonly mode.
+*/
+#define DSET_shareize(ds)  DBLK_shareize((ds)->dblk)
+
 /*! Let AFNI decide how to load a dataset into memory.
 
     May choose mmap() or malloc()
@@ -2693,6 +2710,10 @@ static char tmp_dblab[8] ;
 /*! Check if dataset ds is loaded into memory using mmap() */
 
 #define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
+
+/*! Check if dataset ds is loaded into shared memory */
+
+#define DSET_IS_SHARED(ds)  DBLK_IS_SHARED((ds)->dblk)
 
 /*! Check if dataset ds is "mastered": gets its data from someone else.
 
