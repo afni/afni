@@ -224,6 +224,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->LinkAfniCrossHair = YUP;
       
       SV->ResetGLStateVariables = YUP;
+      SV->BrushStroke = NULL;
    }
    SUMA_RETURN (SVv);
 }
@@ -257,6 +258,11 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
       SV->ColList = NULL; 
       SV->N_ColList = 0;
    }
+   
+   if (SV->BrushStroke) {
+      SUMA_ClearBrushStroke (SV);
+   }
+   
    SUMA_RETURN(YUP);
 }
 
