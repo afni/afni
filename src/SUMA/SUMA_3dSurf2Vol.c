@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.2 (February 10, 2004)"
+#define VERSION "version  3.2 (February 10, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -1143,6 +1143,10 @@ ENTRY("get_mappable_surfts");
 	    if ( debug )
 		fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
 			socount, CHECK_NULL_STR(so->Label));
+	    if ( debug > 1 )
+		fprintf(stderr,"** consider adding the following to the "
+			       "surface definition in the spec file:\n"
+			       "       Anatomical = Y\n");
 	    continue;
 	}
 
