@@ -854,13 +854,13 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"scanning %d widgets for fixing",n
      for( ii=jj=0 ; ii < nwid ; ii++ ){
        if( wid[ii] != (Widget)NULL && XtIsRealized(wid[ii])      &&
            XtIsManaged(wid[ii])    && MCW_widget_visible(wid[ii])  ){
-if(PRINT_TRACING){ char str[256]; sprintf(str,"  about to fix ii=%d\n",ii); STATUS(str); }
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  about to fix ii=%d",ii); STATUS(str); }
          POPUP_cursorize(wid[ii]) ;
          XtRemoveCallback( wid[ii], XmNdestroyCallback, optmenu_EV_fixup_CB, NULL ) ;
          wid[ii] = NULL ; jj++ ;
-if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d cursor fixed\n",ii); STATUS(str); }
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d cursor fixed",ii); STATUS(str); }
        }
-else if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d not fixable\n",ii); STATUS(str); }
+else if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d not fixable",ii); STATUS(str); }
      }
      if( jj == 0 ){ STATUS("nothing to fix"); EXRETURN; }
      if( jj >= nwid ){ STATUS("fixed them all"); free(wid); wid = NULL; nwid = 0; EXRETURN; }
@@ -870,7 +870,7 @@ else if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d not fixable\n",ii); ST
      nwid = jj ;
      for( ii=0 ; ii < nwid ; ii++ ) wid[ii] = qwid[ii] ;
      free(qwid) ;
-if(PRINT_TRACING){ char str[256]; sprintf(str,"  %d left to fix later\n",nwid); STATUS(str); }
+if(PRINT_TRACING){ char str[256]; sprintf(str,"  %d left to fix later",nwid); STATUS(str); }
 
    } else {                               /* add to the list */
      wid = (Widget *)realloc( (void *)wid , sizeof(Widget)*(nwid+1) ) ;

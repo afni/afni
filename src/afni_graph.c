@@ -2341,7 +2341,8 @@ STATUS("plotting extra graphs") ;
                     DC_linewidth( grapher->dc , exthick ) ;
                   } else {
                     DC_fg_color( grapher->dc , IGNORE_COLOR(grapher) ) ;
-                    if( grapher->mat < 4 )
+                    if( grapher->mat < 4 &&
+                        ( i < ibot || tsar[i] >= WAY_BIG ) )
                       GRA_small_circle( grapher,a_line[i-pbot].x,a_line[i-pbot].y,0 );
                   }
 
@@ -2349,6 +2350,9 @@ STATUS("plotting extra graphs") ;
                               grapher->fd_pxWind , grapher->dc->myGC ,
                               a_line + (i-pbot) , 2 ,  CoordModeOrigin ) ;
                 }
+                if( grapher->mat < 4 &&
+                    ( i < ibot || tsar[i] >= WAY_BIG ) )
+                  GRA_small_circle( grapher,a_line[i-pbot].x,a_line[i-pbot].y,0 );
               }
             } /* end of loop over sub-vectors */
          } /* end of loop over refs */
