@@ -4910,3 +4910,5 @@
  * Modified ISQ_show_zoom() in imseq.c to avoid infinite recursion that
      seems to happen when user zooms, crops, then changes image fraction
      (with the "i" arrows). WTF?
+ * Modified imseq.[ch] to NOT place dialog near changed window when closing
+     the Montage control dialog, since that hangs up for a while on the Mac.
