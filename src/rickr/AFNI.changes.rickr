@@ -120,3 +120,10 @@
 02 February 2003:
   * modified Imon.[ch] to fail only after 4 I-file read failures (rv 2.2)
 
+10 February 2003:
+  * added a new SUMA program, 3dSurfMaskDump
+      o added files SUMA/SUMA_3dSurfMaskDump.[ch]
+      o modified SUMA_Makefile to make 3dSurfMaskDump
+      o modified Makefile.INCLUDE, targets:
+	    suma_exec, suma_clean, suma_link, suma_install
+
