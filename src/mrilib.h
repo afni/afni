@@ -1060,4 +1060,21 @@ extern MRI_IMAGE * mri_warp3D_resize( MRI_IMAGE *, int,int,int ) ;
 extern double mri_entropy16( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 
+/*------------------------------------------------------------------*/
+
+#undef INLINE
+#ifdef __GNUC__
+# define INLINE __inline__
+#else
+# define INLINE /*nada*/
+#endif
+
+#undef RESTRICT
+#ifdef __GNUC__
+# define RESTRICT __restrict__
+#else
+# define RESTRICT /*nada*/
+#endif
+
+
 #endif /* _MCW_MRILIB_HEADER_ */

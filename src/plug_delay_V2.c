@@ -145,7 +145,7 @@ static char helpstring[] =
   "                    (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n" 
   "                    You can't use this option unless you specify a value for Tstim > 0.\n\n"
   "   5- Output :\n"
-  "      Afni Prfx  -> Prefix for output brick of the bucket type (fbuc).\n"
+  "      AFNI Prfx  -> Prefix for output brick of the bucket type (fbuc).\n"
   "                    The first subbrick is for Delay.\n"
   "                    The second subbrick is for Covariance, which is an estimate\n" 
   "                    of the power in voxel time series at the frequencies present \n"
@@ -452,7 +452,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                    ) ;
 
    PLUTO_add_string( plint ,
-                     "Afni Prfx" ,  /* label next to textfield */
+                     "AFNI Prfx" ,  /* label next to textfield */
                      0,NULL ,    /* no fixed strings to choose among */
                      19          /* 19 spaces for typing in value */
                    ) ;
