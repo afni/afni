@@ -28,15 +28,17 @@ void EDIT_substitute_brick(THD_3dim_dataset * dset, int ival, int ftype,void * f
    MRI_IMAGE * newim , * oldim ;
    int nbytes , nullfim = (fim == NULL) ;
 
+ENTRY("EDIT_substitute_brick") ;
+
    /**-- Sanity Checks --**/
 
-   if( ! ISVALID_3DIM_DATASET(dset) )                    return ; /* error! */
-   if( dset->dblk->brick == NULL )                       return ; /* ditto! */
-   if( dset->dblk->malloc_type != DATABLOCK_MEM_MALLOC ) return ; /* ditto! */
-   if( ival >= dset->dblk->nvals || ival < 0 )           return ; /* ditto! */
-   if( ftype < 0 || ftype > LAST_MRI_TYPE )              return ; /* ditto! */
+   if( ! ISVALID_3DIM_DATASET(dset) )                   EXRETURN; /* error! */
+   if( dset->dblk->brick == NULL )                      EXRETURN; /* ditto! */
+   if( dset->dblk->malloc_type != DATABLOCK_MEM_MALLOC )EXRETURN; /* ditto! */
+   if( ival >= dset->dblk->nvals || ival < 0 )          EXRETURN; /* ditto! */
+   if( ftype < 0 || ftype > LAST_MRI_TYPE )             EXRETURN; /* ditto! */
 
-   oldim = DSET_BRICK(dset,ival) ; if( oldim == NULL )   return ; /* ditto! */
+   oldim = DSET_BRICK(dset,ival) ; if( oldim == NULL )  EXRETURN; /* ditto! */
 
    newim  = mri_empty_conforming( oldim , ftype ) ;      /* new sub-brick */
    nbytes = newim->nvox * newim->pixel_size ;            /* how big it is */
@@ -58,5 +60,5 @@ void EDIT_substitute_brick(THD_3dim_dataset * dset, int ival, int ftype,void * f
 
    DSET_CRUSH_BSTAT(dset,ival) ;
 
-   return ;
+   EXRETURN ;
 }

@@ -69,6 +69,8 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
 #define GOODVOX(ijk) (fmask==NULL || fmask[ijk]!=0)
 #define BADVOX(ijk)  (fmask!=NULL && fmask[ijk]==0)
 
+ENTRY("EDIT_filter_volume") ;
+
    /* 09 Aug 2000: can't use AVER code if mask is in place */
 
    if( fmask != NULL && filter_opt == FCFLAG_AVER ) filter_opt = FCFLAG_MEAN ;
@@ -91,7 +93,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
          EDIT_coerce_autoscale(nxyz, MRI_float, ffim, fim_type, vfim);
          free(ffim) ;
       }
-      return ;
+      EXRETURN ;
    }
 
    /***--- end 07 Jan 1998 ---***/
@@ -102,7 +104,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    if (mask == NULL)
    {
       fprintf (stderr, "Warning: Filter option has no effect. \n");
-      return;
+      EXRETURN;
    }
    mnum = mask->num_pt;
 
@@ -164,7 +166,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
         first = 0 ;
         if( nnw < nw ){
           fprintf(stderr,"** Illegal Winsor parameters - skipping!\n") ;
-          return ;
+          EXRETURN ;
         }
       }
 
@@ -377,7 +379,7 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
    if( wt != NULL ) free(wt) ;
    if( sw != NULL ) free(sw) ;
 
-   return;
+   EXRETURN;
 }
 
 /*------------------------------------------------------------------------
@@ -396,12 +398,14 @@ void EDIT_aver_fvol( int   nx, int   ny, int   nz,
    int * madd ;
    float fac , sum ;
 
+ENTRY("EDIT_aver_fvol") ;
+
    /*--- Make a cluster that is a mask of points closer than rmm ---*/
 
    mask = MCW_build_mask(nx,ny,nz, dx,dy,dz, rmm) ;
    if( mask == NULL || mask->num_pt < 2 ){
       fprintf(stderr,"Warning: EDIT_aver_volume has no effect.\n") ;
-      return ;
+      EXRETURN ;
    }
    mnum = mask->num_pt ;
 
@@ -471,5 +475,5 @@ void EDIT_aver_fvol( int   nx, int   ny, int   nz,
    }
 
    free(ffim); free(madd);
-   return;
+   EXRETURN;
 }

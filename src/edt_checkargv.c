@@ -13,16 +13,19 @@
    a fatal error!
 -----------------------------------------------------------------------**/
 
-#define CHECK_DONE return (nopt-nopt_in)
+#define CHECK_DONE RETURN(nopt-nopt_in)
 
 int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt )
 {
    float val ;
    int  ival , nopt_in=nopt ;
 
+ENTRY("EDIT_check_argv") ;
+
    /**** -1clip val ****/
 
-   if( strncmp(argv[nopt],"-1clip",6) == 0 || strncmp(argv[nopt],"-1uclip",6) == 0 ){
+   if( strncmp(argv[nopt],"-1clip" ,6) == 0 ||
+       strncmp(argv[nopt],"-1uclip",6) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
          fprintf(stderr,"no argument after %s?\n",argv[nopt-1]) ;
@@ -40,7 +43,8 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
 
    /**** -2clip val1 val2 ****/
 
-   if( strncmp(argv[nopt],"-2clip",6) == 0 || strncmp(argv[nopt],"-2uclip",6) == 0 ){
+   if( strncmp(argv[nopt],"-2clip" ,6) == 0 ||
+       strncmp(argv[nopt],"-2uclip",6) == 0   ){
       nopt++ ;
       if( nopt+1 >= argc ){
          fprintf(stderr,"no arguments after %s?\n",argv[nopt-1]) ;
@@ -676,5 +680,5 @@ int EDIT_check_argv( int argc , char * argv[] , int nopt , EDIT_options * edopt 
       nopt += 7 ; CHECK_DONE ;
    }
 
-   return 0 ;
+   RETURN( 0 );
 }

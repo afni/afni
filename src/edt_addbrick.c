@@ -29,11 +29,13 @@ void EDIT_add_bricklist( THD_3dim_dataset * dset ,
    MRI_IMAGE * qim ;
    char str[32] ;
 
+ENTRY("EDIT_add_bricklist") ;
+
    /**-- Sanity Checks --**/
 
-   if( ! ISVALID_3DIM_DATASET(dset) || nbr <= 0 )        return ; /* error! */
-   if( dset->dblk->brick == NULL )                       return ; /* error! */
-   if( dset->dblk->malloc_type != DATABLOCK_MEM_MALLOC ) return ; /* error! */
+   if( ! ISVALID_3DIM_DATASET(dset) || nbr <= 0 )       EXRETURN; /* error! */
+   if( dset->dblk->brick == NULL )                      EXRETURN; /* error! */
+   if( dset->dblk->malloc_type != DATABLOCK_MEM_MALLOC )EXRETURN; /* error! */
 
    dblk  = dset->dblk ;
    nvals = dblk->nvals ;
@@ -107,7 +109,7 @@ void EDIT_add_bricklist( THD_3dim_dataset * dset ,
       }
    }
 
-   return ;
+  EXRETURN;
 }
 
 void EDIT_add_brick( THD_3dim_dataset * dset, int typ , float fac , void * br )

@@ -16,7 +16,9 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
    register int nxyz = nx * ny * nz , ii ;
    register float fac ;
 
-   if( fim == NULL ) return ;
+ENTRY("MCW_scale_to_max") ;
+
+   if( fim == NULL ) EXRETURN ;
 
    switch( ftype ){
 
@@ -27,7 +29,7 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
          for( ii=1 ; ii < nxyz ; ii++ ){
             val = bfar[ii] ; if( val > max ) max = val ;
          }
-         if( max == 0 ) return ;
+         if( max == 0 ) EXRETURN ;
          fac = 255.0 / max ;
          for( ii=0 ; ii < nxyz ; ii++ ) bfar[ii] *= fac ;
       }
@@ -40,7 +42,7 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
          for( ii=1 ; ii < nxyz ; ii++ ){
             val = abs(sfar[ii]) ; if( val > max ) max = val ;
          }
-         if( max == 0 ) return ;
+         if( max == 0 ) EXRETURN ;
          fac = 10000.0 / max ;
          for( ii=0 ; ii < nxyz ; ii++ ) sfar[ii] *= fac ;
       }
@@ -53,7 +55,7 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
          for( ii=1 ; ii < nxyz ; ii++ ){
             val = fabs(ffar[ii]) ; if( val > max ) max = val ;
          }
-         if( max == 0.0 ) return ;
+         if( max == 0.0 ) EXRETURN ;
          fac = 10000.0 / max ;
          for( ii=0 ; ii < nxyz ; ii++ ) ffar[ii] *= fac ;
       }
@@ -66,7 +68,7 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
          for( ii=1 ; ii < nxyz ; ii++ ){
             val = CSQR(cfar[ii]) ; if( val > max ) max = val ;
          }
-         if( max == 0.0 ) return ;
+         if( max == 0.0 ) EXRETURN ;
          fac = 10000.0 / sqrt(max) ;
          for( ii=0 ; ii < nxyz ; ii++ ){
             cfar[ii].r *= fac ; cfar[ii].i *= fac ;
@@ -75,5 +77,5 @@ void MCW_scale_to_max( int nx, int ny, int nz , int ftype , void * fim )
       break ;
    }
 
-   return ;
+   EXRETURN ;
 }

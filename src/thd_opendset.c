@@ -23,46 +23,48 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    char * fname ;   /* to skip directory during HEAD/BRIK search in filename */
    int    offset ;  /*                                 - [rickr 20 Sep 2002] */
 
+ENTRY("THD_open_one_dataset") ;
+
    /*-- sanity check --*/
 
    if( pathname == NULL              ||
        (plen=strlen(pathname)) == 0  ||
-       pathname[plen-1]        == '/'  ) return NULL ;
+       pathname[plen-1]        == '/'  ) RETURN(NULL) ;
 
    /*-- perhaps open the new-fangled way [22 May 2000] --*/
 
    if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
        strstr(pathname,"[")                != NULL   ){
 
-      return THD_open_dataset( pathname ) ;
+      RETURN( THD_open_dataset(pathname) ) ;
    }
 
    /*-- perhaps the MINC way --*/
 
    if( STRING_HAS_SUFFIX(pathname,".mnc") ){
-     return THD_open_minc( pathname ) ;
+     RETURN( THD_open_minc(pathname) ) ;
    }
 
    /*-- perhaps the ANALYZE way --*/
 
    if( STRING_HAS_SUFFIX(pathname,".hdr") ){
-     return THD_open_analyze( pathname ) ;
+     RETURN( THD_open_analyze(pathname) ) ;
    }
 
    /*-- perhaps the CTF way [04 Dec 2002] --*/
 
    if( STRING_HAS_SUFFIX(pathname,".mri") ){
-     return THD_open_ctfmri( pathname ) ;
+     RETURN( THD_open_ctfmri(pathname) ) ;
    } else if( STRING_HAS_SUFFIX(pathname,".svl") ){
-     return THD_open_ctfsam( pathname ) ;
+     RETURN( THD_open_ctfsam(pathname) ) ;
    }
 
    /*-- 04 Mar 2003: allow input of .1D files --*/
 
    if( STRING_HAS_SUFFIX(pathname,".1D") ){
-     return THD_open_1D( pathname ) ;
+     RETURN( THD_open_1D(pathname) ) ;
    } else if( STRING_HAS_SUFFIX(pathname,".3D") ){  /* 21 Mar 2003 */
-     return THD_open_3D( pathname ) ;
+     RETURN( THD_open_3D(pathname) ) ;
    }
 
    /*-- 28 Aug 2003: the NIFTI way! --*/
@@ -70,7 +72,7 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    if( STRING_HAS_SUFFIX(pathname,".nii") ||
        STRING_HAS_SUFFIX(pathname,".nia")   ){
 
-     return THD_open_nifti( pathname ) ;
+     RETURN( THD_open_nifti(pathname) ) ;
    }
 
    /*-- 03 Dec 2003: the MPEG way! --*/
@@ -80,7 +82,7 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
        STRING_HAS_SUFFIX(pathname,".MPEG") ||
        STRING_HAS_SUFFIX(pathname,".mpeg")   ){
 
-     return THD_open_mpeg( pathname ) ;
+     RETURN( THD_open_mpeg(pathname) ) ;
    }
 
    /*-- Must be an AFNI-formatted dataset! -------------*/
@@ -120,10 +122,10 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
    /*-- open it up? --*/
 
    dblk = THD_init_one_datablock( dirname , fullname ) ;
-   if( dblk == NULL ) return NULL ;
+   if( dblk == NULL ) RETURN(NULL) ;
 
    dset = THD_3dim_from_block( dblk ) ;
-   return dset ;
+   RETURN(dset) ;
 }
 
 /*--------------------------------------------------------------------

@@ -18,13 +18,15 @@ MRI_IMARR * mri_uncat2D( int nx , int ny , MRI_IMAGE * im )
    MRI_IMAGE * qim ;
    int nxim , nyim , ii,jj,kk , kind ;
 
-   if( nx < 1 || ny < 1 || im == NULL ) return NULL ;
+ENTRY("mri_uncat2D") ;
+
+   if( nx < 1 || ny < 1 || im == NULL ) RETURN(NULL) ;
 
    kind = im->kind ;
 
    nxim = im->nx / nx ;
    nyim = im->ny / ny ;
-   if( nxim < 1 || nyim < 1 ) return NULL ;
+   if( nxim < 1 || nyim < 1 ) RETURN(NULL) ;
 
    INIT_IMARR(imar) ;
 
@@ -36,5 +38,5 @@ MRI_IMARR * mri_uncat2D( int nx , int ny , MRI_IMAGE * im )
       }
    }
 
-   return imar ;
+   RETURN(imar) ;
 }

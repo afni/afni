@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*******************************************************************
    Adapted from 3dcalc.c - RWCox - 16 Mar 2000
 ********************************************************************/
@@ -96,11 +96,13 @@ byte * EDT_calcmask( char * cmd , int * nxyz )
    int   nx,nxy ;
    THD_dataxes * daxes ;
 
+ENTRY("EDT_calcmask") ;
+
    /*** parse input options ***/
 
-   if( cmd == NULL ) return NULL ;
+   if( cmd == NULL ) RETURN( NULL );
    append_string_to_args( cmd , 0,NULL , &Argc , &Argv ) ;
-   if( Argc == 0 || Argv == NULL ) return NULL ;
+   if( Argc == 0 || Argv == NULL ) RETURN( NULL );
 
    jj = CALC_read_opts( Argc , Argv ) ;
 
@@ -112,7 +114,7 @@ byte * EDT_calcmask( char * cmd , int * nxyz )
       for( ids=0 ; ids < 26 ; ids++ ){
          if( CALC_dset[ids] != NULL ) DSET_delete( CALC_dset[ids] ) ;
       }
-      return NULL ;
+      RETURN( NULL );
    }
 
    /*** make output dataset ***/
@@ -331,7 +333,7 @@ byte * EDT_calcmask( char * cmd , int * nxyz )
    free(CALC_code) ;
 
    if( nxyz != NULL ) *nxyz = CALC_nvox ;
-   return bmask ;
+   RETURN( bmask );
 }
 
 /*--------------------------------------------------------------------
@@ -343,6 +345,8 @@ static int CALC_read_opts( int argc , char * argv[] )
    int nopt = 0 ;
    int ids ;
    int ii ;
+
+ENTRY("CALC_read_opts") ;
 
    CALC_nvox  = -1 ;
    CALC_code  = NULL ;
@@ -364,17 +368,17 @@ static int CALC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-expr",4) == 0 ){
          if( CALC_code != NULL ){
             fprintf(stderr,
-             "** -cmask: cannot have 2 -expr options!\n") ; return 1 ;
+             "** -cmask: cannot have 2 -expr options!\n") ; RETURN(1) ;
          }
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,
-             "** -cmask: need argument after -expr!\n") ; return 1 ;
+             "** -cmask: need argument after -expr!\n") ; RETURN(1) ;
          }
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL ){
             fprintf(stderr,
-             "** -cmask: illegal expression!\n") ; return 1 ;
+             "** -cmask: illegal expression!\n") ; RETURN(1) ;
          }
          PARSER_mark_symbols( CALC_code , CALC_has_sym ) ; /* 15 Sep 1999 */
          continue ;
@@ -414,14 +418,14 @@ static int CALC_read_opts( int argc , char * argv[] )
          if( VAR_DEFINED(ival) ){
             fprintf(stderr,
              "** -cmask: Can't define %c symbol twice\n",argv[nopt][1]);
-            return 1 ;
+            RETURN(1) ;
          }
 
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,
              "** -cmask: need argument after %s\n",argv[nopt-1]);
-            return 1;
+            RETURN(1) ;
          }
 
          /*-- 22 Nov 1999: allow for a differentially
@@ -441,7 +445,7 @@ static int CALC_read_opts( int argc , char * argv[] )
                fprintf(stderr,
                 "** -cmask: Must define dataset %c before using it in %s\n",
                        argv[nopt][0] , argv[nopt] ) ;
-               return 1 ;
+               RETURN(1) ;
             }
 
             /*- get subscripts -*/
@@ -454,7 +458,7 @@ static int CALC_read_opts( int argc , char * argv[] )
                   fprintf(stderr,
                    "** -cmask: Illegal differential subscripting %s\n",
                                  argv[nopt] ) ;
-                  return 1 ;
+                  RETURN(1) ;
                }
             } else {                               /* format is +i, -j, etc */
                 ijkl = (int *) malloc( sizeof(int) * 5 ) ;
@@ -464,7 +468,7 @@ static int CALC_read_opts( int argc , char * argv[] )
                       fprintf(stderr,
                        "** -cmask: Bad differential subscripting %s\n",
                                  argv[nopt] ) ;
-                   return 1 ;
+                   RETURN(1) ;
 
                    case 'i': ijkl[1] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
                    case 'j': ijkl[2] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
@@ -517,7 +521,7 @@ static int CALC_read_opts( int argc , char * argv[] )
            if( dset == NULL ){
               fprintf(stderr,
                "** -cmask: can't open dataset %s\n",dname) ;
-              return 1 ;
+              RETURN(1) ;
            }
          }
          CALC_dset[ival] = dset ;
@@ -530,7 +534,7 @@ static int CALC_read_opts( int argc , char * argv[] )
          } else if( nxyz != CALC_nvox ){
             fprintf(stderr,
              "** -cmask: dataset %s differs in size from others\n",argv[nopt-1]);
-            return 1 ;
+            RETURN(1) ;
          }
 
          CALC_type[ival] = DSET_BRICK_TYPE(dset,0) ;
@@ -546,7 +550,7 @@ static int CALC_read_opts( int argc , char * argv[] )
          if( ! DSET_LOADED(dset) ){
             fprintf(stderr,
              "** -cmask: Can't read data brick for dataset %s\n",argv[nopt-1]) ;
-            return 1 ;
+            RETURN(1) ;
          }
 
          /* set pointers for actual dataset arrays */
@@ -571,7 +575,7 @@ DSET_DONE: continue;
       } /* end of dataset input */
 
       fprintf(stderr,"** -cmask: Unknown option: %s\n",argv[nopt]) ;
-      return 1 ;
+      RETURN(1) ;
 
    }  /* end of loop over options */
 
@@ -582,12 +586,12 @@ DSET_DONE: continue;
    if( ids == 26 ){
       fprintf(stderr,
        "** -cmask: No actual input datasets given!\n") ;
-      return 1 ;
+      RETURN(1) ;
    }
 
    if( CALC_code == NULL ){
       fprintf(stderr,"** -cmask: No expression given!\n") ;
-      return 1 ;
+      RETURN(1) ;
    }
 
    /* 15 Apr 1999: check if each input dataset is used,
@@ -611,5 +615,5 @@ DSET_DONE: continue;
       }
    }
 
-   return 0 ;
+   RETURN(0) ;
 }
