@@ -350,6 +350,9 @@ extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nst
 
 /*************** dynamic array of sorted (x,y,z) points *************/
 
+#undef  ALLOW_DATASET_VLIST
+#ifdef  ALLOW_DATASET_VLIST
+
 /*! Dynamic array of xyz and ijk points. */
 
 typedef struct {
@@ -413,6 +416,8 @@ typedef struct {
        myXtFree( (name)->xyz ) ; \
        myXtFree( (name)->ijk ) ; \
        myXtFree( (name) ) ; } }
+
+#endif /* ALLOW_DATASET_VLIST */
 
 /**************************** typedefs ******************************/
 
@@ -1991,8 +1996,10 @@ typedef struct THD_3dim_dataset {
       int                              merger_code ; /*!< "merger" stuff was never implemented */
       int                              merger_type ; /*!< "merger" stuff was never implemented */
 
+#ifdef ALLOW_DATASET_VLIST
       THD_vector_list * pts ;     /*!< in dataset coords (not Dicom order!) - for Ted Deyoe */
       Boolean pts_original ;      /*!< true if was read from disk directly */
+#endif
 
       int death_mark ;            /*!< dataset is marked for destruction */
 

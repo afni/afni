@@ -62,7 +62,9 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    ADDTO_KILL(dset->kl,daxes) ;
 
    dset->stats  = NULL ;
+#ifdef ALLOW_DATASET_VLIST
    dset->pts    = NULL ;
+#endif
    dset->taxis  = NULL ;
    dset->tagset = NULL ;   /* 23 Oct 1998 */
 

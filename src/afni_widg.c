@@ -3967,7 +3967,7 @@ STATUS("making prog->rowcol") ;
                             XtListTail           /* last in queue */
                           ) ;
 
-#if 0
+#ifdef ALLOW_DATASET_VLIST
       /**--- pullright menu for points ---**/
 
       prog->hidden_pts_menu =
@@ -4298,9 +4298,11 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->func_visible      = False ;   /* don't show function */
+#ifdef ALLOW_DATASET_VLIST
    im3d->vinfo->pts_visible       = False ;   /* don't show points */
-   im3d->vinfo->show_voxind       = False ;
    im3d->vinfo->pts_color         = 0 ;
+#endif
+   im3d->vinfo->show_voxind       = False ;
    im3d->vinfo->resam_vox         = INIT_resam_vox ;
    im3d->vinfo->anat_resam_mode   = INIT_resam_anat ;
    im3d->vinfo->func_resam_mode   = INIT_resam_func ;

@@ -587,7 +587,10 @@ if(PRINT_TRACING)
    new_dset->merger_list = NULL ;  /* not a merger */
    new_dset->markers     = NULL ;  /* no markers */
    new_dset->death_mark  = 0 ;     /* don't kill me! */
+
+#ifdef ALLOW_DATASET_VLIST
    new_dset->pts         = NULL ;
+#endif
 
    PARENTIZE(new_dset,data_parent->parent) ;
 
@@ -4903,6 +4906,7 @@ ENTRY("AFNI_hidden_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
+#ifdef ALLOW_DATASET_VLIST
    /****----- Read points -----****/
 
    if( w == im3d->vwid->prog->hidden_readpts_ijk_pb ||
@@ -4964,10 +4968,11 @@ ENTRY("AFNI_hidden_CB") ;
                           im3d->vinfo->pts_color ,
                           AFNI_hidden_pts_CB , cd  ) ;
    }
+#endif /* ALLOW_DATASET_VLIST */
 
    /****----- Mission Statement -----****/
 
-   else if( w == im3d->vwid->prog->hidden_mission_pb ){
+   if( w == im3d->vwid->prog->hidden_mission_pb ){
       (void)  MCW_popup_message( im3d->vwid->picture ,
                                     " \n"
                                     " AFNI Mission Statement\n"
@@ -5203,6 +5208,7 @@ ENTRY("AFNI_hidden_EV") ;
 
 /*-------------------------------------------------------------------*/
 
+#ifdef ALLOW_DATASET_VLIST
 void AFNI_hidden_pts_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -5364,6 +5370,7 @@ ENTRY("AFNI_hidden_pts_CB") ;
 
    EXRETURN ;
 }
+#endif
 
 /*====================================================================================*/
 #if defined(WANT_RWCOX_IMAGE) && defined(ALLOW_PLUGINS)

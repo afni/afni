@@ -91,7 +91,9 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    new_dset->merger_list = NULL ;
    new_dset->death_mark  = 0 ;
+#ifdef ALLOW_DATASET_VLIST
    new_dset->pts         = NULL ;
+#endif
    new_dset->tagset      = NULL ;  /* Oct 1998 */
 
    new_dkptr->type         = DISKPTR_TYPE ;

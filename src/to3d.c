@@ -4366,7 +4366,9 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dset->wod_daxes   = NULL ;
    dset->wod_flag    = 0 ;
    dset->stats       = NULL ;
+#ifdef ALLOW_DATASET_VLIST
    dset->pts         = NULL ;
+#endif
    dset->death_mark  = 0 ;
 
    ZERO_STAT_AUX( dset ) ;
