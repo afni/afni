@@ -535,6 +535,111 @@ int SUMA_Read_2Dfile (char *f_name, float **x,  int n_cols, int n_rows)
       
 }/*SUMA_Read_2Dfile*/
 
+/*! 
+   \brief Allocate for irgb structure containing n_el elements in each vector 
+   
+   \sa SUMA_Free_IRGB
+*/
+SUMA_IRGB *SUMA_Create_IRGB(int n_el)
+{
+   SUMA_IRGB *irgb=NULL;
+   static char FuncName[]={"SUMA_Create_IRGB"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   irgb = (SUMA_IRGB *)SUMA_malloc(sizeof(SUMA_IRGB));
+   
+   
+   irgb->i = (int *)SUMA_calloc(n_el, sizeof(int));
+   irgb->r = (float*)SUMA_calloc(n_el, sizeof(float));
+   irgb->g = (float*)SUMA_calloc(n_el, sizeof(float));
+   irgb->b = (float*)SUMA_calloc(n_el, sizeof(float));
+   irgb->N = n_el;
+   if (!irgb->i || !irgb->r || !irgb->g || !irgb->b) {
+      SUMA_S_Crit ("Failed to allocate for i, r, g and/or b.");
+      if (irgb) SUMA_free(irgb);
+      SUMA_RETURN (NULL);
+   }
+   
+   SUMA_RETURN(irgb);
+}
+
+/*!
+   \brief function to free SUMA_IRGB *
+   
+   \return NULL
+   \sa SUMA_Create_IRGB
+   - This function frees all vectors in structure and the structure itself
+*/
+SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb)
+{
+   static char FuncName[]={"SUMA_Free_IRGB"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (irgb) {
+      if (irgb->i) SUMA_free(irgb->i);
+      if (irgb->r) SUMA_free(irgb->r);
+      if (irgb->g) SUMA_free(irgb->g);
+      if (irgb->b) SUMA_free(irgb->b);
+      SUMA_free(irgb);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+/*!
+   \brief Function to read a node color file formatted as:
+   i r g b (int float float float)
+   
+   \param f_name (char *) filename
+   \param n_rows(int) number of rows in filename
+   \return irgb (SUMA_IRGB *) with n_rows
+   
+   \sa SUMA_Create_IRGB
+   \sa SUMA_Free_IRGB
+*/
+SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name, int n_rows)
+{/*SUMA_Read_2Dfile*/
+   int ir=0, ic=0, ex;
+   FILE*internal_file;
+   SUMA_IRGB *irgb=NULL;
+   static char FuncName[]={"SUMA_Read_IRGB_file"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   internal_file = fopen (f_name,"r");
+   if (internal_file == NULL) {
+      fprintf (SUMA_STDERR,"%s: \aCould not open %s \n",FuncName, f_name);
+      SUMA_RETURN (NULL);
+   }
+   
+   if (!(irgb = SUMA_Create_IRGB(n_rows))) {
+      fprintf (SUMA_STDERR,"%s: Failed to create irgb.\n",FuncName);
+      SUMA_RETURN (NULL);
+   }
+   
+   ir = 0;
+   while (ir < n_rows)
+   {
+      ex = fscanf (internal_file,"%d %f %f %f",
+                           &(irgb->i[ir]), &(irgb->r[ir]),
+                           &(irgb->g[ir]), &(irgb->b[ir]));   
+      if (ex == EOF)
+         {
+            fprintf(stderr,"Error %s: Premature EOF\n%d out of %d lines read.", FuncName, ir, n_rows);
+            fclose (internal_file);
+            SUMA_Free_IRGB (irgb);
+            SUMA_RETURN (NULL);
+         }
+      ++ir;
+   }
+
+   fclose (internal_file);
+
+   SUMA_RETURN (irgb);      
+      
+}/*SUMA_Read_2Dfile*/
+
 /*!
  
 Purpose : 

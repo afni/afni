@@ -1014,6 +1014,10 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
             SUMA_RETURN(NULL);
          }
          NewElement = Element->prev;
+         if (!NewElement) {
+            fprintf (SUMA_STDERR, "Error %s: No previous element. List size %d", FuncName, dlist_size(list));
+            SUMA_RETURN(NULL);
+         }
          break;
       case SEI_After:
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Inserting new element after specified element.\n", FuncName);
@@ -1023,6 +1027,10 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
             SUMA_RETURN(NULL);
          }
          NewElement = Element->next;
+         if (!NewElement) {
+            fprintf (SUMA_STDERR, "Error %s: No next element. List size %d", FuncName, dlist_size(list));
+            SUMA_RETURN(NULL);
+         }
          break;
       case SEI_WTSDS:
       case SEI_BadLoc:

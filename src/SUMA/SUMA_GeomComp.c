@@ -416,7 +416,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
 
    /* create ROId */
    ROId = SUMA_AllocROIDatum ();
-   ROId->type = SUMA_ROI_NodeSegment;
+   ROId->Type = SUMA_ROI_NodeSegment;
 
    /* calculate shortest path */
    N_left = SPI->N_NodesInMesh;

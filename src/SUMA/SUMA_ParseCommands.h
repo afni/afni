@@ -171,5 +171,42 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_LogAndPopup); \
 }
 
+/*!
+   \brief Macro that reports a critical error to the log 
+
+*/
+#define SUMA_L_Crit(msg) {\
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a critical error to stderr 
+
+*/
+#define SUMA_S_Crit(msg) {\
+   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+}
+/*!
+   \brief Macro that reports a critical error to stderr and log 
+
+*/
+#define SUMA_SL_Crit(msg) {\
+   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a critical error to stderr and log and popup
+
+*/
+#define SUMA_SLP_Crit(msg) {\
+   fprintf (SUMA_STDERR, "Critical %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_LogAndPopup); \
+}
+
+/*!
+   \brief Macro that reports a message to SUMA_STDERR if LocalHead is set to YUP
+*/
+#define SUMA_LH(msg) {\
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: %s\n", FuncName, msg);  \
+}
 
 #endif

@@ -153,7 +153,34 @@ typedef enum { SEI_WTSDS,
                SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
                
-typedef enum { SUMA_int, SUMA_float, SUMA_string} SUMA_VARTYPE;
+typedef enum { SUMA_byte, SUMA_int, SUMA_float, SUMA_double, SUMA_string} SUMA_VARTYPE;
+typedef enum {    SOPT_ibbb,  /*!< int, byte, byte, byte, null */
+                  SOPT_ifff   /*!< int, float, float, float, null */
+            } SUMA_OVERLAY_PLANE_TYPE; /*!< type of color plane data, letters code for 
+                                            index red green blue and alpha values */
+typedef struct {
+   int *i;  /*!< node index */
+   float *r; /*!< node red */
+   float *g; /*!< node green */
+   float *b;/*!< node blue */
+   int N; /*!< number of elements */
+}SUMA_IRGB; /*!< structure containing node colors */
+
+typedef struct {
+   SUMA_OVERLAY_PLANE_TYPE Type; /*!< This variable determines the types of the variables below */
+   SUMA_ENGINE_SOURCE Source; /*!< provenance of plane */
+   void *i; /*!< Node index */
+   void *r; /*!< Node red */
+   void *g; /*!< Node green */
+   void *b; /*!< Node blue */
+   void *a; /*!< Node alpha */
+   int N; /*!< number of elements in each vector above */
+   float DimFact; /*!< global factor applied to each color */
+   SUMA_Boolean Show; /*!< show plane ?*/
+   float GlobalOpacity; /*!< Global opacity factor */
+   SUMA_Boolean BrightMod; /*!< Brightness modulation */
+}  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure meant to carry data required to fill a color plane. 
+                                 \sa SUMA_OVERLAYS*/
 
 typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
@@ -161,7 +188,12 @@ typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
 
 typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
-typedef enum { SUMA_ROI_OpenPath, SUMA_ROI_ClosedPath, SUMA_ROI_FilledArea} SUMA_ROI_DRAWING_TYPE;  /* an ROI created by drawing */
+typedef enum { SUMA_ROI_OpenPath,   /*!< A collection of nodes that are topologically connected */
+               SUMA_ROI_ClosedPath, /*!< A closed OpenPath */
+               SUMA_ROI_FilledArea, /*!< A filled ClosePath */
+               SUMA_ROI_Collection  /*!< NOT USED YET: A collection of ROIdatums, a generic descriptor that is used to
+                                          make do without SUMA_ROI structure*/
+            } SUMA_ROI_DRAWING_TYPE;  /*!< an ROI created by drawing (or other means)*/
 
 typedef enum { SUMA_BSA_Undefined, SUMA_BSA_AppendStroke, SUMA_BSA_AppendStrokeOrFill, SUMA_BSA_JoinEnds, SUMA_BSA_FillArea } SUMA_BRUSH_STROKE_ACTION; 
 
@@ -241,7 +273,10 @@ typedef struct {
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to each individual node color */
    int PlaneOrder; /*!< Order of the overlay plane, 1st plane is 0 and is farthest away from the top */  
-   SUMA_Boolean BrightMod; /*!< if YUP then colors overlaid on top of this plane have their brightness modulated by the average intensity of the colors in that plane see the function SUMA_Overlays_2_GLCOLAR4 for details*/  
+   SUMA_Boolean BrightMod; /*!< if YUP then colors overlaid on top of this plane have their 
+                              brightness modulated by the average intensity of the colors in that 
+                              plane see the function SUMA_Overlays_2_GLCOLAR4 for details. 
+                              In other obscure words, if YUP then plane is part of background.*/  
 } SUMA_OVERLAYS;
 
 /*! a structure holding the options for the function SUMA_ScaleToMap 
@@ -282,12 +317,12 @@ typedef struct {
                            If Type is SUMA_ROI_FaceGroup then ElementIndex contains indices to SO->FaceList.
                            If Type is SUMA_ROI_EdgeGroup then ElementIndex contains indices to SO->EL->EL. */
    int N_ElInd; /*!< Number of elements in ElementIndex */ 
-} SUMA_ROI;
+} SUMA_ROI; 
 
 
 
 typedef struct {
-   SUMA_ROI_TYPE type; /*!< Type of ROI in datum */
+   SUMA_ROI_TYPE Type; /*!< Type of ROI in datum */
    int N_n; /*!< Number of elements in nPath */
    int N_t; /*!< Number of elements in tPath */
    int *nPath; /*!< Vector of N node indices. These nodes must be immediate (linked) neighbours of each other */
@@ -468,6 +503,28 @@ typedef struct {
    SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at end of text field */
 } SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets for the text shell window */
 
+typedef enum { SUMA_FILE_OPEN, SUMA_FILE_SAVE } SUMA_FILE_SELECT_MODE; /*!< mode of file selection dialog */
+
+typedef struct {
+   SUMA_FILE_SELECT_MODE Mode; 
+   void (*SelectCallback)(char *filename, void *data); /*!< function called when a selection is made 
+                                            See note for Preserve field*/
+   void *SelectData; /*!< data sent along to SelectCallback */
+   void (*CancelCallback)(void *data); /*!< function called when cancel or kill is called */
+   void *CancelData; /*!< data sent along to CancelCallback */
+   Widget dlg_w; /*!< widget of dialog */
+   Widget daddy; /*!< widget of parent */
+   char *filename; /*!< selected filename. 
+               NOTE: This is only valid when a selection has been made */
+   SUMA_Boolean preserve; /*!< If YUP, then widget is only unmanaged when 
+                              selection is made or cancel is pressed. In 
+                              this case, you should take care of dlg's safekeeping
+                              and eventual destruction.
+                              If Nope, then the widget is destroyed after selection
+                              and/or cancel and the dlg structure is destroyed.
+                              Be careful, if Preserve is NOPE, that your callbacks
+                              do not return before being done with this structure*/ 
+} SUMA_SELECTION_DIALOG_STRUCT;
 
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
@@ -567,9 +624,12 @@ typedef struct {
    Widget Redo_pb;
    Widget Undo_pb;
    Widget Save_pb;
+   Widget Load_pb;
    Widget Close_pb;
    Widget Finish_pb;
    Widget Join_pb;
+   Widget Delete_pb;
+   SUMA_Boolean Delete_first; /*! Flag indicating putton has been pressed for the first time */
    SUMA_ARROW_TEXT_FIELD *ROIval; /*!< pointer to arrow field */
    SUMA_ARROW_TEXT_FIELD *ROIlbl; /*!< pointer to text field */
    SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure currently in use by window.
@@ -636,6 +696,7 @@ typedef struct {
    SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
+   SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets and options of a generic file selection dialog */
 }SUMA_X_AllView;
 
 /*! filename and path */

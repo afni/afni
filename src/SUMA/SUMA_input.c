@@ -228,15 +228,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    SEI_Head, NULL)) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
             }
-                                                   
+                                                    
             if (!SUMA_Engine (&list)) {
                fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
             }
             break;            
 
          case XK_c:
-            fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
             /*Load colors from file */
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadColorPlaneFile, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
+                                                        NULL, NULL,
+                                                        SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Not used yet", SUMAg_CF->X->FileSelectDlg);
+            
+            /* Now make a call to read that file */
+            
+            #if 0
+            fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
             {int i=0;
                while ((cbuf = getc(stdin)) != '\n' && i < SUMA_MAX_STRING_LENGTH-1) {
                   s[i] = cbuf;
@@ -250,7 +259,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                s[i] = '\0';
                if (!i) SUMA_RETURNe;
             }
+            #endif
+            
             /* find out if file exists and how many values it contains */
+            fprintf (SUMA_STDERR,"%s: Now reading %s...\n", FuncName, s);
             ntot = SUMA_float_file_size (s);
             if (ntot < 0) {
                fprintf(stderr,"Error SUMA_input: filename %s could not be open.\n", s);
@@ -264,6 +276,61 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             
 
+            /* instead of just colorizing the nodes, put the colors in a color plane */
+            /* Begin Bus modification */
+            {
+               SUMA_OVERLAY_PLANE_DATA sopd;
+               SUMA_IRGB *irgb=NULL;
+               SUMA_SurfaceObject *SO = NULL;
+               int OverInd = -1;
+               
+               irgb = SUMA_Read_IRGB_file(s, ntot / 4);
+               if (!irgb) {
+                  SUMA_SLP_Err("Failed to read file.");
+                  SUMA_RETURNe;
+               }
+
+               sopd.N = irgb->N;
+               sopd.Type = SOPT_ifff;
+               sopd.Source = SES_Suma;
+               sopd.GlobalOpacity = 1;
+               sopd.BrightMod = NOPE;
+               sopd.Show = YUP;
+               /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
+               sopd.DimFact = 1;
+               sopd.i = (void *)irgb->i;
+               sopd.r = (void *)irgb->r;
+               sopd.g = (void *)irgb->g;
+               sopd.b = (void *)irgb->b;
+               sopd.a = NULL;
+               
+               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+               if (!SUMA_iRGB_to_OverlayPointer (SO, s, &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
+                  SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
+                  SUMA_RETURNe;
+               }
+               
+               /* values were copied, dump structure */
+               irgb = SUMA_Free_IRGB(irgb);  
+               
+               /* remix colors for all viewers displaying related surfaces */
+               if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
+                  SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+                  SUMA_RETURNe;
+               }
+               
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }  
+               
+            }
+            
+            break;
+            
+            /* End Bus modification */
+            #if 0
             /* allocate space */
             fm = (float **)SUMA_allocate2D (ntot/4, 4, sizeof(float));
             if (fm == NULL) {
@@ -275,7 +342,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                fprintf(stderr,"SUMA_input Error: Failed to read full matrix from %s\n", s);
                SUMA_RETURNe;
             }
-
+               
             if (!list) list = SUMA_CreateList();
             ED = SUMA_InitializeEngineListData (SE_SetNodeColor);
             ED->N_cols = 4;
@@ -297,7 +364,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
             /* free fm since it was registered by pointer and is not automatically freed after the call to SUMA_Engine */
             if (fm) SUMA_free2D ((char **)fm, ntot/4);
-
+            #endif 
+            
             break;
 
          case XK_d:
@@ -391,12 +459,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
               }    
             }else{
                if (SUMAg_CF->Dev) {
+                  SUMA_SLP_Note("Please use ctrl+h for help.\nh alone will be reassigned in future versions.");
+                  #if 0
                   /* fake some error logs */
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice", FuncName, SMT_Notice, SMA_Log);
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice2", FuncName, SMT_Notice, SMA_LogAndPopup);
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Warning", FuncName, SMT_Warning, SMA_LogAndPopup);
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Error", FuncName, SMT_Error, SMA_LogAndPopup);
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Critical", FuncName, SMT_Critical, SMA_LogAndPopup);
+                  #endif
                }
             }
             break;
@@ -1876,7 +1947,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    DList *list = NULL;
    DListElmt *SetNodeElem = NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2015,14 +2086,15 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
       }
 
-      /* now put in a request for locking cross hair but you must do this after the node selection has been executed */
+      /* now put in a request for locking cross hair but you must do this after the node selection has been executed 
+      NOTE: You do not always have SetNodeElem because the list might get emptied in the call to AFNI notification.
+      You should just put the next call at the end of the list.*/
       if (!list) list = SUMA_CreateList();
       ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: SetNodeElem = %p\n", FuncName, SetNodeElem);
       if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_iv3, (void*)iv3,
                                              SES_Suma, (void *)sv, NOPE,
-                                             SEI_Before, SetNodeElem)) {
+                                             SEI_Tail, NULL)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
@@ -2318,7 +2390,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
    char *sbuf;
    SUMA_ROI_ACTION_STRUCT *ROIA;
    DListElmt *tmpStackPos=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean Shaded = NOPE, LocalHead = YUP;
 
       
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
@@ -2340,8 +2412,22 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
       SUMA_RETURN (DrawnROI);
    }
    
-   /* We are in ROI mode, is there an ROI being created on this surface ? */
-   DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv, SUMAg_N_DOv);
+   /* We are in ROI mode, is there an ROI in curDrawnROI that works with the current surface ? */
+   if (SUMAg_CF->X->DrawROI->curDrawnROI) {
+      if (SUMA_isdROIrelated(SUMAg_CF->X->DrawROI->curDrawnROI, SO) && SUMAg_CF->X->DrawROI->curDrawnROI->DrawStatus != SUMA_ROI_Finished) {
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: using currDrawnROI.\n", FuncName);
+         DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
+      }else {
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: No match between currDrawnROI and SO.\n", FuncName);
+      }
+   }else if ((DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv, SUMAg_N_DOv))){
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: using ROI in creation.\n", FuncName);
+      /* There is an ROI being created on this surface, initialize DrawROI window*/
+      SUMA_InitializeDrawROIWindow(DrawnROI);
+   } else {
+      /* wait till later */
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: will create a new ROI.\n", FuncName);
+   }
    
    if (!DrawnROI && BsA == SUMA_BSA_JoinEnds) {
       SUMA_SLP_Err ("NO ROI to close.");
@@ -2369,6 +2455,14 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
       if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)DrawnROI, ROIdO_type, SUMA_LOCAL)) {
                            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       }
+
+      /* is the Switch ROI window open ? */
+      SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
+      if (!Shaded) {
+         SUMA_cb_DrawROI_SwitchROI (NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+      }
+   
+
    } else {
       if (LocalHead) fprintf(SUMA_STDOUT,"%s: ROI %p fetched. Status %d.\n", FuncName, DrawnROI, DrawnROI->DrawStatus); 
    } 
@@ -3011,7 +3105,7 @@ SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv)
    ROId->tPath = (int *) SUMA_calloc (ROId->N_t, sizeof(int));
    
    SUMA_BS_FIRST_SURF_NODE(sv->BS, ROId->nPath[0], ROId->tPath[0], Elmt);
-   ROId->type = SUMA_ROI_NodeSegment;
+   ROId->Type = SUMA_ROI_NodeSegment;
    
    /* try filling up the rest */
    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
@@ -3283,7 +3377,7 @@ SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
          /* if the tail is a segment, then turn the ROI type to a closedpath */
          tail_elm = dlist_tail(ROIA->DrawnROI->ROIstrokelist);
          ROId = (SUMA_ROI_DATUM *)tail_elm->data;
-         if (ROId->type == SUMA_ROI_NodeSegment) { /* we are no longer dealing with filled ROI */
+         if (ROId->Type == SUMA_ROI_NodeSegment) { /* we are no longer dealing with filled ROI */
             ROIA->DrawnROI->Type = SUMA_ROI_ClosedPath;
          }
          break;
@@ -3410,3 +3504,4 @@ void SUMA_DestroyROIActionData (void *data)
    
    SUMA_RETURNe;
 }
+

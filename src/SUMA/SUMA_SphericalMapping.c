@@ -9,6 +9,8 @@
 #define STAND_ALONE 
 #elif defined SUMA_Map_SurfacetoSurface_STAND_ALONE
 #define STAND_ALONE 
+#elif defined SUMA_AverageMaps_STAND_ALONE
+#define STAND_ALONE 
 #endif
 
 
@@ -369,6 +371,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    int nodePtCt, triPtCt, *icosaTri=NULL;
    float *icosaNode=NULL;
    SUMA_SURF_NORM SN;
+   SUMA_NODE_FIRST_NEIGHB *firstNeighb=NULL;
    SUMA_Boolean LocalHead = YUP, DoWind = YUP;
    int n=0, m=0, in=0;
    
@@ -560,7 +563,13 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SN = SUMA_SurfNorm( SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
    SO->NodeNormList = SN.NodeNormList;
    SO->FaceNormList = SN.FaceNormList;
-   
+
+   /*create first neighbor list*/
+//   firstNeighb = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node);
+   if (!DoWind) SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
+   SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node);
+   if(SO->FN==NULL) fprintf(SUMA_STDERR, "Error %s: Failed in creating neighb list.\n", FuncName);
+
    SUMA_RETURN (SO);
 }
 
@@ -2015,12 +2024,14 @@ int main (int argc, char *argv[])
 void SUMA_MapIcosahedron_usage ()
    
 {/*Usage*/
-   printf ("\n\33[1mUsage: \33[0m SUMA_MapIcosahedron <-spec specFile> [-c col] [-rd recDepth] [-ld linDepth] [-bin 'y'/'n'] [-prefix fout]\n");
+   printf ("\n\33[1mUsage: \33[0m SUMA_MapIcosahedron <-spec specFile> [-c col] [-rd recDepth] [-ld linDepth] [-bin 'y'/'n'] [-it numIt] [-prefix fout] [-verb]\n");
    printf ("\n\tspecFile: spec file containing spherical brain.\n");
    printf ("\n\trecDepth: recursive (binary) tesselation depth for icosahedron \n\t  (optional, default:3) \n\t  (recommended to generally approximate number of nodes in brain: 6\n");
    printf("\n\tlinDepth: number of edge divides for linear icosahedron tesselation \n\t  (optional, default uses binary tesselation)\n\t  (recommended to generally approximate number of nodes in brain: 125)\n");
    printf ("\n\tcol: a colorfile of the second surface (optional). \n");
+   printf ("\n\tnumIt: number of smoothing interations (optional, default none).\n");
    printf ("\n\tfout: prefix for output files.\n\t  (optional, default MapIco)\n");
+   printf ("\n\t-verb: indicate whether to include original surfaces and icosahedron in out spec file.\n\t  (optional, default does not)\n");
    printf ("\n\t*Note: Enter -1 for recDepth or linDepth to let program choose to best approximate number of nodes in specFile.\n");
    printf ("\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n\t\t\t Fri Sept 20 14:23:42 EST 2002\n\n");
    exit (0);
@@ -2033,7 +2044,7 @@ int main (int argc, char *argv[])
 {/* main SUMA_MapIcosahedron */
 
    static char FuncName[]={"SUMA_MapIcosahedron-main"};
-   SUMA_Boolean brk, LocalHead = YUP, SurfIn = NOPE, color=NOPE;
+   SUMA_Boolean brk, LocalHead = YUP, SurfIn = NOPE, color=NOPE, smooth=NOPE, verb=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char *smwmColFileNm=NULL;
    char icoFileNm[10000], mapSphrFileNm[10000], mapInflFileNm[10000], mapSmWmFileNm[10000]; 
@@ -2042,9 +2053,9 @@ int main (int argc, char *argv[])
    SUMA_SpecSurfInfo *surfaces=NULL;
    SUMA_MorphInfo *MI=NULL;
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   int numTriBin=0, numTriLin=0;
+   int numTriBin=0, numTriLin=0, numIt=0;
 
-   int kar, i, j, depth, i_currSurf;
+   int kar, i, j, k, it, depth, i_currSurf;
    float r, ctrX, ctrY, ctrZ, ctr[3];
    SUMA_SurfSpecFile brainSpec;  
    SUMA_SurfaceObject *sphrSurf=NULL, *inflSurf=NULL, *smwmSurf=NULL, *icoSurf=NULL;
@@ -2056,6 +2067,7 @@ int main (int argc, char *argv[])
    float *mapInflNodeList=NULL, *mapSmWmNodeList=NULL, *mapWhiteNodeList=NULL, *mapSphrList=NULL;
    float *mapSphrNoRegNodeList=NULL, *mapPialNodeList=NULL, *colArray=NULL, *mapCol=NULL;
    float *ctrSphrList=NULL;
+   float *smweight=NULL, lambda=0, mu=0, deltaX=0, deltaY=0, deltaZ=0, delta=0;
    struct  timeval start_time;
    float etime_MapSurface;
    
@@ -2079,6 +2091,8 @@ int main (int argc, char *argv[])
    depth = 3;
    sprintf( fout, "%s", "MapIco");
    sprintf( bin, "%s", "y");
+   smooth = NOPE;  numIt=0;
+   verb = NOPE;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command line options */
@@ -2131,6 +2145,23 @@ int main (int argc, char *argv[])
             sprintf (bin, "n");
             brk = YUP;
          }      
+      if (!brk && (strcmp(argv[kar], "-it") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -it ");
+               exit (1);
+            }
+            smooth = YUP;
+            numIt = atoi(argv[kar]);
+            brk = YUP;
+         }      
+      if (!brk && (strcmp(argv[kar], "-verb") == 0 ))
+         {
+            verb = YUP;
+            brk = YUP;
+
+         }      
       if (!brk && strcmp(argv[kar], "-prefix") == 0)
          {
             kar ++;
@@ -2145,7 +2176,8 @@ int main (int argc, char *argv[])
       if (!brk) {
          fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
          exit (1);
-      } else {   
+      } 
+      else {   
          brk = NOPE;
          kar ++;
       }
@@ -2296,18 +2328,44 @@ int main (int argc, char *argv[])
       fprintf(SUMA_STDERR, "Error %s: Sphere.reg brain state missing from Spec file.\nWill not contintue.\n", FuncName);
       exit(1);
    }
+   if ( sphrNoRegSurf!=NULL && !(sphrSurf->N_Node == sphrNoRegSurf->N_Node) ) {
+      fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
+      exit(1);
+   }
+   if ( inflSurf!=NULL && !(sphrSurf->N_Node == inflSurf->N_Node) ) {
+      fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
+      exit(1);
+   }
+   if ( pialSurf!=NULL && !(sphrSurf->N_Node == pialSurf->N_Node) ) {
+      fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
+      exit(1);
+   }
+   if ( smwmSurf!=NULL && !(sphrSurf->N_Node == smwmSurf->N_Node) ) {
+      fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
+      exit(1);
+   }
+   if ( whiteSurf!=NULL && !(sphrSurf->N_Node == whiteSurf->N_Node) ) {
+      fprintf(SUMA_STDERR, "Error %s: Surfaces differ in node number. Exiting.\n", FuncName);
+      exit(1);
+   }
 
    /**prepare for writing spec file*/
-   surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(2*brainSpec.N_States+1, sizeof(SUMA_SpecSurfInfo));
-   
-   sprintf (surfaces[0].fileToRead, "%s", icoFileNm);  strcpy (surfaces[0].state, "icosahedron");
-   strcpy( surfaces[0].mapRef, "SAME");  strcpy (surfaces[0].format, "ASCII");   
-   strcpy (surfaces[0].type, "FreeSurfer");   strcpy (surfaces[0].dim, "3");
-   
-   sprintf (surfaces[1].fileToRead, "%s", mapSphrFileNm);  strcpy (surfaces[1].state, "mappedSphere.reg");
-   sprintf (surfaces[2].fileToRead, "%s", ctrSphrFileNm);  strcpy (surfaces[2].state, "sphere.reg");
-   i_currSurf = 2;
+   if ( verb ) {
+      surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(2*brainSpec.N_States+1, sizeof(SUMA_SpecSurfInfo));
 
+      sprintf (surfaces[0].fileToRead, "%s", icoFileNm);  strcpy (surfaces[0].state, "icosahedron");
+      strcpy( surfaces[0].mapRef, "SAME");  strcpy (surfaces[0].format, "ASCII");   
+      strcpy (surfaces[0].type, "FreeSurfer");   strcpy (surfaces[0].dim, "3");
+      
+      sprintf (surfaces[1].fileToRead, "%s", mapSphrFileNm);  strcpy (surfaces[1].state, "mappedSphere.reg");
+      sprintf (surfaces[2].fileToRead, "%s", ctrSphrFileNm);  strcpy (surfaces[2].state, "sphere.reg");
+      i_currSurf = 2;
+   }
+   else {
+      surfaces = (SUMA_SpecSurfInfo *)SUMA_calloc(brainSpec.N_States, sizeof(SUMA_SpecSurfInfo));
+      sprintf (surfaces[0].fileToRead, "%s", mapSphrFileNm);  strcpy (surfaces[0].state, "mappedSphere.reg");
+      i_currSurf = 0;
+   }      
 
    /**determine depth such that numTri best approximates (but overestimates) sphrSurf->N_FaceSet? */ 
    if ( depth<0 ) {
@@ -2353,12 +2411,14 @@ int main (int argc, char *argv[])
              + pow( (sphrSurf->NodeList[2]-ctrZ), 2) );
   
    /**center sphere to (0,0,0) for writing to file*/
-   ctrSphrList = (float *) SUMA_calloc( 3*(sphrSurf->N_Node), sizeof(float));
-   for (i=0; i<sphrSurf->N_Node; ++i) {
-      j = 3*i;
-      ctrSphrList[j] = sphrSurf->NodeList[j] - ctrX;
-      ctrSphrList[j+1] = sphrSurf->NodeList[j+1] - ctrY;
-      ctrSphrList[j+2] = sphrSurf->NodeList[j+2] - ctrZ;
+   if ( verb ) {
+      ctrSphrList = (float *) SUMA_calloc( 3*(sphrSurf->N_Node), sizeof(float));
+      for (i=0; i<sphrSurf->N_Node; ++i) {
+         j = 3*i;
+         ctrSphrList[j] = sphrSurf->NodeList[j] - ctrX;
+         ctrSphrList[j+1] = sphrSurf->NodeList[j+1] - ctrY;
+         ctrSphrList[j+2] = sphrSurf->NodeList[j+2] - ctrZ;
+      }
    }
 
    /**create icosahedron*/
@@ -2367,6 +2427,24 @@ int main (int argc, char *argv[])
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       exit (1);
    }
+
+   /**determine smoothing weights if indicated*/
+   if ( smooth ) {
+      /*equal weights => each edge has cost of one, so weight is 1/numEdges*/
+      if (icoSurf->FN==NULL) {
+         fprintf(SUMA_STDERR, "Warning %s: Node first neighbor list not created; cannot smooth.\n", FuncName);
+         smooth = NOPE;
+      }
+      else {
+         smweight = SUMA_calloc( icoSurf->N_Node, sizeof(float));
+         for (i=0; i<icoSurf->N_Node; ++i) {
+            smweight[i] = 1/(float)(icoSurf->FN->N_Neighb[i]);
+         }
+         lambda = (float)(.1+sqrt(18.81))/9.4;
+         mu = (float)(.1+sqrt(18.81))/(.1*sqrt(18.81)-9.39);
+      }
+   }
+
 
    /**determine morph parameters by mapping icosahedron to spherical brain */
    /* start timer */
@@ -2388,8 +2466,7 @@ int main (int argc, char *argv[])
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrFileNm);
    SUMA_writeFSfile (mapSphrList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                      "#icosahedron mapped to spherical brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrFileNm);
-
-
+ 
    /**morph backwards (for surfaces besides sphere.reg) and write to file
       (using weighting from SUMA_MapSurfaces)*/
    
@@ -2399,10 +2476,11 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedSphrNoReg");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", mapSphrNoRegFileNm);
-      ++i_currSurf;
-      strcpy (surfaces[i_currSurf].state, "sphere");
-      sprintf (surfaces[i_currSurf].fileToRead, "%s", sphrNoRegFile);
-
+      if ( verb ) {
+         ++i_currSurf;
+         strcpy (surfaces[i_currSurf].state, "sphere");
+         sprintf (surfaces[i_currSurf].fileToRead, "%s", sphrNoRegFile);
+      }
       fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSphrNoRegFileNm);
       SUMA_writeFSfile (mapSphrNoRegNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                         "#standard sphere brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSphrNoRegFileNm);
@@ -2413,10 +2491,11 @@ int main (int argc, char *argv[])
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedInflated");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", mapInflFileNm);
-      ++i_currSurf;
-      strcpy (surfaces[i_currSurf].state, "inflated");
-      sprintf (surfaces[i_currSurf].fileToRead, "%s", inflFile);
-
+      if ( verb ) {
+         ++i_currSurf;
+         strcpy (surfaces[i_currSurf].state, "inflated");
+         sprintf (surfaces[i_currSurf].fileToRead, "%s", inflFile);
+      }
       fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapInflFileNm);
       SUMA_writeFSfile (mapInflNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                         "#standard to inflated brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapInflFileNm);
@@ -2424,27 +2503,92 @@ int main (int argc, char *argv[])
    if (pialSurf!=NULL){
 
       mapPialNodeList = SUMA_morphToStd(pialSurf->NodeList, MI);
+
+      /*smooth pial surface, if indicated*/
+      if (smooth) {
+         for (it=0; it<2*numIt; ++it) {
+            for (i=0; i<icoSurf->N_Node; ++i) {
+               j = 3*i;
+               deltaX=0;  deltaY=0;  deltaZ=0;
+               for ( k=0; k<icoSurf->FN->N_Neighb[i]; ++k) {
+                  /*laplacian operator*/
+                  deltaX = deltaX + smweight[i]*
+                     (mapPialNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) ] - mapPialNodeList[j]);
+                  deltaY = deltaY + smweight[i]*
+                     (mapPialNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +1 ] - mapPialNodeList[j+1]);
+                  deltaZ = deltaZ + smweight[i]*
+                     (mapPialNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +2 ] - mapPialNodeList[j+2]);
+               }
+               /*taubin smoothing*/
+               if ( it%2 == 0 ) {
+                  mapPialNodeList[j] = mapPialNodeList[j] + lambda*deltaX;
+                  mapPialNodeList[j+1] = mapPialNodeList[j+1] + lambda*deltaY;
+                  mapPialNodeList[j+2] = mapPialNodeList[j+2] + lambda*deltaZ;
+               }
+               else {
+                  mapPialNodeList[j] = mapPialNodeList[j] + mu*deltaX;
+                  mapPialNodeList[j+1] = mapPialNodeList[j+1] + mu*deltaY;
+                  mapPialNodeList[j+2] = mapPialNodeList[j+2] + mu*deltaZ;
+               }
+            }
+         }
+      }
+
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedPial");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", mapPialFileNm);
-      ++i_currSurf;
-      strcpy (surfaces[i_currSurf].state, "pial");
-      sprintf (surfaces[i_currSurf].fileToRead, "%s", pialFile);
-
+      if ( verb ) {
+         ++i_currSurf;
+         strcpy (surfaces[i_currSurf].state, "pial");
+         sprintf (surfaces[i_currSurf].fileToRead, "%s", pialFile);
+      }
       fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapPialFileNm);
       SUMA_writeFSfile (mapPialNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                         "#standard pial brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapPialFileNm);
    }
+
    if (smwmSurf!=NULL) {
 
       mapSmWmNodeList = SUMA_morphToStd(smwmSurf->NodeList, MI);
+     
+      /*smooth smwm surface, if indicated*/
+      if (smooth) {
+         for (it=0; it<2*numIt; ++it) {
+            for (i=0; i<icoSurf->N_Node; ++i) {
+               j = 3*i;
+               deltaX=0;  deltaY=0;  deltaZ=0;
+               for ( k=0; k<icoSurf->FN->N_Neighb[i]; ++k) {
+                  /*laplacian operator*/
+                  deltaX = deltaX + smweight[i]*
+                     (mapSmWmNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) ] - mapSmWmNodeList[j]);
+                  deltaY = deltaY + smweight[i]*
+                     (mapSmWmNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +1 ] - mapSmWmNodeList[j+1]);
+                  deltaZ = deltaZ + smweight[i]*
+                     (mapSmWmNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +2 ] - mapSmWmNodeList[j+2]);
+               }
+               /*taubin smoothing*/
+               if ( it%2 == 0 ) {
+                  mapSmWmNodeList[j] = mapSmWmNodeList[j] + lambda*deltaX;
+                  mapSmWmNodeList[j+1] = mapSmWmNodeList[j+1] + lambda*deltaY;
+                  mapSmWmNodeList[j+2] = mapSmWmNodeList[j+2] + lambda*deltaZ;
+               }
+               else {
+                  mapSmWmNodeList[j] = mapSmWmNodeList[j] + mu*deltaX;
+                  mapSmWmNodeList[j+1] = mapSmWmNodeList[j+1] + mu*deltaY;
+                  mapSmWmNodeList[j+2] = mapSmWmNodeList[j+2] + mu*deltaZ;
+               }
+            }
+         }
+      }
+      
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedSmWm");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", mapSmWmFileNm);
-      ++i_currSurf;
-      strcpy (surfaces[i_currSurf].state, "smoothwm");
-      sprintf (surfaces[i_currSurf].fileToRead, "%s", smwmFile);
-
+      if ( verb ) {
+         ++i_currSurf;
+         strcpy (surfaces[i_currSurf].state, "smoothwm");
+         sprintf (surfaces[i_currSurf].fileToRead, "%s", smwmFile);
+      }
       fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapSmWmFileNm);
       SUMA_writeFSfile (mapSmWmNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                         "#standard smoothwm brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapSmWmFileNm);
@@ -2452,17 +2596,50 @@ int main (int argc, char *argv[])
    if (whiteSurf!=NULL){
 
       mapWhiteNodeList = SUMA_morphToStd(whiteSurf->NodeList, MI);
+     
+      /*smooth white surface, if indicated*/
+      if (smooth) {
+         for (it=0; it<2*numIt; ++it) {
+            for (i=0; i<icoSurf->N_Node; ++i) {
+               j = 3*i;
+               deltaX=0;  deltaY=0;  deltaZ=0;
+               for ( k=0; k<icoSurf->FN->N_Neighb[i]; ++k) {
+                  /*laplacian operator*/
+                  deltaX = deltaX + smweight[i]*
+                     (mapWhiteNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) ] - mapWhiteNodeList[j]);
+                  deltaY = deltaY + smweight[i]*
+                     (mapWhiteNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +1 ] - mapWhiteNodeList[j+1]);
+                  deltaZ = deltaZ + smweight[i]*
+                     (mapWhiteNodeList[ 3*(icoSurf->FN->FirstNeighb[i][k]) +2 ] - mapWhiteNodeList[j+2]);
+               }
+               /*taubin smoothing*/
+               if ( it%2 == 0 ) {
+                  mapWhiteNodeList[j] = mapWhiteNodeList[j] + lambda*deltaX;
+                  mapWhiteNodeList[j+1] = mapWhiteNodeList[j+1] + lambda*deltaY;
+                  mapWhiteNodeList[j+2] = mapWhiteNodeList[j+2] + lambda*deltaZ;
+               }
+               else {
+                  mapWhiteNodeList[j] = mapWhiteNodeList[j] + mu*deltaX;
+                  mapWhiteNodeList[j+1] = mapWhiteNodeList[j+1] + mu*deltaY;
+                  mapWhiteNodeList[j+2] = mapWhiteNodeList[j+2] + mu*deltaZ;
+               }
+            }
+         }
+      }
+
       ++i_currSurf;
       strcpy (surfaces[i_currSurf].state, "mappedWhite");
       sprintf (surfaces[i_currSurf].fileToRead, "%s", mapWhiteFileNm);
-      ++i_currSurf;
-      strcpy (surfaces[i_currSurf].state, "white");
-      sprintf (surfaces[i_currSurf].fileToRead, "%s", whiteFile);
-
+      if ( verb ) {
+         ++i_currSurf;
+         strcpy (surfaces[i_currSurf].state, "white");
+         sprintf (surfaces[i_currSurf].fileToRead, "%s", whiteFile);
+      }
       fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, mapWhiteFileNm);
       SUMA_writeFSfile (mapWhiteNodeList, MI->FaceSetList, MI->N_Node, MI->N_FaceSet, 
                         "#standard white brain for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", mapWhiteFileNm);
    }
+
 
    /**morph colorfile, if given, and write to file*/
    if(color) {
@@ -2474,31 +2651,66 @@ int main (int argc, char *argv[])
    }
 
    /**write icosahedron, sphere.reg to file*/
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, icoFileNm);
-   SUMA_writeFSfile (icoSurf->NodeList, icoSurf->FaceSetList, icoSurf->N_Node, icoSurf->N_FaceSet, 
-                     "#icosahedron for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", icoFileNm);
-
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, ctrSphrFileNm);
-   SUMA_writeFSfile (ctrSphrList, sphrSurf->FaceSetList, sphrSurf->N_Node, sphrSurf->N_FaceSet, 
+   if ( verb ) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, icoFileNm);
+      SUMA_writeFSfile (icoSurf->NodeList, icoSurf->FaceSetList, icoSurf->N_Node, icoSurf->N_FaceSet, 
+                        "#icosahedron for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", icoFileNm);
+      
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, ctrSphrFileNm);
+      SUMA_writeFSfile (ctrSphrList, sphrSurf->FaceSetList, sphrSurf->N_Node, sphrSurf->N_FaceSet, 
                      "#centered original sphere for  SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", ctrSphrFileNm);
-
+   }
 
    /**write spec file*/
-   for(i=1; i<=i_currSurf/2; ++i) {
-      j = 2*i-1;
-      if (smwmSurf!=NULL) {
-         strcpy (surfaces[j].mapRef, mapSmWmFileNm);
-         strcpy (surfaces[j+1].mapRef, smwmFile);
+   if ( verb ) {
+
+      /* verbose spec file*/
+      for( i=1; i<=i_currSurf/2; ++i ) {
+         j = 2*i-1;
+         /*set mapping reference*/
+         if (smwmSurf!=NULL) {
+            if ( SUMA_iswordin(surfaces[j].state, "mappedSmWm") == 1 ) {
+            strcpy (surfaces[j].mapRef, "SAME");
+            strcpy (surfaces[j+1].mapRef, "SAME");
+            }
+            else {
+               strcpy (surfaces[j].mapRef, mapSmWmFileNm);
+               strcpy (surfaces[j+1].mapRef, smwmFile);
+            }
+         }
+         else {
+            strcpy( surfaces[j].mapRef, "SAME");
+            strcpy( surfaces[j+1].mapRef, "SAME");
+         }
+         /*set all else*/
+         strcpy (surfaces[j].format, "ASCII");   strcpy (surfaces[j].type, "FreeSurfer");   
+         strcpy (surfaces[j].dim, "3");
+         strcpy (surfaces[j+1].format, "ASCII");   strcpy (surfaces[j+1].type, "FreeSurfer");   
+         strcpy (surfaces[j+1].dim, "3");
       }
-      else {
-          strcpy( surfaces[j].mapRef, "SAME");
-          strcpy( surfaces[j+1].mapRef, "SAME");
-      }
-      strcpy (surfaces[j].format, "ASCII");   strcpy (surfaces[j].type, "FreeSurfer");   
-      strcpy (surfaces[j].dim, "3");
-      strcpy (surfaces[j+1].format, "ASCII");   strcpy (surfaces[j+1].type, "FreeSurfer");   
-      strcpy (surfaces[j+1].dim, "3");
    }
+   else {
+
+      /* minimized spec file*/
+      for( i=0; i<=i_currSurf; ++i ) {
+         /*set mapping reference*/
+         if (smwmSurf!=NULL) {
+            if ( SUMA_iswordin(surfaces[i].state, "mappedSmWm") == 1 ) {
+               strcpy (surfaces[i].mapRef, "SAME");
+            }
+            else {
+               strcpy (surfaces[i].mapRef, mapSmWmFileNm);
+            }
+         }
+         else {
+            strcpy( surfaces[i].mapRef, "SAME");
+         }
+      /*set all else*/
+         strcpy (surfaces[i].format, "ASCII");   strcpy (surfaces[i].type, "FreeSurfer");   
+         strcpy (surfaces[i].dim, "3");
+      }
+   }
+   
    SUMA_writeSpecFile ( surfaces, i_currSurf+1, FuncName, fout, outSpecFileNm );
 
    fprintf (SUMA_STDERR, "\nSUMA_MapSurface took %f seconds to execute.\n", etime_MapSurface); 
@@ -2507,40 +2719,864 @@ int main (int argc, char *argv[])
 
    /* free variables */
    SUMA_Free_MorphInfo (MI);
+   fprintf(SUMA_STDERR, "poo1\n");
    SUMA_free(surfaces);
+   fprintf(SUMA_STDERR, "poo2\n");
    SUMA_free(mapSphrList);
-   SUMA_free(ctrSphrList);
+   fprintf(SUMA_STDERR, "poo3\n");
+   if (verb)   SUMA_free(ctrSphrList);
+   fprintf(SUMA_STDERR, "poo4\n");
    SUMA_Free_Surface_Object (icoSurf);
+   fprintf(SUMA_STDERR, "poo5\n");
    SUMA_Free_Surface_Object (sphrSurf);
+   fprintf(SUMA_STDERR, "poo6\n");
+   if (smooth) SUMA_free(smweight);
+   fprintf(SUMA_STDERR, "poo7\n");
 
    if (color) {
       SUMA_free(mapCol);
    }
+   fprintf(SUMA_STDERR, "poo8\n");
    if (inflSurf!=NULL) {
       SUMA_free(mapInflNodeList);
       SUMA_Free_Surface_Object (inflSurf);
    }
+   fprintf(SUMA_STDERR, "poo9\n");
    if (pialSurf!=NULL) {
       SUMA_free(mapPialNodeList);
       SUMA_Free_Surface_Object (pialSurf);
    }
+   fprintf(SUMA_STDERR, "poo10\n");
    if (smwmSurf!=NULL) {
       SUMA_free(mapSmWmNodeList);
       SUMA_Free_Surface_Object (smwmSurf);
    }
+   fprintf(SUMA_STDERR, "poo11\n");
    if (whiteSurf!=NULL) {
       SUMA_free(mapWhiteNodeList);
       SUMA_Free_Surface_Object (whiteSurf);
    }
+   fprintf(SUMA_STDERR, "poo12\n");
    if (sphrNoRegSurf!=NULL) {
       SUMA_free(mapSphrNoRegNodeList);
       SUMA_Free_Surface_Object (sphrNoRegSurf);
    }
+   fprintf(SUMA_STDERR, "poo13\n");
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    exit(0);
-  
+ 
 }/* main SUMA_MapIcosahedron*/
 #endif
 
+/*!
+  array = SUMA_readANOVA1D( numNodes, fileNm, avgArray);
+
+  Function to read a 1D file into an array.
+  \param N_Nodes (int) size of created array; if passed as -1, size set to 500000
+  \param fileNm (char *) name of 1D file to be read
+  \param sig (SUMA_Boolean) YUP -> read significance column; NOPE -> read average column of 1D file
+  \ret valArray (float **) 2 x array of 1D file values; [0] is average, [1] is significance
+
+  Written by Brenna Argall
+*/
+float* SUMA_readANOVA1D (int *N_Node, char* fileNm, SUMA_Boolean sig) {
+
+   float *valArray=NULL, *tmpValArray=NULL;
+   FILE *file=NULL;
+   char *line=NULL, *temp=NULL;
+   int i=0, k=0, index=0, lgth=0;
+   static char FuncName[]={"SUMA_readMapDump"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /**if no node amount passed, set to 500,000*/
+   if ( *N_Node==-1 )  lgth = 500000;
+
+   tmpValArray = (float *)SUMA_calloc( lgth, sizeof(float) );
+   line = (char *) SUMA_calloc( 10000, sizeof(char));
+   temp = (char *) SUMA_calloc( 10000, sizeof(char));
+
+   if( (file = fopen(fileNm, "r"))==NULL) {
+      fprintf (SUMA_STDERR, "Failed in opening %s for reading.\n", fileNm);
+      exit(1);
+   }
+   else {
+      fgets( line, 1000, file);
+
+      /**skip through comments*/
+      while( line[0]=='#' ) {
+         fgets( line, 10000, file);
+      }
+
+      while( !feof(file) ) {
+
+         i = 0;  k = 0;
+         while ( !isspace(line[i]) ) ++i;
+         while ( isspace(line[i]) ) ++i;
+         if (!sig) {
+            /*if indicated average, read first column of 1D file into array*/
+            while ( !isspace(line[i]) ) { 
+               temp[k] = line[i];
+               ++i;  ++k;
+            }
+            tmpValArray[index] = atof(temp);
+         }
+         else {
+            /*if indicated significance, read second column of 1D file into array*/
+            while ( !isspace(line[i]) ) ++i;
+            while ( isspace(line[i]) ) ++i;
+            while ( !isspace(line[i]) ) {  
+               temp[k] = line[i];
+               ++i;  ++k;
+            }
+            tmpValArray[index] = atof(temp);
+         }
+         ++index;
+         
+         SUMA_free(temp);
+         temp = SUMA_calloc(10000, sizeof(char));
+         fgets( line, 10000, file ); 
+       }
+   }
+   
+   if ( *N_Node!=-1 ) {
+      if ( *N_Node!=index ) {
+         /*if *N_Node previously known, make sure matches length of file*/
+         fprintf(SUMA_STDERR, "%s: File contains more nodes than were indicated.\n", FuncName);
+         *N_Node = -1; 
+      }
+      /**N_Node previously known and correct, pass back array as is*/
+      else  {
+         valArray = tmpValArray;
+      }
+   }
+   else {
+      /*if *N_Node not previously known, create array of exact length and pass back length in *N_Node*/
+      valArray = (float*)SUMA_calloc( index, sizeof(float));
+      for (i=0; i<index; ++i) {
+         valArray[i] = tmpValArray[i];
+      }
+      *N_Node = index;
+   }
+
+   SUMA_free(line);
+   SUMA_free(temp);
+   SUMA_free(tmpValArray);
+
+   SUMA_RETURN( valArray );
+}
+
+/*!
+  array = SUMA_readMapDump( numNodes, dumpFileNm);
+
+  Function to read a dumpfile into an array.
+  \param N_Nodes (int) size of created array; if passed as -1, size set to 500000
+  \param dumpFileNm (char *) name of dump file to be read
+  \ret valArray (float *) array of dumpfile v0 values
+
+  Written by Brenna Argall
+*/
+float* SUMA_readMapDump (int *N_Node, char* dumpFileNm) {
+
+   float *tmpValArray=NULL, *valArray=NULL;
+   FILE *dumpFile=NULL;
+   char *line=NULL, *temp=NULL;
+   int i=0, k=0, index=0, lgth=0;
+   static char FuncName[]={"SUMA_readMapDump"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /**if no node amount passed, set to 500,000*/
+   if ( *N_Node==-1 )  lgth = 500000;
+   
+   tmpValArray = (float *) SUMA_calloc( lgth, sizeof(float) );
+   line = (char *) SUMA_calloc( 10000, sizeof(char));
+   temp = (char *) SUMA_calloc( 10000, sizeof(char));
+
+   if( (dumpFile = fopen(dumpFileNm, "r"))==NULL) {
+      fprintf (SUMA_STDERR, "Failed in opening %s for reading.\n", dumpFileNm);
+      exit(1);
+   }
+   else {
+      fgets( line, 1000, dumpFile);
+
+      /**skip through comments*/
+      while( line[0]=='#' ) {
+         fgets( line, 10000, dumpFile);
+      }
+
+      while( !feof(dumpFile) ) {
+
+         i = 0;  k = 0;
+         while ( isspace(line[i]) ) ++i;
+         while ( isdigit(line[i]) ) ++i;  //node
+         while ( isspace(line[i]) ) ++i;
+         while ( isdigit(line[i]) ) ++i;  //1dindex
+         while ( isspace(line[i]) ) ++i;
+         while ( isdigit(line[i]) ) ++i;  //i
+         while ( isspace(line[i]) ) ++i;
+         while ( isdigit(line[i]) ) ++i;  //j
+         while ( isspace(line[i]) ) ++i;
+         while ( isdigit(line[i]) ) ++i;  //k
+         while ( isspace(line[i]) ) ++i;
+     
+         k = 0;
+         while ( !isspace(line[i]) ) {    //v0
+            temp[k] = line[i];
+            ++i;  ++k;
+         }
+         tmpValArray[index] = atof(temp);
+         ++index;
+
+         SUMA_free(temp);
+         temp = SUMA_calloc(10000, sizeof(char));
+         fgets( line, 10000, dumpFile ); 
+       }
+   }
+   
+   if ( *N_Node!=-1 ) {
+      if ( *N_Node!=index ) {
+         /*if *N_Node previously known, make sure matches length of file*/
+         fprintf(SUMA_STDERR, "%s: File contains more nodes than were indicated.\n", FuncName);
+         *N_Node = -1; 
+      }
+      /**N_Node previously known and correct, pass back array as is*/
+      else valArray = tmpValArray;
+   }
+   else {
+      /*if *N_Node not previously known, create array of exact length and pass back length in *N_Node*/
+      valArray = SUMA_calloc( index, sizeof(float));
+      for (i=0; i<index; ++i) {
+         valArray[i] = tmpValArray[i];
+      }
+      *N_Node = index;
+   }
+
+   SUMA_free(line);
+   SUMA_free(temp);
+   SUMA_free(tmpValArray);
+
+   SUMA_RETURN( valArray );
+}
+
+#ifdef SUMA_AverageMaps_STAND_ALONE
+
+void SUMA_AverageMaps_usage ()
+   
+{/*Usage*/
+   printf ("\n\33[1mUsage: \33[0m SUMA_AverageMaps <-num numMap> <-maps mapFile> [-sgm sgmapFile] [-cut cutoff] [-trans] [-vr valRange] [-cr colRange] [-div numDiv] [-anova whichVal] [-prefix fout]\n");
+   printf ("\n\tnumMap: number of mapFiles.\n");
+   printf ("\n\tmapFile: file names containing maps.\n");
+   printf ("\n\tsgmapFile: file name of colorfile containing sulci/gyri maps.\n\t  (optional; without effect if no cuttoff and trans off)\n");
+   printf ("\n\tcutoff: value range between which activations are not displayed.\n\t  (optional; without effect if no sgmapFile)\n");
+   printf ("\n\t-trans: indicates whether activation transparent.\n\t  (optional; takes no arguments; default 'off')\n\t  ('on' without effective with no sgmapFile)\n");
+   printf ("\n\tvalRange: range of activation values displayed (optional).\n\t  (values outside of range take on colors of endpoints)\n");
+   printf ("\t  Note: input low and then high (for example, -vr 2 10).\n");
+   printf ("\n\tcolRange: specifies roygb color range (optional).\n");
+   printf ("\t  Note: input 'r' 'y' 'g' or 'b'; input low and then high.\n");
+   printf ("\t  Example: -cr r y has range of red->yellow, with yellow being high.\n");
+   printf ("\n\tnumDiv: number of discrete divisions of color range (optional).\n\t  Note: color range will not be continuous.\n");
+   printf ("\n\twhichVal: indicates whether average or significance wanted from 1D file from 3dANOVA \n\t  (optional, though necessary to distinguish from 1D dump files).\n\t  Takes 's' (significance) or 'a' (average) only as arguments.\n");
+   printf ("\n\tfout: prefix for output files.\n\t  (optional, default AvgMap)\n");
+   printf ("\n\t    Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n\t\t   Mon February 24 146:23:42 EST 2003\n\n");
+   exit (0);
+}/*Usage*/
+/*!
+  stand alone program to average activation maps and output in ascii format. 
+
+*/
+int main (int argc, char *argv[])
+{/* main SUMA_AverageMaps */
+
+   static char FuncName[]={"SUMA_AverageMaps-main"};
+   int numMap, numDiv, colRng[2];
+   float cutoff[2], valRng[2];
+   SUMA_FileName *mapFiles=NULL, sgmapFile;
+   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char colFileNm[1000];
+   char *input;
+   SUMA_Boolean brk, LocalHead=YUP, sgmap, cut, trans, cr, vr, div, anova, sig, avg;
+
+   int kar, i, j, k, numVal, tmpNumVal, numArrayRng;
+   int numCol, *colUsed=NULL;
+   float *tempValArray=NULL, *valArray=NULL, *origValArray=NULL, *sgArray=NULL, *colArray=NULL;
+   float high, low, arrayRng[2], partition, pooMin, pooMax, temp;
+   float divColRng[2][3], sizeValDiv, sizeColDiv[3];
+   float color[4][3], *colIncr=NULL, *colSeg=NULL;
+   float incR, incG, incB, avgR, avgG, avgB;
+   SUMA_COLOR_MAP *colMap=NULL;
+   SUMA_SCALE_TO_MAP_OPT *optInit=NULL;
+   SUMA_COLOR_SCALED_VECT *colsv=NULL;
+   float minVal=0, maxVal=0;
+
+   /* allocate space for CommonFields structure */
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
+   
+   SUMAg_CF = SUMA_Create_CommonFields ();
+   if (SUMAg_CF == NULL) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+      exit(1);
+   }
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
+
+
+   /* clueless user ? */
+   if (argc < 2) {
+      SUMA_AverageMaps_usage ();
+      exit (1); 
+   }
+   
+   /* read in the options */
+   sprintf( fout, "%s", "AvgMap");
+   numMap = -1;
+   sgmap = NOPE;
+   cut = NOPE;
+   trans = NOPE;
+   cr = NOPE; vr = NOPE;
+   div = NOPE;  numDiv=0;
+   colRng[0]=-1; colRng[1]=-1;
+   anova = NOPE;  sig = NOPE;  avg = NOPE;
+   kar = 1;
+   brk = NOPE;
+   while (kar < argc) { /* loop accross command line options */
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+         SUMA_AverageMaps_usage ();
+         exit (1);
+      }
+            
+      if (!brk && (strcmp(argv[kar], "-num") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -num ");
+               exit (1);
+            }
+            numMap = atoi(argv[kar]);
+            mapFiles = (SUMA_FileName *)SUMA_calloc(numMap, sizeof(SUMA_FileName));
+            brk = YUP;
+         }      
+      if (!brk && (strcmp(argv[kar], "-maps") == 0 ))
+         {
+            if ( numMap == -1 ) {
+               fprintf(SUMA_STDERR, "Error %s: -num argument must be given before -maps arguements.\n", FuncName);
+               exit(1);
+            }
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -maps ");
+               exit (1);
+            }
+
+            for (i=0; i<numMap; ++i) {
+               mapFiles[i].FileName = argv[kar];
+               kar ++;
+            }
+            kar --;
+            brk = YUP;
+         }      
+      if (!brk && strcmp(argv[kar], "-sgm") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -sgm ");
+               exit (1);
+            }
+            sgmap = YUP;
+            sgmapFile.FileName = argv[kar];
+            brk = YUP;
+         }   
+      if (!brk && strcmp(argv[kar], "-cut") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -cut ");
+               exit (1);
+            }
+            cut = YUP;
+            cutoff[0] = atof(argv[kar]);
+            kar++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need two arguments after -cut ");
+               exit (1);
+            }
+            cutoff[1] = atof(argv[kar]);
+            if (cutoff[1]<cutoff[0]) {
+               /*make sure low is [0]*/
+               temp = cutoff[0];
+               cutoff[0] = cutoff[1];
+               cutoff[1] = temp;
+            }
+            brk = YUP;
+            
+         }   
+      if (!brk && strcmp(argv[kar], "-trans") == 0)
+         {
+            trans = YUP;
+            brk = YUP;
+         }   
+      if (!brk && strcmp(argv[kar], "-vr") == 0)
+         {
+            vr = YUP;
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -vr ");
+               exit (1);
+            }
+            valRng[0] = atof(argv[kar]);
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need two arguments after -vr ");
+               exit (1);
+            }
+            valRng[1] = atof(argv[kar]);
+            if (valRng[1]<valRng[0]) {
+               /*make sure low is in [0]*/
+               temp = valRng[0];
+               valRng[0] = valRng[1];
+               valRng[1] = temp;
+            }
+            brk = YUP;
+         }   
+      if (!brk && strcmp(argv[kar], "-cr") == 0)
+         {
+            cr = YUP;
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -cr ");
+               exit (1);
+            }
+            input = argv[kar];
+            if (input[0]=='r') colRng[0]=3;
+            if (input[0]=='y') colRng[0]=2;
+            if (input[0]=='g') colRng[0]=1;
+            if (input[0]=='b') colRng[0]=0;
+
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need tow arguments after -cr ");
+               exit (1);
+            }
+            input = argv[kar];
+            if (input[0]=='r') colRng[1]=3;
+            if (input[0]=='y') colRng[1]=2;
+            if (input[0]=='g') colRng[1]=1;
+            if (input[0]=='b') colRng[1]=0;
+            brk = YUP;
+         }
+      if (!brk && strcmp(argv[kar], "-div") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -div ");
+               exit (1);
+            }
+            div = YUP;
+            numDiv = atoi(argv[kar]);
+            brk = YUP;
+         }   
+      if (!brk && strcmp(argv[kar], "-anova") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -anova ");
+               exit (1);
+            }
+            input = argv[kar];
+            if (input[0]=='a') avg = YUP;
+            else if (input[0]=='s') sig = YUP;
+            else {
+               fprintf (SUMA_STDERR, "Incorrect argument for -anova (takes only 'a' or 's').\n");
+               exit (1);
+            }
+            anova = YUP;
+            brk = YUP;
+         }   
+      if (!brk && strcmp(argv[kar], "-prefix") == 0)
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -prefix ");
+               exit (1);
+            }
+            sprintf (fout, "%s", argv[kar]);
+            brk = YUP;
+         }   
+   
+
+      if (!brk) {
+         fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+         exit (1);
+      } 
+      else {   
+         brk = NOPE;
+         kar ++;
+      }
+   }
+
+   /**print input / check for dumb input*/
+   sprintf( colFileNm, "%s.col", fout);
+   if ( SUMA_filexists(colFileNm) ) {
+      fprintf (SUMA_STDERR,"Error %s: Output files %s exists.\nWill not overwrite.\n", FuncName, colFileNm);
+      exit(1);
+   }
+   fprintf(SUMA_STDERR, "\n");
+   for (i=0; i<numMap; ++i) {
+      j=0;
+      fprintf(SUMA_STDERR, "File %d: ", i);
+      while ( mapFiles[i].FileName[j]!=NULL) {
+         fprintf(SUMA_STDERR, "%c", mapFiles[i].FileName[j]);
+         j++;
+      }
+      fprintf(SUMA_STDERR, "\n");
+   }
+   if (sgmap) {
+      j=0;
+      fprintf(SUMA_STDERR, "Sulci/gyri map: ");
+      while ( sgmapFile.FileName[j]!=NULL ) {
+         fprintf(SUMA_STDERR, "%c", sgmapFile.FileName[j]);
+         j++;
+      }
+      fprintf(SUMA_STDERR, "\n");
+   }
+   if (cut) fprintf(SUMA_STDERR, "Cutoff: %f->%f\n", cutoff[0], cutoff[1]);
+   if (cr) {
+      if ( colRng[1]==-1 || colRng[0]==-1 ) {
+         fprintf(SUMA_STDERR, "\nError %s: Color range input invalid.  Exiting.\n", FuncName);
+         exit (1);
+      }
+   }
+   if (vr) {
+      fprintf(SUMA_STDERR, "ValRange: %f->%f \n", valRng[0], valRng[1]);
+      if (valRng[0]>valRng[1]) {
+         fprintf(SUMA_STDERR, "\nError %s: High and low values overlap. Exiting.\n", FuncName);
+         exit(1);
+      }
+   }
+   if (vr && cut) if ( (valRng[1] < cutoff[0]) || (valRng[0]>cutoff[1]))  fprintf(SUMA_STDERR, "\nWarning %s: ValRng (%f->%f) does not intersect cutoff range(%f->%f). Output will be one color.\n", FuncName, valRng[0], valRng[1], cutoff[0], cutoff[1]); 
+   if (div) {
+      if (!vr || !cr) {
+         fprintf(SUMA_STDERR, "\nError %s: Use of -div requires -cr and -vr input. Exiting.\n", FuncName);
+         exit(1);
+      }
+      fprintf(SUMA_STDERR, "%d divisions of color range (%d segments)\n", numDiv, numDiv+1);
+   }
+
+
+   /**if 1D file from ANOVA, average already computed, so just read*/
+   if (anova) {
+      numVal = -1;
+      high = -1000.0; low = 1000.0;
+      valArray = SUMA_readANOVA1D( &numVal, mapFiles[0].FileName, sig);
+      for (i=0; i<numVal; ++i) {
+         if ( high<valArray[i] ) high = valArray[i];
+         if ( low>valArray[i] ) low = valArray[i];
+      }
+   }
+
+   /**otherwise read files and average*/
+   else {
+      /**read first file into valArray*/
+      numVal = -1;  tmpNumVal = -1;
+      tempValArray = SUMA_readMapDump( &numVal, mapFiles[0].FileName );
+      valArray = SUMA_calloc( numVal, sizeof(float)); 
+      high = -1000.0; low = 1000.0;
+     
+      for (i=0; i<numVal; ++i) {
+         valArray[i] = tempValArray[i];
+         if (high<tempValArray[i]) high = tempValArray[i];
+         if (low>tempValArray[i]) low = tempValArray[i];
+      }
+      fprintf(SUMA_STDERR, "\nfile0: low %f, high %f\n", low, high);
+      SUMA_free(tempValArray);
+      
+      /**read remaining files into valArray*/
+      for (i=1; i<numMap; ++i) {
+         
+         tmpNumVal = -1;
+         tempValArray = SUMA_readMapDump( &tmpNumVal, mapFiles[i].FileName );
+         high = 0.0;  
+         low = 100.0;
+         if ( tmpNumVal != numVal ) {
+            fprintf(SUMA_STDERR, "Error %s: Input files do not contain the same number of nodes. Exiting.\n", FuncName);
+            exit(1);
+         }
+         else {
+            for (k=0; k<numVal; ++k) {
+               valArray[k] = valArray[k] + tempValArray[k];
+               if (high<tempValArray[k]) high = tempValArray[k];
+               if (low>tempValArray[k]) low = tempValArray[k];
+            }
+         }
+         fprintf(SUMA_STDERR, "file%d: low %f, high %f\n", i, low, high);
+         SUMA_free(tempValArray);
+      }
+   }
+
+   /**process valArray*/
+   minVal = (float)valArray[0]/(float)numMap;  
+   maxVal = -minVal;
+   origValArray = SUMA_calloc( numVal, sizeof(float));
+
+   for (i=0; i<numVal; ++i) {
+      valArray[i] = (float)valArray[i] / (float)numMap;
+      origValArray[i] = valArray[i];
+      if ( minVal>valArray[i] ) minVal = valArray[i];
+      else if ( maxVal<valArray[i] ) maxVal = valArray[i];
+
+      if (vr) {
+         if (valArray[i] > valRng[1]) valArray[i] = valRng[1];
+         if (valArray[i] < valRng[0])  valArray[i] = valRng[0];
+      }
+   }
+   fprintf(SUMA_STDERR, "Value Range: low %f, high %f (midpoint %f)\n", minVal, maxVal, (maxVal+minVal)/2.0);
+
+
+   /*assign high and low of value range to user input or actual data*/
+   if (vr) {
+      arrayRng[0] = valRng[0];
+      arrayRng[1] = valRng[1];
+   }
+   else {
+      arrayRng[0] = minVal;
+      arrayRng[1] = maxVal;
+      valRng[0] = minVal;
+      valRng[1] = maxVal;
+   }
+   numArrayRng = numVal;
+
+   /**scale valArray to color*/
+   colArray = SUMA_calloc( 3*numVal, sizeof(float));
+   numCol = 0; 
+   partition = 0;  temp = 0;
+   sizeValDiv = 0;
+
+   if (cr) {
+      numCol = abs( colRng[1]-colRng[0] ) + 1;
+      
+      if (!div) {
+         /*extend range of values to accomodate reduced color range*/
+         partition = (valRng[1]-valRng[0])/(float)numCol;
+         if ( colRng[0]<colRng[1] ) {
+            /*color order b->r (red is high)*/
+            arrayRng[0] = valRng[0] - colRng[0]*(partition);
+            arrayRng[1] = valRng[1] + (3-colRng[1])*(partition);
+            numArrayRng = numVal + (numVal/numCol)*(colRng[0] + (3-colRng[1]));
+            fprintf(SUMA_STDERR, "arrayRng: %f->%f, numArray=%d\n", arrayRng[0], arrayRng[1], numArrayRng);
+         }
+         else {
+            /*color order r->b (blue is high) => flip ordering of valArray*/
+            for (i=0; i<numVal; ++i)  { 
+               valArray[i] = -1*valArray[i];
+            }
+            temp = arrayRng[0];
+            arrayRng[0] = -1*arrayRng[1];
+            arrayRng[1] = -1*temp;
+            arrayRng[0] = arrayRng[0] - colRng[1]*(partition);
+            arrayRng[1] = arrayRng[1] + (3-colRng[0])*(partition);
+            numArrayRng = numVal + (numVal/numCol)*(colRng[1] + (3-colRng[0]));
+         }
+      }
+      else {
+         /*if number of divisions specified, create own discretized color gradient*/
+         
+         /*rbg values for each color*/
+         color[3][0]=1;  color[3][1]=0;    color[3][2]=0;  //red
+         color[2][0]=1;  color[2][1]=.75;  color[2][2]=0;  //yellow
+         color[1][0]=0;  color[1][1]=1;    color[1][2]=0;  //green
+         color[0][0]=0;  color[0][1]=0;    color[0][2]=1;  //blue
+
+         /*if only one color in range, set segment to it*/
+         if (numCol==1) {
+            colUsed = SUMA_calloc(1, sizeof(int));
+            colUsed[0] = colRng[0];
+            colSeg = SUMA_calloc( 9, sizeof(float));
+            for (i=0; i<3; ++i) {
+               j = 3*i;
+               colSeg[j] = color[colUsed[0]][0];
+               colSeg[j+1] = color[colUsed[0]][1];
+               colSeg[j+2] = color[colUsed[0]][2];
+            }
+         }
+         
+         else {
+
+            /*determine all colors within range*/
+            colUsed = SUMA_calloc(numCol, sizeof(int));
+            colUsed[0] = colRng[0];
+            colUsed[numCol-1] = colRng[1];
+
+            for (i=1; i<numCol-1; ++i) {
+               if ( colUsed[0]<colUsed[numCol-1] ) colUsed[i] = colUsed[i-1] + 1;
+               else colUsed[i] = colUsed[i-1] - 1;
+            }
+            
+            /*create 1D array of rgb (numDiv-1) increments within color, to determine larger incremental
+              changes for segments
+              # of incremental segments = # of final segments - 2 (without the end segments) = numDiv-1*/
+            colIncr = SUMA_calloc( 3*(numCol-1)*(numDiv), sizeof(float));
+            for (i=0; i<numCol-1; ++i) {
+               /*divide each color by the number of incremental segments*/
+               incR = (color[colUsed[i+1]][0] - color[colUsed[i]][0]) / (float)(numDiv);
+               incG = (color[colUsed[i+1]][1] - color[colUsed[i]][1]) / (float)(numDiv);
+               incB = (color[colUsed[i+1]][2] - color[colUsed[i]][2]) / (float)(numDiv);
+               
+               /*set numDiv-1 (number of incremental segments) slots in colIncr to amount of color divisions*/
+               for (j=0; j<numDiv; ++j) {
+                  k = 3*(j + i*(numDiv));
+                  colIncr[k] = incR;
+                  colIncr[k+1] = incG;
+                  colIncr[k+2] = incB;
+               }
+            }
+            
+            /*average groups (of size numDiv+1) of increments from colIncr to find color for each final segment*/
+            /*colSeg array is 1D with 3 x number of segments entered, in order RGB*/
+            colSeg = SUMA_calloc( 3*(numDiv+1), sizeof(float));
+            
+            /*first segment*/
+            colSeg[0] = color[colUsed[0]][0];
+            colSeg[1] = color[colUsed[0]][1];
+            colSeg[2] = color[colUsed[0]][2];
+
+            /*remaining (incremental and last) segments*/
+            for (i=1; i<numDiv+1; ++i) {
+               avgR = 0.0;  avgG = 0.0;  avgB = 0.0; 
+               for (j=0; j<numCol-1; ++j) {
+                  /*sum numCol-1 increments to get incremental value for incremental segment i*/
+                  k = 3*(j + (i-1)*(numCol-1));
+                  avgR = avgR + colIncr[k];
+                  avgG = avgG + colIncr[k+1];
+                  avgB = avgB + colIncr[k+2];
+               }
+
+               /*add incremental value to color value of prior segment*/
+               colSeg[3*i] = colSeg[3*(i-1)] + avgR;
+               colSeg[3*i+1] = colSeg[3*(i-1)+1] + avgG;
+               colSeg[3*i+2] = colSeg[3*(i-1)+2] + avgB;
+            }
+            
+            /*determine size of discrete increments*/
+            sizeValDiv = (valRng[1]-valRng[0]) / (float)(numDiv-1);
+         }
+      }
+   }
+   else {
+      if (!div) {
+         /*if gradient but no color range, set colRng from blue->red*/
+         colRng[0] = 0;
+         colRng[1] = 3;
+      }
+   }
+   
+   /**put colors into 1D array*/
+   if (!div) {
+      /*continuous colors*/
+      optInit = SUMA_ScaleToMapOptInit();
+      colMap = SUMA_GetStandardMap( SUMA_CMAP_BGYR19 );
+      colsv = SUMA_Create_ColorScaledVect( numArrayRng );
+      SUMA_ScaleToMap( valArray, numVal, arrayRng[0], arrayRng[1], colMap, optInit, colsv);
+      
+      for (i=0; i<numVal; ++i) {
+         j=3*i;
+         colArray[j] = colsv->cM[i][0];
+         colArray[j+1] = colsv->cM[i][1];
+         colArray[j+2] = colsv->cM[i][2];
+      }
+   }
+   else {
+      /*discrete colors*/
+      for (i=0; i<numVal; ++i) {
+         j=3*i;
+         if ( valArray[i]<=valRng[0] ) {
+            /*value out of range => set to minimum color*/
+            colArray[j] = colSeg[0];
+            colArray[j+1] = colSeg[1];
+            colArray[j+2] = colSeg[2];
+         }
+         else if ( valArray[i]>=valRng[1] ) {
+            /*value out of range => set to maximum color*/
+            colArray[j] = colSeg[3*numDiv];
+            colArray[j+1] = colSeg[3*numDiv + 1];
+            colArray[j+2] = colSeg[3*numDiv + 2];
+         }
+         else {
+            /*value falls within range of discrete color block*/
+            for (k=1; k<numDiv; ++k) {
+               if ( valArray[i] < (valRng[0]+k*sizeValDiv) ) {
+                  colArray[j] =  colSeg[3*k];
+                  colArray[j+1] = colSeg[3*k+1];
+                  colArray[j+2] = colSeg[3*k+2];
+                  break;
+               }
+            }
+         }
+      }
+   }
+
+   /**read and apply sulci/gyri map if indicated*/
+   if (sgmap) {
+      sgArray = SUMA_readColor( numVal, sgmapFile.FileName);
+    
+      for (i=0; i<numVal; ++i) {
+         j=3*i;
+         if (trans) {
+            /*overlay with sgmap*/
+            colArray[j] = colArray[j] + sgArray[j];
+            colArray[j+1] = colArray[j+1] + sgArray[j+1];
+            colArray[j+2] = colArray[j+2] + sgArray[j+2];
+         }
+         if (cut) {
+            /*eliminate minimum values if indicated*/
+            if ( (origValArray[i]>cutoff[0]) && (origValArray[i]<cutoff[1]) ) {
+               colArray[j] = sgArray[j];
+               colArray[j+1] = sgArray[j+1];
+               colArray[j+2] = sgArray[j+2];
+            }
+         }
+      }
+   }
+
+   /**print color ranges to screen*/
+   fprintf(SUMA_STDERR, "\nCOLOR RANGES:\n\t[%f : %f]\t", minVal, valRng[0] );
+   if (colRng[0]==3) fprintf(SUMA_STDERR, "Red\n");
+   else if (colRng[0]==2) fprintf(SUMA_STDERR, "Yellow\n");
+   else if (colRng[0]==1) fprintf(SUMA_STDERR, "Green\n");
+   else if (colRng[0]==0) fprintf(SUMA_STDERR, "Blue\n");
+   if (div) {
+      fprintf(SUMA_STDERR, "\t(%f : %f)\n", valRng[0], valRng[0]+sizeValDiv );
+      for (k=2; k<numDiv; ++k) {
+         fprintf(SUMA_STDERR, "\t[%f : %f)\n", valRng[0]+(k-1)*sizeValDiv, valRng[0]+k*sizeValDiv );
+      }
+   }
+   else fprintf(SUMA_STDERR, "\t(%f : %f)\t(gradient)\n", valRng[0], valRng[1]);
+   fprintf(SUMA_STDERR, "\t[%f : %f]\t", valRng[1], maxVal );
+   if (colRng[1]==3) fprintf(SUMA_STDERR, "Red\n");
+   else if (colRng[1]==2) fprintf(SUMA_STDERR, "Yellow\n");
+   else if (colRng[1]==1) fprintf(SUMA_STDERR, "Green\n");
+   else if (colRng[1]==0) fprintf(SUMA_STDERR, "Blue\n");
+   
+
+   /**write to colorfile*/
+   fprintf (SUMA_STDERR, "\n%s: Now writing %s to disk ...\n", FuncName, colFileNm);
+   SUMA_writeColorFile (colArray, numVal, colFileNm);
+
+   /**free variable*/
+   SUMA_free(mapFiles);
+   SUMA_free(valArray);
+   SUMA_free(origValArray);
+   SUMA_free(colArray);
+   if (div) {
+      SUMA_free(colUsed);
+      SUMA_free(colIncr);
+      SUMA_free(colSeg);
+   }
+   if (!div) SUMA_free(colsv);
+   if (sgmap) SUMA_free(sgArray);
+   fprintf(SUMA_STDERR, "freepoo4\n");
+
+   exit(0);
+  
+}/* main SUMA_AverageMaps*/
+#endif

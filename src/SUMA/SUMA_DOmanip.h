@@ -8,6 +8,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov);
 SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N);
 SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType);
+SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free_op);
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out);
@@ -45,6 +46,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, i
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
+void SUMA_LoadColorPlaneFile (char *filename, void *data);
 
 /*!
    \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)

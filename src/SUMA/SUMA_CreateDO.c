@@ -347,7 +347,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                      NextElm = dlist_next(NextElm);
                   }
                   ROId = (SUMA_ROI_DATUM *)NextElm->data;
-                  if (ROId->type == SUMA_ROI_NodeSegment) { 
+                  if (ROId->Type == SUMA_ROI_NodeSegment) { 
                      if (ROId->N_n) {
                         if (!N_ROId) {
                            /* draw 1st sphere */
@@ -1356,6 +1356,20 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
          }
       }
 
+      if (SO->N_Overlays) {
+         sprintf (stmp,"%d Overlay planes.\n", SO->N_Overlays);
+         SS = SUMA_StringAppend (SS,stmp);
+         s = SUMA_ColorOverlayPlane_Info(SO->Overlays, SO->N_Overlays);
+         if (s) {
+            SS = SUMA_StringAppend (SS,s);
+            SUMA_free(s);
+            s = NULL;
+         }
+         
+      }else {
+         sprintf (stmp,"No overlay planes.\n");
+         SS = SUMA_StringAppend (SS,stmp);
+      }
       sprintf (stmp,"\n");
       SS = SUMA_StringAppend (SS,stmp);
 
@@ -1686,7 +1700,7 @@ SUMA_ROI_DATUM * SUMA_AllocROIDatum (void)
    ROId->nPath = ROId->tPath = NULL;
    ROId->N_n = ROId->N_t = 0;
    ROId->nDistance = ROId->tDistance = 0.0;
-   ROId->type = SUMA_ROI_Undefined;
+   ROId->Type = SUMA_ROI_Undefined;
    SUMA_RETURN (ROId);
 }
 
@@ -1958,10 +1972,10 @@ void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean Short
    
    if (ROId->N_n == 1) {
       fprintf(out, "%s: ROId (type %d) has 1 node (%d) in nPath.\n", 
-         FuncName, ROId->type, ROId->nPath[0]);
+         FuncName, ROId->Type, ROId->nPath[0]);
    }else {
       fprintf(out, "%s: ROId (type %d) has %d nodes in nPath [%d..%d].\n", 
-         FuncName, ROId->type, ROId->N_n, ROId->nPath[0], ROId->nPath[ROId->N_n-1]);
+         FuncName, ROId->Type, ROId->N_n, ROId->nPath[0], ROId->nPath[ROId->N_n-1]);
       if (!ShortVersion) {
          for (i=0; i <ROId->N_n; ++i) fprintf (out, "%d: %d\t", i, ROId->nPath[i]);
          fprintf (out, "\n");
@@ -1979,10 +1993,10 @@ void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean Short
    }else {
          if (ROId->N_t == 1) {
             fprintf(out, "%s: ROId (type %d) has 1 triangle (%d) in tPath.\n", 
-               FuncName, ROId->type, ROId->tPath[0]);
+               FuncName, ROId->Type, ROId->tPath[0]);
          }else {
             fprintf(out, "%s: ROId (type %d) has %d triangles in tPath [%d..%d].\n", 
-               FuncName, ROId->type, ROId->N_t, ROId->tPath[0], ROId->tPath[ROId->N_t-1]);
+               FuncName, ROId->Type, ROId->N_t, ROId->tPath[0], ROId->tPath[ROId->N_t-1]);
             if (!ShortVersion) {
                for (i=0; i <ROId->N_t; ++i) fprintf (out, "%d: %d\t", i, ROId->tPath[i]);
                fprintf (out, "\n");
@@ -2121,7 +2135,7 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d nodes to fill.\n", FuncName, N_Visited);
       
    ROIfill = SUMA_AllocROIDatum();
-   ROIfill->type = SUMA_ROI_NodeGroup;
+   ROIfill->Type = SUMA_ROI_NodeGroup;
    
    /* Now put the nodes in the path */
    ROIfill->N_n = N_Visited;
