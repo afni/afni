@@ -19,6 +19,7 @@ static void upsample_1by3( int, byte *, byte * ) ;
 static void upsample_1by4( int, byte *, byte * ) ;
 
 static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *) ;   /* 14 Mar 2002 */
+static MRI_IMAGE * mri_dup2D_rgb3( MRI_IMAGE *) ;   /* 14 Mar 2002 */
 
 /*-----------------------------------------------------------------------------
   Set resample mode for mri_dup2D (1 or 7)
@@ -71,6 +72,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
    /*-- 14 Mar 2002 special case: RGB image up by 4, all colors at once --*/
 
    if( imin->kind == MRI_rgb && nup == 4 ) return mri_dup2D_rgb4(imin) ;
+   if( imin->kind == MRI_rgb && nup == 3 ) return mri_dup2D_rgb3(imin) ;
 
    /*-- rgb-valued image: do each color separately as a byte image --*/
 
@@ -449,10 +451,10 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
    bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
 
    /** macros for the 16 different interpolations
-       between the four corners:   ul    ur }   00 10 20 30
-                                            }=> 01 11 21 31
-                                            }=> 02 12 22 32
-                                   ll    lr }   03 13 23 33 **/
+       between the four corners:   ul    ur >   00 10 20 30
+                                            >=> 01 11 21 31
+                                            >=> 02 12 22 32
+                                   ll    lr >   03 13 23 33 **/
 
 #define BOUT_00(ul,ur,ll,lr) (   ul                           )
 #define BOUT_10(ul,ur,ll,lr) ((3*ul +   ur              ) >> 2)
@@ -473,14 +475,6 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
 #define BOUT_13(ul,ur,ll,lr) ((3*ul +   ur + 9*ll + 3*lr) >> 4)
 #define BOUT_23(ul,ur,ll,lr) ((  ul +   ur + 3*ll + 3*lr) >> 3)
 #define BOUT_33(ul,ur,ll,lr) ((  ul + 3*ur + 3*ll + 9*lr) >> 4)
-
-  /** decide if a color is gray **/
-
-#define ISGRAY(ccc) ( (ccc).r == (ccc).g && (ccc).r == (ccc).b )
-
-  /** make a color gray (from the red channel) **/
-
-#define GRAYIZE(ccc) ( (ccc).g = (ccc).b = (ccc).r )
 
   /** do 16 interpolations between  ul ur
                                     ll lr  for index #k, color #c **/
@@ -505,22 +499,9 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
 
   /** do the above for all 3 colors, or just 1 if all inputs are gray */
 
-#define FOUR_RGB(k,ul,ur,ll,lr)                                 \
-  if( ISGRAY(ul) && ISGRAY(ur) && ISGRAY(ll) && ISGRAY(lr) ){   \
-    FOUR_ROWS(k,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;    \
-    GRAYIZE(bout1[4*k  ]) ; GRAYIZE(bout1[4*k+1]) ;             \
-    GRAYIZE(bout1[4*k+2]) ; GRAYIZE(bout1[4*k+3]) ;             \
-    GRAYIZE(bout2[4*k  ]) ; GRAYIZE(bout2[4*k+1]) ;             \
-    GRAYIZE(bout2[4*k+2]) ; GRAYIZE(bout2[4*k+3]) ;             \
-    GRAYIZE(bout3[4*k  ]) ; GRAYIZE(bout3[4*k+1]) ;             \
-    GRAYIZE(bout3[4*k+2]) ; GRAYIZE(bout3[4*k+3]) ;             \
-    GRAYIZE(bout4[4*k  ]) ; GRAYIZE(bout4[4*k+1]) ;             \
-    GRAYIZE(bout4[4*k+2]) ; GRAYIZE(bout4[4*k+3]) ;             \
-  } else {                                                      \
-    FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
-    FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
-    FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
-  }
+#define FOUR_RGB(k,ul,ur,ll,lr)  { FOUR_ROWS(k,r,ul,ur,ll,lr) ; \
+                                   FOUR_ROWS(k,g,ul,ur,ll,lr) ; \
+                                   FOUR_ROWS(k,b,ul,ur,ll,lr) ;  }
 
    bin1  = bin       ; bin2  = bin+nx    ;  /* 2 input rows */
    bout1 = bout      ; bout2 = bout1+nxup;  /* 4 output rows */
@@ -552,6 +533,96 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
    /* here, ii=nx-1 and jj=ny-1, so can only use bin1[ii] */
 
    FOUR_RGB(ii,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
+
+   MRI_COPY_AUX(outim,inim) ;
+   return outim ;
+}
+
+/*************************************************************************/
+
+static MRI_IMAGE * mri_dup2D_rgb3( MRI_IMAGE *inim )
+{
+   rgbyte *bin , *bout , *bin1,*bin2 , *bout1,*bout2,*bout3 ;
+   MRI_IMAGE *outim ;
+   int ii,jj , nx,ny , nxup,nyup ;
+
+   if( inim == NULL || inim->kind != MRI_rgb ) return NULL ;
+
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
+
+   /* make output image **/
+
+   nx = inim->nx ; ny = inim->ny ; nxup = 3*nx ; nyup = 3*ny ;
+   outim = mri_new( nxup , nyup , MRI_rgb ) ;
+   bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
+
+   /** macros for the 9 different interpolations
+       between the four corners:   ul  ur >   00 10 20
+                                          >=> 01 11 21
+                                   ll  lr >   02 12 22 **/
+
+#define COUT_00(ul,ur,ll,lr) (     ul                              )
+#define COUT_10(ul,ur,ll,lr) ((171*ul + 85*ur                ) >> 8)
+#define COUT_20(ul,ur,ll,lr) (( 85*ul +171*ur                ) >> 8)
+
+#define COUT_01(ul,ur,ll,lr) ((171*ul +         85*ll        ) >> 8)
+#define COUT_11(ul,ur,ll,lr) ((114*ul + 57*ur + 57*ll + 28*lr) >> 8)
+#define COUT_21(ul,ur,ll,lr) (( 57*ul +114*ur + 28*ll + 57*lr) >> 8)
+
+#define COUT_02(ul,ur,ll,lr) (( 85*ul +        171*ll        ) >> 8)
+#define COUT_12(ul,ur,ll,lr) (( 57*ul + 28*ur +114*ll + 57*lr) >> 8)
+#define COUT_22(ul,ur,ll,lr) (( 28*ul + 57*ur + 57*ll +114*lr) >> 8)
+
+  /** do 9 interpolations between  ul ur
+                                   ll lr  for index #k, color #c **/
+
+#define THREE_ROWS(k,c,ul,ur,ll,lr)                  \
+   { bout1[3*k  ].c = COUT_00(ul.c,ur.c,ll.c,lr.c) ; \
+     bout1[3*k+1].c = COUT_10(ul.c,ur.c,ll.c,lr.c) ; \
+     bout1[3*k+2].c = COUT_20(ul.c,ur.c,ll.c,lr.c) ; \
+     bout2[3*k  ].c = COUT_01(ul.c,ur.c,ll.c,lr.c) ; \
+     bout2[3*k+1].c = COUT_11(ul.c,ur.c,ll.c,lr.c) ; \
+     bout2[3*k+2].c = COUT_21(ul.c,ur.c,ll.c,lr.c) ; \
+     bout3[3*k  ].c = COUT_02(ul.c,ur.c,ll.c,lr.c) ; \
+     bout3[3*k+1].c = COUT_12(ul.c,ur.c,ll.c,lr.c) ; \
+     bout3[3*k+2].c = COUT_22(ul.c,ur.c,ll.c,lr.c) ;  }
+
+  /** do the above for all 3 colors **/
+
+#define THREE_RGB(k,ul,ur,ll,lr)  { THREE_ROWS(k,r,ul,ur,ll,lr) ; \
+                                    THREE_ROWS(k,g,ul,ur,ll,lr) ; \
+                                    THREE_ROWS(k,b,ul,ur,ll,lr) ;  }
+
+   bin1  = bin       ; bin2  = bin+nx    ;  /* 2 input rows */
+   bout1 = bout      ; bout2 = bout1+nxup;  /* 3 output rows */
+   bout3 = bout2+nxup;
+
+   for( jj=0 ; jj < ny-1 ; jj++ ){   /* loop over input rows */
+
+     for( ii=0 ; ii < nx-1 ; ii++ ){
+        THREE_RGB(ii,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
+     }
+
+     /* here, ii=nx-1, so can't use ii+1 */
+
+     THREE_RGB(ii,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
+
+     /* advance input and output rows */
+
+     bin1 = bin2; bin2 += nx ;
+     bout1 = bout3+nxup; bout2 = bout1+nxup;
+     bout3 = bout2+nxup;
+   }
+
+   /* here, jj=ny-1, so can't use jj+1 (bin2) */
+
+   for( ii=0 ; ii < nx-1 ; ii++ ){
+     THREE_RGB(ii,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
+   }
+
+   /* here, ii=nx-1 and jj=ny-1, so can only use bin1[ii] */
+
+   THREE_RGB(ii,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
 
    MRI_COPY_AUX(outim,inim) ;
    return outim ;
