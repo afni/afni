@@ -232,11 +232,11 @@ d3dmerge:3dmerge.c editvol.c 3ddata.c editvol.h
 	$(RM) $@
 	$(CC) -o 3dANOVA3 3dANOVA3.o editvol.o 3ddata.o $(LFLAGS) $(LLIBS)
 
-3dNLfim:3dNLfim.o 3ddata.o editvol.o 
+3dNLfim:3dNLfim.o 3ddata.o editvol.o
 	$(RM) $@
 	$(CC) -o 3dNLfim 3dNLfim.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
 
-3dTSgen:3dTSgen.o 3ddata.o editvol.o 
+3dTSgen:3dTSgen.o 3ddata.o editvol.o
 	$(RM) $@
 	$(CC) -o 3dTSgen 3dTSgen.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
 
@@ -558,11 +558,11 @@ libmri.a:mrilib.h $(MRI_OBJS) $(CDF_OBJS)
 
 SO = $(PLUGIN_SUFFIX)
 
-plugins:plug_clust.$(SO)  plug_copy.$(SO)  plug_rename.$(SO) \
-        plug_3ddot.$(SO)  plug_power.$(SO) plug_stats.$(SO)  \
-        plug_lsqfit.$(SO) plug_imreg.$(SO) plug_edit.$(SO)   \
-        plug_nlfit.$(SO)  plug_realtime.$(SO)                \
-        plug_coorder.$(SO)                                   \
+plugins:plug_clust.$(SO)   plug_copy.$(SO)     plug_rename.$(SO) \
+        plug_3ddot.$(SO)   plug_power.$(SO)    plug_stats.$(SO)  \
+        plug_lsqfit.$(SO)  plug_imreg.$(SO)    plug_edit.$(SO)   \
+        plug_nlfit.$(SO)   plug_realtime.$(SO)                   \
+        plug_coorder.$(SO) plug_3Ddump.$(SO)                     \
         models
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
