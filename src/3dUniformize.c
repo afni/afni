@@ -44,6 +44,7 @@ static THD_3dim_dataset * anat_dset = NULL;     /* input anatomical dataset  */
 char * commandline = NULL ;                /* command line for history notes */
 
 int input_datum = MRI_short ;              /* 16 Apr 2003 - RWCox */
+int quiet       = 0 ;                      /* ditto */
  
 typedef struct UN_options
 { 
@@ -228,6 +229,7 @@ void get_options
       if (strncmp(argv[nopt], "-quiet", 6) == 0)
 	{
 	  option_data->quiet = TRUE;
+          quiet = 1 ;                    /* 16 Apr 2003 */
 	  nopt++;
 	  continue;
 	}
@@ -1035,7 +1037,7 @@ void write_afni_data
   fimfac = 1.0;
 
   /*----- write afni data set -----*/
-  if (!0)
+  if (!quiet)
     {
       printf ("\nWriting anatomical dataset: ");
       printf("%s\n", new_dset->dblk->diskptr->header_name) ;
@@ -1074,12 +1076,14 @@ int main
 
 
   /*----- Identify software -----*/
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-  printf ("\n");
+  if( !quiet ){
+    printf ("\n\n");
+    printf ("Program: %s \n", PROGRAM_NAME);
+    printf ("Author:  %s \n", PROGRAM_AUTHOR);
+    printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+    printf ("\n");
+  }
 
   
   /*----- Program initialization -----*/

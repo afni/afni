@@ -11,8 +11,9 @@
 #define MATVEC_BAC 2
 
 static THD_vecmat matvec_warp ;
-static THD_vecmat dicom_in2out , dicom_out2in ;
+static THD_vecmat dicom_in2out    , dicom_out2in     ;  /* coordinate warps */
 static THD_vecmat ijk_to_dicom_in , ijk_to_dicom_out ;
+static THD_vecmat ijk_in2out      , ijk_out2in       ;
 
 static void warp_func( float xi,float yi,float zi, float *xo,float *yo,float *zo )
 {
@@ -107,14 +108,15 @@ static void warp_corners( THD_3dim_dataset *inset,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset , *outset ;
-   int nxin,nyin,nzin,nxyzin,nvals , kk ;
+   int nxin,nyin,nzin,nxyzin,nvals , ival ;
    int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
    int nopt=1 , verb=0 ;
    int use_matvec=0 ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
    int use_newgrid=0 ;
-   float ddd_newgrid=0.0 ;
+   float ddd_newgrid=0.0 , fac ;
+   MRI_IMAGE *inim , *outim , *wim ;
 
    /*-- help? --*/
 
@@ -363,7 +365,6 @@ int main( int argc , char * argv[] )
      float xmid,ymid,zmid ;
      THD_ivec3 nxyz , orixyz ;
      THD_fvec3 dxyz , orgxyz ;
-     int *datum ;
 
      /* compute DICOM coordinates of warped corners */
 
@@ -380,11 +381,12 @@ int main( int argc , char * argv[] )
      ybot = ymid - 0.5*nyout*ddd_newgrid ; ytop = ybot + (nyout-1)*ddd_newgrid ;
      zbot = zmid - 0.5*nzout*ddd_newgrid ; ztop = zbot + (nzout-1)*ddd_newgrid ;
 
-     fprintf(stderr,"++ Transformed grid:\n"
-                    "++   xbot = %10.4g  xtop = %10.4g  nx = %d\n"
-                    "++   ybot = %10.4g  ytop = %10.4g  ny = %d\n"
-                    "++   zbot = %10.4g  ztop = %10.4g  nz = %d\n" ,
-             xbot,xtop,nxout , ybot,ytop,nyout , zbot,ztop,nzout    ) ;
+     if( verb )
+       fprintf(stderr,"++ Transformed grid:\n"
+                      "++   xbot = %10.4g  xtop = %10.4g  nx = %d\n"
+                      "++   ybot = %10.4g  ytop = %10.4g  ny = %d\n"
+                      "++   zbot = %10.4g  ztop = %10.4g  nz = %d\n" ,
+               xbot,xtop,nxout , ybot,ytop,nyout , zbot,ztop,nzout    ) ;
 
      if( nxyzout == 1 ){
        fprintf(stderr,"** Transformed dataset is too small!\n"); exit(1);
@@ -402,9 +404,6 @@ int main( int argc , char * argv[] )
 
      outset = EDIT_empty_copy( NULL ) ;
 
-     datum = malloc( sizeof(int) * nvals ) ;
-     for( kk=0 ; kk < nvals ; kk++ ) datum[kk] = DSET_BRICK_TYPE(inset,kk) ;
-
      EDIT_dset_items( outset ,
                         ADN_nxyz        , nxyz ,
                         ADN_xyzdel      , dxyz ,
@@ -415,9 +414,8 @@ int main( int argc , char * argv[] )
                         ADN_type        , inset->type ,
                         ADN_view_type   , inset->view_type ,
                         ADN_func_type   , inset->func_type ,
-                        ADN_datum_array , datum ,
                       ADN_none ) ;
-     free(datum) ;
+
      if( DSET_NUM_TIMES(inset) > 1 )
        EDIT_dset_items( outset ,
                           ADN_ntt       , nvals ,
@@ -428,6 +426,21 @@ int main( int argc , char * argv[] )
                         ADN_none ) ;
 
    } /*-- end of warping to new grid --*/
+
+   /*-- compute mapping from output dataset (i,j,k) to DICOM coords --*/
+
+   { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
+
+     LOAD_DIAG_MAT( ijk_to_xyz.mm , outset->daxes->xxdel,
+                                    outset->daxes->yydel, outset->daxes->zzdel );
+     LOAD_FVEC3   ( ijk_to_xyz.vv , outset->daxes->xxorg,
+                                    outset->daxes->yyorg, outset->daxes->zzorg );
+
+     xyz_to_dicom.mm = outset->daxes->to_dicomm ;
+     LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
+
+     ijk_to_dicom_out = MUL_VECMAT( xyz_to_dicom , ijk_to_xyz ) ;
+   }
 
    /*-- polish up the new dataset info --*/
 
@@ -443,15 +456,46 @@ int main( int argc , char * argv[] )
      exit(1) ;
    }
 
-   /*-- read data from disk --*/
+   /*-- read input data from disk --*/
 
    DSET_load(inset) ;
    if( !DSET_LOADED(inset) ){
-      fprintf(stderr,"** ERROR: can't read data from dataset %s\n",argv[nopt]) ;
-      exit(1) ;
+     fprintf(stderr,"** ERROR: can't read data from dataset %s\n",argv[nopt]) ;
+     exit(1) ;
    }
 
-   if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
+   if( verb ) fprintf(stderr,"++ read in dataset %s\n",argv[nopt]) ;
 
+   /*-- compute mapping between input and output (i,j,k) --*/
+
+   { THD_vecmat dicom_to_ijk_in , tw ;
+     dicom_to_ijk_in = INV_VECMAT( ijk_to_dicom_in ) ;
+     tw              = MUL_VECMAT( dicom_to_ijk_in , dicom_out2in ) ;
+     matvec_warp     = MUL_VECMAT( tw , ijk_to_dicom_out ) ;
+   }
+
+   /*-- loop over bricks and warp them --*/
+
+   if( verb ) fprintf(stderr,"++ Starting warp") ;
+   for( ival=0 ; ival < nvals ; ival++ ){
+     if( verb ) fprintf(stderr,".") ;
+     inim  = DSET_BRICK(inset,ival) ;
+     fac   = DSET_BRICK_FACTOR(inset,ival) ;
+     if( fac > 0.0 && fac != 0.0 ) wim = mri_scale_to_float( fac , inim ) ;
+     else                          wim = inim ;
+     outim = mri_warp3D( wim , nxout,nyout,nzout , warp_func ) ;
+     if( outim == NULL ){
+       fprintf(stderr,"** mri_warp3D fails at ival=%d\n",ival); exit(1);
+     }
+     if( wim != inim ) mri_free(wim) ;
+     EDIT_substitute_brick( outset , ival , outim->kind , mri_data_pointer(outim) ) ;
+     DSET_unload_one( inset , ival ) ;
+   }
+
+   /*-- done!!! --*/
+
+   if( verb ) fprintf(stderr,"\n++ Writing dataset\n") ;
+   DSET_delete( inset ) ;
+   DSET_write( outset ) ;
    exit(0) ;
 }

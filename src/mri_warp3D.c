@@ -11,8 +11,29 @@
 static int wtype = MRI_LINEAR ;
 void mri_warp3D_method( int mode ){ wtype = mode ; }
 
+/*--------------------------------------------------------------------------*/
+
 static int zout  = 1 ;
 void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }
+
+/*--------------------------------------------------------------------------*/
+
+MRI_IMAGE *mri_warp3D( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
+                       void wf(float,float,float,float *,float *,float *) ){
+   switch( wtype ){
+
+     default:
+     case MRI_CUBIC:
+        return mri_warp3D_cubic ( im , nxnew,nynew,nznew , wf ) ;
+
+     case MRI_LINEAR:
+        return mri_warp3D_linear( im , nxnew,nynew,nznew , wf ) ;
+
+     case MRI_NN:
+        return mri_warp3D_NN    ( im , nxnew,nynew,nznew , wf ) ;
+   }
+   return NULL ;  /* unreachable */
+}
 
 /*--------------------------------------------------------------------------*/
 
