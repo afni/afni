@@ -1704,6 +1704,9 @@ static char * VIEW_codestr[] = {
 #define FIRST_FUNC_TYPE  0
 #define LAST_FUNC_TYPE  11
 
+#define FIRST_STAT_TYPE  2
+#define LAST_STAT_TYPE  10
+
 #define FUNC_ALL_MASK (FUNC_FIM_MASK | FUNC_THR_MASK |                \
                        FUNC_COR_MASK | FUNC_TT_MASK  | FUNC_FT_MASK | \
                        FUNC_ZT_MASK  | FUNC_CT_MASK  | FUNC_BT_MASK | \
@@ -1777,8 +1780,8 @@ static int FUNC_ival_thr[] = { FIMTHR, 1,1,1,1,1,1,1,1,1,1, 0 } ; /* index of th
 #define FUNC_HAVE_THR(ftyp)  ((ftyp) >= 0 && \
                               (ftyp) <= LAST_FUNC_TYPE && FUNC_ival_thr[(ftyp)] >= 0)
 
-#define FUNC_HAVE_PVAL(ftyp) (FUNC_HAVE_THR(ftyp)  && (ftyp) != FUNC_PAIR_TYPE)
-#define FUNC_IS_STAT(ftyp)   (FUNC_HAVE_PVAL(ftyp) && (ftyp) != FUNC_BUCK_TYPE)
+#define FUNC_IS_STAT(ftyp)   ((ftyp) >= FIRST_STAT_TYPE && (ftyp) <= LAST_STAT_TYPE)
+#define FUNC_HAVE_PVAL       FUNC_IS_STAT
 
 /******* dimension of auxiliary array for functional statistics *******/
 
