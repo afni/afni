@@ -178,10 +178,12 @@ MRI_IMAGE *mri_read( char *fname )
 
 WHOAMI ;
 
+ENTRY("mri_read") ;
+
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
@@ -462,14 +464,14 @@ The_Old_Way:
          fclose( imfile ) ; /* close it, since we failed (so far) */
 
          im = mri_read_ascii( fname ) ;    /* list of ASCII numbers */
-         if( im != NULL ) return im ;
+         if( im != NULL ) RETURN( im );
 
          im = mri_read_ppm( fname ) ;      /* 15 Apr 1999 */
-         if( im != NULL ) return im ;
+         if( im != NULL ) RETURN( im );
 
          fprintf( stderr , "do not recognize image file %s\n" , fname );
          fprintf( stderr , "length seen as %d\n" , length ) ;
-         return NULL ;
+         RETURN( NULL );
    }
 
    /*-- Actually read the data from disk --*/
@@ -482,7 +484,7 @@ Ready_To_Roll:
    if( length != 0 ){
       fprintf( stderr , "mri_read error in skipping in file %s\n" , fname ) ;
       mri_free( im ) ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    length = fread( data , im->pixel_size , im->nvox , imfile ) ;
@@ -491,7 +493,7 @@ Ready_To_Roll:
    if( length != im->nvox ){
       mri_free( im ) ;
       fprintf( stderr , "couldn't read image data from file %s\n" , fname ) ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    mri_add_name( fname , im ) ;
@@ -509,7 +511,7 @@ Ready_To_Roll:
      im->was_swapped = 1 ;  /* 07 Mar 2002 */
    }
 
-   return im ;
+   RETURN( im );
 }
 
 /*********************************************************************/
@@ -555,23 +557,25 @@ MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
    char buf[64] ;
    MRI_IMAGE *im ;
 
+ENTRY("mri_try_mri") ;
+
    fseek( imfile , 0 , SEEK_SET ) ;  /* rewind file */
 
-   ch = getc( imfile ) ; if( ch != 'M' ) return NULL ;  /* check for MRI */
-   ch = getc( imfile ) ; if( ch != 'R' ) return NULL ;
-   ch = getc( imfile ) ; if( ch != 'I' ) return NULL ;
+   ch = getc( imfile ) ; if( ch != 'M' ) RETURN( NULL );  /* check for MRI */
+   ch = getc( imfile ) ; if( ch != 'R' ) RETURN( NULL );
+   ch = getc( imfile ) ; if( ch != 'I' ) RETURN( NULL );
 
    /* magic MRI found, so read numbers */
 
    ch = getc(imfile) ;
 
    NUMSCAN(imcode) ;
-   NUMSCAN(nx) ;  if( nx <= 0 ) return NULL ;
-   NUMSCAN(ny) ;  if( ny <= 0 ) return NULL ;
+   NUMSCAN(nx) ;  if( nx <= 0 ) RETURN( NULL );
+   NUMSCAN(ny) ;  if( ny <= 0 ) RETURN( NULL );
 
    *skip = ftell(imfile) ;
    im    = mri_new( nx , ny , imcode ) ;
-   return im ;
+   RETURN( im );
 }
 
 /**************************************************************************
@@ -586,13 +590,15 @@ MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
    char buf[64] ;
    MRI_IMAGE *im ;
 
+ENTRY("mri_try_7D") ;
+
    fseek( imfile , 0 , SEEK_SET ) ;  /* rewind file */
 
-   ch = getc( imfile ) ; if( ch != 'M' ) return NULL ;  /* check for MR[1-7] */
-   ch = getc( imfile ) ; if( ch != 'R' ) return NULL ;
+   ch = getc( imfile ) ; if( ch != 'M' ) RETURN( NULL );  /* check for MR[1-7] */
+   ch = getc( imfile ) ; if( ch != 'R' ) RETURN( NULL );
    ch = getc( imfile ) ;
    switch( ch ){
-      default:  return NULL ;   /* not what I expected */
+      default:  RETURN( NULL );   /* not what I expected */
 
       case '1': ndim = 1 ; break ;
       case '2': ndim = 2 ; break ;
@@ -609,17 +615,17 @@ MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 
    nx = ny = nz = nt = nu = nv = nw = 1 ;
 
-                   NUMSCAN(nx) ;  if( nx <= 0 ) return NULL ;
-   if( ndim > 1 ){ NUMSCAN(ny) ;  if( ny <= 0 ) return NULL ; }
-   if( ndim > 2 ){ NUMSCAN(nz) ;  if( nz <= 0 ) return NULL ; }
-   if( ndim > 3 ){ NUMSCAN(nt) ;  if( nt <= 0 ) return NULL ; }
-   if( ndim > 4 ){ NUMSCAN(nu) ;  if( nu <= 0 ) return NULL ; }
-   if( ndim > 5 ){ NUMSCAN(nv) ;  if( nv <= 0 ) return NULL ; }
-   if( ndim > 6 ){ NUMSCAN(nw) ;  if( nw <= 0 ) return NULL ; }
+                   NUMSCAN(nx) ;  if( nx <= 0 ) RETURN( NULL );
+   if( ndim > 1 ){ NUMSCAN(ny) ;  if( ny <= 0 ) RETURN( NULL ); }
+   if( ndim > 2 ){ NUMSCAN(nz) ;  if( nz <= 0 ) RETURN( NULL ); }
+   if( ndim > 3 ){ NUMSCAN(nt) ;  if( nt <= 0 ) RETURN( NULL ); }
+   if( ndim > 4 ){ NUMSCAN(nu) ;  if( nu <= 0 ) RETURN( NULL ); }
+   if( ndim > 5 ){ NUMSCAN(nv) ;  if( nv <= 0 ) RETURN( NULL ); }
+   if( ndim > 6 ){ NUMSCAN(nw) ;  if( nw <= 0 ) RETURN( NULL ); }
 
    *skip = ftell(imfile) ;
    im    = mri_new_7D_generic( nx,ny,nz,nt,nu,nv,nw , imcode , TRUE ) ;
-   return im ;
+   RETURN( im );
 }
 
 
@@ -865,8 +871,10 @@ MRI_IMARR * mri_read_file( char * fname )
    MRI_IMAGE * newim ;
    char * new_fname ;
 
+ENTRY("mri_read_file") ;
+
    new_fname = imsized_fname( fname ) ;
-   if( new_fname == NULL ) return NULL ;
+   if( new_fname == NULL ) RETURN( NULL );
 
    if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
 
@@ -895,7 +903,7 @@ MRI_IMARR * mri_read_file( char * fname )
 
       if( newar == NULL ){   /* DICOM failed */
         newim = mri_read( new_fname ) ;      /* read from a 2D file */
-        if( newim == NULL ){ free(new_fname) ; return NULL ; }
+        if( newim == NULL ){ free(new_fname) ; RETURN( NULL ); }
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
@@ -914,7 +922,7 @@ MRI_IMARR * mri_read_file( char * fname )
      }
    }
 
-   return newar ;
+   RETURN( newar );
 }
 
 /*-----------------------------------------------------------------*/
@@ -931,15 +939,17 @@ MRI_IMAGE * mri_read_just_one( char * fname )
    MRI_IMAGE * im ;
    char * new_fname ;
 
+ENTRY("mri_read_just_one") ;
+
    new_fname = imsized_fname( fname ) ;
-   if( new_fname == NULL ) return NULL ;
+   if( new_fname == NULL ) RETURN( NULL );
 
    imar = mri_read_file( new_fname ) ; free(new_fname) ;
-   if( imar == NULL ) return NULL ;
-   if( imar->num != 1 ){ DESTROY_IMARR(imar) ; return NULL ; }
+   if( imar == NULL ) RETURN( NULL );
+   if( imar->num != 1 ){ DESTROY_IMARR(imar) ; RETURN( NULL ); }
    im = IMAGE_IN_IMARR(imar,0) ;
    FREE_IMARR(imar) ;
-   return im ;
+   RETURN( im );
 }
 
 /*-----------------------------------------------------------------
@@ -963,9 +973,11 @@ int mri_imcount( char * tname )
    char fname[256]="\0" ;
    char * new_fname ;
 
-   if( tname == NULL ) return 0 ;
+ENTRY("mri_imcount") ;
+
+   if( tname == NULL ) RETURN( 0 );
    new_fname = imsized_fname( tname ) ;
-   if( new_fname == NULL ) return 0 ;
+   if( new_fname == NULL ) RETURN( 0 );
 
    /*** a 3D filename ***/
 
@@ -1013,8 +1025,8 @@ int mri_imcount( char * tname )
       free( new_fname ) ;
       if( ngood < 6 || himage < 0 ||
           nx <= 0   || ny <= 0    || nz <= 0 ||
-          strlen(fname) <= 0                       ) return 0 ;
-      else                                           return nz ;
+          strlen(fname) <= 0                       ) RETURN( 0 );
+      else                                           RETURN( nz );
    }
 
    /*** a 3A filename ***/
@@ -1040,8 +1052,8 @@ int mri_imcount( char * tname )
       }
 
       free( new_fname ) ;
-      if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) return 0 ;
-      else                                                                   return nz ;
+      if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) RETURN( 0 );
+      else                                                                   RETURN( nz );
    }
 
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
@@ -1050,24 +1062,24 @@ int mri_imcount( char * tname )
        strstr(new_fname,".HDR") != NULL   ){
 
       nz = mri_imcount_analyze75( new_fname ) ;
-      if( nz > 0 ){ free(new_fname); return nz; }
+      if( nz > 0 ){ free(new_fname); RETURN(nz); }
    }
 
    if( strstr(new_fname,".ima") != NULL ||
        strstr(new_fname,".IMA") != NULL   ){        /* 12 Mar 2001 */
 
       nz = mri_imcount_siemens( new_fname ) ;
-      if( nz > 0 ){ free(new_fname); return nz; }
+      if( nz > 0 ){ free(new_fname); RETURN(nz); }
    }
 
    /*** 19 Jul 2002: see if it is a DICOM file ***/
 
    nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-   if( nz > 0 ){ free(new_fname); return nz; }
+   if( nz > 0 ){ free(new_fname); RETURN(nz); }
 
    /*** not recognized ***/
 
-   free(new_fname) ; return 1 ;    /* assume it has 1 image in it, somewhere */
+   free(new_fname) ; RETURN(1) ;    /* assume it has 1 image in it, somewhere */
 }
 
 /*--------------------------------------------------------------*/
@@ -1086,7 +1098,9 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
    MRI_IMARR * newar , * outar ;
    int kf , ii ;
 
-   if( nf <= 0 ) return NULL ;  /* no inputs! */
+ENTRY("mri_read_many_files") ;
+
+   if( nf <= 0 ) RETURN( NULL );  /* no inputs! */
    INIT_IMARR(outar) ;          /* initialize output array */
 
    for( kf=0 ; kf < nf ; kf++ ){
@@ -1096,7 +1110,7 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
          fprintf(stderr,"cannot read images from file %s\n",fn[kf]) ;
          for( ii=0 ; ii < outar->num ; ii++ ) mri_free(outar->imarr[ii]) ;
          FREE_IMARR(outar) ;
-         return NULL ;
+         RETURN( NULL );
       }
 
       for( ii=0 ; ii < newar->num ; ii++ )  /* move images to output array */
@@ -1104,7 +1118,7 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
 
       FREE_IMARR(newar) ;  /* don't need this no more */
    }
-   return outar ;
+   RETURN( outar );
 }
 
 /*---------------------------------------------------------------*/

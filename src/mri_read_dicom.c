@@ -98,7 +98,9 @@ MRI_IMARR * mri_read_dicom( char *fname )
    static int nzoff=0 ;
    int ior,jor,kor ;
 
-   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+ENTRY("mri_read_dicom") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
 
    /* extract header info from file into a string
       - cf. mri_dicom_hdr.[ch]
@@ -107,19 +109,19 @@ MRI_IMARR * mri_read_dicom( char *fname )
    mri_dicom_nohex(1) ;              /* don't print ints in hex mode */
    mri_dicom_noname(1) ;             /* don't print names, just tags */
    ppp = mri_dicom_header( fname ) ; /* print header to malloc()-ed string */
-   if( ppp == NULL ) return NULL ;   /* didn't work; not a DICOM file? */
+   if( ppp == NULL ) RETURN(NULL);   /* didn't work; not a DICOM file? */
 
    /* find out where the pixel array is in the file */
 
    mri_dicom_pxlarr( &poff , &plen ) ;
-   if( plen <= 0 ){ free(ppp) ; return NULL ; }
+   if( plen <= 0 ){ free(ppp) ; RETURN(NULL); }
 
    /* check if file is actually this big (maybe it was truncated) */
 
    { unsigned int psiz , fsiz ;
      fsiz = THD_filesize( fname ) ;
      psiz = (unsigned int)(poff) + plen ;
-     if( fsiz < psiz ){ free(ppp) ; return NULL ; }
+     if( fsiz < psiz ){ free(ppp) ; RETURN(NULL); }
    }
 
    /* find positions in header of elements we care about */
@@ -131,31 +133,31 @@ MRI_IMARR * mri_read_dicom( char *fname )
 
    if( epos[E_ROWS]           == NULL ||
        epos[E_COLUMNS]        == NULL ||
-       epos[E_BITS_ALLOCATED] == NULL   ){ free(ppp) ; return NULL ; }
+       epos[E_BITS_ALLOCATED] == NULL   ){ free(ppp) ; RETURN(NULL); }
 
    /* check if we have 1 sample per pixel (can't deal with 3 or 4 now) */
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-      if( ddd == NULL ){ free(ppp) ; return NULL ; }
+      if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
       ii = 0 ; sscanf(ddd+2,"%d",&ii) ;
-      if( ii != 1 ){ free(ppp) ; return NULL ; }
+      if( ii != 1 ){ free(ppp) ; RETURN(NULL); }
    }
 
    /* check if photometric interpretation is MONOCHROME (don't like PALETTE) */
 
    if( epos[E_PHOTOMETRIC_INTERPRETATION] != NULL ){
       ddd = strstr(epos[E_PHOTOMETRIC_INTERPRETATION],"MONOCHROME") ;
-      if( ddd == NULL ){ free(ppp) ; return NULL ; }
+      if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
    }
 
    /* check if we have 8, 16, or 32 bits per pixel */
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
-   if( ddd == NULL ){ free(ppp); return NULL ; }
+   if( ddd == NULL ){ free(ppp); RETURN(NULL); }
    bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
    switch( bpp ){
-      default: free(ppp) ; return NULL ;   /* bad value */
+      default: free(ppp) ; RETURN(NULL);   /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
       case 32: datum = MRI_int  ; break ;  /* probably not present in DICOM? */
@@ -207,14 +209,14 @@ MRI_IMARR * mri_read_dicom( char *fname )
    /* get nx, ny, nz */
 
    ddd = strstr(epos[E_ROWS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; return NULL ; }
+   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
    nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
-   if( nx < 2 ){ free(ppp) ; return NULL ; }
+   if( nx < 2 ){ free(ppp) ; RETURN(NULL); }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; return NULL ; }
+   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
    ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
-   if( ny < 2 ){ free(ppp) ; return NULL ; }
+   if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
 
    nz = 0 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
@@ -222,7 +224,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
      if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;   /* compute from image array size */
-   if( nz == 0 ){ free(ppp) ; return NULL ; }
+   if( nz == 0 ){ free(ppp) ; RETURN(NULL); }
 
    /* try to get dx, dy, dz, dt */
 
@@ -283,7 +285,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
    /** Finally! Read images from file. **/
 
    fp = fopen( fname , "rb" ) ;
-   if( fp == NULL ){ free(ppp) ; return NULL ; }
+   if( fp == NULL ){ free(ppp) ; RETURN(NULL); }
    lseek( fileno(fp) , poff , SEEK_SET ) ;
 
    INIT_IMARR(imar) ;
@@ -510,7 +512,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
    }
 #endif
 
-   return imar ;
+   RETURN( imar );
 }
 
 /*------------------------------------------------------------------------------*/
@@ -526,25 +528,27 @@ int mri_imcount_dicom( char *fname )
    int ii , ee , bpp , datum ;
    int nx,ny,nz ;
 
-   if( fname == NULL || fname[0] == '\0' ) return 0 ;
+ENTRY("mri_imcount_dicom") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN(0);
 
    /* extract the header from the file (cf. mri_dicom_hdr.[ch]) */
 
    mri_dicom_nohex(1) ; mri_dicom_noname(1) ;
    ppp = mri_dicom_header( fname ) ;
-   if( ppp == NULL ) return 0 ;
+   if( ppp == NULL ) RETURN(0);
 
    /* find out where the pixel array is in the file */
 
    mri_dicom_pxlarr( &poff , &plen ) ;
-   if( plen <= 0 ){ free(ppp) ; return 0 ; }
+   if( plen <= 0 ){ free(ppp) ; RETURN(0); }
 
    /* check if file is actually this big */
 
    { unsigned int psiz , fsiz ;
      fsiz = THD_filesize( fname ) ;
      psiz = (unsigned int)(poff) + plen ;
-     if( fsiz < psiz ){ free(ppp) ; return 0 ; }
+     if( fsiz < psiz ){ free(ppp) ; RETURN(0); }
    }
 
    /* find positions in header of elements we care about */
@@ -556,31 +560,31 @@ int mri_imcount_dicom( char *fname )
 
    if( epos[E_ROWS]           == NULL ||
        epos[E_COLUMNS]        == NULL ||
-       epos[E_BITS_ALLOCATED] == NULL   ){ free(ppp) ; return 0 ; }
+       epos[E_BITS_ALLOCATED] == NULL   ){ free(ppp) ; RETURN(0); }
 
    /* check if we have 1 sample per pixel (can't deal with 3 or 4 now) */
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-      if( ddd == NULL ){ free(ppp) ; return 0 ; }
+      if( ddd == NULL ){ free(ppp) ; RETURN(0); }
       ii = 0 ; sscanf(ddd+2,"%d",&ii) ;
-      if( ii != 1 ){ free(ppp) ; return 0 ; }
+      if( ii != 1 ){ free(ppp) ; RETURN(0); }
    }
 
    /* check if photometric interpretation is MONOCHROME (don't like PALETTE) */
 
    if( epos[E_PHOTOMETRIC_INTERPRETATION] != NULL ){
       ddd = strstr(epos[E_PHOTOMETRIC_INTERPRETATION],"MONOCHROME") ;
-      if( ddd == NULL ){ free(ppp) ; return 0 ; }
+      if( ddd == NULL ){ free(ppp) ; RETURN(0); }
    }
 
    /* check if we have 8, 16, or 32 bits per pixel */
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
-   if( ddd == NULL ){ free(ppp); return 0 ; }
+   if( ddd == NULL ){ free(ppp); RETURN(0); }
    bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
    switch( bpp ){
-      default: free(ppp) ; return 0 ;   /* bad value */
+      default: free(ppp) ; RETURN(0);   /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
       case 32: datum = MRI_int  ; break ;
@@ -590,14 +594,14 @@ int mri_imcount_dicom( char *fname )
    /* get nx, ny, nz */
 
    ddd = strstr(epos[E_ROWS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; return 0 ; }
+   if( ddd == NULL ){ free(ppp) ; RETURN(0); }
    nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
-   if( nx < 2 ){ free(ppp) ; return 0 ; }
+   if( nx < 2 ){ free(ppp) ; RETURN(0); }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; return 0 ; }
+   if( ddd == NULL ){ free(ppp) ; RETURN(0); }
    ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
-   if( ny < 2 ){ free(ppp) ; return 0 ; }
+   if( ny < 2 ){ free(ppp) ; RETURN(0); }
 
    nz = 0 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
@@ -606,5 +610,5 @@ int mri_imcount_dicom( char *fname )
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
 
-   free(ppp) ; return nz ;
+   free(ppp) ; RETURN(nz);
 }

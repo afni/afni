@@ -67,6 +67,9 @@
 
 #include "mri_dicom_hdr.h"
 
+#include "mcw_malloc.h"
+#include "debugtrace.h"    /* 10 Sep 2002 */
+
 /****************************************************************/
 /***** Function and variables to set byte order of this CPU *****/
 /****************************************************************/
@@ -125,7 +128,7 @@ static int RWC_printf( char *fmt , ... )
    nn = vsprintf( sbuf , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    nsbuf = strlen(sbuf) ;
-   if( nsbuf == 0 ) return 0 ;
+   if( nsbuf == 0 ) return(0);
 
    if( npbuf == 0 ){
      pbuf = malloc(NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
@@ -137,7 +140,7 @@ static int RWC_printf( char *fmt , ... )
    }
 
    strcat(pbuf,sbuf) ;
-   return nn ;
+   return(nn);
 }
 
 /****************************************************************/
@@ -190,7 +193,9 @@ char * mri_dicom_header( char *fname )
 
     char *ppp=NULL ;
 
-    if( fname == NULL ) return NULL ;
+ENTRY("mri_dicom_header") ;
+
+    if( fname == NULL ) RETURN(NULL) ;
 
     RWC_set_endianosity() ;
 
@@ -218,7 +223,7 @@ char * mri_dicom_header( char *fname )
       ppp = strdup(pbuf) ; RWC_clear_pbuf() ;
     }
 
-    return ppp;
+    RETURN(ppp);
 }
 
 /*
