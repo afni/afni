@@ -1,11 +1,48 @@
 
-#define VERSION "version 0.2 (November 7, 2003)"
+#define VERSION "version 0.3 (November 14, 2003)"
+
+/*----------------------------------------------------------------------
+ * SurfMeasures - compute measures from the surface dataset(s)
+ *
+ * This program takes as input one or two surfaces (as part of a
+ * spec file), and outputs a 1D format surface dataset, containing
+ * requested measures from the input surfaces.
+ *
+ * Valid measures (to be supplied via the -func option) are:
+ *
+ *     ang_norms	: angle between the 2 surface normals
+ *     ang_ns_A		: angle between the segment and first normal
+ *     ang_ns_B		: angle between the segment and second normal
+ *     coord_A		: first xyz coordinate
+ *     coord_B		: second xyz coordinate
+ *     n_area_A		: area for each node on the first surface
+ *     n_area_B		: area for each node on the second surface
+ *     nodes            : node index
+ *     node_vol		: between surface volume per node
+ *     thick            : thickness - length of node segment
+ *
+ * See "SurfMeasures -help" for more information.
+ *
+ * Author: R. Reynolds
+ *----------------------------------------------------------------------
+*/
+
+
+/*----------------------------------------------------------------------
+ * history
+ *
+ * 0.3 November 14, 2003
+ *   - wokring on 'usage' for initial release
+ *----------------------------------------------------------------------
+*/
+
 
 /*----------------------------------------------------------------------
  * todo:
  *
- *   - dnode
- *   - angle_diff
+ * - full usage
+ * - add '-node_mask' option?  -cmask?
+ * - '-no_nodes' option?  remove "nodes" as default?
  *----------------------------------------------------------------------
 */
 
@@ -24,8 +61,9 @@ int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 /* this must match smeasure_codes_e enum */
-char * g_sm_names[] = { "none", "coord_A", "coord_B", "n_area_A", "n_area_B",
-                        "nodes", "node_vol", "thick" };
+char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
+			"coord_A", "coord_B", "n_area_A", "n_area_B", "nodes",
+			"node_vol", "thick" };
 
 /*----------------------------------------------------------------------*/
 
@@ -65,8 +103,13 @@ int main ( int argc, char * argv[] )
 int write_output( opts_t * opts, param_t * p )
 {
     THD_fvec3   p0, p1;
-    double      vol = -1.0, tvol;
+    double      vol0 = -1.0, vol1 = -1.0, a0 = -1.0, a1 = -1.0;
+    double      tvol0, tvol1, tarea0, tarea1, r;
+    double      base, dist, min_dist, max_dist, tdist = -1.0;
+    double      atn = 0.0, atna = 0.0, atnb = 0.0;  /* angle totals */
+    float       fvn, fva, fvb;
     float     * fp0, * fp1;
+    float     * norms0, * norms1;
     int       * fcodes;
     int         c, vflag, fnum, node;
 
@@ -76,31 +119,59 @@ ENTRY("write_output");
 
     print_column_headers(opts, p);
 
-    /* initialize node pointers */
-    fp0 = p->S.slist[0]->NodeList;
+    /* initialize some pointers */
+    fp0    = p->S.slist[0]->NodeList;
+    norms0 = p->S.slist[0]->NodeNormList;
 
     /* if we have only one surface, just init fp1 to that */
     if ( p->S.nsurf > 0 )
-	fp1 = p->S.slist[1]->NodeList;
+    {
+	fp1    = p->S.slist[1]->NodeList;
+	norms1 = p->S.slist[1]->NodeNormList;
+    }
     else
-	fp1 = fp0;
+    {
+	fp1    = fp0;
+	norms1 = norms0;
+    }
 
-    /* set pointers to the information and function lists */
-    fcodes = p->F->codes;
-    tvol   = 0.0;		/* for total volume computation */
+    fcodes = p->F->codes;	/* for convenience */
+
+    tvol0  = 0.0;		/* for total volume computation */
+    tvol1  = 0.0;		/* for total volume computation */
+    tarea0 = 0.0;		/* for total area computation */
+    tarea1 = 0.0;		/* for total area computation */
     vflag  = (p->S.narea[0] != NULL) && (p->S.narea[1] != NULL);
 
+    min_dist = 9999.0;
+    max_dist = 0.0;
     for (node = 0; node < p->S.nnodes; node++)
     {
 	p0.xyz[0] = fp0[0];  p0.xyz[1] = fp0[1];  p0.xyz[2] = fp0[2];
 	p1.xyz[0] = fp1[0];  p1.xyz[1] = fp1[1];  p1.xyz[2] = fp1[2];
 
+	dist = dist_f3mm(&p0, &p1);
+	if ( dist < min_dist ) min_dist = dist;
+	if ( dist > max_dist ) max_dist = dist;
+
 	/* do we compute the volume? */
 	if ( vflag )
 	{
-	    vol = 0.5 * (p->S.narea[0][node] + p->S.narea[1][node]) *
-		  dist_f3mm(&p0,&p1);
-	    tvol += vol;
+	    a0      = p->S.narea[0][node];
+	    a1      = p->S.narea[1][node];
+	    base    = a0 > a1 ? a0 : a1;
+	    vol0    = 0.5 * (a0 + a1) * dist;
+
+	    r = (a0 == 0 || a1 == 0) ? 0 : ((a0 < a1) ? a0/a1 : a1/a0);
+	    r = sqrt(r);
+	    vol1 = base * dist * (1 + r + r*r) / 3.0;
+
+	    /* keep track of everything for comparison */
+	    tvol0  += vol0;
+	    tvol1  += vol1;
+	    tarea0 += a0;
+	    tarea1 += a1;
+	    tdist  += dist;
 	}
 
 	fputc(' ', p->outfp);
@@ -112,28 +183,52 @@ ENTRY("write_output");
 		default:
 		    fprintf(stderr,"** bad output Info code %d\n",fcodes[fnum]);
 		    break;
+
+		case E_SM_ANG_NORMS:
+		    fvn = vector_angle(norms0 + 3*node, norms1 + 3*node);
+		    fprintf(p->outfp,"  %10s", MV_format_fval(fvn));
+		    atn += fvn;
+		    break;
+
+		case E_SM_ANG_NS_A:
+		    fva = norm2seg_angle(&p0, &p1, norms0 + 3*node);
+		    fprintf(p->outfp,"  %10s", MV_format_fval(fva));
+		    atna += fva;
+		    break;
+
+		case E_SM_ANG_NS_B:
+		    fvb = norm2seg_angle(&p0, &p1, norms1 + 3*node);
+		    fprintf(p->outfp,"  %10s", MV_format_fval(fvb));
+		    atnb += fvb;
+		    break;
+
 		case E_SM_N_AREA_A:
 		    fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[0][node]));
 		    break;
+
 		case E_SM_N_AREA_B:
 		    fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[1][node]));
 		    break;
+
 		case E_SM_NODES:
 		    fprintf(p->outfp,"  %10d", node);
 		    break;
+
 		case E_SM_NODE_VOL:
-		    fprintf(p->outfp,"  %10s", MV_format_fval(vol));
+		    fprintf(p->outfp,"  %10s", MV_format_fval(vol0));
 		    break;
+
 		case E_SM_THICK:
-		    fprintf(p->outfp,"  %10s",
-			    MV_format_fval(dist_f3mm(&p0,&p1)));
+		    fprintf(p->outfp,"  %10s", MV_format_fval(dist));
 		    break;
+
 		case E_SM_COORD_A:
 		    for (c = 0; c < 3; c++)
 			fprintf(p->outfp,"  %10s", MV_format_fval(fp0[c]));
 		    break;
+
 		case E_SM_COORD_B:
 		    for (c = 0; c < 3; c++)
 			fprintf(p->outfp,"  %10s", MV_format_fval(fp1[c]));
@@ -143,14 +238,122 @@ ENTRY("write_output");
 
 	fputc('\n', p->outfp);
 
+	if ( node == opts->dnode && opts->debug > 0 )
+	{
+	    fprintf(stderr,"-- dnode %d, dist = %s\n",
+		    node, MV_format_fval(dist_f3mm(&p0,&p1)) );
+	    if ( vflag )
+	    {
+		fprintf(stderr,"-- vol0 = %s", MV_format_fval(vol0));
+		fprintf(stderr,", vol1 = %s",  MV_format_fval(vol1));
+		fprintf(stderr,", a0 = %s",    MV_format_fval(a0));
+		fprintf(stderr,", a1 = %s\n",  MV_format_fval(a1));
+	    }
+
+	    disp_f3_point("-- p0    = ", fp0);
+	    disp_f3_point("-- p1    = ", fp1);
+
+	    if ( atn > 0.0 || atna > 0.0 || atnb > 0.0 )
+	    {
+		disp_f3_point("-- normA = ", norms0 + 3*node);
+		disp_f3_point("-- normB = ", norms1 + 3*node);
+	    }
+	}
+
 	fp0 += 3;
 	fp1 += 3;
     }
 
-    if ( vflag )	/* rcr - check -total_vol option */
-	printf("total volume = %s\n", MV_format_fval(tvol));
+    printf("------------------------------------------------------------\n");
+    if ( vflag )
+    {
+	printf("-- total volume = %.1f\n", tvol0);
+	if ( opts->total_vol )
+	{
+	printf("-- icone volume = %.1f, aarea*adist = %.1f\n",
+		   tvol1, (tarea0+tarea1)*tdist/(2*p->S.nnodes));
+	    printf("-- area0 = %.1f, area1 = %.1f, ave dist = %.3f\n",
+		    tarea0, tarea1, tdist/p->S.nnodes);
+	}
+    }
+
+    printf("-- min surf dist = %.5f, max surf dist = %.5f\n",min_dist,max_dist);
+
+    if ( atn > 0.0 || atna > 0.0 || atnb > 0.0 )
+	printf("-- ave: ang_norms = %.4f, ang_ns_A = %.4f, ang_ns_B = %.4f\n",
+		atn /p->S.nnodes, atna/p->S.nnodes, atnb/p->S.nnodes);
 
     RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * norm2seg_angle		- return the angle between segment and norm
+ *----------------------------------------------------------------------
+*/
+float norm2seg_angle( THD_fvec3 * p0, THD_fvec3 * p1, float * norm )
+{
+    float seg[3];
+    int   c;
+
+ENTRY("norm2seg_angle");
+
+    for ( c = 0; c < 3; c++ )
+	seg[c] = p1->xyz[c] - p0->xyz[c];
+
+    RETURN(vector_angle(seg, norm));
+}
+
+
+/*----------------------------------------------------------------------
+ * fvec_magnitude			- compute magnitude of float vector
+ *----------------------------------------------------------------------
+*/
+float fvec_magnitude( float * v, int length )
+{
+    double sums;
+    int    c;
+
+ENTRY("fvec_magnitude");
+
+    sums = 0.0;
+    for ( c = 0; c < length; c++ )
+	sums += v[c] * v[c];
+
+    RETURN(sqrt(sums));
+}
+
+
+/*----------------------------------------------------------------------
+ * vector_angle		- return the angle between the vectors
+ *
+ * if either magnitude is 0, return 0
+ * else, use dot product definition
+ *----------------------------------------------------------------------
+*/
+float vector_angle( float * v0, float * v1 )
+{
+    double mag0, mag1, dot, ratio, angle;
+
+ENTRY("vector_angle");
+
+    mag0 = fvec_magnitude(v0, 3);
+    mag1 = fvec_magnitude(v1, 3);
+    dot  = v0[0]*v1[0] + v0[1]*v1[1] + v0[2]*v1[2];
+
+    if ( mag0 == 0.0 || mag1 == 0.0 )
+	RETURN(0.0);
+
+    ratio = dot / (mag0 * mag1);
+    RANGE(-1.0, ratio, 1.0);
+
+    angle = acos(ratio);
+
+    /* keep angle in [0,PI/2] */
+    if ( 2 * angle > ST_PI )
+	angle = PI - angle;
+
+    RETURN(angle);
 }
 
 
@@ -230,7 +433,7 @@ ENTRY("verify_surf_t");
     }
 
     if ( opts->debug > 1 )
-	disp_surf_t("-- surf params ", &p->S);
+	disp_surf_t("-- surf params verified: ", &p->S);
 
     if ( validate_option_lists(opts, p) != 0 )
 	RETURN(-1);
@@ -385,6 +588,11 @@ ENTRY("compute_node_areas");
 	alist[node] = sum/3.0;
 
 	flist += so->MF->N_Memb_max;
+
+	if ( node == opts->dnode )
+	    fprintf(stderr, "-- dnode %d: area = %s (%d faces, surf %s)\n",
+		    node, MV_format_fval(alist[node]),
+		    so->MF->N_Memb[node], CHECK_NULL_STR(so->Label));
     }
 
     RETURN(0);
@@ -713,6 +921,13 @@ ENTRY("validate_options");
     if ( errs > 0 )
 	RETURN(-1);
 
+    if ( opts->debug > 1 )
+    {
+	disp_opts_t( "-- opts okay: ", opts );
+	disp_func_t( "-- opts okay: ", &opts->F );
+    }
+
+
     /* options look good, now fill the param_t struct */
     memset(p, 0, sizeof(param_t));	/* clear params    */
 
@@ -766,13 +981,26 @@ ENTRY("validate_option_lists");
 	    case E_SM_NODES:
 		break;
 
+	    case E_SM_ANG_NORMS:
+	    case E_SM_ANG_NS_A:
+	    case E_SM_ANG_NS_B:
+		if ( !p->S.slist[0]->NodeNormList ||
+		     !p->S.slist[1]->NodeNormList )
+		{
+		    fprintf(stderr,"** missing node normals for func '%s'\n",
+			    g_sm_names[fcodes[c]]);
+		    errs++;
+		}
+
+		/* and continue for the nsurf check... */
+		
 	    case E_SM_COORD_B:
 	    case E_SM_N_AREA_B:
 	    case E_SM_NODE_VOL:
 	    case E_SM_THICK:
 		if ( p->S.nsurf < 2 )
 		{
-		    fprintf(stderr,"** info '%s' requires 2 surfaces\n",
+		    fprintf(stderr,"** func '%s' requires 2 surfaces\n",
 			    g_sm_names[fcodes[c]]);
 		    errs++;
 		}
@@ -798,6 +1026,10 @@ ENTRY("validate_option_lists");
 /*----------------------------------------------------------------------
  * usage              - provide info, depending on the type
  *
+ * ST_USE_SHORT
+ * ST_USE_LONG
+ * ST_USE_VERSION
+ *
  * return -1 to signal this as a terminal function
  *----------------------------------------------------------------------
 */
@@ -805,9 +1037,22 @@ int usage( char * prog, int use_type )
 {
 
 ENTRY("usage");
-    fprintf(stderr,"usage: %s [options] -spec SPEC_FILE -sv SURF_VOL \\\n"
-	           "                    -func FUNC_NAME -out_1D OUTFILE\n",
-		   prog);
+
+    if ( use_type == ST_USE_SHORT )
+    {
+	fprintf(stderr,"usage: %s [options] -spec SPEC_FILE -func FUNC_NAME\\\n"
+	               "                    -out_1D OUTFILE\n", prog);
+    }
+    else if ( use_type == ST_USE_LONG )
+    {
+    }
+    else if ( use_type == ST_USE_VERSION )
+    {
+	printf("%s: %s, compile date: %s\n", prog, VERSION, __DATE__);
+    }
+    else
+	fprintf(stderr,"** error: usage - invalid use_type %d\n", use_type); 
+
     RETURN(-1);
 }
 
@@ -932,4 +1177,86 @@ int disp_surf_t( char * info, surf_t * d )
     return 0;
 }
 
+
+/*----------------------------------------------------------------------
+ * disp_func_t
+ *----------------------------------------------------------------------
+*/
+int disp_func_t( char * info, func_t * d )
+{
+    int c;
+
+    if ( info )
+	fputs( info, stderr );
+
+    if ( ! d )
+    {
+	fprintf(stderr,"** disp_func_t: d == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "func_t struct at %p:\n"
+	    "    names, codes   = %p, %p\n"
+	    "    nalloc, nused  = %d, %d\n",
+	    d,
+	    d->names, d->codes, d->nalloc, d->nused);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_opts_t
+ *----------------------------------------------------------------------
+*/
+int disp_opts_t( char * info, opts_t * d )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( ! d )
+    {
+	fprintf(stderr,"** disp_opts_t: d == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "opts_t struct at %p:\n"
+	    "    spec_file    = %s\n"
+	    "    sv_file      = %s\n"
+	    "    out_1D_file  = %s\n"
+	    "    total_vol    = %d\n"
+	    "    debug, dnode = %d, %d\n",
+	    d,
+	    CHECK_NULL_STR(d->spec_file),
+	    CHECK_NULL_STR(d->sv_file),
+	    CHECK_NULL_STR(d->out_1D_file),
+	    d->total_vol, d->debug, d->dnode);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_f3_point
+ *----------------------------------------------------------------------
+*/
+int disp_f3_point( char * info, float * d )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( ! d )
+    {
+	fprintf(stderr,"** disp_f3_point: d == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,"(%6s, ", MV_format_fval(d[0]));
+    fprintf(stderr,"%6s, ",  MV_format_fval(d[1]));
+    fprintf(stderr,"%6s)\n", MV_format_fval(d[2]));
+
+    return 0;
+}
 

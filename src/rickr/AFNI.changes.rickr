@@ -355,3 +355,5 @@
       - supported functions are coord_A, coord_B, n_area_A, n_area_B,
         nodes, node_vol and thick
 
+14 November 2003:
+  * updates to SurfMeasures (v0.3 - not yet released)
