@@ -27,9 +27,7 @@ N.B.: Changes to environment variables AFTER you start a program will
 
 N.B.: Some variables below are described as being of "YES/NO" type.
       This means that they should either be set to the value "YES"
-      or to the value "NO".  (Actually, any string that starts with
-      "y" or "Y" is equivalent to "YES"; any string starting with
-      "n" or "N" is equivalent to "NO".)
+      or to the value "NO".
 
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
@@ -1533,6 +1531,15 @@ are evenly spaced now (as if they had been given as 1.0, 0.75, 0.5, 0.25,
 and 0.0).  With this format, if you want to manually specify all 128 colors,
 you can do so, 1 color per line, remembering that the first line of the file
 is taken to be the colorscale title (no blanks allowed in the title!).
+
+---------------------------------
+Variable: AFNI_COLORSCALE_DEFAULT
+---------------------------------
+If set, this is the name of the default colorscale to use in setup.  As a
+special case, if you DO NOT want a colorscale to be setup by default at all,
+then set this variable to the string "NO".
+N.B.: This variable only applies if you are using AFNI with a TrueColor X11
+visual.  If you are using a PseudoColor visual, then this variable is ignored!
 
 =======================================
 | Robert W Cox, PhD                   |

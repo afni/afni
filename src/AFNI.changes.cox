@@ -4266,3 +4266,7 @@
 03 Feb 2003
  * Changes to afni_driver.c to support colorscales.
  * Saving .afni.startup_script now also saves the Autorange/funcrange setting.
+
+04 Feb 2003
+ * Moved user-defined colorscale setup to pbar.c from afni.c.
+ * In afni_widg.c, use AFNI_COLORSCALE_DEFAULT to setup initial colorscale.

@@ -1500,37 +1500,6 @@ STATUS("call 14") ;
           }
         }
 
-        /* 01 Feb 2003: read pbar bigmaps ordered by environment */
-
-        { char nnn[32] , *eh , *en , *fn , bn[2000] ;
-          eh = getenv("HOME") ;
-          en = getenv("AFNI_COLORSCALE") ;
-          if( en != NULL ){
-            if( THD_is_file(en) ){
-              fn = en ;
-            } else if( eh != NULL ){
-              sprintf(bn,"%.999s/%.999s",eh,en) ; fn = bn ;
-            } else {
-              fn = NULL ;
-            }
-            PBAR_read_bigmap( fn , MAIN_dc ) ;
-          }
-          for( ii=1 ; ii <= 99 ; ii++ ){
-            sprintf(nnn,"AFNI_COLORSCALE_%02d",ii) ;
-            en = getenv(nnn) ;
-            if( en != NULL ){
-              if( THD_is_file(en) ){
-                fn = en ;
-              } else if( eh != NULL ){
-                sprintf(bn,"%.999s/%.999s",eh,en) ; fn = bn ;
-              } else {
-                fn = NULL ;
-              }
-              PBAR_read_bigmap( fn , MAIN_dc ) ;
-            }
-          }
-        }
-
         REPORT_PROGRESS("\n") ;
       }
       break ;

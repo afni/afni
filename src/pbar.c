@@ -15,6 +15,8 @@ static int      bigmap_num=0 ;    /* 31 Jan 2003 */
 static char   **bigmap_name ;
 static rgbyte **bigmap ;
 
+static MCW_DC *first_dc = NULL ;  /* 04 Feb 2003 */
+
 /*----------------------------------------------------------------------
    Make a new paned-window color+threshold selection bar:
 
@@ -197,6 +199,8 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
 
+   if( first_dc == NULL ) first_dc = dc ;  /* 04 Feb 2003 */
+
    PBAR_add_bigmap(NULL,NULL) ;
 
    /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
@@ -222,6 +226,36 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    XtManageChild( pbar->top ) ;
    return pbar ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Read pbar bigmaps ordered by environment */
+
+static void PBAR_enviro_bigmaps( MCW_DC *dc )
+{
+   static int first=1 ;
+   char nnn[32] , *eh , *en , *fn , bn[2000] ;
+   int ii ;
+
+   if( !first || dc == NULL ) return ;
+   first = 0 ;
+
+   eh = getenv("HOME") ;
+   for( ii=1 ; ii <= 99 ; ii++ ){
+     sprintf(nnn,"AFNI_COLORSCALE_%02d",ii) ;
+     en = getenv(nnn) ;
+     if( en != NULL ){
+       if( THD_is_file(en) ){
+         fn = en ;
+       } else if( eh != NULL ){
+         sprintf(bn,"%.999s/%.999s",eh,en) ; fn = bn ;
+       } else {
+         continue ;  /* skip this name */
+       }
+       PBAR_read_bigmap( fn , dc ) ;
+     }
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -253,6 +287,7 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
        bigmap[2][ii] = DC_spectrum_AJJ(      ii*(360.0/(NPANE_BIG-1))    ,0.8);
        bigmap[3][ii] = DC_spectrum_ZSS(360.0-ii*(360.0/(NPANE_BIG-1))    ,1.0);
      }
+     PBAR_enviro_bigmaps( first_dc ) ;
    }
 
    if( name == NULL || *name == '\0' || cmap == NULL ) return ;
@@ -440,9 +475,11 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
 
-   MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-   PBAR_bigexpose_CB(NULL,pbar,NULL) ;
-   if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
+   if( XtIsRealized(pbar->panes[0]) ){
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+     PBAR_bigexpose_CB(NULL,pbar,NULL) ;
+     if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
+   }
    return ;
 }
 
@@ -502,9 +539,10 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 
    /* actually show the image to the window pane */
 
-   XPutImage( pbar->dc->display , XtWindow(pbar->panes[0]) ,
-              pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
-              pbar->bigxim->width , pbar->bigxim->height ) ;
+   if( XtIsRealized(pbar->panes[0]) )
+     XPutImage( pbar->dc->display , XtWindow(pbar->panes[0]) ,
+                pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
+                pbar->bigxim->width , pbar->bigxim->height ) ;
 }
 
 /*--------------------------------------------------------------------*/
