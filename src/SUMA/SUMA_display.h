@@ -237,7 +237,8 @@ int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans);
 int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_ans);
 char * SUMA_ClassOf(int c);
 char * SUMA_Format(int n, int w);
-void SUMA_ShowVisuals (void); 
+void SUMA_ShowAllVisuals (void); 
+int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead);
 
 
 
