@@ -215,7 +215,8 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 /*! Decode a single type field.  Return value is an intpair with
     the .i component being the type code and the .j component being
     the number of characters consumed.  If the .i component is -1,
-    then no legal type was found (and .j will be 1).
+    then no legal type was found (.j is still the number of chars
+    used in the scan).
 ----------------------------------------------------------------------*/
 
 intpair decode_type_field( char *tf )
