@@ -382,8 +382,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      datatype = DT_FLOAT
    mean that this dataset should be interpreted as a 3D volume (64x64x20),
    with a 3-vector of floats defined at each point in the 3D grid.  Note
-   that when intent_code != 0, then the true dimensionality of the dataset
-   is dim[0]-1, rather than dim[0].
+   that when intent_code != 0, then the physical dimensionality of the
+   dataset is dim[0]-1, rather than dim[0].
 
    A program reading a dataset with intent_vector != 0 may want to reformat
    the image data to store each voxels' set of values together in a struct
@@ -887,8 +887,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    coordinate system is partly to make it easy to convert DICOM images to
    this format.  The DICOM attribute "Image Position (Patient)" 0020/0032
    stores the (Xd,Yd,Zd) coordinates of the center of the first voxel.
-   Here, (Xd,Yd,Zd) refer to DICOM coordinates, and Xd=-x, Yd=-y, Zd=z
-   (i.e., DICOM +Xd is Right, +Yd is Posterior, +Zd is Superior).
+   Here, (Xd,Yd,Zd) refer to DICOM coordinates, and Xd=-x, Yd=-y, Zd=z,
+   where (x,y,z) refers to the NIFTI coordinate system discussed above.
+   (i.e., DICOM +Xd is Left, +Yd is Posterior, +Zd is Superior,
+        whereas +x is Right, +y is Anterior  , +z is Superior. )
+   Thus, if the 0020/0032 DICOM attribute are extracted into (px,py,pz), then
+     qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
+   is a reasonable setting for qform_code==NIFTI_XFORM_SCANNER_ANAT.
 -----------------------------------------------------------------------------*/
 
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
@@ -906,7 +911,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_XFORM_ALIGNED_ANAT 2
 
- /*! Coordinates aligned to Talairach-Tournoux Atlas; (0,0,0)=AC. */
+ /*! Coordinates aligned to Talairach-Tournoux Atlas; (0,0,0)=AC, etc. */
 
 #define NIFTI_XFORM_TALAIRACH    3
 
