@@ -41,9 +41,11 @@
 
 /** prototypes for routines added by RWCox **/
 
-void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout ) ;
-void MCW_free_expand( int gnum , char ** gout ) ;
-void MCW_warn_expand( int www ) ;  /* 13 Jul 2001 */
+extern void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout ) ;
+extern void MCW_free_expand( int gnum , char ** gout ) ;
+extern void MCW_warn_expand( int www ) ;                             /* 13 Jul 2001 */
+extern void MCW_wildcards( char *fnam , int *nout , char ***fout ) ; /* 01 Dec 2003 */
+#define MCW_free_wildcards(a,b) MCW_free_expand(a,b)                 /* 02 Dec 2003 */
 
 typedef struct {
 	int gl_pathc;		/* count of total paths so far */

@@ -4812,3 +4812,5 @@
 
 01 Dec 2003
  * Modified imseq.c to add AFNI_IMAGE_ZEROCOLOR environment variable.
+ * Modified mcw_glob.[ch] to add simple-to-use function MCW_wildcards().
+     Used this in afni_splash.c as a test.

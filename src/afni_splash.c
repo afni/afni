@@ -525,12 +525,13 @@ ENTRY("SPLASH_decodexx") ;
    RETURN(im) ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/*! Find all files of form 'prefix*.jpg' and 'prefix*.JPG' files in the path. */
 
 int AFNI_find_jpegs( char *prefix , char ***fname )  /* 26 Nov 2003 */
 {
    char *epath , *elocal , *eee ;
-   char edir[THD_MAX_NAME] , **ename ;
+   char edir[THD_MAX_NAME] , *ename ;
    int epos , ll , ii , id , nfile , nx,ny , num_file=0 ;
    char **ffile , **fflist=NULL ;
 
@@ -555,19 +556,16 @@ ENTRY("AFNI_find_jpegs") ;
 
    strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
 
-   /*----- replace colons with blanks -----*/
+   /*----- replace colons (if any) with blanks -----*/
 
    for( ii=0 ; ii < ll ; ii++ )
      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
-   /*----- extract blank delimited strings;
-           use as directory names to look for files -----*/
+   /*----- extract blank delimited strings from elocal;
+           use as directory names to look for matching files -----*/
 
-   ename    = (char **) malloc(sizeof(char *)*2) ;
-   ename[0] = (char *)  malloc(THD_MAX_NAME) ;
-   ename[1] = (char *)  malloc(THD_MAX_NAME) ;
-
-   epos = 0 ;
+   ename = (char *) malloc( 2*THD_MAX_NAME+32 ) ;  /* string for wildcards */
+   epos  = 0 ;                              /* scanning position in elocal */
 
    do{
      ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
@@ -580,31 +578,33 @@ ENTRY("AFNI_find_jpegs") ;
 
      epos += id ;                                 /* char after last scanned */
 
-     ii = strlen(edir) ;                          /* make sure name has   */
+     ii = strlen(edir) ;                          /* make sure dirname has */
      if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
        edir[ii]  = '/' ; edir[ii+1] = '\0' ;
      }
-     strcpy(ename[0],edir) ; strcat(ename[0],prefix) ; strcat(ename[0],"*.jpg") ;
-     strcpy(ename[1],edir) ; strcat(ename[1],prefix) ; strcat(ename[1],"*.JPG") ;
 
-     MCW_file_expand( 2,ename, &nfile , &ffile );   /* find files that match */
-     if( nfile <= 0 ) continue ;                    /* no files found */
+     /* create wildcard for JPEG files in this directory */
+
+     sprintf(ename,"%s%s*.jpg %s%s*.JPG" , edir,prefix,edir,prefix ) ;
+
+     MCW_wildcards( ename , &nfile , &ffile ) ;  /* find matching files */
+     if( nfile <= 0 ) continue ;                 /* no files found */
 
       /** add files we found to list **/
 
-      fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
-      for( ii=0 ; ii < nfile ; ii++ )
-        fflist[num_file++] = strdup(ffile[ii]) ;
+     fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
+     for( ii=0 ; ii < nfile ; ii++ )
+       fflist[num_file++] = strdup(ffile[ii]) ;
 
-      MCW_free_expand( nfile , ffile ) ;
+     MCW_free_wildcards( nfile , ffile ) ;  /* toss the junk */
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
-   free(elocal) ; free(ename[0]) ; free(ename[1]) ; free(ename) ;
+   free(elocal) ; free(ename) ;             /* toss more junk */
 
-   if( num_file == 0 ) num_file = -1 ;
-   *fname = fflist ;
-   RETURN(num_file) ;
+   if( num_file == 0 ) num_file = -1 ;      /* flag that nothing was found */
+   *fname = fflist ;                        /* list of found files */
+   RETURN(num_file) ;                       /* return number of files found */
 }
 
 #endif /* NO_FRIVOLITIES */
