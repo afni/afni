@@ -1284,11 +1284,11 @@ librickr.a:
 #######
 # rickr programs
 
-3dreorient: librickr.a libmri.a $(AFWARPOBJS)
+3dresample: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
-	make 3dreorient 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        \
+	make 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;				\
-	$(MV) 3dreorient .. ; )
+	$(MV) 3dresample .. ; )
 
 #######
 # surface library (not currently used)
