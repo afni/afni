@@ -1,8 +1,11 @@
 
-#define IFM_VERSION "version 2.0 (January, 2003)"
+#define IFM_VERSION "version 2.1 (January, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.1  January 27, 2003
+ *   - added '-nt VOLUMES_PER_RUN' option (for checking stalled runs)
  *
  * 2.0  January 15, 2003
  *   - rtfeedme feature
@@ -67,6 +70,8 @@
  *                Imon -help
  *                Imon -version
  *                Imon -debug 2 -start_dir 003
+ *                Imon -start_dir 003 -nt 120
+ *                Imon -start_dir 003 -rt -host pickle -swap
  *----------------------------------------------------------------------
 */
 
@@ -107,7 +112,7 @@ static int read_ge_image       ( char * pathname, finfo_t * fp,
 	                         int get_image, int need_memory );
 static int scan_ge_files       ( param_t * p, int next, int nfiles );
 static int set_nice_level      ( int level );
-static int set_volume_stats    ( vol_t * v );
+static int set_volume_stats    ( param_t * p, stats_t * s, vol_t * v );
 static int show_run_stats      ( stats_t * s );
 static int swap_4              ( void * ptr );
 
@@ -318,7 +323,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     signal( SIGTERM, hf_signal );
     signal( SIGINT,  hf_signal );
 
-    if ( set_volume_stats( v0 ) )
+    if ( set_volume_stats( p, &gS, v0 ) )
 	return -1;
 
     while ( ! done )
@@ -362,7 +367,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
 		vn.seq_num = seq_num;
 
-		if ( set_volume_stats( &vn ) )
+		if ( set_volume_stats( p, &gS, &vn ) )
 		    return -1;
 
 		if ( complete_orients_str( &vn, p ) < 0 )
@@ -988,6 +993,25 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		errors++;
 	    }
 	}
+	else if ( ! strncmp( argv[ac], "-nt", 3 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -nt VOLUMES_PER_RUN\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->nt = atoi(argv[ac]);
+	    if ( p->nt < 0 || p->nt > IFM_MAX_NT )
+	    {
+		fprintf( stderr,
+		    "option usage: -nt VOLUMES_PER_RUN\n"
+		    "       error: VOLUMES_PER_RUN must be in [%d,%d]\n",
+		    0, IFM_MAX_NT );
+		errors++;
+	    }
+	}
 	else if ( ! strncmp( argv[ac], "-quiet", 3 ) )
 	{
 	    /* only go quiet if '-debug' option has not changed it */
@@ -1467,9 +1491,10 @@ static int idisp_hf_param_t( char * info, param_t * p )
 	    "   glob_dir          = %s\n"
 	    "   nfiles            = %d\n"
 	    "   fnames            = %p\n"
-	    "   nice              = %d\n",
+	    "   nice              = %d\n"
+	    "   nt                = %d\n",
 	    p, p->nused, p->nalloc, p->flist, p->start_dir, p->glob_dir,
-	    p->nfiles, p->fnames, p->nice );
+	    p->nfiles, p->fnames, p->nice, p->nt );
 
     return 0;
 }
@@ -1595,10 +1620,10 @@ static int usage ( char * prog, int level )
 	  "    user will be notified of any missing slice or any slice that\n"
 	  "    is aquired out of order.\n"
 	  "\n"
-	  "    It is recommended that the user runs '%s' before scanning\n"
-	  "    begins, and then watches for error messages during the\n"
-	  "    scanning session.  The user should terminate the program\n"
-	  "    whey they are done with all runs.\n"
+	  "    It is recommended that the user runs '%s' just after the\n"
+	  "    scanner is first prepped, and then watches for error messages\n"
+	  "    during the scanning session.  The user should terminate the\n"
+	  "    program whey they are done with all runs.\n"
 	  "\n"
 	  "    At the present time, the user must use <ctrl-c> to terminate\n"
 	  "    the program.\n"
@@ -1609,12 +1634,14 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    %s -start_dir 003\n"
 	  "    %s -help\n"
+	  "    %s -start_dir 003 -nt 120\n"
 	  "    %s -debug 2 -nice 10 -start_dir 003\n"
 	  "\n"
 	  "  examples (with real-time options):\n"
 	  "\n"
 	  "    %s -start_dir 003 -rt\n"
 	  "    %s -start_dir 003 -rt -host pickle -swap \n"
+	  "    %s -start_dir 003 -nt 120 -rt -host pickle -swap \n"
 	  "\n"
 	  "  notes:\n"
 	  "\n"
@@ -1695,15 +1722,31 @@ static int usage ( char * prog, int level )
 	  "        lower its priority, allowing other processes more CPU\n"
 	  "        time.\n"
 	  "\n"
+	  "    -nt VOLUMES_PER_RUN : set the number of time points per run\n"
+	  "\n"
+	  "        e.g.  -nt 120\n"
+	  "\n"
+	  "        With this option, if a run stalls before the specified\n"
+	  "        VOLUMES_PER_RUN is reached (notably including the first\n"
+	  "        run), the user will be notified.\n"
+	  "\n"
+	  "        Without this option, %s will compute the expected number\n"
+	  "        of time points per run based on the first run (and will\n"
+	  "        allow the value to increase based on subsequent runs).\n"
+	  "        Therefore %s would not detect a stalled first run.\n"
+	  "\n"
 	  "    -quiet             : show only errors and final information\n"
 	  "\n"
 	  "    -version           : show the version information\n"
 	  "\n"
+	  "\n"
 	  "  Author: R. Reynolds - %s\n"
+	  "\n"
+	  "                        (many thanks to R. Birn)\n"
 	  "\n",
 	  prog, prog, prog,
-	  prog, prog, prog, prog, prog,
-	  prog, prog,
+	  prog, prog, prog, prog, prog, prog, prog,
+	  prog, prog, prog, prog,
 	  IFM_VERSION
 	);
 
@@ -1749,7 +1792,7 @@ static void hf_signal( int signum )
  * set_volume_stats
  * ----------------------------------------------------------------------
 */
-static int set_volume_stats( vol_t * v )
+static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
 {
     run_t * rp;		  /* for a little speed, this will be called often */
 
@@ -1759,62 +1802,69 @@ static int set_volume_stats( vol_t * v )
 	idisp_hf_vol_t ( "-- VOLUME FAILURE INFO : ", v );
     }
 
-    if ( gS.nalloc == 0 )
+    /* initialize the stats structure */
+    if ( s->nalloc == 0 )
     {
-	gS.runs = (run_t *)calloc( IFM_STAT_ALLOC, sizeof(run_t) );
-	if ( gS.runs == NULL )
+	s->runs = (run_t *)calloc( IFM_STAT_ALLOC, sizeof(run_t) );
+	if ( s->runs == NULL )
 	{
 	    fprintf( stderr, "failure: cannot allocate space for run info\n" );
 	    return -1;
 	}
 
 	/* first time caller - fill initial stats info */
-	gS.nalloc  = IFM_STAT_ALLOC;
-	gS.nused   = 0;
-	gS.slices  = v->nim;
-	gS.z_first = v->z_first;
-	gS.z_last  = v->z_last;
-	gS.z_delta = v->z_delta;
+	s->slices  = v->nim;
+	s->z_first = v->z_first;
+	s->z_last  = v->z_last;
+	s->z_delta = v->z_delta;
+
+	s->nalloc  = IFM_STAT_ALLOC;
+	s->nused   = 0;
+	s->nvols   = gP.nt;		/* init with any user input value */
 
 	if ( gD.level > 1 )
 	    fprintf( stderr, "\n-- svs: init alloc - vol %d, run %d, file %s\n",
 		     v->seq_num, v->run, v->first_file );
     }
 
-    if ( v->run >= gS.nalloc )		/* run is 0-based */
+    if ( v->run >= s->nalloc )		/* run is 0-based */
     {
 	/* make space for many more runs - we don't want to do this often */
-	gS.runs = (run_t *)realloc( gS.runs, (v->run + IFM_STAT_ALLOC) *
+	s->runs = (run_t *)realloc( s->runs, (v->run + IFM_STAT_ALLOC) *
 		                             sizeof(run_t) );
-	if ( gS.runs == NULL )
+	if ( s->runs == NULL )
 	{
 	    fprintf( stderr, "failure: cannot realloc space for run info\n" );
 	    return -1;
 	}
 
-	gS.nalloc = v->run + IFM_STAT_ALLOC;
+	s->nalloc = v->run + IFM_STAT_ALLOC;
 
 	/* zero out any new memory */
-	memset( gS.runs + gS.nused, 0, (gS.nalloc - gS.nused)*sizeof(run_t) );
+	memset( s->runs + s->nused, 0, (s->nalloc - s->nused)*sizeof(run_t) );
 
 	if ( gD.level > 1 )
 	    fprintf( stderr,
 		"\n-- svs: realloc (%d entries) - vol %d, run %d, file %s\n",
-		gS.nalloc, v->seq_num, v->run, v->first_file );
+		s->nalloc, v->seq_num, v->run, v->first_file );
 
     }
 
     /* we have memory - the current run number is an index into runs */
 
-    rp = gS.runs + v->run;
+    rp = s->runs + v->run;
 
-    if ( gS.nused < v->run+1 )
-	gS.nused = v->run+1;
+    if ( s->nused < v->run+1 )
+	s->nused = v->run+1;
 
     if ( rp->volumes == 0 )
 	strncpy( rp->f1name, v->first_file, IFM_MAX_FLEN );
 
     rp->volumes = v->seq_num;
+
+    /* update nvols (if the user did not specify it and it is small) */
+    if ( (p->nt <= 0) && (s->nvols < v->seq_num) )
+	s->nvols = v->seq_num;
 
     if ( gD.level > 2 )
 	fprintf( stderr, "\n-- svs: run %d, seq_num %d\n", v->run, v->seq_num );
@@ -1848,7 +1898,7 @@ static int show_run_stats( stats_t * s )
     for ( c = 0; c < s->nused; c++ )
     {
 	if ( s->runs[c].volumes > 0 )
-	    printf( "    run #%4d : volumes = %d, first file = %s\n",
+	    printf( "    run #%4d : volumes = %3d, first file = %s\n",
 		    c, s->runs[c].volumes, s->runs[c].f1name );
     }
 
@@ -1912,15 +1962,15 @@ static int find_next_zoff( param_t * p, int start, float zoff )
  *         seq_num > 0
  *         naps
  *
- * If this is not run 1, and naps is too big, and the run is incomplete,
- * print a warning message to the user.
+ * If naps is too big, and the run is incomplete, print an obnoxious
+ * warning message to the user.
  *
  * notes:   - print only 1 warning message per seq_num, per run
- *          - run and seq_num are for the previously found volume
+ *          - prev_run and prev_seq_num are for the previously found volume
  *
  * returns:
  *          2 : run is stalled - message printed
- *          1 : first run appears stalled - end of run?
+ *          1 : apparent end of a run
  *          0 : no stall, or if a message has already been printed
  *         -1 : function failure
  * ----------------------------------------------------------------------
@@ -1937,15 +1987,9 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
     if ( ( run < 1 ) || ( seq_num < 1 ) || ( naps <= IFM_MAX_RUN_NAPS ) )
 	return 0;
 
-    if ( run == 1 )
-    {
-	if ( gD.level > 1 )
-	    fprintf( stderr, "apparently done with run 1\n" );
-	return 1;
-    }
-
     /* verify that we have already taken note of the previous volume */
-    if ( ((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num) )
+    if ( (((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num)) &&
+	 ( func_failure == 0 ) )
     {
 	fprintf( stderr, "** warning: CSR - stats inconsistancy!\n" );
 	func_failure = 1;
@@ -1953,7 +1997,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 	return -1;
     }
 
-    if ( seq_num < gS.runs[1].volumes )	   /* are we done with the run yet? */
+    if ( seq_num < gS.nvols )	   /* are we done with the run yet? */
     {
 	/* if we haven't printed before, this is the first stalled case */
 	if ( (run != prev_run) || (seq_num != prev_seq) )
@@ -1976,18 +2020,14 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 	    return 2;
 	}
     }
-    else if ( seq_num >= gS.runs[1].volumes )
+    /* else (we are done) */
+    else if ( (run != prev_run) || (seq_num != prev_seq) )
     {
-	/* if this is our first visit, then we just finished a run */
-	if ( (run != prev_run) || (seq_num != prev_seq) )
-	{
-	    prev_run = run;
-	    prev_seq = seq_num;
+	/* this is our first visit, note the fact */
+	prev_run = run;
+	prev_seq = seq_num;
 
-	    return 1;
-	}
-	else
-	    return 0;
+	return 1;
     }
 
     return 0;

@@ -113,3 +113,7 @@
       (is EXTRA_LIBS without -lgen and -ldl)
   * modified Makefile.INCLUDE for Imon to use EXTRA_LIBS_2
   * modified rickr/Makefile for Imon to use EXTRA_LIBS_2
+
+28 January 2003:
+  * modified Imon.[ch] to add '-nt VOLUMES_PER_RUN' option (version 2.1)
+

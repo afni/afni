@@ -1,3 +1,4 @@
+
 #ifndef _IMON_H_
 #define _IMON_H_
 
@@ -11,6 +12,7 @@
 #define IFM_STAT_ALLOC      20       /* allocation blocksize - run stats */
 #define IFM_MAX_IM_ALLOC    40       /* initial limit for read_ge_files  */
 #define IFM_MAX_RUN_NAPS     3       /* maximum number of mid-run naps   */
+#define IFM_MAX_NT       32767       /* maximum valid num time points    */
 
 #define IFM_MIN_NICE_INC   -19       /* minimum nice value increment     */
 #define IFM_MAX_NICE_INC    20       /* maximum nice value increment     */
@@ -76,6 +78,7 @@ typedef struct
     char          ** fnames;        /* corresponding file names         */
 
     int              nice;          /* nice offset (must be >= 0)       */
+    int              nt;            /* user input time points per run   */
 } param_t;
 
 typedef struct			    /* used for the stats_t struct      */
@@ -92,6 +95,7 @@ typedef struct			/* used to output statistics at the end */
 
     int     nalloc;		/* number of run_t structures allocated */
     int     nused;		/* number of run_t structures in use    */
+    int     nvols;		/* number of volumes in a run           */
     run_t * runs;		/* array of run_t strcutrues            */
 } stats_t;
 
