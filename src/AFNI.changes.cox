@@ -3857,3 +3857,7 @@
 30 Jul 2002
  * Modified plug_realtime.c to accept DRIVE_AFNI commands in the image prolog.
  * Modified afni.c to allow plugouts during realtime.
+
+31 Jul 2002
+ * New function EDIT_wod_copy() to create a warp-on-demand copy, like 3ddup.
+ * Use this in afni.c when a directory has only functions, no anats.
