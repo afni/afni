@@ -44,7 +44,8 @@ static AFNI_friend afni_friends[] = {
   { "V Roopchansingh", (         4 | 8 | 16                             ) } ,
   { "J Ratke"        , (                 16                             ) } ,
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
-  { "S Durgerian"    , (             8 | 16                             ) }
+  { "S Durgerian"    , (             8 | 16                             ) } ,
+  { "V van Gogh"     , (                    32                          ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -55,7 +56,7 @@ char * AFNI_get_friend(void)
    nf = lrand48() % NUM_FRIENDS ;
    do{
       nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-   } while( qq < 19 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+   } while( qq < 29 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
    sprintf( buf  ,
             "Thanks go to %s for %s" ,
             afni_friends[nf].name , afni_helptypes[nh] ) ;

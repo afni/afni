@@ -425,8 +425,11 @@ extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;
 
 /** returns array of byte images: red, green, blue **/
+
 extern MRI_IMARR * mri_read_ppm3( char * fname ) ;
 extern MRI_IMAGE * mri_read_ppm( char * fname ) ;
+
+extern void mri_read_ppm_header( char *, int *, int *) ; /* 17 Sep 2001 */
 
 MRI_IMAGE *mri_read_just_one( char * fname ) ;
 MRI_IMAGE *mri_read_nsize( char * fname ) ;

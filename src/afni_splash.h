@@ -32,9 +32,9 @@ static int    lover[NOVER]={NLINE_cox1,NLINE_cox2,NLINE_cox3,NLINE_cox4};
 #  include "splash_gang.h"
 
 static char **bmain[NMAIN]={BAR_gang  };
-static int    xmain[NOVER]={NX_gang   };
-static int    ymain[NOVER]={NY_gang   };
-static int    lmain[NOVER]={NLINE_gang};
+static int    xmain[NMAIN]={NX_gang   };
+static int    ymain[NMAIN]={NY_gang   };
+static int    lmain[NMAIN]={NLINE_gang};
 #endif
 /*------------------------------------------------------------------------------------*/
 

@@ -3111,3 +3111,9 @@
 13 Sep 2001
  * Modified afni_plugin.c and NLfit_model.c to properly load .so objects
      on Mac OS X (DARWIN).
+
+17 Sep 2001
+ * Modified mri_read.c to add new function mri_read_ppm_header(),
+     and to make mri_read_ppm() scale a PPM image to maxval=255.
+ * Modified afni_splash.c to look for .afnisplash*.ppm files for the
+     splash image override.

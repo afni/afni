@@ -926,6 +926,44 @@ long mri_filesize( char * pathname )
 }
 
 /*---------------------------------------------------------------
+  17 Sep 2001: read only the PPM header, and return its info
+               *nx = *ny = 0 means an error transpirificated
+-----------------------------------------------------------------*/
+
+void mri_read_ppm_header( char *fname , int *nx, int *ny )
+{
+   FILE *imfile ;
+   int ch , nch , nxx,nyy ;
+   char buf[256] ;
+
+ENTRY("mri_read_ppm_header") ;
+
+   if( fname == NULL || nx == NULL || ny == NULL ) EXRETURN ;
+
+   *nx = *ny = 0 ;  /* default returns */
+
+   /*** open input file ***/
+
+   imfile = fopen( fname , "r" ) ; if( imfile == NULL ) EXRETURN ;
+
+   /*** check if a raw PPM file ***/
+
+   ch = getc( imfile ) ; if( ch != 'P' ) { fclose(imfile) ; EXRETURN ; }
+   ch = getc( imfile ) ; if( ch != '6' ) { fclose(imfile) ; EXRETURN ; }
+
+   /* magic P6 found, so read numbers in header */
+
+   ch = getc(imfile) ;
+
+   NUMSCAN(nxx) ; if( nxx <= 0 ){ fclose(imfile) ; EXRETURN ; }
+   NUMSCAN(nyy) ; if( nyy <= 0 ){ fclose(imfile) ; EXRETURN ; }
+
+   /* return dimensions */
+
+   fclose(imfile) ; *nx = nxx ; *ny = nyy ; EXRETURN ;
+}
+
+/*---------------------------------------------------------------
   May 13, 1996: reads a raw PPM file into 1 image
 -----------------------------------------------------------------*/
 
@@ -953,10 +991,10 @@ WHOAMI ;
 
    ch = getc(imfile) ;
 
-   NUMSCAN(nx)     ; if( nx     <= 0 )   { fclose(imfile) ; return NULL ; }
-   NUMSCAN(ny)     ; if( ny     <= 0 )   { fclose(imfile) ; return NULL ; }
-   NUMSCAN(maxval) ; if( maxval <= 0 ||
-                         maxval >  255 ) { fclose(imfile) ; return NULL ; }
+   NUMSCAN(nx)    ; if( nx     <= 0 )  { fclose(imfile); return NULL; }
+   NUMSCAN(ny)    ; if( ny     <= 0 )  { fclose(imfile); return NULL; }
+   NUMSCAN(maxval); if( maxval <= 0 ||
+                        maxval >  255 ){ fclose(imfile); return NULL; }
 
    /*** create output image ***/
 
@@ -969,6 +1007,13 @@ WHOAMI ;
    fclose( imfile ) ;
 
    if( length != 3*nx*ny ){ mri_free(rgbim) ; return NULL ; }
+
+   /* 17 Sep 2001: scale to maxval=255, if needed */
+
+   if( maxval < 255 ){
+      int ii ; float fac = 255.4/maxval ;
+      for( ii=0 ; ii < 3*nx*ny ; ii++ ) rgby[ii] = (byte)( rgby[ii]*fac ) ;
+   }
 
    return rgbim ;
 }
