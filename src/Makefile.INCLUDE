@@ -1252,6 +1252,9 @@ qhull:
 eis_bakvec.o:
 	( cd eispack/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
+cdf_00.o:
+	( cd cdflib/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
+
 #######
 
 netcdf_attr.o:
