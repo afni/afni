@@ -530,6 +530,8 @@ void MCW_alter_widget_cursor( Widget w, int cur, char * fgname, char * bgname )
    static Cursor  cur_font[XC_num_glyphs] ;
    static Boolean first = True ;
 
+   if( AFNI_yesenv("AFNI_DISABLE_CURSORS") ) return ; /* 21 Mar 2004 */
+
    if( first ){
       for( ii=0 ; ii < XC_num_glyphs ; ii++ ) cur_font[ii] = None ;
       first = False ;
