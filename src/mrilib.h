@@ -343,6 +343,8 @@ extern double mri_max( MRI_IMAGE * ) ;
 extern double mri_min( MRI_IMAGE * ) ;
 extern double mri_maxabs( MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
+
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern int mri_write( char * , MRI_IMAGE * ) ;

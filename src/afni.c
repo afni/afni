@@ -7193,7 +7193,7 @@ ENTRY("AFNI_load_defaults") ;
       for( jj=0 ; jj <= ii ; jj++ ){
          sprintf( buf , "pbar_sgn_pane%02d_thr%02d" , ii,jj ) ;
          pthr[jj] = BAD ;
-         NAME2FLOAT(buf,pthr[jj],0.0,1.0) ;
+         NAME2FLOAT(buf,pthr[jj],-1.0,1.0) ; /* 14 Apr 1999: 0.0 changed to -1.0! */
       }
 
       for( jj=0 ; jj < ii ; jj++ ){

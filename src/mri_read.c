@@ -375,10 +375,20 @@ MRI_IMARR * mri_read_3D( char * tname )
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
    length = ftell( imfile ) ;
 
+   /** 13 Apr 1999: modified to allow actual hglobal < -1
+                    as long as hglobal+himage >= 0       **/
+
+#if 0                 /* the old code */
    if( hglobal < 0 ){
       hglobal = length - nz*(datum_len*nx*ny+himage) ;
       if( hglobal < 0 ) hglobal = 0 ;
    }
+#else                 /* 13 Apr 1999 */
+   if( hglobal == -1 || hglobal+himage < 0 ){
+      hglobal = length - nz*(datum_len*nx*ny+himage) ;
+      if( hglobal < 0 ) hglobal = 0 ;
+   }
+#endif
 
    ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
    if( length < ngood ){
@@ -1162,10 +1172,20 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
    length = ftell( imfile ) ;
 
+   /** 13 Apr 1999: modified to allow actual hglobal < -1
+                    as long as hglobal+himage >= 0       **/
+
+#if 0                 /* the old code */
    if( hglobal < 0 ){
       hglobal = length - nz*(datum_len*nx*ny+himage) ;
       if( hglobal < 0 ) hglobal = 0 ;
    }
+#else                 /* 13 Apr 1999 */
+   if( hglobal == -1 || hglobal+himage < 0 ){
+      hglobal = length - nz*(datum_len*nx*ny+himage) ;
+      if( hglobal < 0 ) hglobal = 0 ;
+   }
+#endif
 
    ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
    if( length < ngood ){
