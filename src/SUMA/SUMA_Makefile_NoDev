@@ -126,9 +126,9 @@ SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
 	${CC} -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-3dSurfMaskDump: SUMA_3dSurfMaskDump.c 
+3dVol2Surf: SUMA_3dVol2Surf.c 
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurfMaskDump.c ${SUMA_INCLUDE_PATH}		\
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_3dVol2Surf.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIB} libply.a ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -163,7 +163,7 @@ install:
 	@if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_ParseName ]; then mv SUMA_ParseName ${INSTALLDIR_SUMA}; fi;
-	@if [ -f 3dSurfMaskDump ]; then mv 3dSurfMaskDump ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dVol2Surf ]; then mv 3dVol2Surf ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
@@ -172,7 +172,7 @@ packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
 	chmod u+x ./@SUMA_CreateCompileStamp
 	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
-	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dSurfMaskDump  \
+	$(CP) -p suma MakeColorMap libSUMA.a ScaleToMap 3dVol2Surf  \
 		 3dSurf2Vol SUMA_bin/
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -182,7 +182,7 @@ all: libSUMA.a mainobj suma install
 standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit \
 SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 CompareSurfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
-3dSurfMaskDump 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset
+3dVol2Surf 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset
 
 
  
