@@ -34,6 +34,9 @@ typedef struct {
    XPoint hands[MAX_GHANDS] ;  /* positions of handles */
    byte func[256] ;            /* output function */
    byte oldf[256] ;            /* for comparison */
+
+   float xbot,xtop,ybot,ytop ; /* for scaling x,y axes */
+   Widget popmenu , poplabel ;
 } MCW_graf ;
 
 #define UNMANAGE_GRAF(g)                                           \
@@ -84,6 +87,8 @@ extern void xvbcopy(char * src, char * dst, size_t len) ;
 extern int GRAF_changed( MCW_graf * gp ) ;
 extern void GRAF_set_func( MCW_graf * gp , byte * func ) ;
 
+extern void GRAF_set_xyrange( MCW_graf *gp , float xb,float xt, float yb,float yt ) ;
+
 /* passive graf */
 
 #define PASGRAF_LINE  0        /* for 'mode', below */
@@ -100,6 +105,8 @@ typedef struct {
 
    int mode ;
    byte func[GRAF_SIZE] ;
+
+   float xbot,xtop,ybot,ytop ; /* for scaling x,y axes */
 } MCW_pasgraf ;
 
 #define UNMANAGE_PASGRAF(g)                                          \
@@ -117,5 +124,7 @@ extern void redraw_MCW_pasgraf( MCW_pasgraf * gp ) ;
 extern void set_MCW_pasgraf( MCW_pasgraf * gp , byte * func ) ;
 
 extern void MCW_histo_bytes( int nb , byte * bar , int * har ) ;
+
+extern void PASGRAF_set_xyrange( MCW_pasgraf *gp , float xb,float xt, float yb,float yt ) ;
 
 #endif /* _MCW_GRAFFF_HEADER_ */
