@@ -31,7 +31,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.3
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=macosx_10.3
+SHOWOFF = -DSHOWOFF=macosx_10.3_fink
 
 INSTALL_PREREQ = suma
 
