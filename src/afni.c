@@ -1675,6 +1675,7 @@ ENTRY("AFNI_quit_timeout_CB") ;
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
+   int vv ;
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
@@ -1726,7 +1727,27 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
-   AFNI_version_check() ; /* does nada if AFNI_start_version_check() not called */
+   vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
+
+#ifdef SHOWOFF
+   if( vv ){  /* 20 Nov 2003: if version check shows a mismatch */
+     char *sname = AFNI_make_update_script() ;
+     if( sname != NULL ){
+       char *cpt , *ddd ;
+       ddd = strdup(sname) ; cpt = THD_trailname(ddd,0) ; *cpt = '\0' ;
+       cpt = THD_trailname(sname,0) ;
+       fprintf(stderr,
+               "\n"
+               "****************************************************\n"
+               "* A script to update AFNI binaries has been created.\n"
+               "* To use it, quit AFNI now, then try the commands\n"
+               "cd %s\n"
+               "source %s\n"
+               "****************************************************\n" ,
+               ddd , cpt ) ;
+     }
+   }
+#endif
 
    /* finish up getting AFNI ready to be presented to the world */
 

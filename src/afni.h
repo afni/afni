@@ -863,8 +863,9 @@ extern int AFNI_controller_index( Three_D_View * ) ;
 extern Three_D_View * AFNI_find_open_controller(void) ; /* 05 Mar 2002 */
 extern void AFNI_popup_message( char * ) ;
 
-extern void AFNI_start_version_check(void) ;   /* 21 Nov 2002 */
-extern void AFNI_version_check      (void) ;
+extern void   AFNI_start_version_check(void) ;   /* 21 Nov 2002 */
+extern int    AFNI_version_check      (void) ;
+extern char * AFNI_make_update_script (void) ;   /* 20 Nov 2003 */
 
 extern char * AFNI_get_friend(void) ;      /* 26 Feb 2001 */
 extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
