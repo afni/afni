@@ -1995,3 +1995,8 @@
  * Also added a popup error message when floating point errors are
      detected in inputs to to3d.c
  * Added "1xN" pattern to 24swap.c to allow for nonswapped data.
+
+24 Jan 2000
+ * Fixed error in -mask[n] option processing in 3dROIstats.c - that
+     fiend Tom Ross used argv[narg] instead of argv[narg-1] to check
+     for the presence of the "n" option.

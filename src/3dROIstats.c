@@ -98,9 +98,11 @@ int main (int argc, char * argv[]) {
          
          if( DSET_BRICK_TYPE(mask_dset,0) == MRI_float )
             Error_Exit("Cannot deal with float-valued mask dataset!") ;
-         
-         if(isdigit(argv[narg][5])) { /* mask is a subbrik */
-            mask_subbrik = (int)atol(argv[narg]+5);
+
+         /* 24 Jan 2000: change narg to narg-1 in this block - RWCox */
+
+         if(isdigit(argv[narg-1][5])) { /* -mask is a subbrik */
+            mask_subbrik = (int)atol(argv[narg-1]+5);
             if ((mask_subbrik < 0) || (mask_subbrik>=(DSET_NVALS(mask_dset))))
                Error_Exit("Illegal sub-brisk following the -mask option");
          }
