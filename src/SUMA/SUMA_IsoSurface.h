@@ -81,6 +81,9 @@ typedef struct {
    float var_lzt;
    int send_hull;
    int DemoPause;
+   int DoSpatNorm;
+   int WriteSpatNorm;
+   int fillhole;
    FILE *dbg_eyenodes;
 } SUMA_ISOSURFACE_OPTIONS;
 

@@ -258,6 +258,7 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
    \param nk (int) number of voxels in the k direction
    \param N_in (int *) to contain the number of voxels inside the mask
    \parm usethisisin (byte *)store results in this mask vector rather than allocate for a new one.
+   \param fillhole (int) fills small holes, intended to correct for volume masks created from surfaces with minor intersections
    \return isin (byte *) a nvox x 1 vector containing:
       0: for voxels outside mask
       1: for voxels inside mask
@@ -340,6 +341,7 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, i
    if (visited) SUMA_free(visited); visited = NULL;
    if (candlist) { dlist_destroy(candlist); SUMA_free(candlist); candlist  = NULL; }
 
+   
    SUMA_RETURN(isin);
 }
 
