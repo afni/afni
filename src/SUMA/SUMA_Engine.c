@@ -802,7 +802,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   SUMA_LH("SUMA_niml_workproc Already on.");
                }
-               LocalHead = NOPE;
 
                /* register a call for sending the surface to afni (SetAfniSurf)*/
                if (LocalHead) fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
@@ -878,13 +877,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetForceAfniSurf:
             /* expects nothing in EngineData */
             /* send to afni surfaces that can be sent even if they have been sent already */
+            #if 0 /* pre Oct 26 */
             for (ii=0; ii<sv->N_DO; ++ii) {
                if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->RegisteredDO[ii]].OP);
                   if (SO->SentToAfni) SO->SentToAfni = NOPE;
                }
             }
-            
+            #else
+               /* send all geometrically correct surfaces */
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isSO(SUMAg_DOv[ii])) {
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
+                     if (SO->AnatCorrect && SO->SentToAfni) SO->SentToAfni = NOPE;
+                  }
+               }
+            #endif
             /* proceed to SE_SetAfniSurf: */
             ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
             SUMA_RegisterEngineListCommand (list, ED, 
@@ -895,7 +903,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_SetAfniSurf:
             /* expects nothing in EngineData */
-            { int loc_ID;
+            { int loc_ID, N_Send, *SendList;
             
             /* send to afni the list of anatomically correct surfaces and with a surface volume*/
             /* No surfaces are sent twice because there should not be duplicate 
@@ -903,36 +911,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces that are related to the ones shown in the viewer
             were being sent to AFNI. Now all mappable surfaces loaded are sent regardless of what is shown */
             /* Jan. 08 04: All anatomically correct surfaces are now sent to AFNI */
-            for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-               if (SUMA_isSO(SUMAg_DOv[ii])) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
-                  #if 1 
-                  /* Jan. 08 04 this is the right thing to do but 
-                  AFNI is not ready to deal with this
-                  and things can get confusing. See 
-                  confusing fat point in Readme_Modify.log,
-                  date: Thu Jan  8 13:55:33 EST 2004 */
-                  if (!SO->AnatCorrect) {
-                     continue;
-                  }
-                  #else 
-                  /* Jan. 08 04 the old and not confusing way. 
-                  Turn it off as soon as AFNI is ready 
-                  for the option  above.
-                  See labbook NIH-3 page 146 */
-                  if (!SUMA_isLocalDomainParent(SO)) {
-                     continue;
-                  }
-                  #endif
-                  /* if this surface has been sent to AFNI before, bypass it */
-                  if (SO->SentToAfni) {
-                     if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
-                        FuncName, SO->idcode_str);
-                     continue;
-                  }else {
-                     if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s Will be sent to AFNI.\n", \
-                        FuncName, SO->idcode_str);
-                  }
+            SendList = SUMA_FormSOListToSendToAFNI(SUMAg_DOv , SUMAg_N_DOv, &N_Send);
+            if (N_Send) {
+               for (ii=0; ii<N_Send; ++ii) {
+                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SendList[ii]].OP);
+                  if (SO->Label) fprintf(SUMA_STDERR,"%s: Sending surface %s ...\n", FuncName, SO->Label);
                   nel = SUMA_makeNI_SurfIXYZ (SO);
                   if (!nel) {
                      fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
@@ -966,7 +949,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      break;
                   }
                   /* send surface nel */
-                  fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
+                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
                   nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
 
                   if( nn < 0 ){
@@ -982,7 +965,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      break;
                   }
                   /* send surface nel */
-                  fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
+                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
                   nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
 
                   if( nn < 0 ){
@@ -994,7 +977,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   /* mark surface as sent to afni */
                   SO->SentToAfni = YUP;
                }
+               SUMA_free(SendList); SendList = NULL;
             }
+           
             break;
             }
          case SE_ToggleShowSelectedNode:
@@ -2886,6 +2871,77 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
    }
 
    SUMA_RETURN (rel_id);
+
+}
+
+/*!
+   \brief creates a list of surfaces that are to be sent to AFNI
+*/
+int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send) 
+{
+   static char FuncName[]={"SUMA_FormSOListToSendToAFNI"};
+   int *SendList = NULL, ii, j;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   *N_Send = 0;
+   SendList = (int *)SUMA_malloc(N_dov * sizeof(int));
+   if (!SendList) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_RETURN(SendList);
+   }
+   for (j=0; j<3; ++j) {
+      for (ii=0; ii<N_dov; ++ii) {
+         if (SUMA_isSO(dov[ii])) {
+            SO = (SUMA_SurfaceObject *)(dov[ii].OP);
+            #if 1 
+            /* Jan. 08 04 this is the right thing to do but 
+            AFNI is not ready to deal with this
+            and things can get confusing. See 
+            confusing fat point in Readme_Modify.log,
+            date: Thu Jan  8 13:55:33 EST 2004 */
+            if (!SO->AnatCorrect) {
+               continue;
+            }
+            #else 
+            /* Jan. 08 04 the old and not confusing way. 
+            Turn it off as soon as AFNI is ready 
+            for the option  above.
+            See labbook NIH-3 page 146 */
+            if (!SUMA_isLocalDomainParent(SO)) {
+               continue;
+            }
+            #endif
+            if (j==0) { /* inner surfaces */
+               if (SUMA_isTypicalSOforVolSurf(SO) != -1) {
+                  continue;
+               }
+            }else if (j==1) { /* outer surfaces */
+               if (SUMA_isTypicalSOforVolSurf(SO)  != 1) {
+                  continue;
+               }
+            }else if (j==2) { /* other */
+               if (SUMA_isTypicalSOforVolSurf(SO)  != 0) {
+                  continue;
+               }
+            }
+            /* if this surface has been sent to AFNI before, bypass it */
+            if (SO->SentToAfni) {
+               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
+                  FuncName, SO->idcode_str);
+               continue;
+            }else {
+               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s Will be sent to AFNI.\n", \
+                  FuncName, SO->idcode_str);
+            }
+            SendList[*N_Send] = ii; *N_Send = *N_Send + 1;
+         }
+      }
+   }
+
+   SUMA_RETURN(SendList);
 
 }
 

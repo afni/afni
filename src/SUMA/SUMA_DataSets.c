@@ -676,7 +676,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"B_col")) SUMA_RETURN (SUMA_NODE_B);
    if (!strcmp(Name,"Generic_String")) SUMA_RETURN (SUMA_NODE_STRING);
    if (!strcmp(Name,"Convexity")) SUMA_RETURN (SUMA_NODE_CX);
-   // if (!strcmp(Name,"")) SUMA_RETURN ();
+   /* if (!strcmp(Name,"")) SUMA_RETURN (); */
    SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 
 }

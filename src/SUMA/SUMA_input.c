@@ -1285,6 +1285,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* wait for display */
                   glFinish();
                }
+               fprintf (SUMA_STDOUT,"\n");
                delta_t = SUMA_etime (&tti, 1);
                sv->light0_position[2] = buf;
                glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
