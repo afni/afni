@@ -179,7 +179,7 @@ switch NF
 		case {1, 2,} 		
 		   fstat = repmat(0, [1 N_Brik]);   % pure cross design
 		
-		case 3,   % only 23 terms
+		case {3,4},   % only 23 terms
 		   
 			ssterm(5) = ssterm(5) + ssterm(9);   %SSE(A) = SSE + SSAE
 	      dfterm(5) = dfterm(5) + dfterm(9);   %DF(E(A)) = DF(E) + DF(AE)
@@ -326,6 +326,17 @@ switch NF
 			   mse, msterm(25), mse, mse, msterm(23), msterm(24), msterm(25), msterm(30), mse, mse, mse, msterm(30), mse];
 			dfdenom = [dfterm(5), dfterm(5), dfterm(5), dfterm(5), dfe, dfterm(12), dfterm(14), dfterm(15), dfterm(23), dfterm(24), ...
 			   dfe, dfterm(25), dfe, dfe, dfterm(23), dfterm(24), dfterm(25), dfterm(30),dfe, dfe, dfe, dfterm(30), dfe];  % denominator DF
+		
+		case 4,  % 23 terms
+		   msterm_new = [msterm(1:8), msterm(10:17), msterm(19), msterm(22:26), msterm(30)]; 
+			intensity_new = [intensity(1:8), intensity(10:17), intensity(19), intensity(22:26), intensity(30)]; 
+			dfterm_new = [dfterm(1:8)', dfterm(10:17)', dfterm(19), dfterm(22:26)', dfterm(30)];
+			tnames_new = [tnames(1:8); tnames(10:17); tnames(19); tnames(22:26); tnames(30)];
+			msdenom = [msterm(8), msterm(11), msterm(13), mse, msterm(15), msterm(17), msterm(19), mse, msterm(22), mse, ...
+			   msterm(24), mse, msterm(25), mse, msterm(26), mse, mse, mse, msterm(30), mse, mse, mse, mse];
+			dfdenom = [dfterm(8), dfterm(11), dfterm(13), dfe, dfterm(15), dfterm(17), dfterm(19), dfe, dfterm(23), dfe, ...
+			   dfterm(24), dfe, dfterm(25), dfe, dfterm(26), dfe, dfe, dfe, dfterm(30), dfe, dfe, dfe, dfe];  % denominator DF		
+		
 		end
 	
 end  % Close swtich NF
@@ -456,7 +467,7 @@ if (NF == 4),
 	         switch Contr.ord2.cnt(i).idx2
 		         case 2, what = msdenom(5);   % MSAB
 		         case 3, what = msdenom(6);   % MSAC
-		         case 4, what = msdenom(7) * (dsgn == 1 | dsgn == 2) + msdenom(4) * (dsgn == 4);   % MSAD
+		         case 4, what = msdenom(7) * (dsgn == 1 | dsgn == 2);   % MSAD
 	         end	
 	         case 2,
 	         switch Contr.ord2.cnt(i).idx2
@@ -561,18 +572,18 @@ if (NF == 5),
 	         end	
 	         case 2,
 	         switch Contr.ord2.cnt(i).idx2
-	            case 3, what = msdenom(10) * (dsgn == 1 | dsgn == 2) + msdenom(9) * (dsgn == 3);  % MSBC
-	            case 4, what = msdenom(11) * (dsgn == 1 | dsgn == 2) + msdenom(10) * (dsgn == 3);  % Less likely to occur: MSBD	
-					case 5, what = msdenom(12) * (dsgn == 1 | dsgn == 2) + msdenom(11) * (dsgn == 3);  % Less likely to occur: MSBE
+	            case 3, what = msdenom(10) * (dsgn == 1 | dsgn == 2) + msdenom(9) * (dsgn == 3 | dsgn == 4);  % MSBC
+	            case 4, what = msdenom(11) * (dsgn == 1 | dsgn == 2) + msdenom(10) * (dsgn == 3 | dsgn == 4);  % Less likely to occur: MSBD	
+					case 5, what = msdenom(12) * (dsgn == 1 | dsgn == 2) + msdenom(11) * (dsgn == 3 | dsgn == 4);  % Less likely to occur: MSBE
 	         end		   
 	         case 3,   % Less likely occur
 	         switch Contr.ord2.cnt(i).idx2
-		         case 4, what = msdenom(13)* (dsgn == 1 | dsgn == 2) + msdenom(12) * (dsgn == 3);  % Less likely occur: MSCD
-					case 5, what = msdenom(14)* (dsgn == 1 | dsgn == 2) + msdenom(13) * (dsgn == 3);  % Less likely occur: MSCE	
+		         case 4, what = msdenom(13)* (dsgn == 1 | dsgn == 2) + msdenom(12) * (dsgn == 3 | dsgn == 4);  % Less likely occur: MSCD
+					case 5, what = msdenom(14)* (dsgn == 1 | dsgn == 2) + msdenom(13) * (dsgn == 3 | dsgn == 4);  % Less likely occur: MSCE	
 	         end
 				case 4,   % Less likely occur
 	         switch Contr.ord2.cnt(i).idx2
-					case 5, what = msdenom(15)* (dsgn == 1 | dsgn == 2) + msdenom(14) * (dsgn == 3);  % Less likely occur: MSDE	
+					case 5, what = msdenom(15)* (dsgn == 1 | dsgn == 2) + msdenom(14) * (dsgn == 3 | dsgn == 4);  % Less likely occur: MSDE	
 	         end
 				
 	      end		
@@ -601,14 +612,14 @@ if (NF == 5),
 		         
 					case 2, 
 		         switch Contr.ord3.cnt(i).idx3
-			         case 3, what = msdenom(16) * (dsgn == 1 | dsgn == 2) + msdenom(15) * (dsgn == 3);   % MSABC
-			         case 4, what = msdenom(17) * (dsgn == 1 | dsgn == 2) + msdenom(16) * (dsgn == 3); %  MSABD 
+			         case 3, what = msdenom(16) * (dsgn == 1 | dsgn == 2) + msdenom(15) * (dsgn == 3 | dsgn == 4);   % MSABC
+			         case 4, what = msdenom(17) * (dsgn == 1 | dsgn == 2) + msdenom(16) * (dsgn == 3 | dsgn == 4); %  MSABD 
 						case 5, what = msdenom(18) * (dsgn == 1 | dsgn == 2); %  MSABE
 		         end   % switch Contr.ord3.cnt(i).idx3
 		         
 					case 3, 
 		         switch Contr.ord3.cnt(i).idx3
-					   case 4, what = msdenom(19) * (dsgn == 1 | dsgn == 2) + msdenom(17) * (dsgn == 3); %  MSACD 
+					   case 4, what = msdenom(19) * (dsgn == 1 | dsgn == 2) + msdenom(17) * (dsgn == 3 | dsgn == 4); %  MSACD 
 						case 5, what = msdenom(20) * (dsgn == 1 | dsgn == 2); %  MSACE
 		         end  % switch Contr.ord3.cnt(i).idx3 
 		         
@@ -622,8 +633,8 @@ if (NF == 5),
 	         switch Contr.ord3.cnt(i).idx2
 		         case 3, 
 		         switch Contr.ord3.cnt(i).idx3
-					   case 4, what = msdenom(22) * (dsgn == 1 | dsgn == 2) + msdenom(18) * (dsgn == 3); %  MSBCD 
-						case 5, what = msdenom(23) * (dsgn == 1 | dsgn == 2) + msdenom(19) * (dsgn == 3); %  MSBCE
+					   case 4, what = msdenom(22) * (dsgn == 1 | dsgn == 2) + msdenom(18) * (dsgn == 3 | dsgn == 4); %  MSBCD 
+						case 5, what = msdenom(23) * (dsgn == 1 | dsgn == 2) + msdenom(19) * (dsgn == 3 | dsgn == 4); %  MSBCE
 					end % switch Contr.ord3.cnt(i).idx3	
 		         case 4, 
 					if (Contr.ord3.cnt(i).idx3 == 5), 
