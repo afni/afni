@@ -2429,15 +2429,15 @@ void RT_start_dataset( RT_input * rtin )
 
      switch( rtin->orczz ){
        case ORI_I2S_TYPE:
-       case ORI_S2I_TYPE: sli = "Axial"    ; break ;
+       case ORI_S2I_TYPE: sli = "(Axial)"    ; break ;
 
        case ORI_R2L_TYPE:
-       case ORI_L2R_TYPE: sli = "Sagittal" ; break ;
+       case ORI_L2R_TYPE: sli = "(Sagittal)" ; break ;
 
        case ORI_P2A_TYPE:
-       case ORI_A2P_TYPE: sli = "Coronal"  ; break ;
+       case ORI_A2P_TYPE: sli = "(Coronal)"  ; break ;
 
-       default:           sli = "\0"         ; break ;
+       default:           sli = "\0"         ; break ;  /* say what? */
      }
 
      sprintf(str," \n"
@@ -2446,8 +2446,9 @@ void RT_start_dataset( RT_input * rtin )
                  " Dataset prefix  : %s\n"
                  " Brick Dimensions: %d x %d x %d\n"
                  " Voxel Grid Size : %.4f x %.4f x %.4f (mm)\n"
-                 " Grid Orientation: %s x %s x %s (%s)\n"
-                 " Datum           : %s\n"
+                 " Grid Orientation: %s x %s x %s %s\n"
+                 " Grid Offset     : %.1f x %.1f x %.1f (mm)\n"
+                 " Datum Type      : %s\n"
                  " Number Channels : %d\n"
                  " Acquisition Type: %s\n" ,
              npr ,
@@ -2455,6 +2456,7 @@ void RT_start_dataset( RT_input * rtin )
              fabs(rtin->dxx) , fabs(rtin->dyy) , fabs(rtin->dzz) ,
              ORIENT_shortstr[rtin->orcxx],ORIENT_shortstr[rtin->orcyy],
                ORIENT_shortstr[rtin->orczz] , sli ,
+             rtin->xxorg , rtin->yyorg , rtin->zzorg ,
              MRI_TYPE_name[rtin->datum] ,
              rtin->num_chan ,
              acq

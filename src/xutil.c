@@ -436,7 +436,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
       XtIntervalId tid ;
 
       tid = XtAppAddTimeOut( XtWidgetToApplicationContext( wmsg ) ,
-	                     30000 , MCW_message_timer_CB , wmsg   ) ;
+	                     33333 , MCW_message_timer_CB , wmsg   ) ;
 
       XtVaSetValues( wlab , XmNuserData ,  tid , NULL );/* put tid on wlab; */
    } else {                                             /* shells don't */

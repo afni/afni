@@ -4107,3 +4107,9 @@
  * Modified niml.[ch] to allow definiton of "NI_rowtypes" to make it easier
      to deal with structs (with all fixed length elements, alas).
  * Modified nids.[ch] to deal with vectors of arbitrary NI_rowtype.
+
+11 Dec 2002
+ * Modified plug_realtime.c to allow termination of a dataset without
+     closing the data IOCHAN.  Also added new XYZFIRST metadata command,
+     to allow setting of all 3 axis offsets.
+ * Modified rtfeedme.c to test the above features.
