@@ -32,6 +32,7 @@ ENTRY("AFNI_see_func_CB") ;
          im3d->vinfo->func_visible = False ;
          MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
       }
+      AFNI_allow_suma_overlay( 1 ) ; /* 16 Jun 2003 */
       AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
    }
 
