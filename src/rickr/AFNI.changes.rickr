@@ -64,3 +64,6 @@
   * modified cox_render.[ch] - pass rotation matrix pointer to CREN_render()
   * modified testcox.c - pass NULL to CREN_render() for rotation matrix pointer
 
+01 October 2002:
+  * modified Makefile.INCLUDE to build file_tool automatically
+
