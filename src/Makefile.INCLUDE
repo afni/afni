@@ -701,6 +701,7 @@ AlphaSim:AlphaSim.o
 # The float (vs. double) version of 3dDeconvolve
 
 3dDeconvolve_f.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix_f.c matrix_f.h
+	$(RM) 3dDeconvolve_f.o 3dDeconvolve.o
 	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS) -DFLOATIZE
 	$(MV) 3dDeconvolve.o 3dDeconvolve_f.o
 

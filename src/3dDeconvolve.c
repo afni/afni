@@ -234,6 +234,9 @@
   Mod:     Added -quiet option to suppress initial screen output.
   Date:    12 March 2003
 
+  Mod:     Changes to allow -jobs option to run multiple processes.
+  Date:    04 May 2003 -- RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -246,7 +249,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "18 March 2003"       /* latest program revision date*/
+#define PROGRAM_LATEST  "04 May 2003"         /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -260,10 +263,44 @@
 
 #include "mrilib.h"
 
+/*---------------------------------------------------------------------------*/
+/*--------- Global variables for multiple process execution - RWCox. --------*/
+/*--------- All names start with "proc_", so search for that string. --------*/
+
+#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK)
+
+# include "thd_iochan.h"                /* prototypes for shm stuff */
+
+# define PROC_MAX   16                  /* max num processes */
+
+  static int proc_numjob        = 1   ; /* num processes */
+  static pid_t proc_pid[PROC_MAX]     ; /* IDs of processes */
+  static int proc_shmid         = 0   ; /* shared memory ID */
+  static char *proc_shmptr      = NULL; /* pointer to shared memory */
+  static int proc_shmsize       = 0   ; /* total size of shared memory */
+
+  static int proc_shm_arnum     = 0   ; /* num arrays in shared memory */
+  static float ***proc_shm_ar   = NULL; /* *proc_shm_ar[i] = ptr to array #i */
+  static int *proc_shm_arsiz    = NULL; /* proc_shm_arsiz[i] = floats in #i */
+
+  static int proc_vox_bot[PROC_MAX]   ; /* 1st voxel to use in each process */
+  static int proc_vox_top[PROC_MAX]   ; /* last voxel (+1) in each process */
+
+  static int proc_ind                 ; /* index of THIS job */
+
+#else   /* can't use multiple processes */
+
+# define proc_numjob 1   /* flag that only 1 process is in use */
+# define proc_ind    0   /* index of THIS job */
+
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 #ifndef FLOATIZE
-# include "matrix.h"
+# include "matrix.h"          /* double precision */
 #else
-# include "matrix_f.h"
+# include "matrix_f.h"        /* single precision */
 #endif
 
 #include "Deconvolve.c"
@@ -452,6 +489,19 @@ void display_help_menu()
     "[-fdisp fval]        Write statistical results for those voxels        \n"
     "                       whose full model F-statistic is > fval          \n"
     );
+
+#ifdef PROC_MAX
+    printf( "\n"
+            " -jobs J   Run the program with 'J' jobs (sub-processes).\n"
+            "             On a multi-CPU machine, this can speed the\n"
+            "             program up considerably.  On a single CPU\n"
+            "             machine, using this option is silly.\n"
+            "             J should be a number from 1 up to the\n"
+            "             number of CPU sharing memory on the system.\n"
+            "             J=1 is normal (single process) operation.\n"
+            "             The maximum allowed value of J is %d.\n"
+          , PROC_MAX ) ;
+#endif
 
     printf("\n"
            "** NOTE **\n"
@@ -1228,6 +1278,25 @@ void get_options
 	  nopt++;
 	  continue;
 	}
+
+      /*-----   -jobs J   -----*/
+      if( strcmp(argv[nopt],"-jobs") == 0 ){   /* RWCox */
+        nopt++ ;
+        if (nopt >= argc)  DC_error ("need J parameter after -jobs ");
+#ifdef PROC_MAX
+        proc_numjob = strtol(argv[nopt],NULL,10) ;
+        if( proc_numjob < 1 ){
+          fprintf(stderr,"** setting number of processes to 1!\n") ;
+          proc_numjob = 1 ;
+        } else if( proc_numjob > PROC_MAX ){
+          fprintf(stderr,"** setting number of processes to %d!\n",PROC_MAX);
+          proc_numjob = PROC_MAX ;
+        }
+#else
+        fprintf(stderr,"** -jobs not supported in this version\n") ;
+#endif
+        nopt++; continue;
+      }
       
 
       /*----- unknown command -----*/
@@ -1239,6 +1308,13 @@ void get_options
 
   /*----- Set number of GLT's -----*/
   option_data->num_glt = iglt;
+
+  /*---- if -jobs is given, make sure are processing 3D data ----*/
+
+#ifdef PROC_MAX
+  if( proc_numjob > 1 && option_data->input1D_filename != NULL )
+    proc_numjob = 1 ;
+#endif
 
 }
 
@@ -1966,13 +2042,233 @@ void zero_fill_volume (float ** fvol, int nxyz)
 {
   int ixyz;
 
-  *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol); 
+  if( proc_numjob == 1 ){ /* 1 process ==> allocate locally */
 
-  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-    (*fvol)[ixyz]  = 0.0;
-      
+    *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol); 
+    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+      (*fvol)[ixyz]  = 0.0;
+
+  }
+#ifdef PROC_MAX
+   else {             /* multiple processes ==> prepare for shared memory */
+                      /*                        by remembering what to do */
+
+    proc_shm_arnum++ ;
+    proc_shm_arsiz = (int *)  realloc( proc_shm_arsiz ,
+                                       sizeof(int)     *proc_shm_arnum ) ;
+    proc_shm_ar = (float ***) realloc( proc_shm_ar ,
+                                       sizeof(float **)*proc_shm_arnum ) ;
+    proc_shm_arsiz[proc_shm_arnum-1] = nxyz ;
+    proc_shm_ar[proc_shm_arnum-1]    = fvol ;
+
+    /* actual allocation and pointer assignment (to *fvol)
+       will take place in function proc_finalize_shm_volumes() */
+  }
+#endif
 }
 
+/*---------------------------------------------------------------------------*/
+
+#ifdef PROC_MAX
+
+/*** signal handler for fatal errors -- make sure shared memory is deleted ***/
+
+void proc_sigfunc(int sig)
+{
+   char * sname ; int ii ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1); else fff=1 ;
+   switch(sig){
+     default:      sname = "unknown" ; break ;
+     case SIGHUP:  sname = "SIGHUP"  ; break ;
+     case SIGTERM: sname = "SIGTERM" ; break ;
+     case SIGILL:  sname = "SIGILL"  ; break ;
+     case SIGKILL: sname = "SIGKILL" ; break ;
+     case SIGPIPE: sname = "SIGPIPE" ; break ;
+     case SIGSEGV: sname = "SIGSEGV" ; break ;
+     case SIGBUS:  sname = "SIGBUS"  ; break ;
+     case SIGINT:  sname = "SIGINT"  ; break ;
+     case SIGFPE:  sname = "SIGFPE"  ; break ;
+   }
+   if( proc_shmid > 0 ){
+     shmctl( proc_shmid , IPC_RMID , NULL ) ; proc_shmid = 0 ;
+   }
+   fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
+   exit(1) ;
+}
+
+void proc_atexit( void )  /*** similarly - atexit handler ***/
+{
+  if( proc_shmid > 0 )
+    shmctl( proc_shmid , IPC_RMID , NULL ) ;
+}
+
+/*---------------------------------------------------------------*/
+/*** This function is called to allocate all output
+     volumes at once in shared memory, and set their pointers ***/
+
+void proc_finalize_shm_volumes(void)
+{
+   char kstr[32] ; int ii ;
+
+   if( proc_shm_arnum == 0 ) return ;  /* should never happen */
+
+   proc_shmsize = 0 ;                       /* add up sizes of */
+   for( ii=0 ; ii < proc_shm_arnum ; ii++ ) /* all arrays for */
+     proc_shmsize += proc_shm_arsiz[ii] ;   /* shared memory */
+
+   proc_shmsize *= sizeof(float) ;          /* convert to byte count */
+
+   /* create shared memory segment */
+
+   UNIQ_idcode_fill( kstr ) ;               /* unique string "key" */
+   proc_shmid = shm_create( kstr , proc_shmsize ) ; /* thd_iochan.c */
+   if( proc_shmid < 0 ){
+     fprintf(stderr,"\n** Can't create shared memory of size %d!\n"
+                      "** Try re-running without -jobs option!\n" ,
+             proc_shmsize ) ;
+
+     /** if failed, print out some advice on how to tune SHMMAX **/
+
+#ifdef LINUX
+     { FILE *fp = fopen( "/proc/sys/kernel/shmmax" , "r" ) ;
+       if( fp != NULL ){
+         unsigned int smax=0 ;
+         fscanf(fp,"%u",&smax) ; fclose(fp) ;
+         if( smax > 0 ){
+           fprintf(stderr ,
+                   "\n"
+                   "** LINUX ADVICE:\n"
+                   "** Current max shared memory size = %u bytes\n"
+                   "** You can increase the maximum allowed size\n"
+                   "** by using a command like so as root:\n"
+                   "**   echo VAL > /proc/sys/kernel/shmmax\n"
+                   "** where VAL is a number (must be >= 33554432).\n"
+                   "** This should probably be done at bootup,\n"
+                   "** for example in the /etc/rc.d/rc.local file.\n"
+                   "** N.B.: This advice may or may not be appropriate\n"
+                   "**       for your version of Linux.  Please check\n"
+                   "**       with a Linux system administrator for\n"
+                   "**       authoritative help on reconfiguring the\n"
+                   "**       operating system!\n"
+                   , smax ) ;
+         }
+       }
+     }
+#endif
+
+#ifdef SOLARIS
+     { FILE *fp = popen( "/usr/sbin/sysdef | grep SHMMAX" , "r" ) ;
+       if( fp != NULL ){
+         unsigned int smax=0 ;
+         fscanf(fp,"%u",&smax) ; pclose(fp) ;
+         if( smax > 0 ){
+           fprintf(stderr ,
+                   "\n"
+                   "** SOLARIS ADVICE:\n"
+                   "** Current max shared memory size = %u bytes\n"
+                   "** You can increase the maximum allowed size\n"
+                   "** by having root edit file /etc/system and\n"
+                   "** adding a line like so\n"
+                   "**   set shmsys:shminfo_shmmax = VAL\n"
+                   "** where VAL is a number, and then rebooting.\n"
+                   "** N.B.: Be very careful with /etc/system, and\n"
+                   "**       make a backup copy before editing it!\n"
+                   "** N.B.: This advice may or may not be appropriate\n"
+                   "**       for your version of Solaris.  Please check\n"
+                   "**       with a Solaris system administrator for\n"
+                   "**       authoritative help on reconfiguring the\n"
+                   "**       operating system!\n"
+                   , smax ) ;
+         }
+       }
+     }
+#endif
+
+#ifdef DARWIN
+     { FILE *fp = popen( "sysctl -n kern.sysv.shmmax" , "r" ) ;
+       if( fp != NULL ){
+         unsigned int smax=0 ; char str[128] ;
+         fscanf(fp,"%s%u",str,&smax) ; pclose(fp) ;
+         if( smax > 0 ){
+           fprintf(stderr ,
+                   "\n"
+                   "** DARWIN ADVICE:\n"
+                   "** Current max shared memory size = %u bytes\n"
+                   "** You can increase the maximum allowed size\n"
+                   "** by having a superuser issue a command like\n"
+                   "**   sysctl -w kern.sysv.shmmax=VAL\n"
+                   "** where VAL is a number.\n"
+                   "** You can also change this parameter in the file\n"
+                   "** /System/Library/StartupItems/SystemTuning/SystemTuning\n"
+                   "** so that the change will last past a reboot.\n"
+                   "** N.B.: This advice may or may not be appropriate\n"
+                   "**       for your version of Darwin.  Please check\n"
+                   "**       with a Darwin system administrator for\n"
+                   "**       authoritative help on reconfiguring the\n"
+                   "**       operating system!\n"
+                   , smax ) ;
+         }
+       }
+     }
+#endif
+
+     exit(1) ;
+   }
+
+   /* set a signal handler to catch most fatal errors and
+      delete the shared memory segment if program crashes */
+
+   signal(SIGPIPE,proc_sigfunc) ; signal(SIGSEGV,proc_sigfunc) ;
+   signal(SIGINT ,proc_sigfunc) ; signal(SIGFPE ,proc_sigfunc) ;
+   signal(SIGBUS ,proc_sigfunc) ; signal(SIGHUP ,proc_sigfunc) ;
+   signal(SIGTERM,proc_sigfunc) ; signal(SIGILL ,proc_sigfunc) ;
+   signal(SIGKILL,proc_sigfunc) ; signal(SIGPIPE,proc_sigfunc) ;
+   atexit(proc_atexit) ;
+
+   fprintf(stderr , "++ Shared memory: %d bytes at id=%d\n" ,
+           proc_shmsize , proc_shmid ) ;
+
+   /* get pointer to shared memory segment we just created */
+
+   proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
+   if( proc_shmptr == NULL ){
+     fprintf(stderr,"\n** Can't attach to shared memory!?\n"
+                      "** This is bizarre.\n" ) ;
+     shmctl( proc_shmid , IPC_RMID , NULL ) ;
+     exit(1) ;
+   }
+
+   /* clear the allocated memory */
+
+   memset( proc_shmptr , 0 , proc_shmsize ) ;
+
+   /* fix the local pointers to arrays in shared memory */
+
+   *proc_shm_ar[0] = (float *) proc_shmptr ;
+   for( ii=1 ; ii < proc_shm_arnum ; ii++ )
+     *proc_shm_ar[ii] = *proc_shm_ar[ii-1] + proc_shm_arsiz[ii] ;
+}
+
+/*-------------------------------------------------------------*/
+/*** This function replaces free();
+     it won't try to free things stored in the shared memory ***/
+
+void proc_free( void *ptr )
+{
+   int ii ;
+
+   if( ptr == NULL ) return ;
+   if( proc_shmid == 0 ){ free(ptr); return; }  /* no shm */
+   for( ii=0 ; ii < proc_shm_arnum ; ii++ )
+     if( ((float *)ptr) == *proc_shm_ar[ii] ) return;
+   free(ptr); return;
+}
+
+#undef  free            /* replace use of library free() */
+#define free proc_free  /* with proc_free() function     */
+
+#endif /* PROC_MAX */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -2191,6 +2487,10 @@ void allocate_memory
 	  zero_fill_volume (&((*errts_vol)[it]),  nxyz);
 	}
     }
+
+#ifdef PROC_MAX
+  if( proc_numjob > 1 ) proc_finalize_shm_volumes() ;  /* RWCox */
+#endif
 }
 
 
@@ -2769,7 +3069,9 @@ void calculate_results
     }
 
   else
-    {
+    {     /* actually process data */
+
+      int ixyz_bot=0 , ixyz_top=nxyz ;  /* voxel indexes to process */
 
 #ifdef USE_GET
 #define NGET 32               /* number to get at one time */
@@ -2780,8 +3082,83 @@ void calculate_results
       MRI_IMARR *imget=NULL ; /* array of timeseries */
 #endif
 
+#ifdef PROC_MAX
+      if( proc_numjob > 1 ){    /*---- set up multiple processes ----*/
+        int vv , nvox=nxyz , nper , pp , nv ;
+        pid_t newpid ;
+
+        /* count number of voxels to compute with into nvox */
+        if( mask_vol != NULL ){
+          for( vv=nvox=0 ; vv < nxyz ; vv++ )
+            if( mask_vol[vv] != 0 ) nvox++ ;
+        }
+
+        if( nvox < proc_numjob ){  /* too few voxels for multiple jobs? */
+
+          proc_numjob = 1 ;
+
+        } else {                   /* prepare jobs */
+
+          /* split voxels between jobs evenly */
+
+          nper = nvox / proc_numjob ;  /* # voxels per job */
+          if( mask_vol == NULL ){
+            proc_vox_bot[0] = 0 ;
+            for( pp=0 ; pp < proc_numjob ; pp++ ){
+              proc_vox_top[pp] = proc_vox_bot[pp] + nper ;
+              if( pp < proc_numjob-1 ) proc_vox_bot[pp+1] = proc_vox_top[pp] ;
+            }
+            proc_vox_top[proc_numjob-1] = nxyz ;
+          } else {
+            proc_vox_bot[0] = 0 ;
+            for( pp=0 ; pp < proc_numjob ; pp++ ){
+              for( nv=0,vv=proc_vox_bot[pp] ;         /* count ahead until */
+                   nv < nper && vv < nxyz  ; vv++ ){  /* find nper voxels */
+                if( mask_vol[vv] != 0 ) nv++ ;        /* inside the mask */
+              }
+              proc_vox_top[pp] = vv ;
+              if( pp < proc_numjob-1 ) proc_vox_bot[pp+1] = proc_vox_top[pp] ;
+            }
+            proc_vox_top[proc_numjob-1] = nxyz ;
+          }
+
+          /* make sure dataset is in memory before forks */
+
+          DSET_load(dset) ;
+
+          /* start processes */
+
+          fprintf(stderr,"++ Voxels in dataset: %d\n",nxyz) ;
+          if( nvox < nxyz )
+          fprintf(stderr,"++ Voxels in mask:    %d\n",nvox) ;
+          fprintf(stderr,"++ Voxels per job:    %d\n",nper) ;
+
+          for( pp=1 ; pp < proc_numjob ; pp++ ){
+            ixyz_bot = proc_vox_bot[pp] ;
+            ixyz_top = proc_vox_top[pp] ;
+            proc_ind = pp ;
+            newpid   = fork() ;
+            if( newpid == -1 ){
+              fprintf(stderr,"** Can't fork job #%d! Error exit!\n",pp);
+              exit(1) ;
+            }
+            if( newpid == 0 ) break ;   /* I'm the child */
+            proc_pid[pp] = newpid ;     /* I'm the parent */
+            iochan_sleep(10) ;
+          }
+          if( pp == proc_numjob ){      /* only in the parent */
+            proc_ind = 0 ;
+            ixyz_bot = proc_vox_bot[0] ;
+            ixyz_top = proc_vox_top[0] ;
+          }
+          fprintf(stderr,"++ Job #%d: processing voxels %d to %d\n",
+                  proc_ind,ixyz_bot,ixyz_top-1) ;
+        }
+      }
+#endif /* PROC_MAX */
+
       /*----- Loop over all voxels -----*/
-      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+      for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
 	{
 	  /*----- Apply mask? -----*/
 	  if (mask_vol != NULL)
@@ -2834,7 +3211,7 @@ void calculate_results
 			  glt_coef, glt_tcoef, fglt, rglt);
 	  
 	  
-	  /*----- Save results for this voxel -----*/
+	  /*----- Save results for this voxel into arrays -----*/
 	  save_voxel (option_data, ixyz, coef, scoef, tcoef, fpart, rpart, mse,
 		      ffull, rfull, glt_coef, glt_tcoef, fglt, rglt, 
 		      nt, ts_array, good_list, fitts, errts, 
@@ -2850,13 +3227,16 @@ void calculate_results
 		   && (ixyz % option_data->progress == 0))
 	       || (option_data->input1D_filename != NULL) )
 	    {
-	      printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	      report_results (N, qp, q, p, polort, block_list, num_blocks, 
-			   num_stimts, stim_label, baseline, min_lag, max_lag,
-			   coef, tcoef, fpart, rpart, ffull, rfull, mse, 
-		           num_glt, glt_label, glt_rows, glt_coef, 
-		           glt_tcoef, fglt, rglt, &label);
-	      printf ("%s \n", label);
+
+              if( proc_ind == 0 ){
+	        printf ("\n\nResults for Voxel #%d: \n", ixyz);
+	        report_results (N, qp, q, p, polort, block_list, num_blocks, 
+			     num_stimts, stim_label, baseline, min_lag, max_lag,
+			     coef, tcoef, fpart, rpart, ffull, rfull, mse, 
+		             num_glt, glt_label, glt_rows, glt_coef, 
+		             glt_tcoef, fglt, rglt, &label);
+	        printf ("%s \n", label);
+              }
 	    }
 	  
 	}  /*----- Loop over voxels -----*/
@@ -2865,6 +3245,27 @@ void calculate_results
         if( do_get ){
           if( imget != NULL ) DESTROY_IMARR(imget) ;
           ts_array = NULL ;
+        }
+#endif
+
+        /*-- if this is a child process, we're done.
+             if this is the parent process, wait for the children --*/
+
+#ifdef PROC_MAX
+        if( proc_numjob > 1 ){
+          if( proc_ind > 0 ){                          /* death of child */
+            fprintf(stderr,"++ Job #%d finished.\n",proc_ind) ;
+            _exit(0) ;
+
+          } else {                      /* parent waits for children */
+            int pp ;
+            fprintf(stderr,"++ Job #0 waiting for children to finish.\n") ;
+            for( pp=1 ; pp < proc_numjob ; pp++ )
+              waitpid( proc_pid[pp] , NULL , 0 ) ;
+          }
+
+          /* when get to here, only parent process is left alive,
+             and all the results are in the shared memory segment arrays */
         }
 #endif
       
