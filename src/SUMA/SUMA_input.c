@@ -12,7 +12,7 @@ void
 input(Widget w, XtPointer clientData, XtPointer callData)
 {
 	GLwDrawingAreaCallbackStruct *cd = (GLwDrawingAreaCallbackStruct *) callData;
-	char buffer[10];
+	char buffer[10], cbuf;
 	KeySym keysym;
 	int xls, ntot;
 	float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
@@ -165,9 +165,16 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 
 
 			case XK_c:
-				fprintf(stdout,"Enter name of color file: ");
+				fprintf(stdout,"Enter name of color file (enter nothing to cancel): ");
 				/*Load colors from file */
-				fscanf(stdin,"%s", s);
+				{int i=0;
+					while ((cbuf = getc(stdin)) != '\n') {
+						s[i] = cbuf;
+						++ i;
+					}
+					s[i] = '\0';
+					if (!i) return;
+				}
 				EngineData.N_cols = 4;
 				/* find out if file exists and how many values it contains */
 				ntot = SUMA_float_file_size (s);
@@ -266,11 +273,40 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 				break;
 
 			case XK_l:
-				do {
+				{	int i=0;
+					char *endp;
+					fprintf(SUMA_STDOUT,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
 					fflush (stdin);
-					fprintf(stdout,"Enter XYZ coordinates to look at (comma separated):\n");
-				} while (fscanf(stdin,"%f, %f, %f", &(fv3[0]), &(fv3[1]),&(fv3[2])) != 3);
-				fprintf(stdout,"You Entered: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+					while ((cbuf = getc(stdin)) != '\n') {
+						if (cbuf == ',' || cbuf == '\t') {/* change , and tab  to space*/
+							cbuf = ' ';
+						}
+							s[i] = cbuf;
+							++ i;
+					}
+					s[i] = '\0';
+					if (!i) return;
+					/* parse s */
+					fv3[0] = strtod(s, &endp);
+					/*fprintf (SUMA_STDERR, "%s: ERANGE: %d, EDOM %d, errno %d\n", FuncName, ERANGE, EDOM, errno); */
+					if (errno) {
+						fprintf(SUMA_STDERR,"Error %s: Syntax error.\n", FuncName);
+						return;
+					}
+					fv3[1] = strtod(endp,&endp);
+					if (errno) {
+						fprintf(SUMA_STDERR,"Error %s: Syntax error, second value.\n", FuncName);
+						return;
+					}
+					fv3[2] = strtod(endp,&endp);
+					if (errno) {
+						fprintf(SUMA_STDERR,"Error %s: Syntax error, third value.\n", FuncName);
+						return;
+					}
+					
+				}
+				
+				fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
 
 				/* register fv3 with EngineData */
 				sprintf(sfield,"fv3");
