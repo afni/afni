@@ -3535,3 +3535,13 @@
  * Implemented "zoom" feature in imseq.c (with a little help from bbox.h).
  * Modified mri_dup.c to allow linear as well as heptic upsampling.
      Use this for faster zooming in imseq.c.
+
+13 Mar 2002
+ * Modified imseq.c to not reload the zoomed Pixmap if the image isn't new.
+     This speeds up scrolling the zoomed image quite a lot.
+ * Modified coxplot/plot_x11.c to work properly if the first call to the
+     rendering function is into a Pixmap instead of a Window.
+ * Fixed a bug in niml.c that created NIML_TRUSTHOST_%2d environment variable
+     names - should have been NIML_TRUSTHOST_%02d (D'oh).
+ * Modified mri_dup.c to upsample byte-values images by 2/3/4 in special code.
+     This makes imseq.c zooming faster.
