@@ -1283,6 +1283,8 @@ int NI_read_columns( NI_stream_type *ns,
 
    int (*ReadFun)( NI_stream_type *, NI_rowtype *, void *, int ) ;
    int ltend = (flags & NI_LTEND_MASK) != 0 ;
+   int swap  = (flags & NI_SWAP_MASK)  != 0 ;
+   int ReadFlag ;
 
 # undef  FREEUP
 # define FREEUP do{ NI_free(rt); NI_free(vsiz); NI_free(fsiz); } while(0)
@@ -1339,8 +1341,8 @@ int NI_read_columns( NI_stream_type *ns,
    /*-- Choose function to read from stream and fill one struct --*/
 
    switch( tmode ){
-     case NI_TEXT_MODE:   ReadFun = NI_text_to_val  ; break;
-     case NI_BINARY_MODE: ReadFun = NI_binary_to_val; break;
+     case NI_TEXT_MODE:   ReadFun = NI_text_to_val  ; ReadFlag = ltend; break;
+     case NI_BINARY_MODE: ReadFun = NI_binary_to_val; ReadFlag = swap ; break;
      default:
        fprintf(stderr,"\n** NI_read_columns: Base64 not implemented!\n");
        FREEUP ; return -1 ;
@@ -1354,7 +1356,7 @@ int NI_read_columns( NI_stream_type *ns,
 
      for( col=0 ; nn && col < col_num ; col++ ){
        ptr = col_dat[col] + fsiz[col]*row ;         /* ptr to row-th struct */
-       nn  = ReadFun( ns , rt[col] , ptr , ltend ) ; /* read data to struct */
+       nn  = ReadFun( ns, rt[col], ptr, ReadFlag ) ; /* read data to struct */
      }
      if( !nn ) break ;                             /* some ReadFun() failed */
    }
@@ -1378,11 +1380,13 @@ ReadFinality:
 /*-------------------------------------------------------------------------*/
 /*! Decode binary data from the NI_stream ns into a rowtype struct *dpt.
     - Note that String (aka NI_STRING) parts are illegal here.
-    - Parameter ltend has no meaning for this function; cf. NI_text_to_val()
     - Return value is 1 if all was OK, 0 if something bad happened.
+    - Parameter swap indicates that the data coming in needs to be
+      byte-swapped.  This is ONLY used to byte-swap the dimension for
+      var-dimen arrays.
 ---------------------------------------------------------------------------*/
 
-int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
+int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
 {
    int nn , jj ;
 
@@ -1421,6 +1425,9 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
                                                  /* will be ptr to array */
          int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
          int siz = rt->part_rtp[ii]->size ;          /* size of one part */
+
+         if( swap ) NI_swap4( 1 , &dim ) ;   /* byte-swap dim, which was */
+                                            /* just read in a moment ago */
 
          if( dim > 0 ){                         /* need to get some data */
            *apt = NI_malloc( siz * dim );                  /* make array */

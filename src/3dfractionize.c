@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
    float *voxout ;
    byte  *bin   = NULL ;
    short *sin   = NULL , sclip=0   ;
-   float *fin   = NULL , fclip=0.0 ;
+   float *fin   = NULL , fclip=0.00001 ;
    void  *voxin = NULL ;
    THD_fvec3 vv ;
 
