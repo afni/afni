@@ -101,10 +101,12 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"**ERROR: normalization fails!?\n"); exit(1);
    }
 
+#if 0
    if( AFNI_yesenv("WATERSHED") ){
-     imin = mri_watershedize( imout , 0.25 ) ;
+     imin = mri_watershedize( imout , 0.10 ) ;
      if( imin != NULL ){ mri_free(imout); imout = imin; }
    }
+#endif
 
    /*--- create output dataset ---*/
 
@@ -120,7 +122,7 @@ int main( int argc , char *argv[] )
 
    EDIT_dset_items( oset ,
                       ADN_prefix      , prefix ,
-                      ADN_datum_all   , MRI_short ,
+                      ADN_datum_all   , imout->kind ,
                       ADN_nxyz        , nxyz ,
                       ADN_xyzdel      , dxyz ,
                       ADN_xyzorg      , orgxyz ,

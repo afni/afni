@@ -3475,10 +3475,12 @@ extern void MRI_autobbox( MRI_IMAGE * ,
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
-extern int THD_mask_clip_neighbors( int,int,int, byte *, float,float *) ; /* 28 Oct 2003 */
+extern int THD_mask_clip_neighbors( int,int,int, byte *, float,float,float *) ; /* 28 Oct 2003 */
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
+
+extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
 extern void THD_mask_dilate( int, int, int, byte *, int ) ; /* 30 Aug 2002 */
 
