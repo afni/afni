@@ -1285,43 +1285,65 @@ extern void svd_double( int, int, double *, double *, double *, double * ) ;
 void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 {
    int m = X.rows , n = X.cols , ii,jj,kk ;
-   double *amat , *umat , *vmat , *sval , smax, del , sum ;
+   double *amat , *umat , *vmat , *sval , *xfac , smax,del,sum ;
 
    if( m < 1 || n < 1 || m < n || (XtXinv == NULL && XtXinvXt == NULL) ) return;
 
-   amat = (double *)calloc( sizeof(double),m*n ) ;
-   umat = (double *)calloc( sizeof(double),m*n ) ;
-   vmat = (double *)calloc( sizeof(double),n*n ) ;
-   sval = (double *)calloc( sizeof(double),n   ) ;
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+   umat = (double *)calloc( sizeof(double),m*n ) ;  /* left singular vectors */
+   vmat = (double *)calloc( sizeof(double),n*n ) ;  /* right singular vectors */
+   sval = (double *)calloc( sizeof(double),n   ) ;  /* singular values */
+   xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
 
 #define A(i,j) amat[(i)+(j)*m]
 #define U(i,j) umat[(i)+(j)*m]
 #define V(i,j) vmat[(i)+(j)*n]
 
+   /* copy input matrix into amat */
+
    for( ii=0 ; ii < m ; ii++ )
      for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
 
+   /* scale each column to have norm 1 */
+
+   for( jj=0 ; jj < n ; jj++ ){
+     sum = 0.0l ;
+     for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+     if( sum > 0.0l ) sum = 1.0l/sqrt(sum) ;
+     xfac[jj] = sum ;
+     for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
+   }
+
+   /* compute SVD of scaled matrix */
+
    svd_double( m , n , amat , sval , umat , vmat ) ; 
 
-   free((void *)amat) ;
+   free((void *)amat) ;  /* done with this */
+
+   /* find largest singular value */
 
    smax = sval[0] ;
    for( ii=1 ; ii < n ; ii++ )
      if( sval[ii] > smax ) smax = sval[ii] ;
 
-   if( smax <= 0.0l ){
-     free((void *)sval); free((void *)vmat); free((void *)umat); return;
+   if( smax <= 0.0l ){                        /* this is bad */
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat); return;
    }
 
 #ifdef FLOATIZE
-#define EPS 1.e-5
+#define EPS 1.e-6
 #else
 #define EPS 1.e-12
 #endif
 
-   del  = 1.e-12 * smax*smax ;
+   /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
+
+   del  = EPS * smax*smax ;
    for( ii=0 ; ii < n ; ii++ )
      sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
+
+   /* create pseudo-inverse */
 
    if( XtXinvXt != NULL ){
      matrix_create( n , m , XtXinvXt ) ;
@@ -1330,7 +1352,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
          sum = 0.0l ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
-         XtXinvXt->elts[ii][jj] = sum ;
+         XtXinvXt->elts[ii][jj] = sum * xfac[ii] ;
        }
      }
    }
@@ -1344,11 +1366,12 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
          sum = 0.0l ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * V(jj,kk) ;
-         XtXinv->elts[ii][jj] = sum ;
+         XtXinv->elts[ii][jj] = sum * xfac[ii] * xfac[jj] ;
        }
      }
    }
 
-   flops += n*n*(n+m+2.0l) ;
-   free((void *)sval); free((void *)vmat); free((void *)umat); return;
+   flops += n*n*(n+2.0l*m+2.0l) ;
+   free((void *)xfac); free((void *)sval);
+   free((void *)vmat); free((void *)umat); return;
 }

@@ -5096,4 +5096,8 @@
  * Modified matrix.c and RegAna.c to do matrix solutions with pseudo-inverse
      from SVD, rather than normal equations.
  * Adapted svd.f into eis_svd.c a little more, and also wrote a wrapper
-     function into cs_symeig.c.
+     function into cs_symeig.c, and a test program 1dsvd.
+
+20 Jul 2004
+ * Modified thd_get1D.c to limit loading of 1D files in AFNI to a max size
+     set by environment variable AFNI_MAX_1DSIZE (default 123K).
