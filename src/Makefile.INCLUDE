@@ -6,7 +6,7 @@
 F2C = ./f2c -A
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox
-MINDOCS  = ../doc/README/README* AFNI.changes.cox
+MINDOCS  = AFNI.changes.cox
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
@@ -71,18 +71,28 @@ LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h \
              multivector.h afni_environ.h
 
+### Make everything, install it too, and cleanup
+
+totality:all plugins install install_plugins install_lib clean
+	$(CP) $(INSTALLDIR)
+
+### Make everything, install it too, but don't cleanup
+
+vastness:all plugins install install_plugins install_lib
+	$(CP) $(INSTALLDIR)
+
+### Make many things
+
 all:libmri.a libcoxplot.a libvolpack.a programs
+
+### Make a few more things
 
 itall:all plugins install install_plugins
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
 
-totality:all plugins install install_plugins install_lib clean
-	$(CP) ../doc/README/README* $(INSTALLDIR)
-
-vastness:all plugins install install_plugins install_lib
-	$(CP) ../doc/README/README* $(INSTALLDIR)
+### for those on crippled systems
 
 all_noplug:libmri.a programs_noplug
 
@@ -94,12 +104,10 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 libraries:libmri.a libcoxplot.a libvolpack.a libf2c.a
 
+### rules for individual programs
+
 quotize:quotize.o
 	$(CC) -o quotize quotize.o $(LFLAGS) $(LLIBS)
-
-newstuff.hhh:quotize ../doc/README/README.changes
-	$(RM) newstuff.hhh
-	./quotize newstuff < ../doc/README/README.changes > newstuff.hhh
 
 license.h:quotize
 	./quotize license < ../doc/README/README.copyright > license.h
@@ -601,30 +609,12 @@ waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)
 
+
+### how to compile a C file
+
 .c.o:
 	$(RM) $@
 	$(CC) -c $*.c $(IFLAGS)
-
-dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
-      dafni_slice_complex.o  dafni_pcor_float.o  LiteClue.o    \
-      afni.c afni_func.c afni_widg.c afni_warp.c afni_fimmer.c \
-      pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_setup.c  \
-      afni_pcor.c afni_pcor_update.c afni_plugin.c afni_receive.c \
-      parser.c parser_int.c afni_plugout.c afni_plugout.c
-	$(CCD) -o dafni $(IFLAGS) \
-                afni.c afni_func.c afni_widg.c afni_warp.c afni_graph.c \
-                dafni_slice_short.o dafni_slice_float.o  LiteClue.o \
-                dafni_slice_byte.o  dafni_slice_complex.o afni_fimmer.c \
-                dafni_pcor_float.o parser.c parser_int.c \
-                pbar.c display.c imseq.c bbox.c xim.c xutil.c afni_pcor.c \
-                afni_plugin.c afni_plugout.c afni_setup.c afni_receive.c \
-                $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
-
-dto3d:to3d.c display.c imseq.c bbox.c xim.c xutil.c
-	$(CCD) -o dto3d $(IFLAGS) \
-               to3d.c display.c imseq.c bbox.c xim.c xutil.c \
-               $(LFLAGS) $(LLIBS)
-	$(RM) to3d.o display.o imseq.o bbox.o xim.o xutil.o
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -670,51 +660,11 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 	$(CC) -c -DDTYPE=short afni_pcor_update.c $(IFLAGS)
 	$(MV) afni_pcor_update.o afni_pcor_short.o
 
-# Debugging versions of the above
-
-dafni_slice_short.o:3ddata.h afni_slice.c afni_warp.h
-	$(RM) $@
-	$(CCD) -c -DDTYPE=short afni_slice.c $(IFLAGS)
-	$(MV) afni_slice.o dafni_slice_short.o
-
-dafni_slice_float.o:3ddata.h afni_slice.c afni_warp.h
-	$(RM) $@
-	$(CCD) -c -DDTYPE=float afni_slice.c $(IFLAGS)
-	$(MV) afni_slice.o dafni_slice_float.o
-
-dafni_slice_byte.o:3ddata.h afni_slice.c afni_warp.h
-	$(RM) $@
-	$(CCD) -c -DDTYPE=byte afni_slice.c $(IFLAGS)
-	$(MV) afni_slice.o dafni_slice_byte.o
-
-dafni_slice_int.o:3ddata.h afni_slice.c afni_warp.h
-	$(RM) $@
-	$(CCD) -c -DDTYPE=int afni_slice.c $(IFLAGS)
-	$(MV) afni_slice.o dafni_slice_int.o
-
-dafni_slice_complex.o:3ddata.h afni_slice.c afni_warp.h
-	$(RM) $@
-	$(CCD) -c -DDTYPE=complex afni_slice.c $(IFLAGS)
-	$(MV) afni_slice.o dafni_slice_complex.o
-
-dafni_pcor_byte.o:afni_pcor.h afni_pcor_update.c
-	$(RM) $@
-	$(CCD) -c -DDTYPE=byte afni_pcor_update.c $(IFLAGS)
-	$(MV) afni_pcor_update.o dafni_pcor_byte.o
-
-dafni_pcor_float.o:afni_pcor.h afni_pcor_update.c
-	$(RM) $@
-	$(CCD) -c -DDTYPE=float afni_pcor_update.c $(IFLAGS)
-	$(MV) afni_pcor_update.o dafni_pcor_float.o
-
-dafni_pcor_short.o:afni_pcor.h afni_pcor_update.c
-	$(RM) $@
-	$(CCD) -c -DDTYPE=short afni_pcor_update.c $(IFLAGS)
-	$(MV) afni_pcor_update.o dafni_pcor_short.o
-
 ### End of reslicing routines
 
 SHOWOFF = NO
+
+### The star of the show
 
 afni.o:afni.c
 	$(RM) $@
@@ -724,11 +674,14 @@ afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
 
+### If you have Purify
+
 # pafni:$(AFOBJS) libcoxplot.a
 # 	$(RM) $@
 # 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
-# This program is only used with XFree86 4.0 and above
+### This program is only used with XFree86 4.0 and above
+
 xiner:xiner.o
 	$(RM) $@
 	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS)
@@ -821,7 +774,7 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o iochan_relay iochan_relay.o $(LFLAGS) $(LLIBS)
 
-# These programs are from Tom Ross
+### These programs are from Tom Ross
 
 3dFourier:3dFourier.o
 	$(RM) $@
@@ -835,7 +788,7 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o 3dROIstats 3dROIstats.o $(LFLAGS) $(LLIBS)
 
-# Sort of clean
+### Sort of clean
 
 clean:
 	$(RM) *.o
@@ -851,8 +804,7 @@ backup:
 	chmod -R u+w /net/afni/home2/AFNI/BACKUP/
 	cp -pr * /net/afni/home2/AFNI/BACKUP
 
-backtape:
-	$(TAR) cvf $(TAPE) ../AFNI98/
+### Make the source distribution
 
 afni_src.tgz:
 	$(MKDIR) afni_src
@@ -863,12 +815,16 @@ afni_src.tgz:
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
+### Make the documentation distribution: only for use by RWCox
+
 afni_doc.tgz:
 	$(RM) $@
 	$(MKDIR) ./afni_doc
 	$(CP) $(DOCS) ./afni_doc
 	$(TAR) cf - ./afni_doc | $(GZIP) -9v > afni_doc.tgz
 	$(RM) -r ./afni_doc
+
+### Put things in their places
 
 install: $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
@@ -880,6 +836,7 @@ install_noplug: $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
+
 ###################################################################
 # some dependencies (not complete)
 
@@ -1170,6 +1127,7 @@ f2c.tgz:
 	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
 
 #######
+# plotting library
 
 libcoxplot.a:coxplot.h
 	( cd coxplot ; \
@@ -1184,6 +1142,7 @@ coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
 
 #######
+# surface library (not currently used)
 
 libsipp.a:
 	( cd sipp ; \
@@ -1198,6 +1157,7 @@ sipp.tgz:
 	$(TAR) cf - ./sipp | $(GZIP) -9v > sipp.tgz
 
 #######
+# rendering library
 
 libvolpack.a:
 	( cd volpack ; \
@@ -1212,6 +1172,7 @@ volpack.tgz:
 	$(TAR) cf - ./volpack | $(GZIP) -9v > volpack.tgz
 
 #######
+# for Larry Frank
 
 qhull:
 	( cd qhulldir ; \
@@ -1219,6 +1180,7 @@ qhull:
 	  $(MV) qhull .. ; )
 
 #######
+# Eispack and CDF library files - make them and move them up here
 
 eis_bakvec.o:
 	( cd eispack/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
@@ -1227,6 +1189,7 @@ cdf_00.o:
 	( cd cdflib/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 #######
+# netcdf library files - make them and move them up here
 
 netcdf_attr.o:
 	( cd netcdf-3.5.0/src ;                           \
@@ -1251,7 +1214,7 @@ netcdf_attr.o:
           make clean ; )
 
 #######
-# 27 Jul 2001
+# 27 Jul 2001 - for fun
 
 gifsicle:
 	( cd gifsicledir ; \
@@ -1259,7 +1222,7 @@ gifsicle:
 	  $(MV) gifsicle .. ; )
 
 #######
-# 02 Aug 2001
+# 02 Aug 2001 - for fun
 
 mpeg_encode:
 	( cd mpeg_encodedir ; \
@@ -1267,6 +1230,7 @@ mpeg_encode:
 	  $(MV) mpeg_encode .. ; )
 
 #######
+# FFTW - not used
 
 libfftw.a:
 	( cd fftw ; \
@@ -1281,6 +1245,7 @@ fftw_setup:fftw_setup.o
 	$(CC) -o fftw_setup fftw_setup.o $(LFLAGS) -lfftw $(LLIBS)
 
 #######
+# CLAMS - not used
 
 libclam.a:
 	( cd clamdir ; \
@@ -1304,8 +1269,12 @@ clamdir.tgz:
 parser.c:
 	$(F2C) parser.f
 
+## expression parsing and evaluation functions
+
 parser.o:parser.c f2c.h libf2c.a
 	$(CCFAST) -c parser.c $(IFLAGS)
+
+## programs that user parser.c functions
 
 ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@
@@ -1331,7 +1300,7 @@ imcalc:imcalc.o parser.o parser_int.o
 	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 ###########################################################################
-# Miscellaneous programs
+# Miscellaneous programs, mostly for testing purposes
 
 fftest:fftest.o
 	$(CC) -o fftest fftest.o $(LFLAGS) $(LLIBS)
@@ -1351,8 +1320,12 @@ fftest_dj:fftest_dj.o csfft_dj.o fft_dj.o
 fftprint:fftprint.o
 	$(CC) -o fftprint fftprint.o $(LFLAGS) $(LLIBS)
 
+## get a Web page using the command line
+
 myget:myget.o
 	$(CC) -o myget myget.o $(LFLAGS) $(LLIBS)
+
+## zero out before removing
 
 rmz:rmz.o
 	$(CC) -o rmz rmz.o $(LFLAGS) $(LLIBS)
@@ -1362,6 +1335,8 @@ uncomment:uncomment.o
 
 ibinom:ibinom.o
 	$(CC) -o ibinom ibinom.o $(LFLAGS) $(LLIBS)
+
+## GIF animation
 
 whirlgif:whirlgif.h whirlgif.c
 	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
