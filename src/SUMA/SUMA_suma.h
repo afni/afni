@@ -32,9 +32,12 @@
 #ifdef SOLARIS
 	#include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
 #else
-	#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+   #ifdef SUMA_MOTIF_GLXAREA
+      #include <GL/GLwMDrawA.h> 
+   #else
+	   #include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+   #endif
 #endif
-
 
 #include "mrilib.h"
 #include "niml.h"

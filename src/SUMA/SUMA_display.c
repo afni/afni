@@ -1064,7 +1064,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          XmToggleButtonSetState (SUMAg_SVv[ic].X->HelpMenu[SW_HelpIONotify], 
             SUMAg_CF->InOut_Notify, NOPE);
          
-
+ 
          
       #ifdef SUMA_MOTIF_GLXAREA
         /* Step 4. */
@@ -1080,7 +1080,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
         XtManageChild(SUMAg_SVv[ic].X->FRAME);
 
         /* Step 5. */
-        SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(csv);
+        SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
 
         /* Step 6. */
          /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
@@ -1106,7 +1106,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       
       #endif
 
-         
+          
       /* Step 7. */
       XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNginitCallback, SUMA_graphicsInit, NULL);
       XtAddCallback(SUMAg_SVv[ic].X->GLXAREA, GLwNexposeCallback, SUMA_expose, NULL);
