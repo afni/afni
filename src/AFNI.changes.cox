@@ -3881,3 +3881,9 @@
      string is only 1 character long or the 2nd character is a '.'.
  * Modified afni_func.c and bbox.c to deal with potential strlist[] overflow
      problems.
+
+07 Aug 2002
+ * Fixed cl1.c and incorporated into libmri.a.
+ * Added plugin plug_L1fit.c to provide a L1 analog to plug_lsqfit.c.
+ * Modified 3dToutcount.c to use cl1_solve to remove trends before
+     outlier-ing.
