@@ -15,11 +15,131 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+#define SUMA_SIGN(a) ( ((a) < 0) ? -1 : 1 )
+
 #define SUMA_MIN_PAIR(a,b)   ( ((a) <= (b)) ? a : b )
 
 #define SUMA_MAX_PAIR(a,b)   ( ((a) <= (b)) ? b : a )
 
+#define SUMA_ABS(a) ( ((a) < 0 ) ? -(a) : a )
 
+#define SUMA_ROUND(a) ( ( ((a) - (int)(a)) < 0.5 ) ? (int)(a) : ((int)(a)+1) )
+
+#define SUMA_3D_2_1D_index(i, j, k, ni, nij) ( (int)(i) + (int)(j) * (ni) + (int)(k) * (nij) )
+
+#define SUMA_1D_2_3D_index(ijk, i, j, k, ni, nij){  \
+   k = ((ijk) / (nij)); \
+   j = ((ijk) % (nij));   \
+   i = ((j) % (ni));  \
+   j = ((j) / (ni)); \
+}
+
+/*!
+   \brief Returns the two points that are at a distance d from P1 along the direction of U  
+   SUMA_POINT_AT_DISTANCE(U, P1, d, P2)
+   Input paramters : 
+   \param U (float *) 3x1 vector specifying directions  along x, y, z axis
+                      U does not have to be normalized       
+   \param P1 (float *) 3x1 vector containing the XYZ of P1
+   \param d (float) distance from P1
+   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1 
+            along U (first row) and -U (second row). 
+            I recommend you initialize P2 to all zeros. 
+            
+   \sa SUMA_POINT_AT_DISTANCE_NORM
+   
+   {
+      float P1[3] = { 54.255009, 85.570129, -4.534704 };
+      float Un[3] = { -0.525731, -0.850651, 0.000000 };
+      float U[3] =   { -2.6287  , -4.2533 ,        0 }; 
+      float d = 25, P2[2][3];
+      
+      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2); 
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      SUMA_POINT_AT_DISTANCE_NORM(Un, P1, d,  P2);  use this macro if you have a normalized direction vector ...
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+   }
+   
+*/
+#define SUMA_POINT_AT_DISTANCE(U, P1, d, P2){   \
+   float m_n, m_Un[3];  \
+   SUMA_NORM_VEC(U, 3, m_n); \
+   if (m_n) {  \
+      if (m_n != 1) { \
+         m_Un[0] = (U[0]) / (m_n); m_Un[1] = (U[1]) / (m_n); m_Un[2] = (U[2]) / (m_n); \
+         SUMA_POINT_AT_DISTANCE_NORM(m_Un, P1, d, P2);   \
+      } else { SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2); } \
+   }  \
+}
+/*!
+   \brief Returns the two points that are at a distance d from P1 along the direction of U  
+   SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2)
+   Input paramters : 
+   \param U (float *) 3x1 vector specifying directions  along x, y, z axis
+                      U MUST BE A UNIT VECTOR       
+   \param P1 (float *) 3x1 vector containing the XYZ of P1
+   \param d (float) distance from P1
+   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1 
+            along U (first row) and -U (second row). 
+            I recommend you initialize P2 to all zeros. 
+            
+   \sa SUMA_POINT_AT_DISTANCE
+
+   {
+      float P1[3] = { 54.255009, 85.570129, -4.534704 };
+      float Un[3] = { -0.525731, -0.850651, 0.000000 };
+      float U[3] =   { -2.6287  , -4.2533 ,        0 }; 
+      float d = 25, P2[2][3];
+      
+      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2); 
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+      SUMA_POINT_AT_DISTANCE_NORM(Un, P1, d,  P2);  use this macro if you have a normalized direction vector ...
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
+   }
+   
+*/
+#define SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2){ \
+   P2[0][0] = (d) * U[0]; P2[1][0] = -(d) * U[0]; P2[0][0] += P1[0]; P2[1][0] += P1[0]; \
+   P2[0][1] = (d) * U[1]; P2[1][1] = -(d) * U[1]; P2[0][1] += P1[1]; P2[1][1] += P1[1]; \
+   P2[0][2] = (d) * U[2]; P2[1][2] = -(d) * U[2]; P2[0][2] += P1[2]; P2[1][2] += P1[2]; \
+}
+
+/*!
+   \brief SUMA_FROM_BARYCENTRIC(u, v, p1, p2, p3, p)
+   change from barycentric coordinates.
+*/
+#define SUMA_FROM_BARYCENTRIC(u, v, p1, p2, p3, p){   \
+   (p)[0] = (p1)[0] + u * ((p2)[0] - (p1)[0] ) + v * ((p3)[0] - (p1)[0]);  \
+   (p)[1] = (p1)[1] + u * ((p2)[1] - (p1)[1] ) + v * ((p3)[1] - (p1)[1]);  \
+   (p)[2] = (p1)[2] + u * ((p2)[2] - (p1)[2] ) + v * ((p3)[2] - (p1)[2]);  \
+}
+
+/*!
+   \brief calculate spherical coordinates from cartesian. 
+   Assuming coords are centered on 0 0 0.
+   c XYZ coordinates in cartesian
+   s rtp Rho, theta (azimuth), phi (elevation) in spherical
+   \sa SUMA_Cart2Sph
+   \sa SUMA_SPH_2_CART
+*/
+#define SUMA_CART_2_SPH(c,s){\
+   SUMA_NORM_VEC(c, 3, s[0]); \
+   s[1] = atan2(c[1], c[0]); /* theta (azimuth) */ \
+   s[2] = atan2(c[2],sqrt(c[0]*c[0]+c[1]*c[1])); /* phi (elevation)*/  \
+}
+
+/*!
+   \brief calculate cartesian coordinates from spherical. 
+   Assuming coords are centered on 0 0 0.
+   s rtp Rho, theta (azimuth), phi (elevation) in spherical
+   c XYZ coordinates in cartesian
+   \sa SUMA_CART_2_SPH
+*/
+#define SUMA_SPH_2_CART(s,c){\
+   c[0] = s[0] * cos(s[2]) * cos(s[1]) ;  \
+   c[1] = s[0] * cos(s[2]) * sin(s[1]) ;  \
+   c[2] = s[0] * sin(s[2]);   \
+}
 /* largest absolute value */
 #define SUMA_LARG_ABS(a, b) ( ( fabs((double)(a)) > fabs((double)(b)) ) ? fabs((double)(a)) : fabs((double)(b)) )
  
@@ -54,6 +174,28 @@
    {  \
       if (v < min) v = min; \
    }
+
+/*! determines the distance and side of the plane that a point is located
+see also SUMA_Surf_Plane_Intersect
+if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Dist < 0 point is below plane
+*/
+#define SUMA_DIST_FROM_PLANE(P1, P2, P3, P, Dist){  \
+   static float m_Eq[4];   \
+   SUMA_Plane_Equation ( P1, P2, P3, m_Eq); \
+   Dist = m_Eq[0] * P[0] + m_Eq[1] * P[1] + m_Eq[2] * P[2] + m_Eq[3] ;   \
+}
+
+/*!
+   determines the bounding box for a triangle 
+*/
+#define SUMA_TRIANGLE_BOUNDING_BOX(n1, n2, n3, min_v, max_v){  \
+   min_v[0] = SUMA_MIN_PAIR( (n1)[0], (n2)[0]); min_v[0] = SUMA_MIN_PAIR( (n3)[0], min_v[0]);   \
+   min_v[1] = SUMA_MIN_PAIR( (n1)[1], (n2)[1]); min_v[1] = SUMA_MIN_PAIR( (n3)[1], min_v[1]);   \
+   min_v[2] = SUMA_MIN_PAIR( (n1)[2], (n2)[2]); min_v[2] = SUMA_MIN_PAIR( (n3)[2], min_v[2]);   \
+   max_v[0] = SUMA_MAX_PAIR( (n1)[0], (n2)[0]); max_v[0] = SUMA_MAX_PAIR( (n3)[0], max_v[0]);   \
+   max_v[1] = SUMA_MAX_PAIR( (n1)[1], (n2)[1]); max_v[1] = SUMA_MAX_PAIR( (n3)[1], max_v[1]);   \
+   max_v[2] = SUMA_MAX_PAIR( (n1)[2], (n2)[2]); max_v[2] = SUMA_MAX_PAIR( (n3)[2], max_v[2]);   \
+}   
    
 #define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
    {  \
@@ -106,6 +248,11 @@
    SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */\
    SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList;  \
 }
+
+/*!
+   Pause prompt, stdin
+*/
+#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
 
 /*!
    A macro to recalculate a surface's center and its bounding box 

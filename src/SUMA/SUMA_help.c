@@ -489,7 +489,12 @@ char * SUMA_sources_Info(void)
    "   * This program is -not- in the public domain.\n"
    "\n"
    "* 'http://astronomy.swin.edu.au/~pbourke': Paul Bourke's personal pages\n"
-   "                                           on geometry and rendering .\n" 
+   "                                           on geometry and rendering .\n"
+   "   Copyright notice on webpage: Copyright Paul Bourke or a third party \n"
+   "   contributer where indicated. You may view this site and its contents \n"
+   "   using your web browser. You may print or save an electronic copy of \n"
+   "   parts of this web site for your own personal use. \n"
+   "   Permission must be sought for any other use. \n"
    "\n" ); 
 
    SUMA_SS2S(SS,s);
@@ -559,7 +564,7 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend (SS, 
-      "\nKeyboard Controls\n");
+      "\nKeyboard Controls (substitute Alt with Apple key on MACs)\n");
    SS = SUMA_StringAppend (SS, 
       "     a: attenuation by background, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 

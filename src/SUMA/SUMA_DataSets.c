@@ -1388,7 +1388,7 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow)
    
    if (mxshow > N_dt) mxshow = N_dt;
    
-   if (mxshow <= 0) SUMA_RETURN(s);
+   if (mxshow < 0) SUMA_RETURN(s);
    
    firsthalf = mxshow / 2;
    secondhalf = mxshow - firsthalf;
@@ -1397,44 +1397,48 @@ char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow)
    
    if (LocalHead) fprintf(SUMA_STDERR,"%s: tp=%d, SUMA_double=%d, SUMA_float=%d, SUMA_int=%d, SUMA_byte=%d, SUMA_short=%d\n", 
                            FuncName, tp, SUMA_double, SUMA_float, SUMA_int, SUMA_byte, SUMA_short);
-   switch (tp) {
-      case SUMA_double:
-         dtd = (double*)dt;
-         for (i=0; i <= firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtd[i]);
-         if (firsthalf+1 < mxshow-secondhalf) SS = SUMA_StringAppend_va(SS, "..., ");
-         for (i=mxshow-secondhalf; i<mxshow-1; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtd[i]);
-         SS = SUMA_StringAppend_va(SS, "%f", dtd[i]);
-         break;
-      case SUMA_float:
-         dtf = (float*)dt;
-         for (i=0; i <= firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]);
-         if (firsthalf+1 < mxshow-secondhalf) SS = SUMA_StringAppend_va(SS, "..., ");
-         for (i=mxshow-secondhalf; i<mxshow-1; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]);
-         SS = SUMA_StringAppend_va(SS, "%f", dtf[i]);
-         break;
-      case SUMA_int:
-         dti = (int*)dt;
-         for (i=0; i <= firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]);
-         if (firsthalf+1 < mxshow-secondhalf) SS = SUMA_StringAppend_va(SS, "..., ");
-         for (i=mxshow-secondhalf; i<mxshow-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]);
-         SS = SUMA_StringAppend_va(SS, "%d", dti[i]);
-         break;
-      case SUMA_byte:
-         dtb = (byte*)dt;
-         for (i=0; i <= firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]);
-         if (firsthalf+1 < mxshow-secondhalf) SS = SUMA_StringAppend_va(SS, "..., ");
-         for (i=mxshow-secondhalf; i<mxshow-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]);
-         SS = SUMA_StringAppend_va(SS, "%d", dtb[i]);
-         break;
-      case SUMA_string:
-         dts = (char **)dt;
-         for (i=0; i <= firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]);
-         if (firsthalf+1 < mxshow-secondhalf) SS = SUMA_StringAppend_va(SS, "..., ");
-         for (i=mxshow-secondhalf; i<mxshow-1; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]);
-         SS = SUMA_StringAppend_va(SS, "%s", dts[i]);
-         break;
-      default:
-         SS = SUMA_StringAppend_va(SS, "Type not supported.");
+   if (mxshow) {
+      switch (tp) {
+         case SUMA_double:
+            dtd = (double*)dt;
+            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtd[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtd[i]); }
+            SS = SUMA_StringAppend_va(SS, "%f", dtd[N_dt-1]);
+            break;
+         case SUMA_float:
+            dtf = (float*)dt;
+            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%f, ", dtf[i]); }
+            SS = SUMA_StringAppend_va(SS, "%f", dtf[N_dt-1]);
+            break;
+         case SUMA_int:
+            dti = (int*)dt;
+            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dti[i]); }
+            SS = SUMA_StringAppend_va(SS, "%d", dti[N_dt-1]);
+            break;
+         case SUMA_byte:
+            dtb = (byte*)dt;
+            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", dtb[i]); }
+            SS = SUMA_StringAppend_va(SS, "%d", dtb[N_dt-1]);
+            break;
+         case SUMA_string:
+            dts = (char **)dt;
+            for (i=0; i < firsthalf; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) SS = SUMA_StringAppend_va(SS, "%s, ", dts[i]); }
+            SS = SUMA_StringAppend_va(SS, "%s", dts[N_dt-1]);
+            break;
+         default:
+            SS = SUMA_StringAppend_va(SS, "Type not supported.");
+      }
+   } else {
+      SS = SUMA_StringAppend_va(SS, "Empty vector.");
    }  
 
    SUMA_SS2S(SS,s);
@@ -4440,11 +4444,11 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
    if( fff ) _exit(1) ; else fff = 1 ;
    switch(sig){
       default:      sname = "unknown" ; break ;
-      case SIGINT:  sname = "SIGINT"  ; break ;
-      case SIGPIPE: sname = "SIGPIPE" ; break ;
-      case SIGSEGV: sname = "SIGSEGV" ; break ;
-      case SIGBUS:  sname = "SIGBUS"  ; break ;
-      case SIGTERM: sname = "SIGTERM" ; break ;
+      case SIGINT:  sname = "SIGINT(ctrl+c)"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE(broken pipe)" ; break ;
+      case SIGSEGV: sname = "SIGSEGV(access outside limits)" ; break ;
+      case SIGBUS:  sname = "SIGBUS(access violation)"  ; break ;
+      case SIGTERM: sname = "SIGTERM(termination requested)" ; break ;
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;

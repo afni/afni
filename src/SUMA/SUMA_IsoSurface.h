@@ -25,6 +25,7 @@ typedef struct {
    char *in_name;
    char *surftype;
    char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
+   char *out_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
    int MaskMode;
    char *cmask;
    THD_3dim_dataset *in_vol;
@@ -58,6 +59,29 @@ typedef struct {
    float r;
    float cog[3];
    float d1;
+   float su1;
+   float UseNew;
+   float d4;
+   float *ztv;
+   int Kill98;
+   int NoEyes;
+   int NNsmooth;
+   int smootheach;
+   float avoid_vent;
+   int smooth_end;
+   int *k98mask;
+   int k98maskcnt;
+   float travstp;
+   float *Stop;
+   int MaxIntIter;
+   int UseExpansion;
+   float PercInt;
+   int UseSkull;
+   float bot_lztclip;
+   float var_lzt;
+   int send_hull;
+   int DemoPause;
+   FILE *dbg_eyenodes;
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);

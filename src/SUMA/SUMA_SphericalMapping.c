@@ -853,15 +853,14 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    
    /* project to sphere ? */
    if (ToSphere) {
-      float dv, uv[3], **U=NULL, *p1;
+      float dv, uv[3], U[2][3], *p1;
       for (i=0; i<SO->N_Node; ++i) {
          i3 = 3*i;
          p1 = &(SO->NodeList[i3]);
          /* SUMA_UNIT_VEC(ctr, p1, uv, dv); */
          uv[0] = p1[0] - ctr[0]; uv[1] = p1[1] - ctr[1]; uv[2] = p1[2] - ctr[2];
-         U = SUMA_Point_At_Distance(uv, ctr, r);
+         SUMA_POINT_AT_DISTANCE(uv, ctr, r, U);
          SO->NodeList[i3  ] = U[0][0]; SO->NodeList[i3+1] = U[0][1]; SO->NodeList[i3+2] = U[0][2]; 
-         SUMA_free2D((char **)U, 2); U = NULL;
       }
    }
    
@@ -880,6 +879,8 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
       fprintf(SUMA_STDERR, "Error %s: Failed in creating neighb list.\n", FuncName);
    } else {
    }
+   
+   
    SUMA_RETURN (SO);
 }
 
@@ -2230,6 +2231,8 @@ void SUMA_CreateIcosahedron_usage ()
             "   -ctr ctr: coordinates of center of icosahedron. \n"
             "       (optional, default 0,0,0)\n"
             "\n"
+            "   -tosphere: project nodes to sphere.\n"
+            "\n"
             "   -prefix fout: prefix for output files. \n"
             "       (optional, default CreateIco)\n"
             "\n"
@@ -2253,7 +2256,7 @@ int main (int argc, char *argv[])
    float r, ctr[3], a, b, lgth, A = 0.0, V = 0.0;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean brk;
-   int NumOnly;
+   int NumOnly, ToSphere;
    SUMA_Boolean LocalHead = NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
@@ -2278,6 +2281,7 @@ int main (int argc, char *argv[])
    sprintf (fout, "%s", "CreateIco");
    sprintf (bin, "%s", "y");
    NumOnly = 0;
+   ToSphere = 0;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command line options */
@@ -2296,6 +2300,13 @@ int main (int argc, char *argv[])
             r = atof(argv[kar]);
             brk = YUP;
          }      
+      
+      if (!brk && (strcmp(argv[kar], "-tosphere") == 0 ))
+         {
+            ToSphere = 1;
+            brk = YUP;
+         } 
+             
       if (!brk && (strcmp(argv[kar], "-rd") == 0 ))
          {
             kar ++;
@@ -2401,7 +2412,7 @@ int main (int argc, char *argv[])
 
 
    /**create icosahedron*/
-   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
+   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, ToSphere);
    if (!SO) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateIcosahedron.\n", FuncName);
       exit (1);

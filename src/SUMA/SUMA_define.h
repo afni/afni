@@ -117,7 +117,7 @@
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
-#define SUMA_PI 3.141592653589 
+#define SUMA_PI 3.141592653589793 
 #define SUMA_EPSILON 0.000001
 /*!
    Debugging flags
@@ -126,6 +126,9 @@
                                           You should keep it off unless you suspect a problem in that function. Otherwise
                                          you'll get many reports from the function making it difficult to see other messages. */
 #define SUMA_WORKPROC_IO_NOTIFY 0  /*!< Same as above but for SUMA_workprocess */
+
+typedef enum { SUMA_VOX_NEIGHB_FACE, SUMA_VOX_NEIGHB_EDGE, SUMA_VOX_NEIGHB_CORNER } SUMA_VOX_NEIGHB_TYPES;
+typedef enum { SUMA_DONT_KNOW = 0, SUMA_IN_TRIBOX_OUTSIDE = 1, SUMA_ON_NODE, SUMA_IN_TRIBOX_INSIDE, SUMA_INSIDE_SURFACE } SUMA_SURF_GRID_INTERSECT_OPTIONS;
                                     
 typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
@@ -1525,6 +1528,7 @@ typedef struct {
    int ifacemin; /*!< index of the faceset closest (NOT SIGNED, abs(t)) to the ray's origin */
    int ifacemax; /*!< index of the faceset farthest (NOT SIGNED, abs(t)) from the ray's origin */
    int N_hits; /*!< Number of intersections between ray and surface */
+   int N_poshits; /*!< Number of intersections such that t is positive */
    float P[3]; /*!< XYZ of intersection with ifacemin */
    float d; /*!< Distance from the closest node in ifacemin to P */
    int inodemin; /*!< node index (into NodeList)that is closest to P  */
@@ -2168,5 +2172,21 @@ typedef struct {
    byte check_input_surf;
 } SUMA_GENERIC_ARGV_PARSE;
   
+typedef struct {
+   char *master;
+   char *mask;
+   char *prefix;
+   char *prefix_path;
+   char *orcode;
+   int do_ijk;
+   int dimen_ii;
+   int dimen_jj;
+   int dimen_kk;
+   int datum;
+   float dval;
+   float fval;
+   byte *mmask;
+   int full_list;
+}  SUMA_FORM_AFNI_DSET_STRUCT;
  
 #endif

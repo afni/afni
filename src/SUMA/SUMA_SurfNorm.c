@@ -183,6 +183,8 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
          RetStrct.NodeNormList[id2+2] += RetStrct.FaceNormList[ip+2];
          ++N_Memb[FaceSetList[ip+2]];
    }
+      
+      SUMA_LH("Normalizing");
       /*Now normalize NodeNormList*/
       NotMember = 0;
       for (i=0; i<N_NodeList; ++i)
