@@ -9,7 +9,7 @@
 int main( int argc , char *argv[] )
 {
    nifti_image *nim ;
-   int iarg=1 , outmode , ll , usegzip;
+   int iarg=1 , outmode , ll , usegzip, debug = 0;
    char *tmpstr;
    
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -56,7 +56,8 @@ int main( int argc , char *argv[] )
          if( iarg >= argc ){
             fprintf(stderr,"** ERROR: missing debug level\n"); exit(1);
          }
-         nifti_set_debug_level(atoi(argv[iarg]));
+         debug = atoi(argv[iarg]);
+         nifti_set_debug_level(debug);
       }
       else {
          fprintf(stderr,"** ERROR: invalid option '%s'\n", argv[iarg]);
@@ -98,6 +99,14 @@ int main( int argc , char *argv[] )
      strcat(nim->fname,".gz");
      strcat(nim->iname,".gz");
    }
+   if (debug > 0)
+   {
+      fprintf(stderr,"+d writing nifti output to '%s'", nim->fname);
+      if ( nim->nifti_type == 2 )
+         fprintf(stderr," and '%s'", nim->iname);
+      fputc('\n', stderr);
+   }
+
    nifti_image_write( nim ) ;
    exit(0) ;
 }
