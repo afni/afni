@@ -4761,3 +4761,6 @@
  * Auto-popup and auto-place graymap plot.
  * Change plug_drawdset.c to disable auto-popup of graymap plot when plugin
      is open, and re-enable it when plugin closes.
+
+28 Oct 2003
+ * Changes to thd_automask.c and 3dAutomask.c to implement -eclip option.
