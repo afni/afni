@@ -174,19 +174,19 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
          byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
          for( ii=0 ; ii < nvox ; ii++ ){
            jj = vlist[ii] ;
-           if( ar_thr[ii] < thresh ) vlist[ii] = -1 ;
+           if( ar_thr[jj] < thresh ) vlist[ii] = -1 ;
          }
        }
        break ;
 
        case MRI_float:{
-          float thresh = im3d->vinfo->func_threshold
-                       * im3d->vinfo->func_thresh_top / scale_thr ;
-          float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
-          for( ii=0 ; ii < nvox ; ii++ ){
-            jj = vlist[ii] ;
-            if( ar_thr[jj] > -thresh && ar_thr[jj] < thresh ) vlist[ii] = -1 ;
-          }
+         float thresh = im3d->vinfo->func_threshold
+                      * im3d->vinfo->func_thresh_top / scale_thr ;
+         float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
+         for( ii=0 ; ii < nvox ; ii++ ){
+           jj = vlist[ii] ;
+           if( ar_thr[jj] > -thresh && ar_thr[jj] < thresh ) vlist[ii] = -1 ;
+         }
        }
        break ;
      } /* end of switch on threshold sub-brick type */
@@ -194,13 +194,13 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
      /* count surviving voxels; exit if there aren't any */
 
      for( jj=ii=0 ; ii < nvox ; ii++ )
-        if( vlist[ii] >= 0 ) jj++ ;
+       if( vlist[ii] >= 0 ) jj++ ;
      if( jj == 0 ){ free(vlist) ; RETURN(0) ; }
 
      /* count output nodes inside each surviving voxel */
 
      for( nout=ii=0 ; ii < nvox ; ii++ )
-        if( vlist[ii] >= 0 ) nout += numnod[ii] ;
+       if( vlist[ii] >= 0 ) nout += numnod[ii] ;
 
    } /* end of if on existence of threshold sub-brick */
 

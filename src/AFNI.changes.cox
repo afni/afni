@@ -4698,3 +4698,7 @@
      "Warp Func on Demand", then trouble.  Solutions:
      - make AFNI_VIEW_FUNC_BRICK and AFNI_VIEW_ANAT_BRICK default to YES.
      - make sure if anat_now == fim_now, Func WOD is turned off.
+
+11 Aug 2003
+ * Fixed bug in afni_sumafunc.c, where func threshold image is bytes -- was
+     using index ar_thr[ii] instead of ar_thr[jj] -- not good.
