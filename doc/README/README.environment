@@ -1144,6 +1144,11 @@ displays (e.g., laptops), it is now taller than their screens.  If
 activated, this option will prevent the Disp window from being so tall
 and will attach scrollbars so you can access all of its contents.
 
+Note: If you change this value interactively, via Edit Environment, the
+change will only affect Disp windows opened after you 'Set' the variable.
+That is, already opened Disp windows won't suddenly get scrollbars if
+you change this to YES.
+
 ------------------------------
 Variable: AFNI_GRAPH_TEXTLIMIT (editable)
 ------------------------------
