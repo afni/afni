@@ -1258,25 +1258,45 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
 #ifdef SUMA_ScaleToMap_STAND_ALONE
    void SUMA_ScaleToMap_usage ()
    {
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage: \33[0m ScaleToMap <-v/-iv IntFile>  [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] [-msk_col R G B] [-br BrightFact] [-h/-help]\n");
-      fprintf (SUMA_STDOUT, "\t -v IntFile:  Node value vector in ascii file, one node value per line. \n");
-      fprintf (SUMA_STDOUT, "\t -iv IntFile:  Node index and value matrix in ascii file, node index and one node value per line. \n");
-      fprintf (SUMA_STDOUT, "\t -v and -iv are mutually exclusive.\n");
-      fprintf (SUMA_STDOUT, "\t -cmap MapType: (optional, default RGYBR20) choose one of the standard colormaps available with SUMA.\n");
-      fprintf (SUMA_STDOUT, "\t\t RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BGYR64\n");
-      fprintf (SUMA_STDOUT, "\t -clp/-perc_clp clp0 clp1: (optional, default no clipping) clips values in IntVect.\n");
-      fprintf (SUMA_STDOUT, "\t\t if -clp is used them IntVect is clipped to clp0 if IntVect < clp0 and clp1 if IntVect > clp1\n");
-      fprintf (SUMA_STDOUT, "\t\t if -perc_clp is used them IntVect is clipped to the values corresponding to clp0 and clp1 percentile.\n");
-      fprintf (SUMA_STDOUT, "\t\t Please don't use -clp and -perc_clp simultaneously.\n");
-      fprintf (SUMA_STDOUT, "\t -msk msk0 msk1: (optinal, default is no masking) Values in IntVect (BEFORE clipping is performed) \n");
-      fprintf (SUMA_STDOUT, "\t\t between [msk0 msk1] are masked by the masking color.\n");
-      fprintf (SUMA_STDOUT, "\t -msk_col R G B: (optional, default is 0.3 0.3 0.3) Sets the color of masked voxels.\n");
-      fprintf (SUMA_STDOUT, "\t -br BrightFact: (optional, default is 1) Sets the brightness factor applied to the colors \n");
-      fprintf (SUMA_STDOUT, "\t\t of the colormap and the mask color.\n");
-      fprintf (SUMA_STDOUT, "\t -h or -help: displays this help message.\n");
-      fprintf (SUMA_STDOUT, "\n");
+      fprintf (SUMA_STDOUT,   "\n\33[1mUsage: \33[0m ScaleToMap <-input IntFile icol vcol>  \n"
+                              "\t [-cmap MapType] [-clp/-perc_clp clp0 clp1] [-msk msk0 msk1] \n"
+                              "\t [-msk_col R G B] [-br BrightFact] [-h/-help]\n\n");
+      fprintf (SUMA_STDOUT,   "\t -input IntFile icol vcol: input data.\n"
+                              "\t    Infile: 1D formatted ascii file containing node values\n"
+                              "\t    icol: index of node index column \n"
+                              "\t    (-1 if the node index is implicit)\n"
+                              "\t    vcol: index of node value column.\n"
+                              "\t    Example: -input ValOnly.1D -1 0 \n"
+                              "\t    for a 1D file containing node values\n"
+                              "\t    in the first column and no node indices.\n"
+                              "\t    Example: -input NodeVal.1D 1 3\n"
+                              "\t    for a 1D file containing node indices in\n"
+                              "\t    the SECOND column and node values in the \n"
+                              "\t    FOURTH column (index counting begins at 0)\n");
+      fprintf (SUMA_STDOUT,   "\t -v and -iv options are now obsolete.\n"
+                              "\t    Use -input option instead.\n");
+      fprintf (SUMA_STDOUT,   "\t -cmap MapType: (optional, default RGYBR20) \n"
+                              "\t    choose one of the standard colormaps available with SUMA:\n"
+                              "\t    RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BGYR64, \n"
+                              "\t    ROI64, ROI128\n");
+      fprintf (SUMA_STDOUT,   "\t -clp/-perc_clp clp0 clp1: (optional, default no clipping)\n"
+                              "\t    clips values in IntVect. if -clp is used then values in vcol\n"
+                              "\t    < clp0 are clipped to clp0 and > clp1 are clipped to clp1\n");
+      fprintf (SUMA_STDOUT,   "\t    if -perc_clp is used them vcol is clipped to the values \n"
+                              "\t    corresponding to clp0 and clp1 percentile.\n");
+      fprintf (SUMA_STDOUT,   "\t -msk msk0 msk1: (optinal, default is no masking) \n"
+                              "\t    Values in vcol (BEFORE clipping is performed) \n");
+      fprintf (SUMA_STDOUT,   "\t    between [msk0 msk1] are masked by the masking color.\n");
+      fprintf (SUMA_STDOUT,   "\t -msk_col R G B: (optional, default is 0.3 0.3 0.3) \n"
+                              "\t    Sets the color of masked voxels.\n");
+      fprintf (SUMA_STDOUT,   "\t -br BrightFact: (optional, default is 1) \n"
+                              "\t    Applies a brightness factor to the colors \n"
+                              "\t    of the colormap and the mask color.\n");
+      fprintf (SUMA_STDOUT,   "\t -h or -help: displays this help message.\n");
+      fprintf (SUMA_STDOUT,   "\n");
       /*fprintf (SUMA_STDOUT, "\t To Compile:\n gcc  -DSUMA_ScaleToMap_STAND_ALONE -Wall -Wno-unused-variable -o SUMA_ScaleToMap SUMA_Color.c SUMA_lib.a libmri.a  -I/usr/X11R6/include -I./ -lm\n");*/
-      fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tJuly 31/02\n\n");
+      fprintf (SUMA_STDOUT,   "\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
+                              "\t   July 31/02 Last Modified Jun2 24/03\n\n");
    }
 
 int main (int argc,char *argv[])
@@ -1284,12 +1304,12 @@ int main (int argc,char *argv[])
    char FuncName[]={"SUMA_ScaleToMap-main"}, *IntName = NULL, *Prfx, h[9]; 
    MRI_IMAGE *im = NULL;
    float *far=NULL;
-   int N_V, N_Va, N_Int, kar, k, ii, i;
+   int N_V, N_Int, kar, k, ii, i, icol=-1, vcol=-1;
    int Vminloc, Vmaxloc, *iV = NULL;
    float Vmin, Vmax, brfact;
-   float *V = NULL, *Vsort = NULL,  *Va = NULL;
+   float *V = NULL, *Vsort = NULL;
    float ClipRange[2], MaskColor[3], MaskRange[2];
-   SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt, iVopt;
+   SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt, iVopt, inopt;
    SUMA_Boolean brk;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -1319,6 +1339,7 @@ int main (int argc,char *argv[])
    setMaskCol = NOPE;
    Vopt = NOPE;
    iVopt = NOPE;
+   inopt = NOPE;
    MapType = SUMA_CMAP_RGYBR20;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -1328,10 +1349,25 @@ int main (int argc,char *argv[])
          exit (1);
       }
       
+      if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+         kar ++;
+         if (kar+2 >= argc)  {
+            fprintf (SUMA_STDERR, "need 3 arguments after -input ");
+            exit (1);
+         }
+         IntName = argv[kar]; kar ++;
+         icol = atoi(argv[kar]); kar ++;
+         vcol = atoi(argv[kar]); 
+         inopt = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-v") == 0)) {
+         fprintf (SUMA_STDERR, "\n -v option is now obsolete.\nUse -input option instead.\n");
+         exit (1);
          kar ++;
          if (kar >= argc)  {
-              fprintf (SUMA_STDERR, "need argument after -v ");
+            fprintf (SUMA_STDERR, "need argument after -v ");
             exit (1);
          }
          IntName = argv[kar];
@@ -1340,6 +1376,8 @@ int main (int argc,char *argv[])
       }      
       
       if (!brk && (strcmp(argv[kar], "-iv") == 0)) {
+         fprintf (SUMA_STDERR, "\n -iv option is now obsolete.\nUse -input option instead.\n");
+         exit (1);
          kar ++;
          if (kar >= argc)  {
               fprintf (SUMA_STDERR, "need argument after -iv ");
@@ -1422,6 +1460,8 @@ int main (int argc,char *argv[])
          if (strcmp(argv[kar], "GRAY20") == 0)    MapType = SUMA_CMAP_GRAY20;
          if (strcmp(argv[kar], "BGYR19") == 0)    MapType = SUMA_CMAP_BGYR19;
          if (strcmp(argv[kar], "MATLAB_DEF_BGYR64") == 0)    MapType = SUMA_CMAP_MATLAB_DEF_BGYR64;
+         if (strcmp(argv[kar], "ROI64") == 0)    MapType = SUMA_CMAP_ROI64;
+         if (strcmp(argv[kar], "ROI128") == 0)    MapType = SUMA_CMAP_ROI128;
    
          if (MapType == SUMA_CMAP_UNDEFINED) {
             fprintf (SUMA_STDERR, "Color map type not recognized.\n");
@@ -1451,8 +1491,13 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   if (iVopt && Vopt) {
-      fprintf (SUMA_STDERR,"Error %s: Simultaneous use of -v and -iv. You should be ashamed of yourself.\n", FuncName);
+   if (iVopt || Vopt) {
+      fprintf (SUMA_STDERR,"Error %s: -v and -iv are obsolete.\n Use -input option instead.\n", FuncName);
+      exit(1);
+   }
+   
+   if (!inopt) {
+      fprintf (SUMA_STDERR,"Error %s: -input option must be specified.\n", FuncName);
       exit(1);
    }
    
@@ -1463,8 +1508,23 @@ int main (int argc,char *argv[])
       exit (1);
    }
    
+   if (vcol < 0) {
+      fprintf (SUMA_STDERR,"Error %s: vcol must be > 0\n", FuncName);
+      exit(1);
+   }
+   
    far = MRI_FLOAT_PTR(im);
-   N_Va = im->nx * im->ny ;
+   if (icol < 0 && icol != -1) {
+      fprintf (SUMA_STDERR,"Error %s: icol(%d) can only have -1 for a negative value\n", FuncName, icol);
+      exit(1);
+   }
+   
+   if (icol >= im->ny || vcol >= im->ny) {
+      fprintf (SUMA_STDERR,"Error %s: icol(%d) and vcol(%d) must be < %d\nwhich is the number of columns in %s\n",
+          FuncName, icol, vcol, im->ny, IntName);
+      exit(1);
+   }
+   
    
    if (brfact <=0 || brfact > 1) {
       fprintf (SUMA_STDERR,"Error %s: BrightFact must be > 0 and <= 1.\n", FuncName);
@@ -1475,44 +1535,32 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"Error %s: MaskColor values must be >=0 <=1.\n", FuncName);
       exit(1);
    }
+     
    
-   /* if you decide to have two values per column */
-   if (iVopt && (N_Va % 2)) {
-         fprintf (SUMA_STDERR,"Error %s: Number of values in %s not divisible by 2.\n", FuncName, IntName);
-         exit (1);
-      }
-   
-   /* allocate for Nodes */
-   Va = (float *) SUMA_calloc (N_Va, sizeof(float));
-   if (!Va) {
-      fprintf (SUMA_STDERR,"Error %s: Could not allocate for Va.\n", FuncName);
+   N_V = im->nx;
+   V = (float *) SUMA_calloc (N_V, sizeof(float));
+   iV = (int *) SUMA_calloc (N_V, sizeof(int));
+   if (!V || !iV) {
+      fprintf (SUMA_STDERR,"Error %s: Could not allocate for V or iV.\n", FuncName);
       exit(1);
    }
    
-   
-   for (i=0; i < N_Va; ++i) Va[i] = far[i];
-   mri_free(im); im = NULL;
-   
-   if (Vopt) {
-      V = Va;
-      N_V = N_Va;
+   if (icol < 0) {
+     for (ii=0; ii < N_V; ++ii) {
+         iV[ii] = ii; 
+         V[ii] = far[vcol*N_V+ii]; 
+     } 
    } else {
-      N_V = N_Va/2;
-      V = (float *) SUMA_calloc (N_V, sizeof(float));
-      iV = (int *) SUMA_calloc (N_V, sizeof(int));
-      if (!V || !iV) {
-         fprintf (SUMA_STDERR,"Error %s: Could not allocate for V or iV.\n", FuncName);
-         exit(1);
-      }
-      k = 0;
       for (ii=0; ii < N_V; ++ii) {
-         iV[ii] = (int)Va[k]; ++k;
-         V[ii] = Va[k]; ++k;
+         iV[ii] = (int)far[icol*N_V+ii]; 
+         V[ii] = far[vcol*N_V+ii]; 
       }
    }
    
+   mri_free(im); im = NULL;
+
    /* read values per node */
-   /* SUMA_disp_vect (V, 10); */
+   /* SUMA_disp_vect (V, 3);  */
    
    /* find the min/max of V */
    SUMA_MIN_MAX_VEC(V, N_V, Vmin, Vmax, Vminloc, Vmaxloc)
@@ -1581,21 +1629,14 @@ int main (int argc,char *argv[])
    /* Now write the colored vector back to disk */
    
    for (k=0; k < N_V; ++k) {
-      if (Vopt) {
-         fprintf (SUMA_STDOUT, "%d %f %f %f\n", k, SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
-      } else {
-         fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
-      }
+      fprintf (SUMA_STDOUT, "%d %f %f %f\n", iV[k], SV->cM[k][0], SV->cM[k][1], SV->cM[k][2]);
    }
    
    /* freeing time */
-   if (Va) SUMA_free(Va);
-   if (iVopt){
-      if (V) SUMA_free(V);
-      if (iV) SUMA_free(iV);
-   }
+   if (V) SUMA_free(V);
+   if (iV) SUMA_free(iV);
    if (CM) SUMA_Free_ColorMap (CM);
-    if (OptScl) SUMA_free(OptScl);
+   if (OptScl) SUMA_free(OptScl);
    if (SV) SUMA_Free_ColorScaledVect (SV);
 
    

@@ -28,7 +28,7 @@ endif
 CCOPT = 
 
 SUMALIB = libSUMA.a
-AFNILIB = -lmri -lrickr
+AFNILIB = -lmrix -lcoxplot -lf2c -lmri -lrickr
 MAINCODE = SUMA
 
 ifndef SUMA_INCLUDE_PATH

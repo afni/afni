@@ -1735,7 +1735,7 @@ asnap:asnap.o
 #############
 #SUMA
 
-libSUMA.a: libmri.a libmrix.a libcoxplot.a
+libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
 	make -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
@@ -1751,7 +1751,7 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a
 
 ###
 #link executables but check for libraries first and create them if needed	
-suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a
+suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap MakeColorMap ROI2dataset 3dSurfMaskDump 3dSurf2Vol ConvertSurface packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1765,7 +1765,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 
 ###
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a
+suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1779,7 +1779,7 @@ suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a 
 
 ###
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a
+suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	make -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -1818,7 +1818,7 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a ../	;\
+	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dSurfMaskDump 3dSurf2Vol ScaleToMap ConvertSurface;\
 	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dSurfMaskDump 3dSurf2Vol ScaleToMap ConvertSurface \
 	'INSTALLDIR=$(INSTALLDIR)' \

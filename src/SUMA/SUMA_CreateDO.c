@@ -1230,7 +1230,7 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
       SUMA_RETURN(NULL);
    }
    
-   D_ROI = D_ROI = (SUMA_DRAWN_ROI *)doel->OP;
+   D_ROI = (SUMA_DRAWN_ROI *)doel->OP;
    
    /* What is the name of this ROI's plane ?*/
    if (!D_ROI->ColPlaneName) {
