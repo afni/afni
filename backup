@@ -6,7 +6,7 @@ set doit = 1
 if ( $#argv == 1 ) set doit = 0
 
 @ ttt = 0
-foreach fname ( `find . -print` )
+foreach fname ( `find . -print | grep -v CVS` )
 
    if( -f $fname ) then
       if( -f $BDIR/$fname ) then
