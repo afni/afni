@@ -1028,7 +1028,6 @@ static int check_string( char *targ , int ns , char *ss[] )
 int main( int argc , char * argv[] )
 {
    int ii ;
-   char *eenv ;
 
    /*--- help the pitiful user? ---*/
 
@@ -1098,10 +1097,27 @@ int main( int argc , char * argv[] )
    if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
-   /** set default values of some environment variables **/
+   /** set default values of some environment variables [22 Jun 2004] **/
 
-   eenv = getenv("AFNI_SUMA_LINECOLOR") ;
-   if( eenv == NULL ) putenv("AFNI_SUMA_LINECOLOR=blue3");  /* 23 Jan 2004 */
+   { char **ed , eqn[128];
+     static char *edef[] = { "AFNI_SUMA_LINECOLOR"       , "blue3"  ,
+                             "AFNI_CROSSHAIR_LINES"      , "YES"    ,
+                             "AFNI_ALWAYS_LOCK"          , "YES"    ,
+                             "AFNI_IMAGE_SAVESQUARE"     , "YES"    ,
+#if 0
+                             "AFNI_IMAGE_LABEL_MODE"     , "1"      ,
+                             "AFNI_IMAGE_LABEL_SIZE"     , "2"      ,
+                             "AFNI_IMAGE_LABEL_SETBACK"  , "01"     ,
+                             "AFNI_IMAGE_LABEL_COLOR"    , "yellow" ,
+#endif
+                           NULL } ;
+
+     for( ed=edef ; *ed != NULL && *(ed+1) != NULL ; ed+=2 ){
+       if( getenv(*ed) == NULL ){
+         sprintf(eqn,"%s=%s",*ed,*(ed+1)) ; putenv(eqn) ;
+       }
+     }
+   }
 
    /** Start the debug traceback stuff **/
 
