@@ -4537,3 +4537,6 @@
  * Modified NLfit.c and plug_nlfit.c to have NLfit_error() be able to use longjmp()
      to deal with errors, rather than exit().
  * Modified afni_func.c to rotate color bar in steps of 4 if Shift key is pressed.
+
+04 May 2003
+ * Parallel computation (-jobs option) addtions to 3dDeconvolve.c.
