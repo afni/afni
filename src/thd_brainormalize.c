@@ -961,6 +961,92 @@ static void ijkwarp( float  i, float  j, float  k ,
   *z = ak*k + bk ;
 }
 
+/*! 
+   \brief takes in voxel indices into the Spat Normed volume (RAI) and
+   returns voxel indices and coordinates in the original volume. Used
+   to figure out shift to apply to surface model to align it with original volume.
+   
+   \param ispat (float) 3D i index into spat norm volume
+   \param jspat (float) 3D j index into spat norm volume
+   \param kspat (float) 3D k index into spat norm volume
+   \param iorig (float*) 3D i index into original volume
+   \param jorig (float*) 3D j index into original volume
+   \param korig (float*) 3D k index into original volume
+   \param origset (THD_3dim_dataset *) Le original dataset
+   \param *xrai_orig (float *) X coordinate in original volume (dicomm)
+   \param *yrai_orig (float *) Y coordinate in original volume (dicomm)
+   \param *zrai_orig (float *) Z coordinate in original volume (dicomm)
+   
+   ZSS Sometime in April 05
+*/
+void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
+                           float *iorig, float *jorig, float *korig ,
+                           THD_3dim_dataset *origset,
+                           float *xrai_orig, float *yrai_orig, float *zrai_orig)
+{
+   THD_dataxes * daxes ;
+   THD_fvec3     fv, fvdic ;
+   float irai, jrai, krai;
+   
+   /* find out corresponding indices in original dset */
+   ijkwarp(ispat, jspat, kspat , &irai, &jrai, &krai);
+   
+
+    
+   /* These indices assume an RAI dset orientation */
+      /* Find out what these indices should be in origset's orientation */
+      switch( origset->daxes->xxorient ){
+        case ORI_R2L_TYPE: *iorig =  irai ; break ;
+        case ORI_L2R_TYPE: *iorig =  origset->daxes->nxx - irai ; break ;
+        case ORI_P2A_TYPE: *iorig =  origset->daxes->nxx - jrai  ; break ;
+        case ORI_A2P_TYPE: *iorig =  jrai ; break ;
+        case ORI_I2S_TYPE: *iorig =  krai ; break ;
+        case ORI_S2I_TYPE: *iorig =  origset->daxes->nxx - krai ; break ;
+      }
+      switch( origset->daxes->yyorient ){
+        case ORI_R2L_TYPE: *jorig =  irai ; break ;
+        case ORI_L2R_TYPE: *jorig =  origset->daxes->nyy - irai  ; break ;
+        case ORI_P2A_TYPE: *jorig =  origset->daxes->nyy - jrai ; break ;
+        case ORI_A2P_TYPE: *jorig =  jrai ; break ;
+        case ORI_I2S_TYPE: *jorig =  krai ; break ;
+        case ORI_S2I_TYPE: *jorig =  origset->daxes->nyy - krai ; break ;
+      }
+      switch( origset->daxes->zzorient ){
+        case ORI_R2L_TYPE: *korig =  irai ; break ;
+        case ORI_L2R_TYPE: *korig =  origset->daxes->nzz - irai ; break ;
+        case ORI_P2A_TYPE: *korig =  origset->daxes->nzz - jrai ; break ;
+        case ORI_A2P_TYPE: *korig =  jrai ; break ;
+        case ORI_I2S_TYPE: *korig =  krai ; break ;
+        case ORI_S2I_TYPE: *korig =  origset->daxes->nzz - krai ; break ;
+      }
+      
+            
+      /* change indices into mm coords in orig dset*/
+      daxes = CURRENT_DAXES(origset) ;
+
+      fv.xyz[0] = daxes->xxorg + *iorig * daxes->xxdel ;  /* 3dfind_to_3dmm */
+      fv.xyz[1] = daxes->yyorg + *jorig * daxes->yydel ;
+      fv.xyz[2] = daxes->zzorg + *korig * daxes->zzdel ;
+
+      fvdic = THD_3dmm_to_dicomm(origset,   fv );                /* 3dmm_to_dicomm  */
+      *xrai_orig = fvdic.xyz[0];
+      *yrai_orig = fvdic.xyz[1]; 
+      *zrai_orig = fvdic.xyz[2];
+       
+   /* report for sanity */
+   fprintf(stderr,   "brainnormalize_coord:\n"
+                     " ijk_spat_rai = [%f %f %f]\n"
+                     " ijk_orig_rai = [%f %f %f] (in rai order, not native to iset!)\n"
+                     " ijk_orig     = [%f %f %f] (in native order)\n"
+                     " XYZ_orig     = [%f %f %f]\n"
+                     " Origin spat = [%f %f %f]\n", 
+                     ispat, jspat, kspat,
+                     irai, jrai, krai ,
+                     *iorig, *jorig, *korig ,
+                     *xrai_orig, *yrai_orig, *zrai_orig,
+                     THD_BN_XORG, THD_BN_YORG, THD_BN_ZORG);         
+   return;
+} 
 /*----------------------------------------------------------------------
    (a) shortize input and flip brick so that orientation is RAI
    (b) find clip levels and create a binary mask
@@ -1105,9 +1191,9 @@ ENTRY("mri_brainormalize") ;
      memset( mask+(ktop+1)*nxy , 0 , nxy*(nz-1-ktop)*sizeof(byte) ) ;
    }
 
-   /* find slice index ZHEIGHT mm below that top slice */
+   /* find slice index THD_BN_ZHEIGHT mm below that top slice */
 
-   jj = (int)( ktop-ZHEIGHT/dz ) ;
+   jj = (int)( ktop-THD_BN_ZHEIGHT/dz ) ;
    if( jj >= 0 ){
      if( verb )
        fprintf(stderr,"++mri_brainormalize: bot clip below slice %d\n",jj) ;
@@ -1128,7 +1214,7 @@ ENTRY("mri_brainormalize") ;
    /* compute CM of masked image (indexes, not mm) */
 
    icm = jcm = kcm = sum = 0.0 ;
-#ifndef CMTOP
+#ifndef THD_BN_CMTOP
    kbot = 0 ;
    ktop = nz-1 ;
 #else
@@ -1145,20 +1231,20 @@ ENTRY("mri_brainormalize") ;
    }}}
    if( sum == 0.0 ){ mri_free(sim); RETURN(NULL); }  /* huh? */
 
-   ai = DXYZ/dx ; bi = icm/sum - ai*(XCM-XORG)/DXYZ ;
-   aj = DXYZ/dy ; bj = jcm/sum - aj*(YCM-YORG)/DXYZ ;
-   ak = DXYZ/dz ; bk = kcm/sum - ak*(ZCM-ZORG)/DXYZ ;
+   ai = THD_BN_DXYZ/dx ; bi = icm/sum - ai*(THD_BN_XCM-THD_BN_XORG)/THD_BN_DXYZ ;
+   aj = THD_BN_DXYZ/dy ; bj = jcm/sum - aj*(THD_BN_YCM-THD_BN_YORG)/THD_BN_DXYZ ;
+   ak = THD_BN_DXYZ/dz ; bk = kcm/sum - ak*(THD_BN_ZCM-THD_BN_ZORG)/THD_BN_DXYZ ;
 
-   if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n") ;
+   if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\n", ai, aj, ak, bi, bj, bk) ;
 
    mri_warp3D_method( MRI_CUBIC ) ;
-   tim = mri_warp3D( sim , NX,NY,NZ , ijkwarp ) ;
+   tim = mri_warp3D( sim , THD_BN_NX,THD_BN_NY,THD_BN_NZ , ijkwarp ) ;
    mri_free(sim) ;
 
-   tim->dx = tim->dy = tim->dz = DXYZ ;
-   tim->xo = XORG ;
-   tim->yo = YORG ;
-   tim->zo = ZORG ;
+   tim->dx = tim->dy = tim->dz = THD_BN_DXYZ ;
+   tim->xo = THD_BN_XORG ;
+   tim->yo = THD_BN_YORG ;
+   tim->zo = THD_BN_ZORG ;
 
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
@@ -1179,7 +1265,6 @@ ENTRY("mri_brainormalize") ;
    }
 
    /*-- build another mask now --*/
-
    if( !AFNI_noenv("REMASK") ){
      int sbot,stop , nwid , cbot,ctop , ibot,itop ;
      float dsum , ws , *wt ;
@@ -1196,11 +1281,11 @@ ENTRY("mri_brainormalize") ;
      for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
      for( sbot=1 ; sbot < 32768 && hist[sbot]==0 ; sbot++ ) ; /* nada */
      if( sbot == 32768 ) goto Remask_Done ;
-     for( stop=32768 ; stop > sbot && hist[stop]==0 ; stop-- ) ; /* nada */
+     for( stop=32768-1 ; stop > sbot && hist[stop]==0 ; stop-- ) ; /* nada */
      if( stop == sbot ) goto Remask_Done ;
 
      /* find median */
-
+     
      nmask = 0 ;
      for( ii=sbot ; ii <= stop ; ii++ ) nmask += hist[ii] ;
      nhalf = nmask / 2 ; nmask = 0 ;

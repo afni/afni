@@ -7,10 +7,10 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
                         float *Means, float *undershish, float *overshish, int ShishMax);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs);
-byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp) ;
-short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp);
-short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp) ;
-
+byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) ;
+short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole);
+short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inpnt, int  fillhole) ;
+int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
 
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
@@ -82,6 +82,10 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
 }
 
 
+
+/*!
+   Stop using this monster, use SUMA_Reposition_Touchup
+*/
 #define SUMA_REPOSITION_TOUCHUP(limtouch){  \
       int m_in, m_N_troub = 0, m_cond1=0, m_cond2=0, m_cond3 = 0;   \
       float m_MinMax_over[2], m_MinMax[2], m_MinMax_dist[2], m_MinMax_over_dist[2], m_Means[3], m_tb; \

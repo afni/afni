@@ -56,23 +56,48 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n"
                "  3dSkullStrip  < -input VOL >\n"
                "             [< -o_TYPE PREFIX >] [< -prefix Vol_Prefix >] \n"
-               "             [< -niter N_ITER >]\n"
-               "             [< -ld LD >] [< -shrink_fac SF >]\n"
-               "             [< -touchup >] [< -perc_int PERC_INT >]\n"
-               "             [< -max_inter_iter MII >] [< -use_skull >]\n"
-               "             [< -debug DBG >]\n"  
+               "             [< -spatnorm >] [< -no_spatnorm >] [< -write_spatnorm >]\n"
+               "             [< -niter N_ITER >] [< -ld LD >] \n"
+               "             [< -shrink_fac SF >] [< -var_shrink_fac >] \n"
+               "             [< -no_var_shrink_fac >] [< shrink_fac_bot_lim SFBL >]\n"
+               "             [< -pushout >] [< -no_pushout >] [< -exp_frac FRAC]\n"
+               "             [< -touchup >] [< -no_touchup >]\n"
+               "             [< -fill_hole R >] [< -NN_smooth NN_SM >]\n"
+               "             [< -smooth_final SM >] [< -avoid_vent >] [< -no_avoid_vent >]\n"
+               "             [< -use_skull >] [< -no_use_skull >] \n"
+               "             [< -avoid_eyes >] [< -no_avoid_eyes >] \n"
+               "             [< -perc_int PERC_INT >]\n"
+               "             [< -max_inter_iter MII >] \n"
+               "             [< -debug DBG >] [< -node_dbg NODE_DBG >]\n"
+               "             [< -demo_pause >]\n"  
                "\n"
                "  Mandatory parameters:\n"
                "     -input VOL: Input AFNI (or AFNI readable) volume.\n"
-               "  ****** AT THE MOMENT, VOL is the volume output from 3dSpatNorm.\n"
+               "                 \n"
                "\n"
                "  Optional Parameters:\n"
-               "     -ld LD: Parameter to control the density of the surface.\n"
-               "             Default is 20. See CreateIcosahedron -help\n"
-               "             for details on this option.\n"
+               "     -o_TYPE PREFIX: prefix of output surface.\n"
+               "        where TYPE specifies the format of the surface\n"
+               "        and PREFIX is, well, the prefix.\n"
+               "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
+               "        Default is: -o_ply brainwrap_out\n"
+               "        More on that below.\n"
+               "     -prefix VOL_PREFIX: prefix of output volumes.\n"
+               "        If not specified, the prefix is the same\n"
+               "        as the one used with -o_TYPE.\n"
+               "     -spat_norm: (Default) Perform spatial normalization first.\n"
+               "                 This is a necessary step unless the volume has\n"
+               "                 been 'spatnormed' already.\n"
+               "     -no_spatnorm: Do not perform spatial normalization.\n"
+               "                   Use this option only when the volume \n"
+               "                   has been run through the 'spatnorm' process\n"
+               "     -write_spatnorm: Write the 'spatnormed' volume to disk.\n"
                "     -niter N_ITER: Number of iterations. Default is 250\n"
                "        For denser meshes, you need more iterations\n"
                "        N_ITER of 750 works for LD of 50.\n"
+               "     -ld LD: Parameter to control the density of the surface.\n"
+               "             Default is 20. See CreateIcosahedron -help\n"
+               "             for details on this option.\n"
                "     -shrink_fac SF: Parameter controlling the brain vs non-brain\n"
                "             intensity threshold (tb). Default is 0.6.\n"
                "              tb = (Imax - t2) SF + t2 \n"
@@ -96,10 +121,19 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -pushout: Consider values above each node in addition to values\n"
                "               below the node when deciding on expansion. (Default)\n"
                "     -no_pushout: Do not use -pushout.\n"
-               "     -exp_frac: Speed of expansion (see BET paper). Default is 0.1.\n"
+               "     -exp_frac FRAC: Speed of expansion (see BET paper). Default is 0.1.\n"
                "     -touchup: Perform touchup operations at end to include\n"
                "               areas not covered by surface expansion. (Default)\n"
                "     -no_touchup: Do not use -touchup\n"
+               "     -fill_hole R: Fill small holes that can result from small surface\n"
+               "                   intersections caused by the touchup operation.\n"
+               "                   R is the maximum number of pixels on the side of a hole\n"
+               "                   that can be filled. Big holes are not filled.\n"
+               "                   If you use -touchup, the default R is 5. Otherwise \n"
+               "                   the default is 0.\n"
+               "                   This is a less than elegant solution to the small\n"
+               "                   intersections and I hope to make do without it in \n"
+               "                   the near future. \n"
                "     -NN_smooth NN_SM: Perform Nearest Neighbor coordinate interpolation\n"
                "                       every few iterations. Default is 72\n"
                "     -smooth_final SM: Perform final surface smoothing after all iterations.\n"
@@ -116,6 +150,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                 Turn this option off (-no_use_skull) if you do not\n"
                "                 have skull imaged at the top or the sides of the brain.\n"
                "     -no_use_skull: Do not use -use_skull\n"
+               "     -send_no_skull: Do not send the skull surface to SUMA if you are\n"
+               "                     using  -talk_suma\n" 
                "     -perc_int PERC_INT: Percentage of segments allowed to intersect\n"
                "                         surface. Ideally this should be 0 (Default). \n"
                "                         However, few surfaces might have small stubborn\n"
@@ -130,14 +166,6 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                  interactive demo while 3dSkullStrip is communicating\n"
                "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
                "                  -talk_suma option. \n"
-               "     -o_TYPE PREFIX: prefix of output surface.\n"
-               "        where TYPE specifies the format of the surface\n"
-               "        and PREFIX is, well, the prefix.\n"
-               "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
-               "        Default is: -o_ply brainwrap_out\n"
-               "     -prefix VOL_PREFIX: prefix of output volumes.\n"
-               "        If not specified, the prefix is the same\n"
-               "        as the one used with -o_TYPE.\n"
                "\n"
                "%s"
                "\n"
@@ -149,7 +177,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -node_dbg NODE_DBG: Output lots of parameters for node\n"
                "                         NODE_DBG for each iteration.\n"
                "\n"
-               " Eye Candy Mode:\n"
+               " Eye Candy Mode: *** Only possible when input volume has been 'spatnormed'\n"
+               "                     Make sure you use -no_spatnorm option also.\n"
+               "                     In the future, this restriction will be lifted.\n"
                " You can run BrainWarp and have it send successive iterations\n"
                " to SUMA and AFNI. This is very helpful in following the\n"
                " progression of the algorithm and determining the source\n"
@@ -260,8 +290,9 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
 	Opt->var_lzt = 1.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
                            chunks of CSF just below the brain */
    Opt->DemoPause = 0;
-   Opt->DoSpatNorm = 0;
+   Opt->DoSpatNorm = 1;
    Opt->WriteSpatNorm = 0;
+   Opt->fillhole = -1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -271,7 +302,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
 		}
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-            
+      
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
          Opt->UseExpansion = 1;
          brk = YUP;
@@ -289,6 +320,11 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
       
       if (!brk && (strcmp(argv[kar], "-no_spatnorm") == 0)) {
          Opt->DoSpatNorm = 0;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-write_spatnorm") == 0)) {
+         Opt->WriteSpatNorm = 1;
          brk = YUP;
       }
       
@@ -319,6 +355,20 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
       }
       
       
+      if (!brk && (strcmp(argv[kar], "-fill_hole") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -fill_hole \n");
+				exit (1);
+			}
+         Opt->fillhole = atoi(argv[kar]);
+         if ( (Opt->fillhole < 0 || Opt->fillhole > 50) ) {
+            fprintf (SUMA_STDERR, "parameter after -fill_hole (%d) should be >= 0 and <= 50 \n", Opt->fillhole);
+				exit (1);
+         }
+         brk = YUP;
+      }
+            
       if (!brk && (strcmp(argv[kar], "-perc_int") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -598,6 +648,15 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
 		}
    }
    
+   if (Opt->fillhole < 0) {
+      if (Opt->UseExpansion) {
+         if (Opt->debug) {
+            SUMA_SL_Note("Setting fill_hole to 5");
+         }
+         Opt->fillhole = 5;
+      } else  Opt->fillhole = 0;
+   }
+   
    /* transfer some options to Opt from ps. Clunky because this is retrofitting */
    if (ps->o_N_surfnames) {
       Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);
@@ -610,6 +669,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
       exit(1);
    }
    
+
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("brainwrap_out");
    if (!Opt->out_vol_prefix) {
       if (!Opt->out_prefix) Opt->out_vol_prefix = SUMA_copy_string("brainwrap_out");
@@ -635,7 +695,7 @@ int main (int argc,char *argv[])
 	int i, N_in = 0, i3, kth_buf, hull_ld;
    int ii,jj,kk,ll,ijk , nx,ny,nz , nn, nint = 0 , nseg;
    void *SO_name=NULL, *SO_name_hull=NULL;
-   float vol, *isin_float=NULL, pint, *dsmooth = NULL;
+   float vol, *isin_float=NULL, pint, *dsmooth = NULL, XYZrai_shift[3];
    SUMA_SurfaceObject *SO = NULL, *SOhull=NULL;
    SUMA_ISOSURFACE_OPTIONS *Opt;  
    char  stmp[200], stmphull[200], *hullprefix=NULL, *prefix=NULL, *spatprefix=NULL;
@@ -657,7 +717,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
    
    if (argc < 2) {
       usage_SUMA_BrainWrap(ps);
@@ -720,7 +780,7 @@ int main (int argc,char *argv[])
       mri_brainormalize_verbose( Opt->debug ) ;
       imout = mri_brainormalize( imin , iset->daxes->xxorient,
                                         iset->daxes->yyorient,
-                                        iset->daxes->zzorient ) ;
+                                        iset->daxes->zzorient) ;
       mri_free( imin ) ;
 
       if( imout == NULL ){
@@ -890,7 +950,7 @@ int main (int argc,char *argv[])
          SUMA_SkullMask (SOhull, Opt, ps->cs);
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
-         isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in);
+         isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0);
          isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
          if (!isin_float) {
             SUMA_SL_Crit("Failed to allocate");
@@ -981,7 +1041,8 @@ int main (int argc,char *argv[])
             mval = Opt->t98+10;
          }
          if (Opt->k98maskcnt && Opt->k98mask) { for (ii=0; ii<Opt->k98maskcnt; ++ii) Opt->dvec[Opt->k98mask[ii]] = mval; }
-         SUMA_REPOSITION_TOUCHUP(6);
+         /* SUMA_REPOSITION_TOUCHUP(6);*/
+         SUMA_Reposition_Touchup(SO, Opt, 6, ps->cs);
          #if 0
          /* smooth the surface a bit */
          ps->cs->kth = 1;
@@ -996,7 +1057,9 @@ int main (int argc,char *argv[])
             }
          }
          ps->cs->kth = kth_buf;
-         SUMA_REPOSITION_TOUCHUP(3); 
+         /* SUMA_REPOSITION_TOUCHUP(3);  */
+         SUMA_Reposition_Touchup(SO, Opt, 3, ps->cs);
+
          #endif
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup correction  Done.\n", FuncName);
    }
@@ -1024,11 +1087,44 @@ int main (int argc,char *argv[])
       ps->cs->kth = 1; /*make sure all gets sent at this stage */
       if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
       fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
-      SUMA_REPOSITION_TOUCHUP(2);
+      /* SUMA_REPOSITION_TOUCHUP(2); */
+      SUMA_Reposition_Touchup(SO, Opt, 2, ps->cs);
+
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Final touchup correction  Done.\n", FuncName);
       ps->cs->kth = kth_buf; 
    }
+   
+   /* send the last surface */
+   ps->cs->kth = 1;
+   if (ps->cs->Send) {
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+   }
+   ps->cs->kth = kth_buf; 
+   
+   if (Opt->DoSpatNorm) {
+      float od[3];
+      float ispat, jspat, kspat, iorig, jorig, korig , xrai_orig, yrai_orig, zrai_orig;
+      
+      SUMA_LH("Changing coords of output surface");
+ 
+      /* what does the origin point (THD_BN_XORG THD_BN_YORG THD_BN_ZORG, ijk 0 0 0 )in the spat normed brain correspond to ? */
+      ispat = 0; jspat = 0; kspat = 0;
+      brainnormalize_coord( ispat , jspat, kspat,
+                           &iorig, &jorig, &korig , iset,
+                           &xrai_orig, &yrai_orig, &zrai_orig);
+      od[0] = xrai_orig - THD_BN_XORG; od[1] = yrai_orig - THD_BN_YORG; od[2] = zrai_orig - THD_BN_ZORG;
 
+      /* shift the surface */
+      for (i=0; i<SO->N_Node; ++i) {
+         i3 = 3*i;
+         SO->NodeList[i3 + 0] += od[0];
+         SO->NodeList[i3 + 1] += od[1];
+         SO->NodeList[i3 + 2] += od[2];
+      }
+   }
+   
    /* write the surfaces to disk */
    fprintf (SUMA_STDERR,"%s: Writing surface  ...\n", FuncName);
    if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
@@ -1045,7 +1141,7 @@ int main (int argc,char *argv[])
    
    /* what voxels are inside the surface ? */
    fprintf (SUMA_STDERR,"%s: Locating voxels inside surface  ...\n", FuncName);
-   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in);
+   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole);
    isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
    if (!isin_float) {
       SUMA_SL_Crit("Failed to allocate");

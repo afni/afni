@@ -4,6 +4,39 @@
 extern SUMA_CommonFields *SUMAg_CF; 
 
 /*!
+   \brief Return AFNI's prefix, also checks for its validity
+   \param name (char *) dset name
+   \param view (char[4]) array to return view in it
+   \return prefix (char *) dset prefix, free it with SUMA_free
+*/
+char *SUMA_AfniPrefix(char *name, char *view) 
+{
+   static char FuncName[]={"SUMA_AfniPrefix"};
+   char *tmp1 = NULL, *tmp2 = NULL, *prfx = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!name) SUMA_RETURN(prfx);
+   
+   tmp1 = SUMA_Extension(name, ".HEAD", YUP);
+   tmp2 = SUMA_Extension(tmp1, ".BRIK", YUP); SUMA_free(tmp1); tmp1 = NULL;
+   if (view) {
+      if (SUMA_isExtension(tmp2, "+orig")) sprintf(view, "+orig");
+      else if (SUMA_isExtension(tmp2, "+acpc")) sprintf(view, "+acpc");
+      else if (SUMA_isExtension(tmp2, "+tlrc")) sprintf(view, "+tlrc");
+   }
+   tmp1 = SUMA_Extension(tmp2, "+orig", YUP); SUMA_free(tmp2); tmp2 = NULL;
+   tmp2 = SUMA_Extension(tmp1, "+acpc", YUP); SUMA_free(tmp1); tmp1 = NULL;
+   prfx = SUMA_Extension(tmp2, "+tlrc", YUP); SUMA_free(tmp2); tmp2 = NULL;
+   if( !THD_filename_ok(prfx) ){
+      SUMA_SL_Err("prefix contains forbidden characters!\n") ;
+      SUMA_free(prfx); prfx = NULL;
+      SUMA_RETURN(prfx);
+   }
+   
+   SUMA_RETURN(prfx);
+}
+/*!
    \brief A function to find the skin of a volume
    \param dset (THD_3dim_dataset *) an AFNI volume
    \param dvec (double *) (nx * ny * nz) data vector
@@ -128,12 +161,11 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    SUMA_RETURN (YUP);
 }
 
-SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
+SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
 {
    ATR_float *atr;
-   static char FuncName[]={"SUMA_VolPar_Attr"};
+   static char FuncName[]={"SUMA_VolParFromDset"};
    SUMA_VOLPAR *VP;
-   THD_3dim_dataset *dset;
    int ii;
    MCW_idcode idcode;
    SUMA_Boolean LocalHead = NOPE;
@@ -141,9 +173,8 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
    SUMA_ENTRY;
 
    /* read the header of the parent volume */
-   dset = THD_open_dataset(volparent_name);
    if (dset == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Could not read %s\n", FuncName, volparent_name);
+      fprintf (SUMA_STDERR,"NULL dset\n", FuncName);
       SUMA_RETURN (NULL);
    }
    
@@ -258,6 +289,33 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
       } else {
          fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->VOLREG_CENTER_OLD\n", FuncName);
       }
+   }
+
+   SUMA_RETURN (VP);
+}
+
+SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
+{
+   ATR_float *atr;
+   static char FuncName[]={"SUMA_VolPar_Attr"};
+   SUMA_VOLPAR *VP;
+   THD_3dim_dataset *dset;
+   int ii;
+   MCW_idcode idcode;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+
+   /* read the header of the parent volume */
+   dset = THD_open_dataset(volparent_name);
+   if (dset == NULL) {
+      fprintf (SUMA_STDERR,"Error %s: Could not read %s\n", FuncName, volparent_name);
+      SUMA_RETURN (NULL);
+   }
+   
+   VP = SUMA_VolParFromDset(dset);
+   if (!VP) {
+      SUMA_SL_Err("Failed in SUMA_VolParFromDset");
    }
 
    /* now free the dset pointer */
