@@ -41,7 +41,7 @@ static double pmodel_cdf( double x )
    if( x >=  1.0 ) return 1.0 ;
    q = x*x ;
    val = 0.5 + x*(15.0-10.0*q+3.0*q*q)/16.0 - apar/14.0 ;
-   sss = (15.0/16.0) * (apar*x*q)*(1.0/3.0-0.4*q+q*q/7.0) ;
+   sss = 0.9375 * (apar*x*q)*(1.0/3.0-0.4*q+q*q/7.0) ;
    if( x < 0.0 ) val -= sss ;
    else          val += sss ;
    return val ;
