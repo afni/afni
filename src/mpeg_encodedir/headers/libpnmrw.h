@@ -21,7 +21,7 @@
 */
 /** #include <malloc.h> **/
 #if !defined(sco)  &&  !defined(sgi) && !defined(IRIX)
-extern char* malloc();
+extern void* malloc();
 #endif
 /* End of configurable definitions. */
 
