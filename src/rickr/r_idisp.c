@@ -444,7 +444,7 @@ int r_idisp_thd_dataxes( char * info, THD_dataxes * dp )
 
     r_idisp_mat33f( "   to_dicomm[3][3] : ", dp->to_dicomm.mat );
 
-    printf( "-------------------------------------------\n ");
+    printf( "-------------------------------------------\n");
 
     return 0;
 }
