@@ -3813,3 +3813,5 @@
 24 Jun 2002
  * Modified mri_read_analyze75() in mri_read.c to store funused1 scale
      factor into dv MRI_IMAGE header field, for use in 3dANALYZEtoAFNI.c.
+ * Modified thd_writedset.c to allow re-writing of a VOLUMES dataset
+     .HEAD file.
