@@ -8,12 +8,12 @@
 int main( int argc , char *argv[] )
 {
    NI_stream ns , nsout , nsf=NULL ;
-   int nn , tt , nopt=1 , bmode ;
+   int nn , tt , nopt=1 , bmode , tflag=0 ;
    void *nini ;
    char *ccc ;
 
    if( argc < 2 ){
-      printf("Usage: nimltest [-bB fname] [-w] streamspec\n");exit(0);
+      printf("Usage: nimltest [-bB fname] [-w] [-#] streamspec\n");exit(0);
    }
 
 #if 0
@@ -61,6 +61,10 @@ int main( int argc , char *argv[] )
 
       bmode = (strcmp(argv[1],"-b") == 0) ? NI_BINARY_MODE
                                           : NI_BASE64_MODE ;
+   }
+
+   if( strcmp(argv[nopt],"-#") == 0 ){
+     tflag = NI_HEADERSHARP_FLAG ; nopt++ ;
    }
 
    /* reading! */
@@ -128,7 +132,7 @@ GetElement:
       fprintf(stderr,"NI_stream_open fails for output\n"); exit(1);
    }
 
-   nn = NI_write_element( nsout , nini , NI_TEXT_MODE ) ;
+   nn = NI_write_element( nsout , nini , NI_TEXT_MODE | tflag ) ;
 
    fprintf(stderr,"\n------ NI_write_element = %d ------\n%s\n==========================\n" ,
            nn, NI_stream_getbuf(nsout) ) ;

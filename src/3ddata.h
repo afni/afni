@@ -3274,7 +3274,8 @@ typedef struct FD_brick {
 
 /*! Determine if this FD_brick can be drawn (in an image or graph) */
 
-#define BRICK_DRAWABLE(br) ((br)->n1 > 1 && (br)->n2 > 1)
+#define BRICK_DRAWABLE(br)  ((br)->n1 >  1 && (br)->n2 >  1)
+#define BRICK_GRAPHABLE(br) ((br)->n1 >= 1 && (br)->n2 >= 1)
 
 extern FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * ,
                                              int,int,int ) ;
