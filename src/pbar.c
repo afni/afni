@@ -338,7 +338,20 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
    if( pbar == NULL ) return ;
-   if( pbar->bigmode ){ XBell(dc->display,100); return; } /* 30 Jan 2003 */
+
+   if( pbar->bigmode ){   /* 30 Jan 2003: reverse color spectrum */
+     rgbyte tc ;
+     for( ip=0 ; ip < NPANE_BIG/2 ; ip++ ){
+       tc = pbar->bigcolor[ip] ;
+       pbar->bigcolor[ip] = pbar->bigcolor[NPANE_BIG-1-ip] ;
+       pbar->bigcolor[NPANE_BIG-1-ip] = tc ;
+     }
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+     PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+     if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
+     return ;
+   }
+
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) return ;
 

@@ -1144,7 +1144,7 @@ STATUS("bad function datatypes!!") ;
      goto CLEANUP ;
    }
 
-   /* create output image */
+   /** create output image the old way (indexes into overlay colors) **/
 
    npix  = im_fim->nx * im_fim->ny ;
    im_ov = mri_new( im_fim->nx , im_fim->ny , MRI_short ) ;
@@ -1334,12 +1334,117 @@ CLEANUP:
 
 MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thresh ,
                                   MRI_IMAGE *im_fim ,
-                                  float fimbot, float fimtop ,
-                                  rgbyte *fimcolor                  )
+                                  float fimbot, float fimtop, rgbyte *fimcolor )
 {
-   MRI_IMAGE *im_ov=NULL ;
+   MRI_IMAGE *im_ov ;
+   byte *ovar ;
+   int ii , npix , zbot , jj ;
+   float fac , val ;
 
 ENTRY("AFNI_newfunc_overlay") ;
+
+   if( im_fim == NULL || fimbot >= fimtop || fimcolor == NULL ) RETURN(NULL) ;
+
+   /* create output image */
+
+   im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
+   ovar  = MRI_RGB_PTR(im_ov) ;
+   npix  = im_ov->nvox ;
+   zbot  = (fimbot == 0.0) ;
+   fac   = NPANE_BIG / (fimtop-fimbot) ;
+
+   /* load output image with colors */
+
+   switch( im_fim->kind ){
+
+      default:                             /* should not happen! */
+        mri_free(im_ov) ;
+      RETURN(NULL) ;
+
+      case MRI_short:{
+        short *ar_fim = MRI_SHORT_PTR(im_fim) ;
+
+        for( ii=0 ; ii < npix ; ii++ ){
+          if( ar_fim[ii] == 0 )        continue ;
+          if( zbot && ar_fim[ii] < 0 ) continue ;
+          val = fac*(fimtop-ar_fim[ii]) ;
+          if( val < 0.0 ) val = 0.0;
+          jj = (int)(val+0.49); if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
+          ovar[3*ii  ] = fimcolor[jj].r ;
+          ovar[3*ii+1] = fimcolor[jj].g ;
+          ovar[3*ii+2] = fimcolor[jj].b ;
+        }
+      }
+      break ;
+
+      case MRI_byte:{
+        byte *ar_fim = MRI_BYTE_PTR(im_fim) ;
+
+        for( ii=0 ; ii < npix ; ii++ ){
+          if( ar_fim[ii] == 0 ) continue ;
+          val = fac*(fimtop-ar_fim[ii]) ;
+          if( val < 0.0 ) val = 0.0;
+          jj = (int)(val+0.49); if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
+          ovar[3*ii  ] = fimcolor[jj].r ;
+          ovar[3*ii+1] = fimcolor[jj].g ;
+          ovar[3*ii+2] = fimcolor[jj].b ;
+        }
+      }
+      break ;
+
+      case MRI_float:{
+        float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
+
+        for( ii=0 ; ii < npix ; ii++ ){
+          if( ar_fim[ii] == 0.0 )        continue ;
+          if( zbot && ar_fim[ii] < 0.0 ) continue ;
+          val = fac*(fimtop-ar_fim[ii]) ;
+          if( val < 0.0 ) val = 0.0;
+          jj = (int)(val+0.49); if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
+          ovar[3*ii  ] = fimcolor[jj].r ;
+          ovar[3*ii+1] = fimcolor[jj].g ;
+          ovar[3*ii+2] = fimcolor[jj].b ;
+        }
+      }
+      break ;
+   }
+
+   /** now apply threshold, if any **/
+
+   if( thresh > 0.0 && im_thr != NULL ){
+     switch( im_thr->kind ){
+
+       case MRI_short:{
+         int thr = (int) thresh ;
+         short * ar_thr = MRI_SHORT_PTR(im_thr) ;
+
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh )
+             ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
+       }
+       break ;
+
+       case MRI_byte:{
+         int thr = (int) thresh ;
+         byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
+
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] < thresh )
+             ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
+       }
+       break ;
+
+       case MRI_float:{
+         float thr = thresh ;
+         float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
+
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh )
+             ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
+       }
+       break ;
+     }
+   }
 
    RETURN(im_ov) ;
 }
@@ -4582,6 +4687,7 @@ void AFNI_inten_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
    Three_D_View * im3d = (Three_D_View *) cd ;
    Boolean new_pos ;
    int jm ;
+   MCW_pbar *pbar ;
 
 ENTRY("AFNI_inten_bbox_CB") ;
 
@@ -4594,19 +4700,30 @@ ENTRY("AFNI_inten_bbox_CB") ;
 
       im3d->vinfo->use_posfunc = new_pos ;   /* record for later use */
 
-      jm = im3d->vwid->func->inten_pbar->mode = (new_pos) ? 1 : 0 ;  /* pbar mode */
+      pbar = im3d->vwid->func->inten_pbar ;
+      jm   = pbar->mode = (new_pos) ? 1 : 0 ;  /* pbar mode */
 
       /* re-panel the pbar befitting its new mode */
 
       HIDE_SCALE(im3d) ;
-      alter_MCW_pbar( im3d->vwid->func->inten_pbar ,
-                      im3d->vwid->func->inten_pbar->npan_save[jm] , NULL ) ;
+      if( pbar->bigmode ){               /* 30 Jan 2003 */
+        int npane=pbar->num_panes ;
+        float pmax=pbar->pval_save[npane][0][jm] ,
+              pmin=pbar->pval_save[npane][npane][jm] ;
+        pbar->bigset = 0 ;
+        PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+        AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+      } else {
+        alter_MCW_pbar( pbar , pbar->npan_save[jm] , NULL ) ;
+      }
       FIX_SCALE_SIZE(im3d) ;
 
       /* set the count on the pbar control arrowval to match */
 
-      AV_assign_ival( im3d->vwid->func->inten_av ,
-                      im3d->vwid->func->inten_pbar->npan_save[jm] ) ;
+      if( pbar->bigmode )
+        AV_assign_ival( im3d->vwid->func->inten_av, NPANE_MAX+1 ) ;
+      else
+        AV_assign_ival( im3d->vwid->func->inten_av, pbar->npan_save[jm] ) ;
 
       AFNI_redisplay_func( im3d ) ;
    }

@@ -145,10 +145,10 @@ if(PRINT_TRACING)
 
       if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
          char label[NSBUF] = "NoThing" , ccc , * cpt ;
-         PBAR_palette_array * ppar ;
+         PBAR_palette_array * ppar=NULL ;
          PBAR_palette ** ppp ;
          PBAR_palette  * ppnew ;
-         int npane , pmode , icol , jj ;
+         int npane , pmode , icol=0 , jj ;
          float val ;
 
 STATUS("enter ***PALETTES") ;
@@ -512,7 +512,7 @@ ENTRY("load_PBAR_palette_array") ;
       }
    }
 
-   if( nn > 0 ){
+   if( nn > 0 && !pbar->bigmode ){
       Three_D_View * im3d = (Three_D_View *) pbar->parent ;
       if( fixim ){ HIDE_SCALE(im3d) ; }
       alter_MCW_pbar( pbar , 0 , NULL ) ;
@@ -586,6 +586,9 @@ ENTRY("AFNI_pbar_CB") ;
    /*--- Equalize spacings ---*/
 
    if( w == im3d->vwid->func->pbar_equalize_pb ){
+
+      if( pbar->bigmode ){ BEEPIT; EXRETURN; } /* 30 Jan 2003 */
+
       for( ii=0 ; ii <= npane ; ii++ )
          pval[ii] = pmax - ii * (pmax-pmin)/npane ;
 
@@ -782,22 +785,28 @@ void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs 
    Three_D_View * im3d = (Three_D_View *) cd ;
    MCW_pbar * pbar ;
    float pval[NPANE_MAX+1] ;
-   double pmax , fac ;
+   double pmin,pmax , fac ;
    int ii ;
 
 ENTRY("AFNI_set_pbar_top_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT ; EXRETURN ; }
+   pmax  = cbs->fval ; if( pmax <= 0.0 ){ BEEPIT; EXRETURN; }
    pbar  = im3d->vwid->func->inten_pbar ;
-   fac   = pmax / pbar->pval[0] ;
-
-   for( ii=0 ; ii <= pbar->num_panes ; ii++ )
-      pval[ii] = fac * pbar->pval[ii] ;
 
    HIDE_SCALE(im3d) ;
-   alter_MCW_pbar( pbar , 0 , pval ) ;
+   if( pbar->bigmode ){              /* 30 Jan 2003 */
+     pbar->bigset = 0 ;
+     pmin = (pbar->mode) ? 0.0 : -pmax ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   } else {
+     fac = pmax / pbar->pval[0] ;
+     for( ii=0 ; ii <= pbar->num_panes ; ii++ )
+       pval[ii] = fac * pbar->pval[ii] ;
+     alter_MCW_pbar( pbar , 0 , pval ) ;
+   }
    FIX_SCALE_SIZE(im3d) ;
 
    EXRETURN ;
