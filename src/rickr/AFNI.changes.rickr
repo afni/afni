@@ -146,3 +146,9 @@
       o pass Imon command as a dataset NOTE
   * modified rickr/Makefile - added WARN_OPT
 
+20 February 2003:
+  * modified rickr/Imon.[ch] rickr/realtime.c (Imon rv 2.5)
+      o appropriately deal with missing first slice of first volume
+      o separate multiple DRIVE_AFNI commands
+      o minor modifications to error messages
+

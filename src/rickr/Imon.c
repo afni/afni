@@ -1,8 +1,12 @@
 
-#define IFM_VERSION "version 2.4 (February, 2003)"
+#define IFM_VERSION "version 2.5 (February, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.5  February 20, 2003
+ *   - deal better with missing first slice of first volume
+ *   - make each DRIVE_AFNI command separate
  *
  * 2.4  February 18, 2003
  *   - added DRIVE_AFNI command to open a graph window
@@ -54,7 +58,6 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - check for missing first slice
  * - add axes offsets
  *----------------------------------------------------------------------
 */
@@ -133,7 +136,8 @@ static void hf_signal          ( int signum );
 
 /* volume scanning */
 static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
-static int volume_search ( vol_t * V, param_t * p, int * start, int maxsl );
+static int volume_search ( vol_t * V, param_t * p, int start, int maxsl,
+       			   int * fl_start );
 
 /* information functions */
 static int idisp_hf_opts_t      ( char * info, opts_t * opt );
@@ -199,7 +203,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 {
     int max_im_alloc = IFM_MAX_IM_ALLOC;
     int ret_val;
-    int start = 0;  /* initial starting location for the first volume */
+    int fl_start = 0;  /* starting offset into the current flist */
 
     if ( gD.level > 0 ) 		/* status */
         fprintf( stderr, "-- scanning for first volume\n" );
@@ -207,15 +211,16 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     ret_val = 0;
     while ( ret_val == 0 )
     {
-	ret_val = read_ge_files( p, 0, max_im_alloc );
+	ret_val = read_ge_files( p, fl_start, max_im_alloc );
 
 	if ( ret_val > 0 )
 	{
-	    ret_val = volume_search( v, p, &start, 0 );
+	    ret_val = volume_search( v, p, 0, 0, &fl_start );
 
 	    if ( ret_val == -1 )   /* try to recover from a data error */
 		ret_val = 0;
-	    else if ( (ret_val == 0) && (max_im_alloc < (2*p->nused)) )
+
+	    if ( (ret_val == 0) && (p->nused > (max_im_alloc / 2)) )
 	    {
 		/* If we don't have a volume yet, but have used "too much"
 		 * of our available memory, request more, making sure there
@@ -262,7 +267,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 		    idisp_hf_param_t( "++ final realloc of flist : ", p );
 	    }
 
-	    /* use this volume to comple the geh.orients string */
+	    /* use this volume to complete the geh.orients string */
 	    if ( complete_orients_str( v, p ) < 0 )
 		return -1;
 
@@ -436,8 +441,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 /*----------------------------------------------------------------------
  * volume_search:   scan p->flist for a complete volume
  *
- *     - *start should be at the expected beginning of a volume!
- *     - *start may be adjusted to begin with next volume
+ *     - start should be at the expected beginning of a volume!
+ *     - *fl_start may be returned as a new starting index into fnames
  * 
  * return:   -2 : on programming error
  *           -1 : on data error
@@ -446,20 +451,21 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
  *----------------------------------------------------------------------
 */
 static int volume_search(
-	vol_t   * V,			/* volume to fill                */
-	param_t * p,			/* master structure              */
-	int     * start,		/* starting index into p->flist  */
-        int       maxsl	)		/* max number of slices to check */
+	vol_t   * V,			/* volume to fill                 */
+	param_t * p,			/* master structure               */
+	int       start,		/* starting index into p->flist   */
+        int       maxsl, 		/* max number of slices to check  */
+	int     * fl_start )		/* return new fnames search point */
 {
     finfo_t * fp;
     float     z_orig, delta, dz, prev_z;
     int       bound;			/* upper bound on image slice  */
     int       next;
     int       run0, run1;		/* run numbers, for comparison */
-    int       first = *start;		/* first image (start or s+1)  */
+    int       first = start;		/* first image (start or s+1)  */
     int       last;                     /* final image in volume       */
 
-    if ( V == NULL || p == NULL || p->flist == NULL || *start < 0 )
+    if ( V == NULL || p == NULL || p->flist == NULL || start < 0 )
     {
 	fprintf( stderr, "failure: FNV: bad parameter data\n" );
 	return -2;
@@ -493,9 +499,9 @@ static int volume_search(
 	if ( fabs(delta) < IFM_EPSILON )
 	{
 	    fprintf( stderr, "Error: 3 slices with 0 delta, beginning with"
-		     "file <%s>\n", p->fnames[p->flist[*start].index] );
+		     "file <%s>\n", p->fnames[p->flist[start].index] );
 
-	    *start = *start + 2;	       /* try to skip and recover */
+	    *fl_start = p->flist[start+2].index;
 
 	    return -1;
 	}
@@ -526,9 +532,46 @@ static int volume_search(
 
     last = next - 2;			    /* note final image in volume */
 
-    if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) )
+    if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < IFM_EPSILON )
+    {
+	/* Current location is same as first, we have a volume! */
+
+	/* So deltas are consistent from slice 'first' to slice 'last'. */
+
+	V->geh      = p->flist[first].geh;	   /* copy GE structure  */
+	V->nim      = last - first + 1;
+	V->fl_1     = first;
+	V->fn_1     = p->flist[first].index;
+	V->fn_n     = p->flist[last].index;
+	strncpy( V->first_file, p->fnames[V->fn_1], IFM_MAX_FLEN );
+	strncpy( V->last_file,  p->fnames[V->fn_n], IFM_MAX_FLEN );
+	V->z_first  = p->flist[first].geh.zoff;
+	V->z_last   = p->flist[last].geh.zoff;
+	V->z_delta  = delta;
+	V->seq_num  = -1;				/* uninitialized */
+	V->run      = V->geh.uv17;
+
+	return 1;
+    }
+    else if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) )
 	return 0;			    /* we did not finish a volume */
-    else if ( abs(p->flist[first].geh.zoff - fp->geh.zoff) > IFM_EPSILON )
+    else if ( dz * delta < 0.0 )
+    {
+	/* We have gone in the wrong direction.  This means that the
+	 * starting slice was not the first in the volume.  Try restarting
+	 * from the current position.
+	 */
+	
+	fprintf( stderr, "\n"
+		"*************************************************\n"
+		"Error: missing slice(s) in first volume!\n"
+		"       attempting to re-start at file: %s\n"
+		"*************************************************\n",
+		p->fnames[p->flist[last+1].index] );
+
+	*fl_start = p->flist[last+1].index;
+    }
+    else    /* right direction, but bad delta */
     {
 	/* the next slice does not match the original - interleaving? */
 	int testc;
@@ -538,42 +581,27 @@ static int volume_search(
 		      p->flist[testc].geh.zoff ) < IFM_EPSILON )
 	    {
 		/* aaaaagh!  we are missing data from the first volume!   */
-		/* print error, and fix start (try to skip this volume)   */
+		/* print error, and try to skip this volume               */
 		fprintf( stderr, "\n"
 			"*************************************************\n"
 			"Error: missing slice in first volume!\n"
 			"       detected    at file: %s\n"
 			"       re-starting at file: %s\n"
 			"*************************************************\n",
-		       	p->fnames[last+1], p->fnames[testc] );
+		       	p->fnames[p->flist[last+1].index],
+			p->fnames[p->flist[testc].index] );
 
 	        /* try to skip this volume and recover */
-		*start = p->flist[testc].index;
+		*fl_start = p->flist[testc].index;
 
 		return -1;
 	    }
 
-	return 0;		       /* not done, volume is interleaved */
+	/* we didn't find the original zoff, wait for more files */
+	return 0;
     }
 
-    /* we have a volume! */
-
-    /* So deltas are consistent from slice 'first' to slice 'last'. */
-
-    V->geh      = p->flist[first].geh;		/* copy GE structure      */
-    V->nim      = last - first + 1;
-    V->fl_1     = first;
-    V->fn_1     = p->flist[first].index;
-    V->fn_n     = p->flist[last].index;
-    strncpy( V->first_file, p->fnames[V->fn_1], IFM_MAX_FLEN );
-    strncpy( V->last_file,  p->fnames[V->fn_n],  IFM_MAX_FLEN );
-    V->z_first  = p->flist[first].geh.zoff;
-    V->z_last   = p->flist[last].geh.zoff;
-    V->z_delta  = delta;
-    V->seq_num  = -1;				/* uninitialized */
-    V->run      = V->geh.uv17;
-
-    return 1;
+    return -1;  /* thank you, come again */
 }
 
 
@@ -826,7 +854,10 @@ static int read_ge_files(
 	p->nalloc = nalloc;
 
 	if ( gD.level > 1 )
+	{
 	    idisp_hf_param_t( "++ realloc of flist : ", p );
+	    fprintf( stderr,  "-- n2scan = %d, max = %d\n", n2scan, max );
+	}
     }
 
     p->nused = scan_ge_files( p, next, n2scan );
@@ -1829,8 +1860,8 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "        e.g.  -drive_afni 'OPEN_WINDOW axialimage'\n"
 	  "\n"
-	  "        This option is used to pass CMND to afni as a DRIVE_AFNI\n"
-	  "        command.  For example, 'OPEN_WINDOW axialimage' will open\n"
+	  "        This option is used to pass a single DRIVE_AFNI command\n"
+	  "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
 	  "        such an axial view window on the afni controller.\n"
 	  "\n"
 	  "        Note: the command 'CMND' must be given in quotes, so that\n"
