@@ -142,16 +142,20 @@ void MCW_bbox_hints( MCW_bbox * bb , int nh , char ** hh )
 
 /*------------------------------------------------------------------------*/
 
-void MCW_set_bbox( MCW_bbox * bb , int val )
+void MCW_set_bbox( MCW_bbox *bb , int val )
 {
    int     ib ;
-   Boolean set ;
+   Boolean nset , oset ;
 
    if( bb == NULL ) return ;  /* 01 Feb 2000 */
    bb->value = val ;
    for( ib=0 ; ib < bb->nbut ; ib++ ){
-     set = ( val & (1<<ib) ) ? (True) : (False) ;
-     XmToggleButtonSetState( bb->wbut[ib] , set , False ) ;
+     nset = ( val & (1<<ib) ) ? (True) : (False) ;
+     oset = XmToggleButtonGetState( bb->wbut[ib] ) ;
+     if( nset != oset ){
+       XmToggleButtonSetState( bb->wbut[ib] , nset , False ) ;
+       XmUpdateDisplay( bb->wbut[ib] ) ;
+     }
    }
    return ;
 }
