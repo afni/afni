@@ -5405,3 +5405,7 @@
      polynomials for the baseline model.
  * Fixed bug in NIML, where the new 'outmode' field in elements wasn't
      being initialized to -1 like it should have been.
+
+30 Mar 2005
+ * Fixed bug in AFNI_range_label() in afni_func.c about brick range
+     setup change of yesterday (forgot to initialize stats_*_ok).
