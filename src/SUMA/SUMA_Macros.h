@@ -11,16 +11,26 @@
 
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_EPSILON 0.000001
-#define SUMA_MT_CROSS(dest,v1,v2) \
-          dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
-          dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
-          dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
-#define SUMA_MT_DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
-#define SUMA_MT_SUB(dest,v1,v2) \
-          dest[0]=v1[0]-v2[0]; \
-          dest[1]=v1[1]-v2[1]; \
-          dest[2]=v1[2]-v2[2]; 
-
+#define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
+          m_MTCR_dest[0]=m_MTCR_v1[1]*m_MTCR_v2[2]-m_MTCR_v1[2]*m_MTCR_v2[1]; \
+          m_MTCR_dest[1]=m_MTCR_v1[2]*m_MTCR_v2[0]-m_MTCR_v1[0]*m_MTCR_v2[2]; \
+          m_MTCR_dest[2]=m_MTCR_v1[0]*m_MTCR_v2[1]-m_MTCR_v1[1]*m_MTCR_v2[0];
+#define SUMA_MT_DOT(m_MTDOT_v1,m_MTDOT_v2) (m_MTDOT_v1[0]*m_MTDOT_v2[0]+m_MTDOT_v1[1]*m_MTDOT_v2[1]+m_MTDOT_v1[2]*m_MTDOT_v2[2])
+#define SUMA_MT_SUB(m_MTSUB_dest,m_MTSUB_v1,m_MTSUB_v2) \
+          m_MTSUB_dest[0]=m_MTSUB_v1[0]-m_MTSUB_v2[0]; \
+          m_MTSUB_dest[1]=m_MTSUB_v1[1]-m_MTSUB_v2[1]; \
+          m_MTSUB_dest[2]=m_MTSUB_v1[2]-m_MTSUB_v2[2]; 
+#define SUMA_NORM(m_NORM_dest, m_NORM_v1) \
+          m_NORM_dest= sqrt(m_NORM_v1[0]*m_NORM_v1[0]+m_NORM_v1[1]*m_NORM_v1[1]+m_NORM_v1[2]*m_NORM_v1[2]);
+#define SUMA_TRI_AREA(m_TRIAREA_n0,m_TRIAREA_n1,m_TRIAREA_n2, m_TRIAREA_A)  {\
+      float m_TRIAREA_dv[3], m_TRIAREA_dw[3], m_TRIAREA_cross[3];  \
+      SUMA_MT_SUB (m_TRIAREA_dv, m_TRIAREA_n1, m_TRIAREA_n0);  \
+      SUMA_MT_SUB (m_TRIAREA_dw, m_TRIAREA_n2, m_TRIAREA_n0);  \
+      SUMA_MT_CROSS(m_TRIAREA_cross,m_TRIAREA_dv,m_TRIAREA_dw);   \
+      SUMA_NORM(m_TRIAREA_A, m_TRIAREA_cross); \
+      m_TRIAREA_A *= 0.5; \
+   }
+         
 
 /*!
    \brief SUMA_EULER_SO (SO, eu)

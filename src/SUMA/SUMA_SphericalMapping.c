@@ -587,7 +587,7 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
    float hitOnSurf[3];
    int  incidentTri[100], N_incident = 0, itry;
    int examinedTri[100], ifound, i_node0 = -1, i_node1 = -1, i_node2 = -1;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_inNodeNeighb"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -864,98 +864,97 @@ This function creates a mapping of one surface onto another (surfaces assumed to
 SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject *surf2)
 {
 
-  static char FuncName[]={"SUMA_MapSurface"};
+   static char FuncName[]={"SUMA_MapSurface"};
 
-  /**surf1 variables*/
-  int numNodes_1=0, numFace_1=0;
-  float *nodeList_1=NULL, *ctrNodeList_1=NULL;
-  int *faceList_1=NULL;
+   /**surf1 variables*/
+   int numNodes_1=0, numFace_1=0;
+   float *nodeList_1=NULL, *ctrNodeList_1=NULL;
+   int *faceList_1=NULL;
 
-  /**surf2 variables*/
-  int numNodes_2=0, numFace_2=0;
-  float *nodeList_2=NULL, *ctrNodeList_2=NULL;
-  int *faceList_2=NULL;
+   /**surf2 variables*/
+   int numNodes_2=0, numFace_2=0;
+   float *nodeList_2=NULL, *ctrNodeList_2=NULL;
+   int *faceList_2=NULL;
 
-  int i=0, j=0, k=0, m=0;
-  float *weight=NULL;
-  int *clsNodes=NULL;
-  SUMA_MorphInfo *MI;
-  float ctr1[3], ctr2[3], zero[3];
-  float a=0, b=0, c=0, r2=0;
-  float  *justX_2=NULL;
-  int *iSrtd_2=NULL;
-  float currNode[3], ptHit[3], currDist=0, avgDist=0.0, pi=3.14159265359;
-  int seg[2];
+   int i=0, j=0, k=0, m=0;
+   float *weight=NULL;
+   int *clsNodes=NULL;
+   SUMA_MorphInfo *MI;
+   float ctr1[3], ctr2[3], zero[3];
+   float a=0, b=0, c=0, r2=0;
+   float  *justX_2=NULL;
+   int *iSrtd_2=NULL;
+   float currNode[3], ptHit[3], currDist=0, avgDist=0.0, pi=3.14159265359;
+   int seg[2];
 
-  float d0=100, d1=100, d2=100, tempD=100;
-  SUMA_Boolean found=NOPE;
-  int i_node0=0, i_node1=0, i_node2=0, nodes[3];
-  float triNode0[3], triNode1[3], triNode2[3];
-  float *currWt=NULL;
-  SUMA_SO_map *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   float d0=100, d1=100, d2=100, tempD=100;
+   SUMA_Boolean found=NOPE;
+   int i_node0=0, i_node1=0, i_node2=0, nodes[3];
+   float *triNode0, *triNode1, *triNode2, weight_tot;
+   SUMA_SO_map *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
-  if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-  MI = SUMA_Create_MorphInfo();
-  if (MI == NULL) {
+   MI = SUMA_Create_MorphInfo();
+   if (MI == NULL) {
     fprintf (SUMA_STDERR,"Error %s: Failed to allocate for MorphInfo.\n", FuncName);
     SUMA_RETURN (NULL);
-  }  
-  
-  /**assign surf1 variables*/
-  nodeList_1 = surf1->NodeList;
-  faceList_1 = surf1->FaceSetList;
-  numNodes_1 = surf1->N_Node;
-  numFace_1 = surf1->N_FaceSet;
-  
-  /**assign surf2 variables*/
-  nodeList_2 = surf2->NodeList;
-  faceList_2 = surf2->FaceSetList;
-  numNodes_2 = surf2->N_Node;
-  numFace_2 = surf2->N_FaceSet;
+   }  
 
-  clsNodes = (int *)SUMA_calloc( 3*numNodes_1, sizeof(int) );
-  weight = (float *)SUMA_calloc( 3*numNodes_1, sizeof(float) );
-  if (!clsNodes || !weight) {
+   /**assign surf1 variables*/
+   nodeList_1 = surf1->NodeList;
+   faceList_1 = surf1->FaceSetList;
+   numNodes_1 = surf1->N_Node;
+   numFace_1 = surf1->N_FaceSet;
+
+   /**assign surf2 variables*/
+   nodeList_2 = surf2->NodeList;
+   faceList_2 = surf2->FaceSetList;
+   numNodes_2 = surf2->N_Node;
+   numFace_2 = surf2->N_FaceSet;
+
+   clsNodes = (int *)SUMA_calloc( 3*numNodes_1, sizeof(int) );
+   weight = (float *)SUMA_calloc( 3*numNodes_1, sizeof(float) );
+   if (!clsNodes || !weight) {
      if (clsNodes) SUMA_free(clsNodes);
      if (weight) SUMA_free(weight);
    fprintf (SUMA_STDERR,"Error %s: Failed to allocate for clsNodes || weight.\n", FuncName);
     SUMA_RETURN (NULL);
-  }
-  
-  /**center surf1 to surf2 , that will make it easier to debug in SUMA*/
-  ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
-  ctr2[0]=0; ctr2[1]=0; ctr2[2]=0;
+   }
 
-  for (i=0; i<numNodes_1; ++i) {
+   /**center surf1 to surf2 , that will make it easier to debug in SUMA*/
+   ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
+   ctr2[0]=0; ctr2[1]=0; ctr2[2]=0;
+
+   for (i=0; i<numNodes_1; ++i) {
     j = 3*i;
     ctr1[0] = ctr1[0] + nodeList_1[j];
     ctr1[1] = ctr1[1] + nodeList_1[j+1];
     ctr1[2] = ctr1[2] + nodeList_1[j+2];
-  }
-  ctr1[0] = ctr1[0]/numNodes_1;
-  ctr1[1] = ctr1[1]/numNodes_1;
-  ctr1[2] = ctr1[2]/numNodes_1;
-  
-  for (i=0; i<numNodes_2; ++i) {
+   }
+   ctr1[0] = ctr1[0]/numNodes_1;
+   ctr1[1] = ctr1[1]/numNodes_1;
+   ctr1[2] = ctr1[2]/numNodes_1;
+
+   for (i=0; i<numNodes_2; ++i) {
     j = 3*i;
     ctr2[0] = ctr2[0] + nodeList_2[j];
     ctr2[1] = ctr2[1] + nodeList_2[j+1];
     ctr2[2] = ctr2[2] + nodeList_2[j+2];
-  }
-  ctr2[0] = ctr2[0]/numNodes_2;
-  ctr2[1] = ctr2[1]/numNodes_2;
-  ctr2[2] = ctr2[2]/numNodes_2;
+   }
+   ctr2[0] = ctr2[0]/numNodes_2;
+   ctr2[1] = ctr2[1]/numNodes_2;
+   ctr2[2] = ctr2[2]/numNodes_2;
 
    /* set the zero center to be that of surf 2 */
    zero[0] = ctr2[0];
    zero[1] = ctr2[1];
    zero[2] = ctr2[2];
    
-  ctrNodeList_1 = (float *) SUMA_calloc( 3*numNodes_1, sizeof(float) );
-  ctrNodeList_2 = (float *) SUMA_calloc( 3*numNodes_2, sizeof(float) );
-  if (!ctrNodeList_1 || !ctrNodeList_2) {
+   ctrNodeList_1 = (float *) SUMA_calloc( 3*numNodes_1, sizeof(float) );
+   ctrNodeList_2 = (float *) SUMA_calloc( 3*numNodes_2, sizeof(float) );
+   if (!ctrNodeList_1 || !ctrNodeList_2) {
      if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
      if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
      if (clsNodes) SUMA_free(clsNodes);
@@ -964,25 +963,25 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
      if (justX_2) SUMA_free(justX_2);
     fprintf (SUMA_STDERR,"Error %s: Failed to allocate for ctrNodeList_1 || ctrNodeList_2.\n", FuncName);
     SUMA_RETURN (NULL);
-  }
+   }
 
-  
-/* one of these two loops will be useless if we stick to having zero be the center of the one  of the two surfaces.... */
-  for (i=0; i<numNodes_1; ++i) {
+
+   /* one of these two loops will be useless if we stick to having zero be the center of the one  of the two surfaces.... */
+   for (i=0; i<numNodes_1; ++i) {
     j = 3*i;
     ctrNodeList_1[j]   = nodeList_1[j]   - ctr1[0] + zero[0];
     ctrNodeList_1[j+1] = nodeList_1[j+1] - ctr1[1] + zero[1];
     ctrNodeList_1[j+2] = nodeList_1[j+2] - ctr1[2] + zero[2];
-  }
-  for (i=0; i<numNodes_2; ++i) {
+   }
+   for (i=0; i<numNodes_2; ++i) {
     j = 3*i;
     ctrNodeList_2[j]   = nodeList_2[j]   - ctr2[0] + zero[0];
     ctrNodeList_2[j+1] = nodeList_2[j+1] - ctr2[1] + zero[1];
     ctrNodeList_2[j+2] = nodeList_2[j+2] - ctr2[2] + zero[2];
-  }
+   }
   
-  r2 = sqrt( pow( ctrNodeList_2[0], 2) + pow( ctrNodeList_2[1], 2) + pow( ctrNodeList_2[2], 2) );
-  avgDist = (4*pi*pow(r2,2))/numNodes_2;    //average distance between nodes on surf2 surface+
+   r2 = sqrt( pow( ctrNodeList_2[0], 2) + pow( ctrNodeList_2[1], 2) + pow( ctrNodeList_2[2], 2) );
+   avgDist = (4*pi*pow(r2,2))/numNodes_2;    //average distance between nodes on surf2 surface+
   
   /**sort x of NodeList_2*/
   justX_2 = (float *) SUMA_calloc( numNodes_2, sizeof(float) );
@@ -1118,9 +1117,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Trying Brute force.\n", FuncName);
       {
          SUMA_MT_INTERSECT_TRIANGLE *MTI;
-         if (ctrNodeList_2 == NULL) {
-            ctrNodeList_2 = surf2->NodeList;
-         }
+         
          MTI = SUMA_MT_intersect_triangle(ptHit, zero, ctrNodeList_2, surf2->N_Node, surf2->FaceSetList, surf2->N_FaceSet);
          if (MTI) {
             if (MTI->N_hits) {
@@ -1150,38 +1147,24 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
     /**node indices of triangle intersected by ptHit*/
     clsNodes[j] = nodes[0];  clsNodes[j+1] = nodes[1];  clsNodes[j+2] = nodes[2];
     
-    /** x,y,z of each node of intersected triangle*/
-    triNode0[0] = ctrNodeList_2[ 3*nodes[0] ];
-    triNode0[1] = ctrNodeList_2[ 3*nodes[0] + 1 ];
-    triNode0[2] = ctrNodeList_2[ 3*nodes[0] + 2 ];
+    /** pointers to x,y,z of each node of intersected triangle*/
+    triNode0 = &(ctrNodeList_2[ 3*nodes[0] ]);
+    triNode1 = &(ctrNodeList_2[ 3*nodes[1] ]);
+    triNode2 = &(ctrNodeList_2[ 3*nodes[2] ]);
     
-    triNode1[0] = ctrNodeList_2[ 3*nodes[1] ];
-    triNode1[1] = ctrNodeList_2[ 3*nodes[1] + 1 ];
-    triNode1[2] = ctrNodeList_2[ 3*nodes[1] + 2 ];
-    
-    triNode2[0] = ctrNodeList_2[ 3*nodes[2] ];
-    triNode2[1] = ctrNodeList_2[ 3*nodes[2] + 1 ];
-    triNode2[2] = ctrNodeList_2[ 3*nodes[2] + 2 ];
-    
-    /**determine weights*/
-    currWt = SUMA_detWeight(triNode0, triNode1, triNode2, ptHit);
-    
-    if (!currWt) {
-      fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_detWeight.\n", FuncName);
-      if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
-      if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
-      if (clsNodes) SUMA_free(clsNodes);
-      if (weight) SUMA_free(weight);
-      if (iSrtd_2) SUMA_free(iSrtd_2);
-      if (justX_2) SUMA_free(justX_2);
+    /**determine weights which are the barycetric corrdinates of the intersection node*/
+    SUMA_TRI_AREA( ptHit, triNode1, triNode2, weight[j]); 
+    SUMA_TRI_AREA( ptHit, triNode0, triNode2, weight[j+1]); 
+    SUMA_TRI_AREA( ptHit, triNode0, triNode1, weight[j+2]); /* if the index of the intersected triangle is very cheap to obtain, 
+                                                   you could set weight[j+2] = SO->PolyArea[Face] - weight[j+1] - weight[j+0] 
+                                                   Of course, you must first compute PolyArea with SUMA_SurfaceMetrics*/
 
-      SUMA_RETURN (NULL);
-    }
-    weight[j] = currWt[0];
-    weight[j+1] = currWt[1];
-    weight[j+2] = currWt[2];
+    weight_tot = weight[j] + weight[j+1] + weight[j+2];
+    weight[j] /= weight_tot;
+    weight[j+1] /= weight_tot;
+    weight[j+2] /= weight_tot;
+     
 
-    SUMA_free(currWt);
   }
 
   MI->N_Node = numNodes_1;
@@ -1592,7 +1575,7 @@ void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[
 void SUMA_CreateIcosahedron_usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_CreateIcosahedron [-rad r] [-d depth] [-bin bin] [-ctr ctr] [-prefix fout]\n");
+          printf ("\n\33[1mUsage: \33[0m SUMA_CreateIcosahedron [-rad r] [-d depth] [-bin 'y'/'n'] [-ctr ctr] [-prefix fout]\n");
           printf ("\n\tr: size of icosahedron. (optional, default 100)\n");
      printf ("\n\tdepth: tesselation depth for icosahedron \n\t  (binary recursion if bin=y, number of edge divides if bin=n). \n\t  (optional, default:3) \n\t  (recommended to approximate number of nodes in brain:\n\t  6 with binary recursion, 120 without)\n");
      printf("\n\tbin: recursion flag (optional, default 'y').\n");
@@ -2067,6 +2050,8 @@ int main (int argc, char *argv[])
    float *mapInflNodeList=NULL, *mapSmWmNodeList=NULL, *mapWhiteNodeList=NULL, *mapSphrList=NULL;
    float *mapSphrNoRegNodeList=NULL, *mapPialNodeList=NULL, *colArray=NULL, *mapCol=NULL;
    float *ctrSphrList=NULL;
+   struct  timeval start_time;
+   float etime_MapSurface;
    
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
@@ -2344,12 +2329,15 @@ int main (int argc, char *argv[])
    }
 
    /**determine morph parameters by mapping icosahedron to spherical brain */
+   /* start timer */
+   SUMA_etime(&start_time,0);
    MI = SUMA_MapSurface( icoSurf, sphrSurf ) ;
    if (!MI) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       exit (1);
    }
-
+   etime_MapSurface = SUMA_etime(&start_time,1);
+   
    /**morph sphere.reg backwards*/
    mapSphrList = SUMA_morphToStd( sphrSurf->NodeList, MI);
 
@@ -2458,6 +2446,7 @@ int main (int argc, char *argv[])
    }
    SUMA_writeSpecFile ( surfaces, i_currSurf+1, FuncName, fout, outSpecFileNm );
 
+   fprintf (SUMA_STDERR, "\nSUMA_MapSurface took %f seconds to execute.\n", etime_MapSurface); 
    fprintf (SUMA_STDERR, "\n* To view in SUMA, load spec file %s *\n\n", outSpecFileNm);
 
 
