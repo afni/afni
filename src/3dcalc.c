@@ -1,5 +1,5 @@
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1997 by
+  This software is Copyright 1997-8 by
 
             Medical College of Wisconsin
             8701 Watertown Plank Road
@@ -15,6 +15,9 @@
 /*---------------------------------------------------------------------------
 This program is revised for 3d+time data calculation,
   [Raoqiong Tong, August 1997]
+
+Added ability to use a 1D time series file as a "dataset" (see TS variables).
+  [RW Cox, April 1998]
 ----------------------------------------------------------------------------*/
 
 #include "mrilib.h"
@@ -44,10 +47,37 @@ static char CALC_output_prefix[THD_MAX_PREFIX] = "calc" ;
 
 static char CALC_session[THD_MAX_NAME]         = "./"   ;
 
+static MRI_IMAGE * TS_flim[26] ;  /* 17 Apr 1998 */
+static float *     TS_flar[26] ;
+static int         TS_nmax = 0 ;
+static int         TS_make = 0 ;
 
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
 void CALC_Syntax(void) ;
+int  TS_reader( int , char * ) ;
+
+/*--------------------------------------------------------------------
+  Read a time series file into variable number ival.
+  Returns -1 if an error occured, 0 otherwise.
+----------------------------------------------------------------------*/
+
+int TS_reader( int ival , char * fname )
+{
+   MRI_IMAGE * tsim ;
+
+   if( ival < 0 || ival >= 26 ) return -1 ;
+
+   tsim = mri_read_ascii( fname ) ;
+   if( tsim == NULL ) return -1 ;
+   if( tsim->ny < 2 ){ mri_free(tsim) ; return -1 ; }
+
+   TS_flim[ival] = mri_transpose(tsim) ;
+   TS_nmax       = MAX( TS_nmax , TS_flim[ival]->nx ) ;
+   TS_flar[ival] = MRI_FLOAT_PTR( TS_flim[ival] ) ;
+   mri_free(tsim) ;
+   return 0 ;
+}
 
 /*--------------------------------------------------------------------
    read the arguments, load the global variables
@@ -61,6 +91,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
    for( ids=0 ; ids < 26 ; ids++ ){
       CALC_type[ids] = -1 ;
+      TS_flim[ids]   = NULL ;
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -141,11 +172,11 @@ void CALC_read_opts( int argc , char * argv[] )
           (ids == 2 ||
            (ids > 2 && argv[nopt][2] >= '0' && argv[nopt][2] <= '9')) ){
 
-         int ival , nxyz , isub ;
+         int ival , nxyz , isub , ll ;
          THD_3dim_dataset * dset ;
 
          ival = argv[nopt][1] - 'a' ;
-         if( CALC_dset[ival] != NULL ){
+         if( CALC_dset[ival] != NULL || TS_flim[ival] != NULL ){
             fprintf(stderr,"can't open duplicate %s datasets!\n",argv[nopt]) ;
             exit(1) ;
          }
@@ -156,6 +187,18 @@ void CALC_read_opts( int argc , char * argv[] )
          if( nopt >= argc ){
             fprintf(stderr,"need argument after %s!\n",argv[nopt-1]) ; exit(1) ;
          }
+
+         /*-- 17 Apr 1998: allow for a *.1D filename --*/
+
+         ll = strlen(argv[nopt]) ;
+         if( ll >= 4 && strcmp(argv[nopt]+(ll-3),".1D") == 0 ){
+            ll = TS_reader( ival , argv[nopt] ) ;
+            if( ll == 0 ){ nopt++ ;  goto DSET_DONE ; }
+
+            /* get to here => something bad happened, so try it as a dataset */
+         }
+
+         /*-- back to the normal dataset opening routine --*/
 
          dset = THD_open_one_dataset( argv[nopt++] ) ;
          if( dset == NULL ){
@@ -229,11 +272,12 @@ void CALC_read_opts( int argc , char * argv[] )
                      CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
 	    break;
 
-	 } /* end of loop over type switch */
+	 } /* end of switch over type switch */
          if( CALC_datum < 0 ) CALC_datum = CALC_type[ival] ;
-	 continue;
 
-      } /* end of loop over data input */
+DSET_DONE: continue;
+
+      } /* end of dataset input */
 
       fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
 
@@ -261,6 +305,19 @@ void CALC_read_opts( int argc , char * argv[] )
 	 fprintf(stderr, "3D+time datasets don't match!\n") ; exit(1) ;
       }
 
+   /* 17 Apr 1998: if all input datasets are 3D only (no time),
+                   and if there are any input time series,
+                   then the output must become 3D+time itself  */
+
+   if( ntime_max == 1 && TS_nmax > 0 ){
+      ntime_max = TS_nmax ;
+      TS_make   = 1 ;        /* flag to force manufacture of a 3D+time dataset */
+      fprintf(stderr,
+              "*** Calculating 3D+time[%d]"
+              " dataset from 3D datasets and time series\n" ,
+              ntime_max ) ;
+   }
+
    return ;
 }
 
@@ -281,9 +338,11 @@ void CALC_Syntax(void)
     "  -fscale     = Force scaling of the output to the maximum integer\n"
     "                  range.  This only has effect if the output datum\n"
     "                  is byte or short (either forced or defaulted).\n"
-    "                  [default is to scale only if the computed values\n"
-    "                   seem to need it -- are all less than 1 or have\n"
-    "                   some value beyond the integer upper limit]\n"
+    "                  This option is often necessary to eliminate unpleasant\n"
+    "                  truncation artifacts.\n"
+    "                  [The default is to scale only if the computed values\n"
+    "                   seem to need it -- are all less than 1 or there is\n"
+    "                   at least one value beyond the integer upper limit]\n"
     "  -a dname    = Read dataset 'dname' and call the voxel values 'a'\n"
     "                  in the expression that is input below.  'a' may be any\n"
     "                  single letter from 'a' to 'z'.\n"
@@ -317,6 +376,22 @@ void CALC_Syntax(void)
     " When producing a 3D+time dataset, datasets in case (A) or (B) will be\n"
     " treated as if the particular brick being used has the same value at each\n"
     " point in time.\n"
+    "\n"
+    "1D Time Series:\n"
+    " You can also input a '*.1D' time series file in place of a dataset.\n"
+    " In this case, the value at each spatial voxel at time index n will be\n"
+    " the same, and will be the n-th value from the time series file.\n"
+    " At least one true 3D or 3D+time dataset must be input.  If all the\n"
+    " input dataset are 3D (no time axis) or are single sub-bricks from\n"
+    " 3D+time datasets, then the output will be a 'manufactured' 3D+time\n"
+    " dataset.  For example, suppose that 'a3D+orig' is a 3D dataset:\n"
+    "   3dcalc -a a3D+orig -b b.1D -expr \"a*b\" \n"
+    " The output dataset will 3D+time with the value at (x,y,z,t) being\n"
+    " computed by a3D(x,y,z)*b(t).  The TR for this dataset will be set\n"
+    " to 1 second -- this could be altered later with program 3drefit.\n"
+    " Another method to set up the correct timing would be to input an\n"
+    " unused 3D+time dataset -- 3dcalc will then copy that dataset's time\n"
+    " information, but simply do not use that dataset's letter in -expr.\n"
     "\n"
     "PROBLEMS:\n"
     " ** Complex-valued datasets cannot be processed.\n"
@@ -357,7 +432,7 @@ void CALC_Syntax(void)
     "\n"
     " (Try the 'ccalc' program to see how the expression evaluator works.\n"
     "  The arithmetic parser and evaluator is written in Fortran-77 and\n"
-    "  is derived from a program written long ago by RWCox to facilitate\n"
+    "  is derived from a program written long ago by RW Cox to facilitate\n"
     "  compiling on an array processor hooked up to a VAX.  It's a mess,\n"
     "  but it works.)\n"
    ) ;
@@ -395,7 +470,7 @@ int main( int argc , char * argv[] )
 
    /*** make output dataset ***/
 
-   if( ntime_max == 1 ){
+   if( ntime_max == 1 || TS_make == 1 ){
       for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
    } else {
       for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL &&
@@ -411,6 +486,19 @@ int main( int argc , char * argv[] )
                        ADN_datum_all      , CALC_datum ,
                        ADN_nvals          , ntime_max ,
                     ADN_none ) ;
+
+   /* 17 Apr 1998: if we are making up a 3D+time dataset,
+                   we need to attach some time axis info to it */
+
+   if( TS_make ){
+      EDIT_dset_items( new_dset ,
+                          ADN_ntt    , ntime_max      ,
+                          ADN_ttdel  , 1.0            ,
+                          ADN_ttorg  , 0.0            ,
+                          ADN_ttdur  , 0.0            ,
+                          ADN_tunits , UNITS_SEC_TYPE ,
+                       ADN_none ) ;
+   }
 
    if( ISFUNC(new_dset) )
       EDIT_dset_items( new_dset , ADN_func_type , FUNC_FIM_TYPE , ADN_none ) ;
@@ -440,7 +528,24 @@ int main( int argc , char * argv[] )
 	 jtop = MIN( ii + VSIZE , CALC_nvox ) ;
 
 	 for (ids = 0 ; ids < 26 ; ids ++ ) {
-	    if ( ntime[ids] == 1 ) {
+
+            /* 17 Apr 1998: if a time series is used here instead of a dataset,
+                            just copy the single value (or zero) to all voxels. */
+
+            if( TS_flim[ids] != NULL ){
+               if( jbot == 0 ){  /* only must do this on first vector at each time */
+                  double tval ;
+                  if( kt < TS_flim[ids]->nx ) tval = TS_flar[ids][kt] ;
+                  else                        tval = 0.0 ;
+
+                  for (jj =jbot ; jj < jtop ; jj ++ )
+                     atoz[ids][jj-ii] = tval ;
+               }
+            }
+
+            /* the case of a 3D dataset */
+
+            else if ( ntime[ids] == 1 ) {
 	       switch( CALC_type[ids] ) {
 		  case MRI_short:
 		     for (jj =jbot ; jj < jtop ; jj ++ )
@@ -458,6 +563,9 @@ int main( int argc , char * argv[] )
                   break;
 	      }	
 	   }
+
+           /* the case of a 3D+time dataset */
+
 	   else {
 	      switch ( CALC_type[ids] ) {
 	         case MRI_short:
@@ -487,8 +595,10 @@ int main( int argc , char * argv[] )
       } /* end of loop over time steps */
 
 
-   for( ids=0 ; ids < 26 ; ids++ )
+   for( ids=0 ; ids < 26 ; ids++ ){
       if( CALC_dset[ids] != NULL ) PURGE_DSET( CALC_dset[ids] ) ;
+      if( TS_flim[ids]   != NULL ) mri_free( TS_flim[ids] ) ;
+   }
 
    /*** attach new data to output brick ***/
 

@@ -26,6 +26,8 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
+#undef ALLOW_2DALIGN  /* not fully implemented yet */
+
 /***********************************************************************
   Plugin to accept data from an external process and assemble
   it into a dataset.  Initial implementation for the Bruker 3T/60
@@ -120,6 +122,14 @@ typedef struct {
    int func_condit ;              /* condition that function computation is in now */
    int_func * func_func ;         /* function to compute the function */
 
+#ifdef ALLOW_2DALIGN
+   /*-- 07 Apr 1998: real-time image registration stuff --*/
+
+   THD_3dim_dataset * reg_dset ;    /* registered dataset, if any */
+   MRI_2dalign_basis ** reg_basis ; /* stuff for each slice */
+   int reg_base_index ;             /* where to start? */
+#endif
+
    double elapsed , cpu ;         /* times */
    double last_elapsed ;
    int    last_nvol ;
@@ -146,7 +156,15 @@ static char helpstring[] =
    " Function = Controls what kind of function analysis is done\n"
    "              during realtime input of time dependent datasets.\n\n"
    " Verbose  = If set to 'Yes', the plugin will print out progress\n"
-   "              reports as information flows into it."
+   "              reports as information flows into it.\n"
+#ifdef ALLOW_2DALIGN
+   " Align-2D = If activated, 2D image registration will take place\n"
+   "              in real-time.  In that case, the un-registered dataset\n"
+   "              will be named something like Root#001 and the aligned\n"
+   "              dataset Root#001%reg.\n"
+   "              The value sets the time index to which the alignment\n"
+   "              will take place.\n"
+#endif
 ;
 
 /** variables encoding the state of options from the plugin interface **/
@@ -172,6 +190,11 @@ int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
 #define NVERB 3
 static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
+
+#ifdef ALLOW_2DALIGN
+static int regtime = 3 ;
+static int regdoit = 0 ;
+#endif
 
 /************ global data for reading data *****************/
 
@@ -245,6 +268,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "" , "Verbose" , FALSE ) ;
    PLUTO_add_string( plint , "Verbose" , NVERB , VERB_strings , verbose ) ;
 
+#ifdef ALLOW_2DALIGN
+   /*-- fifth line of input: 2D alignment mode --*/
+
+   PLUTO_add_option( plint , "" , "Align-2D" , FALSE ) ;
+   PLUTO_add_number( plint , "Align-2D" , 0,59,0 , regtime , FALSE ) ;
+#endif
+
    /***** Register a work process *****/
 
    PLUTO_register_workproc( RT_worker , NULL ) ;
@@ -270,6 +300,10 @@ char * RT_main( PLUGIN_interface * plint )
              "*********************"  ;
 
    /** loop over input from AFNI **/
+
+#ifdef ALLOW_2DALIGN
+   regdoit = 0 ;
+#endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
 
@@ -299,6 +333,13 @@ char * RT_main( PLUGIN_interface * plint )
          verbose = PLUTO_string_index( str , NVERB , VERB_strings ) ;
          continue ;
       }
+
+#ifdef ALLOW_2DALIGN
+      if( strcmp(tag,"Align-2D") == 0 ){
+         regtime = PLUTO_get_number(plint) ;
+         regdoit = 1 ;
+      }
+#endif
 
       /** How the hell did this happen? **/
 
@@ -884,6 +925,12 @@ RT_input * new_RT_input(void)
 
    rtin->func_func   = FUNC_funcs[rtin->func_code] ; /* where to evaluate */
 
+#ifdef ALLOW_2DALIGN
+   rtin->reg_base_index = (regdoit) ? regtime : -1 ;
+   rtin->reg_dset       = NULL ;
+   rtin->reg_basis      = NULL :
+#endif
+
    /** record the times for later reportage **/
 
    rtin->elapsed = PLUTO_elapsed_time() ;  rtin->last_elapsed = rtin->elapsed ;
@@ -1398,6 +1445,21 @@ void RT_start_dataset( RT_input * rtin )
 
    DSET_lock(rtin->dset) ;  /* 20 Mar 1998 */
 
+   /*---- Make a dataset for registration, if need be ----*/
+
+#ifdef ALLOW_2DALIGN
+   if( rtin->reg_base_index >= 0 &&
+       ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
+
+      rtin->reg_dset = EDIT_empty_copy( rtin->dset ) ;
+
+      strcat(npr,"%reg") ;
+      EDIT_dset_items( rtin->reg_dset , ADN_prefix , npr , ADN_none ) ;
+
+      DSET_lock(rtin->reg_dset) ;
+   }
+#endif
+
    /***********************************************/
    /** now prepare space for incoming image data **/
 
@@ -1444,7 +1506,7 @@ void RT_start_dataset( RT_input * rtin )
          mri_free( ibb ) ;                          /* free buffered image */
          RT_process_image( rtin ) ;                 /* send into dataset   */
       }
-      FREE_IMARR( rtin->bufar ) ;  /* throw this away like a used Kleenex */
+      FREE_IMARR( rtin->bufar ) ;   /* throw this away like a used Kleenex */
 
       update = upsave ;
 

@@ -1,0 +1,32 @@
+/******************************************************************************
+  This software is Copyright 1994-8 by
+
+            Medical College of Wisconsin
+            8701 Watertown Plank Road
+            Milwaukee, WI 53226
+
+  License is granted to use this program for nonprofit research purposes only.
+  Clinical applications are not recommended, and this software has not been
+  evaluated by the United States FDA for any clinical use.
+
+  The Medical College of Wisconsin makes no warranty of usefulness of this
+  program for any particular purpose, and does not assume any liability for
+  damages, incidental or otherwise, caused by this program.
+
+  The redistribution of this program for a fee, or the derivation of for-profit
+  works from this program is not allowed.
+
+  If you are using the pre-compiled Linux binaries, the Motif library object
+  code is copyrighted by Red Hat Software, Inc.
+
+  The CDF library routines were developed at the University of Texas
+  M.D. Anderson Cancer Center.  See the file "cdflib.txt" for more details.
+
+  Some of the routines in "mri_stats.c" are from the StatLib repository at
+  Carnegie Mellon: http://lib.stat.cmu.edu/.
+
+  Some of the routines in "mcw_glob.c" are derived from the Berkeley Unix
+  distribution.
+
+  The popup hint functions in "LiteClue.c" are from Computer Generation, Inc.
+*******************************************************************************/

@@ -39,8 +39,10 @@ This program lets you compute the average over a ROI of all voxel values
 from an input dataset.  The ROI is defined by a mask dataset.  The average
 value is computed for each sub-brick in the input, so you can use this to
 create an average time series.  The output is written to stdout -- it can
-be redirected (using '>') into a file.  For a little more information, try
-"3dmaskave -help".
+be redirected (using '>') into a file.  For more information, try
+"3dmaskave -help".  An alternative to this command-line program is the
+similar plugin "ROI Average", which you can use interactively from
+within AFNI.
 
 Making a Dump File: plugin "3D Dump98" [author: Z Saad]
 -------------------------------------------------------

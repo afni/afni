@@ -36,6 +36,13 @@ void REG_command_line(void) ;
 
 /******* the program! *****/
 
+/*-- 07 Apr 1998: for testing the new mri_2dalign_* routines --*/
+
+#undef USE_2DALIGN
+#ifdef USE_2DALIGN
+#  undef ALLOW_DFTIME
+#endif
+
 int main( int argc , char *argv[] )
 {
    MRI_IMAGE * qim , * tim ;
@@ -69,9 +76,13 @@ int main( int argc , char *argv[] )
 
       default:
       case ALIGN_DFSPACE_TYPE:
+#ifdef USE_2DALIGN
+         regar = mri_2dalign_many( RG_baseimage,RG_imwt, RG_imseq, dx,dy,phi ) ;
+#else
          if( ! RG_skip_output ) RG_methcode |= ALIGN_REGISTER_CODE ;
          if(   RG_bilinear    ) RG_methcode |= ALIGN_BILINEAR_CODE ;
          regar = mri_align_dfspace( RG_baseimage,RG_imwt, RG_imseq, RG_methcode, dx,dy,phi ) ;
+#endif
       break ;
 
 #ifdef ALLOW_DFTIME
@@ -363,12 +374,20 @@ void REG_command_line(void)
          fsig   = strtod( Argv[++Iarg] , NULL ) * 0.42466090 ;
          fdxy   = strtod( Argv[++Iarg] , NULL ) ;
          fdph   = strtod( Argv[++Iarg] , NULL ) ;
+#ifdef USE_2DALIGN
+         mri_2dalign_params( maxite,sig,dxy,dph,fsig,fdxy,fdph ) ;
+#else
          mri_align_params( maxite,sig,dxy,dph,fsig,fdxy,fdph ) ;
+#endif
          Iarg++ ; continue ;
       }
 
       if( strncmp(Argv[Iarg],"-nofine",6) == 0 ){
+#ifdef USE_2DALIGN
+         mri_2dalign_params( 0 , 0.0,0.0,0.0 , 0.0,0.0,0.0 ) ;
+#else
          mri_align_params( 0 , 0.0,0.0,0.0 , 0.0,0.0,0.0 ) ;
+#endif
          Iarg++ ; continue ;
       }
 
@@ -377,7 +396,11 @@ void REG_command_line(void)
          fsig = strtod( Argv[++Iarg] , NULL ) * 0.42466090 ;
          fdxy = strtod( Argv[++Iarg] , NULL ) ;
          fdph = strtod( Argv[++Iarg] , NULL ) ;
+#ifdef USE_2DALIGN
+         mri_2dalign_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;
+#else
          mri_align_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;
+#endif
          Iarg++ ; continue ;
       }
 

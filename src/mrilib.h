@@ -478,6 +478,23 @@ extern MRI_IMARR * mri_align_dftime( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
 
 extern void mri_align_params( int,float,float,float,float,float,float ) ;
 
+/*---------------------------------------------------------------------*/
+/* 07 April 1998: routines for one-at-a-time alignment (mri_2dalign.c) */
+
+typedef struct {
+   MRI_IMARR * fitim , * fine_fitim ;
+   double * chol_fitim , * chol_fine_fitim ;
+} MRI_2dalign_basis ;
+
+extern void mri_2dalign_params( int,float,float,float,float,float,float ) ;
+extern MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * , MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_2dalign_one( MRI_2dalign_basis * , MRI_IMAGE * ,
+                                    float * , float * , float * ) ;
+extern MRI_IMARR * mri_2dalign_many( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
+                                     float * , float * , float * ) ;
+extern void mri_2dalign_cleanup( MRI_2dalign_basis * ) ;
+/*---------------------------------------------------------------------*/
+
 /*** routine to flip 2D images around ***/
 
 #define MRI_ROT_0   1  /* codes for various rotations */
