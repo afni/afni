@@ -31,6 +31,8 @@ typedef enum
     E_SMAP_AVE,     E_SMAP_COUNT,
     E_SMAP_MIN,     E_SMAP_MAX,
     E_SMAP_MAX_ABS, E_SMAP_SEG_VALS,
+    /* sorted ones: */
+    E_SMAP_MEDIAN,  E_SMAP_MODE,
     E_SMAP_FINAL			/* do not change FINAL */
 } smap_nums;
 
@@ -40,6 +42,13 @@ typedef struct
     int   index;
     float value;
 } oob_t;
+
+typedef struct
+{
+    int     nused;
+    int     nalloc;
+    float * list;
+} float_list;
 
 
 /* user options */
@@ -160,11 +169,19 @@ int smd_map_type      ( char * map_str );
 int surf_ave_radius   ( float * rad, SUMA_SurfaceObject * so, int disp );
 int usage             ( char * prog, int level );
 int v2s_adjust_endpts ( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn );
+int v2s_map_needs_sort( int map );
 int validate_datasets ( opts_t * opts, param_t * p );
 int validate_options  ( opts_t * opts, param_t * p );
 int validate_surface  ( opts_t * opts, param_t * p );
 int vals_over_steps   ( int map );
 int write_output      ( smap_opts_t * sopt, param_t * p, node_list_t * N );
+
+
+/* float list functions */
+int float_list_alloc       ( float_list * f, int size, int truncate );
+int float_list_comp_mode   ( float_list * f, float * mode, int * nvals );
+int float_list_slow_sort   ( float_list * f );
+
 
 int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max );
 int set_3dmm_bounds   ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max);

@@ -1,5 +1,5 @@
 
-#define VERSION "version  4.1 (February 10, 2004)"
+#define VERSION "version  4.2 (February 18, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -156,6 +156,10 @@ static char g_history[] =
     "4.1  February 10, 2004  [rickr]\n"
     "  - output a little more debug info for !AnatCorrect case\n"
     "  - small updates to help examples\n"
+    "\n"
+    "4.2  February 18, 2004  [rickr]\n"
+    "  - added functionality for mapping functions that require sorting\n"
+    "  - added mapping functions: median and mode\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -180,7 +184,8 @@ SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
 
 /* this must match smap_nums enum */
 char * g_smap_names[] = { "none", "mask", "midpoint", "mask2", "ave",
-                          "count", "min", "max", "max_abs", "seg_vals" };
+                          "count", "min", "max", "max_abs", "seg_vals",
+			  "median", "mode" };
 
 
 /* --------------------  AFNI prototype(s)  -------------------- */
@@ -257,6 +262,8 @@ ENTRY("write_output");
 	case E_SMAP_MIDPT:
 	case E_SMAP_MIN:
 	case E_SMAP_SEG_VALS:
+	case E_SMAP_MEDIAN:
+	case E_SMAP_MODE:
 	{
 	    dump_surf_3dt( sopt, p, N );
 	    break;
@@ -290,7 +297,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     range_3dmm     r3mm;
     THD_ivec3      i3;				/* for coordinates */
     float          dist, min_dist, max_dist;
-    int            sub, subs, nindex, findex, index1d;
+    int            sub, subs, nindex, findex = 0, index1d;
     int            oobc, oomc, index, max_index;
 
 ENTRY("dump_surf_3dt");
@@ -1034,6 +1041,8 @@ ENTRY("set_smap_opts");
 	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	case E_SMAP_SEG_VALS:
+	case E_SMAP_MEDIAN:
+	case E_SMAP_MODE:
 	    nsurf = 2;
 	    break;
 
@@ -1644,6 +1653,8 @@ ENTRY("check_map_func");
 	case E_SMAP_MIN:
 	case E_SMAP_MIDPT:
 	case E_SMAP_SEG_VALS:
+	case E_SMAP_MEDIAN:
+	case E_SMAP_MODE:
 	    break;
     }
 
@@ -1816,6 +1827,13 @@ ENTRY("usage");
 	    "a mapping function and relevant options.  The mapping function\n"
 	    "will act as a filter over the values in the AFNI volume.\n"
             "\n"
+            "Note that an alternative to using a second surface with the\n"
+            "'-surf_B' option is to define the second surface by using the\n"
+	    "normals from the first surface.  By default, the second surface\n"
+	    "would be defined at a distance of 1mm along the normals, but the\n"
+	    "user may modify the applied distance (and direction).  See the\n"
+	    "'-use_norms' and '-norm_len' options for more details.\n"
+            "\n"
             "For each pair of corresponding surface nodes, let NA be the node\n"
             "on surface A (such as a white/grey boundary) and NB be the\n"
             "corresponding node on surface B (such as a pial surface).  The\n"
@@ -1850,7 +1868,9 @@ ENTRY("usage");
 	    "                segment\n"
 	    "    mask      : output the voxel value for the trivial case of a\n"
 	    "                segment - defined by a single surface point\n"
+	    "    median    : output the median value from the segment\n"
 	    "    midpoint  : output the dataset value at the segment midpoint\n"
+	    "    mode      : output the mode of the values along the segment\n"
 	    "    max       : output the maximum volume value over the segment\n"
 	    "    max_abs   : output the dataset value with max abs over seg\n"
 	    "    min       : output the minimum volume value over the segment\n"
@@ -2020,8 +2040,12 @@ ENTRY("usage");
 	    "\n"
 	    "        This is used to specify which surface(s) will be used by\n"
 	    "        the program.  The '-surf_A' parameter is required, as it\n"
-	    "        specifies the first surface, where '-surf_B' is used to\n"
-	    "        specify a second surface, if the user wishes.\n"
+	    "        specifies the first surface, whereas since '-surf_B' is\n"
+	    "        used to specify an optional second surface, it is not\n"
+	    "        required.\n"
+	    "\n"
+	    "        Note that any need for '-surf_B' may be fulfilled using\n"
+	    "        the '-use_norms' option.\n"
 	    "\n"
 	    "        Note that any name provided must be in the spec file,\n"
 	    "        uniquely matching the name of a surface node file (such\n"
@@ -2073,11 +2097,17 @@ ENTRY("usage");
 	    "          max_abs  : Output the dataset value with the maximum\n"
 	    "                     absolute value along the segment.\n"
 	    "\n"
+	    "          median   : Output the median of the dataset values\n"
+	    "                     along the connecting segment.\n"
+	    "\n"
 	    "          midpoint : Output the dataset value with xyz\n"
 	    "                     coordinates at the midpoint of the nodes.\n"
 	    "\n"
 	    "          min      : Output the minimum dataset value along the\n"
 	    "                     connecting segment.\n"
+	    "\n"
+	    "          mode     : Output the mode of the dataset values along\n"
+	    "                     the connecting segment.\n"
 	    "\n"
 	    "          seg_vals : Output all of the dataset values along the\n"
 	    "                     connecting segment.  Here, only sub-brick\n"
@@ -2385,7 +2415,11 @@ ENTRY("usage");
 	    "\n"
 	    "              For filters without a well-defined source (such as\n"
 	    "              average or seg_vals), the 1dindex will come from\n"
-	    "              the first point of the corresponding segment.\n"
+	    "              the first point on the corresponding segment.\n"
+	    "\n"
+	    "              Currently, for filters that require sorting the\n"
+	    "              segment values (like median and mode), the 1dindex\n"
+	    "              will come from the first point on the segment.\n"
 	    "\n"
 	    "    i j k   : the i j k indices matching 1dindex\n"
 	    "\n"
@@ -2596,6 +2630,8 @@ ENTRY("v2s_adjust_endpts");
 	case E_SMAP_MIN:
 	case E_SMAP_MASK:
 	case E_SMAP_SEG_VALS:
+	case E_SMAP_MEDIAN:
+	case E_SMAP_MODE:
 	    break;
 
 	case E_SMAP_MIDPT:
@@ -2637,8 +2673,10 @@ int vals_over_steps( int map )
 float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
  		        int * findex )
 {
-    double tmp, comp = 0.0;
-    int    count;
+    static float_list flist = { 0, 0, NULL };    /* for sorting results */
+    double            tmp, comp = 0.0;
+    float             fval;
+    int               count;
 
 ENTRY("v2s_apply_filter");
 
@@ -2651,6 +2689,17 @@ ENTRY("v2s_apply_filter");
     
     if ( rr->ims.num <= 0 )
 	RETURN(0.0);
+
+    /* if sorting is required for resutls, do it now */
+    if ( v2s_map_needs_sort( sopt->map ) )
+    {
+	if ( float_list_alloc( &flist, rr->ims.num, 0 ) != 0 )
+	    RETURN(0.0);
+	for ( count = 0; count < rr->ims.num; count++ )
+	    flist.list[count] = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+	flist.nused = rr->ims.num;
+	float_list_slow_sort( &flist );
+    }
 
     switch ( sopt->map )
     {
@@ -2722,10 +2771,163 @@ ENTRY("v2s_apply_filter");
 	    if ( findex ) *findex = 0;
 	    comp = MRI_FLOAT_PTR(rr->ims.imarr[index])[0];
 	    break;
+
+	case E_SMAP_MEDIAN:
+	    count = flist.nused >> 1;
+	    if ( (flist.nused & 1) || (count == 0) )
+		comp = flist.list[count];
+	    else
+		comp = (flist.list[count-1] + flist.list[count]) / 2;
+	    if ( findex ) *findex = 0;
+	    break;
+
+	case E_SMAP_MODE:
+	    float_list_comp_mode(&flist, &fval, &count);
+	    comp = fval;
+	    if ( findex ) *findex = 0;
+	    break;
     }
 
     RETURN((float)comp);
 }
+
+
+/*----------------------------------------------------------------------
+ * v2s_map_needs_sort		- does this map function require sorting?
+ *
+ * return  1 on true
+ *         0 on false
+ *----------------------------------------------------------------------
+*/
+int v2s_map_needs_sort( int map )
+{
+    if ( (map == E_SMAP_MEDIAN) || (map == E_SMAP_MODE) )
+	return 1;
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * float_list_comp_mode		- compute the mode of the list
+ *
+ * return   0 on success
+ *        < 0 on error
+ *----------------------------------------------------------------------
+*/
+int float_list_comp_mode( float_list * f, float * mode, int * nvals )
+{
+    float fcur;
+    int   ncur, c;
+
+ENTRY("float_list_comp_mode");
+
+    /* init default results */
+    *nvals = ncur = 1;
+    *mode  = fcur = f->list[0];
+
+    for ( c = 1; c < f->nused; c++ )
+    {
+	if ( f->list[c] == fcur )
+	    ncur ++;
+	else			    /* found a new entry to count   */
+	{
+	    if ( ncur > *nvals )     /* keep track of any new winner */
+	    {
+		*mode  = fcur;
+		*nvals = ncur;
+	    }
+
+	    fcur = f->list[c];
+	    ncur = 1;
+	}
+    }
+
+    if ( ncur > *nvals )     /* keep track of any new winner */
+    {
+	*mode  = fcur;
+	*nvals = ncur;
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * float_list_slow_sort		- sort (small) float list
+ *
+ * return   0 on success
+ *        < 0 on error
+ *----------------------------------------------------------------------
+*/
+int float_list_slow_sort( float_list * f )
+{
+    float * list, save;
+    int     c0, c1, sindex;
+
+ENTRY("float_list_slow_sort");
+
+    list = f->list;  /* for any little speed gain */
+
+    for ( c0 = 0; c0 < f->nused-1; c0++ )
+    {
+	sindex = c0;
+	save   = list[c0];
+
+	/* find smallest remaining */
+	for ( c1 = c0+1; c1 < f->nused; c1++ )
+	    if ( list[c1] < save )
+	    {
+		sindex = c1;
+		save   = list[sindex];
+	    }
+
+	/* swap if smaller */
+	if ( sindex > c0 )
+	{
+	    list[sindex] = list[c0];
+	    list[c0]     = save;
+	}
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * float_list_alloc		- verify float list memory
+ *
+ * If truncate, realloc down to necessary size.
+ *
+ * return   0 on success
+ *        < 0 on error
+ *----------------------------------------------------------------------
+*/
+int float_list_alloc( float_list * f, int size, int truncate )
+{
+    THD_fvec3 f3_diff;
+    float     dist, factor;
+
+ENTRY("float_list_alloc");
+
+    if ( (f->nalloc < size) ||
+	 (truncate && (f->nalloc > size)) )
+    {
+	f->list = (float *)realloc(f->list, size * sizeof(float));
+	if ( ! f->list )
+	{
+	    fprintf(stderr,"** float_list_alloc: failed for %d floats\n", size);
+	    RETURN(-2);
+	}
+	f->nalloc = size;
+
+	if ( truncate && (f->nused > f->nalloc) )
+	    f->nused = f->nalloc;
+    }
+
+    RETURN(0);
+}
+
 
 /*---------------------------------------------------------------------------
  * directed_dist  - travel from pold, along dir, a distance of dist
