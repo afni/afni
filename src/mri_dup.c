@@ -66,7 +66,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
       return newim ;
    }
 
-   /*-- rgb-valued image: do each color separately --*/
+   /*-- rgb-valued image: do each color separately as a byte image --*/
 
    if( imin->kind == MRI_rgb ){
       MRI_IMARR *imtriple ; MRI_IMAGE *rim, *gim, *bim, *tim ;
@@ -394,10 +394,13 @@ static void upsample_1by3( int nar, byte *bar , byte *bout )
    int ii ;
    if( nar < 1 || bar == NULL || bout == NULL ) return ;
 
+   /* Note that 85/256 is about 1/3 and 171/256 is about 2/3;  */
+   /* by using this trick, we avoid division and so are faster */
+
    for( ii=0 ; ii < nar-1 ; ii++ ){
       bout[3*ii]   = bar[ii] ;
-      bout[3*ii+1] = (2*bar[ii]+  bar[ii+1]) / 3 ;
-      bout[3*ii+2] = (  bar[ii]+2*bar[ii+1]) / 3 ;
+      bout[3*ii+1] = (171*bar[ii]+ 85*bar[ii+1]) >> 8 ;
+      bout[3*ii+2] = ( 85*bar[ii]+171*bar[ii+1]) >> 8 ;
    }
    bout[3*nar-1] = bout[3*nar-2] = bout[3*nar-3] = bar[nar-1] ;
 }
