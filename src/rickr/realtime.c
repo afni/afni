@@ -382,7 +382,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     if ( ac->zorder )
 	sprintf( tbuf, "ZORDER %s", ac->zorder);
     else
-	strcpy( tbuf, "ZORDER alt" );
+	strcpy( tbuf, "ZORDER seq" );	/* back to seq for now  [v3.3 rickr] */
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* volume time step */
@@ -473,26 +473,54 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 	    sprintf( tbuf+strlen(tbuf), " pinnum=%d", nt );
 
 	ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
 
+    /* pass along any user specified realtime command(s)    v3.2 [rickr] */
+    if ( ac->param->opts.rt_list.str )
+    {
+	string_list * list = &ac->param->opts.rt_list;
+	char        * cp;
+	int           ns;
+
+	for ( ns = 0; ns < list->nused; ns++ )
+	{
+	    strncpy( tbuf, list->str[ns], 256 );
+
+	    /* sneaky... change any "\n" pairs to '\n' */
+	    for ( cp = tbuf; cp < (tbuf + strlen(tbuf) - 1); cp++ )
+		if ( cp[0] == '\\' && cp[1] == 'n' )
+		{
+		    cp[0] = ' ';
+		    cp[1] = '\n';
+		    cp++;
+		}
+
+	    ART_ADD_TO_BUF( ac->buf, tbuf );
+	}
     }
 
     /* pass along any user specified drive command(s) */
-    if ( ac->param->opts.drive_cmd != NULL )
+    if ( ac->param->opts.drive_list.str )
     {
-	char * cp;
+	string_list * list = &ac->param->opts.drive_list;
+	char        * cp;
+	int           ns;
 
-	sprintf( tbuf, "DRIVE_AFNI %s", ac->param->opts.drive_cmd );
+	for ( ns = 0; ns < list->nused; ns++ )
+	{
+	    sprintf( tbuf, "DRIVE_AFNI %s", list->str[ns] );
 
-	/* sneaky... change any "\n" pairs to '\n' */
-	for ( cp = tbuf; cp < (tbuf + strlen(tbuf) - 1); cp++ )
-	    if ( cp[0] == '\\' && cp[1] == 'n' )
-	    {
-		cp[0] = ' ';
-		cp[1] = '\n';
-		cp++;
-	    }
+	    /* sneaky... change any "\n" pairs to '\n' */
+	    for ( cp = tbuf; cp < (tbuf + strlen(tbuf) - 1); cp++ )
+		if ( cp[0] == '\\' && cp[1] == 'n' )
+		{
+		    cp[0] = ' ';
+		    cp[1] = '\n';
+		    cp++;
+		}
 
-	ART_ADD_TO_BUF( ac->buf, tbuf );
+	    ART_ADD_TO_BUF( ac->buf, tbuf );
+	}
     }
 
     /* NOTE interface - add a note to the dataset: the actual Imon command */

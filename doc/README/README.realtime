@@ -153,6 +153,31 @@ XYZAXES xcode ycode zcode
  *This command is required, so that AFNI knows the orientation of the
   slices in space.
 
+GRAPH_XRANGE x_range
+  Specifies the bounding range of the horizontal axis on the 3D motion
+  correction graph window (which is measured in repetitions).  The actual
+  range will be [0, x_range].  E.g. "GRAPH_XRANGE 120".
+  
+GRAPH_YRANGE y_range
+  Specifies the bounding range of the vertical axis on the 3D motion
+  correction graph window (the units will vary).  The actual range will
+  be [-y_range, +y_range].  E.g. "GRAPH_YRANGE 2.3".
+
+  If both GRAPH_XRANGE and GRAPH_YRANGE are given, then no final (scaled)
+  motion correction graph will appear.
+  
+GRAPH_EXPR expression
+  Allows the user to replace the 6 default 3D motion correction graphs with a
+  single graph, where the 'expression' is evaluated at each step based on the
+  6 motion parameters at that step.  The variables 'a' through 'f' are used
+  to represent dx, dy, dz, roll, pitch and yaw, respectively.
+
+  E.g. GRAPH_EXPR sqrt((a*a+b*b+c*c+d*d+e*e+f*f)/6)
+  
+  See '3dcalc -help' for more information on expressions.
+
+  ** Note that spaces should NOT be used in the expression.
+
 NUM_CHAN nc
   Specifies the number of independent image "channels" that will be
   sent to AFNI.  Each channel goes into a separate dataset.  Channel
