@@ -3861,7 +3861,7 @@ ENTRY("calculate_results") ;
 
     mmax = 0.0f ;
     for( j=0 ; j < p ; j++ ){   /* compute mean of each column */
-      sum = 0.0l ;
+      sum = 0.0 ;
       for( i=0 ; i < X.rows ; i++ ) sum += X.elts[i][j] ;
       Xcol_mean[j] = (float)(sum/X.rows) ;
       if( Xcol_inbase[j] && fabs(Xcol_mean[j]) > mmax )  /* find largest */
@@ -3880,10 +3880,11 @@ ENTRY("calculate_results") ;
     double esum , sum ;
     int nn=xdata.rows , mm=xdata.cols , ii,jj,kk ;
     char *www = "\0" ;
-    esum = 0.0l ;
+    fprintf(stderr,"++ Matrix inverse average error = ") ;
+    esum = 0.0 ;
     for( ii=0 ; ii < mm ; ii++ ){
       for( jj=0 ; jj < mm ; jj++ ){
-        sum = (ii==jj) ? -1.0l : 0.0l ;
+        sum = (ii==jj) ? -1.0 : 0.0 ;
         for( kk=0 ; kk < nn ; kk++ )
           sum += xtxinvxt_full.elts[ii][kk]*xdata.elts[kk][jj] ;
         esum += fabs(sum) ;
@@ -3891,7 +3892,7 @@ ENTRY("calculate_results") ;
     }
     esum /= (mm*mm) ;
     if( esum > 1.e-3 ) www = " ** WARNING!!! **" ;
-    fprintf(stderr,"++ Matrix inverse average error = %g %s\n",esum,www) ;
+    fprintf(stderr,"%g %s\n",esum,www) ;
   }
 
   /*-- 19 Aug 2004: plot matrix pseudoinverse as well --*/
@@ -5560,12 +5561,9 @@ int main
   }
 #ifndef FLOATIZE
   if( proc_numjob == 1 && verb ){ /* 16 Jan 2004: print operation count */
-    double fv = get_matrix_flops() ;
-    if( proc_use_jobs == 1 )
-      fprintf(stderr,"++ Flops=%g\n",fv) ;
-    else if( fv > 1000.0 )
-      fprintf(stderr,"++ About %s arithmetic operations carried out\n",
-              approximate_number_string(fv) );
+    double fv=get_matrix_flops() , fd=get_matrix_dotlen() ;
+    if( fv > 0.0 && fd > 0.0 )
+      fprintf(stderr,"++ #Flops=%g  Average Dot Product=%g\n",fv,fd) ;
   }
 #endif
 
@@ -6901,7 +6899,7 @@ static float basis_spmg2( float x, float a, float b, float c, void *q )
 ----------------------------------------------------------------------------*/
 
 #undef  TPEAK4
-#define TPEAK4(TT) ((TT)/(1.0l-exp(-0.25l*(TT))))
+#define TPEAK4(TT) ((TT)/(1.0-exp(-0.25*(TT))))
 
 static float basis_block_hrf4( float tt , float TT )
 {
@@ -6911,12 +6909,12 @@ static float basis_block_hrf4( float tt , float TT )
   if( tt <= 0.0f || tt >= (TT+15.0f) ) return 0.0f ;
 
   t = tt ; L = TT ; t4 = exp(0.4e1 - t);
-  if( t < L ){ L = t ; t16 = 54.5982l ; }
-  else       { t16 = exp(4.0l-t+L) ;    }
+  if( t < L ){ L = t ; t16 = 54.5982 ; }
+  else       { t16 = exp(4.0-t+L) ;    }
 
   t1 = t * t;
   t2 = t1 * t1;
-  t4 = exp(4.0l - t);
+  t4 = exp(4.0 - t);
   t12 = t1 * t;
   t26 = t16 * L;
   t34 = L * L;
@@ -6954,7 +6952,7 @@ static float basis_block4( float t, float T, float peak, float junk, void *q )
 ----------------------------------------------------------------------------*/
 
 #undef  TPEAK5
-#define TPEAK5(TT) ((TT)/(1.0l-exp(-0.2l*(TT))))
+#define TPEAK5(TT) ((TT)/(1.0-exp(-0.2*(TT))))
 
 static float basis_block_hrf5( float tt, float TT )
 {
@@ -6968,9 +6966,9 @@ static float basis_block_hrf5( float tt, float TT )
 
 #if 1
    t2 = exp(-t) ;
-   if( t <= T ){ t3 = t ; t4 = 1.0l/t2 ; }
+   if( t <= T ){ t3 = t ; t4 = 1.0/t2 ; }
    else        { t3 = T ; t4 = exp(T)  ; }
-   t2 *= 148.413l ;    /* 148.413 = exp(5) */
+   t2 *= 148.413 ;    /* 148.413 = exp(5) */
 #else
    t2 = exp(0.5e1 - t);
    t3 = (t <= T ? t : T);
@@ -7067,7 +7065,7 @@ static float basis_expr( float x, float bot, float top, float dtinv, void *q )
    if( x < bot || x > top ) return 0.0f ;
    atoz[ITT] = x ;                            /* t = true time from stim */
    atoz[IXX] = (x-bot)*dtinv ;                /* x = scaled to [0,1] */
-   atoz[IZZ] = 2.0l*atoz[IXX] - 1.0l ;        /* z = scaled to [-1,1] */
+   atoz[IZZ] = 2.0*atoz[IXX] - 1.0 ;          /* z = scaled to [-1,1] */
    val = PARSER_evaluate_one( pc , atoz ) ;
    return (float)val ;
 }
@@ -7649,7 +7647,7 @@ float baseline_mean( vector coef )  /* 31 Aug 2004 */
    register int jj ;
    register double sum ;
 
-   sum = 0.0l ;
+   sum = 0.0 ;
    for( jj=0 ; jj < nParam ; jj++ )
      if( Xcol_inbase[jj] == 2 ) sum += coef.elts[jj] * Xcol_mean[jj] ;
 
@@ -7680,18 +7678,18 @@ floatpair evaluate_irc( basis_irc *birc , vector coef ,
    pb = birc->pbot ;
    ww = birc->ww ;
 
-   asum = 0.0l ;
+   asum = 0.0 ;
    for( ii=0 ; ii < np ; ii++ )
      asum += coef.elts[pb+ii] * ww[ii] ;
 
-   bsum = 0.0l ;
+   bsum = 0.0 ;
    for( ii=0 ; ii < np ; ii++ )
      for( jj=0 ; jj < np ; jj++ )
        bsum += cvar.elts[pb+ii][pb+jj] * ww[ii] * ww[jj] ;
 
    bsum *= mse ;  /* variance estimate */
 
-   if( bsum > 0.0l ) vt.b = asum / sqrt(bsum) ;  /* t statistic */
+   if( bsum > 0.0 ) vt.b = asum / sqrt(bsum) ;  /* t statistic */
 
    vt.a = (float)(asum * birc->scale_fac) ;
    if( birc->denom_flag && denom_BASELINE ){
