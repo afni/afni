@@ -2740,11 +2740,11 @@ int main (int argc, char *argv[])
    writeFile = NOPE;
    fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, surfFileNm);
    if ( SUMA_iswordin(spec_info[1].type, "FreeSurfer") ==1) 
-      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_FREE_SURFER, SUMA_ASCII);
+      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
    else if ( SUMA_iswordin(spec_info[1].type, "Ply") ==1) 
-      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED);
+      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
    else if ( SUMA_iswordin(spec_info[1].type, "Vec") ==1) 
-      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_VEC, SUMA_ASCII);
+      writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_VEC, SUMA_ASCII, NULL);
    else {
       fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n   If you would like this option to be added, please contact\n   ziad@nih.gov or brenna.argall@nih.gov.\n\n", spec_info[1].type); 
       exit (0);
@@ -3532,11 +3532,11 @@ int main (int argc, char *argv[])
          fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, spec_info[i_surf].fileToRead);
          writeFile = NOPE;
          if ( SUMA_iswordin(spec_info[i_surf].type, "FreeSurfer") ==1) 
-            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_FREE_SURFER, SUMA_ASCII);
+            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
          else if ( SUMA_iswordin(spec_info[i_surf].type, "Ply") ==1) 
-            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_PLY, SUMA_FF_NOT_SPECIFIED);
+            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
          else if ( SUMA_iswordin(spec_info[i_surf].type, "Vec") ==1) 
-            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_VEC, SUMA_ASCII);
+            writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_VEC, SUMA_ASCII, NULL);
          else {
             fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n   If you would like this option to be added, please contact\n   ziad@nih.gov or brenna.argall@nih.gov.\n\n", spec_info[i_surf].type); 
             exit (0);

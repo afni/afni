@@ -73,6 +73,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
       NI_set_attribute (nel, "idcode", thisidcode);
    }
    
+   
    /* set the idcodes of the parents */
    if (MeshParent_idcode) {
       NI_set_attribute (nel, "MeshParent_idcode", MeshParent_idcode);
@@ -1040,6 +1041,7 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    
    /* make sure that this dataset is unique */
    if (!idcode) { /* No id is given yet */
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Using filename %s to create IDcode.\n", FuncName, filename); 
       idcode = UNIQ_hashcode(filename);   /* form one from the filename */
    }
    
