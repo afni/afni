@@ -169,6 +169,12 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  Z/z: Zoom in/out\n\n");
    SS = SUMA_StringAppend (SS, 
+      "\t  [: Show/Hide left hemisphere.\n"
+      "\t  ]: Show/Hide right hemisphere.\n"
+      "\t     Window title shows which \n"
+      "\t     hemispheres are shown :LR:\n"
+      "\t     :-R: :L-: or :--:\n\n");
+   SS = SUMA_StringAppend (SS, 
       "\t  *: Smooth node colors by averaging with neighbors.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  @: Compute curvatures along principal directions \n"

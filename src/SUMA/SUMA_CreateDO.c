@@ -729,13 +729,15 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    SUMA_ROI_DATUM *ROId=NULL;
    NI_element **nelv = NULL;
    SUMA_STANDARD_CMAP mapcode;
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
    SUMA_Boolean Unique = NOPE, LocalHead = NOPE;
             
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    SUMA_LH("Called");
    /* select the color map */
-   mapcode = SUMA_CMAP_ROI128;
+   mapcode = SUMA_CMAP_ROI64;
    
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
@@ -832,6 +834,23 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                                  "color map. Reverting\n"
                                  "to FillColors");
                   D_ROI->ColorByLabel = NOPE;
+               }
+               /* if connected to AFNI, send color map */
+               if (SUMAg_CF->Connected && SUMAg_CF->ROI2afni) {
+                  list = SUMA_CreateList();
+                  ED = SUMA_InitializeEngineListData (SE_SendColorMapToAfni);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                         SEF_i, (void*)&mapcode, 
+                                                         SES_SumaWidget, NULL, NOPE, 
+                                                         SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                     SUMA_RETURN(NOPE);
+                  }
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     SUMA_RETURN(NOPE);
+                  }
+                  
                }
             }
          } 
@@ -1022,9 +1041,14 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    } 
    
    if (!dlist_size(ROIPlaneList)) {
+      /* 
       SUMA_SLP_Err(  "Flow error\n"
                      "You are not expected\n"
                      "to land here." );
+      Do not complain, you can get here if you
+      are connected to SUMA. 
+      Aint nothing wrong with this.
+      */
       N_NewNode = 0;
       ivect = NULL; 
       rvect = NULL;
