@@ -9271,7 +9271,7 @@ ENTRY("plot_image_surface") ;
    free(x); free(y) ; mri_free(fim);
 
    plotpak_set( 0.0,1.0 , 0.0,1.0 , 0.0,1.0 , 0.0,1.0 , 1 ) ;
-   sprintf(str,"\\theta=%.0f\\degree   \\phi=%.0f\\degree",theta,phi) ;
+   sprintf(str,"\\theta=%.0f\\degree \\phi=%.0f\\degree",theta,phi) ;
    plotpak_pwritf( 1.099 , 0.97 , str, 19 , 0 , 1 ) ;
 
    mp = get_active_memplot() ; RETURN( mp );

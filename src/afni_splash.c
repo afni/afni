@@ -382,8 +382,9 @@ ENTRY("SPLASH_imseq_getim") ;
            char *sf = AFNI_get_date_trivia() ;
            int   nn = strlen(sf) , ss=28 ;
            if( nn > 37 ) ss = (int)(28.0*37.0/nn) ;
-           set_color_memplot(1.0,1.0,0.0) ;           /* yellow */
+           set_color_memplot(1.0,1.0,0.7) ;           /* whitish */
            plotpak_pwritf( 0.5,0.089 , "Today is:"  , 30 , 0 , 0 ) ;
+           set_color_memplot(1.0,1.0,0.1) ;           /* yellow */
            plotpak_pwritf( 0.5,0.033 , sf           , ss , 0 , 0 ) ;
          } else {
            char * sf = AFNI_get_friend() ;

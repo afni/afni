@@ -23,17 +23,9 @@
 #
 #           SUMA appears to work fine under FreeBSD 5.1.
 #
-#   Note:   The SUMA build process (as of Aug, 2003) invokes "make"
-#           with the assumption that it will get GNU make.  As BSD
-#           does not use gmake by default, you'll have to work around
-#           this.  The easiest solution is to copy the "gmake" command
-#           to a file called "make" somewhere EARLIER in your PATH
-#           than the standard make.  ( I put mine in ~/bin, with my
-#           path set to (~/bin /usr/local/bin /usr/bin and so on...)
-#
-#           WARNING: Don't allow gmake to become the default make for root,
-#	    or you may experience problems building ports, kernel sources,
-#           etc!
+#   Note:   The SUMA build process (as of Aug, 2003) requires GNU make,
+#           which is /usr/local/bin/gmake on BSD systems.  Run "gmake"
+#           SUMA and be sure the MAKE macro below is set to gmake.
 #
 #   Note:   Compilation of netcdf-3.5.0 may fail due to m4's lack of
 #           support for the -B option.  Remove the -B10000 flag from
@@ -45,6 +37,7 @@
 #           source distribution.
 #
 
+MAKE   = gmake
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
 CC     = gcc -O2 -mcpu=i486 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)

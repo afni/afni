@@ -922,6 +922,8 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
    DSET_mallocize(dset) ;
    DSET_load(dset) ;
 
+   dset->dblk->diskptr->storage_mode = STORAGE_BY_BRICK ; /* 14 Jan 2004 */
+
    dset->idcode = MCW_new_idcode() ;  /* 08 Jun 1999 - is a new dataset */
    EDIT_dset_items( dset ,
                        ADN_prefix , new_prefix ,

@@ -8955,7 +8955,7 @@ static DCMDICT REL_dictionary[] = {
     {DCM_RELSTUDYID, DCM_SH, "REL Study ID"},
     {DCM_RELSERIESNUMBER, DCM_IS, "REL Series Number"},
     {DCM_RELACQUISITIONNUMBER, DCM_IS, "REL Acquisition Number"},
-    {DCM_RELIMAGENUMBER, DCM_IS, "REL Image Number"},
+    {DCM_RELIMAGENUMBER, DCM_IS, "REL Instance Number"},
 
     {DCM_RELISOTOPENUMBER, DCM_IS, "REL Isotope Number (RET)"},
     {DCM_RELPHASENUMBER, DCM_IS, "REL Phase Number (RET)"},

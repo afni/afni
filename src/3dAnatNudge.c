@@ -211,11 +211,12 @@ int main( int argc , char *argv[] )
       LOAD_FVEC3(ov,DSET_XORG(dsant),DSET_YORG(dsant),DSET_ZORG(dsant)) ;
       nv = ADD_FVEC3(ov,fv) ;
       DSET_load(dsant) ;
+      dsant->dblk->diskptr->storage_mode = STORAGE_BY_BRICK ; /* 14 Jan 2004 */
+      dsant->idcode = MCW_new_idcode() ;
       EDIT_dset_items( dsant ,
                          ADN_prefix , prefix ,
                          ADN_xyzorg , nv ,
                        ADN_none ) ;
-      dsant->idcode = MCW_new_idcode() ;
       if( THD_is_file(DSET_HEADNAME(dsant)) ){
          fprintf(stderr,"** Can't overwrite existing dataset %s\n",
                  DSET_HEADNAME(dsant) ) ;

@@ -40,4 +40,5 @@ LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
 
 ######################################################################
 
+MAKE = make
 include Makefile.INCLUDE

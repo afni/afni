@@ -928,6 +928,8 @@ L200:
 {
     /* Initialized data */
 
+    static char chesc[15] = "\\esc           ";
+    static char chnesc[15] = "\\noesc         ";
     static char chtex[15*113] = "\\Plus          " "\\Cross         " "\\Dia"
 	    "mond       " "\\Box           " "\\FDiamond      " "\\FBox      "
 	    "    " "\\FPlus         " "\\FCross        " "\\Burst         " 
@@ -980,6 +982,7 @@ L200:
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
 
     /* Local variables */
+    static logical lesc;
     static integer itop;
     static logical lout;
     static integer i__, nused, nsupb;
@@ -1026,6 +1029,7 @@ L200:
  */
 /*  Process input character no. INC */
 
+    lesc = TRUE_;
 L100:
 
 /* CC      WRITE(*,666) 'ZZCONV at: ' // CHIN(INC:INC) */
@@ -1036,7 +1040,7 @@ L100:
 /*  Superscript:  ^{ starts a multi-character superscript, otherwise */
 /*                ^ starts a single-character superscript */
 
-    if (*(unsigned char *)&chin[inc - 1] == '^' && inc < *nchin) {
+    if (lesc && *(unsigned char *)&chin[inc - 1] == '^' && inc < *nchin) {
 	++nsupb;
 	i__1 = inc;
 	if (s_cmp(chin + i__1, "{", inc + 1 - i__1, 1L) == 0) {
@@ -1053,7 +1057,8 @@ L100:
 .... */
 /*  Subscript:  similar to above code */
 
-    } else if (*(unsigned char *)&chin[inc - 1] == '_' && inc < *nchin) {
+    } else if (lesc && *(unsigned char *)&chin[inc - 1] == '_' && inc < *
+	    nchin) {
 	++nsupb;
 	i__1 = inc;
 	if (s_cmp(chin + i__1, "{", inc + 1 - i__1, 1L) == 0) {
@@ -1072,7 +1077,7 @@ L100:
  */
 /*  the current level of super/subscripts */
 
-    } else if (*(unsigned char *)&chin[inc - 1] == '}' && nsupb > 0) {
+    } else if (lesc && *(unsigned char *)&chin[inc - 1] == '}' && nsupb > 0) {
 	nused = 1;
 	++(*nchout);
 	if (ntsupb[nsupb - 1] > 0) {
@@ -1087,7 +1092,7 @@ L100:
 /*  Anything else that doesn't start with a \ is passed straight throu
 gh */
 
-    } else if (*(unsigned char *)&chin[inc - 1] != '\\') {
+    } else if (! lesc || *(unsigned char *)&chin[inc - 1] != '\\') {
 	lout = TRUE_;
 	nused = 1;
 	++(*nchout);
@@ -1167,6 +1172,10 @@ L410:
 /* CC            ELSE */
 /* CC               WRITE(*,666) ' unknown TeX escape: ' // CHCONT
  */
+	} else if (s_cmp(chcont, chnesc, 15L, 15L) == 0) {
+	    lesc = FALSE_;
+	} else if (s_cmp(chcont, chesc, 15L, 15L) == 0) {
+	    lesc = TRUE_;
 	}
     }
 /* .......................................................................

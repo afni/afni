@@ -67,4 +67,5 @@ SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 
 ###############################################################
 
+MAKE = make
 include Makefile.INCLUDE
