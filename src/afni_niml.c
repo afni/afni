@@ -496,8 +496,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
                                  (XtPointer) im3d ,  &cbs          ) ;
      }
-     if( find.anat_index >= 0 && find.anat_index != im3d->vinfo->anat_num ){
-       cbs.ival = find.anat_index ;
+     if( ISANAT(dset) && find.dset_index != im3d->vinfo->anat_num ){
+       cbs.ival = find.dset_index ;
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
                                  (XtPointer) im3d ,  &cbs          ) ;
      }
@@ -845,8 +845,8 @@ STATUS("searching for Node_ROI surface") ;
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
                                  (XtPointer) im3d ,  &cbs          ) ;
      }
-     if( find.anat_index >= 0 && find.anat_index != im3d->vinfo->anat_num ){
-       cbs.ival = find.anat_index ;
+     if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->anat_num ){
+       cbs.ival = find.dset_index ;
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
                                  (XtPointer) im3d ,  &cbs          ) ;
      }
@@ -893,20 +893,20 @@ STATUS("searching for Node_ROI functional dataset") ;
                      "  %.222s\n" , DSET_FILECODE(dset_func) ) ;
          AFNI_popup_message( msg ) ;
        }
-       if( find.func_index >= 0 && find.func_index != im3d->vinfo->func_num ){
-         cbs.ival = find.func_index ;
+       if( find.dset_index >= 0 && find.dset_index != im3d->vinfo->func_num ){
+         cbs.ival = find.dset_index ;
          AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                    (XtPointer) im3d ,  &cbs          ) ;
        }
 
      } else { /*** no pre-existing func?  create a dataset now ***/
 
-       ii = sess->num_func ;
-       if( ii >= THD_MAX_SESSION_FUNC ){
+       ii = sess->num_dsset ;
+       if( ii >= THD_MAX_SESSION_SIZE ){
          sprintf(msg, "*** ERROR:\n\n"
                       " Can't create Node_ROI dataset\n"
                       "  %.222s\n"
-                      " because of AFNI array overflow!\n" ,
+                      " because of AFNI session overflow!\n" ,
                  roi_prefix ) ;
          AFNI_popup_message( msg ) ;
          EXRETURN ;
@@ -924,8 +924,8 @@ STATUS("searching for Node_ROI functional dataset") ;
        EDIT_BRICK_TO_NOSTAT( dset_func , 0 ) ;
        EDIT_substitute_brick( dset_func , 0 , MRI_short , NULL ) ;
 
-       sess->func[ii][dset_func->view_type] = dset_func ;
-       sess->num_func ++ ;
+       sess->dsset[ii][dset_func->view_type] = dset_func ;
+       sess->num_dsset ++ ;
 
 STATUS("switching func to Node_ROI dataset") ;
 

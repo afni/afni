@@ -2880,30 +2880,6 @@ STATUS("making func->rowcol") ;
 
    XtUnmanageChild( func->thr_buck_av->wrowcol ) ;
 
-   /*--- radio box to control which function we see ---*/
-
-   func->functype_bbox =
-      new_MCW_bbox( func->options_rowcol ,
-                    LAST_SHOWFUNC_TYPE+1 , SHOWFUNC_typestr ,
-                    MCW_BB_radio_one ,
-                    MCW_BB_frame ,
-                    AFNI_functype_CB , (XtPointer) im3d ) ;
-
-   func->functype_bbox->parent = (XtPointer) im3d ;
-
-   MCW_set_bbox( func->functype_bbox , 1 << im3d->vinfo->showfunc_type ) ;
-
-   MCW_reghelp_children( func->functype_bbox->wrowcol ,
-     "Use these to choose the type of\n"
-      "function that will be displayed" ) ;
-
-   { char * hh[] = { "Use intensity brick for color overlay" ,
-                     "Use threshold brick for color overlay"  } ;
-     MCW_bbox_hints( func->functype_bbox , 2 , hh ) ;
-   }
-
-   ADDTO_KILL(im3d->kl,func->functype_bbox) ;
-
    /*--- range controls ---*/
 
    func->range_frame =
@@ -4267,9 +4243,9 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->crosshair_ovcolor = MIN(last_color,INIT_crosshair_color) ;
    im3d->vinfo->time_index        = 0 ;
    im3d->vinfo->top_index         = 9 ;
+   im3d->vinfo->time_on           = 0 ;                   /* 29 Jul 2003 */
    im3d->vinfo->view_type         = VIEW_ORIGINAL_TYPE ;  /* show +orig data */
    im3d->vinfo->underlay_type     = UNDERLAY_ANAT ;       /* show anatomy */
-   im3d->vinfo->showfunc_type     = SHOWFUNC_FIM ;
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->func_visible      = False ;   /* don't show function */
@@ -4322,8 +4298,6 @@ ENTRY("new_AFNI_controller") ;
    im3d->b123_anat = im3d->b231_anat = im3d->b312_anat =           /* created later */
     im3d->b123_fim  = im3d->b231_fim  = im3d->b312_fim  =
      im3d->b123_ulay = im3d->b231_ulay = im3d->b312_ulay = NULL ;
-
-   im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_NOTHING ;   /* don't ignore these now */
 
@@ -4405,33 +4379,47 @@ ENTRY("AFNI_initialize_controller") ;
       im3d->ss_now = GLOBAL_library.sslist->ssar[ im3d->vinfo->sess_num ] ;
 
       if( im3d->ss_now == NULL ){  /* still no data? */
-         fprintf(stderr,
-                 "\n*** AFNI_initialize_controller: illegal initial session ***\n") ;
-         EXIT(1) ;
+        fprintf(stderr,
+                "\n*** AFNI_initialize_controller: illegal initial session ***\n") ;
+        EXIT(1) ;
       }
    }
 
    /* 07 Dec 2001: find "smallest" datasets */
 
    if( im3d->brand_new && AFNI_yesenv("AFNI_START_SMALL") ){
-      int jj,jb=0 ; float bb,mm ;
-      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_anat ; jj++ ){
-         bb = DSET_bigness(im3d->ss_now->anat[jj][0]) ;
+     int jj,jb=0,qb ; float bb,mm ;
+     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+       if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
+         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
          if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
-      }
-      im3d->vinfo->anat_num = jb ;
+       }
+     }
+     if( mm < 1.e+33 ) im3d->vinfo->anat_num = qb = jb ;
 
-      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_func ; jj++ ){
-         bb = DSET_bigness(im3d->ss_now->func[jj][0]) ;
-         if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
-      }
-      im3d->vinfo->func_num = jb ;
+     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+       if( ISFUNC(im3d->ss_now->dsset[jj][0]) ){
+         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
+         if( jj != qb && bb > 0 && bb < mm ){ mm = bb; jb = jj; }
+       }
+     }
+     if( mm < 1.e+33 ) im3d->vinfo->func_num = jb ;
+
+   } else if( im3d->brand_new ){  /* 29 Jul 2003 */
+     int jj ;
+     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ )
+       if( ISANAT(im3d->ss_now->dsset[jj][0]) ) break ;
+     if( jj < im3d->ss_now->num_dsset ) im3d->vinfo->anat_num = jj ;
+
+     for( jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ )
+       if( ISFUNC(im3d->ss_now->dsset[jj][0]) ) break ;
+     if( jj < im3d->ss_now->num_dsset ) im3d->vinfo->func_num = jj ;
    }
 
    /* copy pointers from this session into the controller for fast access */
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
-      im3d->anat_dset[ii] = im3d->ss_now->anat[im3d->vinfo->anat_num][ii] ;
+      im3d->anat_dset[ii] = im3d->ss_now->dsset[im3d->vinfo->anat_num][ii] ;
 
    /*--- 11/23/94 addition: scan for a good view in the
         initial setup (to allow for input of datasets w/o +orig view) */
@@ -4447,15 +4435,15 @@ ENTRY("AFNI_initialize_controller") ;
 
    /* now find a function that can be viewed here */
 
-   if( !ISVALID_3DIM_DATASET(im3d->ss_now->func[im3d->vinfo->func_num][ii]) ){
-      for( ii=0 ; ii < im3d->ss_now->num_func ; ii++ )
-         if(ISVALID_3DIM_DATASET(im3d->ss_now->func[ii][im3d->vinfo->view_type])){
+   if( !ISVALID_3DIM_DATASET(im3d->ss_now->dsset[im3d->vinfo->func_num][ii]) ){
+      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ )
+         if(ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][im3d->vinfo->view_type])){
             im3d->vinfo->func_num = ii ; break ;
          }
    }
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
-      im3d->fim_dset[ii] = im3d->ss_now->func[im3d->vinfo->func_num][ii] ;
+      im3d->fim_dset[ii] = im3d->ss_now->dsset[im3d->vinfo->func_num][ii] ;
 
    /*--- 11/23/94 addition end */
 

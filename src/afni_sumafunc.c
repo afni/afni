@@ -31,10 +31,9 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
    MRI_IMAGE *im_thr , *im_fim ;
    short fim_ovc[NPANE_MAX+1] ;
    byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1] ;
-   int ii,jj,nn , lp , num_lp , function_type , fdset_type , ival ;
+   int ii,jj,nn , lp , num_lp , ival ;
    float scale_factor , scale_thr=1.0 , scale_fim=1.0 ;
    MCW_pbar * pbar ;
-   Boolean have_thr ;
    int     simult_thr , need_thr ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *mmm ;
@@ -67,75 +66,43 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    fdset = im3d->fim_now ; if( fdset == NULL ) RETURN(-1) ;
 
-   /* figure out what we are showing from the func dataset */
-
-   function_type = im3d->vinfo->showfunc_type ;
-   fdset_type    = fdset->func_type ;
-   have_thr      = FUNC_HAVE_THR( fdset_type ) ;
-
-   if( ISFUNCBUCKET(fdset) )
-     ival = im3d->vinfo->thr_index ;
-   else
-     ival = FUNC_ival_thr[fdset_type] ;    /* sub-brick for threshold */
-
-   if( function_type == SHOWFUNC_THR && !have_thr ) RETURN(-1) ;
+   ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
    /* get the component images */
 
-   need_thr = have_thr && ( function_type == SHOWFUNC_THR ||
-                            im3d->vinfo->func_threshold > 0.0 ) ;
+   need_thr = im3d->vinfo->func_threshold > 0.0 ;
 
    if( need_thr ) im_thr = DSET_BRICK(fdset,ival) ;
    else           im_thr = NULL ;
 
-   if( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ){   /* 04 Mar 2003 */
-     MRI_IMAGE *qim = mri_to_float(im_thr) ;
-     mri_free(im_thr) ; im_thr = qim ;
-   }
+   if( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) im_thr = NULL ;
 
-   have_thr = (im_thr != NULL) ;
-
-   if( have_thr ){
+   if( im_thr != NULL ){
      scale_thr = DSET_BRICK_FACTOR(fdset,ival) ;
      if( scale_thr == 0.0 ) scale_thr = 1.0 ;
    }
 
-   if( function_type == SHOWFUNC_FIM || !have_thr ){
-     int ind ;
+   { int ind ;
 
-     /* figure out which sub-brick to show (= ind) */
+     ind = im3d->vinfo->fim_index ;
+     if( ind >= DSET_NVALS(fdset) )
+       ind = DSET_NVALS(fdset) - 1 ;
 
-     if( fdset_type == FUNC_FIM_TYPE ){   /* allow for 3D+t FIM */
-       ind = im3d->vinfo->time_index ;
-       if( ind >= DSET_NUM_TIMES(fdset) ) /* be careful */
-         ind = DSET_NUM_TIMES(fdset) - 1 ;
-     } else {
-       if( ISFUNCBUCKET(fdset) )          /* allow for func bucket */
-         ind = im3d->vinfo->fim_index ;
-       else
-         ind = FUNC_ival_fim[fdset_type] ;
-     }
      im_fim       = DSET_BRICK(fdset,ind) ;  /* the sub-brick to show */
      scale_factor = im3d->vinfo->fim_range ;
      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+     if( scale_factor == 0.0 ) scale_factor = 1.0 ;
 
      scale_fim = DSET_BRICK_FACTOR(fdset,ind) ;
      if( scale_fim == 0.0 ) scale_fim = 1.0 ;
 
-   } else {                            /* show the threshold sub-brick */
-     im_fim = im_thr ;
-     scale_factor = im3d->vinfo->fim_range ;
-     if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-     scale_fim = scale_thr ;
    }
 
    /* if component images not good, quit now */
 
    if( im_fim == NULL ) RETURN(-1) ;  /* no function!? */
 
-   if( !AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||
-       ( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) ){
-
+   if( !AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ){
       RETURN(-1) ;  /* bad function - no soup for you */
    }
 
@@ -228,19 +195,12 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
 
      for( jj=ii=0 ; ii < nvox ; ii++ )
         if( vlist[ii] >= 0 ) jj++ ;
-#if 0
-fprintf(stderr,"Number functional voxels above threshold = %d\n",jj) ;
-#endif
      if( jj == 0 ){ free(vlist) ; RETURN(0) ; }
 
      /* count output nodes inside each surviving voxel */
 
      for( nout=ii=0 ; ii < nvox ; ii++ )
         if( vlist[ii] >= 0 ) nout += numnod[ii] ;
-
-#if 0
-fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
-#endif
 
    } /* end of if on existence of threshold sub-brick */
 

@@ -4752,6 +4752,7 @@ static void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
     - only datasets with nvals=1 can be edited
     - bricks must be on same grid (dataxes) as AFNI controller
   Much of this code is adapted from PLUG_choose_dataset_CB.
+  [28 Jul 2003] Modified for new THD_session struct.
 ---------------------------------------------------------------------*/
 
 static int                  ndsl = 0 ;
@@ -4803,29 +4804,12 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 
    /* scan anats */
 
-   for( id=0 ; id < ss->num_anat ; id++ ){
-      qset = ss->anat[id][vv] ;
+   for( id=0 ; id < ss->num_dsset ; id++ ){
+      qset = ss->dsset[id][vv] ;
 
       if( ! ISVALID_DSET (qset)                        ) continue ;  /* skip */
       if( ! DSET_INMEMORY(qset)                        ) continue ;
       if(   DSET_NVALS(qset) > 1                       ) continue ;
-      if( ! EQUIV_DATAXES(qset->daxes,im3d->wod_daxes) ) continue ;
-
-      ndsl++ ;
-      dsl = (PLUGIN_dataset_link *)
-	      XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
-
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
-   }
-
-   /* scan funcs */
-
-   for( id=0 ; id < ss->num_func ; id++ ){
-      qset = ss->func[id][vv] ;
-
-      if( ! ISVALID_DSET (qset)                        ) continue ;  /* skip */
-      if( ! DSET_INMEMORY(qset)                        ) continue ;
-      if( DSET_NVALS(qset) > 1                         ) continue ;
       if( ! EQUIV_DATAXES(qset->daxes,im3d->wod_daxes) ) continue ;
 
       ndsl++ ;

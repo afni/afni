@@ -10,6 +10,9 @@
 /*---------------------------------------------------------------------
    Given a directory name, read in all the datasets and make
    a session data structure from them.
+
+   [28 Jul 2003] Modified to use new THD_session struct, wherein all
+                 datasets are in one array (no anat/func distinction).
 -----------------------------------------------------------------------*/
 
 THD_session * THD_init_session( char * sessname )
@@ -20,15 +23,14 @@ THD_session * THD_init_session( char * sessname )
    THD_3dim_dataset       * dset ;
    THD_3dim_dataset_array * dset_arr ;
 
-   int ibar , idset , iview  ;
-   Boolean all_anat , all_func ;
+   int ibar , idset , iview  , nds ;
 
 ENTRY("THD_init_session") ;
 
    /*-- sanity check --*/
 
    if( sessname == NULL || strlen(sessname) == 0 || !THD_is_directory(sessname) )
-      RETURN( NULL ) ;
+     RETURN( NULL ) ;
 
    /*-- initialize session --*/
 
@@ -42,10 +44,10 @@ ENTRY("THD_init_session") ;
    MCW_strncpy( sess->sessname , sessname , THD_MAX_NAME ) ;
    iview = strlen(sess->sessname) ;
    if( sess->sessname[iview-1] != '/' ){  /* tack trailing / onto sessname */
-      sess->sessname[iview]   = '/' ;
-      sess->sessname[iview+1] = '\0' ;
+     sess->sessname[iview]   = '/' ;
+     sess->sessname[iview+1] = '\0' ;
    } else {
-      iview-- ;  /* iview now points to last non-NUL character in string */
+     iview-- ;  /* iview now points to last non-NUL character in string */
    }
 
    /* save last name from sessname */
@@ -58,7 +60,7 @@ ENTRY("THD_init_session") ;
    }
 #else
      for( iview-- ; iview >= 0 ; iview-- )
-        if( sess->sessname[iview] == '/' ) break ;
+       if( sess->sessname[iview] == '/' ) break ;
      MCW_strncpy( sess->lastname, &(sess->sessname[iview+1]), THD_MAX_NAME ) ;
 #endif
 
@@ -73,95 +75,44 @@ ENTRY("THD_init_session") ;
       /*-- get the current array of datablocks --*/
 
       dblk_arr = (THD_datablock_array *) dblk_arrarr->ar[ibar] ;
-      if( dblk_arr == NULL || dblk_arr->num <= 0 ) continue ;
+      if( dblk_arr == NULL || dblk_arr->num <= 0 ) continue ;    /* huh? */
 
       /*-- convert it into an array of datasets --*/
 
       dset_arr = THD_array_3dim_from_block( dblk_arr ) ;
       if( dset_arr == NULL || dset_arr->num <= 0 ) continue ;
 
-      /*-- are we dealing with anatomy or function? --*/
+      /*-- place it into the next row of the THD_session [28 Jul 2003] --*/
 
-      all_anat = ISANAT(dset_arr->ar[0]) ;
-      all_func = ISFUNC(dset_arr->ar[0]) ;
+      nds = sess->num_dsset ;
 
-      if( !all_anat && !all_func ){  /* should never happen! */
-         fprintf(stderr,
-            "\n*** THD_init_session: %s - illegal dataset types encountered ***\n",
-            sessname ) ;
-         for( idset=0 ; idset < dset_arr->num ; idset++ )
-            THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
-         FREE_3DARR(dset_arr) ;
-         continue ;
-      }
-
-      /*-- function case: place into next row of function table --*/
-
-      if( all_func ){
-         int nf = sess->num_func ;  /* next row index */
-
-         if( nf >= THD_MAX_SESSION_FUNC ){
-            fprintf(stderr,
-             "\n*** Session %s function table overflow with dataset %s ***\n",
+      if( nds >= THD_MAX_SESSION_SIZE ){   /* bad! */
+        fprintf(stderr,
+         "\n*** Session %s table overflow with dataset %s ***\n",
              sessname , dset_arr->ar[0]->self_name) ;
-            for( idset=0 ; idset < dset_arr->num ; idset++ )
-               THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
-            FREE_3DARR(dset_arr) ;
-            continue ;  /* skip to next dblk_arr (ibar loop) */
-         }
-
-         /*-- put each dataset into this row in its view place --*/
-
-         for( idset=0 ; idset < dset_arr->num ; idset++ ){
-            dset  = dset_arr->ar[idset] ;
-            iview = dset->view_type ;
-
-            if( sess->func[nf][iview] != NULL ){
-               fprintf(stderr,
-                "\n*** Session %s has duplicate function views of %s ***\n",
-                sessname , dset->self_name) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-            } else {
-               sess->func[nf][iview] = dset ;
-            }
-         }
-
-         (sess->num_func)++ ;  /* increment functional row count */
+        for( idset=0 ; idset < dset_arr->num ; idset++ )
+          THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
+        FREE_3DARR(dset_arr) ;
+        continue ;  /* skip to next dblk_arr (ibar loop) */
       }
 
-      /*-- anat case: place into next row of anatomy table --*/
+      /*-- put each dataset into this row in its view place --*/
 
-      if( all_anat ){
-         int na = sess->num_anat ;  /* anatomy row index */
+      for( idset=0 ; idset < dset_arr->num ; idset++ ){
+        dset  = dset_arr->ar[idset] ;
+        iview = dset->view_type ;
 
-         if( na >= THD_MAX_SESSION_ANAT ){
-            fprintf(stderr,
-             "\n*** Session %s anatomy table overflow with dataset %s ***\n",
-             sessname , DSET_HEADNAME(dset_arr->ar[0]) ) ;
-            for( idset=0 ; idset < dset_arr->num ; idset++ )
-               THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
-            FREE_3DARR(dset_arr) ;
-            continue ;  /* skip to next dblk_arr (ibar loop) */
-         }
-
-         /*-- put each dataset into this row in its view place --*/
-
-         for( idset=0 ; idset < dset_arr->num ; idset++ ){
-            dset  = dset_arr->ar[idset] ;
-            iview = dset->view_type ;
-
-            if( sess->anat[na][iview] != NULL ){
-               fprintf(stderr,
-                "\n*** Session %s has duplicate anatomical views of %s ***\n",
-                sessname , dset->self_name) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-            } else {
-               sess->anat[na][iview] = dset ;
-            }
-         }
-
-         (sess->num_anat)++ ;  /* increment anatomical row count */
+        if( sess->dsset[nds][iview] != NULL ){  /* should never happen */
+          fprintf(stderr,
+           "\n*** Session %s has duplicate dataset views of %s ***\n",
+           sessname , dset->self_name) ;
+          THD_delete_3dim_dataset( dset , False ) ;
+        } else {
+          sess->dsset[nds][iview] = dset ;       /* should always happen */
+        }
       }
+
+      sess->num_dsset ++ ;  /* one more row */
 
       FREE_3DARR(dset_arr) ;
 
@@ -172,8 +123,8 @@ ENTRY("THD_init_session") ;
    STATUS("trashing dblk_arrarr") ;
 
    for( ibar=0 ; ibar < dblk_arrarr->num ; ibar++ ){
-      dblk_arr = (THD_datablock_array *) dblk_arrarr->ar[ibar] ;
-      FREE_DBARR( dblk_arr ) ;
+     dblk_arr = (THD_datablock_array *) dblk_arrarr->ar[ibar] ;
+     FREE_DBARR( dblk_arr ) ;
    }
    FREE_XTARR( dblk_arrarr ) ;
 
@@ -194,36 +145,17 @@ ENTRY("THD_init_session") ;
        for( ii=0 ; ii < num_minc ; ii++ ){             /* loop over files */
          dset = THD_open_minc( fn_minc[ii] ) ;         /* try it on */
          if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
-         if( ISANAT(dset) ){
-            int na = sess->num_anat ;
-            if( na >= THD_MAX_SESSION_ANAT ){
-               fprintf(stderr,
-                 "\n*** Session %s anat table overflow with dataset %s ***\n",
-                 sessname , fn_minc[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->anat[na][iview] = dset ;
-            (sess->num_anat)++ ;
-         } else if( ISFUNC(dset) ){
-            int nf = sess->num_func ;
-            if( nf >= THD_MAX_SESSION_FUNC ){
-               fprintf(stderr,
-                 "\n*** Session %s func table overflow with dataset %s ***\n",
-                 sessname , fn_minc[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->func[nf][iview] = dset ;
-            (sess->num_func)++ ;
-         } else {                                      /* should never happen */
-            fprintf(stderr,
-                    "\n*** Session %s: malformed dataset %s\n",
-                    sessname , fn_minc[ii] ) ;
-            THD_delete_3dim_dataset( dset , False ) ;
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+             "\n*** Session %s table overflow with MINC dataset %s ***\n",
+             sessname , fn_minc[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for loop */
          }
+         iview = dset->view_type ;
+         sess->dsset[nds][iview] = dset ;
+         sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
      } /* end of if we found MINC files */
@@ -236,7 +168,7 @@ ENTRY("THD_init_session") ;
      int num_anlz , ii , nee ;
 #ifdef ALLOW_FSL_FEAT
      int feat_exf=-1 , feat_hrs=-1 , feat_std=-1 ;
-     int feat_na_start=sess->num_anat , feat_nf_start=sess->num_func ;
+     int feat_nds_start=sess->num_dsset ;
 #endif
 
      STATUS("looking for ANALYZE files") ;
@@ -257,41 +189,22 @@ ENTRY("THD_init_session") ;
        for( ii=0 ; ii < num_anlz ; ii++ ){             /* loop over files */
          dset = THD_open_analyze( fn_anlz[ii] ) ;      /* try it on */
          if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
-         if( ISANAT(dset) ){
-            int na = sess->num_anat ;
-            if( na >= THD_MAX_SESSION_ANAT ){
-               fprintf(stderr,
-                 "\n*** Session %s anat table overflow with dataset %s ***\n",
-                 sessname , fn_anlz[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->anat[na][iview] = dset ;
-            (sess->num_anat)++ ;
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+             "\n*** Session %s table overflow with ANALYZE dataset %s ***\n",
+             sessname , fn_anlz[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for loop */
+        }
+        iview = dset->view_type ;
+        sess->dsset[nds][iview] = dset ;
+        sess->num_dsset ++ ;
 #ifdef ALLOW_FSL_FEAT
-                 if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = na;
-            else if( strcmp(DSET_PREFIX(dset),"highres.hdr")      == 0 ) feat_hrs = na;
-            else if( strcmp(DSET_PREFIX(dset),"standard.hdr")     == 0 ) feat_std = na;
+             if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = nds;
+        else if( strcmp(DSET_PREFIX(dset),"highres.hdr")      == 0 ) feat_hrs = nds;
+        else if( strcmp(DSET_PREFIX(dset),"standard.hdr")     == 0 ) feat_std = nds;
 #endif
-         } else if( ISFUNC(dset) ){
-            int nf = sess->num_func ;
-            if( nf >= THD_MAX_SESSION_FUNC ){
-               fprintf(stderr,
-                 "\n*** Session %s func table overflow with dataset %s ***\n",
-                 sessname , fn_anlz[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->func[nf][iview] = dset ;
-            (sess->num_func)++ ;
-         } else {                                      /* should never happen! */
-            fprintf(stderr,
-                    "\n*** Session %s: malformed dataset %s\n",
-                    sessname , fn_anlz[ii] ) ;
-            THD_delete_3dim_dataset( dset , False ) ;
-         }
        } /* end of loop over files */
 
        MCW_free_expand( num_anlz , fn_anlz ) ;  /* free file list */
@@ -299,9 +212,9 @@ ENTRY("THD_init_session") ;
        /* now read in linear mappings (.mat files) for FSL FEAT */
 
 #ifdef ALLOW_FSL_FEAT
-       if( feat_exf >= 0                      &&
-           sess->num_func - feat_nf_start > 0 &&
-           (feat_hrs >= 0 || feat_std >= 0)     ){  /* found FEAT files */
+       if( feat_exf >= 0                        &&
+           sess->num_dsset - feat_nds_start > 0 &&
+           (feat_hrs >= 0 || feat_std >= 0)       ){  /* found FEAT files */
 
          THD_3dim_dataset *dset_exf=NULL, *dset_hrs=NULL, *dset_std=NULL ;
          char fnam[THD_MAX_NAME] ;
@@ -309,9 +222,9 @@ ENTRY("THD_init_session") ;
          float a11,a12,a13,s1 , a21,a22,a23,s2 , a31,a32,a33,s3 ;
          THD_warp *warp_exf_hrs=NULL , *warp_exf_std=NULL , *warp_std_hrs=NULL ;
 
-                             dset_exf = sess->anat[feat_exf][0] ;  /* Must have this. */
-         if( feat_hrs >= 0 ) dset_hrs = sess->anat[feat_hrs][0] ;  /* And at least   */
-         if( feat_std >= 0 ) dset_std = sess->anat[feat_std][0] ;  /* one of these. */
+                             dset_exf = sess->dsset[feat_exf][0] ;  /* Must have this. */
+         if( feat_hrs >= 0 ) dset_hrs = sess->dsset[feat_hrs][0] ;  /* And at least   */
+         if( feat_std >= 0 ) dset_std = sess->dsset[feat_std][0] ;  /* one of these. */
 
          /* try to read the warp from example_func (EPI) to standard */
 
@@ -538,26 +451,30 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
               sess->warptable = new_Htable(0) ;  /* use minimum table size */
 
            if( warp_exf_hrs != NULL ){
-             for( ii=feat_nf_start ; ii < sess->num_func ; ii++ ){
-               sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->func[ii][0]->idcode.str) ;
-               addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
+             for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
+               if( ISFUNC(sess->dsset[ii][0]) ){
+                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+                 addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
+               }
              }
-             for( ii=feat_na_start ; ii < sess->num_anat ; ii++ ){
-               if( ii != feat_hrs && ii != feat_std ){
-                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->anat[ii][0]->idcode.str) ;
+             for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
+               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset[ii][0]) ){
+                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->dsset[ii][0]->idcode.str) ;
                  addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
                }
              }
            }
 
            if( warp_exf_std != NULL ){
-             for( ii=feat_nf_start ; ii < sess->num_func ; ii++ ){
-               sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->func[ii][0]->idcode.str) ;
-               addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
+             for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
+               if( ISFUNC(sess->dsset[ii][0]) ){
+                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset[ii][0]->idcode.str) ;
+                 addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
+               }
              }
-             for( ii=feat_na_start ; ii < sess->num_anat ; ii++ ){
-               if( ii != feat_hrs && ii != feat_std ){
-                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->anat[ii][0]->idcode.str) ;
+             for( ii=feat_nds_start ; ii < sess->num_dsset ; ii++ ){
+               if( ii != feat_hrs && ii != feat_std && ISANAT(sess->dsset[ii][0]) ){
+                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->dsset[ii][0]->idcode.str) ;
                  addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
                }
              }
@@ -600,36 +517,17 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
            dset = THD_open_ctfsam( fn_ctf[ii] ) ;     /*   as SAM */
 
          if( !ISVALID_DSET(dset) ) continue ;         /* doesn't read? */
-         if( ISANAT(dset) ){
-            int na = sess->num_anat ;
-            if( na >= THD_MAX_SESSION_ANAT ){
-               fprintf(stderr,
-                 "\n*** Session %s anat table overflow with dataset %s ***\n",
-                 sessname , fn_ctf[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->anat[na][iview] = dset ;
-            (sess->num_anat)++ ;
-         } else if( ISFUNC(dset) ){
-            int nf = sess->num_func ;
-            if( nf >= THD_MAX_SESSION_FUNC ){
-               fprintf(stderr,
-                 "\n*** Session %s func table overflow with dataset %s ***\n",
-                 sessname , fn_ctf[ii] ) ;
-               THD_delete_3dim_dataset( dset , False ) ;
-               break ; /* out of for loop */
-            }
-            iview = dset->view_type ;
-            sess->func[nf][iview] = dset ;
-            (sess->num_func)++ ;
-         } else {                                      /* should never happen */
-            fprintf(stderr,
-                    "\n*** Session %s: malformed dataset %s\n",
-                    sessname , fn_ctf[ii] ) ;
-            THD_delete_3dim_dataset( dset , False ) ;
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+            "\n*** Session %s table overflow with dataset %s ***\n",
+            sessname , fn_ctf[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for loop */
          }
+         iview = dset->view_type ;
+         sess->dsset[nds][iview] = dset ;
+         sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_ctf , fn_ctf ) ;
      } /* end of if we found CTF files */
@@ -637,9 +535,65 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
 
    /*-- done! --*/
 
-   if( sess->num_anat == 0 && sess->num_func == 0 ){
+   if( sess->num_dsset == 0 ){
       myXtFree( sess ) ; RETURN( NULL ) ;
    }
 
+   /*-- 29 Jul 2003: order dataset rows --*/
+
+   THD_order_session( sess ) ;
+
    RETURN( sess ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Order the datasets within a session (anats first, funcs last).
+---------------------------------------------------------------------------*/
+
+void THD_order_session( THD_session *sess )
+{
+   THD_3dim_dataset *qset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
+   THD_3dim_dataset *dset ;
+   int iview , ids , nds ;
+
+ENTRY("THD_order_session") ;
+   if( sess == NULL || sess->num_dsset <= 1 ) EXRETURN ;
+
+   /* put anats into qset */
+
+   nds = 0 ;
+   for( ids=0 ; ids < sess->num_dsset ; ids++ ){
+     for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ ){
+       dset = sess->dsset[ids][iview] ;
+       if( dset != NULL && ISANAT(dset) ) break ;
+     }
+     if( iview <= LAST_VIEW_TYPE ){
+       for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
+         qset[nds][iview] = sess->dsset[ids][iview] ;
+       nds++ ;
+     }
+   }
+
+   /* put funcs into qset */
+
+   for( ids=0 ; ids < sess->num_dsset ; ids++ ){
+     for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ ){
+       dset = sess->dsset[ids][iview] ;
+       if( dset != NULL && ISFUNC(dset) ) break ;
+     }
+     if( iview <= LAST_VIEW_TYPE ){
+       for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
+         qset[nds][iview] = sess->dsset[ids][iview] ;
+       nds++ ;
+     }
+   }
+
+   /* copy qset back into sess, overwriting dsset */
+
+   for( ids=0 ; ids < nds ; ids++ )
+     for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
+       sess->dsset[ids][iview] = qset[ids][iview] ;
+
+   sess->num_dsset = nds ;  /* shouldn't change */
+   EXRETURN ;
 }

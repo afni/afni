@@ -303,9 +303,9 @@ ENTRY("AFNI_switch_anatomy") ;
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
 
-   if( slf.anat_index < 0 ) RETURN(-1) ;
+   if( slf.dset_index < 0 ) RETURN(-1) ;
 
-   cbs.ival = slf.anat_index ;
+   cbs.ival = slf.dset_index ;
 
    /* same callback as Switch Anatomy */
 
@@ -351,9 +351,9 @@ ENTRY("AFNI_switch_function") ;
 
    slf = THD_dset_in_session( FIND_PREFIX , dname , im3d->ss_now ) ;
 
-   if( slf.func_index < 0 ) RETURN(-1) ;
+   if( slf.dset_index < 0 ) RETURN(-1) ;
 
-   cbs.ival = slf.func_index ;
+   cbs.ival = slf.dset_index ;
 
    /* same callback as Switch Function */
 

@@ -40,80 +40,6 @@ ENTRY("AFNI_see_func_CB") ;
    EXRETURN ;
 }
 
-/*--------------------------------------------------------------
-  Called when switching from FIM to THR function type
-----------------------------------------------------------------*/
-
-void AFNI_functype_CB( Widget w, XtPointer cd, XtPointer cb)
-{
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   int function_type , redisplay ;
-   Boolean allow_autorange , allow_avrange , same ;
-   XmString xstr ;
-
-ENTRY("AFNI_functype_CB") ;
-
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
-
-   function_type = AFNI_first_tog( LAST_FUNC_TYPE + 1 ,
-                                   im3d->vwid->func->functype_bbox->wbut ) ;
-
-   if( im3d->vinfo->showfunc_type != function_type ){
-
-      SHOW_AFNI_PAUSE ;
-
-      im3d->vinfo->showfunc_type = function_type ;  /* FIM or THR */
-
-      if( ISFUNC_UNDERLAY(im3d->vinfo->underlay_type) ){
-         AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
-         redisplay = REDISPLAY_ALL ;
-      } else {
-         redisplay = (im3d->vinfo->func_visible) ? REDISPLAY_OVERLAY
-                                                 : REDISPLAY_OPTIONAL ;
-      }
-
-      /* 12 Aug 1996 */
-
-      xstr = AFNI_autorange_label( im3d ) ;
-      same = XmStringCompare( xstr , im3d->vinfo->autorange_label ) ;
-
-      if( same == False ){
-         Widget www = im3d->vwid->func->range_bbox->wbut[RANGE_AUTOBUT] ;
-         XtVaSetValues( www , XmNlabelString , xstr , NULL ) ;
-         XmStringFree(im3d->vinfo->autorange_label) ;
-         im3d->vinfo->autorange_label = xstr ;
-      } else {
-         XmStringFree( xstr ) ;  /* was same --> don't need this copy */
-      }
-
-      im3d->vinfo->fim_range =
-         (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
-                                      : (im3d->vwid->func->range_av->fval) ;
-
-      /* 01 Jul 2003: change hints to match */
-
-      AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
-                         (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
-                                                         : im3d->vinfo->fim_autorange );
-
-      AFNI_redisplay_func( im3d ) ;  /* 05 Mar 2002 */
-
-      /** 3/24/95: turn range controls on or off **/
-
-      allow_autorange = True ;
-      allow_avrange   = (allow_autorange && ! im3d->vinfo->use_autorange) ;
-
-      SENSITIZE( im3d->vwid->func->range_bbox->wrowcol , allow_autorange ) ;
-      AV_SENSITIZE( im3d->vwid->func->range_av , allow_avrange ) ;
-
-      /** done **/
-
-      SHOW_AFNI_READY ;
-   }
-
-   EXRETURN ;
-}
-
 /*-----------------------------------------------------------------------
    Called when the scale for the threshold is adjusted.
    30 Oct 1996: changed scale factor from slider to threshold
@@ -141,20 +67,8 @@ ENTRY("AFNI_thr_scale_CB") ;
    FIX_SCALE_VALUE(im3d) ;
    FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
 
-   switch( im3d->vinfo->underlay_type ){
-      default:
-      case UNDERLAY_ANAT:
-      case UNDERLAY_ALLFUNC:
-         redisplay = (im3d->vinfo->func_visible) ? REDISPLAY_OVERLAY
-                                                 : REDISPLAY_OPTIONAL ;
-      break ;
-
-      case UNDERLAY_THRFUNC:
-         redisplay = REDISPLAY_ALL ;
-         AFNI_imseq_clearstat( im3d ) ;
-      break ;
-   }
-
+   redisplay = (im3d->vinfo->func_visible) ? REDISPLAY_OVERLAY
+                                           : REDISPLAY_OPTIONAL ;
    AFNI_set_thr_pval( im3d ) ;
 
    if( ! DOING_REALTIME_WORK )
@@ -280,13 +194,9 @@ ENTRY("AFNI_set_thr_pval") ;
 
    /* get the p-value that goes with this threshold, for this functional dataset */
 
-   if( ISFUNCBUCKET(im3d->fim_now) ) /* 30 Nov 1997 */
-      pval = THD_stat_to_pval( thresh ,
-                 DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
-                 DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
-   else
-      pval = THD_stat_to_pval( thresh , im3d->fim_now->func_type ,
-                                        im3d->fim_now->stat_aux   ) ;
+   pval = THD_stat_to_pval( thresh ,
+              DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+              DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
 
 if(PRINT_TRACING)
 { char buf[128] ;
@@ -752,13 +662,13 @@ ENTRY("AFNI_make_descendants_old") ;
 
       if( ss == GLOBAL_library.session ) continue ; /* 21 Dec 2001 */
 
-      /* loop over anats in this session */
+      /* loop over datasets in this session */
 
-      for( jdd=0 ; jdd < ss->num_anat ; jdd++ ){
-         orig_dset = ss->anat[jdd][vbase] ;                   /* 3 Jun 98 */
-         if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
+      for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
+         orig_dset = ss->dsset[jdd][vbase] ;                  /* 03 Jun 98 */
+         if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good   */
              orig_dset->anat_parent == NULL   ||              /* no parent */
-             orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
+             orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip  */
 
          if( DSET_in_global_session(orig_dset) ) continue ; /* 25 Dec 2001 */
 
@@ -776,19 +686,19 @@ ENTRY("AFNI_make_descendants_old") ;
             then skip (this eventuality should never occur!) */
 
          if( find.dset       == NULL ||
-             find.func_index >= 0    ||  /* anat parent can't be a func! */
+             ISFUNC(find.dset)       ||  /* anat parent can't be a func! */
              find.view_index != vbase  ) continue ;
 
          /* make a pointer to the row of datasets of the anat
             parent (this is like the SPGR row in the picture above) */
 
          anat_parent_row =
-           &(ssl->ssar[find.sess_index]->anat[find.anat_index][0]) ;
+           &(ssl->ssar[find.sess_index]->dsset[find.dset_index][0]) ;
 
          /* pointer to row of datasets being operated on now
             (like the FIM row in the picture above)          */
 
-         orig_row = &(ss->anat[jdd][0]) ;
+         orig_row = &(ss->dsset[jdd][0]) ;
 
          if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
 
@@ -804,58 +714,7 @@ ENTRY("AFNI_make_descendants_old") ;
                                                    orig_dset ) ;
             num_made ++ ;
          }
-      }  /* end of loop over anats */
-
-      /* do the same for funcs */
-
-      for( jdd=0 ; jdd < ss->num_func ; jdd++ ){
-         orig_dset = ss->func[jdd][vbase] ;
-         if( !ISVALID_3DIM_DATASET(orig_dset) ||              /* no good */
-             orig_dset->anat_parent == NULL   ||              /* no parent */
-             orig_dset->anat_parent == orig_dset ) continue ; /* ==> skip */
-
-         if( DSET_in_global_session(orig_dset) ) continue ; /* 25 Dec 2001 */
-
-         /* look for orig_dset's anat parent in this sessionlist */
-
-         find = THD_dset_in_sessionlist( FIND_IDCODE ,
-                                         &(orig_dset->anat_parent->idcode) ,
-                                         ssl , iss ) ;
-         if( find.dset == NULL )
-            find = THD_dset_in_sessionlist( FIND_NAME ,
-                                            orig_dset->anat_parent->self_name ,
-                                            ssl , iss ) ;
-
-         /* check for a good find; if it doesn't happen,
-            then skip (this eventuality should never occur!) */
-
-         if( find.dset       == NULL ||
-             find.func_index >= 0    ||  /* no funcs for anat parents! */
-             find.view_index != vbase  ) continue ;
-
-         /* make a pointer to the row of datasets of the anat
-            parent (this is like the SPGR row in the picture above) */
-
-         anat_parent_row =
-           &(ssl->ssar[find.sess_index]->anat[find.anat_index][0]) ;
-
-         orig_row = &(ss->func[jdd][0]) ;
-
-         if( orig_row == anat_parent_row ) continue ;  /* 14 Dec 1999 */
-
-         /* loop over downstream dataset positions (from orig_dset);
-            those that don't exist yet, but have entries in the
-            anat_parent_row can be brought into being now */
-
-         for( kvv=vbase+1 ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-            if( orig_row[kvv]        != NULL ) continue ;
-            if( anat_parent_row[kvv] == NULL ) continue ;
-
-            orig_row[kvv] = AFNI_follower_dataset( anat_parent_row[kvv] ,
-                                                   orig_dset ) ;
-            num_made ++ ;
-         }
-      }  /* end of loop over funcs */
+      }  /* end of loop over datasets in this session */
 
    }  /* end of loop over sessions */
 
@@ -887,21 +746,22 @@ void AFNI_force_adoption( THD_session * ss , Boolean do_anats )
 
 ENTRY("AFNI_force_adoption") ;
 
-   if( ! ISVALID_SESSION(ss) || ss->num_anat == 0 ) EXRETURN ;
+   if( ! ISVALID_SESSION(ss) || ss->num_dsset == 0 ) EXRETURN ;
 
    if( ss == GLOBAL_library.session ) EXRETURN ; /* 21 Dec 2001 */
 
    /* find a "preferred" parent (one with the most number of markers set) */
 
-   for( aa=0 ; aa < ss->num_anat ; aa++ ){
+   for( aa=0 ; aa < ss->num_dsset ; aa++ ){
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"scanning anat dataset %d for markers",aa) ; STATUS(str) ; }
+  sprintf(str,"scanning dataset %d for markers",aa) ; STATUS(str) ; }
 
-      dset = ss->anat[aa][0] ;              /* original view */
+      dset = ss->dsset[aa][0] ;             /* original view */
 
       if( ISVALID_3DIM_DATASET(dset) &&     /* if a good dataset */
+          ISANAT(dset)               &&     /* and is anatomical */
           dset->markers != NULL        ){   /* and has markers   */
 
          if( dset->markers->numset > aset ){ /* and has more markers than before */
@@ -915,11 +775,12 @@ if(PRINT_TRACING)
 
    vv = 0 ;
    if( aset >= 0 ){
-      for( aa=0 ; aa < ss->num_anat ; aa++ ){
-         dset = ss->anat[aa][0] ;
-         if( ISVALID_DSET(dset)    &&
-             dset->markers != NULL && dset->markers->numset >= aset ) vv++ ;
-      }
+     for( aa=0 ; aa < ss->num_dsset ; aa++ ){
+       dset = ss->dsset[aa][0] ;
+       if( ISVALID_DSET(dset)    &&
+           ISANAT(dset)          &&
+           dset->markers != NULL && dset->markers->numset >= aset ) vv++ ;
+     }
    }
 
    quiet = ( quiet || vv <= 1 ) ; /* be quiet if ordered, or if no alternatives */
@@ -927,83 +788,44 @@ if(PRINT_TRACING)
 if(aset >= 0 && PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"session %s: apref=%d [%s] aset=%d",
-          ss->lastname,apref,DSET_HEADNAME(ss->anat[apref][0]),aset) ;
+          ss->lastname,apref,DSET_HEADNAME(ss->dsset[apref][0]),aset) ;
   STATUS(str) ; }
 
-   /* scan through all functions, all views */
+   /* scan through all datasets, all views */
 
-   for( ff=0 ; ff < ss->num_func ; ff++ ){
+   for( ff=0 ; ff < ss->num_dsset ; ff++ ){
       for( vv=VIEW_ORIGINAL_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
 
-         dset = ss->func[ff][vv] ;  /* function that needs parent */
+         dset = ss->dsset[ff][vv] ;  /* function that needs parent */
 
          if( ! ISVALID_3DIM_DATASET(dset) ||
              dset->anat_parent != NULL      ) continue ; /* nothing to do */
 
+         if( !do_anats && ISANAT(dset)      ) continue ; /* 28 Jul 2003 */
+
          if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
 
-         if( ISVALID_3DIM_DATASET(ss->anat[apref][vv]) ){  /* if preferred is OK, */
-            dset->anat_parent = ss->anat[apref][vv] ;      /* use it here         */
+         if( ISVALID_3DIM_DATASET(ss->dsset[apref][vv]) ){  /* if preferred is OK, */
+            dset->anat_parent = ss->dsset[apref][vv] ;      /* use it here         */
          } else {
-            for( aa=0 ; aa < ss->num_anat ; aa++ ){           /* search for something, */
-               if( ISVALID_3DIM_DATASET(ss->anat[aa][vv]) ){  /* anything, and use it  */
-                  dset->anat_parent = ss->anat[aa][vv] ; break ;
+            for( aa=0 ; aa < ss->num_dsset ; aa++ ){          /* search for something, */
+               if( ISVALID_3DIM_DATASET(ss->dsset[aa][vv])
+                   && ISANAT(ss->dsset[aa][vv])           ){  /* anything, and use it  */
+                  dset->anat_parent = ss->dsset[aa][vv] ; break ;
                }
             }
          }
 
-         if( !quiet && dset->anat_parent != NULL ){
+         if( !quiet && dset->anat_parent != NULL && dset->anat_parent != dset ){
             if( first ){
-               first = 0 ;
-               fprintf(stderr,
-                       "\n"
-                       "Datasets with a 'forced adoption' of anat parent:\n") ;
+              first = 0 ;
+              fprintf(stderr,
+                      "\nDatasets with a 'forced adoption' of anat parent:\n") ;
             }
             fprintf(stderr,
                     " %s gets parent %s\n",
                     DSET_HEADNAME(dset) ,
                     DSET_HEADNAME(dset->anat_parent) ) ;
-         }
-      }
-   }
-
-   /* 06 Aug 1996: do anats, maybe */
-
-   if( do_anats ){
-      for( ff=0 ; ff < ss->num_anat ; ff++ ){
-         for( vv=VIEW_ORIGINAL_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
-
-            dset = ss->anat[ff][vv] ;  /* anatomy that needs parent */
-
-            if( ! ISVALID_3DIM_DATASET(dset) ||
-                dset->anat_parent != NULL      ) continue ; /* nothing to do */
-
-            if( DSET_in_global_session(dset) ) continue ; /* 25 Dec 2001 */
-
-            if( ISVALID_3DIM_DATASET(ss->anat[apref][vv]) ){  /* if preferred is OK, */
-               dset->anat_parent = ss->anat[apref][vv] ;      /* use it here         */
-            } else {
-               for( aa=0 ; aa < ss->num_anat ; aa++ ){           /* search for something, */
-                  if( ISVALID_3DIM_DATASET(ss->anat[aa][vv]) &&  /* anything, and use it  */
-                      ss->anat[aa][vv] != dset                 ){
-                     dset->anat_parent = ss->anat[aa][vv] ; break ;
-                  }
-               }
-            }
-
-            if( !quiet && dset->anat_parent != NULL && dset->anat_parent != dset ){
-               if( first ){
-                  first = 0 ;
-                  fprintf(stderr,
-                          "\n"
-                          "Datasets with a 'forced adoption' of anat parent:\n") ;
-               }
-               fprintf(stderr,
-                       " %s gets parent %s\n",
-                       DSET_HEADNAME(dset) ,
-                       DSET_HEADNAME(dset->anat_parent) ) ;
-            }
-
          }
       }
    }
@@ -1026,11 +848,10 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick * br_fim )
    MRI_IMAGE * im_thr , * im_fim , * im_ov ;
    short * ar_ov ;
    short fim_ovc[NPANE_MAX+1] ;
-   int npix , ii , lp , num_lp , function_type , fdset_type , ival ;
-   float scale_factor ;
+   int npix , ii , lp , num_lp , ival ;
+   float scale_factor , scale_thr ;
    MCW_pbar * pbar ;
-   Boolean have_thr ;
-   int     simult_thr , need_thr ;
+   int simult_thr , need_thr ;
 
 ENTRY("AFNI_func_overlay") ;
 
@@ -1040,25 +861,16 @@ ENTRY("AFNI_func_overlay") ;
 
    im3d = (Three_D_View *) br_fim->parent ;
 
-   function_type = im3d->vinfo->showfunc_type ;  /* what to show? */
-   fdset_type    = br_fim->dset->func_type ;
-   have_thr      = FUNC_HAVE_THR( fdset_type ) ;
+   ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
-   if( ISFUNCBUCKET(br_fim->dset) )         /* 30 Nov 1997 */
-      ival = im3d->vinfo->thr_index ;
-   else
-      ival = FUNC_ival_thr[fdset_type] ;    /* sub-brick for threshold */
-
-   if( function_type == SHOWFUNC_THR && ! have_thr ){ /* wrong kind! */
-      XBell( im3d->dc->display , 100 ) ; RETURN(NULL) ;
-   }
+   scale_thr = DSET_BRICK_FACTOR(br_fim->dset,ival) ;
+   if( scale_thr == 0.0 ) scale_thr = 1.0 ;
 
    /* get the component images */
 
    LOAD_DSET_VIEWS(im3d) ; /* 02 Nov 1996 */
 
-   need_thr = have_thr && ( function_type == SHOWFUNC_THR ||      /* 10 Dec 1997 */
-                            im3d->vinfo->func_threshold > 0.0 ) ;
+   need_thr = im3d->vinfo->func_threshold > 0.0 ;
 
    /* get the threshold image? */
 
@@ -1070,46 +882,25 @@ ENTRY("AFNI_func_overlay") ;
      mri_free(im_thr) ; im_thr = qim ;
    }
 
-   have_thr = (im_thr != NULL) ;
-
    AFNI_set_valabel( br_fim , n , im_thr , im3d->vinfo->thr_val ) ;
 
-   if( function_type == SHOWFUNC_FIM ){
-      int ind ;
+   /* get function image */
 
-      if( fdset_type == FUNC_FIM_TYPE ){   /* Mar 1997: allow for 3D+t FIM */
-         ind = im3d->vinfo->time_index ;
-         if( ind >= DSET_NUM_TIMES(br_fim->dset) )
-            ind = DSET_NUM_TIMES(br_fim->dset) - 1 ;
-      } else {
-         if( ISFUNCBUCKET(br_fim->dset) )         /* 30 Nov 1997 */
-            ind = im3d->vinfo->fim_index ;
-         else
-            ind = FUNC_ival_fim[fdset_type] ;
-      }
-      if( im_thr != NULL && ind == ival )    /* 06 Feb 2003: allow for */
-        im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
-      else
-        im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
-      scale_factor = im3d->vinfo->fim_range ;
-      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+   { int ind ;
 
-      AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
-   } else {
-      im_fim = im_thr ;
-#if 0
-      if( im_fim->kind == MRI_short )
-         scale_factor = FUNC_scale_short[fdset_type] * FUNC_topval[fdset_type] ;
-      else if( im_fim->kind == MRI_byte )
-         scale_factor = FUNC_scale_byte[fdset_type] * FUNC_topval[fdset_type] ;
-      else
-         scale_factor = FUNC_topval[fdset_type] ;
-#else
-      scale_factor = im3d->vinfo->fim_range ;
-      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-#endif
+     ind = im3d->vinfo->fim_index ;
+     if( ind >= DSET_NVALS(br_fim->dset) )
+       ind = DSET_NVALS(br_fim->dset) - 1 ;
 
-      im3d->vinfo->func_val[0] = '\0' ;
+     if( im_thr != NULL && ind == ival )    /* 06 Feb 2003: allow for */
+       im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
+     else
+       im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
+     scale_factor = im3d->vinfo->fim_range ;
+     if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+     if( scale_factor == 0.0 ) scale_factor = 1.0 ;
+
+     AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
    }
 
    /* if component images not good, quit now */
@@ -1119,34 +910,32 @@ STATUS("couldn't get Func image!") ;
       KILL_1MRI(im_thr) ; RETURN(NULL) ;
    }
 
-   if( im_fim->kind == MRI_rgb ){                   /* 15 Apr 2002 */
-      if( im_thr != im_fim ) KILL_1MRI(im_thr) ;    /* RGB image is */
-      RETURN(im_fim) ;                              /* shown "as is" */
+   if( im_fim->kind == MRI_rgb ){                  /* 15 Apr 2002 */
+     if( im_thr != im_fim ) KILL_1MRI(im_thr) ;    /* RGB image is */
+     RETURN(im_fim) ;                              /* shown "as is" */
    }
 
-   if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||
-       ( im_thr != NULL && ! AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) ){
-
-STATUS("bad function datatypes!!") ;
-      KILL_1MRI(im_fim) ; KILL_1MRI(im_thr) ; RETURN(NULL) ;
+   if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ){     /* stupidity? */
+     MRI_IMAGE *qim = mri_to_float(im_fim) ;
+     mri_free(im_fim) ; im_fim = qim ;
    }
 
    /* 15 Jun 2000: transformation of functional image? */
 
    if( im3d->vwid->func->pbar_transform0D_func != NULL ){
-      MRI_IMAGE * tim = mri_to_float(im_fim) ;
-      im3d->vwid->func->pbar_transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
-      if( im_fim != im_thr ) mri_free(im_fim) ;
-      im_fim = tim ;
+     MRI_IMAGE * tim = mri_to_float(im_fim) ;
+     im3d->vwid->func->pbar_transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
+     if( im_fim != im_thr ) mri_free(im_fim) ;
+     im_fim = tim ;
    }
 
    if( im3d->vwid->func->pbar_transform2D_func != NULL ){
-      MRI_IMAGE * tim = mri_to_float(im_fim) ;
-      im3d->vwid->func->pbar_transform2D_func( tim->nx, tim->ny,
-                                               tim->dx, tim->dy,
-                                               MRI_FLOAT_PTR(tim) ) ;
-      if( im_fim != im_thr ) mri_free(im_fim) ;
-      im_fim = tim ;
+     MRI_IMAGE * tim = mri_to_float(im_fim) ;
+     im3d->vwid->func->pbar_transform2D_func( tim->nx, tim->ny,
+                                              tim->dx, tim->dy,
+                                              MRI_FLOAT_PTR(tim) ) ;
+     if( im_fim != im_thr ) mri_free(im_fim) ;
+     im_fim = tim ;
    }
 
    pbar = im3d->vwid->func->inten_pbar ;
@@ -1157,11 +946,8 @@ STATUS("bad function datatypes!!") ;
 
    if( pbar->bigmode ){
      float thresh ;
-     thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-     switch( im_fim->kind ){
-       case MRI_short: thresh *= FUNC_scale_short[fdset_type] ; break ;
-       case MRI_byte:  thresh *= FUNC_scale_byte [fdset_type] ; break ;
-     }
+     thresh =  im3d->vinfo->func_threshold
+             * im3d->vinfo->func_thresh_top / scale_thr ;
      im_ov = AFNI_newfunc_overlay( im_thr , thresh ,
                                    im_fim ,
                                    scale_factor*pbar->bigbot ,
@@ -1203,29 +989,29 @@ STATUS("bad im_fim->kind!") ;
          float fim_thr[NPANE_MAX] ;  /* 13 Nov 1996: changed from short */
 
          for( lp=0 ; lp < num_lp ; lp++ )
-            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+           fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-            int   thresh = im3d->vinfo->func_threshold
-                         * im3d->vinfo->func_thresh_top * FUNC_scale_short[fdset_type] ;
-            short * ar_thr = MRI_SHORT_PTR(im_thr) ;
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0 ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           int   thresh = im3d->vinfo->func_threshold
+                        * im3d->vinfo->func_thresh_top / scale_thr ;
+           short * ar_thr = MRI_SHORT_PTR(im_thr) ;
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0 ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+               ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          } else {
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( ar_fim[ii] == 0 ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( ar_fim[ii] == 0 ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                 ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          }
       }
       break ;
@@ -1235,33 +1021,31 @@ STATUS("bad im_fim->kind!") ;
          float fim_thr[NPANE_MAX] ;  /* 13 Nov 1996: changed from short */
 
          for( lp=0 ; lp < num_lp ; lp++ )
-            if( pbar->pval[lp+1] <= 0.0 )
-               fim_thr[lp] = 0 ;
-            else
-               fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+           fim_thr[lp] = (pbar->pval[lp+1] > 0.0) ? scale_factor*pbar->pval[lp+1]
+                                                  : 0.0                          ;
 
          if( simult_thr ){
-            int  thresh = im3d->vinfo->func_threshold
-                         * im3d->vinfo->func_thresh_top * FUNC_scale_byte[fdset_type] ;
-            byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
+           int  thresh = im3d->vinfo->func_threshold
+                        * im3d->vinfo->func_thresh_top / scale_thr ;
+           byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( ar_thr[ii] < thresh || ar_fim[ii] == 0 ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( ar_thr[ii] < thresh || ar_fim[ii] == 0 ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+               ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          } else {
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( ar_fim[ii] == 0 ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( ar_fim[ii] == 0 ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                 ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          }
       }
       break ;
@@ -1271,69 +1055,69 @@ STATUS("bad im_fim->kind!") ;
          float fim_thr[NPANE_MAX] ;
 
          for( lp=0 ; lp < num_lp ; lp++ )
-            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
+           fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
 
          if( simult_thr ){
-            float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-            float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
+           float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+           float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0.0  ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0.0  ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+               ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          } else {
-            for( ii=0 ; ii < npix ; ii++ ){
-               if( ar_fim[ii] == 0.0 ){
-                  ar_ov[ii] = 0 ;
-               } else {
-                  for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                  ar_ov[ii] = fim_ovc[lp] ;
-               }
-            }
+           for( ii=0 ; ii < npix ; ii++ ){
+             if( ar_fim[ii] == 0.0 ){
+               ar_ov[ii] = 0 ;
+             } else {
+               for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+               ar_ov[ii] = fim_ovc[lp] ;
+             }
+           }
          }
       }
       break ;
    }
 
-   /** if have threshold, clip the overlay **/
+   /** if have yet to do threshold, clip the overlay **/
 
    if( im_thr != NULL && im3d->vinfo->func_threshold > 0.0 && !simult_thr ){
 
-      switch( im_thr->kind ){
+     switch( im_thr->kind ){
 
-         case MRI_short:{
-            int   thresh = im3d->vinfo->func_threshold
-                         * im3d->vinfo->func_thresh_top * FUNC_scale_short[fdset_type] ;
-            short * ar_thr = MRI_SHORT_PTR(im_thr) ;
+       case MRI_short:{
+         int   thresh = im3d->vinfo->func_threshold
+                      * im3d->vinfo->func_thresh_top / scale_thr ;
+         short * ar_thr = MRI_SHORT_PTR(im_thr) ;
 
-            for( ii=0 ; ii < npix ; ii++ )
-               if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
-         }
-         break ;
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+       }
+       break ;
 
-         case MRI_byte:{
-            int  thresh = im3d->vinfo->func_threshold
-                        * im3d->vinfo->func_thresh_top * FUNC_scale_byte[fdset_type] ;
-            byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
+       case MRI_byte:{
+         int  thresh = im3d->vinfo->func_threshold
+                     * im3d->vinfo->func_thresh_top / scale_thr ;
+         byte * ar_thr = MRI_BYTE_PTR(im_thr) ;
 
-            for( ii=0 ; ii < npix ; ii++ )
-               if( ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
-         }
-         break ;
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+       }
+       break ;
 
-         case MRI_float:{
-            float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-            float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
+       case MRI_float:{
+         float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+         float * ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
-            for( ii=0 ; ii < npix ; ii++ )
-               if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
-         }
-         break ;
-      }
+         for( ii=0 ; ii < npix ; ii++ )
+           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+       }
+       break ;
+     }
    }
 
    /* delete the overlay if it contains nothing */
@@ -1376,7 +1160,7 @@ ENTRY("AFNI_newfunc_overlay") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgb ) ;
    ovar  = MRI_RGB_PTR(im_ov) ;
    npix  = im_ov->nvox ;
-   zbot  = (fimbot == 0.0) ;
+   zbot  = (fimbot == 0.0) ;             /* no color for negative values? */
    fac   = NPANE_BIG / (fimtop-fimbot) ;
 
    /* load output image with colors */
@@ -1705,9 +1489,8 @@ STATUS("anatomy underlay") ;
          im3d->b312_ulay = im3d->b312_anat ;
       break ;
 
-      case UNDERLAY_THRFUNC:                 /* set underlay to function */
       case UNDERLAY_ALLFUNC:
-         if( ISVALID_3DIM_DATASET(im3d->fim_now) && ISFUNC(im3d->fim_now) ){
+         if( ISVALID_DSET(im3d->fim_now) ){
 
 STATUS("functional underlay") ;
 
@@ -2021,16 +1804,16 @@ ENTRY("AFNI_choose_dataset_CB") ;
               w == im3d->vwid->view->popchoose_anat_pb ){
 
       wpar    = im3d->vwid->view->choose_anat_pb ;
-      num_str = im3d->ss_now->num_anat ;
+      num_str = im3d->ss_now->num_dsset ;
       if( num_str < 1 ) EXRETURN ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->anat[ii][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
 
          if( vv <= LAST_VIEW_TYPE ){
-            llen = strlen( im3d->ss_now->anat[ii][vv]->dblk->diskptr->prefix ) ;
+            llen = strlen( im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
             ltop = MAX( ltop , llen ) ;
          }
       }
@@ -2038,37 +1821,36 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->anat[ii][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
 
          if( vv <= LAST_VIEW_TYPE ){
             sprintf( strlist[ii] , "%-*s" ,
-                     ltop,im3d->ss_now->anat[ii][vv]->dblk->diskptr->prefix ) ;
+                     ltop,im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
 
             strcat( strlist[ii] , " [" ) ;
-            strcat( strlist[ii] ,
-                    ANAT_prefixstr[ im3d->ss_now->anat[ii][vv]->func_type ] ) ;
+            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset[ii][vv]) ) ;
 
-            if( DSET_NUM_TIMES(im3d->ss_now->anat[ii][vv]) > 1 ){
+            if( DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) > 1 ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
-                        DSET_NUM_TIMES(im3d->ss_now->anat[ii][vv]) ) ;
-            } else if( ISANATBUCKET(im3d->ss_now->anat[ii][vv]) ){
+                        DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) ) ;
+            } else if( ISBUCKET(im3d->ss_now->dsset[ii][vv]) ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
-                        DSET_NVALS(im3d->ss_now->anat[ii][vv]) ) ;
+                        DSET_NVALS(im3d->ss_now->dsset[ii][vv]) ) ;
             } else {
                strcat( strlist[ii] , "]" ) ;
             }
 
-            if( DSET_GRAPHABLE(im3d->ss_now->anat[ii][vv]) )
+            if( DSET_GRAPHABLE(im3d->ss_now->dsset[ii][vv]) )
                strcat( strlist[ii] , "*" ) ;
 
-            if( DSET_COMPRESSED(im3d->ss_now->anat[ii][vv]) )
+            if( DSET_COMPRESSED(im3d->ss_now->dsset[ii][vv]) )
                strcat( strlist[ii] , "z" ) ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
-            if( DSET_in_global_session(im3d->ss_now->anat[ii][vv]) )
+            if( DSET_in_global_session(im3d->ss_now->dsset[ii][vv]) )
               strcat( strlist[ii] , "G" ) ;
 
          } else
@@ -2084,16 +1866,16 @@ ENTRY("AFNI_choose_dataset_CB") ;
               w == im3d->vwid->view->popchoose_func_pb ){
 
       wpar    = im3d->vwid->view->choose_func_pb ;
-      num_str = im3d->ss_now->num_func ;
+      num_str = im3d->ss_now->num_dsset ;
       if( num_str < 1 ) EXRETURN ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->func[ii][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
 
          if( vv <= LAST_VIEW_TYPE ){
-            llen = strlen( im3d->ss_now->func[ii][vv]->dblk->diskptr->prefix ) ;
+            llen = strlen( im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
             ltop = MAX( ltop , llen ) ;
          }
       }
@@ -2101,34 +1883,33 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->func[ii][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
 
          if( vv <= LAST_VIEW_TYPE ){
             sprintf( strlist[ii] , "%-*s" ,
-                     ltop , im3d->ss_now->func[ii][vv]->dblk->diskptr->prefix ) ;
+                     ltop , im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
 
             strcat( strlist[ii] , " [" ) ;
-            strcat( strlist[ii] ,
-                    FUNC_prefixstr[ im3d->ss_now->func[ii][vv]->func_type ] ) ;
+            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset[ii][vv]) ) ;
 
-            if( DSET_NUM_TIMES(im3d->ss_now->func[ii][vv]) > 1 ){
+            if( DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) > 1 ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
-                        DSET_NUM_TIMES(im3d->ss_now->func[ii][vv]) ) ;
-            } else if( ISFUNCBUCKET(im3d->ss_now->func[ii][vv]) ){
+                        DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) ) ;
+            } else if( ISBUCKET(im3d->ss_now->dsset[ii][vv]) ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
-                        DSET_NVALS(im3d->ss_now->func[ii][vv]) ) ;
+                        DSET_NVALS(im3d->ss_now->dsset[ii][vv]) ) ;
             } else {
                strcat( strlist[ii] , "]" ) ;
             }
 
-            if( DSET_COMPRESSED(im3d->ss_now->func[ii][vv]) )
+            if( DSET_COMPRESSED(im3d->ss_now->dsset[ii][vv]) )
                strcat( strlist[ii] , "z" ) ;
 
             /* 20 Dec 2001: mark if this is a global dataset */
 
-            if( DSET_in_global_session(im3d->ss_now->func[ii][vv]) )
+            if( DSET_in_global_session(im3d->ss_now->dsset[ii][vv]) )
               strcat( strlist[ii] , "G" ) ;
 
          } else
@@ -2185,29 +1966,29 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
       /* find an anat in new session to match current anat */
 
-      if( ISVALID_3DIM_DATASET(ss_new->anat[old_anat][old_view]) ){  /* are OK */
-         new_anat = old_anat ;
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_anat][old_view]) ){  /* are OK */
+        new_anat = old_anat ;
       } else {
-         for( ii=0 ; ii < ss_new->num_anat ; ii++ )
-            if( ISVALID_3DIM_DATASET(ss_new->anat[ii][old_view]) ){
-               new_anat = ii ; break ;
-            }
+        for( ii=0 ; ii < ss_new->num_dsset ; ii++ )
+          if( ISVALID_3DIM_DATASET(ss_new->dsset[ii][old_view]) ){
+             new_anat = ii ; break ;
+          }
       }
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
       /* find a view to fit this chosen anat */
 
-      if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][old_view]) ){ /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][old_view]) ){ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
             for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][vv]) ) break ;
+               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2221,14 +2002,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
 #define FINDAFUNC
 #ifdef FINDAFUNC
-      if( ISVALID_3DIM_DATASET(ss_new->func[old_func][new_view]) ){  /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_func][new_view]) ){  /* are OK */
 
          new_func = old_func ;
       } else {
-         for( ff=0 ; ff < ss_new->num_func ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->func[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
 
-         if( ff < ss_new->num_func ) new_func = ff ;  /* found one */
+         if( ff < ss_new->num_dsset ) new_func = ff ;  /* found one */
       }
       if( new_func < 0 ) new_func = 0 ;  /* no match */
 #else
@@ -2243,23 +2024,23 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new   = GLOBAL_library.sslist->ssar[new_sess] ;
 
       new_anat = cbs->ival ;
-      if( new_anat < 0 || new_anat >= ss_new->num_anat ){
+      if( new_anat < 0 || new_anat >= ss_new->num_dsset ){
          XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
       }
 
       /* find a view to fit this chosen anat */
 
-      if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][old_view]) ){ /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][old_view]) ){ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
             for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->anat[new_anat][vv]) ) break ;
+               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_anat][vv]) ) break ;
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2272,14 +2053,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* find a func to match this view */
 
 #ifdef FINDAFUNC
-      if( ISVALID_3DIM_DATASET(ss_new->func[old_func][new_view]) ){ /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_func][new_view]) ){ /* are OK */
 
          new_func = old_func ;
       } else {
-         for( ff=0 ; ff < ss_new->num_func ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->func[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
 
-         if( ff < ss_new->num_func ) new_func = ff ;  /* found one */
+         if( ff < ss_new->num_dsset ) new_func = ff ;  /* found one */
       }
       if( new_func < 0 ) new_func = 0 ;  /* no match */
 #else
@@ -2294,23 +2075,23 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       ss_new   = GLOBAL_library.sslist->ssar[new_sess] ;
 
       new_func = cbs->ival ;
-      if( new_func < 0 || new_func >= ss_new->num_func ){
+      if( new_func < 0 || new_func >= ss_new->num_dsset ){
          XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
       }
 
       /* find a view to fit this chosen func */
 
-      if( ISVALID_3DIM_DATASET(ss_new->func[new_func][old_view]) ){ /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][old_view]) ){ /* are OK */
          new_view = old_view ;
       } else {
          for( vv=old_view-1 ; vv >= FIRST_VIEW_TYPE ; vv-- )  /* look below */
-            if( ISVALID_3DIM_DATASET(ss_new->func[new_func][vv]) ) break ;
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][vv]) ) break ;
 
          if( vv >= FIRST_VIEW_TYPE ){  /* found it below */
             new_view = vv ;
          } else {                      /* look above */
             for( vv=old_view+1 ; vv <= LAST_VIEW_TYPE ; vv++ )
-               if( ISVALID_3DIM_DATASET(ss_new->func[new_func][vv]) ) break ;
+               if( ISVALID_3DIM_DATASET(ss_new->dsset[new_func][vv]) ) break ;
 
             if( vv <= LAST_VIEW_TYPE ){  /* found it above */
                new_view = vv ;
@@ -2322,14 +2103,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
       /* find an anat to go with the new view (this is NOT optional) */
 
-      if( ISVALID_3DIM_DATASET(ss_new->anat[old_anat][new_view]) ){  /* are OK */
+      if( ISVALID_3DIM_DATASET(ss_new->dsset[old_anat][new_view]) ){  /* are OK */
 
          new_anat = old_anat ;
       } else {
-         for( ff=0 ; ff < ss_new->num_anat ; ff++ )  /* search */
-            if( ISVALID_3DIM_DATASET(ss_new->anat[ff][new_view]) ) break ;
+         for( ff=0 ; ff < ss_new->num_dsset ; ff++ )  /* search */
+            if( ISVALID_3DIM_DATASET(ss_new->dsset[ff][new_view]) ) break ;
 
-         if( ff < ss_new->num_anat ) new_anat = ff ;  /* found one */
+         if( ff < ss_new->num_dsset ) new_anat = ff ;  /* found one */
       }
       if( new_anat < 0 ){
          XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
@@ -2537,17 +2318,11 @@ ENTRY("AFNI_append_sessions") ;
    if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb) ) EXRETURN ;
    if( THD_equiv_files(ssa->sessname,ssb->sessname)   ) EXRETURN ;
 
-   qs = ssa->num_anat ;
-   for( qd=0; qd < ssb->num_anat && qd+qs < THD_MAX_SESSION_ANAT ; qd++ )
+   qs = ssa->num_dsset ;
+   for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         ssa->anat[qd+qs][vv] = ssb->anat[qd][vv] ;
-   ssa->num_anat += qd ;
-
-   qs = ssa->num_func ;
-   for( qd=0; qd < ssb->num_func && qd+qs < THD_MAX_SESSION_FUNC ; qd++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         ssa->func[qd+qs][vv] = ssb->func[qd][vv] ;
-   ssa->num_func += qd ;
+         ssa->dsset[qd+qs][vv] = ssb->dsset[qd][vv] ;
+   ssa->num_dsset += qd ;
 
    EXRETURN ;
 }
@@ -2637,7 +2412,7 @@ STATUS("wasn't a directory") ;
 
             /** OK, was a directory and we tried to read it **/
 
-            if( new_ss == NULL ){  /** failed to read anything useful **/
+            if( new_ss == NULL || new_ss->num_dsset ){  /** failed to read anything useful **/
 
 STATUS("failed to read new session") ;
                XBell(im3d->dc->display,100) ;
@@ -2646,18 +2421,6 @@ STATUS("failed to read new session") ;
                                            "** Cannot read any datasets **\n"
                                            "******************************"
                                          , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-
-#if 0  /* removed 28 Aug 2002 */
-            } else if( new_ss->num_anat <= 0 ){  /** no anatomical datasets? **/
-
-STATUS("no anatomies") ;
-               XBell(im3d->dc->display,100) ;
-               (void) MCW_popup_message( w ,
-                                           "******************************\n"
-                                           "** Session has no anatomies **\n"
-                                           "******************************"
-                                         , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-#endif
 
             } else if( GLOBAL_library.sslist->num_sess >= THD_MAX_NUM_SESSION ){
 
@@ -2677,25 +2440,11 @@ STATUS("too many sessions") ;
 
 STATUS("processing new session") ;
 
-               /* 28 Aug 2002: deal with case of no anatomicals */
-
-               if( new_ss->num_anat <= 0 ){
-                 for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                    new_ss->anat[0][vv] = EDIT_wod_copy( new_ss->func[0][vv] ) ;
-                 new_ss->num_anat = 1 ;
-                 fprintf(stderr,"\n*** session %s has no anatomies!  Func duplicate used.\n",
-                         new_ss->sessname) ;
-               }
-
                new_ss->parent = NULL ;
 
-               for( qd=0 ; qd < new_ss->num_anat ; qd++ )       /* parentize */
+               for( qd=0 ; qd < new_ss->num_dsset ; qd++ )       /* parentize */
                   for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                     PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
-
-               for( qd=0 ; qd < new_ss->num_func ; qd++ )
-                  for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                     PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+                     PARENTIZE( new_ss->dsset[qd][vv] , NULL ) ;
 
                /* 20 Dec 2001: if have global datasets, put them in here */
 
@@ -2714,10 +2463,9 @@ STATUS("adding new session to list") ;
 
                sprintf(str," \n Session #%2d"
                             "\n %s"
-                            "\n %d anatomical datasets,"
-                            "\n %d functional datasets\n",
+                            "\n %d datasets\n" ,
                        GLOBAL_library.sslist->num_sess ,
-                       new_ss->sessname, new_ss->num_anat, new_ss->num_func ) ;
+                       new_ss->sessname, new_ss->num_dsset ) ;
 
                (void) MCW_popup_message( im3d->vwid->dmode->read_sess_pb,
                                          str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
@@ -2966,26 +2714,14 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
       dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
       if( !ISVALID_DSET(dset) ) continue ;             /* bad */
       vv = dset->view_type ;
-      if( ISANAT(dset) ){
-         nn = ss->num_anat ;
-         if( nn >= THD_MAX_SESSION_ANAT ){
-            fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
-            DSET_delete(dset) ;  /* 01 Nov 2001 */
-         } else {
-            ss->anat[nn][vv] = dset ;
-            ss->num_anat++ ; nds++ ;
-            if( vv == im3d->vinfo->view_type && na == -1 ) na = nn ;
-         }
-      } else if( ISFUNC(dset) ){
-         nn = ss->num_func ;
-         if( nn >= THD_MAX_SESSION_FUNC ){
-            fprintf(stderr,"\a\n*** too many functional datasets!\n") ;
-            DSET_delete(dset) ;  /* 01 Nov 2001 */
-         } else {
-            ss->func[nn][vv] = dset ;
-            ss->num_func++ ; nds++ ;
-            if( vv == im3d->vinfo->view_type && nf == -1 ) nf = nn ;
-         }
+      nn = ss->num_dsset ;
+      if( nn >= THD_MAX_SESSION_SIZE ){
+        fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
+        DSET_delete(dset) ;  /* 01 Nov 2001 */
+      } else {
+        ss->dsset[nn][vv] = dset ;
+        ss->num_dsset++ ; nds++ ;
+        if( vv == im3d->vinfo->view_type && na == -1 ) na = nn ;
       }
    } /* end of loop over dd=datasets in dsar */
 
@@ -3013,14 +2749,14 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
 
    if( GLOBAL_library.have_dummy_dataset ){
       UNDUMMYIZE ;
-      if( na < 0 && ss->num_anat > 1 ){
+      if( na < 0 && ss->num_dsset > 1 ){
          im3d->vinfo->anat_num = 1 ;
          for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-            if( ISVALID_DSET(ss->anat[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
+            if( ISVALID_DSET(ss->dsset[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
          }
-      } else if( na < 0 ){
+      } else if( na < 0 ){                         /* should be impossible */
          (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
-                                   " \n** No Anat datasets available **\n " ,
+                                   " \n** No datasets available **\n " ,
                                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
       }
    }
@@ -3149,23 +2885,15 @@ fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
 
 STATUS("marking old session datasets") ;
 
-   nold = old_ss->num_anat + old_ss->num_func ;
+   nold = old_ss->num_dsset ;
 
-   for( ii=0 ; ii < old_ss->num_anat ; ii++ )
+   for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         if( ISVALID_3DIM_DATASET(old_ss->anat[ii][vv]) )
-            if( DSET_in_global_session(old_ss->anat[ii][vv]) )
-               old_ss->anat[ii][vv] = NULL ;   /* will be added back in later */
+         if( ISVALID_3DIM_DATASET(old_ss->dsset[ii][vv]) )
+            if( DSET_in_global_session(old_ss->dsset[ii][vv]) )
+               old_ss->dsset[ii][vv] = NULL ;   /* will be added back in later */
             else
-               DSET_MARK_FOR_DEATH( old_ss->anat[ii][vv] ) ;
-
-   for( ii=0 ; ii < old_ss->num_func ; ii++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         if( ISVALID_3DIM_DATASET(old_ss->func[ii][vv]) )
-            if( DSET_in_global_session(old_ss->func[ii][vv]) )
-               old_ss->func[ii][vv] = NULL ;   /* will be added back in later */
-            else
-               DSET_MARK_FOR_DEATH( old_ss->func[ii][vv] ) ;
+               DSET_MARK_FOR_DEATH( old_ss->dsset[ii][vv] ) ;
 
    /*--- mark all descendants for purging as well ---*/
 
@@ -3200,28 +2928,22 @@ STATUS(old_ss->sessname) ;
 
    new_ss = THD_init_session( old_ss->sessname ) ;
 
-   if( new_ss == NULL || new_ss->num_anat <= 0 ){
-      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds no anats!\a\n",
+   if( new_ss == NULL || new_ss->num_dsset <= 0 ){
+      fprintf(stderr,"\n*** Fatal error: Rescan of session %s finds nothing!\a\n",
               old_ss->sessname ) ;
       EXIT(1) ;
    }
 
    myXtFree( old_ss ) ;  /* no longer need this */
 
-   /* for anats, just set parent pointers */
+   /* set parent pointers */
 
 STATUS("PARENTIZE-ing datasets in new session") ;
 
    new_ss->parent = NULL ;
-   for( ii=0 ; ii < new_ss->num_anat ; ii++ )
+   for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         PARENTIZE( new_ss->anat[ii][vv] , NULL ) ;
-
-   /* for funcs, just set parent pointers */
-
-   for( ii=0 ; ii < new_ss->num_func ; ii++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         PARENTIZE( new_ss->func[ii][vv] , NULL ) ;
+         PARENTIZE( new_ss->dsset[ii][vv] , NULL ) ;
 
    /* put the new session into place in the list of sessions */
 
@@ -3269,11 +2991,11 @@ STATUS("fixing active controllers") ;
          /* if have it, use it, otherwise, pick first anat in this view */
 
          if( find.dset != NULL && find.view_index == vv ){
-            im3d->vinfo->anat_num = find.anat_index ;
+            im3d->vinfo->anat_num = find.dset_index ;
          } else {
-            for( ii=0 ; ii < new_ss->num_anat ; ii++ )
-               if( ISVALID_3DIM_DATASET(new_ss->anat[ii][vv]) ) break ;
-            if( ii < new_ss->num_anat ){
+            for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
+               if( ISVALID_3DIM_DATASET(new_ss->dsset[ii][vv]) ) break ;
+            if( ii < new_ss->num_dsset ){
                im3d->vinfo->anat_num = ii ;
             } else {
                fprintf(stderr,
@@ -3292,11 +3014,11 @@ STATUS("fixing active controllers") ;
                                         &(func_idcode[cc]) , new_ss ) ;
 
             if( find.dset != NULL && find.view_index == vv ){
-               im3d->vinfo->func_num = find.func_index ;
+               im3d->vinfo->func_num = find.dset_index ;
             } else {
-               for( ii=0 ; ii < new_ss->num_func ; ii++ )
-                  if( ISVALID_3DIM_DATASET(new_ss->func[ii][vv]) ) break ;
-               if( ii < new_ss->num_func ){
+               for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
+                  if( ISVALID_3DIM_DATASET(new_ss->dsset[ii][vv]) ) break ;
+               if( ii < new_ss->num_dsset ){
                   im3d->vinfo->func_num = ii ;
                } else {
                   im3d->vinfo->func_num = 0 ;  /* no func is not fatal */
@@ -3313,7 +3035,7 @@ STATUS("fixing active controllers") ;
       }
    }
 
-   nnew = new_ss->num_anat + new_ss->num_func ;
+   nnew = new_ss->num_dsset ;
 
    RETURN( (nnew-nold) ) ;
 }
@@ -3372,9 +3094,9 @@ STATUS(old_ss->sessname) ;
    /*--- scan datasets and remove those
          that already exist in this session ---*/
 
-   for( ii=0 ; ii < new_ss->num_anat ; ii++ ){
+   for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-       new_dset = new_ss->anat[ii][vv] ;
+       new_dset = new_ss->dsset[ii][vv] ;
        if( ISVALID_DSET(new_dset) ){
          find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), old_ss );
          if( find.dset == NULL ){
@@ -3382,22 +3104,7 @@ STATUS(old_ss->sessname) ;
           if( find.dset != NULL && find.view_index != vv ) find.dset = NULL ;
          }
          if( find.dset != NULL ){
-           DSET_delete(new_dset); new_ss->anat[ii][vv] = NULL;
-         }
-       }
-     }
-   }
-   for( ii=0 ; ii < new_ss->num_func ; ii++ ){
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-       new_dset = new_ss->func[ii][vv] ;
-       if( ISVALID_DSET(new_dset) ){
-         find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), old_ss );
-         if( find.dset == NULL ){
-          find = THD_dset_in_session(FIND_PREFIX, DSET_PREFIX(new_dset),old_ss);
-          if( find.dset != NULL && find.view_index != vv ) find.dset = NULL ;
-         }
-         if( find.dset != NULL ){
-           DSET_delete(new_dset); new_ss->func[ii][vv] = NULL;
+           DSET_delete(new_dset); new_ss->dsset[ii][vv] = NULL;
          }
        }
      }
@@ -3406,35 +3113,22 @@ STATUS(old_ss->sessname) ;
    /*--- now scan survivors and put them
          at the end of the existing session ---*/
 
-   for( ii=0 ; ii < new_ss->num_anat ; ii++ ){
+   for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* see if row is empty */
-       if( new_ss->anat[ii][vv] != NULL ) break ;
+       if( new_ss->dsset[ii][vv] != NULL ) break ;
      if( vv > LAST_VIEW_TYPE ) continue ;          /* empty row ==> skip  */
-     nr = old_ss->num_anat ;                       /* next row in old_ss  */
-     if( nr >= THD_MAX_SESSION_ANAT ) break ;      /* old session is full */
+     nr = old_ss->num_dsset ;                      /* next row in old_ss  */
+     if( nr >= THD_MAX_SESSION_SIZE ) break ;      /* old session is full */
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
-       old_ss->anat[nr][vv] = new_ss->anat[ii][vv];
-     old_ss->num_anat ++ ;  na_new++ ;             /* 1 more row in old   */
-   }
-   for( ii=0 ; ii < new_ss->num_func ; ii++ ){
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       if( new_ss->func[ii][vv] != NULL ) break ;
-     if( vv > LAST_VIEW_TYPE ) continue ;
-     nr = old_ss->num_func ;
-     if( nr >= THD_MAX_SESSION_FUNC ) break ;
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       old_ss->func[nr][vv] = new_ss->func[ii][vv];
-     old_ss->num_func ++ ;  nf_new++ ;
+       old_ss->dsset[nr][vv] = new_ss->dsset[ii][vv];
+     old_ss->num_dsset ++ ;  na_new++ ;            /* 1 more row in old   */
    }
 
    /*-- 15 Jan 2003: purge all datasets from memory (for Hauke Heekeren) --*/
 
-   for( ii=0 ; ii < old_ss->num_anat ; ii++ )
+   for( ii=0 ; ii < old_ss->num_dsset ; ii++ )
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       if( old_ss->anat[ii][vv] != NULL ) DSET_unload(old_ss->anat[ii][vv]);
-   for( ii=0 ; ii < old_ss->num_func ; ii++ )
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-       if( old_ss->func[ii][vv] != NULL ) DSET_unload(old_ss->func[ii][vv]);
+       if( old_ss->dsset[ii][vv] != NULL ) DSET_unload(old_ss->dsset[ii][vv]);
 
    /* assign the warp and anatomy parent pointers;
       then, make any datasets that don't exist but logically
@@ -3454,7 +3148,7 @@ STATUS(old_ss->sessname) ;
      new_ss->warptable = NULL ;
    }
 
-   RETURN(na_new+nf_new) ;
+   RETURN(na_new) ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -3667,18 +3361,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
 
-      for( id=0 ; id < ss->num_anat ; id++ ){
-         dset = ss->anat[id][vv] ;
-         if( DSET_WRITEABLE(dset) ){
-            strcpy( nam , dset->dblk->diskptr->directory_name ) ;
-            strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL+1) ;
-            llen = strlen(tnam) ; ltop = MAX(ltop,llen) ;
-         }
-      }
-
-      for( id=0 ; id < ss->num_func ; id++ ){
-         dset = ss->func[id][vv] ;
+      for( id=0 ; id < ss->num_dsset ; id++ ){
+         dset = ss->dsset[id][vv] ;
          if( DSET_WRITEABLE(dset) ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
@@ -3695,8 +3379,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       /* check anat datasets */
 
-      for( id=0 ; id < ss->num_anat ; id++ ){
-         dset = ss->anat[id][vv] ;
+      for( id=0 ; id < ss->num_dsset ; id++ ){
+         dset = ss->dsset[id][vv] ;
          if( DSET_WRITEABLE(dset) ){
             num_dset++ ;
             idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
@@ -3708,54 +3392,37 @@ ENTRY("AFNI_write_many_dataset_CB") ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
             tnam = THD_trailname(nam,SESSTRAIL+1) ;
 
-            if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
-               sprintf(qnam,"%-*s [%s:%d]" ,
-                       ltop,tnam , ANAT_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
+            if( ISANAT(dset) ){
+              if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
+                 sprintf(qnam,"%-*s [%s:%d]" ,
+                         ltop,tnam , ANAT_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
 
-            else if( DSET_NUM_TIMES(dset) == 1 )
-               sprintf(qnam,"%-*s [%s]" ,
-                       ltop,tnam ,ANAT_prefixstr[dset->func_type] ) ;
+              else if( DSET_NUM_TIMES(dset) == 1 )
+                 sprintf(qnam,"%-*s [%s]" ,
+                         ltop,tnam ,ANAT_prefixstr[dset->func_type] ) ;
 
-            else
-               sprintf(qnam,"%-*s [%s:3D+t]" ,
-                       ltop,tnam , ANAT_prefixstr[dset->func_type] ) ;
+              else
+                 sprintf(qnam,"%-*s [%s:3D+t]" ,
+                         ltop,tnam , ANAT_prefixstr[dset->func_type] ) ;
 
-            strlist[num_dset-1] = XtNewString(qnam) ;
-            idclist[num_dset-1] = dset->idcode ;
-         }
-      } /* end of loop over anats */
+            } else if( ISFUNC(dset) ){
+              if( ISFUNCBUCKET(dset) )             /* 30 Nov 1997 */
+                 sprintf(qnam,"%-*s [%s:%d]" ,
+                         ltop,tnam , FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
 
-      /* check func datasets */
+              else if( DSET_NUM_TIMES(dset) == 1 )
+                 sprintf(qnam,"%-*s [%s]" ,
+                         ltop,tnam , FUNC_prefixstr[dset->func_type] ) ;
 
-      for( id=0 ; id < ss->num_func ; id++ ){
-         dset = ss->func[id][vv] ;
-         if( DSET_WRITEABLE(dset) ){
-            num_dset++ ;
-            idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
-                                                sizeof(MCW_idcode) * num_dset ) ;
-            strlist = (char **)      XtRealloc( (char *) strlist ,
-                                                sizeof(char *)     * num_dset ) ;
-
-            strcpy( nam , dset->dblk->diskptr->directory_name ) ;
-            strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL+1) ;
-
-            if( ISFUNCBUCKET(dset) )             /* 30 Nov 1997 */
-               sprintf(qnam,"%-*s [%s:%d]" ,
-                       ltop,tnam , FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
-
-            else if( DSET_NUM_TIMES(dset) == 1 )
-               sprintf(qnam,"%-*s [%s]" ,
-                       ltop,tnam , FUNC_prefixstr[dset->func_type] ) ;
-
-            else
-               sprintf(qnam,"%-*s [%s:3D+t]" ,
-                       ltop,tnam , FUNC_prefixstr[dset->func_type] ) ;
+              else
+                 sprintf(qnam,"%-*s [%s:3D+t]" ,
+                         ltop,tnam , FUNC_prefixstr[dset->func_type] ) ;
+            }
 
             strlist[num_dset-1] = XtNewString(qnam) ;
             idclist[num_dset-1] = dset->idcode ;
          }
-      } /* end of loop over funcs */
+      } /* end of loop over datasets */
 
    } /* end of loop over sessions */
 
@@ -4355,12 +4022,12 @@ ENTRY("AFNI_mark_for_death") ;
       ss = ssl->ssar[iss] ;
       if( !ISVALID_SESSION(ss) ) continue ;  /* no good ==> skip */
 
-      /* loop over anats in this session */
+      /* loop over datasets in this session */
 
-      for( jdd=0 ; jdd < ss->num_anat ; jdd++ ){
+      for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
          for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
 
-            dset = ss->anat[jdd][kvv] ;
+            dset = ss->dsset[jdd][kvv] ;
 
             if( ISVALID_3DIM_DATASET(dset) &&                /* good dset */
                 dset->anat_parent != NULL  &&                /* has parent */
@@ -4372,25 +4039,6 @@ ENTRY("AFNI_mark_for_death") ;
             }
          }
       }
-
-      /* do the same for funcs */
-
-      for( jdd=0 ; jdd < ss->num_func ; jdd++ ){
-         for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-
-            dset = ss->func[jdd][kvv] ;
-
-            if( ISVALID_3DIM_DATASET(dset) &&                /* good dset */
-                dset->anat_parent != NULL  &&                /* has parent */
-                dset->anat_parent->death_mark == DOOMED &&   /* parent dies */
-                dset->warp_parent != NULL                 ){ /* is a warp child */
-
-               DSET_MARK_FOR_DEATH(dset) ;
-               num_marked ++ ;
-            }
-         }
-      }
-
    }  /* end of loop over sessions */
 
 #ifdef AFNI_DEBUG
@@ -4425,12 +4073,12 @@ ENTRY("AFNI_andersonville") ;
 
       if( ss == GLOBAL_library.session ) continue ; /* 21 Dec 2001 */
 
-      /* loop over anats in this session */
+      /* loop over datasets in this session */
 
-      for( jdd=0 ; jdd < ss->num_anat ; jdd++ ){
+      for( jdd=0 ; jdd < ss->num_dsset ; jdd++ ){
          for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
 
-            dset = ss->anat[jdd][kvv] ;
+            dset = ss->dsset[jdd][kvv] ;
 
             if( ISVALID_3DIM_DATASET(dset) &&    /* good dset */
                 dset->death_mark == DOOMED   ){  /* alas, poor Yorick */
@@ -4438,25 +4086,7 @@ ENTRY("AFNI_andersonville") ;
                kill_me = (kvv == VIEW_ORIGINAL_TYPE) ? False : kill_files ;
                THD_delete_3dim_dataset( dset , kill_me ) ;
                myXtFree( dset ) ;
-               ss->anat[jdd][kvv] = NULL ; num_killed ++ ;
-            }
-         }
-      }
-
-      /* do the same for funcs */
-
-      for( jdd=0 ; jdd < ss->num_func ; jdd++ ){
-         for( kvv=FIRST_VIEW_TYPE ; kvv <= LAST_VIEW_TYPE ; kvv++ ){
-
-            dset = ss->func[jdd][kvv] ;
-
-            if( ISVALID_3DIM_DATASET(dset) &&    /* good dset */
-                dset->death_mark == DOOMED   ){  /* alas, poor Yorick */
-
-               kill_me = (kvv == VIEW_ORIGINAL_TYPE) ? False : kill_files ;
-               THD_delete_3dim_dataset( dset , kill_me ) ;
-               myXtFree( dset ) ;
-               ss->func[jdd][kvv] = NULL ; num_killed ++ ;
+               ss->dsset[jdd][kvv] = NULL ; num_killed ++ ;
             }
          }
       }
@@ -4522,13 +4152,7 @@ ENTRY("AFNI_range_label") ;
        ISVALID_3DIM_DATASET(im3d->anat_now) &&
        ISVALID_STATISTIC(im3d->anat_now->stats) ){
 
-      if( ISANATBUCKET(im3d->anat_now) )     /* 30 Nov 1997 */
-         iv = im3d->vinfo->anat_index ;
-      else
-         iv = DSET_PRINCIPAL_VALUE(im3d->anat_now) ;
-
-      if( DSET_NUM_TIMES(im3d->anat_now) > 1 )
-         iv = MIN( im3d->vinfo->time_index , DSET_NUM_TIMES(im3d->anat_now) - 1 ) ;
+      iv = im3d->vinfo->anat_index ;
 
       if( DSET_VALID_BSTAT(im3d->anat_now,iv) ){
          AV_fval_to_char( im3d->anat_now->stats->bstat[iv].min , qbuf ) ;
@@ -4548,13 +4172,7 @@ STATUS("can't load anat bstat") ;
        ISVALID_3DIM_DATASET(im3d->fim_now) &&
        ISVALID_STATISTIC(im3d->fim_now->stats) ){
 
-      if( ISFUNCBUCKET(im3d->fim_now) )     /* 30 Nov 1997 */
-         iv = im3d->vinfo->fim_index ;
-      else
-         iv = DSET_PRINCIPAL_VALUE(im3d->fim_now) ;
-
-      if( DSET_NUM_TIMES(im3d->fim_now) > 1 )
-         iv = MIN( im3d->vinfo->time_index , DSET_NUM_TIMES(im3d->fim_now) - 1 ) ;
+      iv = im3d->vinfo->fim_index ;
 
       if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
          AV_fval_to_char( im3d->fim_now->stats->bstat[iv].min , qbuf ) ;
@@ -4565,20 +4183,15 @@ STATUS("can't load anat bstat") ;
 STATUS("can't load func bstat") ;
       }
 
-      if( FUNC_HAVE_THR(im3d->fim_now->func_type) ){
-         if( ISFUNCBUCKET(im3d->fim_now) )     /* 30 Nov 1997 */
-            iv = im3d->vinfo->thr_index ;
-         else
-            iv = FUNC_ival_thr[im3d->fim_now->func_type] ;
+      iv = im3d->vinfo->thr_index ;
 
-         if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
-            AV_fval_to_char( im3d->fim_now->stats->bstat[iv].min , qbuf ) ;
-            sprintf( thr_minch , "%9.9s" , qbuf ) ;
-            AV_fval_to_char( im3d->fim_now->stats->bstat[iv].max , qbuf ) ;
-            sprintf( thr_maxch , "%9.9s" , qbuf ) ;
-         } else {
+      if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
+        AV_fval_to_char( im3d->fim_now->stats->bstat[iv].min , qbuf ) ;
+        sprintf( thr_minch , "%9.9s" , qbuf ) ;
+        AV_fval_to_char( im3d->fim_now->stats->bstat[iv].max , qbuf ) ;
+        sprintf( thr_maxch , "%9.9s" , qbuf ) ;
+      } else {
 STATUS("can't load thresh bstat") ;
-         }
       }
    }
 
@@ -4608,49 +4221,24 @@ XmString AFNI_autorange_label( Three_D_View * im3d )
 ENTRY("AFNI_autorange_label") ;
 
    if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){  /* no function */
-      rrr = DEFAULT_FIM_SCALE ;
+     rrr = DEFAULT_FIM_SCALE ;
    } else {
-      if( ISFUNCBUCKET(im3d->fim_now) ||
-          im3d->vinfo->showfunc_type == SHOWFUNC_FIM ){  /* showing fim */
+     RELOAD_STATS(im3d->fim_now) ;
+     if( ISVALID_STATISTIC(im3d->fim_now->stats) ){
+       float s1 , s2 ; int iv ;
 
-         RELOAD_STATS(im3d->fim_now) ;
-         if( ISVALID_STATISTIC(im3d->fim_now->stats) ){
-            float s1 , s2 ; int iv ;
+       iv = im3d->vinfo->fim_index ;
 
-            if( ISFUNCBUCKET(im3d->fim_now) )     /* 30 Nov 1997 */
-               iv = im3d->vinfo->fim_index ;
-            else
-               iv = DSET_PRINCIPAL_VALUE(im3d->fim_now) ;
-
-            if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
-               s1  = fabs(im3d->fim_now->stats->bstat[iv].min) ,
-               s2  = fabs(im3d->fim_now->stats->bstat[iv].max) ;
-               rrr = (s1<s2) ? s2 : s1 ;                      /* largest fim */
-            } else {
-               rrr = DEFAULT_FIM_SCALE ;                      /* don't have stats */
-            }
-         } else {
-            rrr = DEFAULT_FIM_SCALE ;                         /* don't have stats */
-         }
-      } else {                 /* 12 Aug 1996: showing threshold */
-         MRI_IMAGE * im ;      /* so use built-in value for scaling */
-         int iv , fdset_type ;
-         float fac ;
-
-         iv = FUNC_ival_thr[im3d->fim_now->func_type] ;
-
-         im  = DSET_BRICK(im3d->fim_now,iv) ;        /* 3D image with threshold */
-         fac = DSET_BRICK_FACTOR(im3d->fim_now,iv) ; /* scaling factor */
-
-         fdset_type = im3d->fim_now->func_type ;
-
-         if( im->kind == MRI_short && fac <= 0.0 )
-            rrr = FUNC_scale_short[fdset_type] * FUNC_topval[fdset_type] ;
-         else if( im->kind == MRI_byte && fac <= 0.0 )
-            rrr = FUNC_scale_byte[fdset_type] * FUNC_topval[fdset_type] ;
-         else
-            rrr = FUNC_topval[fdset_type] ;
-      }
+       if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
+         s1  = fabs(im3d->fim_now->stats->bstat[iv].min) ,
+         s2  = fabs(im3d->fim_now->stats->bstat[iv].max) ;
+         rrr = (s1<s2) ? s2 : s1 ;                      /* largest fim */
+       } else {
+         rrr = DEFAULT_FIM_SCALE ;                      /* don't have stats */
+       }
+     } else {
+       rrr = DEFAULT_FIM_SCALE ;                        /* don't have stats */
+     }
    }
    im3d->vinfo->fim_autorange = rrr ;
    AV_fval_to_char( rrr , qbuf ) ;
@@ -4839,47 +4427,42 @@ void AFNI_bucket_CB( MCW_arrowval * av , XtPointer cd )
    Three_D_View * im3d = (Three_D_View *) cd ;
    int doit = 0 , iv , redisplay ;
 
-ENTRY("AFNI_anat_bucket_CB") ;
+ENTRY("AFNI_bucket_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   /** Anat sub-brick **/
+   /** Anat sub-brick [29 Jul 2003: lock to time_index controller as well] **/
 
    if( av == im3d->vwid->func->anat_buck_av ){
-      if( ISANATBUCKET(im3d->anat_now) ){
-         iv = av->ival ;
-         if( iv >= 0 && iv < DSET_NVALS(im3d->anat_now) ){
-            doit = (iv != im3d->vinfo->anat_index) ;
-            im3d->vinfo->anat_index = iv ;
-            redisplay = REDISPLAY_ALL ;
-         }
-      }
+     iv = av->ival ;
+     if( iv >= 0 && iv < DSET_NVALS(im3d->anat_now) ){
+       doit = (iv != im3d->vinfo->anat_index) ;
+       im3d->vinfo->anat_index = iv ;
+       redisplay = REDISPLAY_ALL ;
+       if( doit ) AV_assign_ival( im3d->vwid->imag->time_index_av , iv ) ;
+     }
    }
 
    /** Func sub-brick **/
 
    else if( av == im3d->vwid->func->fim_buck_av ){
-      if( ISFUNCBUCKET(im3d->fim_now) ){
-         iv = av->ival ;
-         if( iv >= 0 && iv < DSET_NVALS(im3d->fim_now) ){
-            doit = (iv != im3d->vinfo->fim_index) ;
-            im3d->vinfo->fim_index = iv ;
-            redisplay = REDISPLAY_OVERLAY ;
-         }
-      }
+     iv = av->ival ;
+     if( iv >= 0 && iv < DSET_NVALS(im3d->fim_now) ){
+       doit = (iv != im3d->vinfo->fim_index) ;
+       im3d->vinfo->fim_index = iv ;
+       redisplay = REDISPLAY_OVERLAY ;
+     }
    }
 
    /** Thresh sub-brick **/
 
    else if( av == im3d->vwid->func->thr_buck_av ){
-      if( ISFUNCBUCKET(im3d->fim_now) ){
-         iv = av->ival ;
-         if( iv >= 0 && iv < DSET_NVALS(im3d->fim_now) ){
-            doit = (iv != im3d->vinfo->thr_index) ;
-            im3d->vinfo->thr_index = iv ;
-            redisplay = REDISPLAY_OVERLAY ;
-         }
-      }
+     iv = av->ival ;
+     if( iv >= 0 && iv < DSET_NVALS(im3d->fim_now) ){
+       doit = (iv != im3d->vinfo->thr_index) ;
+       im3d->vinfo->thr_index = iv ;
+       redisplay = REDISPLAY_OVERLAY ;
+     }
    }
 
    /** Change the view, if required **/

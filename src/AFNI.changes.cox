@@ -4660,3 +4660,7 @@
 28 Jul 2003
  * Modified 3dcalc.c to force scaling for short and byte output datum when
      non-integer values are found in the dataset.
+
+29 Jul 2003
+ * Many many changes to make func and anat datasets work interchangeably in
+     the interactive AFNI.

@@ -8,7 +8,8 @@
 #include "thd.h"
 
 /*-----------------------------------------------------------------
-   find a dataset with a given name in a session
+   Find a dataset with a given name in a session
+   [28 Jul 2003] Modified for new THD_session struct.
 -------------------------------------------------------------------*/
 
 THD_slist_find THD_dset_in_session( int find_type , void * target ,
@@ -34,29 +35,12 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
             BADFIND(find) ; return find ;
          }
 
-         /*-- search anat list first --*/
-
-         for( id=0 ; id < sess->num_anat ; id++ ){
+         for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->anat[id][iv] ;
+               dset = sess->dsset[id][iv] ;
 
                if( dset != NULL && strcmp(dset->self_name,target_name) == 0 ){
-                  find.dset = dset ;
-                  find.anat_index = id ; find.view_index = iv ; find.func_index = -1 ;
-                  return find ;
-               }
-            }
-         }
-
-         /*-- search func list next --*/
-
-         for( id=0 ; id < sess->num_func ; id++ ){
-            for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->func[id][iv] ;
-
-               if( dset != NULL && strcmp(dset->self_name,target_name) == 0 ){
-                  find.dset = dset ;
-                  find.anat_index = -1 ; find.view_index = iv ; find.func_index = id ;
+                  find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
                   return find ;
                }
             }
@@ -72,29 +56,12 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
             BADFIND(find) ; return find ;
          }
 
-         /*-- search anat list first --*/
-
-         for( id=0 ; id < sess->num_anat ; id++ ){
+         for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->anat[id][iv] ;
+               dset = sess->dsset[id][iv] ;
 
                if( dset != NULL && strcmp(DSET_PREFIX(dset),target_prefix) == 0 ){
-                  find.dset = dset ;
-                  find.anat_index = id ; find.view_index = iv ; find.func_index = -1 ;
-                  return find ;
-               }
-            }
-         }
-
-         /*-- search func list next --*/
-
-         for( id=0 ; id < sess->num_func ; id++ ){
-            for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->func[id][iv] ;
-
-               if( dset != NULL && strcmp(DSET_PREFIX(dset),target_prefix) == 0 ){
-                  find.dset = dset ;
-                  find.anat_index = -1 ; find.view_index = iv ; find.func_index = id ;
+                  find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
                   return find ;
                }
             }
@@ -111,29 +78,12 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
             BADFIND(find) ; return find ;
          }
 
-         /*-- search anat list first --*/
-
-         for( id=0 ; id < sess->num_anat ; id++ ){
+         for( id=0 ; id < sess->num_dsset ; id++ ){
             for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->anat[id][iv] ;
+               dset = sess->dsset[id][iv] ;
 
                if( dset != NULL && EQUIV_IDCODES(target_id,dset->idcode) ){
-                  find.dset = dset ;
-                  find.anat_index = id ; find.view_index = iv ; find.func_index = -1 ;
-                  return find ;
-               }
-            }
-         }
-
-         /*-- search func list next --*/
-
-         for( id=0 ; id < sess->num_func ; id++ ){
-            for( iv=FIRST_VIEW_TYPE ; iv <= LAST_VIEW_TYPE ; iv++ ){
-               dset = sess->func[id][iv] ;
-
-               if( dset != NULL && EQUIV_IDCODES(target_id,dset->idcode) ){
-                  find.dset = dset ;
-                  find.anat_index = -1 ; find.view_index = iv ; find.func_index = id ;
+                  find.dset = dset ; find.dset_index = id ; find.view_index = iv ;
                   return find ;
                }
             }

@@ -87,28 +87,18 @@ typedef struct {
 
 #define UNDERLAY_ANAT      0
 #define UNDERLAY_ALLFUNC   1
-#define UNDERLAY_THRFUNC   2
+#define UNDERLAY_THRFUNC   2   /* 29 Jul 2003: eliminated in all code! */
 
 #define UNDERLAY_ANAT_BVAL     (1 << UNDERLAY_ANAT   )
 #define UNDERLAY_ALLFUNC_BVAL  (1 << UNDERLAY_ALLFUNC)
 #define UNDERLAY_THRFUNC_BVAL  (1 << UNDERLAY_THRFUNC)
 
-#define LAST_UNDERLAY_TYPE 2
+#define LAST_UNDERLAY_TYPE 1  /* 29 Jul 2003: changed from 2 */
 #define ISFUNC_UNDERLAY(uu) \
    ((uu)==UNDERLAY_ALLFUNC||(uu)==UNDERLAY_THRFUNC)
 
 static char * UNDERLAY_typestr[] =
    { "Anat underlay" , "Func underlay" , "Func @Thr underlay" } ;
-
-#define SHOWFUNC_FIM  0
-#define SHOWFUNC_THR  1
-
-#define SHOWFUNC_FIM_BVAL  (1 << SHOWFUNC_FIM)
-#define SHOWFUNC_THR_BVAL  (1 << SHOWFUNC_THR)
-
-#define LAST_SHOWFUNC_TYPE 1
-
-static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
 
@@ -229,7 +219,7 @@ typedef struct {
 
       Boolean   xhairs_show_montage , xhairs_periodic , xhairs_all ;
       THD_ivec3 xhairs_ndown , xhairs_nup , xhairs_nskip ; /* montage crosshairs */
-      int       time_index , top_index ;
+      int       time_index , top_index , time_on ;
 
       int xhairs_orimask ;    /* 31 Dec 1998 */
 
@@ -239,8 +229,7 @@ typedef struct {
       int     crosshair_gap , crosshair_ovcolor , crosshair_gap_old ;
 
       int view_type     ,  /* one of the VIEW_ constants in 3ddata.h */
-          underlay_type ,  /* one of the UNDERLAY_ constants above */
-          showfunc_type ;  /* one of the SHOWFUNC_ constants above */
+          underlay_type ;  /* one of the UNDERLAY_ constants above */
 
       int sess_num , anat_num , func_num ;  /* codes pointing to datasets */
 
@@ -493,7 +482,6 @@ typedef struct {
 
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;
-      MCW_bbox     * functype_bbox ;
 
       Widget         buck_frame , buck_rowcol ;
       MCW_arrowval * anat_buck_av , * fim_buck_av , * thr_buck_av ;  /* 30 Nov 1997 */
@@ -1105,7 +1093,6 @@ extern void AFNI_marks_action_CB     ( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_switchview_CB        ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_see_marks_CB         ( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_functype_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_see_func_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_edits_CB       ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_transform_CB   ( Widget , XtPointer , XtPointer ) ;

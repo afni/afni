@@ -3000,10 +3000,10 @@ void REND_load_dsl( THD_3dim_dataset * mset , int float_ok )
       nx = ny = nz = 0 ;
    }
 
-   /* scan anats */
+   /* scan datasets */
 
-   for( id=0 ; id < ss->num_anat ; id++ ){
-      qset = ss->anat[id][vv] ;
+   for( id=0 ; id < ss->num_dsset ; id++ ){
+      qset = ss->dsset[id][vv] ;
 
       if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
 
@@ -3016,24 +3016,6 @@ void REND_load_dsl( THD_3dim_dataset * mset , int float_ok )
               XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
 
       make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;  /* cf. afni_plugin.c */
-   }
-
-   /* scan funcs */
-
-   for( id=0 ; id < ss->num_func ; id++ ){
-      qset = ss->func[id][vv] ;
-
-      if( ! USEFUL_DSET(qset) ) continue ;   /* skip this one */
-
-      if( nx > 0 && DSET_NX(qset) != nx ) continue ;
-      if( ny > 0 && DSET_NY(qset) != ny ) continue ;
-      if( nz > 0 && DSET_NZ(qset) != nz ) continue ;
-
-      ndsl++ ;
-      dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
-
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
    }
 
    return ;

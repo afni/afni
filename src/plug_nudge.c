@@ -1088,26 +1088,10 @@ static void NUD_choose_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
    ndsl = 0 ;
 
-   /* scan anats */
+   /* scan datasets */
 
-   for( id=0 ; id < ss->num_anat ; id++ ){
-      qset = ss->anat[id][vv] ;
-
-      if( ! ISVALID_DSET (qset) ) continue ;  /* skip */
-      if( ! DSET_INMEMORY(qset) ) continue ;
-      if( DSET_BRICK_TYPE(qset,0) == MRI_complex ) continue ;
-
-      ndsl++ ;
-      dsl = (PLUGIN_dataset_link *)
-              XtRealloc( (char *) dsl , sizeof(PLUGIN_dataset_link)*ndsl ) ;
-
-      make_PLUGIN_dataset_link( qset , dsl + (ndsl-1) ) ;
-   }
-
-   /* scan funcs */
-
-   for( id=0 ; id < ss->num_func ; id++ ){
-      qset = ss->func[id][vv] ;
+   for( id=0 ; id < ss->num_dsset ; id++ ){
+      qset = ss->dsset[id][vv] ;
 
       if( ! ISVALID_DSET (qset) ) continue ;  /* skip */
       if( ! DSET_INMEMORY(qset) ) continue ;

@@ -170,12 +170,10 @@ void AFNI_syntax(void)
      "\n"
      " If no session_directories are given, then the program will use\n"
      "   the current working directory (i.e., './').\n"
-     " The maximum number of sessions is now set to   %d.\n"
-     " The maximum number of anatomies per session is %d.\n"
-     " The maximum number of functions per session is %d.\n"
-     " A session must have at least one anatomical dataset in it.\n"
+     " The maximum number of sessions is now set to  %d.\n"
+     " The maximum number of datasets per session is %d.\n"
 
-     , THD_MAX_NUM_SESSION , THD_MAX_SESSION_ANAT , THD_MAX_SESSION_FUNC
+     , THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE
    ) ;
 
    printf(
@@ -2349,39 +2347,19 @@ STATUS("drawing crosshairs") ;
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
       Three_D_View * im3d = (Three_D_View *) br->parent ;
-      int ival = 0 ;
+      int ival ;
 
       /*** decide which 3D brick to extract data from (ival) ***/
 
-      if( DSET_NUM_TIMES(br->dset) > 1 ){     /* a time-dependent brick */
-         ival = im3d->vinfo->time_index ;
-         if( ival >= br->dset->dblk->nvals ) ival = br->dset->dblk->nvals -1 ;
+      if( EQUIV_DSETS(br->dset,im3d->anat_now) )      /* underlay dataset */
+        ival = im3d->vinfo->anat_index ;
+      else if( EQUIV_DSETS(br->dset,im3d->fim_now) )  /* overlay dataset */
+        ival = im3d->vinfo->fim_index ;
+      else
+        ival = 0 ;                                    /* shouldn't happen */
 
-      } else if( ISANAT(br->dset) ){          /* an anatomy brick */
-
-         if( ISANATBUCKET(br->dset) )                     /* 30 Nov 1997 */
-            ival = im3d->vinfo->anat_index ;
-         else
-            ival = ANAT_ival_zero[br->dset->func_type] ;  /* get default data */
-
-      } else if( ISFUNC(br->dset) ){   /* a functional brick */
-
-        if( ISFUNCBUCKET(br->dset) ){                     /* 30 Nov 1997 */
-           ival = im3d->vinfo->fim_index ;
-        }
-        else {
-           if( im3d->vinfo->showfunc_type == SHOWFUNC_THR  &&  /* showing thr */
-               ISFUNC_UNDERLAY(im3d->vinfo->underlay_type) &&  /* as underlay? */
-               FUNC_HAVE_THR(br->dset->func_type) ){
-
-              ival = FUNC_ival_thr[br->dset->func_type] ; /* get thresh data */
-           } else {
-              ival = FUNC_ival_fim[br->dset->func_type] ; /* get fim data */
-           }
-        }
-     }
-
-      if( type == isqCR_getqimage ) ival = -1 ; /* get empty image */
+           if( type == isqCR_getqimage      ) ival = -1 ; /* get empty image */
+      else if( ival >= DSET_NVALS(br->dset) ) ival = br->dset->dblk->nvals -1 ;
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -2390,54 +2368,9 @@ if(PRINT_TRACING)
 
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
-#if 0
-      if( ival > 0 && GLOBAL_library.have_dummy_dataset && lrand48()%2 == 1 ){
-        RETURN(NULL) ;  /* 23 Apr 2001: test of imseq.c NULL image handler */
-      }
-#endif
-
       im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
 
       if( ival < 0 ) RETURN( (XtPointer) im ) ;  /* return fake image */
-
-      /* allow for thresholding of underlay image */
-
-      if( im != NULL && im3d->vinfo->underlay_type == UNDERLAY_THRFUNC &&
-          ISFUNC(br->dset) && FUNC_HAVE_THR(br->dset->func_type) &&
-          im3d->vinfo->func_threshold > 0.0 ){
-
-         MRI_IMAGE * im_thr , * qim ;
-         double thresh ;
-         int jval ;
-
-         if( ISFUNCBUCKET(br->dset) )          /* 30 Nov 1997 */
-            jval = im3d->vinfo->thr_index ;
-         else
-            jval = FUNC_ival_thr[br->dset->func_type] ;
-
-         if( jval != ival ){
-            im_thr = FD_warp_to_mri( n , jval ,  br ) ;
-            if( im_thr == NULL ) im_thr = im ;
-         } else {
-            im_thr = im ;  /* if already have threshold data */
-         }
-
-         if( ! AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ){ /* should not occur */
-            qim = mri_to_float( im_thr ) ;           /* but if it does,  */
-            if( im_thr != im ) mri_free( im_thr ) ;  /* make an OK type  */
-            im_thr = qim ;
-         }
-
-         thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
-
-         if( im_thr->kind == MRI_short )
-            thresh *= FUNC_scale_short[br->dset->func_type];
-         else if( im_thr->kind == MRI_byte )
-            thresh *= FUNC_scale_byte[br->dset->func_type];
-
-         mri_threshold( -thresh , thresh , im_thr , im ) ;
-         if( im_thr != im ) mri_free( im_thr ) ;
-      }
 
       /* Load value of current pixel into display label */
       /* April 1996: only if image is at current slice  */
@@ -2445,23 +2378,23 @@ if(PRINT_TRACING)
       { char buf[64] = "\0" ; int ibest=-1 ;
         AFNI_set_valabel( br , n , im , buf ) ;
         if( buf[0] != '\0' ){
-           if( im3d->vinfo->underlay_type == UNDERLAY_ANAT )
-              strcpy( im3d->vinfo->anat_val , buf ) ;
-           else
-              im3d->vinfo->anat_val[0] = '\0' ;
+          if( im3d->vinfo->underlay_type == UNDERLAY_ANAT )
+            strcpy( im3d->vinfo->anat_val , buf ) ;
+          else
+            im3d->vinfo->anat_val[0] = '\0' ;
 
-           if( !AFNI_noenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
+          if( !AFNI_noenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
-           if( im->kind != MRI_complex && im->kind != MRI_rgb ){
-              char qbuf[64] = "bg =" ;
-              strcat(qbuf,buf) ; strcpy(buf,qbuf) ;
-           }
-           AFNI_get_xhair_node( im3d , NULL , &ibest ) ;   /* 21 Feb 2003 */
-           if( ibest >= 0 ){
-              char qbuf[64]; sprintf(qbuf,"\nxh = #%d",ibest); strcat(buf,qbuf);
-           }
-           MCW_set_widget_label( im3d->vwid->imag->pop_bkgd_lab , buf ) ;
-           XtManageChild( im3d->vwid->imag->pop_bkgd_lab ) ;
+          if( im->kind != MRI_complex && im->kind != MRI_rgb ){
+            char qbuf[64] = "bg =" ;
+            strcat(qbuf,buf) ; strcpy(buf,qbuf) ;
+          }
+          AFNI_get_xhair_node( im3d , NULL , &ibest ) ;   /* 21 Feb 2003 */
+          if( ibest >= 0 ){
+            char qbuf[64]; sprintf(qbuf,"\nxh = #%d",ibest); strcat(buf,qbuf);
+          }
+          MCW_set_widget_label( im3d->vwid->imag->pop_bkgd_lab , buf ) ;
+          XtManageChild( im3d->vwid->imag->pop_bkgd_lab ) ;
         }
       }
 
@@ -3479,24 +3412,24 @@ STATUS("graCR_pickort") ;
       }
       break ;
 
-      /*** User sets time_index ***/
-      /*** 24 Jan 2001: or bucket index ***/
+      /*** User sets time_index (from graph) ***/
+      /*** 24 Jan 2001: or bucket index      ***/
+      /*** 29 Jul 2003: time_index and
+            anat_index are almost merged now ***/
 
       case graCR_setindex:{
-         MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
-         MCW_arrowval * aav = im3d->vwid->func->anat_buck_av ;
+         MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
+         MCW_arrowval *aav = im3d->vwid->func->anat_buck_av ;
          int new_index = cbs->key ;
 
-         if( DSET_NUM_TIMES(im3d->anat_now) > 1 ){       /* 24 Jan 2001: check type */
-            if( new_index != im3d->vinfo->time_index ){
-               AV_assign_ival( tav , new_index ) ;
-               AFNI_time_index_CB( tav , (XtPointer) im3d ) ;
-            }
-         } else if( ISANATBUCKET(im3d->anat_now) ){      /* 24 Jan 2001: new case */
-            if( new_index != im3d->vinfo->anat_index ){
-               AV_assign_ival( aav , new_index ) ;
-               AFNI_bucket_CB( aav , im3d ) ;
-            }
+         if( new_index != im3d->vinfo->anat_index ){
+           if( im3d->vinfo->time_on ){
+             AV_assign_ival( tav , new_index ) ;               /* set time_index */
+             AFNI_time_index_CB( tav, (XtPointer) im3d ); /* will set anat_index */
+           } else {
+             AV_assign_ival( aav, new_index ) ;       /* set anat index directly */
+             AFNI_bucket_CB( aav, im3d ) ;
+           }
          }
       }
       break ;
@@ -3585,12 +3518,12 @@ ENTRY("AFNI_read_inputs") ;
 
       /* set up minuscule session and session list */
 
-      new_ss             = myXtNew( THD_session ) ;
-      new_ss->type       = SESSION_TYPE ;
+      new_ss              = myXtNew( THD_session ) ;
+      new_ss->type        = SESSION_TYPE ;
       BLANK_SESSION(new_ss) ;
-      new_ss->num_anat   = 1 ;
-      new_ss->anat[0][0] = dset ;
-      new_ss->parent     = NULL ;
+      new_ss->num_dsset   = 1 ;
+      new_ss->dsset[0][0] = dset ;
+      new_ss->parent      = NULL ;
 
       MCW_strncpy( new_ss->sessname ,
                    argv[GLOBAL_argopt.first_file_arg] , THD_MAX_NAME ) ;
@@ -3626,19 +3559,14 @@ ENTRY("AFNI_read_inputs") ;
 
          if( gss != NULL ){                               /* got at least one */
             gss->parent = NULL ;                          /* parentize them */
-            for( qd=0 ; qd < gss->num_anat ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                  PARENTIZE( gss->anat[qd][vv] , NULL ) ;
-                  DSET_MARK_FOR_IMMORTALITY( gss->anat[qd][vv] ) ;
-               }
-            for( qd=0 ; qd < gss->num_func ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                  PARENTIZE( gss->func[qd][vv] , NULL ) ;{
-                  DSET_MARK_FOR_IMMORTALITY( gss->func[qd][vv] ) ;
-               }
+            for( qd=0 ; qd < gss->num_dsset ; qd++ )
+              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+                PARENTIZE( gss->dsset[qd][vv] , NULL ) ;
+                DSET_MARK_FOR_IMMORTALITY( gss->dsset[qd][vv] ) ;
+              }
          } else {
-            sprintf(str,"\n*** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
-            REPORT_PROGRESS(str) ;
+           sprintf(str,"\n*** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
+           REPORT_PROGRESS(str) ;
          }
       }
 
@@ -3654,13 +3582,13 @@ STATUS("no args: recursion on ./") ;
             flist = THD_get_all_subdirs( GLOBAL_argopt.recurse , "./" ) ;
             if( flist != NULL ){
                for( jj=0 ; jj < flist->num ; jj++ ){
-                  ADDTO_SARR(dlist,flist->ar[jj]) ;
+                 ADDTO_SARR(dlist,flist->ar[jj]) ;
                }
                DESTROY_SARR(flist) ;
             }
          } else {
 STATUS("no args: using ./") ;
-            ADDTO_SARR(dlist,"./") ;
+           ADDTO_SARR(dlist,"./") ;
          }
       } else {
          for( id=0 ; id < num_ss ; id++ ){
@@ -3669,12 +3597,12 @@ STATUS("no args: using ./") ;
                                             argv[GLOBAL_argopt.first_file_arg+id] ) ;
                if( flist != NULL ){
                   for( jj=0 ; jj < flist->num ; jj++ ){
-                     ADDTO_SARR(dlist,flist->ar[jj]) ;
+                    ADDTO_SARR(dlist,flist->ar[jj]) ;
                   }
                   DESTROY_SARR(flist) ;
                }
             } else {
-               ADDTO_SARR(dlist,argv[GLOBAL_argopt.first_file_arg+id]) ;
+              ADDTO_SARR(dlist,argv[GLOBAL_argopt.first_file_arg+id]) ;
             }
          }
       }
@@ -3705,32 +3633,24 @@ if(PRINT_TRACING)
 
          REFRESH ;
 
-         if( new_ss != NULL ){                   /* got something? */
+         if( new_ss != NULL && new_ss->num_dsset > 0 ){ /* got something? */
 
-            /* for anats, just set parent pointers */
+            /* set parent pointers */
 
             new_ss->parent = NULL ;
-            for( qd=0 ; qd < new_ss->num_anat ; qd++ )
+            for( qd=0 ; qd < new_ss->num_dsset ; qd++ )
               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
-
-            /* for funcs, just set parent pointers */
-
-            for( qd=0 ; qd < new_ss->num_func ; qd++ )
-              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+                PARENTIZE( new_ss->dsset[qd][vv] , NULL ) ;
 
             /* put the new session into place in the list of sessions */
 
             GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
 
-            sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
-                        " %d functional datasets",
+            sprintf(str,"\n session #%3d  = %s %d datasets" ,
                 GLOBAL_library.sslist->num_sess ,
-                new_ss->sessname ,
-                new_ss->num_anat , new_ss->num_func ) ;
+                new_ss->sessname , new_ss->num_dsset ) ;
 
-            num_dsets += (new_ss->num_anat + new_ss->num_func) ; /* 04 Jan 2000 */
+            num_dsets += new_ss->num_dsset ;
 
             REPORT_PROGRESS(str) ;
 
@@ -3760,41 +3680,7 @@ if(PRINT_TRACING)
            AFNI_append_sessions( new_ss , gss ) ;
          }
 
-         if( new_ss == NULL || new_ss->num_anat <= 0 ){  /* this is bad */
-
-           if( new_ss != NULL ){  /* no anats is bad */
-#if 0
-             sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
-             REPORT_PROGRESS(str) ;
-             nskip_noanat ++ ;
-#else                                       /* 31 Jul 2002: make a w-o-d anat */
-             int vv ;
-             for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                new_ss->anat[0][vv] = EDIT_wod_copy( new_ss->func[0][vv] ) ;
-             new_ss->num_anat = 1 ;
-             sprintf(str,"\n*** session      %s has no anatomies!  Func duplicate used.",dname) ;
-             REPORT_PROGRESS(str) ;
-#endif
-           } else {               /* no data at all is bad */
-             STATUS("no datasets found!") ;
-           }
-#if 0
-            REMOVEFROM_SARR( dlist , id ) ;  /* no datasets --> don't keep in list */
-#endif
-         }
       }  /* end of id loop (over input directory names) */
-
-      /** did we get anything?? **/
-
-      if( nskip_noanat > 0 ){
-         REPORT_PROGRESS(
-               "\n\n*** Hint: a session directory without anatomical datasets can"
-                 "\n***   have an anatomical warp-on-demand copy of a functional"
-                 "\n***   dataset made using a command of the form"
-                 "\n***   '3ddup -spgr func+orig.HEAD'.\n" ) ;
-
-         if( GLOBAL_library.sslist->num_sess <= 0 ) exit(1) ;
-      }
 
       /* 11 May 2002: if have global session but no others, use it */
 
@@ -3802,11 +3688,10 @@ if(PRINT_TRACING)
 
         GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = gss ;
 
-        sprintf(str,"\n AFNI_GLOBAL_SESSION = %s %d anatomical datasets,"
-                    " %d functional datasets",
-            gss->sessname , gss->num_anat , gss->num_func ) ;
+        sprintf(str,"\n AFNI_GLOBAL_SESSION = %s %d datasets" ,
+            gss->sessname , gss->num_dsset ) ;
 
-        num_dsets += (gss->num_anat + gss->num_func) ;
+        num_dsets += gss->num_dsset ;
 
         REPORT_PROGRESS(str) ;
       }
@@ -3844,12 +3729,12 @@ if(PRINT_TRACING)
 
          /** manufacture a minimal dataset **/
 
-         new_ss->num_anat   = 1 ;
-         new_ss->anat[0][0] = EDIT_empty_copy(NULL) ;
+         new_ss->num_dsset   = 1 ;
+         new_ss->dsset[0][0] = EDIT_empty_copy(NULL) ;
          nxyz.ijk[0] = nxyz.ijk[1] = nxyz.ijk[2] = QQ_NXYZ ;
          fxyz.xyz[0] = fxyz.xyz[1] = fxyz.xyz[2] = QQ_FOV / QQ_NXYZ ;
          oxyz.xyz[0] = oxyz.xyz[1] = oxyz.xyz[2] = -0.5 * QQ_FOV ;
-         ii = EDIT_dset_items( new_ss->anat[0][0]  ,
+         ii = EDIT_dset_items( new_ss->dsset[0][0] ,
                                  ADN_datum_all     , MRI_byte            ,
                                  ADN_nxyz          , nxyz                ,
                                  ADN_xyzdel        , fxyz                ,
@@ -3870,12 +3755,12 @@ if(PRINT_TRACING)
 #endif
                               ADN_none ) ;
          if( ii > 0 ){
-            fprintf(stderr,"\n%d errors creating dummy dataset!\a\n",ii) ;
-            exit(1) ;
+           fprintf(stderr,"\n%d errors creating dummy dataset!\a\n",ii) ;
+           exit(1) ;
          }
-         DSET_lock(new_ss->anat[0][0]) ; /* lock into memory */
+         DSET_lock(new_ss->dsset[0][0]) ; /* lock into memory */
 
-         nbar = DSET_BRICK_BYTES(new_ss->anat[0][0],0) ;
+         nbar = DSET_BRICK_BYTES(new_ss->dsset[0][0],0) ;
 
 #ifdef NO_FRIVOLITIES
          for( jj=0 ; jj < QQ_NT ; jj++ ){
@@ -3883,7 +3768,7 @@ if(PRINT_TRACING)
             bar[0] = (byte) (lrand48()%127) ;
             for( ii=1 ; ii < nbar ; ii++ )
                bar[ii] = bar[ii-1] + lrand48()%(jj+2) ;
-            EDIT_substitute_brick( new_ss->anat[0][0] , jj , MRI_byte , bar ) ;
+            EDIT_substitute_brick( new_ss->dsset[0][0] , jj , MRI_byte , bar ) ;
          }
 #else
         { /* 11 Jun 1999: start of loading RWCOX images into dummy dataset */
@@ -4002,12 +3887,12 @@ if(PRINT_TRACING)
                bar = (byte *) malloc( nbar ) ;
                for( kk=0 ; kk < QQ_NXYZ ; kk++ )
                   memcpy( bar + kk*QQ_NXYZ*QQ_NXYZ , rwcox[jj%6] , QQ_NXYZ*QQ_NXYZ ) ;
-               EDIT_substitute_brick( new_ss->anat[0][0] , jj , MRI_byte , bar ) ;
+               EDIT_substitute_brick( new_ss->dsset[0][0] , jj , MRI_byte , bar ) ;
             }
           } /* end of loading RWCOX */
 #endif
 
-         PARENTIZE( new_ss->anat[0][0] , NULL ) ;
+         PARENTIZE( new_ss->dsset[0][0] , NULL ) ;
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 
@@ -4146,27 +4031,13 @@ STATUS("reading commandline dsets") ;
             nds++ ;   /* increment count of dataset */
             REFRESH ;
             vv = dset->view_type ;
-            if( ISANAT(dset) ){
-               nn = new_ss->num_anat ;
-               if( nn >= THD_MAX_SESSION_ANAT ){
-                  fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
-                  nerr++ ;
-               } else {
-                  new_ss->anat[nn][vv] = dset ;
-                  new_ss->num_anat++ ;
-               }
-            } else if( ISFUNC(dset) ){
-               nn = new_ss->num_func ;
-               if( nn >= THD_MAX_SESSION_FUNC ){
-                  fprintf(stderr,"\a\n*** too many functional datasets!\n") ;
-                  nerr++ ;
-               } else {
-                  new_ss->func[nn][vv] = dset ;
-                  new_ss->num_func++ ;
-               }
+            nn = new_ss->num_dsset ;
+            if( nn >= THD_MAX_SESSION_SIZE ){
+              fprintf(stderr,"\a\n*** too many datasets!\n") ;
+              nerr++ ;
             } else {
-               fprintf(stderr,"\a\n*** Unrecognized dataset type: %s\n",argv[ii]);
-               nerr++ ;
+              new_ss->dsset[nn][vv] = dset ;
+              new_ss->num_dsset ++ ;
             }
          } /* end of loop over dd=datasets in dsar */
 
@@ -4179,9 +4050,8 @@ STATUS("reading commandline dsets") ;
       }
 
       sprintf(str,"\n dataset count = %d" , nds ) ;
-      if( nds == 0 ) exit(1) ;
-      if( new_ss->num_anat == 0 ){
-         fprintf(stderr,"\n*** No anatomical datasets in the list!\n") ;
+      if( new_ss->num_dsset == 0 ){
+         fprintf(stderr,"\n*** No datasets read from the list!\n") ;
          exit(1) ;
       }
       REPORT_PROGRESS(str) ;
@@ -4652,15 +4522,12 @@ ENTRY("AFNI_time_lock_carryout") ;
 
          qq_index = qq3d->vinfo->time_index ;           /* old index */
          qq_top   = qq3d->vinfo->top_index ;            /* max allowed */
-#if 0
-         qq_top   = DSET_NUM_TIMES(qq3d->anat_now) ;
-#endif
 
-         if( qq_top > 1 && qq_index != new_index ){
-            tav = qq3d->vwid->imag->time_index_av ;
-            AV_assign_ival( tav , new_index ) ;         /* will check range */
-            if( tav->ival != qq_index )
-               AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
+         if( qq3d->vinfo->time_on && qq_top > 1 && qq_index != new_index ){
+           tav = qq3d->vwid->imag->time_index_av ;
+           AV_assign_ival( tav , new_index ) ;         /* will check range */
+           if( tav->ival != qq_index )
+             AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
          }
       }
    }
@@ -4685,6 +4552,20 @@ ENTRY("AFNI_time_index_CB") ;
       ipx = im3d->vinfo->top_index - 1 ;
 
    im3d->vinfo->time_index = ipx ;        /* change time index */
+
+   /* 29 Jul 2003: slave underlay and overlay to time_index (maybe) */
+
+   im3d->vinfo->anat_index = ipx ;
+   if( im3d->vinfo->anat_index >= DSET_NVALS(im3d->anat_now) )
+     im3d->vinfo->anat_index = DSET_NVALS(im3d->anat_now) - 1 ;
+   AV_assign_ival( im3d->vwid->func->anat_buck_av , im3d->vinfo->anat_index ) ;
+
+   if( ISVALID_DSET(im3d->fim_now) && HAS_TIMEAXIS(im3d->fim_now) ){
+     im3d->vinfo->fim_index = ipx ;
+     if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
+       im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
+     AV_assign_ival( im3d->vwid->func->fim_buck_av , im3d->vinfo->fim_index ) ;
+   }
 
    im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;  /* setup new bricks to view */
@@ -5446,18 +5327,17 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    /* 24 Jan 2001: set grapher index based on type of dataset */
 
-   if( DSET_NUM_TIMES(im3d->anat_now) > 1 ){
+#if 0
+   if( DSET_NUM_TIMES(im3d->anat_now) > 1 )
       newti = im3d->vinfo->time_index ;
-   } else if( ISANATBUCKET(im3d->anat_now) ){
+   else
+#endif
       newti = im3d->vinfo->anat_index ;
-   } else {
-      newti = -1 ;
-   }
 
    if( newti >= 0 ){
-      drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)newti );
-      drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)newti );
-      drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)newti );
+     drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)newti );
+     drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)newti );
+     drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)newti );
    }
 
    if( do_lock )                    /* 11 Nov 1996 */
@@ -6483,10 +6363,10 @@ ENTRY("AFNI_purge_dsets") ;
 
       /*-- for each anat dataset in the session --*/
 
-      for( idd=0 ; idd < sess->num_anat ; idd++ ){
+      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
          for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
 
-            dset = sess->anat[idd][ivv] ;
+            dset = sess->dsset[idd][ivv] ;
             if( dset == NULL ) continue ;
             if( doall ){ PURGE_DSET(dset) ; continue ; }
 
@@ -6495,29 +6375,9 @@ ENTRY("AFNI_purge_dsets") ;
             for( icc=0 ; icc < MAX_CONTROLLERS ; icc++ ){
                im3d = GLOBAL_library.controllers[icc] ;
                if( IM3D_VALID(im3d) &&
-                   ((dset==im3d->anat_now) || (dset==im3d->fimdata->fimdset)) ) break ;
-            }
-
-            /*-- if didn't find it, purge it --*/
-            if( icc == MAX_CONTROLLERS ){ PURGE_DSET(dset) ; }
-         }
-      }
-
-      /*-- for each func dataset in the session --*/
-
-      for( idd=0 ; idd < sess->num_func ; idd++ ){
-         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-
-            dset = sess->func[idd][ivv] ;
-            if( dset == NULL ) continue ;
-            if( doall ){ PURGE_DSET(dset) ; continue ; }
-
-            /*-- for each controller now running --*/
-
-            for( icc=0 ; icc < MAX_CONTROLLERS ; icc++ ){
-               im3d = GLOBAL_library.controllers[icc] ;
-               if( IM3D_VALID(im3d) &&
-                   ((dset==im3d->fim_now) || (dset==im3d->fimdata->fimdset)) ) break ;
+                   ((dset==im3d->anat_now) ||
+                    (dset==im3d->fim_now)  ||
+                    (dset==im3d->fimdata->fimdset)) ) break ;
             }
 
             /*-- if didn't find it, purge it --*/
@@ -6558,8 +6418,8 @@ if(PRINT_TRACING)
   sprintf(str,"view=%d session=%d anat=%d func=%d",vvv,sss,aaa,fff);
   STATUS(str) ; }
 
-   new_anat = GLOBAL_library.sslist->ssar[sss]->anat[aaa][vvv] ;
-   new_func = GLOBAL_library.sslist->ssar[sss]->func[fff][vvv] ;
+   new_anat = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][vvv] ;
+   new_func = GLOBAL_library.sslist->ssar[sss]->dsset[fff][vvv] ;
 
    /*----------------------------------------------*/
    /*--- if the old dataset has markers and the
@@ -6588,8 +6448,8 @@ STATUS("purging old datasets from memory (maybe)") ;
    /* set the new datasets that we will deal with from now on */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->anat[aaa][id] ;
-      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->func[fff][id] ;
+      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
+      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
 
       if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
          SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
@@ -6823,18 +6683,17 @@ ENTRY("AFNI_setup_viewing") ;
      im3d->b231_anat->resam_code =
        im3d->b312_anat->resam_code = im3d->vinfo->anat_resam_mode ;
 
-   /* 30 Nov 1997: don't go past end of bucket */
+   /* 30 Nov 1997: don't go past end of dataset */
 
-   if( ISANATBUCKET(im3d->anat_now) &&
-       im3d->vinfo->anat_index >= DSET_NVALS(im3d->anat_now) )
-      im3d->vinfo->anat_index = DSET_NVALS(im3d->anat_now) - 1 ;
+   if( im3d->vinfo->anat_index >= DSET_NVALS(im3d->anat_now) )
+     im3d->vinfo->anat_index = DSET_NVALS(im3d->anat_now) - 1 ;
 
    /*-----------------------------------------------------*/
    /*--- set up the func w-o-d axes and viewing bricks ---*/
 
-   if( ISVALID_3DIM_DATASET( im3d->fim_now ) ){
+   if( ISVALID_3DIM_DATASET( im3d->fim_now ) ){  /* that is, if we have func */
 
-STATUS("function") ;
+STATUS("function brick setup") ;
 
       /*-- access data in dataset im3d->fim_now IF AND ONLY IF
              1) its actual data axes are the same as the wod_daxes
@@ -6903,18 +6762,28 @@ STATUS("forcing function WOD") ;
 
       /* 30 Nov 1997: don't go past end of bucket */
 
-      if( ISFUNCBUCKET(im3d->fim_now) ){
+      if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
+          im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
 
-          if( im3d->vinfo->fim_index >= DSET_NVALS(im3d->fim_now) )
-             im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
+      if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
+          im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
 
-          if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
-             im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
+      /* first time in for this controller,
+         set thr_index to 1 if have sub-brick #1 [29 Jul 2003] */
+
+      { static int first=1, ffim[MAX_CONTROLLERS] ; int qq ;
+        if( first ){
+          first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) ffim[qq]=1;
+        }
+        qq = AFNI_controller_index(im3d) ;
+        if( ffim[qq] && im3d->vinfo->thr_index == 0 && DSET_NVALS(im3d->fim_now) > 1 ){
+          im3d->vinfo->thr_index = 1 ; ffim[qq] = 0 ;
+        }
       }
 
-   } else {
+   } else {   /* 29 Jul 2003: no longer possible */
 
-STATUS("no function") ;
+STATUS("no function dataset") ;
 
       myXtFree(im3d->b123_fim) ; im3d->b123_fim = NULL ;
       myXtFree(im3d->b231_fim) ; im3d->b231_fim = NULL ;
@@ -6933,19 +6802,19 @@ STATUS("turning widgets on and/or off:") ;
 STATUS(" -- datamode widgets") ;
 
    if( anat_brick_possible ){
-      SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , True ) ;
+     SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , True ) ;
    } else {
-      SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , False ) ;
-      MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_WOD_BVAL ) ;
-      im3d->vinfo->force_anat_wod = True ;
+     SENSITIZE( im3d->vwid->dmode->anatmode_bbox->wbut[DMODE_BRICK] , False ) ;
+     MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_WOD_BVAL ) ;
+     im3d->vinfo->force_anat_wod = True ;
    }
 
    if( func_brick_possible ){
-      SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , True ) ;
+     SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , True ) ;
    } else {
-      SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , False ) ;
-      MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_WOD_BVAL ) ;
-      im3d->vinfo->force_func_wod = True ;
+     SENSITIZE( im3d->vwid->dmode->funcmode_bbox->wbut[DMODE_BRICK] , False ) ;
+     MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_WOD_BVAL ) ;
+     im3d->vinfo->force_func_wod = True ;
    }
 
    AV_SENSITIZE( im3d->vwid->dmode->anat_resam_av , im3d->anat_wod_flag ) ;
@@ -6956,120 +6825,55 @@ STATUS(" -- datamode widgets") ;
    /* Jun 22, 1995: allow it if destruct mode is actuated!              */
 
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
-      writer = True ;
+     writer = True ;
    } else {
-      writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
+     writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
 
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
-      writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
+     writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
    } else {
-      writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
+     writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;
 
-   /*--- dataset chooser controls (01 Nov 1996: always allow) ---*/
+   /*--- function controls (always see them) ---*/
 
-#if 0
-STATUS(" -- dataset chooser widgets") ;
+   {  Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
+      Boolean have_thr = have_fim ;
 
-   SENSITIZE( im3d->vwid->view->choose_sess_pb ,
-                     (Boolean) (GLOBAL_library.sslist->num_sess > 1) ) ;
-
-   SENSITIZE( im3d->vwid->view->choose_anat_pb ,
-                     (Boolean) (im3d->ss_now->num_anat > 1) ) ;
-
-   SENSITIZE( im3d->vwid->view->choose_func_pb ,
-                     (Boolean) (im3d->ss_now->num_func > 1) ) ;
-
-#ifdef POPUP_CHOOSERS
-   XtSetSensitive( im3d->vwid->view->popchoose_sess_pb ,
-                     (Boolean) (GLOBAL_library.sslist->num_sess > 1) ) ;
-
-   XtSetSensitive( im3d->vwid->view->popchoose_anat_pb ,
-                     (Boolean) (im3d->ss_now->num_anat > 1) ) ;
-
-   XtSetSensitive( im3d->vwid->view->popchoose_func_pb ,
-                     (Boolean) (im3d->ss_now->num_func > 1) ) ;
-#endif
-#endif
-
-   /*--- function controls ---*/
-
-#undef CLOSE_FUNC_PANEL
-#ifdef CLOSE_FUNC_PANEL
-   if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){
-
-STATUS(" -- function widgets OFF") ;
-
-      CLOSE_PANEL(im3d,func) ;  /* close the panel */
-
-      SENSITIZE( im3d->vwid->view->define_func_pb      , False ) ;
-      SENSITIZE( im3d->vwid->view->see_func_bbox->wtop , False ) ;
-      im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
-   } else
-#endif
-   {
-      Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
-      Boolean have_thr = have_fim && FUNC_HAVE_THR(im3d->fim_now->func_type) ;
-      int do_buck ;
+      static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
+      if( first ){
+        first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) zfim[qq]=1;
+      }
 
 STATUS(" -- function widgets ON") ;
 
-      SENSITIZE( im3d->vwid->view->define_func_pb      , True ) ;
+      SENSITIZE( im3d->vwid->view->define_func_pb      , True ) ;  /* always on */
       SENSITIZE( im3d->vwid->view->see_func_bbox->wtop , True ) ;
 
-      /* make some widgets sensitive if we have the threshold available */
+      /* setup threshold slider to be always on */
 
-#if 0
-      if( ! have_thr ){
-         SENSITIZE( im3d->vwid->func->thr_rowcol , 0 ) ;
-      } else
-#endif
-      {
-         static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
-         if( first ){
-           first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) zfim[qq]=1;
-         }
-         XtManageChild( im3d->vwid->func->thr_rowcol ) ;
-         qq = AFNI_controller_index(im3d) ;
-         if( zfim[qq] && im3d->fim_now != NULL && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
+      XtManageChild( im3d->vwid->func->thr_rowcol ) ;
+      qq = AFNI_controller_index(im3d) ;
+      if( zfim[qq] && im3d->fim_now != NULL && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
 STATUS(" -- set threshold to zero for FIM (once only)") ;
-           XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
-           im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
-         }
-         FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+        XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
+        im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
       }
+      FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+
+      /* turn on various ways of making function into underlay */
 
       SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_ALLFUNC],
                       have_fim ) ;
-      SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_THRFUNC],
-                      have_thr ) ;
 
-      SENSITIZE( im3d->vwid->func->functype_bbox->wbut[SHOWFUNC_FIM],
-                      have_thr ) ;
-      SENSITIZE( im3d->vwid->func->functype_bbox->wbut[SHOWFUNC_THR],
-                      have_thr ) ;
+      /* set underlay type back to anat if no function */
 
-           if( ! have_fim )
-              im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
-      else if( ! have_thr && im3d->vinfo->underlay_type == UNDERLAY_THRFUNC )
-              im3d->vinfo->underlay_type = UNDERLAY_ALLFUNC ;
-
-      if( ! have_thr ) im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
-
-      if( have_fim && ISFUNCBUCKET(im3d->fim_now) )    /* 30 Nov 1997 */
-         im3d->vinfo->showfunc_type = SHOWFUNC_FIM ;
-
-#if 0
-      /* 12 Aug 1996: fix range control sensitivity and settings */
-
-      SENSITIZE( im3d->vwid->func->range_bbox->wrowcol ,
-                 (im3d->vinfo->showfunc_type == SHOWFUNC_FIM) ) ;
-#endif
+      if( ! have_fim ) im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
 
       /* allow resample control only if we are using w-o-d */
 
@@ -7086,118 +6890,61 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
                     and its settings are done in routine AFNI_set_thresh_top **/
 
       if( have_thr ){
+        int iv = im3d->vinfo->thr_index , jj ;
 
-         if( ! ISFUNCBUCKET(im3d->fim_now) ){  /* 30 Nov 1997 */
-
-
-#if 0  /* disabled 11 Jun 2003 */
-            /* set number of decimal places to shift for thr_scale */
-
-STATUS(" ---- set threshold decim OLD") ;
-            AFNI_set_thresh_top( im3d , FUNC_topval[im3d->fim_now->func_type] ) ;
-#endif
-
-            /* set the label at the top of the scale */
-
-            MCW_set_widget_label( im3d->vwid->func->thr_label ,
-                                  FUNC_label[im3d->fim_now->func_type] ) ;
-         } else {
-            int iv = im3d->vinfo->thr_index , jj ;
-
-#if 0
-STATUS(" ---- set threshold decim NEW") ;
-            if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
-               float bb = fabs(im3d->fim_now->stats->bstat[iv].min) ;
-               float tt = fabs(im3d->fim_now->stats->bstat[iv].max) ;
-               float xx = (bb<tt) ? tt : bb ;
-
-               if( xx > 0.0 ){
-                  jj = (int)( 0.999 + log10(xx) ) ;
-                       if( jj < 0             ) jj = 0 ;
-                  else if( jj > THR_TOP_EXPON ) jj = THR_TOP_EXPON ;
-                  xx = pow(10.0,jj) ;
-                  AFNI_set_thresh_top( im3d, xx ) ;
-               }
-            }
-#endif
-
-            jj = DSET_BRICK_STATCODE(im3d->fim_now,iv) ;
-            if( jj > 0 )
-               MCW_set_widget_label( im3d->vwid->func->thr_label ,
-                                     FUNC_label[jj] ) ;
-            else
-               MCW_set_widget_label( im3d->vwid->func->thr_label ,
-                                     DSET_BRICK_LABEL(im3d->fim_now,iv) ) ;
-         }
-
-         /* set the pval label at the bottom of the scale */
-
-         AFNI_set_thr_pval( im3d ) ;
+        jj = DSET_BRICK_STATCODE(im3d->fim_now,iv) ;
+        if( jj > 0 )
+          MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                                FUNC_label[jj] ) ;
+        else
+          MCW_set_widget_label( im3d->vwid->func->thr_label ,
+                                DSET_BRICK_LABEL(im3d->fim_now,iv) ) ;
       }
 
-      /*** 30 Nov 1997:
-           Open/close widgets depending on if we have function buckets ***/
+      /* set the pval label at the bottom of the scale */
 
-      do_buck = 0 ;
+      AFNI_set_thr_pval( im3d ) ;
+
+      /*** 29 Jul 2003: always do buckets now ***/
+
+      XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+      XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
+      XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
 
       /* 12 Dec 2001: only refit menus if dataset has changed */
 
-      if( ISFUNCBUCKET(im3d->fim_now) ){
-         if( im3d->fim_now != old_fim || im3d != old_im3d ){
-STATUS(" ---- func bucket widgets ON") ;
-          XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
-          refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
-                             0 ,                            /* new minval */
-                             DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
-                             im3d->vinfo->fim_index ,       /* new inival */
-                             0 ,                            /* new decim? */
-                             AFNI_bucket_label_CB ,         /* text routine */
-                             im3d->fim_now                  /* text data */
-                           ) ;
-          refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
-                             0 ,                            /* new minval */
-                             DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
-                             im3d->vinfo->thr_index ,       /* new inival */
-                             0 ,                            /* new decim? */
-                             AFNI_bucket_label_CB ,         /* text routine */
-                             im3d->fim_now                  /* text data */
-                           ) ;
-          XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
-          XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
-         }
-         do_buck = 1 ;
-      } else {
-STATUS(" ---- func bucket widgets OFF") ;
-         XtManageChild  ( im3d->vwid->func->functype_bbox->wtop )  ;
-         XtUnmanageChild( im3d->vwid->func->fim_buck_av->wrowcol ) ;
-         XtUnmanageChild( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+      if( have_fim && (im3d->fim_now != old_fim || im3d != old_im3d) ){
+        refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
+                           0 ,                            /* new minval */
+                           DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                           im3d->vinfo->fim_index ,       /* new inival */
+                           0 ,                            /* new decim? */
+                           AFNI_bucket_label_CB ,         /* text routine */
+                           im3d->fim_now                  /* text data */
+                         ) ;
+        refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
+                           0 ,                            /* new minval */
+                           DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                           im3d->vinfo->thr_index ,       /* new inival */
+                           0 ,                            /* new decim? */
+                           AFNI_bucket_label_CB ,         /* text routine */
+                           im3d->fim_now                  /* text data */
+                         ) ;
       }
 
-      if( ISANATBUCKET(im3d->anat_now) ){
-         if( im3d->anat_now != old_anat ){
-STATUS(" ---- anat bucket widgets ON") ;
-          refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
-                             0 ,                             /* new minval */
-                             DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
-                             im3d->vinfo->anat_index ,       /* new inival */
-                             0 ,                             /* new decim? */
-                             AFNI_bucket_label_CB ,          /* text routine */
-                             im3d->anat_now                  /* text data */
-                           ) ;
-          XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
-         }
-         do_buck = 1 ;
-      } else {
-STATUS(" ---- anat bucket widgets OFF") ;
-         XtUnmanageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+      if( im3d->anat_now != old_anat ){
+        refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
+                           0 ,                             /* new minval */
+                           DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
+                           im3d->vinfo->anat_index ,       /* new inival */
+                           0 ,                             /* new decim? */
+                           AFNI_bucket_label_CB ,          /* text routine */
+                           im3d->anat_now                  /* text data */
+                         ) ;
       }
 
-      if( do_buck ){
-         XtManageChild( im3d->vwid->func->buck_rowcol ) ;
-         XtManageChild( im3d->vwid->func->buck_frame ) ;
-      } else {
-         XtUnmanageChild( im3d->vwid->func->buck_frame ) ;
-      }
+      XtManageChild( im3d->vwid->func->buck_rowcol ) ;
+      XtManageChild( im3d->vwid->func->buck_frame ) ;
    }
 
    /*--- set the function type bboxes based on the current
@@ -7207,9 +6954,6 @@ STATUS(" -- function underlay widgets") ;
 
    MCW_set_bbox( im3d->vwid->func->underlay_bbox ,
                  1 << im3d->vinfo->underlay_type ) ;
-
-   MCW_set_bbox( im3d->vwid->func->functype_bbox ,
-                 1 << im3d->vinfo->showfunc_type ) ;
 
    /*--------------------------------------------------------*/
    /*--- 3/24/95: deal with the new range widgets in func ---*/
@@ -7272,18 +7016,18 @@ STATUS(" -- processing points in this dataset") ;
 
    if( im3d->vwid->imag->pop_sumato_pb != NULL ){
      if( DSET_HAS_SUMA(im3d->anat_now) )
-        XtManageChild( im3d->vwid->imag->pop_sumato_pb ) ;
+       XtManageChild( im3d->vwid->imag->pop_sumato_pb ) ;
      else
-        XtUnmanageChild( im3d->vwid->imag->pop_sumato_pb ) ;
+       XtUnmanageChild( im3d->vwid->imag->pop_sumato_pb ) ;
    }
 
    /*------ 01 May 2002: turn "Jump to (MNI)" on or off ------*/
 
    if( im3d->vwid->imag->pop_mnito_pb != NULL ){
-      if( CAN_TALTO(im3d) )
-         XtManageChild( im3d->vwid->imag->pop_mnito_pb ) ;
-      else
-         XtUnmanageChild( im3d->vwid->imag->pop_mnito_pb ) ;
+     if( CAN_TALTO(im3d) )
+       XtManageChild( im3d->vwid->imag->pop_mnito_pb ) ;
+     else
+       XtUnmanageChild( im3d->vwid->imag->pop_mnito_pb ) ;
    }
 
    /*-------------------------------------------------------------------*/
@@ -7292,20 +7036,20 @@ STATUS(" -- processing points in this dataset") ;
 STATUS(" -- managing talairach_to button") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
-      if( CAN_TALTO(im3d) ){
-         XtSetSensitive( im3d->vwid->imag->pop_talto_pb , True ) ;
-         if( im3d->vwid->imag->pop_whereami_pb != NULL )
-          XtSetSensitive( im3d->vwid->imag->pop_whereami_pb , True ); /* 10 Jul 2001 */
-         if( im3d->vwid->imag->pop_ttren_pb != NULL )
-          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb ,              /* 12 Jul 2001 */
-                          im3d->vinfo->view_type==VIEW_TALAIRACH_TYPE); /* 01 Aug 2001 */
-      } else {
-         XtSetSensitive( im3d->vwid->imag->pop_talto_pb, False ) ;
-         if( im3d->vwid->imag->pop_whereami_pb != NULL )
-          XtSetSensitive( im3d->vwid->imag->pop_whereami_pb, False ); /* 10 Jul 2001 */
-         if( im3d->vwid->imag->pop_ttren_pb != NULL )
-          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , False ); /* 12 Jul 2001 */
-      }
+     if( CAN_TALTO(im3d) ){
+       XtSetSensitive( im3d->vwid->imag->pop_talto_pb , True ) ;
+       if( im3d->vwid->imag->pop_whereami_pb != NULL )
+         XtSetSensitive( im3d->vwid->imag->pop_whereami_pb , True ); /* 10 Jul 2001 */
+       if( im3d->vwid->imag->pop_ttren_pb != NULL )
+         XtSetSensitive( im3d->vwid->imag->pop_ttren_pb ,              /* 12 Jul 2001 */
+                         im3d->vinfo->view_type==VIEW_TALAIRACH_TYPE); /* 01 Aug 2001 */
+     } else {
+       XtSetSensitive( im3d->vwid->imag->pop_talto_pb, False ) ;
+       if( im3d->vwid->imag->pop_whereami_pb != NULL )
+         XtSetSensitive( im3d->vwid->imag->pop_whereami_pb, False ); /* 10 Jul 2001 */
+       if( im3d->vwid->imag->pop_ttren_pb != NULL )
+         XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , False ); /* 12 Jul 2001 */
+     }
    }
 
    /*--- 25 Jul 2001: sensitize 'See TT Atlas Regions' button ---*/
@@ -7327,26 +7071,27 @@ STATUS(" -- managing talairach_to button") ;
       top = MAX( top , DSET_NUM_TIMES(im3d->fim_now) ) ;
 
    if( top > 1 ){
-      MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
+     MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
 STATUS(" -- turning time index control on") ;
 
-      AV_SENSITIZE( tav , True ) ;
-      tav->fmax = tav->imax = top - 1 ; im3d->vinfo->top_index = top ;
-      if( im3d->vinfo->time_index > tav->imax ){
-         im3d->vinfo->time_index = tav->imax ;
-         AV_assign_ival( tav , tav->imax ) ;
-         AFNI_process_timeindex(im3d) ;       /* 29 Jan 2003 */
-      }
+     AV_SENSITIZE( tav , True ) ; im3d->vinfo->time_on = 1 ;
+     tav->fmax = tav->imax = top - 1 ; im3d->vinfo->top_index = top ;
+     if( im3d->vinfo->time_index > tav->imax ){
+       im3d->vinfo->time_index = tav->imax ;
+       AV_assign_ival( tav , tav->imax ) ;
+       AFNI_process_timeindex(im3d) ;       /* 29 Jan 2003 */
+     }
    } else {
 STATUS(" -- turning time index control off") ;
-      AV_SENSITIZE( im3d->vwid->imag->time_index_av , False ) ;
+     AV_SENSITIZE( im3d->vwid->imag->time_index_av , False ) ;
+     im3d->vinfo->time_on = 0 ;
    }
 
    /*--------------------------------------------------------------*/
    /*--- 19 Nov 1996: Set FIM-able dataset to this, if possible ---*/
 
    if( DSET_GRAPHABLE(im3d->anat_now) )
-      im3d->fimdata->fimdset = im3d->anat_now ;
+     im3d->fimdata->fimdset = im3d->anat_now ;
 
    ALLOW_COMPUTE_FIM(im3d) ;
 
@@ -8417,19 +8162,19 @@ ENTRY("AFNI_marks_transform_CB") ;
    sss = im3d->vinfo->sess_num ;
    aaa = im3d->vinfo->anat_num ;
    fff = im3d->vinfo->func_num ;
-   GLOBAL_library.sslist->ssar[sss]->anat[aaa][vnew] = new_dset ;
+   GLOBAL_library.sslist->ssar[sss]->dsset[aaa][vnew] = new_dset ;
 
    /* reload active datasets, to allow for destruction that may
       have occured (this code is copied from AFNI_initialize_view) */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->anat[aaa][id] ;
-      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->func[fff][id] ;
+      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
+      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
 
       if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
-         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
+        SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
       else
-         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
+        SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
    }
 
 STATUS("writing new dataset") ;
@@ -8449,8 +8194,8 @@ STATUS("writing new dataset") ;
 
 STATUS("re-anat_parenting anatomical datasets in this session") ;
 
-      for( id=0 ; id < im3d->ss_now->num_anat ; id++ ){
-         dss = im3d->ss_now->anat[id][0] ;
+      for( id=0 ; id < im3d->ss_now->num_dsset ; id++ ){
+         dss = im3d->ss_now->dsset[id][0] ;
 
          if( ! ISVALID_3DIM_DATASET(dss) || dss == im3d->anat_now ) continue ;
 
@@ -8458,26 +8203,10 @@ STATUS("re-anat_parenting anatomical datasets in this session") ;
          dss->markers = NULL ;
 
          if( dss->anat_parent == NULL ){
-            dss->anat_parent = im3d->anat_now ;
-            MCW_strncpy( dss->anat_parent_name ,
-                         im3d->anat_now->self_name , THD_MAX_NAME ) ;
-            dss->anat_parent_idcode = im3d->anat_now->idcode ;
-         }
-      }
-
-      /* and on the functional datasets */
-
-STATUS("re-anat_parenting functional datasets in this session") ;
-
-      for( id=0 ; id < im3d->ss_now->num_func ; id++ ){
-         dss = im3d->ss_now->func[id][0] ;
-
-         if( ! ISVALID_3DIM_DATASET(dss) ) continue ;
-         if( dss->anat_parent == NULL ){
-            dss->anat_parent = im3d->anat_now ;
-            MCW_strncpy( dss->anat_parent_name ,
-                         im3d->anat_now->self_name , THD_MAX_NAME ) ;
-            dss->anat_parent_idcode = im3d->anat_now->idcode ;
+           dss->anat_parent = im3d->anat_now ;
+           MCW_strncpy( dss->anat_parent_name ,
+                        im3d->anat_now->self_name , THD_MAX_NAME ) ;
+           dss->anat_parent_idcode = im3d->anat_now->idcode ;
          }
       }
    }

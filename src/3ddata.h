@@ -94,21 +94,15 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 */
 #define THD_DEFAULT_LABEL "Elvis Lives"
 
-/*! Max num anat datasets per session. */
+/*! Max num datasets per session. */
 
-#define THD_MAX_SESSION_ANAT  512
-
-/*! Max num func datasets per session. */
-
-#define THD_MAX_SESSION_FUNC  512
+#define THD_MAX_SESSION_SIZE  1024
 
 /*! Max number of directories. */
 
 #define THD_MAX_NUM_SESSION    80
 
-/*! Largest of THD_MAX_SESSION_ANAT THD_MAX_SESSION_FUNC THD_MAX_NUM_SESSION. */
-
-#define THD_MAX_CHOICES THD_MAX_SESSION_FUNC
+#define THD_MAX_CHOICES THD_MAX_SESSION_SIZE
 
 #define THD_MAX_MARKSET       5
 
@@ -1935,6 +1929,15 @@ static char * DSET_prefixstr[NUM_DSET_TYPES] = {
    ANAT_BUCK_PREFIX
 } ;
 
+#define DSET_PREFIXSTR(ds) ( ISFUNC(ds) ? FUNC_prefixstr[(ds)->func_type]  \
+                                        : ANAT_prefixstr[(ds)->func_type] )
+
+#define DSET_FUNCLABEL(ds) ( ISFUNC(ds) ? FUNC_label[(ds)->func_type]      \
+                                        : ANAT_prefixstr[(ds)->func_type] )
+
+#define DSET_TYPESTR(ds)   ( ISFUNC(ds) ? FUNC_typestr[(ds)->func_type]     \
+                                        : ANAT_typestr[(ds)->func_type] )
+
 static int ANAT_nvals[]     = { 1,1,1,1,1,1,1,1,1,1,1,1 , 1 } ;
 static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 , 0 } ;
 
@@ -2337,6 +2340,10 @@ extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2
     multiple sub-bricks (if it is a bucket dataset, for example)
 */
 #define DSET_NUM_TIMES(ds)       ( ((ds)->taxis == NULL) ? 1 : (ds)->taxis->ntt )
+
+/*! Check if have a 3D+time dataset. */
+
+#define HAS_TIMEAXIS(ds)         ( DSET_NUM_TIMES(ds) > 1 )
 
 /*! Return number of values stored at each time point for dataset ds.
 
@@ -2802,19 +2809,18 @@ typedef struct THD_3dim_dataset_array {
 
 #define SESSION_TYPE 97
 
-/*! Holds all the datasets from a directory (session). */
+/*! Holds all the datasets from a directory (session).
+    [28 Jul 2003: modified to put elide distinction between anat and func] */
 
 typedef struct {
       int type     ;                  /*!< code indicating this is a THD_session */
-      int num_anat ;                  /*!< Number of anatomical datasets */
-      int num_func ;                  /*!< Number of functional dataset */
+      int num_dsset ;                 /*!< Number of datasets. */
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
       char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
 
-      THD_3dim_dataset * anat[THD_MAX_SESSION_ANAT][LAST_VIEW_TYPE+1] ;  /*!< array of anatomical datasets */
-      THD_3dim_dataset * func[THD_MAX_SESSION_FUNC][LAST_VIEW_TYPE+1] ;  /*!< array of functional datasets */
+      THD_3dim_dataset * dsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;  /*!< array of datasets */
 
-      XtPointer parent ;                                                 /*!< generic pointer to "owner"  */
+      XtPointer parent ;        /*!< generic pointer to "owner"  */
 
       Htable *warptable ;       /*!< Table of inter-dataset warps [27 Aug 2002] */
 } THD_session ;
@@ -2828,11 +2834,9 @@ typedef struct {
 #define BLANK_SESSION(ss)                                                     \
   if( ISVALID_SESSION((ss)) ){                                                \
       int id , vv ;                                                           \
-      for( id=0 ; id < THD_MAX_SESSION_ANAT ; id++ )                          \
-        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->anat[id][vv] = NULL ; \
-      for( id=0 ; id < THD_MAX_SESSION_FUNC ; id++ )                          \
-        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->func[id][vv] = NULL ; \
-      (ss)->num_anat = (ss)->num_func = 0 ;                                   \
+      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
+        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->dsset[id][vv] = NULL; \
+      (ss)->num_dsset = 0 ;                                                   \
       (ss)->warptable = NULL ; }
 
 #define SESSIONLIST_TYPE 107
@@ -2869,17 +2873,16 @@ typedef struct {
 */
 
 typedef struct {
-   int sess_index ;            /*< Session it was found in */
-   int anat_index ;            /*< Anat index it was found at (if >= 0) */
-   int func_index ;            /*< Func index it was found at (if >= 0) */
-   int view_index ;            /*< View index it was found at (if >= 0) */
-   THD_3dim_dataset * dset ;   /*< Pointer to found dataset */
+   int sess_index ;            /*!< Session it was found in */
+   int dset_index ;            /*!< Index it was found at (if >= 0) */
+   int view_index ;            /*!< View index it was found at (if >= 0) */
+   THD_3dim_dataset * dset ;   /*!< Pointer to found dataset itself */
 } THD_slist_find ;
 
 /*! Set the find codes to indicate a bad result */
 
-#define BADFIND(ff) \
-   ( (ff).sess_index=(ff).anat_index=(ff).func_index=(ff).view_index=-1 , \
+#define BADFIND(ff)                                       \
+   ( (ff).sess_index=(ff).dset_index=(ff).view_index=-1 , \
      (ff).dset = NULL )
 
 #define FIND_NAME   1
@@ -3091,6 +3094,7 @@ extern THD_datablock_array * THD_init_prefix_datablocks( char *, THD_string_arra
 extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
 
 extern THD_session * THD_init_session( char * ) ;
+extern void          THD_order_session( THD_session * ) ;   /* 29 Jul 2003 */
 
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
