@@ -3150,7 +3150,10 @@ void calculate_results
           fprintf(stderr," * Columns %d and %d are nearly collinear!\n",
                   iar[2*k],iar[2*k+1] ) ;
         else
-          fprintf(stderr," * Column %d is all zeros!\n",iar[2*k] ) ;
+          fprintf(stderr," * Column %d is all zeros: %s\n",
+                  iar[2*k] ,
+                  use_psinv ? "SVD on => will be kept"
+                            : "SVD off => will be excised" ) ;
       }
       free(iar) ;
     }
@@ -4702,8 +4705,21 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    int ii,jj , flipxy ;
    char str[32] ;
    int sepscl ;
+   float boxr=1.0,boxg=0.9,boxb=0.0 ;
+   char *eee ;
+   int dobox=1 ;
 
    if( npt < 2 || nts < 1 || y == NULL ) return NULL ;
+
+   eee = my_getenv( "AFNI_XJPEG_COLOR" ) ;
+   if( eee != NULL ){
+     float rf=-1.0, gf=-1.0 , bf=-1.0 ;
+     sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
+     if( rf >= 0.0 && rf <= 1.0 && gf >= 0.0 && gf <= 1.0 && bf >= 0.0 && bf <= 1.0 ){
+       boxr = rf ; boxg = gf ; boxb = bf ;
+     }
+     if( NOISH(eee) ) dobox = 0 ;  /* don't do boxes */
+   }
 
    /* find range of all the data */
 
@@ -4717,8 +4733,8 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    }
    if( ybot >= ytop ) return NULL ;  /* data is all the same? */
    yfac = 1.0/(ytop-ybot) ;
-   dx   = 0.99999/npt ;
-   dy   = 0.99999/nts ;
+   dx   = 0.9999/npt ;
+   dy   = 0.9999/nts ;
 
    create_memplot_surely( "Gplot" , 1.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
@@ -4748,17 +4764,16 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
        else
          plotrect_memplot( jj*dy,1.0-ii*dx , (jj+1)*dy,1.0-(ii+1)*dy ) ;
      }
-     set_color_memplot( 1.0 , 0.9 , 0.0 ) ; /* yellow box around each column */
-     if( flipxy ){
-       plotline_memplot( 0.0,jj*dy     , 1.0,jj*dy     ) ;
-       plotline_memplot( 1.0,jj*dy     , 1.0,(jj+1)*dy ) ;
-       plotline_memplot( 1.0,(jj+1)*dy , 0.0,(jj+1)*dy ) ;
-       plotline_memplot( 0.0,(jj+1)*dy , 0.0,jj*dy     ) ;
-     } else {
-       plotline_memplot( jj*dy,0.0     , jj*dy,1.0     ) ;
-       plotline_memplot( jj*dy,1.0     , (jj+1)*dy,1.0 ) ;
-       plotline_memplot( (jj+1)*dy,1.0 , (jj+1)*dy,0.0 ) ;
-       plotline_memplot( (jj+1)*dy,0.0 , jj*dy,0.0     ) ;
+   }
+
+   if( dobox ){
+     set_color_memplot( boxr, boxg, boxb ) ; /* lines between each column */
+     for( jj=0 ; jj <= nts ; jj++ ){
+       if( flipxy ){
+         plotline_memplot( 1.0,jj*dy , 0.0,jj*dy ) ;
+       } else {
+         plotline_memplot( jj*dy,1.0 , jj*dy,0.0 ) ;
+       }
      }
    }
 
@@ -4771,11 +4786,11 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
 
 MRI_IMAGE * PLOT_matrix_gray( matrix X )
 {
-   int nts = X.cols , npt = X.rows ;
+   int nts=X.cols , npt=X.rows , ii,jj , nxim=768 , nyim=1024 ;
    MEM_plotdata *mp ;
    float **xar ;
-   int ii,jj ;
    MRI_IMAGE *im ;
+   char *eee ;
 
    if( nts < 1 || npt < 2 ) return NULL ;
 
@@ -4792,7 +4807,15 @@ MRI_IMAGE * PLOT_matrix_gray( matrix X )
 
    if( mp == NULL ) return NULL ;
 
-   im = mri_new( 768 , 1024 , MRI_rgb ) ;
+   eee = my_getenv( "AFNI_XJPEG_IMXY") ;
+   if( eee != NULL ){
+     int a=-1, b=-1 ;
+     sscanf( eee , "%dx%d" , &a,&b ) ;
+     if( a > 99 && b > 99 ){ nxim = a ; nyim = b ; }
+   }
+
+   im = mri_new( nxim , nyim , MRI_rgb ) ;
+   memset( MRI_RGB_PTR(im) , 255 , 3*im->nvox ) ;  /* whiten it */
    memplot_to_RGB_sef( im , mp , 0,0,1 ) ;
    delete_memplot( mp ) ;
    return im ;
@@ -4829,12 +4852,13 @@ void JPEG_matrix_gray( matrix X , char *fname )
    fp = popen( jpfilt , "w" ) ;
    if( fp == NULL ){
      mri_free(im) ; free((void *)jpfilt) ;
-     fprintf(stderr,"** WARNING: can't save %s because filter fails!\n",fname) ;
+     fprintf(stderr,"** WARNING: can't save %s because cjpeg filter fails!\n",fname) ;
      return ;
    }
    fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
    fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
    (void) pclose(fp) ;
+   fprintf(stderr,"++ Wrote X matrix image to file %s\n",fname) ;
 
    mri_free(im) ; free((void *)jpfilt) ; return ;
 }
