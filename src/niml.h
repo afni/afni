@@ -136,7 +136,7 @@ typedef struct {
    FILE *fp ;        /*!< FILE only: pointer to open file */
    int fsize ;       /*!< FILE only: length of file for input */
 
-   char name[128] ;  /*!< Hostname or filename */
+   char name[256] ;  /*!< Hostname or filename */
 
    int io_mode ;     /*!< Input or output? */
    int data_mode ;   /*!< Text, binary, or base64? */
@@ -152,6 +152,7 @@ typedef struct {
 #define NI_TCP_TYPE    1
 #define NI_FILE_TYPE   2
 #define NI_STRING_TYPE 3
+#define NI_REMOTE_TYPE 4  /* http: or ftp: */
 
 #define TCP_WAIT_ACCEPT   7
 #define TCP_WAIT_CONNECT  8
@@ -197,7 +198,7 @@ extern void NI_free_element( void * ) ;
 extern int  NI_element_type( void * ) ;
 
 extern NI_element * NI_new_data_element( char *, int ) ;
-extern void NI_add_vector( NI_element * , int , void * ) ;
+extern void NI_add_column( NI_element * , int , void * ) ;
 extern void NI_set_attribute( void * , char * , char * ) ;
 
 extern NI_group * NI_new_group_element(void) ;
@@ -217,13 +218,22 @@ extern int NI_stream_read( NI_stream_type * , char * , int ) ;
 extern void NI_binary_threshold( NI_stream_type * , int ) ;
 extern void NI_sleep( int ) ;
 extern char * NI_stream_getbuf( NI_stream_type * ) ;
+extern void   NI_stream_clearbuf( NI_stream_type * ) ;
 extern void   NI_stream_setbuf( NI_stream_type * , char * ) ;
 extern char * NI_stream_name( NI_stream_type * ) ;
+extern int NI_stream_readable( NI_stream_type * ) ;
+extern int NI_stream_writeable( NI_stream_type * ) ;
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
 extern void * NI_read_element( NI_stream_type * , int ) ;
 extern int    NI_write_element( NI_stream_type * , void * , int ) ;
+
+/* prototypes for Web data fetchers */
+
+extern int  NI_read_URL_tmpdir( char *url , char **tname ) ;
+extern int  NI_read_URL       ( char *url , char **data  ) ;
+extern void NI_set_URL_ftp_ident( char *name , char *pwd ) ;
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 

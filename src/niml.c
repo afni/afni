@@ -24,6 +24,10 @@ void NI_free( void *p )
    if( p != NULL ) free(p) ;
 }
 
+/*! Free and set pointer to NULL. */
+
+#define NI_FREE(p) ( NI_free(p), (p)=NULL )
+
 /*--------------------------------------------------------------------------*/
 /*! Reallocate memory; calls exit() if it fails. */
 
@@ -44,7 +48,7 @@ char * NI_strncpy( char *dest , const char *src , size_t n )
    if( dest == NULL || n == 0 ) return NULL ;
    if( src  == NULL || n == 1 ){ dest[0] = '\0' ; return dest ; }
    strncpy( dest , src , n-1 ) ;
-   dest[n] = '\0' ; return dest ;
+   dest[n-1] = '\0' ; return dest ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -854,6 +858,13 @@ void NI_typedef( char *name , char *type , char *dimen )
 /*--------------------------------------------------------------------*/
 /*! Add attributes to a header_stuff struct if it has a special name. */
 
+#define NUM_NIB 10
+static char *niblist[NUM_NIB] = {
+      "ni_f1"    , "ni_f2"    , "ni_f3" , "ni_f4" ,
+      "ni_i1"    , "ni_i2"    , "ni_i3" , "ni_i4" ,
+      "ni_irgb"  , "ni_irgba"
+} ;
+
 static void enhance_header_stuff( header_stuff *hs )
 {
    char *ntype , *ndimen ;
@@ -1185,6 +1196,25 @@ int NI_type_size( int tval )
 }
 
 #if 0
+/*----------------------------------------------------------------------*/
+/*! Static table to store byte sizes. */
+
+static int typesize[NI_NUM_TYPES] ;
+
+/*! Function to initialize this. */
+
+static void init_typesize(void)
+{
+   int first=1 , ii ;
+   if( first ){
+     first = 0 ;
+     for( ii=0 ; ii < NI_NUM_TYPES ; ii++ )
+       typesize[ii] = NI_type_size(ii) ;
+   }
+}
+#endif
+
+#if 0
 /*-------------------------------------------------------------------------*/
 /*! Number of component values of a given integer type code. */
 
@@ -1349,6 +1379,20 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
+   if( veclen == 0 ){             /* empty element */
+     nel->vec_rank     = 0 ;
+     nel->vec_axis_len = NULL ;
+   } else {                       /* element with data (to come) */
+     nel->vec_rank        = 1 ;
+     nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
+     nel->vec_axis_len[0] = veclen ;
+   }
+
+   nel->vec_axis_delta  = NULL ;
+   nel->vec_axis_origin = NULL ;
+   nel->vec_axis_unit   = NULL ;
+   nel->vec_axis_label  = NULL ;
+
    return nel ;
 }
 
@@ -1366,7 +1410,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
     such an error is to see if nel->vec_num was incremented.
 -------------------------------------------------------------------------*/
 
-void NI_add_vector( NI_element *nel , int typ , void *arr )
+void NI_add_column( NI_element *nel , int typ , void *arr )
 {
    int nn , ll ;
 
@@ -1392,6 +1436,9 @@ void NI_add_vector( NI_element *nel , int typ , void *arr )
    nel->vec     = NI_realloc( nel->vec , sizeof(void *)*(nn+1) ) ;
    ll           = nel->vec_len * NI_type_size(typ) ;
    nel->vec[nn] = NI_malloc( ll ) ;
+
+   /* for String or Line, must do something different (later, dude) */
+
    memcpy( nel->vec[nn] , arr , ll ) ;  /* the real work is here */
 
    /* add 1 to the count of vectors */
@@ -1450,6 +1497,90 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
       ngr->attr_rhs[nn] = NI_strdup(attvalue);
    }
 
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the dimen attribute for a data element. */
+
+void NI_set_dimen( NI_element *nel , int rank , int *nd )
+{
+   int ii , ntot ;
+
+   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ||
+       rank < 1    || nd == NULL                     ) return ; /* bad */
+
+   for( ntot=1,ii=0 ; ii < rank ; ii++ ){
+      if( nd[ii] <= 0 ) return ;                                /* bad */
+      ntot *= nd[ii] ;
+   }
+   if( ntot != nel->vec_len ) return ;                          /* bad */
+
+   nel->vec_rank = rank ;
+   nel->vec_axis_len = NI_realloc( nel->vec_axis_len, sizeof(int)*rank ) ;
+   memcpy( nel->vec_axis_len , nd , sizeof(int)*rank ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the delta attribute for a data element. */
+
+void NI_set_delta( NI_element *nel , float *del )
+{
+   if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_rank < 1 || del == NULL                    ) return ;
+
+   nel->vec_axis_delta = NI_realloc( nel->vec_axis_delta ,
+                                     nel->vec_rank * sizeof(float) ) ;
+   memcpy( nel->vec_axis_delta , del , nel->vec_rank * sizeof(float) ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the origin attribute for a data element. */
+
+void NI_set_origin( NI_element *nel , float *org )
+{
+   if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_rank < 1 || org == NULL                    ) return ;
+
+   nel->vec_axis_origin = NI_realloc( nel->vec_axis_origin ,
+                                      nel->vec_rank * sizeof(float) ) ;
+   memcpy( nel->vec_axis_origin , org , nel->vec_rank * sizeof(float) ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the units attribute for a data element. */
+
+void NI_set_units( NI_element *nel , char **units )
+{
+   int ii ;
+
+   if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_rank < 1 || units == NULL                  ) return ;
+
+   nel->vec_axis_unit = NI_realloc( nel->vec_axis_unit ,
+                                    nel->vec_rank * sizeof(char *) ) ;
+   for( ii=0 ; ii < nel->vec_rank ; ii++ )
+      nel->vec_axis_unit[ii] = NI_strdup( units[ii] ) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the axes attribute for a data element. */
+
+void NI_set_axes( NI_element *nel , char **ax )
+{
+   int ii ;
+
+   if( nel == NULL       || nel->type != NI_ELEMENT_TYPE ||
+       nel->vec_rank < 1 || ax == NULL                     ) return ;
+
+   nel->vec_axis_label = NI_realloc( nel->vec_axis_label ,
+                                     nel->vec_rank * sizeof(char *) ) ;
+   for( ii=0 ; ii < nel->vec_rank ; ii++ )
+      nel->vec_axis_label[ii] = NI_strdup( ax[ii] ) ;
    return ;
 }
 
@@ -1971,32 +2102,39 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
   name = "tcp:host:port" to connect a socket to system "host"
              on the given port number.
 
-  name = "fil:filename" to open a file for I/O.
+  name = "file:filename" to open a file for I/O.
 
   name = "str:" to read/write data from a string
 
+  name = "http://hostname/filename" to read data from a Web site
+  name = "ftp://hostname/filename"  to read data from an FTP site
+
   mode = "w" to open a stream for writing
            * tcp: host must be specified ("w" is for a tcp client)
-           * fil: filename is opened in write mode (and will be
+           *file: filename is opened in write mode (and will be
                   overwritten if already exists)
            * str: data will be written to a buffer in the NI_stream
                   struct; you can later access this buffer with the
                   function NI_stream_getbuf().
+           * You can't open "http:" or "ftp:" streams for writing.
 
   mode = "r" to open a stream for reading
            * tcp: host is ignored (but must be present);
                   ("r" is for a tcp server)
-           * fil: filename is opened in read mode
+           *file: filename is opened in read mode
            * str: characters after the colon are the source of
                   the input data (will be copied to internal buffer);
                   OR, you can later set the internal buffer string
                   later with function NI_stream_setbuf().
+           * ftp: The remote files are fetched and loaded into
+            http: memory.  After that, these streams operate
+                  pretty much the same as str: streams.
 
-  For a fil: or str: stream, you can either read from or write to the
+  For a file: or str: stream, you can either read from or write to the
   stream, but not both.  For a tcp: stream, once it is connected, you
   can both read and write.
 
-  The inputs "host" (for tcp:) and "filename" (for fil:) are
+  The inputs "host" (for tcp:) and "filename" (for file:) are
   limited to a maximum of 127 bytes.  For str:, there is no
   limit for the "r" stream (but clearly you can't have any NUL
   bytes in there).
@@ -2011,7 +2149,7 @@ static int tcp_accept( int sd , char ** hostname , char ** hostaddr )
   (e.g., "201.202.203.204"); here, "ns" is the NI_stream returned
   by this routine.
 
-  For a fil: stream, ns->name contains the filename.
+  For a file: stream, ns->name contains the filename.
 
   For a str: stream, ns->name contains a stupid string.
 ------------------------------------------------------------------------*/
@@ -2035,7 +2173,7 @@ NI_stream NI_stream_open( char *name , char *mode )
    /***** deal with TCP/IP sockets *****/
 
    if( strncmp(name,"tcp:",4) == 0 ){
-      char host[128] , *hend ;
+      char host[256] , *hend ;
       int  port=-1 , ii , jj ;
 
       if( NI_strlen(name) > 127 ) return NULL ;
@@ -2043,7 +2181,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       /** find "host" substring **/
 
       hend = strstr( name+4 , ":" ) ;
-      if( hend == NULL || hend-name > 128 ) return NULL ;
+      if( hend == NULL || hend-name > 255 ) return NULL ;
 
       for( ii=4 ; name[ii] != ':' ; ii++ ) host[ii-4] = name[ii] ;
       host[ii-4] = '\0' ;
@@ -2082,7 +2220,7 @@ NI_stream NI_stream_open( char *name , char *mode )
             jj = tcp_accept( ns->sd , NULL,&hend ) ;     /* accept connection */
             if( jj >= 0 ){                               /* if accept worked  */
                CLOSEDOWN( ns->sd ) ;                     /* close old socket  */
-               NI_strncpy(ns->name,hend,128) ;           /* put IP into name  */
+               NI_strncpy(ns->name,hend,255) ;           /* put IP into name  */
                NI_free(hend); ns->bad = 0; ns->sd = jj;  /* and ready to go!  */
             }
          }
@@ -2100,7 +2238,7 @@ NI_stream NI_stream_open( char *name , char *mode )
          }
          ns->sd  = tcp_connect( host , port ) ;          /* connect to host    */
          ns->bad = (ns->sd < 0) ? TCP_WAIT_CONNECT : 0 ; /* fails? must wait   */
-         NI_strncpy(ns->name,host,128) ;                 /* save the host name */
+         NI_strncpy(ns->name,host,255) ;                 /* save the host name */
          return ns ;
       }
       return NULL ;  /* should never be reached */
@@ -2108,12 +2246,12 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    /***** deal with simple files *****/
 
-   if( strncmp(name,"fil:",4) == 0 ){
+   if( strncmp(name,"file:",5) == 0 ){
 
-      char *fname = name+4 ;
+      char *fname = name+5 ;
       FILE *fp ;
 
-      if( NI_strlen(name) > 127 || NI_strlen(fname) < 1 ) return NULL ;
+      if( NI_strlen(name) > 255 || NI_strlen(fname) < 1 ) return NULL ;
 
       fp = fopen( fname , do_create ? "wb"     /* always in binary mode */
                                     : "rb" ) ;
@@ -2135,7 +2273,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->buf      = NI_malloc(NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
 
-      NI_strncpy( ns->name , fname , 128 ) ;
+      NI_strncpy( ns->name , fname , 255 ) ;
 
       if( ns->io_mode == NI_INPUT_MODE )     /* save the file size */
          ns->fsize = NI_filesize( fname ) ;  /* if we are reading  */
@@ -2175,11 +2313,65 @@ NI_stream NI_stream_open( char *name , char *mode )
          ns->buf     = NI_malloc(1) ; /* 1 byte set to zero */
       }
 
-      strcpy( ns->name , "Elvis" ) ;
+      strcpy( ns->name , "ElvisHasLeftTheBuilding" ) ;
+      return ns ;
+   }
+
+   /***** http:// or ftp:// I/O *****/
+
+   if( strncmp(name,"http://",7) == 0 || strncmp(name,"ftp://",6) == 0 ){
+      int nn ;
+      char *data=NULL ;
+
+      if( do_create ) return NULL ;                  /* bad */
+
+      nn = NI_read_URL( name , &data ) ;
+
+      if( data == NULL || nn <= 4 ){                 /* bad */
+         NI_free(data); return NULL;
+      }
+
+      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+
+      ns->type     = NI_REMOTE_TYPE; /* what kind is this? */
+      ns->io_mode  = NI_INPUT_MODE  ;
+      ns->bad      = 0 ;
+      ns->npos     = 0 ;             /* scan starts at 0   */
+      ns->nbuf     = nn ;
+      ns->bufsize  = nn ;
+      ns->buf      = data ;
+
+      NI_strncpy( ns->name , name , 255 ) ;
       return ns ;
    }
 
    return NULL ;  /* should never be reached */
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return 1 if it is legal to read from this stream, 0 if it isn't.
+    This doesn't say anything about if it is practical to read
+    at this moment; for that, use NI_stream_readcheck().
+-------------------------------------------------------------------------*/
+
+int NI_stream_readable( NI_stream_type *ns )
+{
+   if( ns == NULL ) return 0 ;
+   if( ns->type == NI_TCP_TYPE ) return 1 ;
+   return (ns->io_mode == NI_INPUT_MODE) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return 1 if it is legal to write to this stream, 0 if it isn't.
+    This doesn't say anything about if it is practical to write
+    at this moment; for that, use NI_stream_writecheck().
+-------------------------------------------------------------------------*/
+
+int NI_stream_writeable( NI_stream_type *ns )
+{
+   if( ns == NULL ) return 0 ;
+   if( ns->type == NI_TCP_TYPE ) return 1 ;
+   return (ns->io_mode == NI_OUTPUT_MODE) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -2190,7 +2382,6 @@ char * NI_stream_name( NI_stream_type *ns )
    if( ns == NULL ) return NULL ;
    return ns->name ;
 }
-
 
 /*-----------------------------------------------------------------------*/
 /*! Return the output string buffer for a NI_stream of str: type.
@@ -2206,6 +2397,23 @@ char * NI_stream_getbuf( NI_stream_type *ns )
        ns->io_mode != NI_OUTPUT_MODE   ) return NULL ;  /* bad inputs */
 
    return ns->buf ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Clear the buffer of a str: writing NI_stream.  This is intended to
+    let you write anew without having to close and open again.
+-------------------------------------------------------------------------*/
+
+void NI_stream_clearbuf( NI_stream_type *ns )
+{
+   if( ns          == NULL           ||
+       ns->type    != NI_STRING_TYPE ||
+       ns->io_mode != NI_OUTPUT_MODE   ) return ;  /* bad inputs */
+
+   NI_free(ns->buf) ;
+   ns->nbuf    = 0 ;
+   ns->bufsize = 1 ;
+   ns->buf     = NI_malloc(1) ; /* 1 byte set to zero */
 }
 
 /*-----------------------------------------------------------------------*/
@@ -2279,6 +2487,14 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
         else
            return 1 ;                           /* output mode */
 
+      /** remote Web input */
+
+      case NI_REMOTE_TYPE:
+        if( ns->io_mode == NI_INPUT_MODE )
+           return NI_stream_readcheck(ns,0) ;   /* input mode */
+        else
+           return -1 ;                          /* output mode */
+
       /** Socket I/O **/
 
       case NI_TCP_TYPE:
@@ -2299,7 +2515,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
               jj = tcp_accept( ns->sd , NULL,&bbb ) ;    /* accept connection */
               if( jj >= 0 ){                             /* if accept worked  */
                  CLOSEDOWN( ns->sd ) ;                   /* close old socket  */
-                 NI_strncpy(ns->name,bbb,128) ;          /* put IP into name  */
+                 NI_strncpy(ns->name,bbb,255) ;          /* put IP into name  */
                  NI_free(bbb); ns->bad = 0; ns->sd = jj; /* and ready to go!  */
               }
            }
@@ -2343,6 +2559,7 @@ void NI_stream_close( NI_stream_type *ns )
 
    switch( ns->type ){
 
+      case NI_REMOTE_TYPE:
       case NI_STRING_TYPE:   /* nothing to do */
       break ;
 
@@ -2366,7 +2583,7 @@ void NI_stream_close( NI_stream_type *ns )
   The return value is 1 if data is ready, 0 if not;
   -1 will be returned if some unrecoverable error is detected:
     tcp: the socket connection was dropped
-    fil: you have reached the end of the file, and are still trying to read.
+   file: you have reached the end of the file, and are still trying to read.
 -----------------------------------------------------------------------------*/
 
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
@@ -2389,7 +2606,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
         ii = tcp_readcheck( ns->sd , msec ) ;  /* see if any data is there */
         return ii ;
 
-      /** fil: ==> check current file position and length of file **/
+      /** file: ==> check current file position and length of file **/
 
       case NI_FILE_TYPE:{
          long f_len , f_pos ;
@@ -2409,6 +2626,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
 
       /** str: ==> check current buffer position **/
 
+      case NI_REMOTE_TYPE:
       case NI_STRING_TYPE:{
          if( ns->io_mode == NI_OUTPUT_MODE ) return -1 ; /* never? */
 
@@ -2427,7 +2645,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
   The return value is 1 if data can be sent, 0 if not;
   -1 will be returned if some unrecoverable error is detected:
     tcp: the socket closed down at the other end
-    fil: this should never happen, unless you try to write to
+   file: this should never happen, unless you try to write to
          a readonly NI_stream
 -----------------------------------------------------------------------------*/
 
@@ -2448,7 +2666,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
         }
         return tcp_writecheck(ns->sd,msec) ;   /* check if we can write bytes */
 
-      /** fil: ==> if the file was opened in write mode **/
+      /** file: ==> if the file was opened in write mode **/
 
       case NI_FILE_TYPE:
         return ( (ns->fp != NULL && ns->io_mode == NI_OUTPUT_MODE) ? 1
@@ -2459,6 +2677,10 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
       case NI_STRING_TYPE:
         return ( (ns->io_mode == NI_OUTPUT_MODE) ? 1
                                                  : -1 ) ;
+      /** http: or ftp: **/
+
+      case NI_REMOTE_TYPE:   /* can't write to remote files */
+        return -1 ;
    }
 
    return -1 ;  /* should never be reached */
@@ -2474,7 +2696,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
        unless the connection to the other end fails for some reason
        (e.g., the planet explodes in a fiery cataclysm of annihilation).
 
-  fil: Everything should be written, unless the filesystem fills up.
+ file: Everything should be written, unless the filesystem fills up.
        If nothing at all gets written, -1 is returned.
 
   str: Everything will be written, or the program will crash.
@@ -2512,7 +2734,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
        if( nsent == 0 ) nsent = -1 ;
        return nsent ;
 
-     /** fil: ==> just fwrite **/
+     /** file: ==> just fwrite **/
 
      case NI_FILE_TYPE:
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
@@ -2534,6 +2756,11 @@ fprintf(stderr,"NI_stream_write str: input=%s\n",ns->buf) ;
 fprintf(stderr,"NI_stream_write str: output=%s\n",ns->buf) ;
 #endif
         return nbytes ;
+
+     /** ftp: or http: ==> can't write! */
+
+     case NI_REMOTE_TYPE:
+        return -1 ;
    }
 
    return -1 ;  /* should not be reached */
@@ -2551,7 +2778,7 @@ fprintf(stderr,"NI_stream_write str: output=%s\n",ns->buf) ;
    use NI_stream_readcheck() before calling this function in order to see
    if any data is available.
 
-   For fil: streams, this function simply tries to read from the file.
+   For file: streams, this function simply tries to read from the file.
    Whether or not it succeeds, it will return immediately. It should
    never return -1; if it returns 0, this means end-of-file.
 ---------------------------------------------------------------------------*/
@@ -2578,7 +2805,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
        if( ii == -1 ) PERROR("NI_stream_read(recv)") ;
        return ii ;
 
-     /** fil: just use fread **/
+     /** file: just use fread **/
 
      case NI_FILE_TYPE:
        if( ns->fp == NULL || ns->io_mode == NI_OUTPUT_MODE ) return -1 ;
@@ -2587,6 +2814,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
      /** str: copy bytes out of the buffer string **/
 
+     case NI_REMOTE_TYPE:
      case NI_STRING_TYPE:
        if( ns->io_mode == NI_OUTPUT_MODE ) return -1 ; /* bad stream */
        ii = ns->nbuf - ns->npos ;                      /* how much is left */
@@ -2628,6 +2856,7 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
 
    if( ns->type == NI_STRING_TYPE ) return -1 ;      /* goofy input */
+   if( ns->type == NI_REMOTE_TYPE ) return -1 ;      /* goofy input */
 
    if( ns->nbuf >= ns->bufsize ) return 0 ; /* buffer already full */
 
@@ -3543,10 +3772,17 @@ static int NI_is_name( char *str )
 
 int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 {
-   char *wbuf , *att , *qtt , *btt ;
+   char *wbuf , *att=NULL , *qtt , *btt ;
    int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
 
-   if( ns == NULL || tt < 0 ) return -1 ;
+   /* ADDOUT = after writing, add byte count if OK, else quit */
+   /* AF     = thing to NI_free() if ADDOUT is quitting */
+
+#undef  AF
+#define AF     NULL
+#define ADDOUT if(nout<0){NI_free(AF);return -1;} else ntot += nout
+
+   if( ns == NULL ) return -1 ;
 
    if( ns->bad ){                        /* socket that hasn't connected yet */
       jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
@@ -3559,7 +3795,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    if( ns->type == NI_STRING_TYPE )      /* string output must be in text mode */
       tmode = NI_TEXT_MODE ;
 
-   /*------- write a group element -------*/
+   /*------------------ write a group element ------------------*/
 
    if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
@@ -3567,7 +3803,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       /*- group header -*/
 
       nout = NI_stream_write( ns , "<ni_group" , 9 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
       /*- attributes -*/
 
@@ -3575,43 +3811,43 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
          jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
          nout = NI_stream_write( ns , " " , 1 ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
          if( NI_is_name(ngr->attr_lhs[ii]) ){
            nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
          } else {
            att = quotize_string( ngr->attr_lhs[ii] ) ;
            nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
          }
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
 
          jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
          nout = NI_stream_write( ns , "=" , 1 ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
          att = quotize_string( ngr->attr_rhs[ii] ) ;
          nout = NI_stream_write( ns , att , strlen(att) ) ; NI_free(att) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
       }
 
       /*- close header -*/
 
       nout = NI_stream_write( ns , ">\n" , 2 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
       /*- write the group parts -*/
 
       for( ii=0 ; ii < ngr->part_num ; ii++ ){
          nout = NI_write_element( ns , ngr->part[ii] , tmode ) ;
-          if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
       }
 
       /*- group trailer -*/
 
       nout = NI_stream_write( ns , "</ni_group>\n" , 12 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
-      return nout ;
+      return ntot ;
 
-   /*------- write a data element -------*/
+   /*------------------ write a data element ------------------*/
 
    } else if( tt == NI_ELEMENT_TYPE ){
       NI_element *nel = (NI_element *) nini ;
@@ -3634,8 +3870,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
       switch( tmode ){
          default: tmode = NI_TEXT_MODE ; break ; /* currently the only mode */
-#if 0
          case NI_BINARY_MODE: break ;
+#if 0
          case NI_BASE64_MODE: break ;
 #endif
       }
@@ -3644,21 +3880,53 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
       att = NI_malloc( 4096 + 2*nel->vec_num + 128*nel->vec_rank ) ;
 
+#undef  AF
+#define AF att  /* free att if we have to quit early */
+
       /* write start of header "<name" */
 
       strcpy(att,"<") ; strcat(att,nel->name) ;
       nout = NI_stream_write( ns , att , strlen(att) ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
       /*- write "special" attributes, if not an empty element -*/
 
       if( nel->vec_len > 0 && nel->vec_num > 0 ){
-         int ll ;
+         int ll , tt ;
 
-         /* ni_type */
+         /* ni_form (depends on tmode) */
 
-         strcpy(att," ni_type=\"") ;
-         for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
+         switch( tmode ){
+           default:
+           case NI_TEXT_MODE:
+#if 0
+             strcpy(att," ni_form=\"text\"") ;
+#else
+             *att = '\0' ;   /* text form is default */
+#endif
+           break ;
+
+           case NI_BINARY_MODE:
+           case NI_BASE64_MODE:
+             sprintf(att," ni_form=\"%s.%s\"" ,
+                    (tmode == NI_BINARY_MODE)      ? "binary"   : "base64"  ,
+                    (NI_byteorder()==NI_LSB_FIRST) ? "lsbfirst" : "msbfirst" );
+            break ;
+         }
+         if( *att != '\0' ){
+            nout = NI_stream_write( ns , att , strlen(att) ) ;
+            ADDOUT ;
+         }
+
+         /** do ni_type if this is NOT a typedef-ed type **/
+
+         tt = string_index(nel->name,typedef_num,typedef_nam) ;
+         if( tt < 0 ){
+
+           /* ni_type */
+
+           strcpy(att," ni_type=\"") ;
+           for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
             if( nel->vec_typ[ii] != ll ){  /* not the last type */
                if( ll >= 0 ){              /* write the last type out now */
                   btt = att + strlen(att) ;
@@ -3671,33 +3939,42 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             } else {                       /* same as last type */
                jj++ ;                      /* so add 1 to its count */
             }
+           }
+           /* write the last type */
+           btt = att + strlen(att) ;
+           if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
+           else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
+
+           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           ADDOUT ;
          }
-         /* write the last type */
-         btt = att + strlen(att) ;
-         if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
-         else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
 
-         nout = NI_stream_write( ns , att , strlen(att) ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         /** do ni_dimen stuff:
+              if this is NOT typedef-ed, OR
+              if it IS typedef-ed but without a ni_dimen attribute
+               AND the actual element dimension is greater than 1  **/
 
-         /* ni_dimen */
+         if( tt < 0 || (typedef_dim[tt] == NULL && nel->vec_len > 1) ){
 
-         strcpy(att," ni_dimen=") ;
-         qtt = quotize_int_vector( nel->vec_rank ,
-                                   nel->vec_axis_len , ',' ) ;
-         strcat(att,qtt) ; NI_free(qtt) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+           /* ni_dimen */
 
-         /* extras: ni_veclen and ni_vecnum attributes */
+           strcpy(att," ni_dimen=") ;
+           qtt = quotize_int_vector( nel->vec_rank ,
+                                     nel->vec_axis_len , ',' ) ;
+           strcat(att,qtt) ; NI_free(qtt) ;
+           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           ADDOUT ;
 
-         sprintf(att," ni_veclen=\"%d\"",nel->vec_len) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+           /* extras: ni_veclen and ni_vecnum attributes */
 
-         sprintf(att," ni_vecnum=\"%d\"",nel->vec_num) ;
-         nout = NI_stream_write( ns , att , strlen(att) ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+           sprintf(att," ni_veclen=\"%d\"",nel->vec_len) ;
+           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           ADDOUT ;
+
+           sprintf(att," ni_vecnum=\"%d\"",nel->vec_num) ;
+           nout = NI_stream_write( ns , att , strlen(att) ) ;
+           ADDOUT ;
+         }
 
          /* ni_delta */
 
@@ -3707,7 +3984,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
                                         nel->vec_axis_delta , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
             nout = NI_stream_write( ns , att , strlen(att) ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
+            ADDOUT ;
          }
 
          /* ni_origin */
@@ -3718,7 +3995,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
                                         nel->vec_axis_origin , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
             nout = NI_stream_write( ns , att , strlen(att) ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
+            ADDOUT ;
          }
 
          /* ni_units */
@@ -3729,7 +4006,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
                                          nel->vec_axis_unit , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
             nout = NI_stream_write( ns , att , strlen(att) ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
+            ADDOUT ;
          }
 
          /* ni_axes */
@@ -3740,7 +4017,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
                                          nel->vec_axis_label , ',' ) ;
             strcat(att,qtt) ; NI_free(qtt) ;
             nout = NI_stream_write( ns , att , strlen(att) ) ;
-              if( nout < 0 ) return -1 ; else ntot += nout ;
+            ADDOUT ;
          }
 
       }
@@ -3753,6 +4030,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
          /* skip "special" attributes */
 
+         if( strcmp(nel->attr_lhs[ii],"ni_form")   == 0 ) continue ;
          if( strcmp(nel->attr_lhs[ii],"ni_type")   == 0 ) continue ;
          if( strcmp(nel->attr_lhs[ii],"ni_dimen")  == 0 ) continue ;
          if( strcmp(nel->attr_lhs[ii],"ni_veclen") == 0 ) continue ;
@@ -3780,10 +4058,13 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             strcat(att,qtt) ; NI_free(qtt) ;
          }
          nout = NI_stream_write( ns , att , strlen(att) ) ;
-           if( nout < 0 ) return -1 ; else ntot += nout ;
+         ADDOUT ;
       }
 
-      NI_free(att) ;  /* done with attributes */
+      NI_free(att) ; att = NULL ; /* done with attributes */
+
+#undef  AF
+#define AF NULL  /* free nothing if we have to quit early */
 
       /*- close header -*/
 
@@ -3793,7 +4074,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
           nel->vec     == NULL   ){
 
         nout = NI_stream_write( ns , "/>" , 2 ) ;
-          if( nout < 0 ) return -1 ; else ntot += nout ;
+        ADDOUT ;
         return ntot ;                 /* done with empty element */
       }
 
@@ -3805,13 +4086,13 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       switch( tmode ){
          default:
          case NI_TEXT_MODE:
-            btt = ">\n" ;
-            nwbuf = 4*NI_element_rowsize(nel) + 128 ;
+            btt = ">\n" ;                             /* add a newline */
+            nwbuf = 5*NI_element_rowsize(nel) + 16 ;  /* text buffer  */
          break ;
 
          case NI_BINARY_MODE:
-            btt = ">" ;
-            nwbuf = NI_element_rowsize(nel) ;
+            btt = ">" ;                               /* no newline   */
+            nwbuf = NI_element_rowsize(nel) ;         /* binary buffer */
          break ;
 
 #if 0
@@ -3823,25 +4104,32 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
       }
 
       nout = NI_stream_write( ns , btt , strlen(btt) ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
-      wbuf = NI_malloc(nwbuf) ;
+      wbuf = NI_malloc(nwbuf+128) ;  /* 128 for the hell of it */
+
+#undef  AF
+#define AF wbuf  /* free wbuf if we have to quit early */
 
       /*- loop over output rows and write results -*/
 
       for( row=0 ; row < nel->vec_len ; row++ ){
 
+        /* initialize this row's output */
+
         switch( tmode ){
-           case NI_TEXT_MODE:    wbuf[0] = '\0' ; break ;
-           case NI_BINARY_MODE:  jj = 0 ;         break ;
+           case NI_TEXT_MODE:    wbuf[0] = '\0'; break; /* clear buffer */
+           case NI_BINARY_MODE:  jj = 0 ;        break; /* clear byte count */
         }
+
+        /* write data for this row into wbuf */
 
         for( col=0 ; col < nel->vec_num ; col++ ){
 
          switch( tmode ){
 
           /*----- encode one value to output, according to its type -----*/
-          case NI_TEXT_MODE:
+          case NI_TEXT_MODE:{
            jj = strlen(wbuf) ;
            switch( nel->vec_typ[col] ){
             default:                    /* unimplemented types */
@@ -3920,38 +4208,589 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
             break ;
 
            } /* end of switch on datum type */
+          }
           break ; /* end of NI_TEXT_MODE */
 
-          /*----- put the binary form of this element into wbuf -----*/
-          case NI_BINARY_MODE:
+          /*----- put the binary form of this element into wbuf+jj -----*/
+          case NI_BINARY_MODE:{
+           switch( nel->vec_typ[col] ){
+            default: break ;              /* should not happen */
+
+            case NI_BYTE:{
+              byte *vpt = (byte *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(byte));
+              jj += sizeof(byte);
+            }
+            break ;
+
+            case NI_SHORT:{
+              short *vpt = (short *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(short));
+              jj += sizeof(short);
+            }
+            break ;
+
+            case NI_INT:{
+              int *vpt = (int *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(int));
+              jj += sizeof(int);
+            }
+            break ;
+
+            case NI_FLOAT:{
+              float *vpt = (float *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(float));
+              jj += sizeof(float);
+            }
+            break ;
+
+            case NI_DOUBLE:{
+              double *vpt = (double *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(double));
+              jj += sizeof(double);
+            }
+            break ;
+
+            case NI_COMPLEX:{
+              complex *vpt = (complex *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(complex));
+              jj += sizeof(complex);
+            }
+            break ;
+
+            case NI_RGB:{
+              rgb *vpt = (rgb *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(rgb));
+              jj += sizeof(rgb);
+            }
+            break ;
+
+            case NI_RGBA:{
+              rgba *vpt = (rgba *) nel->vec[col] ;
+              memcpy(wbuf+jj,(char *)(vpt+row),sizeof(rgba));
+              jj += sizeof(rgba);
+            }
+            break ;
+
+           } /* end of switch on datum type */
+          }
           break ; /* end of NI_BINARY_MODE */
 
          } /* end of switch on tmode */
         } /* end of loop over columns */
 
-        /*- write this column of data out -*/
+        /*- actually write this row of data out -*/
 
-        strcat(wbuf,"\n") ;
-        nout = NI_stream_write( ns , wbuf , strlen(wbuf) ) ;
-        if( nout < 0 ){ NI_free(wbuf); return -1; } else ntot += nout ;
+        switch( tmode ){
+          case NI_TEXT_MODE:     /* each row is on a separate line */
+            strcat(wbuf,"\n") ;
+            nout = NI_stream_write( ns , wbuf , strlen(wbuf) ) ;
+            ADDOUT ;
+          break ;
+
+          case NI_BINARY_MODE:
+            nout = NI_stream_write( ns , wbuf , nwbuf ) ;
+            ADDOUT ;
+          break ;
+        }
 
       } /* end of loop over rows */
 
-      NI_free(wbuf) ;
+      NI_free(wbuf) ;  /* don't need row buffer no more no how */
+
+#undef  AF
+#define AF NULL  /* free nothing if we quit early */
 
       /*- write element trailer -*/
 
       nout = NI_stream_write( ns , "</" , 2 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
       nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
       nout = NI_stream_write( ns , ">\n" , 2 ) ;
-        if( nout < 0 ) return -1 ; else ntot += nout ;
+      ADDOUT ;
 
       return ntot ;
    } /* end of write data element */
 
-   return -1 ; /* should never happen */
+   return -1 ; /* should never be reachable */
+}
+
+/*************************************************************************/
+/********************** Functions for fetching URLs **********************/
+/**********************  [adapted from thd_http.c]  **********************/
+/*************************************************************************/
+
+static int debug = 0 ;
+#define FAILED     if(debug)fprintf(stderr," **FAILED\n")
+#define DMESS(s,t) if(debug)fprintf(stderr,s,t)
+
+/*---------------------------------------------------------------------*/
+static char tmpdir[512] = "\0" ;
+
+static void setup_tmpdir(void)
+{
+   char *td ;
+
+   if( tmpdir[0] != '\0' ) return ;
+
+                    td = getenv("TMPDIR")  ;
+   if( td == NULL ) td = getenv("TEMPDIR") ;
+
+   if( td == NULL || td[0] == '\0' || strlen(td) > 222 ){
+      strcpy(tmpdir,"/tmp/") ;
+   } else {
+      int ltd ;
+      NI_strncpy(tmpdir,td,511) ;
+      ltd = strlen(tmpdir) ;
+      if( tmpdir[ltd-1] != '/' ) strcat(tmpdir,"/") ;
+   }
+}
+
+/*---------------------------------------------------------------------
+  Open an "http://" URL in host, port, and filename pieces.
+  Wait up to msec milliseconds for network functions to occur.
+  If an error occurs, return NULL, otherwise the caller can read
+  from this NI_stream.
+-----------------------------------------------------------------------*/
+
+static NI_stream_type * open_URL_hpf( char *host, int port,
+                                      char *file, int msec )
+{
+   NI_stream_type *ns ;
+   char str[1024] ;
+   int ii ;
+
+   if( host == NULL || port <= 0 || file == NULL ) return NULL ;
+
+   sprintf(str,"tcp:%s:%d",host,port) ;
+   DMESS(" ++Opening %s",str);
+   ns = NI_stream_open( str , "w" ) ;
+   if( ns == NULL ){ FAILED; return NULL; }
+   ii = NI_stream_writecheck( ns , msec ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+
+   DMESS(" ++GET %s",file);
+   sprintf(str,"GET %s\n",file) ;                     /* HTTP 0.9 */
+   ii = NI_stream_write( ns , str , strlen(str) ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+
+   ii = NI_stream_readcheck( ns , msec ) ;
+   if( ii <= 0 ){ FAILED; NI_stream_close(ns); return NULL; }
+   DMESS("%s"," **OPENED");
+   return ns ;
+}
+
+/*----------------------------------------------------------------------
+  Open an "http://" URL and prepare to read it (but the caller must
+  actually do the reading).  If NULL is returned, an error occurred.
+------------------------------------------------------------------------*/
+
+#define HTTP     "http://"
+#define HTTPLEN  7
+
+#define FTP      "ftp://"
+#define FTPLEN   6
+
+static NI_stream_type * open_URL_http( char *url , int msec )
+{
+  char *s, *h , *file ;
+  char hostname[512] ;
+  int port;
+  NI_stream_type *ns ;
+
+  /* check inputs */
+
+  if( url == NULL || strstr(url,HTTP) != url ) return NULL ;
+
+  /* parse hostname */
+
+  for( s=url+HTTPLEN , h=hostname ;
+       (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
+
+  *h = '\0' ; if( hostname[0] == '\0' ) return NULL ;
+
+  /* parse port number if present */
+
+  port = 0 ;
+  if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
+  if( port <= 0 ) port = 80 ;
+
+  /* get the file name (keep leading "/") */
+
+  file = (*s == '/') ? s : "/" ;
+
+  /* do the actual work */
+
+  ns = open_URL_hpf( hostname , port , file , msec ) ;
+  return ns ;
+}
+
+/*---------------------------------------------------------------
+  Read an "http://" URL, with network waits of up to msec
+  milliseconds allowed.  Returns number of bytes read -- if this
+  is > 0, then *data will be a pointer to malloc-ed bytes holding
+  the contents of the file.
+
+  If the file is gzip-ed, then it will be un-gzip-ed before being
+  loaded into memory.  This uses temporary files in $TMPDIR or
+  /tmp, which must have space to hold the compressed and
+  uncompressed file.  If the file is not compressed, then input
+  is directly to memory and no temporary files are used.
+-----------------------------------------------------------------*/
+
+#define QBUF 4096
+
+static int read_URL_http( char *url , int msec , char **data )
+{
+   NI_stream_type *ns ;
+   char *buf=NULL , *cpt , qbuf[QBUF] , qname[256] ;
+   int ii,jj , nall=0 , nuse ;
+   int cflag , first ;
+   FILE *cfile=NULL ;
+
+   /* sanity check */
+
+   if( url == NULL || data == NULL || msec < 0 ) return( -1 );
+
+   /* open http channel to get url */
+
+   ns = open_URL_http( url , msec ) ;
+   if( ns == NULL ){ DMESS("%s","\n"); return( -1 ); }
+
+   /* check if url will be returned gzip-ed */
+
+   ii = strlen(url) ;
+   if( ii > 3 ){
+      cpt = url + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
+   } else {
+      cflag = 0 ;
+   }
+
+   if( cflag ){
+      setup_tmpdir() ;
+      strcpy(qname,tmpdir) ; strcat(qname,"ElvisXXXXXX") ;
+      mktemp(qname) ;
+      if( qname[0] != '\0' ){
+         strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
+         if( cfile == NULL ) cflag == 0 ;
+      } else {
+         cflag = 0 ;
+      }
+
+      if( cflag == 0 ){
+         DMESS(" **Temp file %s FAILS\n",qname); NI_stream_close(ns); return(-1);
+      }
+      DMESS(" ++Temp file=%s",qname);
+   }
+
+   /* read all of url */
+
+   if( !cflag ){ buf = malloc( QBUF ) ; nall = QBUF ; }
+   nuse = 0 ; first = 1 ;
+
+   do{
+      if(debug)fprintf(stderr,".");
+      ii = NI_stream_readcheck( ns , msec ) ;  /* wait for data to be ready */
+      if( ii <= 0 ) break ;                    /* quit if no data */
+      ii = NI_stream_read( ns , qbuf , QBUF ) ;
+      if( ii <= 0 ) break ;                  /* quit if no data */
+
+      if( first ){                           /* check for "not found" */
+         if( buf == NULL ){ buf = malloc(ii) ; }
+         memcpy( buf , qbuf , ii ) ;
+         for( jj=0 ; jj < ii ; jj++ ) buf[jj] = toupper(buf[jj]) ;
+         buf[ii-1] = '\0' ;
+         cpt = strstr(buf,"NOT FOUND") ;
+         if( cpt != NULL ){
+            if( cflag ){ fclose(cfile) ; unlink(qname) ; }
+            DMESS("%s"," **NOT FOUND\n");
+            free(buf) ; NI_stream_close(ns) ; return( -1 );
+         }
+         first = 0 ;
+         if( cflag ){ free(buf) ; buf = NULL ; }
+      }
+
+      if( cflag ){                           /* write to temp file */
+         nall = fwrite( qbuf , 1 , ii , cfile ) ;
+         if( nall != ii ){                   /* write failed? */
+            DMESS("\n** Write to temp file %s FAILED!\n",qname);
+            fclose(cfile) ; unlink(qname) ;
+            NI_stream_close(ns) ; return( -1 );
+         }
+      } else {                               /* save to buffer */
+         if( nuse+ii > nall ){               /* enlarge buffer? */
+            nall += QBUF ;
+            buf   = realloc( buf , nall ) ;
+         }
+         memcpy( buf+nuse , qbuf , ii ) ;    /* copy data into buffer */
+      }
+      nuse += ii ;                           /* how many bytes so far */
+   } while(1) ;
+   NI_stream_close(ns) ;
+
+   /* didn't get anything? */
+
+   if( nuse <= 0 ){
+      if( cflag ){ fclose(cfile) ; unlink(qname) ; }
+      else       { free(buf) ; }
+      FAILED; return(-1);
+   }
+   if(debug)fprintf(stderr,"!\n");
+
+   /* uncompression time? */
+
+   if( cflag ){
+      fclose(cfile) ;
+      sprintf( qbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
+      ii = system(qbuf) ;
+      if( ii != 0 ){ DMESS("%s"," **gzip failed!\n");
+                     unlink(qname) ; return( -1 );   }  /* gzip failed  */
+      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
+      nuse = NI_filesize( qname ) ;                 /* find how big */
+      if( nuse <= 0 ){ DMESS("%s"," **gzip failed!\n");
+                       unlink(qname) ; return( -1 );   }
+
+      cfile = fopen( qname , "rb" ) ;
+      if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
+                           unlink(qname) ; return( -1 );   }
+      buf = malloc(nuse) ;
+      fread( buf , 1 , nuse , cfile ) ;             /* read file in */
+      fclose(cfile) ; unlink(qname) ;
+   }
+
+   /* data is in buf, nuse bytes of it */
+
+   DMESS("%s","\n"); *data = buf ; return( nuse );
+}
+
+/*---------------------------------------------------------------------*/
+
+static char ftp_name[512] = "anonymous" ;
+static char ftp_pwd[512]  = "NIML@nowhere.org" ;
+
+void NI_set_URL_ftp_ident( char *name , char *pwd )
+{
+   int ll ;
+
+   if( name == NULL || pwd == NULL ) return ;
+
+   ll = strlen(name) ; if( ll < 1 || ll > 511 ) return ;
+   ll = strlen(pwd)  ; if( ll < 1 || ll > 511 ) return ;
+
+   strcpy(ftp_name,name) ; strcpy(ftp_pwd,pwd) ; return ;
+}
+
+/*---------------------------------------------------------------------
+  Reads an "ftp://" URL, similarly to read_URL_http above;
+  however, staging is always done through a temporary file.
+-----------------------------------------------------------------------*/
+
+static int read_URL_ftp( char *url , char **data )
+{
+   char *s, *h , *file , qname[256] , sname[256] , *cpt , *buf ;
+   char hostname[512] ;
+   int port , ii , cflag , nuse ;
+   FILE *sp ;
+
+   /* sanity check */
+
+   if( url == NULL || data == NULL || strstr(url,FTP) != url ) return( -1 );
+
+   /* parse hostname */
+
+   for( s=url+FTPLEN , h=hostname ;
+        (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
+
+   *h = '\0' ; if( hostname[0] == '\0' ) return( -1 );
+
+   /* parse port number, if present */
+
+   port = 0 ;
+   if( *s == ':' ){ port = strtol( ++s , &h , 10 ) ; s = h ; }
+
+   /* get the file name (strip off leading "/") */
+
+   if( *s == '/' ){
+      file = s+1 ; if( file[0] == '\0' ) return( -1 );
+   } else {
+                                         return( -1 );
+   }
+
+   /* check if file will be returned gzip-ed */
+
+   ii = strlen(file) ;
+   if( ii > 3 ){
+      cpt = file + (ii-3) ; cflag = (strcmp(cpt,".gz") == 0) ;
+   } else {
+      cflag = 0 ;
+   }
+
+   /* make name for output file */
+
+   setup_tmpdir() ;
+   strcpy(qname,tmpdir) ; strcat(qname,"EthelXXXXXX") ;
+   mktemp(qname) ;
+   if( qname[0] == '\0' ) return( -1 );
+   if( cflag ) strcat(qname,".gz") ;
+
+   /* write the script file that will be used to run ftp */
+
+   strcpy(sname,tmpdir) ; strcat(sname,"DahmerXXXXXX") ;
+   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
+   sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
+
+   fprintf( sp , "#!/bin/sh\n" ) ;
+   fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
+   if( port > 0 )
+      fprintf( sp , "open %s %d\n" , hostname , port ) ;
+   else
+      fprintf( sp , "open %s\n" , hostname ) ;
+   fprintf( sp , "user %s %s\n" , ftp_name, ftp_pwd ) ;
+   fprintf( sp , "binary\n" ) ;
+   fprintf( sp , "get %s %s\n" , file , qname ) ;
+   fprintf( sp , "bye\n" ) ;
+   fprintf( sp , "EEEEE\n" ) ;
+   fprintf( sp , "exit\n" ) ;
+   fclose( sp ) ;
+   chmod( sname , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+
+   /* execute the script, then delete it */
+
+   system( sname ) ; unlink( sname ) ;
+
+   /* check the size of the output file */
+
+   nuse = NI_filesize( qname ) ;
+   if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
+
+   /* uncompress the file, if needed */
+
+   if( cflag ){
+      sprintf( sname , "gzip -dq %s" , qname ) ;    /* execute gzip */
+      ii = system(sname) ;
+      if( ii != 0 ){ unlink(qname) ; return( -1 ); }  /* gzip failed  */
+      ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
+      nuse = NI_filesize( qname ) ;                 /* find how big */
+      if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
+   }
+
+   /* suck the file into memory */
+
+   sp = fopen( qname , "rb" ) ;
+   if( sp == NULL ){ unlink(qname) ; return( -1 ); }
+   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return( -1 ); }
+
+   fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
+   fclose(sp) ; unlink(qname) ;
+
+   /* data is in buf, nuse bytes of it */
+
+   *data = buf ; return( nuse );
+}
+
+/*-------------------------------------------------------------------
+   Read a URL (ftp:// or http://) into memory.  The return value
+   is the number of bytes read, and *data points to the data.
+   If the return value is negative, then something bad happened.
+---------------------------------------------------------------------*/
+
+int NI_read_URL( char *url , char **data )
+{
+   int nn ;
+   if( url == NULL || data == NULL ) return( -1 );
+
+   if( getenv("NIML_WWW_DEBUG") != NULL ) debug = 1 ;
+
+   if( strstr(url,HTTP) == url ){
+      nn = read_URL_http( url , 4444 , data ) ; return(nn) ;
+   }
+
+   else if( strstr(url,FTP) == url ){
+      nn = read_URL_ftp( url , data ) ; return(nn) ;
+   }
+
+   return( -1 );
+}
+
+/*-----------------------------------------------------------------*/
+/*! Find a 'trailing name in a pathname.
+
+   For example, for fname = "/bob/cox/is/the/author/of/NIML",
+     - the lev=0 trailing name is "NIML",
+     - the lev=1 trailing name is "of/NIML",
+     - the lev=2 trailing name is "author/of/NIML", and so on.
+   That is, "lev" is the number of directory names above the
+   last name to keep.  The pointer returned is to some place
+   in the middle of fname; that is, this is not a malloc()-ed
+   string, so don't try to free() it!.
+-------------------------------------------------------------------*/
+
+static char * trailname( char *fname , int lev )
+{
+   int fpos , flen , flev ;
+
+   if( fname == NULL || (flen=strlen(fname)) <= 1 ) return fname ;
+
+   if( lev < 0 ) lev = 0 ;
+
+   flev = 0 ;
+   fpos = flen ;
+   if( fname[fpos-1] == '/' ) fpos-- ;  /* skip trailing slash */
+
+   /* fpos   = index of latest character I've accepted,
+      fpos-1 = index of next character to examine,
+      flev   = number of directory levels found so far */
+
+   while( fpos > 0 ){
+
+      if( fname[fpos-1] == '/' ){
+         flev++ ; if( flev >  lev ) break ;  /* reached the lev we like */
+      }
+      fpos-- ;  /* scan backwards */
+   }
+
+   return (fname+fpos) ;
+}
+
+
+/*------------------------------------------------------------------
+  Read a URL and save it to disk in tmpdir.  The filename
+  it is saved in is returned in the malloc-ed space *tname.
+  The byte count is the return value of the function;
+  if <= 0, then an error transpired (and *tname is not set).
+--------------------------------------------------------------------*/
+
+int NI_read_URL_tmpdir( char *url , char **tname )
+{
+   int nn , ll ;
+   char *data , *fname , *tt ;
+   FILE *fp ;
+
+   if( url == NULL || tname == NULL ) return( -1 );
+
+   nn = read_URL( url , &data ) ;  /* get the data into memory */
+   if( nn <= 0 ) return( -1 );       /* bad */
+
+   /* make the output filename */
+
+   setup_tmpdir() ;
+   fname = malloc(strlen(url)+strlen(tmpdir)+1) ;
+   tt    = trailname(url,0) ;
+   strcpy(fname,tmpdir) ; strcat(fname,tt) ; ll = strlen(fname) ;
+   if( ll > 3 && strcmp(fname+(ll-3),".gz") == 0 ) fname[ll-3] = '\0' ;
+
+   /* open and write output */
+
+   fp = fopen( fname , "wb" ) ;
+   if( fp == NULL ){
+      fprintf(stderr,"** Can't open temporary file %s\n",fname);
+      free(data) ; return( -1 );
+   }
+   ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
+   if( ll != nn ){ unlink(fname); return( -1 ); } /* write failed */
+
+   *tname = fname ; return( nn );
 }
 
 /*************************************************************************/
@@ -3961,15 +4800,15 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
 int main( int argc , char *argv[] )
 {
-   NI_stream ns , nsout ;
-   int nn , tt ;
+   NI_stream ns , nsout , nsf=NULL ;
+   int nn , tt , nopt=1 ;
    void *nini ;
 
    if( argc < 2 ){
-      printf("Usage: niml [-w] streamspec\n");exit(0);
+      printf("Usage: niml [-b fname] [-w] streamspec\n");exit(0);
    }
 
-   /* writing? */
+   /* writing to a stream? */
 
    if( strcmp(argv[1],"-w") == 0 ){
       char lbuf[1024] , *bbb ;
@@ -3994,9 +4833,19 @@ int main( int argc , char *argv[] )
       }
    }
 
+   if( strcmp(argv[1],"-b") == 0 ){
+      char fname[256] ;
+      nopt = 3 ;
+      if( argc < 4 ){ fprintf(stderr,"Too few args\n"); exit(1); }
+
+      sprintf(fname,"file:%s",argv[2]) ;
+      nsf = NI_stream_open( fname, "w" ) ;
+      if( nsf == NULL ) fprintf(stderr,"Can't open %s\n",fname) ;
+   }
+
    /* reading! */
 
-   ns = NI_stream_open( argv[1] , "r" ) ;
+   ns = NI_stream_open( argv[nopt] , "r" ) ;
    if( ns == NULL ){
       fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
    }
@@ -4061,6 +4910,11 @@ GetElement:
 
    fprintf(stderr,"\n------ NI_write_element = %d ------\n%s\n==========================\n" ,
            nn, NI_stream_getbuf(nsout) ) ;
+
+   if( nsf != NULL ){
+      nn = NI_write_element( nsf , nini , NI_BINARY_MODE ) ;
+      fprintf(stderr,"NI_write_element to file = %d\n",nn) ;
+   }
 
    goto GetElement ;
 }
