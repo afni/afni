@@ -4194,3 +4194,6 @@
 
 02 Jan 2002
  * Added a error message to mcw_malloc.c to note when an allocation fails.
+
+10 Jan 2002
+ * Modified edt_blur.c to clip output to input range.

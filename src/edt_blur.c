@@ -56,6 +56,9 @@ void EDIT_blur_volume_3d( int nx, int ny, int nz,
    float *   ffim = NULL ;
    complex * cfim = NULL ;
 
+   float fbot,ftop ;     /* 10 Jan 2003 */
+   int nxyz ;
+
    /*** initialize ***/
 
 ENTRY("EDIT_blur_volume") ;
@@ -70,7 +73,36 @@ ENTRY("EDIT_blur_volume") ;
       case MRI_byte:    bfim = (byte *)    vfim ; break ;
       case MRI_complex: cfim = (complex *) vfim ; break ;
    }
-   nxy = nx * ny ;
+   nxy = nx * ny ; nxyz = nxy * nz ;
+
+   /*** 10 Jan 2003: find bot and top of data input */
+
+   switch( ftype ){
+     default:
+       fbot = ftop = 0.0 ;
+     break ;
+
+     case MRI_short:
+       fbot = ftop = sfim[0] ;
+       for( ii=1 ; ii < nxyz ; ii++ )
+              if( sfim[ii] < fbot ) fbot = sfim[ii] ;
+         else if( sfim[ii] > ftop ) ftop = sfim[ii] ;
+     break ;
+
+     case MRI_float:
+       fbot = ftop = ffim[0] ;
+       for( ii=1 ; ii < nxyz ; ii++ )
+              if( ffim[ii] < fbot ) fbot = ffim[ii] ;
+         else if( ffim[ii] > ftop ) ftop = ffim[ii] ;
+     break ;
+
+     case MRI_byte:
+       fbot = ftop = bfim[0] ;
+       for( ii=1 ; ii < nxyz ; ii++ )
+              if( bfim[ii] < fbot ) fbot = bfim[ii] ;
+         else if( bfim[ii] > ftop ) ftop = bfim[ii] ;
+     break ;
+   }
 
    /*** do x-direction ***/
 
@@ -398,6 +430,30 @@ STATUS("start z FFTs") ;
          }
       }
       break ;
+   }
+
+   /*** 10 Jan 2003: clip data to bot and top found above ***/
+   /***              to minimize Gibbs ringing artifacts  ***/
+
+   switch( ftype ){
+
+     case MRI_short:
+       for( ii=0 ; ii < nxyz ; ii++ )
+              if( sfim[ii] < fbot ) sfim[ii] = fbot ;
+         else if( sfim[ii] > ftop ) sfim[ii] = ftop ;
+     break ;
+
+     case MRI_float:
+       for( ii=0 ; ii < nxyz ; ii++ )
+              if( ffim[ii] < fbot ) ffim[ii] = fbot ;
+         else if( ffim[ii] > ftop ) ffim[ii] = ftop ;
+     break ;
+
+     case MRI_byte:
+       for( ii=0 ; ii < nxyz ; ii++ )
+              if( bfim[ii] < fbot ) bfim[ii] = fbot ;
+         else if( bfim[ii] > ftop ) bfim[ii] = ftop ;
+     break ;
    }
 
    /*** done! ***/
