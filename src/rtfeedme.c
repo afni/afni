@@ -12,7 +12,7 @@ static THD_3dim_dataset * RT_dset[MAX_CHAN] ;
 static float              RT_dt             = 0.0 ;
 static int                RT_3D             = 0 ;
 static int                RT_swap2          = 0 ;
-static char               RT_buf[16384] , RT_com[512] ;
+static char               RT_buf[32768] , RT_com[1024] ;
 static int                RT_mega = 1 ;
 
 /*=============================================================================*/
@@ -213,6 +213,8 @@ int main( int argc , char * argv[] )
    char * drive_afni[128] ;
    int   ndrive=0 ;
    int   num_chan , cur_chan , cc ;
+   char * note[128] ;   /* 02 Oct 2002 */
+   int   num_note=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -250,6 +252,9 @@ int main( int argc , char * argv[] )
         "                   -drive 'OPEN_WINDOW A.axialimage'\n"
         "                 If cmd contains blanks, it must be in 'quotes'.\n"
         "                 Multiple -drive options may be used.\n"
+        "\n"
+        "  -note sss   =  Send 'sss' as a NOTE to the realtime plugin.\n"
+        "                 Multiple -note options may be used.\n"
       ) ;
       exit(0) ;
    }
@@ -262,6 +267,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-drive") == 0 ){   /* 30 Jul 2002 */
          drive_afni[ndrive++] = argv[++iarg] ;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-note") == 0 ){    /* 02 Oct 2002 */
+         note[num_note++] = argv[++iarg] ;
          iarg++ ; continue ;
       }
 
@@ -456,6 +466,13 @@ int main( int argc , char * argv[] )
 
    for( ii=0 ; ii < ndrive ; ii++ ){
      sprintf( RT_com , "DRIVE_AFNI %s" , drive_afni[ii] ) ;
+     ADDTO_BUF ;
+   }
+
+   /*** NOTE commands [02 Oct 2002] ***/
+
+   for( ii=0 ; ii < num_note ; ii++ ){
+     sprintf( RT_com , "NOTE %s" , note[ii] ) ;
      ADDTO_BUF ;
    }
 
