@@ -171,7 +171,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"ToggleLockAllViews")) SUMA_RETURN(SE_ToggleLockAllViews);
    if (!strcmp(Scom,"Load_Group")) SUMA_RETURN(SE_Load_Group);
    if (!strcmp(Scom,"Help")) SUMA_RETURN(SE_Help);
-   if (!strcmp(Scom,"ShowLog")) SUMA_RETURN(SE_ShowLog);
+   if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
@@ -266,8 +266,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("Load_Group"); 
       case SE_Help:
          SUMA_RETURN("Help");
-      case SE_ShowLog:
-         SUMA_RETURN("ShowLog"); 
+      case SE_UpdateLog:
+         SUMA_RETURN("UpdateLog"); 
       case SE_Log:
          SUMA_RETURN("Log");
       /*case SE_:
@@ -357,7 +357,64 @@ SUMA_Boolean SUMA_RegisterCommand (char *S, char d, char term, char *Scom, SUMA_
    }
 }
 
-int SUMA_EngineFieldCode(char *Scom)
+/*!
+   \brief translates SUMA_ENGINE_FIELD_CODE to string
+*/
+const char* SUMA_EngineFieldString (SUMA_ENGINE_FIELD_CODE i)
+{
+   static char FuncName[]={"SUMA_EngineFieldString"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   switch (i) {
+      case (SEF_fm):
+         SUMA_RETURN ("fm");
+         break;
+      case (SEF_im):
+         SUMA_RETURN ("im");
+         break;
+      case (SEF_fv3):
+         SUMA_RETURN ("fv3");
+         break;
+      case (SEF_iv3):
+         SUMA_RETURN ("iv3");
+         break;
+      case (SEF_fv15):
+         SUMA_RETURN ("fv15");
+         break;
+      case (SEF_iv15):
+         SUMA_RETURN ("iv15");
+         break;
+      case (SEF_i):
+         SUMA_RETURN ("i");
+         break;
+      case (SEF_f):
+         SUMA_RETURN ("f");
+         break;
+      case (SEF_s):
+         SUMA_RETURN ("s");
+         break;
+      case (SEF_vp):
+         SUMA_RETURN ("vp");
+         break;
+      case (SEF_cp):
+         SUMA_RETURN ("cp");
+         break;
+      case (SEF_fp):
+         SUMA_RETURN ("fp");
+         break;
+      case (SEF_ip):
+         SUMA_RETURN ("ip");
+         break;
+      default:
+         SUMA_RETURN ("Unknown");
+         break;
+      
+   }
+   
+}
+
+SUMA_ENGINE_FIELD_CODE SUMA_EngineFieldCode(char *Scom)
 {   
    static char FuncName[]={"SUMA_EngineFieldCode"};
    
@@ -376,6 +433,9 @@ int SUMA_EngineFieldCode(char *Scom)
    if (!strcmp(Scom,"f")) SUMA_RETURN (SEF_f);
    if (!strcmp(Scom,"s")) SUMA_RETURN (SEF_s);
    if (!strcmp(Scom,"vp")) SUMA_RETURN (SEF_vp); /* void pointer */
+   if (!strcmp(Scom,"fp")) SUMA_RETURN(SEF_fp);
+   if (!strcmp(Scom,"cp")) SUMA_RETURN(SEF_cp);
+   if (!strcmp(Scom,"ip")) SUMA_RETURN(SEF_ip);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SEF_);*/
    
    /* Last one is Bad Code */
@@ -501,6 +561,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SU
          TryLogWindow = YUP;
          break;
       case SMA_LogAndPopup:
+         TryLogWindow = YUP;
          SUMA_PopUpMessage (MD);
          break;
       default:
@@ -513,9 +574,9 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SU
       SUMA_EngineData *ED=NULL;
 
       Elist = SUMA_CreateList();
-      SUMA_REGISTER_COMMAND_NO_DATA(Elist, SE_ShowLog, SES_Suma, NULL);
+      SUMA_REGISTER_COMMAND_NO_DATA(Elist, SE_UpdateLog, SES_Suma, NULL);
 
-      if (!SUMA_Engine (&list)) {
+      if (!SUMA_Engine (&Elist)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
@@ -538,18 +599,20 @@ char *SUMA_BuildMessageLog (DList *ML)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   SS = SUMA_StringAppend (NULL, NULL);
-   
+  
    if (!ML->size) { /* Nothing */
       SUMA_RETURN (NULL);
    }
    
-   CurElmt = dlist_head(ML);
-   SS = SUMA_StringAppend (SS, SUMA_FormatMessage ((SUMA_MessageData *)CurElmt->data)); 
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (!(CurElmt = dlist_head(ML))) {
+      SUMA_RETURN (NULL);
+   }
    do {
-      CurElmt = dlist_next(CurElmt);
       SS = SUMA_StringAppend (SS, SUMA_FormatMessage ((SUMA_MessageData *)CurElmt->data)); 
-   } while (!dlist_is_tail(CurElmt));
+      SS = SUMA_StringAppend (SS, "---------------------\n");
+   } while ((CurElmt = dlist_next(CurElmt)));
    
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
@@ -610,7 +673,7 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
 { 
    SUMA_ENGINE_CODE Dest=SES_Empty;
    static char FuncName[]={"SUMA_RegisterEngineListCommand"};
-   SUMA_Boolean LocalHead = YUP, Refill = NOPE;
+   SUMA_Boolean LocalHead = NOPE, Refill = NOPE;
    DListElmt *tail=NULL, *head=NULL, *NewElement=NULL;
    SUMA_EngineData * Old_ED=NULL;
    
@@ -674,7 +737,7 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
       EngineData->Src = Src;
    }
    
-   if (LocalHead) fprintf(SUMA_STDOUT, "%s: Registering %d for %d\n", FuncName, Fld, Dest);
+   if (LocalHead) fprintf(SUMA_STDOUT, "%s: Registering %s for %s\n", FuncName, SUMA_EngineFieldString(Fld), SUMA_CommandString (Dest));
    
    switch (Fld) { /* switch Fld */
       case SEF_Empty:

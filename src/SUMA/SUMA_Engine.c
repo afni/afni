@@ -44,7 +44,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
-   SUMA_Boolean Found, LocalHead = YUP;
+   SUMA_Boolean Found, LocalHead = NOPE;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
@@ -96,7 +96,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
-         case SE_ShowLog:
+         case SE_UpdateLog:
             /* Updates the Log window if it is open */
             {
                if (SUMAg_CF->X->Log_TextShell) {
@@ -119,7 +119,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }else { /* create it */
                   s = SUMA_BuildMessageLog (SUMAg_CF->MessageList);
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Message string:\n%s\n", FuncName, s);
-                  LogShell =  SUMA_CreateTestShellStruct (NULL, NULL, NULL, NULL);
+                  LogShell =  SUMA_CreateTestShellStruct (SUMA_Message_open, NULL, 
+                                                          SUMA_Message_destroyed, NULL);
                   if (!LogShell) {
                      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTestShellStruct.\n", FuncName);
                      break;
@@ -181,21 +182,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* Load The spec file */
 		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
                if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
-			         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-			         break;
+			         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile.\n", FuncName);
+			         exit(1);
 		         }	
 
 		         /* make sure only one group was read in */
 		         if (Spec.N_Groups != 1) {
 			         fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
-			         break;
+			         exit(1);
 		         }
 
 		         /* load the surfaces specified in the specs file, one by one*/			
 		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
 		         if (!SUMA_LoadSpec (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName)) {
 			         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
-			         break;
+			         exit(1);
 		         }
 
 	            /* Register the surfaces in Spec file with the surface viewer and perform setups */
@@ -203,7 +204,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                for (ii = 0; ii < EngineData->i; ++ii) {
 		            if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[EngineData->iv15[ii]])) {
 			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
-			            break;
+			            exit(1);
 		            }
 	            }
 
@@ -1638,7 +1639,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
    SUMA_EngineData ED;
    int  i, j, jmax, prec_ID;
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);   
    

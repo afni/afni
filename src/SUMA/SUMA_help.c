@@ -29,6 +29,35 @@ void SUMA_Help_destroyed (void *p)
    SUMA_RETURNe;
 }
 
+/*!
+   \brief function called when Message window is open
+*/
+void SUMA_Message_open (void *p)
+{
+   static char FuncName[]={"SUMA_Message_open"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   /* nothing to do here */
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief function called when Message window is destroyed
+*/
+void SUMA_Message_destroyed (void *p)
+{
+   static char FuncName[]={"SUMA_Message_destroyed"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMAg_CF->X->Log_TextShell = NULL;
+   
+   SUMA_RETURNe;
+}
+
+
+
 char * SUMA_help_message_Info(void)
 {
    static char FuncName[]={"SUMA_help_message_Info"};

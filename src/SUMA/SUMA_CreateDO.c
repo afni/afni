@@ -705,7 +705,7 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    int i, ii, ND, id, ip, NP;
    static char FuncName[]={"SUMA_CreateMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

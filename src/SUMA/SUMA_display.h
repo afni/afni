@@ -112,6 +112,8 @@ void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData);
 char * SUMA_FormatMessage (SUMA_MessageData *MD);
 void SUMA_PopUpMessage (SUMA_MessageData *MD);
+void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData);
+
 
 
  
