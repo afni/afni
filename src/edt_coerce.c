@@ -39,7 +39,9 @@ ENTRY("EDIT_coerce_type") ;
    if( nxyz <= 0 || ivol == NULL || ovol == NULL ) EXRETURN ;
 
    switch( itype ){
-      default: EXRETURN ;
+      default:
+        fprintf(stderr,"** Unknown itype=%d in EDIT_coerce_type\n",itype);
+      EXRETURN ;
       case MRI_complex:  cin = (complex *) ivol ; break ;
       case MRI_short  :  sin = (short   *) ivol ; break ;
       case MRI_float  :  fin = (float   *) ivol ; break ;
@@ -47,7 +49,9 @@ ENTRY("EDIT_coerce_type") ;
       case MRI_double :  din = (double  *) ivol ; break ;
    }
    switch( otype ){
-      default: EXRETURN ;
+      default:
+        fprintf(stderr,"** Unknown otype=%d in EDIT_coerce_type\n",otype);
+      EXRETURN ;
       case MRI_complex:  cout = (complex *) ovol ; break ;
       case MRI_short  :  sout = (short   *) ovol ; break ;
       case MRI_float  :  fout = (float   *) ovol ; break ;
@@ -215,7 +219,9 @@ ENTRY("EDIT_coerce_scale_type") ;
    }
 
    switch( itype ){
-      default: EXRETURN ;
+      default:
+        fprintf(stderr,"** Unknown itype=%d in EDIT_coerce_scale_type\n",itype);
+      EXRETURN ;
       case MRI_complex:  cin = (complex *) ivol ; break ;
       case MRI_short  :  sin = (short   *) ivol ; break ;
       case MRI_float  :  fin = (float   *) ivol ; break ;
@@ -223,7 +229,9 @@ ENTRY("EDIT_coerce_scale_type") ;
       case MRI_double :  din = (double  *) ivol ; break ;
    }
    switch( otype ){
-      default: EXRETURN ;
+      default:
+        fprintf(stderr,"** Unknown otype=%d in EDIT_coerce_scale_type\n",otype);
+      EXRETURN ;
       case MRI_complex:  cout = (complex *) ovol ; break ;
       case MRI_short  :  sout = (short   *) ovol ; break ;
       case MRI_float  :  fout = (float   *) ovol ; break ;

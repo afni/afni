@@ -4570,3 +4570,9 @@
  * Fixed bug in thd_intlist.c, where ']' or '}' might not stop the scanning of
      the string.  This was a problem when dealing with inputs that have both
      types of selectors -- one might run over another in the parsing.
+
+29 May 2003
+ * Modified 3dttest.c to output t-statistic brick in floats if diff brick is
+     stored as floats.
+ * Modified 3dcalc.c to floatize datasets that don't have constant sub-brick
+     datum.
