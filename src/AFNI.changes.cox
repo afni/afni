@@ -3822,3 +3822,6 @@
  * Modified thd_iochan.c to print better messages with PERROR().
  * Modified plug_realtime.c to popup message when disk I/O is finished
      after an acquisition ends.
+
+27 Jun 2002
+ * Modified niml.c to add debugging output option (NIML_DEBUG).
