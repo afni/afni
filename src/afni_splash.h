@@ -69,23 +69,6 @@ static char *BAR_facetitle[] = {
 #define NX_TOPOVER 436
 #define NY_TOPOVER 140
 
-#undef  NMAIN
-#define NMAIN 2
-#ifdef  NMAIN
-
-# include "splash_gang.h"  /* MCW gang [gray]  */
-# include "splash_sscc.h"  /* NIH gang [color] */
-
-  static char **bmain[NMAIN]={BAR_sscc  , BAR_gang  };
-  static int    xmain[NMAIN]={NX_sscc   , NX_gang   };
-  static int    ymain[NMAIN]={NY_sscc   , NY_gang   };
-  static int    lmain[NMAIN]={NLINE_sscc, NLINE_gang};
-  static byte  *rmapm[NMAIN]={RMAP_sscc , NULL      };  /* color maps */
-  static byte  *gmapm[NMAIN]={GMAP_sscc , NULL      };
-  static byte  *bmapm[NMAIN]={BMAP_sscc , NULL      };
-  static int    nmapm[NMAIN]={NC_sscc   , 0         };
-
-#endif /* NMAIN */
 /*------------------------------------------*/
 
 #endif /* _AFNI_SPLASH_HEADER */
