@@ -4354,14 +4354,8 @@ ENTRY("ISQ_drawing_EV") ;
              POPUP_cursorize( seq->wimage ) ;
              MCW_invert_widget( seq->zoom_drag_pb ) ;
            } else if( !seq->zoom_button1 ){           /* 23 Oct 2003 */
-             int xdif = (event->x - seq->last_bx) ;
-             if( xdif ){
-               double denom = AFNI_numenv("AFNI_STROKE_THRESHOLD") ;
-               if( denom < 1.0l ) denom = 32.0l ;
-               xdif = rint(xdif/denom) ;
-               if( xdif ){
-                 DC_gray_conbrio(seq->dc,xdif); COLORMAP_CHANGE(seq);
-               }
+             if( seq->cmap_changed ){
+               COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
              }
            }
          }
@@ -4384,6 +4378,28 @@ ENTRY("ISQ_drawing_EV") ;
              ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
           else
              { XBell(seq->dc->display,100); EXRETURN; }
+        }
+
+        /* Button1 motion: if not panning, grayscaling? */
+
+        if( !seq->zoom_button1 && (event->state & Button1Mask) ){
+          int xdif = (event->x - seq->last_bx) ;
+          int ydif = (event->y - seq->last_by) ;
+          if( !seq->dc->use_xcol_im && (xdif || ydif) ){
+            double denom = AFNI_numenv("AFNI_STROKE_THRESHOLD") ;
+            if( denom < 1.0l ) denom = 32.0l ;
+            xdif = rint(xdif/denom) ; ydif = rint(ydif/denom) ;
+            if( xdif || ydif ){
+              if( xdif ){ DC_gray_conbrio(seq->dc, xdif); seq->last_bx=event->x;}
+              if( ydif ){ DC_gray_change (seq->dc,-ydif); seq->last_by=event->y;}
+              seq->cmap_changed = 1 ;
+              if( seq->dc->visual_class == TrueColor ){
+                KILL_2XIM( seq->given_xbar , seq->sized_xbar ) ;
+                ISQ_redisplay( seq , -1 , isqDR_display ) ;
+              }
+            }
+          }
+          EXRETURN ;
         }
 
         /* Button1 motion: check for being in zoom-pan mode */
@@ -4706,6 +4722,7 @@ DPR(" .. ButtonPress") ;
 
          seq->last_bx = bx = event->x ;  /* 23 Oct 2003: save last button */
          seq->last_by = by = event->y ;  /*            press (x,y) coords */
+         seq->cmap_changed = 0 ;
          but = event->button ;
 
          MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
