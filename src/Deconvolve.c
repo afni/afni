@@ -200,8 +200,12 @@ int init_indep_var_matrix
   /*----- Set up columns of X matrix corresponding to
           time delayed versions of the input stimulus -----*/
   m = qp;
-  for (is = 0;  is < num_stimts;  is++)
-    {
+  for (is = 0;  is < num_stimts;  is++){
+#ifdef USE_BASIS
+    if( basis_stim[is] != NULL ){
+    }
+    else {
+#endif
       if (stim_length[is] < nt*nptr[is])
 	{
 	  DC_error ("Input stimulus time series is too short");
@@ -219,7 +223,10 @@ int init_indep_var_matrix
 	    }
 	  m++;
 	}
+#ifdef USE_BASIS
     }
+#endif
+  }
 
 
   /*----- Keep only those rows of the X matrix which correspond to
