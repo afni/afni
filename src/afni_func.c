@@ -3862,7 +3862,7 @@ char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
    THD_3dim_dataset * dset = (THD_3dim_dataset *) cd ;
 
    if( ISVALID_3DIM_DATASET(dset) )
-      sprintf(blab,"%.14s #%d", DSET_BRICK_LABEL(dset,av->ival), av->ival ) ;
+      sprintf(blab,"%-14.14s #%d", DSET_BRICK_LABEL(dset,av->ival), av->ival ) ;
    else
       sprintf(blab," #%d ",av->ival) ;
 

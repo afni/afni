@@ -869,7 +869,7 @@ extern void AFNI_close_file_dialog_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
-extern void AFNI_fimmer_execute( Three_D_View * ) ;
+extern void AFNI_fimmer_execute( Three_D_View * , int ) ;
 
 extern void AFNI_process_interrupts( Widget ) ;
 extern void AFNI_add_interruptable( Widget ) ;
@@ -878,7 +878,7 @@ extern int AFNI_ts_in_library( MRI_IMAGE * tsim ) ;
 
 extern THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * ,
                                                THD_3dim_dataset * , MRI_IMAGE *,
-                                               MRI_IMAGE *, THD_session * , int ) ;
+                                               MRI_IMAGE *, THD_session *, int,int ) ;
 
 extern void AFNI_fimmer_redisplay( int , Three_D_View * , THD_3dim_dataset * ) ;
 

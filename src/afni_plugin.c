@@ -3081,8 +3081,8 @@ THD_3dim_dataset * PLUTO_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
 
    if( ! PLUTO_prefix_ok(new_prefix) ) return NULL ;
 
-   new_dset = MAKER_4D_to_typed_fbuc( old_dset, new_prefix, new_datum ,
-                                      ignore, detrend, nbrik, user_func, user_data ) ;
+   new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
+                                      ignore , detrend , nbrik , user_func , user_data ) ;
 
    return new_dset ;
 }

@@ -252,11 +252,14 @@ ENTRY("AFNI_fimmer_setignore") ;
 
 #define FIM_THR  0.0999
 
+/** 15 Dec 1997: code == 0 --> old style (fico output)
+                 code == 1 --> new style (fbuc output) **/
+
 THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         THD_3dim_dataset * dset_time ,
                                         MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
                                         THD_session * sess ,
-                                        int update_frequency )
+                                        int update_frequency , int code )
 {
    THD_3dim_dataset * new_dset ;
    char new_prefix[THD_MAX_PREFIX] ;
@@ -266,6 +269,7 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
    float * vval , * tsar , * aval , * rbest , * abest ;
    int   * indx ;
    short * bar ;
+   short * ibest ;  /* 15 Dec 1997 */
    void  * ptr ;
    float stataux[MAX_STAT_AUX] ;
    float fthr , topval ;
@@ -347,6 +351,11 @@ ENTRY("AFNI_fimmer_compute") ;
       }
 
       ngood_ref = MAX( ifim , ngood_ref ) ;
+   }
+
+   if( ny_ref == 1 && code == 1 ){             /** 15 Dec 1997 **/
+      STATUS("ny_ref == 1 with code == 1!") ;
+      RETURN(NULL) ;
    }
 
    /** at this point, ngood_ref = max number of good reference points,
@@ -459,16 +468,20 @@ ENTRY("AFNI_fimmer_compute") ;
       aval  = (float *) malloc( sizeof(float) * nvox) ;
       rbest = (float *) malloc( sizeof(float) * nvox) ;
       abest = (float *) malloc( sizeof(float) * nvox) ;
-      if( aval==NULL || rbest==NULL || abest==NULL ){
+      ibest = (short *) malloc( sizeof(short) * nvox) ;  /* 15 Dec 1997 */
+
+      if( aval==NULL || rbest==NULL || abest==NULL || ibest==NULL ){
          fprintf(stderr,"\n*** abest malloc failure in AFNI_fimmer_compute\n") ;
          free(vval) ; free(indx) ;
          if( aval  != NULL ) free(aval) ;
          if( rbest != NULL ) free(rbest) ;
          if( abest != NULL ) free(abest) ;
+         if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
          RETURN(NULL) ;
       }
    } else {
       aval = rbest = abest = NULL ;
+      ibest = NULL ;  /* 15 Dec 1997 */
    }
 
 #ifdef AFNI_DEBUG
@@ -486,6 +499,7 @@ ENTRY("AFNI_fimmer_compute") ;
       if( aval  != NULL ) free(aval) ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
+      if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -506,6 +520,7 @@ ENTRY("AFNI_fimmer_compute") ;
       if( aval  != NULL ) free(aval) ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
+      if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
       fprintf(stderr,"\n*** FIM initialization fails in AFNI_fimmer_compute\n") ;
       RETURN(NULL) ;
    }
@@ -514,16 +529,35 @@ ENTRY("AFNI_fimmer_compute") ;
 
    new_dset = EDIT_empty_copy( dset_time ) ;
 
-   it = EDIT_dset_items( new_dset ,
-                            ADN_prefix      , new_prefix ,
-                            ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
-                            ADN_type        , ISHEAD(dset_time)
-                                              ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
-                            ADN_func_type   , FUNC_COR_TYPE ,
-                            ADN_nvals       , FUNC_nvals[FUNC_COR_TYPE] ,
-                            ADN_datum_all   , MRI_short ,
-                            ADN_ntt         , 0 ,
-                         ADN_none ) ;
+   if( code == 0 ){
+      it = EDIT_dset_items( new_dset ,
+                               ADN_prefix      , new_prefix ,
+                               ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                               ADN_type        , ISHEAD(dset_time)
+                                                 ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
+                               ADN_func_type   , FUNC_COR_TYPE ,
+                               ADN_nvals       , FUNC_nvals[FUNC_COR_TYPE] ,
+                               ADN_datum_all   , MRI_short ,
+                               ADN_ntt         , 0 ,
+                            ADN_none ) ;
+   } else if( code == 1 ){
+      it = EDIT_dset_items( new_dset ,
+                               ADN_prefix      , new_prefix ,
+                               ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                               ADN_type        , ISHEAD(dset_time)
+                                                 ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
+                               ADN_func_type   , FUNC_BUCK_TYPE ,
+                               ADN_nvals       , 3 ,
+                               ADN_datum_all   , MRI_short ,
+                               ADN_ntt         , 0 ,
+                            ADN_none ) ;
+
+      EDIT_BRICK_LABEL( new_dset , 0 , "FIM" ) ;
+      EDIT_BRICK_LABEL( new_dset , 1 , "Correlation" ) ;
+      EDIT_BRICK_LABEL( new_dset , 2 , "Best Index" ) ;
+   } else {
+      it = 999 ;
+   }
 
    if( it > 0 ){
       fprintf(stderr,
@@ -537,6 +571,7 @@ ENTRY("AFNI_fimmer_compute") ;
       if( aval  != NULL ) free(aval) ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
+      if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
       RETURN(NULL) ;
    }
 
@@ -557,6 +592,7 @@ ENTRY("AFNI_fimmer_compute") ;
       if( aval  != NULL ) free(aval) ;
       if( rbest != NULL ) free(rbest) ;
       if( abest != NULL ) free(abest) ;
+      if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
       RETURN(NULL) ;
    }
 
@@ -658,9 +694,13 @@ ENTRY("AFNI_fimmer_compute") ;
 
 STATUS("setting statistical parameters") ;
 
-         (void) EDIT_dset_items( new_dset ,
-                                    ADN_stat_aux , stataux ,
-                                 ADN_none ) ;
+         if( code == 0 ){
+            (void) EDIT_dset_items( new_dset ,
+                                       ADN_stat_aux , stataux ,
+                                    ADN_none ) ;
+         } else if( code == 1 ){
+            EDIT_BRICK_TO_FICO( new_dset , 1 , stataux[0],stataux[1],stataux[2] ) ;
+         }
 
          if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
@@ -688,12 +728,7 @@ STATUS("getting 1 ref alpha") ;
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
@@ -719,12 +754,7 @@ STATUS("getting 1 ref pcor") ;
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
@@ -749,6 +779,8 @@ STATUS("getting 1 ref pcor") ;
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
+            for( iv=0 ; iv < nvox ; iv++ ) ibest[iv] = 1 ;  /* 15 Dec 1997 */
+
             /*--- for each succeeding ref vector,
                   get results into aval and vval,
                   if |vval| > |rbest|, then use that result instead ---*/
@@ -767,6 +799,7 @@ STATUS("getting 1 ref pcor") ;
                   if( fabs(vval[iv]) > fabs(rbest[iv]) ){
                      rbest[iv] = vval[iv] ;
                      abest[iv] = aval[iv] ;
+                     ibest[iv] = (ivec+1) ;   /* 15 Dec 1997 */
                   }
                }
 
@@ -776,19 +809,16 @@ STATUS("getting 1 ref pcor") ;
             /*--- at this point, abest and rbest are the best
                   results, so scale them into the dataset bricks ---*/
 
+            /** fim brick **/
+
             topval = 0.0 ;
             for( iv=0 ; iv < nvox ; iv++ )
                if( fabs(abest[iv]) > topval ) topval = fabs(abest[iv]) ;
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
-            bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
+            bar = DSET_ARRAY( new_dset , 0 ) ;
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
@@ -804,13 +834,10 @@ STATUS("getting 1 ref pcor") ;
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
-            bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
+            /** threshold brick **/
 
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
+            bar = DSET_ARRAY( new_dset , 1 ) ;
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
 
@@ -821,6 +848,16 @@ STATUS("getting 1 ref pcor") ;
 
             stataux[1] = 1.0 / FUNC_COR_SCALE_SHORT ;
 
+            /** best index brick? 15 Dec 1997 */
+
+            if( code == 1 ){
+               bar = DSET_ARRAY( new_dset , 2 ) ;
+               memset( bar , 0 , sizeof(short)*nxyz ) ;
+               for( iv=0 ; iv < nvox ; iv++ ) bar[indx[iv]] = ibest[iv] ;
+               stataux[2] = 0.0 ;
+            }
+
+            if( update_frequency > 0 ) AFNI_process_interrupts(im3d->vwid->top_shell) ;
          }
 
 STATUS("setting brick_fac") ;
@@ -887,6 +924,7 @@ STATUS("about to redisplay") ;
    if( aval  != NULL ) free(aval) ;
    if( rbest != NULL ) free(rbest) ;
    if( abest != NULL ) free(abest) ;
+   if( ibest != NULL ) free(ibest) ;  /* 15 Dec 1997 */
 
    /*--- Return new dataset ---*/
 
@@ -956,7 +994,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
    /*** execute FIM ***/
 
    else if( w == fmenu->fim_execute_pb ){
-      AFNI_fimmer_execute( im3d ) ;
+      AFNI_fimmer_execute( im3d , 0 ) ;
    }
 
    /*** Ignore stuff ***/
@@ -1108,7 +1146,10 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_fimmer_execute( Three_D_View * im3d )
+/** 15 Dec 1997: code == 0 --> old style (fico output)
+                 code == 1 --> new style (fbuc output) **/
+
+void AFNI_fimmer_execute( Three_D_View * im3d , int code )
 {
    THD_3dim_dataset * new_dset , * dset_time ;
    MRI_IMAGE * ref_ts , * ort_ts ;
@@ -1142,7 +1183,7 @@ ENTRY("AFNI_fimmer_execute") ;
    /*--- Start lots of CPU time ---*/
 
    new_dset = AFNI_fimmer_compute( im3d , dset_time , ref_ts , ort_ts , sess ,
-                                   im3d->vinfo->fimmer_update_frequency ) ;
+                                   im3d->vinfo->fimmer_update_frequency , code ) ;
 
    /*--- End lots of CPU time ---*/
 
@@ -1188,6 +1229,12 @@ ENTRY("AFNI_fimmer_redisplay") ;
       im3d->vinfo->func_num = ifunc ;
 
       THD_load_statistics( new_dset ) ;
+
+      if( new_dset->func_type == FUNC_BUCK_TYPE ){   /* 15 Dec 1997 */
+         im3d->vinfo->fim_index = 0 ;
+         im3d->vinfo->thr_index = 1 ;
+      }
+
       AFNI_initialize_view( im3d->anat_now , im3d ) ;
 
    } else {

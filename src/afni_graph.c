@@ -2928,15 +2928,22 @@ ENTRY("GRA_fim_CB") ;
 
    /*** Screen refresh rate during actual FIMage ***/
 
+#if 0
    else if( w == grapher->fmenu->fim_setupdate_pb ){
       cbs.reason = graCR_updtfreqfim ;
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
+#endif
 
    /*** Execute FIM ***/
 
    else if( w == grapher->fmenu->fim_execute_pb ){
       cbs.reason = graCR_dofim ;
+      grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
+   }
+
+   else if( w == grapher->fmenu->fim_execfimp_pb ){
+      cbs.reason = graCR_dofimplus ;
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
 
@@ -3407,6 +3414,26 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
 
 #define EMPTY_BUT(wname) fmenu -> wname = NULL
 
+   /** 15 Dec 1997: a pullright menu with a single button **/
+
+#define FIM_MENU_QBUT(wname,label,qlab)                                   \
+ do { Widget mmm = XmCreatePulldownMenu(fmenu->fim_menu,"menu",NULL,0);   \
+      Widget ccc = XtVaCreateManagedWidget( "dialog" ,                    \
+                     xmCascadeButtonWidgetClass , fmenu->fim_menu ,       \
+                     LABEL_ARG( label ) ,                                 \
+                     XmNsubMenuId , mmm ,                                 \
+                     XmNtraversalOn , False ,                             \
+                     XmNinitialResourcesPersistent , False , NULL ) ;     \
+      fmenu -> wname = XtVaCreateManagedWidget( "dialog" ,                \
+                         xmPushButtonWidgetClass , mmm ,                  \
+                         LABEL_ARG( qlab ) ,                              \
+                         XmNmarginHeight , 0 ,                            \
+                         XmNtraversalOn , False ,                         \
+                         XmNinitialResourcesPersistent , False , NULL ) ; \
+      XtAddCallback( fmenu -> wname , XmNactivateCallback ,               \
+                     cbfunc , (XtPointer) fmenu ) ;                       \
+ } while(0)
+
    /*** top of menu = a label to click on that does nothing at all ***/
 
    (void) XtVaCreateManagedWidget(
@@ -3475,12 +3502,21 @@ FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int grapha
       EMPTY_BUT(fim_plot_allrefs_pb) ;
    }
 
-   MENU_DLINE(fim_menu) ;
 
+#if 0
    FIM_MENU_BUT( fim_setupdate_pb , "Refresh Freq" ) ;
-   FIM_MENU_BUT( fim_execute_pb   , "Compute FIM" ) ;
+#else
+   EMPTY_BUT( fim_setupdate_pb ) ;
+#endif
    if( redcolor == NULL ){ HOTCOLOR(parent,redcolor) ; }
+
+   MENU_DLINE(fim_menu) ;
+   FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico") ;
    MCW_set_widget_bg( fmenu->fim_execute_pb , redcolor , 0 ) ;
+
+   MENU_DLINE(fim_menu) ;
+   FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc") ;
+   MCW_set_widget_bg( fmenu->fim_execfimp_pb , redcolor , 0 ) ;
 
    return fmenu ;
 }

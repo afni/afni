@@ -94,7 +94,7 @@ typedef struct {
    Widget fim_ignore_menu   , fim_ignore_cbut ,
           fim_ignore_down_pb, fim_ignore_up_pb , fim_ignore_choose_pb ;
    Widget fim_pickref_pb , fim_pickort_pb ,
-          fim_setupdate_pb , fim_execute_pb ;
+          fim_setupdate_pb , fim_execute_pb , fim_execfimp_pb ;
    Widget fim_pickdset_pb ;
 
 #ifdef USE_OPTMENUS
@@ -396,6 +396,7 @@ typedef struct {
 
 #define graCR_dofim       7731
 #define graCR_updtfreqfim 7732
+#define graCR_dofimplus   7733
 
 #define graCR_refequals   7741
 #define graCR_refadd      7742

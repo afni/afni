@@ -1916,9 +1916,14 @@ STATUS("graCR_pickort") ;
       /*** User asks to do fim! ***/
 
       case graCR_dofim:{
-         AFNI_fimmer_execute( im3d ) ;
+         AFNI_fimmer_execute( im3d , 0 ) ;
       }
       break ; /* end of dofim */
+
+      case graCR_dofimplus:{
+         AFNI_fimmer_execute( im3d , 1 ) ;
+      }
+      break ; /* end of dofimplus */
 
       /*** User sets initial ignore count ***/
 
