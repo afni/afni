@@ -12,7 +12,6 @@
 #define DO_MESH_AXIS
 /*#define ZERO_CENTER*/
 
-#define SUMA_SWAP_BUTTONS_1_3 0 /*!< 1/0 flag for swapping functions of buttons 1 and 3, also controlled by alt+s */ 
 #define SUMA_DOUBLE_CLICK_MAX_DELAY 250 /*!< Maximum delay in ms to consider a double click */
 
 #define NODE_COLOR_R 0.35

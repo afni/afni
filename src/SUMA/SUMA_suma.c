@@ -111,11 +111,11 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
-   /* load the environment variables */
+   /* load the environment variables from .sumarc and .afnirc*/
    homeenv = getenv("HOME");
+   
    if (!homeenv) sumarc = SUMA_copy_string(".sumarc");
    else sumarc = SUMA_append_string (homeenv, "/.sumarc");
-   
    if (stat(sumarc, &stbuf) != -1) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
       AFNI_process_environ(sumarc); 
@@ -124,6 +124,16 @@ int main (int argc,char *argv[])
    }
    if (sumarc) free(sumarc);
    
+   if (!homeenv) sumarc = SUMA_copy_string(".afnirc");
+   else sumarc = SUMA_append_string (homeenv, "/.afnirc");
+   if (stat(sumarc, &stbuf) != -1) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      AFNI_process_environ(sumarc); 
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
+   }
+   if (sumarc) free(sumarc);
+
    SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
