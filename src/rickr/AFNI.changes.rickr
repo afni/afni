@@ -875,3 +875,17 @@
   * modified Makefile.INCLUDE to compile nifti_stats from the nifti dir
   * nifti1.io.[ch] (v 0.7): minor changes to extension reading 
 
+21 Dec 2004: nifti library update (v 0.8)
+  * in nifti_image_read(), compute bytes for extensions (see remaining)
+  * in nifti_read_extensions(), pass 'remain' as space for extensions,
+       pass it to nifti_read_next_ext(), and update for each one read
+  * in nifti_valid_extension(), require (size <= remain)
+  * in update_nifti_image_brick_list(), update nvox
+  * in nifti_image_load_bricks(), make explicit check for nbricks <= 0
+  * in int_force_positive(), check for (!list)
+  * in swap_nifti_header(), swap sizeof_hdr, and reorder to struct order
+  * change get_filesize functions to signed ( < 0 is no file or error )
+  * in nifti_valid_filename(), lose redundant (len < 0) check
+  * make print_hex_vals() static
+  * in disp_nifti_1_header, restrict string field widths
+
