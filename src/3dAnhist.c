@@ -418,6 +418,9 @@ int main( int argc , char * argv[] )
              else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
                   if( ww[jj] < 0.1*cbot ) ww[jj] = 0.1*cbot ;
              else if( ww[jj] > 0.9*ctop ) ww[jj] = 0.9*ctop ;
+
+                  if( pk[jj]+ww[jj] > ctop ) ww[jj] = ctop-pk[jj] ;
+             else if( pk[jj]-ww[jj] < cbot ) ww[jj] = pk[jj]-cbot ;
            }
            sum = wtm = 0.0 ;
            for( ii=0 ; ii < ndim ; ii++ ){
@@ -431,7 +434,7 @@ int main( int argc , char * argv[] )
             wtm = MAX(wtm,wt[ii]) ;
            }
            for( ii=0 ; ii < ndim ; ii++ ){
-             wt[ii] = pow(wt[ii]/wtm,2.0) ; sum += wt[ii] ;
+             wt[ii] = pow(wt[ii]/wtm,1.25) ; sum += wt[ii] ;
            }
            for( ii=0 ; ii < ndim ; ii++ ) wt[ii] /= sum ;
            for( ii=0 ; ii < ndim ; ii++ ){
