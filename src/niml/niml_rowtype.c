@@ -1829,3 +1829,28 @@ void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
 
    return ndat ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Return the length in bytes of a column of data (not counting padding).
+    The pointer to the data is needed since it might contain variable
+    size data (String or vardim arrays).
+----------------------------------------------------------------------------*/
+
+int NI_size_column( NI_rowtype *rt , int col_len , void *cpt )
+{
+   char *dat = (char *)cpt ;
+   int ii , ndat ;
+
+   if( rt == NULL || col_len <= 0 )
+     return 0;                                    /* nonsense input */
+   if( !ROWTYPE_is_varsize(rt) || dat == NULL )
+     return (col_len*rt->psiz);                   /* fixed dim struct */
+
+   /* must loop through elements and add up their variable sizes */
+
+   ndat = 0 ;
+   for( ii=0 ; ii < col_len ; ii++ )
+     ndat += NI_rowtype_vsize( rt , dat + ii*rt->size ) ;
+
+   return ndat ;
+}

@@ -14,6 +14,19 @@ static int read_header_only = 0 ;
 void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
 
 /*--------------------------------------------------------------------*/
+/*! Read only the header part of the next element.
+----------------------------------------------------------------------*/
+
+void * NI_read_element_header( NI_stream_type *ns , int msec )
+{
+   void *nini ;
+   read_header_only = 1 ;
+   nini = NI_read_element( ns , msec ) ;
+   read_header_only = 0 ;
+   return nini ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream, waiting up to
     msec milliseconds for the header to appear.  (After that, this
     function may wait a long time for the rest of the element to
@@ -95,8 +108,8 @@ NI_dpr("NI_read_element: found '<'\n") ;
 
    /* ns->buf[ns->npos] = opening '<' ; ns->buf[nn-1] = closing '>' */
 
-   /* see if we found '<>', which is illegal,
-      or a trailer '</stuff>', which is also illegal (here) */
+   /* see if we found '<>', which is meaningless,
+      or a trailer '</stuff>', which is illegal here */
 
    if( nn - ns->npos <= 2 || ns->buf[ns->npos+1] == '/' ){
       ns->npos = nn; NI_reset_buffer(ns); /* toss the '<..>', try again */
@@ -247,10 +260,15 @@ NI_dpr("NI_read_element: returning empty element\n") ;
 
         /*-- 23 Aug 2002: do something, instead of returning data? --*/
 
-        if( nel != NULL && strcmp(nel->name,"ni_do") == 0 ){
+        if( !read_header_only && nel != NULL && strcmp(nel->name,"ni_do") == 0 ){
            NI_do( ns , nel ) ;
            NI_free_element( nel ) ;
            return NULL ;
+        }
+
+        if( read_header_only && nel->vec != NULL ){
+          for( ii=0 ; ii < nel->vec_num ; ii++ ) NI_free(nel->vec[ii]) ;
+          NI_free(nel->vec) ; nel->vec = NULL ;
         }
 
         return nel ;   /* default: return element */
@@ -1399,6 +1417,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          qtt = quotize_int_vector( nel->vec_rank ,
                                    nel->vec_axis_len , ',' ) ;
          strcat(att,qtt) ; NI_free(qtt) ;
+         nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+
+         /** 26 Mar 2003: write number of bytes of data contained herein **/
+
+         for( jj=ii=0 ; ii < nel->vec_num ; ii++ )
+            jj = NI_size_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
+                                 nel->vec_len , nel->vec[ii] ) ;
+         sprintf(att,"%sni_datasize%s\"%d\"" , att_prefix , att_equals , jj ) ;
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
 #if 0
