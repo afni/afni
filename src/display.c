@@ -86,9 +86,11 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
    unsigned int nplmsk = 0 ;  /* dummy arguments for XAllocColorCells */
    unsigned long plane_masks[1] ;
 
+ENTRY("MCW_new_DC") ;
+
    if( ncol < 4 || novr < 0 || ncol > MAX_COLORS || novr > MAX_COLORS ){
       fprintf(stderr,"\n*** MCW_new_DC: ILLEGAL number of colors: %d %d\n",ncol,novr) ;
-      exit(1) ;
+      ncol = 4 ; novr = 0 ;
    }
 
    dc = myXtNew(MCW_DC) ;
@@ -337,7 +339,7 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 
    if( first_dc == NULL ) first_dc = dc ;  /* 26 Jun 2003 */
 
-   return dc ;
+   RETURN(dc) ;
 }
 
 /*-----------------------------------------------------------------------
@@ -621,7 +623,9 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    Pixel newpix ;
    XColor cell ;
 
-   if( name == NULL || strlen(name) == 0 ) return -1 ;  /* error */
+ENTRY("DC_add_overlay_color") ;
+
+   if( name == NULL || strlen(name) == 0 ) RETURN(-1) ;  /* error */
    if( label == NULL ) label = name ;
 
    /** see if label is already in the table **/
@@ -634,18 +638,18 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
       unsigned int nplmsk = 0 ;
       unsigned long plane_masks[1] ;
 
-      if( ii >= MAX_COLORS ) return -1 ;   /* too many overlay colors! */
+      if( ii >= MAX_COLORS ) RETURN(-1) ;   /* too many overlay colors! */
 
       if( dc->visual_class == PseudoColor ){  /* 22 Aug 1998 */
          ok = XAllocColorCells( dc->display , dc->colormap ,
                                 True , plane_masks , nplmsk , &newpix , 1 ) ;
-         if( !ok ) return -1 ;                /* couldn't get a new cell */
+         if( !ok ) RETURN(-1) ;                /* couldn't get a new cell */
          cell.pixel = newpix ;
       }
 
    } else {                                /** Reusing an old cell **/
 
-      if( strcmp(name,dc->ovc->name_ov[ii]) == 0 ) return ii ; /* no change! */
+      if( strcmp(name,dc->ovc->name_ov[ii]) == 0 ) RETURN(ii) ; /* no change! */
 
       if( dc->visual_class == PseudoColor )  /* 22 Aug 1998 */
          cell.pixel = dc->ovc->pix_ov[ii] ;
@@ -654,7 +658,7 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    }
 
    ok = XParseColor( dc->display , dc->colormap , name, &cell ) ;
-   if( !ok ) return -1 ;
+   if( !ok ) RETURN(-1) ;
 
    if( newcol ){                      /** made a new cell **/
       dc->ovc->ncol_ov++ ;
@@ -683,7 +687,7 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    dc->ovc->bright_ov[ii] = BRIGHTNESS( DCOV_REDBYTE(dc,ii) ,       /* 20 Dec 1999 */
                                         DCOV_GREENBYTE(dc,ii) ,
                                         DCOV_BLUEBYTE(dc,ii)   ) ;
-   return ii ;
+   RETURN(ii) ;
 }
 
 int DC_find_overlay_color( MCW_DC * dc , char * label )
@@ -1148,11 +1152,13 @@ void reload_DC_colordef( MCW_DC * dc )
    XVisualInfo * vin ;
    DC_colordef * cd ;   /* will be the output */
 
+ENTRY("reload_DC_colordef") ;
+
    /*--- sanity check ---*/
 
    if( dc == NULL || dc->visual_info == NULL ){
       fprintf(stderr,"reload_DC_colordef: entry values are NULL\n") ;
-      return ;
+      EXRETURN ;
    }
 
    vin = dc->visual_info ;
@@ -1219,7 +1225,7 @@ void reload_DC_colordef( MCW_DC * dc )
          if( count == 1 ){ /* colormap is all black?! */
             free(xcol) ; FREE_DC_colordef(cd) ;
             fprintf(stderr,"reload_DC_colordef: colormap is all black?\n") ;
-            return ;
+            EXRETURN ;
          }
 
          cd->ncolors = count ;
@@ -1227,7 +1233,7 @@ void reload_DC_colordef( MCW_DC * dc )
 
       FREE_DC_colordef(dc->cdef) ;  /* if already present, kill it */
 
-      free(xcol) ; dc->cdef = cd ; return ;
+      free(xcol) ; dc->cdef = cd ; EXRETURN ;
    }
 
    /*--- TrueColor case ---*/
@@ -1273,7 +1279,7 @@ void reload_DC_colordef( MCW_DC * dc )
 
       FREE_DC_colordef(dc->cdef) ;  /* if already present, kill it */
 
-      dc->cdef = cd ; return ;
+      dc->cdef = cd ; EXRETURN ;
    }
 
    /*--- Illegal Visual class! [do nothing]---*/
@@ -1285,7 +1291,7 @@ void reload_DC_colordef( MCW_DC * dc )
    fprintf(stderr,"reload_DC_colordef: illegal Visual class %s\n",
                   x11_vcl[vin->class] ) ;
 #endif
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------

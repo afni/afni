@@ -36,28 +36,30 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
    int itemp[IFILL_DIM] , ii ;
    float ftemp[FFILL_DIM] ;
 
+ENTRY("THD_write_3dim_dataset") ;
+
    /*-- sanity checks --*/
 
    if( ! ISVALID_3DIM_DATASET(dset)    ||
        ! ISVALID_DATABLOCK(dset->dblk) ||
-       ! ISVALID_DISKPTR(dset->dblk->diskptr) ) return False ;
+       ! ISVALID_DISKPTR(dset->dblk->diskptr) ) RETURN(False) ;
 
    /* Can only write AFNI formatted datasets */
 
-   if( DSET_IS_MINC(dset)     ) return False ;  /* 29 Oct 2001 */
-   if( DSET_IS_MASTERED(dset) ) return False ;  /* 11 Jan 1999 */
-   if( DSET_IS_ANALYZE(dset)  ) return False ;  /* 27 Aug 2002 */
-   if( DSET_IS_NIFTI(dset)    ) return False ;  /* 28 Aug 2003 */
-   if( DSET_IS_CTFMRI(dset)   ) return False ;  /* 05 Dec 2002 */
-   if( DSET_IS_CTFSAM(dset)   ) return False ;  /* 05 Dec 2002 */
+   if( DSET_IS_MINC(dset)     ) RETURN(False) ;  /* 29 Oct 2001 */
+   if( DSET_IS_MASTERED(dset) ) RETURN(False) ;  /* 11 Jan 1999 */
+   if( DSET_IS_ANALYZE(dset)  ) RETURN(False) ;  /* 27 Aug 2002 */
+   if( DSET_IS_NIFTI(dset)    ) RETURN(False) ;  /* 28 Aug 2003 */
+   if( DSET_IS_CTFMRI(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
+   if( DSET_IS_CTFSAM(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
 
-   if( DSET_IS_VOLUMES(dset) && write_brick ) return False ;  /* 20 Jun 2002 */
+   if( DSET_IS_VOLUMES(dset) && write_brick ) RETURN(False) ;  /* 20 Jun 2002 */
 
    if( DSET_IS_1D(dset) ||
        ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 ) ){            /* 04 Mar 2003 */
 
      THD_write_1D( new_sessname , new_prefixname , dset ) ;
-     return True ;
+     RETURN(True) ;
    }
 
    blk = dset->dblk ; daxes = dset->daxes ;  /* always used fixed daxes */
@@ -361,10 +363,10 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 #undef TF
 
    if( DSET_IS_3D(dset) || use_3D_format ){                   /* 21 Mar 2003 */
-     THD_write_3D( NULL, NULL, dset ) ; return True ;
+     THD_write_3D( NULL, NULL, dset ) ; RETURN(True) ;
    }
 
    /*----- write datablock to disk -----*/
 
-   return THD_write_datablock( blk , write_brick ) ;
+   RETURN( THD_write_datablock(blk,write_brick) ) ;
 }
