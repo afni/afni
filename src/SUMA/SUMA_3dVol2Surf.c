@@ -1,5 +1,5 @@
 
-#define VERSION "version  6.1 (Sep 02, 2004)"
+#define VERSION "version  6.2 (Sep 14, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -37,6 +37,7 @@
  * 	-f_pn_mm    DISTANCE
  * 	-f_p1_fr    FRACTION
  * 	-f_pn_fr    FRACTION
+ * 	-gp_index   INDEX
  * 	-oob_index  INDEX
  * 	-oob_value  VALUE
  * 	-oom_value  VALUE
@@ -198,6 +199,9 @@ static char g_history[] =
     "6.1  September 2, 2004  [rickr]\n"
     "  - library organizing: moved v2s_map_type() to vol2surf.c\n"
     "  - moved gv2s_map_names to vol2surf.c, and externs to vol2surf.h\n"
+    "\n"
+    "6.2  September 14, 2004  [rickr]\n"
+    "  - added -gp_index option, mostly to use in plugin interface\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -848,6 +852,7 @@ ENTRY("set_smap_opts");
 
     /* set defaults before checking map type */
 
+    sopt->gp_index      = opts->gp_index;
     sopt->debug         = opts->debug;
     sopt->dnode         = opts->dnode;
     sopt->no_head       = opts->no_head;
@@ -1095,6 +1100,7 @@ ENTRY("init_options");
     opts->snames[1]    = NULL;
     opts->f_index_str  = NULL;
 
+    opts->gp_index     = -1;		/* means none: use all       */
     opts->norm_len     = 1.0;		/* init to 1.0 millimeter    */
     opts->dnode        = -1;		/* init to something invalid */
 
@@ -1225,6 +1231,17 @@ ENTRY("init_options");
 	    }
 
 	    opts->first_node = atoi(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-gp_index", 7) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -gp_index BRICK_INDEX\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+
+	    opts->gp_index = atoi(argv[++ac]);
 	}
 	else if ( ! strncmp(argv[ac], "-help", 5) )
 	{
@@ -1616,6 +1633,12 @@ ENTRY("validate_datasets");
 	fprintf(stderr,
 		"** failure: cannot deal with complex-valued dataset, '%s'\n",
 		opts->gpar_file);
+	RETURN(-1);
+    }
+    else if ( opts->gp_index >= DSET_NVALS(p->gpar) )
+    {
+	fprintf(stderr,"** error: gp_index (%d) > max grid parent index (%d)\n",
+		opts->gp_index, DSET_NVALS(p->gpar)-1);
 	RETURN(-1);
     }
 
@@ -2275,6 +2298,18 @@ ENTRY("usage");
             "        This option is used to print out status information \n"
             "        for node NODE_NUM.\n"
             "\n"
+            "    -gp_index SUB_BRICK    : choose grid_parent sub-brick\n"
+            "\n"
+            "        e.g. -gp_index 3\n"
+            "\n"
+            "        This option allows the user to choose only a single\n"
+            "        sub-brick from the grid_parent dataset for computation.\n"
+            "        Note that this option is virtually useless when using\n"
+            "        the command-line, as the user can more directly do this\n"
+            "        via brick selectors, e.g. func+orig'[3]'.\n"
+            "        \n"
+            "        This option was written for the afni interface.\n"
+            "\n"
             "    -help                  : show this help\n"
             "\n"
             "        If you can't get help here, please get help somewhere.\n"
@@ -2598,7 +2633,7 @@ ENTRY("disp_opts_t");
 	    "    cmask_cmd             = %s\n"
 	    "    map_str               = %s\n"
 	    "    snames[0,1]           = %s, %s\n"
-	    "    no_head               = %d\n"
+	    "    gp_index, no_head     = %d, %d\n"
 	    "    first_node, last_node = %d, %d\n"
 	    "    use_norms, norm_len   = %d, %f\n"
 	    "    keep_norm_dir         = %d\n"
@@ -2613,9 +2648,9 @@ ENTRY("disp_opts_t");
 	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
 	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
 	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
-	    opts->no_head, opts->first_node, opts->last_node, opts->use_norms,
-	    opts->norm_len, opts->keep_norm_dir, opts->debug, opts->dnode,
-	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
+	    opts->gp_index, opts->no_head, opts->first_node, opts->last_node,
+	    opts->use_norms, opts->norm_len, opts->keep_norm_dir, opts->debug,
+	    opts->dnode, CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
 
