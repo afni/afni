@@ -1788,7 +1788,7 @@ void MCW_choose_string( Widget wpar , char * label ,
 
                  XmNcolumns         , ncol ,
                  XmNeditable        , True ,
-                 XmNmaxLength       , ncol+4 ,
+                 XmNmaxLength       , ncol+64 ,
                  XmNresizeWidth     , False ,
 
                  XmNmarginHeight    , 1 ,

@@ -95,6 +95,11 @@ typedef struct {
 #define MEMPLOT_NAME         MEMPLOT_IDENT
 #define MEMPLOT_ASPECT(name) ((name)->aspect)                 /* aspect ratio */
 
+ /*-- thickness codes < 0 are special instructions --*/
+
+#define THCODE_RECT       1  /* 21 Mar 2001: rectangle from (x1,y1)..(x2,y2) */
+#define THCODE_INVALID  666
+
 /* convert (r,g,b) in [0,1]**3 into a single number, and vice-versa */
 /* acronyms: ZO == Zero-to-One;  TFS == initials of 256 spelled out */
 
@@ -139,6 +144,7 @@ extern void           set_color_memplot( float , float , float ) ;
 extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
 extern int            nline_active_memplot(void) ;
+extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
 
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
@@ -241,6 +247,7 @@ extern int  ps_openpl( char * ) ;                          /* open plot file  */
 extern void ps_closepl( void ) ;                           /* close plot file */
 extern void ps_setrgb( float , float , float ) ;           /* set color */
 extern void ps_setwidth( float ) ;                         /* set linewidth */
+extern void ps_rect( int,int,int,int) ;                    /* filled rectangle */
 
 /*-- routines from PLOTPAK, after running through f2c --*/
 

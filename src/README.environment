@@ -244,17 +244,23 @@ DONT_USE_HINTS in machdep.h and recompiling AFNI.  They can also
 be disabled at runtime by setting AFNI_HINTS to "KILL".
 
 -------------------------
-Variable: AFNI_COMPRESSOR
+Variable: AFNI_COMPRESSOR (cf. AFNI_AUTOGZIP)
 -------------------------
-This variable is used to control automatic compression of .BRIK
-files on output.  The legal values are "COMPRESS", "GZIP", and
-"BZIP2".  If AFNI_COMPRESSOR is equal to one of these, then
-all AFNI programs will automatically pass .BRIK data through the
-appropriate compression program as it is written to disk.  Note
-that this will slow down dataset write operations.  Note also
-that compressed datasets cannot be mapped directly from disk
-into memory ('mmap'), but must occupy actual memory (RAM).
-For more details, see file README.compression.
+This variable is used to control automatic compression of .BRIK files on
+output.  The legal values are "COMPRESS", "GZIP", and "BZIP2", which
+respectively invoke programs "compress", "gzip", and "bzip2" (the program
+must be in your path for compression to work).  If AFNI_COMPRESSOR is
+equal to one of these, then all AFNI programs will automatically pass
+.BRIK data through the appropriate compression program as it is written
+to disk.  Note that this will slow down dataset write operations.  Note
+also that compressed datasets cannot be mapped directly from disk into
+memory ('mmap'), but must occupy actual memory (RAM) and swap space.  For
+more details, see file README.compression.
+
+Note that compressed (.BRIK.Z, .BRIK.gz, and .BRIK.bz2) datasets will
+automatically be uncompressed on input, no matter what the setting of
+this variable.  AFNI_COMPRESSOR only controls how the datasets are
+written.
 
 ------------------------
 Variable: AFNI_BYTEORDER
@@ -706,7 +712,8 @@ You must have permission to write into this directory.  If you want to
 use the current directory, setting TMPDIR to "." would work.  If TMPDIR
 is not defined, directory /tmp will be used.  On some systems, this
 directory may not have enough space for the creation of large temporary
-datasets.
+datasets.  On most Unix systems, you can tell the size of various disk
+partitions using a command like "df -k" (on HPUX, "bdf" works).
 
 ----------------------------
 Variable: AFNI_GRAYSCALE_BOT
@@ -753,7 +760,7 @@ be chosen randomly for display when the splash window is popped up.
 [1] If you set AFNI_SPLASH_OVERRIDE to Yes, then one of your PGMFILE
     images will be popped up instead of the "AFNI rocks" default image
     when AFNI first starts.
-[2] In fact, your PGMFILE images can be color (PPM format), if they
+[2] In fact, your PGMFILE images can be color (PPM format), IF they
     are exactly 436 pixels wide and 140 deep.
 
 ------------------------
@@ -796,15 +803,14 @@ A sample layout file:
 
 Each window to be opened has a separate command line in this file.
 The "geom=" qualifiers specify the size and position of the windows.
-For images, "ifrac=" can be used to specify the fraction of the
-window occupied by the image (if "ifrac=1.0", then no control widgets
-will be visible).  For graphs, "matrix=" can be used to control the
-initial number of sub-graphs displayed.  For plugins, the label on
-the button that starts the plugin is used after the ".plugin."
-string (blanks should be filled with underscores "_").  In the
-example above, the last two windows to be opened do not have a
-"geom=" qualifier, so their placement will be chosen by the
-window manager.
+For images, "ifrac=" can be used to specify the fraction of the window
+occupied by the image (if "ifrac=1.0", then no control widgets will be
+visible).  For graphs, "matrix=" can be used to control the initial
+number of sub-graphs displayed.  For plugins, the label on the button
+that starts the plugin is used after the ".plugin." string (blanks
+should be filled with underscores "_").  In the example above, the last
+two windows to be opened do not have a "geom=" qualifier, so their
+placement will be chosen by the window manager.
 
 If you add "slow" after the "***LAYOUT", then each window operation
 will be paused for 1 second to let you watch the layout operations
@@ -812,7 +818,7 @@ proceed gradually.  Otherwise, they will be executed as fast as
 possible (which still may not be all that fast).
 
 Using layouts with a window manager that requires user placement
-of new windows (e.g., twm) is a futile exercise.
+of new windows (e.g., twm) is a futile and frustrating exercise.
 
 --------------------------
 Variables: AFNI_REALTIME_*
@@ -861,8 +867,8 @@ AFNI_REALTIME_volreg_maxite      = an integer >= 1 [default = 9]
 AFNI_REALTIME_volreg_maxite_est  = an integer >= 1 [default = 1]
 AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 
-For more information about how the realtime plugin works, read the
-file README.realtime.
+For more information about how the realtime plugin works, read the file
+README.realtime.
 
 ----------------------------------
 Variable: AFNI_PLUGINS_ALPHABETIZE
@@ -901,9 +907,10 @@ N.B.: You can't set this variable in .afnirc and expect it to have
       the environment BEFORE the .afnirc file is read in.
 
 N.B.: At this moment (26 Jan 2001), only the AFNI program itself is
-      configured for tracing.  As time goes, the entire AFNI programming
-      library and suite of programs will be revamped for this purpose.
-      The goal is to make it easier to find bugs, and localize crashes.
+      configured for tracing.  As time goes on, the entire AFNI
+      programming library and suite of programs will be revamped for
+      this purpose.  The goal is to make it easier to find bugs, and
+      localize crashes.
 
 ------------------------
 Variable: AFNI_ROTA_ZPAD
@@ -914,7 +921,9 @@ options of these programs.  If zero-padding is used, then this many voxels
 are padded out on each edge (all 6 faces) of a 3D brick before rotation.
 After the rotation, these perimeter values (whatever they might be) will
 be stripped off.  If "-zpad" is used on the command line, it overrides
-this value.
+this value.  Zero padding during rotation is useful to avoid edge effects,
+the worst of which is the loss of data off the edge of the volume during
+the 4 shearing stages.
 
 ------------------------
 Variable: AFNI_TO3D_ZPAD

@@ -633,6 +633,9 @@ extern double lnbeta         ( double , double ) ;
 extern double incbeta        ( double , double , double , double ) ;
 extern double incbeta_inverse( double , double , double , double ) ;
 extern double qginv          ( double ) ;
+extern double qg             ( double ) ;     /* 21 Mar 2001 */
+extern double log10qg        ( double ) ;
+#define QG(x) (0.5*erfc(x/1.414213562373095))
 
 #define erfcinv(y) (0.70710678*qginv(0.5*y))  /* 07 Oct 1999 */
 

@@ -7,6 +7,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
+static int allow_nodata = 0 ;  /* 23 Mar 2001 */
+
+void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
+
 /*-------------------------------------------------------------------
    given a datablock, make it into a 3D dataset if possible
 ---------------------------------------------------------------------*/
@@ -497,12 +501,12 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
       if( strlen(dset->warp_parent_name) <= 0 && ISZERO_IDCODE(dset->warp_parent_idcode) )
          DSET_ERR("have warp but have no warp parent") ;
 
-      dset->wod_flag = ! DSET_ONDISK(dset) ;
+      dset->wod_flag = !allow_nodata && !DSET_ONDISK(dset) ;
    } else {
       if( strlen(dset->warp_parent_name) > 0 || ! ISZERO_IDCODE(dset->warp_parent_idcode) )
          DSET_ERR("have no warp but have warp parent") ;
 
-      if( ! DSET_ONDISK(dset) )
+      if( !allow_nodata && !DSET_ONDISK(dset) )
          DSET_ERR("have no warp but have no data on disk as well") ;
    }
 

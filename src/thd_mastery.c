@@ -31,6 +31,15 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
        (ii=strlen(pathname)) == 0  ||
        pathname[ii-1]        == '/'  ) return NULL ;
 
+   /*-- 23 Mar 2001: perhaps get from across the Web --*/
+
+   if( strncmp(pathname,"http://",7) == 0 ||
+       strncmp(pathname,"ftp://" ,6) == 0   ){
+
+      dset = THD_fetch_dataset( pathname ) ;
+      return dset ;
+   }
+
    /*-- 17 Mar 2000: check if this is a 3dcalc() run --*/
 
    if( strncmp(pathname,"3dcalc(",7)  == 0 ){

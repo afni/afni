@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -45,6 +45,9 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
       new_type = DATABLOCK_MEM_MALLOC ;
 
    if( no_mmap )
+      new_type = DATABLOCK_MEM_MALLOC ;
+
+   if( DBLK_LOCKED(blk) )                /* 22 Mar 2001 */
       new_type = DATABLOCK_MEM_MALLOC ;
 
    if( blk->malloc_type == new_type ) return ;

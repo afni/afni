@@ -35,7 +35,10 @@ static char helpstring[] =
    "          Top       = max value from mask dataset to use\n"
    "          [if Bottom >  Top, then all nonzero mask voxels will be used; ]\n"
    "          [if Bottom <= Top, then only nonzero mask voxels in this range]\n"
-   "          [                  will be used in computing the statistics.  ]\n\n"
+   "          [                  will be used in computing the statistics.  ]\n"
+   " Aboot:   If activated, then only voxels within a distance of Radius mm\n"
+   "          of the current crosshairs will be used in the histogram.\n"
+   "\n"
    " Author -- RW Cox - 30 September 1999\n"
 ;
 
@@ -100,6 +103,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_number( plint , "Bottom" , -99999,99999, 0,  1,1 ) ;
    PLUTO_add_number( plint , "Top"    , -99999,99999, 0, -1,1 ) ;
 
+   /*-- sixth line of input [20 Mar 2001] --*/
+
+   PLUTO_add_option( plint , "Aboot" , "Aboot" , FALSE ) ;
+   PLUTO_add_number( plint , "Radius" , 2,100,0,10,1 ) ;
+
    return plint ;
 }
 
@@ -124,6 +132,7 @@ char * HISTO_main( PLUGIN_interface * plint )
    int miv=0 ;
 
    int maxcount=0 ; /* 01 Mar 2001 */
+   float hrad=0.0 ; /* 20 Mar 2001 */
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -220,6 +229,13 @@ char * HISTO_main( PLUGIN_interface * plint )
                    "************************************"  ;
          continue ;
       }
+
+      /*-- 20 Mar 2001: Aboot --*/
+
+      if( strcmp(tag,"Aboot") == 0 ){
+         hrad = PLUTO_get_number(plint) ;
+         continue ;
+      }
    }
 
    /*------------------------------------------------------*/
@@ -248,6 +264,52 @@ char * HISTO_main( PLUGIN_interface * plint )
                   " %d voxels in the mask\n"
                   " out of %d dataset voxels\n ",mcount,nvox) ;
       PLUTO_popup_transient(plint,buf) ;
+   }
+
+   /*-- 20 Mar 2001: modify mask via Aboot Radius, if present --*/
+
+   if( hrad > 0.0 ){
+      MCW_cluster * cl ;
+      short *di,*dj,*dk ;
+      int nd , xx,yy,zz , dd , nx,ny,nz,nxy, nx1,ny1,nz1 , ip,jp,kp ;
+
+      cl = MCW_build_mask( 0,0,0 , fabs(DSET_DX(input_dset)) ,
+                                   fabs(DSET_DY(input_dset)) ,
+                                   fabs(DSET_DZ(input_dset)) , hrad ) ;
+
+      if( cl == NULL || cl->num_pt < 6 ){
+         KILL_CLUSTER(cl);
+         PLUTO_popup_transient(plint, " \n"
+                                      " Aboot Radius too small\n"
+                                      " for this dataset!\n"     ) ;
+      } else {
+         ADDTO_CLUSTER(cl,0,0,0,0) ;
+         di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
+         nx = DSET_NX(input_dset) ; nx1 = nx-1 ;
+         ny = DSET_NY(input_dset) ; ny1 = ny-1 ; nxy  = nx*ny ;
+         nz = DSET_NZ(input_dset) ; nz1 = nz-1 ;
+         xx = plint->im3d->vinfo->i1 ;
+         yy = plint->im3d->vinfo->j2 ;
+         zz = plint->im3d->vinfo->k3 ;
+         for( dd=0 ; dd < nd ; dd++ ){
+            ip = xx+di[dd] ; if( ip < 0 || ip > nx1 ) continue ;
+            jp = yy+dj[dd] ; if( jp < 0 || jp > ny1 ) continue ;
+            kp = zz+dk[dd] ; if( kp < 0 || kp > nz1 ) continue ;
+            mmm[ip+jp*nx+kp*nxy]++ ;
+         }
+         KILL_CLUSTER(cl) ;
+         for( dd=0 ; dd < nvox ; dd++ ) if( mmm[dd] == 1 ) mmm[dd] = 0 ;
+         mcount = THD_countmask( nvox , mmm ) ;
+
+         if( mcount < 3 ){
+            free(mmm) ;
+            return " \n*** Less than 3 voxels survive the mask+radius! ***\n" ;
+         }
+         sprintf(buf," \n"
+                     " %d voxels in the mask+radius\n"
+                     " out of %d dataset voxels\n ",mcount,nvox) ;
+         PLUTO_popup_transient(plint,buf) ;
+      }
    }
 
    /*-- allocate an array to histogrammatize --*/

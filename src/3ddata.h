@@ -115,17 +115,22 @@ typedef struct {                 /* for "registered" functions */
 
 /*********************** dynamic array of XtPointers **********************/
 
+#define IC_DSET 44301
+#define IC_FLIM 55402
+
 typedef struct {
       int num , nall ;
       XtPointer * ar ;
+      int * ic ;         /* added 26 Mar 2001 */
 } XtPointer_array ;
 
 #define INC_XTARR 8
 
-#define INIT_XTARR(name)              \
+#define INIT_XTARR(name)               \
    ( (name) = XtNew(XtPointer_array) , \
-     (name)->num = (name)->nall = 0 ,   \
-     (name)->ar  = NULL )
+     (name)->num = (name)->nall = 0 ,  \
+     (name)->ar  = NULL ,              \
+     (name)->ic  = NULL   )
 
 #define ADDTO_XTARR(name,bblk)                                 \
    { if( (name)->num == (name)->nall ){                        \
@@ -133,15 +138,23 @@ typedef struct {
       (name)->ar    = (XtPointer *)                            \
                        XtRealloc( (char *) (name)->ar ,        \
                           sizeof(XtPointer) * (name)->nall ) ; \
+      (name)->ic    = (int *) XtRealloc( (char *) (name)->ic , \
+                          sizeof(int) * (name)->nall ) ;       \
      }                                                         \
      if( (XtPointer) (bblk) != NULL ){               \
       (name)->ar[(name)->num] = (XtPointer) (bblk) ; \
+      (name)->ic[(name)->num] = 0                  ; \
       ((name)->num)++ ;                              \
      } }
+
+#define XTARR_NUM(name)  ((name)->num)
+#define XTARR_XT(name,i) ((name)->ar[i])
+#define XTARR_IC(name,i) ((name)->ic[i])
 
 #define FREE_XTARR(name)      \
    if( (name) != NULL ){      \
      myXtFree( (name)->ar ) ; \
+     myXtFree( (name)->ic ) ; \
      myXtFree( (name) ) ;     \
      (name) = NULL ; }
 
@@ -820,8 +833,10 @@ typedef struct {
 #define DBLK_IS_MMAP(db)    ((db)->malloc_type == DATABLOCK_MEM_MMAP)
 
 #define DBLK_lock(db)   ((db)->locked = 1)
-#define DBLK_unlock(db) ((db)->locked = 0)
+#define DBLK_unlock(db) ((db)->locked = ((db)->locked<2) ? 0 : 2)
 #define DBLK_LOCKED(db) ((db)->locked)
+
+#define DBLK_superlock(db) ((db)->locked = 2)  /* 22 Mar 2001: cannot be unlocked */
 
 #define DBLK_IS_MASTERED(db) \
   ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
@@ -845,6 +860,7 @@ extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 extern int  THD_string_has( char * , char * ) ;
 
 #define ISVALID_DATABLOCK(bk) ( (bk) != NULL && (bk)->type == DATABLOCK_TYPE )
+#define ISVALID_DBLK           ISVALID_DATABLOCK  /* 26 Mar 2001 */
 
 /*------------- a dynamic array type for datablocks --------------*/
 
@@ -1631,6 +1647,9 @@ typedef struct THD_3dim_dataset {
 #define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                           (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
+#define DSET_WRITEABLE(ds)                                                    \
+ ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) && (ds)->warp_parent != NULL )
+
 #define DSET_COMPRESSED(ds)                  \
    ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
      (ds)->dblk->diskptr != NULL          && \
@@ -1859,6 +1878,8 @@ static char tmp_dblab[8] ;
 #define DSET_mallocize(ds) DBLK_mallocize((ds)->dblk)
 #define DSET_mmapize(ds)   DBLK_mmapize((ds)->dblk)
 #define DSET_anyize(ds)    DBLK_anyize((ds)->dblk)
+
+#define DSET_superlock(ds) DBLK_superlock((ds)->dblk)  /* 22 Mar 2001 */
 
 #define DSET_IS_MALLOC(ds)  DBLK_IS_MALLOC((ds)->dblk)
 #define DSET_IS_MMAP(ds)    DBLK_IS_MMAP((ds)->dblk)
@@ -2163,6 +2184,10 @@ extern THD_session * THD_init_session( char * ) ;
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 
+extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
+extern XtPointer_array *  THD_fetch_many_datasets(char *);
+extern MRI_IMAGE *        THD_fetch_1D           (char *); /* 26 Mar 2001 */
+
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
@@ -2240,6 +2265,7 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
+extern void THD_allow_empty_dataset( int ) ; /* 23 Mar 2001 */
 extern THD_3dim_dataset_array *
    THD_array_3dim_from_block( THD_datablock_array * blk_arr ) ;
 

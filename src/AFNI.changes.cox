@@ -2707,3 +2707,36 @@
      or float cases didn't have break statements, so it would be
      put twice, which is real bad (i.e., segment fault).
  * Added Linear Fillin to plug_drawdset.c.
+
+20 Mar 2001
+ * Added 3dDeconvolve.c update from Doug Ward.
+ * Modified plug_histog.c to add "Aboot" feature.
+
+21 Mar 2001
+ * Modified coxplot to draw filled rectangles when thickness is set
+     to -1.0.  Files affected are coxplot.h, plot_cox.c, plot_ps.c,
+     plot_ps2.c, and plot_x11.c.
+ * Added program 1dgrayplot.c to plot timeseries files (vertically)
+     in grayscale, a la SPM.
+ * Modified afni_plugin.c to remove the MCW_TIMER_KILL from the
+     ButtonPress frivolity in image popups.  Also, hid this stuff
+     behind the NO_FRIVOLITIES macro and NO_frivolities global variable.
+ * Added program 3dToutcount.c to count outliers at each time point in
+     a 3D+time dataset (idea from Bill Eddy).
+
+22 Mar 2001
+ * Added -save option to 3dToutcount.c, to leave markers of outliers
+     behind.
+ * Added script moveAFNI to install changed files from afni98.tgz into
+     the current directory.
+
+23 Mar 2001
+ * Added thd_fetchdset.c, to get a dataset from a Web link.  This is
+     called from THD_open_dataset() in thd_mastery.c.  Thus, you can
+     now do something like
+       afni -dset http://some.place/dir/anat+orig
+     and see the dataset!
+
+26 Mar 2001
+ * Modified afni_func.c, afni_widg.c to add a "Read Web" button.
+ * Modified thd_fetchdset.c to allow fetch of *.1D files as well.

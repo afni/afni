@@ -3413,13 +3413,39 @@ STATUS("making dmode->rowcol") ;
    MCW_register_hint( dmode->read_1D_pb ,
                       "Read in a new time series file" ) ;
 
+   /*-- pushbutton for Web input --*/
+
+   dmode->read_Web_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , dmode->read_rowcol ,
+            LABEL_ARG("Web ") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( dmode->read_Web_pb , XmNactivateCallback ,
+                  AFNI_read_Web_CB , im3d ) ;
+
+   MCW_register_hint( dmode->read_Web_pb ,
+                      "Read dataset via http:// or ftp://" ) ;
+
    MCW_reghelp_children( dmode->read_rowcol ,
          "The purpose of the `Read' buttons is to read\n"
          "in new data.  (The `Rescan' buttons are to\n"
          "re-read data from old directories.)\n"
          "\n"
-         "Sess --> Read a new session directory.\n"
-         "1D   --> Read a new timeseries file."
+         "Sess --> Read a new session directory.\n\n"
+         "1D   --> Read a new timeseries file.\n\n"
+         "Web  --> Read datasets from the Web:\n"
+         "   e.g., http://some.place/dir/anat+orig\n"
+         "         ftp://some.place/dir/func+orig\n"
+         "   or    http://some.place/dir/AFNILIST\n"
+         "   where AFNILIST is a text file with one\n"
+         "         dataset name per line (will be\n"
+         "         fetched from same Web directory;\n"
+         "         do NOT put ftp:// or http:// in\n"
+         "         the AFNILIST file!)."
       ) ;
 
    /*---- 04 Nov 1996: a place to put menubars ----*/

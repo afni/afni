@@ -13,7 +13,7 @@
 #define METH_SIGMA  2
 #define METH_CVAR   3
 
-#define METH_MEDIAN 4   /* 14 Feb 2000 */
+#define METH_MEDIAN 4   /* 14 Feb 2001 */
 #define METH_MAD    5
 
 #define METH_MAX    6

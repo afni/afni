@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 
 #include "afni.h"
@@ -2413,6 +2413,143 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------
+   26 Mar 2001: read a dataset from the Web
+----------------------------------------------------------------------*/
+
+void AFNI_read_Web_CB( Widget w, XtPointer cd, XtPointer cb )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   XmString xstr ;
+
+ENTRY("AFNI_read_Web_CB") ;
+
+   MCW_choose_string( w , "http:// or ftp:// address of dataset (or AFNILIST):" ,
+                      NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_finalize_read_Web_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   THD_3dim_dataset * dset ;
+   XtPointer_array * dsar ;
+   THD_session * ss = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;
+   char str[256] ;
+   int nds,dd,vv , nn, na=-1,nf=-1 ,nts ;
+
+ENTRY("AFNI_finalize_read_Web_CB") ;
+
+   if( cbs->reason  != mcwCR_string ||
+       cbs->cval    == NULL         ||
+       cbs->cval[0] == '\0'         ||
+       (strstr(cbs->cval,"http://")==NULL && strstr(cbs->cval,"ftp://")==NULL) ){
+
+      (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                  " \n** Illegal URL **\n " ,
+                                MCW_USER_KILL | MCW_TIMER_KILL      ) ;
+
+      XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
+   }
+
+   /** read a list of datasets? **/
+
+   if( strstr(cbs->cval,"AFNILIST") != NULL ){
+
+      SHOW_AFNI_PAUSE ;
+      dsar = THD_fetch_many_datasets( cbs->cval ) ; /* get array of datasets */
+      SHOW_AFNI_READY ;
+      if( dsar == NULL || dsar->num == 0 ){
+         (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                     " \n"
+                                     "** Can't get datasets **\n"
+                                     "** from that URL!     **\n " ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL      ) ;
+         XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
+      }
+
+   } else {  /** read one dataset **/
+
+      SHOW_AFNI_PAUSE ;
+      dset = THD_fetch_dataset( cbs->cval ) ;
+      SHOW_AFNI_READY ;
+      if( dset == NULL ){
+         (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                     " \n"
+                                     "** Can't get a dataset **\n"
+                                     "** from that URL!      **\n " ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL      ) ;
+         XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
+      }
+      INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ; XTARR_IC(dsar,0) = IC_DSET ;
+   }
+
+   /** loop over all datasets in array, place in current session **/
+
+   for( nts=nds=dd=0 ; dd < dsar->num ; dd++ ){
+
+      if( XTARR_IC(dsar,dd) == IC_FLIM ){  /* process a 1D file */
+         AFNI_add_timeseries( (MRI_IMAGE *) XTARR_XT(dsar,dd) ) ;
+         nts++ ; continue ;
+      }
+      if( XTARR_IC(dsar,dd) != IC_DSET ) continue ; /* bad */
+
+      dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
+      if( !ISVALID_DSET(dset) ) continue ; /* bad */
+      vv = dset->view_type ;
+      if( ISANAT(dset) ){
+         nn = ss->num_anat ;
+         if( nn >= THD_MAX_SESSION_ANAT ){
+            fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
+         } else {
+            ss->anat[nn][vv] = dset ;
+            ss->num_anat++ ; nds++ ;
+            if( vv == im3d->vinfo->view_type && na == -1 ) na = nn ;
+         }
+      } else if( ISFUNC(dset) ){
+         nn = ss->num_func ;
+         if( nn >= THD_MAX_SESSION_FUNC ){
+            fprintf(stderr,"\a\n*** too many functional datasets!\n") ;
+         } else {
+            ss->func[nn][vv] = dset ;
+            ss->num_func++ ; nds++ ;
+            if( vv == im3d->vinfo->view_type && nf == -1 ) nf = nn ;
+         }
+      }
+   } /* end of loop over dd=datasets in dsar */
+
+   FREE_XTARR(dsar) ;
+
+   sprintf(str," \n Read %d datasets\n      %d timeseries from URL\n ",nds,nts) ;
+   (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                             str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+
+   if( nds == 0 ){ XBell( XtDisplay(w) , 100 ) ; EXRETURN ; }
+
+   if( na >= 0 ) im3d->vinfo->anat_num = na ;  /* 1st anat in current view */
+   if( nf >= 0 ) im3d->vinfo->func_num = nf ;  /* 1st func in current view */
+
+   if( GLOBAL_library.have_dummy_dataset ){
+      UNDUMMYIZE ;
+      if( na < 0 && ss->num_anat > 1 ){
+         im3d->vinfo->anat_num = 1 ;
+         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+            if( ISVALID_DSET(ss->anat[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
+         }
+      } else if( na < 0 ){
+         (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                   " \n** No Anat datasets available **\n " ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      }
+   }
+
+   AFNI_initialize_view( NULL , im3d ) ;
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------
    Obey the command to rescan the current session
 ------------------------------------------------------------------*/
@@ -2838,7 +2975,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       for( id=0 ; id < ss->num_anat ; id++ ){
          dset = ss->anat[id][vv] ;
-         if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
+         if( DSET_WRITEABLE(dset) ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
             tnam = THD_trailname(nam,SESSTRAIL+1) ;
@@ -2848,7 +2985,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       for( id=0 ; id < ss->num_func ; id++ ){
          dset = ss->func[id][vv] ;
-         if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
+         if( DSET_WRITEABLE(dset) ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
             tnam = THD_trailname(nam,SESSTRAIL+1) ;
@@ -2865,7 +3002,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       for( id=0 ; id < ss->num_anat ; id++ ){
          dset = ss->anat[id][vv] ;
-         if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
+         if( DSET_WRITEABLE(dset) ){
             num_dset++ ;
             idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
                                                 sizeof(MCW_idcode) * num_dset ) ;
@@ -2897,7 +3034,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
       for( id=0 ; id < ss->num_func ; id++ ){
          dset = ss->func[id][vv] ;
-         if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
+         if( DSET_WRITEABLE(dset) ){
             num_dset++ ;
             idclist = (MCW_idcode *) XtRealloc( (char *) idclist ,
                                                 sizeof(MCW_idcode) * num_dset ) ;
@@ -2991,7 +3128,7 @@ ENTRY("AFNI_do_many_writes") ;
 
    for( ib=0 ; ib < cbs->nilist ; ib++ ){
       dset = PLUTO_find_dset( idclist + cbs->ilist[ib] ) ;
-      if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
+      if( DSET_WRITEABLE(dset) ){
 
          fprintf(stderr,"-- writing dataset %s%s (%d of %d)\n" ,
                         dset->dblk->diskptr->directory_name ,
@@ -3099,7 +3236,7 @@ ENTRY("AFNI_write_dataset_CB") ;
           resam_mode <= LAST_RESAM_TYPE  &&
           im3d->vinfo->resam_vox > 0.0      ;
 
-   destroy = (dset->warp_parent == NULL) ;      /* check for destruction */
+   destroy = !DSET_WRITEABLE(dset) ;      /* check for destruction */
 
    if( good && destroy ){
       if( GLOBAL_argopt.destruct ){

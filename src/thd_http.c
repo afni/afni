@@ -6,6 +6,11 @@
 
 #include "thd_iochan.h"
 #include "afni_environ.h"
+#include "debugtrace.h"
+
+static int debug = 0 ;
+#define FAILED     if(debug)fprintf(stderr," **FAILED\n")
+#define DMESS(s,t) if(debug)fprintf(stderr,s,t)
 
 /*---------------------------------------------------------------------*/
 static char tmpdir[256] = "\0" ;
@@ -46,17 +51,23 @@ IOCHAN * open_URL_hpf( char * host , int port , char * file , int msec )
    if( host == NULL || port <= 0 || file == NULL ) return NULL ;
 
    sprintf(str,"tcp:%s:%d",host,port) ;
+   DMESS(" ++Opening %s",str);
    ioc = iochan_init( str , "create" ) ;
-   if( ioc == NULL ) return NULL ;
+   if( ioc == NULL ){ FAILED; return NULL; }
+   fprintf(stderr,".");
+   iochan_set_cutoff( ioc ) ;
+   fprintf(stderr,".");
    ii = iochan_writecheck( ioc , msec ) ;
-   if( ii <= 0 ){ IOCHAN_CLOSE(ioc) ; return NULL ; }
+   if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc) ; return NULL ; }
 
+   DMESS(" ++GET %s",file);
    sprintf(str,"GET %s\n",file) ;                     /* HTTP 0.9 */
    ii = iochan_sendall( ioc , str , strlen(str) ) ;
-   if( ii <= 0 ){ IOCHAN_CLOSE(ioc) ; return NULL ; }
+   if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc); return NULL; }
 
    ii = iochan_readcheck( ioc , msec ) ;
-   if( ii <= 0 ){ IOCHAN_CLOSE(ioc) ; return NULL ; }
+   if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc) ; return NULL ; }
+   DMESS("%s"," **OPENED");
    return ioc ;
 }
 
@@ -128,14 +139,16 @@ int read_URL_http( char * url , int msec , char ** data )
    int cflag , first ;
    FILE * cfile ;
 
+ENTRY("read_URL_http") ;
+
    /* sanity check */
 
-   if( url == NULL || data == NULL || msec < 0 ) return -1 ;
+   if( url == NULL || data == NULL || msec < 0 ) RETURN( -1 );
 
    /* open http channel to get url */
 
    ioc = open_URL_http( url , msec ) ;
-   if( ioc == NULL ) return -1 ;
+   if( ioc == NULL ){ DMESS("%s","\n"); RETURN( -1 ); }
 
    /* check if url will be returned gzip-ed */
 
@@ -157,7 +170,10 @@ int read_URL_http( char * url , int msec , char ** data )
          cflag = 0 ;
       }
 
-      if( cflag == 0 ){ IOCHAN_CLOSE(ioc) ; return -1 ; }
+      if( cflag == 0 ){
+         DMESS(" **Temp file %s FAILS\n",qname); IOCHAN_CLOSE(ioc); RETURN(-1);
+      }
+      DMESS(" ++Temp file=%s",qname);
    }
 
    /* read all of url */
@@ -166,6 +182,7 @@ int read_URL_http( char * url , int msec , char ** data )
    nuse = 0 ; first = 1 ;
 
    do{
+      if(debug)fprintf(stderr,".");
       ii = iochan_readcheck( ioc , msec ) ;  /* wait for data to be ready */
       if( ii <= 0 ) break ;                  /* quit if no data */
       ii = iochan_recv( ioc , qbuf , QBUF ) ;
@@ -179,7 +196,8 @@ int read_URL_http( char * url , int msec , char ** data )
          cpt = strstr(buf,"NOT FOUND") ;
          if( cpt != NULL ){
             if( cflag ){ fclose(cfile) ; unlink(qname) ; }
-            free(buf) ; IOCHAN_CLOSE(ioc) ; return -1 ;
+            DMESS("%s"," **NOT FOUND\n");
+            free(buf) ; IOCHAN_CLOSE(ioc) ; RETURN( -1 );
          }
          first = 0 ;
          if( cflag ){ free(buf) ; buf = NULL ; }
@@ -188,8 +206,9 @@ int read_URL_http( char * url , int msec , char ** data )
       if( cflag ){                           /* write to temp file */
          nall = fwrite( qbuf , 1 , ii , cfile ) ;
          if( nall != ii ){                   /* write failed? */
+            DMESS("\n** Write to temp file %s FAILED!\n",qname);
             fclose(cfile) ; unlink(qname) ;
-            IOCHAN_CLOSE(ioc) ; return -1 ;
+            IOCHAN_CLOSE(ioc) ; RETURN( -1 );
          }
       } else {                               /* save to buffer */
          if( nuse+ii > nall ){               /* enlarge buffer? */
@@ -207,8 +226,9 @@ int read_URL_http( char * url , int msec , char ** data )
    if( nuse <= 0 ){
       if( cflag ){ fclose(cfile) ; unlink(qname) ; }
       else       { free(buf) ; }
-      return -1 ;
+      FAILED; RETURN(-1);
    }
+   if(debug)fprintf(stderr,"!\n");
 
    /* uncompression time? */
 
@@ -216,13 +236,16 @@ int read_URL_http( char * url , int msec , char ** data )
       fclose(cfile) ;
       sprintf( qbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
       ii = system(qbuf) ;
-      if( ii != 0 ){ unlink(qname) ; return -1 ; }  /* gzip failed  */
+      if( ii != 0 ){ DMESS("%s"," **gzip failed!\n");
+                     unlink(qname) ; RETURN( -1 );   }  /* gzip failed  */
       ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
       nuse = THD_filesize( qname ) ;                /* find how big */
-      if( nuse <= 0 ){ unlink(qname) ; return -1 ; }
+      if( nuse <= 0 ){ DMESS("%s"," **gzip failed!\n");
+                       unlink(qname) ; RETURN( -1 );   }
 
       cfile = fopen( qname , "rb" ) ;
-      if( cfile == NULL ){ unlink(qname) ; return -1 ; }
+      if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
+                           unlink(qname) ; RETURN( -1 );   }
       buf = malloc(nuse) ;
       fread( buf , 1 , nuse , cfile ) ;             /* read file in */
       fclose(cfile) ; unlink(qname) ;
@@ -230,7 +253,7 @@ int read_URL_http( char * url , int msec , char ** data )
 
    /* data is in buf, nuse bytes of it */
 
-   *data = buf ; return nuse ;
+   DMESS("%s","\n"); *data = buf ; RETURN( nuse );
 }
 
 /*---------------------------------------------------------------------*/
@@ -262,16 +285,18 @@ int read_URL_ftp( char * url , char ** data )
    int port , ii , cflag , nuse ;
    FILE * sp ;
 
+ENTRY("read_URL_ftp") ;
+
    /* sanity check */
 
-   if( url == NULL || data == NULL || strstr(url,FTP) != url ) return -1 ;
+   if( url == NULL || data == NULL || strstr(url,FTP) != url ) RETURN( -1 );
 
    /* parse hostname */
 
    for( s=url+FTPLEN , h=hostname ;
         (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
 
-   *h = '\0' ; if( hostname[0] == '\0' ) return -1 ;
+   *h = '\0' ; if( hostname[0] == '\0' ) RETURN( -1 );
 
    /* parse port number, if present */
 
@@ -281,9 +306,9 @@ int read_URL_ftp( char * url , char ** data )
    /* get the file name (strip off leading "/") */
 
    if( *s == '/' ){
-      file = s+1 ; if( file[0] == '\0' ) return -1 ;
+      file = s+1 ; if( file[0] == '\0' ) RETURN( -1 );
    } else {
-                                         return -1 ;
+                                         RETURN( -1 );
    }
 
    /* check if file will be returned gzip-ed */
@@ -300,14 +325,14 @@ int read_URL_ftp( char * url , char ** data )
    setup_tmpdir() ;
    strcpy(qname,tmpdir) ; strcat(qname,"elvisXXXXXX") ;
    mktemp(qname) ;
-   if( qname[0] == '\0' ) return -1 ;
+   if( qname[0] == '\0' ) RETURN( -1 );
    if( cflag ) strcat(qname,".gz") ;
 
    /* write the script file that will be used to run ftp */
 
    strcpy(sname,tmpdir) ; strcat(sname,"dahmerXXXXXX") ;
-   mktemp(sname) ;             if( sname[0] == '\0' ) return -1 ;
-   sp = fopen( sname , "w" ) ; if( sp == NULL )       return -1 ;
+   mktemp(sname) ;             if( sname[0] == '\0' ) RETURN( -1 );
+   sp = fopen( sname , "w" ) ; if( sp == NULL )       RETURN( -1 );
 
    fprintf( sp , "#!/bin/sh\n" ) ;
    fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
@@ -331,31 +356,31 @@ int read_URL_ftp( char * url , char ** data )
    /* check the size of the output file */
 
    nuse = THD_filesize( qname ) ;
-   if( nuse <= 0 ){ unlink(qname) ; return -1 ; }
+   if( nuse <= 0 ){ unlink(qname) ; RETURN( -1 ); }
 
    /* uncompress the file, if needed */
 
    if( cflag ){
       sprintf( sname , "gzip -dq %s" , qname ) ;    /* execute gzip */
       ii = system(sname) ;
-      if( ii != 0 ){ unlink(qname) ; return -1 ; }  /* gzip failed  */
+      if( ii != 0 ){ unlink(qname) ; RETURN( -1 ); }  /* gzip failed  */
       ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
       nuse = THD_filesize( qname ) ;                /* find how big */
-      if( nuse <= 0 ){ unlink(qname) ; return -1 ; }
+      if( nuse <= 0 ){ unlink(qname) ; RETURN( -1 ); }
    }
 
    /* suck the file into memory */
 
    sp = fopen( qname , "rb" ) ;
-   if( sp == NULL ){ unlink(qname) ; return -1 ; }
-   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return -1 ; }
+   if( sp == NULL ){ unlink(qname) ; RETURN( -1 ); }
+   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; RETURN( -1 ); }
 
    fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
    fclose(sp) ; unlink(qname) ;
 
    /* data is in buf, nuse bytes of it */
 
-   *data = buf ; return nuse ;
+   *data = buf ; RETURN( nuse );
 }
 
 /*-------------------------------------------------------------------
@@ -366,15 +391,21 @@ int read_URL_ftp( char * url , char ** data )
 
 int read_URL( char * url , char ** data )
 {
-   if( url == NULL || data == NULL ) return -1 ;
+   int nn ;
+ENTRY("read_URL") ;
+   if( url == NULL || data == NULL ) RETURN( -1 );
 
-   if( strstr(url,HTTP) == url )
-      return read_URL_http( url , 5000 , data ) ;
+   if( getenv("AFNI_WWW_DEBUG") != NULL ) debug = 1 ;
 
-   else if( strstr(url,FTP) == url )
-      return read_URL_ftp( url , data ) ;
+   if( strstr(url,HTTP) == url ){
+      nn = read_URL_http( url , 4000 , data ) ; RETURN(nn) ;
+   }
 
-   return -1 ;
+   else if( strstr(url,FTP) == url ){
+      nn = read_URL_ftp( url , data ) ; RETURN(nn) ;
+   }
+
+   RETURN( -1 );
 }
 
 /*------------------------------------------------------------------
@@ -392,10 +423,12 @@ int read_URL_tmpdir( char * url , char ** tname )
    char * data , * fname , * tt ;
    FILE * fp ;
 
-   if( url == NULL || tname == NULL ) return -1 ;
+ENTRY("read_URL_tmpdir") ;
+
+   if( url == NULL || tname == NULL ) RETURN( -1 );
 
    nn = read_URL( url , &data ) ;  /* get the data into memory */
-   if( nn <= 0 ) return -1 ;       /* bad */
+   if( nn <= 0 ) RETURN( -1 );       /* bad */
 
    /* make the output filename */
 
@@ -410,10 +443,10 @@ int read_URL_tmpdir( char * url , char ** tname )
    fp = fopen( fname , "wb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"** Can't open temporary file %s\n",fname);
-      free(data) ; return -1 ;
+      free(data) ; RETURN( -1 );
    }
    ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
-   if( ll != nn ){ unlink(fname); return -1; } /* write failed */
+   if( ll != nn ){ unlink(fname); RETURN( -1 ); } /* write failed */
 
-   *tname = fname ; return nn ;
+   *tname = fname ; RETURN( nn );
 }

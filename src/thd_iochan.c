@@ -161,11 +161,14 @@ int tcp_recv( int s , void * buf , int len , unsigned int flags )
 
 void tcp_set_cutoff( int sd )
 {
-   struct linger lg ;
-   lg.l_onoff  = 1 ;
-   lg.l_linger = 0 ;
-   setsockopt(sd, SOL_SOCKET, SO_LINGER, (void *)&lg, sizeof(struct linger)) ;
-#if 0
+#if 1
+   { struct linger lg ;
+     lg.l_onoff  = 1 ;
+     lg.l_linger = 0 ;
+     setsockopt(sd, SOL_SOCKET, SO_LINGER, (void *)&lg, sizeof(struct linger)) ;
+   }
+#endif
+#if 1
    { int optval = 1;
      setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)) ;
    }

@@ -3103,12 +3103,15 @@ STATUS("making descendant datasets") ;
       int nds = argc - GLOBAL_argopt.first_file_arg ;
       char str[256] ;
       THD_3dim_dataset * dset ;
+      XtPointer_array * dsar ;
+      MRI_IMARR * webtsar ;        /* 26 Mar 2001 */
       THD_session * new_ss ;
-      int ii,nerr=0,vv,nn ;
+      int ii,nerr=0,vv,nn , dd ;
 
       if( nds <= 0 ){
          fprintf(stderr,"\a\n*** No datasets on command line?!\n"); exit(1);
       }
+      nds = 0 ;
 
       /* set up minuscule session and session list */
 
@@ -3128,13 +3131,52 @@ STATUS("making descendant datasets") ;
 
 STATUS("reading commandline dsets") ;
 
+      INIT_IMARR(webtsar) ; /* 26 Mar 2001 */
+
       for( ii=GLOBAL_argopt.first_file_arg ; ii < argc ; ii++ ){
-         dset = THD_open_dataset( argv[ii] ) ;
-         REFRESH ;
-         if( dset == NULL ){
-            fprintf(stderr,"\a\n*** Can't read dataset %s\n",argv[ii]) ;
-            nerr++ ;
-         } else {
+
+         /** 23 Mar 2001: modified code to deal with an array of
+                          datasets, rather than just one at a time **/
+
+         if( strstr(argv[ii],"://")      != NULL &&
+             strstr(argv[ii],"AFNILIST") != NULL   ){ /** 23 Mar 2001: read from Web list **/
+
+            dsar = THD_fetch_many_datasets( argv[ii] ) ;
+            if( dsar == NULL || dsar->num == 0 ){
+               fprintf(stderr,"\a\n*** Can't read datasets from %s\n",argv[ii]) ;
+               nerr++ ; continue ; /* next ii */
+            }
+
+         } else { /** read from one file (local or Web), make a small array **/
+
+            dset = THD_open_dataset( argv[ii] ) ;
+            if( dset == NULL ){
+               fprintf(stderr,"\a\n*** Can't read dataset %s\n",argv[ii]) ;
+               nerr++ ; continue ; /* next ii */
+            }
+            INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ; XTARR_IC(dsar,0) = IC_DSET ;
+         }
+
+         for( dd=0 ; dd < dsar->num ; dd++ ){  /* loop over all entries in array */
+
+            /* 26 Mar 2001: might get some 1D files, too */
+
+            if( XTARR_IC(dsar,dd) == IC_FLIM ){  /* save 1D file for later */
+               MRI_IMAGE * im = (MRI_IMAGE *) XTARR_XT(dsar,dd) ;
+               ADDTO_IMARR(webtsar,im) ;
+               continue ;              /* next one */
+            }
+            if( XTARR_IC(dsar,dd) != IC_DSET ){
+               fprintf(stderr,"\n** Unknown filetype returned from %s\n",argv[ii]) ;
+               nerr++ ; continue ;   /* bad */
+            }
+
+            /* get to here ==> have a dataset */
+
+            dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
+            if( !ISVALID_DSET(dset) ) continue ;            /* bad */
+            nds++ ;   /* increment count of dataset */
+            REFRESH ;
             vv = dset->view_type ;
             if( ISANAT(dset) ){
                nn = new_ss->num_anat ;
@@ -3158,12 +3200,22 @@ STATUS("reading commandline dsets") ;
                fprintf(stderr,"\a\n*** Unrecognized dataset type: %s\n",argv[ii]);
                nerr++ ;
             }
-         }
+         } /* end of loop over dd=datasets in dsar */
+
+         FREE_XTARR(dsar) ;  /* don't need array no more */
+
+      } /* end of loop over ii=command line arguments past options */
+
+      if( nerr > 0 ){
+         fprintf(stderr,"** FATAL ERRORS on input\n") ; exit(1) ;  /* bad */
       }
 
-      if( nerr > 0 ) exit(1) ;
-
       sprintf(str,"\n dataset count = %d" , nds ) ;
+      if( nds == 0 ) exit(1) ;
+      if( new_ss->num_anat == 0 ){
+         fprintf(stderr,"\n*** No anatomical datasets in the list!\n") ;
+         exit(1) ;
+      }
       REPORT_PROGRESS(str) ;
 
 STATUS("reading timeseries files") ;
@@ -3174,6 +3226,13 @@ STATUS("reading timeseries files") ;
 
       if( GLOBAL_library.timeseries == NULL )
          INIT_IMARR(GLOBAL_library.timeseries) ;
+
+      /* 26 Mar 2001: store timeseries fetched from the Web */
+
+      for( dd=0 ; dd < IMARR_COUNT(webtsar) ; dd++ )
+         AFNI_add_timeseries( IMARR_SUBIMAGE(webtsar,dd) ) ;
+
+      FREE_IMARR(webtsar) ;
 
       sprintf( str , "\n Time series   = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
@@ -5705,7 +5764,7 @@ STATUS(" -- datamode widgets") ;
    if( GLOBAL_argopt.destruct ){
       writer = True ;
    } else {
-      writer = (Boolean) ( im3d->anat_now->warp_parent != NULL ) ;
+      writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
@@ -5713,8 +5772,7 @@ STATUS(" -- datamode widgets") ;
    if( GLOBAL_argopt.destruct ){
       writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
    } else {
-      writer = (Boolean) ( ISVALID_3DIM_DATASET(im3d->fim_now)  &&
-                           (im3d->fim_now->warp_parent != NULL)    ) ;
+      writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;

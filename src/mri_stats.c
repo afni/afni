@@ -430,6 +430,15 @@ lab12:
 /****    Q(x) = 1-P(x) = reversed cdf of N(0,1) variable.       ****/
 /*******************************************************************/
 
+double qg( double x ){ return 0.5*erfc(x/1.414213562373095); }
+
+double log10qg( double x )
+{
+  double v = qg(x) ;
+  if( v > 0.0 ) return log10(v) ;
+  return -99.99 ;
+}
+
 double qginv( double p )
 {
    double dp , dx , dt , ddq , dq ;

@@ -3800,22 +3800,32 @@ ENTRY("PLUGIN_seq_send_CB") ;
       }
       break ;
 
+#ifndef NO_FRIVOLITIES
       case isqCR_buttonpress:{
-#define NBIRN 6
-         static int nold=-1 ; int nnew ;
-         static char * birn[NBIRN] = { " \n** Don't DO That! **\n "               ,
-                                       " \n** Stop it, Rasmus! **\n "             ,
-                                       " \n** Having fun yet? **\n "              ,
-                                       " \n** What do you want NOW? **\n "        ,
-                                       " \n** Too much time on your hands? **\n " ,
-                                       " \n** Do NOT read this message! **\n "     } ;
+#define NBIRN 9
+         static int nnew=-1 , nold=0 ;
+         static char * birn[NBIRN] = { " \n** Don't DO That! **\n "                        ,
+                                       " \n** Stop it, Rasmus! **\n "                      ,
+                                       " \n** Having fun yet? **\n "                       ,
+                                       " \n** What do you want NOW? **\n "                 ,
+                                       " \n** Too much time on your hands? **\n "          ,
+                                       " \n** Do NOT read this message! **\n "             ,
+                                       " \n** Why are you bothering me? **\n "             ,
+                                       " \n** Danger! Danger, Will Robinson! **\n "        ,
+                                       " \n** WARNING: Planetary meltdown imminent! **\n "
+                                     } ;
 
-         do{ nnew=lrand48()%NBIRN ; } while( nnew == nold ) ;
-         nold = nnew ;
-         MCW_popup_message( seq->wimage , birn[nnew] ,
-                            MCW_USER_KILL|MCW_TIMER_KILL ) ;
+         if( !NO_frivolities && nnew != nold ){
+            if( nnew < 0 ) nnew = nold = lrand48()%NBIRN ;
+            MCW_popup_message( seq->wimage , birn[nnew] , MCW_USER_KILL ) ;
+            nnew = (nnew+1)%NBIRN ;
+         } else {
+            PLUTO_beep() ;
+         }
       }
       break ;
+#endif
+
    }
    EXRETURN ;
 }
@@ -4702,6 +4712,13 @@ ENTRY("PLUTO_scatterplot") ;
       plotpak_line( xb,yb , xb,ya ) ;
       plotpak_line( xb,ya , xa,ya ) ;
    }
+
+#if 0
+   set_color_memplot( 0.5,0.5,0.5 ) ;
+   plotrect_memplot( DSQ,DSQ , 10*DSQ,10*DSQ ) ;     /* just for testing */
+   set_color_memplot( 1.0,0.0,0.0 ) ;
+   plotrect_memplot( xotop-DSQ,yotop-DSQ , xotop-10*DSQ,yotop-10*DSQ ) ;
+#endif
 
    mp = get_active_memplot() ;
 

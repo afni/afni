@@ -42,7 +42,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
-           3dEntropy 3ddelay ent16 3dRowFillin
+           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -56,7 +56,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot    \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
-                  ent16 3dRowFillin
+                  ent16 3dRowFillin 1dgrayplot 3dToutcount
 
 SCRIPTS = @4Daverage  @CommandGlobb  @GetAfniPrefix  @NoExt  @UpdateAfni  @pnmtopng
 
@@ -290,6 +290,10 @@ dsetdup:dsetdup.o
 3dTstat:3dTstat.o
 	$(RM) $@
 	$(CC) -o 3dTstat 3dTstat.o $(LFLAGS) $(LLIBS)
+
+3dToutcount:3dToutcount.o
+	$(RM) $@
+	$(CC) -o 3dToutcount 3dToutcount.o $(LFLAGS) $(LLIBS)
 
 3dTsmooth:3dTsmooth.o
 	$(RM) $@
@@ -676,6 +680,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
+1dgrayplot:libcoxplot.a 1dgrayplot.o display.o
+	$(RM) $@
+	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+
 1dsigplot:libcoxplot.a 1dsigplot.o display.o
 	$(RM) $@
 	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
@@ -752,7 +760,7 @@ clean:
 	$(RM) *.o
 
 cleaner:
-	$(RM) $(PROGRAMS)
+	$(RM) *.o *.a $(PROGRAMS)
 
 # backup:
 # 	rsh manwe chmod -R u+w /usr3/cox/AFNI98
@@ -770,14 +778,14 @@ afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
-	$(CP) -r f2cdir coxplot volpack ./AFNI98
+	$(CP) -r f2cdir coxplot volpack moveup moveAFNI ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
 src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup README* AFNI.* \
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI README* AFNI.* \
               dist* 3d*.lib gmovie $(SCRIPTS) ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
@@ -785,7 +793,7 @@ src.tgz:
 src.bz2:
 	$(RM) $@
 	$(MKDIR) ./SRC
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup README* AFNI.* \
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm moveup moveAFNI README* AFNI.* \
               dist* 3d*.lib $(SCRIPTS) ./SRC
 	$(RM) ./SRC/cdf_*.c ./SRC/eis_*.c
 	$(TAR) cf - ./SRC | bzip2 -9v > src.bz2
@@ -929,7 +937,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
            thd_tmask.o thd_rotangles.o thd_md5.o thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
-           thd_entropy16.o thd_dsetrow.o thd_rowfillin.o
+           thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
