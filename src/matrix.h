@@ -30,7 +30,7 @@
   Date:     21 April 2000
 
   Mod:      Added functions vector_dotself() and vector_multiply_subtract() -- RWCox.
-  Date:     28 Dec 2001
+  Date:     28 Dec 2002
 
 */
 
@@ -338,8 +338,8 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 double vector_dot (vector a, vector b);
 
-double vector_dotself (vector a);  /* 28 Dec 2001: RWCox */
+double vector_dotself (vector a);  /* 28 Dec 2002: RWCox */
 
 /*---------------------------------------------------------------------------*/
 
-
+double matrix_norm( matrix a ) ;   /* 03 Mar 2003: RWCox */

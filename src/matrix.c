@@ -522,7 +522,6 @@ void matrix_transpose (matrix a, matrix * t)
     for (j = 0;  j < cols;  j++)
       t->elts[i][j] = a.elts[j][i];
 }
-
  
 /*---------------------------------------------------------------------------*/
 /*!
@@ -1011,5 +1010,19 @@ double vector_dotself( vector a )
 }
 
 /*---------------------------------------------------------------------------*/
+/*!
+  Compute the L_infinity norm of a matrix: the max absolute row sum.
+*/
 
+double matrix_norm( matrix a )
+{
+   int i,j , rows=a.rows, cols=a.cols ;
+   double sum , smax=0.0 ;
 
+   for (i = 0;  i < rows;  i++){
+     sum = 0.0 ;
+     for (j = 0;  j < cols;  j++) sum += fabs(a.elts[i][j]) ;
+     if( sum > smax ) smax = sum ;
+   }
+   return smax ;
+}

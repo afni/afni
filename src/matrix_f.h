@@ -346,4 +346,4 @@ float  vector_dotself (vector a);  /* 28 Dec 2001: RWCox */
 
 /*---------------------------------------------------------------------------*/
 
-
+float matrix_norm( matrix a ) ;    /* 03 Mar 2003: RWCox */

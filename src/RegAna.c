@@ -100,6 +100,41 @@ int calc_matrices
   else
     RA_error ("Improper X matrix  (cannot invert X'X) ");
 
+#if 0
+  {                           /** 03 Mar 2003: print numerical diagnosis **/
+    double tt , amax=0.0,bmax=0.0 ;
+    matrix sxtx , sxtxinv ;
+    int ii,jj , nn=xtx.rows ;
+
+    matrix_initialize( &sxtx ); matrix_initialize( &sxtxinv ) ;
+    matrix_equate( xtx , &sxtx ) ;
+    for( ii=1 ; ii < nn ; ii++ ){    /* normalize to unit diagonal */
+      for( jj=0 ; jj < ii ; jj++ ){
+        tt = sxtx.elts[ii][ii] * sxtx.elts[jj][jj] ;
+        if( tt > 0.0 ){
+          tt = 1.0 / sqrt(tt) ;
+          sxtx.elts[ii][jj] *= tt ;
+          sxtx.elts[jj][ii] *= tt ;
+          tt = fabs(sxtx.elts[ii][jj]) ; if( tt > amax ) amax = tt ;
+        }
+      }
+    }
+    for( ii=0 ; ii < nn ; ii++ ) sxtx.elts[ii][ii] = 1.0 ;
+    (void) matrix_inverse( sxtx , &sxtxinv ) ;
+    for( ii=1 ; ii < nn ; ii++ ){
+      for( jj=0 ; jj < ii ; jj++ ){
+        tt = sxtxinv.elts[ii][ii] * sxtxinv.elts[jj][jj] ;
+        if( tt > 0.0 ){
+          tt = fabs( sxtxinv.elts[ii][jj] / sqrt(tt) ) ;
+          if( tt > bmax ) bmax = tt ;
+        }
+      }
+    }
+    matrix_destroy(&sxtx) ; matrix_destroy( &sxtxinv ) ;
+
+    printf("%dx%d max correlation: pre=%8.5f  inv=%8.5f\n",nn,nn,amax,bmax);
+  }
+#endif
 
   /*----- dispose of matrices -----*/
   matrix_destroy (&xtx);
