@@ -495,6 +495,8 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "    -inset IN_DSET   : required input dataset to reorient\n"
 	    "          e.g.  -inset old.dset+orig\n"
+	    "\n"
+	    "  Author: R. Reynolds - May 2002\n"
 	    "\n",
 	    prog, prog, prog, prog, prog, prog );
 
