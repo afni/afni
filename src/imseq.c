@@ -2606,7 +2606,8 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
             if( scrang == ISQ_RNG_02TO98 ){
               double ent_th=AFNI_numenv("AFNI_IMAGE_ENTROPY") , ent ;
-              if( ent_th > 0.0 ){
+              if( ent_th >= 0.0 ){
+                if( ent_th == 0.0 ) ent_th = 0.1 ;  /* 10 Jan 2004 */
                 switch( lim->kind ){
                   default:        ent = mri_entropy8(lim) ; break ;
                   case MRI_short:
