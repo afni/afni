@@ -3193,6 +3193,38 @@ int SUMA_StringToNum (char *s, float *fv, int N)
 }   
 
 /*!
+   \brief forces a string to be of a certain length.
+   If truncation is necessary, ... are inserted at 
+   the end of the string.
+   
+   You need to free the returned pointer
+*/
+char *SUMA_set_string_length(char *buf, char cp, int n)
+{
+   static char FuncName[]={"SUMA_set_string_length"};
+   char *lbl=NULL, *lbl30=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!buf) SUMA_RETURN(NULL);
+   
+   lbl = SUMA_truncate_string (buf, n);
+   if (!lbl) {
+      SUMA_SL_Err("Failed to truncate");
+      SUMA_RETURN(NULL);
+   }
+         
+   if (strlen(lbl) != n) {
+      lbl30 = SUMA_pad_string(lbl, ' ', n, 1); 
+      SUMA_free(lbl); lbl = NULL;
+   } else {
+      lbl30 = lbl; lbl = NULL;
+   }
+   
+   SUMA_RETURN(lbl30);
+}
+
+/*!
    \brief padds a string to a certain length.
    You can use this function to crop a string to 
    the specified number of characters n
@@ -3274,14 +3306,14 @@ char *SUMA_truncate_string(char *buf, int n)
       sprintf(atr, "%s", buf);
       SUMA_RETURN (atr);
    }else {
-      atr = (char *) SUMA_calloc(n+2, sizeof(char));
+      atr = (char *) SUMA_calloc(n+3, sizeof(char));
       i=0;
       while (i < n - 3) {
          atr[i] = buf[i];
          ++i;
       }
-      atr[i-3] = atr[i-2] = atr[i-1] = '.';
-      atr[i] = '\0';
+      atr[i] = atr[i+1] = atr[i+2] = '.';
+      atr[i+3] = '\0';
    }
    
    SUMA_RETURN(atr);  

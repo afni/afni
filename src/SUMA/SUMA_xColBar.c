@@ -410,7 +410,10 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    
    XtVaGetValues(w, XmNuserData, &dec, NULL);
-   sprintf(slabel, "%5s", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
+   if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
+      sprintf(slabel, "%5s", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
+   else 
+      sprintf(slabel, "|%5s|", MV_format_fval((float)cbs->value / pow(10.0, dec))); 
    SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
    
    /* You must use the line below if you are calling this function on the fly */
@@ -528,7 +531,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SO->SurfCont->curColPlane->OptScl->tind = imenu - 1;
    
    if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
-      SUMA_SetScaleRange(SO->SurfCont->thr_sc, range );
+      SUMA_SetScaleRange(SO, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
       SUMA_RETURNe;
@@ -746,6 +749,10 @@ SUMA_MenuItem CoordBias_Menu[] = {
       '\0', NULL, NULL, 
       SUMA_cb_SetCoordBias, (XtPointer) SW_CoordBias_Z, NULL},
         
+   {  "n", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetCoordBias, (XtPointer) SW_CoordBias_N, NULL},
+   
    {NULL},
 };
 
@@ -775,7 +782,7 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_d
       case SW_CoordBias_None:
          if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_None) {
             if (SO->SurfCont->curColPlane->OptScl->BiasVect) {
-               SUMA_RemoveSO_CoordBias(SO, SO->SurfCont->curColPlane);
+               SUMA_RemoveCoordBias(SO->SurfCont->curColPlane);
             }
             NewDisp = YUP;
          }
@@ -783,21 +790,28 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, XtPointer call_d
       case SW_CoordBias_X:
          if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_X) { /* something needs to be done */
                /* bias other than on other dimension exists, transfer it to new dimension*/
-               SUMA_TransferSO_CoordBias(SO, SO->SurfCont->curColPlane, SW_CoordBias_X);
+               SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_X);
             NewDisp = YUP;
          }
          break;
       case SW_CoordBias_Y:
          if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Y) { /* something needs to be done */
                /* bias other than on other dimension exists, transfer it to new dimension*/
-               SUMA_TransferSO_CoordBias(SO, SO->SurfCont->curColPlane, SW_CoordBias_Y);
+               SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_Y);
             NewDisp = YUP;
          }
          break;
       case SW_CoordBias_Z:
          if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_Z) { /* something needs to be done */
                /* bias other than on other dimension exists, transfer it to new dimension*/
-               SUMA_TransferSO_CoordBias(SO, SO->SurfCont->curColPlane, SW_CoordBias_Z);
+               SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_Z);
+            NewDisp = YUP;
+         }
+         break;
+      case SW_CoordBias_N:
+         if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_N) { /* something needs to be done */
+               /* bias other than on other dimension exists, transfer it to new dimension*/
+               SUMA_TransferCoordBias(SO->SurfCont->curColPlane, SW_CoordBias_N);
             NewDisp = YUP;
          }
          break;
@@ -1782,7 +1796,13 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
             }
          } /* new colormaps */
          if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) XtManageChild (SO->SurfCont->rccm_swcmap); 
-      } 
+      }
+      
+      /* Set the CoordBias's menu history to reflect current setting */
+      SUMA_LH("Updating CoorBias chooser History");
+      XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory , 
+                      SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias] , NULL ) ; 
+ 
       if (!XtIsManaged(SO->SurfCont->rccm)) XtManageChild (SO->SurfCont->rccm);
    
    }/*  The Color map range and selector block */
@@ -1842,7 +1862,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    OptScl = SO->SurfCont->curColPlane->OptScl;
    nel = SO->SurfCont->curColPlane->dset_link->nel;
    fi = OptScl->find;
-   ti = OptScl->find;
+   ti = OptScl->tind;
    bi = OptScl->bind;
    
    /* TF Range table Int*/
@@ -1852,7 +1872,13 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
    SUMA_INSERT_CELL_STRING(TF, 1, 2, srange_max);/* max */
    /* TFs Range table Int*/
    if (SO->SurfCont->AutoIntRange) { 
-      OptScl->IntRange[0] = range[0]; OptScl->IntRange[1] = range[1]; 
+      if (!SO->SurfCont->curColPlane->ForceIntRange[0] && !SO->SurfCont->curColPlane->ForceIntRange[1]) {
+         OptScl->IntRange[0] = range[0]; OptScl->IntRange[1] = range[1]; 
+      } else {
+         SUMA_LH("Using ForceIntRange");
+         OptScl->IntRange[0] = SO->SurfCont->curColPlane->ForceIntRange[0];
+         OptScl->IntRange[1] = SO->SurfCont->curColPlane->ForceIntRange[1];
+      }
       SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->IntRange[0]);/* min */ 
       SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->IntRange[1]);/* max */
    } 
@@ -2496,38 +2522,88 @@ SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
    SUMA_RETURN (menu);
 }
 
-void SUMA_SetScaleRange(Widget w, float range[2])   
+void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])   
 {
    static char FuncName[]={"SUMA_SetScaleRange"};
-   int min_v, max_v, scl, dec; 
+   int min_v, max_v, scl, dec, cv;
+   Widget w ;
+   char slabel[100];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!w) { 
-      SUMA_SL_Err("NULL w!");
+   if (!SO) { 
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURNe; 
+   }  
+   if (!SO->SurfCont->thr_sc) { 
+      SUMA_SL_Err("NULL widget");
       SUMA_RETURNe; 
    }
    
+   w = SO->SurfCont->thr_sc;
+   
    if (range[1] <= range[0]) range[1] = range[0] + 1;
+   
+   if (SO->SurfCont->curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
+      SUMA_LH("Absolutizing Threshold Range");
+      if (fabs((double)range[0]) > fabs((double)range[1])) {
+         range[1] = fabs((double)range[0]); range[0] = 0.0;
+      } else {
+         range[1] = fabs((double)range[1]); range[0] = 0.0;
+      }
+   }
     
-   /* what power of 10 is needed (based on Bob's settings in afni_wid.c)? */
-   dec = (int)ceil( log((double)(range[1] - range[0] + 0.001)) / log (10) );
-   /* Add the scale bias, so that dec is at least = bias*/
-   if (dec < SUMA_SCL_POW_BIAS) dec = SUMA_SCL_POW_BIAS;
-   min_v = (int)(range[0] * pow(10.0, dec)); 
-   max_v = (int)(range[1] * pow(10.0, dec) + 0.001); 
-   scl = max_v / 1000; 
-   if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\n", 
-                  FuncName, min_v, max_v, scl, dec);  
+   if (range[1] - range[0] > pow(10.0,SUMA_SCL_POW_BIAS)) { /* no need for power */
+      dec = 0;
+      min_v = (int)(range[0] ); 
+      max_v = (int)(range[1] ); 
+      scl = max_v / 1000; 
+   } else {
+      /* what power of 10 is needed (based on Bob's settings in afni_wid.c)? */
+      dec = (int)ceil( log((double)(range[1] - range[0] + 0.001)) / log (10) );
+      /* Add the scale bias, so that dec is at least = bias*/
+      if (dec < SUMA_SCL_POW_BIAS) dec = SUMA_SCL_POW_BIAS;
+      min_v = (int)(range[0] * pow(10.0, dec)); 
+      max_v = (int)(range[1] * pow(10.0, dec) + 0.001); 
+      scl = max_v / 1000; 
+      
+   }  
+   if (max_v <= min_v || scl < 0) { /* happens when max_v is so large that you get trash when typecast to int.
+                           That's the case when you're using the number of nodes in a surface for example
+                           and you set dec to something demented like 6 ! Need a clever function here */
+      SUMA_SLP_Note("Bad auto scaling \nparameters for threshold bar.\nUsing defaults"); 
+      min_v = (int)(range[0]); 
+      max_v = (int)(range[1])+1; 
+      scl = max_v / 1000;
+      dec = 1;     
+   }
+   /* make sure the current value is not less than the min or greater than the max */
+   XtVaGetValues(w, XmNvalue, &cv, NULL);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
+                  FuncName, min_v, max_v, scl, dec, cv);  
+   if (cv < min_v) cv = min_v;
+   else if (cv > max_v) cv = max_v;
+   
+   /* set the slider bar */
    XtVaSetValues(w,  
             XmNmaximum, max_v, 
-            XmNminimum, min_v, 
+            XmNminimum, min_v,
+            XmNvalue, cv, 
             XmNscaleMultiple, scl,  
             XmNdecimalPoints , dec,
             XmNuserData, (XtPointer)dec,   
             NULL);   
-               
+   
+   /* set the label on top */
+   if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) 
+      sprintf(slabel, "%5s", MV_format_fval((float)cv / pow(10.0, dec))); 
+   else
+      sprintf(slabel, "|%5s|", MV_format_fval((float)cv / pow(10.0, dec))); 
+   
+   SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
+   
+            
    SUMA_RETURNe;
 }
 

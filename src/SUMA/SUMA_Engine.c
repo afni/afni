@@ -2182,6 +2182,10 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
             if (XYZ) SUMA_free(XYZ);
             if (XYZmap) SUMA_free(XYZmap);
          }
+         
+         /* if the surface controller is open, update it */
+         if (SO_nxt->SurfCont->TopLevelShell)   SUMA_Init_SurfCont_SurfParam(SO_nxt);
+
       } else {
          fprintf(SUMA_STDERR, "%s: No relatives between states. CrossHair location will not correspond between states\n", FuncName); 
       }
@@ -2244,6 +2248,70 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 }
 
 /*!
+   Call this function whenever you have new geometry in the viewer
+   This happens when you switch states or when you modify the coordinates of a surface
+   The succession of function calls is replicated in parts elsewhere in the code
+   like in the SwitchState function
+*/
+SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_NewGeometryInViewer"};
+   SUMA_Axis *EyeAxis;
+   int EyeAxis_ID, I_C, OverInd, ND, id;
+   char CommString[100];
+   SUMA_EngineData ED;
+   int  i, j, jmax, prec_ID;
+   SUMA_SurfaceObject *SO_nxt, *SO_prec;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;   
+   
+   /* decide what the best std view is */
+   sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
+   if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
+   if (sv->StdView == SUMA_Dunno) {
+      fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+      sv->StdView = SUMA_3D;
+   }
+   
+   /* modify the rotation center */
+   if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* set the viewing points */
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   
+   /* Change the defaults of the eye axis to fit standard EyeAxis */
+   EyeAxis_ID = SUMA_GetEyeAxis (sv, dov);
+
+   if (EyeAxis_ID < 0) {
+      fprintf(SUMA_STDERR,"Error %s: No Eye Axis. %d\n", FuncName, EyeAxis_ID);
+   } else {
+      EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
+      SUMA_EyeAxisStandard (EyeAxis, sv);
+   }
+   
+   /* Need to update where you're looking at*/
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+   gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], 
+               sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], 
+               sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], 
+               sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], 
+               sv->GVS[sv->StdView].ViewCamUp[2]);
+   
+   /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 
+
+   SUMA_RETURN (YUP);
+}
+
+/*!
 \brief ans = SUMA_OpenGLStateReset (dov, N_dov, sv);
 Used when going from one surface viewer to another. The OpenGL state variables 
 need to be reset when moving from one viewer to the next. Otherwise you risk having 
@@ -2258,6 +2326,7 @@ matrix and the projection matrix without calling for a display the changes will 
 \param N_dov (int) number of elements in dov, typically SUMAg_N_DOv
 \param sv (SUMA_SurfaceViewer *) viewer making the request.
 \return YUP/NOPE Good/Bad
+\sa SUMA_NewGeometryInViewer
 
 */
 SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv)

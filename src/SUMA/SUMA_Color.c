@@ -1683,8 +1683,11 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
 }
 
 /* Removes pre-existing bias
-   free bias vector 
-   sets OptScl->DoBias to SW_CoordBias_None
+   DOES NOT free bias vector 
+   DOES NOT SET OptScl->DoBias to SW_CoordBias_None
+   The last two operations should be carried out once the bias is removed from all surfaces
+   to which they'd been applied. In this case it will be in SUMA_RemoveCoordBias
+   This function should not be called directly, only from SUMA_RemoveCoordBias
 */
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
 {
@@ -1693,8 +1696,6 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
       
    SUMA_ENTRY;
    
-   if (!SO) SUMA_RETURN(YUP);
-   if (!ovr) SUMA_RETURN(YUP);
    if (ovr->OptScl->BiasVect) { /* something to be removed */
       switch (ovr->OptScl->DoBias) {
          case SW_CoordBias_X:
@@ -1718,21 +1719,62 @@ SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
                SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
             }
             break;
+         case SW_CoordBias_N:
+            /* Remove Normal bias */
+            for (i=0; i < ovr->N_NodeDef; ++i) {
+               i3 = 3*ovr->NodeDef[i];
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+            }
+            break;
          default:
             SUMA_SL_Err("This should not be");
             SUMA_RETURN(NOPE);
       }
-      /* Now free BiasVect */
-      SUMA_free(ovr->OptScl->BiasVect); 
-      ovr->OptScl->BiasVect = NULL;
+   } else {
+      SUMA_SL_Err("DO not call me with no bias!");
+      SUMA_RETURN(NOPE);
    }
-   ovr->OptScl->DoBias = SW_CoordBias_None;
-  
+
+   /* Update surface geometry properties */
+   SUMA_NewSurfaceGeometry(SO);
+
    SUMA_RETURN(YUP);
 }
+
 /* Removes pre-existing bias to old dimension 
    Add same bias to BiasDim dimension
    sets OptScl->DoBias to BiasDim
+*/
+SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
+{
+   static char FuncName[]={"SUMA_TransferCoordBias"};
+   SUMA_SurfaceObject *SO=NULL;
+   int iso;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   if (!ovr) SUMA_RETURN(YUP);
+      
+   for (iso=0; iso<SUMAg_N_DOv; ++iso) {
+      if (SUMA_isSO(SUMAg_DOv[iso])) {
+         SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
+         if (SUMA_isOverlayOfSO(SO, ovr)) {
+            SUMA_TransferSO_CoordBias(SO, ovr, BiasDim);   
+         } 
+      }
+   }
+
+   SUMA_LH("Setting bias flag");
+   ovr->OptScl->DoBias = BiasDim;
+
+   SUMA_RETURN(YUP);
+
+}
+
+/*!
+   Single surface version of SUMA_TransferCoordBias DO NOT CALL THIS FUNCTION OUTSIDE OF SUMA_TransferCoordBias
 */
 SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
@@ -1744,8 +1786,6 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
    
    SUMA_LH("Called");
    
-   if (!SO) SUMA_RETURN(YUP);
-   if (!ovr) SUMA_RETURN(YUP);
    
    if (ovr->OptScl->BiasVect) {
       SUMA_LH("Removing old bias"); 
@@ -1772,6 +1812,15 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
                SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
             }
             break;
+         case SW_CoordBias_N:
+            /* Remove Normal bias */
+            for (i=0; i < ovr->N_NodeDef; ++i) {
+               i3 = 3*ovr->NodeDef[i];
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+            }
+            break;
          default:
             SUMA_SL_Err("This should not be");
             SUMA_RETURN(NOPE);
@@ -1780,24 +1829,33 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
       /* Add same bias to other direction */
       switch (BiasDim) {
          case SW_CoordBias_X:
-            /* Remove X bias */
+            /* Add X bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
                SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
             }
             break;
          case SW_CoordBias_Y:
-            /* Remove Y bias */
+            /* Add Y bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i]+1;
                SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
             }
             break;
          case SW_CoordBias_Z:
-            /* Remove Z bias */
+            /* Add Z bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i]+2;
                SO->NodeList[i3] += ovr->OptScl->BiasVect[i];
+            }
+            break;
+         case SW_CoordBias_N:
+            /* Add Normal bias */
+            for (i=0; i < ovr->N_NodeDef; ++i) {
+               i3 = 3*ovr->NodeDef[i];
+               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] += ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
             }
             break;
          default:
@@ -1805,19 +1863,63 @@ SUMA_Boolean SUMA_TransferSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ov
             SUMA_RETURN(NOPE);
       }
    }
-   SUMA_LH("Setting bias flag");
-   ovr->OptScl->DoBias = BiasDim;
-  
+   
+   /* Update surface geometry properties */
+   SUMA_NewSurfaceGeometry(SO);
    SUMA_RETURN(YUP);
 }
 
+/*!
+   Function called when a surface's geometry is changed (currently due to a change in the CoordBias)
+*/
+SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_NewSurfaceGeometry"};
+   int ii, i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* first recompute the bounding box of the surface */
+   /* Calculate Min, Max, Mean */
+   
+   SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+     
+   SO->Center[0] /= SO->N_Node;
+   SO->Center[1] /= SO->N_Node;
+   SO->Center[2] /= SO->N_Node;
+
+   SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
+   SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
+   
+   /* find out what viewers this surface is registered with and which viewers show it */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
+         for (i=0; i< SUMAg_SVv[ii].N_DO; ++i) {
+            if (SUMA_isSO_G(SUMAg_DOv[SUMAg_SVv[ii].RegisteredDO[i]], SUMAg_SVv[ii].CurGroupName)) {
+               /* is this surface the same as SO ? */
+               if (SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv) == SUMAg_SVv[ii].RegisteredDO[i]) {
+                  /* This surface is visible in this viewer, mark that viewer  */
+                  SUMA_LH("Marking Viewer ");
+                  SUMAg_SVv[ii].NewGeom = YUP;
+               }
+            }
+         }
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+  
+
 /* 
    -  adds new bias 
-   -  copies NewBias to OptScl->BiasVect 
-   -  sets OptScl->DoBias to BiasDim
-Do NOT free NewBias upon return since this pointer will replace OptScl->BiasVect
-   DO NOT CALL THIS FUNCTION IF ovr->NodeDef has been modified, otherwise  SUMA_RemoveSO_CoordBias will fail
-
+   -  DOES NOT copy NewBias to OptScl->BiasVect 
+   -  DOES NOT set OptScl->DoBias to BiasDim
+   The previous 2 operations are to be done in SUMA_SetCoordBias which call this function for all
+   surfaces using this overlay plane 
+   
 */
 SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
@@ -1827,12 +1929,6 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
    
    SUMA_ENTRY;
    
-   /* old bias must have already been removed*/
-   if (ovr->OptScl->BiasVect || ovr->OptScl->DoBias!= SW_CoordBias_None) {
-      SUMA_SL_Err("Cannot have pre-existing Bias!");
-      SUMA_RETURN(NOPE);
-   }
-
    /* Now add the new one */
    if (NewBias) {
       switch (BiasDim) {
@@ -1857,6 +1953,15 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
                SO->NodeList[i3] += NewBias[i];
             }
             break;
+         case SW_CoordBias_N:
+            /* Add Normal bias */
+            for (i=0; i < ovr->N_NodeDef; ++i) {
+               i3 = 3*ovr->NodeDef[i];
+               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3]; ++i3; 
+               SO->NodeList[i3] += NewBias[i] * SO->NodeNormList[i3];  
+            }
+            break;
          case SW_CoordBias_None:
             /* That should not be if NewBias is not NULL */
             SUMA_SL_Err("Why are you calling me with SW_CoordBias_None and a non-null NewBias?");
@@ -1870,29 +1975,47 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
    } else {/* nothing to add (0 bias)*/
 
    }
-   ovr->OptScl->BiasVect = NewBias;   /* old pointer deleted in SUMA_RemoveBias */
-   ovr->OptScl->DoBias = BiasDim;
 
+   /* Update surface geometry properties */
+   SUMA_NewSurfaceGeometry(SO);
    SUMA_RETURN(YUP);   
 }
+
+/*!
+   Sets the coordinate bias for surfaces using a particular overlay plane
+   Do NOT free NewBias upon return since this pointer will replace OptScl->BiasVect
+   DO NOT CALL THIS FUNCTION IF ovr->NodeDef has been modified, otherwise  SUMA_RemoveSO_CoordBias will fail
+*/
 
 SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr, float *NewBias, SUMA_WIDGET_INDEX_COORDBIAS BiasDim)
 {
    static char FuncName[]={"SUMA_SetCoordBias"};
    int i, i3, iso;
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (!ovr) SUMA_RETURN(YUP);
+   
+   if (ovr->OptScl->BiasVect ) {
+         SUMA_SL_Err("Can't have Non NULL bias here");
+         SUMA_Show_ColorOverlayPlanes(&ovr,1,1);
+         SUMA_RETURN(NOPE);
+   }
    
    for (iso=0; iso<SUMAg_N_DOv; ++iso) {
       if (SUMA_isSO(SUMAg_DOv[iso])) {
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
          if (SUMA_isOverlayOfSO(SO, ovr)) {
-            SUMA_SetSO_CoordBias(SO, ovr, NewBias, BiasDim);     
+            SUMA_LH(SO->Label);
+            SUMA_SetSO_CoordBias(SO, ovr, NewBias, BiasDim);   
          } 
       }
    }
+
+   ovr->OptScl->BiasVect = NewBias;   
+   ovr->OptScl->DoBias = BiasDim;
+
    SUMA_RETURN(YUP);
 }
 
@@ -1901,18 +2024,26 @@ SUMA_Boolean SUMA_RemoveCoordBias(SUMA_OVERLAYS *ovr)
    static char FuncName[]={"SUMA_RemoveCoordBias"};
    int i, i3, iso;
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (!ovr) SUMA_RETURN(YUP);
-   
-   for (iso=0; iso<SUMAg_N_DOv; ++iso) {
-      if (SUMA_isSO(SUMAg_DOv[iso])) {
-         SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
-         if (SUMA_isOverlayOfSO(SO, ovr)) {
-            SUMA_RemoveSO_CoordBias(SO, ovr);     
-         } 
+   if (ovr->OptScl->BiasVect) { /* something to be removed */
+      for (iso=0; iso<SUMAg_N_DOv; ++iso) {
+         if (SUMA_isSO(SUMAg_DOv[iso])) {
+            SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
+            if (SUMA_isOverlayOfSO(SO, ovr)) {
+               SUMA_LH(SO->Label);
+               SUMA_RemoveSO_CoordBias(SO, ovr);     
+            } 
+         }
       }
+      /* Now free BiasVect */
+      SUMA_free(ovr->OptScl->BiasVect); 
    }
+   ovr->OptScl->BiasVect = NULL;
+   ovr->OptScl->DoBias = SW_CoordBias_None;
+
    SUMA_RETURN(YUP);
 } 
 
@@ -1963,12 +2094,39 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       /* got to copy values into float vectors 'cause of possible types */
       T = SUMA_Col2Float (Sover->dset_link->nel, Opt->tind, 0);
       if (!T) { SUMA_SL_Err("Failed to get T"); SUMA_RETURN(NOPE); }
-      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
-         if (T[i] < Opt->ThreshRange[0]) {
-            SV->isMasked[i] = YUP; /* Mask */
-         } else {
-            /* don't mask, default*/
-         }
+      switch (Opt->ThrMode) {
+         case SUMA_LESS_THAN:
+            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+               if (T[i] < Opt->ThreshRange[0]) {
+                  SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_ABS_LESS_THAN:
+            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+               if (T[i] < Opt->ThreshRange[0] && T[i] > -Opt->ThreshRange[0]) {
+                  SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_THRESH_OUTSIDE_RANGE:
+            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+               if (T[i] < Opt->ThreshRange[0] || T[i] > Opt->ThreshRange[1]) {
+                  SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;
+         case SUMA_THRESH_INSIDE_RANGE:
+            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+               if (T[i] > Opt->ThreshRange[0] && T[i] < Opt->ThreshRange[1]) {
+                  SV->isMasked[i] = YUP; /* Mask */
+               }
+            }
+            break;       
+         default:
+            SUMA_SL_Err("Wrond threshold mode");
+            SUMA_RETURN(NOPE);
+            break;
       }
       /* T is no longer needed */
       if (T) SUMA_free(T); T = NULL;
@@ -2043,7 +2201,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    
    /* remove any bias before NodeDef is modified */
    HoldBiasOpt = Opt->DoBias; /* This field gets wiped (by SUMA_RemoveCoordBias) from Opt (which is inside Sover) */
-   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z) {
+   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z || Opt->DoBias == SW_CoordBias_N ) {
       SUMA_RemoveCoordBias(Sover); 
    }
    
@@ -2084,24 +2242,33 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* Add any coord bias ? */
    switch (HoldBiasOpt) {
       case SW_CoordBias_X:
+         SUMA_LH("Bias X");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_X);
          SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
          break;
       case SW_CoordBias_Y:
+         SUMA_LH("Bias Y");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_Y);
          SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
          break;
       case SW_CoordBias_Z:
+         SUMA_LH("Bias Z");
          SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_Z);
          SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
          break;
+      case SW_CoordBias_N:
+         SUMA_LH("Bias N");
+         SUMA_SetCoordBias(Sover, SV->BiasCoordVec, SW_CoordBias_N);
+         SV->BiasCoordVec = NULL; /* set SV->BiasCoordVec to NULL to keep it from getting freed below */
+         break;
       default:
+         SUMA_LH("Bias None");
          break;   
    }
    
    if (LocalHead) {
       SUMA_LH("In Scale_Interactive\n**********************");
-      SUMA_Show_ColorOverlayPlanes (&Sover, 1, 1); 
+      /* SUMA_Show_ColorOverlayPlanes (&Sover, 1, 1);  */
    }
 
    
@@ -2495,7 +2662,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    }
    
    /* Add any coord bias ? */
-   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z) {
+   if (Opt->DoBias == SW_CoordBias_X || Opt->DoBias == SW_CoordBias_Y || Opt->DoBias == SW_CoordBias_Z || Opt->DoBias == SW_CoordBias_N) {
       SUMA_LH("Coord Bias requested");
       if (!SV->BiasCoordVec) {
          SUMA_LH("Allocating for BiasCoordVec");
@@ -2796,11 +2963,39 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->BrightFact = 1.0;
    Opt->interpmode = SUMA_INTERP;
    Opt->alaAFNI = NOPE;
-   Opt->MaskZero = NOPE;
+   
+   {
+      char *eee = getenv("SUMA_MaskZero");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) Opt->MaskZero = NOPE;
+         else if (strcmp(eee,"YES") == 0) Opt->MaskZero = YUP;
+         else {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_MaskZero\n"
+                                    "Assuming default of YES", FuncName);
+            Opt->MaskZero = YUP;
+         }
+      } else Opt->MaskZero = YUP;
+   }
+   
    Opt->find = 0;
    Opt->tind = 0;
    Opt->bind = 0;
    Opt->UseThr = NOPE;
+   {
+      char *eee = getenv("SUMA_AbsThreshold");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) Opt->ThrMode = SUMA_LESS_THAN;
+         else if (strcmp(eee,"YES") == 0) Opt->ThrMode = SUMA_ABS_LESS_THAN;
+         else {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_AbsThreshold\n"
+                                    "Assuming default of YES", FuncName);
+            Opt->ThrMode = SUMA_ABS_LESS_THAN;
+         }
+      } else Opt->ThrMode = SUMA_ABS_LESS_THAN;
+   }
+   
    Opt->UseBrt = NOPE;
    Opt->DoBias = SW_CoordBias_None;
    Opt->BiasVect = NULL;
@@ -3525,7 +3720,7 @@ int main (int argc,char *argv[])
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && strcmp(argv[kar], "-verb") == 0) {
-         LocalHead = YUP;
+         LocalHead = NOPE;
          brk = YUP;
       }
       
@@ -4312,12 +4507,13 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    Sover->PlaneOrder = -1; /* No order is specified */
    Sover->isBackGrnd = 0; /* no brightness modulation effects */
    Sover->DimFact = 0.3;
+   Sover->ForceIntRange[0] = 0.0; Sover->ForceIntRange[1] = 0.0; /* force nothing */
    
    /* new, from Feb 20 */
    /* default, choose something */
    SUMA_LH("SCM stuff");
    if (!SUMAg_CF->scm) {
-      SUMA_SL_Note("SUMA color maps not set up.");
+      SUMA_LH("SUMA color maps not set up.");
       Sover->cmapname = NULL;
       Sover->OptScl = NULL;
    } else {
@@ -4954,8 +5150,9 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
    SS = SUMA_StringAppend (SS,stmp);
    for (i=0; i < N_Overlays; ++i) {
       if (Overlays[i]) {
-         sprintf (stmp,"Overlay plane %s:\norder %d, indexed %d\nDimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n", 
-            Overlays[i]->Name, Overlays[i]->PlaneOrder, i, Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, Overlays[i]->isBackGrnd);
+         sprintf (stmp,"Overlay plane %s:\norder %d, indexed %d\nDimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n ForceIntRange %f, %f.\n", 
+            Overlays[i]->Name, Overlays[i]->PlaneOrder, i, Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, Overlays[i]->isBackGrnd, 
+            Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1]);
          SS = SUMA_StringAppend (SS,stmp);
          SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
          SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", Overlays[i]->LinkedPtrType);
@@ -5051,7 +5248,7 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
       SS = SUMA_StringAppend_va (SS, "find = %d\n", OptScl->find);
       SS = SUMA_StringAppend_va (SS, "IntRange = %f %f\n", 
          OptScl->IntRange[0], OptScl->IntRange[1]);
-      SS = SUMA_StringAppend_va (SS, "tind = %d (use:%d)\n", OptScl->tind, OptScl->UseThr);
+      SS = SUMA_StringAppend_va (SS, "tind = %d (use:%d). Mode %d\n", OptScl->tind, OptScl->UseThr, OptScl->ThrMode);
       SS = SUMA_StringAppend_va (SS, "ThreshRange = %f %f\n", 
          OptScl->ThreshRange[0], OptScl->ThreshRange[1]);
       SS = SUMA_StringAppend_va (SS, "bind = %d (use:%d)\n", OptScl->bind, OptScl->UseBrt);
@@ -5061,6 +5258,10 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
          OptScl->BrightMap[0], OptScl->BrightMap[1]);
       SS = SUMA_StringAppend_va (SS, "alaAFNI = %d\n", OptScl->alaAFNI);
       SS = SUMA_StringAppend_va (SS, "interpmode = %d\n", OptScl->interpmode);
+      SS = SUMA_StringAppend_va (SS, "BiasMode = %d, Range=%f, %f \n", 
+            OptScl->DoBias, OptScl->CoordBiasRange[0], OptScl->CoordBiasRange[1]);
+      if (OptScl->BiasVect) SS = SUMA_StringAppend_va (SS, "BiasVect is NOT NULL\n");
+         else SS = SUMA_StringAppend_va (SS, "BiasVect is NULL\n");
    }        
    SUMA_SS2S(SS, s);
    SUMA_RETURN(s);
@@ -5510,13 +5711,15 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
 /*!
    \brief Adds a new plane to SO->Overlays. 
    If plane exists, you get an error message
+   Adds plane to related surfaces if dov is not NULL
 */
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay)
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_AddNewPlane"};
    DList *ForeList=NULL, *BackList = NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
-   int junk=0;
+   int junk=0, i, OverInd;
+   SUMA_SurfaceObject *SO2 = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
@@ -5577,6 +5780,28 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay)
    dlist_destroy(ForeList); SUMA_free(ForeList);
    dlist_destroy(BackList); SUMA_free(BackList);
 
+   /* Now register plane with surfaces deserving it*/
+   if (dov) {
+      SUMA_LH("Registering plane with surfaces deserving it");
+      /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
+      and make sure they have this colorplane, otherwise, create a link to it. */   
+      for (i=0; i < N_dov; ++i) {
+         if (SUMA_isSO(dov[i])) { 
+            SO2 = (SUMA_SurfaceObject *)dov[i].OP;
+            if (SUMA_isRelated(SO, SO2, 1) && SO != SO2) { /* only 1st order kinship allowed */
+               /* surfaces related and not identical, check on colorplanes */
+               if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Overlay->Name, &OverInd)) {
+                  /* color plane not found, link to that of SO */
+                  SO2->Overlays[SO2->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO->Overlays[SO->N_Overlays-1]);
+                  /*increment the number of overlay planes */
+                  ++SO2->N_Overlays;
+               } else {
+                  /* colorplane found OK */
+               }
+            }
+         }
+      }
+   }
    SUMA_RETURN (YUP);
 }
 
@@ -5695,7 +5920,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          OverInd = SO->N_Overlays; 
 
          /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, Overlay)) {
+         if (!SUMA_AddNewPlane (SO, Overlay, dov, N_dov)) {
             SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(Overlay);
             SUMA_RETURN (NOPE);
@@ -5824,6 +6049,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
       if (LocalHead) fprintf (SUMA_STDERR, "%s: OverInd = %d. Returning.\n", FuncName, OverInd);
       *PlaneInd = OverInd;
 
+      #if 0
       SUMA_LH("Registering plane with surfaces deserving it");
       /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
       and make sure they have this colorplane, otherwise, create a link to it. */   
@@ -5848,7 +6074,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
             }
          }
       }
-
+      #endif
    SUMA_RETURN (YUP);
 
 }
@@ -6286,12 +6512,13 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    OverInd = SO->N_Overlays;
    
    /* Add this plane to SO->Overlays */
-   if (!SUMA_AddNewPlane (SO, NewColPlane)) {
+   if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
       SUMA_FreeOverlayPointer(NewColPlane);
       SUMA_FreeDset(dset); dset = NULL;
       SUMA_RETURNe;
    }
+   
    
    /* set the opacity, index column and the range */
    NewColPlane->GlobalOpacity = YUP;
@@ -6905,7 +7132,6 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
       } else {
          IntRange[0] = -IntRange[1];
       }
-
    } else { 
      /* The old method, do nothing here */ 
    }
@@ -6915,6 +7141,8 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    ConvPlane->OptScl->tind = 0; /* the threshold column */
    ConvPlane->OptScl->bind = 0; /* the brightness modulation column */
    ConvPlane->OptScl->IntRange[0] = IntRange[0]; ConvPlane->OptScl->IntRange[1] = IntRange[1];
+   /* Force Auto Range to these percentile values */
+   ConvPlane->ForceIntRange[0] = IntRange[0]; ConvPlane->ForceIntRange[1] = IntRange[1];
 
    SUMA_RETURN(YUP);
 }

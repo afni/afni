@@ -67,7 +67,7 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
 SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int type);
 SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str);
-void SUMA_SetScaleRange(Widget w, float range[2]);  
+void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2]);  
 void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );

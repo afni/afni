@@ -2092,6 +2092,9 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          SUMA_RETURN (-1);
       }
       
+      /* if the surface controller is open, update it */
+      if (SO->SurfCont->TopLevelShell)   SUMA_Init_SurfCont_SurfParam(SO);
+
 
    } 
    /* clear MTI */

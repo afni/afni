@@ -222,7 +222,8 @@ typedef enum { SUMA_NO_ORDER, SUMA_ROW_MAJOR, SUMA_COLUMN_MAJOR }  SUMA_INDEXING
 
 typedef enum { SW_CoordBias,
                SW_CoordBias_None,
-               SW_CoordBias_X, SW_CoordBias_Y, SW_CoordBias_Z, 
+               SW_CoordBias_X, SW_CoordBias_Y, SW_CoordBias_Z,
+               SW_CoordBias_N, 
                SW_N_CoordBias } SUMA_WIDGET_INDEX_COORDBIAS;
                
 typedef enum {
@@ -360,6 +361,12 @@ typedef enum { SUMA_UNDEFINED_MODE,
                SUMA_INTERP       /*!< interpolation on the colormap, SUMA's default */
             } SUMA_COLORMAP_INTERP_MODE;
                
+typedef enum {
+               SUMA_LESS_THAN,   /*!< Mask if T[i] < Opt->ThreshRange[0] */
+               SUMA_ABS_LESS_THAN, /*!< Mask if T[i] < Opt->ThreshRange[0] || T[i] > -Opt->ThreshRange[0] */
+               SUMA_THRESH_OUTSIDE_RANGE, /*!< Mask if T[i] < Opt->ThreshRange[0] || T[i] > Opt->ThreshRange[1] */
+               SUMA_THRESH_INSIDE_RANGE, /*!< Mask if T[i] > Opt->ThreshRange[0] || T[i] < Opt->ThreshRange[1] */
+            }  SUMA_THRESH_MODE;
 /*! a structure holding the options for the function SUMA_ScaleToMap 
 \sa SUMA_ScaleToMapOptInit to allocate and initialize such a structure 
 to free this structure use the free function
@@ -386,6 +393,7 @@ typedef struct {
    int tind;   /*!< index of thresholf sub-brick */
    int bind;   /*!< index of attenuation sub-brick */
    SUMA_Boolean UseThr; /*!< use or ignore tind */
+   SUMA_THRESH_MODE ThrMode;  /*!< how to apply the thresholding */
    SUMA_Boolean UseBrt; /*!< use or ignore bind */
    SUMA_WIDGET_INDEX_COORDBIAS DoBias;  /*!< use coordinate bias */
    float CoordBiasRange[2]; /*!< Same as IntRange but for brightness modulating column */
@@ -429,6 +437,12 @@ typedef struct {
    float DimFact;    /*!< a scaling factor applied to the colors in ColVec 
                            This is overriden by BrightFact in OptScl which is
                            defined for non-explicitly colored planes*/
+   float ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead of the true
+                                 range of values in the dataset.
+                                 The idea is to allow particular settings for the autoranging 
+                                 options that are not from the dset's min to max.
+                                 Usually, this field is not used and both values are set to 0.0
+                                 */
    /* New additions, Fri Feb 20 13:21:28 EST 2004 */
    SUMA_DSET *dset_link; /*!< A COPY OF THE POINTER to the dataset this plane is 
                               attached to. DO NOT FREE THIS POINTER MANUALLY.
@@ -939,6 +953,7 @@ typedef struct {
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    Widget ColPlaneLabel_Parent_lb;
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
+   void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
    Widget cmap_wid;  /*! GLXAREA widget for displaying colormap */
    GLXContext cmap_context;   /* graphic context for cmap */
    Widget thr_sc;   /*! scale for threshold data */
@@ -1302,7 +1317,7 @@ typedef struct {
    SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
    SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function that resets the Eye Axis before display. 
                                           see functions SUMA_display and SUMA_OpenGLStateReset for more info */
-                                          
+   SUMA_Boolean NewGeom;   /*!< YUP if viewer has new geometry in it and needs to have its default viewing settings updated */                                  
    DList *BS; /*!< The new version of BrushStroke, in doubly linked list form */
    
    char *CurGroupName; /*!< current name of group */
