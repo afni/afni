@@ -26,9 +26,10 @@ extern SUMA_CommonFields *SUMAg_CF;
 */
 
 /*! Widget initialization */
-static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 12,
-  None};
-static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 12,
+/*   GLX_RED_SIZE, 4, GLX_BLUE_SIZE, 4, GLX_GREEN_SIZE, 4, GLX_ALPHA_SIZE, 4, */
+static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
+   None};
+static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
   GLX_DOUBLEBUFFER, None};
 
 static String fallbackResources_default[] = {
@@ -7122,6 +7123,11 @@ void SUMA_ShowAllVisuals (void)
    Display *dpy;
    XVisualInfo match, *visualList, *vi, *visualToTry;
    int errorBase, eventBase, major, minor, found, glxcapable;
+   Widget TopLevel;
+   XtAppContext App;
+   char *vargv[1]={ "[A] SUMA" };
+   int cargc = 1;
+
 
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -7137,8 +7143,8 @@ void SUMA_ShowAllVisuals (void)
    }
 
    glXQueryVersion(dpy, &major, &minor);
-   printf("display: %s\n", XDisplayName(NULL));
-   printf("using GLX version: %d.%d\n\n", major, minor);
+   fprintf(SUMA_STDERR, "display: %s\n", XDisplayName(NULL));
+   fprintf(SUMA_STDERR, "using GLX version: %d.%d\n\n", major, minor);
 
    match.screen = DefaultScreen(dpy);
    visualList = XGetVisualInfo(dpy, VisualScreenMask, &match, &found);
@@ -7167,49 +7173,40 @@ void SUMA_ShowAllVisuals (void)
       0, visualToTry->depth, InputOutput, visualToTry->visual,
       CWBorderPixel | CWColormap, &swa);
       glXMakeCurrent(dpy, window, context);
-      printf("\n");
-      printf("OpenGL vendor string: %s\n", glGetString(GL_VENDOR));
-      printf("OpenGL renderer string: %s\n", glGetString(GL_RENDERER));
-      printf("OpenGL version string: %s\n", glGetString(GL_VERSION));
+      fprintf(SUMA_STDERR, "\n");
+      fprintf(SUMA_STDERR, "OpenGL vendor string: %s\n", glGetString(GL_VENDOR));
+      fprintf(SUMA_STDERR, "OpenGL renderer string: %s\n", glGetString(GL_RENDERER));
+      fprintf(SUMA_STDERR, "OpenGL version string: %s\n", glGetString(GL_VERSION));
       if (glXIsDirect(dpy, context))
-         printf("direct rendering: supported\n");
-   } else printf("No GLX-capable visuals!\n");
+         fprintf(SUMA_STDERR, "direct rendering: supported\n");
+   } else fprintf(SUMA_STDERR, "No GLX-capable visuals!\n");
    
    XFree(visualList);
 
    /* which visual will be chosen by SUMA ? (based on Step 3 in SUMA_X_SurfaceViewer_Create) */
-   {
-      Display *dpy;
-      Widget TopLevel;
-      XVisualInfo *vi;
-      XtAppContext App;
-      char *vargv[1]={ "[A] SUMA" };
-      int cargc = 1;
+   TopLevel = XtAppInitialize(&App, "SUMA", NULL, 0, &cargc, vargv,
+                              SUMA_get_fallbackResources(), NULL, 0);
+   dpy = XtDisplay(TopLevel);
 
-      TopLevel = XtAppInitialize(&App, "SUMA", NULL, 0, &cargc, vargv,
-                                 SUMA_get_fallbackResources(), NULL, 0);
-      dpy = XtDisplay(TopLevel);
-      
-      vi = glXChooseVisual(dpy, DefaultScreen(dpy), dblBuf);
-      if (vi == NULL) {
-         fprintf(stdout, "trying lame single buffer visual\n");
-         XtAppWarning(App, "trying lame single buffer visual");
-         vi = glXChooseVisual(dpy, DefaultScreen(dpy), snglBuf);
-       if (vi == NULL) {
-         XtAppError(App, "no good visual");
-         }
+   vi = glXChooseVisual(dpy, DefaultScreen(dpy), dblBuf);
+   if (vi == NULL) {
+      fprintf(stdout, "trying lame single buffer visual\n");
+      XtAppWarning(App, "trying lame single buffer visual");
+      vi = glXChooseVisual(dpy, DefaultScreen(dpy), snglBuf);
+    if (vi == NULL) {
+      XtAppError(App, "no good visual");
       }
-      fprintf (SUMA_STDERR,"************************************\n"); 
-      fprintf (SUMA_STDERR,"%s: Visual chosen by SUMA:\n", FuncName);
-      SUMA_ShowVisual(dpy, vi, YUP);
-      if (vi->class != TrueColor) {
-         fprintf (SUMA_STDERR,"%s: Visual is not TrueColor.\n", FuncName); 
-         fprintf (SUMA_STDERR," You may experience problems drawing ROIs.\n"
-                              " It is best you switch your X display to TrueColor\n"
-                              " mode\n");
-      }
-      XtDestroyWidget(TopLevel);
    }
+   fprintf (SUMA_STDERR,"************************************\n"); 
+   fprintf (SUMA_STDERR,"%s: Visual chosen by SUMA:\n", FuncName);
+   SUMA_ShowVisual(dpy, vi, YUP);
+   if (vi->class != TrueColor) {
+      fprintf (SUMA_STDERR,"%s: Visual is not TrueColor.\n", FuncName); 
+      fprintf (SUMA_STDERR," You may experience problems drawing ROIs.\n"
+                           " It is best you switch your X display to TrueColor\n"
+                           " mode\n");
+   }
+   XtDestroyWidget(TopLevel);
    
    SUMA_RETURNe;
 }
@@ -7229,15 +7226,15 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (ShowHead) {
-      printf("\n");
-      printf("   visual     bf lv rg d st  r  g  b a   ax dp st accum buffs\n");
-      printf(" id dep cl    sz l  ci b ro sz sz sz sz  bf th cl  r  g  b  a\n");
-      printf("-------------------------------------------------------------\n");
+      fprintf(SUMA_STDERR, "\n");
+      fprintf(SUMA_STDERR, "   visual     bf lv rg d st  r  g  b a   ax dp st accum buffs\n");
+      fprintf(SUMA_STDERR, " id dep cl    sz l  ci b ro sz sz sz sz  bf th cl  r  g  b  a\n");
+      fprintf(SUMA_STDERR, "-------------------------------------------------------------\n");
    }
    
    glXGetConfig(dpy, vi, GLX_USE_GL, &glxCapable);
    if (glxCapable) {
-      printf("0x%x %2d %s", vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
+      fprintf(SUMA_STDERR, "0x%x %2d %s", vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
       glXGetConfig(dpy, vi, GLX_BUFFER_SIZE, &bufferSize);
       glXGetConfig(dpy, vi, GLX_LEVEL, &level);
       glXGetConfig(dpy, vi, GLX_RGBA, &renderType);
@@ -7254,19 +7251,19 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
       glXGetConfig(dpy, vi, GLX_ACCUM_GREEN_SIZE, &acGreenSize);
       glXGetConfig(dpy, vi, GLX_ACCUM_BLUE_SIZE, &acBlueSize);
       glXGetConfig(dpy, vi, GLX_ACCUM_ALPHA_SIZE, &acAlphaSize);
-      printf("    %2s %2s %1s  %1s  %1s ",
+      fprintf(SUMA_STDERR, "    %2s %2s %1s  %1s  %1s ",
         SUMA_Format(bufferSize, 2), SUMA_Format(level, 2),
         renderType ? "r" : "c",
          doubleBuffer ? "y" : ".", 
          stereo ? "y" : ".");
-      printf("%2s %2s %2s %2s ",
+      fprintf(SUMA_STDERR, "%2s %2s %2s %2s ",
          SUMA_Format(redSize, 2), SUMA_Format(greenSize, 2),
          SUMA_Format(blueSize, 2), SUMA_Format(alphaSize, 2));
-      printf("%2s %2s %2s %2s %2s %2s %2s",
+      fprintf(SUMA_STDERR, "%2s %2s %2s %2s %2s %2s %2s",
         SUMA_Format(auxBuffers, 2), SUMA_Format(depthSize, 2), SUMA_Format(stencilSize, 2),
         SUMA_Format(acRedSize, 2), SUMA_Format(acGreenSize, 2),
         SUMA_Format(acBlueSize, 2), SUMA_Format(acAlphaSize, 2));
-      printf("\n");
+      fprintf(SUMA_STDERR, "\n");
    }
    
    SUMA_RETURN(glxCapable); 
