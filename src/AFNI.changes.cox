@@ -2095,3 +2095,7 @@
 12 Apr 2000
  * Added AFNI_SYSTEM_AFNIRC environment variable, to allow introduction
      of a system wide .afnirc file.
+ * Added the ability to change datasets in the renderer from script files
+     (using the saved ID code string).  Also, made the threshold slider
+     change when the script changes the threshold value (forgot this
+     visual detail before).

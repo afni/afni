@@ -500,7 +500,18 @@ void REND_set_thr_pval(void) ;
   static int script_graf = 0 ;
 #endif /* SCRIPT_GRAFS */
 
-  typedef struct {   /* data to store the state of rendering operations */
+#define SCRIPT_DSETS
+#ifdef SCRIPT_DSETS
+  /* 12 Apr 2000: stuff for changing datasets from script */
+
+  static MCW_bbox * script_dset_bbox ;
+  void REND_script_dset_CB( Widget , XtPointer , XtPointer ) ;
+  static int script_dsetchange =  0 ;
+#endif
+
+  /* data structure to store the state of rendering operations */
+
+  typedef struct {
 
      char dset_name[THD_MAX_NAME] , func_dset_name[THD_MAX_NAME] ;
      MCW_idcode dset_idc          , func_dset_idc ;
@@ -2504,6 +2515,10 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "       the automation will be interrupted when it finishes the\n"
        "       image on which it is working (you have to wait until\n"
        "       that time -- pressing the button twice won't help!).\n"
+#ifdef USE_SCRIPTING
+       "   Z) The 'Scripts' method, described below, is an entirely\n"
+       "       separate method of generating multiple renderings at once.\n"
+#endif
        "\n"
        "Color Overlays\n"
        "--------------\n"
@@ -2643,18 +2658,28 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        " * The toggle button 'Brick Index?' controls whether the sub-brick\n"
        "     indexes are to be changed when new rendering values are loaded\n"
        "     via one of the 'Read' buttons, or via the 'Load Widgets' toggle.\n"
+#ifdef SCRIPT_GRAFS
        "\n"
        " * The toggle button 'Alter Grafs?' controls whether the Brightness\n"
        "     and Opacity interactive graphs are to be restored when new\n"
        "     rendering values are loaded (via 'Read' or 'Load Widgets').\n"
+#endif
+#ifdef SCRIPT_DSETS
+       "\n"
+       " * The toggle button 'Alter Dsets?' controls whether the datasets\n"
+       "     will be changed (from the dataset ID codes) when new\n"
+       "     rendering values are loaded (via 'Read' or 'Load Widgets').\n"
+#endif
        "\n"
        " N.B.: When you render a new image, it always goes at the END of\n"
        "         the accumulation, no matter which image you happen to be\n"
        "         viewing when you press 'Draw', or otherwise cause rendering.\n"
        " N.B.: The format of a .rset file is described in the documentation\n"
-       "         file README.render_scripts.\n"
+       "         file README.render_scripts.  By editing such a file, you can\n"
+       "         create a script that can be used to create many renderings\n"
+       "         at once (via the 'Read & Exec' button).\n"
        "\n"
-#endif
+#endif  /* USE_SCRIPTING */
        "Final Notes:\n"
        "------------\n"
        " * The rendering is done using the VolPack library from Stanford,\n"
@@ -2667,7 +2692,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        " * The images produced may look a little blurry, due to the linear\n"
        "     interpolation scheme used by VolPack.  You can use the 'Sharpen'\n"
        "     option on the image viewer 'Disp' control panel to make them\n"
-       "     look a little nicer.\n"
+       "     look nicer.\n"
        "\n"
        " * When only one image is rendered (i.e., Accumulate is off), the\n"
        "     image viewer window does not show the control widgets.  The 'Disp'\n"
@@ -2681,7 +2706,9 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     at all decently on a computer with less than 128 MB of RAM.\n"
        "------------------------------------------------------------------------\n"
        "\n"
-       "RW Cox, Milwaukee - February 1999\n"
+       "RW Cox, Milwaukee - February 1999 [first version]\n"
+       "                  - July 1999     [Scripts]\n"
+       "                  - April 2000    [Scripts can change datasets]\n"
 
     , TEXT_READONLY ) ;
    return ;
@@ -5818,6 +5845,7 @@ void REND_script_menu( Widget parent )
 #ifdef SCRIPT_GRAFS
    static char * graf_bbox_label[1]    = { "Alter Grafs?" } ;
 #endif
+   static char * dset_bbox_label[1]    = { "Alter Dsets?" } ;
 
    rc =  XtVaCreateWidget(
            "dialog" , xmRowColumnWidgetClass , parent ,
@@ -5918,10 +5946,31 @@ void REND_script_menu( Widget parent )
                          "Set grafs when loading widgets?" ) ;
 #endif
 
+#ifdef SCRIPT_DSETS
+   /* 12 Apr 2000 - toggle button for dataset changing via scripts */
+
+   script_dset_bbox = new_MCW_bbox( script_menu , 1 , dset_bbox_label ,
+                                    MCW_BB_check , MCW_BB_noframe ,
+                                    REND_script_dset_CB , NULL ) ;
+   MCW_reghint_children( script_dset_bbox->wrowcol ,
+                         "Change datasets when loading widgets?" ) ;
+#endif
 
    XtManageChild( rc ) ;
    return ;
 }
+
+#ifdef SCRIPT_DSETS
+/*-----------------------------------------------------------------------
+   Callback when the "Alter Dsets?" button is toggled
+-------------------------------------------------------------------------*/
+
+void REND_script_dset_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   script_dsetchange = MCW_val_bbox( script_dset_bbox ) ;
+   return ;
+}
+#endif
 
 #ifdef SCRIPT_GRAFS
 /*-----------------------------------------------------------------------
@@ -6008,7 +6057,12 @@ void REND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
    }
 
    if( w == script_read_exec_pb ){
-      if( dset == NULL ){
+#ifdef SCRIPT_DSETS
+      if( dset == NULL && script_dsetchange == 0 )
+#else
+      if( dset == NULL )
+#endif
+      {
          (void) MCW_popup_message( script_cbut ,
                                       " \n"
                                       "** No dataset loaded\n"
@@ -6305,6 +6359,7 @@ void REND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    for( it=0 ; it < ntime ; it++ ){
 
       REND_state_to_widgets( RSA_SUBSTATE(rsa,it) ) ;
+      if( dset == NULL ) break ;                        /* some error */
 
       REND_draw_CB(NULL,NULL,NULL) ;
 
@@ -6395,9 +6450,9 @@ RENDER_state_array * REND_read_states( char * fname , RENDER_state * rsbase )
 
    if( strcmp(str,"***RENDER") != 0 ) goto SkipSection ;
 
-   if( rsa == NULL ){ INIT_RSA(rsa) ; }                    /* create the output array */
+   if( rsa == NULL ){ INIT_RSA(rsa) ; }                     /* create the output array */
 
-   rs = (RENDER_state *) malloc( sizeof(RENDER_state) ) ;  /* create the new state */
+   rs = (RENDER_state *) calloc( 1,sizeof(RENDER_state) ) ; /* create the new state */
 
    if( RSA_COUNT(rsa) == 0 && rsbase != NULL ){
       *rs = *rsbase ;                                /* copy base state */
@@ -6423,25 +6478,33 @@ RENDER_state_array * REND_read_states( char * fname , RENDER_state * rsbase )
 
       if( strcmp(left,"dset_name") == 0 ){
          MCW_strncpy(rs->dset_name,right,THD_MAX_NAME) ;
-         ZERO_IDCODE(dset_idc) ;
+#if 0
+         ZERO_IDCODE(rs->dset_idc) ;
+#endif
          continue ;                                      /* the while(1) loop */
       }
 
       if( strcmp(left,"func_dset_name") == 0 ){
          MCW_strncpy(rs->func_dset_name,right,THD_MAX_NAME) ;
-         ZERO_IDCODE(func_dset_idc) ;
+#if 0
+         ZERO_IDCODE(rs->func_dset_idc) ;
+#endif
          continue ;
       }
 
       if( strcmp(left,"dset_idc") == 0 ){
          MCW_strncpy(rs->dset_idc.str,right,MCW_IDSIZE) ;
+#if 0
          rs->dset_name[0] = '\0' ;
+#endif
          continue ;
       }
 
       if( strcmp(left,"func_dset_idc") == 0 ){
          MCW_strncpy(rs->func_dset_idc.str,right,MCW_IDSIZE) ;
+#if 0
          rs->func_dset_name[0] = '\0' ;
+#endif
          continue ;
       }
 
@@ -6703,6 +6766,16 @@ char * REND_save_state( RENDER_state * rs , RENDER_state * rsbase )
    RSP_STR(dset_name) ;
    RSP_STR(func_dset_name) ;
 
+   /* write dataset ID codes [12 Apr 2000] */
+
+   if( rsbase == NULL || !EQUIV_IDCODES(rsbase->dset_idc,rs->dset_idc) )
+      if( !ISZERO_IDCODE(rs->dset_idc) )
+         sss = THD_zzprintf( sss , "  dset_idc = %s\n" , rs->dset_idc.str ) ;
+
+   if( rsbase == NULL || !EQUIV_IDCODES(rsbase->func_dset_idc,rs->func_dset_idc) )
+      if( !ISZERO_IDCODE(rs->func_dset_idc) )
+         sss = THD_zzprintf( sss , "  func_dset_idc = %s\n" , rs->func_dset_idc.str ) ;
+
    /* scalar values */
 
    RSP_INT(dset_ival) ;
@@ -6915,7 +6988,86 @@ void REND_state_to_widgets( RENDER_state * rs )
 
    if( rs == NULL ) return ;
 
-   /* don't change which datasets are in use */
+#ifdef SCRIPT_DSETS
+   /* 12 Apr 2000: allow change of dataset! */
+
+   if( script_dsetchange ){
+      THD_3dim_dataset * qset ;
+      MCW_choose_cbs cbs ;
+      char serr[256] ;
+
+      /*- underlay -*/
+
+      if( !ISZERO_IDCODE(rs->dset_idc) ){
+
+         if( dset == NULL || !EQUIV_IDCODES(rs->dset_idc,dset->idcode) ){
+fprintf(stderr,"++ Changing underlay dataset to %s\n",rs->dset_idc.str) ;
+            qset = PLUTO_find_dset( &(rs->dset_idc) ) ;
+            if( !ISVALID_DSET(qset) ){
+               sprintf(serr, " \n"
+                             "** Can't find desired\n"
+                             "** underlay dataset:\n"
+                             "** %s\n" , rs->dset_idc.str ) ;
+               (void) MCW_popup_message( script_cbut , serr ,
+                                         MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+               PLUTO_beep() ;
+fprintf(stderr,"** Couldn't find new underlay dataset!\n") ;
+            } else {
+               ndsl = 1 ;
+               dsl = (PLUGIN_dataset_link *)
+                       XtRealloc( (char *)dsl, sizeof(PLUGIN_dataset_link)*ndsl );
+               make_PLUGIN_dataset_link( qset , dsl ) ;
+               cbs.ival = 0 ;
+               REND_finalize_dset_CB( NULL , NULL , &cbs ) ;
+            }
+         }
+      }
+
+      /*- overlay -*/
+
+      if( !ISZERO_IDCODE(rs->func_dset_idc) && dset != NULL ){
+
+         if( func_dset == NULL ||
+             !EQUIV_IDCODES(rs->func_dset_idc,func_dset->idcode) ){
+fprintf(stderr,"++ Changing overlay dataset to %s\n",rs->func_dset_idc.str) ;
+            qset = PLUTO_find_dset( &(rs->func_dset_idc) ) ;
+            if( !ISVALID_DSET(qset) ){
+               sprintf(serr, " \n"
+                             "** Can't find desired\n"
+                             "** overlay dataset:\n"
+                             "**  %s\n" , rs->func_dset_idc.str ) ;
+               (void) MCW_popup_message( script_cbut , serr ,
+                                         MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+               PLUTO_beep() ;
+fprintf(stderr,"** Couldn't find new overlay dataset!\n") ;
+            } else if( DSET_NX(dset) != DSET_NX(qset) ||
+                       DSET_NY(dset) != DSET_NY(qset) ||
+                       DSET_NZ(dset) != DSET_NZ(qset) ){
+               sprintf(serr," \n"
+                            "** Desired overlay dataset:\n"
+                            "**  %s\n"
+                            "** doesn't match underlay\n"
+                            "** dataset's dimensions!\n", rs->func_dset_idc.str );
+               (void) MCW_popup_message( script_cbut , serr ,
+                                         MCW_USER_KILL | MCW_TIMER_KILL   ) ;
+               PLUTO_beep() ;
+fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
+            } else {
+               ndsl = 1 ;
+               dsl = (PLUGIN_dataset_link *)
+                       XtRealloc( (char *)dsl,sizeof(PLUGIN_dataset_link)*ndsl );
+               make_PLUGIN_dataset_link( qset , dsl ) ;
+               cbs.ival = 0 ;
+
+               if( wfunc_frame == NULL || !XtIsManaged(wfunc_frame) )
+                  REND_open_func_CB(NULL,NULL,NULL) ;
+
+               REND_finalize_func_CB( NULL , NULL , &cbs ) ;
+            }
+         }
+      }
+   }
+#endif /* SCRIPT_DSETS */
 
    /* change the sub-values in the dataset (maybe?) */
 
@@ -7010,6 +7162,7 @@ void REND_state_to_widgets( RENDER_state * rs )
          XmScaleCallbackStruct cbs ;
          cbs.value = (int)( rs->func_threshold / THR_FACTOR + 0.01 ) ;
          REND_thr_scale_CB( NULL,NULL , &cbs ) ;
+         XmScaleSetValue( wfunc_thr_scale , cbs.value ) ;  /* oops, forgot this! 12 Apr 2000 */
       }
 
       if( RSOK(func_color_opacity,0.0,1.101) ){

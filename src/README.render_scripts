@@ -19,21 +19,30 @@ programmed to handle this special case.
 When a .rset file is written out, the first ***RENDER frame contains
 definitions of all the rendering state variables.  Succeeding frames
 only define variables that change from the previous frame.  Comments
-may be included using the C++ notation "//".
+may be included using the C++ notation "//" (=comment to end of line).
 
-At the present time, the dataset names are not used by the renderer.
-The sub-brick index variables (*_ival) are used only if the "Brick Index?"
-toggle on the "Scripts" menu is activated.
+At the present time, the dataset name (_name) variables are not used by
+the renderer.  Some other variables are only used if certain toggles on
+the "Scripts" menu are activated:
+  * The sub-brick index variables (*_ival) are used only if the
+      "Brick Index?" toggle is activated.
+  * The brightness (bright_) variables and opacity (opacity_)
+      variables are used only if the "Alter Grafs?" toggle is activated.
+  * The dataset ID codes (_idc variables) are only used if the
+      "Alter Dsets?" toggle is activated.
 
 The section below is a .rset file to which I have added comments in order
 to indicate the function of each variable.
 
 Bob Cox -- July 01999
+        -- updated April 02000
 ==============================================================================
 
 ***RENDER                                           // starts a frame
   dset_name = /usr3/cox/verbal/strip+tlrc.HEAD      // not used now
   func_dset_name = /usr3/cox/verbal/func+tlrc.HEAD  // not used now
+  dset_idc = MCW_OYJRIKDHKMV                        // used by "Alter Dsets?"
+  func_dset_idc = MCW_PTEAZEWVTIG                   // used by "Alter Dsets?"
   dset_ival = 0                                     // sub-brick of underlay
   func_color_ival = 0                               // sub-brick of overlay
   func_thresh_ival = 1                              // sub-brick of overlay
@@ -79,7 +88,7 @@ Bob Cox -- July 01999
   cutout_type[2]   = CUT_SUPERIOR_TO
   cutout_mustdo[2] = YES
   cutout_param[2] =  30
- // new bright graf values
+ // new bright graf values - used by "Alter Grafs?"
   bright_nhands = 4                                 // number of graph handles
   bright_spline = 0                                 // 1 = spline interpolation
   bright_handx[0] = 0                               // (x,y) coordinates of
@@ -90,7 +99,7 @@ Bob Cox -- July 01999
   bright_handy[2] = 247
   bright_handx[3] = 255
   bright_handy[3] = 255
- // new opacity graf values
+ // new opacity graf values - used by "Alter Grafs?"
   opacity_nhands = 4
   opacity_spline = 0
   opacity_handx[0] = 0
