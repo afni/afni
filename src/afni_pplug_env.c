@@ -341,6 +341,10 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_SPEECH" , "Allow speech synthesis?" ) ; /* 03 Dec 2003 */
 #endif
 
+   ENV_add_numeric( "AFNI_VIDEO_DELAY" ,                        /* 04 Dec 2003 */
+                    "Image redraw interval for 'V' or 'v' (ms)." ,
+                    1,1000,0,1 , NULL              ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;

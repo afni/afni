@@ -30,6 +30,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->parent = NULL ;
    grapher->valid  = 1 ;
 
+   grapher->timer_id = 0 ;         /* 04 Dec 2003 */
+
    grapher->never_drawn = 1 ;
    grapher->button2_enabled = 0 ;  /* Feb 1998 */
    grapher->mirror = 0 ;           /* Jul 2000 */
@@ -881,6 +883,8 @@ void end_fd_graph_CB( Widget w , XtPointer client_data , XtPointer call_data )
 ENTRY("end_fd_graph_CB") ;
 
    if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   GRA_timer_stop( grapher ) ;  /* 04 Dec 2003 */
 
    grapher->valid = 0 ;  /* can't do anything with this anymore */
 
@@ -2491,6 +2495,8 @@ STATUS(str) ; }
 
 STATUS("KeyPress event") ;
 
+         GRA_timer_stop( grapher ) ;  /* 04 Dec 2003 */
+
          if( grapher->fd_pxWind != (Pixmap) 0 ){
             buf[0] = '\0' ;
             nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
@@ -2972,7 +2978,7 @@ STATUS(str); }
             redraw_graph( grapher , 0 ) ;
       break ;
 
-      case '<': case ',':
+      case '<': case ',':   /* change time point */
       case '>': case '.':
       case '1':
       case 'l':
@@ -2998,7 +3004,20 @@ STATUS(str); }
          }
       break ;
 
-      case 'z':
+      case 'v':  /* 04 Dec 2003: video */
+      case 'V':
+        if( grapher->status->num_series > 1 ){
+          grapher->timer_func  = GRA_TIMERFUNC_INDEX ;
+          grapher->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+          if( grapher->timer_delay <= 0 ) grapher->timer_delay = 1 ;
+          grapher->timer_param = (buf[0] == 'v') ? 1 : -1 ;
+          grapher->timer_id    =
+          XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
+                           grapher->timer_delay , GRA_timer_CB , grapher ) ;
+        }
+      break ;
+
+      case 'z':  /* change slice */
       case 'Z':
          if( buf[0] == 'z' ){
             grapher->zpoint -- ;
@@ -3171,17 +3190,20 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_save_pb ){
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       GRA_handle_keypress( grapher , "S" , NULL ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_write_center_pb ){
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       GRA_handle_keypress( grapher , "w" , NULL ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_write_suffix_pb ){
       EXRONE(grapher) ;  /* 22 Sep 2000 */
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       MCW_choose_string( grapher->option_rowcol ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
                          GRA_wcsuffix_choose_CB , NULL ) ;
@@ -3232,11 +3254,13 @@ STATUS("User pressed Done button: starting timeout") ;
    if( w == grapher->opt_xaxis_clear_pb ){
       mri_free( grapher->xax_tsim ) ;
       grapher->xax_tsim = NULL ;
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       redraw_graph( grapher , 0 ) ;
       EXRETURN ;
    }
 
    if( w == grapher->opt_xaxis_pick_pb ){
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       if( IMARR_COUNT(GLOBAL_library.timeseries) > 0 ){
         MCW_choose_timeseries( grapher->fdw_graph , "Graph x-axis" ,
                                GLOBAL_library.timeseries , -1 ,
@@ -3252,6 +3276,7 @@ STATUS("User pressed Done button: starting timeout") ;
 
    if( w == grapher->opt_xaxis_center_pb ){
       EXRONE(grapher) ;  /* 22 Sep 2000 */
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       if( grapher->cen_tsim != NULL ){
          mri_free( grapher->xax_tsim ) ;
          grapher->xax_tsim = mri_to_float( grapher->cen_tsim ) ;
@@ -3800,6 +3825,7 @@ ENTRY("drive_MCW_grapher") ;
 
       case graDR_button2_enable:{
          grapher->button2_enabled = 1 ;
+         GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
          RETURN( True ) ;
       }
 
@@ -3981,6 +4007,7 @@ STATUS("replacing ort timeseries") ;
       /*------- unrealize! -------*/
 
       case graDR_unrealize:{
+         GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
          if( GRA_REALZ(grapher) ) XtUnrealizeWidget( grapher->fdw_graph ) ;
          grapher->valid = 1 ;
 
@@ -4042,6 +4069,8 @@ STATUS("replacing ort timeseries") ;
 
       case graDR_newdata:{
          int npold = grapher->status->num_series ;  /* 22 Sep 2000 */
+
+         GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
 
          grapher->status = (MCW_grapher_status *)
                               grapher->getser(0,graCR_getstatus,drive_data) ;
@@ -4215,6 +4244,7 @@ ENTRY("GRA_fim_CB") ;
          case 3:   cbs.key = FIM_PTOP_MASK  | FIM_CORR_MASK ; break ;
       }
       cbs.mat = 0 ; /* Feb 2000 */
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
    }
 
@@ -4222,6 +4252,7 @@ ENTRY("GRA_fim_CB") ;
       cbs.reason = graCR_dofim ;
       cbs.key    = MCW_val_bbox(grapher->fmenu->fimp_opt_bbox) ;
       cbs.mat    = MCW_val_bbox(grapher->fmenu->fimp_user_bbox) ; /* Feb 2000 */
+      GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
       if( cbs.key || cbs.mat )
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
       else
@@ -5339,4 +5370,51 @@ if(PRINT_TRACING){
    RWC_xineramize( XtDisplay(w) , xx,yy,ww,hh , &xx,&yy ) ; /* 27 Sep 2000 */
    XtVaSetValues( w , XmNx,xx , XmNy,yy , NULL ) ;
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Do something every so often. */
+
+void GRA_timer_CB( XtPointer cd , XtIntervalId *id ) /* 03 Dec 2003 */
+{
+   MCW_grapher *grapher = (MCW_grapher *)cd ;
+   int redo = 0 ;
+
+ENTRY("GRA_timer_CB") ;
+
+   if( !GRA_REALZ(grapher) || grapher->timer_id == 0 ) EXRETURN ;
+
+   switch( grapher->timer_func ){
+
+     case GRA_TIMERFUNC_INDEX:{
+       int nn = grapher->time_index , nt=grapher->status->num_series ;
+       if( nt > 1 && grapher->timer_param != 0 ){
+         nn = (nn+grapher->timer_param+nt) % nt ;
+         redo = 1 ;
+         if( grapher->status->send_CB != NULL ){
+           GRA_cbs cbs ;
+           cbs.reason = graCR_setindex ;
+           cbs.key    = nn ;
+           cbs.event  = NULL ;
+           grapher->status->send_CB( grapher, grapher->getaux, &cbs ) ;
+         } else {
+           (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)nn) ;
+         }
+       }
+     }
+     break ;
+
+   }
+
+   if( redo ) grapher->timer_id = XtAppAddTimeOut(
+                                   XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
+                                   grapher->timer_delay , GRA_timer_CB , grapher ) ;
+   else       grapher->timer_id = 0 ;
+
+   EXRETURN ;
+}
+
+void GRA_timer_stop( MCW_grapher *grapher )
+{
+   if( grapher->timer_id > 0 ){ XtRemoveTimeOut(grapher->timer_id); grapher->timer_id = 0; }
 }
