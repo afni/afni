@@ -110,11 +110,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
                                                         SUMA_OpenDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        "*.roi",
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
                                                         SUMA_OpenDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        "*.roi",
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI File to Open", &SUMAg_CF->X->FileSelectDlg);
@@ -135,11 +137,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
                                                         SUMA_SaveDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        NULL,
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
                                                         SUMA_SaveDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        NULL,
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             
@@ -163,11 +167,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        NULL,
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
                                                         NULL, NULL,
+                                                        NULL,
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             
@@ -442,6 +448,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      /* contact afni */
                         fprintf(SUMA_STDOUT,"%s: Contacting afni ...\n", FuncName);
                         SUMAg_CF->ns = NI_stream_open( SUMAg_CF->NimlAfniStream , "w" ) ;
+                        if (!SUMAg_CF->ns) {
+                           SUMA_SLP_Err("NI_stream_open failed.");
+                           SUMA_BEEP;
+                           SUMAg_CF->Connected = !SUMAg_CF->Connected;
+                           break ;
+                        }
                         fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
                         if( strstr( SUMAg_CF->NimlAfniStream , "tcp:localhost:" ) != NULL ) {
                            if (!NI_stream_reopen( SUMAg_CF->ns , "shm:WeLikeElvis:1M" )) {
@@ -451,7 +463,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         /*   SUMAg_CF->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
 
                      if( SUMAg_CF->ns == NULL ){
-                        fprintf(SUMA_STDERR,"Error %s: NI_stream_open failed\n", FuncName) ; 
+                        SUMA_SLP_Err("NI_stream_open failed");
+                        SUMA_BEEP; 
                         SUMAg_CF->Connected = !SUMAg_CF->Connected;
                         break ;
                      }
@@ -663,8 +676,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-            SO->SelectedNode = EngineData->i;
-            
+            if (EngineData->i >= 0 && EngineData->i < SO->N_Node) {
+               SO->SelectedNode = EngineData->i;
+            } else {
+               SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");
+               break;
+            }
             break;
             
          case SE_ToggleShowSelectedFaceSet:
@@ -695,6 +712,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+            if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
+               SUMA_SLP_Err("Node index < 0 || > Number of FaceSets in surface");
+               break;
+            }
             ND = SO->NodeDim;
             NP = SO->FaceSetDim;
             ip = NP * EngineData->i;
@@ -846,9 +867,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            svi->Ch->c[2] = sv->Ch->c[2];
                            svi->Ch->NodeID = -1;
                            svi->Ch->SurfaceID = -1;
-                           /* register a redisplay */
+                           /* FORCE a redisplay */
                            svi->ResetGLStateVariables = YUP;
-                           SUMA_postRedisplay(svi->X->GLXAREA, NULL, NULL);                           
+                           SUMA_handleRedisplay((XtPointer)svi->X->GLXAREA);                           
                            break;
                         case SUMA_I_Lock: 
                            {
@@ -1018,6 +1039,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData */
             /*call handle redisplay immediately to one specific viewer*/
             if (LocalHead) fprintf (SUMA_STDOUT,"%s: Redisplaying NOW ...", FuncName);
+            sv->ResetGLStateVariables = YUP;
             SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
             if (LocalHead) fprintf (SUMA_STDOUT," Done\n");
             break;
@@ -2084,12 +2106,14 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 
             } else { /* no node is close enough */
                if (SO != SOmap) {
-                  fprintf (SUMA_STDERR,"%s: No node was close enough to XYZmap, no linkage possible\n", FuncName);
+                  SUMA_SL_Warn(  "No node was close enough\n"
+                                 "to XYZmap, no linkage possible."   );
                   SUMA_free(XYZ);
                   SUMA_RETURN (NULL);
                } else {
                   /* comes from inherrently mappable stuff, makes sense to leave XYZ */
-                  fprintf (SUMA_STDERR,"%s: No node was close enough to XYZmap, no node linkage possible.\n",FuncName); 
+                  SUMA_SL_Warn(  "No node was close enough\n"
+                                 "to XYZmap, linking by coordinate."   );
                   SUMA_RETURN (XYZ);
                }
             }

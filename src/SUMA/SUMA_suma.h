@@ -44,6 +44,7 @@
 #include "xutil.h"
 
 #include "SUMA_Algorithms.h"
+#include "SUMA_DataSets.h"
 #include "SUMA_define.h"   
 #include "SUMA_Macros.h"  
 #include "SUMA_prototype.h"

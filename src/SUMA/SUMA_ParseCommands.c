@@ -543,8 +543,9 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SU
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!list) {
-      fprintf (SUMA_STDERR, "Error %s: list has not been initialized.\n", FuncName);
-      SUMA_RETURN (NOPE);
+      fprintf (SUMA_STDERR, "Warning %s: list has not been initialized.\n"
+                            "Nothing done.\n", FuncName);
+      SUMA_RETURN (YUP);
    }
    
    /* allocate and initialize element */

@@ -123,14 +123,15 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 {
    int tt = NI_element_type(nini) ;
    int OverInd, loc_ID, iview;
-   int i, I_C = -1, iv3[3], dest_SO_ID = -1, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   int i, I_C = -1, nodeid = -1, iv3[3], dest_SO_ID = -1, 
+         N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    NI_element *nel ;
    SUMA_EngineData *ED = NULL; 
    DList *list = NULL;
-   char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode;
+   char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode = NULL, *nel_nodeid = NULL;
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100], ssource[100];
    static char FuncName[]={"SUMA_process_NIML_data"};
-   float **fm, dimfact,  *XYZ;
+   float **fm, dimfact,  *XYZ=NULL;
    byte *r, *g, *b;
    SUMA_Boolean Empty_irgba = NOPE, LocalHead = NOPE, Found = NOPE;
    SUMA_SurfaceObject *SO = NULL;
@@ -176,11 +177,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          if (svi->LinkAfniCrossHair) {/* link cross hair */
             /* look for the surface idcode */
             nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+            
             if (nel_surfidcode == NULL) {
                if (LocalHead) fprintf(SUMA_STDERR,"%s: surface_idcode missing in nel, using svi->Focus_SO_ID.\n", FuncName);
                dest_SO_ID = svi->Focus_SO_ID; /* default */
             } else {
-               /* first try to find out if one of the displayd surfaces has a parent equal to nel_surfidcode */
+               /* first try to find out if one of the displayed surfaces has a parent equal to nel_surfidcode */
                if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching displayed surfaces.\n", FuncName);
                Found = NOPE;
                i = 0;
@@ -205,37 +207,74 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   }
                }
             }
+            
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
 
-           /*-- check element for suitability --*/
-           if( nel->vec_len    < 1 || nel->vec_filled <  1) {  /* empty element?             */
-               fprintf(SUMA_STDERR,"%s: Empty crosshair xyz.\n", FuncName);
-                 SUMA_RETURN(YUP);
-           }
-           if( nel->vec_len != 3 || nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
-                 fprintf(SUMA_STDERR,"%s: SUMA_crosshair_xyz requires 3 floats in one vector.\n", FuncName);
-               SUMA_RETURN(NOPE);
-           }
-
-            /*SUMA_nel_stdout (nel);*/
-
-            /* set the cross hair XYZ for now */
-            I_C = -1;
-            XYZ = SUMA_XYZmap_XYZ (nel->vec[0], SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
-
-           if (XYZ == NULL || I_C < 0) {
-              fprintf(SUMA_STDERR,"Error %s: No linkage possible.\n", FuncName);
-            SUMA_RETURN(NOPE);
-           }
-
-            /* attach the cross hair to the selected surface */
-            nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-            if (nel_surfidcode == NULL) {
-               fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\nLoose Crosshair\n", FuncName);
-               iv3[0] = -1;
-            } else {
-               iv3[0] = dest_SO_ID;
+            if (LocalHead) SUMA_nel_stdout (nel);
+            
+            /* check for node id */
+            nel_nodeid = NI_get_attribute (nel, "surface_nodeid");
+            if (!nel_nodeid) nodeid = -1;
+            else {
+               if (strlen(nel_nodeid)) nodeid = (int)strtod(nel_nodeid, NULL);
+               else nodeid = -1;
             }
+            
+            /*-- check element for suitability --*/
+            if( nel->vec_len    < 1 || nel->vec_filled <  1) {  /* empty element?             */
+               SUMA_SLP_Warn ("Empty crosshair xyz.\n");
+               SUMA_RETURN(YUP);
+            }
+            
+            if( nel->vec_len != 3 || nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
+               SUMA_SLP_Err(  "SUMA_crosshair_xyz requires\n"
+                              "3 floats in one vector.\n");
+               SUMA_RETURN(NOPE);
+            }
+
+               
+            /* nodeid is supplied, even if the distance from the cross hair to the node is large, 
+            set a limit */
+            if (nodeid >= 0) {
+               SUMA_LH("Node index courtesy of AFNI");
+               /* get the XYZ on the mapping reference */
+               I_C = -1;
+               XYZ = SUMA_XYZmap_XYZ (nel->vec[0], SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
+               if (!XYZ) {
+                  SUMA_SL_Warn("AFNI cross hair too\n"
+                              "far from surface.\n"
+                              "No action taken.");
+                  XBell (XtDisplay (sv->X->TOPLEVEL), 50);             
+                  SUMA_RETURN(YUP);
+               }
+               I_C = nodeid; /* node index is set by AFNI */
+            } else {
+               SUMA_LH("Searching for node index.");
+               /* set the cross hair XYZ for now and let SUMA_XYZmap_XYZ set the node index*/
+               I_C = -1;
+               XYZ = SUMA_XYZmap_XYZ (nel->vec[0], SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
+
+               if (XYZ == NULL || I_C < 0) {
+                  SUMA_SL_Warn("AFNI cross hair too\n"
+                              "far from surface.\n"
+                              "No action taken.");
+                  XBell (XtDisplay (sv->X->TOPLEVEL), 50);             
+                  SUMA_RETURN(YUP);
+               }
+            }
+            
+            /* attach the cross hair to the selected surface */
+            #if 0
+               if (nel_surfidcode == NULL) {
+                  fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\nLoose Crosshair\n", FuncName);
+                  iv3[0] = -1;
+               } else {
+                  iv3[0] = dest_SO_ID;
+               }
+            #else
+               iv3[0] = dest_SO_ID; /* nel_surfidcode == NULL is handled above, May 15 03*/
+            #endif
+            
             iv3[1] = I_C; /* use the closest node for a link otherwise when you switch states, you'll get a wandering cross hair */
             if (!list) list = SUMA_CreateList();
             ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
@@ -264,10 +303,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
               
-            
          } /* link cross hair */    
       } /* iview ... for all viewers */
-      /* don't free nel, it's freed later on */
+      /* don't free nel, it's freed later on
+         dont't free attributes obtained in NI_get_attribute, they are copies of pointers in nel  */
       SUMA_RETURN(YUP) ;
    }/* SUMA_crosshair_xyz */
    
@@ -778,7 +817,7 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    SUMA_ROI_DATUM *ROI_Datum=NULL;
    DListElmt *Elm = NULL;
    int i = -1;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -796,6 +835,14 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
    nimlROI->Label = ROI->Label;
    nimlROI->iLabel = ROI->iLabel;
    nimlROI->N_ROI_datum = dlist_size(ROI->ROIstrokelist);
+   nimlROI->ColPlaneName = ROI->ColPlaneName;
+   nimlROI->FillColor[0] = ROI->FillColor[0];
+   nimlROI->FillColor[1] = ROI->FillColor[1];
+   nimlROI->FillColor[2] = ROI->FillColor[2];
+   nimlROI->EdgeColor[0] = ROI->EdgeColor[0];
+   nimlROI->EdgeColor[1] = ROI->EdgeColor[1];
+   nimlROI->EdgeColor[2] = ROI->EdgeColor[2];
+   nimlROI->EdgeThickness = ROI->EdgeThickness;
    if (!nimlROI->N_ROI_datum) {
       nimlROI->ROI_datum = NULL;
       SUMA_RETURN(nimlROI);
@@ -824,10 +871,10 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
 }
 
 /*!
-   \brief returns a copy of a string . 
+   \brief returns a copy of a null terminated string . 
+   s_cp = SUMA_copy_string(s1);
    
-   
-   - free returned pointer with: if(atr) SUMA_free(atr);
+   - free returned pointer with: if(s_cp) SUMA_free(s_cp);
 */
 char *SUMA_copy_string(char *buf)
 {
@@ -850,7 +897,52 @@ char *SUMA_copy_string(char *buf)
    
    SUMA_RETURN(atr);  
 }
- 
+
+/*!
+   \brief appends two null terminated strings.
+   s_ap = SUMA_append_string(s1, s2);
+  
+   -free returned pointer with:  if(s_ap) SUMA_free(s_ap);
+   - None of the strings passed to the function
+   are freed.
+*/
+char * SUMA_append_string(char *s1, char *s2)
+{
+   static char FuncName[]={"SUMA_copy_string"};
+   char *atr = NULL;
+   int i,cnt, N_s2, N_s1;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!s1 && !s2) SUMA_RETURN(NULL);
+   if (!s1) N_s1 = 0;
+   else N_s1 = strlen(s1);
+   
+   if (!s2) N_s2 = 0;
+   else N_s2 = strlen(s2);
+   
+   atr = (char *) SUMA_calloc(N_s1+N_s2+2, sizeof(char));
+   
+   /* copy first string */
+   i=0;
+   cnt = 0;
+   while (s1[i]) {
+      atr[cnt] = s1[i];
+      ++i;
+      ++cnt;
+   }
+   
+   i=0;
+   while (s2[i]) {   
+      atr[cnt] = s2[i];
+      ++i;
+      ++cnt;
+   }
+   atr[cnt] = '\0';
+   
+   SUMA_RETURN(atr);  
+}    
+
 /*!
    \brief transfroms a SUMA_NIML_DRAWN_ROI * to a SUMA_DRAWN_ROI *
    
@@ -867,13 +959,14 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
    SUMA_ROI_DATUM *ROI_Datum = NULL;
    DListElmt *tmpStackPos=NULL;
    int i;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (!nimlROI) SUMA_RETURN(NULL);
    
-   /* allocate and initialize the whimpy fields */
+   /* allocate and initialize the whimpy fields 
+      Based on SUMA_AllocateDrawnROI*/
    ROI = (SUMA_DRAWN_ROI *) SUMA_malloc(sizeof(SUMA_DRAWN_ROI));
    if (  nimlROI->Type == SUMA_ROI_OpenPath || 
          nimlROI->Type == SUMA_ROI_ClosedPath ||
@@ -897,7 +990,16 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
    ROI->DrawStatus = SUMA_ROI_Finished;
    ROI->StackPos = NULL;
    ROI->ActionStack = SUMA_CreateActionStack ();
-   
+   ROI->ColPlaneName = SUMA_copy_string(nimlROI->ColPlaneName);
+   ROI->FillColor[0] = nimlROI->FillColor[0];
+   ROI->FillColor[1] = nimlROI->FillColor[1];
+   ROI->FillColor[2] = nimlROI->FillColor[2];
+   ROI->EdgeColor[0] = nimlROI->EdgeColor[0];
+   ROI->EdgeColor[1] = nimlROI->EdgeColor[1];
+   ROI->EdgeColor[2] = nimlROI->EdgeColor[2];
+   ROI->EdgeThickness = nimlROI->EdgeThickness;
+   ROI->CE = NULL;
+   ROI->N_CE = -1;
    /* fill in the ROI datum stuff */
    for (i=0; i<nimlROI->N_ROI_datum; ++i) {
       ROI_Datum = SUMA_AllocROIDatum ();
@@ -962,7 +1064,7 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
 SUMA_NIML_DRAWN_ROI * SUMA_Free_NIMLDrawROI (SUMA_NIML_DRAWN_ROI *nimlROI)
 {
    static char FuncName[]={"SUMA_Free_NIMLDrawROI"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

@@ -344,39 +344,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_H:
             if (SUMAg_CF->Dev) {
-               fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
-
-               it = SUMA_ReadNumStdin (fv15, 6);
-               if (it > 0 && it < 6) {
-                  fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
-                  SUMA_RETURNe;
-               }else if (it < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                  SUMA_RETURNe;
-               }else if (it == 0) {
-                  SUMA_RETURNe;
-               }
-            
-               fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n",\
-                  fv15[0], fv15[1],fv15[2],\
-                  fv15[3], fv15[4],fv15[5]);
-
-               /* register fv15 with ED */
-               if (!list) list = SUMA_CreateList(); 
-               ED = SUMA_InitializeEngineListData (SE_HighlightNodes);
-               if (!SUMA_RegisterEngineListCommand (     list, ED, 
-                                                         SEF_fv15, (void*)fv15,
-                                                         SES_Suma, (void *)sv, NOPE,
-                                                         SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                     break;                                      
-               }
+               sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                                      "Enter XYZ of box's center\n"
+                                                      "followed by it's size (6 values)", 
+                                                      "",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_HighlightBox, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)6,  
+                                                      sv->X->HighlightBox_prmpt);
                
-               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-
-               if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }
+               sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->HighlightBox_prmpt);
+               
             }
             break;
 
@@ -389,7 +370,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
               }    
             }else{
                if (SUMAg_CF->Dev) {
-                  SUMA_SLP_Note("Please use ctrl+h for help.\nh alone will be reassigned in future versions.");
+                  SUMA_SLP_Note("Please use ctrl+h for help.\nh alone will be reassigned\nin future versions.");
                   #if 0
                   /* fake some error logs */
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice", FuncName, SMT_Notice, SMA_Log);
@@ -405,139 +386,72 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_j:
             if (SUMAg_CF->Dev) {
                if (Kev.state & ControlMask){     
-                  fprintf(stdout,"Enter XYZ location to center cross hair at (nothing to cancel):\n");
-                  it = SUMA_ReadNumStdin (fv3, 3);
-                  if (it < 0) {
-                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                     SUMA_RETURNe;
-                  }else if (it == 0) {
-                     SUMA_RETURNe;
-                  }
-                  /* Now set the cross hair position */
-                  if (!list) list = SUMA_CreateList ();
-                  ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_fv3, (void*)fv3,
-                                                         SES_Suma, (void *)sv, NOPE,
-                                                         SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                     break;                                      
-                  } 
+                 sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                                      "Enter XYZ to send the cross hair to:", 
+                                                      "",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_JumpXYZ, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)3,  
+                                                      sv->X->JumpXYZ_prmpt);
+               
+                  sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpXYZ_prmpt);  
 
-                  if (!SUMA_Engine (&list)) {
-                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                     SUMA_RETURNe;
-                  }
                } else if (Kev.state & Mod1Mask){     
-                  fprintf(stdout,"Enter index of focus node, cross hair's XYZ will not be affected (nothing to cancel):\n");
-                  it = SUMA_ReadNumStdin (fv3, 1);
-                  if (it < 0) {
-                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                     SUMA_RETURNe;
-                  }else if (it == 0) {
-                     SUMA_RETURNe;
-                  }
-                  /* Set the Nodeselection  */
-                  it = (int) fv3[0];
-                  if (!list) list = SUMA_CreateList ();
-                  ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_i, (void*)(&it),
-                                                         SES_Suma, (void *)sv, NOPE,
-                                                         SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                     break;                                      
-                  } 
+                  sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                                      "Enter index of focus node\nCross hair's XYZ will not be affected:", 
+                                                      "",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_JumpFocusNode, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)1,  
+                                                      sv->X->JumpFocusNode_prmpt);
+               
+                  sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusNode_prmpt);
                   
-                  if (!SUMA_Engine (&list)) {
-                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                     SUMA_RETURNe;
-                  }
                } else {
-                  fprintf(stdout,"Enter index of node to send the cross hair to (nothing to cancel):\n");
-                  it = SUMA_ReadNumStdin (fv3, 1);
-                  if (it < 0) {
-                     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                     SUMA_RETURNe;
-                  }else if (it == 0) {
-                     SUMA_RETURNe;
-                  }
-                  /* Set the Nodeselection  */
-                  it = (int) fv3[0];
-                  if (!list) list = SUMA_CreateList ();
-                  ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_i, (void*)(&it),
-                                                         SES_Suma, (void *)sv, NOPE,
-                                                         SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                     break;                                      
-                  } 
-                  
-
-                  /* Now set the cross hair position at the selected node*/
-                  {
-                     SUMA_SurfaceObject *SO= NULL;
-                     SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-                     ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-                     if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                            SEF_fv3, (void*)&(SO->NodeList[3*it]),
-                                                            SES_Suma, (void *)sv, NOPE,
-                                                            SEI_Head, NULL)) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                        break;                                      
-                     } 
-                     
-                     /* call with the list */
-                     if (!SUMA_Engine (&list)) {
-                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                        SUMA_RETURNe;
-                     }
-                  }
-
+                  sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                                      "Enter index of node to send the cross hair to:", 
+                                                      "",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_JumpIndex, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)1,  
+                                                      sv->X->JumpIndex_prmpt);
+               
+                  sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpIndex_prmpt);
                }
 
-               /* redisplay curent only*/
-               sv->ResetGLStateVariables = YUP;
-               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
             }
             break;
          
          case XK_J:
             if (SUMAg_CF->Dev) {
-               fprintf(stdout,"Enter index of FaceSet to highlight (nothing to cancel):\n");
-               it = SUMA_ReadNumStdin (fv3, 1);
-               if (it < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                  SUMA_RETURNe;
-               }else if (it == 0) {
-                  SUMA_RETURNe;
-               }
-               /* Set the Nodeselection  */
-               it = (int) fv3[0];
-               if (!list) list = SUMA_CreateList ();
-               ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
-               if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                      SEF_i, (void*)&it,
-                                                      SES_Suma, (void *)sv, NOPE,
-                                                      SEI_Head, NULL)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-                  break;                                      
-               }
-               
-               if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                  SUMA_RETURNe;
-               }
+               sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                                   "Enter index of FaceSet\nto highlight:", 
+                                                   "",
+                                                   sv->X->TOPLEVEL, YUP,
+                                                   SUMA_APPLY_BUTTON,
+                                                   SUMA_JumpFocusFace, (void *)sv,
+                                                   NULL, NULL,
+                                                   NULL, NULL,
+                                                   SUMA_isNumString, (void*)1,  
+                                                   sv->X->JumpFocusFace_prmpt);
 
-               /* redisplay curent only*/
-               sv->ResetGLStateVariables = YUP;
-               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+               sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusFace_prmpt);
+               
             }
             break; 
               
          case XK_l:
             if (Kev.state & ControlMask){
+               
                if (SUMAg_CF->Dev) {
                   if (!list) list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_ToggleLockAllCrossHair);
@@ -553,7 +467,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
             } else {
-               sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter X,Y,Z coordinates to look at:", 
+               sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates to look at:", 
                                                       "0,0,0",
                                                       sv->X->TOPLEVEL, YUP,
                                                       SUMA_APPLY_BUTTON,
@@ -570,7 +484,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_L:
             if (SUMAg_CF->Dev) {
-               prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter X,Y,Z coordinates of light0:", 
+               prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates of light0:", 
                                                       "",
                                                       sv->X->TOPLEVEL, NOPE,
                                                       SUMA_APPLY_BUTTON,
@@ -578,11 +492,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       NULL, NULL,
                                                       NULL, NULL,
                                                       SUMA_isNumString, (void*)3,  
-                                                      prmpt);
+                                                      NULL);
                
                prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
                
-
             }
             break;
 
@@ -644,10 +557,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       /* wait till user initiates turning */
                      sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
                      sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
-                  }
-                   else {
-                     if (sv->X->MOMENTUMID)  XtRemoveTimeOut(sv->X->MOMENTUMID);
+                  } else {
+                     if (sv->X->MOMENTUMID)  {
+                        XtRemoveTimeOut(sv->X->MOMENTUMID);
+                        sv->X->MOMENTUMID = 0;
                      }
+                  }
                }
              break;
 
@@ -1832,7 +1747,7 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
       /*fprintf(stdout,"Momentum Redisplay\n");*/
       SUMA_postRedisplay(w, NULL, NULL);
    }
-   sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w);
+    sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w); 
 
   SUMA_RETURNe;         
 }
@@ -1863,7 +1778,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    DList *list = NULL;
    DListElmt *SetNodeElem = NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -2592,7 +2507,14 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          fprintf (SUMA_STDERR, "Error %s: Why are you doing this to me ?.\n", FuncName);
          break; 
    }      
-      
+   
+   /* Now update the Paint job on the ROI plane */
+   if (!SUMA_Paint_SO_ROIplanes (SO, SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes.");
+      SUMA_RETURN(DrawnROI);
+   }
+
+   
    SUMA_RETURN(DrawnROI);
 }
 
@@ -3250,7 +3172,8 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
 {
    static char FuncName[]={"SUMA_FinishedROI"};
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_SurfaceObject *SOparent=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -3262,10 +3185,46 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Marking as finished...\n", FuncName);
          /* set the drawing status */
          ROIA->DrawnROI->DrawStatus = SUMA_ROI_Finished;
+         
+         SOparent = SUMA_findSOp_inDOv(ROIA->DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+         if (!SOparent) {
+            SUMA_SLP_Err(  "Parent surface\n"
+                           "not found for ROI\n"
+                           "No contour will\n"
+                           "be determined." );
+            SUMA_RETURN(SAR_Fail);
+         }else {
+               
+            /* calculate the contours */
+            if (!ROIA->DrawnROI->CE) { /* must create contour */
+               int *Nodes, N_Nodes;
+               SUMA_Boolean Unique = NOPE;
+
+               SUMA_LH("Getting Contour ");
+               N_Nodes = 0;
+               Unique = YUP; /* Set to YUP if you have node indices listed more than once. */
+               Nodes = SUMA_NodesInROI (ROIA->DrawnROI, &N_Nodes, Unique);
+               if (Nodes) {
+                  ROIA->DrawnROI->CE = SUMA_GetContour (
+                                 SOparent, 
+                                 Nodes, N_Nodes, &(ROIA->DrawnROI->N_CE));
+                  if (!ROIA->DrawnROI->CE) { SUMA_LH("Null DrawnROI->CE"); }
+                  else { SUMA_LH("Good DrawnROI->CE"); }
+                  SUMA_free(Nodes);
+               }
+            }else {
+               SUMA_SLP_Err("Unexpected Contour");
+               SUMA_RETURN(SAR_Fail);
+            }
+         }
+
          break;
       case SAP_Undo:
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Marking as InCreation...\n", FuncName);
          ROIA->DrawnROI->DrawStatus = SUMA_ROI_InCreation;
+         /* remove any contour if present */
+         if (ROIA->DrawnROI->CE) SUMA_free(ROIA->DrawnROI->CE); ROIA->DrawnROI->CE = NULL;
+         ROIA->DrawnROI->N_CE = -1;
          break;
       default:
          fprintf (SUMA_STDERR, "Error %s: Should not be here.\n", FuncName);
@@ -3418,7 +3377,7 @@ SUMA_ACTION_RESULT SUMA_AddToTailROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 void SUMA_DestroyROIActionData (void *data)
 {  
    static char FuncName[]={"SUMA_DestroyROIActionData"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ROI_ACTION_STRUCT *ROIA=NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -3451,7 +3410,7 @@ void SUMA_SetLight0 (char *s, void *data)
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    float fv3[3];
-   SUMA_Boolean LocalHead = YUP; 
+   SUMA_Boolean LocalHead = NOPE; 
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3498,7 +3457,7 @@ void SUMA_LookAtCoordinates (char *s, void *data)
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    float fv3[3];
-   SUMA_Boolean LocalHead = YUP; 
+   SUMA_Boolean LocalHead = NOPE; 
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3527,4 +3486,357 @@ void SUMA_LookAtCoordinates (char *s, void *data)
    }
 
    SUMA_RETURNe;
+}
+
+/*!
+   \brief sends the cross hair to a certain node index
+   \param s (char *) a string containing node index
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+*/
+void SUMA_JumpIndex (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_JumpIndex"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   SUMA_SurfaceObject *SO= NULL;
+   float fv3[3];
+   int it, iv3[3];
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 1) != 1) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   /* Set the Nodeselection  */
+   it = (int) fv3[0];
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   } 
+
+
+   /* Now set the cross hair position at the selected node*/
+   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)&(SO->NodeList[3*it]),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                          
+   } 
+
+   /* attach the cross hair to the selected surface */
+   iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   iv3[1] = it;
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }   
+   
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* now put in a request for locking cross hair but you must do this after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might get emptied in the call to AFNI notification.
+   You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+   
+   SUMA_RETURNe;
+
+}  
+
+/*!
+   \brief sends the cross hair to a certain XYZ location. 
+   
+   \param s (char *) a string containing XYZ coordinates
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+   - Update to AFNI is done if linked
+   - Update to other viewers is performed IF they are XYZ locked (that can get confusing)
+*/
+void SUMA_JumpXYZ (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_JumpXYZ"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 3) != 3) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   /* Now set the cross hair position */
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)fv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   }
+   
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* now put in a request for locking cross hair but you must do this after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might get emptied in the call to AFNI notification.
+   You should just put the next call at the end of the list.*/
+   /* NOTE2: Only viewers that are XYZ locked will be affected */
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_Empty, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      SUMA_SLP_Err("Failed to register element");
+      SUMA_RETURNe;
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);   
+   
+   SUMA_RETURNe;  
+}
+
+/*!
+   \brief Changes the focus node without moving the cross hair
+   \param s (char *) a string containing node index
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+   -actions of this function are limited to the viewer that launched it
+*/
+
+void SUMA_JumpFocusNode (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_JumpFocusNode"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   int it;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 1) != 1) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+
+   /* Set the Nodeselection  */
+   it = (int) fv3[0];
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      SUMA_SLP_Err("Failed to register element");
+      SUMA_RETURNe;                                      
+   } 
+   
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);   
+   
+   SUMA_RETURNe;  
+
+}
+
+/*!
+   \brief changes the selected faceset (Focus FaceSet)
+   \param s (char *) a string containing FaceSet index
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+*/
+void SUMA_JumpFocusFace (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_JumpFocusFace"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   int it;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 1) != 1) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   
+   
+   /* Set the Faceselection  */
+   it = (int) fv3[0];
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   }
+               
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);   
+   
+   SUMA_RETURNe;  
+
+}
+
+/*!
+   \brief Highlight a set of nodes within a box
+   \param s (char *) a string containing box center followed by box size (6 values)
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+   
+   - operates by coloring nodes inside box.
+   - coloring is not permanent and modifies other colors already present
+   - operates on current viewer only
+*/
+void SUMA_HighlightBox (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_HighlightBox"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv15[15];
+   int it;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv15, 6) != 6) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   /* register fv15 with ED */
+   if (!list) list = SUMA_CreateList(); 
+   ED = SUMA_InitializeEngineListData (SE_HighlightNodes);
+   if (!SUMA_RegisterEngineListCommand (     list, ED, 
+                                             SEF_fv15, (void*)fv15,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;                                      
+   }
+
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   
+   SUMA_RETURNe;  
+
 }

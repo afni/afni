@@ -372,7 +372,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    float *icosaNode=NULL;
    SUMA_SURF_NORM SN;
    SUMA_NODE_FIRST_NEIGHB *firstNeighb=NULL;
-   SUMA_Boolean LocalHead = YUP, DoWind = YUP;
+   SUMA_Boolean LocalHead = NOPE, DoWind = YUP;
    int n=0, m=0, in=0;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1606,7 +1606,7 @@ int main (int argc, char *argv[])
    int kar, depth, i, j;
    float r, ctr[3];
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean brk, LocalHead = YUP;
+   SUMA_Boolean brk, LocalHead = NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char surfFileNm[1000], outSpecFileNm[1000];
@@ -1776,7 +1776,7 @@ void SUMA_Map_StoS_usage ()
 int main (int argc, char *argv[])
 {/* main SUMA_Map_SurfacetoSurface */
    static char FuncName[]={"SUMA_Map_SurfacetoSurface-main"};
-   SUMA_Boolean brk, LocalHead = YUP, SurfIn = NOPE, color=NOPE;
+   SUMA_Boolean brk, LocalHead = NOPE, SurfIn = NOPE, color=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char *surf2colFileNm=NULL;
    char surfFileNm[1000], colFileNm[1000], outSpecFileNm[1000];
@@ -2044,7 +2044,7 @@ int main (int argc, char *argv[])
 {/* main SUMA_MapIcosahedron */
 
    static char FuncName[]={"SUMA_MapIcosahedron-main"};
-   SUMA_Boolean brk, LocalHead = YUP, SurfIn = NOPE, color=NOPE, smooth=NOPE, verb=NOPE;
+   SUMA_Boolean brk, LocalHead = NOPE, SurfIn = NOPE, color=NOPE, smooth=NOPE, verb=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char *smwmColFileNm=NULL;
    char icoFileNm[10000], mapSphrFileNm[10000], mapInflFileNm[10000], mapSmWmFileNm[10000]; 
@@ -2997,7 +2997,7 @@ int main (int argc, char *argv[])
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char colFileNm[1000];
    char *input;
-   SUMA_Boolean brk, LocalHead=YUP, sgmap, cut, trans, cr, vr, div, anova, sig, avg;
+   SUMA_Boolean brk, LocalHead = NOPE, sgmap, cut, trans, cr, vr, div, anova, sig, avg;
 
    int kar, i, j, k, numVal, tmpNumVal, numArrayRng;
    int numCol, *colUsed=NULL;

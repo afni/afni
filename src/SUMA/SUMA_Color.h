@@ -37,6 +37,7 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name);
 void SUMA_LoadColorPlaneFile (char *filename, void *data);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO); 
 void SUMA_RefreshColorPlaneList (SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
 
 
 

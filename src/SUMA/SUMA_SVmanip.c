@@ -197,6 +197,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
       SV->X->Title = NULL;
       SV->X->LookAt_prmpt = NULL;
+      SV->X->JumpIndex_prmpt = NULL;
+      SV->X->JumpXYZ_prmpt = NULL;
+      SV->X->JumpFocusNode_prmpt = NULL;
+      SV->X->JumpFocusFace_prmpt = NULL;
+      SV->X->HighlightBox_prmpt = NULL;
       SV->X->TOPLEVEL = NULL;
       SV->X->MOMENTUMID = 0;
       SV->X->REDISPLAYPENDING = 0;
@@ -244,6 +249,11 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
    if (SV->X->Title) SUMA_free(SV->X->Title);
    if (SV->X->LookAt_prmpt) SUMA_FreePromptDialogStruct (SV->X->LookAt_prmpt);
+   if (SV->X->JumpIndex_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpIndex_prmpt);
+   if (SV->X->JumpXYZ_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpXYZ_prmpt);
+   if (SV->X->JumpFocusNode_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpFocusNode_prmpt);
+   if (SV->X->JumpFocusFace_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpFocusFace_prmpt);
+   if (SV->X->HighlightBox_prmpt) SUMA_FreePromptDialogStruct (SV->X->HighlightBox_prmpt);
    if (SV->X->ViewCont) SUMA_FreeViewContStruct(SV->X->ViewCont);
    if (SV->X) SUMA_free(SV->X);
    if (SV->ShowDO) SUMA_free(SV->ShowDO);

@@ -85,7 +85,7 @@ See Lab-book NIH-2, page 142 for an illustration or this miserable ascii renditi
 ***/
 SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList )
 {/*SUMA_SurfNorm*/
-   static char FuncName[]={"SUMA_SurfNorm"}; 
+   static char stmp[200], FuncName[]={"SUMA_SurfNorm"}; 
    float d1[3], d2[3], d, nrm;
    SUMA_SURF_NORM RetStrct;
    int *Index, *N_Memb, i, j, maxind, NotMember, id, id2, ND, ip, NP;
@@ -209,9 +209,14 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
             }
          }
       if (NotMember) {
-         fprintf(SUMA_STDERR,"\nWARNING %s: %d nodes (%f%% of total) are not members of any FaceSets. Their Normals are set to the unit vector.\n\n\a"\
-               ,FuncName, NotMember, (float)NotMember/(float)N_NodeList*100.0);
+         sprintf (stmp, "(IGNORE for surface patches\n"
+                        "%d nodes (%f%% of total) are\n"
+                        "not members of any FaceSets.\n"
+                        "Their normals are set to the\n"
+                        "unit vector.\n", NotMember, (float)NotMember/(float)N_NodeList*100.0);
+         SUMA_SL_Warn(stmp);
       }
+      
    if (N_Memb) SUMA_free(N_Memb);
    if (Index) SUMA_free(Index);
    SUMA_RETURN (RetStrct);

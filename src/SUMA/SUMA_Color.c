@@ -411,7 +411,7 @@ int main (int argc,char *argv[])
       }
       if (!brk && (strcmp(argv[kar], "-v") == 0))
       {
-         LocalHead = YUP;
+         LocalHead = NOPE;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-f") == 0))
@@ -1507,7 +1507,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
    Sover->Show = NOPE;
    Sover->PlaneOrder = -1; /* No order is specified */
    Sover->BrightMod = 0; /* no brightness modulation effects */
-
+   
    SUMA_RETURN (Sover);
 }
 
@@ -1517,7 +1517,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 SUMA_Boolean SUMA_ReleaseOverlay (SUMA_OVERLAYS * Overlays, SUMA_INODE *Overlays_Inode)
 {
    static char FuncName[]={"SUMA_FreeOverlay"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (Overlays_Inode || Overlays) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
       if (SUMA_ReleaseLink(Overlays_Inode)) { 
@@ -1558,7 +1558,6 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity);
    if (Sover->Label) SUMA_free(Sover->Label);
    if (Sover->Name) SUMA_free(Sover->Name);
-   
    SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);
@@ -2094,7 +2093,7 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays)
 void SUMA_FreeOverlayListDatum (void *OLDv)
 {
    static char FuncName[]={"SUMA_FreeOverlayListDatum"};
-   SUMA_Boolean LocalHead = YUP; 
+   SUMA_Boolean LocalHead = NOPE; 
    
    if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
 
@@ -2647,9 +2646,21 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    \brief A function that looks up an overlay plane by its name.
    If the plane is found its index is returned, otherwise
    a new one is created. The function also sets up pointers to 
-   that plane for all related surfaces in dov.
+   that plane for all related surfaces in dov and places node colors
+   in that plane.
+   
+   \param SO (SUMA_SurfaceObject *) Surface Object
+   \param Name (char *) Name of color plane
+   \param sopd (SUMA_OVERLAY_PLANE_DATA *) Data to put in overlay plane 
+   \param PlaneInd (int *) index of created or found color plane
+                        (that's set by the function )
+   \param dov (SUMA_DO *) vector of displayable objects
+   \param N_dov (int ) number of displayable objects 
+   
 */ 
-SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, int *PlaneInd, SUMA_DO *dov, int N_dov) 
+SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, 
+                                 char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, 
+                                 int *PlaneInd, SUMA_DO *dov, int N_dov) 
 {
    static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"}, stmp[500];
    int i, OverInd = -1, i_max, wrn_cnt = 0;
@@ -2717,6 +2728,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
       }
       
       /* Now put the colors in the overlay plane */
+      if (LocalHead) fprintf (SUMA_STDERR,
+                              "%s: %d node colors are to be inserted.\n",
+                              FuncName, i_max);
+                              
       SO->Overlays[OverInd]->N_NodeDef = i_max;
       if (SO->Overlays[OverInd]->N_NodeDef) {
          switch (sopd->Type) {
@@ -2729,7 +2744,6 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
                   r = (byte *)sopd->r;
                   g = (byte *)sopd->g;
                   b = (byte *)sopd->b;
-                  
                   for (i=0; i < i_max; ++i) {
                      /*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
                      if (SO->N_Node > inel[i]) {
@@ -2768,7 +2782,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
                            SUMA_SLP_Warn("Color plane includes node indices\n"   \
                                          "that are >= number of nodes in surface.\n");
                         }
-                        ++wrn_cnt;              
+                        ++wrn_cnt;  
                      }
                   }
                }
@@ -2819,6 +2833,52 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SU
 
    SUMA_RETURN (YUP);
 
+}
+
+/*!
+   \brief SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov)
+   Searches all DrawnROIs in dov. 
+   If no ROI related to SO has PlaneName for a color plane
+   then that colorplane is flushed (ie no node colors are left in it, not deleted)
+*/
+SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_FlushPlaneNotInUse"};
+   SUMA_DRAWN_ROI *D_ROI = NULL;
+   int i, OverInd;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!PlaneName) SUMA_RETURN(YUP);
+   
+   /* search all dov for ROIs that use the same plane */
+   for (i=0; i < N_dov; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case ROIdO_type:
+            D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            break;
+         default:
+            D_ROI = NULL;
+            break;
+      }
+      if (D_ROI && SUMA_isdROIrelated (D_ROI, SO)) {
+         if (strcmp(PlaneName, D_ROI->ColPlaneName) == 0) {
+            /* found one, do nothing and return */
+            SUMA_RETURN (YUP);
+         }
+      }
+   }   
+   
+   /* looks like no other ROIs use that plane, flush it */
+   if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, PlaneName, &OverInd)) {
+      SUMA_SLP_Warn("No Overlay Plane Found!");
+      SUMA_RETURN (YUP);
+   }
+   
+   SUMA_LH("Flushing meadows");
+   SO->Overlays[OverInd]->N_NodeDef = 0; /* Flushed */
+   SUMA_RETURN (YUP);
 }
 
 /*!
@@ -3029,7 +3089,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    int OverInd = -1;
    DList *list=NULL;
    SUMA_LIST_WIDGET *LW=NULL;
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

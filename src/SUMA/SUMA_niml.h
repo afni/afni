@@ -17,5 +17,6 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI);
 SUMA_DRAWN_ROI * SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI);
 void SUMA_FakeIt (int Solo);
 char *SUMA_copy_string(char *buf);
+char * SUMA_append_string(char *s1, char *s2);
 
 #endif
