@@ -25,6 +25,10 @@
 #undef XtRealloc
 #undef XtFree
 #undef XtCalloc
+#undef mcw_malloc
+#undef mcw_realloc
+#undef mcw_calloc
+#undef mcw_free
 
 #undef  UINT
 #define UINT unsigned int
