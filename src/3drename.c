@@ -61,6 +61,12 @@ int main( int argc , char * argv[] )
    if( STRING_HAS_SUFFIX(new_name,".hdr") ){
       fprintf(stderr,"** New dataset name can't be an ANALYZE file!\n"); exit(1);
    }
+   if( STRING_HAS_SUFFIX(old_name,".svl") ){
+      fprintf(stderr,"** Old dataset name can't be an CTF-SAM file!\n"); exit(1);
+   }
+   if( STRING_HAS_SUFFIX(new_name,".svl") ){
+      fprintf(stderr,"** New dataset name can't be an CTF-SAM file!\n"); exit(1);
+   }
 
    /* check old_name for a +view suffix somewhere */
 
@@ -111,7 +117,8 @@ fprintf(stderr,"++ new_view = %d\n",new_view) ;
    /* of course, we don't actually use the +view suffix on the output */
 
    if( new_view >= 0 ){
-      fprintf(stderr,"++ Warning: ignoring +view on new_prefix.\n") ;
+      fprintf(stderr,"++ Warning: ignoring +%s on new_prefix.\n",
+              VIEW_codestr[new_view]) ;
       new_view = ILLEGAL_TYPE ;
    }
 
