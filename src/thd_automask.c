@@ -73,6 +73,8 @@ ENTRY("THD_automask") ;
 
    if( clar == NULL ) RETURN(mmm) ; /* should not happen */
 
+   /* find largest cluster */
+
    for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
      if( clar->clar[iclu]->num_pt > nmm ){
        nmm = clar->clar[iclu]->num_pt; kclu = iclu;
@@ -86,14 +88,18 @@ ENTRY("THD_automask") ;
 #if 1
    /* 19 Apr 2002: fill in small holes */
 
-   (void) THD_mask_fillin_completely( nx,ny,nz, mmm , 1 ) ;
+   nmm = 1 ;
+   ii  = rint(0.016*nx) ; nmm = MAX(nmm,ii) ;
+   ii  = rint(0.016*ny) ; nmm = MAX(nmm,ii) ;
+   ii  = rint(0.016*nz) ; nmm = MAX(nmm,ii) ;
+   (void) THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
 #endif
 
    /* 28 May 2002:
       invert the mask, then find the largest cluster of 1's;
       this will be the outside of the brain;
       put this back into the mask, then invert again;
-      the effect will be to fill in holes inside the brain */
+      the effect will be to fill any holes left inside the brain */
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 

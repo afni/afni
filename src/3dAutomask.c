@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+#undef ALLOW_FILLIN  /* 28 May 2002 */
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *dset , *mset ;
@@ -19,8 +21,10 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [default='automask']\n"
+#ifdef ALLOW_FILLIN
              "  -fillin nnn = Fill in holes inside the mask of width up\n"
              "                 to 'nnn' voxels. [default=0=no fillin]\n"
+#endif
             ) ;
       exit(0) ;
    }
@@ -40,6 +44,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
+#ifdef ALLOW_FILLIN
       if( strcmp(argv[iarg],"-fillin") == 0 ){
          fillin = strtol( argv[++iarg] , NULL , 10 ) ;
          if( fillin <  0 ){
@@ -50,6 +55,7 @@ int main( int argc , char * argv[] )
          }
          iarg++ ; continue ;
       }
+#endif
 
       fprintf(stderr,"** ILLEGAL option: %s\n",argv[iarg]) ; exit(1) ;
    }
@@ -82,12 +88,14 @@ int main( int argc , char * argv[] )
 
    /* 18 Apr 2002: maybe fill in voxels */
 
+#ifdef ALLOW_FILLIN
    if( fillin > 0 ){
      nfill = THD_mask_fillin_completely(
                  DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset), mask, fillin ) ;
      fprintf(stderr,"++ %d voxels filled in; %d voxels total\n",
              nfill,nfill+nmask ) ;
    }
+#endif
 
    /* create output dataset */
 
