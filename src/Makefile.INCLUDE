@@ -167,7 +167,7 @@ quotize:quotize.o
 license.h:quotize
 	./quotize license < ../doc/README/README.copyright > license.h
 
-readme_env.h:quotize
+readme_env.h:quotize ../doc/README/README.environment
 	./quotize readme_env < ../doc/README/README.environment > readme_env.h
 
 Ifile:Ifile.o
