@@ -4113,3 +4113,4 @@
      closing the data IOCHAN.  Also added new XYZFIRST metadata command,
      to allow setting of all 3 axis offsets.
  * Modified rtfeedme.c to test the above features.
+ * Modified afni.c to skip version check if realtime is activated.
