@@ -2968,7 +2968,8 @@ if(PRINT_TRACING)
          XButtonEvent * xev = (XButtonEvent *) cbs->event ;
          int step = 1 ;
 
-         if( ( xev->type == ButtonPress ||
+         if( xev != NULL &&
+             ( xev->type == ButtonPress ||
                xev->type == ButtonRelease ) &&
              (xev->state & (ShiftMask | ControlMask)) ) step = INIT_bigscroll ;
 
