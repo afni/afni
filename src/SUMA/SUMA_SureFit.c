@@ -80,6 +80,11 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 				if (evl == 1) FoundHead = 1;
 			}
 	}
+	
+	if (!FoundHead) {
+		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}
 	EndHead = 0;
 	sprintf(head_end,"EndHeader");
 	sprintf(delimstr," ");
@@ -184,6 +189,10 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 				evl = SUMA_iswordin (s,head_strt);
 				if (evl == 1) FoundHead = 1;
 			}
+	}
+	if (!FoundHead) {
+		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
 	}
 	EndHead = 0;
 	sprintf(head_end,"EndHeader");

@@ -21,7 +21,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SUMA_RETURN (NULL);
 	}
 	for (i=0; i < N; ++i) {
-		SV = &SVv[i];
+		SV = &(SVv[i]);
 		
 		SV->N_GVS = SUMA_N_STANDARD_VIEWS;
 		SV->GVS = (SUMA_GEOMVIEW_STRUCT *)malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
@@ -119,7 +119,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
 		SV->WindWidth = 350;
 		SV->WindHeight = 350;
-
+		
+		SV->Open = NOPE;
 		
 		SV->ShowDO = (int *)calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 		if (SV->ShowDO == NULL) {
@@ -143,6 +144,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 			SUMA_RETURN (NULL);
 		}
 
+		SV->X->TOPLEVEL = NULL;
 		SV->X->MOMENTUMID = 0;
 		SV->X->REDISPLAYPENDING = 0;
 		SV->X->DOUBLEBUFFER = True;
@@ -169,7 +171,6 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		SV->ShowBackground = YUP;
 		SV->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
 		
-
 	}
 	SUMA_RETURN (SVv);
 }
@@ -326,10 +327,10 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
 /*!
 output the state variable contents of the Surface Viewer 
 */
-void Show_SUMA_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
+void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
 {
 	int i;
-	static char FuncName[]={""};
+	static char FuncName[]={"SUMA_Show_SurfaceViewer_Struct"};
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -765,4 +766,142 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 			SUMA_RETURN(SUMA_Dunno);
 	}
 
+}
+
+/*!
+ans = SUMA_SetupSVforDOs (Spec, DOv, N_DOv, cSV);
+
+This functions registers all surfaces in a spec file with a surface viewer. 
+The following steps are performed:
+SUMA_RegisterSpecSO (register info on all surfaces loaded)
+SUMA_RegisterDO (only Surface Objects)
+SUMA_RegisterDO (all non SO objects)
+SUMA_BestStandardView (decide on best standard view)
+SUMA_UpdateRotaCenter (based on surfaces in first view)
+SUMA_UpdateViewPoint (based on surfaces in first view)
+SUMA_EyeAxisStandard (based on surfaces in first view)
+Set the Current SO pointer to the first surface object 
+if surface is SureFit, flip lights
+\param Spec (SUMA_SurfSpecFile)
+\param DOv (SUMA_DO *) Pointer to vector of displayable objects
+\param N_DOv (int) Number of displayable objects in DOv
+\param cSV (SUMA_SurfaceViewer *) Surface viewer structure
+\ret ans (SUMA_Boolean) YUP/NOPE
+*/
+
+SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV)
+{
+	static char FuncName[] = {"SUMA_SetupSVforDOs"};
+	int kar;
+	SUMA_SurfaceObject *SO;
+	SUMA_Axis *EyeAxis;
+	int EyeAxis_ID;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+	#if 0
+	/* adds DOs individually, left for reference purposes */
+	/* Register all DOs with SV */
+	for (kar=0; kar < N_DOv; ++kar) {
+		if (!SUMA_RegisterDO(kar, cSV)) {
+			SUMA_error_message (FuncName,"Failed to register DO", 1);
+			SUMA_RETURN(NOPE);
+		}
+	}
+
+	/* register only the first surface and the remaining DOs */
+	{
+		SUMA_Boolean SurfIn = NOPE;
+		for (kar=0; kar < N_DOv; ++kar) {
+			if (!SUMA_isSO(DOv[kar]) || !SurfIn)
+			{ /* register the first surface only and other non SO objects */
+				/*fprintf(SUMA_STDERR," to register DOv[%d] ...\n", kar);*/
+				if (!SUMA_RegisterDO(kar, cSV)) {
+					SUMA_error_message (FuncName,"Failed to register DO", 1);
+					SUMA_RETURN(NOPE);
+				}
+			}
+			if (SUMA_isSO(DOv[kar])) { SurfIn = YUP; }
+		}
+	}	
+	#endif 
+
+	#if 1
+	/* register all surface specs */
+		/*fprintf(SUMA_STDERR,"%s: Registering SpecSO ...", FuncName);*/
+		if (!SUMA_RegisterSpecSO(&Spec, cSV, DOv, N_DOv)) {
+			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterSpecSO.\n", FuncName);
+			SUMA_RETURN(NOPE);
+		} 
+		/*fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
+
+	/* register all SOs of the first state */	
+		/*fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...", FuncName);*/
+		cSV->State = cSV->VSv[0].Name;
+		cSV->iState = 0;
+		for (kar=0; kar < cSV->VSv[0].N_MembSOs; ++ kar) {
+			/*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[0].MembSOs[kar]);*/
+				if (!SUMA_RegisterDO(cSV->VSv[0].MembSOs[kar], cSV)) {
+					SUMA_error_message (FuncName,"Failed to register DO", 1);
+					SUMA_RETURN(NOPE);
+				}
+		}
+	/*	fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
+
+	/* register all non SO objects */
+	/*	fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);*/
+		for (kar=0; kar < N_DOv; ++kar) {
+			if (!SUMA_isSO(DOv[kar]))
+			{ 
+				/*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", kar);*/
+				if (!SUMA_RegisterDO(kar, cSV)) {
+					SUMA_error_message (FuncName,"Failed to register DO", 1);
+					SUMA_RETURN(NOPE);
+				}
+			}
+		}
+	/*	fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
+	#endif
+
+	/* decide what the best state is */
+	cSV->StdView = SUMA_BestStandardView (cSV, DOv, N_DOv);
+	/*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, cSV->StdView);*/
+	if (cSV->StdView == SUMA_Dunno) {
+		fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+		cSV->StdView = SUMA_3D;
+	}
+
+	/* Set the Rotation Center */
+	if (!SUMA_UpdateRotaCenter(cSV, DOv, N_DOv)) {
+		fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+		SUMA_RETURN(NOPE);
+	}
+
+	/* set the viewing points */
+	if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv)) {
+		fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
+		SUMA_RETURN(NOPE);
+	}
+
+	/* Change the defaults of the eye axis to fit standard EyeAxis */
+	EyeAxis_ID = SUMA_GetEyeAxis (cSV, DOv);
+	if (EyeAxis_ID < 0) {
+		fprintf (SUMA_STDERR,"Error %s: Failed to get Eye Axis.\n", FuncName);
+		SUMA_RETURN(NOPE);
+	}
+	SUMA_EyeAxisStandard ((SUMA_Axis *)DOv[EyeAxis_ID].OP, cSV);
+
+
+	/* Set the index Current SO pointer to the first object read, tiz a surface of course*/
+	cSV->Focus_SO_ID = 0;
+
+
+	/* if surface is SureFit, flip lights */
+	SO = (SUMA_SurfaceObject *)(DOv[cSV->Focus_SO_ID].OP);
+	if (SO->FileType == SUMA_SUREFIT) {
+		cSV->light0_position[2] *= -1;
+	}
+
+
+	SUMA_RETURN(YUP);
 }

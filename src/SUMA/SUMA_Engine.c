@@ -8,20 +8,20 @@
    
 #include "SUMA_suma.h"
 
-extern SUMA_SurfaceViewer *SUMAg_cSV; 
+/* extern SUMA_SurfaceViewer *SUMAg_cSV; */	/* no longer used Tue Aug 13 16:07:41 EDT 2002 */
 extern SUMA_DO *SUMAg_DOv;	
 extern int SUMAg_N_DOv; 
 extern SUMA_CommonFields *SUMAg_CF;
 
 /*!
 This is the function that runs the viewers. 
-It acts on the viewer that SUMAg_cSV points to
+It acts on the viewer that sv points to
 To add a new command:
 include it SUMA_define.h in SUMA_ENGINE_CODE's typedef
 include it in SUMA_ParseCommands.c, SUMA_CommandCode function 
 */
 
-SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
+SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_SurfaceViewer *sv)
 {
 	char NextCom[SUMA_MAX_COMMAND_LENGTH], tmpcom[SUMA_MAX_COMMAND_LENGTH], ssource[100], sfield[100], sdestination[100];
 	static char FuncName[]={"SUMA_Engine"};
@@ -64,12 +64,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				/* calculate the transform required to bring the new look at location to the current one */
 				{
 					float ulook_old[3], ulook_new[3];
-					ulook_old[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0];
-					ulook_old[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1];
-					ulook_old[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] - SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2];
-					ulook_new[0] = EngineData->fv3[0]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0];
-					ulook_new[1] = EngineData->fv3[1]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1];
-					ulook_new[2] = EngineData->fv3[2]- SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2];
+					ulook_old[0] = sv->GVS[sv->StdView].ViewFrom[0] - sv->GVS[sv->StdView].ViewCenter[0];
+					ulook_old[1] = sv->GVS[sv->StdView].ViewFrom[1] - sv->GVS[sv->StdView].ViewCenter[1];
+					ulook_old[2] = sv->GVS[sv->StdView].ViewFrom[2] - sv->GVS[sv->StdView].ViewCenter[2];
+					ulook_new[0] = EngineData->fv3[0]- sv->GVS[sv->StdView].ViewCenter[0];
+					ulook_new[1] = EngineData->fv3[1]- sv->GVS[sv->StdView].ViewCenter[1];
+					ulook_new[2] = EngineData->fv3[2]- sv->GVS[sv->StdView].ViewCenter[2];
 					fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
 					if (fm == NULL) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate fm.\n",FuncName);
@@ -97,25 +97,25 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 			
 			case SE_ToggleTalkToAfni:
 					BreakOut = NOPE;
-					if (!SUMA_CanTalkToAfni(SUMAg_cSV, SUMAg_DOv)) {
-						SUMAg_cSV->TalkToAfni = NOPE;
+					if (!SUMA_CanTalkToAfni(sv, SUMAg_DOv)) {
+						sv->TalkToAfni = NOPE;
 						fprintf(SUMA_STDERR,"Error %s: Cannot talk to afni.\nMapping Reference or Volume Parent missing for at least one of the displayed surfaces.\n", FuncName);
 						break;
 					} else {
 						/*fprintf(SUMA_STDERR,"Surface Viewer passed SUMA_CanTalkToAfni test\n");*/
 					}
-					SUMAg_cSV->TalkToAfni = !SUMAg_cSV->TalkToAfni;
-					if (SUMAg_cSV->TalkToAfni) {
+					sv->TalkToAfni = !sv->TalkToAfni;
+					if (sv->TalkToAfni) {
 						fprintf(SUMA_STDOUT,"%s: Contacting afni ...\n", FuncName);
 						/* contact afni */
-							SUMAg_cSV->ns = NI_stream_open( SUMAg_CF->NimlAfniStream , "w" ) ;
-							/*	SUMAg_cSV->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
-						if( SUMAg_cSV->ns == NULL ){
+							sv->ns = NI_stream_open( SUMAg_CF->NimlAfniStream , "w" ) ;
+							/*	sv->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
+						if( sv->ns == NULL ){
          				fprintf(SUMA_STDERR,"Error %s: NI_stream_open failed\n", FuncName) ; break ;
       				}
       				Wait_tot = 0;
 						while(Wait_tot < SUMA_WriteCheckWaitMax){
-      				  nn = NI_stream_writecheck( SUMAg_cSV->ns , SUMA_WriteCheckWait) ;
+      				  nn = NI_stream_writecheck( sv->ns , SUMA_WriteCheckWait) ;
       				  if( nn == 1 ){ fprintf(stderr,"\n") ; break ; }
       				  if( nn <  0 ){ fprintf(stderr,"BAD\n"); BreakOut = YUP; break;}
 						  Wait_tot += SUMA_WriteCheckWait;
@@ -130,14 +130,14 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 						
 						if (BreakOut) {
 							/* reverse TalkToAfni */
-							SUMAg_cSV->TalkToAfni = !SUMAg_cSV->TalkToAfni;
+							sv->TalkToAfni = !sv->TalkToAfni;
 							
 							/* get out of case */
 							break;
 						}
       				
 						/* Looks good, start the listening WorkProcess */
-						SUMA_register_workproc(SUMA_niml_workproc, elvis);
+						SUMA_register_workproc(SUMA_niml_workproc, (XtPointer)sv);
 
 						/* register a call for sending the surface to afni (SetAfniSurf)*/
 						/*fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");*/
@@ -149,8 +149,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 						/* remove the listening workprocess) */
 						SUMA_remove_workproc( SUMA_niml_workproc );
 						/* close the stream */
-						NI_stream_close(SUMAg_cSV->ns);
-						SUMAg_cSV->ns = NULL;
+						NI_stream_close(sv->ns);
+						sv->ns = NULL;
 						break;
 					}
 	
@@ -160,9 +160,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				/* send to afni the list of inherently mappable surfaces */
 				/* No surfaces are sent twice because there should not be duplicate 
 				inherently mappable surfaces in SUMAg_DOv */
-				for (ii=0; ii<SUMAg_cSV->N_DO; ++ii) {
-					if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
-						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP);
+				for (ii=0; ii<sv->N_DO; ++ii) {
+					if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
 						if (!SUMA_isINHmappable(SO)) {
 							if (!SO->MapRef_idcode_str) {
 								/* not mappable */
@@ -187,7 +187,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 							}
 							/* send surface nel */
 							fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
-      					nn = NI_write_element( SUMAg_cSV->ns , nel , NI_BINARY_MODE ) ;
+      					nn = NI_write_element( sv->ns , nel , NI_BINARY_MODE ) ;
 
       					if( nn < 0 ){
          					  fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -213,7 +213,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 							}
 							/* send surface nel */
 							fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
-      					nn = NI_write_element( SUMAg_cSV->ns , nel , NI_BINARY_MODE ) ;
+      					nn = NI_write_element( sv->ns , nel , NI_BINARY_MODE ) ;
 
       					if( nn < 0 ){
          					  fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -226,9 +226,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				break;
 				}
 			case SE_ToggleShowSelectedNode:
-				for (ii=0; ii<SUMAg_cSV->N_DO; ++ii) {
-					if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
-						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP);
+				for (ii=0; ii<sv->N_DO; ++ii) {
+					if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
 						SO->ShowSelectedNode = !SO->ShowSelectedNode;
 						fprintf(SUMA_STDOUT,"SO->ShowSelectedNode = %d\n", SO->ShowSelectedNode);
 					}
@@ -241,14 +241,14 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
 					break;
 				} 
-				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 				SO->SelectedNode = EngineData->i;
 				break;
 				
 			case SE_ToggleShowSelectedFaceSet:
-				for (ii=0; ii<SUMAg_cSV->N_DO; ++ii) {
-					if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
-						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP);
+				for (ii=0; ii<sv->N_DO; ++ii) {
+					if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
 						SO->ShowSelectedFaceSet = !SO->ShowSelectedFaceSet;
 						fprintf(SUMA_STDOUT,"SO->ShowSelectedFaceSet = %d\n", \
 							SO->ShowSelectedFaceSet);
@@ -262,7 +262,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
 					break;
 				} 
-				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 				SO->FaceSetMarker->n0[0] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][0];
 				SO->FaceSetMarker->n0[1] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][1];
 				SO->FaceSetMarker->n0[2] = SO->NodeList[SO->FaceSetList[EngineData->i][0]][2];
@@ -280,7 +280,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				break;
 				
 			case SE_ToggleCrossHair:
-				SUMAg_cSV->ShowCrossHair = !SUMAg_cSV->ShowCrossHair;
+				sv->ShowCrossHair = !sv->ShowCrossHair;
 				break;
 				
 			case SE_SetCrossHair:
@@ -289,9 +289,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
 					break;
 				} 
-				SUMAg_cSV->Ch->c[0] = EngineData->fv3[0]; SUMAg_cSV->Ch->c[1]= EngineData->fv3[1]; SUMAg_cSV->Ch->c[2]= EngineData->fv3[2];
+				sv->Ch->c[0] = EngineData->fv3[0]; sv->Ch->c[1]= EngineData->fv3[1]; sv->Ch->c[2]= EngineData->fv3[2];
 				
-				if (SUMAg_cSV->TalkToAfni && EngineData->fv3_Source != SES_Afni) {
+				if (sv->TalkToAfni && EngineData->fv3_Source != SES_Afni) {
 					/*fprintf(SUMA_STDERR,"Notifying Afni of CrossHair XYZ\n");*/
 					/* register a call to SetAfniCrossHair */
 					sprintf(tmpcom,"SetAfniCrossHair");
@@ -305,21 +305,21 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
 					break;
 				} 
-				SUMAg_cSV->Ch->SurfaceID = EngineData->iv3[0];
-				SUMAg_cSV->Ch->NodeID = EngineData->iv3[1];
+				sv->Ch->SurfaceID = EngineData->iv3[0];
+				sv->Ch->NodeID = EngineData->iv3[1];
 				break;
 							
 			case SE_SetAfniCrossHair:
 				/* sends the current cross hair to afni */
 				/* form nel */
-				nel = SUMA_makeNI_CrossHair (SUMAg_cSV);
+				nel = SUMA_makeNI_CrossHair (sv);
 				if (!nel) {
 					fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
 					break;
 					}
 				/*send it to afni */
 				/*fprintf(SUMA_STDERR,"Sending cross hair nel ") ;*/
-      		nn = NI_write_element( SUMAg_cSV->ns , nel , NI_TEXT_MODE ) ;
+      		nn = NI_write_element( sv->ns , nel , NI_TEXT_MODE ) ;
 				/*SUMA_nel_stdout (nel);*/
 		
       		if( nn < 0 ){
@@ -342,17 +342,17 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				  float **fm2_3;
 				  
 				/* modify the ViewFrom Value such that the viewing distance remains the same */
-				CurrentDistance = sqrt((SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0]) +\
-												(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1]) +\
-												(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2])*(SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2]-SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2]));
+				CurrentDistance = sqrt((sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0])*(sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0]) +\
+												(sv->GVS[sv->StdView].ViewFrom[1]-sv->GVS[sv->StdView].ViewCenter[1])*(sv->GVS[sv->StdView].ViewFrom[1]-sv->GVS[sv->StdView].ViewCenter[1]) +\
+												(sv->GVS[sv->StdView].ViewFrom[2]-sv->GVS[sv->StdView].ViewCenter[2])*(sv->GVS[sv->StdView].ViewFrom[2]-sv->GVS[sv->StdView].ViewCenter[2]));
 				
 				/* set the ViewCenter Value to that of the node's XYZ*/
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0] = EngineData->fv15[0];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1] = EngineData->fv15[1]; 
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2] = EngineData->fv15[2];
+				sv->GVS[sv->StdView].ViewCenter[0] = EngineData->fv15[0];
+				sv->GVS[sv->StdView].ViewCenter[1] = EngineData->fv15[1]; 
+				sv->GVS[sv->StdView].ViewCenter[2] = EngineData->fv15[2];
 				
 				/* obtain the LookFrom point based on CurrentDistance and the normal vector */
-				fm2_3 = SUMA_Point_At_Distance(&(EngineData->fv15[3]), SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter, CurrentDistance);
+				fm2_3 = SUMA_Point_At_Distance(&(EngineData->fv15[3]), sv->GVS[sv->StdView].ViewCenter, CurrentDistance);
 				if (fm2_3 == NULL) {
 					fprintf(SUMA_STDOUT,"Error %s: SUMA_Point_At_Distance failed.\n", FuncName);
 					break;
@@ -361,14 +361,14 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fm2_3[0][0], fm2_3[0][1], fm2_3[0][2], \
 					fm2_3[1][0], fm2_3[1][1], fm2_3[1][2]);
 				
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = fm2_3[0][0]; 
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = fm2_3[0][1]; 
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = fm2_3[0][2]; 
+				sv->GVS[sv->StdView].ViewFrom[0] = fm2_3[0][0]; 
+				sv->GVS[sv->StdView].ViewFrom[1] = fm2_3[0][1]; 
+				sv->GVS[sv->StdView].ViewFrom[2] = fm2_3[0][2]; 
 				
 				/* fm2_3 not needed anymore */
 				SUMA_free2D((char **)fm2_3, 2);
 				
-				gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
+				gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
 				}
 				
 				break;
@@ -379,26 +379,26 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					break;
 				} 
 				/* set the LookFrom option */
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = EngineData->fv3[0];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = EngineData->fv3[1]; 
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = EngineData->fv3[2];
-				gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
+				sv->GVS[sv->StdView].ViewFrom[0] = EngineData->fv3[0];
+				sv->GVS[sv->StdView].ViewFrom[1] = EngineData->fv3[1]; 
+				sv->GVS[sv->StdView].ViewFrom[2] = EngineData->fv3[2];
+				gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
 				break;
 
 			case SE_Redisplay:
 				/*post a redisplay */
 				/*fprintf (SUMA_STDOUT,"%s: Redisplay ...", FuncName);*/
-				SUMA_postRedisplay();
+				SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
 				/*fprintf (SUMA_STDOUT,"%s: OK\n", FuncName);*/
 				break;
 			
 			case SE_Remix:
 				/* mix the colors */
-				for (ii=0; ii<SUMAg_cSV->N_DO; ++ii) {
-					if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) {
-						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP);
-						if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, SUMAg_cSV->Back_Modfact,\
-						 SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
+				for (ii=0; ii<sv->N_DO; ++ii) {
+					if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) {
+						SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->ShowDO[ii]].OP);
+						if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, sv->Back_Modfact,\
+						 sv->ShowBackground, sv->ShowForeground)) {
 							fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 							break;
 						}
@@ -408,8 +408,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 			
 			case SE_ToggleForeground:
 				/* Show/hide the foreground */
-				SUMAg_cSV->ShowForeground = !SUMAg_cSV->ShowForeground;
-				if (!SUMAg_cSV->ShowForeground) {
+				sv->ShowForeground = !sv->ShowForeground;
+				if (!sv->ShowForeground) {
 					fprintf(SUMA_STDOUT,"%s: Foreground Colors Off.\n", FuncName);
 				} else {
 					fprintf(SUMA_STDOUT,"%s: Foreground Colors ON.\n", FuncName);
@@ -418,8 +418,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 			
 			case SE_ToggleBackground:
 				/* Show/hide the background */
-				SUMAg_cSV->ShowBackground = !SUMAg_cSV->ShowBackground;
-				if (!SUMAg_cSV->ShowBackground) {
+				sv->ShowBackground = !sv->ShowBackground;
+				if (!sv->ShowBackground) {
 					fprintf(SUMA_STDOUT,"%s: Background Colors OFF.\n", FuncName);
 				} else {
 					fprintf(SUMA_STDOUT,"%s: Background Colors ON.\n", FuncName);
@@ -427,23 +427,23 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				break;
 							
 			case SE_Home:
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[0]=0; SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1]=0;
+				sv->GVS[sv->StdView].translateVec[0]=0; sv->GVS[sv->StdView].translateVec[1]=0;
 				glMatrixMode(GL_PROJECTION);
-				/* SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_INITIAL;	*//* Now done in SE_FOVreset *//* reset the zooming */
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[0];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[1];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFromOrig[2];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[0];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[1];
-				SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2] = SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenterOrig[2];
+				/* sv->FOV[sv->iState] = FOV_INITIAL;	*//* Now done in SE_FOVreset *//* reset the zooming */
+				sv->GVS[sv->StdView].ViewFrom[0] = sv->GVS[sv->StdView].ViewFromOrig[0];
+				sv->GVS[sv->StdView].ViewFrom[1] = sv->GVS[sv->StdView].ViewFromOrig[1];
+				sv->GVS[sv->StdView].ViewFrom[2] = sv->GVS[sv->StdView].ViewFromOrig[2];
+				sv->GVS[sv->StdView].ViewCenter[0] = sv->GVS[sv->StdView].ViewCenterOrig[0];
+				sv->GVS[sv->StdView].ViewCenter[1] = sv->GVS[sv->StdView].ViewCenterOrig[1];
+				sv->GVS[sv->StdView].ViewCenter[2] = sv->GVS[sv->StdView].ViewCenterOrig[2];
 				
 				glMatrixMode(GL_MODELVIEW);
    			glLoadIdentity();
-   			gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
+   			gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
 				break;
 			
 			case SE_FOVreset:
-				SUMAg_cSV->FOV[SUMAg_cSV->iState] = FOV_INITIAL;	/* reset the zooming */
+				sv->FOV[sv->iState] = FOV_INITIAL;	/* reset the zooming */
 				break;
 				
 			case SE_SetNodeColor:
@@ -453,7 +453,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
 					break;
 				} 
-				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+				SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 				for (i=0; i < EngineData->N_rows; ++i){
 					ii = (int)(EngineData->fm[i][0]);
 					SO->glar_ColorList[4*ii] = EngineData->fm[i][1];
@@ -464,8 +464,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				break;
 				
 			case SE_FlipLight0Pos:
-				SUMAg_cSV->light0_position[2] *= -1;
-				glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_cSV->light0_position);
+				sv->light0_position[2] *= -1;
+				glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
 				break;
 			
 			case SE_HighlightNodes:
@@ -481,7 +481,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				{
 					SUMA_ISINBOX IB;
 					
-					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 					SUMA_etime (&tt, 0);
 					IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
 					delta_t = SUMA_etime (&tt, 1);
@@ -531,7 +531,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 							/* add and place a call to SE_SetNodeColor */
 							sprintf(tmpcom,"Redisplay|SetNodeColor");
 							SUMA_RegisterCommand (Command, SUMA_COMMAND_DELIMITER, SUMA_COMMAND_TERMINATOR, tmpcom, NOPE);
-							if (!SUMA_Engine (Command, EngineData)) {
+							if (!SUMA_Engine (Command, EngineData, sv)) {
 								fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 								break;
 							}
@@ -561,7 +561,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 				{
 					SUMA_ISINBOX IB;
 					
-					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+					SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 					SUMA_etime (&tt, 0);
 					IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
 					delta_t = SUMA_etime (&tt, 1);
@@ -621,7 +621,7 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData)
 					fprintf(SUMA_STDERR,"Error %s: fm must have 4 cols and 4 rows in SetRotMatrix\n", FuncName);
 					break;
 				}
-				if (!SUMA_mattoquat (EngineData->fm, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat))
+				if (!SUMA_mattoquat (EngineData->fm, sv->GVS[sv->StdView].currentQuat))
 					{
 						fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_mattoquat\n", FuncName);
 						break;
@@ -1052,7 +1052,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
 	
 	/* Home call baby */
 	sprintf(CommString,"Home~");
-	if (!SUMA_Engine (CommString, &ED)) {
+	if (!SUMA_Engine (CommString, &ED, sv)) {
 		fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 	}
 
@@ -1176,7 +1176,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
 			/* Here you need to remix the colors */
 			if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SO_nxt->glar_ColorList, SO_nxt->N_Node,\
-				 SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
+				 sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
 				fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 				SUMA_RETURN (NOPE);
 			}
@@ -1269,7 +1269,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 	 
 	/* Home call baby */
 	sprintf(CommString,"Home~");
-	if (!SUMA_Engine (CommString, &ED)) {
+	if (!SUMA_Engine (CommString, &ED, sv)) {
 		fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
 	}
 

@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <X11/X.h>
 #include <X11/Intrinsic.h>
+#include <X11/IntrinsicP.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 #include <X11/StringDefs.h>
@@ -16,22 +17,17 @@
 #include <GL/glu.h>
 #include <GL/glx.h>
 
-#ifdef SUMA_MOTIF_GLXAREA
-	#include <Xm/Form.h>    /* Motif Form widget. */
-	#include <Xm/Frame.h>   /* Motif Frame widget. */
-	#ifdef SOLARIS
-		#include <GLw/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
-	#else
-		#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
-	#endif
-#else
-	#ifdef SOLARIS
-		#include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
-	#else
-		#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
-	#endif
-#endif
+/* from Fri Aug  9 17:54:03 EDT 2002 and on SUMA will need motif headers */
 
+#include <Xm/XmAll.h>
+
+
+
+#ifdef SOLARIS
+	#include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
+#else
+	#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+#endif
 
 
 #include "mrilib.h"
@@ -40,6 +36,9 @@
 #include "SUMA_define.h"   
 #include "SUMA_Macros.h"  
 #include "SUMA_prototype.h"  
+#include "SUMA_niml.h"
+#include "SUMA_Engine.h"
+#include "SUMA_display.h"
 #include "SUMA_input.h"   
 #include "SUMA_SVmanip.h"
 #include "SUMA_DOmanip.h"  

@@ -65,7 +65,8 @@
 #define SUMA_MAX_MEMBER_FACE_SETS 60 /*!< Maximum number of facesets a node can be part of */
 #define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
 #define SUMA_MAX_DISPLAYABLE_OBJECTS 50
-#define SUMA_MAX_SURF_VIEWERS 10 /*!< Maximum number of surface viewers allowed */
+#define SUMA_MAX_SURF_VIEWERS 5 /*!< Maximum number of surface viewers allowed */
+#define SUMA_N_STANDARD_VIEWS 2/*!< Maximum number of standard views, see SUMA_STANDARD_VIEWS*/
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
 #define SUMA_MAX_NAME_LENGTH 500	/*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000 	/*!< Maximum number of characters in a directory name */
@@ -289,9 +290,8 @@ typedef struct {
 
 /*! structure containg X vars */
 typedef struct {
-	Display *DPY;
-	XtAppContext APP;
-	Widget TOPLEVEL, FORM, FRAME, GLXAREA, Wd;
+	Display *DPY; /*!< display of toplevel widget */
+	Widget TOPLEVEL, FORM, FRAME, GLXAREA;
 	XVisualInfo *VISINFO;
 	GLXContext GLXCONTEXT;
 	Colormap CMAP;
@@ -420,6 +420,7 @@ typedef struct {
 	short verbose;	/*!< Verbosity of viewer */
 
 	float Aspect;	/*!< Aspect ratio of the viewer*/
+	SUMA_Boolean Open; /*! Viewer visible to the human eye */
 	GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
 	GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
 	
@@ -726,6 +727,9 @@ typedef struct {
 	SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
 	SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
 	int InOut_Level; /*!< level of nested function calls */
+	XtAppContext App; /*!< Application Context for SUMA */
+	Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
+	int N_OpenSV; /*!< Number of open (visible) surface viewers */
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */
@@ -734,6 +738,13 @@ typedef struct {
 	int **FaceSetList; /*!< Matrix (N_FaceSet x 3) containing indices of nodes forming triangles making up the patch */
 	int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles in FaceSetList in the FaceSetList of the surface that the patch was taken from */
 } SUMA_PATCH;
+
+/*! structure containing ClientData 
+This remains to be used somewhere ... */
+typedef struct {
+	SUMA_SurfaceViewer *sv; /*!< pointer to surface viewer from which the callback was made */
+	int svi; /*!< index of sv into SUMAg_SVv */
+}SUMA_CLIENT_DATA;
 
 
 #endif

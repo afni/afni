@@ -18,8 +18,6 @@ SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 
-void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
-
 void SUMA_usage ()
    
   {/*Usage*/
@@ -85,13 +83,11 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA"}; 
 	int kar;
-	SUMA_SurfaceObject *SO;
-	SUMA_Axis *EyeAxis;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
 	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
 	SUMA_SurfSpecFile Spec;   
-	 	
+	SUMA_Axis *EyeAxis; 	
   
    if (argc < 3)
        {
@@ -215,7 +211,7 @@ int main (int argc,char *argv[])
 		SUMA_error_message (FuncName,"Error Creating Eye Axis",1);
 		exit(1);
 	}
-		
+
 	/* Store it into SUMAg_DOv */
 	if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)EyeAxis,  AO_type, SUMA_SCREEN)) {
 		SUMA_error_message (FuncName,"Error Adding DO", 1);
@@ -226,121 +222,29 @@ int main (int argc,char *argv[])
 
 	/* Allocate space (and initialize) Surface Viewer Structure */
 	SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);
-  
-	/* Set the Current SV pointer to the very first SV*/
-	SUMAg_cSV = &SUMAg_SVv[0];
 
- 	/* Check on initialization */
-	/*Show_SUMA_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
+	/* Check on initialization */
+	/*SUMA_Show_SurfaceViewer_Struct (SUMAg_cSV, stdout);*/
 
-	#if 0
-	/* Register all DOs with SV */
-	for (kar=0; kar < SUMAg_N_DOv; ++kar) {
-		if (!SUMA_RegisterDO(kar, SUMAg_cSV)) {
-			SUMA_error_message (FuncName,"Failed to register DO", 1);
-			exit(1);
+	/* Register the surfaces in Spec file with the surface viewer and perform setups */
+	for (kar = 0; kar < SUMA_MAX_SURF_VIEWERS; ++kar) {
+		if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[kar])) {
+			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
+			exit (1);
 		}
 	}
-	#endif
-	#if 0
-	/* register only the first surface and the remaining DOs */
-	{
-		SUMA_Boolean SurfIn = NOPE;
-		for (kar=0; kar < SUMAg_N_DOv; ++kar) {
-			if (!SUMA_isSO(SUMAg_DOv[kar]) || !SurfIn)
-			{ /* register the first surface only and other non SO objects */
-				/*fprintf(SUMA_STDERR," to register DOv[%d] ...\n", kar);*/
-				if (!SUMA_RegisterDO(kar, SUMAg_cSV)) {
-					SUMA_error_message (FuncName,"Failed to register DO", 1);
-					exit(1);
-				}
-			}
-			if (SUMA_isSO(SUMAg_DOv[kar])) { SurfIn = YUP; }
-		}
-	}	
-	#endif 
 	
-	#if 1
-	/* register all surface specs */
-		/*fprintf(SUMA_STDERR,"%s: Registering SpecSO ...", FuncName);*/
-		if (!SUMA_RegisterSpecSO(&Spec, SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv)) {
-			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterSpecSO.\n", FuncName);
-			exit(1);
-		} 
-		/*fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
-		
-	/* register all SOs of the first state */	
-		/*fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...", FuncName);*/
-		SUMAg_cSV->State = SUMAg_cSV->VSv[0].Name;
-		SUMAg_cSV->iState = 0;
-		for (kar=0; kar < SUMAg_cSV->VSv[0].N_MembSOs; ++ kar) {
-			/*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", SUMAg_cSV->VSv[0].MembSOs[kar]);*/
-				if (!SUMA_RegisterDO(SUMAg_cSV->VSv[0].MembSOs[kar], SUMAg_cSV)) {
-					SUMA_error_message (FuncName,"Failed to register DO", 1);
-					exit(1);
-				}
-		}
-	/*	fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
-		
-	/* register all non SO objects */
-	/*	fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);*/
-		for (kar=0; kar < SUMAg_N_DOv; ++kar) {
-			if (!SUMA_isSO(SUMAg_DOv[kar]))
-			{ 
-				/*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", kar);*/
-				if (!SUMA_RegisterDO(kar, SUMAg_cSV)) {
-					SUMA_error_message (FuncName,"Failed to register DO", 1);
-					exit(1);
-				}
-			}
-		}
-	/*	fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
-	#endif
-
-	/* decide what the best state is */
-	SUMAg_cSV->StdView = SUMA_BestStandardView (SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv);
-	/*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, SUMAg_cSV->StdView);*/
-	if (SUMAg_cSV->StdView == SUMA_Dunno) {
-		fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
-		SUMAg_cSV->StdView = SUMA_3D;
+	/* Create the Surface Viewer Window */
+	if (!SUMA_X_SurfaceViewer_Create ()) {
+		fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
+		return 1;
 	}
-	
-	/* Set the Rotation Center */
-	if (!SUMA_UpdateRotaCenter(SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv)) {
-		SUMA_error_message (FuncName,"Failed to update center of rotation", 1);
-		exit(1);
-	}
-	
-	/* set the viewing points */
-	if (!SUMA_UpdateViewPoint(SUMAg_cSV, SUMAg_DOv, SUMAg_N_DOv)) {
-		SUMA_error_message (FuncName,"Failed to update view point", 1);
-		exit(1);
-	}
+	/* One Surface Viewer created and initialized */
+	SUMAg_N_SVv += 1;
+	  
 
-	/* Change the defaults of the eye axis to fit standard EyeAxis */
-	SUMA_EyeAxisStandard (EyeAxis, SUMAg_cSV);
-
-	
-	/* Set the Current SO pointer to the first object read, tiz a surface of course*/
-	SUMAg_cSV->Focus_SO_ID = 0;
-	
-
-	/* if surface is SureFit, flip lights */
-	SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
-	if (SO->FileType == SUMA_SUREFIT) {
-		SUMAg_cSV->light0_position[2] *= -1;
-	}
-	
-  /* Create the Surface Viewer Window */
-  if (!SUMA_X_SurfaceViewer_Create (SUMAg_cSV, argc, argv)) {
-  	fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
-	return 1;
-  }
-  /* One Surface Viewer created and initialized */
-  SUMAg_N_SVv += 1;
-  
 	/*Main loop */
-	XtAppMainLoop(SUMAg_cSV->X->APP);
+	XtAppMainLoop(SUMAg_CF->App);
 
 	
 	/* Done, clean up time */

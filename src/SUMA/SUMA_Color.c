@@ -1,9 +1,23 @@
 #include "SUMA_suma.h"
 
 #ifdef SUMA_MakeColorMap_STAND_ALONE
+	/* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
 	SUMA_CommonFields *SUMAg_CF;
+	SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+	SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+	int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+	SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+	int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+	
 #elif defined SUMA_ScaleToMap_STAND_ALONE
+	/* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
 	SUMA_CommonFields *SUMAg_CF;
+	SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+	SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+	int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+	SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
+	int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+	
 #else
 	extern SUMA_CommonFields *SUMAg_CF; 
 #endif

@@ -81,7 +81,10 @@ DOWNSAMPLE:
 		if ($Skip == 0) then
 			echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
 			adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-			test -f $tmpPrefix$SurfAnatView.BRIK || goto NO_DOWNGOOD_BADBAD
+			if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z)) then
+				goto NO_DOWNGOOD_BADBAD
+			endif
+			
 		endif
 		set SurfAnatPrefix = $tmpPrefix
 		set SurfAnat = $SurfAnatPrefix$SurfAnatView
@@ -119,7 +122,9 @@ RESAMPLE:
 		echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat"
 		echo ""
 		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat
-		test -f $ExpAnat_Resamp.BRIK || goto NO_RESAMP
+		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z)) then 
+			goto NO_RESAMP
+		endif
 	endif
 	set ExpAnatPrefix = $ExpAnat_ResampPrefix
 	set ExpAnat = $ExpAnat_Resamp
@@ -149,7 +154,10 @@ REGISTER:
 	echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
 	echo ""
 	3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
-	test -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || goto NO_VOLREG
+	if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+		goto NO_VOLREG
+	endif
+	
 	mv $SurfAnatPath/$VolRegPrefix* ./
 	
 	#remove _resamp_
@@ -162,10 +170,14 @@ REGISTER:
 
 CHECK_EXISTENCE:
 	test -f $ExpAnat.HEAD || goto NO_EXPANAT
-	test -f $ExpAnat.BRIK || goto NO_EXPANAT
+	if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
+		goto NO_EXPANAT
+	endif
 
 	test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
-	test -f $SurfAnatPath/$SurfAnat.BRIK || goto NO_SURFANAT
+	if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
+		goto NO_SURFANAT
+	endif
 	goto Ret_CHECK_EXISTENCE
 
 CHECK_PROGRAMS:
