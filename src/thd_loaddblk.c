@@ -11,6 +11,20 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
+/*-----------------------------------------------------------------*/
+/*! Check if all sub-bricks have the same datum type. [14 Mar 2002]
+-------------------------------------------------------------------*/
+
+static int THD_datum_constant( THD_datablock *blk )
+{
+   int ibr , dzero , nv=blk->nvals ;
+   if( nv == 1 ) return 1 ;                /* of course */
+   dzero = DBLK_BRICK_TYPE(blk,0) ;        /* #0 type */
+   for( ibr=1 ; ibr < nv ; ibr++ )
+      if( dzero != DBLK_BRICK_TYPE(blk,ibr) ) return 0 ;
+   return 1 ;
+}
+
 /*---------------------------------------------------------------
   18 Oct 2001:
   Put freeup function here, and set it by a function, rather
@@ -23,7 +37,7 @@ void THD_set_freeup( generic_func *ff ){ freeup = ff; }
 
 /*---------------------------------------------------------------*/
 
-Boolean THD_load_datablock( THD_datablock * blk )
+Boolean THD_load_datablock( THD_datablock *blk )
 {
    THD_diskptr * dkptr ;
    int id , offset ;
@@ -78,6 +92,14 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    if( DBLK_IS_MASTERED(blk) )                  /* 11 Jan 1999 */
       blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+
+   /* the following code is due to Mike Beauchamp's idiocy */
+
+   if( !THD_datum_constant(blk) ){              /* 14 Mar 2002 */
+     fprintf(stderr,"++ WARNING: dataset %s: non-uniform sub-brick types\n",
+             blk->diskptr->filecode) ;
+     blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+   }
 
    /* 25 April 1998: byte order issues */
 
