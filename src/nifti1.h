@@ -17,7 +17,7 @@
       **--------------------------------------------------------------**
       ** Author:   Robert W Cox (NIMH, Bethesda)                      **
       ** Advisors: John Ashburner (FIL, London),                      **
-      **           Steven Smith (FMRIB, Oxford),                      **
+      **           Stephen Smith (FMRIB, Oxford),                     **
       **           Mark Jenkinson (FMRIB, Oxford)                     **
 ******************************************************************************/
 
@@ -132,7 +132,7 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
  int   extents;       /*!< ++UNUSED++            */  /* int extents;         */
  short session_error; /*!< ++UNUSED++            */  /* short session_error; */
  char  regular;       /*!< ++UNUSED++            */  /* char regular;        */
- char  dim_info;      /*!< MRI slice orderding.  */  /* char hkey_un0;       */
+ char  dim_info;      /*!< MRI slice ordering.   */  /* char hkey_un0;       */
 
                                       /*--- was image_dimension substruct ---*/
  short dim[8];        /*!< Data array dimensions.*/  /* short dim[8];        */
