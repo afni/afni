@@ -689,8 +689,8 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
   diag = (double *)malloc( sizeof(double)*n ) ;
   for( i=0 ; i < n ; i++ ){
     diag[i] = fabs(atmp.elts[i][i]) ;
-    if( diag[i] == 0.0l ) diag[i] = 1.0l ;  /* shouldn't happen? */
-    diag[i] = 1.0l / sqrt(diag[i]) ;
+    if( diag[i] == 0.0 ) diag[i] = 1.0 ;  /* shouldn't happen? */
+    diag[i] = 1.0 / sqrt(diag[i]) ;
   }
 
   for( i=0 ; i < n ; i++ )                /* scale a */
@@ -1284,8 +1284,8 @@ double * matrix_singvals( matrix X )
    }
 
    for( i=0 ; i < N ; i++ ){
-     if( a[i+N*i] > 0.0 ) e[i] = 1.0l / sqrt(a[i+N*i]) ;
-     else                 e[i] = 1.0l ;
+     if( a[i+N*i] > 0.0 ) e[i] = 1.0 / sqrt(a[i+N*i]) ;
+     else                 e[i] = 1.0 ;
    }
 
    for( i=0 ; i < N ; i++ ){
@@ -1333,9 +1333,9 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    /* scale each column to have norm 1 */
 
    for( jj=0 ; jj < n ; jj++ ){
-     sum = 0.0l ;
+     sum = 0.0 ;
      for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-     if( sum > 0.0l ) sum = 1.0l/sqrt(sum) ;
+     if( sum > 0.0 ) sum = 1.0/sqrt(sum) ;
      xfac[jj] = sum ;
      for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
    }
@@ -1352,13 +1352,13 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    for( ii=1 ; ii < n ; ii++ )
      if( sval[ii] > smax ) smax = sval[ii] ;
 
-   if( smax <= 0.0l ){                        /* this is bad */
+   if( smax <= 0.0 ){                        /* this is bad */
      free((void *)xfac); free((void *)sval);
      free((void *)vmat); free((void *)umat); return;
    }
 
    for( ii=0 ; ii < n ; ii++ )
-     if( sval[ii] < 0.0l ) sval[ii] = 0.0l ;
+     if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;
 
 #ifdef FLOATIZE
 #define PSINV_EPS 1.e-8
@@ -1378,7 +1378,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      matrix_create( n , m , XtXinvXt ) ;
      for( ii=0 ; ii < n ; ii++ ){
        for( jj=0 ; jj < m ; jj++ ){
-         sum = 0.0l ;
+         sum = 0.0 ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
          XtXinvXt->elts[ii][jj] = sum * xfac[ii] ;
@@ -1392,7 +1392,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      matrix_create( n , n , XtXinv ) ;
      for( ii=0 ; ii < n ; ii++ ){
        for( jj=0 ; jj < n ; jj++ ){
-         sum = 0.0l ;
+         sum = 0.0 ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * V(jj,kk) ;
          XtXinv->elts[ii][jj] = sum * xfac[ii] * xfac[jj] ;

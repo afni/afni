@@ -633,7 +633,7 @@ ENTRY("regression_analysis") ;
 
   /*----- Calculate t-statistics for the regression coefficients -----*/
   calc_tcoef (N, p, sse_full, xtxinv_full,
-	      *coef_full, scoef_full, tcoef_full);
+              *coef_full, scoef_full, tcoef_full);
 
 
   /*----- Determine significance of the individual stimuli -----*/
