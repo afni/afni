@@ -70,10 +70,10 @@ ENTRY("EDIT_one_dataset") ;
    THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
    THD_load_datablock( dset->dblk ) ;
 
-   if( DSET_ARRAY(dset,0) == NULL ){
+   if( !DSET_LOADED(dset) ){
       fprintf(stderr,
               "\n*** Cannot read data brick for dataset %s\a\n",
-              dset->dblk->diskptr->brick_name ) ;
+              DSET_BRIKNAME(dset) ) ;
       EXIT(1) ;
    }
 

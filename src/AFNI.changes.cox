@@ -3264,3 +3264,8 @@
      of label arg as size of text box, rather than strlen(label).
  * Modified afni_func.c to change way the "Read Web" button presents
      its chooser, and put some sample Web datasets on the server.
+
+02 Nov 2001
+ * Modified 3dmerge.c to protest if an input dataset (for merge)
+     can't be loaded.  Also changed edt_onedset.c to use DSET_LOADED()
+     macro.

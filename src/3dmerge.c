@@ -22,10 +22,14 @@
   Mod:     Allow use of THD_open_dataset instead of THD_open_one_dataset.
   Author:  RWCox
   Date:    21 Feb 2001
+
+  Mod:     Check for loaded dataset in merge operations
+  Author:  RWCox
+  Date:    02 Nov 2001
 -----------------------------------------------------------------------------*/
 
-#define PROGRAM_NAME "3dmerge"                    /* name of this program */
-#define LAST_MOD_DATE "15 September 2000"         /* date of last program mod */
+#define PROGRAM_NAME "3dmerge"              /* name of this program */
+#define LAST_MOD_DATE "02 Nov 2001"         /* date of last program mod */
 
 #include "mrilib.h"
 #include "parser.h"    /* 09 Aug 2000 */
@@ -1319,7 +1323,7 @@ int main( int argc , char * argv[] )
       if( dset == NULL ){
          dset = dsetar[ file_num - first_file ] = DSET_OPEN( argv[file_num] ) ;
          if( ! ISVALID_3DIM_DATASET(dset) ){
-            fprintf(stderr,"*** cannot open dataset %s\n",argv[file_num]) ; exit(1) ;
+           fprintf(stderr,"*** cannot open dataset %s\n",argv[file_num]); exit(1);
          }
       }
 
@@ -1402,6 +1406,13 @@ int main( int argc , char * argv[] )
          EDIT_one_dataset( dset , &MRG_edopt ) ;  /* some real work */
       else
          THD_load_datablock( dset->dblk ) ;
+
+      /* 02 Nov 2001: check for data that doesn't exist */
+
+      if( !DSET_LOADED(dset) ){
+         fprintf(stderr,"** Can't get data from %s\n",DSET_BRIKNAME(dset)) ;
+         exit(1) ;
+      }
 
       if( ! MRG_be_quiet ){ printf(".") ; fflush(stdout) ; }
 
