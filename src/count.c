@@ -9,7 +9,7 @@ int main( int argc , char *argv[] )
 {
    int ii , bot = -1 , top = -1 , step = -1 , rando_count = 0, rando_num ;
    int narg , ndig = 4 , iout ;
-   static char root[64] , buf[128] , fmt[128] , suffix[64] ;
+   static char root[6664] , fmt[128] , suffix[6664] ;
 
 /*** Usage ***/
 
