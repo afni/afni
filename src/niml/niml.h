@@ -1136,7 +1136,27 @@ extern size_t NI_registry_ptr_to_len      ( void * ) ;
 extern void * NI_registry_add             ( char *, char *, void * ) ;
 extern void * NI_registry_replace         ( void *, void * ) ;
 
-
 /*-------------------------------------------------------------------------*/
+
+#define IDCODE_LEN 32
+#define LEN_IDCODE IDCODE_LEN
+
+#ifndef TYPEDEF_NI_datacontainer
+#define TYPEDEF_NI_datacontainer
+typedef struct {
+  char typename   [IDCODE_LEN] ;
+  char self_idcode[IDCODE_LEN] ;
+  char self_name  [IDCODE_LEN] ;
+  int  ival , jval ;
+  void *self ;
+} NI_datacontainer ;
+
+typedef void (*NI_elm_to_obj)( NI_datacontainer *) ;
+#endif
+
+extern char * NI_self_idcode( void * ) ;
+extern void   NI_suck_stream( char *, int, int *, NI_datacontainer *** ) ;
+extern void   NI_convert_elm_to_obj( NI_datacontainer * ) ;
+extern void   NI_register_elm_to_obj( char * , NI_elm_to_obj ) ;
 
 #endif /* _NIML_HEADER_FILE */
