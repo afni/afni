@@ -3,13 +3,13 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "vecmat.h"
 #include "mrilib.h"
 
 /***************************************************************************/
 
-#define ERREX(str) (fprintf(stderr,"*** %s\n",str),exit(1))
+#define ERREX(str) (fprintf(stderr,"** %s\n",str),exit(1))
 
 THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 
@@ -17,22 +17,24 @@ THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
 
 int main( int argc , char * argv[] )
 {
-   THD_dfvec3 * xx , * yy , dv ;
+   THD_dfvec3 *xx , *yy , dv ;
    int nvec , ii,jj, iarg ;
    THD_dvecmat rt ;
    THD_dmat33  pp,ppt , rr ;
    THD_dfvec3  tt ;
 
-   THD_3dim_dataset * mset=NULL , * dset=NULL ;
-   double * ww=NULL ;
+   THD_3dim_dataset *mset=NULL , *dset=NULL ;
+   double *ww=NULL ;
    int     nww=0 ;
    int keeptags=1 , wtval=0 , verb=0 , dummy=0 ;
-   char * prefix = "tagalign" , * mfile=NULL ;
+   char * prefix = "tagalign" , *mfile=NULL ;
 
-   float * fvol , cbot,ctop , dsum ;
+   float *fvol , cbot,ctop , dsum ;
    int nval , nvox , clipit , ival ;
 
    float matar[12] ;
+
+   int use_affine=0 , use_3dWarp=0 ;
 
    /*--- help? ---*/
 
@@ -68,6 +70,23 @@ int main( int argc , char * argv[] )
              "                   for 3drotates's '-matvec_dset' option; this\n"
              "                   lets you avoid using an intermediate mfile.\n"
              "\n"
+             " -3dWarp       = Use the '3dWarp' function to transform the dataset,\n"
+             "                   rather than the '3drotate' function.  The output\n"
+             "                   dataset will be computed on the same grid as the\n"
+             "                   master dataset.\n"
+             "           N.B.: This option is implied by the '-affine' option.\n"
+             "\n"
+             " -affine       = Compute the best transformation as a general affine\n"
+             "                   map rather than just a rotation + shift.  In both\n"
+             "                   cases, the transformation from input to output\n"
+             "                   coordinates is of the form\n"
+             "                      [out] = [R] [in] + [V]\n"
+             "                   where [R] is a 3x3 matrix and [V] is a 3-vector.\n"
+             "                   By default, [R] is computed as a proper (det=1)\n"
+             "                   rotation matrix (3 parameters).  The '-affine'\n"
+             "                   option says to fit [R] as a general matrix\n"
+             "                   (9 parameters).\n"
+             "\n"
              " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
              "                   [default = 'tagalign']\n"
              " -verb         = Print progress reports\n"
@@ -79,7 +98,7 @@ int main( int argc , char * argv[] )
              "  The output dataset is rotated/shifted using the equivalent of the\n"
              "  options '-clipit -Fourier' for 3drotate.\n"
              "\n"
-             "Author: RWCox - 16 Jul 2000\n"
+             "Author: RWCox - 16 Jul 2000 (etc.)\n"
             ) ;
       exit(0) ;
    }
@@ -88,6 +107,20 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-affine") == 0 ){   /* 21 Apr 2003 */
+        use_affine = 1 ; use_3dWarp = 1 ;
+        iarg++ ; continue ;
+      }
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-3dWarp") == 0 ){   /* 21 Apr 2003 */
+        use_3dWarp = 1 ;
+        iarg++ ; continue ;
+      }
 
       /*-----*/
 
@@ -107,9 +140,9 @@ int main( int argc , char * argv[] )
          if( nvec < 3 )                        ERREX("Not enough tags set in -master dataset") ;
 
          if( nvec < TAGLIST_COUNT(mset->tagset) )
-            fprintf(stderr,"+++ WARNING: not all tags are set in -master dataset\n") ;
+            fprintf(stderr,"++ WARNING: not all tags are set in -master dataset\n") ;
 
-         if( verb ) fprintf(stderr,"+++ Found %d tags in -master dataset\n",nvec) ;
+         if( verb ) fprintf(stderr,"++ Found %d tags in -master dataset\n",nvec) ;
 
          iarg++ ; continue ;
       }
@@ -189,7 +222,7 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
 
    } /* end of scanning command line for options */
 
@@ -256,11 +289,15 @@ int main( int argc , char * argv[] )
    }
 
    dsum = sqrt(dsum/nvec) ;
-   fprintf(stderr,"+++ RMS distance between tags before = %.2f mm\n" , dsum ) ;
+   fprintf(stderr,"++ RMS distance between tags before = %.2f mm\n" , dsum ) ;
 
    /*-- compute best rotation + translation --*/
 
-   rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
+   if( !use_affine ){
+     rt = DLSQ_rot_trans( nvec , yy , xx , ww ) ;  /* in thd_rot3d.c */
+   } else {
+     rt = DLSQ_affine   ( nvec , xx , yy ) ;       /* 21 Apr 2003 */
+   }
 
    /*-- check for floating point legality --*/
 
@@ -272,20 +309,21 @@ int main( int argc , char * argv[] )
       }
    }
    if( nval > 0 ){
-      fprintf(stderr,"*** Floating point errors during calculation\n"
-                     "*** of rotation matrix and translation vector\n" ) ;
+      fprintf(stderr,"** Floating point errors during calculation\n"
+                     "** of transform matrix and translation vector\n" ) ;
       exit(1) ;
    }
 
    /*-- check for rotation matrix legality --*/
 
    dsum = DMAT_DET(rt.mm) ;
-   if( fabs(dsum-1.0) > 0.01 ){
-     fprintf(stderr,"*** Invalid rotation matrix computed: tags dependent?\n"
-                    "*** computed [matrix] and [vector] follow:\n" ) ;
+
+   if( dsum == 0.0 || (!use_affine && fabs(dsum-1.0) > 0.01) ){
+     fprintf(stderr,"** Invalid transform matrix computed: tags dependent?\n"
+                    "** computed [matrix] and [vector] follow:\n" ) ;
 
      for( ii=0 ; ii < 3 ; ii++ )
-       fprintf(stderr,"  [ %8.5f %8.5f %8.5f ]   [ %10.5f ] \n",
+       fprintf(stderr,"  [ %10.5f %10.5f %10.5f ]   [ %10.5f ] \n",
                rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
 
      exit(1) ;
@@ -294,24 +332,25 @@ int main( int argc , char * argv[] )
    /*-- print summary --*/
 
    if( verb ){
-     fprintf(stderr,"+++ Matrix & Vector [Dicom: x=R-L; y=A-P; z=I-S]\n") ;
+     fprintf(stderr,"++ Matrix & Vector [Dicom: x=R-L; y=A-P; z=I-S]\n") ;
      for( ii=0 ; ii < 3 ; ii++ )
-       fprintf(stderr,"    %8.5f %8.5f %8.5f   %10.5f\n",
+       fprintf(stderr,"    %10.5f %10.5f %10.5f   %10.5f\n",
                rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
    }
 
-   { float theta, costheta , dist ;
+   if( !use_affine ){
+     float theta, costheta , dist ;
 
      costheta = 0.5 * sqrt(1.0 + DMAT_TRACE(rt.mm)) ;
      theta    = 2.0 * acos(costheta) * 180/3.14159265 ;
      dist     = SIZE_DFVEC3(rt.vv) ;
 
      if( verb || (theta < 0.1 && dist < 0.1) )
-        fprintf(stderr,"+++ Total rotation = %.2f degrees; translation = %.2f mm\n",
+        fprintf(stderr,"++ Total rotation = %.2f degrees; translation = %.2f mm\n",
                 theta,dist) ;
 
      if( theta < 0.1 && dist < 0.1 ){
-        fprintf(stderr,"*** rotation + translation too small - quitting run\n") ;
+        fprintf(stderr,"** rotation + translation too small - quitting run\n") ;
         exit(1) ;
      }
    }
@@ -320,156 +359,184 @@ int main( int argc , char * argv[] )
       FILE * mp ;
 
       if( THD_is_file(mfile) )
-         fprintf(stderr,"+++ Warning: will overwrite -matvec %s\n",mfile) ;
+         fprintf(stderr,"++ Warning: will overwrite -matvec %s\n",mfile) ;
 
       mp = fopen(mfile,"w") ;
       if( mp == NULL ){
-         fprintf(stderr,"*** Can't write to -matvec %s\n",mfile) ;
+         fprintf(stderr,"** Can't write to -matvec %s\n",mfile) ;
       } else {
         for( ii=0 ; ii < 3 ; ii++ )
-          fprintf(mp,"    %8.5f %8.5f %8.5f   %10.5f\n",
+          fprintf(mp,"    %10.5f %10.5f %10.5f   %10.5f\n",
                   rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
         fclose(mp) ;
-        fprintf(stderr,"+++ Wrote matrix+vector to %s\n",mfile) ;
+        fprintf(stderr,"++ Wrote matrix+vector to %s\n",mfile) ;
       }
    }
 
    if( dummy ){
-      fprintf(stderr,"+++ This was a -dummy run: no output dataset\n") ; exit(0) ;
+      fprintf(stderr,"++ This was a -dummy run: no output dataset\n") ; exit(0) ;
    }
 
-   /*-- now must scramble the rotation matrix and translation
-        vector from Dicom coordinate order to dataset brick order --*/
+   /*-- 21 Apr 2003: transformation can be done the old way (a la 3drotate),
+                     or the new way (a la 3dWarp).                          --*/
 
-   pp  = DBLE_mat_to_dicomm( dset ) ;
-   ppt = TRANSPOSE_DMAT(pp) ;
-   rr  = DMAT_MUL(ppt,rt.mm) ; rr = DMAT_MUL(rr,pp) ; tt = DMATVEC(ppt,rt.vv) ;
+   if( !use_3dWarp ){          /**** the old way ****/
 
-   /*-- now create the output dataset by screwing with the input dataset
-        (this code is adapted from 3drotate.c)                           --*/
+     /*-- now must scramble the rotation matrix and translation
+          vector from Dicom coordinate order to dataset brick order --*/
 
-   DSET_mallocize(dset) ;
-   DSET_load( dset ) ;
-   if( !DSET_LOADED(dset) ) ERREX("Can't load input dataset bricks") ;
-   dset->idcode = MCW_new_idcode() ;
+     pp  = DBLE_mat_to_dicomm( dset ) ;
+     ppt = TRANSPOSE_DMAT(pp) ;
+     rr  = DMAT_MUL(ppt,rt.mm) ; rr = DMAT_MUL(rr,pp) ; tt = DMATVEC(ppt,rt.vv) ;
 
-   EDIT_dset_items( dset ,
-                       ADN_prefix , prefix ,
-                       ADN_label1 , prefix ,
-                    ADN_none ) ;
+     /*-- now create the output dataset by screwing with the input dataset
+          (this code is adapted from 3drotate.c)                           --*/
 
-   if( THD_is_file(dset->dblk->diskptr->header_name) ){
-      fprintf(stderr,
-              "*** Output file %s already exists -- cannot continue!\n",
-              dset->dblk->diskptr->header_name ) ;
-      exit(1) ;
+     DSET_mallocize(dset) ;
+     DSET_load( dset ) ;
+     if( !DSET_LOADED(dset) ) ERREX("Can't load input dataset bricks") ;
+     dset->idcode = MCW_new_idcode() ;
+
+     EDIT_dset_items( dset ,
+                         ADN_prefix , prefix ,
+                         ADN_label1 , prefix ,
+                      ADN_none ) ;
+
+     if( THD_is_file(dset->dblk->diskptr->header_name) ){
+        fprintf(stderr,
+                "** Output file %s already exists -- cannot continue!\n",
+                dset->dblk->diskptr->header_name ) ;
+        exit(1) ;
+     }
+
+     tross_Make_History( "3dTagalign" , argc,argv , dset ) ;
+
+     /*-- if desired, keep old tagset --*/
+
+     if( keeptags ){
+        THD_dfvec3 rv ;
+
+        dsum = 0.0 ;
+        for( jj=ii=0 ; ii < TAGLIST_COUNT(dset->tagset) ; ii++ ){
+           if( TAG_SET(TAGLIST_SUBTAG(dset->tagset,ii)) ){
+              rv = DMATVEC( rt.mm , yy[jj] ) ;                     /* operating on */
+              rv = ADD_DFVEC3( rt.vv , rv ) ;                      /* Dicom order  */
+
+              dv    = SUB_DFVEC3( xx[jj] , rv ) ;
+              dsum += dv.xyz[0]*dv.xyz[0] + dv.xyz[1]*dv.xyz[1]
+                                          + dv.xyz[2]*dv.xyz[2] ;
+
+              UNLOAD_DFVEC3( rv , TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
+                                  TAG_Y( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
+                                  TAG_Z( TAGLIST_SUBTAG(dset->tagset,ii) )  ) ;
+
+              jj++ ;
+           }
+        }
+        dsum = sqrt(dsum/nvec) ;
+        fprintf(stderr,"++ RMS distance between tags after  = %.2f mm\n" , dsum ) ;
+
+     } else {
+        myXtFree(dset->tagset) ;  /* send it to the dustbin */
+     }
+
+     /*-- rotate sub-bricks --*/
+
+     if( verb ) fprintf(stderr,"++ computing output BRIK") ;
+
+     nvox = DSET_NVOX(dset) ;
+     nval = DSET_NVALS(dset) ;
+     fvol = (float *) malloc( sizeof(float) * nvox ) ;
+
+     THD_rota_method( MRI_FOURIER ) ;
+     clipit = 1 ;
+
+     for( ival=0 ; ival < nval ; ival++ ){
+
+        /*- get sub-brick out of dataset -*/
+
+        EDIT_coerce_type( nvox ,
+                          DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ,
+                          MRI_float,fvol ) ;
+
+        if( clipit ){
+           register int ii ; register float bb,tt ;
+           bb = tt = fvol[0] ;
+           for( ii=1 ; ii < nvox ; ii++ ){
+                   if( fvol[ii] < bb ) bb = fvol[ii] ;
+              else if( fvol[ii] > tt ) tt = fvol[ii] ;
+           }
+           cbot = bb ; ctop = tt ;
+        }
+
+        if( verb && nval < 5 ) fprintf(stderr,".") ;
+
+        /*- rotate it -*/
+
+        THD_rota_vol_matvec( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
+                             fabs(DSET_DX(dset)) , fabs(DSET_DY(dset)) ,
+                                                   fabs(DSET_DZ(dset)) ,
+                             fvol , rr , tt ) ;
+
+        if( verb ) fprintf(stderr,".") ;
+
+        if( clipit ){
+           register int ii ; register float bb,tt ;
+           bb = cbot ; tt = ctop ;
+           for( ii=0 ; ii < nvox ; ii++ ){
+                   if( fvol[ii] < bb ) fvol[ii] = bb ;
+              else if( fvol[ii] > tt ) fvol[ii] = tt ;
+           }
+        }
+
+        if( verb && nval < 5 ) fprintf(stderr,".") ;
+
+        /*- put it back into dataset -*/
+
+        EDIT_coerce_type( nvox, MRI_float,fvol ,
+                                DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) );
+
+     } /* end of loop over sub-brick index */
+
+     if( verb ) fprintf(stderr,":") ;
+
+     /* save matrix+vector into dataset, too */
+
+     UNLOAD_DMAT(rt.mm,matar[0],matar[1],matar[2],
+                       matar[4],matar[5],matar[6],
+                       matar[8],matar[9],matar[10] ) ;
+     UNLOAD_DFVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
+     THD_set_atr( dset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
+
+     /* write dataset to disk */
+
+     dset->dblk->master_nvals = 0 ;  /* in case this was a mastered dataset */
+     DSET_write(dset) ;
+
+     if( verb ) fprintf(stderr,"\n") ;
+
+   } else {   /**** the new way: use 3dWarp type transformation ****/
+
+     THD_3dim_dataset *oset ;
+     THD_vecmat tran ;
+
+     DFVEC3_TO_FVEC3( rt.vv , tran.vv ) ;
+     DMAT_TO_MAT    ( rt.mm , tran.mm ) ;
+     oset = THD_warp3D_affine( dset, tran, mset, prefix, 0, WARP3D_NEWDSET ) ;
+     if( oset == NULL ){
+       fprintf(stderr,"** ERROR: THD_warp3D() fails!\n"); exit(1);
+     }
+
+     tross_Copy_History( dset , oset ) ;
+     tross_Make_History( "3dTagalign" , argc,argv , oset ) ;
+
+     UNLOAD_DMAT(rt.mm,matar[0],matar[1],matar[2],
+                       matar[4],matar[5],matar[6],
+                       matar[8],matar[9],matar[10] ) ;
+     UNLOAD_DFVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
+     THD_set_atr( oset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
+
    }
-
-   tross_Make_History( "3dTagalign" , argc,argv , dset ) ;
-
-   /*-- if desired, keep old tagset --*/
-
-   if( keeptags ){
-      THD_dfvec3 rv ;
-
-      dsum = 0.0 ;
-      for( jj=ii=0 ; ii < TAGLIST_COUNT(dset->tagset) ; ii++ ){
-         if( TAG_SET(TAGLIST_SUBTAG(dset->tagset,ii)) ){
-            rv = DMATVEC( rt.mm , yy[jj] ) ;                     /* operating on */
-            rv = ADD_DFVEC3( rt.vv , rv ) ;                      /* Dicom order  */
-
-            dv    = SUB_DFVEC3( xx[jj] , rv ) ;
-            dsum += dv.xyz[0]*dv.xyz[0] + dv.xyz[1]*dv.xyz[1]
-                                        + dv.xyz[2]*dv.xyz[2] ;
-
-            UNLOAD_DFVEC3( rv , TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
-                               TAG_Y( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
-                               TAG_Z( TAGLIST_SUBTAG(dset->tagset,ii) )  ) ;
-
-            jj++ ;
-         }
-      }
-      dsum = sqrt(dsum/nvec) ;
-      fprintf(stderr,"+++ RMS distance between tags after  = %.2f mm\n" , dsum ) ;
-
-   } else {
-      myXtFree(dset->tagset) ;  /* send it to the dustbin */
-   }
-
-   /*-- rotate sub-bricks --*/
-
-   if( verb ) fprintf(stderr,"+++ computing output BRIK") ;
-
-   nvox = DSET_NVOX(dset) ;
-   nval = DSET_NVALS(dset) ;
-   fvol = (float *) malloc( sizeof(float) * nvox ) ;
-
-   THD_rota_method( MRI_FOURIER ) ;
-   clipit = 1 ;
-
-   for( ival=0 ; ival < nval ; ival++ ){
-
-      /*- get sub-brick out of dataset -*/
-
-      EDIT_coerce_type( nvox ,
-                        DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ,
-                        MRI_float,fvol ) ;
-
-      if( clipit ){
-         register int ii ; register float bb,tt ;
-         bb = tt = fvol[0] ;
-         for( ii=1 ; ii < nvox ; ii++ ){
-                 if( fvol[ii] < bb ) bb = fvol[ii] ;
-            else if( fvol[ii] > tt ) tt = fvol[ii] ;
-         }
-         cbot = bb ; ctop = tt ;
-      }
-
-      if( verb && nval < 5 ) fprintf(stderr,".") ;
-
-      /*- rotate it -*/
-
-      THD_rota_vol_matvec( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
-                           fabs(DSET_DX(dset)) , fabs(DSET_DY(dset)) ,
-                                                 fabs(DSET_DZ(dset)) ,
-                           fvol , rr , tt ) ;
-
-      if( verb ) fprintf(stderr,".") ;
-
-      if( clipit ){
-         register int ii ; register float bb,tt ;
-         bb = cbot ; tt = ctop ;
-         for( ii=0 ; ii < nvox ; ii++ ){
-                 if( fvol[ii] < bb ) fvol[ii] = bb ;
-            else if( fvol[ii] > tt ) fvol[ii] = tt ;
-         }
-      }
-
-      if( verb && nval < 5 ) fprintf(stderr,".") ;
-
-      /*- put it back into dataset -*/
-
-      EDIT_coerce_type( nvox, MRI_float,fvol ,
-                              DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) );
-
-   } /* end of loop over sub-brick index */
-
-   if( verb ) fprintf(stderr,":") ;
-
-   /* save matrix+vector into dataset, too */
-
-   UNLOAD_DMAT(rt.mm,matar[0],matar[1],matar[2],
-                    matar[4],matar[5],matar[6],
-                    matar[8],matar[9],matar[10] ) ;
-   UNLOAD_DFVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
-   THD_set_atr( dset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
-
-   /* write dataset to disk */
-
-   dset->dblk->master_nvals = 0 ;  /* in case this was a mastered dataset */
-   DSET_write(dset) ;
-
-   if( verb ) fprintf(stderr,"\n") ;
 
    exit(0) ;
 }

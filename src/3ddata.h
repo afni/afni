@@ -3434,7 +3434,8 @@ extern MRI_IMAGE * THD_rota3D_matvec( MRI_IMAGE *, THD_dmat33,THD_dfvec3 ) ;
 extern void THD_rota_vol_matvec( int, int, int, float, float, float, float *,
                                  THD_dmat33 , THD_dfvec3 ) ;
 
-extern THD_dvecmat DLSQ_rot_trans( int, THD_dfvec3 *, THD_dfvec3 *, double * ww ) ;
+extern THD_dvecmat DLSQ_rot_trans( int, THD_dfvec3 *, THD_dfvec3 *, double * ) ;
+extern THD_dvecmat DLSQ_affine   ( int, THD_dfvec3 *, THD_dfvec3 * ) ;
 
 extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 
@@ -3569,10 +3570,14 @@ extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
                      THD_3dim_dataset *,
                      void w_in2out(float,float,float,float *,float *,float *),
                      void w_out2in(float,float,float,float *,float *,float *),
-                     float , char *, int , int ) ;
+                     void * , char *, int , int ) ;
 
 extern THD_3dim_dataset * THD_warp3D_affine(
-                     THD_3dim_dataset *, THD_vecmat, float, char *, int, int );
+                     THD_3dim_dataset *, THD_vecmat, void *, char *, int, int );
+
+#define WARP3D_NEWGRID  1
+#define WARP3D_NEWDSET  2
+#define WARP3D_GRIDMASK 7
 
 /*-- 02 Mar 2001: thd_entropy16.c --*/
 
