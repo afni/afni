@@ -477,6 +477,7 @@ typedef struct {
              pbar_readin_pb , pbar_writeout_pb ;
       MCW_arrowval * pbar_palette_av ;
       Widget pbar_showtable_pb ;
+      Widget pbar_environment_pb ; /* 10 Feb 2004 */
 
       Widget pbar_saveim_pb  ;                  /* 15 Jun 2000 */
       MCW_arrowval * pbar_transform0D_av ;
