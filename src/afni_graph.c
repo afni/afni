@@ -1346,7 +1346,7 @@ ENTRY("redraw_graph") ;
      sprintf(strp, "Num: %5d", npoints) ;
      fd_line( grapher , grapher->xx_text_2+rrr+3 , 31 , grapher->xx_text_2+rrr+3 , 5 ) ;
    } else {
-     sprintf(strp, "Num: %5d/%d" , npoints,grapher->pin_num) ;
+     sprintf(strp, "Num:%d/%d" , npoints,grapher->pin_num) ;
    }
 
    if( !grapher->textgraph ){
