@@ -211,6 +211,7 @@ typedef struct {
       Boolean one_done , glob_done ;
       float   min,max , per02,per98 ,
               scl_mm,lev_mm , scl_per,lev_per ;
+      float   entropy ;
 
       XtPointer parent , aux ;
 } ISQ_indiv_statistics ;

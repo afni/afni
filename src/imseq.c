@@ -747,8 +747,8 @@ if( PRINT_TRACING ){
                     XtMalloc( sizeof(ISQ_glob_statistics) ) ;
 
    for( ii=0 ; ii < imstatus->num_total ; ii++ ){
-      newseq->imstat[ii].one_done = newseq->imstat[ii].glob_done = False ;
-      newseq->imstat[ii].parent   = (XtPointer) newseq ;
+     newseq->imstat[ii].one_done = newseq->imstat[ii].glob_done = False ;
+     newseq->imstat[ii].parent   = (XtPointer) newseq ;
    }
 
    newseq->glstat->parent = (XtPointer) newseq ;
@@ -2595,45 +2595,40 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
          default:               /* scale on individual image statistics */
          case ISQ_SCL_AUTO:{
-            ISQ_indiv_statistics *st = &( seq->imstat[nn] ) ;
-            int scrang = seq->opt.scale_range ;
+           ISQ_indiv_statistics *st = &( seq->imstat[nn] ) ;
+           int scrang = seq->opt.scale_range ;
 
-            if( must_rescale ) st->one_done = False ;
+           if( must_rescale ) st->one_done = False ;
 
-            if( ! st->one_done ) ISQ_statify_one( seq , nn , lim ) ;
+           if( ! st->one_done ) ISQ_statify_one( seq , nn , lim ) ;
 
-            /* 09 Jan 2004: adjust scaling method for image entropy */
+           /* 09 Jan 2004: adjust scaling method for image entropy */
 
-            if( scrang == ISQ_RNG_02TO98 ){
-              double ent_th=AFNI_numenv("AFNI_IMAGE_ENTROPY") , ent ;
-              if( ent_th >= 0.0 ){
-                if( ent_th == 0.0 ) ent_th = 0.1 ;  /* 10 Jan 2004 */
-                switch( lim->kind ){
-                  default:        ent = mri_entropy8(lim) ; break ;
-                  case MRI_short:
-                  case MRI_float: ent = 0.5l * mri_entropy16(lim); break ;
-                }
-                if( ent < ent_th ) scrang = ISQ_RNG_MINTOMAX ;
-              }
-            }
+           if( scrang == ISQ_RNG_02TO98 ){
+             double ent_th=AFNI_numenv("AFNI_IMAGE_ENTROPY") ;
+             if( ent_th >= 0.0 ){
+               if( ent_th == 0.0 ) ent_th = 0.05 ;  /* 10 Jan 2004 */
+               if( st->entropy < ent_th ) scrang = ISQ_RNG_MINTOMAX ;
+             }
+           }
 
-            switch( scrang ){
+           switch( scrang ){
 
-               default:
-               case ISQ_RNG_MINTOMAX:
-                  seq->scl = st->scl_mm ;
-                  seq->lev = st->lev_mm ;
-                  seq->clbot = st->min ;   /* 29 Jul 2001 */
-                  seq->cltop = st->max ;
-               break ;
+             default:
+             case ISQ_RNG_MINTOMAX:
+               seq->scl = st->scl_mm ;
+               seq->lev = st->lev_mm ;
+               seq->clbot = st->min ;   /* 29 Jul 2001 */
+               seq->cltop = st->max ;
+             break ;
 
-               case ISQ_RNG_02TO98:
-                  seq->scl = st->scl_per ;
-                  seq->lev = st->lev_per ;
-                  clbot = seq->clbot = st->per02 ;
-                  cltop = seq->cltop = st->per98 ;
-               break ;
-            }
+             case ISQ_RNG_02TO98:
+               seq->scl = st->scl_per ;
+               seq->lev = st->lev_per ;
+               clbot = seq->clbot = st->per02 ;
+               cltop = seq->cltop = st->per98 ;
+             break ;
+           }
          }
          break ;  /* end of autoscaling */
 
@@ -4221,7 +4216,7 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
 
 void ISQ_draw_winfo( MCW_imseq * seq )
 {
-   char buf[64] = "\0" ;
+   char buf[128] = "\0" ;
    int nn , ibuf ;
    ISQ_indiv_statistics * st ;
 
@@ -4230,16 +4225,16 @@ ENTRY("ISQ_draw_winfo") ;
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
 
    if( seq->last_image_type >= 0 ){
-      sprintf( buf , "%s" , MRI_TYPE_name[seq->last_image_type] ) ;
+     sprintf( buf , "%s" , MRI_TYPE_name[seq->last_image_type] ) ;
 
-      if( seq->last_image_type == MRI_complex ){
-         switch( seq->opt.cx_code ){
-            case ISQ_CX_MAG:   strcat( buf , "[mag]"  ) ; break ;
-            case ISQ_CX_PHASE: strcat( buf , "[arg]"  ) ; break ;
-            case ISQ_CX_REAL:  strcat( buf , "[real]" ) ; break ;
-            case ISQ_CX_IMAG:  strcat( buf , "[imag]" ) ; break ;
-         }
-      }
+     if( seq->last_image_type == MRI_complex ){
+       switch( seq->opt.cx_code ){
+         case ISQ_CX_MAG:   strcat( buf , "[mag]"  ) ; break ;
+         case ISQ_CX_PHASE: strcat( buf , "[arg]"  ) ; break ;
+         case ISQ_CX_REAL:  strcat( buf , "[real]" ) ; break ;
+         case ISQ_CX_IMAG:  strcat( buf , "[imag]" ) ; break ;
+       }
+     }
    }
    ibuf = strlen(buf) ;
 
@@ -4253,38 +4248,39 @@ ENTRY("ISQ_draw_winfo") ;
            sprintf( buf+ibuf , " 2%%=%g 98%%=%g", st->per02 , st->per98 ) ;
       else
 #endif
-           sprintf( buf+ibuf , " min=%g max=%g" , st->min   , st->max   ) ;
+           sprintf( buf+ibuf , " %g..%g ent=%.2f" ,
+                    st->min , st->max , st->entropy ) ;
    }
 
    if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
-      if( seq->winfo_extra[0] == '\0' ){
+     if( seq->winfo_extra[0] == '\0' ){
 
-         int iw=0 ;                                   /* winfo_sides stuff */
-         switch( seq->opt.rot ){                      /* from 01 Dec 1999  */
-            case ISQ_ROT_0  : iw=0 ; break ;
-            case ISQ_ROT_90 : iw=1 ; break ;
-            case ISQ_ROT_180: iw=2 ; break ;
-            case ISQ_ROT_270: iw=3 ; break ;
-         }
-         if( seq->opt.mirror ) iw = (iw+2)%4 ;
+       int iw=0 ;                                   /* winfo_sides stuff */
+       switch( seq->opt.rot ){                      /* from 01 Dec 1999  */
+         case ISQ_ROT_0  : iw=0 ; break ;
+         case ISQ_ROT_90 : iw=1 ; break ;
+         case ISQ_ROT_180: iw=2 ; break ;
+         case ISQ_ROT_270: iw=3 ; break ;
+       }
+       if( seq->opt.mirror ) iw = (iw+2)%4 ;
 
-         if( seq->winfo_sides[iw][0] != '\0' ){
-            char qbuf[128] ;
-            strcpy(qbuf,"left=") ;
-            strcat(qbuf,seq->winfo_sides[iw]) ;
-            strcat(qbuf," ") ; strcat(qbuf,buf) ;
-            MCW_set_widget_label( seq->winfo , qbuf ) ;
-         } else {
-            MCW_set_widget_label( seq->winfo , buf ) ;   /* default label! */
-         }
-
-      } else {                                        /* winfo_extra stuff */
-         char qbuf[128] ;                             /* from 07 Aug 1999  */
-         strcpy(qbuf,seq->winfo_extra) ;
+       if( seq->winfo_sides[iw][0] != '\0' ){
+         char qbuf[128] ;
+         strcpy(qbuf,"left=") ;
+         strcat(qbuf,seq->winfo_sides[iw]) ;
          strcat(qbuf," ") ; strcat(qbuf,buf) ;
          MCW_set_widget_label( seq->winfo , qbuf ) ;
-      }
-      strcpy(seq->im_label,buf) ;
+       } else {
+         MCW_set_widget_label( seq->winfo , buf ) ;   /* default label! */
+       }
+
+     } else {                                        /* winfo_extra stuff */
+       char qbuf[128] ;                             /* from 07 Aug 1999  */
+       strcpy(qbuf,seq->winfo_extra) ;
+       strcat(qbuf," ") ; strcat(qbuf,buf) ;
+       MCW_set_widget_label( seq->winfo , qbuf ) ;
+     }
+     strcpy(seq->im_label,buf) ;
    }
 
    EXRETURN ;
@@ -6127,6 +6123,14 @@ ENTRY("ISQ_statify_one") ;
 
       ISQ_SCLEV( st->per02 , st->per98 ,
                  seq->dc->ncol_im , st->scl_per , st->lev_per ) ;
+
+      /* 12 Jan 2004: compute entropy in bits/byte */
+
+      switch( im->kind ){
+        default:        st->entropy =        mri_entropy8(im) ; break;
+        case MRI_short:
+        case MRI_float: st->entropy = 0.5l * mri_entropy16(im); break;
+      }
 
       st->one_done = True ;
 
@@ -8931,7 +8935,7 @@ ENTRY("ISQ_graymap_mtdkill") ;
 void ISQ_graymap_draw( MCW_imseq *seq )  /* 24 Oct 2003 */
 {
    MEM_plotdata *mp ;
-   int ix , nx , ny ;
+   int ix , nx , ny , nxx ;
    float *yar[2] , *xar , dx , *ar ;
 
 ENTRY("ISQ_graymap_draw") ;
@@ -8941,47 +8945,62 @@ ENTRY("ISQ_graymap_draw") ;
    seq->need_orim |= GRAYMAP_MASK ;
 
    /* make float arrays with grayscales and data range */
+   /* Modifed 12 Jan 2004 to plot in histogram style. */
 
    nx     = seq->dc->ncol_im ;
+   nxx    = 2*nx+2 ;
    ny     = 1 ;
-   dx     = (seq->bartop - seq->barbot) / (nx-1) ; if( dx == 0.0 ) EXRETURN ;
-   yar[0] = (float *) malloc( sizeof(float)*nx ) ;
-   xar    = (float *) malloc( sizeof(float)*nx ) ;
+   dx     = (seq->bartop - seq->barbot) / nx ; if( dx == 0.0 ) EXRETURN ;
+   yar[0] = (float *) malloc( sizeof(float)*nxx ) ;
+   xar    = (float *) malloc( sizeof(float)*nxx ) ;
+   xar[0] = seq->barbot ;
    for( ix=0 ; ix < nx ; ix++ ){
-     xar[ix]    = seq->barbot + dx*ix ;
-     yar[0][ix] = seq->dc->xint_im[ix] ;
-     if( yar[0][ix] < 0.0 ) yar[0][ix] = 0.0 ;
-     else {
-       yar[0][ix] *= (255.0/65280.0); if( yar[0][ix] > 255.0 ) yar[0][ix] = 255.0;
+     xar[2*ix+1]     = seq->barbot + ix*dx ;
+     xar[2*ix+2]     = seq->barbot + (ix+1)*dx ;
+     yar[0][2*ix+1]  = seq->dc->xint_im[ix] ;
+     if( yar[0][2*ix+1] < 0.0 ){
+       yar[0][2*ix+1] = 0.0 ;
+     } else {
+       yar[0][2*ix+1] *= (255.0/65280.0);
+       if( yar[0][2*ix+1] > 255.0 ) yar[0][2*ix+1] = 255.0;
      }
+     yar[0][2*ix+2] = yar[0][2*ix+1] ;
    }
+   xar[2*nx+1]    = seq->bartop ;
+   yar[0][0]      = yar[0][1] ;
+   yar[0][2*nx+1] = yar[0][2*nx] ;
 
    /* histogram the image? */
 
    if( seq->orim != NULL ){
-     float *iar=MRI_FLOAT_PTR(seq->orim) ;
-     float scl=nx/(seq->bartop-seq->barbot) ; register int ii,jj ;
-     ny = 2 ;
-     yar[1] = (float *) calloc( sizeof(float),nx ) ;
+     float *iar=MRI_FLOAT_PTR(seq->orim) , *har , val ;
+     float scl=nx/(seq->bartop-seq->barbot) ; int ii,jj ;
+     har = (float *) calloc( sizeof(float),nx  ) ;
      for( ii=0 ; ii < seq->orim->nvox ; ii++ ){
        jj = (int)( scl*(iar[ii]-seq->barbot) ) ;
        if( jj < 0 ) jj = 0 ; else if( jj > nx-1 ) jj = nx-1 ;
-       yar[1][jj] += 1.0 ;
+       har[jj] += 1.0 ;
      }
      for( scl=0.0,ii=1 ; ii < nx ; ii++ )
-       if( yar[1][ii] > scl ) scl = yar[1][ii] ;
-     if( scl == 0.0 ){
-       free(yar[1]) ; ny=1 ;
-     } else {
+       if( har[ii] > scl ) scl = har[ii] ;
+     if( scl > 0.0 ){
+       ny = 2 ;
+       yar[1] = (float *) malloc( sizeof(float)*nxx ) ;
        scl = 255.0/sqrt(scl) ;
-       for( ii=0 ; ii < nx ; ii++ ) yar[1][ii] = scl*sqrt(yar[1][ii]) ;
-       yar[1][0] = MIN( yar[1][0] , 255.0 ) ;
+       yar[1][0] = yar[1][2*nx+1] = 0.0 ;
+       for( ii=0 ; ii < nx ; ii++ ){
+         val = scl*sqrt(har[ii]) ; if( val > 255.0 ) val = 255.0 ;
+         yar[1][2*ii+1] = yar[1][2*ii+2] = val ;
+       }
      }
+     free( (void *)har ) ;
    }
 
    /* make a plot in memory */
 
-   mp = plot_ts_mem( nx,xar, ny,0,yar, "Data Value", "Gray Level", NULL,NULL ) ;
+   mp = plot_ts_mem( nxx,xar, ny,0,yar, "Data Value",
+                     (ny == 1) ? "Gray Level" : "Gray Level/Histogram" ,
+                     NULL,NULL ) ;
    free(xar); free(yar[0]); if( ny == 2 ) free(yar[1]) ;
    if( mp == NULL ){
      fprintf(stderr,"*** error in ISQ_graymap_draw: can't make plot_ts_mem\n") ;
