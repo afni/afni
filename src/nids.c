@@ -8,10 +8,17 @@
 #endif
 
 /*-----------------------------------------------------------*/
-/*! Return the size in bytes of an atomic datatype. */
+/*! Return the size in bytes of an atomic datatype.
+    If an unknown or variable length type (i.e., string)
+    is given, then the return value is zero.
+-------------------------------------------------------------*/
 
 int NIDS_datatype_size( int dtyp )
 {
+   static int last_dtyp=-1 , last_size=0 ;         /* 12 Dec 2002 */
+
+   if( dtyp == last_dtyp ) return last_size ;
+
    switch( dtyp ){
      case NIDS_BYTE:        return sizeof(byte);
      case NIDS_SHORT:       return sizeof(short);
@@ -21,11 +28,14 @@ int NIDS_datatype_size( int dtyp )
      case NIDS_COMPLEX:     return sizeof(complex);
      case NIDS_RGB:         return sizeof(rgb);
      case NIDS_RGBA:        return sizeof(rgba);
-     case NIDS_STRING:      return 0 ;           /* not fixed in size */
+     case NIDS_STRING:      return 0 ;          /* not fixed size */
 
      default:{
        NI_rowtype *rt = NI_rowtype_find_code(dtyp) ;
-       if( rt != NULL ) return rt->size ;
+       if( rt != NULL ){
+         last_dtyp = dtyp ; last_size = rt->size ; /* 12 Dec 2002 */
+         return last_size ;
+       }
      }
      return 0 ;
   }
