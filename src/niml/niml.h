@@ -1116,15 +1116,20 @@ extern NI_str_array * NI_decode_string_list( char *ss , char *sep ) ;
 /*-------------------------------------------------------------------------*/
 /* Registry stuff -- niml_registry.c [25 Feb 2005] */
 
-extern void * NI_registry_malloc( char *idcode, char *name, size_t len ) ;
-extern void * NI_registry_realloc( void *vpt, size_t newlen ) ;
-extern void   NI_registry_free( void *vpt ) ;
-extern void * NI_registry_idcode_to_ptr( char *idcode ) ;
-extern char * NI_registry_idcode_to_name( char *idcode ) ;
-extern char * NI_registry_ptr_to_idcode( void *vpt ) ;
-extern char * NI_registry_ptr_to_name( void *vpt ) ;
-extern void   NI_registry_idcode_altername( char *idcode, char *newname ) ;
-extern void   NI_registry_ptr_altername( void *vpt, char *newname ) ;
+extern void * NI_registry_malloc          ( char *, char *, size_t ) ;
+extern void * NI_registry_realloc         ( void *, size_t ) ;
+extern void   NI_registry_free            ( void * ) ;
+extern void * NI_registry_idcode_to_ptr   ( char * ) ;
+extern char * NI_registry_idcode_to_name  ( char * ) ;
+extern char * NI_registry_ptr_to_idcode   ( void * ) ;
+extern char * NI_registry_ptr_to_name     ( void * ) ;
+extern void   NI_registry_idcode_altername( char *, char * ) ;
+extern void   NI_registry_ptr_altername   ( void *, char * ) ;
+extern size_t NI_registry_idcode_to_len   ( char * ) ;
+extern size_t NI_registry_ptr_to_len      ( void * ) ;
+extern void * NI_registry_add             ( char *, char *, void * ) ;
+extern void * NI_registry_replace         ( void *, void * ) ;
+
 
 /*-------------------------------------------------------------------------*/
 
