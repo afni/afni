@@ -8,7 +8,7 @@
   Pseudo-plugin to set/show environment variables
 ************************************************************************/
 
-#undef USE_SESSTRAIL
+#define USE_SESSTRAIL
 
 /*--------------------- string to 'help' the user --------------------*/
 
@@ -195,7 +195,7 @@ PLUGIN_interface * ENV_init(void)
 
 #ifdef USE_SESSTRAIL
    ENV_add_numeric( "AFNI_SESSTRAIL" ,
-                    "# directory levels seen in Switch Session" ,
+                    "# directory levels seen in Switch Session, etc." ,
                     0,9,0,SESSTRAIL , ENV_sesstrail ) ;
 #endif
 
@@ -500,10 +500,28 @@ static void ENV_compressor( char * vname )
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * vname )
 {
+   int ii , tt ;
+   THD_session * sess ;
    char * str = getenv(vname) ;
 
    if( str == NULL ) str = "1" ;
-   SESSTRAIL = (int) strtod(str,NULL) ;
+   ii = SESSTRAIL ; SESSTRAIL = (int) strtod(str,NULL) ;
+   if( ii == SESSTRAIL ) return ;
+
+   /* relabel controller windows */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+      if( IM3D_OPEN(GLOBAL_library.controllers[ii]) )
+         AFNI_set_window_titles( GLOBAL_library.controllers[ii] ) ;
+
+   /* relabel sessions (cf. thd_initsess.c) */
+
+   for( ii=0 ; ii < GLOBAL_library.sslist->num_sess ; ii++ ){
+     sess = GLOBAL_library.sslist->ssar[ii] ;
+     str  = THD_trailname(sess->sessname,SESSTRAIL) ;
+     tt   = 1+strlen(str) - THD_MAX_LABEL ; if( tt < 0 ) tt = 0 ;
+     strcpy( sess->lastname , str+tt ) ;
+   }
 }
 #endif
 

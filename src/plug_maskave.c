@@ -28,13 +28,19 @@ static char helpstring[] =
    "          [if Bottom >  Top, then all nonzero mask voxels will be used; ]\n"
    "          [if Bottom <= Top, then only nonzero mask voxels in this range]\n"
    "          [                  will be used in computing the statistics.  ]\n\n"
-   " 1D Save: If the input dataset is 3D+time, and all sub-bricks are used,\n"
-   "          then this option lets you save the resulting average time series\n"
-   "          into the AFNI 'library'.  Note that this will NOT be written to\n"
-   "          disk--to do that, you must use the 'Write Ideal' button from the\n"
-   "          'Edit Ideal' submenu of the 'FIM' menu in a graphing window.\n\n"
+   " 1D Save: Name      = If all input sub-bricks are used (i.e., setting\n"
+   "                      'Source Sub-brick' = -1 above), then this option\n"
+   "                      lets you save the resulting average time series\n"
+   "                      into the interal list of timeseries available via\n"
+   "                      the 'Choose Timeseries', 'Pick Ideal', ... buttons.\n"
+   "          To Disk?  = If 'YES' is chosen, then will also write the\n"
+   "                      timeseries to disk in the *.1D format.\n\n"
    " Author -- RW Cox"
 ;
+
+#define NUM_yesno_list 2
+static char *yesno_list[] = { "YES" , "NO" } ;
+
 
 /***********************************************************************
    Set up the interface to the user
@@ -82,6 +88,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "1D Save" , "1D Save" , FALSE ) ;
    PLUTO_add_string( plint , "Name" , 0,NULL , 12 ) ;
+   PLUTO_add_string( plint , "To Disk?" , NUM_yesno_list , yesno_list , 1 ) ;
 
    return plint ;
 }
@@ -102,6 +109,7 @@ char * MASKAVE_main( PLUGIN_interface * plint )
    byte * mmm ;
 
    char * cname=NULL ;  /* 06 Aug 1998 */
+   int    cdisk=0 ;     /* 22 Aug 2000 */
    int miv=0 ;
 
    /*--------------------------------------------------------------------*/
@@ -180,7 +188,10 @@ char * MASKAVE_main( PLUGIN_interface * plint )
       }
 
       if( strcmp(tag,"1D Save") == 0 ){
+         char * yn ;
          cname = PLUTO_get_string(plint) ;
+         yn    = PLUTO_get_string(plint) ;
+         cdisk = (strcmp(yn,yesno_list[0]) == 0) ;
          continue ;
       }
 
@@ -369,6 +380,25 @@ char * MASKAVE_main( PLUGIN_interface * plint )
          MRI_IMAGE * qim = mri_new_vol_empty( nvals,1,1 , MRI_float ) ;
          mri_fix_data_pointer( sumar , qim ) ;
          PLUTO_register_timeseries( cname , qim ) ;
+
+         if( cdisk ){                         /* 22 Aug 2000 */
+            if( PLUTO_prefix_ok(cname) ){
+               char * cn ;
+               if( strstr(cname,".1D") == NULL ){
+                  cn = malloc(strlen(cname)+8) ;
+                  strcpy(cn,cname) ; strcat(cn,".1D") ;
+               } else {
+                  cn = cname ;
+               }
+               mri_write_1D( cn , qim ) ;
+               if( cn != cname ) free(cn) ;
+            } else {
+               PLUTO_popup_transient(plint," \n"
+                                           "** Illegal filename **\n"
+                                           "** in 'To Disk?' !! **\n" ) ;
+            }
+         }
+
          mri_fix_data_pointer( NULL , qim ) ; mri_free(qim) ;
       }
 

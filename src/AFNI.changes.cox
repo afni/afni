@@ -2227,3 +2227,22 @@
      and -1filter_expr option to do arbitrary linear filtering.
      (Also changed editvol.h, edt_checkargv.c, edt_filtervol.c, and
       edt_onedset.c)
+
+22 Aug 2000
+ * Added 'To Disk?' option to plug_maskave.c for the 'doall' case.
+
+24 Aug 2000
+ * Modified most places where SESSTRAIL is used to use SESSTRAIL+1,
+     so that when filenames are shown, they show all the directories
+     that are shown in the "Switch Session" dialog. [Per the suggestion
+     of Florian Hauch, Munich.]
+ * Also modified afni_pplug_env.c to enable AFNI_SESSTRAIL to be
+     controlled interactively, and to have it modify the window titles
+     and session lastnames when AFNI_SESSTRAIL is altered.
+
+01 Sep 2000
+ * Incorporated changes from Ziad Saad to the Hilbert delay plugin.
+ * Modified plug_nudge.c to output a 3drotate command line to stderr
+     when the feeble user presses the new 'Print' button.
+ * Added call to AFNI_imseq_clearstat() to afni_plugin.c function
+     PLUTO_dset_redisplay().

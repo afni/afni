@@ -100,7 +100,7 @@ covmat * robust_covar( int ndim , int nvec , float ** vec )
    int ii , jj , kk , nite ;
    float bcut , cwt ;
 
-#ifdef SINGLET
+#if 0
 fprintf(stderr,"Enter robust_covar:  ndim=%d  nvec=%d\n",ndim,nvec) ;
 #endif
 
@@ -154,7 +154,7 @@ fprintf(stderr,"Enter robust_covar:  ndim=%d  nvec=%d\n",ndim,nvec) ;
 
       nite++ ;
 
-#ifdef SINGLET
+#if 0
 fprintf(stderr,"\niteration %2d:\n",nite) ;
 #endif
 
@@ -228,7 +228,7 @@ fprintf(stderr,"\niteration %2d:\n",nite) ;
          }
       }
 
-#ifdef SINGLET
+#if 0
 fprintf(stderr,"  |dif|=%12.4g  |mat|=%12.4g   cwt=%12.4g\n",cnorm,csum,cwt) ;
 fprintf(stderr,"  matrix:\n") ;
 for( ii=0 ; ii < ndim ; ii++ ){
@@ -276,6 +276,10 @@ float evaluate_span( int ndim, int nvec,
 
    /* compute normalized cvec and basis into xx, ee */
 
+#if 0
+fprintf(stderr,"Normalizing cvec, basis\n") ;
+#endif
+
    ee = (float **) malloc(sizeof(float *)*nbasis) ;    /* make space */
    for( kk=0 ; kk < nbasis ; kk++ )
       ee[kk] = (float *) malloc(sizeof(float)*npt) ;
@@ -288,8 +292,12 @@ float evaluate_span( int ndim, int nvec,
    for( kk=0 ; kk < nbasis ; kk++ )
       forward_solve_inplace( cv , ee[kk] ) ;
 
-   /*             T                                             */
-   /* compute [ee] [ee], then least squares fit of [xx] to [ee] */
+#if 0
+fprintf(stderr,"Computing [ee]**T [ee]\n") ;
+#endif
+
+   /*             T     */
+   /* compute [ee] [ee] */
 
    ce = (covmat *) malloc(sizeof(covmat)) ;
    ce->ndim = nbasis ;
@@ -300,12 +308,17 @@ float evaluate_span( int ndim, int nvec,
       for( jj=0 ; jj <= kk ; jj++ ){
          s = 0.0 ;
          for( ii=0 ; ii < npt ; ii++ ) s += ee[kk][ii] * ee[jj][ii] ;
+         ce->cmat[jj+kk*nbasis] = s ;
+         if( jj < kk ) ce->cmat[kk+jj*nbasis] = s ;
       }
-      ce->cmat[jj+kk*nbasis] = s ;
-      if( jj < kk ) ce->cmat[kk+jj*nbasis] = s ;
    }
+
+   /* project [xx] onto space orthogonal to [ee] */
+
    compute_choleski(ce) ;
+if( ce->cfac == NULL )fprintf(stderr,"choleski failed!\n") ;
    cc = (float *) malloc(sizeof(float)*nbasis) ;
+
    for( kk=0 ; kk < nbasis ; kk++ ){
       s = 0.0 ;
       for( ii=0 ; ii < npt ; ii++ ) s += ee[kk][ii] * xx[ii] ;
@@ -319,7 +332,9 @@ float evaluate_span( int ndim, int nvec,
       xx[ii] = s ;
    }
 
-   /* normalize each bvec, dot into residual vector */
+   /* normalize each bvec, dot into residual vector, count negatives */
+   /* (don't have to project bvec onto space orthog)                */
+   /* (to [ee], since [xx] is already in that space)               */
 
    nbd = 0 ;
    for( kk=0 ; kk < nvec ; kk++ ){
@@ -345,6 +360,7 @@ fprintf(stderr," => nbd=%d\n",nbd) ;
 /*-------------------------------------------------------------------*/
 
 spanfit find_best_span( int ndim , int nvec , int minspan ,
+                        int nbasis , float ** basis ,
                         float * cvec , float ** bvec       )
 {
    spanfit result = {0,0,0.0} ;
@@ -353,6 +369,7 @@ spanfit find_best_span( int ndim , int nvec , int minspan ,
 
    if( minspan < 3 || ndim < minspan || nvec < 100 ) return result ;
    if( cvec == NULL || bvec == NULL )                return result ;
+   if( nbasis < 1 || basis == NULL )                 return result ;
 
    val_best = -1.0 ;
    for( bot=0 ; bot < ndim+1-minspan ; bot++ ){
@@ -360,7 +377,7 @@ spanfit find_best_span( int ndim , int nvec , int minspan ,
 for( top=0 ; top < bot+minspan-1 ; top++ ) printf(" 0") ;
 
       for( top=bot+minspan-1 ; top < ndim ; top++ ){
-         val = evaluate_span( ndim,nvec , bot,top , cvec,bvec ) ;
+         val = evaluate_span( ndim,nvec , bot,top , nbasis,basis , cvec,bvec ) ;
 
 printf(" %g",val) ;
 
@@ -374,8 +391,6 @@ printf(" %g",val) ;
 
 printf("\n") ;
    }
-
-   evaluate_span( 0,0,0,0,NULL,NULL ) ;
 
    result.bot = bot_best; result.top = top_best; result.pval = val_best;
    return result ;
@@ -393,15 +408,23 @@ static int sqr=0 ;
 #define OUT_THR 1
 #define OUT_BBB 2
 #define OUT_AAA 3
+#define OUT_AB  4
 
 static int outmode = OUT_THR ;
+static int nbasis  = 1 ;
+
+#define FVECTOR_DIM 2
+typedef struct {
+   float v[FVECTOR_DIM] ;
+} fvector ;
 
 /*-----------------------------------------------------------------------*/
 
-float process_sample( float pcut , BFIT_data * bfd )
+fvector process_sample( float pcut , BFIT_data * bfd )
 {
    BFIT_result * bfr ;
    double xth ;
+   fvector result ;
 
    static double aold,bold ;
    static BFIT_data * bfdold=NULL ;
@@ -435,14 +458,17 @@ float process_sample( float pcut , BFIT_data * bfd )
       case OUT_THR: /* use the threshold as the output parameter */
          xth = beta_p2t( pthr , bfr->a,bfr->b ) ;
          if( sqr ) xth = sqrt(xth) ;
+         result.v[0] = xth ;
       break ;
 
-      case OUT_BBB: xth = bold ; break ;
-      case OUT_AAA: xth = aold ; break ;
+      case OUT_BBB: result.v[0] = bold ; break ;
+      case OUT_AAA: result.v[0] = aold ; break ;
+
+      case OUT_AB:  result.v[0] = aold ; result.v[1] = bold ; break ;
    }
 
    BFIT_free_result(bfr) ;
-   return (float) xth ;
+   return result ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -457,8 +483,10 @@ int main( int argc , char * argv[] )
    float pcut , eps,eps1 ;
    float *bval , *cval ;
    double aa,bb,xc,xth ;
+   fvector bfit ;
+   float ** basis ;
 
-   int mcount,mgood , ii , jj , kk , ibot,itop ;
+   int mcount,mgood , ii , jj , kk , ibot,itop , qq ;
 
    int narg=1 ;
    int nboot=0 ;
@@ -470,7 +498,7 @@ int main( int argc , char * argv[] )
    byte * mmm=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      fprintf(stderr,"Usage: 3dbetafit2 [options] dataset\n"
+      fprintf(stderr,"Usage: 3dbetafit3 [options] dataset\n"
              "Fits a beta distribution to the values in a brick.\n"
              "\n"
              "Options:\n"
@@ -498,6 +526,7 @@ int main( int argc , char * argv[] )
              "              [default = 1.e-4]\n"
              "  -bout   = Use 'b' for the output, instead of thr\n"
              "  -aout   = Use 'a' for the output, instead of thr\n"
+             "  -about  = Use 'a' AND 'b' for the ouput.\n"
          ) ;
          exit(0) ;
    }
@@ -507,11 +536,15 @@ int main( int argc , char * argv[] )
    while( narg < argc && argv[narg][0] == '-' ){
 
       if( strcmp(argv[narg],"-aout") == 0 ){
-         outmode = OUT_AAA ; narg++ ; continue ;
+         outmode = OUT_AAA ; nbasis = 1 ; narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-bout") == 0 ){
-         outmode = OUT_BBB ; narg++ ; continue ;
+         outmode = OUT_BBB ; nbasis = 1 ; narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-about") == 0 ){
+         outmode = OUT_AB ; nbasis = 2 ; narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-pthr") == 0 ){
@@ -634,18 +667,47 @@ int main( int argc , char * argv[] )
 
    fprintf(stderr,"Computing bootstrap") ;
 
-   ndim    = ptop - pbot + 1.0 ;
+   ndim  = (ptop - pbot + 1.0)*nbasis ;
+
+   basis = (float **) malloc(sizeof(float *)*nbasis) ;
+   for( qq=0 ; qq < nbasis ; qq++ )
+      basis[qq] = (float *) malloc(sizeof(float)*ndim) ;
+   switch(nbasis){
+      case 1:
+         for( jj=0 ; jj < ndim ; jj++ ) basis[0][jj] = 1.0 ;
+      break ;
+
+      case 2:
+         for( jj=0 ; jj < ndim ; jj++ ){
+            basis[0][jj] = ((jj%2) == 0) ;
+            basis[1][jj] = ((jj%2) == 1) ;
+         }
+      break ;
+   }
+
    bf_tvec = (float *) malloc(sizeof(float)*ndim) ;
-   for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 )
-      bf_tvec[(int)(pcut-pbot)] = process_sample( pcut , bfd ) ;
+   for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 ){
+      bfit = process_sample( pcut , bfd ) ;
+      qq = (int)(pcut-pbot) ;
+      switch(nbasis){
+         case 1: bf_tvec[qq] = bfit.v[0] ; break ;
+         case 2: bf_tvec[2*qq] = bfit.v[0] ; bf_tvec[2*qq+1] = bfit.v[1] ; break ;
+      }
+   }
 
    nvec = nboot ;
    boot_tvec = (float **) malloc(sizeof(float *)*nvec) ;
    for( jj=0 ; jj < nboot ; jj++ ){
       boot_tvec[jj] = (float *) malloc(sizeof(float)*ndim) ;
       nfd = BFIT_bootstrap_sample( bfd ) ;
-      for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 )
-         boot_tvec[jj][(int)(pcut-pbot)] = process_sample( pcut , nfd ) ;
+      for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 ){
+         bfit = process_sample( pcut , nfd ) ;
+         qq = (int)(pcut-pbot) ;
+         switch(nbasis){
+            case 1: boot_tvec[jj][qq] = bfit.v[0] ; break ;
+            case 2: boot_tvec[jj][2*qq] = bfit.v[0] ; boot_tvec[jj][2*qq+1] = bfit.v[1] ; break ;
+         }
+      }
       BFIT_free_data(nfd) ;
       if( jj%10 == 0 ) fprintf(stderr,".") ;
    }
@@ -657,13 +719,13 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"Enter ibot itop [ndim=%d]: ",ndim) ;
       ibot = itop = 0 ;
       fscanf(stdin,"%d%d",&ibot,&itop) ;
-      if( itop < 0 || itop-ibot+1 < 3 || itop >= ndim ) break ;
+      if( itop < 0 || itop-ibot+1 < 3 || itop >= ndim ) continue ;
 
-      eps = evaluate_span( ndim,nvec , ibot,itop , bf_tvec , boot_tvec ) ;
+      eps = evaluate_span( ndim,nvec , ibot,itop , nbasis,basis , bf_tvec,boot_tvec ) ;
       fprintf(stderr,"Evaluate = %f\n\n",eps) ;
    }
 #else
-   { spanfit sf = find_best_span( ndim,nvec , 10 , bf_tvec,boot_tvec ) ;
+   { spanfit sf = find_best_span( ndim,nvec , 10*nbasis , nbasis,basis , bf_tvec,boot_tvec ) ;
      float tbar = 0.0 ;
      for( ii=sf.bot ; ii <= sf.top ; ii++ ) tbar += bf_tvec[ii] ;
      tbar /= (sf.top-sf.bot+1.0) ;
@@ -671,7 +733,7 @@ int main( int argc , char * argv[] )
    }
 #endif
 
-#if 1
+#if 0
    { float xx,ss ;
       for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 ){
          kk = (int)(pcut-pbot) ;

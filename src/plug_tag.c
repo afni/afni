@@ -1093,7 +1093,7 @@ void TAG_get_dset_CB( int num, THD_3dim_dataset ** dslist, void * cd )
    /*-- change the informational label --*/
 
    sprintf(str,"%s%s", DSET_DIRNAME(dset) , DSET_FILECODE(dset) ) ;
-   tnam = THD_trailname( str , SESSTRAIL ) ;
+   tnam = THD_trailname( str , SESSTRAIL+1 ) ;
    xstr = XmStringCreateLtoR( tnam , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;

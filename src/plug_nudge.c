@@ -30,6 +30,7 @@ static void NUD_help_CB  ( Widget , XtPointer , XtPointer ) ;
 static void NUD_quit_CB  ( Widget , XtPointer , XtPointer ) ;
 static void NUD_doall_CB ( Widget , XtPointer , XtPointer ) ;
 static void NUD_choose_CB( Widget , XtPointer , XtPointer ) ;
+static void NUD_print_CB ( Widget , XtPointer , XtPointer ) ;
 
 static void NUD_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
@@ -79,6 +80,16 @@ static char * NUD_threestring( float a,float b,float c,char ca,char cb,char cc )
    return label ;
 }
 
+static char * NUD_3string( float a,float b,float c,char ca,char cb,char cc )
+{
+   static char label[64] ;
+   if( fabs(a) < EPS ) a = 0.0 ;
+   if( fabs(b) < EPS ) b = 0.0 ;
+   if( fabs(c) < EPS ) c = 0.0 ;
+   sprintf(label,"%.2f%c %.2f%c %.2f%c", a,ca,b,cb,c,cc ) ;
+   return label ;
+}
+
 /***************************************************************************
   Will be called from AFNI when user selects from Plugins menu.
 ****************************************************************************/
@@ -86,7 +97,7 @@ static char * NUD_threestring( float a,float b,float c,char ca,char cb,char cc )
 /* Interface widgets */
 
 static Widget shell=NULL , rowcol , info_lab , choose_pb ;
-static Widget nudge_pb, clear_pb, undo_pb, redo_pb, help_pb, quit_pb, doall_pb ;
+static Widget nudge_pb, clear_pb, undo_pb, redo_pb, help_pb, quit_pb, doall_pb, print_pb ;
 static MCW_arrowval * roll_av , * pitch_av , * yaw_av ,
                     * dS_av   , * dL_av    , * dP_av  , * brick_av ;
 static Widget angle_cum_lab , shift_cum_lab ;
@@ -120,6 +131,9 @@ static THD_fvec3 svec ; /* current shift vector    = undo_svec[undo_nuse-1] */
 #define NYESNO 2
 static char * REG_resam_strings[NRESAM] = {
              "Linear" , "Cubic" , "Quintic" , "Heptic" , "Fourier" } ;
+
+static char * REG_resam_options[NRESAM] = {
+             "-linear" , "-cubic" , "-quintic" , "-heptic" , "-Fourier" } ;
 
 static int REG_resam_ints[NRESAM] = {
              MRI_LINEAR , MRI_CUBIC , MRI_QUINTIC , MRI_HEPTIC , MRI_FOURIER } ;
@@ -234,7 +248,7 @@ char * NUD_main( PLUGIN_interface * plint )
 
 /*-- structures defining action buttons (at bottom of popup) --*/
 
-#define NACT 7  /* number of action buttons */
+#define NACT 8  /* number of action buttons */
 
 static MCW_action_item NUD_actor[NACT] = {
  {"Nudge",NUD_nudge_CB,NULL,
@@ -258,7 +272,11 @@ static MCW_action_item NUD_actor[NACT] = {
 
  {"Do All",NUD_doall_CB,NULL,
   "Apply Angles and Shifts to all sub-\nbricks and save dataset to disk" ,
-  "Apply Angles/Shifts; write to disk" , 1 }
+  "Apply Angles/Shifts; write to disk" , 1 } ,
+
+ {"Print",NUD_print_CB,NULL,
+  "Print current Angles and Shifts as\na '3drotate' command, to stderr" ,
+  "Print 3drotate command to screen" , 0 }
 } ;
 
 /*------------------------------------------------------------------------*/
@@ -589,6 +607,7 @@ static void NUD_make_widgets(void)
    help_pb  = (Widget) NUD_actor[4].data ;
    quit_pb  = (Widget) NUD_actor[5].data ;
    doall_pb = (Widget) NUD_actor[6].data ;
+   print_pb = (Widget) NUD_actor[7].data ;
 
    /*** that's all ***/
 
@@ -739,6 +758,36 @@ static void NUD_setcumlab(void)
    XtVaSetValues( shift_cum_lab , XmNlabelString , xstr , NULL ) ;
    XmStringFree(xstr) ;
 
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+  Write a 3drotate partial command to the screen corresponding
+  to the current nudge -- 31 Aug 2000
+-------------------------------------------------------------------------*/
+
+static void NUD_print_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   double th1,th2,th3 ;
+   char cbuf[256] = "3drotate" ;
+
+   strcat( cbuf , " " ) ;
+   strcat( cbuf , REG_resam_options[interp_av->ival] ) ;
+
+   if( clip_av->ival ) strcat( cbuf , " -clipit" ) ;
+
+   rotangles( rmat, &th1,&th2,&th3 ) ;
+   th1 *= iha*(180.0/PI) ; th2 *= iha*(180.0/PI) ; th3 *= iha*(180.0/PI) ;
+   strcat( cbuf , " -rotate " ) ;
+   strcat( cbuf , NUD_3string(th1,th2,th3,'I','R','A') ) ;
+
+   shiftdeltas( svec , &th1,&th2,&th3 ) ;
+   strcat( cbuf , " -ashift " ) ;
+   strcat( cbuf , NUD_3string(th1,th2,th3,'S','L','P') ) ;
+
+   strcat( cbuf , " -prefix ???  inputdataset" ) ;
+
+   fprintf(stderr,"\nCurrent Nudge command is:\n%s\n",cbuf ) ;
    return ;
 }
 
@@ -927,6 +976,8 @@ static void NUD_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      "Redo:   redo the previously undone Nudge\n"
      "Quit:   exit, restoring the dataset to its values stored on disk\n"
      "Do All: apply cumulative angles/shifts to all sub-bricks; write to disk\n"
+     "Print:  print (to stderr) 3drotate command equivalent to current nudge\n"
+     "        [use 'Print' before 'Do All', since 'Do All' sets nudge to 0]\n"
      "=======================================================================\n"
      "USAGE SUGGESTIONS:\n"
      "* Load the dataset and brick to nudge into this plugin.\n"
@@ -948,6 +999,10 @@ static void NUD_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      "    you Quit, the dataset on disk will be unchanged.  When you use\n"
      "    'Do All', all sub-bricks will be nudged the same way and then\n"
      "    be written out to disk, overwriting the original dataset .BRIK.\n"
+     "* Instead of using 'Do All', you can use 'Print' to see the 3drotate\n"
+     "    parameters to use.  You can then apply these to as many datasets\n"
+     "    you want (e.g., in a shell script, to nudge a whole bunch of\n"
+     "    datasets exactly the same way).\n"
      "=======================================================================\n"
      "ALGORITHM:\n"
      "* Uses the same basic routines as program 3drotate; see\n"

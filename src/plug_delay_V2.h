@@ -1,3 +1,4 @@
+/*#define CLIPSECTIONS */
 /* Contrary to the good tradition, this .h file will include */
 /* function declarations and definitions. */
 /* The reason for this is that the plugin has to be a stand alone*/
@@ -10,6 +11,9 @@
 
 #ifdef SCO
 #define drem remainder
+#endif
+#ifndef NOWAYXCORCOEF
+	#define NOWAYXCORCOEF 0					/* A flag value indicating that something lethal went on */
 #endif
 
 int Read_file (float *x,char *f_name,int n_points);
@@ -70,6 +74,9 @@ void disp_comp_vect (COMPLEX *v,int l);
 void disp_vect (float *v,int l);
 
 int is_vect_null ( float * v , int npts );
+
+int write_float (float *x,char *f_name,int n_points);
+
 
 /* definition and declaration part to suport the main algorithm */
 /* -----------------------END-----------------------------------*/
@@ -1140,7 +1147,7 @@ int hilbertdelay_V2 (float *x,float *y,int lng_full,int Nseg,int Pover,int opt,i
 			  float *mPxy,tmp,sPx,sPy,alfx,betx,alfy,bety,\
 						f_i,f_i1,izero,reg_pnt,\
 						NoWayDelay = -100000.0,\
-						NoWayxcorCoef = -2.0;
+						NoWayxcorCoef = NOWAYXCORCOEF;
 						
 			  COMPLEX tmp_c;
 			  char cbuf[30];
@@ -1154,14 +1161,15 @@ if ((opt == 0) && (i_call == 0))
 	
 *del = NoWayDelay;					/* setting the value of delay to an unlikely value ...*/
 *xcorCoef = NoWayxcorCoef;			/* setting the cross correlation coefficient to an unlikely value ...*/
-			
+
 
 if (opt > 0)							/* Execution mode */
 {/* opt >0 */
 
-#ifdef DEBUG_2		
+#ifdef DEBUG_ZEO_2		
 	printf ("\nFunction call #%d\n",i_call);
 #endif	
+
 
 /*-----------------------------------------------------------------------------------*/		
 /* Steps that need to be perfromed the first time the function is called 				 */
@@ -1187,7 +1195,7 @@ if (opt > 0)							/* Execution mode */
 																/* in order to correct for circular convolution effects */
 			lng_use = lng;							/* useful length of spectrum after correction for circular convolution effects */
 
-#ifdef DEBUG_2
+#ifdef DEBUG_ZEO_2
 	printf ("selected m=%d for a padded segment length of %d, old segment length was %d\nVector holds %d segments\n",m,lng,olng,Nseg);	
 #endif
 		
@@ -1352,7 +1360,7 @@ if (opt > 0)							/* Execution mode */
 				
 				c_mult (fftx,fftxc,Rxx,2*lng);						/* Powerspectrum of x (called Rxx) */
 				
-#ifdef DEBUG_2	
+#ifdef DEBUG_ZEO_2	
 		write_float (xp,"dbg_xdp.txt",2*lng);
 		write_float (yp,"dbg_ydp.txt",2*lng);
 		printf ("a = %f\n",a);
@@ -1420,7 +1428,7 @@ if (opt > 0)							/* Execution mode */
 				f_mult (ubias,HRxy,HRxy,2*lng);
 			}
 		
-#ifdef DEBUG_2		
+#ifdef DEBUG_ZEO_2		
 		write_float (Rxy,"dbg_Rxy.txt",2*lng);
 		write_float (HRxy,"dbg_HRxy.txt",2*lng);
 		write_float (ubias,"dbg_ubias.txt",2*lng);
@@ -1493,7 +1501,14 @@ if (opt > 0)							/* Execution mode */
 		
 				*del = izero + Dtx;		/* delay is in sample units corrected by the sampling time difference*/	
 					
-				*xcorCoef = *xcor / sqrt (Rxx[0].real * Ryy[0].real) * *slp; /*correction for sign of cross correlation coefficient (slp = 1.0 or -1.00*/
+				if (Rxx[0].real && Ryy[0].real)
+					*xcorCoef = *xcor / sqrt (Rxx[0].real * Ryy[0].real) * *slp; /*correction for sign of cross correlation coefficient (slp = 1.0 or -1.00*/
+				else
+					{	
+						#ifdef DEBUG_ZEO_3		
+							printf ("\nZero Variance...\n");
+						#endif
+					}
 				
 				/* set vx and vy */
 				
@@ -1506,10 +1521,11 @@ if (opt > 0)							/* Execution mode */
 }/* opt > 0 */										/* Execution mode */
 else if (opt == 0)
 	{/* opt == 0 */ 
-#ifdef DEBUG_2		
+
+#ifdef DEBUG_ZEO_3		
 	printf ("\nCleaning Up...\n");
 #endif
-	
+
 		free (fftx);								/*Cleaning up used space*/
 		free (fftxc);
 		free (ffty);	
@@ -1674,6 +1690,28 @@ int is_vect_null ( float * v , int npts )
         }/*is_vect_null*/
  
 /*-----------------------------------------------------------------------------------*/	
+
+
+int write_float (float *x,char *f_name,int n_points)
+	
+   
+    { /*  */
+     int i;
+     
+     FILE*internal_file;
+     
+     internal_file = fopen (f_name,"w");
+     if (internal_file == NULL) {
+     								printf ("\aCould not open %s \n",f_name);
+     								printf ("Exiting program\n");
+     								exit (0);
+    						   	}
+   
+   for (i=0;i<n_points;++i) fprintf (internal_file,"%f\n",x[i]);  
+     fclose (internal_file);
+      return (i);  							     
+   }
+
 
 
 /* support functions declaration for main algorithm             */

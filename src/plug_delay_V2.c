@@ -19,6 +19,9 @@
 /* taken from #include "/usr/people/ziad/Programs/C/DSP_in_C/dft.h" */
 /* dft.h - function prototypes and structures for dft and fft functions */
 
+
+
+
 /* COMPLEX STRUCTURE */
 
 typedef struct {
@@ -194,7 +197,7 @@ static char helpstring[] =
   "             I am not responsible for anything bad.\n\n"
   "If you have/find questions/comments/bugs about the plugin, \n"
   "send me an E-mail: ziad@image.bien.mu.edu\n\n"
-  "                          Ziad Saad June 20 97, lastest update Feb 23 98.\n\n"
+  "                          Ziad Saad June 20 97, lastest update Aug 21 00.\n\n"
   "[1] : Bendat, J. S. (1985). The Hilbert transform and applications to correlation measurements,\n"
   "       Bruel and Kjaer Instruments Inc.\n"
   "[2] : Bendat, J. S. and G. A. Piersol (1986). Random Data analysis and measurement procedures, \n"
@@ -216,7 +219,9 @@ static char * yn_strings[] = { "n" , "y" };
 #define DELAY    0
 #define XCOR     1
 #define XCORCOEF 2
-#define NOWAYXCORCOEF 10					/* A flag value indicating that something lethal went on */
+#ifndef NOWAYXCORCOEF
+	#define NOWAYXCORCOEF 0					/* A flag value indicating that something lethal went on */
+#endif
 
 #define NBUCKETS 4				/* Number of values per voxel in Buket data set */
 #define DELINDX 0					/* index of delay value in results vector */
@@ -587,9 +592,13 @@ char * DELAY_main( PLUGIN_interface * plint )
 	ud->out = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings );
 	
 	ud->strout = PLUTO_get_string(plint) ; 				/* strout is for the outiflename, which will be used after the debugging section */
-	if ((int)strlen (ud->strout) == 0)						/* if no output name is given, use the new_prefix */
-		ud->strout = ud->new_prefix;
-	
+	if (ud->strout == NULL)						/* if no output name is given, use the new_prefix */
+		{ud->strout = ud->new_prefix;}
+		else 
+			{	
+				if((int)strlen (ud->strout) == 0) ud->strout = ud->new_prefix;
+			}
+			
 	str = PLUTO_get_string(plint) ; 
 	ud->outts = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings );
 	
@@ -677,11 +686,12 @@ char * DELAY_main( PLUGIN_interface * plint )
 	 		
 	 		}
 	
-	
+
 	/* Open the logfile, regardless of the ascii output files */
 	sprintf ( tmpstr , "%s.log" , ud->strout);
 	ud->outlogfile = fopen (tmpstr,"w");
-	
+
+
 	if (ud->out == YUP)									/* open outfile */
 				{					
 					ud->outwrite = fopen (ud->strout,"w");
@@ -706,9 +716,8 @@ char * DELAY_main( PLUGIN_interface * plint )
 				}
 	
 	/* Write out user variables to Logfile */
-	write_ud (ud);				/* writes user data to a file */
+	write_ud (ud);			/* writes user data to a file */
 	
-
 	/*show_ud (ud,0);	*/			/* For some debugging */
 
    
@@ -765,13 +774,16 @@ char * DELAY_main( PLUGIN_interface * plint )
 	PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
 	
 	
-	fclose (ud->outwrite);							/* close outlogfile */
 
-   if (ud->out == YUP)									/* close outfile */
+   if (ud->out == YUP)									/* close outfile and outlogfile*/
 				{
 					fclose (ud->outlogfile);
 					fclose (ud->outwrite);
 					if (ud->outts  == YUP) fclose (ud->outwritets);
+				}
+				else
+				{
+					if (ud->outlogfile != NULL)	fclose (ud->outlogfile);		/* close outlogfile */
 				}
 	
 	free (tmpstr);		
@@ -789,7 +801,7 @@ void DELAY_tsfuncV2( double T0 , double TR ,
 {
    static int nvox , ncall ;
 	struct hilbert_data_V2 uda,*ud;
-	float del, xcorCoef;
+	float del, xcorCoef, buckara[4];
 	float xcor=0.0 ,  tmp=0.0 , tmp2 = 0.0 ,  dtx = 0.0 ,\
 			 delu = 0.0 , slp = 0.0 , vts = 0.0 , vrvec = 0.0 ;
 	int i , is_ts_null , status , opt , actv , zpos , ypos , xpos ;
@@ -824,7 +836,7 @@ void DELAY_tsfuncV2( double T0 , double TR ,
    if (is_vect_null (ts,npts) == 1) /* check for null vectors */
    	{
    		ud->errcode = ERROR_NULLTIMESERIES;
-   		error_report (ud , ncall );	/* report the error */
+			error_report (ud , ncall );	/* report the error */
    		
    		del = 0.0;								/* Set all the variables to Null and don't set xcorCoef to an impossible value*/
    		xcorCoef = 0.0;						/*  because the data might still be OK */
@@ -1003,9 +1015,8 @@ void indexTOxyz (struct hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , 
 void error_report (struct hilbert_data_V2* ud, int ncall ) 
 	{
 		int xpos,ypos,zpos;
-		
 		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos); 
-		
+
 		switch (ud->errcode)
 			{
 				case ERROR_NOTHINGTODO:

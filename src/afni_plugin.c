@@ -2141,7 +2141,7 @@ ENTRY("PLUTO_commandstring") ;
 
                dset = PLUTO_find_dset( idc ) ;
                if( dset != NULL ){
-                  char * qb = THD_trailname(DSET_HEADNAME(dset),SESSTRAIL) ;
+                  char * qb = THD_trailname(DSET_HEADNAME(dset),SESSTRAIL+1) ;
                   outbuf = THD_zzprintf( outbuf,"%s",qb) ;
                } else
                   outbuf = THD_zzprintf( outbuf,"?" ) ;
@@ -2626,7 +2626,7 @@ ENTRY("make_PLUGIN_dataset_link") ;
 
    strcpy( nam , dset->dblk->diskptr->directory_name ) ;
    strcat( nam , dset->dblk->diskptr->filecode ) ;
-   tnam = THD_trailname(nam,SESSTRAIL) ;
+   tnam = THD_trailname(nam,SESSTRAIL+1) ;
    MCW_strncpy( dsl->title , tnam , PLUGIN_STRING_SIZE ) ;
 
    /*-- copy idcode --*/
@@ -3405,10 +3405,12 @@ ENTRY("PLUTO_dset_redisplay_mode") ;
       if( im3d->anat_now == dset ){
          im3d->anat_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
+         AFNI_imseq_clearstat( im3d ) ;
          AFNI_set_viewpoint( im3d , -1,-1,-1 , amode ) ;
       } else if( im3d->fim_now == dset ){
          im3d->fim_voxwarp->type = ILLEGAL_TYPE ;
          AFNI_reset_func_range( im3d ) ;
+         AFNI_imseq_clearstat( im3d ) ;
          AFNI_set_viewpoint( im3d , -1,-1,-1 , fmode ) ;
       }
    }

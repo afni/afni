@@ -1530,7 +1530,7 @@ ENTRY("AFNI_set_window_titles") ;
 
    strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
    strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
-   tnam = THD_trailname(nam,SESSTRAIL) ;
+   tnam = THD_trailname(nam,SESSTRAIL+1) ;
    strcat( ttl , tnam ) ;
 
    if( ISVALID_3DIM_DATASET(im3d->fim_now) ){
@@ -2840,7 +2840,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
          if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL) ;
+            tnam = THD_trailname(nam,SESSTRAIL+1) ;
             llen = strlen(tnam) ; ltop = MAX(ltop,llen) ;
          }
       }
@@ -2850,7 +2850,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
          if( ISVALID_3DIM_DATASET(dset) && dset->warp_parent != NULL ){
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL) ;
+            tnam = THD_trailname(nam,SESSTRAIL+1) ;
             llen = strlen(tnam) ; ltop = MAX(ltop,llen) ;
          }
       }
@@ -2873,7 +2873,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL) ;
+            tnam = THD_trailname(nam,SESSTRAIL+1) ;
 
             if( ISANATBUCKET(dset) )         /* 30 Nov 1997 */
                sprintf(qnam,"%-*s [%s:%d]" ,
@@ -2905,7 +2905,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
             strcpy( nam , dset->dblk->diskptr->directory_name ) ;
             strcat( nam , dset->dblk->diskptr->filecode ) ;
-            tnam = THD_trailname(nam,SESSTRAIL) ;
+            tnam = THD_trailname(nam,SESSTRAIL+1) ;
 
             if( ISFUNCBUCKET(dset) )             /* 30 Nov 1997 */
                sprintf(qnam,"%-*s [%s:%d]" ,

@@ -36,6 +36,7 @@ INSTALLDIR = ./linux_lesstif
 LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
+# (You may need to include libXp.a here for some Motif versions)
 
 LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
