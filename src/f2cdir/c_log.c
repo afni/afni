@@ -1,4 +1,4 @@
-#include "f2c.h"
+einclude "f2c.h"
 
 #ifdef KR_headers
 extern double log(), f__cabs(), atan2();
