@@ -1334,6 +1334,13 @@ librickr.a:
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;				\
 	$(MV) 3dresample .. ; )
 
+file_tool:
+	( cd rickr ;                                                    \
+	make file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'         \
+			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	$(MV) file_tool .. ; )
+
+
 #######
 # surface library (not currently used)
 

@@ -47,3 +47,8 @@
   * modified plug_crender.c (rv 1.5) to align crosshairs with master grid
   * added ENTRY() and RETURN() statements
 
+11 September 2002:
+  * added rickr/file_tool.[ch]
+  * modified rickr/Makefile and Makefile.INCLUDE to be able to build file_tool
+    (note that file_tool will not yet be built automatically)
+
