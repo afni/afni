@@ -170,4 +170,10 @@ void RWC_destroy_nullify_cancel( Widget, void ** ) ;
 #define NULLIFY_ON_DESTROY(pp,ww)        RWC_destroy_nullify((ww),(void **)&(pp))
 #define CANCEL_NULLIFY_ON_DESTROY(pp,ww) RWC_destroy_nullify_cancel((ww),(void **)&(pp))
 
+/* invert the managed status of a widget */
+
+#define INVERT_manage(w)                                 \
+ do{ if( XtIsManaged(w) ) XtUnmanageChild(w);            \
+     else                 XtManageChild(w); } while(0) /* 21 Sep 2001 */
+
 #endif /* _MCW_XUTIL_HEADER_ */

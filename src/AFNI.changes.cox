@@ -3143,3 +3143,6 @@
  * Modified coxplot/plot_cox.c to have new function, create_memplot_surely().
      Modified a number of functions/programs to use this instead of looping
      over create_memplot() a number of times.
+
+21 Sep 2001
+ * Modified imseq.[ch] to adjust the way labels are drawn.

@@ -1262,14 +1262,21 @@ STATUS("creation: widgets created") ;
 
    newseq->mplot = NULL ;              /* 19 Sep 2001 */
 
-   /* 20 Sep 2001: add a button box to control plots */
+   /* 20 Sep 2001: add a button box to control plots
+                   and arrowvals to control labels   */
 
-   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, newseq->wbar_menu,
-                                     XmNseparatorType , XmSINGLE_LINE ,
-                                   NULL ) ;
+   { static char *plabel[1] = { "Plot Overlay Plots" } ;
+     static char *alabel[7] = { "Off", "UpperLeft", "UpperRight",
+                                       "LowerLeft", "LowerRight",
+                                       "UpperMid" , "LowerMid"   } ;
+     static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
 
-   { static char * plabel[1] = { "Plot Overlay Plots" } ;
-     static char *alabel[5] = { "Off", "UpperLeft", "UpperRight", "LowerLeft", "LowerRight" } ;
+     (void) XtVaCreateManagedWidget( "dialog",
+                                     xmSeparatorWidgetClass, newseq->wbar_menu,
+                                       XmNseparatorType , XmSINGLE_LINE ,
+                                     NULL ) ;
+
+     /*-- plots stuff --*/
 
      newseq->wbar_plots_bbox = new_MCW_bbox( newseq->wbar_menu ,
                                              1 , plabel ,
@@ -1277,20 +1284,44 @@ STATUS("creation: widgets created") ;
                                              ISQ_wbar_plots_CB , (XtPointer)newseq ) ;
      MCW_set_bbox( newseq->wbar_plots_bbox , 1 ) ;
 
-     newseq->wbar_label_av = new_MCW_arrowval( newseq->wbar_menu ,
-                                               "Label" ,
-                                               MCW_AV_optmenu ,      /* option menu style */
-                                               0 ,                   /* first option */
-                                               4 ,                   /* last option */
-                                               0 ,                   /* initial selection */
-                                               MCW_AV_readtext ,     /* ignored but needed */
-                                               0 ,                   /* ditto */
-                                               ISQ_wbar_label_CB ,   /* callback when changed */
-                                               (XtPointer)newseq ,   /* data for above */
-                                               MCW_av_substring_CB , /* text creation routine */
-                                               alabel                /* data for above */
-                                             ) ;
-   }
+     (void) XtVaCreateManagedWidget( "dialog",
+                                     xmSeparatorWidgetClass, newseq->wbar_menu,
+                                       XmNseparatorType , XmSINGLE_LINE ,
+                                     NULL ) ;
+
+     /*-- labels stuff --*/
+
+     newseq->wbar_label_av =
+        new_MCW_arrowval( newseq->wbar_menu ,
+                          "Label" ,
+                          MCW_AV_optmenu ,      /* option menu style */
+                          0 ,                   /* first option */
+                          6 ,                   /* last option */
+                          0 ,                   /* initial selection */
+                          MCW_AV_readtext ,     /* ignored but needed */
+                          0 ,                   /* ditto */
+                          ISQ_wbar_label_CB ,   /* callback when changed */
+                          (XtPointer)newseq ,   /* data for above */
+                          MCW_av_substring_CB , /* text creation routine */
+                          alabel                /* data for above */
+                        ) ;
+
+     newseq->wbar_labsz_av =
+        new_MCW_arrowval( newseq->wbar_menu ,
+                          "Size " ,
+                          MCW_AV_optmenu ,      /* option menu style */
+                          0 ,                   /* first option */
+                          4 ,                   /* last option */
+                          1 ,                   /* initial selection */
+                          MCW_AV_readtext ,     /* ignored but needed */
+                          0 ,                   /* ditto */
+                          ISQ_wbar_label_CB ,   /* callback when changed */
+                          (XtPointer)newseq ,   /* data for above */
+                          MCW_av_substring_CB , /* text creation routine */
+                          slabel                /* data for above */
+                        ) ;
+
+   } /* end of plots & labels stuff */
 
    newseq->parent = NULL ;
    RETURN(newseq) ;
@@ -1809,7 +1840,8 @@ ENTRY("ISQ_make_image") ;
 
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
-   MEM_plotdata *mp ; int ww ; float asp ;
+   MEM_plotdata *mp ; int ww ; float asp , dd ;
+   static int sz[5] = { 20 , 28 , 40 , 56 , 80 } ;  /* sz[j] = 20 * pow(2,0.5*j) */
 
 ENTRY("ISQ_plot_label") ;
 
@@ -1820,7 +1852,12 @@ ENTRY("ISQ_plot_label") ;
 #else
    asp = 1.0 ;
 #endif
-   ww  = (asp <= 1.0) ? 32 : (int)(32.0/asp+0.5) ;
+
+   ww = sz[seq->wbar_labsz_av->ival] ;
+   if( asp > 1.0 ) ww = (int)(ww/asp+0.5) ;
+
+   dd = 0.0007*ww ;
+
    create_memplot_surely( "Ilabelplot" , asp ) ;
    set_color_memplot(1.0,0.9,0.8) ;
    set_thick_memplot(0.0) ;
@@ -1828,16 +1865,22 @@ ENTRY("ISQ_plot_label") ;
    switch( seq->wbar_label_av->ival ){
       default:
       case ISQ_LABEL_UPLF:
-         plotpak_pwritf( 0.003,0.96 , lab , ww , 0 , -1 ) ; break ;
+         plotpak_pwritf( 0.003,1.0-dd , lab , ww , 0 , -1 ) ; break ;
 
       case ISQ_LABEL_UPRT:
-         plotpak_pwritf( asp-0.003,0.96 , lab , ww , 0 ,  1 ) ; break ;
+         plotpak_pwritf( asp-0.003,1.0-dd , lab , ww , 0 ,  1 ) ; break ;
 
       case ISQ_LABEL_DNLF:
-         plotpak_pwritf( 0.003,0.04 , lab , ww , 0 , -1 ) ; break ;
+         plotpak_pwritf( 0.003,dd , lab , ww , 0 , -1 ) ; break ;
 
       case ISQ_LABEL_DNRT:
-         plotpak_pwritf( asp-0.003,0.04 , lab , ww , 0 ,  1 ) ; break ;
+         plotpak_pwritf( asp-0.003,dd , lab , ww , 0 ,  1 ) ; break ;
+
+      case ISQ_LABEL_UPMD:
+         plotpak_pwritf( 0.5*asp,1.0-dd , lab , ww , 0 , 0 ) ; break ;
+
+      case ISQ_LABEL_DNMD:
+         plotpak_pwritf( 0.5*asp,dd , lab , ww , 0 , 0 ) ; break ;
    }
 
    mp = get_active_memplot() ; RETURN(mp) ;
@@ -4797,10 +4840,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
                            disables the Rec button (irreversibly)
 
 *    isqDR_plot_label      (int)
-                           0..4 for label position
+                           0..6 for label position; -1=toggle widgets
 
 *    isqDR_plot_plot       (int)
-                           1=show overlay plot; 0=don't
+                           1=show overlay plot; 0=don't; -1=toggle widget
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -4827,7 +4870,11 @@ ENTRY("drive_MCW_imseq") ;
 
       case isqDR_plot_label:{
          int dd = (int)drive_data ;
-         if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 4 ){
+
+         if( dd < 0 ){
+            INVERT_manage( seq->wbar_label_av->wrowcol ) ;
+            INVERT_manage( seq->wbar_labsz_av->wrowcol ) ;
+         } else if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 4 ){
            AV_assign_ival( seq->wbar_label_av , dd ) ;
            ISQ_redisplay( seq , -1 , isqDR_display ) ;
          }
@@ -4837,10 +4884,16 @@ ENTRY("drive_MCW_imseq") ;
       /*.....................................................*/
 
       case isqDR_plot_plot:{
-         int dd = ((int)drive_data) != 0 ;
-         if( dd != MCW_val_bbox(seq->wbar_plots_bbox) ){
-           MCW_set_bbox( seq->wbar_plots_bbox , dd ) ;
-           ISQ_redisplay( seq , -1 , isqDR_display ) ;
+         int dd = (int)drive_data ;
+
+         if( dd < 0 ){
+            INVERT_manage( seq->wbar_plots_bbox->wrowcol ) ;
+         } else {
+            dd = (dd != 0) ;
+            if( dd != MCW_val_bbox(seq->wbar_plots_bbox) ){
+               MCW_set_bbox( seq->wbar_plots_bbox , dd ) ;
+               ISQ_redisplay( seq , -1 , isqDR_display ) ;
+            }
          }
          RETURN( True ) ;
       }

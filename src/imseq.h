@@ -445,6 +445,7 @@ typedef struct MCW_imseq {
      MEM_plotdata * mplot ;              /* 19 Sep 2001 */
      MCW_bbox * wbar_plots_bbox ;        /* 20 Sep 2001 */
      MCW_arrowval * wbar_label_av ;      /* 20 Sep 2001 */
+     MCW_arrowval * wbar_labsz_av ;      /* 21 Sep 2001 */
 
 } MCW_imseq ;
 
@@ -455,6 +456,8 @@ typedef struct MCW_imseq {
 #define ISQ_LABEL_UPRT 2
 #define ISQ_LABEL_DNLF 3
 #define ISQ_LABEL_DNRT 4
+#define ISQ_LABEL_UPMD 5
+#define ISQ_LABEL_DNMD 6
 
 /*--------------------------------------------------------------------*/
 
