@@ -13,6 +13,18 @@ void mri_warp3D_method( int mode ){ wtype = mode ; } /** set interpolation **/
 
 /*--------------------------------------------------------------------------*/
 
+static byte *womask = NULL ;  /* 19 Nov 2004 */
+
+void mri_warp3D_set_womask( MRI_IMAGE *wim )
+{
+   womask = (wim == NULL || wim->kind != MRI_byte) ? NULL
+                                                   : MRI_BYTE_PTR(wim) ;
+}
+
+#define SKIP(i,j,k) (womask!=NULL && womask[(i)+(j)*nxnew+(k)*nxynew]==0)
+
+/*--------------------------------------------------------------------------*/
+
 static int zout = 1 ;
 void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }      /** outside = 0? **/
 
@@ -147,6 +159,7 @@ ENTRY("mri_warp3D_cubic") ;
      ypr = jj ;
      for( ii=0 ; ii < nxnew ; ii++ ){
        xpr = ii ;
+       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
        wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
        if( zout &&
@@ -328,6 +341,7 @@ ENTRY("mri_warp3D_linear") ;
      ypr = jj ;
      for( ii=0 ; ii < nxnew ; ii++ ){
        xpr = ii ;
+       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
        wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
        if( zout &&
@@ -476,6 +490,7 @@ ENTRY("mri_warp3D_NN") ;
      ypr = jj ;
      for( ii=0 ; ii < nxnew ; ii++ ){
        xpr = ii ;
+       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
        wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
        if( zout &&
@@ -624,6 +639,7 @@ ENTRY("mri_warp3D_quinitc") ;
      ypr = jj ;
      for( ii=0 ; ii < nxnew ; ii++ ){
        xpr = ii ;
+       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
        wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
        if( zout &&
