@@ -199,7 +199,8 @@ ENTRY( "DSETN_main" ) ;
 
    if ( g_dset_recv < 0 )
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
-					DSETN_dset_recv, plint ) ;
+					DSETN_dset_recv, plint ,
+                                       "DSETN_dset_recv" ) ;
    if ( g_dset_recv < 0 )
      RETURN("*************************************\n"
  	    "DSETN_main:  failed AFNI_receive_init\n"

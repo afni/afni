@@ -1513,7 +1513,8 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    if( ! recv_open ){
       recv_key = id = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK   |
                                                RECEIVE_DSETCHANGE_MASK ,  /* 31 Mar 1999 */
-                                         DRAW_receiver,NULL ) ;
+                                         DRAW_receiver,NULL ,
+                                        "DRAW_receiver" ) ;
 
       if( id < 0 ){
          (void) MCW_popup_message( im3d->vwid->top_shell ,

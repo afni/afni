@@ -322,7 +322,8 @@ static char * TTget_main( PLUGIN_interface *plint )
      AFNI_receive_control( plint->im3d,recv_key,EVERYTHING_SHUTDOWN,NULL ) ;
      recv_key = -1 ;
    } else if( orient > 0 && recv_key < 0 ){
-     recv_key = AFNI_receive_init( plint->im3d, RECEIVE_VIEWPOINT_MASK, TTget_recv, NULL ) ;
+     recv_key = AFNI_receive_init( plint->im3d, RECEIVE_VIEWPOINT_MASK,
+                                   TTget_recv, NULL , "TTget_recv"      ) ;
    }
 
    return NULL ;

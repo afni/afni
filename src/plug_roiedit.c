@@ -4957,7 +4957,8 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
    /* setup AFNI for drawing */
 
    if( ! recv_open ){
-      recv_key = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK, DRAW_receiver,NULL ) ;
+      recv_key = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK,
+                                    DRAW_receiver,NULL,"DRAW_receiver" ) ;
 
       if( recv_key < 0 ){
 	 (void) MCW_popup_message( im3d->vwid->top_shell ,
