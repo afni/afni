@@ -1,7 +1,7 @@
 
 /*-------------------------------------------------------------------------
    Return an array of XColor that define the colormap for the given
-   window.  This only works for PseudoColor visuals.
+   window.  This only works for PseudoColor visuals..
 ---------------------------------------------------------------------------*/
 
 void xxx_get_colormap( Display * display , Window w , XColor ** xcar , int * ncar )
