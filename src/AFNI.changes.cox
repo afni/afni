@@ -3829,3 +3829,7 @@
 
 05 Jul 2002
  * Modified 3dmerge.c to prevent use of -keepthr on fim and fbuc datasets.
+
+14 Jul 2002
+ * Removed the dicomm<->surefit functions from Vecwarp.c since they are now
+     in libmri.a via afni_suma.c, and the Sun compiler doesn't like this.
