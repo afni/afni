@@ -44,6 +44,8 @@ static int     zpad_mm=0 ;
 static float   zoff ;                          /* 10 May 2001 */
 static int     use_zoff=0 ;
 
+static int     af_type_set=0 ;                 /* 20 Dec 2001 */
+
 #ifdef AFNI_DEBUG
 #  define QQQ(str) (printf("to3d: %s\n",str),fflush(stdout))
 #else
@@ -275,13 +277,29 @@ QQQ("main1");
          acod=toupper(MRILIB_orients[2]); icod=ORCODE(acod); if(icod >= 0) user_inputs.yorient=icod;
          acod=toupper(MRILIB_orients[4]); icod=ORCODE(acod); if(icod >= 0) user_inputs.zorient=icod;
 
-         if( MRILIB_zoff != 0.0 ){
-            user_inputs.zorigin = MRILIB_zoff ;
-            user_inputs.xyz_centered &= ~ZCENTERED ;
+         if( use_MRILIB_zoff ){                     /* use offset to voxel center from mri_read() */
+            if( fabs(user_inputs.zorigin-MRILIB_zoff) > 0.01 ){
+              user_inputs.zorigin = MRILIB_zoff ;
+              user_inputs.xyz_centered &= ~ZCENTERED ;
+            }
+         }
+
+         if( use_MRILIB_xoff ){                     /* 20 Dec 2001 */
+            if( fabs(user_inputs.xorigin-MRILIB_xoff) > 0.01 ){
+              user_inputs.xorigin = MRILIB_xoff ;
+              user_inputs.xyz_centered &= ~XCENTERED ;
+            }
+         }
+
+         if( use_MRILIB_yoff ){                     /* 20 Dec 2001 */
+            if( fabs(user_inputs.yorigin-MRILIB_yoff) > 0.01 ){
+              user_inputs.yorigin = MRILIB_yoff ;
+              user_inputs.xyz_centered &= ~YCENTERED ;
+            }
          }
       }
 
-      /* 10 May 2001: use global zoff, if given */
+      /* 10 May 2001: use global zoff, if given [will override MRILIB_zoff] */
 
       if( use_zoff ){
          user_inputs.zorigin = zoff ;
@@ -1984,7 +2002,7 @@ void T3D_initialize_user_data(void)
          strcpy( user_inputs.anatomy_type_string ,
                  ANAT_typestr[user_inputs.anatomy_type] ) ;
 
-         nopt++ ; continue ;
+         af_type_set = 1 ; nopt++ ; continue ;
       }
 
       /* -type from the function prefixes */
@@ -2001,7 +2019,7 @@ void T3D_initialize_user_data(void)
          strcpy( user_inputs.function_type_string ,
                  FUNC_typestr[user_inputs.function_type] ) ;
 
-         nopt++ ; continue ;
+         af_type_set = 1 ; nopt++ ; continue ;
       }
 
 #ifdef USE_MRI_DELAY
@@ -2815,6 +2833,10 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
       printf("*** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
       FatalError("cannot continue") ;
 
+   }
+
+   if( user_inputs.ntt > 1 && !af_type_set ){
+      user_inputs.anatomy_type = ANAT_EPI_TYPE ; /* 20 Dec 2001 */
    }
 
    First_Image_Arg = nopt ;

@@ -17,10 +17,17 @@ extern float MRILIB_tr ;                /* 03 Dec 2001 */
 extern float MRILIB_xoff ;              /* 07 Dec 2001 */
 extern float MRILIB_yoff ;
 
+extern int use_MRILIB_zoff ;            /* 20 Dec 2001 */
+extern int use_MRILIB_xoff ;
+extern int use_MRILIB_yoff ;
+
 /*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
 
-#define CLEAR_MRILIB_globals \
- do{ MRILIB_orients[0]='\0'; MRILIB_zoff=MRILIB_tr=0.0; } while(0)
+#define CLEAR_MRILIB_globals                              \
+ do{ MRILIB_orients[0]='\0';                              \
+     MRILIB_zoff=MRILIB_xoff=MRILIB_yoff=MRILIB_tr=0.0;   \
+     use_MRILIB_xoff=use_MRILIB_yoff=use_MRILIB_zoff=0;   \
+ } while(0)
 
 #include <stdio.h>
 #include <stdlib.h>
