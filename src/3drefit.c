@@ -167,7 +167,19 @@ void Syntax(char * str)
          printf("         %4s  %-11.11s  %s\n",
                 FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
    }
+   printf(
+    "\n"
+    "The following options allow you to modify VOLREG fields:\n"
+    "  -vr_mat <val1> ... <val12>   Use these twelve values for VOLREG_MATVEC_index.\n"
+    "  [-vr_mat_ind <index>]        Index of VOLREG_MATVEC_index field to be modified. Optional, default index is 0.\n"
+    "                               Note: You can only modify one VOLREG_MATVEC_index at a time.\n"
+    "  -vr_center_old <x> <y> <z>   Use these 3 values for VOLREG_CENTER_OLD.\n"
+    "  -vr_center_base <x> <y> <z>  Use these 3 values for VOLREG_CENTER_BASE.\n" 
+    "\n"
+   );
 
+   printf("\t\tLast modified: Oct 04/02.\n");
+   
    exit(0) ;
 }
 
@@ -211,6 +223,13 @@ int main( int argc , char * argv[] )
    char * cpt ;
    int iv ;
 
+   float volreg_mat[12];
+   float center_old[3];
+   float center_base[3];
+   int Do_volreg_mat = 0, Do_center_old = 0, Do_center_base = 0, volreg_matind = 0, icnt = 0;
+   char *lcpt=NULL;
+      
+ 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
 
    iarg = 1 ;
@@ -512,7 +531,52 @@ int main( int argc , char * argv[] )
          new_zorg = 2 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
+      
+      /** 04 Oct 2002: zadd VOLREG fields **/
+      if( strcmp(argv[iarg],"-vr_mat") == 0 ){
+         if( iarg+12 >= argc ) Syntax("need 12 arguments after -vr_mat!");
+         icnt = 0;
+         while (icnt < 12) {
+            ++iarg;
+            volreg_mat[icnt] = strtod(argv[iarg], &lcpt) ; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+            ++icnt;
+         }
+         Do_volreg_mat = 1; new_stuff++ ;
+         ++iarg; 
+         continue ;  /* go to next arg */
+      }
 
+      if( strcmp(argv[iarg],"-vr_mat_ind") == 0) {
+         if (++iarg >= argc) Syntax("need 1 argument after -vr_mat_ind!");
+         volreg_matind = (int)strtol(argv[iarg], &lcpt, 10); if (*lcpt != '\0') Syntax("Bad syntax in number argument!"); 
+         ++iarg;
+         continue ;  /* go to next arg */
+      }
+      
+      if( strcmp(argv[iarg],"-vr_cen_old") == 0) {
+         if (iarg+3 >= argc) Syntax("need 3 arguments after -vr_cen_old");
+         ++iarg;
+         center_old[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         center_old[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         center_old[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         Do_center_old = 1; new_stuff++ ;
+         ++iarg;
+         continue ;  /* go to next arg */
+      }
+      
+      if( strcmp(argv[iarg],"-vr_cen_base") == 0) {
+         if (iarg+3 >= argc) Syntax("need 3 arguments after -vr_cen_base");
+         ++iarg;
+         center_base[0] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         center_base[1] = strtod(argv[iarg],&lcpt) ; ++iarg; if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         center_base[2] = strtod(argv[iarg],&lcpt) ;  if (*lcpt != '\0') Syntax("Bad syntax in list of numbers!"); 
+         Do_center_base = 1; new_stuff++ ;
+         ++iarg;
+         continue ;  /* go to next arg */
+      }
+      
+
+      
       /** -?del dim **/
 
       if( strncmp(argv[iarg],"-xdel",4) == 0 ){
@@ -699,6 +763,24 @@ int main( int argc , char * argv[] )
          dset->anat_parent_name[0] = '\0' ;
       }
 
+      /* Oct 04/02: zmodify volreg fields */
+      if (Do_volreg_mat) {
+         sprintf(str,"VOLREG_MATVEC_%06d", volreg_matind) ;
+         fprintf (stderr," Modifying %s ...\n", str);
+         THD_set_float_atr( dset->dblk , str , 12 , volreg_mat ) ;
+         
+      }
+      
+      if (Do_center_old) {
+         fprintf (stderr," Modifying VOLREG_CENTER_OLD ...\n");
+         THD_set_float_atr( dset->dblk , "VOLREG_CENTER_OLD" , 3 , center_old ) ;
+      }
+      
+      if (Do_center_base) {
+        fprintf (stderr," Modifying VOLREG_CENTER_BASE ...\n");
+        THD_set_float_atr( dset->dblk , "VOLREG_CENTER_BASE" , 3 , center_base ) ;
+      }
+      
       /* 28 May 2002: clear brick stats */
 
       if( clear_bstat ){
