@@ -1499,6 +1499,22 @@ void DC_pixel_to_rgb( MCW_DC * dc , Pixel ppp ,
 int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
 {
    XColor cell ; int ok ;
+
+   if( str == NULL || *str == '\0' ) return 1 ;
+
+   if( strncmp(str,"AJJ:",4) == 0 ){   /* 07 Feb 2003 */
+     float ang=-6666.0 ;
+     sscanf(str+4,"%f",&ang) ;
+     if( ang != -6666.0 ){
+       rgbyte col = DC_spectrum_AJJ( ang , 0.8 ) ;
+       *rr = col.r / 255.0 ;
+       *gg = col.g / 255.0 ;
+       *bb = col.b / 255.0 ;
+       return 0 ;
+     }
+     return 1 ;
+   }
+
    ok = XParseColor( dc->display , dc->colormap , str, &cell ) ;
    if( ok ){
       *rr = cell.red   / 65535.0 ;

@@ -1818,40 +1818,7 @@ static int AFNI_redisplay( char *cmd )
 
 static int AFNI_define_colorscale( char *cmd )
 {
-#define NSBUF 128
-  int ii , neq=0 , nonum=0 ;
-  char name[NSBUF], eqn[NSBUF] , rhs[NSBUF] ;
-  float  val[NPANE_BIG] , fr,fg,fb ;
-  rgbyte col[NPANE_BIG] ;
-
-  name[0] = '\0' ; ii = 0 ;
-  sscanf(cmd,"%127s%n",name,&ii) ;
-  if( *name == '\0' || ii == 0 ) return(-1) ;
-  cmd += ii ;
-
-  /* get lines of form "value = colordef" */
-
-  while( neq < NPANE_BIG ){
-    eqn[0] = '\0' ; ii = 0 ;
-    sscanf(cmd,"%127s%n",eqn,&ii) ;
-    if( *eqn == '\0' || ii == 0 ) break ;   /* exit loop */
-    cmd += ii ;
-    if( neq == 0 && (isalpha(eqn[0]) || eqn[0]=='#') ) nonum = 1 ;
-    rhs[0] = '\0' ; ii = 0 ;
-    if( !nonum ) sscanf(eqn,"%f=%s%n",val+neq,rhs,&ii) ;
-    else         sscanf(eqn,"%s%n"           ,rhs,&ii) ;
-    if( *rhs == '\0' || ii == 0 ) return -1;                    /* bad */
-    ii = DC_parse_color( GLOBAL_library.dc, rhs, &fr,&fg,&fb ) ;
-    if( ii ) return -1;                                         /* bad */
-    col[neq].r = (byte)(255.0*fr+0.5) ;
-    col[neq].g = (byte)(255.0*fg+0.5) ;
-    col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
-  }
-
-  if( nonum )                    /* supply numbers, if missing */
-    for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
-
-  PBAR_make_bigmap( name , neq, val, col, GLOBAL_library.dc ); return(0);
+  return PBAR_define_bigmap( cmd ) ;
 }
 
 /*---------------------------------------------------------------------*/

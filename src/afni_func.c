@@ -3103,7 +3103,9 @@ ENTRY("AFNI_rescan_session_OLD") ;
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; RETURN(0) ; }
 
+#if 1
 fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
+#endif
 
    /*--- sanity checks ---*/
 
@@ -3323,7 +3325,9 @@ ENTRY("AFNI_rescan_session_NEW") ;
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; RETURN(0); }
 
+#if 1
 fprintf(stderr,"Enter AFNI_rescan_session_NEW on session index %d\n",sss) ;
+#endif
 
    /*--- sanity checks ---*/
 
