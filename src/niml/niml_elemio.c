@@ -997,7 +997,7 @@ void NI_reset_buffer( NI_stream_type *ns )
     Returns with the stream buffer set so that the opening '<' is at
     ns->buf[ns->npos] and the closing '>' is at ns->buf[q-1], where q
     is this function's return value.  Note that read operations may
-    change ns->npos from its input value.
+    change ns->npos from its value when this function was called.
 
     If the return value is -1, then we couldn't find a '<stuff>' string.
     This may be due to:
