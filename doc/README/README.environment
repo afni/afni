@@ -888,6 +888,17 @@ AFNI_REALTIME_volreg_maxite      = an integer >= 1 [default = 9]
 AFNI_REALTIME_volreg_maxite_est  = an integer >= 1 [default = 1]
 AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 
+AFNI_REALTIME_CHILDWAIT = max wait time (in sec) for child info
+                          process [default = 66.6]; not needed if
+                          child info process is not used
+
+AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number
+                          of seconds, then the datasets being constructed
+                          will be written to disk [default=37.954];
+                          since this output may take several seconds,
+                          you may need to adjust this if you are in
+                          fact doing imaging with a very long TR
+
 For more information about how the realtime plugin works, read the file
 README.realtime.
 
