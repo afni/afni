@@ -57,6 +57,7 @@ typedef struct
     float    f_p1_mm;			/* mm distance to add to p1    */
     float    f_pn_mm;			/* mm distance to add to pn    */
     oob_t    oob;			/* display info for oob nodes  */
+    oob_t    oom;			/* display info for oom nodes  */
 } opts_t;
 
 typedef struct
@@ -87,6 +88,7 @@ typedef struct
     int                ccount;          /* mask size                  */
     int                nvox;		/* gpar nxyz                  */
     oob_t              oob;		/* display info for oob nodes  */
+    oob_t              oom;		/* display info for oom nodes  */
 } param_t;
 
 /* node list structure */
@@ -110,6 +112,8 @@ typedef struct
 {
     MRI_IMARR   ims;			/* the image array struct     */
     int         masked;			/* number of masked points    */
+    int         ifirst;			/* 1D index of first point    */
+    THD_ivec3   i3first;		/* i3ind index of first point */
     THD_ivec3 * i3arr;			/* i3ind index array          */
 } range_3dmm_res;
 
@@ -131,6 +135,8 @@ int final_clean_up    ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
        			node_list_t * N );
 int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug );
 int init_options      ( opts_t * opts, int argc, char * argv [] );
+int print_default_line( FILE * fp, int max_ind, int node_ind,
+	                int vind, int i, int j, int k, float fval );
 int print_header      ( FILE * outfp, char * surf, char * map, int nvals);
 int read_surf_files   ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec );
 int segment_imarr     ( range_3dmm_res *res, range_3dmm *R, smap_opts_t *sopt );

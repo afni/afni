@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.3 (September 23, 2003)"
+#define VERSION "version 3.4 (October 1, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -28,8 +28,16 @@
  *
  * 	-cmask      MASK_COMMAND
  * 	-debug      LEVEL
+ * 	-dnode      NODE_NUM
  * 	-f_index    INDEX_TYPE
  * 	-f_steps    NUM_STEPS
+ * 	-f_p1_mm    DISTANCE
+ * 	-f_pn_mm    DISTANCE
+ * 	-f_p1_fr    FRACTION
+ * 	-f_pn_fr    FRACTION
+ * 	-oob_index  INDEX
+ * 	-oob_value  VALUE
+ * 	-oom_value  VALUE
  * 	-out_1D     OUTPUT_FILE
  * 	-no_headers
  *
@@ -50,6 +58,11 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 3.4  October 1, 2003
+ *
+ *   - added -oom_value option
+ *   - added additional help example (for -oob and -oom options)
  *
  * 3.3  September 23, 2003
  *   - added help for -no_headers option
@@ -112,6 +125,8 @@
 
 /*----------------------------------------------------------------------
  * todo:
+ *
+ *   - add inner to outer surface order
  *----------------------------------------------------------------------
 */
 
@@ -238,7 +253,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     THD_ivec3      i3;				/* for coordinates */
     float          dist, min_dist, max_dist;
     int            sub, subs, nindex, findex, index1d;
-    int            oobc, index, max_index;
+    int            oobc, oomc, index, max_index;
 
     if ( sopt == NULL || p == NULL || N == NULL )
     {
@@ -268,6 +283,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     min_dist = 9999.9;						/* v2.3 */
     max_dist = -1.0;
     oobc     = 0; 			  /* init out-of-bounds counter */
+    oomc     = 0; 			  /* init out-of-mask counter   */
 
     /* prepare range structs */
     r3mm.dset          = p->gpar;
@@ -282,6 +298,9 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
     for ( nindex = 0; nindex < N->nnodes; nindex++ )
     {
+	/* init default max for oob and oom cases */
+	max_index = vals_over_steps(sopt->map) ? sopt->f_steps : subs;
+
 	/* note the endpoints */
 	r3mm.p1 = THD_dicomm_to_3dmm(p->gpar, N->nodes[nindex]);
 	if ( N->depth > 1 )
@@ -300,17 +319,9 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
 	    /* if user requests, display default info */
 	    if ( p->oob.show )
-	    {
-		max_index = vals_over_steps(sopt->map) ? sopt->f_steps : subs;
-
-		fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d     %3d",
-		     nindex, p->oob.index,
-		     p->oob.index, p->oob.index, p->oob.index,
-		     max_index );
-		for ( index = 0; index < max_index; index++ )
-		    fprintf( p->outfp, "  %10s", MV_format_fval(p->oob.value));
-		fputc( '\n', p->outfp );
-	    }
+		print_default_line( p->outfp, max_index, nindex,
+			p->oob.index, p->oob.index, p->oob.index, p->oob.index, 
+			p->oob.value );
 
 	    continue;
 	}
@@ -334,7 +345,17 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	    continue;
 
 	if ( r3mm_res.ims.num == 0 )	/* any good voxels in the bunch? */
+	{
+	    oomc++;
+
+	    /* if user requests, display default info */
+	    if ( p->oom.show )
+		print_default_line( p->outfp, max_index, nindex,
+			r3mm_res.ifirst, r3mm_res.i3first.ijk[0],
+			r3mm_res.i3first.ijk[1], r3mm_res.i3first.ijk[2],
+			p->oom.value );
 	    continue;
+	}
 
 	/* get element 0, just for the findex */
 	(void)v2s_apply_filter(&r3mm_res, sopt, 0, &findex);
@@ -383,8 +404,8 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     {
 	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
 		 min_dist, max_dist );
-	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
-		 oobc,N->nnodes);
+	fprintf( stderr, "-- out-of-bounds, o-o-mask counts : %d, %d (of %d)\n",
+		 oobc,oomc,N->nnodes);
     }
 
     /* now we can free the imarr and voxel lists */
@@ -394,6 +415,31 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	free(r3mm_res.i3arr);
 	r3mm_res.ims.nall = 0;
     }
+
+    return 0;
+}
+
+
+/***********************************************************************
+ * print_default_lint	- special case of output
+ *
+ * return 0 on success
+ ***********************************************************************
+*/
+int print_default_line( FILE * fp, int max_ind, int node_ind,
+			int vind, int i, int j, int k, float fval )
+{
+    int cc;
+
+    if ( !fp )
+	return -1;
+
+    fprintf( fp, "  %8d   %8d   %3d  %3d  %3d     %3d",
+	     node_ind, vind, i, j, k, max_ind );
+
+    for ( cc = 0; cc < max_ind; cc++ )
+	fprintf( fp, "  %10s", MV_format_fval(fval));
+    fputc( '\n', fp );
 
     return 0;
 }
@@ -464,6 +510,9 @@ int segment_imarr( range_3dmm_res * res, range_3dmm * R, smap_opts_t * sopt )
     /* init return structure */
     res->ims.num = 0;
     res->masked  = 0;
+    res->i3first = THD_3dmm_to_3dind( R->dset, R->p1 );
+    res->ifirst  = res->i3first.ijk[0] +
+	           nx * (res->i3first.ijk[1] + ny * res->i3first.ijk[2] );
 
     prev_ind = -1;			/* in case we want unique voxels */
 
@@ -1062,6 +1111,18 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    opts->oob.show  = 1;
             opts->oob.value = atof(argv[++ac]);
 	}
+	else if ( ! strncmp(argv[ac], "-oom_value", 8) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -oob_value VALUE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->oom.show  = 1;
+            opts->oom.value = atof(argv[++ac]);
+	}
 	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
 	{
 	    if ( (ac+1) >= argc )
@@ -1150,6 +1211,13 @@ int validate_options ( opts_t * opts, param_t * p )
 	return -1;
 
     p->oob = opts->oob;		/* out of bounds info */
+    p->oom = opts->oom;		/* out of bounds info */
+
+    if ( p->oom.show && !p->cmask )
+    {
+	fprintf(stderr,"** '-cmask' option is required with '-oom_value'\n");
+	return -1;
+    }
 
     if ( opts->debug > 1 )
 	disp_param_t( "++ opts validated: ", p );
@@ -1531,6 +1599,29 @@ int usage ( char * prog, int level )
 	    "       -f_pn_fr      0.2                                      \\\n"
 	    "       -out_1D       fred_surf_ave.1D\n"
 	    "\n"
+            "    6. Similar to example 5, but make sure there is output for\n"
+            "       every node pair in the surfaces.  Since it is expected\n"
+            "       that some nodes are out of bounds (meaning that they lie\n"
+	    "       outside the domain defined by the grid parent dataset),\n"
+	    "       the '-oob_value' option is added to include a default\n"
+	    "       value of 0.0 in such cases.  And since it is expected\n"
+	    "       that some node pairs are \"out of mask\" (meaning that\n"
+	    "       their resulting segment lies entirely outside the cmask),\n"
+	    "       the '-oom_value' was added to output the same default\n"
+	    "       value of 0.0.\n"
+	    "\n"
+	    "    %s                       \\\n"
+	    "       -spec         fred.spec                                \\\n"
+	    "       -sv           fred_anat+orig                           \\\n"
+	    "       -grid_parent  fred_anat+orig                           \\\n"
+	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
+	    "       -map_func     seg_vals                                 \\\n"
+	    "       -f_steps      10                                       \\\n"
+	    "       -f_index      nodes                                    \\\n"
+	    "       -f_p1_fr      -0.1                                     \\\n"
+	    "       -f_pn_fr      0.2                                      \\\n"
+	    "       -out_1D       fred_surf_ave.1D\n"
+	    "\n"
 	    "  --------------------------------------------------\n"
 	    "\n"
 	    "  REQUIRED COMMAND ARGUMENTS:\n"
@@ -1549,8 +1640,8 @@ int usage ( char * prog, int level )
 	    "        e.g. -sv fred_anat+orig\n"
 	    "\n"
 	    "        This is the AFNI dataset that the surface is mapped to.\n"
-	    "        This dataset is used for the intial surface node to xyz\n"
-	    "        coordinate mapping, in the Dicomm orientation.\n"
+	    "        This dataset is used for the initial surface node to xyz\n"
+	    "        coordinate mapping, in the Dicom orientation.\n"
 	    "\n"
 	    "    -grid_parent AFNI_DSET : AFNI volume dataset\n"
 	    "\n"
@@ -1635,16 +1726,16 @@ int usage ( char * prog, int level )
 	    "                     default: -f_index voxels\n"
 	    "\n"
 	    "          Note: The following -f_pX_XX options are used to alter\n"
-	    "                the lengths and locations of the computaional\n"
+	    "                the lengths and locations of the computational\n"
 	    "                segments.  Recall that by default, segments are\n"
 	    "                defined using the node pair coordinates as\n"
 	    "                endpoints.  And the direction from p1 to pn is\n"
-	    "                from the inner surace to the outer surface.\n"
+	    "                from the inner surface to the outer surface.\n"
 	    "\n"
 	    "          -f_p1_mm DISTANCE :\n"
 	    "\n"
 	    "                     This option is used to specify a distance\n"
-	    "                     in milimeters to add to the first point of\n"
+	    "                     in millimeters to add to the first point of\n"
 	    "                     each line segment (in the direction of the\n"
 	    "                     second point).  DISTANCE can be negative\n"
 	    "                     (which would set p1 to be farther from pn\n"
@@ -1662,7 +1753,7 @@ int usage ( char * prog, int level )
 	    "          -f_pn_mm DISTANCE :\n"
 	    "\n"
 	    "                     Similar to -f_p1_mm, this option is used\n"
-	    "                     to specify a distance in milimeters to add\n"
+	    "                     to specify a distance in millimeters to add\n"
 	    "                     to the second point of each line segment.\n"
 	    "                     Note that this is in the same direction as\n"
 	    "                     above, from point p1 to point pn.\n"
@@ -1681,10 +1772,10 @@ int usage ( char * prog, int level )
 	    "                     is used to specify a change to point p1, in\n"
 	    "                     the direction of point pn, but the change\n"
 	    "                     is a fraction of the original distance,\n"
-	    "                     not a pure change in milimeters.\n"
+	    "                     not a pure change in millimeters.\n"
 	    "                     \n"
 	    "                     For example, suppose one wishes to do a\n"
-	    "                     computaion based on the segments spanning\n"
+	    "                     computation based on the segments spanning\n"
 	    "                     the grey matter, but to add 20%% to either\n"
 	    "                     side.  Then use -0.2 and 0.2:\n"
 	    "\n"
@@ -1777,6 +1868,22 @@ int usage ( char * prog, int level )
 	    "        \n"
 	    "        VALUE will be output for nodes which are out of bounds.\n"
 	    "\n"
+	    "    -oom_value VALUE       : specify default value for oom nodes\n"
+	    "\n"
+	    "        e.g. -oom_value -999.0\n"
+	    "        e.g. -oom_value    0.0\n"
+	    "\n"
+	    "        By default, node pairs defining a segment which gets\n"
+	    "        completely obscured by a command-line mask (see -cmask)\n"
+	    "        are considered \"out of mask\", and are skipped.\n"
+	    "\n"
+	    "        If an out of mask value is provided, such nodes will not\n"
+	    "        be skipped.  The output indices will come from the first\n"
+	    "        segment point, mapped to the AFNI volume.  All output vN\n"
+	    "        values will be the VALUE provided with this option.\n"
+	    "\n"
+	    "        This option is meaningless without a '-cmask' option.\n"
+	    "\n"
 	    "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
 	    "\n"
 	    "        e.g. -out_1D mask_values_over_dataset.1D\n"
@@ -1849,7 +1956,7 @@ int usage ( char * prog, int level )
 	    "                (many thanks to Z. Saad and R.W. Cox)\n"
 	    "\n",
 	    prog, prog,
-	    prog, prog, prog, prog, prog,
+	    prog, prog, prog, prog, prog, prog,
 	    VERSION );
 
 	return 0;
@@ -2416,9 +2523,13 @@ int disp_range_3dmm_res ( char * info, range_3dmm_res * dp )
 	    "range_3dmm_res struct at %p :\n"
 	    "    ims.num, ims.nall  = %d, %d\n"
 	    "    ims.imarr          = %p\n"
-	    "    masked, i3arr      = %d, %p\n"
+	    "    masked, ifirst     = %d, %d\n"
+	    "    i3first[0,1,2]     = %d, %d, %d\n"
+	    "    i3arr              = %p\n"
 	    , dp,
-	    dp->ims.num, dp->ims.nall, dp->ims.imarr, dp->masked, dp->i3arr );
+	    dp->ims.num, dp->ims.nall, dp->ims.imarr, dp->masked, dp->ifirst,
+	    dp->i3first.ijk[0], dp->i3first.ijk[1], dp->i3first.ijk[2],
+	    dp->i3arr );
 
     if ( dp->i3arr )
 	fprintf(stderr,
