@@ -1320,7 +1320,7 @@ void SUMA_MakeColorMap_usage ()
                             "MakeColorMap <-std MapName>\n"
                             "    Returns one of SUMA's standard colormaps. Choose from:\n"
                             "    rgybr20, ngray20, gray20, bw20, bgyr19, \n"
-                            "    matlab_default_byr64, roi128, roi64\n"
+                            "    matlab_default_byr64, roi128, roi256, roi64\n"
                             "\n"
                             "Common options to all usages:\n"
                             "    -ah prefix: (optional, Afni Hex format.\n"
@@ -3091,6 +3091,10 @@ char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
          *N_col = 64;
          SUMA_RETURN("bgyr64");
          break;
+      case SUMA_CMAP_ROI256:
+         *N_col = 256;
+         SUMA_RETURN("roi256");
+         break;
       case SUMA_CMAP_ROI128:
          *N_col = 128;
          SUMA_RETURN("roi128");
@@ -3132,7 +3136,9 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
    if (!strcmp(Name, "ygbrp64")) SUMA_RETURN(SUMA_CMAP_ROI64);
    if (!strcmp(Name, "roi64")) SUMA_RETURN(SUMA_CMAP_ROI64);
    if (!strcmp(Name, "ygbrp128")) SUMA_RETURN(SUMA_CMAP_ROI128);
+   if (!strcmp(Name, "ygbrp256")) SUMA_RETURN(SUMA_CMAP_ROI256);
    if (!strcmp(Name, "roi128")) SUMA_RETURN(SUMA_CMAP_ROI128);
+   if (!strcmp(Name, "roi256")) SUMA_RETURN(SUMA_CMAP_ROI256);
    /* if (!strcmp(Name, "")) SUMA_RETURN(); */
    SUMA_RETURN(SUMA_CMAP_ERROR);
 }
@@ -3416,6 +3422,45 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                break;
             
             }
+         case SUMA_CMAP_ROI256:
+            {
+               /* a large colormap for lots of ROI drawing */
+               Ncols = 256;
+               NFid = 6;
+               
+               Fiducials = (float **)SUMA_allocate2D(NFid, 3, sizeof(float));
+               Nind = (int *) SUMA_calloc (NFid, sizeof (int));
+               
+               if (!Fiducials || !Nind) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+                  SUMA_RETURN (NULL);
+               }
+               
+               /* create the fiducial colors */
+               k = 0;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 0; ++k; 
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0; Nind[k] = 50; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0; Fiducials[k][2] = 1.0; Nind[k] = 100; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 150; ++k;
+               Fiducials[k][0] = 0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1; Nind[k] = 200; ++k;
+               Fiducials[k][0] = 1; Fiducials[k][1] = 0; Fiducials[k][2] = 1; Nind[k] = 255; ++k;
+               
+               
+               /* generate colormap */
+               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, SUMA_StandardMapName(mapcode,&nc));
+               
+               /* free Fiducials & Nind*/
+               SUMA_free2D((char **)Fiducials, k);
+               SUMA_free(Nind);
+               
+               if (!CM) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
+                  SUMA_RETURN (NULL);   
+               }
+               break;
+            
+            }
+         
 
          case SUMA_CMAP_ROI128:
             {
@@ -3999,6 +4044,7 @@ int main (int argc,char *argv[])
          if (strcmp(argv[kar], "BGYR64") == 0)    MapType = SUMA_CMAP_BGYR64;
          if (strcmp(argv[kar], "ROI64") == 0)    MapType = SUMA_CMAP_ROI64;
          if (strcmp(argv[kar], "ROI128") == 0)    MapType = SUMA_CMAP_ROI128;
+         if (strcmp(argv[kar], "ROI256") == 0)    MapType = SUMA_CMAP_ROI256;
    
          if (MapType == SUMA_CMAP_UNDEFINED) {
             /* hold till later, could be a map from SAC */

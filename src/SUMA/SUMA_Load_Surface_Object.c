@@ -839,7 +839,13 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
       fprintf(SUMA_STDERR,"Error %s: Path of specfile > %d charcters.\n", FuncName, SUMA_MAX_DIR_LENGTH-1);
       SUMA_RETURN (NOPE);
    }
-   sprintf(Spec->SpecFilePath,"%s", SpecName.Path);
+   if (strlen(SpecName.FileName) > SUMA_MAX_NAME_LENGTH-1) {
+      fprintf(SUMA_STDERR,"Error %s: Name of specfile > %d charcters.\n", FuncName, SUMA_MAX_NAME_LENGTH-1);
+      SUMA_RETURN (NOPE);
+   }
+   snprintf(Spec->SpecFilePath,SUMA_MAX_DIR_LENGTH*sizeof(char), "%s", SpecName.Path);
+   snprintf(Spec->SpecFileName,SUMA_MAX_NAME_LENGTH*sizeof(char), "%s", SpecName.FileName);
+   
    /* free SpecName since it's not used elsewhere */
    if (SpecName.Path) SUMA_free(SpecName.Path);
    if (SpecName.FileName) SUMA_free(SpecName.FileName);
@@ -1612,6 +1618,11 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
    
    SS = SUMA_StringAppend (NULL, NULL);
    
+   if (Spec->SpecFilePath) SS = SUMA_StringAppend_va (SS,"SpecFilePath: %s\n", Spec->SpecFilePath);
+   else SS = SUMA_StringAppend_va (SS,"SpecFilePath: NULL\n");
+   if (Spec->SpecFileName) SS = SUMA_StringAppend_va (SS,"SpecFileName: %s\n", Spec->SpecFileName);
+   else SS = SUMA_StringAppend_va (SS,"SpecFileName: NULL\n");
+
    if (!Spec->N_Surfs) {
       SS = SUMA_StringAppend (SS,"No surfaces in Spec.\n");
    } else {
@@ -1713,7 +1724,7 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
    SO->LocalCurvatureParent
    SO->LocalDomainParent
    SO->AnatCorrect
-
+   SO->SpecFile
    \returns SO (SUMA_SurfaceObject *)
 */
 SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug)
@@ -1884,6 +1895,9 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
    SO->AnatCorrect = NOPE;
    if (Spec->AnatCorrect[i][0] == 'Y')  SO->AnatCorrect = YUP;
    else SO->AnatCorrect = NOPE;
+   
+   if (Spec->SpecFilePath) SO->SpecFile.Path = SUMA_copy_string(Spec->SpecFilePath);
+   if (Spec->SpecFileName) SO->SpecFile.FileName = SUMA_copy_string(Spec->SpecFileName);
    
    SUMA_RETURN(SO);
 
@@ -2997,7 +3011,7 @@ int main (int argc,char *argv[])
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    char *surf_names[SURFACEMETRICS_MAX_SURF];
-   char *spec_file;
+   char *spec_file, *histnote;
    int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, Do_vol, LocalHead = NOPE;  
@@ -3407,7 +3421,7 @@ int main (int argc,char *argv[])
    }
    
    OutName = (char*) SUMA_malloc((strlen(OutPrefix) + 30) * sizeof(char));
-   
+   histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
    if (Do_edges) {
       
@@ -3437,6 +3451,8 @@ int main (int argc,char *argv[])
       fprintf (fout,"#nt = Number of triangles containing edge\n"); 
       fprintf (fout,"#eL = Edge Length\n");
       fprintf (fout,"#eI\tn1\tn2\tnt\teL\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
       for (i=0; i < SO->EL->N_EL; ++i) {
          if (SO->EL->ELps[i][2] >= 0) {
             n1 = SO->EL->EL[i][0];
@@ -3481,7 +3497,7 @@ int main (int argc,char *argv[])
       fprintf (fout,"#fI = FaceSet Index\n");
       fprintf (fout,"#fA = FaceSet Area\n");
       fprintf (fout,"#fI\t#fA\n\n");
-      
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
       for (i=0; i < SO->N_FaceSet; ++i) {
          fprintf (fout,"%d\t%f\n", i, SO->PolyArea[i]);
       }  
@@ -3516,6 +3532,7 @@ int main (int argc,char *argv[])
       fprintf (fout,"#Kp1 = curvature along T1\n");
       fprintf (fout,"#Kp2 = curvature along T2\n");
       fprintf (fout,"#nI\tT1[0]\tT1[1]\tT1[2]\tT2[0]\tT2[1]\tT2[2]\tKp1\tKp2\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
@@ -3551,6 +3568,7 @@ int main (int argc,char *argv[])
       fprintf (fout,"nI = Node Index\n");
       fprintf (fout,"C = Convexity\n");
       fprintf (fout,"#nI\tC\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout,"%d\t%f\n", i, Cx[i]);
@@ -3577,6 +3595,7 @@ int main (int argc,char *argv[])
    /* dset and its contents are freed in SUMA_Free_CommonFields */
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
+   if (histnote) SUMA_free(histnote);
    
    SUMA_RETURN(0);
 } /* Main */

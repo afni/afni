@@ -270,6 +270,7 @@ typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, /* Begin adding colormap
                SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, SUMA_CMAP_GRAY02, SUMA_CMAP_flpGRAY02, 
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
                SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128,
+               SUMA_CMAP_ROI256,
                SUMA_CMAP_N_MAPS /* Don't add after this one */
                } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
@@ -645,6 +646,7 @@ typedef struct {
    int N_Groups;
    char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
    char SpecFilePath[SUMA_MAX_DIR_LENGTH];
+   char SpecFileName[SUMA_MAX_NAME_LENGTH];
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */
@@ -1515,6 +1517,8 @@ typedef struct {
    SUMA_FileName Name; /*!< Directory and Name of surface object file (SO) */
    SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate file (for SureFit files) */
    SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file  (for SureFit files)*/
+   SUMA_FileName SpecFile; /*!< To be added for use in AFNI's mapping interface */
+   
    char *idcode_str; /*!< string containing the idcode of the surface */
    char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
    char *Name_NodeParent; /*!< Node parent of the SO.   Node Indices of SO are into NodeList matrix of the NodeParent SO*/               
@@ -1612,7 +1616,7 @@ typedef struct {
    int N_Overlays; /*!< number of pointers to overlay structures */
    
    SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface controller widget structure */
-
+   
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

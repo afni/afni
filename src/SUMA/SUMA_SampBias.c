@@ -63,6 +63,7 @@ typedef struct {
    float plimit;
    float dlimit;
    char *outfile;
+   char *histnote;
 } SUMA_KUBATEST_OPTIONS;
 
 
@@ -73,7 +74,8 @@ typedef struct {
    \param argc (int)
    \return Opt (SUMA_GETPATCH_OPTIONS *) options structure.
                To free it, use 
-               SUMA_free(Opt->out_prefix); 
+               SUMA_free(Opt->outfile);
+               SUMA_free(Opt->histnote); 
                SUMA_free(Opt);
 */
 SUMA_KUBATEST_OPTIONS *SUMA_SampBias_ParseInput (char *argv[], int argc, SUMA_KUBATEST_OPTIONS* Opt)
@@ -209,6 +211,9 @@ SUMA_KUBATEST_OPTIONS *SUMA_SampBias_ParseInput (char *argv[], int argc, SUMA_KU
       SUMA_SL_Err("that outfile already exists");
       exit(1);
    }
+   
+   Opt->histnote = SUMA_HistString (NULL, argc, argv, NULL);
+   
    SUMA_RETURN (Opt);
 }
 
@@ -222,11 +227,19 @@ void calcWithOffsets(SUMA_SurfaceObject *SO, SUMA_KUBATEST_OPTIONS* Opt)
    int i = 0;
    FILE* outFile = NULL;
    SUMA_Boolean write = YUP;
-   outFile = fopen(Opt->outfile, "w");
    
-
    SUMA_ENTRY;
 
+   outFile = fopen(Opt->outfile, "w");
+   fprintf(outFile,  "#Col. 0 Node index\n"
+                     "#Col. 1 Node for which the ratio in 4 is the largest. (Companion of Node in Col.0)\n"
+                     "#Col. 2 distance in 3D\n"
+                     "#Col. 3 shortest surface path\n"
+                     "#Col. 4 Ratio of path/distance\n");
+   if (Opt->histnote) {
+      fprintf(outFile,  "#Hitory:%s\n", Opt->histnote);
+   }
+      
    SUMA_etime(&start_time_all,0);
    for (i=0; i < SO->N_Node; ++i)
 /*   i=45552; */
@@ -361,6 +374,9 @@ int main (int argc,char *argv[])
    }
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
+   
+   if (Opt.outfile) SUMA_free(Opt.outfile);
+   if (Opt.histnote) SUMA_free(Opt.histnote);
    
    SUMA_RETURN(0);
 }

@@ -735,6 +735,39 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
    SUMA_RETURN(iv);
 }
 
+/*!
+   \brief returns a string with a history note
+   \param CallingFunc (char *) name of function / program calling
+   \param N_arg (int) number of arguments in arg
+   \param arg (char **) vector of strings 
+   \param sold (char *) old history note
+   \return histoire (char *) 
+*/
+
+char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
+{
+   static char FuncName[]={"SUMA_HistString"}; 
+   char *stmp=NULL, *sold=NULL;
+   int N_tot, i;
+   
+   SUMA_ENTRY;
+   
+   if (!arg) SUMA_RETURN(NULL);
+   if (!arg[0]) SUMA_RETURN(NULL);
+   if (!N_arg) SUMA_RETURN(NULL);
+   
+   if (sold) stmp = SUMA_append_string (sold, "\n");
+
+   if (CallingFunc) {
+      stmp = SUMA_append_replace_string (stmp, CallingFunc, "",1);
+      stmp = SUMA_append_replace_string (stmp, ":", " ", 1);
+   }
+   
+   for (i=0; i < N_arg; ++i) 
+      stmp = SUMA_append_replace_string (stmp, arg[i], " ", 1);
+      
+   SUMA_RETURN(stmp);
+}   
 
 /*!
    \brief adds a history note to the ni-element
@@ -749,7 +782,7 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
 {
    static char FuncName[]={"SUMA_AddNelHist"}; 
-   char *stmp=NULL, *stmpn = NULL, *sold=NULL;
+   char *stmp=NULL, *sold=NULL;
    int N_tot, i;
    
    SUMA_ENTRY;
@@ -760,23 +793,16 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
    if (!N_arg) SUMA_RETURN(0);
    
    sold = NI_get_attribute(nel, "History");
-   if (sold) stmp = SUMA_append_string (sold, "\n");
+   stmp = SUMA_HistString (CallingFunc, N_arg, arg, sold);
    
-   if (CallingFunc) {
-      stmp = SUMA_append_replace_string (stmp, CallingFunc, "",1);
-      stmp = SUMA_append_replace_string (stmp, ":", " ", 1);
-   }
-   
-   for (i=0; i < N_arg; ++i) 
-      stmp = SUMA_append_replace_string (stmp, arg[i], " ", 1);
-      
-   if (stmp) {
+  if (stmp) {
       NI_set_attribute ( nel, "History", stmp);
       SUMA_free(stmp);
    }
    
    SUMA_RETURN(1);
 }
+
 
       
 
