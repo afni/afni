@@ -47,3 +47,17 @@ To create the initial setup for AFNI, you must do the following:
        [can begin editing now!!!]
        [put changes back to CVS with Cput, Cadd, et cetera]
        [subdirectories rwcox/ rickr/ ziad/ are for private use]
+       [subdirectory matlab/ is for Matlab stuff - duh]
+
+Compilation
+-----------
+In src/, Makefile is set up to install into INSTALLDIR = ~/abin (which
+must already exist - it won't make the directory).  This Makefile is
+for Linux.  To make and install everything and remove *.o files, do
+  make totality
+To make and install everything, but keep *.o files, do
+  make vastness
+(as usual, "make clean" will remove *.o files).
+
+If you add a new program, you need to add a rule for it in Makefile.INCLUDE;
+just take a look at the rules that already exist.
