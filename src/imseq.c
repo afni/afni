@@ -4445,7 +4445,7 @@ ENTRY("ISQ_drawing_EV") ;
              if( seq->cmap_changed ){
                COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
                if( seq->graymap_mtd != NULL && AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ){
-                 RWC_sleep(333) ;
+                 RWC_sleep(456) ;     /* pop down after a short delay */
                  plotkill_topshell( seq->graymap_mtd ) ;
                  seq->graymap_mtd = NULL ;
                }

@@ -304,6 +304,7 @@ extern void ps_rect( int,int,int,int) ;                    /* filled rectangle *
 #undef complex
 
 extern int color_(integer *ncol);
+extern int fcolor_( real *cr, real *cg, real *cb );
 extern int curve_(real *x, real *y, integer *n);
 extern int frame_(void);
 extern int frstpt_(real *x, real *y);
