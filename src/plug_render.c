@@ -1688,7 +1688,8 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( func_dset != NULL ) func_dset = NULL ;
 
    if( render_handle != NULL ){
-      destroy_MREN_renderer(render_handle) ; render_handle = NULL ;
+      destroy_MREN_renderer(render_handle) ;
+      render_handle = NULL ; func_cmap_set = 0 ;
    }
 
    FREE_VOLUMES ; INVALIDATE_OVERLAY ;
@@ -2738,7 +2739,8 @@ void REND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /* if there was an existing renderer, kill it off */
 
    if( render_handle != NULL ){
-      destroy_MREN_renderer(render_handle) ; render_handle = NULL ;
+      destroy_MREN_renderer(render_handle) ;
+      render_handle = NULL ; func_cmap_set = 0 ;
    }
    FREE_VOLUMES ; INVALIDATE_OVERLAY ;
 

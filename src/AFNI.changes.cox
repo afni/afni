@@ -1861,3 +1861,10 @@
  * Added -use option to 1dplot.c.
  * Added SHOWOFF macro to afni.c, distmake, and Makefile.INCLUDE.
  * Got some 3dDeconvolve.c fixes from Doug Ward.
+
+30 Nov 1999
+ * Modified 3dTshift.c to allow "-tzero 0.0" and "-slice 0" as
+     options (I used <= instead of < in the original code).
+ * Modified plug_render.c to reset func_cmap_set=0 if a render
+     handle is destroyed - the colormap wasn't being properly
+     reloaded when a new underlay dataset was selected.

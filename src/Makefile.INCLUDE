@@ -557,7 +557,7 @@ SHOWOFF = NO
 
 afni.o:afni.c
 	$(RM) $@
-	$(CCFAST) -c afni.c $(IFLAGS) -DSHOWOFF=$(SHOWOFF)
+	$(CC) -c afni.c $(IFLAGS) -DSHOWOFF=$(SHOWOFF)
 
 afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 	$(RM) $@

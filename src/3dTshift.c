@@ -297,14 +297,14 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-tzero") == 0 ){
          if( ++nopt >= argc ) TS_syntax("-tzero needs an argument!") ;
          TS_tzero = strtod( argv[nopt] , NULL ) ;
-         if( TS_tzero <= 0.0 ) TS_syntax("illegal value after -tzero!") ;
+         if( TS_tzero < 0.0 ) TS_syntax("illegal value after -tzero!") ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slice") == 0 ){
          if( ++nopt >= argc ) TS_syntax("-slice needs an argument!") ;
          TS_slice = strtod( argv[nopt] , NULL ) ;
-         if( TS_slice <= 0 ) TS_syntax("illegal value after -tslice!") ;
+         if( TS_slice < 0 ) TS_syntax("illegal value after -slice!") ;
          nopt++ ; continue ;
       }
 
