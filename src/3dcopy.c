@@ -135,7 +135,7 @@ int main( int argc , char * argv[] )
      THD_3dim_dataset *qset , *cset ;
      qset = THD_open_one_dataset( old_prefix ) ;
      if( qset != NULL ){
-       fprintf(stderr,"++ Opened dataset %s\n",old_prefix) ;
+       if( verb ) fprintf(stderr,"++ Opened dataset %s\n",old_prefix) ;
        cset = EDIT_empty_copy( qset ) ;
        if( new_view < 0 ) new_view = qset->view_type ;
        EDIT_dset_items( cset ,
@@ -152,8 +152,8 @@ int main( int argc , char * argv[] )
          EDIT_substitute_brick( cset , ii ,
                                 DSET_BRICK_TYPE(qset,ii) ,
                                 DSET_BRICK_ARRAY(qset,ii) ) ;
-       fprintf(stderr,"++ Writing %s and %s\n",
-               DSET_HEADNAME(cset) , DSET_BRIKNAME(cset) ) ;
+       if( verb ) fprintf(stderr,"++ Writing %s and %s\n",
+                          DSET_HEADNAME(cset) , DSET_BRIKNAME(cset) ) ;
 
        if( cset->type      == HEAD_ANAT_TYPE     &&
            cset->view_type == VIEW_ORIGINAL_TYPE &&
@@ -191,14 +191,14 @@ int main( int argc , char * argv[] )
    /* of course, we don't actually use the +view suffix on the output */
 
    if( new_view >= 0 ){
-      fprintf(stderr,"++ WARNING: ignoring +view on new_prefix.\n") ;
-      new_view = ILLEGAL_TYPE ;
+     if( verb ) fprintf(stderr,"++ WARNING: ignoring +view on new_prefix.\n") ;
+     new_view = ILLEGAL_TYPE ;
    }
 
    if( old_view >= 0 ){
-      vbot = vtop = old_view ;
+     vbot = vtop = old_view ;
    } else {
-      vbot = 0 ; vtop = LAST_VIEW_TYPE ;
+     vbot = 0 ; vtop = LAST_VIEW_TYPE ;
    }
 
    /*-- loop over views, open and rename datasets internally --*/
@@ -209,8 +209,7 @@ int main( int argc , char * argv[] )
 
       sprintf(dname,"%s+%s" , old_prefix , VIEW_codestr[ii] ) ;
 
-      if( verb )
-        fprintf(stderr,"++ Opening dataset %s\n",dname) ;
+      if( verb ) fprintf(stderr,"++ Opening dataset %s\n",dname) ;
 
       dset[ii] = THD_open_one_dataset( dname ) ;
       if( dset[ii] == NULL ){
