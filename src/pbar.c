@@ -320,13 +320,24 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 
    if( name == NULL || *name == '\0' || cmap == NULL ) return ;
 
-   nn = bigmap_num ; kk = nn+1 ;
+   /* 07 Feb 2003: see if name is a duplicate;
+                   if so, replace the old colorscale */
 
-   bigmap_num      = kk ;
-   bigmap_name     = (char **) realloc(bigmap_name,sizeof(char *)*kk);
-   bigmap          = (rgbyte **) realloc(bigmap,sizeof(rgbyte *)*kk);
+   for( nn=0 ; nn < bigmap_num ; nn++ )
+     if( strcmp(name,bigmap_name[nn]) == 0 ) break ;
+
+   if( nn == bigmap_num ){   /* is NOT a replacement */
+     kk          = nn+1 ;    /* so make room for it */
+     bigmap_num  = kk ;
+     bigmap_name = (char **) realloc(bigmap_name,sizeof(char *)*kk);
+     bigmap      = (rgbyte **) realloc(bigmap,sizeof(rgbyte *)*kk);
+     bigmap[nn]  = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+
+   } else {                  /* is a replacment */
+     free(bigmap_name[nn]) ; /* so just free old name string */
+   }
+
    bigmap_name[nn] = strdup(name) ;
-   bigmap[nn]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
 
    for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
 
