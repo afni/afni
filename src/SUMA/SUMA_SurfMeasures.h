@@ -79,6 +79,8 @@ typedef struct
     char   * spec_file;			/* surface specification file  */
     char   * sv_file;			/* AFNI surface volume dataset */
     char   * out_1D_file;		/* surface output filename     */
+    char   * cmask_cmd;                 /* 3dcalc style cmask command  */
+    char   * nodes_1D_file;             /* node list to apply cmask to */
     int      info;			/* display final information   */
     int      debug;			/* level of debug output       */
     int      dnode;			/* node watched for debug      */
@@ -89,6 +91,11 @@ typedef struct
     surf_t   S;
     func_t * F;
     FILE   * outfp;
+    int    * nodes;
+    int      nnodes;			/* length of node_list         */
+    byte   * cmask;
+    int      ncmask;			/* length of cmask             */
+    int      ccount;			/* number of set entries       */
 } param_t;
 
 
@@ -103,13 +110,16 @@ int	compute_node_vols    ( opts_t * opts, param_t * p );
 int	disp_f3_point        ( char * info, float * d );
 int	disp_func_t          ( char * info, func_t * d );
 int	disp_opts_t          ( char * info, opts_t * d );
+int	disp_param_t         ( char * info, param_t * d );
 int	disp_surf_t          ( char * info, surf_t * d );
 int	final_cleanup        ( opts_t * opts, param_t * p );
+int	get_cmask            ( opts_t * opts, param_t * p );
 int	get_surf_data        ( opts_t * opts, param_t * p );
 int	get_surf_measures    ( opts_t * opts, param_t * p );
 int	init_options         ( opts_t * opts, int argc, char * argv[] );
 int	init_opts_t          ( opts_t * opts );
 int	print_column_headers ( opts_t * opts, param_t * p );
+int	read_nodes_file      ( opts_t * opts, param_t * p );
 int	spec2SUMA            ( SUMA_SurfSpecFile * spec, char * spec_file,
 	                       char * sv_file, int debug );
 int	usage                ( char * prog, int use_type );

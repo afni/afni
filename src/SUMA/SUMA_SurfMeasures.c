@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.0 (December 01, 2003)"
+#define VERSION "version 1.2 (December 03, 2003)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -41,6 +41,12 @@
 /*----------------------------------------------------------------------
  * history
  *
+ * 1.2 December 3, 2003
+ *   - added '-cmask' and '-nodes_1D' options
+ *
+ * 1.1 December 2, 2003
+ *   - fixed stupid macro error, grrrr...
+ *
  * 1.0 December 1, 2003
  *   - initial release
  *----------------------------------------------------------------------
@@ -50,8 +56,7 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - add '-node_mask' option?  -cmask?
- * - '-no_nodes' option?  remove "nodes" as default?
+ * - allow (okay, force) users to specify surfaces by name
  *----------------------------------------------------------------------
 */
 
@@ -157,7 +162,8 @@ int write_output( opts_t * opts, param_t * p )
     float     * norms0, * norms1;
     float       ave_dist;
     int       * fcodes;
-    int         c, fnum, node;
+    int         c, fnum, node, nindex;
+    int         skipped = 0;
 
 ENTRY("write_output");
 
@@ -190,8 +196,16 @@ ENTRY("write_output");
 
     min_dist = 9999.0;
     max_dist = 0.0;
-    for (node = 0; node < p->S.nnodes; node++)
+    for (nindex = 0; nindex < p->nnodes; nindex++)
     {
+	if ( p->cmask && !p->cmask[nindex] )
+	{
+	    skipped++;
+	    continue;
+	}
+
+	node = p->nodes[nindex];
+
 	p0.xyz[0] = fp0[0];  p0.xyz[1] = fp0[1];  p0.xyz[2] = fp0[2];
 	p1.xyz[0] = fp1[0];  p1.xyz[1] = fp1[1];  p1.xyz[2] = fp1[2];
 
@@ -290,6 +304,7 @@ ENTRY("write_output");
 
 	if ( node == opts->dnode && opts->debug > 0 )
 	{
+	    fprintf(stderr,"-- dnode %d:\n", node);
 	    disp_f3_point("-- p0    = ", fp0);
 	    disp_f3_point("-- p1    = ", fp1);
 
@@ -304,7 +319,7 @@ ENTRY("write_output");
 	fp1 += 3;
     }
 
-    ave_dist = tdist/p->S.nnodes;
+    ave_dist = tdist/p->nnodes;
 
     if ( opts->info )
 	printf("----------------------------------------------------------\n");
@@ -320,9 +335,9 @@ ENTRY("write_output");
 
     if ( opts->info & ST_INFO_NORMS )
     {
-	printf( "-- ave. angles to normals: (sA, sB, n0_n1) = "
+	printf( "-- ave. angles to normals: (nA_nB, sA, sB) = "
 		"(%.4f, %.4f, %.4f)\n",
-		atn/p->S.nnodes, atna/p->S.nnodes, atnb/p->S.nnodes);
+		atn/p->nnodes, atna/p->nnodes, atnb/p->nnodes);
     }
 
     if ( (opts->info & ST_INFO_THICK) && (p->S.nsurf > 1) )
@@ -336,6 +351,9 @@ ENTRY("write_output");
 	    printf("-- ave dist * (area0, ave, area1) = (%.1f, %.1f, %.1f)\n",
 		ave_dist*tarea0, ave_dist*(tarea0+tarea1)/2, ave_dist*tarea1);
     }
+
+    if ( p->cmask )
+	printf("-- from cmask, nodes skipped = %d\n", skipped);
 
     RETURN(0);
 }
@@ -471,7 +489,7 @@ int verify_surf_t( opts_t * opts, param_t * p )
 
 ENTRY("verify_surf_t");
 
-    if ( p->S.nsurf <= 0 )
+    if ( p->S.nsurf < 1 )
     {
 	fprintf(stderr,"** no surfaces found\n");
 	if ( opts->debug > 0 )
@@ -490,8 +508,42 @@ ENTRY("verify_surf_t");
 	    }
     }
 
+    /* verify nodes and cmask */
+    if ( ! p->nodes )			/* if empty, create the trivial list */
+    {
+	p->nnodes = p->S.nnodes;
+	p->nodes  = (int *)malloc(p->nnodes * sizeof(int));
+	ALLOC_CHECK(p->nodes, "int", p->S.nnodes);
+
+	/* now fill the list with trivial indices */
+	for ( c = 0; c < p->nnodes; c++ )
+	    p->nodes[c] = 0;
+    }
+    else				/* verify that the indices are valid */
+    {
+	for ( c = 0; c < p->nnodes; c++ )
+	    if ( (p->nodes[c] < 0) || (p->nodes[c] >= p->S.nnodes) )
+	    {
+		fprintf(stderr,"** error: node list index %d (value = %d):"
+		               "          outside valid range [0,%d]\n",
+			c, p->nodes[c], p->S.nnodes-1);
+		RETURN(-1);
+	    }
+    }
+
+    /* in any case, if there is a mask, the length should match nnodes */
+    if ( p->cmask && (p->ncmask != p->nnodes) )
+    {
+	fprintf(stderr,"** cmask and node list lengths differ (%d, %d)\n",
+		p->ncmask, p->nnodes);
+	RETURN(-1);
+    }
+
     if ( opts->debug > 1 )
-	disp_surf_t("-- surf params verified: ", &p->S);
+    {
+	disp_param_t("-- surf params verified: ", p);
+	disp_surf_t ("-- surf params verified: ", &p->S);
+    }
 
     if ( validate_option_lists(opts, p) != 0 )
 	RETURN(-1);
@@ -1206,10 +1258,12 @@ ENTRY("init_opts_t");
 	RETURN(-1);
     }
 
-    opts->spec_file   = NULL;
-    opts->sv_file     = NULL;
-    opts->out_1D_file = NULL;
-    opts->dnode       = -1;		/* init to something invalid */
+    opts->spec_file     = NULL;
+    opts->sv_file       = NULL;
+    opts->out_1D_file   = NULL;
+    opts->cmask_cmd     = NULL;
+    opts->nodes_1D_file = NULL;
+    opts->dnode         = -1;		/* init to something invalid */
 
     RETURN(0);
 }
@@ -1260,6 +1314,11 @@ ENTRY("init_options");
 		RETURN(-1);
 	    }
 	}
+	else if ( ! strncmp(argv[ac], "-cmask", 6) )
+	{
+	    CHECK_ARG_COUNT(ac,"option usage: -cmask COMMAND\n");
+	    opts->cmask_cmd = argv[++ac];
+	}
 	else if ( ! strncmp(argv[ac], "-dnode", 6) )
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -dnode NODE_NUM\n");
@@ -1291,6 +1350,11 @@ ENTRY("init_options");
 	else if ( ! strncmp(argv[ac], "-info_vol",9) )
 	{
 	    opts->info |= ST_INFO_VOL;
+	}
+	else if ( ! strncmp(argv[ac], "-nodes_1D", 9) )
+	{
+	    CHECK_ARG_COUNT(ac,"option usage: -nodes_1D NODE_LIST_FILE\n");
+	    opts->nodes_1D_file = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
 	{
@@ -1391,6 +1455,124 @@ ENTRY("validate_options");
 	RETURN(-1);
     }
 
+    /* init before filling */
+    p->nodes  = NULL;
+    p->nnodes = 0;
+    p->cmask  = NULL;
+    p->ncmask = 0;
+
+    if ( opts->nodes_1D_file )
+    {
+	if ( read_nodes_file(opts, p) != 0 )
+	    RETURN(-1);
+    }
+
+    if ( opts->cmask_cmd )
+    {
+	if ( get_cmask(opts, p) != 0 )
+	    RETURN(-1);
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * get_cmask				- get cmask from command
+ *----------------------------------------------------------------------
+*/
+int get_cmask( opts_t * opts, param_t * p )
+{
+    char * cmd;
+    int    clen;
+
+ENTRY("get_cmask");
+
+    if ( ! opts->cmask_cmd )
+	RETURN(0);
+
+    clen = strlen(opts->cmask_cmd);
+    cmd  = (char *)malloc((clen + 1)*sizeof(char));
+    ALLOC_CHECK(cmd, "char", clen);
+
+    strcpy(cmd, opts->cmask_cmd);
+
+    p->cmask = EDT_calcmask(cmd, &p->ncmask);
+
+    free(cmd);		/* we are done with the now corrupted command */
+
+    if ( ! p->cmask || p->ncmask < 1 )
+    {
+	fprintf(stderr,"** failure: cannot compute cmask from option:\n"
+		"   -cmask '%s'\n", opts->cmask_cmd);
+	RETURN(-1);
+    }
+
+    p->ccount = THD_countmask( p->ncmask, p->cmask );
+
+    if ( p->ccount < 1 )		/* do not quit */
+	fprintf(stderr,"** warning: cmask is empty from option\n"
+		"   -cmask '%s'\n", opts->cmask_cmd);
+
+    if ( opts->debug > 0 )
+	fprintf(stderr,"++ have cmask with %d of %d set entries\n",
+		p->ccount, p->ncmask);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * read_nodes_file			- read 1D file with node list
+ *----------------------------------------------------------------------
+*/
+int read_nodes_file( opts_t * opts, param_t * p )
+{
+    MRI_IMAGE * im;
+    float     * fim;
+    char      * nfile;
+    int         index;
+
+ENTRY("read_nodes_file");
+
+    nfile = opts->nodes_1D_file;		/* for ease of typing */
+
+    if ( !nfile )
+	RETURN(0);
+
+    if ( (im = mri_read_1D(nfile)) == NULL )
+    {
+	fprintf(stderr,"** failed to read 1D nodes file '%s'\n", nfile);
+	RETURN(-1);
+    }
+    
+    if ( im->nx < 1 )
+    {
+	fprintf(stderr,"** node list file '%s' appears empty\n", nfile);
+	RETURN(-1);
+    }
+
+    if ( im->ny > 1 )
+    {
+	fprintf(stderr,"** please specify only one column of node file '%s'\n"
+		       "   e.g.  -nodes_1D 'surf_data.1D[0]'\n", nfile);
+	RETURN(-1);
+    }
+
+    p->nnodes = im->nx;
+    p->nodes  = (int *)malloc(im->nx * sizeof(int));
+    ALLOC_CHECK(p->nodes, "int", im->nx);
+
+    /* now get values */
+    fim = MRI_FLOAT_PTR(im);
+    for ( index = 0; index < p->nnodes; index++ )
+	p->nodes[index] = (int)fim[index];
+
+    if ( opts->debug > 0 )
+	fprintf(stderr,"++ read %d node indices from '%s'\n", p->nnodes, nfile);
+
+    mri_free(im);		/* we're done with image */
+
     RETURN(0);
 }
 
@@ -1398,11 +1580,11 @@ ENTRY("validate_options");
 /* so I don't have to repeat this all over (and can do it per function)... */
 
 #define SM_2SURF_TEST(code)						    \
-	    do{ if (p->S.nsurf<2){					    \
+	    do{ if (p->S.nsurf<2) {					    \
 		    fprintf(stderr,"** function %s requires 2 surfaces\n",  \
 			    g_sm_names[fcodes[code]]);			    \
-		    errs++;						    \
-		}							    \
+		    errs++; 						    \
+	        }							    \
 	    } while (0);
 
 /*----------------------------------------------------------------------
@@ -1483,6 +1665,9 @@ ENTRY("validate_option_lists");
 		    g_sm_names[fcodes[c]]);
     }
 
+    if ( opts->debug > 0 && errs > 0 )
+	fprintf(stderr,"** validate_option_lists: %d errors found\n", errs);
+
     if ( errs > 0 )
 	RETURN(-1);
 
@@ -1529,6 +1714,10 @@ ENTRY("usage");
 	    "    MappingRef set to SAME:\n"
 	    "\n"
 	    "        MappingRef = SAME\n"
+	    "\n"
+	    " ** Use the 'inspec' command for getting information about the\n"
+	    "    surfaces (and optionally, their mapping references) from a\n"
+	    "    spec file.\n"
 	    "\n"
 	    "    The output will be a 1D format text file, with one column\n"
 	    "    (or possibly 3) per user-specified measure function.  Some\n"
@@ -1616,6 +1805,21 @@ ENTRY("usage");
 	    "            -dnode      5000                           \\\n"
 	    "            -out_1D     fred2_norm_angles.1D             \n"
 	    "\n"
+	    "    5. For each node, output the volume, thickness and areas,\n"
+	    "       but restrict the nodes to the list contained in column 0\n"
+	    "       of file sdata.1D.  Furthermore, restrict those nodes to\n"
+	    "       the mask inferred by the given '-cmask' option.\n"
+	    "\n"
+	    "        %s                                         \\\n"
+	    "            -spec       fred2.spec                           \\\n"
+	    "            -func       node_vol                             \\\n"
+	    "            -func       thick                                \\\n"
+	    "            -func       n_area_A                             \\\n"
+	    "            -func       n_area_B                             \\\n"
+	    "            -nodes_1D   'sdata.1D[0]'                        \\\n"
+	    "            -cmask      '-a sdata.1D[2] -expr step(a-1000)'  \\\n"
+	    "            -out_1D     fred2_masked.1D                  \n"
+	    "\n"
 	    "------------------------------------------------------------\n"
 	    "\n"
 	    "  REQUIRED COMMAND ARGUMENTS:\n"
@@ -1649,6 +1853,28 @@ ENTRY("usage");
 	    "\n"
 	    "  ALPHABETICAL LISTING OF OPTIONS:\n"
 	    "\n"
+	    "    -cmask COMMAND        : restrict nodes with a mask\n"
+	    "\n"
+	    "        e.g.     -cmask '-a sdata.1D[2] -expr step(a-1000)'\n"
+	    "\n"
+	    "        This option will produce a mask to be applied to the\n"
+	    "        list of surface nodes.  The total mask size, including\n"
+	    "        zero entries, must match the number of nodes.  If a\n"
+	    "        specific node list is provided via the '-nodes_1D'\n"
+	    "        option, then the mask size should match the length of\n"
+	    "        the provided node list.\n"
+	    "        \n"
+	    "        Consider the provided example using the file sdata.1D.\n"
+	    "        If a surface has 100000 nodes (and no '-nodes_1D' option\n"
+	    "        is used), then there must be 100000 values in column 2\n"
+	    "        of the file sdata.1D.\n"
+	    "\n"
+	    "        Alternately, if the '-nodes_1D' option is used, giving\n"
+	    "        a list of 42 nodes, then the mask length should also be\n"
+	    "        42 (regardless of 0 entries).\n"
+	    "\n"
+	    "        See '-nodes_1D' for more information.\n"
+	    "\n"
 	    "    -debug LEVEL          : display extra run-time info\n"
 	    "\n"
 	    "        e.g.     -debug 2\n"
@@ -1675,7 +1901,7 @@ ENTRY("usage");
 	    "\n"
 	    "        Current functions include:\n"
 	    "\n",
-	    prog, prog, prog, prog );
+	    prog, prog, prog, prog, prog );
 
 	/* display current list of measures */
 	for ( c = E_SM_INVALID + 1; c < E_SM_FINAL; c++ )
@@ -1714,6 +1940,29 @@ ENTRY("usage");
 	    "    -info_vol             : display info about the volume\n"
 	    "\n"
 	    "        For 2 surfaces, display the total computed volume.\n"
+	    "\n"
+	    "    -nodes_1D NODELIST.1D : request output for only these nodes\n"
+	    "\n"
+	    "        e.g.  -nodes_1D node_index_list.1D\n"
+	    "        e.g.  -nodes_1D sdata.1D'[0]'\n"
+	    "\n"
+	    "        The NODELIST file should contain a list of node indices.\n"
+	    "        Output from the program would then be restricted to the\n"
+	    "        nodes in the list.\n"
+	    "        \n"
+	    "        For instance, suppose that the file BA_04.1D contains\n"
+	    "        a list of surface nodes that are located in Broadman's\n"
+	    "        Area 4.  To get output from the nodes in that area, use:\n"
+	    "        \n"
+	    "            -nodes_1D BA_04.1D\n"
+	    "        \n"
+	    "        For another example, suppose that the file sdata.1D has\n"
+	    "        node indices in column 0, and Broadman's Area indices in\n"
+	    "        column 3.  To restrict output to the nodes in Broadman's\n"
+	    "        area 4, use the pair of options:\n"
+	    "        \n"
+	    "            -nodes_1D 'sdata.1D[0]'                     \\\n"
+	    "            -cmask '-a sdata.1D[3] -expr (1-bool(a-4))' \n"
 	    "\n"
 	    "    -sv SURF_VOLUME       : specify an associated AFNI volume\n"
 	    "\n"
@@ -1787,8 +2036,15 @@ int final_cleanup( opts_t * opts, param_t * p )
 
 ENTRY("final_cleanup");
 
+    /* first, close the output file, the rest are in order */
     if ( p->outfp != stdout )
 	fclose(p->outfp);
+
+    if ( p->S.narea[0] )  free(p->S.narea[0]);
+    if ( p->S.narea[1] )  free(p->S.narea[1]);
+    if ( p->S.slist    )  free(p->S.slist);
+    if ( p->S.nvol     )  free(p->S.nvol);
+    if ( p->S.fvol     )  free(p->S.fvol);
 
     if ( p->F->nalloc > 0 )
     {
@@ -1796,11 +2052,11 @@ ENTRY("final_cleanup");
 	free(p->F->codes);
     }
 
-    if ( p->S.narea[0] )  free(p->S.narea[0]);
-    if ( p->S.narea[1] )  free(p->S.narea[1]);
-    if ( p->S.slist    )  free(p->S.slist);
-    if ( p->S.nvol     )  free(p->S.nvol);
-    if ( p->S.fvol     )  free(p->S.fvol);
+    if ( p->nodes )
+	free(p->nodes);
+
+    if ( p->cmask )
+	free(p->cmask);
 
     if ( opts->debug > 2 )
 	fprintf(stderr,"-- freeing SUMA data...\n");
@@ -1953,16 +2209,49 @@ int disp_opts_t( char * info, opts_t * d )
 
     fprintf(stderr,
 	    "opts_t struct at %p:\n"
-	    "    spec_file    = %s\n"
-	    "    sv_file      = %s\n"
-	    "    out_1D_file  = %s\n"
-	    "    info         = %0x\n"
-	    "    debug, dnode = %d, %d\n",
+	    "    spec_file     = %s\n"
+	    "    sv_file       = %s\n"
+	    "    out_1D_file   = %s\n"
+	    "    cmask_cmd     = %s\n"
+	    "    nodes_1D_file = %s\n"
+	    "    info          = %0x\n"
+	    "    debug, dnode  = %d, %d\n",
 	    d,
 	    CHECK_NULL_STR(d->spec_file),
 	    CHECK_NULL_STR(d->sv_file),
 	    CHECK_NULL_STR(d->out_1D_file),
+	    CHECK_NULL_STR(d->cmask_cmd),
+	    CHECK_NULL_STR(d->nodes_1D_file),
 	    d->info, d->debug, d->dnode);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * disp_param_t
+ *----------------------------------------------------------------------
+*/
+int disp_param_t( char * info, param_t * d )
+{
+    if ( info )
+	fputs( info, stderr );
+
+    if ( ! d )
+    {
+	fprintf(stderr,"** disp_param_t: d == NULL\n");
+	return -1;
+    }
+
+    fprintf(stderr,
+	    "param_t struct at %p:\n"
+	    "    F, outfp       = %p, %p\n"
+	    "    nodes, nnodes  = %p, %d\n"
+	    "    cmask          = %p\n"
+	    "    ncmask, ccount = %d, %d\n",
+	    d,
+	    d->F, d->outfp, d->nodes, d->nnodes,
+	    d->cmask, d->ncmask, d->ccount );
 
     return 0;
 }
