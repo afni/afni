@@ -242,7 +242,7 @@ char * COPY_main( PLUGIN_interface * plint )
    }
 
    { char *his ;
-     if( zfill == 0 ) tross_Copy_History( dset , new_dset ) ;
+     tross_Copy_History( dset , new_dset ) ;
      his = PLUTO_commandstring( plint ) ;
      tross_Append_History( new_dset , his ) ; free(his) ;
    }

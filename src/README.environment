@@ -820,6 +820,18 @@ possible (which still may not be all that fast).
 Using layouts with a window manager that requires user placement
 of new windows (e.g., twm) is a futile and frustrating exercise.
 
+-------------------------
+Variable: AFNI_tsplotgeom
+-------------------------
+Related to the above, if you set this environment variable (in the
+***ENVIRONMENT section, not in the ***LAYOUT section), it is used
+to set the geometry of the plotting windows used for time series
+plots, histograms, etc. -- all the graphs except the dataset plots.
+Its format should be something like "550x350"; this example sets
+the width to 550 pixels and the height to 350 pixels.  If you don't
+set this, the default is "200x200", which is quite small on a high
+resolution display.
+
 --------------------------
 Variables: AFNI_REALTIME_*
 --------------------------

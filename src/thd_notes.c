@@ -571,6 +571,7 @@ char * tross_Encode_String( char * cn )
          case '\a': ch[i++] = '\\' ; ch[i++] = 'a' ; break ;
          case '\v': ch[i++] = '\\' ; ch[i++] = 'v' ; break ;
          case '\b': ch[i++] = '\\' ; ch[i++] = 'b' ; break ;
+         case '\\': ch[i++] = '\\' ; ch[i++] = '\\'; break ;
       }
    }
    ch[i] = '\0' ;

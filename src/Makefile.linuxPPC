@@ -6,7 +6,7 @@
 CPU    = 604e	# types are 601, 603, 604, 604e, 750 (G3), 7400 (G4)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -Wpointer-arith -DUSE_TRACING
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING
 CC     = gcc -O2 -ffast-math -mcpu=$(CPU) -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = gcc -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = $(CC)

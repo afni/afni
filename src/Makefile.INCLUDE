@@ -69,10 +69,10 @@ all:libmri.a libcoxplot.a libvolpack.a programs
 
 itall:all plugins install install_plugins
 
-totality:all plugins install install_plugins install_lib clean
+totality:cleaner all plugins install install_plugins install_lib clean
 	$(CP) README* $(INSTALLDIR)
 
-vastness:all plugins install install_plugins install_lib
+vastness:cleaner all plugins install install_plugins install_lib
 	$(CP) README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
@@ -760,7 +760,7 @@ clean:
 	$(RM) *.o
 
 cleaner:
-	$(RM) *.o *.a $(PROGRAMS)
+	$(RM) *.a $(PROGRAMS)
 
 # backup:
 # 	rsh manwe chmod -R u+w /usr3/cox/AFNI98
