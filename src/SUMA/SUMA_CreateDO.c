@@ -2459,6 +2459,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
    D_ROI->FillColor[0] = 1.0; D_ROI->FillColor[1] = 0.0; D_ROI->FillColor[2] = 0.0;
    D_ROI->EdgeColor[0] = 0.0; D_ROI->EdgeColor[1] = 0.0; D_ROI->EdgeColor[2] = 1.0;
+   D_ROI->EdgeThickness = 2;
    D_ROI->ROIstrokelist = (DList *)SUMA_malloc (sizeof(DList));
    dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
    D_ROI->CE = NULL;
