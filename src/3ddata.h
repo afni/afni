@@ -2062,6 +2062,7 @@ static char tmp_dblab[8] ;
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv] : NULL )
 
 /*! \brief Return float * pointer to statistical parameters for sub-brick iv in dataset ds.
+
     If return is NULL, there aren't any parameters for this sub-brick,
     otherwise the number of parameters is given by FUNC_need_stat_aux[code],
     where code = DSET_BRICK_STATCODE(ds,iv)
