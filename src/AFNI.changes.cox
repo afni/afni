@@ -5248,3 +5248,8 @@
 
 16 Nov 2004
  * Modified imseq.c to print warnings when it can't find Save filter programs.
+
+30 Nov 2004
+ * First version of 3dWarpDrive released.
+ * 3dcalc now prints a warning if outputing a byte-valued dataset when the
+     calculated results had some negative values.

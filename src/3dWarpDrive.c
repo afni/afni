@@ -241,11 +241,14 @@ int main( int argc , char * argv[] )
             "                   image derivatives using finite differences.\n"
             "  -weight  wset = Set the weighting applied to each voxel\n"
             "                   proportional to the brick specified here.\n"
+            "  -thresh t     = Set the convergence parameter to be 't' voxels\n"
+            "                   voxel movement.  [Default=0.03]\n"
+            "  -twopass      = Do the parameter estimation in two passes,\n"
+            "                   coarse-but-fast first, then fine-but-slow second\n"
+            "                   (much like the same option in program 3dvolreg).\n"
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used, to fix multiple parameters.\n"
-            "  -thresh t     = Set the convergence parameter to be 't' voxels\n"
-            "                   voxel movement.  [Default=0.03]\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -299,9 +302,10 @@ int main( int argc , char * argv[] )
 
    abas.nparam     = 0 ;
    abas.param      = NULL ;
-   abas.scale_init = 1.0 ;
-   abas.delfac     = 1.0 ;
-   abas.tolfac     = 0.03 ;
+   abas.scale_init = 1.0f ;
+   abas.delfac     = 1.0f ;
+   abas.tolfac     = 0.03f ;
+   abas.twoblur    = 0.0f ;
    abas.regmode    = MRI_LINEAR ;
    abas.verb       = 0 ;
    abas.max_iter   = 0 ;
@@ -320,6 +324,13 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-twopass") == 0 ){
+       fprintf(stderr,"** WARNING: -twopass not implemented yet!\n") ;
+       abas.twoblur = 3.0f ; nopt++ ; continue ;
+     }
 
      /*-----*/
 

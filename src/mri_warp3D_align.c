@@ -19,19 +19,17 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt )
 {
    float *rmat=MRI_FLOAT_PTR(imc) ;
    int m=imc->nx , n=imc->ny , ii,jj,kk ;
-   double *amat , *umat , *vmat , *sval , *xfac , smax,del,sum,ww ;
+   double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww ;
    MRI_IMAGE *imp ; float *pmat ;
+   register double sum ;
+   int do_svd=0 ;
 
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
-   umat = (double *)calloc( sizeof(double),m*n ) ;  /* left singular vectors */
-   vmat = (double *)calloc( sizeof(double),n*n ) ;  /* right singular vectors */
-   sval = (double *)calloc( sizeof(double),n   ) ;  /* singular values */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
 
-#define R(i,j) rmat[(i)+(j)*m]
-#define A(i,j) amat[(i)+(j)*m]
-#define U(i,j) umat[(i)+(j)*m]
-#define V(i,j) vmat[(i)+(j)*n]
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
 
    /* copy input matrix into amat */
 
@@ -52,54 +50,126 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt )
    for( jj=0 ; jj < n ; jj++ ){
      sum = 0.0 ;
      for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-     if( sum > 0.0 ) sum = 1.0/sqrt(sum) ;
+     if( sum > 0.0 ) sum = 1.0/sqrt(sum) ; else do_svd = 1 ;
      xfac[jj] = sum ;
      for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
    }
 
-   /* compute SVD of scaled matrix */
+   /*** compute using Choleski or SVD ***/
 
-   svd_double( m , n , amat , sval , umat , vmat ) ;
+   if( do_svd || AFNI_yesenv("AFNI_WARPDRIVE_SVD") ){ /***--- SVD method ---***/
 
-   free((void *)amat) ;  /* done with this */
+#define U(i,j) umat[(i)+(j)*m]
+#define V(i,j) vmat[(i)+(j)*n]
 
-   /* find largest singular value */
+     umat = (double *)calloc( sizeof(double),m*n ); /* left singular vectors */
+     vmat = (double *)calloc( sizeof(double),n*n ); /* right singular vectors */
+     sval = (double *)calloc( sizeof(double),n   ); /* singular values */
 
-   smax = sval[0] ;
-   for( ii=1 ; ii < n ; ii++ )
-     if( sval[ii] > smax ) smax = sval[ii] ;
+     /* compute SVD of scaled matrix */
 
-   if( smax <= 0.0 ){                        /* this is bad */
-     free((void *)xfac); free((void *)sval);
-     free((void *)vmat); free((void *)umat); return NULL;
-   }
+     svd_double( m , n , amat , sval , umat , vmat ) ;
 
-   for( ii=0 ; ii < n ; ii++ )
-     if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;
+     free((void *)amat) ;  /* done with this */
+
+     /* find largest singular value */
+
+     smax = sval[0] ;
+     for( ii=1 ; ii < n ; ii++ ) if( sval[ii] > smax ) smax = sval[ii] ;
+
+     if( smax <= 0.0 ){                        /* this is bad */
+       fprintf(stderr,"** ERROR: SVD fails in mri_warp3D_align_setup!\n");
+       free((void *)xfac); free((void *)sval);
+       free((void *)vmat); free((void *)umat); return NULL;
+     }
+
+     for( ii=0 ; ii < n ; ii++ )
+       if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;  /* should not happen */
 
 #define PSINV_EPS 1.e-8
 
-   /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
+     /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
-   del = PSINV_EPS * smax*smax ;
-   for( ii=0 ; ii < n ; ii++ )
-     sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
+     del = PSINV_EPS * smax*smax ;
+     for( ii=0 ; ii < n ; ii++ )
+       sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
 
-   /* create pseudo-inverse */
+     /* create pseudo-inverse */
 
-#define P(i,j) pmat[(i)+(j)*n]
+     imp  = mri_new( n , m , MRI_float ) ;   /* recall that m > n */
+     pmat = MRI_FLOAT_PTR(imp) ;
 
-   imp  = mri_new( n , m , MRI_float ) ;   /* recall that m > n */
-   pmat = MRI_FLOAT_PTR(imp) ;
+     for( ii=0 ; ii < n ; ii++ ){
+       for( jj=0 ; jj < m ; jj++ ){
+         sum = 0.0 ;
+         for( kk=0 ; kk < n ; kk++ ) sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
+         P(ii,jj) = (float)sum ;
+       }
+     }
+     free((void *)sval); free((void *)vmat); free((void *)umat);
+
+   } else { /***----- Choleski method -----***/
+
+     vmat = (double *)calloc( sizeof(double),n*n ); /* normal matrix */
+
+     for( ii=0 ; ii < n ; ii++ ){
+       for( jj=0 ; jj <= ii ; jj++ ){
+         sum = 0.0 ;
+         for( kk=0 ; kk < m ; kk++ ) sum += A(kk,ii) * A(kk,jj) ;
+         V(ii,jj) = sum ;
+       }
+       V(ii,ii) += PSINV_EPS ;   /* note V(ii,ii)==1 before this */
+     }
+
+     /* Choleski factor */
+
+     for( ii=0 ; ii < n ; ii++ ){
+       for( jj=0 ; jj < ii ; jj++ ){
+         sum = V(ii,jj) ;
+         for( kk=0 ; kk < jj ; kk++ ) sum -= V(ii,kk) * V(jj,kk) ;
+         V(ii,jj) = sum / V(jj,jj) ;
+       }
+       sum = V(ii,ii) ;
+       for( kk=0 ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
+       if( sum <= 0.0 ){
+         fprintf(stderr,"** ERROR: Choleski fails in mri_warp3D_align_setup!\n");
+         free((void *)xfac); free((void *)amat); free((void *)vmat); return NULL ;
+       }
+       V(ii,ii) = sqrt(sum) ;
+     }
+
+     /* create pseudo-inverse */
+
+     imp  = mri_new( n , m , MRI_float ) ;   /* recall that m > n */
+     pmat = MRI_FLOAT_PTR(imp) ;
+
+     sval = (double *)calloc( sizeof(double),n ) ; /* row #jj of A */
+
+     for( jj=0 ; jj < m ; jj++ ){
+       for( ii=0 ; ii < n ; ii++ ) sval[ii] = A(jj,ii) ; /* extract row */
+
+       for( ii=0 ; ii < n ; ii++ ){  /* forward solve */
+         sum = sval[ii] ;
+         for( kk=0 ; kk < ii ; kk++ ) sum -= V(ii,kk) * sval[kk] ;
+         sval[ii] = sum / V(ii,ii) ;
+       }
+       for( ii=n-1 ; ii >= 0 ; ii-- ){  /* backward solve */
+         sum = sval[ii] ;
+         for( kk=ii+1 ; kk < n ; kk++ ) sum -= V(kk,ii) * sval[kk] ;
+         sval[ii] = sum / V(ii,ii) ;
+       }
+
+       for( ii=0 ; ii < n ; ii++ ) P(ii,jj) = (float)sval[ii] ;
+     }
+     free((void *)amat); free((void *)vmat); free((void *)sval);
+   }
+
+   /* rescale rows from norming */
 
    for( ii=0 ; ii < n ; ii++ ){
-     for( jj=0 ; jj < m ; jj++ ){
-       sum = 0.0 ;
-       for( kk=0 ; kk < n ; kk++ )
-         sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
-       P(ii,jj) = (float)( sum * xfac[ii] ) ;  /* rescale rows */
-     }
+     for( jj=0 ; jj < m ; jj++ ) P(ii,jj) *= xfac[ii] ;
    }
+   free((void *)xfac);
 
    /* rescale cols for weight? */
 
@@ -110,8 +180,7 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt )
      }
    }
 
-   free((void *)xfac); free((void *)sval);
-   free((void *)vmat); free((void *)umat); return imp;
+   return imp;
 }
 
 /*-----------------------------------------------------------------------*/
