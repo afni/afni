@@ -361,6 +361,9 @@ extern char * UNIQ_idcode(void) ;
 extern void   UNIQ_idcode_fill( char * ) ;
 extern char * UNIQ_hashcode( char * ) ;
 
+extern char * UUID_hashcode( char * ) ;   /* 20 Aug 2002 */
+extern char * UUID_idcode(void) ;
+
 /* trusted host manipulation */
 
 extern char * NI_hostname_to_inet( char *host ) ;

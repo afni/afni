@@ -3916,3 +3916,4 @@
 
 20 Aug 2002
  * Modifications to surface controls: hints, help, comments.
+ * Added UUID functions to niml.[ch].
