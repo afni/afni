@@ -317,9 +317,9 @@ str_array * decode_string_list( char *ss , char *sep )
       while( id < lss && strchr(sep,ss[id]) == NULL && !isspace(ss[id]) ) id++;
       if( id == jd ){ id++; continue; }    /* is only a separator? */
 
-      /* sub-string runs from ss[jd] to ss[id-1] */
+      /* new sub-string runs from ss[jd] to ss[id-1] */
 
-      sar->str = NI_realloc( sar->str , sizeof(char)*(num+1) ) ;
+      sar->str = NI_realloc( sar->str , sizeof(char *)*(num+1) ) ;
 
       nn = id-jd ;                                   /* length of sub-string */
 #if 0

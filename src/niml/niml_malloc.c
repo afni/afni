@@ -248,7 +248,7 @@ static void probe_track( NI_mallitem *ip )
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
      if( fred[ii] != MAGIC ){
-       fprintf(stderr,"*** malloc pre-corruption!  "
+       fprintf(stderr,"*** NI_malloc pre-corruption!  "
                       "serial=%u size=%d source=%s line#=%d\n",
                       ip->pss,ip->psz,ip->pfn,ip->pln ) ;
         break ;
@@ -256,7 +256,7 @@ static void probe_track( NI_mallitem *ip )
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
      if( fred[n+NEXTRA+ii] != MAGIC ){
-       fprintf(stderr,"*** malloc post-corruption!  "
+       fprintf(stderr,"*** NI_malloc post-corruption!  "
                       "serial=%u size=%d source=%s line#=%d\n",
                       ip->pss,ip->psz,ip->pfn,ip->pln ) ;
        break ;
@@ -345,6 +345,7 @@ static void free_track( NI_mallitem *ip )
 
 /*-----------------------------------------------------------------*/
 /*!  Return a status string about the situation.
+     This is stored in a static buffer, so don't free it.
 -------------------------------------------------------------------*/
 
 static int use_tracking = 0 ;  /* is the tracking enabled? */

@@ -101,6 +101,7 @@ typedef struct {
   int   code ;             /*!< unique integer code for this type */
   int   size ;             /*!< number of bytes for this type */
   int   algn ;             /*!< byte alignment for this type */
+  int   flag ;             /*!< various bit flags */
   char *name ;             /*!< unique string name for this type */
   char *userdef ;          /*!< definition user gave for this type */
   int   comp_num ;         /*!< number of components (components may be rowtypes) */
@@ -112,7 +113,15 @@ typedef struct {
   int  *part_dim ;         /*!< if >=0, index of dimension of this part */
 } NI_rowtype ;
 
-/*! Macro to delete a rowtype struct.  Only used when an
+/*! NI_rowtype bit flag for variable size data. */
+
+#define ROWTYPE_VARSIZE_MASK (1<<0)
+
+/*! Check if a NI_rowtype struct is marked as having variable size data */
+
+#define ROWTYPE_is_varsize(rr) (((rr)->flag & ROWTYPE_VARSIZE_MASK) != 0)
+
+/*! Macro to delete a NI_rowtype struct.  Only used when an
     error happens when creating one, since new types last forever. */
 
 #define delete_rowtype(rr)                 \

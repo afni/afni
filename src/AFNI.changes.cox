@@ -4137,3 +4137,8 @@
 
 18 Dec 2002
  * Modified plug_realtime.c to add ZGAP and XYZOFF features from Larry Frank.
+ * Fixed bug in niml/niml_util.c decode_string_list() function where
+     the sar->str array was allocated with sizeof(char)*num rather than
+     sizeof(char *)*num.  Not good in the long run.
+ * Modified niml/niml_rowtype.c to allow rowtypes to have 1D variable dimension
+     arrays.
