@@ -1931,3 +1931,14 @@
      anat parents.
  * Modified 3drefit.c to allow SELF and NULL to be valid arguments to
      the -apar option.
+
+20 Dec 1999
+ * Modified parser.f to remove the possibility of divison by zero in
+     the expression evaluation routines.
+ * Modified display.[ch] and plug_render.c to allow 'non-mixing' of
+     colors displayed from rendering results.
+
+21 Dec 1999
+ * Modified plug_render.c to put the 'non-mixing' stuff into a separate
+     menu on the 'Color' popup.
+ * Took 3dROIstats.c mods from Mike Beauchamp for the -summary option.

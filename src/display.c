@@ -140,7 +140,7 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
         }
 
 #if 0
-        if( dc->visual_class == TrueColor ){  /* removed 28 Oct 1999 */ 
+        if( dc->visual_class == TrueColor ){  /* removed 28 Oct 1999 */
            static int done = 0 ;
            if( !done )
               fprintf(stderr,
@@ -256,6 +256,8 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
       only_ovc->name_ov[0]  = XtNewString("none") ;
       only_ovc->label_ov[0] = only_ovc->name_ov[0] ;
       only_ovc->ncol_ov     = 1 ;
+
+      only_ovc->bright_ov[0] = 0.0 ;  /* 20 Dec 1999 */
    }
 
    for( ii=0 ; ii < novr ; ii++ ){
@@ -551,6 +553,9 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    if( dc->visual_class == PseudoColor )  /* 11 Feb 1999: */
       FREE_DC_colordef(dc->cdef) ;        /* will need to be recomputed */
 
+   dc->ovc->bright_ov[ii] = BRIGHTNESS( DCOV_REDBYTE(dc,ii) ,       /* 20 Dec 1999 */
+                                        DCOV_GREENBYTE(dc,ii) ,
+                                        DCOV_BLUEBYTE(dc,ii)   ) ;
    return ii ;
 }
 
@@ -1110,6 +1115,7 @@ void reload_DC_colordef( MCW_DC * dc )
 
 Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
 {
+   static MCW_DC * dcold=NULL ;
    DC_colordef * cd = dc->cdef ;
 
    if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
@@ -1126,10 +1132,10 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
          if( rr == 0   && gg == 0   && bb == 0   ) return 0 ;          /* common */
          if( rr == 255 && gg == 255 && bb == 255 ) return cd->whpix ;  /* cases  */
 
-         if( rr == rold && gg == gold && bb == bold ) /* Remembrance of Things Past? */
+         if( dc == dcold && rr == rold && gg == gold && bb == bold ) /* Remembrance of Things Past? */
             return (Pixel) pold ;
 
-         rold = rr ; gold = gg ; bold = bb ;          /* OK, remember for next time */
+         rold = rr ; gold = gg ; bold = bb ; dcold = dc ;            /* OK, remember for next time */
 
          r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
                              : (rr>>cd->rrshift)   ; r = r & cd->rrmask ;
@@ -1153,7 +1159,7 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
 #define RW 2  /* the weights alluded to above */
 #define GW 4
 #define BW 1
-#define RGBSUM 7  /* sum of the weights */
+#define RGBSUM 4  /* max allowed difference */
 
          static int iold=0 , rold=0,gold=0,bold=0 ;
          int ii , rdif,gdif,bdif,dif , ibest,dbest ;
@@ -1164,12 +1170,14 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
          if( cd->nwhite >= 0 && rr == 255 && gg == 255 && bb == 255 ) /* cases      */
             return (Pixel) cd->nwhite ;
 
-         rdif = rold - rr ;
-         gdif = gold - gg ;
-         bdif = bold - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
-         if( dif <= RGBSUM ) return (Pixel) iold ;   /* Remembrance of Things Past? */
+         if( dc == dcold ){
+            rdif = rold - rr ;
+            gdif = gold - gg ;
+            bdif = bold - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+            if( dif <= RGBSUM ) return (Pixel) iold ;     /* Remembrance of Things Past? */
+         }
 
-         rold = rr ; gold = gg ; bold = bb ;         /* No? Remember for next time. */
+         rold = rr ; gold = gg ; bold = bb ; dcold = dc ; /* No? Remember for next time. */
 
          rdif = cd->rr[0] - rr ;
          gdif = cd->gg[0] - gg ;
@@ -1191,6 +1199,101 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
    /*--- Illegal case! ---*/
 
    return 0 ;  /* always valid (but useless) */
+}
+
+/*---------------------------------------------------------------------
+   Compute the Pixel that is closest to the given (r,g,b) color,
+   but if the pixel isn't gray (r=g=b), the color must be from
+   the specified set of overlay colors.  [20 Dec 1999 - RW Cox]
+-----------------------------------------------------------------------*/
+
+Pixel DC_rgb_to_ovpix( MCW_DC * dc, byte rr, byte gg, byte bb )
+{
+   static MCW_DC * dcold=NULL ;
+   static Pixel pold=0 ;
+   static int rold=0,gold=0,bold=0 ;
+   int ii , rdif,gdif,bdif,dif , ibest,dbest ;
+
+   if( rr == gg && rr == bb ) return DC_rgb_to_pixel(dc,rr,gg,bb) ;
+
+   if( dc == NULL || dc->ovc == NULL || dc->ovc->ncol_ov == 0 ) return 0 ;
+
+   if( dc == dcold ){                   /* check if we just saw this */
+      rdif = rold - rr ;
+      gdif = gold - gg ;
+      bdif = bold - bb ;
+      dif  = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+      if( dif <= RGBSUM ) return pold ;
+   }
+
+   rold = rr ; gold = gg ; bold = bb ; dcold = dc ;  /* remember for next time */
+
+   rdif = DCOV_REDBYTE(dc,0)   - rr ;
+   gdif = DCOV_GREENBYTE(dc,0) - gg ;
+   bdif = DCOV_BLUEBYTE(dc,0)  - bb ;
+   dif  = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+   if( dif <= RGBSUM ){ pold = dc->ovc->pix_ov[0] ; return pold ; }
+
+   ibest = 0 ; dbest = dif ;
+   for( ii=1 ; ii < dc->ovc->ncol_ov ; ii++ ){
+      rdif = DCOV_REDBYTE(dc,ii)   - rr ;
+      gdif = DCOV_GREENBYTE(dc,ii) - gg ;
+      bdif = DCOV_BLUEBYTE(dc,ii)  - bb ;
+      dif  = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
+      if( dif <= RGBSUM ){ pold = dc->ovc->pix_ov[ii] ; return pold ; }
+      if( dif < dbest   ){ ibest = ii ; dbest = dif ; }
+   }
+   pold = dc->ovc->pix_ov[ibest] ; return pold ;
+}
+
+/*---------------------------------------------------------------------
+   Convert color to triple in overlay color list that is closest.
+-----------------------------------------------------------------------*/
+
+void DC_rgb_to_ovrgb( MCW_DC * dc , int nlist , int * list , int shade ,
+                                    byte *rrin , byte *ggin, byte *bbin )
+{
+   int jj,jtop,ii , rdif,gdif,bdif,dif , ibest,dbest ;
+   byte rr=*rrin , gg=*ggin , bb=*bbin , mm , rt,gt,bt , rtbest,gtbest,btbest;
+   float brig , fac ;
+
+   if( rr == gg && rr == bb ) return ;  /* if grayscale, is OK */
+
+   if( dc == NULL || dc->ovc == NULL || dc->ovc->ncol_ov == 0 ) return ;
+
+   /* start with the gray color with the same brightness */
+
+   brig = BRIGHTNESS(rr,gg,bb) ; mm = (byte)(brig + 0.499) ;
+   dbest = RW*abs(mm-rr)+GW*abs(mm-gg)+BW*abs(mm-bb) ;    /* diff from gray */
+   if( dbest <= RGBSUM ){
+      *rrin = *ggin = *bbin = mm ; return ;
+   }
+   ibest = 0 ; rtbest = gtbest = btbest = mm ;
+
+   /* now check the colors in the list given, or the entire set if no list */
+
+   jtop = (nlist > 0) ? nlist : dc->ovc->ncol_ov ;
+   for( jj=0 ; jj < jtop ; jj++ ){
+      ii = (nlist > 0) ? list[jj] : jj ;
+      if( ii <= 0 || ii >= dc->ovc->ncol_ov || dc->ovc->bright_ov[ii] <= 0.0 ) continue ;
+
+      rt = DCOV_REDBYTE(dc,ii) ; gt = DCOV_GREENBYTE(dc,ii) ; bt = DCOV_BLUEBYTE(dc,ii) ;
+      if( shade ){
+        fac = brig / dc->ovc->bright_ov[ii] ;
+        rt  = (byte)( fac*rt + 0.499 ) ;
+        gt  = (byte)( fac*gt + 0.499 ) ;
+        bt  = (byte)( fac*bt + 0.499 ) ;
+      }
+      dif = RW*abs(rt-rr)+GW*abs(gt-gg)+BW*abs(bt-bb) ;
+      if( dif <= RGBSUM ){
+         *rrin = rt ; *ggin = gt ; *bbin = bt ; return ;
+      }
+      if( dif < dbest ){
+         ibest = ii ; dbest = dif ; rtbest = rt ; gtbest = gt ; btbest = bt ;
+      }
+   }
+
+   *rrin = rtbest ; *ggin = gtbest ; *bbin = btbest ; return ;
 }
 
 /*---------------------------------------------------------------------

@@ -1319,6 +1319,8 @@ L1000:
 	--neval;
 	if (r8_eval__[neval] != 0.) {
 	    r8_eval__[neval - 1] /= r8_eval__[neval];
+	} else {
+	    r8_eval__[neval - 1] = 0.;
 	}
 /* ...................................................................
 .... */
@@ -1946,8 +1948,12 @@ L1000:
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] /= r8val[iv - ibv 
-			    + (jf << 6) - 65];
+		    if (r8val[iv - ibv + (jf << 6) - 65] != 0.) {
+			r8_eval__[iv - ibv + (neval << 6) - 65] /= r8val[iv - 
+				ibv + (jf << 6) - 65];
+		    } else {
+			r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
+		    }
 		}
 	    } else {
 		++neval;
@@ -1989,7 +1995,11 @@ L1000:
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] /= *r8_val__;
+		    if (*r8_val__ != 0.) {
+			r8_eval__[iv - ibv + (neval << 6) - 65] /= *r8_val__;
+		    } else {
+			r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
+		    }
 		}
 	    } else {
 		++ncode;
@@ -2035,6 +2045,8 @@ L1000:
 		if (r8_eval__[iv - ibv + (neval + 1 << 6) - 65] != 0.) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] /= r8_eval__[iv - 
 			    ibv + (neval + 1 << 6) - 65];
+		} else {
+		    r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
 		}
 	    }
 /* ...............................................................

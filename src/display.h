@@ -44,7 +44,8 @@
 #define BYTE_TO_INTEN(b) (CLIP_INTEN((b)<<8))
 #define INTEN_TO_BYTE(i) ((i)>>8)
 
-#define XCOL_BRIGHTNESS(xc) (0.299*(xc).red + 0.587*(xc).green + 0.114*(xc).blue)
+#define BRIGHTNESS(r,g,b)   (0.299*(r)+0.587*(g)+0.114*(b))
+#define XCOL_BRIGHTNESS(xc) BRIGHTNESS((xc).red,(xc).green,(xc).blue)
 
 #define XCOL_REDNESS(xc)    (0.299*(xc).red   - MAX(0.587*(xc).green,0.114*(xc).blue ))
 #define XCOL_GREENNESS(xc)  (0.587*(xc).green - MAX(0.299*(xc).red  ,0.114*(xc).blue ))
@@ -107,12 +108,16 @@ typedef struct {
 
    Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest;
    int    ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
+
+   float  bright_ov[MAX_COLORS] ; /* brightness of overlay colors [20 Dec 1999] */
 } MCW_DCOV ;
 
 #define DCOV_REDBYTE(dc,i)   INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].red)
 #define DCOV_GREENBYTE(dc,i) INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].green)
 #define DCOV_BLUEBYTE(dc,i)  INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].blue)
 #define DC_GRAYBYTE(dc,i)    INTEN_TO_BYTE((dc)->xgry_im[i].red)
+
+#define DCOV_BRIGHTNESS(dc,i) ((dc)->ovc->bright_ov[i])
 
 typedef struct {
       XtAppContext appcontext ;    /* X and Xt stuff */
@@ -228,5 +233,8 @@ extern void DC_set_image_colors( MCW_DC * ) ;  /* 22 Aug 1998 */
 extern void reload_DC_colordef( MCW_DC * ) ;   /* 11 Feb 1999 */
 extern Pixel DC_rgb_to_pixel( MCW_DC *, byte,byte,byte ) ;
 extern void DC_pixel_to_rgb( MCW_DC *, Pixel, byte *,byte *,byte * ) ;
+
+extern Pixel DC_rgb_to_ovpix( MCW_DC *, byte,byte,byte ) ; /* 20 Dec 1999 */
+extern void DC_rgb_to_ovrgb( MCW_DC *, int,int *,int,byte *, byte *, byte *) ;
 
 #endif /* _MCW_DISPLAY_HEADER_ */

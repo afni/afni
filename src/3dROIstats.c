@@ -1,12 +1,9 @@
 /*******************************************************
  * 3dROIstats                                          *
  * T. Ross 5/99                                        *
- *                                                     *
+ *-----------------------------------------------------*
+ * Code for -summary added by M.S. Beauchamp, 12/1999  *
  *******************************************************/
-
-
-
-
 
 #include "mrilib.h"
 #include <stdio.h>
@@ -17,21 +14,20 @@
 short non_zero[65536];  /* Ugly; depends upon sizeof(short)=2 */
 
 void Error_Exit(char *message) {
-	fprintf (stderr, "\n\nError: %s\n", message);
-	exit(1);
+        fprintf (stderr, "\n\nError: %s\n", message);
+        exit(1);
 }
 
 
 int main (int argc, char * argv[]) {
-	
    THD_3dim_dataset * mask_dset=NULL , * input_dset=NULL ;
    int mask_subbrik = 0;
-   int sigma = 0, nzmean = 0, nzcount = 0, debug=0, quiet=0;
+   int sigma = 0, nzmean = 0, nzcount = 0, debug=0, quiet=0, summary=0;
    short * mask_data;
    int nvox, i, brik;
    int num_ROI, ROI;
    int narg = 1 ;
-   double *sum, *sumsq, *nzsum, sig;
+   double *sum, *sumsq, *nzsum, sig, *sumallbriks;
    long  *voxels, *nzvoxels;
    float *input_data;
    byte * temp_datab;
@@ -53,11 +49,11 @@ int main (int argc, char * argv[]) {
              "                 of the 2s, etc.\n"
              "                 Note that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels and that mset\n"
-             "                 must be BYTE or SHORT.\n"
+             "                 must be BYTE or SHORT (i.e., float masks won't work).\n"
              "\n"
              "   -debug        Print out debugging information\n"
              "   -quiet        Do not print out labels for columns or rows\n"
-		   "\n"
+             "\n"
              "The following options specify what stats are computed.  By default\n"
              "the mean is always computed.\n"
              "\n"
@@ -66,9 +62,14 @@ int main (int argc, char * argv[]) {
              "  -nzvoxels    Compute the number of non_zero voxels\n"
              "  -sigma       Means to compute the standard deviation as well\n"
              "                 as the mean.\n"
+             "  -summary     Only output a summary line with the grand mean across all briks\n"
+             "               in the input dataset. \n"
              "\n"
              "The output is printed to stdout (the terminal), and can be\n"
              "saved to a file using the usual redirection operation '>'.\n"
+             "\n"
+             "N.B.: The input datasets and the mask dataset can use sub-brick\n"
+             "      selectors, as detailed in the output of 3dcalc -help.\n"
             ) ;
       exit(0) ;
    }
@@ -136,6 +137,10 @@ int main (int argc, char * argv[]) {
          narg++ ; continue ;
       }
 
+     if( strncmp(argv[narg],"-summary",5) == 0 ){
+         summary = 1 ;
+         narg++ ; continue ;
+      }
 
       if( strncmp(argv[narg],"-nzvoxels",5) == 0 ){
          nzcount = 1 ;
@@ -166,12 +171,12 @@ int main (int argc, char * argv[]) {
          Error_Exit("Cannot deal with mask dataset datum!") ; 
 
       case MRI_short:{
-	 mask_data = (short *)DSET_ARRAY(mask_dset, mask_subbrik);
+         mask_data = (short *)DSET_ARRAY(mask_dset, mask_subbrik);
          for (i=0; i<nvox; i++) 
             if (mask_data[i]) {
-		if (debug) fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
-            	non_zero[mask_data[i]+32768]=1;
-	    }
+                if (debug) fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
+                non_zero[mask_data[i]+32768]=1;
+            }
          break ;
        }
        
@@ -183,8 +188,8 @@ int main (int argc, char * argv[]) {
          for (i=0; i<nvox; i++) {
             mask_data[i] = (short)temp_byte[i];
             if (mask_data[i]){
-		if (debug) fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
-            	non_zero[mask_data[i]+32768]=1;
+                if (debug) fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
+                non_zero[mask_data[i]+32768]=1;
             }
          }
          break ;
@@ -192,13 +197,13 @@ int main (int argc, char * argv[]) {
     } /* switch */
 
    /* Print the header line, while we set up the index array */  
-   if ( !quiet ) fprintf(stdout, "File\tSub-brick");
+   if ( !quiet && !summary ) fprintf(stdout, "File\tSub-brick");
  
    for (i=0, num_ROI=0; i<65536; i++)
       if (non_zero[i]) {
          non_zero[i] = num_ROI;
          num_ROI++;
-         if ( !quiet ) {
+         if ( !quiet && !summary ) {
          fprintf(stdout, "\tMean_%d", i-32768);
          if (nzmean)             
             fprintf(stdout, "\tNZMean_%d", i-32768);
@@ -209,7 +214,7 @@ int main (int argc, char * argv[]) {
          }   
       }
 
-   if ( !quiet ) fprintf(stdout,"\n");
+   if ( !quiet && !summary ) fprintf(stdout,"\n");
 
    if (debug) fprintf(stderr, "Total Number of ROIs are %d\n", num_ROI);
 
@@ -231,7 +236,10 @@ int main (int argc, char * argv[]) {
       if (( sumsq = (double *)malloc(num_ROI*sizeof(double))) == NULL)
          Error_Exit("Memory allocation error");  
    
-
+   if ( summary )
+       if (( sumallbriks = (double *)malloc(num_ROI*sizeof(double))) == NULL)
+         Error_Exit("Memory allocation error");  
+      
    /* Now, loop over datasets and sub-bricks and compute away */
 
    for (;narg<argc;narg++) {
@@ -252,6 +260,9 @@ int main (int argc, char * argv[]) {
       
       DSET_load(input_dset);
       
+      if (summary) 
+         for(i=0; i<num_ROI; i++) sumallbriks[i] = 0;
+
       for (brik=0; brik<DSET_NVALS(input_dset); brik++) {
       
           for(i=0; i<num_ROI; i++) {
@@ -322,8 +333,9 @@ int main (int argc, char * argv[]) {
           }
           
           /* print the next line of results */
-          if ( !quiet ) fprintf(stdout, "%s\t%d", argv[narg], brik);
-          for (i=0; i<num_ROI; i++) {
+          if ( !quiet && !summary ) fprintf(stdout, "%s\t%d", argv[narg], brik);
+          if ( ! summary) {
+		for (i=0; i<num_ROI; i++) {
              fprintf(stdout, "\t%f", (float)( sum[i]/(double)voxels[i] )  );
              if (nzmean)             
                 fprintf(stdout, "\t%f", nzvoxels[i] ? (float)(nzsum[i]/(double)nzvoxels[i]) : 0.0 );
@@ -341,12 +353,34 @@ int main (int argc, char * argv[]) {
           } /* loop over ROI for print */
           
           fprintf(stdout,"\n");
-        
+          }
+		else
+		for (i=0; i<num_ROI; i++) {
+		if ( nzmean ) 
+			sumallbriks[i] += nzvoxels[i] ? (double)(nzsum[i]/(double)nzvoxels[i]) : 0.0;
+		else	
+			sumallbriks[i] += (double)( sum[i]/(double)voxels[i] );
+		}
+		
+		
           if ( DSET_BRICK_TYPE(input_dset, brik) != MRI_float)
              free(input_data);    
        
-       } /* loop over bricks */
+       } /* loop over sub-bricks in the input dataset */
        
+	  if ( summary ) {
+		fprintf(stdout, "Average Across %i sub-briks in input dataset %s\n",DSET_NVALS(input_dset),argv[narg]);
+		if ( nzmean )
+			fprintf(stdout, "Non-zero voxels only!\n");
+		fprintf(stdout, "ROI\t");
+		for (i=0; i<num_ROI; i++) fprintf(stdout, "%i\t",i);
+		fprintf(stdout, "\nVoxels\t");
+		for (i=0; i<num_ROI; i++) fprintf(stdout, "%i\t",nzmean ? nzvoxels[i] : voxels[i]);
+		fprintf(stdout, "\nValue\t");
+		for (i=0; i<num_ROI; i++) fprintf(stdout, "%f\t",(float)(sumallbriks[i]/(double)DSET_NVALS(input_dset)));
+		fprintf(stdout, "\n");
+		}
+
        DSET_unload(input_dset);
        
     } /* loop over input files */
@@ -358,11 +392,5 @@ int main (int argc, char * argv[]) {
     free(sum); free(voxels);
     if (nzmean || nzcount) { free(nzsum); free(nzvoxels); }
     if (sigma) free(sumsq);
-    
+    exit(0) ;    
 }
-    
-     
-      
-      
-      
-

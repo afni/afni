@@ -429,7 +429,7 @@ int main( int argc , char * argv[] )
 
    /*-- read first dataset in set2 to get dimensions, etc. --*/
 
-   dset = THD_open_one_dataset( TT_set2->ar[0] ) ;
+   dset = THD_open_dataset( TT_set2->ar[0] ) ;  /* 20 Dec 1999  BDW */
    if( ! ISVALID_3DIM_DATASET(dset) ){
       fprintf(stderr,"*** Unable to open dataset file %s\n",TT_set2->ar[0]);
       exit(1) ;

@@ -1,58 +1,155 @@
 #include "mrilib.h"
 
-/*---------------------------------------------------------------------------
+typedef struct {
+   int   nmask[3] ;
+   byte * mask[3] ;
+} Tmask ;
+
+void free_Tmask( Tmask * tm )
+{
+   if( tm != NULL ){
+      free(tm->mask[0]) ; free(tm->mask[1]) ; free(tm->mask[2]) ; free(tm) ;
+   }
+   return ;
+}
+
+#define IXY 2  /* fixdir-1 for each plane */
+#define IYZ 0
+#define IZX 1
+
+Tmask * create_Tmask( int nx, int ny, int nz, byte * vol )
+{
+   Tmask * tm ;
+   int ii,jj,kk,vv , nxy,nyz,nzx ;
+   byte * bz , *xym,*yzm,*zxm , *bxy,*byz,*bzx ;
+
+   tm = (Tmask *) malloc(sizeof(Tmask)) ;
+   tm->nmask[IXY] = nxy = nx*ny ;
+   tm->nmask[IYZ] = nyz = ny*nz ;
+   tm->nmask[IZX] = nzx = nz*nx ;
+
+   tm->mask[IXY] = xym = (byte *) calloc(1,sizeof(byte)*nxy) ;
+   tm->mask[IYZ] = yzm = (byte *) calloc(1,sizeof(byte)*nyz) ;
+   tm->mask[IXZ] = zxm = (byte *) calloc(1,sizeof(byte)*nzx) ;
+
+   for( byz=yzm,kk=0 ; kk < nz ; kk++,byz+=ny ){
+      bz = vol + kk*nxy ;
+      for( bxy=xym,jj=0 ; jj < ny ; jj++,bz+=nx,bxy+=nx ){
+         for( bzx=zxm,ii=0 ; ii < nx ; ii++,bzx+=nz ){
+            if( bz[ii] ){ bxy[ii] = byz[jj] = bzx[kk] = 1 ; }
+         }
+      }
+   }
+
+   return tm ;
+}
+
+/*===========================================================================
    Functions to extract a plane of shifted bytes from a 3D volume.
      nx, ny, nz = dimensions of vol
      vol        = input 3D volume of bytes
 
-     kz     = z-plane index in vol to extract (0 <= kz < nz)
-     di     = shift in x
-     dj     = shift in y
-     mi, mj = dimensions of im
+     fixdir = fixed direction (1=x, 2=y, 3=z)
+     fixijk = fixed index
+     da, db = shift in planar coordinaes (non-fixed directions)
+     ma, mb = dimensions of im
      im     = output 2D image
 
-   The goal is im[i,j] = vol[i-dz,j-dj,kz], for i=0..mi-1, j=0..mj-1,
-   where this makes sense.  For [i,j] that would be outside of vol,
-   im[i,j] is set to zero.
+   Goal is im[a,b] = vol[ P(a-da,b-db,c=fixijk) ] for a=0..ma-1, b=0..mb-1,
+   where P(a,b,c) is the permutation of (a,b,c) that goes with fixdir:
+     P(x,y,z) = (y,z) for fixdir == 1
+     P(x,y,z) = (z,x) for fixdir == 2
+     P(x,y,z) = (x,y) for fixdir == 3
+   For values outside the range of vol[], im[] is set to 0.
 
-   The five routines that follow are:
-      _nn   = nearest neigbhor interpolation
-      _lifl = linear interpolation, with floating point arithmetic
-      _liby = linear interpolation, with byte arithmetic
-      _ts   = two-step interpolation
-      _fs   = four-step interpolation
------------------------------------------------------------------------------*/
+   The five interpolation routines that follow are:
+     _nn   = nearest neigbhor "interpolation"
+     _lifl = linear interpolation, with floating point arithmetic
+     _liby = linear interpolation, with byte arithmetic
+     _ts   = two-step interpolation
+     _fs   = four-step interpolation
+=============================================================================*/
 
-/*---------------------------------------------------------------------------
-    Nearest neighbor "interpolation"
------------------------------------------------------------------------------*/
+  /* macros for offsets in vol[] to corners of the interpolation square */
 
-void extract_byte_ij_nn( int nx , int ny , int nz , byte * vol ,
-                         int kz , float di , float dj ,
-                         int mi , int mj , byte * im )
+#undef LL
+#undef LR
+#undef UL
+#undef UR
+
+#define LL 0                /* lower left  */
+#define LR astep            /* lower right */
+#define UL bstep            /* upper left  */
+#define UR (astep+bstep)    /* upper right */
+
+#define ASSIGN_DIRECTIONS                                       \
+ do{ switch( fixdir ){                                          \
+      default:                                                  \
+      case 1:            /* x-direction: (a,b,c) = (y,z,x) */   \
+         astep = nx ; bstep = nxy ; cstep = 1  ;                \
+         na    = ny ; nb    = nz  ; nc    = nx ;                \
+      break ;                                                   \
+                                                                \
+      case 2:            /* y-direction: (a,b,c) = (z,x,y) */   \
+         astep = nxy ; bstep = 1  ; cstep = nx ;                \
+         na    = nz  ; nb    = nx ; nc    = ny ;                \
+      break ;                                                   \
+                                                                \
+      case 3:            /* z-direction: (a,b,c) = (x,y,z) */   \
+         astep = 1  ; bstep = nx ; cstep = nxy ;                \
+         na    = nx ; nb    = ny ; nc    = nz  ;                \
+      break ;                                                   \
+    } } while(0)
+
+/*-----------------------------------------------------------------------*/
+
+void extract_assign_directions( int nx, int ny, int nz, int fixdir ,
+                                int *Astep, int *Bstep, int *Cstep ,
+                                int *Na   , int *Nb   , int *Nc     )
 {
-   int idel,jdel , ibot,itop , jj,jbot,jtop ;
-   register int ii , kzoff , joff ;
+   int astep,bstep,cstep , na,nb,nc , nxy=nx*ny ;
 
-   memset( im , 0 , mi*mj ) ;  /* initialize output to zero */
+   ASSIGN_DIRECTIONS ;
 
-   di += 0.5 ; idel = (int) di ; if( di < 0.0 ) idel-- ;  /* floor(di+0.5) */
-   dj += 0.5 ; jdel = (int) dj ; if( dj < 0.0 ) jdel-- ;  /* floor(dj+0.5) */
+   *Astep = astep ; *Bstep = bstep ; *Cstep = cstep ;
+   *Na    = na    ; *Nb    = nb    ; *Nc    = nc    ; return ;
+}
 
-   ibot = 0       ; if( ibot < idel ) ibot = idel ;       /* range in im[] */
-   itop = nx+idel ; if( itop > mi   ) itop = mi ;
+/*-----------------------------------------------------------------------
+   NN "interpolation"
+-------------------------------------------------------------------------*/
 
-   jbot = 0       ; if( jbot < jdel ) jbot = jdel ;
-   jtop = ny+jdel ; if( jtop > mj   ) jtop = mj ;
+void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
+                      int fixdir , int fixijk , float da , float db ,
+                      int ma , int mb , byte * im )
+{
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
 
-   kzoff = kz*nx*ny - idel + (jbot-jdel)*nx ;           /* offset into vol */
-   joff  = jbot*mi ;                                    /* offset into im  */
+   memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
-   for( jj=jbot ; jj < jtop ; jj++ ){
-      for( ii=ibot ; ii < itop ; ii++ ) im[ii+joff] = vol[ii+kzoff] ;
-      joff  += mi ;
-      kzoff += nx ;
-   }
+   if( fixijk < 0 ) return ;
+
+   ASSIGN_DIRECTIONS ;
+
+   if( fixijk >= nc ) return ;
+
+   da += 0.5 ; adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da+0.5) */
+   db += 0.5 ; bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db+0.5) */
+
+   abot = 0       ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel ; if( atop > ma   ) atop = ma ;
+
+   bbot = 0       ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
+
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+         im[aa+boff] = vol[aoff+ijkoff] ;
 
    return ;
 }
@@ -61,48 +158,52 @@ void extract_byte_ij_nn( int nx , int ny , int nz , byte * vol ,
     Linear interpolation with floating point arithmetic
 -----------------------------------------------------------------------------*/
 
-void extract_byte_ij_lifl( int nx , int ny , int nz , byte * vol ,
-                           int kz , float di , float dj ,
-                           int mi , int mj , byte * im )
+void extract_byte_lifl( int nx , int ny , int nz , byte * vol ,
+                        int fixdir , int fixijk , float da , float db ,
+                        int ma , int mb , byte * im )
 {
-   int idel,jdel , ibot,itop , jj,jbot,jtop ;
-   register int ii , kzoff , joff ;
-   float fi , fj ;
-   float f_i_j , f_ip_j , f_i_jp , f_ip_jp ;
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
+   float fa , fb ;
+   float f_a_b , f_ap_b , f_a_bp , f_ap_bp ;
 
-   memset( im , 0 , mi*mj ) ;  /* initialize output to zero */
+   memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
-   idel = (int) di ; if( di < 0.0 ) idel-- ;  /* floor(di) */
-   jdel = (int) dj ; if( dj < 0.0 ) jdel-- ;  /* floor(dj) */
+   if( fixijk < 0 ) return ;
 
-   fi = di - idel ;               /* fractional part of di */
-   fj = dj - jdel ;               /* fractional part of dj */
+   ASSIGN_DIRECTIONS ;
 
-   idel++ ; jdel++ ;
+   if( fixijk >= nc ) return ;
 
-   f_i_j   = fi      * fj      ;
-   f_ip_j  = (1.0-fi)* fj      ;
-   f_i_jp  = fi      *(1.0-fj) ;
-   f_ip_jp = (1.0-fi)*(1.0-fj) ;
+   adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da) */
+   bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db) */
 
-   ibot = 0         ; if( ibot < idel ) ibot = idel ;    /* range in im[] */
-   itop = nx+idel-1 ; if( itop > mi   ) itop = mi ;
+   fa = da - adel ;               /* fractional part of dj */
+   fb = db - bdel ;               /* fractional part of dk */
 
-   jbot = 0         ; if( jbot < jdel ) jbot = jdel ;
-   jtop = ny+jdel-1 ; if( jtop > mj   ) jtop = mj ;
+   adel++ ; bdel++ ;
 
-   kzoff = kz*nx*ny - idel + (jbot-jdel)*nx ;          /* offset into vol */
-   joff  = jbot*mi ;                                   /* offset into im  */
+   f_a_b   = fa      * fb      ;
+   f_ap_b  = (1.0-fa)* fb      ;
+   f_a_bp  = fa      *(1.0-fb) ;
+   f_ap_bp = (1.0-fa)*(1.0-fb) ;
 
-   for( jj=jbot ; jj < jtop ; jj++ ){
-      for( ii=ibot ; ii < itop ; ii++ )
-         im[ii+joff] = (byte)(  f_i_j   * vol[ii+kzoff]
-                              + f_ip_j  * vol[ii+(kzoff+1)]
-                              + f_i_jp  * vol[ii+(kzoff+nx)]
-                              + f_ip_jp * vol[ii+(kzoff+nx+1)] ) ;
-      joff  += mi ;
-      kzoff += nx ;
-   }
+   abot = 0         ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel-1 ; if( atop > ma   ) atop = ma ;
+
+   bbot = 0         ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel-1 ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
+
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+         im[aa+boff] = (byte)(  f_a_b   * vol[aoff+ijkoff]
+                              + f_ap_b  * vol[aoff+(ijkoff+LR)]
+                              + f_a_bp  * vol[aoff+(ijkoff+UL)]
+                              + f_ap_bp * vol[aoff+(ijkoff+UR)] ) ;
 
    return ;
 }
@@ -111,55 +212,58 @@ void extract_byte_ij_lifl( int nx , int ny , int nz , byte * vol ,
     Linear interpolation with fixed point arithmetic
 -----------------------------------------------------------------------------*/
 
-void extract_byte_ij_liby( int nx , int ny , int nz , byte * vol ,
-                           int kz , float di , float dj ,
-                           int mi , int mj , byte * im )
+void extract_byte_liby( int nx , int ny , int nz , byte * vol ,
+                        int fixdir , int fixijk , float da , float db ,
+                        int ma , int mb , byte * im )
 {
-   int idel,jdel , ibot,itop , jj,jbot,jtop ;
-   register int ii , kzoff , joff ;
-   float fi , fj ;
-   float f_i_j , f_ip_j , f_i_jp , f_ip_jp ;
-   byte  b_i_j , b_ip_j , b_i_jp , b_ip_jp ;
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
+   float fa , fb ;
+   float f_a_b , f_ap_b , f_a_bp , f_ap_bp ;
+   byte  b_a_b , b_ap_b , b_a_bp , b_ap_bp ;
 
-   memset( im , 0 , mi*mj ) ;  /* initialize output to zero */
+   memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
-   idel = (int) di ; if( di < 0.0 ) idel-- ;  /* floor(di) */
-   jdel = (int) dj ; if( dj < 0.0 ) jdel-- ;  /* floor(dj) */
+   if( fixijk < 0 ) return ;
 
-   fi = di - idel ;               /* fractional part of di */
-   fj = dj - jdel ;               /* fractional part of dj */
+   ASSIGN_DIRECTIONS ;
 
-   idel++ ; jdel++ ;
+   if( fixijk >= nc ) return ;
 
-   f_i_j   = fi      * fj      ;
-   f_ip_j  = (1.0-fi)* fj      ;
-   f_i_jp  = fi      *(1.0-fj) ;
-   f_ip_jp = (1.0-fi)*(1.0-fj) ;
+   adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da) */
+   bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db) */
 
-   b_i_j   = (byte)(256*f_i_j  + 0.499) ;
-   b_ip_j  = (byte)(256*f_ip_j + 0.499) ;
-   b_i_jp  = (byte)(256*f_i_jp + 0.499) ;
-   ii      = (256-(b_i_j+b_ip_j+b_i_jp)) ;
-   b_ip_jp = (ii > 0) ? (byte) ii : 0 ;
+   fa = da - adel ;               /* fractional part of dj */
+   fb = db - bdel ;               /* fractional part of dk */
 
-   ibot = 0         ; if( ibot < idel ) ibot = idel ;    /* range in im[] */
-   itop = nx+idel-1 ; if( itop > mi   ) itop = mi ;
+   adel++ ; bdel++ ;
 
-   jbot = 0         ; if( jbot < jdel ) jbot = jdel ;
-   jtop = ny+jdel-1 ; if( jtop > mj   ) jtop = mj ;
+   f_a_b   = fa      * fb      ;
+   f_ap_b  = (1.0-fa)* fb      ;
+   f_a_bp  = fa      *(1.0-fb) ;
+   f_ap_bp = (1.0-fa)*(1.0-fb) ;
 
-   kzoff = kz*nx*ny - idel + (jbot-jdel)*nx ;          /* offset into vol */
-   joff  = jbot*mi ;                                   /* offset into im  */
+   bb = (int)(256*f_a_b  + 0.499) ; if( bb == 256 ) bb-- ; b_a_b  = (byte) bb ;
+   bb = (int)(256*f_ap_b + 0.499) ; if( bb == 256 ) bb-- ; b_ap_b = (byte) bb ;
+   bb = (int)(256*f_a_bp + 0.499) ; if( bb == 256 ) bb-- ; b_a_bp = (byte) bb ;
+   bb = (int)(256*f_ap_bp+ 0.499) ; if( bb == 256 ) bb-- ; b_ap_bp= (byte) bb ;
 
-   for( jj=jbot ; jj < jtop ; jj++ ){
-      for( ii=ibot ; ii < itop ; ii++ )
-         im[ii+joff] = (byte)(( b_i_j   * vol[ii+kzoff]
-                              + b_ip_j  * vol[ii+(kzoff+1)]
-                              + b_i_jp  * vol[ii+(kzoff+nx)]
-                              + b_ip_jp * vol[ii+(kzoff+nx+1)] ) >> 8);
-      joff  += mi ;
-      kzoff += nx ;
-   }
+   abot = 0         ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel-1 ; if( atop > ma   ) atop = ma ;
+
+   bbot = 0         ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel-1 ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
+
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+      for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+         im[aa+boff] = (byte)((  b_a_b   * vol[aoff+ijkoff]
+                               + b_ap_b  * vol[aoff+(ijkoff+LR)]
+                               + b_a_bp  * vol[aoff+(ijkoff+UL)]
+                               + b_ap_bp * vol[aoff+(ijkoff+UR)] ) >> 8 ) ;
 
    return ;
 }
@@ -168,93 +272,98 @@ void extract_byte_ij_liby( int nx , int ny , int nz , byte * vol ,
     Two-step interpolation
 -----------------------------------------------------------------------------*/
 
-#define TSBOT 0.3
-#define TSTOP 0.7
+#if 0
+# define TSBOT 0.3
+# define TSTOP 0.7
+#else
+# define TSBOT 0.25
+# define TSTOP 0.75
+#endif
 
-void extract_byte_ij_ts( int nx , int ny , int nz , byte * vol ,
-                         int kz , float di , float dj ,
-                         int mi , int mj , byte * im )
+void extract_byte_ts( int nx , int ny , int nz , byte * vol ,
+                      int fixdir , int fixijk , float da , float db ,
+                      int ma , int mb , byte * im )
 {
-   int idel,jdel , ibot,itop , jj,jbot,jtop ;
-   register int ii , kzoff , joff ;
-   float fi , fj ;
-   int nts=0 , dts1,dts2 ;
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc , nts,dts1,dts2 ;
+   float fa , fb ;
 
-   memset( im , 0 , mi*mj ) ;  /* initialize output to zero */
+   memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
-   idel = (int) di ; if( di < 0.0 ) idel-- ;  /* floor(di) */
-   jdel = (int) dj ; if( dj < 0.0 ) jdel-- ;  /* floor(dj) */
+   if( fixijk < 0 ) return ;
 
-   fi = di - idel ;               /* fractional part of di */
-   fj = dj - jdel ;               /* fractional part of dj */
+   ASSIGN_DIRECTIONS ;
 
-   idel++ ; jdel++ ; fi = 1.0-fi ; fj = 1.0-fj ;
+   if( fixijk >= nc ) return ;
 
-   if( fi < TSBOT ){                      /*- left 30% -*/
-      if( fj < TSBOT ){                   /*- lower 30% -*/
-        nts = 1 ; dts1 = 0 ;                /* [0,0] */
-      } else if( fj > TSTOP ){            /*- upper 30% -*/
-        nts = 1 ; dts1 = nx ;               /* [0,1] */
-      } else {                            /*- middle 40% -*/
-        nts = 2 ; dts1 = 0 ; dts2 = nx ;    /* mid of [0,0] and [0,1] */
+   adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da) */
+   bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db) */
+
+   fa = da - adel ;               /* fractional part of dj */
+   fb = db - bdel ;               /* fractional part of dk */
+
+   fa = 1.0-fa ; fb = 1.0-fb ;
+
+   if( fa < TSBOT ){                      /*- Left 30% -*/
+      if( fb < TSBOT ){                   /*- Lower 30% -*/
+        nts = 1 ; dts1 = LL ;               /* [0,0] */
+      } else if( fb > TSTOP ){            /*- Upper 30% -*/
+        nts = 1 ; dts1 = UL ;               /* [0,1] */
+      } else {                            /*- Middle 40% -*/
+        nts = 2 ; dts1 = LL ; dts2 = UL ;   /* mid of [0,0] and [0,1] */
       }
-   } else if( fi > TSTOP ){               /*- right 30% -*/
-      if( fj < TSBOT ){                   /*- lower 30% -*/
-        nts = 1 ; dts1 = 1 ;                /* [1,0] */
-      } else if( fj > TSTOP ){            /*- upper 30% -*/
-        nts = 1 ; dts1 = nx+1 ;             /* [1,1] */
-      } else {
-        nts = 2 ; dts1 = 1 ; dts2 = nx+1 ;  /* mid of [1,0] and [1,1] */
+   } else if( fa > TSTOP ){               /*- Right 30% -*/
+      if( fb < TSBOT ){                   /*- Lower 30% -*/
+        nts = 1 ; dts1 = LR ;               /* [1,0] */
+      } else if( fb > TSTOP ){            /*- Upper 30% -*/
+        nts = 1 ; dts1 = UR ;               /* [1,1] */
+      } else {                            /*- Middle 40% -*/
+        nts = 2 ; dts1 = LR ; dts2 = UR ;   /* mid of [1,0] and [1,1] */
       }
-   } else {                               /*- middle 40% -*/
-      if( fj < TSBOT ){                   /*- lower 30% -*/
-        nts = 2 ; dts1 = 0 ; dts2 = 1 ;     /* mid of [0,0] and [1,0] */
-      } else if( fj > TSTOP ){            /*- upper 30% -*/
-        nts = 2 ; dts1 = nx ; dts2 = nx+1 ; /* mid of [0,1] and [1,1] */
-      } else {                            /*- middle 40% -*/
+   } else {                               /*- Middle 40% -*/
+      if( fb < TSBOT ){                   /*- Lower 30% -*/
+        nts = 2 ; dts1 = LL ; dts2 = LR ;   /* mid of [0,0] and [1,0] */
+      } else if( fb > TSTOP ){            /*- Upper 30% -*/
+        nts = 2 ; dts1 = UL ; dts2 = UR ;   /* mid of [0,1] and [1,1] */
+      } else {                            /*- Middle 40% -*/
         nts = 4 ;                           /* mid of all 4 points */
       }
    }
 
-   ibot = 0         ; if( ibot < idel ) ibot = idel ;    /* range in im[] */
-   itop = nx+idel-1 ; if( itop > mi   ) itop = mi ;
+   adel++ ; bdel++ ;
 
-   jbot = 0         ; if( jbot < jdel ) jbot = jdel ;
-   jtop = ny+jdel-1 ; if( jtop > mj   ) jtop = mj ;
+   abot = 0         ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel-1 ; if( atop > ma   ) atop = ma ;
 
-   kzoff = kz*nx*ny - idel + (jbot-jdel)*nx ;          /* offset into vol */
-   joff  = jbot*mi ;                                   /* offset into im  */
+   bbot = 0         ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel-1 ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
 
    switch( nts ){
 
       case 1:
-         kzoff += dts1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ ) im[ii+joff] = vol[ii+kzoff] ;
-            joff  += mi ;
-            kzoff += nx ;
-         }
+         ijkoff += dts1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = vol[aoff+ijkoff] ;
       break ;
 
       case 2:
-         kzoff += dts1 ;
-         dts2   = dts2 - dts1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = (vol[ii+kzoff] + vol[ii+(kzoff+dts2)]) >> 1 ;
-            joff  += mi ;
-            kzoff += nx ;
-         }
+         ijkoff += dts1 ; dts2 -= dts1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dts2)]) >> 1;
       break ;
 
       case 4:
-      for( jj=jbot ; jj < jtop ; jj++ ){
-         for( ii=ibot ; ii < itop ; ii++ )
-            im[ii+joff] = (   vol[ii+kzoff]      + vol[ii+(kzoff+1)]
-                            + vol[ii+(kzoff+nx)] + vol[ii+(kzoff+nx+1)] ) >> 2 ;
-         joff  += mi ;
-         kzoff += nx ;
-      }
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = ( vol[aoff+ijkoff]     +vol[aoff+(ijkoff+LR)]
+                              +vol[aoff+(ijkoff+UL)]+vol[aoff+(ijkoff+UR)]) >> 2;
+      break ;
    }
 
    return ;
@@ -264,193 +373,180 @@ void extract_byte_ij_ts( int nx , int ny , int nz , byte * vol ,
     Four-step interpolation
 -----------------------------------------------------------------------------*/
 
-#define FSA 0.175
-#define FSB 0.400
-#define FSC 0.600
-#define FSD 0.825
+#if 0
+# define FSA 0.175
+# define FSB 0.400
+# define FSC 0.600
+# define FSD 0.825
+#else
+# define FSA 0.125
+# define FSB 0.375
+# define FSC 0.625
+# define FSD 0.875
+#endif
 
-void extract_byte_ij_fs( int nx , int ny , int nz , byte * vol ,
-                         int kz , float di , float dj ,
-                         int mi , int mj , byte * im )
+void extract_byte_fs( int nx , int ny , int nz , byte * vol ,
+                      int fixdir , int fixijk , float da , float db ,
+                      int ma , int mb , byte * im )
 {
-   int idel,jdel , ibot,itop , jj,jbot,jtop ;
-   register int ii , kzoff , joff ;
-   float fi , fj ;
-   int nfs , dfs1,dfs2,dfs3,dfs4 , xp,yp ;
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc , nfs,dfs1,dfs2,dfs3,dfs4 , ap,bp ;
+   float fa , fb ;
 
-   memset( im , 0 , mi*mj ) ;  /* initialize output to zero */
+   memset( im , 0 , ma*mb ) ;  /* initialize output to zero */
 
-   idel = (int) di ; if( di < 0.0 ) idel-- ;  /* floor(di) */
-   jdel = (int) dj ; if( dj < 0.0 ) jdel-- ;  /* floor(dj) */
+   if( fixijk < 0 ) return ;
 
-   fi = di - idel ;               /* fractional part of di */
-   fj = dj - jdel ;               /* fractional part of dj */
+   ASSIGN_DIRECTIONS ;
 
-   idel++ ; jdel++ ;
+   if( fixijk >= nc ) return ;
 
-   fi = 1.0-fi ; fj = 1.0-fj ;   /* weights for right/upper sides */
+   adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da) */
+   bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db) */
 
-        if( fi < FSA ) xp = 0 ;  /* left-right position */
-   else if( fi < FSB ) xp = 1 ;
-   else if( fi < FSC ) xp = 2 ;
-   else if( fi < FSD ) xp = 3 ;
-   else                xp = 4 ;
+   fa = da - adel ;               /* fractional part of dj */
+   fb = db - bdel ;               /* fractional part of dk */
 
-        if( fj < FSA ) yp = 0 ;  /* down-up position */
-   else if( fj < FSB ) yp = 1 ;
-   else if( fj < FSC ) yp = 2 ;
-   else if( fj < FSD ) yp = 3 ;
-   else                yp = 4 ;
+   fa = 1.0-fa ; fb = 1.0-fb ;   /* weights for right/upper sides */
+
+        if( fa < FSA ) ap = 0 ;  /* left-right position */
+   else if( fa < FSB ) ap = 1 ;
+   else if( fa < FSC ) ap = 2 ;
+   else if( fa < FSD ) ap = 3 ;
+   else                ap = 4 ;
+
+        if( fb < FSA ) bp = 0 ;  /* down-up position */
+   else if( fb < FSB ) bp = 1 ;
+   else if( fb < FSC ) bp = 2 ;
+   else if( fb < FSD ) bp = 3 ;
+   else                bp = 4 ;
 
    /*----- 5x5 grid of possible interpolation cases (nfs): -----------------
 
-                   yp = 4|  1 3 2 3 1     04 14 24 34 44 <- grid of
-                        3|  3 4 5 4 3     03 13 23 33 43 <- 10*xp + yp
+                   bp = 4|  1 3 2 3 1     04 14 24 34 44 <- grid of
+                        3|  3 4 5 4 3     03 13 23 33 43 <- 10*ap + bp
                         2|  2 5 6 5 2     02 12 22 32 42 <- values
                         1|  3 4 5 4 3     01 11 21 31 41
                         0|  1 3 2 3 1     00 10 20 30 40
                            -----------
-                       xp = 0 1 2 3 4
+                       ap = 0 1 2 3 4
 
      ----- The indices and nfs cases are assigned in the switch below. -----*/
 
 
-   switch( 10*xp + yp ){
+   dfs2=dfs3=dfs4=-1 ;
+   switch( 10*ap + bp ){
 
-      default: fprintf(stderr,"** extract_byte_ij_fs: xp=%d yp=%d\n",xp,yp);exit(1);
+      default: return ;  /* should never be executed */
 
-      case 00: nfs = 1 ; dfs1 = 0    ; break ;                /* 1 point */
-      case 04: nfs = 1 ; dfs1 = nx   ; break ;
-      case 40: nfs = 1 ; dfs1 = 1    ; break ;
-      case 44: nfs = 1 ; dfs1 = nx+1 ; break ;
+      case 00: nfs = 1 ; dfs1 = LL ; break ;              /* 1 point */
+      case 04: nfs = 1 ; dfs1 = UL ; break ;
+      case 40: nfs = 1 ; dfs1 = LR ; break ;
+      case 44: nfs = 1 ; dfs1 = UR ; break ;
 
-      case 20: nfs = 2 ; dfs1 = 0  ; dfs2 = 1    ; break ;    /* 2 points:  */
-      case 02: nfs = 2 ; dfs1 = 0  ; dfs2 = nx   ; break ;    /* 1/2 = dfs1 */
-      case 24: nfs = 2 ; dfs1 = nx ; dfs2 = nx+1 ; break ;    /* 1/2 = dfs2 */
-      case 42: nfs = 2 ; dfs1 = 1  ; dfs2 = nx+1 ; break ;
+      case 20: nfs = 2 ; dfs1 = LL ; dfs2 = LR ; break ;  /* 2 points:  */
+      case 02: nfs = 2 ; dfs1 = LL ; dfs2 = UL ; break ;  /* 1/2 = dfs1 */
+      case 24: nfs = 2 ; dfs1 = UL ; dfs2 = UR ; break ;  /* 1/2 = dfs2 */
+      case 42: nfs = 2 ; dfs1 = LR ; dfs2 = UR ; break ;
 
-      case 10: nfs = 3 ; dfs1 = 0    ; dfs2 = 1    ; break ;  /* 2 points:  */
-      case 30: nfs = 3 ; dfs1 = 1    ; dfs2 = 0    ; break ;  /* 3/4 = dfs1 */
-      case 01: nfs = 3 ; dfs1 = 0    ; dfs2 = nx   ; break ;  /* 1/4 = dfs2 */
-      case 03: nfs = 3 ; dfs1 = nx   ; dfs2 = 0    ; break ;
-      case 14: nfs = 3 ; dfs1 = nx   ; dfs2 = nx+1 ; break ;
-      case 34: nfs = 3 ; dfs1 = nx+1 ; dfs2 = nx   ; break ;
-      case 41: nfs = 3 ; dfs1 = 1    ; dfs2 = nx+1 ; break ;
-      case 43: nfs = 3 ; dfs1 = nx+1 ; dfs2 = 1    ; break ;
+      case 10: nfs = 3 ; dfs1 = LL ; dfs2 = LR ; break ;  /* 2 points:  */
+      case 30: nfs = 3 ; dfs1 = LR ; dfs2 = LL ; break ;  /* 3/4 = dfs1 */
+      case 01: nfs = 3 ; dfs1 = LL ; dfs2 = UL ; break ;  /* 1/4 = dfs2 */
+      case 03: nfs = 3 ; dfs1 = UL ; dfs2 = LL ; break ;
+      case 14: nfs = 3 ; dfs1 = UL ; dfs2 = UR ; break ;
+      case 34: nfs = 3 ; dfs1 = UR ; dfs2 = UL ; break ;
+      case 41: nfs = 3 ; dfs1 = LR ; dfs2 = UR ; break ;
+      case 43: nfs = 3 ; dfs1 = UR ; dfs2 = LR ; break ;
 
-      case 11: nfs = 4 ; dfs1 = 0    ; dfs2 = 1    ;          /* 4 points:   */
-                         dfs3 = nx   ; dfs4 = nx+1 ; break ;  /* 9/16 = dfs1 */
-      case 13: nfs = 4 ; dfs1 = nx   ; dfs2 = nx+1 ;          /* 3/16 = dfs2 */
-                         dfs3 = 0    ; dfs4 = 1    ; break ;  /* 3/16 = dfs3 */
-      case 31: nfs = 4 ; dfs1 = 1    ; dfs2 = 0    ;          /* 1/16 = dfs4 */
-                         dfs3 = nx+1 ; dfs4 = nx   ; break ;
-      case 33: nfs = 4 ; dfs1 = nx+1 ; dfs2 = nx   ;
-                         dfs3 = 1    ; dfs4 = 0    ; break ;
+      case 11: nfs = 4 ; dfs1 = LL ; dfs2 = LR ;          /* 4 points:   */
+                         dfs3 = UL ; dfs4 = UR ; break ;  /* 9/16 = dfs1 */
+      case 13: nfs = 4 ; dfs1 = UL ; dfs2 = UR ;          /* 3/16 = dfs2 */
+                         dfs3 = LL ; dfs4 = LR ; break ;  /* 3/16 = dfs3 */
+      case 31: nfs = 4 ; dfs1 = LR ; dfs2 = LL ;          /* 1/16 = dfs4 */
+                         dfs3 = UR ; dfs4 = UL ; break ;
+      case 33: nfs = 4 ; dfs1 = UR ; dfs2 = UL ;
+                         dfs3 = LR ; dfs4 = LL ; break ;
 
-      case 12: nfs = 5 ; dfs1 = 0    ; dfs2 = nx   ;          /* 4 points:  */
-                         dfs3 = 1    ; dfs4 = nx+1 ; break ;  /* 3/8 = dfs1 */
-      case 21: nfs = 5 ; dfs1 = 0    ; dfs2 = 1    ;          /* 3/8 = dfs2 */
-                         dfs3 = nx   ; dfs4 = nx+1 ; break ;  /* 1/8 = dfs3 */
-      case 23: nfs = 5 ; dfs1 = nx   ; dfs2 = nx+1 ;          /* 1/8 = dfs4 */
-                         dfs3 = 0    ; dfs4 = 1    ; break ;
-      case 32: nfs = 5 ; dfs1 = 1    ; dfs2 = nx+1 ;
-                         dfs3 = 0    ; dfs4 = nx   ; break ;
+      case 12: nfs = 5 ; dfs1 = LL ; dfs2 = UL ;          /* 4 points:  */
+                         dfs3 = LR ; dfs4 = UR ; break ;  /* 3/8 = dfs1 */
+      case 21: nfs = 5 ; dfs1 = LL ; dfs2 = LR ;          /* 3/8 = dfs2 */
+                         dfs3 = UL ; dfs4 = UR ; break ;  /* 1/8 = dfs3 */
+      case 23: nfs = 5 ; dfs1 = UL ; dfs2 = UR ;          /* 1/8 = dfs4 */
+                         dfs3 = LL ; dfs4 = LR ; break ;
+      case 32: nfs = 5 ; dfs1 = LR ; dfs2 = UR ;
+                         dfs3 = LL ; dfs4 = UL ; break ;
 
-      case 22: nfs = 6 ; dfs1 = 0    ; dfs2 = 1    ;          /* 4 points: */
-                         dfs3 = nx   ; dfs4 = nx+1 ; break ;  /* 1/4 = all */
+      case 22: nfs = 6 ; dfs1 = LL ; dfs2 = LR ;          /* 4 points: */
+                         dfs3 = UL ; dfs4 = UR ; break ;  /* 1/4 = all */
    }
 
-   ibot = 0         ; if( ibot < idel ) ibot = idel ;    /* range in im[] */
-   itop = nx+idel-1 ; if( itop > mi   ) itop = mi ;
+   adel++ ; bdel++ ;
 
-   jbot = 0         ; if( jbot < jdel ) jbot = jdel ;
-   jtop = ny+jdel-1 ; if( jtop > mj   ) jtop = mj ;
+   abot = 0         ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel-1 ; if( atop > ma   ) atop = ma ;
 
-   kzoff = kz*nx*ny - idel + (jbot-jdel)*nx ;          /* offset into vol */
-   joff  = jbot*mi ;                                   /* offset into im  */
+   bbot = 0         ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel-1 ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
+
+#if 0
+printf("fixijk=%3d  nfs=%d  dfs1=%d  dfs2=%d  dfs3=%d  dfs4=%d\n",
+        fixijk,nfs,dfs1,dfs2,dfs3,dfs4);
+#endif
 
    switch( nfs ){
 
       case 1:                                          /* 1 point (NN copy) */
-         kzoff += dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ ) im[ii+joff] = vol[ii+kzoff] ;
-            joff  += mi ;
-            kzoff += nx ;
-         }
+         ijkoff += dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = vol[aoff+ijkoff] ;
       break ;
 
       case 2:                                          /* 2 points (1/2+1/2) */
-         kzoff += dfs1 ;
-         dfs2   = dfs2 - dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = ( vol[ii+kzoff] + vol[ii+(kzoff+dfs2)] ) >> 1 ;
-            joff  += mi ;
-            kzoff += nx ;
-         }
+         ijkoff += dfs1 ; dfs2 -= dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)]) >> 1 ;
       break ;
 
       case 3:                                          /* 2 points (3/4+1/4) */
-         kzoff += dfs1 ;
-         dfs2   = dfs2 - dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = (  (vol[ii+kzoff] << 1)
-                              +  vol[ii+kzoff]
-                              + vol[ii+(kzoff+dfs2)] ) >> 2 ;
-            joff  += mi ;
-            kzoff += nx ;
-         }
+         ijkoff += dfs1 ; dfs2 -= dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = ( (vol[aoff+ijkoff] << 1) + vol[aoff+ijkoff]
+                              + vol[aoff+(ijkoff+dfs2)]                  ) >> 2 ;
       break ;
 
       case 4:                                          /* 4 points (9/16+3/16+3/16+1/16) */
-         kzoff += dfs1 ;
-         dfs2   = dfs2 - dfs1 ;
-         dfs3   = dfs3 - dfs1 ;
-         dfs4   = dfs4 - dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = (  (vol[ii+kzoff] << 3)
-                              +  vol[ii+kzoff]
-                              + (( vol[ii+(kzoff+dfs2)] + vol[ii+(kzoff+dfs3)] ) << 1)
-                              +  ( vol[ii+(kzoff+dfs2)] + vol[ii+(kzoff+dfs3)] )
-                              + vol[ii+(kzoff+dfs4)]                           ) >> 4 ;
-         joff  += mi ;
-         kzoff += nx ;
-      }
+         ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = ( (vol[aoff+ijkoff] << 3)
+                              + vol[aoff+ijkoff]
+                              +((vol[aoff+(ijkoff+dfs2)] + vol[aoff+(ijkoff+dfs3)]) << 1)
+                              + (vol[aoff+(ijkoff+dfs2)] + vol[aoff+(ijkoff+dfs3)])
+                              + vol[aoff+(ijkoff+dfs4)]                                ) >> 4 ;
       break ;
 
       case 5:                                          /* 4 points (3/8+3/8+1/8+1/8) */
-         kzoff += dfs1 ;
-         dfs2   = dfs2 - dfs1 ;
-         dfs3   = dfs3 - dfs1 ;
-         dfs4   = dfs4 - dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = (  (( vol[ii+kzoff] + vol[ii+(kzoff+dfs2)] ) << 1)
-                              +  ( vol[ii+kzoff] + vol[ii+(kzoff+dfs2)] )
-                              + vol[ii+(kzoff+dfs3)]
-                              + vol[ii+(kzoff+dfs4)] ) >> 3 ;
-         joff  += mi ;
-         kzoff += nx ;
-      }
+         ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = ( ((vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)]) << 1)
+                              + (vol[aoff+ijkoff] + vol[aoff+(ijkoff+dfs2)])
+                              + vol[aoff+(ijkoff+dfs3)] + vol[aoff+(ijkoff+dfs4)] ) >> 3 ;
       break;
 
       case 6:                                          /* 4 points (1/4+1/4+1/4+1/4) */
-         kzoff += dfs1 ;
-         dfs2   = dfs2 - dfs1 ;
-         dfs3   = dfs3 - dfs1 ;
-         dfs4   = dfs4 - dfs1 ;
-         for( jj=jbot ; jj < jtop ; jj++ ){
-            for( ii=ibot ; ii < itop ; ii++ )
-               im[ii+joff] = (  vol[ii+kzoff]
-                              + vol[ii+(kzoff+dfs2)]
-                              + vol[ii+(kzoff+dfs3)]
-                              + vol[ii+(kzoff+dfs4)] ) >> 2 ;
-         joff  += mi ;
-         kzoff += nx ;
-      }
+         ijkoff += dfs1 ; dfs2 -= dfs1 ; dfs3 -= dfs1 ; dfs4 -= dfs1 ;
+         for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+            for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+               im[aa+boff] = (  vol[aoff+ijkoff]        + vol[aoff+(ijkoff+dfs2)]
+                              + vol[aoff+(ijkoff+dfs3)] + vol[aoff+(ijkoff+dfs4)] ) >> 2 ;
       break;
    }
 
@@ -468,154 +564,222 @@ void extract_byte_ij_fs( int nx , int ny , int nz , byte * vol ,
              ct[4] = CPU time for _fs
 -----------------------------------------------------------------------------*/
 
-void extract_byte_ij_speedtest( int nrep , float * ct )
+void extract_byte_speedtest( int nrep , int fixdir , float * ct )
 {
    double cputim ;
-   int pp , nx=100,ny=100,nz=100,nxy=nx*ny ,
-       kk , mx,my,mxy , xpad,ypad ;
+   int pp , nx=161,ny=191,nz=141,nxy=nx*ny ,
+       kk , ma,mb,mab , apad,bpad ;
    float aa=0.347 , bb=-0.521 , da,db ;
    byte * vin , * vout ;
+   int astep,bstep,cstep , na,nb,nc ;
+
+   ASSIGN_DIRECTIONS ;
 
    /* setup bricks */
 
-   da = fabs( 0.5*aa*(nz-1.0) ) ; db = fabs( 0.5*bb*(nz-1.0) ) ;
-   xpad = (int)(2.0+da)         ; ypad = (int)(2.0+db) ;
-   mx   = nx + 2*xpad           ; my   = ny + 2*ypad   ; mxy = mx*my ;
+   da = fabs( 0.5*aa*(nc-1.0) ) ; db = fabs( 0.5*bb*(nc-1.0) ) ;
+   apad = (int)(2.0+da)         ; bpad = (int)(2.0+db) ;
+   ma   = na + 2*apad           ; mb   = nb + 2*bpad   ; mab = ma*mb ;
 
-   vin = (byte *) malloc( sizeof(byte) * (nx*ny*nz) ) ;
+   vin = (byte *) malloc( sizeof(byte) * (na*nb*nc) ) ;
    if( vin == NULL ) return ;
 
-   vout = (byte *) malloc( sizeof(byte) * (mx*my*nz) ) ;
+   vout = (byte *) malloc( sizeof(byte) * (ma*mb*nc) ) ;
    if( vout == NULL ){ free(vin) ; return ; }
 
    vin[0] = 1 ;
-   for( kk=1 ; kk < nx*ny*nz ; kk++ ) vin[kk] = (byte)((3*vin[kk-1]+7) % 256) ;
+   for( kk=1 ; kk < na*nb*nc ; kk++ ) vin[kk] = (byte)((3*vin[kk-1]+7) % 256) ;
 
 #undef BTEST
 #define BTEST(func) do{ cputim = COX_cpu_time() ;                    \
                         for( pp=0 ; pp < nrep ; pp++ ){              \
-                          for( kk=0 ; kk < nz ; kk++ ){              \
-                             da = aa*(kk - 0.5*(nz-1.0)) + xpad ;    \
-                             db = bb*(kk - 0.5*(nz-1.0)) + ypad ;    \
+                          for( kk=0 ; kk < nc ; kk++ ){              \
+                             da = aa*(kk - 0.5*(nc-1.0)) + apad ;    \
+                             db = bb*(kk - 0.5*(nc-1.0)) + bpad ;    \
                              func( nx,ny,nz , vin ,                  \
-                                   kk , da , db ,                    \
-                                   mx , my , vout + kk*mxy ) ;       \
+                                   fixdir , kk , da , db ,           \
+                                   ma , mb , vout + kk*mab ) ;       \
                           }                                          \
                         }                                            \
                         cputim = COX_cpu_time() - cputim ; } while(0)
 
-   BTEST(extract_byte_ij_nn)   ; ct[0] = cputim ;
-   BTEST(extract_byte_ij_lifl) ; ct[1] = cputim ;
-   BTEST(extract_byte_ij_liby) ; ct[2] = cputim ;
-   BTEST(extract_byte_ij_ts)   ; ct[3] = cputim ;
-   BTEST(extract_byte_ij_fs)   ; ct[4] = cputim ;
+   BTEST(extract_byte_nn)   ; ct[0] = cputim ;
+   BTEST(extract_byte_lifl) ; ct[1] = cputim ;
+   BTEST(extract_byte_liby) ; ct[2] = cputim ;
+   BTEST(extract_byte_ts)   ; ct[3] = cputim ;
+   BTEST(extract_byte_fs)   ; ct[4] = cputim ;
 
 #undef BTEST
 
    free(vin) ; free(vout) ; return ;
 }
 
-/******************************************************************************/
+/*-----------------------------------------------------------------------
+   Simple get/put of a fixed plane (no shifting, zero padding).
+-------------------------------------------------------------------------*/
+
+void getplane_byte( int nx , int ny , int nz , byte * vol ,
+                    int fixdir , int fixijk , byte * im )
+{
+   int bb , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
+
+   if( fixijk < 0 ) return ;
+
+   ASSIGN_DIRECTIONS ;
+
+   if( fixijk >= nc ) return ;
+
+   ijkoff = fixijk*cstep ;
+
+   for( bb=0,boff=0 ; bb < nb ; bb++,boff+=na,ijkoff+=bstep )
+      for( aa=0,aoff=0 ; aa < na ; aa++,aoff+=astep )
+         im[aa+boff] = vol[aoff+ijkoff] ;
+
+   return ;
+}
+
+void putplane_byte( int nx , int ny , int nz , byte * vol ,
+                    int fixdir , int fixijk , byte * im )
+{
+   int bb , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
+
+   if( fixijk < 0 ) return ;
+
+   ASSIGN_DIRECTIONS ;
+
+   if( fixijk >= nc ) return ;
+
+   ijkoff = fixijk*cstep ;
+
+   for( bb=0,boff=0 ; bb < nb ; bb++,boff+=na,ijkoff+=bstep )
+      for( aa=0,aoff=0 ; aa < na ; aa++,aoff+=astep )
+         vol[aoff+ijkoff] = im[aa+boff] ;
+
+   return ;
+}
+
+/******************************************************************************
+ ******************************************************************************
+ ******************************************************************************/
 
 typedef void gfun( int , int , int , byte * ,
-                   int , float , float , int , int , byte * ) ;
+                   int , int , float , float , int , int , byte * ) ;
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * in_dset , * out_dset ;
-   int nx,ny,nz,nxy , kk , mx,my,mxy , xpad,ypad , pp,ploop=1;
+   THD_3dim_dataset * in_dset ;
+   int nx,ny,nz,nxy , kk,ii , ma,mb,mab ,
+       apad,bpad , pp,ploop=1,fixdir;
    float aa , bb , da,db ;
    THD_ivec3 iv ;
-   byte * vin , * vout ;
+   byte * vin , * vout , * vmax ;
+   MRI_IMAGE * imout , * immax ;
    double cputim ;
-   gfun * func = extract_byte_ij_nn ;
+   gfun * func = extract_byte_nn ;
+   char * cfun = "nn" ;
+   int astep,bstep,cstep , na,nb,nc ;
 
-   if( argc < 2 ){
-      printf("Usage 1: extor A B bytedset [loops [suffix]]\n") ;
-      printf("Usage 2: extor loops\n") ;
+   if( argc < 3 ){
+      printf("Usage 1: extor fixdir A B bytedset [loops [suffix]]\n") ;
+      printf("Usage 2: extor fixdir loops\n") ;
       exit(0) ;
    }
 
-   if( argc == 2 ){
+   fixdir = strtol(argv[1],NULL,10) ;
+   if( fixdir<1 || fixdir>3 ){fprintf(stderr,"fixdir=%d?\n",fixdir);exit(1);}
+
+   if( argc == 3 ){
       float ct[5] ;
-      ploop = strtol(argv[1],NULL,10) ;
-      if( ploop < 1 ){ fprintf(stderr,"loop=%d?\n",ploop);exit(1); }
-      extract_byte_ij_speedtest( ploop , ct ) ;
-      printf("_nn   = %g\n"
-             "_lifl = %g\n"
-             "_liby = %g\n"
-             "_ts   = %g\n"
-             "_fs   = %g\n" , ct[0],ct[1],ct[2],ct[3],ct[4] ) ;
+      ploop = strtol(argv[2],NULL,10) ;
+      if( ploop < 1 ){ fprintf(stderr,"loop=%d?\n",ploop);exit(1);}
+      extract_byte_speedtest( ploop , fixdir , ct ) ;
+      printf("Speed test with fixdir=%d\n"
+             "_nn   = %g (%g/rep)\n"
+             "_lifl = %g (%g/rep)\n"
+             "_liby = %g (%g/rep)\n"
+             "_ts   = %g (%g/rep)\n"
+             "_fs   = %g (%g/rep)\n" ,
+             fixdir ,
+             ct[0],ct[0]/ploop, ct[1],ct[1]/ploop,
+             ct[2],ct[2]/ploop, ct[3],ct[3]/ploop, ct[4],ct[4]/ploop ) ;
       exit(1) ;
    }
 
-   aa = strtod(argv[1],NULL) ;
-   bb = strtod(argv[2],NULL) ;
+   aa = strtod(argv[2],NULL) ;
+   bb = strtod(argv[3],NULL) ;
    if( aa == 0.0 && bb == 0.0 ){fprintf(stderr,"A=B=0?\n");exit(1);}
 
-   if( argc > 4 ){
-      ploop = strtol(argv[4],NULL,10) ;
+   if( argc > 5 ){
+      ploop = strtol(argv[5],NULL,10) ;
       if( ploop < 1 ){ fprintf(stderr,"loop=%d?\n",ploop);exit(1); }
    }
 
-   if( argc > 5 ){
-      if( strstr(argv[5],"nn") != NULL )
-         func = extract_byte_ij_nn ;
-      else if( strstr(argv[5],"lifl") != NULL )
-         func = extract_byte_ij_lifl ;
-      else if( strstr(argv[5],"liby") != NULL )
-         func = extract_byte_ij_liby ;
-      else if( strstr(argv[5],"ts") != NULL )
-         func = extract_byte_ij_ts ;
-      else if( strstr(argv[5],"fs") != NULL )
-         func = extract_byte_ij_fs ;
+   if( argc > 6 ){
+      cfun = argv[6] ;
+      if( strstr(argv[6],"nn") != NULL )
+         func = extract_byte_nn ;
+      else if( strstr(argv[6],"lifl") != NULL )
+         func = extract_byte_lifl ;
+      else if( strstr(argv[6],"liby") != NULL )
+         func = extract_byte_liby ;
+      else if( strstr(argv[6],"ts") != NULL )
+         func = extract_byte_ts ;
+      else if( strstr(argv[6],"fs") != NULL )
+         func = extract_byte_fs ;
       else {
          fprintf(stderr,"Unknown func suffix\n");exit(1);
       }
    }
 
-
-   in_dset = THD_open_dataset( argv[3] ) ;
+   in_dset = THD_open_dataset( argv[4] ) ;
    if( in_dset == NULL ){fprintf(stderr,"can't open dataset?\n");exit(1);}
    if( DSET_NVALS(in_dset) > 1 ){fprintf(stderr,"nvals > 1?\n");exit(1);}
    if( DSET_BRICK_TYPE(in_dset,0) != MRI_byte ){fprintf(stderr,"not byte?\n");exit(1);}
 
-   out_dset = EDIT_empty_copy(in_dset) ;
-   EDIT_dset_items( out_dset , ADN_prefix , "extor" , NULL ) ;
-   tross_Copy_History( in_dset , out_dset ) ;
-   tross_Make_History( "extor" , argc,argv , out_dset ) ;
+   nx = DSET_NX(in_dset) ;
+   ny = DSET_NY(in_dset) ;
+   nz = DSET_NZ(in_dset) ; nxy = nx*ny ;
 
-   nx = DSET_NX(out_dset) ; ny = DSET_NY(out_dset) ; nz = DSET_NZ(out_dset) ; nxy = nx*ny ;
+   ASSIGN_DIRECTIONS ;
 
-   da = fabs( 0.5*aa*(nz-1.0) ) ; db = fabs( 0.5*bb*(nz-1.0) ) ;
-   if( da < 1.0 || db < 1.0 ){fprintf(stderr,"da=%g db=%g ?\n",da,db);exit(1);}
+   da = fabs( 0.5*aa*(nc-1.0) ) ; db = fabs( 0.5*bb*(nc-1.0) ) ;
+   if( da < 1.0 && db < 1.0 ){fprintf(stderr,"da=%g db=%g ?\n",da,db);exit(1);}
 
-   xpad = (int)(2.0+da) ; ypad = (int)(2.0+db) ;
-   mx   = nx + 2*xpad   ; my   = ny + 2*ypad   ; mxy = mx*my ;
-
-   LOAD_IVEC3(iv,mx,my,nz) ;
-   EDIT_dset_items( out_dset , ADN_nxyz , iv , NULL ) ;
+   apad = (int)(2.0+da) ; bpad = (int)(2.0+db) ;
+   ma   = na + 2*apad   ; mb   = nb + 2*bpad   ; mab = ma*mb ;
 
    DSET_load(in_dset) ;
    vin = DSET_BRICK_ARRAY(in_dset,0) ;
-   vout = (byte *) malloc( sizeof(byte) * DSET_NVOX(out_dset) ) ;
-   EDIT_substitute_brick( out_dset , 0 , MRI_byte , vout ) ;
+
+   imout = mri_new( ma,mb , MRI_byte ) ; vout = MRI_BYTE_PTR(imout) ;
+   immax = mri_new( ma,mb , MRI_byte ) ; vmax = MRI_BYTE_PTR(immax) ;
 
    cputim = COX_cpu_time() ;
 
    for( pp=0 ; pp < ploop ; pp++ ){
-     for( kk=0 ; kk < nz ; kk++ ){
-        da = aa*(kk - 0.5*(nz-1.0)) + xpad ; db = bb*(kk - 0.5*(nz-1.0)) + ypad ;
+     memset( vmax , 0 , mab ) ;
+     for( kk=0 ; kk < nc ; kk++ ){
+        da = aa*(kk - 0.5*(nc-1.0)) + apad ;
+        db = bb*(kk - 0.5*(nc-1.0)) + bpad ;
 
-        func( nx,ny,nz , vin ,
-              kk , da , db ,
-              mx , my , vout + kk*mxy ) ;
+        func( nx,ny,nz , vin , fixdir,kk , da,db , ma,mb , vout ) ;
+
+        for( ii=0 ; ii < mab ; ii++ )
+          if( vout[ii] > vmax[ii] ) vmax[ii] = vout[ii] ;
      }
    }
 
    cputim = (COX_cpu_time() - cputim)/ploop ;
-   fprintf(stderr,"CPU time per loop = %g\n",cputim) ;
+   fprintf(stderr,"CPU time per loop = %g [%s]\n",cputim,cfun) ;
 
-   DSET_write(out_dset) ;
-   exit(1) ;
+   { char fname[128] = "exim_" ;
+     strcat(fname,cfun) ; strcat(fname,".pgm") ;
+     mri_write( fname , immax ) ;
+   }
+
+   exit(0) ;
 }

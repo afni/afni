@@ -881,8 +881,11 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. '/' )THEN
             NEVAL          = NEVAL - 1
-            IF( R8_EVAL(NEVAL+1) .NE. 0.0D+0 )
-     X        R8_EVAL(NEVAL) = R8_EVAL(NEVAL) / R8_EVAL(NEVAL+1)
+            IF( R8_EVAL(NEVAL+1) .NE. 0.0D+0 )THEN
+              R8_EVAL(NEVAL) = R8_EVAL(NEVAL) / R8_EVAL(NEVAL+1)
+            ELSE
+              R8_EVAL(NEVAL) = 0.0D+0
+            ENDIF
 C.......................................................................
          ELSEIF( CNCODE .EQ. '**' )THEN
             NEVAL          = NEVAL - 1
@@ -1336,8 +1339,12 @@ C.......................................................................
             ELSEIF( C2CODE .EQ. '/' )THEN
                NCODE = NCODE + 2
                DO IV=IVBOT,IVTOP
-                  R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
-     X                                   / R8VAL(IV-IBV,JF)
+                  IF( R8VAL(IV-IBV,JF) .NE. 0.D+00 )THEN
+                    R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
+     X                                     / R8VAL(IV-IBV,JF)
+                  ELSE
+                    R8_EVAL(IV-IBV,NEVAL) = 0.D+00
+                  ENDIF
                ENDDO
             ELSE
                NEVAL = NEVAL + 1
@@ -1375,8 +1382,12 @@ C.......................................................................
             ELSEIF( C2CODE .EQ. '/' )THEN
                NCODE = NCODE + 2
                DO IV=IVBOT,IVTOP
-                  R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
-     X                                   / R8_VAL
+                  IF( R8_VAL .NE. 0.D+00 )THEN
+                     R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
+     X                                      / R8_VAL
+                  ELSE
+                     R8_EVAL(IV-IBV,NEVAL) = 0.D+00
+                  ENDIF
                ENDDO
             ELSE
                NCODE  = NCODE + 1
@@ -1410,9 +1421,12 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. '/' )THEN
             NEVAL = NEVAL - 1
             DO IV=IVBOT,IVTOP
-               IF( R8_EVAL(IV-IBV,NEVAL+1) .NE. 0.0D+0 )
-     X           R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
+               IF( R8_EVAL(IV-IBV,NEVAL+1) .NE. 0.0D+0 )THEN
+                 R8_EVAL(IV-IBV,NEVAL) =  R8_EVAL(IV-IBV,NEVAL)
      X                                  / R8_EVAL(IV-IBV,NEVAL+1)
+               ELSE
+                 R8_EVAL(IV-IBV,NEVAL) = 0.D+00
+               ENDIF
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. '**' )THEN
