@@ -132,12 +132,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.51k"
+#define VERSION "2.51l"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "27 Dec 2002      "
+#define RELEASE "31 Dec 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1143,7 +1143,7 @@ extern void AFNI_fimmer_setref( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setort( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setignore( Three_D_View * , int ) ;
 extern void AFNI_fimmer_setpolort( Three_D_View * , int ) ;
-extern void AFNI_rescan_session( int ) ;
+extern int  AFNI_rescan_session( int ) ;
 extern void AFNI_rescan_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_rescan_all_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_rescan_timeseries_CB( Widget , XtPointer , XtPointer ) ;
