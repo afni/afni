@@ -22,7 +22,11 @@ MRI_IMAGE * mri_copy( MRI_IMAGE * oldim )
    newim = mri_new_conforming( oldim , oldim->kind ) ;
    oar   = mri_data_pointer( oldim ) ;
    nar   = mri_data_pointer( newim ) ;
-   memcpy( nar , oar , newim->nvox * newim->pixel_size ) ;
+   if( oar == NULL ){
+     free(nar); mri_fix_data_pointer(NULL,newim);
+   } else {
+     memcpy( nar , oar , newim->nvox * newim->pixel_size ) ;
+   }
    MRI_COPY_AUX( newim , oldim ) ;
    return newim ;
 }

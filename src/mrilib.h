@@ -827,6 +827,8 @@ extern void mri_2dalign_cleanup( MRI_2dalign_basis * ) ;
 
 extern MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im ) ;
 
+extern MRI_IMAGE * mri_flip3D( int,int,int , MRI_IMAGE *inim ) ; /* 19 Mar 2003 */
+
 /*---------------------------------------------------------------------*/
 /*--------- 22 April 1998: byte order routines (mri_order.c) ----------*/
 
