@@ -1279,6 +1279,87 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    SUMA_RETURN (YUP); 
 }/* SUMA_Read_SpecFile */
 
+/*!
+   \brief show the contents of Spec structure 
+   ans = SUMA_ShowSpecStruct (Spec, Out, detail);
+   
+   \param Spec (SUMA_SurfSpecFile *)
+   \param Out (FILE *)  Pointer to output file
+                        If NULL then output is to stdout
+   \param detail (int) 1:  only surface name or coord file 
+                           name if surface file is split to coord. 
+                           and topo. files
+                       2:  surface name and BOTH coord and topo files 
+                           whenever applicable
+                       3:  The whole nine yards.
+   \return ans (YUP = good, NOPE = bad)
+   \sa SUMA_Read_SpecFile
+*/
+SUMA_Boolean SUMA_ShowSpecStruct (SUMA_SurfSpecFile *Spec, FILE *Out, int detail)
+{
+   static char FuncName[]={"SUMA_ShowSpecStruct"};
+   FILE *Outp;
+   char name_coord[SUMA_MAX_LABEL_LENGTH];
+   char name_topo[SUMA_MAX_LABEL_LENGTH];
+   int i;
+   SUMA_Boolean ShowCoord, ShowTopo, ShowRest;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!Spec) {
+      SUMA_SL_Err("NULL Spec");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!Out) Outp = stdout;
+   else Outp = Out;
+   
+   if (!Spec->N_Surfs) {
+      fprintf (Outp, "No surfaces in Spec.\n");
+      SUMA_RETURN(YUP);
+   }
+   
+   ShowCoord = ShowTopo = ShowRest = NOPE;
+   if (detail == 1) ShowCoord = YUP;
+   else if (detail == 2) { ShowCoord = YUP; ShowTopo = YUP; }
+   else if (detail == 3) { ShowCoord = YUP; ShowTopo = YUP; ShowRest = YUP; }
+   else {
+      SUMA_SL_Err("Bad value for detail, 0 < detail < 4");
+      SUMA_RETURN(NOPE);
+   }
+
+   fprintf (Outp, "%d surfaces in Spec, %d defined states, %d groups\n", 
+                     Spec->N_Surfs, Spec->N_States, Spec->N_Groups);
+   
+   for (i=0; i < Spec->N_Surfs; ++i) {
+      name_coord[0] ='\0';
+      name_topo[0] = '\0';
+      if (  (SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) || 
+            (SUMA_iswordin(Spec->SurfaceType[i], "1D") == 1)         ) {
+         sprintf(name_coord, "%s", Spec->CoordFile[i]);
+         sprintf(name_topo,"%s", Spec->TopoFile[i]);
+      } else if ( (SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) ||
+                  (SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1)        ||
+                  (SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) ) {
+         sprintf(name_coord, "%s", Spec->FreeSurferSurface[i]);
+      }
+      fprintf (Outp, "%d) ", i); /* print the index */
+      if (ShowCoord)  fprintf (Outp, "%s ", name_coord);
+      if (ShowTopo &&name_topo[0]) fprintf (Outp, "%s ", name_topo);
+      fprintf (Outp, "\n");
+      if (ShowRest) {
+         fprintf (Outp, "\tMappingRef: %s\n", Spec->MappingRef[i]);
+         fprintf (Outp, "\tType: %s, Format: %s, EmbedDim: %d\n", Spec->SurfaceType[i], Spec->SurfaceFormat[i], Spec->EmbedDim[i]);
+         fprintf (Outp, "\tState: %s, Group %s\n", Spec->State[i], Spec->Group[i]);
+         if (Spec->SureFitVolParam[i][0]) fprintf (Outp, "\tSureFitVolParam: %s\n", Spec->SureFitVolParam[i]);
+         if (Spec->VolParName[i][0])  fprintf (Outp, "\tVolParName: %s\n", Spec->VolParName[i]);
+         if (Spec->IDcode[i][0])  fprintf (Outp, "\tIDcode: %s\n", Spec->IDcode[i]);
+      }   
+   }
+   
+   SUMA_RETURN(YUP);   
+}
+
 /*! 
    Call the function engine, with debug turned on.      20 Oct 2003 [rickr]
 */
@@ -1333,10 +1414,10 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
          }
 
          brk = NOPE;
-         
+
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
             SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-            sprintf(SF_name->name_coord,"%s", Spec->CoordFile[i]); ;
+            sprintf(SF_name->name_coord,"%s", Spec->CoordFile[i]); 
             sprintf(SF_name->name_topo,"%s", Spec->TopoFile[i]); 
             if (!strlen(Spec->SureFitVolParam[i])) { /* initialize to empty string */
                SF_name->name_param[0] = '\0'; 
@@ -1362,7 +1443,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
             SurfIn = YUP;         
             brk = YUP;
          }/* load surefit surface */ 
-         
+                  
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "1D") == 1) {/* load 1D surface */
             SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
             sprintf(SF_name->name_coord,"%s", Spec->CoordFile[i]); ;

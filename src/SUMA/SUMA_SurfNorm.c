@@ -489,13 +489,13 @@ int main (int argc,char *argv[])
    SUMA_Read_file (NodeList, argv[1], 3*nnode);
    
    printf ("\nNodes : (%d)\n", nnode);
-   SUMA_disp_vecmat (NodeList, nnode, 3, 1);
+   SUMA_disp_vecmat (NodeList, nnode, 3, 1, SUMA_ROW_MAJOR, NULL, 0);
    
    RetStrct = SUMA_SurfNorm(NodeList,  nnode, FaceSetList, nface );
    printf ("\nNode Norms:\n");
-   SUMA_disp_vecmat (RetStrct.NodeNormList, RetStrct.N_Node, 3, 1);
+   SUMA_disp_vecmat (RetStrct.NodeNormList, RetStrct.N_Node, 3, 1, SUMA_ROW_MAJOR, NULL, 0);
    printf ("\nFaceSet Norms:\n");
-   SUMA_disp_vecmat (RetStrct.FaceNormList, RetStrct.N_Face, 3, 1);
+   SUMA_disp_vecmat (RetStrct.FaceNormList, RetStrct.N_Face, 3, 1, SUMA_ROW_MAJOR, NULL, 0);
    
    
    if (RetStrct.FaceNormList) SUMA_free(RetStrct.FaceNormList);

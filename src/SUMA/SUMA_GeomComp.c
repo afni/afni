@@ -473,10 +473,572 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
    SUMA_RETURN(YUP);
 }
 
+/*!
+   \brief calculate the interpolation weights required to smooth data on the surface
+   using M.K. Chung et al. Neuroimage 03
+   
+   \param SO (SUMA_SurfaceObject *) Surface object with valid SO->NodeList, SO->FaceSetList and SO->FN
+   \return wgt (float **) 2D matrix of the same size as SO->FirstNeighb that contains the
+                           weights to be applied to a node's neighbors in interpolation
+                           Free the result with SUMA_free2D ((char **)wgt, SO->N_Node);
+                           The weights are computed using the Finite Element method.
+   \sa SUMA_Chung_Smooth
+*/
+float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_Chung_Smooth_Weights"};
+   float **wgt=NULL, *coord_nbr=NULL, *cotan=NULL, *tfp=NULL;
+   float dv[3], p[3], q[3];
+   float area, area_p, area_q, dot_p, dot_q;
+   int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3, i_dbg;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!SO) {
+      SUMA_SL_Err("Null SO");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      SUMA_SL_Err("Null SO->FN");
+      SUMA_RETURN(NULL);
+   }
+   
+   i_dbg = 17; /* index of debugging node, set to -1 for no debugging */
+   
+   /* implement the non-parametric weight estimation method */
+   wgt = (float **)SUMA_allocate2D(SO->N_Node, SO->FN->N_Neighb_max, sizeof(float));  /* vector of node weights */
+   coord_nbr = (float *)SUMA_malloc((SO->FN->N_Neighb_max + 2) * sizeof(float) * 3); /* vector of neighboring node coordinates */ 
+   cotan = (float *)SUMA_malloc(SO->FN->N_Neighb_max * sizeof(float)); 
+   if (!wgt || !coord_nbr || !cotan) {
+      SUMA_SL_Crit("Failed to allocate for wgt &/|coord_nbr &/|cotan");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (n=0; n < SO->N_Node; ++n) {
+      n3 = 3 * n;
+      /* translate the coordinates of the neighboring nodes to make n be the origin */
+      for (j=0; j<SO->FN->N_Neighb[n]; ++j) {
+         j3 = 3 * (j+1);
+         nj = SO->FN->FirstNeighb[n][j]; nj3 = 3 * nj;
+         coord_nbr[j3] = SO->NodeList[nj3] - SO->NodeList[n3];
+         coord_nbr[j3+1] = SO->NodeList[nj3+1] - SO->NodeList[n3+1];
+         coord_nbr[j3+2] = SO->NodeList[nj3+2] - SO->NodeList[n3+2];
+      }  /* for j */
+      /* padd with last neighbor at the very beginning and 1st neighbor at the end 
+         in matlab: coord_nbr = [coord_nbr(:,last_neighb) coord_nbr coord_nbr(:,first_neighb)];
+      */   
+      for (k=0; k < 3; ++k) coord_nbr[k] = coord_nbr[j3+k];  
+      j3 = 3 * ( SO->FN->N_Neighb[n] + 1);
+      for (k=0; k < 3; ++k) coord_nbr[j3+k] = coord_nbr[3+k];
+      if (LocalHead && n == i_dbg) { SUMA_disp_vect (coord_nbr, 3 * (SO->FN->N_Neighb[n] + 2)) ;  }
+      
+      
+      area = 0.0;
+      for (j=1; j<=SO->FN->N_Neighb[n]; ++j) { 
+         j3 = 3 * j; j3p1 = 3 * (j+1); j3m1 = 3 * (j-1);
+         for (k=0; k < 3; ++k) dv[k] = coord_nbr[j3p1+k] - coord_nbr[j3+k]; 
+         tfp = &(coord_nbr[j3p1]);
+         dot_p = SUMA_MT_DOT (tfp, dv);
+         SUMA_MT_CROSS(p, tfp, dv);
+         for (k=0; k < 3; ++k) dv[k] = coord_nbr[j3m1+k] - coord_nbr[j3+k]; 
+         tfp = &(coord_nbr[j3m1]);
+         dot_q = SUMA_MT_DOT (tfp, dv);
+         SUMA_MT_CROSS(q, tfp, dv);
+         
+         SUMA_NORM(area_p, p); 
+         SUMA_NORM(area_q, q); 
+         
+         cotan[j-1] = dot_p/area_p + dot_q/area_q;
+         area += area_p/2.0;
+         if (LocalHead && n == i_dbg) {
+            fprintf (SUMA_STDERR,"[%d->%d] area_p, area_q = %f, %f\n",
+                                  n, SO->FN->FirstNeighb[n][j-1],
+                                  area_p / 2.0,  area_q / 2.0);
+         }
+      }
+      
+      for (j=0; j<SO->FN->N_Neighb[n]; ++j) {
+         wgt[n][j] = cotan[j]/area;
+      }
+      if (LocalHead && n == i_dbg) {
+         fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\n",
+                              FuncName, n, n+1);
+         SUMA_disp_vect (wgt[n], SO->FN->N_Neighb[n]);
+      }
+   }  /* for n */
+
+   /* free local variables */
+   if (coord_nbr) SUMA_free(coord_nbr); coord_nbr = NULL;
+   if (cotan) SUMA_free(cotan); cotan = NULL;
+
+   SUMA_RETURN(wgt);
+}
+
+/*!
+   \brief Show the transfer function (f(k)) for the Taubin 
+   smoothing algorithm for a combination of scaling factors
+   and number of iterations 
+   
+   \param l (float)  postive scaling factor
+   \param m (float)  negative scaling factor
+                    (for avoiding the shrinkage of surfaces)
+            The band-pass frequency (kbp) is 1/m + 1/l
+            f(kbp) = 1
+   \param N_iter (int) number of iterations
+   \param Out (FILE *) pointer to output file. If NULL,
+                  output is to stdout
+   \return ans (SUMA_Boolean) YUP, no problems
+                              NOPE, yes problems
+   
+   The output is of the form:
+   k f(k)
+   
+   where k is the normalized frequency and 
+   f(k) is the value of the transfer function at k
+   
+   \sa figure 4 in Geometric Signal Processing on 
+   Polygonal Meshes (Taubin G, Eurographics 2000)
+   \sa SUMA_Taubin_Smooth
+   \sa SUMA_Taubin_Smooth_Coef
+*/   
+SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Out)
+{
+   static char FuncName[]={"SUMA_Taubin_Smooth_TransferFunc"};
+   FILE *Outp = NULL;
+   int i, imax = 100;
+   float fk, k;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (N % 2) {
+      SUMA_SL_Err("N_iter must be even");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!Out) Outp = stdout;
+   else Outp = Out;
+   
+   k = 0.0;
+   for (i=0; i< imax; ++i) {
+      fk = pow( ( ( 1-m*k ) * ( 1-l*k ) ) , N / 2 );
+      fprintf (Outp,"%f %f\n", k, fk);
+      k += (float)i/(float)imax;
+   }
+   
+   
+   SUMA_RETURN(YUP);
+}
+/*!
+   \brief Calculates Mu(m) and Lambda(l) smoothing coefficients
+   based on Taubin's smoothing algorithm in Geometric Signal 
+   Processing on Polygonal Meshes (Eurographics 2000)
+   
+   \param k (float) the pass-band frequency (typically 0.1)
+   \param *l (float) what will be the postive scaling factor
+   \param *m (float) what will be the negative scaling factor
+                     (for avoiding the shrinkage of surfaces)
+   \return ans (SUMA_Boolean) YUP, good solution found
+                              NOPE, solution could not be found        
+            
+   k, l and m are related by the following equations:
+   
+   k = 1/l + 1/m                 (eq 8)
+   0 = 1 - 3(l+m) + 5lm          (eq 9)
+   
+   the solutions must verify the following:
+   l > 0
+   m < -l < 0
+   
+   \sa SUMA_Taubin_Smooth_TransferFunc 
+   \sa SUMA_Taubin_Smooth
+    
+*/ 
+SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m)
+{
+   static char FuncName[]={"SUMA_Taubin_Smooth_Coef"};
+   int i;
+   float ls[2], delta;
+   SUMA_Boolean Done = NOPE;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (k < 0) { SUMA_SL_Err("k < 0"); SUMA_RETURN(NOPE); }
+   
+   /* l1 and l2 are solutions of the quadratic equation:
+      (5 - 3 k) l^2 + k l - 1 = 0 */
+   delta = ( k * k - 12.0 * k + 20 );
+   if (delta < 0) { SUMA_SL_Err("Delta is < 0 for specified k"); SUMA_RETURN(NOPE); }
+   
+   ls[0] = ( -k + sqrt(delta) ) / ( 10 - 6 * k );
+   ls[1] = ( -k - sqrt(delta) ) / ( 10 - 6 * k );
+   if (ls[0] < 0 && ls[1] < 0) { SUMA_SL_Err("No positive solution for l"); SUMA_RETURN(NOPE); }
+   
+   if (ls[1] > ls[0]) { /* swap them */
+      *l = ls[0]; ls[0] = ls[1]; ls[1] = *l;
+   }
+   
+   Done = NOPE;
+   i = 0;
+   while (!Done && i < 2) {
+      /* calculate mu */
+      *l = ls[i]; 
+      *m = *l / ( k * *l - 1.0 );
+      if (*m < 0) Done = YUP;
+      ++i;
+   }
+   
+   if (!Done) { SUMA_SL_Err("No good solutions found."); SUMA_RETURN(NOPE); }
+   
+   if ( ! ( ( *m < -1.0 * *l ) && ( -1.0 * *l < 0 ) ) ) {
+      SUMA_SL_Err("Solution did not meet m < -l < 0"); SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief performs smoothing based on Taubin's smoothing 
+   algorithm in Geometric Signal Processing on Polygonal 
+   Meshes (Eurographics 2000)
+   
+   fout =  SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
+                            float lambda, float mu, float *fin, 
+                            int N_iter, int vpn,  d_order,
+                            float *fout_user);
+                            
+   \param SO (SUMA_SurfaceObject *SO) The surface, with NodeList, FaceSetList
+                                       and FN fields present
+   \param wgt (float **) interpolation weights for each node. 
+                         The dimentions of wgt are equal to those of 
+                         SO->FN->FirstNeighb
+                         These weights may need to be re-evaluated for
+                         each iteration
+                         For equal weights (1/SO->FN->N_FirstNeighb[n]), 
+                         just pass NULL         
+   \param lambda (float) postive scaling factor
+   \param mu (float) negative scaling factor 
+   \param fin (float *) vector containing node data. The length of this vector
+                        is vpn x SO->N_Node , where vpn is the number of values
+                        per node. 
+   \param N_iter (int)  number of iterations (same weights are used in each iteration)
+   \param vpn (int) number of values per node in fin
+   \param d_order (SUMA_INDEXING_ORDER) Indicates how multiple values per node are stored in fin
+                        SUMA_ROW_MAJOR: The data in fin is stored in *** Row Major *** order.
+                        The ith value (start at 0) for node n is at index fin[vpn*n+i]
+                        SUMA_COLUMN_MAJOR: The data in fin is stored in *** Column Major *** order.
+                        The ith (start at 0) value for node n is at index fin[n+SO->N_Node*i]; 
+                        etc...
+   \param fout_user (float *) a pointer to the vector where the smoothed version of fin will reside
+                        You can pass NULL and the function will do the allocation for you and return 
+                        the pointer to the smoothed data in fout.
+                        If you already have space allocated for the result, then pass the pointer
+                        in fout_user and save on allocation time and space. In that case, fout
+                        is equal to fout_user.
+                        Either way, you are responsible for freeing memory pointed to by fout.
+                        DO NOT PASS fout_user = fin 
+   \return fout (float *) A pointer to the smoothed data (vpn * SO->N_Node values). 
+                        You will have to free the memory allocated for fout yourself.
+                        
+    
+   
+*/
+float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
+                            float lambda, float mu, float *fin_orig, 
+                            int N_iter, int vpn, SUMA_INDEXING_ORDER d_order,
+                            float *fout_final_user)
+{
+   static char FuncName[]={"SUMA_Taubin_Smooth"};
+   float *fout_final=NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next=NULL;
+   float fp, dfp, fpj;
+   int n , k, j, niter, vnk, n_offset; 
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!SO || !fin_orig) {
+      SUMA_SL_Err("NULL SO or fin_orig\n");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (vpn < 1) {
+      SUMA_SL_Err("vpn < 1\n");
+      SUMA_RETURN(NULL);
+   }  
+   
+   if (fout_final_user == fin_orig) {
+      SUMA_SL_Err("fout_final_user == fin_orig");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!fout_final_user) { /* allocate for output */
+      fout_final = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+      if (!fout_final) {
+         SUMA_SL_Crit("Failed to allocate for fout_final\n");
+         SUMA_RETURN(NULL);
+      }
+   }else {
+      fout_final = fout_final_user; /* pre-allocated */
+   }
+   
+   /* allocate for buffer */
+   fbuf = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+   if (!fbuf) {
+      SUMA_SL_Crit("Failed to allocate for fbuf\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Mu = %f, Lambda = %f\nShould have M(%f)< -L(%f) < 0\nN_iter=%d\n", 
+         FuncName, mu, lambda, mu, -lambda, N_iter);
+   }
+   
+   fin_next = fin_orig;
+   switch (d_order) {
+      case SUMA_COLUMN_MAJOR:
+         for (niter=0; niter < N_iter; ++niter) {
+            if ( niter % 2 ) { /* odd */
+               fin = fin_next; /* input from previous output buffer */
+               fout = fout_final; /* results go into final vector */
+               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+            } else { /* even */
+               /* input data is in fin_new */
+               fin = fin_next;
+               fout = fbuf; /* results go into buffer */
+               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+            }
+            for (k=0; k < vpn; ++k) {
+               n_offset = k * SO->N_Node;  /* offset of kth node value in fin */
+               for (n=0; n < SO->N_Node; ++n) {
+                  vnk = n+n_offset; 
+                  fp = fin[vnk]; /* kth value at node n */
+                  dfp = 0.0;
+                  for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                     fpj = fin[SO->FN->FirstNeighb[n][j]+n_offset]; /* value at jth neighbor of n */
+                     if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                     else dfp += (fpj - fp); /* will apply equal weight later */
+                  }/* for j*/
+                  if (niter%2) { /* odd */
+                     if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
+                     else fout[vnk] = fin[vnk] + mu * dfp / (float)SO->FN->N_Neighb[n];   /* apply equal weight factor here */
+                  }else{ /* even */
+                    if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
+                    else fout[vnk] = fin[vnk] + lambda * dfp / (float)SO->FN->N_Neighb[n];  /* apply equal weight factor here */
+                  }      
+               }/* for n */   
+            }/* for k */
+         }/* for niter */
+         break;
+      case SUMA_ROW_MAJOR:
+         for (niter=0; niter < N_iter; ++niter) {
+            if ( niter % 2 ) { /* odd */
+               fin = fin_next; /* input from previous output buffer */
+               fout = fout_final; /* results go into final vector */
+               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+            } else { /* even */
+               /* input data is in fin_new */
+               fin = fin_next;
+               fout = fbuf; /* results go into buffer */
+               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+            }
+            for (n=0; n < SO->N_Node; ++n) {
+               vnk = n * vpn; /* index of 1st value at node n */
+               for (k=0; k < vpn; ++k) {
+                  fp = fin[vnk]; /* kth value at node n */
+                  dfp = 0.0;
+                  for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                     fpj = fin[SO->FN->FirstNeighb[n][j]*vpn+k]; /* value at jth neighbor of n */
+                     if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                     else dfp += (fpj - fp); /* will apply equal weight later */
+                  }/* for j*/
+                  if (niter%2) { /* odd */
+                     if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
+                     else fout[vnk] = fin[vnk] + mu * dfp / (float)SO->FN->N_Neighb[n];   /* apply equal weight factor here */
+                  }else{ /* even */
+                    if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
+                    else fout[vnk] = fin[vnk] + lambda * dfp / (float)SO->FN->N_Neighb[n];  /* apply equal weight factor here */
+                  }
+                  ++vnk; /* index of next value at node n */
+               } /* for k */
+            }/* for n */
+         }/* for niter */
+         break;
+      default:
+         SUMA_SL_Err("Bad Major, very bad.\n");
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+      
+   SUMA_RETURN(fout);
+}
+
+/*!
+   \brief Filter data defined on the surface using M.K. Chung et al.'s method (Neuroimage 03)
+   dm_smooth = SUMA_Chung_Smooth (SO, wgt, N_iter, FWHM, fin, vpn, d_order, fout_user);
+   
+   \param SO (SUMA_SurfaceObject *) Surface object with valid 
+                                    SO->NodeList, SO->FaceSetList and SO->FN 
+   \param wgt (float **) interpolation weights for each node. 
+                           These weights are obtained from SUMA_Chung_Smooth_Weights 
+   \param N_iter (int) number of smoothing iterations (must be even, > 1) 
+   \param FWHM (float) Full Width at Half Maximum of equivalent Gaussian filter
+   \param fin (float *) vector containing node data. The length of this vector
+                        is vpn x SO->N_Node , where vpn is the number of values
+                        per node. 
+   \param vpn (int) the numberof values per node in fin 
+   \param d_order (SUMA_INDEXING_ORDER) Indicates how multiple values per node are stored in fin
+                        SUMA_ROW_MAJOR: The data in fin is stored in *** Row Major *** order.
+                        The ith value (start at 0) for node n is at index fin[vpn*n+i]
+                        SUMA_COLUMN_MAJOR: The data in fin is stored in *** Column Major *** order.
+                        The ith (start at 0) value for node n is at index fin[n+SO->N_Node*i]; 
+                        etc...
+   \param fout_user (float *) a pointer to the vector where the smoothed version of fin will reside
+                        You can pass NULL and the function will do the allocation for you and return 
+                        the pointer to the smoothed data in dm_smooth.
+                        If you already have space allocated for the result, then pass the pointer
+                        in fout_user and save on allocation time and space. In that case, dm_smooth
+                        is equal to fout_user.
+                        Either way, you are responsible for freeing memory pointed to by dm_smooth
+                        DO NOT PASS fout_user = fin 
+   \return dm_smooth (float *) A pointer to the smoothed data (vpn * SO->N_Node values). 
+                        You will have to free the memory allocated for dm_smooth yourself.
+                        
+   \sa SUMA_Chung_Smooth_Weights
+                        
+*/
+
+float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
+                           int N_iter, float FWHM, float *fin_orig, 
+                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user)
+{
+   static char FuncName[]={"SUMA_Chung_Smooth"};
+   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL;
+   float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
+   int n , k, j, niter, vnk, os; 
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!SO || !wgt || !fin_orig) {
+      SUMA_SL_Err("NULL SO or wgt or fin_orig\n");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (vpn < 1) {
+      SUMA_SL_Err("vpn < 1\n");
+      SUMA_RETURN(NULL);
+   }  
+   
+   if (fout_final_user == fin_orig) {
+      SUMA_SL_Err("fout_final_user == fin_orig");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!fout_final_user) { /* allocate for output */
+      fout_final = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+      if (!fout_final) {
+         SUMA_SL_Crit("Failed to allocate for fout_final\n");
+         SUMA_RETURN(NULL);
+      }
+   }else {
+      fout_final = fout_final_user; /* pre-allocated */
+   }
+   
+   /* allocate for buffer */
+   fbuf = (float *)SUMA_calloc(SO->N_Node * vpn, sizeof(float));
+   if (!fbuf) {
+      SUMA_SL_Crit("Failed to allocate for fbuf\n");
+      SUMA_RETURN(NULL);
+   }
+   
+   
+   fin_next = fin_orig;
+   delta_time= (FWHM * FWHM)/(16*N_iter*log(2));
+   switch (d_order) {
+      case SUMA_COLUMN_MAJOR:
+         for (niter=0; niter < N_iter; ++niter) {
+            if ( niter % 2 ) { /* odd */
+               fin = fin_next; /* input from previous output buffer */
+               fout = fout_final; /* results go into final vector */
+               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+            } else { /* even */
+               /* input data is in fin_new */
+               fin = fin_next;
+               fout = fbuf; /* results go into buffer */
+               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+            }
+            for (k=0; k < vpn; ++k) {
+               os = SO->N_Node*k;   /* node value indexing offset */
+               for (n=0; n < SO->N_Node; ++n) {
+                  vnk = n+os; /* index of kth value at node n */
+                  fp = fin[vnk]; /* kth value at node n */
+                  dfp = 0.0;
+                  if (SO->FN->N_Neighb[n]) minfn = maxfn = fin[SO->FN->FirstNeighb[n][0]+os];
+                  for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
+                     fpj = fin[SO->FN->FirstNeighb[n][j]+os]; /* value at jth neighbor of n */
+                     if (fpj < minfn) minfn = fpj;
+                     if (fpj > maxfn) maxfn = fpj;
+                     dfp += wgt[n][j] * (fpj - fp); 
+                  }/* for j*/
+                  fout[vnk] = fin[vnk] + delta_time * dfp;
+                  if (fout[vnk] < minfn) fout[vnk] = minfn;
+                  if (fout[vnk] > maxfn) fout[vnk] = maxfn;
+               }/* for n */   
+            } /* for k */
+         }/* for niter */
+         break;
+      case SUMA_ROW_MAJOR:
+         SUMA_SL_Err("Row Major not implemented");
+         SUMA_RETURN(NULL);
+         break;
+      default:
+         SUMA_SL_Err("Bad Major, very bad.\n");
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+               
+   SUMA_RETURN(fout);
+}
 #ifdef SUMA_SurfSmooth_STAND_ALONE
 void usage_SUMA_SurfSmooth ()
    {
-      printf ("\n\33[1mUsage: \33[0m SurfSmooth <-i_TYPE inSurf> <-input inData> <-lim dmax> [-dbg_n ni dbg_prfx] [-h/-help]\n"
+      printf ("\n\33[1mUsage: \33[0m SurfSmooth <-i_TYPE inSurf> <-met method> <-output out.1D>\n"
+              "\t Method specific options:\n"
+              "\t LB_FEM:\n"
+              "\t    <-input inData.1D> <-fwhm f>\n"
+              "\t LM:\n"
+              /*"\t                   [<-lim dmax>]\n"*/
+              "\t    [<-kpb k>]\n"
+              "\t Common optional options:\n"
+              "\t -output out.1D: Name of output file. \n"
+              "\t                 The default is inData_sm.1D with -LB_FEM method\n"
+              "\t                 and NodeList_sm.1D with -lM method.\n" 
+              "\t -Niter N: number of smoothing iterations.\n"
+              "\t [-dbg_n ni dbg_prfx] [-h/-help]\n\n"
               "\t -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n"
               "\t    fs: FreeSurfer surface. \n"
               "\t        Only .asc surfaces are read.\n"
@@ -487,11 +1049,40 @@ void usage_SUMA_SurfSmooth ()
               "\t         NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
               "\t         FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
               "\t    ply: PLY format, ascii or binary.\n"
-              "\t -lim dmax: maximum distance to search from a certain node \n"
-              "\t -input inData: file containing data (in 1D format)\n"
+              "\t -input inData.1D: file containing data (in 1D format)\n"
+              "\t                Each column in inData.1D is processed separately.\n"
+              "\t                The number of rows must equal the number of\n"
+              "\t                nodes in the surface. You can select certain\n"
+              "\t                columns using the [] notation adopted by AFNI's\n"
+              "\t                programs.\n"
+              "\t -met method: name of smoothing method to use. Choose from:\n"
+              "\t              LB_FEM: The method by Chung et al. 03.\n"
+              "\t                      This method is used for filtering \n"
+              "\t                      data on the surface not for smoothing the\n"
+              "\t                      surface's geometry per se.\n"
+              "\t              LM: The smoothing method proposed by G. Taubin 2000\n"
+              "\t                  This method can be used for smoothing\n"
+              "\t                  a surface's geometry.\n" 
+              "\t -Niter N; Number of iterations (default is 100)\n"
+              "\t Options for LB_FEM:\n"
+              "\t -fwhm f: Full width at half maximum of equivalent Gaussian filter\n"
+              /*"\t -lim dmax: maximum distance to search from a certain node \n"*/
+              "\t Options for LM:\n"
+              "\t -kpb k: Band pass frequency (default is 0.1).\n"
+              "\t         values should be in the range 0 < k < 10\n"
+              "\t         -lm and -kpb options are mutually exclusive.\n"
+              "\t -lm l m: Lambda and Mu parameters. Sample values are:\n"
+              "\t          0.6307 and -.6732\n"
+              "\t          -lm and -kpb options are mutually exclusive.\n"
               "\t -dbg_n ni dbg_prfx: Output debugging results for node ni\n"
               "\t                     into files with prefix dbg_prfx.\n"
               "\t -h or -help: this help message.\n"
+              "\t References: \n"
+              "\t (1) M.K. Chung et al. Deformation-based surface morphometry\n"
+              "\t applied to gray matter deformation. Neuroimage 18 (2003) 198-213\n"
+              "\t (2) G. Taubin. Mesh Signal Processing. Eurographics 2000.\n\n"
+              "\t See Also:   \n"
+              "\t    ScaleToMap  to colorize the output and then load into SUMA\n"
               "\t Try:\n"
               "\t SurfSmooth -i_fs ../SurfData/SUMA/lh.smoothwm.asc -input in.1D -lim 15 -dbg_n 5 junk\n"
               "\t ScaleToMap -input junkoffset.1D 0 2 -cmap BGYR19 -nomsk_col > junkoffset.1D.col\n"
@@ -499,40 +1090,70 @@ void usage_SUMA_SurfSmooth ()
        exit (0);
    }
 
-int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfSmooth"}; 
-	int kar, icol, nvec, ncol, i, ii, ShowNode;
-   float lim, *data_old = NULL, *far = NULL;
-   float **DistFirstNeighb;
-   char  *if_name = NULL, *if_name2 = NULL, *in_name = NULL, *vp_name = NULL, *sv_name = NULL, *ShowOffset_DBG = NULL;
-   void *SO_name = NULL;
-   SUMA_SurfaceObject *SO = NULL;
-   MRI_IMAGE *im = NULL;
-   SUMA_SFname *SF_name = NULL;
-   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
-   SUMA_Boolean brk;
-   struct  timeval start_time, start_time_all;
-   float etime_GetOffset, etime_GetOffset_all;   
-   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+typedef enum { SUMA_NO_METH, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE} SUMA_SMOOTHING_METHODS;
+
+typedef struct {
+   float lim;
+   float fwhm;
+   float kpb;
+   float l;
+   float m;
+   int ShowNode;
+   int Method;
+   int dbg;
+   int N_iter;
+   SUMA_SO_File_Type iType;
+   char *vp_name;
+   char *sv_name;
+   char *if_name;
+   char *if_name2;
+   char *in_name;
+   char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
+   char *ShowOffset_DBG;
+} SUMA_SURFSMOOTH_OPTIONS;
+
+/*!
+   \brief parse the arguments for SurfSmooth program
+   
+   \param argv (char *)
+   \param argc (int)
+   \return Opt (SUMA_SURFSMOOTH_OPTIONS *) options structure.
+               To free it, use 
+               SUMA_free(Opt->out_name); 
+               SUMA_free(Opt);
+*/
+SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
+{
+   static char FuncName[]={"SUMA_SurfSmooth_ParseInput"}; 
+   SUMA_SURFSMOOTH_OPTIONS *Opt=NULL;
+   int kar;
+   char *outname;
+   SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
-   
-   if (argc < 6)
-       {
-          usage_SUMA_SurfSmooth();
-          exit (1);
-       }
+   Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
    kar = 1;
-   lim = 1000000;
-   ShowNode = -1;
+   Opt->lim = 1000000.0;
+   Opt->fwhm = -1;
+   Opt->ShowNode = -1;
+   Opt->Method = SUMA_NO_METH;
+   Opt->dbg = 0;
+   Opt->if_name = NULL;
+   Opt->if_name2 = NULL;
+   Opt->in_name = NULL;
+   Opt->out_name = NULL;
+   Opt->vp_name = NULL; 
+   Opt->sv_name = NULL;
+   Opt->ShowOffset_DBG = NULL;
+   Opt->iType = SUMA_FT_NOT_SPECIFIED;
+   Opt->N_iter = 100;
+   Opt->kpb = -1.0;
+   Opt->l = -1.0;
+   Opt->m = -1.0;
+   outname = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -547,8 +1168,47 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 2 arguments after -dbg_n ");
 				exit (1);
 			}
-			ShowNode = atoi(argv[kar]); kar ++;
-         ShowOffset_DBG = argv[kar];
+			Opt->ShowNode = atoi(argv[kar]); kar ++;
+         Opt->ShowOffset_DBG = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-Niter") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 arguments after -Niter ");
+				exit (1);
+			}
+			Opt->N_iter = atoi(argv[kar]); 
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-kpb") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 arguments after -kpb ");
+				exit (1);
+			}
+         if (Opt->l != -1.0  || Opt->m != -1.0) {
+            fprintf (SUMA_STDERR, "options -lm and -kpb are mutually exclusive\n");
+				exit (1);
+         }
+			Opt->kpb = atof(argv[kar]); 
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-lm") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -lm ");
+				exit (1);
+			}
+         if (Opt->kpb != -1.0) {
+            fprintf (SUMA_STDERR, "options -lm and -kpb are mutually exclusive\n");
+				exit (1);
+         }
+			Opt->l = atof(argv[kar]); kar ++;
+         Opt->m = atof(argv[kar]);  
 			brk = YUP;
 		}
       
@@ -558,7 +1218,17 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -input ");
 				exit (1);
 			}
-			in_name = argv[kar];
+			Opt->in_name = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-output") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -output ");
+				exit (1);
+			}
+			outname = argv[kar];
 			brk = YUP;
 		}
       
@@ -568,8 +1238,8 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
 				exit (1);
 			}
-			if_name = argv[kar];
-         iType = SUMA_FREE_SURFER;
+			Opt->if_name = argv[kar];
+         Opt->iType = SUMA_FREE_SURFER;
 			brk = YUP;
 		}
       
@@ -579,9 +1249,9 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
 				exit (1);
 			}
-			if_name = argv[kar]; kar ++;
-         if_name2 = argv[kar];
-         iType = SUMA_SUREFIT;
+			Opt->if_name = argv[kar]; kar ++;
+         Opt->if_name2 = argv[kar];
+         Opt->iType = SUMA_SUREFIT;
 			brk = YUP;
 		}
       
@@ -591,9 +1261,9 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
 				exit (1);
 			}
-			if_name = argv[kar]; kar ++;
-         if_name2 = argv[kar];
-         iType = SUMA_VEC;
+			Opt->if_name = argv[kar]; kar ++;
+         Opt->if_name2 = argv[kar];
+         Opt->iType = SUMA_VEC;
 			brk = YUP;
 		}
       
@@ -603,8 +1273,8 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
 				exit (1);
 			}
-			if_name = argv[kar];
-         iType = SUMA_PLY;
+			Opt->if_name = argv[kar];
+         Opt->iType = SUMA_PLY;
 			brk = YUP;
 		}
       
@@ -614,12 +1284,37 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -lim ");
 				exit (1);
 			}
-			lim = atof(argv[kar]);
+			Opt->lim = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -fwhm ");
+				exit (1);
+			}
+			Opt->fwhm = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-met") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -met ");
+				exit (1);
+			}
+			if (strcmp(argv[kar], "LB_FEM") == 0)  Opt->Method = SUMA_LB_FEM;
+         else if (strcmp(argv[kar], "LM") == 0)  Opt->Method = SUMA_LM;
+         else {
+            fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
+				exit (1);
+         }
 			brk = YUP;
 		}
       
       if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -627,92 +1322,219 @@ int main (int argc,char *argv[])
 		}
    }
 
-   if (ShowNode < 0 && ShowOffset_DBG) {
-      fprintf (SUMA_STDERR,"Error %s: Bad debug node index (%d) in option -dbg_n\n", FuncName, ShowNode);
+   if (Opt->N_iter < 1) {
+      fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
       exit (1);
    }
    
-   if (!if_name) {
-      fprintf (SUMA_STDERR,"Error %s: input surface not specified.\n", FuncName);
+   if (Opt->ShowNode < 0 && Opt->ShowOffset_DBG) {
+      fprintf (SUMA_STDERR,"Error %s:\nBad debug node index (%d) in option -dbg_n\n", FuncName, Opt->ShowNode);
+      exit (1);
+   }
+   
+   if (!Opt->if_name) {
+      fprintf (SUMA_STDERR,"Error %s:\ninput surface not specified.\n", FuncName);
       exit(1);
    }
 
-   if (!in_name) {
-      fprintf (SUMA_STDERR,"Error %s: input data not specified.\n", FuncName);
+   if (Opt->iType == SUMA_FT_NOT_SPECIFIED) {
+      fprintf (SUMA_STDERR,"Error %s:\ninput type not recognized.\n", FuncName);
       exit(1);
    }
    
-   if (iType == SUMA_FT_NOT_SPECIFIED) {
-      fprintf (SUMA_STDERR,"Error %s: input type not recognized.\n", FuncName);
-      exit(1);
-   }
-   
-   if (iType == SUMA_SUREFIT) {
-      if (!if_name2) {
-         fprintf (SUMA_STDERR,"Error %s: input SureFit surface incorrectly specified.\n", FuncName);
+   if (Opt->iType == SUMA_SUREFIT) {
+      if (!Opt->if_name2) {
+         fprintf (SUMA_STDERR,"Error %s:\ninput SureFit surface incorrectly specified.\n", FuncName);
          exit(1);
       }
    }
    
-   if (iType == SUMA_VEC) {
-      if (!if_name2) {
-         fprintf (SUMA_STDERR,"Error %s: input vec surface incorrectly specified.\n", FuncName);
+   if (Opt->iType == SUMA_VEC) {
+      if (!Opt->if_name2) {
+         fprintf (SUMA_STDERR,"Error %s:\ninput vec surface incorrectly specified.\n", FuncName);
          exit(1);
       }
    }
    
    /* test for existence of input files */
-   if (!SUMA_filexists(if_name)) {
-      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+   if (!SUMA_filexists(Opt->if_name)) {
+      fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name);
       exit(1);
    }
    
-   if (!SUMA_filexists(in_name)) {
-      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+   if (Opt->in_name && !SUMA_filexists(Opt->in_name)) {
+      fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name);
       exit(1);
    }
    
-   if (if_name2) {
-      if (!SUMA_filexists(if_name2)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
+   if (Opt->if_name2) {
+      if (!SUMA_filexists(Opt->if_name2)) {
+         fprintf (SUMA_STDERR,"Error %s:\n%s not found.\n", FuncName, Opt->if_name2);
          exit(1);
       }
    }
+
+   if (Opt->Method == SUMA_NO_METH) {
+      fprintf (SUMA_STDERR,"Error %s:\nNo method was specified.\n", FuncName);
+      exit(1);  
+   }
+   
+   if (outname) {
+      if (SUMA_filexists(outname)) {
+         fprintf (SUMA_STDERR,"Error %s:\noutput file %s exists.\n", FuncName, outname);
+         exit(1);
+      }
+      Opt->out_name = SUMA_copy_string(outname);
+   } else {
+      switch (Opt->Method) {
+         case SUMA_LB_FEM:
+            /* form autoname  */
+            Opt->out_name = SUMA_Extension(Opt->in_name, ".1D", YUP); /*remove .1D */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_sm", "", 1); /* add _sm to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,".1D", "", 1); /* add .1D */
+            break;
+         case SUMA_LM:
+            /* form autoname  */
+            Opt->out_name = SUMA_copy_string("NodeList_sm.1D");
+            break;
+         default:
+            fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
+            exit(1);
+            break;
+      }
+      if (SUMA_filexists(Opt->out_name)) {
+         fprintf (SUMA_STDERR,"Error %s:\noutput file %s exists.\n", FuncName, Opt->out_name);
+         exit(1);
+      }
+   }
+
+   /* method specific checks */
+   switch (Opt->Method) {
+      case SUMA_LB_FEM:
+         if (!Opt->in_name) {
+            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            exit(1);
+         }
+         if (Opt->fwhm ==  -1.0) {
+            fprintf (SUMA_STDERR,"Error %s:\n-fwhm option must be used with -met LB_FEM.\n", FuncName); 
+            exit(1);
+         }else if (Opt->fwhm <= 0.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nFWHM must be > 0\n", FuncName);
+            exit(1);
+         }
+         if (Opt->kpb >= 0) {
+            fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met LB_FEM.\n", FuncName); 
+            exit(1);
+         }         
+         break;
+      case SUMA_LM:
+         
+         if ( (Opt->l != -1.0 || Opt->m != -1.0) && Opt->kpb != -1.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nYou cannot mix options -kpb and -lm \n", FuncName);
+            exit(1);
+         }
+         if (Opt->kpb != -1.0 && (Opt->kpb < 0.000001 || Opt->kpb > 10)) {
+            fprintf (SUMA_STDERR,"Error %s:\nWith -kpb k option, you should satisfy 0 < k < 10\n", FuncName);
+            exit(1);
+         }
+         if (Opt->l == -1.0 && Opt->m == -1.0 && Opt->kpb == -1.0) {
+            Opt->kpb = 0.1;
+         }
+
+         if (Opt->l == -1.0 || Opt->m == -1.0) { /* convert kpb into l and m */
+            if (!SUMA_Taubin_Smooth_Coef (Opt->kpb, &(Opt->l), &(Opt->m))) {
+               SUMA_SL_Err("Failed to find smoothing coefficients");
+               exit(1);            
+            }
+         } 
+
+         if (Opt->in_name) {
+            fprintf (SUMA_STDERR,"Error %s:\nOption -input not valid with -met LM.\n", FuncName);
+            exit(1);
+         }
+         if (Opt->fwhm !=  -1.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nOption -fwhm not valid with -met LM.\n", FuncName);
+            exit(1);
+         }
+         break;
+      default:
+         fprintf (SUMA_STDERR,"Error %s:\nNot ready for this option here.\n", FuncName);
+         exit(1);
+         break;
+   }
+   
+   SUMA_RETURN (Opt);
+}
+
+int main (int argc,char *argv[])
+{/* Main */    
+   static char FuncName[]={"SurfSmooth"}; 
+	int kar, icol, nvec, ncol=0, i, ii;
+   float *data_old = NULL, *far = NULL;
+   float **DistFirstNeighb;
+   void *SO_name = NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   MRI_IMAGE *im = NULL;
+   SUMA_SFname *SF_name = NULL;
+   struct  timeval start_time, start_time_all;
+   float etime_GetOffset, etime_GetOffset_all;   
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
+   SUMA_SURFSMOOTH_OPTIONS *Opt;  
+   FILE *fileout=NULL; 
+   float **wgt=NULL, *dsmooth=NULL;
+   SUMA_INDEXING_ORDER d_order;
+   SUMA_Boolean LocalHead = YUP;
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   if (argc < 6)
+       {
+          usage_SUMA_SurfSmooth();
+          exit (1);
+       }
+   
+   Opt = SUMA_SurfSmooth_ParseInput (argv, argc);
+   
    
    /* now for the real work */
    /* prepare the name of the surface object to read*/
-   switch (iType) {
+   switch (Opt->iType) {
       case SUMA_SUREFIT:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
-         if (!vp_name) { /* initialize to empty string */
+         sprintf(SF_name->name_coord,"%s", Opt->if_name);
+         sprintf(SF_name->name_topo,"%s", Opt->if_name2); 
+         if (!Opt->vp_name) { /* initialize to empty string */
             SF_name->name_param[0] = '\0'; 
          }
          else {
-            sprintf(SF_name->name_param,"%s", vp_name);
+            sprintf(SF_name->name_param,"%s", Opt->vp_name);
          }
          SO_name = (void *)SF_name;
          fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, Opt->sv_name);
          break;
       case SUMA_VEC:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
+         sprintf(SF_name->name_coord,"%s", Opt->if_name);
+         sprintf(SF_name->name_topo,"%s", Opt->if_name2); 
          SO_name = (void *)SF_name;
          fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, Opt->sv_name);
          break;
       case SUMA_FREE_SURFER:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+         SO_name = (void *)Opt->if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",Opt->if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, Opt->sv_name);
          break;  
       case SUMA_PLY:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         SO_name = (void *)Opt->if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",Opt->if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, Opt->sv_name);
          break;  
       default:
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
@@ -724,110 +1546,169 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
-   if (ShowNode >= 0 && ShowNode >= SO->N_Node) {
+   if (Opt->ShowNode >= 0 && Opt->ShowNode >= SO->N_Node) {
       fprintf (SUMA_STDERR,"Error %s: Requesting debugging info for a node index (%d) \n"
                            "that does not exist in a surface of %d nodes.\nRemember, indexing starts at 0.\n", 
-                           FuncName, ShowNode, SO->N_Node);
+                           FuncName, Opt->ShowNode, SO->N_Node);
       exit (1);
    }
    
+   /* form the output filename, checking is done in parsing function */
+      
    /* form EL and FN */
    if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList", NULL, 0)) {
       SUMA_SLP_Err("Failed to calculate surface metrics");
       exit(1); 
    }
 
-   /* now load the input data */
-   im = mri_read_1D (in_name);
    
-   if (!im) {
-      SUMA_SL_Err("Failed to read 1D file");
-      exit(1);
-   }
-   
-   far = MRI_FLOAT_PTR(im);
-   nvec = im->nx;
-   ncol = im->ny;
-   
-   if (!nvec) {
-      SUMA_SL_Err("Empty file");
-      exit(1);
-   }
   
+   switch (Opt->Method) {
+      case SUMA_LB_FEM: 
+         /* Moo Chung's method for interpolation weights */
+         {
+            /* now load the input data */
+            im = mri_read_1D (Opt->in_name);
+
+            if (!im) {
+               SUMA_SL_Err("Failed to read 1D file");
+               exit(1);
+            }
+
+            far = MRI_FLOAT_PTR(im);
+            nvec = im->nx;
+            ncol = im->ny;
+            d_order = SUMA_COLUMN_MAJOR;
+
+            if (!nvec) {
+               SUMA_SL_Err("Empty file");
+               exit(1);
+            }
+            
+            SUMA_etime(&start_time,0);
+            wgt = SUMA_Chung_Smooth_Weights(SO);
+            if (!wgt) {
+               SUMA_SL_Err("Failed to compute weights.\n");
+               exit(1);
+            }
+            
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: weight computation took %f seconds for %d nodes.\n"
+                                 "Projected time per 100000 nodes is: %f minutes\n", 
+                                       FuncName, etime_GetOffset, SO->N_Node, 
+                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+            
+            dsmooth = SUMA_Chung_Smooth (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL);
+            
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
+                                 "Projected time per 100000 nodes is: %f minutes\n", 
+                                       FuncName, etime_GetOffset, SO->N_Node, 
+                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+            /* write out the results */
+            fileout = fopen(Opt->out_name, "w");
+            SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
+            fclose(fileout); fileout = NULL;
+
+            if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
+            if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
+         }
+         break;
+         
+      case SUMA_LM:
+         /* Taubin's */
+         {
+            
+            d_order =  SUMA_ROW_MAJOR; 
+            dsmooth = SUMA_Taubin_Smooth (SO, NULL, 
+                            Opt->l, Opt->m, SO->NodeList, 
+                            Opt->N_iter, 3, d_order,
+                            NULL); 
+
+
+            /* write out the results */
+            fileout = fopen(Opt->out_name, "w");
+            SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1, d_order, fileout, 0);
+            fclose(fileout); fileout = NULL;
+
+            if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
+
+         }
+         break;
+         
+      case SUMA_BRUTE_FORCE:
+         /* a method that will likely be dropped NOT FINISHED*/
+            {
+            /* initialize OffS */
+            OffS = SUMA_Initialize_getoffsets (SO->N_Node);
+
+            SUMA_etime(&start_time_all,0);
+            for (i=0; i < SO->N_Node; ++i) {
+               /* show me the offset from node 0 */
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Calculating offsets from node %d\n",FuncName, i);
+               if (i == 0) {
+                  SUMA_etime(&start_time,0);
+               }
+               SUMA_getoffsets2 (i, SO, Opt->lim, OffS);
+               if (i == 99) {
+                  etime_GetOffset = SUMA_etime(&start_time,1);
+                  fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                                       "Projected completion time: %f minutes\n", 
+                                       FuncName, Opt->lim, etime_GetOffset, i+1, 
+                                       etime_GetOffset * SO->N_Node / 60.0 / (i+1));
+               }
+
+               /* Show me the offsets for one node*/
+               if (Opt->ShowOffset_DBG) {
+                  if (i == Opt->ShowNode) {
+                     FILE *fid=NULL;
+                     char *outname=NULL;
+                     outname = SUMA_Extension(Opt->ShowOffset_DBG, ".1D", YUP);
+                     outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+                     fid = fopen(outname, "w"); free(outname); outname = NULL;
+                     if (!fid) {
+                        SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+                     } else {
+                        fprintf (fid,"#Column 1 = Node index\n"
+                                     "#column 2 = Neighborhood layer\n"
+                                     "#Column 3 = Distance from node %d\n", Opt->ShowNode);
+                        for (ii=0; ii<SO->N_Node; ++ii) {
+                           if (OffS->LayerVect[ii] >= 0) {
+                              fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+                           }
+                        }
+                        fclose(fid);
+                     }
+                  }
+               }
+
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Recycling OffS\n", FuncName);
+               SUMA_Recycle_getoffsets (OffS);
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: Done.\n", FuncName); 
+
+            }
+
+            etime_GetOffset_all = SUMA_etime(&start_time_all,1);
+            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
+                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
+
+         }
+         break;
+      default:
+         SUMA_SL_Err("Bad method, should not be here.");
+         exit(1);
+         break;
+   }
+   
    /* smooth each column on its own ...*/  
    /* the way you read and pass the data to the smoothing function should be 
    designed, this is at a debugging level ... */
-   for (icol = 0; icol < ncol; ++icol) {
-      /* process one column at a time */
-      data_old = (float *) SUMA_calloc(nvec, sizeof(float)); 
-      if (!data_old) {
-         SUMA_SL_Crit("Failed to allocate for data column");
-         exit(1);
-      }
-      
-      for (i=0; i < nvec; ++i) {
-         data_old[i] = (int)far[i+icol*nvec];
-      }
-      
-      /* initialize OffS */
-      OffS = SUMA_Initialize_getoffsets (SO->N_Node);
-      
-      SUMA_etime(&start_time_all,0);
-      for (i=0; i < SO->N_Node; ++i) {
-         /* show me the offset from node 0 */
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Calculating offsets from node %d\n",FuncName, i);
-         if (i == 0) {
-            SUMA_etime(&start_time,0);
-         }
-         SUMA_getoffsets2 (i, SO, lim, OffS);
-         if (i == 99) {
-            etime_GetOffset = SUMA_etime(&start_time,1);
-            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
-                                 "Projected completion time: %f minutes\n", 
-                                 FuncName, lim, etime_GetOffset, i+1, 
-                                 etime_GetOffset * SO->N_Node / 60.0 / (i+1));
-         }
-
-         /* Show me the offsets for one node*/
-         if (ShowOffset_DBG) {
-            if (i == ShowNode) {
-               FILE *fid=NULL;
-               char *outname=NULL;
-               outname = SUMA_Extension(ShowOffset_DBG, ".1D", YUP);
-               outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
-               fid = fopen(outname, "w"); free(outname); outname = NULL;
-               if (!fid) {
-                  SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
-               } else {
-                  fprintf (fid,"#Column 1 = Node index\n"
-                               "#column 2 = Neighborhood layer\n"
-                               "#Column 3 = Distance from node %d\n", ShowNode);
-                  for (ii=0; ii<SO->N_Node; ++ii) {
-                     if (OffS->LayerVect[ii] >= 0) {
-                        fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
-                     }
-                  }
-                  fclose(fid);
-               }
-            }
-         }
-         
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Recycling OffS\n", FuncName);
-         SUMA_Recycle_getoffsets (OffS);
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Done.\n", FuncName); 
-         
-      }
-      
-      etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-      fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
-                           FuncName, lim, etime_GetOffset_all / 60.0 , SO->N_Node);
-         
-   }
    
    mri_free(im); im = NULL;   /* done with that baby */
    if (SO) SUMA_Free_Surface_Object(SO);
    if (data_old) SUMA_free(data_old);  
-   
+   if (Opt->out_name) free(Opt->out_name); Opt->out_name = NULL;
+   if (Opt) SUMA_free(Opt);
    exit(0);
 }
 #endif
