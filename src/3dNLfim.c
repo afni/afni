@@ -56,6 +56,9 @@
              in routine write_3dtime.
    Date:     17 May 2000
 
+   Mod:      Added -mask option.  (Adapted from: 3dpc.c)
+   Date:     18 May 2000
+
 */
 
 
@@ -68,7 +71,7 @@
 
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "17 May 2000"               /* date of last program mod */
+#define PROGRAM_DATE "18 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -97,6 +100,12 @@ typedef struct NL_options
 
 } NL_options;
 
+
+/*---------------------------------------------------------------------------*/
+/*
+  Global data 
+*/
+
 /***** 22 July 1998 -- RWCox:
        Modified to allow DELT to be set from the TR of the input file *****/
 
@@ -104,7 +113,10 @@ static float DELT = 1.0;   /* default */
 static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;  /* TR of the input file */
 
-static char * commandline = NULL ;         /* command line for history notes */
+static char * commandline = NULL ;       /* command line for history notes */
+
+static byte * mask_vol  = NULL;          /* mask volume */
+static int    mask_nvox = 0;             /* number of voxels in mask volume */
 
 
 /*---------------------------------------------------------------------------*/
@@ -124,7 +136,10 @@ void display_help_menu()
      "Usage:                                                                \n"
      "3dNLfim                                                               \n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
-     "-ignore num        num   = skip this number of initial images in the  \n"
+     "[-mask mset]       Use the 0 sub-brick of dataset 'mset' as a mask    \n"
+     "                     to indicate which voxels to analyze (a sub-brick \n"
+     "                     selector is allowed)  [default = use all voxels] \n"
+     "[-ignore num]      num   = skip this number of initial images in the  \n"
      "                     time series for regresion analysis; default = 3  \n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
      "                     [The default is to compute with delt = 1.0 ]     \n"
@@ -459,6 +474,28 @@ void get_options
 	  nopt++;
 	  continue;
 	}
+
+
+      /**** -mask mset [18 May 2000] ****/
+
+      if( strcmp(argv[nopt],"-mask") == 0 ){
+         THD_3dim_dataset * mset ; int ii,mc ;
+         nopt++ ;
+         if (nopt >= argc)  NLfit_error ("need argument after -mask!") ;
+         mset = THD_open_dataset( argv[nopt] ) ;
+         if (mset == NULL)  NLfit_error ("can't open -mask dataset!") ;
+
+         mask_vol = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+         mask_nvox = DSET_NVOX(mset) ;
+         DSET_delete(mset) ;
+
+         if (mask_vol == NULL )  NLfit_error ("can't use -mask dataset!") ;
+         for( ii=mc=0 ; ii < mask_nvox ; ii++ )  if (mask_vol[ii])  mc++ ;
+         if (mc == 0)  NLfit_error ("mask is all zeros!") ;
+         printf("--- %d voxels in mask\n",mc) ;
+         nopt++ ; continue ;
+      }
+
 
       /*----- 22 July 1998: the -inTR option -----*/
 
@@ -1253,6 +1290,7 @@ void check_output_files
   
 void check_for_valid_inputs 
 (
+  int nxyz,               /* number of voxels in image */
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
   float * min_nconstr,    /* minimum parameter constraints for noise model */
@@ -1283,6 +1321,12 @@ void check_for_valid_inputs
   int ip;                       /* parameter index */
 
 
+  /*----- check if mask is right size -----*/
+  if (mask_vol != NULL) 
+    if (mask_nvox != nxyz)  
+      NLfit_error ("mask and input dataset bricks don't match in size");
+
+    
   /*----- check for valid constraints -----*/
   for (ip = 0;  ip < r;  ip++)
     if (min_nconstr[ip] > max_nconstr[ip])
@@ -1390,6 +1434,7 @@ void initialize_program
                               -- used to read 1D ASCII */
   int nt;                  /* number of points in 1D x data file */
   float * tar;
+  int ixyz;                /* voxel index */
   
 
   /*----- save command line for history notes -----*/
@@ -1409,7 +1454,7 @@ void initialize_program
 
  
   /*----- check for valid inputs -----*/
-  check_for_valid_inputs (*r, *p, *min_nconstr, *max_nconstr, 
+  check_for_valid_inputs (*nxyz, *r, *p, *min_nconstr, *max_nconstr, 
 			  *min_sconstr, *max_sconstr, *nrand, *nbest, 
 			  *freg_filename, *frsqr_filename, 
 			  *fsmax_filename, *ftmax_filename,
@@ -1482,29 +1527,34 @@ void initialize_program
   /*----- allocate memory space for volume data -----*/
   *freg_vol = (float *) malloc (sizeof(float) * (*nxyz));
   MTEST (*freg_vol);
+  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*freg_vol)[ixyz] = 0.0;
 
   if ((*freg_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *rmsreg_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*rmsreg_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*rmsreg_vol)[ixyz] = 0.0;
     }
 
   if ((*frsqr_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *rsqr_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*rsqr_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*rsqr_vol)[ixyz] = 0.0;
     }
 
   if ((*fsmax_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *smax_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*smax_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*smax_vol)[ixyz] = 0.0;
     }
 
   if ((*ftmax_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *tmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*tmax_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*tmax_vol)[ixyz] = 0.0;
     }
 
   
@@ -1512,18 +1562,21 @@ void initialize_program
     {
       *pmax_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*pmax_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*pmax_vol)[ixyz] = 0.0;
     }
 
   if ((*farea_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *area_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*area_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*area_vol)[ixyz] = 0.0;
     }
 
   if ((*fparea_filename != NULL) || (option_data->bucket_filename != NULL))
     {
       *parea_vol = (float *) malloc (sizeof(float) * (*nxyz));
       MTEST (*parea_vol);
+      for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  (*parea_vol)[ixyz] = 0.0;
     }
 
   
@@ -1539,6 +1592,8 @@ void initialize_program
 	{
 	  (*ncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
 	  MTEST ((*ncoef_vol)[ip]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*ncoef_vol)[ip][ixyz] = 0.0;
 	}
       else
 	(*ncoef_vol)[ip] = NULL;
@@ -1548,6 +1603,8 @@ void initialize_program
 	{
 	  (*tncoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
 	  MTEST ((*tncoef_vol)[ip]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*tncoef_vol)[ip][ixyz] = 0.0;
 	}
       else
 	(*tncoef_vol)[ip] = NULL;
@@ -1566,6 +1623,8 @@ void initialize_program
 	{
 	  (*scoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));
 	  MTEST ((*scoef_vol)[ip]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*scoef_vol)[ip][ixyz] = 0.0;
 	}
       else
 	(*scoef_vol)[ip] = NULL;
@@ -1575,6 +1634,8 @@ void initialize_program
 	{
 	  (*tscoef_vol)[ip] = (float *) malloc (sizeof(float) * (*nxyz));      
 	  MTEST ((*tscoef_vol)[ip]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*tscoef_vol)[ip][ixyz] = 0.0;
 	}
       else
 	(*tscoef_vol)[ip] = NULL;
@@ -1591,6 +1652,8 @@ void initialize_program
 	{
 	  (*sfit_vol)[it] = (float *) malloc (sizeof(float) * (*nxyz));
 	  MTEST ((*sfit_vol)[it]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*sfit_vol)[it][ixyz] = 0.0;
 	}
     }
 
@@ -1604,6 +1667,8 @@ void initialize_program
 	{
 	  (*snfit_vol)[it] = (float *) malloc (sizeof(float) * (*nxyz));
 	  MTEST ((*snfit_vol)[it]);
+	  for (ixyz = 0;  ixyz < (*nxyz);  ixyz++)  
+	    (*snfit_vol)[it][ixyz] = 0.0;
 	}
     }
 
@@ -2803,6 +2868,10 @@ int main
   /*----- loop over voxels in the data set -----*/
   for (iv = 0;  iv < nxyz;  iv++)
     {
+      /*----- check for mask -----*/
+      if (mask_vol != NULL)
+	if (mask_vol[iv] == 0)  continue;
+
 
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);

@@ -7,6 +7,11 @@
   Date:    28 April 2000
 
 
+  Mod:     Use output_type array in regression_analysis routine to avoid
+           some unnecessary calculations.
+  Date:    18 May 2000
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -492,6 +497,7 @@ void regression_analysis
   float * x_ave,            /* average of stimulus time series */
   float * x_top,            /* maximum of stimulus time series */
   float ** rarray,          /* ranked arrays of ideal time series */
+  int * output_type,        /* list of operator requested outputs */
   float * FimParams         /* output fim parameters */
 )
 
@@ -540,7 +546,8 @@ void regression_analysis
 
     
   /*----- Form rank array from y array -----*/
-  sarray = rank_darray (N, yres.elts);
+  if (output_type[FIM_SpearmanCC] || output_type[FIM_QuadrantCC]) 
+    sarray = rank_darray (N, yres.elts);
 
 
   /*----- Determine the best ideal reference for this voxel -----*/
@@ -573,14 +580,19 @@ void regression_analysis
 
 
       /*----- Calculate the Spearman rank correlation coefficient -----*/
-      stemp = calc_SpearmanCC (N, rarray[is], sarray);
-      if (fabs(stemp) > fabs(sbest))  sbest = stemp;
+      if (output_type[FIM_SpearmanCC])
+	{ 
+	  stemp = calc_SpearmanCC (N, rarray[is], sarray);
+	  if (fabs(stemp) > fabs(sbest))  sbest = stemp;
+	}
 
 
       /*----- Calculate the Quadrant correlation coefficient -----*/
-      qtemp = calc_QuadrantCC (N, rarray[is], sarray);
-      if (fabs(qtemp) > fabs(qbest))  qbest = qtemp;
-
+      if (output_type[FIM_QuadrantCC])
+	{ 
+	  qtemp = calc_QuadrantCC (N, rarray[is], sarray);
+	  if (fabs(qtemp) > fabs(qbest))  qbest = qtemp;
+	}
     }
   
   if ((0 <= BestIndex) && (BestIndex < num_idealts))
@@ -641,7 +653,8 @@ void regression_analysis
 
 
   /*----- Deallocate memory -----*/
-  free (sarray);   sarray = NULL;
+  if (sarray != NULL)
+    { free (sarray);  sarray = NULL; }
 
 }
   

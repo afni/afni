@@ -9,6 +9,11 @@
   Date:    28 April 2000
 
 
+  Mod:     Use output_type array in regression_analysis routine to avoid
+           some unnecessary calculations.
+  Date:    18 May 2000
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -18,7 +23,7 @@
 
 #define PROGRAM_NAME "3dfim+"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "28 April 2000"             /* date of last program mod */
+#define PROGRAM_DATE "18 May 2000"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1347,7 +1352,8 @@ void calculate_results
       /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, q, num_idealts,
 			   x_base, xtxinvxt_base, x_ideal, xtxinvxt_ideal, 
-			   y, x_bot, x_ave, x_top, rarray, FimParams);
+			   y, x_bot, x_ave, x_top, rarray, 
+			   option_data->output_type, FimParams);
 
 
       /*----- Save results for this voxel -----*/
