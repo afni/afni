@@ -11,8 +11,8 @@
   perform multiple linear regression using multiple input stimulus time
   series. Output consists of an AFNI 'bucket' type dataset containing the
   least squares estimates of the linear regression coefficients, t-statistics
-  for significance of the coefficients, partial F-statistics for significance 
-  of the individual input stimuli, and the F-statistic for significance of 
+  for significance of the coefficients, partial F-statistics for significance
+  of the individual input stimuli, and the F-statistic for significance of
   the overall regression.  Additional output consists of a 3d+time dataset
   containing the estimated system impulse response function.
 
@@ -63,8 +63,8 @@
   Mod:     Added changes for incorporating History notes.
   Date:    09 September 1999
 
-  Mod:     Use cubic spline interpolation to time shift the estimated 
-           impulse  response function, in order to correct for differences 
+  Mod:     Use cubic spline interpolation to time shift the estimated
+           impulse  response function, in order to correct for differences
            in slice acquisition times.
   Date:    27 October 1999
 
@@ -72,15 +72,15 @@
            file by selection of individual columns.
   Date:    09 November 1999
 
-  Mod:     Automatic removal of input stimulus functions which consist of 
+  Mod:     Automatic removal of input stimulus functions which consist of
            all zeros.
   Date:    10 November 1999
 
-  Mod:     Added options to allow operator more control over amount and 
-           contents of output bucket dataset. (-fout, -rout, -tout) 
+  Mod:     Added options to allow operator more control over amount and
+           contents of output bucket dataset. (-fout, -rout, -tout)
   Date:    11 November 1999
 
-  Mod:     Added option to output the sample variance (MSE) for the 
+  Mod:     Added option to output the sample variance (MSE) for the
            full model. (-vout)
   Date:    12 November 1999
 
@@ -96,7 +96,7 @@
   Date:    24 November 1999
 
   Mod:     Added test for minimum IRF length for compatibility with -tshift
-           option.  Also, added necessary duplicate initialization of total 
+           option.  Also, added necessary duplicate initialization of total
            number of parameters in the full model.
   Date:    29 November 1999
 
@@ -105,7 +105,7 @@
 
   Mod:     Added -mask option to speed up processing by performing calculations
            on brain voxels only.
-  Date:    11 January 2000  
+  Date:    11 January 2000
 
   Mod:     Modified matrix_file_read to use mri_read_ascii routine.
   Date:    12 January 2000
@@ -144,7 +144,7 @@
 
   Mod:     Added -stim_nptr option, to allow input stim functions which are
            sampled at a multiple of the 1/TR rate.
-  Date:    03 January 2001 
+  Date:    03 January 2001
 
   Mod:     Added error message if user requests bucket dataset output with
            no sub-bricks.
@@ -154,14 +154,14 @@
   Date:    11 January 2001
 
   Mod:     Increased max. number of input stimulus time series.
-  Date:    19 March 2001 
+  Date:    19 March 2001
 
-  Mod:     Extended -iresp, -sresp, -fitts, and -errts output options 
+  Mod:     Extended -iresp, -sresp, -fitts, and -errts output options
            to work with -input1D input option.
   Date:    03 May 2001
 
   Mod:     Changes to eliminate constraints on number of stimulus time series,
-           number of regressors, number of GLT's, and number of GLT linear 
+           number of regressors, number of GLT's, and number of GLT linear
            constraints.  Added -num_glt option.
   Date:    10 May 2001
 
@@ -218,7 +218,7 @@
   Date:    02 May 2002
 
   Mod:     Corrected problem in allocate_memory routine, which would result in
-           memory error if both -stim_base and -nobout options are used 
+           memory error if both -stim_base and -nobout options are used
            simultaneously.
   Date:    10 October 2002
 
@@ -326,8 +326,10 @@
 
 #ifndef FLOATIZE
 # include "matrix.h"          /* double precision */
+# define MATRIX_TYPE double
 #else
 # include "matrix_f.h"        /* single precision */
+# define MATRIX_TYPE float
 #endif
 
 void JPEG_matrix_gray( matrix X , char *fname ) ;  /* prototype */
@@ -337,7 +339,7 @@ void JPEG_matrix_gray( matrix X , char *fname ) ;  /* prototype */
 /*---------------------------------------------------------------------------*/
 
 typedef struct DC_options
-{ 
+{
   int nxyz;                /* number of voxels in the input dataset */
   int nt;                  /* number of input 3d+time dataset time points */
   int NFirst;              /* first image from input 3d+time dataset to use */
@@ -345,9 +347,9 @@ typedef struct DC_options
   int N;                   /* number of usable data points from input data */
   int polort;              /* degree of polynomial for baseline model */
   float rms_min;           /* minimum rms error to reject reduced model */
-  int quiet;               /* flag to suppress screen output */  
+  int quiet;               /* flag to suppress screen output */
   int progress;            /* print periodic progress reports */
-  float fdisp;             /* minimum f-statistic for display */ 
+  float fdisp;             /* minimum f-statistic for display */
   char * input_filename;   /* input 3d+time dataset */
   char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
@@ -356,7 +358,7 @@ typedef struct DC_options
   int nodata;              /* flag for 'no data' option */
   int p;                   /* number of parameters in the full model */
   int q;                   /* number of parameters in the baseline model */
-  int qp;                  /* number of polynomial trend parameters 
+  int qp;                  /* number of polynomial trend parameters
 			      in the baseline model  Note: qp <= q <= p  */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
 
@@ -409,14 +411,14 @@ void DC_error (char * message)
 
 
 /*---------------------------------------------------------------------------*/
-  
+
 void identify_software ()
 {
-    
+
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -555,7 +557,7 @@ void display_help_menu()
            "double precision arithmetic for most internal calculations.\n"
 #endif
           ) ;
-  
+
   exit(0);
 }
 
@@ -564,12 +566,12 @@ void display_help_menu()
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   DC_options * option_data    /* deconvolution program options */
 )
- 
+
 {
   int is;                     /* input stimulus time series index */
 
@@ -593,7 +595,7 @@ void initialize_options
   option_data->nocond   = 0;   /* 15 Jul 2004 */
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
-  
+
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
   option_data->stim_filename = NULL;
@@ -624,7 +626,7 @@ void initialize_options
 
   /*----- Initialize character strings -----*/
   option_data->input_filename = NULL;
-  option_data->mask_filename = NULL;  
+  option_data->mask_filename = NULL;
   option_data->input1D_filename = NULL;
   option_data->censor_filename = NULL;
   option_data->concat_filename = NULL;
@@ -639,13 +641,13 @@ void initialize_options
 /*
   Routine to initialize the stimulus options.
 */
- 
-void initialize_stim_options 
+
+void initialize_stim_options
 (
   DC_options * option_data,   /* deconvolution program options */
   int num_stimts              /* number of input stimulus time series */
 )
- 
+
 {
   int is;                     /* input stimulus time series index */
 
@@ -676,7 +678,7 @@ void initialize_stim_options
 
   /*----- Initialize stimulus options -----*/
   for (is = 0;  is < num_stimts;  is++)
-    {  
+    {
       option_data->stim_filename[is] = NULL;
       option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->stim_label[is]);
@@ -698,13 +700,13 @@ void initialize_stim_options
 /*
   Routine to initialize the general linear test options.
 */
- 
-void initialize_glt_options 
+
+void initialize_glt_options
 (
   DC_options * option_data,   /* deconvolution program options */
   int num_glt                 /* number of general linear tests */
 )
- 
+
 {
   int iglt;                   /* glt index */
 
@@ -725,7 +727,7 @@ void initialize_glt_options
 
   /*----- Initialize glt options -----*/
   for (iglt = 0;  iglt < num_glt;  iglt++)
-    {  
+    {
       option_data->glt_filename[iglt] = NULL;
       option_data->glt_label[iglt] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->glt_label[iglt]);
@@ -745,7 +747,7 @@ void initialize_glt_options
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   DC_options * option_data         /* deconvolution program options */
 )
 
@@ -765,20 +767,20 @@ void get_options
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
+
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
+  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
 
 
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
-  
+
   /*----- initialize the input options -----*/
-  initialize_options (option_data); 
+  initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
@@ -789,7 +791,7 @@ void get_options
 
       if( strcmp(argv[nopt],"-nocond") == 0 ){  /* 15 Jul 2004 */
 #ifndef FLOATIZE
-        option_data->nocond = 1 ;
+        option_data->nocond = 1 ;   /* only allow this for double precision */
 #endif
         nopt++ ; continue ;
       }
@@ -818,7 +820,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -mask filename   -----*/
       if (strcmp(argv[nopt], "-mask") == 0)
@@ -831,49 +833,49 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -input1D filename   -----*/
       if (strcmp(argv[nopt], "-input1D") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -input1D ");
-	  option_data->input1D_filename = 
+	  option_data->input1D_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->input1D_filename);
 	  strcpy (option_data->input1D_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -censor filename   -----*/
       if (strcmp(argv[nopt], "-censor") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -censor ");
-	  option_data->censor_filename = 
+	  option_data->censor_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->censor_filename);
 	  strcpy (option_data->censor_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -concat filename   -----*/
       if (strcmp(argv[nopt], "-concat") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -concat ");
-	  option_data->concat_filename = 
+	  option_data->concat_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->concat_filename);
 	  strcpy (option_data->concat_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nodata   -----*/
       if (strcmp(argv[nopt], "-nodata") == 0)
@@ -882,7 +884,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
@@ -946,8 +948,8 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
 	{
@@ -961,32 +963,32 @@ void get_options
 	  continue;
 	}
 
-      
+
       /*-----   -rmsmin r  -----*/
       if (strcmp(argv[nopt], "-rmsmin") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -rmsmin ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  if (fval < 0.0)
 	    DC_error ("illegal argument after -rmsmin ");
 	  option_data->rms_min = fval;
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -fdisp fval   -----*/
       if (strcmp(argv[nopt], "-fdisp") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -fdisp ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  option_data->fdisp = fval;
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -num_stimts num  -----*/
       if (strcmp(argv[nopt], "-num_stimts") == 0)
@@ -1000,12 +1002,12 @@ void get_options
 	    }
 
 	  initialize_stim_options (option_data, ival);
-	 
+	
 	  nopt++;
 	  continue;
 	}
 
-      
+
       /*-----   -stim_file k sname   -----*/
       if (strcmp(argv[nopt], "-stim_file") == 0)
 	{
@@ -1018,14 +1020,14 @@ void get_options
 	  k = ival-1;
 	  nopt++;
 
-	  option_data->stim_filename[k] 
+	  option_data->stim_filename[k]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->stim_filename[k]);
 	  strcpy (option_data->stim_filename[k], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_label k slabel   -----*/
       if (strcmp(argv[nopt], "-stim_label") == 0)
@@ -1043,13 +1045,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_base k   -----*/
       if (strcmp(argv[nopt], "-stim_base") == 0)
 	{
 	  nopt++;
-	  if (nopt >= argc)  
+	  if (nopt >= argc)
 	    DC_error ("need 1 argument after -stim_base");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -1060,13 +1062,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_minlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_minlag") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_minlag");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -1082,13 +1084,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_maxlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_maxlag") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_maxlag");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -1104,13 +1106,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_nptr k p   -----*/
       if (strcmp(argv[nopt], "-stim_nptr") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_nptr");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -1126,7 +1128,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -num_glt num  -----*/
       if (strcmp(argv[nopt], "-num_glt") == 0)
@@ -1143,12 +1145,12 @@ void get_options
 	    DC_error ("-num_glt option must precede any -glt options ");
 
 	  initialize_glt_options (option_data, ival);
-	 
+	
 	  nopt++;
 	  continue;
 	}
 
-      
+
       /*-----   -glt s gltname   -----*/
       if (strcmp(argv[nopt], "-glt") == 0)
 	{
@@ -1162,26 +1164,26 @@ void get_options
 	    }
 	  s = ival;
 
-	  if (option_data->num_glt == 0) 
+	  if (option_data->num_glt == 0)
 	    initialize_glt_options (option_data, 10);   /* default limit on GLTs */
-	      
-	  if (iglt+1 > option_data->num_glt)    
+	
+	  if (iglt+1 > option_data->num_glt)
 	    DC_error ("Use -num_glt option to specify number of GLT's ");
 
 	  option_data->glt_rows[iglt] = s;
 	  nopt++;
 
-	  option_data->glt_filename[iglt] 
+	  option_data->glt_filename[iglt]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->glt_filename[iglt]);
-	  strcpy (option_data->glt_filename[iglt], 
+	  strcpy (option_data->glt_filename[iglt],
 		  argv[nopt]);
 	  iglt++;
-	  
+	
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -glt_label k glabel   -----*/
       if (strcmp(argv[nopt], "-glt_label") == 0)
@@ -1199,7 +1201,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -iresp k iprefix   -----*/
       if (strcmp(argv[nopt], "-iresp") == 0)
@@ -1213,7 +1215,7 @@ void get_options
 	  k = ival-1;
 	  nopt++;
 
-	  option_data->iresp_filename[k] 
+	  option_data->iresp_filename[k]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->iresp_filename[k]);
 	  strcpy (option_data->iresp_filename[k], argv[nopt]);
@@ -1229,7 +1231,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -sresp k sprefix   -----*/
       if (strcmp(argv[nopt], "-sresp") == 0)
@@ -1243,14 +1245,14 @@ void get_options
 	  k = ival-1;
 	  nopt++;
 
-	  option_data->sresp_filename[k] 
+	  option_data->sresp_filename[k]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->sresp_filename[k]);
 	  strcpy (option_data->sresp_filename[k], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -fout   -----*/
       if (strcmp(argv[nopt], "-fout") == 0)
@@ -1259,7 +1261,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -rout   -----*/
       if (strcmp(argv[nopt], "-rout") == 0)
@@ -1268,7 +1270,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -tout   -----*/
       if (strcmp(argv[nopt], "-tout") == 0)
@@ -1277,7 +1279,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -vout   -----*/
       if (strcmp(argv[nopt], "-vout") == 0)
@@ -1286,7 +1288,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -xout   -----*/
       if (strcmp(argv[nopt], "-xout") == 0)
@@ -1295,7 +1297,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nobout   -----*/
       if (strcmp(argv[nopt], "-nobout") == 0)
@@ -1304,7 +1306,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nocout   -----*/
       if (strcmp(argv[nopt], "-nocout") == 0)
@@ -1313,7 +1315,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -full_first   -----*/
       if (strcmp(argv[nopt], "-full_first") == 0)
@@ -1322,7 +1324,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -bucket filename   -----*/
       if (strcmp(argv[nopt], "-bucket") == 0)
@@ -1335,7 +1337,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -fitts filename   -----*/
       if (strcmp(argv[nopt], "-fitts") == 0)
@@ -1348,7 +1350,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -errts filename   -----*/
       if (strcmp(argv[nopt], "-errts") == 0)
@@ -1381,12 +1383,12 @@ void get_options
         proc_use_jobs = 1 ;     /* -jobs opt given    2003.08.15 [rickr] */
         nopt++; continue;
       }
-      
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       DC_error (message);
-      
+
     }
 
 
@@ -1409,7 +1411,7 @@ void get_options
   a column selector attached.
 */
 
-float * read_time_series 
+float * read_time_series
 (
   char * ts_filename,          /* time series file name (plus column index) */
   int * ts_length              /* output value for time series length */
@@ -1420,7 +1422,7 @@ float * read_time_series
   char * cpt;                    /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -1455,9 +1457,9 @@ float * read_time_series
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   
-  
-  
+    ts_data[ipt] = far[ipt + iy*nx];
+
+
   mri_free (flim);  flim = NULL;
 
   return (ts_data);
@@ -1535,12 +1537,12 @@ void read_input_data
 
       for (is = 0;  is < num_stimts;  is++)
 	{
-	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is], 
+	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
 					      &((*stim_length)[is]));
-	  
+	
 	  if ((*stimulus)[is] == NULL)
 	    {
-	      sprintf (message,  "Unable to read stimulus time series: %s", 
+	      sprintf (message,  "Unable to read stimulus time series: %s",
 		       option_data->stim_filename[is]);
 	      DC_error (message);
 	    }
@@ -1563,7 +1565,7 @@ void read_input_data
   if (option_data->nodata)
     {
       /*----- No input data -----*/
-      if (num_stimts <= 0)  
+      if (num_stimts <= 0)
 	DC_error ("Must have num_stimts > 0 for -nodata option");
 
       *dset_time = NULL;
@@ -1574,14 +1576,14 @@ void read_input_data
   else if (option_data->input1D_filename != NULL)
     {
       /*----- Read the input fMRI 1D time series -----*/
-      *fmri_data = read_time_series (option_data->input1D_filename, 
+      *fmri_data = read_time_series (option_data->input1D_filename,
 				     fmri_length);
-      if (*fmri_data == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read time series file: %s", 
+      if (*fmri_data == NULL)
+	{
+	  sprintf (message,  "Unable to read time series file: %s",
 		   option_data->input1D_filename);
 	  DC_error (message);
-	}  
+	}
       *dset_time = NULL;
       nt = *fmri_length;
       nxyz = 1;
@@ -1591,12 +1593,12 @@ void read_input_data
     {
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
-      if (!ISVALID_3DIM_DATASET(*dset_time))  
-	{ 
-	  sprintf (message,  "Unable to open data file: %s", 
+      if (!ISVALID_3DIM_DATASET(*dset_time))
+	{
+	  sprintf (message,  "Unable to open data file: %s",
 		   option_data->input_filename);
 	  DC_error (message);
-	}  
+	}
       THD_load_datablock ((*dset_time)->dblk);
       nt = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
@@ -1608,12 +1610,12 @@ void read_input_data
 
 	  /*----- Read the input mask dataset -----*/
 	  mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(mask_dset))  
-	    { 
-	      sprintf (message,  "Unable to open mask file: %s", 
+	  if (!ISVALID_3DIM_DATASET(mask_dset))
+	    {
+	      sprintf (message,  "Unable to open mask file: %s",
 		       option_data->mask_filename);
 	      DC_error (message);
-	    }  
+	    }
 
 	  /*----- If mask is used, check for compatible dimensions -----*/
 	  if ( (DSET_NX(*dset_time) != DSET_NX(mask_dset))
@@ -1624,14 +1626,14 @@ void read_input_data
 		      option_data->input_filename, option_data->mask_filename);
 	      DC_error (message);
 	    }
-	  
+	
 	  if (DSET_NVALS(mask_dset) != 1 )
 	    DC_error ("Must specify 1 sub-brick from mask dataset");
-     
+
 	  *mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
 	  if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
 
-	  DSET_delete(mask_dset) ; 
+	  DSET_delete(mask_dset) ;
 	}
     }
   else
@@ -1686,20 +1688,20 @@ void read_input_data
   option_data->p  = p;
   option_data->q  = q;
   option_data->qp = qp;  /* number of polort baseline parameters */
-  
+
 
   /*----- Read the censorship file -----*/
   if (option_data->censor_filename != NULL)
     {
       /*----- Read the input censor time series array -----*/
-      *censor_array = read_time_series (option_data->censor_filename, 
+      *censor_array = read_time_series (option_data->censor_filename,
 					censor_length);
-      if (*censor_array == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read censor time series file: %s", 
+      if (*censor_array == NULL)
+	{
+	  sprintf (message,  "Unable to read censor time series file: %s",
 		   option_data->censor_filename);
 	  DC_error (message);
-	}  
+	}
     }
   else
     {
@@ -1710,13 +1712,13 @@ void read_input_data
       for (it = 0;  it < nt;  it++)
 	(*censor_array)[it] = 1.0;
     }
-      
+
 
   /*----- Read the general linear test matrices -----*/
   if (num_glt > 0)
     {
       *glt_cmat = (matrix *) malloc (sizeof(matrix) * num_glt);
-      
+
       /*----- Initialize general linear test matrices -----*/
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	matrix_initialize (&((*glt_cmat)[iglt]));
@@ -1728,12 +1730,12 @@ void read_input_data
 			    option_data->glt_rows[iglt],
 			    p, &((*glt_cmat)[iglt]), 1);
 	  if ((*glt_cmat)[iglt].elts == NULL)
-	    { 
-	      sprintf (message,  "Unable to read GLT matrix from file: %s", 
+	    {
+	      sprintf (message,  "Unable to read GLT matrix from file: %s",
 		       option_data->glt_filename[iglt]);
 	      DC_error (message);
-	    }  
-	} 
+	    }
+	}
     }
 
 }
@@ -1787,28 +1789,28 @@ void remove_zero_stimfns
 	  printf ("** WARNING!  Stimulus function %s consists of all zeros! \n",
 		 option_data->stim_filename[is]);
 	  if (option_data->num_glt > 0)
-	    DC_error 
+	    DC_error
 	      ("Cannot process -glt option when stim function is all zero");
 
-	  option_data->p -=  
+	  option_data->p -=
 	    option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
 	  if (option_data->stim_base[is])
-	    option_data->q -=  
+	    option_data->q -=
 	      option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
 	  for (isp = is;  isp < num_stimts-1;  isp++)
 	    {
 	      stimulus[isp] = stimulus[isp+1];
 	      stim_length[isp] = stim_length[isp+1];
-	      option_data->stim_filename[isp] 
+	      option_data->stim_filename[isp]
 		= option_data->stim_filename[isp+1];
 	      option_data->stim_label[isp] = option_data->stim_label[isp+1];
-	      option_data->stim_base[isp] 
+	      option_data->stim_base[isp]
 		= option_data->stim_base[isp+1];
 	      option_data->stim_minlag[isp] = option_data->stim_minlag[isp+1];
 	      option_data->stim_maxlag[isp] = option_data->stim_maxlag[isp+1];
-	      option_data->iresp_filename[isp] 
+	      option_data->iresp_filename[isp]
 		= option_data->iresp_filename[isp+1];
-	      option_data->sresp_filename[isp] 
+	      option_data->sresp_filename[isp]
 		= option_data->sresp_filename[isp+1];
 	    }
 
@@ -1818,7 +1820,7 @@ void remove_zero_stimfns
       else
 	is++;
     }
-        
+
 }
 
 
@@ -1827,7 +1829,7 @@ void remove_zero_stimfns
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -1838,27 +1840,27 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                			           GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       DC_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -1867,10 +1869,10 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       DC_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1879,7 +1881,7 @@ void check_one_output_file
   Routine to check whether output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   DC_options * option_data,       /* deconvolution program options */
   THD_3dim_dataset * dset_time    /* input 3d+time data set */
@@ -1889,21 +1891,21 @@ void check_output_files
   int is;                         /* stimulus time series index */
 
 
-  if (option_data->bucket_filename != NULL)   
+  if (option_data->bucket_filename != NULL)
     check_one_output_file (dset_time, option_data->bucket_filename);
 
-  if (option_data->fitts_filename != NULL)   
+  if (option_data->fitts_filename != NULL)
     check_one_output_file (dset_time, option_data->fitts_filename);
 
-  if (option_data->errts_filename != NULL)   
+  if (option_data->errts_filename != NULL)
     check_one_output_file (dset_time, option_data->errts_filename);
-  
+
   for (is = 0;  is < option_data->num_stimts;  is++)
     {
-      if (option_data->iresp_filename[is] != NULL)   
+      if (option_data->iresp_filename[is] != NULL)
 	check_one_output_file (dset_time, option_data->iresp_filename[is]);
-  
-      if (option_data->sresp_filename[is] != NULL)   
+
+      if (option_data->sresp_filename[is] != NULL)
 	check_one_output_file (dset_time, option_data->sresp_filename[is]);
     }
 }
@@ -1913,8 +1915,8 @@ void check_output_files
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs 
+
+void check_for_valid_inputs
 (
   DC_options * option_data,       /* deconvolution program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
@@ -1986,16 +1988,16 @@ void check_for_valid_inputs
     for (ib = 1;  ib < num_blocks;  ib++)
       if (block_list[ib] <= block_list[ib-1])
 	DC_error ("Invalid concatenated runs list");
-    
-  
+
+
   /*----- Create list of good (usable) time points -----*/
   *good_list = (int *) malloc (sizeof(int) * nt);  MTEST (*good_list);
   NFirst = option_data->NFirst;
   if (NFirst < 0)
     for (is = 0;  is < num_stimts;  is++)
-      if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+      if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])
 	NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast;
   if (NLast < 0)  NLast = nt;
 
   N = 0;
@@ -2004,9 +2006,9 @@ void check_for_valid_inputs
     {
       if (ib+1 < num_blocks)
 	if (it >= block_list[ib+1])  ib++;
-      
+
       irb = it - block_list[ib];
-	  
+	
       if ((irb >= NFirst) && (irb <= NLast) && (censor_array[it]))
 	{
 	  (*good_list)[N] = it;
@@ -2017,7 +2019,7 @@ void check_for_valid_inputs
 
   /*----- Check for sufficient data -----*/
   if (N == 0)  DC_error ("No usable time points?");
-  if (N <= p) 
+  if (N <= p)
     {
        sprintf (message,  "Insufficient data for estimating %d parameters", p);
        DC_error (message);
@@ -2078,18 +2080,18 @@ void check_for_valid_inputs
 	{
 	  if (option_data->iresp_filename[is] != NULL)
 	    {
-	      sprintf (message, "Only %d time point for output dataset %s ", 
+	      sprintf (message, "Only %d time point for output dataset %s ",
 		       m, option_data->iresp_filename[is]);
 	      DC_error (message);
 	    }
 
 	  if (option_data->sresp_filename[is] != NULL)
 	    {
-	      sprintf (message, "Only %d time point for output dataset %s", 
+	      sprintf (message, "Only %d time point for output dataset %s",
 		       m, option_data->sresp_filename[is]);
 	      DC_error (message);
 	    }
-	}	    
+	}	
       if ((m < 4) && (option_data->tshift))
 	{
 	  if (option_data->iresp_filename[is] != NULL)
@@ -2099,7 +2101,7 @@ void check_for_valid_inputs
 	      strcat (message, "Require >= 4 data points for -tshift option");
 	      DC_error (message);
 	    }
-	}	    
+	}	
     }
 
 
@@ -2123,7 +2125,7 @@ void check_for_valid_inputs
 		}
 	    }
 	}
-	 
+	
       nbricks += option_data->rout + option_data->fout + option_data->vout;
 
       if (num_glt > 0)
@@ -2132,18 +2134,18 @@ void check_for_valid_inputs
 	    nbricks += glt_rows[iglt] * (1 + option_data->tout);
 	    nbricks += option_data->rout + option_data->fout;
 	  }
-      
+
       if (nbricks <= 0)
 	{
-	  sprintf (message, 
+	  sprintf (message,
 		   "User requested bucket dataset with only %d sub-bricks",
 		   nbricks);
 	  DC_error (message);
 	}
-      
+
     }
   option_data->nbricks = nbricks;
-      
+
 
   /*----- Check for zero slice offsets with nptr option -----*/
   if (dset_time != NULL)
@@ -2181,7 +2183,7 @@ void zero_fill_volume (float ** fvol, int nxyz)
 
   if( proc_numjob == 1 ){ /* 1 process ==> allocate locally */
 
-    *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol); 
+    *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol);
     for (ixyz = 0;  ixyz < nxyz;  ixyz++)
       (*fvol)[ixyz]  = 0.0;
 
@@ -2357,7 +2359,7 @@ void proc_free( void *ptr )
   Allocate memory for output volumes.
 */
 
-void allocate_memory 
+void allocate_memory
 (
   DC_options * option_data,  /* deconvolution algorithm options */
 
@@ -2451,14 +2453,14 @@ void allocate_memory
 	  if (option_data->stim_base[is])
 	    {
 	      if (bout || (option_data->iresp_filename[is] != NULL))
-		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	  
+		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	
 	      if (bout && tout)
 		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
 	    }
 	  else
 	    {
 	      if (cout || (option_data->iresp_filename[is] != NULL))
-		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	  
+		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	
 	      if (cout && tout)
 		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
 	    }
@@ -2468,7 +2470,7 @@ void allocate_memory
     }
 
 
-  if (fout) 
+  if (fout)
     {
       *fpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
       MTEST(*fpart_vol);
@@ -2501,18 +2503,18 @@ void allocate_memory
   if (num_glt > 0)
     {
       *glt_coef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
-       MTEST(*glt_coef_vol); 
-       
+       MTEST(*glt_coef_vol);
+
        if (tout)
 	 {
 	   *glt_tcoef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
 	   MTEST(*glt_tcoef_vol);
-	 } 
+	 }
 
        if (fout)
 	 {
 	   *glt_fstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
-	   MTEST(*glt_fstat_vol); 
+	   MTEST(*glt_fstat_vol);
 	 }
 
        if (rout)
@@ -2520,18 +2522,18 @@ void allocate_memory
 	   *glt_rstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
 	   MTEST(*glt_rstat_vol);
 	 }
-      
+
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	{
 	  nlc = option_data->glt_rows[iglt];
 
-	  (*glt_coef_vol)[iglt] = (float **) malloc (sizeof(float *) * nlc);   
+	  (*glt_coef_vol)[iglt] = (float **) malloc (sizeof(float *) * nlc);
 	  MTEST((*glt_coef_vol)[iglt]);
 
 	  if (tout)
 	    {
 	      (*glt_tcoef_vol)[iglt]
-		= (float **) malloc (sizeof(float *) * nlc);   
+		= (float **) malloc (sizeof(float *) * nlc);
 	      MTEST((*glt_tcoef_vol)[iglt]);
 	    }
 
@@ -2541,7 +2543,7 @@ void allocate_memory
 	      if (tout)
 		zero_fill_volume (&((*glt_tcoef_vol)[iglt][ilc]),  nxyz);
 	    }
-	  
+	
 	  if (fout)  zero_fill_volume (&((*glt_fstat_vol)[iglt]),  nxyz);
 	  if (rout)  zero_fill_volume (&((*glt_rstat_vol)[iglt]),  nxyz);
 	}
@@ -2581,10 +2583,10 @@ void allocate_memory
   Perform all program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DC_options ** option_data,        /* deconvolution algorithm options */
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
   byte ** mask_vol,                 /* input mask volume */
@@ -2616,7 +2618,7 @@ void initialize_program
   float *** fitts_vol,       /* volumes for full model fit to input data */
   float *** errts_vol        /* volumes for residual errors */
 )
-     
+
 {
   int iglt;                  /* general linear test index */
 
@@ -2624,7 +2626,7 @@ void initialize_program
   /*----- Allocate memory -----*/
   *option_data = (DC_options *) malloc (sizeof(DC_options));
 
-   
+
   /*----- Get command line inputs -----*/
   get_options (argc, argv, *option_data);
 
@@ -2643,24 +2645,24 @@ void initialize_program
 
   /*----- Read input data -----*/
   read_input_data (*option_data, dset_time, mask_vol, fmri_data, fmri_length,
-		   censor_array, censor_length, block_list, num_blocks, 
+		   censor_array, censor_length, block_list, num_blocks,
 		   stimulus, stim_length, glt_cmat);
 
 
   /*----- Remove all-zero stimulus functions -----*/
   if( !use_psinv )
     remove_zero_stimfns (*option_data, *stimulus, *stim_length, *glt_cmat);
- 
+
 
   /*----- Check for valid inputs -----*/
-  check_for_valid_inputs (*option_data, *dset_time, 
-			  *fmri_length, *censor_array, *censor_length, 
+  check_for_valid_inputs (*option_data, *dset_time,
+			  *fmri_length, *censor_array, *censor_length,
 			  *block_list, *num_blocks, *stim_length, *stimulus, good_list);
-  
+
 
   /*----- Allocate memory for output volumes -----*/
   if (!(*option_data)->nodata)
-    allocate_memory (*option_data, coef_vol, scoef_vol, tcoef_vol, 
+    allocate_memory (*option_data, coef_vol, scoef_vol, tcoef_vol,
 		     fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
 		     glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		     fitts_vol, errts_vol);
@@ -2674,7 +2676,7 @@ void initialize_program
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void extract_ts_array 
+void extract_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
@@ -2721,15 +2723,15 @@ void extract_ts_array
   Save results for this voxel.
 */
 
-void save_voxel 
+void save_voxel
 (
   DC_options * option_data,    /* deconvolution algorithm options */
-  int iv,                      /* current voxel index */      
+  int iv,                      /* current voxel index */
   vector coef,                 /* regression parameters */
   vector scoef,                /* regression parameter standard deviations */
   vector tcoef,                /* t-statistics for regression parameters */
-  float * fpart,               /* array of partial F-statistics */ 
-  float * rpart,               /* array of partial R^2 stats. */ 
+  float * fpart,               /* array of partial F-statistics */
+  float * rpart,               /* array of partial R^2 stats. */
   float mse,                   /* full model mean square error */
   float ffull,                 /* full model F-statistic */
   float rfull,                 /* full model R^2 stat. */
@@ -2761,7 +2763,7 @@ void save_voxel
 )
 
 {
-  int ip;                   /* parameter index */ 
+  int ip;                   /* parameter index */
   int p;                    /* total number of parameters */
   int is;                   /* stimulus time series index */
   int num_stimts;           /* number of stimulus time series */
@@ -2805,7 +2807,7 @@ void save_voxel
     for (is = 0;  is < num_stimts;  is++)
       if (rpart_vol[is] != NULL)
 	rpart_vol[is][iv] = rpart[is];
-  
+
 
   /*----- Save full model mean square error -----*/
   if (mse_vol != NULL)  mse_vol[iv] = mse;
@@ -2826,14 +2828,14 @@ void save_voxel
       if (glt_coef_vol != NULL)
 	for (iglt = 0;  iglt < num_glt;  iglt++)
 	  if (glt_coef_vol[iglt] != NULL)
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++) 
+	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	      glt_coef_vol[iglt][ilc][iv] = glt_coef[iglt].elts[ilc];
 
       /*----- Save GLT t-statistics -----*/
       if (glt_tcoef_vol != NULL)
 	for (iglt = 0;  iglt < num_glt;  iglt++)
 	  if (glt_tcoef_vol[iglt] != NULL)
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++) 
+	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	      glt_tcoef_vol[iglt][ilc][iv] = glt_tcoef[iglt].elts[ilc];
 
       /*----- Save GLT F-statistics -----*/
@@ -2855,7 +2857,7 @@ void save_voxel
     {
       for (it = 0;  it < nt;  it++)
 	fitts_vol[it][iv] = ts_array[it];
-      
+
       for (it = 0;  it < N;  it++)
 	fitts_vol[good_list[it]][iv] = fitts[it];
     }
@@ -2877,13 +2879,13 @@ void save_voxel
   Report the results from evaluation of the experimental design.
 */
 
-void report_evaluation 
+void report_evaluation
 (
   int qp,                  /* number of polynomial trend baseline parameters */
   int num_stimts,          /* number of stimulus time series */
   char ** stim_label,      /* label for each stimulus */
-  int * min_lag,           /* minimum time delay for impulse response */ 
-  int * max_lag,           /* maximum time delay for impulse response */ 
+  int * min_lag,           /* minimum time delay for impulse response */
+  int * max_lag,           /* maximum time delay for impulse response */
   matrix xtxinv_full,      /* matrix:  1/(X'X)      for full model */
   int num_glt,             /* number of general linear tests */
   char ** glt_label,       /* label for general linear test */
@@ -2899,7 +2901,7 @@ void report_evaluation
   int ilc;                 /* linear combination index */
   float stddev;            /* normalized parameter standard deviation */
 
-  
+
   /*----- Print the normalized parameter standard deviations -----*/
   m = qp;
   for (is = 0;  is < num_stimts;  is++)
@@ -2912,7 +2914,7 @@ void report_evaluation
 	  m++;
 	}
     }
-     
+
   /*----- Print normalized standard deviations for GLT's -----*/
   if (num_glt > 0)
     {
@@ -2923,7 +2925,7 @@ void report_evaluation
 	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	    {
 	      stddev = sqrt ( 1.0 * cxtxinvct[iglt].elts[ilc][ilc] );
-	      printf ("  LC[%d] norm. std. dev. = %8.4f \n", 
+	      printf ("  LC[%d] norm. std. dev. = %8.4f \n",
 		       ilc, stddev);
 	    }
 	}
@@ -2937,7 +2939,7 @@ void report_evaluation
   Calculate the impulse response function and associated statistics.
 */
 
-void calculate_results 
+void calculate_results
 (
   DC_options * option_data,         /* deconvolution algorithm options */
   THD_3dim_dataset * dset,          /* input 3d+time data set */
@@ -2966,7 +2968,7 @@ void calculate_results
   float ** fitts_vol,       /* volumes for full model fit to input data */
   float ** errts_vol        /* volumes for residual errors */
 )
-  
+
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
 
@@ -2997,9 +2999,9 @@ void calculate_results
   matrix x_base;              /* extracted X matrix    for baseline model */
   matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
   matrix * x_rdcd = NULL;     /* extracted X matrices  for reduced models */
-  matrix * xtxinvxt_rdcd = NULL;     
+  matrix * xtxinvxt_rdcd = NULL;
                               /* matrix:  (1/(X'X))X'  for reduced models */
-  vector y;                   /* vector of measured data */       
+  vector y;                   /* vector of measured data */
 
   int ixyz;                   /* voxel index */
   int nxyz;                   /* number of voxels per dataset */
@@ -3008,9 +3010,9 @@ void calculate_results
   int N;                   /* number of usable data points */
 
   int num_stimts;          /* number of stimulus time series */
-  int * baseline;          /* flag for stim function in baseline model */ 
-  int * min_lag;           /* minimum time delay for impulse response */ 
-  int * max_lag;           /* maximum time delay for impulse response */ 
+  int * baseline;          /* flag for stim function in baseline model */
+  int * min_lag;           /* minimum time delay for impulse response */
+  int * max_lag;           /* maximum time delay for impulse response */
   int * nptr;              /* number of stim fn. time points per TR */
   char ** stim_label;      /* label for stimulus time series */
 
@@ -3041,7 +3043,7 @@ void calculate_results
 
   /*----- Initialize local variables -----*/
   nodata = option_data->nodata;
-  nxyz = option_data->nxyz;       
+  nxyz = option_data->nxyz;
   nt = option_data->nt;
   rms_min = option_data->rms_min;
   num_stimts = option_data->num_stimts;
@@ -3076,11 +3078,11 @@ void calculate_results
 
   if (num_stimts > 0)
     {
-      x_rdcd = (matrix *) malloc (sizeof(matrix) * num_stimts);   
+      x_rdcd = (matrix *) malloc (sizeof(matrix) * num_stimts);
       MTEST (x_rdcd);
-      xtxinvxt_rdcd = (matrix *) malloc (sizeof(matrix) * num_stimts);   
+      xtxinvxt_rdcd = (matrix *) malloc (sizeof(matrix) * num_stimts);
       MTEST (xtxinvxt_rdcd);
-      
+
       for (is =0;  is < num_stimts;  is++)
 	{
 	  matrix_initialize (&x_rdcd[is]);
@@ -3090,10 +3092,10 @@ void calculate_results
 
   if (num_glt > 0)
     {
-      cxtxinvct = (matrix *) malloc (sizeof(matrix) * num_glt);   
-      glt_amat  = (matrix *) malloc (sizeof(matrix) * num_glt);   
-      glt_coef  = (vector *) malloc (sizeof(vector) * num_glt);   
-      glt_tcoef = (vector *) malloc (sizeof(vector) * num_glt);   
+      cxtxinvct = (matrix *) malloc (sizeof(matrix) * num_glt);
+      glt_amat  = (matrix *) malloc (sizeof(matrix) * num_glt);
+      glt_coef  = (vector *) malloc (sizeof(vector) * num_glt);
+      glt_tcoef = (vector *) malloc (sizeof(vector) * num_glt);
 
       for (iglt =0;  iglt < num_glt;  iglt++)
 	{
@@ -3130,8 +3132,8 @@ void calculate_results
 
 
   /*----- Initialize the independent variable matrix -----*/
-  init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list, 
-			 num_blocks, num_stimts, stimulus, stim_length, 
+  init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list,
+			 num_blocks, num_stimts, stimulus, stim_length,
 			 min_lag, max_lag, nptr, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
@@ -3186,10 +3188,10 @@ void calculate_results
   }
 
   /*----- Initialization for the regression analysis -----*/
-  init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag, 
-			    xdata, &x_full, &xtxinv_full, &xtxinvxt_full, 
+  init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag,
+			    xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
 			    &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
-  if ((option_data->xout) || nodata) 
+  if ((option_data->xout) || nodata)
       matrix_sprint ("(X'X) inverse matrix:", xtxinv_full);
 
 
@@ -3200,12 +3202,12 @@ void calculate_results
 
   vector_create (N, &y);
 
-  
+
   if (nodata)
     {
-      report_evaluation 
-	(qp, num_stimts, stim_label, min_lag, max_lag, xtxinv_full, 
-	 num_glt, glt_label, glt_rows, cxtxinvct); 
+      report_evaluation
+	(qp, num_stimts, stim_label, min_lag, max_lag, xtxinv_full,
+	 num_glt, glt_label, glt_rows, cxtxinvct);
     }
 
   else
@@ -3306,7 +3308,7 @@ void calculate_results
 	{
 	  /*----- Apply mask? -----*/
 	  if (mask_vol != NULL)
-	    if (mask_vol[ixyz] == 0)  continue; 
+	    if (mask_vol[ixyz] == 0)  continue;
 
 #ifdef USE_GET
           /*** race ahead and extract a bunch of voxel time series at once ***/
@@ -3337,52 +3339,52 @@ void calculate_results
 
 	  for (i = 0;  i < N;  i++)
 	    y.elts[i] = ts_array[good_list[i]];
-	   
-	  
+	
+	
 	  /*----- Perform the regression analysis for this voxel-----*/
 	  regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
 			       x_full, xtxinv_full, xtxinvxt_full, x_base,
-			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
-			       y, rms_min, &mse, &coef, &scoef, &tcoef, 
+			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd,
+			       y, rms_min, &mse, &coef, &scoef, &tcoef,
 			       fpart, rpart, &ffull, &rfull, &novar,
 			       fitts, errts);
-	  
+	
 
 	  /*----- Perform the general linear tests for this voxel -----*/
 	  if (num_glt > 0)
 	    glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar, cxtxinvct,
-			  num_glt, glt_rows, glt_cmat, glt_amat, 
+			  num_glt, glt_rows, glt_cmat, glt_amat,
 			  glt_coef, glt_tcoef, fglt, rglt);
-	  
-	  
+	
+	
 	  /*----- Save results for this voxel into arrays -----*/
 	  save_voxel (option_data, ixyz, coef, scoef, tcoef, fpart, rpart, mse,
-		      ffull, rfull, glt_coef, glt_tcoef, fglt, rglt, 
-		      nt, ts_array, good_list, fitts, errts, 
-		      coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol, 
-		      mse_vol, ffull_vol, rfull_vol, glt_coef_vol, 
+		      ffull, rfull, glt_coef, glt_tcoef, fglt, rglt,
+		      nt, ts_array, good_list, fitts, errts,
+		      coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol,
+		      mse_vol, ffull_vol, rfull_vol, glt_coef_vol,
 		      glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		      fitts_vol, errts_vol);
-	  
-	  
+	
+	
 	  /*----- Report results for this voxel -----*/
 	  if ( ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
-	       || ((option_data->progress > 0) 
+	       || ((option_data->progress > 0)
 		   && (ixyz % option_data->progress == 0))
 	       || (option_data->input1D_filename != NULL) )
 	    {
 
               if( proc_ind == 0 ){
 	        printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	        report_results (N, qp, q, p, polort, block_list, num_blocks, 
+	        report_results (N, qp, q, p, polort, block_list, num_blocks,
 			     num_stimts, stim_label, baseline, min_lag, max_lag,
-			     coef, tcoef, fpart, rpart, ffull, rfull, mse, 
-		             num_glt, glt_label, glt_rows, glt_coef, 
+			     coef, tcoef, fpart, rpart, ffull, rfull, mse,
+		             num_glt, glt_label, glt_rows, glt_coef,
 		             glt_tcoef, fglt, rglt, &label);
 	        printf ("%s \n", label);
               }
 	    }
-	  
+	
 	}  /*----- Loop over voxels -----*/
 
 #ifdef USE_GET
@@ -3418,7 +3420,7 @@ void calculate_results
 
         if( option_data->input1D_filename == NULL)  /* don't need data anymore */
           DSET_unload(dset) ;
-      
+
     }  /*----- NOT nodata -----*/
 
 
@@ -3436,29 +3438,29 @@ void calculate_results
 	  matrix_destroy (&xtxinvxt_rdcd[is]);
 	}
       free (x_rdcd);         x_rdcd = NULL;
-      free (xtxinvxt_rdcd);  xtxinvxt_rdcd = NULL; 
+      free (xtxinvxt_rdcd);  xtxinvxt_rdcd = NULL;
     }
 
   matrix_destroy (&xtxinvxt_base);
   matrix_destroy (&x_base);
   matrix_destroy (&xtxinvxt_full);
-  matrix_destroy (&xtxinv_full); 
-  matrix_destroy (&x_full); 
+  matrix_destroy (&xtxinv_full);
+  matrix_destroy (&x_full);
   matrix_destroy (&xdata);
 
   if (num_glt > 0)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	{
-	  matrix_destroy (&cxtxinvct[iglt]);      
+	  matrix_destroy (&cxtxinvct[iglt]);
 	  matrix_destroy (&glt_amat[iglt]);
 	  vector_destroy (&glt_coef[iglt]);
 	  vector_destroy (&glt_tcoef[iglt]);
-	} 
-      free (cxtxinvct);   cxtxinvct = NULL; 
-      free (glt_amat);    glt_amat  = NULL; 
-      free (glt_coef);    glt_coef  = NULL; 
-      free (glt_tcoef);   glt_tcoef = NULL; 
+	}
+      free (cxtxinvct);   cxtxinvct = NULL;
+      free (glt_amat);    glt_amat  = NULL;
+      free (glt_coef);    glt_coef  = NULL;
+      free (glt_tcoef);   glt_tcoef = NULL;
     }
 
 
@@ -3487,13 +3489,13 @@ float EDIT_coerce_autoscale_new( int nxyz ,
 				 int itype,void *ivol , int otype,void *ovol )
 {
   float fac=0.0 , top ;
-  
+
   if( MRI_IS_INT_TYPE(otype) ){
     top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
     if (top == 0.0)  fac = 0.0;
     else  fac = MRI_TYPE_maxval[otype]/top;
   }
-  
+
   EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
   return ( fac );
 }
@@ -3501,15 +3503,15 @@ float EDIT_coerce_autoscale_new( int nxyz ,
 
 /*---------------------------------------------------------------------------*/
 /*
-  Use cubic spline interpolation to time shift the estimated impulse response 
+  Use cubic spline interpolation to time shift the estimated impulse response
   function, in order to correct for differences in slice acquisition times.
 
 */
 
-void cubic_spline 
+void cubic_spline
 (
   DC_options * option_data,              /* deconvolution algorithm options */
-  int ts_length,                         /* length of time series data */  
+  int ts_length,                         /* length of time series data */
   float ** vol_array                     /* output time series volume data */
 )
 
@@ -3524,9 +3526,9 @@ void cubic_spline
   matrix m, minv;        /* matrices for cubic spline interpolation */
   vector v, sv;          /* vectors for cubic spline interpolation */
   int n;                 /* number of intervals = ts_length-1 */
-  float * a = NULL, 
-        * b = NULL, 
-        * c = NULL, 
+  float * a = NULL,
+        * b = NULL,
+        * c = NULL,
         * d = NULL;      /* cubic spline interpolation polynomial coefs. */
   float tslice;          /* slice acquisition time offset */
   float tdelta;          /* time between same slice acquisitons */
@@ -3606,8 +3608,8 @@ void cubic_spline
 	}
       sarray[0] = 0.0;
       sarray[n] = 0.0;
-      
-      
+
+
       /*----- Calculate cubic spline polynomial coefficients -----*/
       for (i = 0;  i < n;  i++)
 	{
@@ -3616,21 +3618,21 @@ void cubic_spline
 	  c[i] = (yarray[i+1]-yarray[i]) - (2.0*sarray[i]+sarray[i+1]) / 6.0;
 	  d[i] = yarray[i];
 	}
-      
-      
+
+
       /*----- Apply time shift to impulse response function -----*/
       for (i = 0;  i < ts_length;  i++)
 	{
 	  t = i + frac;
-	  
+	
 	  if (frac < 0.0)  k = i-1;
 	  else             k = i;
-	  
+	
 	  if (k < 0)    k = 0;
 	  if (k > n-1)  k = n-1;
-	  
+	
 	  delt = t - k;
-	  
+	
 	  yarray[i] = a[k]*delt*delt*delt + b[k]*delt*delt + c[k]*delt + d[k];
 	}
 
@@ -3651,7 +3653,7 @@ void cubic_spline
   matrix_destroy (&minv);
   vector_destroy (&v);
   vector_destroy (&sv);
-  
+
   free (sarray);   sarray = NULL;
   free (yarray);   yarray = NULL;
   free (a);        a = NULL;
@@ -3660,19 +3662,19 @@ void cubic_spline
   free (d);        d = NULL;
 }
 
- 
+
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to write one AFNI 3d+time data set. 
+  Routine to write one AFNI 3d+time data set.
 */
 
 
-void write_ts_array 
+void write_ts_array
 (
   int argc,                       /* number of input arguments */
-  char ** argv,                   /* array of input arguments */ 
+  char ** argv,                   /* array of input arguments */
   DC_options * option_data,       /* deconvolution algorithm options */
-  int ts_length,                  /* length of time series data */  
+  int ts_length,                  /* length of time series data */
   int nptr,                       /* number of time points per TR */
   int tshift,                     /* flag to set slice offset times to 0 */
   float ** vol_array,             /* output time series volume data */
@@ -3684,29 +3686,29 @@ void write_ts_array
 
   THD_3dim_dataset * dset = NULL;        /* input afni data set pointer */
   THD_3dim_dataset * new_dset = NULL;    /* output afni data set pointer */
-  int ib;                                /* sub-brick index */ 
+  int ib;                                /* sub-brick index */
   int ierror;                            /* number of errors in editing data */
-  int nxyz;                              /* total number of voxels */ 
+  int nxyz;                              /* total number of voxels */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   char * input_filename;    /* input afni data set file name */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
   float * fbuf = NULL;      /* float buffer */
   float * volume;           /* pointer to volume of data */
-  char label[THD_MAX_NAME]; /* label for output file */ 
+  char label[THD_MAX_NAME]; /* label for output file */
   float newtr;              /* new time step = TR/nptr */
-  
+
 
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
   dset = THD_open_one_dataset (input_filename);
-  nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;    
+  nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
   newtr = DSET_TIMESTEP(dset) / nptr;
- 
+
   /*----- allocate memory -----*/
   bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
-  
-  
+
+
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
 
@@ -3725,25 +3727,25 @@ void write_ts_array
 
   /*----- Delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
-  
+
 
   ierror = EDIT_dset_items (new_dset,
 			    ADN_prefix,      output_filename,
 			    ADN_label1,      output_filename,
 			    ADN_self_name,   output_filename,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
-			    ADN_datum_all,   MRI_short,   
+			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+			    ADN_datum_all,   MRI_short,
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
 			    ADN_ttdel,       newtr,
 			    ADN_none);
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "** Output dataset file %s already exists--cannot continue!\a\n",
@@ -3754,20 +3756,20 @@ void write_ts_array
 
   /*----- Reset slice offset times to zero -----*/
   if (tshift)
-    EDIT_dset_items (new_dset, 
+    EDIT_dset_items (new_dset,
 		     ADN_nsl,     0,    /* will have no offsets when done */
 		     ADN_ttorg, 0.0,    /* in case not already set */
 		     ADN_ttdur, 0.0,    /* in case not already set */
 		     ADN_none);
 
-  
+
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
     {
 
       /*----- Set pointer to appropriate volume -----*/
       volume = vol_array[ib];
-      
+
       /*----- Allocate memory for output sub-brick -----*/
       bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
       MTEST (bar[ib]);
@@ -3780,7 +3782,7 @@ void write_ts_array
       fbuf[ib] = factor;
 
       /*----- attach bar[ib] to be sub-brick #ib -----*/
-      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
     }
 
 
@@ -3793,9 +3795,9 @@ void write_ts_array
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
-  
 
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
   free (fbuf);   fbuf = NULL;
 
@@ -3815,10 +3817,10 @@ void attach_sub_brick
   int nxyz,                 /* total number of voxels */
   int brick_type,           /* indicates statistical type of sub-brick */
   char * brick_label,       /* character string label for sub-brick */
-  int dof, 
-  int ndof, 
+  int dof,
+  int ndof,
   int ddof,                 /* degrees of freedom */
-  short ** bar              /* bar[ib] points to data for sub-brick #ib */  
+  short ** bar              /* bar[ib] points to data for sub-brick #ib */
 )
 
 {
@@ -3831,10 +3833,10 @@ void attach_sub_brick
   MTEST (bar[ibrick]);
   factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
 				      MRI_short, bar[ibrick]);
-  
+
   if (factor < EPSILON)  factor = 0.0;
   else factor = 1.0 / factor;
-  
+
 
   /*----- edit the sub-brick -----*/
   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
@@ -3844,8 +3846,8 @@ void attach_sub_brick
     EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
   else if (brick_type == FUNC_FT_TYPE)
     EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
-  
-  
+
+
   /*----- attach bar[ib] to be sub-brick #ibrick -----*/
   EDIT_substitute_brick (new_dset, ibrick, MRI_short, bar[ibrick]);
 
@@ -3856,10 +3858,10 @@ void attach_sub_brick
   Routine to write one bucket data set.
 */
 
-void write_bucket_data 
+void write_bucket_data
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DC_options * option_data,         /* deconvolution algorithm options */
 
   float ** coef_vol,       /* array of volumes of signal model parameters */
@@ -3913,9 +3915,9 @@ void write_bucket_data
   /*----- read prototype dataset -----*/
   old_dset = THD_open_one_dataset (option_data->input_filename);
 
-    
+
   /*----- Initialize local variables -----*/
-  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;  
+  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
   num_stimts = option_data->num_stimts;
   nt = DSET_NUM_TIMES (old_dset);
   num_glt = option_data->num_glt;
@@ -3932,12 +3934,12 @@ void write_bucket_data
   /*----- Prepare output file name -----*/
   strcpy (output_prefix, option_data->bucket_filename);
   strcpy (output_session, "./");
-  
- 
+
+
   /*----- allocate memory -----*/
   bar  = (short **) malloc (sizeof(short *) * nbricks);
   MTEST (bar);
-  
+
 
   /*-- make an empty copy of prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
@@ -3949,8 +3951,8 @@ void write_bucket_data
   sprintf (label, "Output prefix: %s", output_prefix);
   tross_Append_History ( new_dset, label);
 
-  
-  /*----- delete prototype dataset -----*/ 
+
+  /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
 
 
@@ -3961,35 +3963,35 @@ void write_bucket_data
 			    ADN_directory_name,  output_session,
 			    ADN_type,            HEAD_FUNC_TYPE,
 			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,   
+			    ADN_datum_all,       MRI_short ,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      fprintf(stderr, 
-	      "** %d errors in attempting to create bucket dataset!\n", 
+      fprintf(stderr,
+	      "** %d errors in attempting to create bucket dataset!\n",
 	      ierror);
       exit(1);
     }
-  
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+
+  if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
 	      "** Output dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
-  
+
 
   /*----- Attach individual sub-bricks to the bucket dataset -----*/
 
 
   /*----- User can choose to place full model stats first -----*/
   ibrick = -1;
-  if (option_data->full_first)  
+  if (option_data->full_first)
     ibrick += option_data->vout + option_data->rout + option_data->fout;
 
 
@@ -4007,52 +4009,52 @@ void write_bucket_data
 		strcpy (label, "Base");
 	      else
 		sprintf (label, "Run #%d", icoef/(polort+1) + 1);
-	      
+	
 	      /*----- Baseline coefficient -----*/
 	      ibrick++;
 	      brick_type = FUNC_FIM_TYPE;
 	      sprintf (brick_label, "%s t^%d Coef", label, icoef % (polort+1));
 	      volume = coef_vol[icoef];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				brick_type, brick_label, 0, 0, 0, bar);
-	      
+	
 	      /*----- Baseline t-stat -----*/
 	      if (option_data->tout)
 		{
 		  ibrick++;
 		  brick_type = FUNC_TT_TYPE;
 		  dof = N - p;
-		  sprintf (brick_label, "%s t^%d t-st", 
+		  sprintf (brick_label, "%s t^%d t-st",
 			   label, icoef % (polort+1));
 		  volume = tcoef_vol[icoef];
-		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+		  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				    brick_type, brick_label, dof, 0, 0, bar);
 		}
 	    }
 	}
-      
+
 
       /*----- Stimulus statistics -----*/
       icoef = qp;
-      for (istim = 0;  istim < num_stimts;  istim++)        
-	{                                 
+      for (istim = 0;  istim < num_stimts;  istim++)
+	{
 	  strcpy (label, option_data->stim_label[istim]);
-	  
+	
 	  /*----- Loop over stimulus time lags -----*/
 	  for (ilag = option_data->stim_minlag[istim];
 	       ilag <= option_data->stim_maxlag[istim];  ilag++)
-	    {                             
-	      if ((! option_data->stim_base[istim]) 
+	    {
+	      if ((! option_data->stim_base[istim])
 	       || (! option_data->nobout))
 		{
 		  /*----- Stimulus coefficient -----*/
 		  ibrick++;
 		  brick_type = FUNC_FIM_TYPE;
 		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
-		  volume = coef_vol[icoef];		  
-		  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+		  volume = coef_vol[icoef];		
+		  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				    brick_type, brick_label, 0, 0, 0, bar);
-	      
+	
 		  /*----- Stimulus t-stat -----*/
 		  if (option_data->tout)
 		    {
@@ -4061,30 +4063,30 @@ void write_bucket_data
 		      dof = N - p;
 		      sprintf (brick_label, "%s[%d] t-st", label, ilag);
 		      volume = tcoef_vol[icoef];
-		      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+		      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				    brick_type, brick_label, dof, 0, 0, bar);
 		    }
 		}
-	      
+	
 	      icoef++;
 	    }
-	    
+	
 	  /*----- Stimulus R^2 stat -----*/
 	  if ((option_data->rout)
-	    && ((! option_data->stim_base[istim]) 
+	    && ((! option_data->stim_base[istim])
 		|| (! option_data->nobout)))
 	    {
 	      ibrick++;
 	      brick_type = FUNC_THR_TYPE;
 	      sprintf (brick_label, "%s R^2", label);
 	      volume = rpart_vol[istim];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				brick_type, brick_label, 0, 0, 0, bar);
 	    }
-	  
+	
 	  /*----- Stimulus F-stat -----*/
 	  if ((option_data->fout)
-	    && ((! option_data->stim_base[istim]) 
+	    && ((! option_data->stim_base[istim])
 		|| (! option_data->nobout)))
 	    {
 	      ibrick++;
@@ -4094,15 +4096,15 @@ void write_bucket_data
 	      ddof = N - p;
 	      sprintf (brick_label, "%s F-stat", label);
 	      volume = fpart_vol[istim];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				brick_type, brick_label, 0, ndof, ddof, bar);
 	    }
-	  
+	
 	}  /* End loop over stim functions */
-      
+
     }  /*  if (! option_data->nocout)  */
 
-      
+
   /*----- General linear test statistics -----*/
   for (iglt = 0;  iglt < num_glt;  iglt++)
     {
@@ -4115,10 +4117,10 @@ void write_bucket_data
 	  ibrick++;
 	  brick_type = FUNC_FIM_TYPE;
 	  sprintf (brick_label, "%s LC[%d] coef", label, ilc);
-	  volume = glt_coef_vol[iglt][ilc];		  
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	  volume = glt_coef_vol[iglt][ilc];		
+	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			    brick_type, brick_label, 0, 0, 0, bar);
-	      
+	
 	  /*----- GLT t-stat -----*/
 	  if (option_data->tout)
 	    {
@@ -4126,23 +4128,23 @@ void write_bucket_data
 	      brick_type = FUNC_TT_TYPE;
 	      dof = N - p;
 	      sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
-	      volume = glt_tcoef_vol[iglt][ilc];		  
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	      volume = glt_tcoef_vol[iglt][ilc];		
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 				brick_type, brick_label, dof, 0, 0, bar);
-	    }	      
+	    }	
 	}
-      
+
       /*----- GLT R^2 stat -----*/
       if (option_data->rout)
 	{
 	  ibrick++;
 	  brick_type = FUNC_THR_TYPE;
 	  sprintf (brick_label, "%s R^2", label);
-	  volume = glt_rstat_vol[iglt];   
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	  volume = glt_rstat_vol[iglt];
+	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			    brick_type, brick_label, 0, 0, 0, bar);
 	}
-      
+
       /*----- GLT F-stat -----*/
       if (option_data->fout)
 	{
@@ -4152,7 +4154,7 @@ void write_bucket_data
 	  ddof = N - p;
 	  sprintf (brick_label, "%s F-stat", label);
 	  volume = glt_fstat_vol[iglt];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			    brick_type, brick_label, 0, ndof, ddof, bar);
 	}
 
@@ -4169,7 +4171,7 @@ void write_bucket_data
       brick_type = FUNC_FIM_TYPE;
       sprintf (brick_label, "Full MSE");
       volume = mse_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			brick_type, brick_label, 0, 0, 0, bar);
     }
 
@@ -4180,7 +4182,7 @@ void write_bucket_data
       brick_type = FUNC_THR_TYPE;
       sprintf (brick_label, "Full R^2");
       volume = rfull_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			brick_type, brick_label, 0, 0, 0, bar);
     }
 
@@ -4193,7 +4195,7 @@ void write_bucket_data
       ddof = N - p;
       sprintf (brick_label, "Full F-stat");
       volume = ffull_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+      attach_sub_brick (new_dset, ibrick, volume, nxyz,
 			brick_type, brick_label, 0, ndof, ddof, bar);
     }
 
@@ -4204,8 +4206,8 @@ void write_bucket_data
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -4215,11 +4217,11 @@ void write_bucket_data
 /*
   Write one time series array to specified file.
 */
- 
-void write_one_ts 
+
+void write_one_ts
 (
   char * prefix,                  /* output time series prefix name */
-  int ts_length,                  /* length of time series data */  
+  int ts_length,                  /* length of time series data */
   float ** vol_array              /* output time series volume data */
 )
 
@@ -4254,7 +4256,7 @@ void write_one_ts
 void output_results
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   DC_options * option_data,         /* deconvolution algorithm options */
 
   float ** coef_vol,        /* array of volumes of signal model parameters */
@@ -4279,8 +4281,8 @@ void output_results
   int p;                    /* number of full model parameters */
   int polort;               /* degree of polynomial for baseline model */
   int num_stimts;           /* number of stimulus time series */
-  int * min_lag;            /* minimum time delay for impulse response */ 
-  int * max_lag;            /* maximum time delay for impulse response */ 
+  int * min_lag;            /* minimum time delay for impulse response */
+  int * max_lag;            /* maximum time delay for impulse response */
   int * nptr;               /* number of stim fn. time points per TR */
   int ib;                   /* sub-brick index */
   int is;                   /* stimulus index */
@@ -4303,10 +4305,10 @@ void output_results
 
 
   /*----- Write the bucket dataset -----*/
-  if (option_data->bucket_filename != NULL) 
+  if (option_data->bucket_filename != NULL)
     if (nxyz > 1)
-      write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol, 
-		   fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
+      write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol,
+		   fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
 		   glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
     else
       write_one_ts (option_data->bucket_filename, p, coef_vol);
@@ -4324,16 +4326,16 @@ void output_results
 	    cubic_spline (option_data, ts_length, coef_vol+ib);
 
 	  if (nxyz > 1)
-	    write_ts_array (argc, argv, option_data, ts_length, 
-			    nptr[is], option_data->tshift, coef_vol+ib, 
+	    write_ts_array (argc, argv, option_data, ts_length,
+			    nptr[is], option_data->tshift, coef_vol+ib,
 			    option_data->iresp_filename[is]);
 	  else
-	    write_one_ts (option_data->iresp_filename[is], 
+	    write_one_ts (option_data->iresp_filename[is],
 			  ts_length, coef_vol+ib);
 	}
       ib += ts_length;
     }
- 
+
 
   /*----- Write the standard deviation 3d+time dataset -----*/
   ib = qp;
@@ -4342,11 +4344,11 @@ void output_results
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->sresp_filename[is] != NULL)
 	if (nxyz > 1)
-	  write_ts_array (argc, argv, option_data, ts_length, 
-			  nptr[is], 0, scoef_vol+ib, 
+	  write_ts_array (argc, argv, option_data, ts_length,
+			  nptr[is], 0, scoef_vol+ib,
 			  option_data->sresp_filename[is]);
 	else
-	  write_one_ts (option_data->sresp_filename[is], 
+	  write_one_ts (option_data->sresp_filename[is],
 			ts_length, scoef_vol+ib);
 
       ib += ts_length;
@@ -4356,7 +4358,7 @@ void output_results
   /*----- Write the fitted (full model) 3d+time dataset -----*/
   if (option_data->fitts_filename != NULL)
     if (nxyz > 1)
-      write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol, 
+      write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
 		      option_data->fitts_filename);
     else
       write_one_ts (option_data->fitts_filename, nt, fitts_vol);
@@ -4366,7 +4368,7 @@ void output_results
   /*----- Write the residual errors 3d+time dataset -----*/
   if (option_data->errts_filename != NULL)
     if (nxyz > 1)
-      write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol, 
+      write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
 		      option_data->errts_filename);
     else
       write_one_ts (option_data->errts_filename, nt, errts_vol);
@@ -4423,7 +4425,7 @@ void terminate_program
 
 
   /*----- Deallocate memory for option data -----*/
-  free (*option_data);  *option_data = NULL; 
+  free (*option_data);  *option_data = NULL;
 
 
   /*----- Deallocate memory for stimulus time series -----*/
@@ -4431,7 +4433,7 @@ void terminate_program
     {
       for (is = 0;  is < num_stimts;  is++)
 	if ((*stimulus)[is] != NULL)
-	  { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; } 
+	  { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; }
       free (*stimulus);  *stimulus = NULL;
     }
 
@@ -4446,100 +4448,100 @@ void terminate_program
 
 
   /*----- Deallocate space for volume data -----*/
-  if (*coef_vol  != NULL)    
-    { 
+  if (*coef_vol  != NULL)
+    {
       for (ip = 0;  ip < p;  ip++)
 	if ((*coef_vol)[ip] != NULL)
 	  { free ((*coef_vol)[ip]);   (*coef_vol)[ip] = NULL; }
-      free (*coef_vol);   *coef_vol  = NULL; 
+      free (*coef_vol);   *coef_vol  = NULL;
     }
 
-  if (*scoef_vol  != NULL)    
-    { 
+  if (*scoef_vol  != NULL)
+    {
       for (ip = 0;  ip < p;  ip++)
 	if ((*scoef_vol)[ip] != NULL)
 	  { free ((*scoef_vol)[ip]);   (*scoef_vol)[ip] = NULL; }
-      free (*scoef_vol);   *scoef_vol  = NULL; 
+      free (*scoef_vol);   *scoef_vol  = NULL;
     }
 
-  if (*tcoef_vol  != NULL)    
-    { 
+  if (*tcoef_vol  != NULL)
+    {
       for (ip = 0;  ip < p;  ip++)
 	if ((*tcoef_vol)[ip] != NULL)
 	  { free ((*tcoef_vol)[ip]);   (*tcoef_vol)[ip] = NULL; }
-      free (*tcoef_vol);   *tcoef_vol  = NULL; 
+      free (*tcoef_vol);   *tcoef_vol  = NULL;
     }
 
-  if (*fpart_vol != NULL)    
-    { 
+  if (*fpart_vol != NULL)
+    {
       for (is = 0;  is < num_stimts;  is++)
-	if ((*fpart_vol)[is] != NULL)    
+	if ((*fpart_vol)[is] != NULL)
 	  { free ((*fpart_vol)[is]);    (*fpart_vol)[is] = NULL; }
-      free (*fpart_vol);  *fpart_vol = NULL; 
+      free (*fpart_vol);  *fpart_vol = NULL;
     }
 
-  if (*rpart_vol != NULL)    
-    { 
+  if (*rpart_vol != NULL)
+    {
       for (is = 0;  is < num_stimts;  is++)
-	if ((*rpart_vol)[is] != NULL)    
+	if ((*rpart_vol)[is] != NULL)
 	  { free ((*rpart_vol)[is]);    (*rpart_vol)[is] = NULL; }
-      free (*rpart_vol);  *rpart_vol = NULL; 
+      free (*rpart_vol);  *rpart_vol = NULL;
     }
 
   if (*mse_vol   != NULL)    { free (*mse_vol);    *mse_vol   = NULL; }
   if (*ffull_vol != NULL)    { free (*ffull_vol);  *ffull_vol = NULL; }
-  if (*rfull_vol != NULL)    { free (*rfull_vol);  *rfull_vol = NULL; } 
+  if (*rfull_vol != NULL)    { free (*rfull_vol);  *rfull_vol = NULL; }
 
 
   /*----- Deallocate space for general linear test results -----*/
-  if (*glt_coef_vol  != NULL)  
+  if (*glt_coef_vol  != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_coef_vol)[iglt] != NULL) 
-	  {   
+	if ((*glt_coef_vol)[iglt] != NULL)
+	  {
 	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      if ((*glt_coef_vol)[iglt][ilc] != NULL)    
-		{ 
-		  free ((*glt_coef_vol)[iglt][ilc]);    
-		  (*glt_coef_vol)[iglt][ilc] = NULL; 
-		}   
-	    free ((*glt_coef_vol)[iglt]);   (*glt_coef_vol)[iglt] = NULL; 
+	      if ((*glt_coef_vol)[iglt][ilc] != NULL)
+		{
+		  free ((*glt_coef_vol)[iglt][ilc]);
+		  (*glt_coef_vol)[iglt][ilc] = NULL;
+		}
+	    free ((*glt_coef_vol)[iglt]);   (*glt_coef_vol)[iglt] = NULL;
 	  }
-      free (*glt_coef_vol);  *glt_coef_vol = NULL; 
+      free (*glt_coef_vol);  *glt_coef_vol = NULL;
     }
 
-  if (*glt_tcoef_vol  != NULL)  
+  if (*glt_tcoef_vol  != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_tcoef_vol)[iglt] != NULL) 
-	  {   
+	if ((*glt_tcoef_vol)[iglt] != NULL)
+	  {
 	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      if ((*glt_tcoef_vol)[iglt][ilc] != NULL)    
-		{ 
-		  free ((*glt_tcoef_vol)[iglt][ilc]);    
-		  (*glt_tcoef_vol)[iglt][ilc] = NULL; 
-		}   
-	    free ((*glt_tcoef_vol)[iglt]);   (*glt_tcoef_vol)[iglt] = NULL; 
+	      if ((*glt_tcoef_vol)[iglt][ilc] != NULL)
+		{
+		  free ((*glt_tcoef_vol)[iglt][ilc]);
+		  (*glt_tcoef_vol)[iglt][ilc] = NULL;
+		}
+	    free ((*glt_tcoef_vol)[iglt]);   (*glt_tcoef_vol)[iglt] = NULL;
 	  }
-      free (*glt_tcoef_vol);  *glt_tcoef_vol = NULL; 
+      free (*glt_tcoef_vol);  *glt_tcoef_vol = NULL;
     }
 
-  if (*glt_fstat_vol != NULL)  
-    { 
+  if (*glt_fstat_vol != NULL)
+    {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_fstat_vol)[iglt] != NULL)    
-	  { free ((*glt_fstat_vol)[iglt]);   (*glt_fstat_vol)[iglt] = NULL; } 
+	if ((*glt_fstat_vol)[iglt] != NULL)
+	  { free ((*glt_fstat_vol)[iglt]);   (*glt_fstat_vol)[iglt] = NULL; }
       free (*glt_fstat_vol); *glt_fstat_vol = NULL;
     }
 
-  if (*glt_rstat_vol != NULL)  
-    { 
+  if (*glt_rstat_vol != NULL)
+    {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_rstat_vol)[iglt] != NULL)    
-	  { free ((*glt_rstat_vol)[iglt]);   (*glt_rstat_vol)[iglt] = NULL; } 
+	if ((*glt_rstat_vol)[iglt] != NULL)
+	  { free ((*glt_rstat_vol)[iglt]);   (*glt_rstat_vol)[iglt] = NULL; }
       free (*glt_rstat_vol); *glt_rstat_vol = NULL;
     }
- 
+
 
   /*----- Deallocate space for fitted time series and residual errors -----*/
   if (*fitts_vol != NULL)
@@ -4561,10 +4563,10 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -4625,32 +4627,32 @@ int main
   (void) COX_clock_time() ;
 
   /*----- Program initialization -----*/
-  initialize_program (argc, argv, &option_data, &dset_time, &mask_vol, 
+  initialize_program (argc, argv, &option_data, &dset_time, &mask_vol,
      &fmri_data, &fmri_length, &censor_array, &censor_length, &good_list,
-     &block_list, &num_blocks, &stimulus, &stim_length, &glt_cmat, 
-     &coef_vol, &scoef_vol, &tcoef_vol, &fpart_vol, &rpart_vol, 
-     &mse_vol, &ffull_vol, &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, 
+     &block_list, &num_blocks, &stimulus, &stim_length, &glt_cmat,
+     &coef_vol, &scoef_vol, &tcoef_vol, &fpart_vol, &rpart_vol,
+     &mse_vol, &ffull_vol, &rfull_vol, &glt_coef_vol, &glt_tcoef_vol,
      &glt_fstat_vol, &glt_rstat_vol, &fitts_vol, &errts_vol);
 
 
   /*----- Perform deconvolution -----*/
   calculate_results (option_data, dset_time, mask_vol, fmri_data, fmri_length,
-     good_list, block_list, num_blocks, stimulus, stim_length, 
-     glt_cmat, coef_vol, scoef_vol, tcoef_vol, fpart_vol, 
-     rpart_vol, mse_vol, ffull_vol, rfull_vol, glt_coef_vol, glt_tcoef_vol, 
+     good_list, block_list, num_blocks, stimulus, stim_length,
+     glt_cmat, coef_vol, scoef_vol, tcoef_vol, fpart_vol,
+     rpart_vol, mse_vol, ffull_vol, rfull_vol, glt_coef_vol, glt_tcoef_vol,
      glt_fstat_vol, glt_rstat_vol, fitts_vol, errts_vol);
-  
 
-  /*----- Deallocate memory for input datasets -----*/   
-  if (dset_time != NULL)  
+
+  /*----- Deallocate memory for input datasets -----*/
+  if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
-  if (mask_vol != NULL)  
+  if (mask_vol != NULL)
     { free (mask_vol);  mask_vol = NULL; }
 
 
   /*----- Write requested output files -----*/
   if (!option_data->nodata)
-    output_results (argc, argv, option_data, coef_vol, scoef_vol, tcoef_vol, 
+    output_results (argc, argv, option_data, coef_vol, scoef_vol, tcoef_vol,
 		    fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
 		    glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		    fitts_vol, errts_vol);
@@ -4679,7 +4681,7 @@ int main
   exit(0);
 }
 
-/*----------------------------------------------------------------------------*/
+/*============================================================================*/
 /*--------- Grayplot X matrix columns to an image file [21 Jul 2004] ---------*/
 /*----------------------------------------------------------------------------*/
 #include "coxplot.h"
@@ -4866,4 +4868,89 @@ void JPEG_matrix_gray( matrix X , char *fname )
    fprintf(stderr,"++ Wrote X matrix image to file %s\n",fname) ;
 
    mri_free(im) ; free((void *)jpfilt) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*---------  End of Grayplot addition  ---------------------------------------*/
+/*============================================================================*/
+
+/*============================================================================*/
+/*-- Save X, XtXinv, and XtXinvXt matrices in bucket file for later re-use. --*/
+/*----------------------------------------------------------------------------*/
+
+#include "niml.h"
+
+/*-----------------------------------------------------------------*/
+/*! Encode a matrix into a NIML element and thence into a string;
+    free() this when done with it.
+-------------------------------------------------------------------*/
+
+char * matrix_to_niml_string( matrix a )
+{
+   int m=a.rows , n=a.cols , ii,jj ;
+   MATRIX_TYPE **aar = a.elts ;
+   NI_element *nel ;
+   NI_stream ns ;
+   double *ecol ;
+   char *stout ;
+
+   if( m < 1 || n < 1 || aar == NULL ) return NULL ;  /* bad user, bad */
+
+   nel  = NI_new_data_element( "matrix" , m ) ;
+   ecol = (double *) malloc(sizeof(double)*m) ;
+
+   for( jj=0 ; jj < n ; jj++ ){
+     for( ii=0 ; ii < m ; ii++ ) ecol[ii] = aar[ii][jj] ;
+     NI_add_column( nel , NI_DOUBLE , ecol ) ;
+   }
+
+   free((void *)ecol) ;
+
+   ns = NI_stream_open( "str:" , "w" ) ;
+   (void) NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   NI_free_element( nel ) ;
+   stout = strdup( NI_stream_getbuf(ns) ) ;
+   NI_stream_close( ns ) ;
+   jj = strlen(stout) ;
+   for( ii=jj-1 ; ii > 0 && isspace(stout[ii]) ; ii-- ) ; /* trailing blanks */
+   stout[ii+1] = '\0' ;
+   return stout ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Read a NIML element from a string, then decode it into a matrix.
+---------------------------------------------------------------------*/
+
+int niml_string_to_matrix( char *stin , matrix *a )
+{
+   NI_stream ns ;
+   NI_element *nel ;
+   int m , n , ii , jj ;
+   double *ecol ;
+   MATRIX_TYPE **aar ;
+
+   if( stin == NULL || *stin == '\0' || a == NULL ) return 0 ;
+
+   ns = NI_stream_open( "str:" , "r" ) ;
+   NI_stream_setbuf( ns , stin ) ;
+   nel = (NI_element *)NI_read_element( ns , 1 ) ;
+   NI_stream_close( ns ) ;
+   if( nel == NULL ) return 0 ;
+
+   m = nel->vec_len ;   /* number of rows */
+   n = nel->vec_num ;   /* number of cols */
+
+   if( m < 1 || n < 1 ){ NI_free_element(nel); return 0; }
+   for( jj=0 ; jj < n ; jj++ )
+     if( nel->vec_typ[jj] != NI_DOUBLE ){ NI_free_element(nel); return 0; }
+
+   matrix_create( m , n , a ) ;
+   aar = a->elts ;
+
+   for( jj=0 ; jj < n ; jj++ ){
+     ecol = (double *)nel->vec[jj] ;
+     for( ii=0 ; ii < m ; ii++ ) aar[ii][jj] = (MATRIX_TYPE)ecol[ii] ;;
+   }
+
+   NI_free_element( nel ) ; return 1 ;
 }
