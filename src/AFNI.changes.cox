@@ -3967,3 +3967,4 @@
      a bunch of ENTRY/RETURNs to ferret out a bug (it's still hidden).
  * Oops.  Forgot to fclose() the fopen()-ed file in mri_read_dicom.c.  This
      was causing the problems in to3d mentioned above.
+ * New program dicom_to_raw.c.
