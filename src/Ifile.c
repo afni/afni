@@ -610,6 +610,8 @@ static	void	 qprintf	__P((Char *));
 #define	M_SET		META('[')
 #define	ismeta(c)	(((c)&M_META) != 0)
 
+#include "machdep.h"
+
 #if defined(SOLARIS_DIRENT_ZERO) && !defined(SOLARIS_DIRENT_PATCH)
 #  define SOLARIS_DIRENT_PATCH
 #endif
