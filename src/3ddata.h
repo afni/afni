@@ -852,9 +852,20 @@ typedef struct {
 
 extern void THD_delete_diskptr( THD_diskptr * ) ;
 
+/*! \brief Determine if THD_diskptr dk is valid */
+
 #define ISVALID_DISKPTR(dk) ( (dk)!=NULL && (dk)->type==DISKPTR_TYPE )
 
+/*! \brief Convert a file prefix and viewcode into a filecode (prefix+view) */
+
 #define PREFIX_VIEW_TO_FILECODE(pr,vv,fc) sprintf( (fc),"%s+%s",(pr),(vv) )
+
+/*! \brief Extract the prefix from a filecode (prefix+view)
+    - If there is no '+', puts an empty string into fc
+    - Otherwise, scans backward from end to find last '+'; everything
+      before that is the prefix
+    - Space for fc must be allocated beforehand
+*/
 
 #define FILECODE_TO_PREFIX(fc,pr)                                     \
   do{ char *qq , *ff , *pp ;                                          \
@@ -2050,7 +2061,7 @@ static char tmp_dblab[8] ;
 #define DBLK_BRICK_STATAUX(db,iv)  \
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv] : NULL )
 
-/*! \brief Return float * pointer to statistical parameters for sub-brick iv in dataset ds
+/*! \brief Return float * pointer to statistical parameters for sub-brick iv in dataset ds.
     If return is NULL, there aren't any parameters for this sub-brick,
     otherwise the number of parameters is given by FUNC_need_stat_aux[code],
     where code = DSET_BRICK_STATCODE(ds,iv)
