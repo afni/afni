@@ -2246,3 +2246,7 @@
      when the feeble user presses the new 'Print' button.
  * Added call to AFNI_imseq_clearstat() to afni_plugin.c function
      PLUTO_dset_redisplay().
+
+04 Sep 2000
+ * Added -rotcom output to 3dvolreg.c (and hidden -linear option).
+ * Modified -verbose output of mri_3dalign.c.

@@ -2388,6 +2388,9 @@ extern MRI_IMARR * mri_3dalign_many( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
                                     float *, float *, float *,
                                     float *, float *, float * ) ;
 extern void mri_3dalign_cleanup( MRI_3dalign_basis * ) ;
+
+extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
+
 /*---------------------------------------------------------------------*/
 
 #if 0

@@ -34,6 +34,8 @@ static float VL_dxy  = 0.05 ;  /* voxels */
 static float VL_dph  = 0.07 ;  /* degrees */
 static float VL_del  = 0.70 ;  /* voxels */
 
+static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
+
 /******* prototypes *******/
 
 void VL_syntax(void) ;
@@ -396,6 +398,19 @@ int main( int argc , char *argv[] )
       fclose(fp) ;
    }
 
+   if( VL_rotcom ){ /* 04 Sep 2000 */
+      static char * modes[] = {
+           "-NN" , "-linear" , "-cubic" , "-Fourier" , "-quintic" , "-heptic" } ;
+
+      printf("\n3drotate fragment%s:\n\n", (imcount > 1)? "s" : "" ) ;
+      for( kim=0 ; kim < imcount ; kim++ ){
+         printf("3drotate %s" , modes[VL_final] ) ;
+         if( VL_clipit ) printf(" -clipit" ) ;
+         printf(" -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
+                 roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
+      }
+   }
+
    exit(0) ;
 }
 
@@ -462,6 +477,12 @@ void VL_syntax(void)
     "                  This type of analysis can be useful in removing\n"
     "                  errors made in the interpolation.\n"
     "\n"
+    "  -rotcom         Write the fragmentary 3drotate commands needed to\n"
+    "                  perform the realignments to stdout; for example:\n"
+    "                    3drotate -rotate 7.2I 3.2R -5.7A -ashift 2.7S -3.8L 4.9P\n"
+    "                  The purpose of this is to make it easier to shift other\n"
+    "                  datasets using exactly the same parameters.\n"
+    "\n"
     " Algorithm: Iterated linearized weighted least squares to make each\n"
     "              sub-brick as like as possible to the base brick.\n"
     "              This method is useful for finding SMALL MOTIONS ONLY.\n"
@@ -527,7 +548,7 @@ void VL_command_line(void)
          Iarg++ ; continue ;
       }
 
-      if( strncmp(Argv[Iarg],"-rot_thresh",4) == 0 ){
+      if( strncmp(Argv[Iarg],"-rot_thresh",6) == 0 ){
          float dph = strtod( Argv[++Iarg] , NULL ) ;
          if( dph > 0.0 ) VL_dph = dph ;
          Iarg++ ; continue ;
@@ -552,6 +573,11 @@ void VL_command_line(void)
          Iarg++ ; continue ;
       }
 
+      if( strcmp(Argv[Iarg],"-rotcom") == 0 ){  /* 04 Sep 2000 */
+         VL_rotcom++ ;
+         Iarg++ ; continue ;
+      }
+
       /** -verbose **/
 
       if( strncmp(Argv[Iarg],"-verbose",4) == 0 ){
@@ -572,6 +598,15 @@ void VL_command_line(void)
           strncmp(Argv[Iarg],"-fourier",4) == 0   ){
 
          VL_resam = MRI_FOURIER ;
+         Iarg++ ; continue ;
+      }
+
+      /** -linear [not in -help output] **/
+
+      if( strncmp(Argv[Iarg],"-linear",4) == 0 ||
+          strncmp(Argv[Iarg],"-Linear",4) == 0   ){
+
+         VL_resam = MRI_LINEAR ;
          Iarg++ ; continue ;
       }
 

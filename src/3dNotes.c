@@ -16,12 +16,16 @@ void Show_Help(void) {
    fprintf(stderr, 
    "3dNotes - a program to add, delete and show notes for AFNI datasets.\n"
    "(c)1999 Medical College of Wisconsin\nby - T. Ross\n\n"
-   "Usage: 3dNotes [-a \"string\"] [-d num] [-help] dataset\n\n"
+   "Usage: 3dNotes [-a \"string\"] [-h \"string\"][-d num] [-help] dataset\n\n"
    "Where:\n"
    "dataset   Afni compatible dataset [required].\n"
    "-a   \"str\"   Add the string \"str\" to the list of notes.\n"
    "      Note that you can use the standard C escape codes,\n"
    "      \\n for newline \\t for tab, etc.\n"
+   "-h   \"str\"   Append the string \"str\" to the datasets history.  This\n"
+   "      can only appear once on the command line.  As this is added to the\n"
+   "      history, it cannot easily be deleted.  But, the history is\n"
+   "      propagated to the children of this dataset.\n"
    "-d   num   deletes note number num.\n"
    "-help      Displays this screen.\n\n"
    "The default action, with no options, is to display the notes for the\n"
@@ -30,7 +34,7 @@ void Show_Help(void) {
    "line.  If you do something like -d 10 -d 10, it will delete both notes 10\n"
    "and 11.  Don't do that.\n\n"
    );
-   exit(1);
+   exit(0);
 }
 
 
@@ -68,6 +72,7 @@ int main (int argc, char * argv[]) {
    THD_3dim_dataset *dset=NULL;
    int narg = 1, i, curr_note=0, curr_del=0;
    char *notes[MAX_DSET_NOTES];
+   char *history_note = NULL;
    int delnotes[MAX_DSET_NOTES], delindex, delnum;
 
    if (argc == 1)   /* no file listed */
@@ -81,12 +86,27 @@ int main (int argc, char * argv[]) {
         /* Loop over arguements and pull out what we need */
         while( narg < argc && argv[narg][0] == '-' ){
 
+                if( strncmp(argv[narg],"-help",5) == 0 ) {
+                        Show_Help();
+                }
+
                 if( strncmp(argv[narg],"-a",2) == 0 ) {
                         narg++;
                         if (narg==argc)
                                 Error_Exit("-a must be followed by a string");
                         notes[curr_note++] = argv[narg++];
                         continue;       
+                }
+
+                if( strncmp(argv[narg],"-h",2) == 0 ) {
+                        narg++;
+                        if (narg==argc)
+                                Error_Exit("-h must be followed by a string");
+                        if( history_note != NULL )
+                           fprintf(stderr,
+                                   "*** Warning: multiple -history options!\n") ;
+                        history_note = argv[narg++];
+                        continue;
                 }
 
                 if( strncmp(argv[narg],"-d",2) == 0 ) {
@@ -97,10 +117,6 @@ int main (int argc, char * argv[]) {
                         if (delnotes[curr_del++] < 1)
                            Error_Exit("Cannot delete a note numbered < 1");
                         continue;       
-                }
-
-                if( strncmp(argv[narg],"-help",5) == 0 ) {
-                        Show_Help();
                 }
    }
 
@@ -131,9 +147,13 @@ int main (int argc, char * argv[]) {
    /* Next, add notes */
    for (i=0; i<curr_note; i++)
       tross_Add_Note(dset, notes[i]);
+   
+   /* Append to the history */
+   if (history_note != NULL)
+   	tross_Append_History( dset, history_note);
 
    /* Display, if required */
-   if ((curr_note == 0) && (curr_del == 0))
+   if ((curr_note == 0) && (curr_del == 0) && (history_note == NULL))
       Display_Notes(dset);
    else {
            THD_write_3dim_dataset( NULL,NULL , dset , False ) ;

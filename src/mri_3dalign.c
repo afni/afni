@@ -45,6 +45,24 @@ void mri_3dalign_params( int maxite ,
 
 /*--------------------------------------------------------------------*/
 
+static float init_dth1=0.0 , init_dth2=0.0 , init_dth3=0.0 ;
+static float init_dx  =0.0 , init_dy  =0.0 , init_dz  =0.0 ;
+
+#define CLEAR_INITVALS mri_3dalign_initvals(0.0,0.0,0.0,0.0,0.0,0.0)
+
+#define NONZERO_INITVALS                                        \
+ ( init_dth1 != 0.0 || init_dth2 != 0.0 || init_dth3 != 0.0 ||  \
+   init_dx   != 0.0 || init_dy   != 0.0 || init_dz   != 0.0   )
+
+void mri_3dalign_initvals( float th1,float th2,float th3 ,
+                           float dx ,float dy ,float dz   )
+{
+   init_dth1 = th1 ; init_dth2 = th2 ; init_dth3 = th3 ;
+   init_dx   = dx  ; init_dy   = dy  ; init_dz   = dz  ;
+}
+
+/*--------------------------------------------------------------------*/
+
 static int regmode = MRI_QUINTIC ;
 static int verbose = 0 ;
 static int noreg   = 0 ;
@@ -307,14 +325,12 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
    fitim      = basis->fitim ;
    chol_fitim = basis->chol_fitim ;
 
-   /*-- least squares fit the input image --*/
-
    if( im->kind == MRI_float ) fim = im ;
    else                        fim = mri_to_float( im ) ;
 
-   fit = mri_delayed_lsqfit( fim , fitim , chol_fitim ) ;
-
    iter = 0 ;
+
+   THD_rota_method( regmode ) ;
 
    /* convert displacement threshold from voxels to mm in each direction */
 
@@ -322,38 +338,47 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
    dyt = (im->dy != 0.0) ? (fabs(im->dy) * dxy_thresh) : dxy_thresh ;
    dzt = (im->dz != 0.0) ? (fabs(im->dz) * dxy_thresh) : dxy_thresh ;
 
+   if( NONZERO_INITVALS ){                                    /* 04 Sep 2000 */
+      fit = (float *) malloc(sizeof(float)*7) ;
+      fit[0] = 1.0 ;
+      fit[1] = init_dth1 ; fit[2] = init_dth2 ; fit[3] = init_dth3 ;
+      fit[4] = init_dx   ; fit[5] = init_dy   ; fit[6] = init_dz   ;
+
+      good = 1 ;
+   } else {
+      fit = mri_delayed_lsqfit( fim , fitim , chol_fitim ) ;  /* L2 fit input image */
+
+      good = ( 10.0*fabs(fit[4]) > dxt        || 10.0*fabs(fit[5]) > dyt        ||
+               10.0*fabs(fit[6]) > dzt        || 10.0*fabs(fit[1]) > phi_thresh ||
+               10.0*fabs(fit[2]) > phi_thresh || 10.0*fabs(fit[3]) > phi_thresh   ) ;
+   }
+
    if( verbose )
       fprintf(stderr,
-             "\nInitial fit: %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
+             "\nFirst fit: %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
              fit[0] , fit[1] , fit[2] , fit[3] , fit[4] , fit[5] , fit[6] ) ;
 
    /*-- iterate fit --*/
-
-   THD_rota_method( regmode ) ;
-
-#if 1
-   good = ( 10.0*fabs(fit[4]) > dxt        || 10.0*fabs(fit[5]) > dyt        ||
-            10.0*fabs(fit[6]) > dzt        || 10.0*fabs(fit[1]) > phi_thresh ||
-            10.0*fabs(fit[2]) > phi_thresh || 10.0*fabs(fit[3]) > phi_thresh   ) ;
-#else
-   good = 1 ;
-#endif
 
    while( good ){
       tim = THD_rota3D( fim ,
                         ax1,fit[1]*DFAC , ax2,fit[2]*DFAC , ax3,fit[3]*DFAC ,
                         dcode , fit[4],fit[5],fit[6] ) ;
 
-      dfit = mri_delayed_lsqfit( tim , fitim , chol_fitim ) ;
+      dfit = mri_delayed_lsqfit( tim , fitim , chol_fitim ) ; /* delta angle/shift */
       mri_free( tim ) ;
 
-   if( verbose )
-      fprintf(stderr,
-              "Delta fit:   %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
-              dfit[0] , dfit[1] , dfit[2] , dfit[3] , dfit[4] , dfit[5] , dfit[6] ) ;
+      fit[1] += dfit[1] ; fit[2] += dfit[2] ; fit[3] += dfit[3] ;  /* accumulate  */
+      fit[4] += dfit[4] ; fit[5] += dfit[5] ; fit[6] += dfit[6] ;  /* angle/shift */
 
-      fit[1] += dfit[1] ; fit[2] += dfit[2] ; fit[3] += dfit[3] ;
-      fit[4] += dfit[4] ; fit[5] += dfit[5] ; fit[6] += dfit[6] ;
+      if( verbose ){
+         fprintf(stderr,
+                 "Delta fit: %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
+                 dfit[0], dfit[1], dfit[2], dfit[3], dfit[4], dfit[5], dfit[6] ) ;
+         fprintf(stderr,
+                 "Total fit: %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
+                 dfit[0], fit[1], fit[2], fit[3], fit[4], fit[5], fit[6] ) ;
+      }
 
       good = (++iter < max_iter) &&
              ( fabs(dfit[4]) > dxt        || fabs(dfit[5]) > dyt        ||
@@ -363,10 +388,7 @@ MRI_IMAGE * mri_3dalign_one( MRI_3dalign_basis * basis , MRI_IMAGE * im ,
       free(dfit) ; dfit = NULL ;
    } /* end while */
 
-   if( verbose && iter > 0 )
-      fprintf(stderr,
-              "Final fit:   %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
-              fit[0] , fit[1] , fit[2] , fit[3] , fit[4] , fit[5] , fit[6] ) ;
+   if( verbose ) fprintf(stderr,"Iteration complete at %d steps\n",iter) ;
 
    /*-- save final alignment parameters --*/
 

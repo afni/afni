@@ -282,6 +282,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dvolreg 3dvolreg.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dedge:3dedge.o
+	$(RM) $@
+	$(CC) -o 3dedge 3dedge.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 from3d:from3d.o
 	$(RM) $@
 	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
