@@ -39,17 +39,18 @@ int label_in_PALTAB( PBAR_palette_table * pt , char * lab )
       if( str[0]=='\0' || qq==0 || nu==0 ){ free(fbuf); EXRETURN; }       \
     } while(0)
 
-#define GETSTR                                                             \
-  do{ GETSSS ;                                                             \
-      while(str[0]=='!' || (str[0]=='/' && str[1]=='/')){EOLSKIP; GETSSS;} \
+#define GETSTR                                                            \
+  do{ GETSSS ;                                                            \
+      while(str[0]=='!' || (str[0]=='/' && str[1]=='/') ||                \
+            (str[0]=='#' && str[1]=='\0') ){EOLSKIP; GETSSS;}             \
     } while(0)
 
-#define GETEQN                                         \
-  do{ GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
-      strcpy(left,str) ;                               \
-      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
-      strcpy(middle,str) ;                             \
-      GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
+#define GETEQN                                                            \
+  do{ GETSTR ; if(ISTARRED(str)) goto SkipSection ;                       \
+      strcpy(left,str) ;                                                  \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;                       \
+      strcpy(middle,str) ;                                                \
+      GETSTR ; if(ISTARRED(str)) goto SkipSection ;                       \
       strcpy(right,str) ; } while(0)
 
 #define NSBUF 256
