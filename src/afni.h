@@ -118,12 +118,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.21f"
+#define VERSION "2.22 "
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "19 April 1999    "
+#define RELEASE "09 June 1999     "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -628,13 +628,17 @@ typedef struct {
    THD_3dim_dataset * fimdset ;
    int                refadd_count ;
    int                init_ignore ;
+   int                polort ;   /* 27 May 1999 */
 } AFNI_fimmer_type ;
 
-#define CLEAR_FIMDATA(iq)                  \
-   ( (iq)->fimdata->fimref       = NULL ,  \
-     (iq)->fimdata->fimort       = NULL ,  \
-     (iq)->fimdata->fimdset      = NULL ,  \
-     (iq)->fimdata->refadd_count = 0 ,     \
+#define MAX_POLORT 3
+
+#define CLEAR_FIMDATA(iq)                            \
+   ( (iq)->fimdata->fimref       = NULL ,            \
+     (iq)->fimdata->fimort       = NULL ,            \
+     (iq)->fimdata->fimdset      = NULL ,            \
+     (iq)->fimdata->refadd_count = 0 ,               \
+     (iq)->fimdata->polort       = INIT_fim_polort , \
      (iq)->fimdata->init_ignore  = GLOBAL_argopt.ignore )
 
 #define USABLE_FIMDATA(iq)                                         \
@@ -822,6 +826,8 @@ typedef struct {
 
    int time_lock ;                                /* 03 Nov 1998 */
 
+   float fim_bkthr_perc ;                         /* 02 Jun 1999 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -829,6 +835,9 @@ typedef struct {
 #else
    extern AFNI_library_type GLOBAL_library ;
 #endif
+
+#define FIM_THR          (0.01*GLOBAL_library.fim_bkthr_perc)  /* 02 Jun 1999 */
+#define SET_FIM_bkthr(v) (GLOBAL_library.fim_bkthr_perc = (v))
 
 #define DISABLE_LOCK    (GLOBAL_library.ignore_lock=1)
 #define ENABLE_LOCK     (GLOBAL_library.ignore_lock=0)
@@ -951,6 +960,7 @@ extern void AFNI_fimmer_dset_choose_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_setref( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setort( Three_D_View * , MRI_IMAGE * ) ;
 extern void AFNI_fimmer_setignore( Three_D_View * , int ) ;
+extern void AFNI_fimmer_setpolort( Three_D_View * , int ) ;
 extern void AFNI_rescan_session( int ) ;
 extern void AFNI_rescan_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_rescan_all_CB( Widget , XtPointer , XtPointer ) ;
@@ -1311,6 +1321,7 @@ float INIT_gamma         = DEFAULT_GAMMA ,
 int INIT_ignore           = 0 ;
 int INIT_tlrc_big         = 1 ;
 int INIT_montage_periodic = 1 ;
+int INIT_fim_polort       = 1 ; /* 30 May 1999 */
 
 #else
 
@@ -1335,6 +1346,8 @@ extern float INIT_gamma         ,
 extern int INIT_ignore ;
 extern int INIT_tlrc_big ;
 extern int INIT_montage_periodic ;
+
+extern int INIT_fim_polort ;
 
 extern char * INIT_colovr[] ;
 extern char * INIT_labovr[] ;

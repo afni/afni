@@ -814,11 +814,7 @@ int main( int argc , char * argv[] )
 
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
-
-   { char * lenv = getenv("AFNI_ALWAYS_LOCK") ;
-     if( lenv != NULL ) for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-                           GLOBAL_library.controller_lock |= (1<<ii) ;
-   }
+   SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
 #ifdef ALLOW_PLUGINS
    GLOBAL_library.plugins  = NULL ;
@@ -838,23 +834,21 @@ int main( int argc , char * argv[] )
 
    REPORT_PROGRESS(".") ;
 
-   if( GLOBAL_argopt.xtwarns == False ){
-      old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
-   }
+   /*-- 04 Jun 1999: modify order of loading arguments and defaults --*/
+
+   for( ii=1 ; ii < argc ; ii++ )
+      if( strncmp(argv[ii],"-skip_afnirc",12) == 0 ){ GLOBAL_argopt.skip_afnirc = 1; break; }
+
+   if( ! GLOBAL_argopt.skip_afnirc ) AFNI_process_environ(NULL) ;  /* 07 Jun 1999 */
 
    AFNI_load_defaults( shell ) ;
 
-   AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
-
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
-      char * home ; char fname[256] ;
+      char * home = getenv("HOME") ; char fname[256] ;
+
       GPT = NULL ;  /* 19 Dec 1997 */
-      home = getenv("HOME") ;
-      if( home != NULL ){
-         strcpy(fname,home) ; strcat(fname,"/.afnirc") ;
-      } else {
-         strcpy(fname,".afnirc") ;
-      }
+      if( home != NULL ){ strcpy(fname,home) ; strcat(fname,"/.afnirc") ; }
+      else              { strcpy(fname,".afnirc") ; }
       AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
 #ifdef AFNI_DEBUG
       home = dump_PBAR_palette_table(0) ;
@@ -864,6 +858,26 @@ int main( int argc , char * argv[] )
    } else {                                    /* these lines also 14 Jul 1998 */
       REPORT_PROGRESS( "[skip .afnirc]" ) ;
    }
+
+   AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
+
+   if( GLOBAL_argopt.xtwarns == False ){
+      old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
+   }
+
+   { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
+     if( lenv != NULL ){
+        float bk = strtod(lenv,NULL) ;
+        if( bk > 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
+     }
+   }
+
+   { char * lenv = getenv("AFNI_ALWAYS_LOCK") ;
+     if( lenv != NULL ) for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+                           GLOBAL_library.controller_lock |= (1<<ii) ;
+   }
+
+   /*-- now create display context dc --*/
 
    GLOBAL_library.dc = dc =
         MCW_new_DC( shell , GLOBAL_argopt.ncolor ,
@@ -2157,6 +2171,13 @@ STATUS("graCR_pickort") ;
       }
       break ;
 
+      /*** User sets the polort order [27 May 1999] ***/
+
+      case graCR_polort:{
+         AFNI_fimmer_setpolort( im3d , cbs->key ) ;
+      }
+      break ;
+
       /*** User sets time_index ***/
 
       case graCR_setindex:{
@@ -2474,6 +2495,7 @@ ENTRY("AFNI_read_inputs") ;
          then, make any datasets that don't exist but logically
          descend from the warp and anatomy parents just assigned */
 
+      THD_check_idcodes( GLOBAL_library.sslist ) ;     /* 08 Jun 1999 */
       THD_reconcile_parents( GLOBAL_library.sslist ) ; /* parents from .HEAD files */
 
       for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ ){  /* functions w/o parents, */
@@ -2601,7 +2623,7 @@ ENTRY("AFNI_controller_panel_CB") ;
 void AFNI_crosshair_visible_CB( MCW_arrowval * av , XtPointer client_data )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
-   int val ;
+   int val , omold ;
 
 ENTRY("AFNI_crosshair_visible_CB") ;
 
@@ -2629,6 +2651,8 @@ ENTRY("AFNI_crosshair_visible_CB") ;
 
    /* 31 Dec 1998: only allow crosshairs of some orientations */
 
+   omold = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
+
    switch( av->ival ){
       default:                im3d->vinfo->xhairs_orimask = ORIMASK_ALL  ; break;
       case AFNI_XHAIRS_LR_AP: im3d->vinfo->xhairs_orimask = ORIMASK_LR_AP; break;
@@ -2640,6 +2664,10 @@ ENTRY("AFNI_crosshair_visible_CB") ;
    }
 
    AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+
+   /* 02 Jun 1999: if xhairs layout has changed, send a notice */
+
+   if( omold != im3d->vinfo->xhairs_orimask ) AFNI_process_viewpoint( im3d ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -3049,6 +3077,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
        drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
        drive_MCW_grapher( gr, graDR_setignore, (XtPointer) im3d->fimdata->init_ignore );
+       drive_MCW_grapher( gr, graDR_polort, (XtPointer) im3d->fimdata->polort );
        drive_MCW_grapher( gr, graDR_setindex , (XtPointer) im3d->vinfo->time_index );
        drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 
@@ -6983,22 +7012,41 @@ ENTRY("AFNI_set_cursor") ;
 
 /****************************************************************/
 /***** June 1995: routine to load constants from X defaults *****/
+/***** June 1999: also allow loading from Unix environment  *****/
 
-#define NAME2INT(nnn,iii,bot,top) \
+#if 0
+# define NAME2INT(nnn,iii,bot,top)           \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ){                      \
        ival = strtol( xdef , &cpt , 10 ) ;   \
        if( *cpt == '\0' && ival >= (bot) && ival <= (top) ) (iii) = ival ; } }
 
-#define NAME2FLOAT(nnn,fff,bot,top) \
+# define NAME2FLOAT(nnn,fff,bot,top)         \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ){                      \
        fval = strtod( xdef , &cpt ) ;        \
        if( *cpt == '\0' && fval >= (bot) && fval <= (top) ) (fff) = fval ; } }
 
-#define NAME2STRING(nnn,sss) \
+# define NAME2STRING(nnn,sss)                \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ) sss  = XtNewString(xdef) ; }
+#else
+# define NAME2INT(nnn,iii,bot,top)           \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ){                      \
+       ival = strtol( xdef , &cpt , 10 ) ;   \
+       if( *cpt == '\0' && ival >= (bot) && ival <= (top) ) (iii) = ival ; } }
+
+# define NAME2FLOAT(nnn,fff,bot,top)         \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ){                      \
+       fval = strtod( xdef , &cpt ) ;        \
+       if( *cpt == '\0' && fval >= (bot) && fval <= (top) ) (fff) = fval ; } }
+
+# define NAME2STRING(nnn,sss)                \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ) sss  = XtNewString(xdef) ; }
+#endif
 
 #define BAD -999
 
@@ -7073,6 +7121,9 @@ ENTRY("AFNI_load_defaults") ;
    NAME2INT("graph_ort_thick"   ,INIT_GR_ort_thick   ,0,1) ;
    NAME2INT("graph_dplot_thick" ,INIT_GR_dplot_thick ,0,1) ;
 
+   NAME2INT("graph_ggap"        ,INIT_GR_ggap        ,0,19);         /* 27 May 1999 */
+   NAME2INT("fim_polort"        ,INIT_fim_polort     ,0,MAX_POLORT); /* 30 May 1999 */
+
    /** initialize other junk **/
 
    cpt = NULL ;
@@ -7089,7 +7140,7 @@ ENTRY("AFNI_load_defaults") ;
       XtFree(cpt) ;
    }
 
-   NAME2INT("ignore",INIT_ignore,0,999) ;
+   NAME2INT("fim_ignore",INIT_ignore,0,999) ;
 
    cpt = NULL ;
    NAME2STRING( "purge" , cpt ) ;

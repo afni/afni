@@ -707,11 +707,11 @@ void init_MCW_sizes(void)
       /* try to find environment variable with the num-th name */
 
       sprintf( ename , "AFNI_IMSIZE_%d" , num+1 ) ;
-      str = getenv( ename ) ;
+      str = my_getenv( ename ) ;
 
       if( str == NULL ){
          sprintf( ename , "MCW_IMSIZE_%d" , num+1 ) ;
-         str = getenv( ename ) ;
+         str = my_getenv( ename ) ;
          if( str == NULL ) continue ;
       }
 

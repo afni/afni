@@ -1,4 +1,5 @@
 #include "xutil.h"
+#include "afni_environ.h"
 
 /*--------------------------------------------------------------------
   force an immediate expose for the widget
@@ -544,7 +545,11 @@ void MCW_hint_toggle(void)
    if( period < PBIG ){
       period = PBIG ;
    } else {
+#if 0
       pdef = XGetDefault(XtDisplay(liteClue),"AFNI","waitperiod") ;
+#else
+      pdef = RWC_getname(XtDisplay(liteClue),"waitperiod") ;
+#endif
       if( pdef == NULL ){
          period = 1066 ;
       } else {
@@ -564,7 +569,7 @@ void MCW_register_hint( Widget w , char * msg )
    if( w == NULL || msg == NULL || clueless == 1 || !XtIsWidget(w) ) return ;
 
    if( clueless == -1 ){
-      char * hh = getenv("AFNI_HINTS") ;
+      char * hh = my_getenv("AFNI_HINTS") ;
       if( hh != NULL && ( strncmp(hh,"KILL",4)==0 ||
                           strncmp(hh,"kill",4)==0 ||
                           strncmp(hh,"Kill",4)==0 ) ){
@@ -684,7 +689,11 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
 
+#if 0
       def = XGetDefault(XtDisplay(wpar),"AFNI","helpborder") ;
+#else
+      def = RWC_getname(XtDisplay(wpar),"helpborder") ;
+#endif
       if( def != NULL && strcmp(def,"False") == 0 ){
          XtVaSetValues( wpop ,
                            XmNoverrideRedirect , True ,
@@ -1130,6 +1139,43 @@ int MCW_widget_visible( Widget w )
    return ( (wa.map_state == IsViewable) ? 1 : 0 ) ;
 }
 
+/*------------------------------------------------------------------
+ June 1999: routine to get string constants either from X defaults
+            or from Unix environment variables.  Returns a pointer
+            to static storage -- do not free()!
+--------------------------------------------------------------------*/
+
+#include <ctype.h>
+
+char * RWC_getname( Display * display , char * name )
+{
+   char * cval , qqq[256] ;
+   int nn , ii ;
+
+   if( name == NULL || name[0] == '\0' ) return NULL ;
+
+   /* try X11 */
+
+   if( display != NULL ){
+      cval = XGetDefault(display,"AFNI",name) ;
+      if( cval != NULL ) return cval ;
+   }
+
+   /* try AFNI_name */
+
+   strcpy(qqq,"AFNI_") ; strcat(qqq,name) ;
+   cval = my_getenv(qqq) ;
+   if( cval != NULL ) return cval ;
+
+   /* try AFNI_NAME */
+
+   strcpy(qqq,"AFNI_") ; nn = strlen(name) ;
+   for( ii=0 ; ii < nn ; ii++ ) qqq[ii+5] = toupper(name[ii]) ;
+   qqq[nn+5] = '\0' ;
+   cval = my_getenv(qqq) ;
+   return cval ;
+}
+
 /*----------  Fix a Linux stupidity  ------------------------------------*/
 
 #ifdef NEED_XSETLOCALE
@@ -1138,3 +1184,4 @@ int MCW_widget_visible( Widget w )
 char * _Xsetlocale( int category, const char * locale)
 { return setlocale(category,locale) ; }
 #endif
+

@@ -219,14 +219,47 @@ ENTRY("AFNI_fimmer_setignore") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------
+  Set the polynomial ort order [27 May 1999 - RWCox]
+---------------------------------------------------------------------*/
+
+void AFNI_fimmer_setpolort( Three_D_View * im3d , int new_polort )
+{
+   int ii ;
+
+ENTRY("AFNI_fimmer_setpolort") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+
+   if( im3d->g123 != NULL )
+      drive_MCW_grapher( im3d->g123 , graDR_polort , (XtPointer) new_polort ) ;
+
+   if( im3d->g231 != NULL )
+      drive_MCW_grapher( im3d->g231 , graDR_polort , (XtPointer) new_polort ) ;
+
+   if( im3d->g312 != NULL )
+      drive_MCW_grapher( im3d->g312 , graDR_polort , (XtPointer) new_polort ) ;
+
+   im3d->fimdata->polort = new_polort ;
+
+   if( DSET_GRAPHABLE(im3d->anat_now) )
+      im3d->fimdata->fimdset = im3d->anat_now ;
+
+   ALLOW_COMPUTE_FIM(im3d) ;
+   EXRETURN ;
+}
+
 
 /*-------------------------------------------------------------------
    Lots of CPU work in here!
 ---------------------------------------------------------------------*/
 
+#ifndef FIM_THR
 #define FIM_THR  0.0999
+#endif
 
-/** Jan 1998: code = combinations of the FIM_*_MASK values **/
+/** Jan 1998:    code = combinations of the FIM_*_MASK values      **/
+/** 30 May 1999: allow polort to be variable (formerly fixed at 1) **/
 
 THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
                                         THD_3dim_dataset * dset_time ,
@@ -255,6 +288,8 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
    static int    nref_vec = -666 ;
 
    int ibr_best , ibr_perc , ibr_fim , ibr_corr , ibr_base , nbrik ;
+
+   int polort = im3d->fimdata->polort , ip ;  /* 30 May 1999 */
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -297,7 +332,7 @@ if(PRINT_TRACING)
    } else {
       internal_ort = 1 ;
    }
-   fim_nref = (internal_ort) ? 3 : (ny_ort+3) ;
+   fim_nref = (internal_ort) ? (polort+2) : (ny_ort+polort+2) ;
 
    if( nref_vec < fim_nref ){
        ref_vec = (float *) XtRealloc( (char *)ref_vec, sizeof(float)*fim_nref ) ;
@@ -635,16 +670,17 @@ if(PRINT_TRACING)
          tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ; /* ptr to vect */
          if( tsar[it] >= WAY_BIG ) continue ;           /* skip this */
 
-         ref_vec[0] = 1.0 ;         /* we always supply orts */
-         ref_vec[1] = (float) it ;  /* for mean and linear trend */
+         ref_vec[0] = 1.0 ;         /* we always supply ort for constant */
+         for( ip=1 ; ip <= polort ; ip++ )              /* 30 May 1999:    */
+            ref_vec[ip] = ref_vec[ip-1] * ((float)it) ; /* and polynomials */
 
-         if( internal_ort ){        /* no external orts */
-            ref_vec[2] = tsar[it] ; /* ref value */
+         if( internal_ort ){         /* no external orts */
+            ref_vec[ip] = tsar[it] ; /* ref value */
          } else {
-            for( iv=0 ; iv < ny_ort ; iv++ )            /* external */
-               ref_vec[iv+2] = ortar[it + iv*nx_ort] ;  /* orts */
+            for( iv=0 ; iv < ny_ort ; iv++ )             /* external */
+               ref_vec[iv+ip] = ortar[it + iv*nx_ort] ;  /* orts */
 
-            ref_vec[ny_ort+2] = tsar[it] ; /* ref value */
+            ref_vec[ny_ort+ip] = tsar[it] ;              /* ref value */
          }
 
 if(PRINT_TRACING)

@@ -316,7 +316,7 @@ void RT_start_child( RT_input * ) ;
 #define TELL_WRITE   1
 #define TELL_FINAL   2
 
-#define WRITE_INTERVAL 7.954  /* seconds */
+#define WRITE_INTERVAL 37.954  /* seconds */
 
 #define REAP_CHILDREN
 #ifdef REAP_CHILDREN
@@ -3139,7 +3139,10 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
 /*---------------------------------------------------------------------------*/
 #endif /* ALLOW_REGISTRATION */
 
+#ifndef FIM_THR
 #define FIM_THR  0.0999
+#endif
+
 #define MIN_UPDT 5
 
 /*--------------------------------------------------------------------------
@@ -3179,14 +3182,18 @@ int RT_fim_recurse( RT_input * rtin , int mode )
    static float * ref_vec = NULL ;
    static int    nref_vec = -666 ;
 
+   static int polort = 1 ;  /* 02 Jun 1999 */
+
    static char new_prefix[THD_MAX_PREFIX] ;
    static char old_prefix[THD_MAX_PREFIX] ;
 
-   int ifim, it, iv, ivec, nnow, itbot ;
+   int ifim, it, iv, ivec, nnow, itbot , ip ;
    float fthr , topval , stataux[MAX_STAT_AUX] ;
    float * tsar ;
    short * bar ;
    void  * ptr ;
+
+   char strbuf[128] ;  /* 03 Jun 1999 */
 
    /******************/
    /** sanity check **/
@@ -3204,6 +3211,8 @@ int RT_fim_recurse( RT_input * rtin , int mode )
       ort_ts    = im3d->fimdata->fimort ; /* NULL is legal here */
       nupdt     = 0 ;                     /* number of updates done yet */
 
+      polort    = im3d->fimdata->polort ; /* 02 Jun 1999 */
+
       if( ort_ts != NULL ){               /* load some dimensions */
          nx_ort = ort_ts->nx ;
          ny_ort = ort_ts->ny ;
@@ -3214,7 +3223,7 @@ int RT_fim_recurse( RT_input * rtin , int mode )
          ortar  = NULL ;
          internal_ort = 1 ;
       }
-      fim_nref = (internal_ort) ? 3 : (ny_ort+3) ;
+      fim_nref = (internal_ort) ? (polort+2) : (ny_ort+polort+2) ;
 
       if( nref_vec < fim_nref ){  /* allocate space for ref work vector */
           ref_vec = (float *) XtRealloc( (char *)ref_vec, sizeof(float)*fim_nref ) ;
@@ -3576,6 +3585,9 @@ int RT_fim_recurse( RT_input * rtin , int mode )
             exit(1) ;
          }
          mri_fix_data_pointer( ptr ,  DSET_BRICK(new_dset,iv) ) ;
+
+         sprintf(strbuf,"#%d",iv) ;              /* 03 Jun 1999 */
+         EDIT_BRICK_LABEL(new_dset,iv,strbuf) ;  /* add a label to each brick */
       }
 
       DSET_lock( rtin->func_dset ) ; /* 20 Mar 1998 */
@@ -3593,17 +3605,18 @@ int RT_fim_recurse( RT_input * rtin , int mode )
       tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ;
       if( tsar[it] >= WAY_BIG ) continue ;           /* skip this time series */
 
-      ref_vec[0] = 1.0 ;              /* we always supply orts */
-      ref_vec[1] = (float) it ;       /* for mean and linear trend */
+      ref_vec[0] = 1.0 ;         /* we always supply ort for constant */
+      for( ip=1 ; ip <= polort ; ip++ )              /* 02 Jun 1999:    */
+         ref_vec[ip] = ref_vec[ip-1] * ((float)it) ; /* and polynomials */
 
       if( internal_ort ){
-         ref_vec[2] = tsar[it] ;                     /* ideal */
+         ref_vec[ip] = tsar[it] ;                    /* ideal */
       } else {
          for( iv=0 ; iv < ny_ort ; iv++ )            /* any other orts? */
-            ref_vec[iv+2] = (it < nx_ort) ? ortar[it+iv*nx_ort]
-                                          : 0.0 ;
+            ref_vec[iv+ip] = (it < nx_ort) ? ortar[it+iv*nx_ort]
+                                           : 0.0 ;
 
-         ref_vec[ny_ort+2] = tsar[it] ;              /* ideal */
+         ref_vec[ny_ort+ip] = tsar[it] ;             /* ideal */
       }
 
       update_PCOR_references( ref_vec , pc_ref[ivec] ) ;  /* Choleski refs */

@@ -105,6 +105,9 @@ int main( int argc , char * argv[] )
                        ADN_prefix    , new_prefix ,
                     ADN_none ) ;
 
+   if( DSET_NUM_TTOFF(new_dset) > 0 )
+      EDIT_dset_items( new_dset , ADN_nsl , 0 , ADN_none ) ;  /* 28 Apr 1999 */
+
    /*- prepare to write new dataset -*/
 
    new_dblk = new_dset->dblk ;

@@ -99,7 +99,7 @@ AFNI*graph_height:	512
 
 !! Initial number of points to ignore in graphs and FIMs
 !! (overridden by the -ignore option)
-AFNI*ignore:		0
+AFNI*fim_ignore:	0
 
 !! number of overlay colors to allocate: from 2 to 99
 AFNI*ncolovr:		20
@@ -217,6 +217,10 @@ AFNI*graph_ideal_thick:   0
 AFNI*graph_ort_thick:     0
 AFNI*graph_dplot_thick:   0
 
+!! Used to set the gap between sub-graphs
+
+AFNI*graph_ggap:          0
+
 !! Used to set the font for drawing text into
 !! graph windows.  The default font is chosen
 !! from a list "tfont_hopefuls" in the source file
@@ -225,6 +229,10 @@ AFNI*graph_dplot_thick:   0
 !! "xlsfonts | more"
 
 AFNI*gfont:               7x14
+
+!! Used to set the default fim polort order
+
+AFNI*fim_polort:          1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! font to use in pbar widgets

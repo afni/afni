@@ -43,7 +43,7 @@ THD_session * THD_init_session( char * sessname )
 
    /* save last name from sessname */
 #if 1
-   { char * env = getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
+   { char * env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
      if( env != NULL ) tt = strtol(env,NULL,10) ;
      env = THD_trailname(sess->sessname,tt) ;
      tt = 1+strlen(env) - THD_MAX_LABEL ; if( tt < 0 ) tt = 0 ;

@@ -20,34 +20,6 @@ int label_in_PALTAB( PBAR_palette_table * pt , char * lab )
    return -1 ;
 }
 
-/*------------------------------------------------------------------------
-   Read an entire file into a character string.  When you are
-   done with the returned string, free it.  If the string pointer
-   is returned as NULL, something bad happened.
---------------------------------------------------------------------------*/
-
-char * suck_file( char * fname )
-{
-   int len , fd , ii ;
-   char * buf ;
-
-   if( fname == NULL || fname[0] == '\0' ) return NULL ;
-
-   len = THD_filesize( fname ) ;
-   if( len <= 0 ) return NULL ;
-
-   fd = open( fname , O_RDONLY ) ;
-   if( fd < 0 ) return NULL ;
-
-   buf = (char *) malloc( sizeof(char) * (len+4) ) ;
-   ii  = read( fd , buf , len ) ;
-   close( fd ) ;
-   if( ii <= 0 ){ free(buf) ; return NULL; }
-
-   buf[len] = '\0' ;  /* 27 July 1998: 'len' used to be 'ii+1', which is bad */
-   return buf ;
-}
-
 /*-----------------------------------------------------------------------
    Process an AFNI setup file.
 -------------------------------------------------------------------------*/
@@ -79,16 +51,18 @@ char * suck_file( char * fname )
       GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
       strcpy(right,str) ; } while(0)
 
+#define NSBUF 256
+
 void AFNI_process_setup( char * fname , int mode , MCW_DC * dc )
 {
    int    nbuf , nused , ii ;
    char * fbuf , * fptr ;
-   char str[128] , left[128] , middle[128] , right[128] ;
+   char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
 
 ENTRY("AFNI_process_setup") ;
 
-   fbuf = suck_file( fname ) ; if( fbuf == NULL ) EXRETURN ;
-   nbuf = strlen(fbuf) ;       if( nbuf == 0    ) EXRETURN ;
+   fbuf = AFNI_suck_file( fname ) ; if( fbuf == NULL ) EXRETURN ;
+   nbuf = strlen(fbuf) ;            if( nbuf == 0    ) EXRETURN ;
 
    fptr = fbuf ; nused = 0 ;
 
@@ -108,11 +82,18 @@ if(PRINT_TRACING)
 
       SkipSection: while( ! ISTARRED(str) ){ GETSTR; }
 
+      /*- 04 Jun 1999 -*/
+
+      if( mode == SETUP_ENVIRON_MODE && strcmp(str,"***ENVIRONMENT") != 0 ){
+         GETSTR ;
+         goto SkipSection ;
+      }
+
       /**--------------------**/
       /**-- COLORS section --**/
 
       if( strcmp(str,"***COLORS") == 0 ){
-         char label[128] , defn[128] ;
+         char label[NSBUF] , defn[NSBUF] ;
 
 STATUS("enter ***COLORS") ;
 
@@ -162,7 +143,7 @@ if(PRINT_TRACING)
       /**-- PALETTES section --**/
 
       if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
-         char label[128] = "NoThing" , ccc , * cpt ;
+         char label[NSBUF] = "NoThing" , ccc , * cpt ;
          PBAR_palette_array * ppar ;
          PBAR_palette ** ppp ;
          PBAR_palette  * ppnew ;
@@ -306,6 +287,34 @@ STATUS("stored new palette") ;
 
          continue ;  /* to end of outer while */
       } /* end of PALETTES */
+
+      /**---------------------------------------**/
+      /**-- ENVIRONMENT section [04 Jun 1999] --**/
+
+      if( strcmp(str,"***ENVIRONMENT") == 0 ){  /* loop, looking for environment settings */
+         char * enveqn ; int nl , nr ;
+
+         if( mode != SETUP_ENVIRON_MODE ){ GETSTR ; goto SkipSection ; }
+
+STATUS("enter ***ENVIRONMENT") ;
+
+         while(1){                          /* loop, looking for 'name = value' */
+            GETEQN ;
+
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"GETEQN: %s %s %s",left,middle,right) ; STATUS(str);}
+
+            if( !THD_filename_ok(left) ) continue ;
+
+            nl = strlen(left) ; nr = strlen(right) ;
+            enveqn = (char *) malloc(nl+nr+4) ;
+            strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
+            putenv(enveqn) ;
+         }
+
+         continue ;  /* to end of outer while */
+      } /* end of ENVIRONMENT */
 
       /** END **/
 

@@ -12,8 +12,9 @@
    ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
 #endif
 
-#define SETUP_INIT_MODE   701
-#define SETUP_LATER_MODE  703
+#define SETUP_INIT_MODE    701
+#define SETUP_LATER_MODE   703
+#define SETUP_ENVIRON_MODE 707
 
 /*-------------------------------------------------------------------------*/
 
@@ -65,7 +66,6 @@ typedef struct {
 #define PALTAB_ARR_PPOS(name,qq,ww) ( (name)->par[(qq)]->ppos[(ww)] )
 
 extern int label_in_PALTAB( PBAR_palette_table * , char * ) ;
-extern char * suck_file( char * ) ;
 extern void AFNI_process_setup( char * , int , MCW_DC * ) ;
 extern int check_PBAR_palette( PBAR_palette * ) ;
 extern char * dump_PBAR_palette_table(int) ;

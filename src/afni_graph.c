@@ -74,7 +74,11 @@ ENTRY("new_MCW_grapher") ;
 
    if( new_xsize < 0 ){
       new_xsize = GX_MAX ;
-      buf       = XGetDefault(dc->display,"AFNI","graph_width") ;
+#if 0
+      buf = XGetDefault(dc->display,"AFNI","graph_width") ;
+#else
+      buf = RWC_getname(dc->display,"graph_width") ;
+#endif
       if( buf != NULL ){
          ii = strtol( buf , &cpt , 10 ) ;
          if( *cpt == '\0' || new_xsize >= MIN_XSIZE ||
@@ -83,7 +87,11 @@ ENTRY("new_MCW_grapher") ;
       }
 
       new_ysize = GY_MAX ;
-      buf       = XGetDefault(dc->display,"AFNI","graph_height") ;
+#if 0
+      buf = XGetDefault(dc->display,"AFNI","graph_height") ;
+#else
+      buf = RWC_getname(dc->display,"graph_height") ;
+#endif
       if( buf != NULL ){
          ii = strtol( buf , &cpt , 10 ) ;
          if( *cpt == '\0' || new_ysize >= MIN_YSIZE ||
@@ -197,6 +205,8 @@ ENTRY("new_MCW_grapher") ;
 
    grapher->fmenu = AFNI_new_fim_menu( grapher->option_mbar , GRA_fim_CB , 1 ) ;
    grapher->fmenu->parent = (XtPointer) grapher ;
+
+   grapher->polort = 1 ;  /* 27 May 1999 */
 
    /* macros to put double and single separator lines in a menu */
 
@@ -477,7 +487,7 @@ ENTRY("new_MCW_grapher") ;
 
      grapher->opt_ggap_av =
         new_MCW_optmenu( grapher->opt_colors_menu , "Graph Gap" ,
-                         0 , 19 , 0 , 0 ,
+                         0 , 19 , INIT_GR_ggap , 0 ,
                          GRA_ggap_CB , (XtPointer) grapher , NULL , NULL ) ;
      AVOPT_columnize( grapher->opt_ggap_av , 4 ) ;
 
@@ -616,7 +626,7 @@ if(PRINT_TRACING)
    grapher->common_base =  0 ;
    grapher->time_index  =  0 ;
    grapher->pin_num     =  0 ;  /* 27 Apr 1997 */
-   grapher->ggap        =  0 ;  /* 12 Jan 1998 */
+   grapher->ggap        =  INIT_GR_ggap ;  /* 12 Jan 1998 + 27 May 1999 */
 
    grapher->cen_line    =  NULL ;  /* coords of central graph plot */
    grapher->ncen_line   =  0 ;
@@ -691,6 +701,7 @@ STATUS("destroying optmenus") ;
    FREE_AV(grapher->opt_mat_choose_av) ;
    FREE_AV(grapher->opt_slice_choose_av) ;
    FREE_AV(grapher->fmenu->fim_ignore_choose_av) ;
+   FREE_AV(grapher->fmenu->fim_polort_choose_av) ;
 #endif
 
 STATUS("destroying arrowvals") ;
@@ -2891,6 +2902,39 @@ ENTRY("GRA_ignore_choose_CB") ;
 
 /*-----------------------------------------------------------------------------*/
 
+#ifdef USE_OPTMENUS
+void GRA_polort_choose_CB( MCW_arrowval * cbs , XtPointer cd )
+#else
+void GRA_polort_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+#endif
+{
+   MCW_grapher * grapher = (MCW_grapher *) cd ;
+
+ENTRY("GRA_polort_choose_CB") ;
+
+   if( ! GRA_VALID(grapher) || grapher->status->send_CB == NULL ) EXRETURN ;
+
+   if( cbs->ival >= 0 && cbs->ival <= MAX_POLORT ){
+      GRA_cbs gbs ;
+
+      gbs.reason = graCR_polort ;
+      gbs.key    = cbs->ival ;
+      grapher->status->send_CB( grapher , grapher->getaux , &gbs ) ;
+   }
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void GRA_bkthr_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+{
+ENTRY("GRA_bkthr_choose_CB") ;
+   SET_FIM_bkthr( cbs->fval ) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
 void GRA_refread_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    MCW_grapher * grapher = (MCW_grapher *) cd ;
@@ -3029,6 +3073,8 @@ OK   drive_code       drive_data should be
 
 *    graDR_setignore  (int) set the initial ignore level for graphs
 
+*    graDR_polort     (int) set the polort level for fimmery
+
 *    graDR_setindex   (int) contains the new time_index;
                         All this does is draw some stuff.
 
@@ -3123,6 +3169,21 @@ ENTRY("drive_MCW_grapher") ;
          } else {
             RETURN( False ) ;
          }
+      }
+      break ;
+
+      /*------- set polort [27 May 1999] --------*/
+
+      case graDR_polort:{
+         int new_polort = (int) drive_data ;
+
+         if( new_polort >= 0 ){
+            grapher->polort = new_polort ;
+#ifdef USE_OPTMENUS
+            GRA_fix_optmenus( grapher ) ;
+#endif
+         }
+         RETURN( True ) ;
       }
       break ;
 
@@ -3477,6 +3538,26 @@ ENTRY("GRA_fim_CB") ;
                           0 , grapher->status->num_series-1 , grapher->init_ignore ,
                           GRA_ignore_choose_CB , (XtPointer) grapher ) ;
 #endif
+   }
+
+   /* 27 May 1999: set polort */
+
+   else if( w == grapher->fmenu->fim_polort_choose_pb && grapher->status->send_CB != NULL ){
+#ifdef USE_OPTMENUS
+      GRA_polort_choose_CB( grapher->fmenu->fim_polort_choose_av , grapher ) ;
+#else
+      MCW_choose_integer( grapher->option_mbar , "Polort Order" ,
+                          0 , MAX_POLORT , grapher->polort ,
+                          GRA_polort_choose_CB , (XtPointer) grapher ) ;
+#endif
+   }
+
+   /* 02 Jun 1999: set FIM bkg threshold */
+
+   else if( w == grapher->fmenu->fim_bkthr_choose_pb ){
+      MCW_choose_integer( grapher->option_mbar , "Bkg Thresh %" ,
+                          0 , 99 , (int)(100*FIM_THR) ,
+                          GRA_bkthr_choose_CB , (XtPointer) grapher ) ;
    }
 
    /*** Unimplemented Button ***/
@@ -3970,6 +4051,15 @@ ENTRY("AFNI_new_fim_menu") ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_setshift_pb,"Shift Ideal"   ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_clear_pb   ,"Clear Ideal"   ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editort_clear_pb   ,"Clear Ort"     ) ;
+#ifdef USE_OPTMENUS
+      fmenu->fim_polort_choose_av =
+         new_MCW_optmenu( fmenu->fim_editref_menu , "Polort " , 0,MAX_POLORT,1,0 ,
+                          GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
+      fmenu->fim_polort_choose_pb = fmenu->fim_polort_choose_av->wrowcol ;
+#else
+      FIM_MENU_PULL_BUT( fim_editref_menu,fim_polort_choose_pb ,"Polort?") ;
+#endif
+      FIM_MENU_PULL_BUT( fim_editref_menu,fim_bkthr_choose_pb  ,"Bkg Thresh") ;
       MENU_SLINE        (fim_editref_menu) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_read_pb    ,"Read Ideal"    ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_write_pb   ,"Write Ideal"   ) ;
@@ -3985,6 +4075,7 @@ ENTRY("AFNI_new_fim_menu") ;
       EMPTY_BUT(fim_editref_write_pb) ;
       EMPTY_BUT(fim_editref_store_pb) ;
       EMPTY_BUT(fim_editort_clear_pb) ;
+      EMPTY_BUT(fim_polort_choose_pb) ;
    }
 
    FIM_MENU_PULLRIGHT(fim_ignore_menu,fim_ignore_cbut      ,"Ignore") ;
@@ -4158,6 +4249,10 @@ ENTRY("GRA_fix_optmenus") ;
                          NULL , NULL ) ;
    else
       AV_assign_ival( grapher->fmenu->fim_ignore_choose_av , grapher->init_ignore ) ;
+
+   /** 27 May 1999: fim polort **/
+
+   AV_assign_ival( grapher->fmenu->fim_polort_choose_av , grapher->polort ) ;
 
    EXRETURN ;
 }

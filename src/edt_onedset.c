@@ -750,7 +750,8 @@ STATUS("mult") ;
 
    /*----- 17 Sep 1998: conversion to z-score? -----*/
 
-   { int kv = DSET_BRICK_STATCODE(dset,iv_fim) ;
+   if( edopt->zscore ){                          /* 07 Jun 1999! How did this get lost? */
+     int kv = DSET_BRICK_STATCODE(dset,iv_fim) ;
      float par[2] ;
 
      if( FUNC_IS_STAT(kv) && kv != FUNC_ZT_TYPE ){

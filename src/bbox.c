@@ -1814,7 +1814,11 @@ static int list_max = -1 , list_maxmax ;
 static MCW_set_listmax( Widget wpar )
 {
    if( list_max < 0 ){
+#if 0
       char * xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
+#else
+      char * xdef = RWC_getname( XtDisplay(wpar) , "chooser_listmax" ) ;
+#endif
       if( xdef != NULL ) list_max = strtol( xdef , NULL , 10 ) ;
       if( list_max <= 1 ) list_max = LIST_MAX ;
       list_maxmax = list_max + 5 ;
@@ -2646,7 +2650,11 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
    /*--- set up what to do for list double clicks ---*/
 
    if( list_dbclick_use == LIST_DBCLICK_UNKNOWN ){
+#if 0
       char * xdef = XGetDefault( XtDisplay(w) , "AFNI" , "chooser_doubleclick" ) ;
+#else
+      char * xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
+#endif
       if( xdef != NULL && strcmp(xdef,OVC_apply_label) == 0 )
          list_dbclick_use = LIST_DBCLICK_APPLY ;
       else

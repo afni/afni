@@ -31,31 +31,25 @@
   Mod:     Accept mean square error from full model.
   Date:    04 January 1999
 
+  Mod:     Incorporated THD_extract_series routine.
+  Date:    19 April 1999
+
+  Mod:     Change NLast default value.
+  Date:    27 May 1999
+
+
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+
 */
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dDeconvolve"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "06 January 1999"           /* date of last program mod */
+#define PROGRAM_DATE "27 May 1999"               /* date of last program mod */
+
+/*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 200                           /* max. number of parameters */
@@ -63,6 +57,7 @@
 
 #define RA_error DC_error
 
+/*---------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <math.h>
@@ -71,14 +66,8 @@
 #include "mrilib.h"
 #include "matrix.h"
 
-
-/*---------------------------------------------------------------------------*/
-/*
-  Include deconvolution analysis software.
-*/
-
 #include "Deconvolve.c"
-
+#include "thd_dsetto1D.c"
 
 /*---------------------------------------------------------------------------*/
 
@@ -189,7 +178,7 @@ void initialize_options
 
   /*----- initialize default values -----*/
   option_data->NFirst = 0;
-  option_data->NLast  = 1000;
+  option_data->NLast  = 32767;
   option_data->polort = 1;
   option_data->rms_min = 0.0;
   option_data->fdisp = -1.0;
@@ -837,52 +826,36 @@ void extract_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
-  float * ts_array         /* input time series data for voxel #iv */
+  float * ts_array                   /* time series data for voxel #iv */
 )
 
 {
+  MRI_IMAGE * im;          /* intermediate float data */
+  float * ar;              /* pointer to float data */
   int ts_length;           /* length of input 3d+time data set */
   int it;                  /* time index */
-  int dtyp;                /* data type of input dataset */
 
-  
-  dtyp = DSET_BRICK_TYPE (dset_time,0);
+
+  /*----- Extract time series from 3d+time data set into MRI_IMAGE -----*/
+  im = THD_extract_series (iv, dset_time, 0);
+
+
+  /*----- Verify extraction -----*/
+  if (im == NULL)  DC_error ("Unable to extract data from 3d+time dataset");
+
+
+  /*----- Now extract time series from MRI_IMAGE -----*/
   ts_length = DSET_NUM_TIMES (dset_time);
-
-
-  switch( dtyp )
+  ar = MRI_FLOAT_PTR (im);
+  for (it = 0;  it < ts_length;  it++)
     {
-    case MRI_short:
-      {
-	for (it = 0;  it < ts_length;  it++)
-	  {
-	    short * dar = (short *) DSET_ARRAY(dset_time,it);
-	    ts_array[it] = (float) dar[iv] ;
-	  }
-      }
-      break ;
-      
-    case MRI_float:
-      {
-	for (it = 0;  it < ts_length;  it++)
-	  {
-	    float * dar = (float *) DSET_ARRAY (dset_time,it);
-	    ts_array[it] = (float) dar[iv] ;
-	  }
-      }
-      break ;
-      
-    case MRI_byte:
-      {
-	for (it = 0;  it < ts_length;  it++)
-	  {
-	    byte * dar = (byte *) DSET_ARRAY (dset_time,it);
-	    ts_array[it] = (float) dar[iv] ;
-	  }
-      }
-      break ;
+      ts_array[it] = ar[it];
     }
-  
+
+
+  /*----- Release memory -----*/
+  mri_free (im);   im = NULL;
+
 }
 
 

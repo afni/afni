@@ -231,13 +231,13 @@ NLFIT_MODEL_array * NLFIT_get_many_MODELs(void)
 
    /*----- sanity checks -----*/
 
-   epath = getenv("AFNI_MODELPATH") ;     /* get the path list to read from */
+   epath = my_getenv("AFNI_MODELPATH") ;     /* get the path list to read from */
 
    if( epath == NULL )
-      epath = getenv("AFNI_PLUGINPATH") ; /* try another name? */
+      epath = my_getenv("AFNI_PLUGINPATH") ; /* try another name? */
 
    if( epath == NULL )
-      epath = getenv("PATH") ;             /* try another name? */
+      epath = my_getenv("PATH") ;             /* try another name? */
 
    if( epath == NULL ) epath = efake ;     /* put in a fake path instead? */
 

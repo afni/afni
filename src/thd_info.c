@@ -170,16 +170,18 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    if( verbose && ntimes > 1 ) nval_per = dset->dblk->nvals ;
 
    for( ival=0 ; ival < nval_per ; ival++ ){
+
       sprintf( str ,
                "  -- At sub-brick #%d '%s' datum type is %s" ,
-               ival , dset->dblk->brick_lab[ival] ,
+               ival , DSET_BRICK_LAB(dset,ival) ,
                MRI_TYPE_name[DSET_BRICK_TYPE(dset,ival)] ) ;
       nstr = strlen(str) ;
 
       tf = DSET_BRICK_FACTOR(dset,ival) ;
 
       if( ISVALID_STATISTIC(dset->stats) ){
-         if( tf != 0.0 )
+
+         if( tf != 0.0 ){
             sprintf( str+nstr ,
                                 ":%13.6g to %13.6g [internal]\n"
                     "%*s[*%13.6g] %13.6g to %13.6g [scaled]\n" ,
@@ -187,9 +189,10 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
                     dset->stats->bstat[ival].max/tf ,
                     nstr-16," " , tf ,
                     dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
-          else
+          } else {
             sprintf( str+nstr , ":%13.6g to %13.6g\n" ,
                     dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
+          }
       } else if( tf != 0.0 ){
          sprintf( str+nstr , " [*%g]\n",tf) ;
       } else {

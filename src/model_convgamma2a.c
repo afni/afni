@@ -73,7 +73,7 @@ void conv_set_ref( int num , float ** ref )
      int jv , nx ;
      float * ref[NREF] ;
 
-     cp = getenv("AFNI_CONVMODEL_REF") ;  /* get name of reference file */
+     cp = my_getenv("AFNI_CONVMODEL_REF") ;  /* get name of reference file */
      if( cp == NULL )
         ERREX(__FILE__ ": Can't read AFNI_CONVMODEL_REF from environment") ;
 

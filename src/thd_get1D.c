@@ -17,9 +17,9 @@ MRI_IMARR * THD_get_many_timeseries( THD_string_array * dlist )
 
 ENTRY("THD_get_many_timeseries") ;
 
-                       epath = getenv( "AFNI_TSPATH" ) ;
-   if( epath == NULL ) epath = getenv( "AFNI_TS_PATH" ) ; /* 07 Oct 1996 */
-   if( epath == NULL ) epath = efake ;                    /* 07 Oct 1996 */
+                       epath = my_getenv( "AFNI_TSPATH" ) ;
+   if( epath == NULL ) epath = my_getenv( "AFNI_TS_PATH" ) ; /* 07 Oct 1996 */
+   if( epath == NULL ) epath = efake ;                      /* 07 Oct 1996 */
 
    ndir = (dlist != NULL) ? dlist->num : 0 ;
 

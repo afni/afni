@@ -518,8 +518,14 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
          ff[jj] = sum * dd[jj] ;
       }
       base = ff[nr-1] * rmin ;         /* compute baseline */
-      for( jj=0 ; jj < nr-2 ; jj++ )
+
+#if 0
+      for( jj=0 ; jj < nr-2 ; jj++ )   /* OLD version */
          base += ff[jj] * bb[jj] ;
+#else
+      for( jj=0 ; jj < nr-1 ; jj++ )   /* 30 May 1999 */
+         base += ff[jj] * bb[jj] ;
+#endif
 
       if( coef != NULL ) coef[vox] = (base > 0.0) ? ff[nr-1] * rdif / base
                                                   : 0.0 ;

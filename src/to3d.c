@@ -121,6 +121,7 @@ int main( int argc , char * argv[] )
 
    Argc = argc ;
    Argv = argv ;
+
    T3D_initialize_user_data() ;
    T3D_read_images() ;
 
@@ -189,7 +190,7 @@ QQQ("main1");
 
 QQQ("main2");
 
-   { char * hh = getenv("AFNI_HINTS") ;
+   { char * hh = my_getenv("AFNI_HINTS") ;
      if( hh != NULL && ( strncmp(hh,"NO"  ,2)==0 ||
                          strncmp(hh,"no"  ,2)==0 ||
                          strncmp(hh,"No"  ,2)==0 ||
@@ -4976,21 +4977,39 @@ printf("T3D_anatomy_parent_CB: set strings\n") ; fflush(stdout) ;
 /****************************************************************/
 /***** June 1995: routine to load constants from X defaults *****/
 
-#define NAME2INT(nnn,iii,bot,top) \
+#if 0
+# define NAME2INT(nnn,iii,bot,top)           \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ){                      \
        ival = strtol( xdef , &cpt , 10 ) ;   \
        if( *cpt == '\0' && ival >= (bot) && ival <= (top) ) (iii) = ival ; } }
 
-#define NAME2FLOAT(nnn,fff,bot,top) \
+# define NAME2FLOAT(nnn,fff,bot,top)         \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ){                      \
        fval = strtod( xdef , &cpt ) ;        \
        if( *cpt == '\0' && fval >= (bot) && fval <= (top) ) (fff) = fval ; } }
 
-#define NAME2STRING(nnn,sss) \
+# define NAME2STRING(nnn,sss)                \
   { xdef = XGetDefault(display,"AFNI",nnn) ; \
     if( xdef != NULL ) sss  = XtNewString(xdef) ; }
+#else
+# define NAME2INT(nnn,iii,bot,top)           \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ){                      \
+       ival = strtol( xdef , &cpt , 10 ) ;   \
+       if( *cpt == '\0' && ival >= (bot) && ival <= (top) ) (iii) = ival ; } }
+
+# define NAME2FLOAT(nnn,fff,bot,top)         \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ){                      \
+       fval = strtod( xdef , &cpt ) ;        \
+       if( *cpt == '\0' && fval >= (bot) && fval <= (top) ) (fff) = fval ; } }
+
+# define NAME2STRING(nnn,sss)                \
+  { xdef = RWC_getname(display,nnn) ;        \
+    if( xdef != NULL ) sss  = XtNewString(xdef) ; }
+#endif
 
 #define BAD -999
 

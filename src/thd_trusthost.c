@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "afni_environ.h"
+
 static int     host_num  = 0 ;
 static char ** host_list = NULL ;
 
@@ -32,12 +34,12 @@ int TRUST_host( char * hostid )
          strcpy( host_list[ii] , init_hosts[ii] ) ;
       }
 
-      str = getenv("AFNI_TRUSTHOST") ;
+      str = my_getenv("AFNI_TRUSTHOST") ;
       if( str != NULL ) ADDHOST(str) ;
 
       for( ii=1 ; ii < 99 ; ii++ ){
          sprintf(ename,"AFNI_TRUSTHOST_%d",ii) ;
-         str = getenv(ename) ;
+         str = my_getenv(ename) ;
          if( str != NULL ) ADDHOST(str) ;
       }
    }

@@ -4,21 +4,6 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994,1995 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
 #include "mrilib.h"
 #include <string.h>
 
@@ -138,12 +123,12 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-dzin",4) == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"\n*** no argument for -dzin?\n\n") ;
-            Syntax() ;
+            exit(1) ;
          }
          fff = strtod( argv[nopt] , NULL ) ;
          if( fff <= 0.0 ){
             fprintf(stderr,"\n*** illegal argument for -dzin: %f\n\n",fff) ;
-            Syntax() ;
+            exit(1) ;
          }
          dzin = fff ;
          nopt++ ; continue ;
@@ -154,12 +139,12 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-dzout",4) == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"\n*** no argument for -dzout?\n\n") ;
-            Syntax() ;
+            exit(1) ;
          }
          fff = strtod( argv[nopt] , NULL ) ;
          if( fff <= 0.0 ){
             fprintf(stderr,"\n*** illegal argument for -dzout: %f\n\n",fff) ;
-            Syntax() ;
+            exit(1) ;
          }
          dzout = fff ;
          nopt++ ; continue ;
@@ -170,7 +155,7 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-root",4) == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"\n*** no argument for -root?\n\n") ;
-            Syntax() ;
+            exit(1) ;
          }
          strcpy( prefix , argv[nopt] ) ;
          ii = strlen(prefix) ;
@@ -188,7 +173,7 @@ int main( int argc , char * argv[] )
          double ggg = -1.0 ;
          if( ++nopt >= argc ){
             fprintf(stderr,"\n*** no argument for -skip?\n\n") ;
-            Syntax() ;
+            exit(1) ;
          }
 
          nok = sscanf( argv[nopt] , "%d+%lf" , &nnn , &ggg ) ;
@@ -196,7 +181,7 @@ int main( int argc , char * argv[] )
          if( nok != 2 || nnn <= 0 || nnn > SLICES_MAX || ggg < 0 ){
             fprintf(stderr,
                     "\n*** illegal argument for -skip: %s\n\n",argv[nopt]) ;
-            Syntax() ;
+            exit(1) ;
          }
 
          gap[nnn-1] = ggg ;    /* external slice indices are 1 more */
@@ -208,7 +193,7 @@ int main( int argc , char * argv[] )
 
    if( nopt >= argc ){
       fprintf(stderr,"\n*** no input image files!!!\n\n") ;
-      Syntax() ;
+      exit(1) ;
    }
 
    nfiles = argc - nopt ;
@@ -216,39 +201,45 @@ int main( int argc , char * argv[] )
       fprintf(stderr,
               "\n*** You input %d files, but max allowed is %d!!!\n\n" ,
               nfiles , SLICES_MAX ) ;
-      Syntax() ;
+      exit(1) ;
    } else if( nfiles < 1 ){
       fprintf(stderr,"\n*** no input image files!!!\n\n") ;
-      Syntax() ;
+      exit(1) ;
    } else if( nfiles == 1 ){
       fprintf(stderr,"\n*** only one input image file!!!\n\n") ;
-      Syntax() ;
+      exit(1) ;
    }
 
    imin[0] = mri_read_just_one( argv[nopt] ) ;
-   if( imin[0] == NULL ) exit(-1) ;
+   if( imin[0] == NULL ){
+      fprintf(stderr,"\n*** Cannot read 1st image from file %s\n",argv[nopt]);
+      exit(1) ;
+   }
    if( imin[0]->kind != MRI_short ){
       fprintf(stderr,"\n*** Cannot deal with non-short images!\n") ;
-      exit(-1) ;
+      exit(1) ;
    }
    nx = imin[0]->nx ; ny = imin[0]->ny ;
 
    for( isl=1 ; isl < nfiles ; isl++ ){
       imin[isl] = mri_read_just_one( argv[nopt+isl] ) ;
-      if( imin[isl] == NULL ) exit(-1) ;
+      if( imin[isl] == NULL ){
+         fprintf(stderr,"\n*** Cannot read 1st image from file %s\n",argv[nopt+isl]) ;
+         exit(1) ;
+      }
 
       if( imin[isl]->nx != nx || imin[isl]->ny != ny ){
          fprintf(stderr,
                  "\n*** first file is %d x %d but file %s is %d x %d!\n\n",
                  nx,ny , argv[nopt+isl] , imin[isl]->nx , imin[isl]->ny ) ;
-         exit(-1) ;
+         exit(1) ;
       }
 
       if( imin[isl]->kind != MRI_short ){
          fprintf(stderr,
                  "\n*** image file %s is not an image of shorts!\n",
                  argv[nopt+isl] ) ;
-         exit(-1) ;
+         exit(1) ;
       }
    }  /* all images input when this loop exits */
 

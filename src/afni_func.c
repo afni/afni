@@ -411,6 +411,12 @@ ENTRY("AFNI_follower_dataset") ;
 
    if( DSET_NUM_TIMES(data_parent) > 1 && ! GLOBAL_argopt.warp_4D ) RETURN(NULL) ;
 
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"anat_parent=%s  data_parent=%s",
+          DSET_HEADNAME(anat_parent) , DSET_HEADNAME(data_parent) ) ;
+  STATUS(str); }
+
    /* make new dataset, copying appropriate fields from its various parents */
 
    new_dset = myXtNew( THD_3dim_dataset ) ; INIT_KILL( new_dset->kl ) ;
@@ -800,6 +806,12 @@ ENTRY("AFNI_force_adoption") ;
       }
    }
 
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"session %s: apref=%d [%s] aset=%d",
+          ss->lastname,apref,DSET_HEADNAME(ss->anat[apref][0]),aset) ;
+  STATUS(str) ; }
+
    /* scan through all functions, all views */
 
    for( ff=0 ; ff < ss->num_func ; ff++ ){
@@ -819,6 +831,12 @@ ENTRY("AFNI_force_adoption") ;
                }
             }
          }
+
+if( PRINT_TRACING && dset->anat_parent != NULL )
+{ char str[256] ;
+  sprintf(str,"dset %s gets parent %s",DSET_HEADNAME(dset),DSET_HEADNAME(dset->anat_parent));
+  STATUS(str);}
+
       }
    }
 
@@ -843,6 +861,12 @@ ENTRY("AFNI_force_adoption") ;
                   }
                }
             }
+
+if( PRINT_TRACING && dset->anat_parent != NULL )
+{ char str[256] ;
+  sprintf(str,"dset %s gets parent %s",DSET_HEADNAME(dset),DSET_HEADNAME(dset->anat_parent));
+  STATUS(str);}
+
          }
       }
    }
@@ -3962,7 +3986,9 @@ ENTRY("AFNI_misc_CB") ;
 #endif
 
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
-      char * inf = THD_dataset_info( im3d->anat_now , 0 ) ;
+      char * inf ;
+STATUS("getting anat info") ;
+      inf = THD_dataset_info( im3d->anat_now , 0 ) ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
@@ -3978,7 +4004,10 @@ ENTRY("AFNI_misc_CB") ;
    }
 
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
-      char * inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+      char * inf ;
+STATUS("getting func info") ;
+      inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+STATUS("got func info") ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;

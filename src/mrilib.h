@@ -643,7 +643,11 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 #include "thd_iochan.h"
 #include "editvol.h"
 
-#include "cs.h"          /* 17 Aug 1998 addition */
+#include "cs.h"            /* 17 Aug 1998 addition */
+
+#include "multivector.h"   /* 18 May 1999 addition */
+
+#include "afni_environ.h"  /* 07 Jun 1999 addition */
 /*------------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */

@@ -44,7 +44,7 @@ fprintf(stderr,"conv_set_ref: num=%d nonzero=%d\n",num,refnz) ;
      MRI_IMAGE * im , * flim ;
      float one = 1.0 ;
 
-     cp = getenv("AFNI_CONVMODEL_REF") ;  /* get name of reference file */
+     cp = my_getenv("AFNI_CONVMODEL_REF") ;  /* get name of reference file */
      if( cp == NULL )
         ERREX("model_convgamma: Can't read AFNI_CONVMODEL_REF from environment") ;
 

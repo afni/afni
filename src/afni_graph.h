@@ -104,7 +104,8 @@ typedef struct {
           fim_editref_clear_pb , fim_editref_equals_pb ,
           fim_editref_add_pb , fim_editref_smooth_pb ,
           fim_editref_read_pb , fim_editref_write_pb , fim_editref_store_pb ,
-          fim_editref_setshift_pb , fim_editort_clear_pb ;
+          fim_editref_setshift_pb , fim_editort_clear_pb ,
+          fim_polort_choose_pb , fim_bkthr_choose_pb ;
    Widget fim_ignore_menu   , fim_ignore_cbut ,
           fim_ignore_down_pb, fim_ignore_up_pb , fim_ignore_choose_pb ;
    Widget fim_pickref_pb , fim_pickort_pb , fim_execute_pb , fim_execfimp_pb ;
@@ -114,6 +115,7 @@ typedef struct {
 
 #ifdef USE_OPTMENUS
    MCW_arrowval * fim_ignore_choose_av ;
+   MCW_arrowval * fim_polort_choose_av ;
 #endif
 
    XtCallbackProc cbfunc ;
@@ -210,6 +212,8 @@ int INIT_GR_boxes_thick  = 0 ,
     INIT_GR_ideal_thick  = 0 ,
     INIT_GR_ort_thick    = 0 ,
     INIT_GR_dplot_thick  = 0  ;
+
+int INIT_GR_ggap         = 0 ;  /* 27 May 1999 */
 #else
 extern int INIT_GR_boxes_color  ,
            INIT_GR_backg_color  ,
@@ -227,6 +231,8 @@ extern int INIT_GR_boxes_thick ,
            INIT_GR_ideal_thick ,
            INIT_GR_ort_thick   ,
            INIT_GR_dplot_thick  ;
+
+extern int INIT_GR_ggap ;
 #endif /* MAIN */
 
 #define NUM_COLOR_ITEMS 9
@@ -341,7 +347,7 @@ typedef struct {
 
    int mat,mat_max , xpoint,ypoint,zpoint , grid_index , grid_spacing ;
    int xFD , yFD , gx,gy , xc,yc ;
-   int grid_color , common_base , init_ignore ;
+   int grid_color , common_base , init_ignore , polort ;
    float fscale ;
    int pin_num ;      /* 27 Apr 1997 */
    int HorZ ;         /* 05 Jan 1999 */
@@ -462,6 +468,7 @@ typedef struct {
 #define graCR_clearfim           7723
 #define graCR_timeseries_library 7724
 #define graCR_clearort           7725
+#define graCR_polort             7726  /* 27 May 1999 */
 
 #define graCR_dofim       7731
 
@@ -494,6 +501,7 @@ typedef struct {
 #define graDR_addort_ts   122
 #define graDR_setignore   123
 #define graDR_setindex    124
+#define graDR_polort      125  /* 27 May 1999 */
 
 #define graDR_destroy     666
 
@@ -547,13 +555,16 @@ extern void GRA_refstore_choose_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_mat_choose_CB     ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_slice_choose_CB   ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_ignore_choose_CB  ( MCW_arrowval * , XtPointer ) ;
+extern void GRA_polort_choose_CB  ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_fmenu_av_CB       ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_fix_optmenus      ( MCW_grapher * ) ;
 #else
 extern void GRA_mat_choose_CB     ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_slice_choose_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_ignore_choose_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void GRA_polort_choose_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 #endif
+extern void GRA_bkthr_choose_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void GRA_setshift_startup( MCW_grapher * ) ;
 extern void GRA_doshift( MCW_grapher * ) ;

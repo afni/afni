@@ -153,12 +153,14 @@ static int xhair_flag  = 0    ;
 static int xhair_ixold = -666 ;  /* remember the past */
 static int xhair_jyold = -666 ;
 static int xhair_kzold = -666 ;
+static int xhair_omold = -666 ;  /* 02 Jun 1999 */
 
 static int xhair_recv  = -1 ;    /* 29 Mar 1999 */
 
-#define CHECK_XHAIR_MOTION ( im3d->vinfo->i1 != xhair_ixold || \
-                             im3d->vinfo->j2 != xhair_jyold || \
-                             im3d->vinfo->k3 != xhair_kzold   )
+#define CHECK_XHAIR_MOTION ( im3d->vinfo->i1             != xhair_ixold || \
+                             im3d->vinfo->j2             != xhair_jyold || \
+                             im3d->vinfo->k3             != xhair_kzold || \
+                             im3d->vinfo->xhairs_orimask != xhair_omold   )
 
 static int   post_facto_load = 0 ;  /* in case the user loads before Draw */
 
@@ -1962,6 +1964,9 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     unless the 'DynaDraw' button is also depressed.  Otherwise,\n"
        "     the next time the rendering is redrawn for some other\n"
        "     reason, the correct crosshair positions will be shown.\n"
+       "   02 Jun 1999: The renderer will now draw partial crosshair sets,\n"
+       "        as indicated by the 'Xhairs' chooser in the AFNI control\n"
+       "        window from which the renderer was started.\n"
        "\n"
        " * If you depress 'DynaDraw', then the image will be re-\n"
        "     rendered immediately whenever certain actions are taken:\n"
@@ -2844,7 +2849,7 @@ void REND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 void REND_xhair_overlay(void)
 {
-   int ix,jy,kz , nx,ny,nz,nxy , ii , gap ;
+   int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
    byte * gar , * oar ;
    byte   gxh ,   oxh=OXH ;
 
@@ -2858,6 +2863,8 @@ void REND_xhair_overlay(void)
    jy = im3d->vinfo->j2 ; ny = grim->ny ; nxy = nx * ny ;
    kz = im3d->vinfo->k3 ; nz = grim->nz ;
 
+   om = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
+
    if( ix < 0 || ix >= nx ) return ;  /* error */
    if( jy < 0 || jy >= ny ) return ;  /* error */
    if( kz < 0 || kz >= nz ) return ;  /* error */
@@ -2866,19 +2873,28 @@ void REND_xhair_overlay(void)
    gar = MRI_BYTE_PTR(grim) ;
    oar = MRI_BYTE_PTR(opim) ;
 
-   for( ii=0 ; ii < nx ; ii++ ){
-      if( abs(ii-ix) > gap ){ GR(ii,jy,kz) = gxh ; OP(ii,jy,kz) = oxh ; }
+   /* 02 Jun 1999: allow for partial crosshair drawing */
+
+   if( (om & ORIMASK_LR) != 0 ){
+      for( ii=0 ; ii < nx ; ii++ ){
+         if( abs(ii-ix) > gap ){ GR(ii,jy,kz) = gxh ; OP(ii,jy,kz) = oxh ; }
+      }
    }
 
-   for( ii=0 ; ii < ny ; ii++ ){
-      if( abs(ii-jy) > gap ){ GR(ix,ii,kz) = gxh ; OP(ix,ii,kz) = oxh ; }
+   if( (om & ORIMASK_AP) != 0 ){
+      for( ii=0 ; ii < ny ; ii++ ){
+         if( abs(ii-jy) > gap ){ GR(ix,ii,kz) = gxh ; OP(ix,ii,kz) = oxh ; }
+      }
    }
 
-   for( ii=0 ; ii < nz ; ii++ ){
-      if( abs(ii-kz) > gap ){ GR(ix,jy,ii) = gxh ; OP(ix,jy,ii) = oxh ; }
+   if( (om & ORIMASK_IS) != 0 ){
+      for( ii=0 ; ii < nz ; ii++ ){
+         if( abs(ii-kz) > gap ){ GR(ix,jy,ii) = gxh ; OP(ix,jy,ii) = oxh ; }
+      }
    }
 
    xhair_ixold = ix ; xhair_jyold = jy ; xhair_kzold = kz ;  /* memory */
+   xhair_omold = om ;                                        /* 02 Jun 1999 */
    return ;
 }
 

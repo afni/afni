@@ -1,0 +1,77 @@
+/*---------------------------------------------------------------------------*/
+/*
+  Some utility routines for generating random numbers.
+
+  File:    randgen.c
+  Author:  B. Douglas Ward
+  Date:    15 February 1999
+
+*/
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to generate a uniform U(a,b) random variate.
+*/
+
+float rand_uniform (float a, float b)
+{
+  return (a + (float)drand48() * (b-a) );
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to generate a normal N(mu,var) random variate.
+*/
+
+float rand_normal (float mu, float var)
+{
+  float u1, u2;
+  float r, n;
+
+
+  u1 = 0.0;
+  while (u1 <= 0.0)
+    {
+      u1 = rand_uniform (0.0, 1.0);
+    }
+  u2 = rand_uniform (0.0, 1.0);
+
+  r   = sqrt(-2.0*log(u1));
+  n = mu + r * cos(2.0*PI*u2);
+
+  return (mu + n * sqrt(var));
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to generate two independent normal N(mu,var) random variates.
+*/
+
+void rand_binormal (float mu, float var, float * n1, float * n2)
+{
+  float u1, u2;
+  float r, sigma;
+
+
+  u1 = 0.0;
+  while (u1 <= 0.0)
+    {
+      u1 = rand_uniform (0.0, 1.0);
+    }
+  u2 = rand_uniform (0.0, 1.0);
+
+  r   = sqrt(-2.0*log(u1));
+  sigma = sqrt (var);
+
+  *n1 = mu + r * cos(2.0*PI*u2) * sigma;
+  *n2 = mu + r * sin(2.0*PI*u2) * sigma;
+}
+
+
+/*---------------------------------------------------------------------------*/
+
+
+

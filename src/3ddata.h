@@ -2175,6 +2175,8 @@ extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;
 extern THD_slist_find THD_dset_in_session( int,void * , THD_session * ) ;
 
+extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
+
 extern void THD_load_statistics( THD_3dim_dataset * ) ;
 extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;

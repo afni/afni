@@ -350,6 +350,7 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
    DSET_load(dset) ;
    if( verb ) fprintf(stderr,"\n") ;
 
+   dset->idcode = MCW_new_idcode() ;  /* 08 Jun 1999 */
    EDIT_dset_items( dset ,
                        ADN_prefix , new_prefix ,
                        ADN_label1 , new_prefix ,

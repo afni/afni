@@ -28,8 +28,10 @@
    Mod:      Added the -inTR option.
              22 July 1998 -- RWCox
 
-*/
+   Mod:      Incorporated THD_extract_series routine.
+   Date:     19 April 1999
 
+*/
 
 
 /*****************************************************************************
@@ -38,26 +40,12 @@
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
-
-/*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dNLfim"                /* name of this program */
-#define LAST_MOD_DATE "22 July 1998"          /* date of last program mod */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "19 April 1999"             /* date of last program mod */
+
+/*---------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <math.h>
@@ -1485,7 +1473,7 @@ void initialize_program
 
 /*---------------------------------------------------------------------------*/
 /*
-  Read one AFNI 3d+time data set.
+  Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
 void read_ts_array 
@@ -1498,42 +1486,29 @@ void read_ts_array
 )
 
 {
-  int it, dtyp;
+  MRI_IMAGE * im;          /* intermediate float data */
+  float * ar;              /* pointer to float data */
+  int it;                  /* time index */
 
-  dtyp = DSET_BRICK_TYPE(dset_time,0) ;
-  
-   switch( dtyp )
-     {
-     case MRI_short:
-       {
-	 for (it = 0;  it < ts_length;  it++)
-	   {
-	     short * dar = (short *) DSET_ARRAY(dset_time,it+ignore) ;
-	     ts_array[it] = (float) dar[iv] ;
-	   }
-       }
-       break ;
-       
-     case MRI_float:
-       {
-	 for (it = 0;  it < ts_length;  it++)
-	   {
-	     float * dar = (float *) DSET_ARRAY(dset_time,it+ignore) ;
-	     ts_array[it] = (float) dar[iv] ;
-	   }
-       }
-       break ;
-       
-     case MRI_byte:
-       {
-	 for (it = 0;  it < ts_length;  it++)
-	   {
-	     byte * dar = (byte *) DSET_ARRAY(dset_time,it+ignore) ;
-	     ts_array[it] = (float) dar[iv] ;
-	   }
-       }
-       break ;
-     }
+
+  /*----- Extract time series from 3d+time data set into MRI_IMAGE -----*/
+  im = THD_extract_series (iv, dset_time, 0);
+
+
+  /*----- Verify extraction -----*/
+  if (im == NULL)  NLfit_error ("Unable to extract data from 3d+time dataset");
+
+
+  /*----- Now extract time series from MRI_IMAGE -----*/
+  ar = MRI_FLOAT_PTR (im);
+  for (it = 0;  it < ts_length;  it++)
+    {
+      ts_array[it] = ar[it+ignore];
+    }
+
+
+  /*----- Release memory -----*/
+  mri_free (im);   im = NULL;
    
 }
 
@@ -2390,10 +2365,16 @@ void main
   
   char * label;            /* report results for one voxel */
 
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
+
    
   /*----- program initialization -----*/
-  printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-  printf ("Last revision: %s\n", LAST_MOD_DATE);
   initialize_program (argc, argv, &ignore, 
 		      &nname, &sname, &nmodel, &smodel, 
 		      &r, &p, &npname, &spname,

@@ -27,7 +27,7 @@ int THD_get_write_compression(void)
 
 int THD_enviro_write_compression(void)
 {
-   char * hh = getenv("AFNI_COMPRESSOR") ;
+   char * hh = my_getenv("AFNI_COMPRESSOR") ;
    int ii ;
 
    compress_mode = COMPRESS_NONE ;
@@ -59,7 +59,7 @@ void THD_set_write_order( int mm )
 
 void THD_enviro_write_order(void)
 {
-   char * hh = getenv("AFNI_BYTEORDER") ;
+   char * hh = my_getenv("AFNI_BYTEORDER") ;
 
    if( hh == NULL ){ output_order = -1 ; return ; }
 

@@ -4,10 +4,12 @@ You can set up the colors and palette tables used by AFNI in the
 file .afnirc in your home directory.  This file will be read when
 AFNI starts.  Each section of this file starts with a string of
 the form "***NAME", where "NAME" is the name of the section.  At
-present, two sections are available:
-   ***COLORS   -- for defining new colors
-   ***PALETTES -- for defining the layout of colors used for
-                  functional overlays (the "palette tables").
+present, three sections are available:
+   ***COLORS      -- for defining new colors
+   ***PALETTES    -- for defining the layout of colors used for
+                     functional overlays (the "palette tables").
+   ***ENVIRONMENT -- for defining Unix environment variables that
+                     affect the way AFNI works.
 
 Note that you can have more than one of each section in the setup
 file (although there is no particular reason why this is needed).
@@ -172,6 +174,21 @@ items:
                           reading in a palette file causes the last
                           palette in that file to become the active one.
                           [Suggested by SM Rao of MCW Neuropsychology]
+
+Unix Environment Variables [June 1999]
+--------------------------------------
+You can set Unix environment variables for an interactive AFNI run in
+the .afnirc file.  This is done with the ***ENVIRONMENT section.  An
+example is
+
+***ENVIRONMENT
+  AFNI_HINTS = YES
+  AFNI_SESSTRAIL = 3
+
+The blanks around the "=" are required, since that is how the setup
+processing routine breaks lines up into pieces.  For a list of the
+environment variables that affect AFNI, see README.environment.
+
 The Future
 ----------
 I will probably add more sections to the setup file.  Someday.  Maybe.

@@ -246,7 +246,7 @@ void mcw_malloc_dump(void)
 
 void enable_mcw_malloc()       /* cannot be disabled */
 {
-   char * str = getenv("AFNI_NO_MCW_MALLOC") ;
+   char * str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
    if( str == NULL ) use_tracking = 1 ;
    return ;
 }

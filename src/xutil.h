@@ -72,9 +72,15 @@ typedef struct {
       XtPointer parent , aux ;
 } MCW_action_item ;
 
-#define HOTCOLOR(ww,ss) \
+#if 0
+# define HOTCOLOR(ww,ss) \
   { char * xdef = XGetDefault(XtDisplay(ww),"AFNI","hotcolor") ; \
     (ss) = (xdef != NULL) ? (xdef) : ("red3") ; }
+#else
+# define HOTCOLOR(ww,ss) \
+  { char * xdef = RWC_getname(XtDisplay(ww),"hotcolor") ; \
+    (ss) = (xdef != NULL) ? (xdef) : ("red3") ; }
+#endif
 
 extern Widget MCW_action_area( Widget , MCW_action_item * , int ) ;
 
@@ -108,6 +114,8 @@ extern void MCW_popdown_meter( Widget ) ;
 extern void MCW_set_meter( Widget , int ) ;
 
 extern int MCW_widget_visible( Widget w ) ;  /* 03 Jan 1999 */
+
+extern char * RWC_getname( Display * , char * ) ; /* 04 Jun 1999 */
 
 /*------------------------------------------------------------------------*/
 

@@ -285,12 +285,13 @@ char * STAVG_main( PLUGIN_interface * plint )
 
    str = PLUTO_get_optiontag( plint ) ;
    if( str != NULL ){
-      user_maxlength = PLUTO_get_number(plint) ;
+      user_maxlength = (int) PLUTO_get_number(plint) ;
       str2  = PLUTO_get_string(plint) ;      /* get string item (the method) */
       no1   = PLUTO_string_index( str2 ,      /* find it in list it is from */
                                  2 ,
                                  yes_no_strings) ;
    }
+   
 
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
@@ -299,7 +300,7 @@ char * STAVG_main( PLUGIN_interface * plint )
 
    /*________________[ Main Code ]_________________________*/
   
-   fout = avg_epochs( old_dset, stimar, ntime, 1, plint );
+   fout = avg_epochs( old_dset, stimar, user_maxlength, 1, plint );
    
    if( RMB_DEBUG ) fprintf(stderr, "Done with avg_epochs\n");
    maxlength = M_maxlength;
@@ -546,6 +547,7 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    }
    
    M_maxlength = maxlength;
+   
    
    if( RMB_DEBUG ) fprintf(stderr, "malloc output...");
    tempar = (float **) malloc(sizeof(float *) * maxlength);

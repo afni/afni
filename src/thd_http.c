@@ -1,4 +1,5 @@
 #include "thd_iochan.h"
+#include "afni_environ.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -14,8 +15,8 @@ static setup_tmpdir(void)  /* 02 Apr 1999 */
 
    if( tmpdir[0] != '\0' ) return ;
 
-                    td = getenv("TMPDIR") ;   /* try two possibilities */
-   if( td == NULL ) td = getenv("TEMPDIR") ;
+                    td = my_getenv("TMPDIR") ;   /* try two possibilities */
+   if( td == NULL ) td = my_getenv("TEMPDIR") ;
 
    if( td == NULL || td[0] == '\0' || strlen(td) > 222 ){
       strcpy(tmpdir,"/tmp/") ;

@@ -29,6 +29,9 @@
            (Avoids redundant error messages.)
   Date:    06 January 1999
 
+  Mod:     Change NLast default value.
+  Date:    27 May 1999
+
 */
 
 
@@ -36,7 +39,7 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "06 January 1999"           /* date of last program mod */
+#define PROGRAM_DATE "27 May 1999"               /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 200                           /* max. number of parameters */
@@ -166,8 +169,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
    PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 1);
-   PLUTO_add_number (plint, "NFirst", 0, 1000, 0, 0,    TRUE);
-   PLUTO_add_number (plint, "NLast",  0, 1000, 0, 1000, TRUE);
+   PLUTO_add_number (plint, "NFirst", 0, 32767, 0, 0,     TRUE);
+   PLUTO_add_number (plint, "NLast",  0, 32767, 0, 32767, TRUE);
    PLUTO_add_string( plint, "IRF Label",    0, NULL, 1);
 
 

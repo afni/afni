@@ -22,6 +22,64 @@ N.B.: Changes to environment variables AFTER you start a program will
       it starts.  This is a standard Unix feature, and is not specific
       to AFNI.
 
+********************************************************
+June 1999: Setting environment variables in file .afnirc
+********************************************************
+You can now set environment variables for an interactive AFNI run in the
+setup (.afnirc) file.  This is provided as a convenience.  An example:
+
+***ENVIRONMENT
+  AFNI_HINTS = YES
+  AFNI_SESSTRAIL = 3
+
+Note that the spaces around the "=" sign are required.  See README.setup
+for more information about the possible contents of .afnirc besides the
+environment variables.
+
+Other programs in the AFNI package also read the ***ENVIRONMENT section
+of the .afnirc file.  This is needed so that environment settings that
+affect those programs (e.g., AFNI_COMPRESSOR for auto-compression of
+output datasets) can be properly initialized in .afnirc.
+
+At the same time, the routine in AFNI that initializes certain internal
+constants from X11 resources (usually in your .Xdefaults or .Xresources
+file, and described in file AFNI.Xdefaults) has been modified to also
+allow the same constants to be set from Unix environment variables.
+For example, the gap (in pixels) between sub-graphs is set by the
+X11 resource "AFNI*graph_ggap", and can now be set by the environment
+variables "AFNI_graph_ggap" or "AFNI_GRAPH_GGAP", as in
+
+  AFNI_graph_ggap = 6
+
+If an X11 resource is set, it will take priority over the environment
+variable.  Some of the variables that can be set in this way are:
+
+  ncolors             = number of gray levels to use
+  gamma               = gamma correction for image intensities
+  graph_boxes_thick   = 0 = thin lines, 1 = thick lines, for the graph boxes
+  graph_grid_thick    = ditto for the graph vertical grid lines
+  graph_data_thick    = ditto for the data graphs
+  graph_ideal_thick   = ditto for the ideal graphs
+  graph_ort_thick     = ditto for the ort graphs
+  graph_dplot_thick   = ditto for the dplot graphs
+  graph_ggap          = spacing between graph boxes
+  fim_polort          = polynomial detrending order for FIM
+  fim_ignore          = how many points to ignore at start when doing FIM
+  montage_periodic    = True allows periodic montage wraparound
+  purge               = True allows automatic dataset memory purge
+  resam_vox           = dimension of voxel (mm) for resampled datasets
+  resam_anat          = One of NN, Li, Cu, Bk for Anat resampling mode
+  resam_func          = ditto for Func resampling mode
+  resam_thr           = ditto for Threshold resampling mode
+  pbar_posfunc        = True will start color pbar as all positive
+  pbar_sgn_pane_count = # of panes to start signed color pbar with
+  pbar_pos_pane_count = # of panes to start positive color pbar with
+
+Some other such variables are described in file AFNI.Xdefaults.  Note that
+values that actually affect the way the X11/Motif interface appears, such as
+AFNI*troughColor, must be set via the X11 mechanism and cannot be set using
+Unix environment variables.
+
 ---------------------
 Variable: AFNI_ORIENT
 ---------------------
@@ -36,7 +94,7 @@ the third the z-axis:
    I = inferior-to-superior    S = superior-to-inferior
 
 If AFNI_ORIENT is undefined, the default is RAI.  This is the order
-used by DICOM, and means 
+used by DICOM, and means
 
    the -x axis is Right,    the +x axis is Left,
    the -y axis is Anterior, the +y axis is Posterior,
@@ -89,7 +147,7 @@ that allow external programs to exchange data with AFNI.)
 Variable: AFNI_TSPATH
 ---------------------
 This variable should be set to any directory which you want to have
-AFNI scan for timeseries files (*.1D -- see that AFNI manual).  If
+AFNI scan for timeseries files (*.1D -- see the AFNI manual).  If
 more than one directory is desired, then colons can be used to
 separate them, as in AFNI_PLUGINPATH.  Note that timeseries files
 are read from all session directories, so directories provided by
@@ -114,7 +172,7 @@ These variables (named AFNI_IMSIZE_1 to AFNI_IMSIZE_99) allow you
 to control how the AFNI programs read binary image files.  The use of
 these is somewhat complicated, and is explained in detail at the end
 of the auxiliary programs manual (afni_aux.ps), in the section on "3D:"
-file specifications.
+file specifications, and is also explained in the AFNI FAQ list.
 
 ------------------------
 Variable: AFNI_SESSTRAIL
@@ -303,6 +361,24 @@ Another way to permanently disable this capability (so that it isn't
 even compiled) is outlined in the file machdep.h.  Also, the interactive
 AFNI program takes the command line switch "-nomall", which will turn
 off these functions for the given run.
+
+N.B.: Setting this variable in the .afnirc file will have no effect,
+      since the decision whether to use the routines in mcw_malloc.c
+      is made at the very start of the program, before .afnirc is
+      scanned.  Therefore, to use this variable, you must set it
+      externally, perhaps in your .cshrc or .profile initialization
+      file.
+
+------------------------
+Variable: AFNI_FIM_BKTHR
+------------------------
+This sets the threshold for the elimination of the background voxels
+during the interactive FIM calculations.  The average intensity of
+all voxels in the first 3D volume used in the correlation is calculated.
+Voxels with intensity below 0.01 * AFNI_FIM_BKTHR * (this average)
+will not have the correlation computed.  The default value is 10.0, but
+values as large as 50.0 may be useful.  This parameter may be changed
+interactively from the FIM->Edit Ideal submenu in a graph viewer.
 
 =================================
 | Robert W. Cox, PhD            |

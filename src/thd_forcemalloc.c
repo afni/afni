@@ -11,7 +11,7 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
    if( native_order < 0 ) native_order = mri_short_order() ;
 
    if( no_mmap < 0 ){
-      char * hh = getenv("AFNI_NOMMAP") ;
+      char * hh = my_getenv("AFNI_NOMMAP") ;
       if( hh == NULL ) no_mmap = 0 ;
       else             no_mmap = (strcmp(hh,"YES") == 0) ;
    }
