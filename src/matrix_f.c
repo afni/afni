@@ -64,20 +64,37 @@
 #include <stdio.h>
 #include "matrix_f.h"
 
+/*---------------------------------------------------------------------*/
 /** Vectorization macros:
    - DOTP(n,x,y,z) computes the n-long dot product of vectors
        x and y and puts the result into the place pointed to by z.
    - VSUB(n,x,y,z) computes vector x-y into vector z.
    - These are intended to be the fast method for doing these things. **/
+/*---------------------------------------------------------------------*/
 
+/* Solaris BLAS isn't used here because it is slower than
+   inline code for single precision, but faster for double. */
+
+#undef SETUP_BLAS  /* define this to use BLAS-1 functions */
 #undef DOTP
 #undef VSUB
+
 #if defined(USE_ALTIVEC)                             /** Apple **/
+
 # include <Accelerate/Accelerate.h>
 # define DOTP(n,x,y,z) dotpr( x,1 , y,1 , z , n )
 # define VSUB(n,x,y,z) vsub( x,1 , y,1 , z,1 , n )
-#elif defined(USE_SCSLBLAS)                          /** SGI **/
+
+#elif defined(USE_SCSLBLAS)                          /** SGI Altix **/
+
 # include <scsl_blas.h>
+# define SETUP_BLAS
+
+#endif  /* vectorization special cases */
+
+/* single precision BLAS-1 functions */
+
+#ifdef SETUP_BLAS
 # define DOTP(n,x,y,z) *(z)=sdot(n,x,1,y,1)
 # define VSUB(n,x,y,z) (memcpy(z,x,sizeof(float)*n),saxpy(n,-1.0f,y,1,z,1))
 #endif
