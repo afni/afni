@@ -1568,7 +1568,9 @@ Variable: AFNI_OLD_PPMTOBMP
 The old (before 21 Feb 2003) usage of netpbm program "ppmtobmp" was to
 write a color image quantized to 255 colors.  The new usage is to write
 a 24-bit image, which is thus not color-quantized.  If you want the old
-behavior, set this environment variable to YES.
+behavior, set this environment variable to YES.  This setting (YES) will
+be necessary if you have an older version of ppmtobmp in your path, which
+doesn't support the "-bpp" option.
 
 =========================================
 | Robert W Cox, PhD                     |
