@@ -590,10 +590,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
-   glMatrixMode (GL_PROJECTION);
-   glLoadIdentity ();
-   gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   SUMA_SET_GL_PROJECTION(csv);
+   
 
    /* cycle through csv->RegisteredDO and display those things that have a fixed CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with fixed coordinates ...\n", FuncName);
@@ -628,20 +626,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       ++i;
    }
    
-   
-   /*
-    fprintf(stdout,"Translation Vector: %f %f\n", csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1]);
-   fprintf(stdout,"Rotation Matrix:\n");
-   for (i=0; i<4; ++i){ fprintf(stdout, "%f\t%f\t%f\t%f\n",\
-    rotationMatrix[i][0], rotationMatrix[i][1], rotationMatrix[i][2], rotationMatrix[i][3]); }
-    
-    */
-   glMatrixMode(GL_MODELVIEW);
-   glPushMatrix();
-   glTranslatef (csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1], 0.0);
-   glTranslatef (csv->GVS[csv->StdView].RotaCenter[0], csv->GVS[csv->StdView].RotaCenter[1], csv->GVS[csv->StdView].RotaCenter[2]);
-   glMultMatrixf(&rotationMatrix[0][0]);
-   glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], -csv->GVS[csv->StdView].RotaCenter[1], -csv->GVS[csv->StdView].RotaCenter[2]);
+   SUMA_SET_GL_MODELVIEW(csv);
 
    /* cycle through csv->RegisteredDO and display those things that have a Local CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with local coordinates ...\n", FuncName);
@@ -2234,7 +2219,8 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    a child of SUMA_display
    \sa SUMA_GetSelectionLine
 */
-SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, double *ScreenList, int *Quad, SUMA_Boolean ApplyXform)
+SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
+                              double *ScreenList, int *Quad, SUMA_Boolean ApplyXform)
 {
    static char FuncName[]={"SUMA_World2ScreenCoords"};
    GLfloat rotationMatrix[4][4];
@@ -2402,17 +2388,20 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdoub
    if (LocalHead) fprintf (SUMA_STDOUT, "%s: Coordinates at cursor are (%4d, %4d)\n", FuncName, x, realy);
 
    /* set the pick points at both ends of the clip planes */
-   gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
-      mvmatrix, projmatrix, viewport, \
-      &(Pick0[0]), &(Pick0[1]), &(Pick0[2]));
-   if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
-      (Pick0[0]), (Pick0[1]), (Pick0[2]));
-
-   gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
-      mvmatrix, projmatrix, viewport, \
-      &(Pick1[0]), &(Pick1[1]), &(Pick1[2]));
-   if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
-      (Pick1[0]), (Pick1[1]), (Pick1[2]));
+   if (Pick0) {
+      gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
+         mvmatrix, projmatrix, viewport, \
+         &(Pick0[0]), &(Pick0[1]), &(Pick0[2]));
+      if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
+         (Pick0[0]), (Pick0[1]), (Pick0[2]));
+   }
+   if (Pick1) {
+      gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
+         mvmatrix, projmatrix, viewport, \
+         &(Pick1[0]), &(Pick1[1]), &(Pick1[2]));
+      if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
+         (Pick1[0]), (Pick1[1]), (Pick1[2]));
+   }
 
    if (N_List > 0) {
       SUMA_LH("Doing the list thing");
@@ -2431,6 +2420,59 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdoub
    glPopMatrix();
 
    SUMA_RETURN (YUP);
+}
+
+/*!
+   \brief Draws a line between screen (window) coordinates 
+*/
+SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1, int y1, int meth)
+{
+   static char FuncName[]={"SUMA_DrawWindowLine"};
+   GLfloat rotationMatrix[4][4];
+   static GLfloat LineCol[]={ SUMA_RED_GL };
+   static int xlist[2], ylist[2];
+   GLdouble Pick0[3], Pick1[3], PickList[6];
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};   
+   SUMA_Boolean LocalHead  = NOPE;
+   SUMA_ENTRY;
+
+   switch (meth) {
+      case 0: /* does not work on OSX */
+         XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
+           (int)x0, (int)y0,
+           (int)x1, (int)y1);
+         break;
+      case 1:
+         SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
+         xlist[0] = x0; xlist[1] = x1;
+         ylist[0] = y0; ylist[1] = y1;
+         SUMA_GetSelectionLine (sv, x0, y0, NULL, NULL, 2, xlist, ylist, PickList);
+         SUMA_SET_GL_PROJECTION(sv);
+         SUMA_SET_GL_MODELVIEW(sv);
+         glMaterialfv(GL_FRONT, GL_EMISSION, LineCol);
+         glLineWidth(SUMA_CROSS_HAIR_LINE_WIDTH);
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s:PickList\n[%.3f %.3f %.3f\n %.3f %.3f %.3f]\n", FuncName,
+                     PickList[0],PickList[1],PickList[2],PickList[3], PickList[4],PickList[5] );
+         }
+         glBegin(GL_LINES);
+         glVertex3d(PickList[0], PickList[1], PickList[2]-0.001); /* something to do with clipping ...*/
+         glVertex3d(PickList[3], PickList[4], PickList[5]-0.001);
+         glVertex3d(PickList[0], PickList[1], PickList[2]+0.001); /* something to do with clipping ...*/
+         glVertex3d(PickList[3], PickList[4], PickList[5]+0.001);
+         glEnd();
+         glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+         glPopMatrix();   
+         if (sv->X->DOUBLEBUFFER)
+             glXSwapBuffers(sv->X->DPY, XtWindow(sv->X->GLXAREA));
+          else
+            glFlush();         
+         break;
+      default:
+         break;
+   }
+
+   SUMA_RETURN(YUP);
 }
 
 

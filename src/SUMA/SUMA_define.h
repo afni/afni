@@ -44,7 +44,7 @@
                                                            and unaffected by light sources. 
                                                            It adds no light to other objects in the scene */
 #define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*!< keep the ambient light high */
-
+#define SUMA_RED_GL 1.0, 0.0, 1.0, 1.0 /*!< red color */
 #define SUMA_CLEAR_COLOR_R         0.0 /*!< clear color (viewer background) Red */
 #define SUMA_CLEAR_COLOR_G         0.0 /*!< clear color (viewer background) Green */
 #define SUMA_CLEAR_COLOR_B         0.0 /*!< clear color (viewer background) Blue */
