@@ -3924,3 +3924,9 @@
      make big malloc()'s work better (?).
  * Modified thd_fetchdset.c to use niml.c functions, instead of the
      older thd_http.c functions.
+
+23 Aug 2002
+ * Modified thd_loaddblk.c to print (stderr) a message when loading a
+     large dataset.
+ * Modified niml.[ch] to implement NI_reopen_stream() and make a first
+     cut at NI_do().
