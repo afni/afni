@@ -5267,3 +5267,6 @@
 
 17 Dec 2004
  * AFNI_faceup() in afni_splash.c and on the hidden popup menu.
+
+20 Dec 2004
+ * Modified afni_func.c to allow user to threshold RGB-valued overlays.
