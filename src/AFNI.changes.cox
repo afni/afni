@@ -5360,3 +5360,6 @@
 07 Mar 2005
  * Ooops.  Have to '#include <machdep.h>' into matrix_f.h to make sure
      DONT_USE_MATRIX_MAT is defined.
+
+08 Mar 2005
+ * Including retroicor stuff from Fred Tam.
