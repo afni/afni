@@ -56,11 +56,11 @@
   Date:     03 Aug 2004
 */
 
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "matrix_f.h"
 #ifdef USE_ALTIVEC
-# include <math.h>
-# include <stdlib.h>
-# include <stdio.h>
-# include "matrix_f.h"
 # include <Accelerate/Accelerate.h>
 #endif
 
