@@ -961,6 +961,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "\n"
   "Step 5) Draw something in an image window.\n"
   "        * Drawing is done using mouse button 2.\n"
+  "          [03 Oct 2002: You can also use mouse button 1 with the   ]\n"
+  "          [             keyboard Shift key held down simultaneously]\n"
   "        * In an image window, drawing a set of pixels is done\n"
   "            by pressing and holding button 2, and dragging\n"
   "            the cursor across the desired pixels.  The drawing\n"

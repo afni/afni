@@ -853,8 +853,8 @@ if( PRINT_TRACING ){
                           | ButtonPressMask     /* button presses */
                           | ExposureMask        /* exposures */
                           | StructureNotifyMask /* resizes */
-                          | Button1MotionMask  /* motion while #1 is down */
-                          | ButtonReleaseMask  /* button releases */
+                          | Button1MotionMask   /* motion while #1 is down */
+                          | ButtonReleaseMask   /* button releases */
                          ,
                          FALSE ,                /* nonmaskable events? */
                          ISQ_drawing_EV ,       /* super-handler! */
@@ -4132,8 +4132,19 @@ ENTRY("ISQ_drawing_EV") ;
 
       case ButtonRelease:{
          XButtonEvent * event = (XButtonEvent *) ev ;
+         int but = event->button ;
 
-         /* turn off panning mode */
+         /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
+
+         if( but == Button1 && (event->state & ShiftMask) && !(event->state & ControlMask) ){
+           event->button = but = Button2 ;
+           if( seq->button2_enabled && w == seq->wimage )
+              ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
+           else
+              { XBell(seq->dc->display,100); EXRETURN; }
+         }
+
+         /* Button1 release: turn off zoom-pan mode, if it was on */
 
          if( event->button == Button1 && seq->zoom_button1 ){
            if( !AFNI_yesenv("AFNI_KEEP_PANNING") ){
@@ -4151,12 +4162,22 @@ ENTRY("ISQ_drawing_EV") ;
         XMotionEvent * event = (XMotionEvent *) ev ;
         int bx,by ; float hh,vv , mh,dh , hhold,vvold ;
 
-        /* check for legality */
+        /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
+
+        if( (event->state & Button1Mask) && (event->state & ShiftMask) && !(event->state & ControlMask) ){
+          event->state |= Button2Mask ;
+          if( seq->button2_enabled && w == seq->wimage )
+             ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
+          else
+             { XBell(seq->dc->display,100); EXRETURN; }
+        }
+
+        /* Button1 motion: check for being in zoom-pan mode */
 
         if( !seq->zoom_button1              ||
             seq->zoom_fac == 1              ||
             seq->zoom_xim == NULL           ||
-            (event->state & Button1Mask)==0   ) EXRETURN ;
+            (event->state & Button1Mask)==0   ) EXRETURN ;  /* not zoom-pan? */
 
         /*-- if here, change panning offset --*/
 
@@ -4231,7 +4252,7 @@ DPR(" .. really a hidden resize") ;
 
 DPR(" .. KeyPress") ;
 
-         /* discard if a button is pressed */
+         /* discard if a mouse button is also pressed at this time */
 
          if( event->state & (Button1Mask|Button2Mask|Button3Mask) ){
            XBell(seq->dc->display,100); EXRETURN;
@@ -4294,7 +4315,7 @@ DPR(" .. KeyPress") ;
            EXRETURN ;
          }
 
-         /* in special modes (record, Button2, Zoom) mode, this is bad */
+         /* in special modes (record, Button2, zoom-pan) mode, this is bad */
 
          if( seq->record_mode || seq->button2_active || seq->zoom_button1 ){
            XBell(seq->dc->display,100); EXRETURN;
@@ -4320,7 +4341,11 @@ DPR(" .. KeyPress") ;
 
 DPR(" .. ButtonPress") ;
 
-         if( seq->record_mode ){ XBell(seq->dc->display,100); EXRETURN; }
+         /* don't allow button presses in a recorder window, or in zoom-pan mode */
+
+         if( seq->record_mode || seq->zoom_button1 ){ XBell(seq->dc->display,100); EXRETURN; }
+
+         /* button press in the wbar => popup menu */
 
          if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
             event->button = Button3 ;                  /* fakeout */
@@ -4329,14 +4354,14 @@ DPR(" .. ButtonPress") ;
             EXRETURN ;
          }
 
-         if( seq->zoom_button1 ) EXRETURN ;  /* only want motions */
+         /* below here, button press was in the image */
 
          bx  = event->x ;
          by  = event->y ;
          but = event->button ;
 
          MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
-         seq->wimage_width = width ;
+         seq->wimage_width  = width ;
          seq->wimage_height = height ;
 
          MCW_discard_events( w , ButtonPressMask ) ;
@@ -4351,6 +4376,11 @@ DPR(" .. ButtonPress") ;
            EXRETURN ;
 
          } /* end of cropping stuff */
+
+         /** 03 Oct 2002: change Shift+Button1 into Button2 **/
+
+         if( but == Button1 && (event->state & ShiftMask) && !(event->state & ControlMask) )
+           event->button = but = Button2 ;
 
          /*-- default processing --*/
 
