@@ -30,9 +30,8 @@ ENTRY("SUMA_create_empty_surface") ;
       fprintf(stderr,"SUMA_create_empty_surface: can't malloc!\n"); EXIT(1);
    }
 
-   ag->idcode[0] =
-    ag->idcode_dset[0] =
-     ag->idcode_domaingroup[0] = ag->label[0] = '\0' ;
+   ag->idcode[0] = ag->idcode_dset[0] = ag->idcode_ldp[0] =
+      ag->label[0] = ag->label_ldp[0] = '\0' ;
 
    ag->xbot = ag->ybot = ag->zbot =  WAY_BIG ;
    ag->xtop = ag->ytop = ag->ztop = -WAY_BIG ;

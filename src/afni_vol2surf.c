@@ -7,6 +7,10 @@
 
 /*----------------------------------------------------------------------
  * R. Reynolds    September, 2004
+ *
+ * 08 Oct 2004 [rickr]:
+ *   - AFNI_vol2surf_func_overlay() has new params, surfA,surfB,use_defaults
+ *   - pass use_defaults to afni_vol2surf()
  *----------------------------------------------------------------------
  */
 
@@ -34,7 +38,8 @@ static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
 
     * based on AFNI_vnlist_func_overlay()
 -------------------------------------------------------------------------*/
-int AFNI_vol2surf_func_overlay(Three_D_View *im3d, SUMA_irgba **map)
+int AFNI_vol2surf_func_overlay(Three_D_View *im3d, SUMA_irgba **map,
+                               int surfA, int surfB, int use_defaults )
 {
     THD_3dim_dataset * oset;		/* overlay dataset */
     THD_session      * ss;
@@ -51,18 +56,18 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     if ( map == NULL || !IM3D_VALID(im3d) ) RETURN(-1);
 
     go = &gv2s_plug_opts;
-    if ( ! go->ready ) RETURN(-1);
+    if ( ! use_defaults && ! go->ready ) RETURN(-1);
 
     debug = go->sopt.debug;	    /* because I'm lazy */
 
     ss = im3d->ss_now;              /* session must have needed surface(s) */
-    if( ss                     == NULL      ||
-        ss->su_num             <= 0         ||
-        go->surfA              <  0         ||
-        ss->su_num             <= go->surfA ||
-        ss->su_num             <= go->surfB ||
-        ss->su_surf[go->surfA] == NULL      ||
-        (go->surfB >= 0 && ss->su_surf[go->surfB] == NULL) )
+    if( ss                 == NULL      ||
+        ss->su_num         <= 0         ||
+        surfA              <  0         ||
+        ss->su_num         <= surfA     ||
+        ss->su_num         <= surfB     ||
+        ss->su_surf[surfA] == NULL      ||
+        (surfB >= 0 && ss->su_surf[surfB] == NULL) )
     {
 	if ( debug > 1 )
 	{
@@ -70,18 +75,18 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 	    else
 		fprintf(stderr,"** v2s: bad session data:\n"
 			"   su_num, surfA, surfB = %d, %d, %d\n",
-			ss->su_num, go->surfA, go->surfB);
+			ss->su_num, surfA, surfB);
 	}
 	RETURN(-1);
     }
 
     /* set surface pointers */
-    sA = ss->su_surf[go->surfA];
-    sB = ( go->surfB >= 0 ) ? ss->su_surf[go->surfB] : NULL;
+    sA = ss->su_surf[surfA];
+    sB = ( surfB >= 0 ) ? ss->su_surf[surfB] : NULL;
 
     if ( debug )
     {
-	fprintf(stderr,"++ v2s overlay: sa,sb = %d,%d\n", go->surfA, go->surfB);
+	fprintf(stderr,"++ v2s overlay: sa,sb = %d,%d\n", surfA, surfB);
 	if ( debug > 1 )
 	    fprintf(stderr,"  surfA is %s, surfB is %s\n",
 		sA->label[0] ? sA->label : "<no label>",
@@ -144,7 +149,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     }
 
     /*-------------------- vol2surf computation --------------------*/
-    results = afni_vol2surf(oset, oind, sA, sB, cmask);
+    results = afni_vol2surf(oset, oind, sA, sB, cmask, use_defaults);
 
     if ( cmask ) free(cmask);	/* we're done with the mask */
     if ( ! results )

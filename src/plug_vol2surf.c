@@ -44,8 +44,18 @@ static char g_help[] =
     "   num steps     : the number of evenly spaced points each segment will\n"
     "                   be divided into\n"
     " \n"
-    " surfaces:\n"
+    " surf pair 0:\n"
     " \n"
+    "   apply?        : if no, skip this surface (pair)\n"
+    "   surf_A        : choose the afni surface index for surface A\n"
+    "   use B?        : form segments by joining nodes from surface A with\n"
+    "                   nodes on surface B (an alternate choice is to use\n"
+    "                   only surface A, along with its normals)\n"
+    "   surf_B        : choose the afni surface index for surface B\n"
+    " \n"
+    " surf pair 1:\n"
+    " \n"
+    "   apply?        : if no, skip this surface (pair)\n"
     "   surf_A        : choose the afni surface index for surface A\n"
     "   use B?        : form segments by joining nodes from surface A with\n"
     "                   nodes on surface B (an alternate choice is to use\n"
@@ -122,6 +132,14 @@ static char g_help[] =
     "     - name all local functions PV2S_*\n"
     "     - if debug > 0, display chosen surfaces in terminal\n"
     "     - if debug > 1, display all possible surfaces in terminal\n"
+    " \n"
+    "   1.3  08 October 2004 [rickr]\n"
+    "     - Global changes for new LDP processing:\n"
+    "     - added second surface pair to GUI\n"
+    "     - made small help and hint changes\n"
+    "     - fixed receive order of fr and mm offsets (mm was fr)\n"
+    "     - verify that surface pairs have matching LDPs\n"
+    "     - added PV2S_disp_afni_surfaces() to list all surfaces w/indices\n"
 	;
 
 #define P_MAP_NAMES_NVALS      12	/* should match enum for global maps */
@@ -145,6 +163,7 @@ static pv2s_globals globs;	/* these are just pointers to afni globals */
 /* local functions */
 static int PV2S_check_surfaces(PLUGIN_interface * plint, int sa, int sb,
 			       char *mesg, int debug);
+static int PV2S_disp_afni_surfaces(PLUGIN_interface * plint);
 static int PV2S_init_plugin_opts(pv2s_globals * g);
 static int PV2S_process_args(PLUGIN_interface * plint,pv2s_globals * g,
 			     char *mesg);
@@ -200,15 +219,30 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_number( plint, "num steps", 0, 100, 0, 2, 1 );
     PLUTO_add_hint  ( plint, "number of steps to divide each segment into" );
 
-    /* choose surface indices                                   */
+    /* choose surface indices for surf pair 0                   */
     /*   - note that we do not yet have surfaces to choose from */
-    PLUTO_add_option( plint, "surfaces", "surfaces", TRUE );
-    PLUTO_add_hint  ( plint, "choose surface index(es)" );
+    PLUTO_add_option( plint, "surf pair 0", "surf pair 0", TRUE );
+    PLUTO_add_hint  ( plint, "choose first surface index(es)" );
+    PLUTO_add_string( plint, "apply? ", P_NY_NVALS, gp_ny_list, 1 );
+    PLUTO_add_hint  ( plint, "decide whether to apply surface(s)" );
     PLUTO_add_number( plint, "surf_A", 0, 50, 0, 0, 1 );
     PLUTO_add_hint  ( plint, "choose surface A index" );
     PLUTO_add_string( plint, "use B? ", P_NY_NVALS, gp_ny_list, 0 );
     PLUTO_add_hint  ( plint, "decide whether to use surface B" );
     PLUTO_add_number( plint, "surf_B", 0, 50, 0, 1, 1 );
+    PLUTO_add_hint  ( plint, "choose surface B index" );
+
+    /* choose surface indices for surf pair 1                   */
+    /*   - note that we do not yet have surfaces to choose from */
+    PLUTO_add_option( plint, "surf pair 1", "surf pair 1", TRUE );
+    PLUTO_add_hint  ( plint, "choose second surface index(es)" );
+    PLUTO_add_string( plint, "apply? ", P_NY_NVALS, gp_ny_list, 0 );
+    PLUTO_add_hint  ( plint, "decide whether to apply surface(s)" );
+    PLUTO_add_number( plint, "surf_A", 0, 50, 0, 2, 1 );
+    PLUTO_add_hint  ( plint, "choose surface A index" );
+    PLUTO_add_string( plint, "use B? ", P_NY_NVALS, gp_ny_list, 0 );
+    PLUTO_add_hint  ( plint, "decide whether to use surface B" );
+    PLUTO_add_number( plint, "surf_B", 0, 50, 0, 3, 1 );
     PLUTO_add_hint  ( plint, "choose surface B index" );
 
     /* menu for using normals */
@@ -237,11 +271,11 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_option( plint, "out of range", "oor", FALSE );
     PLUTO_add_hint  ( plint, "what to do when out of bounds or mask" );
     PLUTO_add_string( plint, "oob nodes?", P_NY_NVALS, gp_ny_list, 0 );
-    PLUTO_add_hint  ( plint, "keep nodes that are outside the dataset?");
+    PLUTO_add_hint  ( plint, "keep out-of-bounds nodes? (outside the dataset)");
     PLUTO_add_number( plint, "oob value", 0, 0, 0, -2, 1 );
     PLUTO_add_hint  ( plint, "value to apply when out of dataset bounds" );
     PLUTO_add_string( plint, "oom nodes?", P_NY_NVALS, gp_ny_list, 0 );
-    PLUTO_add_hint  ( plint, "keep nodes that are masked out?");
+    PLUTO_add_hint  ( plint, "keep out-of-mask nodes? (below threshold)");
     PLUTO_add_number( plint, "oom value", 0, 0, 0, -1, 1 );
     PLUTO_add_hint  ( plint, "value for masked out nodes" );
 
@@ -253,9 +287,9 @@ ENTRY("vol2surf: PLUGIN_init");
     PLUTO_add_number( plint, "last node", 0, 0, 0, 0, 1 );
     PLUTO_add_hint  ( plint, "end node to process (zero based)" );
     PLUTO_add_string( plint, "outfile.1D", 0, NULL, 14 );
-    PLUTO_add_hint  ( plint, "name for 1D output file" );
+    PLUTO_add_hint  ( plint, "name for 1D output file - will overwrite!" );
     PLUTO_add_string( plint, "outfile.niml", 0, NULL, 14 );
-    PLUTO_add_hint  ( plint, "name for niml output file" );
+    PLUTO_add_hint  ( plint, "name for niml output file - will overwrite!" );
 
     /* debugging level */
     PLUTO_add_option( plint, "debug level", "debug level", FALSE );
@@ -293,8 +327,12 @@ ENTRY("PV2S_init_plugin_opts");
     memset(g->vpo, 0, sizeof(*g->vpo));
 
     g->vpo->ready =  0;		/* flag as "not ready to go" */
-    g->vpo->surfA = -1;
-    g->vpo->surfB = -1;
+    g->vpo->use0  =  0;
+    g->vpo->use1  =  0;
+    g->vpo->s0A   = -1;
+    g->vpo->s0B   = -1;
+    g->vpo->s1A   = -1;
+    g->vpo->s1B   = -1;
 
     g->vpo->sopt.gp_index      = -1;
     g->vpo->sopt.dnode         = -1;
@@ -310,7 +348,6 @@ static int PV2S_process_args(PLUGIN_interface * plint, pv2s_globals * g,
 			     char * mesg)
 {
     THD_session     * ss;
-    MCW_idcode      * idc;
     v2s_plugin_opts   lvpo;
     v2s_opts_t      * sopt;
     float             fval;
@@ -392,14 +429,33 @@ ENTRY("PV2S_process_args");
 	    }
 	    sopt->f_steps = val;
 	}
-	else if ( ! strcmp(tag, "surfaces") )
+	else if ( ! strcmp(tag, "surf pair 0") )
 	{
-	    lvpo.surfA = (int)PLUTO_get_number(plint);	/* surf_A */
+	    lvpo.use0 = 0;
 	    str = PLUTO_get_string(plint);
 	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-		lvpo.surfB = (int)PLUTO_get_number(plint);
-	    else
-		lvpo.surfB = -1;	/* else do not use surf_B */
+	    {
+		lvpo.use0 = 1;
+		lvpo.s0A = (int)PLUTO_get_number(plint);
+		lvpo.s0B = -1;	/* first assume to not use surf_B */
+		str = PLUTO_get_string(plint);
+		if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+		    lvpo.s0B = (int)PLUTO_get_number(plint);
+	    }
+   	}
+	else if ( ! strcmp(tag, "surf pair 1") )
+	{
+	    lvpo.use1 = 0;
+	    str = PLUTO_get_string(plint);
+	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+	    {
+		lvpo.use1 = 1;
+		lvpo.s1A = (int)PLUTO_get_number(plint);
+		lvpo.s1B = -1;	/* first assume to not use surf_B */
+		str = PLUTO_get_string(plint);
+		if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+		    lvpo.s1B = (int)PLUTO_get_number(plint);
+	    }
    	}
 	else if ( ! strcmp(tag, "normals") )
 	{
@@ -422,14 +478,14 @@ ENTRY("PV2S_process_args");
 	{
 	    int test = 0;
 
-	    sopt->f_p1_fr = PLUTO_get_number(plint);
-	    sopt->f_pn_fr = PLUTO_get_number(plint);
 	    sopt->f_p1_mm = PLUTO_get_number(plint);
 	    sopt->f_pn_mm = PLUTO_get_number(plint);
+	    sopt->f_p1_fr = PLUTO_get_number(plint);
+	    sopt->f_pn_fr = PLUTO_get_number(plint);
 
 	    /* check for consistency */
-	    if ( sopt->f_p1_fr > 0 || sopt->f_pn_fr > 0 ) test |= 1;
-	    if ( sopt->f_p1_mm > 0 || sopt->f_pn_mm > 0 ) test |= 2;
+	    if ( sopt->f_p1_fr != 0 || sopt->f_pn_fr != 0 ) test |= 1;
+	    if ( sopt->f_p1_mm != 0 || sopt->f_pn_mm != 0 ) test |= 2;
 	    if ( test > 2 )  /* i.e. == 3 */
    	    {
 		sprintf( mesg,  "---------------------------------\n"
@@ -513,8 +569,14 @@ ENTRY("PV2S_process_args");
     }
 
     if ( sopt->debug > 1 )
-	disp_v2s_opts_t( "plug_vol2surf options done : ", sopt );
+    {
+	disp_v2s_plugin_opts( "plug_vol2surf options done : ", &lvpo );
+	disp_v2s_opts_t( "  surface options : ", sopt );
+    }
 
+    /* should we just run away? */
+    if ( lvpo.use0 == 0 && lvpo.use1 == 0 )
+	ready = 0;
     if ( ! ready )  RETURN(1);
 
     if ( ! v2s_is_good_map(sopt->map, 1) )
@@ -529,16 +591,26 @@ ENTRY("PV2S_process_args");
 	RETURN(1);
     }
 
-    if ( PV2S_check_surfaces(plint, lvpo.surfA, lvpo.surfB, mesg, sopt->debug) )
+    /* verify surface consistency */
+    if ( lvpo.use0 &&
+	 PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
+	RETURN(1);
+    if ( lvpo.use1 &&
+	 PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
 	RETURN(1);
 
-    if ( lvpo.surfB >= 0 && sopt->use_norms )
+    /* if the user wan't normals, they can only supply one surface per pair */
+    if ( sopt->use_norms && ((lvpo.use0 && lvpo.s0B >= 0) ||
+			     (lvpo.use1 && lvpo.s1B >= 0)) )
     {
 	sprintf( mesg,  "----------------------------------------\n"
 			"cannot use normals while using surface B\n"
 			"----------------------------------------" );
 	RETURN(1);
     }
+
+    if ( sopt->debug > 0 )
+	PV2S_disp_afni_surfaces(plint);
 
     /* for now, only output nodes and a single data column */
     sopt->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES;
@@ -586,9 +658,23 @@ ENTRY("PV2S_check_surfaces");
 	RETURN(1);
     }
 
-    /* rcr - Once SUMA_surface has been updated to include local domain
-     *       parent, verify that the two surfaces come from the same one.
-     */
+    if ( sb >= 0 )	/* then check that surf_A and surf_B share LDP */
+    {
+	if (strncmp(ss->su_surf[sa]->idcode_ldp,ss->su_surf[sb]->idcode_ldp,32))
+	{
+	    char * la = ss->su_surf[sa]->label_ldp;
+	    char * lb = ss->su_surf[sb]->label_ldp;
+	    if ( ! *la ) la = "undefined";
+	    if ( ! *lb ) lb = "undefined";
+	    sprintf(mesg, "---------------------------------------\n"
+			  "Error: Surf_A and Surf_B have different\n"
+			  "       local domain parents\n"
+			  "LDP #%d = '%s', LDP #%d = '%s'\n"
+	                  "---------------------------------------",
+			  sa, la, sb, lb);
+	    RETURN(1);
+	}
+    }
 
     if ( debug > 0 && ss->su_surf )
     {
@@ -605,18 +691,34 @@ ENTRY("PV2S_check_surfaces");
 		*ss->su_surf[sb]->label ? ss->su_surf[sb]->label : "not set");
 	else
 	    fprintf(stderr,"** surf_B (#%d) pointer not set??\n", sb);
+    }
 
-	if ( debug > 1 )
-	{
-	    int c;
-	    fprintf(stderr,"+d valid surface indices and labels:\n");
-	    for ( c = 0; c < ss->su_num; c++ )
-		if ( * ss->su_surf[c]->label )
-		    fprintf(stderr,"   index %2d, label '%s'\n",
-				   c, ss->su_surf[c]->label);
-		else
-		    fprintf(stderr,"   index %2d, label 'not set'\n", c);
-	}
+    RETURN(0);
+}
+
+static int PV2S_disp_afni_surfaces(PLUGIN_interface * plint)
+{
+    THD_session * ss;
+    char        * ldp, * label;
+    int           c;
+
+ENTRY("disp_afni_surfaces");
+
+    ss = plint->im3d->ss_now;
+
+    if ( ss->su_surf <= 0 )
+	RETURN(0);
+
+    fprintf(stderr,"+d afni surface indices, labels and LDPs:\n");
+    for ( c = 0; c < ss->su_num; c++ )
+    {
+	label = ss->su_surf[c]->label;
+	ldp   = ss->su_surf[c]->label_ldp;
+	if ( ! *label ) label = "undefined";
+	if ( ! *ldp   ) ldp   = "undefined";
+
+	fprintf(stderr,"   index %2d, label '%s', LDP '%s'\n",
+		    c, label, ldp );
     }
 
     RETURN(0);
