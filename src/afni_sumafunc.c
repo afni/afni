@@ -574,10 +574,12 @@ ENTRY("AFNI_update_surface_widgets") ;
 
    /* change labels for each row */
 
-   for( ii=0 ; ii < swid->nrow ; ii++ ){
+   for( ii=0 ; ii < num ; ii++ ){
      sprintf(str,"%-14.14s: ",im3d->anat_now->su_surf[ii]->label) ;
      MCW_set_widget_label( swid->surf_lab[ii] , str ) ;
    }
+
+   SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
 
    EXRETURN ;
 }
