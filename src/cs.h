@@ -22,4 +22,8 @@ extern void qsort_intint   ( int , int *    , int * ) ;
 
 extern void symeig_double( int , double * , double * ) ;
 
+/***** Argument list mangling *****/
+
+extern void addto_args( int , char ** , int * , char *** ) ;
+
 #endif

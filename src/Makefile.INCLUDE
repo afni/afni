@@ -21,7 +21,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
 
 T3OBJS  = to3d.o $(IMOBJS)
 
-MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib
+MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib gmovie
 
 ## Some programs (like whirlgif) are not included in this list,
 ## and must be "made" separately.  This list is the core AFNI
@@ -544,7 +544,7 @@ src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
 	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm moveup README* AFNI.* \
-              dist* 3d*.lib ./SRC
+              dist* 3d*.lib gmovie ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
 
@@ -676,7 +676,8 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
            edt_fullcopy.o
 
-CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o
+CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o \
+           cs_addto_args.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \

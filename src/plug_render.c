@@ -217,7 +217,7 @@ typedef struct {                                     /* store the status */
    char  param_str[MAX_CUTOUTS][AV_MAXLEN+4] ;
 } CUTOUT_state ;
 
-#define MIN_OPACITY_SCALE 0.004
+#define MIN_OPACITY_SCALE 0.000
 
 CUTOUT_state current_cutout_state , old_cutout_state ;
 
@@ -238,6 +238,37 @@ static double atoz[26] ;  /* values of 'a', 'b', ..., 'z' in expressions */
 #define Z_IND  25  /* 'z' */
 
 float REND_evaluate( MCW_arrowval * ) ;
+
+/*-------------------- Icon Pixmap for Image Window ----------------------*/
+
+static Pixmap afni48ren_pixmap = XmUNSPECIFIED_PIXMAP ;
+#define afni48ren_width 48
+#define afni48ren_height 48                /* from file afni48ren.xbm */
+static unsigned char afni48ren_bits[] = {
+   0xff, 0xff, 0xc1, 0xc1, 0xff, 0xff, 0xff, 0x7f, 0x60, 0x00, 0xfe, 0xff,
+   0xff, 0x0f, 0x30, 0x10, 0xf0, 0xff, 0xff, 0x01, 0x37, 0xf0, 0x80, 0xff,
+   0x7f, 0xe0, 0x77, 0xe0, 0x07, 0xff, 0x7f, 0xfe, 0xe0, 0x00, 0x3f, 0xff,
+   0x7f, 0x1e, 0xc0, 0x03, 0x38, 0xff, 0x3f, 0x00, 0x87, 0xe7, 0x01, 0xff,
+   0x3f, 0xf0, 0x07, 0xe7, 0x0f, 0xfe, 0x3f, 0x7f, 0xc0, 0x04, 0x7e, 0xfe,
+   0x3f, 0x0f, 0xe6, 0x67, 0x70, 0xfe, 0x3f, 0xe0, 0xa7, 0xe7, 0x03, 0xfe,
+   0x1f, 0xfc, 0x21, 0x83, 0x3f, 0xfc, 0x9f, 0x1f, 0xe0, 0x00, 0xfc, 0xfc,
+   0x9f, 0x83, 0xc7, 0xe1, 0xc1, 0xfc, 0x1f, 0xf0, 0x87, 0xe7, 0x0f, 0xfc,
+   0x0f, 0x7f, 0x00, 0x07, 0x7e, 0xf8, 0xcf, 0x0f, 0xc0, 0x04, 0xf0, 0xf9,
+   0xcf, 0x80, 0xe7, 0xe7, 0x81, 0xf9, 0x0f, 0xf0, 0xa7, 0xe3, 0x1f, 0xf8,
+   0x0f, 0x7f, 0xe0, 0x00, 0xfe, 0xf9, 0xcf, 0x0f, 0xc0, 0x01, 0xe0, 0xf1,
+   0xc7, 0x00, 0x87, 0xe3, 0x00, 0xf0, 0x07, 0xf8, 0x07, 0xe7, 0x1f, 0xf0,
+   0x87, 0xff, 0xc0, 0x86, 0xff, 0xf1, 0xe7, 0x07, 0xe0, 0x03, 0xe0, 0xf3,
+   0x77, 0x00, 0xe0, 0x00, 0x00, 0xe6, 0x03, 0x00, 0xc0, 0x01, 0x00, 0xe0,
+   0x03, 0x00, 0x80, 0x03, 0x00, 0xe0, 0x03, 0xf8, 0x0f, 0xf8, 0x1f, 0xe0,
+   0x81, 0xff, 0x3f, 0xfc, 0xff, 0xc1, 0xff, 0xff, 0x7f, 0xfe, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0xf8, 0xff, 0xff, 0x1f, 0xc0,
+   0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x31, 0x74, 0x31, 0xc4, 0xe8, 0xc6,
+   0xad, 0x67, 0xad, 0xb7, 0xcd, 0xda, 0xad, 0x57, 0xad, 0xb7, 0xad, 0xfa,
+   0x31, 0x56, 0x2d, 0xc6, 0xad, 0xfa, 0xb5, 0x57, 0xad, 0xd7, 0xad, 0x8a,
+   0xad, 0x37, 0xad, 0xb7, 0x6d, 0xda, 0xad, 0x77, 0xad, 0xb7, 0xed, 0xda,
+   0x2d, 0x74, 0x31, 0xb4, 0xe8, 0xc6, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xab, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
 
 /*-------------------- Functional overlay stuff ----------------------*/
 
@@ -295,7 +326,8 @@ static Widget wfunc_choices_rowcol , wfunc_choices_label ,
 static Widget wfunc_range_label ;
 static MCW_arrowval * wfunc_opacity_av , * wfunc_range_av ;
 static MCW_bbox * wfunc_see_overlay_bbox , * wfunc_cut_overlay_bbox ,
-                * wfunc_kill_isolas_bbox , * wfunc_range_bbox ;
+                * wfunc_kill_clusters_bbox , * wfunc_range_bbox ;
+static MCW_arrowval * wfunc_clusters_rmm_av , * wfunc_clusters_vmul_av ;
 
 static Widget wfunc_pbar_menu , wfunc_pbar_equalize_pb , wfunc_pbar_settop_pb ;
 static MCW_arrowval * wfunc_pbar_palette_av ;
@@ -314,7 +346,9 @@ static int   func_use_thresh    = 1   ;
 static float func_color_opacity = 0.5 ;
 static int   func_see_overlay   = 0   ;
 static int   func_cut_overlay   = 0   ;
-static int   func_kill_isolas   = 0   ;
+static int   func_kill_clusters = 0   ;
+static float func_clusters_rmm  = 1.0 ;
+static float func_clusters_vmul = 200.0 ;
 static int   func_posfunc       = 0   ;
 static float func_range         = DEFAULT_FUNC_RANGE ;
 static float func_autorange     = DEFAULT_FUNC_RANGE ;
@@ -343,18 +377,19 @@ void REND_thr_scale_CB     ( Widget , XtPointer , XtPointer ) ;
 void REND_thr_scale_drag_CB( Widget , XtPointer , XtPointer ) ;
 void REND_see_overlay_CB   ( Widget , XtPointer , XtPointer ) ;
 void REND_cut_overlay_CB   ( Widget , XtPointer , XtPointer ) ;
-void REND_kill_isolas_CB   ( Widget , XtPointer , XtPointer ) ;
+void REND_kill_clusters_CB ( Widget , XtPointer , XtPointer ) ;
 void REND_finalize_func_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 void REND_range_av_CB     ( MCW_arrowval * , XtPointer ) ;
 void REND_thresh_top_CB   ( MCW_arrowval * , XtPointer ) ;
 void REND_colornum_av_CB  ( MCW_arrowval * , XtPointer ) ;
 void REND_color_opacity_CB( MCW_arrowval * , XtPointer ) ;
+void REND_clusters_av_CB  ( MCW_arrowval * , XtPointer ) ;
 
 void REND_color_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 void REND_set_thr_pval(void) ;
 
-#define COLSIZE 20
+#define COLSIZE 20  /* to modify optmenus */
 
 #undef FIX_SCALE_SIZE
 #undef HIDE_SCALE
@@ -1251,21 +1286,23 @@ void REND_make_widgets(void)
   Make a line of cutout widgets
 ---------------------------------------------------------------------*/
 
-#define NUM_CUTOUT_TYPES  21
+#define NUM_CUTOUT_TYPES  22
 
 static char * cutout_type_labels[NUM_CUTOUT_TYPES] = {
   "No Cut"       ,
-  "Right of"     , "Left of"      ,
-  "Anterior to"  , "Posterior to" ,
-  "Inferior to"  , "Superior to"  ,
-  "Expr > 0"     , "TT Ellipsoid" ,
+  "Right of"     , "Left of"       ,
+  "Anterior to"  , "Posterior to"  ,
+  "Inferior to"  , "Superior to"   ,
+  "Expr > 0"     , "TT Ellipsoid " ,
 
-  "Behind AL-PR" , "Front AL-PR"  ,    /* "x+y > val"    , "x+y < val"    , */
-  "Front AR-PL"  , "Behind AR-PL" ,    /* "x-y > val"    , "x-y < val"    , */
-  "Above AS-PI"  , "Below AS-PI"  ,    /* "y+z > val"    , "y+z < val"    , */
-  "Below AI-PS"  , "Above AI-PS"  ,    /* "y-z > val"    , "y-z < val"    , */
-  "Above RS-LI"  , "Below RS-LI"  ,    /* "x+z > val"    , "x+z < val"    , */
-  "Below RI-LS"  , "Above RI-LS"       /* "x-z > val"    , "x-z < val"      */
+  "Behind AL-PR" , "Front AL-PR"   ,    /* x+y > val , x+y < val  */
+  "Front AR-PL"  , "Behind AR-PL"  ,    /* x-y > val , x-y < val  */
+  "Above AS-PI"  , "Below AS-PI"   ,    /* y+z > val , y+z < val  */
+  "Below AI-PS"  , "Above AI-PS"   ,    /* y-z > val , y-z < val  */
+  "Above RS-LI"  , "Below RS-LI"   ,    /* x+z > val , x+z < val  */
+  "Below RI-LS"  , "Above RI-LS"   ,    /* x-z > val , x-z < val  */
+
+  "NonOverlay++"
 } ;
 
 static char * cutout_param_labels[NUM_CUTOUT_TYPES] = {
@@ -1275,12 +1312,14 @@ static char * cutout_param_labels[NUM_CUTOUT_TYPES] = {
   "z(-I+S) [mm]:" , "z(-I+S) [mm]:" ,
   "Expression:  " , "Percentage:  " ,
 
-  "Value [mm]:" , "Value [mm]:" ,
-  "Value [mm]:" , "Value [mm]:" ,
-  "Value [mm]:" , "Value [mm]:" ,
-  "Value [mm]:" , "Value [mm]:" ,
-  "Value [mm]:" , "Value [mm]:" ,
-  "Value [mm]:" , "Value [mm]:"
+  "Value [mm]:  " , "Value [mm]:  " ,
+  "Value [mm]:  " , "Value [mm]:  " ,
+  "Value [mm]:  " , "Value [mm]:  " ,
+  "Value [mm]:  " , "Value [mm]:  " ,
+  "Value [mm]:  " , "Value [mm]:  " ,
+  "Value [mm]:  " , "Value [mm]:  " ,
+
+  "Radius++[mm]:"
 } ;
 
 #define CUT_NONE           0
@@ -1306,6 +1345,8 @@ static char * cutout_param_labels[NUM_CUTOUT_TYPES] = {
 #define CUT_SLANT_XMZ_GT  19
 #define CUT_SLANT_XMZ_LT  20
 
+#define CUT_NONOVERLAY    21
+
 #define CUT_SLANT_BASE     9
 #define CUT_SLANT_NUM     12
 
@@ -1318,10 +1359,11 @@ static float cut_slant_normals[CUT_SLANT_NUM][3] = {
     { SQ2 , 0.0 , SQ2 } , {-SQ2 , 0.0 ,-SQ2 } ,
     { SQ2 , 0.0 ,-SQ2 } , {-SQ2 , 0.0 , SQ2 }
 } ;
+#if 0
 static int cut_slant_sign[CUT_SLANT_NUM] = {
     1 , -1 , 1 , -1 , 1 , -1 ,
-    1 , -1 , 1 , -1 , 1 , -1
-} ;
+    1 , -1 , 1 , -1 , 1 , -1  } ;
+#endif
 
 REND_cutout * REND_make_cutout( int n )
 {
@@ -1353,7 +1395,7 @@ REND_cutout * REND_make_cutout( int n )
                                   REND_cutout_type_CB , NULL ,
                                   MCW_av_substring_CB , cutout_type_labels ) ;
    if( NUM_CUTOUT_TYPES >= COLSIZE )
-      AVOPT_columnize( wfunc_colornum_av , 1+(NUM_CUTOUT_TYPES+1)/COLSIZE ) ;
+      AVOPT_columnize( rc->type_av , 1+(NUM_CUTOUT_TYPES+1)/COLSIZE ) ;
 
    MCW_reghelp_children( rc->type_av->wrowcol ,
                          "Use this to set the type of cutout\n"
@@ -1466,7 +1508,7 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 void REND_reload_dataset(void)
 {
-   int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone=0 ;
+   int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone ;
    float fac ;
    void * var ;
    byte * gar ;
@@ -1645,6 +1687,7 @@ void REND_reload_dataset(void)
    /*--- Now deal with overlay, if need be ---*/
 
    func_computed = 0 ;  /* at this point, data is for grayscale rendering */
+   cutdone       = 0 ;  /* cutouts not done yet */
 
    if( DO_OVERLAY ){
       byte * gar , * opar , * ovar ;
@@ -1823,7 +1866,7 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   (void ) new_MCW_textwin( help_pb ,
+   (void ) new_MCW_textwin( info_lab ,
 
        "++++++++++++++++++  V O L U M E   R E N D E R I N G  ++++++++++++++++++\n"
        "\n"
@@ -1835,8 +1878,8 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "\n"
        "General Notes:\n"
        "--------------\n"
-       " * To be rendered, a dataset must have cubical voxels, its\n"
-       "     data must be stored as bytes or shorts (but may have\n"
+       " * To be rendered, an underlay dataset must have cubical voxels,\n"
+       "     its data must be stored as bytes or shorts (but may have\n"
        "     a floating point scaling factor attached), and must\n"
        "     be stored as axial slices in the 'RAI' orientation\n"
        "     (x axis is Right-to-Left, y axis is Anterior-to-Posterior,\n"
@@ -1844,13 +1887,13 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     is how datasets are written out in the +acpc and +tlrc\n"
        "     coordinates.\n"
        "\n"
-       " * Use the Draw button to force rendering after making changes\n"
-       "     to the drawing parameters or closing the image window.\n"
+       " * Use the Draw button to render and image after making changes\n"
+       "     to the drawing parameters or after closing the image window.\n"
        "\n"
        " * The 'Reload' button is used to re-copy the dataset brick into\n"
        "     the renderer.  This can be used if you are altering the\n"
        "     dataset interactively with the Draw Dataset plugin.\n"
-       "     Otherwise, you probably don't need this, since the reload\n"
+       "     Otherwise, you probably don't need this often, since the reload\n"
        "     operation will be carried out as needed by the renderer.\n"
        "\n"
        " * The Precalc mode determines how much work is done ahead of\n"
@@ -1872,7 +1915,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "            a grid stippled on top.  This problem occurs with\n"
        "            some SGI compilers and (I've heard) some Sun systems.\n"
        "            In such a case, you may have to use the Low mode,\n"
-       "            as painful as it is.  (If I knew how to fix this problem,\n"
+       "            as painful as it is.  (If I knew how to fix this,\n"
        "            I would, so don't complain to me!)\n"
        "   N.B.: The Unix environment variable AFNI_RENDER_PRECALC_MODE can\n"
        "         be set to 'Low', 'Medium', or 'High' to override the default\n"
@@ -1887,10 +1930,10 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "\n"
        " * If you depress 'DynaDraw', then the image will be re-\n"
        "     rendered immediately whenever certain actions are taken:\n"
-       "      + A viewing angle is changed by pressing an arrow.\n"
-       "      + A cutout parameter is changed by pressing an arrow or\n"
-       "        a 'Get' button.\n"
        "      + The 'See Xhairs' toggle state is changed.\n"
+       "      + A viewing angle is changed by pressing an arrow.\n"
+       "      + A cutout parameter value is changed by pressing an arrow or\n"
+       "        a 'Get' button.\n"
        "     Changing one of these values by directly typing in the\n"
        "     corresponding text entry field will NOT force a redraw\n"
        "     even in DynaDraw mode -- you will have to press 'Draw'.\n"
@@ -1907,11 +1950,133 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         prior to running AFNI.  Once AFNI is started, these\n"
        "         stepsizes are fixed.\n"
        "\n"
-       " * If you depress 'Accumulate', then rendered images are\n"
+       " * If you depress 'Accumulate' IN, then rendered images are\n"
        "     saved as they are computed and can be re-viewed in the\n"
-       "     image display window.  If Accumulate is off, then only\n"
+       "     image display window.  If Accumulate is OUT, then only\n"
        "     the latest image is kept.\n"
+       "   N.B.: The image display window is like an AFNI slice viewing\n"
+       "         window, but the slider control simply lets you scroll\n"
+       "         back through past renderings, not through the spatial\n"
+       "         extent of the dataset in any way.  Each additional\n"
+       "         accumulated image appears as the last image in the\n"
+       "         sequence.\n"
        "\n"
+       "Brightness and Opacity:\n"
+       "-----------------------\n"
+       " * The Min= and Max= values show the range of numbers stored\n"
+       "     in the dataset brick.  The brick is copied into internal\n"
+       "     memory for rendering.  You can use the 'Bot' and 'Top'\n"
+       "     controls to limit the range of the copied voxel data.\n"
+       "     Anything below 'Bot' will be set to the Bot value, and\n"
+       "     anything above 'Top' will be set to the Top value.\n"
+       "     (If Bot < Min, then Bot is effectively equal to Min;\n"
+       "      if Top > Max, then Top is effectively equal to Max.)\n"
+       "     In this way, you can eliminate the effect of a few extreme\n"
+       "     data values.\n"
+       "\n"
+       " * The 'Sqrt Histogram' graph displays the square root of the\n"
+       "     histogram of the dataset brick.  (The square root is graphed\n"
+       "     so that small values will be somewhat enhanced in the display.\n"
+       "     Also, the 0 bin value is not used in selecting the scale factor\n"
+       "     for display, since it often is far larger than other bins.)\n"
+       "     The purpose of this histogram is to let you choose good\n"
+       "     values for Bot and Top.  After altering Bot and Top, press\n"
+       "     the 'Reload' button to make the histogram graph be redrawn.\n"
+       "\n"
+       " * The 'Brightness' and 'Opacity' graphs are used to control\n"
+       "     the mappings from dataset signal level (the numbers stored\n"
+       "     in the voxels) to the grayscale and opacity levels.\n"
+       "     The abscissa represents the copied voxel values, ranging\n"
+       "     the larger of Min or Bot, to the smaller of Max or Top.\n"
+       "     A larger opacity makes a voxel less transparent; for\n"
+       "     example, a high opacity with a low brightness is like\n"
+       "     black barrier in the line of sight.  Zero opacity\n"
+       "     means a voxel is transparent and does not contribute to\n"
+       "     the rendered image.\n"
+       "\n"
+       " * The ordinate on the 'Brightness' graph ranges from black\n"
+       "     at the bottom to white at the top.  The ordinate on the\n"
+       "     'Opacity' graph ranges from 0 (transparent) to 1 (opaque).\n"
+       "\n"
+       " * The 'Opacity Factor' control lets you scale the entire\n"
+       "     underlay opacity down by some constant factor.  (However,\n"
+       "     this doesn't seem to be very useful.)\n"
+       "\n"
+       "Cutouts:\n"
+       "--------\n"
+       " * The 'Cutouts' menu lets you select the number of regions to\n"
+       "     be cut out of the volume prior to rendering (this is done\n"
+       "     by setting the voxel opacity inside each cutout to zero).\n"
+       "     Up to 9 cutouts can be combined at once.  There are 21 types\n"
+       "     of cutouts, each of which is controlled by a single parameter.\n"
+       "     For example, the parameter for a 'Right of' cutout is an\n"
+       "     x-coordinate, and all the voxels to the right of this value\n"
+       "     will be included in the cutout.\n"
+       "   N.B.: Right     (of midline)   = negative x\n"
+       "         Left      (of midline)   = positive x\n"
+       "         Anterior  (to the AC)    = negative y\n"
+       "         Posterior (to the AC)    = positive y\n"
+       "         Inferior  (to the AC-PC) = negative z\n"
+       "         Superior  (to the AC-PC) = positive z\n"
+       "\n"
+       " * The 'Expr > 0' cutout is a special (and slow) case. Instead\n"
+       "     of a number, you enter an expression (using the 3dcalc\n"
+       "     syntax) containing the symbols 'x', 'y', and 'z', which\n"
+       "     represent the spatial coordinates of each voxel.  Voxels\n"
+       "     where the expression evaluates to a positive number will\n"
+       "     be cut out.  For example, '900-x*x-y*y-z*z' will cut out\n"
+       "     the INTERIOR of a sphere of radius 30 mm, centered at the\n"
+       "     origin of coordinates; 'x*x+y*y+z*z-900' will remove the\n"
+       "     EXTERIOR of this sphere.\n"
+       "\n"
+       " * The 'TT Ellipsoid' cutout will remove all voxels exterior to\n"
+       "     an ellipsoid that approximates the outer contour of the\n"
+       "     Talairach-Tournoux atlas, when its 'Percentage' parameter\n"
+       "     is set to 100.  Smaller percentages will shrink the ellipsoid\n"
+       "     in towards the center of the brain; large percentages will\n"
+       "     expand it outwards.\n"
+       "\n"
+       " * The 12 'Behind', 'Above', etc. cutouts are relative to planes at\n"
+       "     45 degrees to the standard views.  For example, 'Behind AL-PR'\n"
+       "     cuts out behind a slice that starts at Anterior-Left (AL) and\n"
+       "     ends up at Posterior-Right (PR) -- halfway between a coronal\n"
+       "     and a sagittal slice.  The simplest way to set the value\n"
+       "     parameter for these (at least to start) is to use 'Get'.\n"
+       "\n"
+       " * The 'NonOverlay++' cutout will remove all voxels that would not\n"
+       "     get colored if the overlay were turned on.  (If the parameter\n"
+       "     'Radius++' is positive, then the region is dilated by that\n"
+       "     many mm in all directions.)  This can be useful for seeing\n"
+       "     exactly the anatomy that is deemed to be 'active'.\n"
+       "   Notes:\n"
+       "     + If there is no overlay dataset loaded, then this type of cutout\n"
+       "       has no effect.\n"
+       "     + 'Get' does nothing for this type of cutout.\n"
+       "     + Viewing the color overlay with Radius++ set to a positive\n"
+       "       value may be confusing, since the colored voxels will be\n"
+       "       buried inside the visible tissue.  The combination of bright\n"
+       "       colors with high color opacity and the use of a small\n"
+       "       underlay opacity factor can make it possible to see the\n"
+       "       color overlay through the translucent surrounding shell\n"
+       "       of thickness Radius++.\n"
+       "\n"
+       " * Cutouts can be combined with the 'OR' logic, which means that\n"
+       "     the union of all the specified cutout regions will be\n"
+       "     removed.  They can also be combined with the 'AND' logic,\n"
+       "     which means that the intersection of the cutout regions\n"
+       "     will be removed.\n"
+       "   N.B.: If the 'AND' logic is selected, a cutout can still be\n"
+       "         forced to be removed in its entirety using the 'Must Do'\n"
+       "         control.  (That is, 'AND' only applies to those that\n"
+       "         do NOT have 'Must Do' selected; 'OR' applies to those\n"
+       "         that DO have 'Must Do' selected.)  For an example, try\n"
+       "         combining 'Right of', 'Anterior to', and 'Superior to'\n"
+       "         cutouts first with 'OR', then with 'AND', and finally\n"
+       "         with 'AND' but with the 'Superior to' cutout set to\n"
+       "         'Must Do'.\n"
+       "\n"
+       "Automating the Calculation of Many Renderings:\n"
+       "----------------------------------------------\n"
        " * If you depress 'Automate', then the automatic generation\n"
        "     of renderings as some parameter varies is enabled.\n"
        "     The 'Frames' field controls how many renderings will\n"
@@ -1938,8 +2103,8 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "       evaluate to zero.\n"
        "   3) It is legal to have more than one parameter depend on 't'.\n"
        "        For example, combining cutouts\n"
-       "           Anterior To:  10+2*t\n"
-       "           Posterior To: 20+2*t\n"
+       "           Anterior To:  -50+2*t\n"
+       "           Posterior To: -40+2*t\n"
        "        with the OR logic produces a 10 mm thick coronal slice\n"
        "        that slides backwards at 2 mm per frame.\n"
        "   4) If Accumulate is on, then the frames created by automated\n"
@@ -1968,85 +2133,15 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "       image on which it is working (you have to wait until\n"
        "       that time -- pressing the button twice won't help!).\n"
        "\n"
-       " * The Min= and Max= values show the range of numbers stored\n"
-       "     in the dataset brick.  The brick is copied into internal\n"
-       "     memory for rendering.  You can use the 'Bot' and 'Top'\n"
-       "     controls to limit the range of the copied voxel data.\n"
-       "     Anything below 'Bot' will be set to the Bot value, and\n"
-       "     anything above 'Top' will be set to the Top value.\n"
-       "     (If Bot < Min, then Bot is effectively equal to Min;\n"
-       "      if Top > Max, then Top is effectively equal to Max.)\n"
-       "\n"
-       " * The 'Brightness' and 'Opacity' graphs are used to control\n"
-       "     the mappings from dataset signal level (the numbers stored\n"
-       "     in the voxels) to the grayscale and opacity levels.\n"
-       "     The abscissa represents the copied voxel values, ranging\n"
-       "     the larger of Min or Bot, to the smaller of Max or Top.\n"
-       "     A larger opacity makes a voxel less transparent; for\n"
-       "     example, a high opacity with a low brightness is like\n"
-       "     black barrier in the line of sight.  Zero opacity\n"
-       "     means a voxel is transparent and does not contribute to\n"
-       "     the rendered image.\n"
-       " * The ordinate on the 'Brightness' graph ranges from black\n"
-       "     at the bottom to white at the top.  The ordinate on the\n"
-       "     'Opacity' graph ranges from 0 (transparent) to 1 (opaque).\n"
-       " * The 'Opacity Factor' control lets you scale the entire\n"
-       "     underlay opacity down by some constant factor.  (However,\n"
-       "     this doesn't seem to be very useful.)\n"
-       "\n"
-       " * The 'Cutouts' menu lets you select the number of regions to\n"
-       "     be cut out of the volume prior to rendering (this is done\n"
-       "     by setting the voxel opacity inside each cutout to zero).\n"
-       "     Each cutout is controlled by a single parameter.  For\n"
-       "     example, the parameter for 'Right of' cutout is an\n"
-       "     x-coordinate, and all the voxels to the right of this\n"
-       "     value will be included in the cutout.\n"
-       "   N.B.: Right     (of midline)   = negative x  (+tlrc: to  -68)\n"
-       "         Left      (of midline)   = positive x  (+tlrc: to  +68)\n"
-       "         Anterior  (to the AC)    = negative y  (+tlrc: to  -70)\n"
-       "         Posterior (to the AC)    = positive y  (+tlrc: to +102)\n"
-       "         Inferior  (to the AC-PC) = negative z  (+tlrc: to  -42)\n"
-       "         Superior  (to the AC-PC) = positive z  (+tlrc: to  +74)\n"
-       "\n"
-       " * The 'Expr > 0' cutout is a special (and slow) case. Instead\n"
-       "     of a number, you enter an expression (using the 3dcalc\n"
-       "     syntax) containing the symbols 'x', 'y', and 'z', which\n"
-       "     represent the spatial coordinates of each voxel.  Voxels\n"
-       "     where the expression evaluates to a positive number will\n"
-       "     be cut out.  For example, '100-x*x-y*y-z*z' will cut out\n"
-       "     the interior of a sphere of radius 10 mm, centered at the\n"
-       "     origin of coordinates.\n"
-       "\n"
-       " * The 'TT Ellipsoid' cutout will remove all voxels exterior to\n"
-       "     an ellipsoid that approximates the outer contour of the\n"
-       "     Talairach-Tournoux atlas, when its 'Percentage' parameter\n"
-       "     is set to 100.  Smaller percentages will shrink the ellipsoid\n"
-       "     in towards the center of the brain.\n"
-       "\n"
-       " * The 'Behind', 'Above', etc. cutouts are relative to planes at\n"
-       "     45 degrees to the standard views.  For example, 'Behind AL-PR'\n"
-       "     cuts out behind a slice that starts Anterior-Left (AL) and\n"
-       "     ends up at Posterior-Right (PR) -- halfway between a coronal\n"
-       "     and a sagittal slice.  The simplest way to set the value\n"
-       "     parameter for these (at least to start) is to use 'Get'.\n"
-       "\n"
-       " * Cutouts can be combined with the 'OR' logic, which means that\n"
-       "     the union of all the specified cutout regions will be\n"
-       "     removed.  They can also be combined with the 'AND' logic,\n"
-       "     which means that the intersection of the cutout regions\n"
-       "     will be removed.  If 'AND' is selected, a cutout can be\n"
-       "     forced to be removed in its entirety using the 'Must Do'\n"
-       "     control.  (That is, 'AND' only applies to those that\n"
-       "     do NOT have 'Must Do' selected.)  By combining cutouts\n"
-       "     cleverly, you can produce some pretty funky brain images.\n"
-       "\n"
        "Color Overlays\n"
        "--------------\n"
        "By pressing the 'Overlay' button, you can access the controls for\n"
        "displaying a second dataset in color on top of the underlay dataset.\n"
-       "The controls are designed to be similar to the controls in the\n"
-       "'Define Function' control panel in a main AFNI window, and so only\n"
-       "the principal differences will be explained here.\n"
+       "(Unlike the underlay dataset, the voxel data in the overlay may be\n"
+       "stored as floats, as well as shorts or bytes.)  The controls are\n"
+       "designed to be similar to the controls in the 'Define Function'\n"
+       "control panel in a main AFNI window, and so only the principal\n"
+       "differences will be explained here.\n"
        "\n"
        " * One brick ('Color') is chosen to determine the colors shown, and\n"
        "     another brick ('Thr') to determine which voxels from the overlay\n"
@@ -2056,7 +2151,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        " * The 'Color Opacity' control determines how opaque each supra-\n"
        "     threshold voxel will be.  If it is set to 'Underlay', then\n"
        "     the opacity of a colored voxel will be determined from the\n"
-       "     underlay opacity at that location (before cutouts are applied).\n"
+       "     underlay opacity at that location.\n"
        "\n"
        " * 'See Overlay' is used to toggle the color overlay computations\n"
        "     on and off - it should be pressed IN for the overlay to become\n"
@@ -2071,8 +2166,11 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         by setting the opacity of the underlay to zero in the chosen\n"
        "         regions.\n"
        "\n"
-       " * 'Remove Isolas', if pressed IN, will cause single isolated supra-\n"
-       "     threshold voxels to be removed before rendering.\n"
+       " * 'Remove Small Clusters', if pressed IN, will cause clusters\n"
+       "     of voxels below a given threshold volume to be excised before\n"
+       "     rendering.  The parameters defining this cluster editing are\n"
+       "     determined by the controls immmediately beneath, which use the\n"
+       "     same conventions as program 3dclust.\n"
        "\n"
        " * None of the overlay controls are hooked up to 'DynaDraw' or to\n"
        "     'Automate'.  You must manually press 'Draw' to see the effects\n"
@@ -2083,15 +2181,16 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     underlay will look a little different between the 'See Overlay'\n"
        "     IN and OUT conditions.  Also, the colormaps are rendered into\n"
        "     24 bit RGB images, which might not be faithfully displayed in\n"
-       "     the image window.  If the 'Save:bkg' button is used to save\n"
-       "     a set of RGB images, they will be saved in their internal color\n"
-       "     resolution (in PPM format); they might appear slightly different\n"
-       "     when viewed external to AFNI (e.g., using program xv).\n"
+       "     the image window if your system is using an X11 PseudoColor visual\n"
+       "     (the most common display mode). If the 'Save:bkg' button is used\n"
+       "     to save a set of RGB images, they will be saved in their internal\n"
+       "     color resolution (in PPM format); they might appear slightly\n"
+       "     different when viewed outside AFNI (e.g., using program xv).\n"
        "   N.B.: When viewing an RGB image, most of the image processing\n"
        "         options available from the 'Disp' control panel do not\n"
        "         function.  'Sharpen' still works.\n"
        "\n"
-       "Other Notes:\n"
+       "Final Notes:\n"
        "------------\n"
        " * The rendering is done using the VolPack library from Stanford,\n"
        "     by Philippe Lacroute (http://www-graphics.stanford.edu).\n"
@@ -2104,6 +2203,14 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     interpolation scheme used by VolPack.  You can use the 'Sharpen'\n"
        "     option on the image viewer 'Disp' control panel to make them\n"
        "     look a little nicer.\n"
+       "\n"
+       " * When only one image is rendered (i.e., Accumulate is off), the\n"
+       "     image viewer window does not show the control widgets.  The 'Disp'\n"
+       "     controls can be accessed by the combination keypress-mouseclick\n"
+       "     'Shift-Button3' in the image window, and the 'Save' controls by\n"
+       "     'Alt-Button3' (some systems don't allow this last combination\n"
+       "     to be detected by the application program; in such a case, you\n"
+       "     must have at least 2 images accumulated to be able to use 'Save').\n"
        "\n"
        " * This plugin is very CPU and memory intensive, and will not run\n"
        "     at all decently on a computer with less than 128 MB of RAM.\n"
@@ -2124,19 +2231,21 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
     - bricks must be in RAI orientation
 ---------------------------------------------------------------------*/
 
-#define USEFUL_DSET(ds) (( ISVALID_DSET(ds)                      ) && \
-                         ( DSET_INMEMORY(ds)                     ) && \
-                         ( DSET_CUBICAL(ds)                      ) && \
-                         ( DSET_BRICK_TYPE(ds,0) == MRI_short ||      \
-                           DSET_BRICK_TYPE(ds,0) == MRI_byte     ) && \
-                         ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
-                         ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
-                         ( (ds)->daxes->zzorient == ORI_I2S_TYPE )   )
+#define USEFUL_DSET(ds)                                    \
+    (( ISVALID_DSET(ds)                      )          && \
+     ( DSET_INMEMORY(ds)                     )          && \
+     ( DSET_CUBICAL(ds)                      )          && \
+     ( DSET_BRICK_TYPE(ds,0) == MRI_short ||               \
+       DSET_BRICK_TYPE(ds,0) == MRI_byte  ||               \
+      (DSET_BRICK_TYPE(ds,0) == MRI_float && float_ok)) && \
+     ( (ds)->daxes->xxorient == ORI_R2L_TYPE )          && \
+     ( (ds)->daxes->yyorient == ORI_A2P_TYPE )          && \
+     ( (ds)->daxes->zzorient == ORI_I2S_TYPE )            )
 
 static int                  ndsl = 0 ;
 static PLUGIN_dataset_link * dsl = NULL ;
 
-void REND_load_dsl( THD_3dim_dataset * mset )
+void REND_load_dsl( THD_3dim_dataset * mset , int float_ok )
 {
    THD_session * ss  = im3d->ss_now ;           /* current session */
    int           vv  = im3d->vinfo->view_type ; /* view type */
@@ -2207,7 +2316,10 @@ void REND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
       XBell(dc->display,100) ; return ;
    }
 
-   REND_load_dsl( (dofunc) ? dset : NULL ) ;
+   if( dofunc )
+      REND_load_dsl( dset , 1 ) ;
+   else
+      REND_load_dsl( NULL , 0 ) ;
 
    /* found nothing?  exit */
 
@@ -2852,7 +2964,7 @@ void REND_cutout_set_CB( Widget w, XtPointer client_data, XtPointer call_data )
    typ = cutouts[iv]->type_av->ival ;
    switch( typ ){
 
-      default: return ;  /* error */
+      default: XBell(dc->display,100) ; return ;  /* action is not defined */
 
       case CUT_RIGHT_OF:
       case CUT_LEFT_OF:      val = im3d->vinfo->xi ; break ;
@@ -3110,7 +3222,7 @@ void REND_cutout_blobs(void)
 
          /*............................................................*/
 
-         case CUT_SLANT_XPY_GT:
+         case CUT_SLANT_XPY_GT:   /* the slanted cut planes */
          case CUT_SLANT_XPY_LT:
          case CUT_SLANT_XMY_GT:
          case CUT_SLANT_XMY_LT:
@@ -3153,6 +3265,67 @@ void REND_cutout_blobs(void)
             }
          }
          break ;  /* end of slant cutout */
+
+         /*............................................................*/
+
+#define OVAR(i,j,k) ovar[(i)+(j)*nx+(k)*nxy]
+#define KEEP(i,j,k) keep[(i)+(j)*nx+(k)*nxy]
+
+         case CUT_NONOVERLAY:
+         if( func_dset != NULL ){
+            byte * ovar ;
+            float adx=fabs(dx) , ady=fabs(dy) , adz=fabs(dz) ;
+
+            if( ovim == NULL ) REND_reload_func_dset() ;
+            ovar = MRI_BYTE_PTR(ovim) ;
+
+            if( par < adx && par < ady && par < adz ){   /* no dilation */
+
+              if( logic == CUTOUT_AND && ! mus ){        /* count hits */
+                ncdone++ ;
+                for( ii=0 ; ii < nxyz ; ii++ )
+                   if( ovar[ii] == 0 ) gar[ii]++ ;
+              } else {                                   /* nuke'em */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                   if( ovar[ii] == 0 ) oar[ii] = 0 ;
+              }
+
+            } else {                                     /* dilation */
+
+              MCW_cluster * mask = MCW_build_mask( nx,ny,nz, adx,ady,adz, par ) ;
+              int mnum = mask->num_pt , pp,ip,jp,kp ;
+              short * mi = mask->i , * mj = mask->j , * mk = mask->k ;
+              byte * keep = calloc(nxyz,sizeof(byte)) ;
+
+              for( kk=0 ; kk < nz ; kk++ )       /* make list of points to keep */
+                for( jj=0 ; jj < ny ; jj++ )
+                  for( ii=0 ; ii < nx ; ii++ )
+                     if( OVAR(ii,jj,kk) != 0 ){  /* keep nbhd of this point */
+                        KEEP(ii,jj,kk) = 1 ;
+                        for( pp=0 ; pp < mnum ; pp++ ){
+                           ip = ii + mi[pp]; jp = jj + mj[pp]; kp = kk + mk[pp];
+                           if( ip >= 0 && ip < nx &&
+                               jp >= 0 && jp < ny &&
+                               kp >= 0 && kp < nz   ) KEEP(ip,jp,kp) = 1 ;
+                        }
+                     }
+              KILL_CLUSTER(mask) ;  /* toss the trash */
+
+              /* now do the cutting */
+
+              if( logic == CUTOUT_AND && ! mus ){        /* count hits */
+                ncdone++ ;
+                for( ii=0 ; ii < nxyz ; ii++ )
+                   if( keep[ii] == 0 ) gar[ii]++ ;
+              } else {                                   /* nuke'em */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                   if( keep[ii] == 0 ) oar[ii] = 0 ;
+              }
+
+              free(keep) ;  /* toss the trash */
+            }
+         }
+         break ;  /* end of nonoverlay cutout */
 
       } /* end of switch over type of cutout */
    } /* end of loop over cutouts */
@@ -3294,8 +3467,24 @@ void REND_open_imseq( void )
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
 
 #ifndef DONT_INSTALL_ICONS
+   if( afni48_good && afni48ren_pixmap == XmUNSPECIFIED_PIXMAP ){
+      Pixel bg_pix , fg_pix  ;
+
+      XtVaGetValues( info_lab ,
+                       XmNforeground , &fg_pix ,
+                       XmNbackground , &bg_pix ,
+                     NULL ) ;
+
+      afni48ren_pixmap = XCreatePixmapFromBitmapData(
+                            XtDisplay(shell) ,
+                            RootWindowOfScreen(XtScreen(shell)) ,
+                            afni48ren_bits , afni48ren_width , afni48ren_height ,
+                            bg_pix , fg_pix ,
+                            DefaultDepthOfScreen(XtScreen(shell)) ) ;
+
+   }
    if( afni48_good )
-         drive_MCW_imseq( imseq,isqDR_icon , (XtPointer) afni48_pixmap ) ;
+         drive_MCW_imseq( imseq,isqDR_icon , (XtPointer) afni48ren_pixmap ) ;
 #endif
 
    return ;
@@ -4037,9 +4226,9 @@ void REND_func_widgets(void)
 
    /*--- toggle switches to control if we see function ---*/
 
-   { char * see_overlay_label[1] = { "See Overlay" } ;
-     char * cut_overlay_label[1] = { "Cutout Overlay" } ;
-     char * kill_isolas_label[1] = { "Remove Isolas" } ;
+   { char * see_overlay_label[1]   = { "See Overlay" } ;
+     char * cut_overlay_label[1]   = { "Cutout Overlay" } ;
+     char * kill_clusters_label[1] = { "Remove Small Clusters" } ;
 
      wfunc_see_overlay_bbox = new_MCW_bbox( wfunc_opacity_rowcol ,
                                             1 , see_overlay_label ,
@@ -4053,11 +4242,28 @@ void REND_func_widgets(void)
                                             MCW_BB_noframe ,
                                             REND_cut_overlay_CB , NULL ) ;
 
-     wfunc_kill_isolas_bbox = new_MCW_bbox( wfunc_opacity_rowcol ,
-                                            1 , kill_isolas_label ,
-                                            MCW_BB_check ,
-                                            MCW_BB_noframe ,
-                                            REND_kill_isolas_CB , NULL ) ;
+     wfunc_kill_clusters_bbox = new_MCW_bbox( wfunc_opacity_rowcol ,
+                                              1 , kill_clusters_label ,
+                                              MCW_BB_check ,
+                                              MCW_BB_noframe ,
+                                              REND_kill_clusters_CB , NULL ) ;
+
+     wfunc_clusters_rmm_av =
+         new_MCW_arrowval( wfunc_opacity_rowcol , "   rmm  " , MCW_AV_downup ,
+                           0 , 99 , (int)(10*func_clusters_rmm) ,
+                           MCW_AV_edittext , 1 ,
+                           REND_clusters_av_CB,NULL,NULL,NULL
+                         ) ;
+
+     wfunc_clusters_vmul_av =
+         new_MCW_arrowval( wfunc_opacity_rowcol , "   vmul " , MCW_AV_downup ,
+                           0 , 9999 , (int)(0.1*func_clusters_vmul),
+                           MCW_AV_edittext , -1 ,
+                           REND_clusters_av_CB,NULL,NULL,NULL
+                         ) ;
+
+     AV_SENSITIZE( wfunc_clusters_rmm_av , False ) ;
+     AV_SENSITIZE( wfunc_clusters_vmul_av, False ) ;
    }
 
    XtManageChild( wfunc_opacity_rowcol ) ;
@@ -4571,17 +4777,43 @@ void REND_cut_overlay_CB( Widget w, XtPointer cd, XtPointer cb)
 }
 
 /*------------------------------------------------------------------------------
-   Called to toggle whether or not to kill isolated voxels (isolas)
+   Called to toggle whether or not to kill clusters
 --------------------------------------------------------------------------------*/
 
-void REND_kill_isolas_CB( Widget w, XtPointer cd, XtPointer cb)
+void REND_kill_clusters_CB( Widget w, XtPointer cd, XtPointer cb)
 {
-   int newkill = MCW_val_bbox(wfunc_kill_isolas_bbox) ;
+   int cc , newkill = MCW_val_bbox(wfunc_kill_clusters_bbox) ;
 
-   if( newkill == func_kill_isolas ) return ;
+   if( newkill == func_kill_clusters ) return ;
 
-   func_kill_isolas = newkill ;
+   func_kill_clusters = newkill ;
+
+   AV_SENSITIZE( wfunc_clusters_rmm_av , newkill ) ;
+   AV_SENSITIZE( wfunc_clusters_vmul_av, newkill ) ;
+
    INVALIDATE_OVERLAY ;
+
+   for( cc=0 ; cc < current_cutout_state.num ; cc++ )
+      if( current_cutout_state.type[cc] == CUT_NONOVERLAY ){
+         FREE_VOLUMES ;
+         break ;
+      }
+
+   return ;
+}
+
+void REND_clusters_av_CB( MCW_arrowval * av , XtPointer cd )
+{
+   int cc ;
+
+   INVALIDATE_OVERLAY ;
+
+   for( cc=0 ; cc < current_cutout_state.num ; cc++ )
+      if( current_cutout_state.type[cc] == CUT_NONOVERLAY ){
+         FREE_VOLUMES ;
+         break ;
+      }
+
    return ;
 }
 
@@ -4768,6 +5000,23 @@ void REND_reload_func_dset(void)
          }
          break ;
 
+         case MRI_float:{
+            float * sar = (float *) car ;
+
+            for( lp=0 ; lp < num_lp ; lp++ )
+               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
+
+            for( ii=0 ; ii < nvox ; ii++ ){
+               if( sar[ii] == 0.0 ){
+                  ovar[ii] = 0 ;
+               } else {
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  ovar[ii] = fim_ovc[lp] ;
+               }
+            }
+         }
+         break ;
+
          case MRI_byte:{
             byte * sar = (byte *) car ;
 
@@ -4797,6 +5046,25 @@ void REND_reload_func_dset(void)
             short * sar = (short *) car ;
             short * qar = (short *) tar ;
             short   thr = (short) thresh ;
+
+            for( lp=0 ; lp < num_lp ; lp++ )
+               fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
+
+            for( ii=0 ; ii < nvox ; ii++ ){
+               if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0.0 ){
+                  ovar[ii] = 0 ;
+               } else {
+                  for( lp=0 ; lp < num_lp && sar[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
+                  ovar[ii] = fim_ovc[lp] ;
+               }
+            }
+         }
+         break ;
+
+         case MRI_float:{
+            float * sar = (float *) car ;
+            float * qar = (float *) tar ;
+            float   thr = (float) thresh ;
 
             for( lp=0 ; lp < num_lp ; lp++ )
                fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
@@ -4836,18 +5104,31 @@ void REND_reload_func_dset(void)
       }
    }
 
-   /*----- if ordered, remove isolas -----*/
+   /*----- if ordered, remove clusters -----*/
 
-   if( func_kill_isolas ){
-      int nx=ovim->nx , ny=ovim->ny , nz=ovim->nz , nxy=nx*ny , ntop=nvox-nxy ;
+   if( func_kill_clusters ){
+      int nx=ovim->nx , ny=ovim->ny , nz=ovim->nz , ptmin,iclu ;
+      float dx = fabs(func_dset->daxes->xxdel) ,
+            dy = fabs(func_dset->daxes->yydel) ,
+            dz = fabs(func_dset->daxes->zzdel)  ;
+      float rmm  = wfunc_clusters_rmm_av->fval ,
+            vmul = wfunc_clusters_vmul_av->fval ;
+      MCW_cluster_array * clar ;
+      MCW_cluster * cl ;
 
-      for( ii=nxy ; ii < ntop ; ii++ ){
-         if( ovar[ii    ] != 0 &&
-             ovar[ii-1  ] == 0 && ovar[ii+1  ] == 0 &&
-             ovar[ii-nx ] == 0 && ovar[ii+nx ] == 0 &&
-             ovar[ii-nxy] == 0 && ovar[ii+nxy] == 0    ) ovar[ii] = 0 ;
+      if( (rmm >= dx || rmm >= dy || rmm >= dz) && vmul > (dx*dy*dz) ){
+         ptmin = vmul / (dx*dy*dz) + 0.99 ;
+         clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , MRI_byte,ovar , rmm ) ;
+         if( clar != NULL ){
+            for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+               cl = clar->clar[iclu] ;
+               if( cl->num_pt >= ptmin )  /* put back into array */
+                  MCW_cluster_to_vol( nx,ny,nz , MRI_byte,ovar , cl ) ;
+            }
+            DESTROY_CLARR(clar) ;
+         }
       }
-   }
+   }  /* end of cluster removal */
 
    return ;
 }

@@ -104,6 +104,7 @@ typedef struct {
 
    int   dtype ;                  /* dataset type: a DTYPE code */
    int   zorder ;                 /* 2D slice ordering: a ZORDER code */
+   int   zorder_lock ;            /* 22 Feb 1999: lock zorder value */
    int   nzseq , zseq[NZMAX] ;    /* slice input order */
    int   datum ;                  /* a MRI_type code from mrilib.h */
 
@@ -1040,8 +1041,10 @@ RT_input * new_RT_input(void)
    rtin->tr     = DEFAULT_TR ;
    rtin->nr     = 1 ;
    rtin->dtype  = DTYPE_2DZT ;
-   rtin->zorder = ZORDER_ALT ;
    rtin->datum  = MRI_short  ;
+
+   rtin->zorder      = ZORDER_ALT ;
+   rtin->zorder_lock = 0 ;              /* 22 Feb 1999 */
 #else
    rtin->nxx = -1 ;
    rtin->nyy = -1 ;
@@ -1065,9 +1068,11 @@ RT_input * new_RT_input(void)
    rtin->tr     = DEFAULT_TR ;
    rtin->nr     = 1 ;
    rtin->dtype  = DTYPE_2DZT ;
-   rtin->zorder = ZORDER_ALT ;
    rtin->datum  = MRI_short  ;
    rtin->nzseq  = 0 ;
+
+   rtin->zorder      = ZORDER_ALT ;
+   rtin->zorder_lock = 0 ;              /* 22 Feb 1999 */
 #endif
 
    rtin->nbuf   = 0    ;     /* no input buffer data yet */
@@ -1415,24 +1420,29 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: datum code = %d\n",rtin->datum) ;
          VMCHECK ;
 
-      } else if( STARTER("ZORDER") ){
-         char str[32] = "\0" ; int nord=0 , nb = 0 , nq ;
-         sscanf( buf , "ZORDER %31s%n" , str , &nb ) ;
-              if( strcmp(str,"alt") == 0 ) rtin->zorder = ZORDER_ALT ;
-         else if( strcmp(str,"seq") == 0 ) rtin->zorder = ZORDER_SEQ ;
-         else if( strcmp(str,"explicit") == 0 ){
-            rtin->zorder = ZORDER_EXP ;
-            do{                                  /* get all numbers */
-               rtin->zseq[nord] = -1 ; nq = -1 ;
-               sscanf(buf+nb , "%d%n" , &(rtin->zseq[nord]) , &nq) ;
-               if( nq < 1 ) break ;              /* failed to get */
-               nb += nq ; nord++ ;               /* otherwise, increment */
-            } while( nb < nbuf ) ;               /* until end of buffer */
-            rtin->nzseq = nord ;                 /* number found */
-            if( nord < 1 || nord > NZMAX ) BADNEWS ;
+      } else if( STARTER("LOCK_ZORDER") ){  /* 22 Feb 1999:                    */
+         rtin->zorder_lock = 1 ;            /* allow program to 'lock' zorder, */
+                                            /* so that later changes are       */
+      } else if( STARTER("ZORDER") ){       /* ineffective.                    */
+         if( ! rtin->zorder_lock ){
+           char str[32] = "\0" ; int nord=0 , nb = 0 , nq ;
+           sscanf( buf , "ZORDER %31s%n" , str , &nb ) ;
+                if( strcmp(str,"alt") == 0 ) rtin->zorder = ZORDER_ALT ;
+           else if( strcmp(str,"seq") == 0 ) rtin->zorder = ZORDER_SEQ ;
+           else if( strcmp(str,"explicit") == 0 ){
+              rtin->zorder = ZORDER_EXP ;
+              do{                                  /* get all numbers */
+                 rtin->zseq[nord] = -1 ; nq = -1 ;
+                 sscanf(buf+nb , "%d%n" , &(rtin->zseq[nord]) , &nq) ;
+                 if( nq < 1 ) break ;              /* failed to get */
+                 nb += nq ; nord++ ;               /* otherwise, increment */
+              } while( nb < nbuf ) ;               /* until end of buffer */
+              rtin->nzseq = nord ;                 /* number found */
+              if( nord < 1 || nord > NZMAX ) BADNEWS ;
+           }
+           else
+                BADNEWS ;
          }
-         else
-              BADNEWS ;
 
       } else if( STARTER("XYZAXES") ){
          int ii , orx=-1,ory=-1,orz=-1 ;

@@ -5310,6 +5310,9 @@ void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp )
    seq = (MCW_imseq *) mp->userdata ; if( ! ISQ_VALID(seq) ) return ;
 
    seq->rowgraph_mtd = NULL ;
+
+   AV_assign_ival( seq->rowgraph_av , 0 ) ;
+   seq->rowgraph_num = 0 ;
    return ;
 }
 
@@ -5448,6 +5451,9 @@ void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp )
    seq->surfgraph_theta = DEFAULT_THETA  ;
    seq->surfgraph_phi   = DEFAULT_PHI ;
    myXtFree( seq->surfgraph_arrowpad ) ;
+
+   seq->surfgraph_num = 0 ;
+   AV_assign_ival( seq->surfgraph_av , 0 ) ;
    return ;
 }
 

@@ -25,6 +25,11 @@
   Mod:     Restructured matrix calculations to improve execution speed.
   Date:    16 December 1998
 
+  Mod:     Add use of the argument list extenstion routine addto_args
+           to allow the last switch '-@' to get further command line
+           arguments from stdin
+  Date:    22 February 1999 -- RWCox
+
 */
 
 /*****************************************************************************
@@ -3137,6 +3142,12 @@ void main
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
+  /*-- 22 Feb 1999: addto the arglist, if user wants to --*/
+
+  { int new_argc ; char ** new_argv ;
+    addto_args( argc , argv , &new_argc , &new_argv ) ;
+    if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
+  }
   
   /*----- program initialization -----*/
   initialize_program (argc, argv, &xdata, &regmodel, &option_data);
