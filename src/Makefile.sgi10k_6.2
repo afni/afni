@@ -1,16 +1,16 @@
 ## for SGI (IRIX 6.2, R10000 chip)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -woff all -O3 -64 -r10000 -DSGI
+CC     = cc -woff all -O3 -n32 -r10000 -DSGI
 CCMIN  = cc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.
 LFLAGS = -s -L.
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -shared -64
+PLUGIN_LFLAGS = -shared -n32
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L. -64
+PLFLAGS       = -L. -n32
 
 AR     = /usr/bin/ar
 RANLIB = /sbin/touch
