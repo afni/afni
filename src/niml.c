@@ -1352,28 +1352,23 @@ char * MD5_B64_file(char *filename)
 #include <sys/utsname.h>  /* Need by UNIQ_ functions for uname() */
 
 /*-----------------------------------------------------------------------*/
-/*! Return a globally unique identifier (I hope).  This is a malloc()-ed
-  string of length <= 31 (plus the NUL byte; the whole thing will fit
-  into a char[32] array).  The output does not contain any '/'s, so
-  it could be used as a temporary filename.  Repeated calls to this
-  function should never return the same string.
+/*! Return a globally unique string (I hope).  This can be hashed to
+    produce a unique idcode (cf. UNIQ_idcode and UUID_idcode).
 
   Method: Generate a string from the system identfier information and
-          the current time of day. MD5 hash this to a 128 byte code.
-          Base64 encode this to a 22 byte string. Replace '/' with '-'
-          and '+' with '_'. Add 4 character prefix (1st 3 characters
-          of environment variable IDCODE_PREFIX plus '_').
+          the current time of day.  The output string is malloc()-ed,
+          and should be free()-ed when no longer needed.
 
-  Sample output: "XYZ_VdfGpfzy_NlY-2d7tA8Q1w"
+  20 Aug 2002 -- RWCox: break string and hashing into separate functions.
 -------------------------------------------------------------------------*/
 
-char * UNIQ_idcode(void)
+static char * get_UNIQ_string(void)
 {
    struct utsname ubuf ;
    struct timeval tv ;
    int    nn , ii ;
    int  nbuf ;
-   char *buf , *idc , *eee ;
+   char *buf ;
    static int ncall=0 ;                /* number of times I've been called */
 
    /* get info about this system */
@@ -1399,7 +1394,7 @@ char * UNIQ_idcode(void)
    strcat(buf,ubuf.version ) ;
    strcat(buf,ubuf.machine ) ;
 
-   /* get time and store into buf (along with process id and ncall) */
+   /* get time and store into buf (along with process+user id and ncall) */
 
    nn = gettimeofday( &tv , NULL ) ;
    if( nn == -1 ){              /* should never happen */
@@ -1410,8 +1405,8 @@ char * UNIQ_idcode(void)
    /* even if called twice in very rapid succession,
       at least ncall will differ, so we'll get different ID codes  */
 
-   sprintf(buf+nbuf,"%d%d%d%d",
-          (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
+   sprintf(buf+nbuf,"%d%d%d%d%d",
+           (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),(int)getuid(),ncall) ;
    ncall++ ;
 
    /* 24 Jul 2002: get random bytes from /dev/urandom */
@@ -1419,11 +1414,40 @@ char * UNIQ_idcode(void)
 #define NURR 4   /* 32 random bits should be enough */
    { FILE *ufp = fopen("/dev/urandom","rb") ;
      if( ufp != NULL ){
-       char urr[NURR+1] ;
+       unsigned char urr[NURR] ; int ii ;
        fread( &urr , 1,NURR, ufp ) ; fclose(ufp) ;
-       urr[NURR] = '\0' ; strcat(buf,urr) ;
+       nbuf = strlen(buf) ;
+       for( ii=0 ; ii < NURR ; ii++ )
+         sprintf(buf+nbuf+2*ii,"%02x",urr[ii]) ;
      }
    }
+
+   return buf ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return a globally unique identifier (I hope).  This is a malloc()-ed
+  string of length <= 31 (plus the NUL byte; the whole thing will fit
+  into a char[32] array).  The output does not contain any '/'s, so
+  it could be used as a temporary filename.  Repeated calls to this
+  function should never return the same string.
+
+  Method: Generate a string from the system identfier information and
+          the current time of day. MD5 hash this to a 128 byte code.
+          Base64 encode this to a 22 byte string. Replace '/' with '-'
+          and '+' with '_'. Add 4 character prefix (1st 3 characters
+          of environment variable IDCODE_PREFIX plus '_').
+
+  Sample output: "XYZ_VdfGpfzy_NlY-2d7tA8Q1w"
+-------------------------------------------------------------------------*/
+
+char * UNIQ_idcode(void)
+{
+   char *buf , *idc ;
+
+   /* get uniq string from system */
+
+   buf = get_UNIQ_string() ;
 
    /* make the output by hashing the string in buf */
 
@@ -1477,6 +1501,59 @@ void UNIQ_idcode_fill( char *idc )
    if( idc == NULL ) return ;
    bbb = UNIQ_idcode() ;
    strcpy(idc,bbb) ; free(bbb) ; return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Hash a string and return a malloc()-ed string (36+1 bytes) in
+    the "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" format.
+------------------------------------------------------------------------*/
+
+char *UUID_hashcode( char *str )
+{
+   MD5_CTX context;
+   unsigned char digest[16];
+   char *idc ;
+   int ii , nn ;
+
+   if( str == NULL || str[0] == '\0' ) str = "Onen i Estel Edain" ;
+
+   MD5Init( &context ) ;
+   MD5Update( &context, str, strlen(str) ) ;
+   MD5Final( digest, &context ) ;
+
+   idc = calloc(1,48) ;
+   sprintf(idc,
+     "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" ,
+     digest[0] , digest[1] , digest[2] , digest[3] , digest[4] ,
+     digest[5] , digest[6] , digest[7] , digest[8] , digest[9] ,
+     digest[10], digest[11], digest[12], digest[13], digest[14],
+     digest[15]
+    ) ;
+
+   return idc ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Hash a unique string and return a malloc()-ed string (36+1 bytes) in
+    the "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" format.
+    The result should be unique worldwide, for all time.
+------------------------------------------------------------------------*/
+
+char * UUID_idcode(void)
+{
+   char *buf , *idc ;
+
+   /* get uniq string from system */
+
+   buf = get_UNIQ_string() ;
+
+   /* make the output by hashing the string in buf */
+
+   idc = UUID_hashcode( buf ) ;
+
+   /* free workspace and get outta here */
+
+   free(buf) ; return idc ;
 }
 
 /*************************************************************************/
