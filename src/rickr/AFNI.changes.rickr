@@ -78,3 +78,11 @@
   * added new program Hfile, including files rickr/Hfile.[ch]
   * modified rickr/Makefile and Makefile.INCLUDE to build Hfile
 
+27 November 2002:
+  * Hfile is now Imon
+  * many modifications to Imon.[ch] (formerly Hfile.[ch])
+      - see rickr/Imon.c : history for version 1.2
+  * renamed Hfile.[ch] to Imon.[ch]
+  * modified rickr/Makefile to reflect the name change to Imon
+  * modified Makefile.INCLUDE to reflect the name change to Imon
+

@@ -23,15 +23,15 @@ clean:
 3dresample: 3dresample.o
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
-		 $(LFLAGS) -L.. -lrickr $(LLIBS)
+		 $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
 
 file_tool: file_tool.o file_tool.h
 	$(RM) $@
 	$(CC) -o file_tool file_tool.o -lm
 
-Hfile: Hfile.o Hfile.h
+Imon: Imon.o Imon.h
 	$(RM) $@
-	$(CC) -o Hfile Hfile.o $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
+	$(CC) -o Imon Imon.o $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
 
 .c.o:
 	$(RM) $@
