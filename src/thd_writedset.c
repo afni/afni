@@ -38,9 +38,13 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
        ! ISVALID_DATABLOCK(dset->dblk) ||
        ! ISVALID_DISKPTR(dset->dblk->diskptr) ) return False ;
 
+   /* Can only write AFNI formatted datasets */
+
    if( DSET_IS_MINC(dset)     ) return False ;  /* 29 Oct 2001 */
    if( DSET_IS_MASTERED(dset) ) return False ;  /* 11 Jan 1999 */
    if( DSET_IS_ANALYZE(dset)  ) return False ;  /* 27 Aug 2002 */
+   if( DSET_IS_CTFMRI(dset)   ) return False ;  /* 05 Dec 2002 */
+   if( DSET_IS_CTFSAM(dset)   ) return False ;  /* 05 Dec 2002 */
 
    if( DSET_IS_VOLUMES(dset) && write_brick ) return False ;  /* 20 Jun 2002 */
 

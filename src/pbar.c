@@ -39,7 +39,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /* sanity check */
 
-   if( npane < NPANE_MIN          || npane > NPANE_MAX ||
+   if( npane   < NPANE_MIN        || npane > NPANE_MAX ||
        pheight < PANE_MIN_HEIGHT  || pmin == pmax         ) return NULL ;
 
    /* new pbar */
@@ -224,6 +224,7 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
    if( pbar == NULL ) return ;
+   if( pbar->num_panes == 1 ) return ;  /* 05 Dec 2002 */
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) return ;
 
@@ -275,7 +276,7 @@ ENTRY("rotate_MCW_pbar") ;
 
    if( pbar == NULL || n == 0 ) EXRETURN ;
    dc = pbar->dc ;
-   np = pbar->num_panes ;
+   np = pbar->num_panes ; if( np == 1 ) return ;
    jm = pbar->mode ;
    while( n < 0 ) n += np ;  /* make n positive */
    for( ip=0 ; ip < np ; ip++ ) iov[ip] = pbar->ov_index[ip] ;
