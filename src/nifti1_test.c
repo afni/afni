@@ -1,4 +1,4 @@
-#include "nifti1_io.c"   /* directly include I/O library functions */
+#include "nifti1_io.h"   /* directly include I/O library functions */
 
 /*-----------------------------------------------*/
 /*    cc -o nifti1_test -O2 nifti1_test.c -lm    */
@@ -9,17 +9,24 @@
 int main( int argc , char *argv[] )
 {
    nifti_image *nim ;
-   int iarg=1 , outmode=1 , ll ;
-
+   int iarg=1 , outmode , ll , usegzip;
+   char *tmpstr;
+   
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: nifti1_test [-n2|-n1|-na|-a2] infile [prefix]\n"
+     printf("Usage: nifti1_test [-d level] [-n2|-n1|-na|-a2] infile [prefix]\n"
             "\n"
             " If prefix is given, then the options mean:\n"
             "  -a2 ==> write an ANALYZE 7.5 file pair: prefix.hdr/prefix.img\n"
             "  -n2 ==> write a NIFTI-1 file pair: prefix.hdr/prefix.img\n"
             "  -n1 ==> write a NIFTI-1 single file: prefix.nii\n"
             "  -na ==> write a NIFTI-1 ASCII+binary file: prefix.nia\n"
+            "  -za2 ==> write an ANALYZE 7.5 file pair: prefix.hdr.gz/prefix.img.gz\n"
+            "  -zn2 ==> write a NIFTI-1 file pair: prefix.hdr.gz/prefix.img.gz\n"
+            "  -zn1 ==> write a NIFTI-1 single file: prefix.nii.gz\n"
+            "  -zna ==> write a NIFTI-1 ASCII+binary file: prefix.nia.gz\n"
             " The default is '-n1'.\n"
+            "\n"
+            "  -d level : specify a debug level (0-3)\n"
             "\n"
             " If prefix is not given, then the header info from infile\n"
             " file is printed to stdout.\n"
@@ -33,17 +40,30 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
-   if( argv[1][0] == '-' ){
-     if( argv[1][1] == 'a' ){
-       outmode = 0 ;
-     } else if( argv[1][1] == 'n' ){
-       switch( argv[1][2] ){
-         case '1': outmode = 1 ; break ;
-         default:  outmode = 2 ; break ;
-         case 'a': outmode = 3 ; break ;
-       }
-     }
-     iarg++ ;
+   usegzip = 0;
+   outmode = 1;
+   while ( (iarg < argc) && (argv[iarg][0] == '-') ) {
+      if      ( ! strncmp(argv[iarg], "-a2",  3 ) )  outmode = 0;
+      else if ( ! strncmp(argv[iarg], "-n1",  3 ) )  outmode = 1;
+      else if ( ! strncmp(argv[iarg], "-n2",  3 ) )  outmode = 2;
+      else if ( ! strncmp(argv[iarg], "-na",  3 ) )  outmode = 3;
+      else if ( ! strncmp(argv[iarg], "-za2", 4 ) ){ outmode = 0; usegzip = 1; }
+      else if ( ! strncmp(argv[iarg], "-zn1", 4 ) ){ outmode = 1; usegzip = 1; }
+      else if ( ! strncmp(argv[iarg], "-zn2", 4 ) ){ outmode = 2; usegzip = 1; }
+      else if ( ! strncmp(argv[iarg], "-zna", 4 ) ){ outmode = 3; usegzip = 1; }
+      else if ( ! strncmp(argv[iarg], "-d", 2 ) )  {
+         iarg++;
+         if( iarg >= argc ){
+            fprintf(stderr,"** ERROR: missing debug level\n"); exit(1);
+         }
+         nifti_set_debug_level(atoi(argv[iarg]));
+      }
+      else {
+         fprintf(stderr,"** ERROR: invalid option '%s'\n", argv[iarg]);
+         exit(1);
+      }
+
+      iarg++;
    }
 
    if( iarg >= argc ){
@@ -51,7 +71,7 @@ int main( int argc , char *argv[] )
    }
 
    nim = nifti_image_read( argv[iarg++] , 1 ) ;
-   if( nim == NULL ) exit(1) ;
+   if( nim == NULL ){ fprintf(stderr,"** image read failure\n"); exit(1) ; }
 
    if( iarg >= argc ){ nifti_image_infodump(nim); exit(0); }
 
@@ -60,8 +80,10 @@ int main( int argc , char *argv[] )
    if( nim->iname != NULL ) free(nim->iname) ;
 
    ll = strlen(argv[iarg]) ;
-   nim->fname = (char *)calloc(1,ll+6) ; strcpy(nim->fname,argv[iarg]) ;
-   nim->iname = (char *)calloc(1,ll+6) ; strcpy(nim->iname,argv[iarg]) ;
+   tmpstr = nifti_makebasename(argv[iarg]);
+   nim->fname = (char *)calloc(1,ll+8) ; strcpy(nim->fname,tmpstr) ;
+   nim->iname = (char *)calloc(1,ll+8) ; strcpy(nim->iname,tmpstr) ;
+   free(tmpstr);
    if( nim->nifti_type == 1 ){
      strcat(nim->fname,".nii") ;
      strcat(nim->iname,".nii") ;
@@ -71,6 +93,10 @@ int main( int argc , char *argv[] )
    } else {
      strcat(nim->fname,".hdr") ;
      strcat(nim->iname,".img") ;
+   }
+   if (usegzip) {
+     strcat(nim->fname,".gz");
+     strcat(nim->iname,".gz");
    }
    nifti_image_write( nim ) ;
    exit(0) ;
