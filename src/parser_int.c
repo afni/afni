@@ -178,7 +178,30 @@ int PARSER_1deval( char * expr, int nt, float tz, float dt, float * vec )
    free(pcode) ; return 1 ;
 }
 
-/*** use the math library to provide Bessel and error functions ***/
+/*------------------------------------------------------------------------*/
+/*! Sort of like strtod(), but with arithmetic -- 03 Sep 2002 - RWCox.
+--------------------------------------------------------------------------*/
+
+double PARSER_strtod( char *expr )
+{
+   PARSER_code * pcode = NULL ;
+   double atoz[26] , val ;
+   int ii ;
+
+   if( expr == NULL ) return 0 ;                 /* bad */
+
+   pcode = PARSER_generate_code( expr ) ;        /* compile */
+   if( pcode == NULL ) return 0 ;                /* bad news */
+
+   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ; /* initialize */
+
+   val = PARSER_evaluate_one( pcode , atoz ) ;
+
+   free(pcode) ; return val ;
+}
+
+/********************************************************************/
+/*** use the C math library to provide Bessel and error functions ***/
 
 doublereal dbesj0_( doublereal * x )
 { return (doublereal) j0( (double) *x ) ; }
