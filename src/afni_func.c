@@ -119,13 +119,16 @@ void AFNI_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
    Three_D_View * im3d = (Three_D_View *) client_data ;
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
-   int redisplay ;
+   int redisplay , ival ;
 
 ENTRY("AFNI_thr_scale_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   fff = THR_FACTOR * cbs->value ;  /* 30 Nov 1997 */
+   if( cbs != NULL ) ival = cbs->value ;
+   else              XmScaleGetValue( w , &ival ) ;
+
+   fff = THR_FACTOR * ival ;
    if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
 
    FIX_SCALE_VALUE(im3d) ;

@@ -1065,6 +1065,7 @@ int main( int argc , char * argv[] )
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
       GLOBAL_library.controllers[ii] = NULL ;
+   GLOBAL_library.dc = NULL ;
 
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
