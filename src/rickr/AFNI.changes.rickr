@@ -607,3 +607,20 @@
   * modified FD2.c: replace -swap_yes and -swap_no with a plain -swap
 		    (this alters the original program!)
 
+01 September 2004:
+  * modified 3dVol2Surf (-> v6.0)
+    - created vol2surf() library files vol2surf.[ch] from core functions
+    - this represents a significant re-write of many existing functions,
+      modifying locations of action, structure names/contents, etc.
+    - add library to libmri (as this will end up in afni proper)
+    - separate all vol2surf.[ch] functions from SUMA_3dVol2surf.[ch]
+    - keep allocation/free action of results struct within library
+    - now using SUMA_surface struct for surface info (replace node_list)
+    - added main vol2surf(), afni_vol2surf(), free_v2s_results(),
+      and disp...() functions as vol2surf library interface
+    - added options to control column output (-skip_col_NAME)
+    - added -v2s_hist option for library history access
+  * modified Makefile.INCLUDE to put the vol2surf functions in libmri
+    - added vol2surf.o into CS_OBJS and vol2surf.h into LIBHEADERS
+  * added vol2surf.[ch] into the src directory (for libmri)
+
