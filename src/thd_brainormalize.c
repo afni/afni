@@ -22,6 +22,62 @@ static int mask_count( int nvox , byte *mmm )
 #define DALL 4096  /* Allocation size for cluster arrays */
 
 /*--------------------------------------------------------------------------*/
+/*! Put (i,j,k) into the cluster, if it is nonzero. */
+
+#undef  DPUT
+#define DPUT(i,j,k,d)                                               \
+  do{ ijk = (i)+(j)*nx+(k)*nxy ;                                    \
+      if( nnow == nall ){ /* increase array lengths */              \
+        nall += DALL ;                                              \
+        inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
+        jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
+        know = (short *) realloc((void *)know,sizeof(short)*nall) ; \
+      }                                                             \
+      inow[nnow] = (i); jnow[nnow] = (j); know[nnow] = (k);         \
+      nnow++ ; mmm[ijk] = 0 ; ddd[ijk] = (d) ;                      \
+    } } while(0)
+
+/*--------------------------------------------------------------------------*/
+
+float * THD_mask_distize( int nx, int ny, int nz, byte *mmm, byte *ccc )
+{
+   float *ddd ;
+   int ii,jj,kk , nxy=nx*ny , nxyz=nx*ny*nz , ijk ;
+   int ip,jp,kp , im,jm,km ;
+   int nccc,nmmm , nall,nnow ;
+   short *inow , *jnow , *know ;
+
+   if( mmm == NULL || ccc == NULL ) return NULL ;
+
+   ddd = (float *)malloc( sizeof(float)*nxyz ) ;
+   nccc = nmmm = 0 ;
+   for( ii=0 ; ii < nxyz ; ii++ ){
+          if( ccc[ii] ){ ddd[ii] =  1.0f; nccc++; nmmm++; }
+     else if( mmm[ii] ){ ddd[ii] = -1.0f; nmmm++; }
+     else              { ddd[ii] =  0.0f; }
+   }
+   if( nccc == 0 ){ free((void *)ddd); return NULL; }
+
+   nall  = nccc+DALL ;                            /* # allocated pts */
+   inow  = (short *) malloc(sizeof(short)*nall) ; /* coords of pts */
+   jnow  = (short *) malloc(sizeof(short)*nall) ;
+   know  = (short *) malloc(sizeof(short)*nall) ;
+   nnow  = 0 ;
+
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     if( ccc[ii] ){
+       inow[nnow] = ijk % nx ;
+       jnow[nnow] = (ijk%nxy)/nx ;
+       know[nnow] = ijk / nxy ;
+       mmm[ii]    = 0 ;
+       nnow++ ;
+     }
+   }
+
+   return ddd ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
 
 #undef  CPUT
