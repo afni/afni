@@ -161,25 +161,30 @@ ENTRY("THD_init_session") ;
      } /* end of if we found MINC files */
    }
 
+   /*-- 06 Apr 2005: try to read NIfTI-1 files [KRH and RWC] --*/
+
    if( !AFNI_noenv("AFNI_NIFTI_DATASETS") ){
-     char ename[THD_MAX_NAME] , **fn_nifti , *eee ;
+     char *ename[2] , **fn_nifti ;
      int num_nifti , ii ;
 
      STATUS("looking for NIFTI files") ;
 
-     strcpy(ename,sess->sessname) ; strcat(ename,"*.nii") ;
-     eee = ename ;
-     MCW_file_expand( 1,&eee , &num_nifti,&fn_nifti ) ;  /* find files */
+     ename[0] = AFMALL(char, THD_MAX_NAME) ;
+     ename[1] = AFMALL(char, THD_MAX_NAME) ;
+     strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.nii") ;
+     strcpy(ename[1],sess->sessname) ; strcat(ename[1],"*.nii.gz") ;
+     MCW_file_expand( 2,ename , &num_nifti,&fn_nifti ) ;  /* find files */
+     free(ename[0]) ; free(ename[1]) ;
 
      if( num_nifti > 0 ){                               /* got some! */
        STATUS("opening NIFTI files") ;
        for( ii=0 ; ii < num_nifti ; ii++ ){             /* loop over files */
-         dset = THD_open_nifti( fn_nifti[ii] ) ;         /* try it on */
-         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
+         dset = THD_open_nifti( fn_nifti[ii] ) ;        /* try it on */
+         if( !ISVALID_DSET(dset) ) continue ;           /* doesn't fit? */
          nds = sess->num_dsset ;
          if( nds >= THD_MAX_SESSION_SIZE ){
            fprintf(stderr,
-             "\n*** Session %s table overflow with NIFTI dataset %s ***\n",
+             "\n*** Session %s table overflow with NIfTI dataset %s ***\n",
              sessname , fn_nifti[ii] ) ;
            THD_delete_3dim_dataset( dset , False ) ;
            break ; /* out of for loop */
@@ -526,7 +531,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
    /*-- 04 Dec 2002: try to read CTF .mri and .svl "datasets" --*/
 
    if( !AFNI_noenv("AFNI_CTF_DATASETS") ){
-     char *ename[2] , **fn_ctf , *eee ;
+     char *ename[2] , **fn_ctf ;
      int num_ctf , ii ;
 
      STATUS("looking for CTF files") ;
@@ -567,7 +572,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
    /*-- 03 Dec 2001: try to read MPEG "datasets" --*/
 
    if( !AFNI_noenv("AFNI_MPEG_DATASETS") ){
-     char ename[4*THD_MAX_NAME+64] , **fn_mpeg , *eee ;
+     char ename[4*THD_MAX_NAME+64] , **fn_mpeg ;
      int num_mpeg , ii ;
 
      STATUS("looking for MPEG files") ;

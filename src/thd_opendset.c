@@ -86,8 +86,9 @@ ENTRY("THD_open_one_dataset") ;
 
    /*-- 28 Aug 2003: the NIFTI way! --*/
 
-   if( STRING_HAS_SUFFIX(pathname,".nii") ||
-       STRING_HAS_SUFFIX(pathname,".nia")   ){
+   if( STRING_HAS_SUFFIX(pathname,".nii")    ||
+       STRING_HAS_SUFFIX(pathname,".nii.gz") ||
+       STRING_HAS_SUFFIX(pathname,".nia")      ){
 
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      RETURN( THD_open_nifti(pathname) ) ;

@@ -36,7 +36,9 @@ ENTRY("THD_read_all_atr") ;
    blk->natr_alloc = 0 ;
    blk->atr        = NULL ;
 
-   if( STRING_HAS_SUFFIX(headername,".mnc") ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".mnc")    ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".nii")    ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".nii.gz") ) EXRETURN ;
 
    header_file = fopen( headername , "r" ) ;
    if( header_file == NULL ) EXRETURN ;

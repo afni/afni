@@ -49,7 +49,6 @@ ENTRY("THD_write_3dim_dataset") ;
    if( DSET_IS_MINC(dset)     ) RETURN(False) ;  /* 29 Oct 2001 */
    if( DSET_IS_MASTERED(dset) ) RETURN(False) ;  /* 11 Jan 1999 */
    if( DSET_IS_ANALYZE(dset)  ) RETURN(False) ;  /* 27 Aug 2002 */
-   if( DSET_IS_NIFTI(dset)    ) RETURN(False) ;  /* 28 Aug 2003 */
    if( DSET_IS_CTFMRI(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
    if( DSET_IS_CTFSAM(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
    if( DSET_IS_TCAT(dset)     ) RETURN(False) ;  /* 05 Aug 2004 */
@@ -77,16 +76,32 @@ ENTRY("THD_write_3dim_dataset") ;
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
 
    ppp = DSET_PREFIX(dset) ;
-   if( DSET_IS_NIFTI(dset) || STRING_HAS_SUFFIX(ppp,".nii") ){
+   if( DSET_IS_NIFTI(dset)              ||
+       STRING_HAS_SUFFIX(ppp,".nii")    ||
+       STRING_HAS_SUFFIX(ppp,".nii.gz")   ){
+
      niftiwr_opts_t options ;
+
      ii = strlen(DSET_DIRNAME(dset)) + strlen(ppp) + 16 ;
      options.infile_name = calloc(1,ii) ;
      strcpy(options.infile_name,DSET_DIRNAME(dset)) ;
      strcat(options.infile_name,ppp) ;
-     if( !STRING_HAS_SUFFIX(options.infile_name,".nii") )
+
+     if( !STRING_HAS_SUFFIX(options.infile_name,".nii")    &&
+         !STRING_HAS_SUFFIX(options.infile_name,".nii.gz")   )
        strcat(options.infile_name,".nii") ;
+
      options.debug_level = 0 ;
-     ii = THD_write_nifti(dset,options) ;
+
+     if( !write_brick ){
+       fprintf(stderr,
+               "** ERROR: can't write HEADER only for NIfTI-1 file: %s\n",
+               options.infile_name ) ;
+       ii = 0 ;
+     } else {
+       ii = THD_write_nifti(dset,options) ;
+     }
+
      free((void *)options.infile_name) ;
      RETURN( (Boolean)ii ) ;
    }
@@ -94,6 +109,12 @@ ENTRY("THD_write_3dim_dataset") ;
    /*------ 21 Mar 2003: the .3D format? -----*/
 
    if( DSET_IS_3D(dset) || use_3D_format ){
+     if( !write_brick ){
+       fprintf(stderr,
+               "** ERROR: can't write HEADER only for .3D file: %s\n",
+               DSET_PREFIX(dset) ) ;
+       RETURN(False) ;
+     }
      THD_write_3D( NULL, NULL, dset ) ; RETURN(True) ;
    }
 
