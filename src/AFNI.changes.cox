@@ -3989,3 +3989,4 @@
      is disabled.
  * Modified thd_analyzeread.c to add AFNI_ANALYZE_AUTOCENTER option.
  * Modified 3drefit.c to add -xorigin_raw (etc.) options.
+ * Modified thd_intlist.c to skip blanks in the [] sub-brick selector string.

@@ -21,7 +21,7 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    If fred == NULL or fred[0] == 0, then something is wrong.
 -------------------------------------------------------------------*/
 
-int * MCW_get_intlist( int nvals , char * str )
+int * MCW_get_intlist( int nvals , char *str )
 {
    int * subv = NULL ;
    int ii , ipos , nout , slen ;
@@ -49,6 +49,9 @@ int * MCW_get_intlist( int nvals , char * str )
    slen = strlen(str) ;
    while( ipos < slen && str[ipos] != ']' ){
 
+      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
+      if( str[ipos] == ']' || str[ipos] == '\0' ) break ;
+
       /** get starting value **/
 
       if( str[ipos] == '$' ){  /* special case */
@@ -61,6 +64,8 @@ int * MCW_get_intlist( int nvals , char * str )
          if( ibot == 0 && nused == 0 ){ free(subv) ; return NULL ; }
          ipos += nused ;
       }
+
+      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
 
       /** if that's it for this sub-selector, add one value to list **/
 
@@ -99,6 +104,8 @@ int * MCW_get_intlist( int nvals , char * str )
 
       istep = (ibot <= itop) ? 1 : -1 ;
 
+      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
+
       /** check if we have a non-default loop step **/
 
       if( str[ipos] == '(' ){  /* decode an integer */
@@ -120,6 +127,8 @@ int * MCW_get_intlist( int nvals , char * str )
       }
 
       /** check if we have a comma to skip over **/
+
+      while( str[ipos] == ' ' ) ipos++ ;                  /* skip blanks */
 
       if( str[ipos] == ',' ) ipos++ ;
 
