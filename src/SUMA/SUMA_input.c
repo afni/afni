@@ -1213,6 +1213,26 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
+               /* make sure no viewer, other than the one clicked in is in momentum mode */
+               if (SUMAg_N_SVv > 1) {
+                  for (ii=0; ii < SUMAg_N_SVv; ++ii) {
+                     if (&(SUMAg_SVv[ii]) != sv) {
+                        if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
+                           fprintf (SUMA_STDERR,"Error %s: You cannot select while other viewers (like #%d) are in momentum mode.\n", FuncName, ii);
+                           SUMA_RETURNe;
+                        }
+                     }
+                  }
+               }  
+               
+               /* make sure all OpenGL commands are completed before proceeding 
+               This is an attempt at reducing the picking problem when multiple
+               viewers are open simultaneously. This may be redundant since glFinish 
+               is also called in SUMA_handleRedisplay....*/
+               if (0 && SUMAg_N_SVv > 1) {
+                  glFinish();
+               }
+                           
                ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
                   break;
@@ -1231,7 +1251,12 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
                
-            
+               /* redisplay */
+               sv->ResetGLStateVariables = YUP;
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+               
+               
+               
             break;
       } /* switch type of button Press */
       break;
@@ -1241,8 +1266,6 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       switch (Bev.button) { /* switch type of button Press */
          case Button3:
                if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
-               sv->ResetGLStateVariables = YUP;
-               SUMA_postRedisplay(w, NULL, NULL);
          break;
       } /* switch type of button Press */
       break;
@@ -1371,7 +1394,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
    static char ssource[]={"suma"};
    SUMA_EngineData EngineData; /* Do not free EngineData, only its contents*/
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1466,11 +1489,6 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
          if (!SUMA_Engine (CommString, &EngineData, sv)) {
             fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
          }
-         #if 0
-         /* Wait for X to be done. An attempt at solving the selection problem when talking to afni */
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Waiting for X...\n", FuncName);
-         glXWaitX ();
-         #endif
       }else {
          if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
       }

@@ -10,6 +10,6 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data );
 NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_nel_stdout (NI_element *nel); 
 void SUMA_remove_workproc2( XtWorkProc func , XtPointer data );
-SUMA_Boolean SUMA_CanTalkToAfni (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
+SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov);
 
 #endif

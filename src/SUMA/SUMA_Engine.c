@@ -100,7 +100,10 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             break;
          
          case SE_ToggleConnected:
-               
+               if (!SUMA_CanTalkToAfni (SUMAg_DOv, SUMAg_N_DOv)) {
+                  fprintf(SUMA_STDOUT,"%s: Cannot connect to AFNI.\n\tNot one of the surfaces is mappable and has a Surface Volume.\n\tDid you use the -sv option when launching SUMA ?\n", FuncName);
+                  break;
+               }
                SUMAg_CF->Connected = !SUMAg_CF->Connected;
                if (SUMAg_CF->Connected) {
                  /* find out if the stream has been established already */
@@ -368,48 +371,6 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             sv->Ch->SurfaceID = EngineData->iv3[0];
             sv->Ch->NodeID = EngineData->iv3[1];
             
-            #if 0
-            /* check to see if other viewers need to share the fate */
-            ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
-            if (ii < 0) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to find index of sv.\n", FuncName);
-               break;
-            }
-            if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which other viewers are locked to this one */
-               SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
-               SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Ch->SurfaceID].OP;
-               for (i=0; i < SUMAg_N_SVv; ++i) {
-                  if (i != ii && SUMAg_CF->Locked[ii]) {
-                     /* find out which of the shown surfaces is related to the Surcross hair location STOPPED HERE*/
-                     svi = &(SUMAg_SVv[i]);
-                     N_SOlist = SUMA_ShownSOs(svi, SUMAg_DOv, SOlist);
-                     Found = NOPE;
-                     it = 0;
-                     while (it < N_SOlist && !Found) {
-                        SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[it]].OP;
-                        if (SUMA_isRelated (SO1, SO2)) {
-                           svi->Ch->SurfaceID = SOlist[it];
-                           if (sv->Ch->NodeID > SO2->N_Node) {
-                              fprintf (SUMA_STDERR,"Error %s: NodeID is larger than N_Node. Setting NodeID to 0.\n", FuncName);
-                              svi->Ch->NodeID = 0;
-                           }else{
-                              svi->Ch->NodeID = sv->Ch->NodeID;
-                           }
-                           Found = YUP;
-                        }
-                        ++it;
-                     }
-                     if (!Found) {
-                        fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will be bound to 1st surface.\n", FuncName);
-                        
-                     }
-                     
-                  }
-               }
-            }else{
-               /* not locked to anything */
-            }
-            #endif
             break;
          
          case SE_LockCrossHair:
@@ -480,9 +441,9 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
                                  fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will not be touched .\n", FuncName);
                                  break;
                               } else {
-                                 /* register a redisplay */
+                                 /* FORCE a redisplay */
                                  svi->ResetGLStateVariables = YUP;
-                                 SUMA_postRedisplay(svi->X->GLXAREA, NULL, NULL);
+                                 SUMA_handleRedisplay((XtPointer)svi->X->GLXAREA);
                               }
                               
                            }
@@ -1427,7 +1388,8 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
    int iclosest, id, ND;
    SUMA_SurfaceObject *SOmap;
    int SOmapID;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    /* allocate for return */
@@ -1488,7 +1450,8 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
    } else { 
       iclosest = *I_C;
    }
-   fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
+   
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
    /* find the SO that is the Mappable cahuna */
    SOmapID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, dov, N_dov);
    if (SOmapID < 0) {

@@ -34,10 +34,14 @@ SUMA_handleRedisplay(XtPointer closure)
    static int Last_isv = -1;
    int isv;
    SUMA_SurfaceViewer *sv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (LocalHead) {
+      SUMA_REPORT_WICH_WIDGET_SV ((Widget)closure);
+   }
+   
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV((Widget)closure, sv, isv);
    if (isv < 0) {
@@ -47,15 +51,20 @@ SUMA_handleRedisplay(XtPointer closure)
    if (Last_isv >= 0) { /* first time function is called, no use for this variable yet */
       if (isv != Last_isv) {/* need to call glXMakeCurrent */
          if (!sv->Open) {
-            fprintf (SUMA_STDERR, "Error %s: Making current a window that's closed, this should not be.\n", FuncName);
+            fprintf (SUMA_STDERR, "%s: Redisplay request for a closed window. Skipping.\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
+            /* An OpenGL rendering context is a port through which all OpenGL commands pass. */
+            /* Before rendering, a rendering context must be bound to the desired drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the current bound rendering context and one drawable. Just as a
+               program can create multiple windows, a program can create multiple OpenGL rendering contexts. But a thread can only be bound to one rendering context and drawable at a time. Once bound, OpenGL rendering can begin.
+               glXMakeCurrent can be called again to bind to a different window and/or rendering context. */
             if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT)) {
                      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
             }
          }
       }
-   }
+   } 
+   
    Last_isv = isv; /* store last surface viewer to call display */
    /* call display for the proper surface viewer*/
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Calling SUMA_display with SV[%d], Pointer %p.\n", FuncName, isv, sv); 
@@ -70,7 +79,7 @@ SUMA_handleRedisplay(XtPointer closure)
       certain viewer is placed seems to reduce this problem significantly so this fix will be adopted
       until a better one comes along. This call does reduce the apparent speed of the display and might
       cause momentum motion to be more blocky but the overload is minimal for regular use.*/
-      glFinish ();
+      glFinish();
    }
 
    SUMA_RETURN(YUP);
@@ -91,7 +100,7 @@ SUMA_postRedisplay(Widget w,
    static XtPointer elvis;
    int isv;
    SUMA_SurfaceViewer *sv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -130,8 +139,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    each display otherwise the openGL settings for one of them will affect the others.
    At any rate, that function is not costly to run so there's no harm in running it anytime
    you have a display call and more than one viewer open */ 
+   
    if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
-      if (1 || LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+      if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
       SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
       csv->ResetGLStateVariables = NOPE;
    }
@@ -422,7 +432,7 @@ SUMA_expose(Widget w,
   static char FuncName[]={"SUMA_expose"};
   int isv;
   SUMA_SurfaceViewer *sv;
-  SUMA_Boolean LocalHead = YUP;
+  SUMA_Boolean LocalHead = NOPE;
   
   /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/ /* No need for that, done in display */
   
