@@ -1819,13 +1819,14 @@ apply to all open image viewers immediately, as well as to any image
 viewers opened later.
 
 ----------------------------
-Variable: AFNI_DRAW_UNDOSIZE
+Variable: AFNI_DRAW_UNDOSIZE (editable)
 ----------------------------
 This variable sets the size (in units of Megabytes) of the Undo/Redo
 buffer in the Draw Dataset plugin.  The default value is 6.  If you
 are short on memory, you could set this to 1.  If you are running out
 of undo levels, you could set this to a larger value; however, this
-seems like an unlikely scenario to me.
+would only be needed if you are drawing huge 3D swaths of data at a
+time (e.g., using the 3D sphere option with a large radius).
 
 =============================================
 | Robert W Cox, PhD                         |
