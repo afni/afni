@@ -218,7 +218,7 @@ ShowCmap: SUMA_xColBar.c
 		${SUMA_LINK_LIB}
 
 
-SampBias: SUMA_SampBias.c ${SUMALIB} 
+SampBias: SUMA_SampBias.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_SampBias_STAND_ALONE \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
@@ -226,7 +226,7 @@ SampBias: SUMA_SampBias.c ${SUMALIB}
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} 
 
-SurfMesh: SUMA_coarsen.c libgts.a ${SUMALIB}
+SurfMesh: SUMA_coarsen.c libgts.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 		\
