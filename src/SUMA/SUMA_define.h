@@ -101,11 +101,14 @@ typedef enum {	SE_Empty, \
 					SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, \
 					SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,\
 					SE_ToggleShowSelectedFaceSet, SE_ToggleTalkToAfni, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_BindCrossHair,\
+					SE_Remix, SE_ToggleForeground, SE_ToggleBackground,\
 					SE_BadCode} SUMA_ENGINE_CODE;
+					
 typedef enum { SEF_Empty, \
 					SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, \
 					SEF_iv15, SEF_i, SEF_f, SEF_s, \
 					SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
+					
 typedef enum { SES_Empty,\
 					SES_Afni,\
 					SES_Suma,\
@@ -429,9 +432,20 @@ typedef struct {
 	SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
 	int N_VSv; /*!< Number of Viewing State structures */
 	char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
+	int LastNonMapStateID; /*!< Index into the state in VSv from which a toggle to the mappable state was initiated */ 
 	
 	int PolyMode; /*!< polygon viewing mode, 0, filled, 1, outline, 0, points */
 	SUMA_Boolean BF_Cull; /*!< flag for backface culling */
+
+	float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
+									background does not modulate foreground, 
+									Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
+									a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
+									 Watch for saturation effects!  */
+
+	SUMA_Boolean ShowForeground; 	/*!< Flag for showing/not showing foreground colors */
+	SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */	
+	
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -625,13 +639,7 @@ typedef struct {
 	SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay structures */
 	SUMA_INODE **Overlays_Inode; /*!< vector of pointers to Inodes corresponding to each Overlays struct */
 	int N_Overlays; /*!< number of pointers to overlay structures */
-
-	float Back_Modfact; /*!< Factor to apply when modulating foreground color with background intensity
-									background does not modulate foreground, 
-									Color = Fore * avg_Bright * AttenFactor; (w/ 0 <= avg_Bright <=1)
-									a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
-									 Watch for saturation effects!  */
-									 
+	
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
 							\sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
 							\sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

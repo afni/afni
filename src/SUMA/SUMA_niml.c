@@ -396,7 +396,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				SO->Overlays[OverInd]->N_NodeDef = nel->vec_len;
 				
 				/*Do the mix thing */
-				if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, SO->Back_Modfact)) {
+				if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
+						SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
 						fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 						return (NOPE);
 				}

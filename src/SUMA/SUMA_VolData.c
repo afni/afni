@@ -227,7 +227,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	int i;
 	SUMA_SureFit_struct *SF;
 	SUMA_FreeSurfer_struct *FS;
-	SUMA_Boolean Bad;
+	SUMA_Boolean Bad=YUP;
 	
 	sprintf(FuncName,"SUMA_Align_to_VolPar");
 	
@@ -454,7 +454,7 @@ THD_fvec3 SUMA_THD_3dmm_to_dicomm( SUMA_SurfaceObject *SO ,
                               THD_fvec3 imv )
 {
    THD_fvec3 dicv ;
-   float xim,yim,zim , xdic,ydic,zdic ;
+   float xim,yim,zim , xdic = 0.0, ydic = 0.0, zdic = 0.0 ;
 
    xim = imv.xyz[0] ; yim = imv.xyz[1] ; zim = imv.xyz[2] ;
 

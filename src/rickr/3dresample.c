@@ -198,7 +198,8 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 		return usage( argv[0], USE_SHORT );
 	    }
 	}
-	else if ( ! strncmp(argv[ac], "-inset", 3 ) )     /* input dset */
+	else if ( ! strncmp(argv[ac], "-inset", 3) ||
+		  ! strncmp(argv[ac], "-input", 6) )    /* input dset */
 	{
 	    if ( (ac+1) >= argc )
 	    {
@@ -244,8 +245,10 @@ int usage ( char * prog, int level )
 {
     if ( level == USE_SHORT )
     {
-	fprintf( stderr, "usage : %s [options] -prefix OUT_DSET "
-		                              "-inset IN_DSET\n", prog );
+	fprintf( stderr,
+		 "usage : %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+		 "usage : %s -help\n",
+		 prog, prog );
 	return 0;
     }
     else if ( level == USE_LONG )
@@ -409,9 +412,9 @@ int sync_master_opts ( options_t * opts )
     /* all is okay, so fill dxyz and orientation code from master */
     dax = opts->mset->daxes;
 
-    opts->dx = dax->xxdel;
-    opts->dy = dax->yydel;
-    opts->dz = dax->zzdel;
+    opts->dx = fabs(dax->xxdel);
+    opts->dy = fabs(dax->yydel);
+    opts->dz = fabs(dax->zzdel);
 
     opts->orient[0] = ORIENT_typestr[dax->xxorient][0];
     opts->orient[1] = ORIENT_typestr[dax->yyorient][0];

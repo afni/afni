@@ -210,7 +210,6 @@ SUMA_SurfaceObject *Alloc_SurfObject_Struct(int N)
 			SO[i].Overlays_Inode[j] = NULL;
 		}
 		SO[i].N_Overlays = 0;
-		SO[i].Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
 	}
 	return (SO);
 }/* Alloc_SurfObject_Struct */

@@ -47,7 +47,7 @@ Support :
 ***/
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName)
 {/*SUMA_Load_Surface_Object*/
-   char FuncName[100], stmp[1000], *SO_FileName;
+   char FuncName[100], stmp[1000], *SO_FileName=NULL;
 	SUMA_SFname *SF_FileName; 
 	int k;
 	SUMA_SureFit_struct *SF;
@@ -737,9 +737,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 	}
 	
 	fprintf (Out,"\n");
-	
-	fprintf(Out, "Background Modulation Factor= %f\n", SO->Back_Modfact);
-	
+		
 	fprintf (Out,"---------------------------------\n\n");
 	
 	return;
@@ -1169,10 +1167,10 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 	static char FuncName[]={"SUMA_LoadSpec"};
 	int i;
 	char *tmpid;
-	SUMA_SurfaceObject *SO;
+	SUMA_SurfaceObject *SO=NULL;
 	SUMA_Axis *EyeAxis;
 	SUMA_SFname *SF_name;
-	SUMA_Boolean brk, SurfIn;
+	SUMA_Boolean brk, SurfIn=NOPE;
 	
 	fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
 	for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
@@ -1357,7 +1355,8 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 					}
 
 					/* Now run the function that turns overlay planes to a colormatrix */
-					if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, SO->Back_Modfact)) {
+					if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
+						YUP, YUP, NOPE)) {
 						fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 						return (NOPE);
 					}
