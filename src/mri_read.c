@@ -1044,29 +1044,30 @@ int mri_imcount( char * tname )
       else                                                                   return nz ;
    }
 
-   /*** 19 Jul 2002: see if it is a DICOM file ***/
-
-   nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
-   if( nz > 0 ) return nz ;
-
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
 
    if( strstr(new_fname,".hdr") != NULL ||
        strstr(new_fname,".HDR") != NULL   ){
 
-      return mri_imcount_analyze75( new_fname ) ;
+      nz = mri_imcount_analyze75( new_fname ) ;
+      if( nz > 0 ){ free(new_fname); return nz; }
    }
 
    if( strstr(new_fname,".ima") != NULL ||
        strstr(new_fname,".IMA") != NULL   ){        /* 12 Mar 2001 */
 
-      return mri_imcount_siemens( new_fname ) ;
+      nz = mri_imcount_siemens( new_fname ) ;
+      if( nz > 0 ){ free(new_fname); return nz; }
    }
 
-   /*** not a 3D filename ***/
+   /*** 19 Jul 2002: see if it is a DICOM file ***/
 
-   free( new_fname ) ;
-   return 1 ;           /* assume it has 1 image in it, somewhere */
+   nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+   if( nz > 0 ){ free(new_fname); return nz; }
+
+   /*** not recognized ***/
+
+   free(new_fname) ; return 1 ;    /* assume it has 1 image in it, somewhere */
 }
 
 /*--------------------------------------------------------------*/
@@ -2009,6 +2010,8 @@ static int mri_imcount_analyze75( char * hname )
    struct dsr hdr ;    /* ANALYZE .hdr format */
    int doswap , nz ;
 
+fprintf(stderr,"enter mri_imcount_analyze75\n");
+
    fp = fopen( hname , "rb" ) ;
    if( fp == NULL ) return 0 ;
    hdr.dime.dim[0] = 0 ;
@@ -2027,7 +2030,9 @@ static int mri_imcount_analyze75( char * hname )
    }
    if( nz < 1 ) nz == 1 ;
 
-   /** fprintf(stderr,"mri_imcount_analyze75: %s %d\n",hname,nz) ; **/
+#if 1
+   fprintf(stderr,"mri_imcount_analyze75: %s %d\n",hname,nz) ;
+#endif
    return nz ;
 }
 

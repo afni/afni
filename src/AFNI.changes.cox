@@ -3890,3 +3890,8 @@
 
 08 Aug 2002
  * Added color save/load to afni_ttren.c.
+
+13 Aug 2002
+ * Modified imseq.c to destroy dialog widget before imseq top widget.
+ * Fixed array overflow by 1 bug in mri_percents.c.
+ * Modified mri_read.c to check for .hdr files before DICOM.
