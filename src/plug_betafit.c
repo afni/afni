@@ -106,7 +106,7 @@ PLUGIN_interface * PLUGIN_init(int ncall)
 
    PLUTO_add_option( plint , "Misc" , "Params" , TRUE ) ;
    PLUTO_add_number( plint , "N ran" , 10,1000,-2 , 100 , 1 ) ;
-   PLUTO_add_number( plint , "% cut" , 2,9,-1 , 7,1 ) ;
+   PLUTO_add_number( plint , "% cut" , 20,90,0 , 70,1 ) ;
    PLUTO_add_string( plint , "HSqrt"  , NYESNO , YESNO_strings , 0 ) ;
 
    /*-- (optional) line of input --*/

@@ -1,15 +1,25 @@
-## for DEC Alpha under OSF/1
+## for DEC Alpha under OSF/1 - from Matthew Belmonte of MIT
 
-#The constant folding routine in some older versions of gcc may fail with
-#SIGABRT (signal 6) when compiling coxplot/plot_motif.c - to avoid this,
-#remove the -O option from the gcc command line and try again.
+# The constant folding routine in some older versions of gcc may fail with
+# SIGABRT (signal 6) when compiling coxplot/plot_motif.c - to avoid this,
+# remove the -O option from the gcc command line and try again.
 # - Matthew Belmonte <mkb4@Cornell.edu>
 
+# use these lines if, for whatever reason, you don't have Digital UNIX's cc:
+#CC     = gcc -ansi -O -DOSF1
+#CCVOL  = gcc -ansi -DOSF1
+#CCMIN  = gcc
+
+# if you're using Digital UNIX's cc *and* you're always going to be running the
+# code on the same type of Alpha processor that's being used to compile it, add
+# '-arch host' to the options on the CC line below:
+
+CC      = cc -std -O2 -assume nomath_errno -assume trusted_short_alignment -fp_reorder -ifo -intrinsics -DOSF1
+CCVOL   = cc -std -DOSF1
+CCMIN   = cc
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = gcc -ansi -O -DOSF1
-CCVOL  = gcc -ansi -DOSF1
 CCFAST = $(CC)
-CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.
 LFLAGS = -s -L.
@@ -17,7 +27,7 @@ LFLAGS = -s -L.
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L. 
+PLFLAGS       = -L.
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib

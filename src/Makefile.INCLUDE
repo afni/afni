@@ -40,7 +40,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot \
-           3dWavelets 3dfim+ imcutup 3dWinsor
+           3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -208,6 +208,10 @@ dsetdup:dsetdup.o
 3ddup:3ddup.o
 	$(RM) $@
 	$(CC) -o 3ddup 3ddup.o $(LFLAGS) $(LLIBS)
+
+3dZeropad:3dZeropad.o
+	$(RM) $@
+	$(CC) -o 3dZeropad 3dZeropad.o $(LFLAGS) $(LLIBS)
 
 3dnvals:3dnvals.o
 	$(RM) $@
