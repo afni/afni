@@ -6,14 +6,6 @@
 /** functions to "warp" 3D images -- not very efficient, but quite general **/
 /****************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-
-#ifdef __GNUC__
-# define INLINE inline
-#else
-# define INLINE /*nada*/
-#endif
-
 /*--------------------------------------------------------------------------*/
 
 static int wtype = MRI_LINEAR ;

@@ -253,7 +253,10 @@ static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
                                         sizeof(int)   *(ppmto_num+1) ) ; \
       ppmto_filter[ppmto_num] = (pnam) ;                                 \
       ppmto_suffix[ppmto_num] = (suff) ;                                 \
-      ppmto_bval  [ppmto_num] = (bbb)  ; ppmto_num++ ; } while(0)
+      ppmto_bval  [ppmto_num] = (bbb)  ; ppmto_num++ ;                   \
+      if( dbg ) fprintf(stderr,"IMSAVE: filter '%s' for suffix '%s'\n",  \
+                        (pnam) , (suff) ) ;                              \
+  } while(0)
 
 /*---- setup programs as filters: ppm stdin to some output file ----*/
 
@@ -261,8 +264,11 @@ static void ISQ_setup_ppmto_filters(void)
 {
    char *pg , *pg2 , *str , *eee ;
    int bv ;
+   int dbg ;
 
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
+
+   dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
 
    /*-- the cheap way to write PPM  --*/
    /*-- [this must always be first] --*/
@@ -282,6 +288,8 @@ static void ISQ_setup_ppmto_filters(void)
          str = AFMALL( char, strlen(pg)+64) ;
          sprintf(str,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
          ppmto_mpeg_filter = str ;
+         if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
+                           str , "mpg" ) ;
       }
    }
 
@@ -325,6 +333,8 @@ static void ISQ_setup_ppmto_filters(void)
          str = AFMALL( char, strlen(pg)+64) ;
          sprintf(str,"%s %s",pg,asuff) ;
          ppmto_agif_filter = str ;
+         if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
+                           str , "gif" ) ;
       } else {
          pg = THD_find_executable( "whirlgif" ) ; /* but is OK */
          if( pg != NULL ){
@@ -332,6 +342,8 @@ static void ISQ_setup_ppmto_filters(void)
             str = AFMALL( char, strlen(pg)+64) ;
             sprintf(str,"%s %s",pg,asuff) ;
             ppmto_agif_filter = str ;
+            if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
+                              str , "gif" ) ;
          }
       }
    }
@@ -387,7 +399,7 @@ static void ISQ_setup_ppmto_filters(void)
       bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
    }
 
-   /*-- Write a PNG file --*/
+   /*-- Write a PNG file (again, query God) --*/
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg != NULL ){
@@ -2967,6 +2979,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    THD_string_array *agif_list=NULL ; /* 27 Jul 2001 */
    char tsuf[8] ;                     /* 09 Dec 2002 */
    float dx,dy ;                      /* 08 Jun 2004 */
+   int dbg ;                          /* 03 Sep 2004 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -2975,6 +2988,8 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 #endif
 
 ENTRY("ISQ_saver_CB") ;
+
+   dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
 
    /*---------------*/
 
@@ -2996,6 +3011,8 @@ ENTRY("ISQ_saver_CB") ;
       }
 
       /*-- check that the prefix is acceptable --*/
+
+      if( dbg ) fprintf(stderr,"IMSAVE: got prefix '%s'\n",seq->saver_prefix);
 
       ll = strlen(seq->saver_prefix) ;
 
@@ -3022,6 +3039,8 @@ ENTRY("ISQ_saver_CB") ;
 
          /* undump XImage to MRI_IMAGE (rgb format) */
 
+         if( dbg ) fprintf(stderr,"IMSAVE: convert XImage to RGB\n") ;
+
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
@@ -3029,6 +3048,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
+           if( dbg ) fprintf(stderr,"  square-ize aspect\n") ;
            flim = mri_squareaspect( tim ) ;
            if( flim != NULL ){ mri_free(tim); tim = flim; }
          }
@@ -3040,14 +3060,18 @@ ENTRY("ISQ_saver_CB") ;
              seq->mont_ny  == 1    &&
              tim           != NULL && tim->kind == MRI_rgb ){
 
-           MRI_IMAGE *qim=mri_dup2D(seq->zoom_fac,tim) ;
+           MRI_IMAGE *qim ;
+           if( dbg ) fprintf(stderr,"  zooming\n") ;
+           qim = mri_dup2D(seq->zoom_fac,tim) ;
            mri_free(tim) ; tim = qim ;
          }
 
          /* 23 Mar 2002: draw overlay lines on top, if any */
 
-         if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb )
-            memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+         if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb ){
+           if( dbg ) fprintf(stderr,"  overlay geometry stuff\n") ;
+           memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+         }
 
          /* 25 Mar 2002: perhaps cut up zoomed image
                          (after overlay is drawn on it, that is) */
@@ -3062,6 +3086,7 @@ ENTRY("ISQ_saver_CB") ;
             MRI_IMAGE *qim ;
             int xa,ya , iw=tim->nx/seq->zoom_fac , ih=tim->ny/seq->zoom_fac ;
 
+            if( dbg ) fprintf(stderr,"  crop zoomed image\n") ;
             xa = seq->zoom_hor_off * tim->nx ;
             if( xa+iw > tim->nx ) xa = tim->nx-iw ;
             ya = seq->zoom_ver_off * tim->nx ;
@@ -3158,6 +3183,7 @@ ENTRY("ISQ_saver_CB") ;
          EXRETURN ;
       }
 
+      if( dbg ) fprintf(stderr,"IMSAVE: got From=%d\n",cbs->ival) ;
       seq->saver_from = cbs->ival ;
 
       POPDOWN_integer_chooser ;
@@ -3180,6 +3206,8 @@ ENTRY("ISQ_saver_CB") ;
    }
 
    POPDOWN_integer_chooser ;
+
+   if( dbg ) fprintf(stderr,"IMSAVE: got To  =%d\n",cbs->ival) ;
 
    seq->saver_to = cbs->ival ;
 
@@ -3217,6 +3245,7 @@ ENTRY("ISQ_saver_CB") ;
      tsuf[1] = (lrand48()>>5)%26 + 'A' ;   /* for animation */
      tsuf[2] = (lrand48()>>5)%26 + 'A' ;   /* temp files    */
      tsuf[3] = '\0' ;
+     if( dbg ) fprintf(stderr,"IMSAVE: animation suffix='%s'\n",tsuf) ;
    } else {
      tsuf[0] = '\0' ;                      /* not used */
    }
@@ -3226,6 +3255,8 @@ ENTRY("ISQ_saver_CB") ;
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
       /* get the underlay image */
+
+      if( dbg ) fprintf(stderr,"IMSAVE: fetch underlay image #%d\n",kf) ;
 
       tim = ISQ_getimage( kf , seq ) ;
 
@@ -3248,6 +3279,7 @@ ENTRY("ISQ_saver_CB") ;
       if( meter != NULL ){
         meter_perc = (int)(100.9 * (kf - seq->saver_from) / meter_pbase) ;
         if( meter_perc != meter_pold ){
+          if( dbg ) fprintf(stderr,"  set meter to %d\n",meter_perc) ;
           MCW_set_meter( meter , meter_perc ) ;
           meter_pold = meter_perc ;
         }
@@ -3263,6 +3295,8 @@ ENTRY("ISQ_saver_CB") ;
 
          /* process image to make the grayscale index */
 
+         if( dbg ) fprintf(stderr,"  process image\n") ;
+
          seq->set_orim = 0 ;
          tim  = flim ;
          flim = ISQ_process_mri( kf , seq , tim ) ;
@@ -3271,10 +3305,12 @@ ENTRY("ISQ_saver_CB") ;
          /* get overlay and flip it */
 
          if( !ISQ_SKIP_OVERLAY(seq) ){
+            if( dbg ) fprintf(stderr,"  fetch overlay image\n") ;
             tim = ISQ_getoverlay( kf , seq ) ;
             if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
                KILL_1MRI(tim) ;
             }
+            if( dbg ) fprintf(stderr,"  flip overlay?\n") ;
             if( tim != NULL )
                ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
             if( tim != ovim ) KILL_1MRI(tim) ;
@@ -3284,6 +3320,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( ovim != NULL ){
             tim = flim ;
+            if( dbg ) fprintf(stderr,"  merge overlay and underlay images\n") ;
             flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
             if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
             else              { KILL_1MRI(tim) ; }
@@ -3292,6 +3329,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+           if( dbg ) fprintf(stderr,"  square-ize aspect ratio\n") ;
            tim = mri_squareaspect( flim ) ;
            if( tim != NULL ){ mri_free(flim); flim = tim; }
          }
@@ -3299,6 +3337,7 @@ ENTRY("ISQ_saver_CB") ;
          /* if needed, convert from indices to RGB */
 
          if( flim->kind == MRI_short ){
+            if( dbg ) fprintf(stderr,"  convert to RGB\n") ;
             tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
             mri_free(flim) ; flim = tim ;
          }
@@ -3306,14 +3345,17 @@ ENTRY("ISQ_saver_CB") ;
          /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
 
          if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+           if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
            tim=mri_dup2D(seq->zoom_fac,flim) ;
            mri_free(flim) ; flim = tim ;
          }
 
          if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){  /* draw geometry overlay */
            MEM_plotdata *mp ;
+           if( dbg ) fprintf(stderr,"  get geometry overlay?\n") ;
            mp = ISQ_getmemplot( kf , seq ) ;
            if( mp != NULL ){
+             if( dbg ) fprintf(stderr,"  perform geometry overlay\n") ;
              flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
              memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
              delete_memplot(mp) ;
@@ -3327,6 +3369,7 @@ ENTRY("ISQ_saver_CB") ;
 
            int xa,ya , iw=flim->nx/seq->zoom_fac , ih=flim->ny/seq->zoom_fac ;
 
+           if( dbg ) fprintf(stderr,"  crop zoomed image\n") ;
            xa = seq->zoom_hor_off * flim->nx ;
            if( xa+iw > flim->nx ) xa = flim->nx-iw ;
            ya = seq->zoom_ver_off * flim->nx ;
@@ -3366,10 +3409,11 @@ ENTRY("ISQ_saver_CB") ;
            ADDTO_SARR(agif_list,fname) ;
          }
          signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+         if( dbg ) fprintf(stderr,"  piping image to '%s'\n",filt) ;
          fp = popen( filt , "w" ) ;                    /* open pipe to filter */
          if( fp == NULL ){
-            fprintf(stderr,"** Can't open output filter %s\n",filt) ;
-            continue ;  /* loop over files */
+           fprintf(stderr,"** Can't open output filter %s\n",filt) ;
+           continue ;  /* loop over files */
          }
 
          /* write RGB image to pipe as a PPM file */
@@ -3378,6 +3422,7 @@ ENTRY("ISQ_saver_CB") ;
          fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
          pc = pclose(fp) ;
          if( pc == -1 ) perror("Error in image output pipe") ;
+         if( dbg ) fprintf(stderr,"  pipe done\n") ;
 
          /* done with this image */
 
@@ -3406,7 +3451,7 @@ ENTRY("ISQ_saver_CB") ;
                alen += 3*agif_list->num + 32 ;               /* all filenames */
                alc = AFMALL ( char, alen) ; alc[0] = '\0' ;          /* in one string */
                for( alen=af=0 ; af < agif_list->num ; af++ ){
-                  strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
+                 strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
                }
 
                oof  = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
@@ -3431,6 +3476,8 @@ ENTRY("ISQ_saver_CB") ;
 
                par = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* param fname */
                sprintf(par,"%s%s.PARAM",seq->saver_prefix,tsuf) ;
+
+               if( dbg ) fprintf(stderr,"  creating MPEG parameter file %s\n",par) ;
                fpar = fopen( par , "w" ) ;
                if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
                oof = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
@@ -3499,6 +3546,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+           if( dbg ) fprintf(stderr,"  square-ate aspect ratio\n") ;
            tim = mri_squareaspect( flim ) ;
            if( tim != NULL ){ mri_free(flim); flim = tim; }
          }

@@ -1,12 +1,5 @@
 #include "mrilib.h"
 
-#undef INLINE
-#ifdef __GNUC__
-# define INLINE inline
-#else
-# define INLINE /*nada*/
-#endif
-
 #undef  IJK
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
 
