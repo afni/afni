@@ -16,13 +16,13 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int no_ordwarn   = -1 ;
 
-THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
+THD_datablock * THD_init_one_datablock( char *dirname , char *headname )
 {
-   THD_datablock     * dblk ;
-   THD_diskptr       * dkptr ;
-   ATR_int           * atr_rank , * atr_dimen , * atr_scene , * atr_btype ;
-   ATR_float         * atr_flt ;
-   ATR_string        * atr_labs ;
+   THD_datablock     *dblk ;
+   THD_diskptr       *dkptr ;
+   ATR_int           *atr_rank , *atr_dimen , *atr_scene , *atr_btype ;
+   ATR_float         *atr_flt ;
+   ATR_string        *atr_labs ;
    int ii , view_type , func_type , dset_type , nx,ny,nz,nvox , nvals , ibr,typ ;
    Boolean ok ;
    char prefix[THD_MAX_NAME] ;
@@ -197,6 +197,11 @@ ENTRY("THD_init_one_datablock") ;
      THD_init_datablock_brick( dblk , MRI_short , NULL ) ;
    } else {
      THD_init_datablock_brick( dblk , atr_btype->nin , atr_btype->in ) ;
+   }
+
+   if( !THD_datum_constant(dblk) ){ /* 15 Sep 2004 */
+     fprintf(stderr,
+             "\n** WARNING: File %s has mixed-type sub-bricks.",headname);
    }
 
    /* 25 April 1998: check if the byte order is stored inside */
