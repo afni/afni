@@ -2689,6 +2689,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    MRI_IMAGE * tim , * flim ;
    char fname[256] ;
    THD_string_array *agif_list=NULL ; /* 27 Jul 2001 */
+   char tsuf[8] ;                     /* 09 Dec 2002 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -2712,8 +2713,8 @@ ENTRY("ISQ_saver_CB") ;
       seq->saver_prefix = XtMalloc( sizeof(char) * (ll+8) ) ;
       strcpy( seq->saver_prefix , cbs->cval ) ;
 
-      if( seq->saver_prefix[ll-1] != '.' ){  /* add a . at the end? */
-         seq->saver_prefix[ll++] = '.' ;
+      if( seq->saver_prefix[ll-1] != '.' ){  /* add a . at the end */
+         seq->saver_prefix[ll++] = '.' ;     /* if one isn't there */
          seq->saver_prefix[ll]   = '\0' ;
       }
 
@@ -2747,7 +2748,6 @@ ENTRY("ISQ_saver_CB") ;
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
-
          /* 23 Mar 2002: zoom out, if ordered */
 
          if( seq->zoom_fac >  1    &&
@@ -2927,6 +2927,15 @@ ENTRY("ISQ_saver_CB") ;
    }
 #endif
 
+   if( DO_ANIM(seq) ){                     /* 09 Dec 2002:  */
+     tsuf[0] = (lrand48()>>5)%26 + 'A' ;   /* random suffix */
+     tsuf[1] = (lrand48()>>5)%26 + 'A' ;   /* for animation */
+     tsuf[2] = (lrand48()>>5)%26 + 'A' ;   /* temp files    */
+     tsuf[3] = '\0' ;
+   } else {
+     tsuf[0] = '\0' ;                      /* not used */
+   }
+
    /*---- loop thru, get images, save them ----*/
 
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
@@ -3055,12 +3064,12 @@ ENTRY("ISQ_saver_CB") ;
            sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
            sprintf( filt , ppmto_filter[ff] , fname ) ;
          } else if( DO_AGIF(seq) ){                    /* use the gif filter */
-           sprintf( fname, "%s%04d.gif" , seq->saver_prefix, kf) ;
+           sprintf( fname, "%s%s.%04d.gif" , seq->saver_prefix,tsuf, kf) ;
            sprintf( filt , ppmto_gif_filter , fname ) ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
-           sprintf( fname, "%s%04d.ppm" , seq->saver_prefix, kf) ;
+           sprintf( fname, "%s%s.%04d.ppm" , seq->saver_prefix,tsuf, kf) ;
            sprintf( filt , ppmto_ppm_filter , fname ) ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
@@ -3130,7 +3139,7 @@ ENTRY("ISQ_saver_CB") ;
                /* write mpeg_encode parameter file */
 
                par = malloc( strlen(seq->saver_prefix)+32 ) ; /* param fname */
-               sprintf(par,"%sPARAM",seq->saver_prefix) ;
+               sprintf(par,"%s%s.PARAM",seq->saver_prefix,tsuf) ;
                fpar = fopen( par , "w" ) ;
                if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
                oof = malloc( strlen(seq->saver_prefix)+32 ) ; /* output fname */
@@ -3155,10 +3164,10 @@ ENTRY("ISQ_saver_CB") ;
                           "BSEARCH_ALG       SIMPLE\n"
                           "REFERENCE_FRAME   ORIGINAL\n"
                           "INPUT\n"
-                          "%s*.ppm [%04d-%04d]\n"
+                          "%s%s.*.ppm [%04d-%04d]\n"
                           "END_INPUT\n"
                        , oof , pattrn , qscale ,
-                         seq->saver_prefix,seq->saver_from,seq->saver_to ) ;
+                         seq->saver_prefix,tsuf,seq->saver_from,seq->saver_to ) ;
                fclose(fpar) ;
 
                /* make command to run */
