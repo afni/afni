@@ -1310,9 +1310,25 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
    if( str == NULL || *str == '\0' ) return ;
 
    /*-- find string that starts the slice information array --*/
+   /* 04 Mar 2003 reworked this section to skip "fake matches" *
+    * of the target string present in some mosaic files in the *
+    * binary section                                     --KRH */
+   nn = 0;
+   while (nn == 0) {
 
-   cpt = strstr( str , "sSliceArray.asSlice[" ) ;
-   if( cpt == NULL ) return ;
+     cpt = strstr( str , "sSliceArray.asSlice[" ) ;
+     if( cpt == NULL ) return ;
+     /* interepret next string into
+         snum = slice subscript (0,1,...)
+         name = variable name
+         val  = number of RHS of '=' sign
+         mm   = # of bytes used in scanning the above */
+
+     nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
+                  &snum , name , &val , &mm ) ;
+     str += 20; /* skip to end of "false match" string KRH */
+   }
+
 
    /*-- scan for coordinates, until can't find a good string to scan --*/
 
@@ -1323,14 +1339,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
    while(1){
 
-     /* interepret next string into
-         snum = slice subscript (0,1,...)
-         name = variable name
-         val  = number of RHS of '=' sign
-         mm   = # of bytes used in scanning the above */
 
-     nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
-                  &snum , name , &val , &mm ) ;
 
      if( nn   <  3                   ) break ;  /* bad conversion set */
      if( snum <  0 || snum >= NMOMAX ) break ;  /* slice number out of range */
@@ -1373,7 +1382,18 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
      cpt =  dpt ;
      while( isspace(*cpt) ) cpt++ ;                             /* skip over whitespace */
      if( cpt-dpt > 16 ) break ;                                 /* too much space */
-     if( strncmp(cpt,"sSliceArray.asSlice[",20) != 0 ) break ;  /* bad next line */
+     if( strncmp(cpt,"sSliceArray.asSlice[",20) != 0 ) break ;   /* bad next line */
+     /* 04 Mar 2003 moved this stuff around to allow for locating "fake matches"  *
+      * of the target text in some mosaic files' binary sections                  */
+
+     /* interpret next string into
+         snum = slice subscript (0,1,...)
+         name = variable name
+         val  = number of RHS of '=' sign
+         mm   = # of bytes used in scanning the above */
+
+     nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
+                  &snum , name , &val , &mm ) ;
 
    }
 
