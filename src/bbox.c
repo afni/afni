@@ -630,15 +630,15 @@ void refit_MCW_optmenu( MCW_arrowval * av ,
    char * butlabel , * blab ;
    XmString xstr ;
 
-#ifdef AFNI_DEBUG
-printf("Enter refit_MCW_optmenu: %d..%d init %d\n",minval,maxval,inival) ;
-#endif
+ENTRY("refit_MCW_optmenu") ;
 
    /** sanity check **/
 
+#if 0
    POPDOWN_strlist_chooser ;  /* 11 Dec 2001 */
+#endif
 
-   if( av == NULL || av->wmenu == NULL ) return ;
+   if( av == NULL || av->wmenu == NULL ) EXRETURN ;
    wmenu = av->wmenu ;
 
    /** get all the existing children **/
@@ -651,10 +651,6 @@ printf("Enter refit_MCW_optmenu: %d..%d init %d\n",minval,maxval,inival) ;
                      XmNchildren    , &children ,
                      XmNnumChildren , &num_children ,
                   NULL ) ;
-
-#ifdef BBOX_DEBUG
-printf(" -- found %d old children\n",num_children) ;
-#endif
 
    /** reset some internal parameters **/
 
@@ -682,10 +678,6 @@ printf(" -- found %d old children\n",num_children) ;
          blab += 1 ;  /* deal with leading blanks in default routine */
       }
 
-#ifdef BBOX_DEBUG
-printf(" -- button %d: index=%d label=%s",ival,ic,blab) ; fflush(stdout) ;
-#endif
-
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       /** re-use old button if possible, otherwise add a new one **/
@@ -703,24 +695,14 @@ printf(" -- button %d: index=%d label=%s",ival,ic,blab) ; fflush(stdout) ;
          ival_old = (int) user_old ;
 
          if( ival_old != ival || XmStringCompare(xstr_old,xstr) != True ){
-
-#ifdef BBOX_DEBUG
-printf(": relabeling old button\n") ;
-#endif
             XtVaSetValues( wbut ,
                               XmNlabelString , xstr ,             /* change label */
                               XmNuserData    , (XtPointer) ival , /* Who am I? */
                            NULL ) ;
          }
-#ifdef BBOX_DEBUG
-         else { printf(": reusing old button\n") ; }
-#endif
          XmStringFree( xstr_old ) ;
          XtManageChild( wbut ) ;    /* if not now managed */
       } else {
-#ifdef BBOX_DEBUG
-printf(": creating new button\n") ;
-#endif
          wbut = XtVaCreateManagedWidget(
                    "dialog" , xmPushButtonWidgetClass , wmenu ,
                      XmNlabelString  , xstr ,
@@ -745,11 +727,6 @@ printf(": creating new button\n") ;
 
    /** Unmanage extra children from an old incarnation **/
 
-#ifdef BBOX_DEBUG
-if( maxval-minval+1 < num_children )
-   printf(" -- Unmanaging unneeded old children\n") ;
-#endif
-
    ic = maxval-minval+1 ;  /* first child after those used above */
 
    if( ic < num_children )
@@ -757,15 +734,7 @@ if( maxval-minval+1 < num_children )
 
    /** set number of columns to see **/
 
-#ifdef BBOX_DEBUG
-printf(" -- setting columnization\n") ;
-#endif
-
    AVOPT_columnize( av , 1+(maxval-minval)/COLSIZE ) ;
-
-#ifdef BBOX_DEBUG
-printf(" -- managing whole shebang\n") ;
-#endif
 
 #if 0
    XtManageChild( wmenu ) ;
@@ -776,17 +745,10 @@ printf(" -- managing whole shebang\n") ;
    XtPopdown( XtParent(wmenu) ) ;  /* 28 Apr 1997 */
 #endif
 
-#ifdef BBOX_DEBUG
-printf(" -- performing initial assignment\n") ;
-#endif
-
    av->block_assign_actions = 0 ;   /* unblock these actions */
    AV_assign_ival( av , inival ) ;  /* actual initial assignment */
 
-#ifdef AFNI_DEBUG
-printf("Exit refit_MCW_optmenu\n") ;
-#endif
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -799,7 +761,9 @@ static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
    MCW_arrowval *av = (MCW_arrowval *) cd ;
    int ival ;
 
-   if( av == NULL || av->wmenu == NULL ) return ;
+ENTRY("optmenu_finalize") ;
+
+   if( av == NULL || av->wmenu == NULL ) EXRETURN ;
 
    ival = cbs->ival + av->imin ;
    AV_assign_ival( av , ival ) ;
@@ -809,7 +773,7 @@ static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
    if( av->dval_CB != NULL && av->fval != av->old_fval )
       av->dval_CB( av , av->dval_data ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -825,14 +789,16 @@ static void optmenu_EV( Widget w , XtPointer cd ,
    char *slab=NULL ;
    XmString xstr ;
 
+ENTRY("optmenu_EV") ;
+
    /** sanity checks **/
 
-   if( bev->button != Button3 ) return ;
+   if( bev->button != Button3 ) EXRETURN ;
 
-   if( w == NULL || av == NULL || av->wmenu == NULL ) return ;
+   if( w == NULL || av == NULL || av->wmenu == NULL ) EXRETURN ;
 
    XtVaGetValues( av->wlabel , XmNwidth,&lw , NULL ) ;
-   if( bev->x > lw ) return ;
+   if( bev->x > lw ) EXRETURN ;
 
    /** get ready to popup a new list chooser **/
 
@@ -864,7 +830,7 @@ static void optmenu_EV( Widget w , XtPointer cd ,
    MCW_choose_strlist( w , slab , nstr ,
                        sval - av->imin , strlist ,
                        optmenu_finalize , cd      ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -1033,7 +999,9 @@ void AV_assign_ival( MCW_arrowval * av , int nval )
    int newival = nval ;
    char * cval ;
 
-   if( av == NULL ) return ;  /* 01 Feb 2000 */
+ENTRY("AV_assign_ival") ;
+
+   if( av == NULL ) EXRETURN ;  /* 01 Feb 2000 */
 
    if( newival > av->imax ) newival = av->imax ;
    if( newival < av->imin ) newival = av->imin ;
@@ -1080,7 +1048,7 @@ void AV_assign_ival( MCW_arrowval * av , int nval )
          XtVaSetValues( av->wrowcol ,  XmNmenuHistory , children[ic] , NULL ) ;
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -2014,6 +1982,8 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
    char * lbuf ;
    int nvisible ;
 
+ENTRY("MCW_choose_multi_strlist") ;
+
    /** destructor callback **/
 
    if( wpar == NULL ){
@@ -2022,13 +1992,14 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
          XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
          XtDestroyWidget( wpop ) ;
       }
-      wpop = NULL ; return ;
+      STATUS("destroying chooser") ;
+      wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_strlist %s\n",
               XtName(wpar) ) ;
-      return ;
+      EXRETURN ;
    }
 
    MCW_set_listmax( wpar ) ;
@@ -2174,7 +2145,7 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 void MCW_list_mode_CB( MCW_arrowval * av , XtPointer cd )

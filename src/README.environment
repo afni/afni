@@ -1074,6 +1074,9 @@ Another way to get a handle on such huge menus is to Button-3 (right)
 click on the label to the left of the menu.  This will popup a one-
 column scrollable list chooser that is equivalent to the menu.  In this
 way, it is still possible to use menus that have hundreds of entries.
+The maximum number of entries shown at one time in a scrollable list
+chooser is given by variable AFNI_chooser_listmax if it exists, otherwise
+by AFNI_MENU_COLSIZE.
 
 =======================================
 | Robert W Cox, PhD                   |

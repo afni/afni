@@ -3440,13 +3440,16 @@ STATUS("forcible adoption of unparented datasets") ;
 
 void AFNI_startup_3dview( Three_D_View * im3d )
 {
+   static int old_0D_num=0 , old_2D_num=0 ;
+
 ENTRY("AFNI_startup_3dview") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    /* the pbar Tran 0D menu */
 
-   if( GLOBAL_library.registered_0D.num > 0 ){
+   if( GLOBAL_library.registered_0D.num != old_0D_num ){
+      old_0D_num = GLOBAL_library.registered_0D.num ;
       refit_MCW_optmenu( im3d->vwid->func->pbar_transform0D_av ,
                            0 ,                                 /* new minval */
                            GLOBAL_library.registered_0D.num ,  /* new maxval */
@@ -3457,7 +3460,8 @@ ENTRY("AFNI_startup_3dview") ;
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
    } else {
-      XtUnmanageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
+      if( old_0D_num == 0 )
+        XtUnmanageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
    }
 
    im3d->vwid->func->pbar_transform0D_index = 0 ;
@@ -3465,7 +3469,8 @@ ENTRY("AFNI_startup_3dview") ;
 
    /* the pbar Tran 2D menu */
 
-   if( GLOBAL_library.registered_2D.num > 0 ){
+   if( GLOBAL_library.registered_2D.num != old_2D_num ){
+      old_2D_num = GLOBAL_library.registered_2D.num ;
       refit_MCW_optmenu( im3d->vwid->func->pbar_transform2D_av ,
                            0 ,                                 /* new minval */
                            GLOBAL_library.registered_2D.num ,  /* new maxval */
@@ -3476,7 +3481,8 @@ ENTRY("AFNI_startup_3dview") ;
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
    } else {
-      XtUnmanageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
+      if( old_2D_num == 0 )
+        XtUnmanageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
    }
 
    im3d->vwid->func->pbar_transform2D_index = 0 ;
@@ -6173,27 +6179,33 @@ STATUS(" ---- set threshold decim NEW") ;
 
       do_buck = 0 ;
 
+      /* 12 Dec 2001: only refit menus if dataset has changed */
+
       if( ISFUNCBUCKET(im3d->fim_now) ){
+         static THD_3dim_dataset *old_fim = NULL ;  /* 12 Dec 2001 */
+         if( im3d->fim_now != old_fim ){
 STATUS(" ---- func bucket widgets ON") ;
-         XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
-         refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
-                            0 ,                            /* new minval */
-                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
-                            im3d->vinfo->fim_index ,       /* new inival */
-                            0 ,                            /* new decim? */
-                            AFNI_bucket_label_CB ,         /* text routine */
-                            im3d->fim_now                  /* text data */
-                          ) ;
-         refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
-                            0 ,                            /* new minval */
-                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
-                            im3d->vinfo->thr_index ,       /* new inival */
-                            0 ,                            /* new decim? */
-                            AFNI_bucket_label_CB ,         /* text routine */
-                            im3d->fim_now                  /* text data */
-                          ) ;
-         XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
-         XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+          XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
+          refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
+                             0 ,                            /* new minval */
+                             DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                             im3d->vinfo->fim_index ,       /* new inival */
+                             0 ,                            /* new decim? */
+                             AFNI_bucket_label_CB ,         /* text routine */
+                             im3d->fim_now                  /* text data */
+                           ) ;
+          refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
+                             0 ,                            /* new minval */
+                             DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
+                             im3d->vinfo->thr_index ,       /* new inival */
+                             0 ,                            /* new decim? */
+                             AFNI_bucket_label_CB ,         /* text routine */
+                             im3d->fim_now                  /* text data */
+                           ) ;
+          XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
+          XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+          old_fim = im3d->fim_now ;
+         }
          do_buck = 1 ;
       } else {
 STATUS(" ---- func bucket widgets OFF") ;
@@ -6203,16 +6215,20 @@ STATUS(" ---- func bucket widgets OFF") ;
       }
 
       if( ISANATBUCKET(im3d->anat_now) ){
+         static THD_3dim_dataset *old_anat = NULL ;  /* 12 Dec 2001 */
+         if( im3d->anat_now != old_anat ){
 STATUS(" ---- anat bucket widgets ON") ;
-         refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
-                            0 ,                             /* new minval */
-                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
-                            im3d->vinfo->anat_index ,       /* new inival */
-                            0 ,                             /* new decim? */
-                            AFNI_bucket_label_CB ,          /* text routine */
-                            im3d->anat_now                  /* text data */
-                          ) ;
-         XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+          refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
+                             0 ,                             /* new minval */
+                             DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
+                             im3d->vinfo->anat_index ,       /* new inival */
+                             0 ,                             /* new decim? */
+                             AFNI_bucket_label_CB ,          /* text routine */
+                             im3d->anat_now                  /* text data */
+                           ) ;
+          XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
+          old_anat = im3d->anat_now ;
+         }
          do_buck = 1 ;
       } else {
 STATUS(" ---- anat bucket widgets OFF") ;

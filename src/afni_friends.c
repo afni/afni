@@ -13,6 +13,10 @@ static char * afni_helptypes[] = {
    "you-know-what"                     /* mask =1024 */
 } ;
 
+#define YOU_KNOW_WHAT 10
+#define INSPIRATION    5
+#define KLOSEK         7
+
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
 
 typedef struct { char * name ; int helpmask ; } AFNI_friend ;
@@ -24,7 +28,7 @@ static AFNI_friend afni_friends[] = {
   { "SM Rao"         , ( 1 |     4 | 8 | 16           | 128             ) } ,
   { "EA Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128             ) } ,
   { "A Jesmanowicz"  , (             8 |      32                        ) } ,
-  { "MS Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128      | 1024 ) } ,
+  { "MS Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128             ) } ,
   { "MM Klosek"      , ( 1 | 2              | 32                 | 1024 ) } ,
   { "JA Bobholz"     , (             8 | 16 | 32      | 128             ) } ,
   { "JA Frost"       , (             8 | 16                             ) } ,
@@ -46,7 +50,9 @@ static AFNI_friend afni_friends[] = {
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
   { "S Durgerian"    , (             8 | 16                             ) } ,
   { "M Belmonte"     , (             8 |           64                   ) } ,
-  { "V van Gogh"     , (                    32                          ) }
+  { "V van Gogh"     , (                      32                        ) } ,
+  { "K Bove-Bettis"  , (                 16 |           128             ) } ,
+  { "E Kapler"       , (                                128             ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -57,7 +63,10 @@ char * AFNI_get_friend(void)
    nf = lrand48() % NUM_FRIENDS ;
    do{
       nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-   } while( qq < 29 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+   } while( qq < 23 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+
+   if( nh == YOU_KNOW_WHAT && nf != KLOSEK ) nh = INSPIRATION ; /* only for Gosia */
+
    sprintf( buf  ,
             "Thanks go to %s for %s" ,
             afni_friends[nf].name , afni_helptypes[nh] ) ;
