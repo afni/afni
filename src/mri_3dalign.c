@@ -1,9 +1,10 @@
-#include "mrilib.h"
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
+
+#include "mrilib.h"
 
 /*** NOT 7D SAFE ***/
 
@@ -77,6 +78,8 @@ void mri_3dalign_method( int rmode , int verb , int norgg , int clip )
    return ;
 }
 
+/*-------------------------------------------------------------------*/
+
 static float blurit = 0.0 ;
 void mri_3dalign_blurring( float bl ){ blurit = bl ; return ; }
 
@@ -85,6 +88,51 @@ void mri_3dalign_final_regmode( int frm )
 {
    final_regmode = frm ;
    return ;
+}
+
+/*-------------------------------------------------------------------*/
+
+static int xedge=-1 , yedge=-1 , zedge=-1 ;
+static int xfade    , yfade    , zfade    ;
+
+static int force_edging=0 ;
+
+void mri_3dalign_edging( int x , int y , int z )  /* 10 Dec 2000 */
+{
+   xedge = x ; yedge = y ; zedge = z ;
+}
+
+void mri_3dalign_force_edging( int n )
+{
+   force_edging = n ;
+}
+
+void mri_3dalign_edging_default( int nx , int ny , int nz )
+{
+   char *ef=my_getenv("AFNI_VOLREG_EDGING") , *eq ;
+
+   if( ef == NULL ){                  /* the 5% solution */
+      xfade = (int)(0.05*nx+0.5) ;
+      yfade = (int)(0.05*ny+0.5) ;
+      zfade = (int)(0.05*nz+0.5) ;
+   } else {
+      float ff = strtod(ef,&eq) ;
+      if( ff < 0 ){                   /* again */
+         xfade = (int)(0.05*nx+0.5) ;
+         yfade = (int)(0.05*ny+0.5) ;
+         zfade = (int)(0.05*nz+0.5) ;
+      } else {
+         if( *eq == '%' ){            /* the whatever % solution */
+            xfade = (int)(0.01*ff*nx+0.5) ;
+            yfade = (int)(0.01*ff*ny+0.5) ;
+            zfade = (int)(0.01*ff*nz+0.5) ;
+         } else {                     /* the fixed value solution */
+            xfade = (int)( MIN(0.25*nx,ff) ) ;
+            yfade = (int)( MIN(0.25*ny,ff) ) ;
+            zfade = (int)( MIN(0.25*nz,ff) ) ;
+         }
+      }
+   }
 }
 
 /*--------------------------------------------------------------------
@@ -245,7 +293,7 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
       dar[ii] = delta * ( mar[ii] - par[ii] ) ;
    ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
 
-   /*-- weighting image --*/
+   /*-- get the weighting image --*/
 
    if( imwt != NULL &&
        (imwt->nx != bim->nx || imwt->ny != bim->ny || imwt->nz != bim->nz) ){
@@ -254,7 +302,8 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
       imwt = NULL ;
    }
 
-#define FF(i,j,k) f[(i)+(j)*nx+(k)*nxy]
+   /* make weight up from the base */
+
    if( imwt == NULL ){
       int nx=bim->nx , ny=bim->ny , nz=bim->nz , nxy = nx*ny ;
       int ii , jj , kk ;
@@ -271,19 +320,38 @@ MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
                            MRI_float , f , 3.0*dx , 3.0*dy , 3.0*dz ) ;
 #endif
 
-#if 1
-      for( jj=0 ; jj < ny ; jj++ )
-         for( ii=0 ; ii < nx ; ii++ ){ FF(ii,jj,0) *= 0.3; FF(ii,jj,nz-1) *= 0.3; }
-
-      for( kk=0 ; kk < nz ; kk++ )
-         for( jj=0 ; jj < ny ; jj++ ){ FF(0,jj,kk) *= 0.3; FF(nx-1,jj,kk) *= 0.3; }
-
-      for( kk=0 ; kk < nz ; kk++ )
-         for( ii=0 ; ii < nx ; ii++ ){ FF(ii,0,kk) *= 0.3; FF(ii,ny-1,kk) *= 0.3; }
-#endif
-
    } else {
       imww = mri_to_float( imwt ) ;  /* just copy it */
+   }
+
+   /*-- 10 Dec 2000: user-controlled fade out around the edges --*/
+
+   if( imwt == NULL || force_edging ){
+     int ff , ii,jj,kk ;
+     int nx=bim->nx , ny=bim->ny , nz=bim->nz , nxy = nx*ny ;
+     float *f = MRI_FLOAT_PTR(imww) ;
+
+     xfade = xedge ; yfade = yedge ; zfade = zedge ;  /* static variables */
+
+     if( xfade < 0 || yfade < 0 || zfade < 0 )
+        mri_3dalign_edging_default(nx,ny,nz) ;        /* reassign fades */
+
+#define FF(i,j,k) f[(i)+(j)*nx+(k)*nxy]
+
+      for( jj=0 ; jj < ny ; jj++ )
+         for( ii=0 ; ii < nx ; ii++ )
+            for( ff=0 ; ff < zfade ; ff++ )
+               FF(ii,jj,ff) = FF(ii,jj,nz-1-ff) = 0.0 ;
+
+      for( kk=0 ; kk < nz ; kk++ )
+         for( jj=0 ; jj < ny ; jj++ )
+            for( ff=0 ; ff < xfade ; ff++ )
+               FF(ff,jj,kk) = FF(nx-1-ff,jj,kk) = 0.0 ;
+
+      for( kk=0 ; kk < nz ; kk++ )
+         for( ii=0 ; ii < nx ; ii++ )
+            for( ff=0 ; ff < yfade ; ff++ )
+               FF(ii,ff,kk) = FF(ii,ny-1-ff,kk) = 0.0 ;
    }
 
    /*-- initialize linear least squares --*/

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
   This file contains routines to open and initialize models. The interface 
   with the signal and noise models is accomplished using dynamic libraries.
@@ -7,28 +13,6 @@
   Author:   B. Douglas Ward
   Date:     23 June 1997
 
-*/
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
 */
 
 /*---------------------------------------------------------------------------*/

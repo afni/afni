@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This program performs agglomerative hierarchical clustering of voxels 
@@ -14,11 +20,6 @@
   Mod:     Replaced dataset interface code with call to THD_open_dataset.
            Restructured code for initializing hierarchical clustering.
   Date:    19 October 1999
-
-
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-
 */
 /*---------------------------------------------------------------------------*/
 

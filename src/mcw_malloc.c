@@ -1,9 +1,10 @@
-#include "mcw_malloc.h"
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
+
+#include "mcw_malloc.h"
 
 #define INC_MT 16384
 static int amt = 0 , nmt = 0 ;

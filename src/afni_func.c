@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #undef MAIN
 
 #include "afni.h"
@@ -2006,7 +2012,7 @@ STATUS("creating new dialog") ;
       im3d->vwid->file_dialog =
          XtVaCreatePopupShell(
            "menu" , xmDialogShellWidgetClass , im3d->vwid->top_shell ,
-              XmNtitle , "MCW AFNI" ,
+              XmNtitle , "GPL AFNI" ,
               XmNdeleteResponse , XmDO_NOTHING ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
@@ -3439,7 +3445,7 @@ STATUS("have new image") ;
    COMPRESS_fclose(far) ;
    STATUS("output file closed") ;
 
-   if( picturize ) PICTURIZE(mcw_pixmap) ;
+   if( picturize ) PICTURIZE(logo_pixmap) ;
 #ifndef DONT_USE_METER
    MCW_set_meter( meter , 100 ) ;
 #endif
@@ -4146,6 +4152,18 @@ STATUS("got func info") ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
+   }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_license_pb ){  /* 03 Dec 2000 */
+#include "license.h"
+      char * inf = NULL ; int ii ;
+
+      for( ii=0 ; license[ii] != NULL ; ii++ )
+         inf = THD_zzprintf( inf , "%s" , license[ii] ) ;
+      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+      free(inf) ;
    }
 
    /*.........................................................*/

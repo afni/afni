@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
   This program performs the nonparametric Wilcoxon-Mann-Whitney two-sample 
   test for determining whether the observations come from the same population.
@@ -15,16 +21,7 @@
   Mod:     Replaced dataset input code with calls to THD_open_dataset,
            to allow operator selection of individual sub-bricks for input.
   Date:    03 December 1999
-
-
 */
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
 
 /*---------------------------------------------------------------------------*/
 

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This program creates AFNI "bucket" type datasets.
@@ -14,10 +20,6 @@
 
 */
 
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #define PROGRAM_NAME "3dbucket"                      /* name of this program */
 #define LAST_MOD_DATE "04 February 1998"         /* date of last program mod */

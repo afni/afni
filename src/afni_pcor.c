@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #undef MAIN
 #include "afni_pcor.h"
 
@@ -516,7 +522,9 @@ void PCOR_get_perc(PCOR_references * ref, PCOR_voxel_corr * vc,
    rmin = ref->rmin[nr-1] ;
    rmax = ref->rmax[nr-1] ; rdif = 100.0 * (rmax-rmin) ;
    if( rdif == 0.0 ){
-      for( vox=0 ; vox < nv ; vox++ ) coef[vox] = 0.0 ;
+      /** 06 Dec 2000: zero out both coef and bline in this case **/
+      if( coef  != NULL ) for( vox=0; vox < nv; vox++ ) coef[vox]  = 0.0;
+      if( bline != NULL ) for( vox=0; vox < nv; vox++ ) bline[vox] = 0.0;
       fprintf(stderr,"\nPCOR_get_perc: ref vector has no range!\n") ;
       return ;
    }

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #include "cox_render.h"
 
 /*============================================================================
@@ -12,12 +18,6 @@
 ==============================================================================*/
 
 static int num_renderers = 0 ;  /* global count of how many are open */
-
-/* a prototype (see end of code) */
-
-static void CREN_rotate(int,int,int, float,float,float , byte * ,
-                        int,float, int,float, int,float,
-                        int,float,float,float , Tmask * ) ;
 
 /*--------------------------------------------------------------------------
   Create a new renderer.
@@ -44,7 +44,6 @@ void * new_CREN_renderer( void )
 
    ar->vox    = NULL ;  /* no data yet */
    ar->vtm    = NULL ;
-   ar->voxrot = NULL ;
 
    ar->newopa = 0 ;
    ar->opargb = 1.0 ;             /* colored voxels are opaque */
@@ -72,7 +71,6 @@ void destroy_CREN_renderer( void * ah )
    if( !ISVALID_CREN(ar) ) return ;
 
    if( ar->vox    != NULL ) free(ar->vox) ;
-   if( ar->voxrot != NULL ) free(ar->voxrot) ;
    if( ar->vtm    != NULL ) free_Tmask(ar->vtm) ;
    free(ar) ;
 
@@ -124,7 +122,7 @@ void CREN_set_rgbmap( void *ah, int ncol, byte *rmap, byte *gmap, byte *bmap )
    int ii ;
 
    if( !ISVALID_CREN(ar) ) return ;
-   if( ncol < 1 || ncol > 128 || rmap==NULL || gmap==NULL || bmap==NULL ) return;
+   if( ncol<1 || ncol>128 || rmap==NULL || gmap==NULL || bmap==NULL ) return ;
 
    ar->nrgb = ncol ;
 
@@ -212,18 +210,14 @@ int CREN_set_databytes( void * ah , MRI_IMAGE * grim )
    /*-- free old data --*/
 
    if( ar->vox    != NULL ){ free(ar->vox)      ; ar->vox    = NULL; }
-   if( ar->voxrot != NULL ){ free(ar->voxrot)   ; ar->voxrot = NULL; }
    if( ar->vtm    != NULL ){ free_Tmask(ar->vtm); ar->vtm    = NULL; }
 
    /*-- set dimensions --*/
 
 
-   ar->nx = grim->nx ;
-   ar->ny = grim->ny ;
-   ar->nz = grim->nz ;
-   ar->dx = fabs(grim->dx) ;
-   ar->dy = fabs(grim->dy) ;
-   ar->dz = fabs(grim->dz) ;
+   ar->nx = grim->nx ; ar->dx = fabs(grim->dx) ;
+   ar->ny = grim->ny ; ar->dy = fabs(grim->dy) ;
+   ar->nz = grim->nz ; ar->dz = fabs(grim->dz) ;
 
    if( ar->dx == 0.0 ) ar->dx = 1.0 ;
    if( ar->dy == 0.0 ) ar->dy = 1.0 ;
@@ -273,6 +267,7 @@ ax1,th1,ax2,th2,ax3,th3) ;
    ar->newangles = 1 ; return ;
 }
 
+#if 0
 /*-----------------------------------------------------------------------------
    Actually render an image.  Returns NULL if an error occurs.
    The image is always in MRI_rgb format.
@@ -318,7 +313,7 @@ MRI_IMAGE * CREN_render( void * ah )
 
    /*-- rotate the voxels to the correct alignment --*/
 
-   if( ar->voxrot == NULL || ar->newvox || ar->newangles ){
+   if( ar->newvox || ar->newangles ){
 
       if( ar->voxrot == NULL )
          ar->voxrot = (byte *) malloc(nvox) ;
@@ -437,390 +432,4 @@ MRI_IMAGE * CREN_render( void * ah )
 
    return im ;
 }
-
-/*===========================================================================
-  Routines to rotate/shift a 3D volume of bytes using a 4 way shear
-  decomposition and "two-step" interpolation, specifically for the
-  volume renderer.  In this case, byte values are interepreted as
-      0..127 = intensity (continuous)
-    128..255 = index into color table (discrete)
-  Interpolation for 0..127 is via the two-step method; for 128..255, via NN.
-
-  RWCox - Nov 2000
-=============================================================================*/
-
-#include "thd_shear3d.h"
-
-#define CACHE 7168 /* good for Pentium processors */
-
-#define TSBOT 0.3  /* the "optimal" breakpoints for ts_shift */
-#define TSTOP 0.7
-#define NNBOT 0.5
-
-static int    nlcbuf = 0 ;     /* workspace */
-static byte * lcbuf = NULL ;
-
-/*---------------------------------------------------------------------------
-   Two-step interpolation and shifting
------------------------------------------------------------------------------*/
-
-static int ts_shift_byte( int n , float af , byte * f )
-{
-   register int ii , ia , ix ;
-   float aa ;
-   int ibot,itop ;
-
-   if( fabs(af) < TSBOT ) return 0 ; /* do nothing if shift is too small */
-
-   for( ii=0 ; ii < n && f[ii] == 0 ; ii++ ) ; /* nada */
-   if( ii == n ) return 0 ;          /* do nothing if data all zero */
-
-   af = -af ; ia = (int) af ; if( af < 0 ) ia-- ;  /* ia = floor */
-   aa = af - ia ;
-
-   if( n > nlcbuf ){
-      if( lcbuf != NULL ) free(lcbuf) ;
-      lcbuf  = (byte *) malloc(n) ;
-      nlcbuf = n ;
-   }
-
-   ibot = -ia  ;   if( ibot < 0   ) ibot = 0 ;
-   itop = n-2-ia ; if( itop > n-1 ) itop = n-1 ;
-
-#if 1
-   memset(lcbuf,0,n) ;   /* seems to be faster */
-#else
-   memset(lcbuf,0,ibot) ;
-   memset(lcbuf+(itop+1),0,(n-(itop+1))) ;
 #endif
-
-   if( aa < TSBOT ){           /* NN to bottom */
-
-      memcpy( lcbuf+ibot, f+(ibot+ia)  , (itop+1-ibot) ) ;
-
-   } else if( aa > TSTOP ){  /* NN to top */
-
-      memcpy( lcbuf+ibot, f+(ibot+1+ia), (itop+1-ibot) ) ;
-
-   } else {                    /* average bottom and top, */
-                               /* if grayscales (0..127); */
-      byte *fp = f ;           /* otherwise, use NN       */
-      if( aa > NNBOT ) fp++ ;
-
-      for( ii=ibot ; ii <= itop ; ii++ ){
-         ix = ii + ia ;
-         if( f[ix] < 128 && f[ix+1] < 128 )        /* average */
-            lcbuf[ii] = ( f[ix] + f[ix+1] ) >> 1 ;
-         else
-            lcbuf[ii] = fp[ix] ;                   /* NN */
-      }
-
-   }
-   memcpy( f , lcbuf , n ) ;
-   return 1 ;
-}
-
-/*---------------------------------------------------------------------------
-   Flip a 3D array about the (x,y) axes:
-    i <--> nx-1-i    j <--> ny-1-j
------------------------------------------------------------------------------*/
-
-#define VV(i,j,k) v[(i)+(j)*nx+(k)*nxy]
-#define SX(i)     (nx1-(i))
-#define SY(j)     (ny1-(j))
-#define SZ(k)     (nz1-(k))
-
-static void flip_xy( int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   int ii,jj,kk ;
-   int nx1=nx-1,nx2=nx/2, ny1=ny-1,ny2=ny/2, nz1=nz-1,nz2=nz/2, nxy=nx*ny ;
-   byte * r1 ;
-
-   r1 = (byte *) malloc(nx) ;  /* save 1 row */
-
-   for( kk=0 ; kk < nz ; kk++ ){              /* for each slice */
-      for( jj=0 ; jj < ny2 ; jj++ ){          /* first 1/2 of rows */
-
-         /* swap rows jj and ny1-jj, flipping them in ii as well */
-
-         if( TM_XLINE(tm,jj+kk*ny) || TM_XLINE(tm,SY(jj)+kk*ny) ){
-            for( ii=0; ii < nx; ii++ ) r1[ii]           = VV(SX(ii),SY(jj),kk) ;
-            for( ii=0; ii < nx; ii++ ) VV(ii,SY(jj),kk) = VV(SX(ii),jj    ,kk) ;
-            for( ii=0; ii < nx; ii++ ) VV(ii,jj    ,kk) = r1[ii] ;
-         }
-      }
-      if( ny%2 == 1 && TM_XLINE(tm,jj+kk*ny) ){  /* central row? */
-         for( ii=0; ii < nx; ii++ ) r1[ii]       = VV(SX(ii),jj,kk); /* flip it */
-         for( ii=0; ii < nx; ii++ ) VV(ii,jj,kk) = r1[ii] ;          /* restore */
-      }
-   }
-
-   free(r1) ; return ;
-}
-
-/*---------------------------------------------------------------------------
-   Flip a 3D array about the (y,z) axes:
-     j <--> ny-1-j   k <--> nz-1-k
------------------------------------------------------------------------------*/
-
-static void flip_yz( int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   int ii,jj,kk ;
-   int nx1=nx-1,nx2=nx/2, ny1=ny-1,ny2=ny/2, nz1=nz-1,nz2=nz/2, nxy=nx*ny ;
-   byte * r1 ;
-
-   r1 = (byte *) malloc(ny) ;
-
-   for( ii=0 ; ii < nx ; ii++ ){
-      for( kk=0 ; kk < nz2 ; kk++ ){
-         if( TM_YLINE(tm,kk+ii*nz) || TM_YLINE(tm,SZ(kk)+ii*nz) ){
-            for( jj=0; jj < ny; jj++ ) r1[jj]           = VV(ii,SY(jj),SZ(kk)) ;
-            for( jj=0; jj < ny; jj++ ) VV(ii,jj,SZ(kk)) = VV(ii,SY(jj),kk    ) ;
-            for( jj=0; jj < ny; jj++ ) VV(ii,jj,kk    ) = r1[jj] ;
-         }
-      }
-      if( nz%2 == 1 && TM_YLINE(tm,kk+ii*nz) ){
-         for( jj=0; jj < ny; jj++ ) r1[jj]       = VV(ii,SY(jj),kk) ;
-         for( jj=0; jj < ny; jj++ ) VV(ii,jj,kk) = r1[jj] ;
-      }
-   }
-
-   free(r1) ; return ;
-}
-
-/*---------------------------------------------------------------------------
-   Flip a 3D array about the (x,z) axes:
-     i <--> nx-1-i   k <--> nz-1-k
------------------------------------------------------------------------------*/
-
-static void flip_xz( int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   int ii,jj,kk ;
-   int nx1=nx-1,nx2=nx/2, ny1=ny-1,ny2=ny/2, nz1=nz-1,nz2=nz/2, nxy=nx*ny ;
-   byte * r1 ;
-
-   r1 = (byte *) malloc(nx) ;
-
-   for( jj=0 ; jj < ny ; jj++ ){
-      for( kk=0 ; kk < nz2 ; kk++ ){
-         if( TM_XLINE(tm,jj+kk*ny) || TM_XLINE(tm,jj+SZ(kk)*ny) ){
-            for( ii=0; ii < nx; ii++ ) r1[ii]           = VV(SX(ii),jj,SZ(kk)) ;
-            for( ii=0; ii < nx; ii++ ) VV(ii,jj,SZ(kk)) = VV(SX(ii),jj,kk    ) ;
-            for( ii=0; ii < nx; ii++ ) VV(ii,jj,kk    ) = r1[ii] ;
-         }
-      }
-      if( nz%2 == 1 && TM_XLINE(tm,jj+kk*ny) ){
-         for( ii=0; ii < nx; ii++ ) r1[ii]       = VV(SX(ii),jj,kk) ;
-         for( ii=0; ii < nx; ii++ ) VV(ii,jj,kk) = r1[ii] ;
-      }
-   }
-
-   free(r1) ; return ;
-}
-
-/*---------------------------------------------------------------------------
-   Apply an x-axis shear to a 3D array: x -> x + a*y + b*z + s
-   (dilation factor "f" assumed to be 1.0)
------------------------------------------------------------------------------*/
-
-static void apply_xshear( float a , float b , float s ,
-                          int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   byte * fj0 ;
-   int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
-   float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk ;
-   float st ;
-
-   /* don't do anything if shift is too small */
-
-   st = fabs(a)*ny2 + fabs(b)*nz2 + fabs(s); if( st < TSBOT ) return ;
-
-   for( kk=0 ; kk < nz ; kk++ ){
-     for( jj=0 ; jj < ny ; jj++ )
-       if( TM_XLINE(tm,jj+kk*ny) )
-         ts_shift_byte( nx, a*(jj-ny2)+b*(kk-nz2)+s, v+(jj*nx+kk*nxy) );
-   }
-
-   return ;
-}
-
-/*---------------------------------------------------------------------------
-   Apply a y-axis shear to a 3D array: y -> y + a*x + b*z + s
------------------------------------------------------------------------------*/
-
-static void apply_yshear( float a , float b , float s ,
-                          int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   byte * fj0 ;
-   int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
-   float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk ;
-   float st ;
-   int xnum , xx , xtop , *wk ;
-
-   /* don't do anything if shift is too small */
-
-   st = fabs(a)*nx2 + fabs(b)*nz2 + fabs(s) ; if( st < TSBOT ) return ;
-
-   xnum = CACHE / (ny) ; if( xnum < 1 ) xnum = 1 ;
-   fj0 = (byte *) malloc( xnum*ny ) ;
-   wk  = (int *)   malloc( sizeof(int)*xnum ) ;
-
-   for( kk=0 ; kk < nz ; kk++ ){
-     for( ii=0 ; ii < nx ; ii+=xnum ){
-       xtop = MIN(nx-ii,xnum) ;
-       for( xx=0 ; xx < xtop ; xx++ )
-         wk[xx] = fabs(a*(ii+xx-nx2)+b*(kk-nz2)+s) > TSBOT
-                  && TM_YLINE(tm,kk+(ii+xx)*nz) ;
-       for( jj=0; jj < ny; jj++ )
-         for( xx=0 ; xx < xtop ; xx++ )
-           if( wk[xx] ) fj0[jj+xx*ny] = VV(ii+xx,jj,kk) ;
-       for( xx=0 ; xx < xtop ; xx++ )
-         if( wk[xx] )
-          wk[xx] = ts_shift_byte(ny, a*(ii+xx-nx2)+b*(kk-nz2)+s, fj0+xx*ny);
-       for( jj=0; jj < ny; jj++ )
-         for( xx=0 ; xx < xtop ; xx++ )
-           if( wk[xx] ) VV(ii+xx,jj,kk) = fj0[jj+xx*ny] ;
-     }
-   }
-
-   free(wk) ; free(fj0) ; return ;
-}
-
-/*---------------------------------------------------------------------------
-   Apply a z-axis shear to a 3D array: z -> z + a*x + b*y + s
------------------------------------------------------------------------------*/
-
-static void apply_zshear( float a , float b , float s ,
-                          int nx , int ny , int nz , byte * v , Tmask * tm )
-{
-   byte * fj0 ;
-   int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
-   float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk ;
-   float st ;
-   int xnum , xx , xtop , *wk ;
-
-   /* don't do anything if shift is too small */
-
-   st = fabs(a)*nx2 + fabs(b)*ny2 + fabs(s) ; if( st < TSBOT ) return ;
-
-   xnum = CACHE / (nz) ; if( xnum < 1 ) xnum = 1 ;
-   fj0 = (byte *) malloc( xnum*nz ) ;
-   wk  = (int *)   malloc( sizeof(int)*xnum ) ;
-
-   for( jj=0 ; jj < ny ; jj++ ){
-     for( ii=0 ; ii < nx ; ii+=xnum ){
-       xtop = MIN(nx-ii,xnum) ;
-       for( xx=0 ; xx < xtop ; xx++ )
-          wk[xx] = fabs(a*(ii+xx-nx2)+b*(jj-ny2)+s) > TSBOT
-                   && TM_ZLINE(tm,ii+jj*nx+xx) ;
-       for( kk=0; kk < nz; kk++ )
-         for( xx=0 ; xx < xtop ; xx++ )
-           if( wk[xx] ) fj0[kk+xx*nz] = VV(ii+xx,jj,kk) ;
-       for( xx=0 ; xx < xtop ; xx++ )
-         if( wk[xx] )
-          wk[xx] = ts_shift_byte(nz, a*(ii+xx-nx2)+b*(jj-ny2)+s, fj0+xx*nz);
-       for( kk=0; kk < nz; kk++ )
-         for( xx=0 ; xx < xtop ; xx++ )
-           if( wk[xx] ) VV(ii+xx,jj,kk) = fj0[kk+xx*nz] ;
-     }
-   }
-
-   free(wk) ; free(fj0) ; return ;
-}
-
-/*---------------------------------------------------------------------------
-   Apply a set of shears to a 3D array of bytes.
-   Note that we assume that the dilation factors ("f") are all 1.
------------------------------------------------------------------------------*/
-
-static void apply_3shear( MCW_3shear shr ,
-                          int nx, int ny, int nz, byte * vol , Tmask * tm )
-{
-   int qq ;
-   float a , b , s ;
-
-   if( ! ISVALID_3SHEAR(shr) ) return ;
-
-   /* carry out a preliminary 180 flippo ? */
-
-   if( shr.flip0 >= 0 ){
-      switch( shr.flip0 + shr.flip1 ){
-         case 1: flip_xy( nx,ny,nz,vol,tm ) ; break ;
-         case 2: flip_xz( nx,ny,nz,vol,tm ) ; break ;
-         case 3: flip_yz( nx,ny,nz,vol,tm ) ; break ;
-      }
-      tm = NULL ;  /* can't use twice */
-   }
-
-   /* apply each shear */
-
-   for( qq=0 ; qq < 4 ; qq++ ){
-      switch( shr.ax[qq] ){
-         case 0:
-            a = shr.scl[qq][1] ;
-            b = shr.scl[qq][2] ;
-            s = shr.sft[qq]    ;
-            apply_xshear( a,b,s , nx,ny,nz , vol , tm ) ;
-         break ;
-
-         case 1:
-            a = shr.scl[qq][0] ;
-            b = shr.scl[qq][2] ;
-            s = shr.sft[qq]    ;
-            apply_yshear( a,b,s , nx,ny,nz , vol , tm ) ;
-         break ;
-
-         case 2:
-            a = shr.scl[qq][0] ;
-            b = shr.scl[qq][1] ;
-            s = shr.sft[qq]    ;
-            apply_zshear( a,b,s , nx,ny,nz , vol , tm ) ;
-         break ;
-      }
-
-      tm = NULL ;  /* can't use twice */
-   }
-
-   return ;
-}
-
-/*---------------------------------------------------------------------------
-  Rotate and translate a 3D volume.
------------------------------------------------------------------------------*/
-
-static void CREN_rotate(int   nx   , int   ny   , int   nz   ,
-                        float xdel , float ydel , float zdel , byte * vol ,
-                        int ax1,float th1, int ax2,float th2, int ax3,float th3,
-                        int dcode , float dx , float dy , float dz , Tmask * tm )
-{
-   MCW_3shear shr ;
-
-   if( nx < 2 || ny < 2 || nz < 2 || vol == NULL ) return ;
-
-   if( xdel == 0.0 ) xdel = 1.0 ;
-   if( ydel == 0.0 ) ydel = 1.0 ;
-   if( zdel == 0.0 ) zdel = 1.0 ;
-
-   if( th1 == 0.0 && th2 == 0.0 && th3 == 0.0 ){  /* nudge rotation */
-      th1 = 1.e-6 ; th2 = 1.1e-6 ; th3 = 0.9e-6 ;
-   }
-
-   shr = rot_to_shear( ax1,-th1 , ax2,-th2 , ax3,-th3 ,
-                       dcode,dx,dy,dz , xdel,ydel,zdel ) ;
-
-   if( ! ISVALID_3SHEAR(shr) ){
-      fprintf(stderr,"*** CREN_rotate: can't compute shear transformation!\n") ;
-      return ;
-   }
-
-   /*****************************************/
-
-   apply_3shear( shr , nx,ny,nz , vol , tm ) ;
-
-   /*****************************************/
-
-   return ;
-}

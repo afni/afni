@@ -30,7 +30,7 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
-Revision 1.11  2000/11/29 01:31:29  cox
+Revision 1.12  2000/12/11 18:59:32  cox
 AFNI
 
 Revision 1.3  1997/11/06 16:26:48  cox
@@ -96,6 +96,7 @@ $log
   Modified by RWCox of MCW, to draw a rectangle around the text,
   and to make the widget popup on screen if it would go off.
   These changes can be found by searching for the string "RWC".
+  These modifications are released to the public domain.
 *******************************************************************/
 
 #include <unistd.h>

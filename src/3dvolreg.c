@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #include "mrilib.h"
 #include <string.h>
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 /******* global data *******/
 
@@ -24,6 +25,15 @@ static MRI_IMAGE * VL_imwt   = NULL ;
 
 static int         VL_twopass= 0 ;    /* 11 Sep 2000 */
 static float       VL_twoblur= 2.0 ;
+static int         VL_twosum = 1 ;    /* 08 Dec 2000 */
+static int         VL_twodup = 0 ;
+static float       VL_bxorg, VL_byorg, VL_bzorg ;
+
+static float       VL_edging ;        /* 10 Dec 2000 */
+static int         VL_edperc=-1 ;
+
+static int         VL_coarse_del=10 ; /* 11 Dec 2000 */
+static int         VL_coarse_num=2  ;
 
 static THD_3dim_dataset * VL_dset = NULL ;
 
@@ -43,6 +53,12 @@ static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
 
 void VL_syntax(void) ;
 void VL_command_line(void) ;
+
+float voldif( int nx, int ny, int nz, float *b,
+              int dx, int dy, int dz, float *v, int edge ) ;
+
+void get_best_shift( int nx, int ny, int nz,
+                     float *b, float *v , int *dxp , int *dyp , int *dzp ) ;
 
 /*--------------------------------------------------------------------*/
 
@@ -177,8 +193,6 @@ int main( int argc , char *argv[] )
 
    /*-- initialize the registration algorithm --*/
 
-   if( VL_verbose ) fprintf(stderr,"++ Initializing alignment base\n") ;
-
    if( VL_imbase == NULL ){
       VL_imbase = mri_to_float(DSET_BRICK(VL_dset,VL_nbase)) ; /* copy this */
    } else {
@@ -190,12 +204,34 @@ int main( int argc , char *argv[] )
    VL_imbase->dz = fabs( DSET_DZ(VL_dset) ) ;
    imb = MRI_FLOAT_PTR( VL_imbase ) ;          /* need this to compute rms */
 
-   /*--- 11 Sep 2000: if in twopass mode, do the first pass ---*/
-
    nx = DSET_NX(VL_dset) ; ny = DSET_NY(VL_dset) ; nz = DSET_NZ(VL_dset) ;
+
+   /*-- 10 Dec 2000: set edging in the alignment function --*/
+
+   { int xf=0,yf=0,zf=0 ;
+     switch( VL_edperc ){
+        case 0:
+           xf = (int)( MIN(0.25*nx,VL_edging) ) ;
+           yf = (int)( MIN(0.25*ny,VL_edging) ) ;
+           zf = (int)( MIN(0.25*nz,VL_edging) ) ;
+        break ;
+
+        case 1:
+           xf = (int)( 0.01*VL_edging*nx + 0.5 ) ;
+           yf = (int)( 0.01*VL_edging*ny + 0.5 ) ;
+           zf = (int)( 0.01*VL_edging*nz + 0.5 ) ;
+        break ;
+     }
+     mri_3dalign_edging(xf,yf,zf) ;
+     if( VL_verbose )
+        fprintf(stderr,"++ Edging: x=%d y=%d z=%d\n",xf,yf,zf) ;
+   }
+
+   /*--- 11 Sep 2000: if in twopass mode, do the first pass ---*/
 
    if( VL_twopass ){
       MRI_IMAGE * tp_base ;
+      int sx=66666,sy,sz ;
 
       if( VL_verbose ){
          fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n") ;
@@ -208,7 +244,8 @@ int main( int argc , char *argv[] )
                            MRI_float , MRI_FLOAT_PTR(tp_base) ,
                            VL_twoblur,VL_twoblur,VL_twoblur ) ;
 
-      mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_twoblur*VL_del ,
+      mri_3dalign_params( VL_maxite ,
+                          VL_twoblur*VL_dxy, VL_twoblur*VL_dph, VL_twoblur*VL_del,
                           abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
 
                                               /* no reg | */
@@ -216,15 +253,79 @@ int main( int argc , char *argv[] )
 
       mri_3dalign_method( MRI_LINEAR , (VL_verbose>1) , 1 , 0 ) ;
 
-      albase = mri_3dalign_setup( tp_base , VL_imwt ) ;
+      /* 08 Dec 2000: (perhaps) compute the weight as the blurred
+                      average of the base and the 1st data brick  */
+
+      if( VL_imwt != NULL || !VL_twosum || VL_imbase == DSET_BRICK(VL_dset,0) ){
+
+         albase = mri_3dalign_setup( tp_base , VL_imwt ) ;
+
+      } else {
+
+         float *far , *bar=MRI_FLOAT_PTR(tp_base) , *qar ;
+         int ii,jj,kk , nxy=nx*ny , nxyz=nxy*nz ;
+         int nxbot,nxtop,nybot,nytop,nzbot,nztop , ee,fade,ff ;
+
+         if( VL_verbose )
+           fprintf(stderr,"++ Computing first pass weight as sum of base and brick\n") ;
+
+         fim = mri_to_float( DSET_BRICK(VL_dset,0) ) ; /* 1st data brick */
+         far = MRI_FLOAT_PTR(fim) ;
+         EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 , /* blur it */
+                              MRI_float , far ,
+                              VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+         /* find shift of 1st data brick that best overlaps with base brick */
+
+         if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
+            if( VL_verbose ) fprintf(stderr,"++ Getting best coarse shift:") ;
+            get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
+            if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+         } else {
+            sx = sy = sz = 0 ;
+         }
+
+#define BAR(i,j,k) bar[(i)+(j)*nx+(k)*nxy]
+#define QAR(i,j,k) qar[(i)+(j)*nx+(k)*nxy]
+#define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]
+
+         /* add the blurred+shifted data brick to the blurred base brick */
+
+         qim = mri_copy(tp_base) ; qar = MRI_FLOAT_PTR(qim) ;
+
+         ee = abs(sx) ; nxbot = ee ; nxtop = nx-ee ;
+         ee = abs(sy) ; nybot = ee ; nytop = ny-ee ;
+         ee = abs(sz) ; nzbot = ee ; nztop = nz-ee ;
+
+         for( kk=nztop ; kk < nztop ; kk++ )
+            for( jj=nybot ; jj < nytop ; jj++ )
+               for( ii=nxbot ; ii < nxtop ; ii++ )
+                  QAR(ii,jj,kk) += FAR(ii-sx,jj-sy,kk-sz) ;
+
+         mri_free(fim) ;
+
+         /* blur the sum to get the weight brick */
+
+         if( VL_verbose )
+           fprintf(stderr,"++ Blurring first pass weight\n") ;
+
+         EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
+                              MRI_float , qar ,
+                              VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+         mri_3dalign_force_edging( 1 ) ;
+         albase = mri_3dalign_setup( tp_base , qim ) ;
+         mri_3dalign_force_edging( 0 ) ;
+         mri_free(qim) ;
+      }
+
+      /* check if base was computed correctly */
 
       if( albase == NULL ){
          fprintf(stderr,
                  "*** Can't initialize first pass alignment algorithm\n");
          exit(1);
       }
-
-      mri_free( tp_base ) ;  /* no longer needed (copied into albase) */
 
       dx_1    = (float *) malloc( sizeof(float) * imcount ) ;
       dy_1    = (float *) malloc( sizeof(float) * imcount ) ;
@@ -244,11 +345,27 @@ int main( int argc , char *argv[] )
          fim->dy = fabs( DSET_DY(VL_dset) ) ;
          fim->dz = fabs( DSET_DZ(VL_dset) ) ;
 
-         EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
-                              MRI_float , MRI_FLOAT_PTR(fim) ,
-                              VL_twoblur,VL_twoblur,VL_twoblur ) ;
-
          if( kim != VL_nbase ){ /* 16 Nov 1998: don't register to base image */
+
+             EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
+                                  MRI_float , MRI_FLOAT_PTR(fim) ,
+                                  VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+            if( kim > 0 || sx == 66666 ){  /* if didn't already get best shift */
+               if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
+                  if( VL_verbose )
+                     fprintf(stderr,"++ Getting best coarse shift:") ;
+                  get_best_shift( nx,ny,nz , MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
+                                  &sx,&sy,&sz ) ;
+                  if( VL_verbose )
+                     fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+               } else {
+                  sx = sy = sz = 0 ;
+               }
+            }
+
+            mri_3dalign_initvals( 0.0 , 0.0 , 0.0 ,
+                                  sx*fim->dx , sy*fim->dy , sz*fim->dz ) ;
 
             (void) mri_3dalign_one( albase , fim ,
                                     roll_1+kim , pitch_1+kim , yaw_1+kim ,
@@ -270,7 +387,7 @@ int main( int argc , char *argv[] )
          mri_free(fim) ;
       }
 
-      mri_3dalign_cleanup( albase ) ;
+      mri_3dalign_cleanup( albase ) ; mri_free( tp_base ) ;
 
       if( VL_verbose ){
          cputim = COX_cpu_time() - cputim ;
@@ -281,6 +398,8 @@ int main( int argc , char *argv[] )
 
    /*-----------------------------------*/
    /*-- prepare for (final) alignment --*/
+
+   if( VL_verbose ) fprintf(stderr,"++ Initializing alignment base\n") ;
 
    mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
                        abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
@@ -487,6 +606,14 @@ int main( int argc , char *argv[] )
       free(str) ;
    }
 
+   /*-- 08 Dec 2000: execute -twodup? --*/
+
+   if( VL_twodup ){
+      new_dset->daxes->xxorg = VL_bxorg ;
+      new_dset->daxes->yyorg = VL_byorg ;
+      new_dset->daxes->zzorg = VL_bzorg ;
+   }
+
    /*-- save new dataset to disk --*/
 
    DSET_write(new_dset) ;
@@ -524,6 +651,7 @@ int main( int argc , char *argv[] )
    }
 
    if( VL_rotcom ){ /* 04 Sep 2000 */
+
       printf("\n3drotate fragment%s:\n\n", (imcount > 1)? "s" : "" ) ;
       for( kim=0 ; kim < imcount ; kim++ ){
          printf("3drotate %s" , modes[VL_final] ) ;
@@ -531,6 +659,7 @@ int main( int argc , char *argv[] )
          printf(" -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
                  roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
       }
+      printf("\n") ;  /* 11 Dec 2000 */
    }
 
    exit(0) ;
@@ -624,38 +753,83 @@ void VL_syntax(void)
     "                                  strings 'cubic', 'quintic', 'heptic', or\n"
     "                                  'Fourier'\n"
     "                                  [default=mode used to estimate parameters].\n"
-    "            -weight 'wset[n]' = Set the weighting applyed to each voxel\n"
+    "            -weight 'wset[n]' = Set the weighting applied to each voxel\n"
     "                                  proportional to the brick specified here\n"
     "                                  [default=smoothed base brick].\n"
+    "                                N.B.: if no weight is given, and -twopass is\n"
+    "                                  engaged, then the first pass weight is the\n"
+    "                                  blurred sum of the base brick and the first\n"
+    "                                  data brick to be registered.\n"
+    "                   -edging ee = Set the size of the region around the edges of\n"
+    "                                  the base volume where the default weight will\n"
+    "                                  be set to zero.  If 'ee' is a plain number,\n"
+    "                                  then it is a voxel count, giving the thickness\n"
+    "                                  along each face of the 3D brick.  If 'ee' is\n"
+    "                                  of the form '5%%', then it is a fraction of\n"
+    "                                  of each brick size.  For example, '5%%' of\n"
+    "                                  a 256x256x124 volume means that 13 voxels\n"
+    "                                  on each side of the xy-axes will get zero\n"
+    "                                  weight, and 6 along the z-axis.  If this\n"
+    "                                  option is not used, then 'ee' is read from\n"
+    "                                  the environment variable AFNI_VOLREG_EDGING.\n"
+    "                                  If that variable is not set, then 5%% is used.\n"
+    "                                N.B.: This option has NO effect if the -weight\n"
+    "                                  option is used.\n"
+    "                                N.B.: The largest %% value allowed is 25%%.\n"
     "                     -twopass = Do two passes of the registration algorithm:\n"
     "                                 (1) with smoothed base and data bricks, with\n"
     "                                     linear interpolation, to get a crude\n"
     "                                     alignment, then\n"
     "                                 (2) with the input base and data bricks, to\n"
     "                                     get a fine alignment.\n"
-    "                                This method is useful when aligning high-\n"
-    "                                resolution datasets that may need to be\n"
-    "                                moved more than a few voxels to be aligned.\n"
+    "                                  This method is useful when aligning high-\n"
+    "                                  resolution datasets that may need to be\n"
+    "                                  moved more than a few voxels to be aligned.\n"
     "                  -twoblur bb = 'bb' is the blurring factor for pass 1 of\n"
-    "                                the -twopass registration.  This should be\n"
-    "                                a number >= 2.0 (which is the default).\n"
-    "                                Larger values would be reasonable if pass 1\n"
-    "                                has to move the input dataset a long ways.\n"
-    "                                Use '-verbose -verbose' to check on the\n"
-    "                                iterative progress of the passes.\n"
+    "                                  the -twopass registration.  This should be\n"
+    "                                  a number >= 2.0 (which is the default).\n"
+    "                                  Larger values would be reasonable if pass 1\n"
+    "                                  has to move the input dataset a long ways.\n"
+    "                                  Use '-verbose -verbose' to check on the\n"
+    "                                  iterative progress of the passes.\n"
+    "                                N.B.: when using -twopass, and you expect the\n"
+    "                                  data bricks to move a long ways, you might\n"
+    "                                  want to use '-heptic -clipit' rather than\n"
+    "                                  the default '-Fourier', since you can get\n"
+    "                                  wraparound from Fourier interpolation.\n"
+    "                      -twodup = If this option is set, along with -twopass,\n"
+    "                                  then the output dataset will have its\n"
+    "                                  xyz-axes origins reset to those of the\n"
+    "                                  base dataset.  This is equivalent to using\n"
+    "                                  '3drefit -duporigin' on the output dataset.\n"
+    "              -coarse del num = When doing the first pass, the first step is\n"
+    "                                  to do a number of coarse shifts in order to\n"
+    "                                  find a starting point for the iterations.\n"
+    "                                  'del' is the size of these steps, in voxels;\n"
+    "                                  'num' is the number of these steps along\n"
+    "                                  each direction (+x,-x,+y,-y,+z,-z).  The\n"
+    "                                  default values are del=10 and num=2.  If\n"
+    "                                  you don't want this step performed, set\n"
+    "                                  num=0.  Note that the amount of computation\n"
+    "                                  grows as num**3, so don't increase num\n"
+    "                                  past 4, or the program will run forever!\n"
     "\n"
     " N.B.: * This program can consume VERY large quantities of memory.\n"
+    "          (Rule of thumb: 40 bytes per input voxel.)\n"
     "          Use of '-verbose -verbose' will show the amount of workspace,\n"
     "          and the steps used in each iteration.\n"
-    "       * Always check the results visually to make sure that the program\n"
+    "       * ALWAYS check the results visually to make sure that the program\n"
     "          wasn't trapped in a 'false optimum'.\n"
     "       * The default rotation threshold is reasonable for 64x64 images.\n"
     "          You may want to decrease it proportionally for larger datasets.\n"
-    "       * -twopass resets the -maxite parameter to 50; if you want to use\n"
+    "       * -twopass resets the -maxite parameter to 66; if you want to use\n"
     "          a different value, use -maxite AFTER the -twopass option.\n"
+    "       * The -twopass option can be slow - several CPU minutes for a\n"
+    "          256x256x124 volume is a typical run time.\n"
     "       * After registering high-resolution anatomicals, you may need to\n"
     "          set their origins in 3D space to match.  This can be done using\n"
-    "          the '-duporigin' option to program 3drefit.\n"
+    "          the '-duporigin' option to program 3drefit, or by using the\n"
+    "          '-twodup' option to this program.\n"
 
    , VL_maxite , VL_dxy , VL_dph , VL_del ) ;
 
@@ -729,7 +903,7 @@ void VL_command_line(void)
 
       if( strcmp(Argv[Iarg],"-twopass") == 0 ){ /* 11 Sep 2000 */
          VL_twopass++ ;
-         if( VL_maxite < 10 ) VL_maxite = 50 ;
+         if( VL_maxite < 10 ) VL_maxite = 66 ;
          Iarg++ ; continue ;
       }
 
@@ -873,7 +1047,39 @@ void VL_command_line(void)
           bdy = fabs(DSET_DY(bset)) ;  /* (14 Sep 2000)            */
           bdz = fabs(DSET_DZ(bset)) ;
           VL_imbase = mri_to_float( DSET_BRICK(bset,bb) ) ;  /* copy this */
+
+          VL_bxorg = bset->daxes->xxorg ;                    /* 08 Dec 2000 */
+          VL_byorg = bset->daxes->yyorg ;
+          VL_bzorg = bset->daxes->zzorg ;
+
           DSET_delete( bset ) ;                              /* toss this */
+        }
+        Iarg++ ; continue ;
+      }
+
+      /** 11 Dec 2000: -coarse **/
+
+      if( strcmp(Argv[Iarg],"-coarse") == 0 ){
+         VL_coarse_del = strtol(Argv[++Iarg],NULL,10) ;
+         VL_coarse_num = strtol(Argv[++Iarg],NULL,10) ;
+         Iarg++ ; continue ;
+      }
+
+      /** 10 Dec 2000: -edging **/
+
+      if( strcmp(Argv[Iarg],"-edging") == 0 ){
+        float ee ; char * eq ;
+        ee = strtod(Argv[++Iarg],&eq) ;
+        if( ee < 0 ){
+           fprintf(stderr,"*** Illegal value after -edging\n"); exit(1);
+        }
+        if( *eq == '%' ){
+           if( ee > 25.0 ){
+              fprintf(stderr,"*** Illegal percentage after -edging\n"); exit(1);
+           }
+           VL_edperc = 1 ; VL_edging = ee ;
+        } else {
+           VL_edperc = 0 ; VL_edging = ee ;
         }
         Iarg++ ; continue ;
       }
@@ -917,9 +1123,45 @@ void VL_command_line(void)
         Iarg++ ; continue ;
       }
 
+      /** 08 Dec 2000: -twodup **/
+
+      if( strcmp(Argv[Iarg],"-twodup") == 0 ){
+        VL_twodup++ ; Iarg++ ; continue ;
+      }
+
       /** get to here is bad news **/
 
       fprintf(stderr,"** Unknown option: %s\a\n",Argv[Iarg]) ; exit(1) ;
+   }
+
+   /*** 08 Dec 2000: check some twopass options ***/
+
+   if( VL_twodup ){
+      if( !VL_twopass || VL_intern ) VL_twodup == 0 ;
+   }
+
+   /*** 10 Dec 2000: if -edging not set, check environment ***/
+
+   if( VL_edperc < 0 ){
+      char *ef=my_getenv("AFNI_VOLREG_EDGING") , *eq ;
+      float ee ;
+
+      if( ef == NULL ){
+         VL_edperc = 1 ; VL_edging = 5.0 ;
+      } else {
+        ee = strtod(ef,&eq) ;
+        if( ee < 0 ){
+           fprintf(stderr,"*** Illegal value in AFNI_VOLREG_EDGING\n"); exit(1);
+        }
+        if( *eq == '%' ){
+           if( ee > 25.0 ){
+              fprintf(stderr,"*** Illegal percentage in AFNI_VOLREG_EDGING\n"); exit(1);
+           }
+           VL_edperc = 1 ; VL_edging = ee ;
+        } else {
+           VL_edperc = 0 ; VL_edging = ee ;
+        }
+      }
    }
 
    /*** Open the dataset to be registered ***/
@@ -992,4 +1234,72 @@ void VL_command_line(void)
    /*** done (we hope) ***/
 
    return ;
+}
+
+/*--------------------------------------------------------------------
+  Calculate
+                 (      [                                 2 ] )
+             min ( sum  [ {a v(i-dx,j-dy,k-dz) - b(i,j,k)}  ] )
+              a  (  ijk [                                   ] )
+
+  where the sum is taken over voxels at least 'edge' in from the edge.
+  'edge' must be bigger than max(|dx|,|dy|,|dz|).
+----------------------------------------------------------------------*/
+
+#define B(i,j,k) b[(i)+(j)*nx+(k)*nxy]
+#define V(i,j,k) v[(i)+(j)*nx+(k)*nxy]
+
+float voldif( int nx, int ny, int nz, float *b,
+              int dx, int dy, int dz, float *v, int edge )
+{
+   int nxy=nx*ny, nxtop=nx-edge, nytop=ny-edge, nztop=nz-edge , ii,jj,kk ;
+   float bbsum=0.0 , vvsum=0.0 , bvsum=0.0 , bb,vv ;
+
+   for( kk=edge ; kk < nztop ; kk++ ){
+      for( jj=edge ; jj < nytop ; jj++ ){
+         for( ii=edge ; ii < nxtop ; ii++ ){
+            bb = B(ii,jj,kk) ; vv = V(ii-dx,jj-dy,kk-dz) ;
+            bbsum += bb*bb ; vvsum += vv*vv ; bvsum += bb*vv ;
+         }
+      }
+   }
+
+   if( vvsum > 0.0 ) bbsum -= bvsum*bvsum/vvsum ;
+   return bbsum ;
+}
+
+/*---------------------------------------------------------------------
+  Do some shifts to find the best starting point for registration
+  (globals VL_coarse_del and VL_coarse_num control operations).
+-----------------------------------------------------------------------*/
+
+void get_best_shift( int nx, int ny, int nz,
+                     float *b, float *v ,
+                     int *dxp , int *dyp , int *dzp )
+{
+   int bdx=0 , bdy=0 , bdz=0 , dx,dy,dz , nxyz=nx*ny*nz ;
+   float bsum , sum ;
+
+   int shift = VL_coarse_del, numsh = VL_coarse_num,
+       shtop = shift*numsh  , edge  = shtop+shift  , sqtop = shtop*shtop ;
+
+   bsum = 0.0 ;
+   for( dx=0 ; dx < nxyz ; dx++ ) bsum += b[dx]*b[dx] ;
+
+   for( dz=-shtop ; dz <= shtop ; dz+=shift ){
+      for( dy=-shtop ; dy <= shtop ; dy+=shift ){
+         for( dx=-shtop ; dx <= shtop ; dx+=shift ){
+            if( dx*dx+dy*dy+dz*dz > sqtop ) continue ;
+            sum = voldif( nx,ny,nz , b , dx,dy,dz , v , edge ) ;
+            if( sum < bsum ){
+#if 0
+fprintf(stderr,"  get_best_shift: bsum=%g dx=%d dy=%d dz=%d\n",sum,dx,dy,dz) ;
+#endif
+               bsum = sum ; bdx = dx ; bdy = dy ; bdz = dz ;
+            }
+         }
+      }
+   }
+
+   *dxp = bdx ; *dyp = bdy ; *dzp = bdz ; return ;
 }

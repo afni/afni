@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
   This program calculates a functional image from an ANFI 3D+time data set, 
   by calculating the correlation between the image time series and one or
@@ -25,11 +31,6 @@
 
 
 */
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #define PROGRAM_NAME "3dfim"                         /* name of this program */
 #define PROGRAM_DATE "10 September 1999"         /* date of last program mod */
@@ -910,7 +911,6 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
 void Syntax( char *note )
 {
    static char *mesg[] = {
-   "Copyright  1996 Medical College of Wisconsin\n\n"
    "Program:   3dfim \n\n"
    "Purpose:   Calculate functional image from 3d+time data file. \n"
    "Usage:     3dfim  [-im1 num]  -input fname  -prefix name \n"

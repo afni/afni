@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This program takes bucket sub-bricks and creates a fim (fico, fitt, 
@@ -10,12 +16,6 @@
 
 */
 
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #define PROGRAM_NAME "3dbuc2fim"                     /* name of this program */
 #define LAST_MOD_DATE "18 March 1998"            /* date of last program mod */

@@ -1,12 +1,12 @@
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
 /**********************************************************************/
-/* MCW AFNI:                                                          */
-/*    Medical College of Wisconsin Analysis of Functional NeuroImages */
+/* GPL AFNI:                                                          */
+/*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
 /*         Biophysics Research Institute                              */
@@ -31,24 +31,26 @@
 #include "afni.h"
 
 #define ANNOUNCEMENT  \
-   "MCW AFNI: Analysis of Functional NeuroImages, by R.W. Cox (rwcox@mcw.edu)\n"  \
-   "version " VERSION ": Copyright Medical College of Wisconsin: " RELEASE "\n"        \
-   "Development supported by MCW funds and by NIH grants MH51358 & NS34798.\n"    \
-   "Clinical uses are not recommended, and have not been evaluated by the FDA.\n"
+ "  GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"  \
+ "  This is Version " VERSION " of " RELEASE"\n"                               \
+ "  ** This software was designed to be used only for research purposes. **\n" \
+ "  ** Clinical uses are not recommended, and have not been evaluated.   **\n" \
+ "  ** This software comes with no warranties of any kind whatsoever.    **\n"
 
 /* ----------------------------------- */
 #define USE_FRIENDS
 #ifdef USE_FRIENDS
 
 static char * afni_helptypes[] = {
-   "advice and help"     ,             /* mask =   1 */
-   "much encouragement"  ,             /* mask =   2 */
-   "many suggestions"    ,             /* mask =   4 */
-   "useful feedback"     ,             /* mask =   8 */
-   "`quick' questions"   ,             /* mask =  16 */
-   "inspiration"         ,             /* mask =  32 */
-   "great efforts"       ,             /* mask =  64 */
-   "caloric input"                     /* mask = 128 */
+   "advice and help"                ,  /* mask =   1 */
+   "much encouragement"             ,  /* mask =   2 */
+   "many suggestions"               ,  /* mask =   4 */
+   "useful feedback"                ,  /* mask =   8 */
+   "`quick' questions"              ,  /* mask =  16 */
+   "inspiration"                    ,  /* mask =  32 */
+   "great efforts"                  ,  /* mask =  64 */
+   "caloric input"                  ,  /* mask = 128 */
+   "awe-inspiring beer consumption"    /* mask = 256 */
 } ;
 
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
@@ -56,29 +58,31 @@ static char * afni_helptypes[] = {
 typedef struct { char * name ; int helpmask ; } AFNI_friend ;
 
 static AFNI_friend afni_friends[] = {
-  { "J.R. Binder"      , ( 1 |     4 | 8 | 16                 ) } ,
-  { "E.A. DeYoe"       , ( 1 |     4 | 8                      ) } ,
-  { "J.S. Hyde"        , ( 1 | 2              | 32            ) } ,
-  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           | 128 ) } ,
-  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128 ) } ,
-  { "A. Jesmanowicz"   , (             8 |      32            ) } ,
-  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128 ) } ,
-  { "M.M. Klosek"      , ( 1 | 2              | 32            ) } ,
-  { "J.A. Bobholz"     , (             8 | 16 | 32      | 128 ) } ,
-  { "J.A. Frost"       , (             8 | 16                 ) } ,
-  { "J. Kummer"        , (         4 | 8      | 32            ) } ,
-  { "B.D. Ward"        , (         4 | 8           | 64       ) } ,
-  { "K.M. Donahue"     , (                 16                 ) } ,
-  { "P.A. Bandettini"  , (                 16                 ) } ,
-  { "A.S. Bloom"       , ( 1 | 2         | 16                 ) } ,
-  { "T. Ross"          , (         4 | 8 | 16 | 32            ) } ,
-  { "H. Garavan"       , (         4 | 8 | 16                 ) } ,
-  { "S.J. Li"          , (     2                              ) } ,
-  { "Z. Saad"          , (     2 | 4 | 8 | 16                 ) } ,
-  { "K. Ropella"       , (     2                              ) } ,
-  { "B. Knutson"       , (                 16 |           128 ) } ,
-  { "B. Biswal"        , (                 16                 ) } ,
-  { "R.M. Birn"        , (             8 | 16 |           128 ) }
+  { "J.R. Binder"      , ( 1 |     4 | 8 | 16                       ) } ,
+  { "E.A. DeYoe"       , ( 1 |     4 | 8                            ) } ,
+  { "J.S. Hyde"        , ( 1 | 2              | 32                  ) } ,
+  { "S.M. Rao"         , ( 1 |     4 | 8 | 16           | 128       ) } ,
+  { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128       ) } ,
+  { "A. Jesmanowicz"   , (             8 |      32                  ) } ,
+  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128       ) } ,
+  { "M.M. Klosek"      , ( 1 | 2              | 32                  ) } ,
+  { "J.A. Bobholz"     , (             8 | 16 | 32      | 128       ) } ,
+  { "J.A. Frost"       , (             8 | 16                       ) } ,
+  { "J. Kummer"        , (         4 | 8      | 32                  ) } ,
+  { "B.D. Ward"        , (         4 | 8           | 64             ) } ,
+  { "K.M. Donahue"     , (                 16                       ) } ,
+  { "P.A. Bandettini"  , (                 16                       ) } ,
+  { "A.S. Bloom"       , ( 1 | 2         | 16                       ) } ,
+  { "T. Ross"          , (         4 | 8 | 16 | 32                  ) } ,
+  { "H. Garavan"       , (         4 | 8 | 16                 | 256 ) } ,
+  { "S.J. Li"          , (     2                                    ) } ,
+  { "Z. Saad"          , (     2 | 4 | 8 | 16                       ) } ,
+  { "K. Ropella"       , (     2                                    ) } ,
+  { "B. Knutson"       , (                 16 |           128       ) } ,
+  { "B. Biswal"        , (                 16                       ) } ,
+  { "R.M. Birn"        , (             8 | 16 |           128       ) } ,
+  { "V. Roopchansingh" , (         4 | 8 | 16                       ) } ,
+  { "J. Ratke"         , (                 16                       ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -958,6 +962,7 @@ int main( int argc , char * argv[] )
 
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
+   REPORT_PROGRESS( "\n" ) ;         /* 02 Dec 2000 */
    REPORT_PROGRESS( ANNOUNCEMENT ) ;
 
    /*------------ 29 Nov 1999: print out precompiled version -----------*/
@@ -990,7 +995,7 @@ int main( int argc , char * argv[] )
         nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
      } while( qq < 19 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
      sprintf( buf  ,
-              "Thanks go to %s for %s.\n" ,
+              "  Thanks go to %s for %s.\n\n" ,
               afni_friends[nf].name , afni_helptypes[nh] ) ;
      REPORT_PROGRESS( buf ) ;
 
@@ -1351,6 +1356,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
         /* this function will be called 1.234 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */
 
+        PICTURE_ON(MAIN_im3d) ;
         (void) XtAppAddTimeOut( MAIN_app , 1234 , AFNI_startup_timeout_CB , MAIN_im3d ) ;
 
         REPORT_PROGRESS("\n") ;
@@ -1479,6 +1485,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
    MCW_help_CB(NULL,NULL,NULL) ;  /* make sure help window is popped down */
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
+   PICTURE_OFF(im3d) ;
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
 }

@@ -1,10 +1,10 @@
-#include "mrilib.h"
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include "mrilib.h"
 
 #undef  AFNI_DEBUG
 #undef  CLUST_DEBUG
@@ -12,7 +12,6 @@
 #define ENTRY(x)  /* nada */
 #define EXRETURN  return
 #define RETURN(x) return(x)
-
 
 /*************************************************************************
   Routine to blur a 3D volume with a Gaussian, using FFTs.

@@ -1,11 +1,12 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #undef MAIN
 #include "afni_graph.h"
 #include "afni.h"
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
@@ -42,8 +43,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->fWIDE  = 0 ;
    grapher->fHIGH  = 0 ;
 
-   grapher->logo_pixmap = XmUNSPECIFIED_PIXMAP ;
-   grapher->logo_width  = grapher->logo_height = 0 ;
+   grapher->glogo_pixmap = XmUNSPECIFIED_PIXMAP ;
+   grapher->glogo_width  = grapher->glogo_height = 0 ;
 
    grapher->status = (MCW_grapher_status *) getser(0,graCR_getstatus,aux) ;
 
@@ -173,7 +174,7 @@ ENTRY("new_MCW_grapher") ;
                        "Button 3 in a sub-graph --> show statistics\n"
                        "                            of time series\n"
                        "\n"
-                       "To turn off the MCW AFNI logo, click Button 1\n"
+                       "To turn off the AFNI logo, click Button 1\n"
                        "inside the logo.\n"
                        "\n"
                        "See the 'Opt' menu for keypress actions and\n"
@@ -882,13 +883,13 @@ ENTRY("erase_fdw") ;
                    0 , 0 , grapher->fWIDE , grapher->fHIGH ) ;
 
    if( show_grapher_pixmap &&
-       grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP &&
-       grapher->logo_height > 0 && grapher->logo_width > 0 ){
+       grapher->glogo_pixmap != XmUNSPECIFIED_PIXMAP &&
+       grapher->glogo_height > 0 && grapher->glogo_width > 0 ){
 
       XCopyArea( grapher->dc->display ,
-                 grapher->logo_pixmap , grapher->fd_pxWind , grapher->dc->myGC ,
-                 0,0 , grapher->logo_width,grapher->logo_height ,
-                 0,grapher->fHIGH - grapher->logo_height + 1 ) ;
+                 grapher->glogo_pixmap , grapher->fd_pxWind , grapher->dc->myGC ,
+                 0,0 , grapher->glogo_width,grapher->glogo_height ,
+                 0,grapher->fHIGH - grapher->glogo_height + 1 ) ;
    }
 
    EXRETURN ;
@@ -2275,10 +2276,10 @@ STATUS("button press") ;
 
          /* Button 1 in pixmap logo = toggle on or off */
 
-         if( but == Button1                               &&
-             grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP &&
-             bx < grapher->logo_width                     &&
-             grapher->fHIGH - by < grapher->logo_height     ){
+         if( but == Button1                                &&
+             grapher->glogo_pixmap != XmUNSPECIFIED_PIXMAP &&
+             bx < grapher->glogo_width                     &&
+             grapher->fHIGH - by < grapher->glogo_height     ){
 
             show_grapher_pixmap = ! show_grapher_pixmap ;
 
@@ -2681,7 +2682,7 @@ STATUS(str); }
 
       case 'L':
          show_grapher_pixmap = ! show_grapher_pixmap ;
-         if( grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP )
+         if( grapher->glogo_pixmap != XmUNSPECIFIED_PIXMAP )
             redraw_graph( grapher , 0 ) ;
       break ;
 
@@ -3629,19 +3630,19 @@ STATUS("replacing ort timeseries") ;
          Window rret ;
 
          XtVaSetValues( grapher->fdw_graph , XmNiconPixmap , (Pixmap) drive_data , NULL ) ;
-         grapher->logo_pixmap = (Pixmap) drive_data ;
+         grapher->glogo_pixmap = (Pixmap) drive_data ;
 
          /* get geometry for later use */
 
-         if( grapher->logo_pixmap != XmUNSPECIFIED_PIXMAP ){
-            (void) XGetGeometry( grapher->dc->display , grapher->logo_pixmap ,
+         if( grapher->glogo_pixmap != XmUNSPECIFIED_PIXMAP ){
+            (void) XGetGeometry( grapher->dc->display , grapher->glogo_pixmap ,
                                  &rret , &xret , &yret , &wret , &hret , &bret , &dret ) ;
 
-            grapher->logo_width  = wret ;
-            grapher->logo_height = hret ;
+            grapher->glogo_width  = wret ;
+            grapher->glogo_height = hret ;
          } else {
-            grapher->logo_width  = 0 ;
-            grapher->logo_height = 0 ;
+            grapher->glogo_width  = 0 ;
+            grapher->glogo_height = 0 ;
          }
          RETURN( True ) ;
       }

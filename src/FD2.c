@@ -6,10 +6,10 @@
         Andre Jesmanowicz, 9-24-1992, Medical College of Wisconsin. */
 
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-
 
 #ifdef SPARKY
 #undef _POSIX_SOURCE
@@ -25,7 +25,7 @@
 #define ASC_NUL '\0'
 
 #ifndef COPYRIGHT_STRING
-#define COPYRIGHT_STRING "Copyright"
+#define COPYRIGHT_STRING "GPL Copyright"
 #endif
 
 #define MAIN
@@ -3842,7 +3842,7 @@ STATUS("   finished drawing T_name") ;
 #ifndef KILL_COPYRIGHT
    else {
       char * str_cpy1 = COPYRIGHT_STRING ;
-      char * str_cpy2 = " 1994 Medical College of Wisconsin" ;
+      char * str_cpy2 = " Medical College of Wisconsin" ;
       int wide1 , wide2 ;
 
       wide1 = XTextWidth( mfinfo , str_cpy1 , strlen(str_cpy1) ) ;

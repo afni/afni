@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This file contains routines for implementing the Simplex algorithm for 
@@ -16,10 +22,6 @@
   #define DIMENSION p    where p = number of parameters to be estimated
   #include "randgen.c"
   float calc_error (float * vertex);
-
-
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
 */
 
 

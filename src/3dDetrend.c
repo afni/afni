@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 #include "mrilib.h"
 #include "parser.h"
 
@@ -110,7 +116,7 @@ void DT_read_opts( int argc , char * argv[] )
          }
          ADDTO_IMARR(DT_imar,flim) ;
          if( DT_verb )
-            fprintf(stderr,"+++ Read in %d: rows=%d cols=%d\n",
+            fprintf(stderr,"+++ Read in %s: rows=%d cols=%d\n",
                            argv[nopt-1],flim->ny,flim->nx ) ;
          continue ;
       }

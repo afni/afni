@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #define FLOAT_TYPE double  /* as in thd_rot3d.c and thd_shear3d.c */
 #include "thd_shear3d.h"
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 /*-- prototypes for funcs at end of file --*/
 

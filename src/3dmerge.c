@@ -1,8 +1,7 @@
-
-
 /*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -20,11 +19,6 @@
   Author:  RWCox
   Date:    12 Nov 1998
 -----------------------------------------------------------------------------*/
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #define PROGRAM_NAME "3dmerge"                    /* name of this program */
 #define LAST_MOD_DATE "15 September 2000"         /* date of last program mod */
@@ -786,7 +780,7 @@ int main( int argc , char * argv[] )
    file_count = argc - first_file ;            /* number of datasets input */
 
    if( ! MRG_be_quiet )
-      printf("3dmerge: edit and combine 3D datasets, by R.W. Cox (rwcox@mcw.edu)\n") ;
+      printf("3dmerge: edit and combine 3D datasets, by RW Cox\n") ;
 
    if( first_file < 1 || first_file >= argc ){
       fprintf(stderr,"*** ILLEGAL COMMAND LINE ***\n") ; exit(1) ;

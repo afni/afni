@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+   
 /*******************************************************
  * 3dNotes                                             *
  * T. Ross 8/99                                        *
@@ -22,10 +28,12 @@ void Show_Help(void) {
    "-a   \"str\"   Add the string \"str\" to the list of notes.\n"
    "      Note that you can use the standard C escape codes,\n"
    "      \\n for newline \\t for tab, etc.\n"
-   "-h   \"str\"   Append the string \"str\" to the datasets history.  This\n"
+   "-h   \"str\"   Append the string \"str\" to the dataset's history.  This\n"
    "      can only appear once on the command line.  As this is added to the\n"
    "      history, it cannot easily be deleted.  But, the history is\n"
    "      propagated to the children of this dataset.\n"
+   "-HH  \"str\"   Replace any existing history note with \"str\".  This line\n"
+   "     cannot be used with '-h'.\n"               /* 09 Dec 2000 */
    "-d   num   deletes note number num.\n"
    "-help      Displays this screen.\n\n"
    "The default action, with no options, is to display the notes for the\n"
@@ -74,6 +82,7 @@ int main (int argc, char * argv[]) {
    char *notes[MAX_DSET_NOTES];
    char *history_note = NULL;
    int delnotes[MAX_DSET_NOTES], delindex, delnum;
+   int HH=0 ;  /* 09 Dec 2000 */
 
    if (argc == 1)   /* no file listed */
       Show_Help();
@@ -104,8 +113,19 @@ int main (int argc, char * argv[]) {
                                 Error_Exit("-h must be followed by a string");
                         if( history_note != NULL )
                            fprintf(stderr,
-                                   "*** Warning: multiple -history options!\n") ;
-                        history_note = argv[narg++];
+                                   "*** Warning: multiple -h options!\n") ;
+                        history_note = argv[narg++]; HH = 0 ;
+                        continue;
+                }
+
+                if( strncmp(argv[narg],"-HH",3) == 0 ) {  /* 09 Dec 2000 */
+                        narg++;
+                        if (narg==argc)
+                                Error_Exit("-HH must be followed by a string");
+                        if( history_note != NULL )
+                           fprintf(stderr,
+                                   "*** Warning: multiple -h options!\n") ;
+                        history_note = argv[narg++]; HH = 1 ;
                         continue;
                 }
 
@@ -149,8 +169,12 @@ int main (int argc, char * argv[]) {
       tross_Add_Note(dset, notes[i]);
    
    /* Append to the history */
-   if (history_note != NULL)
-   	tross_Append_History( dset, history_note);
+   if (history_note != NULL){
+        if( HH == 0 )
+           tross_Append_History( dset, history_note);
+        else
+           tross_Replace_History( dset, history_note);  /* 09 Dec 2000 */
+   }
 
    /* Display, if required */
    if ((curr_note == 0) && (curr_del == 0) && (history_note == NULL))

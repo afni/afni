@@ -1,10 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #include <stdio.h>
 #include <string.h>
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #undef IMSEQ_DEBUG
 
@@ -335,10 +336,10 @@ static char * ISQ_form_help =
      "* Image Sequence Display Module                *\n"
      "*                                              *\n"
      "* Copyright 1994, Medical College of Wisconsin *\n"
-     "*          -1998  Milwaukee, WI 53226-0509     *\n"
+     "*          -2000  Milwaukee, WI 53226-0509     *\n"
+     "* Released under the GPL (v2)                  *\n"
      "*                                              *\n"
-     "* Author:  Robert W. Cox, Ph.D                 *\n"
-     "* E-mail:  rwcox@mcw.edu                       *\n"
+     "* Author:  Robert W Cox, PhD                   *\n"
      "************************************************"   ;
 
 /*-- arrow definitions --*/

@@ -1,6 +1,11 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #undef MAIN
-#define WANT_MCW_BITMAP
-#undef  WANT_RWC_BITMAP
+#define WANT_LOGO_BITMAP
 #define WANT_AFNI_BITMAP
 #undef  USE_IMPIX
 
@@ -308,7 +313,7 @@ STATUS("creating top_form") ;
 
    /* create pixmaps, if desired */
 
-#if defined(WANT_MCW_BITMAP) || defined(WANT_RWC_BITMAP) || defined(WANT_AFNI_BITMAP)
+#if defined(WANT_LOGO_BITMAP) || defined(WANT_AFNI_BITMAP)
    {  Pixel bg_pix  , fg_pix  ;  /* colors: from control window */
       Pixel bot_pix , top_pix ;  /* colors: from image windows  */
 
@@ -328,24 +333,13 @@ STATUS("creating top_form") ;
       bot_pix = im3d->dc->pix_im[0] ;
       top_pix = im3d->dc->pix_im[im3d->dc->ncol_im-1] ;
 
-#ifdef WANT_MCW_BITMAP
-STATUS("WANT_MCW_BITMAP") ;
-      if( mcw_pixmap == XmUNSPECIFIED_PIXMAP )
-        mcw_pixmap = XCreatePixmapFromBitmapData(
+#ifdef WANT_LOGO_BITMAP
+STATUS("WANT_LOGO_BITMAP") ;
+      if( logo_pixmap == XmUNSPECIFIED_PIXMAP )
+        logo_pixmap = XCreatePixmapFromBitmapData(
                         XtDisplay(vwid->top_shell) ,
                         RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
-                        mcw_bits , mcw_width , mcw_height ,
-                        fg_pix , bg_pix ,
-                        DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
-#endif
-
-#ifdef WANT_RWC_BITMAP
-STATUS("WANT_RWC_BITMAP") ;
-      if( rwc_pixmap == XmUNSPECIFIED_PIXMAP )
-        rwc_pixmap = XCreatePixmapFromBitmapData(
-                        XtDisplay(vwid->top_shell) ,
-                        RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
-                        rwc_bits , rwc_width , rwc_height ,
+                        logo_bits , logo_width , logo_height ,
                         fg_pix , bg_pix ,
                         DefaultDepthOfScreen(XtScreen(vwid->top_shell)) ) ;
 #endif
@@ -3639,7 +3633,7 @@ STATUS("making prog->rowcol") ;
    vwid->picture       = NULL ;  /* default ==> no picture */
    vwid->picture_index = 0 ;
 
-#ifdef WANT_MCW_BITMAP
+#ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
       vwid->picture =
           XtVaCreateManagedWidget(
@@ -3653,10 +3647,10 @@ STATUS("making prog->rowcol") ;
                  XmNlabelType        , XmPIXMAP ,
                  XmNalignment        , XmALIGNMENT_CENTER ,
 #ifdef OLD_PICTURE
-                 XmNlabelInsensitivePixmap , mcw_pixmap ,
+                 XmNlabelInsensitivePixmap , logo_pixmap ,
 #endif
-                 XmNwidth        , mcw_width ,
-                 XmNheight       , mcw_height ,
+                 XmNwidth        , logo_width ,
+                 XmNheight       , logo_height ,
                  XmNmarginWidth  , 0 ,
                  XmNmarginHeight , 0 ,
                  XmNrecomputeSize, False ,
@@ -3919,7 +3913,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 
-   strcpy( im3d->window_title , "MCW AFNI" ) ;
+   strcpy( im3d->window_title , "GPL AFNI" ) ;
 
    if( shell != NULL ){
       im3d->vwid->top_shell = shell ;
@@ -4571,6 +4565,7 @@ ENTRY("AFNI_misc_button") ;
                              " Edit 2DChain      = Control 2DChain function\n"
 #endif
                              " Save Layout       = Save windows layout\n"
+                             " License Info      = GPL & Copyright notice\n"
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
@@ -4741,6 +4736,18 @@ ENTRY("AFNI_misc_button") ;
             "dialog" , xmSeparatorWidgetClass , menu ,
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
+
+   dmode->misc_license_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("License Info") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_license_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_license_pb,"Display GPL & Copyright Notice" );
 
    if( !ALLOW_real_time ){    /* 01 May 2000: only if not doing realtime */
       dmode->misc_vcheck_pb =

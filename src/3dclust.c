@@ -1,12 +1,13 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This program performs cluster detection in 3D datasets.
 */
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
 
@@ -113,7 +114,6 @@ int main( int argc , char * argv[] )
       printf ("Date:    %s \n", PROGRAM_DATE);
       printf ("\n");
       fprintf(stderr,
-          "Copyright 1994-9 Medical College of Wisconsin\n\n"
           "Simple-minded Cluster Detection in 3D Datasets\n"
           "Usage: 3dclust [editing options] [-summarize] [-verbose] rmm vmul dset ...\n"
           "  where rmm  = cluster connection radius (mm);\n"

@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
   This program generates a histogram for the input AFNI dataset.
 
@@ -5,12 +11,8 @@
          Added option to generate histogram for only those voxels which are
          above the operator specified threshold value.
 
+  Mod:   5 Dec 2000, by Vinai Roopchansingh, to include -mask option
 */
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +34,10 @@ static int     HI_tind  = -1 ;
 static int     HI_nomit = 0 ;
 static float * HI_omit  = NULL ;
 static int     HI_notit = 0 ;
+
+static byte  * HI_mask      = NULL ;
+static int     HI_mask_nvox = 0 ;
+static int     HI_mask_hits = 0 ;
 
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
@@ -86,6 +92,8 @@ int main( int argc , char * argv[] )
              "  -tind j   Means to take threshold from sub-brick 'j'\n"
              "  -omit x   Means to omit the value 'x' from the count.\n"
              "  -notit    Means to leave the title line off the output.\n"
+             "  -mask m   Means to use the dataset 'm' to determine which voxels in the test\n"
+	     "            dataset to include for the histogram\n"
              "\n"
              "The histogram is written to stdout.\n"
          ) ;
@@ -118,6 +126,9 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
+      if ( (HI_mask_nvox > 0) && (HI_mask_nvox != DSET_NVOX(dset)) )
+         HI_syntax("mask and input dataset bricks don't match in size!") ;
+
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
       THD_load_datablock( dset->dblk , NULL ) ;
       EDIT_one_dataset( dset , &HI_edopt ) ;
@@ -142,13 +153,13 @@ int main( int argc , char * argv[] )
       iv_thr = (HI_tind >= 0) ? HI_tind
                               : FUNC_ival_thr[dset->func_type] ;
 
-      if( iv_thr >= DSET_NVALS(dset) ){
+      if( HI_thr > 0.0 && iv_thr >= DSET_NVALS(dset) ){
          fprintf(stderr,"*** Sub-brick index %d out of range for dataset %s\n",
                  iv_thr , argv[iarg] ) ;
          continue ;
       }
 
-      if( iv_thr < 0 )
+      if( HI_thr == 0.0 || iv_thr < 0 )
 	{
 	  thr_type = ILLEGAL_TYPE ;
 	  thrfac   = 0.0 ;
@@ -190,7 +201,7 @@ int main( int argc , char * argv[] )
 	case MRI_byte:    bfim = (byte *)    vfim ; break ;
 	}
 
-      if( iv_thr >= 0 )
+      if( HI_thr > 0.0 && iv_thr >= 0 )
 	{
 	  vthr = DSET_ARRAY(dset,iv_thr) ;
 	  switch( thr_type )
@@ -238,7 +249,7 @@ int main( int argc , char * argv[] )
             df  = (ftop-fbot) / ((float)(nbin-1)) ;
             dfi = 1.0 / df ;
             for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP( fim[ii]*fimfac ) ){
+               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
                   kk = (int)( (fim[ii]-fbot)*dfi ) ;
                   fbin[kk]++ ;
                }
@@ -261,7 +272,7 @@ int main( int argc , char * argv[] )
             df  = (ftop-fbot) / ((float)(nbin-1)) ;
             dfi = 1.0 / df ;
             for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP( fim[ii]*fimfac ) ){
+               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
                   kk = (int)( (fim[ii]-fbot)*dfi ) ;
                   fbin[kk]++ ;
                }
@@ -282,9 +293,9 @@ int main( int argc , char * argv[] )
             df  = (ftop-fbot) / ((float)(nbin-1)) ;
             dfi = 1.0 / df ;
             for( ii=0 ; ii < nxyz ; ii++ ){
-               if( KEEP( fim[ii]*fimfac ) ){
-                  kk = (int)( (fim[ii]-fbot)*dfi ) ;
-                  fbin[kk]++ ;
+               if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
+                     kk = (int)( (fim[ii]-fbot)*dfi ) ;
+                     fbin[kk]++ ;
                }
             }
          }
@@ -589,6 +600,33 @@ void HI_read_opts( int argc , char * argv[] )
 	  HI_thr = val;
 	  nopt++;
 	  continue;
+	}
+
+	/* ----- -mask ----- */
+
+	if( strncmp(argv[nopt],"-mask",5) == 0 )
+	{
+	    THD_3dim_dataset * mset ; int ii,mc ;
+	    nopt++ ;
+
+	    if( nopt >= argc ) HI_syntax("need argument after -mask!") ;
+
+	    mset = THD_open_dataset( argv[nopt] ) ;
+	    if( mset == NULL ) HI_syntax("can't open -mask dataset!") ;
+	    HI_mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+	    if( HI_mask == NULL ) HI_syntax("can't use -mask dataset!") ;
+
+	    HI_mask_nvox = DSET_NVOX(mset) ;
+	    DSET_delete(mset) ;
+
+	    for( ii=mc=0 ; ii < HI_mask_nvox ; ii++ ) if( HI_mask[ii] ) mc++ ;
+
+	    if( mc == 0 ) HI_syntax("mask is all zeros!") ;
+
+	    printf("--- %d voxels in mask\n",mc) ;
+	    HI_mask_hits = mc ;
+	    nopt++ ; continue ;
+
 	}
 
       /**** unknown switch ****/

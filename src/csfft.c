@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 #undef STANDALONE  /* Define this if you want to use this code */
                    /* outside of the AFNI package (libmri.a).  */
 
@@ -56,11 +62,6 @@ static void fft_5dec( int , int , complex * ) ;
 
 #undef  RMAX
 #define RMAX 3   /* maximum levels of recursion for radix-3 and radix-5 */
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
 
 #undef  PI
 #define PI (3.141592653589793238462643)

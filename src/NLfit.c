@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*
   This file contains routines used by programs 3dNLfim, plug_nlfit, and
   3dTSgen for performing non-linear regression analysis of AFNI 3d+time 
@@ -34,14 +40,6 @@
   Date:     10 May 2000
 
 */
-
-
-
-/*****************************************************************************
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
-******************************************************************************/
-
 
 /*---------------------------------------------------------------------------*/
 
