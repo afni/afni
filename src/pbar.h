@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_PBAR_H_
 #define _MCW_PBAR_H_
 
@@ -97,5 +97,8 @@ void PBAR_set_bigmode( MCW_pbar *, int, float,float ) ;     /* 30 Jan 2003 */
 void PBAR_bigexpose_CB( Widget , XtPointer , XtPointer ) ;  /* 30 Jan 2003 */
 void PBAR_add_bigmap( char * , rgbyte * ) ;                 /* 31 Jan 2003 */
 void PBAR_read_bigmap( char *, MCW_DC * ) ;                 /* 01 Feb 2003 */
+void PBAR_make_bigmap( char *,
+                       int, float *, rgbyte *, MCW_DC * );  /* 02 Feb 2003 */
+
 
 #endif

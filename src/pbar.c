@@ -271,13 +271,59 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 
 /*-----------------------------------------------------------------------*/
 
+void PBAR_make_bigmap( char *name,
+                       int neq, float *val, rgbyte *col, MCW_DC *dc )
+{
+   int ii,jj ;
+   float fr,fg,top,bot,del,vv ;
+   rgbyte map[NPANE_BIG] ;
+
+   if( neq < 2 || val == NULL || col == NULL || dc == NULL ) return ;
+
+   /* bubble sort val,col pairs */
+
+   do{
+    for( jj=ii=0 ; ii < neq-1 ; ii++ ){
+     if( val[ii+1] > val[ii] ){
+       fr     = val[ii] ; val[ii] = val[ii+1] ; val[ii+1] = fr     ;
+       map[0] = col[ii] ; col[ii] = col[ii+1] ; col[ii+1] = map[0] ;
+       jj = 1 ;
+     }
+    }
+   } while(jj) ;
+
+   top = val[0] ; bot = val[neq-1] ; if( bot >= top ) return ;
+   del = (top-bot)/(NPANE_BIG-1) ;
+
+   for( jj=ii=0 ; ii < NPANE_BIG ; ii++ ){
+     vv = top - ii*del ;
+     for( ; jj < neq-1 ; jj++ )
+       if( vv <= val[jj] && vv >= val[jj+1] ) break ;
+     if( vv >= val[jj] ){
+       map[ii] = col[jj] ;
+     } else if( vv <= val[jj+1] ){
+       map[ii] = col[jj+1] ;
+     } else {
+       fr = (vv-val[jj+1])/(val[jj]-val[jj+1]) ;
+       fg = 1.0-fr ;
+       map[ii].r = (byte)(fr*col[jj].r + fg*col[jj+1].r + 0.5) ;
+       map[ii].g = (byte)(fr*col[jj].g + fg*col[jj+1].g + 0.5) ;
+       map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5) ;
+     }
+   }
+
+   PBAR_add_bigmap( name, map ) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 void PBAR_read_bigmap( char *fname , MCW_DC *dc )
 {
 #define NSBUF 128
   int ii , neq=0 , jj ;
-  char name[NSBUF], lhs[NSBUF],rhs[NSBUF], line[2*NSBUF] , *cpt ;
+  char name[NSBUF], lhs[NSBUF],rhs[NSBUF],mid[NSBUF],line[2*NSBUF] , *cpt ;
   float  val[NPANE_BIG] , fr,fg,fb , top,bot,del,vv ;
-  rgbyte col[NPANE_BIG] , map[NPANE_BIG] ;
+  rgbyte col[NPANE_BIG] ;
   FILE *fp ;
 
   if( fname == NULL || *fname == '\0' || dc == NULL ) return ;
@@ -297,15 +343,16 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
   while( neq < NPANE_BIG ){
     cpt = fgets( line , 2*NSBUF , fp ) ;
     if( cpt == NULL ) break ;              /* exit loop */
-    lhs[0] = rhs[0] = '\0' ;
-    sscanf(line,"%127s = %127s",lhs,rhs) ;
-    if( lhs[0] == '\0' || rhs[0] == '\0' ) continue ;
-    if( lhs[0] == '!'  || (lhs[0]=='/' && lhs[1]=='/') ) continue ;
+    lhs[0] = mid[0] = rhs[0] = '\0' ;
+    sscanf(line,"%127s %127s %127s",lhs,mid,rhs) ;
+    if( lhs[0]=='\0' || lhs[0]=='!' || (lhs[0]=='/' && lhs[1]=='/') ) continue;
     val[neq] = strtod(lhs,&cpt) ;
     if( val[neq] == 0.0 && *cpt != '\0' ){
       fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
     }
-    ii = DC_parse_color( dc , rhs , &fr,&fg,&fb ) ;
+    cpt = (mid[0] == '=') ? rhs : mid ;
+    if( *cpt == '\0' ) continue ;
+    ii = DC_parse_color( dc , cpt , &fr,&fg,&fb ) ;
     if( ii ){
       fprintf(stderr,"** %s: %s is bad colorname\n",fname,rhs); continue;
     }
@@ -313,41 +360,9 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
     col[neq].g = (byte)(255.0*fg+0.5) ;
     col[neq].b = (byte)(255.0*fb+0.5) ; neq++ ;
   }
-  fclose(fp) ; if( neq < 2 ) return ;
+  fclose(fp) ;
 
-  /* bubble sort val,col pairs */
-
-  do{
-   for( jj=ii=0 ; ii < neq-1 ; ii++ ){
-    if( val[ii+1] > val[ii] ){
-      fr     = val[ii] ; val[ii] = val[ii+1] ; val[ii+1] = fr     ;
-      map[0] = col[ii] ; col[ii] = col[ii+1] ; col[ii+1] = map[0] ;
-      jj = 1 ;
-    }
-   }
-  } while(jj) ;
-
-  top = val[0] ; bot = val[neq-1] ; if( bot >= top ) return ;
-  del = (top-bot)/(NPANE_BIG-1) ;
-
-  for( jj=ii=0 ; ii < NPANE_BIG ; ii++ ){
-    vv = top - ii*del ;
-    for( ; jj < neq-1 ; jj++ )
-      if( vv <= val[jj] && vv >= val[jj+1] ) break ;
-    if( vv >= val[jj] ){
-      map[ii] = col[jj] ;
-    } else if( vv <= val[jj+1] ){
-      map[ii] = col[jj+1] ;
-    } else {
-      fr = (vv-val[jj+1])/(val[jj]-val[jj+1]) ;
-      fg = 1.0-fr ;
-      map[ii].r = (byte)(fr*col[jj].r + fg*col[jj+1].r + 0.5) ;
-      map[ii].g = (byte)(fr*col[jj].g + fg*col[jj+1].g + 0.5) ;
-      map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5) ;
-    }
-  }
-
-  PBAR_add_bigmap( name, map ) ; return ;
+  PBAR_make_bigmap( name , neq, val, col, dc ) ; return ;
 }
 
 /*-----------------------------------------------------------------------*/
