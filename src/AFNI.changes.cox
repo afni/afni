@@ -5207,3 +5207,7 @@
 
 07 Sep 2004
  * Fixed some stuff in the -help output of afni.c.
+
+09 Sep 2004
+ * Modified afni_version.c to use TCP/IP to communicate with version
+     sub-process rather than shared memory.
