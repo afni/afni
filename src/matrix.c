@@ -620,6 +620,52 @@ matrix_sprint("matrix_inverse:",a) ;
 }
 
 
+/*---------------------------------------------------------------------------*/
+/*!
+  Use Gaussian elimination to calculate inverse of matrix a, with diagonal
+  scaling applied for stability.  Result is matrix ainv.
+*/
+
+int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
+{
+  matrix atmp;
+  register int i, j, n;
+  register double *diag ;
+  int mir ;
+
+  if (a.rows != a.cols)
+    matrix_error ("Illegal dimensions for matrix inversion");
+
+  matrix_initialize (&atmp);
+
+  n = a.rows;
+  matrix_equate (a, &atmp);
+  diag = (double *)malloc( sizeof(double)*n ) ;
+  for( i=0 ; i < n ; i++ ){
+    diag[i] = fabs(atmp.elts[i][i]) ;
+    if( diag[i] == 0.0l ) diag[i] = 1.0l ;  /* shouldn't happen? */
+    diag[i] = 1.0l / sqrt(diag[i]) ;
+  }
+
+  for( i=0 ; i < n ; i++ )                /* scale a */
+   for( j=0 ; j < n ; j++ )
+    atmp.elts[i][j] *= diag[i]*diag[j] ;
+
+  mir = matrix_inverse( atmp , ainv ) ;   /* invert */
+
+#if 0
+  for( i=0 ; i < n ; i++ ) diag[i] = 1.0/diag[i] ;
+#endif
+
+  for( i=0 ; i < n ; i++ )                /* scale inverse */
+   for( j=0 ; j < n ; j++ )
+     ainv->elts[i][j] *= diag[i]*diag[j] ;
+
+  matrix_destroy (&atmp); free((void *)diag) ;
+  flops += 4.0l*n*n + 4.0l*n ;
+  return (mir);
+}
+
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -1155,7 +1201,7 @@ double matrix_norm( matrix a )
      - The array should be free()-ed when you are done with it.
 -----------------------------------------------------------------------------*/
 
-int * matrix_check_columns( matrix a , double eps )
+int * matrix_check_columns( matrix a , double eps )  /* 14 Jul 2004 */
 {
    int i,j,k , rows=a.rows , cols=a.cols ;
    int *iar=NULL , nar=0 ;
@@ -1196,12 +1242,12 @@ int * matrix_check_columns( matrix a , double eps )
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Return the eigenvalues of matrix X-transpose X.
+/*! Return the eigenvalues of matrix X-transpose X, scaled to diagonal 1.
     The output points to a vector of doubles, of length X.cols.  This
     should be free()-ed when you are done with it.
 -----------------------------------------------------------------------------*/
 
-double * matrix_singvals( matrix X )
+double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
 {
    int i,j,k , M=X.rows , N=X.cols ;
    double *a , *e , sum ;
@@ -1211,14 +1257,20 @@ double * matrix_singvals( matrix X )
 
    for( i=0 ; i < N ; i++ ){
      for( j=0 ; j <= i ; j++ ){
-       sum = 0.0 ;
+       sum = 0.0l ;
        for( k=0 ; k < M ; k++ ) sum += X.elts[k][i] * X.elts[k][j] ;
        a[j+N*i] = sum ;
        if( j < i ) a[i+N*j] = sum ;
      }
    }
 
+   for( i=0 ; i < N ; i++ ) e[i] = 1.0l / sqrt(a[i+N*i]) ;
+   for( i=0 ; i < N ; i++ ){
+     for( j=0 ; j < N ; j++ ) a[j+N*i] *= e[i]*e[j] ;
+   }
+
    symeigval_double( N , a , e ) ;
    free( (void *)a ) ;
+   flops += (M+N+2.0l)*N*N ;
    return e ;
 }

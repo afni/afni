@@ -83,6 +83,9 @@
   Mod:     Increased size of screen output buffer (again).
   Date:    02 December 2002
 
+  Mod:     global variable legendre_polort replaces x^m with P_m(x)
+  Date     15 Jul 2004 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -92,6 +95,33 @@
 
 #include "RegAna.c"
 
+
+/*---------------------------------------------------------------------------*/
+static int legendre_polort = 0 ;  /* 15 Jul 2004 */
+
+double legendre( double x , int m )   /* un-normalized */
+{
+   if( m < 0 ) return 1.0l ;    /* bad input */
+
+   switch( m ){
+    case 0: return 1.0l ;
+    case 1: return x ;
+    case 2: return 3.0l*x*x-1.0l ;
+    case 3: return (5.0l*x*x-3.0l)*x ;
+    case 4: return (35.0l*x*x-30.0l)*x*x+3.0l ;
+    case 5: return ((63.0l*x*x-70.0l)*x*x+15.0l)*x ;
+    case 6: return ((231.0l*x*x-315.0l)*x*x+105.0l)*x*x-5.0l ;
+    case 7: return (((429.0l*x*x-693.0l)*x*x+315.0l)*x*x-35.0l)*x ;
+    case 8: return (((6435.0l*x*x-12012.0l)*x*x+6930.0l)*x*x-1260.0l)*x*x+35.0l;
+   }
+
+   /* order out of range: return Chebyshev instead (it's easy) */
+
+        if(  x >=  1.0l ) x = 0.0 ;
+   else if ( x <= -1.0l ) x = 3.14159265358979323846l ;
+   else                   x = acos(x) ;
+   return cos(m*x) ;
+}
 
 /*---------------------------------------------------------------------------*/
 /* 
@@ -150,9 +180,32 @@ int init_indep_var_matrix
 	{
 	  mfirst = ib * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
-	  for (m = mfirst;  m < mlast;  m++)
-	    x.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
+
+          if( !legendre_polort ){                /* the old way */
+	    for (m = mfirst;  m < mlast;  m++)
+	      x.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
+
+          } else {            /* 15 Jul 2004: the new way - RWCox */
+
+            double xx , aa=2.0l/(nlast-nfirst-1.0l) ;
+            for( m=mfirst ; m < mlast ; m++ ){
+              xx = aa*(n-nfirst) - 1.0l ;
+              x.elts[n][m] = legendre( xx , m-mfirst ) ;
+            }
+          }
 	}
+
+        /* 15 Jul 2004: normalize columns just created */
+
+        if( legendre_polort ){
+          double aa ;
+          for( m=mfirst ; m < mlast ; m++ ){
+            aa = 0.0l ;
+            for( n=nfirst ; n < nlast ; n++ ) aa += x.elts[n][m]*x.elts[n][m] ;
+            if( aa > 0.0 ) aa = 1.0l/sqrt(aa) ;
+            for( n=nfirst ; n < nlast ; n++ ) x.elts[n][m] *= aa ;
+          }
+        }
     }
 
 
